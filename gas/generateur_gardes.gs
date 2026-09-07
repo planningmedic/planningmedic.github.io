@@ -41,7 +41,7 @@
 // ⚠️ RÈGLE (détecteur de dérive dépôt↔Apps Script) : incrémenter cette version
 // à CHAQUE push de ce fichier. Le diagnostic (admin → Maintenance) compare la
 // version déployée ici avec celle du dépôt et signale toute recopie oubliée.
-const GAS_VERSION_GENERATEUR = '2026-09-05.1';
+const GAS_VERSION_GENERATEUR = '2026-09-07.1';
 
 /* (05/09/2026) INTERRUPTEUR DU NOUVEL ALGORITHME.
    À false, le générateur se comporte EXACTEMENT comme avant : c'est le retour
@@ -77,7 +77,7 @@ const MULTI_DEPART_SEUIL = 1;   // écart, en gardes, qui suffit à s'arrêter
 const LEX_SEUIL = 1;
 const LEX_POIDS = 600;
 
-const ARCHIVE_SS_ID = '1-QIYD2U7u41L_pV4wQGN6kDBDzFRHDdXRsHNrcSlvcE';
+const ARCHIVE_SS_ID = '1U66COnb0IvTvHMy-NOyy3KiLhpwuem3ffgbiw5Bs8Ag';
 // Dette inter-annuelle : STATS_GARDES_2026 sont des stats MANUELLES (échanges/dons)
 // → inexploitables. La dette ne lit qu'à partir de cette année (2027 = 1re année
 // générée proprement par l'algo). 2027 part donc en dette NEUTRE ; 1re vraie dette = 2028.

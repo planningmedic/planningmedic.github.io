@@ -183,7 +183,12 @@ V('la couverture prime dans le choix du tirage',
   /const cle = \[r\.sansBinome \|\| 0, nAu, pire\];/.test(SRC));
 V('le poids de l\'équité reste sous celui de la règle des week-ends',
   /const LEX_POIDS = 600;/.test(SRC));
-V('la version du fichier a été montée', /GAS_VERSION_GENERATEUR = '2026-09-05\.1'/.test(SRC));
+/* (07/09/2026) Même correction que dans banc_equite_certificat : un numéro exact
+   oblige à repasser ici à chaque montée de version, et fait échouer un lot qui
+   n'a rien changé au calcul. On contrôle que la version est postérieure au lot
+   de référence, pas qu'elle lui est égale. */
+V('la version du fichier a été montée',
+  (SRC.match(/GAS_VERSION_GENERATEUR = '(\d{4}-\d{2}-\d{2})\.\d+'/) || [, ''])[1] >= '2026-09-05');
 
 console.log('\n' + ok + ' OK · ' + ko + ' en échec');
 if (ko) process.exit(1);

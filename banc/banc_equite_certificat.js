@@ -220,10 +220,16 @@ V('le verdict d\'une ligne porte sur les six axes',
    Figer un numéro exact obligeait à revenir ici à chaque lot du fichier : on
    vérifie que la version est postérieure au lot du 6e axe, pas qu'elle lui est
    égale. */
+/* (07/09/2026) La leçon du 06/09 n'avait été appliquée qu'à miroir.gs : les deux
+   autres restaient figés au numéro exact, et la migration les a fait échouer alors
+   que rien de fonctionnel n'avait bougé. Les trois se contrôlent désormais pareil —
+   postérieurs au lot du 6e axe, pas égaux à lui. */
+const _dateGas = (src, nom) =>
+  (src.match(new RegExp("GAS_VERSION_" + nom + " = '(\\d{4}-\\d{2}-\\d{2})\\.\\d+'")) || [, ''])[1];
 V('les versions des trois fichiers GAS ont été montées',
-  /GAS_VERSION_CODE = '2026-09-05\.1'/.test(CODEGS)
-  && /GAS_VERSION_INDISPOS = '2026-09-05\.1'/.test(INDGS)
-  && (MIRGS.match(/GAS_VERSION_MIROIR = '(\d{4}-\d{2}-\d{2})\.\d+'/) || [,''])[1] >= '2026-09-05');
+  _dateGas(CODEGS, 'CODE')     >= '2026-09-05'
+  && _dateGas(INDGS, 'INDISPOS') >= '2026-09-05'
+  && _dateGas(MIRGS, 'MIROIR')   >= '2026-09-05');
 
 V('un écart entier s\'affiche sans décimale',
   /function _fmtEcart\(v\)\{ return Number\.isInteger\(v\) \? String\(v\) : v\.toFixed\(1\); \}/.test(ADMIN)

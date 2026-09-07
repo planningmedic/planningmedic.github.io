@@ -1,5 +1,5 @@
 // ⚠️ RÈGLE : incrémenter à CHAQUE push. Fichier Apps Script : `journal`.
-const GAS_VERSION_JOURNAL = '2026-08-27.1';
+const GAS_VERSION_JOURNAL = '2026-09-07.1';
 
 /* ═══════════════════════════════════════════════════════════════════════
    JOURNAL D'INTENTIONS — L'APPLICATEUR (05/08/2026)

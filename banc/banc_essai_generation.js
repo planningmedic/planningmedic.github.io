@@ -132,7 +132,12 @@ V('l\'enveloppe lançable depuis l\'éditeur existe',
   /function essaiGenerationGardes\(year\)/.test(src));
 V('…et elle passe bien par le mode à blanc',
   /generateGardes\(an, \{ dryRun: true \}\)/.test(src));
-V('la version du fichier a été montée', /GAS_VERSION_GENERATEUR = '2026-09-05\.1'/.test(src));
+/* (07/09/2026) Même correction que dans banc_equite_certificat : un numéro exact
+   oblige à repasser ici à chaque montée de version, et fait échouer un lot qui
+   n'a rien changé au calcul. On contrôle que la version est postérieure au lot
+   de référence, pas qu'elle lui est égale. */
+V('la version du fichier a été montée',
+  (src.match(/GAS_VERSION_GENERATEUR = '(\d{4}-\d{2}-\d{2})\.\d+'/) || [, ''])[1] >= '2026-09-05');
 
 /* ═══ 6. Enchaîner plusieurs calculs à blanc ═══════════════════════════ */
 console.log('\n═══ 6. N calculs d\'affilée : rien n\'est écrit, rien ne dérive ═══');

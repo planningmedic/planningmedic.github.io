@@ -1,4 +1,4 @@
-// GAS_VERSION_SAUVEGARDE = '2026-08-06.1'
+// GAS_VERSION_SAUVEGARDE = '2026-09-07.1'
 // Sauvegarde hebdomadaire du dépôt GitHub vers Drive.
 // Déclencheur : hebdomadaire, dimanche entre 3h et 4h (à créer une fois via configurerSauvegarde).
 
