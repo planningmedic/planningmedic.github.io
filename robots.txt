@@ -1,0 +1,10 @@
+# Outil interne de planification d'un service hospitalier.
+# Il n'a pas vocation à être référencé : il s'adresse aux médecins du service,
+# qui y accèdent par un lien reçu par message et un code personnel.
+#
+# Aucune donnée patient, aucun montant, aucun code d'accès n'est présent ici.
+# Les données du service vivent dans un classeur privé, hors du dépôt.
+# (07/09/2026) Le générateur de comptes rendus d'anesthésie, seule page qui
+# portait une liste nominative, a été retiré.
+User-agent: *
+Disallow: /

@@ -1,0 +1,564 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="robots" content="noindex, nofollow">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<title>Statistiques d'usage · Planning-Med</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@300;400;500;600;700&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+/* Jetons repris tels quels de dashboard.html — aucune valeur inventée. */
+:root {
+  --red:#CE1126; --red-soft:#F8E8EB; --amber:#D97706; --amber-soft:#FEF3C7;
+  --ink:#0F172A; --ink-2:#334155; --ink-3:#64748B; --ink-4:#94A3B8;
+  --line:#E2E8F0; --line-light:#F1F5F9; --bg:#F8FAFC; --white:#FFFFFF;
+  --radius:12px; --mono:'DM Mono',monospace;
+  --surface-2:#EEF1F5; --deep:#1E293B;
+  --ok:#166534; --ok-soft:#F0FDF4; --info:#1D4ED8; --info-soft:#EFF6FF;
+  --viol:#6D28D9; --viol-soft:#F5F3FF; --rose:#BE123C;
+  --me:#1D6FB8; --me-soft:#E8F4FD; --me-border:#B9DCF5;
+}
+html[data-theme="dark"] {
+  --bg:#0B1220; --white:#151D2E; --line:#28344B; --line-light:#1B2436;
+  --ink:#E7ECF6; --ink-2:#C4CEDF; --ink-3:#8D9AB1; --ink-4:#697891;
+  --red:#F4586B; --red-soft:#3A1620; --amber:#F0A64A; --amber-soft:#38290F;
+  --surface-2:#1B2436; --deep:#232F45;
+  --ok:#5BD08B; --ok-soft:#122A1D; --info:#7BAAF7; --info-soft:#152341;
+  --viol:#B593F2; --viol-soft:#251B3C; --rose:#F27D96;
+  --me:#93C3E8; --me-soft:#17293A; --me-border:#2B4763;
+  color-scheme:dark;
+}
+html[data-theme="dark"] body { background:var(--bg); }
+
+* { box-sizing:border-box; }
+html, body { margin:0; padding:0; }
+body { font-family:'DM Sans',-apple-system,BlinkMacSystemFont,sans-serif;
+  background:var(--bg); color:var(--ink); -webkit-font-smoothing:antialiased; }
+
+/* ── HEADER (repris de dashboard.html) ── */
+.header { background:var(--white); border-bottom:1px solid var(--line); padding:0 32px;
+  display:flex; align-items:center; justify-content:space-between;
+  min-height:60px; position:sticky; top:0; z-index:300; }
+.header-brand { display:flex; align-items:center; gap:11px; min-width:0; }
+.header-flag { display:flex; flex-direction:column; width:34px; height:34px; border-radius:8px;
+  overflow:hidden; flex-shrink:0; box-shadow:0 1px 3px rgba(0,0,0,.15); }
+.header-title { font-size:16px; font-weight:700; color:var(--ink); letter-spacing:-.02em; }
+.header-sub { font-size:11px; color:var(--ink-4); margin-top:1px; }
+.header-right { display:flex; align-items:center; gap:8px; }
+.badge { font-family:var(--mono); font-size:10px; font-weight:600; color:var(--ink-4);
+  background:var(--line-light); border:1px solid var(--line); border-radius:999px; padding:3px 10px; }
+.header-btn { display:inline-flex; align-items:center; gap:6px; font-size:12px; font-weight:700;
+  color:var(--ink); background:var(--bg); border:1px solid var(--line); border-radius:999px;
+  padding:5px 12px; text-decoration:none; transition:border-color .15s,box-shadow .15s,color .15s; }
+.header-btn:hover { border-color:var(--red); color:var(--red); box-shadow:0 1px 5px rgba(15,23,42,.08); }
+.theme-btn { width:34px; height:34px; border:1px solid var(--line); background:var(--white);
+  border-radius:10px; cursor:pointer; font-size:15px; line-height:1; transition:background .15s ease; }
+.theme-btn:hover { background:var(--line-light); }
+
+/* ── PAGE ── */
+.wrap { max-width:960px; margin:0 auto; padding:40px 24px 64px; }
+.hello { margin:0 0 4px; font-size:24px; font-weight:700; letter-spacing:-.02em; }
+.hello-sub { margin:0 0 22px; font-size:14px; color:var(--ink-3); }
+
+.maquette b { font-weight:700; }
+.origin { display:flex; align-items:flex-start; gap:9px; font-size:13px; color:var(--ink-3);
+  background:var(--me-soft); border:1px solid var(--me-border); border-radius:10px;
+  padding:12px 15px; margin-bottom:26px; line-height:1.5; }
+.origin b { color:var(--ink-2); font-weight:700; }
+.origin .dot { width:7px; height:7px; border-radius:50%; background:var(--me); flex:none; margin-top:6px; }
+
+/* ── COMPTEURS ── */
+.kpis { display:grid; grid-template-columns:repeat(4,1fr); gap:16px; margin-bottom:26px; }
+.kpi { background:var(--white); border:1px solid var(--line); border-radius:16px; padding:20px; }
+.kpi .lbl { font-size:11px; font-weight:700; color:var(--ink-4); text-transform:uppercase;
+  letter-spacing:.05em; margin-bottom:11px; }
+.kpi .val { font-size:30px; font-weight:700; line-height:1; letter-spacing:-.02em; }
+.kpi .val .of { font-size:16px; font-weight:600; color:var(--ink-4); }
+.kpi .sub { font-size:12.5px; color:var(--ink-3); margin-top:8px; line-height:1.4; }
+.up { color:var(--ok); font-weight:700; }
+
+/* ── CARTES ── */
+.card { background:var(--white); border:1px solid var(--line); border-radius:16px;
+  padding:22px 20px; margin-bottom:16px; }
+.card h2 { font-size:16px; font-weight:700; margin:0 0 4px; letter-spacing:-.01em; }
+.card .cap { font-size:13px; color:var(--ink-3); margin:0 0 20px; line-height:1.45; }
+.row { display:grid; grid-template-columns:1fr 1fr; gap:16px; }
+.legend { display:flex; gap:14px; align-items:center; font-size:12.5px; color:var(--ink-3);
+  margin-top:14px; flex-wrap:wrap; }
+.legend i { width:9px; height:9px; border-radius:2px; display:inline-block; margin-right:5px; vertical-align:-1px; }
+
+svg { display:block; width:100%; overflow:visible; }
+.gl { stroke:var(--line-light); stroke-width:1; }
+.ax { font-size:10px; fill:var(--ink-4); font-family:var(--mono); }
+
+table { width:100%; border-collapse:collapse; font-size:13.5px; }
+td, th { text-align:left; padding:10px 0; border-bottom:1px solid var(--line-light); }
+th { font-size:11px; color:var(--ink-4); text-transform:uppercase; letter-spacing:.05em; font-weight:700; }
+tr:last-child td { border-bottom:none; }
+.ini { font-family:var(--mono); font-weight:500; font-size:12.5px; background:var(--line-light);
+  color:var(--ink-2); border-radius:6px; padding:3px 9px; display:inline-block; }
+.tag { font-size:11px; font-weight:700; padding:3px 10px; border-radius:999px;
+  background:var(--surface-2); color:var(--ink-3); }
+/* Ancienneté de la dernière connexion. Rampe vert → bleu → gris, sans rouge. */
+.pil { display:inline-flex; align-items:center; gap:6px; font-size:12px; font-weight:600;
+  padding:4px 11px; border-radius:999px; background:var(--surface-2); color:var(--ink-3); }
+.pil::before { content:''; width:7px; height:7px; border-radius:50%; background:currentColor; flex:none; }
+.pil.auj    { background:var(--ok-soft);    color:var(--ok); }
+.pil.sem    { background:var(--me-soft);    color:var(--me); }
+.pil.mois   { background:var(--surface-2);  color:var(--ink-3); }
+.pil.vieux  { background:transparent;       color:var(--ink-4); }
+.pil.vieux::before { background:var(--line); }
+.pil.jamais { background:var(--amber-soft); color:var(--amber); }
+tr:hover td { background:var(--line-light); }
+td:first-child { width:1%; white-space:nowrap; }
+
+/* Barres « qui se connecte » et bloc administration. */
+.bar-l { display:flex; justify-content:space-between; align-items:baseline;
+  font-size:13.5px; margin-bottom:6px; }
+.bar-l b { font-weight:700; }
+.bar-t { height:10px; border-radius:4px; background:var(--surface-2); overflow:hidden; margin-bottom:15px; }
+.bar-t i { display:block; height:100%; border-radius:4px; }
+.note { font-size:12.5px; color:var(--ink-4); margin:6px 0 0; padding-top:12px;
+  border-top:1px solid var(--line-light); line-height:1.5; }
+.duo { display:grid; grid-template-columns:1fr 1fr; gap:16px; margin-bottom:16px; }
+.duo div { background:var(--bg); border-radius:12px; padding:14px 16px; }
+.duo .lbl { font-size:11px; font-weight:700; color:var(--ink-4); text-transform:uppercase;
+  letter-spacing:.05em; margin-bottom:9px; }
+.duo .val { font-size:26px; font-weight:700; line-height:1; }
+.phrase { font-size:14px; margin:0 0 16px; line-height:1.5; }
+.hm { display:grid; grid-template-columns:36px repeat(24,1fr); gap:2px; align-items:center; }
+.hm .d { font-size:10px; color:var(--ink-4); font-family:var(--mono); }
+.hm .c { aspect-ratio:1; border-radius:3px; }
+.hm .h { font-size:8.5px; color:var(--ink-4); text-align:center; font-family:var(--mono); }
+
+.foot { font-size:12.5px; color:var(--ink-4); text-align:center; margin-top:28px; line-height:1.8; }
+@media (max-width:760px) {
+  .header { padding:0 18px; }
+  .wrap { padding:26px 16px 56px; }
+  .kpis { grid-template-columns:repeat(2,1fr); gap:12px; }
+  .row { grid-template-columns:1fr; }
+}
+</style>
+</head>
+<body>
+
+<div class="header">
+  <div class="header-brand">
+    <div class="header-flag"><img src="../assets/logo.png" alt="" style="width:100%;height:100%;object-fit:cover;display:block"></div>
+    <div>
+      <div class="header-title">Planning-Med</div>
+      <div class="header-sub">Anesthésie-Réa</div>
+    </div>
+  </div>
+  <div class="header-right">
+    <span class="badge" id="etat">chargement…</span>
+    <a href="../dashboard.html" class="header-btn">← Portail</a>
+    <button class="theme-btn" onclick="cycleTheme()" title="Thème">🌗</button>
+  </div>
+</div>
+
+<div class="wrap">
+
+  <h1 class="hello">Statistiques d'usage</h1>
+  <p class="hello-sub">Qui utilise le portail, à quelle fréquence, et à quels moments.</p>
+
+  <div class="origin">
+    <span class="dot"></span>
+    <span>Comptage depuis le <b id="origine">…</b>, date de présentation au service. Les connexions antérieures, presque toutes celles de l'administrateur pendant la mise au point, ne sont pas comptées.</span>
+  </div>
+
+  <div class="kpis">
+    <div class="kpi"><div class="lbl">Actifs récemment</div><div class="val" id="k1">—</div>
+      <div class="sub" id="k1s">&nbsp;</div></div>
+    <div class="kpi"><div class="lbl">Actifs cette semaine</div><div class="val" id="k2">—</div>
+      <div class="sub" id="k2s">&nbsp;</div></div>
+    <div class="kpi"><div class="lbl">Connexions / actif</div><div class="val" id="k3">—</div>
+      <div class="sub" id="k3s">&nbsp;</div></div>
+    <div class="kpi"><div class="lbl">Jamais connectés</div><div class="val" id="k4">—</div>
+      <div class="sub" id="k4s">&nbsp;</div></div>
+  </div>
+
+  <div class="card">
+    <h2>Combien de médecins s'en servent</h2>
+    <p class="cap">Médecins distincts s'étant connecté au moins une fois dans la semaine, sur les 25 du service.</p>
+    <svg id="ligne" viewBox="0 0 900 240" preserveAspectRatio="none" style="height:240px"></svg>
+    <div class="legend"><span>Une ligne par semaine, depuis l’ouverture au service.</span></div>
+  </div>
+
+  <div class="card">
+    <h2>À quel point ils s'en servent</h2>
+    <p class="cap">Connexions par médecin actif dans la semaine. Mesure la profondeur d'usage, indépendamment du nombre d'utilisateurs.</p>
+    <svg id="profondeur" viewBox="0 0 900 170" preserveAspectRatio="none" style="height:170px"></svg>
+    <div class="legend"><span>Sépare le nombre d’utilisateurs de l’intensité d’usage.</span></div>
+  </div>
+
+  <div class="row">
+    <div class="card">
+      <h2>Volume total</h2>
+      <p class="cap">Connexions par mois, toutes personnes confondues. Chiffre de contexte : il monte aussi quand les mêmes reviennent plus souvent.</p>
+      <svg id="barres" viewBox="0 0 440 200" style="height:200px"></svg>
+    </div>
+
+    <div class="card">
+      <h2>Qui se connecte</h2>
+      <p class="cap">Connexions selon le code utilisé, depuis l'ouverture au service.</p>
+      <div id="roles"></div>
+      <p class="note">Seules les connexions des médecins alimentent les courbes ci-dessus.</p>
+    </div>
+  </div>
+
+  <div class="card">
+    <h2>L'administration, au-delà de la connexion</h2>
+    <p class="cap">Le code d'administration est partagé : ces chiffres décrivent le rôle, jamais une personne.</p>
+    <div id="adm"></div>
+  </div>
+
+  <div class="card">
+    <h2>Quand le portail est consulté</h2>
+    <p class="cap">Densité des connexions par jour de la semaine et heure de la journée, cumulée depuis l'ouverture.</p>
+    <div id="heat"></div>
+    <div class="legend">
+      <span>Moins</span>
+      <span id="pal"></span>
+      <span>Plus</span>
+      <span style="margin-left:auto" id="pic"></span>
+    </div>
+  </div>
+
+  <div class="card">
+    <h2>Qui a ouvert le portail</h2>
+    <p class="cap">Date de dernière connexion, par médecin. Sert à voir qui n'a pas encore franchi le pas — aucun décompte, aucun classement.</p>
+    <table id="tb"><tr><td style="color:var(--ink-4)">Chargement…</td></tr></table>
+  </div>
+
+  <div class="foot">
+    Le détail nominatif est conservé environ trois mois, puis remplacé par des compteurs sans nom.<br>
+    Les graphiques sont figés chaque semaine : ils ne dépendent pas du détail conservé.<br>
+    Page réservée à l'administrateur du portail.
+  </div>
+
+</div>
+
+<script>
+/* ═══ STATISTIQUES D'USAGE — page réservée à l'administrateur ═══════════
+   Lit les compteurs FIGÉS par gas/Indispos.gs (STATS_SEMAINE, STATS_HEURES)
+   et la colonne DERNIERE_CONNEXION. Ne recalcule rien depuis les lignes
+   brutes de CONNEXIONS : elles sont plafonnées et disparaissent.
+   Aucun total par personne n'est affiché ni demandé au serveur. */
+const API_URL = 'https://script.google.com/macros/s/AKfycbxDbTnhgdjCNBqkeAblZWgS3CK-IptjJoRDQd1AtGF7WQoQkXriWGvISIo7LJG8zUtjTQ/exec';
+let D = null;
+
+/* Thème : même clé que le reste du portail. */
+function appliquerTheme(t){
+  if(t==='dark') document.documentElement.setAttribute('data-theme','dark');
+  else document.documentElement.removeAttribute('data-theme');
+  if(D) dessiner();
+}
+function cycleTheme(){
+  const t = document.documentElement.getAttribute('data-theme')==='dark' ? 'light' : 'dark';
+  try{ localStorage.setItem('pmTheme', t); }catch(e){}
+  appliquerTheme(t);
+}
+(function(){ let t='light'; try{ t=localStorage.getItem('pmTheme')||'light'; }catch(e){}
+  if(t==='dark') document.documentElement.setAttribute('data-theme','dark'); })();
+
+function jeton(n){ return getComputedStyle(document.documentElement).getPropertyValue(n).trim(); }
+function lireCode(){
+  try { if (window.SessionPortail && SessionPortail.lire()) return SessionPortail.lire(); } catch(e){}
+  try { return sessionStorage.getItem('pmViewCode') || ''; } catch(e){ return ''; }
+}
+function etat(txt){ const e=document.getElementById('etat'); if(e) e.textContent = txt; }
+
+async function charger(){
+  const code = lireCode();
+  if(!code){ etat('code requis'); ecran('Ouvrez d\'abord le portail : le code d\'accès n\'est plus en mémoire.'); return; }
+  try{
+    const res = await fetch(API_URL, { method:'POST',
+      headers:{ 'Content-Type':'text/plain;charset=utf-8' },
+      body: JSON.stringify({ action:'getStatsUsage', code: code }) });
+    const j = await res.json();
+    if(!j || j.success === false){ etat('refusé'); ecran(j && j.error ? j.error : 'Lecture impossible.'); return; }
+    D = j;
+    etat(j.semaines.length + ' semaine' + (j.semaines.length>1?'s':''));
+    const o = document.getElementById('origine');
+    if(o) o.textContent = frDate(j.origine);
+    compteurs(); dessiner(); tableau();
+  }catch(e){ etat('erreur'); ecran('Le serveur n\'a pas répondu. Réessayez dans un instant.'); }
+}
+function ecran(msg){
+  document.querySelector('.wrap').insertAdjacentHTML('afterbegin',
+    '<div class="origin" style="background:var(--red-soft);border-color:var(--red)"><span class="dot" style="background:var(--red)"></span><span>'+msg+'</span></div>');
+}
+const MOIS = ['janvier','février','mars','avril','mai','juin','juillet','août','septembre','octobre','novembre','décembre'];
+function frDate(iso){
+  if(!iso) return '—';
+  const p = String(iso).split('-');
+  if(p.length !== 3) return iso;
+  return Number(p[2]) + ' ' + MOIS[Number(p[1])-1] + ' ' + p[0];
+}
+function joursDepuis(iso){
+  if(!iso) return null;
+  const d = new Date(iso + 'T12:00:00');
+  if(isNaN(d.getTime())) return null;
+  return Math.round((Date.now() - d.getTime()) / 86400000);
+}
+
+/* ── Compteurs de tête ────────────────────────────────────────────────── */
+function compteurs(){
+  const S = D.semaines, n = S.length;
+  const der = n ? S[n-1] : { c:0, a:0 };
+  const av  = n > 1 ? S[n-2] : null;
+  const eff = D.effectif || 0;
+
+  /* « Actifs ce mois » : union des semaines des 30 derniers jours. On ne peut
+     pas sommer les « actifs » hebdomadaires (on compterait deux fois la même
+     personne) ; le maximum sur la période est la seule valeur honnête
+     disponible sans détail nominatif. */
+  let mois = 0;
+  S.forEach(function(x){ if(joursDepuis(x.s) !== null && joursDepuis(x.s) <= 35) mois = Math.max(mois, x.a); });
+
+  const jamais = D.medecins.filter(function(m){ return !m.d; }).length;
+  const parActif = der.a ? (der.c / der.a) : 0;
+
+  txt('k1', mois);            sous('k1s', 'sur les 5 dernières semaines');
+  txt('k2', der.a);           sous('k2s', 'au moins une connexion');
+  txt('k3', parActif ? parActif.toFixed(1).replace('.', ',') : '—');
+  sous('k3s', 'par semaine, en moyenne');
+  txt('k4', jamais);          sous('k4s', jamais ? 'n\'ont pas encore ouvert le portail' : 'tout le monde a ouvert le portail');
+  if(av) sous('k1s', (mois >= av.a ? '+' : '') + (mois - av.a) + ' vs semaine précédente');
+}
+function txt(id, v){ const e=document.getElementById(id); if(e) e.innerHTML = v + (String(id)==='k1'||String(id)==='k2' ? '<span class="of"> / '+(D.effectif||0)+'</span>' : ''); }
+function sous(id, v){ const e=document.getElementById(id); if(e) e.textContent = v; }
+
+/* ── Graphiques ───────────────────────────────────────────────────────── */
+function dessiner(){
+  if(!D) return;
+  const ME=jeton('--me')||'#1D6FB8', VIOL=jeton('--viol')||'#6D28D9',
+        GRIS=jeton('--ink-4')||'#94A3B8', LIGNE=jeton('--line')||'#E2E8F0',
+        ROUGE=jeton('--red')||'#CE1126', SURF=jeton('--surface-2')||'#EEF1F5';
+  const S = D.semaines, eff = D.effectif || 25;
+
+  /* Une seule semaine ne fait pas une courbe : on le dit plutôt que de
+     tracer un trait plat qui suggérerait une tendance. */
+  if(S.length < 2){
+    ['ligne','profondeur'].forEach(function(id){
+      const e=document.getElementById(id); if(!e) return;
+      e.outerHTML = '<p class="cap" id="'+id+'" style="margin:0;padding:22px 0;text-align:center">'
+        + (S.length ? 'Une seule semaine enregistrée. La courbe apparaîtra la semaine prochaine.'
+                    : 'Aucune semaine enregistrée pour l\'instant.') + '</p>';
+    });
+  } else {
+    courbe('ligne', S.map(function(x){return x.a;}), eff, ME, ROUGE, LIGNE, S, true);
+    courbe('profondeur', S.map(function(x){return x.a ? x.c/x.a : 0;}), null, VIOL, null, LIGNE, S, false);
+  }
+  volume(GRIS, S);
+  chaleur();
+  roles();
+  administration();
+}
+
+function courbe(id, d, plafond, couleur, marque, ligne, S, borne){
+  const el = document.getElementById(id); if(!el || !d.length) return;
+  const W=900, H = borne ? 240 : 170, P={t:16,r:8,b:26,l:34};
+  const max = plafond || Math.max(1, Math.ceil(Math.max.apply(null,d)*1.25));
+  const iw=W-P.l-P.r, ih=H-P.t-P.b;
+  const X=function(i){ return d.length===1 ? P.l+iw/2 : P.l+i*iw/(d.length-1); };
+  const Y=function(v){ return P.t+ih-Math.min(v,max)/max*ih; };
+  let s='';
+  const pas = borne ? 5 : 4;
+  for(let g=0;g<=pas;g++){ const y=P.t+ih-g*ih/pas;
+    s+='<line class="gl" x1="'+P.l+'" y1="'+y+'" x2="'+(W-P.r)+'" y2="'+y+'"/>';
+    s+='<text class="ax" x="'+(P.l-8)+'" y="'+(y+3)+'" text-anchor="end">'+(max*g/pas).toFixed(borne?0:0)+'</text>'; }
+  if(plafond){
+    s+='<line x1="'+P.l+'" y1="'+Y(plafond)+'" x2="'+(W-P.r)+'" y2="'+Y(plafond)+'" stroke="'+ligne+'" stroke-dasharray="4 3"/>';
+    s+='<text class="ax" x="'+(W-P.r)+'" y="'+(Y(plafond)-6)+'" text-anchor="end">effectif du service</text>';
+  }
+  const pts = d.map(function(v,i){ return X(i)+','+Y(v); }).join(' ');
+  if(borne) s+='<polygon points="'+P.l+','+(P.t+ih)+' '+pts+' '+(W-P.r)+','+(P.t+ih)+'" fill="url(#gr'+id+')"/>';
+  s+='<polyline points="'+pts+'" fill="none" stroke="'+couleur+'" stroke-width="2.4" stroke-linejoin="round"/>';
+  if(marque){
+    s+='<circle cx="'+X(0)+'" cy="'+Y(d[0])+'" r="4" fill="'+marque+'"/>';
+    s+='<text class="ax" x="'+(X(0)+8)+'" y="'+(Y(d[0])+16)+'" fill="'+marque+'">ouverture au service</text>';
+  }
+  s+='<circle cx="'+X(d.length-1)+'" cy="'+Y(d[d.length-1])+'" r="4" fill="'+couleur+'"/>';
+  /* Étiquettes de mois lues dans les semaines réelles, jamais inventées. */
+  const vus={};
+  S.forEach(function(x,i){ const m=x.s.slice(0,7);
+    if(!vus[m]){ vus[m]=1;
+      s+='<text class="ax" x="'+X(i)+'" y="'+(H-7)+'" text-anchor="middle">'+MOIS[Number(x.s.slice(5,7))-1].slice(0,4)+'.</text>'; } });
+  el.innerHTML = '<defs><linearGradient id="gr'+id+'" x1="0" y1="0" x2="0" y2="1">'
+    + '<stop offset="0%" stop-color="'+couleur+'" stop-opacity=".22"/>'
+    + '<stop offset="100%" stop-color="'+couleur+'" stop-opacity="0"/></linearGradient></defs>' + s;
+}
+
+function volume(gris, S){
+  const el=document.getElementById('barres'); if(!el) return;
+  const parMois={};
+  S.forEach(function(x){ const m=x.s.slice(0,7); parMois[m]=(parMois[m]||0)+x.c; });
+  const cles=Object.keys(parMois).sort().slice(-12);
+  if(!cles.length){ el.outerHTML='<p class="cap" id="barres" style="margin:0">Rien à afficher pour l\'instant.</p>'; return; }
+  const v=cles.map(function(k){ return parMois[k]; });
+  const W=440,H=200,P={t:14,r:6,b:26,l:24}, iw=W-P.l-P.r, ih=H-P.t-P.b;
+  const max=Math.max.apply(null,v)*1.2 || 1, bw=iw/v.length*0.62;
+  let s='<line class="gl" x1="'+P.l+'" y1="'+(P.t+ih)+'" x2="'+(W-P.r)+'" y2="'+(P.t+ih)+'"/>';
+  v.forEach(function(n,i){ const x=P.l+i*iw/v.length+(iw/v.length-bw)/2, h=n/max*ih;
+    s+='<rect x="'+x+'" y="'+(P.t+ih-h)+'" width="'+bw+'" height="'+h+'" rx="3" fill="'+gris+'" opacity="'+(0.4+0.5*n/max)+'"/>';
+    s+='<text class="ax" x="'+(x+bw/2)+'" y="'+(P.t+ih-h-5)+'" text-anchor="middle" style="font-size:8px">'+n+'</text>';
+    s+='<text class="ax" x="'+(x+bw/2)+'" y="'+(H-8)+'" text-anchor="middle">'+MOIS[Number(cles[i].slice(5,7))-1].charAt(0).toUpperCase()+'</text>'; });
+  el.innerHTML=s;
+}
+
+function chaleur(){
+  const box=document.getElementById('heat'); if(!box) return;
+  const G = D.heures || [];
+  const plat = [].concat.apply([], G);
+  const max = Math.max.apply(null, plat.concat([0]));
+  if(!G.length || !max){ box.innerHTML='<p class="cap" style="margin:0">Pas encore assez de connexions pour dessiner la carte.</p>'; return; }
+  const sombre=document.documentElement.getAttribute('data-theme')==='dark';
+  const pal = sombre
+    ? ['#1B2436','#1D3247','#204058','#234E69','#265C7A','#2A6B8C','#3E85A8','#5CA1C4','#93C3E8']
+    : ['#EEF2F7','#DCE8F3','#C6DCEF','#A9CBE7','#8CBCE0','#6BA4D4','#4A92CC','#2E80C2','#1D6FB8'];
+  const p=document.getElementById('pal');
+  if(p) p.innerHTML=[0,2,4,6,8].map(function(i){return '<i style="background:'+pal[i]+'"></i>';}).join('');
+  const j=['Lun','Mar','Mer','Jeu','Ven','Sam','Dim'];
+  let h='<div class="hm"><div></div>';
+  for(let k=0;k<24;k++) h+='<div class="h">'+(k%3===0?k:'')+'</div>';
+  h+='</div><div class="hm">';
+  let bj=0,bh=0,bv=-1;
+  G.forEach(function(l,ji){
+    h+='<div class="d">'+j[ji]+'</div>';
+    l.forEach(function(v,k){
+      if(v>bv){ bv=v; bj=ji; bh=k; }
+      h+='<div class="c" style="background:'+pal[Math.round(v/max*8)]+'"></div>'; });
+  });
+  box.innerHTML=h+'</div>';
+  const pic=document.getElementById('pic');
+  if(pic) pic.textContent = bv>0 ? ('Pic : ' + j[bj].toLowerCase() + ' ' + bh + ' h') : '';
+}
+
+/* ── Qui se connecte, et ce que fait l'administration ─────────────────── */
+/* (31/08) Les connexions seules ne disent pas si le comité SE SERT de la page
+   d'administration ou se contente de l'ouvrir. Les compteurs par rôle le disent.
+   Trois précautions tenues ici :
+   1. Les trois barres restent SÉPARÉES. Fondues dans « actifs », les ouvertures
+      d'administration feraient dépasser la courbe de son propre plafond — c'est
+      déjà le cas du secrétariat, compté comme un 26e utilisateur.
+   2. Le code d'administration est PARTAGÉ : on écrit « le rôle », jamais « qui ».
+   3. Aucun total par personne n'est demandé ni affiché. */
+const R_LIB = { mar:'Les médecins', admin:"Code d'administration", secretariat:'Secrétariat' };
+const R_COUL = { mar:'--me', admin:'--amber', secretariat:'--ink-4' };
+/* Libellés des gestes. Une action non listée s'affiche telle quelle : mieux vaut
+   un nom technique visible qu'un geste silencieusement absent du tableau. */
+const A_LIB = {
+  publishPlanning:'Planning publié', generateGardes:'Gardes générées',
+  savePlanningOverride:'Placement modifié', savePlanningOverridesBatch:'Placements modifiés',
+  deleteOverride:'Placement retiré', setDailyStatus:'Statut du jour posé',
+  poserAbsenceLongue:'Absence longue posée', annulerAbsenceLongue:'Absence longue annulée',
+  applyModification:'Garde échangée ou déplacée', saveAffectations:'Affectations enregistrées',
+  saveAffectationsMar:'Affectations d\'un médecin', saveIndispos:'Indisponibilités enregistrées',
+  saveIndisposBatch:'Indisponibilités enregistrées (lot)', savePeriodes:'Périodes de vacances',
+  saveGroupes:'Groupes de vacances', saveMedecin:'Fiche médecin modifiée',
+  saveConfig:'Réglage modifié', resetCodeMar:'Code d\'accès réinitialisé',
+  addMedecinToGroupe:'Médecin changé de groupe', setIndisposYear:'Campagne ouverte',
+  clearIndisposYear:'Campagne fermée', setActiveYear:'Année active changée',
+  initYear:'Année initialisée', archiveYear:'Année archivée',
+  creerEchange:'Échange proposé', repondreEchange:'Échange traité',
+  declareLiberal:'Déclaration libérale', deleteLiberal:'Déclaration libérale retirée'
+};
+function libAction(a){ return A_LIB[a] || a; }
+function quand(iso){
+  const n = joursDepuis(iso);
+  if(n === null) return '—';
+  return n <= 0 ? "aujourd'hui" : (n === 1 ? 'hier'
+       : (n < 30 ? 'il y a ' + n + ' jours' : frDate(iso)));
+}
+function roles(){
+  const box = document.getElementById('roles'); if(!box) return;
+  const R = D.roles || {};
+  const cles = ['mar','admin','secretariat'].filter(function(k){ return R[k] && R[k].ouvertures; });
+  if(!cles.length){ box.innerHTML = '<p class="cap" style="margin:0">Rien à afficher pour l\'instant.</p>'; return; }
+  const max = Math.max.apply(null, cles.map(function(k){ return R[k].ouvertures; }));
+  box.innerHTML = cles.map(function(k){
+    const v = R[k].ouvertures;
+    return '<div class="bar-l"><span>' + R_LIB[k] + '</span><b>' + v + '</b></div>'
+         + '<div class="bar-t"><i style="width:' + Math.max(2, Math.round(v / max * 100)) + '%;'
+         + 'background:var(' + R_COUL[k] + ')"></i></div>';
+  }).join('');
+}
+function administration(){
+  const box = document.getElementById('adm'); if(!box) return;
+  const a = (D.roles && D.roles.admin) || { ouvertures:0, actions:0 };
+  const liste = (D.actions && D.actions.admin) || [];
+  let h = '<div class="duo">'
+        + '<div><div class="lbl">Ouvertures</div><div class="val">' + a.ouvertures + '</div></div>'
+        + '<div><div class="lbl">Modifications faites</div><div class="val">' + a.actions + '</div></div>'
+        + '</div>';
+  if(!a.ouvertures){
+    h += '<p class="phrase">Aucune ouverture en administration depuis le comptage.</p>';
+  } else if(!a.actions){
+    h += '<p class="phrase">La page est ouverte, mais rien n\'y a encore été modifié.</p>';
+  } else {
+    /* Une ouverture peut porter plusieurs gestes : le rapport se lit comme une
+       intensité, jamais comme un pourcentage d\'ouvertures « utiles ». */
+    h += '<p class="phrase">' + (a.actions / a.ouvertures).toFixed(1).replace('.', ',')
+       + ' modification' + (a.actions / a.ouvertures >= 2 ? 's' : '') + ' par ouverture, en moyenne.</p>';
+  }
+  if(liste.length){
+    h += '<table>' + liste.map(function(x){
+      return '<tr><td style="width:auto;white-space:normal">' + esc(libAction(x.a)) + '</td>'
+           + '<td style="text-align:right;width:1%">' + x.n + '</td>'
+           + '<td style="text-align:right;width:1%;color:var(--ink-4);font-size:12.5px;white-space:nowrap">'
+           + quand(x.d) + '</td></tr>'; }).join('') + '</table>';
+  }
+  box.innerHTML = h;
+}
+
+/* ── Qui a ouvert le portail ──────────────────────────────────────────── */
+/* Les 25 médecins, tous, triés du plus ancien au plus récent : ceux qui n'ont
+   jamais ouvert le portail remontent d'eux-mêmes en tête. Pas de seuil, pas de
+   liste tronquée, pas de ligne de résumé — c'est un état, pas un palmarès.
+   (29/08) La version précédente masquait les gens « à jour » et compensait par
+   une phrase (« Les 1 autres se sont connectés ») qui n'apprenait rien. */
+function tableau(){
+  const tb=document.getElementById('tb'); if(!tb) return;
+  const gens = D.medecins.slice().sort(function(a,b){
+    if(!a.d && !b.d) return String(a.i).localeCompare(String(b.i));
+    if(!a.d) return -1;                       // jamais connecté d'abord
+    if(!b.d) return 1;
+    return a.d < b.d ? -1 : (a.d > b.d ? 1 : 0);
+  });
+  let h='<tr><th>Médecin</th><th>Dernière connexion</th></tr>';
+  gens.forEach(function(m){
+    /* La couleur code l'ANCIENNETÉ, pas le mérite : une rampe vert → bleu →
+       gris, jamais de rouge. Le rouge dirait « en faute » à propos d'un
+       collègue qui n'a pas ouvert une page web. « jamais » est en ambre :
+       ça se remarque sans accuser. */
+    let cell;
+    if(!m.d){ cell='<span class="pil jamais">jamais</span>'; }
+    else {
+      const n = joursDepuis(m.d);
+      const q = (n === null) ? frDate(m.d)
+              : (n <= 0) ? "aujourd'hui"
+              : (n === 1) ? 'hier'
+              : (n < 30) ? ('il y a ' + n + ' jours')
+              : frDate(m.d);
+      const cl = (n === null) ? 'vieux'
+               : (n <= 1) ? 'auj'
+               : (n <= 7) ? 'sem'
+               : (n < 30) ? 'mois'
+               : 'vieux';
+      cell='<span class="pil '+cl+'">'+q+'</span>';
+    }
+    h+='<tr><td><span class="ini">'+esc(m.i)+'</span></td><td>'+cell+'</td></tr>';
+  });
+  if(!gens.length) h+='<tr><td colspan="2" style="color:var(--ink-3)">Aucun médecin actif.</td></tr>';
+  tb.innerHTML=h;
+}
+function esc(v){ return String(v||'?').replace(/[<>&"]/g, function(c){
+  return {'<':'&lt;','>':'&gt;','&':'&amp;','"':'&quot;'}[c]; }); }
+
+charger();
+</script>
+</body>
+</html>

@@ -1,0 +1,1113 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Guide du MAR · Planning-Med</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700;800&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --red:#CE1126; --red-soft:#FDECEF; --red-deep:#9E0C1D;
+    --blue:#1D6FB8; --blue-soft:#EAF3FB;
+    --amber:#B45309; --amber-soft:#FDF3E3;
+    --viol:#6D28D9; --viol-soft:#F5F3FF;
+    --green:#166534; --green-soft:#DCFCE7;
+    --ink:#0F172A; --ink-2:#475569; --ink-3:#7A8699;
+    --line:#E2E8F0; --bg:#F6F8FB; --white:#fff;
+    --mono:'DM Mono',ui-monospace,monospace;
+  }
+  *{box-sizing:border-box}
+  html{scroll-behavior:smooth}
+  body{margin:0; background:var(--bg); color:var(--ink);
+    font-family:'DM Sans',-apple-system,BlinkMacSystemFont,sans-serif;
+    line-height:1.6; font-size:16px; padding:20px 14px 90px;
+    -webkit-text-size-adjust:100%}
+  .wrap{max-width:820px; margin:0 auto}
+
+  /* ── Bandeau commun des guides ───────────────────────────────────── */
+  .appbar{background:linear-gradient(135deg,#9E0C1D 0%,#CE1126 78%);color:#fff;border-radius:16px;
+    padding:18px;position:relative;overflow:hidden;margin:0 0 14px}
+  .appbar-wm{position:absolute;right:-30px;top:-30px;width:190px;opacity:.10;filter:brightness(4);pointer-events:none}
+  .appbar-row{display:flex;align-items:center;gap:14px;position:relative}
+  .appbar-ic{width:48px;height:48px;border-radius:12px;background:#fff;padding:3px;
+    box-shadow:0 3px 10px rgba(0,0,0,.25);flex:none}
+  .appbar-tx{min-width:0}
+  .appbar-eyebrow{font-family:var(--mono);font-size:11px;letter-spacing:.14em;
+    text-transform:uppercase;opacity:.85}
+  .appbar h1{margin:2px 0 0;font-size:clamp(20px,5.5vw,25px);font-weight:800;letter-spacing:-.01em;
+    color:#fff;line-height:1.15}
+  .appbar-chip{margin-left:auto;font-family:var(--mono);font-size:11px;
+    background:rgba(255,255,255,.16);border:1px solid rgba(255,255,255,.35);border-radius:99px;
+    padding:4px 10px;white-space:nowrap;color:#fff;flex:none}
+  .appbar-sub{margin:10px 0 0;font-size:14px;opacity:.92;position:relative;color:#fff;line-height:1.45}
+
+  .maj{font-family:var(--mono); font-size:12px; color:var(--ink-3); margin:0 0 14px 2px}
+
+  /* ── Recherche ───────────────────────────────────────────────────── */
+  .chercher{position:sticky; top:0; z-index:20; background:var(--bg);
+    padding:8px 0 10px; margin:0 0 4px}
+  .chercher input{width:100%; height:48px; font-size:16px; font-family:inherit;
+    border:1px solid var(--line); border-radius:12px; padding:0 16px;
+    background:var(--white); color:var(--ink); -webkit-appearance:none}
+  .chercher input:focus{outline:none; border-color:var(--red); box-shadow:0 0 0 3px var(--red-soft)}
+  .chercher input::placeholder{color:var(--ink-3)}
+  .vide{display:none; padding:18px; text-align:center; color:var(--ink-3); font-size:14px}
+
+  /* ── Titres de partie ────────────────────────────────────────────── */
+  .partie{font-family:var(--mono); font-size:12px; letter-spacing:.1em; text-transform:uppercase;
+    color:var(--ink-3); margin:26px 0 10px 4px; font-weight:500}
+  .partie:first-of-type{margin-top:16px}
+
+  /* ── Sections repliables ─────────────────────────────────────────── */
+  details.sec{background:var(--white); border:1px solid var(--line); border-radius:14px;
+    margin:0 0 8px; overflow:hidden}
+  details.sec > summary{list-style:none; cursor:pointer; display:flex; align-items:center;
+    gap:12px; min-height:56px; padding:12px 16px; font-size:16px; font-weight:700;
+    color:var(--ink); line-height:1.3; -webkit-tap-highlight-color:transparent}
+  details.sec > summary::-webkit-details-marker{display:none}
+  details.sec > summary .n{font-family:var(--mono); font-size:13px; font-weight:500; color:#fff;
+    background:var(--red); border-radius:8px; padding:3px 8px; flex:none}
+  details.sec > summary .chev{margin-left:auto; color:var(--ink-3); font-size:16px;
+    transition:transform .18s ease; flex:none}
+  details.sec[open] > summary .chev{transform:rotate(90deg)}
+  details.sec[open] > summary{border-bottom:1px solid var(--line); background:#FBFCFE}
+  .corps{padding:14px 16px 18px}
+  .corps > :first-child{margin-top:0}
+  .corps > :last-child{margin-bottom:0}
+
+  h3{font-size:15.5px; font-weight:700; margin:22px 0 8px; color:var(--ink)}
+  p{margin:0 0 12px; color:var(--ink-2)}
+  strong,b{color:var(--ink)}
+  ul{margin:0 0 14px; padding-left:20px; color:var(--ink-2)}
+  li{margin:6px 0}
+
+  /* ── Listes étiquette / explication (remplacent les tableaux) ────── */
+  .liste{margin:12px 0 16px}
+  .liste > div{padding:11px 0; border-top:1px solid var(--line)}
+  .liste > div:first-child{border-top:none; padding-top:0}
+  .liste b{display:block; color:var(--ink); font-size:15px; margin-bottom:2px}
+  .liste span{display:block; color:var(--ink-2); font-size:14.5px; line-height:1.5}
+  .code{font-family:var(--mono); font-size:14px; font-weight:500; background:#EEF1F5;
+    border-radius:6px; padding:2px 8px; color:var(--ink); margin-right:8px}
+
+  .callout{border-radius:12px; padding:13px 15px; margin:16px 0; border:1px solid var(--line);
+    border-left-width:4px; background:var(--white)}
+  .callout p:last-child{margin-bottom:0}
+  .callout ul{margin-bottom:0}
+  .callout .ct{font-family:var(--mono); font-size:11.5px; font-weight:500; text-transform:uppercase;
+    letter-spacing:.06em; margin-bottom:6px}
+  .callout.rule{border-left-color:var(--red); background:var(--red-soft)}
+  .callout.rule .ct{color:var(--red)}
+  .callout.tip{border-left-color:var(--blue); background:var(--blue-soft)}
+  .callout.tip .ct{color:var(--blue)}
+  .callout.warn{border-left-color:var(--amber); background:var(--amber-soft)}
+  .callout.warn .ct{color:var(--amber)}
+
+  .geste{background:var(--green-soft); border:1px solid #86EFAC; border-radius:12px;
+    padding:13px 15px; margin:16px 0; color:#14532D; font-size:15px}
+  .geste b{color:#14532D}
+
+  .ex{background:#FBFCFE; border:1px dashed var(--line); border-radius:12px;
+    padding:13px 15px; margin:14px 0; font-size:14.5px; color:var(--ink-2)}
+  .ex .et{font-family:var(--mono); font-size:11px; letter-spacing:.06em; text-transform:uppercase;
+    color:var(--red); font-weight:500; display:block; margin-bottom:5px}
+  .ex p:last-child{margin-bottom:0}
+
+  .steps{counter-reset:step; margin:12px 0 16px; padding:0; list-style:none}
+  .steps li{counter-increment:step; position:relative; padding:9px 0 9px 38px; margin:0; color:var(--ink-2)}
+  .steps li::before{content:counter(step); position:absolute; left:0; top:8px; width:26px; height:26px;
+    border-radius:8px; background:var(--white); border:1.5px solid var(--red); color:var(--red);
+    font-family:var(--mono); font-size:13px; display:flex; align-items:center; justify-content:center}
+  .steps li + li{border-top:1px dashed var(--line)}
+
+  .faq{margin:12px 0 0}
+  .faq > div{border-top:1px solid var(--line); padding:12px 0}
+  .faq > div:first-child{border-top:none}
+  .faq .q{font-weight:700; color:var(--ink); font-size:15px; margin-bottom:4px}
+  .faq .a{color:var(--ink-2); font-size:14.5px}
+
+  /* Sous-encadré dépliable, à l'intérieur d'une section */
+  details.plus{background:#FBFCFE; border:1px solid var(--line); border-radius:12px;
+    padding:0 15px; margin:16px 0}
+  details.plus summary{cursor:pointer; padding:13px 0; font-size:14.5px; font-weight:600;
+    color:var(--ink-2); list-style:none; min-height:44px; display:flex; align-items:center;
+    -webkit-tap-highlight-color:transparent}
+  details.plus summary::-webkit-details-marker{display:none}
+  details.plus summary::before{content:"▸"; color:var(--red); font-weight:700; margin-right:8px}
+  details.plus[open] summary::before{content:"▾"}
+  details.plus[open] summary{border-bottom:1px solid var(--line)}
+  details.plus .dedans{padding:13px 0 6px; font-size:14.5px; color:var(--ink-2)}
+  details.plus .dedans > :last-child{margin-bottom:0}
+
+
+  /* ── Illustration de section ──────────────────────────────────────
+     Vignette carrée, jamais pleine largeur : sur un écran de 6 cm une
+     image de 800 px chasse le texte hors de l'écran. */
+  .illu{display:block; width:132px; height:132px; margin:0 auto 16px;
+    border-radius:16px; background:var(--white); border:1px solid var(--line)}
+  @media (min-width:700px){ .illu{width:160px; height:160px; float:right; margin:0 0 14px 20px} }
+  @media print{ .illu{float:none; margin:0 auto 14px} }
+
+
+  /* ── Capture d'écran ──────────────────────────────────────────────
+     Cadre léger, largeur bridée : une capture de téléphone affichée en
+     pleine largeur chasse le texte hors de l'écran. */
+  .ecran{display:block; width:100%; max-width:240px; margin:0 auto 18px;
+    border:1px solid var(--line); border-radius:14px; background:var(--white)}
+  @media (min-width:700px){ .ecran{max-width:280px; float:right; margin:0 0 16px 24px} }
+  @media print{ .ecran{float:none; margin:0 auto 14px} }
+
+  /* ── Pastilles du calendrier de campagne ──────────────────────────
+     Fonds relevés dans indispos.html. */
+  .ci{display:inline-block; width:26px; height:26px; border-radius:7px; margin-right:10px;
+    vertical-align:-7px; border:1.5px solid var(--line)}
+  .ci-ind{background:#6B7280; border-color:transparent}
+  .ci-sou{background:#166534; border-color:transparent}
+  .ci-tp{background:#6D28D9; border-color:transparent}
+  .ci-vac{background:#1D4ED8; border-color:transparent}
+  .ci-form{background:#6D28D9; border-color:transparent}
+  .ci-we{background:#F6F8FB}
+  .ci-past{background:#6D28D9; border-color:transparent; opacity:.45}
+  .ci-today{background:#fff; border:2px solid var(--red)}
+
+  /* ── Pastilles de code du planning ────────────────────────────────
+     Fonds et encres relevés dans index.html : ce que le guide montre
+     est exactement ce que le planning affiche. */
+  .pc{display:inline-flex; align-items:center; justify-content:center; min-width:34px;
+    height:26px; border-radius:7px; font-family:var(--mono); font-size:13px; font-weight:500;
+    padding:0 8px; margin-right:10px; border:1px solid rgba(15,23,42,.08)}
+  .pc-G{background:#1E293B; color:#fff} .pc-G2{background:#334155; color:#fff}
+  .pc-RG{background:#FFF7ED; color:#C2410C} .pc-18{background:#F0FDF4; color:#166534}
+  .pc-R{background:#ECFEFF; color:#0E7490} .pc-V{background:#EEF4FB; color:#1D6FB8}
+  .pc-F{background:#FDF3E3; color:#B45309} .pc-TP{background:#FEF3C7; color:#92400E}
+  .pc-CL{background:#F3E8FF; color:#7C3AED} .pc-A{background:#F8FAFC; color:#94A3B8}
+  .liste b .pc{margin-right:10px}
+
+  /* ── Pastilles du calendrier temps partiel ────────────────────────
+     Mêmes fonds et mêmes bordures que l'écran de saisie. */
+  .pt{display:inline-block; width:30px; height:24px; border-radius:7px; margin-right:10px;
+    vertical-align:-6px; border:1.5px solid}
+  .pt-libre{background:#F0FDF4; border-color:#BBF7D0}
+  .pt-pose{background:#F3E8FF; border-color:#6D28D9; border-width:2px}
+  .pt-pale{background:#F3E8FF; border-color:#6D28D9; border-width:2px; opacity:.45}
+  .pt-jaune{background:#FEF9C3; border:1.5px dashed #CA8A04}
+  .pt-orange{background:#FFF7ED; border:2px dashed #FB923C}
+  .pt-noir{background:#334155; border-color:#1E293B}
+  .pt-gris{background:#F1F5F9; border-color:#E2E8F0}
+
+  /* Ordre des groupes de vacances */
+  .grp{display:inline-flex; align-items:center; justify-content:center; min-width:23px; height:23px;
+    border-radius:7px; color:#fff; font-family:var(--mono); font-size:12.5px; font-weight:500}
+  .grp.a{background:#2563EB} .grp.b{background:#059669} .grp.c{background:#D97706}
+  .grp-sep{color:var(--ink-3); font-size:11px; margin:0 2px}
+  .ordre{margin:12px 0 8px}
+  .ordre > div{display:flex; align-items:center; gap:10px; padding:10px 0; border-top:1px solid var(--line)}
+  .ordre > div:first-child{border-top:none}
+  .ordre .per{font-weight:700; color:var(--ink); font-size:14.5px; width:88px; flex:none}
+  .ordre .an{font-size:12px; font-family:var(--mono); color:var(--ink-3); margin-right:4px}
+
+  /* Bouton flottant : remonter */
+  .haut{position:fixed; right:14px; bottom:18px; z-index:40; width:48px; height:48px;
+    border-radius:50%; background:var(--red); color:#fff; border:none; font-size:20px;
+    box-shadow:0 4px 14px rgba(206,17,38,.35); display:none; align-items:center;
+    justify-content:center; cursor:pointer; -webkit-tap-highlight-color:transparent}
+  .haut.on{display:flex}
+
+  .foot{margin-top:34px; padding-top:16px; border-top:1px solid var(--line); font-size:12px;
+    color:var(--ink-3); font-family:var(--mono); text-align:center; line-height:1.7}
+  .foot a{color:var(--ink-3)}
+
+  @media (min-width:700px){
+    body{padding:34px 20px 90px; font-size:16px}
+    .corps{padding:16px 22px 22px}
+    details.sec > summary{padding:14px 22px; font-size:17px}
+  }
+  @media print{
+    body{background:#fff; padding:0}
+    details.sec, details.plus{border:none}
+    details.sec > summary .chev, .chercher, .haut{display:none !important}
+    .appbar{background:#9E0C1D !important;-webkit-print-color-adjust:exact;print-color-adjust:exact}
+  }
+</style>
+</head>
+<body>
+<div class="wrap">
+
+<div class="appbar">
+  <img class="appbar-wm" src="../assets/icon-192.png" alt="" aria-hidden="true">
+  <div class="appbar-row">
+    <img class="appbar-ic" src="../assets/icon-192.png" alt="">
+    <div class="appbar-tx">
+      <div class="appbar-eyebrow">Planning-Med · Anesthésie-Réanimation</div>
+      <h1>Guide du MAR</h1>
+    </div>
+    <span class="appbar-chip" data-version>—</span>
+  </div>
+  <p class="appbar-sub">Le portail, le planning, vos congés — et comment vos gardes sont calculées.</p>
+</div>
+<p class="maj">Mis à jour le 6 septembre 2026</p>
+
+<div class="chercher">
+  <input id="q" type="search" placeholder="Chercher : récup, code, échange, samedi…" autocomplete="off">
+</div>
+<div class="vide" id="vide">Aucune section ne correspond.</div>
+
+<div class="partie" data-partie>Le portail</div>
+
+<!-- ═══ 01 ═══════════════════════════════════════════════════════════ -->
+<details class="sec" id="s1">
+  <summary><span class="n">01</span><span>Votre code d'accès</span><span class="chev">›</span></summary>
+  <div class="corps">
+    <p>Un code personnel, reçu par mail. Il ouvre toutes les pages du portail. Pas de mot de passe à choisir, pas de compte à créer.</p>
+    <p>Vous ouvrez une page, vous tapez votre code. C'est tout.</p>
+
+    <h3>Combien de temps il est retenu</h3>
+    <div class="liste">
+      <div><b>Dans l'application installée sur votre téléphone</b><span>Retenu 30 jours. Chaque ouverture repart pour 30 jours : en pratique, vous ne le retapez jamais.</span></div>
+      <div><b>Dans Safari ou Chrome, y compris sur un poste du service</b><span>Redemandé à chaque fois. C'est voulu : rien ne doit rester sur un ordinateur partagé.</span></div>
+    </div>
+
+    <h3>Vous déconnecter</h3>
+    <p>Touchez votre nom, en haut de l'écran, puis confirmez. Votre code est oublié. Utile si vous prêtez ou changez de téléphone.</p>
+
+    <div class="liste">
+      <div><b>Code oublié</b><span>Demandez au comité. Il en génère un nouveau, envoyé par mail.</span></div>
+      <div><b>Code qui ne marche plus</b><span>Il a été réinitialisé. Cherchez le mail. Sinon, demandez.</span></div>
+      <div><b>Téléphone perdu</b><span>Prévenez le comité. Dès qu'il change votre code, le téléphone perdu perd l'accès. Vous recevez le nouveau code par mail.</span></div>
+    </div>
+
+    <div class="callout rule">
+      <div class="ct">Un code, une personne</div>
+      <p>Ne partagez pas votre code. Il donne accès à vos informations, et ce que vous saisissez est enregistré sous votre nom. Chaque MAR a le sien.</p>
+    </div>
+  </div>
+</details>
+
+<!-- ═══ 02 ═══════════════════════════════════════════════════════════ -->
+<details class="sec" id="s2">
+  <summary><span class="n">02</span><span>Installer le portail sur votre téléphone</span><span class="chev">›</span></summary>
+  <div class="corps">
+    <p>Une icône Planning-Med sur votre écran d'accueil, le portail en plein écran. C'est aussi la condition pour que votre code soit retenu et pour recevoir les notifications.</p>
+
+    <h3>iPhone</h3>
+    <ol class="steps">
+      <li>Ouvrez le portail dans <b>Safari</b> — uniquement Safari.</li>
+      <li>Touchez le bouton <b>Partager</b> (le carré avec la flèche, en bas).</li>
+      <li>Choisissez <b>Sur l'écran d'accueil</b>, puis <b>Ajouter</b>.</li>
+    </ol>
+
+    <h3>Android</h3>
+    <ol class="steps">
+      <li>Ouvrez le portail dans <b>Chrome</b>.</li>
+      <li>Touchez le menu <b>⋮</b> en haut à droite.</li>
+      <li>Choisissez <b>Ajouter à l'écran d'accueil</b> (ou <b>Installer l'application</b>), puis <b>Ajouter</b>.</li>
+    </ol>
+
+    <h3>Activer les notifications</h3>
+    <div class="geste">
+      Ouvrez l'application installée, touchez la carte <b>« Activer les notifications »</b> sur la page d'accueil, puis <b>Autoriser</b>. Un seul geste, une seule fois par téléphone. La carte disparaît ensuite.
+    </div>
+    <p>Vous recevrez alors :</p>
+    <ul>
+      <li>une garde qu'un collègue vous propose, et sa réponse à vos propres propositions ;</li>
+      <li>la réponse du comité à une demande de jour de temps partiel ;</li>
+      <li>l'annonce des gardes de l'année quand elles sont générées.</li>
+    </ul>
+    <p>Quand une demande attend votre réponse, une pastille rouge apparaît sur l'icône de l'application. Elle s'efface dès que vous ouvrez le portail.</p>
+
+    <details class="plus">
+      <summary>Pas de carte « Activer les notifications » ?</summary>
+      <div class="dedans">
+        <p>Deux causes. Soit elles sont déjà activées sur ce téléphone, et il n'y a rien à faire. Soit la fonction n'est pas encore ouverte pour vous : elle le sera, un mot du service l'annoncera.</p>
+        <p>Sur iPhone, les notifications demandent iOS 16.4 au minimum <b>et</b> l'application installée comme ci-dessus. Depuis Safari seul, elles ne fonctionnent pas.</p>
+        <p>La carte ne s'affiche pas sur ordinateur : une annonce de planning n'a d'intérêt que sur le téléphone qu'on a sur soi.</p>
+      </div>
+    </details>
+
+    <p>Pour les couper un jour : Réglages du téléphone → Notifications → Planning-Med. Vous continuerez de tout voir dans le portail. La notification est un raccourci, jamais le seul chemin.</p>
+  </div>
+</details>
+
+<!-- ═══ 03 ═══════════════════════════════════════════════════════════ -->
+<details class="sec" id="s3">
+  <summary><span class="n">03</span><span>La page d'accueil</span><span class="chev">›</span></summary>
+  <div class="corps">
+    <img class="ecran" src="img/ecran-accueil.webp" alt="La page d'accueil du portail" loading="lazy">
+    <p>C'est le tableau de bord. De là, vous atteignez tout le reste en un appui.</p>
+
+    <h3>En haut : les bandeaux</h3>
+    <p>Ils n'apparaissent que s'il y a quelque chose à montrer.</p>
+    <div class="liste">
+      <div><b>Prochaine garde</b><span>Votre garde à venir. Touchez-le pour ouvrir <b>Mes gardes</b> : toutes vos gardes et le décompte de l'année.</span></div>
+      <div><b>Échanges de gardes</b><span>Ouvre <b>Mes échanges</b> : donner une garde, en échanger une, répondre à un collègue.</span></div>
+      <div><b>Activer les notifications</b><span>Tant que vous ne les avez pas activées sur ce téléphone.</span></div>
+    </div>
+
+    <h3>Ensuite : les tuiles</h3>
+    <div class="liste">
+      <div><b>Planning</b><span>Le planning de toute l'équipe, semaine par semaine.</span></div>
+      <div><b>Mes indisponibilités</b><span>Votre grille de saisie. Visible uniquement pendant la campagne d'automne.</span></div>
+      <div><b>Mes jours de temps partiel</b><span>Apparaît une fois le planning publié, si vous avez encore des jours à poser.</span></div>
+      <div><b>Mes congés</b><span>Vacances, formations, temps partiels, récupérations.</span></div>
+      <div><b>Protocoles</b><span>Les procédures du service, classées par spécialité.</span></div>
+      <div><b>Topos / biblio</b><span>Documents et présentations du service.</span></div>
+      <div><b>Staffs à venir</b><span>Programme des réunions et intervenants.</span></div>
+      <div><b>Veille biblio</b><span>Les nouveaux articles en anesthésie-réanimation.</span></div>
+      <div><b>Annuaire</b><span>Numéros de l'hôpital et DECT de l'équipe.</span></div>
+    </div>
+
+    <h3>Tout en haut de l'écran</h3>
+    <p>La <b>cloche</b> (section 10), le bouton de thème clair/sombre, et le bouton <b>?&nbsp;Aide</b> qui ouvre ce guide.</p>
+
+    <details class="plus">
+      <summary>La veille biblio en détail</summary>
+      <div class="dedans">
+        <p>En haut de la liste, le bouton <b>Revues</b> vous laisse cocher celles qui vous intéressent. Le portail s'en souvient d'une visite à l'autre.</p>
+        <p><b>Lu</b> et <b>★</b> sont personnels : marquer un article lu ne le retire que de votre liste, jamais de celle des collègues. Vos marques vous suivent d'un appareil à l'autre.</p>
+      </div>
+    </details>
+  </div>
+</details>
+
+<!-- ═══ 04 ═══════════════════════════════════════════════════════════ -->
+<details class="sec" id="s4">
+  <summary><span class="n">04</span><span>Lire le planning</span><span class="chev">›</span></summary>
+  <div class="corps">
+    <img class="ecran" src="img/ecran-planning.webp" alt="Le planning sur téléphone" loading="lazy">
+    <p>Sur téléphone, le planning s'ouvre sur <b>une journée</b>. En haut, l'année et le mois. Les deux flèches changent de jour. Le bouton rouge <b>Aujourd'hui</b> vous ramène à la date du jour.</p>
+
+    <h3>Ce que montre la journée</h3>
+    <p>Une <b>carte par secteur</b> — bloc viscéral, réanimation, orthopédie, ORL, endoscopies, consultations… Dans chaque carte, <b>Matin</b> et <b>Après-midi</b>, avec les initiales de chacun. Les vôtres sont mises en évidence.</p>
+    <p>Tout en bas de la journée, un bloc récapitule : <b>Garde 24h</b>, <b>8h – 18h</b>, <b>Sortie de garde</b> et <b>Absents</b>. Et le jour même, un bandeau <b>Cette nuit</b> donne le binôme de garde.</p>
+
+    <div class="callout tip">
+      <div class="ct">Repérer une garde d'un coup d'œil</div>
+      <p>Quelqu'un de garde apparaît aussi <b>dans son secteur de journée</b>, avec un petit <b>G</b> en exposant et un liseré rouge autour de ses initiales. Un 18h porte un <b>18</b> en exposant et un liseré orange.</p>
+    </div>
+
+    <h3>La barre du bas</h3>
+    <p>Cinq boutons, qui changent ce que vous regardez :</p>
+    <div class="liste">
+      <div><b>Planning</b><span>La journée, comme décrit ci-dessus.</span></div>
+      <div><b>Médecins</b><span>L'équipe, pour retrouver qui fait quoi.</span></div>
+      <div><b>Équité</b><span>Les compteurs de gardes de chacun (section 23).</span></div>
+      <div><b>Secteurs</b><span>Les affectations vues par secteur.</span></div>
+      <div><b>Année</b><span>Toute l'année d'un coup, une ligne par MAR.</span></div>
+    </div>
+
+    <h3>Les codes de la vue Année</h3>
+    <p>C'est dans la vue <b>Année</b> que chaque jour porte un code, avec sa couleur :</p>
+    <div class="liste">
+      <div><b><span class="pc pc-G">G</span>Garde de réanimation</b><span>24 heures.</span></div>
+      <div><b><span class="pc pc-G2">G2</span>Garde maternité – bloc</b><span>24 heures.</span></div>
+      <div><b><span class="pc pc-RG">RG</span>Repos de garde</b><span>Le lendemain d'une garde.</span></div>
+      <div><b><span class="pc pc-18">18</span>Journée 8 h – 18 h</b></div>
+      <div><b><span class="pc pc-R">R</span>Récupération de samedi</b></div>
+      <div><b><span class="pc pc-V">V</span>Vacances</b></div>
+      <div><b><span class="pc pc-F">F</span>Formation</b></div>
+      <div><b><span class="pc pc-TP">TP</span>Jour de temps partiel</b></div>
+      <div><b><span class="pc pc-CL">CL</span>Congé long</b></div>
+      <div><b><span class="pc pc-A">A</span>Absence</b></div>
+    </div>
+
+    <h3>Sur ordinateur</h3>
+    <p>L'écran est assez large pour tout montrer d'un coup : une ligne par secteur, une colonne par demi-journée, la semaine entière. Les mêmes vues sont en haut au lieu d'être en bas.</p>
+
+    <h3>Je ne vois pas le dernier changement</h3>
+    <div class="geste">
+      <b>Le plus sûr : fermez complètement l'application, puis rouvrez-la.</b> La page se recharge à neuf et tout est à jour.
+    </div>
+    <p>Sur ordinateur : rechargez la page.</p>
+    <p>Il existe aussi un glissement, comme sur un fil d'actualité : <b>page tout en haut</b>, un seul doigt, tirez franchement vers le bas. Un rond rouge apparaît en haut de l'écran pendant le rechargement. Attention, si la page a déjà défilé, même de très peu, le geste ne se déclenche pas. Il fonctionne sur la page d'accueil et sur le planning, pas sur la page des indisponibilités.</p>
+    <p>Enfin, si vous laissez le portail ouvert et que vous y revenez <b>plus de 15 minutes plus tard</b>, le planning se remet à jour tout seul.</p>
+
+    <details class="plus">
+      <summary>Quand les changements apparaissent, et quand vous recevez un mail</summary>
+      <div class="dedans">
+        <p>Quand le comité publie, la modification apparaît sur votre écran <b>2 à 3 minutes</b> plus tard.</p>
+        <p>Vous recevez ensuite un mail récapitulatif, environ <b>10 minutes</b> après la fin de leurs modifications. Un seul mail, même s'ils ont changé vingt choses : le comité travaille par séances, il place, corrige, replace. Le portail attend que tout soit calme avant de vous écrire.</p>
+        <p><b>Si l'une de vos gardes bouge</b> — déplacée, échangée, ajoutée, retirée — vous êtes prévenu, quelle que soit la date, même dans six mois.</p>
+        <p><b>Si c'est votre affectation en journée qui change</b> (quel secteur, quelle salle), vous n'êtes prévenu que si cela tombe dans la semaine couverte par le dernier planning Excel diffusé. Au-delà, l'Excel du vendredi suivant vous le montrera avant que ce soit d'actualité.</p>
+        <p>Vous ne recevez jamais les changements des autres.</p>
+      </div>
+    </details>
+
+    <div class="callout warn">
+      <div class="ct">Ce n'est pas du direct</div>
+      <p>Pour un changement urgent, on vous appellera.</p>
+    </div>
+  </div>
+</details>
+
+<!-- ═══ 05 ═══════════════════════════════════════════════════════════ -->
+<details class="sec" id="s5">
+  <summary><span class="n">05</span><span>Mes gardes et mes congés</span><span class="chev">›</span></summary>
+  <div class="corps">
+    <p>Deux vues qui ne montrent que vous. Pratiques quand vous cherchez une date sans parcourir toute l'équipe.</p>
+    <div class="liste">
+      <div><b>Mes gardes</b><span>Vos gardes à venir, et combien vous en avez faites cette année. Par le bandeau « Prochaine garde ».</span></div>
+      <div><b>Mes congés</b><span>Vacances, formations, temps partiels et récupérations enregistrés. Par la tuile du même nom.</span></div>
+    </div>
+    <p>Dans <b>Mes congés</b>, un bandeau bleu vous indique votre groupe de vacances et votre rang. Appuyez dessus pour voir qui choisit avant vous, période par période, cette année et l'année suivante (section 08).</p>
+
+    <div class="callout tip">
+      <div class="ct">Un écart avec ce que vous croyez ?</div>
+      <p>Ces vues affichent ce qui est enregistré. Si une date manque ou paraît fausse, signalez-la au comité, qui la rectifiera à la source. Une correction que vous notez de votre côté disparaîtra à la publication suivante.</p>
+    </div>
+  </div>
+</details>
+
+<!-- ═══ 06 ═══════════════════════════════════════════════════════════ -->
+<details class="sec" id="s6">
+  <summary><span class="n">06</span><span>Saisir vos indisponibilités et vos souhaits</span><span class="chev">›</span></summary>
+  <div class="corps">
+    <img class="ecran" src="img/ecran-indispos.webp" alt="L'écran de saisie des indisponibilités" loading="lazy">
+    <p>Une fois par an, à l'automne, vous déposez vos souhaits pour l'année suivante. La tuile <b>Mes indisponibilités</b> n'apparaît que pendant cette campagne.</p>
+
+    <h3>Le geste : un outil, puis des jours</h3>
+    <ol class="steps">
+      <li>Choisissez un <b>outil</b> parmi les quatre boutons du bas.</li>
+      <li>Touchez les jours concernés. Pour une période, <b>glissez le doigt</b> d'un jour à l'autre.</li>
+      <li>Appuyez sur <b>Sauvegarder mes indisponibilités</b>, le bouton rouge tout en bas.</li>
+      <li>Revenez quand vous voulez. Vos saisies sont conservées et modifiables jusqu'à la clôture.</li>
+    </ol>
+    <p>Une ligne au-dessus des boutons vous rappelle en permanence l'outil actif.</p>
+
+    <div class="liste">
+      <div><b>🚫 Indispo</b><span>Les jours où vous ne pouvez pas prendre de garde.</span></div>
+      <div><b>⭐ Souhait</b><span>Les jours où vous <b>voudriez</b> être de garde.</span></div>
+      <div><b>🕐 Temps P</b><span>Vos jours non travaillés. N'apparaît que si vous avez des jours à poser (section 07).</span></div>
+      <div><b>🧽 Effacer</b><span>Retire ce que vous avez posé sur un jour.</span></div>
+    </div>
+    <p>Un jour ne porte qu'une seule étiquette : poser un temps partiel sur un jour déjà marqué indisponible remplace l'un par l'autre.</p>
+
+    <h3>Les couleurs du calendrier</h3>
+    <div class="liste">
+      <div><b><span class="ci ci-ind"></span>Gris plein</b><span>Vous êtes indisponible.</span></div>
+      <div><b><span class="ci ci-sou"></span>Vert plein</b><span>Vous souhaitez être de garde.</span></div>
+      <div><b><span class="ci ci-tp"></span>Violet plein</b><span>Jour de temps partiel.</span></div>
+      <div><b><span class="ci ci-vac"></span>Bleu plein + 🔒</b><span>Vacances posées au staff. Elles ne se modifient pas ici.</span></div>
+      <div><b><span class="ci ci-form"></span>Violet + 🔒</b><span>Formation posée au staff. Le cadenas la distingue du temps partiel.</span></div>
+      <div><b><span class="ci ci-we"></span>Fond gris pâle</b><span>Week-end ou jour férié. Les fériés portent un petit « JF » dans le coin.</span></div>
+      <div><b><span class="ci ci-past"></span>Estompé</b><span>Jour déjà passé, ou en dehors de l'année de planning.</span></div>
+      <div><b><span class="ci ci-today"></span>Bordure rouge</b><span>Aujourd'hui.</span></div>
+    </div>
+    <p>Quand l'outil <b>Temps P</b> est actif, les week-ends et les fériés s'estompent : ils ne sont pas posables, et ça se voit avant le geste plutôt qu'après.</p>
+
+    <h3>Les compteurs du haut</h3>
+    <p>Trois jauges — <b>Congés</b>, <b>Formation</b>, <b>Temps partiel</b> — montrent ce que vous avez posé sur votre quota. En dessous, deux nombres : combien d'indisponibilités et combien de gardes souhaitées.</p>
+
+    <div class="callout rule">
+      <div class="ct">La règle du jeu</div>
+      <p>Vos indisponibilités sont des souhaits, pas des congés validés. Elles sont respectées dans la mesure du possible : plus vous en demandez, moins la contrainte peut être tenue pour tout le monde. Le comité vous prévient si un souhait ne peut pas l'être.</p>
+    </div>
+
+    <h3>Demander à être de garde un jour précis</h3>
+    <p>C'est l'outil <b>Souhait</b>. Quatre choses à savoir :</p>
+    <ul>
+      <li><b>Un souhait ne vous donne pas une garde en plus.</b> Il déplace une garde que vous auriez faite de toute façon, à la date que vous préférez. Votre nombre de gardes dans l'année ne change pas.</li>
+      <li><b>Un souhait refusé ne vous fait rien perdre.</b> La garde vous revient à une autre date.</li>
+      <li><b>Un lundi, un mardi, un mercredi : presque toujours accordé.</b> Ces jours sont nombreux.</li>
+      <li><b>Un samedi, un vendredi, un dimanche, un jour férié ou une veille de férié : une seule demande par an.</b> Ces jours sont rares. Au-delà d'une demande, les suivantes sont ignorées.</li>
+    </ul>
+
+    <div class="ex">
+      <span class="et">Exemple</span>
+      <p>Vous demandez le mercredi 5 mai 2027. C'est la veille de l'Ascension : cette demande consomme votre unique demande « jour rare » de l'année. Si vous demandez ensuite un samedi, il ne sera pas retenu.</p>
+    </div>
+
+    <div class="callout tip">
+      <div class="ct">Certains jours vont par paire</div>
+      <p>Si vous touchez un vendredi, le dimanche se sélectionne aussi : c'est le même week-end de garde, assuré par le même binôme. Le samedi du milieu revient à d'autres. Même chose pour un lundi férié (le samedi d'avant vient avec) et un jeudi férié (le samedi d'après). Un message vous le confirme au moment du clic. Comptez un week-end comme <b>une seule</b> demande, même si deux jours s'allument.</p>
+    </div>
+
+    <h3>Vérifier que c'est enregistré</h3>
+    <p>Quittez la page, rouvrez-la. Ce que vous voyez alors est ce qui est enregistré. Si vos jours sont là, c'est bon. Inutile de ressaisir.</p>
+
+    <div class="callout warn">
+      <div class="ct">Une fois le planning établi, la page se verrouille</div>
+      <p>Dès que les gardes de l'année sont réparties, vos indisponibilités passent en lecture seule. Vous les voyez toujours, mais vous ne pouvez plus les modifier : elles n'auraient plus d'effet, les gardes sont attribuées. Un bandeau vous le signale. Pour changer une garde après coup, c'est <b>Mes échanges</b> (section 09).</p>
+    </div>
+
+    <h3>Le mail « Vos gardes »</h3>
+    <p>Quand le planning est généré, vous recevez la liste de vos gardes de l'année, mois par mois, à reporter dans votre agenda. Les week-ends et les fériés y sont signalés, et le mail vous dit combien de vos demandes ont été retenues.</p>
+    <p>Il peut mettre un peu de temps à arriver. S'il ne vous parvient pas, regardez vos courriers indésirables, puis signalez-le au comité, qui peut le renvoyer.</p>
+  </div>
+</details>
+
+<!-- ═══ 07 ═══════════════════════════════════════════════════════════ -->
+<details class="sec" id="s7">
+  <summary><span class="n">07</span><span>Vos jours de temps partiel</span><span class="chev">›</span></summary>
+  <div class="corps">
+    <p>Cette section concerne les MARs dont la quotité est inférieure à 100 %, hors jours fixes convenus.</p>
+
+    <h3>Deux moments, pas un</h3>
+    <p><b>Pendant la campagne d'automne</b>, vous posez vos jours sur le même écran que vos indisponibilités (section 06). C'est le moment le plus utile : vos jours sont connus <b>avant</b> que les gardes soient réparties, donc le planning se construit autour d'eux.</p>
+    <p><b>Le reste de l'année</b>, ce que vous n'avez pas posé reste disponible sur la tuile <b>Mes jours de temps partiel</b>, qui apparaît une fois le planning publié. Vous choisissez dans ce qui reste libre, sans date limite, et vous pouvez retirer un jour tant qu'il n'est pas passé.</p>
+
+    <div class="callout rule">
+      <div class="ct">Un jour posé est un jour acquis</div>
+      <p>Quel que soit le moment où vous l'avez posé, un jour de temps partiel ne vous est jamais repris. Aucune garde ne sera placée la veille : le repos du lendemain ne peut pas venir s'écrire sur un jour où vous ne travaillez pas.</p>
+    </div>
+
+    <p>Un jour de temps partiel se pose sur un jour ouvré : ni week-end, ni férié. Ces jours-là ne vous feraient rien gagner.</p>
+
+    <h3>Lire le calendrier</h3>
+    <div class="liste">
+      <div><b><span class="pt pt-libre"></span>Vert</b><span>Libre, l'équipe est assez nombreuse. Un appui suffit.</span></div>
+      <div><b><span class="pt pt-pose"></span>Violet</b><span>Vous avez posé un jour ici.</span></div>
+      <div><b><span class="pt pt-jaune"></span>Jaune</b><span>Il resterait 13 ou 14 présents. Vous pouvez le poser, le comité tranche.</span></div>
+      <div><b><span class="pt pt-noir"></span>Noir</b><span>Il resterait 12 ou moins. Le jour n'est pas ouvert, même sur demande.</span></div>
+      <div><b><span class="pt pt-orange"></span>Orange hachuré</b><span>Demandé, en attente du comité. Pas inscrit au planning, et pas encore compté dans votre quota.</span></div>
+      <div><b><span class="pt pt-pale"></span>Violet pâle</b><span>Un jour déjà écoulé : figé, mais toujours compté dans votre quota.</span></div>
+      <div><b><span class="pt pt-gris"></span>Gris</b><span>Impossible : garde, repos de garde, récupération, congés, week-end ou férié. La petite étiquette dit pourquoi.</span></div>
+    </div>
+    <p>Le petit chiffre en bas de chaque case est le nombre de personnes présentes ce jour-là.</p>
+
+    <h3>Le compteur en haut</h3>
+    <p>Trois nombres, trois choses différentes :</p>
+    <div class="liste">
+      <div><b>Accordés</b><span>Ce qui est inscrit au planning.</span></div>
+      <div><b>En attente du comité</b><span>Demandé, pas encore acquis. Vous travaillez ce jour-là tant que le comité n'a pas répondu.</span></div>
+      <div><b>Restants</b><span>Ce qu'il vous reste sur votre quota.</span></div>
+    </div>
+    <p>Vos demandes en attente occupent une place : vous ne pouvez pas demander plus que votre quota total, accordés et attente confondus.</p>
+    <p>La réponse du comité arrive en notification — « Temps partiel validé » ou « Temps partiel refusé », avec la date. En la touchant, vous revenez sur le calendrier : le jour est devenu violet s'il est accordé, noir s'il est fermé.</p>
+
+    <details class="plus">
+      <summary>Pourquoi certains jours sont jaunes ou noirs</summary>
+      <div class="dedans">
+        <p>Chaque jour, il faut assez de MARs présents pour tenir les blocs, les salles et la garde. L'écran calcule ce qu'il resterait de présents si vous posiez votre jour : <b>15 ou plus</b>, le jour est vert ; <b>13 ou 14</b>, il est jaune et le comité décide ; <b>12 ou moins</b>, il est noir et personne ne peut le demander.</p>
+        <p>Si deux collègues visent le même jour, le premier validé peut faire passer le jour de l'autre en dessous du seuil. C'est pour cela que la réponse appartient au comité, qui voit les chiffres du moment.</p>
+      </div>
+    </details>
+  </div>
+</details>
+
+<!-- ═══ 08 ═══════════════════════════════════════════════════════════ -->
+<details class="sec" id="s8">
+  <summary><span class="n">08</span><span>Comment vos vacances sont réparties</span><span class="chev">›</span></summary>
+  <div class="corps">
+    <p>Les grandes périodes — hiver, printemps, été, Toussaint, Noël — sont réparties de façon à ce qu'il reste toujours assez de monde dans le service. Pour que le choix soit équitable, l'équipe est séparée en trois groupes : <span class="grp a">A</span> <span class="grp b">B</span> <span class="grp c">C</span></p>
+
+    <ol class="steps">
+      <li>Une rotation annuelle détermine quel <b>groupe</b> choisit en premier, période par période.</li>
+      <li>À l'intérieur de chaque groupe, une rotation détermine l'<b>ordre de passage</b> des personnes.</li>
+      <li>Le placement se fait en présentiel, lors d'un staff dédié : chacun choisit à son tour, à l'écran, devant tout le monde.</li>
+      <li>Le résultat est publié dans le planning.</li>
+    </ol>
+
+    <h3>Quel groupe choisit en premier</h3>
+    <div class="ordre" id="ordreVac"></div>
+    <p>Le groupe placé à gauche choisit en premier. Chaque année, tout recule d'un cran — votre groupe comme votre place à l'intérieur du groupe — et celui qui était dernier repasse premier.</p>
+
+    <div class="geste">
+      <b>Votre place à vous :</b> portail → <b>Mes congés</b> → appuyez sur le bandeau bleu. Vous y voyez votre groupe, votre rang, et qui choisit avant vous, période par période.
+    </div>
+  </div>
+</details>
+
+<!-- ═══ 09 ═══════════════════════════════════════════════════════════ -->
+<details class="sec" id="s9">
+  <summary><span class="n">09</span><span>Donner ou échanger une garde</span><span class="chev">›</span></summary>
+  <div class="corps">
+    <img class="illu" src="img/illu-echange.webp" alt="Deux personnes qui échangent une carte" loading="lazy">
+    <p>Une garde tombe mal ? Vous pouvez la <b>donner</b> à un collègue, ou l'<b>échanger</b> contre l'une des siennes, directement entre vous. Le comité n'intervient pas : si votre collègue accepte, le planning se met à jour tout seul.</p>
+
+    <h3>Proposer</h3>
+    <p>Page d'accueil → <b>Mes échanges</b> → <b>Proposer</b>. Choisissez votre garde, ce que vous voulez (la donner, ou l'échanger contre une garde précise), et le collègue.</p>
+    <p>Les vérifications se font au moment de l'envoi. Si votre collègue est en congé ce jour-là, vous le saurez tout de suite, pas 48 heures plus tard.</p>
+
+    <h3>Répondre</h3>
+    <p>Le collègue reçoit une notification. Il ouvre la demande, voit les dates et ce qui changera dans son planning, puis choisit <b>Accepter</b> ou <b>Refuser</b>. S'il accepte, tout s'écrit en quelques secondes — sa garde, son repos du lendemain — et vous êtes prévenu.</p>
+
+    <h3>Sans réponse</h3>
+    <p>Un rappel unique part au bout de <b>24 heures</b>. À <b>48 heures</b>, la demande expire d'elle-même : vous êtes prévenu, et rien n'a bougé. Votre garde est toujours à vous.</p>
+
+    <div class="callout tip">
+      <div class="ct">Le samedi emmène sa récupération</div>
+      <p>Un samedi donné transfère automatiquement sa récupération au collègue qui prend la garde, et la notification indique la nouvelle date aux deux. Si le transfert est impossible (récupération déjà prise, jour occupé chez le receveur), l'échange se fait quand même et le comité replace la récupération à la main. Vous n'avez rien à faire.</p>
+    </div>
+
+    <div class="callout rule">
+      <div class="ct">Ce que le système refusera toujours</div>
+      <p>Jamais deux gardes d'affilée. Jamais une garde donnée à quelqu'un d'absent, ou dont le repos tomberait sur une absence. Jamais rien d'écrasé dans le planning. Si une proposition est refusée, le motif s'affiche : ce n'est pas une panne, c'est une règle du service, la même pour tous.</p>
+    </div>
+
+    <div class="faq">
+      <div><div class="q">Je n'ai pas de notifications, vais-je rater une demande ?</div><div class="a">Non. La demande reste visible dans « Mes échanges » à votre prochaine ouverture du portail.</div></div>
+      <div><div class="q">Puis-je annuler une proposition envoyée ?</div><div class="a">Pas encore. Sans réponse, elle expire seule au bout de 48 heures et rien n'aura bougé. Le plus simple entre-temps : prévenez votre collègue, il n'aura qu'à refuser.</div></div>
+    </div>
+  </div>
+</details>
+
+<!-- ═══ 10 ══════════════════════════════════════════════════════════ -->
+<details class="sec" id="s10">
+  <summary><span class="n">10</span><span>La cloche</span><span class="chev">›</span></summary>
+  <div class="corps">
+    <p>En haut de votre page d'accueil, la cloche rassemble tout ce que le planning vous a annoncé ces <b>30 derniers jours</b> : échanges de gardes, réponses à vos demandes de temps partiel, publication des gardes de l'année.</p>
+    <p>Touchez la cloche, la liste s'ouvre, classée par jour. Touchez une ligne : elle vous amène à la bonne page.</p>
+    <p>Vous avez raté une notification — téléphone éteint, notifications coupées, ou pas eu le temps de la lire ? Aucune importance. La liste est la même sur tous vos appareils et rien ne s'y perd. <b>La notification est une sonnette ; la cloche est le registre.</b></p>
+    <p>Si l'application est installée, un petit chiffre apparaît sur son icône quand quelque chose de nouveau vous attend. Il s'efface dès que vous ouvrez votre page d'accueil.</p>
+  </div>
+</details>
+
+<!-- ═══ 11 ══════════════════════════════════════════════════════════ -->
+<details class="sec" id="s11">
+  <summary><span class="n">11</span><span>Vos données</span><span class="chev">›</span></summary>
+  <div class="corps">
+    <div class="liste">
+      <div><b>Vos gardes et vos secteurs</b><span>Toute l'équipe. C'est le planning.</span></div>
+      <div><b>Le motif de vos absences</b><span>Toute l'équipe : le planning affiche le code (V, F, TP, CL, R). Le planning est public par nature.</span></div>
+      <div><b>Vos indisponibilités et vos souhaits saisis à l'automne</b><span>Vous et le comité. Jamais vos collègues.</span></div>
+      <div><b>Vos coordonnées</b><span>L'équipe, via l'annuaire.</span></div>
+    </div>
+    <div class="callout rule">
+      <div class="ct">Ce que le portail ne fait pas</div>
+      <p>Aucune donnée n'est vendue, partagée ni exploitée à d'autres fins. Le portail n'est relié à aucun outil de l'hôpital : c'est un outil du service, pour le service.</p>
+    </div>
+  </div>
+</details>
+
+<!-- ═══ 12 ══════════════════════════════════════════════════════════ -->
+<details class="sec" id="s12">
+  <summary><span class="n">12</span><span>Un problème ?</span><span class="chev">›</span></summary>
+  <div class="corps">
+    <div class="geste">
+      <b>Écrire au comité :</b> <a href="mailto:planningmedic@gmail.com">planningmedic@gmail.com</a>. Le comité consulte cette boîte depuis son interface d'administration. Les réponses vous parviendront depuis l'adresse personnelle du membre qui vous répond.
+    </div>
+    <div class="faq">
+      <div><div class="q">Mon code ne marche plus</div><div class="a">Il a probablement été réinitialisé. Cherchez le mail contenant le nouveau code. Sinon, demandez au comité.</div></div>
+      <div><div class="q">Le planning a changé mais je ne le vois pas</div><div class="a">Fermez complètement l'application et rouvrez-la. Sur ordinateur, rechargez la page.</div></div>
+      <div><div class="q">Je vois une garde qui n'est pas la mienne</div><div class="a">Le planning affiche toute l'équipe, c'est normal. Vos lignes sont mises en évidence. Pour ne voir que vous, ouvrez « Mes gardes ».</div></div>
+      <div><div class="q">La page tourne dans le vide</div><div class="a">Fermez l'onglet, rouvrez-le. Si ça persiste plus de quelques minutes, prévenez le comité : c'est peut-être une panne côté serveur, et vous n'êtes sans doute pas seul.</div></div>
+      <div><div class="q">Mes indisponibilités ont-elles bien été prises en compte ?</div><div class="a">Quittez la page et rouvrez-la. Ce que vous voyez est ce qui est enregistré.</div></div>
+      <div><div class="q">Une date est fausse dans mes congés</div><div class="a">Signalez-la au comité, qui corrigera à la source. Ne notez pas la correction de votre côté : elle ne serait pas reprise.</div></div>
+      <div><div class="q">Je n'ai pas reçu le mail de changement</div><div class="a">Vérifiez vos indésirables. Si votre adresse n'est pas enregistrée dans le portail, vous ne recevez rien : demandez au comité de l'ajouter.</div></div>
+      <div><div class="q">Puis-je consulter le portail hors de l'hôpital ?</div><div class="a">Oui, depuis n'importe où, avec votre code.</div></div>
+    </div>
+  </div>
+</details>
+
+<div class="partie" data-partie>Comment les gardes sont calculées</div>
+
+<!-- ═══ 13 ══════════════════════════════════════════════════════════ -->
+<details class="sec" id="s13">
+  <summary><span class="n">13</span><span>Le principe</span><span class="chev">›</span></summary>
+  <div class="corps">
+    <img class="illu" src="img/illu-gardes.webp" alt="Un calendrier et des engrenages" loading="lazy">
+    <p>Chaque année en novembre, un calcul construit le planning de gardes de l'année suivante, en une quinzaine de secondes. Il ne tire pas au sort.</p>
+    <p>Il donne à chacun un <b>nombre de gardes à faire</b>, proportionnel à son temps de travail. Puis il remplit les jours un par un. À chaque jour, il prend les deux MARs les plus en retard sur leur compte, parmi ceux qui sont disponibles.</p>
+
+    <div class="ex">
+      <span class="et">L'année 2027 en chiffres</span>
+      <p>L'année de planning ne commence pas le 1<sup>er</sup> janvier : elle commence le premier lundi. 2027 va du <b>lundi 4 janvier 2027 au dimanche 2 janvier 2028</b>, soit <b>364 jours</b>. Deux gardes par jour, une en réanimation et une en maternité–bloc : <b>728 gardes</b> à répartir.</p>
+    </div>
+
+    <h3>Trois idées suffisent à tout comprendre</h3>
+    <div class="liste">
+      <div><b>1. Proportionnalité</b><span>Votre part dépend de votre quotité et de votre présence réelle dans l'année.</span></div>
+      <div><b>2. Les charges lourdes d'abord</b><span>Les week-ends sont équilibrés en priorité, puis les samedis, puis les jeudis, et le total en dernier.</span></div>
+      <div><b>3. Transparence</b><span>Les compteurs de chacun sont visibles par tous, dans la vue Équité du planning. Et le planning généré est verrouillé : personne ne peut le regénérer discrètement.</span></div>
+    </div>
+
+    <div class="callout tip">
+      <div class="ct">La machine calcule, les humains décident</div>
+      <p>Le calcul produit une proposition, que le comité vérifie avant publication. Ensuite, les échanges entre collègues restent libres et sont enregistrés au réel.</p>
+    </div>
+
+    <details class="plus">
+      <summary>Comment deux MARs à égalité sont départagés</summary>
+      <div class="dedans">
+        <p>Quand deux MARs sont exactement à égalité pour une garde, il faut trancher. C'était autrefois la position dans le tableau des médecins qui l'emportait — un détail sans rapport avec l'équité, qui déplaçait pourtant près d'une garde sur trois.</p>
+        <p>C'est maintenant un <b>numéro de tirage</b>. Le calcul est refait jusqu'à huit fois avec des numéros différents, et le meilleur résultat est conservé. Rejouer le même numéro redonne exactement le même planning.</p>
+      </div>
+    </details>
+  </div>
+</details>
+
+<!-- ═══ 14 ══════════════════════════════════════════════════════════ -->
+<details class="sec" id="s14">
+  <summary><span class="n">14</span><span>Combien de gardes vous devez</span><span class="chev">›</span></summary>
+  <div class="corps">
+    <p>Avant de placer la moindre garde, le calcul détermine votre <b>cible</b> : le nombre de gardes que vous devez faire dans l'année. Pas une cible unique, mais une par type de jour : week-ends, samedis, jeudis, veilles de férié, fériés, et le total.</p>
+
+    <h3>Votre cible est un nombre entier</h3>
+    <p>Longtemps elle s'écrivait avec une virgule : « 5,4 samedis ». Personne ne peut faire 5,4 samedis. Tout le monde était donc toujours en écart, et l'écart affiché mélangeait deux choses : l'injustice réelle et l'impossible.</p>
+    <p>Aujourd'hui, la cible est un nombre entier. <b>Faire pile sa cible est possible, et c'est le cas le plus fréquent.</b></p>
+
+    <div class="ex">
+      <span class="et">Exemple — comment on passe de la virgule à l'entier</span>
+      <p>Trois MARs, 10 samedis à répartir. Leurs parts exactes sont 3,4 · 3,3 · 3,3.</p>
+      <p>On donne d'abord à chacun sa part entière : <b>3 · 3 · 3</b>. Neuf samedis sont placés, il en reste un.</p>
+      <p>Ce dernier samedi va à celui dont la virgule était la plus grande, le 3,4. Cibles finales : <b>4 · 3 · 3</b>. La somme fait exactement 10 : aucun samedi ne se perd, aucun ne se dédouble.</p>
+    </div>
+
+    <h3>Ce qui fait varier votre cible</h3>
+    <div class="liste">
+      <div><b>Votre quotité de gardes</b><span>Un MAR à 80 % a une cible égale à 80 % de celle d'un temps plein.</span></div>
+      <div><b>Votre présence réelle dans l'année</b><span>Une arrivée en cours d'année, un départ ou un congé long réduisent la cible au prorata. Un MAR qui arrive en juillet ne doit que la moitié d'une part.</span></div>
+      <div><b>Vos jours fixes non travaillés</b><span>Si vous ne travaillez jamais le jeudi, votre cible « jeudis » est nulle. Mais votre cible totale n'est pas réduite une deuxième fois : la quotité couvre déjà le volume.</span></div>
+    </div>
+
+    <div class="callout rule">
+      <div class="ct">Les vacances ne réduisent pas votre cible</div>
+      <p>Seules les absences structurelles — arrivée, départ, congé long — réduisent la part due. Vos indisponibilités, vacances et formations ne la réduisent pas : elles concentrent simplement vos gardes sur vos périodes de présence.</p>
+      <p>Sinon, il suffirait de poser beaucoup d'indisponibilités pour faire moins de gardes que les autres.</p>
+    </div>
+  </div>
+</details>
+
+<!-- ═══ 15 ══════════════════════════════════════════════════════════ -->
+<details class="sec" id="s15">
+  <summary><span class="n">15</span><span>L'ordre : les week-ends d'abord</span><span class="chev">›</span></summary>
+  <div class="corps">
+    <p>Tous les jours de garde ne se valent pas. Le calcul équilibre les écarts dans cet ordre strict :</p>
+    <ol class="steps">
+      <li><b>Le week-end vendredi + dimanche.</b> La charge la plus lourde. Le même binôme assure le vendredi et le dimanche, avec les mêmes rôles. Un week-end compte pour une unité qui ne se coupe pas.</li>
+      <li><b>Les samedis.</b> Chaque samedi de garde ouvre droit à une récupération (section 20).</li>
+      <li><b>Les jeudis et les veilles de férié</b>, à égalité, puis <b>les fériés</b>.</li>
+      <li><b>Le total de gardes.</b> Équilibré en dernier : les lundis, mardis et mercredis servent de variable d'ajustement.</li>
+    </ol>
+
+    <div class="ex">
+      <span class="et">Exemple</span>
+      <p>Le vendredi 12 mars 2027 et le dimanche 14 mars 2027 sont assurés par le même binôme, chacun dans le même rôle les deux jours. Le samedi 13 mars, au milieu, revient à d'autres.</p>
+    </div>
+
+    <p>Concrètement, à chaque jour à pourvoir, le calcul classe les MARs disponibles selon leur retard sur le type de jour concerné — pour un samedi, qui est le plus loin de sa cible de samedis — puis les départage par le retard sur le total. Les deux premiers prennent la garde.</p>
+
+    <details class="plus">
+      <summary>Pourquoi les week-ends sont les plus durs à équilibrer</summary>
+      <div class="dedans">
+        <p>Un week-end ne se divise pas : c'est vendredi <b>et</b> dimanche, ou rien. Et il n'y en a qu'une cinquantaine dans l'année pour toute l'équipe, soit environ quatre par personne.</p>
+        <p>Avec des unités aussi grosses et aussi peu nombreuses, une seule d'écart pèse lourd. C'est pour cela qu'ils passent en premier : ce qui se rattrape difficilement se traite d'abord.</p>
+      </div>
+    </details>
+  </div>
+</details>
+
+<!-- ═══ 16 ══════════════════════════════════════════════════════════ -->
+<details class="sec" id="s16">
+  <summary><span class="n">16</span><span>Ce qui ne vous arrivera jamais</span><span class="chev">›</span></summary>
+  <div class="corps">
+    <p>Certaines situations sont interdites. Le calcul ne les propose jamais, même si cela arrangeait les compteurs.</p>
+    <ul>
+      <li><b>Jamais deux gardes deux jours de suite.</b> Le lendemain d'une garde est un repos de garde, intouchable.</li>
+      <li><b>Jamais jeudi et samedi la même semaine.</b> Ce combo est bloqué.</li>
+      <li><b>Jamais deux week-ends de garde d'affilée.</b></li>
+      <li><b>Jamais de garde sur une indisponibilité</b>, des vacances, une formation, un jour de temps partiel ou un congé.</li>
+      <li><b>Jamais de garde une semaine « off »</b> pour les MARs en rythme deux semaines sur deux.</li>
+    </ul>
+
+    <h3>Au-delà des interdits</h3>
+    <p>Le calcul espace aussi vos gardes. Une garde à deux jours d'une autre est fortement pénalisée, à trois ou quatre jours légèrement. Une troisième garde dans la même semaine est évitée. Et il lisse sur l'année : vos gardes sont réparties au fil des mois en proportion de votre présence, plutôt qu'entassées sur une période.</p>
+
+    <div class="callout warn">
+      <div class="ct">Une seule tolérance, exceptionnelle</div>
+      <p>Quand une journée resterait sinon <b>sans personne</b>, le calcul s'autorise le rythme garde – repos – garde sur trois jours (jeudi puis samedi), ou un second week-end d'affilée. Une garde rapprochée reste préférable à un service découvert.</p>
+      <p>Les deux gardes d'affilée, elles, ne sont jamais tolérées : c'est illégal.</p>
+    </div>
+  </div>
+</details>
+
+<!-- ═══ 17 ══════════════════════════════════════════════════════════ -->
+<details class="sec" id="s17">
+  <summary><span class="n">17</span><span>Comment vos souhaits sont traités</span><span class="chev">›</span></summary>
+  <div class="corps">
+    <p>Vos indisponibilités sont respectées. Vos souhaits de garde le sont aussi, avec une nuance importante.</p>
+
+    <div class="callout rule">
+      <div class="ct">Un souhait est honoré dans votre part, jamais en plus</div>
+      <p>Il oriente le placement de gardes que vous auriez faites de toute façon. Un souhait non retenu ne vous fait rien perdre : la garde vous revient à une autre date.</p>
+    </div>
+
+    <h3>Les jours ordinaires et les jours rares</h3>
+    <p><b>Lundi, mardi, mercredi</b> : accordés presque toujours. Ils sont nombreux, l'équité se rattrape ailleurs sans peine.</p>
+    <p><b>Samedi, week-end, jour férié, veille de férié</b> : ce sont les jours rares. Il n'y en a qu'une cinquantaine par an, parfois une douzaine. Chacun n'y a droit qu'à quelques-uns. <b>Vous disposez donc d'une seule demande par an sur ces jours-là</b>, honorée si elle ne vous met pas au-dessus de votre part.</p>
+
+    <div class="ex">
+      <span class="et">Exemple</span>
+      <p>Vous demandez tous les samedis de l'année. Vous n'en obtiendrez pas plus que votre part : le reste est réparti par l'équité, exactement comme si vous n'aviez rien demandé.</p>
+    </div>
+
+    <h3>Si plusieurs MARs veulent la même date</h3>
+    <p>Le moins servi jusque-là passe en premier. Le calcul essaie aussi de mettre deux demandeurs ensemble sur le même binôme, ce qui satisfait les deux d'un coup.</p>
+
+    <div class="callout tip">
+      <div class="ct">Un budget protège l'équité</div>
+      <p>Vos souhaits ne peuvent pas remplir votre cible au point d'évincer la part de samedis, de jeudis et de week-ends que vous devez à l'équipe.</p>
+    </div>
+
+    <p>Enfin : pour <b>éviter</b> une date plutôt que la demander, ce n'est pas un souhait, c'est une indisponibilité.</p>
+  </div>
+</details>
+
+<!-- ═══ 18 ══════════════════════════════════════════════════════════ -->
+<details class="sec" id="s18">
+  <summary><span class="n">18</span><span>Noël, Jour de l'an, fériés et ponts</span><span class="chev">›</span></summary>
+  <div class="corps">
+    <h3>Les quatre dates sensibles</h3>
+    <p>Le 24 et le 25 décembre, le 31 décembre et le 1<sup>er</sup> janvier sont placés <b>avant tout le reste</b>, selon une rotation qui court sur plusieurs années.</p>
+    <ul>
+      <li>Priorité à qui ne les a jamais faites, puis à celui qui les a faites il y a le plus longtemps.</li>
+      <li><b>Au plus une de ces quatre dates par personne et par an.</b> Personne n'enchaîne Noël et le Nouvel An la même année.</li>
+      <li>La mémoire est tenue au réel : si vous avez échangé votre 25 décembre, c'est votre collègue qui est enregistré comme l'ayant fait.</li>
+    </ul>
+
+    <details class="plus">
+      <summary>Une réserve, et une seule</summary>
+      <div class="dedans">
+        <p>L'année suivante est générée en novembre, alors que les gardes de Noël et du Nouvel An n'ont pas encore été faites. Si un échange est conclu <b>après</b> cette génération, c'est l'affectation d'origine qui a servi à calculer la rotation : la priorité peut être faussée pour cette année-là.</p>
+        <p>Elle est rétablie dès l'année d'après, puisque la mémoire, elle, enregistre bien l'échange.</p>
+      </div>
+    </details>
+
+    <h3>Les fériés en semaine</h3>
+    <p>Un férié isolé un mardi ou un mercredi est compté à part, avec sa propre cible d'équité.</p>
+
+    <h3>Les ponts</h3>
+    <p>Un férié qui touche un week-end forme un bloc, assuré par un seul binôme :</p>
+    <div class="ex">
+      <span class="et">Exemple — jeudi férié</span>
+      <p>Le <b>jeudi 6 mai 2027</b> est l'Ascension. Le même binôme assure ce jeudi <b>et le samedi 8 mai</b>.</p>
+    </div>
+    <div class="ex">
+      <span class="et">Exemple — lundi férié</span>
+      <p>Le <b>lundi 1<sup>er</sup> novembre 2027</b> est la Toussaint. Le même binôme assure le <b>samedi 30 octobre</b> qui précède et ce lundi.</p>
+    </div>
+    <p>Cela évite qu'un MAR se retrouve coincé sur un jour isolé au milieu d'un pont où tout le monde est parti. Le bloc est rattaché aux samedis — avec sa récupération — et le jour férié compte aussi dans le compteur des fériés.</p>
+  </div>
+</details>
+
+<!-- ═══ 19 ══════════════════════════════════════════════════════════ -->
+<details class="sec" id="s19">
+  <summary><span class="n">19</span><span>Qui prend la réa, qui prend la maternité</span><span class="chev">›</span></summary>
+  <div class="corps">
+    <p>Chaque jour de garde mobilise un binôme : une garde réanimation (<span class="code">G</span>) et une garde maternité–bloc (<span class="code">G2</span>).</p>
+    <p>Le calcul choisit d'abord <b>les deux personnes</b> par équité, puis répartit les rôles : celui des deux qui a le plus fait de réanimation par rapport à la maternité prend la maternité, et inversement.</p>
+    <p>Sur un week-end vendredi + dimanche, chacun garde le même rôle les deux jours.</p>
+    <p><b>Résultat :</b> au fil de l'année, chacun fait à peu près autant de gardes de réanimation que de gardes maternité–bloc.</p>
+  </div>
+</details>
+
+<!-- ═══ 20 ══════════════════════════════════════════════════════════ -->
+<details class="sec" id="s20">
+  <summary><span class="n">20</span><span>Les récupérations de samedi</span><span class="chev">›</span></summary>
+  <div class="corps">
+    <p>Chaque samedi de garde, y compris les samedis pris dans un pont, ouvre droit à une récupération (<span class="code">R</span>), posée automatiquement. Les samedis sont traités dans l'ordre du calendrier, et pour chacun le calcul cherche le premier jour qui convient <b>après</b> la garde.</p>
+
+    <h3>Un jour utile d'abord</h3>
+    <p>De préférence un vendredi ou un lundi — le week-end s'allonge — ou un jour qui borde une absence déjà posée — les vacances s'allongent. À défaut, n'importe quel jour de semaine non férié.</p>
+
+    <h3>Sans dégarnir le service</h3>
+    <p>La récupération n'est posée que s'il reste <b>au moins quinze MARs présents</b> ce jour-là. Cette règle ne cède jamais. Au plus deux récupérations le même jour, et au moins trois jours entre deux de vos propres récupérations.</p>
+
+    <h3>Un jour où vous êtes présent</h3>
+    <p>Jamais sur une garde, un repos de garde ou une absence. En revanche, un jour où vous avez seulement demandé à <b>ne pas être de garde</b> reste un jour travaillé : une récupération peut s'y poser.</p>
+
+    <div class="callout tip">
+      <div class="ct">Si aucune date ne convient</div>
+      <p>Le calcul relâche d'abord le confort — jamais le plancher de quinze présents. Et si vraiment rien n'est possible après le samedi, il pose la récupération <b>avant</b>, au plus près de la date, et le signale au comité. Une récupération n'est jamais abandonnée en silence.</p>
+    </div>
+  </div>
+</details>
+
+<!-- ═══ 21 ══════════════════════════════════════════════════════════ -->
+<details class="sec" id="s21">
+  <summary><span class="n">21</span><span>Le 18h</span><span class="chev">›</span></summary>
+  <div class="corps">
+    <p>Le 18h de chaque jour de semaine est réparti sur l'ensemble des MARs, avec la même logique de proportionnalité.</p>
+    <ul>
+      <li>Cible proportionnelle à la quotité. Les MARs qui ne font que le 18h, sans garde, en portent une part majorée.</li>
+      <li>Au plus <b>un 18h par semaine</b>, et jamais deux jours de suite.</li>
+      <li>Le vendredi, le 18h revient en priorité au MAR de garde réanimation du samedi : il enchaîne naturellement sur son week-end.</li>
+      <li>Jamais de 18h un jour de garde, de repos de garde, de récupération, d'absence, ni une semaine « off ».</li>
+    </ul>
+    <p>Ces règles ne sont relâchées qu'en tout dernier recours, si personne d'autre n'est disponible.</p>
+  </div>
+</details>
+
+<!-- ═══ 22 ══════════════════════════════════════════════════════════ -->
+<details class="sec" id="s22">
+  <summary><span class="n">22</span><span>D'une année à l'autre : la dette</span><span class="chev">›</span></summary>
+  <div class="corps">
+    <p>Que devient le petit écart de fin d'année ? Il est reporté sur l'année suivante. Qui a fait un peu plus que sa part une année en fera un peu moins la suivante, et inversement — <b>type de jour par type de jour</b> : celui qui a fait trop de samedis en fera moins, celui qui a fait trop de week-ends aussi.</p>
+
+    <ul>
+      <li>Le report est <b>plafonné à 2 gardes</b> par type de jour, et <b>amorti</b> : seuls 60 % de l'écart sont reportés. La dette corrige en douceur, elle ne bouleverse jamais une année.</li>
+      <li>L'écart mesuré est celui du <b>planning généré</b>, figé au moment de la génération — pas l'état au 31 décembre. Vos échanges de gré à gré en cours d'année ne créent ni ne remboursent de dette.</li>
+      <li>Un MAR absent l'année précédente démarre à zéro.</li>
+    </ul>
+
+    <div class="callout warn">
+      <div class="ct">Le premier report aura lieu pour 2028</div>
+      <p>2027 est la première année entièrement calculée. C'est donc la première dont les compteurs servent de référence. Pour 2027, tout le monde part de zéro.</p>
+    </div>
+  </div>
+</details>
+
+<!-- ═══ 23 ══════════════════════════════════════════════════════════ -->
+<details class="sec" id="s23">
+  <summary><span class="n">23</span><span>Vérifier par vous-même</span><span class="chev">›</span></summary>
+  <div class="corps">
+    <img class="illu" src="img/illu-valider.webp" alt="Une liste que l'on coche" loading="lazy">
+    <div class="geste">
+      <b>Planning → vue Équité.</b> Chaque MAR tient sur une ligne : son nom, une case par type de jour, et son écart le plus fort. <b>La vôtre est en tête et déjà ouverte.</b> Un appui sur une ligne déplie le détail de la personne.
+    </div>
+
+    <p>Six compteurs y sont suivis : le <b>total</b>, les <b>samedis</b>, les <b>jeudis</b>, les <b>week-ends</b>, les <b>veilles de férié</b> et les <b>fériés</b>. Chacun est comparé à votre cible.</p>
+    <p>Deux lectures possibles : <b>Initiale</b>, le planning tel qu'il a été calculé, et <b>Instantané</b>, l'état actuel, échanges compris.</p>
+
+    <div class="callout tip">
+      <div class="ct">Un écart vous surprend ?</div>
+      <p>Ouvrez votre ligne : le type de jour en cause y apparaît. Un chiffre qui surprend s'explique presque toujours par un souhait que vous avez posé, par un report de l'année précédente, ou par un échange de garde. Le comité peut vous montrer le détail.</p>
+    </div>
+
+    <div class="callout warn">
+      <div class="ct">2026 fait exception</div>
+      <p>Le planning 2026 a été construit à la main, et une partie des gardes a été assurée par un médecin extérieur au service. Les écarts qu'on y lit ne se comparent pas à ceux des années suivantes.</p>
+    </div>
+
+    <p>Le planning généré est <b>verrouillé</b> : une fois publié, il ne peut pas être regénéré discrètement. Les imprévus — départ d'un collègue, absence longue — sont gérés par une redistribution assistée qui préserve l'équité.</p>
+  </div>
+</details>
+
+<!-- ═══ 24 ══════════════════════════════════════════════════════════ -->
+<details class="sec" id="s24">
+  <summary><span class="n">24</span><span>Ce qui a été vérifié avant de s'en servir</span><span class="chev">›</span></summary>
+  <div class="corps">
+    <p>Avant de répartir une seule vraie garde, le calcul a été éprouvé sur <b>400 années de planning simulées</b> : vingt scénarios d'absences différents, de vingt années consécutives chacun, enchaînées comme en vrai, chaque année héritant de la précédente.</p>
+    <p>Chaque scénario reprend la réalité du service : notre équipe et sa pyramide des âges, l'arrêt des gardes à 60 ans, les départs en retraite et l'arrivée des remplaçants, environ 80 jours d'absence par personne et par an, des congés longs et des jours fixes.</p>
+
+    <div class="liste">
+      <div><b>292 312 gardes placées, aucune règle enfreinte</b><span>Jamais deux gardes de suite, jamais de garde sur une absence déclarée, une récupération pour chaque samedi. Sur les 400 années, sans exception.</span></div>
+      <div><b>Aucune journée sans binôme</b><span>C'est la garantie la plus importante. Y compris la semaine de Noël, quand les trois quarts de l'équipe sont en congé : le calcul fait alors alterner deux binômes sur la période, exactement comme le comité le faisait à la main.</span></div>
+      <div><b>L'équité tient dans la durée</b><span>Remesurée sur 45 années après les derniers changements : 44 années sur 45 où personne ne dépasse une garde d'écart, sur aucun des six compteurs. La seule exception atteint deux gardes. La version précédente n'y arrivait que 29 fois sur 45.</span></div>
+      <div><b>Le creux démographique est traversé</b><span>Vers 2038-2041, l'équipe simulée descend à quinze gardeurs. La charge de chacun monte, mais elle monte pareil pour tous.</span></div>
+      <div><b>La rotation de Noël fonctionne</b><span>Sur vingt ans, personne n'est oublié et personne n'enchaîne deux années de suite.</span></div>
+    </div>
+
+    <div class="callout rule">
+      <div class="ct">Il n'abandonne jamais une journée</div>
+      <p>Si le placement habituel échoue, il reprend la journée et retente en acceptant la tolérance décrite en section 16 — exactement le raisonnement du comité, qui cassait la contrainte la moins gênante plutôt que de laisser un jour découvert.</p>
+      <p>Et si vraiment personne n'est disponible, il le signale nommément, avec la date, <b>avant</b> publication. Le comité n'est jamais mis devant le fait accompli.</p>
+    </div>
+
+    <details class="plus">
+      <summary>Pourquoi 400 années et pas quatre</summary>
+      <div class="dedans">
+        <p>Un planning équitable une année, c'est facile à promettre. Une année qui tombe bien ne prouve rien.</p>
+        <p>Vingt trajectoires de vingt ans, avec des départs, des arrivées, des congés longs et des souhaits tirés différemment à chaque fois : c'est ce qui permet de dire que le résultat ne tient pas à la chance.</p>
+      </div>
+    </details>
+  </div>
+</details>
+
+<button class="haut" id="haut" aria-label="Remonter">↑</button>
+
+<div class="foot">
+  Planning-Med · Guide du MAR · Planning-Med<br>
+  Document équipe — docs/guide-mar.html
+</div>
+
+</div>
+
+<script src="../version.js"></script>
+<script>
+(function () {
+  'use strict';
+
+  /* ── Recherche ────────────────────────────────────────────────────
+     Filtre les sections sur leur texte complet, ouvre celles qui
+     correspondent, et referme tout quand le champ est vidé. */
+  var champ = document.getElementById('q');
+  var vide  = document.getElementById('vide');
+  var secs  = [].slice.call(document.querySelectorAll('details.sec'));
+  var parts = [].slice.call(document.querySelectorAll('[data-partie]'));
+
+  secs.forEach(function (s) {
+    s.dataset.txt = (s.textContent || '').toLowerCase()
+      .normalize('NFD').replace(/[\u0300-\u036f]/g, '');
+  });
+
+  function filtrer() {
+    var q = (champ.value || '').trim().toLowerCase()
+      .normalize('NFD').replace(/[\u0300-\u036f]/g, '');
+    if (!q) {
+      secs.forEach(function (s) { s.style.display = ''; s.open = false; });
+      parts.forEach(function (p) { p.style.display = ''; });
+      vide.style.display = 'none';
+      return;
+    }
+    var n = 0;
+    secs.forEach(function (s) {
+      var ok = s.dataset.txt.indexOf(q) > -1;
+      s.style.display = ok ? '' : 'none';
+      s.open = ok;
+      if (ok) n++;
+    });
+    parts.forEach(function (p) { p.style.display = 'none'; });
+    vide.style.display = n ? 'none' : 'block';
+  }
+  champ.addEventListener('input', filtrer);
+
+  /* ── Ouverture directe par ancre (#s14) ─────────────────────────── */
+  function ouvrirAncre() {
+    var h = location.hash;
+    if (!h || h.length < 2) return;
+    var el = document.querySelector(h);
+    if (el && el.tagName === 'DETAILS') {
+      el.open = true;
+      el.scrollIntoView({ block: 'start' });
+    }
+  }
+  window.addEventListener('hashchange', ouvrirAncre);
+  ouvrirAncre();
+
+
+  /* ── Ordre de passage des groupes de vacances ─────────────────────
+     Calculé, jamais recopié. Le tableau était écrit en dur pour 2026 et
+     2027 : il aurait menti dès 2028. Même table de référence et même sens
+     de rotation que le serveur — à DROITE, le dernier repasse premier.
+     Le banc compare cette fonction à celle d'Indispos.gs. */
+  var ORDRE_REF = { HIVER:'CAB', PRINTEMPS:'ABC', ETE:'ABC', TOUSSAINT:'BCA', NOEL:'CAB' };
+  function ordreGroupes(cle, annee){
+    var b = ORDRE_REF[cle] || 'ABC';
+    var dec = (((annee - 2026) % 3) + 3) % 3;
+    var pas = (3 - dec) % 3;
+    return b.slice(pas) + b.slice(0, pas);
+  }
+  (function(){
+    var hote = document.getElementById('ordreVac');
+    if (!hote) return;
+    var PER = [['Hiver','HIVER'],['Printemps','PRINTEMPS'],['Été','ETE'],
+               ['Toussaint','TOUSSAINT'],['Noël','NOEL']];
+    var a1 = new Date().getFullYear(), a2 = a1 + 1;
+    var pastille = function (g) { return '<span class="grp ' + g.toLowerCase() + '">' + g + '</span>'; };
+    var suite = function (cle, an) {
+      return '<span><span class="an">' + an + '</span>' +
+        ordreGroupes(cle, an).split('').map(pastille).join('<span class="grp-sep">›</span>') + '</span>';
+    };
+    hote.innerHTML = PER.map(function (p) {
+      return '<div><span class="per">' + p[0] + '</span>' + suite(p[1], a1) + suite(p[1], a2) + '</div>';
+    }).join('');
+  })();
+
+  /* ── Bouton « remonter » ────────────────────────────────────────── */
+  var haut = document.getElementById('haut');
+  function surDefilement() {
+    haut.classList.toggle('on', (window.scrollY || 0) > 400);
+  }
+  window.addEventListener('scroll', surDefilement, { passive: true });
+  haut.addEventListener('click', function () {
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+    champ.focus({ preventScroll: true });
+  });
+  surDefilement();
+})();
+</script>
+</body>
+</html>

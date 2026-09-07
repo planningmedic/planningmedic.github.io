@@ -1,0 +1,280 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Reprise du système — Planning-Med</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700;800&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --red:#CE1126; --red-soft:#FDECEF;
+    --blue:#1D6FB8; --blue-soft:#EAF3FB;
+    --amber:#B45309; --amber-soft:#FDF3E3;
+    --green:#166534; --green-soft:#F0FDF4;
+    --ink:#0F172A; --ink-2:#475569; --ink-3:#7A8699;
+    --line:#E2E8F0; --bg:#F6F8FB; --white:#fff;
+    --mono:'DM Mono',ui-monospace,monospace;
+  }
+  *{box-sizing:border-box}
+  html{scroll-behavior:smooth}
+  body{margin:0; background:var(--bg); color:var(--ink);
+    font-family:'DM Sans',-apple-system,BlinkMacSystemFont,sans-serif;
+    line-height:1.62; font-size:15.5px; padding:34px 20px 80px}
+  .wrap{max-width:820px; margin:0 auto}
+  .eyebrow{font-family:var(--mono); font-size:12px; letter-spacing:.08em; text-transform:uppercase; color:var(--red); font-weight:500}
+  h1{font-size:31px; font-weight:800; letter-spacing:-.02em; margin:8px 0 8px; line-height:1.18}
+  .sub{color:var(--ink-2); margin:0}
+  .maj{font-family:var(--mono); font-size:12px; color:var(--ink-3); margin-top:10px}
+
+  .toc{background:var(--white); border:1px solid var(--line); border-radius:14px; padding:18px 22px; margin:26px 0 30px}
+  .toc h2{margin:0 0 10px; font-size:12px; font-family:var(--mono); font-weight:500; text-transform:uppercase;
+          letter-spacing:.06em; color:var(--ink-3); display:block}
+  .toc ol{margin:0; padding-left:0; list-style:none; columns:2; column-gap:30px}
+  .toc li{margin:5px 0; break-inside:avoid}
+  .toc a{color:var(--ink); text-decoration:none; font-weight:500; font-size:14px}
+  .toc a:hover{color:var(--red)}
+  .toc .n{font-family:var(--mono); font-size:12px; color:var(--red); margin-right:7px}
+  @media (max-width:600px){ .toc ol{columns:1} }
+
+  section{margin-top:44px}
+  h2{font-size:20px; font-weight:800; letter-spacing:-.015em; margin:0 0 6px; display:flex; align-items:baseline; gap:11px}
+  h2 .n{font-family:var(--mono); font-size:12.5px; font-weight:500; color:#fff; background:var(--red);
+        border-radius:7px; padding:3px 9px; flex-shrink:0}
+  h3{font-size:15.5px; font-weight:700; margin:24px 0 6px}
+  p{margin:0 0 12px; color:var(--ink-2)}
+  strong{color:var(--ink)}
+  code{font-family:var(--mono); font-size:12.5px; background:#EEF1F5; border-radius:5px; padding:1px 6px; color:var(--ink)}
+  a{color:var(--red)}
+
+  .callout{border-radius:12px; padding:14px 18px; margin:16px 0; border:1px solid var(--line); border-left-width:4px; background:var(--white)}
+  .callout p:last-child{margin-bottom:0}
+  .callout .ct{font-family:var(--mono); font-size:11.5px; font-weight:500; text-transform:uppercase; letter-spacing:.06em; margin-bottom:6px}
+  .callout.stop{border-left-color:var(--red); background:var(--red-soft)} .callout.stop .ct{color:var(--red)}
+  .callout.tip{border-left-color:var(--blue); background:var(--blue-soft)} .callout.tip .ct{color:var(--blue)}
+  .callout.warn{border-left-color:var(--amber); background:var(--amber-soft)} .callout.warn .ct{color:var(--amber)}
+
+  .steps{counter-reset:step; margin:12px 0 16px; padding:0; list-style:none}
+  .steps li{counter-increment:step; position:relative; padding:10px 0 10px 42px; margin:0; color:var(--ink-2)}
+  .steps li::before{content:counter(step); position:absolute; left:0; top:9px; width:27px; height:27px; border-radius:8px;
+    background:var(--white); border:1.5px solid var(--red); color:var(--red); font-family:var(--mono); font-size:13px;
+    display:flex; align-items:center; justify-content:center}
+  .steps li + li{border-top:1px dashed var(--line)}
+
+  table{width:100%; border-collapse:collapse; margin:14px 0 18px; background:var(--white);
+        border:1px solid var(--line); border-radius:12px; overflow:hidden; font-size:14.5px}
+  th{background:#F1F4F8; text-align:left; font-size:12px; font-family:var(--mono); font-weight:500;
+     text-transform:uppercase; letter-spacing:.05em; color:var(--ink-2); padding:9px 14px; border-bottom:1px solid var(--line)}
+  td{padding:10px 14px; border-bottom:1px solid #F1F5F9; color:var(--ink-2); vertical-align:top}
+  tr:last-child td{border-bottom:none}
+  td:first-child{font-weight:600; color:var(--ink)}
+  ul{margin:0 0 14px; padding-left:22px; color:var(--ink-2)} li{margin:6px 0}
+  .no li::marker{color:var(--red)}
+  .backtop{display:inline-block; margin-top:12px; font-family:var(--mono); font-size:12px; color:var(--ink-3); text-decoration:none}
+  .foot{margin-top:46px; padding-top:18px; border-top:1px solid var(--line); font-size:13.5px; color:var(--ink-3)}
+  .foot a{color:var(--red); text-decoration:none; font-weight:500}
+  @media print{ body{padding:0} section{break-inside:avoid} }
+</style>
+</head>
+<body>
+<div class="wrap" id="top">
+
+  <div class="eyebrow">Planning-Med · continuité</div>
+  <h1>Reprise du système</h1>
+  <p class="sub">Document de continuité — à lire en premier si le mainteneur n'est plus joignable. Il traite des <strong>accès, de la propriété, des sauvegardes et des réparations</strong>.</p>
+  <p class="maj">Mis à jour : 2 août 2026 · remplace <code>docs/reprise.md</code></p>
+
+  <div class="callout tip">
+    <div class="ct">Les trois documents de secours, du plus urgent au plus profond</div>
+    <p><strong><a href="si-ca-tombe.html">si-ca-tombe.html</a></strong> — l'interface ne répond plus, il faut faire tourner le service ce matin. Trois minutes de lecture, pour le comité.<br>
+    <strong>Cette page</strong> — qui possède quoi, où sont les sauvegardes, comment réparer, comment reprendre la main.<br>
+    <strong><a href="guide-technique.html">guide-technique.html</a></strong> — architecture, wizards, déploiement, dépannage détaillé. Pour quelqu'un qui code.</p>
+  </div>
+
+  <div class="toc">
+    <h2>Sommaire</h2>
+    <ol>
+      <li><span class="n">1</span><a href="#c1">Ce que c'est</a></li>
+      <li><span class="n">2</span><a href="#c2">Qui possède quoi</a></li>
+      <li><span class="n">3</span><a href="#c3">Sauvegarde des données</a></li>
+      <li><span class="n">4</span><a href="#c4">Les trois règles d'or</a></li>
+      <li><span class="n">5</span><a href="#c5">Reprendre la main — le premier jour</a></li>
+      <li><span class="n">6</span><a href="#c6">Calendrier annuel</a></li>
+      <li><span class="n">7</span><a href="#c7">À ne surtout pas faire</a></li>
+      <li><span class="n">8</span><a href="#c8">Réparations</a></li>
+    </ol>
+  </div>
+
+<section id="c1">
+  <h2><span class="n">1</span>Ce que c'est</h2>
+  <p>Portail web du service d'anesthésie du service (~23 MARs) : gardes à l'année avec algorithme d'équité, planning quotidien, consultations, portail personnel, module libéral, veille bibliographique. <strong>Aucune donnée patient.</strong></p>
+  <p>Le système a été conçu et maintenu par une seule personne, sans bagage de développement, en dialoguant avec une IA. C'est reproductible : voir le chapitre 5.</p>
+  <a class="backtop" href="#top">↑ Sommaire</a>
+</section>
+
+<section id="c2">
+  <h2><span class="n">2</span>Qui possède quoi — le point critique</h2>
+  <table>
+    <tr><th>Ressource</th><th>Où</th><th>Titulaire aujourd'hui</th></tr>
+    <tr><td>Données (classeur Google Sheets)</td><td>Google Drive</td><td>Compte de service <code>planningmedic</code></td></tr>
+    <tr><td>Code serveur (Apps Script + Web App)</td><td>script.google.com, attaché au classeur</td><td>Compte de service <code>planningmedic</code></td></tr>
+    <tr><td>JSON publiés</td><td>Dossier Drive « Planning-Med-JSON »</td><td>Compte de service <code>planningmedic</code></td></tr>
+    <tr><td>Archives annuelles</td><td>Classeur Google séparé</td><td>Compte de service <code>planningmedic</code></td></tr>
+    <tr><td>Code source (100 % du système)</td><td>github.com/planningmedic/planningmedic.github.io</td><td>Organisation GitHub <code>planningmedic</code></td></tr>
+    <tr><td>Pages web</td><td>GitHub Pages, branche <code>main</code></td><td>idem</td></tr>
+    <tr><td>Code admin de l'interface</td><td>Onglet <code>CONFIG</code> du classeur, ligne <code>ADMIN_CODE</code></td><td>—</td></tr>
+  </table>
+
+  <p><strong>Deux comptes Google distincts, à ne pas confondre</strong> : <code>planningmedic</code> (compte de service, porteur du classeur, du code serveur et des JSON publiés) et le <strong>compte personnel du mainteneur</strong>, qui ne sert qu'à tirer la sauvegarde hebdomadaire (chapitre 3).</p>
+
+  <div class="callout stop">
+    <div class="ct">Le risque principal</div>
+    <p>Tout ce qui fait tourner le système dépend du <strong>seul compte <code>planningmedic</code></strong>. S'il devient inaccessible, le système continue de tourner, mais plus personne ne peut le modifier ni le réparer.</p>
+  </div>
+
+  <h3>Mesures de continuité — dix minutes, tant que c'est possible</h3>
+  <ol class="steps">
+    <li>Ajouter un <strong>second propriétaire</strong> à l'organisation GitHub <code>planningmedic</code>.</li>
+    <li>Partager le classeur Sheets <strong>et</strong> le projet Apps Script avec un second compte de confiance, en droits d'édition.</li>
+    <li>S'assurer qu'au moins une autre personne du comité connaît le <strong>code admin</strong> et sait où le retrouver (onglet <code>CONFIG</code>).</li>
+  </ol>
+
+  <div class="callout warn">
+    <div class="ct">Un transfert de propriété ne s'improvise pas</div>
+    <p>Transférer complètement le projet Apps Script oblige à <strong>redéployer la Web App</strong>, ce qui <strong>change son adresse</strong>. Cette adresse est écrite en dur dans <strong>neuf fichiers</strong> du dépôt : les huit pages du site et l'estimateur libéral. Toutes devraient être mises à jour dans la foulée, sinon plus rien ne fonctionne. À planifier, jamais dans l'urgence.</p>
+  </div>
+  <a class="backtop" href="#top">↑ Sommaire</a>
+</section>
+
+<section id="c3">
+  <h2><span class="n">3</span>Sauvegarde des données</h2>
+  <p>Le <strong>code</strong> est sauvegardé par GitHub, avec tout son historique. Les <strong>données</strong> le sont par deux sauvegardes automatiques et indépendantes — plus rien de manuel.</p>
+  <table>
+    <tr><th>Quand</th><th>Quoi</th><th>Où</th><th>Propriétaire</th></tr>
+    <tr><td>Lundi ~4 h</td><td><code>backupHebdo()</code> copie le classeur maître, rotation sur 8 copies</td><td>Dossier Drive <code>Planning-Med-Backups</code></td><td>Compte <code>planningmedic</code></td></tr>
+    <tr><td>Dimanche ~5 h</td><td>Script indépendant qui <strong>va chercher</strong> une copie du classeur, rotation sur 8 copies</td><td>Dossier <code>Sauvegardes Planning-Med</code></td><td><strong>Compte personnel du mainteneur</strong></td></tr>
+  </table>
+
+  <p>La première protège de la fausse manœuvre — un onglet effacé, des données écrasées. Elle ne protège <strong>pas</strong> d'un compte perdu ou suspendu : l'original et les huit copies partiraient ensemble.</p>
+  <p>La seconde est là pour ça. Sur Drive, <strong>un fichier appartient à celui qui le crée</strong> : la copie étant tirée par un autre compte, rien de ce qui arrive à <code>planningmedic</code> ne peut l'atteindre. Le classeur est partagé en lecture seule — et une copie tirée depuis un partage en lecture emporte bien le script attaché (vérifié le 26/07/2026).</p>
+
+  <div class="callout tip">
+    <div class="ct">Ce qui reste manuel — une vérification par trimestre</div>
+    <p>Les 1<sup>er</sup> octobre, janvier, avril et juillet : ouvrir le dossier <code>Sauvegardes Planning-Med</code> du compte personnel, confirmer qu'une copie récente existe <strong>et qu'elle s'ouvre</strong>. Une sauvegarde jamais ouverte n'est pas une sauvegarde.</p>
+  </div>
+
+  <p>Installation, code du script, piège des comptes multiples dans le navigateur et procédure de restauration complète : <a href="sauvegarde-compte-perso.md"><code>docs/sauvegarde-compte-perso.md</code></a>.</p>
+
+  <p><strong>La limite qui subsiste.</strong> Ces deux sauvegardes protègent des accidents de données et de la perte du compte de service. Elles ne protègent <strong>pas</strong> de l'indisponibilité du mainteneur : ses deux comptes sont alors hors d'atteinte en même temps. C'est exactement ce que couvrent les mesures du chapitre 2.</p>
+  <a class="backtop" href="#top">↑ Sommaire</a>
+</section>
+
+<section id="c4">
+  <h2><span class="n">4</span>Les trois règles d'or</h2>
+  <ol class="steps">
+    <li><strong>Le dépôt GitHub fait foi.</strong> Tout le code y est, y compris l'Apps Script. Ne jamais modifier un <code>.gs</code> directement dans l'éditeur Apps Script sans le reporter dans le dépôt : la modification serait écrasée à la prochaine recopie.</li>
+    <li><strong>Une modification du code serveur ne prend effet qu'après recopie <em>et</em> nouvelle version de déploiement.</strong> Sans nouvelle version, l'ancien code continue de tourner — et le symptôme est déroutant : la correction semble sans effet.</li>
+    <li><strong>Ne jamais régénérer une année déjà générée.</strong> Le planning et sa preuve d'équité seraient détruits. Un garde-fou le bloque : ne pas le contourner.</li>
+  </ol>
+  <a class="backtop" href="#top">↑ Sommaire</a>
+</section>
+
+<section id="c5">
+  <h2><span class="n">5</span>Reprendre la main — le premier jour</h2>
+  <ol class="steps">
+    <li>Obtenir l'accès au compte Google titulaire ; vérifier l'ouverture du classeur <strong>et</strong> de l'éditeur Apps Script.</li>
+    <li>Se faire ajouter à l'organisation GitHub <code>planningmedic</code>.</li>
+    <li>Ouvrir <code>admin.html</code> avec le code admin → onglet <strong>Maintenance</strong> → 🔍 <strong>Diagnostic système</strong>. Il audite le classeur, GitHub, les JSON du Drive et la concordance des versions de code. Tout doit être vert.</li>
+    <li>Lire <a href="guide-technique.html">guide-technique.html</a> (la référence), puis <a href="guide-comite.html">guide-comite.html</a> (usage comité) et <a href="guide-mar.html">guide-mar.html</a> (usage MAR).</li>
+  </ol>
+
+  <h3>Faire évoluer le système sans être développeur</h3>
+  <p>La méthode qui a fonctionné : créer un projet sur claude.ai, y joindre <code>CONTEXTE-Planning-Med.md</code> et <code>ROADMAP-Planning-Med.md</code>, fournir un jeton GitHub en début de session — à révoquer ensuite — et exiger systématiquement trois choses : vérification de l'état réel du dépôt avant toute modification, patch expliqué AVANT/APRÈS, et <strong>validation explicite avant chaque mise en ligne</strong>.</p>
+  <a class="backtop" href="#top">↑ Sommaire</a>
+</section>
+
+<section id="c6">
+  <h2><span class="n">6</span>Calendrier annuel</h2>
+  <table>
+    <tr><th>Quand</th><th>Quoi</th></tr>
+    <tr><td>Octobre</td><td>Assistant 1 — initialisation de l'année suivante (staff vacances)</td></tr>
+    <tr><td>Novembre</td><td>Assistant 2 — génération des gardes</td></tr>
+    <tr><td>Janvier</td><td>Assistant 3 — clôture et archivage de l'année écoulée</td></tr>
+    <tr><td>Dim. 5 h / Lun. 4 h</td><td>Sauvegardes automatiques du classeur — aucune action requise</td></tr>
+    <tr><td>Lundi 6 h</td><td>Scan automatique de la veille bibliographique — aucune action requise</td></tr>
+    <tr><td>1<sup>er</sup> oct / jan / avr / juil</td><td><strong>Vérification</strong> des sauvegardes automatiques — ouvrir une copie récente</td></tr>
+  </table>
+  <a class="backtop" href="#top">↑ Sommaire</a>
+</section>
+
+<section id="c7">
+  <h2><span class="n">7</span>À ne surtout pas faire</h2>
+  <ul class="no">
+    <li>Supprimer ou renommer un onglet du classeur — tout le code s'y réfère par son nom exact.</li>
+    <li>Modifier du code serveur en production sans le reporter dans le dépôt.</li>
+    <li>Régénérer une année de gardes déjà générée.</li>
+    <li>Communiquer le code admin en dehors du comité.</li>
+    <li>Laisser traîner un jeton GitHub dans un fichier, un commit ou un message.</li>
+  </ul>
+  <p>La version courte de ces interdits, écrite pour le comité en situation d'incident, est au chapitre 4 de <a href="si-ca-tombe.html">si-ca-tombe.html</a>.</p>
+  <a class="backtop" href="#top">↑ Sommaire</a>
+</section>
+
+<section id="c8">
+  <h2><span class="n">8</span>Réparations</h2>
+  <p>Quatre avaries sérieuses et ce qu'on peut faire. Les trois premières se réparent ; la quatrième impose de s'arrêter.</p>
+
+  <h3>8.1 · Des données ont disparu du classeur</h3>
+  <p>Un onglet vidé, des lignes effacées, une colonne écrasée. Deux recours, dans cet ordre :</p>
+  <ol class="steps">
+    <li><strong>L'historique des versions du classeur</strong> (Fichier → Historique des versions → Afficher l'historique). Google conserve les états successifs : on retrouve celui d'avant l'accident et on restaure. C'est le recours le plus rapide et le plus sûr, et il ne demande aucune compétence technique.</li>
+    <li><strong>Les sauvegardes</strong> du chapitre 3, si l'accident est trop ancien pour l'historique. Ne jamais restaurer par-dessus l'original : ouvrir la copie à côté et reprendre ce qui manque.</li>
+  </ol>
+
+  <h3>8.2 · Une année a été archivée par erreur</h3>
+  <p>La clôture déplace quatre onglets vers le classeur d'archive et les <strong>supprime du classeur maître</strong> : <code>GARDES_{année}</code>, <code>INDISPOS_{année}</code>, <code>AFFECTATIONS_{année}</code>, <code>STATS_GARDES_{année}</code>. Rien n'est perdu, tout est reconstructible :</p>
+  <ol class="steps">
+    <li>Depuis le classeur d'archive, recopier les quatre onglets dans le classeur maître, <strong>avec exactement les mêmes noms</strong>.</li>
+    <li>Dans <code>CONFIG</code>, remettre <code>ANNEE_ACTIVE</code> sur l'année restaurée.</li>
+    <li>Rétablir <code>INDISPOS_ACTIVE</code> si la campagne de saisie était ouverte — la clôture supprime cette ligne.</li>
+    <li>Dans <code>HISTORIQUE</code>, supprimer les lignes ajoutées par la clôture pour cette année.</li>
+    <li><strong>Le point qu'on oublie</strong> : la clôture purge aussi <code>PLANNING_OVERRIDES</code> de toutes les lignes de l'année et des précédentes. Ces modifications-là ne reviennent pas avec les onglets : il faut les reprendre depuis une sauvegarde (chapitre 3) ou les ressaisir.</li>
+  </ol>
+
+  <h3>8.3 · Le serveur ne répond plus, ou répond « Action inconnue »</h3>
+  <p>Ce message a presque toujours la même cause : le code déployé ne correspond pas au code du dépôt. Soit une recopie a été oubliée, soit le déploiement n'a pas été mis à jour après la recopie.</p>
+  <ol class="steps">
+    <li>Onglet Maintenance → 🔍 <strong>Diagnostic système</strong> : il compare les versions du dépôt et celles réellement déployées, et signale les décalages.</li>
+    <li>Recopier dans l'éditeur Apps Script les fichiers signalés, depuis le dossier <code>gas/</code> du dépôt.</li>
+    <li><strong>Déployer une nouvelle version</strong> de la Web App. Sans cette étape, l'ancien code continue de tourner.</li>
+  </ol>
+  <div class="callout warn">
+    <div class="ct">Ne pas confondre avec une panne</div>
+    <p>Si <em>toutes</em> les pages sont muettes alors que le classeur s'ouvre normalement, ce n'est pas le code : c'est l'accès au compte ou le déploiement lui-même. Voir 8.4.</p>
+  </div>
+
+  <h3>8.4 · Le compte Google est inaccessible</h3>
+  <p>C'est la seule avarie qu'on ne répare pas depuis l'interface. Ce qu'il faut savoir, dans l'ordre :</p>
+  <ul>
+    <li><strong>Les données ne sont pas perdues.</strong> La sauvegarde tirée par le compte personnel (chapitre 3) est indépendante et appartient à un autre compte.</li>
+    <li><strong>Le code n'est pas perdu.</strong> Le dépôt GitHub contient 100 % du système, serveur compris.</li>
+    <li><strong>Le service peut tourner en mode dégradé</strong> à partir d'une sauvegarde du classeur, ouverte à la main : voir <a href="si-ca-tombe.html">si-ca-tombe.html</a>.</li>
+    <li><strong>Remettre le système en ligne</strong> suppose de repartir d'une copie du classeur, de redéployer la Web App depuis ce nouveau classeur, puis de reporter la nouvelle adresse dans les <strong>neuf fichiers</strong> du dépôt qui la contiennent. C'est un chantier de quelques heures pour quelqu'un qui code, pas un geste d'urgence.</li>
+  </ul>
+  <div class="callout stop">
+    <div class="ct">À ne pas faire dans la panique</div>
+    <p>Ne pas créer un nouveau classeur « propre » et y recopier des données à la main. Toute la valeur est dans la structure des onglets, que le code connaît par cœur. Repartir d'une <strong>copie</strong> d'une sauvegarde, jamais d'une feuille blanche.</p>
+  </div>
+  <a class="backtop" href="#top">↑ Sommaire</a>
+</section>
+
+<p class="foot">
+  À lire aussi : <a href="si-ca-tombe.html">si-ca-tombe.html</a> (urgence, comité) ·
+  <a href="guide-technique.html">guide-technique.html</a> (architecture et dépannage) ·
+  <a href="sauvegarde-compte-perso.md">sauvegarde-compte-perso.md</a> (installation de la sauvegarde indépendante).
+</p>
+
+</div>
+</body>
+</html>

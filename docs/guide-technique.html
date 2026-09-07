@@ -1,0 +1,2220 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Guide technique — Planning-Med</title>
+<style>
+  :root {
+    --bleu: #1D4ED8; --bleu-pale: #EFF6FF; --bleu-bord: #BFDBFE;
+    --encre: #1E293B; --gris: #64748B; --fond: #F8FAFC;
+    --ambre: #B45309; --ambre-pale: #FFFBEB; --ambre-bord: #FDE68A;
+    --rouge: #B91C1C; --rouge-pale: #FEF2F2; --rouge-bord: #FECACA;
+    --vert: #166534; --vert-pale: #F0FDF4; --vert-bord: #BBF7D0;
+    --violet: #7E22CE; --violet-pale: #FAF5FF; --violet-bord: #E9D5FF;
+    --turquoise: #0D9488;
+  }
+  * { box-sizing: border-box; }
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+    color: var(--encre); background: var(--fond);
+    margin: 0; line-height: 1.7; font-size: 16px;
+  }
+  .page { max-width: 900px; margin: 0 auto; padding: 24px 20px 80px; }
+  header.tete {
+    background: linear-gradient(135deg, #1E3A8A, #1D4ED8);
+    color: #fff; border-radius: 14px; padding: 34px 32px; margin-bottom: 28px;
+  }
+  header.tete h1 { margin: 0 0 6px; font-size: 27px; letter-spacing: -.3px; }
+  header.tete .sous { opacity: .92; font-size: 15px; margin: 0; }
+  header.tete .maj { opacity: .78; font-size: 13px; margin-top: 14px; }
+
+  h2 {
+    font-size: 21px; margin: 46px 0 14px; padding-top: 14px;
+    border-top: 3px solid var(--bleu-bord); color: #1E3A8A;
+    scroll-margin-top: 16px;
+  }
+  h2 .num {
+    display: inline-block; background: var(--bleu); color: #fff;
+    border-radius: 7px; padding: 1px 9px; font-size: 15px; margin-right: 9px;
+    vertical-align: 2px;
+  }
+  h3 { font-size: 16.5px; margin: 26px 0 8px; color: #1E3A8A; }
+  p { margin: 10px 0; }
+  a { color: var(--bleu); }
+  code {
+    background: #E2E8F0; border-radius: 4px; padding: 1px 5px;
+    font-family: "SF Mono", Consolas, Menlo, monospace; font-size: 13px;
+  }
+
+  /* ── Bloc « En 2 minutes » ─────────────────────────────── */
+  .r2 {
+    background: var(--bleu-pale); border: 1px solid var(--bleu-bord);
+    border-left: 5px solid var(--bleu); border-radius: 10px;
+    padding: 14px 18px; margin: 14px 0 18px;
+  }
+  .r2 .titre {
+    font-weight: 700; color: var(--bleu); font-size: 13px;
+    text-transform: uppercase; letter-spacing: .6px; margin-bottom: 6px;
+  }
+  .r2 p { margin: 6px 0; }
+
+  /* ── Dépliables ────────────────────────────────────────── */
+  details {
+    background: #fff; border: 1px solid #E2E8F0; border-radius: 10px;
+    margin: 10px 0; overflow: hidden;
+  }
+  details summary {
+    cursor: pointer; padding: 12px 16px; font-weight: 600;
+    list-style: none; user-select: none;
+  }
+  details summary::before {
+    content: "▸"; color: var(--bleu); margin-right: 9px;
+    display: inline-block; transition: transform .15s;
+  }
+  details[open] summary::before { transform: rotate(90deg); }
+  details[open] summary { border-bottom: 1px solid #E2E8F0; }
+  details .corps { padding: 6px 18px 14px; }
+  details details { border-color: #EDF2F7; margin: 8px 0; }
+  details.tech summary { color: var(--gris); font-weight: 600; font-size: 14.5px; }
+  details.tech summary::before { color: var(--gris); }
+
+  /* ── Encadrés ──────────────────────────────────────────── */
+  .warn, .err, .ok, .note {
+    border-radius: 10px; padding: 12px 16px; margin: 14px 0;
+    border: 1px solid; border-left-width: 5px;
+  }
+  .warn { background: var(--ambre-pale); border-color: var(--ambre-bord); border-left-color: var(--ambre); }
+  .err  { background: var(--rouge-pale); border-color: var(--rouge-bord); border-left-color: var(--rouge); }
+  .ok   { background: var(--vert-pale); border-color: var(--vert-bord); border-left-color: var(--vert); }
+  .note { background: #F1F5F9; border-color: #E2E8F0; border-left-color: var(--gris); }
+  .warn > :first-child, .err > :first-child, .ok > :first-child, .note > :first-child { margin-top: 2px; }
+  .warn > :last-child, .err > :last-child, .ok > :last-child, .note > :last-child { margin-bottom: 2px; }
+
+  table { border-collapse: collapse; width: 100%; margin: 12px 0; background: #fff; font-size: 14.5px; }
+  th, td { border: 1px solid #E2E8F0; padding: 8px 11px; text-align: left; vertical-align: top; }
+  th { background: #F1F5F9; font-weight: 700; }
+  tr:nth-child(even) td { background: #FAFBFD; }
+
+  /* ── Schémas graphiques ────────────────────────────────── */
+  .schema {
+    background: #fff; border: 1px solid #E2E8F0; border-radius: 14px;
+    padding: 20px 18px; margin: 16px 0;
+  }
+  .schema .legende {
+    font-size: 12.5px; color: var(--gris); text-align: center; margin-top: 12px;
+  }
+  .flux { display: flex; flex-direction: column; align-items: stretch; gap: 0; }
+  .boite {
+    border: 2px solid; border-radius: 12px; padding: 12px 16px;
+    background: #fff; text-align: center;
+  }
+  .boite .bt { font-weight: 800; font-size: 15px; margin-bottom: 2px; }
+  .boite .bd { font-size: 13.5px; color: #334155; line-height: 1.5; }
+  .b-bleu   { border-color: #2563EB; background: var(--bleu-pale); }
+  .b-bleu .bt { color: #1E3A8A; }
+  .b-orange { border-color: #F59E0B; background: var(--ambre-pale); }
+  .b-orange .bt { color: #92400E; }
+  .b-vert   { border-color: #16A34A; background: var(--vert-pale); }
+  .b-vert .bt { color: #14532D; }
+  .b-violet { border-color: #9333EA; background: var(--violet-pale); }
+  .b-violet .bt { color: #581C87; }
+  .b-gris   { border-color: #94A3B8; background: #F1F5F9; }
+  .b-gris .bt { color: #334155; }
+  .fleche {
+    text-align: center; padding: 2px 0; line-height: 1.25;
+  }
+  .fleche .f { font-size: 22px; color: #94A3B8; display: block; }
+  .fleche .fl {
+    display: inline-block; font-size: 12.5px; color: #475569; background: #F1F5F9;
+    border: 1px solid #E2E8F0; border-radius: 20px; padding: 1px 12px; margin: 2px 0;
+  }
+  .flux-h { display: flex; align-items: stretch; gap: 8px; flex-wrap: wrap; }
+  .flux-h .boite { flex: 1 1 150px; }
+  .flux-h .fleche-h {
+    align-self: center; font-size: 24px; color: #94A3B8; flex: 0 0 auto; padding: 0 2px;
+  }
+  .duo { display: flex; gap: 14px; flex-wrap: wrap; margin: 14px 0; }
+  .duo > div { flex: 1 1 260px; }
+
+  /* ── Lexique ───────────────────────────────────────────── */
+  .lexique {
+    background: #fff; border: 1px solid #E2E8F0; border-radius: 12px;
+    padding: 18px 22px; margin: 18px 0;
+  }
+  .lexique dt { font-weight: 700; color: #1E3A8A; margin-top: 10px; }
+  .lexique dd { margin: 2px 0 0 0; }
+
+  /* ── Sommaire ──────────────────────────────────────────── */
+  nav.sommaire {
+    background: #fff; border: 1px solid #E2E8F0; border-radius: 12px;
+    padding: 20px 24px; margin-bottom: 10px;
+  }
+  nav.sommaire h2 { border: none; margin: 0 0 10px; padding: 0; font-size: 18px; }
+  .parcours-titre {
+    font-weight: 800; font-size: 13px; text-transform: uppercase;
+    letter-spacing: .8px; margin: 16px 0 6px;
+  }
+  .parcours-titre.pa { color: var(--bleu); }
+  .parcours-titre.pb { color: var(--vert); }
+  .parcours-titre.pc { color: var(--violet); }
+  .parcours-titre.pd { color: var(--ambre); }
+  nav.sommaire ul { margin: 0; padding-left: 4px; list-style: none; }
+  nav.sommaire li { margin: 3px 0; }
+  nav.sommaire a { text-decoration: none; }
+  nav.sommaire a:hover { text-decoration: underline; }
+  nav.sommaire .n {
+    display: inline-block; min-width: 34px; font-weight: 700;
+    font-size: 13px; color: var(--gris);
+  }
+  .haut { font-size: 13px; margin: 20px 0 0; }
+  .haut a { text-decoration: none; color: var(--gris); }
+  footer { margin-top: 60px; font-size: 13px; color: var(--gris); text-align: center; }
+
+  .p-bande {
+    border-radius: 12px; padding: 14px 20px; margin: 52px 0 6px;
+    color: #fff; font-weight: 800; font-size: 17px; letter-spacing: .3px;
+  }
+  .p-bande small { display: block; font-weight: 400; font-size: 13.5px; opacity: .92; margin-top: 3px; }
+  .p-bande.pa { background: linear-gradient(135deg, #1E3A8A, #2563EB); }
+  .p-bande.pb { background: linear-gradient(135deg, #14532D, #16A34A); }
+  .p-bande.pc { background: linear-gradient(135deg, #581C87, #9333EA); }
+  .p-bande.pd { background: linear-gradient(135deg, #92400E, #D97706); }
+
+  @media (max-width: 640px) {
+    .flux-h { flex-direction: column; }
+    .flux-h .fleche-h { transform: rotate(90deg); padding: 0; }
+  }
+</style>
+<link href="https://fonts.googleapis.com/css2?family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style id="appbar-css">
+/* ── Bandeau commun des guides (26/08/2026) — icône de l'appli, plus de drapeau ── */
+.appbar{background:linear-gradient(135deg,#9E0C1D 0%,#CE1126 78%);color:#fff;border-radius:16px;
+  padding:18px;position:relative;overflow:hidden;margin:0 0 16px}
+.appbar-wm{position:absolute;right:-30px;top:-30px;width:190px;opacity:.10;filter:brightness(4);pointer-events:none}
+.appbar-row{display:flex;align-items:center;gap:14px;position:relative}
+.appbar-ic{width:48px;height:48px;border-radius:12px;background:#fff;padding:3px;
+  box-shadow:0 3px 10px rgba(0,0,0,.25);flex:none}
+.appbar-tx{min-width:0}
+.appbar-eyebrow{font-family:'DM Mono',ui-monospace,monospace;font-size:11px;letter-spacing:.14em;
+  text-transform:uppercase;opacity:.85}
+.appbar h1{margin:2px 0 0;font-size:clamp(20px,5.5vw,25px);font-weight:800;letter-spacing:-.01em;
+  color:#fff;line-height:1.15}
+.appbar-chip{margin-left:auto;font-family:'DM Mono',ui-monospace,monospace;font-size:11px;
+  background:rgba(255,255,255,.16);border:1px solid rgba(255,255,255,.35);border-radius:99px;
+  padding:4px 10px;white-space:nowrap;color:#fff;flex:none}
+.appbar-sub{margin:10px 0 0;font-size:14px;opacity:.92;position:relative;color:#fff;line-height:1.45}
+@media print{.appbar{background:#9E0C1D !important;-webkit-print-color-adjust:exact;print-color-adjust:exact}}
+</style>
+</head>
+<body id="top">
+<div class="page">
+
+<header class="tete">
+  <div class="appbar">
+  <img class="appbar-wm" src="../assets/icon-192.png" alt="" aria-hidden="true">
+  <div class="appbar-row">
+    <img class="appbar-ic" src="../assets/icon-192.png" alt="">
+    <div class="appbar-tx">
+      <div class="appbar-eyebrow">Planning-Med · Anesthésie-Réanimation</div>
+      <h1>Guide technique</h1>
+    </div>
+  </div>
+  <p class="appbar-sub">Comment le portail fonctionne en profondeur, expliqué sans supposer de bagage informatique — pour le responsable du projet, et pour quiconque devrait un jour en reprendre les commandes.</p>
+</div>
+  <p class="maj">Refondu le 9 août 2026, chaque affirmation vérifiée dans le code réellement en
+  service (site v1.30.2) · complété le 24 août 2026 : pose des temps partiels après génération
+  (C13) et cloche des notifications (C12), vérifiés dans le code en service (v1.77). Quatre parcours de lecture : chaque section commence par un résumé
+  « En 2 minutes » en langage courant ; les détails sont rangés dans des blocs dépliables, et les
+  noms techniques exacts dans les blocs gris « Repères techniques » — on peut les ignorer sans rien
+  perdre du raisonnement.</p>
+</header>
+
+<h2 style="border:none;margin-top:0">Le vocabulaire du guide — 10 mots, une fois pour toutes</h2>
+<div class="lexique"><dl>
+  <dt>Le dépôt</dt>
+  <dd>L'armoire publique (hébergée chez GitHub) qui contient <b>tout le code</b> du projet — les
+  pages du site comme le programme serveur. C'est la référence : ce qui n'y est pas enregistré est
+  considéré comme perdu.</dd>
+  <dt>Pousser (« push »)</dt>
+  <dd>Enregistrer une modification dans le dépôt. Pour les pages du site, pousser = mettre en ligne
+  (le site est servi directement depuis le dépôt).</dd>
+  <dt>Le serveur Google</dt>
+  <dd>Le programme qui tourne chez Google (techniquement : « Apps Script »). C'est <b>le seul à
+  avoir le droit d'écrire</b> dans les données. Dix fichiers de code le composent.</dd>
+  <dt>Déployer</dt>
+  <dd>Mettre en service une nouvelle version du serveur Google. Tant qu'on n'a pas déployé,
+  l'ancienne version continue de tourner — même si le code a changé dans le dépôt.</dd>
+  <dt>Le classeur maître</dt>
+  <dd>Le grand tableau Google Sheets, privé, qui contient toutes les données vivantes : l'équipe,
+  les gardes, les indisponibilités… Il est organisé en onglets.</dd>
+  <dt>Le Drive privé</dt>
+  <dd>Un dossier Google Drive, privé lui aussi, où le serveur range le planning publié et les
+  archives, sous forme de fichiers de données.</dd>
+  <dt>Le relais Cloudflare</dt>
+  <dd>Un petit service ultra-rapide, chez l'hébergeur Cloudflare, qui garde des <b>copies de
+  lecture</b> des données et les sert aux pages en une fraction de seconde. Ce ne sont que des
+  copies : on peut le vider sans rien perdre.</dd>
+  <dt>Le journal d'intentions</dt>
+  <dd>La boîte aux lettres, chez Cloudflare, où les gestes du comité (placer quelqu'un, poser un
+  statut, publier) sont déposés en un éclair. Le serveur Google la relève chaque minute et exécute
+  les ordres dans l'ordre.</dd>
+  <dt>Le code d'accès et son empreinte</dt>
+  <dd>Chacun se connecte avec un code personnel. Le relais Cloudflare ne connaît jamais les codes
+  eux-mêmes : seulement leur <b>empreinte</b>, une signature calculée à partir du code, qui permet
+  de le reconnaître sans pouvoir le retrouver.</dd>
+  <dt>Le banc d'essai</dt>
+  <dd>Un programme qui fait tourner le vrai code du projet dans un décor simulé (un faux Google, un
+  faux Cloudflare) et vérifie automatiquement des centaines de comportements. C'est le filet de
+  sécurité avant chaque mise en ligne.</dd>
+</dl></div>
+
+<nav class="sommaire">
+  <h2>Sommaire</h2>
+
+  <div class="parcours-titre pa">Parcours A — Comprendre l'architecture</div>
+  <ul>
+    <li><span class="n">A1</span> <a href="#a1">Vue d'ensemble : quatre étages, trois chemins</a></li>
+    <li><span class="n">A2</span> <a href="#a2">Le dépôt : là où vit tout le code</a></li>
+    <li><span class="n">A3</span> <a href="#a3">Le serveur Google : dix fichiers qui se partagent le travail</a></li>
+    <li><span class="n">A4</span> <a href="#a4">Les données : le classeur, le Drive, les copies</a></li>
+    <li><span class="n">A5</span> <a href="#a5">Le relais Cloudflare : pourquoi les pages s'ouvrent vite</a></li>
+    <li><span class="n">A6</span> <a href="#a6">Le journal d'intentions : pourquoi les gestes du comité sont instantanés</a></li>
+    <li><span class="n">A6 bis</span> <a href="#a6b">Les quatre chemins d'écriture, et les délais réels</a></li>
+<li><span class="n">A7</span> <a href="#a7">Sécurité &amp; confidentialité : ce qui est protégé, et comment</a></li>
+  </ul>
+
+  <div class="parcours-titre pb">Parcours B — Le cycle annuel</div>
+  <ul>
+    <li><span class="n">B1</span> <a href="#b1">Les trois assistants : la vue d'ensemble</a></li>
+    <li><span class="n">B2</span> <a href="#b2">W1 — Préparer l'année suivante</a></li>
+    <li><span class="n">B3</span> <a href="#b3">W2 — Générer les gardes</a></li>
+    <li><span class="n">B4</span> <a href="#b4">W3 — Clôturer l'année</a></li>
+    <li><span class="n">B5</span> <a href="#b5">Comment l'algorithme répartit les gardes</a></li>
+    <li><span class="n">B6</span> <a href="#b6">La publication : ce que voient les MARs</a></li>
+  </ul>
+
+  <div class="parcours-titre pc">Parcours C — L'exploitation au quotidien</div>
+  <ul>
+    <li><span class="n">C1</span> <a href="#c1">La page d'administration : les six onglets</a></li>
+    <li><span class="n">C2</span> <a href="#c2">Le « + » de case à pourvoir</a></li>
+    <li><span class="n">C3</span> <a href="#c3">Créer ou retirer un secteur, une consultation</a></li>
+    <li><span class="n">C4</span> <a href="#c4">Consultations à venir &amp; accès du secrétariat</a></li>
+    <li><span class="n">C5</span> <a href="#c5">La boîte de réception (Messages)</a></li>
+    <li><span class="n">C6</span> <a href="#c6">Les mails automatiques de changement de planning</a></li>
+    <li><span class="n">C7</span> <a href="#c7">La veille bibliographique</a></li>
+    <li><span class="n">C8</span> <a href="#c8">Le module libéral</a></li>
+    <li><span class="n">C9</span> <a href="#c9">Le générateur de comptes rendus</a></li>
+    <li><span class="n">C10</span> <a href="#c10">Les sauvegardes : trois filets, et la marche à suivre pour restaurer</a></li>
+    <li><span class="n">C11</span> <a href="#c11">Mesurer la vitesse des pages</a></li>
+    <li><span class="n">C12</span> <a href="#c12">Les échanges de gardes &amp; les notifications</a></li>
+    <li><span class="n">C13</span> <a href="#c13">La pose des temps partiels après génération</a></li>
+  </ul>
+
+  <div class="parcours-titre pd">Parcours D — Mettre en ligne &amp; dépanner</div>
+  <ul>
+    <li><span class="n">D1</span> <a href="#d1">Les trois chemins de mise en ligne &amp; le numéro de version</a></li>
+    <li><span class="n">D2</span> <a href="#d2">Le banc d'essai</a></li>
+    <li><span class="n">D3</span> <a href="#d3">Le diagnostic : chaque message et son remède</a></li>
+    <li><span class="n">D4</span> <a href="#d4">Dépannage : du symptôme à la cause</a></li>
+    <li><span class="n">D5</span> <a href="#d5">Points de fragilité connus &amp; le déménagement 2027</a></li>
+  </ul>
+</nav>
+
+<div class="p-bande pa">Parcours A — Comprendre l'architecture
+<small>Où vit chaque chose, par où passe chaque donnée. À lire en premier : tout le reste s'y accroche.</small></div>
+
+<h2 id="a1"><span class="num">A1</span>Vue d'ensemble : quatre étages, trois chemins</h2>
+
+<div class="r2"><div class="titre">En 2 minutes</div>
+<p>Le portail est construit sur <b>quatre étages</b> : en haut, les pages que tout le monde voit ;
+en bas, les données. Entre les deux, deux intermédiaires — un relais très rapide pour lire, et le
+serveur Google, seul autorisé à écrire. Trois chemins relient ces étages : <b>lire</b> (par le
+relais, quasi instantané), <b>agir quand on est le comité</b> (les ordres partent dans une boîte aux
+lettres et sont exécutés dans la minute), et le <b>chemin direct vers le serveur Google</b> — plus
+lent, mais toujours là, et c'est lui qui a le dernier mot.</p></div>
+
+<div class="schema">
+  <div class="flux">
+    <div class="boite b-bleu">
+      <div class="bt">① Les pages du site</div>
+      <div class="bd">planning d'équipe · portail personnel des MARs · page d'administration du
+      comité · saisie des indisponibilités · consultations à venir · staff vacances · suivi libéral
+      · comptes rendus</div>
+    </div>
+    <div class="fleche"><span class="f">▼&nbsp;&nbsp;&nbsp;▲</span>
+      <span class="fl">lire (instantané) · déposer un ordre du comité</span></div>
+    <div class="boite b-orange">
+      <div class="bt">② Le relais Cloudflare</div>
+      <div class="bd">sert des <b>copies de lecture</b> en une fraction de seconde · vérifie le code
+      d'accès par son empreinte · garde la boîte aux lettres des ordres du comité</div>
+    </div>
+    <div class="fleche"><span class="f">▼&nbsp;&nbsp;&nbsp;▲</span>
+      <span class="fl">le serveur dépose des copies fraîches · relève la boîte chaque minute</span></div>
+    <div class="boite b-vert">
+      <div class="bt">③ Le serveur Google</div>
+      <div class="bd"><b>le seul autorisé à écrire</b> · 9 fichiers de code · vérifie les droits,
+      exécute, range · sert aussi de chemin de secours pour tout lire si le relais flanche</div>
+    </div>
+    <div class="fleche"><span class="f">▼&nbsp;&nbsp;&nbsp;▲</span>
+      <span class="fl">lit et écrit</span></div>
+    <div class="boite b-gris">
+      <div class="bt">④ Les données (privées)</div>
+      <div class="bd">le classeur maître (toutes les données vivantes) · le Drive privé (le planning
+      publié, les archives)</div>
+    </div>
+  </div>
+  <div class="legende">Les copies chez Cloudflare ne sont jamais la référence : on peut les jeter,
+  le serveur les refabrique. Le portail devient lent, jamais faux.</div>
+</div>
+
+<details><summary>Les trois chemins, racontés pas à pas</summary><div class="corps">
+<p><b>1 · Lire (ouvrir une page).</b> La page envoie une seule demande au relais Cloudflare, avec le
+code d'accès. Le relais reconnaît le code par son empreinte, applique les droits de la personne, et
+renvoie tout ce qu'il faut pour afficher — le tout en une fraction de seconde. Si quoi que ce soit
+cloche (relais en panne, donnée manquante, code refusé), la page bascule discrètement sur le chemin
+direct vers le serveur Google : plus lent, mais complet. <b>C'est toujours le serveur qui juge en
+dernier ressort si un code est valable.</b></p>
+<p><b>2 · Agir quand on est le comité</b> (placer quelqu'un, poser un statut du jour, publier).
+Plutôt que d'attendre le serveur Google — qui peut mettre plusieurs secondes, voire se faire
+attendre les mauvais matins — la page d'administration dépose une <i>fiche d'intention</i> dans la
+boîte aux lettres du relais. Le dépôt prend une fraction de seconde et la fiche est en sécurité. Le
+serveur relève la boîte chaque minute et exécute les fiches dans l'ordre. Détails au §A6.</p>
+<p><b>3 · Tout le reste passe en direct par le serveur Google</b> : la saisie des indisponibilités,
+les réglages de l'équipe, les assistants annuels… La page envoie sa demande, le serveur vérifie les
+droits, écrit dans le classeur, répond. Dans la foulée, il note quelles copies du relais sont à
+rafraîchir : elles le sont dans la minute, et un grand rangement automatique, une fois par heure,
+rattrape tout ce qui aurait pu être manqué.</p>
+</div></details>
+
+<details><summary>Pourquoi ces détours ? Les mesures qui les ont imposés</summary><div class="corps">
+<p>Tout part d'un constat mesuré (03/08/2026) : <b>chaque</b> demande au serveur Google coûte 2,5 à
+5 secondes, quel que soit le travail réellement demandé. Google recompile tout le programme à chaque
+demande (~1,5 s, très stable), y ajoute du transport et une file d'attente. Autrement dit : environ
+3 secondes de péage fixe avant que la première ligne utile ne s'exécute — et des pannes passagères
+aléatoires en prime.</p>
+<p>Impossible, dans ces conditions, d'avoir des pages qui s'ouvrent vite. La solution a été de
+sortir le serveur Google du chemin de lecture (le relais, mis en place le 04/08), puis du chemin des
+gestes du comité (le journal, le 05/08). Le serveur Google garde l'exclusivité de l'écriture : c'est
+ce qui garantit qu'une seule autorité tient les données.</p>
+</div></details>
+
+<p class="haut"><a href="#top">↑ Sommaire</a></p>
+
+<h2 id="a2"><span class="num">A2</span>Le dépôt : là où vit tout le code</h2>
+
+<div class="r2"><div class="titre">En 2 minutes</div>
+<p>Le dépôt <code>planningmedic/planningmedic.github.io</code> contient <b>100 % du code</b> — les pages du
+site comme les dix fichiers du serveur. Il est public : n'importe qui peut le lire, personne
+d'autre ne peut y écrire. Le site est servi directement depuis le dépôt : pousser une page, c'est la
+mettre en ligne. Règle cardinale : toute modification faite ailleurs sans être enregistrée dans le
+dépôt finit écrasée.</p></div>
+
+<details><summary>Le plan du dépôt : où trouver quoi</summary><div class="corps">
+<table>
+<tr><th>Emplacement</th><th>Contenu</th></tr>
+<tr><td>la racine</td><td>Les pages du site (administration, portail MAR, planning, indisponibilités,
+consultations, staff, libéral, comptes rendus)</td></tr>
+<tr><td><code>gas/</code></td><td>Neuf des dix fichiers du serveur Google, plus la liste des
+autorisations demandées à Google</td></tr>
+<tr><td><code>sauvegarde.gs</code></td><td>Le dixième fichier du serveur : la copie de secours
+hebdomadaire du dépôt (§C10)</td></tr>
+<tr><td><code>partage/</code></td><td>Le « module partagé » : un petit morceau de code utilisé à
+l'identique par le serveur <i>et</i> par les pages (§A5)</td></tr>
+<tr><td><code>cloudflare/</code></td><td>Le code du relais Cloudflare — la version du dépôt fait
+foi</td></tr>
+<tr><td><code>banc/</code></td><td>Le banc d'essai (§D2)</td></tr>
+<tr><td><code>simulateur/</code></td><td>Le banc dédié au générateur de gardes : 400 années
+simulées (§B5)</td></tr>
+<tr><td><code>docs/</code></td><td>Les guides, les présentations, la feuille de route, et le module
+libéral (dont la page de cotation, qui est un outil de production malgré son emplacement)</td></tr>
+</table>
+</div></details>
+
+<details><summary>Public, donc : ce qu'on n'y met jamais</summary><div class="corps">
+<div class="err"><p><b>Le dépôt est public, et sa mémoire est définitive.</b> Tout ce qui y a été
+enregistré une fois reste lisible dans son historique, même après suppression. On n'y écrit donc
+jamais : un montant, un pourcentage individuel, un code d'accès, un mot de passe, un nom associé à
+l'un de ces éléments. Un secret poussé par erreur, même une fois, doit être considéré comme grillé
+et remplacé. Les documents qui affichent des chiffres sensibles vont chercher leurs valeurs dans un
+petit fichier local, gardé hors du dépôt.</p></div>
+<p>Ce que le public <i>peut</i> voir : le code, les guides, et les noms de l'équipe — qui figurent
+déjà dans l'annuaire du service. Aucune absence, aucune coordonnée, aucune donnée de patient.</p>
+</div></details>
+
+<details class="tech"><summary>Repères techniques (pour retrouver les termes exacts)</summary><div class="corps">
+<p>Hébergement : GitHub, branche <code>main</code> ; site servi par GitHub Pages depuis la racine et
+<code>docs/</code>. Lecture fiable via l'interface officielle de GitHub (l'« API ») ; l'adresse de
+secours <code>raw.githubusercontent.com</code> peut retarder de quelques minutes — bonne pour lire
+en cas de panne, jamais pour vérifier un état. Écriture : repartir toujours de la version en ligne,
+un lot de fichiers = un seul enregistrement groupé (sinon le site se republie une fois par fichier).
+Points d'entrée documentaires : <code>docs/README.md</code>,
+<code>docs/CONTEXTE-Planning-Med.md</code>, <code>docs/ROADMAP-Planning-Med.md</code>.</p>
+</div></details>
+
+<p class="haut"><a href="#top">↑ Sommaire</a></p>
+
+<h2 id="a3"><span class="num">A3</span>Le serveur Google : dix fichiers qui se partagent le travail</h2>
+
+<div class="r2"><div class="titre">En 2 minutes</div>
+<p>Le serveur est un programme attaché au classeur maître, mis en service comme « application web » :
+les pages lui parlent par internet, jamais directement au classeur. Son code est réparti en
+<b>dix fichiers</b>, chacun avec un rôle précis — plus un onzième morceau, le « module partagé »,
+présent à l'identique côté serveur et côté pages. Le diagnostic de la page d'administration vérifie
+en permanence que les fichiers en service sont bien ceux du dépôt.</p></div>
+
+<details><summary>Qui fait quoi — la carte des dix fichiers</summary><div class="corps">
+<table>
+<tr><th>Fichier</th><th>Son rôle, en clair</th></tr>
+<tr><td><code>Indispos.gs</code></td><td>Le chef d'orchestre : il reçoit toutes les demandes,
+vérifie qui les envoie et ce qu'il a le droit de faire, puis distribue le travail. Il porte aussi la
+saisie des indisponibilités, les vacances, les assistants annuels, le diagnostic complet et la
+lecture de la boîte mail. Le plus gros fichier, de loin.</td></tr>
+<tr><td><code>code.gs</code></td><td>La fabrication du planning affiché (à partir des gardes et des
+affectations), les retouches manuelles du comité, les jours fériés, la sauvegarde hebdomadaire du
+classeur, et les mails automatiques de changement de planning (§C6).</td></tr>
+<tr><td><code>generateur_gardes.gs</code></td><td>L'algorithme qui répartit les gardes de toute une
+année (§B5).</td></tr>
+<tr><td><code>setup_annee.gs</code></td><td>La clôture d'année, l'import des vacances scolaires, le
+rangement des onglets du classeur, les fonctions de test.</td></tr>
+<tr><td><code>portail.gs</code></td><td>Le portail personnel des MARs (topos, staffs, protocoles,
+annuaire), <b>tout le module libéral</b> (§C8), le générateur de comptes rendus (§C9), et la
+configuration des secteurs. ⚠️ Nom trompeur : qui cherche le libéral ou les secteurs doit venir
+ici.</td></tr>
+<tr><td><code>miroir.gs</code></td><td>L'alimentation du relais Cloudflare : quelles copies
+rafraîchir après quelle écriture, et le grand rangement horaire (§A5).</td></tr>
+<tr><td><code>journal.gs</code></td><td>La relève de la boîte aux lettres du comité, chaque minute
+(§A6). Il ne contient aucune règle métier : il ne fait qu'aiguiller chaque fiche vers la fonction
+qui sait la traiter.</td></tr>
+<tr><td><code>veille.gs</code></td><td>La veille bibliographique : l'interrogation hebdomadaire de
+PubMed (§C7).</td></tr>
+<tr><td><code>sauvegarde.gs</code></td><td>La copie de secours hebdomadaire du <b>dépôt</b> entier
+vers le Drive (§C10).</td></tr>
+</table>
+<p>L'onzième morceau, le <b>module partagé</b>, contient la logique qui classe les MARs
+disponibles pour une case du planning — la plus sensible du poste comité. Elle n'est écrite qu'une
+fois, et recopiée à l'identique des deux côtés : c'est ce qui rend toute divergence impossible
+(§A5).</p>
+<div class="note"><p><b>Le symptôme qui trahit une recopie incomplète</b> — un message « Action
+inconnue » ou « fonction introuvable » après une mise à jour du serveur signifie presque toujours
+qu'un des dix fichiers n'a pas été recopié, ou que le dépôt était incomplet. Le dépôt doit toujours
+refléter la totalité du code en service, et réciproquement.</p></div>
+</div></details>
+
+<details><summary>Comment une demande est traitée : droits et rôles</summary><div class="corps">
+<p>Chaque demande porte le code d'accès de la personne et le nom de l'action demandée. Le serveur
+reconnaît trois rôles : <b>admin</b> (le comité — accès à tout), <b>MAR</b> (lecture de son
+périmètre, saisie de ses propres indisponibilités — impossible d'atteindre celles d'un collègue),
+et <b>secrétariat</b> (deux actions seulement, tout le reste refusé d'office — §C4). Les actions
+sensibles — tout ce qui écrit pour tout le monde, tout le cycle annuel — refusent quiconque n'est
+pas admin.</p>
+</div></details>
+
+<details class="tech"><summary>Repères techniques</summary><div class="corps">
+<p>Environnement : Google Apps Script, déployé en Web App (adresse en <code>/exec</code>). Points
+d'entrée : <code>doGet</code>/<code>doPost</code>, qui confient tout au routeur
+<code>_routeRequete_</code> (dans Indispos.gs). Rôles issus de <code>checkCode</code> ; refus des
+non-admins par <code>_deny()</code>. Chaque fichier poussé incrémente sa constante
+<code>GAS_VERSION_*</code> (format AAAA-MM-JJ.N) — c'est elle que le diagnostic compare au dépôt
+(contrôle de dérive, 9 fichiers : les 8 de <code>gas/</code> + le module partagé
+<code>partage/dispo_jour.js</code>). Fonction endormie : <code>setupAnnee</code> (setup_annee.gs)
+n'est plus appelée par personne — la création des onglets de l'année suivante passe par
+<code>initYear</code>.</p>
+</div></details>
+
+<p class="haut"><a href="#top">↑ Sommaire</a></p>
+
+<h2 id="a4"><span class="num">A4</span>Les données : le classeur, le Drive, les copies</h2>
+
+<div class="r2"><div class="titre">En 2 minutes</div>
+<p>Trois lieux de stockage, trois statuts. Le <b>classeur maître</b> : toutes les données vivantes,
+la référence absolue. Le <b>Drive privé</b> : le planning publié et les archives — c'est lui que
+lisent les pages des MARs, pas le dépôt. Les <b>copies chez Cloudflare</b> : de simples doubles de
+lecture, refabricables à volonté. Le détail onglet par onglet du classeur a son propre guide
+(<a href="guide-fichier-maitre.html">guide-fichier-maitre.html</a>) — il n'est pas recopié ici, deux
+inventaires finiraient par se contredire.</p></div>
+
+<details><summary>Le classeur maître : les familles d'onglets</summary><div class="corps">
+<p>Une fonction de rangement organise le classeur en familles colorées et masque les onglets que
+personne n'édite à la main (les masquer ne change rien pour le code, qui les lit et les écrit
+pareil) :</p>
+<table>
+<tr><th>Famille</th><th>Onglets</th></tr>
+<tr><td>Configuration courante (bleu foncé)</td><td>CONFIG · MEDECINS · SECTEURS · CS_TEMPLATE · ANNUAIRE · SEUILS</td></tr>
+<tr><td>Configuration annuelle (bleu clair)</td><td>GROUPES_VAC · PERIODES_VAC · CONFIG_CONGES · CONFIG_TRANSITION</td></tr>
+<tr><td>Contenu du portail (violet)</td><td>VEILLE_CFG · STAFFS</td></tr>
+<tr><td>Dépannage (orange, visible)</td><td>PLANNING_OVERRIDES — les retouches manuelles du comité</td></tr>
+<tr><td>Module libéral (turquoise)</td><td>SPECIALITES · COTATIONS_TYPE · LIBERAL_(année) · LIBERAL_CA_(année)</td></tr>
+<tr><td>Annuels (vert — une série par année)</td><td>GARDES · INDISPOS · AFFECTATIONS · STATS_GARDES</td></tr>
+<tr><td>Masqués (réservés au code)</td><td>ABSENCES_LONGUES · HISTORIQUE · VEILLE · VEILLE_MARQUES · LOGS · CONNEXIONS</td></tr>
+</table>
+<p>Les quatre repères à garder en tête : <b>MEDECINS</b> (l'effectif et ses particularités),
+<b>INDISPOS</b> (ce qui entre dans l'algorithme), <b>GARDES</b> (ce qui en sort — et le verrou qui
+interdit de régénérer), <b>STATS_GARDES</b> (la preuve d'équité, qui sert de point de départ à
+l'année suivante).</p>
+</div></details>
+
+<details><summary>La frontière public / privé</summary><div class="corps">
+<p>Le planning publié et les archives de clôture — qui contiennent des données nominatives — vivent
+<b>uniquement</b> dans le dossier Drive privé « Planning-Med-JSON », jamais dans le dépôt public.
+Si l'écriture dans ce dossier échoue, la publication entière échoue : choix délibéré, mieux vaut pas
+de planning qu'un planning à moitié publié. Le modèle de sécurité complet est au §A7.</p>
+</div></details>
+
+<p class="haut"><a href="#top">↑ Sommaire</a></p>
+
+<h2 id="a5"><span class="num">A5</span>Le relais Cloudflare : pourquoi les pages s'ouvrent vite</h2>
+
+<div class="r2"><div class="titre">En 2 minutes</div>
+<p>Le serveur Google reste le seul à écrire. Mais après chaque écriture réussie, il dépose une copie
+fraîche des données concernées chez Cloudflare, qui les sert aux pages en une fraction de seconde.
+Deux filets garantissent la fraîcheur : un dépôt de copies dans la minute qui suit chaque écriture,
+et un grand rangement complet toutes les heures. Et une trouvaille de plus : le panneau qui liste
+les MARs disponibles pour une case s'affiche <b>sans aucun appel</b> — il est calculé sur place,
+dans le navigateur, par le module partagé ; le serveur vérifie derrière, en silence.</p></div>
+
+<div class="schema">
+  <div class="flux">
+    <div class="boite b-vert">
+      <div class="bt">Le serveur Google écrit</div>
+      <div class="bd">une action du portail vient de modifier le classeur ou le Drive</div>
+    </div>
+    <div class="fleche"><span class="f">▼</span>
+      <span class="fl">il note ce qui devra être recopié, et répond tout de suite à la page</span></div>
+    <div class="boite b-vert">
+      <div class="bt">La minute suivante</div>
+      <div class="bd">un automate dépose les copies fraîches chez Cloudflare</div>
+    </div>
+    <div class="fleche"><span class="f">▼</span>
+      <span class="fl">et chaque heure, un grand rangement recopie tout — même ce qui a été modifié
+      à la main dans le classeur</span></div>
+    <div class="boite b-orange">
+      <div class="bt">Le relais Cloudflare</div>
+      <div class="bd">sert ces copies aux pages en ~0,15 s, après avoir vérifié l'empreinte du code
+      d'accès et appliqué les droits de chacun</div>
+    </div>
+  </div>
+  <div class="legende">Une page qui vient d'écrire relit toujours le serveur en direct — jamais sa
+  propre copie, qui pourrait avoir une minute de retard.</div>
+</div>
+
+<details><summary>Ce que chacun peut lire au relais</summary><div class="corps">
+<p>Le relais applique les mêmes droits que le serveur. Un <b>MAR</b> y lit les années, les secteurs,
+le planning, les affectations — et ses indisponibilités <i>à lui seul</i> (le tri est fait par le
+relais). L'<b>admin</b> lit tout, y compris les données de pilotage (gardes, statistiques, compteur
+de mails, déclarations libérales du jour). Le <b>secrétariat</b> ne lit <i>rien du tout</i> au
+relais : sa seule porte est le serveur, avec deux actions. Les contenus des tuiles du portail
+(topos, staffs, veille, protocoles, annuaire) ne sont rafraîchis que par le rangement horaire —
+assumé, ils changent rarement.</p>
+<p>Deux principes de fraîcheur, appris en exploitation : la page qui vient d'écrire relit le circuit
+direct ; et les écrans d'édition du comité évitent le relais pendant la minute et demie qui suit une
+écriture du planning — un éditeur ne doit jamais afficher du périmé.</p>
+</div></details>
+
+<details><summary>Le panneau instantané — une seule logique, deux emplacements</summary><div class="corps">
+<p>Classer les MARs disponibles pour une case (qui est libre, qui est de garde, qui est du secteur…)
+est la logique la plus sensible du poste comité. La réécrire une seconde fois pour le navigateur
+aurait créé un risque de divergence sournoise — refusé. La solution : elle n'est écrite qu'<b>une
+fois</b>, dans le module partagé, et ce même fichier est embarqué tel quel des deux côtés — par les
+pages, et par le serveur.</p>
+<p>Résultat : la page d'administration calcule chaque panneau sur place, immédiatement, à partir des
+copies du relais. Le serveur refait le même calcul de son côté et compare en silence : en cas
+d'écart (jamais vu depuis la mise en place), il corrige l'écran aussitôt et le signale dans la
+console du navigateur. Toute évolution de cette logique se fait dans le module partagé et se met en
+ligne <b>des deux côtés dans la même livraison</b>.</p>
+</div></details>
+
+<details><summary>L'exploitation courante : pannes, codes, ménage</summary><div class="corps">
+<ul>
+<li><b>Panne de Cloudflare</b> : rien à faire. Les pages basculent seules sur le serveur Google —
+le portail est juste lent le temps de la panne.</li>
+<li><b>Changer ou retirer un code d'accès</b> : le modifier dans le classeur (onglet MEDECINS, ou
+CONFIG pour l'admin), puis lancer le grand rangement pour que le relais l'apprenne tout de suite —
+sinon il l'apprendra à l'heure suivante.</li>
+<li><b>Vider le relais</b> : sans danger — le prochain rangement refabrique tout.</li>
+<li><b>Après la démonstration du 4 septembre</b> : vérifier que les copies de l'année fictive 2027
+ont bien disparu du relais.</li>
+</ul>
+</div></details>
+
+<details class="tech"><summary>Repères techniques</summary><div class="corps">
+<p>Le relais est un « Worker » Cloudflare nommé <code>miroir</code>, code dans
+<code>cloudflare/worker.js</code>, stockage de copies « KV ». Deux guichets : <code>/push</code>
+(dépôt par le serveur, sur présentation d'un jeton secret — rangé dans les propriétés du script et
+les secrets du Worker, jamais dans le dépôt) et <code>/read</code> (lecture par les pages, via
+l'empreinte SHA-256 du code d'accès — les codes en clair ne quittent jamais Google, et celui du
+secrétariat n'est même pas déposé en empreinte). La liste des copies autorisées est verrouillée des
+deux côtés (<code>CLE_VALIDE</code>) — garde-fou contre les fautes de frappe. La table
+« quelle écriture rafraîchit quelles copies » s'appelle <code>MIROIR_APRES_ECRITURE</code>
+(miroir.gs) ; principe : recopier un peu trop large plutôt que trop étroit. Le grand rangement :
+<code>miroirSyncComplet</code> (déclencheur horaire, installé par
+<code>miroirInstallerDeclencheur</code>). <b>Envoi différentiel (20/08/2026)</b> : le serveur
+retient l'empreinte de chaque copie déposée et ne redépose que ce qui a réellement changé — les
+plafonds gratuits de Cloudflare sont de 1 000 écritures par jour, et le grand rangement les
+consommait à lui seul en renvoyant ses ~29 copies vingt-quatre fois. Les empreintes sont oubliées
+au passage de 4 h : une fois par nuit, tout repart sans condition. Si une copie semble figée sur
+une vieille valeur, lancer <code>miroirOublierEmpreintes</code> puis <code>miroirSyncComplet</code>. La garde anti-périmé des écrans d'édition : 90 secondes
+(<code>_tsEcriturePlanning</code>). Le module partagé : <code>partage/dispo_jour.js</code>,
+répliqué dans le fichier serveur <code>dispo_jour</code> ; le témoin de comparaison s'affiche en
+console sous <code>[DISPO-TEMOIN]</code>. Diagnostic rapide : ouvrir l'adresse racine du Worker
+(elle répond <code>{"ok":true, "service":"miroir …"}</code> avec sa version), et la commande
+<code>chrono()</code> (§C11) détaille chaque lecture. <b>Drapeau de la file (20/08/2026)</b> :
+<code>/ecrire</code> pose la clé <code>jsignal</code> en même temps que la fiche ;
+<code>/tirer</code> la lit et n'ouvre la file (<code>KV.list</code>, plafond gratuit 1 000/jour
+contre 1 440 passages) que si elle existe — ou une minute sur trois, filet contre une lecture
+périmée. Le drapeau est baissé AVANT l'ouverture, jamais après : une fiche arrivée pendant
+l'ouverture relève le drapeau et sera vue au passage suivant. <code>{forcer:true}</code> ouvre la
+file sans attendre. Aucun changement côté Apps Script : la réponse de <code>/tirer</code> garde la
+même forme.</p>
+</div></details>
+
+<p class="haut"><a href="#top">↑ Sommaire</a></p>
+
+<h2 id="a6"><span class="num">A6</span>Le journal d'intentions : pourquoi les gestes du comité sont instantanés</h2>
+
+<div class="r2"><div class="titre">En 2 minutes</div>
+<p>Avant : chaque geste du comité attendait la réponse du serveur Google — plusieurs secondes au
+mieux, parfois trente les mauvais matins, avec des échecs aléatoires. Depuis le 05/08/2026, le geste
+est <b>déposé</b> en une fraction de seconde dans une boîte aux lettres chez Cloudflare, avec accusé
+de réception ; le serveur relève la boîte chaque minute et exécute les fiches dans l'ordre. Depuis
+le 20/08/2026, déposer une fiche lève un <b>drapeau</b> : le serveur regarde le drapeau — un geste
+cent fois moins coûteux — et n'ouvre la boîte que s'il est levé, plus une fois toutes les trois
+minutes par sécurité. Rien ne change à l'usage : le geste passe toujours dans la minute. Trois
+types de fiches existent : les placements, les statuts du jour, la publication. L'écriture dans le
+classeur reste la seule vérité — la boîte n'est qu'une file d'attente fiable devant elle.</p></div>
+
+<div class="schema">
+  <div class="flux">
+    <div class="boite b-violet">
+      <div class="bt">① Le comité fait un geste</div>
+      <div class="bd">la page dépose une fiche (quoi, qui, quand) dans la boîte aux lettres —
+      un dixième de seconde, accusé de réception garanti</div>
+    </div>
+    <div class="fleche"><span class="f">▼</span><span class="fl">chaque minute</span></div>
+    <div class="boite b-vert">
+      <div class="bt">② Le serveur relève la boîte</div>
+      <div class="bd">et applique chaque fiche, dans l'ordre du dépôt, avec les fonctions habituelles
+      du portail — aucune règle métier nouvelle</div>
+    </div>
+    <div class="fleche"><span class="f">▼</span></div>
+    <div class="boite b-gris">
+      <div class="bt">③ La fiche passe au registre</div>
+      <div class="bd">qui, quoi, quand, appliquée quand, avec quel résultat — conservé 90 jours</div>
+    </div>
+  </div>
+</div>
+
+<details><summary>Ce qui se passe quand ça se passe mal</summary><div class="corps">
+<ul>
+<li><b>Le serveur plante en pleine relève ?</b> Les fiches non pointées restent dans la boîte et
+sont reprises au passage suivant. Les rejouer est sans danger : refaire deux fois le même placement
+ou reposer deux fois le même statut donne exactement le même résultat.</li>
+<li><b>Une fiche est inapplicable</b> (par exemple un MAR introuvable) ? Elle est retirée de la
+boîte <i>avec son erreur</i> et consignée au registre — elle ne bloque jamais les fiches suivantes.
+Le diagnostic signale les échecs récents.</li>
+<li><b>Une fiche d'un type inconnu ?</b> Même traitement : consignée en erreur, jamais
+bloquante.</li>
+</ul>
+</div></details>
+
+<details class="tech"><summary>Repères techniques</summary><div class="corps">
+<p>Fichier : <code>journal.gs</code>. Types de fiches : <code>placements</code>,
+<code>statut</code>, <code>publier</code>. Guichets du Worker : <code>/ecrire</code> (dépôt par le
+comité, authentifié par la même empreinte que la lecture), <code>/tirer</code> et
+<code>/purger</code> (réservés au serveur, sur jeton). L'ordre des fiches est celui des horodatages
+posés par le Worker — source unique. La relève : <code>journalAppliquer</code>, déclencheur chaque
+minute (<code>journalInstallerDeclencheur</code>). Les fonctions de production appelées :
+<code>savePlanningOverridesBatch</code>, <code>appliquerStatutJour</code>,
+<code>generatePlanning</code>. Registre : entrées <code>jfait_…</code>, 90 jours.</p>
+</div></details>
+
+<p class="haut"><a href="#top">↑ Sommaire</a></p>
+
+<h2 id="a6b"><span class="num">A6 bis</span>Les quatre chemins d'écriture, et les délais réels</h2>
+
+<div class="r2"><div class="titre">En 2 minutes</div>
+<p>Deux flux de sens opposés. <b>Montant</b> (écrire au classeur) : quatre chemins selon qui écrit.
+<b>Descendant</b> (ce que les téléphones lisent) : les copies chez Cloudflare, réimprimées après
+chaque écriture réussie, avec une ronde horaire en filet. Retenir : en fonctionnement nominal,
+<b>rien n'attend l'heure</b> — l'heure n'est que le rattrapage d'un raté. Cette section ne redit ni
+le fonctionnement de la boîte aux lettres (A6) ni l'inventaire des lieux de stockage (A4) : elle
+donne les trajets et les chiffres.</p></div>
+
+<table>
+<tr><th>Qui écrit</th><th>Trajet</th><th>Ressenti de l'auteur</th><th>Visible des MARs</th></tr>
+<tr><td>Le comité (écran admin)</td><td>fiche déposée dans la boîte aux lettres (A6), relevée
+chaque minute par le serveur, qui écrit au classeur</td><td>instantané (accusé de dépôt)</td>
+<td>~1 à 2 min</td></tr>
+<tr><td>Un MAR (indispos, temps partiel, échanges, libéral)</td><td>appel DIRECT au serveur, qui
+écrit au classeur dans la requête</td><td>quelques secondes (le temps de réveil de Google — c'est
+l'attente de l'écran d'enregistrement)</td><td>~1 min après</td></tr>
+<tr><td>Une main dans le classeur</td><td>édition directe ; un déclencheur d'édition note la
+réimpression</td><td>immédiat</td><td>~1 min</td></tr>
+<tr><td>Les automatismes (génération, archivage…)</td><td>écriture directe + note de réimpression
+explicite</td><td>—</td><td>~1 min</td></tr>
+</table>
+
+<p>Le mécanisme descendant est le même pour les quatre : chaque écriture réussie <b>note</b> les
+familles de clés touchées (carte <code>MIROIR_APRES_ECRITURE</code>, miroir.gs) et un déclencheur
+unique pousse dans la minute — la requête, elle, répond tout de suite (mesure du 05/08 : pousser
+dans la requête coûtait ~5 s à chaque écriture). La <b>synchro horaire</b>
+(<code>miroirSyncComplet</code>) ne porte le délai que dans un cas : une poussée ciblée a échoué
+(réseau, quota) — elle ramasse alors l'écart, silencieusement, en une heure au plus. Deux
+exceptions structurelles : les <b>documents</b> (protocoles…) ont leur miroir quotidien
+(<code>miroirDocuments</code>) — parution le lendemain ; et le <b>planning publié</b> après une
+validation de temps partiel suit une republication différée (~1 min), le classeur étant juste
+immédiatement. Les battements de cœur (D3) surveillent la relève de la boîte et la ronde horaire.</p>
+
+<h2 id="a7"><span class="num">A7</span>Sécurité &amp; confidentialité : ce qui est protégé, et comment</h2>
+
+<div class="r2"><div class="titre">En 2 minutes</div>
+<p>Le principe directeur : tout ce qui est nominatif et sensible est verrouillé <b>côté serveur</b> ;
+ce qui est visible publiquement ne contient rien qu'on ne trouve déjà ailleurs. Deux mondes bien
+séparés (le dépôt public / les comptes Google privés), trois rôles où tout est refusé par défaut,
+aucun secret dans le dépôt, une « liste rouge » de données qui ne passent jamais par Cloudflare —
+et des limites assumées, listées honnêtement plutôt que cachées.</p></div>
+
+<details><summary>Les deux mondes</summary><div class="corps">
+<table>
+<tr><th>Monde</th><th>Qui peut voir</th><th>Ce qu'il contient</th></tr>
+<tr><td>Le dépôt et le site</td><td>🌐 Tout le monde</td><td>Le code, les guides, les noms de
+l'équipe (déjà publics via l'annuaire du service). Aucune absence, aucune coordonnée, aucune donnée de
+patient.</td></tr>
+<tr><td>Le classeur et le Drive</td><td>🔒 Le compte du projet, protégé par la double
+authentification</td><td>Le vrai référentiel : codes d'accès, emails, quotités, indisponibilités,
+gardes, planning publié, archives, relevé libéral.</td></tr>
+</table>
+<p>La frontière est nette : les pages publiques ne contiennent aucune donnée sensible en dur. Elles
+ne les obtiennent qu'en présentant un code d'accès valide, et la réponse vient des données privées.
+Un visiteur du dépôt voit le mécanisme, pas ce qu'il manipule.</p>
+</div></details>
+
+<details><summary>Les codes d'accès : comment ils protègent</summary><div class="corps">
+<ul>
+<li>Sans code valide, le serveur ne répond rien d'utile — toutes les actions sont derrière cette
+porte (une seule exception, anodine : la question « quelle est l'année active ? »).</li>
+<li>Les majuscules/minuscules ne comptent pas (depuis le 27/07/2026). Le piège était invisible : sur
+téléphone, le champ met tout seul le code en capitales ; sur ordinateur non. Le même code passait
+sur mobile et échouait sur PC — incompréhensible pour la personne, indiagnosticable à distance.</li>
+<li>Un MAR ne peut lire et écrire que <i>son</i> périmètre : la demande a beau viser un collègue,
+le serveur la ramène d'office à l'identité du code présenté.</li>
+<li>Les codes ne redescendent jamais vers le navigateur : les écrans savent seulement si un code
+existe, jamais lequel. Et un code laissé vide dans un formulaire vaut « inchangé » — impossible
+d'effacer un code par accident.</li>
+<li>Chez Cloudflare, seuls des empreintes circulent (§ lexique) — et celle du secrétariat n'y est
+même pas.</li>
+</ul>
+</div></details>
+
+<details><summary>La liste rouge : ce qui ne passe jamais par Cloudflare</summary><div class="corps">
+<p>Le relevé libéral, les marges, les onglets CONFIG et PARAMETRES, la boîte mail, les journaux
+internes : rien de tout cela n'est copié chez Cloudflare. C'est un choix assumé, avec son prix — la
+page des consultations à venir, qui touche à ces données, plafonne à 4-5 secondes d'ouverture au
+lieu de 2 : la confidentialité passe avant la vitesse. Les secrets du projet (le jeton GitHub, la
+clé du générateur de comptes rendus) vivent dans l'onglet CONFIG du classeur privé, jamais dans le
+code. L'onglet PARAMETRES contient des secrets : on ne le cite jamais, on ne le recopie
+jamais.</p>
+</div></details>
+
+<details><summary>Le générateur de comptes rendus : la seule sortie de texte clinique</summary><div class="corps">
+<p>C'est le seul endroit du système où du texte clinique quitte l'environnement Google — vers le service en
+ligne de la société Anthropic (hors Union européenne), pour aider à la rédaction. Cinq garde-fous
+superposés : l'accès est limité à une liste nominative ; le bouton reste gris tant que la case
+« texte anonymisé » n'est pas cochée, et le serveur refuse sans cette confirmation ; un filtre
+bloque l'envoi si le texte contient un signal d'identité clair (« né(e) le », numéro de dossier,
+civilité + NOM…) ; le modèle lui-même a pour consigne de refuser si un identifiant subsiste ; et la
+traçabilité ne conserve que l'événement, jamais le texte. Point encore ouvert : étudier une option
+sans conservation des données ou hébergée en Europe, à porter avec le référent RGPD du service.</p>
+</div></details>
+
+<details><summary>Les limites assumées</summary><div class="corps">
+<ul>
+<li>Le dépôt public montre les noms de l'équipe et les objectifs de gardes de chacun — jugé
+acceptable, ces informations étant déjà accessibles par ailleurs.</li>
+<li>Les codes des MARs sont lisibles en clair dans le classeur (protégés par l'accès au compte,
+pas par un chiffrement). Leur format rend le forçage par essais successifs impraticable, mais le
+code admin doit rester un code fort.</li>
+<li>Le générateur de comptes rendus repose sur une discipline d'anonymisation outillée, pas sur une
+impossibilité technique de coller un identifiant.</li>
+</ul>
+<div class="err"><p><b>La règle apprise en réel contre l'injection de code</b> : tout texte saisi
+librement par quelqu'un (un motif, un message, un nom de patient) est neutralisé avant d'être
+affiché dans une page — une faille de ce type a été trouvée et corrigée dans le volet libéral. Les
+corps des mails, eux, sont affichés comme du texte pur, jamais interprétés (§C5).</p></div>
+</div></details>
+
+<details class="tech"><summary>Repères techniques</summary><div class="corps">
+<p>Vérification du code : <code>checkCode</code> (comparaison en majuscules, code vide refusé
+d'emblée). Cloisonnement MAR : le serveur force <code>targetId = user.id</code>. Journaux :
+CONNEXIONS (qui s'est connecté, purge au-delà de 2 000 lignes) et LOGS (événements techniques,
+purge au-delà de 500) — aucun ne contient de motif d'absence ni de donnée patient. Comptes rendus :
+action <code>genererCRH</code> (portail.gs), liste d'accès <code>CRH_ALLOWED</code>, confirmation
+<code>confirmAnonyme:true</code>, filtre <code>detecteIdentifiant()</code>, clé
+<code>ANTHROPIC_TOKEN</code> dans CONFIG. Neutralisation d'affichage : <code>_escHtml</code> ;
+corps de mails posés en <code>textContent</code>. Empreintes : SHA-256, copie <code>acces</code>
+du relais.</p>
+</div></details>
+
+<p class="haut"><a href="#top">↑ Sommaire</a></p>
+<div class="p-bande pb">Parcours B — Le cycle annuel
+<small>Trois assistants encadrent les opérations irréversibles : préparer, générer, clôturer.</small></div>
+
+<h2 id="b1"><span class="num">B1</span>Les trois assistants : la vue d'ensemble</h2>
+
+<div class="r2"><div class="titre">En 2 minutes</div>
+<p>Une année de planning se pilote par trois assistants pas à pas, lancés dans l'ordre depuis la
+page d'administration. À l'automne de l'année en cours, on prépare la suivante : W1 en octobre, puis
+le staff vacances, puis la saisie des indisponibilités par les MARs, puis W2 en novembre. W3 clôture
+l'année écoulée — et refuse de le faire tant que la suivante n'est pas prête, pour ne jamais se
+retrouver sans planning un 1<sup>er</sup> janvier.</p></div>
+
+<div class="schema">
+  <div class="flux-h">
+    <div class="boite b-vert">
+      <div class="bt">W1 · octobre</div>
+      <div class="bd">Préparer l'année suivante : équipe, périodes de vacances, création des onglets,
+      envoi des codes</div>
+    </div>
+    <div class="fleche-h">➜</div>
+    <div class="boite b-vert">
+      <div class="bt">W2 · novembre</div>
+      <div class="bd">Générer les gardes : contrôles bloquants, algorithme, publication, récapitulatif
+      envoyé à chaque MAR</div>
+    </div>
+    <div class="fleche-h">➜</div>
+    <div class="boite b-vert">
+      <div class="bt">W3 · fin décembre</div>
+      <div class="bd">Clôturer l'année écoulée : archivage, bascule de l'année active, fermeture de
+      la campagne de saisie</div>
+    </div>
+  </div>
+  <div class="legende">Entre W1 et W2 : le staff vacances (en présence) — c'est là que les seuils de
+  présence se règlent, à la source — puis la saisie des indisponibilités par chaque MAR.</div>
+</div>
+
+<p class="haut"><a href="#top">↑ Sommaire</a></p>
+
+<h2 id="b2"><span class="num">B2</span>W1 — Préparer l'année suivante</h2>
+
+<div class="r2"><div class="titre">En 2 minutes</div>
+<p class="note"><b>Où s'arrêter pour un essai.</b> Les quatre actions techniques — périodes,
+groupes, création de l'onglet, ouverture de la campagne — tiennent dans l'étape 4. L'envoi des codes
+est l'étape 6, déclenchée par un bouton : on peut donc ouvrir la campagne, regarder les écrans, puis
+la refermer, sans qu'aucun mail ne parte. Refermer = supprimer la ligne <code>INDISPOS_ACTIVE</code>
+de CONFIG, ce que fait <code>clearIndisposYear</code> ; l'onglet, lui, peut rester.</p>
+<p>Six étapes guidées : passer l'équipe en revue (avec alerte si un MAR actif n'a pas d'adresse
+mail — il ne recevrait pas son code), saisir les périodes de vacances scolaires de l'année suivante,
+contrôler l'ordre de priorité des groupes de vacances, créer les onglets de la nouvelle année dans
+le classeur (avec garde-fou : jamais d'écrasement de saisies existantes), rappeler la tenue du staff
+physique, et envoyer à chaque MAR son code d'accès avec le lien de saisie.</p></div>
+
+<details><summary>La rotation des groupes de vacances — et son piège historique</summary><div class="corps">
+<p>Les MARs sont répartis en trois groupes (A, B, C) qui n'ont pas les mêmes priorités de vacances.
+Pour que personne ne soit servi en premier tous les ans, l'ordre tourne chaque année — dans le sens
+« le dernier devient le premier », entre les groupes comme à l'intérieur de chaque groupe : ABC
+devient CAB, puis BCA, puis revient à ABC. Le rang qui en résulte sert aussi, plus tard, à désigner
+le MAR le moins prioritaire à solliciter en premier quand il faut demander à quelqu'un de décaler
+ses vacances.</p>
+<div class="warn"><p><b>⚠️ Cette règle est écrite à quatre endroits du code</b> (la page du staff,
+la page d'administration, et deux fois côté serveur). Jusqu'au 30/07/2026, le serveur tournait dans
+un sens et les écrans dans l'autre : les deux ne coïncidaient qu'une année sur trois, et une année
+sur trois le MAR désigné en cas de conflit n'était pas celui affiché au staff — constaté en réel sur
+l'hiver 2027. Toute modification de la rotation doit être répercutée <b>aux quatre endroits</b>.</p></div>
+</div></details>
+
+<details class="tech"><summary>Repères techniques</summary><div class="corps">
+<p>Assistant : <code>openWizard</code> (à ne pas confondre avec <code>openWizardGardes</code> = W2).
+Étapes : quotités via <code>saveWizQuotites</code> ; périodes via <code>collectPeriodes</code> ;
+l'écran des groupes est en lecture seule (<code>collectGroupes</code> volontairement vide — la
+composition se modifie dans l'onglet Équipe) ; création des onglets via <code>initYear</code> ;
+envoi des codes via <code>launchWizardSendCodes</code>. Rotation : décalage = année − 2026 ; en
+code, <code>(3 − offset % 3) % 3</code>, jamais <code>offset % 3</code>.</p>
+</div></details>
+
+<p class="haut"><a href="#top">↑ Sommaire</a></p>
+
+<h2 id="b3"><span class="num">B3</span>W2 — Générer les gardes</h2>
+
+<div class="r2"><div class="titre">En 2 minutes</div>
+<p>L'assistant le plus verrouillé : il vérifie que la génération est <i>possible et juste</i> avant
+de la lancer. D'abord une salve de contrôles — chaque MAR a-t-il saisi ? reste-t-il des conflits de
+vacances ? quelqu'un s'est-il rendu indisponible au point de ne plus pouvoir porter sa part ?
+certains jours sont-ils trop dégarnis ? Puis la validation des vacances, puis le lancement. La
+génération prend 30 à 60 secondes et enchaîne <b>trois</b> opérations : générer, publier, et envoyer
+automatiquement à chaque MAR le récapitulatif de ses gardes — sans confirmation supplémentaire.</p></div>
+
+<details><summary>Les contrôles d'avant-lancement, dans l'ordre</summary><div class="corps">
+<ol>
+<li><b>Récapitulatif des saisies</b> : bloque si un MAR n'a pas saisi ses indisponibilités.</li>
+<li><b>Conflits de vacances</b> : bloque s'il reste des conflits de seuil non arbitrés.</li>
+<li><b>Audit d'équité</b> : pour chaque catégorie de garde (samedis, week-ends, jeudis, fériés),
+l'assistant calcule la part exacte de chacun et vérifie que personne ne s'est rendu indisponible au
+point de ne plus pouvoir la porter. Bloque, avec un message qui dit précisément quoi débloquer.</li>
+<li><b>Couverture jour par jour</b> : liste chaque journée à moins de 6 MARs disponibles (rouge en
+dessous de 4, orange à 4-5), le nombre de libérations à obtenir — et le MAR le moins prioritaire (au
+rang des vacances) à solliciter en premier. Informe, ne bloque pas.</li>
+<li><b>Couverture par semaine</b> : capacité contre besoin, semaines tendues.</li>
+</ol>
+</div></details>
+
+<details><summary>Les verrous du lancement</summary><div class="corps">
+<p>La génération est refusée dans deux cas : l'année visée est 2026 ou avant (l'année 2026 a été
+saisie à la main et est sanctuarisée), ou l'onglet des gardes de l'année visée <b>existe déjà</b>.
+Ce second verrou est capital : régénérer une année écraserait la preuve d'équité figée <i>et</i>
+tous les échanges déjà négociés entre MARs. Régénérer une année déjà générée fait partie des
+interdits absolus du projet. Pour forcer en toute connaissance de cause, il faudrait supprimer
+l'onglet à la main dans le classeur — geste volontairement inconfortable.</p>
+</div></details>
+
+<details class="tech"><summary>Repères techniques</summary><div class="corps">
+<p>Assistant : <code>openWizardGardes</code>. Contrôles chargés en parallèle :
+<code>getAllIndispos</code>, <code>getConflitsAll</code>, <code>getJoursFeries</code>,
+<code>getVacValidation</code> (porte les rangs de priorité). Lancement :
+<code>launchWizardGardes</code> → action <code>generateGardes</code>, qui enchaîne
+<code>generateGardes</code> → <code>publishPlanning</code> → <code>envoyerRecapIndispos</code>
+(c'est bien ce nom-là ; « envoyerRecapGardes » n'existe que comme libellé de journal). L'assistant
+affiche le compte des envois, des MARs sans email et des échecs.</p>
+<p><b>(25/08/2026) Renvoi hors assistant.</b> Le verrou « gardes déjà générées » fermait tout
+l'assistant, étapes 2 et 3 comprises, alors qu'elles ne régénèrent rien : quand la génération
+s'arrêtait après l'étape 1, aucun récapitulatif ne partait et il n'existait pas d'autre issue que
+de supprimer <code>GARDES_{Y}</code> et tout régénérer. L'écran verrouillé porte désormais un
+bouton <code>wizGRenvoyerRecaps</code> qui rappelle <code>envoyerRecapIndispos</code> seul.</p>
+<p><b>Contenu du mail.</b> Le compte des souhaits est lu dans <code>STATS_GARDES_{Y}</code>,
+colonnes <code>SOUHAITS POSES</code> / <code>SOUHAITS HONORES</code> cherchées <b>par nom</b> —
+absentes des plannings antérieurs, d'où un repli silencieux. Ces colonnes sont écrites
+<b>en fin</b> de feuille : <code>code.gs</code> lit encore certaines colonnes par position
+(<code>sd[r][17]</code>, <code>[19]</code>, <code>[21]</code>), les intercaler fausserait les
+cibles du tableau de bord. Le marquage « week-end » couvre vendredi, samedi et dimanche depuis
+le 25/08 : le vendredi forme une unité avec le dimanche et était omis.</p>
+</div></details>
+
+<p class="haut"><a href="#top">↑ Sommaire</a></p>
+
+<h2 id="b4"><span class="num">B4</span>W3 — Clôturer l'année</h2>
+
+<div class="r2"><div class="titre">En 2 minutes</div>
+<p>Deux étapes : vérifier que l'année suivante est prête, puis archiver — ce qui enchaîne
+l'archivage proprement dit, la bascule de l'année active, et la fermeture de la campagne de saisie.
+<b>À savoir absolument : l'archivage retire l'année du classeur maître.</b> Les quatre onglets de
+l'année (gardes, indisponibilités, affectations, statistiques) sont copiés dans un classeur
+d'archive puis supprimés du maître. Rien n'est perdu — tout reste consultable dans l'archive — mais
+l'année quitte le classeur principal.</p></div>
+
+<details><summary>Ce que fait l'archivage, dans l'ordre</summary><div class="corps">
+<ol>
+<li>Il reporte le bilan de l'année dans l'onglet HISTORIQUE (sans doublon si l'année y figure déjà).
+Le décompte Noël/Nouvel An est relu dans les gardes <b>réelles</b> — échanges et dons inclus — pas
+dans le bilan figé à la génération.</li>
+<li>Il range les fichiers nominatifs (statistiques, indisponibilités) dans le Drive privé — jamais
+dans le dépôt public.</li>
+<li>Il copie puis supprime du classeur maître les quatre onglets de l'année, transférés vers le
+classeur d'archive.</li>
+<li>Il purge les retouches manuelles de l'année (et des années antérieures — auto-nettoyant si une
+clôture avait été manquée).</li>
+</ol>
+<div class="note"><p><b>Deux protections apprises en réel.</b> ① Si la réponse d'un archivage se
+perd en route et qu'on relance, l'assistant reconnaît qu'il est déjà passé (triple indice concordant)
+et répond « déjà fait » au lieu d'un faux échec définitif. ② Jusqu'au 30/07/2026, un archivage
+<i>à moitié réussi</i> (transfert échoué) pouvait passer pour un succès : l'année basculait alors
+que les onglets étaient encore dans le maître, et il devenait impossible de re-clôturer depuis
+l'assistant. Depuis, tout échec de transfert bloque franchement, et les simples avertissements
+s'affichent sous la coche verte au lieu d'être avalés.</p></div>
+</div></details>
+
+<details class="tech"><summary>Repères techniques</summary><div class="corps">
+<p>Assistant : <code>openWizardCloture</code> ; enchaînement <code>archiveYear</code> →
+<code>setActiveYear</code> → <code>clearIndisposYear</code>. Nuance de la vérification : l'écran
+juge l'année suivante prête d'après le planning <i>publié</i>, le serveur d'après les onglets — une
+génération réussie mais non publiée bloque donc l'écran, pas le serveur. Ne pas confondre l'onglet
+PLANNING_OVERRIDES (les vraies retouches, purgées ici) avec l'ancien registre OVERRIDES (n'existe
+plus, code mort documenté).</p>
+</div></details>
+
+<p class="haut"><a href="#top">↑ Sommaire</a></p>
+
+<h2 id="b5"><span class="num">B5</span>Comment l'algorithme répartit les gardes</h2>
+
+<div class="r2"><div class="titre">En 2 minutes</div>
+<p>Sept phases. ① Calculer la <b>cible</b> de chacun — sa juste part, proportionnelle à son temps de
+travail, dans chaque catégorie (total, samedis, jeudis, week-ends, veilles de férié, fériés),
+corrigée par le report de l'année précédente. Depuis septembre 2026 cette cible est un
+<b>nombre entier</b> : 5 ou 6 samedis, jamais 5,4 — une part à virgule n'est atteignable par
+personne, et l'écart affiché mélangeait alors l'injustice réelle et l'impossibilité arithmétique.
+② Placer d'abord les <b>souhaits garantis</b>. ③ Avancer <b>jour après jour</b> en choisissant à
+chaque fois le meilleur candidat : jamais deux jours de suite, jamais deux week-ends de garde
+d'affilée, jamais sur une absence, bon espacement, et priorité à celui qui est le plus loin de sa
+juste part. ④ <b>Rééquilibrer</b> par petits échanges, sans jamais casser une règle dure ni toucher
+un souhait honoré. ⑤ Poser les <b>récupérations</b> de samedi. ⑥ Écrire le résultat et le bilan
+d'équité. ⑦ Et par-dessus tout cela : recommencer le calcul <b>jusqu'à huit fois</b> avec des
+numéros de tirage différents, et n'écrire que le meilleur résultat.</p></div>
+
+<details><summary>Les chiffres de référence — le contrat de non-régression</summary><div class="corps">
+<p><b>La couverture</b> a été éprouvée sur <b>400 années simulées</b> (20 tirages différents des
+années 2027 à 2046), soit 292 312 gardes : <b>aucune journée sans binôme de garde</b>.</p>
+<p><b>L'équité</b> a été remesurée après le changement de septembre 2026 — cibles entières, nouvel
+objectif de l'optimiseur, week-ends interdits — sur <b>45 années</b> (neuf scénarios d'absences de
+cinq ans chacun) : <b>44 années sur 45 où personne ne dépasse une garde d'écart</b>, sur aucun des
+six axes, contre 29 sur 45 avec la version précédente. La seule exception atteint deux gardes.</p>
+<p><b>Et sur des données réelles.</b> Le 5 septembre 2026, l'algorithme a tourné dans Apps Script sur
+les absences <em>réelles</em> du service — complétées pour que chacun ait posé tous ses jours, avec
+161 souhaits — dans une copie du classeur. Les 364 journées ont toutes été pourvues, y compris le
+27 décembre et les 17-18 avril où il ne restait que <b>trois médecins disponibles sur vingt</b>. Un
+seul MAR à deux gardes d'écart ; 121 souhaits honorés sur 161.</p>
+<p>Ces chiffres sont le contrat : si une modification du générateur les dégrade, c'est un signal
+d'alerte, quelle que soit sa justification.</p>
+<div class="warn"><p><b>⚠️ Le piège du zéro.</b> Dans la colonne du pourcentage de gardes, un « 0 »
+est interprété comme… 100 (une case vide et un zéro se ressemblent pour le code). Pour exempter un
+MAR de gardes, il existe une case prévue (« NO_GARDE ») — jamais un zéro.</p></div>
+<div class="note"><p><b>Le bilan est une photo prise à la génération.</b> Il ne bouge plus ensuite,
+même si des MARs échangent des gardes en cours d'année. Le report vers l'année suivante s'appuie sur
+cette photo : une petite dérive du calcul commencera à la génération 2028 — connu, accepté pour
+l'instant, à traiter un jour.</p></div>
+</div></details>
+
+<details class="tech"><summary>Repères techniques</summary><div class="corps">
+<p><code>generateGardes(year)</code> dans generateur_gardes.gs, sous l'interrupteur
+<code>NOUVEL_ALGO_GLOBAL</code> — à <code>false</code>, le générateur redevient exactement celui
+d'avant septembre 2026 : c'est le retour arrière, en une ligne.</p>
+<p><b>Cibles entières.</b> La part exacte (5,4 samedis) est diminuée du report de dette, puis
+arrondie par la <b>méthode des plus forts restes</b> : chacun reçoit sa partie entière, les unités
+restantes vont à ceux qui sont le plus créditeurs. La somme reste <em>exactement</em> le nombre de
+gardes à poser — arrondir chaque cible dans son coin promettait 6 jeudis de trop et laissait 6
+fériés sans propriétaire (mesuré). Le report étant plié dans la cible, le compteur <code>dette</code>
+est remis à zéro pour que <code>ratio()</code> ne l'applique pas deux fois. Dette : amortie à 60 %,
+plafonnée à ±2, lue sur l'année précédente seulement — la version cumulative reste à écrire.</p>
+<p><b>Numéro de tirage.</b> À égalité parfaite, l'ordre de l'onglet MEDECINS ne départage plus : il
+déplaçait près d'une garde sur trois. L'ordre vient d'un hachage(nom, tirage) ; rejouer le même
+tirage redonne le même planning, et l'onglet n'est jamais modifié.</p>
+<p><b>Multi-départ.</b> Jusqu'à <code>MULTI_DEPART_MAX</code> (8) calculs à blanc, on écrit le
+meilleur ; règle d'arrêt à une garde d'écart. Critère de choix, dans l'ordre : journées sans binôme,
+axes au-delà de 2, pire écart. En pratique un seul tirage suffit dans 25 années sur 45.</p>
+<p>Souhaits : <code>placeSouhait</code>, profil « souhait_plafond », jours de semaine seulement —
+ni week-end ni férié, et jamais au-delà de sa cible totale. Sélection quotidienne :
+<code>scoreSelect</code> — règles dures (<code>blocked</code> : pas deux jours consécutifs, pas
+jeudi→samedi, pas de vendredi+dimanche du même week-end hors souhait, et <b>jamais deux week-ends de
+garde d'affilée</b> — posé à la construction, relâché en dernier recours seulement), puis pénalités
+d'espacement, puis équité de la catégorie. Le week-end est traité comme une unité vendredi+dimanche.</p>
+<p><b>Rééquilibrage (§8c) : objectif lexicographique.</b> L'optimiseur minimisait une somme de carrés
+— l'écart <em>moyen</em> — et laissait donc volontiers une personne loin de sa cible si le total y
+gagnait. Il supprime désormais <b>d'abord tout écart de 2 ou plus</b> (poids <code>LEX_POIDS</code>
+= 600), et affine la moyenne ensuite. Le poids reste SOUS les 1000 de la règle des week-ends : à
+3000, l'équité l'écrasait — 48 enchaînements par an au lieu de 2. <code>canHold</code> interdit de
+créer un vendredi+dimanche, ou un second week-end consécutif, par transfert.</p>
+<p>Une récupération par samedi de garde, hors vacances scolaires. Écriture : GARDES_(année) +
+STATS_GARDES_(année). Essai à blanc : <code>comparerAlgorithmes(year)</code> — deux calculs sans
+écriture, ancien et nouvel algorithme, six écarts côte à côte. Garantie de périmètre : le générateur
+ne contient <b>aucune référence à un secteur</b> — l'équité est intouchable par le chantier du
+déménagement (§D5). Banc dédié : <code>simulateur/</code> et <code>banc/banc_nouvel_algo.js</code>.</p>
+</div></details>
+
+<p class="haut"><a href="#top">↑ Sommaire</a></p>
+
+<h2 id="b6"><span class="num">B6</span>La publication : ce que voient les MARs</h2>
+
+<div class="r2"><div class="titre">En 2 minutes</div>
+<p>Publier, c'est écrire le planning dans le Drive privé. <b>C'est le Drive qui fait foi</b> — pas
+le dépôt : après une génération, le planning est visible par les MARs sans aucune mise en ligne de
+code ; et inversement, modifier un fichier de planning à la main dans le dépôt n'a strictement aucun
+effet. Les pages des MARs lisent ensuite les copies du relais, avec le serveur en secours. Si
+l'écriture dans le Drive échoue, la publication entière échoue — volontaire : mieux vaut pas de
+planning qu'un planning à moitié publié.</p></div>
+
+<p class="haut"><a href="#top">↑ Sommaire</a></p>
+<div class="p-bande pc">Parcours C — L'exploitation au quotidien
+<small>Les écrans, les modules, les automatismes — et ce qu'il faut savoir pour les faire vivre.</small></div>
+
+<h2 id="c1"><span class="num">C1</span>La page d'administration : les six onglets</h2>
+
+<div class="r2"><div class="titre">En 2 minutes</div>
+<p>Le poste de pilotage du comité compte six onglets : Planning, Équipe, Affectations, Équité,
+Statuts, Maintenance. La lecture vient du relais (instantanée), les gestes partent au journal
+d'intentions, et le panneau de placement s'affiche sans le moindre appel. À l'ouverture, la page se
+prépare toute seule en arrière-plan — mais uniquement pendant les temps morts : un clic du comité ne
+fait jamais la queue derrière ces préparatifs.</p></div>
+
+<details><summary>Onglet par onglet</summary><div class="corps">
+<table>
+<tr><th>Onglet</th><th>À quoi il sert — et d'où viennent ses données</th></tr>
+<tr><td>📅 Planning</td><td>Le planning quotidien : secteurs, réa, mater, consultations, gardes.
+Les retouches du comité partent en fiches au journal d'intentions. Le panneau qui s'ouvre au clic
+sur une case est calculé sur place, instantanément (§A5) — le serveur vérifie derrière, en
+silence.</td></tr>
+<tr><td>👥 Équipe</td><td>Le référentiel des MARs : identités, quotités, adresses, particularités.
+S'affiche sans appel ; le bouton « ↻ Actualiser » et chaque enregistrement forcent une relecture
+du serveur.</td></tr>
+<tr><td>📋 Affectations</td><td>La répartition nominative des secteurs, mois par mois.</td></tr>
+<tr><td>📊 Équité</td><td>Le certificat d'équité et les cartes par MAR — une ligne chacun, dépliable ;
+au portail, celle du MAR connecté est ouverte d'office et en tête. Six axes : total, samedis,
+jeudis, week-ends, veilles de férié et <b>jours fériés</b>, ce dernier servi depuis le 5 septembre
+2026 seulement (la colonne existait, aucun lecteur ne la lisait ; la barre était tracée contre une
+moyenne d'équipe, pas contre une cible). Deux vues : <b>Initiale</b> (la photo prise à la
+génération) et <b>Instantané</b> (un calcul vivant qui intègre les échanges — sans certificat, à
+dessein : seule la photo initiale fait foi). Le bouton Générer (W2) vit ici.
+<p class="warn"><b>Les cibles affichées sont entières</b>, et sur les années où les comptes ne
+tombent pas juste elles sont ramenées aux gardes réellement réparties. Défaut trouvé le
+5 septembre 2026 : sur 2026, la colonne CIBLE promettait 730,8 gardes pour 707 posées — les gardes
+d'un médecin extérieur au service, comptées nulle part. L'écran accusait 19 MAR sur 20 au lieu de
+17, dont trois qui étaient pile à leur part. Le contrôle qui l'a révélé : une mesure d'équité juste
+a des écarts qui <b>s'annulent</b> ; ceux de 2026 totalisaient −23,8. La correction n'est jamais
+silencieuse — dès qu'elle s'applique, une mention l'explique au lecteur.</p></td></tr>
+<tr><td>✏️ Statuts</td><td>Les absences ponctuelles du jour (congé, formation, récupération…).
+Chaque pose part en fiche au journal. L'écran évite le relais pendant la minute et demie qui suit
+une écriture du planning, pour ne jamais montrer du périmé.</td></tr>
+<tr><td>🔧 Maintenance</td><td>Le diagnostic complet (§D3), le contrôle « le code en service est-il
+bien celui du dépôt ? », la santé du relais, la boîte Messages (§C5), et quelques outils
+ponctuels.</td></tr>
+</table>
+<div class="note"><p><b>Un automatisme à connaître</b> : poser un statut d'absence sur un MAR déjà
+placé quelque part ce jour-là <b>retire automatiquement son placement</b> — le planning ne le montre
+plus dans le secteur. Ce comportement est verrouillé par un scénario du banc d'essai.</p></div>
+</div></details>
+
+<p class="haut"><a href="#top">↑ Sommaire</a></p>
+
+<h2 id="c2"><span class="num">C2</span>Le « + » de case à pourvoir</h2>
+
+<div class="r2"><div class="titre">En 2 minutes</div>
+<p>Le signal le plus regardé de la grille — et longtemps le moins documenté. Un « + » orange dans
+une case de bloc ne veut pas dire « il manque quelqu'un » : il veut dire <b>« un habitué de ce
+secteur manque à l'appel aujourd'hui, et personne ne l'a remplacé »</b>. Les consultations, elles,
+suivent une règle plus simple, pilotée par les données. Jamais de « + » le week-end ni les jours
+fériés.</p></div>
+
+<details><summary>La règle générale, et les quatre exceptions</summary><div class="corps">
+<p><b>Qui devrait être là ?</b> Les MARs affectés à ce secteur pour le mois — les « réguliers ».
+<b>Combien en manque-t-il ?</b> Les réguliers absents ce jour-là, plus ceux que le comité a
+déplacés ailleurs, moins les personnes présentes dans la case qui ne sont pas des réguliers — elles
+comptent comme remplaçants. Le résultat donne le nombre de « + ». Une case entièrement vide affiche
+toujours au moins un « + ».</p>
+<table>
+<tr><th>Secteur</th><th>Sa règle propre</th></tr>
+<tr><td>CI</td><td>Règle générale, sauf le jeudi — ce jour-là, c'est la radio interventionnelle seule.</td></tr>
+<tr><td>RI</td><td>Requis mercredi et jeudi matin uniquement. Jamais l'après-midi, jamais les autres jours, même vide.</td></tr>
+<tr><td>MAT</td><td>Toujours pourvue, matin et après-midi.</td></tr>
+<tr><td>DVI</td><td>Requis le mardi matin uniquement (pose de DVI).</td></tr>
+</table>
+<p>Pour une <b>consultation</b>, le « + » vaut simplement l'effectif requis moins les présents — le
+requis étant lu dans le tableau des consultations du classeur (une colonne par demi-journée). Aucun
+nom de consultation n'est écrit dans le code.</p>
+<div class="warn"><p><b>La fragilité à connaître</b> : les secteurs de bloc, eux, sont encore
+décrits <i>dans le code</i> de la page d'administration, avec leurs noms actuels. Au déménagement,
+quand les noms de secteurs changeront, le « + » cassera sans message si rien n'est fait — c'est
+répertorié au §D5.</p></div>
+</div></details>
+
+<p class="haut"><a href="#top">↑ Sommaire</a></p>
+
+<h2 id="c3"><span class="num">C3</span>Créer ou retirer un secteur, une consultation</h2>
+
+<div class="r2"><div class="titre">En 2 minutes</div>
+<p>Tout se règle dans deux onglets du classeur — SECTEURS pour les secteurs, CS_TEMPLATE pour les
+consultations — sans toucher au code. Le changement est visible après un rechargement complet de la
+page (Ctrl+Maj+R). Pour retirer : on passe la colonne ACTIF à « N », on ne supprime <b>jamais</b> la
+ligne. Réservé à l'administrateur — le comité n'a pas accès au classeur.</p></div>
+
+<details><summary>Ajouter un secteur — les colonnes qui comptent</summary><div class="corps">
+<table>
+<tr><th>Colonne</th><th>Rôle</th></tr>
+<tr><td>CODE</td><td><b>L'identifiant technique</b>, écrit partout (affectations, planning publié).
+Ne jamais le renommer une fois en service : les affectations existantes deviendraient
+orphelines.</td></tr>
+<tr><td>ORDRE</td><td>La position d'affichage, partout : légende, planning, fichier Excel.</td></tr>
+<tr><td>LABEL · COURT</td><td>Les libellés affichés (long et abrégé) — librement modifiables.</td></tr>
+<tr><td>AFF</td><td><b>La colonne la plus importante.</b> Remplie = le secteur devient affectable au
+mois (il apparaît dans le sélecteur et la légende). Vide = secteur d'affichage seulement.</td></tr>
+<tr><td>CS</td><td>Le lien vers la consultation rattachée : grâce à lui, le panneau de placement
+propose en premier les MARs du secteur quand on place cette consultation.</td></tr>
+<tr><td>ACTIF</td><td>O/N. « N » = ignoré partout, sans perdre la ligne.</td></tr>
+<tr><td>BG · FG · ICON · XL_*</td><td>Couleurs, icône, et l'habillage spécifique du fichier Excel
+(qui diffère volontairement de l'affichage web). Vides = valeurs par défaut correctes.</td></tr>
+</table>
+<p>Un secteur n'apparaît sur le planning que si quelqu'un y est affecté : la légende et les lignes
+sont construites à partir des secteurs réellement utilisés. Après une première affectation,
+recharger la page.</p>
+<div class="err"><p><b>⚠️ Passer un secteur à « N » le retire de tout l'affichage — y compris des
+semaines passées déjà publiées.</b> Le mécanisme n'a pas de mémoire. À manier en connaissance de
+cause, et jamais avant d'avoir réaffecté les MARs concernés.</p></div>
+</div></details>
+
+<details><summary>Ajouter une consultation, avec un exemple complet</summary><div class="corps">
+<p>Dans le tableau des consultations : une ligne par type, une colonne par demi-journée de la
+semaine — la semaine se lit d'un coup d'œil. Le nombre inscrit dans chaque colonne est le nombre de
+créneaux à pourvoir cette demi-journée (0 = aucun). La position de la ligne fixe l'ordre
+d'affichage.</p>
+<p><b>Exemple — ouvrir une consultation vasculaire le mardi après-midi</b> : une nouvelle ligne
+« CS-VASC / CS Vasculaire », la colonne du mardi après-midi à 1, tout le reste à 0, un libellé et
+une couleur pour l'Excel. Après rechargement : une case « à pourvoir » apparaît chaque mardi
+après-midi, le comité clique dessus pour placer quelqu'un, et une ligne VASCULAIRE sort dans
+l'Excel du vendredi.</p>
+<div class="note"><p><b>Ne pas oublier le lien retour</b> : renseigner la colonne CS du secteur
+concerné dans l'onglet SECTEURS. Sans ce lien, le panneau proposera les MARs dans l'ordre habituel
+au lieu de mettre en tête ceux du secteur.</p></div>
+<p>Détail d'étiquettes : les mentions « / URO. » et « / OPHTALMO. » du fichier Excel sont des
+raccourcis de langage — le bloc viscéral couvre viscéral et uro, le bloc ORL couvre ORL et
+ophtalmo. Il n'existe pas d'identifiant distinct pour ces spécialités.</p>
+</div></details>
+
+<details><summary>Retirer proprement</summary><div class="corps">
+<p>Supprimer une ligne ne supprime pas les affectations qui pointent vers elle : elles gardent
+l'ancien identifiant, que le système ne reconnaît plus — à la publication suivante, les MARs
+concernés basculent en « volant », et l'identifiant disparaît du sélecteur (impossible de le
+rechoisir). Rien n'est perdu, mais c'est le désordre. <b>Marche à suivre</b> : réaffecter d'abord
+les MARs concernés, republier, puis passer ACTIF à « N ». C'est exactement le mécanisme prévu pour
+le déménagement : anciens secteurs à « N », nouveaux ajoutés, aucune ligne effacée. Le diagnostic
+signale toute affectation qui pointe vers un secteur inexistant, inactif ou non affectable, en
+nommant les MARs concernés.</p>
+</div></details>
+
+<p class="haut"><a href="#top">↑ Sommaire</a></p>
+
+<h2 id="c4"><span class="num">C4</span>Consultations à venir &amp; accès du secrétariat</h2>
+
+<div class="r2"><div class="titre">En 2 minutes</div>
+<p>La page « Consultations à venir » répond à une question : le médecin qui voit ce patient en
+consultation sera-t-il présent le jour de l'intervention ? Une seule page, deux portes : un MAR
+(code personnel) y voit ses propres consultations, motifs d'absence affichés ; le secrétariat (code
+partagé) les voit toutes, mais <b>les motifs ne lui sont jamais envoyés</b> — le tri est fait par le
+serveur, pas par la page. Lecture seule, aucune donnée de patient.</p></div>
+
+<details><summary>Pourquoi le secrétariat ne peut vraiment rien voir d'autre</summary><div class="corps">
+<p>Le rôle secrétariat fonctionne en « tout est interdit, sauf deux actions » : se connecter, et
+obtenir la liste des absences pour la fenêtre demandée. La liste des actions autorisées tient en un
+seul endroit du code — pas de garde ajoutée au cas par cas, qui finirait par en oublier une.</p>
+<p>Le masquage des motifs est fait <b>par le serveur</b> : en session secrétariat, le motif n'est
+tout simplement pas joint à la réponse. Le masquer dans la page aurait laissé l'information lisible
+dans les coulisses du navigateur.</p>
+<div class="err"><p><b>Ne jamais élargir cette liste au planning publié.</b> Un audit (26/07) a
+montré que le fichier du planning contient le code d'absence brut de chaque MAR pour l'année
+entière : y donner accès au secrétariat viderait de son sens la règle « les dates, jamais les
+motifs ». Au relais Cloudflare, le secrétariat ne lit d'ailleurs rien du tout.</p></div>
+</div></details>
+
+<details><summary>Ce qui compte comme « absent » — et les trois cas ajoutés à la main</summary><div class="corps">
+<p>Les absences viennent du planning publié (si ce n'est pas publié, ça n'existe pour personne).
+Être <b>de garde</b> ne compte volontairement pas comme absent : un MAR de garde peut assurer une
+intervention libérale. Trois situations ne figurent dans aucun planning et sont ajoutées par le
+serveur : le jour fixe non travaillé d'un temps partiel, la semaine « off » d'un rythme en
+alternance, et la période hors contrat (avant l'arrivée ou après le départ d'un MAR). Un MAR hors
+contrat sur toute la fenêtre est retiré de la réponse entière — sinon il apparaîtrait « présent tous
+les jours » et serait proposé comme remplaçant : précisément le faux « disponible » que l'outil doit
+empêcher.</p>
+<div class="warn"><p><b>Le piège des consultations de maternité</b> : elles n'existent dans aucune
+donnée. La règle est « mardi et jeudi matin, la personne en maternité tient aussi la consultation »,
+et elle est recalculée à l'affichage — la case du planning dit MAT, jamais CS-MAT. Chercher les
+consultations par leur préfixe les rate toutes. Cette règle vit à deux endroits (l'affichage de la
+page d'administration, et le serveur pour cette page-ci) : si la maternité change de jours, il y a
+<b>deux</b> endroits à modifier.</p></div>
+</div></details>
+
+<details class="tech"><summary>Repères techniques</summary><div class="corps">
+<p>Page : <code>absences.html</code>. Liste blanche : <code>SECRETARIAT_ACTIONS</code> (en tête
+d'Indispos.gs) = <code>login</code> + <code>getConsultAbsences</code>. Codes considérés absents :
+<code>ABSENT_CODES</code> (code.gs) = RG V F CTP CP R A TP CL ; ajouts serveur : TP (jour fixe),
+OFF (semaine off), HS (hors contrat). Règle maternité côté page :
+<code>MIROIR_MATER</code> + <code>estMiroirMater()</code> (admin.html) ; côté serveur : dans
+<code>getConsultAbsences</code>. Mise en service : la tuile « Mes consultations » du portail est
+encore restreinte (réglage <code>only</code>) le temps que le comité pose les consultations à
+4 semaines ; pour l'ouvrir — retirer la restriction, monter la version du site, compléter le guide
+MAR.</p>
+</div></details>
+
+<p class="haut"><a href="#top">↑ Sommaire</a></p>
+
+<h2 id="c5"><span class="num">C5</span>La boîte de réception (Messages)</h2>
+
+<div class="r2"><div class="titre">En 2 minutes</div>
+<p>Le bouton ✉ Messages de la page d'administration affiche les mails reçus sur l'adresse du projet
+— celle à laquelle les MARs écrivent leurs demandes. Réservé au comité. Une pastille indique le
+nombre de non-lus (alimentée par le relais, mise à jour localement à chaque lecture) ; le contenu
+d'un message n'est chargé qu'au clic ; l'ouvrir le marque « lu ». Répondre depuis la page n'est pas
+prévu — volontairement.</p></div>
+
+<details><summary>Les choix de sécurité et de sobriété</summary><div class="corps">
+<ul>
+<li><b>L'autorisation demandée à Google est la plus étroite possible</b> qui permette de marquer un
+message « lu » (sans quoi le compteur ne bougerait jamais). Elle ne permet pas la suppression
+définitive. Toutes les autorisations du projet sont consignées dans le dépôt.</li>
+<li><b>Contre les mails piégés, deux barrières</b> : le serveur ne renvoie que du texte pur (la mise
+en forme d'un mail est convertie côté serveur et ne part jamais), et la page affiche ce texte sans
+jamais l'interpréter comme du code.</li>
+<li><b>Sobriété</b> : le compteur ne ralentit pas l'ouverture de la page (il vient du relais), et le
+corps des messages n'est chargé qu'à la demande.</li>
+</ul>
+<div class="warn"><p><b>Bon à savoir : Google ne retire jamais une autorisation déjà accordée.</b>
+Restreindre la liste dans le dépôt ne suffit pas — il faut révoquer explicitement l'accès dans les
+réglages du compte, relancer une fonction pour redemander le consentement, puis redéployer. Le site
+est hors service entre la révocation et le redéploiement.</p></div>
+</div></details>
+
+<details class="tech"><summary>Repères techniques</summary><div class="corps">
+<p>Trois actions serveur, admin seul : <code>mailNonLus</code>, <code>mailListe</code> (20
+messages), <code>mailMessage</code>. Service avancé Gmail (pas GmailApp), autorisation
+<code>gmail.modify</code>, manifeste versionné dans <code>gas/appsscript.json</code>. Compteur :
+copie <code>mail_nonlus</code> du relais, décrément local à la lecture (comportements couverts par
+le banc). Piège d'encodage résolu : Gmail encode les corps en base64 « URL-safe » sans remplissage,
+que l'outil standard de décodage refuse (~2 messages sur 3) — normalisation manuelle avant décodage.
+Quota : 20 000 opérations Gmail/jour, usage réel ~12 % en charge.</p>
+</div></details>
+
+<p class="haut"><a href="#top">↑ Sommaire</a></p>
+
+<h2 id="c6"><span class="num">C6</span>Les mails automatiques de changement de planning</h2>
+
+<div class="r2"><div class="titre">En 2 minutes</div>
+<p>Le principe : on ne surveille pas les gestes du comité, on <b>compare deux photos</b> du planning
+— l'état actuel et l'état au dernier envoi. Un changement posé puis annulé avant l'envoi ne produit
+donc aucun mail. Chaque publication (re)démarre un compte à rebours de 10 minutes : les mails ne
+partent qu'après une accalmie complète, jamais au milieu d'une salve de retouches. Si le module
+tombe en panne, la publication n'en souffre pas.</p></div>
+
+<details><summary>Les réglages, et l'état actuel</summary><div class="corps">
+<p>Trois interrupteurs (dans les réglages du serveur, modifiables sans redéploiement) : l'allumage
+général du système ; une <b>adresse de test</b> qui, si elle est renseignée, détourne tous les mails
+vers elle (personne d'autre n'en reçoit) ; et l'année surveillée, posée automatiquement. Dans le
+classeur, une colonne de l'onglet MEDECINS permet de désabonner un MAR ; colonne absente = tout le
+monde est notifié.</p>
+<div class="warn"><p><b>État actuel : EN TEST jusqu'après la démonstration du 4 septembre.</b>
+L'adresse de test est renseignée avec celle de l'administrateur : tous les mails y sont détournés,
+aucun MAR n'en reçoit. Pour ouvrir le service : vider l'adresse de test, vérifier l'allumage,
+nettoyer l'année surveillée après les essais sur 2027, et retirer les encadrés « pas encore en
+service » des guides comité et MAR.</p></div>
+</div></details>
+
+<details><summary>Quatre garde-fous à connaître avant de conclure à une panne</summary><div class="corps">
+<ol>
+<li><b>La toute première exécution ne fait qu'une photo</b> — il n'y a rien à comparer. Il faut deux
+publications espacées pour voir le premier mail. Ne pas conclure à une panne au premier essai.</li>
+<li><b>La photo de référence n'avance que si tous les envois ont réussi</b> : un changement non
+annoncé sera repris à la publication suivante plutôt que perdu.</li>
+<li><b>Après une génération annuelle</b>, remettre la photo à jour <i>sans envoyer</i> (fonction
+prévue) — sinon des milliers de journées « changées » partiraient d'un coup. Le récapitulatif de W2
+joue déjà ce rôle auprès des MARs.</li>
+<li><b>Après un test sur une autre année</b>, penser au ménage : supprimer la photo de test du
+Drive, vider l'année surveillée et l'adresse de test.</li>
+</ol>
+</div></details>
+
+<details class="tech"><summary>Repères techniques</summary><div class="corps">
+<p class="warn"><b>Ce que la redirection d'essai détourne — et ce qu'elle ne détourne pas.</b>
+<code>NOTIF_EMAIL_TEST</code> ne concerne que <em>ce</em> module, les mails de changement de
+planning. L'envoi des codes d'accès de W1 appelle <code>MailApp.sendEmail</code> directement, avec
+l'adresse du MAR : il n'est <b>pas</b> détourné. Une redirection oubliée ne casse donc pas la
+campagne d'octobre — mais elle prive silencieusement les MARs de toute notification de changement,
+et seul le diagnostic le signale.</p>
+<p>Module dans code.gs. Comparaison : <code>planning_(année).json</code> vs
+<code>planning_(année)_notifie.json</code>. Compte à rebours : 10 min
+(<code>NOTIF_DELAI_MIN</code>). Propriétés : <code>NOTIF_ACTIVE</code>,
+<code>NOTIF_EMAIL_TEST</code>, <code>NOTIF_YEAR</code>. Recalage sans envoi :
+<code>notifRecaler(year)</code> depuis l'éditeur. Les codes du classeur sont traduits en français
+lisible par la table <code>NOTIF_STATUTS</code> ; un code absent de la table est traité comme un
+secteur, pas comme un statut. L'appel est enveloppé d'un try/catch : un échec du module ne fait
+jamais échouer la publication.</p>
+</div></details>
+
+<p class="haut"><a href="#top">↑ Sommaire</a></p>
+<h2 id="c7"><span class="num">C7</span>La veille bibliographique</h2>
+
+<div class="r2"><div class="titre">En 2 minutes</div>
+<p>Chaque lundi à 6 h, le serveur interroge PubMed, la grande base des publications médicales, et
+alimente la tuile Veille du portail. La règle de sélection : un article n'entre que s'il vient
+d'une <b>revue de la liste</b> (23 revues d'anesthésie-réanimation, plus 18 grandes revues
+généralistes) <b>et</b> qu'il correspond à l'un des <b>21 thèmes</b> du métier. Résultat : environ
+73 articles par semaine, chacun étiqueté avec ses thèmes. Chaque MAR a ses propres marques
+« lu » et « ★ » — ce qu'un collègue lit reste personnel.</p></div>
+
+<details><summary>Pourquoi ces règles précises — l'histoire courte</summary><div class="corps">
+<p>Chaque règle vient d'une mesure faite sur PubMed (les 3 et 8 août 2026), pas d'une intuition —
+et les mesures sont conservées en tête du fichier pour qu'on ne refasse pas le chemin à l'envers :</p>
+<ul>
+<li><b>« Revue ET thème », pas « revue OU thème »</b> : l'ancienne règle interrogeait tout PubMed
+sur les thèmes et produisait 95 % du volume… et tout le bruit (des revues de génétique, de sommeil,
+de néphrologie).</li>
+<li><b>Le filtre « études humaines » a été assoupli</b> : l'étiquette officielle « humains » n'est
+posée par PubMed que des semaines après la parution — elle rejetait donc <i>tous</i> les articles
+récents. Désormais on n'écarte que les études animales avérées.</li>
+<li><b>Les grandes revues généralistes sont filtrées par type d'étude</b> (essais randomisés,
+méta-analyses, recommandations…) : sans cela, elles déversaient un millier d'articles dès qu'un mot
+d'un thème apparaissait. Les revues de la spécialité, elles, entrent sans ce filtre — il les
+appauvrissait sans réduire le bruit.</li>
+<li><b>Les demandes sont paginées et envoyées dans le bon format</b> : l'ancienne version tronquait
+silencieusement la liste des revues (trop longue pour le format utilisé) et, en cas de trop-plein,
+gardait précisément les articles les moins bien indexés.</li>
+<li><b>Les thèmes sont cherchés dans le titre et le résumé</b>, disponibles dès la parution — jamais
+dans les étiquettes officielles, qui arrivent avec des semaines de retard.</li>
+</ul>
+<p>Ce que le module ne fait <i>pas</i> : classer les articles par qualité. Le tri fin est un
+chantier distinct — il a été mesuré que resserrer encore le vocabulaire coûte plus de couverture
+qu'il ne réduit de volume. La liste des revues et des thèmes se modifie dans l'onglet VEILLE_CFG du
+classeur (mode d'emploi : <code>docs/VEILLE_CFG-mode-emploi.md</code>).</p>
+</div></details>
+
+<details><summary>Les marques « lu » et « ★ » : personnelles, et jamais perdues</summary><div class="corps">
+<p>Depuis la v1.30, les marques sont propres à chaque MAR (avant, une seule case servait pour tout
+le service). Trois précautions les rendent fiables :</p>
+<ul>
+<li><b>L'identité vient de la connexion</b>, jamais de ce que la page prétend : impossible de
+marquer à la place d'un collègue.</li>
+<li><b>L'écran est mis à jour immédiatement</b>, et l'envoi part en arrière-plan ; s'il échoue
+(réseau coupé), la marque est gardée dans une petite file locale du navigateur et renvoyée plus
+tard. Renvoyer deux fois la même marque est sans danger.</li>
+<li><b>Au relais Cloudflare, chacun ne reçoit que ses propres marques</b> — l'admin compris : ce
+qu'un collègue lit est personnel. Sur un autre appareil, la marque apparaît en une à deux
+minutes.</li>
+</ul>
+</div></details>
+
+<details class="tech"><summary>Repères techniques</summary><div class="corps">
+<p>Fichier : <code>veille.gs</code> (module autonome depuis le 08/08/2026). Lancement hebdomadaire :
+<code>runVeille</code> (déclencheur lundi 6 h, posé par <code>installVeilleTrigger</code>). Fenêtre
+de recherche : 180 jours ; pagination 1 000 par page, plafond absolu 6 000 ; politesse envers PubMed
+(350 ms entre appels). Onglets : VEILLE (les articles), VEILLE_CFG (la configuration),
+VEILLE_MARQUES (une ligne par MAR et par article — les anciennes colonnes communes LU/STAR ne sont
+plus lues). Marquage : action <code>markVeille</code> (rejouable sans danger). Lecture : copie
+<code>veille</code> du relais (rafraîchie par le rangement horaire uniquement) + copie
+<code>veille_marques</code> (filtrée par le relais) ; en secours, <code>getVeille</code> fusionne
+les marques côté serveur. File locale : dans le stockage du navigateur, rejouée automatiquement.</p>
+</div></details>
+
+<p class="haut"><a href="#top">↑ Sommaire</a></p>
+
+<h2 id="c8"><span class="num">C8</span>Le module libéral</h2>
+
+<div class="r2"><div class="titre">En 2 minutes</div>
+<p>Trois briques. La <b>déclaration</b> : chaque MAR déclare ses patients du jour depuis la page de
+suivi (une ligne = un patient). Le <b>volet du comité</b> : la vue du jour, dans la page
+d'administration. L'<b>estimateur de cotation</b> : la page qui calcule le montant d'un acte à
+partir du référentiel officiel des tarifs (la « CCAM »), embarqué dans le dépôt et régénéré à la
+main une à deux fois par an. Le relevé mensuel, lui, est recopié à la main dans le classeur — le
+code le lit, ne l'écrit jamais.</p></div>
+
+<details><summary>Où vivent les choses</summary><div class="corps">
+<table>
+<tr><th>Onglet du classeur</th><th>Rôle</th></tr>
+<tr><td>LIBERAL_(année)</td><td>Les déclarations : une ligne = un patient (date, secteur, spécialité,
+cotations…). Alimenté par les déclarations des MARs, lu par le volet du comité.</td></tr>
+<tr><td>SPECIALITES</td><td>La liste des 12 spécialités reconnues. Une spécialité vide est tolérée,
+une inconnue est refusée.</td></tr>
+<tr><td>COTATIONS_TYPE</td><td>Les cotations « toutes prêtes » par groupe d'actes, pour déclarer en
+deux clics. Aucun tarif n'y est stocké : le montant vient toujours du référentiel. <i>À remplir pour
+activer le mode de déclaration simplifié.</i></td></tr>
+<tr><td>LIBERAL_CA_(année)</td><td>Le relevé mensuel (totaux et pourcentages), recopié à la main.
+<b>Le code n'y écrit jamais.</b> Il est créé pré-rempli par une fonction dédiée, avec des formules
+de contrôle.</td></tr>
+</table>
+<div class="warn"><p><b>⚠️ Deux pièges vérifiés en réel.</b> ① Les formules posées par le code dans
+un classeur doivent être écrites avec les noms de fonctions <i>anglais</i> (IF, ROUND) — même dans
+un classeur en français, les noms français y renvoient une erreur. ② La page de suivi garde ses
+listes en mémoire de session : après un changement de structure, un simple rechargement ne suffit
+pas à le faire apparaître chez les utilisateurs déjà connectés — c'est pourquoi ces mémoires portent
+un numéro de version, à incrémenter à chaque changement de structure.</p></div>
+</div></details>
+
+<details><summary>Le référentiel des tarifs : lire, être alerté, régénérer</summary><div class="corps">
+<p>Le fichier des tarifs (8 257 actes, version 84, régénéré le 27/07/2026) ne se met pas à jour tout
+seul — l'Assurance maladie n'offre aucun accès automatique. Le système compense par des alertes :</p>
+<ul>
+<li><b>Où lire la version en service</b> : en petit gris sous le champ de recherche d'acte
+(« tarifs CCAM v84 · 03/07/2026 »). Premier réflexe quand un montant paraît faux.</li>
+<li><b>Deux alertes de péremption</b>, aux mêmes seuils (orange à 8 mois, rouge à 14 — soit une puis
+deux revalorisations manquées) : un bandeau sur la page de cotation, et une ligne du diagnostic de
+Maintenance. ⚠️ Ces seuils sont écrits à deux endroits du code (la page de cotation et la page
+d'administration) : si l'un change, changer l'autre.</li>
+<li><b>Le meilleur signal n'est pas le calendrier, c'est le relevé</b> : prendre un acte
+d'anesthésie du relevé, diviser le tarif de l'établissement par 1,95, comparer à l'estimateur. Tout écart =
+régénération due. C'est ce contrôle qui a révélé, en juillet, que les tarifs avaient un an de retard
+(~3 € de moins par acte sur les trois quarts des tarifs). Prochaine régénération attendue vers
+mars 2027 ; contrôle conseillé en janvier et en juillet.</li>
+</ul>
+<details><summary>La procédure de régénération (résumé)</summary><div class="corps">
+<p>Télécharger le « Fichier NX tarifaire total » sur le site de l'Assurance maladie (~3 Mo
+compressés — surtout pas la version « complète » en trois parties, inutilement lourde), le déposer
+dans la conversation de travail, laisser l'extraction et la comparaison se faire, valider, pousser.
+Deux précautions apprises : conserver les libellés de l'ancien fichier (le fichier officiel n'a que
+des libellés abrégés qui dégraderaient la recherche), et reporter la version et la date d'effet
+lues dans le fichier — c'est cette date qui pilote les alertes. Le format du fichier officiel
+(lignes de 128 caractères à découper) est documenté en détail dans la conception du module
+(<code>docs/module-liberal/module_liberal_conception.md</code>).</p>
+</div></details>
+</div></details>
+
+<details><summary>Le tri « qui peut prendre le patient » et la règle de la maternité</summary><div class="corps">
+<p>Dans la page des consultations à venir, la liste des remplaçants possibles est classée par marge
+décroissante, calculée à partir du relevé — uniquement en session MAR (le serveur refuserait de
+toute façon la demande à un code secrétariat : double protection, ne retirer ni l'une ni l'autre).
+Sans relevé chargé, le tri redevient neutre et la page fonctionne normalement.</p>
+<p>La règle de la maternité (« mardi et jeudi matin, la personne en maternité tient aussi la
+consultation ») est décrite au §C4 — elle concerne ce module parce qu'elle avait été oubliée dans le
+fichier Excel du vendredi : consultations visibles à l'écran, absentes du fichier. Elle est
+désormais définie à un seul endroit par côté et appliquée <i>après</i> les retouches manuelles du
+comité, pour ne jamais écraser un placement volontaire.</p>
+</div></details>
+
+<p class="haut"><a href="#top">↑ Sommaire</a></p>
+
+<h2 id="c9"><span class="num">C9</span>Le générateur de comptes rendus</h2>
+
+<div class="r2"><div class="titre">En 2 minutes</div>
+<p>Deux outils : la page CRH (rédaction assistée par une intelligence artificielle, via le
+service en ligne d'Anthropic) et le générateur local de comptes rendus d'anesthésie (qui fonctionne entièrement dans
+le navigateur, sans rien envoyer nulle part). Le premier est le seul endroit du système où du texte
+clinique sort de l'environnement Google — le dispositif de protection complet (accès restreint,
+confirmation d'anonymisation, filtre d'identité, traçabilité sans contenu) est décrit au §A7. La clé
+d'accès au service vit dans le classeur privé, jamais dans le code.</p></div>
+
+<p class="haut"><a href="#top">↑ Sommaire</a></p>
+
+<h2 id="c10"><span class="num">C10</span>Les sauvegardes : trois filets, et la marche à suivre pour restaurer</h2>
+
+<div class="r2"><div class="titre">En 2 minutes</div>
+<p><b>Trois</b> sauvegardes automatiques, sur deux comptes différents : le classeur chaque lundi
+(compte du projet), le dépôt entier chaque dimanche (compte du projet), et le classeur chaque
+dimanche <b>depuis le compte personnel</b> — la seule copie qui survivrait à la perte du compte du
+projet. Attention : le diagnostic automatique ne surveille que la première ; les deux autres sont à
+vérifier à la main, une fois par trimestre. Une sauvegarde jamais ouverte n'est pas une
+sauvegarde.</p></div>
+
+<div class="schema">
+  <div class="flux-h">
+    <div class="boite b-vert">
+      <div class="bt">① Le classeur<br>lundi ~4 h</div>
+      <div class="bd">copie du classeur maître, dans le Drive du projet · 8 copies gardées (≈ 2 mois)
+      · protège d'une fausse manœuvre, d'un onglet effacé<br><b>✅ surveillée par le diagnostic</b></div>
+    </div>
+    <div class="boite b-vert">
+      <div class="bt">② Le dépôt<br>dimanche ~3 h</div>
+      <div class="bd">archive complète du code, dans le Drive du projet · 6 semaines gardées ·
+      protège d'un problème côté GitHub<br><b>❌ non surveillée — à vérifier à la main</b></div>
+    </div>
+    <div class="boite b-orange">
+      <div class="bt">③ Le classeur<br>dimanche ~5 h, compte personnel</div>
+      <div class="bd">copie faite <i>par</i> le compte personnel, chez lui · 8 copies gardées ·
+      protège de la <b>perte du compte du projet</b><br><b>❌ non surveillée — à vérifier à la
+      main</b></div>
+    </div>
+  </div>
+  <div class="legende">La copie n° 3 « va chercher » au lieu d'être envoyée : créée par le compte
+  personnel, elle lui appartient d'office — et un simple accès en lecture au classeur suffit, donc
+  le compte personnel ne peut jamais modifier la production.</div>
+</div>
+
+<details><summary>Pourquoi trois, et pourquoi comme ça</summary><div class="corps">
+<p>Les copies n° 1 vivent dans le même compte que l'original : compte perdu, copies perdues avec.
+D'où la n° 3, dans un autre compte — et vérifiée en réel le 26/07 : la copie emporte même le
+programme serveur attaché au classeur (contrairement à un export Excel, écarté pour cette raison).
+La n° 2 couvre l'autre pilier : le code. Le classeur ne pèse que ~78 Ko — le stockage est un
+non-sujet. La marche à suivre détaillée de la copie personnelle :
+<code>docs/sauvegarde-compte-perso.md</code>.</p>
+</div></details>
+
+<details><summary>Restaurer après une perte du compte du projet</summary><div class="corps">
+<ol>
+<li>Ouvrir la copie la plus récente du compte personnel — <b>en navigation privée</b> (voir le piège
+ci-dessous).</li>
+<li>Vérifier que le programme serveur est bien attaché (Extensions → Apps Script). S'il manque, le
+recopier depuis le dépôt, qui contient toujours 100 % du code.</li>
+<li>Remettre le serveur en service (« déployer en application web »).</li>
+<li><b>⚠️ L'étape qu'on oublie</b> : le nouveau serveur aura une <b>nouvelle adresse</b> — or
+l'ancienne est écrite dans toutes les pages du site. Il faut la remplacer partout dans le dépôt,
+sinon le site ne refonctionne pas. C'est l'oubli qui coûte une heure de panique.</li>
+<li>Recréer le dossier privé du planning et republier depuis la page d'administration ; reposer les
+réglages secrets (le jeton du relais, les réglages des mails automatiques) ; réinstaller les
+automatismes (rangement horaire du relais, relève du journal, les trois sauvegardes, la veille, le
+diagnostic du lundi) — chacun a sa fonction d'installation, à lancer une fois.</li>
+</ol>
+<div class="note"><p><b>Le piège à connaître avant d'en avoir besoin</b> : avec plusieurs comptes
+Google ouverts dans le même navigateur, l'ouverture d'un classeur peut afficher « Impossible
+d'ouvrir le fichier pour le moment ». Ce n'est ni un problème de droits, ni une copie corrompue :
+Google sert la page au mauvais compte. Ouvrir une fenêtre privée avec le seul compte concerné. Le
+jour d'une vraie panne, ce message ferait croire à tort que l'archive est perdue.</p></div>
+<p>Le scénario de panne complet, pas à pas, vit dans <a href="si-ca-tombe.html">si-ca-tombe.html</a>.</p>
+</div></details>
+
+<details class="tech"><summary>Repères techniques</summary><div class="corps">
+<p>① <code>backupHebdo()</code> (code.gs), dossier « Planning-Med-Backups », déclencheur posé par
+<code>installBackupTrigger()</code> — le diagnostic vérifie le déclencheur et une copie de moins de
+10 jours. ② <code>sauvegardeHebdo()</code> (sauvegarde.gs), archive du dépôt téléchargée depuis
+GitHub vers le dossier « Sauvegardes Planning-Med », rétention 42 jours, déclencheur posé par
+<code>configurerSauvegarde()</code>. ③ projet indépendant dans le compte personnel
+(<code>makeCopy</code> du classeur partagé en lecture). Le rapport hebdomadaire :
+<code>diagHebdo</code> (lundi ~2 h), envoyé à l'adresse CONFIG ▸ DIAG_EMAIL — lue directement dans
+l'onglet, jamais via la mémoire tampon (leçon du 03/08 : une adresse fraîchement ajoutée était
+invisible du cache, et l'envoi s'annulait sans explication).</p>
+</div></details>
+
+<p class="haut"><a href="#top">↑ Sommaire</a></p>
+
+<h2 id="c11"><span class="num">C11</span>Mesurer la vitesse des pages</h2>
+
+<div class="r2"><div class="titre">En 2 minutes</div>
+<p>Deux commandes à taper dans la console du navigateur (touche F12) : <code>chrono()</code> imprime
+le budget complet de l'ouverture d'une page — qui a pris combien de temps, et où ;
+<code>chronoClics()</code> fait pareil pour chaque clic. Elles ne modifient rien, elles observent.
+La grande leçon de toutes les mesures : le levier le plus rentable n'est pas d'accélérer le travail
+du serveur, c'est de <b>réduire le nombre de demandes</b> — chaque demande au serveur Google paie
+~3 secondes de péage fixe avant de commencer à travailler.</p></div>
+
+<details><summary>Les trois leçons durables des mesures</summary><div class="corps">
+<ol>
+<li><b>Une seule demande à la fois.</b> Le serveur Google met en file les demandes de <i>tous</i>
+les utilisateurs : en envoyer plusieurs en parallèle ne fait rien gagner, cela transforme une
+attente ordonnée en bousculade. Mesuré : la même demande a coûté 8,5 secondes lancée en parallèle,
+1,8 seconde partie seule. Les pages appliquent ce principe (file d'attente interne) — ne jamais
+revenir aux demandes parallèles « pour aller plus vite » : l'erreur a été commise une fois, elle
+coûtait 15 secondes à chaque ouverture.</li>
+<li><b>Se méfier des coupables évidents.</b> Trois suspects « évidents à la lecture du code » ont
+été mesurés… et innocentés : le réaffichage complet de la semaine coûte 17 millièmes de seconde ;
+le poids de la page d'administration coûte 2 % de son ouverture ; le décodage d'une grosse réponse
+coûte 6 millièmes. Le vrai coût d'un clic, c'est le dessin à l'écran. Mesurer d'abord, conclure
+ensuite.</li>
+<li><b>Ne jamais comparer deux mesures prises à des heures différentes.</b> Google n'offre aucune
+garantie de régularité : le même code est passé de 3 à 6 secondes en trois heures, sans changement.
+Un avant/après n'a de sens que dans la même session, à quelques minutes d'intervalle.</li>
+</ol>
+<p>Un coût connu à garder en tête : servir un document PDF (topos, protocoles) est l'action la plus
+chère du portail (6 à 11 secondes) — à éviter collectivement en pleine réunion.</p>
+</div></details>
+
+<details class="tech"><summary>Repères techniques</summary><div class="corps">
+<p>Disponibles sur les pages d'administration, de planning, du portail, des indisponibilités et des
+consultations. <code>chrono()</code> ventile chaque demande en trois temps : « avant » (notre code
+préparatoire — quelques millièmes grâce à la mémoire tampon de configuration), « travail » (le temps
+utile, détaillé opération par opération), « réseau » (le péage : ~1,5 s de recompilation Google +
+~1,65 s de transport et de file). Les lignes <code>miroir:</code> mesurent les lectures du relais
+(0,15 à 1 s selon le colis) et donnent la cause d'un éventuel repli. <code>chronoClics()</code>
+donne, par clic : attente, traitement, dessin (repères : au-delà de 0,2 s un clic paraît lent, de
+0,5 s bloqué) — Chrome et Edge seulement, la mesure n'existe pas sur Safari/Firefox.</p>
+</div></details>
+
+<p class="haut"><a href="#top">↑ Sommaire</a></p>
+
+
+<h2 id="c12"><span class="num">C12</span>Les échanges de gardes &amp; les notifications</h2>
+
+<div class="r2"><div class="titre">En 2 minutes</div>
+<p>Les MARs se donnent ou s'échangent des gardes directement, sans le comité : l'un propose depuis
+son portail, l'autre reçoit une notification sur son téléphone, accepte ou refuse. S'il accepte,
+le planning s'écrit par le chemin d'écriture historique (<code>applyModification</code>), avec tous
+ses garde-fous — rien de nouveau ne touche à la grille. Chaque demande vit dans l'onglet
+<code>ECHANGES</code> du classeur, avec son état : en attente, acceptée, refusée, expirée, ou
+impossible (le planning a bougé entre la proposition et l'acceptation — rien n'est écrit, les deux
+sont prévenus). Sans réponse : rappel unique à 24&nbsp;h, expiration à 48&nbsp;h.</p></div>
+
+<h3>Ouvrir, fermer : l'interrupteur</h3>
+<p>Qui a accès aux échanges (et à la carte d'activation des notifications) se commande depuis
+l'éditeur Apps Script, sans rien redéployer — effet dans la minute :</p>
+<ul>
+<li><b>Ouvrir à tout le service</b> : exécuter <code>ouvrirEchanges()</code> (fichier
+<code>echanges</code>). <b>Refermer</b> : <code>fermerEchanges()</code>.</li>
+<li><b>Avant l'ouverture</b>, seuls le comité et les éventuels pilotes d'essai voient quelque
+chose. Les pilotes se déclarent dans la propriété de script <code>ECHANGES_PILOTES</code>
+(identifiants séparés par des virgules — ils restent dans les propriétés, jamais dans le dépôt).
+Après toute retouche de cette propriété : exécuter <code>synchroniserEtatEchanges()</code>.</li>
+</ul>
+<p>Le verrou est tenu <b>côté serveur</b> : tant que l'interrupteur est fermé, le relais refuse de
+servir les demandes d'échange et refuse les abonnements aux notifications — les pages n'ont donc
+rien à cacher, elles ne reçoivent simplement rien. Personne ne peut « deviner l'adresse ».</p>
+
+<details class="tech"><summary>Notifications de changement : une file d'années, un abonnement par personne</summary><div class="corps">
+<p><b>Qui reçoit quoi.</b> Les écarts sont regroupés <b>par MAR</b> (<code>_notifDiff</code>) :
+chacun reçoit un seul mail, avec ses propres changements et rien d'autre.</p>
+<p><b>Le filtre statut / secteur.</b> Un changement de <b>statut</b> (garde, astreinte, absence)
+est <b>toujours</b> signalé, quelle que soit la date — un déplacement de garde en mars part
+immédiatement. Un changement de <b>secteur</b> (l'affectation en journée) n'est signalé que s'il
+tombe dans la <b>fenêtre du dernier Excel diffusé</b> : au-delà, l'Excel du vendredi suivant fera
+foi de toute façon, un mail n'apporterait rien.</p>
+<p><b>La fenêtre</b> (<code>_notifSemaineExcel</code>) court du dernier <b>vendredi 16 h</b> déjà
+passé jusqu'au <b>dimanche neuf jours plus tard</b>. Elle englobe volontairement le samedi et le
+dimanche qui appartiennent encore à l'Excel <i>précédent</i> : élargissement pur, aucune date
+n'est retirée entre deux diffusions.</p>
+<p><b>L'interrupteur de sécurité.</b> Quand <code>NOTIF_ACTIVE</code> ne vaut pas <code>O</code>,
+<code>_notifEnvoyerAnnee_</code> <b>prend quand même la photo</b> et se tait (journal : « système
+éteint, photo prise, aucun envoi »). Conséquence pratique : <b>aucun arriéré ne peut s'accumuler
+tant que le système est éteint</b> — c'est le moyen sûr de traverser une période de tests ou une
+démonstration, bien plus que de manipuler les fichiers <code>_notifie.json</code>.
+<code>NOTIF_EMAIL_TEST</code> est un second filet, indépendant : il détourne les mails de
+changement vers une seule adresse, <b>sans effet</b> sur le récapitulatif annuel « Vos gardes »,
+qui lit toujours la colonne <code>EMAIL</code> du classeur.</p>
+<p><b>(25/08/2026) File d'années.</b> <code>notifPlanifier</code> écrasait la propriété
+<code>NOTIF_YEAR</code> à chaque appel : publier 2027 faisait oublier les changements de 2026
+encore en attente. La photo de référence (<code>planning_{Y}_notifie.json</code>) n'étant recalée
+qu'après un envoi réussi, ils s'accumulaient et repartaient tous d'un coup à la publication
+suivante de cette année-là. Trace du 23/08 : 27 fiches appliquées sur 2026 entre 14h31 et 14h38,
+génération 2027 à 14h48 (l'année est écrasée), minuteur à 14h59 qui ne regarde que 2027 — les
+27 modifications ont attendu jusqu'au 25/08 23h29, où elles sont parties en une rafale de
+25 changements et 13 mails. La propriété porte désormais une <b>file</b> d'années, toutes
+traitées ; l'ancien format (année seule) reste lu ; une année dont l'envoi échoue y retourne.</p>
+<p><b>Un abonnement par personne, pas par appareil.</b> Le relais range l'abonnement push sous
+<code>notif_sub_&lt;id&gt;</code> : s'abonner depuis un second appareil <b>écrase</b> le premier.
+Se connecter avec le compte d'un collègue pour une démonstration lui coupe donc ses
+notifications, et la carte d'activation étant masquée une fois abonné, il n'a pas de bouton
+évident pour les rétablir — il lui faut réinitialiser la permission dans les réglages du
+téléphone, ou réinstaller le raccourci.</p>
+<p><b>Quota.</b> Le contrôle est fait <b>avant</b> tout envoi (<code>_quotaEmailInsuffisant_</code>) :
+en cas d'insuffisance rien ne part, le journal porte « Envoi REFUSÉ », et la photo n'est pas
+recalée — les changements ne sont pas perdus mais ne repartiront qu'à la publication suivante.
+Aucune reprise automatique le lendemain à ce jour.</p>
+</div></details>
+
+<h3>Les contrôles : joués deux fois, écrits une</h3>
+<p>À la <b>création</b> d'une demande, toutes les règles du service sont vérifiées immédiatement —
+mêmes juges que l'écriture réelle, mais sans rien écrire : un refus (collègue en congé, repos qui
+tomberait sur une absence…) s'affiche sur-le-champ, jamais 48&nbsp;h plus tard. À
+l'<b>acceptation</b>, tout est rejoué pour de vrai, car le planning a pu bouger entre-temps.
+Aucune règle n'est écrite deux fois dans le code : c'est le même juge qui tranche aux deux
+moments.</p>
+
+<h3>Le samedi et sa récupération</h3>
+<p>Depuis la génération de novembre 2026, le générateur note dans l'onglet
+<code>LIENS_R_{année}</code> quel jour de récupération correspond à quel samedi (une ligne par
+samedi et par tenant — un samedi a deux gardes, donc deux lignes). Quand un samedi change de
+mains, la récupération de <b>ce</b> samedi est transférée au receveur, à sa date, et la ligne suit.
+Trois cas d'échec prévus — année sans lien (2026), récupération déjà prise, receveur occupé ce
+jour-là — laissent l'échange valide et déclenchent une notification au comité : « Récupération à
+replacer ». Un échange samedi contre samedi ne déplace aucune récupération (le compte de chacun ne
+change pas). L'onglet suit le même cycle annuel que GARDES et STATS (archivé avec eux).</p>
+
+<h3>Les notifications : ciblées, avec une pastille unifiée</h3>
+<p>Les notifications d'échange ne partent qu'à la personne concernée — jamais de bruit pour les
+autres. Depuis le 23 août 2026, la <b>pastille rouge</b> de l'icône de l'app obéit à une seule
+logique, tous motifs confondus : c'est un <b>compteur de non-vus</b>, tenu par le relais (une clé
+<code>notif_cpt_&lt;id&gt;</code> par MAR, +1 à chaque envoi), remis à zéro quand le MAR ouvre son
+dashboard (route <code>/notif-vu</code>, et le chiffre local s'efface aussitôt). Le nombre de
+demandes en attente que les échanges calculaient de leur côté est désormais <b>ignoré</b> par le
+relais — deux chiffres qui se disputent l'icône, c'est un chiffre faux ; son calcul, devenu
+inerte, sera retiré au prochain lot <code>echanges.gs</code>. Deux garanties de conception
+inchangées : une pastille qui échoue n'empêche jamais la bannière de s'afficher, et une
+notification qui échoue n'empêche jamais le geste d'aboutir. Les abonnements de téléphones
+disparus se purgent tout seuls au premier envoi qui les trouve morts.</p>
+
+<h3>La cloche : le serveur note ce qu'il envoie</h3>
+<p>Une notification est périssable — téléphone éteint, refusée, lue et oubliée. Depuis le 23 août
+2026, le serveur tient donc un <b>registre de ce qu'il envoie</b> : au moment de chaque envoi, et
+<b>avant</b> même de le tenter, <code>notifierPush_</code> (miroir.gs) inscrit une ligne dans
+l'onglet <code>NOTIFS_JOURNAL</code> (QUAND&nbsp;|&nbsp;MAR&nbsp;|&nbsp;TITRE&nbsp;|&nbsp;CORPS&nbsp;|&nbsp;URL)
+— la ligne existe même si le push rate. Le dashboard l'affiche sous une <b>cloche</b> : les 30
+derniers jours, groupés par date, chaque ligne menant à sa page. Le destinataire est un
+identifiant, ou <code>*</code> pour « tout le monde » — la génération s'y enregistre ainsi,
+puisqu'elle s'adresse à tous les MARs. Une cible visant le <b>comité</b> n'y entre pas (il n'a pas
+de cloche), le test du canal non plus.
+<span class="warn"><b>Défaut corrigé le 6 septembre 2026 :</b> le garde-fou écartait en réalité
+<em>tous</em> les rôles, y compris celui des MARs — donc la notification de génération, la plus
+importante de l'année. Le push partait sur les téléphones, la cloche restait vide, et rien ne
+pouvait le révéler puisque la notification, elle, arrivait bien.</span> La rétention se purge <b>au fil de l'eau</b>, à
+chaque écriture — aucun déclencheur dédié.</p>
+<p>Le transport suit le chemin le plus court : une clé <code>notifs</code> de la copie rapide,
+que le relais sert <b>filtrée à l'identité</b> — chacun ne reçoit que ses entrées et celles
+adressées à tous, quel que soit son rôle, comme les marques de veille. Elle voyage dans
+<b>l'appel d'ouverture existant</b> du dashboard : zéro requête ajoutée, zéro milliseconde. Les
+compteurs <code>notif_cpt_*</code>, eux, sont scellés : ni lisibles par <code>/read</code>, ni
+poussables par <code>/push</code>. Un futur motif de notification — les changements de planning,
+aujourd'hui par mail — rejoindra la cloche par un appel de plus à
+<code>_notifJournalNoter_</code>, sans refonte.</p>
+
+<div class="attention"><div class="titre">Quatre pièges connus</div>
+<p>1) Une icône demandée par une page mais absente du petit fichier d'icônes local s'affiche en
+carré vide, sans erreur — le banc le vérifie désormais pour toutes les pages. 2) La liste des
+échanges voyage dans l'appel d'ouverture du portail, avec le planning : ne jamais lui créer un
+appel séparé — et la règle vaut pour la clé <code>notifs</code> de la cloche, transportée par le
+même appel. 3) La lecture de l'onglet <code>ECHANGES</code> ne le crée jamais (la
+synchronisation horaire passe par là) — seule la création d'une demande le fait. 4) Avant la
+première synchronisation complète qui suit un déploiement, la clé <code>notifs</code> n'existe
+pas : la cloche reste simplement cachée, sans erreur ni repli — c'est voulu.</p></div>
+
+<h2 id="c13"><span class="num">C13</span>La pose des temps partiels après génération</h2>
+
+<div class="r2"><div class="titre">En 2 minutes</div>
+<p>Depuis le 23 août 2026, le circuit est <b>inversé</b> : les gardes se génèrent d'abord, les
+jours de temps partiel se posent ensuite, dans ce qui reste. C'est ce qui garantit, par
+construction, qu'un repos de garde ne tombe plus jamais sur un jour non travaillé — sans une
+ligne de contrainte supplémentaire dans le générateur. Le MAR concerné voit une carte dédiée sur
+son portail, choisit ses jours sur un calendrier en trois couleurs, et le comité tranche depuis
+l'onglet Équipe. Un jour accordé s'écrit en <code>TP</code> dans <code>GARDES_{année}</code> —
+l'onglet maître du planning — et nulle part ailleurs.</p></div>
+
+<h3>Côté MAR : six états, un plafond</h3>
+<p>Le calendrier (page des indisponibilités, en mode temps partiel) montre chaque jour ouvré en
+<b>vert</b> (libre : la pose est directe), <b>jaune</b> (tendu : un jour du service encore ouvert,
+mais serré — le comité tranchera), <b>violet plein</b> (posé et acquis), <b>violet pâle en
+pointillés avec une horloge</b> (demandé, en attente du comité), <b>noir</b> (fermé — jour de garde,
+jour déjà pris, ou jour fermé par un refus du comité) ou <b>gris</b> (impossible : repos,
+récupération, congés, week-end, férié). Une garde de 18&nbsp;h ferme le jour : on est au travail.</p>
+<p>Le jaune appartient au <em>service</em>, le violet vous appartient : les deux portaient la même
+couleur avant le 6 septembre 2026, on ne savait donc pas si un jour était encore libre ou déjà
+demandé par soi.</p>
+<p>L'écran sert <b>toute l'année</b>, pas le temps d'une campagne : un jour de temps partiel déjà
+écoulé garde sa couleur, en atténué — il est figé mais reste compté dans le quota. Il se confondait
+avec les jours impossibles, alors qu'il ne dit pas du tout la même chose. La jauge se lit en trois
+temps : déjà pris, posé à venir, en attente du comité. Les marques « indisponible » ou « garde
+souhaitée » de la campagne, elles, ne ferment rien — elles n'avaient de sens qu'avant la
+génération. Le quota de jours découle de la quotité du MAR, et le plafond est <b>commun</b> :
+accordés + en attente ≤ quota. À l'enregistrement, un récapitulatif, puis une notification à
+chaque décision du comité (validé, refusé, remis en attente).</p>
+
+<h3>Côté comité : des décisions en lot</h3>
+<p>Les demandes en attente s'affichent dans l'onglet Équipe de la page d'administration, avec le
+<b>nombre de présents recalculé à chaque décision</b>. Le comité marque valider ou refuser,
+librement et réversiblement — puis clique « Enregistrer les décisions », et là <b>plus rien ne
+s'annule</b> : un refus fermé par erreur se rouvre en supprimant sa ligne dans
+<code>TP_FERMES</code>. Un refus ferme le jour <b>pour toute l'équipe</b>, pas seulement pour le
+demandeur.</p>
+
+<h3>Où vit chaque chose</h3>
+<p><b>Accordé</b> → <code>TP</code> dans <code>GARDES_{année}</code>, écrit en case <b>vide</b>
+seulement, effacé seulement s'il s'agit bien d'un <code>TP</code>, relu juste avant chaque
+écriture. <code>TP</code> fait partie des codes d'absence : le MAR sort automatiquement de son
+secteur. <b>En attente</b> → rien dans le planning, une ligne dans <code>TP_DEMANDES</code>
+(ANNEE&nbsp;|&nbsp;DATE&nbsp;|&nbsp;MAR&nbsp;|&nbsp;QUAND). <b>Refusé</b> → rien à défaire, et le
+jour se ferme dans <code>TP_FERMES</code> (ANNEE&nbsp;|&nbsp;DATE&nbsp;|&nbsp;PAR&nbsp;|&nbsp;QUAND).
+Ces deux onglets ne sont <b>rattachés à aucune année</b> : leur purge fait partie du ménage
+d'après-démo, ligne à ligne sur la colonne ANNEE.</p>
+
+<h3>La republication différée</h3>
+<p>Chaque validation devrait republier le planning (~10&nbsp;s) ; personne ne doit attendre ça
+après un clic. La republication est donc <b>différée et mutualisée</b> par un déclencheur : le
+classeur est juste <b>immédiatement</b>, le planning publié rattrape dans la minute. Le seul
+symptôme visible : une décision qui « ne s'affiche pas encore » — elle est déjà dans le classeur,
+qui fait foi.</p>
+
+<div class="attention"><div class="titre">Un piège connu</div>
+<p>La part de garde est due <b>inconditionnellement</b> : aucune pose de temps partiel, par aucun
+chemin, ne réduit la cible de gardes d'un MAR. Le vieux mécanisme des jours fixes
+(<code>TP_JOURS_FIXES</code> de MEDECINS) neutralisait à tort une cible d'axe — il est neutralisé
+et sa suppression est planifiée après septembre 2026.</p></div>
+
+<div class="p-bande pd">Parcours D — Mettre en ligne &amp; dépanner
+<small>Comment le code arrive en service, comment on prouve qu'il marche, comment on répare.</small></div>
+
+<h2 id="d1"><span class="num">D1</span>Les trois chemins de mise en ligne &amp; le numéro de version</h2>
+
+<div class="r2"><div class="titre">En 2 minutes</div>
+<p>Trois chemins, selon ce qu'on livre. <b>Les pages du site</b> : pousser dans le dépôt suffit —
+c'est en ligne. <b>Le serveur Google</b> : pousser ne suffit pas ; il faut recopier les fichiers
+dans l'éditeur de Google, puis <b>déployer une nouvelle version</b> — tant que ce n'est pas fait,
+l'ancien code tourne. <b>Le relais Cloudflare</b> : recopier le fichier dans son tableau de bord et
+déployer. Règle d'ordre quand une livraison touche plusieurs chemins : Cloudflare d'abord, le
+serveur ensuite, les pages en dernier — celui qui consomme toujours après celui qui fournit. Et
+toute modification d'une page visible s'accompagne, dans le même envoi, de la montée du numéro de
+version du site.</p></div>
+
+<div class="schema">
+  <div class="flux">
+    <div class="boite b-orange">
+      <div class="bt">① Le relais Cloudflare</div>
+      <div class="bd">dépôt → tableau de bord Cloudflare → remplacer le code → Deploy<br>
+      contrôle : la page d'accueil du relais affiche sa version</div>
+    </div>
+    <div class="fleche"><span class="f">▼</span><span class="fl">puis</span></div>
+    <div class="boite b-vert">
+      <div class="bt">② Le serveur Google</div>
+      <div class="bd">dépôt → recopie manuelle dans l'éditeur Apps Script →
+      <b>Déployer → nouvelle version</b> → rechargement complet des pages<br>
+      contrôle : le diagnostic compare les versions en service à celles du dépôt</div>
+    </div>
+    <div class="fleche"><span class="f">▼</span><span class="fl">puis</span></div>
+    <div class="boite b-bleu">
+      <div class="bt">③ Les pages du site</div>
+      <div class="bd">pousser dans le dépôt (un lot = un seul envoi) → en ligne → Ctrl+Maj+R<br>
+      contrôle : relire la version en ligne après l'envoi</div>
+    </div>
+  </div>
+  <div class="legende">Pourquoi cet ordre : une page mise à jour avant son serveur demanderait des
+  choses que l'ancien serveur ne connaît pas encore.</div>
+</div>
+
+<details><summary>La règle qui sauve, côté serveur</summary><div class="corps">
+<p>Pousser dans le dépôt ne met <b>pas</b> le serveur à jour : le dépôt n'est que la référence. Pour
+que le nouveau code tourne, il faut le recopier dans l'éditeur de Google — <b>les dix fichiers
+concernés, plus le module partagé</b> — puis publier une <b>nouvelle version</b> de l'application
+web. Les pages appellent une adresse figée sur une version : sans ce dernier geste, l'ancien code
+continue de tourner, y compris pour une génération lancée depuis l'assistant. (Seule exception : une
+fonction lancée à la main depuis l'éditeur exécute le code du moment.)</p>
+<div class="err"><p><b>La règle qui sauve</b> — ne jamais modifier le code directement dans
+l'éditeur de Google sans l'enregistrer aussitôt dans le dépôt : à la prochaine recopie
+dépôt → éditeur, la modification non enregistrée serait écrasée sans prévenir.</p></div>
+</div></details>
+
+<details><summary>Le numéro de version du site — la règle exacte</summary><div class="corps">
+<p>Toute modification d'une page visible s'accompagne, <b>dans le même envoi</b>, de la montée du
+numéro : petit correctif → troisième chiffre (v1.3.1 → v1.3.2) · nouvelle fonctionnalité →
+deuxième chiffre · refonte majeure → premier chiffre · une modification du serveur seul → pas de
+montée.</p>
+<p class="warn"><b>Le 5 septembre 2026, la numérotation est repartie à v1.0.</b> La série v1.x
+était montée à 99 non pas parce que le portail avait changé 99 fois de visage, mais parce qu'on
+montait le 2<sup>e</sup> chiffre à chaque lot ; passer à v10 n'avait fait que déplacer le problème.
+<b>v1.0 est la version présentée au staff du 4 septembre</b>, celle que l'équipe utilise ; v2.0 est
+réservé à l'ouverture du module libéral. Le numéro <em>descend</em> donc une fois — c'est voulu.
+Conséquence à retenir : <b>un numéro ne peut plus dater une fonctionnalité.</b> Trois contrôles du
+banc le faisaient (« au moins v1.77 », « a dépassé v1.95 ») ; ils vérifient désormais la présence de
+la fonctionnalité et la forme du numéro. Le numéro apparaît à plusieurs endroits (une constante dans le code, le badge affiché,
+la ligne d'en-tête des guides) : la règle opératoire est de <b>chercher dans tout le dépôt les
+fichiers qui portent un marqueur de version et de les mettre tous à jour</b> — ne se fier à aucune
+liste écrite, compter. Le diagnostic vérifie ensuite la cohérence sur quatre fichiers (la page
+d'administration, le portail, et les deux guides utilisateurs), en comparant <i>toutes</i> les
+formes du numéro présentes dans chacun — une leçon du 20/07 : l'ancien contrôle ne lisait qu'une
+seule forme et a proclamé « tout aligné » pendant des semaines alors que trois fichiers sur quatre
+affichaient un numéro périmé.</p>
+</div></details>
+
+<details><summary>Pousser proprement : le rituel complet</summary><div class="corps">
+<ol>
+<li>Repartir de la version en ligne du fichier, jamais d'une copie locale qui a pu vieillir.</li>
+<li>Un lot de plusieurs fichiers = <b>un seul envoi groupé</b> — fichier par fichier, le site se
+republierait à chaque fois, et seule la dernière publication compterait.</li>
+<li>Avant : vérifier la syntaxe du code, l'équilibre des balises des pages, et passer le banc
+d'essai (§D2) — tout au vert, sinon on ne propose rien.</li>
+<li>Après : relire la version en ligne et vérifier les numéros de version.</li>
+<li>Si GitHub est en panne : on peut encore <i>lire</i> par le chemin de secours, mais on n'écrit
+jamais sans pouvoir contrôler le résultat.</li>
+</ol>
+</div></details>
+
+<p class="haut"><a href="#top">↑ Sommaire</a></p>
+
+<h2 id="d2"><span class="num">D2</span>Le banc d'essai</h2>
+
+<div class="r2"><div class="titre">En 2 minutes</div>
+<p>Le dossier <code>banc/</code> du dépôt fait tourner <b>le vrai code du projet</b> — le serveur,
+le relais, les pages — dans un décor entièrement simulé : un faux Google avec un faux classeur
+rempli de données réalistes, un faux Cloudflare, et même un faux navigateur où les pages sont
+pilotées au clic. Au 9 août 2026 : <b>546 vérifications</b>, toutes au vert. Règle absolue : avant
+toute proposition de mise en ligne touchant une page principale ou le serveur, le banc tourne, et on
+ne présente le résultat qu'une fois tout au vert. Chaque nouveauté part avec son test ; chaque
+défaut trouvé en production devient un scénario du banc.</p></div>
+
+<details><summary>Ce que le banc prouve — et ce qu'il ne prouve pas</summary><div class="corps">
+<p>Il couvre le cycle annuel complet, les gestes du comité, le relais, le journal, la veille, les
+pages des MARs, des scénarios de panne (que se passe-t-il quand Cloudflare tombe en pleine
+écriture ?), et des « tests de contrat » — par exemple, il lit la vraie page du portail pour
+vérifier que les filtres qu'elle utilise correspondent bien à ce que le serveur envoie.</p>
+<div class="warn"><p><b>Le banc prouve la logique, jamais l'infrastructure.</b> « Le banc est
+vert » ne veut pas dire « ça marche » : les quotas de Google, les latences réelles, les
+autorisations, les automatismes installés et l'état du déploiement ne sont pas simulés. Le banc
+élimine les régressions de logique ; la confirmation en production reste indispensable.</p></div>
+<p>Deux règles d'entretien : toute nouvelle fonction de Google utilisée dans le code du serveur doit
+recevoir son équivalent simulé dans le banc ; et quand plusieurs conversations de travail avancent
+en parallèle, relancer le banc sur une photographie <i>fraîche</i> du dépôt juste avant l'envoi.
+Le générateur de gardes a en plus son banc dédié — 400 années simulées (§B5).</p>
+</div></details>
+
+<details class="tech"><summary>Repères techniques</summary><div class="corps">
+<p>Lancement : <code>cd banc &amp;&amp; ./lancer.sh</code>. Les rouages : <code>stubs.js</code>
+(les fonctions Google simulées), <code>monde.js</code> et <code>jeu_donnees.js</code> (le faux
+classeur), <code>interface.js</code> (le pilotage des pages au clic, via jsdom),
+<code>banc_worker.mjs</code> (le vrai code du relais exécuté tel quel).</p>
+</div></details>
+
+<p class="haut"><a href="#top">↑ Sommaire</a></p>
+
+<h2 id="d3"><span class="num">D3</span>Le diagnostic : chaque message et son remède</h2>
+
+<div class="r2"><div class="titre">En 2 minutes</div>
+<p>Le diagnostic (onglet Maintenance) passe toute la chaîne en revue et affiche des ✅ (rien à
+faire), des ⚠️ (points de vigilance) et des ❌ (à traiter). Depuis le 27/08/2026 il est organisé en
+trois questions — ce que les MARs voient, les automatismes, la santé des données — et chaque ❌ est
+suivi de son geste. Les tâches périodiques posent un battement de cœur horodaté que le diagnostic
+compare à leur cadence attendue ; les périodes de vacances sont confrontées au calendrier officiel.
+Deux rythmes : le rapport complet part chaque lundi vers 2 h par mail, et une sentinelle quotidienne
+(6 h) revérifie les points vitaux en quelques secondes — elle n'envoie un mail QUE si elle trouve un
+❌. Cette section reste la table de correspondance : chaque message, son remède.</p></div>
+
+<details><summary>Environnement, relais &amp; journal</summary><div class="corps">
+<table>
+<tr><th>Message</th><th>Remède</th></tr>
+<tr><td>❌ Fuseaux horaires différents (script vs classeur)</td><td>Dans le classeur : Fichier →
+Paramètres → fuseau « Paris ». Aligner aussi le classeur d'archives.</td></tr>
+<tr><td>⚠️ Quota email presque épuisé</td><td>Google limite les envois quotidiens : reporter l'envoi
+des codes au lendemain.</td></tr>
+<tr><td>⚠️ Verrou occupé</td><td>Une opération longue est en cours (génération, publication) :
+réessayer dans une minute.</td></tr>
+<tr><td>❌ Jeton du relais absent</td><td>Le serveur ne peut plus déposer de copies. Recréer le
+jeton dans les réglages du serveur (identique au secret du relais), puis lancer le grand rangement.
+Entre-temps, les pages fonctionnent — juste lentement.</td></tr>
+<tr><td>⚠️ Relais injoignable</td><td>Panne Cloudflare : rien à faire, le portail bascule tout seul
+sur le serveur. Vérifier leur page d'état si ça persiste.</td></tr>
+<tr><td>⚠️ Rangement horaire absent</td><td>Relancer sa fonction d'installation depuis
+l'éditeur.</td></tr>
+<tr><td>⚠️ Fiches du journal en échec récent</td><td>Lire le registre (qui, quoi, quelle erreur) —
+la file n'est jamais bloquée par une fiche en échec. Corriger la cause et refaire le geste depuis la
+page d'administration si nécessaire.</td></tr>
+</table>
+</div></details>
+
+<details><summary>Code en service, version du site, sauvegarde</summary><div class="corps">
+<table>
+<tr><th>Message</th><th>Remède</th></tr>
+<tr><td>❌ <i>fichier</i> : DÉRIVE — dépôt vX, déployé vY</td><td>Le fichier en service n'est plus
+celui du dépôt : le recopier dans l'éditeur et déployer une nouvelle version (§D1). Le contrôle
+couvre les dix fichiers versionnés.</td></tr>
+<tr><td>⚠️ <i>fichier</i> : dépôt illisible</td><td>Le contrôle n'a pas pu lire GitHub — voir la
+famille « Publication GitHub » ci-dessous.</td></tr>
+<tr><td>❌ <i>fichier</i> : vX (attendu vY)</td><td>Un envoi a oublié la montée du numéro de version
+sur l'un des quatre fichiers contrôlés : réaligner et pousser.</td></tr>
+<tr><td>⚠️ Sauvegarde : déclencheur absent · dernière copie &gt; 10 jours</td><td>Relancer la
+fonction d'installation ; vérifier le dossier des copies. Rappel : seule la sauvegarde n° 1 est
+surveillée (§C10).</td></tr>
+</table>
+</div></details>
+
+<details><summary>Publication GitHub, équipe, année active</summary><div class="corps">
+<table>
+<tr><th>Message</th><th>Remède</th></tr>
+<tr><td>❌ Jeton GitHub invalide/expiré · ⚠️ expire dans X jours</td><td>Générer un nouveau jeton
+d'accès au dépôt (dans les réglages GitHub), le coller dans l'onglet CONFIG. Échéance en cours :
+mi-octobre 2026.</td></tr>
+<tr><td>❌ Dépôt introuvable</td><td>Ne survient qu'après un renommage du dépôt — corriger les
+constantes correspondantes dans le code.</td></tr>
+<tr><td>⚠️ MARs sans email / sans code</td><td>Compléter dans l'onglet MEDECINS, puis « Renvoyer
+les codes ».</td></tr>
+<tr><td>⚠️ Quotité ou pourcentage de gardes hors bornes</td><td>Corriger. Rappel du piège : un
+« 0 » vaut 100 — pour exempter de gardes, la case NO_GARDE, jamais un zéro (§B5).</td></tr>
+<tr><td>❌ Identifiants en double</td><td>Fusionner ou supprimer la ligne dupliquée <b>avant</b>
+toute génération : en cas de doublon, la lecture devient ambiguë.</td></tr>
+<tr><td>❌ Codes d'accès partagés</td><td>Attribuer un code unique par MAR et renvoyer les codes
+concernés.</td></tr>
+<tr><td>⚠️ Onglets de l'année manquants</td><td>Normal selon le point du cycle ; sinon relancer W1
+(indisponibilités) ou W2 (gardes et statistiques).</td></tr>
+<tr><td>⚠️ MARs actifs sans affectation</td><td>Compléter l'onglet Affectations — normal pour une
+arrivée en cours d'année.</td></tr>
+</table>
+</div></details>
+
+<details><summary>Intégrité des gardes, retouches, planning publié, santé du classeur</summary><div class="corps">
+<table>
+<tr><th>Message</th><th>Remède</th></tr>
+<tr><td>❌ Jours FUTURS sans garde</td><td>Un jour à venir n'a pas de médecin de garde : réattribuer
+dans l'onglet des gardes, republier. À traiter immédiatement.</td></tr>
+<tr><td>⚠️ Jours passés sans garde</td><td>Historique non tenu à l'époque. Sans conséquence :
+compléter si l'information est connue, sinon laisser.</td></tr>
+<tr><td>⚠️ Plusieurs gardes le même jour</td><td>Effacer la cellule en trop (la règle : un médecin
+de garde réa + un de garde mater par jour), republier.</td></tr>
+<tr><td>⚠️ Retouches en double · MAR inconnu · date illisible</td><td>Supprimer les lignes fautives
+dans l'onglet des retouches — souvent une ligne d'en-tête égarée au milieu des données.</td></tr>
+<tr><td>⚠️ Retouches d'une année close</td><td>Reliquat : supprimer (la clôture les purge
+normalement).</td></tr>
+<tr><td>❌ Dossier du planning introuvable · fichier absent/illisible</td><td>Republier depuis
+l'onglet Planning — la publication recrée ce qu'il faut.</td></tr>
+<tr><td>⚠️ Planning désynchronisé (X gardes contre Y)</td><td>Lire la liste des écarts affichée
+(qui, quand, pourquoi) : cause légitime (arrivée/départ en cours d'année, MAR retiré) → rien à
+faire ; sinon corriger l'onglet des gardes et republier.</td></tr>
+<tr><td>⚠️ Classeur volumineux · journaux longs</td><td>Purger les journaux internes, déplacer les
+vieilles années vers le classeur d'archives.</td></tr>
+<tr><td>ℹ️/⚠️ Index des tarifs (CCAM)</td><td>La ligne indique la version et son âge : orange à
+8 mois, rouge à 14 — régénérer (§C8).</td></tr>
+</table>
+</div></details>
+
+<p class="haut"><a href="#top">↑ Sommaire</a></p>
+
+<h2 id="d4"><span class="num">D4</span>Dépannage : du symptôme à la cause</h2>
+
+<div class="r2"><div class="titre">En 2 minutes</div>
+<p>La table de tri des pannes, du plus fréquent au plus rare. Les trois premiers réflexes : ouvrir
+l'adresse du relais (elle doit répondre « ok » avec sa version), taper <code>chrono()</code> dans la
+console de la page, et regarder le menu Exécutions de l'éditeur Google — à eux trois, ils racontent
+presque toujours l'histoire.</p></div>
+
+<details><summary>La table symptôme → cause</summary><div class="corps">
+<table>
+<tr><th>Symptôme</th><th>Cause probable / action</th></tr>
+<tr><td>Les pages s'ouvrent lentement (10 s et plus)</td><td>Le relais est contourné en silence
+(panne, copie manquante, empreintes jamais déposées). <code>chrono()</code> dit lequel et
+pourquoi ; contrôles du §A5.</td></tr>
+<tr><td>Une donnée modifiée n'apparaît pas côté MAR</td><td>Moins de 2 minutes : propagation
+normale. Au-delà d'une heure : le dépôt de copies n'a pas eu lieu (modification faite à la main dans
+le classeur ?) — lancer le grand rangement et lire son journal.</td></tr>
+<tr><td>Un geste du comité semble « perdu »</td><td>Consulter le registre du journal (90 jours) :
+la fiche a-t-elle été appliquée, avec quel résultat ? Une fiche en échec y figure avec son
+erreur.</td></tr>
+<tr><td>« Erreur réseau » sporadique</td><td>Caprice passager de Google. Toutes les pages réessaient
+une fois en silence ; deux échecs consécutifs = vraie panne, regarder le menu Exécutions.</td></tr>
+<tr><td>« Action inconnue » / « fonction introuvable »</td><td>Un fichier n'a pas été recopié dans
+l'éditeur, ou le dépôt était incomplet. Vérifier les dix fichiers + le module partagé,
+redéployer.</td></tr>
+<tr><td>Une modification du serveur n'a aucun effet</td><td>La nouvelle version n'a pas été
+déployée — ou la modification a été faite dans l'éditeur puis écrasée par une recopie du dépôt
+(§D1).</td></tr>
+<tr><td>Le planning des MARs ne se met pas à jour</td><td>C'est le Drive qui fait foi, pas le
+dépôt : vérifier que la publication a réussi ; côté MAR, rechargement complet.</td></tr>
+<tr><td>Un profil « souhait garanti » sort en rouge au certificat</td><td>La case correspondante de
+l'onglet MEDECINS n'est pas cochée : le code ne peut pas le reconnaître.</td></tr>
+<tr><td>W2 refuse de générer</td><td>Année sanctuarisée, ou gardes déjà générées — les verrous du
+§B3.</td></tr>
+<tr><td>Des journées trop dégarnies à la génération</td><td>Trop d'absences simultanées :
+l'assistant les signale avant de lancer, avec le MAR à solliciter en premier.</td></tr>
+<tr><td>Une modification du générateur dégrade l'équité</td><td>Comparer aux chiffres de référence
+du §B5 avec le banc de 400 années.</td></tr>
+<tr><td>Un échange de gardes de jours adjacents est refusé</td><td>Comportement voulu : le système
+préfère refuser que risquer d'écraser une donnée en silence. Défaut connu, correction prévue après
+le 4 septembre (§D5).</td></tr>
+</table>
+</div></details>
+
+<p class="haut"><a href="#top">↑ Sommaire</a></p>
+
+<h2 id="d5"><span class="num">D5</span>Points de fragilité connus &amp; le déménagement 2027</h2>
+
+<div class="r2"><div class="titre">En 2 minutes</div>
+<p>Ne vivent ici que les points <b>durables</b> — l'avancement des chantiers vit dans la feuille de
+route (<code>docs/ROADMAP-Planning-Med.md</code>), un état d'avancement recopié à deux endroits
+finit toujours par mentir. À retenir : quatre règles de secteurs restent volontairement écrites dans
+le code jusqu'au plan du nouvel hôpital ; deux listes de la page d'administration casseront en
+silence au changement des noms de secteurs si rien n'est fait avant ; et les colonnes de l'onglet
+MEDECINS s'ajoutent toujours en fin d'onglet, jamais au milieu.</p></div>
+
+<details><summary>Les quatre règles de secteurs encore dans le code (gelées volontairement)</summary><div class="corps">
+<p>L'onglet SECTEURS règle couleurs, libellés, ordre et activité sans toucher au code. Mais ajouter,
+renommer ou supprimer un <b>identifiant</b> de secteur touche encore quatre règles écrites dans le
+code : la trame des consultations automatiques (endormie), le lien garde→secteur (le médecin de
+garde réa est placé en réa, celui de mater en mater — renommer ces secteurs casserait ce placement
+automatique), les règles liées à un jour précis (le jeudi de la radio interventionnelle, le mardi
+des DVI), et le dictionnaire des synonymes d'affectations (écrit en double, à dédupliquer).</p>
+<p><b>Décision actée</b> : ces quatre points restent gelés tant que le plan du nouvel hôpital n'est
+pas connu — les réécrire à l'aveugle serait concevoir dans le brouillard. Ce paragraphe est la carte
+exacte du jour venu. Garantie : le générateur de gardes ne mentionne aucun secteur — l'équité est
+hors de portée de ce chantier.</p>
+</div></details>
+
+<details><summary>Ce qui cassera en silence au déménagement si rien n'est fait</summary><div class="corps">
+<p>Dans la page d'administration, deux listes de secteurs sont écrites en dur : celle qui pilote le
+« + » de case à pourvoir, et celle des effectifs cibles. Au changement des identifiants de secteurs,
+elles casseront <b>sans aucun message d'erreur</b>. La solution retenue — les piloter depuis
+l'onglet SECTEURS via une colonne dédiée — n'est pas encore construite. À traiter avant la bascule.
+La décision préalable
+qui conditionne tout : la finesse des affectations dans le nouvel hôpital (grands secteurs ou
+sous-secteurs).</p>
+</div></details>
+
+<details><summary>Les pièges durables, vérifiés en réel</summary><div class="corps">
+<ul>
+<li><b>Colonnes de MEDECINS : toujours en fin d'onglet.</b> De nombreuses lectures repèrent les
+colonnes par leur position : une colonne insérée au milieu a rendu les codes d'accès inopérants
+(constaté le 21/07/2026). Le bon modèle — repérer par le titre — est documenté dans le guide du
+fichier maître.</li>
+<li><b>L'échange de gardes de jours adjacents est refusé</b> par le système, qui préfère refuser que
+risquer une perte silencieuse. La correction (relire avant d'écrire, plus le cas particulier de la
+récupération du samedi) est prévue après le 4 septembre — avec son scénario de banc obligatoire
+avant d'y toucher.</li>
+<li><b>Deux pièges de lecture du code</b>, pour le mainteneur : le panneau de placement est décrit
+en pleine largeur dans son attribut de style, mais une règle plus bas dans la feuille de style le
+transforme en tiroir flottant — lire la feuille de style, pas seulement l'attribut ; et la fonction
+de formatage de dates renvoie le <i>texte</i> « undefined » (et non du vide) quand on l'appelle sans
+valeur — les valeurs par défaut ne se déclenchent alors jamais.</li>
+<li><b>Un réglage inerte</b> : la ligne ARCHIVE_DRIVE_ID de l'onglet CONFIG n'est lue par aucun
+code — documenté pour éviter de chercher.</li>
+<li><b>Les échéances du calendrier</b> : renouveler le jeton GitHub avant la mi-octobre 2026 ;
+régénérer l'index des tarifs vers mars 2027 ; et après la démonstration du 4 septembre, dérouler le
+nettoyage (onglets 2027 de test, fichiers de test du Drive, réglages de campagne et d'adresse de
+test des mails, puis un diagnostic de contrôle).</li>
+</ul>
+</div></details>
+
+<p class="haut"><a href="#top">↑ Sommaire</a></p>
+
+<footer>
+Planning-Med · Anesthésie-Réanimation Planning-Med — guide technique personnel<br>
+Refondu le 9 août 2026 à partir du code en production (site v1.30.2, banc d'essai : 546 vérifications au vert).
+</footer>
+
+</div>
+</body>
+</html>

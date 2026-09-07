@@ -1,0 +1,409 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Guide du module libéral · Planning-Med</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700;800&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --red:#CE1126; --red-soft:#FDECEF; --red-deep:#9E0C1D;
+    --blue:#1D6FB8; --blue-soft:#EAF3FB;
+    --amber:#B45309; --amber-soft:#FDF3E3;
+    --teal:#0F766E; --teal-soft:#E6F5F2;
+    --viol:#6D28D9; --viol-soft:#F5F3FF;
+    --green:#166534; --green-soft:#DCFCE7;
+    --ink:#0F172A; --ink-2:#475569; --ink-3:#7A8699;
+    --line:#E2E8F0; --bg:#F6F8FB; --white:#fff;
+    --mono:'DM Mono',ui-monospace,monospace;
+    /* accent du module libéral : violet */
+    --acc:var(--viol); --acc-soft:var(--viol-soft);
+  }
+  *{box-sizing:border-box}
+  html{scroll-behavior:smooth}
+  body{margin:0; background:var(--bg); color:var(--ink);
+    font-family:'DM Sans',-apple-system,BlinkMacSystemFont,sans-serif;
+    line-height:1.6; font-size:15px; padding:36px 20px 80px}
+  .wrap{max-width:860px; margin:0 auto}
+
+  .eyebrow{font-family:var(--mono); font-size:12px; letter-spacing:.08em; text-transform:uppercase; color:var(--acc); font-weight:500}
+  h1{font-size:30px; font-weight:800; letter-spacing:-.02em; margin:8px 0 4px; line-height:1.2}
+  .subtitle{color:var(--ink-2); font-size:15px; margin:0 0 4px}
+  .maj{font-family:var(--mono); font-size:12px; color:var(--ink-3); margin-top:10px}
+
+  .proto{margin:22px 0 4px; border-radius:14px; border:1px solid #E9D5FF; background:linear-gradient(180deg,#FAF5FF,#F5F3FF); padding:16px 20px}
+  .proto .pt{font-family:var(--mono); font-size:11.5px; font-weight:500; text-transform:uppercase; letter-spacing:.08em; color:var(--acc); margin-bottom:5px}
+  .proto p{margin:0; color:#4C1D95}
+  .proto strong{color:#3B0764}
+
+  .toc{background:var(--white); border:1px solid var(--line); border-radius:14px; padding:20px 24px; margin:26px 0 34px}
+  .toc h2{margin:0 0 10px; font-size:13px; font-family:var(--mono); font-weight:500; text-transform:uppercase; letter-spacing:.06em; color:var(--ink-3); border:none; padding:0}
+  .toc ol{margin:0; padding-left:0; list-style:none; columns:2; column-gap:32px}
+  .toc li{margin:4px 0; break-inside:avoid}
+  .toc a{color:var(--ink); text-decoration:none; font-weight:500; font-size:14px}
+  .toc a:hover{color:var(--acc)}
+  .toc .n{font-family:var(--mono); font-size:12px; color:var(--acc); margin-right:7px}
+  @media (max-width:600px){ .toc ol{columns:1} }
+
+  section{margin-top:44px}
+  h2{font-size:21px; font-weight:800; letter-spacing:-.015em; margin:0 0 14px; padding-top:8px; display:flex; align-items:baseline; gap:12px}
+  h2 .n{font-family:var(--mono); font-size:14px; font-weight:500; color:#fff; background:var(--acc); border-radius:8px; padding:3px 9px; flex-shrink:0}
+  h3{font-size:15.5px; font-weight:700; margin:22px 0 8px; color:var(--ink)}
+  p{margin:0 0 12px; color:var(--ink-2)}
+  strong{color:var(--ink)}
+  ul{margin:0 0 14px; padding-left:22px; color:var(--ink-2)}
+  li{margin:5px 0}
+  code,.kbd{font-family:var(--mono); font-size:12.5px; background:var(--white); border:1px solid var(--line); border-radius:6px; padding:1px 7px; color:var(--ink); white-space:nowrap}
+  .tag{font-family:var(--mono); font-size:12.5px; background:#EEF1F5; border-radius:5px; padding:1px 6px; color:var(--ink)}
+
+  .callout{border-radius:12px; padding:14px 18px; margin:16px 0; border:1px solid var(--line); border-left-width:4px; background:var(--white)}
+  .callout p:last-child{margin-bottom:0}
+  .callout .ct{font-family:var(--mono); font-size:11.5px; font-weight:500; text-transform:uppercase; letter-spacing:.06em; margin-bottom:6px}
+  .callout.rule{border-left-color:var(--acc); background:var(--acc-soft)}
+  .callout.rule .ct{color:var(--acc)}
+  .callout.tip{border-left-color:var(--blue); background:var(--blue-soft)}
+  .callout.tip .ct{color:var(--blue)}
+  .callout.warn{border-left-color:var(--amber); background:var(--amber-soft)}
+  .callout.warn .ct{color:var(--amber)}
+  .callout.safe{border-left-color:var(--green); background:var(--green-soft)}
+  .callout.safe .ct{color:var(--green)}
+
+  table{width:100%; border-collapse:collapse; margin:14px 0 18px; background:var(--white); border:1px solid var(--line); border-radius:12px; overflow:hidden; font-size:14px}
+  th{background:#F1F4F8; text-align:left; font-size:12px; font-family:var(--mono); font-weight:500; text-transform:uppercase; letter-spacing:.05em; color:var(--ink-2); padding:9px 14px; border-bottom:1px solid var(--line)}
+  td{padding:9px 14px; border-bottom:1px solid #F1F5F9; color:var(--ink-2); vertical-align:top}
+  tr:last-child td{border-bottom:none}
+  td:first-child{font-weight:600; color:var(--ink); white-space:nowrap}
+
+  .steps{counter-reset:step; margin:12px 0 16px; padding:0; list-style:none}
+  .steps li{counter-increment:step; position:relative; padding:8px 0 8px 40px; margin:0; color:var(--ink-2)}
+  .steps li::before{content:counter(step); position:absolute; left:0; top:7px; width:26px; height:26px; border-radius:8px; background:var(--white); border:1.5px solid var(--acc); color:var(--acc); font-family:var(--mono); font-size:13px; display:flex; align-items:center; justify-content:center}
+  .steps li + li{border-top:1px dashed var(--line)}
+
+  .faq{background:var(--white); border:1px solid var(--line); border-radius:12px; margin:12px 0; overflow:hidden}
+  .faq .q{padding:12px 18px; font-weight:700; color:var(--ink); background:#FBFCFE; border-bottom:1px solid var(--line); font-size:14.5px}
+  .faq .a{padding:12px 18px; color:var(--ink-2); font-size:14.5px}
+  .faq .a::before{content:"➡ "; color:var(--acc); font-weight:700}
+
+  .backtop{display:inline-block; margin-top:14px; font-size:12.5px; font-family:var(--mono); color:var(--ink-3); text-decoration:none}
+  .backtop:hover{color:var(--acc)}
+  .foot{margin-top:56px; padding-top:18px; border-top:1px solid var(--line); font-size:12px; color:var(--ink-3); font-family:var(--mono); text-align:center}
+
+  @media print{
+    body{background:#fff; padding:0; font-size:12.5px}
+    .toc ol{columns:2}
+    .backtop{display:none}
+    section{break-inside:avoid-page; margin-top:28px}
+  }
+</style>
+<style id="appbar-css">
+/* ── Bandeau commun des guides (26/08/2026) — icône de l'appli, plus de drapeau ── */
+.appbar{background:linear-gradient(135deg,#9E0C1D 0%,#CE1126 78%);color:#fff;border-radius:16px;
+  padding:18px;position:relative;overflow:hidden;margin:0 0 16px}
+.appbar-wm{position:absolute;right:-30px;top:-30px;width:190px;opacity:.10;filter:brightness(4);pointer-events:none}
+.appbar-row{display:flex;align-items:center;gap:14px;position:relative}
+.appbar-ic{width:48px;height:48px;border-radius:12px;background:#fff;padding:3px;
+  box-shadow:0 3px 10px rgba(0,0,0,.25);flex:none}
+.appbar-tx{min-width:0}
+.appbar-eyebrow{font-family:'DM Mono',ui-monospace,monospace;font-size:11px;letter-spacing:.14em;
+  text-transform:uppercase;opacity:.85}
+.appbar h1{margin:2px 0 0;font-size:clamp(20px,5.5vw,25px);font-weight:800;letter-spacing:-.01em;
+  color:#fff;line-height:1.15}
+.appbar-chip{margin-left:auto;font-family:'DM Mono',ui-monospace,monospace;font-size:11px;
+  background:rgba(255,255,255,.16);border:1px solid rgba(255,255,255,.35);border-radius:99px;
+  padding:4px 10px;white-space:nowrap;color:#fff;flex:none}
+.appbar-sub{margin:10px 0 0;font-size:14px;opacity:.92;position:relative;color:#fff;line-height:1.45}
+@media print{.appbar{background:#9E0C1D !important;-webkit-print-color-adjust:exact;print-color-adjust:exact}}
+</style>
+</head>
+<body>
+<div class="wrap">
+
+<header id="top">
+  <div class="appbar">
+  <img class="appbar-wm" src="../assets/icon-192.png" alt="" aria-hidden="true">
+  <div class="appbar-row">
+    <img class="appbar-ic" src="../assets/icon-192.png" alt="">
+    <div class="appbar-tx">
+      <div class="appbar-eyebrow">Planning-Med · Anesthésie-Réanimation</div>
+      <h1>Module libéral</h1>
+    </div>
+  </div>
+  <p class="appbar-sub">Estimer le libéral, calibrer le dépassement sur la mutuelle du patient, générer le devis — et piloter la charge libéral / public.</p>
+</div>
+  <div class="maj">Dernière mise à jour : 30 juillet 2026 · rév. 7 (V4.2 — audit du guide contre le code en production)</div>
+  <p style="margin-top:10px"><a href="module-liberal/estimateur-liberal.html" style="display:inline-block;background:var(--acc);color:#fff;padding:9px 16px;border-radius:8px;text-decoration:none;font-weight:600;font-size:14px">→ Ouvrir la cotation</a></p>
+</header>
+
+<div class="proto">
+  <div class="pt">◆ En service — ouvert à un seul praticien pour l'instant</div>
+  <p><strong>Le module fonctionne et est utilisé en production</strong> : cotation, devis, déclaration
+  des interventions au comité, et suivi de la règle des 30 % à partir du relevé de l'administration.
+  Il n'est encore <strong>ouvert qu'à un seul praticien</strong>, le temps du rodage — la tuile
+  n'apparaît donc pas sur le portail des autres membres du groupement.</p>
+  <p><strong>Ce guide décrit ce qui fonctionne aujourd'hui</strong>, rien de ce qui est prévu : les
+  chantiers à venir vivent dans la ROADMAP du projet. Deux briques restent notamment à construire — le
+  <strong>taux de couverture</strong> (comparer ce qui est déclaré à ce qui est facturé) et le
+  <strong>rendement par spécialité</strong>, qui demandent plusieurs mois de relevés et de déclarations.</p>
+  <p>⚠️ Trois points de cotation restent <strong>à confirmer auprès de la CSM</strong> : le coefficient
+  de l'APC, le plafond de la carte rose (241 % à l'annexe III contre 234 % appliqués ici) et le régime
+  AME en libéral. <strong>L'outil ne signale rien à l'écran sur ces trois points</strong> : c'est à vous de les avoir en tête.</p>
+  <p style="margin-top:8px">Pour comprendre le <strong>fonctionnement de l'activité libérale</strong> elle-même (cartes, dépassements, règle des 30 %), lire d'abord le <a href="module-liberal/guide_liberal_MAR.html" style="color:var(--acc);font-weight:600">guide MAR — Comment fonctionne notre activité libérale</a>. Le présent guide décrit l'outil.</p>
+</div>
+
+<nav class="toc">
+  <h2>Sommaire</h2>
+  <ol>
+    <li><a href="#c1"><span class="n">01</span>À quoi sert le module</a></li>
+    <li><a href="#c2"><span class="n">02</span>L'estimateur, pas à pas</a></li>
+    <li><a href="#c3"><span class="n">03</span>Statut du patient &amp; dépassement</a></li>
+    <li><a href="#c4"><span class="n">04</span>Le calibrage mutuelle → reste à charge</a></li>
+    <li><a href="#c5"><span class="n">05</span>Générer le devis</a></li>
+    <li><a href="#c6"><span class="n">06</span>Le placement au bloc (comité)</a></li>
+    <li><a href="#c7"><span class="n">07</span>Le pilotage libéral / public (30 %)</a></li>
+    <li><a href="#c8"><span class="n">08</span>Sécurité des données</a></li>
+  </ol>
+</nav>
+
+<section id="c1">
+  <h2><span class="n">01</span>À quoi sert le module</h2>
+  <p>Le module libéral aide le groupement à exercer son activité libérale intra-hospitalière <strong>dans les règles et sans perte</strong>. Il tient sur trois briques, qui partagent le codage des actes mais répondent à trois questions différentes.</p>
+  <table>
+    <tr><th>Brique</th><th>Question</th><th>Où</th></tr>
+    <tr><td>Calibrage du dépassement</td><td>Combien facturer pour que le reste à charge du patient soit minimal&nbsp;?</td><td>Tuile Libéral → <em>Cotation &amp; déclaration</em></td></tr>
+    <tr><td>Déclaration &amp; placement bloc</td><td>Qui doit être présent, dans quel secteur, le jour de l'intervention&nbsp;?</td><td>Même page, encadré <em>Déclarer une intervention</em> → volet ◆ Libéral de l'admin</td></tr>
+    <tr><td>Pilotage 30 %</td><td>Chacun est-il sous 30 % de libéral, par axe&nbsp;? Le groupe perd-il de l'argent&nbsp;?</td><td>Tuile Libéral → <em>Suivi des 30 %</em></td></tr>
+  </table>
+  <p>Les trois sont <strong>en service</strong>. Deux mesures restent à construire, faute de recul&nbsp;: le <strong>taux de couverture</strong> (comparer le déclaré au facturé) et le <strong>rendement par spécialité</strong>.</p>
+  <div class="callout rule">
+    <div class="ct">Principe directeur</div>
+    <p>Le module <strong>éclaire, le comité décide</strong>. Aucune affectation automatique, aucun engagement à la place de l'administration. Et pour le patient : on cherche à <strong>minimiser son reste à charge</strong>, pas à maximiser l'honoraire.</p>
+  </div>
+</section>
+
+<section id="c2">
+  <h2><span class="n">02</span>L'estimateur, pas à pas</h2>
+  <p>L'estimateur enchaîne tout le parcours d'un patient, de l'acte à la déclaration. <strong>Un patient à la fois</strong> : le devis lui étant remis en direct, la page ne garde jamais deux patients en mémoire (voir le geste complet en §05).</p>
+  <div class="callout tip">
+    <div class="ct">Cette page ne dit pas où vous en êtes des 30 %</div>
+    <p><strong>La spécialité est obligatoire</strong> à la déclaration : c'est elle, et non le secteur, qui portera la mesure du rendement — les secteurs changent au déménagement, les spécialités non. Attention au secteur <em>ORL / Ophtalmologie</em>, qui en mélange deux : l'outil refuse de deviner et vous laisse trancher.</p>
+    <p>Elle calcule ce que <em>ce patient-là</em> représente : sa base de remboursement, son dépassement, son reste à charge. <strong>Votre position sur les 30 %</strong> — la vôtre et celle du groupe — se lit sur l'autre page de la tuile, <em>Suivi des 30 %</em>, alimentée par le relevé de l'administration (§07).</p>
+  </div>
+  <ol class="steps">
+    <li><strong>Chercher l'acte.</strong> Dans le bloc CCAM, tape un <strong>code</strong> (<code>NEKA014</code>), un <strong>mot</strong> (<code>hernie</code>, <code>échoguidage</code>) ou une <strong>abréviation</strong> (<code>PTH</code>, <code>TAP</code>, <code>cœlio</code>). La liste sort dans les deux sens ; un clic remplit la ligne.</li>
+    <li><strong>Le tarif se pré-remplit.</strong> Le tarif d'anesthésie (activité 4) est repris automatiquement du référentiel officiel. Tu n'as qu'à cocher les modificateurs (7, A) et choisir le rôle (principal / associé / complément).</li>
+    <li><strong>La BR se calcule.</strong> ×1,95 monégasque, modificateurs, décote d'association — tout est appliqué derrière. La <strong>consultation</strong> du patient se choisit juste à côté, dans «&nbsp;Consultation associée&nbsp;» : elle compte sur l'autre plafond (voir §07).</li>
+    <li><strong>Dire si le chirurgien cote aussi en libéral.</strong> C'est la question qui décide de tout le reste. <strong>S'il cote</strong>, votre dépassement suit le sien à <strong>50 %</strong> (usage du groupement) : renseignez le sien, le vôtre se remplit — modifiable, et le reste à charge s'affiche tel qu'il est. <strong>Si vous cotez seul</strong>, votre dépassement est libre, et c'est là que le calibrage sur la mutuelle prend tout son sens.</li>
+    <li><strong>Renseigner la mutuelle.</strong> On sélectionne la formule du patient (sa ligne « honoraires » en % BR). L'outil affiche le dépassement optimal et le reste à charge.</li>
+    <li><strong>Générer les documents.</strong> Bouton <span class="tag">📄 Devis</span>, dans la barre noire en bas de l'écran : l'estimation de frais est entièrement pré-remplie, et un second bouton imprime <strong>devis + déclaration de choix</strong> (modèle service soins externes, nom du MAR pré-rempli). <strong>Aucun nom de patient à taper</strong> : le patient l'écrit à la main sur les documents imprimés.</li>
+    <li><strong>Déclarer l'intervention.</strong> Encadré <span class="tag">Déclarer au comité</span> : deux choses seulement à y renseigner, le <strong>secteur</strong> et la <strong>spécialité</strong>. Les dates, la chirurgie et les montants viennent de la cotation ci-dessus. Puis <span class="tag">📅 Déclarer</span>, dans la barre du bas. C'est ce qui alimente le volet ◆ Libéral du comité dans la vue admin — <strong>rien d'autre ne part</strong> : ni patient, ni code CCAM.</li>
+    <li><strong>Patient suivant.</strong> L'écran se vide tout seul. Le <strong>secteur reste</strong> — dix endoscopies d'affilée, c'est zéro geste — mais tout ce qui appartenait au patient précédent disparaît.</li>
+  </ol>
+  <div class="callout rule">
+    <div class="ct">Point d'entrée unique</div>
+    <p>Tout se fait sur cette page&nbsp;: la cotation, le devis <em>et</em> la déclaration. Le devis reste une opération d'écran (rien n'est stocké)&nbsp;; seule la déclaration écrit — et son contenu est <strong>fermé</strong>&nbsp;: date de bloc · MAR · secteur · chirurgie en clair (optionnelle). Jamais de donnée patient, jamais de code d'acte.</p>
+  </div>
+  <div class="callout rule">
+    <div class="ct">À vérifier systématiquement — obstétrique</div>
+    <p>C'est le code qui saute le plus souvent. Son libellé officiel est «&nbsp;<em>Anesthésie rachidienne au cours d'un accouchement par voie basse</em>&nbsp;» (209,00&nbsp;€ en activité 4)&nbsp;: <strong>le mot «&nbsp;péridurale&nbsp;» n'y figure pas</strong>. Chercher «&nbsp;péridurale&nbsp;» dans l'estimateur ramène douze autres actes, jamais celui-là. Taper <strong>«&nbsp;accouchement voie basse&nbsp;»</strong>, qui ne ramène que lui. À vérifier systématiquement sur toute prise en charge obstétricale.</p>
+  </div>
+  <div class="callout tip">
+    <div class="ct">Bon à savoir</div>
+    <p>Le référentiel CCAM (8 558 actes, libellés officiels) et les tarifs d'anesthésie (4 939 actes tarifés en activité 4) sont chargés depuis un fichier tenu à jour&nbsp;: pas de saisie de tarifs à la main. Les abréviations maison (PTH, PTG, TAP…) s'ajoutent au fil de l'eau.</p>
+  </div>
+</section>
+
+<section id="c3">
+  <h2><span class="n">03</span>Statut du patient &amp; dépassement</h2>
+  <p>C'est le <strong>statut du patient</strong> qui ouvre le droit de facturer un dépassement&nbsp;; la mutuelle ne fait ensuite que déterminer le remboursement. L'outil applique cette règle dans cet ordre.</p>
+  <table>
+    <tr><th>Statut</th><th>Plafond du dépassement</th><th>Calage mutuelle</th></tr>
+    <tr><td>Carte verte (monég.)</td><td>0 — tarif conventionnel strict</td><td>non</td></tr>
+    <tr><td>SPME (monég.)</td><td>0</td><td>non</td></tr>
+    <tr><td>Carte rose (monég.)</td><td>+20 % de la BR</td><td>oui, plafonné à +20 %</td></tr>
+    <tr><td>Carte bulle (monég.)</td><td>libre — entente préalable</td><td>oui</td></tr>
+    <tr><td>Assuré français</td><td>libre (secteur 2 non-OPTAM)</td><td>oui, plafond non-OPTAM</td></tr>
+    <tr><td>Français — AME / C2S (précarité)</td><td>0 — pas de dépassement</td><td>non</td></tr>
+    <tr><td>NAS</td><td>libre</td><td>oui</td></tr>
+    <tr><td>AME</td><td>0 — pas de dépassement</td><td>non</td></tr>
+  </table>
+  <div class="callout warn">
+    <div class="ct">AME — Aide Médicale de l'État (monégasque)</div>
+    <p>À ne pas confondre avec l'AME française. Dispositif propre à Monaco (Ordonnance souveraine 5.743 du 03/03/2016) pour les résidents <strong>sans autre couverture maladie</strong> et <strong>sous condition de ressources</strong>. Le remboursement se fait sur le <strong>tarif de responsabilité monégasque</strong> (coefficient ×1,95, comme les autres régimes), et le bénéficiaire étant indigent, <strong>aucun dépassement</strong> n'est facturé — logique « carte verte ». En pratique, un patient AME relève du secteur public&nbsp;: cas-limite dans l'estimateur, où <span class="tag">DH 0</span> est la bonne garde.</p>
+  </div>
+</section>
+
+<section id="c4">
+  <h2><span class="n">04</span>Le calibrage mutuelle → reste à charge</h2>
+  <p>Là où le dépassement est libre, l'outil le règle sur la mutuelle du patient. Une seule valeur compte&nbsp;: la ligne <strong>« honoraires » en % de la BR</strong> du tableau de garanties.</p>
+  <ul>
+    <li><strong>Absorbé par la mutuelle</strong> = (% BR affiché − 100) × BR. Une formule « 200 % BR » absorbe jusqu'à 100 % de BR de dépassement&nbsp;; « 300 % BR » jusqu'à 200 %&nbsp;; « 100 % BR » n'absorbe <strong>rien</strong>.</li>
+    <li><strong>Dépassement optimal</strong> = le plus petit des deux&nbsp;: ce que la carte autorise, et ce que la mutuelle absorbe. À ce montant, le reste à charge est <strong>nul</strong>.</li>
+    <li>Patient mal couvert (formule 100 % BR)&nbsp;? L'optimal tombe à zéro&nbsp;: l'outil recommande alors de <strong>facturer moins, voire rien</strong>.</li>
+  </ul>
+  <div class="callout warn">
+    <div class="ct">Piège — colonne OPTAM vs non-OPTAM (patients français)</div>
+    <p>Pour un assuré français avec contrat responsable, vu par un praticien <strong>secteur 2 non-OPTAM</strong>, la mutuelle n'absorbe au maximum que <strong>100 % BR de dépassement</strong> (200 % BR au total), quel que soit le pourcentage affiché. Lis bien la <strong>colonne non-OPTAM</strong> du tableau&nbsp;: l'outil plafonne et t'alerte si le % saisi trahit une lecture de la colonne OPTAM.</p>
+  </div>
+</section>
+
+<section id="c5">
+  <div class="callout">
+    <div class="ct">Fiche praticien — à ressaisir à chaque ouverture</div>
+    <p><strong>C'est fait&nbsp;: depuis le 22 juillet 2026, l'identité du praticien est pré-remplie.</strong> En ouvrant l'outil <strong>par la tuile du Dashboard</strong>, vous êtes déjà identifié&nbsp;: nom, prénom et n° RPPS descendent de l'onglet <code>MEDECINS</code> et alimentent le devis et la déclaration de choix. Un bandeau vert le confirme, et signale ce qui manque encore («&nbsp;prénom à compléter&nbsp;») s'il y a lieu.</p>
+    <p>Le champ <strong>ADELI a été supprimé</strong>&nbsp;: le RPPS seul suffit, et une case vide sur un document imprimé finit toujours par être remplie de travers. Ces numéros vivent <strong>uniquement dans le classeur privé</strong>, jamais dans le code de l'outil, et ne sont transmis qu'au praticien identifié par son propre code d'accès.</p>
+    <p>Si vous ouvrez la page <strong>en dehors du portail</strong> (URL directe, autre navigateur), le bandeau vous le dit clairement et vous saisissez à la main comme avant. Rien ne se dégrade en silence.</p>
+  </div>
+
+  <h2><span class="n">05</span>Générer le devis</h2>
+  <p>Le devis est une <strong>« Estimation de frais — information écrite préalable »</strong> (vocabulaire du règlement intérieur), pré-remplie depuis le calcul. Un clic sur <span class="tag">📄 Devis</span> ouvre les documents prêts à imprimer, avec deux boutons&nbsp;: <strong>« Imprimer le devis »</strong> seul, ou <strong>« Imprimer devis + déclaration de choix »</strong> — la déclaration nominative que le patient doit signer pour que la prise en charge libérale existe (un imprimé par praticien&nbsp;; sans elle, patient réputé public et honoraires récupérables en indu).</p>
+  <div class="callout safe">
+    <div class="ct">Un seul champ à taper</div>
+    <p>Praticien, n° de devis, dates, tarifs, remboursement, reste à charge&nbsp;: tout est pré-rempli. <strong>Le nom du patient n'est jamais saisi dans l'outil</strong>&nbsp;: le devis comme la déclaration sortent avec des lignes en pointillés que le patient remplit <strong>à la main</strong>. La déclaration de choix est un <strong>document autonome</strong>&nbsp;: l'imprimer, la faire signer par le patient et par soi-même, puis la verser au dossier vaut aussi bien en soins externes qu'en hospitalisation.</p>
+  </div>
+  <p>Le devis rappelle les mentions obligatoires&nbsp;: statut secteur 2 honoraires libres (tact et mesure), information préalable dès 70 € de dépassement, paiement après l'acte, remboursement mutuelle dépendant du contrat, et l'exclusion de tout dépassement pour les bénéficiaires protégés (verte, SPME, AME, C2S).</p>
+  <div class="callout tip">
+    <div class="ct">Champs saisis à l'écran, jamais enregistrés</div>
+    <p>Les quelques champs encore éditables (dates, remboursement) vivent dans la page le temps de l'impression&nbsp;: ils sont <strong>effacés à la fermeture</strong>, rien n'est stocké. Le nom du patient, lui, ne transite <strong>jamais</strong> par l'outil — manuscrit uniquement.</p>
+  </div>
+  <div class="callout warn">
+    <div class="ct">Nouveau&nbsp;: cotez TOUS vos patients libéraux, même sans dépassement</div>
+    <p>Jusqu'ici, un patient sans dépassement d'honoraires ne demandait aucune cotation&nbsp;: pas de devis à imprimer, rien à calculer. <strong>Ce n'est plus vrai.</strong> C'est la cotation qui donne le montant (la base de remboursement) repris dans votre déclaration — et sans montant, l'intervention est bien vue par le comité, mais elle <strong>ne compte pas</strong> dans la mesure du rendement de votre spécialité. La page vous prévient si vous validez sans montant.</p>
+  </div>
+
+  <h3>Le geste complet, patient par patient</h3>
+  <ol>
+    <li><strong>Choisissez votre contexte</strong> dans «&nbsp;Cotations types&nbsp;», en haut du tableau — «&nbsp;Endoscopie&nbsp;» par exemple. Une seule fois pour toute la séance&nbsp;: le choix est conservé même si vous rechargez la page. Tant que rien n'est choisi, aucun bouton ne s'affiche.</li>
+    <li><strong>Cliquez sur la cotation type</strong> qui correspond — <em>Gastro + colo</em>, <em>Gastro seule</em>, <em>Colo seule</em>. Le tableau se remplit&nbsp;: les actes, les rôles, les modificateurs et la consultation associée. <strong>Attention&nbsp;: cela remplace les lignes en place</strong>, une cotation type décrit un patient entier. Pour un acte hors liste, la recherche CCAM reste disponible.</li>
+    <li><strong>Posez le jour du bloc.</strong> La date de consultation est déjà celle du jour.</li>
+    <li><strong>Choisissez la consultation associée.</strong> Le champ est sur <code>CS</code> par défaut, puisqu'il y a toujours une consultation. Vous pouvez mettre <code>C</code> avec son coefficient, ou un montant libre. <strong>L'APC est une cotation française</strong>&nbsp;: elle est refusée pour un assuré monégasque (carte verte, rose, bulle, SPME).</li>
+    <li><strong>Imprimez le devis</strong> s'il y a un dépassement. Le patient écrit son nom à la main.</li>
+    <li><strong>Choisissez le secteur</strong> — la spécialité se propose alors toute seule, et reste modifiable.</li>
+    <li><strong>📅 Déclarer.</strong> Une ligne = un patient.</li>
+  </ol>
+  <div class="callout tip">
+    <div class="ct">Le modificateur 7 est coché d'office</div>
+    <p>La présence permanente de l'anesthésiste (<strong>+6 %</strong>) figure sur tous les relevés observés. Toute nouvelle ligne arrive donc avec la case <strong>7</strong> déjà cochée — qu'elle vienne d'une cotation type, de la recherche ou d'un ajout à la main. Vous pouvez la décocher si le cas se présente. Auparavant, une case oubliée sous-évaluait la base de remboursement de 6 % sans que rien ne le signale.</p>
+    <p>Le tableau démarre également <strong>vide</strong>&nbsp;: il n'y a plus les deux lignes d'orthopédie d'exemple à effacer à chaque patient.</p>
+  </div>
+
+  <div class="callout warn">
+    <div class="ct">Un patient à la fois</div>
+    <p>Le formulaire du bas ne contient <strong>qu'un seul patient</strong>. Si vous cotez un patient B avant d'avoir déclaré le patient A, <strong>le formulaire bascule sur B et A est perdu</strong>. Prenez l'habitude de déclarer avant de passer au suivant. Les champs que vous corrigez à la main, eux, ne sont jamais écrasés.</p>
+  </div>
+  <div class="callout tip">
+    <div class="ct">Spécialité&nbsp;: pourquoi elle ne suffit pas d'être le secteur</div>
+    <p>La spécialité est plus fine que le secteur là où un secteur en mélange deux&nbsp;: <strong>ophtalmologie et ORL</strong> partagent un bloc mais n'ont pas du tout le même rendement (la cataracte est le moteur), de même que <strong>urologie et viscéral</strong>. Et surtout, la spécialité <strong>survivra au déménagement</strong> de janvier 2027, quand les secteurs changeront&nbsp;: une cataracte rapporte autant quelle que soit la salle.</p>
+  </div>
+
+  <div class="callout tip">
+    <div class="ct">À qui confier un patient que vous ne pourrez pas opérer&nbsp;?</div>
+    <p>Dans l'écran «&nbsp;Consultations à venir&nbsp;», cliquez une période d'absence&nbsp;: la liste des
+    confrères qui peuvent prendre le patient est <strong>classée par marge libérale restante au bloc</strong>,
+    du plus disponible au plus proche de son plafond, avec le montant.</p>
+    <p>Seuls les <strong>membres du groupement</strong> apparaissent&nbsp;: un MAR qui n'en fait pas partie
+    ne peut pas prendre en charge un patient libéral. Ils sont <strong>tous affichés</strong>, sans limite
+    de nombre — le choix vous revient. Un membre dont le relevé du mois n'est pas encore saisi figure en
+    fin de liste, sans montant&nbsp;: il reste proposable, on ne sait simplement pas où il en est.</p>
+    <p>Le patient sera opéré <strong>un jour précis</strong>, pas pendant toute votre absence&nbsp;: chaque
+    confrère est donc affiché avec la <strong>plage qu'il couvre</strong> («&nbsp;couvre 4 – 10 août ·
+    12 – 24 août&nbsp;»), ses propres congés y faisant des trous. Un confrère dont la consultation tombe
+    <strong>pendant</strong> votre absence compte aussi&nbsp;: il voit le patient ce jour-là et l'opère
+    plus tard. Comparez la plage avec la date d'intervention envisagée.</p>
+    <div class="callout tip">
+    <div class="ct">Pourquoi « reste à charge nul » ne s'applique pas toujours</div>
+    <p>Quand le chirurgien cote lui aussi en libéral, votre dépassement n'est pas un choix : il est calé par usage à <strong>50 % du sien</strong>. Il peut alors rester un reste à charge, et <strong>le patient doit le savoir avant de signer</strong> — le montant figure sur le devis. Le calibrage à reste à charge nul ne vaut que <strong>lorsque vous cotez seul</strong>.</p>
+  </div>
+  <p>C'est l'axe <strong>CCAM</strong> qui sert de critère, et non les consultations&nbsp;: une consultation
+    libérale <strong>déclenche un bloc</strong>, et c'est le bloc qui pèse le plus lourd dans la règle des 30&nbsp;%.</p>
+    <p>⚠️ Le montant provient du <strong>dernier relevé mensuel</strong>&nbsp;: ce qui a été facturé depuis
+    n'y figure pas. <strong>L'ordre est fiable, le montant est un ordre de grandeur.</strong></p>
+  </div>
+
+  <div class="callout tip">
+    <div class="ct">Le réflexe au moment de la consultation&nbsp;: serez-vous là le jour du bloc&nbsp;?</div>
+    <p>Une consultation libérale <strong>engage votre présence</strong> le jour de l'intervention. L'écran <strong>« Consultations à venir »</strong> (tuile du portail, et accessible au secrétariat d'anesthésie avec son propre code) répond à cette question&nbsp;: pour chacune de vos consultations des 4 prochaines semaines, il liste vos <strong>absences sur les 4 semaines suivantes</strong> — les <strong>dates d'intervention à éviter</strong> — et indique quel confrère peut prendre le patient. Une <strong>garde n'est pas une absence</strong>&nbsp;: un MAR de garde peut assurer une intervention libérale. <em>Écran en cours d'essai, pas encore ouvert à toute l'équipe.</em></p>
+  </div>
+  <div class="callout warn">
+    <div class="ct">À valider avant tout usage réel</div>
+    <p>Le cadre du devis s'appuie aujourd'hui sur le droit français&nbsp;; pour un patient CCSS (carte bulle/rose), l'entente préalable et les mentions relèvent du droit monégasque. À faire valider par l'administration / la CSM avant emploi.</p>
+  </div>
+</section>
+
+<section id="c6">
+  <h2><span class="n">06</span>Le placement au bloc (côté comité)</h2>
+  <p>Une intervention déclarée crée une <strong>contrainte de présence</strong>&nbsp;: le MAR doit être dans le bon secteur le jour du bloc. Le module la montre au comité <strong>au moment où il place</strong> — sans jamais rien placer lui-même, et <strong>sans toucher un pixel de la grille</strong>.</p>
+  <ul>
+    <li>Au clic sur une <strong>case flash</strong> (le « + » orange existant), le panneau d'affectation s'ouvre comme aujourd'hui <em>et</em>, s'il y a du libéral ce jour-là, un <strong>volet « ◆ Libéral » s'ouvre à gauche</strong>.</li>
+    <li>Le volet liste, pour chaque MAR, <strong>le secteur déclaré et la chirurgie</strong> («&nbsp;Dr Menade — ORL — cataracte&nbsp;»). La chirurgie en clair donne l'idée de la durée du bloc.</li>
+    <li><strong>Le volet ne porte aucun jugement</strong>&nbsp;: il ne dit pas si le MAR est bien placé, ni s'il faut le déplacer, et ne compare rien avec l'affectation en cours. <strong>C'est le comité qui décide</strong> si l'intervention mérite un changement d'affectation. Le fait d'être de garde ne change rien.</li>
+    <li>S'il n'y a <strong>aucune</strong> intervention ce jour, le volet ne s'ouvre pas, <strong>sans message</strong>&nbsp;: sur des dizaines de clics par séance, une notification à chaque fois deviendrait du bruit.</li>
+  </ul>
+  <div class="callout rule">
+    <div class="ct">Le module éclaire, le comité décide</div>
+    <p>Aucun pré-placement automatique. Le volet est <strong>en service dans l'admin</strong> et n'a demandé aucune modification du moteur du planning&nbsp;: il s'affiche à côté du panneau d'affectation, sans jamais écrire dans la grille.</p>
+  </div>
+</section>
+
+<section id="c7">
+  <h2><span class="n">07</span>Le pilotage libéral / public (30 %)</h2>
+  <p>Le seuil de 30 % s'applique <strong>séparément sur deux plafonds</strong>&nbsp;: le CCAM (actes techniques au bloc) et le NGAP (consultations). Vous n'avez rien à faire pour les séparer&nbsp;: un patient coté alimente les deux, ses actes d'un côté, sa consultation de l'autre. Les deux plafonds sont indépendants&nbsp;: on peut être large sur un axe et en excédent sur l'autre.</p>
+  <p>Comme les revenus sont mutualisés et l'excédent reversé à l'hôpital au 31/12, le groupe perd de <strong>deux</strong> façons&nbsp;: un praticien <strong>au-dessus</strong> de 30 % (le surplus part à l'hôpital) ou <strong>sous-employé</strong> (une marge que personne n'utilise, et qui disparaît au 31 décembre).</p>
+
+  <h3>L'écran «&nbsp;Suivi des 30&nbsp;%&nbsp;»</h3>
+  <p>Depuis la tuile <strong>Libéral</strong> du portail, la moitié droite ouvre le suivi. Il repose sur le
+  <strong>relevé mensuel de l'administration</strong>, recopié dans le classeur&nbsp;: c'est la seule source
+  de vérité financière, le module ne recalcule jamais un chiffre d'affaires à partir des actes.</p>
+  <ul>
+    <li><strong>Votre position</strong>, par axe&nbsp;: le cumul, le pourcentage, et soit la <strong>marge encore permise</strong>, soit l'<strong>excédent</strong>.</li>
+    <li><strong>Le groupe</strong>, en initiales, trié du plus en excédent au moins&nbsp;: l'argent étant mutualisé, chacun voit la position de tous.</li>
+    <li><strong>Les totaux par axe</strong>&nbsp;: ce qui part à l'hôpital si rien ne change, et la capacité qui dort ailleurs.</li>
+    <li><strong>«&nbsp;D'ici décembre&nbsp;»</strong>&nbsp;: les secteurs d'affectation des mois restants, une pastille par mois. <strong>Purement descriptif</strong> — l'écran ne dit pas si cela va s'arranger ou s'aggraver.</li>
+  </ul>
+
+  <div class="callout rule">
+    <div class="ct">Un cumul, pas un mois — et aucune prévision</div>
+    <p>Le relevé s'intitule «&nbsp;<em>ACTIVITÉS 2026 — JANVIER à JUIN</em>&nbsp;»&nbsp;: les montants
+    contiennent <strong>tout le début d'année</strong>, ce n'est pas l'activité du mois. La période
+    s'allonge à chaque relevé jusqu'au bilan annuel de décembre.</p>
+    <p><strong>L'écran ne projette rien</strong> à fin décembre, et c'est volontaire&nbsp;: sur une activité
+    saisonnière — congés, gardes, blocs fermés — extrapoler «&nbsp;au rythme actuel&nbsp;» produit un
+    chiffre faux, qui dirait «&nbsp;continuez&nbsp;» à quelqu'un qui devrait s'arrêter.</p>
+  </div>
+
+  <div class="callout rule">
+    <div class="ct">La réanimation ne rattrape QUE le CCAM</div>
+    <p>Les deux plafonds ne se compensent pas. Un excédent sur l'axe <strong>CCAM</strong> se corrige en
+    augmentant l'activité publique au bloc, notamment par la <strong>réanimation</strong>. Un excédent sur
+    l'axe <strong>NGAP</strong> ne se rattrape que par des <strong>consultations publiques</strong> —
+    aucune garde de réanimation n'y changera quoi que ce soit.</p>
+  </div>
+  <div class="callout rule">
+    <div class="ct">À retenir</div>
+    <p>Le <strong>dépassement d'honoraires est hors quota 30 %</strong>. Le même acte se lit deux fois, indépendamment&nbsp;: le dépassement et le RAC pour le patient, la BR pour le ratio du groupe. Régler l'un ne touche pas l'autre.</p>
+  </div>
+</section>
+
+<section id="c8">
+  <h2><span class="n">08</span>Sécurité des données</h2>
+  <p>Le module approche du secret médical&nbsp;: sa sécurité repose sur une discipline, pas sur un cadenas.</p>
+  <ul>
+    <li><strong>Zéro donnée patient — jamais saisie.</strong> Le calibrage et les documents se font à l'écran, sans persistance — ni serveur (GitHub / Sheets / Drive), ni navigateur. Depuis la V3.2, le nom du patient n'est même plus tapé&nbsp;: il est écrit à la main par le patient sur les documents imprimés.</li>
+    <li><strong>Données praticien</strong> (nom, RPPS) → profil MAR, jamais dans un fichier publié. Le champ ADELI a été supprimé.</li>
+    <li><strong>Volet financier</strong> → cloisonné entre membres et non-membres du groupement, et <strong>agrégé</strong> (aucune donnée patient).</li>
+    <li><strong>Référentiels</strong> (CCAM, formules mutuelle) → publics, sourcés, sans lien à un patient.</li>
+  </ul>
+  <div class="callout warn">
+    <div class="ct">Vigilance permanente</div>
+    <p>Toute fonction « pratique » qui voudrait <strong>mémoriser</strong> un patient (historique, autosave) casserait ce principe&nbsp;: à refuser par défaut.</p>
+  </div>
+</section>
+
+
+
+<div class="foot">Planning-Med · Monaco — Guide du module libéral — décrit le module tel qu'il fonctionne aujourd'hui. Ce qui reste à construire vit dans la ROADMAP.</div>
+
+</div>
+</body>
+</html>

@@ -1,0 +1,2848 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+  <!-- Outil interne du service : ne pas referencer dans les moteurs de recherche.
+       Complete robots.txt (racine du depot). N'empeche AUCUN acces : qui a
+       l'adresse entre normalement, et se heurte au code personnel. -->
+  <meta name="robots" content="noindex, nofollow">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<title>Portail · Planning-Med</title>
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="icon" type="image/svg+xml" href="assets/favicon.svg">
+<link rel="apple-touch-icon" href="assets/apple-touch-icon.png">
+<meta name="theme-color" content="#CE1126">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
+<meta name="apple-mobile-web-app-title" content="Planning-Med">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<!-- (23/08/2026) Préconnexion au relais de lecture : en 4G, la poignée de main
+     TLS coûte 200 à 400 ms, payés au premier appel — c'est-à-dire pile au
+     moment où l'écran attend ses données. On la fait pendant le chargement de
+     la page, en parallèle du reste. -->
+<link rel="preconnect" href="https://miroir.planningmedic.workers.dev" crossorigin/>
+<link rel="dns-prefetch" href="https://miroir.planningmedic.workers.dev"/>
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@300;400;500;600;700&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
+<script src="assets/vendor/lucide-icons.js"></script>
+<script src="version.js"></script>   <!-- (14/08/2026) source unique du numéro de version -->
+<script src="partage/session.js"></script>   <!-- (17/08/2026) source unique : où vit le code d'accès, et 30 jours glissants -->
+<script>/* FALLBACK_SESSION — filet (17/08/2026). Si partage/session.js ne se charge pas
+(réseau, cache), les pages l'appelleraient dans le vide et NE S'OUVRIRAIENT PLUS : le MAR ne
+pourrait même plus taper son code. On retombe alors sur le comportement d'avant — le code vit
+le temps de l'onglet — au lieu de planter. Jamais de mémoire longue ici : mieux vaut retaper
+son code que le voir retenu par un filet dont personne ne vérifie l'échéance. */
+window.SessionPortail = window.SessionPortail || { lire:function(){try{return sessionStorage.getItem('pmViewCode')||'';}catch(e){return '';}}, memoriser:function(c){try{sessionStorage.setItem('pmViewCode',c);}catch(e){}}, oublier:function(){try{sessionStorage.removeItem('pmViewCode');}catch(e){}}, estInstallee:function(){return false;}, joursRestants:function(){return null;}, DUREE_JOURS:0 };</script>
+<style>
+/* polices chargees via <link> (perf : @import bloquant supprime) */
+
+:root {
+  --red: #CE1126;
+  --red-soft: #F8E8EB;
+  --amber: #D97706;
+  --amber-soft: #FEF3C7;
+  --ink: #0F172A;
+  --ink-2: #334155;
+  --ink-3: #64748B;
+  --ink-4: #94A3B8;
+  --line: #E2E8F0;
+  --line-light: #F1F5F9;
+  --bg: #F8FAFC;
+  --white: #FFFFFF;
+  --radius: 12px;
+  --mono: 'DM Mono', monospace;
+  --surface-2:#EEF1F5; --deep:#1E293B;
+  --ok:#166534; --ok-soft:#F0FDF4; --info:#1D4ED8; --info-soft:#EFF6FF;
+  --viol:#6D28D9; --viol-soft:#F5F3FF; --rose:#BE123C;
+  --me:#1D6FB8; --me-soft:#E8F4FD; --me-border:#B9DCF5;
+}
+.ver-badge { display:inline-flex; align-items:center; gap:5px; font-family:var(--mono); font-size:11px; font-weight:600; color:var(--ink-4); background:var(--line-light); border:1px solid var(--line); border-radius:20px; padding:3px 10px; letter-spacing:.02em; vertical-align:middle; }
+.ver-dot { width:5px; height:5px; border-radius:50%; background:#22C55E; flex:none; }
+
+/* ── MODE SOMBRE ── (partagé avec index.html : clé localStorage pmTheme) */
+html[data-theme="dark"] {
+  --bg:#0B1220; --white:#151D2E; --line:#28344B; --line-light:#1B2436;
+  --ink:#E7ECF6; --ink-2:#C4CEDF; --ink-3:#8D9AB1; --ink-4:#697891;
+  --red:#F4586B; --red-soft:#3A1620; --amber:#F0A64A; --amber-soft:#38290F;
+  --surface-2:#1B2436; --deep:#232F45;
+  --ok:#5BD08B; --ok-soft:#122A1D; --info:#7BAAF7; --info-soft:#152341;
+  --viol:#B593F2; --viol-soft:#251B3C; --rose:#F27D96;
+  --me:#93C3E8; --me-soft:#17293A; --me-border:#2B4763;
+  color-scheme:dark;
+}
+html[data-theme="dark"] body{background:var(--bg)}
+
+* { box-sizing: border-box; }
+html, body { margin:0; padding:0; }
+body {
+  font-family: 'DM Sans', -apple-system, BlinkMacSystemFont, sans-serif;
+  background: var(--bg);
+  color: var(--ink);
+  -webkit-font-smoothing: antialiased;
+}
+
+/* ── HEADER (repris d'index.html) ── */
+.header {
+  background: var(--white);
+  border-bottom: 1px solid var(--line);
+  padding: 0 32px;
+  display: flex; align-items: center; justify-content: space-between;
+  min-height: 60px; position: sticky; top: 0; z-index: 300;
+}
+.header-brand { display: flex; align-items: center; gap: 11px; min-width: 0; }
+.header-brand > div:last-child { min-width: 0; overflow: hidden; }
+.header-flag {
+  display: flex; flex-direction: column; width: 34px; height: 34px; border-radius: 8px;
+  overflow: hidden; flex-shrink: 0; box-shadow: 0 1px 3px rgba(0,0,0,.15);
+}
+.header-title { font-size: 16px; font-weight: 700; color: var(--ink); letter-spacing: -.02em; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.header-sub { font-size: 11px; color: var(--ink-4); margin-top: 1px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.header-right { display: flex; align-items: center; gap: 8px; }
+
+.header-btn{display:inline-flex;align-items:center;gap:6px;font-size:12px;font-weight:700;color:var(--ink);background:var(--bg);border:1px solid var(--line);border-radius:999px;padding:5px 12px;text-decoration:none;transition:border-color .15s,box-shadow .15s,color .15s}
+.header-btn:hover{border-color:var(--red);color:var(--red);box-shadow:0 1px 5px rgba(15,23,42,.08)}
+.header-btn .hb-ico{display:inline-flex;align-items:center;justify-content:center;width:16px;height:16px;border-radius:50%;background:var(--red);color:#fff;font-size:11px;font-weight:800;line-height:1}
+.theme-btn{width:34px;height:34px;border:1px solid var(--line);background:var(--white);border-radius:10px;cursor:pointer;font-size:15px;line-height:1;transition:background .15s ease}
+.theme-btn:hover{background:var(--line-light)}
+.me-pill{display:inline-flex;align-items:center;gap:6px;background:var(--me-soft);color:var(--me);border:1px solid var(--me-border);border-radius:999px;padding:5px 12px;font-size:12.5px;font-weight:700;white-space:nowrap}
+.me-pill:hover{filter:brightness(.97)}
+.me-pill-logout{opacity:.55;font-weight:700;margin-left:1px}
+.me-pill:hover .me-pill-logout{opacity:1;color:var(--red)}
+
+/* ── PAGE ── */
+.wrap { max-width: 960px; margin: 0 auto; padding: 40px 24px 64px; }
+.hello { margin: 0 0 4px; font-size: 24px; font-weight: 700; letter-spacing: -.02em; color: var(--ink); }
+.hello-sub { margin: 0 0 32px; font-size: 14px; color: var(--ink-3); }
+
+.tiles {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
+  gap: 16px;
+}
+.tile {
+  position: relative;
+  display: flex; flex-direction: column; gap: 12px;
+  background: var(--white);
+  border: 1px solid var(--line);
+  border-radius: 16px;
+  padding: 22px 20px;
+  text-decoration: none;
+  color: inherit;
+  transition: transform .15s ease, box-shadow .15s ease, border-color .15s ease;
+}
+a.tile, .tile.clickable { cursor: pointer; }
+a.tile:hover, .tile.clickable:hover {
+  transform: translateY(-3px);
+  box-shadow: 0 12px 28px rgba(15,23,42,.10);
+  border-color: var(--me-border);
+}
+.tile-ico {
+  width: 46px; height: 46px; border-radius: 12px;
+  display: flex; align-items: center; justify-content: center;
+  background: var(--me-soft); color: var(--me);
+}
+.tile-ico svg { width: 24px; height: 24px; }
+.tile-title { font-size: 16px; font-weight: 700; color: var(--ink); letter-spacing: -.01em; }
+.tile-sub { font-size: 13px; color: var(--ink-3); line-height: 1.45; }
+.tile-arrow { margin-top: auto; font-size: 13px; font-weight: 600; color: var(--me); display: flex; align-items: center; gap: 4px; }
+
+.tile.soon { opacity: .62; cursor: default; }
+
+/* ── TUILE QUI SE SÉPARE EN DEUX (27/07/2026) ──────────────────────────
+   Le libéral, c'est DEUX outils : coter/déclarer un patient, et suivre les 30 %.
+   Deux tuiles côte à côte alourdiraient la grille ; une page intermédiaire
+   ajouterait un clic pour rien. La tuile s'ouvre donc EN PLACE : la face se
+   retire, les deux moitiés s'écartent. Aucun changement de page.
+   La hauteur est figée à l'ouverture (voir splitOpen) pour éviter que la grille
+   ne saute au moment de l'animation. */
+.tile.split { padding: 0; overflow: hidden; cursor: default; }
+.tile.split .split-face { padding: 22px 20px; display: flex; flex-direction: column; gap: 12px;
+  transition: opacity .18s ease, transform .28s cubic-bezier(.4,0,.2,1); cursor: pointer; }
+.tile.split.open .split-face { opacity: 0; transform: scale(.97); pointer-events: none; }
+.tile.split .split-halves { position: absolute; inset: 0; display: flex; opacity: 0;
+  pointer-events: none; transition: opacity .22s ease .06s; }
+.tile.split.open .split-halves { opacity: 1; pointer-events: auto; }
+.tile.split .split-half { flex: 1; display: flex; flex-direction: column; justify-content: center;
+  gap: 6px; padding: 18px; text-decoration: none; color: inherit;
+  transform: translateX(-14px); transition: transform .3s cubic-bezier(.4,0,.2,1), background .15s ease; }
+.tile.split .split-half + .split-half { transform: translateX(14px); border-left: 1px solid var(--line); }
+.tile.split.open .split-half { transform: translateX(0); }
+.tile.split .split-half:hover { background: var(--line-light); }
+.tile.split .split-half .sh-t { font-size: 14.5px; font-weight: 700; letter-spacing: -.01em; }
+.tile.split .split-half .sh-s { font-size: 11.5px; color: var(--ink-3); line-height: 1.4; }
+.tile.split .split-back { position: absolute; top: 8px; right: 10px; font-size: 11px; font-weight: 700;
+  color: var(--ink-4); background: none; border: none; cursor: pointer; opacity: 0;
+  transition: opacity .2s ease .1s; }
+.tile.split.open .split-back { opacity: 1; }
+@media (prefers-reduced-motion: reduce) {
+  .tile.split .split-face, .tile.split .split-halves, .tile.split .split-half { transition: none; }
+}
+.tile.soon .tile-ico { background: var(--surface-2); color: var(--ink-4); }
+.badge-soon {
+  position: absolute; top: 14px; right: 14px;
+  font-size: 10.5px; font-weight: 700; letter-spacing: .04em; text-transform: uppercase;
+  color: var(--amber); background: var(--amber-soft);
+  border-radius: 999px; padding: 3px 9px;
+}
+
+/* ── BANDEAU « MES GARDES » (accueil) ── */
+.mg-hero {
+  display:flex; align-items:center; gap:16px;
+  background:linear-gradient(135deg,#1E293B,#0F172A);
+  border:1px solid #1E293B; border-radius:16px;
+  padding:18px 20px; margin:0 0 20px; cursor:pointer;
+  color:#fff; text-decoration:none;
+  transition:transform .15s ease, box-shadow .15s ease;
+}
+.mg-hero:hover { transform:translateY(-2px); box-shadow:0 12px 28px rgba(15,23,42,.18); }
+.mg-hero-ico { width:46px; height:46px; border-radius:12px; flex-shrink:0;
+  display:flex; align-items:center; justify-content:center;
+  background:rgba(255,255,255,.12); color:#fff; }
+.mg-hero-ico svg { width:24px; height:24px; }
+.mg-hero-body { flex:1; min-width:0; }
+.mg-hero-label { font-size:11px; font-weight:700; text-transform:uppercase; letter-spacing:.05em; opacity:.6; }
+.mg-hero-main { font-size:17px; font-weight:700; letter-spacing:-.01em; margin-top:2px; }
+.mg-hero-sub { font-size:13px; opacity:.72; margin-top:3px; }
+.mg-hero-arrow { flex-shrink:0; opacity:.55; display:flex; }
+.mg-hero-arrow svg { width:20px; height:20px; }
+.mg-hero.loading .mg-hero-main { opacity:.45; }
+
+/* ── Mes échanges (13/08/2026, phase 4) ── */
+.ech-bar { display:flex; align-items:center; justify-content:space-between; gap:10px; margin:0 0 14px; }
+.ech-filtres { display:flex; gap:6px; }
+.ech-filtre { border:1px solid #E2E8F0; background:#fff; color:#475569; border-radius:999px;
+  padding:6px 14px; font-size:13px; font-weight:600; cursor:pointer; }
+.ech-filtre.actif { background:#0F172A; border-color:#0F172A; color:#fff; }
+.ech-proposer { display:inline-flex; align-items:center; gap:6px; border:none; background:#CE1126; color:#fff;
+  border-radius:10px; padding:8px 14px; font-size:13.5px; font-weight:700; cursor:pointer; }
+.ech-card { background:#fff; border:1px solid #E8ECF2; border-radius:14px; padding:14px 16px; margin:0 0 10px;
+  box-shadow:0 2px 8px rgba(15,23,42,.05); }
+.ech-card .ech-titre { font-size:14.5px; font-weight:700; display:flex; align-items:center; gap:8px; flex-wrap:wrap; }
+.ech-card .ech-detail { font-size:13px; color:#475569; margin-top:5px; line-height:1.5; }
+.ech-card .ech-meta { font-size:12px; color:#94A3B8; margin-top:7px; }
+.ech-etat { font-size:11px; font-weight:700; text-transform:uppercase; letter-spacing:.04em;
+  border-radius:999px; padding:3px 9px; }
+.ech-etat.attente { background:#FEF3C7; color:#92400E; }
+.ech-etat.acceptee { background:#DCFCE7; color:#166534; }
+.ech-etat.refusee, .ech-etat.expiree, .ech-etat.impossible { background:#F1F5F9; color:#64748B; }
+.ech-actions { display:flex; gap:8px; margin-top:11px; }
+.ech-actions button { flex:1; border-radius:10px; padding:10px 0; font-size:14px; font-weight:700; cursor:pointer; border:none; }
+.ech-accepter { background:#16A34A; color:#fff; }
+.ech-refuser { background:#F1F5F9; color:#334155; }
+.ech-actions button:disabled { opacity:.5; cursor:default; }
+.ech-panneau { background:#fff; border:1px solid #E8ECF2; border-radius:14px; padding:16px; margin:0 0 14px;
+  box-shadow:0 4px 14px rgba(15,23,42,.08); }
+.ech-panneau label { display:block; font-size:12px; font-weight:700; color:#475569; text-transform:uppercase;
+  letter-spacing:.04em; margin:12px 0 5px; }
+.ech-panneau label:first-child { margin-top:0; }
+.ech-panneau select { width:100%; border:1px solid #E2E8F0; border-radius:10px; padding:10px 12px; font-size:14.5px; background:#fff; }
+.ech-types { display:flex; gap:8px; }
+.ech-types button { flex:1; border:1px solid #E2E8F0; background:#fff; border-radius:10px; padding:9px 0;
+  font-size:13.5px; font-weight:600; color:#475569; cursor:pointer; }
+.ech-types button.actif { border-color:#CE1126; color:#CE1126; background:#FEF2F2; }
+.ech-avert { background:#FEF3C7; border-radius:10px; padding:10px 12px; font-size:13px; color:#92400E; margin-top:12px; line-height:1.45; }
+.ech-envoyer { width:100%; margin-top:14px; border:none; background:#CE1126; color:#fff; border-radius:10px;
+  padding:12px 0; font-size:15px; font-weight:700; cursor:pointer; }
+.ech-envoyer:disabled { opacity:.5; }
+.ech-msg { font-size:13px; margin-top:10px; padding:10px 12px; border-radius:10px; line-height:1.45; }
+.ech-msg.err { background:#FEF2F2; color:#B91C1C; }
+.ech-msg.ok { background:#DCFCE7; color:#166534; }
+
+/* ── VUE MES GARDES (détail) ── */
+.mg-tag { font-size:10.5px; font-weight:700; text-transform:uppercase; letter-spacing:.04em;
+  border-radius:999px; padding:2px 9px; margin-left:8px; vertical-align:middle; }
+.mg-tag.g  { background:var(--me-soft);  color:var(--me); }
+.mg-tag.g2 { background:var(--red-soft); color:var(--rose); }
+.mg-month { font-size:12px; font-weight:700; text-transform:uppercase; letter-spacing:.05em;
+  color:var(--ink-4); margin:22px 0 10px 4px; }
+.mg-month:first-child { margin-top:0; }
+
+/* ── VUE MES CONGÉS ── */
+/* (13/08/2026) Pastilles de largeur egale plutot qu'un alignement a gauche qui
+   laissait la derniere seule et decentree sur la ligne suivante. Une pastille
+   orpheline occupe alors toute la largeur : c'est regulier, quel que soit le
+   nombre de categories (de 1 a 5). */
+.cg-counts { display:grid; grid-template-columns:repeat(auto-fit,minmax(150px,1fr)); gap:8px; margin-bottom:18px; }
+.cg-count { border-radius:999px; padding:7px 13px; font-size:13px; font-weight:600; text-align:center; }
+.cg-count .cg-n { font-weight:800; }
+.cg-count .cg-u { font-weight:600; opacity:.7; }
+.cg-list { display:flex; flex-direction:column; gap:8px; }
+.cg-item { display:flex; align-items:center; gap:10px; background:var(--white); border:1px solid var(--line); border-radius:12px; padding:11px 14px; }
+.cg-tag { font-size:11px; font-weight:700; border-radius:7px; padding:3px 9px; flex-shrink:0; }
+.cg-range { flex:1; font-size:14px; color:var(--ink); min-width:0; }
+.cg-days { font-size:12px; color:var(--ink-4); font-weight:600; flex-shrink:0; }
+
+/* ── MON ORDRE DE PASSAGE (vacances) ──
+   Bandeau replie par defaut ; l'annee mise en avant est decidee par le serveur
+   (bascule au 1er septembre). Un seul panneau ouvert a la fois. */
+.ov-bd { width:100%; text-align:left; display:flex; align-items:center; gap:11px; background:var(--me-soft); border:1px solid var(--me-border); border-radius:11px; padding:11px 12px; cursor:pointer; font:inherit; color:inherit; margin-bottom:9px; transition:border-color .15s, box-shadow .15s; }
+.ov-bd:hover { border-color:var(--me); box-shadow:0 1px 6px rgba(29,111,184,.14); }
+.ov-bd.sec { background:var(--white); border-color:var(--line); }
+.ov-bd .ov-r { font-family:var(--mono); font-size:21px; font-weight:500; color:var(--me); line-height:1; flex:none; }
+.ov-bd .ov-r sup { font-size:11px; top:-.6em; }
+.ov-bd.sec .ov-r { color:var(--ink-3); }
+.ov-bd .ov-t { flex:1; font-size:13px; color:var(--ink-2); line-height:1.42; }
+.ov-bd .ov-t b { color:var(--ink); }
+.ov-bd .ov-t em { font-style:normal; color:var(--ink-3); font-size:12px; }
+.ov-bd .ov-c { flex:none; color:var(--ink-4); font-size:13px; transition:transform .18s ease; }
+.ov-bd[aria-expanded="true"] .ov-c { transform:rotate(180deg); }
+.ov-pan { border:1px solid var(--line); border-top:none; border-radius:0 0 11px 11px; background:var(--white); margin:-13px 0 11px; padding:13px 12px 11px; }
+.ov-ongs { display:flex; gap:5px; flex-wrap:wrap; margin-bottom:12px; }
+.ov-ong { font-size:11.5px; padding:4px 10px; border-radius:999px; border:1px solid var(--line); background:var(--white); color:var(--ink-3); cursor:pointer; font-family:inherit; }
+.ov-ong.on { background:var(--ink); border-color:var(--ink); color:#fff; }
+.ov-h { display:flex; align-items:baseline; justify-content:space-between; margin-bottom:8px; }
+.ov-h .ov-p { font-size:13.5px; font-weight:700; }
+.ov-h .ov-q { font-size:12px; color:var(--ink-3); }
+.ov-grps { margin-bottom:10px; }
+.ov-g { display:inline-flex; align-items:center; justify-content:center; min-width:21px; height:21px; border-radius:6px; color:#fff; font-family:var(--mono); font-size:11.5px; }
+.ov-g.a { background:#2563EB; } .ov-g.b { background:#059669; } .ov-g.c { background:#D97706; }
+.ov-g.pale { opacity:.3; }
+.ov-sep { color:var(--ink-4); font-size:10px; margin:0 2px; }
+.ov-l { display:flex; align-items:center; gap:9px; padding:6px 2px; border-bottom:1px solid var(--line-light); }
+.ov-l:last-of-type { border-bottom:none; }
+.ov-l .ov-n { font-family:var(--mono); font-size:11.5px; color:var(--ink-4); width:22px; text-align:right; flex:none; }
+.ov-l .ov-i { font-size:13px; color:var(--ink-2); }
+.ov-l .ov-gg { margin-left:auto; }
+.ov-l.moi { background:var(--me-soft); border-radius:8px; padding:7px 8px; margin:2px -6px; border-bottom:none; }
+.ov-l.moi .ov-i { color:var(--me); font-weight:700; }
+.ov-l.moi .ov-n { color:var(--me); }
+.ov-l.trou .ov-i { color:var(--ink-4); font-size:12px; }
+.ov-tout { width:100%; text-align:center; font:inherit; font-size:12.5px; color:var(--ink-3); cursor:pointer; background:none; border:none; border-top:1px solid var(--line); margin-top:8px; padding:9px 0 2px; }
+.ov-tout:hover { color:var(--me); }
+.ov-vide { font-size:12.5px; color:var(--ink-4); padding:2px 0 6px; }
+
+/* ── VUE TOPOS ── */
+.topos-head { display:flex; align-items:center; gap:12px; margin-bottom:22px; flex-wrap:wrap; }
+.btn-back {
+  display:inline-flex; align-items:center; gap:6px;
+  border:1px solid var(--line); background:var(--white); color:var(--ink-2);
+  border-radius:10px; padding:8px 12px; font-size:13px; font-weight:600; cursor:pointer;
+  font-family:inherit; transition:background .15s ease;
+}
+.btn-back:hover { background:var(--line-light); }
+.topos-head h2 { margin:0; font-size:20px; font-weight:700; letter-spacing:-.02em; color:var(--ink); }
+.topos-count { font-size:13px; color:var(--ink-4); font-weight:500; }
+
+.topo-card { background:var(--white); border:1px solid var(--line); border-radius:14px; margin-bottom:12px; overflow:hidden; }
+.topo-card.single { display:flex; align-items:center; gap:14px; padding:16px 18px; cursor:pointer; transition:background .12s ease; }
+.topo-card.single:hover { background:var(--line-light); }
+.topo-card-head { display:flex; align-items:center; gap:14px; padding:16px 18px; }
+.topo-ico { width:40px; height:40px; border-radius:10px; flex-shrink:0; display:flex; align-items:center; justify-content:center; background:var(--me-soft); color:var(--me); }
+.topo-ico.multi { background:var(--amber-soft); color:var(--amber); }
+.topo-ico svg { width:20px; height:20px; }
+.topo-body { flex:1; min-width:0; }
+.topo-title { font-size:15px; font-weight:700; color:var(--ink); overflow:hidden; text-overflow:ellipsis; }
+.topo-meta { font-size:12px; color:var(--ink-4); margin-top:2px; }
+.topo-open { width:18px; height:18px; color:var(--ink-4); flex-shrink:0; }
+
+.doc-list { border-top:1px solid var(--line); }
+.doc-row { display:flex; align-items:center; gap:10px; padding:12px 18px 12px 22px; cursor:pointer; border-top:1px solid var(--line-light); transition:background .12s ease; }
+.doc-row:first-child { border-top:none; }
+.doc-row:hover { background:var(--line-light); }
+.doc-row svg { width:16px; height:16px; color:var(--me); flex-shrink:0; }
+.doc-title { flex:1; font-size:14px; color:var(--ink-2); min-width:0; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+.doc-size { font-size:12px; color:var(--ink-4); flex-shrink:0; }
+.doc-row.loading, .topo-card.single.loading { opacity:.5; pointer-events:none; }
+
+.topos-loading, .topos-empty { text-align:center; padding:48px 20px; color:var(--ink-3); font-size:14px; line-height:1.6; }
+.topos-empty span { font-size:12.5px; color:var(--ink-4); }
+
+/* ── VUE STAFFS ── */
+.staff-card { display:flex; gap:14px; align-items:flex-start; background:var(--white); border:1px solid var(--line); border-radius:14px; padding:16px 18px; margin-bottom:12px; }
+.staff-date { flex-shrink:0; width:60px; text-align:center; background:var(--me-soft); border-radius:10px; padding:8px 6px; }
+.staff-dow { font-size:11px; font-weight:700; text-transform:uppercase; letter-spacing:.03em; color:var(--me); }
+.staff-dnum { font-size:22px; font-weight:800; line-height:1.05; color:var(--ink); }
+.staff-month { font-size:11px; color:var(--me); font-weight:600; }
+.staff-body { flex:1; min-width:0; padding-top:2px; }
+.staff-theme { font-size:15px; font-weight:700; color:var(--ink); line-height:1.35; }
+.staff-meta { font-size:13px; color:var(--ink-3); margin-top:5px; display:flex; flex-wrap:wrap; gap:3px 14px; }
+.staff-meta span { display:inline-flex; align-items:center; gap:5px; }
+.staff-meta svg { width:14px; height:14px; color:var(--ink-4); flex-shrink:0; }
+
+/* ── Teinte violette (tuile Protocoles) ── */
+.tile-ico.viol { background:var(--viol-soft); color:var(--viol); }
+/* (POSE TP · 22/08/2026) Teinte de la tuile « Mes jours de temps partiel » :
+   le vert des jours ouverts à la pose. */
+.tile-ico.vert { background:var(--ok-soft); color:var(--ok); }
+.tile-ico.ambre { background:var(--amber-soft); color:var(--amber); }   /* (26/08) tuile indispos en consultation seule */
+
+/* ── VUE PROTOCOLES ── */
+.protos-search { margin-bottom:14px; }
+.proto-group { margin-bottom:10px; }
+.proto-spec { display:flex; align-items:center; gap:10px; width:100%; text-align:left; cursor:pointer;
+  background:var(--white); border:1px solid var(--line); border-radius:12px; padding:12px 14px;
+  font-size:13px; font-weight:700; color:var(--viol); letter-spacing:.01em; transition:border-color .15s; }
+.proto-spec:hover { border-color:var(--viol); }
+.proto-spec .chev { transition:transform .18s; display:inline-flex; color:var(--ink-3); }
+.proto-group.open .proto-spec .chev { transform:rotate(90deg); }
+.proto-spec .spec-name { flex:1; }
+.proto-spec .count { background:var(--viol-soft); color:var(--viol); border-radius:999px; padding:1px 9px; font-size:12px; font-weight:700; }
+.proto-docs { display:none; padding:8px 0 4px 6px; }
+.proto-group.open .proto-docs { display:block; }
+.proto-docs .doc-row { background:var(--white); border:1px solid var(--line); border-radius:12px; margin-bottom:8px; }
+.proto-docs .doc-row svg { color:var(--viol); }
+
+/* ── VUE ANNUAIRE ── */
+.annu-search { margin-bottom:14px; }
+.annu-cat { font-size:12px; font-weight:700; text-transform:uppercase; letter-spacing:.05em; color:var(--ink-4); margin:22px 0 10px 4px; }
+.annu-cat:first-child { margin-top:0; }
+.annu-team { display:grid; grid-template-columns:repeat(auto-fill,minmax(200px,1fr)); gap:10px; margin-bottom:4px; }
+.team-card { display:flex; align-items:center; gap:11px; background:var(--white); border:1px solid var(--line); border-radius:12px; padding:11px 13px; }
+.team-ava { width:38px; height:38px; border-radius:10px; flex-shrink:0; display:flex; align-items:center; justify-content:center; background:var(--me-soft); color:var(--me); font-size:13px; font-weight:800; }
+.team-body { min-width:0; }
+.team-name { font-size:14px; font-weight:700; color:var(--ink); overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+.team-dect { font-size:12.5px; color:var(--ink-3); }
+.team-dect.none { color:var(--ink-4); }
+.annu-row { display:flex; align-items:center; justify-content:space-between; gap:12px; background:var(--white); border:1px solid var(--line); border-radius:12px; padding:12px 15px; margin-bottom:8px; }
+.annu-lib { font-size:14px; font-weight:600; color:var(--ink); min-width:0; }
+.annu-info { font-size:12px; font-weight:400; color:var(--ink-4); margin-top:2px; }
+.annu-num, a.annu-num { font-family:var(--mono); font-size:14px; font-weight:600; color:var(--me); text-decoration:none; white-space:nowrap; flex-shrink:0; }
+.annu-num:hover { text-decoration:underline; }
+
+/* ── VEILLE BIBLIO ── */
+.veille-toolbar{display:flex;flex-wrap:wrap;gap:10px;align-items:center;margin-bottom:18px}
+.vfilter{display:inline-flex;background:var(--surface-2);border-radius:10px;padding:3px}
+.vfilter button{border:0;background:transparent;color:var(--ink-3);font:600 13px 'DM Sans',sans-serif;padding:6px 14px;border-radius:8px;cursor:pointer}
+.vfilter button.on{background:var(--white);color:var(--me);box-shadow:0 1px 2px rgba(15,23,42,.06)}
+.vsel,.vsearch{border:1px solid var(--line);background:var(--white);color:var(--ink);border-radius:10px;padding:7px 12px;font:500 13px 'DM Sans',sans-serif}
+.vsearch{flex:1;min-width:180px}
+.vsel:focus,.vsearch:focus{outline:none;border-color:var(--me-border)}
+.vrev-wrap{position:relative}
+.vrev-panel{position:absolute;top:calc(100% + 6px);left:0;z-index:40;background:var(--white);border:1px solid var(--line);border-radius:12px;box-shadow:0 10px 30px rgba(15,23,42,.18);padding:8px;max-height:320px;overflow-y:auto;min-width:270px}
+.vrev-item{display:flex;align-items:center;gap:8px;padding:6px 8px;border-radius:8px;font:500 13px 'DM Sans',sans-serif;color:var(--ink);cursor:pointer}
+.vrev-item:hover{background:var(--surface-2)}
+.vrev-item input{accent-color:var(--me)}
+.vrev-item span{margin-left:auto;color:var(--ink-4);font-size:12px}
+.vrev-clear{display:block;width:100%;text-align:left;border:0;background:transparent;color:var(--me);font:600 13px 'DM Sans',sans-serif;padding:6px 8px;border-radius:8px;cursor:pointer}
+.vrev-clear:hover{background:var(--surface-2)}
+.veille-card{background:var(--white);border:1px solid var(--line);border-radius:14px;padding:15px 18px;margin-bottom:11px;border-left:3px solid transparent}
+.veille-card.unread{border-left-color:var(--me)}
+.vc-top{display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin-bottom:7px}
+.vc-right{margin-left:auto;display:flex;align-items:center;gap:8px}
+.vc-badge{font-size:11px;font-weight:700;padding:2px 8px;border-radius:999px}
+.vc-badge.revue{background:var(--me-soft);color:var(--me)}
+.vc-badge.theme{background:var(--viol-soft);color:var(--viol)}
+.vc-badge.general{background:var(--amber-soft);color:var(--amber)}
+.vc-badge.new{background:var(--red-soft);color:var(--red)}
+.vc-badge.pubtype{background:var(--surface-2);color:var(--ink-3)}
+.vc-themes{font-size:12px;color:var(--viol);font-weight:600;margin-top:3px}
+.vc-score{font-size:12px;font-weight:800;color:var(--ok);background:var(--ok-soft);border-radius:8px;padding:2px 8px}
+.vc-date{font-size:12px;color:var(--ink-4);font-weight:600}
+.vc-title{display:block;font-size:15px;font-weight:700;color:var(--ink);line-height:1.4;text-decoration:none}
+.vc-title:hover{color:var(--me)}
+.vc-resume{font-size:13px;color:var(--ink-2);line-height:1.5;margin-top:5px}
+.vc-journal{font-size:12.5px;color:var(--me);font-weight:600;margin-top:6px}
+.vc-authors{font-size:12.5px;color:var(--ink-3);margin-top:2px}
+.vc-actions{display:flex;flex-wrap:wrap;gap:7px;margin-top:11px}
+.vc-act{font-size:12px;font-weight:600;color:var(--ink-3);background:var(--surface-2);border:0;border-radius:8px;padding:5px 11px;cursor:pointer;text-decoration:none;display:inline-flex;align-items:center;gap:4px}
+.vc-act:hover{color:var(--ink)}
+.vc-act.on{background:var(--me-soft);color:var(--me)}
+.vc-act.star.on{background:var(--amber-soft);color:var(--amber)}
+
+/* Barre de chargement API (fine, en haut) */
+#apiBar{position:fixed;top:0;left:0;height:2px;width:0;background:var(--red);z-index:9998;transition:width .3s ease,opacity .3s ease;opacity:0}
+#apiBar.on{width:80%;opacity:1}
+
+@media(max-width:640px){
+  .header { padding: 0 14px; min-height: 52px; }
+  .header-right { flex-shrink: 0; }
+  .wrap { padding: 28px 16px 48px; }
+  .hello { font-size: 21px; }
+  .tiles { grid-template-columns: 1fr; }
+}
+@media(max-width:359px){
+  .header-sub { display: none; }
+}
+
+/* ── LA CLOCHE (v1.77) — journal des notifications ── */
+.bell-btn{position:relative;display:inline-flex;align-items:center;justify-content:center}
+.bell-btn svg{width:17px;height:17px}
+.notif-panel{position:fixed;inset:0;background:rgba(15,23,42,.45);z-index:220;display:flex;align-items:flex-start;justify-content:center;padding:56px 12px 12px}
+.notif-card{background:var(--white);border:1px solid var(--line);border-radius:16px;width:100%;max-width:430px;max-height:78vh;display:flex;flex-direction:column;box-shadow:0 18px 50px rgba(15,23,42,.25)}
+.notif-head{display:flex;align-items:center;justify-content:space-between;padding:14px 16px;border-bottom:1px solid var(--line)}
+.notif-title{font-size:15px;font-weight:800;color:var(--ink)}
+.notif-close{border:none;background:none;font-size:16px;color:var(--ink-4);cursor:pointer;padding:4px 8px}
+.notif-liste{overflow-y:auto;padding:8px 12px 14px}
+.notif-jour{font-size:11px;font-weight:800;color:var(--ink-4);text-transform:uppercase;letter-spacing:.04em;margin:12px 4px 6px}
+.notif-item{display:block;padding:10px 12px;border:1px solid var(--line);border-radius:12px;margin-bottom:8px;cursor:pointer;text-decoration:none;transition:background .15s}
+.notif-item:hover{background:var(--line-light)}
+.notif-item-t{font-size:13.5px;font-weight:700;color:var(--ink)}
+.notif-item-c{font-size:12.5px;color:var(--ink-4);margin-top:2px}
+.notif-item-h{font-size:11px;color:var(--ink-4);margin-top:4px}
+.notif-vide{padding:26px 10px;text-align:center;font-size:13px;color:var(--ink-4)}
+</style>
+</head>
+<body>
+
+<!-- ── CONNEXION (auth nominatif — identique à index.html) ─────────────── -->
+<div id="viewAuthOverlay" style="position:fixed;inset:0;z-index:9999;background:var(--bg);display:flex;align-items:center;justify-content:center;padding:20px">
+  <div style="background:var(--white);border:1px solid var(--line);border-radius:16px;box-shadow:0 10px 30px rgba(15,23,42,.08);padding:36px 32px;width:100%;max-width:380px;text-align:center">
+    <img src="assets/logo.png" alt="" style="width:48px;height:48px;border-radius:12px;display:block;margin:0 auto 16px;box-shadow:0 4px 12px rgba(206,17,38,.30)">
+    <div style="font-size:18px;font-weight:800;color:var(--ink)">Planning-Med</div>
+    <div style="font-size:13px;color:var(--ink-3);margin:4px 0 22px">Service d'Anesthésie-Réanimation</div>
+    <input id="viewAuthInput" type="password" placeholder="Code d'accès personnel" autocomplete="off" autocapitalize="characters"
+      style="width:100%;box-sizing:border-box;padding:12px 14px;font-size:16px;border:1px solid var(--line);border-radius:10px;text-align:center;letter-spacing:2px;font-family:monospace"/>
+    <button id="viewAuthBtn" onclick="viewLogin()"
+      style="width:100%;margin-top:12px;padding:12px;background:var(--red);color:#fff;border:none;border-radius:10px;font-size:15px;font-weight:700;cursor:pointer">Accéder →</button>
+    <div id="viewAuthErr" style="display:none;margin-top:12px;font-size:13px;color:var(--red);font-weight:600"></div>
+  </div>
+</div>
+
+<!-- HEADER -->
+<div class="header">
+  <div class="header-brand">
+    <div class="header-flag"><img src="assets/logo.png" alt="" style="width:100%;height:100%;object-fit:cover;display:block"></div>
+    <div>
+      <div class="header-title">Planning-Med</div>
+      <div class="header-sub">Anesthésie-Réa</div>
+    </div>
+  </div>
+  <div class="header-right">
+    <a href="./docs/guide-mar.html" target="_blank" rel="noopener" class="header-btn" title="Guide du MAR — mode d'emploi du portail et du planning"><span class="hb-ico">?</span> Aide</a>
+    <button id="notifBell" class="theme-btn bell-btn" onclick="notifsOuvrir()" title="Notifications" aria-label="Notifications" style="display:none"><i data-lucide="bell"></i></button>
+    <button id="themeBtn" class="theme-btn" onclick="cycleTheme()" title="Thème">🌗</button>
+    <span id="mePill" class="me-pill" style="display:none"></span>
+  </div>
+</div>
+
+<!-- LA CLOCHE (v1.77) : journal des notifications des 30 derniers jours -->
+<div id="notifPanel" class="notif-panel" style="display:none" onclick="if(event.target===this)notifsFermer()">
+  <div class="notif-card">
+    <div class="notif-head">
+      <div class="notif-title">Notifications</div>
+      <button class="notif-close" onclick="notifsFermer()" aria-label="Fermer">✕</button>
+    </div>
+    <div id="notifListe" class="notif-liste"></div>
+  </div>
+</div>
+
+<!-- CONTENU -->
+<div class="wrap" id="portal" style="display:none">
+  <div id="tilesView">
+    <h1 class="hello" id="hello">Bienvenue</h1>
+    <p class="hello-sub">Choisissez une rubrique du service. <span class="ver-badge"><span class="ver-dot"></span><span id="verBadge" data-version>—</span></span></p>
+    <!-- (12/08/2026, v1.31.4) Notifications push — phase 1 : visible rôle admin SEUL.
+         Le serveur refuse de toute façon les autres rôles : ceci n'est que l'habillage. -->
+    <div id="notifCard" class="mg-hero" style="display:none" onclick="activerNotifications()">
+      <div class="mg-hero-ico"><i data-lucide="bell"></i></div>
+      <div class="mg-hero-body">
+        <div class="mg-hero-t">Activer les notifications</div>
+        <div class="mg-hero-s" id="notifEtat">Recevez les annonces du planning directement sur ce téléphone.</div>
+      </div>
+    </div>
+    <div id="echangesHero" class="mg-hero" style="display:none" onclick="location.hash='#echanges'">
+      <div class="mg-hero-ico"><i data-lucide="repeat"></i></div>
+      <div class="mg-hero-body">
+        <div class="mg-hero-label">Échanges de gardes</div>
+        <div class="mg-hero-main" id="echHeroMain">Mes échanges</div>
+        <div class="mg-hero-sub" id="echHeroSub">Donner ou échanger une garde avec un collègue.</div>
+      </div>
+      <div class="mg-hero-arrow"><i data-lucide="chevron-right"></i></div>
+    </div>
+    <div id="myGardesHero" class="mg-hero" style="display:none" onclick="location.hash='#mes-gardes'">
+      <div class="mg-hero-ico"><i data-lucide="moon"></i></div>
+      <div class="mg-hero-body">
+        <div class="mg-hero-label" id="mgHeroLabel">Prochaine garde</div>
+        <div class="mg-hero-main" id="mgHeroMain">Chargement…</div>
+        <div class="mg-hero-sub" id="mgHeroSub"></div>
+      </div>
+      <div class="mg-hero-arrow"><i data-lucide="chevron-right"></i></div>
+    </div>
+    <div class="tiles" id="tiles"></div>
+  </div>
+  <div id="toposView" style="display:none">
+    <div class="topos-head">
+      <button class="btn-back" onclick="backToHome()"><i data-lucide="arrow-left" style="width:16px;height:16px"></i> Retour</button>
+      <h2>Topos / biblio</h2>
+      <span class="topos-count" id="toposCount"></span>
+    </div>
+    <div id="toposList"></div>
+  </div>
+  <div id="staffsView" style="display:none">
+    <div class="topos-head">
+      <button class="btn-back" onclick="backToHome()"><i data-lucide="arrow-left" style="width:16px;height:16px"></i> Retour</button>
+      <h2>Staffs à venir</h2>
+      <span class="topos-count" id="staffsCount"></span>
+    </div>
+    <div id="staffsList"></div>
+  </div>
+  <div id="veilleView" style="display:none">
+    <div class="topos-head">
+      <button class="btn-back" onclick="backToHome()"><i data-lucide="arrow-left" style="width:16px;height:16px"></i> Retour</button>
+      <h2>Veille biblio</h2>
+      <span class="topos-count" id="veilleCount"></span>
+    </div>
+    <div class="veille-toolbar" id="veilleToolbar" style="display:none">
+      <div class="vfilter" id="vfilter">
+        <button class="on" onclick="setVFilter('unread',this)">Non lus</button>
+        <button onclick="setVFilter('all',this)">Tous</button>
+        <button onclick="setVFilter('star',this)">★ Favoris</button>
+      </div>
+      <select class="vsel" onchange="onVSource(this.value)">
+        <option value="">Toutes sources</option>
+        <option value="REVUE">Revues spécialisées</option>
+        <option value="GENERAL">Généralistes</option>
+      </select>
+      <div class="vrev-wrap">
+        <button class="vsel" id="vRevBtn" onclick="toggleVRevPanel(event)">Revues (toutes)</button>
+        <div class="vrev-panel" id="vRevPanel" style="display:none"></div>
+      </div>
+      <select class="vsel" id="vThemeSel" onchange="onVTheme(this.value)">
+        <option value="">Tous thèmes</option>
+      </select>
+      <select class="vsel" onchange="onVSort(this.value)">
+        <option value="recent">Plus récents</option>
+        <option value="relevance">Pertinence</option>
+      </select>
+      <input class="vsearch" type="search" placeholder="Filtrer par titre, auteur, revue…" oninput="onVSearch(this.value)">
+    </div>
+    <div id="veilleList"></div>
+  </div>
+  <div id="protocolesView" style="display:none">
+    <div class="topos-head">
+      <button class="btn-back" onclick="backToHome()"><i data-lucide="arrow-left" style="width:16px;height:16px"></i> Retour</button>
+      <h2>Protocoles</h2>
+      <span class="topos-count" id="protocolesCount"></span>
+    </div>
+    <input class="vsearch protos-search" type="search" placeholder="Filtrer un protocole…" oninput="onProtoSearch(this.value)" style="display:none">
+    <div id="protocolesList"></div>
+  </div>
+  <div id="annuaireView" style="display:none">
+    <div class="topos-head">
+      <button class="btn-back" onclick="backToHome()"><i data-lucide="arrow-left" style="width:16px;height:16px"></i> Retour</button>
+      <h2>Annuaire</h2>
+    </div>
+    <input class="vsearch annu-search" type="search" placeholder="Rechercher un service, un nom, un numéro…" oninput="onAnnuSearch(this.value)" style="display:none">
+    <div id="annuaireList"></div>
+  </div>
+  <div id="mesGardesView" style="display:none">
+    <div class="topos-head">
+      <button class="btn-back" onclick="backToHome()"><i data-lucide="arrow-left" style="width:16px;height:16px"></i> Retour</button>
+      <h2>Mes gardes</h2>
+      <span class="topos-count" id="mesGardesCount"></span>
+    </div>
+    <div id="mesGardesList"></div>
+  </div>
+  <div id="echangesView" style="display:none">
+    <div class="topos-head">
+      <button class="btn-back" onclick="backToHome()"><i data-lucide="arrow-left" style="width:16px;height:16px"></i> Retour</button>
+      <h2>Mes échanges</h2>
+      <span class="topos-count" id="echCount"></span>
+    </div>
+    <div class="ech-bar">
+      <div class="ech-filtres">
+        <button id="echFiltreMoi" class="ech-filtre actif" onclick="echFiltrer(false)">Mes demandes</button>
+        <button id="echFiltreTous" class="ech-filtre" onclick="echFiltrer(true)">Tout voir</button>
+      </div>
+      <button id="echProposerBtn" class="ech-proposer" style="display:none" onclick="echOuvrirProposition()">
+        <i data-lucide="plus" style="width:15px;height:15px"></i> Proposer
+      </button>
+    </div>
+    <div id="echProposition" class="ech-panneau" style="display:none"></div>
+    <div id="echList"><div class="topos-loading">Chargement…</div></div>
+  </div>
+  <div id="mesCongesView" style="display:none">
+    <div class="topos-head">
+      <button class="btn-back" onclick="backToHome()"><i data-lucide="arrow-left" style="width:16px;height:16px"></i> Retour</button>
+      <h2>Mes congés</h2>
+      <span class="topos-count" id="mesCongesCount"></span>
+    </div>
+    <div id="ordreVacBox"></div>
+    <div id="mesCongesBody"></div>
+  </div>
+</div>
+
+<script>
+// Version du site (source unique — tenue à la main, alignée sur les guides).
+const SITE_VERSION = window.SITE_VERSION || '—';   // le numéro vit dans version.js
+const API_URL = 'https://script.google.com/macros/s/AKfycbxDbTnhgdjCNBqkeAblZWgS3CK-IptjJoRDQd1AtGF7WQoQkXriWGvISIo7LJG8zUtjTQ/exec';
+
+let VIEW_CODE = '';
+let MY_ID = null;
+
+let MY_ROLE = null;
+let MY_LIBERAL = false;      // membre du groupement liberal (colonne LIBERAL de MEDECINS)
+let INDISPOS_OUVERTE = false;   // campagne de saisie en cours (renvoyé par login)
+let INDISPOS_FIGEES  = false;   // (26/08) planning de l'année de campagne déjà généré → tuile en consultation seule
+let INDISPOS_YEAR = null;       // année concernée par la saisie
+// (POSE TP · 22/08/2026) Phase de pose des temps partiels + profil du MAR.
+// Renvoyés par login depuis le serveur du 22/08 ; avec un serveur plus ancien
+// les champs sont absents → la tuile TP reste invisible, sans erreur.
+let PHASE_TP = null;            // { actif, annee } si une année générée existe
+let MY_QUOTITE = 100;           // quotité (col. E de MEDECINS)
+let MY_TPFIXE = false;          // jours fixes ou rythme 2/2 : hors dispositif TP
+
+function esc(s){ return String(s||'').replace(/[&<>'"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;',"'":'&#39;','"':'&quot;'}[c])); }
+function _meName(id){ return (id==='PRUNET'?'Pr ':'Dr ')+id.charAt(0)+id.slice(1).toLowerCase(); }
+// Libelle court de la pastille du bandeau. Admin : « ADMIN ». MAR : ses initiales
+// telles que saisies au classeur ; a defaut, les trois premieres lettres de l'identifiant.
+function _mePastille(r){
+  if(!r || r.role!=='mar') return 'ADMIN';
+  const ini = String((r && r.initials) || '').trim().toUpperCase();
+  if(ini) return ini;
+  return String(r.id || '').trim().toUpperCase().slice(0,3) || 'MAR';
+}
+
+// ── THÈME (clé localStorage partagée avec index.html : pmTheme) ──
+function getThemePref(){ try{return localStorage.getItem('pmTheme')||'auto';}catch(e){return 'auto';} }
+function resolveTheme(pref){ return pref==='auto' ? (window.matchMedia('(prefers-color-scheme: dark)').matches?'dark':'light') : pref; }
+function applyTheme(){
+  const pref=getThemePref(), t=resolveTheme(pref);
+  document.documentElement.dataset.theme = t;
+  const meta=document.querySelector('meta[name="theme-color"]');
+  if(meta) meta.content = t==='dark' ? '#0B1220' : '#CE1126';
+  const btn=document.getElementById('themeBtn');
+  if(btn){ btn.textContent = pref==='auto'?'🌗':(pref==='dark'?'🌙':'☀️');
+           btn.title = 'Thème : '+(pref==='auto'?'automatique':(pref==='dark'?'sombre':'clair')); }
+}
+function cycleTheme(){
+  const order=['auto','light','dark'];
+  const next=order[(order.indexOf(getThemePref())+1)%3];
+  try{localStorage.setItem('pmTheme',next);}catch(e){}
+  applyTheme();
+}
+try{ window.matchMedia('(prefers-color-scheme: dark)').addEventListener('change',()=>{ if(getThemePref()==='auto') applyTheme(); }); }catch(e){}
+applyTheme();
+
+// ── API ──
+let _apiBusy = 0;
+function _apiBar(on){
+  let el = document.getElementById('apiBar');
+  if(!el){ el = document.createElement('div'); el.id='apiBar'; document.body.appendChild(el); }
+  _apiBusy = Math.max(0, _apiBusy + (on?1:-1));
+  el.classList.toggle('on', _apiBusy>0);
+}
+/* ── (01/08/2026) FILET : CORPS DE REQUETE PERDU ─────────────────────────
+   « Code absent de la requête » est un message que le serveur ne produit que
+   dans un seul cas : il a recu la requete mais pas son corps, donc il n'a
+   RIEN FAIT — ni lu, ni ecrit, ni envoye de mail. Renvoyer est donc sans
+   danger, y compris pour une action d'ecriture : c'est la seule erreur du
+   systeme dont on sache avec certitude qu'elle n'a laisse aucune trace.
+   On ne rejoue QUE sur ce message, jamais sur un code refuse.
+   Le second envoi apparait comme une ligne distincte dans chrono() : le
+   probleme reste visible au lieu d'etre masque par le correctif. */
+const ERR_CORPS_PERDU = 'Code absent de la requête';
+async function apiPost(payload) {
+  let r;
+  try {
+    r = await _apiPostDirect(payload);
+  } catch (e) {
+    /* (04/08/2026) Rejeu sur echec de transport — meme protection
+       qu'index.html : page d'erreur HTML servie au hasard par Google
+       → un unique renvoi silencieux. 2e echec → l'erreur remonte. */
+    console.warn('[api] echec de transport (' + (payload.action || '?') + ') — rejeu unique');
+    r = await _apiPostDirect(payload);
+  }
+  if (r && r.success === false && r.error === ERR_CORPS_PERDU) {
+    console.warn('[api] corps de requete perdu (' + (payload.action || '?') + ') — renvoi immediat');
+    return await _apiPostDirect(payload);
+  }
+  return r;
+}
+
+/* _reveilAPI supprimé le 18/08/2026 : l'appel avait été retiré dès le 01/08 (le filet de rejeu suffit) ; la fonction restait sans appelant sur les 5 pages. Historique : ROADMAP. */
+
+/* ══ MIROIR CLOUDFLARE — LECTURE (etape 4, 03/08/2026) ═══════════════════
+   Meme mecanisme que index.html : le Worker (cloudflare/worker.js, alimente
+   par gas/miroir.gs) authentifie par empreinte SHA-256 et livre identite +
+   donnees en ~150 ms. TOUT resultat autre qu'un succes complet rend la main
+   au circuit GAS historique, seul juge de la validite d'un code. */
+const MIROIR_URL = 'https://miroir.planningmedic.workers.dev';
+
+async function miroirRead(keys) {
+  const _dep = Math.round(performance.now()), _t0 = Date.now();
+  const _ctrl = new AbortController();
+  const _timer = setTimeout(() => _ctrl.abort(), 6000);
+  try {
+    const res = await fetch(MIROIR_URL + '/read', {
+      method: 'POST',
+      headers: { 'Content-Type': 'text/plain;charset=utf-8' },   // requete « simple » : pas de preambule CORS
+      body: JSON.stringify({ code: VIEW_CODE, keys }),
+      signal: _ctrl.signal,
+    });
+    const rep = await res.json();
+    try { if (window.PERF) PERF.appel('miroir:' + keys.join('+'), Date.now() - _t0, null, _dep,
+                                      rep && rep.success ? undefined : 'ECHEC — ' + ((rep && rep.error) || 'HTTP ' + res.status)); } catch (_e) {}
+    return rep;
+  } catch (e) {
+    try { if (window.PERF) PERF.appel('miroir:' + keys.join('+'), Date.now() - _t0, null, _dep,
+                                      'ECHEC — ' + (e && e.message)); } catch (_e) {}
+    return null;   // panne de transport → le repli GAS decide
+  } finally { clearTimeout(_timer); }
+}
+
+/* Ouverture par le miroir : identite + annee active + planning en un
+   aller-retour. true = parti sur le miroir ; sinon l'appelant bascule GAS. */
+async function miroirBootDash() {
+  const devine = new Date().getFullYear();
+  /* (13/08/2026) `echanges` voyage dans CE même appel — la règle de la maison :
+     une clé de plus dans une requête existante coûte des octets, une requête
+     de plus coûte un aller-retour. Refusée par le serveur (échanges pas
+     ouverts pour ce code) : elle revient dans `refuses`, coût nul. */
+  /* (23/08/2026 — cloche) `notifs` voyage dans CE même appel : une clé de
+     plus coûte des octets, une requête de plus coûterait un aller-retour. */
+  const m = await miroirRead(['annees', 'planning_' + devine, 'planning_' + (devine + 1), 'ordre_vac', 'echanges', 'notifs']);
+  if (!m || !m.success) return m;
+  const active = (m.data && m.data.annees && Number(m.data.annees.active)) || devine;
+  let plan = m.data['planning_' + active];
+  /* (08/08/2026) L'annee SUIVANTE voyage dans le MEME appel : elle sert la
+     transition decembre -> janvier des tuiles « prochaine garde » et « mes
+     conges ». Tant qu'elle n'est pas generee, la cle revient vide et il n'y a
+     rien a afficher — zero appel supplementaire, ni miroir ni Apps Script. */
+  let planSuiv = m.data['planning_' + (active + 1)];
+  if (!plan && active !== devine) {
+    const m2 = await miroirRead(['planning_' + active, 'planning_' + (active + 1)]);
+    if (m2 && m2.success && m2.data) {
+      plan = m2.data['planning_' + active];
+      if (!planSuiv) planSuiv = m2.data['planning_' + (active + 1)];
+    }
+  }
+  seedActiveYear(active);
+  if (plan) { _planCache[active] = plan; _ssPlanSet(active, plan); }
+  if (planSuiv) { _planCache[active + 1] = planSuiv; _ssPlanSet(active + 1, planSuiv); }
+  /* (13/08/2026) L'ordre de passage voyage dans CE meme appel : le bandeau de
+     Mes conges est pret avant meme qu'on ouvre la tuile. Il faut le poser AVANT
+     applyUserBadge, qui declenche le repli Apps Script s'il ne trouve rien. */
+  _ovDepuisMiroir(m.data && m.data.ordre_vac);
+  applyUserBadge(m.identite || {});
+  _echDepuisMiroir(m.data && m.data.echanges);   // (13/08) après applyUserBadge : le compteur a besoin de MY_ID
+  _notifsDepuisMiroir(m.data && m.data.notifs); // (23/08) après applyUserBadge : la cloche filtre sur MY_ID
+  /* Journal de connexion : login GAS en arriere-plan, resultat ignore. */
+  /* (06/08/2026) Journal de connexion en envoi A FOND PERDU.
+     Il n'apporte rien a l'ecran : il alimente l'onglet CONNEXIONS. En passant
+     par le circuit normal, il allumait pourtant le temoin d'activite pendant
+     2 a 3 secondes a CHAQUE ouverture de page — un clignotement sans cause
+     visible pour l'utilisateur. sendBeacon l'envoie hors de la file, sans
+     attendre de reponse, et survit meme a la fermeture de l'onglet. */
+  try {
+    const _p = JSON.stringify({ action: 'login', code: VIEW_CODE });
+    let _envoye = false;
+    try { _envoye = navigator.sendBeacon(API_URL, new Blob([_p], { type: 'text/plain;charset=utf-8' })); } catch (e) {}
+    if (!_envoye) { try { apiPost({ action: 'login' }).catch(function () {}); } catch (e) {} }
+  } catch (e) {}
+  return true;
+}
+
+/* (miroir, 04/08/2026) Tuile via le miroir : la cle stocke l'enveloppe
+   {success:true,…} telle que l'action GAS la renvoie — la vue la consomme
+   a l'identique. Echec ou cle absente → l'action GAS, comme avant.
+   Fraicheur : synchro horaire (contenus Drive geres a la main). */
+async function miroirTuile(cle, action) {
+  try {
+    const m = await miroirRead([cle]);
+    if (m && m.success && m.data && m.data[cle] && m.data[cle].success) return m.data[cle];
+  } catch (e) { /* repli */ }
+  return await apiPost({ action: action });
+}
+
+async function _apiPostDirect(payload) {
+  payload.code = VIEW_CODE;
+  _apiBar(true);
+  // (01/08/2026) Journal de mesure — lecture seule, alimente chrono().
+  const _act = payload.action || '(sans action)';
+  const _dep = Math.round(performance.now()), _t0 = Date.now();
+  const _ctrl = new AbortController();
+  const _timer = setTimeout(() => _ctrl.abort(), 120000);
+  try {
+    const res = await fetch(API_URL, {
+      method: 'POST',
+      headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+      body: JSON.stringify(payload),
+      redirect: 'follow',
+      signal: _ctrl.signal,
+    });
+    const _rep = await res.json();
+    try { if (window.PERF) PERF.appel(_act, Date.now() - _t0, _rep && _rep._srv_ms, _dep,
+                                      res.ok ? 'ok' : 'ECHEC — HTTP ' + res.status,
+                                      _rep && _rep._glob_ms); } catch (_e) {}
+    return _rep;
+  } catch (e) {
+    try { if (window.PERF) PERF.appel(_act, Date.now() - _t0, null, _dep,
+                                      'ECHEC — ' + (e && e.message)); } catch (_e) {}
+    if (e && e.name === 'AbortError') throw new Error('Délai dépassé (2 min) — serveur trop lent ou injoignable, réessayez');
+    throw e;
+  } finally { clearTimeout(_timer); _apiBar(false); }
+}
+
+// ── BADGE UTILISATEUR + DÉCONNEXION ──
+function applyUserBadge(r){
+  MY_ROLE = r.role;
+  /* (12/08/2026) Carte notifications : seulement si le navigateur sait faire
+     (iOS : uniquement depuis l'app installée) et si la permission n'est pas
+     déjà donnée. (14/08) Qui la voit suit l'INTERRUPTEUR des échanges :
+     admin toujours, pilotes pendant le test, les 23 à l'ouverture — le
+     serveur decide (il refuse l'abonnement aux autres de toute façon). */
+  try {
+    if (r.role === 'admin') _notifCarteSiPossible();
+  } catch(e) {}
+  MY_ID = (r.role==='mar') ? r.id : null;
+  // État de la campagne de saisie (pilote la tuile « Mes indisponibilités »).
+  INDISPOS_OUVERTE = !!r.indisposOuverte;
+  INDISPOS_FIGEES  = !!r.indisposFigees;   // (26/08) consultation seule dès le portail
+  // Membre du groupement liberal : pilote la tuile Module liberal.
+  MY_LIBERAL = !!r.liberal;
+  INDISPOS_YEAR = r.indisposYear || null;
+  // (POSE TP · 22/08/2026) Tuile « Mes jours de temps partiel » : phase déduite
+  // côté serveur + éligibilité par les colonnes MEDECINS, aucun nom en dur.
+  PHASE_TP = (r.phaseTp && r.phaseTp.actif) ? r.phaseTp : null;
+  MY_QUOTITE = Number(r.quotite) || 100;
+  MY_TPFIXE = !!r.tpFixe;
+  prechargerOrdreVac();   // en tache de fond : le bandeau de Mes conges sera deja pret
+
+  const pill = document.getElementById('mePill');
+  if(!pill) return;
+  // Pastille du bandeau : initiales du MAR (colonne 3 de MEDECINS, deja renvoyees
+  // par la connexion sous r.initials — meme source que le tableau de staff.html).
+  // Le nom complet reste affiche juste dessous dans « Bonjour Dr X ».
+  const label = _mePastille(r);
+  pill.innerHTML = esc(label) + ' <span class="me-pill-logout" aria-label="Déconnexion" style="display:inline-flex;align-items:center"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg></span>';
+  pill.style.display = 'inline-flex';
+  pill.style.cursor = 'pointer';
+  pill.title = "Changer d'utilisateur / déconnexion";
+  pill.onclick = logout;
+  const hello = document.getElementById('hello');
+  if(hello) hello.textContent = MY_ID ? ('Bonjour ' + _meName(MY_ID)) : 'Bienvenue';
+  { const vb = document.getElementById('verBadge'); if (vb) vb.textContent = SITE_VERSION; }
+}
+function logout(){
+  if(!confirm('Se déconnecter de ce téléphone ?')) return;
+  SessionPortail.oublier();
+  VIEW_CODE=''; MY_ID=null; MY_ROLE=null; MY_LIBERAL=false; MY_ORDRE_VAC=null;
+  try{ sessionStorage.removeItem(OV_CLE); }catch(e){}
+  location.reload();
+}
+
+// ── TUILES ──
+const TILES = [
+  { key:'planning', title:'Planning', sub:'Gardes, secteurs, consultations et équité.', icon:'calendar-days', href:'index.html', ready:true },
+  // Tuile de CAMPAGNE : visible uniquement pendant la saisie des indispos
+  // (octobre → clôture). Hors campagne, indispos.html ne sert à rien : la tuile
+  // disparaît plutôt que d'encombrer le portail 10 mois par an.
+  // Le drapeau vient du serveur (présence de INDISPOS_ACTIVE dans CONFIG).
+  { key:'indispos', title:'Mes indisponibilités', sub:'Déclarez vos souhaits et vos congés {AN}.', icon:'clock', href:'indispos.html', ready:true, campagne:true, tint:'viol' },
+  // (POSE TP · 22/08/2026) Tuile de POSE DES TEMPS PARTIELS : visible quand une
+  // année générée existe (phase déduite, serveur) ET que le MAR est éligible
+  // (quotité < 100, ni jours fixes ni rythme 2/2 — colonnes MEDECINS, aucun nom
+  // en dur). Deux tuiles séparées plutôt qu'une à deux visages : en octobre la
+  // campagne (année N+1) et la pose TP (année N) COHABITENT — maquette validée
+  // le 22/08. Teinte verte : les jours verts de l'écran de pose.
+  { key:'tp', title:'Mes jours de temps partiel', sub:'Posez vos jours de TP {ANTP}, dans le planning déjà généré.', icon:'calendar-clock', href:'indispos.html?tp=1', ready:true, tp:true, tint:'vert' },
+  // (Lot 5-bis) Consultations a venir + absences du MAR sur les 4 semaines qui
+  // suivent chaque consultation. ACCES RESTREINT a DURAND tant que le comite ne
+  // pose pas les consultations a 4 semaines : ouvert a tous, l'ecran serait presque
+  // vide. Retirer `only` pour la mise en service (et monter la version du site).
+  { key:'consult', title:'Mes consultations', sub:'Vos consultations libérales à venir et vos absences sur la même période.', icon:'calendar-check', href:'absences.html', ready:true, liberal:true, only:'DURAND' },
+  { key:'conges', title:'Mes congés', sub:'Vacances, formation, TP, récup et congés à venir.', icon:'calendar-off', view:'conges', ready:true },
+  { key:'topos',    title:'Topos / biblio', sub:'Documents et présentations du service.', icon:'book-open', view:'topos', ready:true },
+  { key:'protocoles', title:'Protocoles', sub:'Procédures du service, classées par spécialité.', icon:'clipboard-list', view:'protocoles', tint:'viol', ready:true },
+  { key:'staffs',   title:'Staffs à venir', sub:'Programme des réunions et intervenants.', icon:'presentation', view:'staffs', ready:true },
+  { key:'veille',   title:'Veille biblio', sub:'Nouveaux articles PubMed en anesthésie-réanimation.', icon:'radar', view:'veille', ready:true },
+  { key:'annuaire', title:'Annuaire', sub:'Numéros de l\'hôpital et DECT de l\'équipe.', icon:'phone', view:'annuaire', ready:true },
+  // Tuile RESERVEE aux membres du groupement liberal (colonne LIBERAL = O dans
+  // MEDECINS). Ouvre directement l'ESTIMATEUR ; celui-ci porte en tete un lien
+  // vers guide-liberal.html (cotation, regle des 30 %, antiseche).
+  // Colonne absente ou vide => tuile invisible pour tout le monde.
+  // ⚠️ `only` AJOUTE (27/07/2026) : la colonne LIBERAL de MEDECINS passe a O pour les
+  // 19 membres du groupement, car c'est elle qui construit le releve LIBERAL_CA_{Y}.
+  // Sans `only`, les 18 autres verraient la tuile du jour au lendemain, alors que le
+  // module est encore en rodage. Pour OUVRIR : retirer `only` et monter la version.
+  // TUILE QUI SE SEPARE EN DEUX : le liberal, c'est coter/declarer d'un cote,
+  // suivre les 30 % de l'autre. `split` remplace `href` — voir renderTiles.
+  { key:'liberal',  title:'Libéral', sub:'Cotation, devis, déclaration — et suivi des 30 %.', icon:'calculator', ready:true, tint:'viol', liberal:true, only:'DURAND',
+    split:[
+      {t:'Cotation & déclaration', s:'Coter un patient, imprimer le devis, déclarer l\'intervention.', href:'docs/module-liberal/estimateur-liberal.html'},
+      {t:'Suivi des 30 %',         s:'Ma position, celle du groupe, les marges.',                    href:'suivi-liberal.html'},
+    ] },
+  { key:'crh',      title:'CRH', sub:'Comptes rendus de réanimation.', icon:'file-text', href:'crh.html', ready:true, only:'DURAND' },
+  // Documentation TECHNIQUE du systeme (architecture, wizards, deploiement,
+  // depannage). Sans interet pour l'equipe : tuile reservee a DURAND, comme CRH.
+  // Seul moyen d'y acceder jusqu'ici : taper l'adresse a la main.
+  { key:'technique', title:'Guide technique', sub:'Architecture, déploiement, dépannage du système.', icon:'wrench', href:'docs/guide-technique.html', ready:true, only:'DURAND' },
+  // Statistiques d'usage du portail (29/08/2026) : qui s'en sert, a quelle
+  // frequence, a quels moments. Reservee a DURAND comme CRH et le guide
+  // technique. Le serveur refuse l'action aux autres roles : masquer la tuile
+  // ne ferme rien.
+  { key:'stats', title:'Statistiques d\'usage', sub:'Qui utilise le portail, à quelle fréquence, à quels moments.', icon:'bar-chart-2', href:'docs/stats-usage.html', ready:true, only:'DURAND' },
+];
+function renderTiles(){
+  const box = document.getElementById('tiles');
+  box.innerHTML = TILES.filter(t => (!t.only || t.only === MY_ID) && (!t.campagne || INDISPOS_OUVERTE) && (!t.tp || (PHASE_TP && MY_QUOTITE < 100 && !MY_TPFIXE)) && (!t.liberal || MY_LIBERAL)).map(t => {
+    const soon = t.ready ? '' : ' soon';
+    const tag  = t.ready ? '' : '<span class="badge-soon">Bientôt</span>';
+    const arrow = t.ready ? '<div class="tile-arrow">Ouvrir <i data-lucide="arrow-right" style="width:15px;height:15px"></i></div>' : '';
+    /* (26/08/2026) Campagne FIGÉE : le planning est généré, l'écran indispos est
+       en lecture seule — la tuile le dit dès le portail (icône cadenas, teinte
+       ambre, sous-titre explicite) plutôt que de laisser croire à une saisie. */
+    const fige = (t.key === 'indispos' && INDISPOS_FIGEES);
+    const icone = fige ? 'lock' : t.icon;
+    const teinte = fige ? 'ambre' : t.tint;
+    const sousTitre = fige
+      ? ('Consultation seule — le planning' + (INDISPOS_YEAR ? ' ' + INDISPOS_YEAR : '') + ' est établi.')
+      : String(t.sub).replace(' {AN}', INDISPOS_YEAR ? (' pour ' + INDISPOS_YEAR) : '').replace(' {ANTP}', PHASE_TP ? (' pour ' + PHASE_TP.annee) : '');
+    const inner =
+      tag +
+      '<div class="tile-ico'+(teinte?' '+teinte:'')+'"><i data-lucide="'+icone+'"></i></div>' +
+      '<div class="tile-title">'+esc(t.title)+'</div>' +
+      '<div class="tile-sub">'+esc(sousTitre)+'</div>' +
+      arrow;
+    // Tuile a deux destinations : la face reste identique aux autres, les deux
+    // moitiés vivent dessous et n'apparaissent qu'au clic.
+    if (t.ready && t.split) {
+      const moities = t.split.map(h =>
+        '<a class="split-half" href="'+h.href+'">'
+        + '<div class="sh-t">'+esc(h.t)+'</div>'
+        + '<div class="sh-s">'+esc(h.s)+'</div></a>').join('');
+      return '<div class="tile split" id="tile-'+t.key+'">'
+        + '<div class="split-face" onclick="splitOpen(\''+t.key+'\')">'+inner+'</div>'
+        + '<div class="split-halves">'+moities+'</div>'
+        + '<button class="split-back" onclick="splitClose(\''+t.key+'\')">Fermer</button>'
+        + '</div>';
+    }
+    if (t.ready && t.href) return '<a class="tile" href="'+t.href+'">'+inner+'</a>';
+    if (t.ready && t.view) return '<div class="tile clickable" onclick="openView(\''+t.view+'\')">'+inner+'</div>';
+    return '<div class="tile'+soon+'">'+inner+'</div>';
+  }).join('');
+  if(window.lucide) lucide.createIcons();
+}
+
+function showPortal(){
+  document.getElementById('viewAuthOverlay').style.display = 'none';
+  document.getElementById('portal').style.display = 'block';
+  renderTiles();
+  loadMyGardes();
+  route();
+}
+
+// ── MES GARDES (perso — MAR connecté) ──
+let MY_GARDES = null;          // [{date:'YYYY-MM-DD', type:'G'|'G2'}] triées
+let _mgLoading = false;
+const _planCache = {};         // year -> planning JSON (mémoire)
+
+// (perf) Année active : UNE seule promesse partagée (loadMyGardes + loadMyConges),
+// pré-alimentée par la réponse du login quand elle contient l'année.
+let _activeYearP = null;
+function seedActiveYear(y){ if(y) _activeYearP = Promise.resolve(Number(y)); }
+function getActiveYearOnce(){
+  if(_activeYearP) return _activeYearP;
+  _activeYearP = apiPost({action:'getActiveYear'})
+    .then(function(r){ return (r && r.success && r.year) ? Number(r.year) : new Date().getFullYear(); })
+    .catch(function(){ _activeYearP = null; return new Date().getFullYear(); });
+  return _activeYearP;
+}
+
+// (perf) Cache sessionStorage du planning, clé partagée avec index.html ({p, a, t}).
+// Le dashboard ne lit/écrit que p ; il préserve a pour ne pas écraser le cache d'index.
+function _ssPlanGet(year){
+  try{ const c=JSON.parse(sessionStorage.getItem('pmPlan:'+year)); return (c&&c.p)?c:null; }catch(e){ return null; }
+}
+function _ssPlanSet(year, planning){
+  try{
+    const prev=_ssPlanGet(year)||{};
+    sessionStorage.setItem('pmPlan:'+year, JSON.stringify({p:planning, a:prev.a, t:Date.now()}));
+  }catch(e){}
+}
+/* (08/08/2026) Lecture SANS reseau : uniquement ce qui est deja en memoire ou
+   dans le cache de session. Reservee a l'annee suivante, qui ne doit jamais
+   declencher d'appel — elle arrive avec l'ouverture (miroirBootDash). */
+function _planDejaLa(year){
+  if (_planCache[year]) return _planCache[year];
+  const c = _ssPlanGet(year);
+  return c ? c.p : null;
+}
+async function _refreshPlanSilently(year){
+  try{
+    const r=await apiPost({action:'getPlanningJson', year});
+    if(r && r.success && r.planning){
+      const changed = JSON.stringify(r.planning)!==JSON.stringify(_planCache[year]||null);
+      _planCache[year]=r.planning; _ssPlanSet(year, r.planning);
+      if(changed && MY_ID){
+        // recalcul silencieux du bandeau « prochaine garde »
+        const today=_todayStr();
+        let list=_extractMyGardes(r.planning, today);
+        MY_GARDES=list.sort(function(a,b){ return a.date<b.date?-1:a.date>b.date?1:0; });
+        renderMyGardesHero();
+      }
+    }
+  }catch(e){ /* silencieux */ }
+}
+
+function _todayStr(){ const d=new Date(), p=n=>String(n).padStart(2,'0'); return d.getFullYear()+'-'+p(d.getMonth()+1)+'-'+p(d.getDate()); }
+function _daysUntil(dateStr){ const t=new Date(_todayStr()+'T00:00:00'), d=new Date(dateStr+'T00:00:00'); return Math.round((d-t)/86400000); }
+function _mgCap(s){ return s ? s.charAt(0).toUpperCase()+s.slice(1) : s; }
+
+/* Rechargement des données, appelé par le glissement (voir plus bas) :
+   on vide les caches de la visite pour forcer une vraie lecture du miroir. */
+window.__rafraichirDonnees = async function () {
+  try {
+    Object.keys(_planCache).forEach(function (y) { delete _planCache[y]; });
+    try { Object.keys(sessionStorage).forEach(function (k) { if (k.indexOf('plan_') === 0) sessionStorage.removeItem(k); }); } catch (e) {}
+    if (typeof loadMyGardes === 'function') await loadMyGardes();
+    if (typeof loadMyConges === 'function') await loadMyConges();
+  } catch (e) {}
+};
+
+/* ═══ (05/08/2026) RAFRAÎCHIR EN TIRANT LA PAGE VERS LE BAS ═══
+   Constat du terrain : ajouté à l'écran d'accueil, le portail s'ouvre en mode
+   application (apple-mobile-web-app-capable) — et dans ce mode, iOS ne fournit
+   AUCUN rafraîchissement par glissement. Le geste faisait bouger l'écran sans
+   rien recharger. On le fournit donc nous-mêmes, à l'identique de ce que fait
+   Safari : même seuil, même indicateur circulaire, même sensation.
+   Conditions : page tout en haut, glissement vers le bas d'au moins 70 px,
+   un seul doigt. Sinon, on ne touche à rien — le défilement reste normal. */
+(function () {
+  var SEUIL = 70, depart = null, actif = false, enCours = false;
+
+  var ind = document.createElement('div');
+  ind.id = 'ptrInd';
+  ind.style.cssText = 'position:fixed;top:0;left:50%;margin-left:-17px;width:34px;height:34px;' +
+    'border-radius:50%;background:#fff;box-shadow:0 3px 12px rgba(15,23,42,.18);z-index:99998;' +
+    'display:flex;align-items:center;justify-content:center;font-size:16px;color:#DC2626;' +
+    'transform:translateY(-46px);transition:transform .18s ease-out;pointer-events:none';
+  ind.textContent = '↻';
+  document.addEventListener('DOMContentLoaded', function () { document.body.appendChild(ind); });
+
+  function place(y, tourne) {
+    ind.style.transform = 'translateY(' + Math.min(y, 74) + 'px)' + (tourne ? ' rotate(' + (y * 4) + 'deg)' : '');
+  }
+  function range() { ind.style.transform = 'translateY(-46px)'; }
+
+  document.addEventListener('touchstart', function (e) {
+    if (enCours || e.touches.length !== 1) { depart = null; return; }
+    depart = (window.scrollY || document.documentElement.scrollTop) <= 0 ? e.touches[0].clientY : null;
+    actif = false;
+  }, { passive: true });
+
+  document.addEventListener('touchmove', function (e) {
+    if (depart === null || enCours) return;
+    var d = e.touches[0].clientY - depart;
+    if (d <= 0) { depart = null; range(); return; }
+    if ((window.scrollY || document.documentElement.scrollTop) > 0) { depart = null; range(); return; }
+    actif = true;
+    place(d * 0.55 - 40, true);
+  }, { passive: true });
+
+  document.addEventListener('touchend', function (e) {
+    if (depart === null || !actif || enCours) { depart = null; range(); return; }
+    var d = (e.changedTouches[0].clientY - depart);
+    depart = null; actif = false;
+    if (d < SEUIL) { range(); return; }
+    enCours = true;
+    place(16, false);
+    ind.style.animation = 'ptrTourne .7s linear infinite';
+    Promise.resolve()
+      .then(function () { return window.__rafraichirDonnees ? window.__rafraichirDonnees() : null; })
+      .catch(function () {})
+      .then(function () {
+        setTimeout(function () {
+          ind.style.animation = ''; range(); enCours = false;
+        }, 320);
+      });
+  }, { passive: true });
+
+  var st = document.createElement('style');
+  st.textContent = '@keyframes ptrTourne{to{transform:translateY(16px) rotate(360deg)}}';
+  document.head.appendChild(st);
+})();
+
+async function _fetchPlanning(year){
+  if(_planCache[year]) return _planCache[year];
+  const c=_ssPlanGet(year);                       // (perf) cache de la visite précédente
+  if(c){ _planCache[year]=c.p; _refreshPlanSilently(year); return c.p; }
+  /* (miroir, 03/08/2026) Miroir d'abord — toutes les annees consultables y
+     sont poussees (miroir.gs 2026-08-03.2) ; echec → GAS comme avant. */
+  const mi = await miroirRead(['planning_' + year]);
+  if (mi && mi.success && mi.data && mi.data['planning_' + year]) {
+    const p = mi.data['planning_' + year];
+    _planCache[year] = p; _ssPlanSet(year, p);
+    return p;
+  }
+  const r = await apiPost({action:'getPlanningJson', year});
+  if(r && r.success && r.planning){ _planCache[year]=r.planning; _ssPlanSet(year, r.planning); return r.planning; }
+  return null;
+}
+function _extractMyGardes(planning, today){
+  const out=[];
+  if(!planning || !planning.months) return out;
+  planning.months.forEach(function(m){
+    const doc=(m.doctors||[]).find(function(d){ return d.id===MY_ID; });
+    if(!doc || !doc.days) return;
+    for(let i=0;i<doc.days.length;i++){
+      const st=(doc.days[i]||{}).status;
+      if((st==='G'||st==='G2') && m.days[i] && m.days[i].date>=today) out.push({date:m.days[i].date, type:st});
+    }
+  });
+  return out;
+}
+async function loadMyGardes(){
+  const hero=document.getElementById('myGardesHero');
+  if(!MY_ID){ if(hero) hero.style.display='none'; return; }   // admin → pas de bandeau
+  if(hero){ hero.style.display='flex'; hero.classList.add('loading'); }
+  if(_mgLoading) return;
+  _mgLoading=true;
+  try{
+    const today=_todayStr();
+    let year=new Date().getFullYear();
+    try{ year = await getActiveYearOnce(); }catch(e){}
+    let list=_extractMyGardes(await _fetchPlanning(year), today);
+    /* (08/08/2026) Transition decembre -> janvier : l'annee suivante est lue
+       SANS aucun appel. Avant, un seuil « des octobre » declenchait un appel
+       Apps Script a chaque ouverture tant que le planning N+1 n'etait pas
+       genere (novembre) — et la tuile attendait sa reponse. Le seuil de date a
+       disparu : il ratait aussi les 1er-3 janvier, ou l'annee de planning est
+       encore la precedente et le mois vaut 0. */
+    try{ const suiv=_planDejaLa(year+1); if(suiv) list=list.concat(_extractMyGardes(suiv, today)); }catch(e){}
+    list.sort(function(a,b){ return a.date<b.date?-1:a.date>b.date?1:0; });
+    MY_GARDES=list;
+    renderMyGardesHero();
+  }catch(e){
+    MY_GARDES=null;
+    const main=document.getElementById('mgHeroMain'), sub=document.getElementById('mgHeroSub');
+    if(main) main.textContent='Gardes indisponibles';
+    if(sub) sub.textContent='Réessayez plus tard';
+  }finally{
+    _mgLoading=false;
+    if(hero) hero.classList.remove('loading');
+  }
+}
+// Date courte pour la tuile d'accueil : « Mardi 01/09 ».
+// Fonction dediee : staffDateParts() sert ailleurs et n'est pas modifiee.
+const _MG_JOURS=['Dimanche','Lundi','Mardi','Mercredi','Jeudi','Vendredi','Samedi'];
+function _mgDateCourte(iso){
+  const p=String(iso).split('-');
+  if(p.length!==3) return String(iso);
+  const d=new Date(+p[0], +p[1]-1, +p[2]);
+  if(isNaN(d.getTime())) return String(iso);
+  return _MG_JOURS[d.getDay()]+' '+p[2]+'/'+p[1];
+}
+function renderMyGardesHero(){
+  const main=document.getElementById('mgHeroMain'), sub=document.getElementById('mgHeroSub');
+  if(!main||!sub) return;
+  if(!MY_GARDES || !MY_GARDES.length){ main.textContent='Aucune garde à venir'; sub.textContent=''; return; }
+  const g0=MY_GARDES[0], n=_daysUntil(g0.date);
+  const secteur = (g0.type==='G2'?'Mater/Bloc':'Réa');
+  main.textContent = _mgDateCourte(g0.date) + ' · ' + secteur;
+  const when = n<=0 ? "Aujourd'hui" : n===1 ? 'Demain' : 'Dans '+n+' jours';
+  const rest=MY_GARDES.length-1;
+  sub.textContent = when + (rest>0 ? (' · '+rest+' autre'+(rest>1?'s':'')+' à venir') : '');
+}
+function openMesGardes(){
+  if(!MY_ID) return;
+  document.getElementById('tilesView').style.display='none';
+  document.getElementById('mesGardesView').style.display='block';
+  if(MY_GARDES===null){
+    document.getElementById('mesGardesList').innerHTML='<div class="topos-loading">Chargement…</div>';
+    document.getElementById('mesGardesCount').textContent='';
+    loadMyGardes().then(renderMesGardes);
+    return;
+  }
+  renderMesGardes();
+}
+function renderMesGardes(){
+  const box=document.getElementById('mesGardesList'), cnt=document.getElementById('mesGardesCount');
+  if(!MY_GARDES || !MY_GARDES.length){
+    cnt.textContent='';
+    box.innerHTML='<div class="topos-empty">Aucune garde à venir 🎉<br><span>Vos prochaines gardes apparaîtront ici dès leur publication.</span></div>';
+    return;
+  }
+  cnt.textContent = MY_GARDES.length + (MY_GARDES.length>1?' gardes à venir':' garde à venir');
+  let html='', curMonth='';
+  MY_GARDES.forEach(function(g){
+    const dp=staffDateParts(g.date), p=g.date.split('-'), mKey=p[0]+'-'+p[1];
+    if(mKey!==curMonth){ curMonth=mKey; html+='<div class="mg-month">'+_mgCap(_MOIS[(+p[1])-1])+' '+p[0]+'</div>'; }
+    const tag = g.type==='G2' ? '<span class="mg-tag g2">Mater/Bloc</span>' : '<span class="mg-tag g">Réa</span>';
+    html+='<div class="staff-card">'
+      + '<div class="staff-date"><div class="staff-dow">'+dp.dow+'</div><div class="staff-dnum">'+dp.dnum+'</div><div class="staff-month">'+dp.month+'</div></div>'
+      + '<div class="staff-body"><div class="staff-theme">'+_mgCap(dp.dow)+' '+dp.dnum+' '+dp.month+tag+'</div></div>'
+      + '</div>';
+  });
+  box.innerHTML=html;
+  if(window.lucide) lucide.createIcons();
+}
+
+// ── MES CONGÉS (perso — à venir) ──
+const CONGE_CODE_TO_CAT = { A:'vac', V:'vac', F:'form', TP:'tp', R:'recup', CL:'cl' };  // A (2026) et V (2027+) = vacances
+const CAT_META = {
+  vac:   { label:'Vacances',      bg:'#EEF4FB', fg:'#1D6FB8' },
+  form:  { label:'Formation',     bg:'#FDF3E3', fg:'#B45309' },
+  tp:    { label:'Temps partiel', bg:'#FEF3C7', fg:'#92400E' },
+  recup: { label:'Récupération',  bg:'#E7F6F3', fg:'#0F766E' },
+  cl:    { label:'Congé long',    bg:'#F3E8FF', fg:'#7C3AED' }
+};
+const CAT_ORDER = ['vac','form','tp','recup','cl'];
+let MY_CONGES = null;   // { days:[{date,type}], periods:[{type,start,end,n}], counts:{} }
+let MY_ORDRE_VAC = null;   // reponse de getOrdreVacances : { annees:[...], anneePrincipale }
+const OV_ETAT = {};        // par annee : { ouvert, periode, tout }
+
+function _extractMyConges(planning, today){
+  const out=[];
+  if(!planning || !planning.months) return out;
+  planning.months.forEach(function(m){
+    const doc=(m.doctors||[]).find(function(d){ return d.id===MY_ID; });
+    if(!doc || !doc.days) return;
+    for(let i=0;i<doc.days.length;i++){
+      const st=(doc.days[i]||{}).status;
+      if(CONGE_CODE_TO_CAT[st] && m.days[i] && m.days[i].date>=today) out.push({date:m.days[i].date, cat:CONGE_CODE_TO_CAT[st]});
+    }
+  });
+  return out;
+}
+function _daysBetween(a,b){ return Math.round((new Date(b+'T00:00:00')-new Date(a+'T00:00:00'))/86400000); }
+function _buildConges(days){
+  days.sort(function(a,b){ return a.date<b.date?-1:a.date>b.date?1:0; });
+  const periods=[], counts={};
+  days.forEach(function(d){
+    counts[d.cat]=(counts[d.cat]||0)+1;
+    const last=periods[periods.length-1];
+    if(last && last.cat===d.cat && _daysBetween(last.end, d.date)<=3){ last.end=d.date; last.n++; }
+    else { periods.push({cat:d.cat, start:d.date, end:d.date, n:1}); }
+  });
+  return { days:days, periods:periods, counts:counts };
+}
+async function loadMyConges(){
+  const today=_todayStr();
+  let year=new Date().getFullYear();
+  try{ year = await getActiveYearOnce(); }catch(e){}
+  let days=_extractMyConges(await _fetchPlanning(year), today);
+  /* (08/08/2026) Annee suivante : lecture sans appel (voir loadMyGardes). */
+  try{ const suiv=_planDejaLa(year+1); if(suiv) days=days.concat(_extractMyConges(suiv, today)); }catch(e){}
+  MY_CONGES=_buildConges(days);
+}
+/* ══ MON ORDRE DE PASSAGE POUR LES VACANCES ══════════════════════════════
+   (13/08/2026) Deux bandeaux replies : l'annee en cours et la suivante.
+   Un appui ouvre la file de la periode — qui passe avant vous, et de combien.
+
+   Le rang et la composition des groupes viennent du SERVEUR (getOrdreVacances) :
+   aucune regle de rotation n'est recopiee ici, pour qu'il n'existe pas une
+   version « ecran » de l'ordre a cote de la version qui fait foi.
+
+   Le chargement est INDEPENDANT de celui des conges : la liste des conges
+   s'affiche sans attendre cet appel, et le bandeau apparait quand il arrive.
+   Un echec n'affiche rien du tout — pas de message d'erreur pour une
+   information de confort. */
+function _ovNom(id){ return _meName(id); }
+
+function _ovLigne(rang, id, grp, moi){
+  return '<div class="ov-l' + (moi ? ' moi' : '') + '">'
+       + '<span class="ov-n">' + rang + '</span>'
+       + '<span class="ov-i">' + (moi ? 'Vous' : _ovNom(id)) + '</span>'
+       + '<span class="ov-gg"><span class="ov-g ' + grp.toLowerCase() + '">' + grp + '</span></span>'
+       + '</div>';
+}
+
+function _ovPanneau(an){
+  const bloc = (MY_ORDRE_VAC.annees || []).find(function(a){ return a.annee === an; });
+  const st = OV_ETAT[an];
+  if (!bloc || !bloc.periodes || !bloc.periodes.length) return '';
+  const per = bloc.periodes[st.periode] || bloc.periodes[0];
+
+  let file = [];
+  per.ordre.forEach(function(g){ file = file.concat(bloc.groupes[g] || []); });
+  const moi = file.indexOf(MY_ID);
+
+  let h = '<div class="ov-ongs">';
+  bloc.periodes.forEach(function(p, k){
+    h += '<button class="ov-ong' + (k === st.periode ? ' on' : '') + '" data-ov-an="' + an + '" data-ov-per="' + k + '">' + p.nom + '</button>';
+  });
+  h += '</div>';
+
+  h += '<div class="ov-h"><span class="ov-p">' + per.nom + ' ' + an + '</span><span class="ov-q">'
+     + (moi < 0 ? '' : moi === 0 ? 'vous ouvrez le tour' : moi + (moi > 1 ? ' avant vous' : ' avant vous'))
+     + '</span></div>';
+  h += '<div class="ov-grps">' + per.ordre.map(function(g, i){
+         return '<span class="ov-g ' + g.toLowerCase() + (g === bloc.monGroupe ? '' : ' pale') + '">' + g + '</span>'
+              + (i < per.ordre.length - 1 ? '<span class="ov-sep">›</span>' : '');
+       }).join('') + '</div>';
+
+  if (!file.length) { h += '<div class="ov-vide">Groupes de vacances non renseignés.</div>'; return h; }
+
+  const grpDe = function(id){
+    let g = ''; ['A','B','C'].forEach(function(x){ if ((bloc.groupes[x] || []).indexOf(id) > -1) g = x; }); return g;
+  };
+  if (st.tout || moi < 0) {
+    file.forEach(function(id, k){ h += _ovLigne(k + 1, id, grpDe(id), id === MY_ID); });
+  } else {
+    /* Les trois premiers, puis vos voisins immediats : c'est ce qu'on regarde
+       avant un staff — qui ouvre, et qui parle juste avant moi. */
+    const vus = {};
+    [0,1,2].forEach(function(k){ if (file[k] !== undefined){ h += _ovLigne(k+1, file[k], grpDe(file[k]), file[k] === MY_ID); vus[k] = 1; } });
+    const fen = [moi-2, moi-1, moi, moi+1].filter(function(k){ return k >= 0 && k < file.length && !vus[k]; });
+    if (fen.length && fen[0] > 3) {
+      h += '<div class="ov-l trou"><span class="ov-n">…</span><span class="ov-i">' + (fen[0] - 3) + ' autres</span></div>';
+    }
+    fen.forEach(function(k){ h += _ovLigne(k+1, file[k], grpDe(file[k]), file[k] === MY_ID); });
+  }
+  h += '<button class="ov-tout" data-ov-an="' + an + '" data-ov-tout="1">'
+     + (st.tout ? 'Réduire' : 'Voir les ' + file.length) + '</button>';
+  return h;
+}
+
+function _ovBandeau(bloc, principal){
+  const an = bloc.annee, st = OV_ETAT[an];
+  if (!bloc.monGroupe) return '';   /* MAR hors groupes : rien a annoncer */
+  let h = '<button class="ov-bd' + (principal ? '' : ' sec') + '" data-ov-an="' + an + '" data-ov-bd="1"'
+        + ' aria-expanded="' + (st.ouvert ? 'true' : 'false') + '">'
+        + '<span class="ov-r">' + bloc.monRang + '<sup>' + (bloc.monRang === 1 ? 'er' : 'e') + '</sup></span>'
+        + '<span class="ov-t"><b>Groupe ' + bloc.monGroupe + '</b>, sur ' + bloc.tailleGroupe + ' — vacances ' + an
+        + '<br><em>' + (principal ? 'Appuyez pour voir qui passe avant vous' : 'L’année suivante') + '</em></span>'
+        + '<span class="ov-c">⌄</span></button>';
+  if (st.ouvert) h += '<div class="ov-pan">' + _ovPanneau(an) + '</div>';
+  return h;
+}
+
+function renderOrdreVac(){
+  const box = document.getElementById('ordreVacBox');
+  if (!box) return;
+  if (!MY_ID || !MY_ORDRE_VAC || !(MY_ORDRE_VAC.annees || []).length) { box.innerHTML = ''; return; }
+  const principale = MY_ORDRE_VAC.anneePrincipale;
+  const liste = MY_ORDRE_VAC.annees.slice().sort(function(a,b){ return a.annee - b.annee; });
+  box.innerHTML = liste.map(function(bloc){
+    if (!OV_ETAT[bloc.annee]) OV_ETAT[bloc.annee] = { ouvert:false, periode:0, tout:false };
+    return _ovBandeau(bloc, bloc.annee === principale);
+  }).join('');
+}
+
+/* (13/08/2026) L'ordre de passage ne bouge pas d'une minute a l'autre : il est
+   garde pour la duree de la session, et prechargé en tache de fond des la
+   connexion. Ouvrir « Mes conges » n'attend donc plus d'aller-retour.
+   Le prechargement est DIFFERE : les appels d'un meme utilisateur sont
+   serialises par Apps Script, et le planning passe avant. */
+const OV_CLE = 'pmOrdreVac';
+/* La copie rapide ne contient AUCUN rang personnel : elle donne les listes
+   ordonnees des groupes. On s'y cherche par son identifiant — une recherche
+   dans une liste, pas une regle de rotation recopiee ici.
+   Deux garde-fous : les annees annoncees doivent etre celles qu'on attend
+   (sinon la copie date d'avant un 1er janvier), et l'identifiant doit y
+   figurer (sinon on n'affiche rien plutot qu'un rang faux). */
+let _OV_BRUT = null;
+function _ovDepuisMiroir(brut){
+  _OV_BRUT = brut || null;
+  return _ovConstruire();
+}
+function _ovConstruire(){
+  if (MY_ORDRE_VAC || !MY_ID || !_OV_BRUT || !Array.isArray(_OV_BRUT.annees)) return false;
+  const y = new Date().getFullYear();
+  const attendues = [y, y + 1].join(',');
+  const recues = _OV_BRUT.annees.map(function(a){ return a.annee; }).sort().join(',');
+  if (attendues !== recues) return false;            // copie d'avant un changement d'annee
+  const annees = _OV_BRUT.annees.map(function(a){
+    let g = null, rang = 0;
+    ['A','B','C'].forEach(function(x){
+      const i = (a.groupes[x] || []).indexOf(MY_ID);
+      if (i > -1) { g = x; rang = i + 1; }
+    });
+    return { annee:a.annee, monGroupe:g, monRang:rang,
+             tailleGroupe: g ? a.groupes[g].length : 0,
+             groupes:a.groupes, periodes:a.periodes };
+  });
+  if (!annees.some(function(a){ return a.monGroupe; })) return false;
+  MY_ORDRE_VAC = { success:true, annees:annees,
+    anneePrincipale: (new Date().getMonth() + 1) >= 9 ? y + 1 : y };
+  renderOrdreVac();
+  return true;
+}
+function _ovDuCache(){
+  try {
+    const brut = sessionStorage.getItem(OV_CLE);
+    if (!brut) return null;
+    const c = JSON.parse(brut);
+    return (c && c.id === MY_ID && c.rep) ? c.rep : null;
+  } catch (e) { return null; }
+}
+async function loadOrdreVac(){
+  if (!MY_ID || MY_ORDRE_VAC) return;
+  const cache = _ovDuCache();
+  if (cache) { MY_ORDRE_VAC = cache; renderOrdreVac(); return; }
+  try {
+    const r = await apiPost({ action:'getOrdreVacances', code: VIEW_CODE });
+    if (r && r.success) {
+      MY_ORDRE_VAC = r;
+      try { sessionStorage.setItem(OV_CLE, JSON.stringify({ id: MY_ID, rep: r })); } catch (e) {}
+      renderOrdreVac();
+    }
+  } catch (e) { /* information de confort : un echec ne dit rien a l'ecran */ }
+}
+function prechargerOrdreVac(){
+  if (!MY_ID) return;
+  if (_ovConstruire()) return;                       // deja arrive avec le planning
+  const cache = _ovDuCache();
+  if (cache) { MY_ORDRE_VAC = cache; return; }
+  setTimeout(function(){ loadOrdreVac(); }, 1500);   // repli : demande directe, differee
+}
+
+document.addEventListener('click', function(ev){
+  const b = ev.target.closest ? ev.target.closest('[data-ov-an]') : null;
+  if (!b) return;
+  const an = Number(b.dataset.ovAn);
+  if (!OV_ETAT[an]) return;
+  if (b.dataset.ovBd) {
+    const ouvrir = !OV_ETAT[an].ouvert;
+    Object.keys(OV_ETAT).forEach(function(k){ OV_ETAT[k].ouvert = false; });
+    OV_ETAT[an].ouvert = ouvrir; OV_ETAT[an].tout = false;
+  } else if (b.dataset.ovPer !== undefined) {
+    OV_ETAT[an].periode = Number(b.dataset.ovPer); OV_ETAT[an].tout = false;
+  } else if (b.dataset.ovTout) {
+    OV_ETAT[an].tout = !OV_ETAT[an].tout;
+  }
+  renderOrdreVac();
+});
+
+function openMesConges(){
+  document.getElementById('tilesView').style.display='none';
+  document.getElementById('mesCongesView').style.display='block';
+  /* Chargement independant : le bandeau arrive quand il arrive, la liste des
+     conges ne l'attend pas. */
+  renderOrdreVac(); loadOrdreVac();   /* affiche ce qu'on a deja, complete si besoin */
+  if(MY_CONGES===null){
+    document.getElementById('mesCongesBody').innerHTML='<div class="topos-loading">Chargement…</div>';
+    document.getElementById('mesCongesCount').textContent='';
+    loadMyConges().then(renderMesConges);
+    return;
+  }
+  renderMesConges();
+}
+function renderMesConges(){
+  const box=document.getElementById('mesCongesBody'), cnt=document.getElementById('mesCongesCount');
+  if(!MY_CONGES || !MY_CONGES.days.length){
+    if(cnt) cnt.textContent='';
+    box.innerHTML='<div class="topos-empty">Aucun congé à venir.<br><span>Vacances, formation, TP, récup et congés longs apparaîtront ici.</span></div>';
+    return;
+  }
+  const total=MY_CONGES.days.length;
+  if(cnt) cnt.textContent = total+(total>1?' jours à venir':' jour à venir');
+  const order=CAT_ORDER;
+  let chips='<div class="cg-counts">';
+  order.forEach(function(t){
+    const n=MY_CONGES.counts[t]||0; if(!n) return;
+    const c=CAT_META[t];
+    /* « Vacances 67 j » — le nombre et son unite restent colles, le libelle passe
+       devant : « 67 Vacances j » se lisait comme une faute. */
+    chips+='<span class="cg-count" style="background:'+c.bg+';color:'+c.fg+'">'+c.label
+         +' <span class="cg-n">'+n+'</span><span class="cg-u"> j</span></span>';
+  });
+  chips+='</div>';
+  let list='<div class="cg-list">';
+  MY_CONGES.periods.forEach(function(p){
+    const c=CAT_META[p.cat], s=staffDateParts(p.start), e=staffDateParts(p.end);
+    const range = (p.start===p.end)
+      ? (_mgCap(s.dow)+' '+s.dnum+' '+s.month)
+      : (_mgCap(s.dow)+' '+s.dnum+' '+s.month+' → '+_mgCap(e.dow)+' '+e.dnum+' '+e.month);
+    list+='<div class="cg-item">'
+      + '<span class="cg-tag" style="background:'+c.bg+';color:'+c.fg+'">'+c.label+'</span>'
+      + '<span class="cg-range">'+range+'</span>'
+      + '<span class="cg-days">'+p.n+' j</span>'
+      + '</div>';
+  });
+  list+='</div>';
+  box.innerHTML=chips+list;
+}
+
+// ── VUE TOPOS ──
+// ── ROUTING PAR HASH (retour natif, liens partageables, réouverture PWA) ──
+const NAV = { 'topos':openTopos, 'staffs':openStaffs, 'veille':openVeille, 'protocoles':openProtocoles, 'annuaire':openAnnuaire, 'mes-gardes':openMesGardes, 'conges':openMesConges, 'echanges':openEchanges };
+function _hideAllViews(){
+  ['tilesView','toposView','staffsView','veilleView','protocolesView','annuaireView','mesGardesView','mesCongesView','echangesView']
+    .forEach(function(id){ const el=document.getElementById(id); if(el) el.style.display='none'; });
+}
+function route(){
+  const key=(location.hash||'').replace(/^#/,'').trim();
+  const fn=NAV[key];
+  const ok = fn && !(key==='mes-gardes' && !MY_ID);   // #mes-gardes réservé aux MAR
+  _hideAllViews();
+  if(ok){ fn(); }
+  else { document.getElementById('tilesView').style.display='block'; }
+}
+// Tuiles et bandeau naviguent en changeant le hash → route() prend le relais.
+function openView(v){ location.hash = '#'+v; }
+
+/* Ouverture EN PLACE de la tuile a deux destinations. La hauteur est figée avant
+   l'animation : sans ça, la face disparaît, la tuile se réduit au contenu des
+   moitiés et TOUTE la grille saute. */
+function splitOpen(key){
+  const el = document.getElementById('tile-'+key);
+  if(!el || el.classList.contains('open')) return;
+  el.style.minHeight = el.offsetHeight + 'px';
+  el.classList.add('open');
+}
+function splitClose(key){
+  const el = document.getElementById('tile-'+key);
+  if(el) el.classList.remove('open');
+}
+function fmtDate(s){ if(!s) return ''; const p=String(s).split('-'); return p.length===3 ? p[2]+'/'+p[1]+'/'+p[0] : s; }
+function fmtSize(b){ b=Number(b)||0; if(b<1024) return b+' o'; if(b<1048576) return Math.round(b/1024)+' Ko'; return (b/1048576).toFixed(1)+' Mo'; }
+
+async function openTopos(){
+  document.getElementById('tilesView').style.display='none';
+  document.getElementById('toposView').style.display='block';
+  document.getElementById('toposCount').textContent='';
+  const box=document.getElementById('toposList');
+  box.innerHTML='<div class="topos-loading">Chargement…</div>';
+  try{
+    const r=await miroirTuile('topos','listTopos');           // (miroir, 04/08/2026)
+    if(r && r.success){ renderToposList(r); }
+    else { box.innerHTML='<div class="topos-empty">'+esc((r&&r.error)||'Erreur de chargement')+'</div>'; }
+  }catch(e){ box.innerHTML='<div class="topos-empty">Erreur réseau — réessayez.</div>'; }
+}
+function backToHome(){ location.hash=''; route(); }
+
+/* ══ MES ÉCHANGES (13/08/2026 — phase 4, contrat visuel : maquette-notifications) ══
+   LECTURE : le miroir SEUL (clé `echanges`). Le serveur décide qui voit quoi :
+   tant que les échanges ne sont pas ouverts (ou hors pilotes), la clé est
+   REFUSÉE et la carte d'accueil reste invisible — aucune logique d'ouverture
+   côté page. ÉCRITURE : les deux verbes Apps Script, geste volontaire avec
+   bouton et attente assumée (2-4 s). */
+let ECH_LISTE = null;        // dernière lecture réussie
+let ECH_TOUT = false;        // filtre : false = mes demandes seulement
+let ECH_AUTORISE = false;    // la clé m'a été servie au moins une fois
+
+/* (pastille) Effacée dès que le portail s'ouvre : ce qu'on est venu voir
+   est vu. Sans effet sur les navigateurs qui ne savent pas faire. */
+try { if (navigator.clearAppBadge) navigator.clearAppBadge().catch(function(){}); } catch(e) {}
+
+/* (17/08/2026) La carte ne se propose plus sur ORDINATEUR. Elle s'affichait
+   partout où le navigateur sait recevoir des notifications — donc sur les PC du
+   comité, avec en prime un texte écrit en dur « sur ce téléphone », faux à
+   l'écran. Or une annonce de planning n'a d'intérêt que sur le téléphone qu'on a
+   sur soi : sur un poste, elle arrive là où on est déjà en train de regarder, et
+   sur un poste PARTAGÉ elle s'afficherait chez le suivant.
+   Un abonnement déjà pris sur ordinateur continue de fonctionner : on cache la
+   proposition, on ne révoque rien. */
+function _appareilMobile(){
+  try {
+    if (navigator.userAgentData && typeof navigator.userAgentData.mobile === 'boolean')
+      return navigator.userAgentData.mobile;
+    if (/Android|iPhone|iPad|iPod/i.test(navigator.userAgent || '')) return true;
+    /* iPad récent : Safari se déclare « Macintosh ». L'écran tactile tranche. */
+    return !!(window.matchMedia && window.matchMedia('(pointer: coarse)').matches);
+  } catch(e) { return false; }
+}
+
+function _notifCarteSiPossible(){
+  try {
+    if (!_appareilMobile()) return;
+    if ('serviceWorker' in navigator && 'PushManager' in window && 'Notification' in window) {
+      const nc = document.getElementById('notifCard');
+      if (nc && Notification.permission !== 'granted') nc.style.display = '';
+    }
+  } catch(e) {}
+}
+
+/* (14/08/2026) L'app reprise depuis l'arrière-plan peut afficher une liste
+   vieille de plusieurs heures. Au retour au premier plan : une relecture de
+   la seule clé des échanges (~150 ms, uniquement pour les autorisés). */
+document.addEventListener('visibilitychange', function(){
+  if (document.visibilityState === 'visible' && ECH_AUTORISE) {
+    chargerEchanges(true).then(function(){ try { renderEchanges(); } catch(e){} }).catch(function(){});
+  }
+});
+
+/* ══ LA CLOCHE (v1.77) — journal des notifications ══════════════════════
+   Servi par la copie rapide DANS l'appel d'ouverture : zéro requête
+   ajoutée, zéro milliseconde. Le registre est tenu côté serveur au moment
+   de chaque envoi — même liste sur tous les appareils, complète même si la
+   notification n'est pas arrivée. Simple liste, 30 jours, sans lu/non-lu. */
+let NOTIFS_REGISTRE = null;
+function _notifsDepuisMiroir(env){
+  if (!env || !env.success || !env.notifs) return;
+  NOTIFS_REGISTRE = env.notifs;
+  const b = document.getElementById('notifBell');
+  if (b) b.style.display = '';
+  /* L'ouverture du dashboard remet la pastille d'icône à zéro : localement
+     tout de suite, côté serveur à fond perdu — aucune attente, aucun impact
+     sur le chargement. */
+  try { if (navigator.clearAppBadge) navigator.clearAppBadge(); } catch(e){}
+  try {
+    fetch(MIROIR_URL + '/notif-vu', { method:'POST',
+      headers:{'Content-Type':'text/plain;charset=utf-8'},
+      body: JSON.stringify({ code: VIEW_CODE }), keepalive:true }).catch(function(){});
+  } catch(e){}
+}
+function _notifsMiennes(){
+  if (!NOTIFS_REGISTRE) return [];
+  let l = [];
+  if (MY_ID && NOTIFS_REGISTRE[MY_ID]) l = l.concat(NOTIFS_REGISTRE[MY_ID]);
+  if (NOTIFS_REGISTRE['*']) l = l.concat(NOTIFS_REGISTRE['*']);
+  l.sort(function(a,b){ return a.q < b.q ? 1 : -1; });
+  return l;
+}
+const NOTIF_JOURS_FR = ['dimanche','lundi','mardi','mercredi','jeudi','vendredi','samedi'];
+const NOTIF_MOIS_FR  = ['janvier','février','mars','avril','mai','juin','juillet','août','septembre','octobre','novembre','décembre'];
+function _notifJourTitre(d){
+  const auj = new Date(); const hier = new Date(Date.now() - 86400000);
+  const meme = function(a,b){ return a.getFullYear()===b.getFullYear() && a.getMonth()===b.getMonth() && a.getDate()===b.getDate(); };
+  if (meme(d, auj)) return "Aujourd'hui";
+  if (meme(d, hier)) return 'Hier';
+  return NOTIF_JOURS_FR[d.getDay()] + ' ' + d.getDate() + ' ' + NOTIF_MOIS_FR[d.getMonth()];
+}
+function _notifEchap(t){ const e=document.createElement('div'); e.textContent=String(t||''); return e.innerHTML; }
+function notifsOuvrir(){
+  const liste = document.getElementById('notifListe');
+  const l = _notifsMiennes();
+  if (!l.length) {
+    liste.innerHTML = '<div class="notif-vide">Rien pour le moment.<br>Les notifications des 30 derniers jours s\'afficheront ici.</div>';
+  } else {
+    let html = '', jour = '';
+    l.forEach(function(n){
+      const d = new Date(n.q);
+      const j = isNaN(d.getTime()) ? '' : _notifJourTitre(d);
+      if (j && j !== jour) { jour = j; html += '<div class="notif-jour">' + j + '</div>'; }
+      const h = isNaN(d.getTime()) ? '' : String(d.getHours()).padStart(2,'0') + 'h' + String(d.getMinutes()).padStart(2,'0');
+      html += '<a class="notif-item" href="' + _notifEchap(n.u || './dashboard.html') + '">'
+            + '<div class="notif-item-t">' + _notifEchap(n.t) + '</div>'
+            + (n.c ? '<div class="notif-item-c">' + _notifEchap(n.c) + '</div>' : '')
+            + (h ? '<div class="notif-item-h">' + h + '</div>' : '')
+            + '</a>';
+    });
+    liste.innerHTML = html;
+  }
+  document.getElementById('notifPanel').style.display = 'flex';
+}
+function notifsFermer(){ document.getElementById('notifPanel').style.display = 'none'; }
+
+function _echDepuisMiroir(env){
+  /* Enveloppe {success:true, echanges:[…]} reçue dans l'appel d'ouverture.
+     Absente ou refusée : la carte reste invisible, aucun appel de rattrapage
+     — l'interrupteur est côté serveur et le boot ne se paie qu'une fois. */
+  if (!env || !env.success) return;
+  ECH_AUTORISE = true;
+  ECH_LISTE = env.echanges || [];
+  majEchangesHero();
+  _notifCarteSiPossible();   // autorisé aux échanges = la carte notifications se montre aussi
+}
+
+async function chargerEchanges(force){
+  if (ECH_LISTE !== null && !force) return ECH_LISTE;
+  const m = await miroirRead(['echanges']);
+  if (m && m.success && m.data && m.data.echanges && m.data.echanges.success) {
+    ECH_AUTORISE = true;
+    ECH_LISTE = m.data.echanges.echanges || [];
+    majEchangesHero();
+    _notifCarteSiPossible();
+    return ECH_LISTE;
+  }
+  /* Clé refusée (échanges pas encore ouverts pour moi) ou miroir en panne :
+     dans les deux cas, rien à montrer — la carte reste cachée. */
+  return null;
+}
+
+function majEchangesHero(){
+  const hero = document.getElementById('echangesHero');
+  if (!hero) return;
+  if (!ECH_AUTORISE) { hero.style.display='none'; return; }
+  hero.style.display='flex';
+  const enAttente = (ECH_LISTE||[]).filter(function(e){ return e.etat==='attente' && e.receveur===MY_ID; }).length;
+  const sub = document.getElementById('echHeroSub');
+  const main = document.getElementById('echHeroMain');
+  if (enAttente) {
+    main.textContent = enAttente + (enAttente>1 ? ' demandes attendent votre réponse' : ' demande attend votre réponse');
+    sub.textContent = 'Touchez pour répondre.';
+  } else {
+    main.textContent = 'Mes échanges';
+    sub.textContent = 'Donner ou échanger une garde avec un collègue.';
+  }
+}
+
+async function openEchanges(){
+  document.getElementById('tilesView').style.display='none';
+  document.getElementById('echangesView').style.display='block';
+  document.getElementById('echProposerBtn').style.display = MY_ID ? 'inline-flex' : 'none';
+  const liste = await chargerEchanges(true);
+  if (liste === null) {
+    document.getElementById('echList').innerHTML = '<div class="topos-empty">Les échanges de gardes ne sont pas encore ouverts.<br><span>Cet écran s\'activera à la mise en service.</span></div>';
+    document.getElementById('echCount').textContent='';
+    return;
+  }
+  renderEchanges();
+}
+
+function echFiltrer(tout){
+  ECH_TOUT = !!tout;
+  document.getElementById('echFiltreMoi').classList.toggle('actif', !ECH_TOUT);
+  document.getElementById('echFiltreTous').classList.toggle('actif', ECH_TOUT);
+  renderEchanges();
+}
+
+function _echHeuresRestantes(creeLe){
+  const fin = new Date(creeLe).getTime() + 48*3600*1000;
+  return Math.max(0, Math.round((fin - Date.now())/3600000));
+}
+function _echDrLisible(id){ return 'Dr ' + _mgCap(String(id||'').toLowerCase()); }
+
+function renderEchanges(){
+  const box = document.getElementById('echList'), cnt = document.getElementById('echCount');
+  let liste = (ECH_LISTE||[]).slice();
+  if (!ECH_TOUT) liste = liste.filter(function(e){ return e.demandeur===MY_ID || e.receveur===MY_ID; });
+  /* En attente d'abord, puis du plus récent au plus ancien. */
+  liste.sort(function(a,b){
+    const pa = a.etat==='attente'?0:1, pb = b.etat==='attente'?0:1;
+    if (pa!==pb) return pa-pb;
+    return a.creeLe<b.creeLe?1:-1;
+  });
+  cnt.textContent = liste.length ? String(liste.length) : '';
+  if (!liste.length) {
+    box.innerHTML = '<div class="topos-empty">Aucun échange pour le moment.<br><span>Proposez une garde à un collègue : il recevra une notification et pourra accepter en un geste.</span></div>';
+    return;
+  }
+  const ETATS = { attente:'En attente', acceptee:'Acceptée', refusee:'Refusée', expiree:'Expirée', impossible:'Impossible' };
+  let html = '';
+  liste.forEach(function(e){
+    const don = e.type==='don';
+    const titre = don
+      ? 'Don de garde — ' + _echDrLisible(e.demandeur) + ' → ' + _echDrLisible(e.receveur)
+      : 'Échange — ' + _echDrLisible(e.demandeur) + ' ↔ ' + _echDrLisible(e.receveur);
+    let detail = don
+      ? 'Garde du <b>' + esc(fmtDate(e.date)) + '</b> → planning de ' + esc(_echDrLisible(e.receveur))
+      : esc(_echDrLisible(e.demandeur)) + ' prend le <b>' + esc(fmtDate(e.date2)) + '</b>, ' + esc(_echDrLisible(e.receveur)) + ' prend le <b>' + esc(fmtDate(e.date)) + '</b>';
+    if (e.etat==='acceptee' && e.info) detail += '<br>' + esc(e.info);
+    if (e.etat==='impossible' && e.info) detail += '<br>Motif : ' + esc(e.info);
+    let meta = '';
+    if (e.etat==='attente') meta = 'Expire dans ' + _echHeuresRestantes(e.creeLe) + ' h · rappel à mi-parcours';
+    else if (e.reponduLe) meta = ETATS[e.etat] + ' · ' + esc(fmtDate(String(e.reponduLe).slice(0,10)));
+    const repondable = e.etat==='attente' && e.receveur===MY_ID;
+    html += '<div class="ech-card">'
+      + '<div class="ech-titre">' + esc(titre) + ' <span class="ech-etat ' + esc(e.etat) + '">' + (ETATS[e.etat]||e.etat) + '</span></div>'
+      + '<div class="ech-detail">' + detail + '</div>'
+      + (meta ? '<div class="ech-meta">' + meta + '</div>' : '')
+      + (repondable
+        ? '<div class="ech-actions">'
+          + '<button class="ech-accepter" onclick="repondreEch(\'' + esc(e.id) + '\',\'accepter\',this)">Accepter</button>'
+          + '<button class="ech-refuser" onclick="repondreEch(\'' + esc(e.id) + '\',\'refuser\',this)">Refuser</button>'
+          + '</div>'
+        : '')
+      + '<div class="ech-msg" id="echMsg-' + esc(e.id) + '" style="display:none"></div>'
+      + '</div>';
+  });
+  box.innerHTML = html;
+}
+
+async function repondreEch(id, reponse, btn){
+  const carte = btn.closest('.ech-card');
+  carte.querySelectorAll('button').forEach(function(b){ b.disabled = true; });
+  btn.textContent = reponse==='accepter' ? 'Écriture du planning…' : 'Envoi…';
+  const msg = document.getElementById('echMsg-'+id);
+  try {
+    const r = await apiPost({ action:'repondreEchange', id:id, reponse:reponse });
+    if (r && r.success) {
+      /* (14/08/2026 — vu en test réel) La réponse du serveur FAIT FOI : on met
+         la liste à jour localement, sans relire la copie rapide tout de suite —
+         elle peut mettre quelques secondes à refléter l'écriture, et la
+         relecture immédiate réaffichait « EN ATTENTE » sur une demande
+         acceptée. La prochaine ouverture de la vue (ou le retour au premier
+         plan) réconciliera. */
+      const item = ECH_LISTE.find(function(e){ return e.id === id; });
+      if (item) { item.etat = r.etat || (reponse==='accepter' ? 'acceptee' : 'refusee'); item.reponduLe = new Date().toISOString(); }
+      majEchangesHero();
+      renderEchanges();
+      if (typeof loadMyGardes === 'function') { try { window.__rafraichirDonnees(); } catch(e){} }
+      return;
+    }
+    msg.className='ech-msg err'; msg.style.display='block';
+    msg.textContent = (r && r.error) || 'Réponse impossible — réessayez.';
+    carte.querySelectorAll('button').forEach(function(b){ b.disabled=false; });
+    btn.textContent = reponse==='accepter' ? 'Accepter' : 'Refuser';
+  } catch(e) {
+    msg.className='ech-msg err'; msg.style.display='block';
+    msg.textContent='Erreur réseau — votre réponse n\'est pas partie. Réessayez.';
+    carte.querySelectorAll('button').forEach(function(b){ b.disabled=false; });
+    btn.textContent = reponse==='accepter' ? 'Accepter' : 'Refuser';
+  }
+}
+
+/* ── Proposer : ma garde, don ou échange, à qui, contre quoi ─────────── */
+let ECH_PROP = { type:'don' };
+
+async function _echMesGardesAvecAnnee(){
+  /* MY_GARDES ne porte pas l'année de PLANNING (une garde de début janvier
+     appartient à l'année d'avant). On la retrouve dans le fichier qui la
+     contient — la même règle que partout ailleurs. */
+  const out = [];
+  let year = new Date().getFullYear();
+  try { year = await getActiveYearOnce(); } catch(e){}
+  const today = _todayStr();
+  for (const y of [year, year+1]) {
+    let plan = null;
+    try { plan = _planDejaLa(y) || await _fetchPlanning(y); } catch(e){}
+    if (!plan || !plan.months) continue;
+    plan.months.forEach(function(m){
+      const doc=(m.doctors||[]).find(function(d){ return d.id===MY_ID; });
+      if(!doc||!doc.days) return;
+      for(let i=0;i<doc.days.length;i++){
+        const st=(doc.days[i]||{}).status;
+        if((st==='G'||st==='G2') && m.days[i] && m.days[i].date>=today)
+          out.push({date:m.days[i].date, type:st, annee:y});
+      }
+    });
+  }
+  out.sort(function(a,b){ return a.date<b.date?-1:1; });
+  return out;
+}
+
+function _echGardesDe(plan, id, today){
+  const out=[];
+  if(!plan||!plan.months) return out;
+  plan.months.forEach(function(m){
+    const doc=(m.doctors||[]).find(function(d){ return d.id===id; });
+    if(!doc||!doc.days) return;
+    for(let i=0;i<doc.days.length;i++){
+      const st=(doc.days[i]||{}).status;
+      if((st==='G'||st==='G2') && m.days[i] && m.days[i].date>=today) out.push({date:m.days[i].date, type:st});
+    }
+  });
+  return out;
+}
+
+async function echOuvrirProposition(){
+  const p = document.getElementById('echProposition');
+  if (p.style.display !== 'none') { p.style.display='none'; return; }
+  p.style.display='block';
+  p.innerHTML = '<div class="topos-loading">Chargement de vos gardes…</div>';
+  const gardes = await _echMesGardesAvecAnnee();
+  if (!gardes.length) { p.innerHTML = '<div class="topos-empty">Aucune garde à venir à proposer.</div>'; return; }
+  ECH_PROP = { type:'don', gardes:gardes };
+  let plan = null;
+  try { plan = _planDejaLa(gardes[0].annee) || await _fetchPlanning(gardes[0].annee); } catch(e){}
+  const medecins = [];
+  if (plan && plan.months && plan.months[0]) (plan.months[0].doctors||[]).forEach(function(d){ if(d.id && d.id!==MY_ID) medecins.push(d.id); });
+  medecins.sort();
+  p.innerHTML =
+      '<label>Ma garde</label>'
+    + '<select id="echSelGarde" onchange="echMajProposition()">'
+    + gardes.map(function(g,i){ return '<option value="'+i+'">'+esc(fmtDate(g.date))+' — '+(g.type==='G2'?'Mater/Bloc':'Réa')+'</option>'; }).join('')
+    + '</select>'
+    + '<label>Je souhaite</label>'
+    + '<div class="ech-types">'
+    + '<button id="echTypeDon" class="actif" onclick="echType(\'don\')">La donner</button>'
+    + '<button id="echTypeEch" onclick="echType(\'echange\')">L\'échanger</button>'
+    + '</div>'
+    + '<label>À</label>'
+    + '<select id="echSelQui" onchange="echMajProposition()">'
+    + '<option value="">Choisir un collègue…</option>'
+    + medecins.map(function(id){ return '<option value="'+esc(id)+'">'+esc(_echDrLisible(id))+'</option>'; }).join('')
+    + '</select>'
+    + '<div id="echBlocContre" style="display:none"><label>Contre sa garde du</label><select id="echSelContre"><option value="">Choisir…</option></select></div>'
+    + '<div id="echAvert" class="ech-avert" style="display:none"></div>'
+    + '<button id="echEnvoyer" class="ech-envoyer" onclick="envoyerProposition(this)">Envoyer la proposition</button>'
+    + '<div class="ech-msg" id="echMsgProp" style="display:none"></div>';
+  echMajProposition();
+}
+
+function echType(t){
+  ECH_PROP.type = t;
+  document.getElementById('echTypeDon').classList.toggle('actif', t==='don');
+  document.getElementById('echTypeEch').classList.toggle('actif', t==='echange');
+  echMajProposition();
+}
+
+async function echMajProposition(){
+  const g = ECH_PROP.gardes[Number(document.getElementById('echSelGarde').value)||0];
+  const qui = document.getElementById('echSelQui').value;
+  const blocContre = document.getElementById('echBlocContre');
+  if (ECH_PROP.type==='echange') {
+    blocContre.style.display='block';
+    const sel = document.getElementById('echSelContre');
+    if (qui) {
+      let plan=null; try { plan=_planDejaLa(g.annee) || await _fetchPlanning(g.annee); } catch(e){}
+      const siennes=_echGardesDe(plan, qui, _todayStr()).filter(function(s){ return s.date!==g.date; });
+      sel.innerHTML = siennes.length
+        ? '<option value="">Choisir…</option>' + siennes.map(function(s){ return '<option value="'+esc(s.date)+'">'+esc(fmtDate(s.date))+' — '+(s.type==='G2'?'Mater/Bloc':'Réa')+'</option>'; }).join('')
+        : '<option value="">Aucune garde à venir chez ce collègue</option>';
+    } else sel.innerHTML='<option value="">Choisir d\'abord un collègue…</option>';
+  } else blocContre.style.display='none';
+  /* Samedi d'une année SANS lien samedi→R (2026) : la récup ne suit pas,
+     le comité replacera — averti AVANT l'envoi, comme convenu. */
+  const av = document.getElementById('echAvert');
+  const samedi = new Date(g.date+'T12:00:00').getDay()===6;
+  if (samedi && g.annee <= 2026) {
+    av.style.display='block';
+    av.textContent='Garde d\'un samedi ' + g.annee + ' : votre récupération ne suivra pas automatiquement, elle sera replacée à la main.';
+  } else av.style.display='none';
+}
+
+async function envoyerProposition(btn){
+  const g = ECH_PROP.gardes[Number(document.getElementById('echSelGarde').value)||0];
+  const qui = document.getElementById('echSelQui').value;
+  const msg = document.getElementById('echMsgProp');
+  msg.style.display='none';
+  const erreur = function(t){ msg.className='ech-msg err'; msg.style.display='block'; msg.textContent=t; };
+  if (!qui) return erreur('Choisissez un collègue.');
+  const charge = { action:'creerEchange', type:ECH_PROP.type, year:g.annee, date:g.date, receveur:qui };
+  if (ECH_PROP.type==='echange') {
+    const contre = document.getElementById('echSelContre').value;
+    if (!contre) return erreur('Choisissez la garde à recevoir en échange.');
+    charge.date2 = contre;
+  }
+  btn.disabled = true; btn.textContent='Vérification et envoi…';
+  try {
+    const r = await apiPost(charge);
+    if (r && r.success) {
+      document.getElementById('echProposition').style.display='none';
+      /* Même principe qu'à la réponse : la demande créée s'affiche depuis ce
+         qu'on vient d'envoyer (id rendu par le serveur), sans dépendre de la
+         vitesse de propagation de la copie rapide. */
+      ECH_LISTE.unshift({ id: r.id, creeLe: new Date().toISOString(), type: charge.type,
+        annee: charge.year, date: charge.date, date2: charge.date2 || '',
+        demandeur: MY_ID, receveur: qui, etat: 'attente', reponduLe: '', info: '' });
+      majEchangesHero();
+      renderEchanges();
+      return;
+    }
+    erreur((r && r.error) || 'Envoi impossible — réessayez.');
+  } catch(e) { erreur('Erreur réseau — la proposition n\'est pas partie. Réessayez.'); }
+  btn.disabled=false; btn.textContent='Envoyer la proposition';
+}
+
+// ── VUE STAFFS ──
+const _JOURS=['dim.','lun.','mar.','mer.','jeu.','ven.','sam.'];
+const _MOIS=['janv.','févr.','mars','avr.','mai','juin','juil.','août','sept.','oct.','nov.','déc.'];
+function staffDateParts(iso){
+  const p=String(iso).split('-'); const d=new Date(+p[0], (+p[1])-1, +p[2]);
+  return { dow:_JOURS[d.getDay()], dnum:(+p[2]), month:_MOIS[(+p[1])-1] };
+}
+async function openStaffs(){
+  document.getElementById('tilesView').style.display='none';
+  document.getElementById('staffsView').style.display='block';
+  document.getElementById('staffsCount').textContent='';
+  const box=document.getElementById('staffsList');
+  box.innerHTML='<div class="topos-loading">Chargement…</div>';
+  try{
+    const r=await miroirTuile('staffs','listStaffs');         // (miroir, 04/08/2026)
+    if(r && r.success){ renderStaffsList(r); }
+    else { box.innerHTML='<div class="topos-empty">'+esc((r&&r.error)||'Erreur de chargement')+'</div>'; }
+  }catch(e){ box.innerHTML='<div class="topos-empty">Erreur réseau — réessayez.</div>'; }
+}
+function renderStaffsList(data){
+  document.getElementById('staffsCount').textContent = data.count ? (data.count + ' à venir') : '';
+  const box=document.getElementById('staffsList');
+  if(!data.staffs || !data.staffs.length){
+    box.innerHTML='<div class="topos-empty">Aucun staff à venir.<br><span>Ajoutez une ligne dans l\'onglet STAFFS du Sheet pour la voir apparaître ici.</span></div>';
+    return;
+  }
+  box.innerHTML = data.staffs.map(function(s){
+    const dp=staffDateParts(s.date);
+    const meta=[];
+    if(s.heure)       meta.push('<span><i data-lucide="clock"></i>'+esc(s.heure)+'</span>');
+    if(s.intervenant) meta.push('<span><i data-lucide="user"></i>'+esc(s.intervenant)+'</span>');
+    if(s.lieu)        meta.push('<span><i data-lucide="map-pin"></i>'+esc(s.lieu)+'</span>');
+    return '<div class="staff-card">'
+      + '<div class="staff-date"><div class="staff-dow">'+dp.dow+'</div><div class="staff-dnum">'+dp.dnum+'</div><div class="staff-month">'+dp.month+'</div></div>'
+      + '<div class="staff-body"><div class="staff-theme">'+esc(s.theme)+'</div>'
+      + (meta.length ? '<div class="staff-meta">'+meta.join('')+'</div>' : '')
+      + '</div></div>';
+  }).join('');
+  if(window.lucide) lucide.createIcons();
+}
+
+// ── VUE VEILLE BIBLIO ──
+let VEILLE_ITEMS = [];
+let V_FILTER = 'unread';   // unread | all | star
+let V_SOURCE = '';
+let V_THEME  = '';
+let V_SORT   = 'recent';   // recent | relevance
+let V_SEARCH = '';
+let V_SEEN   = '';         // dernière visite (yyyy-MM-dd) → badge "nouveau"
+let V_REVUES = [];         // revues cochées ([] = toutes) — mémorisé sur l'appareil
+
+// Type d'article : rang pour le tri pertinence + libellé court FR pour le badge.
+const PUBTYPE_RANK = { 'Meta-Analysis':1, 'Systematic Review':2, 'Randomized Controlled Trial':3, 'Practice Guideline':4, 'Guideline':5, 'Review':6 };
+const PUBTYPE_FR   = { 'Meta-Analysis':'Méta-analyse', 'Systematic Review':'Revue systématique', 'Randomized Controlled Trial':'Essai randomisé', 'Practice Guideline':'Recommandation', 'Guideline':'Recommandation', 'Review':'Mise au point' };
+function _ptRank(it){ return PUBTYPE_RANK[it.pubtype] || 9; }
+
+async function openVeille(){
+  document.getElementById('tilesView').style.display='none';
+  document.getElementById('veilleView').style.display='block';
+  document.getElementById('veilleCount').textContent='';
+  document.getElementById('veilleToolbar').style.display='none';
+  const box=document.getElementById('veilleList');
+  box.innerHTML='<div class="topos-loading">Chargement…</div>';
+  try{ V_SEEN = localStorage.getItem('pmVeilleSeen')||''; }catch(e){ V_SEEN=''; }
+  try{ V_REVUES = JSON.parse(localStorage.getItem('pmVeilleRevues')||'[]')||[]; }catch(e){ V_REVUES=[]; }
+  try{
+    /* (v1.30) Deux clés dans la MEME lecture miroir : les articles (instantané
+       partagé) + MES marques (clé filtrée par le Worker — je ne reçois que les
+       miennes, sans meme connaitre mon id : je prends la seule entrée servie).
+       Repli miroir en panne → getVeille par GAS, qui fusionne mes marques
+       coté serveur : les deux chemins rendent le meme écran. */
+    let r=null, marks=null;
+    try{
+      const m = await miroirRead(['veille','veille_marques']);
+      if(m && m.success && m.data){
+        if(m.data['veille'] && m.data['veille'].success) r = m.data['veille'];
+        const vm = m.data['veille_marques'];
+        if(vm && vm.parMar){ const ks=Object.keys(vm.parMar); marks = ks.length ? vm.parMar[ks[0]] : {lus:[],stars:[]}; }
+      }
+    }catch(e){ /* repli GAS ci-dessous */ }
+    if(!r){ r = await apiPost({action:'getVeille'}); marks=null; }
+    if(r && r.success){
+      VEILLE_ITEMS = r.items||[];
+      if(marks){
+        const L={}, S={};
+        (marks.lus||[]).forEach(function(p){ L[p]=true; });
+        (marks.stars||[]).forEach(function(p){ S[p]=true; });
+        VEILLE_ITEMS.forEach(function(it){ it.lu=!!L[it.pmid]; it.star=!!S[it.pmid]; });
+      }
+      _veilleAppliquerFile();                       // marques en attente par-dessus l'état serveur
+      document.getElementById('veilleToolbar').style.display = VEILLE_ITEMS.length ? 'flex' : 'none';
+      populateThemeSelect();
+      populateRevuePanel();
+      renderVeille();
+      _veilleRejouerFile();                         // et on tente de les poser, sans bloquer l'écran
+      try{ localStorage.setItem('pmVeilleSeen', new Date().toISOString().slice(0,10)); }catch(e){}
+    } else {
+      box.innerHTML='<div class="topos-empty">'+esc((r&&r.error)||'Erreur de chargement')+'</div>';
+    }
+  }catch(e){ box.innerHTML='<div class="topos-empty">Erreur réseau — réessayez.</div>'; }
+}
+
+function setVFilter(f, el){
+  V_FILTER=f;
+  document.querySelectorAll('#vfilter button').forEach(function(b){ b.classList.toggle('on', b===el); });
+  renderVeille();
+}
+function onVSource(v){ V_SOURCE=v; renderVeille(); }
+function onVTheme(v){ V_THEME=v; renderVeille(); }
+function populateThemeSelect(){
+  const sel=document.getElementById('vThemeSel'); if(!sel) return;
+  const set={}; VEILLE_ITEMS.forEach(function(it){ (it.themes||[]).forEach(function(t){ set[t]=true; }); });
+  const list=Object.keys(set).sort(function(a,b){ return a.localeCompare(b,'fr'); });
+  sel.innerHTML='<option value="">Tous thèmes</option>'+list.map(function(t){
+    return '<option value="'+esc(t)+'"'+(t===V_THEME?' selected':'')+'>'+esc(t)+'</option>';
+  }).join('');
+}
+/* ── Filtre par revues : cases à cocher, mémorisé sur CET appareil
+      (localStorage, comme la date de dernière visite). [] = toutes. ── */
+function populateRevuePanel(){
+  const p=document.getElementById('vRevPanel'); if(!p) return;
+  const cnt={};
+  VEILLE_ITEMS.forEach(function(it){ if(it.revue) cnt[it.revue]=(cnt[it.revue]||0)+1; });
+  const list=Object.keys(cnt).sort(function(a,b){ return a.localeCompare(b,'fr'); });
+  V_REVUES=V_REVUES.filter(function(r){ return cnt[r]; });   // revues disparues : oubliées
+  p.innerHTML='<button class="vrev-clear" onclick="clearVRevues()">Toutes les revues</button>'
+    +list.map(function(r){
+      return '<label class="vrev-item"><input type="checkbox" value="'+esc(r)+'"'
+        +(V_REVUES.indexOf(r)!==-1?' checked':'')+' onchange="onVRevue(this)">'
+        +esc(r)+'<span>'+cnt[r]+'</span></label>';
+    }).join('');
+  majVRevBtn();
+}
+function majVRevBtn(){
+  const b=document.getElementById('vRevBtn');
+  if(b) b.textContent='Revues '+(V_REVUES.length?'('+V_REVUES.length+' cochées)':'(toutes)');
+}
+function toggleVRevPanel(ev){
+  if(ev) ev.stopPropagation();
+  const p=document.getElementById('vRevPanel');
+  p.style.display = p.style.display==='none' ? 'block' : 'none';
+}
+function onVRevue(el){
+  const v=el.value;
+  if(el.checked){ if(V_REVUES.indexOf(v)===-1) V_REVUES.push(v); }
+  else { V_REVUES=V_REVUES.filter(function(r){ return r!==v; }); }
+  try{ localStorage.setItem('pmVeilleRevues', JSON.stringify(V_REVUES)); }catch(e){}
+  majVRevBtn(); renderVeille();
+}
+function clearVRevues(){
+  V_REVUES=[];
+  try{ localStorage.setItem('pmVeilleRevues','[]'); }catch(e){}
+  populateRevuePanel(); renderVeille();
+}
+// Un clic hors du panneau le referme (sans gêner les cases à l'intérieur).
+document.addEventListener('click', function(ev){
+  const p=document.getElementById('vRevPanel');
+  if(p && p.style.display!=='none' && !ev.target.closest('.vrev-wrap')) p.style.display='none';
+});
+
+function onVSort(v){ V_SORT=v; renderVeille(); }
+function onVSearch(v){ V_SEARCH=String(v||'').trim().toLowerCase(); renderVeille(); }
+
+function _vMatch(it){
+  if(V_FILTER==='unread' && it.lu) return false;
+  if(V_FILTER==='star'   && !it.star) return false;
+  if(V_SOURCE && it.source!==V_SOURCE) return false;
+  if(V_THEME && (!it.themes || it.themes.indexOf(V_THEME)===-1)) return false;
+  if(V_REVUES.length && V_REVUES.indexOf(it.revue)===-1) return false;
+  if(V_SEARCH){
+    const hay=(it.titre+' '+it.auteurs+' '+it.revue).toLowerCase();
+    if(hay.indexOf(V_SEARCH)===-1) return false;
+  }
+  return true;
+}
+
+function renderVeille(){
+  const box=document.getElementById('veilleList');
+  const unread=VEILLE_ITEMS.filter(function(i){return !i.lu;}).length;
+  const shown=VEILLE_ITEMS.filter(_vMatch);
+  document.getElementById('veilleCount').textContent =
+    VEILLE_ITEMS.length ? (shown.length+' affichés · '+unread+' non lus / '+VEILLE_ITEMS.length+' total') : '';
+  if(!VEILLE_ITEMS.length){
+    box.innerHTML='<div class="topos-empty">Aucun article pour l\'instant.<br><span>Le scan PubMed tourne chaque lundi ; l\'onglet VEILLE se remplit tout seul.</span></div>';
+    return;
+  }
+  if(!shown.length){ box.innerHTML='<div class="topos-empty">Rien à afficher avec ce filtre.</div>'; return; }
+  shown.sort(function(a,b){
+    if(V_SORT==='relevance'){
+      const ra=_ptRank(a), rb=_ptRank(b);
+      if(ra!==rb) return ra-rb;
+    }
+    return a.date<b.date?1:(a.date>b.date?-1:0);
+  });
+  box.innerHTML = shown.map(function(it){
+    const isNew = V_SEEN && it.ajoute && it.ajoute>V_SEEN;
+    const srcBadge = it.source==='THEME'
+      ? '<span class="vc-badge theme">Thème</span>'
+      : (it.source==='GENERAL'
+          ? '<span class="vc-badge general">Généraliste</span>'
+          : '<span class="vc-badge revue">Revue spécialisée</span>');
+    const ptBadge = PUBTYPE_FR[it.pubtype] ? '<span class="vc-badge pubtype">'+PUBTYPE_FR[it.pubtype]+'</span>' : '';
+    const right = (it.score!=null?'<span class="vc-score">'+it.score+'</span>':'')
+                + '<span class="vc-date">'+fmtDate(it.date)+'</span>';
+    const pub='https://pubmed.ncbi.nlm.nih.gov/'+encodeURIComponent(it.pmid)+'/';
+    return '<div class="veille-card'+(it.lu?'':' unread')+'">'
+      + '<div class="vc-top">'+srcBadge+ptBadge+(isNew?'<span class="vc-badge new">nouveau</span>':'')
+        + '<span class="vc-right">'+right+'</span></div>'
+      + '<a class="vc-title" href="'+pub+'" target="_blank" rel="noopener">'+esc(it.titre)+'</a>'
+      + (it.resume?'<div class="vc-resume">'+esc(it.resume)+'</div>':'')
+      + (it.revue?'<div class="vc-journal">'+esc(it.revue)+'</div>':'')
+      + (it.themes&&it.themes.length?'<div class="vc-themes">'+it.themes.map(esc).join(' · ')+'</div>':'')
+      + (it.auteurs?'<div class="vc-authors">'+esc(it.auteurs)+'</div>':'')
+      + '<div class="vc-actions">'
+        + '<button class="vc-act'+(it.lu?' on':'')+'" onclick="toggleV(\''+it.pmid+'\',\'lu\')">'+(it.lu?'✓ Lu':'Marquer lu')+'</button>'
+        + '<button class="vc-act star'+(it.star?' on':'')+'" onclick="toggleV(\''+it.pmid+'\',\'star\')">'+(it.star?'★':'☆')+'</button>'
+        + '<a class="vc-act" href="'+pub+'" target="_blank" rel="noopener">PubMed</a>'
+        + (it.doi?'<a class="vc-act" href="https://doi.org/'+esc(it.doi)+'" target="_blank" rel="noopener">DOI</a>':'')
+      + '</div></div>';
+  }).join('');
+}
+
+/* ── FILE LOCALE DES MARQUES (v1.30, doctrine des écritures) ─────────────
+   Chaque marque est écrite ICI avant tout appel réseau, et n'en sort que sur
+   confirmation du serveur. Rejouée à chaque ouverture de la veille : un
+   timeout GAS ou une page suspendue par iOS ne perd plus rien — la marque est
+   soit confirmée, soit en file, soit rejouée à la prochaine visite.
+   markVeille est idempotent coté serveur : rejouer est sans danger. */
+let _vFileEnvoi=false;
+function _vFileLire(){ try{ return JSON.parse(localStorage.getItem('pmVeilleFile')||'[]')||[]; }catch(e){ return []; } }
+function _vFileEcrire(f){ try{ localStorage.setItem('pmVeilleFile', JSON.stringify(f)); }catch(e){} }
+function _vFilePoser(pmid, field, value){
+  // Une seule entrée par (article, champ) : le dernier geste gagne.
+  const f=_vFileLire().filter(function(m){ return !(m.pmid===pmid && m.field===field); });
+  f.push({pmid:pmid, field:field, value:value});
+  _vFileEcrire(f);
+}
+function _veilleAppliquerFile(){
+  _vFileLire().forEach(function(m){
+    const it=VEILLE_ITEMS.find(function(x){return x.pmid===m.pmid;});
+    if(it) it[m.field]=m.value;
+  });
+}
+async function _veilleRejouerFile(){
+  if(_vFileEnvoi) return;                            // un seul rejeu à la fois
+  _vFileEnvoi=true;
+  try{
+    let f=_vFileLire();
+    while(f.length){
+      const m=f[0];
+      const r=await apiPost({action:'markVeille', pmid:m.pmid, field:m.field, value:m.value});
+      if(r && r.success){ f.shift(); _vFileEcrire(f); continue; }
+      if(r && r.error==='article introuvable'){ f.shift(); _vFileEcrire(f); continue; }  // article purgé : la marque n'a plus d'objet
+      break;                                         // échec serveur : on garde, prochaine ouverture
+    }
+  }catch(e){ /* échec transport : la file attend la prochaine ouverture */ }
+  finally{ _vFileEnvoi=false; }
+}
+
+function toggleV(pmid, field){
+  const it=VEILLE_ITEMS.find(function(x){return x.pmid===pmid;});
+  if(!it) return;
+  const val=!it[field];
+  it[field]=val;
+  renderVeille();
+  _vFilePoser(pmid, field, val);                     // durable AVANT le réseau
+  _veilleRejouerFile();
+}
+
+function renderToposList(data){
+  document.getElementById('toposCount').textContent = data.count ? (data.count + (data.count>1?' topos':' topo')) : '';
+  const box=document.getElementById('toposList');
+  if(!data.topos || !data.topos.length){
+    box.innerHTML='<div class="topos-empty">Aucun topo pour l\'instant.<br><span>Déposez un PDF dans le dossier Drive pour le voir apparaître ici.</span></div>';
+    return;
+  }
+  box.innerHTML = data.topos.map(t => {
+    if(!t.multi){
+      const d=t.docs[0];
+      return '<div class="topo-card single" onclick="openDoc(\''+d.id+'\', this)">'
+        + '<div class="topo-ico"><i data-lucide="file-text"></i></div>'
+        + '<div class="topo-body"><div class="topo-title">'+esc(t.title)+'</div>'
+        + '<div class="topo-meta">'+fmtDate(t.date)+' · '+fmtSize(d.size)+'</div></div>'
+        + '<i data-lucide="external-link" class="topo-open"></i></div>';
+    }
+    const rows=t.docs.map(d =>
+      '<div class="doc-row" onclick="openDoc(\''+d.id+'\', this)">'
+      + '<i data-lucide="file-text"></i><span class="doc-title">'+esc(d.title)+'</span>'
+      + '<span class="doc-size">'+fmtSize(d.size)+'</span></div>').join('');
+    return '<div class="topo-card"><div class="topo-card-head">'
+      + '<div class="topo-ico multi"><i data-lucide="folder"></i></div>'
+      + '<div class="topo-body"><div class="topo-title">'+esc(t.title)+'</div>'
+      + '<div class="topo-meta">'+t.docs.length+' documents · '+fmtDate(t.date)+'</div></div></div>'
+      + '<div class="doc-list">'+rows+'</div></div>';
+  }).join('');
+  if(window.lucide) lucide.createIcons();
+}
+
+function _b64ToBlob(b64, mime){
+  const bin=atob(b64), len=bin.length, bytes=new Uint8Array(len);
+  for(let i=0;i<len;i++) bytes[i]=bin.charCodeAt(i);
+  return new Blob([bytes], {type: mime||'application/pdf'});
+}
+/* (2026-08-10) LECTURE D'UN DOCUMENT — miroir d'abord, GAS en repli.
+   Mesure du 08/08 : `getProtocole` 6,1 s et `getTopo` 11,5 s, quand tout le
+   reste de la page arrive du miroir en 100-270 ms. C'était le geste le plus
+   cher du portail, et le seul appel lourd que 23 MARs pouvaient empiler.
+   La copie est déposée par `miroirDocuments` (miroir.gs) sous la clé
+   `doc_<id>`, avec EXACTEMENT la forme que renvoie `getTopo` — d'où une
+   bascule qui ne change que la SOURCE, jamais le traitement en aval.
+   REPLI : toute copie absente (document déposé il y a moins d'une heure,
+   trop lourd, ou erreur de lecture) repasse par l'ancien chemin. Un document
+   sans copie reste donc lent, JAMAIS cassé. */
+async function _lireDoc(id, action){
+  try{
+    const m = await miroirRead(['doc_' + id]);
+    const d = m && m.success && m.data && m.data['doc_' + id];
+    if(d && d.success && d.dataB64) return d;
+  }catch(e){ /* repli GAS */ }
+  return await apiPost({action:action, id:id});
+}
+async function openDoc(id, el, action){
+  action = action || 'getTopo';
+  // Ouvrir l'onglet TOUT DE SUITE (dans le geste utilisateur) → évite le
+  // blocage popup ; le contenu y est injecté après réception du flux GAS.
+  const w = window.open('', '_blank');
+  if(el) el.classList.add('loading');
+  try{
+    const r = await _lireDoc(id, action);
+    if(!(r && r.success)){ if(w) w.close(); alert((r&&r.error)||'Ouverture impossible'); return; }
+    const url = URL.createObjectURL(_b64ToBlob(r.dataB64, r.mimeType));
+    if(w){ w.location.href = url; }
+    else {
+      const a=document.createElement('a'); a.href=url; a.target='_blank'; a.rel='noopener';
+      document.body.appendChild(a); a.click(); a.remove();
+    }
+    setTimeout(()=>{ try{ URL.revokeObjectURL(url); }catch(e){} }, 120000);
+  }catch(e){ if(w) w.close(); alert('Erreur réseau — réessayez.'); }
+  finally{ if(el) el.classList.remove('loading'); }
+}
+
+// ── VUE PROTOCOLES ──
+function _norm(s){ return String(s||'').toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g,''); }
+let _protoGroups=null;
+async function openProtocoles(){
+  document.getElementById('tilesView').style.display='none';
+  document.getElementById('protocolesView').style.display='block';
+  document.getElementById('protocolesCount').textContent='';
+  document.querySelector('.protos-search').style.display='none';
+  const box=document.getElementById('protocolesList');
+  box.innerHTML='<div class="topos-loading">Chargement…</div>';
+  try{
+    const r=await miroirTuile('protocoles','listProtocoles'); // (miroir, 04/08/2026)
+    if(r && r.success){ _protoGroups=r.groups; renderProtocoles(r,''); }
+    else { box.innerHTML='<div class="topos-empty">'+esc((r&&r.error)||'Erreur de chargement')+'</div>'; }
+  }catch(e){ box.innerHTML='<div class="topos-empty">Erreur réseau — réessayez.</div>'; }
+}
+function _countProtos(g){ return (g||[]).reduce(function(n,x){ return n+x.protocoles.length; },0); }
+function onProtoSearch(q){ renderProtocoles({ count:_countProtos(_protoGroups), groups:_protoGroups }, q); }
+function renderProtocoles(data, q){
+  q=_norm(q||'');
+  document.getElementById('protocolesCount').textContent = data.count ? (data.count + (data.count>1?' protocoles':' protocole')) : '';
+  document.querySelector('.protos-search').style.display = (data.count>8) ? 'block' : 'none';
+  const box=document.getElementById('protocolesList');
+  if(!data.groups || !data.groups.length){
+    box.innerHTML='<div class="topos-empty">Aucun protocole pour l\'instant.<br><span>Range tes PDF dans le dossier Drive : un sous-dossier par spécialité, et au besoin un sous-sous-dossier par thème.</span></div>';
+    return;
+  }
+  let html='';
+  const searching = !!q;
+  data.groups.forEach(function(g){
+    const protos = q ? g.protocoles.filter(function(p){ return _norm(p.title).indexOf(q)>=0 || _norm(g.specialite).indexOf(q)>=0; }) : g.protocoles;
+    if(!protos.length) return;
+    html += '<div class="proto-group'+(searching?' open':'')+'">'
+      + '<button type="button" class="proto-spec" onclick="this.parentNode.classList.toggle(\'open\')">'
+      + '<span class="chev"><i data-lucide="chevron-right"></i></span>'
+      + '<span class="spec-name">'+esc(g.specialite)+'</span>'
+      + '<span class="count">'+protos.length+'</span></button>';
+    html += '<div class="proto-docs">' + protos.map(function(p){
+      return '<div class="doc-row" onclick="openDoc(\''+p.id+'\', this, \'getProtocole\')">'
+        + '<i data-lucide="file-text"></i><span class="doc-title">'+esc(p.title)+'</span>'
+        + '<span class="doc-size">'+fmtSize(p.size)+'</span></div>';
+    }).join('') + '</div>';
+    html += '</div>';
+  });
+  box.innerHTML = html || '<div class="topos-empty">Aucun résultat.</div>';
+  if(window.lucide) lucide.createIcons();
+}
+
+// ── VUE ANNUAIRE ──
+let _annu=null;
+function _ini(name){ return String(name||'').trim().split(/\s+/).map(function(w){ return w[0]||''; }).slice(0,2).join('').toUpperCase(); }
+function _telLink(num){ const clean=String(num).replace(/[^\d+]/g,''); return clean ? '<a class="annu-num" href="tel:'+esc(clean)+'">'+esc(num)+'</a>' : ''; }
+async function openAnnuaire(){
+  document.getElementById('tilesView').style.display='none';
+  document.getElementById('annuaireView').style.display='block';
+  document.querySelector('.annu-search').style.display='none';
+  const box=document.getElementById('annuaireList');
+  box.innerHTML='<div class="topos-loading">Chargement…</div>';
+  try{
+    const r=await miroirTuile('annuaire','listAnnuaire');     // (miroir, 04/08/2026)
+    if(r && r.success){ _annu=r; renderAnnuaire(r,''); }
+    else { box.innerHTML='<div class="topos-empty">'+esc((r&&r.error)||'Erreur de chargement')+'</div>'; }
+  }catch(e){ box.innerHTML='<div class="topos-empty">Erreur réseau — réessayez.</div>'; }
+}
+function onAnnuSearch(q){ if(_annu) renderAnnuaire(_annu, q); }
+function renderAnnuaire(data, q){
+  q=_norm(q||'');
+  const box=document.getElementById('annuaireList');
+  const total=(data.equipe?data.equipe.length:0)+(data.categories||[]).reduce(function(n,c){ return n+c.entries.length; },0);
+  document.querySelector('.annu-search').style.display = (total>12) ? 'block' : 'none';
+  let html='';
+  const eq = q ? (data.equipe||[]).filter(function(m){ return _norm(m.name).indexOf(q)>=0 || _norm(m.dect).indexOf(q)>=0; }) : (data.equipe||[]);
+  if(eq.length){
+    html += '<div class="annu-cat">Équipe MAR</div><div class="annu-team">';
+    html += eq.map(function(m){
+      const dect = m.dect ? '<span class="team-dect">DECT '+_telLink(m.dect)+'</span>' : '<span class="team-dect none">DECT —</span>';
+      return '<div class="team-card"><div class="team-ava">'+esc(m.initials||_ini(m.name))+'</div>'
+        + '<div class="team-body"><div class="team-name">'+esc(m.name)+'</div>'+dect+'</div></div>';
+    }).join('');
+    html += '</div>';
+  }
+  (data.categories||[]).forEach(function(c){
+    const ents = q ? c.entries.filter(function(e){ return _norm(e.libelle).indexOf(q)>=0 || _norm(e.numero).indexOf(q)>=0 || _norm(e.info).indexOf(q)>=0 || _norm(c.categorie).indexOf(q)>=0; }) : c.entries;
+    if(!ents.length) return;
+    html += '<div class="annu-cat">'+esc(c.categorie)+'</div>';
+    html += ents.map(function(e){
+      const num = e.numero ? _telLink(e.numero) : '';
+      const info = e.info ? '<div class="annu-info">'+esc(e.info)+'</div>' : '';
+      return '<div class="annu-row"><div class="annu-lib">'+esc(e.libelle)+info+'</div>'+num+'</div>';
+    }).join('');
+  });
+  box.innerHTML = html || '<div class="topos-empty">Aucune entrée pour l\'instant.<br><span>Remplis l\'onglet ANNUAIRE du Sheet (catégorie, libellé, numéro).</span></div>';
+  if(window.lucide) lucide.createIcons();
+}
+
+// ── AUTH ──
+function _authErr(msg){
+  const el = document.getElementById('viewAuthErr');
+  el.textContent = msg; el.style.display='block';
+  setTimeout(()=> el.style.display='none', 4000);
+}
+async function viewLogin(){
+  const code = document.getElementById('viewAuthInput').value.trim().toUpperCase();
+  if(!code){ _authErr("Entrez votre code d'accès."); return; }   // (T05)
+  const btn = document.getElementById('viewAuthBtn');
+  btn.disabled = true; btn.textContent = 'Vérification…';
+  try{
+    VIEW_CODE = code;
+    /* (miroir, 03/08/2026) Miroir d'abord ; tout autre resultat → login GAS,
+       seul juge de la validite d'un code. */
+    if (await miroirBootDash() === true) {
+      SessionPortail.memoriser(code);
+      try { if (window.PERF) PERF.jalon('ouverture via miroir'); } catch(e) {}
+      showPortal();
+    } else {
+      const r = await apiPost({action:'login'});
+      if(r && r.success){
+        SessionPortail.memoriser(code);
+        seedActiveYear(r.year);   // (perf) évite un getActiveYear ultérieur
+        applyUserBadge(r);
+        showPortal();
+      } else {
+        VIEW_CODE='';
+        _authErr(r && r.error ? r.error : 'Code incorrect');
+      }
+    }
+  } catch(e){ VIEW_CODE=''; _authErr('Erreur réseau — réessayez'); }
+  btn.disabled = false; btn.textContent = 'Accéder →';
+}
+async function viewAutoLogin(){
+  let saved=''; saved = SessionPortail.lire();
+  if(!saved) return; // pas de code en cache → écran de connexion affiché
+  // Affichage optimiste : le code étant en cache, on montre l'interface tout de suite
+  // et on revalide en arrière-plan — plus de clignotement de la page d'authentification.
+  VIEW_CODE = saved; showPortal();
+  try{
+    /* (miroir, 03/08/2026) Revalidation par le miroir (~150 ms) : identite,
+       annee active et planning arrivent d'un coup ; le bandeau « Mes
+       gardes » se remplit sans attendre le login GAS. Echec → login GAS. */
+    if (await miroirBootDash() === true) {
+      try { if (window.PERF) PERF.jalon('ouverture via miroir'); } catch(e) {}
+      showPortal();
+      return;
+    }
+    const r = await apiPost({action:'login'});
+    try { if (window.PERF) PERF.jalon('reponse serveur recue'); } catch(e) {}
+    if(r && r.success){ seedActiveYear(r.year); applyUserBadge(r); showPortal(); }
+    else {
+      VIEW_CODE=''; SessionPortail.oublier();
+      document.getElementById('viewAuthOverlay').style.display='flex';
+      document.getElementById('portal').style.display='none';
+    }
+  } catch(e){ /* réseau indisponible : on conserve l'affichage optimiste */ }
+}
+document.getElementById('viewAuthInput').addEventListener('keydown', e => { if(e.key==='Enter') viewLogin(); });
+
+/* ═══════════════════════════════════════════════════════════════════════════
+   CHRONO — INSTRUMENT DE MESURE (01/08/2026)
+   ═══════════════════════════════════════════════════════════════════════════
+   LECTURE SEULE. N'ecrit rien, n'appelle rien, ne modifie aucun affichage.
+   Se contente d'observer et de tenir un journal, consultable dans la console.
+
+   POURQUOI. Jusqu'ici seul admin.html savait mesurer ses APPELS (chronoAPI).
+   Rien ne mesurait : le temps du navigateur (analyse du JS, rendu), les
+   ressources tierces (polices, icones), ni le COUT D'UN CLIC. Or sur admin
+   chaque placement rappelle renderWeek() en entier : c'est la partie du temps
+   que personne n'a jamais chiffree.
+
+   A TAPER DANS LA CONSOLE :
+     chrono()        le budget complet de la page (ouverture + appels + rendus)
+     chronoClics()   le detail des interactions : clic -> ecran mis a jour
+     chronoAPI()     (admin) le detail des appels serveur, inchange
+
+   TROIS MESURES, TROIS SENS DIFFERENTS :
+   - « attente »    : le temps entre le clic et le debut du traitement. Si elle
+                      est grande, le navigateur etait deja occupe ailleurs.
+   - « traitement » : le temps passe DANS notre code. C'est le seul que l'on
+                      peut reduire nous-memes.
+   - « ecran »      : le temps de peinture apres le traitement.
+
+   Cout de l'instrument lui-meme : deux observateurs natifs du navigateur et
+   un push dans un tableau par evenement. Non mesurable a l'echelle de la page.
+   ═════════════════════════════════════════════════════════════════════════ */
+(function () {
+  if (window.PERF) return;
+
+  var P = {
+    page: (location.pathname.split('/').pop() || 'index.html'),
+    jalons: [],      // etapes nommees du chargement
+    rendus: [],      // durees des fonctions d'affichage surveillees
+    clics: [],       // interactions utilisateur
+    longues: [],     // taches > 50 ms : l'ecran est fige pendant ce temps
+    appels: []       // journal des appels serveur (admin : partage avec chronoAPI)
+  };
+  window.PERF = P;
+
+  // ── Jalons ───────────────────────────────────────────────────────────────
+  P.jalon = function (nom) {
+    try { P.jalons.push({ nom: nom, t: Math.round(performance.now()) }); } catch (e) {}
+  };
+
+  // ── Journal d'appel serveur (pages sans chronoAPI) ───────────────────────
+  P.appel = function (action, ms, srv, depart, issue, glob) {
+    try {
+      P.appels.push({ action: action, ms: ms, srv: (typeof srv === 'number' ? srv : null),
+                      glob: (typeof glob === 'number' ? glob : null),
+                      depart: depart, essais: 1, issue: issue || 'ok' });
+    } catch (e) {}
+  };
+
+  // Enregistre une duree. Plafond : une session de plusieurs heures ne doit pas
+  // faire enfler le journal (l'instrument ne doit jamais devenir le probleme).
+  P.note = function (nom, ms, t, bloquant) {
+    if (P.rendus.length >= 5000) P.rendus.shift();
+    P.rendus.push({ nom: nom, ms: ms, t: t, bloquant: (bloquant == null ? ms : bloquant) });
+  };
+
+  // ── Surveillance des fonctions d'affichage ───────────────────────────────
+  // Enveloppe une fonction globale pour en chronometrer chaque execution.
+  // A appeler APRES la declaration des fonctions concernees (fin de script).
+  P.surveiller = function (noms) {
+    (noms || []).forEach(function (n) {
+      var f = window[n];
+      if (typeof f !== 'function' || f._chrono) return;
+      var g = function () {
+        var d = performance.now(), r;
+        try { r = f.apply(this, arguments); }
+        finally { try {
+          var sync = performance.now() - d;
+          // Fonction asynchrone : le temps qui compte est celui de la promesse,
+          // pas celui du retour. On note les deux — « bloquant » est le seul
+          // temps pendant lequel l'ecran est fige.
+          if (r && typeof r.then === 'function') {
+            r.then(_fin, _fin);
+            function _fin() { P.note(n, Math.round(performance.now() - d), Math.round(d), Math.round(sync)); }
+          } else {
+            P.note(n, Math.round(sync), Math.round(d), Math.round(sync));
+          }
+        } catch (e) { /* l'instrument ne doit JAMAIS casser la fonction mesuree */ } }
+        return r;
+      };
+      g._chrono = true;
+      try { window[n] = g; } catch (e) {}
+    });
+  };
+
+  // ── Observateur : taches longues (ecran fige) ────────────────────────────
+  try {
+    new PerformanceObserver(function (l) {
+      l.getEntries().forEach(function (e) {
+        P.longues.push({ t: Math.round(e.startTime), ms: Math.round(e.duration) });
+      });
+    }).observe({ type: 'longtask', buffered: true });
+  } catch (e) {}
+
+  // ── Observateur : interactions (clic -> ecran) ───────────────────────────
+  function _cible(el) {
+    if (!el || !el.tagName) return '?';
+    var s = el.tagName.toLowerCase();
+    if (el.id) return s + '#' + el.id;
+    var c = (el.className && el.className.baseVal !== undefined) ? el.className.baseVal : el.className;
+    if (typeof c === 'string' && c.trim()) return s + '.' + c.trim().split(/\s+/).slice(0, 2).join('.');
+    var t = (el.textContent || '').trim().replace(/\s+/g, ' ').slice(0, 18);
+    return t ? s + ' « ' + t + ' »' : s;
+  }
+  try {
+    new PerformanceObserver(function (l) {
+      l.getEntries().forEach(function (e) {
+        if (e.name !== 'click' && e.name !== 'keydown' && e.name !== 'pointerdown') return;
+        P.clics.push({
+          nom: e.name,
+          cible: _cible(e.target),
+          t: Math.round(e.startTime),
+          attente: Math.round(e.processingStart - e.startTime),
+          traitement: Math.round(e.processingEnd - e.processingStart),
+          ecran: Math.round(e.startTime + e.duration - e.processingEnd),
+          total: Math.round(e.duration)
+        });
+      });
+    }).observe({ type: 'event', durationThreshold: 16, buffered: true });
+  } catch (e) {}
+
+  // ── Mise en forme ────────────────────────────────────────────────────────
+  function col(t, n) { var s = String(t); while (s.length < n) s += ' '; return s.slice(0, n); }
+  function ms(v, n) { return String(Math.round(v)).padStart(n || 6, ' '); }
+  function sec(v) { return (v / 1000).toFixed(1) + ' s'; }
+
+  // ── chrono() : le budget complet ─────────────────────────────────────────
+  P.rapport = function () {
+    var L = ['', '══ CHRONO — ' + P.page + ' — ' + new Date().toLocaleTimeString('fr-FR') + ' ══'];
+    var nav = null;
+    try { nav = performance.getEntriesByType('navigation')[0] || null; } catch (e) {}
+
+    // 1. Arrivee de la page elle-meme
+    if (nav) {
+      L.push('');
+      L.push('── 1. La page (fichier HTML) ' + '─'.repeat(30));
+      L.push('   DNS + connexion   ' + ms(nav.connectEnd - nav.domainLookupStart) + ' ms');
+      L.push('   Reponse serveur   ' + ms(nav.responseStart - nav.requestStart) + ' ms   (premier octet)');
+      L.push('   Telechargement    ' + ms(nav.responseEnd - nav.responseStart) + ' ms   '
+             + (nav.transferSize ? '(' + Math.round(nav.transferSize / 1024) + ' Ko transferes)' : ''));
+      L.push('   Analyse + script  ' + ms(nav.domContentLoadedEventEnd - nav.responseEnd) + ' ms   '
+             + '(lecture du HTML, du CSS et execution du JS)');
+      L.push('   → page prete      ' + ms(nav.domContentLoadedEventEnd) + ' ms');
+    }
+
+    // 2. Ressources tierces
+    var res = [];
+    try {
+      res = performance.getEntriesByType('resource')
+        .filter(function (r) { return r.duration >= 5 && !/googleusercontent|script\.google/.test(r.name); })
+        .sort(function (a, b) { return b.duration - a.duration; }).slice(0, 8);
+    } catch (e) {}
+    if (res.length) {
+      L.push('');
+      L.push('── 2. Ressources chargees ' + '─'.repeat(33));
+      res.forEach(function (r) {
+        var court = r.name.replace(/^https?:\/\//, '').replace(/\?.*$/, '');
+        if (court.length > 46) court = court.slice(0, 20) + '…' + court.slice(-25);
+        L.push('   ' + col(court, 48) + ms(r.duration) + ' ms  '
+               + (r.transferSize ? Math.round(r.transferSize / 1024) + ' Ko' : 'poids n.c.'));
+      });
+    }
+
+    // 3. Appels serveur
+    var J = P.appels;
+    if (J && J.length) {
+      var tot = 0, srv = 0, glo = 0, ech = 0;
+      J.forEach(function (c) {
+        tot += c.ms; srv += (c.srv || 0); glo += (c.glob || 0);
+        if (String(c.issue).indexOf('ECHEC') === 0) ech++;
+      });
+      L.push('');
+      L.push('── 3. Appels serveur ' + '─'.repeat(38));
+      J.forEach(function (c, i) {
+        var dep = (c.depart != null) ? ('T+' + (c.depart / 1000).toFixed(1) + 's ') : '';
+        L.push('   ' + String(i + 1).padStart(2) + '. ' + col(dep, 9) + col(c.action, 24)
+               + ms(c.ms) + ' ms'
+               + (c.srv != null
+                    ? '   (avant doGet ' + (c.glob != null ? ms(c.glob, 5) : '    ?')
+                      + ' · doGet ' + ms(c.srv, 5)
+                      + ' · reseau ' + ms(Math.max(0, c.ms - c.srv - (c.glob || 0)), 5) + ')'
+                    : '')
+               + (c.essais > 1 ? '  ' + c.essais + ' ESSAIS' : '')
+               + (String(c.issue).indexOf('ECHEC') === 0 ? '   ' + c.issue : ''));
+      });
+      L.push('   ' + col('', 9) + col('TOTAL ' + J.length + ' appels', 24) + ms(tot) + ' ms'
+             + '   (avant doGet ' + ms(glo, 5) + ' · doGet ' + ms(srv, 5)
+             + ' · reseau ' + ms(Math.max(0, tot - srv - glo), 5) + ')'
+             + (ech ? '   ' + ech + ' EN ECHEC' : ''));
+      L.push('   « avant doGet » = notre code global (TEST_YEAR, ouverture du classeur).');
+      L.push('   « reseau » contient encore la COMPILATION des 545 Ko de .gs : la separer');
+      L.push('   demande le menu Executions d\'Apps Script (duree totale a comparer).');
+    }
+
+    // 3bis. Detail serveur (fourni par getAdminBootstrap)
+    var avecDetail = (J || []).filter(function (c) { return c.detail && typeof c.detail === 'object'; });
+    avecDetail.forEach(function (c) {
+      var etapes = Object.keys(c.detail);
+      if (!etapes.length) return;
+      L.push('');
+      L.push('── 3bis. Detail de ' + c.action + ' (' + (c.srv != null ? c.srv + ' ms' : '?') + ') '
+             + '─'.repeat(Math.max(0, 26 - c.action.length)));
+      etapes.sort(function (a, b) { return c.detail[b] - c.detail[a]; }).forEach(function (e) {
+        L.push('   ' + col(e, 38) + ms(c.detail[e]) + ' ms');
+      });
+      if (c.ser != null) L.push('   ' + col('serialisation de la reponse', 38) + ms(c.ser) + ' ms');
+      if (c.taille) L.push('   ' + col('taille de la reponse', 38)
+                           + ms(Math.round(c.taille / 1024)) + ' Ko');
+    });
+
+    // 4. Jalons
+    if (P.jalons.length) {
+      L.push('');
+      L.push('── 4. Etapes ' + '─'.repeat(46));
+      P.jalons.forEach(function (j) { L.push('   ' + col(j.nom, 34) + ms(j.t) + ' ms'); });
+    }
+
+    // 5. Rendus
+    if (P.rendus.length) {
+      var par = {};
+      P.rendus.forEach(function (r) {
+        if (!par[r.nom]) par[r.nom] = { n: 0, tot: 0, pire: 0, bloq: 0 };
+        par[r.nom].n++; par[r.nom].tot += r.ms; par[r.nom].bloq += r.bloquant;
+        if (r.ms > par[r.nom].pire) par[r.nom].pire = r.ms;
+      });
+      L.push('');
+      L.push('── 5. Affichage (temps passe dans notre code) ' + '─'.repeat(13));
+      L.push('   ' + col('fonction', 26) + col('appels', 8) + col('cumul', 10)
+             + col('moyenne', 10) + col('pire', 10) + 'dont ecran fige');
+      Object.keys(par).sort(function (a, b) { return par[b].tot - par[a].tot; }).forEach(function (n) {
+        var d = par[n];
+        L.push('   ' + col(n, 26) + col(d.n, 8) + col(d.tot + ' ms', 10)
+               + col(Math.round(d.tot / d.n) + ' ms', 10) + col(d.pire + ' ms', 10) + d.bloq + ' ms');
+      });
+    }
+
+    // 6. Ecran fige
+    if (P.longues.length) {
+      var cum = 0, pire = 0;
+      P.longues.forEach(function (t) { cum += t.ms; if (t.ms > pire) pire = t.ms; });
+      L.push('');
+      L.push('── 6. Ecran fige ' + '─'.repeat(42));
+      L.push('   ' + P.longues.length + ' tache(s) de plus de 50 ms · cumul ' + cum + ' ms · pire ' + pire + ' ms');
+      L.push('   (pendant ce temps la page ne repond a aucun clic)');
+    }
+
+    // 7. Budget
+    if (nav) {
+      var apiTot = 0; (P.appels || []).forEach(function (c) { apiTot += c.ms; });
+      // (01/08/2026) On somme le temps BLOQUANT et non le cumul : `initDashboard`
+      // affichait 16 s de cumul pour 0 ms de blocage — elle attend le serveur.
+      // Additionner les cumuls annoncait « affichage 16,7 s » au lieu de 0,3 s.
+      var renduTot = 0; P.rendus.forEach(function (r) { renduTot += r.bloquant; });
+      L.push('');
+      L.push('── BUDGET ' + '─'.repeat(49));
+      L.push('   statique (page + ressources) ' + col(sec(nav.domContentLoadedEventEnd), 10)
+             + '   appels serveur ' + col(sec(apiTot), 10)
+             + '   affichage ' + sec(renduTot) + ' (ecran fige)');
+    }
+    L.push('');
+    return L.join('\n');
+  };
+
+  // ── chronoClics() : le detail des interactions ───────────────────────────
+  P.rapportClics = function () {
+    if (!P.clics.length) {
+      return 'Aucune interaction de plus de 16 ms enregistree.\n'
+           + '(Chrome/Edge uniquement. Sur Safari et Firefox cette mesure n\'existe pas.)';
+    }
+    var L = ['', '══ CLICS — ' + P.page + ' — ' + new Date().toLocaleTimeString('fr-FR') + ' ══', '',
+             '   ' + col('#', 4) + col('cible', 30) + col('attente', 10) + col('traitement', 13)
+             + col('ecran', 9) + 'total'];
+    var tot = [], pire = null;
+    P.clics.forEach(function (c, i) {
+      tot.push(c.total);
+      if (!pire || c.total > pire.total) pire = c;
+      L.push('   ' + col(i + 1, 4) + col(c.cible, 30) + col(c.attente + ' ms', 10)
+             + col(c.traitement + ' ms', 13) + col(c.ecran + ' ms', 9) + c.total + ' ms');
+    });
+    tot.sort(function (a, b) { return a - b; });
+    var med = (tot.length % 2) ? tot[(tot.length - 1) / 2]
+            : Math.round((tot[tot.length / 2 - 1] + tot[tot.length / 2]) / 2);
+    L.push('   ' + '─'.repeat(66));
+    L.push('   ' + P.clics.length + ' interaction(s) · mediane ' + med
+           + ' ms · pire ' + pire.total + ' ms sur ' + pire.cible);
+    L.push('   Repere : au-dela de 200 ms le clic est ressenti comme lent, au-dela de 500 ms comme bloque.');
+    L.push('');
+    return L.join('\n');
+  };
+
+  window.chrono = function () { var t = P.rapport(); console.log(t); return t; };
+  window.chronoClics = function () { var t = P.rapportClics(); console.log(t); return t; };
+})();
+
+/* ── BRANCHEMENT DE L'INSTRUMENT ─────────────────────────────────────────
+   Place avant le demarrage : toutes les fonctions sont declarees. */
+try {
+  PERF.surveiller([
+    'showPortal',
+    'renderTiles',
+    'loadMyGardes',
+    'renderMyGardesHero',
+    'renderMesGardes',
+    'loadMyConges',
+    'renderMesConges',
+    'renderVeille',
+    'renderToposList',
+    'renderStaffsList',
+    'renderProtocoles',
+    'renderAnnuaire',
+    'route'
+  ]);
+} catch (e) { console.warn('[chrono] branchement impossible :', e && e.message); }
+
+if(window.lucide) lucide.createIcons();
+window.addEventListener('hashchange', route);
+viewAutoLogin();
+
+// ── PWA : service worker (cache des assets ; API/HTML/.json jamais interceptés) ──
+/* ── NOTIFICATIONS PUSH (12/08/2026, phase 1) ──────────────────────────
+   Un appui : permission → abonnement auprès du navigateur (clé publique
+   VAPID servie par le miroir) → dépôt de l'abonnement au miroir, qui
+   vérifie le code et le rôle. Tout échec est dit à l'écran, sans jargon. */
+async function activerNotifications(){
+  const etat = document.getElementById('notifEtat');
+  const dire = function(t){ if(etat) etat.textContent = t; };
+  try {
+    if (!('serviceWorker' in navigator) || !('PushManager' in window)) { dire('Ce navigateur ne sait pas faire.'); return; }
+    const perm = await Notification.requestPermission();
+    if (perm !== 'granted') { dire('Permission refusée — réglages du téléphone → Notifications.'); return; }
+    dire('Activation…');
+    const reg = await navigator.serviceWorker.ready;
+    const rc = await fetch(MIROIR_URL + '/notif-cle', { method: 'POST', headers: { 'Content-Type': 'text/plain;charset=utf-8' }, body: '{}' });
+    const jc = await rc.json();
+    if (!jc.success) { dire('Serveur pas prêt (' + (jc.error || 'clé absente') + ').'); return; }
+    const brut = atob(jc.cle.replace(/-/g, '+').replace(/_/g, '/') + '='.repeat((4 - jc.cle.length % 4) % 4));
+    const cle = new Uint8Array(brut.length); for (let i = 0; i < brut.length; i++) cle[i] = brut.charCodeAt(i);
+    const sub = await reg.pushManager.subscribe({ userVisibleOnly: true, applicationServerKey: cle });
+    const ra = await fetch(MIROIR_URL + '/notif-abonner', { method: 'POST', headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+      body: JSON.stringify({ code: VIEW_CODE, subscription: sub.toJSON() }) });
+    const ja = await ra.json();
+    if (!ja.success) { dire('Refusé : ' + (ja.error || 'erreur inconnue')); return; }
+    dire('Notifications activées sur ce téléphone ✓');
+    setTimeout(function(){ const nc = document.getElementById('notifCard'); if (nc) nc.style.display = 'none'; }, 2500);
+  } catch (err) {
+    dire('Échec : ' + (err && err.message ? err.message : 'erreur inconnue'));
+  }
+}
+
+if('serviceWorker' in navigator){
+  window.addEventListener('load', function(){ navigator.serviceWorker.register('sw.js').catch(function(){}); });
+}
+</script>
+</body>
+</html>

@@ -1,0 +1,1171 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8"/>
+  <!-- Outil interne du service : ne pas referencer dans les moteurs de recherche.
+       Complete robots.txt (racine du depot). N'empeche AUCUN acces : qui a
+       l'adresse entre normalement, et se heurte au code personnel. -->
+  <meta name="robots" content="noindex, nofollow">
+<meta name="viewport" content="width=device-width,initial-scale=1.0"/>
+<title>Staff Vacances — Planning-Med</title>
+<link rel="icon" type="image/svg+xml" href="assets/favicon.svg">
+<link rel="preconnect" href="https://fonts.googleapis.com"/>
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:opsz,wght@9..40,400;9..40,500;9..40,600;9..40,700;9..40,800&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet"/>
+<style>
+:root{--red:#CE1126;--red-dk:#A50E1F;--ink:#0F172A;--ink-2:#334155;--ink-3:#64748B;--ink-4:#94A3B8;--line:#E2E8F0;--ll:#F1F5F9;--bg:#F8FAFC;--white:#FFFFFF;--radius:10px;--mono:'DM Mono',monospace;--shadow:0 1px 4px rgba(0,0,0,.06);--shadow-lg:0 16px 48px rgba(0,0,0,.16);--vac-bg:#DBEAFE;--vac-fg:#1D4ED8;--vac-brd:#93C5FD;--form-bg:#F3E8FF;--form-fg:#7C3AED;--form-brd:#C4B5FD;--ok-bg:#DCFCE7;--ok-fg:#166534;--warn-bg:#FEF9C3;--warn-fg:#92400E;--hot-bg:#FEE2E2;--hot-fg:#991B1B;}
+*{box-sizing:border-box;margin:0;padding:0;}
+body{font-family:'DM Sans',system-ui,sans-serif;background:var(--bg);color:var(--ink);-webkit-font-smoothing:antialiased;min-height:100vh;}
+.auth-overlay{position:fixed;inset:0;background:linear-gradient(140deg,#0F172A 0%,#1a0508 100%);display:flex;align-items:center;justify-content:center;z-index:999;}
+.auth-box{background:var(--white);border-radius:20px;padding:48px 40px;width:400px;text-align:center;box-shadow:var(--shadow-lg);}
+.auth-flag{width:48px;height:48px;border-radius:12px;overflow:hidden;display:flex;flex-direction:column;margin:0 auto 20px;box-shadow:0 4px 12px rgba(206,17,38,.3);}
+.auth-title{font-size:24px;font-weight:800;margin-bottom:4px;}
+.auth-sub{font-size:13px;color:var(--ink-4);margin-bottom:32px;}
+.auth-input{width:100%;border:2px solid var(--line);border-radius:12px;padding:14px 16px;font-size:18px;font-family:var(--mono);text-align:center;text-transform:uppercase;letter-spacing:.18em;outline:none;margin-bottom:12px;background:var(--ll);transition:border-color .15s;}
+.auth-input:focus{border-color:var(--red);background:var(--white);}
+.auth-btn{width:100%;background:var(--red);color:white;border:none;border-radius:12px;padding:14px;font-size:15px;font-weight:700;cursor:pointer;font-family:'DM Sans',sans-serif;transition:opacity .15s;}
+.auth-btn:hover{opacity:.88;}
+.auth-err{font-size:12px;color:var(--red);margin-top:8px;display:none;}
+.header{background:var(--red);min-height:58px;padding:0 28px;display:flex;align-items:center;justify-content:space-between;position:sticky;top:0;z-index:100;}
+.header-left{display:flex;align-items:center;gap:12px;min-width:0;}
+.header-flag{width:28px;height:28px;border-radius:6px;overflow:hidden;display:flex;flex-direction:column;}
+.header-title{color:white;font-size:16px;font-weight:700;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+.header-pill{background:rgba(255,255,255,.2);border-radius:20px;padding:3px 12px;font-size:11px;color:rgba(255,255,255,.9);font-weight:600;}
+.header-right{display:flex;align-items:center;gap:10px;flex-shrink:0;}
+.btn-ghost{background:rgba(255,255,255,.15);color:white;border:1px solid rgba(255,255,255,.25);border-radius:8px;padding:6px 14px;font-size:12px;font-weight:600;cursor:pointer;font-family:'DM Sans',sans-serif;transition:background .15s;}
+.btn-ghost:hover{background:rgba(255,255,255,.25);}
+.btn-validate{background:white;color:var(--red);border:none;border-radius:8px;padding:7px 18px;font-size:13px;font-weight:700;cursor:pointer;font-family:'DM Sans',sans-serif;}
+.toolbar{background:var(--white);border-bottom:1px solid var(--line);padding:10px 28px;display:flex;gap:10px;align-items:center;flex-wrap:wrap;position:sticky;top:58px;z-index:90;}
+.periode-tabs{display:flex;gap:6px;}
+.ptab{padding:6px 16px;border-radius:20px;border:1.5px solid var(--line);background:var(--white);color:var(--ink-3);font-size:13px;font-weight:500;cursor:pointer;font-family:'DM Sans',sans-serif;transition:all .15s;white-space:nowrap;}
+.ptab.active{font-weight:700;}
+.type-btns{display:flex;gap:4px;margin-left:8px;}
+.tbtn{padding:6px 18px;border-radius:20px;border:1.5px solid var(--line);background:var(--white);color:var(--ink-3);font-size:13px;font-weight:500;cursor:pointer;font-family:'DM Sans',sans-serif;transition:all .15s;}
+.tbtn.vac.active{background:var(--vac-bg);border-color:var(--vac-brd);color:var(--vac-fg);font-weight:700;}
+.tbtn.form.active{background:var(--form-bg);border-color:var(--form-brd);color:var(--form-fg);font-weight:700;}
+.view-toggle{display:flex;border:1px solid var(--line);border-radius:8px;overflow:hidden;margin-left:auto;}
+.vtbtn{padding:6px 14px;font-size:12px;font-weight:500;cursor:pointer;border:none;background:var(--white);color:var(--ink-3);font-family:'DM Sans',sans-serif;}
+.vtbtn.active{background:var(--ll);color:var(--ink);font-weight:600;}
+.seuil-info{font-size:12px;color:var(--ink-4);}
+.seuil-info strong{color:var(--ink-2);}
+.stats-bar{background:var(--white);border-bottom:1px solid var(--line);padding:6px 28px;display:flex;gap:24px;align-items:center;font-size:12px;}
+.sbar-item{display:flex;align-items:center;gap:6px;}
+.sbar-dot{width:7px;height:7px;border-radius:50%;}
+.sbar-lbl{color:var(--ink-4);}
+.sbar-val{font-weight:700;color:var(--ink-2);font-family:var(--mono);}
+.main{padding:20px 28px;}
+.grid-wrap{overflow-x:auto;}
+.grid-table{border-collapse:collapse;min-width:100%;font-size:12px;}
+.gt-th-mar{background:var(--ll);padding:10px 16px;text-align:left;font-size:10px;font-weight:700;color:var(--ink-3);text-transform:uppercase;letter-spacing:.07em;border-bottom:2px solid var(--line);border-right:1px solid var(--line);position:sticky;left:0;z-index:10;min-width:200px;}
+.gt-th-quota{background:var(--ll);padding:8px;text-align:center;font-size:10px;font-weight:600;color:var(--ink-3);border-bottom:2px solid var(--line);border-right:1px solid var(--line);min-width:60px;}
+.gt-th-day{padding:6px 4px;text-align:center;border-bottom:2px solid var(--line);border-right:1px solid var(--line);min-width:52px;vertical-align:bottom;}
+.gt-th-day.we{background:var(--ll);}
+.gt-th-day.tension-ok{background:var(--ok-bg);}
+.gt-th-day.tension-warn{background:var(--warn-bg);}
+.gt-th-day.tension-hot{background:var(--hot-bg);}
+.gt-th-day-date{font-size:10px;font-weight:600;color:var(--ink-2);}
+.gt-th-day-count{font-size:10px;color:var(--ink-4);margin-top:2px;}
+.gt-th-day-count.gt-viv{font-weight:800;font-size:11px;}
+.gt-th-day-count.gt-viv.ok{color:#166534;}
+.gt-th-day-count.gt-viv.warn{color:#92400E;}
+.gt-th-day-count.gt-viv.hot{color:#991B1B;}
+.gt-th-total{background:var(--ll);padding:8px 10px;text-align:center;font-size:10px;font-weight:600;color:var(--ink-3);border-bottom:2px solid var(--line);min-width:110px;}
+.gt-sep{padding:4px 12px;font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.07em;color:var(--ink-4);background:var(--ll);border-bottom:1px solid var(--line);}
+.gt-row-a .gt-cell-mar{border-left:3px solid #3B82F6;}
+.gt-row-b .gt-cell-mar{border-left:3px solid #F59E0B;}
+.gt-row-c .gt-cell-mar{border-left:3px solid #10B981;}
+.gt-cell-mar{padding:6px 12px;font-size:12px;border-bottom:1px solid var(--ll);display:flex;align-items:center;gap:8px;background:var(--white);position:sticky;left:0;z-index:5;border-right:1px solid var(--line);}
+.gt-initials{font-family:var(--mono);font-size:11px;background:var(--ll);border-radius:4px;padding:2px 7px;color:var(--ink-3);flex-shrink:0;}
+.gt-name{font-weight:600;color:var(--ink);}
+.gt-group{font-size:9px;font-weight:700;border-radius:4px;padding:1px 5px;margin-left:2px;flex-shrink:0;}
+.gt-group.A{background:#EFF6FF;color:#1D4ED8;}
+.gt-group.B{background:#FEF3C7;color:#92400E;}
+.gt-group.C{background:#F0FDF4;color:#166534;}
+.gt-rang{font-size:9px;color:var(--ink-4);margin-left:auto;font-family:var(--mono);}
+.gt-quotite{font-size:10px;color:var(--ink-4);}
+.gt-cell-quota{padding:6px 8px;text-align:center;font-size:11px;color:var(--ink-3);border-bottom:1px solid var(--ll);border-right:1px solid var(--line);background:var(--white);}
+.gt-cell-day{padding:4px 3px;text-align:center;border-bottom:1px solid var(--ll);border-right:1px solid var(--line);background:var(--white);cursor:pointer;user-select:none;}
+.gt-cell-day.we{background:#FAFAFA;cursor:default;}
+.gt-cell-day:hover:not(.we){background:var(--ll);}
+.day-chip{width:40px;height:26px;border-radius:6px;display:inline-flex;align-items:center;justify-content:center;font-size:10px;font-weight:700;font-family:var(--mono);border:1.5px solid transparent;transition:all .1s;position:relative;}
+.day-chip.empty{background:transparent;border-color:transparent;color:transparent;}
+.day-chip.vac{background:var(--vac-bg);border-color:var(--vac-brd);color:var(--vac-fg);}
+.day-chip.form{background:var(--form-bg);border-color:var(--form-brd);color:var(--form-fg);}
+.day-chip.locked{cursor:pointer;opacity:.7;}
+.day-chip.locked::after{content:'🔒';font-size:7px;position:absolute;top:-3px;right:-3px;}
+.day-chip.we-chip{background:transparent;border:none;color:var(--ink-4);font-size:9px;cursor:default;}
+.gt-cell-total{padding:6px 10px;text-align:center;border-bottom:1px solid var(--ll);background:var(--white);}
+.total-badge{display:inline-flex;align-items:center;padding:2px 8px;border-radius:10px;font-size:10px;font-weight:700;font-family:var(--mono);margin:1px;}
+.total-badge.ok{background:var(--ok-bg);color:var(--ok-fg);}
+.total-badge.over{background:var(--hot-bg);color:var(--hot-fg);}
+.total-badge.zero{background:var(--ll);color:var(--ink-4);}
+.legend{display:flex;gap:16px;margin-bottom:14px;font-size:12px;color:var(--ink-3);align-items:center;flex-wrap:wrap;}
+.legend-item{display:flex;align-items:center;gap:6px;}
+.recap-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(200px,1fr));gap:12px;}
+.recap-card{background:var(--white);border:1px solid var(--line);border-radius:12px;padding:16px;}
+.recap-header{display:flex;align-items:center;gap:8px;margin-bottom:12px;}
+.recap-counts{display:flex;gap:8px;}
+.rcb{flex:1;border-radius:8px;padding:10px;text-align:center;}
+.rcb-lbl{font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.05em;margin-bottom:4px;}
+.rcb-val{font-size:20px;font-weight:800;line-height:1;}
+.rcb-quota{font-size:10px;margin-top:2px;opacity:.7;}
+.toast{position:fixed;bottom:24px;left:50%;transform:translateX(-50%);background:var(--ink);color:white;border-radius:12px;padding:10px 20px;font-size:13px;font-weight:600;opacity:0;transition:opacity .3s;pointer-events:none;z-index:500;white-space:nowrap;}
+.toast.show{opacity:1;}
+.spinner{display:inline-block;width:16px;height:16px;border:2px solid rgba(255,255,255,.3);border-top-color:white;border-radius:50%;animation:spin .7s linear infinite;}
+.spinner.dark{border-color:rgba(0,0,0,.1);border-top-color:var(--ink-3);}
+@keyframes spin{to{transform:rotate(360deg);}}
+.loading-msg{text-align:center;padding:60px;color:var(--ink-4);font-size:14px;display:flex;flex-direction:column;align-items:center;gap:12px;}
+  /* ── Bandeau Noël/Jour de l'An (prioritaires garde) ── */
+
+</style>
+</head>
+<body>
+
+<div class="auth-overlay" id="authOverlay">
+  <div class="auth-box">
+    <div class="auth-flag"><img src="assets/logo.png" alt="" style="width:100%;height:100%;object-fit:cover;display:block"></div>
+    <div class="auth-title">Staff Vacances</div>
+    <div class="auth-sub">Planning-Med · Comité Planning · Accès restreint</div>
+    <!-- maxlength retire le 29/07/2026 : troncature silencieuse d'un code long (cf. indispos.html). -->
+    <input class="auth-input" id="authInput" type="password" placeholder="CODE ADMIN" autocomplete="off"/>
+    <button class="auth-btn" id="authBtn" onclick="doLogin()">Accéder →</button>
+    <div class="auth-err" id="authErr">Code incorrect</div>
+  </div>
+</div>
+
+<div class="header" id="appHeader" style="display:none;">
+  <div class="header-left">
+    <div class="header-flag"><img src="assets/logo.png" alt="" style="width:100%;height:100%;object-fit:cover;display:block"></div>
+    <span class="header-title">Staff Vacances</span>
+    <span class="header-pill" id="yearPill">—</span>
+    <span class="header-pill" id="lockPill" style="background:rgba(255,255,255,.1);display:none;">🔒 Verrouillé</span>
+  </div>
+  <!-- (01/09/2026) Le bouton « Récap » de la barre rouge doublait le sélecteur
+       Grille / Récap posé juste au-dessus de la grille : deux commandes pour la
+       même chose, à deux endroits. Il est retiré, le sélecteur reste.
+       « Priorités » monte ici : c'est l'ordre de passage des groupes, la
+       donnée qui commande tout l'arbitrage du staff. Elle était perdue au
+       milieu de la barre d'outils, entre les onglets de période. -->
+  <div class="header-right">
+    <button class="btn-ghost" onclick="openRecapPriorites()">🏆 Priorités</button>
+    <button class="btn-ghost" onclick="openRecapNoel()">🎄 Noël &amp; Jour de l'An</button>
+    <button class="btn-ghost" id="btnUnlock" onclick="unlockAll()" style="display:none;">🔓 Tout déverrouiller</button>
+    <button class="btn-validate" id="btnValidate" onclick="doValidate()">✅ Valider et verrouiller</button>
+  </div>
+</div>
+
+<!-- (01/09/2026) Le bandeau défilant « Noël & Jour de l'An » est retiré : il
+     n'affichait que huit prioritaires, en boucle, sans jamais montrer qui était
+     exempté ni depuis quand. On ne peut pas arbitrer sur un texte qui passe.
+     Remplacé par le tableau du bouton « 🎄 Noël & Jour de l'An » de la barre :
+     l'équipe entière, avec toutes les années de chacun. -->
+
+<div class="stats-bar" id="statsBar" style="display:none;">
+  <div class="sbar-item"><div class="sbar-dot" style="background:#CE1126;"></div><span class="sbar-lbl">Période</span><span class="sbar-val" id="sbPeriode">—</span></div>
+  <div class="sbar-item"><div class="sbar-dot" style="background:#3B82F6;"></div><span class="sbar-lbl">Seuil</span><span class="sbar-val" id="sbSeuil">—</span></div>
+  <div class="sbar-item"><div class="sbar-dot" style="background:#F59E0B;"></div><span class="sbar-lbl">Proche seuil</span><span class="sbar-val" id="sbWarn">—</span></div>
+  <div class="sbar-item"><div class="sbar-dot" style="background:#EF4444;"></div><span class="sbar-lbl">Saturés</span><span class="sbar-val" id="sbHot">—</span></div>
+  <div class="sbar-item" style="margin-left:auto;"><div class="sbar-dot" style="background:#6B7280;"></div><span class="sbar-lbl">MARs actifs</span><span class="sbar-val" id="sbMars">—</span></div>
+</div>
+
+<div class="toolbar" id="appToolbar" style="display:none;">
+  <div class="periode-tabs" id="periodeTabs"></div>
+  <div style="width:1px;height:20px;background:var(--line);margin:0 4px;"></div>
+  <div class="type-btns">
+    <button class="tbtn vac active" id="btnVAC" onclick="setType('VAC')">📅 VAC</button>
+    <button class="tbtn form" id="btnFORM" onclick="setType('FORM')">🎓 FORM</button>
+    <button class="tbtn vac" id="btnVACHS" onclick="setType('VACHS')">📆 VAC année</button>
+    <button class="tbtn vac" id="btnPONTS" onclick="setType('PONTS')">🌉 Ponts</button>
+  </div>
+  <div class="view-toggle" style="margin-left:auto;">
+    <button class="vtbtn active" id="vtGrille" onclick="setView('grille')">📅 Grille</button>
+    <button class="vtbtn" id="vtRecap" onclick="setView('recap')">📊 Récap</button>
+  </div>
+  <span class="seuil-info">Seuil : <strong id="seuilVal">—</strong> MARs/j</span>
+</div>
+
+<div class="main" id="appMain" style="display:none;">
+  <div id="loadingArea" class="loading-msg">
+    <div class="spinner dark"></div>Chargement…
+  </div>
+  <div id="griView" style="display:none;">
+    <div class="legend">
+      <span style="font-size:11px;font-weight:700;color:var(--ink-3);">TENSION :</span>
+      <span class="legend-item"><span style="width:12px;height:12px;border-radius:3px;background:var(--ok-bg);border:1px solid #86EFAC;display:inline-block;"></span>OK</span>
+      <span class="legend-item"><span style="width:12px;height:12px;border-radius:3px;background:var(--warn-bg);border:1px solid #FDE047;display:inline-block;"></span>Proche seuil</span>
+      <span class="legend-item"><span style="width:12px;height:12px;border-radius:3px;background:var(--hot-bg);border:1px solid #FCA5A5;display:inline-block;"></span>Saturé</span>
+      <span style="margin-left:12px;font-size:11px;font-weight:700;color:var(--ink-3);">WEEK-ENDS :</span>
+      <span class="legend-item" style="font-size:11px;">le chiffre est le nombre de médecins encore disponibles pour la garde — il en faut <strong>4</strong> (deux le samedi, deux le dimanche)</span>
+      <span style="margin-left:12px;font-size:11px;font-weight:700;color:var(--ink-3);">GROUPES :</span>
+      <span class="legend-item"><span style="width:12px;height:12px;border-radius:2px;background:#EFF6FF;border:1px solid #93C5FD;display:inline-block;"></span>A</span>
+      <span class="legend-item"><span style="width:12px;height:12px;border-radius:2px;background:#FEF3C7;border:1px solid #FDE047;display:inline-block;"></span>B</span>
+      <span class="legend-item"><span style="width:12px;height:12px;border-radius:2px;background:#F0FDF4;border:1px solid #86EFAC;display:inline-block;"></span>C</span>
+    </div>
+    <div id="pontsInfo" style="display:none;font-size:12px;line-height:1.6;color:var(--ink-2);background:#F0F9FF;border-left:3px solid #3B82F6;border-radius:8px;padding:10px 12px;margin-bottom:10px;"></div>
+    <div class="grid-wrap"><table class="grid-table" id="gridTable"></table></div>
+  </div>
+  <div id="recView" style="display:none;">
+    <div class="recap-grid" id="recapGrid"></div>
+  </div>
+</div>
+<div class="toast" id="toast"></div>
+
+<script>
+const API='https://script.google.com/macros/s/AKfycbxDbTnhgdjCNBqkeAblZWgS3CK-IptjJoRDQd1AtGF7WQoQkXriWGvISIo7LJG8zUtjTQ/exec';
+let adminCode='',currentYear=2027,periodes=[],medecins=[],saisies={},locked={};
+let currentPeriode=0,currentType='VAC',currentView='grille',currentMonth=0,vacHS=false;
+let joursFeries=new Set();      // (LOT E) alimenté par la copie rapide, jamais recalculé ici
+let pontsMode=false;            // (LOT E) l'onglet « Ponts » est-il affiché ?
+const ORDRE_BASE_STAFF={HIVER:'CAB',PRINTEMPS:'ABC',ETE:'ABC',TOUSSAINT:'BCA',NOEL:'CAB'};
+const GRP_COLORS_STAFF={A:'#3B82F6',B:'#10B981',C:'#F59E0B'};
+let groupesRef={A:[],B:[],C:[]};  // ordre de référence depuis GSheet
+/* (03/09/2026) QUOTAS RECALÉS SUR CONFIG_CONGES. La table VAC était fausse
+   pour TOUTES les quotités : 33 jours annoncés à un temps plein au lieu de 37,
+   30 au lieu de 33 à 90 %, 26 au lieu de 30 à 80 %, 20 au lieu de 22 à 60 %,
+   17 au lieu de 18 à 50 %. FORM était juste.
+   C'était l'ancienne table de 2026, figée ici pendant qu'Arthur mettait
+   CONFIG_CONGES à jour au classeur. Le serveur, lui, lit le classeur
+   (`_loadQuotasConges`) : la page du MAR et « Ce qu'il reste à poser »
+   affichaient donc 37, et le staff 33 — quatrième occurrence du même défaut,
+   deux lecteurs des mêmes données qui ne comptent pas pareil.
+   ⚠️ CETTE TABLE RESTE UNE COPIE. Elle redeviendra fausse au prochain
+   changement du classeur. Le remède durable est de faire renvoyer les quotas
+   par le serveur, avec le reste de la configuration — à faire après le staff.
+   ⚠️ Le repli diffère aussi du serveur : ici une quotité inconnue reçoit le
+   quota d'un temps plein, alors que le serveur prend le palier le plus proche.
+   Aucun MAR actif n'est concerné (quotités relevées le 03/09 : 100, 90, 80,
+   60, 50), donc laissé tel quel plutôt que corrigé à l'aveugle. */
+const QUOTAS={VAC:{100:37,90:33,80:30,60:22,50:18},FORM:{100:10,90:9,80:8,60:6,50:5}};
+const getQuota=(type,q)=>QUOTAS[type][Math.round(q)]||QUOTAS[type][100];
+const JOURS_FR=['Dim','Lun','Mar','Mer','Jeu','Ven','Sam'];
+const PCOLS=[{bg:'#DBEAFE',brd:'#93C5FD',fg:'#1D4ED8'},{bg:'#DCFCE7',brd:'#86EFAC',fg:'#166534'},{bg:'#FEF9C3',brd:'#FDE047',fg:'#92400E'},{bg:'#FFE4E6',brd:'#FCA5A5',fg:'#991B1B'},{bg:'#F3E8FF',brd:'#D8B4FE',fg:'#7C3AED'}];
+
+document.getElementById('authInput').addEventListener('keydown',e=>{if(e.key==='Enter')doLogin();});
+
+async function doLogin(){
+  const code=document.getElementById('authInput').value.trim().toUpperCase();
+  if(!code)return;
+  const btn=document.getElementById('authBtn');
+  btn.innerHTML='<span class="spinner"></span>';btn.disabled=true;
+  try{
+    /* (miroir, 04/08/2026) Miroir d'abord ; tout autre resultat → login GAS. */
+    const mb = await miroirBootStaff(code);
+    if (mb && mb.medecins) {
+      adminCode = code;
+      currentYear = mb.annee;
+      document.getElementById('yearPill').textContent=currentYear;
+      document.getElementById('authOverlay').style.display='none';
+      document.getElementById('appHeader').style.display='flex';
+      document.getElementById('statsBar').style.display='flex';
+      document.getElementById('appToolbar').style.display='flex';
+      document.getElementById('appMain').style.display='block';
+  /* (23/08/2026) JOURNAL DE CONNEXION RETIRE. Decision d'Arthur : la
+     tracabilite ne se fait qu'a DEUX endroits — l'ouverture du portail
+     (dashboard.html) et la connexion du comite (admin.html). Partout ailleurs
+     c'est la meme session, deja journalisee : l'envoi ne faisait que reveiller
+     Apps Script sans rien apprendre a l'onglet CONNEXIONS. */
+      await loadData(mb);
+      btn.textContent='Accéder →';btn.disabled=false;
+      return;
+    }
+    if (mb && mb.nonAdmin) { showAuthErr('Code incorrect'); btn.textContent='Accéder →'; btn.disabled=false; return; }
+    const r=await apiCall({action:'login',code},code);
+    if(r.success&&r.role==='admin'){
+      adminCode=code;
+      currentYear=r.indisposYear||r.year+1||2027;
+      document.getElementById('yearPill').textContent=currentYear;
+      document.getElementById('authOverlay').style.display='none';
+      document.getElementById('appHeader').style.display='flex';
+      document.getElementById('statsBar').style.display='flex';
+      document.getElementById('appToolbar').style.display='flex';
+      document.getElementById('appMain').style.display='block';
+      await loadData();
+    }else{showAuthErr('Code incorrect');}
+  }catch(e){showAuthErr('Erreur : '+e.message);}
+  btn.textContent='Accéder →';btn.disabled=false;
+}
+
+function showAuthErr(msg){const el=document.getElementById('authErr');el.textContent=msg;el.style.display='block';setTimeout(()=>el.style.display='none',4000);}
+
+async function apiCall(payload,overrideCode){
+  /* (04/08/2026) Rejeu sur echec de transport — meme protection que les
+     autres pages : page d'erreur HTML servie au hasard par Google → un
+     unique renvoi silencieux. Protege notamment saveIndisposBatch. */
+  try { return await _apiCallDirect_(payload, overrideCode); }
+  catch (e) {
+    console.warn('[api] echec de transport (' + (payload && payload.action) + ') — rejeu unique');
+    return await _apiCallDirect_(payload, overrideCode);
+  }
+}
+
+/* ══ MIROIR CLOUDFLARE — LECTURE (04/08/2026) ═══════════════════════════
+   Meme mecanisme que les autres pages. Cles utilisees : config_admin
+   (medecins), indispos_{Y} (admin = toutes), vacances_admin (lot B : tant
+   que le Worker .4 n'est pas deploye, la cle est refusee et la page repasse
+   par getVacancesConfig — repli par construction). Tout ecart → login GAS. */
+const MIROIR_URL = 'https://miroir.planningmedic.workers.dev';
+
+async function miroirRead(keys, codeAcces) {
+  const _ctrl = new AbortController();
+  const _timer = setTimeout(() => _ctrl.abort(), 6000);
+  try {
+    const res = await fetch(MIROIR_URL + '/read', {
+      method: 'POST',
+      headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+      body: JSON.stringify({ code: codeAcces, keys }),
+      signal: _ctrl.signal,
+    });
+    return await res.json();
+  } catch (e) { return null; } finally { clearTimeout(_timer); }
+}
+
+/* Identite + medecins + indispos de l'annee de campagne, en un aller-retour
+   dans le cas courant (les deux annees plausibles demandees d'emblee). */
+async function miroirBootStaff(codeAcces) {
+  const Y = new Date().getFullYear();
+  const m = await miroirRead(['config_admin', 'indispos_' + Y, 'indispos_' + (Y + 1)], codeAcces);
+  if (!m || !m.success || !m.identite) return m;
+  if (m.identite.role !== 'admin') return { nonAdmin: true };
+  const iy = Number(m.identite.indisposYear) || (Y + 1);
+  let bloc = m.data && m.data['indispos_' + iy];
+  if (!bloc) {
+    const m2 = await miroirRead(['indispos_' + iy], codeAcces);
+    if (m2 && m2.success && m2.data) bloc = m2.data['indispos_' + iy];
+  }
+  const cfg = m.data && m.data.config_admin;
+  if (!bloc || !bloc.parMar || !cfg || !Array.isArray(cfg.medecins)) return null;   // repli GAS
+  return { annee: iy, medecins: cfg.medecins, indisposData: bloc.parMar };
+}
+
+async function _apiCallDirect_(payload,overrideCode){
+  // (F4) POST : le code ne transite plus dans l'URL.
+  payload.code=overrideCode||adminCode;
+  const _ctrl=new AbortController();
+  const _timer=setTimeout(()=>_ctrl.abort(),120000);
+  try{
+    const res=await fetch(API,{method:'POST',headers:{'Content-Type':'text/plain;charset=utf-8'},body:JSON.stringify(payload),redirect:'follow',signal:_ctrl.signal});
+    return await res.json();
+  }catch(e){
+    if(e&&e.name==='AbortError') throw new Error('Délai dépassé (2 min) — serveur trop lent ou injoignable, réessayez');
+    throw e;
+  }finally{clearTimeout(_timer);}
+}
+
+async function loadData(pre){
+  document.getElementById('loadingArea').style.display='flex';
+  document.getElementById('griView').style.display='none';
+  document.getElementById('recView').style.display='none';
+
+  // (miroir) medecins deja livres par miroirBootStaff → zero appel dans ce cas.
+  const mRes=(pre && Array.isArray(pre.medecins)) ? {success:true, medecins: pre.medecins} : await apiCall({action:'getMedecins'});
+  if(!mRes.success)return showToast('Erreur médecins');
+  medecins=mRes.medecins.filter(m=>m.actif);
+  document.getElementById('sbMars').textContent=medecins.length;
+
+  // (miroir, lot B) cle vacances_admin d'abord ; refusee ou absente → action GAS.
+  let pRes=null;
+  try{ const mv=await miroirRead(['vacances_admin'], adminCode);
+       if(mv&&mv.success&&mv.data&&mv.data.vacances_admin&&mv.data.vacances_admin.success) pRes=mv.data.vacances_admin; }catch(e){}
+  if(!pRes) pRes=await apiCall({action:'getVacancesConfig'});
+  if(!pRes.success)return showToast('Erreur périodes');
+
+  /* (04/09/2026) L'historique de Noël arrive AVEC les périodes : le clic sur
+     « 🎄 Noël & Jour de l'An » n'appelle plus Apps Script. C'était le dernier
+     appel direct de cette page, et le seul sans repli — il a échoué en séance
+     le 04/09, la file d'attente Apps Script étant saturée par les connexions
+     du staff.
+     L'ANNÉE EST CONTRÔLÉE : la copie rapide porte l'année de campagne du
+     serveur, l'écran peut regarder une autre année. En cas d'écart, on ne
+     garde rien et `buildRecapNoel` refait l'appel direct, comme avant. */
+  if(pRes.noel && Number(pRes.noel.annee)===currentYear
+     && pRes.noel.historique && Array.isArray(pRes.noel.historique.mars)){
+    noelHistoData = pRes.noel.historique;
+  }
+  periodes=(pRes.periodes||[]).filter(p=>parseInt(p.debut.slice(0,4))===currentYear||parseInt(p.debut.slice(0,4))===currentYear-1);
+  if(!periodes.length){document.getElementById('loadingArea').innerHTML='<div>Aucune période pour '+currentYear+'</div>';return;}
+
+  const groupes=pRes.groupes||{A:[],B:[],C:[]};
+  groupesRef=groupes;
+  const offset=(currentYear-2026);
+  const groupMap={};
+  ['A','B','C'].forEach(g=>{
+    const members=(groupes[g]||[]);
+    const n=members.length;
+    // rotation droite : le dernier devient premier
+    const shift=n?(n-(offset%n))%n:0;
+    const rotated=[...members.slice(shift),...members.slice(0,shift)];
+    rotated.forEach((m,i)=>{groupMap[m.id]={groupe:g,rang:i+1};});
+  });
+  medecins.forEach(m=>{const gi=groupMap[m.id]||{groupe:'?',rang:99};m.groupe=gi.groupe;m.rang=gi.rang;});
+
+  /* (LOT E · 01/09/2026) LES JOURS FÉRIÉS, pour reconnaître les ponts.
+     La clé joursferies_{Y} de la copie rapide est déjà publiée et porte
+     l'année ET la suivante : aucune règle de calendrier n'est recopiée ici,
+     la seule source reste getJoursFeries (code.gs). Si la clé manque, l'onglet
+     des ponts se met en sommeil — il ne devine jamais. */
+  try{
+    const mf=await miroirRead(['joursferies_'+currentYear], adminCode);
+    const bloc=mf&&mf.success&&mf.data&&mf.data['joursferies_'+currentYear];
+    if(bloc&&Array.isArray(bloc.joursFeries)) joursFeries=new Set(bloc.joursFeries);
+  }catch(e){}
+  /* (03/09/2026) REPLI, comme pour les périodes juste au-dessus. La clé
+     joursferies_{Y} n'est publiée QUE pour les années possédant un onglet
+     GARDES_{Y} : pendant toute la campagne de congés de l'année suivante —
+     c'est-à-dire précisément quand cet écran sert — les gardes ne sont pas
+     encore générées, la clé n'existe pas, et l'onglet des ponts restait en
+     sommeil sans jamais pouvoir en sortir. L'action getJoursFeries renvoie
+     exactement la même forme (année ET suivante), et reste la SEULE source :
+     aucune règle de calendrier n'est recopiée ici. */
+  if(!joursFeries.size){
+    try{
+      const fr=await apiCall({action:'getJoursFeries',year:currentYear});
+      if(fr&&fr.success&&Array.isArray(fr.joursFeries)) joursFeries=new Set(fr.joursFeries);
+    }catch(e){}
+  }
+
+  // (miroir) indispos deja livrees (admin = parMar complet, meme forme que getAllIndispos.data).
+  const iRes=(pre && pre.indisposData) ? {success:true, data: pre.indisposData} : await apiCall({action:'getAllIndispos',year:currentYear});
+  // Les cadenas sont RECONSTRUITS a chaque chargement a partir de ce qui est
+  // reellement en base : une VAC/FORM enregistree est verrouillee. Avant, ils
+  // n'existaient qu'en memoire de l'onglet et disparaissaient au rechargement,
+  // alors que le verrou, lui, est desormais applique par le serveur.
+  medecins.forEach(m=>{
+    saisies[m.id]={};locked[m.id]={};
+    if(iRes.success&&iRes.data[m.id]){
+      Object.entries(iRes.data[m.id]).forEach(([date,val])=>{
+        if(val==='VAC'||val==='FORM'){saisies[m.id][date]=val;locked[m.id][date]=true;}
+      });
+    }
+  });
+  majBandeauVerrou();
+
+  buildPeriodeTabs();
+  setCurrentPeriode(0);
+  document.getElementById('loadingArea').style.display='none';
+}
+
+/* ══ (01/09/2026) NOËL & JOUR DE L'AN — un tableau, plus un bandeau ═══════
+   Les quatre dates (24, 25, 31 décembre, 1er janvier) tournent d'une année sur
+   l'autre : qui les a tenues est exempté, qui ne les a jamais tenues passe en
+   premier. Le bandeau défilant ne montrait que les huit prioritaires, en
+   boucle — on ne pouvait ni voir les exemptés, ni savoir depuis quand.
+   Le serveur rend ici l'équipe entière avec TOUTES les années de chacun. */
+let noelHistoData = null;
+
+function openRecapNoel(){
+  document.getElementById('recapNoelOverlay').style.display='flex';
+  buildRecapNoel();
+}
+function closeRecapNoel(){
+  document.getElementById('recapNoelOverlay').style.display='none';
+}
+
+async function buildRecapNoel(){
+  const el=document.getElementById('recapNoelContent');
+  if(!el) return;
+  if(!noelHistoData){
+    el.innerHTML='<div style="color:#64748B;font-size:13px">Chargement…</div>';
+    try{
+      const r=await apiCall({action:'getNoelAnEligibles',year:currentYear,historique:true});
+      if(!r||!r.success||!r.historique||!Array.isArray(r.historique.mars)){
+        el.innerHTML='<div style="color:#B91C1C;font-size:13px">Historique indisponible pour le moment.</div>';
+        return;
+      }
+      noelHistoData=r.historique;
+    }catch(e){
+      el.innerHTML='<div style="color:#B91C1C;font-size:13px">Historique indisponible pour le moment.</div>';
+      return;
+    }
+  }
+  const {mars,annees}=noelHistoData;
+  const esc=t=>String(t==null?'':t).replace(/[<>&]/g,c=>({'<':'&lt;','>':'&gt;','&':'&amp;'}[c]));
+  if(!mars.length){
+    el.innerHTML='<div style="color:#64748B;font-size:13px">Aucun médecin à afficher.</div>';
+    return;
+  }
+  /* Le trait marque le passage à la double garde : sans lui, une année à
+     quatre noms se lirait comme une saisie incomplète. */
+  const bascule=annees.findIndex(a=>a.postes===8);
+  let h='<div style="font-size:12.5px;color:#475569;line-height:1.6;margin-bottom:16px">'
+    +'Qui a tenu l\'une des quatre dates — 24, 25, 31 décembre, 1<sup>er</sup> janvier — '
+    +'et quelle année. Lecture directe de l\'historique du service.</div>';
+  h+='<div style="overflow-x:auto"><table style="width:100%;border-collapse:collapse;font-size:13px">';
+  h+='<thead><tr><th></th>';
+  annees.forEach((a,k)=>{
+    const bord=(k===bascule&&bascule>0)?'border-left:2px dashed #F59E0B;':'';
+    h+='<th style="'+bord+'text-align:center;width:62px;padding:0 0 8px;font-weight:600;color:#64748B;font-size:12px">'
+      +a.annee
+      +'<span style="display:block;margin-top:1px;font-size:11px;font-weight:500;color:'
+      +(a.tenus<a.postes?'#B45309':'#94A3B8')+'">'+a.tenus+'/'+a.postes+'</span></th>';
+  });
+  h+='<th style="padding:0 0 8px"></th></tr></thead><tbody>';
+  mars.forEach(m=>{
+    h+='<tr><td style="padding:5px 8px 5px 0;border-top:1px solid #F1F5F9;font-weight:700;white-space:nowrap">'
+      +esc(m.init)+'<small style="font-weight:500;color:#64748B;margin-left:7px">'
+      +esc((m.nom||'').replace(/^DR /,'').replace(/^PR /,''))+'</small></td>';
+    annees.forEach((a,k)=>{
+      const on=m.annees.indexOf(a.annee)>=0;
+      const bord=(k===bascule&&bascule>0)?'border-left:2px dashed #F59E0B;':'';
+      h+='<td style="'+bord+'text-align:center;padding:5px 0;border-top:1px solid #F1F5F9">'
+        +'<i style="display:inline-block;width:15px;height:15px;border-radius:50%;background:'
+        +(on?'#CE1126':'#E8EDF3')+'"></i></td>';
+    });
+    const d=m.last==null?'jamais':(currentYear-m.last);
+    h+='<td style="text-align:right;padding:5px 0 5px 10px;border-top:1px solid #F1F5F9;'
+      +'font-size:12px;color:#64748B;white-space:nowrap">'
+      +(m.last==null?'jamais':'il y a <b style="color:#0F172A">'+d+' an'+(d>1?'s':'')+'</b>')
+      +'</td></tr>';
+  });
+  h+='</tbody></table></div>';
+  h+='<div style="display:flex;gap:16px;flex-wrap:wrap;align-items:center;font-size:12px;color:#64748B;margin-top:14px">'
+    +'<span><i style="display:inline-block;width:13px;height:13px;border-radius:50%;background:#CE1126;vertical-align:-2px"></i> a tenu</span>'
+    +'<span><i style="display:inline-block;width:13px;height:13px;border-radius:50%;background:#E8EDF3;vertical-align:-2px"></i> n\'a pas tenu</span>'
+    +(bascule>0?'<span style="border-left:2px dashed #F59E0B;padding-left:8px">'
+      +'la double garde porte le besoin de 4 à 8 médecins</span>':'')
+    +'</div>';
+  h+='<div style="font-size:12px;color:#94A3B8;line-height:1.6;margin-top:12px">'
+    +'Le chiffre sous chaque année compte les noms enregistrés sur ceux que l\'année mobilisait. '
+    +'À la génération, l\'algorithme sert d\'abord ceux qui n\'ont pas tenu ces dates depuis trois ans ; '
+    +'le choix final vous appartient.</div>';
+  el.innerHTML=h;
+}
+
+function getPeriodeDays(p){
+  const days=[];
+  const d=new Date(p.debut+'T12:00:00');
+  const e=new Date(p.fin+'T12:00:00');
+  while(d<=e){days.push(d.toISOString().slice(0,10));d.setDate(d.getDate()+1);}
+  return days;
+}
+
+function formatDay(ds){const d=new Date(ds+'T12:00:00');return JOURS_FR[d.getDay()]+' '+d.getDate()+'/'+(d.getMonth()+1);}
+function isWeekend(ds){const d=new Date(ds+'T12:00:00').getDay();return d===0||d===6;}
+/* (01/09/2026) LE QUOTA SE COMPTE EN JOURS TRAVAILLÉS : ni week-end, NI FÉRIÉ.
+   Cet écran ne retirait que les week-ends. Le serveur (Indispos.gs,
+   totalVacDoc) et l'écran du MAR (indispos.html) retirent les deux depuis
+   toujours : trois écrans, deux règles, et le comité voyait des dépassements
+   qui n'existaient pas. Constaté le 01/09 sur un jeu réel — douze MAR
+   annoncés au-dessus de leur quota, dont un à 35 jours pour 33, uniquement
+   parce que ses congés traversaient des jours fériés.
+   Un bloc de congés qui enjambe le 1er mai reste posé sur le 1er mai : c'est
+   la saisie normale. Ce jour-là n'était simplement pas travaillé, il ne coûte
+   rien au quota. Même raison que pour les temps partiels, qui ne se posent
+   jamais un férié.
+   `joursFeries` est alimenté à l'ouverture depuis la copie rapide ; s'il est
+   vide, le compte retombe sur l'ancien comportement plutôt que de mentir dans
+   l'autre sens. */
+function estChome(ds){ return isWeekend(ds) || joursFeries.has(ds); }
+function countForMAR(marId,type,days){const src=saisies[marId]||{};if(!days)return Object.keys(src).filter(d=>src[d]===type&&!estChome(d)).length;return days.filter(d=>src[d]===type&&!estChome(d)).length;}
+function countForDay(date){return medecins.filter(m=>{const v=(saisies[m.id]||{})[date];return v==='VAC'||v==='FORM';}).length;}
+function tension(date,seuil){const n=countForDay(date);if(n>=seuil)return'hot';if(n>=Math.floor(seuil*.7))return'warn';return'ok';}
+
+/* ══ (LOT D · 01/09/2026) LE VIVIER DE GARDE DES WEEK-ENDS ═════════════════
+   Jusqu'ici les colonnes samedi et dimanche n'affichaient NI compteur NI
+   couleur : la grille les grisait, et le comité posait à l'aveugle les seuls
+   jours où deux gardes doivent être assurées avec un effectif réduit.
+   Ce que ça a coûté, mesuré sur les vacances 2027 déjà saisies : le week-end
+   des 10 et 11 juillet comptait 19 MAR en congés pour un seuil de période de
+   10, et personne ne l'a jamais vu. Le mécanisme est mécanique : ceux qui
+   partent finissent le vendredi, ceux qui reviennent reprennent le lundi — les
+   deux blocs se croisent sur le week-end, qui double le compte alors que la
+   semaine reste sous le seuil.
+   CE QUI EST COMPTÉ ICI n'est PAS le nombre d'absents (le seuil de période ne
+   veut rien dire un samedi) mais le nombre de GARDEURS encore disponibles.
+   Règle donnée par Arthur le 01/09/2026 : un week-end demande QUATRE personnes
+   distinctes — deux le samedi, deux le dimanche. En dessous, il ne peut pas
+   être pourvu. Seuils retenus : moins de 4 = impossible · 4 ou 5 = tenable
+   sans aucune marge · 6 et plus = confortable.
+   Sur 2027, cet indicateur donne 1 rouge, 2 orange, 48 verts. */
+const VIVIER_MINI = 4;      // deux binômes distincts : samedi + dimanche
+const VIVIER_CONFORT = 6;   // en dessous, la moindre indisponibilité fait basculer
+
+// Ancre du rythme deux semaines sur deux — la même que le générateur.
+const ANCRE_2SUR2 = Date.UTC(2026,5,1);
+function semaineOff2sur2(ds){
+  const dt=new Date(ds+'T12:00:00');
+  const lun=new Date(Date.UTC(dt.getFullYear(),dt.getMonth(),dt.getDate()));
+  lun.setUTCDate(lun.getUTCDate()-((lun.getUTCDay()+6)%7));
+  return ((Math.round((lun-ANCRE_2SUR2)/(7*86400000))%4)+4)%4>=2;
+}
+const JOURS_CODE={LUN:1,MAR:2,MER:3,JEU:4,VEN:5,SAM:6,DIM:0};
+
+/* Ce MAR peut-il prendre une garde ce jour-là ? Mêmes exclusions que le
+   générateur — les compter à 25 quand ils sont 22 ferait mentir l'indicateur
+   de trois personnes, exactement dans la zone qui décide. */
+function gardeurDispo(m,date){
+  if(m.noGarde) return false;
+  if((m.pctGardes!==undefined?m.pctGardes:100)<=0) return false;
+  if(m.dateDebut && date<m.dateDebut) return false;
+  if(m.dateFin && date>=m.dateFin) return false;
+  if(m.rythme2sur2 && semaineOff2sur2(date)) return false;
+  if(m.tpJoursFixes){
+    const dw=new Date(date+'T12:00:00').getDay();
+    if(String(m.tpJoursFixes).split(/[,;\s]+/).filter(Boolean).some(t=>JOURS_CODE[t]===dw)) return false;
+  }
+  const we=isWeekend(date);
+  if(we && m.noWeekend) return false;
+  if(m.souhaitPlafond && we) return false;   // régime à part : jamais de week-end
+  const v=(saisies[m.id]||{})[date];
+  return !(v==='VAC'||v==='FORM');
+}
+function vivierGarde(date){return medecins.filter(m=>gardeurDispo(m,date)).length;}
+function vivierClasse(n){return n<VIVIER_MINI?'hot':(n<VIVIER_CONFORT?'warn':'ok');}
+
+/* ══ (LOT E · 01/09/2026) LES PONTS ════════════════════════════════════════
+   Un pont, c'est le jour ouvré qui, posé seul, en rapporte QUATRE : il se
+   colle d'un côté à un férié, de l'autre au week-end. C'est le jour le plus
+   demandé de l'année, et c'était jusqu'ici un libre-service — le premier qui
+   posait l'emportait.
+   Décision du comité (01/09/2026) : les ponts s'attribuent AU STAFF VACANCES,
+   avant la génération des gardes, pour que l'équité soit réglée d'emblée.
+   Pas de dette d'une année sur l'autre : le problème de l'année N+1 se règle
+   au staff de l'année N. Un pont consomme un jour du quota de vacances, comme
+   n'importe quel autre.
+
+   ⚠️ (décision d'Arthur du 03/09/2026) SEULS LES PONTS OFFICIELS COMPTENT.
+   Un pont est le jour ouvré COINCÉ : chômé la veille, chômé le lendemain, un
+   férié d'un côté et le week-end de l'autre. En 2027 : les vendredis 7 et
+   28 mai, et eux seuls.
+   Le détour est consigné pour qu'il ne soit pas refait : un critère purement
+   arithmétique — « quatre jours de repos pour un seul posé » — en désignait
+   TREIZE en 2027, en comptant aussi le vendredi d'avant et le mardi d'après
+   un lundi férié. Le calcul était juste, la notion non : ces jours-là
+   ALLONGENT un week-end, ils ne ferment pas un trou. Ce sont des jours de
+   congé ordinaires, arbitrés comme les autres.
+   Les mercredis fériés (Sainte Dévote, Immaculée Conception) ne donnent pas
+   de pont non plus : il faudrait poser deux jours pour en gagner cinq. */
+function detecterPonts(annee){
+  if(!joursFeries.size) return [];
+  const ds=d=>`${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
+  const chome=x=>{const w=x.getDay(); return w===0||w===6||joursFeries.has(ds(x));};
+  const JJ=['dimanche','lundi','mardi','mercredi','jeudi','vendredi','samedi'];
+  const out=[];
+  for(let d=new Date(annee,0,1); d.getFullYear()===annee; d.setDate(d.getDate()+1)){
+    if(chome(d)) continue;                                   // déjà chômé : rien à poser
+    /* La règle est GÉOMÉTRIQUE : le jour doit être COINCÉ — chômé la veille ET
+       chômé le lendemain — avec un férié d'au moins un côté. Un jour ouvert
+       d'un côté prolonge un week-end : rentable, mais ce n'est pas un pont. */
+    const av=new Date(d); av.setDate(av.getDate()-1);
+    const ap=new Date(d); ap.setDate(ap.getDate()+1);
+    if(!chome(av)||!chome(ap)) continue;                     // ouvert d'un côté
+    const ferie=joursFeries.has(ds(av))?ds(av):(joursFeries.has(ds(ap))?ds(ap):null);
+    if(!ferie) continue;                                     // coincé, mais sans férié
+    /* Ce qu'il rapporte, pour l'afficher : la série de repos que ce seul jour
+       posé referme, en remontant et en descendant tant que c'est chômé. */
+    let n=1;
+    for(const pas of [-1,1]){
+      const x=new Date(d);
+      for(;;){ x.setDate(x.getDate()+pas);
+        if(!chome(x)) break;
+        n++;
+        if(n>10) break;                                      // garde-fou : jamais de boucle folle
+      }
+    }
+    const fd=new Date(ferie+'T12:00:00');
+    out.push({date:ds(d), ferie:ferie, repos:n,
+      quoi:JJ[d.getDay()]+', '+(ferie<ds(d)?'après':'avant')+' le férié du '+JJ[fd.getDay()]
+        +' — '+n+' jours de repos pour un seul jour posé'});
+  }
+  return out.sort((a,b)=>a.date<b.date?-1:1);
+}
+
+function buildPeriodeTabs(){
+  const c=document.getElementById('periodeTabs');c.innerHTML='';
+  /* (LOT E) En mode ponts, il n'y a ni période ni mois à choisir : les deux ou
+     trois ponts de l'année tiennent tous sur un seul écran. */
+  if(pontsMode){
+    document.getElementById('seuilVal').textContent='—';
+    document.getElementById('sbPeriode').textContent='Ponts';
+    document.getElementById('sbSeuil').textContent='—';
+    return;
+  }
+  if(currentType==='FORM'||vacHS){
+    // Mode FORM : onglets par mois
+    const MOIS=['Jan','Fév','Mar','Avr','Mai','Juin','Juil','Aoû','Sep','Oct','Nov','Déc'];
+    MOIS.forEach((m,i)=>{
+      const btn=document.createElement('button');
+      btn.className='ptab'+(i===currentMonth?' active':'');
+      if(i===currentMonth){btn.style.background='#6D28D9';btn.style.borderColor='#5B21B6';btn.style.color='white';}
+      btn.textContent=m+' '+currentYear;
+      btn.onclick=()=>{currentMonth=i;buildPeriodeTabs();renderCurrent();};
+      c.appendChild(btn);
+    });
+    document.getElementById('seuilVal').textContent='—';
+    document.getElementById('sbPeriode').textContent=(['Janvier','Février','Mars','Avril','Mai','Juin','Juillet','Août','Septembre','Octobre','Novembre','Décembre'])[currentMonth];
+    document.getElementById('sbSeuil').textContent='—';
+  } else {
+    // Mode VAC : onglets par période
+    periodes.forEach((p,i)=>{
+      const col=PCOLS[i%PCOLS.length];
+      const btn=document.createElement('button');
+      btn.className='ptab'+(i===currentPeriode?' active':'');
+      if(i===currentPeriode){btn.style.background=col.bg;btn.style.borderColor=col.brd;btn.style.color=col.fg;}
+      const d1=p.debut.slice(5).replace('-','/'),d2=p.fin.slice(5).replace('-','/');
+      btn.innerHTML=p.nom+' <span style="font-size:10px;opacity:.7;">'+d1+'→'+d2+'</span>';
+      btn.onclick=()=>setCurrentPeriode(i);
+      c.appendChild(btn);
+    });
+    const p=periodes[currentPeriode]||{};
+    if(p.seuil){
+      document.getElementById('seuilVal').textContent=p.seuil;
+      document.getElementById('sbPeriode').textContent=p.nom;
+      document.getElementById('sbSeuil').textContent=p.seuil+' MARs/j';
+    }
+  }
+}
+
+function setCurrentPeriode(idx){
+  currentPeriode=idx;
+  buildPeriodeTabs();
+  const p=periodes[idx];
+  document.getElementById('seuilVal').textContent=p.seuil;
+  document.getElementById('sbPeriode').textContent=p.nom;
+  document.getElementById('sbSeuil').textContent=p.seuil+' MARs/j';
+  // Calculer l'ordre inter-groupes pour cette période
+  const nomNorm=(periodes[idx]?.nom||'').normalize('NFD').replace(/[\u0300-\u036f]/g,'').toUpperCase().trim();
+  const base=ORDRE_BASE_STAFF[nomNorm]||'ABC';
+  const off=(currentYear-2026);
+  const grpArr=base.split('');
+  const grpShift=(3-(off%3))%3; // rotation inversée : le dernier groupe devient premier
+  const orderedGrps=[...grpArr.slice(grpShift),...grpArr.slice(0,grpShift)];
+  const grpOrder={};
+  orderedGrps.forEach((g,i)=>{grpOrder[g]=i;});
+  grpOrder['?']=99;
+  medecins.sort((a,b)=>{
+    const ga=grpOrder[a.groupe]??99,gb=grpOrder[b.groupe]??99;
+    if(ga!==gb)return ga-gb;
+    return a.rang-b.rang;
+  });
+  updateStatsBar();
+  renderCurrent();
+}
+
+function setType(t){
+  vacHS=(t==='VACHS');
+  pontsMode=(t==='PONTS');
+  currentType=(t==='FORM')?'FORM':'VAC';   // un pont EST un jour de vacances
+  document.getElementById('btnVAC').className='tbtn vac'+(t==='VAC'?' active':'');
+  document.getElementById('btnFORM').className='tbtn form'+(t==='FORM'?' active':'');
+  document.getElementById('btnVACHS').className='tbtn vac'+(t==='VACHS'?' active':'');
+  document.getElementById('btnPONTS').className='tbtn vac'+(t==='PONTS'?' active':'');
+  buildPeriodeTabs();
+  renderCurrent();
+}
+
+function setView(v){
+  currentView=v;
+  document.getElementById('vtGrille').className='vtbtn'+(v==='grille'?' active':'');
+  document.getElementById('vtRecap').className='vtbtn'+(v==='recap'?' active':'');
+  renderCurrent();
+}
+
+// Le bandeau 🔒 et le bouton de deverrouillage suivent l'etat reel des cadenas.
+function majBandeauVerrou(){
+  const n=medecins.reduce((t,m)=>t+Object.keys(locked[m.id]||{}).filter(d=>locked[m.id][d]).length,0);
+  document.getElementById('lockPill').style.display=n?'inline-flex':'none';
+  document.getElementById('btnUnlock').style.display=n?'inline-flex':'none';
+}
+
+// Deverrouillage global : ne touche AUCUNE donnee, ne fait que rendre les cases
+// modifiables pour la session. Les VAC/FORM restent en base et les cadenas
+// reviennent au prochain chargement (ils sont deduits de l'onglet).
+function unlockAll(){
+  if(!confirm('Déverrouiller toutes les cases ?\n\nAucune saisie n\'est effacée : les vacances et formations restent enregistrées.\nElles redeviennent seulement modifiables, le temps de cette session.'))return;
+  medecins.forEach(m=>{locked[m.id]={};});
+  majBandeauVerrou();
+  renderCurrent();
+  showToast('🔓 Toutes les cases sont modifiables — rien n\'a été effacé');
+}
+
+/* (01/09/2026) toggleView() a été supprimée avec le bouton « Récap » de la
+   barre rouge, son unique appelant. Elle lisait un élément #viewBtn qui
+   n'existe plus : la garder aurait laissé une fonction qui échoue au premier
+   appel. Le basculement passe par setView(), via le sélecteur Grille / Récap. */
+
+function isScolaire(date){return periodes.some(p=>date>=p.debut&&date<=p.fin);}
+
+function toggleDay(marId,date){
+  /* (03/09/2026) Filet de second rideau : les vues bornent déjà les jours
+     affichés, mais le serveur jette silencieusement une date hors année —
+     mieux vaut un refus visible qu'un enregistrement fantôme. */
+  if(horsAnneePlanning(date)){
+    showToast('🚫 Hors de l\'année de planning '+currentYear);
+    return;
+  }
+  if(vacHS&&isScolaire(date)){showToast('Vacances scolaires : à saisir via le bouton VAC');return;}
+  if((locked[marId]||{})[date]){
+    if(!confirm('Déverrouiller le '+formatDay(date)+' pour '+marId+' ?'))return;
+    locked[marId][date]=false;
+    majBandeauVerrou();
+  }
+  if(!saisies[marId])saisies[marId]={};
+  const cur=saisies[marId][date];
+  if(cur===currentType)delete saisies[marId][date];
+  else saisies[marId][date]=currentType;
+  updateStatsBar();
+  renderCurrent();
+}
+
+/* ══ (LOT E) L'ÉCRAN DES PONTS ═════════════════════════════════════════════
+   Une ligne par MAR, une colonne par pont de l'année. Le comité clique, comme
+   ailleurs. Ce que l'écran apporte en plus, c'est le CHIFFRE qui manquait pour
+   arbitrer : combien de ponts chacun a déjà obtenus cette année, et surtout la
+   liste de ceux qui n'en ont AUCUN. Avec deux à cinq ponts par an (deux en
+   2027, quatre en 2028, cinq en 2029 — vérifié sur les fériés calculés) et vingt-cinq
+   médecins, « tout le monde au moins un pont » est arithmétiquement hors de
+   portée dans l'année : l'écran ne décide donc rien à la place du comité, il
+   met l'inégalité sous les yeux au moment où elle se crée.
+   Le vivier de garde est rappelé pour chaque pont : un pont reste un jour à
+   pourvoir, et c'est un vendredi — donc la moitié d'un week-end de garde. */
+function renderPonts(){
+  const ponts=detecterPonts(currentYear);
+  const t=document.getElementById('gridTable');
+  if(!ponts.length){
+    t.innerHTML='<tbody><tr><td style="padding:20px;font-size:13px;color:var(--ink-3)">'
+      +(joursFeries.size
+        ? 'Aucun pont en '+currentYear+' : aucun jour férié ne tombe un mardi ou un jeudi.'
+        : 'Les jours fériés ne sont pas encore disponibles — rouvrez la page dans un instant.')
+      +'</td></tr></tbody>';
+    return;
+  }
+  const compte=m=>ponts.filter(p=>(saisies[m.id]||{})[p.date]==='VAC').length;
+  let thead='<thead><tr><th class="gt-th-mar">MAR</th><th class="gt-th-quota">Ponts obtenus</th>';
+  ponts.forEach(p=>{
+    const d=new Date(p.date+'T12:00:00');
+    const pris=medecins.filter(m=>(saisies[m.id]||{})[p.date]==='VAC').length;
+    const viv=vivierGarde(p.date);
+    thead+='<th class="gt-th-day" style="min-width:110px" title="'+p.quoi+'. '+viv+' médecin(s) encore disponible(s) pour la garde de ce jour.">'
+      +'<div class="gt-th-day-date">'+JOURS_FR[d.getDay()]+'<br>'+d.getDate()+'/'+(d.getMonth()+1)+'</div>'
+      +'<div class="gt-th-day-count">'+pris+' pris</div>'
+      +'<div class="gt-th-day-count gt-viv '+vivierClasse(viv)+'">'+viv+' dispo garde</div>'
+      +'</th>';
+  });
+  thead+='</tr></thead>';
+  let tbody='<tbody>',lastGroupe=null;
+  medecins.forEach(m=>{
+    if(m.groupe!==lastGroupe){lastGroupe=m.groupe;
+      tbody+='<tr><td colspan="'+(ponts.length+2)+'" class="gt-sep">Groupe '+m.groupe+'</td></tr>';}
+    const n=compte(m);
+    tbody+='<tr class="gt-row-'+(m.groupe||'a').toLowerCase()+'">';
+    tbody+='<td class="gt-cell-mar" style="min-width:200px;"><span class="gt-initials">'+m.initiales+'</span>'
+      +'<span class="gt-name">'+m.nom.replace('DR ','').replace('PR ','')+'</span>'
+      +'<span class="gt-group '+m.groupe+'">'+m.groupe+'</span>'
+      +'<span class="gt-rang">#'+m.rang+'</span></td>';
+    tbody+='<td class="gt-cell-quota" style="'+(n===0?'color:#991B1B;font-weight:800':'')+'">'+n+'</td>';
+    ponts.forEach(p=>{
+      const val=(saisies[m.id]||{})[p.date];
+      const lck=(locked[m.id]||{})[p.date];
+      const has=val==='VAC'||val==='FORM';
+      tbody+='<td class="gt-cell-day" onclick="toggleDay(\''+m.id+'\',\''+p.date+'\')">'
+        +'<div class="day-chip '+(has?(val==='VAC'?'vac':'form'):'empty')+'">'+(has?val:'')+'</div>'
+        +(lck?'<div class="gt-lock">🔒</div>':'')+'</td>';
+    });
+    tbody+='</tr>';
+  });
+  tbody+='</tbody>';
+  t.innerHTML=thead+tbody;
+
+  const sansPont=medecins.filter(m=>!m.noGarde&&compte(m)===0).map(m=>m.initiales);
+  const el=document.getElementById('pontsInfo');
+  if(el){
+    el.style.display='block';
+    el.innerHTML='<strong>🌉 '+ponts.length+' pont'+(ponts.length>1?'s':'')+' en '+currentYear+'</strong> — '
+      +'un jour posé ici en fait gagner quatre. Il compte dans le quota de vacances, comme les autres.'
+      +(sansPont.length
+        ? '<br><span style="color:#991B1B;font-weight:700">Aucun pont cette année pour '+sansPont.length+' médecin(s) :</span> '+sansPont.join(', ')
+        : '<br><span style="color:#166534;font-weight:700">Tous les médecins ont au moins un pont cette année.</span>');
+  }
+}
+
+function renderCurrent(){
+  document.getElementById('griView').style.display=currentView==='grille'?'block':'none';
+  document.getElementById('recView').style.display=currentView==='recap'?'block':'none';
+  const info=document.getElementById('pontsInfo');
+  if(info && !pontsMode) info.style.display='none';
+  if(pontsMode){ renderPonts(); return; }   // (LOT E) écran dédié, ni grille ni récap
+  if(currentView==='grille')renderGrille();else renderRecap();
+}
+
+/* ── BORNES DE L'ANNÉE DE PLANNING (03/09/2026) ────────────────────────────
+   Défaut vu en production la veille du staff : les onglets par mois (FORM et
+   VAC année) fabriquaient le mois calendaire entier, du 1er au 31. Or l'année
+   de planning va du PREMIER LUNDI de janvier au jour précédant le premier
+   lundi de janvier suivant — pour 2027, du lundi 4 janvier 2027 au dimanche
+   2 janvier 2028 (363 colonnes dans INDISPOS_2027, vérifié au classeur).
+   Les 1, 2 et 3 janvier 2027 s'affichaient donc comme des cases normales,
+   cliquables, et saveIndisposBatch les jetait EN SILENCE : il ne réécrit que
+   les colonnes existantes, et répond quand même « enregistré ». La pastille
+   restait à l'écran jusqu'au rechargement suivant.
+   MÊME DÉFAUT, MÊME REMÈDE QUE indispos.html, corrigé le 12/08/2026 (banc
+   T072) : la borne sert à l'AFFICHAGE et au CLIC, jamais à l'un sans l'autre.
+   ⚠️ Ces deux fonctions sont pour l'instant la copie conforme de celles
+   d'indispos.html. Elles doivent rejoindre partage/ après le staff : c'est
+   exactement le genre de doublon qui finit par diverger. */
+function premierJourAnneePlanning(y){
+  const jan1 = new Date(y, 0, 1);
+  const dow = jan1.getDay();
+  const offset = dow === 1 ? 7 : dow === 0 ? 1 : 8 - dow;
+  return new Date(y, 0, 1 + offset);
+}
+function bornesAnneePlanning(y){
+  const iso = d => `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
+  const debut = premierJourAnneePlanning(y);
+  const fin = new Date(premierJourAnneePlanning(y + 1).getTime() - 86400000);
+  return { debut: iso(debut), fin: iso(fin) };
+}
+function horsAnneePlanning(date){
+  const b = bornesAnneePlanning(currentYear);
+  return date < b.debut || date > b.fin;
+}
+
+function getMonthDays(month){
+  // Returns all days of the given month index (0-11) for currentYear
+  const days=[];
+  const d=new Date(currentYear,month,1,12,0,0);
+  while(d.getMonth()===month){days.push(d.toISOString().slice(0,10));d.setDate(d.getDate()+1);}
+  return days.filter(date=>!horsAnneePlanning(date));
+}
+
+function renderGrille(){
+  const isFormMode=currentType==='FORM'||vacHS;
+  const p=isFormMode?null:periodes[currentPeriode];
+  const days=isFormMode?getMonthDays(currentMonth):getPeriodeDays(p);
+  const seuil=isFormMode?null:p?.seuil;
+  const t=document.getElementById('gridTable');
+  let thead='<thead><tr>';
+  thead+='<th class="gt-th-mar">MAR</th>';
+  thead+='<th class="gt-th-quota">Quota '+currentType+'</th>';
+  days.forEach(date=>{
+    const we=isWeekend(date);
+    /* (LOT D) Un jour de semaine se lit en ABSENTS face au seuil de la période ;
+       un week-end se lit en GARDEURS DISPONIBLES face au minimum de 4. Deux
+       questions différentes, deux chiffres différents — les confondre était
+       l'erreur d'origine. */
+    const viv=we?vivierGarde(date):null;
+    const ten=isFormMode?'':(' tension-'+(we?vivierClasse(viv):tension(date,seuil)));
+    const cnt=countForDay(date);
+    const d=new Date(date+'T12:00:00');
+    thead+='<th class="gt-th-day'+(we?' we':'')+ten+'"'
+      +(we?' title="'+viv+' médecin(s) encore disponible(s) pour la garde. Il en faut 4 : deux le samedi, deux le dimanche."':'')+'>'
+      +'<div class="gt-th-day-date">'+JOURS_FR[d.getDay()]+'<br>'+d.getDate()+'/'+(d.getMonth()+1)+'</div>'
+      +(we?'<div class="gt-th-day-count gt-viv '+vivierClasse(viv)+'">'+viv+'</div>'
+          :(cnt>0?'<div class="gt-th-day-count">'+cnt+'</div>':''))
+      +'</th>';
+  });
+  thead+='<th class="gt-th-total">Total VAC / FORM</th></tr></thead>';
+
+  let tbody='<tbody>';
+  let lastGroupe=null;
+  medecins.forEach(m=>{
+    const quota=getQuota(currentType,m.quotite||100);
+    const posed=countForMAR(m.id,currentType,days);
+    const vacTot=countForMAR(m.id,'VAC');
+    const frmTot=countForMAR(m.id,'FORM');
+    const vacQ=getQuota('VAC',m.quotite||100);
+    const frmQ=getQuota('FORM',m.quotite||100);
+    if(m.groupe!==lastGroupe){
+      lastGroupe=m.groupe;
+      tbody+='<tr><td colspan="'+(days.length+3)+'" class="gt-sep">Groupe '+m.groupe+'</td></tr>';
+    }
+    const rowCls='gt-row-'+(m.groupe||'a').toLowerCase();
+    tbody+='<tr class="'+rowCls+'">';
+    tbody+='<td class="gt-cell-mar" style="min-width:200px;">'
+      +'<span class="gt-initials">'+m.initiales+'</span>'
+      +'<span class="gt-name">'+m.nom.replace('DR ','').replace('PR ','')+'</span>'
+      +'<span class="gt-group '+m.groupe+'">'+m.groupe+'</span>'
+      +((m.quotite||100)<100?'<span class="gt-quotite">'+m.quotite+'%</span>':'')
+      +'<span class="gt-rang">#'+m.rang+'</span>'
+      +'</td>';
+    tbody+='<td class="gt-cell-quota">'+quota+'j</td>';
+    days.forEach(date=>{
+      const we=isWeekend(date);
+      const val=(saisies[m.id]||{})[date];
+      const lck=(locked[m.id]||{})[date];
+      const hasVal=val==='VAC'||val==='FORM';
+      const chipCls=hasVal?(val==='VAC'?'vac':'form'):(we?'we-chip':'empty');
+      const label=hasVal?val:'';
+      if(vacHS&&isScolaire(date)){
+        tbody+='<td class="gt-cell-day" style="cursor:not-allowed;background:#F1F5F9" title="Vacances scolaires — à saisir via le bouton VAC">'
+          +'<div class="day-chip '+(hasVal?chipCls:'')+'" style="opacity:.5">'+(hasVal?label:'·')+'</div>'
+          +'</td>';
+      } else {
+        tbody+='<td class="gt-cell-day'+((we&&!hasVal)?' we':'')+'" onclick="toggleDay(\''+m.id+'\',\''+date+'\')">'
+          +'<div class="day-chip '+chipCls+(lck?' locked':'')+'">'+(lck?'🔒':label)+'</div>'
+          +'</td>';
+      }
+    });
+    tbody+='<td class="gt-cell-total">'
+      +'<span class="total-badge '+(vacTot>vacQ?'over':vacTot>0?'ok':'zero')+'">VAC '+vacTot+'/'+vacQ+'</span>'
+      +'<span class="total-badge '+(frmTot>frmQ?'over':frmTot>0?'ok':'zero')+'">F '+frmTot+'/'+frmQ+'</span>'
+      +'</td>';
+    tbody+='</tr>';
+  });
+  tbody+='</tbody>';
+  t.innerHTML=thead+tbody;
+}
+
+function renderRecap(){
+  const g=document.getElementById('recapGrid');
+  let html='';
+  medecins.forEach(m=>{
+    const vp=countForMAR(m.id,'VAC'),fp=countForMAR(m.id,'FORM');
+    const vq=getQuota('VAC',m.quotite||100),fq=getQuota('FORM',m.quotite||100);
+    html+='<div class="recap-card">'
+      +'<div class="recap-header"><span class="gt-initials">'+m.initiales+'</span>'
+      +'<span style="font-size:12px;font-weight:700;">'+m.nom.replace('DR ','').replace('PR ','')+'</span>'
+      +'<span class="gt-group '+m.groupe+'">'+m.groupe+'</span>'
+      +((m.quotite||100)<100?'<span style="font-size:10px;color:var(--ink-4);">'+m.quotite+'%</span>':'')
+      +'</div>'
+      +'<div class="recap-counts">'
+      +'<div class="rcb" style="background:var(--vac-bg);"><div class="rcb-lbl" style="color:var(--vac-fg);">VAC</div><div class="rcb-val" style="color:'+(vp>vq?'#DC2626':'var(--vac-fg)')+';">'+vp+'</div><div class="rcb-quota" style="color:var(--vac-fg);">/ '+vq+'j</div></div>'
+      +'<div class="rcb" style="background:var(--form-bg);"><div class="rcb-lbl" style="color:var(--form-fg);">FORM</div><div class="rcb-val" style="color:'+(fp>fq?'#DC2626':'var(--form-fg)')+';">'+fp+'</div><div class="rcb-quota" style="color:var(--form-fg);">/ '+fq+'j</div></div>'
+      +'</div></div>';
+  });
+  g.innerHTML=html;
+}
+
+function updateStatsBar(){
+  if(!periodes.length)return;
+  const p=periodes[currentPeriode];
+  const days=getPeriodeDays(p);
+  let warn=0,hot=0;
+  days.forEach(d=>{if(isWeekend(d))return;const t=tension(d,p.seuil);if(t==='warn')warn++;if(t==='hot')hot++;});
+  document.getElementById('sbWarn').textContent=warn;
+  document.getElementById('sbHot').textContent=hot;
+}
+
+async function doValidate(){
+  if(!confirm('Valider et verrouiller toutes les saisies ?\n\nLes MARs ne pourront plus modifier leurs VAC/FORM.'))return;
+  const btn=document.getElementById('btnValidate');
+  btn.disabled=true;btn.textContent='⏳ Enregistrement des '+medecins.length+' MARs…';
+  // UN SEUL appel : la boucle d'avant faisait un aller-retour PAR MAR, soit 23
+  // executions serialisees par Apps Script (~3 min, au point de passer pour un
+  // plantage). saveIndisposBatch lit l'onglet une fois et ecrit un bloc.
+  const envoi={};
+  medecins.forEach(m=>{envoi[m.id]=saisies[m.id]||{};});
+  try{
+    const res=await apiCall({action:'saveIndisposBatch',indispos:envoi});
+    if(!res||!res.success)throw new Error((res&&res.error)||'échec');
+    medecins.forEach(m=>{
+      locked[m.id]={};
+      Object.keys(saisies[m.id]||{}).forEach(date=>{locked[m.id][date]=true;});
+    });
+    const manquants=(res.inconnus||[]).length;
+    showToast('✅ '+(res.saved||0)+' MARs enregistrés'+(manquants?' · ⚠️ '+manquants+' introuvable(s) : '+res.inconnus.join(', '):''));
+  }catch(e){
+    showToast('⚠️ Enregistrement échoué — rien n\'a été modifié. Réessayez.');
+    btn.disabled=false;btn.textContent='✅ Valider et verrouiller';
+    return;
+  }
+  majBandeauVerrou();
+  btn.disabled=false;btn.textContent='✅ Valider et verrouiller';
+  renderCurrent();
+}
+
+function showToast(msg,duration=4000){
+  const t=document.getElementById('toast');t.textContent=msg;t.classList.add('show');
+  setTimeout(()=>t.classList.remove('show'),duration);
+}
+
+// ── RÉCAP PRIORITÉS ───────────────────────────────────────────────────
+
+// ── RÉCAP PRIORITÉS ───────────────────────────────────────────────────
+function openRecapPriorites() {
+  document.getElementById('recapPrioritesOverlay').style.display = 'flex';
+  requestAnimationFrame(() => buildRecapPrioContent());
+}
+function closeRecapPriorites() {
+  document.getElementById('recapPrioritesOverlay').style.display = 'none';
+}
+
+function buildRecapPrioContent() {
+  const el = document.getElementById('recapPrioritesContent');
+  if (!el) return;
+
+  const offset = currentYear - 2026;
+  const GRP_COLORS = {A:'#3B82F6', B:'#10B981', C:'#F59E0B'};
+
+  // Ordre intra-groupe roté
+  const rotatedGroups = {};
+  ['A','B','C'].forEach(g => {
+    const members = (groupesRef[g] || []);
+    const n = members.length;
+    const shift = n ? (n - (offset % n)) % n : 0;
+    rotatedGroups[g] = [...members.slice(shift), ...members.slice(0, shift)];
+  });
+
+  let html = '<div style="margin-bottom:20px">';
+  html += '<div style="font-size:11px;font-weight:700;color:#94A3B8;text-transform:uppercase;letter-spacing:.07em;margin-bottom:10px">Ordre inter-groupes par période</div>';
+  html += '<table style="width:100%;border-collapse:collapse;font-size:13px">';
+  html += '<thead><tr style="background:#F8FAFC"><th style="padding:8px;text-align:left;font-weight:600;border-bottom:1px solid #E2E8F0">Période</th><th style="padding:8px;text-align:left;font-weight:600;border-bottom:1px solid #E2E8F0">Priorité</th></tr></thead><tbody>';
+
+  periodes.forEach((p, pi) => {
+    const nomNorm = (p.nom||'').normalize('NFD').replace(/[\u0300-\u036f]/g,'').toUpperCase().trim();
+    const base = ORDRE_BASE_STAFF[nomNorm] || 'ABC';
+    const grpArr = base.split('');
+    const grpShift = (3 - (offset % 3)) % 3;
+    const orderedGrps = [...grpArr.slice(grpShift), ...grpArr.slice(0, grpShift)];
+    const isActive = pi === currentPeriode && currentType === 'VAC';
+    const bg = isActive ? '#EFF6FF' : (pi % 2 === 0 ? '#FFFFFF' : '#F8FAFC');
+    const ordreHtml = orderedGrps.map((g, i) =>
+      '<span style="display:inline-flex;align-items:center;gap:3px;margin-right:6px">'
+      + '<span style="font-weight:700;color:white;background:' + GRP_COLORS[g] + ';border-radius:4px;padding:1px 7px;font-size:12px">' + g + '</span>'
+      + (i < 2 ? '<span style="color:#94A3B8;font-size:11px">›</span>' : '')
+      + '</span>'
+    ).join('');
+    html += '<tr style="background:' + bg + (isActive ? ';border-left:3px solid #3B82F6' : '') + '">'
+      + '<td style="padding:8px;font-weight:' + (isActive ? '700' : '500') + '">' + (p.nom||'') + '</td>'
+      + '<td style="padding:8px">' + ordreHtml + '</td>'
+      + '</tr>';
+  });
+  html += '</tbody></table></div>';
+
+  html += '<div style="font-size:11px;font-weight:700;color:#94A3B8;text-transform:uppercase;letter-spacing:.07em;margin-bottom:10px">Composition des groupes — priorité ' + currentYear + '</div>';
+  html += '<div style="display:flex;gap:10px;flex-wrap:wrap">';
+  ['A','B','C'].forEach(g => {
+    const members = rotatedGroups[g];
+    html += '<div style="flex:1;min-width:140px;border:1px solid #E2E8F0;border-radius:10px;padding:10px">'
+      + '<div style="font-size:11px;font-weight:700;color:white;background:' + GRP_COLORS[g] + ';padding:2px 8px;border-radius:5px;display:inline-block;margin-bottom:8px">Groupe ' + g + '</div>'
+      + '<div style="display:flex;flex-direction:column;gap:4px">';
+    members.forEach((m, i) => {
+      const med = medecins.find(x => x.id === m.id);
+      const init = med ? med.initiales : m.id;
+      const nom = med ? med.nom.replace('DR ','').replace('PR ','') : m.id;
+      html += '<div style="display:flex;align-items:center;gap:6px;font-size:12px">'
+        + '<span style="font-size:10px;color:#94A3B8;width:16px;text-align:right">' + (i+1) + '</span>'
+        + '<span style="font-family:monospace;font-weight:700;background:#F1F5F9;border-radius:4px;padding:1px 5px;font-size:11px">' + init + '</span>'
+        + '<span style="color:#334155">' + nom + '</span>'
+        + '</div>';
+    });
+    html += '</div></div>';
+  });
+  html += '</div>';
+
+  el.innerHTML = html;
+}
+</script>
+
+<!-- ── OVERLAY NOËL & JOUR DE L'AN ── -->
+<div id="recapNoelOverlay" style="display:none;position:fixed;inset:0;background:rgba(15,23,42,.45);z-index:600;align-items:center;justify-content:center;padding:16px">
+  <div style="background:white;border-radius:16px;width:100%;max-width:620px;max-height:85vh;overflow-y:auto;box-shadow:0 20px 60px rgba(0,0,0,.2)">
+    <div style="display:flex;align-items:center;justify-content:space-between;padding:16px 20px;border-bottom:1px solid #E2E8F0;position:sticky;top:0;background:white;z-index:1">
+      <div style="font-size:15px;font-weight:800;color:#0F172A">🎄 Noël &amp; Jour de l'An — qui a déjà donné</div>
+      <button onclick="closeRecapNoel()" style="border:none;background:none;font-size:18px;cursor:pointer;color:#94A3B8">✕</button>
+    </div>
+    <div id="recapNoelContent" style="padding:16px 20px">Chargement…</div>
+  </div>
+</div>
+
+<!-- ── OVERLAY RÉCAP PRIORITÉS ── -->
+<div id="recapPrioritesOverlay" style="display:none;position:fixed;inset:0;background:rgba(15,23,42,.45);z-index:600;align-items:center;justify-content:center;padding:16px">
+  <div style="background:white;border-radius:16px;width:100%;max-width:560px;max-height:85vh;overflow-y:auto;box-shadow:0 20px 60px rgba(0,0,0,.2)">
+    <div style="display:flex;align-items:center;justify-content:space-between;padding:16px 20px;border-bottom:1px solid #E2E8F0;position:sticky;top:0;background:white;z-index:1">
+      <div style="font-size:15px;font-weight:800;color:#0F172A">🏆 Priorités vacances</div>
+      <button onclick="closeRecapPriorites()" style="border:none;background:none;font-size:18px;cursor:pointer;color:#94A3B8">✕</button>
+    </div>
+    <div id="recapPrioritesContent" style="padding:16px 20px"></div>
+  </div>
+</div>
+
+</body>
+</html>
+

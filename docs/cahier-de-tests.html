@@ -1,0 +1,1710 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Cahier de tests — Planning-Med</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700;800&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --red:#CE1126; --red-soft:#FDECEF;
+    --blue:#1D6FB8; --blue-soft:#EAF3FB;
+    --amber:#B45309; --amber-soft:#FDF3E3;
+    --viol:#6D28D9; --viol-soft:#F5F3FF;
+    --green:#166534; --green-soft:#DCFCE7;
+    --ink:#0F172A; --ink-2:#475569; --ink-3:#7A8699;
+    --line:#E2E8F0; --bg:#F6F8FB; --white:#fff;
+    --mono:'DM Mono',ui-monospace,monospace;
+  }
+  *{box-sizing:border-box}
+  html{scroll-behavior:smooth}
+  body{margin:0; background:var(--bg); color:var(--ink);
+    font-family:'DM Sans',-apple-system,BlinkMacSystemFont,sans-serif;
+    line-height:1.6; font-size:15px; padding:36px 20px 90px}
+  .wrap{max-width:880px; margin:0 auto}
+  .eyebrow{font-family:var(--mono); font-size:12px; letter-spacing:.08em; text-transform:uppercase; color:var(--red); font-weight:500}
+  h1{font-size:30px; font-weight:800; letter-spacing:-.02em; margin:8px 0 6px; line-height:1.2}
+  .subtitle{color:var(--ink-2); font-size:15px; margin:0}
+  .maj{font-family:var(--mono); font-size:12px; color:var(--ink-3); margin-top:10px}
+
+  .toc{background:var(--white); border:1px solid var(--line); border-radius:14px; padding:20px 24px; margin:26px 0 34px}
+  .toc h2{margin:0 0 10px; font-size:13px; font-family:var(--mono); font-weight:500; text-transform:uppercase; letter-spacing:.06em; color:var(--ink-3); border:none; padding:0}
+  .toc ol{margin:0; padding-left:0; list-style:none; columns:2; column-gap:32px}
+  .toc li{margin:5px 0; break-inside:avoid}
+  .toc a{color:var(--ink); text-decoration:none; font-weight:500; font-size:14px}
+  .toc a:hover{color:var(--red)}
+  .toc .n{font-family:var(--mono); font-size:12px; color:var(--red); margin-right:7px}
+  .toc .dur{font-family:var(--mono); font-size:11px; color:var(--ink-3); margin-left:6px}
+  @media (max-width:600px){ .toc ol{columns:1} }
+
+  section{margin-top:46px}
+  h2{font-size:21px; font-weight:800; letter-spacing:-.015em; margin:0 0 6px; padding-top:8px; display:flex; align-items:baseline; gap:12px}
+  h2 .n{font-family:var(--mono); font-size:13px; font-weight:500; color:#fff; background:var(--red); border-radius:8px; padding:3px 9px; flex-shrink:0}
+  .phase-sub{color:var(--ink-3); font-size:13.5px; margin:0 0 16px}
+  h3{font-size:15.5px; font-weight:700; margin:24px 0 8px}
+  p{margin:0 0 12px; color:var(--ink-2)}
+  strong{color:var(--ink)}
+  code,.tag{font-family:var(--mono); font-size:12.5px; background:#EEF1F5; border-radius:5px; padding:1px 6px; color:var(--ink)}
+
+  .callout{border-radius:12px; padding:14px 18px; margin:16px 0; border:1px solid var(--line); border-left-width:4px; background:var(--white)}
+  .callout p:last-child{margin-bottom:0}
+  .callout .ct{font-family:var(--mono); font-size:11.5px; font-weight:500; text-transform:uppercase; letter-spacing:.06em; margin-bottom:6px}
+  .callout.rule{border-left-color:var(--red); background:var(--red-soft)} .callout.rule .ct{color:var(--red)}
+  .callout.tip{border-left-color:var(--blue); background:var(--blue-soft)} .callout.tip .ct{color:var(--blue)}
+  .callout.warn{border-left-color:var(--amber); background:var(--amber-soft)} .callout.warn .ct{color:var(--amber)}
+
+  /* ── Tests ─────────────────────────────────────────── */
+  .test{background:var(--white); border:1px solid var(--line); border-radius:12px; padding:12px 14px; margin:10px 0}
+  .test.ko{border-color:#F5B9C2; background:#FFF7F8}
+  .test.ok{border-color:#A7E3BC; background:#F6FDF8}
+  .test-head{display:flex; gap:12px; align-items:flex-start}
+  .tid{font-family:var(--mono); font-size:11.5px; font-weight:500; color:#fff; background:var(--ink-3); border-radius:6px; padding:2px 7px; flex-shrink:0; margin-top:2px}
+  .test.ko .tid{background:var(--red)} .test.ok .tid{background:var(--green)}
+  .test-body{flex:1; min-width:0}
+  .t-do{font-weight:700; color:var(--ink); font-size:14.5px}
+  .t-exp{color:var(--ink-2); font-size:13.5px; margin-top:3px}
+  .t-exp b{color:var(--ink)}
+  .verdicts{display:flex; gap:6px; margin-top:9px; flex-wrap:wrap; align-items:center}
+  .verdicts label{font-family:var(--mono); font-size:11.5px; border:1px solid var(--line); border-radius:7px; padding:3px 10px; cursor:pointer; background:var(--white); color:var(--ink-2); user-select:none}
+  .verdicts input{position:absolute; opacity:0; width:0; height:0}
+  .verdicts input:focus-visible + span{outline:2px solid var(--blue); outline-offset:2px}
+  .verdicts label:has(input:checked){font-weight:500}
+  .verdicts label.v-ok:has(input:checked){background:var(--green-soft); border-color:#86EFAC; color:var(--green)}
+  .verdicts label.v-ko:has(input:checked){background:var(--red-soft); border-color:#F5B9C2; color:var(--red)}
+  .verdicts label.v-na:has(input:checked){background:#EEF1F5; color:var(--ink)}
+  .note{flex:1; min-width:160px; font-family:var(--mono); font-size:12px; border:1px solid var(--line); border-radius:7px; padding:4px 9px; color:var(--ink); background:var(--white)}
+  .note::placeholder{color:#B6BFCC}
+
+  .rapport{background:var(--white); border:1px solid var(--line); border-radius:14px; padding:14px 16px; margin:26px 0 0}
+  .rapport[hidden]{display:none}
+  .rapport-head{display:flex; align-items:center; justify-content:space-between; margin-bottom:8px; font-size:14px}
+  .rapport textarea{width:100%; font-family:var(--mono); font-size:12.5px; line-height:1.5; color:var(--ink);
+    border:1px solid var(--line); border-radius:9px; padding:10px; background:#FBFCFD; resize:vertical; -webkit-user-select:text; user-select:text}
+  .rapport-act{display:flex; align-items:center; gap:12px; margin-top:9px}
+  .rapport-act button, .rapport .rx{font-family:'DM Sans',sans-serif; font-size:13px; font-weight:700; border:1px solid var(--line);
+    background:var(--white); color:var(--ink); border-radius:9px; padding:7px 13px; cursor:pointer}
+  .rapport-act #rMsg{font-family:var(--mono); font-size:12px; color:var(--green)}
+  .bar{position:sticky; bottom:0; margin:36px 0 0; background:var(--ink); color:#fff; border-radius:14px; padding:12px 18px; display:flex; gap:16px; align-items:center; flex-wrap:wrap; box-shadow:0 6px 24px rgba(15,23,42,.22)}
+  .bar .cnt{font-family:var(--mono); font-size:13px}
+  .bar .cnt b{font-size:15px}
+  .bar .sp{flex:1}
+  .bar button{font-family:'DM Sans',sans-serif; font-size:13px; font-weight:700; border:none; border-radius:9px; padding:8px 14px; cursor:pointer; background:#fff; color:var(--ink)}
+  .bar button.ghost{background:transparent; color:#fff; border:1px solid rgba(255,255,255,.35)}
+  .bar button:hover{opacity:.88}
+
+  table{width:100%; border-collapse:collapse; margin:14px 0 18px; background:var(--white); border:1px solid var(--line); border-radius:12px; overflow:hidden; font-size:14px}
+  th{background:#F1F4F8; text-align:left; font-size:12px; font-family:var(--mono); font-weight:500; text-transform:uppercase; letter-spacing:.05em; color:var(--ink-2); padding:9px 14px; border-bottom:1px solid var(--line)}
+  td{padding:9px 14px; border-bottom:1px solid #F1F5F9; color:var(--ink-2); vertical-align:top}
+  tr:last-child td{border-bottom:none}
+  td:first-child{font-weight:600; color:var(--ink)}
+  ul{margin:0 0 14px; padding-left:22px; color:var(--ink-2)} li{margin:5px 0}
+  .steps{counter-reset:step; margin:12px 0 16px; padding:0; list-style:none}
+  .steps li{counter-increment:step; position:relative; padding:9px 0 9px 40px; margin:0; color:var(--ink-2)}
+  .steps li::before{content:counter(step); position:absolute; left:0; top:8px; width:26px; height:26px; border-radius:8px; background:var(--white); border:1.5px solid var(--red); color:var(--red); font-family:var(--mono); font-size:13px; display:flex; align-items:center; justify-content:center}
+  .steps li + li{border-top:1px dashed var(--line)}
+  @media print{ .bar{display:none} .test{break-inside:avoid} body{padding:0} }
+  @media (prefers-reduced-motion:reduce){ *{scroll-behavior:auto !important} }
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <div class="eyebrow">Planning-Med · vérification du système</div>
+  <h1>Cahier de tests</h1>
+  <p class="subtitle">Parcours complet de vérification : accès, portail, planning, saisies, module libéral, wizards, et scénarios de panne.</p>
+  <p class="maj">Établi le 2 août 2026, <b>mis à jour le 18 août 2026</b> · année active 2027 · <b>193 points</b> de contrôle, dont <b>plus de 40 déjà couverts par le banc d'essai</b> · 4 à 5 h à la main, sécable phase par phase</p>
+
+  <div class="callout rule">
+    <div class="ct">Avant tout</div>
+    <p>Cette page ne garde rien en mémoire : si tu la fermes, les cases se vident. Utilise le bouton <b>Copier les anomalies</b> en bas avant de fermer, et colle le résultat dans la conversation.</p><p style="margin-top:8px">Page prévue pour être ouverte <strong>depuis son adresse web</strong>, y compris sur téléphone : un fichier enregistré en local n'exécute pas les scripts, le compteur et le bouton de copie resteraient inertes.</p>
+  </div>
+
+  <div class="callout rule" style="margin-bottom:26px">
+    <div class="ct">⏱ LE NOYAU — 14 tests, environ une heure</div>
+    <p><b>Ce cahier compte 180 tests. Personne ne les fera jamais tous, et ce n'est pas le but.</b>
+    Les 14 ci-dessous sont ceux dont l'échec coûterait vraiment quelque chose : ce que la salle
+    verra le 4 septembre, ce qui décide de la campagne d'octobre, et ce qui te protège toi.
+    <b>Si tu ne fais qu'une chose, fais celle-là.</b></p>
+    <ol style="margin:14px 0 6px;padding-left:22px;line-height:1.75">
+      <li><a href="#t012"><b>T012</b></a> — Se connecter, fermer le navigateur, revenir<br><span style="color:#64748B;font-size:13px">Le tout premier geste de 23 personnes le 4 septembre.</span></li>
+      <li><a href="#t013"><b>T013</b></a> — Compter les tuiles visibles avec ton code<br><span style="color:#64748B;font-size:13px">Si un MAR voit une tuile réservée au comité, ça se verra en direct.</span></li>
+      <li><a href="#t029"><b>T029</b></a> — Le planning sur téléphone, une semaine défilée<br><span style="color:#64748B;font-size:13px">Toute la salle sera sur mobile.</span></li>
+      <li><a href="#t024"><b>T024</b></a> — Comparer une semaine du planning au classeur, ligne par ligne<br><span style="color:#64748B;font-size:13px">Le seul test qui vérifie que ce qui s'affiche est VRAI.</span></li>
+      <li><a href="#t016"><b>T016</b></a> — Ouvrir un topo<br><span style="color:#64748B;font-size:13px">Chemin livré le 10/08, jamais éprouvé par quelqu'un d'autre que toi.</span></li>
+      <li><a href="#t019"><b>T019</b></a> — Veille : marquer un article comme lu, recharger<br><span style="color:#64748B;font-size:13px">Sera projeté. Le marquage « lu » est la fonction la plus récente de cette page.</span></li>
+      <li><a href="#t020"><b>T020</b></a> — Annuaire : vérifier trois numéros contre le classeur<br><span style="color:#64748B;font-size:13px">Sera projeté. Un numéro faux devant 23 personnes décrédibilise le reste.</span></li>
+      <li><a href="#t068"><b>T068</b></a> — Ouvrir les indisponibilités avec un code MAR<br><span style="color:#64748B;font-size:13px">Le geste de la campagne d'octobre.</span></li>
+      <li><a href="#t069"><b>T069</b></a> — Saisir trois jours, enregistrer, recharger<br><span style="color:#64748B;font-size:13px">Idem — et on vérifie que ça tient après rechargement.</span></li>
+      <li><a href="#t073"><b>T073</b></a> — Enregistrer une saisie avec le réseau coupé<br><span style="color:#64748B;font-size:13px">La règle « une saisie qui échoue doit se voir », mise à l'épreuve.</span></li>
+      <li><a href="#t074"><b>T074</b></a> — Saisir depuis le téléphone en 4G, à une main<br><span style="color:#64748B;font-size:13px">Conditions réelles d'octobre.</span></li>
+      <li><a href="#t034"><b>T034</b></a> — Placer un MAR et vérifier dans le classeur<br><span style="color:#64748B;font-size:13px">Le geste de base du comité.</span></li>
+      <li><a href="#t059"><b>T059</b></a> — Diagnostic complet, chaque ligne lue<br><span style="color:#64748B;font-size:13px">C'est lui qui te préviendra de tout le reste.</span></li>
+      <li><a href="#t017b"><b>T017b</b></a> — Le repli des documents<br><span style="color:#64748B;font-size:13px">Le seul filet du projet jamais éprouvé en réel.</span></li>
+    </ol>
+    <p style="margin-top:12px"><b>Le reste du cahier n'est pas à dérouler</b> : c'est un réservoir.
+    On l'ouvre quand on touche à la zone concernée, ou une fois l'an avant la génération de
+    novembre. Un test qu'on ne fait pas est moins grave qu'un cahier qu'on n'ouvre plus.</p>
+    <p style="margin-top:10px;color:#64748B;font-size:13.5px">Volontairement HORS noyau, faute
+    d'enjeu avant le 4 septembre : le module libéral, les comptes rendus, les scénarios
+    catastrophe, les assistants de démarrage et de clôture d'année.</p>
+  </div>
+
+  <div class="toc">
+    <h2>Parcours</h2>
+    <ol>
+      <li><span class="n">P0</span><a href="#p0">Prérequis</a><span class="dur">15 min</span></li>
+      <li><span class="n">P1</span><a href="#p1">Accès et rôles</a><span class="dur">25 min</span></li>
+      <li><span class="n">P2</span><a href="#p2">Portail (dashboard)</a><span class="dur">20 min</span></li>
+      <li><span class="n">P3</span><a href="#p3">Planning de l'équipe</a><span class="dur">20 min</span></li>
+      <li><span class="n">P4</span><a href="#p4">Comité — planning quotidien</a><span class="dur">50 min</span></li>
+      <li><span class="n">P5</span><a href="#p5">Comité — équipe, équité, maintenance</a><span class="dur">40 min</span></li>
+      <li><span class="n">P6</span><a href="#p6">Indisponibilités</a><span class="dur">20 min</span></li>
+      <li><span class="n">P7</span><a href="#p7">Consultations et secrétariat</a><span class="dur">20 min</span></li>
+      <li><span class="n">P8</span><a href="#pstaff">Staff vacances</a><span class="dur">25 min</span></li>
+      <li><span class="n">P9</span><a href="#p8">Module libéral</a><span class="dur">30 min</span></li>
+      <li><span class="n">P10</span><a href="#p9">CR, CRH, veille</a><span class="dur">20 min</span></li>
+      <li><span class="n">P11</span><a href="#p10">Les trois assistants annuels</a><span class="dur">50 min</span></li>
+      <li><span class="n">P12</span><a href="#p11">Scénarios catastrophe</a><span class="dur">40 min</span></li>
+      <li><span class="n">P13</span><a href="#pdoc">Cohérence de la documentation</a><span class="dur">10 min</span></li>
+      <li><span class="n">P15</span><a href="#p15">Journal, miroir et vitesse</a><span class="dur">20 min</span></li>
+      <li><span class="n">P16</span><a href="#p16">Échanges, notifications, mémoire de session</a><span class="dur">45 min</span></li>
+      <li><span class="n">P14</span><a href="#p12">Nettoyage et remise en état</a><span class="dur">20 min</span></li>
+    </ol>
+  </div>
+
+  <div class="callout warn">
+    <div class="ct">Critères d'arrêt immédiat</div>
+    <p>On interrompt la recette et on diagnostique <b>avant de continuer</b> si l'un de ces trois signaux apparaît : une donnée réelle disparaît sans qu'on l'ait demandé · un MAR autre que toi reçoit un email · une page reste blanche sans message d'erreur. Tout le reste se note et se poursuit.</p>
+  </div>
+
+<!-- ─── section ─── -->
+<section id="p0">
+  <h2><span class="n">P0</span>Prérequis</h2>
+  <p class="phase-sub">À faire dans l'ordre. Ce ne sont pas des tests : c'est le filet.</p>
+
+  <ol class="steps">
+    <li><b>Sauvegarde du classeur maître.</b> Fichier → Créer une copie, nommée <code>SAUVEGARDE-AVANT-RECETTE-2026-08-01</code>, rangée sur ton compte perso. Non négociable : la phase 10 supprime des onglets.</li>
+    <li><b>Contrôle de version.</b> admin.html → onglet Maintenance → 🔍 Diagnostic. Aucune ligne ne doit signaler de désynchronisation entre le dépôt et le déployé. Si une recopie manque, fais-la maintenant : sinon tu testeras un code différent de celui que je lis.</li>
+    <li><b>État de départ, noté sur papier.</b> Dans CONFIG : valeur de <code>ANNEE_ACTIVE</code> (attendu 2027) et de <code>INDISPOS_ACTIVE</code>. Dans le classeur : la liste des onglets présents. C'est ta référence pour le nettoyage final.</li>
+    <li><b>Classeur d'archive.</b> Ouvre-le et vérifie s'il contient déjà <code>STATS_GARDES_2027</code>. Si oui, note-le : la clôture l'écrasera sans prévenir.</li>
+    <li><b>Emails.</b> Tu confirmes que seule ton adresse est renseignée dans MEDECINS. Recompte-le une fois, ligne par ligne, avant la phase 10 : c'est le seul point où une erreur touche l'équipe.</li>
+    <li><b>Console ouverte.</b> F12 → onglet Console, gardée ouverte toute la séance. La moitié des anomalies s'y voient avant de se voir à l'écran. Note toute ligne rouge.</li>
+    <li><b>Un seul onglet</b> du portail ouvert, sauf quand un test demande explicitement le contraire.</li>
+    <li><b>Rechargement forcé</b> (<code>Ctrl+Maj+R</code>) sur chaque page au moment où tu l'ouvres pour la première fois.</li>
+  </ol>
+</section>
+
+<!-- ─── section ─── -->
+<section id="p1">
+  <h2><span class="n">P1</span>Accès et rôles</h2>
+  <p class="phase-sub">Trois rôles existent côté serveur : <code>admin</code>, <code>mar</code>, <code>secretariat</code>. Le secrétariat a une liste blanche de deux actions seulement, tout le reste lui est refusé par défaut.</p>
+
+  <div class="test" data-id="T001"><div class="test-head"><span class="tid">T001</span><div class="test-body">
+    <div class="t-do">Ouvrir admin.html et se connecter avec le code comité.</div>
+    <div class="t-exp">Attendu : l'écran s'ouvre, l'année <b>2027</b> s'affiche en en-tête, aucune erreur en console. <b style="color:#047857">✅ Déjà vérifié automatiquement</b> — banc : <code>banc_acces.mjs</code>.</div>
+  
+    <div class="verdicts"><label class="v-ok"><input type="radio" name="v-T001" value="ok"><span>Conforme</span></label><label class="v-ko"><input type="radio" name="v-T001" value="ko"><span>Anomalie</span></label><label class="v-na"><input type="radio" name="v-T001" value="na"><span>Non fait</span></label><input class="note" type="text" placeholder="Ce que tu as observé"></div>
+  </div></div></div>
+
+  <div class="test" data-id="T002"><div class="test-head"><span class="tid">T002</span><div class="test-body">
+    <div class="t-do">Ouvrir dashboard.html avec ton code MAR personnel.</div>
+    <div class="t-exp">Attendu : ton prénom/tes initiales apparaissent, les tuiles se dessinent. <b style="color:#047857">✅ Déjà vérifié automatiquement</b> — banc : <code>banc_acces.mjs</code>.</div>
+  
+    <div class="verdicts"><label class="v-ok"><input type="radio" name="v-T002" value="ok"><span>Conforme</span></label><label class="v-ko"><input type="radio" name="v-T002" value="ko"><span>Anomalie</span></label><label class="v-na"><input type="radio" name="v-T002" value="na"><span>Non fait</span></label><input class="note" type="text" placeholder="Ce que tu as observé"></div>
+  </div></div></div>
+
+  <div class="test" data-id="T003"><div class="test-head"><span class="tid">T003</span><div class="test-body">
+    <div class="t-do">Ouvrir absences.html avec le code du secrétariat.</div>
+    <div class="t-exp">Attendu : la liste des MARs à consulter s'affiche. <b>Aucun code d'absence ne doit être visible</b> — seulement des dates. C'est la règle « dates seules ». <b style="color:#047857">✅ Déjà vérifié automatiquement</b> — banc : <code>banc_acces.mjs</code>.</div>
+  
+    <div class="verdicts"><label class="v-ok"><input type="radio" name="v-T003" value="ok"><span>Conforme</span></label><label class="v-ko"><input type="radio" name="v-T003" value="ko"><span>Anomalie</span></label><label class="v-na"><input type="radio" name="v-T003" value="na"><span>Non fait</span></label><input class="note" type="text" placeholder="Ce que tu as observé"></div>
+  </div></div></div>
+
+  <div class="test" data-id="T004"><div class="test-head"><span class="tid">T004</span><div class="test-body">
+    <div class="t-do">Saisir un code inexistant (ex. <code>ZZZZ99</code>) sur dashboard.html.</div>
+    <div class="t-exp">Attendu : un message compréhensible, pas d'écran blanc, pas de « undefined ». Note le texte exact. <b style="color:#047857">✅ Déjà vérifié automatiquement</b> — banc : <code>banc_acces.mjs</code>.</div>
+  
+    <div class="verdicts"><label class="v-ok"><input type="radio" name="v-T004" value="ok"><span>Conforme</span></label><label class="v-ko"><input type="radio" name="v-T004" value="ko"><span>Anomalie</span></label><label class="v-na"><input type="radio" name="v-T004" value="na"><span>Non fait</span></label><input class="note" type="text" placeholder="Ce que tu as observé"></div>
+  </div></div></div>
+
+  <div class="test" data-id="T005"><div class="test-head"><span class="tid">T005</span><div class="test-body">
+    <div class="t-do">Saisir un code vide, puis un code avec une espace avant et après.</div>
+    <div class="t-exp">Attendu : refus propre pour le vide ; le code entouré d'espaces doit <b>fonctionner</b> (les espaces sont nettoyés). <b style="color:#047857">✅ Déjà vérifié automatiquement</b> — banc : <code>banc_acces.mjs</code>.</div>
+  
+    <div class="verdicts"><label class="v-ok"><input type="radio" name="v-T005" value="ok"><span>Conforme</span></label><label class="v-ko"><input type="radio" name="v-T005" value="ko"><span>Anomalie</span></label><label class="v-na"><input type="radio" name="v-T005" value="na"><span>Non fait</span></label><input class="note" type="text" placeholder="Ce que tu as observé"></div>
+  </div></div></div>
+
+  <div class="test" data-id="T006"><div class="test-head"><span class="tid">T006</span><div class="test-body">
+    <div class="t-do">Sur dashboard.html connecté avec le code d'un <b>autre</b> MAR (crée-toi un code de test si besoin), regarder les tuiles.</div>
+    <div class="t-exp">Attendu : les tuiles CRH, Guide technique et Libéral <b>n'apparaissent pas</b> (réservées à DURAND). <b style="color:#047857">✅ Déjà vérifié automatiquement</b> — banc : <code>banc_acces.mjs</code>.</div>
+  
+    <div class="verdicts"><label class="v-ok"><input type="radio" name="v-T006" value="ok"><span>Conforme</span></label><label class="v-ko"><input type="radio" name="v-T006" value="ko"><span>Anomalie</span></label><label class="v-na"><input type="radio" name="v-T006" value="na"><span>Non fait</span></label><input class="note" type="text" placeholder="Ce que tu as observé"></div>
+  </div></div></div>
+
+  <div class="test" data-id="T007"><div class="test-head"><span class="tid">T007</span><div class="test-body">
+    <div class="t-do">Utiliser « Se déconnecter / changer d'utilisateur » sur le dashboard.</div>
+    <div class="t-exp">Attendu : confirmation demandée, puis retour à l'écran de code. Rouvrir la page ne doit pas reconnecter automatiquement.</div>
+  
+    <div class="verdicts"><label class="v-ok"><input type="radio" name="v-T007" value="ok"><span>Conforme</span></label><label class="v-ko"><input type="radio" name="v-T007" value="ko"><span>Anomalie</span></label><label class="v-na"><input type="radio" name="v-T007" value="na"><span>Non fait</span></label><input class="note" type="text" placeholder="Ce que tu as observé"></div>
+  </div></div></div>
+
+  <div class="test" data-id="T008"><div class="test-head"><span class="tid">T008</span><div class="test-body">
+    <div class="t-do">Session ouverte sur dashboard. Dans le classeur, modifier ton code d'accès dans MEDECINS. Cliquer ensuite sur une tuile qui charge des données.</div>
+    <div class="t-exp">Attendu : le refus arrive — immédiatement, ou après le bouton « vider le cache de configuration » de Maintenance. Note lequel des deux. C'est le délai réel de révocation d'un code.</div>
+  
+    <div class="verdicts"><label class="v-ok"><input type="radio" name="v-T008" value="ok"><span>Conforme</span></label><label class="v-ko"><input type="radio" name="v-T008" value="ko"><span>Anomalie</span></label><label class="v-na"><input type="radio" name="v-T008" value="na"><span>Non fait</span></label><input class="note" type="text" placeholder="Ce que tu as observé"></div>
+  </div></div></div>
+
+  <div class="test" data-id="T009"><div class="test-head"><span class="tid">T009</span><div class="test-body">
+    <div class="t-do">Remettre ton code d'origine et vérifier que tu te reconnectes.</div>
+    <div class="t-exp">Attendu : accès rétabli. <b>Ne pas oublier cette étape</b> avant de continuer.</div>
+  
+    <div class="verdicts"><label class="v-ok"><input type="radio" name="v-T009" value="ok"><span>Conforme</span></label><label class="v-ko"><input type="radio" name="v-T009" value="ko"><span>Anomalie</span></label><label class="v-na"><input type="radio" name="v-T009" value="na"><span>Non fait</span></label><input class="note" type="text" placeholder="Ce que tu as observé"></div>
+  </div></div></div>
+
+  <div class="test" data-id="T010"><div class="test-head"><span class="tid">T010</span><div class="test-body">
+    <div class="t-do">Depuis la session secrétariat, ouvrir la console (F12) et tenter une action interdite, par exemple demander la liste des médecins.</div>
+    <div class="t-exp">Attendu : refus du serveur. Le rôle secrétariat n'a droit qu'à deux actions ; toutes les autres doivent être rejetées, pas seulement masquées à l'écran. <b style="color:#047857">✅ Déjà vérifié automatiquement</b> — banc : <code>banc_acces.mjs</code>.</div>
+    <div class="verdicts"><label class="v-ok"><input type="radio" name="v-T010" value="ok"><span>Conforme</span></label><label class="v-ko"><input type="radio" name="v-T010" value="ko"><span>Anomalie</span></label><label class="v-na"><input type="radio" name="v-T010" value="na"><span>Non fait</span></label><input class="note" type="text" placeholder="Ce que tu as observé"></div>
+  </div></div></div>
+  <div class="test" data-id="T011"><div class="test-head"><span class="tid">T011</span><div class="test-body">
+    <div class="t-do">Ouvrir deux sessions dans deux navigateurs différents : toi en admin, toi en MAR.</div>
+    <div class="t-exp">Attendu : les deux cohabitent sans interférence. Une action dans l'une ne doit pas déconnecter l'autre. <b style="color:#047857">✅ Déjà vérifié automatiquement</b> — banc : <code>banc_acces.mjs</code>.</div>
+    <div class="verdicts"><label class="v-ok"><input type="radio" name="v-T011" value="ok"><span>Conforme</span></label><label class="v-ko"><input type="radio" name="v-T011" value="ko"><span>Anomalie</span></label><label class="v-na"><input type="radio" name="v-T011" value="na"><span>Non fait</span></label><input class="note" type="text" placeholder="Ce que tu as observé"></div>
+  </div></div></div>
+  <div class="test" id="t012" data-id="T012"><div class="test-head"><span class="tid">T012</span><div class="test-body">
+    <div class="t-do">Se connecter, fermer le navigateur entièrement, rouvrir et retourner sur la page.</div>
+    <div class="t-exp">Attendu : comportement cohérent et explicable — soit la session persiste, soit le code est redemandé. Note lequel des deux, c'est ce que vivront les MARs.</div>
+    <div class="verdicts"><label class="v-ok"><input type="radio" name="v-T012" value="ok"><span>Conforme</span></label><label class="v-ko"><input type="radio" name="v-T012" value="ko"><span>Anomalie</span></label><label class="v-na"><input type="radio" name="v-T012" value="na"><span>Non fait</span></label><input class="note" type="text" placeholder="Ce que tu as observé"></div>
+  </div></div></div>
+</section>
+
+<!-- ─── section ─── -->
+<section id="p2">
+  <h2><span class="n">P2</span>Portail (dashboard)</h2>
+  <p class="phase-sub">Le carrefour : 13 tuiles, dont certaines conditionnelles (campagne d'indispos ouverte, membre du groupement libéral, réservé à DURAND).</p>
+
+  <div class="test" id="t013" data-id="T013"><div class="test-head"><span class="tid">T013</span><div class="test-body">
+    <div class="t-do">Compter les tuiles visibles avec ton code.</div>
+    <div class="t-exp">Attendu : Planning · Mes indisponibilités (si campagne ouverte) · Mes consultations · Mes congés · Topos/biblio · Protocoles · Staffs · Veille · Annuaire · CR d'anesthésie · Libéral · CRH · Guide technique. Note toute absence.</div>
+  
+    <div class="verdicts"><label class="v-ok"><input type="radio" name="v-T013" value="ok"><span>Conforme</span></label><label class="v-ko"><input type="radio" name="v-T013" value="ko"><span>Anomalie</span></label><label class="v-na"><input type="radio" name="v-T013" value="na"><span>Non fait</span></label><input class="note" type="text" placeholder="Ce que tu as observé"></div>
+  </div></div></div>
+
+  <div class="test" data-id="T014"><div class="test-head"><span class="tid">T014</span><div class="test-body">
+    <div class="t-do">Vérifier le sous-titre de la tuile « Mes indisponibilités ».</div>
+    <div class="t-exp">Attendu : l'année affichée est celle d'<code>INDISPOS_ACTIVE</code>, pas une autre. Si la campagne est fermée, la tuile doit être <b>absente</b>.</div>
+  
+    <div class="verdicts"><label class="v-ok"><input type="radio" name="v-T014" value="ok"><span>Conforme</span></label><label class="v-ko"><input type="radio" name="v-T014" value="ko"><span>Anomalie</span></label><label class="v-na"><input type="radio" name="v-T014" value="na"><span>Non fait</span></label><input class="note" type="text" placeholder="Ce que tu as observé"></div>
+  </div></div></div>
+
+  <div class="test" data-id="T015"><div class="test-head"><span class="tid">T015</span><div class="test-body">
+    <div class="t-do">Ouvrir la vue « Mes congés ».</div>
+    <div class="t-exp">Attendu : tes vacances, formations, TP, récups et congés à venir. Croiser deux dates avec le classeur.</div>
+  
+    <div class="verdicts"><label class="v-ok"><input type="radio" name="v-T015" value="ok"><span>Conforme</span></label><label class="v-ko"><input type="radio" name="v-T015" value="ko"><span>Anomalie</span></label><label class="v-na"><input type="radio" name="v-T015" value="na"><span>Non fait</span></label><input class="note" type="text" placeholder="Ce que tu as observé"></div>
+  </div></div></div>
+
+  <div class="test" id="t016" data-id="T016"><div class="test-head"><span class="tid">T016</span><div class="test-body">
+    <div class="t-do">Ouvrir « Topos / biblio », puis ouvrir un document.</div>
+    <div class="t-exp">Attendu : la liste se charge, et le document s'ouvre <b>quasi instantanément</b>. <b>Changé le 10/08/2026 (v1.30.3)</b> : l'ouverture passait par le serveur lent (11,5 s mesurées le 08/08), elle passe désormais par la copie de lecture. Si un document met encore plusieurs secondes, ce n'est pas une panne : sa copie n'est pas encore faite (elle l'est dans l'heure), ou il dépasse 8 Mo.</div>
+  
+    <div class="verdicts"><label class="v-ok"><input type="radio" name="v-T016" value="ok"><span>Conforme</span></label><label class="v-ko"><input type="radio" name="v-T016" value="ko"><span>Anomalie</span></label><label class="v-na"><input type="radio" name="v-T016" value="na"><span>Non fait</span></label><input class="note" type="text" placeholder="Ce que tu as observé"></div>
+  </div></div></div>
+
+  <div class="test" data-id="T017"><div class="test-head"><span class="tid">T017</span><div class="test-body">
+    <div class="t-do">Ouvrir « Protocoles » et dérouler une spécialité.</div>
+    <div class="t-exp">Attendu : classement par spécialité correct, et ouverture <b>quasi instantanée</b> (6,1 s avant le 10/08/2026). Les protocoles sont tous légers : aucun ne devrait traîner.</div>
+  
+    <div class="verdicts"><label class="v-ok"><input type="radio" name="v-T017" value="ok"><span>Conforme</span></label><label class="v-ko"><input type="radio" name="v-T017" value="ko"><span>Anomalie</span></label><label class="v-na"><input type="radio" name="v-T017" value="na"><span>Non fait</span></label><input class="note" type="text" placeholder="Ce que tu as observé"></div>
+  </div></div></div>
+
+  <div class="test" id="t017b" data-id="T017b"><div class="test-head"><span class="tid">T017b</span><div class="test-body">
+    <div class="t-do"><b>Le filet des documents — à faire UNE FOIS, jamais éprouvé en réel.</b> Dans le Drive, supprimer un protocole léger. Dans l'éditeur Apps Script, lancer <code>miroirDocuments</code> : sa copie s'efface. Remettre le fichier dans le Drive. L'ouvrir depuis le portail <b>sans relancer</b> <code>miroirDocuments</code>.</div>
+    <div class="t-exp">Attendu : le document <b>s'ouvre quand même</b>, simplement plus lentement (quelques secondes) — le portail est repassé par l'ancien chemin. C'est le repli. S'il ne s'ouvre pas du tout, c'est un défaut à signaler immédiatement : le filet ne tient pas. Relancer ensuite <code>miroirDocuments</code> pour rétablir la copie, et vérifier que l'ouverture redevient instantanée. <b>Le banc prouve la logique de ce repli, jamais l'infrastructure — d'où ce test à la main.</b></div>
+  
+    <div class="verdicts"><label class="v-ok"><input type="radio" name="v-T017b" value="ok"><span>Conforme</span></label><label class="v-ko"><input type="radio" name="v-T017b" value="ko"><span>Anomalie</span></label><label class="v-na"><input type="radio" name="v-T017b" value="na"><span>Non fait</span></label><input class="note" type="text" placeholder="Ce que tu as observé"></div>
+  </div></div></div>
+
+  <div class="test" data-id="T018"><div class="test-head"><span class="tid">T018</span><div class="test-body">
+    <div class="t-do">Ouvrir « Staffs à venir ».</div>
+    <div class="t-exp">Attendu : les staffs futurs seulement, dans l'ordre chronologique, avec les intervenants.</div>
+  
+    <div class="verdicts"><label class="v-ok"><input type="radio" name="v-T018" value="ok"><span>Conforme</span></label><label class="v-ko"><input type="radio" name="v-T018" value="ko"><span>Anomalie</span></label><label class="v-na"><input type="radio" name="v-T018" value="na"><span>Non fait</span></label><input class="note" type="text" placeholder="Ce que tu as observé"></div>
+  </div></div></div>
+
+  <div class="test" id="t019" data-id="T019"><div class="test-head"><span class="tid">T019</span><div class="test-body">
+    <div class="t-do">Ouvrir « Veille biblio », marquer un article comme lu, recharger la page.</div>
+    <div class="t-exp">Attendu : le marquage a été enregistré côté serveur et survit au rechargement.</div>
+  
+    <div class="verdicts"><label class="v-ok"><input type="radio" name="v-T019" value="ok"><span>Conforme</span></label><label class="v-ko"><input type="radio" name="v-T019" value="ko"><span>Anomalie</span></label><label class="v-na"><input type="radio" name="v-T019" value="na"><span>Non fait</span></label><input class="note" type="text" placeholder="Ce que tu as observé"></div>
+  </div></div></div>
+
+  <div class="test" id="t020" data-id="T020"><div class="test-head"><span class="tid">T020</span><div class="test-body">
+    <div class="t-do">Ouvrir « Annuaire » et vérifier trois numéros contre le classeur.</div>
+    <div class="t-exp">Attendu : correspondance exacte, DECT compris.</div>
+  
+    <div class="verdicts"><label class="v-ok"><input type="radio" name="v-T020" value="ok"><span>Conforme</span></label><label class="v-ko"><input type="radio" name="v-T020" value="ko"><span>Anomalie</span></label><label class="v-na"><input type="radio" name="v-T020" value="na"><span>Non fait</span></label><input class="note" type="text" placeholder="Ce que tu as observé"></div>
+  </div></div></div>
+
+  <div class="test" data-id="T021"><div class="test-head"><span class="tid">T021</span><div class="test-body">
+    <div class="t-do">Ouvrir le panneau Gmail, lire un message, revenir à la liste.</div>
+    <div class="t-exp">Attendu : le compteur de non-lus diminue, le message s'affiche en entier, le retour ne recharge pas toute la page.</div>
+  
+    <div class="verdicts"><label class="v-ok"><input type="radio" name="v-T021" value="ok"><span>Conforme</span></label><label class="v-ko"><input type="radio" name="v-T021" value="ko"><span>Anomalie</span></label><label class="v-na"><input type="radio" name="v-T021" value="na"><span>Non fait</span></label><input class="note" type="text" placeholder="Ce que tu as observé"></div>
+  </div></div></div>
+
+  <div class="test" data-id="T022"><div class="test-head"><span class="tid">T022</span><div class="test-body">
+    <div class="t-do">Déplier la tuile « Libéral » (elle a deux moitiés) et emprunter les deux destinations.</div>
+    <div class="t-exp">Attendu : « Cotation &amp; déclaration » ouvre l'estimateur, « Suivi des 30 % » ouvre suivi-liberal.html. Les deux se chargent sans redemander le code.</div>
+  
+    <div class="verdicts"><label class="v-ok"><input type="radio" name="v-T022" value="ok"><span>Conforme</span></label><label class="v-ko"><input type="radio" name="v-T022" value="ko"><span>Anomalie</span></label><label class="v-na"><input type="radio" name="v-T022" value="na"><span>Non fait</span></label><input class="note" type="text" placeholder="Ce que tu as observé"></div>
+  </div></div></div>
+
+  <div class="test" data-id="T023"><div class="test-head"><span class="tid">T023</span><div class="test-body">
+    <div class="t-do">Ouvrir le dashboard sur ton téléphone.</div>
+    <div class="t-exp">Attendu : tuiles lisibles, rien qui déborde, connexion possible. C'est l'usage réel de la majorité des MARs.</div>
+  
+    <div class="verdicts"><label class="v-ok"><input type="radio" name="v-T023" value="ok"><span>Conforme</span></label><label class="v-ko"><input type="radio" name="v-T023" value="ko"><span>Anomalie</span></label><label class="v-na"><input type="radio" name="v-T023" value="na"><span>Non fait</span></label><input class="note" type="text" placeholder="Ce que tu as observé"></div>
+  </div></div></div>
+</section>
+
+<!-- ─── section ─── -->
+<section id="p3">
+  <h2><span class="n">P3</span>Planning de l'équipe</h2>
+  <p class="phase-sub">La page que les MARs consultent le plus. Lecture seule.</p>
+
+  <div class="test" id="t024" data-id="T024"><div class="test-head"><span class="tid">T024</span><div class="test-body">
+    <div class="t-do">Ouvrir le planning et comparer la semaine en cours avec le classeur, ligne par ligne.</div>
+    <div class="t-exp">Attendu : gardes, secteurs et consultations identiques. Toute divergence est un défaut majeur.</div>
+  
+    <div class="verdicts"><label class="v-ok"><input type="radio" name="v-T024" value="ok"><span>Conforme</span></label><label class="v-ko"><input type="radio" name="v-T024" value="ko"><span>Anomalie</span></label><label class="v-na"><input type="radio" name="v-T024" value="na"><span>Non fait</span></label><input class="note" type="text" placeholder="Ce que tu as observé"></div>
+  </div></div></div>
+
+  <div class="test" data-id="T025"><div class="test-head"><span class="tid">T025</span><div class="test-body">
+    <div class="t-do">Naviguer d'une semaine en avant, puis de six, puis revenir.</div>
+    <div class="t-exp">Attendu : navigation fluide, pas de trou, pas de semaine dupliquée, le retour retrouve le même contenu.</div>
+  
+    <div class="verdicts"><label class="v-ok"><input type="radio" name="v-T025" value="ok"><span>Conforme</span></label><label class="v-ko"><input type="radio" name="v-T025" value="ko"><span>Anomalie</span></label><label class="v-na"><input type="radio" name="v-T025" value="na"><span>Non fait</span></label><input class="note" type="text" placeholder="Ce que tu as observé"></div>
+  </div></div></div>
+
+  <div class="test" data-id="T026"><div class="test-head"><span class="tid">T026</span><div class="test-body">
+    <div class="t-do">Aller à la première semaine de janvier 2027, puis à la dernière semaine de décembre 2027.</div>
+    <div class="t-exp">Attendu : les bornes de l'année sont propres. Le planning commence au premier lundi et finit la veille du premier lundi de 2028 — vérifie qu'on ne sort pas dans le vide. <b style="color:#047857">✅ Déjà vérifié automatiquement</b> — banc : <code>banc_calendrier.js</code> (Pâques 2026-2030, report au lundi, bornes d année).</div>
+  
+    <div class="verdicts"><label class="v-ok"><input type="radio" name="v-T026" value="ok"><span>Conforme</span></label><label class="v-ko"><input type="radio" name="v-T026" value="ko"><span>Anomalie</span></label><label class="v-na"><input type="radio" name="v-T026" value="na"><span>Non fait</span></label><input class="note" type="text" placeholder="Ce que tu as observé"></div>
+  </div></div></div>
+
+  <div class="test" data-id="T027"><div class="test-head"><span class="tid">T027</span><div class="test-body">
+    <div class="t-do">Vérifier un jour férié et le week-end de Pâques.</div>
+    <div class="t-exp">Attendu : jours fériés signalés correctement pour 2027 (le calcul de Pâques est fait dans le code, pas lu dans une table). <b style="color:#047857">✅ Déjà vérifié automatiquement</b> — banc : <code>banc_calendrier.js</code> (Pâques 2026-2030, report au lundi, bornes d année).</div>
+  
+    <div class="verdicts"><label class="v-ok"><input type="radio" name="v-T027" value="ok"><span>Conforme</span></label><label class="v-ko"><input type="radio" name="v-T027" value="ko"><span>Anomalie</span></label><label class="v-na"><input type="radio" name="v-T027" value="na"><span>Non fait</span></label><input class="note" type="text" placeholder="Ce que tu as observé"></div>
+  </div></div></div>
+
+  <div class="test" data-id="T028"><div class="test-head"><span class="tid">T028</span><div class="test-body">
+    <div class="t-do">Repérer tes propres lignes (gardes, repos de garde, récup).</div>
+    <div class="t-exp">Attendu : mise en évidence correcte, et cohérence avec ce qu'affiche « Mes congés » sur le dashboard.</div>
+  
+    <div class="verdicts"><label class="v-ok"><input type="radio" name="v-T028" value="ok"><span>Conforme</span></label><label class="v-ko"><input type="radio" name="v-T028" value="ko"><span>Anomalie</span></label><label class="v-na"><input type="radio" name="v-T028" value="na"><span>Non fait</span></label><input class="note" type="text" placeholder="Ce que tu as observé"></div>
+  </div></div></div>
+
+  <div class="test" id="t029" data-id="T029"><div class="test-head"><span class="tid">T029</span><div class="test-body">
+    <div class="t-do">Ouvrir index.html sur téléphone, faire défiler une semaine entière.</div>
+    <div class="t-exp">Attendu : lisible, pas de débordement horizontal qui empêche la lecture.</div>
+  
+    <div class="verdicts"><label class="v-ok"><input type="radio" name="v-T029" value="ok"><span>Conforme</span></label><label class="v-ko"><input type="radio" name="v-T029" value="ko"><span>Anomalie</span></label><label class="v-na"><input type="radio" name="v-T029" value="na"><span>Non fait</span></label><input class="note" type="text" placeholder="Ce que tu as observé"></div>
+  </div></div></div>
+
+  <div class="test" data-id="T030"><div class="test-head"><span class="tid">T030</span><div class="test-body">
+    <div class="t-do">Mode hors ligne : couper le réseau et recharger la page.</div>
+    <div class="t-exp">Attendu : le service worker (<code>sw.js</code>) sert quelque chose de lisible, ou affiche un message clair. Pas d'écran blanc muet.</div>
+  
+    <div class="verdicts"><label class="v-ok"><input type="radio" name="v-T030" value="ok"><span>Conforme</span></label><label class="v-ko"><input type="radio" name="v-T030" value="ko"><span>Anomalie</span></label><label class="v-na"><input type="radio" name="v-T030" value="na"><span>Non fait</span></label><input class="note" type="text" placeholder="Ce que tu as observé"></div>
+  </div></div></div>
+
+  <div class="test" data-id="T031"><div class="test-head"><span class="tid">T031</span><div class="test-body">
+    <div class="t-do">Imprimer le planning depuis index.html (Ctrl+P), ou l'enregistrer en PDF.</div>
+    <div class="t-exp">Attendu : la semaine tient sur la page, rien n'est coupé, les couleurs restent lisibles en noir et blanc.</div>
+    <div class="verdicts"><label class="v-ok"><input type="radio" name="v-T031" value="ok"><span>Conforme</span></label><label class="v-ko"><input type="radio" name="v-T031" value="ko"><span>Anomalie</span></label><label class="v-na"><input type="radio" name="v-T031" value="na"><span>Non fait</span></label><input class="note" type="text" placeholder="Ce que tu as observé"></div>
+  </div></div></div>
+  <div class="test" data-id="T032"><div class="test-head"><span class="tid">T032</span><div class="test-body">
+    <div class="t-do">Installer le portail sur l'écran d'accueil du téléphone (« Ajouter à l'écran d'accueil »).</div>
+    <div class="t-exp">Attendu : l'icône et le nom viennent du manifeste, l'application s'ouvre en plein écran. C'est ainsi que beaucoup de MARs l'utiliseront.</div>
+    <div class="verdicts"><label class="v-ok"><input type="radio" name="v-T032" value="ok"><span>Conforme</span></label><label class="v-ko"><input type="radio" name="v-T032" value="ko"><span>Anomalie</span></label><label class="v-na"><input type="radio" name="v-T032" value="na"><span>Non fait</span></label><input class="note" type="text" placeholder="Ce que tu as observé"></div>
+  </div></div></div>
+</section>
+
+<!-- ─── section ─── -->
+<section id="p4">
+  <h2><span class="n">P4</span>Comité — planning quotidien</h2>
+  <p class="phase-sub">Le cœur d'admin.html, et la partie la plus récemment modifiée (sauvegardes groupées, préchargement des panneaux). Tout se passe sur ton 2027 de test.</p>
+
+  <div class="test" data-id="T033"><div class="test-head"><span class="tid">T033</span><div class="test-body">
+    <div class="t-do">Ouvrir l'onglet Planning et taper <code>chrono()</code> dans la console après le chargement complet.</div>
+    <div class="t-exp">Attendu : budget d'ouverture affiché. Note le total — il servira de référence pour comparer après les tests de charge.</div>
+  
+    <div class="verdicts"><label class="v-ok"><input type="radio" name="v-T033" value="ok"><span>Conforme</span></label><label class="v-ko"><input type="radio" name="v-T033" value="ko"><span>Anomalie</span></label><label class="v-na"><input type="radio" name="v-T033" value="na"><span>Non fait</span></label><input class="note" type="text" placeholder="Ce que tu as observé"></div>
+  </div></div></div>
+
+  <div class="test" id="t034" data-id="T034"><div class="test-head"><span class="tid">T034</span><div class="test-body">
+    <div class="t-do">Placer un MAR dans une case vide, puis vérifier dans le classeur.</div>
+    <div class="t-exp">Attendu : la ligne apparaît dans PLANNING_OVERRIDES avec la bonne date et le bon MAR.</div>
+  
+    <div class="verdicts"><label class="v-ok"><input type="radio" name="v-T034" value="ok"><span>Conforme</span></label><label class="v-ko"><input type="radio" name="v-T034" value="ko"><span>Anomalie</span></label><label class="v-na"><input type="radio" name="v-T034" value="na"><span>Non fait</span></label><input class="note" type="text" placeholder="Ce que tu as observé"></div>
+  </div></div></div>
+
+  <div class="test" data-id="T035"><div class="test-head"><span class="tid">T035</span><div class="test-body">
+    <div class="t-do">Faire dix placements d'affilée rapidement, puis taper <code>chronoAPI()</code>.</div>
+    <div class="t-exp">Attendu (05/08/2026) : <b>une seule ligne</b> <code>journal:placements</code>, autour de <b>150–200 ms</b>. Aucun <code>savePlanningOverridesBatch</code> ne doit apparaître : les écritures ne passent plus par Apps Script — elles sont déposées chez Cloudflare et appliquées par le serveur dans la minute.</div>
+  
+    <div class="verdicts"><label class="v-ok"><input type="radio" name="v-T035" value="ok"><span>Conforme</span></label><label class="v-ko"><input type="radio" name="v-T035" value="ko"><span>Anomalie</span></label><label class="v-na"><input type="radio" name="v-T035" value="na"><span>Non fait</span></label><input class="note" type="text" placeholder="Ce que tu as observé"></div>
+  </div></div></div>
+
+  <div class="test" data-id="T036"><div class="test-head"><span class="tid">T036</span><div class="test-body">
+    <div class="t-do">Retirer un placement posé au test précédent, puis regarder PLANNING_OVERRIDES.</div>
+    <div class="t-exp">Attendu : le MAR redevient <b>volant</b> à l'écran. La ligne ne disparaît pas forcément du classeur : elle prend la valeur VOLANT, nécessaire pour écraser son affectation de base. Ce n'est un défaut que si l'écran et le classeur se contredisent.</div>
+  
+    <div class="verdicts"><label class="v-ok"><input type="radio" name="v-T036" value="ok"><span>Conforme</span></label><label class="v-ko"><input type="radio" name="v-T036" value="ko"><span>Anomalie</span></label><label class="v-na"><input type="radio" name="v-T036" value="na"><span>Non fait</span></label><input class="note" type="text" placeholder="Ce que tu as observé"></div>
+  </div></div></div>
+
+  <div class="test" data-id="T037"><div class="test-head"><span class="tid">T037</span><div class="test-body">
+    <div class="t-do">Placer un MAR sur un jour où il est en vacances ou de garde.</div>
+    <div class="t-exp">Attendu : le MAR n'est pas proposé du tout — le conflit est empêché plutôt que signalé. S'il apparaît malgré tout dans la liste, c'est un défaut.</div>
+  
+    <div class="verdicts"><label class="v-ok"><input type="radio" name="v-T037" value="ok"><span>Conforme</span></label><label class="v-ko"><input type="radio" name="v-T037" value="ko"><span>Anomalie</span></label><label class="v-na"><input type="radio" name="v-T037" value="na"><span>Non fait</span></label><input class="note" type="text" placeholder="Ce que tu as observé"></div>
+  </div></div></div>
+
+  <div class="test" data-id="T038"><div class="test-head"><span class="tid">T038</span><div class="test-body">
+    <div class="t-do">Placer le même MAR deux fois le même jour, matin et après-midi, sur deux secteurs différents.</div>
+    <div class="t-exp">Attendu : comportement cohérent et explicable. Note ce qui se passe exactement.</div>
+  
+    <div class="verdicts"><label class="v-ok"><input type="radio" name="v-T038" value="ok"><span>Conforme</span></label><label class="v-ko"><input type="radio" name="v-T038" value="ko"><span>Anomalie</span></label><label class="v-na"><input type="radio" name="v-T038" value="na"><span>Non fait</span></label><input class="note" type="text" placeholder="Ce que tu as observé"></div>
+  </div></div></div>
+
+  <div class="test" data-id="T039"><div class="test-head"><span class="tid">T039</span><div class="test-body">
+    <div class="t-do">Ouvrir le panneau de semaine, puis passer à la semaine suivante.</div>
+    <div class="t-exp">Attendu : le passage est instantané. Depuis le 04/08/2026, la liste des MAR disponibles est <b>calculée sur la page</b> et non plus préchargée depuis le serveur : l'instantanéité ne dépend plus du réseau. Si tu attends plus de 2 s, note la valeur.</div>
+  
+    <div class="verdicts"><label class="v-ok"><input type="radio" name="v-T039" value="ok"><span>Conforme</span></label><label class="v-ko"><input type="radio" name="v-T039" value="ko"><span>Anomalie</span></label><label class="v-na"><input type="radio" name="v-T039" value="na"><span>Non fait</span></label><input class="note" type="text" placeholder="Ce que tu as observé"></div>
+  </div></div></div>
+
+  <div class="test" data-id="T040"><div class="test-head"><span class="tid">T040</span><div class="test-body">
+    <div class="t-do">Consulter la liste des MARs disponibles pour un jour donné.</div>
+    <div class="t-exp">Attendu : les MARs en congé, en garde ou en repos de garde <b>n'y figurent pas</b>. Vérifier deux cas contre le classeur.</div>
+  
+    <div class="verdicts"><label class="v-ok"><input type="radio" name="v-T040" value="ok"><span>Conforme</span></label><label class="v-ko"><input type="radio" name="v-T040" value="ko"><span>Anomalie</span></label><label class="v-na"><input type="radio" name="v-T040" value="na"><span>Non fait</span></label><input class="note" type="text" placeholder="Ce que tu as observé"></div>
+  </div></div></div>
+
+  <div class="test" data-id="T041"><div class="test-head"><span class="tid">T041</span><div class="test-body">
+    <div class="t-do">Ouvrir l'écran des conflits globaux.</div>
+    <div class="t-exp">Attendu : la liste correspond aux conflits réellement présents. En créer un exprès et vérifier qu'il apparaît.</div>
+  
+    <div class="verdicts"><label class="v-ok"><input type="radio" name="v-T041" value="ok"><span>Conforme</span></label><label class="v-ko"><input type="radio" name="v-T041" value="ko"><span>Anomalie</span></label><label class="v-na"><input type="radio" name="v-T041" value="na"><span>Non fait</span></label><input class="note" type="text" placeholder="Ce que tu as observé"></div>
+  </div></div></div>
+
+  <div class="test" data-id="T042"><div class="test-head"><span class="tid">T042</span><div class="test-body">
+    <div class="t-do">Modifier un statut quotidien (setDailyStatus) sur un jour.</div>
+    <div class="t-exp">Attendu : effet visible dans index.html après rechargement.</div>
+  
+    <div class="verdicts"><label class="v-ok"><input type="radio" name="v-T042" value="ok"><span>Conforme</span></label><label class="v-ko"><input type="radio" name="v-T042" value="ko"><span>Anomalie</span></label><label class="v-na"><input type="radio" name="v-T042" value="na"><span>Non fait</span></label><input class="note" type="text" placeholder="Ce que tu as observé"></div>
+  </div></div></div>
+
+  <div class="test" data-id="T043"><div class="test-head"><span class="tid">T043</span><div class="test-body">
+    <div class="t-do">Publier le planning.</div>
+    <div class="t-exp">Attendu (05/08/2026) : le message <b>« Publication en route — vous pouvez fermer la page »</b> apparaît en moins d'une seconde. <code>planning_2027.json</code> est mis à jour sur le Drive <b>dans les 1 à 3 minutes</b> (vérifier l'horodatage). Si le message affiché est « Planning publié en ligne », c'est le circuit de secours qui a servi — le fichier est alors déjà à jour.</div>
+  
+    <div class="verdicts"><label class="v-ok"><input type="radio" name="v-T043" value="ok"><span>Conforme</span></label><label class="v-ko"><input type="radio" name="v-T043" value="ko"><span>Anomalie</span></label><label class="v-na"><input type="radio" name="v-T043" value="na"><span>Non fait</span></label><input class="note" type="text" placeholder="Ce que tu as observé"></div>
+  </div></div></div>
+
+  <div class="test" data-id="T044"><div class="test-head"><span class="tid">T044</span><div class="test-body">
+    <div class="t-do">Après publication, attendre 10 minutes sans rien toucher.</div>
+    <div class="t-exp">Attendu : la notification par email part — <b>chez toi uniquement</b>. C'est le mécanisme d'accalmie de 10 min. Vérifie que le contenu du mail décrit bien les changements réels.</div>
+  
+    <div class="verdicts"><label class="v-ok"><input type="radio" name="v-T044" value="ok"><span>Conforme</span></label><label class="v-ko"><input type="radio" name="v-T044" value="ko"><span>Anomalie</span></label><label class="v-na"><input type="radio" name="v-T044" value="na"><span>Non fait</span></label><input class="note" type="text" placeholder="Ce que tu as observé"></div>
+  </div></div></div>
+
+  <div class="test" data-id="T045"><div class="test-head"><span class="tid">T045</span><div class="test-body">
+    <div class="t-do">Poser un changement, puis l'annuler avant la fin des 10 minutes, et republier.</div>
+    <div class="t-exp">Attendu : <b>aucun mail</b> ne part pour un changement posé puis retiré. C'est une garantie annoncée dans le code : elle mérite d'être vérifiée en vrai.</div>
+  
+    <div class="verdicts"><label class="v-ok"><input type="radio" name="v-T045" value="ok"><span>Conforme</span></label><label class="v-ko"><input type="radio" name="v-T045" value="ko"><span>Anomalie</span></label><label class="v-na"><input type="radio" name="v-T045" value="na"><span>Non fait</span></label><input class="note" type="text" placeholder="Ce que tu as observé"></div>
+  </div></div></div>
+
+  <div class="test" data-id="T046"><div class="test-head"><span class="tid">T046</span><div class="test-body">
+    <div class="t-do">Poser une absence longue sur un MAR, vérifier le planning, puis l'annuler.</div>
+    <div class="t-exp">Attendu : la période entière bascule, puis revient à l'état d'origine sans résidu.</div>
+  
+    <div class="verdicts"><label class="v-ok"><input type="radio" name="v-T046" value="ok"><span>Conforme</span></label><label class="v-ko"><input type="radio" name="v-T046" value="ko"><span>Anomalie</span></label><label class="v-na"><input type="radio" name="v-T046" value="na"><span>Non fait</span></label><input class="note" type="text" placeholder="Ce que tu as observé"></div>
+  </div></div></div>
+
+  <div class="test" data-id="T047"><div class="test-head"><span class="tid">T047</span><div class="test-body">
+    <div class="t-do">Fermer admin.html brutalement (croix de l'onglet) juste après un placement, rouvrir.</div>
+    <div class="t-exp">Attendu (05/08/2026) : le placement <b>est enregistré</b>. Il part chez Cloudflare 3 s après le clic et reste conservé sur le poste tant qu'il n'est pas confirmé — la réouverture le renvoie seule. L'ancien comportement toléré (« soit enregistré, soit pas ») — mais l'écran et le classeur doivent <b>dire la même chose</b>. Une divergence ici est grave.</div>
+  
+    <div class="verdicts"><label class="v-ok"><input type="radio" name="v-T047" value="ok"><span>Conforme</span></label><label class="v-ko"><input type="radio" name="v-T047" value="ko"><span>Anomalie</span></label><label class="v-na"><input type="radio" name="v-T047" value="na"><span>Non fait</span></label><input class="note" type="text" placeholder="Ce que tu as observé"></div>
+  </div></div></div>
+
+  <div class="test" data-id="T048"><div class="test-head"><span class="tid">T048</span><div class="test-body">
+    <div class="t-do">Exporter la semaine en Excel depuis admin.html, puis ouvrir le fichier.</div>
+    <div class="t-exp">Attendu : toutes les lignes de secteur et de consultation présentes, MARs corrects, en-têtes lisibles. C'est le fichier qui part au service : une ligne manquante est un défaut majeur.</div>
+    <div class="verdicts"><label class="v-ok"><input type="radio" name="v-T048" value="ok"><span>Conforme</span></label><label class="v-ko"><input type="radio" name="v-T048" value="ko"><span>Anomalie</span></label><label class="v-na"><input type="radio" name="v-T048" value="na"><span>Non fait</span></label><input class="note" type="text" placeholder="Ce que tu as observé"></div>
+  </div></div></div>
+  <div class="test" data-id="T049"><div class="test-head"><span class="tid">T049</span><div class="test-body">
+    <div class="t-do">Ajouter une ligne dans l'onglet SECTEURS du classeur, vider le cache de configuration, recharger.</div>
+    <div class="t-exp">Attendu : le nouveau secteur apparaît dans la grille. Le retirer ensuite et vérifier qu'il disparaît.</div>
+    <div class="verdicts"><label class="v-ok"><input type="radio" name="v-T049" value="ok"><span>Conforme</span></label><label class="v-ko"><input type="radio" name="v-T049" value="ko"><span>Anomalie</span></label><label class="v-na"><input type="radio" name="v-T049" value="na"><span>Non fait</span></label><input class="note" type="text" placeholder="Ce que tu as observé"></div>
+  </div></div></div>
+  <div class="test" data-id="T050"><div class="test-head"><span class="tid">T050</span><div class="test-body">
+    <div class="t-do">Modifier un chiffre dans l'onglet CS_TEMPLATE (par exemple deux consultations de viscéral le mardi après-midi au lieu d'une), vider le cache, recharger.</div>
+    <div class="t-exp">Attendu : la grille réclame bien le nouveau nombre. Remettre la valeur d'origine ensuite.</div>
+    <div class="verdicts"><label class="v-ok"><input type="radio" name="v-T050" value="ok"><span>Conforme</span></label><label class="v-ko"><input type="radio" name="v-T050" value="ko"><span>Anomalie</span></label><label class="v-na"><input type="radio" name="v-T050" value="na"><span>Non fait</span></label><input class="note" type="text" placeholder="Ce que tu as observé"></div>
+  </div></div></div>
+  <div class="test" data-id="T051"><div class="test-head"><span class="tid">T051</span><div class="test-body">
+    <div class="t-do">Vider entièrement l'onglet SECTEURS, recharger admin.html.</div>
+    <div class="t-exp">Attendu : le bandeau orange apparaît et l'export Excel est bloqué — c'est volontaire, un fichier amputé ne doit pas partir. Restaurer l'onglet aussitôt.</div>
+    <div class="verdicts"><label class="v-ok"><input type="radio" name="v-T051" value="ok"><span>Conforme</span></label><label class="v-ko"><input type="radio" name="v-T051" value="ko"><span>Anomalie</span></label><label class="v-na"><input type="radio" name="v-T051" value="na"><span>Non fait</span></label><input class="note" type="text" placeholder="Ce que tu as observé"></div>
+  </div></div></div>
+</section>
+
+<!-- ─── section ─── -->
+<section id="p5">
+  <h2><span class="n">P5</span>Comité — équipe, équité, maintenance</h2>
+  <p class="phase-sub">Les quatre autres onglets d'admin.html.</p>
+
+  <div class="test" data-id="T052"><div class="test-head"><span class="tid">T052</span><div class="test-body">
+    <div class="t-do">Onglet Équipe : modifier un champ sur un MAR de test (pas un vrai), enregistrer, recharger.</div>
+    <div class="t-exp">Attendu : la valeur est bien écrite dans MEDECINS et relue correctement. <b style="color:#047857">✅ Déjà vérifié automatiquement</b> — banc : <code>banc_equipe.js</code>.</div>
+  
+    <div class="verdicts"><label class="v-ok"><input type="radio" name="v-T052" value="ok"><span>Conforme</span></label><label class="v-ko"><input type="radio" name="v-T052" value="ko"><span>Anomalie</span></label><label class="v-na"><input type="radio" name="v-T052" value="na"><span>Non fait</span></label><input class="note" type="text" placeholder="Ce que tu as observé"></div>
+  </div></div></div>
+
+  <div class="test" data-id="T053"><div class="test-head"><span class="tid">T053</span><div class="test-body">
+    <div class="t-do">Passer un MAR de test à inactif, puis regarder la liste des MARs disponibles dans Planning.</div>
+    <div class="t-exp">Attendu : il disparaît des propositions. Le remettre actif ensuite. <b style="color:#047857">✅ Déjà vérifié automatiquement</b> — banc : <code>banc_equipe.js</code>.</div>
+  
+    <div class="verdicts"><label class="v-ok"><input type="radio" name="v-T053" value="ok"><span>Conforme</span></label><label class="v-ko"><input type="radio" name="v-T053" value="ko"><span>Anomalie</span></label><label class="v-na"><input type="radio" name="v-T053" value="na"><span>Non fait</span></label><input class="note" type="text" placeholder="Ce que tu as observé"></div>
+  </div></div></div>
+
+  <div class="test" data-id="T054"><div class="test-head"><span class="tid">T054</span><div class="test-body">
+    <div class="t-do">Ajouter un MAR à un groupe, enregistrer les groupes.</div>
+    <div class="t-exp">Attendu : écriture correcte, et le groupe est bien relu à l'ouverture suivante.</div>
+  
+    <div class="verdicts"><label class="v-ok"><input type="radio" name="v-T054" value="ok"><span>Conforme</span></label><label class="v-ko"><input type="radio" name="v-T054" value="ko"><span>Anomalie</span></label><label class="v-na"><input type="radio" name="v-T054" value="na"><span>Non fait</span></label><input class="note" type="text" placeholder="Ce que tu as observé"></div>
+  </div></div></div>
+
+  <div class="test" data-id="T055"><div class="test-head"><span class="tid">T055</span><div class="test-body">
+    <div class="t-do">Réinitialiser ton propre code d'accès depuis l'onglet Équipe.</div>
+    <div class="t-exp">Attendu : nouveau code généré, email reçu par toi, ancien code refusé, nouveau code accepté. <b>Note le nouveau code avant de te déconnecter.</b></div>
+  
+    <div class="verdicts"><label class="v-ok"><input type="radio" name="v-T055" value="ok"><span>Conforme</span></label><label class="v-ko"><input type="radio" name="v-T055" value="ko"><span>Anomalie</span></label><label class="v-na"><input type="radio" name="v-T055" value="na"><span>Non fait</span></label><input class="note" type="text" placeholder="Ce que tu as observé"></div>
+  </div></div></div>
+
+  <div class="test" data-id="T056"><div class="test-head"><span class="tid">T056</span><div class="test-body">
+    <div class="t-do">Onglet Affectations : modifier une affectation, enregistrer.</div>
+    <div class="t-exp">Attendu : cohérence avec AFFECTATIONS_2027 et avec le planning affiché côté MAR.</div>
+  
+    <div class="verdicts"><label class="v-ok"><input type="radio" name="v-T056" value="ok"><span>Conforme</span></label><label class="v-ko"><input type="radio" name="v-T056" value="ko"><span>Anomalie</span></label><label class="v-na"><input type="radio" name="v-T056" value="na"><span>Non fait</span></label><input class="note" type="text" placeholder="Ce que tu as observé"></div>
+  </div></div></div>
+
+  <div class="test" data-id="T057"><div class="test-head"><span class="tid">T057</span><div class="test-body">
+    <div class="t-do">Onglet Équité : comparer trois MARs avec STATS_GARDES_2027.</div>
+    <div class="t-exp">Attendu : totaux identiques. Vérifier <b>chaque axe</b> (total, week-ends, veilles de fériés, fériés, Noël/Jour de l'an), pas seulement le total : une régression d'axe s'est déjà glissée par là.</div>
+  
+    <div class="verdicts"><label class="v-ok"><input type="radio" name="v-T057" value="ok"><span>Conforme</span></label><label class="v-ko"><input type="radio" name="v-T057" value="ko"><span>Anomalie</span></label><label class="v-na"><input type="radio" name="v-T057" value="na"><span>Non fait</span></label><input class="note" type="text" placeholder="Ce que tu as observé"></div>
+  </div></div></div>
+
+  <div class="test" data-id="T058"><div class="test-head"><span class="tid">T058</span><div class="test-body">
+    <div class="t-do">Équité en temps réel : échanger deux gardes dans le planning, puis rouvrir l'équité.</div>
+    <div class="t-exp">Attendu : les compteurs bougent des deux côtés, dans le bon sens, du bon nombre.</div>
+  
+    <div class="verdicts"><label class="v-ok"><input type="radio" name="v-T058" value="ok"><span>Conforme</span></label><label class="v-ko"><input type="radio" name="v-T058" value="ko"><span>Anomalie</span></label><label class="v-na"><input type="radio" name="v-T058" value="na"><span>Non fait</span></label><input class="note" type="text" placeholder="Ce que tu as observé"></div>
+  </div></div></div>
+
+  <div class="test" id="t059" data-id="T059"><div class="test-head"><span class="tid">T059</span><div class="test-body">
+    <div class="t-do">Onglet Maintenance : lancer le 🔍 Diagnostic complet et lire chaque ligne.</div>
+    <div class="t-exp">Attendu : aucune anomalie non expliquée. Recopie ici toute ligne rouge ou orange.</div>
+  
+    <div class="verdicts"><label class="v-ok"><input type="radio" name="v-T059" value="ok"><span>Conforme</span></label><label class="v-ko"><input type="radio" name="v-T059" value="ko"><span>Anomalie</span></label><label class="v-na"><input type="radio" name="v-T059" value="na"><span>Non fait</span></label><input class="note" type="text" placeholder="Ce que tu as observé"></div>
+  </div></div></div>
+
+  <div class="test" data-id="T060"><div class="test-head"><span class="tid">T060</span><div class="test-body">
+    <div class="t-do">Modifier une valeur à la main dans CONFIG, recharger la page sans vider le cache, puis vider le cache.</div>
+    <div class="t-exp">Attendu : la valeur n'est prise en compte qu'après le vidage. Ça te dit combien de temps une modification manuelle met à se propager.</div>
+  
+    <div class="verdicts"><label class="v-ok"><input type="radio" name="v-T060" value="ok"><span>Conforme</span></label><label class="v-ko"><input type="radio" name="v-T060" value="ko"><span>Anomalie</span></label><label class="v-na"><input type="radio" name="v-T060" value="na"><span>Non fait</span></label><input class="note" type="text" placeholder="Ce que tu as observé"></div>
+  </div></div></div>
+
+  <div class="test" data-id="T061"><div class="test-head"><span class="tid">T061</span><div class="test-body">
+    <div class="t-do">Ouvrir le journal d'actions du classeur.</div>
+    <div class="t-exp">Attendu : toutes les écritures de la séance y figurent, horodatées. C'est ta boîte noire : si elle est incomplète, on ne pourra pas enquêter après coup.</div>
+  
+    <div class="verdicts"><label class="v-ok"><input type="radio" name="v-T061" value="ok"><span>Conforme</span></label><label class="v-ko"><input type="radio" name="v-T061" value="ko"><span>Anomalie</span></label><label class="v-na"><input type="radio" name="v-T061" value="na"><span>Non fait</span></label><input class="note" type="text" placeholder="Ce que tu as observé"></div>
+  </div></div></div>
+
+  <div class="test" data-id="T062"><div class="test-head"><span class="tid">T062</span><div class="test-body">
+    <div class="t-do">Lancer l'assistant « recrue » pour créer un MAR de test complet : initiales, quotité, affectations, groupe de vacances, sans email.</div>
+    <div class="t-exp">Attendu : les quatre étapes passent (création, affectations, groupe, republication). Le MAR apparaît ensuite dans la liste et dans la grille.</div>
+    <div class="verdicts"><label class="v-ok"><input type="radio" name="v-T062" value="ok"><span>Conforme</span></label><label class="v-ko"><input type="radio" name="v-T062" value="ko"><span>Anomalie</span></label><label class="v-na"><input type="radio" name="v-T062" value="na"><span>Non fait</span></label><input class="note" type="text" placeholder="Ce que tu as observé"></div>
+  </div></div></div>
+  <div class="test" data-id="T063"><div class="test-head"><span class="tid">T063</span><div class="test-body">
+    <div class="t-do">Relancer l'assistant recrue avec exactement les mêmes initiales.</div>
+    <div class="t-exp">Attendu : deux MARs distincts sont créés — l'identifiant contient un horodatage. Vérifie que c'est bien ce que tu veux : rien n'empêche un doublon involontaire.</div>
+    <div class="verdicts"><label class="v-ok"><input type="radio" name="v-T063" value="ok"><span>Conforme</span></label><label class="v-ko"><input type="radio" name="v-T063" value="ko"><span>Anomalie</span></label><label class="v-na"><input type="radio" name="v-T063" value="na"><span>Non fait</span></label><input class="note" type="text" placeholder="Ce que tu as observé"></div>
+  </div></div></div>
+  <div class="test" data-id="T064"><div class="test-head"><span class="tid">T064</span><div class="test-body">
+    <div class="t-do">Lancer l'assistant recrue en renseignant cette fois un email (le tien).</div>
+    <div class="t-exp">Attendu : une cinquième étape apparaît et le code d'accès part par mail. Vérifier que le code reçu fonctionne.</div>
+    <div class="verdicts"><label class="v-ok"><input type="radio" name="v-T064" value="ok"><span>Conforme</span></label><label class="v-ko"><input type="radio" name="v-T064" value="ko"><span>Anomalie</span></label><label class="v-na"><input type="radio" name="v-T064" value="na"><span>Non fait</span></label><input class="note" type="text" placeholder="Ce que tu as observé"></div>
+  </div></div></div>
+  <div class="test" data-id="T065"><div class="test-head"><span class="tid">T065</span><div class="test-body">
+    <div class="t-do">Lancer l'assistant « départ » sur un MAR de test.</div>
+    <div class="t-exp">Attendu : deux étapes seulement — le MAR est désactivé et le planning republié. Il n'est pas supprimé : son historique reste intact.</div>
+    <div class="verdicts"><label class="v-ok"><input type="radio" name="v-T065" value="ok"><span>Conforme</span></label><label class="v-ko"><input type="radio" name="v-T065" value="ko"><span>Anomalie</span></label><label class="v-na"><input type="radio" name="v-T065" value="na"><span>Non fait</span></label><input class="note" type="text" placeholder="Ce que tu as observé"></div>
+  </div></div></div>
+  <div class="test" data-id="T066"><div class="test-head"><span class="tid">T066</span><div class="test-body">
+    <div class="t-do">Après le départ, vérifier la grille du planning et l'encadré « à placer ».</div>
+    <div class="t-exp">Attendu : le MAR ne figure plus dans les propositions ni dans les MARs à placer. C'est le correctif du 2 août — c'est le moment de vérifier qu'il tient.</div>
+    <div class="verdicts"><label class="v-ok"><input type="radio" name="v-T066" value="ok"><span>Conforme</span></label><label class="v-ko"><input type="radio" name="v-T066" value="ko"><span>Anomalie</span></label><label class="v-na"><input type="radio" name="v-T066" value="na"><span>Non fait</span></label><input class="note" type="text" placeholder="Ce que tu as observé"></div>
+  </div></div></div>
+  <div class="test" data-id="T067"><div class="test-head"><span class="tid">T067</span><div class="test-body">
+    <div class="t-do">Poser une absence longue de trois semaines sur un MAR, vérifier le planning, puis la raccourcir.</div>
+    <div class="t-exp">Attendu : la période se réduit correctement, sans laisser de jours orphelins au-delà de la nouvelle date de fin. <b style="color:#047857">✅ Déjà vérifié automatiquement</b> — banc : <code>banc_equipe.js</code>.</div>
+    <div class="verdicts"><label class="v-ok"><input type="radio" name="v-T067" value="ok"><span>Conforme</span></label><label class="v-ko"><input type="radio" name="v-T067" value="ko"><span>Anomalie</span></label><label class="v-na"><input type="radio" name="v-T067" value="na"><span>Non fait</span></label><input class="note" type="text" placeholder="Ce que tu as observé"></div>
+  </div></div></div>
+</section>
+
+<!-- ─── section ─── -->
+<section id="p6">
+  <h2><span class="n">P6</span>Indisponibilités</h2>
+  <p class="phase-sub">La saisie annuelle des MARs. Elle vise l'année <code>INDISPOS_ACTIVE</code>, pas l'année active.</p>
+
+  <div class="test" id="t068" data-id="T068"><div class="test-head"><span class="tid">T068</span><div class="test-body">
+    <div class="t-do">Ouvrir indispos.html avec ton code MAR.</div>
+    <div class="t-exp">Attendu : l'année affichée est bien celle d'<code>INDISPOS_ACTIVE</code>, et la grille couvre l'année entière.</div>
+  
+    <div class="verdicts"><label class="v-ok"><input type="radio" name="v-T068" value="ok"><span>Conforme</span></label><label class="v-ko"><input type="radio" name="v-T068" value="ko"><span>Anomalie</span></label><label class="v-na"><input type="radio" name="v-T068" value="na"><span>Non fait</span></label><input class="note" type="text" placeholder="Ce que tu as observé"></div>
+  </div></div></div>
+
+  <div class="test" id="t069" data-id="T069"><div class="test-head"><span class="tid">T069</span><div class="test-body">
+    <div class="t-do">Saisir trois jours de vacances, enregistrer, recharger.</div>
+    <div class="t-exp">Attendu : les trois jours sont dans l'onglet INDISPOS et reviennent après rechargement. <b style="color:#047857">✅ Déjà vérifié automatiquement</b> — banc : <code>banc_indispos.js</code>.</div>
+  
+    <div class="verdicts"><label class="v-ok"><input type="radio" name="v-T069" value="ok"><span>Conforme</span></label><label class="v-ko"><input type="radio" name="v-T069" value="ko"><span>Anomalie</span></label><label class="v-na"><input type="radio" name="v-T069" value="na"><span>Non fait</span></label><input class="note" type="text" placeholder="Ce que tu as observé"></div>
+  </div></div></div>
+
+  <div class="test" data-id="T070"><div class="test-head"><span class="tid">T070</span><div class="test-body">
+    <div class="t-do">Saisir une période longue d'un coup (deux semaines), puis en retirer trois jours au milieu.</div>
+    <div class="t-exp">Attendu : la saisie groupée écrit en un seul appel, le retrait partiel fonctionne sans effacer le reste. <b style="color:#047857">✅ Déjà vérifié automatiquement</b> — banc : <code>banc_indispos.js</code>.</div>
+  
+    <div class="verdicts"><label class="v-ok"><input type="radio" name="v-T070" value="ok"><span>Conforme</span></label><label class="v-ko"><input type="radio" name="v-T070" value="ko"><span>Anomalie</span></label><label class="v-na"><input type="radio" name="v-T070" value="na"><span>Non fait</span></label><input class="note" type="text" placeholder="Ce que tu as observé"></div>
+  </div></div></div>
+
+  <div class="test" data-id="T071"><div class="test-head"><span class="tid">T071</span><div class="test-body">
+    <div class="t-do">Demander une période où le seuil de MARs simultanés est déjà atteint.</div>
+    <div class="t-exp">Attendu : l'écran le signale avant l'enregistrement. Note le message.</div>
+  
+    <div class="verdicts"><label class="v-ok"><input type="radio" name="v-T071" value="ok"><span>Conforme</span></label><label class="v-ko"><input type="radio" name="v-T071" value="ko"><span>Anomalie</span></label><label class="v-na"><input type="radio" name="v-T071" value="na"><span>Non fait</span></label><input class="note" type="text" placeholder="Ce que tu as observé"></div>
+  </div></div></div>
+
+  <div class="test" data-id="T072"><div class="test-head"><span class="tid">T072</span><div class="test-body">
+    <div class="t-do">Saisir une date hors année (31 décembre de l'année suivante, par exemple).</div>
+    <div class="t-exp">Attendu : refus propre ou absence de la case. Pas d'écriture silencieuse hors grille. <b style="color:#047857">✅ Déjà vérifié automatiquement</b> — banc : <code>banc_indispos.js</code>.</div>
+  
+    <div class="verdicts"><label class="v-ok"><input type="radio" name="v-T072" value="ok"><span>Conforme</span></label><label class="v-ko"><input type="radio" name="v-T072" value="ko"><span>Anomalie</span></label><label class="v-na"><input type="radio" name="v-T072" value="na"><span>Non fait</span></label><input class="note" type="text" placeholder="Ce que tu as observé"></div>
+  </div></div></div>
+
+  <div class="test" id="t073" data-id="T073"><div class="test-head"><span class="tid">T073</span><div class="test-body">
+    <div class="t-do">Enregistrer une saisie avec le réseau coupé.</div>
+    <div class="t-exp">Attendu : un message d'échec explicite. <b>Surtout</b> : la saisie ne doit pas sembler enregistrée alors qu'elle ne l'est pas. Recharger pour confirmer.</div>
+  
+    <div class="verdicts"><label class="v-ok"><input type="radio" name="v-T073" value="ok"><span>Conforme</span></label><label class="v-ko"><input type="radio" name="v-T073" value="ko"><span>Anomalie</span></label><label class="v-na"><input type="radio" name="v-T073" value="na"><span>Non fait</span></label><input class="note" type="text" placeholder="Ce que tu as observé"></div>
+  </div></div></div>
+
+  <div class="test" id="t074" data-id="T074"><div class="test-head"><span class="tid">T074</span><div class="test-body">
+    <div class="t-do">Saisir depuis le téléphone, en conditions réelles (4G, une main).</div>
+    <div class="t-exp">Attendu : utilisable. C'est comme ça que la moitié de l'équipe saisira en octobre.</div>
+  
+    <div class="verdicts"><label class="v-ok"><input type="radio" name="v-T074" value="ok"><span>Conforme</span></label><label class="v-ko"><input type="radio" name="v-T074" value="ko"><span>Anomalie</span></label><label class="v-na"><input type="radio" name="v-T074" value="na"><span>Non fait</span></label><input class="note" type="text" placeholder="Ce que tu as observé"></div>
+  </div></div></div>
+
+  <div class="test" data-id="T075"><div class="test-head"><span class="tid">T075</span><div class="test-body">
+    <div class="t-do">Depuis admin.html, consulter l'avancement des saisies de l'équipe.</div>
+    <div class="t-exp">Attendu : le compteur « X / Y MARs avec VAC/FORM saisis » reflète la réalité du classeur.</div>
+  
+    <div class="verdicts"><label class="v-ok"><input type="radio" name="v-T075" value="ok"><span>Conforme</span></label><label class="v-ko"><input type="radio" name="v-T075" value="ko"><span>Anomalie</span></label><label class="v-na"><input type="radio" name="v-T075" value="na"><span>Non fait</span></label><input class="note" type="text" placeholder="Ce que tu as observé"></div>
+  </div></div></div>
+</section>
+
+<!-- ─── section ─── -->
+<section id="p7">
+  <h2><span class="n">P7</span>Consultations et secrétariat</h2>
+  <p class="phase-sub">Deux portes d'entrée : la tuile MAR et la session secrétariat. Le secrétariat ne doit voir que des dates, jamais un motif d'absence.</p>
+
+  <div class="test" data-id="T076"><div class="test-head"><span class="tid">T076</span><div class="test-body">
+    <div class="t-do">Entrer par la tuile « Mes consultations » avec ton code MAR.</div>
+    <div class="t-exp">Attendu : tes consultations à venir, et tes absences sur les 4 semaines qui suivent chacune.</div>
+  
+    <div class="verdicts"><label class="v-ok"><input type="radio" name="v-T076" value="ok"><span>Conforme</span></label><label class="v-ko"><input type="radio" name="v-T076" value="ko"><span>Anomalie</span></label><label class="v-na"><input type="radio" name="v-T076" value="na"><span>Non fait</span></label><input class="note" type="text" placeholder="Ce que tu as observé"></div>
+  </div></div></div>
+
+  <div class="test" data-id="T077"><div class="test-head"><span class="tid">T077</span><div class="test-body">
+    <div class="t-do">Entrer par la session secrétariat et ouvrir la fiche d'un MAR.</div>
+    <div class="t-exp">Attendu : des dates d'indisponibilité, <b>sans aucun code ni motif</b>. Si un code d'absence apparaît, c'est une fuite de données : arrêt immédiat.</div>
+  
+    <div class="verdicts"><label class="v-ok"><input type="radio" name="v-T077" value="ok"><span>Conforme</span></label><label class="v-ko"><input type="radio" name="v-T077" value="ko"><span>Anomalie</span></label><label class="v-na"><input type="radio" name="v-T077" value="na"><span>Non fait</span></label><input class="note" type="text" placeholder="Ce que tu as observé"></div>
+  </div></div></div>
+
+  <div class="test" data-id="T078"><div class="test-head"><span class="tid">T078</span><div class="test-body">
+    <div class="t-do">Vérifier l'ordre de la liste des MARs en session secrétariat.</div>
+    <div class="t-exp">Attendu : tri par marge CCAM décroissante (le MAR le plus loin du plafond en tête). C'est l'objet du correctif serveur en attente — note l'ordre observé.</div>
+  
+    <div class="verdicts"><label class="v-ok"><input type="radio" name="v-T078" value="ok"><span>Conforme</span></label><label class="v-ko"><input type="radio" name="v-T078" value="ko"><span>Anomalie</span></label><label class="v-na"><input type="radio" name="v-T078" value="na"><span>Non fait</span></label><input class="note" type="text" placeholder="Ce que tu as observé"></div>
+  </div></div></div>
+
+  <div class="test" data-id="T079"><div class="test-head"><span class="tid">T079</span><div class="test-body">
+    <div class="t-do">Depuis la session secrétariat, tenter d'ouvrir index.html ou admin.html avec le même code.</div>
+    <div class="t-exp">Attendu : refus. Le code secrétariat n'a droit qu'à deux actions serveur.</div>
+  
+    <div class="verdicts"><label class="v-ok"><input type="radio" name="v-T079" value="ok"><span>Conforme</span></label><label class="v-ko"><input type="radio" name="v-T079" value="ko"><span>Anomalie</span></label><label class="v-na"><input type="radio" name="v-T079" value="na"><span>Non fait</span></label><input class="note" type="text" placeholder="Ce que tu as observé"></div>
+  </div></div></div>
+
+  <div class="test" data-id="T080"><div class="test-head"><span class="tid">T080</span><div class="test-body">
+    <div class="t-do">Poser une absence sur un MAR depuis l'écran prévu, vérifier l'effet, puis annuler.</div>
+    <div class="t-exp">Attendu : pose et annulation symétriques, aucun résidu dans le planning.</div>
+  
+    <div class="verdicts"><label class="v-ok"><input type="radio" name="v-T080" value="ok"><span>Conforme</span></label><label class="v-ko"><input type="radio" name="v-T080" value="ko"><span>Anomalie</span></label><label class="v-na"><input type="radio" name="v-T080" value="na"><span>Non fait</span></label><input class="note" type="text" placeholder="Ce que tu as observé"></div>
+  </div></div></div>
+
+  <div class="test" data-id="T081"><div class="test-head"><span class="tid">T081</span><div class="test-body">
+    <div class="t-do">Consulter un MAR sans aucune consultation programmée.</div>
+    <div class="t-exp">Attendu : un écran vide <b>qui le dit</b>, pas un écran blanc ambigu.</div>
+  
+    <div class="verdicts"><label class="v-ok"><input type="radio" name="v-T081" value="ok"><span>Conforme</span></label><label class="v-ko"><input type="radio" name="v-T081" value="ko"><span>Anomalie</span></label><label class="v-na"><input type="radio" name="v-T081" value="na"><span>Non fait</span></label><input class="note" type="text" placeholder="Ce que tu as observé"></div>
+  </div></div></div>
+
+  <div class="test" data-id="T082"><div class="test-head"><span class="tid">T082</span><div class="test-body">
+    <div class="t-do">Ouvrir absences.html sur le poste du secrétariat, tel qu'il est configuré (navigateur, taille d'écran).</div>
+    <div class="t-exp">Attendu : utilisable sans explication. C'est le seul écran destiné à quelqu'un que tu ne formeras pas longuement.</div>
+  
+    <div class="verdicts"><label class="v-ok"><input type="radio" name="v-T082" value="ok"><span>Conforme</span></label><label class="v-ko"><input type="radio" name="v-T082" value="ko"><span>Anomalie</span></label><label class="v-na"><input type="radio" name="v-T082" value="na"><span>Non fait</span></label><input class="note" type="text" placeholder="Ce que tu as observé"></div>
+  </div></div></div>
+</section>
+
+
+<!-- ═══════════════════════ Staff vacances ═══════════════════════ -->
+<section id="pstaff">
+  <h2><span class="n">P8</span>Staff vacances</h2>
+  <p class="phase-sub">La séance collective d'octobre où l'équipe pose ses vacances ensemble. Onze points de contrôle — cette page n'avait jamais été testée.</p>
+
+  <div class="test" data-id="T083"><div class="test-head"><span class="tid">T083</span><div class="test-body">
+    <div class="t-do">Ouvrir staff.html et vérifier l'année affichée ainsi que les périodes proposées.</div>
+    <div class="t-exp">Attendu : les périodes de vacances scolaires correspondent à celles saisies dans PERIODES_VAC pour l'année concernée.</div>
+    <div class="verdicts"><label class="v-ok"><input type="radio" name="v-T083" value="ok"><span>Conforme</span></label><label class="v-ko"><input type="radio" name="v-T083" value="ko"><span>Anomalie</span></label><label class="v-na"><input type="radio" name="v-T083" value="na"><span>Non fait</span></label><input class="note" type="text" placeholder="Ce que tu as observé"></div>
+  </div></div></div>
+  <div class="test" data-id="T084"><div class="test-head"><span class="tid">T084</span><div class="test-body">
+    <div class="t-do">Poser trois jours de vacances pour un MAR, puis basculer sur la vue récapitulative.</div>
+    <div class="t-exp">Attendu : le compteur du MAR augmente de trois. Les <b>week-ends ne sont jamais comptés</b> — vérifie en posant volontairement un samedi.</div>
+    <div class="verdicts"><label class="v-ok"><input type="radio" name="v-T084" value="ok"><span>Conforme</span></label><label class="v-ko"><input type="radio" name="v-T084" value="ko"><span>Anomalie</span></label><label class="v-na"><input type="radio" name="v-T084" value="na"><span>Non fait</span></label><input class="note" type="text" placeholder="Ce que tu as observé"></div>
+  </div></div></div>
+  <div class="test" data-id="T085"><div class="test-head"><span class="tid">T085</span><div class="test-body">
+    <div class="t-do">Poser des vacances pour plusieurs MARs sur la même journée jusqu'à dépasser le seuil.</div>
+    <div class="t-exp">Attendu : la case change de couleur — verte, puis orange autour de 70 % du seuil, puis rouge au seuil. C'est le signal qui guide l'arbitrage en séance.</div>
+    <div class="verdicts"><label class="v-ok"><input type="radio" name="v-T085" value="ok"><span>Conforme</span></label><label class="v-ko"><input type="radio" name="v-T085" value="ko"><span>Anomalie</span></label><label class="v-na"><input type="radio" name="v-T085" value="na"><span>Non fait</span></label><input class="note" type="text" placeholder="Ce que tu as observé"></div>
+  </div></div></div>
+  <div class="test" data-id="T086"><div class="test-head"><span class="tid">T086</span><div class="test-body">
+    <div class="t-do">Basculer entre le type « vacances » et le type « formation » et poser les deux sur un même MAR.</div>
+    <div class="t-exp">Attendu : les deux compteurs sont distincts et le récapitulatif les sépare.</div>
+    <div class="verdicts"><label class="v-ok"><input type="radio" name="v-T086" value="ok"><span>Conforme</span></label><label class="v-ko"><input type="radio" name="v-T086" value="ko"><span>Anomalie</span></label><label class="v-na"><input type="radio" name="v-T086" value="na"><span>Non fait</span></label><input class="note" type="text" placeholder="Ce que tu as observé"></div>
+  </div></div></div>
+  <div class="test" data-id="T087"><div class="test-head"><span class="tid">T087</span><div class="test-body">
+    <div class="t-do">Vérifier la bannière Noël et Jour de l'An en haut de page.</div>
+    <div class="t-exp">Attendu : elle liste les MARs prioritaires avec l'année de leur dernière garde de Noël, ou « jamais ». La liste est <b>complète</b>, sans plafond — c'est un correctif du 31 juillet.</div>
+    <div class="verdicts"><label class="v-ok"><input type="radio" name="v-T087" value="ok"><span>Conforme</span></label><label class="v-ko"><input type="radio" name="v-T087" value="ko"><span>Anomalie</span></label><label class="v-na"><input type="radio" name="v-T087" value="na"><span>Non fait</span></label><input class="note" type="text" placeholder="Ce que tu as observé"></div>
+  </div></div></div>
+  <div class="test" data-id="T088"><div class="test-head"><span class="tid">T088</span><div class="test-body">
+    <div class="t-do">Croiser trois noms de cette bannière avec l'onglet HISTORIQUE du classeur.</div>
+    <div class="t-exp">Attendu : concordance exacte. C'est sur cette liste que le comité arbitre les vacances de Noël.</div>
+    <div class="verdicts"><label class="v-ok"><input type="radio" name="v-T088" value="ok"><span>Conforme</span></label><label class="v-ko"><input type="radio" name="v-T088" value="ko"><span>Anomalie</span></label><label class="v-na"><input type="radio" name="v-T088" value="na"><span>Non fait</span></label><input class="note" type="text" placeholder="Ce que tu as observé"></div>
+  </div></div></div>
+  <div class="test" data-id="T089"><div class="test-head"><span class="tid">T089</span><div class="test-body">
+    <div class="t-do">Cliquer sur « ✅ Valider et verrouiller » et lire la demande de confirmation.</div>
+    <div class="t-exp">Attendu : le message annonce clairement que les MARs ne pourront plus modifier leurs saisies. Annuler d'abord, pour vérifier que rien n'est verrouillé.</div>
+    <div class="verdicts"><label class="v-ok"><input type="radio" name="v-T089" value="ok"><span>Conforme</span></label><label class="v-ko"><input type="radio" name="v-T089" value="ko"><span>Anomalie</span></label><label class="v-na"><input type="radio" name="v-T089" value="na"><span>Non fait</span></label><input class="note" type="text" placeholder="Ce que tu as observé"></div>
+  </div></div></div>
+  <div class="test" data-id="T090"><div class="test-head"><span class="tid">T090</span><div class="test-body">
+    <div class="t-do">Valider pour de bon, et chronométrer.</div>
+    <div class="t-exp">Attendu : un seul enregistrement groupé, quelques secondes. Si tu attends plusieurs minutes, c'est que l'ancienne méthode (un appel par MAR) est revenue : signale-le.</div>
+    <div class="verdicts"><label class="v-ok"><input type="radio" name="v-T090" value="ok"><span>Conforme</span></label><label class="v-ko"><input type="radio" name="v-T090" value="ko"><span>Anomalie</span></label><label class="v-na"><input type="radio" name="v-T090" value="na"><span>Non fait</span></label><input class="note" type="text" placeholder="Ce que tu as observé"></div>
+  </div></div></div>
+  <div class="test" data-id="T091"><div class="test-head"><span class="tid">T091</span><div class="test-body">
+    <div class="t-do">Après verrouillage, ouvrir indispos.html avec un code MAR et tenter de modifier une date verrouillée.</div>
+    <div class="t-exp">Attendu : la modification est refusée côté MAR. C'est tout l'objet du verrou.</div>
+    <div class="verdicts"><label class="v-ok"><input type="radio" name="v-T091" value="ok"><span>Conforme</span></label><label class="v-ko"><input type="radio" name="v-T091" value="ko"><span>Anomalie</span></label><label class="v-na"><input type="radio" name="v-T091" value="na"><span>Non fait</span></label><input class="note" type="text" placeholder="Ce que tu as observé"></div>
+  </div></div></div>
+  <div class="test" data-id="T092"><div class="test-head"><span class="tid">T092</span><div class="test-body">
+    <div class="t-do">Vérifier le message affiché après validation.</div>
+    <div class="t-exp">Attendu : le nombre de MARs enregistrés, et le cas échéant la liste des identifiants introuvables. Un MAR manquant doit être nommé, pas passé sous silence.</div>
+    <div class="verdicts"><label class="v-ok"><input type="radio" name="v-T092" value="ok"><span>Conforme</span></label><label class="v-ko"><input type="radio" name="v-T092" value="ko"><span>Anomalie</span></label><label class="v-na"><input type="radio" name="v-T092" value="na"><span>Non fait</span></label><input class="note" type="text" placeholder="Ce que tu as observé"></div>
+  </div></div></div>
+  <div class="test" data-id="T093"><div class="test-head"><span class="tid">T093</span><div class="test-body">
+    <div class="t-do">Déverrouiller depuis le bandeau prévu, puis revérifier côté MAR.</div>
+    <div class="t-exp">Attendu : la saisie redevient possible. Le verrou doit être réversible sans intervention dans le classeur.</div>
+    <div class="verdicts"><label class="v-ok"><input type="radio" name="v-T093" value="ok"><span>Conforme</span></label><label class="v-ko"><input type="radio" name="v-T093" value="ko"><span>Anomalie</span></label><label class="v-na"><input type="radio" name="v-T093" value="na"><span>Non fait</span></label><input class="note" type="text" placeholder="Ce que tu as observé"></div>
+  </div></div></div>
+</section>
+
+<!-- ─── section ─── -->
+<section id="p8">
+  <h2><span class="n">P9</span>Module libéral</h2>
+  <p class="phase-sub">L'estimateur (cotation, devis, déclaration) et le suivi des 30 %. La partie où une erreur de calcul coûte de l'argent réel.</p>
+
+  <div class="callout warn">
+    <div class="ct">Section à réécrire — l'écran a changé</div>
+    <p>La page de cotation a été refondue les 17 et 18 août : un patient à la fois, plus de cadran « part de libéral », bibliothèque de cotations types, dépassement calé sur celui du chirurgien. <b>Les points ci-dessous décrivent l'ancienne page.</b> Les règles de calcul (T094 à T098) restent valables ; les gestes, non. À reprendre une fois le module stabilisé.</p>
+  </div>
+
+  <div class="test" data-id="T094"><div class="test-head"><span class="tid">T094</span><div class="test-body">
+    <div class="t-do">Coter un acte CCAM que tu connais par cœur et recalculer la base de remboursement à la main.</div>
+    <div class="t-exp">Attendu : <code>tarif × 1,95 × (1 + %modificateurs) × taux d'association + modificateurs en euros</code>. Écart toléré : zéro.</div>
+  
+    <div class="verdicts"><label class="v-ok"><input type="radio" name="v-T094" value="ok"><span>Conforme</span></label><label class="v-ko"><input type="radio" name="v-T094" value="ko"><span>Anomalie</span></label><label class="v-na"><input type="radio" name="v-T094" value="na"><span>Non fait</span></label><input class="note" type="text" placeholder="Ce que tu as observé"></div>
+  </div></div></div>
+
+  <div class="test" data-id="T095"><div class="test-head"><span class="tid">T095</span><div class="test-body">
+    <div class="t-do">Coter un acte NGAP et recalculer à la main.</div>
+    <div class="t-exp">Attendu : <code>lettre-clé × coefficient</code>, <b>sans</b> le 1,95 et <b>sans</b> modificateurs. C'est la confusion la plus facile à commettre.</div>
+  
+    <div class="verdicts"><label class="v-ok"><input type="radio" name="v-T095" value="ok"><span>Conforme</span></label><label class="v-ko"><input type="radio" name="v-T095" value="ko"><span>Anomalie</span></label><label class="v-na"><input type="radio" name="v-T095" value="na"><span>Non fait</span></label><input class="note" type="text" placeholder="Ce que tu as observé"></div>
+  </div></div></div>
+
+  <div class="test" data-id="T096"><div class="test-head"><span class="tid">T096</span><div class="test-body">
+    <div class="t-do">Coter une association de deux actes.</div>
+    <div class="t-exp">Attendu : taux d'association appliqué au bon acte (le second à taux réduit), pas aux deux.</div>
+  
+    <div class="verdicts"><label class="v-ok"><input type="radio" name="v-T096" value="ok"><span>Conforme</span></label><label class="v-ko"><input type="radio" name="v-T096" value="ko"><span>Anomalie</span></label><label class="v-na"><input type="radio" name="v-T096" value="na"><span>Non fait</span></label><input class="note" type="text" placeholder="Ce que tu as observé"></div>
+  </div></div></div>
+
+  <div class="test" data-id="T097"><div class="test-head"><span class="tid">T097</span><div class="test-body">
+    <div class="t-do">Ajouter un dépassement d'honoraires.</div>
+    <div class="t-exp">Attendu : le dépassement s'ajoute au total facturé mais <b>reste hors du calcul des 30 %</b>. Le plafond ne porte que sur la base de remboursement.</div>
+  
+    <div class="verdicts"><label class="v-ok"><input type="radio" name="v-T097" value="ok"><span>Conforme</span></label><label class="v-ko"><input type="radio" name="v-T097" value="ko"><span>Anomalie</span></label><label class="v-na"><input type="radio" name="v-T097" value="na"><span>Non fait</span></label><input class="note" type="text" placeholder="Ce que tu as observé"></div>
+  </div></div></div>
+
+  <div class="test" data-id="T098"><div class="test-head"><span class="tid">T098</span><div class="test-body">
+    <div class="t-do">Chercher le code APC.</div>
+    <div class="t-exp">Attendu : il ne doit pas être proposé comme valide — il n'existe pas dans la nomenclature monégasque.</div>
+  
+    <div class="verdicts"><label class="v-ok"><input type="radio" name="v-T098" value="ok"><span>Conforme</span></label><label class="v-ko"><input type="radio" name="v-T098" value="ko"><span>Anomalie</span></label><label class="v-na"><input type="radio" name="v-T098" value="na"><span>Non fait</span></label><input class="note" type="text" placeholder="Ce que tu as observé"></div>
+  </div></div></div>
+
+  <div class="test" data-id="T099"><div class="test-head"><span class="tid">T099</span><div class="test-body">
+    <div class="t-do">Générer et imprimer un devis.</div>
+    <div class="t-exp">Attendu : montants cohérents avec l'écran, mise en page imprimable, mentions correctes.</div>
+  
+    <div class="verdicts"><label class="v-ok"><input type="radio" name="v-T099" value="ok"><span>Conforme</span></label><label class="v-ko"><input type="radio" name="v-T099" value="ko"><span>Anomalie</span></label><label class="v-na"><input type="radio" name="v-T099" value="na"><span>Non fait</span></label><input class="note" type="text" placeholder="Ce que tu as observé"></div>
+  </div></div></div>
+
+  <div class="test" data-id="T100"><div class="test-head"><span class="tid">T100</span><div class="test-body">
+    <div class="t-do">Déclarer une intervention, puis la relire dans la liste.</div>
+    <div class="t-exp">Attendu : écriture dans LIBERAL_2027, relecture fidèle, date et montants exacts.</div>
+  
+    <div class="verdicts"><label class="v-ok"><input type="radio" name="v-T100" value="ok"><span>Conforme</span></label><label class="v-ko"><input type="radio" name="v-T100" value="ko"><span>Anomalie</span></label><label class="v-na"><input type="radio" name="v-T100" value="na"><span>Non fait</span></label><input class="note" type="text" placeholder="Ce que tu as observé"></div>
+  </div></div></div>
+
+  <div class="test" data-id="T101"><div class="test-head"><span class="tid">T101</span><div class="test-body">
+    <div class="t-do">Supprimer une déclaration de test.</div>
+    <div class="t-exp">Attendu : suppression effective, et le suivi des 30 % se met à jour en conséquence.</div>
+  
+    <div class="verdicts"><label class="v-ok"><input type="radio" name="v-T101" value="ok"><span>Conforme</span></label><label class="v-ko"><input type="radio" name="v-T101" value="ko"><span>Anomalie</span></label><label class="v-na"><input type="radio" name="v-T101" value="na"><span>Non fait</span></label><input class="note" type="text" placeholder="Ce que tu as observé"></div>
+  </div></div></div>
+
+  <div class="test" data-id="T102"><div class="test-head"><span class="tid">T102</span><div class="test-body">
+    <div class="t-do">Déclarer deux fois le même patient le même jour (double clic sur le bouton).</div>
+    <div class="t-exp">Attendu : pas de doublon silencieux. Si un doublon est créé, note-le : c'est un défaut à corriger avant l'ouverture au groupe.</div>
+  
+    <div class="verdicts"><label class="v-ok"><input type="radio" name="v-T102" value="ok"><span>Conforme</span></label><label class="v-ko"><input type="radio" name="v-T102" value="ko"><span>Anomalie</span></label><label class="v-na"><input type="radio" name="v-T102" value="na"><span>Non fait</span></label><input class="note" type="text" placeholder="Ce que tu as observé"></div>
+  </div></div></div>
+
+  <div class="test" data-id="T103"><div class="test-head"><span class="tid">T103</span><div class="test-body">
+    <div class="t-do">Ouvrir suivi-liberal.html et vérifier ta position sur les deux axes.</div>
+    <div class="t-exp">Attendu : le plafond de 30 % est calculé <b>par axe séparément</b> (CCAM d'un côté, NGAP de l'autre), jamais sur un total mélangé.</div>
+  
+    <div class="verdicts"><label class="v-ok"><input type="radio" name="v-T103" value="ok"><span>Conforme</span></label><label class="v-ko"><input type="radio" name="v-T103" value="ko"><span>Anomalie</span></label><label class="v-na"><input type="radio" name="v-T103" value="na"><span>Non fait</span></label><input class="note" type="text" placeholder="Ce que tu as observé"></div>
+  </div></div></div>
+
+  <div class="test" data-id="T104"><div class="test-head"><span class="tid">T104</span><div class="test-body">
+    <div class="t-do">Comparer la vue groupe avec un calcul manuel sur trois MARs.</div>
+    <div class="t-exp">Attendu : marges correctes. Vérifier en particulier les deux praticiens qui concentrent l'essentiel du dépassement.</div>
+  
+    <div class="verdicts"><label class="v-ok"><input type="radio" name="v-T104" value="ok"><span>Conforme</span></label><label class="v-ko"><input type="radio" name="v-T104" value="ko"><span>Anomalie</span></label><label class="v-na"><input type="radio" name="v-T104" value="na"><span>Non fait</span></label><input class="note" type="text" placeholder="Ce que tu as observé"></div>
+  </div></div></div>
+
+  <div class="test" data-id="T105"><div class="test-head"><span class="tid">T105</span><div class="test-body">
+    <div class="t-do">Ouvrir l'estimateur avec un code qui n'est pas membre du groupement.</div>
+    <div class="t-exp">Attendu : accès refusé ou page inaccessible. Les données financières nominatives ne doivent pas fuiter.</div>
+  
+    <div class="verdicts"><label class="v-ok"><input type="radio" name="v-T105" value="ok"><span>Conforme</span></label><label class="v-ko"><input type="radio" name="v-T105" value="ko"><span>Anomalie</span></label><label class="v-na"><input type="radio" name="v-T105" value="na"><span>Non fait</span></label><input class="note" type="text" placeholder="Ce que tu as observé"></div>
+  </div></div></div>
+</section>
+
+<!-- ─── section ─── -->
+<section id="p9">
+  <h2><span class="n">P10</span>CR, CRH, veille</h2>
+
+  <div class="test" data-id="T106"><div class="test-head"><span class="tid">T106</span><div class="test-body">
+    <div class="t-do">Générer un CR d'anesthésie complet sur un cas fictif.</div>
+    <div class="t-exp">Attendu : texte cohérent, aucune mention parasite, rien d'inventé qui n'ait été saisi.</div>
+  
+    <div class="verdicts"><label class="v-ok"><input type="radio" name="v-T106" value="ok"><span>Conforme</span></label><label class="v-ko"><input type="radio" name="v-T106" value="ko"><span>Anomalie</span></label><label class="v-na"><input type="radio" name="v-T106" value="na"><span>Non fait</span></label><input class="note" type="text" placeholder="Ce que tu as observé"></div>
+  </div></div></div>
+
+  <div class="test" data-id="T107"><div class="test-head"><span class="tid">T107</span><div class="test-body">
+    <div class="t-do">Générer un CR en laissant volontairement des champs vides.</div>
+    <div class="t-exp">Attendu : le CR ne fabrique pas d'information absente. Un blanc doit rester un blanc.</div>
+  
+    <div class="verdicts"><label class="v-ok"><input type="radio" name="v-T107" value="ok"><span>Conforme</span></label><label class="v-ko"><input type="radio" name="v-T107" value="ko"><span>Anomalie</span></label><label class="v-na"><input type="radio" name="v-T107" value="na"><span>Non fait</span></label><input class="note" type="text" placeholder="Ce que tu as observé"></div>
+  </div></div></div>
+
+  <div class="test" data-id="T108"><div class="test-head"><span class="tid">T108</span><div class="test-body">
+    <div class="t-do">Copier le CR généré vers un traitement de texte.</div>
+    <div class="t-exp">Attendu : mise en forme conservée, pas de caractères parasites.</div>
+  
+    <div class="verdicts"><label class="v-ok"><input type="radio" name="v-T108" value="ok"><span>Conforme</span></label><label class="v-ko"><input type="radio" name="v-T108" value="ko"><span>Anomalie</span></label><label class="v-na"><input type="radio" name="v-T108" value="na"><span>Non fait</span></label><input class="note" type="text" placeholder="Ce que tu as observé"></div>
+  </div></div></div>
+
+  <div class="test" data-id="T109"><div class="test-head"><span class="tid">T109</span><div class="test-body">
+    <div class="t-do">Générer un CRH de réanimation sur un cas fictif.</div>
+    <div class="t-exp">Attendu : idem — cohérence, aucune donnée inventée.</div>
+  
+    <div class="verdicts"><label class="v-ok"><input type="radio" name="v-T109" value="ok"><span>Conforme</span></label><label class="v-ko"><input type="radio" name="v-T109" value="ko"><span>Anomalie</span></label><label class="v-na"><input type="radio" name="v-T109" value="na"><span>Non fait</span></label><input class="note" type="text" placeholder="Ce que tu as observé"></div>
+  </div></div></div>
+
+  <div class="test" data-id="T110"><div class="test-head"><span class="tid">T110</span><div class="test-body">
+    <div class="t-do">Vérifier la fraîcheur de la veille PubMed (date du dernier scan).</div>
+    <div class="t-exp">Attendu : le scan hebdomadaire tourne. Si la dernière date est ancienne, le déclencheur est cassé.</div>
+  
+    <div class="verdicts"><label class="v-ok"><input type="radio" name="v-T110" value="ok"><span>Conforme</span></label><label class="v-ko"><input type="radio" name="v-T110" value="ko"><span>Anomalie</span></label><label class="v-na"><input type="radio" name="v-T110" value="na"><span>Non fait</span></label><input class="note" type="text" placeholder="Ce que tu as observé"></div>
+  </div></div></div>
+
+  <div class="test" data-id="T111"><div class="test-head"><span class="tid">T111</span><div class="test-body">
+    <div class="t-do">Ouvrir trois articles de la veille depuis leur lien.</div>
+    <div class="t-exp">Attendu : les liens PubMed pointent vers le bon article.</div>
+  
+    <div class="verdicts"><label class="v-ok"><input type="radio" name="v-T111" value="ok"><span>Conforme</span></label><label class="v-ko"><input type="radio" name="v-T111" value="ko"><span>Anomalie</span></label><label class="v-na"><input type="radio" name="v-T111" value="na"><span>Non fait</span></label><input class="note" type="text" placeholder="Ce que tu as observé"></div>
+  </div></div></div>
+
+  <div class="test" data-id="T112"><div class="test-head"><span class="tid">T112</span><div class="test-body">
+    <div class="t-do">Générer un CR d'anesthésie sur un cas comportant des caractères accentués et une apostrophe dans le texte libre.</div>
+    <div class="t-exp">Attendu : le texte ressort intact, sans caractères parasites, à l'écran comme après copie.</div>
+    <div class="verdicts"><label class="v-ok"><input type="radio" name="v-T112" value="ok"><span>Conforme</span></label><label class="v-ko"><input type="radio" name="v-T112" value="ko"><span>Anomalie</span></label><label class="v-na"><input type="radio" name="v-T112" value="na"><span>Non fait</span></label><input class="note" type="text" placeholder="Ce que tu as observé"></div>
+  </div></div></div>
+  <div class="test" data-id="T113"><div class="test-head"><span class="tid">T113</span><div class="test-body">
+    <div class="t-do">Ouvrir la configuration de la veille (onglet VEILLE_CFG du classeur) et vérifier les termes de recherche.</div>
+    <div class="t-exp">Attendu : ils correspondent à ce qui est décrit dans le mode d'emploi. Le mode d'emploi est dans docs/.</div>
+    <div class="verdicts"><label class="v-ok"><input type="radio" name="v-T113" value="ok"><span>Conforme</span></label><label class="v-ko"><input type="radio" name="v-T113" value="ko"><span>Anomalie</span></label><label class="v-na"><input type="radio" name="v-T113" value="na"><span>Non fait</span></label><input class="note" type="text" placeholder="Ce que tu as observé"></div>
+  </div></div></div>
+  <div class="test" data-id="T114"><div class="test-head"><span class="tid">T114</span><div class="test-body">
+    <div class="t-do">Vérifier qu'un article déjà lu ne réapparaît pas comme non lu après le scan hebdomadaire suivant.</div>
+    <div class="t-exp">Attendu : le marquage survit au scan. À vérifier le lundi suivant.</div>
+    <div class="verdicts"><label class="v-ok"><input type="radio" name="v-T114" value="ok"><span>Conforme</span></label><label class="v-ko"><input type="radio" name="v-T114" value="ko"><span>Anomalie</span></label><label class="v-na"><input type="radio" name="v-T114" value="na"><span>Non fait</span></label><input class="note" type="text" placeholder="Ce que tu as observé"></div>
+  </div></div></div>
+</section>
+
+<!-- ─── section ─── -->
+<section id="p10">
+  <h2><span class="n">P11</span>Les trois assistants annuels</h2>
+  <p class="phase-sub">Année active 2027 : W1 et W2 visent <b>2028</b> (terrain vierge), W3 archive <b>2027</b> (ton planning de test). Ne commence cette phase que si la sauvegarde P0-1 est faite.</p>
+
+  <div class="callout warn">
+    <div class="ct">Ce que fait la clôture</div>
+    <p>W3 déplace <code>GARDES_2027</code>, <code>INDISPOS_2027</code>, <code>AFFECTATIONS_2027</code> et <code>STATS_GARDES_2027</code> vers le classeur d'archive <b>et les supprime du maître</b>, purge PLANNING_OVERRIDES de toutes les lignes ≤ 2027, ajoute 2027 à HISTORIQUE, passe l'année active à 2028 et supprime INDISPOS_ACTIVE. Tout est reconstructible (P12), compte 15 min.</p>
+  </div>
+
+  <h3>W1 — démarrage d'année</h3>
+
+  <div class="test" data-id="T115"><div class="test-head"><span class="tid">T115</span><div class="test-body">
+    <div class="t-do">Lancer W1 jusqu'au bout.</div>
+    <div class="t-exp">Attendu : périodes 2028 sauvées, <code>INDISPOS_2028</code> créé, <code>INDISPOS_ACTIVE → 2028</code>, codes envoyés (chez toi seul). L'écran final doit indiquer que l'année active <b>reste</b> 2027.</div>
+  
+    <div class="verdicts"><label class="v-ok"><input type="radio" name="v-T115" value="ok"><span>Conforme</span></label><label class="v-ko"><input type="radio" name="v-T115" value="ko"><span>Anomalie</span></label><label class="v-na"><input type="radio" name="v-T115" value="na"><span>Non fait</span></label><input class="note" type="text" placeholder="Ce que tu as observé"></div>
+  </div></div></div>
+
+  <div class="test" data-id="T116"><div class="test-head"><span class="tid">T116</span><div class="test-body">
+    <div class="t-do">Relancer W1 immédiatement.</div>
+    <div class="t-exp">Attendu : l'étape « INDISPOS créé » échoue avec « INDISPOS_2028 existe déjà ». Question à trancher : <b>comprends-tu quoi faire</b> en lisant ce message, ou restes-tu bloqué ? <b style="color:#047857">✅ Garde-fou vérifié automatiquement</b> — banc : <code>banc_annuel.js</code>. Le déroulé complet de l assistant reste à faire à la main.</div>
+  
+    <div class="verdicts"><label class="v-ok"><input type="radio" name="v-T116" value="ok"><span>Conforme</span></label><label class="v-ko"><input type="radio" name="v-T116" value="ko"><span>Anomalie</span></label><label class="v-na"><input type="radio" name="v-T116" value="na"><span>Non fait</span></label><input class="note" type="text" placeholder="Ce que tu as observé"></div>
+  </div></div></div>
+
+  <div class="test" data-id="T117"><div class="test-head"><span class="tid">T117</span><div class="test-body">
+    <div class="t-do">Après cet échec, vérifier PERIODES_VAC.</div>
+    <div class="t-exp">Attendu à confirmer : les deux premières étapes se rejouent avant l'échec. Cherche des <b>doublons de périodes 2028</b>. C'est le défaut que je soupçonne le plus dans W1.</div>
+  
+    <div class="verdicts"><label class="v-ok"><input type="radio" name="v-T117" value="ok"><span>Conforme</span></label><label class="v-ko"><input type="radio" name="v-T117" value="ko"><span>Anomalie</span></label><label class="v-na"><input type="radio" name="v-T117" value="na"><span>Non fait</span></label><input class="note" type="text" placeholder="Ce que tu as observé"></div>
+  </div></div></div>
+
+  <div class="test" data-id="T118"><div class="test-head"><span class="tid">T118</span><div class="test-body">
+    <div class="t-do">Couper le réseau pendant l'étape « Saisie indispos activée », puis rétablir et réessayer.</div>
+    <div class="t-exp">Attendu : la reprise ne rejoue pas les étapes déjà réussies (elles restent cochées vertes).</div>
+  
+    <div class="verdicts"><label class="v-ok"><input type="radio" name="v-T118" value="ok"><span>Conforme</span></label><label class="v-ko"><input type="radio" name="v-T118" value="ko"><span>Anomalie</span></label><label class="v-na"><input type="radio" name="v-T118" value="na"><span>Non fait</span></label><input class="note" type="text" placeholder="Ce que tu as observé"></div>
+  </div></div></div>
+
+  <div class="test" data-id="T119"><div class="test-head"><span class="tid">T119</span><div class="test-body">
+    <div class="t-do">Vérifier l'email de code reçu.</div>
+    <div class="t-exp">Attendu : l'année mentionnée dans le mail est <b>2028</b>, le lien fonctionne, le code fonctionne.</div>
+  
+    <div class="verdicts"><label class="v-ok"><input type="radio" name="v-T119" value="ok"><span>Conforme</span></label><label class="v-ko"><input type="radio" name="v-T119" value="ko"><span>Anomalie</span></label><label class="v-na"><input type="radio" name="v-T119" value="na"><span>Non fait</span></label><input class="note" type="text" placeholder="Ce que tu as observé"></div>
+  </div></div></div>
+
+  <h3>W2 — génération des gardes</h3>
+
+  <div class="test" data-id="T120"><div class="test-head"><span class="tid">T120</span><div class="test-body">
+    <div class="t-do">Remplir d'abord la grille d'indispos 2028 (à défaut, la génération tournera sur une grille vide et ne prouvera pas grand-chose).</div>
+    <div class="t-exp">Attendu : la fonction <code>TEST_remplirIndispos(2028, …)</code> existe dans setup_annee.gs — demande-moi l'appel exact si tu veux l'utiliser.</div>
+  
+    <div class="verdicts"><label class="v-ok"><input type="radio" name="v-T120" value="ok"><span>Conforme</span></label><label class="v-ko"><input type="radio" name="v-T120" value="ko"><span>Anomalie</span></label><label class="v-na"><input type="radio" name="v-T120" value="na"><span>Non fait</span></label><input class="note" type="text" placeholder="Ce que tu as observé"></div>
+  </div></div></div>
+
+  <div class="test" data-id="T121"><div class="test-head"><span class="tid">T121</span><div class="test-body">
+    <div class="t-do">Lancer W2 et laisser tourner (30–60 s, parfois plus).</div>
+    <div class="t-exp">Attendu : les trois étapes passent. <b>Lis et recopie tous les avertissements</b> affichés sous l'étape 1 (Manque MAR, replis de couplage, exceptions).</div>
+  
+    <div class="verdicts"><label class="v-ok"><input type="radio" name="v-T121" value="ok"><span>Conforme</span></label><label class="v-ko"><input type="radio" name="v-T121" value="ko"><span>Anomalie</span></label><label class="v-na"><input type="radio" name="v-T121" value="na"><span>Non fait</span></label><input class="note" type="text" placeholder="Ce que tu as observé"></div>
+  </div></div></div>
+
+  <div class="test" data-id="T122"><div class="test-head"><span class="tid">T122</span><div class="test-body">
+    <div class="t-do">Contrôler l'équité de 2028 sur chaque axe.</div>
+    <div class="t-exp">Attendu : écarts acceptables <b>axe par axe</b> — total, week-ends, veilles de fériés, fériés, Noël/Jour de l'an. Un total équilibré peut masquer un axe déséquilibré.</div>
+  
+    <div class="verdicts"><label class="v-ok"><input type="radio" name="v-T122" value="ok"><span>Conforme</span></label><label class="v-ko"><input type="radio" name="v-T122" value="ko"><span>Anomalie</span></label><label class="v-na"><input type="radio" name="v-T122" value="na"><span>Non fait</span></label><input class="note" type="text" placeholder="Ce que tu as observé"></div>
+  </div></div></div>
+
+  <div class="test" data-id="T123"><div class="test-head"><span class="tid">T123</span><div class="test-body">
+    <div class="t-do">Relancer W2 sur 2028.</div>
+    <div class="t-exp">Attendu : « déjà générées — rien à refaire », et surtout <b>aucune régénération</b> (le planning ne doit pas changer). Compare deux ou trois gardes avant/après. <b style="color:#047857">✅ Garde-fou vérifié automatiquement</b> — banc : <code>banc_annuel.js</code>. Le déroulé complet de l assistant reste à faire à la main.</div>
+  
+    <div class="verdicts"><label class="v-ok"><input type="radio" name="v-T123" value="ok"><span>Conforme</span></label><label class="v-ko"><input type="radio" name="v-T123" value="ko"><span>Anomalie</span></label><label class="v-na"><input type="radio" name="v-T123" value="na"><span>Non fait</span></label><input class="note" type="text" placeholder="Ce que tu as observé"></div>
+  </div></div></div>
+
+  <div class="test" data-id="T124"><div class="test-head"><span class="tid">T124</span><div class="test-body">
+    <div class="t-do">Relancer W2, et fermer l'onglet en pleine génération. Rouvrir, relancer.</div>
+    <div class="t-exp">Attendu : le verrou serveur fait office de mémoire — l'étape est reconnue acquise, la publication enchaîne. <b style="color:#047857">✅ Garde-fou vérifié automatiquement</b> — banc : <code>banc_annuel.js</code>. Le déroulé complet de l assistant reste à faire à la main.</div>
+  
+    <div class="verdicts"><label class="v-ok"><input type="radio" name="v-T124" value="ok"><span>Conforme</span></label><label class="v-ko"><input type="radio" name="v-T124" value="ko"><span>Anomalie</span></label><label class="v-na"><input type="radio" name="v-T124" value="na"><span>Non fait</span></label><input class="note" type="text" placeholder="Ce que tu as observé"></div>
+  </div></div></div>
+
+  <div class="test" data-id="T125"><div class="test-head"><span class="tid">T125</span><div class="test-body">
+    <div class="t-do">Vérifier le récapitulatif de gardes reçu par email.</div>
+    <div class="t-exp">Attendu : gardes exactes, fériés correctement nommés, année 2028.</div>
+  
+    <div class="verdicts"><label class="v-ok"><input type="radio" name="v-T125" value="ok"><span>Conforme</span></label><label class="v-ko"><input type="radio" name="v-T125" value="ko"><span>Anomalie</span></label><label class="v-na"><input type="radio" name="v-T125" value="na"><span>Non fait</span></label><input class="note" type="text" placeholder="Ce que tu as observé"></div>
+  </div></div></div>
+
+
+  <h3>Miroir Cloudflare (04/08/2026) — répétition générale</h3>
+
+  <div class="test" data-id="T154"><div class="test-head"><span class="tid">T154</span><div class="test-body">
+    <div class="t-do">Navigation privée, ouvrir index.html, taper un code MAR. Répéter 10 fois (fermer l'onglet privé entre chaque).</div>
+    <div class="t-exp">Attendu : planning visible en <b>moins de 2 s, 10 fois sur 10</b> — pas une moyenne. <code>chrono()</code> montre une ligne <code>miroir:…</code> à ~150–400 ms et aucun appel GAS bloquant avant l'affichage.</div>
+    <div class="verdicts"><label class="v-ok"><input type="radio" name="v-T154" value="ok"><span>Conforme</span></label><label class="v-ko"><input type="radio" name="v-T154" value="ko"><span>Anomalie</span></label><label class="v-na"><input type="radio" name="v-T154" value="na"><span>Non fait</span></label><input class="note" type="text" placeholder="Ce que tu as observé"></div>
+  </div></div></div>
+
+  <div class="test" data-id="T155"><div class="test-head"><span class="tid">T155</span><div class="test-body">
+    <div class="t-do">Même protocole sur dashboard.html puis indispos.html (les pages de la démo), PC ET mobile.</div>
+    <div class="t-exp">Attendu : 10/10 sous 2 s chacune. Sur indispos, le calendrier porte déjà tes indispos ; le quota vacances se glisse 2-3 s après SANS bloquer.</div>
+    <div class="verdicts"><label class="v-ok"><input type="radio" name="v-T155" value="ok"><span>Conforme</span></label><label class="v-ko"><input type="radio" name="v-T155" value="ko"><span>Anomalie</span></label><label class="v-na"><input type="radio" name="v-T155" value="na"><span>Non fait</span></label><input class="note" type="text" placeholder="Ce que tu as observé"></div>
+  </div></div></div>
+
+  <div class="test" data-id="T156"><div class="test-head"><span class="tid">T156</span><div class="test-body">
+    <div class="t-do">index.html : basculer 2026 ↔ 2027 dans le sélecteur d'année.</div>
+    <div class="t-exp">Attendu : première bascule vers une année ~150 ms (miroir), suivantes 0 ms (cache). Jamais la barre rouge d'appels GAS.</div>
+    <div class="verdicts"><label class="v-ok"><input type="radio" name="v-T156" value="ok"><span>Conforme</span></label><label class="v-ko"><input type="radio" name="v-T156" value="ko"><span>Anomalie</span></label><label class="v-na"><input type="radio" name="v-T156" value="na"><span>Non fait</span></label><input class="note" type="text" placeholder="Ce que tu as observé"></div>
+  </div></div></div>
+
+  <div class="test" data-id="T157"><div class="test-head"><span class="tid">T157</span><div class="test-body">
+    <div class="t-do">Taper un code FAUX sur index.html.</div>
+    <div class="t-exp">Attendu : refus (« Code incorrect ») après le passage par le circuit GAS — le miroir ne valide jamais seul un code douteux. Aucune donnée affichée.</div>
+    <div class="verdicts"><label class="v-ok"><input type="radio" name="v-T157" value="ok"><span>Conforme</span></label><label class="v-ko"><input type="radio" name="v-T157" value="ko"><span>Anomalie</span></label><label class="v-na"><input type="radio" name="v-T157" value="na"><span>Non fait</span></label><input class="note" type="text" placeholder="Ce que tu as observé"></div>
+  </div></div></div>
+
+  <div class="test" data-id="T158"><div class="test-head"><span class="tid">T158</span><div class="test-body">
+    <div class="t-do">Se connecter sur absences.html avec le code du secrétariat, puis vérifier chez Cloudflare (Metrics du Worker) qu'AUCUNE requête du secrétariat n'aboutit en lecture.</div>
+    <div class="t-exp">Attendu : la page absences fonctionne (~4-5 s, circuit GAS fusionné) ; le rôle secrétariat ne lit RIEN au miroir — c'est la règle, pas un oubli.</div>
+    <div class="verdicts"><label class="v-ok"><input type="radio" name="v-T158" value="ok"><span>Conforme</span></label><label class="v-ko"><input type="radio" name="v-T158" value="ko"><span>Anomalie</span></label><label class="v-na"><input type="radio" name="v-T158" value="na"><span>Non fait</span></label><input class="note" type="text" placeholder="Ce que tu as observé"></div>
+  </div></div></div>
+
+  <div class="test" data-id="T159"><div class="test-head"><span class="tid">T159</span><div class="test-body">
+    <div class="t-do">Se connecter sur indispos.html avec DEUX codes MAR différents (deux navigateurs).</div>
+    <div class="t-exp">Attendu : chacun ne voit QUE ses propres indisponibilités. Le filtrage est fait par le Worker, pas par la page.</div>
+    <div class="verdicts"><label class="v-ok"><input type="radio" name="v-T159" value="ok"><span>Conforme</span></label><label class="v-ko"><input type="radio" name="v-T159" value="ko"><span>Anomalie</span></label><label class="v-na"><input type="radio" name="v-T159" value="na"><span>Non fait</span></label><input class="note" type="text" placeholder="Ce que tu as observé"></div>
+  </div></div></div>
+
+  <div class="test" data-id="T160"><div class="test-head"><span class="tid">T160</span><div class="test-body">
+    <div class="t-do">DevTools → Network → « Block request domain » sur <code>miroir…workers.dev</code> → recharger index.html.</div>
+    <div class="t-exp">Attendu : la page s'ouvre QUAND MÊME, en lent (repli GAS silencieux). Débloquer → recharger → instantané. Le pire cas du miroir est le comportement d'avant.</div>
+    <div class="verdicts"><label class="v-ok"><input type="radio" name="v-T160" value="ok"><span>Conforme</span></label><label class="v-ko"><input type="radio" name="v-T160" value="ko"><span>Anomalie</span></label><label class="v-na"><input type="radio" name="v-T160" value="na"><span>Non fait</span></label><input class="note" type="text" placeholder="Ce que tu as observé"></div>
+  </div></div></div>
+
+  <div class="test" data-id="T161"><div class="test-head"><span class="tid">T161</span><div class="test-body">
+    <div class="t-do">Dans admin : modifier une case, puis ouvrir l'onglet Statuts DANS la minute.</div>
+    <div class="t-exp">Attendu : la modification est visible immédiatement (garde de fraîcheur : moins de 90 s après une écriture, Statuts relit le circuit DIRECT, jamais le miroir).</div>
+    <div class="verdicts"><label class="v-ok"><input type="radio" name="v-T161" value="ok"><span>Conforme</span></label><label class="v-ko"><input type="radio" name="v-T161" value="ko"><span>Anomalie</span></label><label class="v-na"><input type="radio" name="v-T161" value="na"><span>Non fait</span></label><input class="note" type="text" placeholder="Ce que tu as observé"></div>
+  </div></div></div>
+
+  <div class="test" data-id="T162"><div class="test-head"><span class="tid">T162</span><div class="test-body">
+    <div class="t-do">Comité modifie le planning (admin), puis un MAR recharge index.html sur un autre appareil.</div>
+    <div class="t-exp">Attendu : la modification apparaît en moins d'une minute (propagation KV ~60 s). Au-delà d'une heure : anomalie, lancer <code>miroirSyncComplet</code> et lire son journal.</div>
+    <div class="verdicts"><label class="v-ok"><input type="radio" name="v-T162" value="ok"><span>Conforme</span></label><label class="v-ko"><input type="radio" name="v-T162" value="ko"><span>Anomalie</span></label><label class="v-na"><input type="radio" name="v-T162" value="na"><span>Non fait</span></label><input class="note" type="text" placeholder="Ce que tu as observé"></div>
+  </div></div></div>
+
+  <div class="test" data-id="T163"><div class="test-head"><span class="tid">T163</span><div class="test-body">
+    <div class="t-do">Admin ouvert depuis ~10 s : clic sur une case flash, puis flèche « semaine suivante » et re-clic.</div>
+    <div class="t-exp">Attendu : panneau immédiat dans les deux cas, <b>sans aucun appel serveur</b> — le calcul est local (chauffage + semaines ±1 préchargées). Un clic dans les 5 premières secondes de la page peut encore attendre — connu et assumé.</div>
+    <div class="verdicts"><label class="v-ok"><input type="radio" name="v-T163" value="ok"><span>Conforme</span></label><label class="v-ko"><input type="radio" name="v-T163" value="ko"><span>Anomalie</span></label><label class="v-na"><input type="radio" name="v-T163" value="na"><span>Non fait</span></label><input class="note" type="text" placeholder="Ce que tu as observé"></div>
+  </div></div></div>
+
+  <div class="test" data-id="T164"><div class="test-head"><span class="tid">T164</span><div class="test-body">
+    <div class="t-do">Saisir puis SAUVEGARDER des indispos (le geste de WS le 04/09), 5 fois de suite.</div>
+    <div class="t-exp">Attendu : 5/5 sans « Erreur réseau » (le rejeu de transport encaisse l'aléa Google en silence). Les valeurs relues après rechargement sont exactes.</div>
+    <div class="verdicts"><label class="v-ok"><input type="radio" name="v-T164" value="ok"><span>Conforme</span></label><label class="v-ko"><input type="radio" name="v-T164" value="ko"><span>Anomalie</span></label><label class="v-na"><input type="radio" name="v-T164" value="na"><span>Non fait</span></label><input class="note" type="text" placeholder="Ce que tu as observé"></div>
+  </div></div></div>
+
+  <h3>W3 — clôture</h3>
+  <div class="callout warn">
+    <div class="ct">Impossible aujourd'hui — ce n'est pas une anomalie</div>
+    <p>Depuis le 17 août, l'assistant de clôture <b>refuse de s'ouvrir</b> avant le premier lundi de l'année de planning suivante. Les points T126 à T130 ne sont donc pas jouables en ce moment : coche « Non fait ». Le refus lui-même se vérifie en T193.</p>
+  </div>
+
+
+  <div class="test" data-id="T126"><div class="test-head"><span class="tid">T126</span><div class="test-body">
+    <div class="t-do">Avant de lancer : relire l'écran de statistiques du wizard de clôture.</div>
+    <div class="t-exp">Attendu : les chiffres présentés correspondent à STATS_GARDES_2027. C'est sur cette base que tu décideras, en vrai, de clôturer.</div>
+  
+    <div class="verdicts"><label class="v-ok"><input type="radio" name="v-T126" value="ok"><span>Conforme</span></label><label class="v-ko"><input type="radio" name="v-T126" value="ko"><span>Anomalie</span></label><label class="v-na"><input type="radio" name="v-T126" value="na"><span>Non fait</span></label><input class="note" type="text" placeholder="Ce que tu as observé"></div>
+  </div></div></div>
+
+  <div class="test" data-id="T127"><div class="test-head"><span class="tid">T127</span><div class="test-body">
+    <div class="t-do">Lancer W3 jusqu'au bout.</div>
+    <div class="t-exp">Attendu : les 4 onglets 2027 partent à l'archive, HISTORIQUE reçoit ses lignes, année active → 2028, INDISPOS_ACTIVE supprimée. Recopie tous les ⚠️ affichés sous l'étape 1.</div>
+  
+    <div class="verdicts"><label class="v-ok"><input type="radio" name="v-T127" value="ok"><span>Conforme</span></label><label class="v-ko"><input type="radio" name="v-T127" value="ko"><span>Anomalie</span></label><label class="v-na"><input type="radio" name="v-T127" value="na"><span>Non fait</span></label><input class="note" type="text" placeholder="Ce que tu as observé"></div>
+  </div></div></div>
+
+  <div class="test" data-id="T128"><div class="test-head"><span class="tid">T128</span><div class="test-body">
+    <div class="t-do">Vérifier HISTORIQUE ligne par ligne pour 2027.</div>
+    <div class="t-exp">Attendu : un enregistrement par MAR, 18 colonnes remplies. La colonne Noël/Jour de l'an doit refléter qui a <b>réellement</b> passé ces jours (échanges inclus), pas la version initiale du générateur. <b style="color:#047857">✅ Garde-fou vérifié automatiquement</b> — banc : <code>banc_annuel.js</code>. Le déroulé complet de l assistant reste à faire à la main.</div>
+  
+    <div class="verdicts"><label class="v-ok"><input type="radio" name="v-T128" value="ok"><span>Conforme</span></label><label class="v-ko"><input type="radio" name="v-T128" value="ko"><span>Anomalie</span></label><label class="v-na"><input type="radio" name="v-T128" value="na"><span>Non fait</span></label><input class="note" type="text" placeholder="Ce que tu as observé"></div>
+  </div></div></div>
+
+  <div class="test" data-id="T129"><div class="test-head"><span class="tid">T129</span><div class="test-body">
+    <div class="t-do">Relancer W3 sur 2027 (déjà archivée).</div>
+    <div class="t-exp">Attendu : « déjà archivée — rien à refaire », et le wizard enchaîne sur la bascule sans redéplacer d'onglets. C'est la garde d'idempotence : le test le plus important de la phase. <b style="color:#047857">✅ Garde-fou vérifié automatiquement</b> — banc : <code>banc_annuel.js</code>. Le déroulé complet de l assistant reste à faire à la main.</div>
+  
+    <div class="verdicts"><label class="v-ok"><input type="radio" name="v-T129" value="ok"><span>Conforme</span></label><label class="v-ko"><input type="radio" name="v-T129" value="ko"><span>Anomalie</span></label><label class="v-na"><input type="radio" name="v-T129" value="na"><span>Non fait</span></label><input class="note" type="text" placeholder="Ce que tu as observé"></div>
+  </div></div></div>
+
+  <div class="test" data-id="T130"><div class="test-head"><span class="tid">T130</span><div class="test-body">
+    <div class="t-do">Après clôture, ouvrir dashboard.html et index.html avec un code MAR.</div>
+    <div class="t-exp">Attendu : le portail affiche 2028 sans casser. La tuile « Mes indisponibilités » a disparu (INDISPOS_ACTIVE supprimée).</div>
+  
+    <div class="verdicts"><label class="v-ok"><input type="radio" name="v-T130" value="ok"><span>Conforme</span></label><label class="v-ko"><input type="radio" name="v-T130" value="ko"><span>Anomalie</span></label><label class="v-na"><input type="radio" name="v-T130" value="na"><span>Non fait</span></label><input class="note" type="text" placeholder="Ce que tu as observé"></div>
+  </div></div></div>
+
+  <div class="test" data-id="T131"><div class="test-head"><span class="tid">T131</span><div class="test-body">
+    <div class="t-do">Après la génération, vérifier qui a été désigné pour Noël et le Jour de l'An.</div>
+    <div class="t-exp">Attendu : les MARs désignés figuraient parmi les prioritaires de la bannière du staff. Sinon, l'arbitrage et l'algorithme ne parlent pas de la même chose.</div>
+    <div class="verdicts"><label class="v-ok"><input type="radio" name="v-T131" value="ok"><span>Conforme</span></label><label class="v-ko"><input type="radio" name="v-T131" value="ko"><span>Anomalie</span></label><label class="v-na"><input type="radio" name="v-T131" value="na"><span>Non fait</span></label><input class="note" type="text" placeholder="Ce que tu as observé"></div>
+  </div></div></div>
+  <div class="test" data-id="T132"><div class="test-head"><span class="tid">T132</span><div class="test-body">
+    <div class="t-do">Comparer les cibles de l'année générée avec l'onglet HISTORIQUE de l'année précédente.</div>
+    <div class="t-exp">Attendu : le mécanisme de dette a bien reporté les écarts. Un MAR lésé l'an passé doit avoir une cible légèrement inférieure cette année.</div>
+    <div class="verdicts"><label class="v-ok"><input type="radio" name="v-T132" value="ok"><span>Conforme</span></label><label class="v-ko"><input type="radio" name="v-T132" value="ko"><span>Anomalie</span></label><label class="v-na"><input type="radio" name="v-T132" value="na"><span>Non fait</span></label><input class="note" type="text" placeholder="Ce que tu as observé"></div>
+  </div></div></div>
+  <div class="test" data-id="T133"><div class="test-head"><span class="tid">T133</span><div class="test-body">
+    <div class="t-do">Vérifier le certificat d'équité produit par la génération.</div>
+    <div class="t-exp">Attendu : il existe, il est daté, et ses chiffres correspondent à l'onglet des statistiques. C'est la pièce à produire si quelqu'un conteste sa répartition.</div>
+    <div class="verdicts"><label class="v-ok"><input type="radio" name="v-T133" value="ok"><span>Conforme</span></label><label class="v-ko"><input type="radio" name="v-T133" value="ko"><span>Anomalie</span></label><label class="v-na"><input type="radio" name="v-T133" value="na"><span>Non fait</span></label><input class="note" type="text" placeholder="Ce que tu as observé"></div>
+  </div></div></div>
+</section>
+
+<!-- ─── section ─── -->
+<section id="p11">
+  <h2><span class="n">P12</span>Scénarios catastrophe</h2>
+  <p class="phase-sub">Ce que la vraie vie fera, tôt ou tard.</p>
+
+  <div class="test" data-id="T134"><div class="test-head"><span class="tid">T134</span><div class="test-body">
+    <div class="t-do">Deux écritures simultanées : ouvrir admin.html dans deux onglets, lancer une écriture longue dans l'un, cliquer une écriture dans l'autre dans la foulée.</div>
+    <div class="t-exp">Attendu : le second reçoit « Une autre opération d'écriture est en cours — réessayez dans quelques secondes ». Il ne doit <b>jamais</b> écrire par-dessus. <b style="color:#047857">✅ Déjà vérifié automatiquement</b> — banc : <code>banc_catastrophe.js</code>.</div>
+  
+    <div class="verdicts"><label class="v-ok"><input type="radio" name="v-T134" value="ok"><span>Conforme</span></label><label class="v-ko"><input type="radio" name="v-T134" value="ko"><span>Anomalie</span></label><label class="v-na"><input type="radio" name="v-T134" value="na"><span>Non fait</span></label><input class="note" type="text" placeholder="Ce que tu as observé"></div>
+  </div></div></div>
+
+  <div class="test" data-id="T135"><div class="test-head"><span class="tid">T135</span><div class="test-body">
+    <div class="t-do">Deux utilisateurs, deux appareils : toi sur admin, ton téléphone sur indispos, saisies en même temps.</div>
+    <div class="t-exp">Attendu : les deux écritures aboutissent, dans l'ordre, sans perte. Vérifier les deux résultats dans le classeur. <b style="color:#047857">✅ Déjà vérifié automatiquement</b> — banc : <code>banc_catastrophe.js</code>.</div>
+  
+    <div class="verdicts"><label class="v-ok"><input type="radio" name="v-T135" value="ok"><span>Conforme</span></label><label class="v-ko"><input type="radio" name="v-T135" value="ko"><span>Anomalie</span></label><label class="v-na"><input type="radio" name="v-T135" value="na"><span>Non fait</span></label><input class="note" type="text" placeholder="Ce que tu as observé"></div>
+  </div></div></div>
+
+  <div class="test" data-id="T136"><div class="test-head"><span class="tid">T136</span><div class="test-body">
+    <div class="t-do">File d'attente : lancer une génération de gardes, puis pendant qu'elle tourne, naviguer dans le planning depuis un autre onglet.</div>
+    <div class="t-exp">Attendu : la navigation est lente (Apps Script sérialise tes exécutions) mais rien ne casse. Note le temps d'attente réel — c'est ce que vivra un MAR pendant un W2.</div>
+  
+    <div class="verdicts"><label class="v-ok"><input type="radio" name="v-T136" value="ok"><span>Conforme</span></label><label class="v-ko"><input type="radio" name="v-T136" value="ko"><span>Anomalie</span></label><label class="v-na"><input type="radio" name="v-T136" value="na"><span>Non fait</span></label><input class="note" type="text" placeholder="Ce que tu as observé"></div>
+  </div></div></div>
+
+  <div class="test" data-id="T137"><div class="test-head"><span class="tid">T137</span><div class="test-body">
+    <div class="t-do">Double clic nerveux sur un bouton d'écriture (n'importe lequel).</div>
+    <div class="t-exp">Attendu : une seule écriture. Chercher un doublon dans le classeur après chaque essai. <b style="color:#047857">✅ Déjà vérifié automatiquement</b> — banc : <code>banc_catastrophe.js</code>.</div>
+  
+    <div class="verdicts"><label class="v-ok"><input type="radio" name="v-T137" value="ok"><span>Conforme</span></label><label class="v-ko"><input type="radio" name="v-T137" value="ko"><span>Anomalie</span></label><label class="v-na"><input type="radio" name="v-T137" value="na"><span>Non fait</span></label><input class="note" type="text" placeholder="Ce que tu as observé"></div>
+  </div></div></div>
+
+  <div class="test" data-id="T138"><div class="test-head"><span class="tid">T138</span><div class="test-body">
+    <div class="t-do">Réseau instable : activer la limitation réseau du navigateur (F12 → Réseau → 3G lent) et refaire trois actions courantes.</div>
+    <div class="t-exp">Attendu : les écrans indiquent qu'ils travaillent, aucune action ne semble réussie alors qu'elle a échoué.</div>
+  
+    <div class="verdicts"><label class="v-ok"><input type="radio" name="v-T138" value="ok"><span>Conforme</span></label><label class="v-ko"><input type="radio" name="v-T138" value="ko"><span>Anomalie</span></label><label class="v-na"><input type="radio" name="v-T138" value="na"><span>Non fait</span></label><input class="note" type="text" placeholder="Ce que tu as observé"></div>
+  </div></div></div>
+
+  <div class="test" data-id="T139"><div class="test-head"><span class="tid">T139</span><div class="test-body">
+    <div class="t-do">Retour arrière du navigateur en plein parcours, puis rechargement.</div>
+    <div class="t-exp">Attendu : pas d'état incohérent, pas de perte de session inattendue.</div>
+  
+    <div class="verdicts"><label class="v-ok"><input type="radio" name="v-T139" value="ok"><span>Conforme</span></label><label class="v-ko"><input type="radio" name="v-T139" value="ko"><span>Anomalie</span></label><label class="v-na"><input type="radio" name="v-T139" value="na"><span>Non fait</span></label><input class="note" type="text" placeholder="Ce que tu as observé"></div>
+  </div></div></div>
+
+  <div class="test" data-id="T140"><div class="test-head"><span class="tid">T140</span><div class="test-body">
+    <div class="t-do">Onglet laissé ouvert deux heures, puis reprise de l'activité.</div>
+    <div class="t-exp">Attendu : soit ça marche, soit on te demande de te reconnecter. Pas d'échec silencieux.</div>
+  
+    <div class="verdicts"><label class="v-ok"><input type="radio" name="v-T140" value="ok"><span>Conforme</span></label><label class="v-ko"><input type="radio" name="v-T140" value="ko"><span>Anomalie</span></label><label class="v-na"><input type="radio" name="v-T140" value="na"><span>Non fait</span></label><input class="note" type="text" placeholder="Ce que tu as observé"></div>
+  </div></div></div>
+
+  <div class="test" data-id="T141"><div class="test-head"><span class="tid">T141</span><div class="test-body">
+    <div class="t-do">Renommer temporairement un onglet du classeur (ex. SECTEURS → SECTEURS_X) et ouvrir la page qui en dépend.</div>
+    <div class="t-exp">Attendu : un message qui <b>nomme l'onglet manquant</b>. Remettre le nom aussitôt.</div>
+  
+    <div class="verdicts"><label class="v-ok"><input type="radio" name="v-T141" value="ok"><span>Conforme</span></label><label class="v-ko"><input type="radio" name="v-T141" value="ko"><span>Anomalie</span></label><label class="v-na"><input type="radio" name="v-T141" value="na"><span>Non fait</span></label><input class="note" type="text" placeholder="Ce que tu as observé"></div>
+  </div></div></div>
+
+  <div class="test" data-id="T142"><div class="test-head"><span class="tid">T142</span><div class="test-body">
+    <div class="t-do">Vider une cellule obligatoire (ex. le tarif d'un secteur) et refaire l'action qui la lit.</div>
+    <div class="t-exp">Attendu : erreur explicite plutôt qu'un calcul faux. Un calcul faux silencieux est le pire résultat possible.</div>
+  
+    <div class="verdicts"><label class="v-ok"><input type="radio" name="v-T142" value="ok"><span>Conforme</span></label><label class="v-ko"><input type="radio" name="v-T142" value="ko"><span>Anomalie</span></label><label class="v-na"><input type="radio" name="v-T142" value="na"><span>Non fait</span></label><input class="note" type="text" placeholder="Ce que tu as observé"></div>
+  </div></div></div>
+
+  <div class="test" data-id="T143"><div class="test-head"><span class="tid">T143</span><div class="test-body">
+    <div class="t-do">Vérifier le quota d'emails restant après toute la séance.</div>
+    <div class="t-exp">Attendu : compte Google gratuit = 100 par jour. Note ce qu'il reste : ça te dit combien la journée en a consommé, et si un envoi de masse à 23 MARs passerait.</div>
+  
+    <div class="verdicts"><label class="v-ok"><input type="radio" name="v-T143" value="ok"><span>Conforme</span></label><label class="v-ko"><input type="radio" name="v-T143" value="ko"><span>Anomalie</span></label><label class="v-na"><input type="radio" name="v-T143" value="na"><span>Non fait</span></label><input class="note" type="text" placeholder="Ce que tu as observé"></div>
+  </div></div></div>
+
+  <div class="test" data-id="T144"><div class="test-head"><span class="tid">T144</span><div class="test-body">
+    <div class="t-do">Relancer <code>chrono()</code> sur admin.html en fin de séance et comparer avec T28.</div>
+    <div class="t-exp">Attendu : temps d'ouverture comparable. Une dérive signale un classeur alourdi par la séance.</div>
+  
+    <div class="verdicts"><label class="v-ok"><input type="radio" name="v-T144" value="ok"><span>Conforme</span></label><label class="v-ko"><input type="radio" name="v-T144" value="ko"><span>Anomalie</span></label><label class="v-na"><input type="radio" name="v-T144" value="na"><span>Non fait</span></label><input class="note" type="text" placeholder="Ce que tu as observé"></div>
+  </div></div></div>
+
+  <div class="test" data-id="T145"><div class="test-head"><span class="tid">T145</span><div class="test-body">
+    <div class="t-do">Aller au 29 février de la prochaine année bissextile (2028) dans le planning.</div>
+    <div class="t-exp">Attendu : la journée existe et se comporte normalement. Les années bissextiles sont une source classique de décalage d'un jour. <b style="color:#047857">✅ Déjà vérifié automatiquement</b> — banc : <code>banc_catastrophe.js</code>.</div>
+    <div class="verdicts"><label class="v-ok"><input type="radio" name="v-T145" value="ok"><span>Conforme</span></label><label class="v-ko"><input type="radio" name="v-T145" value="ko"><span>Anomalie</span></label><label class="v-na"><input type="radio" name="v-T145" value="na"><span>Non fait</span></label><input class="note" type="text" placeholder="Ce que tu as observé"></div>
+  </div></div></div>
+  <div class="test" data-id="T146"><div class="test-head"><span class="tid">T146</span><div class="test-body">
+    <div class="t-do">Vérifier le week-end du changement d'heure, en mars et en octobre.</div>
+    <div class="t-exp">Attendu : aucun jour dupliqué ni manquant. Les calculs de dates s'appuient sur midi précisément pour éviter ce piège — c'est le moment de le confirmer. <b style="color:#047857">✅ Déjà vérifié automatiquement</b> — banc : <code>banc_catastrophe.js</code>.</div>
+    <div class="verdicts"><label class="v-ok"><input type="radio" name="v-T146" value="ok"><span>Conforme</span></label><label class="v-ko"><input type="radio" name="v-T146" value="ko"><span>Anomalie</span></label><label class="v-na"><input type="radio" name="v-T146" value="na"><span>Non fait</span></label><input class="note" type="text" placeholder="Ce que tu as observé"></div>
+  </div></div></div>
+  <div class="test" data-id="T147"><div class="test-head"><span class="tid">T147</span><div class="test-body">
+    <div class="t-do">Saisir un nom comportant une apostrophe ou un tréma dans un champ libre (commentaire, motif), enregistrer, relire.</div>
+    <div class="t-exp">Attendu : restitution exacte, à l'écran et dans le classeur. <b style="color:#047857">✅ Déjà vérifié automatiquement</b> — banc : <code>banc_catastrophe.js</code>.</div>
+    <div class="verdicts"><label class="v-ok"><input type="radio" name="v-T147" value="ok"><span>Conforme</span></label><label class="v-ko"><input type="radio" name="v-T147" value="ko"><span>Anomalie</span></label><label class="v-na"><input type="radio" name="v-T147" value="na"><span>Non fait</span></label><input class="note" type="text" placeholder="Ce que tu as observé"></div>
+  </div></div></div>
+  <div class="test" data-id="T148"><div class="test-head"><span class="tid">T148</span><div class="test-body">
+    <div class="t-do">Vérifier l'espace disponible sur le Drive du compte de service.</div>
+    <div class="t-exp">Attendu : de la marge. Un Drive plein fait échouer les publications et les sauvegardes, avec des messages d'erreur qui n'évoquent pas du tout la cause.</div>
+    <div class="verdicts"><label class="v-ok"><input type="radio" name="v-T148" value="ok"><span>Conforme</span></label><label class="v-ko"><input type="radio" name="v-T148" value="ko"><span>Anomalie</span></label><label class="v-na"><input type="radio" name="v-T148" value="na"><span>Non fait</span></label><input class="note" type="text" placeholder="Ce que tu as observé"></div>
+  </div></div></div>
+  <div class="test" data-id="T149"><div class="test-head"><span class="tid">T149</span><div class="test-body">
+    <div class="t-do">Vérifier que la sauvegarde du dimanche, tirée par le compte personnel, contient bien une copie de cette semaine — et l'ouvrir.</div>
+    <div class="t-exp">Attendu : la copie existe et s'ouvre. Une sauvegarde jamais ouverte n'est pas une sauvegarde.</div>
+    <div class="verdicts"><label class="v-ok"><input type="radio" name="v-T149" value="ok"><span>Conforme</span></label><label class="v-ko"><input type="radio" name="v-T149" value="ko"><span>Anomalie</span></label><label class="v-na"><input type="radio" name="v-T149" value="na"><span>Non fait</span></label><input class="note" type="text" placeholder="Ce que tu as observé"></div>
+  </div></div></div>
+</section>
+
+
+<!-- ─── section ─── -->
+<section id="pdoc">
+      <div style="background:#ECFDF5;border:1px solid #A7F3D0;border-radius:12px;padding:14px 18px;margin:0 0 18px;font-size:13.5px;line-height:1.55;color:#065F46">
+    <b>Nouveau (05/08/2026) : une partie de ce cahier se joue toute seule.</b><br>
+    Le dépôt contient un <b>banc d'essai</b> qui exécute le vrai code dans un Google et un Cloudflare simulés :
+    <code>cd banc &amp;&amp; ./lancer.sh</code>. Les points marqués <b>✅ Déjà vérifié automatiquement</b> y sont couverts —
+    inutile de les refaire à la main, sauf doute. Le banc prouve la <b>logique</b> ; il ne prouve ni les autorisations Google,
+    ni les quotas, ni la latence réelle, ni ce qui se voit à l'œil : ces points-là restent manuels.
+  </div>
+
+  <h2 id="p15"><span class="pnum">P15</span>Journal d'intentions, miroir et vitesse <span style="font-size:13px;font-weight:400;color:#64748B">— ajoutés le 05/08/2026</span></h2>
+  <p style="font-size:13.5px;color:#475569;margin:0 0 14px">Ces points couvrent la refonte du 4-5 août : les écritures du comité passent par un journal chez Cloudflare, le miroir sert toutes les lectures, et le classeur signale ses modifications manuelles. Les points marqués <b style="color:#047857">✅</b> sont déjà couverts par le banc d'essai (<code>cd banc &amp;&amp; ./lancer.sh</code>) : à ne refaire à la main qu'en cas de doute.</p>
+
+  <div class="test" data-id="T165"><div class="test-head"><span class="tid">T165</span><div class="test-body">
+    <div class="t-do">Ouvrir admin, taper le code, puis <code>chronoAPI()</code> sans rien faire d'autre.</div>
+    <div class="t-exp">Attendu : <b>aucun appel Apps Script</b> — seulement deux lignes <code>miroir:…</code>. La barre bleue en haut doit rester <b>éteinte</b> après le chargement. <b style="color:#047857">✅ Déjà vérifié automatiquement</b> — banc d'essai : banc_chaos.js, scénario 45.</div>
+  
+    <div class="verdicts"><label class="v-ok"><input type="radio" name="v-T165" value="ok"><span>Conforme</span></label><label class="v-ko"><input type="radio" name="v-T165" value="ko"><span>Anomalie</span></label><label class="v-na"><input type="radio" name="v-T165" value="na"><span>Non fait</span></label><input class="note" type="text" placeholder="Ce que tu as observé"></div>
+  </div></div></div>
+
+  <div class="test" data-id="T166"><div class="test-head"><span class="tid">T166</span><div class="test-body">
+    <div class="t-do">Placer un MAR sur une case flash, puis lui poser un <b>TP</b> ce jour-là dans l'onglet Statuts. Recharger la page.</div>
+    <div class="t-exp">Attendu : son placement a <b>disparu tout seul</b> (le dernier geste gagne). Vérifier dans PLANNING_OVERRIDES qu'aucune ligne ne subsiste pour ce MAR à cette date. <b style="color:#047857">✅ Déjà vérifié automatiquement</b> — banc d'essai : banc.js, scénario 1 · interface.js, scénario 21.</div>
+  
+    <div class="verdicts"><label class="v-ok"><input type="radio" name="v-T166" value="ok"><span>Conforme</span></label><label class="v-ko"><input type="radio" name="v-T166" value="ko"><span>Anomalie</span></label><label class="v-na"><input type="radio" name="v-T166" value="na"><span>Non fait</span></label><input class="note" type="text" placeholder="Ce que tu as observé"></div>
+  </div></div></div>
+
+  <div class="test" data-id="T167"><div class="test-head"><span class="tid">T167</span><div class="test-body">
+    <div class="t-do">Après le test précédent, replacer le même MAR sur la même case (réquisition d'un temps partiel).</div>
+    <div class="t-exp">Attendu : le placement <b>tient</b> — un MAR en TP reste plaçable en dernier recours, dès lors que le placement est postérieur à la pose du statut.</div>
+  
+    <div class="verdicts"><label class="v-ok"><input type="radio" name="v-T167" value="ok"><span>Conforme</span></label><label class="v-ko"><input type="radio" name="v-T167" value="ko"><span>Anomalie</span></label><label class="v-na"><input type="radio" name="v-T167" value="na"><span>Non fait</span></label><input class="note" type="text" placeholder="Ce que tu as observé"></div>
+  </div></div></div>
+
+  <div class="test" data-id="T168"><div class="test-head"><span class="tid">T168</span><div class="test-body">
+    <div class="t-do">Tenter un échange de gardes impossible (l'un des deux a déjà une garde à l'autre date). Noter les quatre cellules AVANT, puis les relire dans GARDES_{année} APRÈS le refus.</div>
+    <div class="t-exp">Attendu : refus affiché avec son motif, et <b>les quatre cellules rigoureusement inchangées</b>. Un geste est entier ou refusé — jamais à moitié écrit. <b style="color:#047857">✅ Déjà vérifié automatiquement</b> — banc d'essai : banc_gestes.js, scénario 44 (les 5 types).</div>
+  
+    <div class="verdicts"><label class="v-ok"><input type="radio" name="v-T168" value="ok"><span>Conforme</span></label><label class="v-ko"><input type="radio" name="v-T168" value="ko"><span>Anomalie</span></label><label class="v-na"><input type="radio" name="v-T168" value="na"><span>Non fait</span></label><input class="note" type="text" placeholder="Ce que tu as observé"></div>
+  </div></div></div>
+
+  <div class="test" data-id="T169"><div class="test-head"><span class="tid">T169</span><div class="test-body">
+    <div class="t-do">Faire 3 placements, cliquer Publier, puis <b>fermer l'onglet immédiatement</b>. Rouvrir index.html 3 minutes plus tard.</div>
+    <div class="t-exp">Attendu : les 3 placements sont visibles. Le serveur termine le travail sans la page. <b style="color:#047857">✅ Déjà vérifié automatiquement</b> — banc d'essai : interface.js, scénario 20 · e2e.js.</div>
+  
+    <div class="verdicts"><label class="v-ok"><input type="radio" name="v-T169" value="ok"><span>Conforme</span></label><label class="v-ko"><input type="radio" name="v-T169" value="ko"><span>Anomalie</span></label><label class="v-na"><input type="radio" name="v-T169" value="na"><span>Non fait</span></label><input class="note" type="text" placeholder="Ce que tu as observé"></div>
+  </div></div></div>
+
+  <div class="test" data-id="T170"><div class="test-head"><span class="tid">T170</span><div class="test-body">
+    <div class="t-do">Ouvrir le panneau « Modifications » et saisir une date où des gardes existent.</div>
+    <div class="t-exp">Attendu : la liste des MAR de garde s'affiche <b>immédiatement</b>. Si elle échoue, un message orange doit le dire avec un bouton <b>Réessayer</b> — jamais « aucune garde à cette date » (qui serait faux). <b style="color:#047857">✅ Déjà vérifié automatiquement</b> — banc d'essai : banc_page.js, scénario 55.</div>
+  
+    <div class="verdicts"><label class="v-ok"><input type="radio" name="v-T170" value="ok"><span>Conforme</span></label><label class="v-ko"><input type="radio" name="v-T170" value="ko"><span>Anomalie</span></label><label class="v-na"><input type="radio" name="v-T170" value="na"><span>Non fait</span></label><input class="note" type="text" placeholder="Ce que tu as observé"></div>
+  </div></div></div>
+
+  <div class="test" data-id="T171"><div class="test-head"><span class="tid">T171</span><div class="test-body">
+    <div class="t-do">Cliquer une case flash un jour où un MAR a déclaré une activité libérale.</div>
+    <div class="t-exp">Attendu : le volet libéral s'affiche <b>instantanément</b> (qui opère, quel secteur, quelle chirurgie). <b>Aucun montant</b> ne doit apparaître ni transiter. <b style="color:#047857">✅ Déjà vérifié automatiquement</b> — banc d'essai : banc_worker.mjs, scénario 46 · banc_gestes.js, scénario 47.</div>
+  
+    <div class="verdicts"><label class="v-ok"><input type="radio" name="v-T171" value="ok"><span>Conforme</span></label><label class="v-ko"><input type="radio" name="v-T171" value="ko"><span>Anomalie</span></label><label class="v-na"><input type="radio" name="v-T171" value="na"><span>Non fait</span></label><input class="note" type="text" placeholder="Ce que tu as observé"></div>
+  </div></div></div>
+
+  <div class="test" data-id="T172"><div class="test-head"><span class="tid">T172</span><div class="test-body">
+    <div class="t-do">Dans Apps Script, exécuter <code>miroirSyncComplet</code>.</div>
+    <div class="t-exp">Attendu : réponse <code>success: true</code>, avec le nombre de clés et de <b>lots</b> (2 lots pour 2 années). Un message « 20 clés maximum » signalerait une régression du découpage. <b style="color:#047857">✅ Déjà vérifié automatiquement</b> — banc d'essai : banc_synchro.js, scénarios 48 à 52.</div>
+  
+    <div class="verdicts"><label class="v-ok"><input type="radio" name="v-T172" value="ok"><span>Conforme</span></label><label class="v-ko"><input type="radio" name="v-T172" value="ko"><span>Anomalie</span></label><label class="v-na"><input type="radio" name="v-T172" value="na"><span>Non fait</span></label><input class="note" type="text" placeholder="Ce que tu as observé"></div>
+  </div></div></div>
+
+  <div class="test" data-id="T173"><div class="test-head"><span class="tid">T173</span><div class="test-body">
+    <div class="t-do">Modifier une cellule <b>à la main</b> dans GARDES_{année} du classeur, attendre 2 minutes, puis recharger une page du portail.</div>
+    <div class="t-exp">Attendu : la modification est prise en compte. Depuis le 05/08/2026, le classeur signale lui-même ses modifications manuelles ; sans cela, il fallait attendre la synchro horaire. <b style="color:#047857">✅ Déjà vérifié automatiquement</b> — banc d'essai : banc_miroir.js, scénario 6 · banc_google.js, scénario 36.</div>
+  
+    <div class="verdicts"><label class="v-ok"><input type="radio" name="v-T173" value="ok"><span>Conforme</span></label><label class="v-ko"><input type="radio" name="v-T173" value="ko"><span>Anomalie</span></label><label class="v-na"><input type="radio" name="v-T173" value="na"><span>Non fait</span></label><input class="note" type="text" placeholder="Ce que tu as observé"></div>
+  </div></div></div>
+
+  <div class="test" data-id="T174"><div class="test-head"><span class="tid">T174</span><div class="test-body">
+    <div class="t-do">Lancer le Diagnostic et lire le bloc « Journal d'intentions ».</div>
+    <div class="t-exp">Attendu : applicateur installé, et <b>file à 0</b> intention en attente. Une file qui grossit signifie que le serveur n'applique plus. <b style="color:#047857">✅ Déjà vérifié automatiquement</b> — banc d'essai : banc_google.js, scénario 34.</div>
+  
+    <div class="verdicts"><label class="v-ok"><input type="radio" name="v-T174" value="ok"><span>Conforme</span></label><label class="v-ko"><input type="radio" name="v-T174" value="ko"><span>Anomalie</span></label><label class="v-na"><input type="radio" name="v-T174" value="na"><span>Non fait</span></label><input class="note" type="text" placeholder="Ce que tu as observé"></div>
+  </div></div></div>
+
+  <div class="test" data-id="T175"><div class="test-head"><span class="tid">T175</span><div class="test-body">
+    <div class="t-do">Lire le bloc « Overrides planning » du Diagnostic.</div>
+    <div class="t-exp">Attendu : les éventuels <b>placements caducs</b> sont listés avec leur motif (« MAR absent ce jour-là »). Ce sont des placements ignorés à la publication ; la ligne reste au classeur et redevient active si le statut est retiré.</div>
+  
+    <div class="verdicts"><label class="v-ok"><input type="radio" name="v-T175" value="ok"><span>Conforme</span></label><label class="v-ko"><input type="radio" name="v-T175" value="ko"><span>Anomalie</span></label><label class="v-na"><input type="radio" name="v-T175" value="na"><span>Non fait</span></label><input class="note" type="text" placeholder="Ce que tu as observé"></div>
+  </div></div></div>
+
+  <div class="test" data-id="T176"><div class="test-head"><span class="tid">T176</span><div class="test-body">
+    <div class="t-do">Lire la ligne du <b>jeton GitHub</b> dans le Diagnostic.</div>
+    <div class="t-exp">Attendu : information au-delà de 30 jours, <b>orange</b> entre 30 et 11 jours, <b>ROUGE</b> à 10 jours ou moins. Sans jeton valide, plus aucune publication ne part. <b style="color:#047857">✅ Déjà vérifié automatiquement</b> — banc d'essai : banc_gestes.js, scénario 53.</div>
+  
+    <div class="verdicts"><label class="v-ok"><input type="radio" name="v-T176" value="ok"><span>Conforme</span></label><label class="v-ko"><input type="radio" name="v-T176" value="ko"><span>Anomalie</span></label><label class="v-na"><input type="radio" name="v-T176" value="na"><span>Non fait</span></label><input class="note" type="text" placeholder="Ce que tu as observé"></div>
+  </div></div></div>
+
+  <div class="test" data-id="T177"><div class="test-head"><span class="tid">T177</span><div class="test-body">
+    <div class="t-do">Couper le réseau (mode avion) juste après un placement, puis rétablir.</div>
+    <div class="t-exp">Attendu : le placement reste en attente (badge en bas à gauche), rien n'est perdu, et il repart seul au retour du réseau. <b style="color:#047857">✅ Déjà vérifié automatiquement</b> — banc d'essai : banc_chaos.js, scénarios 23 à 25.</div>
+  
+    <div class="verdicts"><label class="v-ok"><input type="radio" name="v-T177" value="ok"><span>Conforme</span></label><label class="v-ko"><input type="radio" name="v-T177" value="ko"><span>Anomalie</span></label><label class="v-na"><input type="radio" name="v-T177" value="na"><span>Non fait</span></label><input class="note" type="text" placeholder="Ce que tu as observé"></div>
+  </div></div></div>
+
+  <div class="test" data-id="T178"><div class="test-head"><span class="tid">T178</span><div class="test-body">
+    <div class="t-do">Sur mobile, laisser la page ouverte plus de 15 minutes, puis y revenir.</div>
+    <div class="t-exp">Attendu : les données se rafraîchissent seules, sans écran de chargement. En deçà de 15 minutes, tirer la page vers le bas pour forcer.</div>
+  
+    <div class="verdicts"><label class="v-ok"><input type="radio" name="v-T178" value="ok"><span>Conforme</span></label><label class="v-ko"><input type="radio" name="v-T178" value="ko"><span>Anomalie</span></label><label class="v-na"><input type="radio" name="v-T178" value="na"><span>Non fait</span></label><input class="note" type="text" placeholder="Ce que tu as observé"></div>
+  </div></div></div>
+
+  <div class="test" data-id="T179"><div class="test-head"><span class="tid">T179</span><div class="test-body">
+    <div class="t-do">Vérifier le sélecteur d'année dans l'en-tête d'admin.</div>
+    <div class="t-exp">Attendu : le chevron est présent et les années disponibles sont proposées (2026 et 2027). Une pastille sans chevron signale que la liste des années n'est pas arrivée. <b style="color:#047857">✅ Déjà vérifié automatiquement</b> — banc d'essai : banc_page.js, scénario 54.</div>
+  
+    <div class="verdicts"><label class="v-ok"><input type="radio" name="v-T179" value="ok"><span>Conforme</span></label><label class="v-ko"><input type="radio" name="v-T179" value="ko"><span>Anomalie</span></label><label class="v-na"><input type="radio" name="v-T179" value="na"><span>Non fait</span></label><input class="note" type="text" placeholder="Ce que tu as observé"></div>
+  </div></div></div>
+
+<h2><span class="n">P13</span>Cohérence de la documentation</h2>
+  <p class="phase-sub">Une documentation fausse est pire que pas de documentation : elle est crue.</p>
+
+  <div class="test" data-id="T150"><div class="test-head"><span class="tid">T150</span><div class="test-body">
+    <div class="t-do">Comparer le numéro de version affiché en bas de admin.html et de dashboard.html avec celui des guides comité et MAR.</div>
+    <div class="t-exp">Attendu : les quatre sont identiques. Un décalage signale un push incomplet. <b style="color:#047857">✅ Déjà vérifié automatiquement</b> — banc : <code>banc_docs.js</code>. Le banc compare les <b>5</b> fichiers porteurs (les quatre plus <code>docs/roadmap.html</code>) et ne retient que la version la plus haute de chacun — <code>admin.html</code> cite des versions anciennes dans son historique, c'est normal. <b>Ne le refaire à la main que si le banc échoue.</b></div>
+    <div class="verdicts"><label class="v-ok"><input type="radio" name="v-T150" value="ok"><span>Conforme</span></label><label class="v-ko"><input type="radio" name="v-T150" value="ko"><span>Anomalie</span></label><label class="v-na"><input type="radio" name="v-T150" value="na"><span>Non fait</span></label><input class="note" type="text" placeholder="Ce que tu as observé"></div>
+  </div></div></div>
+  <div class="test" data-id="T151"><div class="test-head"><span class="tid">T151</span><div class="test-body">
+    <div class="t-do">Ouvrir chaque guide de docs/ et cliquer tous les liens internes.</div>
+    <div class="t-exp">Attendu : aucun lien mort. Les renommages de fichiers sont la cause classique. <b style="color:#047857">✅ Déjà vérifié automatiquement</b> — banc : <code>banc_docs.js</code>. Le banc inspecte <b>18 fichiers</b> — tous les guides et toutes les pages —, vérifie chaque lien vers une page et chaque ancre interne. <b>Ne plus cliquer les liens à la main.</b></div>
+    <div class="verdicts"><label class="v-ok"><input type="radio" name="v-T151" value="ok"><span>Conforme</span></label><label class="v-ko"><input type="radio" name="v-T151" value="ko"><span>Anomalie</span></label><label class="v-na"><input type="radio" name="v-T151" value="na"><span>Non fait</span></label><input class="note" type="text" placeholder="Ce que tu as observé"></div>
+  </div></div></div>
+  <div class="test" data-id="T152"><div class="test-head"><span class="tid">T152</span><div class="test-body">
+    <div class="t-do">Ouvrir si-ca-tombe.html et reprise.html, et vérifier que les gestes décrits correspondent à ce que tu viens de faire pendant cette recette.</div>
+    <div class="t-exp">Attendu : concordance. Ce sont les deux documents qu'on lira sans toi.</div>
+    <div class="verdicts"><label class="v-ok"><input type="radio" name="v-T152" value="ok"><span>Conforme</span></label><label class="v-ko"><input type="radio" name="v-T152" value="ko"><span>Anomalie</span></label><label class="v-na"><input type="radio" name="v-T152" value="na"><span>Non fait</span></label><input class="note" type="text" placeholder="Ce que tu as observé"></div>
+  </div></div></div>
+  <div class="test" data-id="T153"><div class="test-head"><span class="tid">T153</span><div class="test-body">
+    <div class="t-do">Vérifier que le guide comité décrit bien les outils réellement présents dans l'onglet Maintenance.</div>
+    <div class="t-exp">Attendu : trois outils — diagnostic, vidage du cache, renvoi des codes.</div>
+    <div class="verdicts"><label class="v-ok"><input type="radio" name="v-T153" value="ok"><span>Conforme</span></label><label class="v-ko"><input type="radio" name="v-T153" value="ko"><span>Anomalie</span></label><label class="v-na"><input type="radio" name="v-T153" value="na"><span>Non fait</span></label><input class="note" type="text" placeholder="Ce que tu as observé"></div>
+  </div></div></div>
+</section>
+
+<!-- ─── section ─── -->
+<section id="p16">
+  <h2 id="p16h"><span class="pnum">P16</span>Échanges de gardes, notifications, mémoire de session <span style="font-size:13px;font-weight:400;color:#64748B">— ajoutés le 18/08/2026</span></h2>
+  <p style="font-size:13.5px;color:#475569;margin:0 0 14px">Tout ce qui a été livré entre le 11 et le 18 août et qui n'avait aucun point de contrôle : les <b>dons et échanges de gardes entre MAR</b>, le canal de <b>notifications</b>, la <b>mémoire de session de 30 jours</b>, et le verrou de la clôture d'année. C'est la partie la plus neuve du système, donc la moins éprouvée à la main.</p>
+  <div class="callout rule">
+    <div class="ct">Ce qu'il faut avant de commencer</div>
+    <p><b>Deux appareils</b> : le tien, et un second connecté avec un <b>autre</b> code MAR — un échange se fait à deux, il ne se simule pas seul. Les deux avec les notifications déjà autorisées. Travaille sur l'année de test, jamais sur des gardes réelles, et note les cellules du classeur <b>avant</b> chaque geste : c'est la seule façon de prouver qu'un refus n'a rien écrit.</p>
+  </div>
+
+  <div class="test" data-id="T180"><div class="test-head"><span class="tid">T180</span><div class="test-body">
+    <div class="t-do">Don d'une garde ordinaire à un collègue, depuis ton téléphone.</div>
+    <div class="t-exp">Attendu : le receveur reçoit la notification, l'accepte, et <b>le planning s'écrit tout seul</b> — le nouveau nom est dans <code>GARDES_{année}</code> sur ce jour, une ligne <i>acceptée</i> apparaît dans <code>ECHANGES</code>, et les deux écrans sont à jour sans rechargement.</div>
+    <div class="verdicts"><label class="v-ok"><input type="radio" name="v-T180" value="ok"><span>Conforme</span></label><label class="v-ko"><input type="radio" name="v-T180" value="ko"><span>Anomalie</span></label><label class="v-na"><input type="radio" name="v-T180" value="na"><span>Non fait</span></label><input class="note" type="text" placeholder="Ce que tu as observé"></div>
+  </div></div></div>
+
+  <div class="test" data-id="T181"><div class="test-head"><span class="tid">T181</span><div class="test-body">
+    <div class="t-do">Même geste, mais le receveur refuse. Relire les cellules du jour AVANT et APRÈS.</div>
+    <div class="t-exp">Attendu : la ligne passe à <i>refusée</i>, le demandeur est prévenu, et <b>pas une seule cellule de garde n'a bougé</b>.</div>
+    <div class="verdicts"><label class="v-ok"><input type="radio" name="v-T181" value="ok"><span>Conforme</span></label><label class="v-ko"><input type="radio" name="v-T181" value="ko"><span>Anomalie</span></label><label class="v-na"><input type="radio" name="v-T181" value="na"><span>Non fait</span></label><input class="note" type="text" placeholder="Ce que tu as observé"></div>
+  </div></div></div>
+
+  <div class="test" data-id="T182"><div class="test-head"><span class="tid">T182</span><div class="test-body">
+    <div class="t-do">Échanger deux gardes à des dates éloignées (plus de deux jours d'écart).</div>
+    <div class="t-exp">Attendu : les deux gardes <b>et les deux repos du lendemain</b> suivent. Le rôle reste attaché à sa date : une garde de maternité du lundi reste une garde de maternité du lundi.</div>
+    <div class="verdicts"><label class="v-ok"><input type="radio" name="v-T182" value="ok"><span>Conforme</span></label><label class="v-ko"><input type="radio" name="v-T182" value="ko"><span>Anomalie</span></label><label class="v-na"><input type="radio" name="v-T182" value="na"><span>Non fait</span></label><input class="note" type="text" placeholder="Ce que tu as observé"></div>
+  </div></div></div>
+
+  <div class="test" data-id="T183"><div class="test-head"><span class="tid">T183</span><div class="test-body">
+    <div class="t-do">Échanger deux gardes <b>qui se suivent</b> (lundi contre mardi) — puis recommencer en citant les deux dates dans l'ordre inverse.</div>
+    <div class="t-exp">Attendu : accepté <b>dans les deux sens</b> (c'est le correctif du 12 août ; c'était refusé « dates trop proches » avant). Après l'échange, personne ne se retrouve avec deux gardes consécutives.</div>
+    <div class="verdicts"><label class="v-ok"><input type="radio" name="v-T183" value="ok"><span>Conforme</span></label><label class="v-ko"><input type="radio" name="v-T183" value="ko"><span>Anomalie</span></label><label class="v-na"><input type="radio" name="v-T183" value="na"><span>Non fait</span></label><input class="note" type="text" placeholder="Ce que tu as observé"></div>
+  </div></div></div>
+
+  <div class="test" data-id="T184"><div class="test-head"><span class="tid">T184</span><div class="test-body">
+    <div class="t-do">Donner un <b>samedi</b>.</div>
+    <div class="t-exp">Attendu : la récupération suit son samedi — par <b>transfert d'un repos existant</b>, jamais par création d'un nouveau. La correspondance est mise à jour dans <code>LIENS_R_{année}</code>, et le compte de samedis de chacun reste juste.</div>
+    <div class="verdicts"><label class="v-ok"><input type="radio" name="v-T184" value="ok"><span>Conforme</span></label><label class="v-ko"><input type="radio" name="v-T184" value="ko"><span>Anomalie</span></label><label class="v-na"><input type="radio" name="v-T184" value="na"><span>Non fait</span></label><input class="note" type="text" placeholder="Ce que tu as observé"></div>
+  </div></div></div>
+
+  <div class="test" data-id="T185"><div class="test-head"><span class="tid">T185</span><div class="test-body">
+    <div class="t-do">Donner un samedi dont la récupération <b>ne peut pas</b> suivre (le receveur a déjà quelque chose le jour du repos).</div>
+    <div class="t-exp">Attendu : le don passe quand même, et <b>le comité reçoit un mail</b> nommant le samedi, les deux médecins et la date à replacer. Rien ne doit se régler en silence.</div>
+    <div class="verdicts"><label class="v-ok"><input type="radio" name="v-T185" value="ok"><span>Conforme</span></label><label class="v-ko"><input type="radio" name="v-T185" value="ko"><span>Anomalie</span></label><label class="v-na"><input type="radio" name="v-T185" value="na"><span>Non fait</span></label><input class="note" type="text" placeholder="Ce que tu as observé"></div>
+  </div></div></div>
+
+  <div class="test" data-id="T186"><div class="test-head"><span class="tid">T186</span><div class="test-body">
+    <div class="t-do">Proposer une garde à quelqu'un qui est indisponible ce jour-là.</div>
+    <div class="t-exp">Attendu : refus immédiat, annoncé, et la feuille reste intacte. Vérifie la cellule dans le classeur.</div>
+    <div class="verdicts"><label class="v-ok"><input type="radio" name="v-T186" value="ok"><span>Conforme</span></label><label class="v-ko"><input type="radio" name="v-T186" value="ko"><span>Anomalie</span></label><label class="v-na"><input type="radio" name="v-T186" value="na"><span>Non fait</span></label><input class="note" type="text" placeholder="Ce que tu as observé"></div>
+  </div></div></div>
+
+  <div class="test" data-id="T187"><div class="test-head"><span class="tid">T187</span><div class="test-body">
+    <div class="t-do">Appuyer <b>deux fois</b> sur « Accepter » (ou couper le réseau puis réessayer).</div>
+    <div class="t-exp">Attendu : une seule écriture. Pas de ligne en double dans <code>ECHANGES</code>, pas de garde écrite deux fois.</div>
+    <div class="verdicts"><label class="v-ok"><input type="radio" name="v-T187" value="ok"><span>Conforme</span></label><label class="v-ko"><input type="radio" name="v-T187" value="ko"><span>Anomalie</span></label><label class="v-na"><input type="radio" name="v-T187" value="na"><span>Non fait</span></label><input class="note" type="text" placeholder="Ce que tu as observé"></div>
+  </div></div></div>
+
+  <div class="test" data-id="T188"><div class="test-head"><span class="tid">T188</span><div class="test-body">
+    <div class="t-do">Laisser une demande sans réponse.</div>
+    <div class="t-exp">Attendu : expiration à 48 h avec un rappel unique au receveur à 24 h, sans rien modifier au planning. <b>Non testable en séance</b> : coche « Non fait » et vérifie-le au prochain passage — c'est aussi le contrôle que le déclencheur horaire est bien installé.</div>
+    <div class="verdicts"><label class="v-ok"><input type="radio" name="v-T188" value="ok"><span>Conforme</span></label><label class="v-ko"><input type="radio" name="v-T188" value="ko"><span>Anomalie</span></label><label class="v-na"><input type="radio" name="v-T188" value="na"><span>Non fait</span></label><input class="note" type="text" placeholder="Ce que tu as observé"></div>
+  </div></div></div>
+
+  <div class="test" data-id="T189"><div class="test-head"><span class="tid">T189</span><div class="test-body">
+    <div class="t-do">Ouvrir le portail <b>sur téléphone</b> avec un code MAR, puis la même page <b>sur ordinateur</b> avec le même code.</div>
+    <div class="t-exp">Attendu : la carte « Activer les notifications » se propose sur le téléphone, et <b>pas sur l'ordinateur</b> (changement du 17 août : une annonce n'a d'intérêt que sur le téléphone qu'on a sur soi, et un poste peut être partagé). Un abonnement déjà pris sur PC continue de fonctionner.</div>
+    <div class="verdicts"><label class="v-ok"><input type="radio" name="v-T189" value="ok"><span>Conforme</span></label><label class="v-ko"><input type="radio" name="v-T189" value="ko"><span>Anomalie</span></label><label class="v-na"><input type="radio" name="v-T189" value="na"><span>Non fait</span></label><input class="note" type="text" placeholder="Ce que tu as observé"></div>
+  </div></div></div>
+
+  <div class="test" data-id="T190"><div class="test-head"><span class="tid">T190</span><div class="test-body">
+    <div class="t-do">Faire partir une notification vers un téléphone <b>verrouillé</b>, puis toucher la notification.</div>
+    <div class="t-exp">Attendu : la bonne page s'ouvre directement, et la pastille du raccourci retombe à zéro à l'ouverture du portail.</div>
+    <div class="verdicts"><label class="v-ok"><input type="radio" name="v-T190" value="ok"><span>Conforme</span></label><label class="v-ko"><input type="radio" name="v-T190" value="ko"><span>Anomalie</span></label><label class="v-na"><input type="radio" name="v-T190" value="na"><span>Non fait</span></label><input class="note" type="text" placeholder="Ce que tu as observé"></div>
+  </div></div></div>
+
+  <div class="test" data-id="T191"><div class="test-head"><span class="tid">T191</span><div class="test-body">
+    <div class="t-do">Sur le portail <b>installé sur l'écran d'accueil</b> : fermer complètement l'application, rouvrir. Puis ouvrir la même page dans Safari ou Chrome.</div>
+    <div class="t-exp">Attendu : dans l'application installée, <b>aucun code redemandé</b> (mémoire de 30 jours, repoussée à chaque ouverture). Dans le navigateur, le code <b>est</b> redemandé — c'est voulu.</div>
+    <div class="verdicts"><label class="v-ok"><input type="radio" name="v-T191" value="ok"><span>Conforme</span></label><label class="v-ko"><input type="radio" name="v-T191" value="ko"><span>Anomalie</span></label><label class="v-na"><input type="radio" name="v-T191" value="na"><span>Non fait</span></label><input class="note" type="text" placeholder="Ce que tu as observé"></div>
+  </div></div></div>
+
+  <div class="test" data-id="T192"><div class="test-head"><span class="tid">T192</span><div class="test-body">
+    <div class="t-do">Utiliser le geste « m'oublier » : sur la page des indisponibilités, toucher le badge de son nom en haut ; faire l'équivalent sur les deux autres pages MAR.</div>
+    <div class="t-exp">Attendu : à la réouverture, le code est redemandé. C'est le geste à montrer à quelqu'un qui prête son téléphone.</div>
+    <div class="verdicts"><label class="v-ok"><input type="radio" name="v-T192" value="ok"><span>Conforme</span></label><label class="v-ko"><input type="radio" name="v-T192" value="ko"><span>Anomalie</span></label><label class="v-na"><input type="radio" name="v-T192" value="na"><span>Non fait</span></label><input class="note" type="text" placeholder="Ce que tu as observé"></div>
+  </div></div></div>
+
+  <div class="test" data-id="T193"><div class="test-head"><span class="tid">T193</span><div class="test-body">
+    <div class="t-do">Dans Maintenance, essayer d'ouvrir la carte « Clôturer l'année ».</div>
+    <div class="t-exp">Attendu : <b>refus</b>, avec affichage de la date à partir de laquelle ce sera possible (le premier lundi de l'année de planning suivante). Le serveur refuse également, pas seulement l'écran. Ce verrou date du 17 août.</div>
+    <div class="verdicts"><label class="v-ok"><input type="radio" name="v-T193" value="ok"><span>Conforme</span></label><label class="v-ko"><input type="radio" name="v-T193" value="ko"><span>Anomalie</span></label><label class="v-na"><input type="radio" name="v-T193" value="na"><span>Non fait</span></label><input class="note" type="text" placeholder="Ce que tu as observé"></div>
+  </div></div></div>
+
+</section>
+
+<section id="p12">
+  <h2><span class="n">P14</span>Nettoyage et remise en état</h2>
+  <p class="phase-sub">À faire dans la foulée, pas le lendemain. Coche au fur et à mesure.</p>
+
+  <ol class="steps">
+    <li><b>Restaurer 2027.</b> Depuis le classeur d'archive, recopier <code>GARDES_2027</code>, <code>INDISPOS_2027</code>, <code>AFFECTATIONS_2027</code>, <code>STATS_GARDES_2027</code> dans le classeur maître, avec exactement les mêmes noms.</li>
+    <li><b>Année active.</b> <code>ANNEE_ACTIVE</code> → 2027 dans CONFIG.</li>
+    <li><b>Saisie des indispos.</b> <code>INDISPOS_ACTIVE</code> → la valeur notée en P0-3 (ou ligne absente si elle l'était).</li>
+    <li><b>Effacer 2028.</b> Supprimer les onglets <code>INDISPOS_2028</code>, <code>GARDES_2028</code>, <code>AFFECTATIONS_2028</code>, <code>STATS_GARDES_2028</code>, et les lignes 2028 de PERIODES_VAC.</li>
+    <li><b>HISTORIQUE.</b> Supprimer les lignes 2027 ajoutées par la clôture.</li>
+    <li><b>Drive.</b> Supprimer les JSON créés pendant la séance : <code>archives_stats_2027.json</code>, <code>archives_indispos_2027.json</code>, <code>planning_2028.json</code> et assimilés.</li>
+    <li><b>MEDECINS.</b> Remettre actif tout MAR passé inactif, retirer les MARs de test, vérifier ton code d'accès.</li>
+    <li><b>Overrides.</b> La clôture a purgé PLANNING_OVERRIDES ≤ 2027 : si tes échanges de test comptaient, les reprendre depuis la sauvegarde P0-1.</li>
+    <li><b>Vider le cache</b> de configuration depuis Maintenance, puis relancer le 🔍 Diagnostic complet : il doit être aussi propre qu'en P0-2.</li>
+    <li><b>Contrôle final</b> par les yeux d'un MAR : ouvrir dashboard.html et index.html avec ton code, et vérifier que 2027 est revenu comme avant.</li>
+  </ol>
+
+  <div class="callout tip">
+    <div class="ct">Ensuite</div>
+    <p>Copie les anomalies avec le bouton ci-dessous et colle-les dans la conversation. On les trie par gravité, on décide lesquelles sont corrigées avant le 4 septembre, et je prépare les correctifs un par un.</p>
+  </div>
+</section>
+
+<div id="rapport" class="rapport" hidden>
+  <div class="rapport-head">
+    <b>Rapport — sélectionne tout et copie</b>
+    <button type="button" id="rClose" class="rx">Fermer</button>
+  </div>
+  <textarea id="rTxt" readonly rows="12" spellcheck="false"></textarea>
+  <div class="rapport-act">
+    <button type="button" id="rSel">Tout sélectionner</button>
+    <span id="rMsg"></span>
+  </div>
+</div>
+
+<div class="bar">
+  <div class="cnt">Vérifiés <b id="cDone">0</b> / <span id="cTot">0</span> · anomalies <b id="cKo">0</b></div>
+  <div class="sp"></div>
+  <button id="btnCopy" type="button">Copier les anomalies</button>
+  <button class="ghost" id="btnPrint" type="button">Imprimer</button>
+</div>
+
+</div>
+
+<script>
+(function(){
+  var tests = Array.prototype.slice.call(document.querySelectorAll('.test'));
+  document.getElementById('cTot').textContent = tests.length;
+
+  function refresh(){
+    var done = 0, ko = 0;
+    tests.forEach(function(t){
+      var sel = t.querySelector('input[type=radio]:checked');
+      t.classList.remove('ok','ko');
+      if(!sel) return;
+      if(sel.value === 'ok'){ done++; t.classList.add('ok'); }
+      if(sel.value === 'ko'){ done++; ko++; t.classList.add('ko'); }
+    });
+    document.getElementById('cDone').textContent = done;
+    document.getElementById('cKo').textContent = ko;
+  }
+  document.addEventListener('change', refresh);
+
+  var panel = document.getElementById('rapport');
+  var area  = document.getElementById('rTxt');
+  var msg   = document.getElementById('rMsg');
+
+  function construire(){
+    var lignes = ['CAHIER DE TESTS PLANNING-MED — ' + new Date().toLocaleDateString('fr-FR'), ''];
+    var ko = [], na = [];
+    tests.forEach(function(t){
+      var sel = t.querySelector('input[type=radio]:checked');
+      if(!sel) return;
+      var id = t.getAttribute('data-id');
+      var quoi = t.querySelector('.t-do').textContent.trim();
+      var note = t.querySelector('.note').value.trim();
+      var l = id + ' — ' + quoi + (note ? '\n   observé : ' + note : '');
+      if(sel.value === 'ko') ko.push(l);
+      if(sel.value === 'na') na.push(id);
+    });
+    lignes.push('ANOMALIES (' + ko.length + ')');
+    lignes.push(ko.length ? ko.join('\n') : 'aucune');
+    if(na.length){ lignes.push('', 'NON FAITS : ' + na.join(', ')); }
+    return lignes.join('\n');
+  }
+
+  function selectionner(){
+    area.removeAttribute('readonly');          // iOS refuse de selectionner un champ readonly
+    area.focus();
+    area.setSelectionRange(0, area.value.length);
+    try {
+      var r = document.createRange(); r.selectNodeContents(area);
+      var sel = window.getSelection(); sel.removeAllRanges(); sel.addRange(r);
+    } catch(e){}
+    area.setAttribute('readonly','readonly');
+  }
+
+  document.getElementById('btnCopy').addEventListener('click', function(){
+    area.value = construire();
+    panel.hidden = false;
+    panel.scrollIntoView({block:'nearest'});
+    selectionner();
+    msg.textContent = '';
+    // Tentative de copie directe : marche en ligne, refusee sur un fichier local.
+    // Dans les deux cas le texte reste affiche et selectionne.
+    var ok = false;
+    try { ok = document.execCommand('copy'); } catch(e){}
+    if (ok) { msg.textContent = 'Copié ✓'; return; }
+    if (navigator.clipboard && navigator.clipboard.writeText) {
+      navigator.clipboard.writeText(area.value).then(function(){ msg.textContent = 'Copié ✓'; }, function(){});
+    }
+  });
+
+  document.getElementById('rSel').addEventListener('click', function(){
+    selectionner();
+    var ok = false;
+    try { ok = document.execCommand('copy'); } catch(e){}
+    msg.textContent = ok ? 'Copié ✓' : 'Texte sélectionné — appuie sur « Copier »';
+  });
+
+  document.getElementById('rClose').addEventListener('click', function(){ panel.hidden = true; });
+
+  document.getElementById('btnPrint').addEventListener('click', function(){ window.print(); });
+})();
+</script>
+</body>
+</html>

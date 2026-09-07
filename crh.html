@@ -1,0 +1,376 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+  <!-- Outil interne du service : ne pas referencer dans les moteurs de recherche.
+       Complete robots.txt (racine du depot). N'empeche AUCUN acces : qui a
+       l'adresse entre normalement, et se heurte au code personnel. -->
+  <meta name="robots" content="noindex, nofollow">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<title>CRH · Planning-Med</title>
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="icon" type="image/svg+xml" href="assets/favicon.svg">
+<link rel="apple-touch-icon" href="assets/apple-touch-icon.png">
+<meta name="theme-color" content="#CE1126">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="CRH">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@300;400;500;600;700&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
+<!-- Icônes : mini-bundle LOCAL (pas de CDN). N'ajouter un nom d'icône qu'après
+     avoir vérifié la liste en tête de ce fichier : une icône absente ne s'affiche
+     PAS et ne produit aucune erreur. -->
+<script src="assets/vendor/lucide-icons.js"></script>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=DM+Sans:wght@300;400;500;600;700&family=DM+Mono:wght@400;500&display=swap');
+:root{
+  --red:#CE1126; --red-soft:#F8E8EB; --amber:#D97706; --amber-soft:#FEF3C7;
+  --ink:#0F172A; --ink-2:#334155; --ink-3:#64748B; --ink-4:#94A3B8;
+  --line:#E2E8F0; --line-light:#F1F5F9; --bg:#F8FAFC; --white:#FFFFFF;
+  --radius:12px; --mono:'DM Mono',monospace; --surface-2:#EEF1F5; --deep:#1E293B;
+  --ok:#166534; --ok-soft:#F0FDF4; --info:#1D4ED8; --info-soft:#EFF6FF;
+  --me:#1D6FB8; --me-soft:#E8F4FD; --me-border:#B9DCF5;
+}
+html[data-theme="dark"]{
+  --bg:#0B1220; --white:#151D2E; --line:#28344B; --line-light:#1B2436;
+  --ink:#E7ECF6; --ink-2:#C4CEDF; --ink-3:#8D9AB1; --ink-4:#697891;
+  --red:#F4586B; --red-soft:#3A1620; --amber:#F0A64A; --amber-soft:#38290F;
+  --surface-2:#1B2436; --deep:#232F45;
+  --me:#93C3E8; --me-soft:#17293A; --me-border:#2B4763; color-scheme:dark;
+}
+html[data-theme="dark"] body{background:var(--bg)}
+*{box-sizing:border-box}
+html,body{margin:0;padding:0}
+body{font-family:'DM Sans',-apple-system,BlinkMacSystemFont,sans-serif;background:var(--bg);color:var(--ink);-webkit-font-smoothing:antialiased}
+.header{background:var(--white);border-bottom:1px solid var(--line);padding:0 32px;display:flex;align-items:center;justify-content:space-between;height:60px;position:sticky;top:0;z-index:300}
+.header-brand{display:flex;align-items:center;gap:14px}
+.header-flag{display:flex;flex-direction:column;width:28px;height:28px;border-radius:6px;overflow:hidden;flex-shrink:0;box-shadow:0 1px 3px rgba(0,0,0,.15)}
+.header-title{font-size:15px;font-weight:700;color:var(--ink);letter-spacing:-.02em}
+.header-sub{font-size:11px;color:var(--ink-4);margin-top:1px}
+.header-right{display:flex;align-items:center;gap:8px}
+.theme-btn{width:34px;height:34px;border:1px solid var(--line);background:var(--white);border-radius:10px;cursor:pointer;font-size:15px;line-height:1;transition:background .15s ease}
+.theme-btn:hover{background:var(--line-light)}
+.me-pill{display:inline-flex;align-items:center;gap:6px;background:var(--me-soft);color:var(--me);border:1px solid var(--me-border);border-radius:999px;padding:5px 12px;font-size:12.5px;font-weight:700;white-space:nowrap;cursor:pointer}
+.me-pill-logout{opacity:.55;font-weight:700;margin-left:1px}
+.me-pill:hover .me-pill-logout{opacity:1;color:var(--red)}
+.wrap{max-width:960px;margin:0 auto;padding:36px 24px 64px}
+.btn-back{display:inline-flex;align-items:center;gap:6px;border:1px solid var(--line);background:var(--white);color:var(--ink-2);border-radius:10px;padding:8px 12px;font-size:13px;font-weight:600;cursor:pointer;font-family:inherit;text-decoration:none;transition:background .15s ease}
+.btn-back:hover{background:var(--line-light)}
+.hello{margin:18px 0 4px;font-size:24px;font-weight:700;letter-spacing:-.02em;color:var(--ink)}
+.hello-sub{margin:0 0 24px;font-size:14px;color:var(--ink-3)}
+.crh-warn{background:var(--amber-soft);border:1px solid var(--line);color:var(--amber);border-radius:10px;padding:11px 14px;font-size:12.5px;line-height:1.5;margin-bottom:20px;display:flex;gap:8px}
+.crh-card{background:var(--white);border:1px solid var(--line);border-radius:var(--radius);padding:18px;margin-bottom:18px}
+.crh-label{font-size:12px;font-weight:600;color:var(--ink-3);text-transform:uppercase;letter-spacing:.04em}
+.crh-seg-wrap{display:flex;gap:6px;background:var(--surface-2);border:1px solid var(--line);border-radius:10px;padding:4px;margin-top:8px}
+.crh-seg{flex:1;padding:9px 10px;border-radius:7px;border:none;background:transparent;color:var(--ink-3);font-size:13px;font-weight:600;cursor:pointer;font-family:inherit}
+.crh-seg.on{background:var(--red);color:#fff}
+.crh-hint{font-size:11.5px;color:var(--ink-4);margin-top:6px}
+.crh-row{display:flex;justify-content:space-between;align-items:center;gap:10px;margin:14px 0 8px}
+.crh-ta{width:100%;background:var(--white);border:1px solid var(--line);border-radius:10px;color:var(--ink);font-size:14px;line-height:1.55;padding:13px 15px;outline:none;resize:vertical;font-family:inherit}
+.crh-ta:focus{border-color:var(--red)}
+.crh-badge{font-size:12px;font-weight:600;border-radius:999px;padding:3px 11px;display:none}
+.crh-badge.ok{color:var(--red);background:var(--red-soft)}
+.crh-badge.warn{color:var(--amber);background:var(--amber-soft)}
+.crh-btn{width:100%;margin-top:14px;background:var(--red);color:#fff;border:none;border-radius:10px;padding:13px 18px;font-size:15px;font-weight:700;cursor:pointer;font-family:inherit}
+.crh-btn:disabled{background:var(--ink-4);cursor:not-allowed}
+.crh-err{background:var(--amber-soft);border:1px solid var(--line);color:var(--amber);border-radius:8px;padding:10px 12px;font-size:13px;margin-top:12px;display:none}
+.crh-out{width:100%;min-height:440px;background:var(--white);border:1px solid var(--line);border-radius:10px;padding:18px;font-family:inherit;font-size:14.5px;line-height:1.65;color:var(--ink);resize:vertical;outline:none}
+.crh-copy{border:1px solid var(--line);background:var(--white);color:var(--red);border-radius:8px;padding:6px 14px;font-size:13px;font-weight:600;cursor:pointer;font-family:inherit;display:none}
+@media(max-width:640px){.header{padding:0 14px;height:52px}.header-sub{display:none}.wrap{padding:24px 16px 48px}}
+</style>
+<script src="partage/session.js"></script>   <!-- (17/08/2026) source unique : où vit le code d'accès, et 30 jours glissants -->
+<script>/* FALLBACK_SESSION — filet (17/08/2026). Si partage/session.js ne se charge pas
+(réseau, cache), les pages l'appelleraient dans le vide et NE S'OUVRIRAIENT PLUS : le MAR ne
+pourrait même plus taper son code. On retombe alors sur le comportement d'avant — le code vit
+le temps de l'onglet — au lieu de planter. Jamais de mémoire longue ici : mieux vaut retaper
+son code que le voir retenu par un filet dont personne ne vérifie l'échéance. */
+window.SessionPortail = window.SessionPortail || { lire:function(){try{return sessionStorage.getItem('pmViewCode')||'';}catch(e){return '';}}, memoriser:function(c){try{sessionStorage.setItem('pmViewCode',c);}catch(e){}}, oublier:function(){try{sessionStorage.removeItem('pmViewCode');}catch(e){}}, estInstallee:function(){return false;}, joursRestants:function(){return null;}, DUREE_JOURS:0 };</script>
+</head>
+<body>
+
+<!-- CONNEXION (auth nominatif — identique aux autres pages du portail) -->
+<div id="viewAuthOverlay" style="position:fixed;inset:0;z-index:9999;background:var(--bg);display:flex;align-items:center;justify-content:center;padding:20px">
+  <div style="background:var(--white);border:1px solid var(--line);border-radius:16px;box-shadow:0 10px 30px rgba(15,23,42,.08);padding:36px 32px;width:100%;max-width:380px;text-align:center">
+    <img src="assets/logo.png" alt="" style="width:48px;height:48px;border-radius:12px;display:block;margin:0 auto 16px;box-shadow:0 4px 12px rgba(206,17,38,.30)">
+    <div style="font-size:18px;font-weight:800;color:var(--ink)">Planning-Med</div>
+    <div style="font-size:13px;color:var(--ink-3);margin:4px 0 22px">Comptes rendus de réanimation</div>
+    <input id="viewAuthInput" type="password" placeholder="Code d'accès personnel" autocomplete="off" autocapitalize="characters"
+      style="width:100%;box-sizing:border-box;padding:12px 14px;font-size:16px;border:1px solid var(--line);border-radius:10px;text-align:center;letter-spacing:2px;font-family:monospace"/>
+    <button id="viewAuthBtn" onclick="viewLogin()"
+      style="width:100%;margin-top:12px;padding:12px;background:var(--red);color:#fff;border:none;border-radius:10px;font-size:15px;font-weight:700;cursor:pointer">Accéder →</button>
+    <div id="viewAuthErr" style="display:none;margin-top:12px;font-size:13px;color:var(--red);font-weight:600"></div>
+    <div style="margin-top:18px;font-size:11.5px;color:var(--ink-4)">Utilisez le même code que pour la saisie de vos indisponibilités.</div>
+  </div>
+</div>
+
+<!-- HEADER -->
+<div class="header">
+  <div class="header-brand">
+    <div class="header-flag"><img src="assets/logo.png" alt="" style="width:100%;height:100%;object-fit:cover;display:block"></div>
+    <div>
+      <div class="header-title">Planning-Med</div>
+      <div class="header-sub">Comptes rendus de réanimation</div>
+    </div>
+  </div>
+  <div class="header-right">
+    <button id="themeBtn" class="theme-btn" onclick="cycleTheme()" title="Thème">🌗</button>
+    <span id="mePill" class="me-pill" style="display:none"></span>
+  </div>
+</div>
+
+<!-- CONTENU -->
+<div class="wrap" id="portal" style="display:none">
+  <a class="btn-back" href="dashboard.html"><i data-lucide="arrow-left" style="width:16px;height:16px"></i> Portail</a>
+  <h1 class="hello">Comptes rendus de réanimation</h1>
+  <p class="hello-sub">Colle les mots d'évolution du séjour, la synthèse est générée au style du service.</p>
+
+  <div class="crh-warn">
+    <span style="font-weight:700">⚠︎</span>
+    <span>Ne colle que des données <b>anonymisées</b> : aucun nom, aucune date de naissance, aucun identifiant. Le compte rendu produit est un <b>brouillon à relire et valider</b> avant intégration au dossier.</span>
+  </div>
+
+  <div class="crh-card">
+    <div class="crh-label">Format du compte rendu</div>
+    <div class="crh-seg-wrap">
+      <button class="crh-seg on" data-f="appareil" onclick="setFormat('appareil')">Par appareil</button>
+      <button class="crh-seg" data-f="chrono" onclick="setFormat('chrono')">Chronologique</button>
+    </div>
+    <div class="crh-hint" id="fmtHint">Séjours courts/simples — intro/admission puis « Sur le plan … ».</div>
+
+    <div class="crh-label" style="margin-top:16px">Modèle</div>
+    <div class="crh-seg-wrap">
+      <button class="crh-seg on" data-m="sonnet" onclick="setModel('sonnet')">Sonnet 4.6</button>
+      <button class="crh-seg" data-m="opus" onclick="setModel('opus')">Opus 4.8</button>
+    </div>
+    <div class="crh-hint" id="mdlHint">Standard — convient à la plupart des séjours.</div>
+
+    <div class="crh-row">
+      <span class="crh-label">Mots d'évolution du séjour</span>
+      <span class="crh-badge" id="joursBadge"></span>
+    </div>
+    <textarea class="crh-ta" id="crhBloc" rows="16" placeholder="Colle ici tout le suivi, d'un bloc.
+
+Motif et antécédents en tête si tu veux, puis les journées :
+
+J1 …
+J2 …
+J3 …"></textarea>
+
+    <label style="display:flex;align-items:flex-start;gap:8px;margin-top:12px;font-size:13px;cursor:pointer">
+      <input type="checkbox" id="anonChk" style="margin-top:2px" onchange="document.getElementById('genBtn').disabled=!this.checked">
+      <span>Je confirme que ce texte est <b>anonymisé</b> : aucun nom, aucune date de naissance, aucun numéro de dossier ou identifiant.</span>
+    </label>
+    <button class="crh-btn" id="genBtn" onclick="genererCRH()" disabled>Générer le compte rendu</button>
+    <div class="crh-err" id="crhErr"></div>
+  </div>
+
+  <div class="crh-card">
+    <div class="crh-row" style="margin-top:0">
+      <span class="crh-label">Compte rendu généré</span>
+      <button class="crh-copy" id="copyBtn" onclick="copierCRH()">Copier</button>
+    </div>
+    <textarea class="crh-out" id="crhOut" placeholder="Le compte rendu apparaîtra ici, éditable avant copie."></textarea>
+    <div class="crh-hint" id="mdlUsed" style="margin-top:8px"></div>
+  </div>
+</div>
+
+<script>
+const API_URL = 'https://script.google.com/macros/s/AKfycbxDbTnhgdjCNBqkeAblZWgS3CK-IptjJoRDQd1AtGF7WQoQkXriWGvISIo7LJG8zUtjTQ/exec';
+let VIEW_CODE = ''; let MY_ID = null; let MY_ROLE = null; let FMT = 'appareil'; let MODEL = 'sonnet';
+
+function esc(s){ return String(s||'').replace(/[&<>'"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;',"'":'&#39;','"':'&quot;'}[c])); }
+function _meName(id){ return (id==='PRUNET'?'Pr ':'Dr ')+id.charAt(0)+id.slice(1).toLowerCase(); }
+
+// ── THÈME (clé localStorage partagée : pmTheme) ──
+function getThemePref(){ try{return localStorage.getItem('pmTheme')||'auto';}catch(e){return 'auto';} }
+function resolveTheme(pref){ return pref==='auto' ? (window.matchMedia('(prefers-color-scheme: dark)').matches?'dark':'light') : pref; }
+function applyTheme(){
+  const pref=getThemePref(), t=resolveTheme(pref);
+  document.documentElement.dataset.theme = t;
+  const meta=document.querySelector('meta[name="theme-color"]');
+  if(meta) meta.content = t==='dark' ? '#0B1220' : '#CE1126';
+  const btn=document.getElementById('themeBtn');
+  if(btn){ btn.textContent = pref==='auto'?'🌗':(pref==='dark'?'🌙':'☀️');
+           btn.title = 'Thème : '+(pref==='auto'?'automatique':(pref==='dark'?'sombre':'clair')); }
+}
+function cycleTheme(){
+  const order=['auto','light','dark'];
+  const next=order[(order.indexOf(getThemePref())+1)%3];
+  try{localStorage.setItem('pmTheme',next);}catch(e){}
+  applyTheme();
+}
+try{ window.matchMedia('(prefers-color-scheme: dark)').addEventListener('change',()=>{ if(getThemePref()==='auto') applyTheme(); }); }catch(e){}
+applyTheme();
+
+// ── API (POST text/plain, code de session injecté — identique au reste du portail) ──
+let _apiBusy = 0;
+function _apiBar(on){
+  let el = document.getElementById('apiBar');
+  if(!el){ el = document.createElement('div'); el.id='apiBar';
+    el.style.cssText='position:fixed;top:0;left:0;height:3px;width:0;background:var(--red);z-index:99999;transition:width .3s ease,opacity .3s ease'; document.body.appendChild(el); }
+  _apiBusy = Math.max(0, _apiBusy + (on?1:-1));
+  if(_apiBusy>0){ el.style.opacity='1'; el.style.width='75%'; } else { el.style.width='100%'; setTimeout(()=>{el.style.opacity='0';el.style.width='0';},250); }
+}
+async function apiPost(payload) {
+  payload.code = VIEW_CODE;
+  _apiBar(true);
+  const _ctrl = new AbortController();
+  const _timer = setTimeout(() => _ctrl.abort(), 120000);
+  try {
+    const res = await fetch(API_URL, {
+      method: 'POST',
+      headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+      body: JSON.stringify(payload),
+      redirect: 'follow',
+      signal: _ctrl.signal,
+    });
+    return await res.json();
+  } catch (e) {
+    if (e && e.name === 'AbortError') throw new Error('Délai dépassé (2 min) — serveur trop lent ou injoignable, réessayez');
+    throw e;
+  } finally { clearTimeout(_timer); _apiBar(false); }
+}
+
+// ── BADGE UTILISATEUR + DÉCONNEXION ──
+function applyUserBadge(r){
+  MY_ROLE = r.role; MY_ID = (r.role==='mar') ? r.id : null;
+  const pill = document.getElementById('mePill'); if(!pill) return;
+  const label = MY_ID ? _meName(MY_ID) : 'Admin';
+  pill.innerHTML = '👤 ' + esc(label) + ' <span class="me-pill-logout">⏻</span>';
+  pill.style.display = 'inline-flex'; pill.onclick = logout;
+  pill.title = "Changer d'utilisateur / déconnexion";
+}
+function logout(){
+  if(!confirm('Se déconnecter et changer d\'utilisateur ?')) return;
+  SessionPortail.oublier();                // efface l'onglet ET la mémoire longue
+  VIEW_CODE=''; MY_ID=null; MY_ROLE=null; location.reload();
+}
+
+// ── AUTH DE SESSION ──
+function _authErr(msg){
+  const el = document.getElementById('viewAuthErr');
+  el.textContent = msg; el.style.display='block';
+  setTimeout(()=> el.style.display='none', 4000);
+}
+function showPortal(){
+  document.getElementById('viewAuthOverlay').style.display='none';
+  document.getElementById('portal').style.display='block';
+  if(window.lucide) lucide.createIcons();
+}
+async function viewLogin(){
+  const code = document.getElementById('viewAuthInput').value.trim().toUpperCase();
+  if(!code) return;
+  const btn = document.getElementById('viewAuthBtn');
+  btn.disabled = true; btn.textContent = 'Vérification…';
+  try{
+    VIEW_CODE = code;
+    const r = await apiPost({action:'login'});
+    if(r && r.success){
+      SessionPortail.memoriser(code);      // session commune du portail
+      applyUserBadge(r); showPortal();
+    } else { VIEW_CODE=''; _authErr(r && r.error ? r.error : 'Code incorrect'); }
+  } catch(e){ VIEW_CODE=''; _authErr('Erreur réseau — réessayez'); }
+  btn.disabled = false; btn.textContent = 'Accéder →';
+}
+/* (17/08/2026) Session lue par SessionPortail : l'onglet seul ne suffit pas, le
+   portail retient le code 30 jours dans l'app installée. */
+async function viewAutoLogin(){
+  const saved = SessionPortail.lire();
+  if(!saved) return; // pas de code en cache → écran de connexion affiché
+  // Affichage optimiste : le code étant en cache, on montre l'interface tout de suite
+  // et on revalide en arrière-plan — plus de clignotement de la page d'authentification.
+  VIEW_CODE = saved; showPortal();
+  try{
+    const r = await apiPost({action:'login'});
+    if(r && r.success){ applyUserBadge(r); }
+    else {
+      VIEW_CODE=''; SessionPortail.oublier();
+      document.getElementById('viewAuthOverlay').style.display='flex';
+      document.getElementById('portal').style.display='none';
+    }
+  } catch(e){ /* réseau indisponible : on conserve l'affichage optimiste */ }
+}
+document.getElementById('viewAuthInput').addEventListener('keydown', e => { if(e.key==='Enter') viewLogin(); });
+
+// ── LOGIQUE CRH ──
+function detecterJours(txt){
+  if(!txt.trim()) return 0;
+  const re=/(?:^|\n)\s*(?:j\s?[+-]?\d{1,3}|jour\s?\d{1,3}|\d{1,2}[\/\-]\d{1,2}(?:[\/\-]\d{2,4})?)\b/gi;
+  const m=txt.match(re); return m?m.length:0;
+}
+function majBadge(){
+  const bloc=document.getElementById('crhBloc').value;
+  const b=document.getElementById('joursBadge');
+  if(!bloc.trim()){ b.style.display='none'; return; }
+  const n=detecterJours(bloc); b.style.display='inline-block';
+  if(n>0){ b.textContent='≈ '+n+' jour'+(n>1?'s':'')+' repéré'+(n>1?'s':''); b.className='crh-badge ok'; }
+  else { b.textContent='Aucun marqueur — traité tel quel'; b.className='crh-badge warn'; }
+}
+function setFormat(f){
+  FMT=f;
+  document.querySelectorAll('.crh-seg[data-f]').forEach(el=>el.classList.toggle('on', el.dataset.f===f));
+  document.getElementById('fmtHint').textContent = f==='appareil'
+    ? 'Séjours courts/simples — intro/admission puis « Sur le plan … ».'
+    : 'Séjours longs/complexes — récit chronologique daté.';
+}
+function setModel(m){
+  MODEL=m;
+  document.querySelectorAll('.crh-seg[data-m]').forEach(el=>el.classList.toggle('on', el.dataset.m===m));
+  document.getElementById('mdlHint').textContent = m==='opus'
+    ? 'Modèle le plus capable — à réserver aux séjours longs ou complexes (coût un peu supérieur).'
+    : 'Standard — convient à la plupart des séjours.';
+}
+// (C1a) Pré-filtre : signaux clairs d'identifiants patient. Volontairement
+// conservateur (aucun faux positif sur un texte clinique normal).
+function detecteIdentifiant(t){
+  const regles=[
+    [/\bn[ée]e?\s+le\b/i,               'mention « né(e) le »'],
+    [/\bdate\s+de\s+naissance\b/i,      'mention « date de naissance »'],
+    [/\b(IPP|NIP)\b\s*[:\s]*\d/i,       'numéro IPP/NIP'],
+    [/\bn[°o]\s*(de\s*)?dossier\b/i,    'numéro de dossier'],
+    [/\bnom\s+du\s+patient\b/i,         'mention « nom du patient »'],
+    [/\b(M\.|Mr|Mme|Madame|Monsieur)\s+[A-ZÉÈÀ]{2,}\b/, 'civilité + NOM en capitales'],
+  ];
+  for(const [re,label] of regles){ if(re.test(t)) return label; }
+  return null;
+}
+async function genererCRH(){
+  const bloc=document.getElementById('crhBloc').value.trim();
+  if(!bloc) return;
+  if(!document.getElementById('anonChk').checked) return;
+  const err0=document.getElementById('crhErr');
+  const hit=detecteIdentifiant(bloc);
+  if(hit){
+    err0.textContent='Envoi bloqué : le texte semble contenir un identifiant patient ('+hit+'). Retire-le puis relance.';
+    err0.style.display='block';
+    return;
+  }
+  const btn=document.getElementById('genBtn'), err=document.getElementById('crhErr'), out=document.getElementById('crhOut'), copy=document.getElementById('copyBtn');
+  err.style.display='none'; out.value=''; copy.style.display='none';
+  btn.disabled=true; btn.textContent='Génération en cours…';
+  try{
+    const r=await apiPost({action:'genererCRH', texte:bloc, format:FMT, model:MODEL, confirmAnonyme:true});
+    if(r && r.success){
+      out.value=r.cr||'';
+      if(r.cr) copy.style.display='inline-flex';
+      const mu=document.getElementById('mdlUsed');
+      mu.textContent = r.model_used ? ('Généré avec ' + r.model_used + (r.out_tokens ? ' · ' + r.out_tokens + ' tokens' : '')) : '';
+      if(r.truncated){
+        const info = (r.out_tokens && r.cap) ? ' — ' + r.out_tokens + ' tokens générés / plafond ' + r.cap : '';
+        err.textContent='Compte rendu peut-être incomplet (limite de longueur atteinte' + info + '). Relance si la fin manque.'; err.style.display='block';
+      }
+    } else { err.textContent=(r && r.error) ? r.error : 'Échec de la génération.'; err.style.display='block'; }
+  }catch(e){ err.textContent='Erreur réseau — réessayez.'; err.style.display='block'; }
+  btn.disabled=false; btn.textContent='Générer le compte rendu';
+}
+async function copierCRH(){
+  const out=document.getElementById('crhOut'), b=document.getElementById('copyBtn');
+  try{ await navigator.clipboard.writeText(out.value); const t=b.textContent; b.textContent='Copié ✓'; setTimeout(()=>b.textContent=t,1800); }
+  catch(e){ out.select(); }
+}
+document.getElementById('crhBloc').addEventListener('input', majBadge);
+
+if(window.lucide) lucide.createIcons();
+viewAutoLogin();
+</script>
+</body>
+</html>

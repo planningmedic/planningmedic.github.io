@@ -1,0 +1,275 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Planning-Med — Roadmap</title>
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;700;800&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+:root{--red:#CE1126;--deep:#9E0C1D;--ink:#0F172A;--ink2:#475569;--line:#E2E8F0;--bg:#F6F8FB;
+--ok:#1E7A46;--ok-soft:#EAF6EF;--amber:#92600A;--amber-soft:#FDF6E3}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);font-family:"DM Sans",sans-serif;color:var(--ink);font-size:15px;line-height:1.5}
+.wrap{max-width:860px;margin:0 auto;padding:22px 16px 70px}
+
+/* bandeau commun (26/08) */
+.appbar{background:linear-gradient(135deg,#9E0C1D 0%,#CE1126 78%);color:#fff;border-radius:16px;
+  padding:18px;position:relative;overflow:hidden;margin:0 0 18px}
+.appbar-wm{position:absolute;right:-30px;top:-30px;width:190px;opacity:.10;filter:brightness(4);pointer-events:none}
+.appbar-row{display:flex;align-items:center;gap:14px;position:relative}
+.appbar-ic{width:48px;height:48px;border-radius:12px;background:#fff;padding:3px;box-shadow:0 3px 10px rgba(0,0,0,.25);flex:none}
+.appbar-eyebrow{font-family:"DM Mono",monospace;font-size:11px;letter-spacing:.14em;text-transform:uppercase;opacity:.85}
+.appbar h1{margin:2px 0 0;font-size:clamp(20px,5.5vw,25px);font-weight:800;letter-spacing:-.01em;color:#fff;line-height:1.15}
+.appbar-chip{margin-left:auto;font-family:"DM Mono",monospace;font-size:11px;background:rgba(255,255,255,.16);
+  border:1px solid rgba(255,255,255,.35);border-radius:99px;padding:4px 10px;white-space:nowrap;color:#fff;flex:none}
+.appbar-sub{margin:10px 0 0;font-size:14px;opacity:.92;position:relative;color:#fff}
+
+h2{font-size:17px;font-weight:800;margin:30px 0 10px;letter-spacing:-.01em}
+h2 small{font-weight:500;color:var(--ink2);font-size:12.5px;margin-left:8px}
+
+/* tuiles d'état */
+.etat-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:10px}
+.etat-grid>div{background:#fff;border:1px solid var(--line);border-radius:12px;padding:12px 14px}
+.etat-k{font-family:"DM Mono",monospace;font-size:10.5px;letter-spacing:.08em;text-transform:uppercase;color:var(--ink2)}
+.etat-v{font-size:21px;font-weight:800;margin-top:2px}
+.etat-v small{font-size:11.5px;font-weight:500;color:var(--ink2)}
+.note{font-size:12.5px;color:var(--ink2);margin:8px 2px 0}
+
+/* échéancier */
+.jalon{background:#fff;border:1px solid var(--line);border-radius:12px;padding:11px 14px;margin-bottom:8px}
+.jalon.chaud{border-color:#F6C9D2;background:#FFF8F9}
+.jalon-t{display:flex;align-items:baseline;gap:10px;flex-wrap:wrap}
+.jalon-d{font-family:"DM Mono",monospace;font-size:12px;color:var(--deep);font-weight:500;white-space:nowrap}
+.jalon-n{font-weight:700}
+.cd{margin-left:auto;font-family:"DM Mono",monospace;font-size:11.5px;color:var(--ink2)}
+.cd.proche{color:var(--amber);font-weight:700}
+.cd.urgent{color:var(--deep);font-weight:700}
+.jalon-p{margin:4px 0 0;font-size:13px;color:var(--ink2)}
+
+/* à faire */
+.todo{background:#fff;border:1px solid var(--line);border-radius:12px;padding:13px 16px;margin-bottom:10px}
+.todo b.t{display:block;font-size:14.5px;margin-bottom:5px}
+.todo ul{margin:0;padding-left:19px}
+.todo li{margin:3px 0;font-size:13.5px}
+.todo li small{color:var(--ink2)}
+.pin{background:var(--amber-soft);border:1px solid #F0DCAE;border-radius:8px;padding:2px 7px;font-size:12px;color:var(--amber);font-weight:700}
+
+/* modules */
+.mods{display:grid;grid-template-columns:repeat(auto-fit,minmax(240px,1fr));gap:8px}
+.mod{background:#fff;border:1px solid var(--line);border-radius:10px;padding:10px 12px;font-size:13px}
+.mod b{display:block;margin-bottom:2px}
+.mod span{color:var(--ink2);font-size:12.5px}
+
+/* replis */
+details{background:#fff;border:1px solid var(--line);border-radius:12px;padding:12px 16px;margin-bottom:10px}
+summary{font-weight:700;cursor:pointer;font-size:14.5px}
+.regle{margin:10px 0 0;font-size:13.5px}
+.regle b{display:block}
+.regle span{color:var(--ink2);font-size:12.5px}
+.pied{margin-top:34px;font-size:12.5px;color:var(--ink2)}
+.pied a{color:var(--deep)}
+</style>
+</head>
+<body>
+<div class="wrap">
+
+<div class="appbar">
+  <img class="appbar-wm" src="../assets/icon-192.png" alt="" aria-hidden="true">
+  <div class="appbar-row">
+    <img class="appbar-ic" src="../assets/icon-192.png" alt="">
+    <div>
+      <div class="appbar-eyebrow">Planning-Med · Anesthésie-Réanimation</div>
+      <h1>Roadmap</h1>
+    </div>
+    <span class="appbar-chip" data-version>—</span>
+  </div>
+  <p class="appbar-sub">Où on en est, et ce qu'il reste à faire — en une page. L'histoire complète, jour par jour, vit dans la roadmap du dépôt. Campagne des indisponibilités&nbsp;: <b id="jmoins">—</b>.</p>
+</div>
+
+<h2>Où on en est</h2>
+<div class="etat-grid">
+  <div><div class="etat-k">Site</div><div class="etat-v" data-version>—</div></div>
+  <div><div class="etat-k">Banc d'essai</div><div class="etat-v">2764 <small>vérifs · 51 scripts</small></div></div>
+  <div><div class="etat-k">Utilisateurs</div><div class="etat-v">24 <small>MARs actifs</small></div></div>
+  <div><div class="etat-k">Veille</div><div class="etat-v">79,5 <small>art./sem.</small></div></div>
+</div>
+<p class="note"><b>5–6 septembre.</b> Nouvel algorithme de gardes : cibles entières, numéro de tirage, calcul rejoué jusqu'à huit fois, deux week-ends d'affilée interdits — <b>44 années simulées sur 45 sans personne au-delà d'une garde d'écart</b>, contre 29 sur 45 avant. Éprouvé sur les absences réelles du service. L'écran d'équité, la saisie des indisponibilités et la tuile temps partiel refaits. La numérotation du site est repartie de zéro.</p>
+
+<details class="note"><summary>Le détail de ces deux jours</summary>
+<p>L'écran d'équité affichait un <b>calcul faux</b> : sur 2026, la colonne CIBLE promettait 730,8 gardes pour 707 posées — les gardes d'un médecin extérieur au service, comptées nulle part. Il accusait 19 MAR sur 20 au lieu de 17, dont trois pile à leur part. Corrigé, et le <b>sixième axe (jours fériés)</b> enfin affiché : la colonne existait, aucun lecteur ne la lisait.</p>
+<p>La <b>chaîne complète a été répétée</b> le 6 septembre — W1, staff vacances, saisie, temps partiel, vérification du classeur.</p>
+<p>La <b>cloche ne notait plus rien</b> depuis le passage au canal par rôle : le garde-fou destiné au comité écartait tous les rôles, dont celui des MAR. La notification de génération partait sur les téléphones, la cloche restait vide.</p>
+</details>
+
+<p class="note">Versions du code déployé, battements des tâches automatiques, cohérence des données : c'est le <b>Diagnostic</b> (écran d'administration → Maintenance) qui fait foi.</p>
+
+<h2>Échéancier</h2>
+<div class="ech" id="ech">
+  <div class="jalon chaud" data-d="2026-10-09">
+    <div class="jalon-t"><span class="jalon-d">9 oct.</span><span class="jalon-n">Staff vacances</span><span class="cd"></span></div>
+    <p class="jalon-p">Chacun pose ses congés et ses formations sur <code>staff.html</code>, en séance. C'est ce que la campagne verra verrouillé le lendemain.</p>
+  </div>
+  <div class="jalon chaud" data-d="2026-10-10">
+    <div class="jalon-t"><span class="jalon-d">10 → 30 oct.</span><span class="jalon-n">Campagne des indisponibilités 2027</span><span class="cd"></span></div>
+    <p class="jalon-p">W1 jusqu'à l'étape 4 ouvre la campagne ; l'étape 6 envoie les codes. Les 24 déclarent depuis leur téléphone : indisponibilités, gardes souhaitées, et jours de temps partiel pour ceux qui ont un quota. <b>La chaîne complète a été répétée le 6 septembre</b>, du staff au classeur.</p>
+  </div>
+  <div class="jalon" data-d="2026-10-18">
+    <div class="jalon-t"><span class="jalon-d">18 oct.</span><span class="jalon-n">Expiration du jeton GitHub</span><span class="cd"></span></div>
+    <p class="jalon-p">Passé cette date, plus aucune publication ne part. Alerte automatique à 30 puis 10 jours — elle a déjà sonné.</p>
+  </div>
+  <div class="jalon" data-d="2026-10-30">
+    <div class="jalon-t"><span class="jalon-d">30 oct.</span><span class="jalon-n">Essai à blanc sur les vraies données</span><span class="cd"></span></div>
+    <p class="jalon-p">Campagne close, lancer <code>T7</code> depuis l'éditeur : deux calculs sans écriture, ancien et nouvel algorithme, six écarts côte à côte. <b>C'est le seul test qui vaudra vraiment</b> — tout le reste repose sur des souhaits fabriqués, étalés mécaniquement, là où les vrais tomberont sur les mêmes dates.</p>
+  </div>
+  <div class="jalon" data-d="2026-11-02">
+    <div class="jalon-t"><span class="jalon-d">2 nov.</span><span class="jalon-n">Génération des gardes 2027</span><span class="cd"></span></div>
+    <p class="jalon-p">La vraie. Regarder le planning avant de publier — la publication est un geste séparé. Et prévoir un moment pour la <b>tuile temps partiel</b>, qui s'ouvrira ce jour-là et que personne n'a jamais vue en vrai.</p>
+  </div>
+  <div class="jalon" data-d="2027-01-04">
+    <div class="jalon-t"><span class="jalon-d">4 janv. 2027</span><span class="jalon-n">Clôture de 2026</span><span class="cd"></span></div>
+    <p class="jalon-p">Surtout pas avant : archiver trop tôt est la seule erreur vraiment coûteuse.</p>
+  </div>
+  <div class="jalon" data-d="2027-01-15">
+    <div class="jalon-t"><span class="jalon-d">janv. 2027</span><span class="jalon-n">Déménagement</span><span class="cd"></span></div>
+    <p class="jalon-p">Les codes de secteurs changent. Rien à coder tant que l'organisation cible n'est pas connue — mais les listes écrites en dur doivent sortir avant.</p>
+  </div>
+  <div class="jalon" data-d="2027-03-01">
+    <div class="jalon-t"><span class="jalon-d">mars 2027</span><span class="jalon-n">Régénération de l'index CCAM</span><span class="cd"></span></div>
+    <p class="jalon-p">Version en vigueur depuis le 3 juillet 2026. Alerte d'obsolescence automatique.</p>
+  </div>
+  <div class="jalon" data-d="2027-11-01">
+    <div class="jalon-t"><span class="jalon-d">nov. 2027</span><span class="jalon-n">Première année avec report de dette</span><span class="cd"></span></div>
+    <p class="jalon-p">Le compteur démarre vide en 2027 : la dette ne joue qu'à la génération de 2028. C'est la date butoir pour l'écrire.</p>
+  </div>
+</div>
+
+<h2>À faire, dans l'ordre</h2>
+
+<div class="bloc">
+  <div class="bloc-t">Tout de suite — ça casse quelque chose</div>
+  <ul>
+    <li><b>Renouveler le jeton GitHub</b> <small>— il expire le 18 octobre, en pleine campagne. Sans lui, plus aucune publication.</small></li>
+    <li><b>Retirer la redirection d'essai des mails</b> <small>— tant que <code>NOTIF_EMAIL_TEST</code> existe, aucun MAR n'est prévenu d'un changement le concernant, et rien ne le signale à part le Diagnostic. Elle ne détourne <em>pas</em> les codes d'accès de la campagne, qui partent bien.</small></li>
+    <li><b>Régénérer la clé Anthropic</b> et <b>supprimer la copie du classeur</b> <small>— la copie contient un double de tous les jetons.</small></li>
+  </ul>
+</div>
+
+<div class="bloc">
+  <div class="bloc-t">Avant la génération de novembre</div>
+  <ul>
+    <li><b>Trancher le départ de FERRIERO</b> <small>— sa date d'activité reste vide dans MEDECINS, à renseigner une fois décidé — et l'exemption des 60 ans.</small></li>
+    <li><b>Réintégrer FERRIERO et PRUNET dans un groupe de vacances</b> <small>— actifs mais absents de GROUPES_VAC, donc invisibles à l'arbitrage des congés.</small></li>
+    <li>Les médecins <b>hors groupe de vacances ne consomment aucune place</b> du seuil de présence <small>— le serveur ne compte que les membres de A/B/C. Le staff vacances, lui, les compte déjà correctement : le trou est purement côté serveur.</small></li>
+    <li><b>Vérifier que les seuils de congés n'ont pas bougé</b> <small>— l'écran des périodes les écrase en resauvegardant. Valeurs voulues : 8 hors été, 10 à Noël et l'été.</small></li>
+  </ul>
+</div>
+
+<div class="bloc">
+  <div class="bloc-t">Après novembre</div>
+  <ul>
+    <li><b>La dette cumulative</b> <small>— un compteur permanent par MAR et par axe, ouvert en 2027 et jamais remis à zéro, au lieu de ne regarder que l'année précédente. Mesuré : la dérive à vingt ans passe de 8,7 à 3,1 gardes. Inutile avant novembre 2027, le compteur démarrant vide. Demande six colonnes ajoutées <em>en fin</em> de STATS_GARDES pour conserver la part exacte.</small></li>
+    <li><b>Le résidu sur les petits axes</b> <small>— veilles de férié et jours fériés concentrent ce qui reste d'inéquité. Arithmétique : sept veilles dans l'année, donc une part individuelle autour de 0,7, que l'arrondi ne peut rendre qu'en 0 ou 1.</small></li>
+    <li><b>Retirer les lanceurs temporaires</b> <small>— <code>T</code>, <code>T7</code>, <code>W1_2028</code>, <code>W2_2026</code> dans les fichiers du serveur, une fois 2027 publié. <code>W2_2026</code> efface le planning en cours et notifie toute l'équipe : il n'a rien à faire là en temps normal.</small></li>
+    <li><b>Poster SFAR 2027</b> <small>— les données d'équité avant/après sont capturées, et l'avant/après est désormais chiffré sur données réelles.</small></li>
+  </ul>
+</div>
+
+<div class="bloc">
+  <div class="bloc-t">Avant le déménagement</div>
+  <ul>
+    <li><b>Sortir les listes de secteurs écrites en dur</b> <small>— <code>admin.html</code> (COVERAGE, targets, WIZ_SECTEURS), <code>index.html</code> (libellés et ordre), <code>absences.html</code> (LIB_CS), <code>code.gs</code> (CS_RULES). À ne PAS toucher : le repli de <code>code.gs</code> si l'onglet SECTEURS est illisible, la liste de départ de SPECIALITES, et les tables d'alias qui normalisent les vieilles orthographes.</small></li>
+    <li><b>Les codes de secteur ne se renomment jamais</b> <small>— les anciens passent à <code>ACTIF=N</code>, les nouveaux se créent. Un renommage casserait tout l'historique.</small></li>
+  </ul>
+</div>
+
+<div class="bloc">
+  <div class="bloc-t">Dette technique, sans urgence</div>
+  <ul>
+    <li><b>Les jetons vivent en clair dans l'onglet CONFIG</b> <small>— GitHub, Anthropic, codes d'accès. Ils sortent dès qu'on exporte ou copie le classeur. Leur place est dans les propriétés du script, qui ne sont ni exportées ni copiées.</small></li>
+    <li><b>Regrouper les bornes de l'année de planning dans <code>partage/</code></b> <small>— écrites à l'identique dans deux pages, exactement le doublon qui a causé le défaut du 3 septembre.</small></li>
+    <li><b>Le secrétariat est compté comme un 26<sup>e</sup> utilisateur</b> <small>dans la courbe « médecins actifs sur 25 », qui peut donc dépasser son propre plafond.</small></li>
+    <li><b>Passer « Ce qu'il reste à poser » par la copie rapide</b> <small>— aujourd'hui chaque dépliage appelle Google.</small></li>
+    <li><b><code>banc/node_modules</code> n'est pas ignoré par git.</b></li>
+    <li><b>Relire le guide technique à froid</b> <small>— seules les sections que les changements récents ont rendues fausses ont été confrontées au code le 6 septembre. Les autres (échanges, veille, libéral, comptes rendus) peuvent contenir des décalages plus anciens.</small></li>
+  </ul>
+</div>
+
+<h2>Ce qui tourne aujourd'hui</h2>
+<div class="mods">
+  <div class="mod"><b>Planning quotidien</b><span>Grille du comité, placement, publication, export Excel du vendredi.</span></div>
+  <div class="mod"><b>Gardes</b><span>Équité annuelle sur 728 gardes (52 semaines pleines), liens samedi→récupération. Cibles entières depuis septembre 2026.</span></div>
+  <div class="mod"><b>Portail MAR</b><span>Planning, gardes, congés, messagerie, cloche des notifications.</span></div>
+  <div class="mod"><b>Indisponibilités</b><span>Campagne annuelle, souhaits, staff vacances, ponts, temps partiels posés pendant la campagne puis au fil de l'année.</span></div>
+  <div class="mod"><b>Module libéral</b><span>Cotation, devis, déclaration, suivi des 30 %.</span></div>
+  <div class="mod"><b>Contrôle d'absence</b><span>Porte MAR et porte secrétariat, motifs jamais transmis.</span></div>
+  <div class="mod"><b>Veille bibliographique</b><span>41 revues, 21 thèmes, lu/★ par MAR.</span></div>
+  <div class="mod"><b>Échanges de gardes</b><span>Don et échange entre MARs, sans le comité. Le samedi emmène sa récupération.</span></div>
+  <div class="mod"><b>Copie de lecture</b><span>Ouverture des pages en 100–270 ms sans appel Google ; écritures visibles partout en 1-2 min.</span></div>
+  <div class="mod"><b>Sauvegardes</b><span>Trois filets : classeur lundi et dimanche, code le dimanche, une copie dans un compte distinct.</span></div>
+  <div class="mod"><b>Diagnostic</b><span>Trois questions, gestes sur chaque erreur, rapport du lundi par mail, sentinelle quotidienne muette au vert.</span></div>
+</div>
+
+<details>
+  <summary>Règles à ne jamais casser</summary>
+  <div class="regle"><b>Ne jamais régénérer une année de gardes déjà générée.</b><span>Un verrou l'empêche. Il ne s'arme que sur l'onglet des gardes de l'année.</span></div>
+  <div class="regle"><b>Jamais d'archivage automatique.</b><span>Un déclencheur annuel est du code jamais testé qui s'exécute sans surveillance. Archivage au premier lundi de la nouvelle année, à la main.</span></div>
+  <div class="regle"><b>Une consigne n'est pas un verrou.</b><span>Tout geste destructeur accessible à plus d'une personne doit être empêché, pas déconseillé — la clôture d'année est refusée à l'écran ET au serveur avant sa date.</span></div>
+  <div class="regle"><b>Dès qu'une ressource a deux propriétaires, on fusionne — on ne remplace pas.</b><span>Écrire une ligne entière efface ce qu'on n'a pas chargé, sans message.</span></div>
+  <div class="regle"><b>Toute écriture dérivée refuse d'écraser une case occupée.</b><span>Un don de garde a effacé deux jours de réanimation sans aucun signal.</span></div>
+  <div class="regle"><b>Jamais d'appel supplémentaire pour accélérer.</b><span>Apps Script sérialise : un « réveil » et un délai court ont chacun cassé l'ouverture le jour de leur livraison.</span></div>
+  <div class="regle"><b>Une règle métier écrite à deux endroits finit par diverger.</b><span>Chercher toutes les copies dans tout le dépôt. Corollaire du 3 septembre : une correction faite sur un écran doit être cherchée sur tous les autres.</span></div>
+  <div class="regle"><b>Un message d'attente qui ne peut pas se résoudre est un mensonge.</b><span>« Rouvrez la page dans un instant » s'affichait sur un cul-de-sac : la donnée attendue n'allait jamais arriver.</span></div>
+  <div class="regle"><b>Toute lecture de la copie rapide a besoin d'un repli.</b><span>Une clé n'existe que si sa famille a une source qui la publie — sinon l'écran attend pour rien.</span></div>
+  <div class="regle"><b>Deux écrans qui rejouent le même calcul ne se contrôlent pas : ils se répètent.</b><span>Le second est vert par construction dès que le premier laisse passer.</span></div>
+  <div class="regle"><b>Un chiffre affiché qui n'entre dans aucun calcul finit par tromper.</b><span>L'afficher lui donne un sens qu'il n'a pas.</span></div>
+  <div class="regle"><b>Un contrôle sans destinataire ne sert à rien.</b><span>D'où le rapport du lundi et la sentinelle.</span></div>
+  <div class="regle"><b>Un indicateur qui ne détecte jamais rien doit prouver qu'il sait détecter.</b><span>Fabriquer le défaut, vérifier qu'il est vu.</span></div>
+  <div class="regle"><b>Le banc prouve la logique, jamais l'infrastructure.</b><span>Vert ne veut pas dire « ça marche ».</span></div>
+  <div class="regle"><b>Un chiffre dont on n'a pas lu le calcul est une rumeur.</b><span>Marquer la provenance : lu · mesuré · supposé.</span></div>
+</details>
+
+<details>
+  <summary>Écarté — ne pas reproposer</summary>
+  <div class="regle"><b>Protection anti-force-brute sur les codes.</b><span>~350 ans pour épuiser les combinaisons ; un disjoncteur global couperait le service des 23 après 30 essais ratés.</span></div>
+  <div class="regle"><b>Installation sur écran d'accueil des autres pages.</b><span>Tout le monde passe par le portail, qui la porte déjà.</span></div>
+  <div class="regle"><b>Icônes des secteurs embarquées dans le site.</b><span>1 728 possibles côté onglet ; une liste figée en ferait disparaître en silence.</span></div>
+  <div class="regle"><b>Réduction automatique du devis à l'impression.</b><span>Réglé par la mise en page seule.</span></div>
+  <div class="regle"><b>Fiche « pourquoi ce MAR a cette garde ».</b><span>30 à 37 % des gardes sont déplacées après coup par l'optimiseur : pour deux gardes sur trois, la réponse « il était premier du classement » serait fausse.</span></div>
+  <div class="regle"><b>Boucher les veilles de férié en semaine.</b><span>Coûte 2 points de certificat en dégradant les week-ends ; personne ne souhaite une veille de férié.</span></div>
+  <div class="regle"><b>Fenêtre couvrante pour les vacances estimées.</b><span>Choix du 27/08 : estimations serrées, le seuil vivant en continu limite l'exposition à une relecture.</span></div>
+</details>
+
+<p class="pied">L'histoire complète, jour par jour : <a href="ROADMAP-Planning-Med.md">ROADMAP-Planning-Med.md</a> · le contexte de travail : <a href="CONTEXTE-Planning-Med.md">CONTEXTE-Planning-Med.md</a> · les guides : <a href="guide-comite.html">comité</a>, <a href="guide-technique.html">technique</a>.</p>
+
+</div>
+<script>
+(function(){
+  var today = new Date(); today.setHours(0,0,0,0);
+  document.querySelectorAll('.jalon').forEach(function(j){
+    var cible = new Date(j.getAttribute('data-d') + 'T00:00:00');
+    var jours = Math.round((cible - today) / 86400000);
+    var el = j.querySelector('.cd');
+    if (!el) return;
+    if (jours < 0) { el.textContent = 'passé'; return; }
+    if (jours === 0) { el.textContent = "aujourd'hui"; el.className = 'cd urgent'; return; }
+    el.textContent = 'J-' + jours;
+    if (jours <= 30) el.className = 'cd urgent';
+    else if (jours <= 90) el.className = 'cd proche';
+  });
+})();
+</script>
+<script src="../version.js"></script>
+<script>
+/* Compte à rebours du staff — aucune donnée en dur : rouvert après le 4, il le dit. */
+(function(){
+  try {
+    var el = document.getElementById('jmoins');
+    if (!el) return;
+    var staff = new Date(2026, 9, 10, 8, 0, 0);   // ouverture de la campagne 2027
+    var j = Math.ceil((staff - new Date()) / 86400000);
+    el.textContent = j > 1 ? 'J-' + j : (j === 1 ? 'demain' : (j === 0 ? "aujourd'hui" : 'passé'));
+  } catch (e) {}
+})();
+</script>
+</body>
+</html>

@@ -1,0 +1,1908 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Libéral — coter, devis, déclarer</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600&family=IBM+Plex+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --bg:#EAEEF1;--panel:#fff;--ink:#16222C;--muted:#5B6C76;--line:#DBE1E6;--track:#E6EBEE;
+    --ccam:#24697F;--ccam-bg:#E5F0F3;--ngap:#A9762E;--ngap-bg:#F7EEDF;
+    --room:#2C8564;--over:#B23A2A;--dh:#6D28D9;--dh-bg:#F1ECFB;
+    --shadow:0 1px 2px rgba(22,34,44,.06),0 6px 20px rgba(22,34,44,.05);
+  }
+  *{box-sizing:border-box;margin:0;padding:0}
+  body{background:var(--bg);color:var(--ink);font-family:'IBM Plex Sans',system-ui,sans-serif;line-height:1.4;padding:24px 14px 120px;-webkit-font-smoothing:antialiased}
+  .wrap{max-width:960px;margin:0 auto}
+  .mono{font-family:'IBM Plex Mono',monospace;font-variant-numeric:tabular-nums}
+  .eyebrow{font-family:'IBM Plex Mono',monospace;font-size:11px;letter-spacing:.12em;text-transform:uppercase;color:var(--ccam);font-weight:500}
+  h1{font-size:24px;font-weight:700;letter-spacing:-.02em;margin:6px 0 3px}
+  .sub{color:var(--muted);font-size:13px}
+  header{margin-bottom:18px}
+  .guidelink{display:inline-flex;align-items:center;gap:7px;margin-top:10px;font-size:12px;font-weight:600;color:var(--ccam);background:var(--ccam-bg);border:1px solid #CBE0E6;border-radius:9px;padding:6px 11px;text-decoration:none}
+  .guidelink:hover{background:#D8E9EE}
+  .card{background:var(--panel);border:1px solid var(--line);border-radius:14px;padding:16px 18px;box-shadow:var(--shadow)}
+  .card h2{font-size:11.5px;font-family:'IBM Plex Mono',monospace;font-weight:500;text-transform:uppercase;letter-spacing:.06em;color:var(--muted);margin-bottom:12px}
+  label{display:block;font-size:11px;color:var(--muted);margin:0 0 3px;font-weight:500}
+  input,select{width:100%;font:inherit;font-size:13.5px;padding:7px 9px;border:1px solid var(--line);border-radius:8px;background:#fff;color:var(--ink)}
+  input:focus,select:focus{outline:2px solid var(--ccam);outline-offset:-1px;border-color:var(--ccam)}
+
+  .axhead{display:flex;align-items:center;gap:8px;font-weight:600;font-size:13px;margin-bottom:8px}
+  .dot{width:10px;height:10px;border-radius:50%}.dot.c{background:var(--ccam)}.dot.n{background:var(--ngap)}
+  .row2{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+
+  .seg{display:inline-flex;background:#EEF1F4;border-radius:8px;padding:3px}
+  .seg button{border:0;background:transparent;padding:6px 12px;font:inherit;font-size:12.5px;font-weight:600;color:var(--muted);cursor:pointer;border-radius:6px}
+  .seg button.on{background:#fff;color:var(--ink);box-shadow:0 1px 2px rgba(0,0,0,.1)}
+  .coefbadge{font-family:'IBM Plex Mono',monospace;font-size:12px;background:var(--ccam-bg);color:var(--ccam);padding:4px 9px;border-radius:7px;font-weight:600}
+
+  table.lines{width:100%;border-collapse:collapse;margin-top:8px;font-size:12.5px}
+  table.lines th{font-size:10px;font-family:'IBM Plex Mono',monospace;text-transform:uppercase;color:var(--muted);text-align:left;padding:4px 6px;font-weight:500}
+  table.lines td{padding:3px 6px;vertical-align:middle}
+  table.lines input,table.lines select{padding:5px 7px;font-size:12.5px}
+  .chkcell{text-align:center}.chkcell input{width:auto}
+  .brcell{font-family:'IBM Plex Mono',monospace;font-weight:600;color:var(--ccam);text-align:right;white-space:nowrap}
+  .rm{background:none;border:0;color:var(--muted);cursor:pointer;font-size:15px}.rm:hover{color:var(--over)}
+  .addline{margin-top:6px;background:none;border:1px dashed var(--line);border-radius:8px;padding:7px;width:100%;font:inherit;font-size:12.5px;color:var(--ccam);cursor:pointer}
+  .addline:hover{border-color:var(--ccam)}
+
+  .parcfoot{display:flex;justify-content:space-between;align-items:flex-end;gap:12px;margin-top:12px;flex-wrap:wrap}
+  .brtot{font-size:12px;color:var(--muted)}.brtot b{font-size:18px;color:var(--ccam);font-family:'IBM Plex Mono',monospace}
+  .dhbox{display:flex;align-items:flex-end;gap:8px}
+  .dhbox .field{width:120px}
+  button.add{background:var(--ccam);color:#fff;border:0;border-radius:9px;padding:10px 16px;font:inherit;font-weight:600;font-size:13.5px;cursor:pointer}
+  button.add:hover{background:#1d5a6c}
+  .hint{font-size:11px;color:var(--muted);margin-top:8px;line-height:1.4}
+
+/* BARRE D'ACTION FIXE (17/08/2026). Les deux gestes qui comptent — imprimer le
+   devis, declarer au comite — vivaient en bas d'une page longue : sur telephone,
+   il fallait remonter pour agir. Ils restent desormais sous le pouce. */
+  .actionbar{position:fixed;left:0;right:0;bottom:0;background:#16222C;color:#fff;padding:10px 12px calc(10px + env(safe-area-inset-bottom));box-shadow:0 -6px 24px rgba(22,34,44,.18);z-index:50}
+  .actionbar .inner{max-width:960px;margin:0 auto;display:flex;align-items:center;gap:10px}
+  .actionbar .figs{flex:1;min-width:0}
+  .actionbar .l{font-size:9.5px;font-family:'IBM Plex Mono',monospace;text-transform:uppercase;opacity:.65;letter-spacing:.05em}
+  .actionbar .v{font-size:17px;font-weight:700;font-family:'IBM Plex Mono',monospace}
+  .actionbar .rac{font-size:11px;font-family:'IBM Plex Mono',monospace;color:#8FD8C0}
+  .actionbar .rac.pos{color:#F3B0A6}
+  .abtn{border:0;border-radius:10px;padding:11px 14px;font:inherit;font-size:13.5px;font-weight:600;cursor:pointer;white-space:nowrap}
+  .abtn.dev{background:rgba(255,255,255,.14);color:#fff}
+  .abtn.dcl{background:#7C3AED;color:#fff}
+  .abtn:disabled{opacity:.32;cursor:default}
+  @media print{.actionbar{display:none}}
+
+  .list{margin-top:14px;background:var(--panel);border:1px solid var(--line);border-radius:14px;box-shadow:var(--shadow);overflow:hidden}
+  .list h2{padding:11px 16px;font-size:11px;font-family:'IBM Plex Mono',monospace;font-weight:500;text-transform:uppercase;letter-spacing:.06em;color:var(--muted);border-bottom:1px solid var(--line)}
+  .datehint{font-size:11.5px;color:var(--muted);flex:1;min-width:210px;padding-bottom:8px;line-height:1.35}
+  .dchip{font-family:'IBM Plex Mono',monospace;font-size:10.5px;font-weight:600;padding:2px 7px;border-radius:20px;background:var(--track);color:var(--muted);margin-right:6px;white-space:nowrap}
+  .dchip.past{background:#FDF3E3;color:#8A6516}
+  .pitem{padding:11px 16px;border-bottom:1px solid #F1F5F9;display:flex;justify-content:space-between;align-items:center;gap:10px;font-size:13px}
+  .pitem:last-child{border-bottom:0}
+  .pill{font-size:10px;font-weight:600;font-family:'IBM Plex Mono',monospace;padding:2px 7px;border-radius:20px}
+  .pill.c{background:var(--ccam-bg);color:var(--ccam)}.pill.n{background:var(--ngap-bg);color:var(--ngap)}
+  .pitem .d{flex:1}.pitem .d small{display:block;color:var(--muted);font-size:11px}
+  .pitem .amt{text-align:right;font-family:'IBM Plex Mono',monospace}
+  .pitem .amt .br{color:var(--ccam);font-weight:600}.pitem .amt .dh{color:var(--dh);font-size:11px}
+  .empty{padding:20px;text-align:center;color:var(--muted);font-size:13px}
+  .declbox{margin-top:14px;background:var(--panel);border:1px solid var(--line);border-radius:14px;box-shadow:var(--shadow);padding:16px 18px}
+  .declbox h2{font-size:15px;font-weight:600;margin:0 0 2px}
+  .declbox .sub2{font-size:12px;color:var(--muted);margin-bottom:14px}
+  .declgrid{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:12px;margin-bottom:12px}
+  .declbox .row2{display:flex;align-items:center;gap:12px;flex-wrap:wrap}
+  .declpreview{flex:1;min-width:210px;background:var(--track);border-radius:9px;padding:8px 11px;font-size:11px;color:var(--muted)}
+  .declpreview .mono{color:var(--ink)}
+  .declbtn{border:1px solid var(--ccam);color:var(--ccam);background:#fff;border-radius:9px;padding:8px 14px;font:inherit;font-size:13px;font-weight:600;cursor:pointer;white-space:nowrap}
+  .declbtn:hover{background:var(--ccam-bg)}
+  .decllist{margin-top:12px;background:var(--panel);border:1px solid var(--line);border-radius:14px;box-shadow:var(--shadow);padding:8px 18px 14px}
+  .decllist h3{font-size:13px;font-weight:600;margin:8px 0 4px}
+  .declrow{display:flex;align-items:center;gap:12px;padding:9px 0;border-bottom:1px solid var(--line)}
+  .declrow:last-child{border-bottom:none}
+  .declrow .dday{font-family:'IBM Plex Mono',monospace;font-size:11px;background:var(--track);color:var(--muted);padding:2px 8px;border-radius:20px;white-space:nowrap}
+  .declrow.past .dday{background:#FAEEDA;color:#8A6516}
+  .declrow .dmain{flex:1;font-size:13px}
+  .declrow .dmain small{color:var(--muted)}
+  .declrow .ddel{border:1px solid var(--line);background:#fff;border-radius:7px;padding:4px 8px;cursor:pointer;color:var(--muted);font-size:12px}
+  .declrow .ddel:hover{border-color:var(--over);color:var(--over)}
+  .declmore{padding:9px 0 2px;font-size:12px;color:var(--ccam);cursor:pointer}
+  .declmsg{font-size:12px;padding:8px 0}
+  .declmsg.ok{color:#2F6B47}.declmsg.ko{color:#8A6516}
+  .racbox{margin-top:12px;background:var(--dh-bg);border:1px solid #E2D4FA;border-radius:10px;padding:11px 13px}
+  .racbox .hd{font-weight:600;color:var(--dh);font-size:11px;font-family:'IBM Plex Mono',monospace;text-transform:uppercase;letter-spacing:.05em}
+  .racgrid{display:grid;grid-template-columns:repeat(4,1fr);gap:8px;margin-top:8px}
+  @media(max-width:640px){.racgrid{grid-template-columns:1fr 1fr}}
+  .racfig .l{font-size:9.5px;font-family:'IBM Plex Mono',monospace;text-transform:uppercase;color:var(--muted)}
+  .racfig .v{font-family:'IBM Plex Mono',monospace;font-weight:600;font-size:15px;color:var(--dh);white-space:nowrap}
+  .racfig .v.zero{color:var(--room)}.racfig .v.pos{color:var(--over)}
+  .calerbtn{margin-top:9px;background:var(--dh);color:#fff;border:0;border-radius:8px;padding:7px 13px;font:inherit;font-weight:600;font-size:12px;cursor:pointer}
+  .calerbtn:disabled{opacity:.35;cursor:default}
+  .rachint{font-size:10.5px;color:var(--muted);margin-top:7px;line-height:1.4}
+  footer{margin-top:16px;font-size:11px;color:#8A6516;background:#FDF3E3;border:1px solid #EAD9B4;border-radius:12px;padding:11px 14px;line-height:1.5}
+  .devisbtn{background:var(--dh);color:#fff;border:0;border-radius:8px;padding:6px 10px;font:inherit;font-weight:600;font-size:11.5px;cursor:pointer;white-space:nowrap}
+  .devisbtn:hover{background:#5b21b6}
+  /* Bandeau de retour au portail. Cette page etait la SEULE du site sans
+     sortie : on y entrait depuis le portail et on ne pouvait en revenir
+     qu'avec le bouton « precedent » du navigateur. */
+  .portalbar{display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin:0 0 12px}
+  .portalbar .pbtn{font:inherit;font-size:12.5px;font-weight:600;color:var(--ink);background:var(--panel);border:1px solid var(--line);border-radius:9px;padding:7px 12px;text-decoration:none;cursor:pointer}
+  .portalbar .pbtn:hover{background:#F3F6F8}
+  .portalbar .pbwho{font-size:12.5px;font-weight:600;color:var(--ccam);background:var(--ccam-bg);border:1px solid #CBE0E6;border-radius:20px;padding:5px 12px}
+  .memo{font-size:10.5px;font-weight:600;color:var(--room);margin-top:4px}
+  .memo.warn{color:var(--over)}
+  .pratbar{display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin:0 0 14px;background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:9px 12px}
+  .pratbar .pblab{color:var(--muted);font-weight:600;font-size:12px;white-space:nowrap}
+  .pratbar input{border:1px solid var(--line);border-radius:8px;padding:6px 9px;font:inherit;font-size:12px;background:#fff}
+  .pratbar #cfgPrat{flex:1;min-width:150px}
+  .pratbar #cfgRPPS{width:140px}
+  .pratbar.lie{background:#EAF4EE;border-color:#BEDCC9}
+  .pratbar .pbetat{font-size:11.5px;font-weight:600;white-space:nowrap}
+  .pratbar .pbetat.ok{color:#2F6B47}
+  .pratbar .pbetat.ko{color:#8A6516}
+  .ccamsearch{position:relative;margin:0 0 8px}
+  .ccamsearch input{width:100%;border:1px solid var(--ccam);border-radius:9px;padding:9px 12px;font:inherit;font-size:13px;background:#fff}
+  .ccamsearch input::placeholder{color:#9fb0b6}
+  .ccamresults{position:absolute;left:0;right:0;top:calc(100% + 3px);background:#fff;border:1px solid var(--line);border-radius:10px;box-shadow:var(--shadow);max-height:300px;overflow:auto;z-index:50}
+  .ccamresults:empty{display:none}
+  .ccamitem{padding:7px 11px;border-bottom:1px solid var(--track);cursor:pointer;font-size:12.5px;line-height:1.35}
+  .ccamitem:last-child{border-bottom:0}
+  .ccamitem:hover{background:var(--ccam-bg)}
+  .ccamitem b{font-family:'IBM Plex Mono',monospace;color:var(--ccam);margin-right:7px}
+  .ccamresults .info{color:var(--muted);padding:9px 11px;font-size:11.5px}
+  .codetag{font-family:'IBM Plex Mono',monospace;font-size:10.5px;color:var(--ccam);font-weight:600;margin-bottom:2px}
+
+  /* ---- OVERLAY DEVIS (généré depuis un parcours ; aucune donnée patient stockée) ---- */
+  #devisOverlay{position:fixed;inset:0;background:#E7ECEF;overflow:auto;z-index:1000;padding:16px 12px 50px;display:none}
+  #devisOverlay .dvbar{max-width:800px;margin:0 auto 12px;display:flex;gap:8px;justify-content:flex-end;flex-wrap:wrap}
+  #devisOverlay .dvbar button{border:0;border-radius:8px;padding:9px 16px;font:inherit;font-weight:600;font-size:13px;cursor:pointer}
+  #devisOverlay .dvprint{background:var(--ccam);color:#fff}
+  #devisOverlay .dvclose{background:#fff;color:var(--ink);border:1px solid var(--line)}
+  #devisOverlay .dvnote{max-width:800px;margin:0 auto 12px;font-size:11px;color:#5B6C76;text-align:center}
+  #devisOverlay .sheet{max-width:800px;margin:0 auto;background:#fff;border:1px solid var(--line);border-radius:6px;box-shadow:0 10px 30px rgba(22,34,44,.10);padding:34px 38px 30px;color:#16222C}
+  #devisOverlay .head{display:flex;justify-content:space-between;gap:18px;border-bottom:2px solid #16222C;padding-bottom:14px}
+  #devisOverlay .prat .name{font-size:16px;font-weight:700}
+  #devisOverlay .prat .role{font-size:12px;color:#5B6C76;margin-top:1px}
+  #devisOverlay .prat .meta{font-size:11px;color:#5B6C76;margin-top:7px;line-height:1.5}
+  #devisOverlay .estab{text-align:right;font-size:11px;color:#5B6C76;line-height:1.5}
+  #devisOverlay .estab .e1{font-weight:600;color:#16222C;font-size:12px}
+  #devisOverlay .doctitle{text-align:center;margin:16px 0 4px}
+  #devisOverlay .doctitle h1{font-size:15px;font-weight:700;text-transform:uppercase}
+  #devisOverlay .doctitle .st{font-size:11px;color:#5B6C76;margin-top:2px}
+  #devisOverlay .refline{display:flex;justify-content:space-between;font-size:11px;color:#5B6C76;margin:12px 0 4px;border-top:1px solid var(--line);border-bottom:1px solid var(--line);padding:7px 0}
+  #devisOverlay .who{display:grid;grid-template-columns:1fr 1fr;gap:14px;margin:16px 0 4px}
+  #devisOverlay .box{border:1px solid var(--line);border-radius:7px;padding:11px 13px;background:#F3F6F8}
+  #devisOverlay .box h2{font-size:9.5px;font-family:'IBM Plex Mono',monospace;text-transform:uppercase;letter-spacing:.08em;color:#5B6C76;margin-bottom:6px}
+  #devisOverlay .box .l{font-size:12.5px;line-height:1.7}
+  #devisOverlay .tag{display:inline-block;font-size:10px;font-weight:600;font-family:'IBM Plex Mono',monospace;padding:2px 8px;border-radius:20px;background:var(--dh);color:#fff;margin-top:5px}
+  #devisOverlay h3.sec{font-size:10.5px;font-family:'IBM Plex Mono',monospace;text-transform:uppercase;letter-spacing:.07em;color:var(--ccam);margin:20px 0 8px}
+  #devisOverlay table.acts{width:100%;border-collapse:collapse;font-size:12px}
+  #devisOverlay table.acts th{font-size:9.5px;font-family:'IBM Plex Mono',monospace;text-transform:uppercase;color:#5B6C76;text-align:right;padding:6px 8px;border-bottom:1.5px solid #16222C;font-weight:600}
+  #devisOverlay table.acts th.l,#devisOverlay table.acts td.l{text-align:left}
+  #devisOverlay table.acts td{padding:9px 8px;border-bottom:1px solid var(--line);text-align:right}
+  /* Un acte = UNE ligne. Le libelle et son code cohabitent en ligne : chaque acte
+     supplementaire coute une ligne de tableau, pas deux. C'est ce qui fait tenir
+     un devis a 3 actes sur une seule page A4. */
+  #devisOverlay table.acts td.l .lib{font-weight:600}
+  #devisOverlay table.acts td.l .code{font-size:10.5px;color:#5B6C76;font-family:'IBM Plex Mono',monospace;white-space:normal}
+  #devisOverlay table.acts .num{font-family:'IBM Plex Mono',monospace}
+  #devisOverlay table.acts .dhcol{color:var(--dh);font-weight:600}
+  #devisOverlay table.acts tr.tot td{border-top:1.5px solid #16222C;border-bottom:none;font-weight:700;padding-top:10px}
+  #devisOverlay table.acts tr.tot td.l{font-weight:700}
+  #devisOverlay .rac{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-top:16px}
+  #devisOverlay .racb{border:1px solid var(--line);border-radius:8px;padding:12px 14px}
+  #devisOverlay .racb.mut{background:#E9F1F4;border-color:#CFE0E6}
+  #devisOverlay .racb .k{font-size:10px;font-family:'IBM Plex Mono',monospace;text-transform:uppercase;color:#5B6C76}
+  #devisOverlay .racb .v{font-size:21px;font-weight:700;font-family:'IBM Plex Mono',monospace;margin-top:3px}
+  #devisOverlay .racb .v.zero{color:var(--room)} #devisOverlay .racb .v.pos{color:var(--over)}
+  #devisOverlay .racb .note{font-size:10.5px;color:#5B6C76;margin-top:5px;line-height:1.4}
+  #devisOverlay .engage{margin-top:16px;font-size:11.5px;line-height:1.55;background:#F3F6F8;border:1px solid var(--line);border-radius:7px;padding:12px 14px}
+  #devisOverlay .sign{display:grid;grid-template-columns:1fr 1fr;gap:26px;margin-top:20px}
+  #devisOverlay .sig .lab{font-size:10.5px;color:#5B6C76;font-family:'IBM Plex Mono',monospace;text-transform:uppercase}
+  #devisOverlay .sig .bp{font-size:11px;margin-top:2px}
+  #devisOverlay .sig .line{margin-top:38px;border-top:1px solid #16222C}
+  #devisOverlay .legalblk{margin-top:20px;border-top:1px solid var(--line);padding-top:12px}
+  #devisOverlay .legalblk p{font-size:10.5px;color:#3D4B54;line-height:1.5;margin-bottom:6px}
+  #devisOverlay .legalblk .imp{background:#FBF4F2;border-left:3px solid var(--over);padding:7px 10px;border-radius:0 6px 6px 0;color:#7a2c20}
+  #devisOverlay .dvfoot{margin-top:18px;text-align:center;font-size:9.5px;color:#5B6C76;border-top:1px solid var(--line);padding-top:8px}
+  #devisOverlay .hand{display:inline-block;min-width:220px;border-bottom:1px dotted #16222C;height:14px;vertical-align:bottom}
+  #devisOverlay .sheet.decl{margin-top:18px}
+  #devisOverlay .decl p{font-size:12px;line-height:1.65;margin:10px 0;text-align:justify}
+  #devisOverlay .decl .fld{font-size:12px;line-height:2.1}
+  #devisOverlay .decl table.des{width:100%;border-collapse:collapse;margin:12px 0;font-size:12px}
+  #devisOverlay .decl table.des th{background:#E7ECEF;font-size:10px;font-family:'IBM Plex Mono',monospace;text-transform:uppercase;letter-spacing:.06em;padding:7px;border:1px solid #16222C}
+  #devisOverlay .decl table.des td{padding:14px 10px;border:1px solid #16222C;vertical-align:top;height:52px}
+  #devisOverlay .ed{border-bottom:1px dashed #9AA7AF;padding:0 3px;min-width:70px;display:inline-block;outline:none}
+  #devisOverlay .ed:empty::before{content:attr(data-ph);color:#AEB8BF}
+  #devisOverlay .ed:focus{border-bottom-color:var(--ccam);background:#F1F8FA}
+  @media(max-width:640px){#devisOverlay .who,#devisOverlay .rac,#devisOverlay .sign{grid-template-columns:1fr}#devisOverlay .head{flex-direction:column}#devisOverlay .estab{text-align:left}}
+  @media print{
+    @page{size:A4;margin:10mm 12mm}
+    body{font-size:11px}
+    body>.wrap{display:none!important}
+    #devisOverlay{position:static;background:#fff;padding:0;display:block}
+    #devisOverlay .dvbar,#devisOverlay .dvnote{display:none!important}
+    #devisOverlay .sheet{box-shadow:none;border:0;border-radius:0;max-width:none;padding:0}
+    #devisOverlay .sheet.decl{page-break-before:always;margin-top:0}
+    #devisOverlay .ed{border-bottom:1px solid #16222C}
+    /* --- compactage : le devis tient sur UNE page --- */
+    #devisOverlay .head{margin-bottom:9px;padding-bottom:7px}
+    #devisOverlay .doctitle{margin:9px 0 7px}
+    #devisOverlay .doctitle h1{font-size:15px}
+    #devisOverlay .box,#devisOverlay .patbox{margin:7px 0;padding:7px 9px}
+    #devisOverlay table{margin:7px 0;font-size:10px}
+    #devisOverlay table th,#devisOverlay table td{padding:3.5px 6px}
+    /* Le tableau des actes est le SEUL bloc qui grandit avec le dossier : c'est donc
+       le seul qu'on resserre encore. Le reste de la mise en page est inchange. */
+    #devisOverlay table.acts td{padding:2.5px 6px;line-height:1.3}
+    #devisOverlay table.acts td.l .code{font-size:9px}
+    #devisOverlay .tot{margin:7px 0;padding:7px 9px}
+    #devisOverlay .legalblk{margin-top:9px;padding-top:7px;column-count:2;column-gap:13px}
+    #devisOverlay .legalblk p{font-size:8.2px;line-height:1.32;margin-bottom:4px;break-inside:avoid}
+    #devisOverlay .legalblk .imp{column-span:all;padding:4px 7px;margin-top:3px}
+    #devisOverlay .sign{margin-top:11px}
+    #devisOverlay .sign .line{margin-top:24px}
+    #devisOverlay .dvfoot{margin-top:8px;padding-top:5px;font-size:8px}
+    #devisOverlay .box,#devisOverlay .patbox,#devisOverlay .tot,
+    #devisOverlay table,#devisOverlay .sign{page-break-inside:avoid}
+    #devisOverlay .decl p{font-size:10.5px;line-height:1.5;margin:7px 0}
+    #devisOverlay .decl .fld{font-size:11px;line-height:1.95}
+    #devisOverlay .decl table.des td{height:42px;padding:10px}
+  }
+  footer b{color:#6b4e10}
+</style>
+<script src="../../partage/session.js"></script>   <!-- (17/08/2026) source unique : où vit le code d'accès, et 30 jours glissants -->
+<script>/* FALLBACK_SESSION — filet (17/08/2026). Si partage/session.js ne se charge pas
+(réseau, cache), les pages l'appelleraient dans le vide et NE S'OUVRIRAIENT PLUS : le MAR ne
+pourrait même plus taper son code. On retombe alors sur le comportement d'avant — le code vit
+le temps de l'onglet — au lieu de planter. Jamais de mémoire longue ici : mieux vaut retaper
+son code que le voir retenu par un filet dont personne ne vérifie l'échéance. */
+window.SessionPortail = window.SessionPortail || { lire:function(){try{return sessionStorage.getItem('pmViewCode')||'';}catch(e){return '';}}, memoriser:function(c){try{sessionStorage.setItem('pmViewCode',c);}catch(e){}}, oublier:function(){try{sessionStorage.removeItem('pmViewCode');}catch(e){}}, estInstallee:function(){return false;}, joursRestants:function(){return null;}, DUREE_JOURS:0 };</script>
+</head>
+<body>
+<div class="wrap">
+  <div class="portalbar">
+    <a class="pbtn" href="../../dashboard.html">← Portail</a>
+    <span class="pbwho" id="pbWho" style="display:none"></span>
+    <button class="pbtn" id="pbOut" style="display:none" onclick="quitterPortail()">Déconnexion</button>
+  </div>
+
+  <header>
+    <div class="eyebrow">Module libéral · coter · remettre le devis · déclarer au comité</div>
+    <h1>Un patient à la fois</h1>
+    <div class="sub">L'outil calcule la base de remboursement et <b>cale le dépassement sur la mutuelle du patient pour minimiser son reste à charge</b>. Votre position sur les 30 % se lit sur la page <b>Suivi des 30 %</b>. <b>Estimateur, pas décompte.</b></div>
+    <a class="guidelink" href="../guide-liberal.html">📘 Guides du libéral — cotation, règle des 30 %, antisèche</a>
+  </header>
+
+  <div class="pratbar">
+    <span class="pblab">Praticien :</span>
+    <input id="cfgPrat" placeholder="Dr Nom Prénom">
+    <input id="cfgRPPS" placeholder="N° RPPS">
+    <span class="pbetat" id="pbEtat"></span>
+  </div>
+
+  <!-- PARCOURS BUILDER -->
+  <div class="card">
+    <h2>La cotation</h2>
+    <div style="display:flex;gap:14px;align-items:flex-end;flex-wrap:wrap;margin-bottom:6px">
+      <!-- (17/08/2026) LE SELECTEUR D'AXE A DISPARU. Decision d'Arthur : tout
+           patient vu en consultation liberale passe ensuite au bloc. Il n'y avait
+           donc jamais lieu de choisir, et deux endroits parlaient de consultation
+           — l'axe « Consult · NGAP » et la liste « Consultation associee » — sans
+           que rien ne dise en quoi ils different.
+           La comptabilite des deux axes, elle, ne bouge pas : la consultation
+           reste comptee en NGAP (mois de la consultation), les actes en CCAM
+           (mois du bloc). C'est de la comptabilite, pas de l'ecran. -->
+      <div style="flex:1;min-width:180px"><label>Statut / carte du patient</label>
+        <select id="statut" onchange="onStatut()">
+          <option value="verte">Carte verte (monég. · DH 0)</option>
+          <option value="rose">Carte rose (monég. · DH +20 %)</option>
+          <option value="bulle">Carte bulle (monég. · DH libre)</option>
+          <option value="fr">Assuré français (DH libre)</option>
+          <option value="frc2s">Français — AME / C2S (précarité · DH 0)</option>
+          <option value="nas">NAS / non assuré (DH libre)</option>
+          <option value="spme">SPME (DH 0)</option>
+          </select></div>
+      <div><label id="coefLbl">Coeff. CCAM</label><span class="coefbadge" id="coefBadge">× 1,95</span></div>
+    </div>
+
+    <!-- DATES. Deux dates distinctes, deux usages :
+         - date de consultation = codage NGAP + date d'etablissement du devis ;
+         - date d'intervention  = jour ou l'alerte remonte au comite sur le planning.
+         L'intervention n'existe que sur l'axe CCAM (bloc) et n'est JAMAIS pre-remplie :
+         une case vide se voit, une date fausse ne se voit pas. -->
+    <div id="dateRow" style="display:flex;gap:14px;align-items:flex-end;flex-wrap:wrap;margin:2px 0 6px">
+      <div class="field" style="width:180px"><label>Date de consultation</label>
+        <input id="dCs" type="date" onchange="renderDateHint();majBarre()"></div>
+      <div class="field" id="dIntWrap" style="width:180px"><label>Jour du bloc</label>
+        <input id="dInt" type="date" onchange="renderDateHint();majBarre()"></div>
+      <!-- CONSULTATION ASSOCIEE (2A) : rattache la BR NGAP du patient a SON parcours bloc.
+           Sans ce champ, il faudrait deviner laquelle des consultations du jour appartient
+           a ce patient - impossible des qu'il y en a plusieurs, et elles n'ont pas toutes
+           la meme valeur (C 34,40 / CS 46 / APC 60). -->
+      <div class="field" id="assocWrap" style="width:230px"><label>Consultation associée</label>
+        <select id="assocLc" onchange="assocChange()">
+          <option value="CS" selected>CS — spécialiste (46,00 €)</option>
+          <option value="">— aucune</option>
+          <option value="C">C — généraliste (34,40 €)</option>
+          <option value="APC">APC — avis ponctuel (60,00 €) · cotation française</option>
+          <option value="LIBRE">Montant libre…</option>
+        </select></div>
+      <div class="field" id="assocCoefWrap" style="width:120px;display:none"><label>Coefficient</label>
+        <input id="assocCoef" type="number" step="0.5" min="0.5" value="1" onchange="assocChange()"></div>
+      <div class="field" id="assocLibreWrap" style="width:140px;display:none"><label>BR NGAP (€)</label>
+        <input id="assocLibre" type="number" step="0.01" min="0" onchange="assocChange()"></div>
+      <!-- SECTEUR : parcours bloc uniquement. Sert au placement par le comite,
+           n'apparait PAS sur le devis. Facultatif tant que la declaration
+           d'intervention n'existe pas. -->
+      <div class="datehint" id="dateHint"></div>
+      <div class="datehint" id="assocHint"></div>
+      <div class="datehint" id="statutAlerte" style="display:none;color:#8A6516"></div>
+    </div>
+
+    <!-- MUTUELLE : ligne « honoraires » en % BR (nourrit le calibrage RAC) -->
+    <div id="mutRow" style="display:flex;gap:14px;align-items:flex-end;flex-wrap:wrap;margin:2px 0 6px">
+      <div style="flex:1;min-width:220px"><label>Mutuelle du patient — ligne « honoraires » (% BR)</label>
+        <select id="mut" onchange="onMut()"></select></div>
+      <div class="field" id="mutManWrap" style="display:none;width:140px"><label>% BR (saisie)</label>
+        <input id="mutMan" class="mono" type="number" step="1" value="200" oninput="applyDH()"></div>
+    </div>
+
+    <!-- CCAM : actes techniques -->
+    <div id="blocCCAM">
+      <!-- COTATIONS TYPES : servies par l'onglet COTATIONS_TYPE (getCotationsType).
+           Un clic REMPLACE les lignes du tableau (une cotation type = un patient
+           entier) et pose la consultation associee. -->
+      <div id="cotTypeBar" style="display:none;margin:0 0 10px;flex-wrap:wrap;gap:6px;align-items:center">
+        <span style="font-size:12px;color:var(--muted)">Cotations types&nbsp;:</span>
+        <select id="cotTypeGrp" onchange="choisirGroupeCotType(this.value)" style="max-width:230px"></select>
+        <a class="guidelink" id="lienFabrique" style="margin-top:0;display:none" href="cotations-types.html" title="Créer ou modifier les cotations types">🛠 gérer</a>
+        <span id="cotTypeBtns"></span>
+      </div>
+      <div id="tarifAlerte" style="display:none;margin:0 0 10px;padding:9px 12px;border:1px solid;border-radius:9px;font-size:12.5px;line-height:1.45"></div>
+      <div class="ccamsearch">
+        <input id="ccamq" autocomplete="off" placeholder="🔍 Rechercher un acte : code, libellé ou abréviation (ex. NEKA014, hernie, PTH)…" oninput="ccamSearch()">
+        <div class="ccamresults" id="ccamResults"></div>
+      </div>
+      <!-- Version des tarifs : mention PERMANENTE et discrete. Sous 8 mois le bandeau
+           d'alerte ne s'affiche pas, et rien n'indiquait alors sur quels tarifs on
+           travaille — information indispensable le jour ou un montant parait faux. -->
+      <div id="tarifVer" style="font-size:10px;color:var(--muted);margin:-4px 0 8px;opacity:.75"></div>
+      <table class="lines">
+        <thead><tr><th style="width:30%">Ligne (code / libellé)</th><th style="width:15%">Tarif off. act.4 (€)</th><th class="chkcell">7</th><th class="chkcell">A</th><th style="width:24%">Rôle</th><th style="width:14%;text-align:right">BR</th><th></th></tr></thead>
+        <tbody id="linesBody"></tbody>
+      </table>
+      <button class="addline" onclick="addLine()">＋ ajouter une ligne de code</button>
+    </div>
+
+    <!-- (17/08/2026) « Ajouter le parcours » a disparu. La page traite UN patient
+         a la fois — le devis lui est remis en direct — et les deux gestes qui
+         suivent (Devis, Declarer) portent directement sur la cotation en cours. -->
+    <div class="parcfoot">
+      <div class="brtot">BR de ce patient : <b id="parcBR">0 €</b></div>
+      <div class="dhbox">
+        <div class="field"><label>DH (€)</label><input id="dh" class="mono" type="number" step="0.01" value="0" oninput="updateRac()"></div>
+        <div class="field" id="cibleWrap" style="display:none"><label>ou total cible (€)</label><input id="cible" class="mono" type="number" step="0.01" placeholder="ex. 1500" onchange="fromCible()"></div>
+      </div>
+    </div>
+    <!-- (17/08/2026) LE CHIRURGIEN COTE-T-IL AUSSI EN LIBERAL ?
+         Regle metier apportee par Arthur : quand le chirurgien cote en liberal,
+         le depassement de l'anesthesiste est cale par USAGE a 50 % du sien — il
+         n'est donc pas libre, et le « DH optimal » proposait jusqu'ici un montant
+         qu'on n'a pas le droit d'appliquer. Le depassement n'est LIBRE, et le
+         calibrage sur la mutuelle n'a de sens, que si l'anesthesiste cote seul.
+         Usage et non regle : la valeur est PROPOSEE, jamais imposee. -->
+    <div id="chirRow" style="display:none;background:var(--panel);border:1px solid var(--line);border-radius:11px;padding:11px 13px;margin:8px 0">
+      <div style="font-size:12px;font-weight:600;margin-bottom:8px">Le chirurgien cote-t-il aussi en libéral&nbsp;?</div>
+      <div class="seg" style="display:inline-flex">
+        <button id="chirNon" class="on" onclick="setChir(false)">Non — je cote seul</button>
+        <button id="chirOui" onclick="setChir(true)">Oui</button>
+      </div>
+      <div id="chirDhWrap" style="display:none;margin-top:10px">
+        <div style="display:flex;gap:12px;align-items:flex-end;flex-wrap:wrap">
+          <div class="field" style="width:190px"><label>Dépassement du chirurgien (€)</label>
+            <input id="chirDh" class="mono" type="number" step="0.01" min="0" placeholder="ex. 800" oninput="chirChange()"></div>
+          <div class="datehint" id="chirHint" style="flex:1;min-width:200px"></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- CALIBRAGE MUTUELLE → RAC -->
+    <div class="racbox" id="racBox" style="display:none">
+      <div class="hd" id="racTitre">Calibrage sur la mutuelle — objectif : reste à charge patient minimal</div>
+      <div class="racgrid">
+        <div class="racfig"><div class="l">Plafond carte</div><div class="v" id="rCap">—</div></div>
+        <div class="racfig"><div class="l">Absorbé mutuelle</div><div class="v" id="rAbs">—</div></div>
+        <div class="racfig"><div class="l">DH optimal (RAC 0)</div><div class="v" id="rOpt">—</div></div>
+        <div class="racfig"><div class="l">RAC au DH saisi</div><div class="v" id="rRac">—</div></div>
+      </div>
+      <div class="rachint" id="rCapNote" style="display:none;color:#8A6516;background:#FDF3E3;border:1px solid #EAD9B4;border-radius:8px;padding:7px 10px;margin-top:8px"><b>Plafond non-OPTAM.</b> Assuré français, contrat responsable, praticien secteur 2 non-OPTAM : la mutuelle ne peut absorber que <b>100 % BR de dépassement</b> (200 % BR total, part Sécu incluse), même si la ligne affiche davantage. Le % au-delà de 200 correspond en principe à la colonne <b>OPTAM</b> — vérifie que tu lis bien la colonne <b>non-OPTAM</b>.</div>
+      <button class="calerbtn" id="calerBtn" onclick="caler()" disabled>Caler le DH sur l'optimal</button>
+      <div class="rachint" id="racAvert" style="display:none;color:#8A6516;background:#FDF3E3;border:1px solid #EAD9B4;border-radius:8px;padding:7px 10px;margin-top:8px"></div>
+      <div class="rachint">DH optimal = min( plafond réglementaire de la carte/secteur , dépassement absorbé par la mutuelle ). Absorbé = (%&nbsp;BR&nbsp;−&nbsp;100)&nbsp;× BR, plafonné à 100&nbsp;% BR côté français non-OPTAM. Mal couvert ⇒ optimal bas, voire nul : l'outil recommande alors de <b>facturer moins</b>.</div>
+    </div>
+
+    <div class="hint" id="hintCCAM">Rôle : <b>principal</b> 100 % · <b>associé</b> 50 % (2ᵉ acte) · <b>complément</b> 100 % en sus (AHQJ021, YYYY041…). Le modificateur A vaut +23 € (français) ou +44,85 € (monégasque). Tarif officiel : à lire dans le classeur Excel des codes.</div>
+  </div>
+
+  <!-- Les deux cadrans « % projeté » ont ete RETIRES le 17/08/2026. Ils se
+       calculaient sur un « socle » ecrit en dur (50 000 EUR a 25 % en CCAM,
+       15 000 EUR a 25 % en NGAP) que personne ne renseignait : la page
+       annonçait donc a chacun une marge qui n'etait pas la sienne. La position
+       reelle vit sur suivi-liberal.html, alimentee par le releve certifie. -->
+  <!-- DÉCLARATION D'INTERVENTION LIBÉRALE — geste AUTONOME (rien à voir avec les parcours
+       de cotation ci-dessus). Écrit une ligne dans LIBERAL_{Y}, lue par le comité pour
+       le placement. Aucune donnée patient, aucun code d'acte. -->
+  <div class="declbox">
+    <h2>Déclarer au comité</h2>
+<!-- (17/08/2026) LES DOUBLONS DE SAISIE ONT DISPARU. Jour du bloc, date de
+         consultation et montants etaient a ressaisir ici alors qu'ils viennent
+         de la cotation ci-dessus : deux endroits pour la meme donnee, donc deux
+         valeurs possibles. Ne restent que les deux informations que la cotation
+         ne connait pas : ou (secteur) et quelle specialite. -->
+    <div class="sub2">Le comité verra cette intervention lors du placement du jour. Aucune donnée patient, aucun code d'acte. Les dates et les montants viennent de la cotation ci-dessus.</div>
+    <div class="declgrid">
+      <div class="field"><label>Secteur</label><select id="dclSec" onchange="dclSecChange()"><option value="">— chargement…</option></select>
+        <div class="memo" id="secMemo" style="display:none">✓ votre dernier secteur</div></div>
+      <div class="field"><label>Spécialité <span style="color:var(--over)">— obligatoire</span></label><select id="dclSpec" onchange="dclTouche('spec');dclPreview()"><option value="">— chargement…</option></select>
+        <div class="memo" id="specMemo" style="display:none"></div></div>
+      <div class="field"><label>Chirurgie <span style="color:var(--muted)">— facultatif</span></label><input id="dclChir" placeholder="PTH, hernie cœlio…" oninput="dclTouche('chir');dclPreview()"></div>
+    </div>
+    <div id="listesKO" style="display:none;background:#FDF3E3;border:1px solid #EAD9B4;border-radius:9px;padding:9px 12px;font-size:12px;color:#8A6516;margin-bottom:11px"></div>
+    <div class="row2">
+      <div class="declpreview" id="dclPrev">Renseignez le jour du bloc, dans la cotation.</div>
+    </div>
+    <div class="declmsg" id="dclMsg" style="display:none"></div>
+  </div>
+
+  <div class="decllist" id="dclListWrap" style="display:none">
+    <h3>Mes interventions libérales déclarées</h3>
+    <!-- (17/08/2026) CE BLOC NE SE MASQUE PLUS QUAND L'APPEL ECHOUE. Il le
+         faisait, et deux declarations bien enregistrees ont paru « s'effacer
+         brutalement » — constate par Arthur, alors qu'elles etaient dans le
+         classeur ET chez le comite. Un echec et « aucune declaration »
+         produisaient exactement le meme ecran. -->
+    <div id="dclListKO" style="display:none;background:#FDF3E3;border:1px solid #EAD9B4;border-radius:9px;padding:10px 12px;font-size:12.5px;color:#8A6516;line-height:1.5"></div>
+    <div id="dclRows"></div>
+  </div>
+
+  <div class="actionbar">
+    <div class="inner">
+      <div class="figs">
+        <div class="l">Base de remboursement (+ dépassement)</div>
+        <div class="v" id="totBR">0 €</div>
+        <div class="rac" id="totRac">reste à charge —</div>
+      </div>
+      <button class="abtn dev" id="bDevis" onclick="ouvrirDevisCourant()" disabled>📄 Devis</button>
+      <button class="abtn dcl" id="dclBtn" onclick="declarer()" disabled>📅 Déclarer</button>
+    </div>
+  </div>
+
+  <footer><b>Estimateur, pas décompte.</b> Calcul : BR = coefficient × (tarif officiel × (1+%mod) × taux d'association + €mod). Le tarif officiel a une petite incertitude (à fiabiliser via tes feuilles vertes) ; le DH « libre » se saisit. Le code réel peut différer du prévu ; le relevé officiel recale tout.</footer>
+</div>
+
+<script>
+const STATUTS={
+ verte:{coeff:1.95,dh:'0'}, rose:{coeff:1.95,dh:'0.20'}, bulle:{coeff:1.95,dh:'libre'},
+ fr:{coeff:1.00,dh:'libre'}, frc2s:{coeff:1.00,dh:'0'}, nas:{coeff:1.00,dh:'libre'}, spme:{coeff:1.95,dh:'0'}
+ /* (17/08/2026) « AME » RETIRE — decision d'Arthur : on ne fait pas de liberal
+    pour l'AME. L'entree portait un coefficient monegasque (1,95) quand
+    « Assure francais — AME / C2S » en portait un francais (1,00) : deux calculs
+    opposes, et rien a l'ecran ne disait lequel choisir. La question de la base
+    AME, restee ouverte depuis juillet, se ferme avec l'option. */
+};
+const ROLES={principal:{lab:'Principal (100 %)',rate:1.0}, associe:{lab:'Associé (50 %)',rate:0.5}, complement:{lab:'Complément (100 % en sus)',rate:1.0}};
+// NGAP : lettre-clé × coefficient, sans coeff monégasque ni modificateur
+const LC={C:34.40, CS:46.00, APC:60.00, AUTRE:0};
+// Libelles en clair des lettres-cles, pour le detail acte par acte du devis.
+// Bibliothèque de formules mutuelle — SEULE la ligne « honoraires » (en % BR) compte.
+// À enrichir au fil de la collecte des tableaux de garanties. p=0 → non renseignée ; p=-1 → saisie manuelle.
+const FORMULES=[
+  {n:'— mutuelle non renseignée', p:0},
+  // CCSP Mutuelle Monaco (Groupama Gan Vie) — honoraires chirurgie ET consult spécialiste,
+  // même échelle par formule. Source : Notice CG déc. 2025, art. 10. Contrat monégasque : pas de plafond OPTAM.
+  {n:'CCSP Monaco — Formule 1 (100 % BR)', p:100},
+  {n:'CCSP Monaco — Formule 2 (120 % BR)', p:120},
+  {n:'CCSP Monaco — Formule 3 (150 % BR)', p:150},
+  {n:'CCSP Monaco — Formule 4 (200 % BR)', p:200},
+  {n:'CCSP Monaco — Formule 5 (300 % BR)', p:300},
+  {n:'CCSP Monaco — Formule 6 (400 % BR)', p:400},
+  {n:'Générique 100 % BR (aucun DH absorbé)', p:100},
+  {n:'Générique 125 % BR', p:125},
+  {n:'Générique 150 % BR', p:150},
+  {n:'Générique 200 % BR', p:200},
+  {n:'Générique 300 % BR', p:300},
+  {n:'Générique 400 % BR', p:400},
+  {n:'Autre / saisie manuelle…', p:-1},
+];
+let lastRac=0, lastMut=null;
+let axe='CCAM';
+// Tableau VIDE au demarrage (27/07/2026). Il contenait deux lignes d'orthopedie de
+// demonstration, qu'il fallait effacer a chaque patient.
+let builder=[];
+/* `axe` reste une CONSTANTE de comptabilite : la declaration et le devis
+   distinguent toujours les deux compteurs des 30 %. Ce qui a disparu, c'est le
+   choix offert a l'ecran — il n'en existe plus qu'un seul chemin. */
+let parcours=[];
+const eur=n=>Math.round(n).toLocaleString('fr-FR')+' €';
+const eur2=n=>n.toLocaleString('fr-FR',{minimumFractionDigits:2,maximumFractionDigits:2})+' €';
+
+function coeff(){return STATUTS[document.getElementById('statut').value].coeff;}
+// CCAM : coeff monégasque × (tarif ×(1+%mod) × taux assoc + €mod)
+function lineBR(l){const c=coeff();const pct=l.m7?0.06:0;const rate=ROLES[l.role].rate;const A=l.mA?23:0;
+  return c*((l.tarif||0)*(1+pct)*rate + A);}
+// NGAP : valeur de la lettre-clé × coefficient — AUCUN coeff monégasque, aucun modificateur
+/* ── CONSULTATION ASSOCIEE (2A) ────────────────────────────────────────────
+   Rattache la BR NGAP du patient a SON parcours bloc, au moment de la cotation.
+   Pourquoi ici et pas au moment de la declaration : cinq patients vus le meme jour
+   donnent cinq parcours NGAP a la meme date, de valeurs differentes (C 34,40 x coeff,
+   CS 46, APC 60). Aucune regle de date ne peut dire laquelle appartient a ce patient.
+   ATTENTION : les tarifs viennent de LC (grille CCSS-CAMTI, annexe III au 01/10/2025),
+   jamais reecrits en dur ici. */
+
+// L'APC est une cotation FRANCAISE : elle ne figure pas dans la nomenclature monegasque
+// (annexe III : C, CPN, CS, CSPN, CP3, CPSY, CSC, CALD, CDE, V, VS, VPSY, K, KC, SPM).
+// Interdite pour un assure monegasque.
+const APC_INTERDIT = {verte:true, rose:true, bulle:true, spme:true};
+function statutCourant(){ const s=document.getElementById('statut'); return s ? s.value : ''; }
+
+function assocBR(){
+  const sel=document.getElementById('assocLc'); if(!sel) return 0;
+  const v=sel.value;
+  if(!v) return 0;
+  if(v==='LIBRE') return Math.max(0, parseFloat(document.getElementById('assocLibre').value)||0);
+  if(v==='C'){
+    const k=Math.max(0, parseFloat(document.getElementById('assocCoef').value)||1);
+    return Math.round(LC.C*k*100)/100;
+  }
+  return LC[v]||0;
+}
+
+function assocChange(){
+  const sel=document.getElementById('assocLc'); if(!sel) return;
+  const v=sel.value;
+  document.getElementById('assocCoefWrap').style.display  = (v==='C')     ? 'block':'none';
+  document.getElementById('assocLibreWrap').style.display = (v==='LIBRE') ? 'block':'none';
+  // Garde-fou APC : interdite pour un assure monegasque, avertie pour NAS / AME
+  // (regimes dont la base n'est pas confirmee - cf. questions ouvertes de la conception).
+  if(v==='APC'){
+    const st=statutCourant();
+    if(APC_INTERDIT[st]){
+      alert("L'APC est une cotation francaise : elle ne peut pas etre appliquee a un assure monegasque.");
+      sel.value=''; assocChange(); return;
+    }
+    if(st==='nas'){
+      alert("APC pour ce statut : base non confirmee. A verifier avec la facturation avant remise du devis.");
+    }
+  }
+  renderAssocHint();
+}
+
+function renderAssocHint(){
+  const h=document.getElementById('assocHint'); if(!h) return;
+  const br=assocBR();
+  h.innerHTML = br>0
+    ? 'BR NGAP rattachee a ce patient : <b>'+eur2(br)+'</b> — elle partira dans la declaration.'
+    : '';
+}
+
+/* (17/08/2026) Le bandeau AME a disparu avec l'option : il avertissait que la
+   base de calcul n'etait pas confirmee — deux regimes, francais et monegasque,
+   sur des bases opposees. Arthur a tranche : pas de liberal pour l'AME. Un
+   avertissement de moins a expliquer aux dix-neuf, et un calcul douteux de
+   moins a l'ecran. La fonction reste : c'est ici que viendra le prochain
+   statut a signaler. */
+function renderStatutAlerte(){
+  const box=document.getElementById('statutAlerte'); if(!box) return;
+  box.style.display='none';
+}
+
+function parcoursBR(){ return builder.reduce((s,l)=>s+lineBR(l),0); }
+
+// ---- MOTEUR MUTUELLE ----
+function populateMut(){
+  document.getElementById('mut').innerHTML=FORMULES.map((f,i)=>`<option value="${i}">${f.n}</option>`).join('');
+}
+function currentMut(){
+  const sel=document.getElementById('mut'); if(!sel) return {n:null,p:0};
+  const f=FORMULES[+sel.value]||FORMULES[0];
+  if(f.p===-1){const p=parseFloat(document.getElementById('mutMan').value)||0;return {n:'manuel '+p+' % BR',p};}
+  return f;
+}
+function currentMutPct(){return currentMut().p;}
+function dhEditable(st){return STATUTS[st].dh==='libre';}     // libre = DH ajustable ; rose/verte = auto
+// Plafond de prise en charge total (Sécu + mutuelle), en €. Branche française : contrat responsable
+// non-OPTAM → plafonné à 200 % BR (soit 100 % BR de DH absorbé). Monaco (CCSS) : pas de plafond OPTAM.
+function coverageCeiling(st,pct,br){
+  let c = pct/100*br;
+  if(st==='fr') c = Math.min(c, 2.0*br);   // secteur 2 non-OPTAM, contrat responsable
+  return c;
+}
+function capNonOptam(st,pct){ return st==='fr' && pct>200; }  // le plafond mord
+function onMut(){
+  const f=FORMULES[+document.getElementById('mut').value]||FORMULES[0];
+  document.getElementById('mutManWrap').style.display=f.p===-1?'block':'none';
+  applyDH();
+}
+// RAC = (BR + DH) − min( %BR×BR , BR+DH ). Absorbé = (%BR−100)×BR. DH optimal = min(plafond carte, absorbé).
+function updateRac(){
+  const st=document.getElementById('statut').value, S=STATUTS[st], br=parcoursBR();
+  const box=document.getElementById('racBox');
+  const chirRow=document.getElementById('chirRow');
+  // Carte sans depassement possible : ni calibrage, ni question sur le chirurgien.
+  if(chirRow) chirRow.style.display = (S.dh==='0') ? 'none' : 'block';
+  if(S.dh==='0'){box.style.display='none';lastRac=0;lastMut=null;return;}   // verte/SPME : pas de calibrage
+  box.style.display='block';
+  const cap = S.dh==='0.20' ? 0.20*br : Infinity;                            // plafond réglementaire €
+  document.getElementById('rCap').textContent = cap===Infinity?'libre':eur2(cap);
+  const mut=currentMut(), pct=mut.p, dh=parseFloat(document.getElementById('dh').value)||0;
+  let absTxt='—',optTxt='—',racTxt='—',dhOpt=null,racVal=null,cls='';
+  if(pct>0){
+    const ceil=coverageCeiling(st,pct,br);             // plafond de prise en charge total (fr : ≤ 200 % BR)
+    const absorp=Math.max(0,ceil-br);                  // DH réellement absorbable
+    dhOpt=Math.min(cap===Infinity?absorp:cap, absorp);
+    const reimb=Math.min(ceil, br+dh);
+    racVal=Math.max(0,(br+dh)-reimb);
+    absTxt=eur2(absorp); optTxt=eur2(dhOpt); racTxt=eur2(racVal);
+    cls = racVal<=0.005?'zero':'pos';
+  }
+  document.getElementById('rAbs').textContent=absTxt;
+  document.getElementById('rOpt').textContent=optTxt;
+  const rv=document.getElementById('rRac'); rv.textContent=racTxt; rv.className='v '+cls;
+  // note plafond non-OPTAM (branche française)
+  const note=document.getElementById('rCapNote');
+  if(capNonOptam(st,pct)){ note.style.display='block'; }
+  else { note.style.display='none'; }
+  const btn=document.getElementById('calerBtn');
+  /* Le chirurgien cote aussi : le montant m'est donne par l'usage, il n'y a
+     rien a caler. Proposer « l'optimal » serait proposer un montant qu'on n'a
+     pas le droit d'appliquer. */
+  const impose = CHIR_LIB && chirDhPropose()!=null;
+  btn.disabled=!(pct>0 && dhEditable(st) && !impose);
+  btn.dataset.opt = dhOpt==null?'':dhOpt;
+  const titre=document.getElementById('racTitre');
+  if(titre) titre.textContent = impose
+    ? 'Reste à charge du patient — dépassement calé sur celui du chirurgien'
+    : 'Calibrage sur la mutuelle — objectif : reste à charge patient minimal';
+  /* Un reste a charge non nul doit SE VOIR, ici comme sur le devis : le patient
+     le decouvrirait sinon en payant. */
+  const av=document.getElementById('racAvert');
+  if(av){
+    if(impose && racVal>0.005){
+      av.innerHTML='<b>Reste à charge de '+eur2(racVal)+'.</b> La mutuelle n\'absorbe pas tout le dépassement. '
+        +'Le patient doit le savoir <b>avant</b> de signer — le montant figure sur le devis.';
+      av.style.display='block';
+    } else av.style.display='none';
+  }
+  lastRac = racVal||0; lastMut = pct>0?mut.n:null;
+  majBarre();               // la barre fixe du bas suit le calibrage en direct
+}
+
+/* Separee de renderSummary pour eviter la boucle : renderSummary appelle
+   updateRac par la chaine d'affichage, updateRac ne doit pas la rappeler. */
+function majBarre(){
+  const br=parcoursBR();
+  const dh=parseFloat(document.getElementById('dh').value)||0;
+  document.getElementById('totBR').textContent=eur(br+dh);
+  const rc=document.getElementById('totRac');
+  if(br<=0){ rc.textContent='reste à charge —'; rc.className='rac'; }
+  else if(lastMut==null){ rc.textContent='mutuelle non renseignée'; rc.className='rac'; }
+  else { rc.textContent='reste à charge '+eur2(lastRac); rc.className='rac'+(lastRac>0.005?' pos':''); }
+  const bd=document.getElementById('bDevis'); if(bd) bd.disabled = !(br>0);
+  dclPreview();
+}
+/* ══ LE CHIRURGIEN COTE-T-IL EN LIBERAL ? (17/08/2026) ══════════════
+   Deux mondes que la page confondait :
+   - il cote AUSSI : mon depassement suit le sien a 50 % (usage). Le calibrage
+     n'a plus d'objet — le montant m'est donne. S'il reste du reste a charge,
+     il faut le VOIR : c'est ce que le patient signe.
+   - je cote SEUL : depassement libre, et c'est la que « reste a charge nul »
+     prend tout son sens.
+   Le montant du chirurgien n'est pas toujours connu en consultation : dans ce
+   cas la page ne bloque pas, elle laisse le depassement libre et le dit. */
+let CHIR_LIB = false;
+
+function setChir(oui){
+  CHIR_LIB = !!oui;
+  document.getElementById('chirOui').classList.toggle('on', CHIR_LIB);
+  document.getElementById('chirNon').classList.toggle('on', !CHIR_LIB);
+  document.getElementById('chirDhWrap').style.display = CHIR_LIB ? 'block' : 'none';
+  chirChange();
+}
+
+/* 50 % du DEPASSEMENT du chirurgien, pas de ses honoraires (precision d'Arthur). */
+function chirDhPropose(){
+  if(!CHIR_LIB) return null;
+  const v = parseFloat(document.getElementById('chirDh').value);
+  if(!(v > 0)) return null;                       // montant inconnu : on ne propose rien
+  return Math.round(v * 50) / 100;                // = v * 0.5, arrondi au centime
+}
+
+function chirChange(){
+  const prop = chirDhPropose();
+  const h = document.getElementById('chirHint');
+  if(h){
+    h.innerHTML = !CHIR_LIB ? ''
+      : (prop == null
+          ? 'Montant du chirurgien inconnu&nbsp;: votre dépassement reste libre. Renseignez-le pour que l\'usage des 50&nbsp;% s\'applique.'
+          : 'Usage&nbsp;: <b>' + eur2(prop) + '</b> pour vous, soit 50&nbsp;% du sien. Proposé, modifiable.');
+  }
+  if(prop != null){
+    const dhIn = document.getElementById('dh');
+    if(dhIn && !dhIn.disabled) dhIn.value = prop.toFixed(2);
+  }
+  updateRac(); renderSummary();
+}
+
+function caler(){
+  const opt=parseFloat(document.getElementById('calerBtn').dataset.opt);
+  if(isNaN(opt))return;
+  document.getElementById('dh').value=(Math.round(opt*100)/100).toFixed(2);
+  updateRac(); renderSummary();
+}
+
+/* setAxe() a disparu avec le selecteur (17/08/2026). L'ecran d'ouverture se pose
+   une fois : le jour du bloc est demande, la consultation associee aussi. */
+function poserEcran(){
+  document.getElementById('dIntWrap').style.display='block';
+  const w=document.getElementById('assocWrap'); if(w) w.style.display='block';
+  assocChange();
+  renderDateHint();
+  onStatut();
+}
+function onStatut(){const st=STATUTS[document.getElementById('statut').value];
+  const badge=document.getElementById('coefBadge'), lbl=document.getElementById('coefLbl');
+  if(axe==='NGAP'){ badge.textContent='× 1,00'; lbl.textContent='Coeff. NGAP'; badge.title='Le NGAP n’applique pas le coefficient monégasque'; }
+  else { badge.textContent='× '+st.coeff.toLocaleString('fr-FR',{minimumFractionDigits:2}); lbl.textContent='Coeff. CCAM'; badge.title=''; }
+  renderStatutAlerte();
+  document.getElementById('cibleWrap').style.display = st.dh==='libre'?'block':'none';
+  document.getElementById('mutRow').style.display = st.dh==='0'?'none':'flex';
+  renderBuilder();}
+// Modificateur 7 (presence permanente de l'anesthesiste, +6 %) COCHE PAR DEFAUT :
+// il est present sur tous les releves observes, et une case oubliee sous-evaluait
+// silencieusement la BR de 6 %. Decochable si le cas se presente.
+function addLine(){builder.push({code:'',lib:'',tarif:0,m7:true,mA:false,role:'complement'});renderBuilder();}
+function rmLine(i){builder.splice(i,1);renderBuilder();}
+function upd(i,f,v){builder[i][f]=v;renderBuilder();}
+
+function renderBuilder(){
+  const tb=document.getElementById('linesBody');
+  tb.innerHTML=builder.map((l,i)=>`<tr>
+    <td><div class="codetag">${l.code||'—'}</div><input value="${(l.lib||'').replace(/"/g,'&quot;')}" onchange="upd(${i},'lib',this.value)"></td>
+    <td><input class="mono" type="number" step="0.01" value="${l.tarif||''}" onchange="upd(${i},'tarif',parseFloat(this.value)||0)"></td>
+    <td class="chkcell"><input type="checkbox" ${l.m7?'checked':''} onchange="upd(${i},'m7',this.checked)"></td>
+    <td class="chkcell"><input type="checkbox" ${l.mA?'checked':''} onchange="upd(${i},'mA',this.checked)"></td>
+    <td><select onchange="upd(${i},'role',this.value)">${Object.keys(ROLES).map(k=>`<option value="${k}" ${l.role===k?'selected':''}>${ROLES[k].lab}</option>`).join('')}</select></td>
+    <td class="brcell">${eur2(lineBR(l))}</td>
+    <td><button class="rm" onclick="rmLine(${i})" title="Retirer">✕</button></td></tr>`).join('');
+  dclPreRemplirChir();      // le libelle du 1er acte alimente « Chirurgie », s'il est vierge
+  applyDH();
+}
+
+// DH commun CCAM/NGAP : verte/SPME=0 · rose=+20 % BR · sinon libre
+function applyDH(){
+  const br=parcoursBR();
+  document.getElementById('parcBR').textContent=eur2(br);
+  const st=STATUTS[document.getElementById('statut').value];
+  const dhIn=document.getElementById('dh');
+  const pct=currentMutPct();
+  if(st.dh==='0'){dhIn.value='0';dhIn.disabled=true;}
+  else if(st.dh==='0.20'){                                   // rose : plafond +20 %, mais calé sur l'absorbé si mutuelle connue
+    const cap=0.20*br;
+    const opt = pct>0 ? Math.min(cap, Math.max(0,(pct-100)/100*br)) : cap;
+    dhIn.value=(Math.round(opt*100)/100).toFixed(2);dhIn.disabled=true;
+  }
+  else{
+    dhIn.disabled=false;                                     // libre : ajustable
+    // Chirurgien liberal : l'usage des 50 % reprend la main sur la valeur en place.
+    const prop=chirDhPropose();
+    if(prop!=null) dhIn.value=prop.toFixed(2);
+  }
+  updateRac();
+  renderSummary();
+}
+
+function fromCible(){const c=parseFloat(document.getElementById('cible').value)||0;const br=parcoursBR();
+  document.getElementById('dh').value=(Math.max(0,Math.round((c-br)*100)/100)).toFixed(2);updateRac();renderSummary();}
+
+// ---- BRANCHEMENT AU PORTAIL ----------------------------------------------
+// La page est servie depuis la MEME origine que dashboard.html (GitHub Pages) : la
+// session du portail est donc lisible ici, sans rien redemander au MAR.
+// (17/08/2026) Elle se lit par SessionPortail, JAMAIS en interrogeant le stockage du
+// navigateur en direct — c'est lui qui sait ou vit le code et combien de temps
+// (30 jours glissants dans l'app installee, duree de l'onglet ailleurs). Cette page
+// lisait l'onglet seul : elle redemandait le code quand le portail, lui, s'en
+// souvenait. Constate en reel le 17/08.
+// L'URL ci-dessous est deja publique dans dashboard.html (depot public) : rien de neuf.
+const API_URL = 'https://script.google.com/macros/s/AKfycbxDbTnhgdjCNBqkeAblZWgS3CK-IptjJoRDQd1AtGF7WQoQkXriWGvISIo7LJG8zUtjTQ/exec';
+
+// Le classeur stocke le nom sous la forme "Dr X" ; les gabarits du devis et de la
+// declaration de choix ecrivent DEJA "Dr" / "Docteur" devant. On retire donc la
+// civilite du nom pre-rempli, sinon le document imprime "Dr Dr X".
+// La civilite n'est retiree que si elle est SUIVIE D'UNE ESPACE : Drouot, Dreyfus
+// et Prunet ne sont pas touches.
+function sansCivilite(n){
+  return String(n||'').replace(/^\s*(?:(?:M\.|Mme|Dr\.?|Docteur|Pr\.?|Professeur)\s+)+/i,'').trim();
+}
+
+/* Deconnexion : on efface le code de session, comme sur les autres pages du
+   portail, et on renvoie a la page d'accueil. La page reste utilisable en
+   « hors portail » (cotation, devis), seule la declaration s'y ferme. */
+function quitterPortail(){
+  SessionPortail.oublier();                // efface l'onglet ET la mémoire longue
+  location.href='../../dashboard.html';
+}
+
+function pbSetEtat(txt, ok){
+  const e=document.getElementById('pbEtat'); if(!e) return;
+  e.textContent=txt; e.className='pbetat '+(ok?'ok':'ko');
+  document.querySelector('.pratbar').classList.toggle('lie', !!ok);
+}
+
+// Repli VISIBLE : si le code manque ou si l'API ne repond pas, on le DIT et on laisse
+// la saisie manuelle. Jamais de degradation silencieuse -- c'est le defaut qu'on a
+// deja paye ailleurs (tables en dur, icone manquante).
+async function chargerPraticien(){
+  const code = SessionPortail.lire();
+  if(!code){ pbSetEtat('hors portail — à saisir', false); return; }
+  pbSetEtat('connexion…', true);
+  try{
+    const ctrl=new AbortController(); const to=setTimeout(()=>ctrl.abort(), 20000);
+    const r=await fetch(API_URL, {method:'POST', headers:{'Content-Type':'text/plain;charset=utf-8'},
+      body:JSON.stringify({action:'login', code:code}), redirect:'follow', signal:ctrl.signal});
+    clearTimeout(to);
+    const j=await r.json();
+    if(!j || !j.success || j.role!=='mar'){ pbSetEtat('non identifié — à saisir', false); return; }
+    const qui=document.getElementById('pbWho'), out=document.getElementById('pbOut');
+    if(qui && j.name){ qui.textContent=j.name; qui.style.display=''; }
+    if(out){ out.style.display=''; }
+    const nom=sansCivilite(j.name), prenom=String(j.prenom||'').trim(), rpps=String(j.rpps||'').trim();
+    // "Prénom Nom" ; sans prénom renseigne, le nom seul (le gabarit ajoute "Dr").
+    const complet=[prenom, nom].filter(Boolean).join(' ');
+    if(complet) document.getElementById('cfgPrat').value=complet;
+    if(rpps)    document.getElementById('cfgRPPS').value=rpps;
+    const manque=[!prenom?'prénom':null, !rpps?'RPPS':null].filter(Boolean);
+    pbSetEtat(manque.length ? ('pré-rempli · '+manque.join(' et ')+' à compléter')
+                            : 'pré-rempli depuis le portail', !manque.length);
+  }catch(e){
+    pbSetEtat('portail injoignable — à saisir', false);
+  }
+}
+
+// ---- SECTEURS -------------------------------------------------------------
+// Liste tiree de l'onglet SECTEURS via l'action 'getSecteurs' (lecture, deja routee,
+// accessible a tout MAR connecte). AUCUNE liste en dur ici : le jour ou un secteur
+// change, c'est une cellule du classeur qu'on modifie, pas ce fichier.
+// Filtre : ACTIF, porteur d'une AFFECTATION, et rendement liberal ni NUL ni REA.
+//   -> un secteur SANS rendement renseigne est PROPOSE : un secteur neuf est presume
+//      productif jusqu'a classement. Mieux vaut le retirer que le voir disparaitre.
+// Repli VISIBLE : si le portail est injoignable, on bascule sur une saisie libre et
+// on le dit. Jamais de liste vide silencieuse.
+let SECTEURS=[];
+// Le secteur ne se saisit QU'A UN SEUL ENDROIT : la declaration. Il ne peut pas se
+// rabattre sur du texte libre (le comite a besoin d'un code exploitable) : hors portail,
+// on neutralise le select avec un message clair plutot que de laisser une liste vide.
+function secteurReplLibre(msg){
+  const dcl=document.getElementById('dclSec');
+  if(dcl) dcl.innerHTML='<option value="">'+(msg||'secteurs indisponibles')+'</option>';
+}
+async function chargerSecteurs(){
+  const code = SessionPortail.lire();
+  if(!code){ secteurReplLibre('Secteur (hors portail — à saisir)'); return; }
+  // Cache de session : la liste bouge rarement, inutile de la redemander a chaque ouverture.
+  try{
+    const c=JSON.parse(sessionStorage.getItem('pmSecteursLib')||'null');
+    if(c && c.length){ SECTEURS=c; remplirSecteurs(); return; }
+  }catch(e){}
+  try{
+    const ctrl=new AbortController(); const to=setTimeout(()=>ctrl.abort(), 20000);
+    const r=await fetch(API_URL, {method:'POST', headers:{'Content-Type':'text/plain;charset=utf-8'},
+      body:JSON.stringify({action:'getSecteurs', code:code}), redirect:'follow', signal:ctrl.signal});
+    clearTimeout(to);
+    const j=await r.json();
+    const brut=(j && (j.data || j.secteurs || j)) || [];
+    const list=(Array.isArray(brut)?brut:[]).filter(x=>{
+      const rend=String(x.rendement||'').trim().toUpperCase();
+      return x && x.actif && x.aff && rend!=='NUL' && rend!=='REA';
+    }).sort((a,b)=>(a.ordre||0)-(b.ordre||0));
+    if(!list.length){ secteurReplLibre('Secteur (liste vide — à saisir)'); return; }
+    SECTEURS=list; remplirSecteurs();
+    try{ sessionStorage.setItem('pmSecteursLib', JSON.stringify(list)); }catch(e){}
+  }catch(e){
+    secteurReplLibre('Secteur (portail injoignable — à saisir)');
+  }
+}
+/* ── SPECIALITES (2A) ──────────────────────────────────────────────────────
+   Maille du RENDEMENT liberal. Plus fine que le secteur la ou un secteur melange
+   deux rendements tres differents : OPH separee d'ORL (la cataracte est le moteur),
+   URO separee de VIS. Liste servie par l'onglet SPECIALITES, jamais en dur ici -
+   la seule chose en dur est la PROPOSITION par defaut d'apres le secteur. */
+let SPECIALITES=[];
+// Proposition, pas une deduction : toujours modifiable. Un secteur ORL peut porter
+// de l'ophtalmo, un secteur VIS de l'urologie -- c'est precisement pourquoi la
+// specialite existe separement.
+/* (17/08/2026) ORL A ETE RETIRE DE CETTE TABLE. Le secteur s'appelle
+   « ORL / Ophtalmologie » : recopier son code dans la specialite etiquetait
+   TOUTE cataracte en ORL — exactement ce que la separation OPH/ORL devait
+   empecher, la cataracte etant le moteur du rendement. Un secteur qui melange
+   deux specialites ne se devine pas : on le dit et on laisse choisir. */
+const SEC2SPEC={VIS:'VIS', ORT:'ORT', END:'END', CI:'CI', RI:'RI', MAT:'GYN'};
+const SEC_AMBIGU={ORL:'ce secteur mélange ORL et ophtalmologie — à choisir'};
+
+/* ── COTATIONS TYPES ───────────────────────────────────────────────────────
+   Onglet COTATIONS_TYPE : NOM | ORDRE | CODE | ROLE | MOD7 | MODA | LC.
+   Aucun tarif n'y est stocke : il vient de l'index CCAM a partir du code. Si un
+   code est absent de l'index, on le dit plutot que de poser une ligne a 0 EUR. */
+let COTTYPE=[];
+async function chargerCotationsType(){
+  const code = SessionPortail.lire();
+  if(!code) return;
+  try{
+    // Cle de cache VERSIONNEE (v2) : sans le suffixe, un changement de structure de
+    // l'onglet reste invisible tant que la session n'est pas fermee -- la colonne
+    // GROUPE n'est pas apparue pour cette raison. A incrementer a chaque evolution.
+    const c=JSON.parse(sessionStorage.getItem('pmCotTypeLib_v2')||'null');
+    if(c && c.length){ COTTYPE=c; renderCotTypeBar(); return; }
+  }catch(e){}
+  try{
+    const ctrl=new AbortController(); const to=setTimeout(()=>ctrl.abort(), 20000);
+    const r=await fetch(API_URL, {method:'POST', headers:{'Content-Type':'text/plain;charset=utf-8'},
+      body:JSON.stringify({action:'getCotationsType', code:code}), redirect:'follow', signal:ctrl.signal});
+    clearTimeout(to);
+    const j=await r.json();
+    const brut=(j && (j.data || j.cotations || j)) || [];
+    const list=(Array.isArray(brut)?brut:[]).filter(x=>x && x.nom && x.lignes && x.lignes.length);
+    if(!list.length) return;                       // aucune cotation type : pas de barre, c'est exact
+    COTTYPE=list; renderCotTypeBar();
+    try{ sessionStorage.setItem('pmCotTypeLib_v2', JSON.stringify(list)); }catch(e){}
+  }catch(e){
+    /* (17/08/2026) L'ECHEC NE DOIT PLUS ETRE MUET. La barre disparaissait sans
+       un mot quand l'appel tombait : Arthur a cru la fonctionnalite perdue
+       alors que rien n'etait casse. Dire ce qui manque, et offrir de reessayer. */
+    if(!COTTYPE.length) cotTypePanne();
+  }
+}
+
+// GROUPE choisi : memorise pour la SESSION (un F5 entre deux patients ne doit pas
+// obliger a le rechoisir). Tant qu'aucun groupe n'est choisi : AUCUN bouton -- au-dela
+// d'une dizaine, une rangee de boutons devient illisible.
+let COTTYPE_GRP='';
+try{ COTTYPE_GRP=sessionStorage.getItem('pmCotTypeGroupe')||''; }catch(e){}
+
+function choisirGroupeCotType(g){
+  COTTYPE_GRP=g||'';
+  try{ sessionStorage.setItem('pmCotTypeGroupe', COTTYPE_GRP); }catch(e){}
+  renderCotTypeBtns();
+}
+
+/* Affiche a la place de la barre : la raison, et un bouton pour reessayer. */
+function cotTypePanne(){
+  const bar=document.getElementById('cotTypeBar'), btns=document.getElementById('cotTypeBtns');
+  const sel=document.getElementById('cotTypeGrp');
+  if(!bar || !btns) return;
+  if(sel) sel.style.display='none';
+  const lien=document.getElementById('lienFabrique'); if(lien) lien.style.display='none';
+  btns.innerHTML='<span style="font-size:12px;color:#8A6516;background:#FDF3E3;border:1px solid #EAD9B4;'
+    +'border-radius:8px;padding:6px 10px">Cotations types indisponibles — la cotation à la main reste possible. '
+    +'<button class="declbtn" style="padding:4px 9px;font-size:11.5px;margin-left:4px" onclick="chargerCotationsType()">Réessayer</button></span>';
+  bar.style.display='flex';
+}
+
+function renderCotTypeBar(){
+  const bar=document.getElementById('cotTypeBar'), sel=document.getElementById('cotTypeGrp');
+  if(!bar || !sel || !COTTYPE.length) return;
+  sel.style.display='';                       // efface un eventuel etat « panne »
+  const groupes=[];
+  COTTYPE.forEach(function(c){ if(c.groupe && groupes.indexOf(c.groupe)===-1) groupes.push(c.groupe); });
+  sel.innerHTML='<option value="">— choisir un contexte —</option>'
+    + groupes.map(g=>`<option value="${esc(g)}">${esc(g)}</option>`).join('');
+  // Le groupe memorise n'existe plus (renomme, supprime) : on repart a vide.
+  if(COTTYPE_GRP && groupes.indexOf(COTTYPE_GRP)===-1) COTTYPE_GRP='';
+  sel.value=COTTYPE_GRP;
+  bar.style.display='flex';
+  const lien=document.getElementById('lienFabrique');
+  if(lien) lien.style.display='inline-flex';      // membre du groupement : la barre n'existe que pour lui
+  renderCotTypeBtns();
+}
+
+function renderCotTypeBtns(){
+  const box=document.getElementById('cotTypeBtns'); if(!box) return;
+  if(!COTTYPE_GRP){ box.innerHTML=''; return; }
+  box.innerHTML=COTTYPE
+    .map((c,i)=>({c,i}))
+    .filter(o=>o.c.groupe===COTTYPE_GRP)
+    .map(o=>`<button class="addline" style="margin-right:6px" onclick="appliquerCotType(${o.i})">${esc(o.c.nom)}</button>`)
+    .join('');
+}
+
+// REMPLACE les lignes en place : une cotation type decrit un patient entier.
+function appliquerCotType(i){
+  const c=COTTYPE[i]; if(!c) return;
+  const manquants=[];
+  const lignes=[];
+  c.lignes.forEach(function(l){
+    const a=CCAM_INDEX.find(x=>String(x.c).toUpperCase()===String(l.code).toUpperCase());
+    if(!a || !a.t){ manquants.push(l.code); return; }
+    lignes.push({code:a.c, lib:a.l, tarif:a.t, m7:!!l.mod7, mA:!!l.modA, role:l.role||'principal'});
+  });
+  if(manquants.length){
+    alert("Code(s) absent(s) de l'index CCAM : "+manquants.join(', ')
+      +"\n\nLa cotation type est incomplète — complétez à la main par la recherche.");
+  }
+  if(!lignes.length) return;
+  builder=lignes;
+  // Consultation associee posee par la cotation type (CS par defaut cote onglet).
+  const sel=document.getElementById('assocLc');
+  if(sel && c.lc){ sel.value=c.lc; assocChange(); }
+  renderBuilder();
+}
+
+async function chargerSpecialites(){
+  const code = SessionPortail.lire();
+  const sel=document.getElementById('dclSpec');
+  if(!code){ if(sel) sel.innerHTML='<option value="">Spécialité (hors portail)</option>'; return; }
+  try{
+    const c=JSON.parse(sessionStorage.getItem('pmSpecialitesLib')||'null');
+    if(c && c.length){ SPECIALITES=c; remplirSpecialites(); return; }
+  }catch(e){}
+  try{
+    const ctrl=new AbortController(); const to=setTimeout(()=>ctrl.abort(), 20000);
+    const r=await fetch(API_URL, {method:'POST', headers:{'Content-Type':'text/plain;charset=utf-8'},
+      body:JSON.stringify({action:'getSpecialites', code:code}), redirect:'follow', signal:ctrl.signal});
+    clearTimeout(to);
+    const j=await r.json();
+    const brut=(j && (j.data || j.specialites || j)) || [];
+    const list=(Array.isArray(brut)?brut:[]).filter(x=>x && x.actif);
+    if(!list.length){ if(sel) sel.innerHTML='<option value="">Spécialité (liste vide)</option>'; return; }
+    SPECIALITES=list; remplirSpecialites();
+    try{ sessionStorage.setItem('pmSpecialitesLib', JSON.stringify(list)); }catch(e){}
+  }catch(e){
+    if(sel) sel.innerHTML='<option value="">Spécialité (portail injoignable)</option>';
+  }
+}
+function remplirSpecialites(){
+  const sel=document.getElementById('dclSpec'); if(!sel) return;
+  const garde=sel.value;
+  sel.innerHTML='<option value="">— choisir —</option>'
+    + SPECIALITES.map(x=>`<option value="${esc(x.code)}">${esc(x.code)} — ${esc(x.label||x.code)}</option>`).join('');
+  if(garde) sel.value=garde;
+}
+// Changement de secteur : on PROPOSE la specialite correspondante, tant que l'utilisateur
+// n'a pas choisi la sienne (meme regle que le pre-remplissage du jour et de la chirurgie).
+function dclSecChange(){
+  const sec=document.getElementById('dclSec').value;
+  const sp=document.getElementById('dclSpec');
+  if(sp && !DCL_TOUCHE.spec && SEC2SPEC[sec]) sp.value=SEC2SPEC[sec];
+  memoriserSecteur(sec);
+  majMemos();
+  dclPreview();
+}
+
+/* Le secteur du dernier patient declare est repropose : dix endoscopies
+   d'affilee, c'est zero geste. Toujours modifiable — c'est une proposition,
+   jamais une contrainte. Portee SESSION, comme les autres listes de la page. */
+function memoriserSecteur(sec){
+  if(!sec) return;
+  try{ sessionStorage.setItem('pmDernierSecteurLib', sec); }catch(e){}
+}
+function appliquerDernierSecteur(){
+  let d=''; try{ d=sessionStorage.getItem('pmDernierSecteurLib')||''; }catch(e){}
+  const sel=document.getElementById('dclSec');
+  if(!d || !sel) return;
+  const existe=Array.prototype.some.call(sel.options, function(o){ return o.value===d; });
+  if(!existe) return;                       // secteur disparu de la liste : on n'impose rien
+  sel.value=d;
+  const sp=document.getElementById('dclSpec');
+  if(sp && !DCL_TOUCHE.spec && SEC2SPEC[d]) sp.value=SEC2SPEC[d];
+  majMemos();
+}
+/* Deux pastilles sous les listes : d'ou vient la valeur proposee, et quand la
+   page REFUSE de deviner. Un choix pre-rempli sans explication est un choix
+   qu'on ne relit pas. */
+function majMemos(){
+  const sec=(document.getElementById('dclSec')||{}).value||'';
+  const m1=document.getElementById('secMemo'), m2=document.getElementById('specMemo');
+  let d=''; try{ d=sessionStorage.getItem('pmDernierSecteurLib')||''; }catch(e){}
+  if(m1){ const montre=!!(sec && sec===d); m1.style.display=montre?'block':'none'; }
+  if(m2){
+    if(SEC_AMBIGU[sec]){ m2.textContent='⚠ '+SEC_AMBIGU[sec]; m2.className='memo warn'; m2.style.display='block'; }
+    else if(sec && SEC2SPEC[sec]){ m2.textContent='✓ déduite du secteur'; m2.className='memo'; m2.style.display='block'; }
+    else { m2.style.display='none'; }
+  }
+}
+
+function remplirSecteurs(){
+  const dcl=document.getElementById('dclSec'); if(!dcl) return;
+  const garde=dcl.value;
+  dcl.innerHTML='<option value="">— choisir —</option>'
+    + SECTEURS.map(x=>`<option value="${esc(x.code)}">${esc(x.label||x.court||x.code)}</option>`).join('');
+  if(garde) dcl.value=garde;
+  appliquerDernierSecteur();
+  dclPreview();
+}
+
+// ---- DÉCLARATION D'INTERVENTION LIBÉRALE ----------------------------------
+// Trois actions serveur (portail.gs) : declareLiberal / deleteLiberal / listLiberal.
+// Le MAR_ID n'est JAMAIS envoye par la page : le serveur le prend du code d'acces.
+// listLiberal ne renvoie que MES lignes. Toutes passent par le code de session.
+let MES_DECL=[];        // cache des declarations de l'annee, rempli par chargerDecl()
+// Le secteur ne se saisit qu'ICI (plus sur le parcours) : une seule source, pas de
+// synchronisation a maintenir. Le jour et la chirurgie se PRE-REMPLISSENT depuis le
+// dernier parcours bloc ajoute -- mais UNIQUEMENT tant que l'utilisateur n'y a pas
+// touche, sinon une correction saisie ici sauterait a la prochaine cotation.
+const DCL_TOUCHE={bloc:false, chir:false, cons:false, spec:false, brc:false, brn:false};
+function dclTouche(champ){ DCL_TOUCHE[champ]=true; }
+/* (17/08/2026) Le formulaire de declaration ne PORTE plus de dates ni de montants :
+   il les lit dans la cotation au moment de declarer. Seule la chirurgie se
+   pre-remplit, depuis le libelle du premier acte, et reste modifiable. */
+function dclPreRemplirChir(){
+  const el=document.getElementById('dclChir');
+  if(!el || DCL_TOUCHE.chir || el.value.trim()) return;
+  if(axe!=='CCAM' || !builder.length) return;
+  el.value=(builder[0].lib||'').slice(0,80);
+}
+
+let DECL_ALL=false;     // false = fenetre (futur + 7 j) ; true = toute l'annee depliee
+
+/* (17/08/2026) « réseau » recouvrait TROIS causes différentes — délai dépassé,
+   connexion perdue, réponse illisible — et on cherchait donc à l'aveugle.
+   Chacune a désormais son message.
+   RÉESSAI : deux tentatives de plus, espacées, pour les LECTURES seulement.
+   Relire deux fois ne change rien ; réécrire, si. Les écritures se réessaient
+   aussi, mais uniquement parce qu'elles portent un jeton unique (voir plus bas)
+   qui rend un doublon impossible. */
+const LIB_ECRITURES = { declareLiberal:1, deleteLiberal:1 };
+
+async function apiLibUneFois(action, extra){
+  const code = SessionPortail.lire();
+  if(!code) return {success:false, error:'hors portail', definitif:true};
+  const ctrl=new AbortController(); const to=setTimeout(()=>ctrl.abort(), 20000);
+  try{
+    const r=await fetch(API_URL, {method:'POST', headers:{'Content-Type':'text/plain;charset=utf-8'},
+      body:JSON.stringify(Object.assign({action:action, code:code}, extra||{})),
+      redirect:'follow', signal:ctrl.signal});
+    clearTimeout(to);
+    try{ return await r.json(); }
+    catch(e){ return {success:false, error:'réponse illisible du portail'}; }
+  }catch(e){
+    clearTimeout(to);
+    return {success:false, error: (e && e.name==='AbortError') ? 'délai dépassé' : 'connexion perdue'};
+  }
+}
+
+async function apiLib(action, extra){
+  /* Une ecriture n'est reessayee que si elle porte un jeton : sans lui, la
+     reponse perdue d'une ecriture reussie ferait un doublon. */
+  const sur = !LIB_ECRITURES[action] || !!(extra && extra.jeton);
+  let r = await apiLibUneFois(action, extra);
+  for(let i=0; i<2 && sur && !(r && r.success) && !(r && r.definitif); i++){
+    await new Promise(function(res){ setTimeout(res, 700 * (i+1)); });
+    r = await apiLibUneFois(action, extra);
+  }
+  return r;
+}
+
+function dclPreview(){
+  const p=courant(true);                       // muet : on ne crie pas a chaque frappe
+  const sec=(document.getElementById('dclSec')||{}).value||'';
+  const spec=(document.getElementById('dclSpec')||{}).value||'';
+  const chir=(document.getElementById('dclChir')||{}).value.trim()||'';
+  const prev=document.getElementById('dclPrev'), btn=document.getElementById('dclBtn');
+  const bloqueur = !p ? (parcoursBR()<=0 ? 'Cotez d\'abord le patient, ci-dessus.'
+                                         : 'Renseignez le jour du bloc, dans la cotation.')
+                 : (!sec ? 'Choisissez le secteur.'
+                 : (!spec ? 'Choisissez la spécialité — elle est obligatoire.' : ''));
+  if(btn) btn.disabled=!!bloqueur;
+  if(!prev) return;
+  if(bloqueur){ prev.innerHTML=esc(bloqueur); return; }
+  prev.innerHTML='Sera écrit : <span class="mono">'+esc(p.dCs)+' · '+esc(p.dInt)+' · [vous] · '+esc(sec)
+    +' · '+esc(spec)+(chir?' · '+esc(chir):'')+'</span>'
+    +'<br><span style="font-size:11px;color:var(--muted)">BR CCAM '+eur2(p.brCcam||0)
+    +' (mois du bloc) · BR NGAP '+eur2(p.brNgap||0)+' (mois de la consultation)</span>';
+}
+
+function dclFlash(txt, ok){
+  const m=document.getElementById('dclMsg');
+  m.textContent=txt; m.className='declmsg '+(ok?'ok':'ko'); m.style.display='';
+  if(ok) setTimeout(()=>{ m.style.display='none'; }, 4000);
+}
+
+async function declarer(){
+  const p=courant();                                  // les alertes de saisie sortent ici
+  if(!p) return;
+  const sec=document.getElementById('dclSec').value;
+  const spec=document.getElementById('dclSpec').value;
+  const chir=document.getElementById('dclChir').value.trim();
+  if(!sec){ dclFlash('Le secteur est obligatoire — c\'est ce que le comité doit savoir.', false); return; }
+  /* (17/08/2026) SPECIALITE OBLIGATOIRE. Elle etait facultative : une ligne sans
+     specialite compte dans le volume mais sort du rendement, et rien ne le
+     signale six mois plus tard. C'est elle, et non le secteur, qui porte la
+     mesure — les secteurs changent au demenagement, pas les specialites. */
+  if(!spec){ dclFlash('La spécialité est obligatoire : c\'est elle qui portera la mesure du rendement.', false); return; }
+  if(!(p.brCcam>0)){
+    if(!confirm("Aucune BR CCAM.\n\nL'intervention sera bien déclarée au comité, mais elle ne comptera pas dans le rendement par spécialité.\n\nDéclarer quand même ?")) return;
+  }
+  const btn=document.getElementById('dclBtn'); btn.disabled=true;
+  /* Le jeton est tire UNE fois pour ce patient et ne change pas entre les
+     tentatives : c'est ce qui rend le reessai sur et le doublon impossible,
+     y compris si on appuie deux fois sur Declarer. */
+  if(!JETON_COURANT) JETON_COURANT = 'd' + Date.now().toString(36) + Math.random().toString(36).slice(2, 8);
+  const r=await apiLib('declareLiberal', {dateBloc:p.dInt, secteur:sec, chirurgie:chir,
+                                          dateConsult:p.dCs, specialite:spec,
+                                          brCcam:p.brCcam, brNgap:p.brNgap,
+                                          jeton:JETON_COURANT});
+  btn.disabled=false;
+  if(!r || !r.success){
+    dclFlash('Échec : '+((r&&r.error)||'portail injoignable')+'. La liste ci-dessous est rechargée : vérifiez avant de recommencer.', false);
+    chargerDecl();
+    return;
+  }
+  memoriserSecteur(sec);
+  /* (17/08/2026) LE DEVIS RESTE REOUVRABLE PENDANT LA CONSULTATION. Cas reel :
+     trois patients passes, on s'apercoit que le premier n'a pas signe. La
+     cotation du patient declare est donc gardee EN MEMOIRE VIVE, au meme titre
+     que celle affichee a l'ecran.
+     ⚠️ RIEN N'EST ECRIT NULLE PART : pas de stockage navigateur, pas de reseau.
+     Recharger ou fermer la page efface ces devis — c'est la contrepartie de ne
+     jamais conserver d'acte ni de carte. Les lignes plus anciennes s'affichent
+     donc SANS icone, plutot qu'avec une icone qui ne marcherait pas. */
+  if(r.id) DEVIS_SESSION[r.id]=p;
+  /* (17/08/2026) LA LIGNE S'AFFICHE IMMEDIATEMENT. Le serveur vient de
+     confirmer et rend l'identifiant : la page a deja tout ce qu'il faut, elle
+     n'a aucune raison d'attendre une relecture. Sans cela il fallait patienter
+     — ou recharger, ce qui faisait perdre le devis du patient. */
+  if(r.id && !MES_DECL.some(function(d){ return d.id===r.id; })){
+    MES_DECL.push({ id:r.id, dateConsult:p.dCs, dateBloc:p.dInt, secteur:sec,
+                    chirurgie:chir, specialite:spec, brCcam:p.brCcam, brNgap:p.brNgap });
+    MES_DECL.sort(function(a,b){ return String(a.dateBloc).localeCompare(String(b.dateBloc)); });
+    DECL_KO='';
+    renderDecl();
+  }
+  dclFlash('Intervention déclarée — écran vide pour le patient suivant.', true);
+  patientSuivant();
+  chargerDecl(true);          // recale sur le classeur, en arriere-plan, sans faire attendre
+}
+
+/* Jeton du patient en cours. Remis a zero au patient suivant : un nouveau
+   patient est une nouvelle declaration, meme date et meme secteur compris. */
+let JETON_COURANT = '';
+
+/* Cotations des patients declares PENDANT CETTE SESSION, en memoire vive.
+   Videe par tout rechargement de la page : rien ne survit a la fermeture. */
+const DEVIS_SESSION = {};
+
+function rouvrirDevis(id){
+  const p=DEVIS_SESSION[id];
+  if(!p){ dclFlash('Ce devis n\'est plus disponible : la page a été rechargée depuis.', false); return; }
+  parcours=[p]; openDevis(0);
+}
+
+/* Remise a blanc entre deux patients. Ce qui est PROPRE au patient part (actes,
+   dates, chirurgie, depassement) ; ce qui decrit le contexte de travail reste
+   (secteur, contexte de cotation, statut de carte le plus frequent du creneau). */
+function patientSuivant(){
+  builder=[]; parcours=[];
+  ['dInt','dclChir','cible','chirDh'].forEach(function(id){ const el=document.getElementById(id); if(el) el.value=''; });
+  const dh=document.getElementById('dh'); if(dh) dh.value='0';
+  const q=document.getElementById('ccamq'); if(q) q.value='';
+  const res=document.getElementById('ccamResults'); if(res) res.innerHTML='';
+  const dcs=document.getElementById('dCs'); if(dcs) dcs.value=isoToday();
+  Object.keys(DCL_TOUCHE).forEach(function(k){ DCL_TOUCHE[k]=false; });
+  lastRac=0; lastMut=null; JETON_COURANT='';
+  renderBuilder(); updateRac(); renderSummary(); renderDateHint();
+  try{ window.scrollTo({top:0, behavior:'smooth'}); }catch(e){ window.scrollTo(0,0); }
+}
+
+
+async function supprimerDecl(id, year){
+  if(!confirm('Retirer cette intervention déclarée ?')) return;
+  const r=await apiLib('deleteLiberal', {id:id, year:year});
+  if(!r || !r.success){ dclFlash('Suppression impossible : '+((r&&r.error)||'réseau')+'.', false); return; }
+  MES_DECL=MES_DECL.filter(function(d){ return d.id!==id; });   // disparait tout de suite
+  renderDecl();
+  chargerDecl(true);          // et on recale sur le classeur, sans attendre
+}
+
+/* (17/08/2026) Un ECHEC n'est pas une liste vide. Le code retenait [] dans les
+   deux cas et masquait le bloc : les declarations paraissaient s'effacer alors
+   qu'elles etaient enregistrees. On distingue desormais les trois etats — pas
+   identifie, echec, liste reellement vide — et seul le troisieme est muet. */
+let DECL_KO = '';
+
+/* (17/08/2026, correctif du soir) `direct` = NE PAS lire la copie rapide.
+   ⚠️ REGLE QUE J'AVAIS CASSEE LE MEME JOUR. La copie n'est pas rafraichie au
+   moment de l'ecriture : l'action note « il faudra pousser » et un declencheur
+   s'en charge 1 a 2 minutes plus tard. Le fichier miroir.gs le dit deja —
+   « l'ecran qui vient d'ecrire relit de toute facon le circuit DIRECT ». En
+   faisant lire la copie EN PREMIER, j'ai casse cette hypothese : la ligne
+   qu'on venait de declarer n'apparaissait pas, et recharger la page pour la
+   voir faisait perdre l'acces au devis du patient.
+   Donc : copie rapide a l'OUVERTURE (rapide, et c'est la qu'elle evite les
+   pannes), Apps Script APRES UNE ECRITURE (frais, et c'est le seul moment ou
+   la fraicheur compte). */
+async function chargerDecl(direct){
+  const code = SessionPortail.lire();
+  if(!code){ DECL_KO=''; MES_DECL=[]; document.getElementById('dclListWrap').style.display='none'; return; }
+  const an = new Date().getFullYear();
+  if(!direct) try{
+    const ctrl=new AbortController(); const to=setTimeout(()=>ctrl.abort(), 8000);
+    const rep=await fetch(MIROIR_URL+'/read', {method:'POST',
+      headers:{'Content-Type':'text/plain;charset=utf-8'},
+      body:JSON.stringify({code:code, keys:['liberal_mar_'+an]}), signal:ctrl.signal});
+    clearTimeout(to);
+    const j=await rep.json();
+    const bloc = j && j.success && j.data && j.data['liberal_mar_'+an];
+    if(bloc && bloc.parMar){
+      const mien=[];
+      Object.keys(bloc.parMar).forEach(function(k){ (bloc.parMar[k]||[]).forEach(function(x){ mien.push(x); }); });
+      MES_DECL=mien; DECL_KO='';
+      renderDecl(); return;
+    }
+  }catch(e){ /* repli */ }
+  const r=await apiLib('listLiberal', {year:an});
+  if(r && r.success && Array.isArray(r.items)){ MES_DECL=r.items; DECL_KO=''; }
+  else { DECL_KO = (r && r.error) || 'portail injoignable'; }   // on GARDE la liste en place
+  renderDecl();
+}
+
+function renderDecl(){
+  const wrap=document.getElementById('dclListWrap'), box=document.getElementById('dclRows');
+  const ko=document.getElementById('dclListKO');
+  if(ko){
+    if(DECL_KO){
+      ko.innerHTML='<b>Liste non rafraîchie</b> — '+esc(DECL_KO)+'. '
+        +(MES_DECL.length ? 'Ce qui s\'affiche date du dernier chargement. ' : '')
+        +'<b>Rien n\'est perdu</b> : vos déclarations sont enregistrées. '
+        +'<button class="declbtn" style="padding:5px 10px;font-size:12px;margin-left:4px" onclick="chargerDecl()">Réessayer</button>';
+      ko.style.display='block';
+    } else ko.style.display='none';
+  }
+  if(!MES_DECL.length && !DECL_KO){ wrap.style.display='none'; return; }
+  wrap.style.display='';
+  if(!MES_DECL.length){ box.innerHTML=''; return; }
+  const today=isoToday();
+  // Fenetre par defaut : futur + 7 derniers jours (encore corrigeable). Le reste est
+  // masque mais JAMAIS supprime cote serveur — depliable via « voir toute l'année ».
+  const il7=new Date(Date.now()-7*86400000);
+  const seuil=il7.getFullYear()+'-'+String(il7.getMonth()+1).padStart(2,'0')+'-'+String(il7.getDate()).padStart(2,'0');
+  const visibles = DECL_ALL ? MES_DECL : MES_DECL.filter(d=>d.dateBloc>=seuil);
+  const caches = MES_DECL.length - visibles.length;
+  const year=new Date().getFullYear();
+  let html = visibles.map(d=>{
+    const past=d.dateBloc<today;
+    return '<div class="declrow'+(past?' past':'')+'">'
+      +'<span class="dday">'+fmtI(d.dateBloc)+'</span>'
+      +'<span class="dmain">'+esc(secteurLabel(d.secteur))
+        +(d.specialite?' <b>['+esc(d.specialite)+']</b>':'')
+        +(d.chirurgie?' <small>— '+esc(d.chirurgie)+'</small>':'')
+        +((d.brCcam||d.brNgap)?' <small style="color:var(--muted)">· '+eur2(+d.brCcam||0)+' CCAM · '+eur2(+d.brNgap||0)+' NGAP</small>':'')
+        +'</span>'
+      +(DEVIS_SESSION[d.id]
+        ? '<button class="ddel" onclick="rouvrirDevis(\''+d.id+'\')" title="Rouvrir le devis de ce patient" aria-label="Rouvrir le devis">📄</button>'
+        : '')
+      +'<button class="ddel" onclick="supprimerDecl(\''+d.id+'\','+year+')" aria-label="Retirer">🗑</button>'
+      +'</div>';
+  }).join('');
+  if(!DECL_ALL && caches>0){
+    html += '<div class="declmore" onclick="DECL_ALL=true;renderDecl()">▾ voir mes '+MES_DECL.length+' interventions de l\'année</div>';
+  }
+  if(DECL_ALL){
+    html += '<div class="declmore" onclick="DECL_ALL=false;renderDecl()">▴ réduire aux prochaines</div>';
+  }
+  box.innerHTML=html;
+}
+
+// ---- DATES ----------------------------------------------------------------
+// Format ISO (AAAA-MM-JJ) : c'est ce que rend <input type=date>, et il se trie
+// alphabetiquement dans l'ordre chronologique -- d'ou le tri simple de renderRows().
+function isoToday(){const d=new Date();return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0');}
+function fmtI(iso){if(!iso)return '\u2014';const q=String(iso).split('-');return q.length===3?(q[2]+'/'+q[1]+'/'+q[0]):iso;}
+function renderDateHint(){
+  const h=document.getElementById('dateHint'); if(!h)return;
+  const dInt=document.getElementById('dInt').value;
+  if(axe==='NGAP'){h.innerHTML="La consultation est l'acte : c'est cette date qui remonte au comit\u00e9 et qui \u00e9tablit le devis.";return;}
+  if(!dInt){h.innerHTML="<b>Date d'intervention requise</b> \u2014 c'est elle qui pose l'alerte du comit\u00e9 sur le planning.";return;}
+  h.innerHTML = (dInt<isoToday())
+    ? "<b style=\"color:#8A6516\">Intervention d\u00e9j\u00e0 pass\u00e9e</b> \u2014 accept\u00e9 (codage r\u00e9trospectif), signal\u00e9 en orange dans la liste."
+    : "L'alerte du comit\u00e9 se posera le <b>"+fmtI(dInt)+"</b>.";
+}
+
+/* (17/08/2026) UN PATIENT A LA FOIS. `addParcours` empilait des patients dans une
+   liste, heritage de l'epoque ou la page projetait un ratio cumule. Le devis se
+   remettant en direct, le geste reel est : coter -> imprimer -> declarer -> suivant.
+   `courant()` construit donc l'objet du patient AFFICHE, sans rien empiler ; il
+   renvoie null (et le dit) si la cotation n'est pas exploitable. */
+function courant(muet){
+  const br=parcoursBR();
+  if(br<=0){ if(!muet) alert('Ajoute au moins une ligne avec un tarif.'); return null; }
+  const dh=parseFloat(document.getElementById('dh').value)||0;
+  const desc = builder.map(l=>((l.code?l.code+' ':'')+(l.lib||'ligne'))).join(' + ');
+  const cnt = builder.length;
+  const dCs=document.getElementById('dCs').value;
+  const dInt=document.getElementById('dInt').value;
+  if(!dCs){ if(!muet) alert("Renseigne la date de consultation."); return null; }
+  if(!dInt){ if(!muet) alert("Renseigne le jour du bloc : c'est lui qui pose l'alerte du comit\u00e9 sur le planning."); return null; }
+  const dActe = dInt;                       // ce qui remonte au comite : le jour du bloc
+  const st=document.getElementById('statut').value, pct=currentMutPct();
+  let rac=null, mut=null;
+  if(pct>0 && STATUTS[st].dh!=='0'){
+    const reimb=Math.min(coverageCeiling(st,pct,br), br+dh);
+    rac=Math.max(0,(br+dh)-reimb); mut=currentMut().n;
+  }
+  // Detail acte par acte, memorise pour le devis (modele CNOM : un bloc par acte).
+  // La BR se repartit ligne par ligne ; le DH, saisi pour l'intervention entiere, NON.
+  // Il n'existe pas de cle de repartition du DH : il reste donc sur la ligne de total.
+  const lines = builder.map(l=>({code:l.code||'', lib:l.lib||'Acte', br:lineBR(l),
+        mods:[l.m7?'7':null, l.mA?'A':null].filter(Boolean), role:l.role}));
+  // 2A : le parcours porte desormais SES DEUX montants. brCcam/brNgap sont ce qui
+  // partira dans la declaration ; br reste la BR de l'axe courant (devis, RAC, simulateur).
+  return {axe,statut:st,desc,cnt,br,dh,rac,mut,dCs,dInt,dActe,lines,
+          brCcam:br, brNgap:assocBR()};
+}
+
+/* Devis du patient affiche. `parcours` ne sert plus que de porte-objet a un seul
+   element : openDevis / renderDevisActes / printDevis n'ont pas ete touches. */
+function ouvrirDevisCourant(){
+  const p=courant(); if(!p) return;
+  parcours=[p]; openDevis(0);
+}
+
+/* (17/08/2026) La projection du ratio 30 % a ete retiree de cette page : elle
+   partait d'un socle en dur que personne ne renseignait. Il ne reste ici que
+   ce que la page sait VRAIMENT : la BR empilee, le DH, le reste a charge. */
+/* La barre fixe du bas decrit LE PATIENT AFFICHE, en direct : plus de somme de
+   patients empiles. Elle pilote aussi l'etat des deux boutons — un bouton actif
+   qui echoue est pire qu'un bouton gris qui explique pourquoi. */
+function renderSummary(){ majBarre(); }
+/* renderRows() a disparu avec la liste des parcours empiles (17/08/2026). */
+// ---- GÉNÉRATEUR DE DEVIS (client-side, zéro persistance patient) ----
+const ST_LABELS={verte:'Carte verte (CCSS Monaco)',rose:'Carte rose (CCSS Monaco)',bulle:'Carte bulle (CCSS Monaco)',fr:'Assuré français (secteur 2)',frc2s:'Assuré français — AME / C2S (précarité)',nas:'NAS — non assuré social',spme:'SPME (Monaco)'};
+let dvHonoraire=0;
+const RO_RATE={verte:0.80,rose:0.80,bulle:0.80,spme:0.80,fr:0.70,frc2s:1.00,nas:0.00};
+function eText(id,v){document.getElementById(id).textContent=v;}
+function fmtDate(d){return String(d.getDate()).padStart(2,'0')+'/'+String(d.getMonth()+1).padStart(2,'0')+'/'+d.getFullYear();}
+// Libelle lisible d'un code secteur ; a defaut, le code lui-meme.
+function secteurLabel(code){
+  const x=SECTEURS.find(s=>s.code===code);
+  return x ? (x.court||x.label||x.code) : code;
+}
+function esc(t){return String(t==null?'':t).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');}
+// Un bloc par acte, comme le modele de note prealable du CNOM (secteur 2), qui demande
+// de mentionner chaque acte selon les memes modalites. Les modificateurs sont portes par
+// LEUR ligne : ils s'appliquent acte par acte, pas au parcours.
+function renderDevisActes(p){
+  const tb=document.getElementById('dvActes'); if(!tb) return;
+  const nom = (p.axe==='CCAM') ? 'CCAM' : 'NGAP';   // abrege : la ligne doit tenir sur une seule ligne
+  const lines = (p.lines && p.lines.length) ? p.lines
+              : [{code:'', lib:p.desc||'Acte', br:p.br, mods:[]}];   // filet : parcours sans detail
+  tb.innerHTML = lines.map(l=>{
+    const m=(l.mods&&l.mods.length) ? ' \u00b7 mod. '+l.mods.join(', ') : '';
+    const c=l.code ? esc(l.code)+' \u00b7 ' : '';
+    return `<tr>
+      <td class="l"><span class="lib">${esc(l.lib||'Acte')}</span> <span class="code">— ${c}${nom}${m}</span></td>
+      <td class="num">${eur2(l.br)}</td>
+      <td class="num"></td><td class="num"></td><td class="num"></td></tr>`;
+  }).join('');
+}
+function openDevis(i){
+  const p=parcours[i]; if(!p) return;
+  dvHonoraire=p.br+p.dh;
+  // Praticien (config saisie une fois en haut de page)
+  eText('dvPratName', document.getElementById('cfgPrat').value.trim()||'[Nom Prénom]');
+  eText('dvRPPS', document.getElementById('cfgRPPS').value.trim()||'—');
+  // N° de devis + dates (auto)
+  // Le devis est etabli le jour de la CONSULTATION, pas le jour ou on l'imprime, et
+  // sa validite de 6 mois court a partir de la. La date prevue est celle de
+  // l'intervention ; sur un parcours NGAP l'acte EST la consultation.
+  const base = p.dCs ? new Date(p.dCs+'T12:00:00') : new Date();
+  const valid = new Date(base.getTime()); valid.setMonth(valid.getMonth()+6);
+  const now=new Date(), p2=n=>String(n).padStart(2,'0');
+  eText('dvNum', base.getFullYear()+'-'+p2(base.getMonth()+1)+p2(base.getDate())+'-'+p2(now.getHours())+p2(now.getMinutes()));
+  eText('dvDateEtabli', fmtDate(base));
+  eText('dvDateValid', fmtDate(valid));
+  document.getElementById('dvDatePrevue').textContent=fmtI(p.dInt||p.dCs);
+  // Acte + statut + mutuelle + montants
+  eText('dvStatut', ST_LABELS[p.statut]||p.statut);
+  eText('dvActe', p.desc||'Acte');
+  renderDevisActes(p);
+  eText('dvBR', eur2(p.br)); eText('dvHon', eur2(dvHonoraire)); eText('dvDH', eur2(p.dh));
+  eText('dvMut', p.mut||'non renseignée');
+  const ra=document.getElementById('dvRacAfter');
+  ra.textContent = p.rac!=null?eur2(p.rac):'—';
+  ra.className='v '+((p.rac!=null&&p.rac<=0.005)?'zero':'pos');
+  document.getElementById('dvTag').style.display=(p.statut==='bulle')?'inline-block':'none';
+  // Remboursement assurance maladie pré-calculé (hypothèse de taux, ajustable)
+  const rate = (RO_RATE[p.statut]!=null?RO_RATE[p.statut]:0.80);
+  document.getElementById('dvRRO').textContent = eur2(rate*p.br);
+  recalcDevisRac();
+  // aucun champ patient : le nom est écrit à la main par le patient après impression
+  eText('dcPratName', document.getElementById('cfgPrat').value.trim()||'[Nom Prénom]');
+  document.getElementById('devisOverlay').style.display='block';
+  window.scrollTo(0,0);
+}
+function parseEur(t){return parseFloat((t||'').replace(/[^0-9.,-]/g,'').replace(',','.'))||0;}
+function recalcDevisRac(){
+  const rro=parseEur(document.getElementById('dvRRO').textContent);
+  const el=document.getElementById('dvRacBefore');
+  if(rro>0){const rac=Math.max(0,dvHonoraire-rro);el.textContent=eur2(rac);el.className='v '+(rac<=0.005?'zero':'pos');}
+  else{el.textContent='—';el.className='v pos';}
+}
+function printDevis(withDecl){
+  const d=document.getElementById('declSheet');
+  d.style.display=withDecl?'block':'none';
+  window.print();
+  d.style.display='block';
+}
+function closeDevis(){
+  document.querySelectorAll('#devisOverlay .ed').forEach(e=>e.textContent='');   // rien ne persiste
+  document.getElementById('devisOverlay').style.display='none';
+}
+// ---- RECHERCHE CCAM (référentiel v83, chargé depuis ccam_actes.json) ----
+let CCAM_INDEX=[], ccamLoaded=false, lastCcam=[];
+// couche synonymes/abréviations → termes présents dans les libellés officiels (extensible)
+const SYN={
+  'pth':'coxofemoral', 'ptg':'femorotibial', 'ptt':'talocrural',
+  'tap':'paroi abdominale', 'alr':'locoregionale', 'rachi':'rachidienne',
+  'coelio':'videochirurgie',
+  'coelioscopie':'videochirurgie', 'cesar':'cesarienne', 'cesarienne':'cesarienne',
+  'chole':'cholecystectomie', 'appendice':'appendicectomie', 'amygdales':'amygdalectomie',
+  'cec':'circulation extracorporelle', 'vvc':'catheter veineux central', 'cataracte':'cristallin',
+  // OBSTETRIQUE. Le libelle officiel d'AFLB010 est "Anesthesie rachidienne au cours d'un
+  // accouchement par voie basse" : le mot "peridurale" n'y figure PAS. Chercher "peridurale"
+  // ramenait 6 actes sans jamais celui-la -- cause materielle d'oubli de cotation, identifiee
+  // le 21/07/2026. Une entree peut porter PLUSIEURS pistes (tableau) : les resultats sont alors
+  // l'union des deux, on n'echange pas un manque contre un autre.
+  'peridurale':['peridurale','accouchement voie basse'],
+  'apd':['peridurale','accouchement voie basse'],
+  'peri':['peridurale','accouchement voie basse'],
+  'peridurale obstetricale':'accouchement voie basse', 'apd obstetricale':'accouchement voie basse',
+  'peridurale accouchement':'accouchement voie basse', 'obstetricale':'accouchement voie basse',
+  'obstetrique':'accouchement voie basse', 'accouchement':'accouchement voie basse',
+  'peridurale obstetrique':'accouchement voie basse', 'travail':'accouchement voie basse'
+};
+function norm(s){return (s||'').toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g,'');}
+let ccamLoadError='';
+/* ════════════════════════════════════════════════════════════════════
+   DEMARRAGE (17/08/2026).
+
+   AVANT : quatre appels a Apps Script lances ENSEMBLE (identite, secteurs,
+   specialites, cotations types). Les executions d'un meme utilisateur y sont
+   mises en file : les dernieres tombaient par intermittence. Constate a l'ecran
+   le 17/08 — « Secteur (portail injoignable) » et barre d'endoscopie absente,
+   pendant que l'identite, elle, s'affichait.
+
+   APRES : UN appel a la copie rapide, qui rend l'identite ET les trois listes.
+   Repli sur Apps Script si elle ne repond pas, et — c'est le point — un echec
+   se VOIT, avec un bouton pour reessayer. La barre d'endoscopie disparaissait
+   jusqu'ici sans un mot.
+   ══════════════════════════════════════════════════════════════════════ */
+const MIROIR_URL='https://miroir.planningmedic.workers.dev';
+
+function panneListes(montrer, texte){
+  const z=document.getElementById('listesKO'); if(!z) return;
+  z.style.display=montrer?'block':'none';
+  if(montrer) z.innerHTML=esc(texte||'Listes indisponibles.')
+    +' <button class="declbtn" style="padding:5px 10px;font-size:12px;margin-left:6px" onclick="demarrer()">Réessayer</button>';
+}
+
+async function demarrer(){
+  panneListes(false);
+  const code = SessionPortail.lire();
+  if(!code){
+    pbSetEtat('hors portail — à saisir', false);
+    secteurReplLibre('Secteur (hors portail — à saisir)');
+    const sp=document.getElementById('dclSpec');
+    if(sp) sp.innerHTML='<option value="">Spécialité (hors portail)</option>';
+    return;
+  }
+  pbSetEtat('connexion…', true);
+  try{
+    const ctrl=new AbortController(); const to=setTimeout(()=>ctrl.abort(), 12000);
+    const r=await fetch(MIROIR_URL+'/read', {method:'POST',
+      headers:{'Content-Type':'text/plain;charset=utf-8'},        // requete « simple » : pas de preambule CORS
+      body:JSON.stringify({code:code, keys:['secteurs','specialites','cotations_type']}),
+      signal:ctrl.signal});
+    clearTimeout(to);
+    const j=await r.json();
+    if(!j || !j.success) throw new Error('copie rapide indisponible');
+    poserIdentite(j.identite || {});
+    const d=j.data||{};
+    if(Array.isArray(d.secteurs)      && d.secteurs.length)      { SECTEURS=filtrerSecteurs(d.secteurs); remplirSecteurs(); }
+    if(Array.isArray(d.specialites)   && d.specialites.length)   { SPECIALITES=d.specialites.filter(x=>x&&x.actif); remplirSpecialites(); }
+    if(Array.isArray(d.cotations_type)&& d.cotations_type.length){ COTTYPE=d.cotations_type.filter(x=>x&&x.nom&&x.lignes&&x.lignes.length); renderCotTypeBar(); }
+    if(!SECTEURS.length || !SPECIALITES.length) throw new Error('listes incomplètes');
+    majMemos();
+    return;
+  }catch(e){
+    // Repli : le chemin d'avant, mais EN SERIE — c'est le parallelisme qui faisait tomber.
+    try{
+      await chargerPraticien();
+      await chargerSecteurs();
+      await chargerSpecialites();
+      await chargerCotationsType();
+      majMemos();
+      if(!SECTEURS.length) panneListes(true, 'Listes indisponibles — la déclaration est impossible tant que le secteur ne se charge pas.');
+    }catch(e2){
+      panneListes(true, 'Portail injoignable — cotation et devis restent utilisables, la déclaration non.');
+    }
+  }
+}
+
+/* (17/08/2026) RETOUR SUR LA PAGE : on redemande les cotations types. Elles
+   s'editent desormais depuis une autre page ; sans cela, un MAR qui garde sa
+   page de cotation ouverte toute la matinee ne verrait pas une cotation creee
+   entre-temps, et conclurait que « ca ne marche pas » alors que tout a
+   fonctionne. Une seule cle relue, cote copie rapide : c'est instantane. */
+document.addEventListener('visibilitychange', function(){
+  if(document.visibilityState !== 'visible') return;
+  if(Date.now() - DERNIER_RAFRAICHI < 30000) return;      // pas a chaque va-et-vient
+  DERNIER_RAFRAICHI = Date.now();
+  rafraichirCotTypes();
+});
+let DERNIER_RAFRAICHI = Date.now();
+
+async function rafraichirCotTypes(){
+  const code = SessionPortail.lire(); if(!code) return;
+  try{
+    const ctrl=new AbortController(); const to=setTimeout(()=>ctrl.abort(), 8000);
+    const r=await fetch(MIROIR_URL+'/read', {method:'POST',
+      headers:{'Content-Type':'text/plain;charset=utf-8'},
+      body:JSON.stringify({code:code, keys:['cotations_type']}), signal:ctrl.signal});
+    clearTimeout(to);
+    const j=await r.json();
+    const list=j && j.success && j.data && j.data.cotations_type;
+    if(!Array.isArray(list) || !list.length) return;
+    const propre=list.filter(x=>x&&x.nom&&x.lignes&&x.lignes.length);
+    if(JSON.stringify(propre)===JSON.stringify(COTTYPE)) return;    // rien de neuf
+    COTTYPE=propre;
+    try{ sessionStorage.setItem('pmCotTypeLib_v2', JSON.stringify(propre)); }catch(e){}
+    renderCotTypeBar();
+  }catch(e){ /* silencieux : la liste en place reste valable */ }
+}
+
+/* Identite servie par la copie rapide : meme contenu que l'action de connexion
+   (nom, prenom, RPPS), donc meme pre-remplissage du devis. */
+function poserIdentite(j){
+  if(!j || j.role!=='mar'){ pbSetEtat('non identifié — à saisir', false); return; }
+  const nom=sansCivilite(j.name), prenom=String(j.prenom||'').trim(), rpps=String(j.rpps||'').trim();
+  const qui=document.getElementById('pbWho'), out=document.getElementById('pbOut');
+  if(qui && j.name){ qui.textContent=j.name; qui.style.display=''; }
+  if(out) out.style.display='';
+  const complet=[prenom, nom].filter(Boolean).join(' ');
+  if(complet) document.getElementById('cfgPrat').value=complet;
+  if(rpps)    document.getElementById('cfgRPPS').value=rpps;
+  const manque=[!prenom?'prénom':null, !rpps?'RPPS':null].filter(Boolean);
+  pbSetEtat(manque.length ? ('pré-rempli · '+manque.join(' et ')+' à compléter')
+                          : 'pré-rempli depuis le portail', !manque.length);
+}
+
+/* Meme filtre que le chemin Apps Script : actif, porteur d'une affectation, et
+   rendement liberal ni NUL ni REA. Un secteur sans rendement renseigne est
+   PROPOSE — un secteur neuf est presume productif jusqu'a classement. */
+function filtrerSecteurs(brut){
+  return brut.filter(function(x){
+    const rend=String(x.rendement||'').trim().toUpperCase();
+    return x && x.actif && x.aff && rend!=='NUL' && rend!=='REA';
+  }).sort(function(a,b){ return (a.ordre||0)-(b.ordre||0); });
+}
+
+async function loadCcam(){
+  /* (17/08/2026) LE FICHIER SE MET EN CACHE. Il etait demande avec
+     cache:'no-store' : ~160 Ko retelecharges et reanalyses A CHAQUE patient, en
+     consultation, sur le reseau du telephone. Il ne change que deux fois par an.
+     L'etiquette ?v= le renouvelle le jour ou on le regenere — a incrementer avec
+     la version CCAM, sans quoi les navigateurs garderaient l'ancien. */
+  const urls=[
+    'ccam_actes.json?v=84',
+    'https://raw.githubusercontent.com/planningmedic/planningmedic.github.io/main/docs/module-liberal/ccam_actes.json'
+  ];
+  const errs=[];
+  for(const u of urls){
+    try{
+      const r=await fetch(u);
+      if(!r.ok){ errs.push(u.split('/').pop()+' → HTTP '+r.status); continue; }
+      const j=await r.json();
+      const arr=(j.actes||[]).map(a=>({c:a.c,l:a.l,n:norm(a.l),t:a.t}));
+      if(arr.length){ CCAM_INDEX=arr; ccamLoaded=true; ccamLoadError='';
+        alerteTarifs(j.meta||{});
+        const q=document.getElementById('ccamq'); if(q&&q.value.trim().length>=2) ccamSearch();
+        return; }
+      errs.push(u.split('/').pop()+' → fichier vide');
+    }catch(e){ errs.push(u.split('/').pop()+' → '+(e&&e.message||e)); }
+  }
+  ccamLoaded=false;
+  ccamLoadError=errs.join(' · ');
+}
+/* ── ALERTE D'OBSOLESCENCE DES TARIFS ─────────────────────────────────────
+   Les tarifs CCAM sont revalorisés une à deux fois par an ; le fichier, lui, ne
+   se met pas à jour tout seul (pas d'API publique côté Cnam, et un navigateur ne
+   peut pas lire un site tiers depuis GitHub Pages). Sans rappel, personne n'y
+   pense : le fichier avait un an de retard quand on s'en est aperçu — v80 sous
+   des codes v83, environ 3 € de moins par acte.
+   La date d'effet vit déjà dans meta.effet : on la compare simplement à
+   aujourd'hui. Détection automatique de l'obsolescence, mise à jour manuelle.
+   Procédure de régénération : guide technique. */
+const TARIFS_ALERTE_MOIS = 8;      // ~ une revalorisation manquée
+const TARIFS_PERIME_MOIS = 14;     // ~ deux revalorisations manquées
+
+function alerteTarifs(meta){
+  const box=document.getElementById('tarifAlerte'); if(!box) return;
+  const eff=String(meta.effet||'').slice(0,10);
+  // Mention permanente, meme quand tout va bien.
+  const ver=document.getElementById('tarifVer');
+  if(ver) ver.textContent = 'tarifs ' + (meta.version||'CCAM') + (eff ? ' · ' + eff.split('-').reverse().join('/') : '');
+  if(!/^\d{4}-\d{2}-\d{2}$/.test(eff)) return;
+  const d=new Date(eff+'T12:00:00'); if(isNaN(d.getTime())) return;
+  const now=new Date();
+  const mois=(now.getFullYear()-d.getFullYear())*12 + (now.getMonth()-d.getMonth());
+  if(mois < TARIFS_ALERTE_MOIS){ box.style.display='none'; return; }
+  const perime = mois >= TARIFS_PERIME_MOIS;
+  box.style.display='block';
+  box.style.background = perime ? '#FEF2F2' : '#FFF7ED';
+  box.style.borderColor = perime ? '#FCA5A5' : '#FED7AA';
+  box.style.color = perime ? '#991B1B' : '#92400E';
+  box.innerHTML = (perime ? '⛔ ' : '⚠️ ')
+    + '<b>Tarifs CCAM vieux de '+mois+' mois</b> ('+esc(meta.version||'version inconnue')
+    + ', effet '+esc(eff)+'). Les tarifs sont revalorisés une à deux fois par an&nbsp;: '
+    + 'les montants calculés ici sont probablement <b>sous-évalués</b>. '
+    + 'À régénérer — procédure dans le guide technique.';
+}
+
+function ccamSearch(){
+  const box=document.getElementById('ccamResults');
+  const raw=document.getElementById('ccamq').value.trim();
+  if(raw.length<2){box.innerHTML='';return;}
+  if(!ccamLoaded){
+    box.innerHTML = ccamLoadError
+      ? `<div class="info">⚠️ Référentiel CCAM non chargé — <b>${ccamLoadError}</b> <a href="#" onclick="loadCcam();return false" style="color:var(--ccam)">réessayer</a></div>`
+      : '<div class="info">Référentiel en cours de chargement — réessaie dans quelques secondes.</div>';
+    return;
+  }
+  const q=norm(raw);
+  // Une entree SYN peut valoir une chaine ou un TABLEAU de pistes : on retient l'UNION.
+  const raw2=SYN[q], pistes=(raw2==null) ? [q] : (Array.isArray(raw2)?raw2:[raw2]).map(norm);
+  const jeux=pistes.map(p=>p.split(/\s+/).filter(Boolean));
+  const codeHits=[], libHits=[];
+  for(const a of CCAM_INDEX){
+    if(a.c.toLowerCase().startsWith(q)) codeHits.push(a);
+    else if(jeux.some(tk=>tk.every(t=>a.n.includes(t)))) libHits.push(a);
+  }
+  lastCcam=codeHits.concat(libHits).slice(0,30);
+  if(!lastCcam.length){box.innerHTML='<div class="info">Aucun acte trouvé.</div>';return;}
+  box.innerHTML=lastCcam.map((a,i)=>`<div class="ccamitem" onclick="pickCcam(${i})"><b>${a.c}</b>${a.l}${a.t?` <span class="mono" style="color:var(--room);font-size:11px">· ${a.t.toFixed(2)} € act.4</span>`:''}</div>`).join('');
+}
+function pickCcam(i){
+  const a=lastCcam[i]; if(!a)return;
+  builder.push({code:a.c,lib:a.l,tarif:a.t||0,m7:true,mA:false,role:builder.length?'complement':'principal'});
+  document.getElementById('ccamq').value='';
+  document.getElementById('ccamResults').innerHTML='';
+  renderBuilder();
+}
+loadCcam();
+document.getElementById('dCs').value=isoToday();
+demarrer();
+chargerDecl();
+dclPreview();
+populateMut();poserEcran();renderSummary();
+</script>
+<div id="devisOverlay">
+  <div class="dvbar">
+    <button class="dvprint" onclick="printDevis(false)">Imprimer le devis</button>
+    <button class="dvprint" onclick="printDevis(true)">Imprimer devis + déclaration de choix</button>
+    <button class="dvclose" onclick="closeDevis()">Fermer</button>
+  </div>
+  <div class="dvnote">Aucun champ patient : <b>le nom est écrit à la main par le patient</b> sur le devis et la déclaration imprimés — aucune donnée patient ne transite par l'outil. Champs bleus restants (dates, remboursement) : saisis à l'écran, jamais enregistrés, effacés à la fermeture. La déclaration de choix est un <b>document autonome</b> : l'imprimer, la faire signer et la verser au dossier vaut aussi bien en soins externes qu'en hospitalisation.</div>
+  <div class="sheet">
+    <div class="head">
+      <div class="prat">
+        <div class="name">Dr <span id="dvPratName">—</span></div>
+        <div class="role">Médecin anesthésiste-réanimateur — secteur 2 (honoraires libres, non-OPTAM)</div>
+        <div class="meta">N° RPPS <span id="dvRPPS">—</span><br>Activité libérale au sein de l'établissement</div>
+      </div>
+      <div class="estab">
+        <div class="e1"><span class="ed" contenteditable="true" data-ph="Établissement"></span></div>
+        1 avenue Pasteur — 98000 Monaco<br>Activité libérale intra-hospitalière
+      </div>
+    </div>
+    <div class="doctitle">
+      <h1>Estimation de frais — Information écrite préalable</h1>
+      <div class="st">Remis au patient avant la réalisation de l'acte · à conserver</div>
+    </div>
+    <div class="refline">
+      <span>Devis n° <b id="dvNum">—</b></span>
+      <span>Établi le <b id="dvDateEtabli">—</b></span>
+      <span>Valable jusqu'au <b id="dvDateValid">—</b></span>
+    </div>
+    <div class="who">
+      <div class="box">
+        <h2>Patient</h2>
+        <div class="l">Nom Prénom : <span class="hand" style="min-width:230px"></span><br>
+        Régime : <b id="dvStatut">—</b></div>
+        <span class="tag" id="dvTag" style="display:none">Honoraires libres · entente préalable</span>
+      </div>
+      <div class="box">
+        <h2>Intervention prévue</h2>
+        <div class="l"><b id="dvActe">—</b><br>
+        Date prévue : <span class="ed" id="dvDatePrevue" contenteditable="true" data-ph="JJ/MM/AAAA"></span><br>
+        Établissement : <span class="ed" contenteditable="true" data-ph="Établissement"></span> — secteur libéral</div>
+      </div>
+    </div>
+    <h3 class="sec">Détail des actes et des honoraires</h3>
+    <table class="acts">
+      <thead><tr><th class="l">Acte — Code</th><th>Base rembt (BR)</th><th>Honoraires</th><th>dont dépassement</th><th>Rembt assur. maladie</th></tr></thead>
+      <!-- Une ligne par acte (rempli par renderDevisActes). Seule la BR se decompose ;
+           honoraires, depassement et remboursement sont portes par la ligne de total. -->
+      <tbody id="dvActes"></tbody>
+      <tbody>
+        <tr class="tot">
+          <td class="l">Total</td>
+          <td class="num" id="dvBR">—</td>
+          <td class="num" id="dvHon">—</td>
+          <td class="num dhcol" id="dvDH">—</td>
+          <td class="num"><span class="ed" contenteditable="true" data-ph="0,00 €" id="dvRRO" oninput="recalcDevisRac()"></span></td>
+        </tr>
+      </tbody>
+    </table>
+    <div class="rac">
+      <div class="racb">
+        <div class="k">Reste à charge avant complémentaire</div>
+        <div class="v pos" id="dvRacBefore">—</div>
+        <div class="note">Honoraires − remboursement assurance maladie. Renseigne le remboursement dans le tableau pour l'afficher.</div>
+      </div>
+      <div class="racb mut">
+        <div class="k">Reste à charge estimé après mutuelle</div>
+        <div class="v zero" id="dvRacAfter">—</div>
+        <div class="note"><b>Estimation</b> — mutuelle : <span id="dvMut">—</span>. Sous réserve du contrat réel du patient.</div>
+      </div>
+    </div>
+    <div class="engage">
+      Je soussigné(e), patient(e) désigné(e) ci-dessus, <b>demande à bénéficier d'une prise en charge en activité libérale</b> au sein du <span class="ed" contenteditable="true" data-ph="Établissement"></span>, déclare avoir reçu la présente information <b>avant</b> la réalisation de l'acte, en avoir compris le contenu, et <b>m'engage à régler les honoraires</b> indiqués. Le dépassement est fixé avec tact et mesure et calibré, dans la mesure du possible, pour minimiser mon reste à charge.
+    </div>
+    <div class="sign">
+      <div class="sig"><div class="lab">Le praticien</div><div class="bp">Signature</div><div class="line"></div></div>
+      <div class="sig"><div class="lab">Le patient — « Bon pour accord »</div><div class="bp">Date et signature</div><div class="line"></div></div>
+    </div>
+    <div class="legalblk">
+      <p><b>Statut.</b> Praticien de secteur 2, honoraires libres (non adhérent OPTAM), fixés avec tact et mesure — art. R.4127-53 du code de la santé publique. Devis établi au titre de l'art. L.1111-3-2 et de l'arrêté du 2 octobre 2008 (information écrite dès 70 € de dépassement).</p>
+      <p><b>Paiement et remboursement.</b> Le paiement n'intervient qu'après réalisation de l'acte ; aucun chèque de caution n'est exigé. Le remboursement complémentaire dépend du contrat du patient : le « reste à charge estimé après mutuelle » est indicatif et n'engage pas l'organisme.</p>
+      <p><b>Consentement et rétractation.</b> La prise en charge libérale suppose une déclaration de choix nominative signée par le patient et le praticien, versée au dossier ; à défaut, le patient relève de l'activité publique. Il reste libre d'y renoncer et d'opter pour le secteur public, sans conséquence sur la qualité ni le délai des soins.</p>
+      <p class="imp"><b>Bénéficiaires protégés.</b> Aucun dépassement n'est facturé aux bénéficiaires d'une couverture protégée (carte verte, SPME, AME, C2S) : seul le tarif conventionnel s'applique.</p>
+    </div>
+    <div class="dvfoot">Document établi en deux exemplaires : un pour le patient, un pour le dossier.</div>
+  </div>
+
+  <!-- DÉCLARATION DE CHOIX — modèle service soins externes, praticien pré-rempli, patient manuscrit -->
+  <div class="sheet decl" id="declSheet">
+    <div class="head">
+      <div class="prat">
+        <div class="name ed" contenteditable="true" data-ph="Établissement"></div>
+        <div class="meta"><span class="ed" contenteditable="true" data-ph="Adresse de l'établissement"></span><br>Tél. <span class="ed" contenteditable="true" data-ph="Téléphone"></span> — courrier@exemple.fr — <span class="ed" contenteditable="true" data-ph="Site"></span></div>
+      </div>
+    </div>
+    <div class="doctitle">
+      <h1>Déclaration de choix de prise en charge<br>à titre libéral en soins externes</h1>
+    </div>
+    <div class="fld">
+      M., Mme*, NOM : <span class="hand" style="min-width:250px"></span> &nbsp;Prénom : <span class="hand" style="min-width:180px"></span><br>
+      Agissant au nom de : <span class="hand" style="min-width:420px"></span><br>
+      <span style="font-size:10px;color:#5B6C76">(Le cas échéant, mineur ou personne dans l'incapacité d'effectuer les formalités d'admission)</span><br>
+      Né(e) le : <span class="hand" style="min-width:220px"></span><br>
+      Demeurant : <span class="hand" style="min-width:520px"></span><br>
+      <span class="hand" style="min-width:620px"></span>
+    </div>
+    <p>Je soussigné(e), ci-dessus désigné(e) déclare souhaiter être pris(e) en charge au sein du <span class="ed" contenteditable="true" data-ph="Établissement"></span> à titre libéral, par le praticien ci-après désigné, sous réserve de son acceptation expresse.</p>
+    <p>J'ai également pris bonne note que tout praticien agissant dans le cadre de son activité libérale est habilité à m'adresser ses honoraires, sachant que leur remboursement sera subordonné aux conditions de prise en charge de mon organisme d'assurance maladie, dont je déclare avoir connaissance. Ceci peut éventuellement impliquer qu'une partie desdits honoraires soit à ma charge.</p>
+    <p>En conséquence, je désigne ci-dessous le praticien intervenant à titre libéral :</p>
+    <table class="des">
+      <tr><th style="width:45%">Discipline</th><th>Praticien</th></tr>
+      <tr><td>Anesthésie-Réanimation</td><td>Docteur <b id="dcPratName">—</b></td></tr>
+    </table>
+    <div style="text-align:right;font-size:12px;margin:14px 0 4px">Fait à Monaco, le <span class="hand" style="min-width:150px"></span></div>
+    <div class="sign">
+      <div class="sig"><div class="lab">Signature du praticien choisi</div><div class="bp">valant acceptation</div><div class="line"></div></div>
+      <div class="sig"><div class="lab">Signature du patient</div><div class="bp">valant acceptation</div><div class="line"></div></div>
+    </div>
+    <div class="dvfoot">* Rayer les mentions inutiles · Modèle conforme au protocole de gestion de l'activité libérale (DAM). Un imprimé par praticien ; à verser au dossier du patient.</div>
+  </div>
+</div>
+</body>
+</html>

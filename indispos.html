@@ -1,0 +1,2364 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8"/>
+  <!-- Outil interne du service : ne pas referencer dans les moteurs de recherche.
+       Complete robots.txt (racine du depot). N'empeche AUCUN acces : qui a
+       l'adresse entre normalement, et se heurte au code personnel. -->
+  <meta name="robots" content="noindex, nofollow">
+<meta name="viewport" content="width=device-width,initial-scale=1.0"/>
+<title>Indisponibilités — Planning-Med</title>
+<link rel="icon" type="image/svg+xml" href="assets/favicon.svg">
+<link rel="preconnect" href="https://fonts.googleapis.com"/>
+<!-- (23/08/2026) Préconnexion au relais de lecture : en 4G, la poignée de main
+     TLS coûte 200 à 400 ms, payés au premier appel — c'est-à-dire pile au
+     moment où l'écran attend ses données. On la fait pendant le chargement de
+     la page, en parallèle du reste. -->
+<link rel="preconnect" href="https://miroir.planningmedic.workers.dev" crossorigin/>
+<link rel="dns-prefetch" href="https://miroir.planningmedic.workers.dev"/>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=DM+Mono:wght@500&display=swap"/>
+<style>
+:root {
+  --red: #CE1126;
+  --ink: #0F172A;
+  --ink-2: #334155;
+  --ink-3: #64748B;
+  --ink-4: #94A3B8;
+  --line: #E2E8F0;
+  --bg: #F8FAFC;
+  --white: #FFFFFF;
+  --radius: 12px;
+
+  --vac:    #EFF6FF; --vac-fg:    #1D4ED8; --vac-border: #BFDBFE;
+  --form:   #F5F3FF; --form-fg:   #6D28D9; --form-border: #DDD6FE;
+  --indispo:#F9FAFB; --indispo-fg:#6B7280; --indispo-border:#E5E7EB;
+  --souhait:#F0FDF4; --souhait-fg:#166534; --souhait-border:#BBF7D0;
+}
+
+* { box-sizing:border-box; margin:0; padding:0; }
+
+body {
+  font-family:'DM Sans',system-ui,sans-serif;
+  background:var(--bg);
+  color:var(--ink);
+  min-height:100vh;
+  -webkit-font-smoothing:antialiased;
+}
+
+/* ── HEADER ── */
+.header {
+  background:var(--red);
+  padding:0 20px;
+  min-height:56px;
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  position:sticky;
+  top:0;
+  z-index:100;
+}
+.header-brand { display:flex; align-items:center; gap:10px; min-width:0; }
+.header-flag {
+  width:24px; height:24px; border-radius:5px;
+  overflow:hidden; display:flex; flex-direction:column;
+}
+.header-title { color:white; font-size:15px; font-weight:700;
+  white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+.header-user {
+  color:rgba(255,255,255,.8);
+  font-size:13px; font-weight:600;
+  white-space:nowrap; flex-shrink:0;
+}
+/* (17/08/2026) La pastille du MAR ouvre la deconnexion, exactement comme sur
+   dashboard.html et index.html. AUCUN bouton ajoute : le code etant desormais
+   memorise 30 jours dans l'app installee, il faut pouvoir le retirer — mais pas
+   au prix d'un element de plus dans un bandeau deja etroit sur telephone.
+   L'icone n'apparait qu'au survol sur ordinateur ; au doigt, tout le nom est
+   la zone tactile. */
+.header-user[data-deco] { cursor:pointer; }
+.header-user .hu-out { opacity:.55; margin-left:5px; vertical-align:-2px; }
+.header-user[data-deco]:hover { color:#fff; }
+.header-user[data-deco]:hover .hu-out { opacity:1; }
+
+/* ── LOGIN ── */
+.login-screen {
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  min-height:calc(100vh - 56px);
+  padding:20px;
+}
+.login-card {
+  background:white;
+  border:1px solid var(--line);
+  border-radius:var(--radius);
+  padding:32px 28px;
+  width:100%;
+  max-width:380px;
+  box-shadow:0 4px 24px rgba(0,0,0,.08);
+}
+.login-logo {
+  width:48px; height:48px;
+  border-radius:12px;
+  display:block;
+  margin:0 auto 20px;
+  box-shadow:0 4px 12px rgba(206,17,38,.30);
+}
+.login-title {
+  font-size:20px; font-weight:700;
+  text-align:center; margin-bottom:6px;
+}
+.login-sub {
+  font-size:13px; color:var(--ink-3);
+  text-align:center; margin-bottom:28px;
+}
+.login-label {
+  display:block;
+  font-size:12px; font-weight:600;
+  color:var(--ink-3);
+  text-transform:uppercase;
+  letter-spacing:.05em;
+  margin-bottom:8px;
+}
+.login-input {
+  width:100%;
+  border:1.5px solid var(--line);
+  border-radius:8px;
+  padding:12px 14px;
+  font-size:16px;
+  font-family:'DM Mono',monospace;
+  font-weight:500;
+  letter-spacing:.1em;
+  text-transform:uppercase;
+  text-align:center;
+  outline:none;
+  transition:border-color .15s;
+  margin-bottom:16px;
+}
+.login-input:focus { border-color:var(--red); }
+.login-btn {
+  width:100%;
+  background:var(--red);
+  color:white;
+  border:none;
+  border-radius:8px;
+  padding:13px;
+  font-size:15px;
+  font-weight:700;
+  font-family:'DM Sans',sans-serif;
+  cursor:pointer;
+  transition:opacity .15s;
+}
+.login-btn:hover { opacity:.88; }
+.login-error {
+  color:#B91C1C;
+  font-size:13px;
+  text-align:center;
+  margin-top:12px;
+  display:none;
+}
+
+/* (26/08/2026) Écran de reprise : arrivée depuis le portail, session déjà
+   présente — une attente neutre remplace l'écran de code pendant la
+   revalidation silencieuse. */
+.reprise-screen{position:fixed;inset:0;background:#F6F8FB;display:none;
+  align-items:center;justify-content:center;z-index:60;flex-direction:column;gap:14px}
+.reprise-screen img{width:56px;height:56px;border-radius:14px;box-shadow:0 3px 12px rgba(158,12,29,.25)}
+.reprise-txt{font-size:14.5px;color:#475569}
+.reprise-spin{width:22px;height:22px;border:3px solid #E2E8F0;border-top-color:#CE1126;
+  border-radius:50%;animation:reprspin .8s linear infinite}
+@keyframes reprspin{to{transform:rotate(360deg)}}
+.reprise-lien{font-size:12.5px;color:#94A3B8;background:none;border:none;cursor:pointer;
+  text-decoration:underline;padding:6px}
+
+/* ── MAIN APP ── */
+.app { display:none; padding-bottom:76px; }
+
+/* ── LEGENDE ── */
+/* (06/09/2026) La barre d'outils passe SOUS le calendrier et devient collante :
+   elle était en haut, il fallait remonter à chaque changement d'outil. Les
+   boutons occupent toute la largeur — la cible du doigt fait 44 px de haut au
+   lieu de 26. L'outil actif prend la couleur pleine de son type : on sait ce
+   qui est armé sans lire. */
+.legend {
+  position:sticky; bottom:64px; z-index:80;
+  display:flex; gap:6px;
+  padding:10px 16px 8px;
+  background:white;
+  border-top:1px solid var(--line);
+}
+.legend-item {
+  flex:1;
+  display:flex; align-items:center; justify-content:center; gap:5px;
+  font-size:12.5px; font-weight:700; color:var(--ink-2);
+  cursor:pointer;
+  padding:12px 4px;
+  border-radius:10px;
+  border:1.5px solid var(--line);
+  background:#fff;
+  transition:all .15s;
+  user-select:none;
+  -webkit-tap-highlight-color:transparent;
+}
+/* (06/09/2026) La gomme avait été réduite à une icône pour laisser de la place
+   aux trois autres. Essayée en vrai : personne ne la reconnaît. Elle reprend son
+   mot, en plus petit et sans grandir. */
+.legend-item.erase { flex:0 0 auto; padding:12px 12px; font-size:11.5px; }
+.legend-item.active-tool { border-color:transparent; color:#fff; }
+.legend-item.indispo.active-tool { background:var(--indispo-fg); }
+.legend-item.souhait.active-tool { background:var(--souhait-fg); }
+.legend-item.tp.active-tool      { background:#6D28D9; }
+.legend-item.erase.active-tool   { background:var(--ink); }
+
+.tool-hint {
+  padding:10px 16px;
+  font-size:12.5px;
+  color:var(--ink-3);
+  background:white;
+  line-height:1.45;
+  border-top:1px solid var(--line);
+}
+.tool-hint.refus { color:#B91C1C; }
+.tool-hint.ok    { color:#166534; }
+
+/* ── MONTH NAV ── */
+.month-nav {
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  padding:12px 16px;
+  background:white;
+  border-bottom:1px solid var(--line);
+  position:sticky;
+  top:56px;
+  z-index:50;
+}
+.month-nav-btn {
+  border:1.5px solid var(--line);
+  background:white;
+  border-radius:8px;
+  padding:7px 14px;
+  font-size:13px;
+  font-weight:600;
+  font-family:'DM Sans',sans-serif;
+  cursor:pointer;
+  color:var(--ink-2);
+  transition:all .15s;
+}
+.month-nav-btn:hover { border-color:var(--red); color:var(--red); }
+.month-title {
+  font-size:16px;
+  font-weight:700;
+  color:var(--ink);
+}
+
+/* ── CALENDAR ── */
+/* (06/09/2026) Les 100 px du bas réservaient la place du bouton Sauvegarder, du
+   temps où la barre d'outils était EN HAUT. Les outils étant passés dessous, ils
+   ne faisaient plus que creuser un trou entre la dernière semaine et le message
+   d'aide — d'autant plus visible sur un mois de cinq semaines. La réserve passe
+   sur l'écran entier, là où elle a un sens. */
+.calendar-container {
+  padding:12px 16px 0;
+}
+.calendar-grid {
+  display:grid;
+  grid-template-columns:repeat(7,1fr);
+  gap:4px;
+}
+.cal-header {
+  text-align:center;
+  font-size:11px;
+  font-weight:700;
+  color:var(--ink-4);
+  padding:6px 0;
+  text-transform:uppercase;
+  letter-spacing:.04em;
+}
+/* (06/09/2026) La case était haute et vide : le mois débordait de l'écran et la
+   couleur d'un jour posé s'y perdait. Elle devient carrée et centrée — le mois
+   tient d'un bloc, la couleur remplit. */
+.cal-day {
+  border-radius:8px;
+  padding:0;
+  aspect-ratio:1;
+  min-height:0;
+  justify-content:center;
+  cursor:pointer;
+  transition:all .12s;
+  border:1.5px solid transparent;
+  position:relative;
+  display:flex;
+  flex-direction:column;
+  align-items:center;
+  gap:3px;
+  background:white;
+  border-color:var(--line);
+  -webkit-tap-highlight-color:transparent;
+}
+.cal-day:active { transform:scale(.95); }
+.cal-day.empty { background:transparent; border-color:transparent; cursor:default; }
+.cal-day.weekend { background:var(--bg); }
+.cal-day.today { border-color:var(--red) !important; }
+.cal-day.past { opacity:.5; cursor:default; }
+.cal-day.conflit { background:#FED7AA !important; border:2px solid #F97316 !important; }
+.cal-day.conflit .cal-day-num { color:#C2410C; font-weight:700; }
+.cal-day.sature { background:#FEF9C3 !important; border:1px dashed #CA8A04 !important; }
+.cal-day.sature .cal-day-num { color:#92400E; }
+.cal-day.conflit .cal-day-num { color:#C2410C; font-weight:700; }
+
+.cal-day-num {
+  font-size:13px;
+  font-weight:700;
+  color:var(--ink-2);
+  line-height:1;
+}
+.cal-day.weekend .cal-day-num { color:var(--ink-4); }
+
+.cal-day-badge {
+  font-size:9px;
+  font-weight:700;
+  padding:2px 5px;
+  border-radius:4px;
+  letter-spacing:.03em;
+  text-align:center;
+}
+
+/* (06/09/2026) Statuts : la couleur REMPLIT le jour. Elle occupait une petite
+   pastille dans une case blanche — il fallait lire chaque case pour voir ses
+   périodes. Le numéro passe en blanc, le badge de trois lettres disparaît :
+   la couleur dit déjà ce qu'il est. */
+.cal-day.vac     { background:var(--vac-fg);     border-color:transparent; }
+.cal-day.form    { background:var(--form-fg);    border-color:transparent; }
+.cal-day.indispo { background:var(--indispo-fg); border-color:transparent; }
+.cal-day.souhait { background:var(--souhait-fg); border-color:transparent; }
+.cal-day.tp      { background:#6D28D9;           border-color:transparent; }
+
+.cal-day.vac .cal-day-num, .cal-day.form .cal-day-num,
+.cal-day.indispo .cal-day-num, .cal-day.souhait .cal-day-num,
+.cal-day.tp .cal-day-num { color:#fff; }
+
+/* Jours posés au staff : non modifiables ici, un cadenas le dit. */
+.cal-day .cal-lock { position:absolute; top:3px; right:4px; font-size:9px; color:#fff; opacity:.9; }
+
+/* Outil « temps partiel » actif : un jour non travaillé est hors de portée.
+   On le montre AVANT le geste, au lieu de refuser après. */
+.cal-day.hors-portee { opacity:.35; cursor:not-allowed; }
+
+.vac-badge     { background:var(--vac);    color:var(--vac-fg); }
+.form-badge    { background:var(--form);   color:var(--form-fg); }
+.indispo-badge { background:var(--indispo);color:var(--indispo-fg); }
+.souhait-badge { background:var(--souhait);color:var(--souhait-fg); }
+
+/* ── BOTTOM BAR ── */
+.bottom-bar {
+  display: flex;
+  gap: 8px;
+  position:fixed;
+  bottom:0; left:0; right:0;
+  background:white;
+  border-top:1px solid var(--line);
+  padding:12px 16px;
+  display:flex;
+  gap:10px;
+  box-shadow:0 -4px 16px rgba(0,0,0,.06);
+  z-index:100;
+}
+/* (06/09/2026) Rien à sauver : le bouton se tait au lieu de réclamer. Il
+   redevenait « Sauvegarder » après une sauvegarde réussie, comme s'il restait
+   du travail. */
+.save-btn-ok { background:var(--bg) !important; color:var(--ink-3) !important; box-shadow:none !important; }
+/* Pendant l'écriture, le calendrier et les outils ne réagissent plus : un jour
+   touché à cet instant serait perdu, le serveur ayant reçu l'état d'avant. */
+body.save-en-cours .calendar-grid,
+body.save-en-cours .legend { pointer-events:none; opacity:.55 }
+.save-btn {
+  flex:1;
+  background:var(--red);
+  color:white;
+  border:none;
+  border-radius:10px;
+  padding:14px;
+  font-size:15px;
+  font-weight:700;
+  font-family:'DM Sans',sans-serif;
+  cursor:pointer;
+  transition:opacity .15s;
+}
+.save-btn:hover { opacity:.88; }
+.save-btn:disabled { opacity:.5; cursor:not-allowed; }
+
+/* (06/09/2026) Les compteurs deviennent des pastilles posées sur un fond : ils
+   étaient alignés à plat sur le fond de page et se lisaient comme une phrase. */
+/* (06/09/2026) Les compteurs étaient cinq pastilles à emoji, de largeurs
+   inégales, débordant sur deux lignes bancales. Ce qui a un PLAFOND porte une
+   jauge — on voit ce qu'il reste à poser, ce qu'aucun chiffre seul ne disait.
+   Ce qui n'en a pas se compte, sur une ligne à part. */
+.stats-bar {
+  background:white;
+  border-bottom:1px solid var(--line);
+  padding:13px 16px 12px;
+}
+.jauge-ligne { display:grid; grid-template-columns:1fr 1fr; gap:14px; margin-bottom:12px; }
+.jauge-ligne.jauge-seule { grid-template-columns:1fr; }
+.jauge-tete { display:flex; justify-content:space-between; align-items:baseline; margin-bottom:5px; gap:6px; }
+.jauge-nom  { font-size:11px; color:var(--ink-3); font-weight:600; }
+.jauge-val  { font-size:12.5px; font-weight:700; color:var(--ink); white-space:nowrap; }
+.jauge-val span { font-weight:500; color:var(--ink-4); }
+.jauge-piste{ height:5px; background:var(--bg); border-radius:3px; overflow:hidden; }
+.jauge-fill { height:100%; border-radius:3px; transition:width .2s; }
+
+.compte-ligne { display:flex; gap:18px; padding-top:11px; border-top:1px solid var(--line); flex-wrap:wrap; }
+.compte-item  { display:flex; align-items:baseline; gap:6px; }
+.compte-point { width:7px; height:7px; border-radius:2px; flex-shrink:0; }
+.compte-val   { font-size:13px; font-weight:700; color:var(--ink); }
+.compte-nom   { font-size:11px; color:var(--ink-3); }
+
+/* ── TOAST ── */
+.toast {
+  position:fixed;
+  top:70px; left:50%; transform:translateX(-50%);
+  background:var(--ink);
+  color:white;
+  padding:10px 20px;
+  border-radius:8px;
+  font-size:13px;
+  font-weight:600;
+  z-index:999;
+  opacity:0;
+  transition:opacity .2s;
+  pointer-events:none;
+  white-space:nowrap;
+}
+.toast.show { opacity:1; }
+
+/* ── YEAR OVERVIEW ── */
+.year-btn {
+  border:1.5px solid var(--line);
+  background:white;
+  border-radius:8px;
+  padding:7px 14px;
+  font-size:13px;
+  font-weight:600;
+  font-family:'DM Sans',sans-serif;
+  cursor:pointer;
+  color:var(--ink-2);
+  transition:all .15s;
+}
+.year-btn:hover { border-color:var(--red); color:var(--red); }
+.year-btn.active { background:var(--red); border-color:var(--red); color:white; }
+
+/* ══ (LOT 3 · 22/08/2026) MODE POSE DES TEMPS PARTIELS — ?tp=1 ═══════════════
+   Styles de la maquette validée docs/maquette-pose-tp.html, préfixés tpx-
+   pour ne JAMAIS entrer en collision avec l'écran campagne ci-dessus. */
+:root{
+  --tpx:#F3E8FF; --tpx-fg:#6D28D9; --tpx-libre:#F0FDF4; --tpx-libre-fg:#166534;
+  --tpx-libre-border:#BBF7D0; --tpx-plein:#FEF9C3; --tpx-plein-fg:#92400E;
+  --tpx-plein-border:#CA8A04; --tpx-reserve:#FFF7ED; --tpx-reserve-fg:#C2410C;
+  --tpx-reserve-border:#FB923C; --tpx-ferme:#334155; --tpx-ferme-fg:#CBD5E1;
+  --tpx-garde:#FEF2F2; --tpx-garde-fg:#B91C1C; --tpx-vac:#EFF6FF; --tpx-vac-fg:#1D4ED8;
+}
+.tpx-phase{background:#fff;border-bottom:1px solid var(--line);padding:14px 16px}
+.tpx-phase-title{font-size:14px;font-weight:700;display:flex;align-items:center;gap:7px}
+.tpx-phase-sub{font-size:12.5px;color:var(--ink-3);margin-top:3px;line-height:1.45}
+.tpx-jauge-tete{display:flex;justify-content:space-between;align-items:baseline;margin-bottom:5px}
+.tpx-jauge-nom{font-size:11px;color:var(--ink-3);font-weight:600}
+.tpx-jauge-val{font-size:12.5px;font-weight:700;color:var(--ink)}
+.tpx-jauge-val span{font-weight:500;color:var(--ink-4)}
+.tpx-jauge-sous{font-size:11px;color:var(--ink-3);margin-top:6px;line-height:1.4}
+.tpx-stats{background:#fff;border-bottom:1px solid var(--line);padding:12px 16px;
+  display:flex;gap:14px;flex-wrap:wrap;align-items:center}
+.tpx-stat{font-size:12px;font-weight:600;display:flex;align-items:center;gap:4px}
+.tpx-jauge{height:5px;background:var(--bg);border-radius:3px;overflow:hidden;display:flex}
+.tpx-jauge-fill{height:100%;background:var(--tpx-fg);border-radius:3px;transition:width .25s}
+.tpx-legend{position:sticky;bottom:64px;z-index:80;display:flex;gap:6px;padding:10px 16px 8px;background:#fff;border-top:1px solid var(--line)}
+.tpx-tool{flex:1;text-align:center;font-size:12.5px;font-weight:700;padding:12px 4px;border-radius:10px;cursor:pointer;
+  border:1.5px solid transparent;transition:all .12s;user-select:none}
+.tpx-tool.on{border-color:var(--ink);box-shadow:0 0 0 2px rgba(15,23,42,.08)}
+.tpx-tool.t-tp{background:var(--tpx);color:var(--tpx-fg)}
+.tpx-tool.t-erase{background:#fff;color:var(--ink-3);border:1.5px solid var(--line)}
+.tpx-hint{font-size:12.5px;color:var(--ink-3);padding:10px 16px;background:#fff;border-top:1px solid var(--line);line-height:1.45}
+/* (06/06 → 06/09/2026) La case était haute (62 px) et sa couleur tenait dans un
+   badge : le mois débordait de l'écran et l'état d'un jour se lisait au mot, pas
+   à la couleur. Elle devient carrée, la couleur remplit, le badge disparaît. */
+.tpx-day{border-radius:8px;padding:2px;aspect-ratio:1;min-height:0;cursor:pointer;transition:all .12s;
+  border:1.5px solid var(--line);position:relative;display:flex;flex-direction:column;
+  align-items:center;gap:3px;background:#fff;-webkit-tap-highlight-color:transparent}
+.tpx-day:active{transform:scale(.95)}
+.tpx-day.empty{background:transparent;border-color:transparent;cursor:default}
+.tpx-day.weekend{background:var(--bg);cursor:default}
+.tpx-num{font-size:13px;font-weight:700;color:var(--ink-2);line-height:1}
+.tpx-day.weekend .tpx-num{color:var(--ink-4)}
+.tpx-badge{font-size:9px;font-weight:700;padding:2px 5px;border-radius:4px;letter-spacing:.03em}
+.tpx-eff{font-size:9.5px;font-weight:700;color:var(--ink-4);font-family:'DM Mono',monospace;margin-top:auto;line-height:1}
+.tpx-day.libre{background:var(--tpx-libre);border-color:var(--tpx-libre-border)}
+.tpx-day.libre .tpx-num{color:var(--tpx-libre-fg)}
+.tpx-day.libre .tpx-eff{color:#15803D}
+.tpx-day.pose{background:var(--tpx-fg);border-color:transparent}
+.tpx-day.pose .tpx-num{color:#fff}
+.tpx-day.pose .tpx-eff{color:rgba(255,255,255,.75)}
+/* (06/09/2026) Un jour ÉCOULÉ garde sa couleur — il compte toujours dans le
+   quota — mais s'atténue et ne réagit plus. Sans ça il se confondait avec les
+   jours impossibles, alors qu'il ne dit pas du tout la même chose. */
+.tpx-day.passe{opacity:.45;cursor:default}
+.tpx-day.passe:active{transform:none}
+/* Aujourd'hui : un repère, pour qui revient six mois plus tard. */
+.tpx-day.auj{box-shadow:0 0 0 2px var(--ink)}
+/* Outil de pose actif : les jours hors de portée s'annoncent AVANT le geste. */
+.tpx-day.hors-portee{opacity:.35;cursor:not-allowed}
+.tpx-day.plein{background:var(--tpx-plein);border:1.5px dashed var(--tpx-plein-border)}
+.tpx-day.plein .tpx-num,.tpx-day.plein .tpx-eff{color:var(--tpx-plein-fg)}
+/* « Tendu » appartient au SERVICE (jaune) ; « demandé » vous appartient (violet
+   pâle, pointillés, horloge). Ils portaient la même couleur : on ne savait pas
+   si un jour était encore libre ou déjà demandé par soi. */
+.tpx-day.reserve{background:var(--tpx);border:1.5px dashed var(--tpx-fg)}
+.tpx-day.reserve .tpx-num{color:var(--tpx-fg)}
+.tpx-day.reserve::after{content:'⏳';position:absolute;top:1px;right:3px;font-size:8px}
+.tpx-day{position:relative}
+.tpx-day.ferme{background:var(--tpx-ferme);border-color:transparent;cursor:default}
+.tpx-day.ferme .tpx-num{color:var(--tpx-ferme-fg)}
+.tpx-day.ferme .tpx-eff{color:#94A3B8}
+.tpx-day.bloque{background:#F1F5F9;border-color:#E2E8F0;cursor:default;opacity:.85}
+.tpx-day.bloque .tpx-num{color:var(--ink-4)}
+.b-tpx-garde{background:var(--tpx-garde);color:var(--tpx-garde-fg)}
+.b-tpx-vac{background:var(--tpx-vac);color:var(--tpx-vac-fg)}
+.b-tpx-tp{background:#fff;color:var(--tpx-fg)}
+.b-tpx-recup{background:var(--tpx-libre);color:var(--tpx-libre-fg)}
+.b-tpx-reserve{background:#fff;color:var(--tpx-reserve-fg)}
+.tpx-aide{margin:0 16px 16px;background:#fff;border:1px solid var(--line);border-radius:var(--radius);padding:14px 16px}
+.tpx-aide summary{font-size:12px;color:var(--ink-3);cursor:pointer;font-weight:600}
+.tpx-aide[open] summary{margin-bottom:10px}
+.tpx-aide-row{display:flex;align-items:center;gap:10px;margin-bottom:8px;font-size:12.5px;color:var(--ink-2)}
+.tpx-pastille{width:26px;height:22px;border-radius:6px;flex-shrink:0;border:1.5px solid}
+.tpx-p-libre{background:var(--tpx-libre);border-color:var(--tpx-libre-border)}
+.tpx-p-pose{background:var(--tpx);border-color:var(--tpx-fg);border-width:2px}
+.tpx-p-plein{background:var(--tpx-plein);border:1.5px dashed var(--tpx-plein-border)}
+.tpx-p-bloque{background:#F1F5F9;border-color:#E2E8F0}
+.tpx-p-reserve{background:var(--tpx-reserve);border:2px dashed var(--tpx-reserve-border)}
+.tpx-p-ferme{background:var(--tpx-ferme);border-color:#1E293B}
+.tpx-savebar{position:sticky;bottom:0;background:#fff;border-top:1px solid var(--line);
+  padding:11px 16px;display:flex;align-items:center;gap:12px;z-index:90}
+.tpx-savetxt{font-size:12.5px;color:var(--ink-3);font-weight:600;flex:1;line-height:1.35}
+.tpx-btn-save{background:var(--tpx-fg);color:#fff;border:none;border-radius:10px;padding:11px 20px;
+  font-family:inherit;font-size:13.5px;font-weight:700;cursor:pointer;flex-shrink:0}
+.tpx-btn-save:disabled{opacity:.6;cursor:default}
+.tpx-recap-bloc{border-radius:10px;padding:13px 15px;margin-bottom:11px}
+.tpx-recap-ok{background:var(--tpx-libre);border:1px solid var(--tpx-libre-border)}
+.tpx-recap-res{background:var(--tpx-reserve);border:1px dashed var(--tpx-reserve-border)}
+.tpx-recap-ko{background:#FEF2F2;border:1px solid #FECACA}
+.tpx-recap-titre{font-size:13.5px;font-weight:700;margin-bottom:5px}
+.tpx-recap-ok .tpx-recap-titre{color:var(--tpx-libre-fg)}
+.tpx-recap-res .tpx-recap-titre{color:var(--tpx-reserve-fg)}
+.tpx-recap-ko .tpx-recap-titre{color:#B91C1C}
+.tpx-recap-txt{font-size:12.5px;line-height:1.5;color:var(--ink-2)}
+/* (06/09/2026) Le motif d'un refus était collé après un tiret sur la même
+   ligne : la liste devenait illisible dès trois refus. Il passe dessous. */
+.tpx-recap-motif{display:block;font-family:system-ui,sans-serif;font-size:11px;font-weight:400;color:var(--ink-4);margin:1px 0 6px}
+.tpx-recap-jours{font-family:'DM Mono',monospace;font-size:12.5px;font-weight:500;margin-top:7px;line-height:1.6}
+.tpx-recap-res .tpx-recap-jours{color:var(--tpx-reserve-fg)}
+.tpx-recap-ko .tpx-recap-jours{color:#B91C1C}
+.tpx-sheet-bg{position:fixed;inset:0;background:rgba(15,23,42,.45);z-index:200;display:none}
+.tpx-sheet-bg.show{display:block}
+.tpx-sheet{position:fixed;left:0;right:0;bottom:0;background:#fff;border-radius:16px 16px 0 0;
+  padding:20px 20px 26px;z-index:201;transform:translateY(100%);transition:transform .22s;
+  max-width:520px;margin:0 auto}
+.tpx-sheet.show{transform:translateY(0)}
+.tpx-sheet h2{font-size:16px;font-weight:700;margin-bottom:12px}
+.tpx-sheet-btn{width:100%;padding:12px;border-radius:10px;font-family:inherit;font-size:13.5px;
+  font-weight:700;cursor:pointer;border:1.5px solid var(--tpx-fg);background:var(--tpx-fg);color:#fff;margin-top:4px}
+#tpxSquelette{padding:14px 16px}
+.tpx-sq-bloc{background:linear-gradient(90deg,#EDF1F6 25%,#F6F8FB 37%,#EDF1F6 63%);
+  background-size:400% 100%;border-radius:10px;animation:tpxSq 1.3s ease-in-out infinite}
+.tpx-sq-grille{display:grid;grid-template-columns:repeat(7,1fr);gap:4px;margin-top:12px}
+.tpx-sq-jour{height:60px;border-radius:8px;background:linear-gradient(90deg,#EDF1F6 25%,#F6F8FB 37%,#EDF1F6 63%);
+  background-size:400% 100%;animation:tpxSq 1.3s ease-in-out infinite}
+@keyframes tpxSq{0%{background-position:100% 50%}100%{background-position:0 50%}}
+@media(prefers-reduced-motion:reduce){.tpx-sq-bloc,.tpx-sq-jour{animation:none}}
+.tpx-ferme-msg{margin:24px 16px;background:#fff;border:1px solid var(--line);border-radius:var(--radius);
+  padding:22px 20px;font-size:13.5px;line-height:1.6;color:var(--ink-2);text-align:center}
+@media(max-width:420px){ .tpx-day{min-height:56px} }
+</style>
+</head>
+<body>
+
+<!-- HEADER -->
+<header class="header">
+  <div class="header-brand">
+    <div class="header-flag"><img src="assets/logo.png" alt="" style="width:100%;height:100%;object-fit:cover;display:block"></div>
+    <span class="header-title">Mes indisponibilités</span>
+  </div>
+  <span class="header-user" id="headerUser"></span>
+</header>
+
+<!-- LOGIN -->
+<div class="login-screen" id="loginScreen">
+  <div class="login-card">
+    <img class="login-logo" src="assets/logo.png" alt="">
+    <div class="login-title">Accès sécurisé</div>
+    <div class="login-sub">Planning-Med · Anesthésie-Réanimation<br>Saisissez votre code d'accès personnel</div>
+    <label class="login-label" for="codeInput">Code d'accès</label>
+    <!-- (29/07/2026) maxlength retire : il valait 8, la longueur des codes generes.
+         Un code saisi a la main dans MEDECINS peut etre plus long — le champ refusait
+         alors les caracteres suivants SANS RIEN DIRE, et le code etait declare invalide.
+         Aucune limite haute cote serveur : checkCode compare la chaine entiere. -->
+    <input class="login-input" id="codeInput" type="password"
+      placeholder="Votre code d'accès" autocomplete="off" autocorrect="off"
+      autocapitalize="characters" spellcheck="false"/>
+    <button class="login-btn" id="loginBtn" onclick="doLogin()">Accéder →</button>
+    <div class="login-error" id="loginError">Code invalide. Vérifiez et réessayez.</div>
+    <!-- Le portail est le point d'entrée du service ; cette page n'est ouverte que
+         pendant la campagne de saisie. C'est donc ICI qu'on rappelle le lien, et
+         non l'inverse (mention retirée du dashboard le 20/07/2026). -->
+    <div style="margin-top:18px;font-size:11.5px;color:#94A3B8;line-height:1.5">
+      Même code que pour le <a href="dashboard.html" style="color:#1D4ED8;text-decoration:none;font-weight:600">portail du service</a>.
+    </div>
+  </div>
+</div>
+
+<!-- REPRISE (26/08/2026) : session du portail présente, revalidation en cours -->
+<div class="reprise-screen" id="repriseScreen">
+  <img src="assets/icon-192.png" alt="">
+  <div class="reprise-spin" aria-hidden="true"></div>
+  <div class="reprise-txt">Ouverture de votre calendrier…</div>
+  <button class="reprise-lien" type="button" onclick="reprisVersCode()">Saisir mon code</button>
+</div>
+
+<!-- APP -->
+<div class="app" id="app">
+
+  <!-- Légende / outils.
+       (LOT A · 01/09/2026) L'outil « Temps partiel » REVIENT dans la campagne :
+       un MAR à temps partiel pose ses jours en même temps que ses
+       indisponibilités et ses gardes souhaitées, avant la génération. Le bouton
+       reste caché pour qui n'a pas de quota (temps plein, jours fixes déjà
+       convenus, rythme deux semaines sur deux) — voir loadVacConfig. Le
+       reliquat non posé se place ensuite au fil de l'eau, sur l'écran dédié. -->
+
+  <!-- Stats annuelles -->
+  <div class="stats-bar" id="statsBar"></div>
+
+  <!-- Navigation mois -->
+  <div class="month-nav">
+    <button class="month-nav-btn" onclick="prevMonth()">← Préc.</button>
+    <span class="month-title" id="monthTitle"></span>
+    <button class="month-nav-btn" onclick="nextMonth()">Suiv. →</button>
+  </div>
+
+  <!-- Calendrier -->
+  <div class="calendar-container">
+    <div class="calendar-grid" id="calGrid"></div>
+  </div>
+
+  <!-- (06/09/2026) La barre d'outils est passée SOUS le calendrier : elle était
+       en haut, il fallait remonter à chaque changement d'outil. Libellés courts
+       pour tenir à quatre boutons sur un écran étroit ; la gomme se passe de mot. -->
+  <div class="tool-hint" id="toolHint">Outil actif : <strong>Indisponible</strong> — touchez un jour pour l'appliquer</div>
+  <div class="legend" id="legend">
+    <div class="legend-item indispo" data-tool="INDISPO" onclick="selectTool('INDISPO')">🚫 Indispo</div>
+    <div class="legend-item souhait" data-tool="SOUHAIT" onclick="selectTool('SOUHAIT')">⭐ Souhait</div>
+    <div class="legend-item tp" data-tool="TP" id="btnOutilTp" style="display:none" onclick="selectTool('TP')">🕐 Temps P</div>
+    <div class="legend-item erase" data-tool="ERASE" onclick="selectTool('ERASE')" aria-label="Effacer">🧽 Effacer</div>
+  </div>
+
+  <!-- Bouton sauvegarder -->
+  <div class="bottom-bar">
+    <button class="save-btn save-btn-ok" id="saveBtn" onclick="saveIndispos()" disabled>
+      ✓ Tout est enregistré
+    </button>
+  </div>
+
+<!-- Panneau « Ma priorité » retiré (réservé à staff.html) -->
+
+</div>
+
+<!-- ══ (LOT 3 · 22/08/2026) MODE POSE DES TEMPS PARTIELS — ?tp=1 ═══════════
+     Écran de la maquette validée docs/maquette-pose-tp.html, branché sur la
+     clé pose_tp_{Y} de la copie rapide (repli GAS : getPoseTp). Entièrement
+     séparé de l'écran campagne : mêmes login et session, rien d'autre. -->
+<div class="app" id="tpApp" style="display:none">
+  <div class="tpx-phase">
+    <div class="tpx-phase-title">🕐 Posez vos jours de temps partiel</div>
+    <div class="tpx-phase-sub" id="tpxPhaseSub"></div>
+    <!-- (LOT 5) Deux années peuvent être ouvertes en fin d'année : le reliquat
+         de l'année en cours ET la suivante. Caché tant qu'il n'y en a qu'une. -->
+    <div id="tpxAnnees" style="display:none;gap:6px;margin-top:9px">
+      <button class="year-btn" id="tpxAn0" onclick="tpxChangerAnnee(0)"></button>
+      <button class="year-btn" id="tpxAn1" onclick="tpxChangerAnnee(1)"></button>
+    </div>
+  </div>
+  <!-- (06/09/2026) La jauge se lit en trois temps : déjà pris (atténué), posé à
+       venir (plein), en attente du comité (transparent). Elle ne montrait que
+       les accordés, et les demandes vivaient dans un compteur à côté. -->
+  <div class="tpx-stats">
+    <div class="tpx-jauge-tete">
+      <span class="tpx-jauge-nom">Jours accordés</span>
+      <span class="tpx-jauge-val"><span id="tpxPose">0</span><span> / <span id="tpxQuota">0</span></span></span>
+    </div>
+    <div class="tpx-jauge">
+      <div class="tpx-jauge-fill" id="tpxJaugePasse" style="width:0%;opacity:.55"></div>
+      <div class="tpx-jauge-fill" id="tpxJauge" style="width:0%"></div>
+      <div class="tpx-jauge-fill" id="tpxJaugeRes" style="width:0%;opacity:.22"></div>
+    </div>
+    <div class="tpx-jauge-sous" id="tpxReste"></div>
+    <span id="tpxRes" hidden></span>
+  </div>
+  <div class="month-nav">
+    <button class="month-nav-btn" onclick="tpxMois(-1)">← Préc.</button>
+    <span class="month-title" id="tpxMoisTitre"></span>
+    <button class="month-nav-btn" onclick="tpxMois(1)">Suiv. →</button>
+  </div>
+  <div class="calendar-container"><div class="calendar-grid" id="tpxGrid"></div></div>
+  <!-- (06/09/2026) L'aide occupait la moitié d'un écran en permanence alors
+       qu'elle ne sert qu'à la première visite : elle se replie. Les outils
+       passent SOUS le calendrier, sous le pouce, comme sur la campagne. -->
+  <details class="tpx-aide">
+    <summary>Comment lire le calendrier</summary>
+    <div class="tpx-aide-row"><span class="tpx-pastille tpx-p-libre"></span>
+      <span><b>Vert</b> — libre, l'équipe est assez nombreuse. Un appui suffit.</span></div>
+    <div class="tpx-aide-row"><span class="tpx-pastille tpx-p-pose"></span>
+      <span><b>Violet</b> — vous avez posé un jour ici.</span></div>
+    <div class="tpx-aide-row"><span class="tpx-pastille tpx-p-plein"></span>
+      <span><b>Jaune</b> — il resterait 13 ou 14 présents. Vous pouvez le poser, le comité tranche.</span></div>
+    <div class="tpx-aide-row"><span class="tpx-pastille tpx-p-ferme"></span>
+      <span><b>Noir</b> — il resterait 12 ou moins. Le jour n'est pas ouvert, même sur demande.</span></div>
+    <div class="tpx-aide-row"><span class="tpx-pastille tpx-p-reserve"></span>
+      <span><b>Orange hachuré</b> — demandé, en attente du comité. Il n'est pas inscrit au planning et ne compte pas encore dans votre quota.</span></div>
+    <div class="tpx-aide-row"><span class="tpx-pastille tpx-p-pose" style="opacity:.45"></span>
+      <span><b>Violet pâle</b> — un jour déjà écoulé : figé, mais toujours compté dans votre quota.</span></div>
+    <div class="tpx-aide-row" style="margin-bottom:0"><span class="tpx-pastille tpx-p-bloque"></span>
+      <span><b>Gris</b> — impossible : garde, repos de garde, récupération, congés, week-end ou férié.</span></div>
+    <div style="margin-top:12px;padding-top:11px;border-top:1px solid var(--line);
+      font-size:11.5px;color:var(--ink-4);font-family:'DM Mono',monospace">
+      Le petit chiffre en bas de chaque case = nombre de personnes présentes ce jour-là.</div>
+  </details>
+  <div class="tpx-hint" id="tpxHint">Outil actif : <strong>Poser un jour</strong> — touchez un jour vert.</div>
+  <div class="tpx-legend" id="tpxLegend">
+    <div class="tpx-tool t-tp on" id="tpxBtnTP" onclick="tpxOutil('TP')">🕐 Poser un jour</div>
+    <div class="tpx-tool t-erase" id="tpxBtnErase" onclick="tpxOutil('ERASE')">🧽 Retirer</div>
+  </div>
+  <div class="tpx-savebar">
+    <span class="tpx-savetxt" id="tpxSaveTxt">Rien en attente</span>
+    <button class="tpx-btn-save" id="tpxBtnSave" onclick="tpxEnregistrer()">Enregistrer</button>
+  </div>
+</div>
+<div class="tpx-ferme-msg" id="tpxFerme" style="display:none">
+  La pose des jours de temps partiel n'est pas ouverte pour le moment :
+  le planning de l'année à venir n'est pas encore généré.<br><br>
+  <a href="dashboard.html" style="color:#1D4ED8;font-weight:600;text-decoration:none">← Retour au portail</a>
+</div>
+<div class="tpx-sheet-bg" id="tpxSheetBg" onclick="tpxFermerRecap()"></div>
+<div class="tpx-sheet" id="tpxSheet">
+  <h2 id="tpxRecapTitre"></h2>
+  <div id="tpxRecapCorps"></div>
+  <button class="tpx-sheet-btn" onclick="tpxFermerRecap()">Fermer</button>
+</div>
+
+<!-- Toast -->
+<div class="toast" id="toast"></div>
+
+<script src="partage/session.js"></script>   <!-- (17/08/2026) source unique : où vit le code d'accès, et 30 jours glissants -->
+<script>/* FALLBACK_SESSION — filet (17/08/2026). Si partage/session.js ne se charge pas
+(réseau, cache), les pages l'appelleraient dans le vide et NE S'OUVRIRAIENT PLUS : le MAR ne
+pourrait même plus taper son code. On retombe alors sur le comportement d'avant — le code vit
+le temps de l'onglet — au lieu de planter. Jamais de mémoire longue ici : mieux vaut retaper
+son code que le voir retenu par un filet dont personne ne vérifie l'échéance. */
+window.SessionPortail = window.SessionPortail || { lire:function(){try{return sessionStorage.getItem('pmViewCode')||'';}catch(e){return '';}}, memoriser:function(c){try{sessionStorage.setItem('pmViewCode',c);}catch(e){}}, oublier:function(){try{sessionStorage.removeItem('pmViewCode');}catch(e){}}, estInstallee:function(){return false;}, joursRestants:function(){return null;}, DUREE_JOURS:0 };</script>
+<script>
+/* (26/08/2026) Arrivée depuis le portail : le code de session existe déjà — on ne
+   montre PAS l'écran de code pendant la revalidation silencieuse, mais une attente
+   neutre. L'écran de code ne revient que si la reprise échoue (code révoqué,
+   session périmée) — ou d'un clic sur « Saisir mon code » : l'échappatoire reste
+   toujours à portée (leçon du 12/08 : ne jamais rendre l'écran inutilisable). */
+(function () {
+  try {
+    if (window.SessionPortail && SessionPortail.lire()) {
+      document.getElementById('loginScreen').style.display = 'none';
+      document.getElementById('repriseScreen').style.display = 'flex';
+    }
+  } catch (e) {}
+})();
+function reprisVersCode() {
+  document.getElementById('repriseScreen').style.display = 'none';
+  document.getElementById('loginScreen').style.display = '';
+  var i = document.getElementById('codeInput'); if (i) i.focus();
+}
+</script>
+<script>
+// ── CONFIG ────────────────────────────────────────────────────────────
+const API_URL = 'https://script.google.com/macros/s/AKfycbxDbTnhgdjCNBqkeAblZWgS3CK-IptjJoRDQd1AtGF7WQoQkXriWGvISIo7LJG8zUtjTQ/exec';
+let YEAR = new Date().getFullYear(); // sera mis à jour après login
+function premierJourAnneePlanning(y) {
+  const jan1 = new Date(y, 0, 1);
+  const dow = jan1.getDay();
+  const offset = dow === 1 ? 7 : dow === 0 ? 1 : 8 - dow;
+  return new Date(y, 0, 1 + offset);
+}
+/* Bornes de l'annee de planning : du premier lundi de janvier Y au jour precedant
+   le premier lundi de janvier Y+1 (donc souvent debut janvier Y+1). UNE SEULE
+   definition, utilisee par l'affichage ET par la pose : elles ne peuvent plus diverger. */
+function bornesAnneePlanning(y) {
+  const iso = d => `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
+  const debut = premierJourAnneePlanning(y);
+  const fin = new Date(premierJourAnneePlanning(y + 1).getTime() - 86400000);
+  return { debut: iso(debut), fin: iso(fin) };
+}
+const MONTHS_FR = ['Janvier','Février','Mars','Avril','Mai','Juin',
+                   'Juillet','Août','Septembre','Octobre','Novembre','Décembre'];
+const DAYS_FR = ['Lun','Mar','Mer','Jeu','Ven','Sam','Dim'];
+const STATUS_LABELS = {
+  VAC:'Vacances', FORM:'Formation', INDISPO:'Indisponible', SOUHAIT:'Garde souhaitée',
+  TP:'Temps partiel'
+};
+
+// ── STATE ─────────────────────────────────────────────────────────────
+let currentUser = null;
+let currentCode = '';
+let currentMonth = 0; // toujours démarrer sur janvier
+let currentTool = 'INDISPO';   // JAMAIS 'VAC' : les vacances sont posees au staff,
+                               // l'outil VAC est refuse au MAR (voir applyTool).
+let indispos = {}; // {date: status}
+let isDragging = false;
+let hasChanges = false;
+let vacConfig = null;
+let joursFeries = new Set();
+let displayYear = YEAR;
+
+/* (LOT 3 · 22/08/2026) La page a DEUX visages : l'écran campagne historique,
+   et l'écran de pose des temps partiels ouvert par la tuile du portail avec
+   ?tp=1. Un seul est monté par session — le mode se lit une fois, ici. */
+const MODE_TP = new URLSearchParams(location.search).get('tp') === '1';
+  
+// ── LOGIN ─────────────────────────────────────────────────────────────
+document.getElementById('codeInput').addEventListener('keydown', e => {
+  if (e.key === 'Enter') doLogin();
+});
+
+async function doLogin(codeAuto, silencieux) {
+  /* codeAuto  : code repris de la session du portail (pmViewCode).
+     silencieux: tentative automatique — elle ne doit JAMAIS toucher au bouton ni
+     afficher d'erreur. Defaut du 12/08 : la reprise desactivait le bouton et le
+     laissait sur « Connexion... » pendant tout l'appel serveur (jusqu'a 20 s au
+     reveil d'Apps Script), rendant l'ecran inutilisable. */
+  const code = (codeAuto || document.getElementById('codeInput').value).trim().toUpperCase();
+  if (code.length < 4) return false;
+
+  /* (LOT 3 · 22/08/2026) Mode POSE DES TP (?tp=1) : même code, même session,
+     mais un circuit de démarrage dédié — la clé pose_tp_{Y} de la copie
+     rapide, repli GAS getPoseTp. L'écran campagne n'est jamais monté. */
+  if (MODE_TP) {
+    const btnTp = document.getElementById('loginBtn');
+    if (!silencieux) { btnTp.textContent = 'Connexion...'; btnTp.disabled = true; }
+    let okTp = false;
+    try { okTp = await tpxBoot(code, silencieux); } catch (eTp) { okTp = false; }
+    if (!silencieux) {
+      btnTp.textContent = 'Accéder →'; btnTp.disabled = false;
+      if (!okTp) document.getElementById('loginError').style.display = 'block';
+    }
+    return okTp;
+  }
+
+  const btn = document.getElementById('loginBtn');
+  if (!silencieux) { btn.textContent = 'Connexion...'; btn.disabled = true; }
+
+  try {
+    /* (miroir, 04/08/2026) Miroir d'abord : identite + mes indispos en
+       ~150 ms, calendrier affiche aussitot. La config vacances (par MAR)
+       reste au GAS et n'est PLUS attendue : le quota se glisse 2-3 s plus
+       tard. Tout autre resultat miroir → login GAS historique inchange. */
+    const mb = await miroirBootIndispos(code);
+    if (mb && mb.identite) {
+      currentUser = mb.identite;
+      YEAR = mb.annee || mb.identite.indisposYear || YEAR;
+      displayYear = YEAR;
+      const pjLogin = premierJourAnneePlanning(YEAR);
+      currentMonth = pjLogin.getMonth();
+      currentCode = code;
+      document.getElementById('loginScreen').style.display = 'none';
+      document.getElementById('app').style.display = 'block';
+      _poserPastilleUser(mb.identite.name || mb.identite.id);
+      indispos = mb.indispos || {};
+      SessionPortail.memoriser(code);
+      updateStats();
+      renderMonth();
+      selectTool('INDISPO');
+      loadVacConfig();                                                    // non bloquant
+  /* (23/08/2026) JOURNAL DE CONNEXION RETIRE. Decision d'Arthur : la
+     tracabilite ne se fait qu'a DEUX endroits — l'ouverture du portail
+     (dashboard.html) et la connexion du comite (admin.html). Partout ailleurs
+     c'est la meme session, deja journalisee : l'envoi ne faisait que reveiller
+     Apps Script sans rien apprendre a l'onglet CONNEXIONS. */
+      if (!silencieux) { btn.textContent = 'Accéder →'; btn.disabled = false; }
+      return true;
+    } else {
+      const res = await apiCall('login', {code});
+      if (res.success) {
+        currentUser = res;
+        YEAR = res.indisposYear || res.year || YEAR;
+        displayYear = YEAR;
+        // Démarrer sur le premier mois de l'année planning
+        const pjLogin = premierJourAnneePlanning(YEAR);
+        currentMonth = pjLogin.getMonth();
+        currentCode = code;
+        document.getElementById('loginScreen').style.display = 'none';
+        document.getElementById('app').style.display = 'block';
+        _poserPastilleUser(res.name || res.id);
+        SessionPortail.memoriser(code);
+        await loadIndispos();
+        await loadVacConfig();
+        renderMonth();
+        selectTool('INDISPO');   // outil actif + surlignage de la barre des l'ouverture
+        if (!silencieux) { btn.textContent = 'Accéder →'; btn.disabled = false; }
+        return true;
+      } else {
+        SessionPortail.oublier();
+        if (!silencieux) document.getElementById('loginError').style.display = 'block';
+      }
+    }
+  } catch(e) {
+    SessionPortail.oublier();
+    if (!silencieux) document.getElementById('loginError').style.display = 'block';
+  }
+  if (!silencieux) { btn.textContent = 'Accéder →'; btn.disabled = false; }
+  return false;
+}
+
+/* (17/08/2026) Pastille du MAR : le nom, et la deconnexion derriere.
+   Efface le code des DEUX endroits (onglet + memoire de 30 jours) : un code
+   retire d'un seul reviendrait a l'ouverture suivante. */
+function _poserPastilleUser(nom) {
+  var el = document.getElementById('headerUser');
+  if (!el) return;
+  el.textContent = nom || '';
+  el.setAttribute('data-deco', '1');
+  el.setAttribute('title', 'Se déconnecter');
+  el.insertAdjacentHTML('beforeend',
+    '<svg class="hu-out" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" '
+    + 'stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">'
+    + '<path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/>'
+    + '<line x1="21" y1="12" x2="9" y2="12"/></svg>');
+  el.onclick = function () {
+    if (!confirm('Se déconnecter de ce téléphone ?')) return;
+    SessionPortail.oublier();
+    currentCode = '';
+    location.reload();
+  };
+}
+
+/* Reprise de session : le MAR deja connecte au portail (dashboard, planning,
+   absences...) n'a pas a ressaisir son code ici. Meme cle sessionStorage que
+   les autres pages MAR ; elle s'efface a la fermeture de l'onglet.
+   REGLE : la tentative est SILENCIEUSE. L'ecran de saisie reste utilisable
+   pendant tout ce temps — bouton actif, champ libre. Si le MAR tape son code
+   avant que la tentative aboutisse, c'est sa saisie qui gagne. */
+(async function repriseSession() {
+  /* (26/08/2026) DÉFAUT TROUVÉ AU BANC : cette fonction s'exécutait PENDANT le
+     chargement du script, avant la ligne `const MIROIR_URL = ...` plus bas —
+     référence morte (TDZ), erreur avalée par le filet de miroirRead. Depuis le
+     04/08, chaque reprise de session sautait donc la copie rapide et réveillait
+     Apps Script (plusieurs secondes) ; la connexion manuelle, tapée après le
+     chargement, passait bien par le miroir — ce qui masquait le défaut.
+     Le tour de boucle ci-dessous laisse le script finir de se charger : la
+     reprise emprunte enfin le circuit rapide (~150 ms). */
+  await new Promise(function (r) { setTimeout(r, 0); });
+  let saved = '';
+  saved = SessionPortail.lire();
+  if (!saved) return;
+  const reprise = document.getElementById('repriseScreen');
+  try {
+    const ecran = document.getElementById('loginScreen');
+    const ok = await doLogin(saved, true);
+    if (reprise) reprise.style.display = 'none';                 // (26/08) l'attente s'efface, succès ou non
+    if (!ok) { SessionPortail.oublier(); reprisVersCode(); return; }// échec : l'écran de code revient
+    /* Le MAR s'est connecte a la main pendant la tentative : on ne touche a rien. */
+    if (ecran && ecran.style.display === 'none') return;
+  } catch (e) {
+    SessionPortail.oublier();
+    if (reprise) reprise.style.display = 'none';
+    reprisVersCode();
+  }
+})();
+
+/* (18/08/2026) Panneau « Ma priorité » : le HTML avait été retiré (réservé à
+   staff.html), les fonctions openPrioPanel/closePrioPanel/renderPrioPanel
+   restaient sans écran. Supprimées. */
+
+// ── API ───────────────────────────────────────────────────────────────
+/* ── (01/08/2026) FILET : CORPS DE REQUETE PERDU ─────────────────────────
+   « Code absent de la requête » est un message que le serveur ne produit que
+   dans un seul cas : il a recu la requete mais pas son corps, donc il n'a
+   RIEN FAIT — ni lu, ni ecrit, ni envoye de mail. Renvoyer est donc sans
+   danger, y compris pour une action d'ecriture : c'est la seule erreur du
+   systeme dont on sache avec certitude qu'elle n'a laisse aucune trace.
+   On ne rejoue QUE sur ce message, jamais sur un code refuse.
+   Le second envoi apparait comme une ligne distincte dans chrono() : le
+   probleme reste visible au lieu d'etre masque par le correctif. */
+const ERR_CORPS_PERDU = 'Code absent de la requête';
+/* ══ MIROIR CLOUDFLARE — LECTURE (etape 4, 04/08/2026) ═══════════════════
+   Meme mecanisme qu'index/dashboard : le Worker authentifie par empreinte
+   SHA-256 et livre identite + MES indispos (filtrees cote Worker) en un
+   aller-retour ~150 ms. Tout autre resultat → login GAS, seul juge d'un
+   code. Equivalence des donnees PROUVEE par lecture : getIndisposForDoctor
+   et le constructeur miroir lisent le meme onglet, memes lignes, meme
+   helper de dates (reconstruireDatesHeaders). Les ecritures (saveIndispos)
+   restent 100 % GAS — fusion VAC/FORM cote serveur inchangee. */
+const MIROIR_URL = 'https://miroir.planningmedic.workers.dev';
+
+async function miroirRead(keys, codeAcces) {
+  const _dep = Math.round(performance.now()), _t0 = Date.now();
+  const _ctrl = new AbortController();
+  const _timer = setTimeout(() => _ctrl.abort(), 6000);
+  try {
+    const res = await fetch(MIROIR_URL + '/read', {
+      method: 'POST',
+      headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+      body: JSON.stringify({ code: codeAcces, keys }),
+      signal: _ctrl.signal,
+    });
+    const rep = await res.json();
+    try { if (window.PERF) PERF.appel('miroir:' + keys.join('+'), Date.now() - _t0, null, _dep,
+                                      rep && rep.success ? 'ok' : 'ECHEC — ' + ((rep && rep.error) || 'HTTP ' + res.status)); } catch (_e) {}
+    return rep;
+  } catch (e) {
+    try { if (window.PERF) PERF.appel('miroir:' + keys.join('+'), Date.now() - _t0, null, _dep,
+                                      'ECHEC — ' + (e && e.message)); } catch (_e) {}
+    return null;
+  } finally { clearTimeout(_timer); }
+}
+
+/* Connexion par le miroir : l'annee de campagne arrive AVEC l'identite
+   (indisposYear) ; on demande d'emblee les deux annees plausibles pour
+   tenir en UN aller-retour dans le cas courant. */
+async function miroirBootIndispos(codeAcces) {
+  const Y = new Date().getFullYear();
+  const m = await miroirRead(['indispos_' + Y, 'indispos_' + (Y + 1)], codeAcces);
+  if (!m || !m.success || !m.identite) return m;
+  const iy = Number(m.identite.indisposYear) || (Y + 1);
+  let bloc = m.data && m.data['indispos_' + iy];
+  if (!bloc) {
+    const m2 = await miroirRead(['indispos_' + iy], codeAcces);
+    if (m2 && m2.success && m2.data) bloc = m2.data['indispos_' + iy];
+  }
+  if (!bloc || !bloc.parMar) return null;   // cle jamais poussee → repli GAS
+  return { identite: m.identite, indispos: bloc.parMar[m.identite.id] || {}, annee: iy };
+}
+
+async function apiCall(action, extra = {}) {
+  let r;
+  try {
+    r = await _apiCallDirect(action, extra);
+  } catch (e) {
+    /* (04/08/2026) Rejeu sur echec de transport — meme protection que
+       index/dashboard : page d'erreur HTML servie au hasard par Google
+       → un unique renvoi silencieux. 2e echec → l'erreur remonte.
+       Protege notamment saveIndispos (la sauvegarde de la demo). */
+    console.warn('[api] echec de transport (' + action + ') — rejeu unique');
+    r = await _apiCallDirect(action, extra);
+  }
+  if (r && r.success === false && r.error === ERR_CORPS_PERDU) {
+    console.warn('[api] corps de requete perdu (' + action + ') — renvoi immediat');
+    return await _apiCallDirect(action, extra);
+  }
+  return r;
+}
+
+/* _reveilAPI supprimé le 18/08/2026 : l'appel avait été retiré dès le 01/08 (le filet de rejeu suffit) ; la fonction restait sans appelant sur les 5 pages. Historique : ROADMAP. */
+
+async function _apiCallDirect(action, extra = {}) {
+  // (01/08/2026) Journal de mesure — lecture seule, alimente chrono().
+  const _dep = Math.round(performance.now()), _t0 = Date.now();
+  // (F4) POST : le code et les indispos voyagent dans le corps de la
+  // requête, plus jamais dans l'URL (historique navigateur, logs proxy).
+  // Supprime aussi la limite de taille d'URL (longues absences).
+  const _ctrl = new AbortController();
+  const _timer = setTimeout(() => _ctrl.abort(), 120000);
+  try {
+    const res = await fetch(API_URL, {
+      method: 'POST',
+      headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+      body: JSON.stringify({action, code: currentCode, ...extra}),
+      redirect: 'follow',
+      signal: _ctrl.signal,
+    });
+    const _rep = await res.json();
+    try { if (window.PERF) PERF.appel(action, Date.now() - _t0, _rep && _rep._srv_ms, _dep,
+                                      res.ok ? 'ok' : 'ECHEC — HTTP ' + res.status,
+                                      _rep && _rep._glob_ms); } catch (_e) {}
+    return _rep;
+  } catch (e) {
+    try { if (window.PERF) PERF.appel(action, Date.now() - _t0, null, _dep,
+                                      'ECHEC — ' + (e && e.message)); } catch (_e) {}
+    if (e && e.name === 'AbortError') throw new Error('Délai dépassé (2 min) — serveur trop lent ou injoignable, réessayez');
+    throw e;
+  } finally { clearTimeout(_timer); }
+}
+
+// ── LOAD / SAVE ───────────────────────────────────────────────────────
+async function loadIndispos() {
+  const res = await apiCall('getIndispos');
+  if (res.success) {
+    indispos = res.indispos || {};
+    updateStats();
+  }
+}
+async function loadVacConfig() {
+  try {
+    const res = await apiCall('getVacConfig');
+    if (res.success) {
+      vacConfig = res;
+      joursFeries = new Set(res.joursFeries || []);
+      /* (25/08/2026) Le planning de l'année est généré : l'écran passe en LECTURE
+         SEULE. Les indispos ne changent plus rien une fois les gardes tirées ;
+         sans ce verrou, on pouvait saisir des semaines durant en croyant que ça
+         comptait. Pour modifier après coup, c'est le circuit des échanges. */
+      if (res.genere) verrouillerEcran(res.anneeCampagne);
+      /* (LOT A · 01/09/2026) Le bouton « Temps partiel » n'apparaît que pour
+         ceux qui ont des jours à poser. `quotaCtp` vient de CONFIG_CONGES via
+         la quotité : il vaut 0 à temps plein, et le serveur refuse de toute
+         façon les jours d'un profil sans quota — l'écran ne fait que ne pas
+         proposer un bouton qui ne servirait à rien. */
+      const _btnTp = document.getElementById('btnOutilTp');
+      if (_btnTp) _btnTp.style.display = (res.quotaCtp > 0) ? '' : 'none';
+      updateVacBanner();
+      updateStats(); // Mettre à jour le quota affiché
+    }
+  } catch(e) {
+    console.log('VacConfig non disponible');
+  }
+}
+function updateVacBanner() { /* supprimé — le comité gère les conflits */ }
+
+let ECRAN_FIGE = false;
+function verrouillerEcran(annee) {
+  if (ECRAN_FIGE) return;
+  ECRAN_FIGE = true;
+  const btn = document.getElementById('saveBtn');
+  if (btn) { btn.disabled = true; btn.style.opacity = '.45'; btn.style.cursor = 'not-allowed';
+             btn.textContent = '🔒 Planning ' + annee + ' publié'; }
+  const bandeau = document.createElement('div');
+  bandeau.id = 'figeBanner';
+  bandeau.style.cssText = 'background:#FEF3C7;border-left:4px solid #D97706;color:#92400E;'
+    + 'padding:12px 14px;margin:0 0 14px;border-radius:8px;font-size:14px;line-height:1.55';
+  bandeau.innerHTML = '<b>Le planning ' + annee + ' est établi.</b><br>'
+    + 'Vos indisponibilités restent visibles, mais elles ne peuvent plus être modifiées : '
+    + 'les gardes sont déjà réparties. Pour changer une garde, passez par <b>Mes échanges</b> '
+    + 'depuis le portail.';
+  const hote = document.querySelector('.legend') || document.querySelector('.container') || document.body;
+  hote.parentNode ? hote.parentNode.insertBefore(bandeau, hote) : hote.appendChild(bandeau);
+}
+/* (06/09/2026) LE BOUTON DIT L'ÉTAT RÉEL. Après une sauvegarde réussie, il
+   redevenait « 💾 Sauvegarder », rouge, comme s'il restait du travail — alors
+   que `hasChanges` savait déjà que non. Il est désormais gris et muet quand
+   tout est enregistré, rouge dès qu'un jour est touché. */
+function majBoutonSave() {
+  const btn = document.getElementById('saveBtn');
+  if (!btn || btn.dataset.enCours === '1') return;
+  btn.disabled = !hasChanges;
+  btn.textContent = hasChanges ? '💾 Sauvegarder' : '✓ Tout est enregistré';
+  btn.classList.toggle('save-btn-ok', !hasChanges);
+}
+
+async function saveIndispos() {
+  if (typeof ECRAN_FIGE !== 'undefined' && ECRAN_FIGE) { showToast('🔒 Planning déjà établi — aucune modification possible'); return; }
+  const btn = document.getElementById('saveBtn');
+  btn.dataset.enCours = '1';
+  btn.textContent = '⏳ Sauvegarde...';
+  btn.disabled = true;
+  /* (06/09/2026) Le calendrier se fige le temps de l'écriture : un jour touché
+     pendant les deux secondes d'attente aurait disparu sans un mot — le serveur
+     a reçu l'état d'avant. */
+  document.body.classList.add('save-en-cours');
+  /* (06/09/2026) Apps Script peut être lent, et l'appel n'a aucun délai maximum.
+     Au-delà de cinq secondes on rassure : le vrai danger est qu'un MAR ferme
+     l'onglet en croyant à un plantage — là, sa saisie est perdue. */
+  const lent = setTimeout(function () {
+    const h = document.getElementById('toolHint');
+    if (h) { h.classList.remove('refus'); h.innerHTML =
+      '⏳ C\'est un peu long — <b>ne fermez pas la page</b>, votre saisie n\'est pas perdue.'; }
+  }, 5000);
+
+  try {
+    const res = await apiCall('saveIndispos', {indispos});
+    if (res.success) {
+      hasChanges = false;
+      showToast('✅ Indisponibilités sauvegardées');
+    } else {
+      /* (LOT 3 · 22/08/2026) Le serveur porte désormais un verrou de campagne
+         (Indispos.gs) : son message dit POURQUOI — il doit être visible. */
+      showToast('❌ ' + (res.error || 'Erreur lors de la sauvegarde'));
+    }
+  } catch(e) {
+    // (F9) Erreur réseau : le bouton ne reste plus bloqué sur ⏳
+    showToast('❌ Erreur réseau — vérifiez la connexion et réessayez');
+  }
+  clearTimeout(lent);
+  document.body.classList.remove('save-en-cours');
+  btn.dataset.enCours = '0';
+  majBoutonSave();
+  selectTool(currentTool);   // le message d'aide reprend sa place
+}
+
+// ── TOOL ──────────────────────────────────────────────────────────────
+function selectTool(tool) {
+  currentTool = tool;
+  document.querySelectorAll('.legend-item').forEach(el => {
+    el.classList.toggle('active-tool', el.dataset.tool === tool);
+  });
+  const labels = {...STATUS_LABELS, ERASE: 'Effacer'};
+  const h = document.getElementById('toolHint');
+  h.classList.remove('refus','ok');
+  h.innerHTML = tool === 'ERASE'
+    ? 'Outil actif : <strong>Effacer</strong> — touchez un jour pour retirer ce que vous y avez posé'
+    : tool === 'TP'
+      ? 'Outil actif : <strong>Temps partiel</strong> — sur un jour travaillé uniquement'
+      : `Outil actif : <strong>${labels[tool]}</strong> — touchez un jour pour l'appliquer`;
+  /* (06/09/2026) Le calendrier se redessine : les jours hors de portée de
+     l'outil temps partiel s'estompent ou redeviennent normaux. */
+  if (document.getElementById('calGrid')) renderMonth();
+}
+
+/* (06/09/2026) Un refus s'affichait en toast, qui disparaît au bout de deux
+   secondes — souvent avant qu'on ait fini le geste. Il s'écrit désormais dans
+   la zone d'aide, sous le calendrier, et y reste jusqu'au geste suivant. */
+function hintRefus(msg) {
+  const h = document.getElementById('toolHint');
+  if (!h) return;
+  h.classList.remove('ok'); h.classList.add('refus');
+  h.innerHTML = msg;
+}
+
+// ── CALENDAR RENDER ───────────────────────────────────────────────────
+function renderMonth() {
+  const grid = document.getElementById('calGrid');
+  document.getElementById('monthTitle').textContent = `${MONTHS_FR[currentMonth]} ${displayYear}`;
+
+  const firstDay = new Date(displayYear, currentMonth, 1);
+  const daysInMonth = new Date(displayYear, currentMonth + 1, 0).getDate();
+  const today = new Date().toISOString().slice(0, 10);
+
+  // Day headers
+  let html = DAYS_FR.map(d => `<div class="cal-header">${d}</div>`).join('');
+
+  // Empty cells before first day
+  let startDow = firstDay.getDay() || 7; // 1=Mon..7=Sun
+  for (let i = 1; i < startDow; i++) {
+    html += `<div class="cal-day empty"></div>`;
+  }
+
+  // Days
+  for (let d = 1; d <= daysInMonth; d++) {
+    const date = `${displayYear}-${String(currentMonth+1).padStart(2,'0')}-${String(d).padStart(2,'0')}`;
+    const dow = new Date(date).getDay(); // 0=Sun, 6=Sat
+    const isWe = dow === 0 || dow === 6;
+    const status = indispos[date] || '';
+    const isPast = date < today;
+    
+// Vérifier blocage VAC/FORM
+let isBlocked = false;
+if (vacConfig) {
+  const periode = vacConfig.periodes.find(p => date >= p.debut && date <= p.fin);
+  if (periode && periode.joursBloqués && periode.joursBloqués.includes(date)) isBlocked = true;
+}
+    const _b = bornesAnneePlanning(YEAR);
+    const isAvantPremierJour = date < _b.debut || date > _b.fin;
+    const isJourFerie = joursFeries.has(date);
+    let cls = 'cal-day';
+    if (isWe || isJourFerie) cls += ' weekend';
+    if (date === today) cls += ' today';
+    if (isPast || isAvantPremierJour) cls += ' past';
+    if (status) cls += ' ' + status.toLowerCase();
+    // Distinguer vrai conflit (MAR a posé) vs saturé informatif (MAR n'a pas posé)
+    // Pas d'indicateur visuel saturé/conflit côté MAR — géré par le comité
+
+    /* (06/09/2026) Le badge de trois lettres disparaît : la couleur remplit
+       désormais la case et dit ce qu'est le jour. */
+    const badge = '';
+    /* VAC et FORM viennent du staff : ils ne se modifient pas ici. Le cadenas le
+       dit avant le geste, le message d'aide le redit après. */
+    const lockIcon = (status === 'VAC' || status === 'FORM')
+      ? '<div class="cal-lock">🔒</div>' : '';
+    const ferieIcon = isJourFerie
+      ? `<div style="font-size:8px;position:absolute;top:2px;left:3px;color:${status?'#fff':'#C2410C'};font-weight:700;opacity:.9">JF</div>`
+      : '';
+    /* Outil temps partiel : un jour non travaillé n'a pas de sens (voir applyTool).
+       On l'estompe pour que le refus se voie AVANT le geste. */
+    if (currentTool === 'TP' && (isWe || isJourFerie) && !status) cls += ' hors-portee';
+
+    html += `<div class="${cls}" data-date="${date}"
+      ontouchstart="startDrag('${date}')"
+      ontouchmove="handleDragMove(event)"
+      ontouchend="endDrag()"
+      onmousedown="startDrag('${date}')"
+      onmouseover="handleMouseOver('${date}')"
+      onmouseup="endDrag()">
+      ${lockIcon}
+      ${ferieIcon}
+      <div class="cal-day-num">${d}</div>
+      ${badge}
+    </div>`;
+  }
+
+  grid.innerHTML = html;
+}
+
+// ── DRAG INTERACTION ──────────────────────────────────────────────────
+function startDrag(date) {
+  isDragging = true;
+  applyTool(date);
+}
+
+function handleMouseOver(date) {
+  if (isDragging) applyTool(date);
+}
+
+function handleDragMove(e) {
+  if (!isDragging) return;
+  e.preventDefault();
+  const touch = e.touches[0];
+  const el = document.elementFromPoint(touch.clientX, touch.clientY);
+  if (el && el.dataset.date) applyTool(el.dataset.date);
+}
+
+function endDrag() {
+  isDragging = false;
+}
+
+document.addEventListener('mouseup', () => { isDragging = false; });
+
+function applyTool(date) {
+  // (typeof) le banc évalue cette fonction isolément, hors contexte de page.
+  if (typeof ECRAN_FIGE !== 'undefined' && ECRAN_FIGE) {
+    if (!isDragging || !window._figeMsg) {
+      window._figeMsg = true;
+      setTimeout(() => { window._figeMsg = false; }, 2500);
+      showToast('🔒 Planning déjà établi — vos indisponibilités sont figées');
+      hintRefus('🔒 Le planning est déjà établi : vos indisponibilités sont figées.');
+    }
+    return;
+  }
+  /* (12/08/2026) Hors de l'annee de planning, le SERVEUR ignore la date en silence
+     (banc T072) : le MAR croyait avoir declare, rien n'etait enregistre. Les cases
+     etaient deja grisees mais restaient cliquables. Refus explicite ici. */
+  {
+    const b = bornesAnneePlanning(YEAR);
+    if (date < b.debut || date > b.fin) {
+      if (!isDragging || !window._horsAnneeMsg) {
+        window._horsAnneeMsg = true;
+        setTimeout(() => { window._horsAnneeMsg = false; }, 2500);
+        showToast(`🚫 Hors de l'année de planning ${YEAR}`);
+        hintRefus(`🚫 Ce jour est hors de l'année de planning ${YEAR}.`);
+      }
+      return;
+    }
+  }
+  // VAC et FORM posés par le comité — non modifiables par le MAR
+  if (indispos[date] === 'VAC' || indispos[date] === 'FORM') {
+    showToast('🔒 Congé posé par le comité — contactez-les pour modifier');
+    hintRefus('🔒 Ce jour a été posé au staff — voyez le comité pour le changer.');
+    return;
+  }
+  if (currentTool === 'VAC' || currentTool === 'FORM') {
+    showToast('🔒 Les vacances et formations sont gérées par le comité');
+    return;
+  }
+  /* (v1.31.1) Un jour de temps partiel est un jour NON TRAVAILLÉ : il n'a de sens
+     que sur un jour ouvré. Posé un samedi, un dimanche ou un férié, il ne retire
+     aucune journée de travail — il ne fait qu'écarter son auteur des gardes les
+     plus lourdes, au détriment des autres. Refus explicite. */
+  if (currentTool === 'TP') {
+    const _dow = new Date(date + 'T12:00:00').getDay();
+    if (_dow === 0 || _dow === 6 || joursFeries.has(date)) {
+      if (!isDragging || !window._tpWeMsg) {
+        window._tpWeMsg = true;
+        setTimeout(() => { window._tpWeMsg = false; }, 2500);
+        showToast('🚫 Un jour de temps partiel se pose sur un jour travaillé');
+        hintRefus('🚫 Un jour de temps partiel se pose sur un <strong>jour travaillé</strong> : ni week-end, ni férié.');
+      }
+      return;
+    }
+  }
+  if (currentTool === 'TP' && vacConfig && vacConfig.quotaCtp != null && indispos[date] !== 'TP') {
+    const ctpCount = Object.values(indispos).filter(s => s === 'TP').length;
+    if (ctpCount >= vacConfig.quotaCtp) {
+      showToast(`🚫 Quota temps partiel atteint — ${vacConfig.quotaCtp} jour(s) maximum`);
+      hintRefus(`🚫 Quota de temps partiel atteint : ${vacConfig.quotaCtp} jour(s) maximum.`);
+      return;
+    }
+  }
+  /* (25/08/2026) JOURS COUPLÉS — un souhait ne se pose jamais sur un demi-week-end.
+     Le vendredi et le dimanche sont assurés par le MÊME binôme (le samedi revient à
+     d'autres) ; un lundi férié va avec le samedi qui le précède, un jeudi férié avec
+     celui qui le suit. En cliquant un seul de ces jours, on demandait sans le savoir
+     les deux — et en cliquant les deux, on croyait faire deux demandes alors qu'il
+     n'y en a qu'une. Le clic pose donc l'unité complète, et le dit. */
+  const _uniteSouhait = (d) => {
+    const dt = new Date(d + 'T12:00:00'), dow = dt.getDay();
+    const dec = (n) => { const x = new Date(dt.getTime() + n * 86400000);
+      return x.getFullYear() + '-' + String(x.getMonth() + 1).padStart(2, '0') + '-' + String(x.getDate()).padStart(2, '0'); };
+    if (dow === 5) return { jours: [d, dec(2)], quoi: 'le week-end entier (vendredi + dimanche)' };
+    if (dow === 0) return { jours: [dec(-2), d], quoi: 'le week-end entier (vendredi + dimanche)' };
+    if (dow === 4 && joursFeries.has(d)) return { jours: [d, dec(2)], quoi: 'le jeudi férié et le samedi qui suit' };
+    if (dow === 1 && joursFeries.has(d)) return { jours: [dec(-2), d], quoi: 'le samedi et le lundi férié qui suit' };
+    if (dow === 6) {
+      if (joursFeries.has(dec(-2)) && new Date(dec(-2) + 'T12:00:00').getDay() === 4) return { jours: [dec(-2), d], quoi: 'le jeudi férié et le samedi qui suit' };
+      if (joursFeries.has(dec(2)) && new Date(dec(2) + 'T12:00:00').getDay() === 1) return { jours: [d, dec(2)], quoi: 'le samedi et le lundi férié qui suit' };
+    }
+    return null;
+  };
+  if (currentTool === 'SOUHAIT' || (currentTool === 'ERASE' && indispos[date] === 'SOUHAIT')) {
+    const u = _uniteSouhait(date);
+    if (u) {
+      const b = bornesAnneePlanning(YEAR);
+      const posables = u.jours.filter(j => j >= b.debut && j <= b.fin
+        && indispos[j] !== 'VAC' && indispos[j] !== 'FORM');
+      if (posables.length) {
+        posables.forEach(j => { if (currentTool === 'ERASE') delete indispos[j]; else indispos[j] = 'SOUHAIT'; });
+        if (!isDragging) showToast(currentTool === 'ERASE'
+          ? '↩️ Demande retirée — ' + u.quoi
+          : '⭐ Ces jours vont ensemble : vous demandez ' + u.quoi);
+        hasChanges = true; renderMonth(); updateStats(); majBoutonSave();
+        return;
+      }
+    }
+  }
+  if (currentTool === 'ERASE') {
+    delete indispos[date];
+  } else {
+    indispos[date] = currentTool;
+  }
+  hasChanges = true;
+  renderMonth();
+  updateStats();
+  majBoutonSave();
+}
+
+// ── MONTH NAV ─────────────────────────────────────────────────────────
+function prevMonth() {
+  if (currentMonth > 0) {
+    currentMonth--;
+  } else if (displayYear > YEAR) {
+    currentMonth = 11;
+    displayYear--;
+  }
+  renderMonth();
+}
+function nextMonth() {
+  // Calculer la limite : dernier mois de l'année planning
+  // L'année planning se termine le dernier jour avant le premier lundi de janvier YEAR+1
+  // Ce dernier jour peut être en décembre YEAR ou janvier YEAR+1
+  const finPlanning = premierJourAnneePlanning(YEAR + 1);
+  const maxYear = finPlanning.getFullYear();
+  const maxMonth = finPlanning.getMonth(); // mois du dernier jour (0-indexed)
+  // Le dernier mois navigable = mois de la fin de l'année planning
+  const nextY = currentMonth === 11 ? displayYear + 1 : displayYear;
+  const nextM = currentMonth === 11 ? 0 : currentMonth + 1;
+  if (nextY > maxYear || (nextY === maxYear && nextM > maxMonth)) return;
+  currentMonth = nextM;
+  displayYear = nextY;
+  renderMonth();
+}
+
+// ── STATS ─────────────────────────────────────────────────────────────
+function updateStats() {
+  const counts = {VAC:0, FORM:0, INDISPO:0, SOUHAIT:0};
+  // Compter uniquement les jours ouvrés pour VAC
+  let vacOuvres = 0;
+  Object.entries(indispos).forEach(([date, s]) => {
+    if (counts[s] !== undefined) counts[s]++;
+    if (s === 'VAC') {
+      const dow = new Date(date).getDay();
+      if (dow !== 0 && dow !== 6 && !joursFeries.has(date)) vacOuvres++;
+    }
+  });
+
+  /* (06/09/2026) Le quota arrive par un SECOND appel au serveur, après le
+     chargement de la page : pendant une seconde les compteurs annonçaient
+     « 0/0 », un chiffre faux. Tant qu'il n'est pas connu, on affiche « — ». */
+  const quotaConnu = !!vacConfig;
+  const quotaVac = vacConfig ? vacConfig.quotaVac : null;
+  const quotaColor = quotaVac && vacOuvres >= quotaVac ? '#B91C1C' : 'var(--vac-fg)';
+  const quotaLabel = !quotaConnu ? '— jours ouvrés'
+    : quotaVac ? `${vacOuvres}/${quotaVac} jours ouvrés` : `${vacOuvres} jours ouvrés`;
+  /* (LOT A · 01/09/2026) Le compteur suit le BOUTON : il s'affiche dès qu'il y
+     a des jours à poser. L'ancienne condition passait par le quota de vacances
+     (< 33 jours = temps partiel), un détour qui pouvait diverger de la seule
+     donnée qui compte, le quota de temps partiel lui-même. */
+  const showCtp = vacConfig && vacConfig.quotaCtp > 0;
+  const ctpCount = Object.values(indispos).filter(s => s === 'TP').length;
+  const ctpItem = showCtp
+    ? `<div class="stat-item" style="color:${ctpCount >= vacConfig.quotaCtp ? '#B91C1C' : '#6D28D9'}">🕐 ${ctpCount}/${vacConfig.quotaCtp} TP</div>`
+    : '';
+
+  /* (06/09/2026) La formation a un quota, lu dans CONFIG_CONGES selon la quotité
+     — exactement comme les vacances. Il n'était pas affiché : on lisait « 6 jours »
+     sans savoir s'il en restait. Le compteur passe en rouge une fois dépassé,
+     même règle que les vacances et le temps partiel. */
+  const quotaForm = vacConfig && Number(vacConfig.quotaForm) || 0;
+  const formLabel = !quotaConnu ? '— jours'
+    : quotaForm ? `${counts.FORM}/${quotaForm} jours` : `${counts.FORM} jours`;
+  const formColor = (quotaForm && counts.FORM > quotaForm) ? '#B91C1C' : 'var(--form-fg)';
+
+  /* (06/09/2026) Les compteurs étaient cinq pastilles à emoji, de largeurs
+     inégales, qui débordaient sur deux lignes bancales. Ce qui a un PLAFOND porte
+     désormais une jauge — congés, formation, temps partiel : on voit ce qu'il
+     reste à poser, ce qu'aucun chiffre seul ne disait. Ce qui n'en a pas —
+     indisponibilités, gardes souhaitées — reste un simple compte, sur une ligne
+     à part, avec une pastille de couleur qui rappelle celle du calendrier. */
+  const jauge = (nom, fait, quota, coul, unite) => {
+    const pct = quota ? Math.min(100, fait / quota * 100) : 0;
+    const trop = quota && fait > quota;
+    return `<div class="jauge-bloc">
+      <div class="jauge-tete">
+        <span class="jauge-nom">${nom}</span>
+        <span class="jauge-val"${trop ? ' style="color:#B91C1C"' : ''}>${fait}<span>${quota ? ' / ' + quota : ''}${unite ? ' ' + unite : ''}</span></span>
+      </div>
+      <div class="jauge-piste"><div class="jauge-fill" style="width:${pct}%;background:${trop ? '#B91C1C' : coul}"></div></div>
+    </div>`;
+  };
+  const compte = (nom, n, coul) =>
+    `<div class="compte-item"><span class="compte-point" style="background:${coul}"></span>` +
+    `<span class="compte-val">${n}</span><span class="compte-nom">${nom}</span></div>`;
+
+  document.getElementById('statsBar').innerHTML = `
+    <div class="jauge-ligne">
+      ${jauge('Congés', vacOuvres, quotaVac, 'var(--vac-fg)', quotaVac ? 'j. ouvrés' : 'jours ouvrés')}
+      ${jauge('Formation', counts.FORM, quotaForm, 'var(--form-fg)', 'jours')}
+    </div>
+    ${showCtp ? `<div class="jauge-ligne jauge-seule">${jauge('Temps partiel', ctpCount, vacConfig.quotaCtp, '#6D28D9', 'jours')}</div>` : ''}
+    <div class="compte-ligne">
+      ${compte('indisponibilités', counts.INDISPO, 'var(--indispo-fg)')}
+      ${compte('gardes souhaitées', counts.SOUHAIT, 'var(--souhait-fg)')}
+    </div>
+  `;
+}
+
+// ── TOAST ─────────────────────────────────────────────────────────────
+function showToast(msg) {
+  const t = document.getElementById('toast');
+  t.textContent = msg;
+  t.classList.add('show');
+  setTimeout(() => t.classList.remove('show'), 2500);
+}
+
+/* ═══════════════════════════════════════════════════════════════════════════
+   CHRONO — INSTRUMENT DE MESURE (01/08/2026)
+   ═══════════════════════════════════════════════════════════════════════════
+   LECTURE SEULE. N'ecrit rien, n'appelle rien, ne modifie aucun affichage.
+   Se contente d'observer et de tenir un journal, consultable dans la console.
+
+   POURQUOI. Jusqu'ici seul admin.html savait mesurer ses APPELS (chronoAPI).
+   Rien ne mesurait : le temps du navigateur (analyse du JS, rendu), les
+   ressources tierces (polices, icones), ni le COUT D'UN CLIC. Or sur admin
+   chaque placement rappelle renderWeek() en entier : c'est la partie du temps
+   que personne n'a jamais chiffree.
+
+   A TAPER DANS LA CONSOLE :
+     chrono()        le budget complet de la page (ouverture + appels + rendus)
+     chronoClics()   le detail des interactions : clic -> ecran mis a jour
+     chronoAPI()     (admin) le detail des appels serveur, inchange
+
+   TROIS MESURES, TROIS SENS DIFFERENTS :
+   - « attente »    : le temps entre le clic et le debut du traitement. Si elle
+                      est grande, le navigateur etait deja occupe ailleurs.
+   - « traitement » : le temps passe DANS notre code. C'est le seul que l'on
+                      peut reduire nous-memes.
+   - « ecran »      : le temps de peinture apres le traitement.
+
+   Cout de l'instrument lui-meme : deux observateurs natifs du navigateur et
+   un push dans un tableau par evenement. Non mesurable a l'echelle de la page.
+   ═════════════════════════════════════════════════════════════════════════ */
+(function () {
+  if (window.PERF) return;
+
+  var P = {
+    page: (location.pathname.split('/').pop() || 'index.html'),
+    jalons: [],      // etapes nommees du chargement
+    rendus: [],      // durees des fonctions d'affichage surveillees
+    clics: [],       // interactions utilisateur
+    longues: [],     // taches > 50 ms : l'ecran est fige pendant ce temps
+    appels: []       // journal des appels serveur (admin : partage avec chronoAPI)
+  };
+  window.PERF = P;
+
+  // ── Jalons ───────────────────────────────────────────────────────────────
+  P.jalon = function (nom) {
+    try { P.jalons.push({ nom: nom, t: Math.round(performance.now()) }); } catch (e) {}
+  };
+
+  // ── Journal d'appel serveur (pages sans chronoAPI) ───────────────────────
+  P.appel = function (action, ms, srv, depart, issue, glob) {
+    try {
+      P.appels.push({ action: action, ms: ms, srv: (typeof srv === 'number' ? srv : null),
+                      glob: (typeof glob === 'number' ? glob : null),
+                      depart: depart, essais: 1, issue: issue || 'ok' });
+    } catch (e) {}
+  };
+
+  // Enregistre une duree. Plafond : une session de plusieurs heures ne doit pas
+  // faire enfler le journal (l'instrument ne doit jamais devenir le probleme).
+  P.note = function (nom, ms, t, bloquant) {
+    if (P.rendus.length >= 5000) P.rendus.shift();
+    P.rendus.push({ nom: nom, ms: ms, t: t, bloquant: (bloquant == null ? ms : bloquant) });
+  };
+
+  // ── Surveillance des fonctions d'affichage ───────────────────────────────
+  // Enveloppe une fonction globale pour en chronometrer chaque execution.
+  // A appeler APRES la declaration des fonctions concernees (fin de script).
+  P.surveiller = function (noms) {
+    (noms || []).forEach(function (n) {
+      var f = window[n];
+      if (typeof f !== 'function' || f._chrono) return;
+      var g = function () {
+        var d = performance.now(), r;
+        try { r = f.apply(this, arguments); }
+        finally { try {
+          var sync = performance.now() - d;
+          // Fonction asynchrone : le temps qui compte est celui de la promesse,
+          // pas celui du retour. On note les deux — « bloquant » est le seul
+          // temps pendant lequel l'ecran est fige.
+          if (r && typeof r.then === 'function') {
+            r.then(_fin, _fin);
+            function _fin() { P.note(n, Math.round(performance.now() - d), Math.round(d), Math.round(sync)); }
+          } else {
+            P.note(n, Math.round(sync), Math.round(d), Math.round(sync));
+          }
+        } catch (e) { /* l'instrument ne doit JAMAIS casser la fonction mesuree */ } }
+        return r;
+      };
+      g._chrono = true;
+      try { window[n] = g; } catch (e) {}
+    });
+  };
+
+  // ── Observateur : taches longues (ecran fige) ────────────────────────────
+  try {
+    new PerformanceObserver(function (l) {
+      l.getEntries().forEach(function (e) {
+        P.longues.push({ t: Math.round(e.startTime), ms: Math.round(e.duration) });
+      });
+    }).observe({ type: 'longtask', buffered: true });
+  } catch (e) {}
+
+  // ── Observateur : interactions (clic -> ecran) ───────────────────────────
+  function _cible(el) {
+    if (!el || !el.tagName) return '?';
+    var s = el.tagName.toLowerCase();
+    if (el.id) return s + '#' + el.id;
+    var c = (el.className && el.className.baseVal !== undefined) ? el.className.baseVal : el.className;
+    if (typeof c === 'string' && c.trim()) return s + '.' + c.trim().split(/\s+/).slice(0, 2).join('.');
+    var t = (el.textContent || '').trim().replace(/\s+/g, ' ').slice(0, 18);
+    return t ? s + ' « ' + t + ' »' : s;
+  }
+  try {
+    new PerformanceObserver(function (l) {
+      l.getEntries().forEach(function (e) {
+        if (e.name !== 'click' && e.name !== 'keydown' && e.name !== 'pointerdown') return;
+        P.clics.push({
+          nom: e.name,
+          cible: _cible(e.target),
+          t: Math.round(e.startTime),
+          attente: Math.round(e.processingStart - e.startTime),
+          traitement: Math.round(e.processingEnd - e.processingStart),
+          ecran: Math.round(e.startTime + e.duration - e.processingEnd),
+          total: Math.round(e.duration)
+        });
+      });
+    }).observe({ type: 'event', durationThreshold: 16, buffered: true });
+  } catch (e) {}
+
+  // ── Mise en forme ────────────────────────────────────────────────────────
+  function col(t, n) { var s = String(t); while (s.length < n) s += ' '; return s.slice(0, n); }
+  function ms(v, n) { return String(Math.round(v)).padStart(n || 6, ' '); }
+  function sec(v) { return (v / 1000).toFixed(1) + ' s'; }
+
+  // ── chrono() : le budget complet ─────────────────────────────────────────
+  P.rapport = function () {
+    var L = ['', '══ CHRONO — ' + P.page + ' — ' + new Date().toLocaleTimeString('fr-FR') + ' ══'];
+    var nav = null;
+    try { nav = performance.getEntriesByType('navigation')[0] || null; } catch (e) {}
+
+    // 1. Arrivee de la page elle-meme
+    if (nav) {
+      L.push('');
+      L.push('── 1. La page (fichier HTML) ' + '─'.repeat(30));
+      L.push('   DNS + connexion   ' + ms(nav.connectEnd - nav.domainLookupStart) + ' ms');
+      L.push('   Reponse serveur   ' + ms(nav.responseStart - nav.requestStart) + ' ms   (premier octet)');
+      L.push('   Telechargement    ' + ms(nav.responseEnd - nav.responseStart) + ' ms   '
+             + (nav.transferSize ? '(' + Math.round(nav.transferSize / 1024) + ' Ko transferes)' : ''));
+      L.push('   Analyse + script  ' + ms(nav.domContentLoadedEventEnd - nav.responseEnd) + ' ms   '
+             + '(lecture du HTML, du CSS et execution du JS)');
+      L.push('   → page prete      ' + ms(nav.domContentLoadedEventEnd) + ' ms');
+    }
+
+    // 2. Ressources tierces
+    var res = [];
+    try {
+      res = performance.getEntriesByType('resource')
+        .filter(function (r) { return r.duration >= 5 && !/googleusercontent|script\.google/.test(r.name); })
+        .sort(function (a, b) { return b.duration - a.duration; }).slice(0, 8);
+    } catch (e) {}
+    if (res.length) {
+      L.push('');
+      L.push('── 2. Ressources chargees ' + '─'.repeat(33));
+      res.forEach(function (r) {
+        var court = r.name.replace(/^https?:\/\//, '').replace(/\?.*$/, '');
+        if (court.length > 46) court = court.slice(0, 20) + '…' + court.slice(-25);
+        L.push('   ' + col(court, 48) + ms(r.duration) + ' ms  '
+               + (r.transferSize ? Math.round(r.transferSize / 1024) + ' Ko' : 'poids n.c.'));
+      });
+    }
+
+    // 3. Appels serveur
+    var J = P.appels;
+    if (J && J.length) {
+      var tot = 0, srv = 0, glo = 0, ech = 0;
+      J.forEach(function (c) {
+        tot += c.ms; srv += (c.srv || 0); glo += (c.glob || 0);
+        if (String(c.issue).indexOf('ECHEC') === 0) ech++;
+      });
+      L.push('');
+      L.push('── 3. Appels serveur ' + '─'.repeat(38));
+      J.forEach(function (c, i) {
+        var dep = (c.depart != null) ? ('T+' + (c.depart / 1000).toFixed(1) + 's ') : '';
+        L.push('   ' + String(i + 1).padStart(2) + '. ' + col(dep, 9) + col(c.action, 24)
+               + ms(c.ms) + ' ms'
+               + (c.srv != null
+                    ? '   (avant doGet ' + (c.glob != null ? ms(c.glob, 5) : '    ?')
+                      + ' · doGet ' + ms(c.srv, 5)
+                      + ' · reseau ' + ms(Math.max(0, c.ms - c.srv - (c.glob || 0)), 5) + ')'
+                    : '')
+               + (c.essais > 1 ? '  ' + c.essais + ' ESSAIS' : '')
+               + (String(c.issue).indexOf('ECHEC') === 0 ? '   ' + c.issue : ''));
+      });
+      L.push('   ' + col('', 9) + col('TOTAL ' + J.length + ' appels', 24) + ms(tot) + ' ms'
+             + '   (avant doGet ' + ms(glo, 5) + ' · doGet ' + ms(srv, 5)
+             + ' · reseau ' + ms(Math.max(0, tot - srv - glo), 5) + ')'
+             + (ech ? '   ' + ech + ' EN ECHEC' : ''));
+      L.push('   « avant doGet » = notre code global (TEST_YEAR, ouverture du classeur).');
+      L.push('   « reseau » contient encore la COMPILATION des 545 Ko de .gs : la separer');
+      L.push('   demande le menu Executions d\'Apps Script (duree totale a comparer).');
+    }
+
+    // 3bis. Detail serveur (fourni par getAdminBootstrap)
+    var avecDetail = (J || []).filter(function (c) { return c.detail && typeof c.detail === 'object'; });
+    avecDetail.forEach(function (c) {
+      var etapes = Object.keys(c.detail);
+      if (!etapes.length) return;
+      L.push('');
+      L.push('── 3bis. Detail de ' + c.action + ' (' + (c.srv != null ? c.srv + ' ms' : '?') + ') '
+             + '─'.repeat(Math.max(0, 26 - c.action.length)));
+      etapes.sort(function (a, b) { return c.detail[b] - c.detail[a]; }).forEach(function (e) {
+        L.push('   ' + col(e, 38) + ms(c.detail[e]) + ' ms');
+      });
+      if (c.ser != null) L.push('   ' + col('serialisation de la reponse', 38) + ms(c.ser) + ' ms');
+      if (c.taille) L.push('   ' + col('taille de la reponse', 38)
+                           + ms(Math.round(c.taille / 1024)) + ' Ko');
+    });
+
+    // 4. Jalons
+    if (P.jalons.length) {
+      L.push('');
+      L.push('── 4. Etapes ' + '─'.repeat(46));
+      P.jalons.forEach(function (j) { L.push('   ' + col(j.nom, 34) + ms(j.t) + ' ms'); });
+    }
+
+    // 5. Rendus
+    if (P.rendus.length) {
+      var par = {};
+      P.rendus.forEach(function (r) {
+        if (!par[r.nom]) par[r.nom] = { n: 0, tot: 0, pire: 0, bloq: 0 };
+        par[r.nom].n++; par[r.nom].tot += r.ms; par[r.nom].bloq += r.bloquant;
+        if (r.ms > par[r.nom].pire) par[r.nom].pire = r.ms;
+      });
+      L.push('');
+      L.push('── 5. Affichage (temps passe dans notre code) ' + '─'.repeat(13));
+      L.push('   ' + col('fonction', 26) + col('appels', 8) + col('cumul', 10)
+             + col('moyenne', 10) + col('pire', 10) + 'dont ecran fige');
+      Object.keys(par).sort(function (a, b) { return par[b].tot - par[a].tot; }).forEach(function (n) {
+        var d = par[n];
+        L.push('   ' + col(n, 26) + col(d.n, 8) + col(d.tot + ' ms', 10)
+               + col(Math.round(d.tot / d.n) + ' ms', 10) + col(d.pire + ' ms', 10) + d.bloq + ' ms');
+      });
+    }
+
+    // 6. Ecran fige
+    if (P.longues.length) {
+      var cum = 0, pire = 0;
+      P.longues.forEach(function (t) { cum += t.ms; if (t.ms > pire) pire = t.ms; });
+      L.push('');
+      L.push('── 6. Ecran fige ' + '─'.repeat(42));
+      L.push('   ' + P.longues.length + ' tache(s) de plus de 50 ms · cumul ' + cum + ' ms · pire ' + pire + ' ms');
+      L.push('   (pendant ce temps la page ne repond a aucun clic)');
+    }
+
+    // 7. Budget
+    if (nav) {
+      var apiTot = 0; (P.appels || []).forEach(function (c) { apiTot += c.ms; });
+      // (01/08/2026) On somme le temps BLOQUANT et non le cumul : `initDashboard`
+      // affichait 16 s de cumul pour 0 ms de blocage — elle attend le serveur.
+      // Additionner les cumuls annoncait « affichage 16,7 s » au lieu de 0,3 s.
+      var renduTot = 0; P.rendus.forEach(function (r) { renduTot += r.bloquant; });
+      L.push('');
+      L.push('── BUDGET ' + '─'.repeat(49));
+      L.push('   statique (page + ressources) ' + col(sec(nav.domContentLoadedEventEnd), 10)
+             + '   appels serveur ' + col(sec(apiTot), 10)
+             + '   affichage ' + sec(renduTot) + ' (ecran fige)');
+    }
+    L.push('');
+    return L.join('\n');
+  };
+
+  // ── chronoClics() : le detail des interactions ───────────────────────────
+  P.rapportClics = function () {
+    if (!P.clics.length) {
+      return 'Aucune interaction de plus de 16 ms enregistree.\n'
+           + '(Chrome/Edge uniquement. Sur Safari et Firefox cette mesure n\'existe pas.)';
+    }
+    var L = ['', '══ CLICS — ' + P.page + ' — ' + new Date().toLocaleTimeString('fr-FR') + ' ══', '',
+             '   ' + col('#', 4) + col('cible', 30) + col('attente', 10) + col('traitement', 13)
+             + col('ecran', 9) + 'total'];
+    var tot = [], pire = null;
+    P.clics.forEach(function (c, i) {
+      tot.push(c.total);
+      if (!pire || c.total > pire.total) pire = c;
+      L.push('   ' + col(i + 1, 4) + col(c.cible, 30) + col(c.attente + ' ms', 10)
+             + col(c.traitement + ' ms', 13) + col(c.ecran + ' ms', 9) + c.total + ' ms');
+    });
+    tot.sort(function (a, b) { return a - b; });
+    var med = (tot.length % 2) ? tot[(tot.length - 1) / 2]
+            : Math.round((tot[tot.length / 2 - 1] + tot[tot.length / 2]) / 2);
+    L.push('   ' + '─'.repeat(66));
+    L.push('   ' + P.clics.length + ' interaction(s) · mediane ' + med
+           + ' ms · pire ' + pire.total + ' ms sur ' + pire.cible);
+    L.push('   Repere : au-dela de 200 ms le clic est ressenti comme lent, au-dela de 500 ms comme bloque.');
+    L.push('');
+    return L.join('\n');
+  };
+
+  window.chrono = function () { var t = P.rapport(); console.log(t); return t; };
+  window.chronoClics = function () { var t = P.rapportClics(); console.log(t); return t; };
+})();
+
+/* ── BRANCHEMENT DE L'INSTRUMENT ─────────────────────────────────────────
+   Place a la fin du script : toutes les fonctions sont declarees. */
+try {
+  PERF.surveiller([
+    'loadIndispos',
+    'loadVacConfig',
+    'saveIndispos',
+    'renderMonth',
+    'updateStats',
+    'applyTool',
+    'prevMonth',
+    'nextMonth'
+  ]);
+} catch (e) { console.warn('[chrono] branchement impossible :', e && e.message); }
+
+/* Aucune reprise de session ici : l'ecran de code est toujours affiche au
+   chargement, le reveil part donc sans condition.
+   ⚠️ PLACE EN FIN DE SCRIPT, jamais plus haut : le 29/07/2026, un demarrage
+   pose avant les declarations qu'il utilisait (`_fileAPI`) levait une erreur
+   de zone morte avalee en silence, et coutait 3 appels inutiles a chaque
+   ouverture d'admin. On ne demarre rien avant la fin du script. */
+// _reveilAPI() retire le 01/08 ; fonction supprimee le 18/08 (jamais rappelee).
+
+// Warn before leaving with unsaved changes
+window.addEventListener('beforeunload', e => {
+  if (hasChanges) e.preventDefault();
+  if (MODE_TP && TPX && (Object.keys(TPX.pend).length || TPX.retire.size)) e.preventDefault();
+});
+
+/* ══ (LOT 3 · 22/08/2026) MODULE DE POSE DES TEMPS PARTIELS ══════════════════
+   Écran de la maquette validée. Trois règles gravées :
+   · L'ÉCRAN PROPOSE, LE SERVEUR TRANCHE : les bandes affichées viennent de la
+     copie rapide, qui peut retarder de quelques minutes. Chaque jour nouveau
+     est re-jugé à l'enregistrement (Indispos.gs _poserTp_) — le récapitulatif
+     rapporte le verdict, y compris un refus sur un jour qui semblait vert.
+   · Seuils identiques au serveur : il resterait ≥ 15 → vert · 13-14 → jaune
+     (sous réserve du comité) · ≤ 12 → noir, fermé.
+   · Aucune notification : les jours sous réserve se voient AVEC le comité —
+     le récapitulatif en donne la liste, rien d'autre ne part. */
+let TPX = null;
+
+async function tpxBoot(code, silencieux) {
+  /* La clé pose_tp existe pour l'année active ET la suivante ; hors phase elle
+     dit { ferme:true }. On demande les deux et on garde la plus récente
+     ouverte — même logique qu'à la connexion campagne. */
+  const Y = new Date().getFullYear();
+  /* (23/08/2026) L'attente réelle est ICI : la seule lecture réseau qui sépare
+     l'ouverture de l'affichage (~150 ms mesurés). Quand le code est déjà en
+     mémoire sur l'appareil — le cas de tous les jours — l'écran de connexion
+     n'a rien à faire là : on met à sa place la forme de l'écran à venir. Si
+     l'identification échoue, il revient. */
+  if (silencieux) {
+    document.getElementById('loginScreen').style.display = 'none';
+    tpxSquelette(true);
+  }
+  let identite = null, cle = null;
+  const m = await miroirRead(['pose_tp_' + Y, 'pose_tp_' + (Y + 1)], code);
+  let cles = [];                                 // (LOT 5) toutes les années ouvertes, croissant
+  if (m && m.success && m.identite) {
+    identite = m.identite;
+    [Y, Y + 1].forEach(function (yK) {
+      const k = m.data && m.data['pose_tp_' + yK];
+      if (k && k.success && !k.ferme) cles.push(k);
+    });
+    cle = cles.length ? cles[cles.length - 1] : null;
+  }
+  if (!identite) {
+    // Miroir muet : le GAS reste seul juge d'un code.
+    const res = await apiCall('login', { code });
+    if (!res || !res.success) {
+      tpxSquelette(false);
+      document.getElementById('loginScreen').style.display = '';   // le code n'est pas bon : on rend la main
+      return false;
+    }
+    identite = res;
+  }
+  currentUser = identite; currentCode = code; SessionPortail.memoriser(code);
+  document.getElementById('loginScreen').style.display = 'none';
+  const ht = document.querySelector('.header-title');
+  if (ht) ht.textContent = 'Mes jours de temps partiel';
+  _poserPastilleUser(identite.name || identite.id);
+  if (!cle) {
+    const r = await apiCall('getPoseTp');
+    if (r && r.success && !r.ferme) {
+      cle = r; cles = [r];
+      /* Le repli connaît les autres années ouvertes : on va chercher l'autre. */
+      (r.annees || []).forEach(async function (yA) {
+        if (yA !== Number(r.year)) {
+          const r2 = await apiCall('getPoseTp', { year: yA });
+          if (r2 && r2.success && !r2.ferme) { TPX_CLES[yA] = r2; tpxMajAnnees(identite); }
+        }
+      });
+    }
+  }
+  if (!cle) { tpxSquelette(false); document.getElementById('tpxFerme').style.display = 'block'; return true; }
+  /* (CORRECTIF 23/08/2026) Un écran blanc est inacceptable : si le montage
+     échoue, la raison s'affiche. Le 23/08 au matin, une erreur silencieuse a
+     laissé la page vide sans que rien ne l'indique. */
+  try {
+    tpxSquelette(false);
+    cles.forEach(function (k) { TPX_CLES[Number(k.year)] = k; });
+    TPX_ID = identite;
+    tpxInit(cle, identite);
+    tpxMajAnnees(identite);
+  } catch (eMontage) {
+    const f = document.getElementById('tpxFerme');
+    f.innerHTML = 'L\'écran n\'a pas pu s\'afficher.<br><br>'
+      + '<span style="font-family:monospace;font-size:12px;color:#B91C1C">'
+      + String((eMontage && eMontage.message) || eMontage) + '</span><br><br>'
+      + 'Signalez ce message ; vos jours déjà posés ne sont pas perdus.<br><br>'
+      + '<a href="dashboard.html" style="color:#1D4ED8;font-weight:600;text-decoration:none">← Retour au portail</a>';
+    f.style.display = 'block';
+    document.getElementById('tpApp').style.display = 'none';
+  }
+  return true;
+}
+
+/* (23/08/2026) Le squelette d'attente : la forme de l'écran, en gris, pendant
+   la seule lecture réseau. Rien de faux n'y est écrit — aucun chiffre, aucune
+   date : uniquement des blocs, pour que l'oeil sache que ça arrive. */
+function tpxSquelette(afficher) {
+  let s = document.getElementById('tpxSquelette');
+  if (!afficher) { if (s) s.remove(); return; }
+  if (s) return;
+  s = document.createElement('div');
+  s.id = 'tpxSquelette';
+  s.setAttribute('aria-hidden', 'true');
+  let cases = '';
+  for (let i = 0; i < 35; i++) cases += '<div class="tpx-sq-jour"></div>';
+  s.innerHTML =
+    '<div class="tpx-sq-bloc" style="height:58px"></div>'
+    + '<div class="tpx-sq-bloc" style="height:30px;margin-top:8px"></div>'
+    + '<div class="tpx-sq-grille">' + cases + '</div>';
+  const cible = document.getElementById('tpApp');
+  cible.parentNode.insertBefore(s, cible);
+}
+
+/* (LOT 5) Les clés de chaque année ouverte, et le sélecteur qui va avec. */
+let TPX_CLES = {}, TPX_ID = null;
+function tpxMajAnnees(identite) {
+  const ans = Object.keys(TPX_CLES).map(Number).sort();
+  const barre = document.getElementById('tpxAnnees');
+  if (ans.length < 2) { barre.style.display = 'none'; return; }
+  barre.style.display = 'flex';
+  ans.forEach(function (y, i) {
+    const b = document.getElementById('tpxAn' + i);
+    if (!b) return;
+    b.textContent = y;
+    b.classList.toggle('active', TPX && TPX.annee === y);
+  });
+}
+function tpxChangerAnnee(i) {
+  const ans = Object.keys(TPX_CLES).map(Number).sort();
+  const y = ans[i];
+  if (!y || (TPX && TPX.annee === y)) return;
+  if (TPX && (Object.keys(TPX.pend).length || TPX.retire.size)) {
+    showToast('Enregistrez ou retirez vos changements avant de changer d\'année');
+    return;
+  }
+  tpxInit(TPX_CLES[y], TPX_ID);
+  tpxMajAnnees(TPX_ID);
+}
+
+function tpxInit(cle, identite) {
+  const mien = (cle.parMar && cle.parMar[identite.id]) || { jours: {}, quota: 0, tpFixe: false };
+  /* Hors dispositif (plein temps, jours fixes, rythme 2/2) : la tuile du
+     portail ne s'affiche pas, mais l'adresse reste tapable — même message
+     que le refus serveur, aucune grille. */
+  if (mien.tpFixe || !(mien.quota > 0)) {
+    const f = document.getElementById('tpxFerme');
+    f.innerHTML = 'La pose de jours de temps partiel ne concerne pas votre profil.<br><br>'
+      + '<a href="dashboard.html" style="color:#1D4ED8;font-weight:600;text-decoration:none">← Retour au portail</a>';
+    f.style.display = 'block';
+    return;
+  }
+  TPX = {
+    annee: Number(cle.year),
+    presents: Object.assign({}, cle.presents || {}),
+    /* (CORRECTIF 23/08/2026) Une liste, et rien d'autre : un vieux serveur
+       peut encore envoyer un ensemble, qui arrive ici en objet vide. */
+    feries: new Set(Array.isArray(cle.joursFeries) ? cle.joursFeries : []),
+    fermes: new Set(Array.isArray(cle.fermes) ? cle.fermes : []),
+    jours: Object.assign({}, mien.jours || {}),   // MES codes serveur : blocages + TP/TPA
+    quota: Number(mien.quota) || 0,
+    pend: {},                                     // date -> 'TP' | 'TPA' (posés localement)
+    retire: new Set(),                            // TP/TPA serveur retirés localement
+    outil: 'TP',
+    /* (LOT 5) L'année EN COURS s'ouvre sur le mois d'aujourd'hui — les mois
+       passés restent consultables (jours figés), mais on n'y atterrit pas. */
+    mois: (Number(cle.year) === new Date().getFullYear()) ? new Date().getMonth() : 0,
+  };
+  document.getElementById('tpxPhaseSub').textContent =
+    'Le planning des gardes ' + TPX.annee + ' est publié. Choisissez vos jours dans ce qui reste — '
+    + 'vous pouvez les poser au fil de l\'année, il n\'y a pas de date limite.';
+  document.getElementById('tpApp').style.display = 'block';
+  tpxRendre();
+}
+
+/* Badge d'un code bloquant : le MAR voit POURQUOI le jour est gris. */
+function tpxBadge(code) {
+  const c = String(code || '').toUpperCase();
+  if (c === 'G' || c === 'G2') return { b: 'GARDE', k: 'b-tpx-garde' };
+  if (c === 'RG') return { b: 'REPOS', k: 'b-tpx-garde' };
+  if (c === 'R') return { b: 'RÉCUP', k: 'b-tpx-recup' };
+  if (c === '18') return { b: '18H', k: 'b-tpx-garde' };
+  if (c === 'VAC' || c === 'CP') return { b: 'CONGÉS', k: 'b-tpx-vac' };
+  if (c === 'FORM') return { b: 'FORMATION', k: 'b-tpx-vac' };
+  return { b: c, k: 'b-tpx-vac' };
+}
+
+/* L'état d'un jour — MÊMES seuils que le serveur (_poserTp_) : il resterait
+   ≥ 15 → libre · 13-14 → plein (sous réserve) · ≤ 12 → fermé. */
+function tpxAujourdhui() {
+  const d = new Date();
+  return d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0') + '-' + String(d.getDate()).padStart(2, '0');
+}
+function tpxEtat(ds) {
+  const dow = new Date(ds + 'T12:00:00').getDay();
+  if (dow === 0 || dow === 6) return { s: 'weekend' };
+  /* (LOT 5) Un jour révolu est FIGÉ : ses codes s'affichent (c'est l'histoire
+     de l'année), mais plus rien ne s'y pose ni ne s'en retire. */
+  if (ds < tpxAujourdhui()) {
+    const bp = String(TPX.jours[ds] || '').toUpperCase();
+    if (bp === 'TP') return { s: 'pose', passe: true };
+    if (bp === 'TPA') return { s: 'reserve', passe: true };
+    if (bp) return { s: 'bloque', badge: tpxBadge(bp), passe: true };
+    return { s: 'bloque', badge: { b: 'PASSÉ', k: 'b-tpx-vac' }, passe: true };
+  }
+  if (TPX.feries.has(ds)) return { s: 'bloque', badge: { b: 'FÉRIÉ', k: 'b-tpx-vac' } };
+  const base = String(TPX.jours[ds] || '').toUpperCase();
+  if (base === 'TP' && !TPX.retire.has(ds)) return { s: 'pose' };
+  if (base === 'TPA' && !TPX.retire.has(ds)) return { s: 'reserve' };
+  if (base && base !== 'TP' && base !== 'TPA') return { s: 'bloque', badge: tpxBadge(base) };
+  if (TPX.fermes.has(ds)) return { s: 'ferme', p: TPX.presents[ds] };   // (LOT 4) refus comité : même noir que l'effectif
+  if (TPX.pend[ds] === 'TP') return { s: 'pose', pend: true };
+  if (TPX.pend[ds] === 'TPA') return { s: 'reserve', pend: true };
+  const p = TPX.presents[ds];
+  if (p === undefined) return { s: 'bloque', badge: { b: '—', k: 'b-tpx-vac' } };
+  const reste = p - 1;                            // ce qu'il resterait si je posais
+  if (reste <= 12) return { s: 'ferme', p: p };
+  if (reste < 15) return { s: 'plein', p: p };
+  return { s: 'libre', p: p };
+}
+
+function tpxCompte() {
+  let poses = 0, reserves = 0;
+  const auj = tpxAujourdhui();
+  Object.keys(TPX.jours).forEach(function (ds) {
+    if (TPX.retire.has(ds)) return;
+    const v = String(TPX.jours[ds]).toUpperCase();
+    if (v === 'TP') poses++;
+    else if (v === 'TPA' && ds >= auj) reserves++;   // (LOT 5) une réserve expirée n'attend plus rien
+  });
+  Object.keys(TPX.pend).forEach(function (ds) {
+    if (TPX.pend[ds] === 'TP') poses++; else reserves++;
+  });
+  return { poses: poses, reserves: reserves,
+           attente: Object.keys(TPX.pend).length + TPX.retire.size };
+}
+
+/* (06/09/2026) Les jours de temps partiel DÉJÀ ÉCOULÉS. L'écran sert toute
+   l'année : distinguer ce qui est derrière soi de ce qui reste à poser est la
+   première question qu'on se pose en l'ouvrant. Ils comptent dans le quota. */
+function tpxComptePasses() {
+  const auj = tpxAujourdhui();
+  let n = 0;
+  Object.keys(TPX.jours).forEach(function (ds) {
+    if (ds >= auj || TPX.retire.has(ds)) return;
+    if (String(TPX.jours[ds]).toUpperCase() === 'TP') n++;
+  });
+  return n;
+}
+
+function tpxRendre() {
+  const an = TPX.annee, mo = TPX.mois;
+  document.getElementById('tpxMoisTitre').textContent = MONTHS_FR[mo] + ' ' + an;
+  const g = document.getElementById('tpxGrid');
+  g.innerHTML = '';
+  ['Lun', 'Mar', 'Mer', 'Jeu', 'Ven', 'Sam', 'Dim'].forEach(function (d) {
+    const h = document.createElement('div'); h.className = 'cal-header'; h.textContent = d; g.appendChild(h);
+  });
+  const premier = new Date(an, mo, 1);
+  const vides = (premier.getDay() + 6) % 7;       // grille qui démarre au lundi
+  for (let i = 0; i < vides; i++) { const v = document.createElement('div'); v.className = 'tpx-day empty'; g.appendChild(v); }
+  const nb = new Date(an, mo + 1, 0).getDate();
+  for (let d = 1; d <= nb; d++) {
+    const ds = an + '-' + String(mo + 1).padStart(2, '0') + '-' + String(d).padStart(2, '0');
+    const e = tpxEtat(ds);
+    const el = document.createElement('div');
+    /* (06/09/2026) La couleur remplit la case : le badge de mot disparaît, sauf
+       pour les jours BLOQUÉS où le motif (CONGÉS, RÉCUP, GARDE…) est la seule
+       information utile. `passe` s'ajoute à l'état, il ne le remplace pas : un
+       jour de temps partiel écoulé reste violet et reste compté.
+       `hors-portee` annonce le refus AVANT le geste, comme sur la campagne. */
+    let cls = 'tpx-day ' + (e.s === 'weekend' ? 'weekend' : e.s);
+    if (e.passe) cls += ' passe';
+    if (ds === tpxAujourdhui()) cls += ' auj';
+    if (TPX.outil === 'TP' && !e.passe && (e.s === 'weekend' || e.s === 'ferme' || e.s === 'bloque')) cls += ' hors-portee';
+    el.className = cls;
+    let h = '<span class="tpx-num">' + d + '</span>';
+    if (e.s === 'bloque' && e.badge) h += '<span class="tpx-badge ' + e.badge.k + '">' + e.badge.b + '</span>';
+    if (e.p !== undefined) h += '<span class="tpx-eff">' + e.p + '</span>';
+    el.innerHTML = h;
+    el.onclick = (function (dsx) { return function () { tpxClic(dsx); }; })(ds);
+    g.appendChild(el);
+  }
+  const c = tpxCompte();
+  document.getElementById('tpxPose').textContent = c.poses;
+  document.getElementById('tpxQuota').textContent = TPX.quota;
+  /* (23/08/2026) « posés » laissait croire que les jours en attente étaient
+     acquis. Trois nombres, trois mots : ACCORDÉS (inscrits au planning),
+     EN ATTENTE (le comité n'a pas tranché), RESTANTS (sur le quota). */
+  /* (06/09/2026) La jauge ne montrait que les jours accordés, et les demandes
+     vivaient dans un compteur à côté. Elle se lit désormais en trois temps :
+     ce qui est DÉJÀ PRIS (jours écoulés, atténué), ce qui est POSÉ À VENIR
+     (plein), ce qui ATTEND le comité (transparent). L'écran sert toute l'année :
+     « il vous reste X jours à poser » est l'information centrale, pas un bilan. */
+  const restants = Math.max(0, TPX.quota - c.poses - c.reserves);
+  const pris = tpxComptePasses();
+  const aVenir = Math.max(0, c.poses - pris);
+  const pc = n => TPX.quota ? Math.min(100, 100 * n / TPX.quota) : 0;
+  document.getElementById('tpxJaugePasse').style.width = pc(pris) + '%';
+  document.getElementById('tpxJauge').style.width = pc(aVenir) + '%';
+  document.getElementById('tpxJaugeRes').style.width = pc(c.reserves) + '%';
+  document.getElementById('tpxReste').innerHTML =
+    '<span style="opacity:.75">' + pris + ' déjà pris</span>'
+    + (c.reserves ? ' · <span style="color:var(--tpx-fg)">' + c.reserves + ' en attente</span>' : '')
+    + ' · ' + (restants
+        ? 'il vous reste <b>' + restants + ' jour' + (restants > 1 ? 's' : '') + '</b> à poser'
+        : 'quota complet');
+  document.getElementById('tpxRes').textContent = '';
+  document.getElementById('tpxSaveTxt').innerHTML = c.attente
+    ? '<b>' + c.attente + ' changement' + (c.attente > 1 ? 's' : '') + '</b> à enregistrer'
+      + (c.reserves ? ' — dont sous réserve, à voir avec le comité' : '')
+    : 'Rien en attente';
+}
+
+function tpxOutil(t) {
+  TPX.outil = t;
+  document.getElementById('tpxBtnTP').classList.toggle('on', t === 'TP');
+  document.getElementById('tpxBtnErase').classList.toggle('on', t === 'ERASE');
+  document.getElementById('tpxHint').innerHTML = t === 'TP'
+    ? 'Outil actif : <strong>Poser un jour</strong> — touchez un jour vert, ou jaune pour faire une demande.'
+    : 'Outil actif : <strong>Retirer</strong> — touchez un jour que vous avez posé.';
+  /* (06/09/2026) Les jours hors de portée de l'outil s'estompent : le refus se
+     voit AVANT le geste, comme sur la campagne. */
+  if (document.getElementById('tpxGrid')) tpxRendre();
+}
+
+function tpxMois(sens) {
+  const m = TPX.mois + sens;
+  if (m < 0 || m > 11) return;                    // la pose vit dans SON année
+  TPX.mois = m; tpxRendre();
+}
+
+/* (06/09/2026) Un refus s'affichait en toast, disparu au bout de deux secondes,
+   souvent avant la fin du geste. Il s'écrit dans la zone d'aide, sous le
+   calendrier, et y reste jusqu'au geste suivant. */
+function tpxRefus(msg) {
+  const h = document.getElementById('tpxHint');
+  if (h) h.innerHTML = '<span style="color:#B91C1C">' + msg + '</span>';
+}
+function tpxClic(ds) {
+  const e = tpxEtat(ds);
+  if (e.passe) {
+    const m = 'Ce jour est passé — il est figé' + (e.s === 'pose' ? ' et compté dans votre quota.' : '.');
+    showToast(m); tpxRefus(m); return;
+  }
+  if (e.s === 'weekend') { showToast('Un jour de temps partiel se pose sur un jour travaillé'); tpxRefus('Un jour de temps partiel se pose sur un jour travaillé'); return; }
+  if (e.s === 'ferme') { showToast('Équipe trop réduite ce jour-là — ce jour n\'est pas ouvert'); tpxRefus('Équipe trop réduite ce jour-là — ce jour n\'est pas ouvert'); return; }
+  if (e.s === 'bloque') {
+    const b = e.badge.b;
+    showToast(b === 'CONGÉS' || b === 'FORMATION' ? 'Vous êtes absent ce jour-là'
+      : b === 'RÉCUP' ? 'C\'est votre récupération de samedi'
+      : b === '18H' ? 'Vous assurez la garde de 18h ce jour-là — un temps partiel est un congé'
+      : b === 'GARDE' || b === 'REPOS' ? 'Garde ou repos de garde — ce jour n\'est pas disponible'
+      : 'Ce jour est déjà pris (' + b + ')');
+    return;
+  }
+  if (e.s === 'pose') {
+    if (TPX.outil !== 'ERASE') { showToast('Ce jour est déjà posé — passez sur « Retirer » pour l\'enlever'); return; }
+    if (TPX.pend[ds]) delete TPX.pend[ds]; else TPX.retire.add(ds);
+    tpxRendre(); showToast('Jour retiré'); return;
+  }
+  if (e.s === 'reserve') {
+    if (TPX.outil !== 'ERASE') { showToast('Déjà posé sous réserve — le comité doit le valider'); return; }
+    if (TPX.pend[ds]) delete TPX.pend[ds]; else TPX.retire.add(ds);
+    tpxRendre(); showToast('Jour retiré'); return;
+  }
+  if (TPX.outil === 'ERASE') { showToast('Rien à retirer ici'); return; }
+  const c = tpxCompte();
+  if (e.s === 'libre' && c.poses >= TPX.quota) { showToast('Quota atteint : ' + TPX.quota + ' jours'); return; }
+  if (e.s === 'plein') {
+    /* (23/08/2026) Le plafond vaut aussi pour les demandes : accordés +
+       en attente ne dépassent jamais le quota. Le serveur le refuserait de
+       toute façon — autant le dire tout de suite. */
+    if (c.poses + c.reserves >= TPX.quota) {
+      showToast('Quota atteint : ' + TPX.quota + ' jours, demandes en attente comprises');
+      return;
+    }
+    TPX.pend[ds] = 'TPA'; tpxRendre();
+    showToast('Demandé — le comité tranchera');
+    return;
+  }
+  TPX.pend[ds] = 'TP'; tpxRendre(); showToast('Jour de temps partiel posé');
+}
+
+async function tpxEnregistrer() {
+  const c = tpxCompte();
+  if (!c.attente) { showToast('Rien à enregistrer'); return; }
+  const btn = document.getElementById('tpxBtnSave');
+  btn.textContent = '⏳ Enregistrement...'; btn.disabled = true;
+  try {
+    /* La photo COMPLÈTE de ma famille TP/TPA : les jours gardés tels quels,
+       les nouveaux en TP (le serveur seul décide TP ou TPA), les retirés
+       absents — même sémantique de retrait que la campagne. */
+    const map = {};
+    Object.keys(TPX.jours).forEach(function (ds) {
+      const v = String(TPX.jours[ds]).toUpperCase();
+      if ((v === 'TP' || v === 'TPA') && !TPX.retire.has(ds)) map[ds] = v;
+    });
+    Object.keys(TPX.pend).forEach(function (ds) { map[ds] = 'TP'; });
+    const res = await apiCall('saveIndispos', { tp: true, year: TPX.annee, indispos: map });
+    /* Les verdicts sont appliqués localement plus bas : l'écran reste juste
+       sans relire quoi que ce soit. C'est voulu — la copie rapide met ~1 min 45
+       à se rafraîchir (trace du 23/08), la relire ici afficherait l'état
+       d'avant. */
+    if (!res || res.success === false) {
+      showToast('❌ ' + ((res && res.error) || 'Erreur lors de l\'enregistrement'));
+      return;
+    }
+    /* Appliquer les VERDICTS du serveur — jamais l'optimisme de l'écran. */
+    const r = res.resultat || {};
+    const avant = {};                              // mes TP/TPA d'avant, pour l'effectif
+    Object.keys(TPX.jours).forEach(function (ds) {
+      const v = String(TPX.jours[ds]).toUpperCase();
+      if (v === 'TP' || v === 'TPA') { avant[ds] = v; delete TPX.jours[ds]; }
+    });
+    const nvValides = [], nvReserves = [], refus = [];
+    Object.keys(r).forEach(function (ds) {
+      if (r[ds] === 'TP' || r[ds] === 'TPA') {
+        TPX.jours[ds] = r[ds];
+        if (!avant[ds] && r[ds] === 'TP') nvValides.push(ds);
+        if (avant[ds] !== 'TPA' && r[ds] === 'TPA') nvReserves.push(ds);
+      } else if (r[ds] !== 'retiré') {
+        /* (23/08/2026) Retirer soi-même un jour n'est PAS un refus. Le
+           récapitulatif rangeait tout verdict autre que TP/TPA dans les
+           refusés — un MAR qui corrigeait sa propre erreur lisait « refusé ».
+           Constaté en production le 23/08. */
+        refus.push({ ds: ds, motif: r[ds] });
+      }
+    });
+    /* L'effectif local suit : un TP VALIDÉ me retire du compte de ce jour,
+       un TP rendu m'y remet. Les TPA ne bougent rien — comme au serveur. */
+    nvValides.forEach(function (ds) { if (TPX.presents[ds] !== undefined) TPX.presents[ds]--; });
+    TPX.retire.forEach(function (ds) {
+      if (avant[ds] === 'TP' && TPX.presents[ds] !== undefined) TPX.presents[ds]++;
+    });
+    if (res.quota && res.quota.total) TPX.quota = res.quota.total;
+    TPX.pend = {}; TPX.retire = new Set();
+    tpxRendre();
+    tpxRecap(res, nvReserves, refus);
+  } catch (eSave) {
+    showToast('❌ Erreur réseau — vérifiez la connexion et réessayez');
+  } finally {
+    btn.textContent = 'Enregistrer'; btn.disabled = false;
+  }
+}
+
+function tpxRecap(res, nvReserves, refus) {
+  const c = tpxCompte();
+  const nomJour = function (ds) {
+    const dt = new Date(ds + 'T12:00:00');
+    return ['dimanche', 'lundi', 'mardi', 'mercredi', 'jeudi', 'vendredi', 'samedi'][dt.getDay()]
+      + ' ' + dt.getDate() + ' ' + MONTHS_FR[dt.getMonth()].toLowerCase();
+  };
+  let h = '<div class="tpx-recap-bloc tpx-recap-ok"><div class="tpx-recap-titre">'
+    + c.poses + ' jour' + (c.poses > 1 ? 's' : '') + ' accordé' + (c.poses > 1 ? 's' : '')
+    + ' sur ' + TPX.quota + '</div>'
+    + '<div class="tpx-recap-txt">Ils sont inscrits au planning, rien à faire.</div></div>';
+  const tousReserves = Object.keys(TPX.jours).filter(function (ds) { return TPX.jours[ds] === 'TPA'; }).sort();
+  if (tousReserves.length) {
+    h += '<div class="tpx-recap-bloc tpx-recap-res"><div class="tpx-recap-titre">'
+      + tousReserves.length + ' jour' + (tousReserves.length > 1 ? 's' : '') + ' EN PLUS, en attente du comité</div>'
+      + '<div class="tpx-recap-txt">L\'équipe serait en dessous de 15 ces jours-là. Ils ne sont <b>pas</b> '
+      + 'inscrits au planning et ne comptent pas encore dans vos ' + TPX.quota + ' jours — parlez-en au comité.</div>'
+      + '<div class="tpx-recap-jours">' + tousReserves.map(nomJour).join('<br>') + '</div></div>';
+  }
+  const retires = Object.keys(res.resultat || {}).filter(function (ds) { return (res.resultat || {})[ds] === 'retiré'; }).sort();
+  if (retires.length) {
+    h += '<div class="tpx-recap-bloc" style="background:#F8FAFC;border:1px solid var(--line)">'
+      + '<div class="tpx-recap-titre" style="color:var(--ink-2)">'
+      + retires.length + ' jour' + (retires.length > 1 ? 's' : '') + ' retiré' + (retires.length > 1 ? 's' : '') + '</div>'
+      + '<div class="tpx-recap-txt">À votre demande. Ils reviennent dans votre quota.</div>'
+      + '<div class="tpx-recap-jours" style="color:var(--ink-3)">' + retires.map(nomJour).join('<br>') + '</div></div>';
+  }
+  if (refus.length) {
+    h += '<div class="tpx-recap-bloc tpx-recap-ko"><div class="tpx-recap-titre">'
+      + refus.length + ' jour' + (refus.length > 1 ? 's' : '') + ' refusé' + (refus.length > 1 ? 's' : '') + '</div>'
+      + '<div class="tpx-recap-txt">L\'état réel du planning a été revérifié au moment d\'enregistrer.</div>'
+      + '<div class="tpx-recap-jours">'
+      + refus.map(function (x) {
+          return nomJour(x.ds) + '<span class="tpx-recap-motif">' + x.motif + '</span>';
+        }).join('') + '</div></div>';
+  }
+  document.getElementById('tpxRecapTitre').textContent =
+    refus.length ? 'Enregistré — des jours ont été refusés'
+    : tousReserves.length ? 'Enregistré — ' + tousReserves.length + ' jour'
+        + (tousReserves.length > 1 ? 's attendent' : ' attend') + ' le comité'
+    : 'C\'est enregistré';
+  document.getElementById('tpxRecapCorps').innerHTML = h;
+  document.getElementById('tpxSheetBg').classList.add('show');
+  document.getElementById('tpxSheet').classList.add('show');
+}
+
+function tpxFermerRecap() {
+  document.getElementById('tpxSheetBg').classList.remove('show');
+  document.getElementById('tpxSheet').classList.remove('show');
+}
+</script>
+</body>
+</html>
+
+

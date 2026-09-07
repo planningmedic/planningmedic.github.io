@@ -1,0 +1,984 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Consultations à venir — Planning-Med</title>
+<link rel="icon" type="image/svg+xml" href="assets/favicon.svg">
+<link href="https://fonts.googleapis.com/css2?family=DM+Mono:wght@400;500&family=Inter:wght@400;600;700;800&display=swap" rel="stylesheet">
+<style>
+:root{
+  --red:#CE1126; --ink:#0F172A; --ink-2:#334155; --ink-3:#64748B; --ink-4:#94A3B8;
+  --line:#E2E8F0; --line-light:#F1F5F9; --bg:#F8FAFC; --white:#fff; --surface-2:#EEF1F5;
+  --mono:'DM Mono',monospace;
+  --ok:#166534; --ok-soft:#F0FDF4; --ok-line:#BBF7D0;
+  --rose:#BE123C; --rose-soft:#FFF1F3; --rose-line:#FBD5DC;
+  --me:#1D6FB8; --me-soft:#E8F4FD; --me-border:#B9DCF5;
+}
+*{box-sizing:border-box;margin:0;padding:0}
+body{background:var(--bg);font-family:'Inter',system-ui,sans-serif;color:var(--ink);
+     -webkit-font-smoothing:antialiased}
+svg{width:100%;height:100%;fill:none;stroke:currentColor;stroke-width:2;
+    stroke-linecap:round;stroke-linejoin:round}
+
+.header{background:var(--white);border-bottom:1px solid var(--line);padding:0 26px;
+        display:flex;align-items:center;justify-content:space-between;min-height:58px;
+        position:sticky;top:0;z-index:300}
+.header-brand{display:flex;align-items:center;gap:13px;min-width:0}
+.header-brand>div:last-child{min-width:0}
+.header-flag{display:flex;flex-direction:column;width:26px;height:26px;border-radius:6px;
+             overflow:hidden;flex-shrink:0;box-shadow:0 1px 3px rgba(0,0,0,.15)}
+.header-title{font-size:14.5px;font-weight:700;letter-spacing:-.02em;
+             white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.header-sub{font-size:11px;color:var(--ink-4);margin-top:1px;
+           white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.header-right{display:flex;align-items:center;gap:9px;flex-shrink:0}
+.hbtn{display:inline-flex;align-items:center;gap:6px;font:inherit;font-size:12px;font-weight:700;
+      color:var(--ink);background:var(--bg);border:1px solid var(--line);border-radius:999px;
+      padding:5px 12px;text-decoration:none;cursor:pointer}
+.me-pill{display:inline-flex;align-items:center;gap:6px;background:var(--me-soft);color:var(--me);
+         border:1px solid var(--me-border);border-radius:999px;padding:5px 12px;font-size:12.5px;
+         font-weight:700;white-space:nowrap}
+
+.wrap{max-width:1180px;margin:0 auto;padding:28px 26px 60px}
+h1{font-size:23px;font-weight:700;letter-spacing:-.02em;margin-bottom:4px}
+.sub{font-size:13.5px;color:var(--ink-3);margin-bottom:22px;max-width:70ch}
+.back{display:inline-flex;align-items:center;gap:7px;font:inherit;font-size:13px;font-weight:600;
+      color:var(--me);background:none;border:none;cursor:pointer;padding:0;margin-bottom:14px;
+      text-decoration:none}
+.back i{width:15px;height:15px;display:inline-block}
+
+.cols{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1.3fr);gap:16px;align-items:start}
+.card{background:var(--white);border:1px solid var(--line);border-radius:16px;overflow:hidden}
+.card>h2{font-size:11px;font-family:var(--mono);font-weight:500;text-transform:uppercase;
+         letter-spacing:.06em;color:var(--ink-4);padding:14px 18px 11px;border-bottom:1px solid var(--line)}
+.card>h2 b{color:var(--ink-2);font-weight:600}
+.scroller{max-height:62vh;overflow-y:auto}
+.dayhead{position:sticky;top:0;background:var(--line-light);padding:6px 18px;font-size:11px;
+         font-weight:600;color:var(--ink-3);border-bottom:1px solid var(--line);z-index:1;
+         font-family:var(--mono)}
+.slot{display:flex;align-items:center;gap:10px;width:100%;text-align:left;padding:9px 18px;
+      border:none;background:none;font:inherit;cursor:pointer;border-bottom:1px solid var(--line-light)}
+.slot:hover{background:var(--bg)}
+.slot[aria-current="true"]{background:var(--me-soft);box-shadow:inset 3px 0 0 var(--me)}
+.dot{width:7px;height:7px;border-radius:50%;background:var(--rose);flex:none}
+.dot.none{background:var(--line)}
+.sect{font-family:var(--mono);font-size:10.5px;font-weight:500;color:var(--ink-2);
+      background:var(--surface-2);border-radius:5px;padding:2px 7px;white-space:nowrap}
+.who{font-size:13.5px;font-weight:600;flex:1}
+.when{font-size:11px;color:var(--ink-4);white-space:nowrap}
+.empty{padding:30px 20px;color:var(--ink-3);font-size:13.5px;text-align:center;line-height:1.6}
+.empty b{color:var(--ink)}
+
+.who-head{padding:16px 18px 14px;border-bottom:1px solid var(--line)}
+.who-head .k{font-family:var(--mono);font-size:10.5px;letter-spacing:.08em;text-transform:uppercase;
+             color:var(--ink-4)}
+.who-head h3{font-size:20px;font-weight:700;letter-spacing:-.01em;margin-top:3px}
+.who-head .ctx{font-size:12.5px;color:var(--ink-3);margin-top:3px}
+.answer{padding:16px 18px 4px}
+.lbl{font-size:12px;color:var(--ink-3);margin-bottom:10px}
+.lbl b{color:var(--ink)}
+.dates{display:flex;flex-wrap:wrap;gap:7px}
+.d{font-family:var(--mono);background:var(--rose-soft);border:1px solid var(--rose-line);
+   color:var(--rose);border-radius:10px;padding:8px 12px;font-size:14px;font-weight:600;
+   line-height:1.2;cursor:pointer;text-align:left}
+.d:hover{background:#FCE7EB}
+.d[aria-pressed="true"]{background:var(--rose);color:#fff;border-color:var(--rose)}
+.d small{display:block;font-family:'Inter',sans-serif;font-size:9.5px;font-weight:600;
+         letter-spacing:.05em;text-transform:uppercase;opacity:.85;margin-top:3px}
+.hintclick{font-size:11.5px;color:var(--ink-4);margin-top:10px}
+.clear{background:var(--ok-soft);border:1px solid var(--ok-line);color:var(--ok);border-radius:12px;
+       padding:14px 16px;font-size:13px;line-height:1.45}
+.alt{margin:14px 18px 0;border:1px solid var(--ok-line);background:var(--ok-soft);border-radius:12px;
+     padding:14px 16px}
+.alt h4{font-size:13.5px;font-weight:700;color:var(--ok);margin-bottom:3px}
+.alt .why{font-size:11.5px;color:#3F7A64;margin-bottom:10px}
+.altgrp{margin-bottom:9px}
+.altgrp .t{font-family:var(--mono);font-size:10px;letter-spacing:.07em;text-transform:uppercase;
+           color:#4A8770;margin-bottom:5px}
+.person{display:flex;align-items:baseline;gap:8px;background:var(--white);border:1px solid var(--ok-line);
+        border-radius:8px;padding:7px 11px;margin-bottom:4px;font-size:12.5px;flex-wrap:wrap}
+.person .cs{font-family:var(--mono);font-size:11px;color:var(--ink-4)}
+.none-alt{font-size:12.5px;color:var(--rose);background:var(--rose-soft);border:1px solid var(--rose-line);
+          border-radius:8px;padding:10px 12px}
+.cal{padding:14px 18px 18px}
+.cal .lbl2{font-size:10.5px;color:var(--ink-4);margin:0 0 8px;font-family:var(--mono);
+           letter-spacing:.05em;text-transform:uppercase}
+table.grid{width:100%;border-collapse:separate;border-spacing:4px}
+table.grid th{font-family:var(--mono);font-size:10px;font-weight:500;color:var(--ink-4);
+              letter-spacing:.06em;text-transform:uppercase;padding-bottom:2px}
+table.grid td{width:20%;height:44px;border-radius:9px;background:var(--bg);border:1px solid var(--line);
+              text-align:center;vertical-align:middle;padding:3px}
+table.grid td .n{font-family:var(--mono);font-size:13px;font-weight:500}
+table.grid td .c{font-family:var(--mono);font-size:9px;color:var(--rose);margin-top:1px}
+table.grid td.hors{opacity:.4}
+table.grid td.absent{background:var(--rose-soft);border-color:var(--rose-line)}
+table.grid td.absent .n{color:var(--rose);font-weight:700}
+table.grid td.consult{box-shadow:inset 0 -3px 0 var(--me)}
+table.grid td.pick{outline:2px solid var(--rose);outline-offset:1px}
+.legend{display:flex;gap:14px;flex-wrap:wrap;font-size:11px;color:var(--ink-4);padding:0 18px 14px}
+.legend span{display:flex;align-items:center;gap:5px}
+.legend i{width:11px;height:11px;border-radius:3px;display:inline-block}
+.foot{padding:13px 18px 16px;border-top:1px solid var(--line);font-size:11.5px;color:var(--ink-3);
+      line-height:1.55}
+.foot b{color:var(--ink)}
+
+.loading{padding:50px 20px;text-align:center;color:var(--ink-3);font-size:13.5px}
+@media(max-width:900px){.cols{grid-template-columns:1fr}.wrap{padding:22px 15px 40px}
+  .header{padding:0 15px}.scroller{max-height:40vh}}
+/* ── Bandeau du haut : ne peut plus deborder, quelle que soit la largeur ──
+   (14/08/2026) Sur iPhone, le titre et le sous-titre s'enroulaient sur
+   plusieurs lignes ; la hauteur du bandeau etant figee, le debordement
+   partait AU-DESSUS du bord de l'ecran et le titre etait coupe.
+   Meme regle que index.html / dashboard.html. */
+@media(max-width:640px){
+  .header{min-height:52px;padding:0 12px;gap:8px}
+  .header-sub{display:none}
+  .header-right{gap:6px}
+  .me-pill{padding:4px 9px;font-size:11.5px}
+  .hbtn{padding:4px 10px;font-size:11.5px}
+}
+</style>
+<script src="partage/session.js"></script>   <!-- (17/08/2026) source unique : où vit le code d'accès, et 30 jours glissants -->
+<script>/* FALLBACK_SESSION — filet (17/08/2026). Si partage/session.js ne se charge pas
+(réseau, cache), les pages l'appelleraient dans le vide et NE S'OUVRIRAIENT PLUS : le MAR ne
+pourrait même plus taper son code. On retombe alors sur le comportement d'avant — le code vit
+le temps de l'onglet — au lieu de planter. Jamais de mémoire longue ici : mieux vaut retaper
+son code que le voir retenu par un filet dont personne ne vérifie l'échéance. */
+window.SessionPortail = window.SessionPortail || { lire:function(){try{return sessionStorage.getItem('pmViewCode')||'';}catch(e){return '';}}, memoriser:function(c){try{sessionStorage.setItem('pmViewCode',c);}catch(e){}}, oublier:function(){try{sessionStorage.removeItem('pmViewCode');}catch(e){}}, estInstallee:function(){return false;}, joursRestants:function(){return null;}, DUREE_JOURS:0 };</script>
+</head>
+<body>
+
+<!-- ── CONNEXION — skin identique a dashboard.html / index.html ────────── -->
+<div id="authOverlay" style="position:fixed;inset:0;z-index:9999;background:var(--bg);display:flex;align-items:center;justify-content:center;padding:20px">
+  <div style="background:var(--white);border:1px solid var(--line);border-radius:16px;box-shadow:0 10px 30px rgba(15,23,42,.08);padding:36px 32px;width:100%;max-width:380px;text-align:center">
+    <img src="assets/logo.png" alt="" style="width:48px;height:48px;border-radius:12px;display:block;margin:0 auto 16px;box-shadow:0 4px 12px rgba(206,17,38,.30)">
+    <div style="font-size:18px;font-weight:800;color:var(--ink)">Planning-Med</div>
+    <div style="font-size:13px;color:var(--ink-3);margin:4px 0 22px">Service d'Anesthésie-Réanimation</div>
+    <input id="authInput" type="password" placeholder="Code d'acc&egrave;s" autocomplete="off" autocapitalize="characters"
+      style="width:100%;box-sizing:border-box;padding:12px 14px;font-size:16px;border:1px solid var(--line);border-radius:10px;text-align:center;letter-spacing:2px;font-family:monospace"/>
+    <button id="authBtn"
+      style="width:100%;margin-top:12px;padding:12px;background:var(--red);color:#fff;border:none;border-radius:10px;font-size:15px;font-weight:700;cursor:pointer">Acc&eacute;der &rarr;</button>
+    <div id="authErr" style="display:none;margin-top:12px;font-size:13px;color:var(--red);font-weight:600"></div>
+  </div>
+</div>
+
+<div class="header" id="hdr" style="display:none">
+  <div class="header-brand">
+    <div class="header-flag"><img src="assets/logo.png" alt="" style="width:100%;height:100%;object-fit:cover;display:block"></div>
+    <div>
+      <div class="header-title">Planning-Med</div>
+      <div class="header-sub">Service d'Anesthésie-Réanimation</div>
+    </div>
+  </div>
+  <div class="header-right">
+    <span class="me-pill" id="mePill"></span>
+    <button class="hbtn" id="btnOut">Déconnexion</button>
+  </div>
+</div>
+
+<div class="wrap" id="main" style="display:none">
+  <a class="back" href="dashboard.html" id="lnkBack"><i id="icBack"></i> Retour au portail</a>
+  <h1>Consultations à venir</h1>
+  <p class="sub" id="pitch"></p>
+  <div id="zone"><div class="loading">Chargement…</div></div>
+</div>
+
+<script>
+const API_URL = 'https://script.google.com/macros/s/AKfycbxDbTnhgdjCNBqkeAblZWgS3CK-IptjJoRDQd1AtGF7WQoQkXriWGvISIo7LJG8zUtjTQ/exec';
+let VIEW_CODE = '', ROLE = '', MOI = null, MOTIFS = true, DATA = null;
+
+const IC = {
+  'arrow-left':'<path d="M19 12H5M12 19l-7-7 7-7"/>'
+};
+function svg(n){ return '<svg viewBox="0 0 24 24">'+(IC[n]||'')+'</svg>'; }
+document.getElementById('icBack').innerHTML = svg('arrow-left');
+
+/* ── (01/08/2026) FILET : CORPS DE REQUETE PERDU ─────────────────────────
+   « Code absent de la requête » est un message que le serveur ne produit que
+   dans un seul cas : il a recu la requete mais pas son corps, donc il n'a
+   RIEN FAIT — ni lu, ni ecrit, ni envoye de mail. Renvoyer est donc sans
+   danger, y compris pour une action d'ecriture : c'est la seule erreur du
+   systeme dont on sache avec certitude qu'elle n'a laisse aucune trace.
+   On ne rejoue QUE sur ce message, jamais sur un code refuse.
+   Le second envoi apparait comme une ligne distincte dans chrono() : le
+   probleme reste visible au lieu d'etre masque par le correctif. */
+const ERR_CORPS_PERDU = 'Code absent de la requête';
+async function apiPost(payload){
+  let r;
+  try {
+    r = await _apiPostDirect(payload);
+  } catch (e) {
+    /* (04/08/2026) Rejeu sur echec de transport — meme protection que les
+       autres pages : page d'erreur HTML servie au hasard par Google → un
+       unique renvoi silencieux. 2e echec → l'erreur remonte. */
+    console.warn('[api] echec de transport (' + (payload.action || '?') + ') — rejeu unique');
+    r = await _apiPostDirect(payload);
+  }
+  if (r && r.success === false && r.error === ERR_CORPS_PERDU) {
+    console.warn('[api] corps de requete perdu (' + (payload.action || '?') + ') — renvoi immediat');
+    return await _apiPostDirect(payload);
+  }
+  return r;
+}
+
+/* _reveilAPI supprimé le 18/08/2026 : l'appel avait été retiré dès le 01/08 (le filet de rejeu suffit) ; la fonction restait sans appelant sur les 5 pages. Historique : ROADMAP. */
+
+async function _apiPostDirect(payload){
+  payload.code = VIEW_CODE;
+  // (01/08/2026) Journal de mesure — lecture seule, alimente chrono().
+  const _act = payload.action || '(sans action)';
+  const _dep = Math.round(performance.now()), _t0 = Date.now();
+  const res = await fetch(API_URL, {
+    method:'POST', headers:{'Content-Type':'text/plain;charset=utf-8'},
+    body: JSON.stringify(payload), redirect:'follow'
+  });
+  const _rep = await res.json();
+  try { if (window.PERF) PERF.appel(_act, Date.now() - _t0, _rep && _rep._srv_ms, _dep,
+                                    res.ok ? 'ok' : 'ECHEC — HTTP ' + res.status,
+                                      _rep && _rep._glob_ms); } catch (_e) {}
+  return _rep;
+}
+
+/* ══ AUTH ══════════════════════════════════════════════════════════════ */
+function authErr(m){
+  const el = document.getElementById('authErr');
+  el.textContent = m; el.style.display='block';
+  setTimeout(()=>{ el.style.display='none'; }, 4000);
+}
+async function doLogin(code){
+  VIEW_CODE = code;
+  /* (04/08/2026, fusion) UN aller-retour au lieu de deux : getConsultAbsences
+     authentifie (checkCode en routage, secretariat autorise) ET livre les
+     donnees + role + nom (Indispos.gs 2026-08-04.5). (23/08/2026 : le login
+     d'arriere-plan a ete retire, voir plus bas.) Tant que le GAS .5 n'est
+     pas deploye, r.role est absent → deduction par la regle SERVEUR :
+     motifs === false ⇔ secretariat (avecMotifs = role !== 'secretariat'). */
+  const r = await apiPost({action:'getConsultAbsences'});
+  if(!(r && r.success)){ VIEW_CODE=''; return r; }
+  SessionPortail.memoriser(code);          // session commune du portail (30 j dans l'app installée)
+  ROLE = r.role || (r.motifs ? 'mar' : 'secretariat');
+  MOI  = (ROLE === 'mar') ? (r.moi || null) : null;
+  document.getElementById('mePill').textContent =
+    (ROLE === 'secretariat') ? 'Secrétariat'
+    : (r.name || (r.noms && r.moi && r.noms[r.moi]) || r.moi || '');
+  // Le secrétariat n'a pas de portail : on lui masque le lien de retour.
+  document.getElementById('lnkBack').style.display = (ROLE === 'secretariat') ? 'none' : '';
+  document.getElementById('pitch').textContent = (ROLE === 'mar')
+    ? "Vérifiez qu'aucun patient libéral vu en consultation ne sera opéré un jour où vous êtes absent."
+    : "Avant de placer un patient libéral, vérifiez que le médecin qui le verra en consultation sera présent le jour de son intervention.";
+  document.getElementById('authOverlay').style.display='none';
+  document.getElementById('hdr').style.display='flex';
+  document.getElementById('main').style.display='';
+  chargerDepuis(r);   // la reponse deja recue EST le chargement — zero appel de plus
+  /* (23/08/2026) JOURNAL DE CONNEXION RETIRE. Decision d'Arthur : la
+     tracabilite ne se fait qu'a DEUX endroits — l'ouverture du portail
+     (dashboard.html) et la connexion du comite (admin.html). Partout ailleurs
+     c'est la meme session, deja journalisee : l'envoi ne faisait que reveiller
+     Apps Script sans rien apprendre a l'onglet CONNEXIONS. */
+  return r;
+}
+document.getElementById('authBtn').addEventListener('click', async function(){
+  const code = document.getElementById('authInput').value.trim().toUpperCase();
+  if(!code){ authErr("Entrez votre code d'accès."); return; }   // (T05)
+  const b = this; b.disabled = true; b.textContent = 'Vérification…';
+  try{
+    const r = await doLogin(code);
+    if(!(r && r.success)) authErr(r && r.error ? r.error : 'Code incorrect');
+  }catch(e){ VIEW_CODE=''; authErr('Erreur réseau — réessayez'); }
+  b.disabled = false; b.textContent = 'Accéder →';
+});
+document.getElementById('authInput').addEventListener('keydown', e=>{
+  if(e.key==='Enter') document.getElementById('authBtn').click();
+});
+document.getElementById('btnOut').addEventListener('click', ()=>{
+  SessionPortail.oublier();                // efface l'onglet ET la mémoire longue
+  location.reload();
+});
+/* (17/08/2026) La session se lit par SessionPortail. Cette page interrogeait
+   l'onglet en direct : dans l'app installée, elle redemandait le code alors que
+   le portail, lui, s'en souvenait 30 jours. */
+/* REPRISE DE SESSION — AFFICHAGE OPTIMISTE (17/08/2026, même principe que crh.html).
+   Le code est déjà connu : on masque l'écran d'authentification TOUT DE SUITE et on
+   valide derrière. Attendre la réponse avant d'afficher montrait un écran de code
+   pendant quelques secondes, qui disparaissait ensuite tout seul — constaté en réel
+   sur mobile. Rien n'est dévoilé au passage : la page est vide tant que le serveur
+   n'a pas répondu. Si le code est refusé, l'écran revient et le dit. */
+(async function auto(){
+  const saved = SessionPortail.lire();
+  if(!saved) return;
+  document.getElementById('authOverlay').style.display='none';
+  document.getElementById('hdr').style.display='flex';
+  document.getElementById('main').style.display='';
+  document.getElementById('pitch').textContent = 'Chargement…';
+  try{
+    const r = await doLogin(saved);
+    if(r && r.success) return;
+    SessionPortail.oublier();
+    document.getElementById('authOverlay').style.display='flex';
+    document.getElementById('hdr').style.display='none';
+    document.getElementById('main').style.display='none';
+    authErr((r && r.error) || 'Session expirée — retapez votre code.');
+  }catch(e){
+    SessionPortail.oublier();
+    document.getElementById('authOverlay').style.display='flex';
+    document.getElementById('hdr').style.display='none';
+    document.getElementById('main').style.display='none';
+    authErr('Portail injoignable — réessayez.');
+  }
+})();
+
+/* ══ DONNÉES ═══════════════════════════════════════════════════════════ */
+const JOURS_FR=['dimanche','lundi','mardi','mercredi','jeudi','vendredi','samedi'];
+const MOIS_FR=['janv.','févr.','mars','avril','mai','juin','juil.','août','sept.','oct.','nov.','déc.'];
+const LIB_CS={'CS-VIS':'Viscéral','CS-END':'Endoscopie','CS-ORL':'ORL','CS-ORT':'Orthopédie',
+  'CS-MAT':'Maternité','CS-INTER':'Cardio interv.','CS-POLY':'Polyvalent','CS-CI':'Cardio interv.'};
+const NOM_CODE={V:'Vacances',CP:'Congé',F:'Formation',RG:'Repos de garde',CL:'Absence longue',
+  TP:'Jour non travaillé',R:'Récupération',A:'Absent',CTP:'Congé temps partiel',
+  OFF:'Semaine off',HS:'Hors service'};
+const FEN = 20;   // 4 semaines ouvrées — doit rester aligné sur JOURS_ABS côté serveur
+
+let JOURS_ALL = [], IDX = {};
+function iso(d){ return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0'); }
+function dt(ds){ return new Date(ds+'T12:00:00'); }
+function libDate(ds){ const d=dt(ds); return JOURS_FR[d.getDay()]+' '+d.getDate()+' '+MOIS_FR[d.getMonth()]; }
+function nomDe(id){ return (DATA && DATA.noms && DATA.noms[id]) ? DATA.noms[id] : id; }
+function libSect(cs){ return LIB_CS[cs] || String(cs||'').replace('CS-',''); }
+
+// Reconstruit la même suite de jours ouvrés que le serveur (week-ends exclus).
+function construireJours(){
+  JOURS_ALL = []; IDX = {};
+  const c = new Date(); c.setHours(12,0,0,0);
+  while(JOURS_ALL.length < FEN*2){
+    const w = c.getDay();
+    if(w>=1 && w<=5) JOURS_ALL.push(iso(c));
+    c.setDate(c.getDate()+1);
+  }
+  JOURS_ALL.forEach((ds,i)=>{ IDX[ds]=i; });
+}
+
+/* ── MARGE LIBÉRALE (axe CCAM) ─────────────────────────────────────────────
+   Sert à classer les confrères qui peuvent reprendre un patient. Une consultation
+   libérale déclenche un bloc : c'est le CCAM qui portera la charge.
+   Le calcul est fait par le SERVEUR et arrive dans getConsultAbsences (28/07/2026) :
+   getReleveLiberal reste interdite au code secrétariat, et la réponse ne contient
+   qu'une marge par MAR — ni tarif, ni pourcentage, ni excédent.
+   ⚠️ Le montant vient du DERNIER RELEVÉ (mensuel, cumulé) : ce qui a été facturé
+   depuis n'y est pas. L'ordre est fiable, le montant est indicatif. */
+let MARGE = {}, MARGE_OK = false, MARGE_MOIS = '';
+const _MOIS_FR = ['janvier','février','mars','avril','mai','juin','juillet','août',
+                  'septembre','octobre','novembre','décembre'];
+function lireMarges(r){
+  MARGE = (r && r.marges) || {};
+  MARGE_OK = Object.keys(MARGE).length > 0;
+  MARGE_MOIS = '';
+  const mm = parseInt(String((r && r.margesMois) || '').slice(5,7), 10);
+  if(mm >= 1 && mm <= 12) MARGE_MOIS = 'cumul janvier → ' + _MOIS_FR[mm-1];
+}
+
+/* (04/08/2026, fusion) Consommation d'une reponse getConsultAbsences deja
+   recue : partagee entre doLogin (fusion) et charger (rechargements). */
+function chargerDepuis(r){
+  if(!(r && r.success)){
+    document.getElementById('zone').innerHTML =
+      '<div class="card"><div class="empty">Impossible de charger : '+
+      ((r&&r.error)||'erreur inconnue')+'</div></div>';
+    return;
+  }
+  DATA = r; MOTIFS = !!r.motifs;
+  lireMarges(r);
+  if(r.moi) MOI = r.moi;
+  construireJours();
+  rendre();
+}
+async function charger(){
+  try{
+    const r = await apiPost({action:'getConsultAbsences'});
+    chargerDepuis(r);
+  }catch(e){
+    document.getElementById('zone').innerHTML =
+      '<div class="card"><div class="empty">Erreur réseau — rechargez la page.</div></div>';
+  }
+}
+
+/* ══ CALCULS ═══════════════════════════════════════════════════════════ */
+// Absences d'un MAR dans les 4 semaines qui SUIVENT la consultation.
+function absFenetre(mar, dateConsult){
+  const i0 = IDX[dateConsult]; if(i0 === undefined) return [];
+  const liste = (DATA.absences && DATA.absences[mar]) || [];
+  const out = [];
+  liste.forEach(a=>{
+    const i = IDX[a.d];
+    if(i !== undefined && i >= i0 && i < i0+FEN) out.push({date:a.d, idx:i, code:a.c || ''});
+  });
+  out.sort((x,y)=> x.idx - y.idx);
+  return out;
+}
+// Regroupe les jours ouvrés consécutifs. En session secrétariat le motif n'est
+// pas transmis : on fusionne sans le regarder (décision du 24/07).
+function grouper(liste){
+  const g = [];
+  liste.forEach(a=>{
+    const L = g[g.length-1];
+    if(L && a.idx === L.finIdx+1 && (!MOTIFS || a.code === L.code)){
+      L.finIdx = a.idx; L.fin = a.date;
+    } else {
+      g.push({debIdx:a.idx, finIdx:a.idx, deb:a.date, fin:a.date, code:a.code});
+    }
+  });
+  return g;
+}
+function libPlage(p){
+  const a = dt(p.deb), b = dt(p.fin);
+  if(p.deb === p.fin) return a.getDate()+' '+MOIS_FR[a.getMonth()];
+  if(a.getMonth() === b.getMonth()) return a.getDate()+' – '+b.getDate()+' '+MOIS_FR[a.getMonth()];
+  return a.getDate()+' '+MOIS_FR[a.getMonth()]+' – '+b.getDate()+' '+MOIS_FR[b.getMonth()];
+}
+function nbJours(p){ return p.finIdx - p.debIdx + 1; }
+
+/* ══ RENDU ═════════════════════════════════════════════════════════════ */
+let curBtn=null, curSlot=null, pick=null;
+
+function rendre(){
+  const mien = (ROLE === 'mar');
+  const vis = (DATA.consultations||[]).filter(c => !mien || c.mar === MOI);
+  document.getElementById('zone').innerHTML =
+    '<div class="cols">'+
+      '<div class="card"><h2>'+(mien?'Mes consultations':'Consultations posées')+
+        ' · <b>4 prochaines semaines</b></h2><div class="scroller" id="file"></div></div>'+
+      '<div class="card" id="panel">'+
+        '<div class="who-head"><div class="k">Médecin de la consultation</div>'+
+        '<h3 id="pName">—</h3><div class="ctx" id="pCtx"></div></div>'+
+        '<div class="answer" id="pAnswer"></div><div id="pAlt"></div>'+
+        '<div class="cal"><div class="lbl2" id="calLbl">Vue d\'ensemble</div>'+
+        '<table class="grid"><thead><tr><th>Lun</th><th>Mar</th><th>Mer</th><th>Jeu</th><th>Ven</th></tr></thead>'+
+        '<tbody id="pGrid"></tbody></table></div>'+
+        '<div class="legend">'+
+          '<span><i style="background:var(--rose-soft);border:1px solid var(--rose-line)"></i>Absent</span>'+
+          '<span><i style="background:var(--bg);border:1px solid var(--line);box-shadow:inset 0 -3px 0 var(--me)"></i>Ses consultations</span>'+
+          '<span><i style="background:var(--bg);border:1px solid var(--line);opacity:.4"></i>Avant la consultation</span>'+
+        '</div><div class="foot" id="pFoot"></div>'+
+      '</div>'+
+    '</div>';
+
+  const file = document.getElementById('file');
+  if(!vis.length){
+    file.innerHTML = '<div class="empty">'+(mien
+      ? '<b>Aucune consultation à votre nom</b> sur les 4 prochaines semaines.'
+      : '<b>Aucune consultation posée</b> sur les 4 prochaines semaines.<br>Le comité ne les a pas encore nommées.')+'</div>';
+    document.getElementById('panel').style.display='none';
+    return;
+  }
+  const parJour = {};
+  vis.forEach(c=>{ (parJour[c.date] = parJour[c.date] || []).push(c); });
+  Object.keys(parJour).sort().forEach(ds=>{
+    const g = document.createElement('div');
+    g.innerHTML = '<div class="dayhead">'+libDate(ds)+'</div>';
+    parJour[ds].forEach(c=>{
+      const n = absFenetre(c.mar, c.date).length;
+      const b = document.createElement('button');
+      b.className='slot';
+      b.innerHTML = '<span class="dot'+(n?'':' none')+'"></span>'+
+        '<span class="sect">'+libSect(c.cs)+'</span>'+
+        '<span class="who">'+nomDe(c.mar)+'</span>'+
+        '<span class="when">'+(c.per==='am'?'matin':'après-midi')+'</span>';
+      b.addEventListener('click', ()=> selectionner(b, c));
+      g.appendChild(b);
+    });
+    file.appendChild(g);
+  });
+  const p0 = file.querySelector('.slot'); if(p0) p0.click();
+}
+
+function selectionner(btn, c){
+  if(curBtn) curBtn.setAttribute('aria-current','false');
+  curBtn = btn; btn.setAttribute('aria-current','true');
+  curSlot = c; pick = null;
+
+  document.getElementById('pName').textContent = nomDe(c.mar);
+  document.getElementById('pCtx').textContent =
+    libSect(c.cs)+' · '+libDate(c.date)+' '+(c.per==='am'?'matin':'après-midi');
+  const i0 = IDX[c.date];
+  const fin = JOURS_ALL[Math.min(i0+FEN-1, JOURS_ALL.length-1)];
+  document.getElementById('calLbl').textContent =
+    '4 semaines — jusqu\'au '+dt(fin).getDate()+' '+MOIS_FR[dt(fin).getMonth()];
+
+  const plages = grouper(absFenetre(c.mar, c.date));
+  const a = document.getElementById('pAnswer');
+  if(!plages.length){
+    a.innerHTML = '<div class="clear"><b>Aucune absence dans les 4 semaines qui suivent.</b><br>'+
+      'Toutes les dates d\'intervention conviennent'+(ROLE==='mar'?'':' pour ce médecin')+'.</div>';
+  } else {
+    const tot = plages.reduce((t,p)=> t+nbJours(p), 0);
+    a.innerHTML = '<div class="lbl">Dates d\'intervention à éviter — <b>'+tot+'</b> jour'+
+      (tot>1?'s':'')+' sur '+plages.length+' période'+(plages.length>1?'s':'')+' :</div>'+
+      '<div class="dates">'+plages.map((p,k)=>
+        '<button class="d" data-k="'+k+'" aria-pressed="false">'+libPlage(p)+
+        (MOTIFS && p.code ? '<small>'+(NOM_CODE[p.code]||p.code)+'</small>' : '')+
+        '</button>').join('')+'</div>'+
+      '<div class="hintclick">Cliquez une période pour voir qui peut prendre le patient.</div>';
+    a.querySelectorAll('.d').forEach(el=>{
+      el.addEventListener('click', ()=>{
+        const was = el.getAttribute('aria-pressed')==='true';
+        a.querySelectorAll('.d').forEach(x=> x.setAttribute('aria-pressed','false'));
+        pick = was ? null : plages[+el.dataset.k];
+        if(!was) el.setAttribute('aria-pressed','true');
+        rendreAlt(); rendreGrille();
+      });
+    });
+  }
+  rendreAlt(); rendreGrille();
+  document.getElementById('pFoot').innerHTML = (ROLE==='mar')
+    ? 'Ce sont vos absences après cette consultation. Un patient que vous y verriez et qui serait opéré sur l\'une de ces périodes devra être <b>repris par un confrère</b>.'
+    : 'Comparez ces périodes avec les <b>dates d\'intervention</b> de votre liste. Un patient dont le bloc y tombe doit être placé sur la consultation d\'un autre médecin.';
+}
+
+function rendreAlt(){
+  const box = document.getElementById('pAlt');
+  if(!pick || !curSlot){ box.innerHTML=''; return; }
+  const p = pick, secteur = curSlot.cs;
+  const total = p.finIdx - p.debIdx + 1;
+  // Absence d'un MAR un JOUR donné (index dans JOURS_ALL).
+  const absentLe = (id, i)=>{
+    const l = (DATA.absences && DATA.absences[id]) || [];
+    for(const a of l){ if(IDX[a.d] === i) return true; }
+    return false;
+  };
+  // Toutes ses consultations de la fenêtre, de la plus ancienne à la plus récente.
+  const csDe = (id)=> (DATA.consultations||[])
+    .filter(x=> x.mar===id && IDX[x.date] !== undefined)
+    .sort((a,b)=> IDX[a.date] - IDX[b.date]);
+  /* COUVERTURE JOUR PAR JOUR (28/07/2026) — remplace deux critères absolus qui
+     vidaient l'écran sur les longues absences :
+       • « présent sur TOUTE la période » écartait quiconque avait un seul jour
+         d'absence sur 19 jours ouvrés — en août, tout le monde ;
+       • « consultation avant le DÉBUT de la période » ne laissait éligibles que
+         les consultations déjà passées, soit une seule journée.
+     Le patient est opéré UN jour, pas pendant toute la période. Un confrère couvre
+     le jour i s'il est présent ce jour-là ET a une consultation strictement avant —
+     y compris une consultation qui tombe PENDANT la période : il voit le patient
+     ce jour-là et l'opère plus tard. Renvoie les plages de jours consécutifs. */
+  const couverture = (id)=>{
+    const cs = csDe(id); if(!cs.length) return null;
+    const c0 = IDX[cs[0].date];                   // sa première consultation
+    const plages = [];
+    for(let i=p.debIdx; i<=p.finIdx; i++){
+      if(i <= c0 || absentLe(id, i)) continue;
+      const L = plages[plages.length-1];
+      if(L && i === L.fin+1) L.fin = i; else plages.push({deb:i, fin:i});
+    }
+    if(!plages.length) return null;
+    return {plages: plages, nb: plages.reduce((n,x)=> n + (x.fin-x.deb+1), 0), cs: cs};
+  };
+  const COUV = {};
+  const tous = Object.keys(DATA.noms||{});
+  // GROUPEMENT SEULEMENT (28/07/2026). Un MAR hors groupement ne peut pas prendre en
+  // charge un patient libéral : le proposer n'aurait pas de sens. Source = colonne
+  // LIBERAL de MEDECINS transmise par le serveur, jamais le relevé mensuel.
+  // Repli : si le serveur ne transmet rien (ancienne version déployée), on n'exclut
+  // personne — l'écran dégrade vers son comportement précédent au lieu de se vider.
+  const GRP = (DATA && DATA.groupement) || null;
+  const dispo = tous.filter(id=>{
+    if(id === curSlot.mar) return false;
+    if(GRP && !GRP[id]) return false;
+    const cv = couverture(id);
+    if(!cv) return false;
+    COUV[id] = cv; return true;
+  });
+  const plageTxt = (x)=> libPlage({deb:JOURS_ALL[x.deb], fin:JOURS_ALL[x.fin]});
+  const ligne = (id)=>{
+    const cv = COUV[id];
+    // Marge CCAM : affichée au MAR seulement (MARGE reste vide pour le secrétariat).
+    const m = MARGE[id];
+    const mr = (m == null) ? null : Math.round(m);
+    // Pile au seuil (arrondi à 0 €) : ni vert ni rose et SANS signe — « − 0 € » se lit mal.
+    const chip = (mr == null) ? '' :
+      '<span class="marge" style="margin-left:8px;font-family:var(--mono);font-size:11px;font-weight:700;'
+      + 'color:' + (mr > 0 ? 'var(--ok)' : (mr < 0 ? 'var(--rose)' : 'var(--ink-3)')) + '">'
+      + (mr > 0 ? '+ ' : (mr < 0 ? '− ' : '')) + Math.abs(mr).toLocaleString('fr-FR') + ' €</span>';
+    const quand = (cv.nb === total)
+      ? 'couvre toute la période'
+      : 'couvre ' + cv.plages.slice(0,2).map(plageTxt).join(' · ')
+        + (cv.plages.length > 2 ? ' +' + (cv.plages.length-2) : '');
+    return '<div class="person"><b>'+nomDe(id)+'</b>'+chip+
+      '<span class="cs">'+quand+' · consulte '+libDate(cv.cs[0].date)+
+      ' '+(cv.cs[0].per==='am'?'matin':'ap.-midi')+'</span></div>';
+  };
+  // TRI PAR MARGE CCAM DÉCROISSANTE (27/07/2026). Une consultation libérale déclenche
+  // un bloc : c'est l'axe CCAM qui portera la charge, pas le NGAP. Reprendre le patient
+  // d'un confrère doit donc se faire vers celui qui a le plus de place au BLOC.
+  // Un membre dont le relevé du mois n'est pas encore saisi n'a pas de chiffre : il
+  // passe en fin de liste, sans pastille — il reste proposable.
+  // À marge égale (ou sans chiffre), la plus large couverture d'abord.
+  const parMarge = (a,b) =>
+    ((MARGE[b] == null ? -1e12 : MARGE[b]) - (MARGE[a] == null ? -1e12 : MARGE[a]))
+    || (COUV[b].nb - COUV[a].nb);
+  const meme  = dispo.filter(id=> COUV[id].cs.some(x=> x.cs === secteur)).sort(parMarge);
+  const autres= dispo.filter(id=> meme.indexOf(id) < 0).sort(parMarge);
+
+  let h = '<div class="alt"><h4>Patient opéré '+(nbJours(p)>1?'entre le ':'le ')+libPlage(p)+
+    ' — qui peut le voir ?</h4><div class="why">Membres du groupement ayant une consultation '+
+    'avant la date d\'intervention et présents ce jour-là. La plage indiquée est celle '+
+    'que chacun couvre.</div>';
+  if(MARGE_OK) h += '<div class="why" style="margin-top:-4px">Classés par <b>marge libérale restante au bloc</b> '
+    + '(axe CCAM, dernier relevé' + (MARGE_MOIS ? ' — ' + MARGE_MOIS : '') + '). '
+    + 'L\'ordre est fiable, le montant est indicatif : ce qui a été facturé depuis n\'y figure pas.</div>';
+  if(!dispo.length){
+    h += '<div class="none-alt">Aucun membre du groupement ne remplit les conditions. À arbitrer avec le comité.</div>';
+  } else {
+    if(meme.length)   h += '<div class="altgrp"><div class="t">Même secteur — '+libSect(secteur)+
+                           '</div>'+meme.map(ligne).join('')+'</div>';
+    if(autres.length) h += '<div class="altgrp"><div class="t">Autres secteurs — '+autres.length+
+                           ' possible'+(autres.length>1?'s':'')+'</div>'+
+                           autres.map(ligne).join('')+'</div>';
+  }
+  box.innerHTML = h+'</div>';
+}
+
+function rendreGrille(){
+  if(!curSlot) return;
+  const g = document.getElementById('pGrid');
+  const i0 = IDX[curSlot.date];
+  const debut = i0 - (dt(curSlot.date).getDay() - 1);   // lundi de sa semaine
+  const absMap = {};
+  ((DATA.absences && DATA.absences[curSlot.mar]) || []).forEach(a=>{ absMap[a.d] = a.c || '·'; });
+  const mesCS = {};
+  (DATA.consultations||[]).forEach(x=>{ if(x.mar === curSlot.mar) mesCS[x.date] = true; });
+  g.innerHTML = '';
+  for(let w=0; w<4; w++){
+    const tr = document.createElement('tr'); let html='';
+    for(let k=0; k<5; k++){
+      const i = debut + w*5 + k;
+      if(i<0 || i>=JOURS_ALL.length){ html += '<td class="hors"></td>'; continue; }
+      const ds = JOURS_ALL[i], cls = [];
+      let motif = '';
+      if(i < i0) cls.push('hors');
+      else {
+        if(absMap[ds]){
+          cls.push('absent');
+          if(MOTIFS && absMap[ds] !== '·') motif = '<div class="c">'+absMap[ds]+'</div>';
+        }
+        if(pick && i >= pick.debIdx && i <= pick.finIdx) cls.push('pick');
+      }
+      if(mesCS[ds]) cls.push('consult');
+      html += '<td class="'+cls.join(' ')+'"><div class="n">'+dt(ds).getDate()+'</div>'+motif+'</td>';
+    }
+    tr.innerHTML = html; g.appendChild(tr);
+  }
+}
+/* ═══════════════════════════════════════════════════════════════════════════
+   CHRONO — INSTRUMENT DE MESURE (01/08/2026)
+   ═══════════════════════════════════════════════════════════════════════════
+   LECTURE SEULE. N'ecrit rien, n'appelle rien, ne modifie aucun affichage.
+   Se contente d'observer et de tenir un journal, consultable dans la console.
+
+   POURQUOI. Jusqu'ici seul admin.html savait mesurer ses APPELS (chronoAPI).
+   Rien ne mesurait : le temps du navigateur (analyse du JS, rendu), les
+   ressources tierces (polices, icones), ni le COUT D'UN CLIC. Or sur admin
+   chaque placement rappelle renderWeek() en entier : c'est la partie du temps
+   que personne n'a jamais chiffree.
+
+   A TAPER DANS LA CONSOLE :
+     chrono()        le budget complet de la page (ouverture + appels + rendus)
+     chronoClics()   le detail des interactions : clic -> ecran mis a jour
+     chronoAPI()     (admin) le detail des appels serveur, inchange
+
+   TROIS MESURES, TROIS SENS DIFFERENTS :
+   - « attente »    : le temps entre le clic et le debut du traitement. Si elle
+                      est grande, le navigateur etait deja occupe ailleurs.
+   - « traitement » : le temps passe DANS notre code. C'est le seul que l'on
+                      peut reduire nous-memes.
+   - « ecran »      : le temps de peinture apres le traitement.
+
+   Cout de l'instrument lui-meme : deux observateurs natifs du navigateur et
+   un push dans un tableau par evenement. Non mesurable a l'echelle de la page.
+   ═════════════════════════════════════════════════════════════════════════ */
+(function () {
+  if (window.PERF) return;
+
+  var P = {
+    page: (location.pathname.split('/').pop() || 'index.html'),
+    jalons: [],      // etapes nommees du chargement
+    rendus: [],      // durees des fonctions d'affichage surveillees
+    clics: [],       // interactions utilisateur
+    longues: [],     // taches > 50 ms : l'ecran est fige pendant ce temps
+    appels: []       // journal des appels serveur (admin : partage avec chronoAPI)
+  };
+  window.PERF = P;
+
+  // ── Jalons ───────────────────────────────────────────────────────────────
+  P.jalon = function (nom) {
+    try { P.jalons.push({ nom: nom, t: Math.round(performance.now()) }); } catch (e) {}
+  };
+
+  // ── Journal d'appel serveur (pages sans chronoAPI) ───────────────────────
+  P.appel = function (action, ms, srv, depart, issue, glob) {
+    try {
+      P.appels.push({ action: action, ms: ms, srv: (typeof srv === 'number' ? srv : null),
+                      glob: (typeof glob === 'number' ? glob : null),
+                      depart: depart, essais: 1, issue: issue || 'ok' });
+    } catch (e) {}
+  };
+
+  // Enregistre une duree. Plafond : une session de plusieurs heures ne doit pas
+  // faire enfler le journal (l'instrument ne doit jamais devenir le probleme).
+  P.note = function (nom, ms, t, bloquant) {
+    if (P.rendus.length >= 5000) P.rendus.shift();
+    P.rendus.push({ nom: nom, ms: ms, t: t, bloquant: (bloquant == null ? ms : bloquant) });
+  };
+
+  // ── Surveillance des fonctions d'affichage ───────────────────────────────
+  // Enveloppe une fonction globale pour en chronometrer chaque execution.
+  // A appeler APRES la declaration des fonctions concernees (fin de script).
+  P.surveiller = function (noms) {
+    (noms || []).forEach(function (n) {
+      var f = window[n];
+      if (typeof f !== 'function' || f._chrono) return;
+      var g = function () {
+        var d = performance.now(), r;
+        try { r = f.apply(this, arguments); }
+        finally { try {
+          var sync = performance.now() - d;
+          // Fonction asynchrone : le temps qui compte est celui de la promesse,
+          // pas celui du retour. On note les deux — « bloquant » est le seul
+          // temps pendant lequel l'ecran est fige.
+          if (r && typeof r.then === 'function') {
+            r.then(_fin, _fin);
+            function _fin() { P.note(n, Math.round(performance.now() - d), Math.round(d), Math.round(sync)); }
+          } else {
+            P.note(n, Math.round(sync), Math.round(d), Math.round(sync));
+          }
+        } catch (e) { /* l'instrument ne doit JAMAIS casser la fonction mesuree */ } }
+        return r;
+      };
+      g._chrono = true;
+      try { window[n] = g; } catch (e) {}
+    });
+  };
+
+  // ── Observateur : taches longues (ecran fige) ────────────────────────────
+  try {
+    new PerformanceObserver(function (l) {
+      l.getEntries().forEach(function (e) {
+        P.longues.push({ t: Math.round(e.startTime), ms: Math.round(e.duration) });
+      });
+    }).observe({ type: 'longtask', buffered: true });
+  } catch (e) {}
+
+  // ── Observateur : interactions (clic -> ecran) ───────────────────────────
+  function _cible(el) {
+    if (!el || !el.tagName) return '?';
+    var s = el.tagName.toLowerCase();
+    if (el.id) return s + '#' + el.id;
+    var c = (el.className && el.className.baseVal !== undefined) ? el.className.baseVal : el.className;
+    if (typeof c === 'string' && c.trim()) return s + '.' + c.trim().split(/\s+/).slice(0, 2).join('.');
+    var t = (el.textContent || '').trim().replace(/\s+/g, ' ').slice(0, 18);
+    return t ? s + ' « ' + t + ' »' : s;
+  }
+  try {
+    new PerformanceObserver(function (l) {
+      l.getEntries().forEach(function (e) {
+        if (e.name !== 'click' && e.name !== 'keydown' && e.name !== 'pointerdown') return;
+        P.clics.push({
+          nom: e.name,
+          cible: _cible(e.target),
+          t: Math.round(e.startTime),
+          attente: Math.round(e.processingStart - e.startTime),
+          traitement: Math.round(e.processingEnd - e.processingStart),
+          ecran: Math.round(e.startTime + e.duration - e.processingEnd),
+          total: Math.round(e.duration)
+        });
+      });
+    }).observe({ type: 'event', durationThreshold: 16, buffered: true });
+  } catch (e) {}
+
+  // ── Mise en forme ────────────────────────────────────────────────────────
+  function col(t, n) { var s = String(t); while (s.length < n) s += ' '; return s.slice(0, n); }
+  function ms(v, n) { return String(Math.round(v)).padStart(n || 6, ' '); }
+  function sec(v) { return (v / 1000).toFixed(1) + ' s'; }
+
+  // ── chrono() : le budget complet ─────────────────────────────────────────
+  P.rapport = function () {
+    var L = ['', '══ CHRONO — ' + P.page + ' — ' + new Date().toLocaleTimeString('fr-FR') + ' ══'];
+    var nav = null;
+    try { nav = performance.getEntriesByType('navigation')[0] || null; } catch (e) {}
+
+    // 1. Arrivee de la page elle-meme
+    if (nav) {
+      L.push('');
+      L.push('── 1. La page (fichier HTML) ' + '─'.repeat(30));
+      L.push('   DNS + connexion   ' + ms(nav.connectEnd - nav.domainLookupStart) + ' ms');
+      L.push('   Reponse serveur   ' + ms(nav.responseStart - nav.requestStart) + ' ms   (premier octet)');
+      L.push('   Telechargement    ' + ms(nav.responseEnd - nav.responseStart) + ' ms   '
+             + (nav.transferSize ? '(' + Math.round(nav.transferSize / 1024) + ' Ko transferes)' : ''));
+      L.push('   Analyse + script  ' + ms(nav.domContentLoadedEventEnd - nav.responseEnd) + ' ms   '
+             + '(lecture du HTML, du CSS et execution du JS)');
+      L.push('   → page prete      ' + ms(nav.domContentLoadedEventEnd) + ' ms');
+    }
+
+    // 2. Ressources tierces
+    var res = [];
+    try {
+      res = performance.getEntriesByType('resource')
+        .filter(function (r) { return r.duration >= 5 && !/googleusercontent|script\.google/.test(r.name); })
+        .sort(function (a, b) { return b.duration - a.duration; }).slice(0, 8);
+    } catch (e) {}
+    if (res.length) {
+      L.push('');
+      L.push('── 2. Ressources chargees ' + '─'.repeat(33));
+      res.forEach(function (r) {
+        var court = r.name.replace(/^https?:\/\//, '').replace(/\?.*$/, '');
+        if (court.length > 46) court = court.slice(0, 20) + '…' + court.slice(-25);
+        L.push('   ' + col(court, 48) + ms(r.duration) + ' ms  '
+               + (r.transferSize ? Math.round(r.transferSize / 1024) + ' Ko' : 'poids n.c.'));
+      });
+    }
+
+    // 3. Appels serveur
+    var J = P.appels;
+    if (J && J.length) {
+      var tot = 0, srv = 0, glo = 0, ech = 0;
+      J.forEach(function (c) {
+        tot += c.ms; srv += (c.srv || 0); glo += (c.glob || 0);
+        if (String(c.issue).indexOf('ECHEC') === 0) ech++;
+      });
+      L.push('');
+      L.push('── 3. Appels serveur ' + '─'.repeat(38));
+      J.forEach(function (c, i) {
+        var dep = (c.depart != null) ? ('T+' + (c.depart / 1000).toFixed(1) + 's ') : '';
+        L.push('   ' + String(i + 1).padStart(2) + '. ' + col(dep, 9) + col(c.action, 24)
+               + ms(c.ms) + ' ms'
+               + (c.srv != null
+                    ? '   (avant doGet ' + (c.glob != null ? ms(c.glob, 5) : '    ?')
+                      + ' · doGet ' + ms(c.srv, 5)
+                      + ' · reseau ' + ms(Math.max(0, c.ms - c.srv - (c.glob || 0)), 5) + ')'
+                    : '')
+               + (c.essais > 1 ? '  ' + c.essais + ' ESSAIS' : '')
+               + (String(c.issue).indexOf('ECHEC') === 0 ? '   ' + c.issue : ''));
+      });
+      L.push('   ' + col('', 9) + col('TOTAL ' + J.length + ' appels', 24) + ms(tot) + ' ms'
+             + '   (avant doGet ' + ms(glo, 5) + ' · doGet ' + ms(srv, 5)
+             + ' · reseau ' + ms(Math.max(0, tot - srv - glo), 5) + ')'
+             + (ech ? '   ' + ech + ' EN ECHEC' : ''));
+      L.push('   « avant doGet » = notre code global (TEST_YEAR, ouverture du classeur).');
+      L.push('   « reseau » contient encore la COMPILATION des 545 Ko de .gs : la separer');
+      L.push('   demande le menu Executions d\'Apps Script (duree totale a comparer).');
+    }
+
+    // 3bis. Detail serveur (fourni par getAdminBootstrap)
+    var avecDetail = (J || []).filter(function (c) { return c.detail && typeof c.detail === 'object'; });
+    avecDetail.forEach(function (c) {
+      var etapes = Object.keys(c.detail);
+      if (!etapes.length) return;
+      L.push('');
+      L.push('── 3bis. Detail de ' + c.action + ' (' + (c.srv != null ? c.srv + ' ms' : '?') + ') '
+             + '─'.repeat(Math.max(0, 26 - c.action.length)));
+      etapes.sort(function (a, b) { return c.detail[b] - c.detail[a]; }).forEach(function (e) {
+        L.push('   ' + col(e, 38) + ms(c.detail[e]) + ' ms');
+      });
+      if (c.ser != null) L.push('   ' + col('serialisation de la reponse', 38) + ms(c.ser) + ' ms');
+      if (c.taille) L.push('   ' + col('taille de la reponse', 38)
+                           + ms(Math.round(c.taille / 1024)) + ' Ko');
+    });
+
+    // 4. Jalons
+    if (P.jalons.length) {
+      L.push('');
+      L.push('── 4. Etapes ' + '─'.repeat(46));
+      P.jalons.forEach(function (j) { L.push('   ' + col(j.nom, 34) + ms(j.t) + ' ms'); });
+    }
+
+    // 5. Rendus
+    if (P.rendus.length) {
+      var par = {};
+      P.rendus.forEach(function (r) {
+        if (!par[r.nom]) par[r.nom] = { n: 0, tot: 0, pire: 0, bloq: 0 };
+        par[r.nom].n++; par[r.nom].tot += r.ms; par[r.nom].bloq += r.bloquant;
+        if (r.ms > par[r.nom].pire) par[r.nom].pire = r.ms;
+      });
+      L.push('');
+      L.push('── 5. Affichage (temps passe dans notre code) ' + '─'.repeat(13));
+      L.push('   ' + col('fonction', 26) + col('appels', 8) + col('cumul', 10)
+             + col('moyenne', 10) + col('pire', 10) + 'dont ecran fige');
+      Object.keys(par).sort(function (a, b) { return par[b].tot - par[a].tot; }).forEach(function (n) {
+        var d = par[n];
+        L.push('   ' + col(n, 26) + col(d.n, 8) + col(d.tot + ' ms', 10)
+               + col(Math.round(d.tot / d.n) + ' ms', 10) + col(d.pire + ' ms', 10) + d.bloq + ' ms');
+      });
+    }
+
+    // 6. Ecran fige
+    if (P.longues.length) {
+      var cum = 0, pire = 0;
+      P.longues.forEach(function (t) { cum += t.ms; if (t.ms > pire) pire = t.ms; });
+      L.push('');
+      L.push('── 6. Ecran fige ' + '─'.repeat(42));
+      L.push('   ' + P.longues.length + ' tache(s) de plus de 50 ms · cumul ' + cum + ' ms · pire ' + pire + ' ms');
+      L.push('   (pendant ce temps la page ne repond a aucun clic)');
+    }
+
+    // 7. Budget
+    if (nav) {
+      var apiTot = 0; (P.appels || []).forEach(function (c) { apiTot += c.ms; });
+      // (01/08/2026) On somme le temps BLOQUANT et non le cumul : `initDashboard`
+      // affichait 16 s de cumul pour 0 ms de blocage — elle attend le serveur.
+      // Additionner les cumuls annoncait « affichage 16,7 s » au lieu de 0,3 s.
+      var renduTot = 0; P.rendus.forEach(function (r) { renduTot += r.bloquant; });
+      L.push('');
+      L.push('── BUDGET ' + '─'.repeat(49));
+      L.push('   statique (page + ressources) ' + col(sec(nav.domContentLoadedEventEnd), 10)
+             + '   appels serveur ' + col(sec(apiTot), 10)
+             + '   affichage ' + sec(renduTot) + ' (ecran fige)');
+    }
+    L.push('');
+    return L.join('\n');
+  };
+
+  // ── chronoClics() : le detail des interactions ───────────────────────────
+  P.rapportClics = function () {
+    if (!P.clics.length) {
+      return 'Aucune interaction de plus de 16 ms enregistree.\n'
+           + '(Chrome/Edge uniquement. Sur Safari et Firefox cette mesure n\'existe pas.)';
+    }
+    var L = ['', '══ CLICS — ' + P.page + ' — ' + new Date().toLocaleTimeString('fr-FR') + ' ══', '',
+             '   ' + col('#', 4) + col('cible', 30) + col('attente', 10) + col('traitement', 13)
+             + col('ecran', 9) + 'total'];
+    var tot = [], pire = null;
+    P.clics.forEach(function (c, i) {
+      tot.push(c.total);
+      if (!pire || c.total > pire.total) pire = c;
+      L.push('   ' + col(i + 1, 4) + col(c.cible, 30) + col(c.attente + ' ms', 10)
+             + col(c.traitement + ' ms', 13) + col(c.ecran + ' ms', 9) + c.total + ' ms');
+    });
+    tot.sort(function (a, b) { return a - b; });
+    var med = (tot.length % 2) ? tot[(tot.length - 1) / 2]
+            : Math.round((tot[tot.length / 2 - 1] + tot[tot.length / 2]) / 2);
+    L.push('   ' + '─'.repeat(66));
+    L.push('   ' + P.clics.length + ' interaction(s) · mediane ' + med
+           + ' ms · pire ' + pire.total + ' ms sur ' + pire.cible);
+    L.push('   Repere : au-dela de 200 ms le clic est ressenti comme lent, au-dela de 500 ms comme bloque.');
+    L.push('');
+    return L.join('\n');
+  };
+
+  window.chrono = function () { var t = P.rapport(); console.log(t); return t; };
+  window.chronoClics = function () { var t = P.rapportClics(); console.log(t); return t; };
+})();
+
+/* ── BRANCHEMENT DE L'INSTRUMENT ─────────────────────────────────────────
+   Place a la fin du script : toutes les fonctions sont declarees. */
+try {
+  PERF.surveiller([
+    'charger',
+    'rendre',
+    'rendreAlt',
+    'rendreGrille',
+    'construireJours',
+    'grouper',
+    'doLogin'
+  ]);
+} catch (e) { console.warn('[chrono] branchement impossible :', e && e.message); }
+
+</script>
+</body>
+</html>
