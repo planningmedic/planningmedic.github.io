@@ -41,7 +41,7 @@
 // ⚠️ RÈGLE (détecteur de dérive dépôt↔Apps Script) : incrémenter cette version
 // à CHAQUE push de ce fichier. Le diagnostic (admin → Maintenance) compare la
 // version déployée ici avec celle du dépôt et signale toute recopie oubliée.
-const GAS_VERSION_GENERATEUR = '2026-09-07.1';
+const GAS_VERSION_GENERATEUR = '2026-09-07.2';
 
 /* (05/09/2026) INTERRUPTEUR DU NOUVEL ALGORITHME.
    À false, le générateur se comporte EXACTEMENT comme avant : c'est le retour
@@ -425,6 +425,34 @@ function generateGardes(year, opts){
   const NO_GARDE   = FLAGS.noGarde;
   const ONLY_18    = FLAGS.only18;
   const NO_WEEKEND = FLAGS.noWeekend;
+
+  /* (07/09/2026) PAIRES À ÉVITER — deux MAR jamais la même nuit : ni tous les deux
+     de garde, ni l'un de garde et l'autre de 18h. Deux jours d'affilée restent
+     permis. Lue depuis CONFIG (cf. code.gs) : si rien n'y est déclaré, `evite` est
+     TOUJOURS faux et pas une seule décision du générateur ne change.
+     EXEMPTION NOËL / JOUR DE L'AN : sur ces quatre dates la règle ne s'applique pas.
+     Le tour de Noël se joue sur l'ancienneté (qui n'en a pas fait depuis le plus
+     longtemps) ; faire céder cette ancienneté déclassait quelqu'un qui attendait
+     son tour et cassait en cascade les unités suivantes. */
+  const PAIRES_EV = getPairesEvitees();
+  const DATES_EXEMPTES = new Set([`${year}-12-24`,`${year}-12-25`,`${year}-12-31`,`${year+1}-01-01`]);
+  // d : une date, un tableau de dates (unité), ou rien. Une unité est exemptée dès
+  // qu'UN de ses jours l'est — on ne coupe pas une unité en deux régimes.
+  const jourExempt = (d) => Array.isArray(d) ? d.some(x=>DATES_EXEMPTES.has(x)) : DATES_EXEMPTES.has(d);
+  const evite = (a,b,d) => !!(a && b && a!==b && PAIRES_EV[a] && PAIRES_EV[a].has(b)) && !jourExempt(d);
+  const okPaire = (a,b,d) => !evite(a,b,d);
+  // Retire les binômes interdits d'une liste de candidats ; si la liste devient vide,
+  // elle est rendue telle quelle : la couverture prime TOUJOURS sur la règle de paire.
+  const sansPaire = (liste,id,d) => { const f=liste.filter(m=>okPaire(id,m,d)); return f.length?f:liste; };
+  /* Dans une liste DÉJÀ TRIÉE par mérite, la meilleure paire autorisée : on remonte
+     d'abord le second, puis le premier. Si la tête de liste est interdite, on prend
+     donc (1er, 3e) — le plus petit renoncement possible. Si aucune paire n'est
+     autorisée (2 personnes disponibles, et c'est le couple), on rend la tête de
+     liste : un jour sans binôme arrête toute la génération, jamais l'inverse. */
+  const meilleurePaire = (L,d) => {
+    for(let j=1;j<L.length;j++) for(let i=0;i<j;i++) if(okPaire(L[i],L[j],d)) return [L[i],L[j]];
+    return [L[0],L[1]];
+  };
 
   // ── 1. Indispos ──────────────────────────────────────────────────────
   const indSheet=ss.getSheetByName(`INDISPOS_${year}`);
@@ -1153,6 +1181,9 @@ function generateGardes(year, opts){
       return true;
     };
     const choisirPaire=(liste,unit)=>{
+      // (07/09/2026) INCHANGÉ. La règle des paires à éviter ne s'applique PAS ici :
+      // les dates de Noël/An sont exemptées (cf. DATES_EXEMPTES en tête de fonction).
+      // Le tour de Noël reste réglé par la seule ancienneté.
       for(let i=0;i<liste.length;i++)
         for(let j=i+1;j<liste.length;j++)
           if(preserveVoisins([liste[i],liste[j]],unit)) return [liste[i],liste[j]];
@@ -1268,7 +1299,13 @@ function generateGardes(year, opts){
             for (let b=a+1; b<p.length; b++) {
               if (prev.indexOf(p[b]) >= 0) continue;
               sol[i] = [p[a], p[b]];
-              rec(i+1, sol[i], cout + coutJour(p[a],serie[i]) + coutJour(p[b],serie[i]));
+              /* (07/09/2026) Paire à éviter : PÉNALITÉ, pas exclusion. Sur ces séries
+                 le vivier tombe à 3 ou 4 personnes ; une interdiction dure pourrait
+                 rendre la série insoluble et faire échouer toute la génération. Le
+                 poids (1000) dépasse tout coût d'équité imaginable ici (coutJour reste
+                 sous 5) : dès qu'une solution sans la paire existe, elle est retenue. */
+              const _pen = evite(p[a],p[b],serie[i]) ? 1000 : 0;
+              rec(i+1, sol[i], cout + _pen + coutJour(p[a],serie[i]) + coutJour(p[b],serie[i]));
               if (essais > MAX_ESSAIS) return;
             }
           }
@@ -1388,7 +1425,7 @@ function generateGardes(year, opts){
     const dRef=jours.length>1&&!un.vd ? jours.find(d=>dayByDate[d].dow===6) : jours[0];
     const scoreU=un.vd ? (m=>scoreVD(m,jours[0],jours[1]))
                        : (m=>scoreSelect(m,dayByDate[dRef].dow,dayByDate[dRef].isVjf,dRef));
-    let co=[...wish].filter(m=>m!==id&&!SOUHAIT_PLAFOND.has(m)&&free(m)&&okSouhaitRare(m,un));
+    let co=[...wish].filter(m=>m!==id&&okPaire(id,m,jours)&&!SOUHAIT_PLAFOND.has(m)&&free(m)&&okSouhaitRare(m,un));
     let partner,viaCo=false;
     if(co.length){
       co.sort((a,b)=>(souhaitHonored[a]-souhaitHonored[b])||cmp(scoreU(a),scoreU(b)));
@@ -1399,7 +1436,7 @@ function generateGardes(year, opts){
       // veilles de férié au-delà de sa part (mesuré en usage saturé : 32 années sur 200
       // au-dessus de 2 sur cet axe, pic à 5,1). On préfère donc un binôme qui a encore
       // de la place sur chaque axe touché ; à défaut seulement, le meilleur score.
-      const tous=gardeDoctors.filter(m=>m!==id&&free(m));
+      const tous=sansPaire(gardeDoctors.filter(m=>m!==id&&free(m)),id,jours);
       if(!tous.length){warnings.push(`SOUHAIT ${id} ${jours[0]} sans binôme`);return false;}
       const c0=coutAxesUnite(un);
       const place=m=>Object.keys(c0).every(a=>!c0[a]
@@ -1428,7 +1465,7 @@ function generateGardes(year, opts){
   function placeSouhait(id,date){
     const dow=new Date(date+'T12:00:00').getDay();
     const vjf=dayByDate[date]?.isVjf;
-    let co=(souhParJour[date]||[]).filter(m=>m!==id&&!blocked(m,date)
+    let co=(souhParJour[date]||[]).filter(m=>m!==id&&okPaire(id,m,date)&&!blocked(m,date)
               &&(SOUHAIT_PLAFOND.has(m)||cnt[m].total<freeBudget[m]));
     let partner;
     if(co.length){
@@ -1436,7 +1473,7 @@ function generateGardes(year, opts){
                      ||cmp(scoreSelect(a,dow,vjf,date),scoreSelect(b,dow,vjf,date)));
       partner=co[0]; souhaitHonored[partner]++;
     } else {
-      const others=gardeDoctors.filter(m=>m!==id&&!blocked(m,date));
+      const others=sansPaire(gardeDoctors.filter(m=>m!==id&&!blocked(m,date)),id,date);
       if(!others.length){warnings.push(`SOUHAIT ${id} ${date} sans binôme`);return false;}
       others.sort((a,b)=>cmp(scoreSelect(a,dow,vjf,date),scoreSelect(b,dow,vjf,date)));
       partner=others[0];
@@ -1529,7 +1566,7 @@ function generateGardes(year, opts){
       if(availR.length>=2){
         const _vjf=dayByDate[date]?dayByDate[date].isVjf:false;
         availR.sort((a,b)=>cmp(scoreSelect(a,dow,_vjf,date),scoreSelect(b,dow,_vjf,date)));
-        const A=availR[0],B=availR[1];
+        const [A,B]=meilleurePaire(availR,date);
         const [g,g2]=assignRoles(A,B);
         assign(date,g,g2,dow);
         warnings.push(`Dernier recours : ${date} pourvu en tolérant le combo jeudi↔samedi (${A} / ${B}) — période trop chargée en congés, à anticiper au staff`);
@@ -1549,7 +1586,7 @@ function generateGardes(year, opts){
       const availVD=(dimExists&&!gardes[dimDate])?avail.filter(id=>!blocked(id,dimDate)):[];
       if(availVD.length>=2){
         availVD.sort((a,b)=>cmp(scoreVD(a,date,dimDate),scoreVD(b,date,dimDate)));
-        let A=availVD[0],B=availVD[1];
+        let [A,B]=meilleurePaire(availVD,[date,dimDate]);
         // ── (COUVERTURE) Anticipation du SAMEDI intercalé ────────────────
         // Le binôme VD est bloqué vendredi, samedi (veille/lendemain) ET dimanche.
         // S'il ne restait plus 2 personnes disponibles le samedi, on descend dans
@@ -1560,12 +1597,17 @@ function generateGardes(year, opts){
           const _poolS=gardeDoctors.filter(id=>!blocked(id,_samC));
           if(_poolS.filter(id=>id!==A&&id!==B).length<2){
             let _ok=false;
+            // (07/09/2026) Deux tours : d'abord les paires autorisées, puis toutes.
+            // La couverture du samedi passe avant la règle de paire.
+            for(let _t=0;_t<2&&!_ok;_t++)
             for(let i=0;i<availVD.length&&!_ok;i++)
-              for(let j=i+1;j<availVD.length&&!_ok;j++)
+              for(let j=i+1;j<availVD.length&&!_ok;j++){
+                if(_t===0&&evite(availVD[i],availVD[j],[date,dimDate])) continue;
                 if(_poolS.filter(id=>id!==availVD[i]&&id!==availVD[j]).length>=2){
                   A=availVD[i];B=availVD[j];_ok=true;
                   warnings.push(`Couverture : binôme VD ${date} ajusté pour préserver le ${_samC}`);
                 }
+              }
           }
         }
         cnt[A].vd++;cnt[B].vd++;
@@ -1581,7 +1623,7 @@ function generateGardes(year, opts){
 
     // Génération normale : sélectionner 2 MARs par équité, puis attribuer rôles
     avail.sort((a,b)=>cmp(scoreSelect(a,dow,day.isVjf,day.date),scoreSelect(b,dow,day.isVjf,day.date)));
-    let A=avail[0],B=avail[1];
+    let [A,B]=meilleurePaire(avail,day.date);
     // ── (COUVERTURE) Anticipation d'UN jour ────────────────────────────
     // Ne pas vider le vivier du LENDEMAIN : les deux retenus y seront bloqués (jamais
     // deux gardes d'affilée). S'il ne resterait plus 2 personnes demain, on descend
@@ -1600,12 +1642,16 @@ function generateGardes(year, opts){
       const _pres=(x,y)=>Object.keys(_pools).every(_dP=>_pools[_dP].filter(id=>id!==x&&id!==y).length>=2);
       if(Object.keys(_pools).length&&!_pres(A,B)){
         let _ok=false;
+        // (07/09/2026) Deux tours : paires autorisées d'abord, toutes ensuite.
+        for(let _t=0;_t<2&&!_ok;_t++)
         for(let i=0;i<avail.length&&!_ok;i++)
-          for(let j=i+1;j<avail.length&&!_ok;j++)
+          for(let j=i+1;j<avail.length&&!_ok;j++){
+            if(_t===0&&evite(avail[i],avail[j],day.date)) continue;
             if(_pres(avail[i],avail[j])){
               A=avail[i];B=avail[j];_ok=true;
               warnings.push(`Couverture : binôme ${date} ajusté pour préserver ${Object.keys(_pools).join(' et ')}`);
             }
+          }
       }
     }
     const [g,g2]=assignRoles(A,B);
@@ -1683,7 +1729,7 @@ function generateGardes(year, opts){
       });
     });
     // 4) Faisabilité : B peut-il tenir ce rôle sur tous les jours du groupe ?
-    const canHold=(B,days_)=>{
+    const canHold=(B,days_,role_)=>{
       // (05/09/2026) Même règle dure que dans blocked() : un transfert ne peut pas
       // donner à B un deuxième week-end consécutif.
       if(NOUVEL_ALGO){
@@ -1696,6 +1742,10 @@ function generateGardes(year, opts){
         // propres tests et en avait oublie deux. Ne JAMAIS y remettre une liste locale.
         if(indispoIndividuelle(B,dd))return false;
         const gg=gardes[dd]; if(B===gg.g||B===gg.g2)return false;
+        // (07/09/2026) L'autre rôle du jour reste en place : un transfert ne doit pas
+        // reconstituer une paire à éviter. Ici le refus est SANS RISQUE — l'optimiseur
+        // se contente de ne pas faire ce transfert-là, le jour reste pourvu.
+        if(role_!==undefined && evite(B, role_===0?gg.g2:gg.g, dd))return false;
         const adj=[shift(dd,-1),shift(dd,1)];
         for(let a=0;a<2;a++){if(days_.indexOf(adj[a])>=0)continue;
           const ag=gardes[adj[a]]; if(ag&&(B===ag.g||B===ag.g2))return false;}
@@ -1800,7 +1850,7 @@ function generateGardes(year, opts){
         for(let bi=0;bi<gardeDoctors.length;bi++){const B=gardeDoctors[bi];
           if(B===A)continue;
           if(SOUHAIT_PLAFOND.has(B)&&cnt[B].total+slot.contrib.total>cible[B].total)continue;
-          if(!canHold(B,days_))continue;
+          if(!canHold(B,days_,role))continue;
           let dd_=delta(A,B,slot.contrib,role);
           let wkPen=0; days_.forEach(dd=>{ if(((weekCnt[B][dayByDate[dd].wk]||0)-(weekCntS[B][dayByDate[dd].wk]||0))>=2) wkPen+=30; }); // (Fix A3)
           dd_+=wkPen;
@@ -1902,6 +1952,8 @@ function generateGardes(year, opts){
         for(const role of [0,1]){
           const B = role===0 ? gardes[Dn].g : gardes[Dn].g2;
           if(!B||B===A) continue;
+          // (07/09/2026) A arrive à côté de l'autre rôle du jour Dn : jamais son conjoint.
+          if(evite(A, role===0?gardes[Dn].g2:gardes[Dn].g, Dn)) continue;
           if(dejaGagne[B+'|'+Dn]) continue;            // B y perdrait son propre jour
           if(SOUHAIT_PLAFOND.has(A)||SOUHAIT_PLAFOND.has(B)) continue;   // régime à part
           const mesDates=[...(role===0?gSet[A]:g2Set[A])].filter(d2=>
@@ -1910,6 +1962,8 @@ function generateGardes(year, opts){
             if(dejaGagne[A+'|'+d2]) return false;      // A ne se saborde pas
             if(_aG(B,d2)) return false;                // B tiendrait les deux rôles
             if(blocked(B,d2)) return false;
+            // (07/09/2026) B hérite du créneau de A sur d2 : jamais à côté de son conjoint.
+            if(evite(B, role===0?gardes[d2].g2:gardes[d2].g, d2)) return false;
             // le cédant n'hérite pas d'un rapprochement à J±2
             if(_aG(B,_sd(d2,2))||_aG(B,_sd(d2,-2))) return false;
             return true;
@@ -2127,6 +2181,11 @@ function generateGardes(year, opts){
     if(_tp && _tp.has(new Date(date+'T12:00:00').getDay())) return false;
     return true;
   }
+  /* (07/09/2026) PAIRE À ÉVITER — volet 18h. Celui qui fait le 18h rentre tard : si
+     son conjoint est de garde la même nuit, personne n'est à la maison. On l'écarte
+     du vivier du jour. Coût quasi nul : le 18h se choisit parmi une vingtaine de
+     personnes, en retirer une ne change rien à la répartition. */
+  const paireDeGarde18=(id,date)=>{const gg=gardes[date]; return !!gg&&(evite(id,gg.g,date)||evite(id,gg.g2,date));};
   const h18wk={}; // semaines ISO où chaque MAR a déjà fait un 18h (≤ 1 par semaine)
   const did18wk=(id,date)=> h18wk[id]?h18wk[id].has(dayByDate[date].wk):false;
   const set18=(id,date)=>{ h18A[date]=id; h18cnt[id]++; (h18wk[id]||(h18wk[id]=new Set())).add(dayByDate[date].wk); };
@@ -2136,14 +2195,19 @@ function generateGardes(year, opts){
     if(day.dow===5){
       const satDate=toDateStr(new Date(new Date(day.date+'T12:00:00').getTime()+86400000));
       const satG=gardes[satDate]?.g;
-      if(satG&&dispo18(satG,day.date)&&h18A[veille]!==satG&&!did18wk(satG,day.date)){set18(satG,day.date);return;}
+      // La règle cède si le G du samedi est le conjoint d'un MAR de garde CE vendredi :
+      // on retombe alors sur le vivier normal (quelques fois par an, sans conséquence).
+      if(satG&&dispo18(satG,day.date)&&h18A[veille]!==satG&&!did18wk(satG,day.date)
+         &&!paireDeGarde18(satG,day.date)){set18(satG,day.date);return;}
     }
     // Replis successifs : on lève d'abord INDISPO, puis la veille, et seulement
     // en tout dernier recours la règle "≤ 1 par semaine".
-    let pool=allDoctors.filter(id=>dispo18(id,day.date)&&h18A[veille]!==id&&!did18wk(id,day.date)&&indispos[id]?.[day.date]!=='INDISPO');
-    if(!pool.length) pool=allDoctors.filter(id=>dispo18(id,day.date)&&h18A[veille]!==id&&!did18wk(id,day.date));
-    if(!pool.length) pool=allDoctors.filter(id=>dispo18(id,day.date)&&!did18wk(id,day.date)); // garde "1/semaine"
-    if(!pool.length) pool=allDoctors.filter(id=>dispo18(id,day.date)); // dernier recours absolu
+    const _libre=id=>!paireDeGarde18(id,day.date);
+    let pool=allDoctors.filter(id=>_libre(id)&&dispo18(id,day.date)&&h18A[veille]!==id&&!did18wk(id,day.date)&&indispos[id]?.[day.date]!=='INDISPO');
+    if(!pool.length) pool=allDoctors.filter(id=>_libre(id)&&dispo18(id,day.date)&&h18A[veille]!==id&&!did18wk(id,day.date));
+    if(!pool.length) pool=allDoctors.filter(id=>_libre(id)&&dispo18(id,day.date)&&!did18wk(id,day.date)); // garde "1/semaine"
+    if(!pool.length) pool=allDoctors.filter(id=>_libre(id)&&dispo18(id,day.date));
+    if(!pool.length) pool=allDoctors.filter(id=>dispo18(id,day.date)); // dernier recours absolu : la paire cède
     if(!pool.length){warnings.push(`Aucun 18h ${day.date}`);return;}
     pool.sort((a,b)=>(h18cnt[a]/(h18T[a]||1))-(h18cnt[b]/(h18T[b]||1)));
     set18(pool[0],day.date);
