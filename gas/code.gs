@@ -1,7 +1,7 @@
 // ⚠️ RÈGLE (détecteur de dérive dépôt↔Apps Script) : incrémenter cette version
 // à CHAQUE push de ce fichier. Le diagnostic (admin → Maintenance) compare la
 // version déployée ici avec celle du dépôt et signale toute recopie oubliée.
-const GAS_VERSION_CODE = '2026-09-07.1';
+const GAS_VERSION_CODE = '2026-09-07.2';
 
 // ── Reconstruire STATS_GARDES_2026 depuis GARDES_2026 (année reconstruite) ──
 // Renvoie le classeur contenant l'onglet demandé : classeur actif si présent,
@@ -147,6 +147,7 @@ function _cacheEcrire_(cle, valeur) {
 function viderCacheConfig() {
   try { CacheService.getScriptCache().removeAll(CACHE_CONFIG_CLES); } catch (e) {}
   try { _configRows_._v = null; } catch (e) {}
+  try { _pairesEviteesCache = null; } catch (e) {}   // dérivé de CONFIG : même durée de vie
 }
 
 function _configRows_() {
@@ -158,7 +159,7 @@ function _configRows_() {
   _cacheEcrire_('cfg:CONFIG', _configRows_._v.map(function (l) { return l.map(_serDate_); }));
   return _configRows_._v;
 }
-function _configReset_() { _configRows_._v = null; }
+function _configReset_() { _configRows_._v = null; _pairesEviteesCache = null; }
 
 let _ghTokenCache = null;
 function getGithubToken() {
@@ -277,6 +278,44 @@ function getMedecinFlags() {
   }
   _medFlagsCache = flags;
   return flags;
+}
+
+// ── PAIRES À ÉVITER ────────────────────────────────────────────────────
+/* Deux MAR qui ne doivent jamais se retrouver de garde LA MÊME NUIT : ni tous
+   les deux de garde, ni l'un de garde et l'autre de 18h. Deux jours d'affilée
+   restent autorisés : ce qui compte est qu'il y ait quelqu'un à la maison
+   chaque nuit. Les dates de Noël / Jour de l'An sont exemptées (cf. le
+   générateur) : le tour de Noël se joue sur la seule ancienneté.
+   SOURCE : onglet CONFIG, ligne PAIRES_A_EVITER, valeur « ID1+ID2 » (plusieurs
+   paires séparées par ';'). JAMAIS dans le code : le dépôt est public, et la
+   raison d'être d'une paire relève de la vie privée des personnes.
+   Absente de CONFIG → aucune contrainte, planning strictement identique à
+   avant l'existence de ce mécanisme (vérifié sur 42 années simulées).
+   Les échanges de gardes entre médecins ne sont PAS bloqués : si les deux
+   acceptent, c'est leur choix. */
+let _pairesEviteesCache = null;
+function getPairesEvitees() {
+  if (_pairesEviteesCache !== null) return _pairesEviteesCache;
+  const m = {};
+  const data = _configRows_();
+  for (let r = 1; r < data.length; r++) {
+    if (String(data[r][0]).trim().toUpperCase() !== 'PAIRES_A_EVITER') continue;
+    String(data[r][1] == null ? '' : data[r][1]).split(';').forEach(function (tok) {
+      const p = String(tok).split('+').map(function (x) { return String(x).trim().toUpperCase(); })
+                           .filter(function (x) { return !!x; });
+      if (p.length !== 2 || p[0] === p[1]) return;
+      (m[p[0]] || (m[p[0]] = new Set())).add(p[1]);
+      (m[p[1]] || (m[p[1]] = new Set())).add(p[0]);
+    });
+  }
+  _pairesEviteesCache = m;
+  return m;
+}
+// Vrai si a et b ne doivent pas partager la même nuit. Symétrique par construction.
+function estPaireEvitee(a, b) {
+  if (!a || !b || a === b) return false;
+  const m = getPairesEvitees();
+  return !!(m[a] && m[a].has(b));
 }
 
 // ── CODES ABSENTS EN JOURNÉE ───────────────────────────────────────────
