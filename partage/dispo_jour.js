@@ -2,7 +2,7 @@
 // À L'IDENTIQUE des deux côtés (Apps Script : fichier `dispo_jour` ; frontend :
 // <script src="partage/dispo_jour.js">). Le diagnostic Maintenance compare la
 // version déployée côté GAS avec celle du dépôt et signale toute dérive.
-const GAS_VERSION_DISPO = '2026-08-04.2';
+const GAS_VERSION_DISPO = '2026-09-07.1';
 
 /* ═══════════════════════════════════════════════════════════════════════
    DISPO_JOUR — module PARTAGÉ serveur / frontend (étage 2, 04/08/2026)
