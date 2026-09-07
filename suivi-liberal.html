@@ -1,0 +1,598 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Suivi libéral — Planning-Med</title>
+<link rel="icon" href="data:,">
+<link href="https://fonts.googleapis.com/css2?family=DM+Mono:wght@400;500&family=Inter:wght@400;600;700;800&display=swap" rel="stylesheet">
+<style>
+/* SITE_VERSION: v1.10.2 — page sans compteur de version (voir règle de versionnement) */
+:root{
+  --red:#CE1126; --ink:#0F172A; --ink-2:#334155; --ink-3:#64748B; --ink-4:#94A3B8;
+  --line:#E2E8F0; --line-light:#F1F5F9; --bg:#F8FAFC; --white:#fff; --surface-2:#EEF1F5;
+  --mono:'DM Mono',monospace;
+  --ok:#166534; --ok-soft:#F0FDF4; --ok-line:#BBF7D0;
+  --rose:#BE123C; --rose-soft:#FFF1F3; --rose-line:#FBD5DC;
+  --me:#1D6FB8; --me-soft:#E8F4FD; --me-border:#B9DCF5;
+}
+*{box-sizing:border-box;margin:0;padding:0}
+body{background:var(--bg);font-family:'Inter',system-ui,sans-serif;color:var(--ink);
+     -webkit-font-smoothing:antialiased}
+svg{width:100%;height:100%;fill:none;stroke:currentColor;stroke-width:2;
+    stroke-linecap:round;stroke-linejoin:round}
+
+.header{background:var(--white);border-bottom:1px solid var(--line);padding:0 26px;
+        display:flex;align-items:center;justify-content:space-between;min-height:58px;
+        position:sticky;top:0;z-index:300}
+.header-brand{display:flex;align-items:center;gap:13px;min-width:0}
+.header-brand>div:last-child{min-width:0}
+.header-flag{display:flex;flex-direction:column;width:26px;height:26px;border-radius:6px;
+             overflow:hidden;flex-shrink:0;box-shadow:0 1px 3px rgba(0,0,0,.15)}
+.header-title{font-size:14.5px;font-weight:700;letter-spacing:-.02em;
+             white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.header-sub{font-size:11px;color:var(--ink-4);margin-top:1px;
+           white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.header-right{display:flex;align-items:center;gap:9px;flex-shrink:0}
+.lbl-court{display:none}
+.hbtn{display:inline-flex;align-items:center;gap:6px;font:inherit;font-size:12px;font-weight:700;
+      color:var(--ink);background:var(--bg);border:1px solid var(--line);border-radius:999px;
+      padding:5px 12px;text-decoration:none;cursor:pointer}
+.me-pill{display:inline-flex;align-items:center;gap:6px;background:var(--me-soft);color:var(--me);
+         border:1px solid var(--me-border);border-radius:999px;padding:5px 12px;font-size:12.5px;
+         font-weight:700;white-space:nowrap}
+
+.wrap{max-width:1180px;margin:0 auto;padding:28px 26px 60px}
+h1{font-size:23px;font-weight:700;letter-spacing:-.02em;margin-bottom:4px}
+.sub{font-size:13.5px;color:var(--ink-3);margin-bottom:22px;max-width:70ch}
+.back{display:inline-flex;align-items:center;gap:7px;font:inherit;font-size:13px;font-weight:600;
+      color:var(--me);background:none;border:none;cursor:pointer;padding:0;margin-bottom:14px;
+      text-decoration:none}
+.back i{width:15px;height:15px;display:inline-block}
+
+.cols{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1.3fr);gap:16px;align-items:start}
+.card{background:var(--white);border:1px solid var(--line);border-radius:16px;overflow:hidden}
+.card>h2{font-size:11px;font-family:var(--mono);font-weight:500;text-transform:uppercase;
+         letter-spacing:.06em;color:var(--ink-4);padding:14px 18px 11px;border-bottom:1px solid var(--line)}
+.card>h2 b{color:var(--ink-2);font-weight:600}
+.scroller{max-height:62vh;overflow-y:auto}
+.dayhead{position:sticky;top:0;background:var(--line-light);padding:6px 18px;font-size:11px;
+         font-weight:600;color:var(--ink-3);border-bottom:1px solid var(--line);z-index:1;
+         font-family:var(--mono)}
+.slot{display:flex;align-items:center;gap:10px;width:100%;text-align:left;padding:9px 18px;
+      border:none;background:none;font:inherit;cursor:pointer;border-bottom:1px solid var(--line-light)}
+.slot:hover{background:var(--bg)}
+.slot[aria-current="true"]{background:var(--me-soft);box-shadow:inset 3px 0 0 var(--me)}
+.dot{width:7px;height:7px;border-radius:50%;background:var(--rose);flex:none}
+.dot.none{background:var(--line)}
+.sect{font-family:var(--mono);font-size:10.5px;font-weight:500;color:var(--ink-2);
+      background:var(--surface-2);border-radius:5px;padding:2px 7px;white-space:nowrap}
+.who{font-size:13.5px;font-weight:600;flex:1}
+.when{font-size:11px;color:var(--ink-4);white-space:nowrap}
+.empty{padding:30px 20px;color:var(--ink-3);font-size:13.5px;text-align:center;line-height:1.6}
+.empty b{color:var(--ink)}
+
+.who-head{padding:16px 18px 14px;border-bottom:1px solid var(--line)}
+.who-head .k{font-family:var(--mono);font-size:10.5px;letter-spacing:.08em;text-transform:uppercase;
+             color:var(--ink-4)}
+.who-head h3{font-size:20px;font-weight:700;letter-spacing:-.01em;margin-top:3px}
+.who-head .ctx{font-size:12.5px;color:var(--ink-3);margin-top:3px}
+.answer{padding:16px 18px 4px}
+.lbl{font-size:12px;color:var(--ink-3);margin-bottom:10px}
+.lbl b{color:var(--ink)}
+.dates{display:flex;flex-wrap:wrap;gap:7px}
+.d{font-family:var(--mono);background:var(--rose-soft);border:1px solid var(--rose-line);
+   color:var(--rose);border-radius:10px;padding:8px 12px;font-size:14px;font-weight:600;
+   line-height:1.2;cursor:pointer;text-align:left}
+.d:hover{background:#FCE7EB}
+.d[aria-pressed="true"]{background:var(--rose);color:#fff;border-color:var(--rose)}
+.d small{display:block;font-family:'Inter',sans-serif;font-size:9.5px;font-weight:600;
+         letter-spacing:.05em;text-transform:uppercase;opacity:.85;margin-top:3px}
+.hintclick{font-size:11.5px;color:var(--ink-4);margin-top:10px}
+.clear{background:var(--ok-soft);border:1px solid var(--ok-line);color:var(--ok);border-radius:12px;
+       padding:14px 16px;font-size:13px;line-height:1.45}
+.alt{margin:14px 18px 0;border:1px solid var(--ok-line);background:var(--ok-soft);border-radius:12px;
+     padding:14px 16px}
+.alt h4{font-size:13.5px;font-weight:700;color:var(--ok);margin-bottom:3px}
+.alt .why{font-size:11.5px;color:#3F7A64;margin-bottom:10px}
+.altgrp{margin-bottom:9px}
+.altgrp .t{font-family:var(--mono);font-size:10px;letter-spacing:.07em;text-transform:uppercase;
+           color:#4A8770;margin-bottom:5px}
+.person{display:flex;align-items:baseline;gap:8px;background:var(--white);border:1px solid var(--ok-line);
+        border-radius:8px;padding:7px 11px;margin-bottom:4px;font-size:12.5px;flex-wrap:wrap}
+.person .cs{font-family:var(--mono);font-size:11px;color:var(--ink-4)}
+.none-alt{font-size:12.5px;color:var(--rose);background:var(--rose-soft);border:1px solid var(--rose-line);
+          border-radius:8px;padding:10px 12px}
+.cal{padding:14px 18px 18px}
+.cal .lbl2{font-size:10.5px;color:var(--ink-4);margin:0 0 8px;font-family:var(--mono);
+           letter-spacing:.05em;text-transform:uppercase}
+table.grid{width:100%;border-collapse:separate;border-spacing:4px}
+table.grid th{font-family:var(--mono);font-size:10px;font-weight:500;color:var(--ink-4);
+              letter-spacing:.06em;text-transform:uppercase;padding-bottom:2px}
+table.grid td{width:20%;height:44px;border-radius:9px;background:var(--bg);border:1px solid var(--line);
+              text-align:center;vertical-align:middle;padding:3px}
+table.grid td .n{font-family:var(--mono);font-size:13px;font-weight:500}
+table.grid td .c{font-family:var(--mono);font-size:9px;color:var(--rose);margin-top:1px}
+table.grid td.hors{opacity:.4}
+table.grid td.absent{background:var(--rose-soft);border-color:var(--rose-line)}
+table.grid td.absent .n{color:var(--rose);font-weight:700}
+table.grid td.consult{box-shadow:inset 0 -3px 0 var(--me)}
+table.grid td.pick{outline:2px solid var(--rose);outline-offset:1px}
+.legend{display:flex;gap:14px;flex-wrap:wrap;font-size:11px;color:var(--ink-4);padding:0 18px 14px}
+.legend span{display:flex;align-items:center;gap:5px}
+.legend i{width:11px;height:11px;border-radius:3px;display:inline-block}
+.foot{padding:13px 18px 16px;border-top:1px solid var(--line);font-size:11.5px;color:var(--ink-3);
+      line-height:1.55}
+.foot b{color:var(--ink)}
+
+.loading{padding:50px 20px;text-align:center;color:var(--ink-3);font-size:13.5px}
+@media(max-width:900px){.cols{grid-template-columns:1fr}.wrap{padding:22px 15px 40px}
+  .header{padding:0 15px}.scroller{max-height:40vh}}
+/* ── Bandeau du haut : ne peut plus deborder, quelle que soit la largeur ──
+   (14/08/2026) Sur iPhone, le titre et le sous-titre s'enroulaient sur
+   plusieurs lignes ; la hauteur du bandeau etant figee, le debordement
+   partait AU-DESSUS du bord de l'ecran et le titre etait coupe.
+   Meme regle que index.html / dashboard.html. */
+@media(max-width:640px){
+  .header{min-height:52px;padding:0 12px;gap:8px}
+  .header-sub{display:none}
+  .header-right{gap:6px}
+  .me-pill{padding:4px 9px;font-size:11.5px}
+  .hbtn{padding:4px 10px;font-size:11.5px}
+  /* trois elements a droite sur cette page : le libelle du retour raccourcit */
+  .lbl-long{display:none}
+  .lbl-court{display:inline}
+}
+</style>
+<script src="partage/session.js"></script>   <!-- (17/08/2026) source unique : où vit le code d'accès, et 30 jours glissants -->
+<script>/* FALLBACK_SESSION — filet (17/08/2026). Si partage/session.js ne se charge pas
+(réseau, cache), les pages l'appelleraient dans le vide et NE S'OUVRIRAIENT PLUS : le MAR ne
+pourrait même plus taper son code. On retombe alors sur le comportement d'avant — le code vit
+le temps de l'onglet — au lieu de planter. Jamais de mémoire longue ici : mieux vaut retaper
+son code que le voir retenu par un filet dont personne ne vérifie l'échéance. */
+window.SessionPortail = window.SessionPortail || { lire:function(){try{return sessionStorage.getItem('pmViewCode')||'';}catch(e){return '';}}, memoriser:function(c){try{sessionStorage.setItem('pmViewCode',c);}catch(e){}}, oublier:function(){try{sessionStorage.removeItem('pmViewCode');}catch(e){}}, estInstallee:function(){return false;}, joursRestants:function(){return null;}, DUREE_JOURS:0 };</script>
+</head>
+<body>
+
+<!-- ── CONNEXION — skin identique a dashboard.html / index.html ────────── -->
+<div id="authOverlay" style="position:fixed;inset:0;z-index:9999;background:var(--bg);display:flex;align-items:center;justify-content:center;padding:20px">
+  <div style="background:var(--white);border:1px solid var(--line);border-radius:16px;box-shadow:0 10px 30px rgba(15,23,42,.08);padding:36px 32px;width:100%;max-width:380px;text-align:center">
+    <img src="assets/logo.png" alt="" style="width:48px;height:48px;border-radius:12px;display:block;margin:0 auto 16px;box-shadow:0 4px 12px rgba(206,17,38,.30)">
+    <div style="font-size:18px;font-weight:800;color:var(--ink)">Planning-Med</div>
+    <div style="font-size:13px;color:var(--ink-3);margin:4px 0 22px">Service d'Anesthésie-Réanimation</div>
+    <input id="authInput" type="password" placeholder="Code d'acc&egrave;s" autocomplete="off" autocapitalize="characters"
+      style="width:100%;box-sizing:border-box;padding:12px 14px;font-size:16px;border:1px solid var(--line);border-radius:10px;text-align:center;letter-spacing:2px;font-family:monospace"/>
+    <button id="authBtn"
+      style="width:100%;margin-top:12px;padding:12px;background:var(--red);color:#fff;border:none;border-radius:10px;font-size:15px;font-weight:700;cursor:pointer">Acc&eacute;der &rarr;</button>
+    <div id="authErr" style="display:none;margin-top:12px;font-size:13px;color:var(--red);font-weight:600"></div>
+  </div>
+</div>
+
+<div class="header" id="hdr" style="display:none">
+  <div class="header-brand">
+    <div class="header-flag"><img src="assets/logo.png" alt="" style="width:100%;height:100%;object-fit:cover;display:block"></div>
+    <div>
+      <div class="header-title">Planning-Med</div>
+      <div class="header-sub">Service d'Anesthésie-Réanimation</div>
+    </div>
+  </div>
+  <div class="header-right">
+    <span class="me-pill" id="mePill"></span>
+    <a class="hbtn" id="lnkBack" href="dashboard.html"><span class="lbl-long">Retour au portail</span><span class="lbl-court">Portail</span></a>
+    <button class="hbtn" id="btnOut">Déconnexion</button>
+  </div>
+</div>
+
+<div class="wrap">
+  <h1>Suivi libéral — la règle des 30 %</h1>
+  <p id="periode" style="font-size:13.5px;color:var(--ink-3);margin:6px 0 22px">Chargement…</p>
+
+  <!-- MA POSITION -->
+  <div id="moiBox" style="display:none;background:var(--white);border:1px solid var(--line);border-radius:16px;padding:22px 24px;margin-bottom:24px">
+    <div style="font-size:12px;font-weight:700;color:var(--ink-4);letter-spacing:.06em;text-transform:uppercase;margin-bottom:14px">Ma position</div>
+    <div id="moiAxes" style="display:flex;flex-wrap:wrap;gap:16px"></div>
+  </div>
+
+  <!-- GROUPE -->
+  <div style="background:var(--white);border:1px solid var(--line);border-radius:16px;padding:22px 24px;margin-bottom:24px">
+    <div style="font-size:12px;font-weight:700;color:var(--ink-4);letter-spacing:.06em;text-transform:uppercase;margin-bottom:4px">Le groupement</div>
+    <div style="font-size:12.5px;color:var(--ink-3);margin-bottom:14px">
+      Les honoraires sont mutualisés : chacun voit la position de tous. Un excédent part à l'hôpital ;
+      une marge inutilisée est <strong>perdue au 31 décembre</strong>.
+    </div>
+    <div style="overflow-x:auto">
+      <table id="tbl" style="width:100%;border-collapse:collapse;font-size:13px">
+        <thead>
+          <tr style="text-align:left;color:var(--ink-4);font-size:11px;text-transform:uppercase;letter-spacing:.05em">
+            <th style="padding:8px 10px">MAR</th>
+            <th style="padding:8px 10px;text-align:right">CCAM %</th>
+            <th style="padding:8px 10px;text-align:right">Marge / excédent CCAM</th>
+            <th style="padding:8px 10px;text-align:right">NGAP %</th>
+            <th style="padding:8px 10px;text-align:right">Marge / excédent NGAP</th>
+            <th style="padding:8px 10px">D'ici décembre</th>
+          </tr>
+        </thead>
+        <tbody id="tbody"></tbody>
+      </table>
+    </div>
+  </div>
+
+  <!-- TOTAUX -->
+  <div id="totBox" style="display:none;background:var(--white);border:1px solid var(--line);border-radius:16px;padding:22px 24px">
+    <div style="font-size:12px;font-weight:700;color:var(--ink-4);letter-spacing:.06em;text-transform:uppercase;margin-bottom:14px">Le groupe, par axe</div>
+    <div id="totAxes" style="display:flex;flex-wrap:wrap;gap:16px"></div>
+    <div style="font-size:12px;color:var(--ink-4);margin-top:14px;line-height:1.6">
+      Sous chaque excédent, <strong>« public + X&nbsp;€ »</strong> indique le volume d'activité
+      <strong>publique</strong> qu'il faudrait produire sur l'axe concerné pour revenir à 30&nbsp;%,
+      à libéral inchangé — soit <strong>3,3&nbsp;fois l'excédent</strong>. C'est un ordre de grandeur
+      d'objectif&nbsp;: il est calculé à partir de l'excédent recopié du document, jamais d'un
+      pourcentage arrondi. ⚠️ Rappel&nbsp;: ce public doit être produit <strong>sur le bon axe</strong>
+      — la réanimation ne nourrit que le CCAM.
+      <br><br>
+      La colonne <strong>« D'ici décembre »</strong> liste les secteurs d'affectation des mois qui restent
+      à courir — une pastille par mois, aux couleurs du planning, le mois en cours entouré de pointillés. C'est un <strong>descriptif</strong> : une affectation est un plan,
+      elle peut changer, et un secteur ne garantit pas une production libérale — il la rend seulement possible.
+      <br><br>
+      ⚠️ Ces chiffres sont un <strong>cumul</strong>, pas un flux : le relevé contient tout depuis janvier.
+      Aucune projection à fin décembre n'est affichée — sur une activité saisonnière, extrapoler « au rythme »
+      produit un chiffre faux. La réanimation ne corrige que l'axe <strong>CCAM</strong> ; un excédent
+      <strong>NGAP</strong> ne se rattrape que par des consultations publiques.
+    </div>
+  </div>
+
+  <div id="panne" style="display:none;background:#FDF3E3;border:1px solid #EAD9B4;border-radius:16px;padding:18px 20px;color:#8A6516;font-size:14px;margin-bottom:20px"></div>
+
+  <div id="vide" style="display:none;background:var(--white);border:1px solid var(--line);border-radius:16px;padding:40px;text-align:center;color:var(--ink-3)">
+    Aucun relevé saisi pour le moment.
+  </div>
+</div>
+
+<script>
+/* ══════════════════════════════════════════════════════════════════════
+   SUIVI LIBÉRAL — la règle des 30 %, lue depuis le relevé de l'administration.
+   Page en LECTURE SEULE : elle n'écrit rien. Le relevé est recopié à la main
+   dans l'onglet LIBERAL_CA_{Y}, action serveur getReleveLiberal.
+
+   ⚠️ DEUX AXES INDÉPENDANTS. Le seuil de 30 % s'applique séparément au CCAM
+   (actes, bloc) et au NGAP (consultations). On ne consolide JAMAIS les deux.
+   La réanimation ne corrige que le CCAM ; un excédent NGAP ne se rattrape que
+   par des consultations publiques.
+
+   ⚠️ LE RELEVÉ EST UN CUMUL. « JANVIER à JUIN » contient déjà tout le semestre.
+   ⚠️ AUCUNE PROJECTION (décision 10) : extrapoler « au rythme » sur une activité
+   saisonnière produit un chiffre faux qui dirait « vas-y » à qui doit s'arrêter.
+   ══════════════════════════════════════════════════════════════════════ */
+const API_URL = 'https://script.google.com/macros/s/AKfycbxDbTnhgdjCNBqkeAblZWgS3CK-IptjJoRDQd1AtGF7WQoQkXriWGvISIo7LJG8zUtjTQ/exec';
+let VIEW_CODE = '', MOI = null;
+
+const MOIS_FR = ['janvier','février','mars','avril','mai','juin','juillet','août',
+                 'septembre','octobre','novembre','décembre'];
+const eur = n => Math.round(n).toLocaleString('fr-FR') + ' €';
+const pct = n => (n == null ? '—' : n.toLocaleString('fr-FR',{minimumFractionDigits:1,maximumFractionDigits:1}) + ' %');
+function esc(s){ return String(s==null?'':s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c])); }
+
+/* Marge à public constant, avec p = part libérale (fraction) :
+     L = p·T · P = (1−p)·T · marge = (3/7)·P − L = T·(3 − 10p)/7
+   Nulle à 30 %, négative au-delà. On ne s'en sert JAMAIS pour l'excédent :
+   celui-ci est RECOPIÉ du document (un % arrondi à 2 décimales fausserait le
+   montant de plusieurs dizaines d'euros). */
+function marge(T, pctVal){
+  if (T == null || pctVal == null) return null;
+  return T * (3 - 10 * (pctVal / 100)) / 7;
+}
+
+/* (17/08/2026) LECTURE PAR LA COPIE RAPIDE. Cette page etait la derniere a ne
+   parler qu'a Apps Script : elle tombait par intermittence, et son echec
+   s'affichait « Aucun releve saisi pour le moment » — une phrase fausse, qui
+   ressemblait a une reponse. Le releve vit desormais aussi dans la copie
+   rapide, reserve aux MEMBRES DU GROUPEMENT (meme regle que l'action
+   serveur). Apps Script reste le repli, et un echec se DIT. */
+const MIROIR_URL = 'https://miroir.planningmedic.workers.dev';
+
+async function miroirRead(keys){
+  const ctrl = new AbortController();
+  const t = setTimeout(() => ctrl.abort(), 6000);
+  try{
+    const res = await fetch(MIROIR_URL + '/read', {method:'POST',
+      headers:{'Content-Type':'text/plain;charset=utf-8'},   // requete « simple » : pas de preambule CORS
+      body: JSON.stringify({code:VIEW_CODE, keys}), signal:ctrl.signal});
+    return await res.json();
+  }catch(e){ return null; }                                  // panne de transport -> le repli GAS decide
+  finally{ clearTimeout(t); }
+}
+
+function panne(txt){
+  const el = document.getElementById('panne');
+  el.innerHTML = esc(txt) + ' <button onclick="charger()" style="margin-left:8px;border:1px solid #EAD9B4;background:#fff;border-radius:8px;padding:5px 11px;font:inherit;font-size:13px;font-weight:600;color:#8A6516;cursor:pointer">Réessayer</button>';
+  el.style.display = 'block';
+}
+
+async function apiPost(payload){
+  payload.code = VIEW_CODE;
+  const res = await fetch(API_URL, {method:'POST',
+    headers:{'Content-Type':'text/plain;charset=utf-8'},
+    body: JSON.stringify(payload), redirect:'follow'});
+  return await res.json();
+}
+function authErr(m){
+  const el = document.getElementById('authErr');
+  el.textContent = m; el.style.display = 'block';
+  setTimeout(()=>{ el.style.display='none'; }, 4000);
+}
+/* (17/08/2026) OUVERTURE SANS ALLER-RETOUR INUTILE. La page appelait TOUJOURS
+   l'action 'login' d'Apps Script avant d'afficher quoi que ce soit : quelques
+   secondes d'écran d'authentification alors que le code était déjà connu, puis
+   disparition toute seule. Constaté en réel sur mobile.
+   La copie rapide valide le code ET rend l'identité ET le relevé, en un seul
+   appel : plus rien à demander à Apps Script quand elle répond. */
+function ouvrirEcran(nom){
+  MOI_NOM = nom || '';
+  document.getElementById('mePill').textContent = MOI_NOM;
+  document.getElementById('authOverlay').style.display = 'none';
+  document.getElementById('hdr').style.display = 'flex';
+}
+function fermerEcran(){
+  document.getElementById('authOverlay').style.display = 'flex';
+  document.getElementById('hdr').style.display = 'none';
+}
+let MOI_NOM = '';
+
+async function doLogin(code){
+  VIEW_CODE = code;
+  // 1) Copie rapide : elle authentifie (empreinte du code) et sert dans le même appel.
+  const an = new Date().getFullYear();
+  const m = await miroirRead(['releve_liberal_' + an, 'secteurs']);
+  if(m && m.success && m.identite){
+    const id = m.identite;
+    if(id.role !== 'mar' || !id.liberal){
+      VIEW_CODE = '';
+      return { success:false, error:'Réservé aux membres du groupement libéral.' };
+    }
+    SessionPortail.memoriser(code);
+    MOI = id.id || null;
+    ouvrirEcran(id.name || id.id || '');
+    poserSecteurs(m.data && m.data.secteurs);
+    const r = m.data && m.data['releve_liberal_' + an];
+    if(r && r.success && Array.isArray(r.items)){
+      AFF = r.affectations || {};
+      if(r.moisCourant) MOIS_COURANT = r.moisCourant;
+      rendre(r.items);
+    } else {
+      await charger();                  // clé absente du relais : le repli décide
+    }
+    return { success:true };
+  }
+  // 2) Repli Apps Script — le circuit d'avant, inchangé.
+  const r = await apiPost({action:'login'});
+  if(!(r && r.success)){ VIEW_CODE=''; return r; }
+  SessionPortail.memoriser(code);
+  MOI = (r.role === 'mar') ? r.id : null;
+  ouvrirEcran(r.name || r.id || '');
+  await charger();
+  return r;
+}
+document.getElementById('authBtn').onclick = async () => {
+  const c = document.getElementById('authInput').value.trim();
+  if(!c) return;
+  try{ const r = await doLogin(c); if(!(r && r.success)) authErr((r && r.error) || 'Code incorrect'); }
+  catch(e){ VIEW_CODE=''; authErr('Erreur réseau — réessayez'); }
+};
+document.getElementById('authInput').addEventListener('keydown', e => {
+  if(e.key === 'Enter') document.getElementById('authBtn').click();
+});
+document.getElementById('btnOut').onclick = () => {
+  SessionPortail.oublier();                // efface l'onglet ET la mémoire longue
+  location.reload();
+};
+
+/* ── Rendu ─────────────────────────────────────────────────────────── */
+function carteAxe(titre, T, p, exc){
+  const m = marge(T, p);
+  const over = (exc != null && exc > 0) || (m != null && m < 0);
+  const bg = over ? 'var(--rose-soft)' : 'var(--ok-soft)';
+  const bd = over ? 'var(--rose-line)' : 'var(--ok-line)';
+  const fg = over ? 'var(--rose)' : 'var(--ok)';
+  // L'EXCÉDENT affiché est celui du document, jamais un calcul.
+  const bas = over
+    ? 'Excédent reversé : <b>' + eur(exc != null ? exc : -m) + '</b>'
+    : 'Marge encore permise : <b>' + eur(m || 0) + '</b>';
+  return '<div style="flex:1;min-width:230px;background:'+bg+';border:1px solid '+bd+
+    ';border-radius:12px;padding:16px 18px">'
+    + '<div style="font-size:12px;font-weight:700;color:var(--ink-3)">'+titre+'</div>'
+    + '<div style="font-size:26px;font-weight:800;color:'+fg+';margin:4px 0">'+pct(p)+'</div>'
+    + '<div style="font-size:12.5px;color:var(--ink-2)">Cumul : <b>'+eur(T||0)+'</b></div>'
+    + '<div style="font-size:12.5px;color:'+fg+';margin-top:4px">'+bas+'</div></div>';
+}
+
+/* Affectations restantes — DESCRIPTIF SEUL. Aucune interprétation : on n'écrit
+   ni « s'arrange » ni « s'aggrave ». Traduire un mois de secteur en euros suppose
+   le rendement par spécialité, qui n'est pas encore mesuré.
+   Le mois EN COURS est affiché en gris : il est déjà bien entamé, mais l'ignorer
+   ferait perdre de vue ce qui se joue maintenant. */
+let AFF = {}, MOIS_COURANT = new Date().getMonth() + 1, SECTEURS = {};
+
+/* Chips de LARGEUR FIXE : sans elle, les colonnes ne s'alignent pas d'une ligne
+   à l'autre et l'œil ne peut pas comparer deux MAR. Trois lettres — les codes en
+   font déjà trois (VIS, REA, ORT…), VOLANT se coupe en VOL. ⚠️ CI et RI n'en font
+   que deux : centrés dans la même largeur, ils restent alignés.
+   Couleurs reprises de l'onglet SECTEURS, comme dans le planning : on lit la ligne
+   sans déchiffrer les lettres. Un secteur inconnu tombe sur un gris neutre plutôt
+   que de disparaître. */
+function chipAff(code, mois){
+  const c = String(code || '').trim().toUpperCase();
+  const court = c.slice(0, 3);
+  const s = SECTEURS[c] || {};
+  const bg = s.bg || 'var(--surface-2)';
+  const fg = s.fg || 'var(--ink-3)';
+  // Mois EN COURS : contour pointillé plutôt qu'un gris, qui se confondrait avec
+  // une couleur pâle de secteur.
+  const enCours = (mois === MOIS_COURANT);
+  const bord = enCours ? '1px dashed var(--ink-4)' : '1px solid transparent';
+  const titre = MOIS_FR[mois-1] + ' — ' + (s.label || c) + (enCours ? ' (mois en cours)' : '');
+  return '<span title="'+esc(titre)+'" style="display:inline-block;width:38px;text-align:center;'
+    + 'font-family:var(--mono);font-size:11px;font-weight:600;padding:2px 0;border-radius:6px;'
+    + 'background:'+bg+';color:'+fg+';border:'+bord+'">'+esc(court)+'</span>';
+}
+function suiteAff(marId){
+  const s = AFF[marId];
+  if(!s || !s.length) return '<span style="color:var(--ink-4)">—</span>';
+  return '<span style="display:inline-flex;gap:4px">'
+    + s.map(x => chipAff(x.secteur, x.mois)).join('') + '</span>';
+}
+
+/* Couleurs des secteurs — même source que le planning (onglet SECTEURS).
+   Clé de cache VERSIONNÉE : sans le suffixe, une couleur modifiée dans l'onglet
+   resterait invisible tant que la session n'est pas fermée. */
+async function chargerSecteurs(){
+  try{
+    const c = JSON.parse(sessionStorage.getItem('pmSecteursSuivi_v1') || 'null');
+    if(c){ SECTEURS = c; return; }
+  }catch(e){}
+  try{
+    const r = await apiPost({action:'getSecteurs'});
+    poserSecteurs((r && (r.data || r.secteurs || r)) || []);
+    try{ sessionStorage.setItem('pmSecteursSuivi_v1', JSON.stringify(SECTEURS)); }catch(e){}
+  }catch(e){ /* silencieux : sans couleurs les chips restent lisibles en gris */ }
+}
+
+function rendre(items){
+  if(!items.length){
+    document.getElementById('vide').style.display='block';
+    document.getElementById('periode').textContent='';
+    return;
+  }
+  // Le relevé est cumulé : SEUL le mois le plus récent décrit la position.
+  const dernier = items.map(i=>i.mois).sort().pop();
+  const lignes = items.filter(i => i.mois === dernier);
+  const mm = parseInt(dernier.slice(5,7),10);
+  document.getElementById('periode').innerHTML =
+    'Relevé de l\'administration — <b>cumul janvier → '+MOIS_FR[mm-1]+' '+dernier.slice(0,4)+'</b>. '
+    + 'Ces montants contiennent tout le début d\'année, ce n\'est pas l\'activité du mois.';
+
+  // Ma position
+  const moi = lignes.find(l => l.marId === MOI);
+  if(moi){
+    document.getElementById('moiAxes').innerHTML =
+      carteAxe('Axe CCAM — actes', moi.tCcam, moi.pctCcam, moi.excCcam)
+    + carteAxe('Axe NGAP — consultations', moi.tNgap, moi.pctNgap, moi.excNgap);
+    document.getElementById('moiBox').style.display='block';
+  }
+
+  // Groupe : les plus en difficulté d'abord (excédent total décroissant)
+  const score = l => (l.excCcam||0) + (l.excNgap||0);
+  lignes.sort((a,b) => score(b) - score(a) || String(a.initiales).localeCompare(String(b.initiales)));
+
+  /* PUBLIC À PRODUIRE — dérivé de l'EXCÉDENT RECOPIÉ, jamais du pourcentage.
+     Identité exacte : public à produire = 10/3 × excédent (à libéral constant).
+     Démonstration : l'excédent vaut 0,7 × |marge| et le public requis 7/3 × |marge|.
+     ⚠️ Passer par le % arrondi à une décimale introduirait une erreur de plusieurs
+     dizaines d'euros ; l'excédent, lui, est recopié du document au centime.
+     C'est un ORDRE DE GRANDEUR d'objectif, pas un engagement : produire ce public
+     suppose le libéral inchangé d'ici décembre. */
+  const PUBLIC_PAR_EURO_EXCEDENT = 10/3;
+  const cell = (T,p,exc) => {
+    const m = marge(T,p);
+    const over = (exc != null && exc > 0) || (m != null && m < 0);
+    const col = over ? 'var(--rose)' : 'var(--ok)';
+    const val = over ? (exc != null ? exc : -m) : (m || 0);
+    const txt = (over ? '− ' : '+ ') + eur(val);
+    // Pour qui dépasse : combien de PUBLIC il faudrait produire pour revenir à 30 %.
+    const pub = over
+      ? '<div style="font-size:10.5px;font-weight:500;color:var(--ink-4);white-space:nowrap">public&nbsp;+'
+        + eur(val * PUBLIC_PAR_EURO_EXCEDENT) + '</div>'
+      : '';
+    return '<td style="padding:8px 10px;text-align:right;font-family:var(--mono);color:'+col+';font-weight:600">'
+      + txt + pub + '</td>';
+  };
+  document.getElementById('tbody').innerHTML = lignes.map(l => {
+    const moiRow = (l.marId === MOI);
+    return '<tr style="border-top:1px solid var(--line)'+(moiRow?';background:var(--me-soft)':'')+'">'
+      + '<td style="padding:8px 10px;font-weight:700'+(moiRow?';color:var(--me)':'')+'">'+esc(l.initiales)+'</td>'
+      + '<td style="padding:8px 10px;text-align:right;font-family:var(--mono)">'+pct(l.pctCcam)+'</td>'
+      + cell(l.tCcam, l.pctCcam, l.excCcam)
+      + '<td style="padding:8px 10px;text-align:right;font-family:var(--mono)">'+pct(l.pctNgap)+'</td>'
+      + cell(l.tNgap, l.pctNgap, l.excNgap)
+      + '<td style="padding:8px 10px">'+suiteAff(l.marId)+'</td>'
+      + '</tr>';
+  }).join('');
+
+  // Totaux du groupe, PAR AXE — jamais consolidés.
+  const somme = (f) => lignes.reduce((s,l) => s + (f(l)||0), 0);
+  const margePos = (T,p) => { const m = marge(T,p); return (m && m > 0) ? m : 0; };
+  const bloc = (titre, exc, dispo) =>
+    '<div style="flex:1;min-width:250px;border:1px solid var(--line);border-radius:12px;padding:16px 18px">'
+    + '<div style="font-size:12px;font-weight:700;color:var(--ink-3);margin-bottom:8px">'+titre+'</div>'
+    + '<div style="font-size:13px;color:var(--rose);font-weight:700">Reversé à l\'hôpital : '+eur(exc)+'</div>'
+    + '<div style="font-size:13px;color:var(--ok);font-weight:700;margin-top:3px">Capacité inutilisée : '+eur(dispo)+'</div>'
+    + '</div>';
+  document.getElementById('totAxes').innerHTML =
+      bloc('Axe CCAM — actes', somme(l=>l.excCcam), somme(l=>margePos(l.tCcam,l.pctCcam)))
+    + bloc('Axe NGAP — consultations', somme(l=>l.excNgap), somme(l=>margePos(l.tNgap,l.pctNgap)));
+  document.getElementById('totBox').style.display='block';
+}
+
+async function charger(){
+  const an = new Date().getFullYear();
+  document.getElementById('panne').style.display='none';
+  document.getElementById('vide').style.display='none';
+
+  // 1) Copie rapide : releve + couleurs des secteurs en UN aller-retour.
+  const m = await miroirRead(['releve_liberal_' + an, 'secteurs']);
+  if(m && m.success && m.data && m.data['releve_liberal_' + an]){
+    const r = m.data['releve_liberal_' + an];
+    poserSecteurs(m.data.secteurs);
+    AFF = (r && r.affectations) || {};
+    if(r && r.moisCourant) MOIS_COURANT = r.moisCourant;
+    if(r && r.success && Array.isArray(r.items)){ rendre(r.items); return; }
+  }
+
+  // 2) Repli Apps Script — le circuit d'avant, inchange.
+  try{
+    await chargerSecteurs();
+    const r = await apiPost({action:'getReleveLiberal', year:an});
+    if(!r){ panne('Le portail n\'a pas répondu. Rien n\'est perdu : le relevé est intact.'); return; }
+    if(!r.success){ panne('Le portail a refusé la demande : ' + (r.error || 'raison inconnue') + '.'); return; }
+    if(!Array.isArray(r.items)){ panne('Réponse illisible du portail.'); return; }
+    AFF = r.affectations || {};
+    if(r.moisCourant) MOIS_COURANT = r.moisCourant;
+    rendre(r.items);
+  }catch(e){
+    panne('Portail injoignable. Rien n\'est perdu : le relevé est intact dans le classeur.');
+    document.getElementById('periode').textContent = '';
+  }
+}
+
+/* Couleurs des secteurs, quelle que soit leur provenance (copie rapide ou
+   Apps Script) : meme forme, une seule fonction de pose. */
+function poserSecteurs(list){
+  (Array.isArray(list) ? list : []).forEach(x => {
+    if(x && x.code) SECTEURS[String(x.code).toUpperCase()] =
+      { bg:x.bg || null, fg:x.fg || null, label:x.label || x.code };
+  });
+}
+
+/* REPRISE DE SESSION — AFFICHAGE OPTIMISTE (17/08/2026, même principe que crh.html).
+   Le code est déjà connu : on masque l'écran d'authentification TOUT DE SUITE et
+   on valide derrière. L'inverse — attendre la réponse avant d'afficher — montrait
+   un écran de code pendant quelques secondes, qui disparaissait ensuite tout seul.
+   Si le code s'avère refusé (régénéré par le comité, mémoire périmée), l'écran
+   d'authentification revient et le dit. */
+(function boot(){
+  const c = SessionPortail.lire();
+  if(!c) return;                        // aucun code : l'écran d'authentification reste
+  ouvrirEcran('');                      // pas de nom tant que le serveur n'a pas répondu
+  document.getElementById('periode').textContent = 'Chargement…';
+  doLogin(c).then(r => {
+    if(r && r.success) return;
+    SessionPortail.oublier();
+    fermerEcran();
+    authErr((r && r.error) || 'Session expirée — retapez votre code.');
+  }).catch(() => {
+    // Réseau muet : on garde l'écran ouvert et on le DIT, plutôt que de renvoyer
+    // vers un champ de code qui ne servirait à rien.
+    panne('Portail injoignable. Rien n\'est perdu : le relevé est intact dans le classeur.');
+  });
+})();
+</script>
+</body>
+</html>

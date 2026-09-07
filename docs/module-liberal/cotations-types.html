@@ -1,0 +1,476 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Libéral — cotations types</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600&family=IBM+Plex+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
+<script src="../../partage/session.js"></script>   <!-- (17/08/2026) source unique : où vit le code d'accès, et 30 jours glissants -->
+<script>/* FALLBACK_SESSION — filet (17/08/2026). Si partage/session.js ne se charge pas
+(réseau, cache), les pages l'appelleraient dans le vide et NE S'OUVRIRAIENT PLUS : le MAR ne
+pourrait même plus taper son code. On retombe alors sur le comportement d'avant — le code vit
+le temps de l'onglet — au lieu de planter. Jamais de mémoire longue ici : mieux vaut retaper
+son code que le voir retenu par un filet dont personne ne vérifie l'échéance. */
+window.SessionPortail = window.SessionPortail || { lire:function(){try{return sessionStorage.getItem('pmViewCode')||'';}catch(e){return '';}}, memoriser:function(c){try{sessionStorage.setItem('pmViewCode',c);}catch(e){}}, oublier:function(){try{sessionStorage.removeItem('pmViewCode');}catch(e){}}, estInstallee:function(){return false;}, joursRestants:function(){return null;}, DUREE_JOURS:0 };</script>
+<style>
+  /* Jetons repris à l'identique de la page de cotation : même famille d'outils,
+     pas un écran étranger. */
+  :root{
+    --bg:#EAEEF1;--panel:#fff;--ink:#16222C;--muted:#5B6C76;--line:#DBE1E6;--track:#E6EBEE;
+    --ccam:#24697F;--ccam-bg:#E5F0F3;--ngap:#A9762E;--ngap-bg:#F7EEDF;
+    --room:#2C8564;--over:#B23A2A;
+    --shadow:0 1px 2px rgba(22,34,44,.06),0 6px 20px rgba(22,34,44,.05);
+  }
+  *{box-sizing:border-box;margin:0;padding:0}
+  body{background:var(--bg);color:var(--ink);font-family:'IBM Plex Sans',system-ui,sans-serif;line-height:1.4;padding:20px 14px 110px;-webkit-font-smoothing:antialiased}
+  .wrap{max-width:820px;margin:0 auto}
+  .mono{font-family:'IBM Plex Mono',monospace;font-variant-numeric:tabular-nums}
+
+  .portalbar{display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin:0 0 12px}
+  .portalbar .pbtn{font:inherit;font-size:12.5px;font-weight:600;color:var(--ink);background:var(--panel);border:1px solid var(--line);border-radius:9px;padding:7px 12px;text-decoration:none;cursor:pointer}
+  .portalbar .pbwho{font-size:12.5px;font-weight:600;color:var(--ccam);background:var(--ccam-bg);border:1px solid #CBE0E6;border-radius:20px;padding:5px 12px}
+  .portalbar .spacer{flex:1}
+
+  header{margin-bottom:14px}
+  .eyebrow{font-family:'IBM Plex Mono',monospace;font-size:10.5px;letter-spacing:.12em;text-transform:uppercase;color:var(--ccam);font-weight:500}
+  h1{font-size:22px;font-weight:700;letter-spacing:-.02em;margin:5px 0 3px}
+  .sub{color:var(--muted);font-size:12.5px}
+
+  .card{background:var(--panel);border:1px solid var(--line);border-radius:14px;padding:15px 16px;box-shadow:var(--shadow);margin-bottom:13px}
+  .card h2{font-size:11.5px;font-family:'IBM Plex Mono',monospace;font-weight:500;text-transform:uppercase;letter-spacing:.06em;color:var(--muted);margin-bottom:11px}
+  label{display:block;font-size:11px;color:var(--muted);margin:0 0 4px;font-weight:500}
+  input,select{width:100%;font:inherit;font-size:14px;padding:9px 10px;border:1px solid var(--line);border-radius:9px;background:#fff;color:var(--ink)}
+  input:focus,select:focus{outline:2px solid var(--ccam);outline-offset:-1px;border-color:var(--ccam)}
+  .row{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+  @media(max-width:560px){.row{grid-template-columns:1fr}}
+
+  .grps{display:flex;gap:6px;flex-wrap:wrap;align-items:center}
+  .grp{background:var(--track);border:1px solid var(--line);color:var(--ink);border-radius:20px;padding:7px 14px;font:inherit;font-size:13px;font-weight:600;cursor:pointer}
+  .grp.on{background:var(--ccam);color:#fff;border-color:var(--ccam)}
+  .grp.add{background:#fff;color:var(--ccam);border-style:dashed}
+  .grpcount{opacity:.6;font-weight:400;margin-left:5px;font-size:11.5px}
+
+  .ct{display:flex;align-items:center;gap:10px;padding:11px 0;border-bottom:1px solid var(--line)}
+  .ct:last-child{border-bottom:0}
+  .ct .nom{font-weight:600;font-size:14px}
+  .ct .det{font-size:11.5px;color:var(--muted);font-family:'IBM Plex Mono',monospace;margin-top:2px;word-break:break-word}
+  .ct .mid{flex:1;min-width:0}
+  .ct .br{font-family:'IBM Plex Mono',monospace;font-weight:600;color:var(--ccam);white-space:nowrap;font-size:13px}
+  .ct .act{background:none;border:0;color:#B9C4CB;font-size:16px;cursor:pointer;padding:0 3px}
+  .vide{color:var(--muted);font-size:13px;text-align:center;padding:18px 0}
+
+  .btn{border:0;border-radius:10px;padding:10px 15px;font:inherit;font-size:13.5px;font-weight:600;cursor:pointer}
+  .btn.primary{background:var(--ccam);color:#fff}
+  .btn:disabled{opacity:.35;cursor:default}
+
+  .edit{border-color:#CBE0E6;background:#FBFDFE}
+  .search{position:relative;margin-bottom:8px}
+  .results{position:absolute;left:0;right:0;top:100%;background:#fff;border:1px solid var(--line);border-radius:10px;box-shadow:var(--shadow);z-index:20;max-height:230px;overflow:auto;display:none}
+  .results div{padding:9px 11px;font-size:12.5px;border-bottom:1px solid #F1F5F9;cursor:pointer}
+  .results div:last-child{border-bottom:0}
+  .results b{font-family:'IBM Plex Mono',monospace;margin-right:6px;color:var(--ccam)}
+  .results .no{color:var(--over);cursor:default}
+
+  table.lines{width:100%;border-collapse:collapse;font-size:12.5px;margin-top:4px}
+  table.lines th{font-size:9.5px;font-family:'IBM Plex Mono',monospace;text-transform:uppercase;color:var(--muted);text-align:left;padding:4px 5px;font-weight:500}
+  table.lines td{padding:7px 5px;vertical-align:middle;border-top:1px solid #F1F5F9}
+  .lcode{font-family:'IBM Plex Mono',monospace;font-weight:600;font-size:12px}
+  .llib{font-size:11px;color:var(--muted);display:block;max-width:190px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+  .lbr{font-family:'IBM Plex Mono',monospace;font-weight:600;color:var(--ccam);text-align:right;white-space:nowrap}
+  select.role{font-size:12px;padding:5px 6px;width:auto}
+  .m7{font-size:11px;color:var(--room);font-weight:600}
+
+  .apercu{background:#16222C;color:#fff;border-radius:11px;padding:12px 14px;margin-top:12px}
+  .apercu .t{font-size:9.5px;font-family:'IBM Plex Mono',monospace;text-transform:uppercase;opacity:.65;letter-spacing:.05em}
+  .apercu .v{font-size:20px;font-weight:700;font-family:'IBM Plex Mono',monospace;margin-top:2px}
+  .apercu .d{font-size:11px;opacity:.78;margin-top:5px;line-height:1.5}
+  .apercu .d b{color:#8FD8C0}
+
+  .garde{background:#FDF3E3;border:1px solid #EAD9B4;border-radius:9px;padding:9px 12px;font-size:11.5px;color:#8A6516;margin-top:10px;line-height:1.5}
+  .panne{background:#FDF3E3;border:1px solid #EAD9B4;border-radius:12px;padding:14px 16px;font-size:13px;color:#8A6516;margin-bottom:14px;line-height:1.5}
+
+  .actionbar{position:fixed;left:0;right:0;bottom:0;background:#16222C;padding:10px 12px calc(10px + env(safe-area-inset-bottom));box-shadow:0 -6px 24px rgba(22,34,44,.18);z-index:50}
+  .actionbar .inner{max-width:820px;margin:0 auto;display:flex;align-items:center;gap:10px}
+  .actionbar .info{flex:1;color:#fff;font-size:11.5px;opacity:.82;min-width:0}
+  .abtn{border:0;border-radius:10px;padding:11px 14px;font:inherit;font-size:13.5px;font-weight:600;cursor:pointer;white-space:nowrap}
+  .abtn.save{background:var(--room);color:#fff}
+  .abtn.cancel{background:rgba(255,255,255,.14);color:#fff}
+  .abtn:disabled{opacity:.32;cursor:default}
+
+  .toast{position:fixed;left:12px;right:12px;bottom:calc(84px + env(safe-area-inset-bottom));background:var(--room);color:#fff;border-radius:11px;padding:12px 14px;font-size:13px;font-weight:600;text-align:center;z-index:60;opacity:0;transform:translateY(8px);transition:.22s;pointer-events:none}
+  .toast.on{opacity:1;transform:none}
+  .toast.ko{background:var(--over)}
+  footer{font-size:11px;color:var(--muted);text-align:center;margin-top:18px;line-height:1.55}
+  @media(prefers-reduced-motion:reduce){*{transition:none!important}}
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <div class="portalbar">
+    <a class="pbtn" href="estimateur-liberal.html">← Cotation</a>
+    <span class="pbwho" id="pbWho" style="display:none"></span>
+    <span class="spacer"></span>
+    <button class="pbtn" id="pbOut" style="display:none" onclick="quitterPortail()">Déconnexion</button>
+  </div>
+
+  <header>
+    <div class="eyebrow">Module libéral · bibliothèque commune</div>
+    <h1>Cotations types</h1>
+    <div class="sub">Les combinaisons fréquentes, posées en un clic pendant la consultation. <b>Communes à tout le groupement</b> : ce que vous créez ici, tout le monde le voit.</div>
+  </header>
+
+  <div class="panne" id="panne" style="display:none"></div>
+
+  <div class="card" id="cBlocs" style="display:none">
+    <h2>Contexte</h2>
+    <div class="grps" id="grps"></div>
+  </div>
+
+  <div class="card" id="cListe" style="display:none">
+    <h2 id="listeTitre">Cotations</h2>
+    <div id="liste"></div>
+    <button class="btn primary" style="margin-top:12px" onclick="nouvelle()">＋ Nouvelle cotation</button>
+  </div>
+
+  <div class="card edit" id="editeur" style="display:none">
+    <h2 id="editTitre">Nouvelle cotation</h2>
+    <div class="row">
+      <div><label>Nom du bouton</label><input id="nom" maxlength="60" placeholder="Gastro + colo" oninput="maj()"></div>
+      <div><label>Contexte</label><select id="grp" onchange="maj()"></select></div>
+    </div>
+
+    <div style="margin-top:12px">
+      <label>Consultation associée</label>
+      <select id="lc" onchange="maj()">
+        <option value="CS" selected>CS — spécialiste (46,00 €)</option>
+        <option value="C">C — généraliste (34,40 €)</option>
+        <option value="APC">APC — avis ponctuel (60,00 €) · cotation française</option>
+        <option value="">— aucune</option>
+      </select>
+    </div>
+
+    <div style="margin-top:14px">
+      <label>Actes — cherchez par code, mot ou abréviation</label>
+      <div class="search">
+        <input id="q" placeholder="🔍 cataracte, PTH, HHQE002…" oninput="chercher()" autocomplete="off">
+        <div class="results" id="res"></div>
+      </div>
+      <table class="lines">
+        <thead><tr><th style="width:48%">Acte</th><th style="width:26%">Rôle</th><th style="width:10%">mod.</th><th style="width:16%;text-align:right">BR</th><th></th></tr></thead>
+        <tbody id="lignes"></tbody>
+      </table>
+      <div class="vide" id="videActes">Aucun acte pour l'instant.</div>
+    </div>
+
+    <div class="apercu">
+      <div class="t">Ce que ce bouton posera — carte verte, coefficient 1,95</div>
+      <div class="v" id="apBR">0,00 €</div>
+      <div class="d" id="apDet">Ajoutez un acte pour voir le montant.</div>
+    </div>
+
+    <div class="garde" id="garde" style="display:none"></div>
+  </div>
+
+  <footer>
+    Le modificateur <b>7</b> est appliqué d'office : la présence permanente de l'anesthésiste est systématique.<br>
+    Le modificateur <b>A</b> (moins de 4 ans, plus de 80 ans) dépend du patient : il se coche acte par acte au moment de la cotation.<br>
+    Aucun tarif n'est enregistré ici — seulement les codes. Le montant est recalculé à chaque fois depuis le référentiel officiel.
+  </footer>
+</div>
+
+<div class="actionbar" id="bar" style="display:none">
+  <div class="inner">
+    <div class="info" id="barInfo">Visible par tout le groupement</div>
+    <button class="abtn cancel" onclick="annuler()">Annuler</button>
+    <button class="abtn save" id="bSave" onclick="enregistrer()" disabled>Enregistrer</button>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+const API_URL = 'https://script.google.com/macros/s/AKfycbxDbTnhgdjCNBqkeAblZWgS3CK-IptjJoRDQd1AtGF7WQoQkXriWGvISIo7LJG8zUtjTQ/exec';
+const MIROIR_URL = 'https://miroir.planningmedic.workers.dev';
+
+/* Mêmes constantes de calcul que la page de cotation. Elles sont ici pour une
+   seule raison : montrer le montant PENDANT la construction, pour qu'il se
+   compare à un vrai relevé. Le montant réel est toujours recalculé par la page
+   de cotation au moment de coter — rien n'est enregistré à partir d'ici. */
+const COEF_MONEGASQUE = 1.95, MOD7 = 1.06;
+const ROLES = { principal:{lab:'Principal · 100 %', rate:1},
+                associe:{lab:'Associé · 50 %', rate:0.5},
+                complement:{lab:'Complément · 100 %', rate:1} };
+const LC_VAL = { CS:46.00, C:34.40, APC:60.00, '':0 };
+
+let CCAM = [], COTS = [], GROUPES = [], grpActif = '', edit = null, PEUT_SUPPRIMER = false;
+
+const $ = id => document.getElementById(id);
+const esc = t => String(t == null ? '' : t).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+const eur = n => (n || 0).toLocaleString('fr-FR', {minimumFractionDigits:2, maximumFractionDigits:2}) + ' €';
+const norm = t => String(t || '').toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '');
+
+function quitterPortail(){ SessionPortail.oublier(); location.href = '../../dashboard.html'; }
+
+/* ── Serveur ──────────────────────────────────────────────────────
+   Cette page ne passe PAS par la copie de lecture : après un enregistrement
+   elle doit voir l'état réel du classeur, pas une copie qui peut avoir jusqu'à
+   une heure de retard. Elle est utilisée quelques fois par an, la lenteur d'un
+   aller-retour y est sans conséquence. */
+async function api(action, extra){
+  const code = SessionPortail.lire();
+  if(!code) return { success:false, error:'hors portail' };
+  const ctrl = new AbortController(); const to = setTimeout(() => ctrl.abort(), 20000);
+  try{
+    const r = await fetch(API_URL, { method:'POST', headers:{'Content-Type':'text/plain;charset=utf-8'},
+      body: JSON.stringify(Object.assign({action:action, code:code}, extra || {})),
+      redirect:'follow', signal:ctrl.signal });
+    clearTimeout(to);
+    return await r.json();
+  }catch(e){ clearTimeout(to); return { success:false, error:'réseau' }; }
+}
+
+function panne(txt, avecReessai){
+  const el = $('panne');
+  el.innerHTML = esc(txt) + (avecReessai
+    ? ' <button class="btn primary" style="margin-left:8px;padding:6px 12px;font-size:12.5px" onclick="charger(true)">Réessayer</button>' : '');
+  el.style.display = 'block';
+}
+
+/* ── Référentiel CCAM ─────────────────────────────────────────────
+   Même fichier et même étiquette de version que la page de cotation : le
+   navigateur le garde, il n'est téléchargé qu'une fois. */
+async function chargerCcam(){
+  try{
+    const r = await fetch('ccam_actes.json?v=84');
+    const j = await r.json();
+    CCAM = (j.actes || []).map(a => Object.assign({ n: norm(a.c + ' ' + a.l) }, a));
+  }catch(e){ CCAM = []; }
+}
+const acteDe = c => CCAM.find(a => a.c === c) || { c:c, l:'Acte inconnu du référentiel', t:0 };
+const brActe = a => COEF_MONEGASQUE * (acteDe(a.code).t * MOD7 * (ROLES[a.role] || ROLES.principal).rate);
+const brCot  = k => (k.lignes || []).reduce((s,l) => s + brActe(l), 0);
+
+/* ── Chargement ───────────────────────────────────────────────────── */
+/* (17/08/2026) LA COPIE RAPIDE D'ABORD. La liste y vit deja ; le seul motif
+   d'appeler Apps Script etait de connaitre le droit de supprimer — il voyage
+   desormais avec l'identite. Apps Script reste le repli, et il redevient la
+   source APRES un enregistrement (voir enregistrer/supprimer) : la copie se
+   rafraichit dans la foulee, mais pas dans la meme seconde. */
+async function chargerParMiroir(){
+  const code = SessionPortail.lire(); if(!code) return null;
+  const ctrl = new AbortController(); const t = setTimeout(() => ctrl.abort(), 8000);
+  try{
+    const r = await fetch(MIROIR_URL + '/read', { method:'POST',
+      headers:{'Content-Type':'text/plain;charset=utf-8'},
+      body: JSON.stringify({ code:code, keys:['cotations_type'] }), signal:ctrl.signal });
+    const j = await r.json();
+    if(!j || !j.success || !j.identite) return null;
+    if(j.identite.role !== 'mar' || !j.identite.liberal) return { interdit:true };
+    const list = j.data && j.data.cotations_type;
+    if(!Array.isArray(list)) return null;
+    return { items:list, peutSupprimer: !!j.identite.libAdmin };
+  }catch(e){ return null; }
+  finally{ clearTimeout(t); }
+}
+
+async function charger(direct){
+  $('panne').style.display = 'none';
+  let r = direct ? null : await chargerParMiroir();
+  if(r && r.interdit){ panne('Réservé aux membres du groupement libéral.', false); return; }
+  if(!r) r = await api('listCotationsTypeEdit', {});
+  if(!r || (!r.success && !Array.isArray(r.items))){
+    panne(r && r.error === 'hors portail'
+      ? "Vous n'êtes pas identifié : ouvrez cette page depuis le portail."
+      : 'Impossible de lire les cotations : ' + ((r && r.error) || 'portail injoignable') + '.', true);
+    return;
+  }
+  COTS = r.items || [];
+  PEUT_SUPPRIMER = !!r.peutSupprimer;
+  GROUPES = [];
+  COTS.forEach(c => { if(c.groupe && GROUPES.indexOf(c.groupe) < 0) GROUPES.push(c.groupe); });
+  if(!grpActif || GROUPES.indexOf(grpActif) < 0) grpActif = GROUPES[0] || '';
+  $('cBlocs').style.display = 'block';
+  $('cListe').style.display = 'block';
+  renderGroupes(); renderListe();
+}
+
+function renderGroupes(){
+  $('grps').innerHTML = GROUPES.map(g => {
+    const n = COTS.filter(k => k.groupe === g).length;
+    return `<button class="grp${g===grpActif?' on':''}" onclick="choisirGrp('${esc(g).replace(/'/g,'&#39;')}')">${esc(g)}<span class="grpcount">${n}</span></button>`;
+  }).join('') + '<button class="grp add" onclick="nouveauGroupe()">＋ contexte</button>';
+  $('grp').innerHTML = GROUPES.map(g => `<option${g===grpActif?' selected':''}>${esc(g)}</option>`).join('')
+    + (GROUPES.indexOf(grpActif) < 0 && grpActif ? `<option selected>${esc(grpActif)}</option>` : '');
+}
+
+function choisirGrp(g){ grpActif = g; annuler(); renderGroupes(); renderListe(); }
+
+function nouveauGroupe(){
+  const g = prompt('Nom du contexte (ex. « Viscéral ») :');
+  if(!g || !g.trim()) return;
+  grpActif = g.trim().slice(0, 40);
+  if(GROUPES.indexOf(grpActif) < 0) GROUPES.push(grpActif);
+  renderGroupes(); renderListe();
+}
+
+function renderListe(){
+  $('listeTitre').textContent = grpActif ? ('Cotations — ' + grpActif) : 'Cotations';
+  const l = COTS.filter(k => k.groupe === grpActif);
+  $('liste').innerHTML = l.length ? l.map((k, i) => `<div class="ct">
+      <div class="mid">
+        <div class="nom">${esc(k.nom)}</div>
+        <div class="det">${esc((k.lignes||[]).map(a => a.code + (a.role==='associe' ? ' ·50%' : '')).join(' + ') + (k.lc ? ' + ' + k.lc : ''))}</div>
+      </div>
+      <div class="br">${eur(brCot(k) + (LC_VAL[k.lc] || 0))}</div>
+      <button class="act" onclick="modifier(${i})" title="Modifier">✎</button>
+      ${PEUT_SUPPRIMER ? `<button class="act" onclick="supprimer(${i})" title="Supprimer">🗑</button>` : ''}
+    </div>`).join('')
+    : '<div class="vide">Aucune cotation dans ce contexte. Créez la première.</div>';
+}
+
+/* ── Éditeur ──────────────────────────────────────────────────────── */
+function nouvelle(){
+  edit = { grp:grpActif, nom:'', lc:'CS', actes:[], ancienNom:'', ancienGroupe:'' };
+  $('editTitre').textContent = 'Nouvelle cotation';
+  ouvrir();
+}
+function modifier(i){
+  const l = COTS.filter(k => k.groupe === grpActif);
+  const k = l[i]; if(!k) return;
+  edit = { grp:k.groupe, nom:k.nom, lc:k.lc || '', ancienNom:k.nom, ancienGroupe:k.groupe,
+           actes:(k.lignes || []).map(a => ({ code:a.code, role:a.role, modA:!!a.modA })) };
+  $('editTitre').textContent = 'Modifier — ' + k.nom;
+  ouvrir();
+}
+function ouvrir(){
+  renderGroupes();
+  $('nom').value = edit.nom; $('lc').value = edit.lc; $('grp').value = edit.grp;
+  $('editeur').style.display = 'block'; $('bar').style.display = 'block';
+  maj();
+  try{ $('editeur').scrollIntoView({ behavior:'smooth', block:'start' }); }catch(e){}
+}
+function annuler(){
+  edit = null;
+  $('editeur').style.display = 'none'; $('bar').style.display = 'none';
+  $('q').value = ''; $('res').style.display = 'none';
+}
+
+function chercher(){
+  const q = norm($('q').value.trim());
+  const box = $('res');
+  if(q.length < 2){ box.style.display = 'none'; return; }
+  const hits = CCAM.filter(a => a.n.indexOf(q) >= 0).slice(0, 25);
+  box.innerHTML = hits.length
+    ? hits.map(a => a.t > 0
+        ? `<div onclick="ajouter('${a.c}')"><b>${a.c}</b>${esc(a.l)}<span class="mono" style="color:var(--room);font-size:11px"> · ${a.t.toFixed(2)} €</span></div>`
+        /* Garde-fou à la source : un acte sans tarif d'anesthésie poserait une
+           ligne à 0 €. Le serveur ne peut pas le voir — le référentiel n'est pas
+           dans le classeur — donc c'est ici que ça se joue. */
+        : `<div class="no"><b>${a.c}</b>${esc(a.l)} — <b>pas de tarif d'anesthésie</b>, non ajoutable</div>`
+      ).join('')
+    : '<div class="no">Aucun acte trouvé.</div>';
+  box.style.display = 'block';
+}
+
+function ajouter(c){
+  if(!edit) return;
+  const a = CCAM.find(x => x.c === c);
+  if(!a || !a.t) return;
+  edit.actes.push({ code:c, role: edit.actes.length ? 'associe' : 'principal', modA:false });
+  $('q').value = ''; $('res').style.display = 'none';
+  maj();
+}
+function retirer(i){ edit.actes.splice(i, 1); maj(); }
+function role(i, v){ edit.actes[i].role = v; maj(); }
+
+function maj(){
+  if(!edit) return;
+  edit.nom = $('nom').value; edit.lc = $('lc').value; edit.grp = $('grp').value;
+  $('videActes').style.display = edit.actes.length ? 'none' : 'block';
+  $('lignes').innerHTML = edit.actes.map((a, i) => {
+    const A = acteDe(a.code);
+    return `<tr>
+      <td><span class="lcode">${esc(A.c)}</span><span class="llib">${esc(A.l)}</span></td>
+      <td><select class="role" onchange="role(${i}, this.value)">${
+        Object.keys(ROLES).map(r => `<option value="${r}"${r===a.role?' selected':''}>${ROLES[r].lab}</option>`).join('')
+      }</select></td>
+      <td class="m7">7 ✓</td>
+      <td class="lbr">${eur(brActe(a))}</td>
+      <td><button class="act" onclick="retirer(${i})" aria-label="Retirer">✕</button></td></tr>`;
+  }).join('');
+
+  const brA = edit.actes.reduce((s, a) => s + brActe(a), 0);
+  const brC = LC_VAL[edit.lc] || 0;
+  $('apBR').textContent = eur(brA + brC);
+  $('apDet').innerHTML = edit.actes.length
+    ? `<b>${eur(brA)}</b> d'actes au bloc (compteur CCAM) + <b>${eur(brC)}</b> de consultation (compteur NGAP)`
+      + `<br>${edit.actes.length} acte(s) · modificateur 7 appliqué · comparez à un vrai relevé`
+    : 'Ajoutez un acte pour voir le montant.';
+
+  /* Deux avertissements, pas des blocages : il existe des cas que la règle
+     générale ne couvre pas, et c'est le médecin qui les connaît. */
+  const al = [];
+  if(edit.actes.length > 1 && !edit.actes.some(a => a.role === 'associe'))
+    al.push('Deux actes ou plus, aucun en « associé » : le 2<sup>e</sup> acte est normalement à 50 %.');
+  if(edit.actes.filter(a => a.role === 'principal').length > 1)
+    al.push('Plusieurs actes marqués « principal » : un seul l\'est en général.');
+  if(edit.actes.some(a => !acteDe(a.code).t))
+    al.push('Un acte sans tarif d\'anesthésie est présent : il posera une ligne à 0 €.');
+  $('garde').innerHTML = al.join('<br>');
+  $('garde').style.display = al.length ? 'block' : 'none';
+
+  const pret = edit.nom.trim().length > 1 && edit.actes.length > 0 && !!edit.grp;
+  $('bSave').disabled = !pret;
+  $('barInfo').textContent = pret ? 'Visible par tout le groupement' : 'Il manque un nom, un contexte ou un acte';
+}
+
+async function enregistrer(){
+  if(!edit) return;
+  const b = $('bSave'); b.disabled = true;
+  const r = await api('saveCotationType', {
+    groupe: edit.grp, nom: edit.nom.trim(), lc: edit.lc,
+    lignes: edit.actes.map(a => ({ code:a.code, role:a.role, modA:!!a.modA })),
+    ancienGroupe: edit.ancienGroupe, ancienNom: edit.ancienNom,
+  });
+  b.disabled = false;
+  if(!r || !r.success){ toast(((r && r.error) || 'Échec de l\'enregistrement') + '', false); return; }
+  grpActif = edit.grp;
+  annuler();
+  await charger(true);          // en direct : la copie rapide n'est pas encore a jour
+  toast('Cotation enregistrée — disponible pour tout le groupement', true);
+}
+
+async function supprimer(i){
+  const l = COTS.filter(k => k.groupe === grpActif);
+  const k = l[i]; if(!k) return;
+  if(!confirm('Supprimer « ' + k.nom + ' » ?\n\nElle disparaîtra pour tous les membres du groupement.')) return;
+  const r = await api('deleteCotationType', { groupe:k.groupe, nom:k.nom });
+  if(!r || !r.success){ toast(((r && r.error) || 'Échec de la suppression') + '', false); return; }
+  await charger(true);          // en direct : la copie rapide n'est pas encore a jour
+  toast('Cotation supprimée', true);
+}
+
+function toast(t, ok){
+  const el = $('toast');
+  el.textContent = t; el.className = 'toast on' + (ok ? '' : ' ko');
+  setTimeout(() => { el.className = 'toast' + (ok ? '' : ' ko'); }, 3000);
+}
+
+/* ── Démarrage ────────────────────────────────────────────────────── */
+(async function boot(){
+  const code = SessionPortail.lire();
+  if(!code){
+    panne("Vous n'êtes pas identifié. Ouvrez cette page depuis le portail, par la tuile Libéral.", false);
+    return;
+  }
+  $('pbWho').style.display = ''; $('pbWho').textContent = 'Groupement';
+  $('pbOut').style.display = '';
+  await chargerCcam();
+  await charger();
+})();
+</script>
+</body>
+</html>

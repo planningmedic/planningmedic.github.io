@@ -1,0 +1,230 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Si l'interface tombe — Planning-Med</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700;800&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --red:#CE1126; --red-soft:#FDECEF;
+    --blue:#1D6FB8; --blue-soft:#EAF3FB;
+    --amber:#B45309; --amber-soft:#FDF3E3;
+    --green:#166534; --green-soft:#F0FDF4;
+    --ink:#0F172A; --ink-2:#475569; --ink-3:#7A8699;
+    --line:#E2E8F0; --bg:#F6F8FB; --white:#fff;
+    --mono:'DM Mono',ui-monospace,monospace;
+  }
+  *{box-sizing:border-box}
+  html{scroll-behavior:smooth}
+  body{margin:0; background:var(--bg); color:var(--ink);
+    font-family:'DM Sans',-apple-system,BlinkMacSystemFont,sans-serif;
+    line-height:1.62; font-size:15.5px; padding:34px 20px 80px}
+  .wrap{max-width:800px; margin:0 auto}
+  .eyebrow{font-family:var(--mono); font-size:12px; letter-spacing:.08em; text-transform:uppercase; color:var(--red); font-weight:500}
+  h1{font-size:31px; font-weight:800; letter-spacing:-.02em; margin:8px 0 8px; line-height:1.18}
+  .sub{color:var(--ink-2); margin:0}
+  .maj{font-family:var(--mono); font-size:12px; color:var(--ink-3); margin-top:10px}
+
+  .hero{background:var(--white); border:1px solid var(--line); border-left:5px solid var(--green);
+        border-radius:14px; padding:20px 24px; margin:26px 0 8px}
+  .hero .t{font-weight:800; font-size:18px; margin-bottom:6px; letter-spacing:-.01em}
+  .hero p{margin:0; color:var(--ink-2)}
+
+  section{margin-top:40px}
+  h2{font-size:20px; font-weight:800; letter-spacing:-.015em; margin:0 0 4px; display:flex; align-items:baseline; gap:11px}
+  h2 .n{font-family:var(--mono); font-size:12.5px; font-weight:500; color:#fff; background:var(--red); border-radius:7px; padding:3px 9px; flex-shrink:0}
+  .lead{color:var(--ink-3); font-size:13.5px; margin:0 0 14px}
+  h3{font-size:15.5px; font-weight:700; margin:22px 0 6px}
+  p{margin:0 0 12px; color:var(--ink-2)}
+  strong{color:var(--ink)}
+  code{font-family:var(--mono); font-size:12.5px; background:#EEF1F5; border-radius:5px; padding:1px 6px; color:var(--ink)}
+  .kbd{font-family:var(--mono); font-size:12px; border:1px solid var(--line); border-bottom-width:2px; border-radius:6px; padding:1px 6px; background:var(--white)}
+
+  .callout{border-radius:12px; padding:14px 18px; margin:16px 0; border:1px solid var(--line); border-left-width:4px; background:var(--white)}
+  .callout p:last-child{margin-bottom:0}
+  .callout .ct{font-family:var(--mono); font-size:11.5px; font-weight:500; text-transform:uppercase; letter-spacing:.06em; margin-bottom:6px}
+  .callout.stop{border-left-color:var(--red); background:var(--red-soft)} .callout.stop .ct{color:var(--red)}
+  .callout.tip{border-left-color:var(--blue); background:var(--blue-soft)} .callout.tip .ct{color:var(--blue)}
+  .callout.warn{border-left-color:var(--amber); background:var(--amber-soft)} .callout.warn .ct{color:var(--amber)}
+
+  .steps{counter-reset:step; margin:12px 0 16px; padding:0; list-style:none}
+  .steps li{counter-increment:step; position:relative; padding:10px 0 10px 42px; margin:0; color:var(--ink-2)}
+  .steps li::before{content:counter(step); position:absolute; left:0; top:9px; width:27px; height:27px; border-radius:8px;
+    background:var(--white); border:1.5px solid var(--red); color:var(--red); font-family:var(--mono); font-size:13px;
+    display:flex; align-items:center; justify-content:center}
+  .steps li + li{border-top:1px dashed var(--line)}
+
+  table{width:100%; border-collapse:collapse; margin:14px 0 18px; background:var(--white);
+        border:1px solid var(--line); border-radius:12px; overflow:hidden; font-size:14.5px}
+  th{background:#F1F4F8; text-align:left; font-size:12px; font-family:var(--mono); font-weight:500;
+     text-transform:uppercase; letter-spacing:.05em; color:var(--ink-2); padding:9px 14px; border-bottom:1px solid var(--line)}
+  td{padding:10px 14px; border-bottom:1px solid #F1F5F9; color:var(--ink-2); vertical-align:top}
+  tr:last-child td{border-bottom:none}
+  td:first-child{font-weight:600; color:var(--ink); white-space:nowrap}
+  ul{margin:0 0 14px; padding-left:22px; color:var(--ink-2)} li{margin:6px 0}
+  .no li::marker{color:var(--red)}
+  .foot{margin-top:44px; padding-top:18px; border-top:1px solid var(--line); font-size:13.5px; color:var(--ink-3)}
+  .foot a{color:var(--red); text-decoration:none; font-weight:500}
+  @media print{ body{padding:0} section{break-inside:avoid} }
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <div class="eyebrow">Planning-Med · continuité de service</div>
+  <h1>Si l'interface tombe</h1>
+  <p class="sub">Page destinée au comité. Aucune compétence informatique nécessaire. À lire dans l'ordre, du haut vers le bas.</p>
+  <p class="maj">Complète <strong>reprise.html</strong> (accès, propriété, sauvegardes, réparations) et <strong>guide-technique.html</strong> (dépannage approfondi)</p>
+
+  <div class="hero">
+    <div class="t">La seule chose à retenir</div>
+    <p><strong>Le planning n'est pas dans le site : il est dans le classeur Google Sheets.</strong> Le site n'est qu'une façon commode de le lire et de le modifier. Si le site ne répond plus, aucune donnée n'est perdue et le service peut continuer à tourner depuis le classeur, indéfiniment. Rien n'est urgent au point de justifier un geste précipité.</p>
+  </div>
+
+<section>
+  <h2><span class="n">1</span>Les quatre gestes, dans cet ordre</h2>
+  <p class="lead">Ils règlent la grande majorité des incidents. Trois minutes en tout.</p>
+  <ol class="steps">
+    <li><strong>Recharger de force</strong> : <span class="kbd">Ctrl + Maj + R</span> (sur Mac <span class="kbd">Cmd + Maj + R</span>).</li>
+    <li><strong>Fermer complètement l'onglet du navigateur, puis rouvrir la page.</strong> Ce n'est pas la même chose que recharger : certaines listes restent en mémoire pour toute la durée de la session et ne se renouvellent qu'à la fermeture de l'onglet.</li>
+    <li><strong>Vider le cache de configuration</strong> : dans <code>admin.html</code>, onglet Maintenance, bouton 🧹. Le serveur relit alors tout le classeur. Sans danger, aucune donnée touchée.</li>
+    <li><strong>Attendre dix minutes et réessayer.</strong> Beaucoup d'incidents sont des ralentissements passagers côté Google, pas des pannes.</li>
+  </ol>
+  <p>Si les quatre gestes ne changent rien, passer à la section suivante — et surtout, ne rien tenter d'autre.</p>
+</section>
+
+<section>
+  <h2><span class="n">2</span>Reconnaître ce qui se passe</h2>
+  <p class="lead">Quatre symptômes courants et ce qu'ils veulent dire.</p>
+  <table>
+    <tr><th>Ce que vous voyez</th><th>Ce que c'est</th><th>Quoi faire</th></tr>
+    <tr><td>Page blanche</td><td>Le site ne s'est pas chargé</td><td>Les gestes 1 et 2. Essayer depuis un autre appareil : si ça marche ailleurs, le problème est local.</td></tr>
+    <tr><td>« Erreur » ou « Action inconnue »</td><td>Le site parle au serveur, mais le serveur ne comprend pas</td><td>Rien à réparer sur le moment. Passer en mode dégradé (section 3) et signaler.</td></tr>
+    <tr><td>Tout est très lent</td><td>Plusieurs demandes s'exécutent à la file</td><td>Attendre. Ne pas cliquer plusieurs fois : chaque clic allonge la file.</td></tr>
+    <tr><td>Bandeau orange en haut de la grille</td><td>Un onglet du classeur n'a pas pu être lu</td><td>Vérifier que les onglets <code>SECTEURS</code> et <code>CS_TEMPLATE</code> existent et ne sont pas vides. L'export Excel est volontairement bloqué tant que le bandeau est là.</td></tr>
+    <tr><td>« J'ai validé, rien ne bouge »</td><td>Le plus souvent : rien du tout</td><td>Une modification validée est prise en compte tout de suite, mais peut mettre <strong>jusqu'à une minute</strong> à s'afficher. Attendre, puis recharger. Surtout ne pas revalider : deux validations, c'est deux fois le même changement dans la file.</td></tr>
+  </table>
+  <div class="callout stop">
+    <p class="ct">Ne jamais revalider</p>
+    <p>C'est le réflexe naturel et c'est le mauvais. Chaque validation part dans une file
+       d'attente traitée dans l'ordre : recliquer n'accélère rien, allonge la file, et peut
+       faire appliquer deux fois la même chose. Attendre une minute, recharger, regarder.</p>
+  </div>
+  <div class="callout tip">
+    <div class="ct">Si c'est plus grave que ça</div>
+    <p>Données disparues du classeur, année archivée par erreur, serveur qui répond « Action inconnue », compte Google inaccessible : ces quatre avaries ont chacune leur procédure, au chapitre 8 de <a href="reprise.html">reprise.html</a>. Aucune n'est irréversible.</p>
+  </div>
+
+  <div class="callout warn">
+    <div class="ct">Le signal le plus important</div>
+    <p>Si un <strong>onglet du classeur a été supprimé ou renommé</strong>, tout le système s'arrête net. C'est de loin la cause la plus fréquente de panne totale, et la plus facile à réparer : rétablir le nom exact, à la lettre près. L'historique des versions du classeur (Fichier → Historique des versions) permet de revenir en arrière.</p>
+  </div>
+</section>
+
+<section>
+  <h2><span class="n">3</span>Faire tourner le service sans le site</h2>
+  <p class="lead">Le mode dégradé. Il n'est pas confortable, mais il tient aussi longtemps qu'il faut.</p>
+
+  <h3>Où lire le planning</h3>
+  <p>Tout est dans le classeur maître, en clair :</p>
+  <table>
+    <tr><th>Onglet</th><th>Ce qu'on y trouve</th></tr>
+    <tr><td>GARDES_{année}</td><td>Le planning de gardes de l'année : les MARs en lignes, les dates en colonnes. <strong>Attention : les en-têtes occupent trois lignes, les MARs commencent à la ligne 4.</strong> <code>G</code> = garde de réanimation, <code>G2</code> = garde d'anesthésie.</td></tr>
+    <tr><td>AFFECTATIONS_{année}</td><td>Les affectations de secteur.</td></tr>
+    <tr><td>INDISPOS_{année}</td><td>Les vacances, formations et indisponibilités déclarées.</td></tr>
+    <tr><td>MEDECINS</td><td>L'équipe : noms, initiales, quotités, coordonnées.</td></tr>
+  </table>
+
+  <h3>Comment diffuser</h3>
+  <p>Le classeur s'imprime et s'exporte en PDF comme n'importe quel tableur (Fichier → Télécharger, ou Fichier → Imprimer). C'est moins joli que l'export du site, c'est parfaitement lisible, et ça part par mail comme d'habitude.</p>
+
+  <div class="callout stop">
+    <div class="ct">Le piège à éviter absolument</div>
+    <p><strong>Ne pas modifier le planning à la main dans le classeur en espérant que le site le reprendra ensuite.</strong> Le site écrit les changements dans ses propres onglets ; une modification saisie directement ailleurs peut être écrasée à la première republication, sans avertissement. Pendant la panne, tenir les changements <strong>à part</strong> — un document, un onglet neuf, une feuille de papier — puis les ressaisir dans le site une fois réparé.</p>
+  </div>
+
+  <h3>Ce qui continue de tourner tout seul</h3>
+  <p>Neuf tâches se déclenchent seules, sans que personne les lance. Trois comptent
+     vraiment un jour de panne :</p>
+  <table>
+    <tr><th>Quand</th><th>Quoi</th><th>Pourquoi ça compte</th></tr>
+    <tr><td>Lundi 4 h</td><td>Copie du classeur</td><td>Huit copies conservées, la plus ancienne s'efface. C'est le filet contre une fausse manœuvre.</td></tr>
+    <tr><td>Dimanche 5 h</td><td>Copie du classeur <strong>sur un second compte</strong></td><td>La seule copie qui survivrait à la perte du compte du planning. Elle ne vit pas au même endroit que l'original — c'est tout son intérêt.</td></tr>
+    <tr><td>Dimanche 3 h</td><td>Copie du <strong>programme</strong></td><td>Ce n'est pas le classeur : c'est le site lui-même, conservé six semaines. Permet de tout reconstruire si le programme est perdu.</td></tr>
+  </table>
+  <p>Les six autres sont des tâches d'entretien : veille bibliographique du lundi 6 h,
+     diagnostic hebdomadaire du lundi 2 h, expiration des propositions d'échange
+     chaque heure, et trois rafraîchissements de l'affichage. Aucune n'exige de geste.</p>
+  <div class="callout tip">
+    <p class="ct">À retenir</p>
+    <p>Ces mécanismes vivent chez Google, <strong>pas dans le site</strong>. Une panne de
+       l'interface ne met aucune sauvegarde en danger. Rien ne se perd pendant qu'on répare.</p>
+  </div>
+
+  <h3>Ce qui s'arrête</h3>
+  <ul>
+    <li>La <strong>publication</strong> du planning et les mails de changement qui l'accompagnent.</li>
+    <li>La <strong>saisie des indisponibilités</strong> par les MARs, et le staff vacances.</li>
+    <li>La consultation du planning <strong>par les MARs</strong> : il faudra le leur envoyer.</li>
+    <li>Les <strong>échanges de gardes</strong> entre collègues : plus de proposition ni d'acceptation.
+        Les échanges déjà acceptés, eux, sont inscrits au planning et ne bougent pas.</li>
+    <li>La <strong>déclaration des interventions libérales</strong> et le suivi qui l'accompagne.
+        Rien n'est perdu : les interventions se notent à part et se ressaisissent après.</li>
+  </ul>
+  <div class="callout warn">
+    <p class="ct">Le cas des échanges en cours</p>
+    <p>Une proposition d'échange envoyée mais pas encore acceptée expire d'elle-même. Si la
+       panne dure, prévenir les deux collègues concernés qu'ils devront recommencer une fois
+       le site rétabli — plutôt que de les laisser attendre une réponse qui n'arrivera pas.</p>
+  </div>
+</section>
+
+<section>
+  <h2><span class="n">4</span>Ce qu'il ne faut pas faire</h2>
+  <p class="lead">Cinq gestes qui transforment un incident réparable en dégât durable.</p>
+  <ul class="no">
+    <li><strong>Supprimer ou renommer un onglet du classeur.</strong> Tout le programme s'y réfère par son nom exact.</li>
+    <li><strong>Relancer la génération des gardes d'une année déjà générée.</strong> Le planning et sa preuve d'équité seraient détruits. Un garde-fou l'empêche : ne pas chercher à le contourner.</li>
+    <li><strong>Modifier le programme</strong> pour « réparer », même avec l'aide de quelqu'un qui code. Le code de référence est celui du dépôt ; une correction faite ailleurs sera perdue et peut aggraver la panne.</li>
+    <li><strong>Lancer un assistant</strong> (démarrage d'année, génération, clôture) pendant un incident, pour voir si ça débloque.</li>
+    <li><strong>Communiquer le code d'accès administrateur</strong> en dehors du comité.</li>
+  </ul>
+</section>
+
+<section>
+  <h2><span class="n">5</span>Ça dépend du moment de l'année</h2>
+  <p class="lead">Une panne de trois semaines en mars n'a pas les mêmes conséquences qu'en novembre.</p>
+  <table>
+    <tr><th>Période</th><th>Ce qui est en jeu</th><th>Marge</th></tr>
+    <tr><td>Mars à septembre</td><td>Planning quotidien seulement</td><td>Confortable — le mode dégradé suffit largement.</td></tr>
+    <tr><td>Octobre</td><td>Ouverture de l'année suivante, staff vacances, saisie des indisponibilités</td><td>Quelques semaines. Les vacances peuvent se poser sur papier au staff et être ressaisies ensuite.</td></tr>
+    <tr><td>Novembre</td><td>Génération des gardes de l'année suivante</td><td>C'est la période la plus sensible. Sans le site, pas de génération : la répartition devrait être faite à la main.</td></tr>
+    <tr><td>Janvier</td><td>Clôture et archivage de l'année écoulée</td><td>Peut attendre sans dommage. Rien ne presse tant que l'archivage n'est pas fait.</td></tr>
+  </table>
+</section>
+
+<section>
+  <h2><span class="n">6</span>Qui prévenir, dans quel ordre</h2>
+  <ol class="steps">
+    <li><strong>Le référent du comité</strong> — la personne qui connaît le classeur et sait faire les gestes de la section 1.</li>
+    <li><strong>Le mainteneur du système</strong>, s'il est joignable.</li>
+    <li><strong>S'il ne l'est pas</strong> : ouvrir <a href="reprise.html"><code>reprise.html</code></a>. Ce document dit qui possède quoi, où sont les sauvegardes, et comment quelqu'un peut reprendre la main. C'est le point d'entrée d'une reprise, et il ne suppose pas que le site fonctionne.</li>
+  </ol>
+  <div class="callout tip">
+    <div class="ct">À vérifier une fois par trimestre, quand tout va bien</div>
+    <p>Que quelqu'un d'autre que le mainteneur sache <strong>ouvrir le classeur maître</strong> et <strong>retrouver une sauvegarde récente</strong>. Cinq minutes, une fois tous les trois mois. C'est ce qui fait la différence entre un incident et une crise.</p>
+  </div>
+</section>
+
+<p class="foot">
+  Pour aller plus loin : <a href="reprise.html">reprise.html</a> (accès, propriété, sauvegardes, réparations) ·
+  <a href="guide-technique.html">guide-technique.html</a> (architecture et dépannage) ·
+  <a href="guide-comite.html">guide-comite.html</a> (usage courant du comité).
+</p>
+
+</div>
+</body>
+</html>

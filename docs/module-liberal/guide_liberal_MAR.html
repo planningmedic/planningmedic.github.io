@@ -1,0 +1,278 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Comment fonctionne notre activité libérale · Planning-Med</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;700;800&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --red:#CE1126; --blue:#1D6FB8; --blue-soft:#EAF3FB;
+    --amber:#B45309; --amber-soft:#FDF3E3;
+    --teal:#0F766E; --teal-soft:#E6F5F2;
+    --viol:#6D28D9; --viol-soft:#F5F3FF;
+    --ink:#0F172A; --ink-2:#475569; --ink-3:#7A8699;
+    --line:#E2E8F0; --bg:#F6F8FB; --white:#fff;
+    --mono:'DM Mono',ui-monospace,monospace;
+    --acc:var(--viol); --acc-soft:var(--viol-soft);
+  }
+  *{box-sizing:border-box}
+  html{scroll-behavior:smooth}
+  body{margin:0; background:var(--bg); color:var(--ink);
+    font-family:'DM Sans',-apple-system,BlinkMacSystemFont,sans-serif;
+    line-height:1.65; font-size:15px; padding:36px 20px 80px}
+  .wrap{max-width:820px; margin:0 auto}
+  .eyebrow{font-family:var(--mono); font-size:12px; letter-spacing:.08em; text-transform:uppercase; color:var(--acc); font-weight:500}
+  h1{font-size:30px; font-weight:800; letter-spacing:-.02em; margin:8px 0 4px; line-height:1.2}
+  .subtitle{color:var(--ink-2); font-size:15px; margin:0 0 4px}
+  .maj{font-family:var(--mono); font-size:12px; color:var(--ink-3); margin-top:10px}
+  h2{font-size:21px; font-weight:800; letter-spacing:-.01em; margin:44px 0 14px; padding-bottom:8px; border-bottom:2px solid var(--acc)}
+  h2 .n{font-family:var(--mono); font-size:14px; color:var(--acc); margin-right:8px; font-weight:500}
+  h3{font-size:16px; font-weight:700; margin:26px 0 8px; color:#4C1D95}
+  p{margin:0 0 14px}
+  ul{margin:0 0 16px; padding-left:22px}
+  li{margin:6px 0}
+  strong{font-weight:700}
+  em{color:var(--ink-2)}
+  table{width:100%; border-collapse:collapse; margin:14px 0 18px; background:var(--white);
+    border:1px solid var(--line); border-radius:10px; overflow:hidden; font-size:14px}
+  th{background:#EDE9FE; color:#4C1D95; text-align:left; font-weight:700; padding:9px 13px; font-size:13px}
+  td{padding:9px 13px; border-top:1px solid var(--line); vertical-align:top}
+  .card{background:var(--white); border:1px solid var(--line); border-radius:14px; padding:18px 22px; margin:18px 0}
+  .note{border-radius:12px; padding:14px 18px; margin:16px 0}
+  .note .t{font-family:var(--mono); font-size:11.5px; font-weight:500; text-transform:uppercase; letter-spacing:.07em; margin-bottom:6px}
+  .note p{margin:0}
+  .note.v{background:var(--acc-soft); border:1px solid #E9D5FF}
+  .note.v .t{color:var(--acc)} .note.v p{color:#3B0764}
+  .note.a{background:var(--amber-soft); border:1px solid #FDE68A}
+  .note.a .t{color:var(--amber)} .note.a p{color:#78350F}
+  .note.t2{background:var(--teal-soft); border:1px solid #99F6E4}
+  .note.t2 .t{color:var(--teal)} .note.t2 p{color:#134E4A}
+  .resume{background:var(--white); border:1px solid var(--line); border-left:4px solid var(--acc); border-radius:12px; padding:18px 24px; margin:20px 0}
+  .resume ul{margin-bottom:0}
+  footer{margin-top:56px; padding-top:18px; border-top:1px solid var(--line); color:var(--ink-3); font-size:13px; font-style:italic}
+  .toc{background:var(--white); border:1px solid var(--line); border-radius:14px; padding:18px 24px; margin:26px 0 30px}
+  .toc h4{margin:0 0 10px; font-size:13px; font-family:var(--mono); font-weight:500; text-transform:uppercase; letter-spacing:.06em; color:var(--ink-3)}
+  .toc ol{margin:0; padding-left:0; list-style:none; columns:2; column-gap:32px}
+  .toc li{margin:4px 0; break-inside:avoid}
+  .toc a{color:var(--ink); text-decoration:none; font-weight:500; font-size:14px}
+  .toc a:hover{color:var(--acc)}
+  .toc .n{font-family:var(--mono); font-size:12px; color:var(--acc); margin-right:7px}
+  @media print{body{background:#fff;padding:0}.card,.note,.toc,.resume{break-inside:avoid}}
+  @media (max-width:640px){.toc ol{columns:1}}
+</style>
+</head>
+<body>
+<div class="wrap">
+
+<div class="eyebrow">Planning-Med · Monaco — activité libérale</div>
+<h1>Comment fonctionne notre activité libérale</h1>
+<p class="subtitle">Guide pour les MARs du groupement</p>
+<p class="maj">v0.6 · 30 juillet 2026 · document de travail — texte commun aux versions web et Word</p>
+
+<div class="toc">
+<h4>Sommaire</h4>
+<ol>
+<li><a href="#pourquoi"><span class="n">—</span>Pourquoi ce document</a></li>
+<li><a href="#rac"><span class="n">01</span>Le reste à charge du patient</a></li>
+<li><a href="#montant"><span class="n">02</span>Comment se construit le montant d'un acte</a></li>
+<li><a href="#comptes"><span class="n">03</span>Deux comptes séparés</a></li>
+<li><a href="#regle30"><span class="n">04</span>La règle des 30 %</a></li>
+<li><a href="#enregistrer"><span class="n">05</span>Enregistrer ce qui a été fait</a></li>
+<li><a href="#outil"><span class="n">06</span>Un outil pour ne pas faire tout ça de tête</a></li>
+<li><a href="#incertain"><span class="n">07</span>Ce qui reste incertain</a></li>
+<li><a href="#resume"><span class="n">—</span>En résumé</a></li>
+<li><a href="#sources"><span class="n">—</span>Sources</a></li>
+</ol>
+</div>
+
+<h2 id="pourquoi">Pourquoi ce document</h2>
+<p>L'activité libérale au service obéit à des règles précises — monégasques, différentes de celles qu'on connaît en France — que personne ne nous a jamais vraiment expliquées. On les applique tous les jours sans forcément savoir comment elles s'articulent.</p>
+<p>Ce guide ne demande rien à personne. Il décrit un fonctionnement, c'est tout. L'idée est que chacun comprenne ce qui se passe entre le moment où il voit un patient et le moment où quelque chose apparaît sur un relevé.</p>
+<p>Deux principes en découlent, et ce sont les seuls qui comptent :</p>
+<ul>
+<li><strong>que le patient paie le moins possible</strong> — c'est le premier sujet, et c'est par là qu'on commence ;</li>
+<li><strong>que ce qui est fait soit enregistré tel qu'il a été fait</strong> — ni plus, ni moins.</li>
+</ul>
+
+<h2 id="rac"><span class="n">01</span>Le reste à charge du patient</h2>
+
+<h3>Avant tout : le choix écrit du patient</h3>
+<p>Un patient n'est jamais « en libéral » par défaut&nbsp;: l'admission au service se fait en secteur public, et c'est le patient qui choisit, par écrit, d'être pris en charge au titre de l'activité libérale d'un praticien. Ce choix passe par la <strong>déclaration de choix de prise en charge à titre libéral</strong>&nbsp;— et elle est <strong>nominative&nbsp;: un imprimé par praticien</strong>, signé par le patient <strong>et</strong> par le praticien, chacun en présence de l'autre.</p>
+<p>Pour un parcours d'anesthésie libéral, cela signifie que le patient signe une déclaration <strong>désignant le MAR nommément</strong> — celle signée pour le chirurgien ne couvre pas l'anesthésiste. Sans ce document dans le dossier, le patient est réputé avoir choisi le public&nbsp;: les honoraires libéraux facturés sont alors récupérables par la Caisse (procédure d'indu), et en cas de contestation la prise en charge est rebasculée en public si la preuve signée ne figure pas dans le DPI. Le moment naturel pour la faire signer&nbsp;: la consultation pré-anesthésique.</p>
+<p>Deux exclusions à connaître&nbsp;: <strong>pas de prise en charge libérale après une admission en urgence</strong>, ni pour les <strong>personnels et retraités du service</strong>.</p>
+
+<h3>Comment le patient est remboursé</h3>
+<p>Le patient est remboursé <strong>80&nbsp;%</strong> de la base de remboursement — ou <strong>100&nbsp;%</strong> s'il est exonéré (affection de longue durée, ou acte dépassant un certain seuil). Ce remboursement porte <strong>toujours sur la base</strong>, jamais sur un éventuel dépassement d'honoraires.</p>
+<p>Ce qui reste à sa charge&nbsp;: les 20&nbsp;% restants, plus le dépassement s'il y en a un. C'est là que se joue l'essentiel.</p>
+
+<h3>Le statut du patient décide du dépassement</h3>
+<p>C'est le <strong>statut du patient</strong> qui ouvre — ou ferme — le droit de facturer un dépassement. La mutuelle ne fait ensuite que déterminer le remboursement. Dans l'ordre&nbsp;:</p>
+<table>
+<tr><th>Statut</th><th>Dépassement possible</th></tr>
+<tr><td><strong>Carte verte</strong> (monégasque)</td><td><strong>aucun</strong> — tarif conventionnel strict</td></tr>
+<tr><td><strong>SPME</strong> (monégasque)</td><td><strong>aucun</strong></td></tr>
+<tr><td><strong>Carte rose</strong> (monégasque)</td><td>jusqu'à <strong>+20&nbsp;% de la base</strong></td></tr>
+<tr><td><strong>Carte bulle</strong> (monégasque)</td><td><strong>libre</strong> — entente préalable, avec tact et mesure</td></tr>
+<tr><td><strong>Assuré français</strong></td><td><strong>libre</strong> (secteur 2 non-OPTAM)</td></tr>
+<tr><td><strong>NAS</strong></td><td>libre</td></tr>
+<tr><td><strong>Français — AME / C2S</strong> (précarité)</td><td><strong>aucun</strong></td></tr>
+<tr><td><strong>AME</strong> (monégasque)</td><td><strong>aucun</strong></td></tr>
+</table>
+<p>Chez les assurés monégasques, la couleur de la carte d'immatriculation reflète <strong>les ressources et la composition familiale</strong> du foyer. Autrement dit, <strong>le système interdit lui-même tout dépassement chez les patients les plus modestes</strong>, et ne l'ouvre qu'à mesure que les ressources augmentent. Ce n'est pas nous qui décidons de moduler&nbsp;: c'est écrit dans la convention. D'où le réflexe&nbsp;: <strong>demander la carte</strong> — c'est le seul moyen de connaître la catégorie et d'appliquer le bon tarif.</p>
+<div class="note v">
+<div class="t">AME — à ne pas confondre avec l'AME française</div>
+<p>Dispositif propre à Monaco (Ordonnance souveraine 5.743 du 03/03/2016) pour les résidents sans autre couverture maladie et sous condition de ressources. Le remboursement se fait sur le tarif de responsabilité monégasque (coefficient ×1,95, comme les autres régimes), et le bénéficiaire étant en situation de précarité, <strong>aucun dépassement</strong> n'est facturé — même logique que la carte verte.</p>
+</div>
+
+<h3>L'intention du groupe&nbsp;: que la mutuelle paie, pas le patient</h3>
+<p>Là où le dépassement est libre (bulle, assurés français), la ligne que nous tenons est la suivante&nbsp;: <strong>caler le dépassement sur ce que la mutuelle du patient rembourse effectivement</strong>, de sorte que ce soit elle qui le prenne en charge, et non lui. Au pire il avance les frais et se fait rembourser&nbsp;; il ne se retrouve pas avec une facture à absorber.</p>
+<p>Concrètement&nbsp;: un dépassement nul ou faible chez la grande majorité des patients, et un dépassement significatif réservé à une minorité pour qui il ne pose aucune difficulté.</p>
+<p>Le mécanisme tient en une valeur&nbsp;: la ligne <strong>«&nbsp;honoraires&nbsp;» en % de la base</strong> du tableau de garanties de la mutuelle.</p>
+<ul>
+<li>Ce que la mutuelle <strong>absorbe</strong> = (% affiché − 100) × base. Une formule «&nbsp;200&nbsp;% BR&nbsp;» absorbe jusqu'à 100&nbsp;% de base en dépassement&nbsp;; une «&nbsp;300&nbsp;% BR&nbsp;», jusqu'à 200&nbsp;%&nbsp;; une «&nbsp;100&nbsp;% BR&nbsp;» n'absorbe <strong>rien</strong>.</li>
+<li>Le <strong>dépassement calé</strong> = le plus petit des deux&nbsp;: ce que le statut autorise, et ce que la mutuelle absorbe. À ce montant, le reste à charge du patient est <strong>nul</strong>.</li>
+<li>Patient mal couvert (formule 100&nbsp;% BR)&nbsp;? Le calage tombe à zéro&nbsp;: on facture moins, voire pas de dépassement du tout.</li>
+</ul>
+<div class="note a">
+<div class="t">Piège — patients français&nbsp;: colonne OPTAM vs non-OPTAM</div>
+<p>Pour un assuré français avec contrat responsable, vu par un praticien secteur 2 <strong>non-OPTAM</strong> (notre cas), la mutuelle n'absorbe au maximum que <strong>100&nbsp;% de base en dépassement</strong> (200&nbsp;% au total), quel que soit le pourcentage affiché sur la brochure. Il faut lire la <strong>colonne non-OPTAM</strong> du tableau de garanties — la colonne OPTAM surestime toujours ce qui sera remboursé.</p>
+</div>
+<div class="note t2">
+<div class="t">Rappel de fond</div>
+<p>Le principe qui gouverne le dépassement reste le <strong>tact et la mesure</strong>, apprécié au regard de l'acte et de la situation. Se caler sur la couverture du patient est un bon moyen de protéger son porte-monnaie, mais le montant doit rester justifiable en lui-même.</p>
+</div>
+
+<h3>L'information écrite préalable</h3>
+<p>L'établissement l'exige par écrit&nbsp;: en cas de prise en charge libérale <strong>en hospitalisation</strong> avec dépassement, une <strong>estimation de frais réalisée par le praticien est systématiquement remise</strong> au patient (règlement intérieur ENR/QUA/1086/001). Plus généralement, dès qu'un dépassement dépasse <strong>70&nbsp;€</strong>, une information écrite préalable (le «&nbsp;devis&nbsp;») est remise au patient avant l'acte. Elle mentionne&nbsp;: le statut secteur 2 à honoraires libres, le paiement après l'acte, le fait que le remboursement mutuelle dépend du contrat du patient, et l'exclusion de tout dépassement pour les bénéficiaires protégés (verte, SPME, AME).</p>
+<p><em>Point en cours&nbsp;: le cadre de ce devis s'appuie aujourd'hui sur le droit français&nbsp;; pour un patient CCSS (bulle/rose), l'entente préalable relève du droit monégasque. Validation demandée avant tout usage systématique.</em></p>
+
+<h2 id="montant"><span class="n">02</span>Comment se construit le montant d'un acte</h2>
+<p>Trois étages, dans l'ordre.</p>
+<p><strong>① Le tarif de départ.</strong> Chaque acte a un tarif officiel, identique à celui pratiqué en France. Le geste d'anesthésie d'une cure de hernie inguinale, par exemple&nbsp;: 103,64&nbsp;€.</p>
+<p><strong>② Le coefficient monégasque.</strong> Si le patient est assuré à Monaco, ce tarif est <strong>multiplié par 1,95</strong>. C'est la spécificité locale, et elle est importante&nbsp;: le même acte vaut presque le double d'en France. Pour un patient assuré en France, pas de multiplication.</p>
+<p><strong>③ Les majorations.</strong> Elles s'ajoutent selon la situation&nbsp;: présence permanente de l'anesthésiste (+6&nbsp;%), âge inférieur à 4 ans ou supérieur à 80 ans, urgence selon l'horaire, fracture ouverte, chirurgie de la face ou des mains.</p>
+<p>Le résultat s'appelle la <strong>base</strong>. C'est sur elle que le patient est remboursé, et c'est elle qui compte pour la règle des 30&nbsp;% décrite plus loin. Le dépassement vient <strong>par-dessus</strong> et n'entre dans aucun de ces calculs.</p>
+<div class="note v">
+<div class="t">Le même acte se lit deux fois, indépendamment</div>
+<p>Côté patient&nbsp;: le dépassement et le reste à charge. Côté groupe&nbsp;: la base et le ratio des 30&nbsp;%. Régler l'un ne touche pas l'autre.</p>
+</div>
+
+<h2 id="comptes"><span class="n">03</span>Deux comptes séparés</h2>
+<p>C'est le point le moins intuitif du système, et celui qui explique le plus de malentendus.</p>
+<p>Notre activité produit deux flux qui se comptent <strong>indépendamment</strong>&nbsp;:</p>
+<table>
+<tr><th></th><th>Les consultations</th><th>Les actes au bloc</th></tr>
+<tr><td><strong>Ce que c'est</strong></td><td>la consultation pré-anesthésique</td><td>le geste d'anesthésie</td></tr>
+<tr><td><strong>Nomenclature</strong></td><td>NGAP</td><td>CCAM</td></tr>
+<tr><td><strong>Comment ça se calcule</strong></td><td>un tarif fixe par type de consultation (consultation de spécialiste&nbsp;: 46&nbsp;€)</td><td>un tarif indexé sur l'acte chirurgical</td></tr>
+</table>
+<p>Ces deux comptes ne communiquent pas. Ils ont chacun leur plafond, chacun leur pourcentage, et <strong>ce qui joue sur l'un ne joue pas sur l'autre</strong>. La réanimation, par exemple, n'influe que sur le compte «&nbsp;bloc&nbsp;» et n'a aucun effet sur le compte «&nbsp;consultations&nbsp;».</p>
+
+<h2 id="regle30"><span class="n">04</span>La règle des 30&nbsp;%</h2>
+<p>L'activité libérale d'un praticien ne peut pas dépasser <strong>30&nbsp;% de son activité totale</strong>. Ce n'est pas une décision du service&nbsp;: c'est un texte — l'Ordonnance Souveraine n°&nbsp;7.766 du 6 novembre 2019, qui précise aussi que le contrôle s'opère <strong>par catégorie d'actes</strong>, et non plus globalement.</p>
+<p>Elle s'applique <strong>séparément sur chacun des deux comptes</strong>. On peut donc être largement en deçà sur l'un et au-dessus sur l'autre — c'est le cas le plus fréquent, et ça surprend toujours.</p>
+<p><strong>Ce qui dépasse au 31 décembre est reversé à l'hôpital.</strong> Par le groupe, dans le cadre du fonctionnement mutualisé — pas par le praticien à titre personnel.</p>
+<h3>Le repère utile</h3>
+<p>Pour rester sous les 30&nbsp;%, il faut environ <strong>2,33&nbsp;€ d'activité publique pour 1&nbsp;€ d'activité libérale</strong>.</p>
+<p>C'est la traduction concrète de la règle, et elle dit quelque chose d'important&nbsp;: <strong>l'activité publique est ce qui rend l'activité libérale possible.</strong> Une journée de réanimation, une consultation publique, ne sont pas des parenthèses — elles font partie de l'équilibre. Ce n'est pas un discours, c'est arithmétique.</p>
+<h3>Pourquoi le comité regarde ces chiffres</h3>
+<p>Les pourcentages varient beaucoup d'un praticien à l'autre, essentiellement en fonction des vacations sur lesquelles chacun tombe. Ce n'est pas un choix individuel&nbsp;: c'est le planning.</p>
+<p>Le rôle du comité est donc de <strong>répartir</strong>, pas de contrôler. Quand quelqu'un se retrouve très au-dessus du plafond alors qu'un autre est très en dessous, il y a une répartition à revoir, et personne n'y est pour rien.</p>
+<p>Personne n'a de compte à rendre sur son pourcentage.</p>
+<h3>Une question de calendrier</h3>
+<p>Le relevé de l'administration arrive avec <strong>un mois de retard</strong> et il est <strong>cumulé depuis janvier</strong>. Deux conséquences pratiques&nbsp;:</p>
+<ul>
+<li>un ajustement fait au printemps a beaucoup plus d'effet sur l'année qu'un ajustement fait en novembre, parce qu'un cumul devient de plus en plus difficile à faire bouger&nbsp;;</li>
+<li><strong>décembre n'est jamais observable à temps</strong> (son relevé arrive fin janvier)&nbsp;: il se pilote à partir du cumul de novembre.</li>
+</ul>
+
+<h2 id="enregistrer"><span class="n">05</span>Enregistrer ce qui a été fait</h2>
+<p>Cette partie est descriptive&nbsp;: voici les endroits où, en pratique, ce qui a été fait n'apparaît pas toujours dans ce qui est enregistré. L'objectif n'est pas le volume, c'est la justesse — un acte réel qui disparaît est une erreur au même titre qu'un acte surcoté.</p>
+<h3>Ce qui disparaît sans qu'on s'en aperçoive</h3>
+<p><strong>⚠️ L'anesthésie pour accouchement (AFLB010).</strong> C'est le code qui saute le plus souvent. Son libellé officiel est «&nbsp;<em>Anesthésie rachidienne au cours d'un accouchement par voie basse</em>&nbsp;» (209,00&nbsp;€ en activité 4)&nbsp;: <strong>le mot «&nbsp;péridurale&nbsp;» n'y figure pas</strong>. Chercher «&nbsp;péridurale&nbsp;» dans l'estimateur ramène douze autres actes, jamais celui-là. Taper <strong>«&nbsp;accouchement voie basse&nbsp;»</strong>, qui ne ramène que lui. À vérifier systématiquement sur toute prise en charge obstétricale.</p>
+<p><strong>La ligne d'anesthésie.</strong> L'anesthésie est enregistrée sur une ligne distincte de celle du chirurgien. Si le chirurgien code seul et que cette ligne ne remonte pas, l'anesthésie n'existe nulle part. C'est purement administratif, et c'est de loin le cas le plus fréquent.</p>
+<p><strong>Le nom de l'exécutant.</strong> Si c'est celui du chirurgien qui figure sur la ligne d'anesthésie, elle saute pour la même raison.</p>
+<p><strong>La consultation pré-anesthésique.</strong> C'est tout le compte «&nbsp;consultations&nbsp;». Non cotée, elle n'apparaît nulle part — ni en libéral, ni en public.</p>
+<p><strong>Les rejets de facturation.</strong> Un acte rejeté et non repris reste rejeté.</p>
+<h3>Ce qui s'ajoute légitimement et s'oublie</h3>
+<ul>
+<li>l'<strong>échoguidage</strong> d'une ALR (TAP, bloc de membre)&nbsp;: un code dédié, en supplément&nbsp;;</li>
+<li>la <strong>présence permanente</strong>, à condition qu'elle soit attestée sur la fiche d'anesthésie&nbsp;;</li>
+<li>l'<strong>âge</strong> (moins de 4 ans, plus de 80 ans)&nbsp;;</li>
+<li>la <strong>récupération de sang</strong> peropératoire&nbsp;;</li>
+<li>en garde, une <strong>majoration d'urgence</strong> selon l'horaire — une seule à la fois.</li>
+</ul>
+<h3>En réanimation</h3>
+<p>La réanimation est <strong>intégralement publique</strong>&nbsp;: elle ne génère aucun honoraire libéral. Elle figure ici parce qu'elle relève des mêmes règles de codage.</p>
+<ul>
+<li>un <strong>forfait par patient et par jour</strong>, chaque jour, y compris week-ends et jour d'admission&nbsp;;</li>
+<li>le <strong>niveau B</strong> correspond à une <strong>suppléance d'organe</strong> documentée — ventilation mécanique, amines à haut débit, remplissage ou transfusion massifs. Le critère est la suppléance, pas l'impression de gravité&nbsp;;</li>
+<li>en <strong>soins continus</strong>, c'est en général le <strong>niveau A</strong>&nbsp;;</li>
+<li>la voie centrale, le drain, l'échographie cardiaque, le cathéter artériel et l'intubation sont <strong>inclus</strong> dans le forfait&nbsp;; les facturer en plus fait rejeter la ligne.</li>
+</ul>
+<h3>Ce qu'on ne fait pas</h3>
+<p>Le principe est de coter ce qui a été fait, et rien d'autre. Deux exemples concrets&nbsp;:</p>
+<ul>
+<li>une échographie ciblée avant induction (estomac plein, repérage veineux) est <strong>incluse</strong> dans l'acte d'anesthésie&nbsp;; coter à la place une échographie abdominale complète serait une surcotation&nbsp;;</li>
+<li>on ne cote pas une consultation le jour même d'un acte d'anesthésie, sauf urgence.</li>
+</ul>
+<p>Une ligne surcotée finit rejetée de toute façon.</p>
+
+<h2 id="outil"><span class="n">06</span>Un outil pour ne pas faire tout ça de tête</h2>
+<p>L'<strong>estimateur</strong> est <strong>en service sur le portail</strong>, dans la tuile «&nbsp;Libéral&nbsp;» du Dashboard (visible pour les seuls membres du groupement), qui mène d'un côté à la cotation et de l'autre au suivi des 30&nbsp;%. Il fait exactement ce que décrit ce guide, sans calcul manuel&nbsp;: on cherche l'acte (par code, mot ou abréviation — «&nbsp;PTH&nbsp;», «&nbsp;TAP&nbsp;»), le tarif officiel se pré-remplit, la base se calcule avec le coefficient et les majorations, on renseigne la formule mutuelle du patient, et l'outil affiche le <strong>dépassement calé</strong> et le <strong>reste à charge</strong> — puis génère l'information écrite préalable, entièrement pré-remplie. <strong>Le nom du patient ne s'y tape pas</strong>&nbsp;: le document sort avec des lignes en pointillés que le patient remplit lui-même à la main.</p>
+<p>Deux principes non négociables de cet outil&nbsp;:</p>
+<ul>
+<li><strong>aucune donnée patient n'est saisie, nulle part.</strong> Le nom du patient ne transite jamais par l'outil — il est manuscrit sur l'imprimé. Les quelques champs éditables (dates, remboursement) vivent à l'écran le temps de l'impression&nbsp;: ni serveur, ni navigateur&nbsp;;</li>
+<li><strong>l'outil éclaire, il ne décide rien</strong> — ni à la place du praticien, ni à la place du comité, ni à la place de l'administration.</li>
+</ul>
+<h3>Déclarer votre intervention au comité</h3>
+<p>En bas de la même page, un bloc <strong>«&nbsp;Déclarer une intervention libérale&nbsp;»</strong> permet d'annoncer votre présence au bloc&nbsp;: le <strong>jour du bloc</strong>, la <strong>date de consultation</strong>, le <strong>secteur</strong>, la <strong>spécialité</strong>, les deux <strong>bases de remboursement</strong> (CCAM et NGAP) et un libellé de chirurgie facultatif. <strong>Ni nom de patient, ni code d'acte.</strong> Le comité verra cette intervention au moment où il compose le planning de ce jour-là, et décidera lui-même si elle justifie un changement d'affectation.</p>
+<p>Si vous venez de coter un parcours, le jour et la chirurgie sont <strong>déjà pré-remplis</strong> — il ne reste que le secteur à choisir. <strong>Une ligne = un patient</strong>&nbsp;: une journée de huit cataractes, ce sont huit déclarations. C'est ce qui permet de mesurer le rendement par spécialité — sans les montants, l'intervention est vue par le comité mais ne compte dans aucune mesure.</p>
+<p>Vos interventions déclarées s'affichent juste en dessous et restent <strong>supprimables</strong> — une intervention déprogrammée doit pouvoir disparaître. La liste montre les interventions à venir et celles des sept derniers jours&nbsp;; un lien déplie <strong>toutes vos interventions de l'année</strong>. <strong>Vous ne voyez que les vôtres</strong>, et personne ne voit les vôtres à part le comité au moment du placement.</p>
+<p>Cette déclaration ne contient <strong>aucune donnée patient et aucun code d'acte</strong>. À ne pas confondre avec la <strong>déclaration de choix</strong> (section 05), qui est le document que le patient signe.</p>
+<p>Les écrans et certains chiffres peuvent encore bouger&nbsp;: le module continue d'évoluer.</p>
+
+<h2 id="incertain"><span class="n">07</span>Ce qui reste incertain</h2>
+<p>Quelques points ne sont pas tranchés et font l'objet d'une demande de clarification auprès des Caisses Sociales&nbsp;:</p>
+<ul>
+<li>l'<strong>APC</strong> (avis ponctuel de consultant)&nbsp;: elle ne figure pas dans le tableau conventionnel monégasque. L'estimateur la <strong>refuse</strong> désormais pour tout assuré monégasque (verte, rose, bulle, SPME) et ne l'accepte que pour un assuré français&nbsp;;</li>
+<li>la <strong>majoration de coordination</strong> entre spécialistes&nbsp;: existe-t-elle à Monaco&nbsp;? Aucune valeur connue&nbsp;;</li>
+<li>la <strong>chirurgie de la main</strong>&nbsp;: deux actes associés chez nous, peut-être trois par dérogation&nbsp;;</li>
+<li>les <strong>majorations d'analgésie postopératoire</strong>, issues d'une décision postérieure au texte monégasque en vigueur&nbsp;;</li>
+<li>le <strong>cadre monégasque du devis</strong> (entente préalable CCSS) pour les patients bulle et rose.</li>
+</ul>
+<p>En attendant les réponses, rien ne change dans la pratique actuelle.</p>
+
+<h2 id="resume">En résumé</h2>
+<div class="resume">
+<ul>
+<li>Le patient est remboursé <strong>80&nbsp;%</strong> (ou 100&nbsp;% s'il est exonéré) <strong>sur la base</strong>, jamais sur le dépassement.</li>
+<li><strong>Le statut du patient décide du dépassement</strong>&nbsp;: verte, SPME et AME, aucun&nbsp;; rose, jusqu'à +20&nbsp;%&nbsp;; bulle et assurés français, libre. D'où le réflexe de demander la carte.</li>
+<li>Là où le dépassement est libre, on le <strong>cale sur ce que la mutuelle absorbe</strong> (ligne «&nbsp;honoraires&nbsp;» en % de base, colonne non-OPTAM pour les Français)&nbsp;: reste à charge nul pour le patient.</li>
+<li>Au-delà de 70&nbsp;€ de dépassement, une <strong>information écrite préalable</strong> est remise avant l'acte.</li>
+<li><strong>Deux comptes séparés</strong> — consultations et bloc — avec chacun un plafond de 30&nbsp;%, sans communication entre eux.</li>
+<li><strong>L'activité publique conditionne l'activité libérale</strong>&nbsp;: environ 2,33&nbsp;€ de public pour 1&nbsp;€ de libéral.</li>
+<li>Les écarts entre praticiens tiennent au planning&nbsp;; le rôle du comité est de <strong>répartir</strong>, pas d'évaluer.</li>
+<li>Et au quotidien, la seule vraie vigilance&nbsp;: <strong>la ligne d'anesthésie et la consultation sont-elles bien parties&nbsp;?</strong></li>
+</ul>
+</div>
+
+<h2 id="sources">Sources</h2>
+<ul>
+<li><strong>Convention CCSS-CAMTI / Ordre des Médecins de Monaco</strong> du 1<sup>er</sup> avril 2023 (en vigueur jusqu'au 31/03/2028) et son addendum tarifaire du 02/09/2025, à effet du 01/10/2025 — <a href="https://www.caisses-sociales.mc" style="color:var(--acc)">caisses-sociales.mc</a>.</li>
+<li><strong>Ordonnance Souveraine n°&nbsp;13.839 du 29/12/1998 modifiée</strong> (statut des praticiens, activité libérale au service) et <strong>OS n°&nbsp;7.766 du 06/11/2019</strong> (contrôle du 30&nbsp;% par catégorie d'actes)&nbsp;; A.M. n°&nbsp;98-631 et A.M. n°&nbsp;2000-295.</li>
+<li><strong>Documents internes</strong>&nbsp;: protocole de gestion de l'activité libérale (DAM), règlement «&nbsp;Réglementation et respect des bonnes pratiques&nbsp;» ENR/QUA/1086/001 (26/03/2026), note d'information DAM.</li>
+<li><strong>Arrêté Ministériel n° 2005-276</strong> (CCAM monégasque) et <strong>Arrêté Ministériel n° 84-688</strong> (NGAP monégasque).</li>
+<li><strong>Ordonnance souveraine n° 5.743 du 03/03/2016</strong> (AME monégasque).</li>
+<li><strong>NGAP française, art. 18B</strong> (avis ponctuel de consultant) et convention médicale 2024-2026 — dérogation APC pour la consultation pré-anesthésique d'un patient ASA&nbsp;≥&nbsp;3&nbsp;; transposition monégasque à confirmer.</li>
+<li><strong>Relevés administratifs mensuels du groupement</strong> (janvier–juin 2026), validés au centime.</li>
+<li><strong>Documents internes</strong> — antisèche de cotation et guide d'aide au codage, dossier module-liberal du portail. En cas de divergence, la convention et ses addenda font foi.</li>
+</ul>
+
+<footer>Document de travail. Toute correction, tout désaccord, tout passage peu clair est bienvenu — ce guide n'a d'intérêt que s'il est exact et lisible par tout le monde.</footer>
+
+</div>
+</body>
+</html>
