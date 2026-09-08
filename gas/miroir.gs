@@ -1,7 +1,7 @@
 // ⚠️ RÈGLE (détecteur de dérive dépôt↔Apps Script) : incrémenter cette version
 // à CHAQUE push de ce fichier. Le diagnostic (admin → Maintenance) compare la
 // version déployée ici avec celle du dépôt et signale toute recopie oubliée.
-const GAS_VERSION_MIROIR = '2026-09-07.1';
+const GAS_VERSION_MIROIR = '2026-09-08.1';
 
 /* ═══════════════════════════════════════════════════════════════════════
    MIROIR.GS — alimentation du miroir de lecture Cloudflare
@@ -1131,10 +1131,21 @@ function _miroirConstruireAcces_() {
      voyager avec l'identite, elle n'a plus aucune lecture a demander au
      serveur. Cle CONFIG / LIBERAL_ADMIN — jamais de nom dans le code. */
   var libAdmin = '';
+  /* (08/09/2026) TUILES RESTREINTES. Cinq tuiles du dashboard ne s'adressent
+     qu'a une ou deux personnes (CRH, statistiques d'usage, guide technique,
+     consultations, liberal en rodage). Leur destinataire etait ECRIT EN DUR
+     dans dashboard.html — un nom de medecin dans un depot public, et une
+     tuile qui disparait pour tout le monde des que ce nom change.
+     Desormais : cle CONFIG / TUILES_PRIVEES, dans le classeur prive.
+     Format : ID:tuile,tuile;ID:tuile   (ex. AFR:crh,stats;WS:liberal)
+     Cle absente = personne ne voit ces tuiles : le defaut sur : ferme. */
+  var tuilesParMar = {};
   try {
     const cfgA = _configRows_();
     for (var ra = 1; ra < cfgA.length; ra++) {
-      if (String(cfgA[ra][0]).trim() === 'LIBERAL_ADMIN') { libAdmin = norm(cfgA[ra][1]); break; }
+      const cle = String(cfgA[ra][0]).trim();
+      if (cle === 'LIBERAL_ADMIN') libAdmin = norm(cfgA[ra][1]);
+      else if (cle === 'TUILES_PRIVEES') tuilesParMar = _tuilesPriveesLire_(cfgA[ra][1]);
     }
   } catch (e) { /* sans la cle, personne ne gere : le bon defaut */ }
 
@@ -1174,6 +1185,7 @@ function _miroirConstruireAcces_() {
         prenom: colPre >= 0 ? String(data[i][colPre] == null ? '' : data[i][colPre]).trim() : '',
         liberal: colLib >= 0 && String(data[i][colLib]).trim().toUpperCase() === 'O',
         libAdmin: !!libAdmin && norm(data[i][0]) === libAdmin,
+        tuiles: tuilesParMar[norm(data[i][0])] || [],
         rpps: colRpps >= 0 ? String(data[i][colRpps] == null ? '' : data[i][colRpps]).trim() : '',
         /* (CORRECTIF 22/08/2026) Éligibilité à la pose des TP. Le portail
            s'ouvre par la COPIE RAPIDE, pas par la connexion au serveur :
@@ -1192,6 +1204,24 @@ function _miroirConstruireAcces_() {
   try { acces.indisposFigees = _indisposFigees_(); } catch (e) { acces.indisposFigees = false; }
   try { acces.phaseTp = _phaseTp_(); } catch (e) { acces.phaseTp = { actif: false, annee: null, annees: [] }; }
   return acces;
+}
+
+/* Analyse la valeur de CONFIG / TUILES_PRIVEES.
+   « AFR:crh,stats;WS:liberal » -> { AFR:['crh','stats'], WS:['liberal'] }
+   Tolerant aux espaces et a la casse des identifiants ; une entree mal
+   formee est ignoree plutot que de faire tomber la connexion de tous. */
+function _tuilesPriveesLire_(valeur) {
+  const out = {};
+  String(valeur == null ? '' : valeur).split(';').forEach(function (bloc) {
+    const deuxPoints = bloc.indexOf(':');
+    if (deuxPoints < 1) return;
+    const id = bloc.slice(0, deuxPoints).trim().toUpperCase();
+    if (!id) return;
+    const cles = bloc.slice(deuxPoints + 1).split(',')
+      .map(function (c) { return c.trim(); }).filter(Boolean);
+    if (cles.length) out[id] = (out[id] || []).concat(cles);
+  });
+  return out;
 }
 
 function _miroirSha256_(texte) {

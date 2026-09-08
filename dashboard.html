@@ -661,6 +661,12 @@ let MY_ID = null;
 
 let MY_ROLE = null;
 let MY_LIBERAL = false;      // membre du groupement liberal (colonne LIBERAL de MEDECINS)
+/* (08/09/2026) Tuiles reservees. Avant, l'ayant droit etait ECRIT EN DUR ici
+   (un identifiant de medecin dans un depot public) et cinq tuiles
+   qui disparaissent pour tout le monde des que ce nom change. La liste vient
+   desormais du classeur (CONFIG / TUILES_PRIVEES) et voyage avec l'identite,
+   par le relais comme par la connexion au serveur. Vide = aucune tuile. */
+let MY_TUILES = [];
 let INDISPOS_OUVERTE = false;   // campagne de saisie en cours (renvoyé par login)
 let INDISPOS_FIGEES  = false;   // (26/08) planning de l'année de campagne déjà généré → tuile en consultation seule
 let INDISPOS_YEAR = null;       // année concernée par la saisie
@@ -880,6 +886,7 @@ function applyUserBadge(r){
   INDISPOS_FIGEES  = !!r.indisposFigees;   // (26/08) consultation seule dès le portail
   // Membre du groupement liberal : pilote la tuile Module liberal.
   MY_LIBERAL = !!r.liberal;
+  MY_TUILES = Array.isArray(r.tuiles) ? r.tuiles : [];
   INDISPOS_YEAR = r.indisposYear || null;
   // (POSE TP · 22/08/2026) Tuile « Mes jours de temps partiel » : phase déduite
   // côté serveur + éligibilité par les colonnes MEDECINS, aucun nom en dur.
@@ -906,7 +913,7 @@ function applyUserBadge(r){
 function logout(){
   if(!confirm('Se déconnecter de ce téléphone ?')) return;
   SessionPortail.oublier();
-  VIEW_CODE=''; MY_ID=null; MY_ROLE=null; MY_LIBERAL=false; MY_ORDRE_VAC=null;
+  VIEW_CODE=''; MY_ID=null; MY_ROLE=null; MY_LIBERAL=false; MY_ORDRE_VAC=null; MY_TUILES=[];
   try{ sessionStorage.removeItem(OV_CLE); }catch(e){}
   location.reload();
 }
@@ -927,10 +934,10 @@ const TILES = [
   // le 22/08. Teinte verte : les jours verts de l'écran de pose.
   { key:'tp', title:'Mes jours de temps partiel', sub:'Posez vos jours de TP {ANTP}, dans le planning déjà généré.', icon:'calendar-clock', href:'indispos.html?tp=1', ready:true, tp:true, tint:'vert' },
   // (Lot 5-bis) Consultations a venir + absences du MAR sur les 4 semaines qui
-  // suivent chaque consultation. ACCES RESTREINT a DURAND tant que le comite ne
+  // suivent chaque consultation. ACCES RESTREINT (CONFIG / TUILES_PRIVEES) tant que le comite ne
   // pose pas les consultations a 4 semaines : ouvert a tous, l'ecran serait presque
   // vide. Retirer `only` pour la mise en service (et monter la version du site).
-  { key:'consult', title:'Mes consultations', sub:'Vos consultations libérales à venir et vos absences sur la même période.', icon:'calendar-check', href:'absences.html', ready:true, liberal:true, only:'DURAND' },
+  { key:'consult', title:'Mes consultations', sub:'Vos consultations libérales à venir et vos absences sur la même période.', icon:'calendar-check', href:'absences.html', ready:true, liberal:true, prive:true },
   { key:'conges', title:'Mes congés', sub:'Vacances, formation, TP, récup et congés à venir.', icon:'calendar-off', view:'conges', ready:true },
   { key:'topos',    title:'Topos / biblio', sub:'Documents et présentations du service.', icon:'book-open', view:'topos', ready:true },
   { key:'protocoles', title:'Protocoles', sub:'Procédures du service, classées par spécialité.', icon:'clipboard-list', view:'protocoles', tint:'viol', ready:true },
@@ -947,25 +954,25 @@ const TILES = [
   // module est encore en rodage. Pour OUVRIR : retirer `only` et monter la version.
   // TUILE QUI SE SEPARE EN DEUX : le liberal, c'est coter/declarer d'un cote,
   // suivre les 30 % de l'autre. `split` remplace `href` — voir renderTiles.
-  { key:'liberal',  title:'Libéral', sub:'Cotation, devis, déclaration — et suivi des 30 %.', icon:'calculator', ready:true, tint:'viol', liberal:true, only:'DURAND',
+  { key:'liberal',  title:'Libéral', sub:'Cotation, devis, déclaration — et suivi des 30 %.', icon:'calculator', ready:true, tint:'viol', liberal:true, prive:true,
     split:[
       {t:'Cotation & déclaration', s:'Coter un patient, imprimer le devis, déclarer l\'intervention.', href:'docs/module-liberal/estimateur-liberal.html'},
       {t:'Suivi des 30 %',         s:'Ma position, celle du groupe, les marges.',                    href:'suivi-liberal.html'},
     ] },
-  { key:'crh',      title:'CRH', sub:'Comptes rendus de réanimation.', icon:'file-text', href:'crh.html', ready:true, only:'DURAND' },
+  { key:'crh',      title:'CRH', sub:'Comptes rendus de réanimation.', icon:'file-text', href:'crh.html', ready:true, prive:true },
   // Documentation TECHNIQUE du systeme (architecture, wizards, deploiement,
-  // depannage). Sans interet pour l'equipe : tuile reservee a DURAND, comme CRH.
+  // depannage). Sans interet pour l'equipe : tuile reservee, comme CRH.
   // Seul moyen d'y acceder jusqu'ici : taper l'adresse a la main.
-  { key:'technique', title:'Guide technique', sub:'Architecture, déploiement, dépannage du système.', icon:'wrench', href:'docs/guide-technique.html', ready:true, only:'DURAND' },
+  { key:'technique', title:'Guide technique', sub:'Architecture, déploiement, dépannage du système.', icon:'wrench', href:'docs/guide-technique.html', ready:true, prive:true },
   // Statistiques d'usage du portail (29/08/2026) : qui s'en sert, a quelle
-  // frequence, a quels moments. Reservee a DURAND comme CRH et le guide
+  // frequence, a quels moments. Reservee comme CRH et le guide
   // technique. Le serveur refuse l'action aux autres roles : masquer la tuile
   // ne ferme rien.
-  { key:'stats', title:'Statistiques d\'usage', sub:'Qui utilise le portail, à quelle fréquence, à quels moments.', icon:'bar-chart-2', href:'docs/stats-usage.html', ready:true, only:'DURAND' },
+  { key:'stats', title:'Statistiques d\'usage', sub:'Qui utilise le portail, à quelle fréquence, à quels moments.', icon:'bar-chart-2', href:'docs/stats-usage.html', ready:true, prive:true },
 ];
 function renderTiles(){
   const box = document.getElementById('tiles');
-  box.innerHTML = TILES.filter(t => (!t.only || t.only === MY_ID) && (!t.campagne || INDISPOS_OUVERTE) && (!t.tp || (PHASE_TP && MY_QUOTITE < 100 && !MY_TPFIXE)) && (!t.liberal || MY_LIBERAL)).map(t => {
+  box.innerHTML = TILES.filter(t => (!t.prive || MY_TUILES.indexOf(t.key) > -1) && (!t.campagne || INDISPOS_OUVERTE) && (!t.tp || (PHASE_TP && MY_QUOTITE < 100 && !MY_TPFIXE)) && (!t.liberal || MY_LIBERAL)).map(t => {
     const soon = t.ready ? '' : ' soon';
     const tag  = t.ready ? '' : '<span class="badge-soon">Bientôt</span>';
     const arrow = t.ready ? '<div class="tile-arrow">Ouvrir <i data-lucide="arrow-right" style="width:15px;height:15px"></i></div>' : '';

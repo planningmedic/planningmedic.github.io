@@ -20,6 +20,7 @@ const V = (t, c, d) => { if (c) { ok++; console.log('  ✓ ' + t); }
   else { ko++; console.log('  ✗ ' + t + (d !== undefined ? ' → ' + JSON.stringify(d).slice(0,200) : '')); } };
 
 const GS   = path.join(__dirname, '..', 'gas', 'portail.gs');
+const INDGS = path.join(__dirname, '..', 'gas', 'Indispos.gs');  // _aDroitTuile_ y vit
 const PAGE = fs.readFileSync(path.join(__dirname, '..', 'docs', 'stats-usage.html'), 'utf8');
 const DASH = fs.readFileSync(path.join(__dirname, '..', 'dashboard.html'), 'utf8');
 const IND  = fs.readFileSync(path.join(__dirname, '..', 'gas', 'Indispos.gs'), 'utf8');
@@ -52,13 +53,23 @@ function bac() {
   /* Constantes LUES dans le code réel, jamais redéclarées à la main : un bac qui
      invente sa propre liste d'accès testerait la croyance du banc, pas le
      système. C'est précisément l'erreur qui a laissé passer le défaut du 29/08. */
-  const SRC = fs.readFileSync(GS, 'utf8');
   vm.runInContext("const STATS_ORIGINE='2026-09-04';", ctx);
-  vm.runInContext((SRC.match(/const STATS_ALLOWED = \[[^\]]*\];/) || ['const STATS_ALLOWED=[];'])[0], ctx);
+  /* (08/09/2026) La porte lit maintenant CONFIG / TUILES_PRIVEES. On injecte les
+     VRAIES fonctions du dépôt — _aDroitTuile_ et _tuilesPriveesDe_ — plus un
+     onglet CONFIG dans le classeur du bac. Réécrire la règle ici testerait la
+     croyance du banc et non le système : c'est l'erreur du 29/08. */
+  cl.ajouter('CONFIG', [['CLE','VALEUR'], ['TUILES_PRIVEES', 'AYANTDROIT:crh,stats']]);
+  vm.runInContext(
+    'function _configRows_(){ return SpreadsheetApp.getActiveSpreadsheet()' +
+    '.getSheetByName("CONFIG").getDataRange().getValues(); }', ctx);
+  vm.runInContext(extraireFonction(INDGS, '_tuilesPriveesDe_'), ctx);
+  vm.runInContext(extraireFonction(INDGS, '_aDroitTuile_'), ctx);
   vm.runInContext(extraireFonction(GS, 'getStatsUsage'), ctx);
   return { ctx, lus, cl };
 }
-const ADMIN = { id:'DURAND', role:'mar', name:'DURAND' };   // le cas RÉEL : code personnel
+/* L'ayant droit du bac : un identifiant fictif, cité par la clé CONFIG ci-dessus.
+   Plus aucun nom réel dans ce scénario — c'est tout l'objet du changement. */
+const ADMIN = { id:'AYANTDROIT', role:'mar', name:'AYANTDROIT' };
 
 console.log('\n═══ 1. Qui a le droit d\'ouvrir la page ═══');
 /* DÉFAUT RÉEL DU 29/08, trouvé en production, pas au banc. Le contrôle portait
@@ -76,17 +87,23 @@ console.log('\n═══ 1. Qui a le droit d\'ouvrir la page ═══');
     ctx.getStatsUsage({ role:'secretariat', id:'SECRETARIAT' }).success === false);
   V('refus pour un rôle vide', ctx.getStatsUsage({ role:'', id:'X' }).success === false);
   /* Les deux portes qui doivent s'ouvrir. */
-  V('ACCEPTÉ pour DURAND avec son code personnel (rôle mar)',
-    ctx.getStatsUsage({ role:'mar', id:'DURAND' }).success === true,
-    ctx.getStatsUsage({ role:'mar', id:'DURAND' }));
+  V('ACCEPTÉ pour l\'ayant droit avec son code personnel (rôle mar)',
+    ctx.getStatsUsage({ role:'mar', id:'AYANTDROIT' }).success === true,
+    ctx.getStatsUsage({ role:'mar', id:'AYANTDROIT' }));
   V('ACCEPTÉ pour le code d\'administration (rôle admin, id ADMIN)',
     ctx.getStatsUsage({ role:'admin', id:'ADMIN' }).success === true);
   /* Le serveur et la tuile doivent viser la MÊME personne : deux critères
      différents pour la même porte, c'est le défaut du 29/08 qui revient. */
-  const idsServeur = (fs.readFileSync(GS,'utf8').match(/const STATS_ALLOWED = \[([^\]]*)\]/) || [])[1] || '';
-  const idTuile = (DASH.match(/key:'stats'[^}]*only:'([A-Z]+)'/) || [])[1];
-  V('l\'identité autorisée côté serveur est celle de la tuile',
-    !!idTuile && idsServeur.indexOf("'" + idTuile + "'") >= 0, { serveur: idsServeur, tuile: idTuile });
+  /* (08/09/2026) Le critère n'est plus un identifiant écrit des deux côtés,
+     mais UNE SEULE clé du classeur (CONFIG / TUILES_PRIVEES) lue par les deux.
+     On ne compare donc plus deux noms : on vérifie qu'aucun des deux ne nomme
+     personne, et qu'ils interrogent bien la même clé. */
+  const srcGs = fs.readFileSync(GS, 'utf8');
+  V('le serveur ne nomme plus personne', !/STATS_ALLOWED\s*=\s*\[/.test(srcGs));
+  V('la tuile ne nomme plus personne', !/key:'stats'[^}]*only:/.test(DASH));
+  V('le serveur interroge la clé du classeur',
+    /_aDroitTuile_\(user\.id,\s*'stats'\)/.test(srcGs));
+  V('la tuile est marquée réservée', /key:'stats'[^}]*prive:true/.test(DASH));
 }
 
 console.log('\n═══ 2. Aucun total par personne n\'est renvoyé ═══');
@@ -137,8 +154,8 @@ console.log('\n═══ 5. La page et la tuile sont cohérentes avec le serveur
 {
   V('la page appelle bien l\'action getStatsUsage', PAGE.indexOf("action:'getStatsUsage'") >= 0);
   V('la tuile existe dans le portail', DASH.indexOf("key:'stats'") >= 0);
-  V('elle est réservée à DURAND',
-    /key:'stats'[^}]*only:'DURAND'/.test(DASH),
+  V('elle est réservée (droit venu du classeur)',
+    /key:'stats'[^}]*prive:true/.test(DASH),
     (DASH.match(/\{ key:'stats'[^}]*\}/) || [''])[0].slice(0, 160));
   V('elle pointe sur la page réelle', /key:'stats'[^}]*docs\/stats-usage\.html/.test(DASH));
   /* (29/08) La tuile portait 'radar', déjà pris par Veille biblio : deux tuiles
