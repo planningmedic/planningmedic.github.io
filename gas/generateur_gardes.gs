@@ -41,7 +41,7 @@
 // ⚠️ RÈGLE (détecteur de dérive dépôt↔Apps Script) : incrémenter cette version
 // à CHAQUE push de ce fichier. Le diagnostic (admin → Maintenance) compare la
 // version déployée ici avec celle du dépôt et signale toute recopie oubliée.
-const GAS_VERSION_GENERATEUR = '2026-09-08.1';
+const GAS_VERSION_GENERATEUR = '2026-09-08.2';
 
 /* (05/09/2026) INTERRUPTEUR DU NOUVEL ALGORITHME.
    À false, le générateur se comporte EXACTEMENT comme avant : c'est le retour
@@ -340,18 +340,98 @@ function essaiGenerationGardes(year) {
   const an = Number(year) || getIndisposYear();
   const r = generateGardes(an, { dryRun: true });
   const L = [];
+  const pad = function (t, n) { t = String(t); return t + Array(Math.max(1, n - t.length + 1)).join(' '); };
+  const num = function (v, n) { v = String(v); return Array(Math.max(1, n - v.length + 1)).join(' ') + v; };
+
   L.push('═══ ESSAI DE GÉNÉRATION ' + an + ' — AUCUNE ÉCRITURE ═══');
-  L.push('Durée du calcul : ' + (r.ms / 1000).toFixed(1) + ' s   ·   ' + r.gardeurs + ' médecins de garde');
-  L.push('Jours sans binôme : ' + r.sansBinome + (r.jours.length ? '  → ' + r.jours.join(' ') : ''));
-  L.push('Écart réel−cible, par axe :');
-  const NOM = { total:'Total ', sam:'Samedi', jeu:'Jeudi ', vd:'Ven-Dim', vjf:'VeilleJF', jf:'Férié ' };
+  L.push('Durée : ' + (r.ms / 1000).toFixed(1) + ' s   ·   ' + r.gardeurs + ' médecins de garde');
+  L.push('');
+
+  // ── 1. la couverture, avant tout : un trou est plus grave qu'un déséquilibre
+  L.push('── COUVERTURE ──');
+  L.push('Jours sans binôme : ' + r.sansBinome + (r.jours.length ? '  → ' + r.jours.join(' ') : '  (aucun)'));
+  L.push('');
+
+  // ── 2. l'équité, axe par axe
+  L.push('── ÉQUITÉ · écart réel−cible ──');
+  const NOM = { total:'Total', sam:'Samedi', jeu:'Jeudi', vd:'Ven-Dim', vjf:'VeilleJF', jf:'Férié' };
   Object.keys(r.ecarts).forEach(function (k) {
     const e = r.ecarts[k];
-    L.push('   ' + (NOM[k] || k) + ' : ' + e.ecart.toFixed(2) + (e.mar ? '   (' + e.mar + ')' : ''));
+    L.push('   ' + pad(NOM[k] || k, 9) + e.ecart.toFixed(2) + (e.mar ? '   (' + e.mar + ')' : ''));
   });
-  L.push('Avertissements : ' + r.nbWarnings);
-  r.warnings.slice(0, 15).forEach(function (w) { L.push('   · ' + w); });
+  L.push('');
+
+  /* ── 3. LE TABLEAU PAR MÉDECIN. Sans onglet créé, c'est la seule façon de
+     voir qui porte quoi. Les cibles sont affichées à côté du réel : un chiffre
+     seul ne dit pas s'il est juste. */
+  L.push('── PAR MÉDECIN · réel (cible) ──');
+  L.push('   ' + pad('MAR', 12) + pad('total', 12) + pad('sam', 10) + pad('jeu', 10)
+         + pad('ven-dim', 12) + pad('férié', 10) + pad('18h', 6) + 'Noël');
+  const ids = Object.keys(r.compteurs).sort();
+  const duo = function (reel, cib) {
+    if (cib === null || cib === undefined) return String(reel);
+    return reel + ' (' + (Math.round(cib * 10) / 10) + ')';
+  };
+  ids.forEach(function (id) {
+    const c = r.compteurs[id], cb = r.cibles[id] || {};
+    L.push('   ' + pad(id, 12)
+      + pad(duo(c.total, cb.total), 12)
+      + pad(duo(c.sam, cb.sam), 10)
+      + pad(duo(c.jeu, cb.jeu), 10)
+      + pad(duo(c.vd, cb.vd), 12)
+      + pad(duo(r.jf[id], cb.jf), 10)
+      + pad(r.h18[id], 6)
+      + (r.noel[id] || 0));
+  });
+  L.push('');
+
+  /* ── 4. LES SOUHAITS. La première question du comité, et l'aperçu n'y
+     répondait pas : ce bilan n'existait que dans l'onglet de statistiques,
+     donc seulement après une vraie génération. */
+  const sIds = Object.keys(r.souhaits || {}).sort();
+  L.push('── SOUHAITS · honorés / posés ──');
+  if (!sIds.length) { L.push('   aucun souhait posé cette année'); }
+  else {
+    let tp = 0, th = 0;
+    sIds.forEach(function (id) {
+      const s = r.souhaits[id];
+      tp += s.poses; th += s.honores;
+      const pct = s.poses ? Math.round(100 * s.honores / s.poses) : 0;
+      L.push('   ' + pad(id, 12) + num(s.honores, 3) + ' / ' + num(s.poses, 3) + '   ' + num(pct, 3) + ' %');
+    });
+    L.push('   ' + pad('TOTAL', 12) + num(th, 3) + ' / ' + num(tp, 3) + '   '
+           + num(tp ? Math.round(100 * th / tp) : 0, 3) + ' %');
+  }
+  L.push('');
+
+  // ── 5. les quatre nuits de fêtes, celles que tout le monde regarde
+  L.push('── NUITS DE FÊTES ──');
+  Object.keys(r.fetes || {}).sort().forEach(function (d) {
+    L.push('   ' + d + '   ' + r.fetes[d][0] + '  +  ' + r.fetes[d][1]);
+  });
+  L.push('');
+
+  /* ── 6. LA RÈGLE DES PAIRES. Elle s'applique en silence, en écartant des
+     candidats : aucun message ne prouve qu'elle a tenu. On le vérifie ici, le
+     18 h compris — celui qui le fait rentre tard, la maison est vide pareil. */
+  if (r.paires && r.paires.length) {
+    L.push('── PAIRES À ÉVITER ──');
+    r.paires.forEach(function (p) {
+      if (!p.nuits.length) { L.push('   ' + p.paire + ' : aucune nuit ensemble'); }
+      else {
+        L.push('   ' + p.paire + ' : ' + p.nuits.length + ' nuit(s) ensemble');
+        p.nuits.forEach(function (n) { L.push('      ' + n); });
+      }
+    });
+    L.push('');
+  }
+
+  L.push('── AVERTISSEMENTS (' + r.nbWarnings + ') ──');
+  r.warnings.slice(0, 30).forEach(function (w) { L.push('   · ' + w); });
+  if (r.nbWarnings > 30) L.push('   … et ' + (r.nbWarnings - 30) + ' autre(s)');
+  L.push('');
   L.push('Rien n\'a été écrit dans le classeur, aucune notification envoyée.');
+
   const txt = L.join('\n');
   Logger.log(txt);
   return txt;
@@ -2258,8 +2338,71 @@ function generateGardes(year, opts){
                       sam:cnt[id].sam, jeu:cnt[id].jeu, vd:cnt[id].vd, vjf:cnt[id].vjf };
     });
     warnings.forEach(function(w){ Logger.log(w); });
+    /* (08/09/2026) LE CALCUL À BLANC EST LE SEUL ÉCRAN.
+       Il ne crée aucun onglet : tout ce qu'il ne dit pas est perdu. On rend donc
+       ici TOUT ce que la fin du calcul a déjà sous la main — cibles par axe,
+       fériés, Noël, 18 h, souhaits honorés, tenue de la règle des paires. Rien
+       n'est recalculé, rien n'est écrit : ce sont des variables déjà en mémoire
+       que l'ancienne version jetait. */
+    const cibles = {}, jf = {}, noel = {}, h18 = {};
+    gardeDoctors.forEach(function(id){
+      if(!cnt[id]) return;
+      cibles[id] = cible[id] ? { total:cible[id].total, sam:cible[id].sam, jeu:cible[id].jeu,
+                                 vd:cible[id].vd, vjf:cible[id].vjf, jf:cible[id].jf } : null;
+      jf[id] = jfCnt[id] || 0;
+      noel[id] = noelAnCnt[id] || 0;
+      h18[id] = h18cnt[id] || 0;
+    });
+
+    /* Souhaits : combien chacun en a posé, combien ont été honorés. C'est la
+       question que le comité pose en premier, et l'aperçu n'y répondait pas. */
+    const souhaitsBilan = {};
+    Object.keys(souhaits || {}).forEach(function(ds){
+      (souhaits[ds] || []).forEach(function(id){
+        if(!souhaitsBilan[id]) souhaitsBilan[id] = { poses:0, honores:0 };
+        souhaitsBilan[id].poses++;
+        const g = gardes[ds];
+        if(g && (g.g === id || g.g2 === id)) souhaitsBilan[id].honores++;
+      });
+    });
+
+    /* Qui tient les quatre nuits de fêtes : la question la plus regardée. */
+    const fetes = {};
+    [year + '-12-24', year + '-12-25', year + '-12-31', (year+1) + '-01-01'].forEach(function(d){
+      const g = gardes[d];
+      if(g) fetes[d] = [g.g || '—', g.g2 || '—'];
+    });
+
+    /* La règle des paires ne produit aucun message : on vérifie ici qu'elle a
+       tenu, plutôt que de l'affirmer. Le 18 h compte comme une sortie. */
+    const pairesBilan = [];
+    /* PAIRES_EV est une TABLE symétrique { A: Set(B), B: Set(A) }, pas une liste
+       de couples : on la déplie en paires uniques, chacune une seule fois. */
+    const couples = [];
+    Object.keys(PAIRES_EV || {}).forEach(function(a1){
+      (PAIRES_EV[a1] ? Array.from(PAIRES_EV[a1]) : []).forEach(function(b1){
+        if(a1 < b1) couples.push([a1, b1]);
+      });
+    });
+    couples.forEach(function(paire){
+      const a2 = paire[0], b2 = paire[1], nuits = [];
+      allDays.forEach(function(day){
+        const g = gardes[day.date] || {};
+        const role = function(id){
+          if(g.g === id || g.g2 === id) return 'garde';
+          if(h18A[day.date] === id) return '18h';
+          return null;
+        };
+        const ra = role(a2), rb = role(b2);
+        if(ra && rb) nuits.push(day.date + ' (' + ra + ' / ' + rb + ')');
+      });
+      pairesBilan.push({ paire: a2 + ' + ' + b2, nuits: nuits });
+    });
+
     return { dryRun:true, year:year, ms:Date.now()-_tGen,
-             ecarts:ecarts, compteurs:compteurs,
+             ecarts:ecarts, compteurs:compteurs, cibles:cibles,
+             jf:jf, noel:noel, h18:h18, souhaits:souhaitsBilan,
+             fetes:fetes, paires:pairesBilan,
              sansBinome:sansBinome.length, jours:sansBinome.slice(0,10),
              gardeurs:gardeDoctors.filter(function(id){return cnt[id];}).length,
              warnings: warnings.slice(0, 60), nbWarnings: warnings.length };

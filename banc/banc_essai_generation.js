@@ -192,5 +192,51 @@ V('le second lanceur T7 vise bien 2027',
 V('…et rien ne l\'appelle non plus',
   (src6.match(/\bT7\(\)/g) || []).length === 1);
 
+/* ═══ LE RAPPORT À BLANC EST LE SEUL ÉCRAN ══════════════════════════════
+   (08/09/2026) Le calcul à blanc ne crée aucun onglet : ce qu'il n'affiche
+   pas est perdu. Avant, il rendait six écarts et rien d'autre — ni les
+   souhaits honorés, ni la charge par médecin, ni la tenue de la règle des
+   paires. Ces vérifications gardent le contenu du rapport : un champ retiré
+   par mégarde ne se verrait qu'en novembre, au moment d'en avoir besoin. */
+{
+  console.log('\n═══ Le rapport à blanc porte ce qui n\'est écrit nulle part ═══');
+  const M = monde();
+  const r = M.ctx.generateGardes(YEAR, { dryRun: true });
+
+  V('les compteurs par médecin sont rendus',
+    !!r.compteurs && Object.keys(r.compteurs).length > 10);
+  V('leurs cibles le sont aussi', !!r.cibles);
+  /* Un compteur sans sa cible ne dit rien : 5 samedis est juste ou injuste
+     selon qu'on en devait 5 ou 8. */
+  const unId = Object.keys(r.compteurs)[0];
+  V('chaque médecin a sa cible en face de son réel',
+    !!r.cibles[unId] && typeof r.cibles[unId].total === 'number', r.cibles[unId]);
+  V('les fériés sont comptés', !!r.jf && typeof r.jf[unId] === 'number');
+  V('les 18 h sont comptés', !!r.h18 && typeof r.h18[unId] === 'number');
+  V('les nuits de Noël sont comptées', !!r.noel && typeof r.noel[unId] === 'number');
+
+  V('le bilan des souhaits existe', !!r.souhaits);
+  const sIds = Object.keys(r.souhaits || {});
+  if (sIds.length) {
+    V('il porte posés ET honorés',
+      typeof r.souhaits[sIds[0]].poses === 'number'
+      && typeof r.souhaits[sIds[0]].honores === 'number', r.souhaits[sIds[0]]);
+    V('on n\'honore jamais plus qu\'on ne pose',
+      sIds.every(function (id) { return r.souhaits[id].honores <= r.souhaits[id].poses; }));
+  }
+  V('les quatre nuits de fêtes sont nommées',
+    !!r.fetes && Object.keys(r.fetes).length === 4, Object.keys(r.fetes || {}));
+  V('le bilan des paires est rendu', Array.isArray(r.paires));
+
+  /* Rendre la donnée sans l'afficher reviendrait à ne pas la calculer. */
+  const txt = M.ctx.essaiGenerationGardes(YEAR);
+  ['COUVERTURE', 'ÉQUITÉ', 'PAR MÉDECIN', 'SOUHAITS', 'NUITS DE FÊTES', 'AVERTISSEMENTS']
+    .forEach(function (sec) {
+      V('le rapport affiche « ' + sec + ' »', txt.indexOf(sec) > -1);
+    });
+  V('il rappelle qu\'il n\'a rien écrit', /aucune notification envoyée/.test(txt));
+  V('il ne prétend pas avoir généré', txt.indexOf('généré') === -1);
+}
+
 console.log('\n' + ok + ' OK · ' + ko + ' en échec');
 if (ko) process.exit(1);
