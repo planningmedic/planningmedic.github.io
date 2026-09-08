@@ -32,7 +32,7 @@ const dodo = ms => new Promise(r => setTimeout(r, ms));
   cl.ajouter('PLANNING_OVERRIDES', [['DATE','MAR_ID','MATIN','APREM','COMMENTAIRE']]);
   cl.ajouter('GARDES_2027', [['','',''],['','',''],
     ['MAR','','2027-03-01','2027-03-02','2027-03-03','2027-03-04'],
-    ['CATINEAU','','','','',''], ['SEVERAC','','','','',''], ['ARMAND','','','','','']]);
+    ['CHAPUIS','','','','',''], ['SERVANT','','','','',''], ['ANCEL','','','','','']]);
   const PROPS = { MIROIR_PUSH_TOKEN: 'JETON' }, triggers = [], notes = [], trace = [];
   const gctx = vm.createContext({ console, JSON, Date, Number, String, Object, Array, Set, Math, Error, isNaN, parseInt,
     SpreadsheetApp: { getActiveSpreadsheet: () => cl },
@@ -92,9 +92,9 @@ const dodo = ms => new Promise(r => setTimeout(r, ms));
   console.log('\n═══ 7. BOUT EN BOUT : je clique, le classeur reçoit ═══');
 
   // (a) trois placements sur cases flash
-  w.queueOverride('2027-03-03','CATINEAU','am','MAT','Comité — MAT AM');
-  w.queueOverride('2027-03-03','CATINEAU','pm','MAT','Comité — MAT PM');
-  w.queueOverride('2027-03-04','SEVERAC','am','REA','Comité — REA AM');
+  w.queueOverride('2027-03-03','CHAPUIS','am','MAT','Comité — MAT AM');
+  w.queueOverride('2027-03-03','CHAPUIS','pm','MAT','Comité — MAT PM');
+  w.queueOverride('2027-03-04','SERVANT','am','REA','Comité — REA AM');
   V('les 3 gestes sont en attente côté page', Object.keys(w._batchAll()).length === 2, Object.keys(w._batchAll()));
   await w.flushBatch();
   await dodo(50);
@@ -106,29 +106,29 @@ const dodo = ms => new Promise(r => setTimeout(r, ms));
   applicateur();
   const lignes = cl.getSheetByName('PLANNING_OVERRIDES').lignes;
   V('le classeur contient les 2 placements', lignes.length === 3, lignes.map(l=>l.slice(0,4)));
-  V('CATINEAU 03/03 matin ET après-midi', lignes.some(l => dstr(l[0])==='2027-03-03' && l[1]==='CATINEAU' && l[2]==='MAT' && l[3]==='MAT'), lignes[1]);
+  V('CHAPUIS 03/03 matin ET après-midi', lignes.some(l => dstr(l[0])==='2027-03-03' && l[1]==='CHAPUIS' && l[2]==='MAT' && l[3]==='MAT'), lignes[1]);
   V('la file du journal est vidée', [...M.keys()].filter(k=>k.startsWith('j_')).length === 0);
   V('le registre d\'audit garde la trace', [...M.keys()].some(k=>k.startsWith('jfait_')));
   V('le miroir est noté (copie de lecture à rafraîchir)', notes.length >= 1, notes);
 
-  // (c) changement de statut : SEVERAC passe en TP le 04/03
-  const r = vm.runInContext("appliquerStatutJour(2027,'SEVERAC','TP',['2027-03-04'])", gctx);
+  // (c) changement de statut : SERVANT passe en TP le 04/03
+  const r = vm.runInContext("appliquerStatutJour(2027,'SERVANT','TP',['2027-03-04'])", gctx);
   V('statut TP posé', r.applied.length === 1, r);
-  V('le placement SEVERAC du 04/03 a disparu tout seul',
-    !cl.getSheetByName('PLANNING_OVERRIDES').lignes.some(l => dstr(l[0])==='2027-03-04' && l[1]==='SEVERAC'),
+  V('le placement SERVANT du 04/03 a disparu tout seul',
+    !cl.getSheetByName('PLANNING_OVERRIDES').lignes.some(l => dstr(l[0])==='2027-03-04' && l[1]==='SERVANT'),
     cl.getSheetByName('PLANNING_OVERRIDES').lignes.map(l=>l.slice(0,2)));
-  V('les placements de CATINEAU sont intacts',
-    cl.getSheetByName('PLANNING_OVERRIDES').lignes.some(l => l[1]==='CATINEAU'));
+  V('les placements de CHAPUIS sont intacts',
+    cl.getSheetByName('PLANNING_OVERRIDES').lignes.some(l => l[1]==='CHAPUIS'));
 
-  // (d) réquisition : replacer SEVERAC APRÈS le TP
-  w.queueOverride('2027-03-04','SEVERAC','am','REA','Comité — réquisition');
+  // (d) réquisition : replacer SERVANT APRÈS le TP
+  w.queueOverride('2027-03-04','SERVANT','am','REA','Comité — réquisition');
   await w.flushBatch(); await dodo(30); applicateur();
   V('la réquisition (placement postérieur au TP) tient',
-    cl.getSheetByName('PLANNING_OVERRIDES').lignes.some(l => dstr(l[0])==='2027-03-04' && l[1]==='SEVERAC'),
+    cl.getSheetByName('PLANNING_OVERRIDES').lignes.some(l => dstr(l[0])==='2027-03-04' && l[1]==='SERVANT'),
     cl.getSheetByName('PLANNING_OVERRIDES').lignes.map(l=>l.slice(0,2)));
 
   // (e) publication : lot + publier dans le même geste, puis fermeture de la page
-  w.queueOverride('2027-03-01','ARMAND','am','END','Comité — END AM');
+  w.queueOverride('2027-03-01','ANCEL','am','END','Comité — END AM');
   const via = await w._publierCombine(2027);
   V('la publication part par le journal', via === 'journal', via);
   V('la page ne garde plus rien en attente', Object.keys(w._batchAll()).length === 0, w._batchAll());
@@ -136,7 +136,7 @@ const dodo = ms => new Promise(r => setTimeout(r, ms));
   // « je ferme la page » : plus aucun code de la page ne tourne
   applicateur();
   V('APRÈS FERMETURE : le placement final est au classeur',
-    cl.getSheetByName('PLANNING_OVERRIDES').lignes.some(l => l[1]==='ARMAND' && l[2]==='END'),
+    cl.getSheetByName('PLANNING_OVERRIDES').lignes.some(l => l[1]==='ANCEL' && l[2]==='END'),
     cl.getSheetByName('PLANNING_OVERRIDES').lignes.map(l=>l.slice(0,3)));
   V('APRÈS FERMETURE : la publication a bien eu lieu', trace.includes('publier:2027'), trace);
   V('aucune erreur JavaScript sur toute la séance', erreurs.length === 0, erreurs.slice(0,3));

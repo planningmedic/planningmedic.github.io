@@ -55,29 +55,29 @@ function grilleDe(ss, year) {
 /* ═══ 1. LOT B — un TP posé avant la génération survit au planning ═══════ */
 console.log('\n═══ 1. Un jour de temps partiel posé AVANT la génération est acquis ═══');
 {
-  /* LEVASSEUR pose un TP tous les mercredis de l'année. Le mercredi est un jour
+  /* LEBRUN pose un TP tous les mercredis de l'année. Le mercredi est un jour
      banal : sans la règle, le RG du mardi viendrait s'écrire dessus. */
-  const indisposMap = { LEVASSEUR: {} };
+  const indisposMap = { LEBRUN: {} };
   const tpPoses = [];
   for (let d = new Date(YEAR, 0, 1); d <= new Date(YEAR, 11, 31); d.setDate(d.getDate() + 1)) {
-    if (d.getDay() === 3) { const s = ds(d); indisposMap.LEVASSEUR[s] = 'TP'; tpPoses.push(s); }
+    if (d.getDay() === 3) { const s = ds(d); indisposMap.LEBRUN[s] = 'TP'; tpPoses.push(s); }
   }
   const { ss, error } = h.runScenario({ year: YEAR, indisposMap });
   V('la génération aboutit avec 52 TP posés en amont', !error, error);
   const G = grilleDe(ss, YEAR);
   V('l\'onglet GARDES est écrit', !!G);
 
-  if (G && G.LEVASSEUR) {
-    const dansAnnee = tpPoses.filter(s => G.LEVASSEUR[s] !== undefined || Object.keys(G.LEVASSEUR).length);
-    const ecrases = tpPoses.filter(s => G.LEVASSEUR[s] && G.LEVASSEUR[s] !== 'TP');
+  if (G && G.LEBRUN) {
+    const dansAnnee = tpPoses.filter(s => G.LEBRUN[s] !== undefined || Object.keys(G.LEBRUN).length);
+    const ecrases = tpPoses.filter(s => G.LEBRUN[s] && G.LEBRUN[s] !== 'TP');
     V('AUCUN jour de temps partiel écrasé dans le planning', ecrases.length === 0,
-      ecrases.slice(0, 6).map(s => s + '=' + G.LEVASSEUR[s]));
-    const gardesVeille = tpPoses.filter(s => ['G', 'G2'].includes(G.LEVASSEUR[addD(s, -1)]));
+      ecrases.slice(0, 6).map(s => s + '=' + G.LEBRUN[s]));
+    const gardesVeille = tpPoses.filter(s => ['G', 'G2'].includes(G.LEBRUN[addD(s, -1)]));
     V('aucune garde posée la VEILLE d\'un temps partiel', gardesVeille.length === 0, gardesVeille.slice(0, 6));
-    const gardesSur = tpPoses.filter(s => ['G', 'G2'].includes(G.LEVASSEUR[s]));
+    const gardesSur = tpPoses.filter(s => ['G', 'G2'].includes(G.LEBRUN[s]));
     V('aucune garde posée SUR un temps partiel', gardesSur.length === 0, gardesSur.slice(0, 6));
     V('le MAR garde bien des gardes malgré ses 52 TP (il n\'est pas exclu du tour)',
-      Object.values(G.LEVASSEUR).filter(v => v === 'G' || v === 'G2').length > 0, dansAnnee.length);
+      Object.values(G.LEBRUN).filter(v => v === 'G' || v === 'G2').length > 0, dansAnnee.length);
   }
 }
 
@@ -96,10 +96,10 @@ console.log('\n═══ 2. Contre-preuve : la règle est bien CE qui protège l
   const i = src.indexOf(LIGNE);
   const sansB = src.slice(0, i) + src.slice(i + LIGNE.length);
 
-  const indisposMap = { LEVASSEUR: {} };
+  const indisposMap = { LEBRUN: {} };
   const tpPoses = [];
   for (let d = new Date(YEAR, 0, 1); d <= new Date(YEAR, 11, 31); d.setDate(d.getDate() + 1)) {
-    if (d.getDay() === 3) { const s = ds(d); indisposMap.LEVASSEUR[s] = 'TP'; tpPoses.push(s); }
+    if (d.getDay() === 3) { const s = ds(d); indisposMap.LEBRUN[s] = 'TP'; tpPoses.push(s); }
   }
   const roster = h.defaultRoster();
   const sheets = [
@@ -113,7 +113,7 @@ console.log('\n═══ 2. Contre-preuve : la règle est bien CE qui protège l
   let err2 = null;
   try { ctx.generateGardes(YEAR); } catch (e) { err2 = e.message; }
   const G2 = err2 ? null : grilleDe(ss2, YEAR);
-  const ecrases2 = G2 && G2.LEVASSEUR ? tpPoses.filter(s => G2.LEVASSEUR[s] && G2.LEVASSEUR[s] !== 'TP') : [];
+  const ecrases2 = G2 && G2.LEBRUN ? tpPoses.filter(s => G2.LEBRUN[s] && G2.LEBRUN[s] !== 'TP') : [];
   V('SANS la règle, des temps partiels sont bel et bien écrasés (sinon le test 1 ne prouve rien)',
     ecrases2.length > 0, { erreur: err2, ecrases: ecrases2.length });
 }
@@ -128,7 +128,7 @@ console.log('\n═══ 3. Un jour sans binôme arrête tout, sans rien écrire
   const semaine = [];
   for (let d = new Date(YEAR, 5, 7); d <= new Date(YEAR, 5, 13); d.setDate(d.getDate() + 1)) semaine.push(ds(d));
   roster.forEach(([id]) => {
-    if (id === 'SULTAN') return;                       // le seul disponible
+    if (id === 'SUBLET') return;                       // le seul disponible
     indisposMap[id] = {};
     semaine.forEach(s => { indisposMap[id][s] = 'VAC'; });
   });
@@ -175,7 +175,7 @@ console.log('\n═══ 4. Chaque levier proposé débloque réellement, et le 
   const indisposMap = {};
   const jours = [];
   for (let d = new Date(YEAR, 8, 6); d <= new Date(YEAR, 8, 12); d.setDate(d.getDate() + 1)) jours.push(ds(d));
-  const libres = ['SULTAN'];
+  const libres = ['SUBLET'];
   roster.forEach(([id]) => {
     if (libres.includes(id)) return;
     indisposMap[id] = {};
@@ -304,7 +304,7 @@ console.log('\n═══ 5. Le diagnostic dit exactement la même chose que le m
   const indisposMap = {};
   const jours = [];
   for (let d = new Date(YEAR, 6, 5); d <= new Date(YEAR, 6, 11); d.setDate(d.getDate() + 1)) jours.push(ds(d));
-  roster.forEach(([id]) => { if (id === 'SULTAN') return; indisposMap[id] = {}; jours.forEach(s => { indisposMap[id][s] = 'VAC'; }); });
+  roster.forEach(([id]) => { if (id === 'SUBLET') return; indisposMap[id] = {}; jours.forEach(s => { indisposMap[id][s] = 'VAC'; }); });
   const sheets = [
     h.makeSheet('MEDECINS', h.medecinsRows(roster)),
     h.makeSheet('INDISPOS_' + YEAR, h.indisposRows(YEAR, roster, indisposMap)),

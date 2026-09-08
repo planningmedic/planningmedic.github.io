@@ -21,18 +21,18 @@ const trier = (a, b) => vm.runInContext('_caducsTrier_(' + JSON.stringify(a) + '
 console.log('\n═══ F1. La fusion : un mois propre efface ses fantômes ═══');
 {
   const fantomes = [
-    { mois: 'Janvier 2027', marId: 'SUPLY', date: '2027-01-04', statut: 'F' },
-    { mois: 'Janvier 2027', marId: 'WIDEHEM', date: '2027-01-07', statut: 'RG' },
-    { mois: 'Juin 2026', marId: 'SUPLY', date: '2026-06-25', statut: 'RG' },
+    { mois: 'Janvier 2027', marId: 'SUREAU', date: '2027-01-04', statut: 'F' },
+    { mois: 'Janvier 2027', marId: 'VALLET', date: '2027-01-07', statut: 'RG' },
+    { mois: 'Juin 2026', marId: 'SUREAU', date: '2026-06-25', statut: 'RG' },
   ];
   const r = fusionner(fantomes, 'Janvier 2027', []);
   V('publier Janvier 2027 SANS conflit efface ses deux fantômes', !r.some(x => x.mois === 'Janvier 2027'), r);
   V('les entrées des AUTRES mois sont intactes', r.length === 1 && r[0].date === '2026-06-25', r);
 
-  const r2 = fusionner(fantomes, 'Juin 2026', [{ marId: 'SULTAN', date: '2026-06-30', statut: 'RG' }]);
+  const r2 = fusionner(fantomes, 'Juin 2026', [{ marId: 'SUBLET', date: '2026-06-30', statut: 'RG' }]);
   V('publier un mois AVEC conflits remplace tout son lot', r2.filter(x => x.mois === 'Juin 2026').length === 1
-    && r2.some(x => x.marId === 'SULTAN') && !r2.some(x => x.date === '2026-06-25'), r2);
-  V('les nouvelles entrées portent bien le mois publié', r2.find(x => x.marId === 'SULTAN').mois === 'Juin 2026');
+    && r2.some(x => x.marId === 'SUBLET') && !r2.some(x => x.date === '2026-06-25'), r2);
+  V('les nouvelles entrées portent bien le mois publié', r2.find(x => x.marId === 'SUBLET').mois === 'Juin 2026');
   V('une mémoire absente (null) ne casse rien', fusionner(null, 'Mai 2026', []).length === 0);
 
   const gros = Array.from({ length: 250 }, (_, i) => ({ mois: 'Mars 2026', marId: 'X' + i, date: '2026-03-01', statut: 'F' }));
@@ -44,10 +44,10 @@ console.log('\n═══ F2. Le tri : seul l\'avenir avertit ═══');
 {
   const auj = '2026-08-24';
   const r = trier([
-    { marId: 'SUPLY', date: '2026-06-25', statut: 'RG' },       // passé
-    { marId: 'PARTOUCHE', date: '2026-08-28', statut: 'F' },     // futur
+    { marId: 'SUREAU', date: '2026-06-25', statut: 'RG' },       // passé
+    { marId: 'PELLETIER', date: '2026-08-28', statut: 'F' },     // futur
     { marId: 'DURAND', date: '2026-08-24', statut: 'CP' },     // aujourd'hui
-    { marId: 'WIDEHEM', date: '2027-01-07', statut: 'RG' },      // futur lointain
+    { marId: 'VALLET', date: '2027-01-07', statut: 'RG' },      // futur lointain
   ], auj);
   V('le passé part en information', r.passes.length === 1 && r.passes[0].date === '2026-06-25', r.passes);
   V("aujourd'hui compte comme à venir", r.futurs.some(x => x.date === '2026-08-24'));

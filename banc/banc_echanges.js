@@ -534,11 +534,23 @@ console.log('\n═══ 20. Un humain lit ces messages : « Dr Durand », jamai
   V('l\'expiration dit « au Dr Bravo »',
     d.notifs.some(n => /au Dr Bravo est restée/.test(n.corps)), d.notifs);
 
-  // Le cas particulier de l'écran : PRUNET est Pr, pas Dr
+  /* (08/09/2026) Le titre « Pr » etait attache a un NOM ecrit en dur, des deux
+     cotes. Il vient maintenant de la colonne NOM de MEDECINS et voyage avec
+     l'identite. Ce que ce scenario garde : que l'ecran et les notifications
+     lisent LA MEME source, et qu'aucun des deux ne cite un praticien. */
   const dash = fs.readFileSync(path.join(__dirname, '..', 'dashboard.html'), 'utf8');
-  V('l\'écran traite PRUNET en « Pr »', /id==='PRUNET'\?'Pr':'Dr'/.test(dash.replace(/\s/g, '')), 'règle de _meName');
   const gs = fs.readFileSync(path.join(__dirname, '..', 'gas', 'echanges.gs'), 'utf8');
-  V('les notifications suivent LA MÊME règle pour PRUNET', /PRUNET' \? 'Pr ' : 'Dr '/.test(gs));
+  V('l\'écran déduit le titre de la liste reçue', /TITRES_PR\.indexOf\(id\)/.test(dash));
+  V('les notifications lisent la même source', /_effectifTitresGas_\(\)\.titresPr/.test(gs));
+  V('ni l\'écran ni les notifications ne nomment un praticien',
+    !/'PERRIN'/.test(dash) && !/'PERRIN'/.test(gs));
+  /* La liste est deduite de la colonne NOM par les DEUX chemins d'identite :
+     la copie rapide et la connexion au serveur. Un seul des deux, et le titre
+     changerait selon que le relais repond ou non. */
+  const mir = fs.readFileSync(path.join(__dirname, '..', 'gas', 'miroir.gs'), 'utf8');
+  const ind = fs.readFileSync(path.join(__dirname, '..', 'gas', 'Indispos.gs'), 'utf8');
+  V('la copie rapide porte la liste', /acces\.titresPr/.test(mir));
+  V('le serveur porte la même liste', /titresPr: _effectifTitresGas_\(\)/.test(ind));
 }
 
 console.log('\n' + ok + ' OK · ' + ko + ' en échec');

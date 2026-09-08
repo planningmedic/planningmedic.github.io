@@ -4,7 +4,7 @@
 
    CE QUI S'EST PASSÉ (08/09/2026). Cinq tuiles du dashboard — CRH,
    statistiques d'usage, guide technique, consultations, libéral — étaient
-   réservées par `only:'FROHLICH'`, écrit dans dashboard.html. Deux défauts
+   réservées par un identifiant de médecin écrit dans dashboard.html. Deux défauts
    dans la même ligne : un nom de médecin publié dans un dépôt public, et
    un réglage que personne ne peut changer sans toucher au code. Lors de la
    migration, un remplacement de nom a transformé cet identifiant en un MAR
@@ -39,7 +39,7 @@ console.log('\n═══ 1. Plus aucun nom de médecin en dur ═══');
      nom d'hier. */
   V('aucune tuile ne porte un identifiant en dur', !/only\s*:\s*['"]/.test(DASH));
   V('le dépôt ne cite plus le nom de l\'administrateur',
-    !/FROHLICH|DURAND/i.test(DASH), (DASH.match(/FROHLICH|DURAND/gi) || []).slice(0, 3));
+    !/DURAND|PERRIN/i.test(DASH), (DASH.match(/DURAND|PERRIN/gi) || []).slice(0, 3));
   V('les tuiles réservées sont marquées `prive`', /prive\s*:\s*true/.test(DASH));
   const n = (DASH.match(/prive\s*:\s*true/g) || []).length;
   V('les cinq tuiles réservées sont bien marquées', n === 5, n);
@@ -81,7 +81,7 @@ console.log('\n═══ 4. Lecture de la clé : le défaut est FERMÉ ═══
   V('un autre identifiant reçoit les siennes',
     JSON.stringify(lire('AFR:crh,stats;WS:liberal', 'WS')) === '["liberal"]');
   V('un identifiant absent ne reçoit rien',
-    JSON.stringify(lire('AFR:crh,stats', 'SULTAN')) === '[]');
+    JSON.stringify(lire('AFR:crh,stats', 'SUBLET')) === '[]');
   V('clé absente : personne ne voit rien', JSON.stringify(lire('', 'AFR')) === '[]');
   V('clé nulle : personne ne voit rien', JSON.stringify(lire(null, 'AFR')) === '[]');
   V('la casse de l\'identifiant est indifférente',

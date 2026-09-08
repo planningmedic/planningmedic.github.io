@@ -9,7 +9,7 @@ Sans réduire le nombre de MAR en vacances, sans autoriser deux gardes d'affilé
 
 ⚠️ **Une première version a été poussée puis RETIRÉE le même jour.** Elle fermait
 les trous mais **dégradait l'équité des week-ends** : écart par axe de 5,3 gardes
-contre 3,4 pour le moteur d'origine (ZAMARON, 2041 : 2 week-ends pour une cible
+contre 3,4 pour le moteur d'origine (ZEVACO, 2041 : 2 week-ends pour une cible
 de 7,3). Le dépôt a été restauré, puis la passe réécrite. Arthur n'avait rien
 recopié dans Apps Script : la production n'a jamais été touchée.
 
@@ -115,7 +115,7 @@ Au-delà des 140 années simulées et du rejeu de 2026, l'année **2027 a été 
 pour de vrai dans le classeur du service**, avec le code déployé (`2026-07-23.3`).
 
 Conditions : 25 MAR, indisponibilités réalistes (données réelles 2026 décalées de
-364 jours, ~2 000 jours d'absence), souhaits de 3 MAR sur les mardis — dont PRUNET
+364 jours, ~2 000 jours d'absence), souhaits de 3 MAR sur les mardis — dont PERRIN
 en régime plafond (44 mardis) et deux MAR en régime normal (10 mardis chacun).
 
 Résultat :
@@ -162,7 +162,7 @@ que sa cible restait à ~4,8 → écarts artefactuels de 4 à 6 gardes, et **70 
 années au rouge** sur le certificat d'équité.
 
 Usage réel confirmé par Arthur : les jours de temps partiel sont **dispersés**,
-parfois groupés sur une semaine ; le seul rythme fixe du service est BOUREGBA
+parfois groupés sur une semaine ; le seul rythme fixe du service est BRIAND
 (60 %, jeudi + vendredi), qui ne prend pas de gardes. Modèle corrigé en volume
 équivalent (~52 j/an) posé au fil de l'eau. Après correction, le taux d'années au
 rouge tombe de 70 % à 29 % (seuil 2) et le pire écart par axe de 5,9 à 3,3.

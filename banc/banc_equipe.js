@@ -111,7 +111,7 @@ console.log('\n═══ T067 · absence longue de trois semaines ═══');
 
 console.log('\n═══ T-AFF · Enregistrer la grille des affectations crée les lignes manquantes ═══');
 {
-  /* (19/08/2026) Vécu le matin même : PRUNET, fiche créée après l'onglet
+  /* (19/08/2026) Vécu le matin même : PERRIN, fiche créée après l'onglet
      AFFECTATIONS_2026, s'affichait « VOL » à l'écran (convention d'affichage)
      mais l'Enregistrer du comité le sautait EN SILENCE — le journal annonçait
      « 25 mis à jour » pour 24 lignes écrites. Le geste du comité doit rendre
@@ -150,7 +150,7 @@ console.log('\n═══ T-AFF · Enregistrer la grille des affectations crée l
 console.log('\n═══ T-AFF-2 · Enregistrer n\'écrit QUE les MARs touchés (envoi différentiel) ═══');
 {
   /* (19/08/2026, après-midi) Le matin, Enregistrer envoyait TOUTE la grille —
-     nécessaire pour créer la ligne de PRUNET, mais dangereux : depuis une base
+     nécessaire pour créer la ligne de PERRIN, mais dangereux : depuis une base
      restée ouverte, on réécrivait aussi le travail des autres. Décision
      d'Arthur : n'envoyer que les MARs touchés en session. La protection
      capitale s'éprouve ici À L'OCTET : la ligne d'un MAR jamais touché doit

@@ -16,7 +16,7 @@ for(let y=Y0;y<=Y1;y++){
   const gapsAll=[], gapsHorsWE=[]; let sous7=0, sous7hWE=0, nG=0, nGh=0;
   let moisTot=0, mois4=0, pireMois=0;
   Object.entries(P.byDoc).forEach(([id,days])=>{
-    if(id==='PRUNET') return;
+    if(id==='PERRIN') return;
     const ds=Object.keys(days).filter(d=>days[d]==='G'||days[d]==='G2').sort();
     if(!ds.length) return;
     const parMois={};

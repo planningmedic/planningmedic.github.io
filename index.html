@@ -904,6 +904,17 @@ body{font-variant-numeric:tabular-nums}
 // La page exige désormais un code valide (MAR ou admin). Le code est
 // mémorisé en sessionStorage et envoyé en POST (jamais dans l'URL).
 // (La liste DOCTORS en dur a été supprimée : code mort + noms en clair.)
+/* (08/09/2026) Le titre affiché et le régime de souhaits garantis venaient d'un
+   nom de praticien écrit en dur. Deux défauts : ce nom vivait dans
+   un dépôt public, et une règle qu'il aurait fallu modifier dans le code le jour
+   où elle changerait de titulaire. Les deux listes arrivent maintenant avec
+   l'identité, déduites de MEDECINS — colonne NOM pour le titre, colonne
+   souhait_plafond pour le régime. Vides tant que l'identité n'est pas reçue :
+   « Dr » pour tout le monde, aucun régime particulier. Le bon défaut. */
+let TITRES_PR = [], SOUHAITS_PLAFOND = [];
+const _tit    = id => (TITRES_PR.indexOf(id) > -1 ? 'Pr ' : 'Dr ');
+const _titMaj = id => (TITRES_PR.indexOf(id) > -1 ? 'PR ' : 'DR ');
+const _souhaitsGarantisId = id => SOUHAITS_PLAFOND.indexOf(id) > -1;
 let VIEW_CODE = '';
 let MY_ID = null; // id du MAR connecté (null si connexion admin) — personnalisation des vues
 
@@ -926,7 +937,7 @@ function renderTonightCard(){
   const hasToday=DATA.months.some(m=>m.days.some(d=>d.date===today));
   if(!hasToday){ el.style.display='none'; return; }
   const fmtD=ds=>new Date(ds+'T12:00:00').toLocaleDateString('fr-FR',{weekday:'short',day:'numeric',month:'short'});
-  const nm=id=>(id==='PRUNET'?'Pr ':'Dr ')+id.charAt(0)+id.slice(1).toLowerCase();
+  const nm=id=>_tit(id)+id.charAt(0)+id.slice(1).toLowerCase();
   const chips=[];
   const tonight=_gardeOn(today);
   if(tonight.length){
@@ -958,8 +969,13 @@ function isWeekProvisoire(mondayDateStr){
   return new Date(mondayDateStr + 'T12:00:00') > horizon;
 }
 
-function _meName(id){ return (id==='PRUNET'?'Pr ':'Dr ')+id.charAt(0)+id.slice(1).toLowerCase(); }
+function _meName(id){ return _tit(id)+id.charAt(0)+id.slice(1).toLowerCase(); }
 function applyUserBadge(r){
+
+  /* (08/09/2026) Titre affiché et régime de souhaits garantis : listes globales
+     déduites de MEDECINS, servies par les DEUX chemins d'identité. */
+  TITRES_PR = Array.isArray(r && r.titresPr) ? r.titresPr : [];
+  SOUHAITS_PLAFOND = Array.isArray(r && r.souhaitsPlafond) ? r.souhaitsPlafond : [];
   MY_ID = (r && r.role === 'mar' && r.id) ? r.id : null;
   const pill = document.getElementById('mePill');
   if (pill) {
@@ -1482,8 +1498,8 @@ function buildYearSelect(availableYears) {
        Constaté en réel : le sélecteur affichait 2027, l'écran Équité montrait
        encore les chiffres de 2026 — totaux ET cibles de l'année précédente, sous
        le libellé de la nouvelle. Reproduit à l'identique hors ligne : les six
-       écarts affichés (Albouy -2,4 samedis · Armando -4,0 · Catineau -3,0 ·
-       Durand +2,2 jeudis · Ferriero +5,0 · Guerin -3,0) sont exactement ceux
+       écarts affichés (Aubert -2,4 samedis · Aveline -4,0 · Chapuis -3,0 ·
+       Durand +2,2 jeudis · Fauvel +5,0 · Gautier -3,0) sont exactement ceux
        du planning 2026 comparé à ses propres cibles.
        C'est pire qu'un écran vide : le certificat annonçait « 19 écarts au-delà
        de 2 gardes » sur un planning 2027 qui n'en compte aucun.
@@ -1964,7 +1980,7 @@ function renderConsPanel(month,daySlots,today){
   if(!panel) return;
   const CS_LABELS={VIS:'Viscéral',ORL:'ORL',ORT:'Ortho',END:'Endoscopies',MAT:'Maternité',INTER:'Interventionnel',POLY:'Polyvalent'};
   const csColor=spec=>SECTOR_COLORS[spec]||(spec==='INTER'?SECTOR_COLORS.CI:spec==='POLY'?SECTOR_COLORS.VOLANT:{bg:'#F1F5F9',fg:'#64748B'});
-  const nameOf=id=>(id==='PRUNET'?'Pr ':'Dr ')+id.charAt(0)+id.slice(1).toLowerCase();
+  const nameOf=id=>_tit(id)+id.charAt(0)+id.slice(1).toLowerCase();
   const cons=Array(7).fill(null).map(()=>({am:[],pm:[]}));
   month.doctors.forEach(doc=>{
     daySlots.forEach((slot,dow)=>{
@@ -2228,7 +2244,7 @@ function renderMedecins(){
     const s=docStats[doc.id];
     const sc=SECTOR_COLORS[s.sector]||SECTOR_COLORS.VOLANT;
     const absTotal=s.counts.abs;
-    const name=(doc.id==='PRUNET'?'PR ':'DR ')+doc.id.charAt(0)+doc.id.slice(1).toLowerCase();
+    const name=_titMaj(doc.id)+doc.id.charAt(0)+doc.id.slice(1).toLowerCase();
     html+=`<div class="med-card${doc.id===MY_ID?' me-card':''}" onclick="openDocPanel('${doc.id}')">
       <div class="med-accent" style="background:${sc.fg}"></div>
       <div class="med-card-top">
@@ -2279,7 +2295,7 @@ function renderDocPanel(){
   // Header
   const di=month.doctors.findIndex(d=>d.id===currentDocId);
   const color=AVATAR_COLORS[di%AVATAR_COLORS.length];
-  const name=(currentDocId==='PRUNET'?'PR ':'DR ')+currentDocId.charAt(0)+currentDocId.slice(1).toLowerCase();
+  const name=_titMaj(currentDocId)+currentDocId.charAt(0)+currentDocId.slice(1).toLowerCase();
   const av=document.getElementById('dpAvatar');
   av.textContent=doc.initials;
   document.getElementById('dpName').textContent=name;
@@ -2451,8 +2467,8 @@ function _cibNum(v){ const n=(v instanceof Date)?NaN:Number(v); return (isFinite
       classeur : la colonne CIBLE promet 730,8 gardes pour 707 posées, et 103,7
       samedis pour 91. La différence, ce sont les gardes assurées par un médecin
       EXTÉRIEUR au service, absent de la liste. Tout le monde apparaissait ~1,7
-      garde trop bas : GHIGLIONE, ALBOUY et SALA signalés alors qu'ils sont pile
-      à leur part, LEY à +2,1 absent de la liste.
+      garde trop bas : trois MAR signalés alors qu'ils sont pile
+      à leur part, LEMAIRE à +2,1 absent de la liste.
    2. Des cibles à quinze décimales (« 7 /5.258134490238612 ») : la correction
       du point 1 produisait un nombre brut, affiché tel quel.
 
@@ -2832,11 +2848,11 @@ function setEquiteSourceIdx(src){
 async function loadEquiteLive(force){
   const wrap = document.getElementById('eqWrap');
   if(!wrap) return;
-  const nameOf = id => (id==='PRUNET'?'Pr ':'Dr ')+id.charAt(0)+id.slice(1).toLowerCase();
+  const nameOf = id => _tit(id)+id.charAt(0)+id.slice(1).toLowerCase();
   const build = (stats)=>{
     if(EQ_SRC_IDX!=='live') return;
     const list = stats.filter(s=>(s.total||0)>0).map(s=>({
-      name:nameOf(s.medecin), wish:s.medecin==='PRUNET', total:s.total||0, cTot:_cibNum(s.cible),
+      name:nameOf(s.medecin), wish:_souhaitsGarantisId(s.medecin), total:s.total||0, cTot:_cibNum(s.cible),
       lu:s.lun||0, ma:s.mar||0, me:s.mer||0, je:s.jeu||0, sa:s.sat||0, vd:s.vd||0, jf:s.jf||0, vjf:s.vjf||0,
       cSa:_cibNum(s.cSat), cJe:_cibNum(s.cJeu), cVd:_cibNum(s.cVd), cVjf:_cibNum(s.cVjf), cJf:_cibNum(s.cJf),
     }));
@@ -2878,7 +2894,7 @@ function renderEquite(){
   if(!wrap || !DATA) return;
   EQ_SRC_IDX='initiale';
   const _sw=document.getElementById('eqSwitchIdx'); if(_sw) _sw.querySelectorAll('.eqv-sw-btn').forEach(b=>b.classList.toggle('active', b.dataset.src==='initiale'));
-  const nameOf = id => (id==='PRUNET'?'Pr ':'Dr ')+id.charAt(0)+id.slice(1).toLowerCase();
+  const nameOf = id => _tit(id)+id.charAt(0)+id.slice(1).toLowerCase();
   if(!(DATA.equiteInitiale && DATA.equiteInitiale.length)){
     wrap.innerHTML = '<div style="padding:30px;text-align:center;color:#94A3B8">Vue \u00e9quit\u00e9 indisponible \u2014 republier le planning pour g\u00e9n\u00e9rer la r\u00e9partition fig\u00e9e.</div>';
     return;
@@ -2888,7 +2904,7 @@ function renderEquite(){
     const list = DATA.equiteInitiale.filter(e=>e.total>0).map(e=>{
       const cb = cibles[e.id] || {};
       return {
-        name:nameOf(e.id), wish:e.id==='PRUNET', total:e.total, cTot:_cibNum(cb.cible),
+        name:nameOf(e.id), wish:_souhaitsGarantisId(e.id), total:e.total, cTot:_cibNum(cb.cible),
         lu:e.lu||0, ma:e.ma||0, me:e.me||0, je:e.je||0, sa:e.sa||0, vd:e.vd||0, jf:e.jf||0, vjf:e.vjf||0,
         cSa:_cibNum(cb.cSat), cJe:_cibNum(cb.cJeu), cVd:_cibNum(cb.cVd), cVjf:_cibNum(cb.cVjf),
       };
@@ -2919,7 +2935,7 @@ function renderAffectations(){
   const baseYear = DATA.months[0]?.year;
   const _now = new Date();
   const curM = (_now.getFullYear()===baseYear) ? _now.getMonth()+1 : 0;
-  const nameOf = id => (id==='PRUNET'?'Pr ':'Dr ')+id.charAt(0)+id.slice(1).toLowerCase();
+  const nameOf = id => _tit(id)+id.charAt(0)+id.slice(1).toLowerCase();
   const secOf = (id,m) => { const a = AFFECTATIONS_DATA[id]||{}; return a[m] || a[String(m)] || 'VOLANT'; };
   const abbr = s => s==='VOLANT' ? 'VOL' : s;
   // (07/2026) SECLABELS et l'ordre de légende étaient FIGÉS ici : ils ne suivaient
@@ -3153,7 +3169,7 @@ function renderMobileDay() {
   let html = '';
 
   if (isToday) {
-    const nm=id=>(id==='PRUNET'?'Pr ':'Dr ')+id.charAt(0)+id.slice(1).toLowerCase();
+    const nm=id=>_tit(id)+id.charAt(0)+id.slice(1).toLowerCase();
     const tomIds=_gardeOn(_plusDays(today,1));
     const meTonight = MY_INIT && guards.includes(MY_INIT);
     html += `<div class="m-tonight">

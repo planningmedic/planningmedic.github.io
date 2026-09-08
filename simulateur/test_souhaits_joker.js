@@ -53,12 +53,12 @@ console.log(`Calendrier 2027 — ${jeudisOrd.length} jeudis, ${samedisOrd.length
 
 // ── T1 : un souhait de JEUDI est honoré, sans dépasser la part ───────────────
 {
-  const im = { SULTAN: {} };
-  jeudisOrd.filter((d, i) => i % 6 === 0).slice(0, 6).forEach(d => im.SULTAN[d] = 'SOUHAIT');
-  const o = run(`T1 — SULTAN souhaite ${Object.keys(im.SULTAN).length} jeudis répartis sur l'année`, im);
-  const hon = Object.keys(im.SULTAN).filter(d => aGarde(o.P, 'SULTAN', d)).length;
-  const reel = num(o.st.SULTAN['JEU']), cible = num(o.st.SULTAN['CIBLE JEU']);
-  console.log(`   honorés ${hon}/${Object.keys(im.SULTAN).length} | jeudis ${reel} pour une part de ${cible}`);
+  const im = { SUBLET: {} };
+  jeudisOrd.filter((d, i) => i % 6 === 0).slice(0, 6).forEach(d => im.SUBLET[d] = 'SOUHAIT');
+  const o = run(`T1 — SUBLET souhaite ${Object.keys(im.SUBLET).length} jeudis répartis sur l'année`, im);
+  const hon = Object.keys(im.SUBLET).filter(d => aGarde(o.P, 'SUBLET', d)).length;
+  const reel = num(o.st.SUBLET['JEU']), cible = num(o.st.SUBLET['CIBLE JEU']);
+  console.log(`   honorés ${hon}/${Object.keys(im.SUBLET).length} | jeudis ${reel} pour une part de ${cible}`);
   ok(o.errs === 0, 'invariants intacts');
   ok(hon >= 1, 'au moins un souhait de jeudi est honoré');
   ok(reel <= Math.ceil(cible), `jeudis ≤ part arrondie (${reel} ≤ ${Math.ceil(cible)})`);
@@ -67,9 +67,9 @@ console.log(`Calendrier 2027 — ${jeudisOrd.length} jeudis, ${samedisOrd.length
 // ── T2 : un souhait de VENDREDI emporte le dimanche (week-end entier) ────────
 {
   const ven = vendredisOrd[12], dim = A.addD(ven, 2);
-  const im = { SUPLY: { [ven]: 'SOUHAIT' } };
-  const o = run(`T2 — SUPLY souhaite le vendredi ${ven} → week-end entier`, im);
-  const aVen = aGarde(o.P, 'SUPLY', ven), aDim = aGarde(o.P, 'SUPLY', dim);
+  const im = { SUREAU: { [ven]: 'SOUHAIT' } };
+  const o = run(`T2 — SUREAU souhaite le vendredi ${ven} → week-end entier`, im);
+  const aVen = aGarde(o.P, 'SUREAU', ven), aDim = aGarde(o.P, 'SUREAU', dim);
   console.log(`   vendredi ${aVen ? 'pris' : 'non'} | dimanche ${aDim ? 'pris' : 'non'}`);
   ok(o.errs === 0, 'invariants intacts (dont intégrité du week-end)');
   ok(aVen === aDim, 'vendredi et dimanche vont ensemble — jamais l\'un sans l\'autre');
@@ -78,10 +78,10 @@ console.log(`Calendrier 2027 — ${jeudisOrd.length} jeudis, ${samedisOrd.length
 // ── T3 : un souhait de DIMANCHE remonte au vendredi ─────────────────────────
 {
   const ven = vendredisOrd[20], dim = A.addD(ven, 2);
-  const im = { ALBOUY: { [dim]: 'SOUHAIT' } };
-  const o = run(`T3 — ALBOUY souhaite le dimanche ${dim} → le vendredi vient avec`, im);
+  const im = { AUBERT: { [dim]: 'SOUHAIT' } };
+  const o = run(`T3 — AUBERT souhaite le dimanche ${dim} → le vendredi vient avec`, im);
   ok(o.errs === 0, 'invariants intacts');
-  ok(aGarde(o.P, 'ALBOUY', ven) === aGarde(o.P, 'ALBOUY', dim),
+  ok(aGarde(o.P, 'AUBERT', ven) === aGarde(o.P, 'AUBERT', dim),
     'demander un dimanche revient à demander le week-end complet');
 }
 
@@ -91,20 +91,20 @@ console.log(`Calendrier 2027 — ${jeudisOrd.length} jeudis, ${samedisOrd.length
 //  mesurés sur l'année 2027 (Pâques, Pentecôte, 15 août, Toussaint).
 if (lundisFeries.length) {
   const lun = lundisFeries[0], sam = A.addD(lun, -2);
-  const im = { GUERIN: { [lun]: 'SOUHAIT' } };
-  const o = run(`T4 — GUERIN souhaite le lundi férié ${lun} → samedi ${sam} couplé`, im);
+  const im = { GAUTIER: { [lun]: 'SOUHAIT' } };
+  const o = run(`T4 — GAUTIER souhaite le lundi férié ${lun} → samedi ${sam} couplé`, im);
   ok(o.errs === 0, 'aucun couplage brisé (défaut corrigé)');
-  ok(aGarde(o.P, 'GUERIN', lun) === aGarde(o.P, 'GUERIN', sam),
+  ok(aGarde(o.P, 'GAUTIER', lun) === aGarde(o.P, 'GAUTIER', sam),
     'le samedi et le lundi férié restent au même binôme');
 }
 
 // ── T5 : le JOKER limite les demandes de jours rares ────────────────────────
 {
-  const im = { SEVERAC: {} };
-  samedisOrd.forEach(d => im.SEVERAC[d] = 'SOUHAIT');           // il les demande TOUS
-  const o = run(`T5 — SEVERAC souhaite les ${samedisOrd.length} samedis de l'année`, im);
-  const hon = samedisOrd.filter(d => aGarde(o.P, 'SEVERAC', d)).length;
-  const reel = num(o.st.SEVERAC['SAM']), cible = num(o.st.SEVERAC['CIBLE SAM']);
+  const im = { SERVANT: {} };
+  samedisOrd.forEach(d => im.SERVANT[d] = 'SOUHAIT');           // il les demande TOUS
+  const o = run(`T5 — SERVANT souhaite les ${samedisOrd.length} samedis de l'année`, im);
+  const hon = samedisOrd.filter(d => aGarde(o.P, 'SERVANT', d)).length;
+  const reel = num(o.st.SERVANT['SAM']), cible = num(o.st.SERVANT['CIBLE SAM']);
   console.log(`   samedis obtenus ${reel} pour une part de ${cible} (dont ${hon} aux dates demandées)`);
   ok(o.errs === 0, 'invariants intacts');
   ok(reel <= Math.ceil(cible), `impossible de monopoliser les samedis (${reel} ≤ ${Math.ceil(cible)})`);
@@ -112,10 +112,10 @@ if (lundisFeries.length) {
 
 // ── T6 : même acharnement sur les WEEK-ENDS ─────────────────────────────────
 {
-  const im = { ZAMARON: {} };
-  vendredisOrd.forEach(d => im.ZAMARON[d] = 'SOUHAIT');
-  const o = run(`T6 — ZAMARON souhaite les ${vendredisOrd.length} week-ends de l'année`, im);
-  const reel = num(o.st.ZAMARON['VD']), cible = num(o.st.ZAMARON['CIBLE VD']);
+  const im = { ZEVACO: {} };
+  vendredisOrd.forEach(d => im.ZEVACO[d] = 'SOUHAIT');
+  const o = run(`T6 — ZEVACO souhaite les ${vendredisOrd.length} week-ends de l'année`, im);
+  const reel = num(o.st.ZEVACO['VD']), cible = num(o.st.ZEVACO['CIBLE VD']);
   console.log(`   week-ends obtenus ${reel} pour une part de ${cible}`);
   ok(o.errs === 0, 'invariants intacts');
   ok(reel <= Math.ceil(cible), `impossible de monopoliser les week-ends (${reel} ≤ ${Math.ceil(cible)})`);
@@ -123,18 +123,18 @@ if (lundisFeries.length) {
 
 // ── T7 : adversarial — TOUS les jours de l'année demandés ───────────────────
 {
-  const im = { CATINEAU: {} };
-  jours.forEach(d => im.CATINEAU[d] = 'SOUHAIT');
-  const o = run(`T7 — CATINEAU souhaite les ${jours.length} jours de 2027`, im);
-  const tot = num(o.st.CATINEAU['TOTAL G']);
-  const cib = parseFloat(String(o.st.CATINEAU['CIBLE']).replace("'", ''));
-  console.log(`   total ${tot} pour une part de ${cib} | samedis ${o.st.CATINEAU['SAM']} `
-    + `week-ends ${o.st.CATINEAU['VD']} jeudis ${o.st.CATINEAU['JEU']}`);
+  const im = { CHAPUIS: {} };
+  jours.forEach(d => im.CHAPUIS[d] = 'SOUHAIT');
+  const o = run(`T7 — CHAPUIS souhaite les ${jours.length} jours de 2027`, im);
+  const tot = num(o.st.CHAPUIS['TOTAL G']);
+  const cib = parseFloat(String(o.st.CHAPUIS['CIBLE']).replace("'", ''));
+  console.log(`   total ${tot} pour une part de ${cib} | samedis ${o.st.CHAPUIS['SAM']} `
+    + `week-ends ${o.st.CHAPUIS['VD']} jeudis ${o.st.CHAPUIS['JEU']}`);
   ok(o.errs === 0, 'invariants intacts');
   ok(tot - cib <= 2 + 1e-9, `son total ne dépasse pas sa part de plus de 2 (écart ${(tot - cib).toFixed(1)})`);
   ['SAM', 'JEU', 'VD'].forEach(ax => {
-    const c = num(o.st.CATINEAU['CIBLE ' + (ax === 'VD' ? 'VD' : ax)]);
-    ok(num(o.st.CATINEAU[ax]) <= Math.ceil(c) + 1, `axe ${ax} non monopolisé`);
+    const c = num(o.st.CHAPUIS['CIBLE ' + (ax === 'VD' ? 'VD' : ax)]);
+    ok(num(o.st.CHAPUIS[ax]) <= Math.ceil(c) + 1, `axe ${ax} non monopolisé`);
   });
 }
 
@@ -152,10 +152,10 @@ if (lundisFeries.length) {
 // ── T9 : les souhaits de semaine gardent leur comportement d'origine ────────
 {
   const mardis = jours.filter(d => dow(d) === 2 && !FER.has(d));
-  const im = { LEY: {} };
-  mardis.filter((d, i) => i % 3 === 0).forEach(d => im.LEY[d] = 'SOUHAIT');
-  const o = run(`T9 — LEY souhaite ${Object.keys(im.LEY).length} mardis (régime historique)`, im);
-  const hon = Object.keys(im.LEY).filter(d => aGarde(o.P, 'LEY', d)).length;
+  const im = { LEMAIRE: {} };
+  mardis.filter((d, i) => i % 3 === 0).forEach(d => im.LEMAIRE[d] = 'SOUHAIT');
+  const o = run(`T9 — LEMAIRE souhaite ${Object.keys(im.LEMAIRE).length} mardis (régime historique)`, im);
+  const hon = Object.keys(im.LEMAIRE).filter(d => aGarde(o.P, 'LEMAIRE', d)).length;
   console.log(`   mardis honorés : ${hon}`);
   ok(o.errs === 0, 'invariants intacts');
   ok(hon >= 3, 'les souhaits de semaine restent largement honorés');

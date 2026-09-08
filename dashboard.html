@@ -656,6 +656,17 @@ a.tile:hover, .tile.clickable:hover {
 const SITE_VERSION = window.SITE_VERSION || '—';   // le numéro vit dans version.js
 const API_URL = 'https://script.google.com/macros/s/AKfycbxDbTnhgdjCNBqkeAblZWgS3CK-IptjJoRDQd1AtGF7WQoQkXriWGvISIo7LJG8zUtjTQ/exec';
 
+/* (08/09/2026) Le titre affiché et le régime de souhaits garantis venaient d'un
+   nom de praticien écrit en dur. Deux défauts : ce nom vivait dans
+   un dépôt public, et une règle qu'il aurait fallu modifier dans le code le jour
+   où elle changerait de titulaire. Les deux listes arrivent maintenant avec
+   l'identité, déduites de MEDECINS — colonne NOM pour le titre, colonne
+   souhait_plafond pour le régime. Vides tant que l'identité n'est pas reçue :
+   « Dr » pour tout le monde, aucun régime particulier. Le bon défaut. */
+let TITRES_PR = [], SOUHAITS_PLAFOND = [];
+const _tit    = id => (TITRES_PR.indexOf(id) > -1 ? 'Pr ' : 'Dr ');
+const _titMaj = id => (TITRES_PR.indexOf(id) > -1 ? 'PR ' : 'DR ');
+const _souhaitsGarantisId = id => SOUHAITS_PLAFOND.indexOf(id) > -1;
 let VIEW_CODE = '';
 let MY_ID = null;
 
@@ -678,7 +689,7 @@ let MY_QUOTITE = 100;           // quotité (col. E de MEDECINS)
 let MY_TPFIXE = false;          // jours fixes ou rythme 2/2 : hors dispositif TP
 
 function esc(s){ return String(s||'').replace(/[&<>'"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;',"'":'&#39;','"':'&quot;'}[c])); }
-function _meName(id){ return (id==='PRUNET'?'Pr ':'Dr ')+id.charAt(0)+id.slice(1).toLowerCase(); }
+function _meName(id){ return _tit(id)+id.charAt(0)+id.slice(1).toLowerCase(); }
 // Libelle court de la pastille du bandeau. Admin : « ADMIN ». MAR : ses initiales
 // telles que saisies au classeur ; a defaut, les trois premieres lettres de l'identifiant.
 function _mePastille(r){
@@ -887,6 +898,8 @@ function applyUserBadge(r){
   // Membre du groupement liberal : pilote la tuile Module liberal.
   MY_LIBERAL = !!r.liberal;
   MY_TUILES = Array.isArray(r.tuiles) ? r.tuiles : [];
+  TITRES_PR = Array.isArray(r.titresPr) ? r.titresPr : [];
+  SOUHAITS_PLAFOND = Array.isArray(r.souhaitsPlafond) ? r.souhaitsPlafond : [];
   INDISPOS_YEAR = r.indisposYear || null;
   // (POSE TP · 22/08/2026) Tuile « Mes jours de temps partiel » : phase déduite
   // côté serveur + éligibilité par les colonnes MEDECINS, aucun nom en dur.

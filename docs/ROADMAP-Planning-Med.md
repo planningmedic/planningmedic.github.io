@@ -141,7 +141,7 @@ Souhaits 75,3 % contre 76,6 %.
 **Éprouvé dans Apps Script**, sur les absences RÉELLES du service complétées par quotité (420 jours
 ajoutés sur 14 MAR) et 161 souhaits, dans une COPIE du classeur : 364 journées toutes pourvues,
 y compris le 27/12 et les 17-18/04 où il ne restait que 3 gardeurs sur 20 ; **un seul MAR à 2 gardes
-d'écart** (ALBOUY, et c'est le prix de ses 25 mardis demandés) ; **121 souhaits honorés sur 161** ;
+d'écart** (AUBERT, et c'est le prix de ses 25 mardis demandés) ; **121 souhaits honorés sur 161** ;
 un seul binôme VD cassé sur 52, en dernier recours le 17/04.
 
 **Deux pièges rencontrés, à ne pas refaire :**
@@ -150,7 +150,7 @@ un seul binôme VD cassé sur 52, en dernier recours le 17/04.
   premiers MAR ignorés. Le premier essai a donné un résultat parfait… sur une année quasiment sans
   absences. `reconstruireDatesHeaders` lit `data[0]` pour le mois et `data[2]` pour le jour, les
   MAR commencent en ligne 4.
-- un souhait de PRUNET tombé un **8 décembre** (Immaculée Conception, férié local) n'est pas
+- un souhait de PERRIN tombé un **8 décembre** (Immaculée Conception, férié local) n'est pas
   honoré : le régime `souhait_plafond` exclut week-ends et fériés. Ce n'est **pas** un défaut —
   43 mardis sur 43 possibles, total exact à 44, complément posé un mercredi.
 
@@ -160,8 +160,8 @@ un seul binôme VD cassé sur 52, en dernier recours le 17/04.
 dépassent 2 gardes d'écart », nommément. Vérification dans le classeur : la colonne CIBLE promet
 **730,8 gardes pour 707 posées**, et **103,7 samedis pour 91**. La différence, ce sont les gardes
 assurées par un **médecin extérieur au service**, absent de la liste. Tout le monde apparaissait
-~1,7 garde trop bas : GHIGLIONE, ALBOUY et SALA signalés alors qu'ils sont pile à leur part, LEY à
-+2,1 absent de la liste, FERRIERO à +6,7 et non +5,0.
+~1,7 garde trop bas : GARNIER, AUBERT et SABLON signalés alors qu'ils sont pile à leur part, LEMAIRE à
++2,1 absent de la liste, FAUVEL à +6,7 et non +5,0.
 
 **Le contrôle qui prouve l'anomalie sans rien supposer** : une mesure d'équité juste a des écarts
 qui **s'annulent**. Ceux de 2026 totalisaient −23,8.
@@ -172,7 +172,7 @@ le générateur. Au-delà de 1 % d'écart entre la somme des cibles et les garde
 d'explication s'affiche : la correction n'est **jamais** silencieuse. En deçà, rien n'est touché —
 une garde manquante isolée doit rester visible, pas lissée sur tout le monde.
 
-Sur 2026 : cible d'un temps plein **35 gardes, 5 samedis**. FERRIERO +6, SULTAN +6, PARTOUCHE −4
+Sur 2026 : cible d'un temps plein **35 gardes, 5 samedis**. FAUVEL +6, SUBLET +6, PELLETIER −4
 jeudis. **17 MAR au-delà de 2** au lieu des 19 affichés.
 
 **Refonte de la mise en page** : des NOMBRES DE PERSONNES au lieu de deux cartes affichant le même
@@ -298,13 +298,13 @@ secteurs). Contre-épreuve sur la version en ligne : `_notifDecrire(['18','REA',
 
 ✅ **28/08 (après-midi) — le badge « à placer » et les dates d'arrivée.** Commit `99157503`,
 site **v1.91**. Côté GAS, un MAR n'est sorti du bloc « mois » que si sa période d'activité ne
-recouvre AUCUN jour du mois. COPELOVICI (`date_debut` **2026-09-28**, vérifié dans MEDECINS)
+recouvre AUCUN jour du mois. CHASTEL (`date_debut` **2026-09-28**, vérifié dans MEDECINS)
 figurait donc dans tout le bloc de septembre, statut et secteur vides du 1er au 27 : la signature
 exacte d'un « présent non placé ». Elle était réclamée « à placer » **19 jours ouvrés** avant sa
 prise de fonctions, matin et après-midi. Symétrique pour un partant en cours de mois.
 `nonPlacesJour` s'aligne désormais sur `statActive()`, convention de tout le reste de l'appli.
 Même famille que le défaut du 01/08 sur la colonne ACTIF : autre colonne, même oubli.
-Seul LC était concernée : ARMAND arrive un 1er du mois, TRAN part un 1er du mois, tous deux sont
+Seul LC était concernée : ANCEL arrive un 1er du mois, TESSIER part un 1er du mois, tous deux sont
 exclus proprement. Nouveau scénario `banc/banc_a_placer.js` (11 vérifications), contre-épreuve à
 4 échecs. Rien à recopier côté Apps Script pour ce lot.
 
@@ -413,7 +413,7 @@ Journée commencée par une panne, finie par trois corrections trouvées en rega
 
 Le W1 « Démarrer l'année » s'arrêtait à des étapes variables, tantôt en **délai dépassé**, tantôt
 en **HTTP 404**. Rien dans le classeur ni dans le code métier : `GROUPES_VAC` (22 lignes, A=7,
-B=7, C=8, COPELOVICI en C ordre 8) et `PERIODES_VAC` (5 périodes 2027) ont été relus, tous deux
+B=7, C=8, CHASTEL en C ordre 8) et `PERIODES_VAC` (5 périodes 2027) ont été relus, tous deux
 conformes, et le code de lecture ignore silencieusement toute ligne qu'il ne comprend pas — il ne
 peut pas échouer dessus.
 
@@ -557,8 +557,8 @@ test devenu faux se corrige, un test gênant ne se supprime pas.
   `getVacValidation` construisent tous deux `marEnVacCeJour` à partir de la seule liste ordonnée
   des membres de `GROUPES_VAC`. Un actif absent de ces groupes n'a jamais de rang — donc ses
   congés ne peuvent jamais être refusés, **et ils ne comptent pas dans le seuil**. Une période où
-  il est absent avec 8 autres s'affiche VALIDE avec un seuil à 8. Cas visé : **PRUNET (BP)**, qui
-  pose ses congés où il veut par régime. **FERRIERO était aussi hors groupe le 03/09** alors qu'il
+  il est absent avec 8 autres s'affiche VALIDE avec un seuil à 8. Cas visé : **PERRIN (BP)**, qui
+  pose ses congés où il veut par régime. **FAUVEL était aussi hors groupe le 03/09** alors qu'il
   est actif — à réintégrer. Côté `staff.html` **rien à faire, c'est déjà correct** : `countForDay`
   et `vivierGarde` bouclent sur tous les médecins actifs sans regarder le groupe ; le trou est
   purement serveur. Remède retenu si Arthur le confirme : les hors-groupe occupent les
@@ -994,7 +994,7 @@ module* ci-dessous, qui sont les seules parties à jour.
 - 22 août 2026 (soir) — v1.65 → v1.67 : la pose des temps partiels est CONSTRUITE (lots 1 à 4)
 - 22 août 2026 (après-midi) — les jours de temps partiel changeront de moment
 - 19 août 2026 (soir) — v1.64 : la tuile CR quitte le mobile, et le document de panne rattrape neuf mois
-- 19 août 2026 — v1.59 → v1.61 : le grand diagnostic du dépôt, et l'affaire PRUNET à deux étages
+- 19 août 2026 — v1.59 → v1.61 : le grand diagnostic du dépôt, et l'affaire PERRIN à deux étages
 - 18 août 2026 — v1.58 : la recette à la main trouve ce que le banc ne pouvait pas voir
 - 17 août 2026 (fin de soirée) — v1.52 à v1.57 : la fabrique, les 50 %, et plus rien à lire chez Google
 - 17 août 2026 (soir) — v1.47 à v1.51 : le module libéral optimisé pour la consultation
@@ -1473,7 +1473,7 @@ il n'y a jamais de bloc cardio le jeudi.
 de quelle garde sort la personne.
 🆕 **Bande de présence en tête de l'onglet** (01/08, v1.15) : un carré = une journée ouvrée,
 couleur = nombre de MAR présents (définition `presentsPool` de `code.gs`, **`G`/`G2`/`18`/`I`
-comptent présents**, `PRUNET` exclu). Clic → ouvre la semaine. Aucun appel serveur. Seuils dans
+comptent présents**, `PERRIN` exclu). Clic → ouvre la semaine. Aucun appel serveur. Seuils dans
 l'onglet **`SEUILS`**, servi par `getAdminBootstrap`, repli silencieux 13/17. Détail complet dans
 `CONTEXTE`. A remplacé l'ancienne heatmap des indispos, devenue code mort.
 
@@ -1564,7 +1564,7 @@ un premier chiffre ; la version est un repère pour les utilisateurs, pas pour l
 **Le deck est à jour** (`docs/presentation-staff.html`, commit `6ca0b09cd1`, 33 diapos). Chiffres
 alignés sur la génération réelle de 2027 et sur 400 années simulées, animations en place.
 Les anciennes lignes de cette section étaient périmées et ont été **supprimées, pas démenties** :
-les numéros de slides ne correspondaient plus, et `CONFIG.SULTAN_CODE` demandait d'écrire en dur
+les numéros de slides ne correspondaient plus, et `CONFIG.SUBLET_CODE` demandait d'écrire en dur
 le code retiré le 22/07 pour raison de sécurité (il se saisit par `prompt()`, il n'y a **rien** à
 remplir dans le fichier).
 
@@ -1643,7 +1643,7 @@ puis lancer le 🔍 Diagnostic : son contrôle « Emails au format douteux » se
 l'envoi.)*
 Les 24 MAR actifs sans adresse sont collés dans `MEDECINS`, colonne EMAIL, puis
 Maintenance → **Envoyer aux MARs sélectionnés**. Les codes existent déjà (un seul MAR n'en a pas :
-TRAN) — l'envoi **ne régénère rien**, il transmet le code en place.
+TESSIER) — l'envoi **ne régénère rien**, il transmet le code en place.
 
 **Ce que ce choix règle, et ce qu'il crée.** Envoyer une heure et demie avant la séance supprime
 *entièrement* la fenêtre de curiosité : personne ne peut se connecter avant, donc plus aucun risque
@@ -1653,7 +1653,7 @@ fonctionne pas à 14 h 05, c'est devant la salle. D'où la marge de 1 h 20 et le
 
 | Heure | Geste |
 |---|---|
-| Matin | Nettoyage du bac à sable, JSON du Drive, synchronisation, désactivation de TRAN, saisie des 24 adresses |
+| Matin | Nettoyage du bac à sable, JSON du Drive, synchronisation, désactivation de TESSIER, saisie des 24 adresses |
 | Matin, **en dernier** | **Diagnostic** — la ligne « MARs actifs sans code d'accès » doit dire **aucun**. Seul contrôle qui garantit que les 25 envois auront un code à transmettre |
 | 12 h 30 | **Envoi d'essai à un seul destinataire** (Arthur). Vérifier la réception *et le dossier* |
 | 12 h 40 | Envoi aux autres |
@@ -1670,7 +1670,7 @@ Quatre points vérifiés :
 - **L'ordre nettoyage → envoi reste la règle**, même s'il devient peu risqué à cette heure-là :
   `dashboard.html` demande `planning_{année active + 1}` **à chaque ouverture** depuis la v1.30.2, donc
   des fichiers 2027 encore publiés montreraient des gardes fictives au premier MAR qui se connecte.
-- **TRAN** part le 01/09 : le désactiver avant l'envoi, sinon il figure dans la liste et le compte
+- **TESSIER** part le 01/09 : le désactiver avant l'envoi, sinon il figure dans la liste et le compte
   rendu le signalera « sans code ».
 
 **Prudence sur l'envoi groupé** : 25 messages identiques partant d'une adresse Gmail en quelques
@@ -1799,11 +1799,11 @@ ne peut pas partir en l'état. Rien dans le code ne contourne une case vide.
 Aucune urgence pour le 04/09, mais elles faussent la génération réelle si elles restent en l'air.
 Arthur n'avait pas la réponse au 29/07.
 
-- **`date_fin` de FERRIERO.** `simulateur/demographie.js` le fait partir fin février 2027 ; `MEDECINS`
+- **`date_fin` de FAUVEL.** `simulateur/demographie.js` le fait partir fin février 2027 ; `MEDECINS`
   n'a aucune `date_fin`. Le probable, d'après Arthur : le 150 % cumulé AF + LC devient un 50 % seul en
   mars 2027. Si le départ est réel et la colonne vide, l'algorithme lui donne une cible pleine de 34,6
   au lieu de ~5,4, et **les cibles des 21 autres sont fausses de ~1,5 garde chacune**.
-- **MENADE et l'exemption de garde à 60 ans.** Il atteint 60 ans en 2027 (né en 1967 d'après le modèle).
+- **MERCIER et l'exemption de garde à 60 ans.** Il atteint 60 ans en 2027 (né en 1967 d'après le modèle).
   La règle d'exemption est réelle ; WS en est une exception assumée et continue les gardes. Si RM
   l'invoque, Σ des poids passe de 21,05 à 20,05 : **la base passe de 34,6 à 36,3**, soit +1,7 garde
   pour chacun des autres, et le slide des cibles devient faux dans ses 24 lignes.

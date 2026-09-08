@@ -38,7 +38,7 @@
    depuis l'éditeur : installerDeclencheurEchanges().
    ═══════════════════════════════════════════════════════════════════════ */
 
-const GAS_VERSION_ECHANGES = '2026-09-07.1';
+const GAS_VERSION_ECHANGES = '2026-09-08.1';
 
 const ECHANGES_ONGLET = 'ECHANGES';
 const ECHANGES_ENTETE = ['ID', 'CREE_LE', 'TYPE', 'ANNEE', 'DATE', 'DATE2',
@@ -166,13 +166,17 @@ function _echangesLignes_() {
 function _echangesMaintenant_() { return new Date().toISOString(); }
 
 /* (14/08/2026) Un humain lit ces messages : « Dr Durand », pas « DURAND ».
-   MÊME règle que l'écran (dashboard.html, _meName) — dont le cas particulier
-   PRUNET, qui est Pr et non Dr. Mise en forme d'AFFICHAGE seule : les noms
-   stockés dans l'onglet ne changent pas, les correspondances non plus. */
+   MÊME règle que l'écran (dashboard.html, _tit) — titre « Pr » compris.
+   (08/09/2026) Le titre venait d'un nom écrit en dur ; il est maintenant
+   déduit de la colonne NOM de MEDECINS, comme partout ailleurs. Mise en
+   forme d'AFFICHAGE seule : les noms stockés dans l'onglet ne changent pas,
+   les correspondances non plus. */
 function _echangesDr_(id) {
   const brut = String(id == null ? '' : id).trim();
   if (!brut) return '';
-  const titre = brut.toUpperCase() === 'PRUNET' ? 'Pr ' : 'Dr ';
+  let pr = [];
+  try { pr = _effectifTitresGas_().titresPr || []; } catch (e) { pr = []; }
+  const titre = pr.indexOf(brut) > -1 ? 'Pr ' : 'Dr ';
   return titre + brut.charAt(0).toUpperCase() + brut.slice(1).toLowerCase();
 }
 

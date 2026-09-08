@@ -107,7 +107,7 @@ console.log('\n═══ 11. Deux membres du comité en même temps ═══');
 {
   const b = monter();
   deposer(b.KV, { type: 'placements', year: 2027, items: [{ date: b.dates[7], marId: 'BRAVO', morning: 'REA' }], par: 'DURAND' });
-  deposer(b.KV, { type: 'placements', year: 2027, items: [{ date: b.dates[7], marId: 'BRAVO', morning: 'MAT' }], par: 'SULTAN' });
+  deposer(b.KV, { type: 'placements', year: 2027, items: [{ date: b.dates[7], marId: 'BRAVO', morning: 'MAT' }], par: 'SUBLET' });
   b.appliquer();
   const ligne = b.cl.getSheetByName('PLANNING_OVERRIDES').lignes.find(l => dstr(l[0]) === b.dates[7] && l[1] === 'BRAVO');
   V('une seule ligne pour la case disputée', b.cl.getSheetByName('PLANNING_OVERRIDES').lignes.filter(l => dstr(l[0])===b.dates[7] && l[1]==='BRAVO').length === 1);

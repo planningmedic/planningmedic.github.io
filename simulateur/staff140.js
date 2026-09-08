@@ -13,7 +13,7 @@ for(let y=Y0;y<=Y1;y++){
   if(r.error){ out.annees.push({y,err:r.error}); prev=null; continue; }
   prev=r.ss.getSheetByName(`STATS_GARDES_${y}`)._rows.map(x=>x.slice());
   const st=H.readStats(r.ss,y).byId;
-  const ids=Object.keys(st).filter(id=>num(st[id]['TOTAL G'])>0 && id!=='PRUNET');
+  const ids=Object.keys(st).filter(id=>num(st[id]['TOTAL G'])>0 && id!=='PERRIN');
   out.gardes+=Object.keys(st).reduce((a,id)=>a+num(st[id]['TOTAL G']),0);
   let dT=0,qT='';
   ids.forEach(id=>{const e=Math.abs(num(st[id]['TOTAL G'])-num(st[id]['CIBLE'])); if(e>dT){dT=e;qT=id;}});

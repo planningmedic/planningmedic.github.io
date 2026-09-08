@@ -229,7 +229,7 @@ const dstr = v => v instanceof Date
   V('la file du journal est vidée', [...M.keys()].filter(k => k.startsWith('j_')).length === 0);
   V('le registre d\'audit conserve la trace', [...M.keys()].some(k => k.startsWith('jfait_')));
 
-  console.log('\n═══ 21. Un statut posé retire le placement (cas SEVERAC) ═══');
+  console.log('\n═══ 21. Un statut posé retire le placement (cas SERVANT) ═══');
   {
     const ovs0 = W.cl.getSheetByName('PLANNING_OVERRIDES').lignes.slice(1);
     const cible = ovs0[0];

@@ -4260,7 +4260,7 @@ function consultCountsForMonth(ym) {
 // Présent = statut hors absents (RG,V,F,CTP,R,A,TP) ; G/G2/18 = présents en journée.
 // Non placé = valeur EFFECTIVE (override de session sinon JSON) vide ou VOLANT.
 // motif : 'volant' (affectation de base VOLANT) ou 'retiré de X' (sectorisé sans poste).
-// Exclus : Pr PRUNET (BP) ; les absences posées sur la demi-journée elle-même.
+// Exclus : Pr PERRIN (BP) ; les absences posées sur la demi-journée elle-même.
 // Week-ends et fériés : gérés par l'appelant (jamais contrôlés).
 function nonPlacesJour(date) {
   const out = {am: [], pm: []};
@@ -4285,7 +4285,7 @@ function nonPlacesJour(date) {
     const i = (mo.days || []).findIndex(d => d && d.date === date);
     if (i < 0) continue;
     for (const doc of (mo.doctors || [])) {
-      if (doc.id === 'PRUNET') continue;
+      if (doc.id === 'PERRIN') continue;
       if (_inactifs.has(doc.id)) continue;   // (T44) sorti de l'effectif
       const e = (doc.days && doc.days[i]) || {};
       if (EXCL.has(e.status || '')) continue;
@@ -4744,7 +4744,7 @@ function openPanel(type, prefillDocId='', prefillDate=''){
 let GD = {mode:'don', d1:'', p1:'', role1:'', recv:'', d2:'', p2:'', role2:''};
 let gardesByYear = {};
 let DON_ON_DONE = null;
-const _nm = id => (id==='PRUNET'?'Pr ':'Dr ')+id.charAt(0)+id.slice(1).toLowerCase();
+const _nm = id => (id==='PERRIN'?'Pr ':'Dr ')+id.charAt(0)+id.slice(1).toLowerCase();
 const _roleTxt = r => r==='G' ? 'G \u00b7 R\u00e9a' : 'G2 \u00b7 Mat';
 function _fmtDate(d){ if(!d) return '\u2014'; const x=new Date(d+'T12:00:00'); return ['dim','lun','mar','mer','jeu','ven','sam'][x.getDay()]+' '+String(x.getDate()).padStart(2,'0')+'/'+String(x.getMonth()+1).padStart(2,'0'); }
 async function ensureGardesYear(y){ if(!gardesByYear[y]){ try{ const r=await api({action:'getGardes', year:Number(y)}); gardesByYear[y]=(r&&r.success)?(r.data||{}):{}; }catch(e){ gardesByYear[y]={}; } } return gardesByYear[y]; }
@@ -5205,7 +5205,7 @@ function renderCertificat(list){
   let within1=0, within2=0, nEval=0;
   let nExcl=0;
   list.forEach(m=>{
-    // Profils « souhaits garantis » (ex. Prunet) : leurs jours choisis SONT leur cible,
+    // Profils « souhaits garantis » (ex. Perrin) : leurs jours choisis SONT leur cible,
     // ils ne relèvent d'aucun axe d'équité (total compris — les mardis s'ajoutent).
     // Exclus du certificat : ni comptés, ni éligibles au rouge. Visibles dans les barres.
     if(_spec(m.name)){ nExcl++; return; }
@@ -5294,7 +5294,7 @@ function renderCertificat(list){
 // Un present = la definition de presentsPool (code.gs, l.~895) : statut du
 // jour hors ABSENT_CODES, et MAR dans sa periode d'activite. G/G2 comptent
 // presents (ils travaillent en journee, en rea et en maternite), 'I' aussi.
-// PRUNET est exclu, comme dans nonPlacesJour : le comite ne le place pas.
+// PERRIN est exclu, comme dans nonPlacesJour : le comite ne le place pas.
 // Aucun appel serveur : tout vient de DATA et de marsData, deja en memoire.
 // (Remplace l'ancienne heatmap des indispos, orpheline depuis la refonte de
 //  l'onglet : ni #heatmap ni #marGrid n'existaient plus, renderIndispos
@@ -5336,7 +5336,7 @@ function tensionJours() {
       if (day.isFerie) { out.push({date: day.date, ferie: true, n: null}); return; }
       let n = 0;
       (month.doctors || []).forEach(doc => {
-        if (doc.id === 'PRUNET') return;
+        if (doc.id === 'PERRIN') return;
         const m = actifs[doc.id];
         if (!m) return;                                          // inactif
         if (m.dateDebut && day.date <  m.dateDebut) return;      // pas encore arrive
@@ -5637,7 +5637,7 @@ function renderAffectations() {
   if (!grid) return;
   const MO  = ['J','F','M','A','M','J','J','A','S','O','N','D'];
   const MOF = ['Janvier','Février','Mars','Avril','Mai','Juin','Juillet','Août','Septembre','Octobre','Novembre','Décembre'];
-  const nameOf = id => (id === 'PRUNET' ? 'Pr ' : 'Dr ') + id;
+  const nameOf = id => (id === 'PERRIN' ? 'Pr ' : 'Dr ') + id;
   const abbr = sec => sec === 'VOLANT' ? 'VOL' : sec;
   const _now = new Date();
   const curM = (_now.getFullYear() === ADMIN_YEAR) ? _now.getMonth() + 1 : 0;

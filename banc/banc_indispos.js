@@ -1,5 +1,5 @@
 /* ═══ BANC — P6 : INDISPONIBILITÉS (cahier T069, T070, T072) ═══
-   C'est le geste que Wajdi Sultan fera EN DIRECT devant le staff le 4/09 :
+   C'est le geste que Wajdi Sublet fera EN DIRECT devant le staff le 4/09 :
    il doit être sans surprise. On éprouve l'écriture réelle
    (saveIndisposForDoctor), la saisie groupée, le retrait partiel, et surtout
    qu'une date hors année n'écrit RIEN. */

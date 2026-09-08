@@ -210,8 +210,8 @@ supposé — n'a pas été tenue.
 - 🔴 **Les MAR hors groupe ne consomment aucune place du seuil de présence.** `getVacConfig` et
   `getVacValidation` construisent `marEnVacCeJour` à partir des seuls membres de `GROUPES_VAC`.
   Un actif absent de ces groupes n'a pas de rang : ses congés ne peuvent jamais être refusés **et
-  ne comptent pas dans le seuil**. Cas visé : **PRUNET (BP)**, qui pose où il veut par régime.
-  **FERRIERO était hors groupe le 03/09 alors qu'il est actif — à réintégrer.**
+  ne comptent pas dans le seuil**. Cas visé : **PERRIN (BP)**, qui pose où il veut par régime.
+  **FAUVEL était hors groupe le 03/09 alors qu'il est actif — à réintégrer.**
   ⚠️ Côté `staff.html`, **rien à faire** : `countForDay` et `vivierGarde` bouclent sur tous les
   médecins actifs, le trou est purement serveur. Remède envisagé, à confirmer par Arthur : les
   hors-groupe occupent les **premières** places du seuil — jamais refusables, mais ils font
@@ -427,7 +427,7 @@ est remonté dans les états récents ci-dessus.
 - État au 21 août 2026 (soir) — le placement des récupérations de samedi
 - État au 20 août 2026 — les plafonds gratuits de Cloudflare, et une panne quotidienne que rien ne signalait
 - État au 19 août 2026 (fin de journée) — v1.64 : tuile CR hors mobile, doc de panne rattrapé, banc à 1464
-- État au 19 août 2026 (midi) — v1.61 : dépôt nettoyé, l'affaire PRUNET close, banc à 1449
+- État au 19 août 2026 (midi) — v1.61 : dépôt nettoyé, l'affaire PERRIN close, banc à 1449
 - État au 17 août 2026 (matin) — v1.41 : le code d'accès retenu 30 jours, et la séquence du 4 septembre écrite
 - État au 16 août 2026 (soir) — v1.36 : le guide du comité prêt à être envoyé, banc à 1119 vérifications
 - État au 14 août 2026 (après-midi) — les échanges de gardes TOURNENT EN PRODUCTION, éteints, prêts pour la v2.0

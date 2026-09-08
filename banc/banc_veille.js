@@ -255,7 +255,7 @@ function monde(plan) {
     vm.runInContext('getOrCreateVeilleTabs()', ctx);
     const feuille = cl.getSheetByName('VEILLE');
     feuille.appendRow(['700', '2026-08-01', 'Article commun', '', 'BJA', '', 'REVUE', '', '', 'N', 'N', '2026-08-08', '', '']);
-    ctx.__A = { id: 'BONNET' }; ctx.__B = { id: 'SULTAN' };
+    ctx.__A = { id: 'BOISSY' }; ctx.__B = { id: 'SUBLET' };
 
     // Sans identité : refus.
     let r = vm.runInContext("markVeille('700','lu',true)", ctx);
@@ -263,21 +263,21 @@ function monde(plan) {
 
     // A marque lu, B marque ★ — même article.
     r = vm.runInContext("markVeille('700','lu',true, __A)", ctx);
-    V('BONNET marque « lu »', r.success === true, r);
+    V('BOISSY marque « lu »', r.success === true, r);
     r = vm.runInContext("markVeille('700','star',true, __B)", ctx);
-    V('SULTAN marque « ★ »', r.success === true, r);
+    V('SUBLET marque « ★ »', r.success === true, r);
 
     const parMar = vm.runInContext('_veilleMarquesParMar()', ctx);
-    V('chacun sa ligne : BONNET lu, pas ★', parMar.BONNET && parMar.BONNET.lus[0] === '700' && parMar.BONNET.stars.length === 0, parMar.BONNET);
-    V('SULTAN ★, pas lu', parMar.SULTAN && parMar.SULTAN.stars[0] === '700' && parMar.SULTAN.lus.length === 0, parMar.SULTAN);
+    V('chacun sa ligne : BOISSY lu, pas ★', parMar.BOISSY && parMar.BOISSY.lus[0] === '700' && parMar.BOISSY.stars.length === 0, parMar.BOISSY);
+    V('SUBLET ★, pas lu', parMar.SUBLET && parMar.SUBLET.stars[0] === '700' && parMar.SUBLET.lus.length === 0, parMar.SUBLET);
 
     // getVeille fusionne les marques DU MAR passé (repli GAS du dashboard).
     let g = vm.runInContext('getVeille(__A)', ctx);
     let it = g.items.find(i => i.pmid === '700');
-    V('getVeille(BONNET) : lu=vrai, ★=faux', it && it.lu === true && it.star === false, it && [it.lu, it.star]);
+    V('getVeille(BOISSY) : lu=vrai, ★=faux', it && it.lu === true && it.star === false, it && [it.lu, it.star]);
     g = vm.runInContext('getVeille(__B)', ctx);
     it = g.items.find(i => i.pmid === '700');
-    V('getVeille(SULTAN) : lu=faux, ★=vrai — la marque de BONNET ne déteint pas', it && it.lu === false && it.star === true, it && [it.lu, it.star]);
+    V('getVeille(SUBLET) : lu=faux, ★=vrai — la marque de BOISSY ne déteint pas', it && it.lu === false && it.star === true, it && [it.lu, it.star]);
     g = vm.runInContext('getVeille()', ctx);
     it = g.items.find(i => i.pmid === '700');
     V('getVeille() SANS user (instantané miroir) : marques neutres', it && it.lu === false && it.star === false);
@@ -286,8 +286,8 @@ function monde(plan) {
     vm.runInContext("markVeille('700','lu',true, __A)", ctx);
     vm.runInContext("markVeille('700','lu',false, __A)", ctx);
     const pm2 = vm.runInContext('_veilleMarquesParMar()', ctx);
-    V('re-poser puis retirer : plus de « lu », pas de ligne dupliquée', (!pm2.BONNET || pm2.BONNET.lus.length === 0)
-      && cl.getSheetByName('VEILLE_MARQUES').lignes.filter(l => l[0] === 'BONNET' && String(l[1]) === '700').length === 1, pm2.BONNET);
+    V('re-poser puis retirer : plus de « lu », pas de ligne dupliquée', (!pm2.BOISSY || pm2.BOISSY.lus.length === 0)
+      && cl.getSheetByName('VEILLE_MARQUES').lignes.filter(l => l[0] === 'BOISSY' && String(l[1]) === '700').length === 1, pm2.BOISSY);
 
     r = vm.runInContext("markVeille('999999','lu',true, __A)", ctx);
     V('PMID inconnu : refusé (article introuvable)', r.success === false && /introuvable/.test(r.error), r);

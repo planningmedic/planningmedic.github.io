@@ -148,7 +148,7 @@ console.log('\n═══ 3. admin.html · marsDansAnnee : un MAR parti n\'a rien
   vm.runInContext(extraireDuHtml('../admin.html', 'marsDansAnnee'), ctx);
   const f = (mars, annee) => vm.runInContext('marsDansAnnee', ctx)(mars, annee);
   const base = { actif: true, initiales: 'XX' };
-  /* Cas réel : TRAN, date_fin 01/09/2026, campagne 2027 (année planning
+  /* Cas réel : TESSIER, date_fin 01/09/2026, campagne 2027 (année planning
      04/01/2027 → 02/01/2028). Le générateur l'exclut (C2-D2) — le W2 doit
      faire pareil au lieu de réclamer une indispo fictive. */
   V('un MAR parti avant l\'année est exclu',

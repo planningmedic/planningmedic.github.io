@@ -33,9 +33,9 @@ const SC=[
   {n:'2027 nominal', y:2027, o:{}},
   {n:'2026 (53 sem.)', y:2026, o:{}},
   {n:'2028 bissextile', y:2028, o:{}},
-  {n:'stress pont 8 mai', y:2027, o:(()=>{const ids=H.defaultRoster().map(r=>r[0]).filter(id=>!['BONNET','BOUREGBA','PRUNET','COPELOVICI'].includes(id)).slice(0,15);const im={};ids.forEach(id=>{im[id]={};['2027-05-06','2027-05-07','2027-05-08','2027-05-09','2027-05-10'].forEach(d=>im[id][d]='INDISPO');});return {indisposMap:im};})()},
-  {n:'TP fixes mer/jeu', y:2027, o:{roster:H.defaultRoster().map(r=>r[0]==='LEVASSEUR'?['LEVASSEUR',80,80,{tpJours:'MER,JEU'}]:r)}},
-  {n:'maternité CL 2 mois', y:2027, o:(()=>{const im={LEVASSEUR:{}};for(let m=1;m<=2;m++)for(let d=1;d<=31;d++){const dt=new Date(2027,m-1,d);if(dt.getMonth()!==m-1)continue;im.LEVASSEUR[`2027-0${m}-${String(d).padStart(2,'0')}`]='CL';}return {indisposMap:im};})()},
+  {n:'stress pont 8 mai', y:2027, o:(()=>{const ids=H.defaultRoster().map(r=>r[0]).filter(id=>!['BOISSY','BRIAND','PERRIN','CHASTEL'].includes(id)).slice(0,15);const im={};ids.forEach(id=>{im[id]={};['2027-05-06','2027-05-07','2027-05-08','2027-05-09','2027-05-10'].forEach(d=>im[id][d]='INDISPO');});return {indisposMap:im};})()},
+  {n:'TP fixes mer/jeu', y:2027, o:{roster:H.defaultRoster().map(r=>r[0]==='LEBRUN'?['LEBRUN',80,80,{tpJours:'MER,JEU'}]:r)}},
+  {n:'maternité CL 2 mois', y:2027, o:(()=>{const im={LEBRUN:{}};for(let m=1;m<=2;m++)for(let d=1;d<=31;d++){const dt=new Date(2027,m-1,d);if(dt.getMonth()!==m-1)continue;im.LEBRUN[`2027-0${m}-${String(d).padStart(2,'0')}`]='CL';}return {indisposMap:im};})()},
 ];
 
 const fmt=m=>`errs=${m.errs} sam=${m.sam.toFixed(1)} jeu=${m.jeu.toFixed(1)} vd=${m.vd.toFixed(1)} vjf=${m.vjf.toFixed(1)} tot=${m.tot.toFixed(1)} G−G2=${m.gg2} J±2=${m.j2} warn=${m.warn}`;
@@ -52,10 +52,10 @@ SC.forEach(({n,y,o})=>{
 });
 
 // vérification spécifique : le défaut D1 est-il corrigé ?
-const rp=runWith('/home/claude/repo-patched/gas/generateur_gardes.gs',2027,{roster:H.defaultRoster().map(r=>r[0]==='LEVASSEUR'?['LEVASSEUR',80,80,{tpJours:'MER,JEU'}]:r)});
+const rp=runWith('/home/claude/repo-patched/gas/generateur_gardes.gs',2027,{roster:H.defaultRoster().map(r=>r[0]==='LEBRUN'?['LEBRUN',80,80,{tpJours:'MER,JEU'}]:r)});
 const Pp=A.parsePlanning(rp.ss,2027);
-const dd=Pp.byDoc['LEVASSEUR']||{};
+const dd=Pp.byDoc['LEBRUN']||{};
 const viol=Object.keys(dd).filter(d=>(dd[d]==='G'||dd[d]==='G2')&&[3,4].includes(A.DOW(d)));
-const s=H.readStats(rp.ss,2027).byId['LEVASSEUR'];
-console.log(`\nD1 corrigé : gardes mer/jeu de LEVASSEUR = ${viol.length} (avant patch : 7) | son total=${s['TOTAL G']} cible=${String(s['CIBLE']).replace("'",'')}`);
+const s=H.readStats(rp.ss,2027).byId['LEBRUN'];
+console.log(`\nD1 corrigé : gardes mer/jeu de LEBRUN = ${viol.length} (avant patch : 7) | son total=${s['TOTAL G']} cible=${String(s['CIBLE']).replace("'",'')}`);
 console.log(anyWorse?'\n❌ AU MOINS UNE DÉGRADATION → ne pas pousser':'\n✅ AUCUNE DÉGRADATION sur la batterie');

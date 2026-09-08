@@ -21,14 +21,14 @@ function fullCheck(name, year, opts={}) {
   return {res, P, inv, eq, feries};
 }
 
-// ── S2 : TP jours fixes AVEC gardes (LEVASSEUR mer/jeu off) ────────────
+// ── S2 : TP jours fixes AVEC gardes (LEBRUN mer/jeu off) ────────────
 {
-  const roster = H.defaultRoster().map(r => r[0]==='LEVASSEUR' ? ['LEVASSEUR',80,80,{tpJours:'MER,JEU'}] : r);
-  const out = fullCheck('S2 — TP jours fixes (LEVASSEUR ne travaille ni mer ni jeu)', 2027, {roster});
+  const roster = H.defaultRoster().map(r => r[0]==='LEBRUN' ? ['LEBRUN',80,80,{tpJours:'MER,JEU'}] : r);
+  const out = fullCheck('S2 — TP jours fixes (LEBRUN ne travaille ni mer ni jeu)', 2027, {roster});
   if (out) {
-    const days = out.P.byDoc['LEVASSEUR']||{};
+    const days = out.P.byDoc['LEBRUN']||{};
     const viol = Object.keys(days).filter(d=>(days[d]==='G'||days[d]==='G2')&&[3,4].includes(A.DOW(d)));
-    console.log(`→ Gardes de LEVASSEUR posées un MERCREDI ou JEUDI (jours fixes off) : ${viol.length}`, viol.slice(0,6));
+    console.log(`→ Gardes de LEBRUN posées un MERCREDI ou JEUDI (jours fixes off) : ${viol.length}`, viol.slice(0,6));
   }
 }
 
@@ -37,7 +37,7 @@ function fullCheck(name, year, opts={}) {
 
 // ── S4 : stress — 15 MARs indisponibles sur le pont du 8 mai 2027 ──────
 {
-  const ids = H.defaultRoster().map(r=>r[0]).filter(id=>!['BONNET','BOUREGBA','PRUNET','COPELOVICI'].includes(id)).slice(0,15);
+  const ids = H.defaultRoster().map(r=>r[0]).filter(id=>!['BOISSY','BRIAND','PERRIN','CHASTEL'].includes(id)).slice(0,15);
   const im = {};
   ids.forEach(id=>{ im[id]={}; ['2027-05-06','2027-05-07','2027-05-08','2027-05-09','2027-05-10'].forEach(d=>im[id][d]='INDISPO'); });
   fullCheck('S4 — stress : 15 MARs indispo sur le pont du 8 mai', 2027, {indisposMap: im});
@@ -47,54 +47,54 @@ function fullCheck(name, year, opts={}) {
 {
   const r1 = H.runScenario({year: 2027});
   const st1 = r1.ss.getSheetByName('STATS_GARDES_2027')._rows.map(r=>r.slice());
-  // Injecter une inéquité : SULTAN +2 samedis / SUPLY −2 (colonne SAM = index 10)
+  // Injecter une inéquité : SUBLET +2 samedis / SUREAU −2 (colonne SAM = index 10)
   const hdr = st1[0].map(String); const iSam = hdr.indexOf('SAM');
-  st1.forEach(row=>{ if(row[0]==='SULTAN') row[iSam]=+row[iSam]+2; if(row[0]==='SUPLY') row[iSam]=Math.max(0,+row[iSam]-2); });
-  const out = fullCheck('S5 — dette : SULTAN +2 sam / SUPLY −2 sam injectés en 2027 → 2028', 2028, {statsPrev: st1});
+  st1.forEach(row=>{ if(row[0]==='SUBLET') row[iSam]=+row[iSam]+2; if(row[0]==='SUREAU') row[iSam]=Math.max(0,+row[iSam]-2); });
+  const out = fullCheck('S5 — dette : SUBLET +2 sam / SUREAU −2 sam injectés en 2027 → 2028', 2028, {statsPrev: st1});
   if (out) {
     const s=out.eq.st.byId;
-    console.log(`→ 2028 : SULTAN sam=${s['SULTAN']['SAM']} (cible ${s['SULTAN']['CIBLE SAM']}) | SUPLY sam=${s['SUPLY']['SAM']} (cible ${s['SUPLY']['CIBLE SAM']}) — attendu : SULTAN < SUPLY`);
+    console.log(`→ 2028 : SUBLET sam=${s['SUBLET']['SAM']} (cible ${s['SUBLET']['CIBLE SAM']}) | SUREAU sam=${s['SUREAU']['SAM']} (cible ${s['SUREAU']['CIBLE SAM']}) — attendu : SUBLET < SUREAU`);
   }
 }
 
 // ── S6 : souhaits adversariaux ─────────────────────────────────────────
 {
-  const im = { SULTAN: {} };
+  const im = { SUBLET: {} };
   // 40 souhaits de mardis + 8 souhaits de samedis (censés être ignorés)
   let n=0;
   for(let m=1;m<=12&&n<40;m++) for(let d=1;d<=28&&n<40;d++){
     const ds=`2027-${String(m).padStart(2,'0')}-${String(d).padStart(2,'0')}`;
-    if(A.DOW(ds)===2){ im.SULTAN[ds]='SOUHAIT'; n++; }
+    if(A.DOW(ds)===2){ im.SUBLET[ds]='SOUHAIT'; n++; }
   }
   let s2=0;
   for(let m=1;m<=12&&s2<8;m++) for(let d=1;d<=28&&s2<8;d++){
     const ds=`2027-${String(m).padStart(2,'0')}-${String(d).padStart(2,'0')}`;
-    if(A.DOW(ds)===6 && !im.SULTAN[ds]){ im.SULTAN[ds]='SOUHAIT'; s2++; }
+    if(A.DOW(ds)===6 && !im.SUBLET[ds]){ im.SUBLET[ds]='SOUHAIT'; s2++; }
   }
-  const out = fullCheck('S6 — SULTAN : 40 souhaits de mardis + 8 souhaits de samedis', 2027, {indisposMap: im});
+  const out = fullCheck('S6 — SUBLET : 40 souhaits de mardis + 8 souhaits de samedis', 2027, {indisposMap: im});
   if (out) {
-    const days=out.P.byDoc['SULTAN']||{};
+    const days=out.P.byDoc['SUBLET']||{};
     const mardis=Object.keys(days).filter(d=>(days[d]==='G'||days[d]==='G2')&&A.DOW(d)===2).length;
-    const s=out.eq.st.byId['SULTAN'];
-    console.log(`→ SULTAN : total=${s['TOTAL G']} (cible ${String(s['CIBLE']).replace("'",'')}) mardis=${mardis} sam=${s['SAM']} (cible ${s['CIBLE SAM']}) jeu=${s['JEU']} vd=${s['VD']}`);
+    const s=out.eq.st.byId['SUBLET'];
+    console.log(`→ SUBLET : total=${s['TOTAL G']} (cible ${String(s['CIBLE']).replace("'",'')}) mardis=${mardis} sam=${s['SAM']} (cible ${s['CIBLE SAM']}) jeu=${s['JEU']} vd=${s['VD']}`);
   }
 }
 
-// ── S7 : PRUNET 45 souhaits (> cible) ──────────────────────────────────
+// ── S7 : PERRIN 45 souhaits (> cible) ──────────────────────────────────
 {
-  const im = { PRUNET: {} };
+  const im = { PERRIN: {} };
   let n=0;
   for(let m=1;m<=12&&n<45;m++) for(let d=1;d<=28&&n<45;d++){
     const ds=`2027-${String(m).padStart(2,'0')}-${String(d).padStart(2,'0')}`;
     const dw=A.DOW(ds);
-    if(dw>=1&&dw<=4){ im.PRUNET[ds]='SOUHAIT'; n++; }
+    if(dw>=1&&dw<=4){ im.PERRIN[ds]='SOUHAIT'; n++; }
   }
-  const out = fullCheck('S7 — PRUNET : 45 souhaits (cible ~34)', 2027, {indisposMap: im});
+  const out = fullCheck('S7 — PERRIN : 45 souhaits (cible ~34)', 2027, {indisposMap: im});
   if (out) {
-    const s=out.eq.st.byId['PRUNET'];
-    const days=out.P.byDoc['PRUNET']||{};
-    const honored=Object.keys(im.PRUNET).filter(d=>days[d]==='G'||days[d]==='G2').length;
-    console.log(`→ PRUNET : total=${s['TOTAL G']} | souhaits honorés=${honored}/45 | attendu : total ≈ souhaits honorés (plafond strict, zéro extra)`);
+    const s=out.eq.st.byId['PERRIN'];
+    const days=out.P.byDoc['PERRIN']||{};
+    const honored=Object.keys(im.PERRIN).filter(d=>days[d]==='G'||days[d]==='G2').length;
+    console.log(`→ PERRIN : total=${s['TOTAL G']} | souhaits honorés=${honored}/45 | attendu : total ≈ souhaits honorés (plafond strict, zéro extra)`);
   }
 }
 
@@ -128,17 +128,17 @@ function fullCheck(name, year, opts={}) {
 
 // ── S10 : congé maternité (CL janvier→février, retour mars) ────────────
 {
-  const im = { LEVASSEUR: {} };
+  const im = { LEBRUN: {} };
   for(let m=1;m<=2;m++) for(let d=1;d<=31;d++){
     const dt=new Date(2027,m-1,d); if(dt.getMonth()!==m-1) continue;
-    im.LEVASSEUR[`2027-${String(m).padStart(2,'0')}-${String(d).padStart(2,'0')}`]='CL';
+    im.LEBRUN[`2027-${String(m).padStart(2,'0')}-${String(d).padStart(2,'0')}`]='CL';
   }
-  const out = fullCheck('S10 — LEVASSEUR en CL janvier-février (retour mars)', 2027, {indisposMap: im});
+  const out = fullCheck('S10 — LEBRUN en CL janvier-février (retour mars)', 2027, {indisposMap: im});
   if (out) {
-    const s=out.eq.st.byId['LEVASSEUR'];
-    console.log(`→ LEVASSEUR : cible=${String(s['CIBLE']).replace("'",'')} (vs ~34 plein temps — attendu ≈ 10/12 de 34 ≈ 28,5) réel=${s['TOTAL G']}`);
+    const s=out.eq.st.byId['LEBRUN'];
+    console.log(`→ LEBRUN : cible=${String(s['CIBLE']).replace("'",'')} (vs ~34 plein temps — attendu ≈ 10/12 de 34 ≈ 28,5) réel=${s['TOTAL G']}`);
     // concentration au retour ? gardes par mois
-    const days=out.P.byDoc['LEVASSEUR']||{};
+    const days=out.P.byDoc['LEBRUN']||{};
     const perM={}; Object.keys(days).forEach(d=>{if(days[d]==='G'||days[d]==='G2'){const m=+d.slice(5,7);perM[m]=(perM[m]||0)+1;}});
     console.log('→ répartition mensuelle :', perM, '(mars ne doit pas exploser)');
   }

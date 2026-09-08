@@ -3777,7 +3777,7 @@ async function initDashboard() {
 async function loadStatusBar(pre) {
   try {
     const medData = pre || await api({action:'getMedecins'});
-    if (medData.success) { marsData = medData.medecins; document.getElementById('statusMars').textContent = medData.medecins.filter(m=>m.actif).length; if (DATA && typeof renderWeek === 'function') renderWeek(); }
+    if (medData.success) { marsData = medData.medecins; _majTitres(marsData); document.getElementById('statusMars').textContent = medData.medecins.filter(m=>m.actif).length; if (DATA && typeof renderWeek === 'function') renderWeek(); }
     majIndChip();   // (13/08/2026) la pastille a besoin de marsData : on la met a jour ici
     document.getElementById('statusSys').textContent = 'OK';
   } catch(e) { document.getElementById('statusSys').textContent = 'Erreur'; document.getElementById('dotStatus').className='status-dot red'; }
@@ -4844,7 +4844,7 @@ function consultCountsForMonth(ym) {
 // Présent = statut hors absents (RG,V,F,CTP,R,A,TP) ; G/G2/18 = présents en journée.
 // Non placé = valeur EFFECTIVE (override de session sinon JSON) vide ou VOLANT.
 // motif : 'volant' (affectation de base VOLANT) ou 'retiré de X' (sectorisé sans poste).
-// Exclus : Pr PRUNET (BP) ; les absences posées sur la demi-journée elle-même.
+// Exclus : les profils à souhaits garantis ; les absences posées sur la demi-journée elle-même.
 // Week-ends et fériés : gérés par l'appelant (jamais contrôlés).
 function nonPlacesJour(date) {
   const out = {am: [], pm: []};
@@ -4879,7 +4879,11 @@ function nonPlacesJour(date) {
     const i = (mo.days || []).findIndex(d => d && d.date === date);
     if (i < 0) continue;
     for (const doc of (mo.doctors || [])) {
-      if (doc.id === 'PRUNET') continue;
+      /* (08/09/2026) Le critere retenu n'est plus la personne mais
+         personne mais son REGIME : souhaits garantis, donc hors du controle
+         de completude. Si la fiche n'est pas encore arrivee, on n'exclut
+         personne — jamais de faux retrait, meme convention que _inactifs. */
+      if (_fiches[doc.id] && _fiches[doc.id].souhaitPlafond) continue;
       if (_inactifs.has(doc.id)) continue;   // (T44) sorti de l'effectif
       const _f = _fiches[doc.id];
       if (_f && !statActive(_f, date)) continue;  // pas encore arrivé / déjà parti
@@ -5276,6 +5280,26 @@ window.liberalJourCharger = liberalJourCharger;
    un appel getOverrides partait pour un affichage qui n'existait plus. Retiré. */
 // ── WORKFLOW ───────────────────────────────────────────────────────────
 // ── PANNEAU ────────────────────────────────────────────────────────────
+/* (08/09/2026) Le titre affiché et le régime de souhaits garantis venaient d'un
+   nom de praticien écrit en dur. Deux défauts : ce nom vivait dans
+   un dépôt public, et une règle qu'il aurait fallu modifier dans le code le jour
+   où elle changerait de titulaire. Les deux listes arrivent maintenant avec
+   l'identité, déduites de MEDECINS — colonne NOM pour le titre, colonne
+   souhait_plafond pour le régime. Vides tant que l'identité n'est pas reçue :
+   « Dr » pour tout le monde, aucun régime particulier. Le bon défaut. */
+let TITRES_PR = [], SOUHAITS_PLAFOND = [];
+const _tit    = id => (TITRES_PR.indexOf(id) > -1 ? 'Pr ' : 'Dr ');
+const _titMaj = id => (TITRES_PR.indexOf(id) > -1 ? 'PR ' : 'DR ');
+const _souhaitsGarantisId = id => SOUHAITS_PLAFOND.indexOf(id) > -1;
+/* Le comité, lui, dispose déjà de l'effectif complet (getMedecins) : il déduit
+   les deux listes de la fiche de chaque MAR, sans dépendre de l'identité.
+   Même règle que le serveur : colonne NOM pour le titre, souhait_plafond
+   pour le régime. Appelé partout où marsData est renseigné. */
+function _majTitres(meds) {
+  if (!Array.isArray(meds)) return;
+  TITRES_PR = meds.filter(m => m && /^PR\b/i.test(String(m.nom || ''))).map(m => m.id);
+  SOUHAITS_PLAFOND = meds.filter(m => m && m.souhaitPlafond).map(m => m.id);
+}
 function openPanel(type, prefillDocId='', prefillDate=''){
   if (ADMIN_YEAR_READONLY) {
     toast('🔒 Année ' + ADMIN_YEAR + ' archivée — modifications désactivées', 'error');
@@ -5328,7 +5352,7 @@ function openPanel(type, prefillDocId='', prefillDate=''){
 let GD = {mode:'don', d1:'', p1:'', role1:'', recv:'', d2:'', p2:'', role2:''};
 let gardesByYear = {};
 let DON_ON_DONE = null;
-const _nm = id => (id==='PRUNET'?'Pr ':'Dr ')+id.charAt(0)+id.slice(1).toLowerCase();
+const _nm = id => _tit(id)+id.charAt(0)+id.slice(1).toLowerCase();
 const _roleTxt = r => r==='G' ? 'G \u00b7 R\u00e9a' : 'G2 \u00b7 Mat';
 function _fmtDate(d){ if(!d) return '\u2014'; const x=new Date(d+'T12:00:00'); return ['dim','lun','mar','mer','jeu','ven','sam'][x.getDay()]+' '+String(x.getDate()).padStart(2,'0')+'/'+String(x.getMonth()+1).padStart(2,'0'); }
 /* (v1.28) Deux défauts corrigés ici, constatés le 05/08 au soir sur mobile.
@@ -5940,8 +5964,8 @@ function renderStats(stats){
       classeur : la colonne CIBLE promet 730,8 gardes pour 707 posées, et 103,7
       samedis pour 91. La différence, ce sont les gardes assurées par un médecin
       EXTÉRIEUR au service, absent de la liste. Tout le monde apparaissait ~1,7
-      garde trop bas : GHIGLIONE, ALBOUY et SALA signalés alors qu'ils sont pile
-      à leur part, LEY à +2,1 absent de la liste.
+      garde trop bas : trois MAR signalés alors qu'ils sont pile
+      à leur part, LEMAIRE à +2,1 absent de la liste.
    2. Des cibles à quinze décimales (« 7 /5.258134490238612 ») : la correction
       du point 1 produisait un nombre brut, affiché tel quel.
 
@@ -6021,7 +6045,7 @@ function renderCertificat(list){
   const AXfull = AX_EQUITE;
   const _spec = name => estSouhaitsGarantis(name);   // même test que les barres — une seule définition
   const SEUIL = 2.0;
-  // Profils « souhaits garantis » (ex. Prunet) : leurs jours choisis SONT leur cible,
+  // Profils « souhaits garantis » (ex. Perrin) : leurs jours choisis SONT leur cible,
   // ils ne relèvent d'aucun axe d'équité. Exclus : ni comptés, ni éligibles au rouge.
   const evalues = list.filter(m => !_spec(m.name));
   const T = ciblesEquite(evalues, AXfull);
@@ -6131,7 +6155,7 @@ function renderCertificat(list){
 // Un present = la definition de presentsPool (code.gs, l.~895) : statut du
 // jour hors ABSENT_CODES, et MAR dans sa periode d'activite. G/G2 comptent
 // presents (ils travaillent en journee, en rea et en maternite), 'I' aussi.
-// (28/08/2026) PRUNET COMPTE ici, decision d'Arthur : la bande mesure la presence
+// (28/08/2026) Le profil a souhaits garantis COMPTE ici, decision d'Arthur : la bande mesure la presence
 // PHYSIQUE reelle — le volant est bien la, meme si le comite ne le place pas
 // (nonPlacesJour, lui, continue de l'exclure : deux questions differentes).
 // Aucun appel serveur : tout vient de DATA et de marsData, deja en memoire.
@@ -6405,7 +6429,7 @@ function renderAffectations() {
   if (!grid) return;
   const MO  = ['J','F','M','A','M','J','J','A','S','O','N','D'];
   const MOF = ['Janvier','Février','Mars','Avril','Mai','Juin','Juillet','Août','Septembre','Octobre','Novembre','Décembre'];
-  const nameOf = id => (id === 'PRUNET' ? 'Pr ' : 'Dr ') + id;
+  const nameOf = id => _tit(id) + id;
   const abbr = sec => sec === 'VOLANT' ? 'VOL' : sec;
   const _now = new Date();
   const curM = (_now.getFullYear() === ADMIN_YEAR) ? _now.getMonth() + 1 : 0;
@@ -6479,7 +6503,7 @@ function applySecteurAff() {
 
 /* (19/08/2026, après-midi) L'ENVOI DIFFÉRENTIEL remplace la complétion du
    matin (completerAffectationsActifs, vie brève : ~5 h). Le matin, Enregistrer
-   envoyait TOUTE la grille pour créer les lignes manquantes (PRUNET) ; mais
+   envoyait TOUTE la grille pour créer les lignes manquantes ; mais
    toute-la-grille, c'est aussi le vrai danger — depuis une base restée
    ouverte, on réécrivait tout, y compris le travail des autres. Décision
    d'Arthur (19/08 après-midi) : n'envoyer QUE les MARs touchés en session.
@@ -7607,7 +7631,7 @@ function tpDesequilibres(actifs, indisposParMar, feries, annee) {
    janvier, ou commence APRÈS le dernier jour de l'année planning, n'existe
    pas pour la génération. Le W2 exigeait pourtant sa saisie (« n'a pas
    rempli ») et le comptait dans les sommes de cibles : il fallait lui poser
-   une indispo fictive (cas TRAN, départ 01/09/2026, campagne 2027).
+   une indispo fictive (cas TESSIER, départ 01/09/2026, campagne 2027).
    Fonction globale (non repliée dans le wizard) pour être éprouvable au banc. */
 function marsDansAnnee(mars, annee) {
   const pl = y => { const d = new Date(y, 0, 1); while (d.getDay() !== 1) d.setDate(d.getDate() + 1); return d; };
@@ -9003,7 +9027,7 @@ async function loadEquipe(force) {
     const data = await api({action: 'getMedecins'});
     if (!data.success) throw new Error(data.error);
     marData = data.medecins;
-    marsData = data.medecins;   // (v1.31.1) les DEUX caches suivent la meme reponse serveur : Maintenance lit marsData
+    marsData = data.medecins; _majTitres(marsData);   // (v1.31.1) les DEUX caches suivent la meme reponse serveur : Maintenance lit marsData
     renderEquipe();
   } catch(e) {
     toast('Erreur : ' + e.message, 'error');
@@ -9953,7 +9977,7 @@ async function initMaintenance() {
     list.innerHTML = '<div style="padding:12px;color:var(--ink-3)">Chargement de l\'équipe…</div>';
     try {
       const r = await api({action: 'getMedecins'});
-      if (r && r.success) { meds = r.medecins; marsData = r.medecins; }
+      if (r && r.success) { meds = r.medecins; marsData = r.medecins; _majTitres(marsData); }
     } catch (e) {}
   }
   if (!meds || !meds.length) {

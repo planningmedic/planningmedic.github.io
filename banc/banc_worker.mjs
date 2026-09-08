@@ -21,14 +21,14 @@ const sha256hex = async t => { const b = await crypto.subtle.digest('SHA-256', n
 const CODE_ADMIN = 'CODEADMIN99', CODE_MAR = 'CODEMAR11';
 M.set('acces', JSON.stringify({ users: [
   { h: await sha256hex(CODE_ADMIN), role: 'admin', id: 'DURAND' },
-  { h: await sha256hex(CODE_MAR), role: 'mar', id: 'BONNET' },
+  { h: await sha256hex(CODE_MAR), role: 'mar', id: 'BOISSY' },
 ]}));
 const env = { KV, PUSH_TOKEN: 'JETON-SECRET' };
 const appel = (chemin, corps) => W.fetch(new Request('https://x' + chemin, { method: 'POST', body: JSON.stringify(corps), headers: { 'Content-Type': 'application/json' } }), env).then(r => r.json().then(j => ({ statut: r.status, j })));
 
 console.log('\n═══ 3. Le VRAI Worker, exécuté ═══');
 // dépôt admin
-let r = await appel('/ecrire', { code: CODE_ADMIN, intention: { type: 'placements', year: 2027, items: [{ date: '2027-03-03', marId: 'CATINEAU', morning: 'MAT' }] } });
+let r = await appel('/ecrire', { code: CODE_ADMIN, intention: { type: 'placements', year: 2027, items: [{ date: '2027-03-03', marId: 'CHAPUIS', morning: 'MAT' }] } });
 V('dépôt admin accepté', r.j.success === true && /^j_/.test(r.j.cle), r.j);
 const cle1 = r.j.cle;
 // refus MAR
@@ -91,30 +91,30 @@ console.log('\n═══ 46. Volet libéral : mirrorable, et SANS montants ═�
 console.log('\n═══ Lu/★ par MAR : la clé veille_marques, filtrée POUR TOUS ═══');
 {
   M.set('veille_marques', JSON.stringify({ parMar: {
-    BONNET:   { lus: ['101', '102'], stars: ['103'] },
+    BOISSY:   { lus: ['101', '102'], stars: ['103'] },
     DURAND: { lus: ['201'],        stars: [] },
-    CATINEAU: { lus: ['301'],        stars: ['301'] },
+    CHAPUIS: { lus: ['301'],        stars: ['301'] },
   }, t: Date.now() }));
 
   // Le MAR ne reçoit que SES marques
   let r = await appel('/read', { code: CODE_MAR, keys: ['veille_marques'] });
   const vmM = r.j.data && r.j.data.veille_marques;
   V('un MAR obtient la clé veille_marques', !!vmM, r.j);
-  V('il ne reçoit QUE ses marques (BONNET seul)', vmM && Object.keys(vmM.parMar).length === 1 && !!vmM.parMar.BONNET, vmM && Object.keys(vmM.parMar));
-  V('ses lus et ses étoiles sont complets', vmM && vmM.parMar.BONNET.lus.length === 2 && vmM.parMar.BONNET.stars[0] === '103', vmM && vmM.parMar.BONNET);
-  V('les marques de CATINEAU ne fuient pas', vmM && !vmM.parMar.CATINEAU);
+  V('il ne reçoit QUE ses marques (BOISSY seul)', vmM && Object.keys(vmM.parMar).length === 1 && !!vmM.parMar.BOISSY, vmM && Object.keys(vmM.parMar));
+  V('ses lus et ses étoiles sont complets', vmM && vmM.parMar.BOISSY.lus.length === 2 && vmM.parMar.BOISSY.stars[0] === '103', vmM && vmM.parMar.BOISSY);
+  V('les marques de CHAPUIS ne fuient pas', vmM && !vmM.parMar.CHAPUIS);
 
   // L'ADMIN AUSSI est filtré — contrairement aux indispos : lire est personnel
   r = await appel('/read', { code: CODE_ADMIN, keys: ['veille_marques'] });
   const vmA = r.j.data && r.j.data.veille_marques;
   V('l\'admin obtient la clé', !!vmA);
-  V('l\'admin est filtré LUI AUSSI (DURAND seul, jamais les autres)', vmA && Object.keys(vmA.parMar).length === 1 && !!vmA.parMar.DURAND && !vmA.parMar.BONNET, vmA && Object.keys(vmA.parMar));
+  V('l\'admin est filtré LUI AUSSI (DURAND seul, jamais les autres)', vmA && Object.keys(vmA.parMar).length === 1 && !!vmA.parMar.DURAND && !vmA.parMar.BOISSY, vmA && Object.keys(vmA.parMar));
 
   // Poussée par le GAS : la clé est acceptée à l'écriture /push
-  r = await appel('/push', { token: 'JETON-SECRET', items: { veille_marques: JSON.stringify({ parMar: { BONNET: { lus: ['999'], stars: [] } }, t: 1 }) } });
+  r = await appel('/push', { token: 'JETON-SECRET', items: { veille_marques: JSON.stringify({ parMar: { BOISSY: { lus: ['999'], stars: [] } }, t: 1 }) } });
   V('le GAS peut pousser veille_marques', r.j.success === true, r.j);
   r = await appel('/read', { code: CODE_MAR, keys: ['veille_marques'] });
-  V('la nouvelle valeur est servie, toujours filtrée', r.j.data.veille_marques.parMar.BONNET.lus[0] === '999', r.j.data.veille_marques);
+  V('la nouvelle valeur est servie, toujours filtrée', r.j.data.veille_marques.parMar.BOISSY.lus[0] === '999', r.j.data.veille_marques);
 }
 
 console.log('\n═══ 3 ter. La version du Worker ne vit qu'+"'"+'à un seul endroit ═══');

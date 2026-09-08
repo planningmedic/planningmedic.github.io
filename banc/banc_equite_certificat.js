@@ -53,16 +53,16 @@ V('…et la MÊME existe dans index.html (portail MAR)',
 /* Jeu de données calqué sur le VRAI 2026 lu dans le classeur : cibles nominales
    à 36 pour les temps pleins, mais seulement 707 gardes posées sur 730,8. */
 const MARS = [
-  { name: 'ALBOUY', total: 34, cTot: 36 }, { name: 'ARMANDO', total: 32, cTot: 36 },
-  { name: 'CATINEAU', total: 33, cTot: 36 }, { name: 'DURAND', total: 35, cTot: 36 },
-  { name: 'FERRIERO', total: 41, cTot: 36 }, { name: 'GHIGLIONE', total: 34, cTot: 36 },
-  { name: 'GUERIN', total: 33, cTot: 36 }, { name: 'LEVASSEUR', total: 32, cTot: 36 },
-  { name: 'LEY', total: 33, cTot: 32.4 }, { name: 'MENADE', total: 31, cTot: 36 },
-  { name: 'OPPRECHT', total: 33, cTot: 36 }, { name: 'PARTOUCHE', total: 35, cTot: 36 },
-  { name: 'ROUSSEAU', total: 31, cTot: 36 }, { name: 'SALA', total: 34, cTot: 36 },
-  { name: 'SEVERAC', total: 31, cTot: 28.8 }, { name: 'SULTAN', total: 40, cTot: 36 },
-  { name: 'SUPLY', total: 36, cTot: 36 }, { name: 'WIDEHEM', total: 32, cTot: 36 },
-  { name: 'ZAMARON', total: 33, cTot: 36 }, { name: 'TRAN', total: 16, cTot: 18 },
+  { name: 'AUBERT', total: 34, cTot: 36 }, { name: 'AVELINE', total: 32, cTot: 36 },
+  { name: 'CHAPUIS', total: 33, cTot: 36 }, { name: 'DURAND', total: 35, cTot: 36 },
+  { name: 'FAUVEL', total: 41, cTot: 36 }, { name: 'GARNIER', total: 34, cTot: 36 },
+  { name: 'GAUTIER', total: 33, cTot: 36 }, { name: 'LEBRUN', total: 32, cTot: 36 },
+  { name: 'LEMAIRE', total: 33, cTot: 32.4 }, { name: 'MERCIER', total: 31, cTot: 36 },
+  { name: 'ORVAL', total: 33, cTot: 36 }, { name: 'PELLETIER', total: 35, cTot: 36 },
+  { name: 'RIVIERE', total: 31, cTot: 36 }, { name: 'SABLON', total: 34, cTot: 36 },
+  { name: 'SERVANT', total: 31, cTot: 28.8 }, { name: 'SUBLET', total: 40, cTot: 36 },
+  { name: 'SUREAU', total: 36, cTot: 36 }, { name: 'VALLET', total: 32, cTot: 36 },
+  { name: 'ZEVACO', total: 33, cTot: 36 }, { name: 'TESSIER', total: 16, cTot: 18 },
 ];
 const AXES = [['total', 'cTot', 'total']];
 
@@ -92,15 +92,15 @@ const ecart = (m, T) => m.total - cib(m, T);
 const avant = MARS.filter(m => Math.abs(m.total - m.cTot) >= 2).map(m => m.name);
 const apres = MARS.filter(m => Math.abs(ecart(m, T2026)) >= 2).map(m => m.name);
 V('le nombre d\'accusés baisse', apres.length < avant.length, { avant: avant.length, apres: apres.length });
-['GHIGLIONE', 'ALBOUY', 'SALA'].forEach(n => {
+['GARNIER', 'AUBERT', 'SABLON'].forEach(n => {
   V(n + ' n\'est plus signalé à tort', avant.indexOf(n) >= 0 && apres.indexOf(n) < 0);
 });
-V('LEY, oublié par l\'ancien calcul, apparaît',
-  avant.indexOf('LEY') < 0 && apres.indexOf('LEY') >= 0,
-  { avant: +(33 - 32.4).toFixed(1), apres: ecart(MARS.find(m => m.name === 'LEY'), T2026) });
-V('FERRIERO reste le plus fort écart, et il grandit',
-  ecart(MARS.find(m => m.name === 'FERRIERO'), T2026) > 5,
-  ecart(MARS.find(m => m.name === 'FERRIERO'), T2026));
+V('LEMAIRE, oublié par l\'ancien calcul, apparaît',
+  avant.indexOf('LEMAIRE') < 0 && apres.indexOf('LEMAIRE') >= 0,
+  { avant: +(33 - 32.4).toFixed(1), apres: ecart(MARS.find(m => m.name === 'LEMAIRE'), T2026) });
+V('FAUVEL reste le plus fort écart, et il grandit',
+  ecart(MARS.find(m => m.name === 'FAUVEL'), T2026) > 5,
+  ecart(MARS.find(m => m.name === 'FAUVEL'), T2026));
 
 console.log('\n─── 3. Aucune correction quand les comptes tombent juste ───');
 /* LA vérification qui compte le plus : une année générée par l'algorithme, où

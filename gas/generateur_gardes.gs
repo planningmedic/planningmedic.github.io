@@ -41,7 +41,7 @@
 // ⚠️ RÈGLE (détecteur de dérive dépôt↔Apps Script) : incrémenter cette version
 // à CHAQUE push de ce fichier. Le diagnostic (admin → Maintenance) compare la
 // version déployée ici avec celle du dépôt et signale toute recopie oubliée.
-const GAS_VERSION_GENERATEUR = '2026-09-07.2';
+const GAS_VERSION_GENERATEUR = '2026-09-08.1';
 
 /* (05/09/2026) INTERRUPTEUR DU NOUVEL ALGORITHME.
    À false, le générateur se comporte EXACTEMENT comme avant : c'est le retour
@@ -88,7 +88,7 @@ const PREMIERE_ANNEE_STATS_FIABLES = 2027;
 // ══════════════════════════════════════════════════════════════════════
 // Règles (par priorité) :
 //   1. Quotité (PCT_GARDES) : cible totale proportionnelle au temps de travail
-//   2. PRUNET SOUHAIT : placé en premier, S'AJOUTE au quota
+//   2. SOUHAIT PLAFONNÉ : placé en premier, S'AJOUTE au quota
 //   3. VD : même binôme vendredi+dimanche, équité maximale
 //   4. Samedi : équité maximale (proportionnelle à la quotité)
 //   5. Jeudi : équité maximale (proportionnelle à la quotité)
@@ -492,8 +492,8 @@ function generateGardes(year, opts){
     if(!indispos[id]) indispos[id]={};
   }
   // (C2-D2) Exclure les MAR entièrement hors de l'année planning via date_debut/date_fin.
-  // Remplace le splice('TRAN') en dur. Pour 2027 : TRAN (fin 2026-09-01) entièrement
-  // avant le début 2027 → exclue (= ancien splice) ; ARMAND (début 2026-11-01) actif en
+  // Remplace le splice('TESSIER') en dur. Pour 2027 : TESSIER (fin 2026-09-01) entièrement
+  // avant le début 2027 → exclue (= ancien splice) ; une arrivante au 01/11/2026 active en
   // 2027 → conservé. Générique : tout futur départ/arrivée passe par MEDECINS.
   const _planStart = toDateStr(getPremierJourPlanning(year));
   const _planEnd   = toDateStr(new Date(getPremierJourPlanning(year + 1).getTime() - 86400000));
@@ -667,7 +667,7 @@ function generateGardes(year, opts){
   function axisEligible(axis,id){
     if((axis==='sam'||axis==='vd'||axis==='ferie'||axis==='jf')&&(NO_WEEKEND.has(id)||FLAGS.souhaitPlafond.has(id))) return false; // (Fix A2) plafonné : aucun axe WE/férié
     if(axis==='jeu'&&FLAGS.souhaitPlafond.has(id)) return false; // (Fix A2) plafonné hors axe jeudi : sa cible fantôme gonflait les jeudis des autres ; ses compensations vont sur lun/mar/mer
-    if(axis==='vjf'&&FLAGS.souhaitPlafond.has(id)) return false; // PRUNET hors VJF
+    if(axis==='vjf'&&FLAGS.souhaitPlafond.has(id)) return false; // souhait_plafond hors VJF
     return true;
   }
   const cible={};
@@ -725,7 +725,7 @@ function generateGardes(year, opts){
     // ratio() ne l'applique pas deux fois.
     gardeDoctors.forEach(id=>{ ['sam','jeu','vd','vjf','jf','total'].forEach(k=>{ dette[id][k]=0; }); });
   }
-// ── 5bis. Souhaits plafonnés à la cible (PRUNET uniquement) ──────────
+// ── 5bis. Souhaits plafonnés à la cible (profils souhait_plafond) ──────────
   // La cible totale devient le MAX entre la cible proportionnelle et le
   // nombre de souhaits :
   //   • souhaits ≤ cible → il termine à la cible prévue (souhaits inclus) ;
@@ -738,7 +738,7 @@ function generateGardes(year, opts){
     cible[id].total = Math.max(cible[id].total, n);
   });
   // Budget de jours LIBRES (lun/mar/mer) = total − axes-clés. Les souhaits des
-  // non-PRUNET sont plafonnés à ce budget : leurs parts sam/jeu/VD/VJF/férié
+  // sans souhait_plafond sont plafonnés à ce budget : leurs parts sam/jeu/VD/VJF/férié
   // restent dues à l'équipe (équité) et ne peuvent être noyées sous des mardis.
   const freeBudget={};
   gardeDoctors.forEach(id=>{
@@ -749,7 +749,7 @@ function generateGardes(year, opts){
   });
   // ── 5ter. Lissage annuel : espérance de gardes par MOIS, proportionnelle aux
   // jours STRUCTURELLEMENT disponibles ce mois (respecte 2/2, CL, dates, absences
-  // fixes). Un MAR 2/2 (ex. COPELOVICI/LC) a une espérance nulle ses semaines off.
+  // fixes). Un MAR en rythme 2/2 a une espérance nulle ses semaines off.
   const ABSENT_STRUCT=new Set(['INDISPO','VAC','FORM','TP','CL','CTP']);
   const monthExp={};
   gardeDoctors.forEach(id=>{
@@ -1108,7 +1108,7 @@ function generateGardes(year, opts){
 
   // ── 7bis. NOËL / JOUR DE L'AN — rotation pluriannuelle ───────────────
   // 4 dates (24/12, 25/12, 31/12, 01/01) = 8 MAR/an. Priorité = jamais fait
-  // puis le plus ancien. ≤ 1 jour/MAR/an. PRUNET exempté. Les couplages (VD
+  // puis le plus ancien. ≤ 1 jour/MAR/an. Profils souhait_plafond exemptés. Les couplages (VD
   // ven/dim, jeudi/lundi férié ↔ samedi) sont respectés : le binôme de
   // rotation possède toute l'unité liée. Historique = onglet NOEL_AN_HISTORIQUE.
   const noelDatesAssigned=new Set();
@@ -1342,7 +1342,7 @@ function generateGardes(year, opts){
   }
 
   // ── 8a. SOUHAITS — deux régimes ──────────────────────────────────────
-  // Régime 1 : souhait_plafond (PRUNET) = priorité absolue, peut dépasser sa cible.
+  // Régime 1 : souhait_plafond = priorité absolue, peut dépasser sa cible.
   // Régime 2 : autres MAR = préférence de placement DANS leur cible, équitable
   //            (le moins-servi mène) ; la 2e place préfère un co-souhaiteur.
   const souhParJour={}; // date (dans l'année) -> souhaiteurs gardeDoctors
@@ -1358,7 +1358,7 @@ function generateGardes(year, opts){
   // (25/08/2026) Le compte des souhaits honorés est fait EN FIN de génération, sur le
   // planning final (voir souhaitJoursOK plus bas) : compter à la pose ne voyait que la
   // passe des souhaits et ratait les gardes obtenues autrement — mesuré en production
-  // sur PRUNET, 43 comptés pour 45 réellement obtenus, ses mardis des 21 et 28 décembre
+  // sur un profil souhait_plafond, 43 comptés pour 45 réellement obtenus, ses mardis des 21 et 28 décembre
   // ayant été posés par la passe des jours critiques de la semaine de Noël.
   Object.keys(souhaits).forEach(ds=>{(souhaits[ds]||[]).forEach(id=>{
     if(souhaitPose[id]!==undefined) souhaitPose[id]++;
@@ -1483,7 +1483,7 @@ function generateGardes(year, opts){
     return true;
   }
 
-  // Régime 1 — PRUNET (souhait_plafond) : priorité absolue
+  // Régime 1 — souhait_plafond : priorité absolue
   gardeDoctors.filter(id=>SOUHAIT_PLAFOND.has(id)).forEach(id=>{
     Object.keys(souhParJour).filter(date=>souhParJour[date].indexOf(id)>=0).sort().forEach(date=>{
       if(gardes[date]||blocked(id,date)) return;
@@ -1685,7 +1685,7 @@ function generateGardes(year, opts){
   // ── 8c. OPTIMISEUR GLOBAL (recherche locale par transferts de créneaux) ─
   // Minimise Σ poids·(réel−cible)² sur les axes d'équité en transférant un
   // créneau (unité VD/couplage incluse) d'un MAR sur-cible vers un sous-cible.
-  // Respecte espacements, NO_WEEKEND, plafond PRUNET, souhaits verrouillés et
+  // Respecte espacements, NO_WEEKEND, plafond souhait_plafond, souhaits verrouillés et
   // l'intégrité VD / couplages fériés. ~0,1 s ; chacun finit à ≤1,3 de sa cible.
   {
     const W={vd:7,sam:6,jeu:5,vjf:5,jf:4,total:2}, WGG2=1;
@@ -1718,7 +1718,7 @@ function generateGardes(year, opts){
       if(days_.some(dd=>assignDow[dd]===5))c.vd=1;
       return c;
     };
-    // 3) Slots = (groupe, rôle 0=G/1=G2) ; verrou si titulaire = PRUNET ou souhait honoré.
+    // 3) Slots = (groupe, rôle 0=G/1=G2) ; verrou si titulaire à souhait_plafond ou souhait honoré.
     const slots=[];
     Object.values(groups).forEach(days_=>{
       const contrib=contribOf(days_);
@@ -2171,7 +2171,7 @@ function generateGardes(year, opts){
   const h18T={},h18cnt={},h18A={};
   allDoctors.forEach(id=>{h18T[id]=Math.round(baseT*w18(id));h18cnt[id]=0;});
   // Disponibilité 18h : exclut absences totales, gardes/récups, semaines "off"
-  // (rythme 2/2) et BONNET les jeudi/vendredi (60%).
+  // (rythme 2/2) et un autre les jeudi/vendredi (60%).
   const ABSENT_18 = new Set(['VAC','FORM','CL','TP','CTP','CP','A','RG_TRANSITION']);
   function dispo18(id,date){
     if(ABSENT_18.has(indispos[id]?.[date])) return false;

@@ -1,7 +1,7 @@
 // ⚠️ RÈGLE (détecteur de dérive dépôt↔Apps Script) : incrémenter cette version
 // à CHAQUE push de ce fichier. Le diagnostic (admin → Maintenance) compare la
 // version déployée ici avec celle du dépôt et signale toute recopie oubliée.
-const GAS_VERSION_SETUP = '2026-09-07.1';
+const GAS_VERSION_SETUP = '2026-09-08.1';
 
 
 // ══════════════════════════════════════════════════════════════════════
@@ -523,7 +523,7 @@ function archiveYear(year, moveSheets) {
        la memoire longue du service — et une fois GARDES_{annee} parti aux archives,
        la seule trace qui reste dans le maitre. Autant qu'elle dise la verite.
        Effet de bord voulu : les MAR presents dans la grille mais absents du snapshot
-       (arrivee en cours d'annee, ex. ARMAND en novembre 2026) obtiennent enfin leur
+       (arrivee en cours d'annee, ex. une prise de fonctions en novembre) obtiennent enfin leur
        ligne, avec leur Noel reel — sans quoi ils redevenaient eligibles a Noel.
        Repli : si la grille est illisible, on retombe sur l'ancien comportement. */
     let live = null;

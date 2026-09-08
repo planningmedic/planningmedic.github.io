@@ -1,7 +1,7 @@
 // ⚠️ RÈGLE (détecteur de dérive dépôt↔Apps Script) : incrémenter cette version
 // à CHAQUE push de ce fichier. Le diagnostic (admin → Maintenance) compare la
 // version déployée ici avec celle du dépôt et signale toute recopie oubliée.
-const GAS_VERSION_MIROIR = '2026-09-08.1';
+const GAS_VERSION_MIROIR = '2026-09-08.2';
 
 /* ═══════════════════════════════════════════════════════════════════════
    MIROIR.GS — alimentation du miroir de lecture Cloudflare
@@ -1197,6 +1197,18 @@ function _miroirConstruireAcces_() {
   }
 
   const acces = { users: users, t: Date.now() };
+  /* (08/09/2026) DEUX LISTES GLOBALES, DEDUITES DE MEDECINS.
+     Elles remplacent des noms de medecins ECRITS EN DUR dans les pages :
+       titresPr        — qui s'affiche « Pr » plutot que « Dr » (colonne NOM)
+       souhaitsPlafond — regime de souhaits garantis (colonne souhait_plafond),
+                         qui retire le MAR des calculs d'equite
+     Un depot public n'a pas a nommer un praticien pour savoir comment
+     l'appeler. Deduites, donc rien a saisir : la colonne fait foi. */
+  try {
+    const eff = _effectifTitres_();
+    acces.titresPr = eff.titresPr;
+    acces.souhaitsPlafond = eff.souhaitsPlafond;
+  } catch (e) { acces.titresPr = []; acces.souhaitsPlafond = []; }
   try { acces.indisposYear = getIndisposYear(); } catch (e) { acces.indisposYear = null; }
   try { acces.indisposOuverte = _indisposOuverte_(); } catch (e) { acces.indisposOuverte = false; }
   // (26/08/2026) Campagne figée (planning de l'année de campagne déjà généré) :
@@ -1204,6 +1216,26 @@ function _miroirConstruireAcces_() {
   try { acces.indisposFigees = _indisposFigees_(); } catch (e) { acces.indisposFigees = false; }
   try { acces.phaseTp = _phaseTp_(); } catch (e) { acces.phaseTp = { actif: false, annee: null, annees: [] }; }
   return acces;
+}
+
+/* Effectif : qui porte le titre « Pr », qui releve du regime de souhaits
+   garantis. Lu dans MEDECINS, la seule source. Colonne B = NOM (préfixe « PR »),
+   colonne P = souhait_plafond. Les MAR inactifs sont inclus : un nom affiche
+   dans un planning passe doit rester correct.
+   La MEME liste est calculee par _effectifTitresGas_ (Indispos.gs) pour le
+   chemin « connexion au serveur ». Deux lecteurs, une seule regle. */
+function _effectifTitres_() {
+  const sh = SpreadsheetApp.getActiveSpreadsheet().getSheetByName('MEDECINS');
+  if (!sh) return { titresPr: [], souhaitsPlafond: [] };
+  const data = sh.getDataRange().getValues();
+  const titresPr = [], souhaitsPlafond = [];
+  for (var i = 1; i < data.length; i++) {
+    const id = String(data[i][0] == null ? '' : data[i][0]).trim();
+    if (!id) continue;
+    if (/^PR\b/i.test(String(data[i][1] == null ? '' : data[i][1]).trim())) titresPr.push(id);
+    if (String(data[i][15] == null ? '' : data[i][15]).trim().toUpperCase() === 'O') souhaitsPlafond.push(id);
+  }
+  return { titresPr: titresPr, souhaitsPlafond: souhaitsPlafond };
 }
 
 /* Analyse la valeur de CONFIG / TUILES_PRIVEES.

@@ -54,38 +54,38 @@ function charger(ctx, fichier, noms) {
 }
 
 // ══════════ SCÉNARIO 1 : poser un TP retire le placement du jour ══════════
-console.log('\n═══ 1. Le dernier geste gagne (cas SEVERAC) ═══');
+console.log('\n═══ 1. Le dernier geste gagne (cas SERVANT) ═══');
 {
   const cl = new Classeur();
   cl.ajouter('PLANNING_OVERRIDES', [
     ['DATE','MAR_ID','MATIN','APREM','COMMENTAIRE'],
-    ['2027-03-03','CATINEAU','MAT','MAT','Comité — MAT'],
-    ['2027-03-03','SEVERAC','REA','REA','Comité — REA'],
-    ['2027-03-04','SEVERAC','REA','REA','Comité — REA'],
+    ['2027-03-03','CHAPUIS','MAT','MAT','Comité — MAT'],
+    ['2027-03-03','SERVANT','REA','REA','Comité — REA'],
+    ['2027-03-04','SERVANT','REA','REA','Comité — REA'],
   ]);
   cl.ajouter('GARDES_2027', [
     ['','',''], ['','',''],
     ['MAR','', '2027-03-03','2027-03-04','2027-03-05'],
-    ['SEVERAC','', '', '', ''],
-    ['CATINEAU','', '', '', ''],
+    ['SERVANT','', '', '', ''],
+    ['CHAPUIS','', '', '', ''],
   ]);
   const ctx = nouveauContexte(cl);
   charger(ctx, '../gas/Indispos.gs', ['retirerPlacementsPourDates', 'appliquerStatutJour']);
 
-  const res = vm.runInContext("appliquerStatutJour(2027, 'SEVERAC', 'TP', ['2027-03-03'])", ctx);
+  const res = vm.runInContext("appliquerStatutJour(2027, 'SERVANT', 'TP', ['2027-03-03'])", ctx);
   const lignes = cl.getSheetByName('PLANNING_OVERRIDES').lignes;
   verifier('statut TP appliqué', res.applied.length === 1, res);
-  verifier('le placement SEVERAC du 03/03 est retiré',
-    !lignes.some(l => l[0] === '2027-03-03' && l[1] === 'SEVERAC'), lignes.map(l => l.slice(0,2)));
-  verifier('le placement SEVERAC du 04/03 est INTACT (autre jour)',
-    lignes.some(l => l[0] === '2027-03-04' && l[1] === 'SEVERAC'));
-  verifier('le placement CATINEAU du 03/03 est INTACT (autre MAR)',
-    lignes.some(l => l[0] === '2027-03-03' && l[1] === 'CATINEAU'));
+  verifier('le placement SERVANT du 03/03 est retiré',
+    !lignes.some(l => l[0] === '2027-03-03' && l[1] === 'SERVANT'), lignes.map(l => l.slice(0,2)));
+  verifier('le placement SERVANT du 04/03 est INTACT (autre jour)',
+    lignes.some(l => l[0] === '2027-03-04' && l[1] === 'SERVANT'));
+  verifier('le placement CHAPUIS du 03/03 est INTACT (autre MAR)',
+    lignes.some(l => l[0] === '2027-03-03' && l[1] === 'CHAPUIS'));
   verifier('la feuille garde bien 3 lignes + entête', lignes.length === 3, lignes.length);
 
   // Réquisition : replacer APRÈS le TP
-  cl.getSheetByName('PLANNING_OVERRIDES').appendRow(['2027-03-03','SEVERAC','REA','REA','Comité — réquisition']);
-  const res2 = vm.runInContext("appliquerStatutJour(2027, 'SEVERAC', '18', ['2027-03-03'])", ctx);
+  cl.getSheetByName('PLANNING_OVERRIDES').appendRow(['2027-03-03','SERVANT','REA','REA','Comité — réquisition']);
+  const res2 = vm.runInContext("appliquerStatutJour(2027, 'SERVANT', '18', ['2027-03-03'])", ctx);
   /* (14/08/2026) La doublure coerce désormais les dates écrites (appendRow
      ci-dessus) en objets Date, comme le vrai Sheets. La comparaison du test
      se normalise donc comme le fait le code de production — qui, lui, était
@@ -94,7 +94,7 @@ console.log('\n═══ 1. Le dernier geste gagne (cas SEVERAC) ═══');
     ? `${v.getFullYear()}-${String(v.getMonth()+1).padStart(2,'0')}-${String(v.getDate()).padStart(2,'0')}`
     : String(v).trim();
   verifier('« 18 » ne retire PAS le placement (pas une absence)',
-    cl.getSheetByName('PLANNING_OVERRIDES').lignes.some(l => dstr(l[0]) === '2027-03-03' && l[1] === 'SEVERAC'), res2);
+    cl.getSheetByName('PLANNING_OVERRIDES').lignes.some(l => dstr(l[0]) === '2027-03-03' && l[1] === 'SERVANT'), res2);
 }
 
 // ══════════ SCÉNARIO 2 : verrous imbriqués (le défaut corrigé) ══════════
@@ -124,7 +124,7 @@ console.log('\n═══ 4. L\'applicateur : ordre, groupage, échec isolé ═�
 {
   const cl = new Classeur();
   cl.ajouter('PLANNING_OVERRIDES', [['DATE','MAR_ID','MATIN','APREM','COMMENTAIRE']]);
-  cl.ajouter('GARDES_2027', [['','',''],['','',''],['MAR','','2027-01-12','2027-01-13'],['ARMAND','','',''],['CATINEAU','','','']]);
+  cl.ajouter('GARDES_2027', [['','',''],['','',''],['MAR','','2027-01-12','2027-01-13'],['ANCEL','','',''],['CHAPUIS','','','']]);
   const ctx = nouveauContexte(cl, { MIROIR_PUSH_TOKEN: 'JETON' });
   const trace = [];
   ctx.MIROIR_URL = 'https://worker';
@@ -138,10 +138,10 @@ console.log('\n═══ 4. L\'applicateur : ordre, groupage, échec isolé ═�
     const corps = JSON.parse(opt.payload);
     if (url.endsWith('/tirer')) return { getResponseCode: () => 200, getContentText: () => JSON.stringify({ success: true, fiches: [
       { cle: 'j_00000000000030_c', valeur: { type: 'publier', year: 2027 } },
-      { cle: 'j_00000000000010_a', valeur: { type: 'placements', year: 2027, items: [{ date:'2027-01-12', marId:'CATINEAU' }] } },
+      { cle: 'j_00000000000010_a', valeur: { type: 'placements', year: 2027, items: [{ date:'2027-01-12', marId:'CHAPUIS' }] } },
       { cle: 'j_00000000000050_e', valeur: { type: 'statut', year: 2027, marId: 'FANTOME', statut: 'V', dates: ['2027-02-01'] } },
-      { cle: 'j_00000000000020_b', valeur: { type: 'statut', year: 2027, marId: 'ARMAND', statut: 'F', dates: ['2027-01-12'] } },
-      { cle: 'j_00000000000040_d', valeur: { type: 'placements', year: 2027, items: [{ date:'2027-01-13', marId:'BONNET' }] } },
+      { cle: 'j_00000000000020_b', valeur: { type: 'statut', year: 2027, marId: 'ANCEL', statut: 'F', dates: ['2027-01-12'] } },
+      { cle: 'j_00000000000040_d', valeur: { type: 'placements', year: 2027, items: [{ date:'2027-01-13', marId:'BOISSY' }] } },
       { cle: 'j_00000000000060_f', valeur: { type: 'inconnu' } },
     ] }) };
     if (url.endsWith('/purger')) { purge = corps.resultats; return { getResponseCode: () => 200, getContentText: () => '{"success":true}' }; }
@@ -150,10 +150,10 @@ console.log('\n═══ 4. L\'applicateur : ordre, groupage, échec isolé ═�
   charger(ctx, '../gas/journal.gs', ['_journalEcrireLots_', 'journalAppliquer', '_journalRafraichirMail_', '_journalJeton_']);
   vm.runInContext('journalAppliquer()', ctx);
 
-  const iBatch1 = trace.indexOf('batch:CATINEAU'), iPub = trace.indexOf('publier:2027'), iBatch2 = trace.indexOf('batch:BONNET');
+  const iBatch1 = trace.indexOf('batch:CHAPUIS'), iPub = trace.indexOf('publier:2027'), iBatch2 = trace.indexOf('batch:BOISSY');
   verifier('le lot ANTÉRIEUR est écrit AVANT la publication', iBatch1 >= 0 && iPub > iBatch1, trace);
   verifier('le lot POSTÉRIEUR est écrit APRÈS la publication', iBatch2 > iPub, trace);
-  verifier('le statut valide est appliqué', trace.includes('statut:ARMAND'));
+  verifier('le statut valide est appliqué', trace.includes('statut:ANCEL'));
   verifier('6 fiches traitées, aucune perdue', purge && purge.length === 6, purge && purge.length);
   verifier('2 échecs isolés (MAR fantôme + type inconnu)', purge.filter(r => !r.ok).length === 2, purge.filter(r => !r.ok));
   verifier('l\'échec porte son motif', purge.some(r => !r.ok && /introuvable/.test(r.detail)), purge.filter(r=>!r.ok).map(r=>r.detail));
@@ -167,12 +167,12 @@ console.log('\n═══ 5. Rejeu d\'un lot : mise à jour, jamais de doublon �
   cl.ajouter('PLANNING_OVERRIDES', [['DATE','MAR_ID','MATIN','APREM','COMMENTAIRE']]);
   const ctx = nouveauContexte(cl);
   charger(ctx, '../gas/code.gs', ['savePlanningOverridesBatch']);
-  const items = JSON.stringify([{ date:'2027-03-03', marId:'CATINEAU', morning:'MAT', comment:'Comité' }]);
+  const items = JSON.stringify([{ date:'2027-03-03', marId:'CHAPUIS', morning:'MAT', comment:'Comité' }]);
   vm.runInContext(`savePlanningOverridesBatch(${items})`, ctx);
   vm.runInContext(`savePlanningOverridesBatch(${items})`, ctx);   // rejeu (journal re-tiré)
   const l = cl.getSheetByName('PLANNING_OVERRIDES').lignes;
   verifier('une seule ligne après deux envois identiques', l.length === 2, l.length);
-  vm.runInContext(`savePlanningOverridesBatch([{date:'2027-03-03',marId:'CATINEAU',afternoon:'REA'}])`, ctx);
+  vm.runInContext(`savePlanningOverridesBatch([{date:'2027-03-03',marId:'CHAPUIS',afternoon:'REA'}])`, ctx);
   verifier('l\'après-midi complète la même ligne', l.length === 2 && l[1][3] === 'REA', l[1]);
   verifier('le matin est conservé', l[1][2] === 'MAT', l[1]);
 }

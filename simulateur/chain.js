@@ -8,8 +8,8 @@ let prev=null, inject=true;
   const st=res.ss.getSheetByName(`STATS_GARDES_${y}`)._rows.map(r=>r.slice());
   const hdr=st[0].map(String); const iSam=hdr.indexOf('SAM');
   const s=H.readStats(res.ss,y).byId;
-  console.log(`${y} : SULTAN sam=${s['SULTAN']['SAM']} SUPLY sam=${s['SUPLY']['SAM']} (cible ${s['SULTAN']['CIBLE SAM']}) — écart max sam=${Math.max(...Object.keys(s).filter(id=>+s[id]['TOTAL G']>0&&!['PRUNET'].includes(id)).map(id=>Math.abs(+s[id]['SAM']-+s[id]['CIBLE SAM']))).toFixed(2)}`);
-  if(inject){ st.forEach(r=>{ if(r[0]==='SULTAN') r[iSam]=+r[iSam]+2; if(r[0]==='SUPLY') r[iSam]=Math.max(0,+r[iSam]-2); }); inject=false; console.log('   (injection +2/−2 sam dans les stats transmises)'); }
+  console.log(`${y} : SUBLET sam=${s['SUBLET']['SAM']} SUREAU sam=${s['SUREAU']['SAM']} (cible ${s['SUBLET']['CIBLE SAM']}) — écart max sam=${Math.max(...Object.keys(s).filter(id=>+s[id]['TOTAL G']>0&&!['PERRIN'].includes(id)).map(id=>Math.abs(+s[id]['SAM']-+s[id]['CIBLE SAM']))).toFixed(2)}`);
+  if(inject){ st.forEach(r=>{ if(r[0]==='SUBLET') r[iSam]=+r[iSam]+2; if(r[0]==='SUREAU') r[iSam]=Math.max(0,+r[iSam]-2); }); inject=false; console.log('   (injection +2/−2 sam dans les stats transmises)'); }
   prev=st;
 });
 
@@ -36,6 +36,6 @@ console.log(`\nS12 — paires jeu→sam / sam→lun : ${legit} couplages férié
 const s=H.readStats(res.ss,2027).byId;
 const act=Object.keys(s).filter(id=>+s[id]['TOTAL G']>0);
 const h18=act.map(id=>+s[id]['18H']);
-console.log(`\nS13 — 18h : min=${Math.min(...h18)} max=${Math.max(...h18)} | BONNET(only18?)=${s['BONNET']?s['BONNET']['18H']:'-'} BOUREGBA=${s['BOUREGBA']?s['BOUREGBA']['18H']:'-'}`);
+console.log(`\nS13 — 18h : min=${Math.min(...h18)} max=${Math.max(...h18)} | BOISSY(only18?)=${s['BOISSY']?s['BOISSY']['18H']:'-'} BRIAND=${s['BRIAND']?s['BRIAND']['18H']:'-'}`);
 const rMismatch=act.filter(id=>+s[id]['RECUP R']!==+s[id]['SAM']);
 console.log(`R ≡ SAM : ${rMismatch.length?('❌ '+rMismatch.map(id=>`${id} R=${s[id]['RECUP R']} SAM=${s[id]['SAM']}`).join(' ')):'✅'}`);

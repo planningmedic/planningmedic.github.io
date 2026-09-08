@@ -819,7 +819,7 @@ const API_URL = 'https://script.google.com/macros/s/AKfycbxDbTnhgdjCNBqkeAblZWgS
 // declaration de choix ecrivent DEJA "Dr" / "Docteur" devant. On retire donc la
 // civilite du nom pre-rempli, sinon le document imprime "Dr Dr X".
 // La civilite n'est retiree que si elle est SUIVIE D'UNE ESPACE : Drouot, Dreyfus
-// et Prunet ne sont pas touches.
+// et Perrin ne sont pas touches.
 function sansCivilite(n){
   return String(n||'').replace(/^\s*(?:(?:M\.|Mme|Dr\.?|Docteur|Pr\.?|Professeur)\s+)+/i,'').trim();
 }
@@ -1800,7 +1800,7 @@ populateMut();poserEcran();renderSummary();
       </div>
       <div class="estab">
         <div class="e1"><span class="ed" contenteditable="true" data-ph="Établissement"></span></div>
-        1 avenue Pasteur — 98000 Monaco<br>Activité libérale intra-hospitalière
+        <span class="ed" contenteditable="true" data-ph="Adresse"></span><br>Activité libérale intra-hospitalière
       </div>
     </div>
     <div class="doctitle">

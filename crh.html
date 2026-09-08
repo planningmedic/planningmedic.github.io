@@ -178,7 +178,18 @@ const API_URL = 'https://script.google.com/macros/s/AKfycbxDbTnhgdjCNBqkeAblZWgS
 let VIEW_CODE = ''; let MY_ID = null; let MY_ROLE = null; let FMT = 'appareil'; let MODEL = 'sonnet';
 
 function esc(s){ return String(s||'').replace(/[&<>'"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;',"'":'&#39;','"':'&quot;'}[c])); }
-function _meName(id){ return (id==='PRUNET'?'Pr ':'Dr ')+id.charAt(0)+id.slice(1).toLowerCase(); }
+/* (08/09/2026) Le titre affiché et le régime de souhaits garantis venaient d'un
+   nom de praticien écrit en dur. Deux défauts : ce nom vivait dans
+   un dépôt public, et une règle qu'il aurait fallu modifier dans le code le jour
+   où elle changerait de titulaire. Les deux listes arrivent maintenant avec
+   l'identité, déduites de MEDECINS — colonne NOM pour le titre, colonne
+   souhait_plafond pour le régime. Vides tant que l'identité n'est pas reçue :
+   « Dr » pour tout le monde, aucun régime particulier. Le bon défaut. */
+let TITRES_PR = [], SOUHAITS_PLAFOND = [];
+const _tit    = id => (TITRES_PR.indexOf(id) > -1 ? 'Pr ' : 'Dr ');
+const _titMaj = id => (TITRES_PR.indexOf(id) > -1 ? 'PR ' : 'DR ');
+const _souhaitsGarantisId = id => SOUHAITS_PLAFOND.indexOf(id) > -1;
+function _meName(id){ return _tit(id)+id.charAt(0)+id.slice(1).toLowerCase(); }
 
 // ── THÈME (clé localStorage partagée : pmTheme) ──
 function getThemePref(){ try{return localStorage.getItem('pmTheme')||'auto';}catch(e){return 'auto';} }
@@ -232,6 +243,11 @@ async function apiPost(payload) {
 
 // ── BADGE UTILISATEUR + DÉCONNEXION ──
 function applyUserBadge(r){
+
+  /* (08/09/2026) Titre affiché et régime de souhaits garantis : listes globales
+     déduites de MEDECINS, servies par les DEUX chemins d'identité. */
+  TITRES_PR = Array.isArray(r && r.titresPr) ? r.titresPr : [];
+  SOUHAITS_PLAFOND = Array.isArray(r && r.souhaitsPlafond) ? r.souhaitsPlafond : [];
   MY_ROLE = r.role; MY_ID = (r.role==='mar') ? r.id : null;
   const pill = document.getElementById('mePill'); if(!pill) return;
   const label = MY_ID ? _meName(MY_ID) : 'Admin';

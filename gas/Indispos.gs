@@ -1,7 +1,7 @@
 // ⚠️ RÈGLE (détecteur de dérive dépôt↔Apps Script) : incrémenter cette version
 // à CHAQUE push de ce fichier. Le diagnostic (admin → Maintenance) compare la
 // version déployée ici avec celle du dépôt et signale toute recopie oubliée.
-const GAS_VERSION_INDISPOS = '2026-09-08.2';
+const GAS_VERSION_INDISPOS = '2026-09-08.3';
 
 /* ── (01/08/2026) MARQUEUR DE TEMPS GLOBAL — mesure, ne change rien ───────
    `_srv_ms` chronometre l'INTERIEUR de doGet. Or avant que doGet soit appele,
@@ -1457,7 +1457,7 @@ function saveIndisposForDoctor(doctorId, indisposMap, year) {
    baisser l'effectif, et deux demandes le même jour se bloqueraient. */
 
 // Le MAR est-il hors du dispositif TP ? (règle SANS nom en dur : jours fixes
-// déclarés — BONNET — ou rythme 2 semaines sur 2 — même règle que getVacConfig.)
+// déclarés, ou rythme 2 semaines sur 2 — même règle que getVacConfig.)
 function _tpFixeDe_(marId) {
   try {
     const f = getMedecinFlags();
@@ -2292,6 +2292,31 @@ function _aDroitTuile_(id, cle) {
     }
     return false;
   } catch (e) { return false; }   /* porte fermee par defaut */
+}
+
+/* Qui porte le titre « Pr », qui releve du regime de souhaits garantis.
+   Lu dans MEDECINS : colonne B = NOM, colonne P = souhait_plafond. Les MAR
+   inactifs sont inclus — un nom affiche dans un planning passe doit rester
+   correct. Miroir exact de _effectifTitres_ (miroir.gs) : une seule regle,
+   deux lecteurs. Resultat memorise le temps d'une execution. */
+var _EFFECTIF_TITRES_MEMO = null;
+function _effectifTitresGas_() {
+  if (_EFFECTIF_TITRES_MEMO) return _EFFECTIF_TITRES_MEMO;
+  const vide = { titresPr: [], souhaitsPlafond: [] };
+  try {
+    const sh = SpreadsheetApp.getActiveSpreadsheet().getSheetByName('MEDECINS');
+    if (!sh) return vide;
+    const data = sh.getDataRange().getValues();
+    const titresPr = [], souhaitsPlafond = [];
+    for (let i = 1; i < data.length; i++) {
+      const id = String(data[i][0] == null ? '' : data[i][0]).trim();
+      if (!id) continue;
+      if (/^PR\b/i.test(String(data[i][1] == null ? '' : data[i][1]).trim())) titresPr.push(id);
+      if (String(data[i][15] == null ? '' : data[i][15]).trim().toUpperCase() === 'O') souhaitsPlafond.push(id);
+    }
+    _EFFECTIF_TITRES_MEMO = { titresPr: titresPr, souhaitsPlafond: souhaitsPlafond };
+    return _EFFECTIF_TITRES_MEMO;
+  } catch (e) { return vide; }
 }
 
 function checkCode(code) {
@@ -3301,7 +3326,7 @@ const SECRETARIAT_ACTIONS = new Set([
 
 /* (19/08/2026) Écrit la grille complète des affectations dans l'onglet.
    Extrait du routeur pour être éprouvable au banc. Défaut corrigé : un MAR
-   sans ligne existante (fiche créée après l'onglet — PRUNET 2026, ARMAND)
+   sans ligne existante (fiche créée après l'onglet)
    était ignoré EN SILENCE, et le journal comptait les données reçues, pas
    les lignes écrites (« 25 mis à jour » pour 24 écrites, constaté le 19/08
    au matin). La ligne manquante est désormais créée en bas de l'onglet,
@@ -3456,6 +3481,12 @@ function _routeRequete_(e) {
         // (08/09/2026) Tuiles reservees (CONFIG / TUILES_PRIVEES) : meme contenu
         // que le champ `tuiles` de l'identite servie par la copie rapide.
         tuiles: user.tuiles || [],
+        /* (08/09/2026) Titre affiche et regime de souhaits garantis, deduits de
+           MEDECINS. MEME contenu que les champs servis par la copie rapide
+           (_effectifTitres_ dans miroir.gs) : les pages ne doivent pas afficher
+           « Dr » quand le relais tombe et « Pr » quand il repond. */
+        titresPr: _effectifTitresGas_().titresPr,
+        souhaitsPlafond: _effectifTitresGas_().souhaitsPlafond,
         name: user.name, initials: user.initials, 
         year: TEST_YEAR, indisposYear: getIndisposYear(),
         // Campagne de saisie en cours ? Pilote l'affichage de la tuile
@@ -3467,7 +3498,7 @@ function _routeRequete_(e) {
         // (POSE TP · 22/08/2026) Phase de pose des temps partiels (déduite) +
         // profil du MAR : la tuile « Mes jours de temps partiel » ne s'affiche
         // que si phaseTp.actif ET quotite < 100 ET !tpFixe. Aucun nom en dur :
-        // jours fixes (BONNET) et rythme 2/2 s'excluent par leurs colonnes MEDECINS.
+        // jours fixes et rythme 2/2 s'excluent par leurs colonnes MEDECINS.
         phaseTp: _phaseTp_(),
         quotite: user.quotite || 100,
         tpFixe: _tpFixeDe_(user.id),
@@ -6504,7 +6535,7 @@ function renderRecapMailBlocks_(synth, blocks) {
 }
 // ── Éligibles Noël/Jour de l'An (bandeau staff.html) ───────────────────
 // Réutilise la rotation overdueKey du générateur : jamais-fait d'abord,
-// puis l'année la plus ancienne. Exclut no_garde et PRUNET (souhait_plafond),
+// puis l'année la plus ancienne. Exclut no_garde et les profils souhait_plafond,
 // et les MAR hors année planning (date_debut/date_fin).
 // PLANCHER = PLAFOND = 8 : il faut EXACTEMENT 8 MAR distincts. Les 4 dates
 // (24/12, 25/12, 31/12, 01/01) portent chacune 2 gardes (G rea + G2 mat), et
@@ -6672,7 +6703,7 @@ function computeNoelAnEligibles(year, tous) {
   const planEnd   = toDateStr(new Date(getPremierJourPlanning(year + 1).getTime() - 86400000));
   const horsAnnee = id => { const dd=FLAGS.dateDebut[id], df=FLAGS.dateFin[id]; if(df && df<planStart) return true; if(dd && dd>planEnd) return true; return false; };
 
-  // Effectif éligible : actifs − no_garde − PRUNET − hors année
+  // Effectif éligible : actifs − no_garde − souhait_plafond − hors année
   const initMap = {}, eligibles = [];
   const med = ss.getSheetByName('MEDECINS');
   if (med) {

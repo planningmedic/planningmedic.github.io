@@ -367,7 +367,7 @@ console.log('\n═══ PT12 · éligibilité SANS nom en dur : plein temps, jo
   V('quotité 100 → aucun jour posé, motif de profil',
     /profil/.test(r1.resultat['2027-03-01'] || '') && r1.quota.total === 0, r1);
   const r2 = b.appel({ tp: true, indispos: { '2027-03-01': 'TP' } }, { role: 'mar', id: 'FIXE' });
-  V('jours fixes déclarés → aucun jour posé (BONNET s\'exclut par sa colonne)',
+  V('jours fixes déclarés → aucun jour posé (BOISSY s\'exclut par sa colonne)',
     /profil/.test(r2.resultat['2027-03-01'] || ''), r2);
   const r3 = b.appel({ tp: true, indispos: { '2027-03-01': 'TP' } }, { role: 'mar', id: 'CYCLE' });
   V('rythme 2 semaines sur 2 → aucun jour posé', /profil/.test(r3.resultat['2027-03-01'] || ''), r3);
@@ -556,8 +556,8 @@ console.log('\n═══ PT20 · l\'écran : mêmes seuils que le serveur, extra
 console.log('\n═══ PT21 · TP_FERMES : fermer, refuser pour tous, rouvrir ═══');
 {
   const b = monde({});
-  vm.runInContext("_tpFermerJour_(2027, '2027-03-02', 'PRUNET')", b.ctx);
-  vm.runInContext("_tpFermerJour_(2027, '2027-03-02', 'PRUNET')", b.ctx);   // idempotent
+  vm.runInContext("_tpFermerJour_(2027, '2027-03-02', 'PERRIN')", b.ctx);
+  vm.runInContext("_tpFermerJour_(2027, '2027-03-02', 'PERRIN')", b.ctx);   // idempotent
   V('l\'onglet TP_FERMES est créé au premier refus, une seule ligne',
     b.cl.getSheetByName('TP_FERMES').getDataRange().getValues().length === 2);
   V('la liste des fermés porte le jour', vm.runInContext("_tpFermes_(2027).has('2027-03-02')", b.ctx));
@@ -608,13 +608,13 @@ console.log('\n═══ PT23 · le bloc comité d\'admin : effectif de l\'INSTA
   vm.runInContext(extraireFonction('../admin.html', 'tpcPresentsSi'), bacA);
   bacA.TPC = { presents: { '2027-03-23': 15, '2027-04-02': 15 },
     demandes: [
-      { id: 'SEVERAC', jour: '2027-03-23', etat: null },
-      { id: 'CATINEAU', jour: '2027-03-23', etat: null },
-      { id: 'ZAMARON', jour: '2027-04-02', etat: null }] };
+      { id: 'SERVANT', jour: '2027-03-23', etat: null },
+      { id: 'CHAPUIS', jour: '2027-03-23', etat: null },
+      { id: 'ZEVACO', jour: '2027-04-02', etat: null }] };
   const psi = (i) => vm.runInContext(`tpcPresentsSi(TPC.demandes[${i}])`, bacA);
   V('avant toute décision : 14 présents si on valide (15 − le demandeur)', psi(0) === 14 && psi(1) === 14, [psi(0), psi(1)]);
   bacA.TPC.demandes[0].etat = 'ok';
-  V('SEVERAC validé → la ligne de CATINEAU se recalcule : 13 (le point de la maquette)', psi(1) === 13, psi(1));
+  V('SERVANT validé → la ligne de CHAPUIS se recalcule : 13 (le point de la maquette)', psi(1) === 13, psi(1));
   V('…et le jour d\'un AUTRE jour ne bouge pas', psi(2) === 14, psi(2));
   const adm = fs.readFileSync('../admin.html', 'utf8');
   V('le bloc est accroché à l\'onglet Équipe', /name==='equipe'[^\n]*tpcCharger\(\)/.test(adm));

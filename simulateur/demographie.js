@@ -6,7 +6,7 @@
 // donc la charge d'environ 10 % (57 gardes/an au creux au lieu de 52).
 // Cette version part de l'effectif RÉEL, avec les années de naissance.
 //
-// Transition modélisée : FERRIERO (100 %) et COPELOVICI (50 %) cohabitent
+// Transition modélisée : FAUVEL (100 %) et CHASTEL (50 %) cohabitent
 // jusqu'en mars 2027 ; ensuite un seul poste subsiste, à 50 %. Le générateur
 // proratise seul la cible de celui qui part (6 gardes pour 2 mois) et
 // redistribue le reste — comportement vérifié.
@@ -14,47 +14,47 @@ const H=require('./harness.js'), A=require('./analyse.js');
 
 // [id, pct_gardes, quotite, naissance, flags de base]
 const EQUIPE=[
-  ['SULTAN',    100,100, 1961, {noExempt:1}],   // 66 ans en 2027 mais prend 100 % des gardes (décision Arthur 31/07/2026)
-  ['BONNET',     60, 60, 1964, {noGarde:1, only18:1, tpJours:'JEU, VEN'}],  // 60/60, jeu+ven fixes
-  ['MENADE',   100, 90, 1967, {}],   // 90 % de travail, 100 % des gardes
-  ['GUERIN',    100,100, 1969, {}],
-  ['CATINEAU', 100, 80, 1974, {}],   // 80 % de travail, 100 % des gardes
-  ['BOUREGBA',  100,100, 1975, {noGarde:1, only18:1}],   // 100/100 mais ne prend pas de garde
-  ['ARMANDO',   100,100, 1975, {}],
-  ['ROUSSEAU',  100,100, 1976, {}],
-  ['ALBOUY',    100,100, 1977, {}],
-  ['PRUNET',    100,100, 1977, {noWeekend:1,souhaitPlafond:1}],
-  ['GHIGLIONE',100, 90, 1978, {}],   // 90 % de travail, 100 % des gardes
-  ['LEY',        90, 90, 1981, {}],
-  ['OPPRECHT',  100,100, 1982, {}],
-  ['ZAMARON',  100, 90, 1986, {}],   // 90 % de travail, 100 % des gardes
-  ['SEVERAC',    80, 80, 1986, {}],
-  ['SALA',      100,100, 1986, {}],
-  ['LEVASSEUR',100, 90, 1987, {}],   // 90 % de travail, 100 % des gardes
-  ['COPELOVICI', 50, 50, 1990, {r2s2:1}],   // LC — le poste conservé, 50 %
-  ['SUPLY',     100,100, 1990, {}],
-  ['FERRIERO',  100,100, 1991, {}],          // AF — date_fin VIDE dans MEDECINS : il reste
-  ['WIDEHEM',  100, 90, 1991, {}],   // 90 % de travail, 100 % des gardes
+  ['SUBLET',    100,100, 1961, {noExempt:1}],   // 66 ans en 2027 mais prend 100 % des gardes (décision Arthur 31/07/2026)
+  ['BOISSY',     60, 60, 1964, {noGarde:1, only18:1, tpJours:'JEU, VEN'}],  // 60/60, jeu+ven fixes
+  ['MERCIER',   100, 90, 1967, {}],   // 90 % de travail, 100 % des gardes
+  ['GAUTIER',    100,100, 1969, {}],
+  ['CHAPUIS', 100, 80, 1974, {}],   // 80 % de travail, 100 % des gardes
+  ['BRIAND',  100,100, 1975, {noGarde:1, only18:1}],   // 100/100 mais ne prend pas de garde
+  ['AVELINE',   100,100, 1975, {}],
+  ['RIVIERE',  100,100, 1976, {}],
+  ['AUBERT',    100,100, 1977, {}],
+  ['PERRIN',    100,100, 1977, {noWeekend:1,souhaitPlafond:1}],
+  ['GARNIER',100, 90, 1978, {}],   // 90 % de travail, 100 % des gardes
+  ['LEMAIRE',        90, 90, 1981, {}],
+  ['ORVAL',  100,100, 1982, {}],
+  ['ZEVACO',  100, 90, 1986, {}],   // 90 % de travail, 100 % des gardes
+  ['SERVANT',    80, 80, 1986, {}],
+  ['SABLON',      100,100, 1986, {}],
+  ['LEBRUN',100, 90, 1987, {}],   // 90 % de travail, 100 % des gardes
+  ['CHASTEL', 50, 50, 1990, {r2s2:1}],   // LC — le poste conservé, 50 %
+  ['SUREAU',     100,100, 1990, {}],
+  ['FAUVEL',  100,100, 1991, {}],          // AF — date_fin VIDE dans MEDECINS : il reste
+  ['VALLET',  100, 90, 1991, {}],   // 90 % de travail, 100 % des gardes
   ['DURAND',  100,100, 1992, {}],
-  ['PARTOUCHE', 100,100, 1992, {}],
-  ['ARMAND',    100,100, 1993, {}],          // recrutement titulaire, arrivé 11/2026
+  ['PELLETIER', 100,100, 1992, {}],
+  ['ANCEL',    100,100, 1993, {}],          // recrutement titulaire, arrivé 11/2026
 ];
-const FIN_FERRIERO='2027-02-28';   // 1 ETP qui disparaît → réabsorbé au prorata mars→déc
+const FIN_FAUVEL='2027-02-28';   // 1 ETP qui disparaît → réabsorbé au prorata mars→déc
 
 function buildRoster(year,{ageExempt=60,ageRetraite=67}={}){
   const out=[], repl=[];
   EQUIPE.forEach(([id,pct,q,born,f0])=>{
-    // (31/07/2026) FERRIERO n'est plus un cas particulier : sa date_fin est VIDE dans
+    // (31/07/2026) FAUVEL n'est plus un cas particulier : sa date_fin est VIDE dans
     // l'onglet MEDECINS. L'ancien modèle le faisait partir fin février 2027 puis
     // disparaître dès 2028 — un temps plein retiré de TOUTES les années simulées.
     // Décision d'Arthur : par défaut il reste, et suit la règle commune (exemption à
     // 60 ans, retraite à 67). À revoir le jour où sa date de départ sera connue.
     const retYear=born+ageRetraite;
-    if(year>=retYear){ if(id!=='SULTAN') repl.push({id:'REMPL_'+id, born:retYear-35}); return; }
+    if(year>=retYear){ if(id!=='SUBLET') repl.push({id:'REMPL_'+id, born:retYear-35}); return; }
     const age=year-born;
     const f={...f0};
     // Exemption de gardes à 60 ans — SAUF exception nominative (drapeau noExempt).
-    // MENADE (né 1967) y entre en 2027 : décision d'Arthur, il n'en prend plus.
+    // MERCIER (né 1967) y entre en 2027 : décision d'Arthur, il n'en prend plus.
     // ⚠️ À répercuter dans l'onglet MEDECINS (no_garde = O) avant la génération de
     // novembre, sinon la production et le banc d'essai divergent d'un gardeur.
     if(age>=ageExempt && !f0.noExempt) f.noGarde=1;
@@ -344,7 +344,7 @@ function buildAbsences(year,roster,scen,opts){
       }
     }
     // ── SOUHAITS — usage RÉEL décrit par le service :
-    //   • PRUNET (souhait_plafond, régime 1) : TOUS LES MARDIS, hors fériés et hors
+    //   • PERRIN (souhait_plafond, régime 1) : TOUS LES MARDIS, hors fériés et hors
     //     ses propres congés. C'est son rythme personnel, priorité absolue.
     //   • quelques MAR : des mardis choisis (régime 2, dans leur cible).
     //   • lundis / mercredis : rares.
@@ -352,7 +352,7 @@ function buildAbsences(year,roster,scen,opts){
     // un week-end de trois jours (et sur un lundi férié cela préempterait le
     // couplage samedi→lundi).
     const poseS=(ds)=>{ if(!m[ds] && !FER.has(ds.slice(5))) m[ds]='SOUHAIT'; };
-    if(f.souhaitPlafond){                       // PRUNET : tous les mardis
+    if(f.souhaitPlafond){                       // PERRIN : tous les mardis
       const d=new Date(Date.UTC(year,0,1));
       while(d.getUTCFullYear()===year){
         if(d.getUTCDay()===2) poseS(iso(year,d.getUTCMonth()+1,d.getUTCDate()));

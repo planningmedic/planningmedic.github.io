@@ -41,7 +41,7 @@ for(let y=Y0;y<=Y1;y++){
     out.dispoAll=(out.dispoAll||[]); out.dispoAll.push(dispo);
   });
   // ── EQUITE ──
-  const ids=Object.keys(st).filter(id=>num(st[id]['TOTAL G'])>0&&id!=='PRUNET');
+  const ids=Object.keys(st).filter(id=>num(st[id]['TOTAL G'])>0&&id!=='PERRIN');
   out.gardes+=Object.keys(st).reduce((a,id)=>a+num(st[id]['TOTAL G']),0);
   let dT=0,dA=0,aA='',qA='';
   ids.forEach(id=>{

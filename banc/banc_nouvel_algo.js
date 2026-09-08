@@ -51,7 +51,7 @@ const statsDe = ss => {
   const st = H.readStats(ss, YEAR);
   return st ? st.byId : null;
 };
-const actifs = st => Object.keys(st).filter(id => num(st[id]['TOTAL G']) > 0 && id !== 'PRUNET');
+const actifs = st => Object.keys(st).filter(id => num(st[id]['TOTAL G']) > 0 && id !== 'PERRIN');
 
 console.log('\n─── 1. Cibles entières ───');
 const base = lancer(H.defaultRoster(), {});
@@ -76,7 +76,7 @@ if (stB) {
     Object.keys(stB).forEach(id => { sc += num(stB[id][ck]); sr += num(stB[id][rk]); });
     sommes[ck] = { cibles: Math.round(sc * 100) / 100, reel: sr };
   });
-  // Le total et les fériés incluent PRUNET (souhaits garantis, hors cibles d'axe) :
+  // Le total et les fériés incluent PERRIN (souhaits garantis, hors cibles d'axe) :
   // on contrôle les axes où la cible couvre bien tout le monde.
   ['CIBLE SAM', 'CIBLE JEU'].forEach(ck => {
     const s = sommes[ck];

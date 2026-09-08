@@ -122,7 +122,7 @@ async function page(transport) {
       if (String(url).includes('workers.dev')) {
         appelsMiroir++;
         return { ok:true, json: async () => ({ success:true, identite:{role:'admin'},
-          data: { gardes_2027: { success:true, data: { '2027-01-04': { ARMANDO:'G', OPPRECHT:'G2' } } } } }) };
+          data: { gardes_2027: { success:true, data: { '2027-01-04': { AVELINE:'G', ORVAL:'G2' } } } } }) };
       }
       appelsGAS++;
       return { ok:true, json: async () => ({ success:true, data:{} }) };
@@ -131,7 +131,7 @@ async function page(transport) {
     const r1 = await w.ensureGardesYear('2027');
     V('les gardes viennent du MIROIR', appelsMiroir >= 1 && appelsGAS === 0, { appelsMiroir, appelsGAS });
     V('la journée du 04/01/2027 est chargée', !!(r1 && r1['2027-01-04']), r1 && Object.keys(r1));
-    V('ARMANDO y est bien de garde', r1['2027-01-04'].ARMANDO === 'G', r1['2027-01-04']);
+    V('AVELINE y est bien de garde', r1['2027-01-04'].AVELINE === 'G', r1['2027-01-04']);
     V('un second appel ne redemande RIEN (mémoire)', (await w.ensureGardesYear('2027')) && appelsMiroir === 1, appelsMiroir);
 
     // Tout tombe : l'échec ne doit rien laisser en mémoire
@@ -146,7 +146,7 @@ async function page(transport) {
     w2.fetch = async (url) => {
       if (String(url).includes('workers.dev')) { revenu = true;
         return { ok:true, json: async () => ({ success:true, identite:{role:'admin'},
-          data: { gardes_2027: { success:true, data: { '2027-01-04': { ARMANDO:'G' } } } } }) }; }
+          data: { gardes_2027: { success:true, data: { '2027-01-04': { AVELINE:'G' } } } } }) }; }
       return { ok:true, json: async () => ({ success:true, data:{} }) };
     };
     const r3 = await w2.ensureGardesYear('2027');

@@ -73,9 +73,9 @@ function absences(year, roster, seed){
   let n=0;
   jours.forEach(d=>{
     if(DOW(d)!==2) return;                       // mardi
-    if(map['PRUNET'][d]) return;                 // ses propres congés — la seule exclusion
+    if(map['PERRIN'][d]) return;                 // ses propres congés — la seule exclusion
     if(F.has(d)||F.has(add1(d))) return;          // férié ou veille de férié
-    map['PRUNET'][d]='SOUHAIT'; n++;
+    map['PERRIN'][d]='SOUHAIT'; n++;
   });
   return {map, mardisBP:n};
 }
@@ -83,7 +83,7 @@ function absences(year, roster, seed){
 // ── Boucle ─────────────────────────────────────────────────────────────
 const roster = H.defaultRoster().map(r=>{
   const c=[...r]; c[3]={...c[3]};
-  if(c[0]==='ARMAND') delete c[3].dateDebut;      // présent toute la période
+  if(c[0]==='ANCEL') delete c[3].dateDebut;      // présent toute la période
   return c;
 });
 const GARDEURS = roster.filter(r=>!r[3].noGarde).map(r=>r[0]);
@@ -132,7 +132,7 @@ for(let i=0;i<5;i++){
   });
   const rep={};
   Object.values(pires).forEach(o=>{ rep[o.e]=(rep[o.e]||0)+1; });
-  const bp=S['PRUNET'];
+  const bp=S['PERRIN'];
 
   console.log(`── ${year} ──`);
   console.log(`   durée du calcul : ${_ms} ms   |   ${jrn[0]||'compteur : —'}`);
@@ -146,7 +146,7 @@ for(let i=0;i<5;i++){
 
   const brut = res.ss.getSheetByName(`STATS_GARDES_${year}`)._rows.map(r=>r.slice());
   prev = brut;
-  ['OPPRECHT','CATINEAU'].forEach(id=>{
+  ['ORVAL','CHAPUIS'].forEach(id=>{
     if(!S[id]) return;
     const r=n(S[id]['JF']), x=n(S[id]['EXACTE JF']);
     console.log(`   SUIVI ${id} fériés : part ${x.toFixed(2)}  fait ${r}  écart ${(r-x>=0?'+':'')}${(r-x).toFixed(2)}`);
