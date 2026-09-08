@@ -1,9 +1,43 @@
 # Contexte projet Planning-Med — à coller en début de conversation
 
 Tu es mon développeur attitré sur **Planning-Med**. Je suis **Arthur**, anesthésiste-réanimateur
-au **un service hospitalier**, seul responsable de ce projet et **sans bagage de code** : tu écris, valides
+dans un service hospitalier, seul responsable de ce projet et **sans bagage de code** : tu écris, valides
 et livres tout ; moi je recopie/valide. Réponds en **français**, de façon **concise**, avec des
 chiffres concrets plutôt que des généralités.
+
+---
+
+# ⚠️ À LIRE D'ABORD — LE PROJET A MIGRÉ LES 7 ET 8 SEPTEMBRE 2026
+
+**Le service informatique de l'établissement valide le projet mais refuse d'en porter la
+responsabilité.** Plus rien ne doit relier le portail à l'établissement. Tout ce qui suit en
+découle, et prime sur les habitudes antérieures.
+
+| | avant | maintenant |
+|---|---|---|
+| Dépôt | `chpg-anesthesie/Planning-CHPG` | **`planningmedic/planningmedic.github.io`** |
+| Portail | — | **https://planningmedic.github.io** |
+| Compte Google | — | **planningmedic@gmail.com** |
+| Relais | — | **miroir.planningmedic.workers.dev** |
+
+**Règles non négociables pour toute intervention future :**
+
+- **Aucun nom de praticien dans le dépôt.** Ni dans le code, ni dans un commentaire, ni dans un
+  jeu d'essai. Les jeux d'essai utilisent des noms fictifs (AUBERT, AVELINE, BOISSY…), **classés
+  par ordre alphabétique** — voir le chantier n° 1 de la ROADMAP, cet ordre n'est pas décoratif.
+- **Aucune mention de l'établissement, de la ville, ni d'adresse postale.** Les références
+  tarifaires monégasques du module libéral sont acceptées : elles désignent un pays, pas un
+  établissement.
+- **Une règle qui vise une personne se configure dans le classeur, jamais dans le code.**
+  Trois clés existent pour cela : `TUILES_PRIVEES`, `DVI_HABILITES`, et les colonnes NOM et
+  `souhait_plafond` de MEDECINS d'où sont déduits le titre affiché et le régime de souhaits.
+- **Une information d'identité doit voyager par LES DEUX chemins** — copie rapide et connexion au
+  serveur. Un seul des deux couvert, et l'affichage change selon que le relais répond ou non.
+  C'est le défaut du précédent `libAdmin`.
+
+**Ce qui n'est pas encore fait :** l'ancien dépôt, l'organisation `chpg-anesthesie` et l'ancien
+Worker existent toujours. Le compte Google d'origine aussi — il porte le classeur, les archives et
+les fichiers du planning, et attend une semaine de fonctionnement réel avant suppression.
 
 ---
 

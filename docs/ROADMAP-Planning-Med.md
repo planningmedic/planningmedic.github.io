@@ -2,17 +2,98 @@
 
 Système web pour le service d'anesthésie (~23 MARs) :
 planning des gardes (équité annuelle), planning quotidien, consultations,
-portail/Dashboard, module libéral, contrôle d'absence, veille biblio, CR d'anesthésie.
+portail/Dashboard, module libéral, contrôle d'absence, veille biblio.
+(Le générateur de comptes rendus a été retiré le 07/09/2026 : il portait le logo de
+l'établissement et 77 noms de praticiens sur une page publique sans code d'accès.)
 
-**Dépôt** `planningmedic/planningmedic.github.io`, branche `main` · **Site v1.3.3** ·
-**GAS** (relevé dans le dépôt le 06/09/2026 au matin) `code.gs` **2026-09-05.1** ·
-`Indispos.gs` **2026-09-05.1** · `generateur_gardes.gs` **2026-09-05.1** ·
-`portail.gs` 2026-08-31.1 · `miroir.gs` **2026-09-06.1** ·
-`journal.gs` 2026-08-27.1 · `echanges.gs` 2026-08-27.1 · `veille.gs` 2026-08-27.1 ·
-`setup_annee.gs` **2026-09-05.2** · `sauvegarde.gs` 2026-08-06.1 ·
+**Dépôt** `planningmedic/planningmedic.github.io`, branche `main` · **Site v1.7.0** ·
+**Portail** https://planningmedic.github.io ·
+**GAS** (relevé dans le dépôt le 08/09/2026 au soir) `code.gs` **2026-09-08.2** ·
+`Indispos.gs` **2026-09-08.3** · `generateur_gardes.gs` **2026-09-08.2** ·
+`portail.gs` **2026-09-08.1** · `miroir.gs` **2026-09-08.2** ·
+`journal.gs` 2026-08-27.1 · `echanges.gs` **2026-09-08.1** · `veille.gs` 2026-08-27.1 ·
+`setup_annee.gs` **2026-09-08.1** · `sauvegarde.gs` 2026-09-07.1 ·
 **Worker** `cloudflare/worker.js` : `const VERSION = 'miroir 2026-08-22.2'` — ⚠️ le marqueur n'a
 pas été monté avec le lot cloche du 23/08 (oubli assumé, le code déployé est bien le nouveau) :
 à monter au prochain lot Worker. La constante reste la **seule** version écrite dans le fichier.
+
+## 07–08/09/2026 — migration complète et retrait de toute donnée nominative
+
+Le service informatique de l'établissement valide le projet mais refuse d'en porter la
+responsabilité. Tout ce qui reliait le portail à l'établissement devait donc disparaître, et la
+responsabilité des données basculer sur une personne. Le dépôt d'origine était public depuis des
+mois : c'était lui l'exposition, pas le classeur.
+
+### Ce qui a bougé
+
+Comptes neufs : `planningmedic@gmail.com`, GitHub `planningmedic`, Cloudflare `planningmedic`.
+Copie du classeur maître sur le nouveau compte — une copie, pas un transfert de propriété, pour
+repartir avec un historique de versions vierge. Dépôt **créé vide**, sans reprise d'historique :
+la réécriture d'un historique public ne garantit rien, seule la suppression du dépôt d'origine
+efface les 646 mentions de l'établissement et le logo.
+
+Retiré du dépôt public : le logo officiel de l'établissement et les 77 noms de praticiens du
+générateur de comptes rendus (module supprimé), l'adresse postale imprimée sur le devis patient,
+la liste `DOCTORS` (25 noms), `DVI_ALLOWED` (3 noms), les tests `id === 'PRUNET'` (15 occurrences),
+et 517 occurrences de noms réels dans les jeux d'essai et la documentation.
+
+### Trois mécanismes construits pour cela
+
+| avant | après |
+|---|---|
+| `only:'FROHLICH'` sur 5 tuiles + `CRH_ALLOWED` / `STATS_ALLOWED` côté serveur | `CONFIG / TUILES_PRIVEES`, lue par l'écran **et** par le serveur |
+| `DVI_ALLOWED = [3 noms]` | `CONFIG / DVI_HABILITES` |
+| `id === 'PRUNET' ? 'Pr ' : 'Dr '` et `wish: id === 'PRUNET'` | listes `titresPr` et `souhaitsPlafond`, déduites des colonnes NOM et `souhait_plafond` |
+
+Les deux listes voyagent par **les deux chemins d'identité** — copie rapide et connexion au
+serveur. Le précédent `libAdmin` n'existait que d'un côté : une tuile qui apparaît quand le relais
+répond et disparaît quand il tombe est pire que pas de tuile du tout.
+
+### Le repli silencieux supprimé
+
+`getDoctorsFromMedecins()` retombait sur la liste figée quand MEDECINS était illisible : un onglet
+momentanément inaccessible faisait publier un planning bâti sur un effectif périmé, sans alerte.
+Elle échoue désormais franchement. Un écran d'erreur se voit ; un planning faux, non.
+
+### L'essai à blanc devient le seul écran
+
+`essaiGenerationGardes` ne crée aucun onglet : ce qu'elle n'affiche pas est perdu. Le rapport
+passe de six écarts à sept sections — charge par médecin **avec les cibles en face**, souhaits
+honorés/posés, nuits de fêtes, et vérification que la règle des paires a tenu (18 h compris).
+Rien n'est recalculé : ce sont des variables que la fin du calcul jetait.
+
+### Chantiers ouverts, par ordre d'importance
+
+1. **Le calcul à blanc ne prédit pas la génération réelle quand l'effectif n'est pas trié.**
+   Découvert le 08/09 : renommer les jeux d'essai a cassé leur ordre alphabétique et
+   `banc_essai_generation` a immédiatement signalé un écart — *FAUVEL.vd : à blanc 5 vs écrit 4*.
+   L'ordre a été rétabli pour ne pas mélanger deux chantiers, mais le défaut existe. Il concerne
+   directement la génération 2027 : l'onglet MEDECINS n'est pas trié (TRAN, PRUNET, COPELOVICI
+   sont en fin de liste). **À traiter avant novembre.**
+2. **Le relais écrit puis efface 9 clés de l'année 2028 à chaque synchronisation**, soit environ
+   430 opérations inutiles par jour sur un plafond gratuit de 1 000. Le constructeur et la purge
+   ne s'accordent pas sur ce qu'est une année valide. Défaut antérieur à la migration.
+3. **Un souhait posé sur un jour interdit par le profil compte comme non honoré.** Un profil
+   `no_garde` peut poser des souhaits de garde ; un profil `no_weekend` peut en poser le samedi.
+   Le taux affiché est pessimiste et incompréhensible pour l'intéressé. Deux pistes : empêcher la
+   saisie, ou ne compter que les souhaits honorables. La tuile des indisponibilités devrait par
+   ailleurs disparaître pour qui n'a ni garde ni temps partiel à poser (BONNET, BOUREGBA).
+4. **Le module libéral n'a pas été repensé.** L'en-tête du devis est devenu un champ à compléter,
+   mais 21 mentions de Monaco subsistent — mutuelles CCSP, ordonnance souveraine, coefficient
+   1,95 : ce sont des règles tarifaires d'un pays, non des références à un établissement.
+5. **Volet juridique.** Loi n° 1.565 du 3 décembre 2024, autorité APDP. Points à faire trancher
+   par un juriste : la qualité de responsable de traitement s'apprécie en fait, pas par
+   déclaration ; le consentement de subordonnés à leur chef de service est fragile par
+   construction. Documents à produire : registre des traitements, mentions légales, note
+   d'information individuelle.
+
+### Reste à faire
+
+Supprimer l'ancien dépôt, l'organisation `chpg-anesthesie` et l'ancien Worker. **Le compte Google
+d'origine attend une semaine de fonctionnement réel** — il porte le classeur, les archives et les
+fichiers du planning. Vider `INDISPOS_2027` de son jeu d'essai **avant le 10 octobre**.
+
+---
 
 ## 06/09/2026 — l'axe fériés, la saisie des indispos refondue, et la cloche muette
 

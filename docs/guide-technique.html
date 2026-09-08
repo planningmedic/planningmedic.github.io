@@ -534,6 +534,32 @@ lecture, refabricables à volonté. Le détail onglet par onglet du classeur a s
 (<a href="guide-fichier-maitre.html">guide-fichier-maitre.html</a>) — il n'est pas recopié ici, deux
 inventaires finiraient par se contredire.</p></div>
 
+<details><summary>Trois réglages de CONFIG qui remplacent des noms écrits dans le code (08/09/2026)</summary><div class="corps">
+<p>Jusqu'au 8 septembre 2026, trois règles désignaient des praticiens par leur nom, dans des fichiers
+d'un dépôt public. Deux défauts dans le même geste : le nom était publié, et la règle ne pouvait
+changer de titulaire qu'en modifiant le code. Les trois vivent désormais dans le classeur.</p>
+<table>
+<tr><th>Clé de CONFIG</th><th>À quoi elle sert</th><th>Forme</th></tr>
+<tr><td><code>TUILES_PRIVEES</code></td>
+    <td>Qui voit les tuiles réservées du portail : comptes rendus, statistiques d'usage, guide
+        technique, consultations, libéral. Commande <b>aussi</b> la porte du serveur — l'écran et le
+        serveur lisent la même clé, ils ne peuvent plus diverger.</td>
+    <td><code>ID:tuile,tuile;ID:tuile</code><br>ex. <code>MARTIN:crh,stats</code></td></tr>
+<tr><td><code>DVI_HABILITES</code></td>
+    <td>Les MAR habilités à la pose de DVI, le mardi matin.</td>
+    <td>identifiants séparés par des virgules</td></tr>
+<tr><td>—</td>
+    <td>Le titre affiché, « Pr » ou « Dr », et le régime de souhaits garantis. <b>Aucune clé à
+        saisir</b> : déduits de la colonne NOM et de la colonne <code>souhait_plafond</code> de
+        MEDECINS. La règle : un nom commençant par « PR » donne le titre « Pr ».</td>
+    <td>colonnes de MEDECINS</td></tr>
+</table>
+<p class="warn"><b>Clé absente = porte fermée.</b> Si <code>TUILES_PRIVEES</code> disparaît, plus
+personne ne voit les tuiles réservées ; si <code>DVI_HABILITES</code> disparaît, aucune pose de DVI
+n'est attribuée et la vacation apparaît non pourvue. C'est voulu : une vacation vide se voit, une
+vacation confiée à un MAR non habilité, non.</p>
+</div></details>
+
 <details><summary>Le classeur maître : les familles d'onglets</summary><div class="corps">
 <p>Une fonction de rangement organise le classeur en familles colorées et masque les onglets que
 personne n'édite à la main (les masquer ne change rien pour le code, qui les lit et les écrit
@@ -848,7 +874,7 @@ corps des mails, eux, sont affichés comme du texte pur, jamais interprétés (�
 d'emblée). Cloisonnement MAR : le serveur force <code>targetId = user.id</code>. Journaux :
 CONNEXIONS (qui s'est connecté, purge au-delà de 2 000 lignes) et LOGS (événements techniques,
 purge au-delà de 500) — aucun ne contient de motif d'absence ni de donnée patient. Comptes rendus :
-action <code>genererCRH</code> (portail.gs), liste d'accès <code>CRH_ALLOWED</code>, confirmation
+action <code>genererCRH</code> (portail.gs), droit lu dans <code>CONFIG / TUILES_PRIVEES</code>, confirmation
 <code>confirmAnonyme:true</code>, filtre <code>detecteIdentifiant()</code>, clé
 <code>ANTHROPIC_TOKEN</code> dans CONFIG. Neutralisation d'affichage : <code>_escHtml</code> ;
 corps de mails posés en <code>textContent</code>. Empreintes : SHA-256, copie <code>acces</code>
@@ -1105,6 +1131,29 @@ STATS_GARDES_(année). Essai à blanc : <code>comparerAlgorithmes(year)</code> �
 écriture, ancien et nouvel algorithme, six écarts côte à côte. Garantie de périmètre : le générateur
 ne contient <b>aucune référence à un secteur</b> — l'équité est intouchable par le chantier du
 déménagement (§D5). Banc dédié : <code>simulateur/</code> et <code>banc/banc_nouvel_algo.js</code>.</p>
+</div></details>
+
+<details><summary>L'essai à blanc : le seul écran avant de générer (08/09/2026)</summary><div class="corps">
+<p><code>essaiGenerationGardes(année)</code>, lancée depuis l'éditeur Apps Script, exécute le calcul
+complet <b>sans rien écrire</b> : aucun onglet créé, aucune notification, aucun fichier publié.
+Sans argument, elle prend l'année de campagne. Le résultat part dans le journal d'exécution.</p>
+<p class="warn">Comme elle ne crée aucun onglet, <b>ce qu'elle n'affiche pas est perdu</b>. Le rapport
+a donc été élargi le 8 septembre 2026 pour porter tout ce que la fin du calcul a en mémoire.</p>
+<table>
+<tr><th>Section</th><th>Ce qu'elle répond</th></tr>
+<tr><td>Couverture</td><td>Jours sans binôme, avec les dates. Un trou est plus grave qu'un déséquilibre.</td></tr>
+<tr><td>Équité</td><td>Les six axes, écart réel−cible, avec le MAR le plus éloigné.</td></tr>
+<tr><td>Par médecin</td><td>Total, samedis, jeudis, ven-dim, fériés — <b>chaque chiffre suivi de sa cible</b> — plus les 18 h et les nuits de Noël. Un compteur sans sa cible ne dit rien : 5 samedis est juste ou injuste selon qu'on en devait 5 ou 8.</td></tr>
+<tr><td>Souhaits</td><td>Honorés / posés par MAR et pour le service. Ce bilan n'existait auparavant que dans STATS_GARDES, donc seulement <b>après</b> une vraie génération.</td></tr>
+<tr><td>Nuits de fêtes</td><td>Qui tient le 24, le 25, le 31 et le 1er.</td></tr>
+<tr><td>Paires à éviter</td><td>Vérifié plutôt qu'affirmé : les nuits où les deux sont dehors, <b>18 h compris</b>. La règle agit en écartant des candidats, elle ne produit aucun message — sans ce contrôle, rien ne prouverait qu'elle a tenu.</td></tr>
+<tr><td>Avertissements</td><td>Jusqu'à 30.</td></tr>
+</table>
+<p><b>Deux limites à connaître.</b> Un souhait posé sur un jour que le profil interdit — un week-end
+pour un profil <code>no_weekend</code>, une garde pour un profil <code>no_garde</code> — compte comme
+non honoré alors qu'il n'a jamais été honorable : le taux affiché est donc pessimiste. Et la somme
+des cibles peut dépasser le nombre de nuits à couvrir, à cause du régime des souhaits garantis :
+plusieurs MAR apparaissent alors à −1 sans avoir été lésés.</p>
 </div></details>
 
 <p class="haut"><a href="#top">↑ Sommaire</a></p>
