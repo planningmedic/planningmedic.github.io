@@ -109,16 +109,16 @@ function buildContext(ss, logs, genSource) {
 function defaultRoster() {
   // [id, pct_gardes, quotite, {noGarde,only18,noWeekend,r2s2,souhaitPlafond,dateDebut,dateFin}]
   return [
-    ['MAR14',100,100,{}], ['MAR09',100,100,{}], ['MAR04',0,100,{noGarde:1}],
-    ['MAR17',0,100,{noGarde:1}], ['MAR05',100,100,{}], ['DURAND',100,100,{}],
-    ['MAR13',100,100,{}], ['MAR20',100,100,{}], ['MAR19',100,100,{}],
-    ['MAR03',100,100,{}], ['LEY',90,90,{}], ['MAR07',100,100,{}],
-    ['MAR21',100,100,{}], ['MAR22',100,100,{}], ['MAR23',100,100,{}],
-    ['MAR16',100,100,{}], ['MAR06',100,100,{}], ['MAR02',100,100,{}],
-    ['MAR08',100,100,{}], ['MAR18',100,100,{}], ['MAR15',100,100,{}],
-    ['MAR01',100,100,{noWeekend:1,souhaitPlafond:1}],
-    ['MAR11',50,50,{r2s2:1}],
-    ['MAR10',100,100,{dateDebut:'2026-11-01'}],
+    ['AUBERT',100,100,{}], ['AVELINE',100,100,{}], ['BOISSY',0,100,{noGarde:1}],
+    ['BRIAND',0,100,{noGarde:1}], ['CHAPUIS',100,100,{}], ['DURAND',100,100,{}],
+    ['FAUVEL',100,100,{}], ['GARNIER',100,100,{}], ['GAUTIER',100,100,{}],
+    ['LEBRUN',100,100,{}], ['LEMAIRE',90,90,{}], ['MERCIER',100,100,{}],
+    ['ORVAL',100,100,{}], ['PELLETIER',100,100,{}], ['RIVIERE',100,100,{}],
+    ['SABLON',100,100,{}], ['SERVANT',100,100,{}], ['SUBLET',100,100,{}],
+    ['SUREAU',100,100,{}], ['VALLET',100,100,{}], ['ZEVACO',100,100,{}],
+    ['PERRIN',100,100,{noWeekend:1,souhaitPlafond:1}],
+    ['CHASTEL',50,50,{r2s2:1}],
+    ['ANCEL',100,100,{dateDebut:'2026-11-01'}],
   ];
 }
 

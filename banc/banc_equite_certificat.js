@@ -53,16 +53,16 @@ V('…et la MÊME existe dans index.html (portail MAR)',
 /* Jeu de données calqué sur le VRAI 2026 lu dans le classeur : cibles nominales
    à 36 pour les temps pleins, mais seulement 707 gardes posées sur 730,8. */
 const MARS = [
-  { name: 'MAR14', total: 34, cTot: 36 }, { name: 'MAR09', total: 32, cTot: 36 },
-  { name: 'MAR05', total: 33, cTot: 36 }, { name: 'DURAND', total: 35, cTot: 36 },
-  { name: 'MAR13', total: 41, cTot: 36 }, { name: 'MAR20', total: 34, cTot: 36 },
-  { name: 'MAR19', total: 33, cTot: 36 }, { name: 'MAR03', total: 32, cTot: 36 },
-  { name: 'LEY', total: 33, cTot: 32.4 }, { name: 'MAR07', total: 31, cTot: 36 },
-  { name: 'MAR21', total: 33, cTot: 36 }, { name: 'MAR22', total: 35, cTot: 36 },
-  { name: 'MAR23', total: 31, cTot: 36 }, { name: 'MAR16', total: 34, cTot: 36 },
-  { name: 'MAR06', total: 31, cTot: 28.8 }, { name: 'MAR02', total: 40, cTot: 36 },
-  { name: 'MAR08', total: 36, cTot: 36 }, { name: 'MAR18', total: 32, cTot: 36 },
-  { name: 'MAR15', total: 33, cTot: 36 }, { name: 'MAR12', total: 16, cTot: 18 },
+  { name: 'AUBERT', total: 34, cTot: 36 }, { name: 'AVELINE', total: 32, cTot: 36 },
+  { name: 'CHAPUIS', total: 33, cTot: 36 }, { name: 'DURAND', total: 35, cTot: 36 },
+  { name: 'FAUVEL', total: 41, cTot: 36 }, { name: 'GARNIER', total: 34, cTot: 36 },
+  { name: 'GAUTIER', total: 33, cTot: 36 }, { name: 'LEBRUN', total: 32, cTot: 36 },
+  { name: 'LEMAIRE', total: 33, cTot: 32.4 }, { name: 'MERCIER', total: 31, cTot: 36 },
+  { name: 'ORVAL', total: 33, cTot: 36 }, { name: 'PELLETIER', total: 35, cTot: 36 },
+  { name: 'RIVIERE', total: 31, cTot: 36 }, { name: 'SABLON', total: 34, cTot: 36 },
+  { name: 'SERVANT', total: 31, cTot: 28.8 }, { name: 'SUBLET', total: 40, cTot: 36 },
+  { name: 'SUREAU', total: 36, cTot: 36 }, { name: 'VALLET', total: 32, cTot: 36 },
+  { name: 'ZEVACO', total: 33, cTot: 36 }, { name: 'TESSIER', total: 16, cTot: 18 },
 ];
 const AXES = [['total', 'cTot', 'total']];
 
@@ -92,15 +92,15 @@ const ecart = (m, T) => m.total - cib(m, T);
 const avant = MARS.filter(m => Math.abs(m.total - m.cTot) >= 2).map(m => m.name);
 const apres = MARS.filter(m => Math.abs(ecart(m, T2026)) >= 2).map(m => m.name);
 V('le nombre d\'accusés baisse', apres.length < avant.length, { avant: avant.length, apres: apres.length });
-['MAR20', 'MAR14', 'MAR16'].forEach(n => {
+['GARNIER', 'AUBERT', 'SABLON'].forEach(n => {
   V(n + ' n\'est plus signalé à tort', avant.indexOf(n) >= 0 && apres.indexOf(n) < 0);
 });
-V('LEY, oublié par l\'ancien calcul, apparaît',
-  avant.indexOf('LEY') < 0 && apres.indexOf('LEY') >= 0,
-  { avant: +(33 - 32.4).toFixed(1), apres: ecart(MARS.find(m => m.name === 'LEY'), T2026) });
-V('MAR13 reste le plus fort écart, et il grandit',
-  ecart(MARS.find(m => m.name === 'MAR13'), T2026) > 5,
-  ecart(MARS.find(m => m.name === 'MAR13'), T2026));
+V('LEMAIRE, oublié par l\'ancien calcul, apparaît',
+  avant.indexOf('LEMAIRE') < 0 && apres.indexOf('LEMAIRE') >= 0,
+  { avant: +(33 - 32.4).toFixed(1), apres: ecart(MARS.find(m => m.name === 'LEMAIRE'), T2026) });
+V('FAUVEL reste le plus fort écart, et il grandit',
+  ecart(MARS.find(m => m.name === 'FAUVEL'), T2026) > 5,
+  ecart(MARS.find(m => m.name === 'FAUVEL'), T2026));
 
 console.log('\n─── 3. Aucune correction quand les comptes tombent juste ───');
 /* LA vérification qui compte le plus : une année générée par l'algorithme, où

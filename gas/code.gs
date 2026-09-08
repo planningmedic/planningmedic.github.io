@@ -1,7 +1,7 @@
 // ⚠️ RÈGLE (détecteur de dérive dépôt↔Apps Script) : incrémenter cette version
 // à CHAQUE push de ce fichier. Le diagnostic (admin → Maintenance) compare la
 // version déployée ici avec celle du dépôt et signale toute recopie oubliée.
-const GAS_VERSION_CODE = '2026-09-08.1';
+const GAS_VERSION_CODE = '2026-09-08.2';
 
 // ── Reconstruire STATS_GARDES_2026 depuis GARDES_2026 (année reconstruite) ──
 // Renvoie le classeur contenant l'onglet demandé : classeur actif si présent,
@@ -178,40 +178,21 @@ const GITHUB_BRANCH = 'main';
 
 // ── MÉDECINS ───────────────────────────────────────────────────────────
 // NOTE : sera chargé dynamiquement depuis l'onglet MEDECINS à terme (P-backlog)
-const DOCTORS = [
-  {id:'MAR14',    name:'DR MAR14',    initials:'SA'},
-  {id:'MAR10',    name:'DR MAR10',    initials:'CA'},
-  {id:'MAR09',   name:'DR MAR09',   initials:'GA'},
-  {id:'MAR04',    name:'DR MAR04',    initials:'LB'},
-  {id:'MAR17',  name:'DR MAR17',  initials:'MB'},
-  {id:'MAR05',  name:'DR MAR05',  initials:'JC'},
-  {id:'DURAND',  name:'DR DURAND',  initials:'AFR'},
-  {id:'MAR13',  name:'DR MAR13',  initials:'AF'},
-  {id:'MAR20', name:'DR MAR20', initials:'SG'},
-  {id:'MAR19',    name:'DR MAR19',    initials:'JPG'},
-  {id:'MAR03', name:'DR MAR03', initials:'LUL'},
-  {id:'LEY',       name:'DR LEY',       initials:'LL'},
-  {id:'MAR07',    name:'DR MAR07',    initials:'RM'},
-  {id:'MAR21',  name:'DR MAR21',  initials:'NO'},
-  {id:'MAR22', name:'DR MAR22', initials:'NP'},
-  {id:'MAR23',  name:'DR MAR23',  initials:'GR'},
-  {id:'MAR16',      name:'DR MAR16',      initials:'NS'},
-  {id:'MAR06',   name:'DR MAR06',   initials:'MS'},
-  {id:'MAR02',    name:'DR MAR02',    initials:'WS'},
-  {id:'MAR08',     name:'DR MAR08',     initials:'CS'},
-  {id:'MAR18',   name:'DR MAR18',   initials:'RW'},
-  {id:'MAR15',   name:'DR MAR15',   initials:'FZ'},
-  {id:'MAR12',      name:'DR MAR12',      initials:'DT'},
-  {id:'MAR01',    name:'PR MAR01',    initials:'BP'},
-  {id:'MAR25',    name:'DR MAR25',    initials:'PG'},
-];
+/* (08/09/2026) LA LISTE NOMINATIVE A ETE SUPPRIMEE.
+   Vingt-cinq noms de medecins vivaient ici, dans un depot public, pour servir
+   de repli si l'onglet MEDECINS etait absent ou vide. index.html avait deja
+   retire la sienne pour la meme raison — « code mort + noms en clair ».
+   Le repli lui-meme etait dangereux : un onglet momentanement illisible
+   faisait publier un planning bati sur un effectif fige et perime, en
+   silence. Desormais getDoctorsFromMedecins() echoue franchement. Un ecran
+   d'erreur se voit ; un planning faux, non. */
 // ── C1 : roster dynamique depuis l'onglet MEDECINS ────────────────────
 // La publication lit l'effectif réel (MAR actifs) au lieu de la liste en dur.
 // Repli sur DOCTORS si MEDECINS absent/vide (sécurité).
 function getDoctorsFromMedecins() {
   const ss = SpreadsheetApp.getActiveSpreadsheet();
   const sheet = ss.getSheetByName('MEDECINS');
-  if (!sheet) return DOCTORS;
+  if (!sheet) throw new Error("Onglet MEDECINS introuvable — effectif indisponible, rien n'est publié.");
   const data = sheet.getDataRange().getValues();
   const list = [];
   for (let r = 1; r < data.length; r++) {
@@ -220,19 +201,12 @@ function getDoctorsFromMedecins() {
     if (String(data[r][3]).trim().toUpperCase() !== 'O') continue; // ACTIF = O
     list.push({ id, name: String(data[r][1]).trim(), initials: String(data[r][2]).trim() });
   }
-  return list.length ? list : DOCTORS;
+  if (!list.length) {
+    throw new Error("Aucun MAR actif dans MEDECINS — effectif vide, rien n'est publié.");
+  }
+  return list;
 }
 
-// ── C1 : diagnostic de bascule — à lancer AVANT le reste de C1 ─────────
-// Les DEUX lignes du log doivent être "(aucun ✅)" → publication identique (au tri près).
-function diffRosterC1() {
-  const dur = DOCTORS.map(d => d.id).sort();
-  const dyn = getDoctorsFromMedecins().map(d => d.id).sort();
-  const durSeul = dur.filter(id => !dyn.includes(id));
-  const dynSeul = dyn.filter(id => !dur.includes(id));
-  Logger.log('Dans DOCTORS (dur) mais PAS MEDECINS-actif : ' + (durSeul.join(', ') || '(aucun ✅)'));
-  Logger.log('MEDECINS-actif mais PAS dans DOCTORS (dur)  : ' + (dynSeul.join(', ') || '(aucun ✅)'));
-}
 // ── C2 : flags par médecin externalisés dans l'onglet MEDECINS ─────────
 // Colonnes (après dect=8) : 9 date_debut, 10 date_fin, 11 no_garde,
 // 12 only_18, 13 no_weekend, 14 rythme_2sur2, 15 souhait_plafond,
@@ -322,7 +296,7 @@ function estPaireEvitee(a, b) {
 // G, G2 = de garde (absent du planning journalier)
 // RG = repos de garde
 // V = vacances, F = formation, CTP = CTP, R = récup samedi
-// A = absent cycle MAR12
+// A = absent cycle TESSIER
 // NB : I (indispo garde) → MAR PRÉSENT en journée dans son secteur
 const ABSENT_CODES = new Set(['RG','V','F','CTP','CP','R','A','TP','CL']);
 /* (05/08/2026) Codes rendant un PLACEMENT caduc — volontairement PLUS ÉTROIT
@@ -331,10 +305,25 @@ const ABSENT_CODES = new Set(['RG','V','F','CTP','CP','R','A','TP','CL']);
    dernier recours, donc un placement qui les vise doit tenir. Toute
    modification ici doit être répercutée dans dispo_jour.js, et inversement. */
 const CADUC_ABSENT_CODES = new Set(['RG','V','CP','F','CTP','A','CL']);
-// (C2-D3) MAR10_DEBUT_PLANNING / MAR12_FIN_PLANNING retirés — gates pilotées par
+// (C2-D3) Les gates nominatives d'arrivée/départ ont été retirées — pilotées par
 // date_debut/date_fin (MEDECINS), dans generatePlanningFromGardes + getMARsDispoJour.
 // ── MAR HABILITÉS DVI (mardi matin uniquement) ─────────────────────────
-const DVI_ALLOWED = ['MAR04','MAR18','MAR03'];
+/* (08/09/2026) Les trois noms vivaient ici, dans un depot public. Ils sont
+   desormais dans CONFIG / DVI_HABILITES — identifiants MEDECINS separes par
+   des virgules. Cle absente ou vide : personne n'est habilite, donc aucune
+   pose de DVI n'est attribuee. Le defaut est FERME : mieux vaut une vacation
+   non pourvue, que le comite voit, qu'une pose confiee a un MAR non habilite. */
+function _dviHabilites_() {
+  try {
+    const rows = _configRows_();
+    for (let r = 1; r < rows.length; r++) {
+      if (String(rows[r][0]).trim() !== 'DVI_HABILITES') continue;
+      return String(rows[r][1] == null ? '' : rows[r][1]).split(',')
+        .map(function (x) { return x.trim().toUpperCase(); }).filter(Boolean);
+    }
+  } catch (e) { /* classeur illisible : personne */ }
+  return [];
+}
 
 // ── CS PAR JOUR (après-midi) ───────────────────────────────────────────
 // Format : jour_semaine → [ [secteur_affilié, code_cs], ... ]
@@ -584,7 +573,7 @@ const _AFF_ALIAS = {
 // qui portent un libellé dans la colonne AFF**, + VOLANT.
 // La colonne AFF est le discriminant : elle donne le libellé de la vue Affectations.
 // Un secteur SANS AFF n'est pas une affectation mensuelle — c'est le cas de DVI,
-// qui est une VACATION du mardi matin réservée aux MAR habilités (DVI_ALLOWED),
+// qui est une VACATION du mardi matin réservée aux MAR habilités (CONFIG / DVI_HABILITES),
 // posée directement par la génération et non via l'affectation du mois.
 // Cache par exécution : getSecteurs() lit l'onglet, on ne le fait qu'une fois.
 // Repli sur les 8 codes historiques si l'onglet est illisible → jamais bloquant.
@@ -976,9 +965,9 @@ function generatePlanningFromGardes(year) {
         const _dd0 = FLAGS.dateDebut[doc.id], _df0 = FLAGS.dateFin[doc.id];
         if ((_dd0 && day.date < _dd0) || (_df0 && day.date >= _df0)) return '';
         let code = String(doctorRows[doc.id]?.[colIdx] || '').trim();
-        // Rythme 2/2 généralisé (MAR12, MAR11…) : case vide en semaine "off" → A
+        // Rythme 2/2 généralisé : case vide en semaine "off" → A
         if (!code && estSemaineOff(doc.id, day.date)) code = 'A';
-        // (C2-D3) jours fixes non travaillés (ex. MAR04 jeu/ven) → TP, lus depuis MEDECINS
+        // (C2-D3) jours fixes non travaillés (ex. jeudi/vendredi) → TP, lus depuis MEDECINS
         const _tp = FLAGS.tpJoursFixes[doc.id];
         if (!code && !day.isFerie && _tp && _tp.has(day.dow)) code = 'TP';
         return code;
@@ -1045,7 +1034,7 @@ function generatePlanningFromGardes(year) {
       const presentsPool = DOCTORS.filter(doc => {
         const code = gardesCodes[doc.id][dayIdx];
         if (ABSENT_CODES.has(code)) return false;
-        // (C2-D3) gates MAR10/MAR12 → génériques date_debut/date_fin (MEDECINS)
+        // (C2-D3) gates nominatives → génériques date_debut/date_fin (MEDECINS)
         const _dd = FLAGS.dateDebut[doc.id], _df = FLAGS.dateFin[doc.id];
         if (_dd && day.date < _dd) return false; // pas encore actif
         if (_df && day.date >= _df) return false; // n'est plus actif
@@ -1080,7 +1069,8 @@ function generatePlanningFromGardes(year) {
       }
       // ── 3b. DVI (mardi matin uniquement) ──────────────────────────
       if (dow === 2) {
-        const dviDoc = presentsPool.find(doc => DVI_ALLOWED.includes(doc.id));
+        const _dvi = _dviHabilites_();
+        const dviDoc = presentsPool.find(doc => _dvi.includes(String(doc.id).toUpperCase()));
         if (dviDoc) {
           result[dviDoc.id][dayIdx].morning = 'DVI';
           // L'après-midi reste sur son secteur d'affectation
@@ -1183,8 +1173,8 @@ function generatePlanningFromGardes(year) {
     });
 
     // (C2-D3) Exclure du mois publié les MAR dont [date_debut, date_fin] ne recouvre
-    // pas (y,m). Reproduit les anciennes gates MAR10/MAR12 et gère tout arrivant/partant
-    // (ex. MAR11 : plus de rythme 'A' affiché avant le 28/09).
+    // pas (y,m). Reproduit les anciennes gates nominatives et gère tout arrivant/partant
+    // (ex. une arrivante : plus de rythme 'A' affiché avant sa prise de fonctions).
     const _firstDay = `${y}-${String(m).padStart(2,'0')}-01`;
     const _lastDom  = new Date(y, m, 0).getDate();
     const _lastDay  = `${y}-${String(m).padStart(2,'0')}-${String(_lastDom).padStart(2,'0')}`;
@@ -1508,14 +1498,6 @@ function testSetDailyStatus() {
   let row = -1;
   for (let r = 3; r < data.length; r++) if (String(data[r][0]).trim().toUpperCase() === marId) { row = r; break; }
   Logger.log(`${marId} ${date} → row=${row} col=${col} valeur="${(row>=0&&col!==undefined)?data[row][col]:'INTROUVABLE'}"`);
-}
-function debugLCstatus() {
-  const months = generatePlanningFromGardes(2026);
-  const jul = months.find(mo => mo.year === 2026 && mo.month === 7); // juillet
-  if (!jul) { Logger.log('juillet 2026 introuvable'); return; }
-  const lc = jul.doctors.find(d => d.id === 'MAR11');
-  if (!lc) { Logger.log('✅ MAR11 absente de juillet (filtre mensuel OK → patchs en place)'); return; }
-  Logger.log('MAR11 juillet : ' + lc.days.map(d => d.status || '·').join(' '));
 }
 
 

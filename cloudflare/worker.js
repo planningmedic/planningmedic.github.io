@@ -284,6 +284,11 @@ async function lire(corps, env) {
        l'ouverture de `identite` et `phaseTp`. Un champ insere plus haut la
        fait deborder et casse un garde-fou qui n'a rien demande. */
     tuiles: Array.isArray(user.tuiles) ? user.tuiles : [],
+    /* (08/09/2026) Titre affiche et regime de souhaits garantis : deux listes
+       GLOBALES (pas par utilisateur), deduites de MEDECINS par miroir.gs. Elles
+       remplacent des noms ecrits en dur dans les pages. Le Worker transmet. */
+    titresPr: Array.isArray(acces.titresPr) ? acces.titresPr : [],
+    souhaitsPlafond: Array.isArray(acces.souhaitsPlafond) ? acces.souhaitsPlafond : [],
   };
   return reponse({ success: true, identite, data, manquants, refuses, version: VERSION });
 }
