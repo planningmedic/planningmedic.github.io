@@ -1,7 +1,7 @@
 // ⚠️ RÈGLE (détecteur de dérive dépôt↔Apps Script) : incrémenter cette version
 // à CHAQUE push de ce fichier. Le diagnostic (admin → Maintenance) compare la
 // version déployée ici avec celle du dépôt et signale toute recopie oubliée.
-const GAS_VERSION_INDISPOS = '2026-09-08.1';
+const GAS_VERSION_INDISPOS = '2026-09-08.2';
 
 /* ── (01/08/2026) MARQUEUR DE TEMPS GLOBAL — mesure, ne change rien ───────
    `_srv_ms` chronometre l'INTERIEUR de doGet. Or avant que doGet soit appele,
@@ -2253,6 +2253,47 @@ function _mailCodeAcces_(nom, code, renouvele) {
 }
 
 // ── VÉRIFIER CODE ACCÈS ───────────────────────────────────────────────
+/* Analyse CONFIG / TUILES_PRIVEES pour UN identifiant.
+   « AFR:crh,stats;WS:liberal » + « AFR »  ->  ['crh','stats']
+   Cle absente, identifiant non cite, valeur mal formee : tableau vide.
+   Le defaut est FERME — une tuile reservee ne s'ouvre jamais par accident.
+   Meme format que _tuilesPriveesLire_ (miroir.gs) : une seule ecriture dans
+   le classeur sert les deux chemins de lecture. */
+function _tuilesPriveesDe_(brut, id) {
+  try {
+    const cible = String(id == null ? '' : id).trim().toUpperCase();
+    if (!cible || !brut) return [];
+    let trouve = [];
+    String(brut).split(';').forEach(function (bloc) {
+      const dp = bloc.indexOf(':');
+      if (dp < 1) return;
+      if (bloc.slice(0, dp).trim().toUpperCase() !== cible) return;
+      trouve = trouve.concat(bloc.slice(dp + 1).split(',')
+        .map(function (c) { return c.trim(); }).filter(Boolean));
+    });
+    return trouve;
+  } catch (e) { return []; }   /* jamais bloquant : au pire, aucune tuile */
+}
+
+/* Ce MAR a-t-il droit a la tuile `cle` ? Lit CONFIG / TUILES_PRIVEES.
+   MEME source que la tuile du dashboard : la porte du serveur et l'icone
+   affichee ne peuvent plus diverger. C'est exactement le defaut du 29/08
+   (tuile filtree sur l'identite, serveur sur le role) — un seul critere,
+   un seul endroit. Le role `admin` n'est PAS traite ici : chaque appelant
+   decide s'il l'accepte en plus, comme aujourd'hui. */
+function _aDroitTuile_(id, cle) {
+  try {
+    const cible = String(id == null ? '' : id).trim().toUpperCase();
+    if (!cible) return false;
+    const rows = _configRows_();
+    for (let r = 1; r < rows.length; r++) {
+      if (String(rows[r][0]).trim() !== 'TUILES_PRIVEES') continue;
+      return _tuilesPriveesDe_(rows[r][1], cible).indexOf(String(cle)) > -1;
+    }
+    return false;
+  } catch (e) { return false; }   /* porte fermee par defaut */
+}
+
 function checkCode(code) {
   /* CASSE IGNOREE (27/07/2026). Le code etait compare a l'identique : taper son
      code en minuscules donnait « Code incorrect », sans indice. Le piege etait
@@ -2274,6 +2315,10 @@ function checkCode(code) {
   // Code PARTAGE du secretariat d'anesthesie (lecture seule). Meme regime que
   // ADMIN_CODE : aucun defaut, la cle doit exister dans CONFIG pour que le role vive.
   let secretariatCode = null;
+  /* (08/09/2026) Tuiles reservees — cle CONFIG / TUILES_PRIVEES. Lue ICI, dans
+     la boucle qui parcourt deja CONFIG : aucune lecture supplementaire du
+     classeur a chaque connexion. */
+  let tuilesBrut = null;
   {
     const configData = _configRows_();   // memo de CONFIG (code.gs)
     for (let r = 1; r < configData.length; r++) {
@@ -2282,6 +2327,7 @@ function checkCode(code) {
       // le `break` initial faisait deja gagner la premiere ligne ADMIN_CODE).
       if (_cle === 'ADMIN_CODE'       && adminCode === null)       adminCode = String(configData[r][1]).trim();
       else if (_cle === 'SECRETARIAT_CODE' && secretariatCode === null) secretariatCode = String(configData[r][1]).trim();
+      else if (_cle === 'TUILES_PRIVEES'   && tuilesBrut === null)      tuilesBrut = String(configData[r][1]);
     }
   }
   if (adminCode && _normCode(adminCode) === codeN) return {role: 'admin', id: 'ADMIN'};
@@ -2331,7 +2377,12 @@ function checkCode(code) {
               rpps: colRpps >= 0 ? String(data[r][colRpps] == null ? '' : data[r][colRpps]).trim() : '',
               // DONNEE NOMINATIVE, meme regime que le RPPS : classeur prive uniquement,
               // renvoyee au seul MAR identifie par son propre code.
-              prenom: colPre >= 0 ? String(data[r][colPre] == null ? '' : data[r][colPre]).trim() : ''};
+              prenom: colPre >= 0 ? String(data[r][colPre] == null ? '' : data[r][colPre]).trim() : '',
+              /* (08/09/2026) Tuiles reservees. Ce champ existe AUSSI dans la cle
+                 `acces` de la copie rapide (miroir.gs, meme format CONFIG). Les
+                 DEUX chemins doivent le porter : sinon la tuile s'affiche quand
+                 le relais repond et disparait des qu'il est en panne. */
+              tuiles: _tuilesPriveesDe_(tuilesBrut, data[r][0])};
     }
   }
   return null;
@@ -3402,6 +3453,9 @@ function _routeRequete_(e) {
         // Prenom (colonne PRENOM de MEDECINS) : complete le nom sur les devis du
         // module liberal. Chaine vide si la colonne est absente ou non renseignee.
         prenom: user.prenom || '',
+        // (08/09/2026) Tuiles reservees (CONFIG / TUILES_PRIVEES) : meme contenu
+        // que le champ `tuiles` de l'identite servie par la copie rapide.
+        tuiles: user.tuiles || [],
         name: user.name, initials: user.initials, 
         year: TEST_YEAR, indisposYear: getIndisposYear(),
         // Campagne de saisie en cours ? Pilote l'affichage de la tuile

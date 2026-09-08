@@ -276,6 +276,14 @@ async function lire(corps, env) {
     /* (26/08/2026) Campagne figée : planning de l'année de campagne déjà généré →
        tuile indispos en consultation seule. Vieille clé `acces` : false, tuile normale. */
     indisposFigees: !!acces.indisposFigees,
+    /* (08/09/2026) Tuiles reservees (CONFIG / TUILES_PRIVEES, deposees dans
+       `acces` par miroir.gs). Le Worker ne decide rien : il transmet. La
+       reponse de l'action `login` d'Apps Script porte le meme champ, sinon
+       la tuile clignoterait au gre des pannes du relais.
+       Place en FIN d'objet a dessein : banc_pose_tp mesure la distance entre
+       l'ouverture de `identite` et `phaseTp`. Un champ insere plus haut la
+       fait deborder et casse un garde-fou qui n'a rien demande. */
+    tuiles: Array.isArray(user.tuiles) ? user.tuiles : [],
   };
   return reponse({ success: true, identite, data, manquants, refuses, version: VERSION });
 }

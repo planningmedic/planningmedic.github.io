@@ -858,8 +858,11 @@ const dodo = ms => new Promise(r => setTimeout(r, ms));
     V('le tableau des tuiles est lisible dans la page', !!mTiles);
     V('la ligne de filtrage est lisible dans la page', !!mFiltre);
     const passe = (largeur) => {
+      /* MY_TUILES : liste des tuiles reservees recue avec l'identite (08/09/2026).
+         Vide ici — un MAR ordinaire n'en a aucune, et c'est bien ce qu'on mesure. */
       const bac = { window: { innerWidth: largeur }, MY_ID: 'ALPHA', INDISPOS_OUVERTE: true,
-                    MY_LIBERAL: false, PHASE_TP: null, MY_QUOTITE: 100, MY_TPFIXE: false };
+                    MY_LIBERAL: false, PHASE_TP: null, MY_QUOTITE: 100, MY_TPFIXE: false,
+                    MY_TUILES: [] };
       bac.globalThis = bac;
       vm.createContext(bac);
       vm.runInContext(mTiles[0], bac);

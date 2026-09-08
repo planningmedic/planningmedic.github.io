@@ -397,7 +397,7 @@ console.log('\n═══ PT14 · la tuile du portail : visible pour les bons MAR
   const etat = (monde) => {
     const bac = vm.createContext(Object.assign({ window: { innerWidth: 1440 },
       MY_ID: 'POSEUR', MY_LIBERAL: false, INDISPOS_OUVERTE: false,
-      PHASE_TP: null, MY_QUOTITE: 100, MY_TPFIXE: false }, monde));
+      PHASE_TP: null, MY_QUOTITE: 100, MY_TPFIXE: false, MY_TUILES: [] }, monde));
     vm.runInContext(mTiles[0], bac);
     return vm.runInContext(`TILES.filter(${mFiltre[1]}).map(t => t.key)`, bac);
   };

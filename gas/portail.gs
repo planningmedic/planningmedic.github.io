@@ -1,7 +1,7 @@
 // ⚠️ RÈGLE (détecteur de dérive dépôt↔Apps Script) : incrémenter cette version
 // à CHAQUE push de ce fichier. Le diagnostic (admin → Maintenance) compare la
 // version déployée ici avec celle du dépôt et signale toute recopie oubliée.
-const GAS_VERSION_PORTAIL = '2026-09-07.1';
+const GAS_VERSION_PORTAIL = '2026-09-08.1';
 
 /**
  * portail.gs — actions du PORTAIL équipe (dashboard.html).
@@ -504,7 +504,8 @@ const CRH_MODELS = {                     // choix manuel depuis l'interface
   opus:   { id: 'claude-opus-4-8',   label: 'Opus 4.8' }
 };
 const CRH_MODEL_DEFAULT = 'sonnet';      // par défaut ; Opus réservé aux séjours longs/complexes
-const CRH_ALLOWED = ['DURAND'];      // ids MEDECINS autorisés à générer des CRH (accès nominatif)
+/* (08/09/2026) La liste nominative vit desormais dans CONFIG / TUILES_PRIVEES
+   (cle `crh`), plus dans ce fichier : un depot public n'a pas a nommer un medecin. */
 const CRH_MAX_TOKENS = 8192;           // plafond de sortie
 
 let _anthropicTokenCache = null;
@@ -639,7 +640,7 @@ ${CRH_EX_CHRONO_DECES}`;
 }
 
 function genererCRH_(payload, user) {
-  if (!user || CRH_ALLOWED.indexOf(String(user.id)) === -1) {
+  if (!user || !_aDroitTuile_(user.id, 'crh')) {
     return { success: false, error: 'Accès réservé.' };
   }
   const texte  = String((payload && payload.texte)  || '').trim();
@@ -1851,15 +1852,14 @@ function getSecteurs() {
 /* (29/08/2026, corrige le jour meme) Le controle portait sur user.role ===
    'admin'. Or checkCode ne rend ce role QUE pour le code d'administration, avec
    id 'ADMIN' : ouvert avec son code personnel, l'administrateur du portail est
-   un `mar` d'id DURAND, et se voyait refuser sa propre page — la tuile,
-   elle, filtre sur l'IDENTITE (only:'DURAND'). Deux criteres differents pour
+   un `mar` d'id nominatif, et se voyait refuser sa propre page — la tuile,
+   elle, filtrait sur l'IDENTITE. Deux criteres differents pour
    la meme porte. On aligne sur le motif deja en place pour le CRH : acces
    NOMINATIF par id. */
-const STATS_ALLOWED = ['DURAND'];   // ids MEDECINS, comme CRH_ALLOWED
+/* (08/09/2026) Meme regime que le CRH : CONFIG / TUILES_PRIVEES, cle `stats`. */
 
 function getStatsUsage(user) {
-  if (!user || (user.role !== 'admin' &&
-                STATS_ALLOWED.indexOf(String(user.id)) === -1)) {
+  if (!user || (user.role !== 'admin' && !_aDroitTuile_(user.id, 'stats'))) {
     return { success: false, error: 'Accès réservé.' };
   }
   const ss = SpreadsheetApp.getActiveSpreadsheet();
