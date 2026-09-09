@@ -146,7 +146,7 @@ Scénario : le compte `planningmedic` est perdu, suspendu ou compromis.
    100 % du code.
 3. **Redéployer en application web** depuis ce nouveau classeur.
 4. ⚠️ **Le nouveau déploiement aura une ADRESSE DIFFÉRENTE.** L'ancienne est écrite en dur
-   dans les pages du site (`dashboard.html`, `index.html`, `admin.html`, `indispos.html`,
+   dans les pages du site (`index.html`, `planning.html`, `admin.html`, `indispos.html`,
    `staff.html`, `absences.html`…). Il faut donc **remplacer cette adresse partout dans le
    dépôt** avant que le site refonctionne. C'est l'étape qu'on oublie et qui coûte une
    heure de panique — la connaître à l'avance suffit à l'éviter.

@@ -140,7 +140,14 @@ V('sans abonné : succès, zéro envoi', rVide.success && rVide.abonnes === 0, r
 console.log('\n═══ N5. sw.js : les gestionnaires existent, la version a monté ═══');
 {
   const sw = fs.readFileSync('../sw.js', 'utf8');
-  V('version montée (pm-sw-v1)', sw.includes("VERSION = 'pm-sw-v1'"));
+  /* (09/09/2026) Quatrième numéro figé rencontré en deux jours. Un test qui
+     exige une valeur exacte échoue à chaque montée de version, alors que ce
+     qu'il doit garder c'est le MÉCANISME : un nom de cache versionné, qui
+     change quand le contenu change — sinon les appareils gardent l'ancien. */
+  const vSw = (sw.match(/VERSION\s*=\s*'([^']+)'/) || [, ''])[1];
+  V('le cache porte un numéro de version', /^pm-sw-v\d+$/.test(vSw), vSw);
+  V('ce numéro a monté depuis la bascule de la racine',
+    Number((vSw.match(/v(\d+)$/) || [, 0])[1]) >= 2, vSw);
 V("v4 : la pastille est posée à l'arrivée d'une notification", /setAppBadge\(d\.pastille\)/.test(sw));
   V("gestionnaire 'push' présent", /addEventListener\('push'/.test(sw));
   V("gestionnaire 'notificationclick' présent", /addEventListener\('notificationclick'/.test(sw));
@@ -212,9 +219,9 @@ console.log('\n═══ N6. La cloche : compteur de pastille, /notif-vu, clés 
   /* Les clés : `notifs` circule FILTRÉE À L'IDENTITÉ, compteurs et
      abonnements restent scellés. */
   M.set('notifs', JSON.stringify({ success: true, notifs: {
-    DURAND: [{ q: '2026-08-23T10:00:00.000Z', t: 'Pour moi', c: '', u: './dashboard.html' }],
-    ALPHA:    [{ q: '2026-08-23T09:00:00.000Z', t: 'Pour un autre', c: '', u: './dashboard.html' }],
-    '*':      [{ q: '2026-08-23T08:00:00.000Z', t: 'Pour tous', c: '', u: './dashboard.html' }] } }));
+    DURAND: [{ q: '2026-08-23T10:00:00.000Z', t: 'Pour moi', c: '', u: './index.html' }],
+    ALPHA:    [{ q: '2026-08-23T09:00:00.000Z', t: 'Pour un autre', c: '', u: './index.html' }],
+    '*':      [{ q: '2026-08-23T08:00:00.000Z', t: 'Pour tous', c: '', u: './index.html' }] } }));
   const rl = await appel('/read', { code: ADMIN, keys: ['notifs', 'notif_cpt_DURAND'] });
   V('/read livre la clé `notifs`', !!(rl.data && rl.data.notifs && rl.data.notifs.success), rl.refuses);
   V('… filtrée : mes entrées et celles pour tous, RIEN d\'autrui',

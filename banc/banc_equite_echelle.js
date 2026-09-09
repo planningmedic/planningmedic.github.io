@@ -4,7 +4,7 @@
    « Mar » (4 gardes). Cause : chaque axe sans cible (Lun/Mar/Mer) est mis à
    l'échelle sur SON PROPRE maximum d'équipe. Le MAR à souhaits garantis prend
    43 mardis, ce qui étire l'échelle du mardi et écrase celle des 23 autres.
-   La même fonction existe dans index.html ET admin.html : les deux sont
+   La même fonction existe dans planning.html ET admin.html : les deux sont
    éprouvées ici, sinon la correction d'une page laisserait l'autre fausse.
    Service FICTIF : aucun nom réel, aucune donnée du classeur. */
 const vm = require('vm'), path = require('path'), fs = require('fs');
@@ -13,7 +13,7 @@ let ok = 0, ko = 0;
 const V = (t, c, d) => { if (c) { ok++; console.log('  ✓ ' + t); } else { ko++; console.log('  ✗ ' + t + (d !== undefined ? ' → ' + JSON.stringify(d).slice(0, 190) : '')); } };
 
 const PAGES = [
-  ['index.html', path.join(__dirname, '..', 'index.html')],
+  ['planning.html', path.join(__dirname, '..', 'planning.html')],
   ['admin.html', path.join(__dirname, '..', 'admin.html')]
 ];
 const GRIS = [['Lun', 'lu'], ['Mar', 'ma'], ['Mer', 'me']];

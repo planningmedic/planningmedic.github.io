@@ -4,7 +4,7 @@
 const GAS_VERSION_PORTAIL = '2026-09-08.1';
 
 /**
- * portail.gs — actions du PORTAIL équipe (dashboard.html).
+ * portail.gs — actions du PORTAIL équipe (index.html).
  * 5e fichier du projet Apps Script. Ne touche PAS au planning.
  *
  * Routeur délégué appelé par doGet (Indispos.gs) via un bloc gardé

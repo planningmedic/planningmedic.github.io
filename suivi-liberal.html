@@ -132,7 +132,7 @@ table.grid td.pick{outline:2px solid var(--rose);outline-offset:1px}
    (14/08/2026) Sur iPhone, le titre et le sous-titre s'enroulaient sur
    plusieurs lignes ; la hauteur du bandeau etant figee, le debordement
    partait AU-DESSUS du bord de l'ecran et le titre etait coupe.
-   Meme regle que index.html / dashboard.html. */
+   Meme regle que planning.html / index.html. */
 @media(max-width:640px){
   .header{min-height:52px;padding:0 12px;gap:8px}
   .header-sub{display:none}
@@ -154,7 +154,7 @@ window.SessionPortail = window.SessionPortail || { lire:function(){try{return se
 </head>
 <body>
 
-<!-- ── CONNEXION — skin identique a dashboard.html / index.html ────────── -->
+<!-- ── CONNEXION — skin identique a index.html / planning.html ────────── -->
 <div id="authOverlay" style="position:fixed;inset:0;z-index:9999;background:var(--bg);display:flex;align-items:center;justify-content:center;padding:20px">
   <div style="background:var(--white);border:1px solid var(--line);border-radius:16px;box-shadow:0 10px 30px rgba(15,23,42,.08);padding:36px 32px;width:100%;max-width:380px;text-align:center">
     <img src="assets/logo.png" alt="" style="width:48px;height:48px;border-radius:12px;display:block;margin:0 auto 16px;box-shadow:0 4px 12px rgba(206,17,38,.30)">
@@ -178,7 +178,7 @@ window.SessionPortail = window.SessionPortail || { lire:function(){try{return se
   </div>
   <div class="header-right">
     <span class="me-pill" id="mePill"></span>
-    <a class="hbtn" id="lnkBack" href="dashboard.html"><span class="lbl-long">Retour au portail</span><span class="lbl-court">Portail</span></a>
+    <a class="hbtn" id="lnkBack" href="index.html"><span class="lbl-long">Retour au portail</span><span class="lbl-court">Portail</span></a>
     <button class="hbtn" id="btnOut">Déconnexion</button>
   </div>
 </div>

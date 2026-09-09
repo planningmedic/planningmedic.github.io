@@ -460,7 +460,7 @@ console.log('\n═══ 56. Inventaire des onglets écoutés (06/08/2026) ═�
 {
   console.log('\n═══ 6 quater. Lecture d\'un document par le portail (miroir + repli) ═══');
   const fs4 = require('fs');
-  const html = fs4.readFileSync('../dashboard.html', 'utf8');
+  const html = fs4.readFileSync('../index.html', 'utf8');
 
   const corps = html.match(/async function _lireDoc\(id, action\)\{[\s\S]*?\n\}/);
   V('la page contient bien _lireDoc', !!corps);

@@ -1,5 +1,5 @@
 /* ═══ BANC — LES PAGES DES MAR (celles de la démo du 4 septembre) ═══
-   index.html, dashboard.html, indispos.html : chargées telles quelles, servies
+   planning.html, index.html, indispos.html : chargées telles quelles, servies
    par le vrai Worker. Ce que le comité montrera au staff doit s'ouvrir vite et
    sans erreur, avec le rôle MAR (droits réduits). */
 const { JSDOM, VirtualConsole } = require('jsdom');
@@ -26,7 +26,7 @@ const dodo = ms => new Promise(r => setTimeout(r, ms));
   M.set('config_admin', JSON.stringify({ medecins: [] }));
   const env = { KV, PUSH_TOKEN: 'JETON' };
 
-  for (const fichier of ['index.html', 'dashboard.html', 'indispos.html']) {
+  for (const fichier of ['planning.html', 'index.html', 'indispos.html']) {
     console.log(`\n═══ 28. ${fichier} ═══`);
     let contenu;
     try { contenu = fs.readFileSync('../' + fichier, 'utf8'); }
@@ -76,13 +76,13 @@ const dodo = ms => new Promise(r => setTimeout(r, ms));
   /* Les selecteurs annee/mois quittent le bandeau sur mobile (il y etait trop
      etroit, la pastille du MAR s'y compressait a zero) et reviennent au-dessus
      de 768 px. Regle vitale : ils sont DEPLACES, jamais dupliques. */
-  console.log('\n═══ 28b. index.html · les sélecteurs période changent de place, sans jamais se dupliquer ═══');
+  console.log('\n═══ 28b. planning.html · les sélecteurs période changent de place, sans jamais se dupliquer ═══');
   {
-    const contenu = fs.readFileSync('../index.html', 'utf8');
+    const contenu = fs.readFileSync('../planning.html', 'utf8');
     const vc = new VirtualConsole(); const erreurs = [];
     vc.on('jsdomError', e => erreurs.push(e.message));
     const dom = new JSDOM(contenu, { runScripts:'dangerously', virtualConsole:vc,
-      url:'https://planningmedic.github.io/index.html', pretendToBeVisual:true,
+      url:'https://planningmedic.github.io/planning.html', pretendToBeVisual:true,
       beforeParse(win) {
         win.matchMedia = () => ({ matches:false, addListener(){}, removeListener(){}, addEventListener(){}, removeEventListener(){} });
         win.Element.prototype.scrollIntoView = function () {};
@@ -145,7 +145,7 @@ const dodo = ms => new Promise(r => setTimeout(r, ms));
     /* La cle doit etre la MEME que sur les autres pages MAR, sinon la session
        ne se partage pas. staff.html et admin.html sont exclus : ils exigent
        le role admin, leur code n'est pas celui des MAR. */
-    for (const p of ['index.html', 'dashboard.html', 'absences.html', 'crh.html', 'suivi-liberal.html']) {
+    for (const p of ['planning.html', 'index.html', 'absences.html', 'crh.html', 'suivi-liberal.html']) {
       const c = fs.readFileSync('../' + p, 'utf8');
       V(`${p} utilise la même clé de session`, /pmViewCode/.test(c));
     }
@@ -157,9 +157,9 @@ const dodo = ms => new Promise(r => setTimeout(r, ms));
   /* Defaut vu en production le 12/08 : les 5 onglets du bas debordaient a droite
      sur iPhone. La cause de fond n'est pas la police mais l'absence de min-width:0 —
      un element flex:1 refuse de descendre sous la largeur de son contenu. */
-  console.log('\n═══ 28d. index.html · la barre d\'onglets du bas tient dans l\'écran ═══');
+  console.log('\n═══ 28d. planning.html · la barre d\'onglets du bas tient dans l\'écran ═══');
   {
-    const c = fs.readFileSync('../index.html', 'utf8');
+    const c = fs.readFileSync('../planning.html', 'utf8');
     const regle = (c.match(/\.mobile-bottom-btn \{[^}]*\}/) || [''])[0];
     V('les onglets peuvent rétrécir (min-width:0)', /min-width:\s*0/.test(regle), regle.slice(0,120));
     V('la police est ramenée à 11 px', /font-size:\s*11px/.test(regle), regle.slice(0,120));
@@ -180,13 +180,13 @@ const dodo = ms => new Promise(r => setTimeout(r, ms));
   /* Defaut vu le 12/08 : ~790 pt de blanc sous les tableaux des onglets Medecins,
      Equite, Secteurs et Annee. #mobileView (hauteur minimale d'un ecran) restait
      affiche sur tous les onglets alors qu'il ne sert qu'a l'onglet Planning. */
-  console.log('\n═══ 28e. index.html · pas de blanc sous les onglets autres que Planning ═══');
+  console.log('\n═══ 28e. planning.html · pas de blanc sous les onglets autres que Planning ═══');
   {
-    const contenu = fs.readFileSync('../index.html', 'utf8');
+    const contenu = fs.readFileSync('../planning.html', 'utf8');
     const vc = new VirtualConsole(); const erreurs = [];
     vc.on('jsdomError', e => erreurs.push(e.message));
     const dom = new JSDOM(contenu, { runScripts:'dangerously', virtualConsole:vc,
-      url:'https://planningmedic.github.io/index.html', pretendToBeVisual:true,
+      url:'https://planningmedic.github.io/planning.html', pretendToBeVisual:true,
       beforeParse(win) {
         win.matchMedia = () => ({ matches:false, addListener(){}, removeListener(){}, addEventListener(){}, removeEventListener(){} });
         win.Element.prototype.scrollIntoView = function () {};
@@ -304,11 +304,11 @@ const dodo = ms => new Promise(r => setTimeout(r, ms));
     V('le refus est expliqué au MAR', /Hors de l'année de planning/.test((w.__toasts || []).join(' ')), w.__toasts);
   }
 
-  console.log('\n═══ 28h. index.html · les onglets Équité sont larges et alignés ═══');
+  console.log('\n═══ 28h. planning.html · les onglets Équité sont larges et alignés ═══');
   {
     /* (13/08/2026) AVANT : un interrupteur cale a 32 px du bord, epousant la
        largeur de son texte — decentre sur telephone, touche de 27 px. */
-    const c = fs.readFileSync('../index.html', 'utf8');
+    const c = fs.readFileSync('../planning.html', 'utf8');
     const barre = (c.match(/\.eq-switchbar\{[^}]*\}/) || [''])[0];
     const sw    = (c.match(/\.eqv-switch\{[^}]*\}/) || [''])[0];
     const btn   = (c.match(/\.eqv-sw-btn\{[^}]*\}/) || [''])[0];
@@ -326,16 +326,16 @@ const dodo = ms => new Promise(r => setTimeout(r, ms));
       (c.match(/class="eqv-sw-btn active"/g) || []).length === 1);
   }
 
-  console.log('\n═══ 28i. index.html · le mois disparaît des vues qui l\'ignorent ═══');
+  console.log('\n═══ 28i. planning.html · le mois disparaît des vues qui l\'ignorent ═══');
   {
     /* (13/08/2026) Équité, Affectations et Année raisonnent à l'année. Sur mobile,
        la liste des mois restait pourtant affichée à côté de celle des années, et
        en choisir un ne produisait rien. */
-    const contenu = fs.readFileSync('../index.html', 'utf8');
+    const contenu = fs.readFileSync('../planning.html', 'utf8');
     const vc = new VirtualConsole(); const erreurs = [];
     vc.on('jsdomError', e => erreurs.push(e.message));
     const dom = new JSDOM(contenu, { runScripts:'dangerously', virtualConsole:vc,
-      url:'https://planningmedic.github.io/index.html', pretendToBeVisual:true,
+      url:'https://planningmedic.github.io/planning.html', pretendToBeVisual:true,
       beforeParse(win) {
         win.matchMedia = () => ({ matches:false, addListener(){}, removeListener(){}, addEventListener(){}, removeEventListener(){} });
         win.Element.prototype.scrollIntoView = function () {};
@@ -379,17 +379,17 @@ const dodo = ms => new Promise(r => setTimeout(r, ms));
     V('aucune erreur JavaScript', erreurs.length === 0, erreurs.slice(0,2));
   }
 
-  console.log('\n═══ 28o. index.html · vue Année : le nom du mois est écrit en toutes lettres ═══');
+  console.log('\n═══ 28o. planning.html · vue Année : le nom du mois est écrit en toutes lettres ═══');
   {
     /* (14/08/2026) DEFAUT VU EN PRODUCTION : la bande du haut de la vue Année
        affichait « Aoû » alors que la colonne fait tout le mois — largement la
        place. Un mois de bord de fenêtre (janvier 2027 : 3 jours) reste abrégé,
        sinon son titre élargirait ses trois colonnes. */
-    const contenu = fs.readFileSync('../index.html', 'utf8');
+    const contenu = fs.readFileSync('../planning.html', 'utf8');
     const vc = new VirtualConsole(); const erreurs = [];
     vc.on('jsdomError', e => erreurs.push(e.message));
     const dom = new JSDOM(contenu, { runScripts:'dangerously', virtualConsole:vc,
-      url:'https://planningmedic.github.io/index.html', pretendToBeVisual:true,
+      url:'https://planningmedic.github.io/planning.html', pretendToBeVisual:true,
       beforeParse(win) {
         win.matchMedia = () => ({ matches:false, addListener(){}, removeListener(){}, addEventListener(){}, removeEventListener(){} });
         win.Element.prototype.scrollIntoView = function () {};
@@ -422,7 +422,7 @@ const dodo = ms => new Promise(r => setTimeout(r, ms));
     V('aucune erreur JavaScript', erreurs.length === 0, erreurs.slice(0,2));
   }
 
-  console.log('\n═══ 28p. index.html · fiche MAR : les absences de 2027 comptent, la recup se voit ═══');
+  console.log('\n═══ 28p. planning.html · fiche MAR : les absences de 2027 comptent, la recup se voit ═══');
   {
     /* (14/08/2026) DEFAUT TROUVE AVANT PRODUCTION : les trois compteurs
        d'absences de l'onglet Medecins additionnaient A + CP + F en dur.
@@ -435,11 +435,11 @@ const dodo = ms => new Promise(r => setTimeout(r, ms));
        Au passage : « 1h » se lisait comme une heure alors que le code 18
        est une JOURNEE 8h-18h, et la recuperation de samedi n'apparaissait
        nulle part. */
-    const contenu = fs.readFileSync('../index.html', 'utf8');
+    const contenu = fs.readFileSync('../planning.html', 'utf8');
     const vc = new VirtualConsole(); const erreurs = [];
     vc.on('jsdomError', e => erreurs.push(e.message));
     const dom = new JSDOM(contenu, { runScripts:'dangerously', virtualConsole:vc,
-      url:'https://planningmedic.github.io/index.html', pretendToBeVisual:true,
+      url:'https://planningmedic.github.io/planning.html', pretendToBeVisual:true,
       beforeParse(win) {
         win.matchMedia = () => ({ matches:false, addListener(){}, removeListener(){}, addEventListener(){}, removeEventListener(){} });
         win.Element.prototype.scrollIntoView = function () {};
@@ -508,7 +508,7 @@ const dodo = ms => new Promise(r => setTimeout(r, ms));
     V('aucune erreur JavaScript', erreurs.length === 0, erreurs.slice(0,2));
   }
 
-  console.log('\n═══ 28n. index.html · les codes d\'absence, une seule liste ═══');
+  console.log('\n═══ 28n. planning.html · les codes d\'absence, une seule liste ═══');
   {
     /* (13/08/2026) DEFAUT VU EN PRODUCTION : un MAR mis en « V » pour le lendemain
        apparaissait dans les absents cote comite, pas cote MAR.
@@ -518,7 +518,7 @@ const dodo = ms => new Promise(r => setTimeout(r, ms));
          GARDES_2027 → V 1013 · TP 224 · CL 56 · A 0
        Le vocabulaire a change entre les annees : la page ignorait donc, sur toute
        l'annee 2027, 1013 cases de vacances — et comptait ces MAR comme presents. */
-    const c = fs.readFileSync('../index.html', 'utf8');
+    const c = fs.readFileSync('../planning.html', 'utf8');
     const pan = (c.match(/const ABSENT_PANNEAU\s*=\s*\[([^\]]*)\]/) || [null,''])[1];
     const codes = pan.split(',').map(x => x.trim().replace(/'/g, '')).filter(Boolean);
     ['A','V','F','R','CP','TP','CL'].forEach(k => {
@@ -539,14 +539,14 @@ const dodo = ms => new Promise(r => setTimeout(r, ms));
       (c.match(/ABSENT_PANNEAU\.includes\(st\)/g) || []).length === 2);
   }
 
-  console.log('\n═══ 28m. index.html · l\'instantané d\'équité passe par la copie rapide ═══');
+  console.log('\n═══ 28m. planning.html · l\'instantané d\'équité passe par la copie rapide ═══');
   {
     /* (13/08/2026) computeStatsLive recompte les gardes reellement faites sur
        toute l'annee : le calcul le plus lourd du portail, jusqu'ici paye par
        CHAQUE MAR a CHAQUE clic. Il tourne desormais une fois pour les 23, dans
        le declencheur differe du miroir. L'ecran perd l'exactitude a la seconde
        et gagne l'affichage immediat — le lien « recalculer » rend le choix. */
-    const c = fs.readFileSync('../index.html', 'utf8');
+    const c = fs.readFileSync('../planning.html', 'utf8');
     const worker = fs.readFileSync('../cloudflare/worker.js', 'utf8');
     const miroir = fs.readFileSync('../gas/miroir.gs', 'utf8');
     const fn = (c.match(/async function loadEquiteLive[\s\S]*?\n\}/) || [''])[0];
@@ -569,15 +569,15 @@ const dodo = ms => new Promise(r => setTimeout(r, ms));
       /à la minute près/.test(c) && !/gardes réelles à l'instant T/.test(c));
   }
 
-  console.log('\n═══ 28l. index.html · une année préchargée à moitié ne bloque plus ═══');
+  console.log('\n═══ 28l. planning.html · une année préchargée à moitié ne bloque plus ═══');
   {
     /* (13/08/2026) DÉFAUT VU EN PRODUCTION. Le dashboard précharge le planning de
        l'année SUIVANTE dans la mémoire de session partagée (pmPlan:{Y}) mais
-       pas ses affectations. index.html trouvait donc le planning tout de suite et
+       pas ses affectations. planning.html trouvait donc le planning tout de suite et
        partait chercher les affectations chez Google : appel lent, rejoué une fois,
        ATTENDU avant tout affichage. Deux à quatre minutes de témoin d'activité,
        écran figé sur l'année précédente sous le libellé de la nouvelle. */
-    const c = fs.readFileSync('../index.html', 'utf8');
+    const c = fs.readFileSync('../planning.html', 'utf8');
     const bloc = (c.match(/\/\* Affectations sectorielles[\s\S]*?AFFECTATIONS_DATA = \{\}; \}/) || [''])[0];
     V('le bloc des affectations a bien été retrouvé', bloc.length > 0);
     V('le miroir est interrogé quand elles manquent',
@@ -595,14 +595,14 @@ const dodo = ms => new Promise(r => setTimeout(r, ms));
       /catch\(e\) \{ AFFECTATIONS_DATA = \{\}; \}/.test(bloc));
   }
 
-  console.log('\n═══ 28k. index.html · changer d\'année redessine la vue affichée ═══');
+  console.log('\n═══ 28k. planning.html · changer d\'année redessine la vue affichée ═══');
   {
     /* (13/08/2026) DÉFAUT VU EN PRODUCTION. Le sélecteur passait à 2027 et
        l'écran Équité continuait d'afficher 2026 — totaux ET cibles — sous le
        libellé de la nouvelle année. Le certificat annonçait « 19 écarts au-delà
        de 2 gardes » sur un planning 2027 qui n'en compte aucun. Seul « Médecins »
        était redessiné ; Équité, Affectations et Année étaient oubliés. */
-    const c = fs.readFileSync('../index.html', 'utf8');
+    const c = fs.readFileSync('../planning.html', 'utf8');
     const onchange = (c.match(/sel\.onchange = async \(\) => \{[\s\S]*?\n  \};/) || [''])[0];
     V('le gestionnaire du sélecteur d\'année a bien été retrouvé', onchange.length > 0);
     ['renderMedecins', 'renderEquite', 'renderAffectations', 'renderAnnee'].forEach(f => {
@@ -616,7 +616,7 @@ const dodo = ms => new Promise(r => setTimeout(r, ms));
 
   console.log('\n═══ 28j. Les cibles d\'équité voyagent par la copie rapide ═══');
   {
-    const c = fs.readFileSync('../index.html', 'utf8');
+    const c = fs.readFileSync('../planning.html', 'utf8');
     const worker = fs.readFileSync('../cloudflare/worker.js', 'utf8');
     /* (13/08/2026) stats_{annee} passe aux MAR. Ce n'est pas un elargissement :
        getStatsLive, qui sert les MEMES chiffres, ne porte aucun controle de role
@@ -769,18 +769,18 @@ const dodo = ms => new Promise(r => setTimeout(r, ms));
          code courant de la page. */
       const horsFilet = f => fs.readFileSync('../' + f, 'utf8').split('\n')
         .filter(l => /sessionStorage\.\w+\('pmViewCode'/.test(l) && !/FALLBACK_SESSION|window\.SessionPortail = window\.SessionPortail/.test(l));
-      const fautives = ['dashboard.html', 'index.html', 'indispos.html'].filter(f => horsFilet(f).length);
+      const fautives = ['index.html', 'planning.html', 'indispos.html'].filter(f => horsFilet(f).length);
       V('aucune page ne touche à la clé sans passer par le partage', fautives.length === 0, fautives);
       /* (17/08/2026) Le banc a trouvé ceci AVANT la production : sans filet, une page
          dont le partage ne se charge pas appelle SessionPortail dans le vide et ne s'ouvre
          PLUS — le MAR ne peut même plus taper son code. */
-      const sansFilet = ['dashboard.html', 'index.html', 'indispos.html']
+      const sansFilet = ['index.html', 'planning.html', 'indispos.html']
         .filter(f => !/FALLBACK_SESSION/.test(fs.readFileSync('../' + f, 'utf8')));
       V('chaque page a son filet si le partage ne se charge pas', sansFilet.length === 0, sansFilet);
-      const sansPartage = ['dashboard.html', 'index.html', 'indispos.html']
+      const sansPartage = ['index.html', 'planning.html', 'indispos.html']
         .filter(f => !/partage\/session\.js/.test(fs.readFileSync('../' + f, 'utf8')));
       V('les trois pages chargent bien le partage', sansPartage.length === 0, sansPartage);
-      const sansDeco = ['dashboard.html', 'index.html', 'indispos.html']
+      const sansDeco = ['index.html', 'planning.html', 'indispos.html']
         .filter(f => !/SessionPortail\.oublier\(\)/.test(fs.readFileSync('../' + f, 'utf8')));
       V('les trois offrent une déconnexion', sansDeco.length === 0, sansDeco);
     }
@@ -790,11 +790,11 @@ const dodo = ms => new Promise(r => setTimeout(r, ms));
      (26/08/2026) DÉFAUT VU EN PRODUCTION LE SOIR MÊME : la tuile figée demandait
      `lock`, absent du mini-bundle — carré ambre VIDE, sans erreur, exactement le
      piège que l'en-tête du bundle décrit. On collecte ici TOUTES les icônes que
-     dashboard.html peut demander (statiques `data-lucide`, tableau TILES, et les
+     index.html peut demander (statiques `data-lucide`, tableau TILES, et les
      icônes dérivées comme celle de la tuile figée) et on exige leur présence. */
   {
     console.log('\n═══ 28 ter. Toute icône du dashboard existe dans le mini-bundle ═══');
-    const page = fs.readFileSync('../dashboard.html', 'utf8');
+    const page = fs.readFileSync('../index.html', 'utf8');
     const bundle = fs.readFileSync('../assets/vendor/lucide-icons.js', 'utf8');
     const mIcons = bundle.match(/var ICONS = \{[\s\S]*?\n/);
     V('le catalogue du bundle est lisible', !!mIcons);
@@ -817,7 +817,7 @@ const dodo = ms => new Promise(r => setTimeout(r, ms));
      dérivation réellement livrées, comme le test 29 pour le filtre. */
   {
     console.log('\n═══ 28 bis. La tuile indispos annonce la consultation seule ═══');
-    const src = fs.readFileSync('../dashboard.html', 'utf8');
+    const src = fs.readFileSync('../index.html', 'utf8');
     const mDeriv = src.match(/const fige = [\s\S]*?const sousTitre = [\s\S]*?;\n/);
     V('les lignes de dérivation de la tuile sont lisibles dans la page', !!mDeriv);
     V('la teinte ambre existe dans la feuille de style', src.indexOf('.tile-ico.ambre') > -1);
@@ -844,7 +844,7 @@ const dodo = ms => new Promise(r => setTimeout(r, ms));
      et échouera si le module revient sans décision explicite. */
   {
     console.log('\n═══ 29. Le module CR d\'anesthésie est absent ═══');
-    const src = fs.readFileSync('../dashboard.html', 'utf8');
+    const src = fs.readFileSync('../index.html', 'utf8');
     V('aucune tuile ne pointe vers le module', !/cr-anesth/.test(src));
     V('le dossier du module n\'existe plus', !fs.existsSync('../cr-anesthesie'));
     V('aucun logo d\'établissement dans le dépôt',

@@ -1,6 +1,6 @@
 /* ═════════════════════════════════════════════════════════════════════════════
    SESSION DES MAR — où vit le code d'accès, et combien de temps
-   (17/08/2026) Source UNIQUE pour dashboard.html, index.html et indispos.html.
+   (17/08/2026) Source UNIQUE pour index.html, planning.html et indispos.html.
 
    LE PROBLÈME. Le code était gardé en sessionStorage : il ne survit pas à la
    fermeture de l'app. Or iOS ferme volontiers les apps web en arrière-plan —

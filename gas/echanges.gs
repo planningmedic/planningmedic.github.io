@@ -166,7 +166,7 @@ function _echangesLignes_() {
 function _echangesMaintenant_() { return new Date().toISOString(); }
 
 /* (14/08/2026) Un humain lit ces messages : « Dr Durand », pas « DURAND ».
-   MÊME règle que l'écran (dashboard.html, _tit) — titre « Pr » compris.
+   MÊME règle que l'écran (index.html, _tit) — titre « Pr » compris.
    (08/09/2026) Le titre venait d'un nom écrit en dur ; il est maintenant
    déduit de la colonne NOM de MEDECINS, comme partout ailleurs. Mise en
    forme d'AFFICHAGE seule : les noms stockés dans l'onglet ne changent pas,
@@ -244,7 +244,7 @@ function creerEchange(user, p) {
     type === 'don'
       ? _echangesDr_(user.id) + ' vous propose sa garde du ' + _echangesJoli_(date) + '.'
       : _echangesDr_(user.id) + ' vous propose sa garde du ' + _echangesJoli_(date) + ' contre la vôtre du ' + _echangesJoli_(demande.DATE2) + '.',
-    './dashboard.html', { id: receveur, pastille: _echangesEnAttentePour_(receveur) });
+    './index.html', { id: receveur, pastille: _echangesEnAttentePour_(receveur) });
   return { id: id };
 }
 
@@ -272,7 +272,7 @@ function repondreEchange(user, p) {
     _echangesVersKV_();
     notifierPush_('Proposition déclinée',
       _echangesDr_(d.RECEVEUR) + ' a décliné votre proposition du ' + _echangesJoli_(d.DATE) + '.',
-      './dashboard.html', { id: String(d.DEMANDEUR) });
+      './index.html', { id: String(d.DEMANDEUR) });
     return { etat: 'refusee' };
   }
 
@@ -288,8 +288,8 @@ function repondreEchange(user, p) {
     logAction('repondreEchange ' + id + ' — IMPOSSIBLE : ' + err.message);
     _echangesVersKV_();
     const corps = 'Le planning a changé depuis la proposition du ' + _echangesJoli_(d.DATE) + ' : ' + err.message;
-    notifierPush_('Échange impossible', corps, './dashboard.html', { id: String(d.DEMANDEUR) });
-    notifierPush_('Échange impossible', corps, './dashboard.html', { id: String(d.RECEVEUR) });
+    notifierPush_('Échange impossible', corps, './index.html', { id: String(d.DEMANDEUR) });
+    notifierPush_('Échange impossible', corps, './index.html', { id: String(d.RECEVEUR) });
     return { etat: 'impossible', error: String(err.message) };
   }
 
@@ -319,8 +319,8 @@ function repondreEchange(user, p) {
     ? 'La garde du ' + _echangesJoli_(d.DATE) + ' passe du ' + _echangesDr_(d.DEMANDEUR) + ' au ' + _echangesDr_(d.RECEVEUR) + '.'
     : 'Gardes échangées : le ' + _echangesDr_(d.DEMANDEUR) + ' prend le ' + _echangesJoli_(d.DATE2) + ', le ' + _echangesDr_(d.RECEVEUR) + ' prend le ' + _echangesJoli_(d.DATE) + '.';
   rInfos.forEach(r => { if (r.fait) corps += ' La récupération du ' + _echangesJoli_(r.dateR) + ' est transférée.'; });
-  notifierPush_('Échange confirmé', corps, './dashboard.html', { id: String(d.DEMANDEUR) });
-  notifierPush_('Échange confirmé', corps, './dashboard.html', { id: String(d.RECEVEUR) });
+  notifierPush_('Échange confirmé', corps, './index.html', { id: String(d.DEMANDEUR) });
+  notifierPush_('Échange confirmé', corps, './index.html', { id: String(d.RECEVEUR) });
 
   // R non transférable : le comité replace à la main (seul cas où il entre en scène).
   rInfos.forEach(r => { if (!r.fait) _echangesAlerterComite_(r); });
@@ -413,14 +413,14 @@ function expirerEchanges() {
       logAction('expirerEchanges ' + d.ID + ' — expirée (48 h sans réponse)');
       notifierPush_('Proposition expirée',
         'Votre proposition du ' + _echangesJoli_(d.DATE) + ' au ' + _echangesDr_(d.RECEVEUR) + ' est restée 48 h sans réponse.',
-        './dashboard.html', { id: String(d.DEMANDEUR) });
+        './index.html', { id: String(d.DEMANDEUR) });
     } else if (age > ECHANGES_RAPPEL_H * 3600 * 1000 && !String(d.RAPPEL_LE).trim()) {
       sh.getRange(d._row, colRap).setValue(_echangesMaintenant_());
       changements++;
       logAction('expirerEchanges ' + d.ID + ' — rappel 24 h');
       notifierPush_('Proposition en attente',
         _echangesDr_(d.DEMANDEUR) + ' attend votre réponse pour la garde du ' + _echangesJoli_(d.DATE) + ' (expire dans 24 h).',
-        './dashboard.html', { id: String(d.RECEVEUR), pastille: _echangesEnAttentePour_(String(d.RECEVEUR)) });
+        './index.html', { id: String(d.RECEVEUR), pastille: _echangesEnAttentePour_(String(d.RECEVEUR)) });
     }
   });
   if (changements) _echangesVersKV_();

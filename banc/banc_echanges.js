@@ -440,7 +440,7 @@ console.log('\n═══ 18. La pastille d\'icône : la chaîne complète, du co
 
   const miroir = fs.readFileSync(path.join(__dirname, '..', 'gas', 'miroir.gs'), 'utf8');
   const worker = fs.readFileSync(path.join(__dirname, '..', 'cloudflare', 'worker.js'), 'utf8');
-  const dash   = fs.readFileSync(path.join(__dirname, '..', 'dashboard.html'), 'utf8');
+  const dash   = fs.readFileSync(path.join(__dirname, '..', 'index.html'), 'utf8');
   V('le miroir transporte le nombre', /charge\.pastille = cible\.pastille/.test(miroir));
   /* (23/08 — pastille UNIFIÉE) Le chiffre des échanges voyage toujours
      jusqu'au Worker (les deux vérifications ci-dessus) mais celui-ci
@@ -538,7 +538,7 @@ console.log('\n═══ 20. Un humain lit ces messages : « Dr Durand », jamai
      cotes. Il vient maintenant de la colonne NOM de MEDECINS et voyage avec
      l'identite. Ce que ce scenario garde : que l'ecran et les notifications
      lisent LA MEME source, et qu'aucun des deux ne cite un praticien. */
-  const dash = fs.readFileSync(path.join(__dirname, '..', 'dashboard.html'), 'utf8');
+  const dash = fs.readFileSync(path.join(__dirname, '..', 'index.html'), 'utf8');
   const gs = fs.readFileSync(path.join(__dirname, '..', 'gas', 'echanges.gs'), 'utf8');
   V('l\'écran déduit le titre de la liste reçue', /TITRES_PR\.indexOf\(id\)/.test(dash));
   V('les notifications lisent la même source', /_effectifTitresGas_\(\)\.titresPr/.test(gs));

@@ -212,7 +212,7 @@ const esc = t => String(t == null ? '' : t).replace(/[&<>"']/g, c => ({'&':'&amp
 const eur = n => (n || 0).toLocaleString('fr-FR', {minimumFractionDigits:2, maximumFractionDigits:2}) + ' €';
 const norm = t => String(t || '').toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '');
 
-function quitterPortail(){ SessionPortail.oublier(); location.href = '../../dashboard.html'; }
+function quitterPortail(){ SessionPortail.oublier(); location.href = '../../index.html'; }
 
 /* ── Serveur ──────────────────────────────────────────────────────
    Cette page ne passe PAS par la copie de lecture : après un enregistrement

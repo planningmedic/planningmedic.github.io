@@ -453,7 +453,7 @@ function autorise(user, cle) {
   if (cle === 'vacances_admin' || /^(gardes|joursferies)_\d{4}$/.test(cle))
     return user.role === 'admin';                                       // lot B : outils comite (roles GAS repliques)
   /* (13/08) stats_{annee} passe aux MAR. Ce n'est pas un elargissement : la vue
-     Equite d'index.html affiche deja ces compteurs nominatifs a tout MAR, par
+     Equite d'planning.html affiche deja ces compteurs nominatifs a tout MAR, par
      l'action getStatsLive — qui, verifie dans Indispos.gs, ne porte AUCUN
      controle de role. La copie rapide sert donc ce que le portail donnait deja,
      mais sans faire attendre l'ecran. */
@@ -647,7 +647,7 @@ async function notifEnvoyer(corps, env) {
   const base = {
     titre: String(corps.titre || 'Planning-Med').slice(0, 120),
     corps: String(corps.corps || '').slice(0, 300),
-    url: String(corps.url || './dashboard.html').slice(0, 300),
+    url: String(corps.url || './index.html').slice(0, 300),
   };
   /* (pastille, 23/08/2026 — UNIFIÉE) Une seule logique : le compteur de
      non-vus PAR destinataire (notif_cpt_<id>), +1 à chaque envoi, remis à

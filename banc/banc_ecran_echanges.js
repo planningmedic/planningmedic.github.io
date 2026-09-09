@@ -1,5 +1,5 @@
 /* ═══ BANC — L'ÉCRAN « MES ÉCHANGES » (dashboard réel, piloté au clic) ═══
-   Le vrai dashboard.html dans un navigateur simulé, servi par le VRAI
+   Le vrai index.html dans un navigateur simulé, servi par le VRAI
    Worker (interrupteur compris). Trois vérités d'écran :
    1. interrupteur fermé → RIEN n'apparaît (l'invisibilité est côté serveur) ;
    2. pilote → carte avec compteur, liste, Accepter qui écrit et se met à jour ;
@@ -16,12 +16,12 @@ const dodo = ms => new Promise(r => setTimeout(r, ms));
   console.log('\n═══ 0. Chaque icône demandée par les pages existe dans le fichier maison ═══');
   {
     /* Défaut trouvé en production le 14/08 : data-lucide="repeat" (et "bell",
-       et "plus") demandés par dashboard.html, ABSENTS du mini-bundle local —
+       et "plus") demandés par index.html, ABSENTS du mini-bundle local —
        carré vide, sans erreur, exactement comme l'avertissement du fichier
        le prédit. Ce garde-fou rend la récidive impossible : tout nouveau nom
        d'icône doit être ajouté au bundle DANS LE MÊME push. */
     const bundle = fs.readFileSync(path.join(__dirname, '..', 'assets', 'vendor', 'lucide-icons.js'), 'utf8');
-    for (const page of ['dashboard.html', 'index.html', 'admin.html', 'staff.html', 'indispos.html', 'absences.html']) {
+    for (const page of ['index.html', 'planning.html', 'admin.html', 'staff.html', 'indispos.html', 'absences.html']) {
       let html = '';
       try { html = fs.readFileSync(path.join(__dirname, '..', page), 'utf8'); } catch (e) { continue; }
       if (!/lucide-icons\.js/.test(html)) continue;   // la page n'utilise pas le bundle
@@ -57,7 +57,7 @@ const dodo = ms => new Promise(r => setTimeout(r, ms));
     const KV = { get: async k => (M.has(k)?M.get(k):null), put: async (k,v)=>{M.set(k,v);}, delete: async k=>{M.delete(k);},
       list: async ({prefix,limit}) => ({ keys:[...M.keys()].filter(k=>k.startsWith(prefix)).slice(0,limit||1000).map(name=>({name})) }) };
     const env = { KV, PUSH_TOKEN:'JETON' };
-    const contenu = fs.readFileSync(path.join(__dirname, '..', 'dashboard.html'), 'utf8');
+    const contenu = fs.readFileSync(path.join(__dirname, '..', 'index.html'), 'utf8');
     const vc = new VirtualConsole(); const erreurs = [];
     vc.on('jsdomError', e => erreurs.push(e.message));
     const appelsMiroir = [], appelsGas = [];
@@ -74,7 +74,7 @@ const dodo = ms => new Promise(r => setTimeout(r, ms));
       return { ok:true, json: async () => (rep || { success:false, error:'GAS indisponible dans le banc' }) };
     };
     const dom = new JSDOM(contenu, { runScripts:'dangerously', virtualConsole:vc,
-      url:'https://planningmedic.github.io/dashboard.html', pretendToBeVisual:true,
+      url:'https://planningmedic.github.io/index.html', pretendToBeVisual:true,
       beforeParse(win) {
         /* (17/08/2026) L'appareil compte maintenant : la carte des notifications
            ne se propose plus sur ordinateur. `mobile` simule un téléphone via

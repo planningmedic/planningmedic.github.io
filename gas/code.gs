@@ -180,7 +180,7 @@ const GITHUB_BRANCH = 'main';
 // NOTE : sera chargé dynamiquement depuis l'onglet MEDECINS à terme (P-backlog)
 /* (08/09/2026) LA LISTE NOMINATIVE A ETE SUPPRIMEE.
    Vingt-cinq noms de medecins vivaient ici, dans un depot public, pour servir
-   de repli si l'onglet MEDECINS etait absent ou vide. index.html avait deja
+   de repli si l'onglet MEDECINS etait absent ou vide. planning.html avait deja
    retire la sienne pour la meme raison — « code mort + noms en clair ».
    Le repli lui-meme etait dangereux : un onglet momentanement illisible
    faisait publier un planning bati sur un effectif fige et perime, en
@@ -1559,7 +1559,7 @@ const NOTIF_DELAI_MIN   = 10;                  // accalmie avant envoi
 const NOTIF_PROP_ACTIVE = 'NOTIF_ACTIVE';      // 'O' = système allumé
 const NOTIF_PROP_TEST   = 'NOTIF_EMAIL_TEST';  // si renseignée : tout part là
 const NOTIF_PROP_YEAR   = 'NOTIF_YEAR';
-const NOTIF_SITE        = 'https://planningmedic.github.io/dashboard.html';
+const NOTIF_SITE        = 'https://planningmedic.github.io/index.html';
 
 // Codes du classeur → français lisible. Un code absent d'ici est traité comme
 // un secteur (bloc, consultation…) et non comme un statut.

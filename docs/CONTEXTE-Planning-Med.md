@@ -198,8 +198,8 @@ du lot 2026-09-01.3, donc ce lot-là tournait bien.
 fonctionner même si Google tombe ensuite. Le seul geste qui casse tout, c'est F5.
 
 **Ce qui survit sans Apps Script** (copie rapide) : l'entrée dans `staff.html`, la liste des MAR,
-les périodes, les groupes, les congés déjà saisis, le planning et l'équité côté `index.html` et
-`dashboard.html`. **Ce qui ne survit pas** : toute saisie. `saveIndisposBatch` et « Valider et
+les périodes, les groupes, les congés déjà saisis, le planning et l'équité côté `planning.html` et
+`index.html`. **Ce qui ne survit pas** : toute saisie. `saveIndisposBatch` et « Valider et
 verrouiller » partent en direct, sans file d'attente — le journal d'intentions ne couvre que les
 placements, les statuts et la publication. **On peut montrer, on ne peut pas enregistrer.**
 

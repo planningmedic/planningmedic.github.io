@@ -43,12 +43,12 @@ function planning(annee, mois, statuts) {
       list: async ({prefix,limit}) => ({ keys:[...M.keys()].filter(k=>k.startsWith(prefix)).slice(0,limit||1000).map(name=>({name})) }) };
     const env = { KV, PUSH_TOKEN: 'JETON' };
 
-    const contenu = fs.readFileSync('../dashboard.html', 'utf8');
+    const contenu = fs.readFileSync('../index.html', 'utf8');
     const gas = [], miroir = [];
     const vc = new VirtualConsole(); const erreurs = [];
     vc.on('jsdomError', e => erreurs.push(e.message));
     const dom = new JSDOM(contenu, { runScripts:'dangerously', virtualConsole:vc,
-      url:'https://planningmedic.github.io/dashboard.html', pretendToBeVisual:true,
+      url:'https://planningmedic.github.io/index.html', pretendToBeVisual:true,
       beforeParse(win) {
         win.matchMedia = () => ({ matches:false, addListener(){}, removeListener(){}, addEventListener(){}, removeEventListener(){} });
         win.Element.prototype.scrollIntoView = function () {};
@@ -142,7 +142,7 @@ function planning(annee, mois, statuts) {
   /* ── C. Le seuil de date a bien disparu du code. ── */
   console.log(`\n═══ 32. Plus aucun seuil de date en dur ═══`);
   {
-    const contenu = fs.readFileSync('../dashboard.html', 'utf8');
+    const contenu = fs.readFileSync('../index.html', 'utf8');
     V('le seuil « dès octobre » (getMonth()>=9) n\'existe plus', !/getMonth\(\)\s*>=\s*9/.test(contenu));
     V('l\'année suivante se lit sans réseau (_planDejaLa)', /function _planDejaLa/.test(contenu));
     V('aucune lecture réseau de l\'année suivante ne subsiste',

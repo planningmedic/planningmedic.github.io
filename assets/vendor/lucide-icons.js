@@ -1,6 +1,6 @@
 /*!
  * lucide-icons.js — mini-bundle local pour le Planning-Med (remplace lucide@latest via CDN).
- * Icônes extraites de lucide v1.23.0 (ISC). N'inclut QUE les icônes utilisées par dashboard.html :
+ * Icônes extraites de lucide v1.23.0 (ISC). N'inclut QUE les icônes utilisées par index.html :
  *   arrow-left, arrow-right, bar-chart-2, bell, book-open, calculator, calendar-check, calendar-clock,
  *   calendar-days,
  *   calendar-off, chevron-right, lock, plus, repeat,

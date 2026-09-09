@@ -5,7 +5,7 @@
    Deux étages, éprouvés séparément :
      · le SERVEUR (getOrdreVacances, gas/Indispos.gs) — le vrai code, exécuté
        sur un classeur simulé de 21 MAR en trois groupes de 7 ;
-     · l'ÉCRAN (dashboard.html) — la vraie page, chargée et pilotée au clic,
+     · l'ÉCRAN (index.html) — la vraie page, chargée et pilotée au clic,
        avec une réponse serveur fabriquée.
 
    CE QUE CE FICHIER PROTÈGE. La règle de rotation est recopiée en six endroits.
@@ -114,7 +114,7 @@ console.log('\n═══ 4. Cas limites du serveur ═══');
 
 console.log('\n═══ 5. L\'écran : le bandeau, puis la file au clic ═══');
 (async () => {
-  const contenu = fs.readFileSync('../dashboard.html', 'utf8');
+  const contenu = fs.readFileSync('../index.html', 'utf8');
   const ctx = monde();
   const rep = appel(ctx, [2026, 2027]);
   rep.success = true; rep.anneePrincipale = 2026;
@@ -122,7 +122,7 @@ console.log('\n═══ 5. L\'écran : le bandeau, puis la file au clic ══�
   const vc = new VirtualConsole(); const erreurs = [];
   vc.on('jsdomError', e => erreurs.push(e.message));
   const dom = new JSDOM(contenu, { runScripts:'dangerously', virtualConsole:vc,
-    url:'https://planningmedic.github.io/dashboard.html', pretendToBeVisual:true,
+    url:'https://planningmedic.github.io/index.html', pretendToBeVisual:true,
     beforeParse(win) {
       win.matchMedia = () => ({ matches:false, addListener(){}, removeListener(){}, addEventListener(){}, removeEventListener(){} });
       win.Element.prototype.scrollIntoView = function () {};

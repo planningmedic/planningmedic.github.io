@@ -3,7 +3,7 @@
  * Ne met en cache QUE les assets figés (js/css/images/polices).
  * API Google Apps Script, .json et HTML : réseau direct, JAMAIS interceptés.
  */
-var VERSION = 'pm-sw-v1';
+var VERSION = 'pm-sw-v2';
 var ASSET_CACHE = VERSION + '-assets';
 var FONT_CACHE  = VERSION + '-fonts';
 
@@ -63,13 +63,13 @@ self.addEventListener('push', function (e) {
     body: d.corps || '',
     icon: 'assets/icon-192.png',
     badge: 'assets/icon-192.png',
-    data: { url: d.url || './dashboard.html' },
+    data: { url: d.url || './index.html' },
   }));
 });
 
 self.addEventListener('notificationclick', function (e) {
   e.notification.close();
-  var url = (e.notification.data && e.notification.data.url) || './dashboard.html';
+  var url = (e.notification.data && e.notification.data.url) || './index.html';
   e.waitUntil(clients.matchAll({ type: 'window', includeUncontrolled: true }).then(function (fen) {
     for (var i = 0; i < fen.length; i++) {
       if ('focus' in fen[i]) { if (fen[i].navigate) fen[i].navigate(url); return fen[i].focus(); }

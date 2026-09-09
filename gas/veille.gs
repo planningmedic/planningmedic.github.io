@@ -430,7 +430,7 @@ function runVeille() {
   }
 
   /* (2026-08-08.4) CODES, pas libellés : le filtre source et les badges de
-     dashboard.html comparent à 'REVUE' / 'GENERAL' / 'THEME'. La refonte
+     index.html comparent à 'REVUE' / 'GENERAL' / 'THEME'. La refonte
      avait écrit 'Revue'/'Généraliste' → filtre vide, badges faux. */
   const source = {};
   idsDirect.forEach(function (id) { source[id] = 'REVUE'; });
@@ -596,7 +596,7 @@ function _veilleSplitThemes(v) {
 //  LECTURE ET MARQUAGE
 //  Contrat inchangé : le miroir appelle getVeille() sans argument et
 //  l'écran consomme exactement ces champs. Ne pas modifier sans lire
-//  dashboard.html ET miroir.gs.
+//  index.html ET miroir.gs.
 // ══════════════════════════════════════════════════════════════════════
 
 /* (2026-08-08.5) `user` optionnel : la synchro miroir appelle SANS user

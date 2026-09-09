@@ -387,10 +387,10 @@ console.log('\n═══ PT13 · une date hors année ou la phase fermée n\'éc
 
 console.log('\n═══ PT14 · la tuile du portail : visible pour les bons MAR, aux bons moments ═══');
 {
-  /* On extrait le VRAI tableau TILES et LA ligne de filtrage de dashboard.html
+  /* On extrait le VRAI tableau TILES et LA ligne de filtrage de index.html
      (même méthode que banc_pages_mar §29) et on les fait tourner dans un bac
      à sable où l'on règle l'état du monde. */
-  const src = fs.readFileSync('../dashboard.html', 'utf8');
+  const src = fs.readFileSync('../index.html', 'utf8');
   const mTiles = src.match(/const TILES = \[[\s\S]*?\n\];/);
   const mFiltre = src.match(/TILES\.filter\((t => [\s\S]*?)\)\.map\(t =>/);
   V('le tableau des tuiles et le filtre sont lisibles dans la page', !!mTiles && !!mFiltre);
@@ -421,7 +421,7 @@ console.log('\n═══ PT15 · toute icône demandée par une tuile existe dan
   /* Le bundle lucide n'embarque QUE les icônes listées : un nom absent donne
      un carré vide, sans erreur. On vérifie CHAQUE icône du tableau TILES —
      la tuile TP d'aujourd'hui, et toutes celles de demain. */
-  const src = fs.readFileSync('../dashboard.html', 'utf8');
+  const src = fs.readFileSync('../index.html', 'utf8');
   const bundle = fs.readFileSync('../assets/vendor/lucide-icons.js', 'utf8');
   const mIcons = bundle.match(/var ICONS = (\{[\s\S]*?\});/);
   const dispo = new Set(Object.keys(JSON.parse(mIcons[1])));
@@ -702,7 +702,7 @@ console.log('\n═══ PT26 · lot 5 comité : fusion des années ouvertes, de
 
 console.log('\n═══ PT27 · CORRECTIF : le portail s\'ouvre par le relais — la tuile doit y trouver ses critères ═══');
 {
-  /* Défaut du 22/08 au soir, trouvé en production : dashboard.html appelle
+  /* Défaut du 22/08 au soir, trouvé en production : index.html appelle
      miroirBootDash() puis applyUserBadge(m.identite). L\'identité venait de la
      clé `acces` et du Worker, qui ne portaient NI phase NI quotité NI tpFixe :
      la tuile restait invisible pour les 8 éligibles. Les trois étages sont
@@ -732,7 +732,7 @@ console.log('\n═══ PT27 · CORRECTIF : le portail s\'ouvre par le relais �
     /phaseTp: acces\.phaseTp \|\| \{ actif: false/.test(W) && /Number\(user\.quotite\) \|\| 100/.test(W));
 
   // Le consommateur : le portail ouvre par le relais, PAS par la connexion GAS
-  const dash = fs.readFileSync('../dashboard.html', 'utf8');
+  const dash = fs.readFileSync('../index.html', 'utf8');
   V('témoin du défaut : le portail s\'ouvre par le relais, qui pose l\'identité',
     /applyUserBadge\(m\.identite/.test(dash) && /await miroirBootDash\(\) === true/.test(dash));
   V('applyUserBadge lit les trois champs de l\'identité reçue',
