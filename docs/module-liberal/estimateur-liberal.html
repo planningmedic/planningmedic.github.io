@@ -261,7 +261,7 @@ window.SessionPortail = window.SessionPortail || { lire:function(){try{return se
 <body>
 <div class="wrap">
   <div class="portalbar">
-    <a class="pbtn" href="../../dashboard.html">← Portail</a>
+    <a class="pbtn" href="../../index.html">← Portail</a>
     <span class="pbwho" id="pbWho" style="display:none"></span>
     <button class="pbtn" id="pbOut" style="display:none" onclick="quitterPortail()">Déconnexion</button>
   </div>
@@ -805,14 +805,14 @@ function fromCible(){const c=parseFloat(document.getElementById('cible').value)|
   document.getElementById('dh').value=(Math.max(0,Math.round((c-br)*100)/100)).toFixed(2);updateRac();renderSummary();}
 
 // ---- BRANCHEMENT AU PORTAIL ----------------------------------------------
-// La page est servie depuis la MEME origine que dashboard.html (GitHub Pages) : la
+// La page est servie depuis la MEME origine que index.html (GitHub Pages) : la
 // session du portail est donc lisible ici, sans rien redemander au MAR.
 // (17/08/2026) Elle se lit par SessionPortail, JAMAIS en interrogeant le stockage du
 // navigateur en direct — c'est lui qui sait ou vit le code et combien de temps
 // (30 jours glissants dans l'app installee, duree de l'onglet ailleurs). Cette page
 // lisait l'onglet seul : elle redemandait le code quand le portail, lui, s'en
 // souvenait. Constate en reel le 17/08.
-// L'URL ci-dessous est deja publique dans dashboard.html (depot public) : rien de neuf.
+// L'URL ci-dessous est deja publique dans index.html (depot public) : rien de neuf.
 const API_URL = 'https://script.google.com/macros/s/AKfycbxDbTnhgdjCNBqkeAblZWgS3CK-IptjJoRDQd1AtGF7WQoQkXriWGvISIo7LJG8zUtjTQ/exec';
 
 // Le classeur stocke le nom sous la forme "Dr X" ; les gabarits du devis et de la
@@ -829,7 +829,7 @@ function sansCivilite(n){
    « hors portail » (cotation, devis), seule la declaration s'y ferme. */
 function quitterPortail(){
   SessionPortail.oublier();                // efface l'onglet ET la mémoire longue
-  location.href='../../dashboard.html';
+  location.href='../../index.html';
 }
 
 function pbSetEtat(txt, ok){

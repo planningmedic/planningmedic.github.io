@@ -4,7 +4,7 @@
 
    CE QUI S'EST PASSÉ (08/09/2026). Cinq tuiles du dashboard — CRH,
    statistiques d'usage, guide technique, consultations, libéral — étaient
-   réservées par un identifiant de médecin écrit dans dashboard.html. Deux défauts
+   réservées par un identifiant de médecin écrit dans index.html. Deux défauts
    dans la même ligne : un nom de médecin publié dans un dépôt public, et
    un réglage que personne ne peut changer sans toucher au code. Lors de la
    migration, un remplacement de nom a transformé cet identifiant en un MAR
@@ -26,7 +26,7 @@ const V = (nom, cond, detail) => {
   else { ko++; console.log('  ✗ ' + nom + (detail !== undefined ? ' → ' + JSON.stringify(detail) : '')); }
 };
 
-const DASH = fs.readFileSync('../dashboard.html', 'utf8');
+const DASH = fs.readFileSync('../index.html', 'utf8');
 const IND  = fs.readFileSync('../gas/Indispos.gs', 'utf8');
 const MIR  = fs.readFileSync('../gas/miroir.gs', 'utf8');
 const WRK  = fs.readFileSync('../cloudflare/worker.js', 'utf8');

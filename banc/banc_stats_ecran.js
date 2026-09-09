@@ -1,6 +1,6 @@
 /* ═══ BANC — ÉCRAN DES STATISTIQUES D'USAGE (29/08/2026) ═════════════════
    Exécute le VRAI getStatsUsage de gas/portail.gs, et lit la page réelle
-   docs/stats-usage.html plus la tuile de dashboard.html.
+   docs/stats-usage.html plus la tuile de index.html.
 
    CE QUE CE SCÉNARIO PROTÈGE, par ordre de gravité :
      1. L'action est REFUSÉE à tout rôle autre qu'admin. Masquer la tuile ne
@@ -22,7 +22,7 @@ const V = (t, c, d) => { if (c) { ok++; console.log('  ✓ ' + t); }
 const GS   = path.join(__dirname, '..', 'gas', 'portail.gs');
 const INDGS = path.join(__dirname, '..', 'gas', 'Indispos.gs');  // _aDroitTuile_ y vit
 const PAGE = fs.readFileSync(path.join(__dirname, '..', 'docs', 'stats-usage.html'), 'utf8');
-const DASH = fs.readFileSync(path.join(__dirname, '..', 'dashboard.html'), 'utf8');
+const DASH = fs.readFileSync(path.join(__dirname, '..', 'index.html'), 'utf8');
 const IND  = fs.readFileSync(path.join(__dirname, '..', 'gas', 'Indispos.gs'), 'utf8');
 const VJS  = fs.readFileSync(path.join(__dirname, '..', 'version.js'), 'utf8');
 const BUNDLE = fs.readFileSync(path.join(__dirname, '..', 'assets', 'vendor', 'lucide-icons.js'), 'utf8');

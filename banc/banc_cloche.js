@@ -56,15 +56,15 @@ const lignes = (b) => { const sh = b.cl.getSheetByName('NOTIFS_JOURNAL'); return
 console.log('\n═══ C1. Inscription : ciblée, à tous, comité exclu, test exclu ═══');
 {
   const b = monter();
-  vm.runInContext(`notifierPush_('Échange confirmé', 'Votre garde du 12/09 passe à BRAVO.', './dashboard.html', { id: 'ALPHA' })`, b.ctx);
+  vm.runInContext(`notifierPush_('Échange confirmé', 'Votre garde du 12/09 passe à BRAVO.', './index.html', { id: 'ALPHA' })`, b.ctx);
   const d = lignes(b);
   V('une ligne inscrite (en-tête + 1)', d && d.length === 2, d && d.length);
   V('destinataire = ALPHA', d[1][1] === 'ALPHA', d[1]);
-  V('titre, corps et url intacts', d[1][2] === 'Échange confirmé' && /BRAVO/.test(d[1][3]) && d[1][4] === './dashboard.html', d[1]);
+  V('titre, corps et url intacts', d[1][2] === 'Échange confirmé' && /BRAVO/.test(d[1][3]) && d[1][4] === './index.html', d[1]);
   V('QUAND est une date valable', d[1][0] instanceof Date && !isNaN(d[1][0].getTime()), String(d[1][0]));
   V('la famille `notifs` est notée pour la copie rapide', b.familles.length === 1 && b.familles[0].familles.join(',') === 'notifs', b.familles);
 
-  vm.runInContext(`notifierPush_('Les gardes 2027 sont générées', 'Planning complet.', './dashboard.html')`, b.ctx);
+  vm.runInContext(`notifierPush_('Les gardes 2027 sont générées', 'Planning complet.', './index.html')`, b.ctx);
   V("sans cible → destinataire '*' (tout le monde)", lignes(b)[2][1] === '*', lignes(b)[2]);
 
   vm.runInContext(`notifierPush_('Alerte comité', 'x', './admin.html', { role: 'admin' })`, b.ctx);
@@ -78,26 +78,26 @@ console.log('\n═══ C1. Inscription : ciblée, à tous, comité exclu, test
      Preuve : NOTIFS_JOURNAL n'avait que deux lignes du 25/08, écrites du temps
      où l'appel utilisait la cible `*` ; la génération du 04/09 n'y figurait pas.
      Le banc ne testait que 'admin' — il ne pouvait pas voir la différence. */
-  vm.runInContext(`notifierPush_('Votre planning 2027 est disponible', 'x', './dashboard.html#mes-gardes', { role: 'mar' })`, b.ctx);
+  vm.runInContext(`notifierPush_('Votre planning 2027 est disponible', 'x', './index.html#mes-gardes', { role: 'mar' })`, b.ctx);
   V('une cible par rôle MAR va bien à la cloche', lignes(b).length === 4, lignes(b).length);
   V("…et sous '*', puisqu'elle s'adresse à tous", lignes(b)[3] && lignes(b)[3][1] === '*', lignes(b)[3]);
   V('…avec son titre et son lien', lignes(b)[3] && /planning 2027/.test(lignes(b)[3][2])
-    && lignes(b)[3][4] === './dashboard.html#mes-gardes', lignes(b)[3]);
+    && lignes(b)[3][4] === './index.html#mes-gardes', lignes(b)[3]);
 
-  vm.runInContext(`notifierPush_('Test du canal', 'x', './dashboard.html', null, true)`, b.ctx);
+  vm.runInContext(`notifierPush_('Test du canal', 'x', './index.html', null, true)`, b.ctx);
   V('le test du canal (sansJournal) ne laisse aucune ligne', lignes(b).length === 4, lignes(b).length);
 }
 
 console.log('\n═══ C2. L\'ordre : le journal AVANT le relais, et la panne ne perd rien ═══');
 {
   const b = monter();
-  vm.runInContext(`notifierPush_('Un', 'x', './dashboard.html', { id: 'ALPHA' })`, b.ctx);
+  vm.runInContext(`notifierPush_('Un', 'x', './index.html', { id: 'ALPHA' })`, b.ctx);
   const premierFetch = b.evenements.findIndex(e => e.type === 'fetch');
   const derniereEcritureAvant = b.evenements.slice(0, premierFetch).some(e => e.type === 'ecriture');
   V('au moins une écriture du journal PRÉCÈDE l\'appel au relais', premierFetch > 0 && derniereEcritureAvant, b.evenements);
 
   b.panne(true);
-  const r = vm.runInContext(`notifierPush_('Deux', 'x', './dashboard.html', { id: 'ALPHA' })`, b.ctx);
+  const r = vm.runInContext(`notifierPush_('Deux', 'x', './index.html', { id: 'ALPHA' })`, b.ctx);
   V('relais injoignable → la ligne du journal existe QUAND MÊME', lignes(b).length === 3, lignes(b).length);
   V('et l\'échec est avalé, jamais levé', r && r.success === false, r);
 }
@@ -108,10 +108,10 @@ console.log('\n═══ C3. Purge des 30 jours, au fil de l\'eau ═══');
   const recente = new Date(Date.now() - 10 * 86400000);
   const b = monter([
     ['QUAND', 'MAR', 'TITRE', 'CORPS', 'URL'],
-    [vieille, 'ALPHA', 'Trop vieille', '', './dashboard.html'],
-    [recente, 'ALPHA', 'Encore bonne', '', './dashboard.html'],
+    [vieille, 'ALPHA', 'Trop vieille', '', './index.html'],
+    [recente, 'ALPHA', 'Encore bonne', '', './index.html'],
   ]);
-  vm.runInContext(`notifierPush_('Neuve', 'x', './dashboard.html', { id: 'BRAVO' })`, b.ctx);
+  vm.runInContext(`notifierPush_('Neuve', 'x', './index.html', { id: 'BRAVO' })`, b.ctx);
   const d = lignes(b);
   V('la ligne de 31 jours a été purgée', !d.some(l => l[2] === 'Trop vieille'), d.map(l => l[2]));
   V('celle de 10 jours est restée', d.some(l => l[2] === 'Encore bonne'));
@@ -138,7 +138,7 @@ console.log('\n═══ C4. La clé `notifs` : groupée, bornée à 30 jours, t
 
 console.log('\n═══ C5. Le dashboard : zéro requête ajoutée, cloche présente, rendu sûr ═══');
 {
-  const html = fs.readFileSync('../dashboard.html', 'utf8');
+  const html = fs.readFileSync('../index.html', 'utf8');
   V("la clé `notifs` voyage dans L'APPEL D'OUVERTURE (pas une requête de plus)",
     /miroirRead\(\['annees'[^\]]*'echanges', 'notifs'\]\)/.test(html));
   V('aucun autre appel réseau dédié à la cloche',

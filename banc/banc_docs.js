@@ -30,7 +30,7 @@ const texte = (h) => h.replace(/<!--[\s\S]*?-->/g, ' ')
                       .replace(/\s+/g, ' ');
 
 const GUIDES = ['docs/guide-mar.html', 'docs/guide-comite.html'];
-const PAGES  = ['index.html', 'dashboard.html', 'admin.html', 'indispos.html', 'staff.html'];
+const PAGES  = ['planning.html', 'index.html', 'admin.html', 'indispos.html', 'staff.html'];
 const DOCS   = fs.readdirSync('../docs').filter(f => f.endsWith('.html')).map(f => 'docs/' + f);
 
 console.log('\n═══ 1. Concordance des numéros de version (remplace T150) ═══');
@@ -40,7 +40,7 @@ console.log('\n═══ 1. Concordance des numéros de version (remplace T150) 
      numéro vit dans version.js. Ce qui doit être vérifié a changé : que
      chaque page AFFICHEUSE se branche sur la source, et qu'aucune ne
      réintroduise un numéro en dur (l'erreur reviendrait sans bruit). */
-  const AFFICHEUSES = ['admin.html', 'dashboard.html',
+  const AFFICHEUSES = ['admin.html', 'index.html',
                        'docs/guide-comite.html', 'docs/guide-mar.html', 'docs/roadmap.html'];
   const vjs = lire('version.js');
   const src = vjs.match(/window\.SITE_VERSION = '(v[\d.]+)'/);
@@ -278,7 +278,7 @@ console.log('\n═══ 9. Le bandeau du haut ne peut pas deborder de sa hauteu
        3. la hauteur est un minimum, pas une valeur figee.
      jsdom ne calcule aucune largeur : ce test prouve la REGLE, pas le rendu. */
   const BANDEAUX = ['absences.html', 'suivi-liberal.html', 'indispos.html',
-                    'staff.html', 'index.html', 'dashboard.html'];
+                    'staff.html', 'planning.html', 'index.html'];
   const bloc = (css, sel) => {
     const i = css.indexOf(sel + '{') > -1 ? css.indexOf(sel + '{') : css.indexOf(sel + ' {');
     if (i < 0) return '';
@@ -326,7 +326,7 @@ console.log('\n═══ 10. La fiche d\'un MAR tient dans l\'ecran du telephone
      depassement partait vers le haut et coupait le nom, le secteur et la
      croix de fermeture.
      jsdom ne calcule aucune largeur : ce test prouve la REGLE, pas le rendu. */
-  const css = lire('index.html').replace(/\s*\n\s*/g, ' ');
+  const css = lire('planning.html').replace(/\s*\n\s*/g, ' ');
   const bloc = (sel) => {
     const i = css.indexOf(sel + ' {') > -1 ? css.indexOf(sel + ' {') : css.indexOf(sel + '{');
     return i < 0 ? '' : css.slice(i, css.indexOf('}', i));
@@ -411,7 +411,7 @@ console.log('\n═══ 12. Le Diagnostic dit la vérité sur la version du sit
   vm.runInContext(extraireFonction('../gas/Indispos.gs', '_versionSiteAnomalies_'), ctx);
   const anomalies = vm.runInContext('_versionSiteAnomalies_', ctx);
 
-  const AFFICHEUSES = ['dashboard.html', 'admin.html', 'docs/guide-mar.html',
+  const AFFICHEUSES = ['index.html', 'admin.html', 'docs/guide-mar.html',
                        'docs/guide-comite.html', 'docs/roadmap.html'];
   const vjs = lire('version.js');
   const pages = {};
@@ -426,7 +426,7 @@ console.log('\n═══ 12. Le Diagnostic dit la vérité sur la version du sit
   V('une page qui ne charge plus la source unique est signalée',
     seul('admin.html', pages['admin.html'].replace(/<script src="version\.js"><\/script>/, '')).length === 1);
   V('une page sans emplacement d\'affichage est signalée',
-    seul('dashboard.html', pages['dashboard.html'].replace(/data-version/g, 'data-ancien')).length === 1);
+    seul('index.html', pages['index.html'].replace(/data-version/g, 'data-ancien')).length === 1);
   V('un numéro réécrit en dur est signalé',
     seul('admin.html', pages['admin.html'] + '<div>v9.9</div>').length === 1);
   V('un fichier injoignable est signalé, mais comme un simple avertissement',

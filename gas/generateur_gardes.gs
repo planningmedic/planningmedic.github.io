@@ -2549,7 +2549,7 @@ function generateGardes(year, opts){
        au moment où il génère. */
     notifierPush_('Votre planning ' + year + ' est disponible',
       'Vos gardes de l\'année sont réparties. Retrouvez-les dans « Mes gardes ».',
-      './dashboard.html#mes-gardes', { role: 'mar' });
+      './index.html#mes-gardes', { role: 'mar' });
   } catch (e) { /* silencieux : la génération, elle, a réussi */ }
   return { warnings: warnings.slice(0, 60), nbWarnings: warnings.length };
 }

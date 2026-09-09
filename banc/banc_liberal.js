@@ -354,8 +354,12 @@ console.log('\n═══ 6. La page de cotation ne dit rien qu\'elle ne sache �
     !/id="(Tc|Pc|Tn|Pn)"/.test(page));
   V('aucun cadran « % projeté » sur la page de cotation',
     !/id="(pctC|pctN|mrgC|mrgN)"/.test(page) && !/projAxis/.test(page));
+  /* (09/09/2026) Le portail est passé de dashboard.html à la racine. Le test
+     visait le nom du fichier ; il vise désormais la SORTIE — qu'un lien
+     ramène au portail depuis cette page enfouie à deux niveaux. Le chemin
+     peut changer encore, l'exigence non. */
   V('une sortie vers le portail existe',
-    /href="\.\.\/\.\.\/dashboard\.html"/.test(page));
+    /href="\.\.\/\.\.\/(index\.html)?"/.test(page));
   V('la page ne promet plus un bouton « Déclarer » par parcours',
     !/bouton <b>📅 Déclarer<\/b> d'un parcours/.test(page));
   V('elle renvoie vers la page qui, elle, connaît la position',

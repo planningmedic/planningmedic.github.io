@@ -1,5 +1,5 @@
 /* ═══ BANC — RAFRAÎCHIR EN TIRANT LA PAGE (05/08/2026) ═══
-   (18/08/2026) Le scénario lisait ../live_index.html et ../live_dashboard.html,
+   (18/08/2026) Le scénario lisait ../live_planning.html et ../live_index.html,
    instantanés locaux d'une session de mise au point, absents du dépôt : il ne
    pouvait donc PAS tourner, et n'avait jamais rejoint lancer.sh. Rebranché sur
    les pages réelles et ajouté au lanceur (banc_docs §13 garde désormais la porte).
@@ -40,7 +40,7 @@ function toucher(w, type, y) {
 }
 
 (async () => {
-  for (const [nom, fichier] of [['index.html', '../index.html'], ['dashboard.html', '../dashboard.html']]) {
+  for (const [nom, fichier] of [['planning.html', '../planning.html'], ['index.html', '../index.html']]) {
     console.log(`\n═══ ${nom} ═══`);
     const { w, erreurs } = await page(fichier);
     V('la page se charge sans erreur', erreurs.length === 0, erreurs.slice(0,2));
@@ -108,12 +108,12 @@ function toucher(w, type, y) {
     /* (23/08/2026) Décision d'Arthur : la traçabilité ne se fait qu'à
        l'ouverture du portail et à la connexion du comité. Ailleurs, c'est la
        même session — l'envoi ne faisait que réveiller Apps Script pour rien. */
-    for (const [nom, fichier] of [['dashboard.html', '../dashboard.html'], ['admin.html', '../admin.html']]) {
+    for (const [nom, fichier] of [['index.html', '../index.html'], ['admin.html', '../admin.html']]) {
       const src = fs.readFileSync(fichier, 'utf8');
       V(nom + ' : le journal part à fond perdu (sendBeacon)', /sendBeacon\(API_URL/.test(src));
       V(nom + ' : un repli existe si l\'envoi direct échoue', /if \(!_envoye\)|catch/.test(src));
     }
-    for (const [nom, fichier] of [['index.html', '../index.html'], ['indispos.html', '../indispos.html'],
+    for (const [nom, fichier] of [['planning.html', '../planning.html'], ['indispos.html', '../indispos.html'],
                                   ['staff.html', '../staff.html'], ['absences.html', '../absences.html']]) {
       const src = fs.readFileSync(fichier, 'utf8');
       const journaux = (src.match(/apiCall\('login'[^\n]*catch|apiPost\(\{ ?action ?: ?'login' ?\}\)\.catch|apiCall\(\{action:'login'[^\n]*\)\.catch|sendBeacon\(API_URL/g) || []);

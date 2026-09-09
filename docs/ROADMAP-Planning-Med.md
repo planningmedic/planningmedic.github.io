@@ -87,6 +87,24 @@ Rien n'est recalculé : ce sont des variables que la fin du calcul jetait.
    construction. Documents à produire : registre des traitements, mentions légales, note
    d'information individuelle.
 
+### 09/09/2026 — la racine sert le portail
+
+`dashboard.html` devient `index.html`, l'ancienne `index.html` (le planning) devient
+`planning.html`. L'adresse à dicter aux MAR passe de
+`planningmedic.github.io/dashboard.html` à **`planningmedic.github.io`**.
+
+258 liens réécrits dans 45 fichiers. `manifest.webmanifest` démarre sur `./`, et le cache du
+service worker monte en `pm-sw-v2` pour que les appareils rechargent au lieu de servir l'ancien.
+
+Un `dashboard.html` de redirection est laissé en place : filet pour les favoris, les liens déjà
+envoyés et les icônes installées avant le changement. Il ne contient aucune logique. À supprimer
+quand les statistiques d'usage montreront que plus personne n'y arrive.
+
+Deux tests figeaient une valeur au lieu de garder une exigence — le quatrième et le cinquième
+cas en deux jours. `banc_notif` vérifiait `VERSION = 'pm-sw-v1'` ; il vérifie maintenant que le
+cache porte un numéro et qu'il a monté. `banc_liberal` visait le nom du fichier de sortie ; il
+vise la sortie elle-même.
+
 ### Reste à faire
 
 Supprimer l'ancien dépôt, l'organisation `chpg-anesthesie` et l'ancien Worker. **Le compte Google
@@ -247,7 +265,7 @@ assurées par un **médecin extérieur au service**, absent de la liste. Tout le
 **Le contrôle qui prouve l'anomalie sans rien supposer** : une mesure d'équité juste a des écarts
 qui **s'annulent**. Ceux de 2026 totalisaient −23,8.
 
-**Correction** (`ciblesEquite`, même fonction dans `admin.html` ET `index.html`) : les gardes
+**Correction** (`ciblesEquite`, même fonction dans `admin.html` ET `planning.html`) : les gardes
 réellement posées sont réparties en cibles **entières**, par plus forts restes — la même méthode que
 le générateur. Au-delà de 1 % d'écart entre la somme des cibles et les gardes réparties, la mention
 d'explication s'affiche : la correction n'est **jamais** silencieuse. En deçà, rien n'est touché —
@@ -446,7 +464,7 @@ pas le fait d'avoir poussé — coder, livrer et déployer restent trois étapes
 **Le numéro de version du site vit dans UN seul fichier : `version.js`** (`window.SITE_VERSION`,
 depuis le 14/08/2026). Il n'y a plus de marqueurs à compter ni à recopier : toute page qui doit
 l'afficher charge `version.js` et pose un élément portant `data-version`, qui se remplit seul.
-Cinq pages l'affichent aujourd'hui — `admin.html`, `dashboard.html`, `docs/guide-comite.html`,
+Cinq pages l'affichent aujourd'hui — `admin.html`, `index.html`, `docs/guide-comite.html`,
 `docs/guide-mar.html`, `docs/roadmap.html` — mais **une modification de n'importe quelle page
 visible impose quand même la montée de version**, dans le même push. Deux chiffres, pas trois.
 Le banc refuse tout numéro réintroduit en dur, et le Diagnostic aussi depuis le 16/08.
@@ -916,7 +934,7 @@ est un état, pas un compteur**.
 
 ### L'écran — deux questions, pas une
 
-`docs/stats-usage.html`, tuile `only:'DURAND'` dans `dashboard.html`.
+`docs/stats-usage.html`, tuile `only:'DURAND'` dans `index.html`.
 
 Le premier jet montrait le **volume de connexions** en grand. Arthur a tiqué, à raison : le volume
 monte aussi quand les mêmes reviennent plus souvent — c'est la métrique qui flatte, pas celle qui
@@ -1278,7 +1296,7 @@ live == base` par fichier suffit — il était présent sur les lots construits
 directement depuis le live, absent sur celui construit depuis le tarball.
 
 **Périmètre de la perte, vérifié fichier par fichier** : une seule carte. Les
-quatre autres fichiers du lot (`admin.html`, `dashboard.html`, les deux guides)
+quatre autres fichiers du lot (`admin.html`, `index.html`, les deux guides)
 n'avaient pas bougé depuis le 08/08, la copie locale était donc juste pour eux.
 Rétabli par `ab82eee9`.
 
@@ -1289,7 +1307,7 @@ après un push (empreinte différente de celle attendue). Relire avec
 ### Reproposer ce qui existe déjà — deux cas le 09/08/2026
 
 Dans une même séance, deux fonctionnalités ont été proposées ou analysées alors qu'elles
-existaient : le **bilan personnel du MAR** (la vue Équité d'`index.html` a déjà ses boutons
+existaient : le **bilan personnel du MAR** (la vue Équité d'`planning.html` a déjà ses boutons
 « Initiale » et « Instantané ») et le **solde des récups de samedi** (déjà dans le Diagnostic
 depuis le 01/08). Même cause dans les deux cas : **le ROADMAP a été lu à la place du code.**
 Le document décrivait un chantier ouvert que la production avait déjà refermé.
@@ -1454,7 +1472,7 @@ d'attente saturée, rejouer AGGRAVE l'engorgement »*. Il a été enfreint quand
   `getAdminBootstrap`, et `gas/mesure_perf.gs` a été supprimé du dépôt **et** de l'éditeur Apps
   Script (confirmé par Arthur le 30/07).
 
-### ⛔ `dashboard.html` — piste fermée, ne pas la rouvrir
+### ⛔ `index.html` — piste fermée, ne pas la rouvrir
 
 Mesuré chez Arthur : 2 appels, ~10,6 s. Deux optimisations étudiées **et écartées sur mesure** :
 1. **Gardes livrées par le `login`** → gain réel **130 ms**, pour une lecture Drive (~1 s serveur)
@@ -1462,7 +1480,7 @@ Mesuré chez Arthur : 2 appels, ~10,6 s. Deux optimisations étudiées **et éca
 2. **Login et planning en parallèle** → impossible : **Apps Script sérialise les exécutions d'un
    même utilisateur** (4 appels parallèles = 4 à 7 s chacun contre 1,8 s seul).
 
-**`dashboard.html` est à l'optimum de ce qu'Apps Script permet.** Ses ~10 s sont 2 × le péage.
+**`index.html` est à l'optimum de ce qu'Apps Script permet.** Ses ~10 s sont 2 × le péage.
 
 ### Comparatif d'hébergement (mesuré le 29/07, même poste, réponse vide des deux côtés)
 
@@ -1476,7 +1494,7 @@ Cloudflare un seul — pénalisant sur connexion à forte latence.
 
 ⚠️ **Ce que la mesure ne dit pas** : le coût de lecture des données depuis une plateforme externe.
 Sur `admin.html`, le travail serveur (~4,8 s) domine désormais le péage : migrer y serait
-décevant. Sur `dashboard.html` et `index.html` (lecture pure), le gain serait franc.
+décevant. Sur `index.html` et `planning.html` (lecture pure), le gain serait franc.
 **Décision : chantier non lancé** (effort de plusieurs semaines, duplication des codes d'accès de
 23 médecins sur une plateforme tierce, second service à maintenir seul, et calendrier du 4/09).
 
@@ -1577,7 +1595,7 @@ novembre, le ménage supprime la photo. Les arbitrages de conception (accalmie, 
 d'horizon) ne sont écrits nulle part — à consigner avant de les perdre.
 
 ### Portail / Dashboard
-`dashboard.html` est **le seul carrefour** : toutes les pages s'ouvrent depuis ses tuiles.
+`index.html` est **le seul carrefour** : toutes les pages s'ouvrent depuis ses tuiles.
 Service worker sur cette page uniquement (suffisant, tout le monde y passe).
 
 ### Module libéral — lots 0, 1, 3, 2A et 2B en production
@@ -1749,7 +1767,7 @@ Quatre points vérifiés :
   laisse passer et il reste de quoi refaire un envoi complet le même jour. Le Diagnostic affiche le
   reste avant de partir.
 - **L'ordre nettoyage → envoi reste la règle**, même s'il devient peu risqué à cette heure-là :
-  `dashboard.html` demande `planning_{année active + 1}` **à chaque ouverture** depuis la v1.30.2, donc
+  `index.html` demande `planning_{année active + 1}` **à chaque ouverture** depuis la v1.30.2, donc
   des fichiers 2027 encore publiés montreraient des gardes fictives au premier MAR qui se connecte.
 - **TESSIER** part le 01/09 : le désactiver avant l'envoi, sinon il figure dans la liste et le compte
   rendu le signalera « sans code ».
@@ -1838,10 +1856,10 @@ suppression de la ligne). Deux raisons, dont une découverte le 16/08 :
 `affectations_2027.json` **et `planning_2027_notifie.json`** *(le notifieur dépose cette photo de
 référence à chaque publication, même éteint)*. **Butoir dur : avant le 1er octobre.**
 Tracé dans le code le 30/07 :
-- `index.html` l.≈1119 sonde les années `2026 → année+1` avec `getAffectationsJson` : c'est
+- `planning.html` l.≈1119 sonde les années `2026 → année+1` avec `getAffectationsJson` : c'est
   **`affectations_2027.json` qui ouvre la porte**. Dès qu'il existe, **2027 apparaît dans le sélecteur
   de tous les MARs**.
-- `dashboard.html` : depuis la v1.30.2 la demande de `planning_{active+1}` part à **chaque ouverture**
+- `index.html` : depuis la v1.30.2 la demande de `planning_{active+1}` part à **chaque ouverture**
   (le seuil « dès octobre » a sauté le 08/08). Des JSON de démo laissés en place afficheraient des
   **gardes 2027 fictives** dans « prochaine garde » et « Mes congés ».
 - `admin.html` : `anneeSuivante` n'ajoute que « 2027 — N+1 » au sélecteur du comité et fait passer le
@@ -1951,7 +1969,7 @@ classeur seul) / D (contrôles), encadrés ⏳ pour ce qui attend l'organisation
    l'historique de l'écran.** Un secteur désactivé mais encore présent dans un planning publié
    perd sa ligne dans la grille d'`admin.html` (semaines passées comprises) et un MAR placé
    dedans est **ignoré silencieusement** au rendu (l.≈3673 : `if (smap[key])`, pas de repli) ;
-   sur `index.html`, ligne, couleur et libellé disparaissent. Les données restent intactes.
+   sur `planning.html`, ligne, couleur et libellé disparaissent. Les données restent intactes.
    → Nouvelle décision de Phase A : garder les anciens secteurs actifs tant que l'historique
    de l'ancien hôpital doit rester consultable, **ou** ajouter au lot de code le rendu des
    secteurs inactifs encore présents dans un planning publié.
@@ -1993,7 +2011,7 @@ uniquement, couleurs du portail.
    création d'un R neuf (les sept contraintes de pose vivent dans le générateur, l.1274-1310 —
    ne pas les dupliquer). Si le donneur n'a plus de R à venir : la demande se crée quand même, le
    comité est notifié. La notification annonce le R déplacé, aux deux.
-6. **Bouton d'activation des notifications dans `dashboard.html`** (rôle admin d'abord) — pas dans
+6. **Bouton d'activation des notifications dans `index.html`** (rôle admin d'abord) — pas dans
    `admin.html`, atteignable seulement par Safari, où iOS refuse le push hors installation.
 
 **Contrainte posée par Arthur : les chargements restent quasi instantanés.** Conséquences :
@@ -2022,7 +2040,7 @@ uniquement, couleurs du portail.
      de `CLE_VALIDE` : illisibles par `/read`, inatteignables par `/push` — prouvé au banc.
    - `sw.js` v3 : gestionnaires `push` + `notificationclick`, rien d'autre. Purge des caches
      des 23 faite une fois au passage v2→v3, sans incident. L'API GAS reste non interceptée.
-   - `dashboard.html` (v1.31.4) : carte « Activer les notifications », visible **rôle admin
+   - `index.html` (v1.31.4) : carte « Activer les notifications », visible **rôle admin
      seul** et si le navigateur sait faire. ⚠️ La carte n'apparaît qu'avec un **code admin** —
      un code de consultation MAR ne la voit pas (vécu le 12/08, premier réflexe si « je ne vois
      pas la carte »).
@@ -2077,7 +2095,7 @@ uniquement, couleurs du portail.
    de R (comité notifié si aucun R à venir). Poussée d'`ECHANGES` vers le KV. Notifications :
    réception d'une demande, réponse, rappel 24 h, R déplacé (aux deux). Banc : cycle complet,
    expiration et samedi-sans-R compris.
-4. **Écran et ouverture aux MAR.** « Mes échanges » dans `dashboard.html` (lecture miroir
+4. **Écran et ouverture aux MAR.** « Mes échanges » dans `index.html` (lecture miroir
    exclusivement), bouton notifications ouvert à tous, levée du `if (user.role !== 'admin')`
    l.2216 **en dernier**. Montée de version site (2e chiffre) ; guides dans le même push.
    **Sas entre 4a et 4b** : quelques vrais échanges avec 1-2 volontaires (RW, WS) avant les 23 —
@@ -2324,7 +2342,7 @@ cette personne. C'est aussi la meilleure réponse au risque de dépendance à un
   *(Le compteur par IP est de toute façon impossible : Apps Script ne donne pas l'IP.)*
 - **Généraliser le service worker aux autres pages** *(22/07)*. Tout le monde passe par le
   Dashboard, qui le porte déjà.
-- **Servir les icônes d'`index.html` depuis le bundle local** *(22/07)*. Les icônes sont
+- **Servir les icônes d'`planning.html` depuis le bundle local** *(22/07)*. Les icônes sont
   configurables par l'onglet `SECTEURS` (1 728 icônes possibles) : une liste figée ferait
   disparaître un picto **en silence**. Ne reproposer qu'avec un repli visible.
 - **Réduction automatique du devis à l'impression** *(21/07)*. 95 % des dossiers font 2 actes,

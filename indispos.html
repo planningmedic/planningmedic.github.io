@@ -70,7 +70,7 @@ body {
   white-space:nowrap; flex-shrink:0;
 }
 /* (17/08/2026) La pastille du MAR ouvre la deconnexion, exactement comme sur
-   dashboard.html et index.html. AUCUN bouton ajoute : le code etant desormais
+   index.html et planning.html. AUCUN bouton ajoute : le code etant desormais
    memorise 30 jours dans l'app installee, il faut pouvoir le retirer — mais pas
    au prix d'un element de plus dans un bandeau deja etroit sur telephone.
    L'icone n'apparait qu'au survol sur ordinateur ; au doigt, tout le nom est
@@ -610,7 +610,7 @@ body.save-en-cours .legend { pointer-events:none; opacity:.55 }
          pendant la campagne de saisie. C'est donc ICI qu'on rappelle le lien, et
          non l'inverse (mention retirée du dashboard le 20/07/2026). -->
     <div style="margin-top:18px;font-size:11.5px;color:#94A3B8;line-height:1.5">
-      Même code que pour le <a href="dashboard.html" style="color:#1D4ED8;text-decoration:none;font-weight:600">portail du service</a>.
+      Même code que pour le <a href="index.html" style="color:#1D4ED8;text-decoration:none;font-weight:600">portail du service</a>.
     </div>
   </div>
 </div>
@@ -744,7 +744,7 @@ body.save-en-cours .legend { pointer-events:none; opacity:.55 }
 <div class="tpx-ferme-msg" id="tpxFerme" style="display:none">
   La pose des jours de temps partiel n'est pas ouverte pour le moment :
   le planning de l'année à venir n'est pas encore généré.<br><br>
-  <a href="dashboard.html" style="color:#1D4ED8;font-weight:600;text-decoration:none">← Retour au portail</a>
+  <a href="index.html" style="color:#1D4ED8;font-weight:600;text-decoration:none">← Retour au portail</a>
 </div>
 <div class="tpx-sheet-bg" id="tpxSheetBg" onclick="tpxFermerRecap()"></div>
 <div class="tpx-sheet" id="tpxSheet">
@@ -884,7 +884,7 @@ async function doLogin(codeAuto, silencieux) {
       loadVacConfig();                                                    // non bloquant
   /* (23/08/2026) JOURNAL DE CONNEXION RETIRE. Decision d'Arthur : la
      tracabilite ne se fait qu'a DEUX endroits — l'ouverture du portail
-     (dashboard.html) et la connexion du comite (admin.html). Partout ailleurs
+     (index.html) et la connexion du comite (admin.html). Partout ailleurs
      c'est la meme session, deja journalisee : l'envoi ne faisait que reveiller
      Apps Script sans rien apprendre a l'onglet CONNEXIONS. */
       if (!silencieux) { btn.textContent = 'Accéder →'; btn.disabled = false; }
@@ -1570,7 +1570,7 @@ function showToast(msg) {
   if (window.PERF) return;
 
   var P = {
-    page: (location.pathname.split('/').pop() || 'index.html'),
+    page: (location.pathname.split('/').pop() || 'planning.html'),
     jalons: [],      // etapes nommees du chargement
     rendus: [],      // durees des fonctions d'affichage surveillees
     clics: [],       // interactions utilisateur
@@ -1948,7 +1948,7 @@ async function tpxBoot(code, silencieux) {
       + '<span style="font-family:monospace;font-size:12px;color:#B91C1C">'
       + String((eMontage && eMontage.message) || eMontage) + '</span><br><br>'
       + 'Signalez ce message ; vos jours déjà posés ne sont pas perdus.<br><br>'
-      + '<a href="dashboard.html" style="color:#1D4ED8;font-weight:600;text-decoration:none">← Retour au portail</a>';
+      + '<a href="index.html" style="color:#1D4ED8;font-weight:600;text-decoration:none">← Retour au portail</a>';
     f.style.display = 'block';
     document.getElementById('tpApp').style.display = 'none';
   }
@@ -2009,7 +2009,7 @@ function tpxInit(cle, identite) {
   if (mien.tpFixe || !(mien.quota > 0)) {
     const f = document.getElementById('tpxFerme');
     f.innerHTML = 'La pose de jours de temps partiel ne concerne pas votre profil.<br><br>'
-      + '<a href="dashboard.html" style="color:#1D4ED8;font-weight:600;text-decoration:none">← Retour au portail</a>';
+      + '<a href="index.html" style="color:#1D4ED8;font-weight:600;text-decoration:none">← Retour au portail</a>';
     f.style.display = 'block';
     return;
   }

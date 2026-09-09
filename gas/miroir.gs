@@ -775,7 +775,7 @@ function miroirDocumentsInstallerDeclencheur() {
    reste servie telle quelle, sans fin. Constate le 09/08 : supprimer les
    onglets et les JSON 2027 ne retirait pas `planning_2027` du miroir, et les
    23 MARs auraient continue de voir des gardes fictives dans « prochaine
-   garde » et « mes conges » — d'autant que dashboard.html demande
+   garde » et « mes conges » — d'autant que index.html demande
    `planning_{active+1}` a CHAQUE ouverture depuis la v1.30.2 (le seuil
    « des octobre » a saute le 08/08).
 
@@ -972,7 +972,7 @@ const MIROIR_MAX_CLES = 20;
    veille_marques, indispos_{Y}). Sans précaution leur empreinte changerait
    toujours et le filtre ne servirait à rien sur les six clés les plus
    fréquentes. L'empreinte est donc calculée SANS ces champs. Vérifié le
-   20/08 par lecture de admin.html, index.html et dashboard.html : aucune
+   20/08 par lecture de admin.html, planning.html et index.html : aucune
    page ne lit `t` ni `maj` — seul `mail_nonlus.nonLus` est consommé. La
    VALEUR ENVOYÉE, elle, n'est pas touchée : on ne change que ce qui sert
    à comparer. */
@@ -1134,7 +1134,7 @@ function _miroirConstruireAcces_() {
   /* (08/09/2026) TUILES RESTREINTES. Cinq tuiles du dashboard ne s'adressent
      qu'a une ou deux personnes (CRH, statistiques d'usage, guide technique,
      consultations, liberal en rodage). Leur destinataire etait ECRIT EN DUR
-     dans dashboard.html — un nom de medecin dans un depot public, et une
+     dans index.html — un nom de medecin dans un depot public, et une
      tuile qui disparait pour tout le monde des que ce nom change.
      Desormais : cle CONFIG / TUILES_PRIVEES, dans le classeur prive.
      Format : ID:tuile,tuile;ID:tuile   (ex. AFR:crh,stats;WS:liberal)
@@ -1584,6 +1584,6 @@ function _miroirConstruireNotifs_() {
 
 /* À lancer depuis l'éditeur Apps Script pour le test réel du canal. */
 function testNotificationPush() {
-  const r = notifierPush_('Test du canal', 'Si vous lisez ceci sur votre téléphone, le canal fonctionne.', './dashboard.html', null, true);
+  const r = notifierPush_('Test du canal', 'Si vous lisez ceci sur votre téléphone, le canal fonctionne.', './index.html', null, true);
   Logger.log(JSON.stringify(r));
 }

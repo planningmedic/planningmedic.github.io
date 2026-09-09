@@ -558,7 +558,7 @@ function diagnosticComplet() {
         } catch (e) { return null; }
       };
       const pages = {};
-      ['dashboard.html', 'admin.html', 'docs/guide-mar.html', 'docs/guide-comite.html', 'docs/roadmap.html']
+      ['index.html', 'admin.html', 'docs/guide-mar.html', 'docs/guide-comite.html', 'docs/roadmap.html']
         .forEach(fn => { pages[fn] = _lireDepot(fn); });
       const v = _versionSiteAnomalies_(_lireDepot('version.js'), pages);
       if (!v.version) check('version.js illisible — version du site non vérifiable', R.WARN);
@@ -2177,7 +2177,7 @@ function _mailCodeAcces_(nom, code, renouvele) {
   const ouvert = _indisposOuverte_();          // campagne en cours ?
   const an     = getIndisposYear();
   const base   = 'https://planningmedic.github.io/';
-  const portail  = base + 'dashboard.html';
+  const portail  = base + 'index.html';
   const saisie   = base + 'indispos.html';
   const esc = v => String(v == null ? '' : v)
     .replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
@@ -3365,11 +3365,11 @@ function _routeRequete_(e) {
        admin.html testait l'existence de « ./archives/stats_{annee}.json » sur le site —
        fichier qui n'a JAMAIS ete cree : depuis le passage au Drive prive, l'archivage
        ecrit « archives_stats_{annee}.json » sur Drive. Le selecteur ne pouvait donc
-       jamais proposer une annee cloturee. index.html, lui, sondait les annees une par
+       jamais proposer une annee cloturee. planning.html, lui, sondait les annees une par
        une (un appel par annee, or Apps Script serialise les executions d'un meme
        utilisateur : 1 sonde en 2026, 5 en 2030, 10 en 2035).
        Un seul appel repond desormais pour les deux pages. Pas de controle de role :
-       c'est une liste d'annees, et index.html est la page des MAR. */
+       c'est une liste d'annees, et planning.html est la page des MAR. */
     if (action === 'getAnneesDisponibles') {
       const vues = {};
       const scan = (classeur, archivee) => {
@@ -6007,7 +6007,7 @@ if (action === 'setDailyStatus') {
         //    PLANNING_OVERRIDES. Raison : les overrides ne contiennent que ce que le comite
         //    a pose A LA MAIN ; tout ce qui vient de la generation (dont les affectations de
         //    secteur) n'y figure pas. Le JSON est le rendu final = generation + overrides,
-        //    donc exactement ce que voient les MARs dans index.html. S'il n'est pas publie,
+        //    donc exactement ce que voient les MARs dans planning.html. S'il n'est pas publie,
         //    la consultation n'existe pour personne — la source est donc la bonne par
         //    definition. Le JSON est lu ICI, cote serveur : il ne part JAMAIS au navigateur
         //    (il contient le code d'absence brut de chaque MAR dans `status`).
@@ -6174,7 +6174,7 @@ if (action === 'setDailyStatus') {
       } catch (err) { return _error(err.message); }
     }
 
-    // ── JSON du planning (Drive) — consommés par index.html / dashboard.html ──
+    // ── JSON du planning (Drive) — consommés par planning.html / index.html ──
     // (Reconstruits après la régression de recopie : ils n'existaient qu'en prod.)
     if (action === 'getPlanningJson') {
       const jy = parseInt(payload.year) || getActiveYear();
@@ -6191,7 +6191,7 @@ if (action === 'setDailyStatus') {
         .setMimeType(ContentService.MimeType.JSON);
     }
 
-    // ── PORTAIL (dashboard.html) : délégation au routeur de portail.gs ──
+    // ── PORTAIL (index.html) : délégation au routeur de portail.gs ──
     // Auth déjà faite plus haut (checkCode) → toute action portail est code-gated.
     if (typeof portailRoute === 'function') {
       const _rp = portailRoute(action, payload, user);

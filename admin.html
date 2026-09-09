@@ -931,7 +931,7 @@ body { font-family: 'DM Sans', system-ui, sans-serif; background: var(--bg); col
 .name-tag.rg     { background: #FFF7ED; color: #C2410C; }
 .name-tag.absent { background: #FEF2F2; color: #991B1B; }
 
-/* ── CSS slots copiés depuis index.html ── */
+/* ── CSS slots copiés depuis planning.html ── */
 .slot-name {
   display: inline-flex; align-items: center; justify-content: center;
   font-size: 11px; font-weight: 700; font-family: var(--mono);
@@ -1702,7 +1702,7 @@ let INDISPOS_YEAR = null; // null = pas de saisie N+1 ouverte
    dire : cote serveur, getIndisposYear() retombe silencieusement sur l'annee
    active quand la ligne INDISPOS_ACTIVE est absente de CONFIG. Ces deux
    drapeaux voyagent deja avec l'identite, par le serveur ET par la copie
-   rapide, et pilotent deja la tuile du portail (dashboard.html) : meme
+   rapide, et pilotent deja la tuile du portail (index.html) : meme
    source, meme lecture, pas de troisieme verite. */
 let INDISPOS_OUVERTE = false;   // la ligne INDISPOS_ACTIVE existe
 let INDISPOS_FIGEES  = false;   // GARDES_{annee} existe : les gardes sont tirees
@@ -3514,7 +3514,7 @@ async function detectAvailableYears() {
        calculé à part. Le jour où ce booléen n'arrive pas (ou pas en booléen),
        2027 disparaissait du sélecteur sans un mot — constaté le 05/08 au soir,
        sur mobile, la pastille passant en mode « solo » (sans chevron).
-       Une seule source de vérité désormais, la même qu'index.html. */
+       Une seule source de vérité désormais, la même qu'planning.html. */
     const _dejaLa = new Set(availableYears.map(a => a.year));
     _anneesServeur
       .map(a => Number(a.annee))
@@ -3574,7 +3574,7 @@ async function reloadForYear(year) {
     const p = m && m.success && m.data && m.data['planning_' + year];
     const af = m && m.success && m.data && m.data['affectations_' + year];
     /* (v1.22.1, CORRECTIF) La valeur KV EST le planning brut — comme dans
-       index.html et le boot (`planning: plan`). Le test `p.planning` cherchait
+       planning.html et le boot (`planning: plan`). Le test `p.planning` cherchait
        un emballage inexistant : toujours faux → repli GAS silencieux a CHAQUE
        bascule (le « chargement infini » du 04-05/08, prouve par chrono :
        miroir 120 ms OK puis getPlanningJson 18 s derriere). */
@@ -6441,7 +6441,7 @@ function renderAffectations() {
   actifs.forEach(d => { for (let m = 1; m <= 12; m++) present.add(secOf(d.id, m)); });
   // (07/2026) Cette liste était FIGÉE : un secteur créé dans l'onglet SECTEURS
   // s'affectait et se colorait, mais restait absent de la légende. Même défaut que
-  // celui corrigé la veille dans index.html — appliqué à un seul des deux endroits.
+  // celui corrigé la veille dans planning.html — appliqué à un seul des deux endroits.
   // L'ordre vient désormais de la colonne ORDRE de l'onglet (SECTEURS_ACTIFS est
   // déjà trié). Filtré sur `aff` : un secteur sans libellé d'affectation n'est pas
   // affectable au mois (cas de DVI), il n'a rien à faire dans cette légende.
@@ -8427,7 +8427,7 @@ async function launchWizardCloture() {
   if (window.PERF) return;
 
   var P = {
-    page: (location.pathname.split('/').pop() || 'index.html'),
+    page: (location.pathname.split('/').pop() || 'planning.html'),
     jalons: [],      // etapes nommees du chargement
     rendus: [],      // durees des fonctions d'affichage surveillees
     clics: [],       // interactions utilisateur

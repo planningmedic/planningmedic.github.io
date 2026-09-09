@@ -11,9 +11,9 @@ Système web de gestion pour le service d'anesthésie-réanimation du **un servi
 ### Racine — l'application (servie par GitHub Pages, ne pas déplacer)
 | Fichier | Rôle |
 |---|---|
-| `dashboard.html` | **Portail** personnel du MAR — le seul carrefour : toutes les autres pages s'ouvrent depuis ses tuiles |
+| `index.html` | **Portail** personnel du MAR — le seul carrefour : toutes les autres pages s'ouvrent depuis ses tuiles |
 | `admin.html` | Interface **comité** (PC) : planning, équipe, affectations, équité, statuts, maintenance |
-| `index.html` | **Planning** de l'équipe (vue MAR) |
+| `planning.html` | **Planning** de l'équipe (vue MAR) |
 | `indispos.html` | Saisie des **indisponibilités** et souhaits de garde |
 | `absences.html` | **Consultations à venir** — contrôle d'absence (deux portes : tuile MAR et session secrétariat) |
 | `staff.html` | **Staff Vacances** : pose des vacances et formations en réunion (groupes A/B/C) |

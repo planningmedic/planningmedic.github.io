@@ -124,14 +124,14 @@ function monde(plan) {
     V('après réécriture, les 5 types sont revenus', cfg.pubtypes.length === 5, cfg.pubtypes);
   }
 
-  console.log('\n═══ 5. Contrat SOURCE : les codes que dashboard.html filtre, rien d\'autre ═══');
+  console.log('\n═══ 5. Contrat SOURCE : les codes que index.html filtre, rien d\'autre ═══');
   {
     /* Défaut du 08/08 (15 h 44) : la refonte écrivait 'Revue'/'Généraliste',
        le filtre source de l'écran compare à 'REVUE'/'GENERAL'/'THEME' →
        aucun article affiché hors « Toutes sources ». Ici on lit le VRAI
-       dashboard.html pour extraire les codes du filtre, et on exige que
+       index.html pour extraire les codes du filtre, et on exige que
        getVeille ne serve QUE ces codes-là. */
-    const html = fs.readFileSync('../dashboard.html', 'utf8');
+    const html = fs.readFileSync('../index.html', 'utf8');
     const bloc = html.slice(html.indexOf('onVSource'), html.indexOf('vThemeSel'));
     const codes = [];
     (html.match(/onchange="onVSource[\s\S]{0,400}?<\/select>/) || [''])[0]
@@ -195,9 +195,9 @@ function monde(plan) {
     const { JSDOM, VirtualConsole } = require('jsdom');
     const vcons = new VirtualConsole(); const erreurs = [];
     vcons.on('jsdomError', e => erreurs.push(e.message));
-    const dom = new JSDOM(fs.readFileSync('../dashboard.html', 'utf8'), {
+    const dom = new JSDOM(fs.readFileSync('../index.html', 'utf8'), {
       runScripts: 'dangerously', virtualConsole: vcons,
-      url: 'https://planningmedic.github.io/dashboard.html', pretendToBeVisual: true,
+      url: 'https://planningmedic.github.io/index.html', pretendToBeVisual: true,
       beforeParse(win) {
         win.matchMedia = () => ({ matches:false, addListener(){}, removeListener(){}, addEventListener(){}, removeEventListener(){} });
         win.Element.prototype.scrollIntoView = function () {};
@@ -304,9 +304,9 @@ function monde(plan) {
     const { JSDOM, VirtualConsole } = require('jsdom');
     const faireDom = (transportOk, envois, graine) => {
       const vcons = new VirtualConsole();
-      const dom = new JSDOM(fs.readFileSync('../dashboard.html', 'utf8'), {
+      const dom = new JSDOM(fs.readFileSync('../index.html', 'utf8'), {
         runScripts: 'dangerously', virtualConsole: vcons,
-        url: 'https://planningmedic.github.io/dashboard.html', pretendToBeVisual: true,
+        url: 'https://planningmedic.github.io/index.html', pretendToBeVisual: true,
         beforeParse(win) {
           win.matchMedia = () => ({ matches:false, addListener(){}, removeListener(){}, addEventListener(){}, removeEventListener(){} });
           win.Element.prototype.scrollIntoView = function () {}; win.scrollTo = () => {};

@@ -28,7 +28,7 @@ const V = (t, c, d) => { if (c) { ok++; console.log('  ✓ ' + t); }
   else { ko++; console.log('  ✗ ' + t + (d !== undefined ? ' → ' + JSON.stringify(d).slice(0, 300) : '')); } };
 
 const ADMIN = fs.readFileSync(path.join(__dirname, '..', 'admin.html'), 'utf8');
-const INDEX = fs.readFileSync(path.join(__dirname, '..', 'index.html'), 'utf8');
+const INDEX = fs.readFileSync(path.join(__dirname, '..', 'planning.html'), 'utf8');
 
 /* On extrait la fonction de correction du fichier réel et on l'exécute. Recopier
    la formule ici testerait ce que le banc croit, pas ce que la page fait. */
@@ -47,7 +47,7 @@ function extraire(nom, SRC) {
 console.log('\n─── 1. La correction ramène les cibles aux gardes réellement posées ───');
 const srcF = extraire('ciblesEquite');
 V('la fonction de cibles entières existe dans admin.html', !!srcF);
-V('…et la MÊME existe dans index.html (portail MAR)',
+V('…et la MÊME existe dans planning.html (portail MAR)',
   !!extraire('ciblesEquite', INDEX) && extraire('ciblesEquite', INDEX) === srcF);
 
 /* Jeu de données calqué sur le VRAI 2026 lu dans le classeur : cibles nominales
@@ -172,7 +172,7 @@ console.log('\n─── 6. Cartes repliables ───');
 /* Vingt-quatre cartes de neuf lignes, c'était deux écrans de défilement avant de
    trouver la sienne. Chaque MAR tient sur UNE ligne ; un clic déplie le détail.
    Les deux pages doivent se comporter pareil : c'est le même écran. */
-[['admin.html', ADMIN], ['index.html', INDEX]].forEach(([nom, SRC]) => {
+[['admin.html', ADMIN], ['planning.html', INDEX]].forEach(([nom, SRC]) => {
   const rec = extraire('renderEquiteCards', SRC);
   V(nom + ' : la carte a une ligne repliée cliquable',
     !!rec && /class="eqv-tete" onclick="eqBasculer/.test(rec));
@@ -241,7 +241,7 @@ V('la cible d\'un axe surveillé est affichée entière',
    fériés, la barre des années SANS colonne CIBLE JF (2026, statistiques refaites
    à la main) affichait « 2 /0 » EN ROUGE : une cible absente était lue comme une
    cible à zéro, donc une accusation fabriquée. Sans cible, la barre est neutre. */
-[['admin.html', ADMIN], ['index.html', INDEX]].forEach(([nom, SRC]) => {
+[['admin.html', ADMIN], ['planning.html', INDEX]].forEach(([nom, SRC]) => {
   const rec = extraire('renderEquiteCards', SRC);
   V(nom + ' : une cible absente rend la barre neutre, pas rouge',
     /if\(CB\[k\] && !\(c>0\)\)\{/.test(rec) && /background:#94A3B8;opacity:\.5/.test(rec));

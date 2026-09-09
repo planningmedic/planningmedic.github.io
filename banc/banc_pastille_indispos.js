@@ -9,7 +9,7 @@
 
    La règle livrée : afficher si et seulement si `indisposOuverte` ET NON
    `indisposFigees` — les deux drapeaux que le serveur et la copie rapide
-   posent déjà dans l'identité, et dont dashboard.html se sert pour la tuile.
+   posent déjà dans l'identité, et dont index.html se sert pour la tuile.
 
    Ce scénario exécute la VRAIE admin.html dans un navigateur simulé, appelle
    la VRAIE majIndChip, et lit l'état réel de l'élément. */

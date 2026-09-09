@@ -130,7 +130,7 @@ table.grid td.pick{outline:2px solid var(--rose);outline-offset:1px}
    (14/08/2026) Sur iPhone, le titre et le sous-titre s'enroulaient sur
    plusieurs lignes ; la hauteur du bandeau etant figee, le debordement
    partait AU-DESSUS du bord de l'ecran et le titre etait coupe.
-   Meme regle que index.html / dashboard.html. */
+   Meme regle que planning.html / index.html. */
 @media(max-width:640px){
   .header{min-height:52px;padding:0 12px;gap:8px}
   .header-sub{display:none}
@@ -149,7 +149,7 @@ window.SessionPortail = window.SessionPortail || { lire:function(){try{return se
 </head>
 <body>
 
-<!-- ── CONNEXION — skin identique a dashboard.html / index.html ────────── -->
+<!-- ── CONNEXION — skin identique a index.html / planning.html ────────── -->
 <div id="authOverlay" style="position:fixed;inset:0;z-index:9999;background:var(--bg);display:flex;align-items:center;justify-content:center;padding:20px">
   <div style="background:var(--white);border:1px solid var(--line);border-radius:16px;box-shadow:0 10px 30px rgba(15,23,42,.08);padding:36px 32px;width:100%;max-width:380px;text-align:center">
     <img src="assets/logo.png" alt="" style="width:48px;height:48px;border-radius:12px;display:block;margin:0 auto 16px;box-shadow:0 4px 12px rgba(206,17,38,.30)">
@@ -178,7 +178,7 @@ window.SessionPortail = window.SessionPortail || { lire:function(){try{return se
 </div>
 
 <div class="wrap" id="main" style="display:none">
-  <a class="back" href="dashboard.html" id="lnkBack"><i id="icBack"></i> Retour au portail</a>
+  <a class="back" href="index.html" id="lnkBack"><i id="icBack"></i> Retour au portail</a>
   <h1>Consultations à venir</h1>
   <p class="sub" id="pitch"></p>
   <div id="zone"><div class="loading">Chargement…</div></div>
@@ -273,7 +273,7 @@ async function doLogin(code){
   chargerDepuis(r);   // la reponse deja recue EST le chargement — zero appel de plus
   /* (23/08/2026) JOURNAL DE CONNEXION RETIRE. Decision d'Arthur : la
      tracabilite ne se fait qu'a DEUX endroits — l'ouverture du portail
-     (dashboard.html) et la connexion du comite (admin.html). Partout ailleurs
+     (index.html) et la connexion du comite (admin.html). Partout ailleurs
      c'est la meme session, deja journalisee : l'envoi ne faisait que reveiller
      Apps Script sans rien apprendre a l'onglet CONNEXIONS. */
   return r;
@@ -697,7 +697,7 @@ function rendreGrille(){
   if (window.PERF) return;
 
   var P = {
-    page: (location.pathname.split('/').pop() || 'index.html'),
+    page: (location.pathname.split('/').pop() || 'planning.html'),
     jalons: [],      // etapes nommees du chargement
     rendus: [],      // durees des fonctions d'affichage surveillees
     clics: [],       // interactions utilisateur

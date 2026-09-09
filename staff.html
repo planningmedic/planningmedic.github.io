@@ -260,7 +260,7 @@ async function doLogin(){
       document.getElementById('appMain').style.display='block';
   /* (23/08/2026) JOURNAL DE CONNEXION RETIRE. Decision d'Arthur : la
      tracabilite ne se fait qu'a DEUX endroits — l'ouverture du portail
-     (dashboard.html) et la connexion du comite (admin.html). Partout ailleurs
+     (index.html) et la connexion du comite (admin.html). Partout ailleurs
      c'est la meme session, deja journalisee : l'envoi ne faisait que reveiller
      Apps Script sans rien apprendre a l'onglet CONNEXIONS. */
       await loadData(mb);
