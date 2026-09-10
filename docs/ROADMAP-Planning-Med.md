@@ -6,16 +6,48 @@ portail/Dashboard, module libéral, contrôle d'absence, veille biblio.
 (Le générateur de comptes rendus a été retiré le 07/09/2026 : il portait le logo de
 l'établissement et 77 noms de praticiens sur une page publique sans code d'accès.)
 
-**Dépôt** `planningmedic/planningmedic.github.io`, branche `main` · **Site v1.7.0** ·
+**Dépôt** `planningmedic/planningmedic.github.io`, branche `main` · **Site v1.9.0** ·
 **Portail** https://planningmedic.github.io ·
 **GAS** (relevé dans le dépôt le 10/09/2026) `code.gs` **2026-09-08.2** ·
-`Indispos.gs` **2026-09-08.3** · `generateur_gardes.gs` **2026-09-10.1** ·
+`Indispos.gs` **2026-09-10.1** · `generateur_gardes.gs` **2026-09-10.1** ·
+(deux fichiers sous le même numéro : deux lots distincts du 10/09, au soir et en soirée) ·
 `portail.gs` **2026-09-08.1** · `miroir.gs` **2026-09-08.2** ·
 `journal.gs` 2026-08-27.1 · `echanges.gs` **2026-09-08.1** · `veille.gs` 2026-08-27.1 ·
 `setup_annee.gs` **2026-09-08.1** · `sauvegarde.gs` 2026-09-07.1 ·
 **Worker** `cloudflare/worker.js` : `const VERSION = 'miroir 2026-08-22.2'` — ⚠️ le marqueur n'a
 pas été monté avec le lot cloche du 23/08 (oubli assumé, le code déployé est bien le nouveau) :
 à monter au prochain lot Worker. La constante reste la **seule** version écrite dans le fichier.
+
+## 10/09/2026 (soir) — le W1 se termine sur le staff
+
+L'assistant finissait par un mail à chaque MAR : code d'accès, récap des congés posés au staff,
+annonce de l'ouverture. Les trois ont perdu leur objet — le code des indispos est celui du
+portail, les VAC/FORM verrouillés se relisent dans « Mes indispos » avec leur cadenas, et
+l'annonce se fait de vive voix puisque le staff est en séance à ce moment précis.
+
+**Le contresens évité en décidant :** croire que c'était l'envoi qui OUVRAIT la saisie. Il ne
+l'a jamais fait — `INDISPOS_ACTIVE` est écrite à l'étape 4, deux étapes plus tôt, par
+`setIndisposYear`. Le premier bloc du nouveau scénario l'exécute pour de vrai sur un classeur
+simulé, précisément pour que ce lien ne puisse plus être coupé sans que le banc le voie.
+
+**Retiré aussi :** l'écran de l'étape 6 annonçait que l'envoi verrouillait les VAC/FORM. Il ne
+verrouillait rien — le verrou vient de « Valider et verrouiller » de `staff.html`. La phrase
+était fausse depuis son écriture, et personne ne l'avait relue en regardant le code.
+
+Wizard de 6 à 5 étapes, écran de fin déplacé dans `wizFinish`, déclenché par la confirmation du
+staff. `sendCodesWithRecap` (158 l.) et `renderRecapMailBlocks_` retirées d'`Indispos.gs`. Les
+autres envois restent : outil de Maintenance, et arrivée d'un nouveau MAR.
+
+Banc : `banc_w1_fin_staff.js`, 20 vérifications, **contre-épreuve faite** — rejoué sur l'ancien
+code, il tombe à 11 échecs. Total 2 913 vérifications, 0 échec. Une assertion de `banc_docs.js`
+visait la phrase exacte du guide au lieu de l'exigence : elle serait tombée en rouge pour un
+texte devenu plus juste. Recentrée sur ce qui doit rester vrai. **Sixième cas de test figeant
+une valeur plutôt qu'une exigence.**
+
+Site v1.8.0 → v1.9.0. Documentation mise à jour dans le même lot : `guide-comite.html`,
+`guide-technique.html`, `roadmap.html`.
+
+---
 
 ## 10/09/2026 — la garde de 18h ignorait les dates d'arrivée et de départ
 
