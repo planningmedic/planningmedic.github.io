@@ -41,7 +41,7 @@
 // ⚠️ RÈGLE (détecteur de dérive dépôt↔Apps Script) : incrémenter cette version
 // à CHAQUE push de ce fichier. Le diagnostic (admin → Maintenance) compare la
 // version déployée ici avec celle du dépôt et signale toute recopie oubliée.
-const GAS_VERSION_GENERATEUR = '2026-09-08.2';
+const GAS_VERSION_GENERATEUR = '2026-09-10.1';
 
 /* (05/09/2026) INTERRUPTEUR DU NOUVEL ALGORITHME.
    À false, le générateur se comporte EXACTEMENT comme avant : c'est le retour
@@ -2245,7 +2245,19 @@ function generateGardes(year, opts){
   // ── 10. 18h ───────────────────────────────────────────────────────────
   const weekdays=allDays.filter(d=>d.isWeekday&&!d.isFerie);
   // (18h proportionnel) Poids = quotité (col MEDECINS) × RATIO_18 pour les "seulement 18h"
-  const w18=id=>((quot[id]||100)/100)*(ONLY_18.has(id)?RATIO_18:1);
+  /* (10/09/2026) POIDS PRORATISE PAR LA PRESENCE REELLE. Le poids ne tenait
+     compte que de la quotite : un MAR present deux mois visait une annee
+     pleine de 18h, et se faisait servir en premier pour rattraper. Le pot des
+     18h etant partage AU PRORATA DES POIDS, un poids faux deplace la part de
+     tous les autres — a commencer par les ONLY_18, dont le RATIO_18 est
+     precisement une compensation calculee sur ce partage.
+     On reutilise structAvail (section 5), deja la reference pour les cibles
+     de gardes : meme notion de presence structurelle (bornes date_debut /
+     date_fin et conges longs), une seule definition dans le fichier. */
+  const dispo18Cnt={};
+  allDoctors.forEach(id=>{dispo18Cnt[id]=weekdays.filter(d=>structAvail(id,d)).length;});
+  const w18=id=>((quot[id]||100)/100)*(ONLY_18.has(id)?RATIO_18:1)
+                *(weekdays.length?dispo18Cnt[id]/weekdays.length:0);
   const sumW18=allDoctors.reduce((s,id)=>s+w18(id),0);
   const baseT=sumW18?weekdays.length/sumW18:0;
   const h18T={},h18cnt={},h18A={};
@@ -2254,6 +2266,8 @@ function generateGardes(year, opts){
   // (rythme 2/2) et un autre les jeudi/vendredi (60%).
   const ABSENT_18 = new Set(['VAC','FORM','CL','TP','CTP','CP','A','RG_TRANSITION']);
   function dispo18(id,date){
+    const _dd18=FLAGS.dateDebut[id], _df18=FLAGS.dateFin[id];
+    if((_dd18&&date<_dd18)||(_df18&&date>=_df18)) return false;
     if(ABSENT_18.has(indispos[id]?.[date])) return false;
     if(estSemaineOff(id,date)) return false;
     if(gSet[id]?.has(date)||g2Set[id]?.has(date)||rgSet[id]?.has(date)||rSet[id]?.has(date)) return false;
