@@ -899,7 +899,7 @@ retrouver sans planning un 1<sup>er</sup> janvier.</p></div>
     <div class="boite b-vert">
       <div class="bt">W1 · octobre</div>
       <div class="bd">Préparer l'année suivante : équipe, périodes de vacances, création des onglets,
-      envoi des codes</div>
+      staff vacances</div>
     </div>
     <div class="fleche-h">➜</div>
     <div class="boite b-vert">
@@ -924,15 +924,20 @@ retrouver sans planning un 1<sup>er</sup> janvier.</p></div>
 
 <div class="r2"><div class="titre">En 2 minutes</div>
 <p class="note"><b>Où s'arrêter pour un essai.</b> Les quatre actions techniques — périodes,
-groupes, création de l'onglet, ouverture de la campagne — tiennent dans l'étape 4. L'envoi des codes
-est l'étape 6, déclenchée par un bouton : on peut donc ouvrir la campagne, regarder les écrans, puis
-la refermer, sans qu'aucun mail ne parte. Refermer = supprimer la ligne <code>INDISPOS_ACTIVE</code>
-de CONFIG, ce que fait <code>clearIndisposYear</code> ; l'onglet, lui, peut rester.</p>
-<p>Six étapes guidées : passer l'équipe en revue (avec alerte si un MAR actif n'a pas d'adresse
-mail — il ne recevrait pas son code), saisir les périodes de vacances scolaires de l'année suivante,
-contrôler l'ordre de priorité des groupes de vacances, créer les onglets de la nouvelle année dans
-le classeur (avec garde-fou : jamais d'écrasement de saisies existantes), rappeler la tenue du staff
-physique, et envoyer à chaque MAR son code d'accès avec le lien de saisie.</p></div>
+groupes, création de l'onglet, ouverture de la campagne — tiennent dans l'étape 4. Rien ne part par
+mail à aucun moment : on peut ouvrir la campagne, regarder les écrans, puis la refermer. Refermer =
+supprimer la ligne <code>INDISPOS_ACTIVE</code> de CONFIG, ce que fait
+<code>clearIndisposYear</code> ; l'onglet, lui, peut rester.</p>
+<p>Cinq étapes guidées : passer l'équipe en revue, saisir les périodes de vacances scolaires de
+l'année suivante, contrôler l'ordre de priorité des groupes de vacances, créer les onglets de la
+nouvelle année dans le classeur (avec garde-fou : jamais d'écrasement de saisies existantes), et
+tenir le staff physique. L'assistant se termine sur la confirmation du staff.</p>
+<p class="note"><b>(10/09/2026) L'envoi des codes a été retiré.</b> Il constituait une sixième
+étape et portait trois choses devenues sans objet : le code d'accès (celui des indispos est celui
+du portail), le récap des congés posés au staff (relisible dans « Mes indispos », verrouillé), et
+l'annonce de l'ouverture (faite de vive voix, le staff étant en séance). Attention au contresens :
+ce n'est <b>pas</b> l'envoi qui ouvrait la saisie — <code>INDISPOS_ACTIVE</code> est écrite à
+l'étape 4, et elle l'était déjà avant.</p></div>
 
 <details><summary>La rotation des groupes de vacances — et son piège historique</summary><div class="corps">
 <p>Les MARs sont répartis en trois groupes (A, B, C) qui n'ont pas les mêmes priorités de vacances.
@@ -953,7 +958,8 @@ l'hiver 2027. Toute modification de la rotation doit être répercutée <b>aux q
 Étapes : quotités via <code>saveWizQuotites</code> ; périodes via <code>collectPeriodes</code> ;
 l'écran des groupes est en lecture seule (<code>collectGroupes</code> volontairement vide — la
 composition se modifie dans l'onglet Équipe) ; création des onglets via <code>initYear</code> ;
-envoi des codes via <code>launchWizardSendCodes</code>. Rotation : décalage = année − 2026 ; en
+écran de fin via <code>wizFinish</code>, déclenché par <code>wizConfirmStaff</code>. Rotation :
+décalage = année − 2026 ; en
 code, <code>(3 − offset % 3) % 3</code>, jamais <code>offset % 3</code>.</p>
 </div></details>
 
@@ -1446,10 +1452,11 @@ Drive, vider l'année surveillée et l'adresse de test.</li>
 <details class="tech"><summary>Repères techniques</summary><div class="corps">
 <p class="warn"><b>Ce que la redirection d'essai détourne — et ce qu'elle ne détourne pas.</b>
 <code>NOTIF_EMAIL_TEST</code> ne concerne que <em>ce</em> module, les mails de changement de
-planning. L'envoi des codes d'accès de W1 appelle <code>MailApp.sendEmail</code> directement, avec
-l'adresse du MAR : il n'est <b>pas</b> détourné. Une redirection oubliée ne casse donc pas la
-campagne d'octobre — mais elle prive silencieusement les MARs de toute notification de changement,
-et seul le diagnostic le signale.</p>
+planning. Les autres envois — récapitulatif de gardes du W2, code d'un MAR qui arrive, renvoi depuis
+Maintenance — appellent <code>MailApp.sendEmail</code> directement, avec l'adresse du MAR : ils ne
+sont <b>pas</b> détournés. Une redirection oubliée ne casse donc pas la campagne d'octobre — mais
+elle prive silencieusement les MARs de toute notification de changement, et seul le diagnostic le
+signale.</p>
 <p>Module dans code.gs. Comparaison : <code>planning_(année).json</code> vs
 <code>planning_(année)_notifie.json</code>. Compte à rebours : 10 min
 (<code>NOTIF_DELAI_MIN</code>). Propriétés : <code>NOTIF_ACTIVE</code>,

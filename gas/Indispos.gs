@@ -1,7 +1,7 @@
 // ⚠️ RÈGLE (détecteur de dérive dépôt↔Apps Script) : incrémenter cette version
 // à CHAQUE push de ce fichier. Le diagnostic (admin → Maintenance) compare la
 // version déployée ici avec celle du dépôt et signale toute recopie oubliée.
-const GAS_VERSION_INDISPOS = '2026-09-08.3';
+const GAS_VERSION_INDISPOS = '2026-09-10.1';
 
 /* ── (01/08/2026) MARQUEUR DE TEMPS GLOBAL — mesure, ne change rien ───────
    `_srv_ms` chronometre l'INTERIEUR de doGet. Or avant que doGet soit appele,
@@ -5583,162 +5583,17 @@ if (action === 'getMARsDispoJour') {
     success: true, date: targetDate, dispo
   })).setMimeType(ContentService.MimeType.JSON);
 }
-if (action === 'sendCodesWithRecap') {
-  if (user.role !== 'admin') return _deny();
-  { const _q = _quotaEmailInsuffisant_(_marsAvecEmail_()); if (_q) return _error(_q); }
-  const indYear = Number(payload.year) || getIndisposYear();
-  const ss = SpreadsheetApp.getActiveSpreadsheet();
-
-  const medSheet = ss.getSheetByName('MEDECINS');
-  if (!medSheet) return _error('Onglet MEDECINS introuvable');
-  const medData = medSheet.getDataRange().getValues();
-
-  const perSheet = ss.getSheetByName('PERIODES_VAC');
-  const periodes = [];
-  if (perSheet) {
-    const perData = perSheet.getDataRange().getValues();
-    for (let r = 1; r < perData.length; r++) {
-      const nom = String(perData[r][0]).trim();
-      if (!nom) continue;
-      const dr = perData[r][1], fr = perData[r][2];
-      const debut = dr instanceof Date
-        ? dr.getFullYear()+'-'+String(dr.getMonth()+1).padStart(2,'0')+'-'+String(dr.getDate()).padStart(2,'0')
-        : String(dr).trim();
-      const fin = fr instanceof Date
-        ? fr.getFullYear()+'-'+String(fr.getMonth()+1).padStart(2,'0')+'-'+String(fr.getDate()).padStart(2,'0')
-        : String(fr).trim();
-      periodes.push({nom, debut, fin});
-    }
-  }
-
-  const indSheet = ss.getSheetByName('INDISPOS_'+indYear);
-  if (!indSheet) return _error('INDISPOS_'+indYear+' introuvable');
-  const indData = indSheet.getDataRange().getValues();
-
-  const dates = reconstruireDatesHeaders(indData, indYear); // (C3b) helper unifié
-
-  function fmtDate(ds) {
-    const d = new Date(ds+'T12:00:00');
-    return d.getDate()+'/'+(d.getMonth()+1)+'/'+d.getFullYear();
-  }
-const MOIS_ABR = ['janv.','févr.','mars','avr.','mai','juin','juil.','août','sept.','oct.','nov.','déc.'];
-  function fmtJour(ds){ const d=new Date(ds+'T12:00:00'); return d.getDate()+' '+MOIS_ABR[d.getMonth()]; }
-  function fmtPlage(a,b){
-    if(a===b) return fmtJour(a);
-    const da=new Date(a+'T12:00:00'), db=new Date(b+'T12:00:00');
-    if(da.getMonth()===db.getMonth()) return da.getDate()+' → '+db.getDate()+' '+MOIS_ABR[db.getMonth()];
-    return fmtJour(a)+' → '+fmtJour(b);
-  }
-  const pillV = t => '<span style="display:inline-block;background:#eef4fb;border:1px solid #cfe0f2;border-radius:999px;padding:3px 11px;font-size:12px;font-weight:600;color:#1d6fb8;margin:0 5px 5px 0;white-space:nowrap">'+t+'</span>';
-  const pillF = t => '<span style="display:inline-block;background:#fdf3e3;border:1px solid #f2d98a;border-radius:999px;padding:3px 11px;font-size:12px;font-weight:600;color:#b45309;margin:0 5px 5px 0;white-space:nowrap">'+t+'</span>';
-
-  let sent = 0, skipped = 0;
-  const errors = [];
-
-  for (let r = 1; r < medData.length; r++) {
-    const id    = String(medData[r][0]).trim();
-    const nom   = String(medData[r][1]).trim();
-    const actif = String(medData[r][3]).trim().toUpperCase() === 'O';
-    const code  = String(medData[r][6]).trim();
-    const email = String(medData[r][7]).trim();
-    if (!id || !actif) continue;
-    if (!email) { skipped++; continue; }
-
-    const marVAC = {}, marFORM = {};
-    for (let ri = 3; ri < indData.length; ri++) {
-      if (String(indData[ri][0]).trim() !== id) continue;
-      dates.forEach((date, i) => {
-        if (!date) return;
-        const val = String(indData[ri][i+1]||'').trim();
-        if (val === 'VAC') marVAC[date] = true;
-        else if (val === 'FORM') marFORM[date] = true;
-      });
-      break;
-    }
-
-    const _TV2={label:'Vacances',bg:'#eef4fb',fg:'#1d6fb8'}, _TF2={label:'Formation',bg:'#fdf3e3',fg:'#b45309'};
-    const _blocks2 = []; let vacText = '';
-    periodes.forEach(p => {
-      const jV = Object.keys(marVAC).filter(d => d >= p.debut && d <= p.fin).sort();
-      const jF = Object.keys(marFORM).filter(d => d >= p.debut && d <= p.fin).sort();
-      if (!jV.length && !jF.length) return;
-      _blocks2.push({title:p.nom, rows:[
-        {label:_TV2.label,bg:_TV2.bg,fg:_TV2.fg,dates:jV},
-        {label:_TF2.label,bg:_TF2.bg,fg:_TF2.fg,dates:jF},
-      ]});
-      if (jV.length) vacText += '  '+p.nom+' : '+jV.map(fmtJour).join(', ')+'\n';
-    });
-    const _hV2 = Object.keys(marVAC).filter(d => !periodes.some(p => d >= p.debut && d <= p.fin)).sort();
-    const _hF2 = Object.keys(marFORM).filter(d => !periodes.some(p => d >= p.debut && d <= p.fin)).sort();
-    if (_hV2.length || _hF2.length) {
-      _blocks2.push({title:'Hors périodes', rows:[
-        {label:_TV2.label,bg:_TV2.bg,fg:_TV2.fg,dates:_hV2},
-        {label:_TF2.label,bg:_TF2.bg,fg:_TF2.fg,dates:_hF2},
-      ]});
-      if (_hV2.length) vacText += '  Autres : '+_hV2.map(fmtJour).join(', ')+'\n';
-    }
-    const formKeys = Object.keys(marFORM).sort();
-    const nbVAC = Object.keys(marVAC).length;
-    const nbFORM = formKeys.length;
-    const link = 'https://planningmedic.github.io/indispos.html';
-    const congesBlocks = renderRecapMailBlocks_([
-      {n:nbVAC,label:'jours vacances',bg:'#eef4fb',fg:'#1d6fb8'},
-      {n:nbFORM,label:'jours formation',bg:'#fdf3e3',fg:'#b45309'},
-    ], _blocks2);
-
-    const html =
-      '<div style="background:#f4f6f9;padding:0;margin:0">'+
-      '<div style="max-width:560px;margin:0 auto;padding:24px 14px;font-family:Arial,Helvetica,sans-serif">'+
-        '<div style="background:#ffffff;border:1px solid #e3e8ef;border-radius:14px;overflow:hidden">'+
-          '<div style="background:#ce1126;padding:18px 22px">'+
-            '<div style="color:#ffffff;font-size:11px;font-weight:700;letter-spacing:1px;text-transform:uppercase">Planning-Med · Anesthésie-Réanimation</div>'+
-            '<div style="color:#ffffff;font-size:19px;font-weight:700;margin-top:4px">Vos congés &amp; ouverture des indispos '+indYear+'</div>'+
-          '</div>'+
-          '<div style="padding:22px">'+
-            '<p style="margin:0 0 18px;font-size:14px;color:#3a4759">Bonjour <strong>'+nom+'</strong>,</p>'+
-            '<div style="font-size:13px;font-weight:700;color:#16202e;margin-bottom:12px">📋 Vos congés posés au staff</div>'+
-            congesBlocks+
-            '<div style="border-top:1px solid #eef1f5;margin:22px 0 16px"></div>'+
-            '<div style="font-size:13px;font-weight:700;color:#16202e;margin-bottom:10px">🔓 Saisissez vos indisponibilités</div>'+
-            '<p style="margin:0 0 14px;font-size:13px;color:#3a4759">La saisie est maintenant ouverte. Connectez-vous avec votre code personnel :</p>'+
-            '<div style="background:#f4f6f9;border:1px solid #e3e8ef;border-radius:10px;padding:12px 16px;margin-bottom:16px">'+
-              '<div style="font-size:11px;color:#697789;text-transform:uppercase;letter-spacing:.5px">Votre code d\'accès</div>'+
-              '<div style="font-size:22px;font-weight:700;letter-spacing:2px;color:#ce1126;font-family:monospace">'+code+'</div>'+
-            '</div>'+
-            '<a href="'+link+'" style="display:inline-block;background:#15803d;color:#ffffff;text-decoration:none;font-weight:700;font-size:14px;padding:11px 22px;border-radius:10px">Ouvrir la saisie →</a>'+
-            '<p style="margin:16px 0 0;font-size:12px;color:#9aa4b2">Conservez ce code confidentiel. En cas d\'erreur dans vos congés, contactez le comité planning.</p>'+
-          '</div>'+
-        '</div>'+
-        '<div style="text-align:center;font-size:11px;color:#9aa4b2;margin-top:14px">Le Comité Planning-Med</div>'+
-      '</div>'+
-      '</div>';
-
-    const bodyText =
-      'Bonjour '+nom+',\n\n'+
-      'Vos congés posés au staff '+indYear+' :\n'+
-      'Vacances ('+nbVAC+' j) :\n'+(vacText||'  Aucune\n')+
-      'Formations ('+nbFORM+' j) : '+(formKeys.map(fmtJour).join(', ')||'Aucune')+'\n\n'+
-      'Saisie des indisponibilités ouverte. Code : '+code+'\n'+
-      'Lien : '+link+'\n\n'+
-      'Conservez ce code confidentiel.\nLe Comité Planning-Med';
-
-    try {
-      MailApp.sendEmail({
-        to: email,
-        subject: '[Planning-Med '+indYear+'] Vos congés + ouverture des indispos',
-        htmlBody: html,
-        body: bodyText,
-      });
-      sent++;
-    } catch(err) {
-      errors.push(nom+' : '+err.message);
-    }
-  }
-
-  logAction('sendCodesWithRecap '+indYear+' — '+sent+' emails, '+skipped+' sans email, '+errors.length+' erreur(s)');
-  return ContentService.createTextOutput(JSON.stringify({success:true, sent, skipped, errors}))
-    .setMimeType(ContentService.MimeType.JSON);
-}
+/* (10/09/2026) ENVOI DES CODES SUPPRIMÉ — l'action `sendCodesWithRecap`
+   terminait le W1 par un mail portant trois choses : le code d'accès, le
+   récap des congés posés au staff, et l'annonce de l'ouverture.
+   Les trois ont perdu leur raison d'être : le code des indispos est devenu
+   celui du portail (plus rien à rappeler), les VAC/FORM verrouillés sont
+   consultables dans « Mes indispos » avec leur cadenas, et l'ouverture
+   s'annonce de vive voix — le staff est justement en séance à ce moment-là.
+   `renderRecapMailBlocks_` est partie avec : plus aucun appelant.
+   L'ouverture de la saisie N'A JAMAIS été faite ici : elle est écrite à
+   l'étape 4, par setIndisposYear (INDISPOS_ACTIVE). Rien n'a changé de ce
+   côté. */
 if (action === 'setDailyStatus') {
       if (user.role !== 'admin') return _deny();
       /* (2026-08-05.9) Corps extrait dans appliquerStatutJour — une seule
@@ -6501,37 +6356,6 @@ function testNotifierConflits() {
     const passe = debut >= debutAnnee && debut < finAnnee;
     Logger.log('Periode ' + nom + ' debut=' + debut + ' → ' + (passe ? '✅ incluse' : '❌ EXCLUE'));
   }
-}
-// ── Rendu HTML d'un récap d'indispos pour mail : synthèse + blocs par période ──
-// synth  = [{n, label, bg, fg}]   (cartes du haut, n=0 → masquée)
-// blocks = [{title, rows:[{label, bg, fg, dates:[ISO,...]}]}]
-function renderRecapMailBlocks_(synth, blocks) {
-  const MOIS_ABR = ['janv.','févr.','mars','avr.','mai','juin','juil.','août','sept.','oct.','nov.','déc.'];
-  const fmtJour = ds => { const d=new Date(ds+'T12:00:00'); return d.getDate()+' '+MOIS_ABR[d.getMonth()]; };
-  const fmtPlage = (a,b) => { if(a===b) return fmtJour(a); const da=new Date(a+'T12:00:00'),db=new Date(b+'T12:00:00'); if(da.getMonth()===db.getMonth()) return da.getDate()+' → '+db.getDate()+' '+MOIS_ABR[db.getMonth()]; return fmtJour(a)+' → '+fmtJour(b); };
-  const toRanges = arr => { const j=arr.slice().sort(); const out=[]; if(!j.length) return out; let deb=j[0],prev=j[0]; for(let i=1;i<j.length;i++){ const d1=new Date(prev+'T12:00:00'); d1.setDate(d1.getDate()+1); if(d1.toISOString().slice(0,10)!==j[i]){ out.push([deb,prev]); deb=j[i]; } prev=j[i]; } out.push([deb,prev]); return out; };
-  const rangesText = arr => toRanges(arr).map(r=>fmtPlage(r[0],r[1])).join('&nbsp;&nbsp;·&nbsp;&nbsp;');
-
-  let synthHtml = '';
-  if (synth && synth.length) {
-    const cells = synth.filter(x=>x.n).map(x =>
-      '<td style="padding:0 6px 0 0"><div style="background:'+x.bg+';border-radius:9px;padding:8px 12px;text-align:center"><div style="font-size:18px;font-weight:800;color:'+x.fg+';line-height:1">'+x.n+'</div><div style="font-size:10px;font-weight:600;color:'+x.fg+';text-transform:uppercase;letter-spacing:.4px;margin-top:2px">'+x.label+'</div></div></td>'
-    ).join('');
-    if (cells) synthHtml = '<table cellpadding="0" cellspacing="0" style="margin:4px 0 18px;width:100%"><tr>'+cells+'<td style="width:99%"></td></tr></table>';
-  }
-
-  const blocksHtml = blocks.map(blk => {
-    const rows = (blk.rows||[]).filter(r=>r.dates&&r.dates.length).map(r =>
-      '<tr><td style="padding:7px 12px 7px 0;vertical-align:top;white-space:nowrap;width:96px"><span style="display:inline-block;background:'+r.bg+';color:'+r.fg+';font-size:11px;font-weight:700;border-radius:6px;padding:3px 9px">'+r.label+'</span></td>'
-      +'<td style="padding:7px 0;vertical-align:top;font-size:13px;color:#334155;line-height:1.55">'+rangesText(r.dates)+'</td></tr>'
-    ).join('');
-    if (!rows) return '';
-    return '<div style="margin:0 0 12px;border:1px solid #e8edf3;border-radius:12px;overflow:hidden">'
-      +'<div style="background:#f7f9fc;border-left:4px solid #ce1126;padding:9px 14px;font-size:13px;font-weight:700;color:#16202e">'+blk.title+'</div>'
-      +'<table cellpadding="0" cellspacing="0" style="width:100%;padding:4px 14px 8px"><tbody>'+rows+'</tbody></table></div>';
-  }).join('');
-
-  return synthHtml + (blocksHtml || '<div style="color:#9aa4b2;font-style:italic;font-size:13px">Aucune indisponibilité enregistrée.</div>');
 }
 // ── Éligibles Noël/Jour de l'An (bandeau staff.html) ───────────────────
 // Réutilise la rotation overdueKey du générateur : jamais-fait d'abord,
