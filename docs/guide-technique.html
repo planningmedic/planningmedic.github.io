@@ -1137,6 +1137,13 @@ STATS_GARDES_(année). Essai à blanc : <code>comparerAlgorithmes(year)</code> �
 écriture, ancien et nouvel algorithme, six écarts côte à côte. Garantie de périmètre : le générateur
 ne contient <b>aucune référence à un secteur</b> — l'équité est intouchable par le chantier du
 déménagement (§D5). Banc dédié : <code>simulateur/</code> et <code>banc/banc_nouvel_algo.js</code>.</p>
+<p><b>Le 18h.</b> Poids de chacun = quotité × <code>RATIO_18</code> pour les profils « seulement 18h »,
+<b>× la part de l'année réellement passée dans le service</b> (10/09/2026, via <code>structAvail</code> —
+la même notion de présence que les cibles de gardes, une seule définition dans le fichier). Sans ce prorata,
+un MAR présent deux mois visait une année pleine et se faisait servir en premier : 114 poses pour mille jours
+ouvrés de présence contre 46 pour un temps plein. Le même correctif ferme l'attribution <b>hors fenêtre de
+présence</b> — 20 soirées d'une année 2027 simulée étaient comptées pourvues sans personne pour les tenir.
+Banc : <code>banc/banc_18h_fenetre.js</code>.</p>
 </div></details>
 
 <details><summary>L'essai à blanc : le seul écran avant de générer (08/09/2026)</summary><div class="corps">
@@ -2032,7 +2039,7 @@ jamais sans pouvoir contrôler le résultat.</li>
 <p>Le dossier <code>banc/</code> du dépôt fait tourner <b>le vrai code du projet</b> — le serveur,
 le relais, les pages — dans un décor entièrement simulé : un faux Google avec un faux classeur
 rempli de données réalistes, un faux Cloudflare, et même un faux navigateur où les pages sont
-pilotées au clic. Au 9 août 2026 : <b>546 vérifications</b>, toutes au vert. Règle absolue : avant
+pilotées au clic. Au 10 septembre 2026 : <b>2 909 vérifications</b>, toutes au vert. Règle absolue : avant
 toute proposition de mise en ligne touchant une page principale ou le serveur, le banc tourne, et on
 ne présente le résultat qu'une fois tout au vert. Chaque nouveauté part avec son test ; chaque
 défaut trouvé en production devient un scénario du banc.</p></div>
