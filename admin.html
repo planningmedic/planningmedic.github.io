@@ -1296,7 +1296,7 @@ if (sessionStorage.getItem('adminCode')) {
         </div>
         <div>
           <div class="action-label" id="labelDemarrer">Démarrer 2027</div>
-          <div class="action-desc">Initialiser les indispos, configurer les vacances et envoyer les codes</div>
+          <div class="action-desc">Initialiser les indispos, configurer les vacances et tenir le staff</div>
         </div>
         <span class="action-badge orange">Étape 1</span>
       </div>
@@ -6952,7 +6952,7 @@ function renderWizLocked(year) {
 
 function updateWizNav() {
   // Progress dots
-  for (let i = 0; i < 6; i++) {
+  for (let i = 0; i < 5; i++) {
     const step = document.getElementById('wizStep' + i);
     const dot = document.getElementById('wizDot' + i);
     if (!step) continue;
@@ -6962,15 +6962,17 @@ function updateWizNav() {
   // Buttons
   document.getElementById('wizBackBtn').style.visibility = wizCurrentStep === 0 ? 'hidden' : 'visible';
   const nextBtn = document.getElementById('wizNextBtn');
-  if (wizCurrentStep === 5) {
-    nextBtn.textContent = '📧 Envoyer les codes';
-    nextBtn.style.background = '#166534';
-    nextBtn.disabled = !window._wizStaffConfirmed;
+  if (wizCurrentStep === 4) {
+    /* (10/09/2026) L'étape du staff est la DERNIÈRE : le wizard se termine sur
+       le bouton vert « Le staff est terminé », pas sur un Suivant. */
+    nextBtn.style.display = 'none';
   } else if (wizCurrentStep === 3) {
+    nextBtn.style.display = '';
     nextBtn.textContent = '⚙️ Initialiser';
     nextBtn.style.background = '#1D4ED8';
     nextBtn.disabled = false;
   } else {
+    nextBtn.style.display = '';
     nextBtn.innerHTML = 'Suivant →';
     nextBtn.style.background = '';
     nextBtn.disabled = false;
@@ -6986,8 +6988,7 @@ async function wizNext() {
   if (wizCurrentStep === 1) collectPeriodes();
   if (wizCurrentStep === 2) collectGroupes();
   if (wizCurrentStep === 3) { launchWizInit(); return; }
-  if (wizCurrentStep === 5) { launchWizardSendCodes(); return; }
-  if (wizCurrentStep < 5) {
+  if (wizCurrentStep < 4) {
     wizCurrentStep++;
     renderWizStep();
   }
@@ -7175,29 +7176,8 @@ function renderWizStep() {
         ✅ Le staff est terminé
       </button>
     </div>`;
-    if (window._wizStaffConfirmed) {
-      html += `<div style="margin-top:12px;text-align:center;font-size:12px;color:#166534;font-weight:700">✓ Staff confirmé — vous pouvez passer à l'étape suivante</div>`;
-    }
     setTimeout(wizPollStaffProgress, 300);
 
-  } else if (wizCurrentStep === 5) {
-    // ÉTAPE 6 — Envoi des codes
-    const nextYear = YEAR + 1;
-    const actifs = wizMarsData.filter(m => m.actif);
-    const avecEmail = actifs.filter(m => m.email);
-    const sansEmail = actifs.filter(m => !m.email);
-    if (!window._wizStaffConfirmed) {
-      html += `<div style="padding:14px;background:#FFF7ED;border:1px solid #FED7AA;border-radius:10px;font-size:13px;color:#92400E;margin-bottom:16px">
-        ⚠️ Confirmez d'abord la fin du staff (étape 5) avant d'envoyer les codes.
-      </div>`;
-    }
-    html += `<div class="wizard-section-title">Envoi des codes d'accès</div>`;
-    html += `<div class="wiz-recap">
-      <div class="wiz-recap-item"><span>📧</span><div><strong>${avecEmail.length} MAR(s)</strong> vont recevoir leur code par email</div></div>
-      ${sansEmail.length ? `<div class="wiz-recap-item"><span>⚠️</span><div style="color:var(--orange)"><strong>${sansEmail.length} MAR(s) sans email</strong> : ${sansEmail.map(m=>m.initiales).join(', ')} — à notifier manuellement</div></div>` : ''}
-      <div class="wiz-recap-item"><span>🔒</span><div>Les VAC/FORM saisis lors du staff seront <strong>verrouillés</strong> — les MARs ne pourront plus les modifier</div></div>
-    </div>`;
-    html += `<div class="wiz-progress" id="wizCodesProgress" style="margin-top:16px"></div>`;
   }
 
   document.getElementById('wizBody').innerHTML = html;
@@ -7293,53 +7273,27 @@ async function wizPollStaffProgress() {
 function wizConfirmStaff() {
   window._wizStaffConfirmed = true;
   clearTimeout(_wizStaffPollTimer);
-  renderWizStep();
-  updateWizNav();
+  wizFinish();
 }
 
-// ── WIZARD 1 — Step 5 : Envoi des codes ──────────────────────────────
-async function launchWizardSendCodes() {
-  if (!window._wizStaffConfirmed) return;
-  const nextBtn = document.getElementById('wizNextBtn');
-  nextBtn.disabled = true;
-  document.getElementById('wizBackBtn').style.visibility = 'hidden';
-
-  const progressEl = document.getElementById('wizCodesProgress');
-  if (progressEl) {
-    progressEl.innerHTML = '<div class="wiz-progress-item running">⏳ Envoi des codes en cours…</div>';
-  }
-
-  try {
-    const res = await api({action:'sendCodesWithRecap', year: YEAR + 1});
-    if (!res || !res.success) throw new Error(res?.error || 'Erreur');
-    const nextYear = YEAR + 1;
-    const actifs = wizMarsData.filter(m => m.actif);
-    const sansEmail = actifs.filter(m => !m.email);
-    setTimeout(() => {
-      document.getElementById('wizBody').innerHTML = `
-        <div style="text-align:center;padding:20px 0">
-          <div style="font-size:48px;margin-bottom:12px">🎉</div>
-          <div style="font-size:18px;font-weight:700;color:var(--ink);margin-bottom:6px">Année ${nextYear} initialisée !</div>
-          <div style="font-size:13px;color:var(--ink-3);line-height:1.6;max-width:360px;margin:0 auto">
-            INDISPOS_${nextYear} créé · INDISPOS_ACTIVE → ${nextYear}<br>
-            ANNEE_ACTIVE reste sur ${YEAR}<br>
-            ${res.sent || 0} code(s) envoyés par email
-            ${sansEmail.length ? `<br><span style="color:var(--orange)">⚠️ ${sansEmail.length} MAR(s) sans email : ${sansEmail.map(m=>m.initiales).join(', ')}</span>` : ''}
-          </div>
-          <div style="margin-top:20px;font-size:12px;color:var(--ink-4)">Les MARs peuvent maintenant saisir leurs indispos</div>
-          <button class="wizard-next" style="margin:20px auto 0;display:inline-flex" onclick="closeWizard();showTab('planning')">Voir le planning →</button>
-        </div>`;
-      document.getElementById('wizNextBtn').style.display = 'none';
-      document.getElementById('wizBackBtn').style.display = 'none';
-    }, 500);
-  } catch(e) {
-    if (progressEl) {
-      progressEl.innerHTML = `<div class="wiz-progress-item error">✕ Erreur : ${e.message}</div>`;
-    }
-    nextBtn.disabled = false;
-    nextBtn.textContent = '📧 Réessayer';
-    document.getElementById('wizBackBtn').style.visibility = 'visible';
-  }
+// ── WIZARD 1 — Écran de fin ──────────────────────────────────────────
+/* (10/09/2026) L'écran de fin vivait dans launchWizardSendCodes, supprimé avec
+   l'envoi des codes. Il se déclenche maintenant sur « Le staff est terminé ». */
+function wizFinish() {
+  const nextYear = YEAR + 1;
+  document.getElementById('wizBody').innerHTML = `
+    <div style="text-align:center;padding:20px 0">
+      <div style="font-size:48px;margin-bottom:12px">🎉</div>
+      <div style="font-size:18px;font-weight:700;color:var(--ink);margin-bottom:6px">Année ${nextYear} initialisée !</div>
+      <div style="font-size:13px;color:var(--ink-3);line-height:1.6;max-width:360px;margin:0 auto">
+        INDISPOS_${nextYear} créé · INDISPOS_ACTIVE → ${nextYear}<br>
+        ANNEE_ACTIVE reste sur ${YEAR}
+      </div>
+      <div style="margin-top:20px;font-size:12px;color:var(--ink-4)">Les MARs peuvent maintenant saisir leurs indispos — annoncez-le au staff avant de quitter la salle.</div>
+      <button class="wizard-next" style="margin:20px auto 0;display:inline-flex" onclick="closeWizard();showTab('planning')">Voir le planning →</button>
+    </div>`;
+  document.getElementById('wizNextBtn').style.display = 'none';
+  document.getElementById('wizBackBtn').style.display = 'none';
 }
 
 // ── WIZARD GÉNÉRER LES GARDES ────────────────────────────────────────────
@@ -8751,7 +8705,7 @@ try {
     const el = document.getElementById('labelDemarrer');
     if (el) el.textContent = 'Démarrer ' + ny;
     const desc = document.getElementById('descDemarrer');
-    if (desc) desc.textContent = 'Initialiser INDISPOS ' + ny + ', configurer les vacances et envoyer les codes d\'accès aux MARs';
+    if (desc) desc.textContent = 'Initialiser INDISPOS ' + ny + ', configurer les vacances et tenir le staff';
       // workflowYearLabel supprimé (remplacé par widget État du cycle)
       document.getElementById('wfYear').textContent = YEAR;
       document.querySelectorAll('[id$="Year"]').forEach(el => { if(el.id !== 'headerYear' && el.id !== 'wfYear') el.textContent = YEAR; });
@@ -8862,10 +8816,6 @@ try {
         <div class="wizard-step" id="wizStep4">
           <div class="wizard-step-dot" id="wizDot4">5</div>
           <div class="wizard-step-label">Staff</div>
-        </div>
-        <div class="wizard-step" id="wizStep5">
-          <div class="wizard-step-dot" id="wizDot5">6</div>
-          <div class="wizard-step-label">Codes</div>
         </div>
       </div>
     </div>
@@ -9404,8 +9354,10 @@ async function saveGroupes() {
   }
 }
 
-/* (18/08/2026) previewCodes/sendCodes (anciens boutons) supprimés : l'envoi des
-   codes passe par le wizard (action sendCodesWithRecap). */
+/* (18/08/2026) previewCodes/sendCodes (anciens boutons) supprimés.
+   (10/09/2026) Le wizard n'envoie plus de codes du tout : le code des indispos
+   est celui du portail. Seuls subsistent l'outil de Maintenance et le wizard
+   d'arrivée d'un nouveau MAR. */
 // ── MAINTENANCE ──────────────────────────────────────────────────────────
 let _diagRapport = '';
 async function copyDiag() {

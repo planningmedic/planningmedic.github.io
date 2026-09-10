@@ -523,8 +523,15 @@ console.log('\n═══ 13. Chaque scénario du banc est lancé par lancer.sh �
   V('le retour de la numérotation à v1.0 est expliqué',
     /la numérotation est repartie à v1\.0/.test(gt)
     && /un numéro ne peut plus dater une fonctionnalité/.test(gt));
+  /* (10/09/2026) L'assertion visait la PHRASE (« l'envoi des codes de W1… »),
+     pas l'exigence. L'envoi des codes de W1 ayant été supprimé, elle serait
+     tombée en rouge pour un texte pourtant devenu plus juste. Elle vise
+     désormais ce qui doit rester vrai : le guide dit que les AUTRES envois
+     échappent à la redirection d'essai. */
   V('le piège de la redirection d\'essai est levé',
-    /L'envoi des codes d'accès de W1 appelle <code>MailApp\.sendEmail<\/code> directement/.test(gt));
+    /ne concerne que <em>ce<\/em> module/.test(gt)
+    && /appellent <code>MailApp\.sendEmail<\/code> directement/.test(gt)
+    && /ne\s*\nsont <b>pas<\/b> détournés/.test(gt));
   V('…et le point d\'arrêt de W1 pour un essai est écrit',
     /Où s'arrêter pour un essai/.test(gt) && /clearIndisposYear/.test(gt));
   V('la cloche dit ce que le registre écarte vraiment',
