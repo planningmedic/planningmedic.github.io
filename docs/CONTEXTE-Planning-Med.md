@@ -59,6 +59,15 @@ Deux colonnes distinctes, deux usages, c'est voulu.
 - l'**écran de saisie des indispos** ignore la borne : le calendrier reste ouvert toute
   l'année et le serveur accepte l'écriture. Maquette validée, patch non fait.
 
+## L'ouverture de la campagne ne s'annonce plus par mail (10/09/2026)
+
+Le W1 n'envoie plus rien. L'ouverture est écrite à l'étape 4 (`INDISPOS_ACTIVE`), et c'est au
+comité de l'annoncer **de vive voix** — le staff est en séance quand l'assistant se termine. Un
+MAR qui veut relire ses congés posés les retrouve verrouillés dans « Mes indispos ».
+
+Corollaire pour tout essai : ouvrir le W1 « pour voir » ouvre la campagne pour de vrai. Ce n'est
+plus le mail qui est le risque, c'est l'étape 4.
+
 ## ⚠️ LE 4 SEPTEMBRE 2026 : LE STAFF
 
 **Révision du 03/09 au soir : le W1 ne sera PAS joué en direct.** La porte d'entrée d'Apps Script
