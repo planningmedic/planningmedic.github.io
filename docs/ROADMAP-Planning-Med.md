@@ -91,6 +91,79 @@ le 18h reste-t-il une charge tirée à l'année, ou devient-il une conséquence 
 Non traité non plus : le poids ignore les jours fixes non travaillés (`tp_jours_fixes`), même
 famille de défaut.
 
+### PROJET — la seconde ligne de 18h (décidé le 10/09, à faire avant la génération de novembre)
+
+**Décision prise :** à partir d'une date de bascule (1er avril 2027 prévu, ouverture du nouvel
+hôpital), il faut DEUX MAR de 18h par jour au lieu d'un. **Même travail pour les deux**, aucune
+distinction de poste à faire apparaître au planning. Une hypothèse antérieure — « les MAR de 18h
+sont les MAR du bloc long eux-mêmes » — est ABANDONNÉE : le 18h reste une charge tirée à l'année.
+
+**Une seule génération, un seul onglet, bascule automatique.** `generateGardes(2027)` produit les
+gardes inchangées, une ligne de 18h jusqu'au 31/03, deux ensuite. L'équité se compte sur
+l'ensemble de l'année. NE PAS générer la seconde ligne à part : les règles de `dispo18` seraient
+réécrites ailleurs et finiraient par diverger (le générateur porte déjà cet avertissement, écrit
+après un vrai défaut de production), et l'équité ne serait pas comptée.
+
+**Contrainte de calendrier.** Ce lot doit passer AVANT la génération de novembre : une année
+publiée ne se régénère pas.
+
+#### Ce qui a été mesuré avant de décider (10/09, générateur réel, année 2027 complète)
+
+| | |
+|---|---|
+| Soirées ouvrées dans l'année | 251, dont 190 à partir du 01/04 |
+| Avec la seconde ligne | **441 soirées**, soit 18 par MAR au lieu de 10,5 |
+| Vivier éligible chaque soir, 01/04 → fin | min 15 · médiane 17 · max 18 |
+| Soirées où le vivier tombe sous 5 | **0** |
+| Charge induite par le plafond « 1 par semaine » | 0,4 par MAR et par semaine — **non contraignant** |
+
+Le plafond n'est donc PAS à desserrer. Estimation initiale contraire (« presque une par semaine
+sans marge ») : fausse, elle divisait par les 22 preneurs de gardes au lieu des 24 éligibles.
+
+**Effet de bord favorable sur les vendredis.** Sur 251 soirées, seules 211 passent par le vivier
+général : les 40 autres sont les vendredis attribués d'office au MAR de garde du samedi, donc
+fermés à qui ne prend pas de gardes. Avec deux places, ces vendredis en réservent une et
+**libèrent l'autre** — la part inaccessible tombe de 16 % à ~7 % du pot annuel. Le rapport réel
+des profils `ONLY_18` (1,17 au lieu de 1,30) devrait remonter d'autant. **À REMESURER après
+coup, pas à prédire.** En conséquence, la colonne `PCT_18` passe EN ATTENTE : une partie de
+l'écart qu'elle devait corriger se corrige seule.
+
+#### Périmètre du lot
+
+- un paramètre **daté** dans CONFIG (type `LIGNES_18H = 2027-04-01:2`), sur le modèle de
+  `CONFIG_TRANSITION` — pour que la date se déplace sans toucher au code si l'ouverture glisse ;
+- `h18A[date]` passe d'un nom à une liste ; les cibles doublent à partir de la date ;
+- les règles deviennent « par soirée » : deux personnes différentes le même soir, jamais deux
+  soirs de suite pour la même, la paire à éviter valable sur les deux places ;
+- vendredi : une place réservée au G du samedi, l'autre au vivier général ;
+- affichage du planning, export Excel et rapport d'essai doivent montrer DEUX noms ;
+- scénario de banc : avant/après bascule, couverture complète, contre-épreuve.
+
+Touche des pages visibles → **montée du 2e chiffre de version du site**.
+
+#### À embarquer dans le même lot (coût faible, sinon le lot est invendable)
+
+Aujourd'hui le 18h n'a **ni cible affichée, ni cible stockée, ni report d'une année sur l'autre** :
+
+- le rapport d'essai montre le nombre de 18h SANS sa cible, contrairement aux gardes — impossible
+  de savoir en lisant si 13 contre 9 est juste (c'est le cas : quotités différentes) ;
+- STATS_GARDES a une colonne `18H` mais **pas** de `CIBLE 18H` ;
+- la somme des cibles fait 254 pour 251 soirées : chaque cible est arrondie dans son coin, sans
+  la méthode des plus forts restes appliquée aux gardes. Trois personnes en écart perpétuel de −1 ;
+- aucune dette inter-annuelle : un −1 sur les 18h est perdu pour toujours (les gardes, elles,
+  reportent par axe).
+
+Mesuré le 10/09 : le placement lui-même est SAIN — 21 MAR sur 24 exactement sur leur cible, trois
+à −1, écart maximal 1. Le risque n'est pas la dérive du placement, c'est qu'à 18 soirées par an
+un écart de 1 ou 2 se ressente et qu'on n'ait **aucun moyen de montrer qu'il est juste**.
+
+#### Questions laissées ouvertes
+
+- Les 18h doivent-elles entrer dans l'arbitrage GLOBAL de la charge, ou rester un compteur à
+  part ? Les deux compteurs vivent aujourd'hui côte à côte sans se parler. À 10 soirées par an
+  c'était secondaire ; à 18, ça ne l'est plus. À décider en regardant la première génération.
+- Report inter-annuel des écarts de 18h : plus lourd, à traiter séparément.
+
 ### Deux chantiers ouverts par la même journée
 
 - **La borne ne s'applique pas à l'écran de saisie des indisponibilités.** Le calendrier reste
@@ -162,18 +235,29 @@ Rien n'est recalculé : ce sont des variables que la fin du calcul jetait.
    divergence blanc/réel était vraisemblablement une comparaison entre deux jeux de noms.
    **Conséquence : l'ordre de l'onglet MEDECINS n'a pas d'importance.** Réserve : les données
    du 08/09 n'ont pas été retrouvées, la démonstration est indirecte.
-2. **Le relais écrit puis efface 9 clés de l'année 2028 à chaque synchronisation**, soit environ
+2. **W2 ne voit pas les temps partiels.** Son contrôle bloquant ne compte que les jours
+   `INDISPO` : les TP, VAC, FORM et CL sont invisibles, et la règle « pas de garde la veille d'un
+   temps partiel » — qui ferme le dimanche quand le lundi est en TP, donc l'unité VD entière —
+   n'y est pas modélisée. Mesuré le 10/09 sur un jeu saturé : W2 annonçait 50 week-ends VD
+   disponibles là où le générateur n'en voyait que 9, sur le même MAR et les mêmes données. Tout
+   vert, zéro profil bloquant. Deux défauts mineurs visibles au passage : les MAR sans garde sont
+   dans le dénominateur et reçoivent une cible VD qu'ils ne feront jamais, et le dénominateur
+   n'est pas proratisé par la présence depuis le correctif du 10/09 — W2 et le générateur ont
+   donc divergé. **Sans danger aux volumes réels** (il faut plus de 30 TP sur un même jour de
+   semaine pour que ça morde) : c'est un défaut de cohérence entre deux calculs de la même chose.
+
+3. **Le relais écrit puis efface 9 clés de l'année 2028 à chaque synchronisation**, soit environ
    430 opérations inutiles par jour sur un plafond gratuit de 1 000. Le constructeur et la purge
    ne s'accordent pas sur ce qu'est une année valide. Défaut antérieur à la migration.
-3. **Un souhait posé sur un jour interdit par le profil compte comme non honoré.** Un profil
+4. **Un souhait posé sur un jour interdit par le profil compte comme non honoré.** Un profil
    `no_garde` peut poser des souhaits de garde ; un profil `no_weekend` peut en poser le samedi.
    Le taux affiché est pessimiste et incompréhensible pour l'intéressé. Deux pistes : empêcher la
    saisie, ou ne compter que les souhaits honorables. La tuile des indisponibilités devrait par
    ailleurs disparaître pour qui n'a ni garde ni temps partiel à poser (BONNET, BOUREGBA).
-4. **Le module libéral n'a pas été repensé.** L'en-tête du devis est devenu un champ à compléter,
+5. **Le module libéral n'a pas été repensé.** L'en-tête du devis est devenu un champ à compléter,
    mais 21 mentions de Monaco subsistent — mutuelles CCSP, ordonnance souveraine, coefficient
    1,95 : ce sont des règles tarifaires d'un pays, non des références à un établissement.
-5. **Volet juridique.** Loi n° 1.565 du 3 décembre 2024, autorité APDP. Points à faire trancher
+6. **Volet juridique.** Loi n° 1.565 du 3 décembre 2024, autorité APDP. Points à faire trancher
    par un juriste : la qualité de responsable de traitement s'apprécie en fait, pas par
    déclaration ; le consentement de subordonnés à leur chef de service est fragile par
    construction. Documents à produire : registre des traitements, mentions légales, note
