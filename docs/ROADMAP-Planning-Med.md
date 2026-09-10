@@ -8,14 +8,69 @@ l'établissement et 77 noms de praticiens sur une page publique sans code d'acc�
 
 **Dépôt** `planningmedic/planningmedic.github.io`, branche `main` · **Site v1.7.0** ·
 **Portail** https://planningmedic.github.io ·
-**GAS** (relevé dans le dépôt le 08/09/2026 au soir) `code.gs` **2026-09-08.2** ·
-`Indispos.gs` **2026-09-08.3** · `generateur_gardes.gs` **2026-09-08.2** ·
+**GAS** (relevé dans le dépôt le 10/09/2026) `code.gs` **2026-09-08.2** ·
+`Indispos.gs` **2026-09-08.3** · `generateur_gardes.gs` **2026-09-10.1** ·
 `portail.gs` **2026-09-08.1** · `miroir.gs` **2026-09-08.2** ·
 `journal.gs` 2026-08-27.1 · `echanges.gs` **2026-09-08.1** · `veille.gs` 2026-08-27.1 ·
 `setup_annee.gs` **2026-09-08.1** · `sauvegarde.gs` 2026-09-07.1 ·
 **Worker** `cloudflare/worker.js` : `const VERSION = 'miroir 2026-08-22.2'` — ⚠️ le marqueur n'a
 pas été monté avec le lot cloche du 23/08 (oubli assumé, le code déployé est bien le nouveau) :
 à monter au prochain lot Worker. La constante reste la **seule** version écrite dans le fichier.
+
+## 10/09/2026 — la garde de 18h ignorait les dates d'arrivée et de départ
+
+Le générateur a cinq fonctions qui décident si un MAR est disponible un jour donné. QUATRE
+vérifiaient les bornes `date_debut` / `date_fin` de MEDECINS : `indispoIndividuelle` (les
+gardes), `structAvail` (les cibles), `_rDispo` et `_rPresents` (les récups). La cinquième,
+`dispo18`, ne les vérifiait pas. Trouvé AVANT la génération de 2027, pas après.
+
+Mesuré sur une année complète, trois profils simulés : **20 soirées de 18h attribuées à
+quelqu'un qui n'était pas dans le service ce jour-là.** Le problème n'est pas la case en trop
+sur le planning — ces soirées étaient comptées comme POURVUES, et personne ne serait venu.
+
+**Deuxième correctif, même section.** Le poids dans le partage des 18h ne dépendait que de la
+quotité. Un MAR présent deux mois visait une année pleine et se faisait servir en premier pour
+rattraper : 114 poses pour mille jours ouvrés de présence contre 46 pour un temps plein. Le
+poids est multiplié par la part de l'année réellement passée dans le service, via
+`structAvail` — pas une seconde notion de « présent ».
+
+| | avant | après |
+|---|---|---|
+| Arrivée en cours d'année | 114 | 46 |
+| Retour de congé long | 43 | 38 |
+| Soirées hors fenêtre | 20 | 0 |
+
+Convention rappelée : `date_fin` est le **premier jour NON travaillé**, le code teste partout
+`date >= date_fin`. Les cibles de gardes sont proratisées par `PCT_GARDES` × part de présence,
+les 18h par `QUOTITE` × part de présence — deux colonnes distinctes, deux usages, c'est voulu.
+
+Banc : `banc_18h_fenetre.js`, 21 vérifications, **deux contre-épreuves** — le scénario est
+rejoué sur une copie du générateur privée de chaque correctif et doit échouer.
+
+### Ce que ce défaut révèle et qui n'est pas traité
+
+Le rapport réel des profils `ONLY_18` reste à **1,17 au lieu de 1,30**. `RATIO_18` répartit
+1,3 part sur le pot entier, mais **40 vendredis par an vont d'office au MAR de garde du
+samedi** — donc fermés à qui ne prend pas de gardes. Deux règles justes qui se contredisent au
+croisement. Piste retenue : une colonne `PCT_18` dans MEDECINS, sur le modèle de `PCT_GARDES`,
+et une cible calculée sur les soirées **atteignables**. Décision de service à prendre d'abord :
+le 18h reste-t-il une charge tirée à l'année, ou devient-il une conséquence de l'affectation ?
+
+Non traité non plus : le poids ignore les jours fixes non travaillés (`tp_jours_fixes`), même
+famille de défaut.
+
+### Deux chantiers ouverts par la même journée
+
+- **La borne ne s'applique pas à l'écran de saisie des indisponibilités.** Le calendrier reste
+  ouvert toute l'année pour un MAR dont le contrat s'arrête en cours d'année, et le serveur
+  accepte l'écriture. Les jours posés au-delà sont inoffensifs — le générateur les ignore —
+  mais ils faussent les compteurs et le taux de complétion. Maquette validée : jours estompés
+  via la classe `hors-portee` qui existe déjà, navigation coupée au dernier mois utile, refus
+  côté serveur dans `saveIndispos` (l'écran peut retarder, le serveur tranche).
+- **Une seconde ligne de 18h est envisagée en cours d'année 2027.** Elle ferait passer le pot
+  de 252 à 442 soirées, soit 21 par MAR au lieu de 12. Ne PAS la générer à part : les règles
+  de `dispo18` seraient réécrites ailleurs et finiraient par diverger, et l'équité ne serait
+  pas comptée. Piste : un paramètre daté disant combien de 18h par jour, une seule passe.
 
 ## 07–08/09/2026 — migration complète et retrait de toute donnée nominative
 
@@ -64,12 +119,17 @@ Rien n'est recalculé : ce sont des variables que la fin du calcul jetait.
 
 ### Chantiers ouverts, par ordre d'importance
 
-1. **Le calcul à blanc ne prédit pas la génération réelle quand l'effectif n'est pas trié.**
-   Découvert le 08/09 : renommer les jeux d'essai a cassé leur ordre alphabétique et
-   `banc_essai_generation` a immédiatement signalé un écart — *FAUVEL.vd : à blanc 5 vs écrit 4*.
-   L'ordre a été rétabli pour ne pas mélanger deux chantiers, mais le défaut existe. Il concerne
-   directement la génération 2027 : l'onglet MEDECINS n'est pas trié (TRAN, PRUNET, COPELOVICI
-   sont en fin de liste). **À traiter avant novembre.**
+1. ~~**Le calcul à blanc ne prédit pas la génération réelle quand l'effectif n'est pas
+   trié.**~~ **NON REPRODUIT le 10/09/2026 — diagnostic probablement erroné.** Onze
+   configurations essayées, zéro écart : effectif trié, une ligne déplacée en fin, ordre
+   inversé, huit permutations aléatoires, trois calculs à blanc enchaînés dans un même
+   contexte, et un essai suivi d'une vraie génération. Explication la plus probable : le
+   correctif du 05/09 a supprimé la dépendance à la position des lignes — à égalité, c'est un
+   hachage du NOM qui départage. Or le 08/09 les jeux d'essai ont été **renommés**, pas
+   réordonnés, et changer les noms change le hachage donc le planning. L'écart lu comme une
+   divergence blanc/réel était vraisemblablement une comparaison entre deux jeux de noms.
+   **Conséquence : l'ordre de l'onglet MEDECINS n'a pas d'importance.** Réserve : les données
+   du 08/09 n'ont pas été retrouvées, la démonstration est indirecte.
 2. **Le relais écrit puis efface 9 clés de l'année 2028 à chaque synchronisation**, soit environ
    430 opérations inutiles par jour sur un plafond gratuit de 1 000. Le constructeur et la purge
    ne s'accordent pas sur ce qu'est une année valide. Défaut antérieur à la migration.

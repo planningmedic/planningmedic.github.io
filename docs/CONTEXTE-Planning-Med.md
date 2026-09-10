@@ -23,8 +23,8 @@ découle, et prime sur les habitudes antérieures.
 **Règles non négociables pour toute intervention future :**
 
 - **Aucun nom de praticien dans le dépôt.** Ni dans le code, ni dans un commentaire, ni dans un
-  jeu d'essai. Les jeux d'essai utilisent des noms fictifs (AUBERT, AVELINE, BOISSY…), **classés
-  par ordre alphabétique** — voir le chantier n° 1 de la ROADMAP, cet ordre n'est pas décoratif.
+  jeu d'essai. Les jeux d'essai utilisent des noms fictifs (AUBERT, AVELINE, BOISSY…).
+  (L'ordre alphabétique était réputé nécessaire : non reproduit le 10/09, voir chantier n° 1.)
 - **Aucune mention de l'établissement, de la ville, ni d'adresse postale.** Les références
   tarifaires monégasques du module libéral sont acceptées : elles désignent un pays, pas un
   établissement.
@@ -44,6 +44,20 @@ les fichiers du planning, et attend une semaine de fonctionnement réel avant su
 # PARTIE 1 — L'ESSENTIEL
 
 *Si tu ne lis qu'une chose, lis ceci. Le détail complet est en partie 2.*
+
+## Fins de contrat en cours d'année — ce que le système fait, et ne fait pas
+
+Renseigner `date_fin` dans MEDECINS suffit désormais pour TOUT : gardes, G2, repos de garde,
+récupérations et **18h** (depuis le 10/09/2026). Convention : `date_fin` est le **premier jour
+NON travaillé**, le code teste partout `date >= date_fin`. Les cibles de gardes sont
+proratisées par `PCT_GARDES` × part de présence ; les 18h par `QUOTITE` × part de présence.
+Deux colonnes distinctes, deux usages, c'est voulu.
+
+**Ce que `date_fin` NE couvre PAS :**
+- le **quota de congés** n'est pas proratisé — la jauge affiche une année pleine ; arbitrage
+  assumé, les congés d'un partant se posent à la main par le comité ;
+- l'**écran de saisie des indispos** ignore la borne : le calendrier reste ouvert toute
+  l'année et le serveur accepte l'écriture. Maquette validée, patch non fait.
 
 ## ⚠️ LE 4 SEPTEMBRE 2026 : LE STAFF
 
