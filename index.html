@@ -1107,6 +1107,13 @@ async function _refreshPlanSilently(year){
         let list=_extractMyGardes(r.planning, today);
         MY_GARDES=list.sort(function(a,b){ return a.date<b.date?-1:a.date>b.date?1:0; });
         renderMyGardesHero();
+        /* (11/09/2026) Les CONGES se recalculent aussi. Jusqu'ici ce
+           rafraichissement ne servait qu'au bandeau « prochaine garde » : une
+           republication n'apparaissait dans « Mes conges » qu'apres fermeture
+           complete de l'onglet, le cache de session tenant l'ancienne copie.
+           loadMyConges relit _planCache, deja a jour : aucun appel de plus. */
+        try { loadMyConges().then(function(){ try{ renderMesConges(); }catch(e){} }, function(){}); }
+        catch(e){}
       }
     }
   }catch(e){ /* silencieux */ }
@@ -1121,7 +1128,10 @@ function _mgCap(s){ return s ? s.charAt(0).toUpperCase()+s.slice(1) : s; }
 window.__rafraichirDonnees = async function () {
   try {
     Object.keys(_planCache).forEach(function (y) { delete _planCache[y]; });
-    try { Object.keys(sessionStorage).forEach(function (k) { if (k.indexOf('plan_') === 0) sessionStorage.removeItem(k); }); } catch (e) {}
+    /* (11/09/2026) La cle du cache s'appelle « pmPlan:2026 » depuis toujours ;
+       ce nettoyage cherchait « plan_… » et ne trouvait donc RIEN. Le glissement
+       vidait la memoire vive puis relisait aussitot la copie perimee. */
+    try { Object.keys(sessionStorage).forEach(function (k) { if (k.indexOf('pmPlan:') === 0) sessionStorage.removeItem(k); }); } catch (e) {}
     if (typeof loadMyGardes === 'function') await loadMyGardes();
     if (typeof loadMyConges === 'function') await loadMyConges();
   } catch (e) {}
