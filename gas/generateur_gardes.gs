@@ -41,7 +41,7 @@
 // ⚠️ RÈGLE (détecteur de dérive dépôt↔Apps Script) : incrémenter cette version
 // à CHAQUE push de ce fichier. Le diagnostic (admin → Maintenance) compare la
 // version déployée ici avec celle du dépôt et signale toute recopie oubliée.
-const GAS_VERSION_GENERATEUR = '2026-09-10.1';
+const GAS_VERSION_GENERATEUR = '2026-09-11.1';
 
 /* (05/09/2026) INTERRUPTEUR DU NOUVEL ALGORITHME.
    À false, le générateur se comporte EXACTEMENT comme avant : c'est le retour
@@ -816,6 +816,10 @@ function generateGardes(year, opts){
     if(!cible[id]) return;
     const n=Object.values(souhaits).filter(ids=>ids.includes(id)).length;
     cible[id].total = Math.max(cible[id].total, n);
+    // (11/09/2026) La part exacte suit le plafond : pour ces profils, la « part
+    // juste » EST le nombre de souhaits, pas la fraction d'équité — qui ne veut
+    // rien dire puisqu'ils sont hors des axes week-end, jeudi et veille de férié.
+    if(cibleExacte[id]) cibleExacte[id].total = Math.max(cibleExacte[id].total, n);
   });
   // Budget de jours LIBRES (lun/mar/mer) = total − axes-clés. Les souhaits des
   // sans souhait_plafond sont plafonnés à ce budget : leurs parts sam/jeu/VD/VJF/férié
@@ -2486,7 +2490,17 @@ function generateGardes(year, opts){
   // Les deux dernières colonnes (souhaits) sont AJOUTÉES EN FIN et jamais intercalées :
   // code.gs lit encore des colonnes par position (sd[r][17], [19], [21]) et un décalage
   // fausserait silencieusement les cibles du tableau de bord.
-  st.getRange(1,1,1,25).setValues([['MEDECIN','CIBLE','TOTAL G','G (REA)','G2 (MAT)','LUN','MAR','MER','JEU','VEN','SAM','DIM','RECUP R','18H','JF','VEILLE JF','NOEL/AN','CIBLE SAM','CIBLE JEU','CIBLE VD','VD','CIBLE VJF','CIBLE JF','SOUHAITS POSES','SOUHAITS HONORES']]).setFontWeight('bold');
+  /* (11/09/2026) PART EXACTE — colonnes 26 a 31, AJOUTEES EN FIN comme les souhaits.
+     Pourquoi : la colonne CIBLE porte la cible ENTIERE (36 ou 37). La part reelle,
+     36,6, disparaissait a la generation. Deux MAR de meme quotite finissaient donc
+     l'un a 36 et l'autre a 37 sans que rien ne garde trace du reliquat, et le report
+     de N+1 les voyait tous deux « a jour ». On enregistre ici la part fractionnaire
+     AVANT arrondi, pour que le report de N+1 puisse s'y referer.
+     CE PATCH N'ECRIT QUE DE LA DONNEE : aucune decision du generateur ne la lit,
+     aucun planning ne change. La lecture par la dette viendra separement.
+     Colonnes ajoutees EN FIN : code.gs lit encore 1, 17, 18, 19, 21 et 22 par
+     position, et la sonde de diagnostic s'arrete a la colonne 23. */
+  st.getRange(1,1,1,31).setValues([['MEDECIN','CIBLE','TOTAL G','G (REA)','G2 (MAT)','LUN','MAR','MER','JEU','VEN','SAM','DIM','RECUP R','18H','JF','VEILLE JF','NOEL/AN','CIBLE SAM','CIBLE JEU','CIBLE VD','VD','CIBLE VJF','CIBLE JF','SOUHAITS POSES','SOUHAITS HONORES','PART EXACTE','PART EXACTE SAM','PART EXACTE JEU','PART EXACTE VD','PART EXACTE VJF','PART EXACTE JF']]).setFontWeight('bold');
   // Souhaits honorés = dates souhaitées où le MAR est effectivement de garde dans le
   // planning FINAL, quelle que soit la passe qui l'y a placé.
   const souhaitJoursOK={};
@@ -2503,12 +2517,17 @@ function generateGardes(year, opts){
     const cbS=cible[id]?cible[id].sam:0, cbJ=cible[id]?cible[id].jeu:0, cbV=cible[id]?cible[id].vd:0, cbVjf=cible[id]?cible[id].vjf:0;
     const cbJf=cible[id]?cible[id].jf:0; // (RH-3) exploité par la dette de N+1
     const c=cnt[id]||{total:0,g:0,g2:0,lun:0,mar:0,mer:0,jeu:0,ven:0,sam:0,dim:0,recupR:0,vd:0,vjf:0};
+    // (11/09/2026) Part exacte, avant arrondi. Trois decimales : le reliquat vaut
+    // quelques dixiemes, l'arrondir a un dixieme le perdrait a moitie.
+    const ex=cibleExacte[id]||{};
+    const _ex=k=>ex[k]===undefined?'':+Number(ex[k]).toFixed(3);
     return[id,"'"+cbT.toFixed(1),c.total,c.g,c.g2,c.lun,c.mar,c.mer,c.jeu,c.ven,c.sam,c.dim,c.recupR,
       h18cnt[id]||0,jfCnt[id]||0,c.vjf||0,noelAnCnt[id]||0,
       +cbS.toFixed(1),+cbJ.toFixed(1),+cbV.toFixed(1),c.vd||0,+cbVjf.toFixed(1),+cbJf.toFixed(1),
-      souhaitPose[id]||0,souhaitJoursOK[id]||0];
+      souhaitPose[id]||0,souhaitJoursOK[id]||0,
+      _ex('total'),_ex('sam'),_ex('jeu'),_ex('vd'),_ex('vjf'),_ex('jf')];
   });
-  st.getRange(2,1,sRows.length,25).setValues(sRows);
+  st.getRange(2,1,sRows.length,31).setValues(sRows);
   st.getRange(2,2,sRows.length,1).setNumberFormat('@STRING@');
   st.setColumnWidth(1,140);
 
