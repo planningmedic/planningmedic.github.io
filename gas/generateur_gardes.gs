@@ -41,7 +41,7 @@
 // ⚠️ RÈGLE (détecteur de dérive dépôt↔Apps Script) : incrémenter cette version
 // à CHAQUE push de ce fichier. Le diagnostic (admin → Maintenance) compare la
 // version déployée ici avec celle du dépôt et signale toute recopie oubliée.
-const GAS_VERSION_GENERATEUR = '2026-09-11.1';
+const GAS_VERSION_GENERATEUR = '2026-09-11.2';
 
 /* (05/09/2026) INTERRUPTEUR DU NOUVEL ALGORITHME.
    À false, le générateur se comporte EXACTEMENT comme avant : c'est le retour
@@ -661,6 +661,22 @@ function generateGardes(year, opts){
     // (arrivée/départ, congés longs, TP, no_weekend) au moment de la génération N-1.
     const iCbT=hdr.indexOf('CIBLE'), iCbS=hdr.indexOf('CIBLE SAM'), iCbJ=hdr.indexOf('CIBLE JEU'),
           iCbV=hdr.indexOf('CIBLE VD'), iCbVj=hdr.indexOf('CIBLE VJF'), iCbJf=hdr.indexOf('CIBLE JF');
+    /* (11/09/2026) PART EXACTE — la reference du report, quand elle existe.
+       Les colonnes CIBLE de N-1 portent la cible ENTIERE. Un MAR dont la part
+       valait 5,539 samedis, arrondie a 6, et qui a fait 6 samedis, apparaissait
+       « a jour » alors qu'il en avait fait 0,46 de trop. Ce reliquat se rejouait
+       a l'identique chaque annee, toujours dans le meme sens, l'arbitrage a
+       egalite parfaite etant l'ordre alphabetique. Mesure sur cinq annees
+       consecutives : l'ecart cumule sur l'axe samedi passait de 1 a 5 gardes
+       entre le plus et le moins servi, et c'etaient toujours les memes.
+       En lisant la part exacte, le meme ecart oscille entre 1 et 2 sans monter,
+       et les positions tournent d'une annee a l'autre.
+       REPLI : si les colonnes manquent — statistiques ecrites par une version
+       anterieure a 2026-09-11.1, ou annee reconstruite a la main — on retombe
+       sur les colonnes CIBLE, exactement comme avant. */
+    const iExT=hdr.indexOf('PART EXACTE'), iExS=hdr.indexOf('PART EXACTE SAM'),
+          iExJ=hdr.indexOf('PART EXACTE JEU'), iExV=hdr.indexOf('PART EXACTE VD'),
+          iExVj=hdr.indexOf('PART EXACTE VJF'), iExJf=hdr.indexOf('PART EXACTE JF');
     // (dette) on lit les NOMBRES RÉELS affectés en N-1, puis on recompose la part
     // juste en redistribuant ces réels au prorata des CIBLES N-1 stockées (RH-3) —
     // et non plus de la seule quotité, qui créait une fausse dette « négative »
@@ -675,14 +691,18 @@ function generateGardes(year, opts){
             rjf=iJf>=0?Number(ps[r][iJf])||0:0,  rt=iTot>=0?Number(ps[r][iTot])||0:0;
       reel[id]={sam:rs,jeu:rj,vd:rv,vjf:rvj,jf:rjf,total:rt};
       totSam+=rs; totJeu+=rj; totVd+=rv; totVjf+=rvj; totJf+=rjf; totTot+=rt;
-      const cbS=iCbS>=0?_num(ps[r][iCbS]):0;
+      // Part exacte si elle est renseignée, sinon la cible entière (cf. commentaire ci-dessus).
+      const _ref=(iEx,iCb)=>{ const v=iEx>=0?_num(ps[r][iEx]):0;
+        return v>0 ? v : (iCb>=0?_num(ps[r][iCb]):0); };
+      const cbS=_ref(iExS,iCbS);
       cibN1[id]={
-        total: iCbT>=0?_num(ps[r][iCbT]):0,
+        total: _ref(iExT,iCbT),
         sam: cbS,
-        jeu: iCbJ>=0?_num(ps[r][iCbJ]):0,
-        vd:  iCbV>=0?_num(ps[r][iCbV]):0,
-        vjf: iCbVj>=0?_num(ps[r][iCbVj]):0,
-        jf:  iCbJf>=0?_num(ps[r][iCbJf]):cbS, // pas de CIBLE JF en N-1 → repli CIBLE SAM (même pool WE)
+        jeu: _ref(iExJ,iCbJ),
+        vd:  _ref(iExV,iCbV),
+        vjf: _ref(iExVj,iCbVj),
+        jf:  iExJf>=0&&_num(ps[r][iExJf])>0 ? _num(ps[r][iExJf])
+             : (iCbJf>=0?_num(ps[r][iCbJf]):cbS), // pas de CIBLE JF en N-1 → repli CIBLE SAM (même pool WE)
       };
     }
     const sumP=gardeDoctors.reduce((s,id)=>s+pct[id]/100,0);
