@@ -103,6 +103,25 @@ function toucher(w, type, y) {
     V('après un échec, le geste fonctionne encore', repris === 1, repris);
   }
 
+  /* ═══ Le cache de session (11/09/2026) ═══
+     Defaut trouve en production : un congé retiré dans le classeur puis
+     republié restait affiché. Deux causes, eprouvees ici sur le code reel. */
+  console.log('\n═══ Le cache de session lache prise ═══');
+  {
+    const src = fs.readFileSync('../index.html', 'utf8');
+    const cleEcrite = (src.match(/sessionStorage\.setItem\('([A-Za-z]+):'\s*\+\s*year/) || [])[1];
+    V('le cache du planning porte bien le nom qu\'on croit', cleEcrite === 'pmPlan', cleEcrite);
+    const menage = (src.match(/k\.indexOf\('([^']+)'\) === 0\) sessionStorage\.removeItem/) || [])[1];
+    V('le glissement vide EXACTEMENT cette clé (pas « plan_ »)',
+      menage && cleEcrite && menage === cleEcrite + ':', menage);
+    const bloc = (src.match(/async function _refreshPlanSilently[\s\S]*?\n\}/) || [''])[0];
+    V('le rafraîchissement de fond recalcule les gardes', /renderMyGardesHero\(\)/.test(bloc));
+    V('… ET les congés : sans lui, il fallait fermer l\'application',
+      /loadMyConges\(\)/.test(bloc) && /renderMesConges\(\)/.test(bloc), bloc.slice(-220));
+    V('les congés se redessinent après le recalcul, pas avant',
+      bloc.indexOf('loadMyConges()') < bloc.indexOf('renderMesConges()'));
+  }
+
   console.log('\n═══ Le journal de connexion : DEUX endroits, pas un de plus ═══');
   {
     /* (23/08/2026) Décision d'Arthur : la traçabilité ne se fait qu'à

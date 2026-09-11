@@ -194,16 +194,16 @@ efface les 646 mentions de l'établissement et le logo.
 
 Retiré du dépôt public : le logo officiel de l'établissement et les 77 noms de praticiens du
 générateur de comptes rendus (module supprimé), l'adresse postale imprimée sur le devis patient,
-la liste `DOCTORS` (25 noms), `DVI_ALLOWED` (3 noms), les tests `id === 'PRUNET'` (15 occurrences),
+la liste `DOCTORS` (25 noms), `DVI_ALLOWED` (3 noms), les tests `id === '<initiales>'` (15 occurrences),
 et 517 occurrences de noms réels dans les jeux d'essai et la documentation.
 
 ### Trois mécanismes construits pour cela
 
 | avant | après |
 |---|---|
-| `only:'FROHLICH'` sur 5 tuiles + `CRH_ALLOWED` / `STATS_ALLOWED` côté serveur | `CONFIG / TUILES_PRIVEES`, lue par l'écran **et** par le serveur |
+| `only:'<initiales>'` sur 5 tuiles + `CRH_ALLOWED` / `STATS_ALLOWED` côté serveur | `CONFIG / TUILES_PRIVEES`, lue par l'écran **et** par le serveur |
 | `DVI_ALLOWED = [3 noms]` | `CONFIG / DVI_HABILITES` |
-| `id === 'PRUNET' ? 'Pr ' : 'Dr '` et `wish: id === 'PRUNET'` | listes `titresPr` et `souhaitsPlafond`, déduites des colonnes NOM et `souhait_plafond` |
+| `id === '<initiales>' ? 'Pr ' : 'Dr '` et `wish: id === '<initiales>'` | listes `titresPr` et `souhaitsPlafond`, déduites des colonnes NOM et `souhait_plafond` |
 
 Les deux listes voyagent par **les deux chemins d'identité** — copie rapide et connexion au
 serveur. Le précédent `libAdmin` n'existait que d'un côté : une tuile qui apparaît quand le relais
@@ -253,7 +253,7 @@ Rien n'est recalculé : ce sont des variables que la fin du calcul jetait.
    `no_garde` peut poser des souhaits de garde ; un profil `no_weekend` peut en poser le samedi.
    Le taux affiché est pessimiste et incompréhensible pour l'intéressé. Deux pistes : empêcher la
    saisie, ou ne compter que les souhaits honorables. La tuile des indisponibilités devrait par
-   ailleurs disparaître pour qui n'a ni garde ni temps partiel à poser (BONNET, BOUREGBA).
+   ailleurs disparaître pour qui n'a ni garde ni temps partiel à poser (deux MAR, par leurs initiales).
 5. **Le module libéral n'a pas été repensé.** L'en-tête du devis est devenu un champ à compléter,
    mais 21 mentions de Monaco subsistent — mutuelles CCSP, ordonnance souveraine, coefficient
    1,95 : ce sont des règles tarifaires d'un pays, non des références à un établissement.

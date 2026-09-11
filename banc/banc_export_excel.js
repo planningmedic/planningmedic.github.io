@@ -202,6 +202,20 @@ const colJour = dow => (dow < 5 ? 2 + dow * 4 : 22 + (dow - 5) * 4);
   V('mercredi : rien en maternit\u00e9 (le 2 ao\u00fbt ne d\u00e9borde pas)', val(ws, rMAT, MER) === '', val(ws, rMAT, MER));
   V('mercredi : aucune garde r\u00e9a', val(ws, rGRE, MER) === '', val(ws, rGRE, MER));
 
+  /* ── Aucun numero interne dans le depot public (11/09/2026) ──
+     Consigne du DPO. Une table de secours de 23 DECT et quatre numeros de
+     service etaient ecrits dans admin.html, donc publies. Ce scenario garde
+     la porte : le DECT ne peut venir que du classeur. */
+  {
+    const src = fs.readFileSync('../admin.html', 'utf8');
+    const numeros = (src.match(/['"]\b8\d{4}\b['"]/g) || []);
+    V('aucun numero interne ecrit dans la page', numeros.length === 0, numeros.slice(0, 4));
+    V('plus de table de secours des DECT', !/DECTFB/.test(src));
+    V('plus de liste de numeros de service', !/const FIXED\s*=/.test(src));
+    V('le DECT vient du classeur, et de nulle part ailleurs',
+      /const dect\s*=\s*m\.dect\s*\|\|\s*''/.test(src));
+  }
+
   console.log('\n  ' + ok + ' v\u00e9rifications OK, ' + ko + ' en \u00e9chec');
   if (ko) process.exit(1);
 })();

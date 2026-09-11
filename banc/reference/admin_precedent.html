@@ -5793,8 +5793,8 @@ async function exportWeekExcel(){
   const DFX=['LUNDI','MARDI','MERCREDI','JEUDI','VENDREDI','SAMEDI','DIMANCHE'];
   // Codes de secteur collectés : exactement ceux des lignes ci-dessus.
   const SX = BLOCS.reduce((a, b2) => a.concat(b2.codes), []);
-  const DECTFB={BP:'81409',SA:'85019',GA:'81867',LB:'81322',MB:'81859',JC:'81268',AFR:'82616',AF:'82565',SG:'81809',JPG:'82022',LUL:'82558',LL:'82132',RM:'81378',NO:'82188',NP:'81806',GR:'81860',CS:'82578',MS:'82401',WS:'81348',DT:'83783',FZ:'82481',RW:'82101',NS:'81397'};
-  const FIXED=[['Garde réa','83636'],['Garde bloc / mater','82103'],['Secrétariat Tamaris','81380'],['Secrétariat réa','89819']];
+  const DECTFB={};   /* (11/09/2026) numeros internes retires du depot public */
+  const FIXED=[];   /* (11/09/2026) idem */
   // ── Collecte ──
   const smap={};SX.forEach(s=>{smap[s]=Array(7).fill(null).map(()=>({am:[],pm:[]}));});
   const csb={};CSROWS.forEach((r,i)=>{csb[i]=Array(7).fill(null).map(()=>({am:[],pm:[]}));});

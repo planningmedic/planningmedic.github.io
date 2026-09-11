@@ -6610,8 +6610,10 @@ async function exportWeekExcel(){
   const DFX=['LUNDI','MARDI','MERCREDI','JEUDI','VENDREDI','SAMEDI','DIMANCHE'];
   // Codes de secteur collectés : exactement ceux des lignes ci-dessus.
   const SX = BLOCS.reduce((a, b2) => a.concat(b2.codes), []);
-  const DECTFB={BP:'81409',SA:'85019',GA:'81867',LB:'81322',MB:'81859',JC:'81268',AFR:'82616',AF:'82565',SG:'81809',JPG:'82022',LUL:'82558',LL:'82132',RM:'81378',NO:'82188',NP:'81806',GR:'81860',CS:'82578',MS:'82401',WS:'81348',DT:'83783',FZ:'82481',RW:'82101',NS:'81397'};
-  const FIXED=[['Garde réa','83636'],['Garde bloc / mater','82103'],['Secrétariat Tamaris','81380'],['Secrétariat réa','89819']];
+  /* (11/09/2026) Les numeros internes ne vivent plus ici. Une table de secours
+     DECT (23 lignes) et quatre numeros de service etaient ecrits dans cette
+     page, donc publies : le depot est public. Le DECT vient desormais
+     UNIQUEMENT de la colonne I de MEDECINS, et une case vide reste vide. */
   // ── Collecte ──
   const smap={};SX.forEach(s=>{smap[s]=Array(7).fill(null).map(()=>({am:[],pm:[]}));});
   const csb={};CSROWS.forEach((r,i)=>{csb[i]=Array(7).fill(null).map(()=>({am:[],pm:[]}));});
@@ -6809,15 +6811,13 @@ async function exportWeekExcel(){
     .filter(m => m.actif && (!_semDates.length || _semDates.some(d => statActive(m, d))))
     .slice().sort((a,b)=>(a.nom||'').localeCompare(b.nom||''));
   let rr=10;
-  roster.forEach(m=>{const pre=(m.initiales==='BP')?'PR':'DR';const dect=m.dect||DECTFB[m.initiales]||'';
+  roster.forEach(m=>{const pre=(m.initiales==='BP')?'PR':'DR';const dect=m.dect||'';
     const nom=(m.nom||'').replace(/^\s*(DR|PR)\s+/i,'');
     mc(rr,22,rr,25);setCell(rr,22,' '+pre+' '+nom,font(false,10),fill(C.white),align('left','middle'),bAll);
     setCell(rr,26,m.initiales||'',font(true,10),fill(C.white),align('center','middle'),bAll);
     mc(rr,27,rr,29);setCell(rr,27,dect,font(false,10),fill(C.white),align('center','middle'),bAll);
     rr++;
   });
-  rr++;
-  FIXED.forEach(function(p){const lbl=p[0],num=p[1];mc(rr,22,rr,26);setCell(rr,22,' '+lbl,font(true,9),fill(C.hd),align('left','middle'),bAll);mc(rr,27,rr,29);setCell(rr,27,num,font(false,9),fill(C.white),align('center','middle'),bAll);rr++;});
   // Zone d'impression explicite (absente jusqu'ici) : sans elle Excel embarque les
   // colonnes/lignes vides au-delà du contenu et réduit encore l'échelle.
   // Bas = le plus bas des deux colonnes : tableau (R_LAST) ou annuaire (rr, qui suit
