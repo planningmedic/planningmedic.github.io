@@ -145,9 +145,14 @@ console.log('\n═══ 5. L\'écran : le bandeau, puis la file au clic ══�
 
   const bandeaux = boite.querySelectorAll('.ov-bd');
   V('deux bandeaux, un par année', bandeaux.length === 2, bandeaux.length);
-  V('le premier annonce mon groupe et mon rang',
-    /Groupe B/.test(bandeaux[0].textContent) && /2<sup>e<\/sup>/.test(bandeaux[0].innerHTML),
+  V('le premier annonce mon groupe, mon rang et la taille du groupe',
+    /Groupe B/.test(bandeaux[0].textContent) &&
+    bandeaux[0].querySelector('.ov-r b').textContent.trim() === '2' &&
+    /sur\s*7/.test(bandeaux[0].querySelector('.ov-r i').textContent),
     bandeaux[0].textContent.replace(/\s+/g,' ').trim().slice(0,60));
+  V('le rang occupe la meme pastille que les dates de conges (60px, meme rayon)',
+    /\.ov-bd \.ov-r \{[^}]*width:60px/.test(contenu) && /\.cg-d \{[^}]*width:60px/.test(contenu),
+    (contenu.match(/\.ov-bd \.ov-r \{[^}]*\}/) || [''])[0].slice(0,110));
   V('l\'année mise en avant est celle que dit le serveur',
     !bandeaux[0].className.includes('sec') && bandeaux[1].className.includes('sec'));
   V('la file est fermée au départ', boite.querySelectorAll('.ov-pan').length === 0);
@@ -224,18 +229,63 @@ console.log('\n═══ 5. L\'écran : le bandeau, puis la file au clic ══�
       + "counts:{vac:67,form:11,recup:8}}; renderMesConges();");
     const chips = D.querySelectorAll('#mesCongesBody .cg-count');
     V('une pastille par type présent', chips.length === 3, chips.length);
-    V('le libellé vient avant le nombre',
-      /^Vacances\s*67\s*j$/.test(chips[0].textContent.replace(/\s+/g,' ').trim()),
+    V('le nombre vient d\'abord, le libellé dessous',
+      /^67\s*j\s*Vacances$/.test(chips[0].textContent.replace(/\s+/g,' ').trim()),
       chips[0].textContent.replace(/\s+/g,' ').trim());
     V('le « j » est collé au nombre, pas au libellé',
       chips[0].querySelector('.cg-n').textContent.trim() === '67' &&
-      /^\s*j\s*$/.test(chips[0].querySelector('.cg-u').textContent),
+      /^\s*j\s*$/.test(chips[0].querySelector('.cg-u').textContent) &&
+      chips[0].querySelector('.cg-l').textContent.trim() === 'Vacances',
       chips[0].innerHTML);
     V('les types absents ne fabriquent pas de pastille vide',
       ![...chips].some(c => /Temps partiel|Congé long/.test(c.textContent)));
-    V('les pastilles sont posées en grille (largeurs égales, pas de ligne bancale)',
-      /\.cg-counts\s*\{[^}]*display:grid/.test(contenu),
+    V('les pastilles sont posées en grille de 3 (pas de ligne bancale à 5 types)',
+      /\.cg-counts\s*\{[^}]*grid-template-columns:repeat\(3,/.test(contenu),
       (contenu.match(/\.cg-counts\s*\{[^}]*\}/) || [''])[0].slice(0, 120));
+    V('aucune couleur écrite en dur dans la pastille (le thème sombre la suivrait pas)',
+      !/style="background:#/.test(chips[0].outerHTML) && /cat-vac/.test(chips[0].className),
+      chips[0].outerHTML.slice(0,90));
+  }
+
+  /* ── La liste des congés (11/09/2026) ──
+     Neuf cartes blanches identiques, sans repère de mois : un jour isolé pesait
+     autant qu'un bloc de dix. La liste reprend la forme de « Mes gardes ». */
+  console.log('\n═══ 5c. La liste des congés ═══');
+  {
+    dansLaPage("MY_CONGES={days:new Array(13).fill(0).map(function(){return {date:'2026-09-14',cat:'vac'};}),"
+      + "periods:[{cat:'form',start:'2026-09-11',end:'2026-09-11',n:1},"
+      + "{cat:'vac',start:'2026-09-14',end:'2026-09-25',n:10},"
+      + "{cat:'recup',start:'2026-10-21',end:'2026-10-21',n:1},"
+      + "{cat:'cl',start:'2026-11-03',end:'2026-11-03',n:1}],"
+      + "counts:{vac:10,form:1,recup:1,cl:1}}; renderMesConges();");
+    const mois = D.querySelectorAll('#mesCongesBody .mg-month');
+    V('un intitulé par mois, dans l\'ordre', mois.length === 3 &&
+      /Sept\./.test(mois[0].textContent) && /2026/.test(mois[0].textContent),
+      [...mois].map(e => e.textContent));
+    const items = D.querySelectorAll('#mesCongesBody .cg-item');
+    V('une ligne par période', items.length === 4, items.length);
+    V('la pastille porte le jour du début et sa couleur de type',
+      items[1].querySelector('.cg-dnum').textContent.trim() === '14' &&
+      items[1].querySelector('.cg-d').className.includes('cat-vac'),
+      items[1].querySelector('.cg-d').outerHTML.replace(/\s+/g,' ').slice(0,120));
+    V('une période de plusieurs jours dit jusqu\'à quand',
+      /Jusqu’au ven\. 25 sept\. · 10 jours/.test(items[1].querySelector('.cg-sub').textContent),
+      items[1].querySelector('.cg-sub').textContent);
+    V('un jour isolé dit son jour de semaine, au singulier',
+      /^Mercredi · 1 jour$/.test(items[2].querySelector('.cg-sub').textContent.trim()),
+      items[2].querySelector('.cg-sub').textContent);
+    V('le type est écrit en toutes lettres à côté de la date',
+      items[0].querySelector('.cg-lab').textContent.trim() === 'Formation' &&
+      items[3].querySelector('.cg-lab').textContent.trim() === 'Congé long',
+      items[0].querySelector('.cg-lab').textContent);
+    V('plus de carte blanche par ligne : des lignes séparées par un filet',
+      /\.cg-item \{[^}]*border-bottom/.test(contenu) && !/\.cg-item \{[^}]*background:var\(--white\)/.test(contenu),
+      (contenu.match(/\.cg-item \{[^}]*\}/) || [''])[0].slice(0,120));
+    V('les cinq types ont une couleur en thème clair ET en thème sombre',
+      ['vac','form','tp','recup','cl'].every(function(t){
+        return new RegExp('--cat-' + t + '-bg:').test(contenu.split('data-theme="dark"')[0]) &&
+               new RegExp('--cat-' + t + '-bg:').test(contenu.split('data-theme="dark"')[1] || '');
+      }));
   }
 
   console.log('\n═══ 6. Le bandeau est déjà là quand on ouvre la tuile ═══');

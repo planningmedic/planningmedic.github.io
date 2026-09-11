@@ -255,8 +255,21 @@ const v = (VJS.match(/window\.SITE_VERSION = 'v([\d.]+)'/) || [])[1];
 /* (06/09/2026) Figer le numéro exact obligeait à revenir ici à chaque lot du
    site. On vérifie que la version est au moins celle de ce lot, et qu'elle a la
    bonne forme — c'est tout ce que ce banc a à en dire. */
+/* (11/09/2026) La comparaison se faisait sur le TEXTE : '1.10.0' >= '1.2' est
+   faux pour une chaîne. Le banc aurait refusé la première version à deux
+   chiffres. On compare désormais nombre par nombre. */
+const auMoins = (a, b) => {
+  const A = String(a).split('.').map(Number), B = String(b).split('.').map(Number);
+  for (let i = 0; i < Math.max(A.length, B.length); i++) {
+    const x = A[i] || 0, y = B[i] || 0;
+    if (x !== y) return x > y;
+  }
+  return true;
+};
 V('la version du site est lisible et à jour',
-  /^\d+\.\d+(\.\d+)?$/.test(v) && v >= '1.2', v);
+  /^\d+\.\d+(\.\d+)?$/.test(v) && auMoins(v, '1.2'), v);
+V('un numéro à deux chiffres n\'est pas pris pour un numéro plus petit',
+  auMoins('1.10.0', '1.9.1') && auMoins('2.0', '1.99') && !auMoins('1.9.1', '1.10.0'));
 V('le retour à v1.0 est expliqué dans le fichier',
   /RETOUR À v1\.0/.test(VJS) && /4 septembre 2026/.test(VJS));
 

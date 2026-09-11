@@ -54,6 +54,14 @@ window.SessionPortail = window.SessionPortail || { lire:function(){try{return se
   --ok:#166534; --ok-soft:#F0FDF4; --info:#1D4ED8; --info-soft:#EFF6FF;
   --viol:#6D28D9; --viol-soft:#F5F3FF; --rose:#BE123C;
   --me:#1D6FB8; --me-soft:#E8F4FD; --me-border:#B9DCF5;
+  /* Couleurs des categories de conges. Elles etaient ecrites en dur dans le JS
+     (CAT_META) : le theme sombre gardait donc des pastilles pastel qui brillent.
+     Une seule source ici, declinee plus bas pour le sombre. */
+  --cat-vac-bg:#EEF4FB;   --cat-vac-fg:#1D6FB8;
+  --cat-form-bg:#FDF3E3;  --cat-form-fg:#B45309;
+  --cat-tp-bg:#FEF3C7;    --cat-tp-fg:#92400E;
+  --cat-recup-bg:#E7F6F3; --cat-recup-fg:#0F766E;
+  --cat-cl-bg:#F3E8FF;    --cat-cl-fg:#7C3AED;
 }
 .ver-badge { display:inline-flex; align-items:center; gap:5px; font-family:var(--mono); font-size:11px; font-weight:600; color:var(--ink-4); background:var(--line-light); border:1px solid var(--line); border-radius:20px; padding:3px 10px; letter-spacing:.02em; vertical-align:middle; }
 .ver-dot { width:5px; height:5px; border-radius:50%; background:#22C55E; flex:none; }
@@ -67,6 +75,11 @@ html[data-theme="dark"] {
   --ok:#5BD08B; --ok-soft:#122A1D; --info:#7BAAF7; --info-soft:#152341;
   --viol:#B593F2; --viol-soft:#251B3C; --rose:#F27D96;
   --me:#93C3E8; --me-soft:#17293A; --me-border:#2B4763;
+  --cat-vac-bg:#152341;   --cat-vac-fg:#7BAAF7;
+  --cat-form-bg:#38290F;  --cat-form-fg:#F0A64A;
+  --cat-tp-bg:#3A2E0C;    --cat-tp-fg:#EAB308;
+  --cat-recup-bg:#0F2A26; --cat-recup-fg:#5BD0B4;
+  --cat-cl-bg:#251B3C;    --cat-cl-fg:#B593F2;
   color-scheme:dark;
 }
 html[data-theme="dark"] body{background:var(--bg)}
@@ -261,28 +274,42 @@ a.tile:hover, .tile.clickable:hover {
    laissait la derniere seule et decentree sur la ligne suivante. Une pastille
    orpheline occupe alors toute la largeur : c'est regulier, quel que soit le
    nombre de categories (de 1 a 5). */
-.cg-counts { display:grid; grid-template-columns:repeat(auto-fit,minmax(150px,1fr)); gap:8px; margin-bottom:18px; }
-.cg-count { border-radius:999px; padding:7px 13px; font-size:13px; font-weight:600; text-align:center; }
-.cg-count .cg-n { font-weight:800; }
-.cg-count .cg-u { font-weight:600; opacity:.7; }
-.cg-list { display:flex; flex-direction:column; gap:8px; }
-.cg-item { display:flex; align-items:center; gap:10px; background:var(--white); border:1px solid var(--line); border-radius:12px; padding:11px 14px; }
-.cg-tag { font-size:11px; font-weight:700; border-radius:7px; padding:3px 9px; flex-shrink:0; }
-.cg-range { flex:1; font-size:14px; color:var(--ink); min-width:0; }
-.cg-days { font-size:12px; color:var(--ink-4); font-weight:600; flex-shrink:0; }
+.cg-counts { display:grid; grid-template-columns:repeat(3,minmax(0,1fr)); gap:8px; margin-bottom:2px; }
+.cg-count { border-radius:11px; padding:9px 11px; }
+.cg-count .cg-n { font-size:19px; font-weight:800; line-height:1.1; }
+.cg-count .cg-u { font-size:19px; font-weight:800; opacity:.65; }
+.cg-count .cg-l { display:block; font-size:11.5px; font-weight:600; opacity:.85; margin-top:1px; }
+.cg-counts + .mg-month { margin-top:16px; }
+.cg-item { display:flex; align-items:center; gap:14px; padding:10px 2px; border-bottom:1px solid var(--line-light); }
+.cg-item:last-child { border-bottom:none; }
+.cg-d { flex-shrink:0; width:60px; text-align:center; border-radius:10px; padding:8px 6px; }
+.cg-dow { font-size:11px; font-weight:700; text-transform:uppercase; letter-spacing:.03em; }
+.cg-dnum { font-size:22px; font-weight:800; line-height:1.05; }
+.cg-mon { font-size:11px; font-weight:600; opacity:.85; }
+.cg-b { flex:1; min-width:0; }
+.cg-lab { font-size:15px; font-weight:700; color:var(--ink); line-height:1.3; }
+.cg-sub { font-size:12px; font-weight:500; color:var(--ink-4); margin-top:2px; }
+.cat-vac { background:var(--cat-vac-bg); color:var(--cat-vac-fg); }
+.cat-form { background:var(--cat-form-bg); color:var(--cat-form-fg); }
+.cat-tp { background:var(--cat-tp-bg); color:var(--cat-tp-fg); }
+.cat-recup { background:var(--cat-recup-bg); color:var(--cat-recup-fg); }
+.cat-cl { background:var(--cat-cl-bg); color:var(--cat-cl-fg); }
 
 /* ── MON ORDRE DE PASSAGE (vacances) ──
    Bandeau replie par defaut ; l'annee mise en avant est decidee par le serveur
    (bascule au 1er septembre). Un seul panneau ouvert a la fois. */
-.ov-bd { width:100%; text-align:left; display:flex; align-items:center; gap:11px; background:var(--me-soft); border:1px solid var(--me-border); border-radius:11px; padding:11px 12px; cursor:pointer; font:inherit; color:inherit; margin-bottom:9px; transition:border-color .15s, box-shadow .15s; }
+.ov-bd { width:100%; text-align:left; display:flex; align-items:center; gap:14px; background:var(--me-soft); border:1px solid var(--me-border); border-radius:12px; padding:10px 12px; cursor:pointer; font:inherit; color:inherit; margin-bottom:9px; transition:border-color .15s, box-shadow .15s; }
 .ov-bd:hover { border-color:var(--me); box-shadow:0 1px 6px rgba(29,111,184,.14); }
 .ov-bd.sec { background:var(--white); border-color:var(--line); }
-.ov-bd .ov-r { font-family:var(--mono); font-size:21px; font-weight:500; color:var(--me); line-height:1; flex:none; }
-.ov-bd .ov-r sup { font-size:11px; top:-.6em; }
-.ov-bd.sec .ov-r { color:var(--ink-3); }
-.ov-bd .ov-t { flex:1; font-size:13px; color:var(--ink-2); line-height:1.42; }
-.ov-bd .ov-t b { color:var(--ink); }
-.ov-bd .ov-t em { font-style:normal; color:var(--ink-3); font-size:12px; }
+/* Le rang reprend exactement la pastille 60px des dates de « Mes conges » :
+   les deux colonnes se repondent au lieu de se contredire. */
+.ov-bd .ov-r { flex:none; width:60px; text-align:center; background:var(--white); border:1px solid var(--me-border); border-radius:10px; padding:6px 4px; }
+.ov-bd.sec .ov-r { background:var(--bg); border-color:var(--line); }
+.ov-bd .ov-r b { display:block; font-family:var(--mono); font-size:21px; font-weight:500; color:var(--me); line-height:1; }
+.ov-bd.sec .ov-r b { color:var(--ink-3); }
+.ov-bd .ov-r i { display:block; font-style:normal; font-size:11px; font-weight:600; color:var(--ink-4); margin-top:3px; }
+.ov-bd .ov-t { flex:1; min-width:0; font-size:15px; font-weight:700; color:var(--ink); line-height:1.3; }
+.ov-bd .ov-t em { display:block; font-style:normal; font-weight:500; color:var(--ink-4); font-size:12px; margin-top:2px; }
 .ov-bd .ov-c { flex:none; color:var(--ink-4); font-size:13px; transition:transform .18s ease; }
 .ov-bd[aria-expanded="true"] .ov-c { transform:rotate(180deg); }
 .ov-pan { border:1px solid var(--line); border-top:none; border-radius:0 0 11px 11px; background:var(--white); margin:-13px 0 11px; padding:13px 12px 11px; }
@@ -1281,11 +1308,11 @@ function renderMesGardes(){
 // ── MES CONGÉS (perso — à venir) ──
 const CONGE_CODE_TO_CAT = { A:'vac', V:'vac', F:'form', TP:'tp', R:'recup', CL:'cl' };  // A (2026) et V (2027+) = vacances
 const CAT_META = {
-  vac:   { label:'Vacances',      bg:'#EEF4FB', fg:'#1D6FB8' },
-  form:  { label:'Formation',     bg:'#FDF3E3', fg:'#B45309' },
-  tp:    { label:'Temps partiel', bg:'#FEF3C7', fg:'#92400E' },
-  recup: { label:'Récupération',  bg:'#E7F6F3', fg:'#0F766E' },
-  cl:    { label:'Congé long',    bg:'#F3E8FF', fg:'#7C3AED' }
+  vac:   { label:'Vacances',      cls:'cat-vac'   },
+  form:  { label:'Formation',     cls:'cat-form'  },
+  tp:    { label:'Temps partiel', cls:'cat-tp'    },
+  recup: { label:'Récupération',  cls:'cat-recup' },
+  cl:    { label:'Congé long',    cls:'cat-cl'    }
 };
 const CAT_ORDER = ['vac','form','tp','recup','cl'];
 let MY_CONGES = null;   // { days:[{date,type}], periods:[{type,start,end,n}], counts:{} }
@@ -1400,9 +1427,9 @@ function _ovBandeau(bloc, principal){
   if (!bloc.monGroupe) return '';   /* MAR hors groupes : rien a annoncer */
   let h = '<button class="ov-bd' + (principal ? '' : ' sec') + '" data-ov-an="' + an + '" data-ov-bd="1"'
         + ' aria-expanded="' + (st.ouvert ? 'true' : 'false') + '">'
-        + '<span class="ov-r">' + bloc.monRang + '<sup>' + (bloc.monRang === 1 ? 'er' : 'e') + '</sup></span>'
-        + '<span class="ov-t"><b>Groupe ' + bloc.monGroupe + '</b>, sur ' + bloc.tailleGroupe + ' — vacances ' + an
-        + '<br><em>' + (principal ? 'Appuyez pour voir qui passe avant vous' : 'L’année suivante') + '</em></span>'
+        + '<span class="ov-r"><b>' + bloc.monRang + '</b><i>sur ' + bloc.tailleGroupe + '</i></span>'
+        + '<span class="ov-t">Groupe ' + bloc.monGroupe + ' — vacances ' + an
+        + '<em>' + (principal ? 'Appuyez pour voir qui passe avant vous' : 'L’année suivante') + '</em></span>'
         + '<span class="ov-c">⌄</span></button>';
   if (st.ouvert) h += '<div class="ov-pan">' + _ovPanneau(an) + '</div>';
   return h;
@@ -1533,25 +1560,29 @@ function renderMesConges(){
   order.forEach(function(t){
     const n=MY_CONGES.counts[t]||0; if(!n) return;
     const c=CAT_META[t];
-    /* « Vacances 67 j » — le nombre et son unite restent colles, le libelle passe
-       devant : « 67 Vacances j » se lisait comme une faute. */
-    chips+='<span class="cg-count" style="background:'+c.bg+';color:'+c.fg+'">'+c.label
-         +' <span class="cg-n">'+n+'</span><span class="cg-u"> j</span></span>';
+    /* Le nombre et son unite restent colles ; le libelle passe DESSOUS. Ecrits
+       sur une ligne — « Vacances 67 j » — ils tenaient mal a trois par ligne. */
+    chips+='<span class="cg-count '+c.cls+'"><span class="cg-n">'+n+'</span><span class="cg-u"> j</span>'
+         +'<span class="cg-l">'+c.label+'</span></span>';
   });
   chips+='</div>';
-  let list='<div class="cg-list">';
+  /* Groupage par mois, meme intitule et meme style que « Mes gardes » : les deux
+     ecrans se lisent pareil. Le mois retenu est celui du DEBUT de la periode. */
+  let list='', curMonth='';
   MY_CONGES.periods.forEach(function(p){
     const c=CAT_META[p.cat], s=staffDateParts(p.start), e=staffDateParts(p.end);
-    const range = (p.start===p.end)
-      ? (_mgCap(s.dow)+' '+s.dnum+' '+s.month)
-      : (_mgCap(s.dow)+' '+s.dnum+' '+s.month+' → '+_mgCap(e.dow)+' '+e.dnum+' '+e.month);
+    const q=p.start.split('-'), mKey=q[0]+'-'+q[1];
+    if(mKey!==curMonth){ curMonth=mKey; list+='<div class="mg-month">'+_mgCap(_MOIS[(+q[1])-1])+' '+q[0]+'</div>'; }
+    const jourLong = _MG_JOURS[new Date(p.start+'T00:00:00').getDay()];
+    const sous = (p.start===p.end)
+      ? (jourLong+' · 1 jour')
+      : ('Jusqu’au '+e.dow+' '+e.dnum+' '+e.month+' · '+p.n+' jours');
     list+='<div class="cg-item">'
-      + '<span class="cg-tag" style="background:'+c.bg+';color:'+c.fg+'">'+c.label+'</span>'
-      + '<span class="cg-range">'+range+'</span>'
-      + '<span class="cg-days">'+p.n+' j</span>'
+      + '<div class="cg-d '+c.cls+'"><div class="cg-dow">'+s.dow+'</div>'
+      + '<div class="cg-dnum">'+s.dnum+'</div><div class="cg-mon">'+s.month+'</div></div>'
+      + '<div class="cg-b"><div class="cg-lab">'+c.label+'</div><div class="cg-sub">'+sous+'</div></div>'
       + '</div>';
   });
-  list+='</div>';
   box.innerHTML=chips+list;
 }
 
