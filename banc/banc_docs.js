@@ -453,12 +453,23 @@ console.log('\n═══ 13. Chaque scénario du banc est lancé par lancer.sh �
     !/guide-algo-gardes\.html/.test(mar) && !/guide-algo-gardes\.html/.test(lire('docs/README.md')));
   V('le guide annonce des cibles entières',
     /Votre cible est un nombre entier/.test(mar) && /[Ff]aire pile sa cible/.test(mar));
-  V('…et que deux week-ends d\'affilée sont interdits',
-    /Jamais deux week-ends de garde d'affilée/.test(mar));
+  /* (11/09/2026) Deux week-ends d'affilée ne sont PAS un interdit absolu : le
+     calcul se l'autorise quand une journée resterait sans personne. Le guide les
+     listait parmi les interdits tout en décrivant la tolérance quatre paragraphes
+     plus bas — il se contredisait. Idem pour le combo jeudi↔samedi. */
+  V('…et place les deux week-ends d\'affilée parmi les ÉVITÉS, pas les interdits',
+    /deux week-ends d'affilée, sont évités/.test(mar) && !/Jamais deux week-ends/.test(mar));
+  V('…et dit que la tolérance existe quand la journée resterait sans personne',
+    /jeudi puis samedi la même semaine/.test(mar) && /sans personne/.test(mar));
   V('…et n\'annonce plus qu\'on ne tombe jamais pile',
     !/Personne ne tombe jamais exactement pile/.test(mar));
-  V('…et explique le numéro de tirage',
-    /num[ée]ro de tirage/.test(mar) && /position dans le tableau des m[ée]decins/.test(mar));
+  /* (11/09/2026) Le guide décrit l'algorithme ACTUEL, sans raconter ce qu'il
+     faisait avant. La mention de l'ancien départage par la position dans le
+     tableau des médecins est retirée : elle n'apprend rien à qui lit aujourd'hui. */
+  V('…et explique le numéro de tirage sans raconter l\'ancien fonctionnement',
+    /num[ée]ro de tirage/.test(mar) && !/autrefois/.test(mar) && !/position dans le tableau/.test(mar));
+  V('…et donne la vraie règle d\'arrêt du multi-départ',
+    /une garde d'écart au plus/.test(mar) && /huit fois au maximum/.test(mar));
   V('…et donne la mesure d\'après le changement', /44 années sur 45/.test(mar));
   V('…liste les six compteurs surveillés',
     /samedis<\/b>/.test(mar) && /jeudis<\/b>/.test(mar) && /veilles de férié<\/b>/.test(mar)

@@ -745,8 +745,9 @@
     <details class="plus">
       <summary>Comment deux MARs à égalité sont départagés</summary>
       <div class="dedans">
-        <p>Quand deux MARs sont exactement à égalité pour une garde, il faut trancher. C'était autrefois la position dans le tableau des médecins qui l'emportait — un détail sans rapport avec l'équité, qui déplaçait pourtant près d'une garde sur trois.</p>
-        <p>C'est maintenant un <b>numéro de tirage</b>. Le calcul est refait jusqu'à huit fois avec des numéros différents, et le meilleur résultat est conservé. Rejouer le même numéro redonne exactement le même planning.</p>
+        <p>Quand deux MARs sont exactement à égalité pour une garde, un <b>numéro de tirage</b> tranche. Il ne dépend ni de votre nom ni de votre place dans la liste.</p>
+        <p>Le calcul s'arrête dès qu'un tirage met tout le monde à une garde d'écart au plus — ce qui arrive dès le premier essai plus d'une fois sur deux. Sinon il recommence avec un autre numéro, huit fois au maximum, et conserve le meilleur résultat.</p>
+        <p>Rejouer le même numéro redonne exactement le même planning.</p>
       </div>
     </details>
   </div>
@@ -759,11 +760,11 @@
     <p>Avant de placer la moindre garde, le calcul détermine votre <b>cible</b> : le nombre de gardes que vous devez faire dans l'année. Pas une cible unique, mais une par type de jour : week-ends, samedis, jeudis, veilles de férié, fériés, et le total.</p>
 
     <h3>Votre cible est un nombre entier</h3>
-    <p>Longtemps elle s'écrivait avec une virgule : « 5,4 samedis ». Personne ne peut faire 5,4 samedis. Tout le monde était donc toujours en écart, et l'écart affiché mélangeait deux choses : l'injustice réelle et l'impossible.</p>
-    <p>Aujourd'hui, la cible est un nombre entier. <b>Faire pile sa cible est possible, et c'est le cas le plus fréquent.</b></p>
+    <p>Votre part se calcule d'abord avec une virgule — « 5,4 samedis » — puis elle est arrondie en nombre entier, parce que personne ne peut faire 5,4 samedis. <b>Faire pile sa cible est donc possible, et c'est le cas le plus fréquent.</b></p>
+    <p>L'écart affiché dans la vue Équité mesure alors une seule chose : la différence entre ce que vous avez fait et ce que vous deviez.</p>
 
     <div class="ex">
-      <span class="et">Exemple — comment on passe de la virgule à l'entier</span>
+      <span class="et">Exemple — de la virgule à l'entier</span>
       <p>Trois MARs, 10 samedis à répartir. Leurs parts exactes sont 3,4 · 3,3 · 3,3.</p>
       <p>On donne d'abord à chacun sa part entière : <b>3 · 3 · 3</b>. Neuf samedis sont placés, il en reste un.</p>
       <p>Ce dernier samedi va à celui dont la virgule était la plus grande, le 3,4. Cibles finales : <b>4 · 3 · 3</b>. La somme fait exactement 10 : aucun samedi ne se perd, aucun ne se dédouble.</p>
@@ -820,18 +821,19 @@
     <p>Certaines situations sont interdites. Le calcul ne les propose jamais, même si cela arrangeait les compteurs.</p>
     <ul>
       <li><b>Jamais deux gardes deux jours de suite.</b> Le lendemain d'une garde est un repos de garde, intouchable.</li>
-      <li><b>Jamais jeudi et samedi la même semaine.</b> Ce combo est bloqué.</li>
-      <li><b>Jamais deux week-ends de garde d'affilée.</b></li>
+      <li><b>Jamais de garde sur un repos de garde</b>, ni la veille d'un jour où vous avez posé un temps partiel : le repos du lendemain ne pourrait s'écrire nulle part.</li>
       <li><b>Jamais de garde sur une indisponibilité</b>, des vacances, une formation, un jour de temps partiel ou un congé.</li>
       <li><b>Jamais de garde une semaine « off »</b> pour les MARs en rythme deux semaines sur deux.</li>
     </ul>
 
     <h3>Au-delà des interdits</h3>
-    <p>Le calcul espace aussi vos gardes. Une garde à deux jours d'une autre est fortement pénalisée, à trois ou quatre jours légèrement. Une troisième garde dans la même semaine est évitée. Et il lisse sur l'année : vos gardes sont réparties au fil des mois en proportion de votre présence, plutôt qu'entassées sur une période.</p>
+    <p>Le calcul espace aussi vos gardes. Une garde à deux jours d'une autre est fortement pénalisée, à trois ou quatre jours légèrement. <b>Une troisième garde dans la même semaine est très lourdement pénalisée</b> : en pratique elle n'arrive que si la journée resterait sans personne. Et il lisse sur l'année : vos gardes sont réparties au fil des mois en proportion de votre présence, plutôt qu'entassées sur une période.</p>
+
+    <p><b>Jeudi et samedi la même semaine, ou deux week-ends d'affilée, sont évités</b> — mais autorisés en dernier recours quand une journée resterait sans personne (voir ci-dessous).</p>
 
     <div class="callout warn">
       <div class="ct">Une seule tolérance, exceptionnelle</div>
-      <p>Quand une journée resterait sinon <b>sans personne</b>, le calcul s'autorise le rythme garde – repos – garde sur trois jours (jeudi puis samedi), ou un second week-end d'affilée. Une garde rapprochée reste préférable à un service découvert.</p>
+      <p>Quand une journée resterait sinon <b>sans personne</b>, le calcul s'autorise le rythme garde – repos – garde sur trois jours : <b>jeudi puis samedi la même semaine</b>, ou un second week-end d'affilée. C'est légal — ce ne sont pas deux gardes consécutives — et une garde rapprochée reste préférable à un service découvert.</p>
       <p>Les deux gardes d'affilée, elles, ne sont jamais tolérées : c'est illégal.</p>
     </div>
   </div>
