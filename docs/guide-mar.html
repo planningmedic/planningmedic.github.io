@@ -733,7 +733,7 @@
     <h3>Trois idées suffisent à tout comprendre</h3>
     <div class="liste">
       <div><b>1. Proportionnalité</b><span>Votre part dépend de votre quotité et de votre présence réelle dans l'année.</span></div>
-      <div><b>2. Les charges lourdes d'abord</b><span>Les week-ends sont équilibrés en priorité, puis les samedis, puis les jeudis, et le total en dernier.</span></div>
+      <div><b>2. Les charges lourdes d'abord</b><span>Les week-ends sont équilibrés en priorité, puis les samedis, puis les jeudis et les veilles de férié, puis les fériés, et le total en dernier.</span></div>
       <div><b>3. Transparence</b><span>Les compteurs de chacun sont visibles par tous, dans la vue Équité du planning. Et le planning généré est verrouillé : personne ne peut le regénérer discrètement.</span></div>
     </div>
 
@@ -802,7 +802,20 @@
       <p>Le vendredi 12 mars 2027 et le dimanche 14 mars 2027 sont assurés par le même binôme, chacun dans le même rôle les deux jours. Le samedi 13 mars, au milieu, revient à d'autres.</p>
     </div>
 
-    <p>Concrètement, à chaque jour à pourvoir, le calcul classe les MARs disponibles selon leur retard sur le type de jour concerné — pour un samedi, qui est le plus loin de sa cible de samedis — puis les départage par le retard sur le total. Les deux premiers prennent la garde.</p>
+    <p>Concrètement, à chaque jour à pourvoir, le calcul classe les MARs disponibles selon quatre critères, dans cet ordre :</p>
+    <ol>
+      <li><b>L'espacement depuis leur dernière garde.</b></li>
+      <li><b>Le retard sur le type de jour concerné</b> — pour un samedi, qui est le plus loin de sa cible de samedis.</li>
+      <li><b>Le lissage sur l'année</b>, pour ne pas entasser les gardes de quelqu'un sur un trimestre.</li>
+      <li><b>Le retard sur le total.</b></li>
+    </ol>
+    <p>Les deux premiers prennent la garde.</p>
+
+    <div class="callout warn">
+      <div class="ct">L'espacement passe avant l'équité</div>
+      <p>C'est le point qui surprend le plus. Vous pouvez être le plus en retard sur les samedis et ne pas prendre celui qui se présente, simplement parce que votre dernière garde est trop proche.</p>
+      <p>Ce n'est pas un oubli. Une garde rapprochée se paie tout de suite ; un samedi de retard se rattrape sur l'année. Le retard finit par l'emporter, mais plus tard.</p>
+    </div>
 
     <details class="plus">
       <summary>Pourquoi les week-ends sont les plus durs à équilibrer</summary>
