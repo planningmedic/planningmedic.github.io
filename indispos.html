@@ -1376,6 +1376,18 @@ function applyTool(date) {
       return;
     }
   }
+  /* (11/09/2026) QUOTA D'INDISPONIBILITÉS. Le refus se fait au clic, avant la
+     pose : découvrir au moment de l'enregistrement qu'une partie des jours n'est
+     pas passée serait déroutant. Le serveur revérifie de son côté — l'écran peut
+     retarder d'une version, pas lui. */
+  if (currentTool === 'INDISPO' && vacConfig && vacConfig.quotaIndispo != null && indispos[date] !== 'INDISPO') {
+    const indCount = Object.values(indispos).filter(s => s === 'INDISPO').length;
+    if (indCount >= vacConfig.quotaIndispo) {
+      showToast(`🚫 Quota d'indisponibilités atteint — ${vacConfig.quotaIndispo} jour(s) maximum`);
+      hintRefus(`🚫 Vous avez posé vos <strong>${vacConfig.quotaIndispo} indisponibilités</strong> de l'année. Retirez-en une pour en poser une autre.`);
+      return;
+    }
+  }
   if (currentTool === 'TP' && vacConfig && vacConfig.quotaCtp != null && indispos[date] !== 'TP') {
     const ctpCount = Object.values(indispos).filter(s => s === 'TP').length;
     if (ctpCount >= vacConfig.quotaCtp) {
