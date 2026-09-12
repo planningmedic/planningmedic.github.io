@@ -241,29 +241,9 @@ console.log('\n═══ 6. L\'ordre de passage des vacances : une seule règle,
 }
 
 
-/* La presentation du 4 septembre : elle sera projetee devant tout le service.
-   Un CSS mal ferme y passait inapercu — le navigateur jette le bloc fautif en
-   silence. On verifie l'equilibre, la presence du logo, et l'absence de CSS mort. */
-console.log('\n═══ Présentation du staff : couverture et CSS ═══');
-{
-  const p = fs.readFileSync('../docs/presentation-staff.html', 'utf8');
-  const css = (p.match(/<style[^>]*>([\s\S]*?)<\/style>/) || ['',''])[1];
-
-  let prof = 0, negatif = 0;
-  for (const c of css) { if (c === '{') prof++; else if (c === '}') { prof--; if (prof < 0) negatif++; } }
-  V('le CSS de la présentation est équilibré', css.split('{').length === css.split('}').length,
-    [css.split('{').length - 1, css.split('}').length - 1]);
-  V('aucun bloc CSS orphelin (sélecteur perdu)', negatif === 0 && prof === 0, { negatif, prof });
-
-  V('la couverture porte le logo du service', /class="cover-logo"[^>]*src="\.\.\/assets\/icon-512\.png"/.test(p),
-    (p.match(/<img class="cover-logo"[^>]*>/) || [''])[0]);
-  V('le fichier de logo existe bien', fs.existsSync('../assets/icon-512.png'));
-  V('le logo est mis en forme', /\.cover-logo\{/.test(css));
-
-  for (const mort of ['flagline', 'cbtn']) {
-    V(`plus aucune trace du CSS mort « ${mort} »`, !p.includes(mort));
-  }
-}
+/* (11/09/2026) La presentation du staff a ete supprimee du depot : le staff a eu
+   lieu le 4 septembre 2026, le deck avait servi. Les sept verifications qui
+   gardaient son CSS et sa couverture partent avec elle. */
 
 console.log('\n═══ 9. Le bandeau du haut ne peut pas deborder de sa hauteur ═══');
 {

@@ -36,7 +36,6 @@ Système web de gestion pour le service d'anesthésie-réanimation du **un servi
 | `reprise.html` | **Continuité** : accès, propriété, sauvegardes, réparations — à lire si Arthur n'est plus joignable |
 | `sauvegarde-compte-perso.md` | Installation de la sauvegarde hors-compte (dimanche 5 h) |
 | `VEILLE_CFG-mode-emploi.md` | Pilotage de la veille biblio (onglet `VEILLE_CFG`) |
-| `presentation-staff.html` | Deck de présentation du système au service |
 | `staff_gardes_demographie.html` | Simulation démographique de la charge de gardes (2026-2050) |
 | `maquette-export-excel-secteurs.xlsx` | Maquette de l'export Excel par grand secteur (nouvel établissement) |
 | `module-liberal/` | Le **module libéral** (voir ci-dessous) |
