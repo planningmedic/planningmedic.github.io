@@ -75,7 +75,15 @@ V('toutes les cibles sont des ENTIERS',
   MARS.every(m => Number.isInteger(cib(m, T2026))), MARS.slice(0,3).map(m => cib(m, T2026)));
 V('la cible d\'un temps plein est ramenée vers le bas (36 promis, ~34 réels)',
   cib(MARS[0], T2026) >= 33 && cib(MARS[0], T2026) <= 35, cib(MARS[0], T2026));
-V('l\'anomalie de somme est signalée au lecteur', T2026._corrige === true);
+/* (11/09/2026) LA MENTION EST SUPPRIMÉE, elle n'est plus vérifiée ici. Elle
+   annonçait « des gardes ont été assurées par un médecin extérieur au service,
+   année non comparable aux suivantes » dès que la somme des réels s'écartait de
+   1 % de celle des cibles. Or cet écart existe sur des années parfaitement
+   normales : sur 2027, 100 week-ends réels pour 104 de cibles. Un message qui
+   disqualifie une année entière ne peut pas se tromper — il alarme sans recours.
+   Ce qui reste vérifié, et qui est le vrai sujet, c'est que les cibles soient
+   justes : les écarts s'annulent, contrôle ci-dessous. */
+V('les cibles restent justes sans la mention : voir le contrôle de somme ci-dessous', true);
 
 /* LE contrôle : les écarts doivent s'annuler. C'est ce qui prouve qu'une part
    a été attribuée à quelqu'un, et une seule fois. */
@@ -113,14 +121,27 @@ const JUSTE = [
 const TJ = fEq(JUSTE, AXES);
 V('cibles et gardes qui tombent juste : chacun garde sa cible',
   JUSTE.every(m => TJ[m.name].cTot === m.cTot), JUSTE.map(m => TJ[m.name].cTot));
-V('…et rien n\'est signalé au lecteur', TJ._corrige === false);
-/* Une seule garde manquante sur 160 (0,6 %) reste sous le seuil : on ne touche
-   à rien, l'anomalie reste visible telle quelle. */
+
+/* Une garde manquante ne se lisse jamais : l'anomalie doit rester visible dans
+   les écarts individuels, pas être répartie sur tout le monde. */
 const UNJOUR = JUSTE.map(m => Object.assign({}, m));
 UNJOUR[0].total = 39;
-V('une garde manquante ne déclenche aucune mention', fEq(UNJOUR, AXES)._corrige === false,
-  { manque: 1, sur: 160 });
-V('un écart massif, lui, la déclenche', fEq(MARS, AXES)._corrige === true);
+const TU = fEq(UNJOUR, AXES);
+V('une garde manquante : la somme des cibles suit les gardes réellement posées',
+  UNJOUR.reduce((s, m) => s + TU[m.name].cTot, 0) === UNJOUR.reduce((s, m) => s + m.total, 0),
+  UNJOUR.map(m => TU[m.name].cTot));
+
+/* (11/09/2026) ÉLIGIBILITÉ. Un MAR dont la cible entière vaut 0 sur un axe rare
+   et qui y a pourtant pris une garde doit rester dans le calcul : l'exclure
+   retirait son réel des deux sommes et fabriquait un écart de toutes pièces. */
+const RARE = [{ name: 'X', vjf: 1, cVjf: 0 }, { name: 'Y', vjf: 0, cVjf: 1 },
+              { name: 'Z', vjf: 1, cVjf: 1 }];
+const TR = fEq(RARE, [['vjf', 'cVjf', 'veilles fériés']]);
+V('celui à cible nulle mais avec une garde est pris en compte',
+  TR['X'].cVjf !== undefined, TR);
+V('la somme des cibles égale les gardes réellement prises',
+  RARE.reduce((s, m) => s + (TR[m.name].cVjf || 0), 0) === 2,
+  RARE.map(m => TR[m.name].cVjf));
 
 console.log('\n─── 4. Les barres et le certificat lisent la même cible ───');
 V('les barres appellent la fonction de cibles entières',
@@ -162,9 +183,12 @@ V('le sens du signe est expliqué au lecteur, dans les deux pages',
   /moins de gardes que sa part/.test(cert) && /moins de gardes que sa part/.test(certM));
 V('la parenthèse sur les souhaits garantis est retirée',
   !/souhaits garantis exclu/.test(cert) && !/souhaits garantis exclu/.test(certM));
-V('l\'année corrigée porte sa mention d\'explication',
-  /médecin <b>extérieur au service<\/b>/.test(cert));
-V('la mention n\'apparaît QUE si une correction a eu lieu', /if\(corrige\)\{/.test(cert));
+/* (11/09/2026) La mention sur le médecin extérieur est supprimée des DEUX pages :
+   elle se déclenchait sur des années normales et déclarait l'année non comparable. */
+V('plus aucune mention sur un médecin extérieur, dans les deux pages',
+  !/extérieur au service<\/b>/.test(cert) && !/extérieur au service<\/b>/.test(certM));
+V('le drapeau qui la commandait a disparu du rendu',
+  !/if\(corrige\)\{/.test(cert) && !/if\(corrige\)\{/.test(certM));
 V('les profils à souhaits garantis restent exclus du verdict',
   /list\.filter\(m => !_spec\(m\.name\)\)/.test(cert));
 
