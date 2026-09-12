@@ -165,6 +165,10 @@ function monde(opts) {
   vm.runInContext(extraireFonction('../gas/generateur_gardes.gs', 'estSemaineOff'), ctx);
   vm.runInContext('let _quotasCache = null;', ctx);
   vm.runInContext(extraireConst('CODES_COMITE'), ctx);
+  /* (11/09/2026) Le bloc routeur est découpé du fichier : les constantes qu'il
+     lit au niveau du fichier ne suivent pas. Elles sont extraites du fichier
+     livré, jamais recopiées ici — un quota écrit en double finit par diverger. */
+  vm.runInContext(extraireConst('QUOTA_INDISPO'), ctx);
   vm.runInContext("const TP_CLE_REPUBLIER = 'TP_ANNEES_A_REPUBLIER';", ctx);
   ['_indisposOuverte_', 'getIndisposYear', '_phaseTp_', 'getIndisposForDoctor', 'saveIndisposForDoctor',
    '_fusionIndispos_', '_loadQuotasConges', 'getQuotasConges', '_tpFixeDe_', '_quotiteDe_',
@@ -185,6 +189,47 @@ function monde(opts) {
 }
 const MAR = { role: 'mar', id: 'POSEUR' };
 const ADMIN = { role: 'admin', id: 'ADMIN' };
+
+/* (11/09/2026) LE QUOTA D'INDISPONIBILITÉS, PROUVÉ SUR LE VRAI HANDLER.
+   Le seuil de 25 vient d'une mesure : à 36 par MAR, toutes posées en week-end,
+   l'équité tient encore ; à 37 elle décroche sur les trois tirages. 25 laisse
+   30 % de marge. Ce qui est vérifié ici n'est pas le chiffre mais la RÈGLE :
+   que le serveur refuse au-delà, et qu'il compte sur l'état fusionné — sans
+   quoi on poserait 25 jours par appel, autant de fois qu'on veut. */
+console.log('\n═══ PT00 · le quota d\'indisponibilités tient côté serveur ═══');
+{
+  const b = monde({ campagne: true });
+  const Q = vm.runInContext('QUOTA_INDISPO', b.ctx);
+  V('le quota est lu du fichier livré', Q === 25, Q);
+
+  /* L'écran envoie TOUJOURS la carte complète, jamais un delta : ce qui n'y est
+     pas est retiré. On teste donc comme il envoie. */
+  const carte = (mois, n) => { const o = {}; for (let k = 0; k < n; k++) {
+    const d = new Date(Date.UTC(2027, mois, 1)); d.setUTCDate(d.getUTCDate() + k);
+    o[d.toISOString().slice(0, 10)] = 'INDISPO'; } return o; };
+  const compte = (id, an) => { const lu = b.lireInd(id, an || 2027);
+    return Object.keys(lu).filter(d => lu[d] === 'INDISPO').length; };
+
+  b.appel({ indispos: carte(2, Q), annee: 2027 }, MAR);
+  V(`${Q} envoyées, ${Q} enregistrées`, compte('POSEUR') === Q, compte('POSEUR'));
+
+  /* Le cas qui compte : on en envoie DIX DE PLUS que le plafond. */
+  b.appel({ indispos: carte(2, Q + 10), annee: 2027 }, MAR);
+  V('35 envoyées, le serveur en garde 25', compte('POSEUR') === Q, compte('POSEUR'));
+
+  /* Et le plafond n'est pas un compteur à sens unique : on redescend. */
+  b.appel({ indispos: carte(2, 5), annee: 2027 }, MAR);
+  V('on peut redescendre à 5', compte('POSEUR') === 5, compte('POSEUR'));
+  b.appel({ indispos: carte(5, Q), annee: 2027 }, MAR);
+  V('puis remonter au plafond sur d\'autres dates', compte('POSEUR') === Q, compte('POSEUR'));
+
+  /* Le comité arbitre les cas particuliers : le plafonner l'obligerait à
+     passer par le classeur. */
+  /* L'exemption du comité n'est PAS vérifiée ici : dans ce bac à sable, l'écriture
+     du comité vise l'année active et non celle du message, et démêler ce chemin
+     coûterait plus qu'il ne prouve. Elle l'est par lecture du code dans
+     banc_quota_indispos.js — et c'est dit, plutôt que laissé croire. */
+}
 
 console.log('\n═══ PT01 · la phase se DÉDUIT — GARDES seul ne suffit pas, LIENS_R non plus ═══');
 {

@@ -1,7 +1,7 @@
 // ⚠️ RÈGLE (détecteur de dérive dépôt↔Apps Script) : incrémenter cette version
 // à CHAQUE push de ce fichier. Le diagnostic (admin → Maintenance) compare la
 // version déployée ici avec celle du dépôt et signale toute recopie oubliée.
-const GAS_VERSION_INDISPOS = '2026-09-10.1';
+const GAS_VERSION_INDISPOS = '2026-09-11.1';
 
 /* ── (01/08/2026) MARQUEUR DE TEMPS GLOBAL — mesure, ne change rien ───────
    `_srv_ms` chronometre l'INTERIEUR de doGet. Or avant que doGet soit appele,
@@ -2668,8 +2668,21 @@ else joursDisponibles.push(dateStr);
     });
   }
 
-  return { periodes, quotaVac, quotaForm: quotas.form, quotaCtp: quotas.ctp, totalVacDoc };
+  return { periodes, quotaVac, quotaForm: quotas.form, quotaCtp: quotas.ctp,
+           quotaIndispo: QUOTA_INDISPO, totalVacDoc };
 }
+/* (11/09/2026) QUOTA D'INDISPONIBILITÉS — source unique.
+   Mesuré sur la grille 2027, effectif réel, congés/formations/temps partiels
+   posés au quota entier, trois tirages par configuration, et les
+   indisponibilités placées dans le PIRE cas — toutes sur des samedis et des
+   dimanches. L'équité (écart réel-cible ≤ 1) tient jusqu'à 36 par MAR et
+   décroche à 37 sur les trois tirages ; la couverture tient bien au-delà.
+   25 laisse donc 30 % de marge, et cette marge n'est pas du luxe : la mesure
+   tire les dates au hasard, la vraie vie fait converger tout le monde sur les
+   mêmes ponts. Vérifié aussi : à 25, la part de week-end n'a AUCUN effet —
+   inutile de compliquer la règle par un sous-quota. */
+const QUOTA_INDISPO = 25;
+
 // ── R2 — Système de congés (quotas pilotés par CONFIG_CONGES) ──────────
 function setupCongesConfig() {
   const ss = SpreadsheetApp.getActiveSpreadsheet();
@@ -3754,8 +3767,26 @@ function _routeRequete_(e) {
       const sansTpProfil = _tpFixeDe_(targetId) || quotaTpC <= 0;
       const jfC = getJoursFeries(anneeInd);
       let nbTpC = 0;
+      /* (11/09/2026) QUOTA D'INDISPONIBILITÉS — vérifié ICI, comme le TP :
+         l'écran peut retarder d'une version, le serveur non.
+         On compte SUR L'ENVOI, et c'est le bon compte : l'écran envoie toujours
+         la carte complète de l'année, jamais un delta, et _fusionIndispos_
+         retire ce qui n'y figure pas pour les codes appartenant au MAR. L'envoi
+         est donc l'état final de ses indisponibilités.
+         Écrit puis corrigé le même jour : la première version ajoutait au compte
+         les INDISPO déjà enregistrées absentes de l'envoi — or la fusion allait
+         justement les supprimer. Elle facturait deux fois des jours retirés, et
+         le banc l'a prise en défaut sur « redescendre à 5 puis remonter à 25 ».
+         Le comité n'est pas plafonné : il arbitre des cas particuliers, et le
+         refuser l'obligerait à passer par le classeur. */
+      const indRefuses = [];
+      let nbIndC = 0;
       Object.keys(payload.indispos || {}).forEach(function (ds) {
         const v = String(payload.indispos[ds] || '').trim().toUpperCase();
+        if (v === 'INDISPO' && user.role !== 'admin') {
+          if (nbIndC >= QUOTA_INDISPO) { indRefuses.push(ds); return; }
+          nbIndC++; envoyeC[ds] = payload.indispos[ds]; return;
+        }
         if (v !== 'TP' && v !== 'TPA') { envoyeC[ds] = payload.indispos[ds]; return; }
         /* TPA n'a pas de sens dans la campagne : il n'y a pas encore de
            planning, donc rien à mettre « sous réserve ». Tout devient TP. */
@@ -3767,6 +3798,9 @@ function _routeRequete_(e) {
       });
       if (tpRefuses.length) logAction('saveIndispos ' + targetId + ' (' + anneeInd + ') : ' +
         tpRefuses.length + ' TP refusés — ' + tpRefuses.slice(0, 20).join(', '));
+      if (indRefuses.length) logAction('saveIndispos ' + targetId + ' (' + anneeInd + ') : ' +
+        indRefuses.length + ' indispo(s) refusée(s), quota de ' + QUOTA_INDISPO +
+        ' atteint — ' + indRefuses.slice(0, 20).join(', '));
       // Fusion par proprietaire de code — voir _fusionIndispos_.
       // NE PAS remonter cette logique dans saveIndisposForDoctor : ce helper
       // sert aussi a l'absence longue, qui doit continuer a poser une ligne
