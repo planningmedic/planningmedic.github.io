@@ -6,7 +6,7 @@
    dimanches, les jours où il n'y a que deux places et où la moitié de l'équipe
    est déjà en récupération :
 
-       25 par MAR → 0 jour sans binôme, écart réel-cible 1
+       20 et 25 par MAR → 0 jour sans binôme, écart réel-cible 1
        36 par MAR → 0 jour sans binôme, écart 1        ← dernier palier tenu
        37 par MAR → écart 2 sur les TROIS tirages      ← l'équité décroche
        55 et au-delà → la génération elle-même échoue
@@ -41,13 +41,22 @@ const PAGE = fs.readFileSync(path.join(__dirname, '..', 'indispos.html'), 'utf8'
 console.log('\n═══ 1. Une seule valeur, envoyée du serveur à l\'écran ═══');
 const dec = GS.match(/const QUOTA_INDISPO = (\d+);/);
 V('le quota est déclaré une fois dans le serveur', !!dec, dec && dec[0]);
-V('il vaut 25', dec && dec[1] === '25', dec && dec[1]);
+V('il vaut 20', dec && dec[1] === '20', dec && dec[1]);
+const decW = GS.match(/const QUOTA_INDISPO_WE = (\d+);/);
+V('le sous-quota week-end vaut 8', decW && decW[1] === '8', decW && decW[1]);
+V('il n\'est déclaré qu\'une seule fois',
+  (GS.match(/const QUOTA_INDISPO_WE\s*=/g) || []).length === 1);
+V('le serveur l\'envoie aussi à l\'écran', /quotaIndispoWe:\s*QUOTA_INDISPO_WE/.test(GS));
+V('le serveur ne compte que samedis et dimanches',
+  /_dowI === 0 \|\| _dowI === 6/.test(GS));
+V('l\'écran distingue les deux refus',
+  /Quota week-end atteint/.test(PAGE) && /Il vous reste des jours de semaine/.test(PAGE));
 V('il n\'est déclaré qu\'une seule fois',
   (GS.match(/const QUOTA_INDISPO\s*=/g) || []).length === 1);
 V('le serveur l\'envoie à l\'écran', /quotaIndispo:\s*QUOTA_INDISPO/.test(GS));
 V('l\'écran le lit du serveur et ne le réécrit pas',
   /vacConfig\.quotaIndispo/.test(PAGE) && !/quotaIndispo\s*=\s*\d+/.test(PAGE));
-V('aucun 25 en dur dans la page', !/quotaIndispo[^;]*25/.test(PAGE));
+V('aucun nombre en dur dans la page', !/quotaIndispo[^;]*\b(20|8)\b/.test(PAGE));
 
 console.log('\n═══ 2. L\'écran refuse au clic ═══');
 V('le refus vise bien l\'outil Indispo',
@@ -86,7 +95,7 @@ V('le marqueur de version du fichier serveur a monté',
   /GAS_VERSION_INDISPOS = '2026-09-11/.test(GS),
   (GS.match(/GAS_VERSION_INDISPOS = '[^']+'/) || [])[0]);
 const GUIDE = fs.readFileSync(path.join(__dirname, '..', 'docs', 'guide-mar.html'), 'utf8');
-V('le guide annonce le même nombre', /25 par an/.test(GUIDE));
+V('le guide annonce les deux nombres', /20 par an/.test(GUIDE) && /8 au maximum/.test(GUIDE));
 V('le guide ne promet plus « trente au maximum »', !/trente au maximum/.test(GUIDE));
 
 console.log(`\n${ok} OK · ${ko} en échec`);

@@ -1387,6 +1387,22 @@ function applyTool(date) {
       hintRefus(`🚫 Vous avez posé vos <strong>${vacConfig.quotaIndispo} indisponibilités</strong> de l'année. Retirez-en une pour en poser une autre.`);
       return;
     }
+    /* Sous-quota week-end : samedis et dimanches. Compté à part, refusé à part —
+       un message qui dirait seulement « quota atteint » laisserait croire que les
+       20 sont consommés alors qu'il reste des jours de semaine. */
+    const _dowW = new Date(date + 'T12:00:00').getDay();
+    if ((_dowW === 0 || _dowW === 6) && vacConfig.quotaIndispoWe != null) {
+      const weCount = Object.keys(indispos).filter(d => {
+        if (indispos[d] !== 'INDISPO') return false;
+        const w = new Date(d + 'T12:00:00').getDay();
+        return w === 0 || w === 6;
+      }).length;
+      if (weCount >= vacConfig.quotaIndispoWe) {
+        showToast(`🚫 Quota week-end atteint — ${vacConfig.quotaIndispoWe} maximum`);
+        hintRefus(`🚫 Vous avez posé vos <strong>${vacConfig.quotaIndispoWe} indisponibilités de week-end</strong>. Il vous reste des jours de semaine.`);
+        return;
+      }
+    }
   }
   if (currentTool === 'TP' && vacConfig && vacConfig.quotaCtp != null && indispos[date] !== 'TP') {
     const ctpCount = Object.values(indispos).filter(s => s === 'TP').length;
