@@ -205,9 +205,14 @@ console.log('\n═══ PT00 · le quota d\'indisponibilités tient côté serv
 
   /* L'écran envoie TOUJOURS la carte complète, jamais un delta : ce qui n'y est
      pas est retiré. On teste donc comme il envoie. */
-  const carte = (mois, n) => { const o = {}; for (let k = 0; k < n; k++) {
-    const d = new Date(Date.UTC(2027, mois, 1)); d.setUTCDate(d.getUTCDate() + k);
-    o[d.toISOString().slice(0, 10)] = 'INDISPO'; } return o; };
+  /* Jours de SEMAINE uniquement : le quota général et le sous-quota week-end se
+     testent séparément, sinon le second masque le premier. */
+  const carte = (mois, n) => { const o = {}; let k = 0, pris = 0;
+    while (pris < n && k < 300) { const d = new Date(Date.UTC(2027, mois, 1));
+      d.setUTCDate(d.getUTCDate() + k); k++;
+      const w = d.getUTCDay(); if (w === 0 || w === 5 || w === 6) continue;
+      o[d.toISOString().slice(0, 10)] = 'INDISPO'; pris++; }
+    return o; };
   const compte = (id, an) => { const lu = b.lireInd(id, an || 2027);
     return Object.keys(lu).filter(d => lu[d] === 'INDISPO').length; };
 
@@ -232,16 +237,22 @@ console.log('\n═══ PT00 · le quota d\'indisponibilités tient côté serv
      de 8. Il borne l'empilement accidentel, et il est visible. */
   const QW = vm.runInContext('QUOTA_INDISPO_WE', b.ctx);
   V('le sous-quota week-end est lu du fichier livré', QW === 8, QW);
+  /* Vendredi, samedi, dimanche : les trois jours qui retirent d'un axe de garde.
+     Le vendredi en fait partie parce que la garde de week-end est une unité
+     vendredi+dimanche — le bloquer sort de l'unité entière, et l'oublier
+     laissait une faille : une seule indisponibilité de vendredi évitait tout le
+     week-end sans rien consommer du sous-quota. */
+  const estWeJ = w => w === 0 || w === 5 || w === 6;
   const weekends = n => { const o = {}; let k = 0, pris = 0;
     while (pris < n && k < 364) { const d = new Date(Date.UTC(2027, 0, 4));
       d.setUTCDate(d.getUTCDate() + k); k++;
-      const w = d.getUTCDay(); if (w !== 0 && w !== 6) continue;
+      if (!estWeJ(d.getUTCDay())) continue;
       o[d.toISOString().slice(0, 10)] = 'INDISPO'; pris++; }
     return o; };
   const b3 = monde({ campagne: true });
   const cpt3 = (filtre) => { const lu = b3.lireInd('POSEUR', 2027);
     return Object.keys(lu).filter(d => lu[d] === 'INDISPO' && (!filtre || filtre(d))).length; };
-  const estWe = d => { const w = new Date(d + 'T12:00:00Z').getUTCDay(); return w === 0 || w === 6; };
+  const estWe = d => estWeJ(new Date(d + 'T12:00:00Z').getUTCDay());
 
   b3.appel({ indispos: weekends(QW), annee: 2027 }, MAR);
   V(`${QW} week-ends passent`, cpt3(estWe) === QW, cpt3(estWe));
@@ -267,17 +278,17 @@ console.log('\n═══ PT00 · le quota d\'indisponibilités tient côté serv
   { let k = 0, we = 0;
     while (we < QW && k < 364) { const d = new Date(Date.UTC(2027, 0, 4));
       d.setUTCDate(d.getUTCDate() + k); k++;
-      const w = d.getUTCDay(); if (w !== 0 && w !== 6) continue;
+      if (!estWeJ(d.getUTCDay())) continue;
       melange[d.toISOString().slice(0, 10)] = 'INDISPO'; we++; } }
   /* Puis SIX week-ends de plus, mais en congés : ils ne doivent rien consommer. */
   { let k = 200, we = 0;
     while (we < 12 && k < 364) { const d = new Date(Date.UTC(2027, 0, 4));
       d.setUTCDate(d.getUTCDate() + k); k++;
-      const w = d.getUTCDay(); if (w !== 0 && w !== 6) continue;
+      if (!estWeJ(d.getUTCDay())) continue;
       melange[d.toISOString().slice(0, 10)] = 'VAC'; we++; } }
   b4.appel({ indispos: melange, annee: 2027 }, MAR);
   const lu4 = b4.lireInd('POSEUR', 2027);
-  const estWe4 = d => { const w = new Date(d + 'T12:00:00Z').getUTCDay(); return w === 0 || w === 6; };
+  const estWe4 = d => estWeJ(new Date(d + 'T12:00:00Z').getUTCDay());
   const indWe4 = Object.keys(lu4).filter(d => lu4[d] === 'INDISPO' && estWe4(d)).length;
   V(`${QW} indisponibilités de week-end passent malgré 12 week-ends en congés`,
     indWe4 === QW, indWe4);
@@ -287,13 +298,29 @@ console.log('\n═══ PT00 · le quota d\'indisponibilités tient côté serv
   { let k = 0, we = 0;
     while (we < QW + 4 && k < 364) { const d = new Date(Date.UTC(2027, 0, 4));
       d.setUTCDate(d.getUTCDate() + k); k++;
-      const w = d.getUTCDay(); if (w !== 0 && w !== 6) continue;
+      if (!estWeJ(d.getUTCDay())) continue;
       melange[d.toISOString().slice(0, 10)] = 'INDISPO'; we++; } }
   b4.appel({ indispos: melange, annee: 2027 }, MAR);
   const lu5 = b4.lireInd('POSEUR', 2027);
   V('au-delà, le refus s\'applique quand même',
     Object.keys(lu5).filter(d => lu5[d] === 'INDISPO' && estWe4(d)).length === QW,
     Object.keys(lu5).filter(d => lu5[d] === 'INDISPO' && estWe4(d)).length);
+
+  /* LA FAILLE, EN TEST. Huit vendredis seuls : chacun sort son auteur de toute
+     l'unité vendredi-dimanche. Tant que le sous-quota ne comptait que samedi et
+     dimanche, ils ne consommaient rien et un neuvième passait. */
+  const b5 = monde({ campagne: true });
+  const vendredis = n => { const o = {}; let k = 0, pris = 0;
+    while (pris < n && k < 364) { const d = new Date(Date.UTC(2027, 0, 4));
+      d.setUTCDate(d.getUTCDate() + k); k++;
+      if (d.getUTCDay() !== 5) continue;
+      o[d.toISOString().slice(0, 10)] = 'INDISPO'; pris++; }
+    return o; };
+  b5.appel({ indispos: vendredis(QW + 4), annee: 2027 }, MAR);
+  const lu6 = b5.lireInd('POSEUR', 2027);
+  const nbVen = Object.keys(lu6).filter(d => lu6[d] === 'INDISPO').length;
+  V(`${QW + 4} vendredis envoyés, ${QW} gardés — le vendredi compte`,
+    nbVen === QW, nbVen);
 
   /* L'exemption du comité n'est PAS vérifiée ici : dans ce bac à sable, l'écriture
      du comité vise l'année active et non celle du message, et démêler ce chemin
