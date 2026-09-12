@@ -47,8 +47,10 @@ V('le sous-quota week-end vaut 8', decW && decW[1] === '8', decW && decW[1]);
 V('il n\'est déclaré qu\'une seule fois',
   (GS.match(/const QUOTA_INDISPO_WE\s*=/g) || []).length === 1);
 V('le serveur l\'envoie aussi à l\'écran', /quotaIndispoWe:\s*QUOTA_INDISPO_WE/.test(GS));
-V('le serveur ne compte que samedis et dimanches',
-  /_dowI === 0 \|\| _dowI === 6/.test(GS));
+V('le serveur compte vendredis, samedis et dimanches',
+  /_dowI === 0 \|\| _dowI === 5 \|\| _dowI === 6/.test(GS));
+V('l\'écran compte les mêmes trois jours',
+  /_dowW === 0 \|\| _dowW === 5 \|\| _dowW === 6/.test(PAGE));
 V('l\'écran distingue les deux refus',
   /Quota week-end atteint/.test(PAGE) && /Il vous reste des jours de semaine/.test(PAGE));
 V('il n\'est déclaré qu\'une seule fois',
@@ -89,13 +91,14 @@ V('le comité n\'est pas plafonné',
 
 console.log('\n═══ 5. La version et le guide suivent ═══');
 const VER = fs.readFileSync(path.join(__dirname, '..', 'version.js'), 'utf8');
-V('la version du site a monté d\'un cran fonctionnel',
+V('la version du site a monté',
   /SITE_VERSION = 'v1\.11\./.test(VER), (VER.match(/SITE_VERSION = '[^']+'/) || [])[0]);
 V('le marqueur de version du fichier serveur a monté',
   /GAS_VERSION_INDISPOS = '2026-09-11/.test(GS),
   (GS.match(/GAS_VERSION_INDISPOS = '[^']+'/) || [])[0]);
 const GUIDE = fs.readFileSync(path.join(__dirname, '..', 'docs', 'guide-mar.html'), 'utf8');
-V('le guide annonce les deux nombres', /20 par an/.test(GUIDE) && /8 au maximum/.test(GUIDE));
+V('le guide annonce les deux nombres et les trois jours',
+  /20 par an/.test(GUIDE) && /8 au maximum sur un vendredi/.test(GUIDE));
 V('le guide ne promet plus « trente au maximum »', !/trente au maximum/.test(GUIDE));
 
 console.log(`\n${ok} OK · ${ko} en échec`);

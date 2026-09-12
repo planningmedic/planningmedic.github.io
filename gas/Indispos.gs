@@ -2682,7 +2682,13 @@ else joursDisponibles.push(dateStr);
    mêmes ponts. Vérifié aussi : à 25, la part de week-end n'a AUCUN effet —
    inutile de compliquer la règle par un sous-quota. */
 const QUOTA_INDISPO = 20;
-/* (11/09/2026) SOUS-QUOTA WEEK-END — samedis et dimanches, 8 par an.
+/* (11/09/2026) SOUS-QUOTA WEEK-END — vendredis, samedis et dimanches, 8 par an.
+   POURQUOI LE VENDREDI EN FAIT PARTIE. La garde de week-end est une UNITÉ
+   vendredi+dimanche, assurée par le même binôme ; le samedi revient à d'autres.
+   Bloquer le seul vendredi sort donc de l'unité entière. Compter samedi et
+   dimanche seuls laissait une faille béante : une indisponibilité de vendredi
+   évitait tout le week-end sans rien consommer du sous-quota. Les trois jours
+   comptés sont exactement ceux qui retirent d'un axe de garde.
    À DIRE HONNÊTEMENT : ce plafond ne protège PAS de ce qu'on croit. Mesuré,
    trois week-ends bloqués PAR TOUT LE MONDE suffisent à rendre la génération
    impossible, et 3 est en dessous de 8 : vingt personnes qui visent le même
@@ -2692,7 +2698,7 @@ const QUOTA_INDISPO = 20;
    comme le vert/jaune/noir des congés — mesuré à 18 personnes sur 22 pour un
    même week-end. Ce n'est pas construit : si la question revient, c'est là
    qu'il faut aller, pas vers un plafond par personne plus bas. */
-const QUOTA_INDISPO_WE = 8;
+const QUOTA_INDISPO_WE = 8;   // vendredi, samedi ou dimanche
 
 // ── R2 — Système de congés (quotas pilotés par CONFIG_CONGES) ──────────
 function setupCongesConfig() {
@@ -3797,7 +3803,7 @@ function _routeRequete_(e) {
         if (v === 'INDISPO' && user.role !== 'admin') {
           if (nbIndC >= QUOTA_INDISPO) { indRefuses.push(ds); return; }
           const _dowI = new Date(ds + 'T12:00:00').getDay();
-          if (_dowI === 0 || _dowI === 6) {
+          if (_dowI === 0 || _dowI === 5 || _dowI === 6) {
             if (nbIndWeC >= QUOTA_INDISPO_WE) { indRefuses.push(ds + ' (week-end)'); return; }
             nbIndWeC++;
           }
