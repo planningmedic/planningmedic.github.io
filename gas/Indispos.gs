@@ -2669,7 +2669,7 @@ else joursDisponibles.push(dateStr);
   }
 
   return { periodes, quotaVac, quotaForm: quotas.form, quotaCtp: quotas.ctp,
-           quotaIndispo: QUOTA_INDISPO, totalVacDoc };
+           quotaIndispo: QUOTA_INDISPO, quotaIndispoWe: QUOTA_INDISPO_WE, totalVacDoc };
 }
 /* (11/09/2026) QUOTA D'INDISPONIBILITÉS — source unique.
    Mesuré sur la grille 2027, effectif réel, congés/formations/temps partiels
@@ -2681,7 +2681,18 @@ else joursDisponibles.push(dateStr);
    tire les dates au hasard, la vraie vie fait converger tout le monde sur les
    mêmes ponts. Vérifié aussi : à 25, la part de week-end n'a AUCUN effet —
    inutile de compliquer la règle par un sous-quota. */
-const QUOTA_INDISPO = 25;
+const QUOTA_INDISPO = 20;
+/* (11/09/2026) SOUS-QUOTA WEEK-END — samedis et dimanches, 8 par an.
+   À DIRE HONNÊTEMENT : ce plafond ne protège PAS de ce qu'on croit. Mesuré,
+   trois week-ends bloqués PAR TOUT LE MONDE suffisent à rendre la génération
+   impossible, et 3 est en dessous de 8 : vingt personnes qui visent le même
+   pont n'en dépensent qu'un chacune, quel que soit le plafond. Ce que 8 réduit,
+   c'est l'empilement ACCIDENTEL, quand chacun pose au hasard.
+   Ce qui protégerait vraiment de l'empilement volontaire est un seuil PAR DATE,
+   comme le vert/jaune/noir des congés — mesuré à 18 personnes sur 22 pour un
+   même week-end. Ce n'est pas construit : si la question revient, c'est là
+   qu'il faut aller, pas vers un plafond par personne plus bas. */
+const QUOTA_INDISPO_WE = 8;
 
 // ── R2 — Système de congés (quotas pilotés par CONFIG_CONGES) ──────────
 function setupCongesConfig() {
@@ -3780,11 +3791,16 @@ function _routeRequete_(e) {
          Le comité n'est pas plafonné : il arbitre des cas particuliers, et le
          refuser l'obligerait à passer par le classeur. */
       const indRefuses = [];
-      let nbIndC = 0;
+      let nbIndC = 0, nbIndWeC = 0;
       Object.keys(payload.indispos || {}).forEach(function (ds) {
         const v = String(payload.indispos[ds] || '').trim().toUpperCase();
         if (v === 'INDISPO' && user.role !== 'admin') {
           if (nbIndC >= QUOTA_INDISPO) { indRefuses.push(ds); return; }
+          const _dowI = new Date(ds + 'T12:00:00').getDay();
+          if (_dowI === 0 || _dowI === 6) {
+            if (nbIndWeC >= QUOTA_INDISPO_WE) { indRefuses.push(ds + ' (week-end)'); return; }
+            nbIndWeC++;
+          }
           nbIndC++; envoyeC[ds] = payload.indispos[ds]; return;
         }
         if (v !== 'TP' && v !== 'TPA') { envoyeC[ds] = payload.indispos[ds]; return; }

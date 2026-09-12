@@ -169,6 +169,7 @@ function monde(opts) {
      lit au niveau du fichier ne suivent pas. Elles sont extraites du fichier
      livré, jamais recopiées ici — un quota écrit en double finit par diverger. */
   vm.runInContext(extraireConst('QUOTA_INDISPO'), ctx);
+  vm.runInContext(extraireConst('QUOTA_INDISPO_WE'), ctx);
   vm.runInContext("const TP_CLE_REPUBLIER = 'TP_ANNEES_A_REPUBLIER';", ctx);
   ['_indisposOuverte_', 'getIndisposYear', '_phaseTp_', 'getIndisposForDoctor', 'saveIndisposForDoctor',
    '_fusionIndispos_', '_loadQuotasConges', 'getQuotasConges', '_tpFixeDe_', '_quotiteDe_',
@@ -200,7 +201,7 @@ console.log('\n═══ PT00 · le quota d\'indisponibilités tient côté serv
 {
   const b = monde({ campagne: true });
   const Q = vm.runInContext('QUOTA_INDISPO', b.ctx);
-  V('le quota est lu du fichier livré', Q === 25, Q);
+  V('le quota est lu du fichier livré', Q === 20, Q);
 
   /* L'écran envoie TOUJOURS la carte complète, jamais un delta : ce qui n'y est
      pas est retiré. On teste donc comme il envoie. */
@@ -215,7 +216,7 @@ console.log('\n═══ PT00 · le quota d\'indisponibilités tient côté serv
 
   /* Le cas qui compte : on en envoie DIX DE PLUS que le plafond. */
   b.appel({ indispos: carte(2, Q + 10), annee: 2027 }, MAR);
-  V('35 envoyées, le serveur en garde 25', compte('POSEUR') === Q, compte('POSEUR'));
+  V(`${Q + 10} envoyées, le serveur en garde ${Q}`, compte('POSEUR') === Q, compte('POSEUR'));
 
   /* Et le plafond n'est pas un compteur à sens unique : on redescend. */
   b.appel({ indispos: carte(2, 5), annee: 2027 }, MAR);
@@ -225,6 +226,75 @@ console.log('\n═══ PT00 · le quota d\'indisponibilités tient côté serv
 
   /* Le comité arbitre les cas particuliers : le plafonner l'obligerait à
      passer par le classeur. */
+  /* Le sous-quota week-end (samedis et dimanches) se compte à part. À dire
+     honnêtement : il ne protège pas de l'empilement volontaire — trois week-ends
+     bloqués par tout le monde suffisent à casser la génération, bien en dessous
+     de 8. Il borne l'empilement accidentel, et il est visible. */
+  const QW = vm.runInContext('QUOTA_INDISPO_WE', b.ctx);
+  V('le sous-quota week-end est lu du fichier livré', QW === 8, QW);
+  const weekends = n => { const o = {}; let k = 0, pris = 0;
+    while (pris < n && k < 364) { const d = new Date(Date.UTC(2027, 0, 4));
+      d.setUTCDate(d.getUTCDate() + k); k++;
+      const w = d.getUTCDay(); if (w !== 0 && w !== 6) continue;
+      o[d.toISOString().slice(0, 10)] = 'INDISPO'; pris++; }
+    return o; };
+  const b3 = monde({ campagne: true });
+  const cpt3 = (filtre) => { const lu = b3.lireInd('POSEUR', 2027);
+    return Object.keys(lu).filter(d => lu[d] === 'INDISPO' && (!filtre || filtre(d))).length; };
+  const estWe = d => { const w = new Date(d + 'T12:00:00Z').getUTCDay(); return w === 0 || w === 6; };
+
+  b3.appel({ indispos: weekends(QW), annee: 2027 }, MAR);
+  V(`${QW} week-ends passent`, cpt3(estWe) === QW, cpt3(estWe));
+
+  b3.appel({ indispos: weekends(QW + 6), annee: 2027 }, MAR);
+  V(`${QW + 6} week-ends envoyés, ${QW} gardés`, cpt3(estWe) === QW, cpt3(estWe));
+
+  /* Le sous-quota ne doit pas manger le quota général : il reste de la place
+     en semaine. */
+  const mixte = weekends(QW + 6);
+  for (let k = 0; k < 6; k++) { const d = new Date(Date.UTC(2027, 8, 6));
+    d.setUTCDate(d.getUTCDate() + k * 7); mixte[d.toISOString().slice(0, 10)] = 'INDISPO'; }
+  b3.appel({ indispos: mixte, annee: 2027 }, MAR);
+  V('les jours de semaine passent quand même', cpt3(d => !estWe(d)) === 6, cpt3(d => !estWe(d)));
+  V('le total reste sous le quota général', cpt3() <= 20, cpt3());
+
+  /* LE POINT QU'ON SE REPOSERA : un week-end couvert par des CONGÉS ne consomme
+     pas le sous-quota. Le compte ne porte que sur le code INDISPO — les congés,
+     la formation et le temps partiel ont leurs propres quotas et leur propre
+     circuit. Sans ce test, un refactor du comptage le casserait en silence. */
+  const b4 = monde({ campagne: true });
+  const melange = {};
+  { let k = 0, we = 0;
+    while (we < QW && k < 364) { const d = new Date(Date.UTC(2027, 0, 4));
+      d.setUTCDate(d.getUTCDate() + k); k++;
+      const w = d.getUTCDay(); if (w !== 0 && w !== 6) continue;
+      melange[d.toISOString().slice(0, 10)] = 'INDISPO'; we++; } }
+  /* Puis SIX week-ends de plus, mais en congés : ils ne doivent rien consommer. */
+  { let k = 200, we = 0;
+    while (we < 12 && k < 364) { const d = new Date(Date.UTC(2027, 0, 4));
+      d.setUTCDate(d.getUTCDate() + k); k++;
+      const w = d.getUTCDay(); if (w !== 0 && w !== 6) continue;
+      melange[d.toISOString().slice(0, 10)] = 'VAC'; we++; } }
+  b4.appel({ indispos: melange, annee: 2027 }, MAR);
+  const lu4 = b4.lireInd('POSEUR', 2027);
+  const estWe4 = d => { const w = new Date(d + 'T12:00:00Z').getUTCDay(); return w === 0 || w === 6; };
+  const indWe4 = Object.keys(lu4).filter(d => lu4[d] === 'INDISPO' && estWe4(d)).length;
+  V(`${QW} indisponibilités de week-end passent malgré 12 week-ends en congés`,
+    indWe4 === QW, indWe4);
+
+  /* Et l'inverse : le sous-quota étant plein, une indisponibilité de week-end de
+     plus est refusée même si des week-ends de congés existent à côté. */
+  { let k = 0, we = 0;
+    while (we < QW + 4 && k < 364) { const d = new Date(Date.UTC(2027, 0, 4));
+      d.setUTCDate(d.getUTCDate() + k); k++;
+      const w = d.getUTCDay(); if (w !== 0 && w !== 6) continue;
+      melange[d.toISOString().slice(0, 10)] = 'INDISPO'; we++; } }
+  b4.appel({ indispos: melange, annee: 2027 }, MAR);
+  const lu5 = b4.lireInd('POSEUR', 2027);
+  V('au-delà, le refus s\'applique quand même',
+    Object.keys(lu5).filter(d => lu5[d] === 'INDISPO' && estWe4(d)).length === QW,
+    Object.keys(lu5).filter(d => lu5[d] === 'INDISPO' && estWe4(d)).length);
+
   /* L'exemption du comité n'est PAS vérifiée ici : dans ce bac à sable, l'écriture
      du comité vise l'année active et non celle du message, et démêler ce chemin
      coûterait plus qu'il ne prouve. Elle l'est par lecture du code dans
