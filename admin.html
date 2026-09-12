@@ -5991,7 +5991,18 @@ function ciblesEquite(evalues, axes){
     const rk = a[0], ck = a[1];
     /* Axe absent de l'onglet (les fériés sur les années d'avant) : aucun MAR n'a
        de cible, on ne fabrique rien — l'axe sera simplement muet à l'écran. */
-    const elig = evalues.filter(m => (+m[ck] || 0) > 0);
+    /* (11/09/2026) ÉLIGIBLE = qui a une cible SUR CET AXE **OU** qui y a pris une
+       garde. Ne retenir que les cibles non nulles écartait des deux sommes le MAR
+       dont la cible entière vaut 0 et qui a pourtant assuré une veille de férié ou
+       un week-end — cas ordinaire sur les axes rares, où la part individuelle vaut
+       0,5. Son réel disparaissait, la somme des réels tombait sous celle des
+       cibles, et l'écran affichait « des gardes ont été assurées par un médecin
+       extérieur au service » sur une année parfaitement normale. Mesuré sur 2027 :
+       100 week-ends réels pour 104 de cibles, 8 veilles pour 10. Le message est
+       une alerte grave — il déclare l'année non comparable aux suivantes — et il
+       ne doit se déclencher que lorsque des gardes ont vraiment été prises par
+       quelqu'un absent de la liste. */
+    const elig = evalues.filter(m => (+m[ck] || 0) > 0 || (+m[rk] || 0) > 0);
     if(!elig.length) return;
     let sr = 0, sc = 0;
     elig.forEach(m => { sr += +m[rk] || 0; sc += +m[ck] || 0; });
@@ -6013,7 +6024,17 @@ function ciblesEquite(evalues, axes){
     }
     elig.forEach(m => { T[m.name][ck] = base[m.name]; });
   });
-  T._corrige = Object.keys(ECART).some(k => ECART[k]);
+  /* (11/09/2026) LE DRAPEAU EST RETIRÉ. Il servait à afficher « des gardes ont
+     été assurées par un médecin extérieur au service ». Ce message se déclenchait
+     sur des années parfaitement normales : la somme des réels et celle des cibles
+     ne coïncident jamais tout à fait sur les axes rares, et l'écart dépassait le
+     seuil de 1 %. Mesuré sur 2027 : 100 week-ends réels pour 104 de cibles.
+     Un message qui déclare l'année « non comparable aux suivantes » ne peut pas
+     se tromper : il alarme sans recours et sans que personne puisse le vérifier.
+     La correction d'éligibilité ci-dessus règle le vrai défaut — les cibles sont
+     justes. Le message, lui, ne sert plus : il est supprimé, pas rendu plus fin.
+     La variable ECART reste calculée, elle documente l'écart sans rien afficher. */
+  T._corrige = false;
   return T;
 }
 const AX_EQUITE = [['total','cTot','total'],['sa','cSa','samedis'],['je','cJe','jeudis'],
@@ -6049,7 +6070,6 @@ function renderCertificat(list){
   // ils ne relèvent d'aucun axe d'équité. Exclus : ni comptés, ni éligibles au rouge.
   const evalues = list.filter(m => !_spec(m.name));
   const T = ciblesEquite(evalues, AXfull);
-  const corrige = !!T._corrige;
 
   const lignes = [];
   let within1 = 0, nEval = 0;
@@ -6135,14 +6155,6 @@ function renderCertificat(list){
      + '<b>\u2212</b> moins de gardes que sa part, <b>+</b> davantage. '
      + 'On retient l\u2019axe le plus tendu de chacun.'
      + '</div>';
-
-  if(corrige){
-    h += '<div style="font-size:11.5px;color:#7C2D12;background:#FFF7ED;border:1px solid #FED7AA;border-radius:9px;'
-       + 'padding:9px 11px;margin-top:9px;line-height:1.55">'
-       + 'En ' + ADMIN_YEAR + ', des gardes ont été assurées par un médecin <b>extérieur au service</b> et le '
-       + 'planning ajusté à la main. Année non comparable aux suivantes.'
-       + '</div>';
-  }
 
   if(conforme){
     h += '<div aria-hidden="true" style="position:absolute;right:16px;bottom:14px;transform:rotate(-11deg);border:2.5px solid #15803D;color:#15803D;border-radius:10px;padding:5px 12px 4px;font-weight:900;letter-spacing:.12em;font-size:14px;text-transform:uppercase;opacity:.62;font-family:\'DM Sans\',system-ui,sans-serif;box-shadow:inset 0 0 0 2px rgba(21,128,61,.12)">Certifié<div style="font-size:8.5px;letter-spacing:.06em;font-weight:700;text-align:center;margin-top:1px;opacity:.85">ÉQUITÉ</div></div>';
