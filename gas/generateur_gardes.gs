@@ -41,7 +41,7 @@
 // ⚠️ RÈGLE (détecteur de dérive dépôt↔Apps Script) : incrémenter cette version
 // à CHAQUE push de ce fichier. Le diagnostic (admin → Maintenance) compare la
 // version déployée ici avec celle du dépôt et signale toute recopie oubliée.
-const GAS_VERSION_GENERATEUR = '2026-09-11.2';
+const GAS_VERSION_GENERATEUR = '2026-09-11.3';
 
 /* (05/09/2026) INTERRUPTEUR DU NOUVEL ALGORITHME.
    À false, le générateur se comporte EXACTEMENT comme avant : c'est le retour
@@ -374,6 +374,11 @@ function essaiGenerationGardes(year) {
   };
   ids.forEach(function (id) {
     const c = r.compteurs[id], cb = r.cibles[id] || {};
+    /* (11/09/2026) La part exacte suit la cible quand l'arrondi a joué : « 37 (37)
+       ·36,8 » se lit tout de suite comme un arrondi à la hausse. */
+    const pe = (r.partExacte || {})[id];
+    const fin = pe && pe.total !== undefined && Math.abs(pe.total - cb.total) > 0.01
+      ? '  part ' + (Math.round(pe.total * 10) / 10) : '';
     L.push('   ' + pad(id, 12)
       + pad(duo(c.total, cb.total), 12)
       + pad(duo(c.sam, cb.sam), 10)
@@ -381,7 +386,7 @@ function essaiGenerationGardes(year) {
       + pad(duo(c.vd, cb.vd), 12)
       + pad(duo(r.jf[id], cb.jf), 10)
       + pad(r.h18[id], 6)
-      + (r.noel[id] || 0));
+      + pad(r.noel[id] || 0, 6) + fin);
   });
   L.push('');
 
@@ -403,6 +408,52 @@ function essaiGenerationGardes(year) {
            + num(tp ? Math.round(100 * th / tp) : 0, 3) + ' %');
   }
   L.push('');
+
+  /* ── 4bis. LES AXES RARES, EN DÉTAIL. (11/09/2026)
+     Sur les samedis, chacun en doit cinq par an : un écart d'une garde se voit
+     et se rattrape. Sur les veilles de férié, chacun en doit UNE TOUS LES DEUX
+     ANS. Un tableau de compteurs n'y apprend rien — il faut la liste des dates,
+     qui les a eues, et pour ceux qui sont sous leur part, ce qui les a écartés
+     de chacune. Sans onglet créé, c'est la seule façon de le savoir. */
+  const RNOM = { vjf: 'VEILLES DE FÉRIÉ', jf: 'JOURS FÉRIÉS' };
+  const JOURS = ['dim', 'lun', 'mar', 'mer', 'jeu', 'ven', 'sam'];
+  Object.keys(RNOM).forEach(function (axe) {
+    const det = (r.raresDetail || {})[axe] || [];
+    if (!det.length) return;
+    L.push('── ' + RNOM[axe] + ' · ' + det.length + ' date(s) ──');
+    det.forEach(function (d) {
+      L.push('   ' + d.date + '  ' + pad(JOURS[d.dow] || '', 5) + d.g + '  +  ' + d.g2);
+    });
+    const sous = (r.raresManque || {})[axe] || [];
+    if (!sous.length) { L.push('   → personne sous sa part sur cet axe'); L.push(''); return; }
+    L.push('   ── sous leur part ──');
+    sous.forEach(function (m) {
+      const det2 = Object.keys(m.motifs).filter(function (k) { return k !== 'eu'; })
+        .sort(function (a, b) { return m.motifs[b] - m.motifs[a]; })
+        .map(function (k) { return m.motifs[k] + '× ' + k; });
+      L.push('   ' + pad(m.id, 12) + m.reel + ' pour ' + m.part + ' due(s)');
+      if (det2.length) L.push('              ' + det2.join(' · '));
+    });
+    L.push('');
+  });
+
+  /* ── 4ter. LE CUMUL DES ANNÉES PRÉCÉDENTES. Une année seule ne dit rien d'un
+     axe rare : c'est sur trois ou cinq ans que l'injustice se voit. */
+  const cp = r.cumulPrec || {}, cpIds = Object.keys(cp).sort();
+  if (cpIds.length && (r.anneesLues || []).length) {
+    L.push('── CUMUL DES ANNÉES ' + r.anneesLues.join(', ') + ' · réel − part due ──');
+    L.push('   ' + pad('MAR', 12) + pad('total', 10) + pad('sam', 9) + pad('jeu', 9)
+           + pad('ven-dim', 11) + pad('veilleJF', 11) + 'férié');
+    const sgn = function (v) { return (v > 0 ? '+' : '') + (Math.round(v * 10) / 10); };
+    cpIds.forEach(function (id) {
+      const o = cp[id];
+      L.push('   ' + pad(id, 12) + pad(sgn(o.total || 0), 10) + pad(sgn(o.sam || 0), 9)
+             + pad(sgn(o.jeu || 0), 9) + pad(sgn(o.vd || 0), 11)
+             + pad(sgn(o.vjf || 0), 11) + sgn(o.jf || 0));
+    });
+    L.push('   (positif : a fait plus que sa part · négatif : moins)');
+    L.push('');
+  }
 
   // ── 5. les quatre nuits de fêtes, celles que tout le monde regarde
   L.push('── NUITS DE FÊTES ──');
@@ -2437,7 +2488,88 @@ function generateGardes(year, opts){
       pairesBilan.push({ paire: a2 + ' + ' + b2, nuits: nuits });
     });
 
+    /* (11/09/2026) AXES RARES — le détail, parce que le calcul à blanc est le
+       seul écran. Sur un axe où l'on est dû une veille de férié TOUS LES DEUX
+       ANS, un écart de 1 ne se lit pas : il faut voir qui a eu quelle date, et
+       pourquoi celui qui la devait ne l'a pas eue. Rien n'est recalculé ici :
+       on relit le planning terminé et les mêmes motifs que le générateur. */
+    const RARES = { vjf:'VEILLES DE FÉRIÉ', jf:'JOURS FÉRIÉS' };
+    const raresDetail = {}, raresManque = {};
+    Object.keys(RARES).forEach(function(axe){
+      const jours = (AX[axe]||[]).map(function(d){return d.date;}).sort();
+      raresDetail[axe] = jours.map(function(ds){
+        const g = gardes[ds] || {};
+        return { date:ds, dow:(dayByDate[ds]?dayByDate[ds].dow:null),
+                 g:g.g||'—', g2:g.g2||'—' };
+      });
+      /* Qui est sous sa part sur cet axe, et ce qui s'est passé pour lui à
+         chaque date. On compare au réel EXACT, pas à la cible arrondie : sur
+         un axe aussi maigre, l'arrondi masque tout. */
+      const sous = [];
+      gardeDoctors.forEach(function(id){
+        if(!cnt[id] || !axisEligible(axe,id)) return;
+        const ex = (cibleExacte[id]||{})[axe];
+        const re = axe==='jf' ? (jfCnt[id]||0) : (cnt[id][axe]||0);
+        if(ex===undefined || re >= ex - 0.001) return;
+        const motifs = {};
+        jours.forEach(function(ds){
+          const g = gardes[ds] || {};
+          if(g.g===id || g.g2===id) { motifs.eu = (motifs.eu||0)+1; return; }
+          const m = motifBlocage(id, ds);
+          const cle = m && m.texte ? m.texte : 'disponible, non retenu';
+          motifs[cle] = (motifs[cle]||0)+1;
+        });
+        sous.push({ id:id, reel:re, part:Math.round(ex*100)/100, motifs:motifs });
+      });
+      sous.sort(function(a,b){ return (a.reel-a.part)-(b.reel-b.part); });
+      raresManque[axe] = sous;
+    });
+
+    /* La part EXACTE avant arrondi, à côté de la cible. Un 6 en face d'un 5,539
+       n'est pas un 6 juste : c'est un arrondi à la hausse, et le lecteur doit
+       pouvoir le voir sans ouvrir l'onglet des statistiques. */
+    const partExacte = {};
+    gardeDoctors.forEach(function(id){
+      if(!cnt[id] || !cibleExacte[id]) return;
+      const e = cibleExacte[id]; const a = {};
+      ['total','sam','jeu','vd','vjf','jf'].forEach(function(k){
+        if(e[k]!==undefined) a[k]=Math.round(e[k]*1000)/1000;
+      });
+      partExacte[id] = a;
+    });
+
+    /* CUMUL DES ANNÉES PRÉCÉDENTES. La donnée existe depuis 2026-09-11.1 : on
+       additionne, pour chaque axe, le réel moins la part exacte des années déjà
+       en mémoire. C'est la seule lecture qui vaille sur un axe rare — une année
+       seule n'y dit rien. */
+    const cumulPrec = {}; const anneesLues = [];
+    for(let _y=year-1; _y>=year-6; _y--){
+      const _sh = ss.getSheetByName('STATS_GARDES_'+_y);
+      if(!_sh) continue;
+      const _v = _sh.getDataRange().getValues(); if(_v.length<2) continue;
+      const _h = _v[0].map(function(x){return String(x).trim();});
+      const _iEx = { total:_h.indexOf('PART EXACTE'), sam:_h.indexOf('PART EXACTE SAM'),
+                     jeu:_h.indexOf('PART EXACTE JEU'), vd:_h.indexOf('PART EXACTE VD'),
+                     vjf:_h.indexOf('PART EXACTE VJF'), jf:_h.indexOf('PART EXACTE JF') };
+      if(_iEx.total<0) continue;                       // année écrite avant la part exacte
+      const _iRe = { total:_h.indexOf('TOTAL G'), sam:_h.indexOf('SAM'), jeu:_h.indexOf('JEU'),
+                     vd:_h.indexOf('VD'), vjf:_h.indexOf('VEILLE JF'), jf:_h.indexOf('JF') };
+      anneesLues.push(_y);
+      for(let _r=1; _r<_v.length; _r++){
+        const _id = String(_v[_r][0]).trim(); if(!_id) continue;
+        Object.keys(_iEx).forEach(function(k){
+          const ex = Number(_v[_r][_iEx[k]]); if(!ex && ex!==0) return;
+          if(_v[_r][_iEx[k]]==='') return;
+          const re = Number(_v[_r][_iRe[k]])||0;
+          if(!cumulPrec[_id]) cumulPrec[_id]={};
+          cumulPrec[_id][k] = (cumulPrec[_id][k]||0) + re - ex;
+        });
+      }
+    }
+
     return { dryRun:true, year:year, ms:Date.now()-_tGen,
+             raresDetail:raresDetail, raresManque:raresManque,
+             partExacte:partExacte, cumulPrec:cumulPrec, anneesLues:anneesLues.sort(),
              ecarts:ecarts, compteurs:compteurs, cibles:cibles,
              jf:jf, noel:noel, h18:h18, souhaits:souhaitsBilan,
              fetes:fetes, paires:pairesBilan,
