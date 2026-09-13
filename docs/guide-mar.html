@@ -217,17 +217,28 @@
   .grp.a{background:#2563EB} .grp.b{background:#059669} .grp.c{background:#D97706}
   .grp-sep{color:var(--ink-3); font-size:11px; margin:0 2px}
   .ordre{margin:12px 0 8px}
-  /* (13/09/2026) `flex-wrap` sur la ligne, `nowrap` dans chaque bloc d'annee.
-     Sans ca, sur un telephone, « 2026 C › A › B » ne tenait pas sur la largeur
-     restante et se coupait EN PLEIN MILIEU : le troisieme badge retombait seul a
-     la ligne, et l'ordre devenait illisible. La ligne peut maintenant passer a la
-     ligne ENTRE les deux annees, jamais a l'interieur de l'une d'elles. */
-  .ordre > div{display:flex; flex-wrap:wrap; align-items:center; gap:10px 14px;
-    padding:10px 0; border-top:1px solid var(--line)}
+  /* (13/09/2026) DISPOSITION EN GRILLE, pas en ligne fluide.
+     Trois elements — le nom de la periode et les deux annees — ne tiennent pas
+     sur la largeur d'un telephone. En flex simple, « 2026 C › A › B » se coupait
+     en plein milieu, le troisieme badge retombant seul. En flex avec nowrap,
+     l'annee restait entiere mais 2027 retombait a l'extreme gauche sous le
+     libelle, sans alignement avec 2026 : ragged et illisible.
+     La grille regle les deux : sous 620 px, le nom prend toute la premiere
+     ligne, puis les deux annees s'empilent ALIGNEES l'une sous l'autre. Au-dela,
+     tout revient sur une seule ligne. */
+  .ordre > div{display:grid; grid-template-columns:88px 1fr 1fr; align-items:center;
+    gap:6px 14px; padding:11px 0; border-top:1px solid var(--line)}
   .ordre > div > span{display:inline-flex; align-items:center; white-space:nowrap}
   .ordre > div:first-child{border-top:none}
-  .ordre .per{font-weight:700; color:var(--ink); font-size:14.5px; width:88px; flex:none}
-  .ordre .an{font-size:12px; font-family:var(--mono); color:var(--ink-3); margin-right:4px}
+  .ordre .per{font-weight:700; color:var(--ink); font-size:14.5px}
+  @media (max-width:620px){
+    .ordre > div{grid-template-columns:1fr}
+    .ordre .per{margin-bottom:2px}
+  }
+  /* Largeur fixe : sans elle, « 2026 » et « 2027 » n'ont pas tout a fait la meme
+     avance et les badges des deux lignes ne s'alignent pas a la verticale. */
+  .ordre .an{font-size:12px; font-family:var(--mono); color:var(--ink-3);
+    min-width:36px; flex:none}
 
   /* Bouton flottant : remonter */
   .haut{position:fixed; right:14px; bottom:18px; z-index:40; width:48px; height:48px;
