@@ -87,8 +87,19 @@
   .liste{margin:12px 0 16px}
   .liste > div{padding:11px 0; border-top:1px solid var(--line)}
   .liste > div:first-child{border-top:none; padding-top:0}
-  .liste b{display:block; color:var(--ink); font-size:15px; margin-bottom:2px}
-  .liste span{display:block; color:var(--ink-2); font-size:14.5px; line-height:1.5}
+  /* (13/09/2026) LE CHEVRON EST OBLIGATOIRE. Sans lui, la règle atteignait tous
+     les gras et toutes les incises DESCENDANTS, y compris ceux employés au fil
+     du texte : « Les jours où vous voudriez être de garde » se brisait en trois
+     lignes, le mot en gras isolé au milieu. Les badges de groupes retombaient à
+     la ligne un par un, et les pastilles de code se plaçaient au-dessus de leur
+     libellé au lieu d'être devant. 23 entrées du guide étaient touchées.
+     Ces deux règles ne visent que l'intitulé et la description d'une entrée,
+     c'est-à-dire les enfants DIRECTS ; les deux suivantes remettent en ligne ce
+     qui est imbriqué. */
+  .liste > div > b{display:block; color:var(--ink); font-size:15px; margin-bottom:2px}
+  .liste > div > span{display:block; color:var(--ink-2); font-size:14.5px; line-height:1.5}
+  .liste b b, .liste span b{display:inline; font-size:inherit; margin:0}
+  .liste b span, .liste span span{display:inline; font-size:inherit; line-height:inherit}
   .code{font-family:var(--mono); font-size:14px; font-weight:500; background:#EEF1F5;
     border-radius:6px; padding:2px 8px; color:var(--ink); margin-right:8px}
 
