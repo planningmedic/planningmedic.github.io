@@ -1,7 +1,7 @@
 // ⚠️ RÈGLE (détecteur de dérive dépôt↔Apps Script) : incrémenter cette version
 // à CHAQUE push de ce fichier. Le diagnostic (admin → Maintenance) compare la
 // version déployée ici avec celle du dépôt et signale toute recopie oubliée.
-const GAS_VERSION_INDISPOS = '2026-09-11.2';
+const GAS_VERSION_INDISPOS = '2026-09-13.1';
 
 /* ── (01/08/2026) MARQUEUR DE TEMPS GLOBAL — mesure, ne change rien ───────
    `_srv_ms` chronometre l'INTERIEUR de doGet. Or avant que doGet soit appele,
@@ -4131,6 +4131,17 @@ try {
       return ContentService.createTextOutput(JSON.stringify({
         success: true, periodes: cfg.periodes, quotaVac: cfg.quotaVac,
         quotaForm: cfg.quotaForm, quotaCtp: cfg.quotaCtp, tpFixe: tpFixe,
+        /* (13/09/2026) LES DEUX PLAFONDS D'INDISPONIBILITÉS. Ils étaient ajoutés
+           au retour de la fonction interne getVacConfig — que l'écran n'appelle
+           PAS. Cette action-ci reconstruit sa réponse champ par champ : les deux
+           quotas étaient calculés puis jetés. L'écran recevait donc null, et son
+           garde-fou, conditionné à `quotaIndispo != null`, était sauté en entier.
+           Un MAR a pu poser 27 indisponibilités sans rien voir passer.
+           Le serveur, lui, refusait bien au-delà de 20 — mais en silence, sans
+           dire lesquelles il écartait. Le pire des deux mondes.
+           Le banc compare désormais les champs renvoyés ici à ceux que la page
+           lit dans vacConfig. */
+        quotaIndispo: QUOTA_INDISPO, quotaIndispoWe: QUOTA_INDISPO_WE,
         totalVacDoc: cfg.totalVacDoc, joursFeries: [...jf, ...jfNext],
         genere: _dejaGenere, anneeCampagne: indYear,
       })).setMimeType(ContentService.MimeType.JSON);

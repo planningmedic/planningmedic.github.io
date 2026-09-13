@@ -93,8 +93,11 @@ console.log('\n═══ 5. La version et le guide suivent ═══');
 const VER = fs.readFileSync(path.join(__dirname, '..', 'version.js'), 'utf8');
 V('la version du site a monté',
   /SITE_VERSION = 'v1\.11\./.test(VER), (VER.match(/SITE_VERSION = '[^']+'/) || [])[0]);
-V('le marqueur de version du fichier serveur a monté',
-  /GAS_VERSION_INDISPOS = '2026-09-11/.test(GS),
+/* Le marqueur doit AVANCER à chaque fois que le fichier change. Il a été figé
+   une fois en le testant sur une date précise : la vérification est donc écrite
+   sur un minimum, pas sur une valeur exacte. */
+V('le marqueur de version du fichier serveur est au moins au 11/09',
+  /GAS_VERSION_INDISPOS = '2026-09-(1[1-9]|[2-9]\d)/.test(GS),
   (GS.match(/GAS_VERSION_INDISPOS = '[^']+'/) || [])[0]);
 const GUIDE = fs.readFileSync(path.join(__dirname, '..', 'docs', 'guide-mar.html'), 'utf8');
 V('le guide annonce les deux nombres et les trois jours',
