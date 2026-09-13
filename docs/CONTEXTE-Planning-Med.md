@@ -35,13 +35,29 @@ découle, et prime sur les habitudes antérieures.
   serveur. Un seul des deux couvert, et l'affichage change selon que le relais répond ou non.
   C'est le défaut du précédent `libAdmin`.
 
-**Ce qui n'est pas encore fait :** l'ancien dépôt, l'organisation `chpg-anesthesie` et l'ancien
-Worker existent toujours. Le compte Google d'origine aussi — il porte le classeur, les archives et
+**Ce qui n'est pas encore fait :** ~~l'ancien dépôt~~ (**supprimé le 13/09/2026** ; l'historique
+du nouveau dépôt a été réécrit le même jour, purge GitHub en attente), le compte `chpg-anesthesie`
+(vide) et l'ancien Worker existent toujours. Le compte Google d'origine aussi — il porte le classeur, les archives et
 les fichiers du planning, et attend une semaine de fonctionnement réel avant suppression.
 
 ---
 
 # PARTIE 1 — L'ESSENTIEL
+
+## État au 13 septembre 2026 — audit complet, et un plan en 12 étapes
+
+Audit du code sur deux versants (efficience, confidentialité), détail chiffré dans la ROADMAP.
+Le jour même : l'ancien dépôt public (2 328 commits nominatifs) est supprimé, et l'historique du
+nouveau dépôt est réécrit sans aucun nom ni prénom (v1.11.9, contenu identique, banc 3 042 ✓).
+
+**Ce que l'audit change pour les interventions à venir :**
+- Un **plan en 12 étapes** est posé dans la ROADMAP (socle commun des pages, découpage du serveur,
+  configuration renvoyée par le serveur, un seul appel à l'ouverture). Une conversation par étape,
+  banc vert, test sur téléphone avant la suivante. **Aucune étape n'est urgente** — le site marche.
+- Règle réaffirmée : **le client affiche, il ne calcule pas.** Un chiffre recopié dans une page
+  (quotas, cibles, fériés) finit toujours faux ; il vient du serveur.
+- Les commentaires ne portent plus de prénom : « le responsable » désigne l'anesthésiste
+  responsable du projet.
 
 *Si tu ne lis qu'une chose, lis ceci. Le détail complet est en partie 2.*
 

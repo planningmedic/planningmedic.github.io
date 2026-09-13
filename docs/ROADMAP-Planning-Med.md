@@ -6,7 +6,7 @@ portail/Dashboard, module libéral, contrôle d'absence, veille biblio.
 (Le générateur de comptes rendus a été retiré le 07/09/2026 : il portait le logo de
 l'établissement et 77 noms de praticiens sur une page publique sans code d'accès.)
 
-**Dépôt** `planningmedic/planningmedic.github.io`, branche `main` · **Site v1.9.0** ·
+**Dépôt** `planningmedic/planningmedic.github.io`, branche `main` · **Site v1.11.9** ·
 **Portail** https://planningmedic.github.io ·
 **GAS** (relevé dans le dépôt le 10/09/2026) `code.gs` **2026-09-08.2** ·
 `Indispos.gs` **2026-09-10.1** · `generateur_gardes.gs` **2026-09-10.1** ·
@@ -17,6 +17,81 @@ l'établissement et 77 noms de praticiens sur une page publique sans code d'acc�
 **Worker** `cloudflare/worker.js` : `const VERSION = 'miroir 2026-08-22.2'` — ⚠️ le marqueur n'a
 pas été monté avec le lot cloche du 23/08 (oubli assumé, le code déployé est bien le nouveau) :
 à monter au prochain lot Worker. La constante reste la **seule** version écrite dans le fichier.
+
+## 13/09/2026 — audit du code, ancien dépôt supprimé, historique réécrit
+
+### Audit (deux versants : efficience, confidentialité)
+
+Clone complet (35 commits, 81 022 lignes), recherche exhaustive sur l'arbre **et** sur tout
+l'historique git, lecture de `_routeRequete_`, `checkCode` et `autorise()` du relais.
+
+**Confidentialité — vérifié sain :** aucun jeton ni secret dans l'arbre ni dans l'historique ;
+aucun montant, RPPS, téléphone ; toutes les actions du serveur exigent un code valide sauf deux
+lectures non nominatives (`getActiveYear`, `getAnneesDisponibles`) ; 8 actions ouvertes à tout code
+valide sans contrôle de rôle, cohérentes avec ce que `planning.html` affiche déjà ; codes de 8
+caractères sur 32 symboles (1,1 × 10¹² combinaisons), force brute impraticable derrière Apps Script.
+
+**Confidentialité — trouvé et traité le jour même :**
+- L'ancien dépôt `chpg-anesthesie/Planning-CHPG` existait encore, **public, 2 328 commits**, avec
+  tout l'historique nominatif d'avant la migration. **Supprimé par le responsable le 13/09**
+  (vérifié : API 404, compte `chpg-anesthesie` à 0 dépôt public).
+- Le commit initial du nouveau dépôt (07/09) portait encore 25 noms de praticiens (210 lignes) ; le
+  nettoyage du 08/09 avait purgé l'arbre, pas l'histoire. **Historique réécrit** (`git filter-repo`) :
+  25 noms → `MAR01`…`MAR25`, prénom du responsable → « le responsable » (200 lignes), y compris
+  dans un message de commit. Contenu final identique fichier par fichier, 35 commits conservés,
+  push forcé. Recherche à zéro après reclone : 0 nom, 0 prénom, 0 jeton. Banc : 3 042 ✓, 0 échec.
+  **Reste :** les anciens commits demeurent joignables par leur adresse exacte tant que GitHub
+  n'a pas purgé — formulaire de support envoyé par le responsable, à revérifier à leur réponse.
+- v1.11.9 : montée de version parce que des pages servies changent (commentaires seulement).
+  Les `.gs` touchés le sont dans leurs commentaires uniquement : `GAS_VERSION` non montée, aucune
+  recopie dans Apps Script (décision du responsable : le code qui tourne est identique).
+
+**Confidentialité — reste ouvert :** `ARCHIVE_SS_ID` en dur dans `generateur_gardes.gs` (identifiant
+d'un fichier privé, pas un secret : à déplacer dans CONFIG) ; `banc/reference/admin_precedent.html`
+(548 Ko) servi sur le site public sans raison ; 21 mentions de Monaco dans le module libéral
+(chantier n° 5 ci-dessous, inchangé).
+
+**Efficience — constats chiffrés :**
+- Code commun recopié dans 3 à 7 pages et **déjà divergent** : `esc` ×7, `miroirRead` ×6 (12 lignes
+  d'écart index/planning), `apiPost` ×5, `viewLogin` ×3 (47 lignes d'écart), `applyUserBadge` ×3
+  (57), `renderEquiteCards` admin/planning (67), `renderAffectations` (92). `partage/session.js`
+  est le modèle qui marche.
+- 3 376 lignes de CSS inline ; variables `:root` différentes d'une page à l'autre.
+- `Indispos.gs` : 6 644 lignes, 64 actions dans un seul routeur, 102 lectures de feuille entière,
+  MEDECINS lu directement 37 fois avec des index de colonnes en dur (`data[r][7]` = email ×13).
+- 17 fonctions `test*/diag*` et ~10 installateurs manuels dans les `.gs` de production.
+- `staff.html` : table de quotas figée, copie de CONFIG_CONGES (quatrième occurrence du défaut
+  « deux lecteurs des mêmes données »).
+- ~1 600 lignes de commentaires-journal (décisions datées) dans `admin.html` et `Indispos.gs`.
+- Ouverture : `index.html` déclare 14 `apiPost` + 8 `miroirRead`, `planning.html` 12 + 7.
+
+### PLAN — 12 étapes, une conversation par étape, banc vert et test téléphone entre chaque
+
+Règle du plan : chaque étape laisse le site complet ; une étape qui casse → revert d'abord,
+comprendre ensuite ; push en heure creuse ; ROADMAP mise à jour à chaque étape avec
+« confirmé en production le … ».
+
+0. ~~Ancien dépôt supprimé, historique du nouveau réécrit~~ — **fait le 13/09**, purge GitHub en attente.
+1. Retirer `ARCHIVE_SS_ID` du code (→ CONFIG), retirer `admin_precedent.html` du site.
+2. Fonctions de test et installateurs → `dev.gs`, jamais déployé.
+3. `partage/portail.js` (`esc`, `apiPost`, `miroirRead`) branché sur **une** page (`staff.html`).
+4. Même socle page par page : absences, suivi-libéral, indispos, planning, index, admin — six
+   pushes ; avant chaque page, les écarts entre sa copie et le socle sont listés au responsable,
+   qui tranche ceux qui sont voulus.
+5. Connexion, thème, badge dans le socle (index, planning, crh).
+6. `partage/theme.css`.
+7. `partage/rendu_equite.js` : cartes d'équité et d'affectations, une seule version.
+8. `classeur.gs` : lecture unique de MEDECINS et CONFIG, colonnes nommées.
+9. Découpage d'`Indispos.gs` par sujet + routeur en table `action → rôle → fonction`. Logique
+   déplacée, jamais modifiée.
+10. Commentaires-journal → CONTEXTE, fichier par fichier.
+11. `getConfig` unique (quotas, cibles, fériés) ; suppression des copies dans les pages.
+12. Clé miroir `bootstrap_mar_{annee}` : 1 à 2 appels à l'ouverture au lieu de 15 à 20.
+
+Les étapes 1 à 7 apportent l'essentiel de la sécurité ; 8 à 12 le confort. Aucune n'est urgente :
+le site fonctionne, c'est de la maintenance préventive.
+
+---
 
 ## 10/09/2026 (soir) — le W1 se termine sur le staff
 
@@ -283,7 +358,7 @@ vise la sortie elle-même.
 
 ### Reste à faire
 
-Supprimer l'ancien dépôt, l'organisation `chpg-anesthesie` et l'ancien Worker. **Le compte Google
+~~Supprimer l'ancien dépôt~~ (**fait le 13/09**), fermer le compte `chpg-anesthesie` (vide) et l'ancien Worker. **Le compte Google
 d'origine attend une semaine de fonctionnement réel** — il porte le classeur, les archives et les
 fichiers du planning. Vider `INDISPOS_2027` de son jeu d'essai **avant le 10 octobre**.
 
