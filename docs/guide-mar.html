@@ -98,8 +98,11 @@
      qui est imbriqué. */
   .liste > div > b{display:block; color:var(--ink); font-size:15px; margin-bottom:2px}
   .liste > div > span{display:block; color:var(--ink-2); font-size:14.5px; line-height:1.5}
-  .liste b b, .liste span b{display:inline; font-size:inherit; margin:0}
-  .liste b span, .liste span span{display:inline; font-size:inherit; line-height:inherit}
+  /* Pas de regle de « remise en ligne » ici : avec les chevrons ci-dessus, une
+     balise imbriquee n'est deja plus atteinte par le display:block. En forcer une
+     en display:inline ecrasait au contraire les pastilles .ci et .pc, qui sont en
+     inline-block avec une largeur et une hauteur — elles se reduisaient a un
+     trait vertical. */
   .code{font-family:var(--mono); font-size:14px; font-weight:500; background:#EEF1F5;
     border-radius:6px; padding:2px 8px; color:var(--ink); margin-right:8px}
 
@@ -214,7 +217,14 @@
   .grp.a{background:#2563EB} .grp.b{background:#059669} .grp.c{background:#D97706}
   .grp-sep{color:var(--ink-3); font-size:11px; margin:0 2px}
   .ordre{margin:12px 0 8px}
-  .ordre > div{display:flex; align-items:center; gap:10px; padding:10px 0; border-top:1px solid var(--line)}
+  /* (13/09/2026) `flex-wrap` sur la ligne, `nowrap` dans chaque bloc d'annee.
+     Sans ca, sur un telephone, « 2026 C › A › B » ne tenait pas sur la largeur
+     restante et se coupait EN PLEIN MILIEU : le troisieme badge retombait seul a
+     la ligne, et l'ordre devenait illisible. La ligne peut maintenant passer a la
+     ligne ENTRE les deux annees, jamais a l'interieur de l'une d'elles. */
+  .ordre > div{display:flex; flex-wrap:wrap; align-items:center; gap:10px 14px;
+    padding:10px 0; border-top:1px solid var(--line)}
+  .ordre > div > span{display:inline-flex; align-items:center; white-space:nowrap}
   .ordre > div:first-child{border-top:none}
   .ordre .per{font-weight:700; color:var(--ink); font-size:14.5px; width:88px; flex:none}
   .ordre .an{font-size:12px; font-family:var(--mono); color:var(--ink-3); margin-right:4px}
