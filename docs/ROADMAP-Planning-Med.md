@@ -6,7 +6,7 @@ portail/Dashboard, module libéral, contrôle d'absence, veille biblio.
 (Le générateur de comptes rendus a été retiré le 07/09/2026 : il portait le logo de
 l'établissement et 77 noms de praticiens sur une page publique sans code d'accès.)
 
-**Dépôt** `planningmedic/planningmedic.github.io`, branche `main` · **Site v1.12.5** ·
+**Dépôt** `planningmedic/planningmedic.github.io`, branche `main` · **Site v1.12.6** ·
 **Portail** https://planningmedic.github.io ·
 **GAS** (relevé dans le dépôt le 10/09/2026) `code.gs` **2026-09-08.2** ·
 `Indispos.gs` **2026-09-14.3** · `generateur_gardes.gs` **2026-09-14.2** · `code.gs`, `portail.gs` **2026-09-14.2** · `miroir.gs` **2026-09-14.3** · `setup_annee.gs`, `veille.gs` **2026-09-14.1** — **tous recopiés et confirmés au Diagnostic le 14/09 à 21h55** ·
@@ -165,6 +165,17 @@ aux DEUX endroits — ligne GITHUB_TOKEN de CONFIG et §3 des instructions du pr
     staff.html ne porte **plus aucune table** — la quatrième copie fausse était la dernière ; sans
     table reçue : 0 et un toast, jamais un chiffre inventé. Cibles et fériés arrivent déjà par
     `getStats` / `getJoursFeries` : rien d'autre à rapatrier.
+    **Vu en production dix minutes après la recopie (22 h) :** le staff annonçait « quotas non reçus ».
+    La copie rapide `vacances_admin` avait été fabriquée par l'ancien serveur, sans le champ ; elle
+    n'est refaite qu'à la synchro horaire ou à une modification du classeur (`miroirSyncComplet` a
+    suffi). **Règle :** un champ ajouté à une clé miroir met la copie en retard jusqu'à la prochaine
+    synchro — la page qui attend ce champ redemande la config au serveur, une fois, si la copie ne
+    l'a pas (v1.12.6, `banc_quotas_serveur.js`). Le message d'erreur a été corrigé : il accusait
+    CONFIG_CONGES à tort.
+12. ~~Un seul appel à l'ouverture~~ — **déjà en place par construction, clos le 14/09.** Le chiffre du
+    13/09 (« 14 appels + 8 lectures miroir » pour l'accueil) comptait les appels écrits dans le code,
+    pas ceux qui partent : l'accueil et le planning ouvrent avec UNE lecture miroir groupée, indispos
+    avec deux, une seconde ne part que si l'année devinée n'est pas l'active. Rien à gagner.
 12. Clé miroir `bootstrap_mar_{annee}` : 1 à 2 appels à l'ouverture au lieu de 15 à 20.
 
 Les étapes 1 à 7 apportent l'essentiel de la sécurité ; 8 à 12 le confort. Aucune n'est urgente :
