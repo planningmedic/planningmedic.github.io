@@ -59,6 +59,15 @@ nouveau dépôt est réécrit sans aucun nom ni prénom (v1.11.9, contenu identi
 - Les commentaires ne portent plus de prénom : « le responsable » désigne l'anesthésiste
   responsable du projet.
 
+**14/09/2026 — le socle commun des pages est lancé** (`partage/portail.js` : adresse du miroir et
+`miroirRead` unique). Quatre pages l'ont rejoint et sont confirmées en production : staff,
+suivi-libéral, indispos, planning. Restent l'accueil et admin.
+🔴 **L'erreur de méthode du jour :** en retirant la copie locale de planning.html, une ligne voisine
+(`const _MIROIR_PRE`) est partie avec — la page redemandait le code. Compter les appels d'une fonction ne
+prouve pas qu'une page marche : **on rejoue la reprise de session jusqu'au bout** dans le navigateur
+simulé, et c'est désormais un scénario permanent du banc que toute page doit passer avant de rejoindre
+le socle. Revert en une minute, deux fois ; aucune donnée touchée.
+
 *Si tu ne lis qu'une chose, lis ceci. Le détail complet est en partie 2.*
 
 ## Fins de contrat en cours d'année — ce que le système fait, et ne fait pas

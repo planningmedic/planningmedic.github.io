@@ -6,7 +6,7 @@ portail/Dashboard, module libéral, contrôle d'absence, veille biblio.
 (Le générateur de comptes rendus a été retiré le 07/09/2026 : il portait le logo de
 l'établissement et 77 noms de praticiens sur une page publique sans code d'accès.)
 
-**Dépôt** `planningmedic/planningmedic.github.io`, branche `main` · **Site v1.11.11** ·
+**Dépôt** `planningmedic/planningmedic.github.io`, branche `main` · **Site v1.11.18** ·
 **Portail** https://planningmedic.github.io ·
 **GAS** (relevé dans le dépôt le 10/09/2026) `code.gs` **2026-09-08.2** ·
 `Indispos.gs` **2026-09-13.1** · `generateur_gardes.gs` **2026-09-13.1** (poussé le 14/09, recopie Apps Script en attente) ·
@@ -86,7 +86,21 @@ comprendre ensuite ; push en heure creuse ; ROADMAP mise à jour à chaque étap
 2. Fonctions de test et installateurs → `dev.gs`, jamais déployé. **Groupé avec l'étape 8** pour une
    seule recopie des `.gs` (demande du responsable, 14/09).
 3. ~~`partage/portail.js` branché sur une page~~ — **fait le 14/09 (v1.11.11), confirmé en production
-   sur staff.html**. Le socle porte `MIROIR_URL` et une `miroirRead` unique (code en paramètre ou
+   sur staff.html**.
+4. **En cours.** Pages ayant rejoint le socle `miroirRead`, chacune confirmée en production le 14/09 :
+   suivi-liberal (v1.11.12), indispos (v1.11.13), planning (v1.11.18). **Restent : index.html et
+   admin.html.** Aucun écart de comportement à trancher pour l'instant (les copies ne différaient que
+   par des commentaires et par un « ok » que le chronomètre écrit lui-même).
+   **Incident du 14/09 au soir (v1.11.14 et v1.11.16, revertées en v1.11.15 et v1.11.17) :** planning
+   redemandait le code à la reprise de session. Cause : en retirant le bloc « adresse + copie de
+   miroirRead », la ligne voisine `const _MIROIR_PRE` est partie avec ; le miroir répondait, la page
+   plantait juste après et croyait la connexion ratée. Le banc comptait les appels et ne rejouait pas la
+   reprise. **Règle depuis :** toute page qui rejoint le socle passe par le scénario « reprise de session
+   par le miroir, jusqu'au bout » de `banc_portail.js` (app installée, code mémorisé, miroir qui répond →
+   écran de code fermé, zéro erreur de script, serveur non réveillé). Vérifié : ce scénario échoue sur la
+   version cassée et passe sur la bonne. À étendre à index.html et admin.html avant leur migration.
+   Au passage : le socle lit `VIEW_CODE` par son nom (les pages le déclarent par `let`, ce n'est pas
+   une propriété de window) — attrapé par le banc avant les pages MAR. Le socle porte `MIROIR_URL` et une `miroirRead` unique (code en paramètre ou
    VIEW_CODE, mesure PERF si présente, délai réglable) ; une copie locale encore présente garde la main.
 4. Même socle page par page : absences, suivi-libéral, indispos, planning, index, admin — six
    pushes ; avant chaque page, les écarts entre sa copie et le socle sont listés au responsable,
