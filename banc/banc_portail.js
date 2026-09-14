@@ -236,6 +236,32 @@ function fenetre(opts) {
     const pl = fs.readFileSync(path.join(__dirname, '..', 'planning.html'), 'utf8');
     V('planning garde ses trois compléments par crochet (couleurs de secteurs, redessin)', /window\.onThemeApplied = /.test(pl) && /window\.apresCycleTheme = /.test(pl) && /window\.apresThemeSysteme = /.test(pl));
   }
+  console.log('\n═══ partage/theme.css — la palette commune (chantier 6, partie 1) ═══');
+  {
+    const theme = fs.readFileSync(path.join(__dirname, '..', 'partage', 'theme.css'), 'utf8');
+    const socle = {}; (theme.match(/--[a-z0-9-]+\s*:\s*[^;]+;/g) || []).forEach(d => { const m = d.match(/(--[a-z0-9-]+)\s*:\s*([^;]+);/); socle[m[1]] = m[2].trim(); });
+    V('la palette commune porte les 11 variables partagées, rouge du portail compris', Object.keys(socle).length === 11 && socle['--red'] === '#CE1126' && socle['--bg'] === '#F8FAFC', socle);
+    const norm = v => String(v).replace(/\s+/g, '').toLowerCase().replace(/^#fff$/, '#ffffff');
+    /* Références déjà orphelines AVANT ce chantier (admin.html) : le navigateur y
+       applique la valeur de repli. Recensées pour ne pas les compter comme un
+       défaut du socle ; à nettoyer au chantier 7. */
+    const orphelinesConnues = { 'admin.html': ['--accent', '--ll', '--red-2', '--teal'] };
+    for (const page of ['index.html', 'planning.html', 'indispos.html', 'absences.html', 'suivi-liberal.html', 'staff.html', 'admin.html', 'crh.html']) {
+      const src = fs.readFileSync(path.join(__dirname, '..', page), 'utf8');
+      const css = (src.match(/<style[^>]*>[\s\S]*?<\/style>/g) || []).join('\n');
+      const lien = src.indexOf('href="partage/theme.css"');
+      V(page + ' : charge theme.css avant sa propre feuille', lien > 0 && lien < src.indexOf('<style'));
+      let redite = [];
+      (css.match(/:root\s*\{[^{}]*\}/g) || []).forEach(b => (b.match(/--[a-z0-9-]+\s*:\s*[^;]+;/g) || []).forEach(d => {
+        const m = d.match(/(--[a-z0-9-]+)\s*:\s*([^;]+);/); if (socle[m[1]] && norm(m[2]) === norm(socle[m[1]])) redite.push(m[1]);
+      }));
+      V(page + ' : ne redéclare plus une variable du socle à l\'identique', redite.length === 0, redite);
+      const definies = new Set([...Object.keys(socle), ...(css.match(/--[a-z0-9-]+(?=\s*:)/g) || []), ...(src.match(/setProperty\(['"](--[a-z0-9-]+)/g) || []).map(x => x.match(/--[a-z0-9-]+/)[0]), ...(src.match(/style="[^"]*--[a-z0-9-]+\s*:/g) || []).flatMap(x => x.match(/--[a-z0-9-]+/g))]);
+      const utilisees = new Set((src.match(/var\((--[a-z0-9-]+)/g) || []).map(x => x.slice(4)));
+      const manque = [...utilisees].filter(v => !definies.has(v) && !(orphelinesConnues[page] || []).includes(v));
+      V(page + ' : toute variable utilisée est définie (socle ou page)', manque.length === 0, manque);
+    }
+  }
   console.log('\n' + ok + ' OK · ' + ko + ' en échec');
   if (ko) process.exit(1);
 })();

@@ -1,0 +1,21 @@
+/* ═══════════════════════════════════════
+   PALETTE COMMUNE DU PORTAIL (14/09/2026)
+   Les variables que chaque page redéclarait à l'identique, écrites une fois.
+   Une page peut toujours en redéfinir une dans son propre :root (déclaré
+   après ce fichier, il a le dernier mot) — c'est ainsi que les nuances
+   propres à une page survivent. Mode sombre : pour l'instant, chaque page
+   qui le propose porte sa palette sombre (décision à prendre pour l'étendre).
+   Chargé par <link rel="stylesheet" href="partage/theme.css"> avant <style>. */
+:root {
+  --bg: #F8FAFC;
+  --ink: #0F172A;
+  --ink-2: #334155;
+  --ink-3: #64748B;
+  --ink-4: #94A3B8;
+  --line: #E2E8F0;
+  --line-light: #F1F5F9;
+  --red: #CE1126;
+  --vac-fg: #1D4ED8;
+  --white: #FFFFFF;
+  --mono: 'DM Mono', monospace;
+}

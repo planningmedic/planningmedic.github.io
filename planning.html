@@ -26,24 +26,15 @@ le temps de l'onglet — au lieu de planter. Jamais de mémoire longue ici : mie
 son code que le voir retenu par un filet dont personne ne vérifie l'échéance. */
 window.SessionPortail = window.SessionPortail || { lire:function(){try{return sessionStorage.getItem('pmViewCode')||'';}catch(e){return '';}}, memoriser:function(c){try{sessionStorage.setItem('pmViewCode',c);}catch(e){}}, oublier:function(){try{sessionStorage.removeItem('pmViewCode');}catch(e){}}, estInstallee:function(){return false;}, joursRestants:function(){return null;}, DUREE_JOURS:0 };</script>
 <script src="https://unpkg.com/lucide@latest/dist/umd/lucide.js"></script>
+<link rel="stylesheet" href="partage/theme.css">   <!-- (14/09/2026) palette commune -->
 <style>
 /* polices chargées via <link> (perf : @import bloquant supprimé) */
 
 :root {
-  --red: #CE1126;
   --red-soft: #F8E8EB;
   --amber: #D97706;
   --amber-soft: #FEF3C7;
-  --ink: #0F172A;
-  --ink-2: #334155;
-  --ink-3: #64748B;
-  --ink-4: #94A3B8;
-  --line: #E2E8F0;
-  --line-light: #F1F5F9;
-  --bg: #F8FAFC;
-  --white: #FFFFFF;
   --radius: 12px;
-  --mono: 'DM Mono', monospace;
 }
 
 /* Rôles sémantiques complémentaires (clair) */
