@@ -184,6 +184,10 @@ aux DEUX endroits — ligne GITHUB_TOKEN de CONFIG et §3 des instructions du pr
     staff.html ne porte **plus aucune table** — la quatrième copie fausse était la dernière ; sans
     table reçue : 0 et un toast, jamais un chiffre inventé. Cibles et fériés arrivent déjà par
     `getStats` / `getJoursFeries` : rien d'autre à rapatrier.
+    **Décision du responsable (14/09) :** le quota d'indisponibilités (20 par an, 8 sur
+    vendredi/samedi/dimanche) **reste en dur** dans `Indispos.gs` (`QUOTA_INDISPO`,
+    `QUOTA_INDISPO_WE`). Une seule source, servie aux pages : cohérent partout. Le changer = modifier
+    le code et recopier le fichier. Ne pas reproposer de le passer dans CONFIG.
     **Vu en production dix minutes après la recopie (22 h) :** le staff annonçait « quotas non reçus ».
     La copie rapide `vacances_admin` avait été fabriquée par l'ancien serveur, sans le champ ; elle
     n'est refaite qu'à la synchro horaire ou à une modification du classeur (`miroirSyncComplet` a
