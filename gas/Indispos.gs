@@ -1,7 +1,7 @@
 // ⚠️ RÈGLE (détecteur de dérive dépôt↔Apps Script) : incrémenter cette version
 // à CHAQUE push de ce fichier. Le diagnostic (admin → Maintenance) compare la
 // version déployée ici avec celle du dépôt et signale toute recopie oubliée.
-const GAS_VERSION_INDISPOS = '2026-09-14.1';
+const GAS_VERSION_INDISPOS = '2026-09-14.3';
 
 /* ── (01/08/2026) MARQUEUR DE TEMPS GLOBAL — mesure, ne change rien ───────
    `_srv_ms` chronometre l'INTERIEUR de doGet. Or avant que doGet soit appele,
@@ -577,31 +577,31 @@ function diagnosticComplet() {
     const tousIds = new Set();
     const medSheet = ss.getSheetByName('MEDECINS');
     if (medSheet) {
-      const md = medSheet.getDataRange().getValues();
+      const md = _medecinsRows_();
       const sansEmail = [], sansCode = [], quotiteKO = [], datesKO = [], partis = [];
       const _auj = Utilities.formatDate(new Date(), ss.getSpreadsheetTimeZone(), 'yyyy-MM-dd');
       const idDup = [], codeMap = {}, emailKO = [];
       for (let r = 1; r < md.length; r++) {
-        const id = String(md[r][0]).trim(); if (!id) continue;
+        const id = String(md[r][COL_MED.ID]).trim(); if (!id) continue;
         if (tousIds.has(id)) idDup.push(id); else tousIds.add(id);
-        if (String(md[r][3]).trim().toUpperCase() !== 'O') continue; // ACTIF = O
+        if (String(md[r][COL_MED.ACTIF]).trim().toUpperCase() !== 'O') continue; // ACTIF = O
         actifs.push(id);
-        const cAcc = String(md[r][6]).trim();
+        const cAcc = String(md[r][COL_MED.CODE]).trim();
         if (cAcc) (codeMap[cAcc] = codeMap[cAcc] || []).push(id);
-        const em = String(md[r][7]).trim();
+        const em = String(md[r][COL_MED.EMAIL]).trim();
         if (em && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(em)) emailKO.push(id);
-        if (!String(md[r][7]).trim()) sansEmail.push(id);            // email col 7
-        if (!String(md[r][6]).trim()) sansCode.push(id);             // code col 6
+        if (!String(md[r][COL_MED.EMAIL]).trim()) sansEmail.push(id);            // email col 7
+        if (!String(md[r][COL_MED.CODE]).trim()) sansCode.push(id);             // code col 6
         // Quotité col 4 et PCT_GARDES col 5 (mêmes colonnes que generateGardes).
         // Cellule vide tolérée : le générateur applique 100 par défaut.
         // NO_GARDE (col 11) posé → PCT_GARDES non contrôlé : le MAR est exclu de
         // gardeDoctors, son pct n'est jamais lu (un « 0 » y est expressif, pas une erreur).
-        const estNoGarde = String(md[r][11]).trim().toUpperCase() === 'O';
-        const rawQ = String(md[r][4]).trim(), rawP = String(md[r][5]).trim();
+        const estNoGarde = String(md[r][COL_MED.NO_GARDE]).trim().toUpperCase() === 'O';
+        const rawQ = String(md[r][COL_MED.QUOTITE]).trim(), rawP = String(md[r][COL_MED.PCT_GARDES]).trim();
         const q = Number(rawQ), p = Number(rawP);
         if (rawQ && !(q > 0 && q <= 100)) quotiteKO.push(`${id} (quotité « ${rawQ} »)`);
         else if (!estNoGarde && rawP && !(p > 0 && p <= 100)) quotiteKO.push(`${id} (PCT_GARDES « ${rawP} »)`);
-        const dd = md[r][9], df = md[r][10];                         // arrivée / départ
+        const dd = md[r][COL_MED.DATE_DEBUT], df = md[r][COL_MED.DATE_FIN];                         // arrivée / départ
         if (dd && df) {
           const a = dd instanceof Date ? dd : new Date(String(dd) + 'T00:00:00');
           const b = df instanceof Date ? df : new Date(String(df) + 'T00:00:00');
@@ -1232,12 +1232,12 @@ function _statsDerniereConnexion_(ss, user, d) {
   }
   if (col < 0) {
     col = data[0].length;                       // toujours EN FIN
-    f.getRange(1, col + 1, 1, 1).setValue('DERNIERE_CONNEXION');
+    f.getRange(1, col + 1, 1, 1).setValue('DERNIERE_CONNEXION');  _medecinsInvalider_();   // (14/09/2026) MEDECINS a changé : le memo de la requête est périmé
     f.getRange(1, col + 1, 1, 1).setFontWeight('bold');
   }
   for (let r = 1; r < data.length; r++) {
     if (String(data[r][0]).trim() === String(user.id).trim()) {
-      f.getRange(r + 1, col + 1, 1, 1).setValue(_statsJour_(d));
+      f.getRange(r + 1, col + 1, 1, 1).setValue(_statsJour_(d));  _medecinsInvalider_();   // (14/09/2026) MEDECINS a changé : le memo de la requête est périmé
       return;
     }
   }
@@ -1466,9 +1466,9 @@ function _tpFixeDe_(marId) {
 }
 
 function _quotiteDe_(marId) {
-  const data = SpreadsheetApp.getActiveSpreadsheet().getSheetByName('MEDECINS').getDataRange().getValues();
+  const data = _medecinsRows_();
   for (let r = 1; r < data.length; r++) {
-    if (String(data[r][0]).trim() === String(marId).trim()) return Number(data[r][4]) || 100;
+    if (String(data[r][COL_MED.ID]).trim() === String(marId).trim()) return Number(data[r][COL_MED.QUOTITE]) || 100;
   }
   return 100;
 }
@@ -1486,12 +1486,12 @@ function _tpMondePresence_(annee) {
   const ss = SpreadsheetApp.getActiveSpreadsheet();
   const ABS = new Set(['VAC', 'FORM', 'CL', 'TP', 'CTP', 'CP', 'A', 'RG_TRANSITION']);
   const FLAGS = getMedecinFlags();
-  const medData = ss.getSheetByName('MEDECINS').getDataRange().getValues();
+  const medData = _medecinsRows_();
   const ids = [];
   for (let r = 1; r < medData.length; r++) {
-    const id = String(medData[r][0]).trim();
+    const id = String(medData[r][COL_MED.ID]).trim();
     if (!id || id === 'DRUGE') continue;                     // même exclusion que le générateur
-    if (String(medData[r][3]).trim().toUpperCase() !== 'O') continue;
+    if (String(medData[r][COL_MED.ACTIF]).trim().toUpperCase() !== 'O') continue;
     ids.push(id);
   }
   const indispos = {};
@@ -2135,12 +2135,12 @@ function _marsAvecEmail_() {
   try {
     const sheet = SpreadsheetApp.getActiveSpreadsheet().getSheetByName('MEDECINS');
     if (!sheet) return 0;
-    const data = sheet.getDataRange().getValues();
+    const data = _medecinsRows_();
     let n = 0;
     for (let r = 1; r < data.length; r++) {
-      if (!String(data[r][0]).trim()) continue;                          // ligne vide
-      if (String(data[r][3]).trim().toUpperCase() !== 'O') continue;     // inactif
-      if (!String(data[r][7]).trim()) continue;                          // sans email
+      if (!String(data[r][COL_MED.ID]).trim()) continue;                          // ligne vide
+      if (String(data[r][COL_MED.ACTIF]).trim().toUpperCase() !== 'O') continue;     // inactif
+      if (!String(data[r][COL_MED.EMAIL]).trim()) continue;                          // sans email
       n++;
     }
     return n;
@@ -2306,13 +2306,13 @@ function _effectifTitresGas_() {
   try {
     const sh = SpreadsheetApp.getActiveSpreadsheet().getSheetByName('MEDECINS');
     if (!sh) return vide;
-    const data = sh.getDataRange().getValues();
+    const data = _medecinsRows_();
     const titresPr = [], souhaitsPlafond = [];
     for (let i = 1; i < data.length; i++) {
-      const id = String(data[i][0] == null ? '' : data[i][0]).trim();
+      const id = String(data[i][COL_MED.ID] == null ? '' : data[i][COL_MED.ID]).trim();
       if (!id) continue;
-      if (/^PR\b/i.test(String(data[i][1] == null ? '' : data[i][1]).trim())) titresPr.push(id);
-      if (String(data[i][15] == null ? '' : data[i][15]).trim().toUpperCase() === 'O') souhaitsPlafond.push(id);
+      if (/^PR\b/i.test(String(data[i][COL_MED.NOM] == null ? '' : data[i][COL_MED.NOM]).trim())) titresPr.push(id);
+      if (String(data[i][COL_MED.SOUHAIT_PLAFOND] == null ? '' : data[i][COL_MED.SOUHAIT_PLAFOND]).trim().toUpperCase() === 'O') souhaitsPlafond.push(id);
     }
     _EFFECTIF_TITRES_MEMO = { titresPr: titresPr, souhaitsPlafond: souhaitsPlafond };
     return _EFFECTIF_TITRES_MEMO;
@@ -2367,7 +2367,7 @@ function checkCode(code) {
 
   const sheet = ss.getSheetByName('MEDECINS');
   if (!sheet) return null;
-  const data = sheet.getDataRange().getValues();
+  const data = _medecinsRows_();
   // Colonnes reperees par leur EN-TETE et non par un index fige : leur position peut
   // donc changer sans toucher au code.
   // ⚠️ Cela ne vaut QUE pour ces colonnes-ci. Toutes les autres lectures de MEDECINS
@@ -2390,11 +2390,11 @@ function checkCode(code) {
   // ou un nom rallonge deborderait partout.
   const colPre  = _colParTitre('PRENOM');
   for (let r = 1; r < data.length; r++) {
-    if (_normCode(data[r][6]) === codeN) {
-      return {role:'mar', id:data[r][0], name:data[r][1], initials:data[r][2],
+    if (_normCode(data[r][COL_MED.CODE]) === codeN) {
+      return {role:'mar', id:data[r][COL_MED.ID], name:data[r][COL_MED.NOM], initials:data[r][COL_MED.INITIALES],
               // (POSE TP · 22/08/2026) Quotité (col. E) : pilote l'éligibilité à la
               // tuile « Mes jours de temps partiel » et le quota annuel (CONFIG_CONGES).
-              quotite: Number(data[r][4]) || 100,
+              quotite: Number(data[r][COL_MED.QUOTITE]) || 100,
               liberal: colLib >= 0 && String(data[r][colLib]).trim().toUpperCase() === 'O',
               // DONNEE NOMINATIVE. Le RPPS vit UNIQUEMENT dans le classeur prive, jamais
               // dans le depot (public). Il n'est renvoye qu'au MAR identifie par SON code
@@ -2407,7 +2407,7 @@ function checkCode(code) {
                  `acces` de la copie rapide (miroir.gs, meme format CONFIG). Les
                  DEUX chemins doivent le porter : sinon la tuile s'affiche quand
                  le relais repond et disparait des qu'il est en panne. */
-              tuiles: _tuilesPriveesDe_(tuilesBrut, data[r][0])};
+              tuiles: _tuilesPriveesDe_(tuilesBrut, data[r][COL_MED.ID])};
     }
   }
   return null;
@@ -2432,7 +2432,7 @@ function _getVacShared(year) {
     groupData: gs ? gs.getDataRange().getValues() : [],
     perData:   ps ? ps.getDataRange().getValues() : [],
     indData:   is_ ? is_.getDataRange().getValues() : null,
-    medData:   ms ? ms.getDataRange().getValues() : [],
+    medData:   ms ? _medecinsRows_() : [],
     jfYear:     getJoursFeries(year),
     jfNextYear: getJoursFeries(year + 1),
   };
@@ -2815,11 +2815,11 @@ function getVacValidation(year) {
   }
 
   const medSheet = ss.getSheetByName('MEDECINS');
-  const medData = medSheet.getDataRange().getValues();
+  const medData = _medecinsRows_();
   const nomMap = {};
   for (let r = 1; r < medData.length; r++) {
-    const id = String(medData[r][0]).trim();
-    nomMap[id] = String(medData[r][1]).trim();
+    const id = String(medData[r][COL_MED.ID]).trim();
+    nomMap[id] = String(medData[r][COL_MED.NOM]).trim();
   }
 
   const jfYear = getJoursFeries(year);
@@ -3224,10 +3224,10 @@ function getPlanningStatus() {
   let indisposN1Complete = false, marsManquants = 0;
   if (indNextSheet) {
     const medSheet = ss.getSheetByName('MEDECINS');
-    const medData = medSheet ? medSheet.getDataRange().getValues() : [];
+    const medData = medSheet ? _medecinsRows_() : [];
     const actifs = [];
     for (let r = 1; r < medData.length; r++) {
-      if (String(medData[r][3]).trim().toUpperCase() === 'O') actifs.push(String(medData[r][0]).trim());
+      if (String(medData[r][COL_MED.ACTIF]).trim().toUpperCase() === 'O') actifs.push(String(medData[r][COL_MED.ID]).trim());
     }
     const indData = indNextSheet.getDataRange().getValues();
     const indById = {};
@@ -3258,7 +3258,7 @@ function _buildMedecins_() {
   const ss = SpreadsheetApp.getActiveSpreadsheet();
   const sheet = ss.getSheetByName('MEDECINS');
   if (!sheet) return { error: 'Onglet MEDECINS introuvable' };
-  const data = sheet.getDataRange().getValues();
+  const data = _medecinsRows_();
   const isO = v => String(v).trim().toUpperCase() === 'O';
   const toDate = v => {
     if (!v) return '';
@@ -3267,15 +3267,15 @@ function _buildMedecins_() {
   };
   const medecins = [];
   for (let r = 1; r < data.length; r++) {
-    if (!data[r][0]) continue;
-    medecins.push({id:String(data[r][0]).trim(), nom:String(data[r][1]).trim(),
-      initiales:String(data[r][2]).trim(), actif:isO(data[r][3]),
-      quotite:Number(data[r][4])||100, pctGardes:Number(data[r][5])||100,
-      hasCode:!!String(data[r][6]).trim(), email:String(data[r][7]).trim(), dect:String(data[r][8]).trim(),
-      dateDebut:toDate(data[r][9]), dateFin:toDate(data[r][10]),
-      noGarde:isO(data[r][11]), only18:isO(data[r][12]), noWeekend:isO(data[r][13]),
-      rythme2sur2:isO(data[r][14]), souhaitPlafond:isO(data[r][15]),
-      tpJoursFixes:String(data[r][16]||'').trim().toUpperCase()});
+    if (!data[r][COL_MED.ID]) continue;
+    medecins.push({id:String(data[r][COL_MED.ID]).trim(), nom:String(data[r][COL_MED.NOM]).trim(),
+      initiales:String(data[r][COL_MED.INITIALES]).trim(), actif:isO(data[r][COL_MED.ACTIF]),
+      quotite:Number(data[r][COL_MED.QUOTITE])||100, pctGardes:Number(data[r][COL_MED.PCT_GARDES])||100,
+      hasCode:!!String(data[r][COL_MED.CODE]).trim(), email:String(data[r][COL_MED.EMAIL]).trim(), dect:String(data[r][COL_MED.DECT]).trim(),
+      dateDebut:toDate(data[r][COL_MED.DATE_DEBUT]), dateFin:toDate(data[r][COL_MED.DATE_FIN]),
+      noGarde:isO(data[r][COL_MED.NO_GARDE]), only18:isO(data[r][COL_MED.ONLY_18]), noWeekend:isO(data[r][COL_MED.NO_WEEKEND]),
+      rythme2sur2:isO(data[r][COL_MED.RYTHME_2_2]), souhaitPlafond:isO(data[r][COL_MED.SOUHAIT_PLAFOND]),
+      tpJoursFixes:String(data[r][COL_MED.TP_JOURS]||'').trim().toUpperCase()});
   }
   return { medecins };
 }
@@ -4175,10 +4175,10 @@ try {
       const medSheetSrc = ss.getSheetByName('MEDECINS');
       const actifsIds = [];
       if (medSheetSrc) {
-        const medSrcData = medSheetSrc.getDataRange().getValues();
+        const medSrcData = _medecinsRows_();
         for (let r = 1; r < medSrcData.length; r++) {
-          const id = String(medSrcData[r][0]).trim();
-          const actif = String(medSrcData[r][3]).trim().toUpperCase() === 'O';
+          const id = String(medSrcData[r][COL_MED.ID]).trim();
+          const actif = String(medSrcData[r][COL_MED.ACTIF]).trim().toUpperCase() === 'O';
           if (id && actif) actifsIds.push(id);
         }
       }
@@ -4276,10 +4276,10 @@ if (!affSheet) {
   const medSheet2 = ss.getSheetByName('MEDECINS');
   const affRows = [];
   if (medSheet2) {
-    const medData2 = medSheet2.getDataRange().getValues();
+    const medData2 = _medecinsRows_();
     for (let r = 1; r < medData2.length; r++) {
-      const id = String(medData2[r][0]).trim();
-      const actif = String(medData2[r][3]).trim().toUpperCase() === 'O';
+      const id = String(medData2[r][COL_MED.ID]).trim();
+      const actif = String(medData2[r][COL_MED.ACTIF]).trim().toUpperCase() === 'O';
       if (id && actif) affRows.push([id, ...Array(12).fill('VOLANT')]);
     }
   }
@@ -4510,6 +4510,7 @@ if (!affSheet) {
       ];
       if (rowIdx >= 0) sheet.getRange(rowIdx + 1, 1, 1, row.length).setValues([row]);
       else             sheet.appendRow(row);
+      _medecinsInvalider_();   // (14/09/2026) MEDECINS a changé : le memo de la requête est périmé
 
       _medFlagsCache = null;  // invalider le cache des particularités
       // (RH-1) MAR actif → garantir ses lignes dans les onglets annuels
@@ -4607,7 +4608,11 @@ if (!affSheet) {
           groupes[g] = tempGroups[g].sort((a,b)=>a.ordre-b.ordre).map(m=>({id:m.id}));
         });
       }
-      return ContentService.createTextOutput(JSON.stringify({success:true, periodes, groupes}))
+      /* (14/09/2026 — chantier 11) LES QUOTAS VOYAGENT AVEC LA CONFIG. staff.html
+         portait une copie figée de CONFIG_CONGES et s'est trouvé faux quatre fois
+         (33 jours affichés pour 37). Le client affiche, le serveur calcule :
+         la table est servie ici, telle que le serveur la lit (_loadQuotasConges). */
+      return ContentService.createTextOutput(JSON.stringify({success:true, periodes, groupes, quotasConges:_loadQuotasConges()}))
         .setMimeType(ContentService.MimeType.JSON);
     }
 
@@ -4706,7 +4711,7 @@ if (!affSheet) {
       const ss = SpreadsheetApp.getActiveSpreadsheet();
       const medSheet = ss.getSheetByName('MEDECINS');
       if (!medSheet) return _error('Onglet MEDECINS introuvable');
-      const data = medSheet.getDataRange().getValues();
+      const data = _medecinsRows_();
       let sent = 0;
       const errors = [];
       // (07/2026) Les MAR non servis étaient sautés SILENCIEUSEMENT : l'écran
@@ -4716,9 +4721,9 @@ if (!affSheet) {
       // est une donnée manquante connue. Les INACTIFS restent ignorés en silence.
       const sansEmail = [], sansCode = [];
       for (let r = 1; r < data.length; r++) {
-        const id = String(data[r][0]).trim(), nom = String(data[r][1]).trim();
-        const actif = String(data[r][3]).trim().toUpperCase() === 'O';
-        const code = String(data[r][6]).trim(), email = String(data[r][7]).trim();
+        const id = String(data[r][COL_MED.ID]).trim(), nom = String(data[r][COL_MED.NOM]).trim();
+        const actif = String(data[r][COL_MED.ACTIF]).trim().toUpperCase() === 'O';
+        const code = String(data[r][COL_MED.CODE]).trim(), email = String(data[r][COL_MED.EMAIL]).trim();
         if (!id || !actif) continue;
         if (!email) { sansEmail.push(nom || id); continue; }
         if (!code)  { sansCode.push(nom || id);  continue; }
@@ -5027,7 +5032,7 @@ if (action === 'resetCodeMar') {
 
     // Trace de l'ancien code AVANT écrasement (filet si l'email n'arrive pas).
     logAction(`resetCodeMar — ${nom} (${medecinId}) : ancien code ${ancien || '(vide)'} remplacé`);
-    medSheet.getRange(r + 1, 7).setValue(nouveau);
+    medSheet.getRange(r + 1, 7).setValue(nouveau);  _medecinsInvalider_();   // (14/09/2026) MEDECINS a changé : le memo de la requête est périmé
     SpreadsheetApp.flush();
 
     try {
@@ -5051,13 +5056,13 @@ if (action === 'sendCodesMar') {
   const ss = SpreadsheetApp.getActiveSpreadsheet();
   const medSheet = ss.getSheetByName('MEDECINS');
   if (!medSheet) return _error('Onglet MEDECINS introuvable');
-  const data = medSheet.getDataRange().getValues();
+  const data = _medecinsRows_();
   for (let r = 1; r < data.length; r++) {
-    const id = String(data[r][0]).trim();
+    const id = String(data[r][COL_MED.ID]).trim();
     if (id.toUpperCase() !== medecinId) continue;
-    const nom = String(data[r][1]).trim();
-    const code = String(data[r][6]).trim();
-    const email = String(data[r][7]).trim();
+    const nom = String(data[r][COL_MED.NOM]).trim();
+    const code = String(data[r][COL_MED.CODE]).trim();
+    const email = String(data[r][COL_MED.EMAIL]).trim();
     if (!email) return _error(`Pas d'email pour ${nom}`);
     if (!code) return _error(`Pas de code pour ${nom}`);
     try {
@@ -5077,13 +5082,13 @@ if (action === 'getConflitsAll') {
       const ss = SpreadsheetApp.getActiveSpreadsheet();
       const medSheet = ss.getSheetByName('MEDECINS');
       if (!medSheet) return _error('Onglet MEDECINS introuvable');
-      const medData = medSheet.getDataRange().getValues();
+      const medData = _medecinsRows_();
       const actifs = [];
       for (let r = 1; r < medData.length; r++) {
-        const id = String(medData[r][0]).trim();
-        const actif = String(medData[r][3]).trim().toUpperCase() === 'O';
-        const email = String(medData[r][7]).trim();
-        if (id && actif) actifs.push({id, nom: String(medData[r][1]).trim(), email});
+        const id = String(medData[r][COL_MED.ID]).trim();
+        const actif = String(medData[r][COL_MED.ACTIF]).trim().toUpperCase() === 'O';
+        const email = String(medData[r][COL_MED.EMAIL]).trim();
+        if (id && actif) actifs.push({id, nom: String(medData[r][COL_MED.NOM]).trim(), email});
       }
       const conflits = [];
       actifs.forEach(mar => {
@@ -5126,7 +5131,7 @@ if (action === 'getConflitsAll') {
       const ss = SpreadsheetApp.getActiveSpreadsheet();
       const medSheet = ss.getSheetByName('MEDECINS');
       if (!medSheet) return _error('Onglet MEDECINS introuvable');
-      const medData = medSheet.getDataRange().getValues();
+      const medData = _medecinsRows_();
 
       const gardesSheet = ss.getSheetByName(`GARDES_${year}`);
       if (!gardesSheet) return _error(`Onglet GARDES_${year} introuvable`);
@@ -5165,10 +5170,10 @@ if (action === 'getConflitsAll') {
       const errors = [];
 
       for (let r = 1; r < medData.length; r++) {
-        const id = String(medData[r][0]).trim();
-        const nom = String(medData[r][1]).trim();
-        const actif = String(medData[r][3]).trim().toUpperCase() === 'O';
-        const email = String(medData[r][7]).trim();
+        const id = String(medData[r][COL_MED.ID]).trim();
+        const nom = String(medData[r][COL_MED.NOM]).trim();
+        const actif = String(medData[r][COL_MED.ACTIF]).trim().toUpperCase() === 'O';
+        const email = String(medData[r][COL_MED.EMAIL]).trim();
         if (!id || !actif) continue;
         if (!email) { skipped++; continue; }
 
@@ -5487,12 +5492,12 @@ if (action === 'getPanneauSemaine') {
     const actifs = [];
     const initMap = {};
     if (medSheet) {
-      const medData = medSheet.getDataRange().getValues();
+      const medData = _medecinsRows_();
       for (let r = 1; r < medData.length; r++) {
-        const id = String(medData[r][0]).trim();
+        const id = String(medData[r][COL_MED.ID]).trim();
         if (!id) continue;
-        initMap[id] = String(medData[r][2] || '').trim();
-        if (String(medData[r][3]).trim().toUpperCase() === 'O') actifs.push(id);
+        initMap[id] = String(medData[r][COL_MED.INITIALES] || '').trim();
+        if (String(medData[r][COL_MED.ACTIF]).trim().toUpperCase() === 'O') actifs.push(id);
       }
     }
     const FLAGS = getMedecinFlags();
@@ -5619,12 +5624,12 @@ if (action === 'getMARsDispoJour') {
   const actifs = new Set();
   const initMap = {};
   if (medSheet) {
-    const medData = medSheet.getDataRange().getValues();
+    const medData = _medecinsRows_();
     for (let r = 1; r < medData.length; r++) {
-      const id = String(medData[r][0]).trim();
+      const id = String(medData[r][COL_MED.ID]).trim();
       if (!id) continue;
-      initMap[id] = String(medData[r][2] || '').trim();   // colonne INITIALES
-      if (String(medData[r][3]).trim().toUpperCase() === 'O') actifs.add(id);
+      initMap[id] = String(medData[r][COL_MED.INITIALES] || '').trim();   // colonne INITIALES
+      if (String(medData[r][COL_MED.ACTIF]).trim().toUpperCase() === 'O') actifs.add(id);
     }
   }
 
@@ -5908,7 +5913,7 @@ if (action === 'setDailyStatus') {
         const ssL = SpreadsheetApp.getActiveSpreadsheet();
         const medSh = ssL.getSheetByName('MEDECINS');
         if (!medSh) return _error('Onglet MEDECINS introuvable');
-        const medD = medSh.getDataRange().getValues();
+        const medD = _medecinsRows_();
         const noms = {};
         // Appartenance au groupement liberal : colonne LIBERAL de MEDECINS, lue PAR
         // TITRE (comme checkCode). ⚠️ Ne JAMAIS deduire l'appartenance du releve : un
@@ -5918,10 +5923,10 @@ if (action === 'setDailyStatus') {
         const colLibC = _hdrMed.indexOf('LIBERAL');
         const groupement = {};
         for (let r = 1; r < medD.length; r++) {
-          const id = String(medD[r][0]).trim();
+          const id = String(medD[r][COL_MED.ID]).trim();
           if (!id) continue;
-          if (String(medD[r][3]).trim().toUpperCase() !== 'O') continue;
-          noms[id] = String(medD[r][1]).trim();
+          if (String(medD[r][COL_MED.ACTIF]).trim().toUpperCase() !== 'O') continue;
+          noms[id] = String(medD[r][COL_MED.NOM]).trim();
           if (colLibC >= 0 && String(medD[r][colLibC]).trim().toUpperCase() === 'O') groupement[id] = true;
         }
 
@@ -6386,12 +6391,12 @@ function computeReliquats(year) {
   try { _tpDemandes_(year).forEach(x => { attente[x.mar] = (attente[x.mar] || 0) + 1; }); } catch (e) {}
 
   const FLAGS = getMedecinFlags();
-  const med = ss.getSheetByName('MEDECINS').getDataRange().getValues();
+  const med = _medecinsRows_();
   const lignes = [];
   for (let r = 1; r < med.length; r++) {
-    const id = String(med[r][0]).trim(); if (!id) continue;
-    if (String(med[r][3]).trim().toUpperCase() !== 'O') continue;
-    const quotite = Number(med[r][4]) || 100;
+    const id = String(med[r][COL_MED.ID]).trim(); if (!id) continue;
+    if (String(med[r][COL_MED.ACTIF]).trim().toUpperCase() !== 'O') continue;
+    const quotite = Number(med[r][COL_MED.QUOTITE]) || 100;
     const q = getQuotasConges(quotite);
     const p = poses[id] || { vac: 0, form: 0, tp: 0 };
     const att = attente[id] || 0;
@@ -6400,8 +6405,8 @@ function computeReliquats(year) {
        des jours qu'il n'a pas. */
     const tpQuota = (FLAGS.rythme2sur2.has(id) || FLAGS.tpJoursFixes[id]) ? 0 : q.ctp;
     lignes.push({
-      id: id, init: String(med[r][2] || '').trim() || id,
-      nom: String(med[r][1] || '').trim(), quotite: quotite,
+      id: id, init: String(med[r][COL_MED.INITIALES] || '').trim() || id,
+      nom: String(med[r][COL_MED.NOM] || '').trim(), quotite: quotite,
       vac:  { pose: p.vac,  quota: q.vac,  reste: q.vac  - p.vac },
       form: { pose: p.form, quota: q.form, reste: q.form - p.form },
       tp:   { pose: p.tp,   quota: tpQuota, attente: att,
@@ -6446,16 +6451,16 @@ function computeNoelAnHistorique(year) {
   const out = [];
   const med = ss.getSheetByName('MEDECINS');
   if (med) {
-    const md = med.getDataRange().getValues();
+    const md = _medecinsRows_();
     for (let r = 1; r < md.length; r++) {
-      const id = String(md[r][0]).trim(); if (!id || id === 'DRUGE') continue;
-      if (String(md[r][3]).trim().toUpperCase() !== 'O') continue;
+      const id = String(md[r][COL_MED.ID]).trim(); if (!id || id === 'DRUGE') continue;
+      if (String(md[r][COL_MED.ACTIF]).trim().toUpperCase() !== 'O') continue;
       if (FLAGS.noGarde.has(id)) continue;
       if (FLAGS.souhaitPlafond.has(id)) continue;
       if (horsAnnee(id)) continue;
       const annees = detail[id] || [];
-      out.push({ id: id, init: String(md[r][2] || '').trim() || id,
-                 nom: String(md[r][1] || '').trim(),
+      out.push({ id: id, init: String(md[r][COL_MED.INITIALES] || '').trim() || id,
+                 nom: String(md[r][COL_MED.NOM] || '').trim(),
                  annees: annees,
                  last: annees.length ? annees[annees.length - 1] : null });
     }
@@ -6502,11 +6507,11 @@ function computeNoelAnEligibles(year, tous) {
   const initMap = {}, eligibles = [];
   const med = ss.getSheetByName('MEDECINS');
   if (med) {
-    const md = med.getDataRange().getValues();
+    const md = _medecinsRows_();
     for (let r=1;r<md.length;r++){
-      const id = String(md[r][0]).trim(); if(!id || id==='DRUGE') continue;
-      initMap[id] = String(md[r][2]||'').trim() || id;
-      if (String(md[r][3]).trim().toUpperCase() !== 'O') continue;
+      const id = String(md[r][COL_MED.ID]).trim(); if(!id || id==='DRUGE') continue;
+      initMap[id] = String(md[r][COL_MED.INITIALES]||'').trim() || id;
+      if (String(md[r][COL_MED.ACTIF]).trim().toUpperCase() !== 'O') continue;
       if (FLAGS.noGarde.has(id)) continue;
       if (FLAGS.souhaitPlafond.has(id)) continue;
       if (horsAnnee(id)) continue;

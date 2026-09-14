@@ -13,7 +13,7 @@
         rétrécit à mesure que la purge opère.
      4. Les médecins inactifs (ACTIF≠O) ne sont pas comptés dans l'effectif. */
 const path = require('path'), fs = require('fs'), vm = require('vm');
-const { Classeur, extraireFonction } = require(path.join(__dirname, 'stubs'));
+const { Classeur, extraireFonction, socleMedecins } = require(path.join(__dirname, 'stubs'));
 
 let ok = 0, ko = 0;
 const V = (t, c, d) => { if (c) { ok++; console.log('  ✓ ' + t); }
@@ -50,6 +50,7 @@ function bac() {
                 getSheets(){ return cl.getSheets(); }, insertSheet(n){ return cl.insertSheet(n); } };
   const ctx = { SpreadsheetApp: { getActiveSpreadsheet: () => cl2 }, Logger: { log(){} }, console };
   vm.createContext(ctx);
+  socleMedecins(ctx);   // (14/09/2026) COL_MED, _medecinsRows_, _medecinsInvalider_ (code.gs)
   /* Constantes LUES dans le code réel, jamais redéclarées à la main : un bac qui
      invente sa propre liste d'accès testerait la croyance du banc, pas le
      système. C'est précisément l'erreur qui a laissé passer le défaut du 29/08. */

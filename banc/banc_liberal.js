@@ -9,7 +9,7 @@
    qui se comporte comme le vrai Sheets (la doublure coerce « 2026-07 » en
    date, exactement comme Google). */
 const vm = require('vm'), fs = require('fs');
-const { Classeur, extraireFonction } = require('./stubs');
+const { Classeur, extraireFonction, socleMedecins } = require('./stubs');
 let ok = 0, ko = 0;
 const V = (t, c, d) => { if (c) { ok++; console.log('  ✓ ' + t); } else { ko++; console.log('  ✗ ' + t + (d !== undefined ? ' → ' + JSON.stringify(d).slice(0, 200) : '')); } };
 
@@ -48,6 +48,7 @@ function monde(annee) {
     Utilities: { formatDate: (d, tz, f) => d.getFullYear() + '-' + ('0' + (d.getMonth() + 1)).slice(-2) + '-' + ('0' + d.getDate()).slice(-2) },
   });
   ctx.globalThis = ctx;
+  socleMedecins(ctx);   // (14/09/2026) COL_MED, _medecinsRows_, _medecinsInvalider_ (code.gs)
   ['LIBERAL_CA_HEADER'].forEach(n => vm.runInContext(extraireConst('../gas/portail.gs', n), ctx));
   ['_libCaSheetName', '_membresLiberal_', 'getOrCreateLiberalCaTab', '_libMoisISO_',
    '_todayISO_', '_libYearOf', 'getReleveLiberal']
@@ -183,6 +184,7 @@ console.log('\n═══ 5bis. La fabrique de cotations types ═══');
     LockService: { getScriptLock: () => ({ waitLock: () => {}, releaseLock: () => {} }) },
   });
   ctx.globalThis = ctx;
+  socleMedecins(ctx);   // (14/09/2026) COL_MED, _medecinsRows_, _medecinsInvalider_ (code.gs)
   ['COTATIONS_TYPE_TAB', '_COTTYPE_HEADER', '_COTTYPE_SEED', '_COTTYPE_ROLES', '_COTTYPE_LC']
     .forEach(n => vm.runInContext(extraireConst('../gas/portail.gs', n), ctx));
   ['getOrCreateCotationsTypeTab', 'getCotationsType', '_cotTypeAdminId_', '_cotTypeMembre_',
@@ -287,6 +289,7 @@ console.log('\n═══ 5ter. Le jeton unique : reessayer sans jamais doubler �
                  getUuid: () => 'u-' + Math.random().toString(16).slice(2) + '-x' },
   });
   ctx.globalThis = ctx;
+  socleMedecins(ctx);   // (14/09/2026) COL_MED, _medecinsRows_, _medecinsInvalider_ (code.gs)
   ['SPECIALITES_TAB','_SPECIALITES_HEADER','_SPECIALITES_SEED','LIBERAL_HEADER'].forEach(function(n){
     try { vm.runInContext(extraireConst('../gas/portail.gs', n), ctx); } catch(e) {}
   });

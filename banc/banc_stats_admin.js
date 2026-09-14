@@ -19,7 +19,7 @@
         elles feraient dépasser la courbe de son propre plafond de 25.
      5. Rien n'est compté avant le 4 septembre 2026, comme le reste des stats. */
 const path = require('path'), fs = require('fs'), vm = require('vm');
-const { Classeur, extraireFonction } = require(path.join(__dirname, 'stubs'));
+const { Classeur, extraireFonction, socleMedecins } = require(path.join(__dirname, 'stubs'));
 
 let ok = 0, ko = 0;
 const V = (t, c, d) => { if (c) { ok++; console.log('  ✓ ' + t); }
@@ -48,6 +48,7 @@ function bac(maintenant) {
     console,
   };
   vm.createContext(ctx);
+  socleMedecins(ctx);   // (14/09/2026) COL_MED, _medecinsRows_, _medecinsInvalider_ (code.gs)
   ['_statsJour_','_statsLundi_','_statsFeuille_','_statsHeureIncr_',
    '_statsDerniereConnexion_','_statsActionIncr_','statsRecalculer','logConnexion']
     .forEach(n => vm.runInContext(extraireFonction(IND, n), ctx));
@@ -151,6 +152,7 @@ console.log('\n═══ 6. Le serveur rend les compteurs, séparés par rôle �
     ['mar','saveIndispos', 40, '2026-09-18']]);
   const ctx = { SpreadsheetApp: { getActiveSpreadsheet: () => cl }, Logger: { log(){} }, console };
   vm.createContext(ctx);
+  socleMedecins(ctx);   // (14/09/2026) COL_MED, _medecinsRows_, _medecinsInvalider_ (code.gs)
   const PSRC = fs.readFileSync(POR, 'utf8');
   vm.runInContext("const STATS_ORIGINE='2026-09-04';", ctx);
   vm.runInContext((PSRC.match(/const STATS_ALLOWED = \[[^\]]*\];/) || ['const STATS_ALLOWED=[];'])[0], ctx);
@@ -186,6 +188,7 @@ console.log('\n═══ 6. Le serveur rend les compteurs, séparés par rôle �
   vide.ajouter('MEDECINS', [['ID','NOM','INITIALES','ACTIF'],['DUPONT','DUPONT','DU','O']]);
   const ctx2 = { SpreadsheetApp: { getActiveSpreadsheet: () => vide }, Logger: { log(){} }, console };
   vm.createContext(ctx2);
+  socleMedecins(ctx2);   // (14/09/2026) COL_MED, _medecinsRows_, _medecinsInvalider_ (code.gs)
   vm.runInContext("const STATS_ORIGINE='2026-09-04';", ctx2);
   vm.runInContext((PSRC.match(/const STATS_ALLOWED = \[[^\]]*\];/) || ['const STATS_ALLOWED=[];'])[0], ctx2);
   vm.runInContext(extraireFonction(POR, 'getStatsUsage'), ctx2);

@@ -3,7 +3,7 @@
    entières : une erreur ne se voit pas tout de suite, mais fausse le planning
    pendant des mois. */
 const vm = require('vm'), fs = require('fs');
-const { Classeur, fabriqueVerrou, VERROUS, extraireFonction } = require('./stubs');
+const { Classeur, fabriqueVerrou, VERROUS, extraireFonction, socleMedecins } = require('./stubs');
 let ok = 0, ko = 0;
 const V = (t, c, d) => { if (c) { ok++; console.log('  ✓ ' + t); } else { ko++; console.log('  ✗ ' + t + (d !== undefined ? ' → ' + JSON.stringify(d).slice(0,190) : '')); } };
 
@@ -62,6 +62,7 @@ console.log('\n═══ T053 · un MAR inactif disparaît des propositions ═�
   const b = monde();
   const ctx = vm.createContext({ console, String, SpreadsheetApp: { getActiveSpreadsheet: () => b.cl }, DOCTORS: [] });
   ctx.globalThis = ctx;
+  socleMedecins(ctx);   // (14/09/2026) COL_MED, _medecinsRows_, _medecinsInvalider_ (code.gs)
   vm.runInContext(extraireFonction('../gas/code.gs', 'getDoctorsFromMedecins'), ctx);
   const avant = vm.runInContext('getDoctorsFromMedecins().map(d=>d.id)', ctx);
   V('les trois MAR actifs sont proposés', avant.length === 3, avant);

@@ -1,7 +1,7 @@
 // ⚠️ RÈGLE (détecteur de dérive dépôt↔Apps Script) : incrémenter cette version
 // à CHAQUE push de ce fichier. Le diagnostic (admin → Maintenance) compare la
 // version déployée ici avec celle du dépôt et signale toute recopie oubliée.
-const GAS_VERSION_MIROIR = '2026-09-14.1';
+const GAS_VERSION_MIROIR = '2026-09-14.3';
 
 /* ═══════════════════════════════════════════════════════════════════════
    MIROIR.GS — alimentation du miroir de lecture Cloudflare
@@ -312,6 +312,7 @@ const MIROIR_ONGLETS_SUIVIS = {
      saisie du relevé rafraîchirait le volet du comité au lieu du relevé. */
   LIBERAL_CA:   ['releve_liberal'],                // (17/08/2026) saisie mensuelle du relevé
   PERIODES_VAC: ['vacances_admin', 'stats'],
+  CONFIG_CONGES: ['vacances_admin'],               // (14/09/2026) les quotas sont dans vacances_admin : une modification les rafraîchit
   GROUPES_VAC:  ['vacances_admin', 'ordre_vac'],
   VEILLE_MARQUES: ['veille_marques'],              // (2026-08-08.1) correction manuelle d'une marque
   ECHANGES:     ['echanges'],                      // (13/08/2026) correction manuelle d'une demande
@@ -1166,7 +1167,7 @@ function _miroirConstruireAcces_() {
   const ss = SpreadsheetApp.getActiveSpreadsheet();
   const sheet = ss.getSheetByName('MEDECINS');
   if (sheet) {
-    const data = sheet.getDataRange().getValues();
+    const data = _medecinsRows_();
     const colParTitre = function (titre) {
       if (!data.length) return -1;
       for (var c = 0; c < data[0].length; c++) {
@@ -1176,22 +1177,22 @@ function _miroirConstruireAcces_() {
     };
     const colLib = colParTitre('LIBERAL'), colRpps = colParTitre('RPPS'), colPre = colParTitre('PRENOM');
     for (var i = 1; i < data.length; i++) {
-      const code = norm(data[i][6]);
+      const code = norm(data[i][COL_MED.CODE]);
       if (!code) continue;
       users.push({
         h: _miroirSha256_(code),
-        id: String(data[i][0]).trim(), role: 'mar',
-        name: data[i][1], initials: data[i][2],
+        id: String(data[i][COL_MED.ID]).trim(), role: 'mar',
+        name: data[i][COL_MED.NOM], initials: data[i][COL_MED.INITIALES],
         prenom: colPre >= 0 ? String(data[i][colPre] == null ? '' : data[i][colPre]).trim() : '',
         liberal: colLib >= 0 && String(data[i][colLib]).trim().toUpperCase() === 'O',
-        libAdmin: !!libAdmin && norm(data[i][0]) === libAdmin,
+        libAdmin: !!libAdmin && norm(data[i][COL_MED.ID]) === libAdmin,
         tuiles: tuilesParMar[norm(data[i][0])] || [],
         rpps: colRpps >= 0 ? String(data[i][colRpps] == null ? '' : data[i][colRpps]).trim() : '',
         /* (CORRECTIF 22/08/2026) Éligibilité à la pose des TP. Le portail
            s'ouvre par la COPIE RAPIDE, pas par la connexion au serveur :
            sans ces deux champs ici, la tuile ne peut pas s'afficher. */
-        quotite: (function () { try { return _quotiteDe_(String(data[i][0]).trim()); } catch (eQ) { return 100; } })(),
-        tpFixe: (function () { try { return _tpFixeDe_(String(data[i][0]).trim()); } catch (eF) { return false; } })(),
+        quotite: (function () { try { return _quotiteDe_(String(data[i][COL_MED.ID]).trim()); } catch (eQ) { return 100; } })(),
+        tpFixe: (function () { try { return _tpFixeDe_(String(data[i][COL_MED.ID]).trim()); } catch (eF) { return false; } })(),
       });
     }
   }
@@ -1227,13 +1228,13 @@ function _miroirConstruireAcces_() {
 function _effectifTitres_() {
   const sh = SpreadsheetApp.getActiveSpreadsheet().getSheetByName('MEDECINS');
   if (!sh) return { titresPr: [], souhaitsPlafond: [] };
-  const data = sh.getDataRange().getValues();
+  const data = _medecinsRows_();
   const titresPr = [], souhaitsPlafond = [];
   for (var i = 1; i < data.length; i++) {
-    const id = String(data[i][0] == null ? '' : data[i][0]).trim();
+    const id = String(data[i][COL_MED.ID] == null ? '' : data[i][COL_MED.ID]).trim();
     if (!id) continue;
-    if (/^PR\b/i.test(String(data[i][1] == null ? '' : data[i][1]).trim())) titresPr.push(id);
-    if (String(data[i][15] == null ? '' : data[i][15]).trim().toUpperCase() === 'O') souhaitsPlafond.push(id);
+    if (/^PR\b/i.test(String(data[i][COL_MED.NOM] == null ? '' : data[i][COL_MED.NOM]).trim())) titresPr.push(id);
+    if (String(data[i][COL_MED.SOUHAIT_PLAFOND] == null ? '' : data[i][COL_MED.SOUHAIT_PLAFOND]).trim().toUpperCase() === 'O') souhaitsPlafond.push(id);
   }
   return { titresPr: titresPr, souhaitsPlafond: souhaitsPlafond };
 }
@@ -1467,7 +1468,8 @@ function _miroirConstruireVacancesAdmin_() {
     noel = { annee: Number(yNoel), historique: computeNoelAnHistorique(yNoel) };
   } catch (e) { noel = null; }
 
-  return { success: true, periodes: periodes, groupes: groupes, noel: noel };
+  // (14/09/2026 — chantier 11) les quotas de congés voyagent avec la config, comme dans l'action getVacancesConfig.
+  return { success: true, periodes: periodes, groupes: groupes, noel: noel, quotasConges: _loadQuotasConges() };
 }
 
 

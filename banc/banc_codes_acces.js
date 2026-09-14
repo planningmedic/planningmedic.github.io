@@ -9,7 +9,7 @@
    fonction disparaît à nouveau du fichier livré, l'extraction échoue et le banc
    tombe en rouge AVANT la mise en ligne. */
 const vm = require('vm'), fs = require('fs');
-const { Classeur, extraireFonction } = require('./stubs');
+const { Classeur, extraireFonction, socleMedecins } = require('./stubs');
 let ok = 0, ko = 0;
 const V = (t, c, d) => { if (c) { ok++; console.log('  ✓ ' + t); } else { ko++; console.log('  ✗ ' + t + (d !== undefined ? ' → ' + JSON.stringify(d).slice(0, 190) : '')); } };
 
@@ -60,6 +60,7 @@ function monde(opts) {
     _mailCodeAcces_: (nom, code, renouvele) => ({ subject: 'Code', htmlBody: 'x', body: 'x', __code: code, __renouvele: !!renouvele }),
   });
   ctx.globalThis = ctx;
+  socleMedecins(ctx);   // (14/09/2026) COL_MED, _medecinsRows_, _medecinsInvalider_ (code.gs)
 
   /* Le VRAI code : generateCode + les deux helpers de réponse + le bloc routeur. */
   vm.runInContext(extraireFonction(FICHIER, 'generateCode'), ctx);

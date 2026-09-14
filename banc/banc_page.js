@@ -309,7 +309,7 @@ console.log('\n═══ 58. Avancement de la campagne d\'indisponibilités ═�
        toujours sous ces noms. Un champ ajouté ne casse rien ; un champ
        renommé casserait l'écran en silence, et c'est cela qu'on garde. */
     V('le miroir produit bien periodes[] et groupes{A,B,C}',
-      /return \{ success: true, periodes: periodes, groupes: groupes, noel: noel \};/.test(miroir));
+      /return \{ success: true, periodes: periodes, groupes: groupes, noel: noel, quotasConges: _loadQuotasConges\(\) \};/.test(miroir));   // (14/09/2026) + les quotas de congés, même contrat pour l'onglet Équipe
     V('…et l\'onglet Équipe ne dépend toujours que de ces deux champs-là',
       !/data\.noel/.test(fn));
     V('l\'écran consomme exactement ces deux champs',

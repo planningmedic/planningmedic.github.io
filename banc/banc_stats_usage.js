@@ -16,7 +16,7 @@
      4. La colonne DERNIERE_CONNEXION s'ajoute EN FIN de MEDECINS — une
         insertion au milieu rend les codes d'accès inopérants (réel, 21/07). */
 const path = require('path'), fs = require('fs'), vm = require('vm');
-const { Classeur, extraireFonction } = require(path.join(__dirname, 'stubs'));
+const { Classeur, extraireFonction, socleMedecins } = require(path.join(__dirname, 'stubs'));
 
 let ok = 0, ko = 0;
 const V = (t, c, d) => { if (c) { ok++; console.log('  ✓ ' + t); }
@@ -55,6 +55,7 @@ function bac(maintenant) {
     console,
   };
   vm.createContext(ctx);
+  socleMedecins(ctx);   // (14/09/2026) COL_MED, _medecinsRows_, _medecinsInvalider_ (code.gs)
   ['_statsJour_','_statsLundi_','_statsFeuille_','_statsHeureIncr_',
    '_statsDerniereConnexion_','statsRecalculer','logConnexion']
     .forEach(n => vm.runInContext(extraireFonction(GS, n), ctx));

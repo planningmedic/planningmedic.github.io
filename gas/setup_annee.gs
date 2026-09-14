@@ -1,7 +1,7 @@
 // ⚠️ RÈGLE (détecteur de dérive dépôt↔Apps Script) : incrémenter cette version
 // à CHAQUE push de ce fichier. Le diagnostic (admin → Maintenance) compare la
 // version déployée ici avec celle du dépôt et signale toute recopie oubliée.
-const GAS_VERSION_SETUP = '2026-09-08.1';
+const GAS_VERSION_SETUP = '2026-09-14.1';
 
 
 // ══════════════════════════════════════════════════════════════════════
@@ -246,10 +246,10 @@ function setupAnnee(year) {
   const medSheetSetup = SpreadsheetApp.getActiveSpreadsheet().getSheetByName('MEDECINS');
   const DOCTORS_LIST = [];
   if (medSheetSetup) {
-    const medDataSetup = medSheetSetup.getDataRange().getValues();
+    const medDataSetup = _medecinsRows_();
     for (let r = 1; r < medDataSetup.length; r++) {
-      const id = String(medDataSetup[r][0]).trim();
-      const actif = String(medDataSetup[r][3]).trim().toUpperCase() === 'O';
+      const id = String(medDataSetup[r][COL_MED.ID]).trim();
+      const actif = String(medDataSetup[r][COL_MED.ACTIF]).trim().toUpperCase() === 'O';
       if (id && actif) DOCTORS_LIST.push(id);
     }
   }

@@ -236,8 +236,26 @@ let groupesRef={A:[],B:[],C:[]};  // ordre de référence depuis GSheet
    quota d'un temps plein, alors que le serveur prend le palier le plus proche.
    Aucun MAR actif n'est concerné (quotités relevées le 03/09 : 100, 90, 80,
    60, 50), donc laissé tel quel plutôt que corrigé à l'aveugle. */
-const QUOTAS={VAC:{100:37,90:33,80:30,60:22,50:18},FORM:{100:10,90:9,80:8,60:6,50:5}};
-const getQuota=(type,q)=>QUOTAS[type][Math.round(q)]||QUOTAS[type][100];
+/* (14/09/2026 — chantier 11) LE CLIENT AFFICHE, IL NE CALCULE PAS. La table
+   ci-dessous n'est plus une source : c'est un REPLI, utilisé seulement tant que
+   le serveur en ligne n'envoie pas encore `quotasConges` (fenêtre entre le push
+   et la recopie Apps Script). Dès que la config arrive avec ses quotas, c'est
+   elle qui fait foi, palier le plus proche comme le fait le serveur
+   (getQuotasConges). Ce repli est à retirer une fois la recopie confirmée. */
+const QUOTAS_REPLI={VAC:{100:37,90:33,80:30,60:22,50:18},FORM:{100:10,90:9,80:8,60:6,50:5}};
+let QUOTAS_SERVEUR=null;   // {quotite:{vac,form,ctp}} servi dans vacances_admin / getVacancesConfig
+const getQuota=(type,q)=>{
+  const qq=Math.round(Number(q)||100);
+  if(QUOTAS_SERVEUR){
+    const paliers=Object.keys(QUOTAS_SERVEUR).map(Number).filter(n=>n>0);
+    if(paliers.length){
+      const n=paliers.includes(qq)?qq:paliers.reduce((a,b)=>Math.abs(b-qq)<Math.abs(a-qq)?b:a);
+      const t=QUOTAS_SERVEUR[n]||QUOTAS_SERVEUR[String(n)];
+      return type==='VAC'?(Number(t.vac)||0):(Number(t.form)||0);
+    }
+  }
+  return QUOTAS_REPLI[type][qq]||QUOTAS_REPLI[type][100];
+};
 const JOURS_FR=['Dim','Lun','Mar','Mer','Jeu','Ven','Sam'];
 const PCOLS=[{bg:'#DBEAFE',brd:'#93C5FD',fg:'#1D4ED8'},{bg:'#DCFCE7',brd:'#86EFAC',fg:'#166534'},{bg:'#FEF9C3',brd:'#FDE047',fg:'#92400E'},{bg:'#FFE4E6',brd:'#FCA5A5',fg:'#991B1B'},{bg:'#F3E8FF',brd:'#D8B4FE',fg:'#7C3AED'}];
 
@@ -356,6 +374,7 @@ async function loadData(pre){
        if(mv&&mv.success&&mv.data&&mv.data.vacances_admin&&mv.data.vacances_admin.success) pRes=mv.data.vacances_admin; }catch(e){}
   if(!pRes) pRes=await apiCall({action:'getVacancesConfig'});
   if(!pRes.success)return showToast('Erreur périodes');
+  if(pRes.quotasConges && Object.keys(pRes.quotasConges).length) QUOTAS_SERVEUR=pRes.quotasConges;   // (14/09/2026) les quotas viennent du serveur
 
   /* (04/09/2026) L'historique de Noël arrive AVEC les périodes : le clic sur
      « 🎄 Noël & Jour de l'An » n'appelle plus Apps Script. C'était le dernier

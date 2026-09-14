@@ -1,7 +1,7 @@
 // ⚠️ RÈGLE (détecteur de dérive dépôt↔Apps Script) : incrémenter cette version
 // à CHAQUE push de ce fichier. Le diagnostic (admin → Maintenance) compare la
 // version déployée ici avec celle du dépôt et signale toute recopie oubliée.
-const GAS_VERSION_PORTAIL = '2026-09-14.1';
+const GAS_VERSION_PORTAIL = '2026-09-14.2';
 
 /**
  * portail.gs — actions du PORTAIL équipe (index.html).
@@ -411,15 +411,15 @@ function listAnnuaire() {
   const equipe = [];
   const med = ss.getSheetByName('MEDECINS');
   if (med) {
-    const d = med.getDataRange().getValues();
+    const d = _medecinsRows_();
     for (let r = 1; r < d.length; r++) {
-      const id = String(d[r][0] || '').trim();
+      const id = String(d[r][COL_MED.ID] || '').trim();
       if (!id) continue;
-      if (String(d[r][3] || '').trim().toUpperCase() !== 'O') continue; // ACTIF = O
+      if (String(d[r][COL_MED.ACTIF] || '').trim().toUpperCase() !== 'O') continue; // ACTIF = O
       equipe.push({
-        name:     String(d[r][1] || '').trim() || id,
-        initials: String(d[r][2] || '').trim(),
-        dect:     String(d[r][8] || '').trim(),
+        name:     String(d[r][COL_MED.NOM] || '').trim() || id,
+        initials: String(d[r][COL_MED.INITIALES] || '').trim(),
+        dect:     String(d[r][COL_MED.DECT] || '').trim(),
       });
     }
     equipe.sort(function (a, b) { return a.name.localeCompare(b.name, 'fr'); });
@@ -768,7 +768,7 @@ function _libCaSheetName(year) { return 'LIBERAL_CA_' + year; }
 function _membresLiberal_() {
   const sh = SpreadsheetApp.getActiveSpreadsheet().getSheetByName('MEDECINS');
   if (!sh) return [];
-  const data = sh.getDataRange().getValues();
+  const data = _medecinsRows_();
   if (!data.length) return [];
   let colLib = -1;
   for (let c = 0; c < data[0].length; c++) {
@@ -777,7 +777,7 @@ function _membresLiberal_() {
   if (colLib < 0) return [];
   const out = [];
   for (let r = 1; r < data.length; r++) {
-    const id = String(data[r][0] || '').trim();
+    const id = String(data[r][COL_MED.ID] || '').trim();
     if (!id) continue;
     if (String(data[r][colLib]).trim().toUpperCase() === 'O') out.push(id);
   }
@@ -873,11 +873,11 @@ function getReleveLiberal(payload) {
   const noms = {};
   const med = ss.getSheetByName('MEDECINS');
   if (med) {
-    const dm = med.getDataRange().getValues();
+    const dm = _medecinsRows_();
     for (let r = 1; r < dm.length; r++) {
-      const mid = String(dm[r][0] || '').trim();
-      if (mid) noms[mid] = { nom: String(dm[r][1] || '').trim() || mid,
-                             initiales: String(dm[r][2] || '').trim() };
+      const mid = String(dm[r][COL_MED.ID] || '').trim();
+      if (mid) noms[mid] = { nom: String(dm[r][COL_MED.NOM] || '').trim() || mid,
+                             initiales: String(dm[r][COL_MED.INITIALES] || '').trim() };
     }
   }
   const items = [];
@@ -1852,7 +1852,7 @@ function getStatsUsage(user) {
   const gens = [];
   const fm = ss.getSheetByName('MEDECINS');
   if (fm) {
-    const d = fm.getDataRange().getValues();
+    const d = _medecinsRows_();
     let col = -1;
     if (d.length) {
       for (let c = 0; c < d[0].length; c++) {
@@ -1860,9 +1860,9 @@ function getStatsUsage(user) {
       }
     }
     for (let r = 1; r < d.length; r++) {
-      if (!String(d[r][0]).trim()) continue;
-      if (String(d[r][3]).trim().toUpperCase() !== 'O') continue;   // ACTIF=O seulement
-      gens.push({ i: String(d[r][2] || '').trim(),
+      if (!String(d[r][COL_MED.ID]).trim()) continue;
+      if (String(d[r][COL_MED.ACTIF]).trim().toUpperCase() !== 'O') continue;   // ACTIF=O seulement
+      gens.push({ i: String(d[r][COL_MED.INITIALES] || '').trim(),
                   d: (col >= 0) ? _jour(d[r][col]) : '' });
     }
   }

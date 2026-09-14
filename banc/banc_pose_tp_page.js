@@ -12,7 +12,7 @@
    logique.                                                                  */
 const fs = require('fs'), vm = require('vm');
 const { JSDOM, VirtualConsole } = require('jsdom');
-const { Classeur, extraireFonction } = require('./stubs');
+const { Classeur, extraireFonction, socleMedecins } = require('./stubs');
 
 let ok = 0, ko = 0;
 function V(libelle, condition, detail) {
@@ -70,6 +70,7 @@ function construireCle(cl, annee) {
     Utilities: { formatDate: function (d) { return d.toISOString().slice(0, 10); } },
     Session: { getScriptTimeZone: function () { return 'Europe/Paris'; } } });
   ctx.globalThis = ctx;
+  socleMedecins(ctx);   // (14/09/2026) COL_MED, _medecinsRows_, _medecinsInvalider_ (code.gs)
   vm.runInContext('function logAction(){}', ctx);
   vm.runInContext('function _configRows_(){ return SpreadsheetApp.getActiveSpreadsheet().getSheetByName("CONFIG").getDataRange().getValues(); }', ctx);
   ['getActiveYear', 'getPremierJourPlanning', 'reconstruireDatesHeaders', 'buildDateToCol', 'getJoursFeries']

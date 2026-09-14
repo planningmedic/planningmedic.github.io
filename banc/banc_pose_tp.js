@@ -7,7 +7,7 @@
    compris : recopier la logique dans le test prouverait le test, pas le code.
    Les seuils 15 / 13 / 12 sont VERROUILLÉS en dur dans les vérifications. */
 const vm = require('vm'), fs = require('fs');
-const { Classeur, extraireFonction } = require('./stubs');
+const { Classeur, extraireFonction, socleMedecins } = require('./stubs');
 let ok = 0, ko = 0;
 const V = (t, c, d) => { if (c) { ok++; console.log('  ✓ ' + t); } else { ko++; console.log('  ✗ ' + t + (d !== undefined ? ' → ' + JSON.stringify(d).slice(0, 190) : '')); } };
 
@@ -119,6 +119,7 @@ function monde(opts) {
     Utilities: { formatDate: (d, tz, fmt) => d.toISOString().slice(0, 10) },
     Session: { getScriptTimeZone: () => 'Europe/Paris' } });
   ctx.globalThis = ctx;
+  socleMedecins(ctx);   // (14/09/2026) COL_MED, _medecinsRows_, _medecinsInvalider_ (code.gs)
   /* Doublures d'infrastructure (jamais de logique métier) : journal, memo
      CONFIG (lecture directe, pas de cache à invalider), réponse HTTP. */
   vm.runInContext('function logAction(){}', ctx);

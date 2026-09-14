@@ -51,7 +51,8 @@ class Sheet {
    vérifier qu'aucune poussée ne part avec des écritures non validées. */
 let _observateurEcriture = null;
 function brancherSurEcriture(f) { _observateurEcriture = f; }
-function _surEcriture() { if (_observateurEcriture) _observateurEcriture(); }
+const _invalidateurs = [];   // (14/09/2026) memos de requête à périmer sur toute écriture (voir socleMedecins)
+function _surEcriture() { if (_observateurEcriture) _observateurEcriture(); _invalidateurs.forEach(f => { try { f(); } catch (e) {} }); }
 
 function _coerceSheets(v) {
   if (typeof v === 'string') {
@@ -107,4 +108,24 @@ function extraireFonction(fichier, nom) {
   return src.slice(i, j + 1);
 }
 
-module.exports = { Sheet, Classeur, fabriqueVerrou, VERROUS, journalVerrous, extraireFonction, brancherSurEcriture };
+/* (14/09/2026 — chantier 8) MEDECINS se lit désormais par _medecinsRows_() (memo
+   d'une exécution) avec des colonnes nommées (COL_MED), définis dans code.gs.
+   Un scénario qui extrait une fonction lisant MEDECINS doit disposer des trois :
+   ce socle injecte le VRAI code, pas une doublure. Un contexte de banc enchaîne
+   plusieurs « requêtes » : entre deux, appeler ctx._medecinsInvalider_() comme
+   le ferait une nouvelle exécution Apps Script. */
+function socleMedecins(ctx, fichierCode) {
+  const vm = require('vm');
+  const f = fichierCode || require('path').join(__dirname, '..', 'gas', 'code.gs');
+  const src = fs.readFileSync(f, 'utf8');
+  const col = (src.match(/^const COL_MED = Object\.freeze\(\{[^\n]*\}\);/m) || [''])[0];
+  if (!col) throw new Error('COL_MED introuvable dans ' + f);
+  vm.runInContext(col + '\n' + extraireFonction(f, '_medecinsRows_') + '\n' + extraireFonction(f, '_medecinsInvalider_'), ctx);
+  /* Un scénario enchaîne plusieurs requêtes dans un même contexte et modifie
+     la feuille entre deux : chaque écriture de la doublure périme le memo,
+     comme une nouvelle exécution le ferait. */
+  _invalidateurs.push(() => { try { ctx._medecinsInvalider_(); } catch (e) {} });
+  return ctx;
+}
+
+module.exports = { Sheet, Classeur, fabriqueVerrou, VERROUS, journalVerrous, extraireFonction, brancherSurEcriture, socleMedecins };

@@ -41,7 +41,7 @@
 // ⚠️ RÈGLE (détecteur de dérive dépôt↔Apps Script) : incrémenter cette version
 // à CHAQUE push de ce fichier. Le diagnostic (admin → Maintenance) compare la
 // version déployée ici avec celle du dépôt et signale toute recopie oubliée.
-const GAS_VERSION_GENERATEUR = '2026-09-14.1';
+const GAS_VERSION_GENERATEUR = '2026-09-14.2';
 
 /* (05/09/2026) INTERRUPTEUR DU NOUVEL ALGORITHME.
    À false, le générateur se comporte EXACTEMENT comme avant : c'est le retour
@@ -636,12 +636,12 @@ function generateGardes(year, opts){
   };
 
   // ── 2. Médecins ──────────────────────────────────────────────────────
-  const medData=ss.getSheetByName('MEDECINS').getDataRange().getValues();
+  const medData=_medecinsRows_();
   const allDoctors=[],gardeDoctors=[],pct={},quot={};
   for(let r=1;r<medData.length;r++){
-    const id=String(medData[r][0]).trim();
+    const id=String(medData[r][COL_MED.ID]).trim();
     if(!id||id==='DRUGE') continue;
-    allDoctors.push(id);pct[id]=Number(medData[r][5])||100;quot[id]=Number(medData[r][4])||100;
+    allDoctors.push(id);pct[id]=Number(medData[r][COL_MED.PCT_GARDES])||100;quot[id]=Number(medData[r][COL_MED.QUOTITE])||100;
     if(!NO_GARDE.has(id)) gardeDoctors.push(id);
     if(!indispos[id]) indispos[id]={};
   }

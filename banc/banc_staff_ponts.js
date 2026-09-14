@@ -425,7 +425,7 @@ console.log('\n═══ 8 bis. Le tableau de Noël ne dépend plus d\'un appel 
     return mir.slice(i, j + 1);
   })();
   V('vacances_admin rend désormais un champ noel',
-    /return \{ success: true, periodes: periodes, groupes: groupes, noel: noel \};/.test(bloc));
+    /return \{ success: true, periodes: periodes, groupes: groupes, noel: noel, quotasConges: _loadQuotasConges\(\) \};/.test(bloc));   // (14/09/2026) + les quotas
   V('il est construit par la MÊME fonction que l\'appel direct (aucun second calcul)',
     /computeNoelAnHistorique\(yNoel\)/.test(bloc));
   V('l\'année servie est celle de la campagne, pas l\'année civile',
@@ -585,8 +585,13 @@ console.log('\n═══ Quotas de congés : staff.html suit CONFIG_CONGES ═�
   /* Les deux déclarations sont `const` : évaluées dans deux scripts séparés
      elles resteraient invisibles l'une de l'autre et du banc. Un seul script,
      et on expose la fonction. */
-  vm.runInContext(extraireConst('QUOTAS') + '\n' + extraireConst('getQuota')
-                  + '\nglobalThis.gq = getQuota;', ctx);
+  /* (14/09/2026 — chantier 11) La table de staff.html n'est plus une source mais
+     un REPLI (QUOTAS_REPLI), servi tant que le serveur n'envoie pas quotasConges.
+     Ce scénario fige les valeurs du repli ; banc_quotas_serveur.js vérifie que la
+     table du serveur, quand elle arrive, prend le dessus. getQuota est un bloc
+     multi-lignes : on le coupe sur son « }; » de fin, pas au premier « ; ». */
+  const debut = src.indexOf('const QUOTAS_REPLI='), fin = src.indexOf('};', src.indexOf('const getQuota=')) + 2;
+  vm.runInContext(src.slice(debut, fin) + '\nglobalThis.gq = getQuota;', ctx);
   const attenduVac = { 100: 37, 90: 33, 80: 30, 60: 22, 50: 18 };
   const attenduForm = { 100: 10, 90: 9, 80: 8, 60: 6, 50: 5 };
   Object.keys(attenduVac).forEach(q =>

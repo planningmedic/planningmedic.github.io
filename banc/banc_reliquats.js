@@ -67,7 +67,7 @@ console.log('\n═══ 2. Un jour de congé se compte en jours TRAVAILLÉS ═
   const corps = IND.slice(IND.indexOf('function computeReliquats'),
                           IND.indexOf('function computeReliquats') + 4200);
   V('seuls les MAR actifs sont listés',
-    /String\(med\[r\]\[3\]\)\.trim\(\)\.toUpperCase\(\) !== 'O'/.test(corps)
+    /String\(med\[r\]\[COL_MED\.ACTIF\]\)\.trim\(\)\.toUpperCase\(\) !== 'O'/.test(corps)   // (14/09/2026) colonne nommée
     && /lignes\.push/.test(corps));
   V('les MAR qui ont le plus à poser viennent en tête',
     /lignes\.sort\(\(a, b\) => \(b\.vac\.reste \+ b\.form\.reste \+ b\.tp\.reste\)/.test(IND));

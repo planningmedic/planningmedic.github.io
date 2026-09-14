@@ -1,7 +1,7 @@
 // ⚠️ RÈGLE (détecteur de dérive dépôt↔Apps Script) : incrémenter cette version
 // à CHAQUE push de ce fichier. Le diagnostic (admin → Maintenance) compare la
 // version déployée ici avec celle du dépôt et signale toute recopie oubliée.
-const GAS_VERSION_CODE = '2026-09-14.1';
+const GAS_VERSION_CODE = '2026-09-14.2';
 
 // ── Reconstruire STATS_GARDES_2026 depuis GARDES_2026 (année reconstruite) ──
 // Renvoie le classeur contenant l'onglet demandé : classeur actif si présent,
@@ -161,6 +161,26 @@ function _configRows_() {
 }
 function _configReset_() { _configRows_._v = null; _pairesEviteesCache = null; }
 
+/* ═══ MEDECINS — UNE lecture par requête, des colonnes NOMMÉES (14/09/2026, chantier 8)
+   Avant : 37 endroits ouvraient l'onglet et le relisaient en entier, chacun
+   avec ses numéros de colonnes (`data[r][7]` = email, ×13). Une colonne insérée
+   dans le classeur cassait 13 endroits en silence, et une requête relisait
+   l'onglet deux ou trois fois (checkCode, puis l'action). Désormais :
+     · COL_MED nomme chaque colonne — l'ordre du classeur est ICI et nulle part
+       ailleurs ; le banc (banc_medecins_memo.js) le compare à l'en-tête réel ;
+     · _medecinsRows_() lit l'onglet une fois par exécution et le garde en
+       mémoire. PAS de CacheService (la colonne CODE est un secret) ;
+     · toute écriture dans MEDECINS appelle _medecinsInvalider_() derrière elle.
+   Les trois fonctions qui ÉCRIVENT dans l'onglet gardent leur lecture directe. */
+const COL_MED = Object.freeze({ ID:0, NOM:1, INITIALES:2, ACTIF:3, QUOTITE:4, PCT_GARDES:5, CODE:6, EMAIL:7, DECT:8, DATE_DEBUT:9, DATE_FIN:10, NO_GARDE:11, ONLY_18:12, NO_WEEKEND:13, RYTHME_2_2:14, SOUHAIT_PLAFOND:15, TP_JOURS:16 });
+function _medecinsRows_() {
+  if (_medecinsRows_._v) return _medecinsRows_._v;
+  const sh = SpreadsheetApp.getActiveSpreadsheet().getSheetByName('MEDECINS');
+  _medecinsRows_._v = sh ? sh.getDataRange().getValues() : [];
+  return _medecinsRows_._v;
+}
+function _medecinsInvalider_() { _medecinsRows_._v = null; }
+
 let _ghTokenCache = null;
 function getGithubToken() {
   if (_ghTokenCache !== null) return _ghTokenCache;
@@ -193,13 +213,13 @@ function getDoctorsFromMedecins() {
   const ss = SpreadsheetApp.getActiveSpreadsheet();
   const sheet = ss.getSheetByName('MEDECINS');
   if (!sheet) throw new Error("Onglet MEDECINS introuvable — effectif indisponible, rien n'est publié.");
-  const data = sheet.getDataRange().getValues();
+  const data = _medecinsRows_();
   const list = [];
   for (let r = 1; r < data.length; r++) {
-    const id = String(data[r][0]).trim();
+    const id = String(data[r][COL_MED.ID]).trim();
     if (!id) continue;
-    if (String(data[r][3]).trim().toUpperCase() !== 'O') continue; // ACTIF = O
-    list.push({ id, name: String(data[r][1]).trim(), initials: String(data[r][2]).trim() });
+    if (String(data[r][COL_MED.ACTIF]).trim().toUpperCase() !== 'O') continue; // ACTIF = O
+    list.push({ id, name: String(data[r][COL_MED.NOM]).trim(), initials: String(data[r][COL_MED.INITIALES]).trim() });
   }
   if (!list.length) {
     throw new Error("Aucun MAR actif dans MEDECINS — effectif vide, rien n'est publié.");
@@ -222,7 +242,7 @@ function getMedecinFlags() {
   };
   const sheet = SpreadsheetApp.getActiveSpreadsheet().getSheetByName('MEDECINS');
   if (!sheet) return flags;
-  const data = sheet.getDataRange().getValues();
+  const data = _medecinsRows_();
   const JOUR_NUM = { LUN:1, MAR:2, MER:3, JEU:4, VEN:5, SAM:6, DIM:0 };
   const isO = v => String(v).trim().toUpperCase() === 'O';
   const toDate = v => {
@@ -231,16 +251,16 @@ function getMedecinFlags() {
     return String(v).trim();
   };
   for (let r = 1; r < data.length; r++) {
-    const id = String(data[r][0]).trim();
+    const id = String(data[r][COL_MED.ID]).trim();
     if (!id) continue;
-    if (isO(data[r][11])) flags.noGarde.add(id);
-    if (isO(data[r][12])) flags.only18.add(id);
-    if (isO(data[r][13])) flags.noWeekend.add(id);
-    if (isO(data[r][14])) flags.rythme2sur2.add(id);
-    if (isO(data[r][15])) flags.souhaitPlafond.add(id);
-    const dd = toDate(data[r][9]);  if (dd) flags.dateDebut[id] = dd;
-    const df = toDate(data[r][10]); if (df) flags.dateFin[id]   = df;
-    const tp = String(data[r][16] || '').trim().toUpperCase();
+    if (isO(data[r][COL_MED.NO_GARDE])) flags.noGarde.add(id);
+    if (isO(data[r][COL_MED.ONLY_18])) flags.only18.add(id);
+    if (isO(data[r][COL_MED.NO_WEEKEND])) flags.noWeekend.add(id);
+    if (isO(data[r][COL_MED.RYTHME_2_2])) flags.rythme2sur2.add(id);
+    if (isO(data[r][COL_MED.SOUHAIT_PLAFOND])) flags.souhaitPlafond.add(id);
+    const dd = toDate(data[r][COL_MED.DATE_DEBUT]);  if (dd) flags.dateDebut[id] = dd;
+    const df = toDate(data[r][COL_MED.DATE_FIN]); if (df) flags.dateFin[id]   = df;
+    const tp = String(data[r][COL_MED.TP_JOURS] || '').trim().toUpperCase();
     if (tp) {
       const jours = new Set();
       tp.split(/[,;\s]+/).forEach(tok => {
@@ -1842,7 +1862,7 @@ function _notifExpedier(retenus, year) {
   const ss = SpreadsheetApp.getActiveSpreadsheet();
   const med = ss.getSheetByName('MEDECINS');
   if (!med) return { sent: 0, skipped: 0, errors: ['Onglet MEDECINS introuvable'] };
-  const data = med.getDataRange().getValues();
+  const data = _medecinsRows_();
 
   // Colonne NOTIF cherchée par son nom : si elle n'existe pas encore, tout le
   // monde est notifié (pas d'index en dur, la feuille peut bouger).
@@ -1855,14 +1875,14 @@ function _notifExpedier(retenus, year) {
 
   const destinataires = [];
   for (let r = 1; r < data.length; r++) {
-    const id = String(data[r][0]).trim();
+    const id = String(data[r][COL_MED.ID]).trim();
     if (!id || !retenus[id]) continue;
-    if (String(data[r][3]).trim().toUpperCase() !== 'O') continue;           // inactif
+    if (String(data[r][COL_MED.ACTIF]).trim().toUpperCase() !== 'O') continue;           // inactif
     if (colNotif >= 0 && String(data[r][colNotif]).trim().toUpperCase() === 'N') continue;
     destinataires.push({
       id: id,
-      nom: String(data[r][1]).trim(),
-      email: testMail || String(data[r][7]).trim(),
+      nom: String(data[r][COL_MED.NOM]).trim(),
+      email: testMail || String(data[r][COL_MED.EMAIL]).trim(),
     });
   }
 
