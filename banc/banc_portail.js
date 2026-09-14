@@ -94,6 +94,16 @@ function fenetre(opts) {
     V('plus de miroirRead locale ni d\'adresse en dur', !/function miroirRead\(/.test(page) && !/const MIROIR_URL/.test(page) && !/workers\.dev/.test(page));
     V('ses 2 lectures du miroir sont intactes', (page.match(/miroirRead\(/g) || []).length === 2, (page.match(/miroirRead\(/g) || []).length);
   }
+  console.log('\n═══ indispos.html a rejoint le socle ═══');
+  {
+    const page = fs.readFileSync(path.join(__dirname, '..', 'indispos.html'), 'utf8');
+    V('indispos.html charge partage/portail.js après session.js', page.indexOf('partage/portail.js') > page.indexOf('partage/session.js') && page.indexOf('partage/portail.js') > 0);
+    V('…avant repriseSession (le défaut TDZ du 26/08 devient impossible)', page.indexOf('partage/portail.js') < page.indexOf('async function repriseSession'));
+    /* Les <link rel="preconnect"> vers le relais restent : ce sont des indices de
+       performance pour le navigateur, pas une copie de l'adresse dans le code. */
+    V('plus de miroirRead locale ni de const MIROIR_URL', !/function miroirRead\(/.test(page) && !/const MIROIR_URL/.test(page));
+    V('ses 3 lectures du miroir sont intactes', (page.match(/miroirRead\(/g) || []).length === 3, (page.match(/miroirRead\(/g) || []).length);
+  }
   console.log('\n' + ok + ' OK · ' + ko + ' en échec');
   if (ko) process.exit(1);
 })();

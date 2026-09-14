@@ -45,6 +45,7 @@ const dodo = ms => new Promise(r => setTimeout(r, ms));
         /* jsdom ne va pas chercher les scripts externes : on sert partage/session.js
            comme le fait le vrai site, sinon on ne testerait que le filet de secours. */
         win.eval(fs.readFileSync('../partage/session.js', 'utf8'));
+        win.eval(fs.readFileSync('../partage/portail.js', 'utf8'));   // (14/09/2026) le socle, comme le vrai site
       } });
     const w = dom.window;
     w.Element.prototype.scrollIntoView = function () {};

@@ -30,6 +30,7 @@ async function ouvrir(mode, avecSession, fichier) {
       win.scrollTo = function () {};
       if (avecSession) { try { win.sessionStorage.setItem('pmViewCode', 'CPOSEUR'); } catch (e) {} }
       win.eval(fs.readFileSync('../partage/session.js', 'utf8'));
+      win.eval(fs.readFileSync('../partage/portail.js', 'utf8'));   // (14/09/2026) le socle, comme le vrai site
       win.__appels = win.__appels || [];
       win.fetch = async function (url, opt) {
         win.__appels.push(String(url).includes('/read') ? 'RELAIS' : 'GAS');
@@ -85,6 +86,7 @@ async function ouvrir(mode, avecSession, fichier) {
       win.scrollTo = function () {};
       try { win.sessionStorage.setItem('pmViewCode', 'CPOSEUR'); } catch (e) {}
       win.eval(fs.readFileSync('../partage/session.js', 'utf8'));
+      win.eval(fs.readFileSync('../partage/portail.js', 'utf8'));   // (14/09/2026) le socle, comme le vrai site
       win.fetch = async function () { await new Promise(function (r2) { setTimeout(r2, 5000); }); // réseau interminable
         return { ok: true, json: async function () { return { success: false }; } }; };
     } });

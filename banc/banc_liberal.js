@@ -459,6 +459,7 @@ console.log('\n═══ 6. La page de cotation ne dit rien qu\'elle ne sache �
          que jsdom ne va pas chercher — on le sert donc ici, comme le vrai site. */
       win.sessionStorage.setItem('pmViewCode', CODE);
       win.eval(fs.readFileSync('../partage/session.js', 'utf8'));
+      win.eval(fs.readFileSync('../partage/portail.js', 'utf8'));   // (14/09/2026) le socle, comme le vrai site
       win.fetch = async (url, opt) => {
         const u = String(url);
         if (u.includes('workers.dev')) {

@@ -108,6 +108,7 @@ async function ouvrirLaPage(M, code) {
       win.HTMLElement.prototype.scrollIntoView = function () {};
       win.scrollTo = function () {};
       win.eval(fs.readFileSync('../partage/session.js', 'utf8'));
+      win.eval(fs.readFileSync('../partage/portail.js', 'utf8'));   // (14/09/2026) le socle, comme le vrai site
     } });
   const w = dom.window;
   if (!w.navigator.sendBeacon) w.navigator.sendBeacon = function () { return true; };
@@ -166,6 +167,7 @@ async function ouvrirAdmin(M, codeAdmin) {
       win.HTMLElement.prototype.scrollIntoView = function () {};
       win.scrollTo = function () {}; win.alert = function () {}; win.confirm = function () { return true; };
       win.eval(fs.readFileSync('../partage/session.js', 'utf8'));
+      win.eval(fs.readFileSync('../partage/portail.js', 'utf8'));   // (14/09/2026) le socle, comme le vrai site
     } });
   const w = dom.window;
   if (!w.navigator.sendBeacon) w.navigator.sendBeacon = function () { return true; };
