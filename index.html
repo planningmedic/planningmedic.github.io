@@ -25,7 +25,8 @@
 <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@300;400;500;600;700&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
 <script src="assets/vendor/lucide-icons.js"></script>
 <script src="version.js"></script>   <!-- (14/08/2026) source unique du numéro de version -->
-<script src="partage/session.js"></script>   <!-- (17/08/2026) source unique : où vit le code d'accès, et 30 jours glissants -->
+<script src="partage/session.js"></script>
+<script src="partage/portail.js"></script>   <!-- (14/09/2026) socle commun : MIROIR_URL, miroirRead -->   <!-- (17/08/2026) source unique : où vit le code d'accès, et 30 jours glissants -->
 <script>/* FALLBACK_SESSION — filet (17/08/2026). Si partage/session.js ne se charge pas
 (réseau, cache), les pages l'appelleraient dans le vide et NE S'OUVRIRAIENT PLUS : le MAR ne
 pourrait même plus taper son code. On retombe alors sur le comportement d'avant — le code vit
@@ -790,29 +791,8 @@ async function apiPost(payload) {
    par gas/miroir.gs) authentifie par empreinte SHA-256 et livre identite +
    donnees en ~150 ms. TOUT resultat autre qu'un succes complet rend la main
    au circuit GAS historique, seul juge de la validite d'un code. */
-const MIROIR_URL = 'https://miroir.planningmedic.workers.dev';
-
-async function miroirRead(keys) {
-  const _dep = Math.round(performance.now()), _t0 = Date.now();
-  const _ctrl = new AbortController();
-  const _timer = setTimeout(() => _ctrl.abort(), 6000);
-  try {
-    const res = await fetch(MIROIR_URL + '/read', {
-      method: 'POST',
-      headers: { 'Content-Type': 'text/plain;charset=utf-8' },   // requete « simple » : pas de preambule CORS
-      body: JSON.stringify({ code: VIEW_CODE, keys }),
-      signal: _ctrl.signal,
-    });
-    const rep = await res.json();
-    try { if (window.PERF) PERF.appel('miroir:' + keys.join('+'), Date.now() - _t0, null, _dep,
-                                      rep && rep.success ? undefined : 'ECHEC — ' + ((rep && rep.error) || 'HTTP ' + res.status)); } catch (_e) {}
-    return rep;
-  } catch (e) {
-    try { if (window.PERF) PERF.appel('miroir:' + keys.join('+'), Date.now() - _t0, null, _dep,
-                                      'ECHEC — ' + (e && e.message)); } catch (_e) {}
-    return null;   // panne de transport → le repli GAS decide
-  } finally { clearTimeout(_timer); }
-}
+/* (14/09/2026) MIROIR_URL et miroirRead viennent du socle partage/portail.js
+   (chargé en tête de page) — cette copie était le modèle du socle. */
 
 /* Ouverture par le miroir : identite + annee active + planning en un
    aller-retour. true = parti sur le miroir ; sinon l'appelant bascule GAS. */

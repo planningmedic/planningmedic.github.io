@@ -20,6 +20,7 @@ async function charger(fichier, options) {
     runScripts:'dangerously', virtualConsole:vc, pretendToBeVisual:true,
     url:'https://planningmedic.github.io/admin.html',
     beforeParse(win) {
+      win.eval(require('fs').readFileSync(require('path').join(__dirname, '..', 'partage', 'portail.js'), 'utf8'));   // (14/09/2026) le socle commun, servi comme le vrai site
       win.matchMedia = () => ({ matches:false, addListener(){}, removeListener(){}, addEventListener(){}, removeEventListener(){} });
       win.Element.prototype.scrollIntoView = function () {};
       win.HTMLElement.prototype.scrollIntoView = function () {};

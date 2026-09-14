@@ -38,6 +38,7 @@ const dodo = ms => new Promise(r => setTimeout(r, ms));
       /* Compléments injectés AVANT l'exécution des scripts : jsdom n'implémente
          pas matchMedia ni scrollIntoView, que les pages utilisent au chargement. */
       beforeParse(win) {
+        win.eval(require('fs').readFileSync(require('path').join(__dirname, '..', 'partage', 'portail.js'), 'utf8'));   // (14/09/2026) le socle commun, servi comme le vrai site
         win.matchMedia = () => ({ matches:false, addListener(){}, removeListener(){}, addEventListener(){}, removeEventListener(){} });
         win.Element.prototype.scrollIntoView = function () {};
         win.HTMLElement.prototype.scrollIntoView = function () {};
@@ -85,6 +86,7 @@ const dodo = ms => new Promise(r => setTimeout(r, ms));
     const dom = new JSDOM(contenu, { runScripts:'dangerously', virtualConsole:vc,
       url:'https://planningmedic.github.io/planning.html', pretendToBeVisual:true,
       beforeParse(win) {
+        win.eval(require('fs').readFileSync(require('path').join(__dirname, '..', 'partage', 'portail.js'), 'utf8'));   // (14/09/2026) le socle commun, servi comme le vrai site
         win.matchMedia = () => ({ matches:false, addListener(){}, removeListener(){}, addEventListener(){}, removeEventListener(){} });
         win.Element.prototype.scrollIntoView = function () {};
         win.HTMLElement.prototype.scrollIntoView = function () {};
@@ -189,6 +191,7 @@ const dodo = ms => new Promise(r => setTimeout(r, ms));
     const dom = new JSDOM(contenu, { runScripts:'dangerously', virtualConsole:vc,
       url:'https://planningmedic.github.io/planning.html', pretendToBeVisual:true,
       beforeParse(win) {
+        win.eval(require('fs').readFileSync(require('path').join(__dirname, '..', 'partage', 'portail.js'), 'utf8'));   // (14/09/2026) le socle commun, servi comme le vrai site
         win.matchMedia = () => ({ matches:false, addListener(){}, removeListener(){}, addEventListener(){}, removeEventListener(){} });
         win.Element.prototype.scrollIntoView = function () {};
         win.HTMLElement.prototype.scrollIntoView = function () {};
@@ -235,6 +238,7 @@ const dodo = ms => new Promise(r => setTimeout(r, ms));
     const dom = new JSDOM(contenu, { runScripts:'dangerously', virtualConsole:vc,
       url:'https://planningmedic.github.io/indispos.html', pretendToBeVisual:true,
       beforeParse(win) {
+        win.eval(require('fs').readFileSync(require('path').join(__dirname, '..', 'partage', 'portail.js'), 'utf8'));   // (14/09/2026) le socle commun, servi comme le vrai site
         win.matchMedia = () => ({ matches:false, addListener(){}, removeListener(){}, addEventListener(){}, removeEventListener(){} });
         win.Element.prototype.scrollIntoView = function () {};
         win.HTMLElement.prototype.scrollIntoView = function () {};
@@ -268,6 +272,7 @@ const dodo = ms => new Promise(r => setTimeout(r, ms));
       virtualConsole:new VirtualConsole(), pretendToBeVisual:true,
       url:'https://planningmedic.github.io/indispos.html',
       beforeParse(win) {
+        win.eval(require('fs').readFileSync(require('path').join(__dirname, '..', 'partage', 'portail.js'), 'utf8'));   // (14/09/2026) le socle commun, servi comme le vrai site
         win.matchMedia = () => ({ matches:false, addListener(){}, removeListener(){}, addEventListener(){}, removeEventListener(){} });
         win.Element.prototype.scrollIntoView = function () {};
         win.HTMLElement.prototype.scrollIntoView = function () {};
@@ -338,6 +343,7 @@ const dodo = ms => new Promise(r => setTimeout(r, ms));
     const dom = new JSDOM(contenu, { runScripts:'dangerously', virtualConsole:vc,
       url:'https://planningmedic.github.io/planning.html', pretendToBeVisual:true,
       beforeParse(win) {
+        win.eval(require('fs').readFileSync(require('path').join(__dirname, '..', 'partage', 'portail.js'), 'utf8'));   // (14/09/2026) le socle commun, servi comme le vrai site
         win.matchMedia = () => ({ matches:false, addListener(){}, removeListener(){}, addEventListener(){}, removeEventListener(){} });
         win.Element.prototype.scrollIntoView = function () {};
         win.HTMLElement.prototype.scrollIntoView = function () {};
@@ -392,6 +398,7 @@ const dodo = ms => new Promise(r => setTimeout(r, ms));
     const dom = new JSDOM(contenu, { runScripts:'dangerously', virtualConsole:vc,
       url:'https://planningmedic.github.io/planning.html', pretendToBeVisual:true,
       beforeParse(win) {
+        win.eval(require('fs').readFileSync(require('path').join(__dirname, '..', 'partage', 'portail.js'), 'utf8'));   // (14/09/2026) le socle commun, servi comme le vrai site
         win.matchMedia = () => ({ matches:false, addListener(){}, removeListener(){}, addEventListener(){}, removeEventListener(){} });
         win.Element.prototype.scrollIntoView = function () {};
         win.HTMLElement.prototype.scrollIntoView = function () {};
@@ -442,6 +449,7 @@ const dodo = ms => new Promise(r => setTimeout(r, ms));
     const dom = new JSDOM(contenu, { runScripts:'dangerously', virtualConsole:vc,
       url:'https://planningmedic.github.io/planning.html', pretendToBeVisual:true,
       beforeParse(win) {
+        win.eval(require('fs').readFileSync(require('path').join(__dirname, '..', 'partage', 'portail.js'), 'utf8'));   // (14/09/2026) le socle commun, servi comme le vrai site
         win.matchMedia = () => ({ matches:false, addListener(){}, removeListener(){}, addEventListener(){}, removeEventListener(){} });
         win.Element.prototype.scrollIntoView = function () {};
         win.HTMLElement.prototype.scrollIntoView = function () {};

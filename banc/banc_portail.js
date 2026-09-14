@@ -129,6 +129,7 @@ function fenetre(opts) {
         beforeParse(win) {
           win.matchMedia = () => ({ matches: true, addListener() {}, removeListener() {}, addEventListener() {}, removeEventListener() {} });
           win.Element.prototype.scrollIntoView = function () {};
+          win.navigator.sendBeacon = () => true;   // le journal de connexion de l'accueil part à fond perdu
           win.sessionStorage.setItem('pmViewCode', 'CODE1234');
           win.fetch = async (url, o) => {
             let body = null; try { body = JSON.parse(o.body); } catch (e) {}
@@ -137,7 +138,7 @@ function fenetre(opts) {
             const data = { annees: { active: Y, annees: [Y] }, secteurs: [], config_admin: { medecins: [] } };
             data['planning_' + Y] = { ok: 1 }; data['affectations_' + Y] = { affectations: {} };
             data['indispos_' + Y] = { medecins: [], dates: [], data: {} }; data['indispos_' + (Y + 1)] = { medecins: [], dates: [], data: {} };
-            return { ok: true, status: 200, json: async () => ({ success: true, data, identite: { id: 'X', name: 'X', isAdmin: false } }) };
+            return { ok: true, status: 200, json: async () => ({ success: true, data, identite: { id: 'X', name: 'X', role: 'mar', isAdmin: false } }) };
           };
           win.eval(fs.readFileSync(path.join(__dirname, '..', 'partage', 'session.js'), 'utf8'));
           win.eval(fs.readFileSync(path.join(__dirname, '..', 'partage', 'portail.js'), 'utf8'));
@@ -147,13 +148,32 @@ function fenetre(opts) {
       const w = dom.window;
       const overlay = w.document.getElementById('viewAuthOverlay') || w.document.getElementById('loginScreen');
       const visible = overlay ? (overlay.style.display !== 'none' && w.getComputedStyle(overlay).display !== 'none') : null;
-      return { appels, erreurs, visible, overlayTrouve: !!overlay };
+      const portal = w.document.getElementById('portal');
+      const portalVisible = portal ? portal.style.display !== 'none' : null;
+      let myId = null; try { myId = w.eval('typeof MY_ID !== "undefined" ? MY_ID : null'); } catch (e) {}
+      return { appels, erreurs, visible, overlayTrouve: !!overlay, portalVisible, myId };
     }
     const rp = await reprise('planning.html');
     V('planning : le miroir est interrogé avec le code mémorisé', rp.appels.some(a => /workers\.dev\/read/.test(a.url) && a.code === 'CODE1234'), rp.appels);
     V('planning : aucune erreur de script pendant la reprise', rp.erreurs.length === 0, rp.erreurs);
     V('planning : l\'écran de code reste fermé (la page s\'ouvre sans ressaisie)', rp.overlayTrouve && rp.visible === false, rp);
+    V('planning : l\'identité livrée par le miroir est bien posée', rp.myId === 'X', rp.myId);
     V('planning : le serveur n\'est pas réveillé quand le miroir répond', !rp.appels.some(a => /script\.google/.test(a.url)), rp.appels.map(a => a.url));
+    const ri = await reprise('index.html');
+    V('accueil : le miroir est interrogé avec le code mémorisé', ri.appels.some(a => /workers\.dev\/read/.test(a.url) && a.code === 'CODE1234'), ri.appels);
+    V('accueil : aucune erreur de script pendant la reprise', ri.erreurs.length === 0, ri.erreurs);
+    V('accueil : l\'écran de code reste fermé et le portail est affiché', ri.overlayTrouve && ri.visible === false && ri.portalVisible === true, ri);
+    /* L'accueil s'affiche de façon OPTIMISTE avant même la réponse : un écran ouvert
+       ne prouve rien. La preuve, c'est l'identité posée par le miroir. */
+    V('accueil : l\'identité livrée par le miroir est bien posée (la reprise est allée au bout)', ri.myId === 'X', ri.myId);
+    V('accueil : le serveur n\'est pas réveillé (le journal part à fond perdu)', !ri.appels.some(a => /script\.google/.test(a.url)), ri.appels.map(a => a.url));
+  }
+  console.log('\n═══ index.html a rejoint le socle ═══');
+  {
+    const page = fs.readFileSync(path.join(__dirname, '..', 'index.html'), 'utf8');
+    V('index.html charge partage/portail.js après session.js', page.indexOf('partage/portail.js') > page.indexOf('partage/session.js') && page.indexOf('partage/portail.js') > 0);
+    V('plus de miroirRead locale ni de const MIROIR_URL', !/function miroirRead\(/.test(page) && !/const MIROIR_URL/.test(page));
+    V('ses 7 lectures du miroir sont intactes', (page.match(/miroirRead\(/g) || []).length === 7, (page.match(/miroirRead\(/g) || []).length);
   }
   console.log('\n' + ok + ' OK · ' + ko + ' en échec');
   if (ko) process.exit(1);
