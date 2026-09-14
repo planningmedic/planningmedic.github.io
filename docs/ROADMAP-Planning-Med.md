@@ -6,7 +6,7 @@ portail/Dashboard, module libéral, contrôle d'absence, veille biblio.
 (Le générateur de comptes rendus a été retiré le 07/09/2026 : il portait le logo de
 l'établissement et 77 noms de praticiens sur une page publique sans code d'accès.)
 
-**Dépôt** `planningmedic/planningmedic.github.io`, branche `main` · **Site v1.11.20** ·
+**Dépôt** `planningmedic/planningmedic.github.io`, branche `main` · **Site v1.12.1** ·
 **Portail** https://planningmedic.github.io ·
 **GAS** (relevé dans le dépôt le 10/09/2026) `code.gs` **2026-09-08.2** ·
 `Indispos.gs` **2026-09-13.1** · `generateur_gardes.gs` **2026-09-13.1** (poussé le 14/09, recopie Apps Script en attente) ·
@@ -111,8 +111,25 @@ comprendre ensuite ; push en heure creuse ; ROADMAP mise à jour à chaque étap
 4. Même socle page par page : absences, suivi-libéral, indispos, planning, index, admin — six
    pushes ; avant chaque page, les écarts entre sa copie et le socle sont listés au responsable,
    qui tranche ceux qui sont voulus.
-5. Connexion, thème, badge dans le socle (index, planning, crh).
-6. `partage/theme.css`.
+5. ~~Connexion, thème, badge dans le socle~~ — **fait en version réduite le 14/09 (v1.11.21), confirmé.**
+   Dans le socle : le thème (clair/sombre/auto, barre du téléphone, icône, écoute du réglage iOS) et
+   `_authErr`. Planning garde ses compléments (couleurs de secteurs, redessin) par trois crochets
+   (`onThemeApplied`, `apresCycleTheme`, `apresThemeSysteme`), corps inchangés. **Connexion,
+   déconnexion et badge restent dans les pages, volontairement** : ils encodent ce que chaque page
+   charge après un code accepté (tableau de bord / grille / serveur direct) — les fusionner serait une
+   refonte, pas un déplacement. Ne plus les compter comme doublons. crh.html conservée (accès
+   privé par TUILES_PRIVEES, décision du responsable) et rattachée au socle.
+6. ~~`partage/theme.css`~~ — **fait le 14/09.** Constat : zéro règle CSS identique dans ≥4 pages —
+   les pages ont chacune leur mise en page, le volume n'est pas de la copie. Ce qui était commun :
+   la palette (11 variables redéclarées partout, 79 déclarations retirées, v1.11.22, clair
+   strictement identique), puis deux décisions visibles du responsable : **une seule police, DM Sans**
+   (absences et suivi-libéral alignées, v1.12.0) et **le mode sombre sur Indispos** (palette sombre
+   commune dans theme.css, 30 fonds blancs en dur passés par --white, fonds pastel et états du
+   calendrier en version sombre, v1.12.1, validé visuellement). admin.html est une page PC : pas de
+   mode sombre prévu. Vu, non touché : admin utilise 4 variables que personne ne définit
+   (`--accent`, `--ll`, `--red-2`, `--teal`).
+   **Manquement noté :** v1.12.0 poussée après un banc partiel ; un scénario figé sur « v1.11. »
+   est resté rouge jusqu'à v1.12.1. Le banc complet avant tout push n'a pas d'exception.
 7. `partage/rendu_equite.js` : cartes d'équité et d'affectations, une seule version.
 8. `classeur.gs` : lecture unique de MEDECINS et CONFIG, colonnes nommées.
 9. Découpage d'`Indispos.gs` par sujet + routeur en table `action → rôle → fonction`. Logique

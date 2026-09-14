@@ -63,6 +63,10 @@ nouveau dépôt est réécrit sans aucun nom ni prénom (v1.11.9, contenu identi
 `miroirRead` unique). **Les six pages l'ont rejoint et sont confirmées en production** (staff,
 suivi-libéral, indispos, planning, accueil, admin — v1.11.20). Le délai d'abandon du miroir se règle
 désormais à un endroit : 6 s par défaut, 10 s pour le comité (`window.MIROIR_DELAI`).
+Le soir même : le thème passe dans le socle (v1.11.21), la palette commune dans `partage/theme.css`
+(v1.11.22), une seule police DM Sans (v1.12.0) et le mode sombre sur Indispos (v1.12.1) — tous
+confirmés en production. Connexion, déconnexion et badge restent propres à chaque page : ce n'est
+pas un doublon, c'est ce que chaque page charge après le code.
 🔴 **L'erreur de méthode du jour :** en retirant la copie locale de planning.html, une ligne voisine
 (`const _MIROIR_PRE`) est partie avec — la page redemandait le code. Compter les appels d'une fonction ne
 prouve pas qu'une page marche : **on rejoue la reprise de session jusqu'au bout** dans le navigateur
