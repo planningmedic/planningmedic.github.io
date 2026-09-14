@@ -6,7 +6,7 @@ portail/Dashboard, module libéral, contrôle d'absence, veille biblio.
 (Le générateur de comptes rendus a été retiré le 07/09/2026 : il portait le logo de
 l'établissement et 77 noms de praticiens sur une page publique sans code d'accès.)
 
-**Dépôt** `planningmedic/planningmedic.github.io`, branche `main` · **Site v1.11.18** ·
+**Dépôt** `planningmedic/planningmedic.github.io`, branche `main` · **Site v1.11.20** ·
 **Portail** https://planningmedic.github.io ·
 **GAS** (relevé dans le dépôt le 10/09/2026) `code.gs` **2026-09-08.2** ·
 `Indispos.gs` **2026-09-13.1** · `generateur_gardes.gs` **2026-09-13.1** (poussé le 14/09, recopie Apps Script en attente) ·
@@ -87,10 +87,16 @@ comprendre ensuite ; push en heure creuse ; ROADMAP mise à jour à chaque étap
    seule recopie des `.gs` (demande du responsable, 14/09).
 3. ~~`partage/portail.js` branché sur une page~~ — **fait le 14/09 (v1.11.11), confirmé en production
    sur staff.html**.
-4. **En cours.** Pages ayant rejoint le socle `miroirRead`, chacune confirmée en production le 14/09 :
-   suivi-liberal (v1.11.12), indispos (v1.11.13), planning (v1.11.18). **Restent : index.html et
-   admin.html.** Aucun écart de comportement à trancher pour l'instant (les copies ne différaient que
-   par des commentaires et par un « ok » que le chronomètre écrit lui-même).
+4. ~~Les autres pages rejoignent le socle `miroirRead`~~ — **TERMINÉ le 14/09**, chaque page confirmée
+   en production : suivi-liberal (v1.11.12), indispos (v1.11.13), planning (v1.11.18), accueil
+   (v1.11.19), admin (v1.11.20). Six pages, une seule `miroirRead`, plus aucune copie ni adresse en dur.
+   Un seul écart réel trouvé : le comité abandonne le miroir à **10 s** (v1.20.1) contre 6 s pour les
+   MARs — **conservé tel quel**, posé par la page (`window.MIROIR_DELAI = 10000`) et honoré par le
+   socle. **À trancher à froid :** passer les MARs à 10 s aussi ? C'est désormais un chiffre à changer
+   dans `partage/portail.js`, plus sept. Le banc sert le socle à toute page simulée (25 endroits) et
+   rejoue la reprise de session de planning et de l'accueil jusqu'à l'identité posée.
+   Vu au passage, non touché : admin.html contient des `id` en double (`gardeWarn`, `pDate`,
+   `gardeRecap`), probablement dans des gabarits de chaînes ; à vérifier au chantier 7.
    **Incident du 14/09 au soir (v1.11.14 et v1.11.16, revertées en v1.11.15 et v1.11.17) :** planning
    redemandait le code à la reprise de session. Cause : en retirant le bloc « adresse + copie de
    miroirRead », la ligne voisine `const _MIROIR_PRE` est partie avec ; le miroir répondait, la page
