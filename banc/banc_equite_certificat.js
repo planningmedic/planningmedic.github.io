@@ -45,10 +45,14 @@ function extraire(nom, SRC) {
 }
 
 console.log('\n─── 1. La correction ramène les cibles aux gardes réellement posées ───');
-const srcF = extraire('ciblesEquite');
-V('la fonction de cibles entières existe dans admin.html', !!srcF);
-V('…et la MÊME existe dans planning.html (portail MAR)',
-  !!extraire('ciblesEquite', INDEX) && extraire('ciblesEquite', INDEX) === srcF);
+/* (14/09/2026) ciblesEquite, eqVerdict et renderEquiteCards vivent dans
+   partage/rendu_equite.js, chargé par les deux pages : UNE version, plus deux. */
+const COMMUN = fs.readFileSync(path.join(__dirname, '..', 'partage', 'rendu_equite.js'), 'utf8');
+const srcF = extraire('ciblesEquite', COMMUN);
+V('la fonction de cibles entières existe dans le socle commun (partage/rendu_equite.js)', !!srcF);
+V('…et les deux pages chargent ce socle, sans copie locale',
+  /partage\/rendu_equite\.js/.test(ADMIN) && /partage\/rendu_equite\.js/.test(INDEX)
+  && !extraire('ciblesEquite', ADMIN) && !extraire('ciblesEquite', INDEX));
 
 /* Jeu de données calqué sur le VRAI 2026 lu dans le classeur : cibles nominales
    à 36 pour les temps pleins, mais seulement 707 gardes posées sur 730,8. */
@@ -145,18 +149,17 @@ V('la somme des cibles égale les gardes réellement prises',
 
 console.log('\n─── 4. Les barres et le certificat lisent la même cible ───');
 V('les barres appellent la fonction de cibles entières',
-  /const _CIB = ciblesEquite\(list\.filter\(x=>!x\.wish\), AX_EQUITE\);/.test(ADMIN));
+  /const _CIB = window\.ciblesEquite\(list\.filter\(x=>!x\.wish\), opts\.axes \|\| window\.AX_EQUITE\);/.test(COMMUN));
 V('le certificat appelle la même fonction',
   /const T = ciblesEquite\(evalues, AXfull\);/.test(ADMIN));
 V('plus aucune cible brute à l\'affichage (15 décimales vues en production)',
-  /const cval=CB\[k\]\?Math\.round\(c\)/.test(ADMIN)
-  && /const cval=CB\[k\]\?Math\.round\(c\)/.test(INDEX)
-  && /tc>0\?Math\.round\(tc\)/.test(ADMIN) && /tc>0\?Math\.round\(tc\)/.test(INDEX));
+  /const cval=CB\[k\]\?Math\.round\(c\)/.test(COMMUN)
+  && /tc>0\?Math\.round\(tc\)/.test(COMMUN));
 V('les deux partent de la même liste d\'axes',
   (ADMIN.match(/AX_EQUITE/g) || []).length >= 3
   && /const AXfull = AX_EQUITE;/.test(ADMIN));
 V('le trait de cible du total est entier lui aussi',
-  /_tci&&_tci\.cTot!==undefined/.test(ADMIN) && /_tci&&_tci\.cTot!==undefined/.test(INDEX));
+  /_tci&&_tci\.cTot!==undefined/.test(COMMUN));
 
 console.log('\n─── 5. Mise en page : ce que l\'écran ne doit plus faire ───');
 const cert = extraire('renderCertificat');
@@ -165,8 +168,8 @@ V('le certificat du portail MAR est refondu lui aussi', !!certM
   && !/pct1|pct2|buckets|spark/.test(certM)
   && /MAR au-delà de 2 gardes/.test(certM)
   && /function certMarBasculer\(\)/.test(INDEX));
-V('les barres du portail MAR lisent la même cible entière',
-  /const _CIB = ciblesEquite\(list\.filter\(x=>!x\.wish\), AX_EQUITE\);/.test(INDEX));
+V('les barres du portail MAR lisent la même cible entière (même socle, options de la page)',
+  /renderEquiteCards\(list, \{ moiNom: MY_ID \? _meName\(MY_ID\) : null, ouverts: EQ_OUVERTS/.test(INDEX));
 V('le certificat existe', !!cert);
 V('il ne compte plus en pourcentages', !/pct1|pct2|within2/.test(cert));
 V('il annonce des NOMBRES de MAR', /MAR au-delà de 2 gardes/.test(cert) && /MAR dans leur juste part/.test(cert));
@@ -197,7 +200,7 @@ console.log('\n─── 6. Cartes repliables ───');
    trouver la sienne. Chaque MAR tient sur UNE ligne ; un clic déplie le détail.
    Les deux pages doivent se comporter pareil : c'est le même écran. */
 [['admin.html', ADMIN], ['planning.html', INDEX]].forEach(([nom, SRC]) => {
-  const rec = extraire('renderEquiteCards', SRC);
+  const rec = extraire('renderEquiteCards', COMMUN);   // (14/09/2026) une version commune aux deux pages
   V(nom + ' : la carte a une ligne repliée cliquable',
     !!rec && /class="eqv-tete" onclick="eqBasculer/.test(rec));
   V(nom + ' : la bande porte une case par axe, dans l\'ordre des barres',
@@ -206,12 +209,12 @@ console.log('\n─── 6. Cartes repliables ───');
   V(nom + ' : le détail n\'est rendu QUE si la carte est ouverte',
     !!rec && /\(ouvert\?\('<div style="padding:0 11px 10px">'\+totBar\+bars\+'<\/div>'\):''\)/.test(rec));
   V(nom + ' : le verdict vient de la même source que le certificat',
-    /function eqVerdict\(it, cib\)/.test(SRC) && /const cib=_CIB\[it\.name\];/.test(rec));
+    /function eqVerdict\(it, cib, axes\)/.test(COMMUN) && /const cib=_CIB\[it\.name\];/.test(rec));
   V(nom + ' : le dépliage redessine la grille', /function eqBasculer\(nom\)/.test(SRC));
 });
 V('le portail MAR ouvre d\'office la carte du médecin connecté',
-  /const ouvert=_isMe\|\|EQ_OUVERTS\.has\(it\.name\);/.test(INDEX));
-V('…et il reste en tête de liste', /if\(_meN\)\{ if\(String\(a\.name\)===_meN\) return -1;/.test(INDEX));
+  /const ouvert=_isMe\|\|_ouverts\.has\(it\.name\);/.test(COMMUN) && /moiNom: MY_ID \? _meName\(MY_ID\) : null/.test(INDEX));
+V('…et il reste en tête de liste', /if\(_meN\)\{ if\(String\(a\.name\)===_meN\) return -1;/.test(COMMUN));
 V('la grille passe sur une seule colonne',
   /\.eqv-grid\{display:grid;grid-template-columns:1fr;gap:6px\}/.test(ADMIN)
   && /\.eqv-grid\{display:grid;grid-template-columns:1fr;gap:6px\}/.test(INDEX));
@@ -236,10 +239,10 @@ V('la sonde d\'en-tête contrôle la colonne 23 quand elle existe',
 V('les six axes sont dans la liste, dans les deux pages',
   /\['jf','cJf','fériés'\]/.test(ADMIN) && /\['jf','cJf','fériés'\]/.test(INDEX));
 V('la barre JF est tracée contre une cible, plus contre une moyenne',
-  /jf:'cJf'/.test(ADMIN) && /jf:'cJf'/.test(INDEX)
+  /jf:'cJf'/.test(COMMUN)
   && !/\['lu','ma','me','jf'\]\.forEach/.test(ADMIN) && !/\['lu','ma','me','jf'\]\.forEach/.test(INDEX));
 V('le verdict d\'une ligne porte sur les six axes',
-  /const AX=AX_EQUITE;/.test(ADMIN) && /const AX=AX_EQUITE;/.test(INDEX));
+  /const AX=axes \|\| window\.AX_EQUITE;/.test(COMMUN));
 /* (06/09/2026) miroir.gs a été remonté depuis, pour le journal de la cloche.
    Figer un numéro exact obligeait à revenir ici à chaque lot du fichier : on
    vérifie que la version est postérieure au lot du 6e axe, pas qu'elle lui est
@@ -259,14 +262,14 @@ V('un écart entier s\'affiche sans décimale',
   /function _fmtEcart\(v\)\{ return Number\.isInteger\(v\) \? String\(v\) : v\.toFixed\(1\); \}/.test(ADMIN)
   && /_fmtEcart\(x\.worst\)/.test(ADMIN) && /_fmtEcart\(x\.worst\)/.test(INDEX));
 V('la cible d\'un axe surveillé est affichée entière',
-  /const cval=CB\[k\]\?Math\.round\(c\)/.test(ADMIN) && /const cval=CB\[k\]\?Math\.round\(c\)/.test(INDEX));
+  /const cval=CB\[k\]\?Math\.round\(c\)/.test(COMMUN));
 
 /* (05/09/2026) DÉFAUT ATTRAPÉ AU RENDU, pas à la lecture. En ajoutant l'axe
    fériés, la barre des années SANS colonne CIBLE JF (2026, statistiques refaites
    à la main) affichait « 2 /0 » EN ROUGE : une cible absente était lue comme une
    cible à zéro, donc une accusation fabriquée. Sans cible, la barre est neutre. */
 [['admin.html', ADMIN], ['planning.html', INDEX]].forEach(([nom, SRC]) => {
-  const rec = extraire('renderEquiteCards', SRC);
+  const rec = extraire('renderEquiteCards', COMMUN);   // (14/09/2026) une version commune aux deux pages
   V(nom + ' : une cible absente rend la barre neutre, pas rouge',
     /if\(CB\[k\] && !\(c>0\)\)\{/.test(rec) && /background:#94A3B8;opacity:\.5/.test(rec));
   V(nom + ' : la case repliée reste neutre elle aussi',

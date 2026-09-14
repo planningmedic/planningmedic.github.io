@@ -147,7 +147,7 @@ function fenetre(opts) {
             return { ok: true, status: 200, json: async () => ({ success: true, data, identite: { id: 'X', name: 'X', role: 'mar', isAdmin: false } }) };
           };
           win.eval(fs.readFileSync(path.join(__dirname, '..', 'partage', 'session.js'), 'utf8'));
-          win.eval(fs.readFileSync(path.join(__dirname, '..', 'partage', 'portail.js'), 'utf8'));
+          win.eval(fs.readFileSync(path.join(__dirname, '..', 'partage', 'portail.js'), 'utf8')); win.eval(fs.readFileSync(path.join(__dirname, '..', 'partage', 'rendu_equite.js'), 'utf8'));
           win.addEventListener('error', e => erreurs.push(String(e.message)));
         } });
       await new Promise(r => setTimeout(r, 600));
@@ -290,7 +290,7 @@ function fenetre(opts) {
           win.localStorage.setItem('pmTheme', pref);
           win.fetch = async () => ({ ok: true, status: 200, json: async () => ({ success: false }) });
           win.eval(fs.readFileSync(path.join(__dirname, '..', 'partage', 'session.js'), 'utf8'));
-          win.eval(fs.readFileSync(path.join(__dirname, '..', 'partage', 'portail.js'), 'utf8'));
+          win.eval(fs.readFileSync(path.join(__dirname, '..', 'partage', 'portail.js'), 'utf8')); win.eval(fs.readFileSync(path.join(__dirname, '..', 'partage', 'rendu_equite.js'), 'utf8'));
         } });
       await new Promise(r => setTimeout(r, 300));
       const w = dom.window;

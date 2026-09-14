@@ -76,7 +76,7 @@ const dodo = ms => new Promise(r => setTimeout(r, ms));
     const dom = new JSDOM(contenu, { runScripts:'dangerously', virtualConsole:vc,
       url:'https://planningmedic.github.io/index.html', pretendToBeVisual:true,
       beforeParse(win) {
-        win.eval(require('fs').readFileSync(require('path').join(__dirname, '..', 'partage', 'portail.js'), 'utf8'));   // (14/09/2026) le socle commun, servi comme le vrai site
+        win.eval(require('fs').readFileSync(require('path').join(__dirname, '..', 'partage', 'portail.js'), 'utf8')); win.eval(require('fs').readFileSync(require('path').join(__dirname, '..', 'partage', 'rendu_equite.js'), 'utf8'));   // (14/09/2026) le socle commun, servi comme le vrai site
         /* (17/08/2026) L'appareil compte maintenant : la carte des notifications
            ne se propose plus sur ordinateur. `mobile` simule un téléphone via
            l'écran tactile, comme le fait _appareilMobile() pour les iPad. */

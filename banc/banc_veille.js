@@ -199,7 +199,7 @@ function monde(plan) {
       runScripts: 'dangerously', virtualConsole: vcons,
       url: 'https://planningmedic.github.io/index.html', pretendToBeVisual: true,
       beforeParse(win) {
-        win.eval(require('fs').readFileSync(require('path').join(__dirname, '..', 'partage', 'portail.js'), 'utf8'));   // (14/09/2026) le socle commun, servi comme le vrai site
+        win.eval(require('fs').readFileSync(require('path').join(__dirname, '..', 'partage', 'portail.js'), 'utf8')); win.eval(require('fs').readFileSync(require('path').join(__dirname, '..', 'partage', 'rendu_equite.js'), 'utf8'));   // (14/09/2026) le socle commun, servi comme le vrai site
         win.matchMedia = () => ({ matches:false, addListener(){}, removeListener(){}, addEventListener(){}, removeEventListener(){} });
         win.Element.prototype.scrollIntoView = function () {};
         win.scrollTo = () => {};
@@ -309,7 +309,7 @@ function monde(plan) {
         runScripts: 'dangerously', virtualConsole: vcons,
         url: 'https://planningmedic.github.io/index.html', pretendToBeVisual: true,
         beforeParse(win) {
-          win.eval(require('fs').readFileSync(require('path').join(__dirname, '..', 'partage', 'portail.js'), 'utf8'));   // (14/09/2026) le socle commun, servi comme le vrai site
+          win.eval(require('fs').readFileSync(require('path').join(__dirname, '..', 'partage', 'portail.js'), 'utf8')); win.eval(require('fs').readFileSync(require('path').join(__dirname, '..', 'partage', 'rendu_equite.js'), 'utf8'));   // (14/09/2026) le socle commun, servi comme le vrai site
           win.matchMedia = () => ({ matches:false, addListener(){}, removeListener(){}, addEventListener(){}, removeEventListener(){} });
           win.Element.prototype.scrollIntoView = function () {}; win.scrollTo = () => {};
         } });

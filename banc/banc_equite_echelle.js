@@ -53,12 +53,13 @@ function largeurs(fichier, list) {
      état (EQ_OUVERTS) et sur eqVerdict. On charge les deux, et on ouvre TOUTES
      les cartes — ce banc mesure la longueur des barres, qui n'existent que
      dépliées. */
-  const dep = extraireFonction(fichier, 'eqVerdict');
-  vm.runInContext('const EQ_OUVERTS = { has: () => true, add(){}, delete(){} }; let EQ_LIST = null;\n'
-    + AX_EQ + '\n' + extraireFonction(fichier, 'ciblesEquite') + '\n' + dep + '\n'
-    + extraireFonction(fichier, 'renderEquiteCards') + '\nglobalThis.__r = renderEquiteCards;', ctx);
+  /* (14/09/2026) renderEquiteCards, ciblesEquite et eqVerdict vivent dans
+     partage/rendu_equite.js, commun aux deux pages : on exécute ce fichier tel
+     quel, et on l'appelle avec les options de la page (toutes les cartes ouvertes). */
+  ctx.window = ctx;
+  vm.runInContext(AX_EQ + '\n' + fs.readFileSync(path.join(__dirname, '..', 'partage', 'rendu_equite.js'), 'utf8'), ctx);
   const out = {};
-  ctx.__r(list).split('<div class="eqv-card').slice(1).forEach(c => {
+  ctx.renderEquiteCards(list, { moiNom: null, ouverts: { has: () => true }, sombre: false, neutre: '#EEF1F5', axes: vm.runInContext('AX_EQUITE', ctx) }).split('<div class="eqv-card').slice(1).forEach(c => {
     const nom = (c.match(/class="eqv-name"[^>]*>([^<]+)/) || [, '?'])[1], par = {};
     c.split('<div class="eqv-row').slice(1).forEach(r => {
       const l = (r.match(/class="eqv-lbl">([^<]+)/) || [, '?'])[1];
