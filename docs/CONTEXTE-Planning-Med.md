@@ -71,8 +71,9 @@ pas un doublon, c'est ce que chaque page charge après le code.
 **14/09/2026, soir — le lot serveur est déployé** (recopie unique des 7 `.gs`, confirmée au
 Diagnostic) : fonctions de test hors production (`dev.gs`, jamais recopié), MEDECINS lu une fois
 par requête avec des colonnes nommées (`COL_MED`, `code.gs`), quotas de congés servis par le serveur
-— staff.html n'a plus de table. Restent du plan : le découpage d'`Indispos.gs` (9), les
-commentaires-journal vers la doc (10), un seul appel à l'ouverture (12).
+— staff.html n'a plus de table. Restent du plan : le découpage d'`Indispos.gs` (9 — carte des sept
+fichiers et contrat des 64 actions figés le 14/09, voir ROADMAP : **c'est par là que la prochaine
+session commence**) et les commentaires-journal vers la doc (10). Le 12 est en place par construction.
 ⚠️ Le jeton GitHub expire début octobre 2026 : à renouveler dans CONFIG et dans les instructions du
 projet.
 🔴 **L'erreur de méthode du jour :** en retirant la copie locale de planning.html, une ligne voisine

@@ -156,7 +156,26 @@ aux DEUX endroits — ligne GITHUB_TOKEN de CONFIG et §3 des instructions du pr
    `COL_MED` à l'en-tête réel (`banc_medecins_memo.js`) et son stub (`socleMedecins`) fournit le vrai
    code aux scénarios qui extraient une fonction. CONFIG a déjà son memo (`_configRows_`).
 9. Découpage d'`Indispos.gs` par sujet + routeur en table `action → rôle → fonction`. Logique
-   déplacée, jamais modifiée.
+   déplacée, jamais modifiée. **Carte posée le 14/09 au soir, à ouvrir en session propre.**
+   État mesuré : 6 554 lignes, 89 fonctions, `_routeRequete_` = 2 756 lignes et 64 actions (48 admin,
+   14 tout code valide, 2 conditionnelles — getIndispos/saveIndispos —, 2 sans code : les listes
+   d'années). **Sept fichiers cibles, Indispos.gs disparaît :**
+   `routeur.gs` (doGet/doPost, checkCode, la TABLE des 64 actions avec rôle, _deny/_error, verrou ≈300) ·
+   `indispos.gs` (indispos, souhaits, figeage, vacances/groupes/périodes, fériés, ponts, absences
+   longues, récap mail — 19 actions ≈1 700) · `temps_partiel.gs` (7 actions ≈900) · `gardes.gs`
+   (génération, stats, publication, overrides, panneau du jour, affectations, reliquats, Noël — 21
+   actions ≈1 100) · `equipe.gs` (login, médecins, codes, mails, tuiles privées, secrétariat, bootstrap
+   comité, config — 13 actions ≈900) · `annee.gs` (année active, initialisation, archivage, ordre des
+   vacances — 4 actions ≈350) · `diagnostic.gs` (Diagnostic, hebdo, sentinelle, battements, sondes ≈1 300).
+   **Méthode :** trois pushes (table du routeur dans Indispos.gs intact → découpage → nettoyage), banc
+   complet entre chaque, UNE recopie à la fin : le responsable crée 6 fichiers dans Apps Script (menu
+   + → Script) et remplace Indispos.gs par routeur.gs ; le Diagnostic vérifie 7 versions.
+   **Les trois parades :** aucun appel de fonction au chargement d'un fichier (piège ARCHIVE_DRIVE_ID) et
+   le banc charge les fichiers dans l'ordre alphabétique d'Apps Script ; **le contrat des 64 actions et
+   de leur rôle est FIGÉ dans `banc_contrat_routeur.js` (14/09)** — la table devra le reproduire à
+   l'identique ; check-list de recopie + Diagnostic. Les dizaines de scénarios du banc qui extraient
+   une fonction « dans Indispos.gs » par son nom seront à réorienter fichier par fichier — c'est la
+   part laborieuse, pas la part risquée.
 10. Commentaires-journal → CONTEXTE, fichier par fichier.
 11. ~~Configuration servie par le serveur~~ — **fait le 14/09 pour les quotas (v1.12.4 puis v1.12.5),
     confirmé.** Pas de `getConfig` nouveau : les quotas de congés voyagent avec la config existante
