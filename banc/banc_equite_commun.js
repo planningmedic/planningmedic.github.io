@@ -76,5 +76,31 @@ console.log('\n═══ Le comité et le MAR construisent la MÊME liste (produ
   V('portail : même définition (SOUHAITS_PLAFOND)', /const _souhaitsGarantisId = id => SOUHAITS_PLAFOND\.indexOf\(id\) > -1;/.test(P));
   V('le certificat du comité garde son test propre, inchangé', /const _spec = name => estSouhaitsGarantis\(name\);/.test(A) && /function estSouhaitsGarantis\(name\)\{/.test(A));
 }
+console.log('\n═══ Rafraîchissement sans reconstruction : la ligne repliée suit (production, 14/09 22h30) ═══');
+/* Portail, onglet Équité : première peinture sans cibles, cibles une seconde
+   plus tard. Toutes les cartes repliées → morphGrid ne changeait rien (il ne
+   suivait que les barres des cartes dépliées) : bandes grises et « — » jusqu'à
+   un clic. Le VRAI morphGrid du socle tourne ici dans un navigateur simulé. */
+{
+  const { JSDOM } = require('jsdom');
+  const dom = new JSDOM('<!doctype html><div id="w"></div>', { runScripts: 'outside-only', pretendToBeVisual: true });
+  const w = dom.window; w.eval(SRC);
+  const sansCibles = equipe().map(m => Object.assign({}, m, { cTot: 0, cJe: 0, cSa: 0, cVd: 0, cVjf: 0, cJf: 0 }));
+  const opts = { moiNom: null, ouverts: new Set(), sombre: false, neutre: '#EEF1F5', axes: AX };
+  w.document.getElementById('w').innerHTML = w.renderEquiteCards(sansCibles, opts);
+  const grid = w.document.querySelector('.eqv-grid');
+  const avant = grid.querySelectorAll('.eqv-case[style*="#CE1126"], .eqv-case[style*="#15803D"]').length;
+  V('première peinture sans cibles : bandes neutres, verdicts « — »', avant === 0 && [...grid.querySelectorAll('.eqv-verdict')].every(v => v.textContent === '—' || v.textContent === 'souhaits'));
+  const ok2 = w.morphGrid(grid, w.renderEquiteCards(equipe(), opts));
+  const apres = grid.querySelectorAll('.eqv-case[style*="#CE1126"], .eqv-case[style*="#15803D"]').length;
+  const verdicts = [...grid.querySelectorAll('.eqv-verdict')].map(v => v.textContent);
+  V('les cibles arrivent : le morph réussit ET les bandes se colorent sans clic', ok2 === true && apres > 0, { ok2, apres });
+  V('…et les verdicts aussi (+2 jeu, -2 jeu, souhaits)', verdicts.some(t => /^\+\d/.test(t)) && verdicts.some(t => /^-\d/.test(t)) && verdicts.includes('souhaits'), verdicts);
+  const ouvert = w.renderEquiteCards(equipe(), Object.assign({}, opts, { ouverts: new Set(['MAR01']) }));
+  V('une carte dépliée d\'un côté et repliée de l\'autre → le morph laisse la place au remplacement complet', w.morphGrid(grid, ouvert) === false);
+  for (const page of ['admin.html', 'planning.html']) {
+    V(page + ' : plus de copie locale de morphGrid', !/\nfunction morphGrid\b/.test(fs.readFileSync(path.join(__dirname, '..', page), 'utf8')));
+  }
+}
 console.log('\n' + ok + ' OK · ' + ko + ' en échec');
 if (ko) process.exit(1);

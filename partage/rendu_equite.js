@@ -84,6 +84,48 @@
   return {t:(pire>0?'+':'')+pire+' '+axe.slice(0,3), c:Math.abs(pire)>=2?'#CE1126':'var(--ink-3)', pire:pire};
 }
 
+  /* Rafraîchit une grille déjà affichée sans la reconstruire (pas de saut de
+     l'écran) : barres, ET ligne repliée. Identique dans les deux pages avant
+     le 14/09 ; corrigé ici une fois pour les deux. */
+  if (typeof window.morphGrid !== 'function') window.morphGrid = function morphGrid(oldGrid, newGridHtml){
+  try{
+    const tmp=document.createElement('div'); tmp.innerHTML=newGridHtml;
+    const newGrid=tmp.firstElementChild;
+    if(!oldGrid || !newGrid) return false;
+    const oC=[...oldGrid.children], nC=[...newGrid.children];
+    if(oC.length!==nC.length) return false;
+    for(let i=0;i<oC.length;i++){
+      const oN=oC[i].querySelector('.eqv-name'), nN=nC[i].querySelector('.eqv-name');
+      if(oN&&nN&&oN.textContent!==nN.textContent) return false;
+      /* (14/09/2026 — vu en production, onglet Équité du portail) La première
+         peinture part SANS cibles (elles arrivent une seconde plus tard) ; le
+         morph ne mettait à jour que les barres des cartes DÉPLIÉES. Toutes
+         repliées : zéro ligne, « succès » sans rien changer — bandes grises et
+         verdicts « — » jusqu'à un clic. La ligne repliée est synchronisée aussi. */
+      const oB=oC[i].querySelector('.eqv-bande'), nB=nC[i].querySelector('.eqv-bande');
+      if(oB&&nB&&oB.innerHTML!==nB.innerHTML) oB.innerHTML=nB.innerHTML;
+      const oV=oC[i].querySelector('.eqv-verdict'), nV=nC[i].querySelector('.eqv-verdict');
+      if(oV&&nV){ if(oV.innerHTML!==nV.innerHTML) oV.innerHTML=nV.innerHTML; oV.style.color=nV.style.color; }
+      /* Déplié d'un côté, replié de l'autre : structures différentes, on laisse
+         le remplacement complet faire le travail. */
+      if(!!oC[i].querySelector('.eqv-bande')!==!!nC[i].querySelector('.eqv-bande')) return false;
+      const oR=oC[i].querySelectorAll('.eqv-row'), nR=nC[i].querySelectorAll('.eqv-row');
+      if(oR.length!==nR.length) return false;
+      for(let r=0;r<oR.length;r++){
+        const of=oR[r].querySelector('.eqv-fill'), nf=nR[r].querySelector('.eqv-fill');
+        if(of&&nf){ of.style.width=nf.style.width; of.style.background=nf.style.background; of.style.opacity=nf.style.opacity; }
+        const ot=oR[r].querySelector('.eqv-tick'), nt=nR[r].querySelector('.eqv-tick'), tk=oR[r].querySelector('.eqv-track');
+        if(ot&&nt){ ot.style.left=nt.style.left; ot.style.opacity=nt.style.opacity; }
+        else if(ot&&!nt){ ot.remove(); }
+        else if(!ot&&nt&&tk){ tk.appendChild(nt.cloneNode(true)); }
+        const ov=oR[r].querySelector('.eqv-val'), nv=nR[r].querySelector('.eqv-val');
+        if(ov&&nv&&ov.innerHTML!==nv.innerHTML) ov.innerHTML=nv.innerHTML;
+      }
+    }
+    return true;
+  }catch(e){ return false; }
+}
+
   if (typeof window.renderEquiteCards !== 'function') window.renderEquiteCards = function renderEquiteCards(list, opts){
   opts = opts || {};
   const _sombre = !!opts.sombre, _ouverts = opts.ouverts || new Set(), _neutre = opts.neutre || 'var(--surface-2)';

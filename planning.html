@@ -2512,32 +2512,7 @@ async function getCiblesFromStats(year){
   }catch(e){ return {}; }
 }
 let LIVE_CACHE = {};
-function morphGrid(oldGrid, newGridHtml){
-  try{
-    const tmp=document.createElement('div'); tmp.innerHTML=newGridHtml;
-    const newGrid=tmp.firstElementChild;
-    if(!oldGrid || !newGrid) return false;
-    const oC=[...oldGrid.children], nC=[...newGrid.children];
-    if(oC.length!==nC.length) return false;
-    for(let i=0;i<oC.length;i++){
-      const oN=oC[i].querySelector('.eqv-name'), nN=nC[i].querySelector('.eqv-name');
-      if(oN&&nN&&oN.textContent!==nN.textContent) return false;
-      const oR=oC[i].querySelectorAll('.eqv-row'), nR=nC[i].querySelectorAll('.eqv-row');
-      if(oR.length!==nR.length) return false;
-      for(let r=0;r<oR.length;r++){
-        const of=oR[r].querySelector('.eqv-fill'), nf=nR[r].querySelector('.eqv-fill');
-        if(of&&nf){ of.style.width=nf.style.width; of.style.background=nf.style.background; of.style.opacity=nf.style.opacity; }
-        const ot=oR[r].querySelector('.eqv-tick'), nt=nR[r].querySelector('.eqv-tick'), tk=oR[r].querySelector('.eqv-track');
-        if(ot&&nt){ ot.style.left=nt.style.left; ot.style.opacity=nt.style.opacity; }
-        else if(ot&&!nt){ ot.remove(); }
-        else if(!ot&&nt&&tk){ tk.appendChild(nt.cloneNode(true)); }
-        const ov=oR[r].querySelector('.eqv-val'), nv=nR[r].querySelector('.eqv-val');
-        if(ov&&nv&&ov.innerHTML!==nv.innerHTML) ov.innerHTML=nv.innerHTML;
-      }
-    }
-    return true;
-  }catch(e){ return false; }
-}
+/* morphGrid : partage/rendu_equite.js (14/09/2026). */
 /* (05/09/2026) MÊME REFONTE QUE CÔTÉ COMITÉ. L'écran annonçait « 5 % » là où il
    fallait lire « 1 MAR sur 20 », affichait deux cartes portant le même chiffre
    l'une en rouge l'autre en vert, et déroulait dix-neuf noms en prose rouge —
