@@ -104,6 +104,14 @@ function fenetre(opts) {
     V('plus de miroirRead locale ni de const MIROIR_URL', !/function miroirRead\(/.test(page) && !/const MIROIR_URL/.test(page));
     V('ses 3 lectures du miroir sont intactes', (page.match(/miroirRead\(/g) || []).length === 3, (page.match(/miroirRead\(/g) || []).length);
   }
+  console.log('\n═══ planning.html a rejoint le socle ═══');
+  {
+    const page = fs.readFileSync(path.join(__dirname, '..', 'planning.html'), 'utf8');
+    V('planning.html charge partage/portail.js après session.js', page.indexOf('partage/portail.js') > page.indexOf('partage/session.js') && page.indexOf('partage/portail.js') > 0);
+    V('…avant son script principal', page.indexOf('partage/portail.js') < page.indexOf('let VIEW_CODE'));
+    V('plus de miroirRead locale ni de const MIROIR_URL', !/function miroirRead\(/.test(page) && !/const MIROIR_URL/.test(page));
+    V('ses 6 lectures du miroir sont intactes', (page.match(/miroirRead\(/g) || []).length === 6, (page.match(/miroirRead\(/g) || []).length);
+  }
   console.log('\n' + ok + ' OK · ' + ko + ' en échec');
   if (ko) process.exit(1);
 })();
