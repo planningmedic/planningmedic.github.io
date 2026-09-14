@@ -1,7 +1,7 @@
 // ⚠️ RÈGLE (détecteur de dérive dépôt↔Apps Script) : incrémenter cette version
 // à CHAQUE push de ce fichier. Le diagnostic (admin → Maintenance) compare la
 // version déployée ici avec celle du dépôt et signale toute recopie oubliée.
-const GAS_VERSION_PORTAIL = '2026-09-08.1';
+const GAS_VERSION_PORTAIL = '2026-09-14.1';
 
 /**
  * portail.gs — actions du PORTAIL équipe (index.html).
@@ -167,18 +167,6 @@ function _fileInTopos(file) {
   return false;
 }
 
-// ── À exécuter UNE FOIS dans l'éditeur (menu Exécuter) après recopie ──
-// Déclenche l'autorisation Drive, crée le dossier Topos s'il manque, et
-// journalise l'URL du dossier + ce que listTopos voit.
-function testPortail() {
-  const r = listTopos();
-  Logger.log('📁 Dossier Topos : ' + r.folderUrl);
-  Logger.log('📚 Topos vus : ' + r.count);
-  r.topos.forEach(function (t) {
-    Logger.log('  • ' + t.title + ' (' + t.docs.length + ' doc' + (t.docs.length > 1 ? 's' : '') + ')');
-  });
-  Logger.log('✅ testPortail OK — dépose tes PDF dans le dossier ci-dessus, puis relance pour vérifier.');
-}
 
 
 // ══════════════════════════════════════════════════════════════════════
@@ -271,17 +259,6 @@ function listStaffsAll() {
   return { success: true, staffs: staffs };
 }
 
-// ── À exécuter UNE FOIS dans l'éditeur après recopie ──
-// Crée l'onglet STAFFS s'il manque et journalise son URL + les staffs à venir.
-function testStaffs() {
-  const r = listStaffs();
-  Logger.log('🗓️ Onglet STAFFS : ' + r.tabUrl);
-  Logger.log('📋 Staffs à venir : ' + r.count);
-  r.staffs.forEach(function (s) {
-    Logger.log('  • ' + s.date + (s.heure ? ' ' + s.heure : '') + ' — ' + s.theme + (s.intervenant ? ' (' + s.intervenant + ')' : ''));
-  });
-  Logger.log('✅ testStaffs OK — remplis l\'onglet STAFFS (1 ligne = 1 staff), puis relance.');
-}
 
 
 // ══════════════════════════════════════════════════════════════════════
@@ -404,14 +381,6 @@ function getProtocole(id) {
   };
 }
 
-// À exécuter UNE FOIS après recopie : crée le dossier Protocoles + logue l'URL.
-function testProtocoles() {
-  const r = listProtocoles();
-  Logger.log('📁 Dossier Protocoles : ' + r.folderUrl);
-  Logger.log('📋 Protocoles vus : ' + r.count);
-  r.groups.forEach(function (g) { Logger.log('  ▸ ' + g.specialite + ' (' + g.protocoles.length + ')'); });
-  Logger.log('✅ testProtocoles OK — crée des sous-dossiers par spécialité et dépose les PDF dedans.');
-}
 
 
 // ══════════════════════════════════════════════════════════════════════
@@ -479,15 +448,6 @@ function listAnnuaire() {
   };
 }
 
-// À exécuter UNE FOIS après recopie : crée l'onglet ANNUAIRE + logue l'état.
-function testAnnuaire() {
-  const r = listAnnuaire();
-  Logger.log('🗂️ Onglet ANNUAIRE : ' + r.tabUrl);
-  Logger.log('👥 Équipe MAR (DECT) : ' + r.equipe.length + ' actifs');
-  Logger.log('☎️ Catégories répertoire : ' + r.categories.length);
-  r.categories.forEach(function (c) { Logger.log('  ▸ ' + c.categorie + ' (' + c.entries.length + ')'); });
-  Logger.log('✅ testAnnuaire OK — remplis l\'onglet ANNUAIRE (CATÉGORIE | LIBELLÉ | NUMÉRO | INFO).');
-}
 
 
 // ══════════════════════════════════════════════════════════════════════
@@ -716,14 +676,6 @@ function genererCRH_(payload, user) {
            model_used: chosen.label };
 }
 
-// ── À exécuter UNE FOIS après recopie : vérifie la clé + un CR de test ──
-function testCRH() {
-  const t = getAnthropicToken();
-  Logger.log(t ? '🔑 ANTHROPIC_TOKEN présent (longueur ' + t.length + ')' : '❌ ANTHROPIC_TOKEN absent — ajoute-le dans CONFIG.');
-  if (!t) return;
-  const r = genererCRH_({ texte: 'J1 : patient stable, eupnéique en air ambiant. Transfert en chirurgie le 10/07.', format: 'appareil' });
-  Logger.log(r.success ? ('✅ CR de test :\n' + r.cr) : ('❌ ' + r.error));
-}
 
 
 

@@ -1,7 +1,7 @@
 // ⚠️ RÈGLE (détecteur de dérive dépôt↔Apps Script) : incrémenter cette version
 // à CHAQUE push de ce fichier. Le diagnostic (admin → Maintenance) compare la
 // version déployée ici avec celle du dépôt et signale toute recopie oubliée.
-const GAS_VERSION_INDISPOS = '2026-09-13.1';
+const GAS_VERSION_INDISPOS = '2026-09-14.1';
 
 /* ── (01/08/2026) MARQUEUR DE TEMPS GLOBAL — mesure, ne change rien ───────
    `_srv_ms` chronometre l'INTERIEUR de doGet. Or avant que doGet soit appele,
@@ -6326,102 +6326,6 @@ function doPost(e) {
   } catch(err) {
     return ContentService.createTextOutput(JSON.stringify({success:false, error:err.message}))
       .setMimeType(ContentService.MimeType.JSON);
-  }
-}
-function testNotifierConflits() {
-  const year = 2027;
-  const ss = SpreadsheetApp.getActiveSpreadsheet();
-  
-  const medSheet = ss.getSheetByName('MEDECINS');
-  const medData = medSheet.getDataRange().getValues();
-  const actifs = [];
-  for (let r = 1; r < medData.length; r++) {
-    const id = String(medData[r][0]).trim();
-    if (!id || String(medData[r][3]).trim().toUpperCase() !== 'O') continue;
-    actifs.push({id, nom: String(medData[r][1]).trim(), email: String(medData[r][7]).trim()});
-  }
-  Logger.log('MARs actifs: ' + actifs.length);
-  
-  const indSheet = ss.getSheetByName('INDISPOS_' + year);
-  if (!indSheet) { Logger.log('INDISPOS_' + year + ' introuvable'); return; }
-  const indData = indSheet.getDataRange().getValues();
-  Logger.log('INDISPOS lignes: ' + indData.length + ' cols: ' + indData[0].length);
-  
-  const dates = [];
-  let curY = year, curM = null;
-  const MM = {'janvier':1,'février':2,'mars':3,'avril':4,'mai':5,'juin':6,'juillet':7,'août':8,'septembre':9,'octobre':10,'novembre':11,'décembre':12};
-  for (let c = 1; c < indData[0].length; c++) {
-    const cell = indData[0][c];
-    if (cell) {
-      if (cell instanceof Date) { curY = cell.getFullYear(); curM = cell.getMonth()+1; }
-      else { const low = String(cell).toLowerCase(); const m2 = String(cell).match(/(\d{4})/); if (m2) curY = parseInt(m2[1]); Object.entries(MM).forEach(([n,v]) => { if (low.includes(n)) curM = v; }); }
-    }
-    const dn = indData[2][c];
-    dates.push((dn && curY && curM) ? curY+'-'+String(curM).padStart(2,'0')+'-'+String(Number(dn)).padStart(2,'0') : null);
-  }
-  Logger.log('Dates non-nulles: ' + dates.filter(Boolean).length);
-  
-  const vacByDoc = {};
-  for (let r = 3; r < indData.length; r++) {
-    const id = String(indData[r][0]).trim();
-    if (!id) continue;
-    vacByDoc[id] = new Set();
-    dates.forEach((date, i) => {
-      if (!date) return;
-      const val = String(indData[r][i+1]||'').trim();
-      if (val === 'VAC' || val === 'FORM') vacByDoc[id].add(date);
-    });
-  }
-  const nonVides = Object.entries(vacByDoc).filter(([k,v]) => v.size > 0);
-  Logger.log('MARs avec VAC: ' + nonVides.length);
-
-  const groupSheet = ss.getSheetByName('GROUPES_VAC');
-  const groupData = groupSheet.getDataRange().getValues();
-  const groups = {A:[],B:[],C:[]}, ordre2026 = {A:{},B:{},C:{}};
-  for (let r = 1; r < groupData.length; r++) {
-    const grp = String(groupData[r][0]).trim(), id = String(groupData[r][1]).trim(), ord = Number(groupData[r][2]);
-    if (!id || !groups[grp]) continue;
-    groups[grp].push(id); ordre2026[grp][id] = ord;
-  }
-  const offset = year - 2026;
-  function getOrd(grp) {
-    const sorted = [...groups[grp]].sort((a,b) => ordre2026[grp][a] - ordre2026[grp][b]);
-    const sh = sorted.length ? (sorted.length - (offset % sorted.length)) % sorted.length : 0;  // rotation droite
-    return [...sorted.slice(sh), ...sorted.slice(0, sh)];
-  }
-  const ordA = getOrd('A'), ordB = getOrd('B'), ordC = getOrd('C');
-
-  const testDate = '2027-02-22';
-  const ORDRE_BASE = {HIVER:'CAB',PRINTEMPS:'ABC',ETE:'ABC',TOUSSAINT:'BCA',NOEL:'CAB'};
-  const base = ORDRE_BASE['HIVER'];
-  const ga = base.split(''); const gs = (3 - (offset % 3)) % 3;   // rotation droite
-  const og = [...ga.slice(gs), ...ga.slice(0, gs)];
-  const ol = []; og.forEach(g => { if (g==='A') ol.push(...ordA); else if (g==='B') ol.push(...ordB); else ol.push(...ordC); });
-  const marEnVac = ol.filter(id => vacByDoc[id] && vacByDoc[id].has(testDate));
-  Logger.log('MARs en VAC le ' + testDate + ': ' + marEnVac.length);
-
-  // Tester le filtre des périodes
-  const perSheet = ss.getSheetByName('PERIODES_VAC');
-  const perData = perSheet.getDataRange().getValues();
-
-  function premierJour(y) {
-    const j = new Date(y,0,1); const d = j.getDay(); 
-    const o = d===1?7:d===0?1:8-d; 
-    const r = new Date(y,0,1+o); 
-    return r.getFullYear()+'-'+String(r.getMonth()+1).padStart(2,'0')+'-'+String(r.getDate()).padStart(2,'0');
-  }
-  const debutAnnee = premierJour(year);
-  const finAnnee = premierJour(year+1);
-  Logger.log('debutAnnee: ' + debutAnnee + ' finAnnee: ' + finAnnee);
-  
-  for (let r = 1; r < perData.length; r++) {
-    const nom = String(perData[r][0]).trim();
-    const dr = perData[r][1];
-    const debut = dr instanceof Date 
-      ? dr.getFullYear()+'-'+String(dr.getMonth()+1).padStart(2,'0')+'-'+String(dr.getDate()).padStart(2,'0') 
-      : String(dr).trim();
-    const passe = debut >= debutAnnee && debut < finAnnee;
-    Logger.log('Periode ' + nom + ' debut=' + debut + ' → ' + (passe ? '✅ incluse' : '❌ EXCLUE'));
   }
 }
 // ── Éligibles Noël/Jour de l'An (bandeau staff.html) ───────────────────

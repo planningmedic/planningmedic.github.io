@@ -1,7 +1,7 @@
 // ⚠️ RÈGLE (détecteur de dérive dépôt↔Apps Script) : incrémenter cette version
 // à CHAQUE push de ce fichier. Le diagnostic (admin → Maintenance) compare la
 // version déployée ici avec celle du dépôt et signale toute recopie oubliée.
-const GAS_VERSION_MIROIR = '2026-09-08.2';
+const GAS_VERSION_MIROIR = '2026-09-14.1';
 
 /* ═══════════════════════════════════════════════════════════════════════
    MIROIR.GS — alimentation du miroir de lecture Cloudflare
@@ -1582,8 +1582,3 @@ function _miroirConstruireNotifs_() {
   return { success: true, notifs: out };
 }
 
-/* À lancer depuis l'éditeur Apps Script pour le test réel du canal. */
-function testNotificationPush() {
-  const r = notifierPush_('Test du canal', 'Si vous lisez ceci sur votre téléphone, le canal fonctionne.', './index.html', null, true);
-  Logger.log(JSON.stringify(r));
-}

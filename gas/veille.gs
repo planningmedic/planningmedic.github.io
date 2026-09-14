@@ -57,7 +57,7 @@
 //  instantané unique et partagé : chantier séparé.
 // ══════════════════════════════════════════════════════════════════════
 
-const GAS_VERSION_VEILLE = '2026-09-07.1';
+const GAS_VERSION_VEILLE = '2026-09-14.1';
 
 const VEILLE_CFG_TAB = 'VEILLE_CFG';
 const VEILLE_TAB     = 'VEILLE';
@@ -741,18 +741,3 @@ function veilleVerifierNoms() {
   return { success: true, suspects: suspects };
 }
 
-function testVeille() {
-  const cfg = _readVeilleCfg();
-  Logger.log('Veille ' + GAS_VERSION_VEILLE);
-  Logger.log('  ' + cfg.revues.length + ' revues directes · ' + cfg.general.length +
-             ' croisées · ' + cfg.themes.length + ' thèmes · ' +
-             cfg.pubtypes.length + ' types en liste blanche (axe croisé)');
-  Logger.log('  liste blanche : ' + (_veilleListeBlanche(cfg) || '(AUCUNE — axe croisé sans restriction !)'));
-  Logger.log('  JOURS=' + (cfg.params.JOURS || '180') +
-             ' · LANGS=' + (cfg.params.LANGS || 'eng,fre') +
-             ' · ANIMAUX=' + (cfg.params.ANIMAUX || 'N') +
-             ' · MAX_PASSAGE=' + (cfg.params.MAX_PASSAGE || '700'));
-  Logger.log('  filtre : ' + _veilleFiltre(cfg).substring(0, 200) + '…');
-  const v = SpreadsheetApp.getActiveSpreadsheet().getSheetByName(VEILLE_TAB);
-  Logger.log('  onglet VEILLE : ' + (v ? Math.max(v.getLastRow() - 1, 0) : 0) + ' articles en cache');
-}

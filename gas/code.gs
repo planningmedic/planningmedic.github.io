@@ -1,7 +1,7 @@
 // ⚠️ RÈGLE (détecteur de dérive dépôt↔Apps Script) : incrémenter cette version
 // à CHAQUE push de ce fichier. Le diagnostic (admin → Maintenance) compare la
 // version déployée ici avec celle du dépôt et signale toute recopie oubliée.
-const GAS_VERSION_CODE = '2026-09-08.2';
+const GAS_VERSION_CODE = '2026-09-14.1';
 
 // ── Reconstruire STATS_GARDES_2026 depuis GARDES_2026 (année reconstruite) ──
 // Renvoie le classeur contenant l'onglet demandé : classeur actif si présent,
@@ -1268,38 +1268,9 @@ function readPlanningFromDrive(fileName) {
   return files[0].getBlob().getDataAsString();               // lit toujours le plus récent
 }
 
-// ── DIAGNOSTIC : état des dossiers/fichiers JSON dans le Drive ──
-// À lancer depuis l'éditeur Apps Script ; lire le journal (Ctrl+Entrée).
-function diagDriveJson() {
-  let nbFolders = 0;
-  const fit = DriveApp.getFoldersByName(DRIVE_JSON_FOLDER);
-  while (fit.hasNext()) { const f = fit.next(); nbFolders++; Logger.log(`📁 Dossier "${DRIVE_JSON_FOLDER}" #${nbFolders} — id=${f.getId()}`); }
-  Logger.log(`→ ${nbFolders} dossier(s) nommé(s) "${DRIVE_JSON_FOLDER}"` + (nbFolders > 1 ? ' ⚠️ DOUBLON' : ''));
-  ['planning_2026.json', 'planning_2027.json', 'affectations_2027.json'].forEach(name => {
-    const files = _jsonFilesByName_(name);
-    Logger.log(`\n📄 ${name} : ${files.length} copie(s)` + (files.length > 1 ? ' ⚠️ DOUBLON' : ''));
-    files.forEach((f, i) => {
-      let nbG = 0;
-      try {
-        const j = JSON.parse(f.getBlob().getDataAsString());
-        (j.months || []).forEach(mo => (mo.doctors || []).forEach(d => (d.days || []).forEach(day => { if (day && (day.status === 'G' || day.status === 'G2')) nbG++; })));
-      } catch (e) {}
-      Logger.log(`   #${i} maj=${f.getLastUpdated().toISOString()} taille=${f.getSize()}o gardes=${nbG} id=${f.getId()}`);
-    });
-  });
-}
 
 
 
-// À exécuter UNE FOIS dans l'éditeur Apps Script après recopie :
-// déclenche l'autorisation Drive + vérifie écriture/lecture.
-function testDrivePlanning() {
-  savePlanningToDrive('test_drive.json', JSON.stringify({ok: true, t: new Date().toISOString()}));
-  const back = readPlanningFromDrive('test_drive.json');
-  Logger.log('Lecture retour : ' + back);
-  if (!back || JSON.parse(back).ok !== true) throw new Error('Test Drive ÉCHOUÉ');
-  Logger.log('✅ Test Drive OK — autorisation accordée, écriture/lecture fonctionnelles');
-}
 
 // À exécuter UNE FOIS avant la suppression des JSON publics (étape 3b) :
 // copie chaque planning_/affectations_ encore présent sur GitHub vers Drive.
@@ -1489,16 +1460,6 @@ function savePlanningOverridesBatch(items) {
   }
 }
 
-// ── SUPPRIMER UN PLANNING OVERRIDE ───────────────────────────────────
-function testSetDailyStatus() {
-  const year = 2026, marId = 'DURAND', date = '2026-10-13';
-  const ss = SpreadsheetApp.getActiveSpreadsheet();
-  const data = ss.getSheetByName(`GARDES_${year}`).getDataRange().getValues();
-  const col = buildDateToCol(data, year)[date];
-  let row = -1;
-  for (let r = 3; r < data.length; r++) if (String(data[r][0]).trim().toUpperCase() === marId) { row = r; break; }
-  Logger.log(`${marId} ${date} → row=${row} col=${col} valeur="${(row>=0&&col!==undefined)?data[row][col]:'INTROUVABLE'}"`);
-}
 
 
 // ═════════════════════════════════════════════════════════════════════

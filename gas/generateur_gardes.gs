@@ -41,7 +41,7 @@
 // ⚠️ RÈGLE (détecteur de dérive dépôt↔Apps Script) : incrémenter cette version
 // à CHAQUE push de ce fichier. Le diagnostic (admin → Maintenance) compare la
 // version déployée ici avec celle du dépôt et signale toute recopie oubliée.
-const GAS_VERSION_GENERATEUR = '2026-09-13.1';
+const GAS_VERSION_GENERATEUR = '2026-09-14.1';
 
 /* (05/09/2026) INTERRUPTEUR DU NOUVEL ALGORITHME.
    À false, le générateur se comporte EXACTEMENT comme avant : c'est le retour
@@ -2784,10 +2784,4 @@ function archiveMoveTabs_(year) {
   });
   Logger.log(rapport.join('\n'));
   return rapport;
-}
-// Lanceur de test (visible dans le menu Exécuter). Change l'année si besoin.
-function testArchiveMove() {
-  const rapport = archiveMoveTabs_(1999);
-  Logger.log(rapport.join('\n'));
-  try { SpreadsheetApp.getUi().alert('Archivage test\n\n' + rapport.join('\n')); } catch(e) {}
 }

@@ -1,6 +1,7 @@
 # Code Google Apps Script — Planning-Med (carte du code)
 
 ⚠️ **Le dépôt fait foi à 100 %** : ce dossier contient le code GAS complet de prod.
+**Exception unique : `dev.gs`** (14/09/2026) — douze fonctions de test manuel, sorties des fichiers de production. Il reste dans le dépôt pour un développeur et **ne se recopie jamais dans l'éditeur**.
 Workflow : Claude pousse ici → le responsable recopie dans l'éditeur Apps Script → **nouvelle version de déploiement**.
 Ne jamais modifier un `.gs` directement dans Apps Script sans le committer aussitôt : la modif serait écrasée à la prochaine recopie.
 
