@@ -6,10 +6,10 @@ portail/Dashboard, module libéral, contrôle d'absence, veille biblio.
 (Le générateur de comptes rendus a été retiré le 07/09/2026 : il portait le logo de
 l'établissement et 77 noms de praticiens sur une page publique sans code d'accès.)
 
-**Dépôt** `planningmedic/planningmedic.github.io`, branche `main` · **Site v1.12.3** ·
+**Dépôt** `planningmedic/planningmedic.github.io`, branche `main` · **Site v1.12.5** ·
 **Portail** https://planningmedic.github.io ·
 **GAS** (relevé dans le dépôt le 10/09/2026) `code.gs` **2026-09-08.2** ·
-`Indispos.gs` **2026-09-14.1** · `generateur_gardes.gs` **2026-09-14.1** (et code, miroir, portail, veille : **recopie Apps Script groupée à venir**, après les étapes 8 et 11) ·
+`Indispos.gs` **2026-09-14.3** · `generateur_gardes.gs` **2026-09-14.2** · `code.gs`, `portail.gs` **2026-09-14.2** · `miroir.gs` **2026-09-14.3** · `setup_annee.gs`, `veille.gs` **2026-09-14.1** — **tous recopiés et confirmés au Diagnostic le 14/09 à 21h55** ·
 (deux fichiers sous le même numéro : deux lots distincts du 10/09, au soir et en soirée) ·
 `portail.gs` **2026-09-08.1** · `miroir.gs` **2026-09-08.2** ·
 `journal.gs` 2026-08-27.1 · `echanges.gs` **2026-09-08.1** · `veille.gs` 2026-08-27.1 ·
@@ -75,6 +75,11 @@ Règle du plan : chaque étape laisse le site complet ; une étape qui casse →
 comprendre ensuite ; push en heure creuse ; ROADMAP mise à jour à chaque étape avec
 « confirmé en production le … ».
 
+⚠️ **Échéance vue au Diagnostic du 14/09 : le jeton GitHub expire dans 23 jours (début octobre 2026).**
+Sans lui, la publication du planning s'arrête. À faire par le responsable : créer un nouveau jeton
+(compte `planningmedic`, dépôt `planningmedic.github.io`, contenu en lecture/écriture) et le poser
+aux DEUX endroits — ligne GITHUB_TOKEN de CONFIG et §3 des instructions du projet Claude.
+
 0. ~~Ancien dépôt supprimé, historique du nouveau réécrit~~ — **fait le 13/09**. Le formulaire de
    purge GitHub n'est **pas envoyé, décision du responsable (14/09)** : les anciens commits ne sont
    joignables que par leur adresse exacte et GitHub les efface de lui-même à terme. Ne pas reproposer.
@@ -83,11 +88,11 @@ comprendre ensuite ; push en heure creuse ; ROADMAP mise à jour à chaque étap
    (paresseusement, au premier usage). `generateur_gardes.gs` 2026-09-13.1, **recopie Apps Script en
    attente**. `admin_precedent.html` reste sur le site : **accepté** (aucune donnée dedans, GitHub Pages
    sert tout le dépôt, le retirer coûterait le scénario iOS du banc).
-2. ~~Fonctions de test → `dev.gs`~~ — **poussé le 14/09 (GAS 2026-09-14.1), recopie en attente.** 12
+2. ~~Fonctions de test → `dev.gs`~~ — **fait le 14/09, recopié et confirmé.** 12
    fonctions (209 lignes) sorties de 6 fichiers vers `gas/dev.gs`, jamais déployé. `essaiGenerationGardes`
    et `essaiEnchainementGardes` **restent** : c'est l'outil « Essai de génération » du comité, pas un
    test. **La recopie des 6 `.gs` se fera en une fois** avec les étapes 8 et 11 (demande du
-   responsable) ; jusque-là l'ancien code tourne, sans inconvénient.
+   responsable) — recopie faite le soir même avec 8 et 11.
 3. ~~`partage/portail.js` branché sur une page~~ — **fait le 14/09 (v1.11.11), confirmé en production
    sur staff.html**.
 4. ~~Les autres pages rejoignent le socle `miroirRead`~~ — **TERMINÉ le 14/09**, chaque page confirmée
@@ -142,11 +147,24 @@ comprendre ensuite ; push en heure creuse ; ROADMAP mise à jour à chaque étap
    (`banc_equite_commun.js`). **Le tableau des affectations reste dans les pages** : mêmes lignes,
    mais pas les mêmes données (liste éditable du comité vs planning chargé du MAR) — pas un doublon.
    Reste pour plus tard : les `id` en double et les 4 variables CSS orphelines d'admin.html.
-8. `classeur.gs` : lecture unique de MEDECINS et CONFIG, colonnes nommées.
+8. ~~Lecture unique de MEDECINS, colonnes nommées~~ — **fait le 14/09, recopié et confirmé.** Pas de
+   `classeur.gs` séparé : `COL_MED` (17 colonnes nommées, l'ordre du classeur vit là et nulle part
+   ailleurs), `_medecinsRows_()` (une lecture par requête, en mémoire, jamais dans CacheService : la
+   colonne CODE est un secret) et `_medecinsInvalider_()` vivent dans `code.gs`. 30 sites de lecture
+   dans 6 fichiers passent par le memo, 141 numéros de colonnes remplacés par des noms ; les 3 fonctions
+   qui écrivent dans MEDECINS gardent leur lecture directe et périment le memo. Le banc compare
+   `COL_MED` à l'en-tête réel (`banc_medecins_memo.js`) et son stub (`socleMedecins`) fournit le vrai
+   code aux scénarios qui extraient une fonction. CONFIG a déjà son memo (`_configRows_`).
 9. Découpage d'`Indispos.gs` par sujet + routeur en table `action → rôle → fonction`. Logique
    déplacée, jamais modifiée.
 10. Commentaires-journal → CONTEXTE, fichier par fichier.
-11. `getConfig` unique (quotas, cibles, fériés) ; suppression des copies dans les pages.
+11. ~~Configuration servie par le serveur~~ — **fait le 14/09 pour les quotas (v1.12.4 puis v1.12.5),
+    confirmé.** Pas de `getConfig` nouveau : les quotas de congés voyagent avec la config existante
+    (action `getVacancesConfig` et clé miroir `vacances_admin`, champ `quotasConges`, lu par la même
+    `_loadQuotasConges` que le serveur ; une modification de CONFIG_CONGES rafraîchit la clé).
+    staff.html ne porte **plus aucune table** — la quatrième copie fausse était la dernière ; sans
+    table reçue : 0 et un toast, jamais un chiffre inventé. Cibles et fériés arrivent déjà par
+    `getStats` / `getJoursFeries` : rien d'autre à rapatrier.
 12. Clé miroir `bootstrap_mar_{annee}` : 1 à 2 appels à l'ouverture au lieu de 15 à 20.
 
 Les étapes 1 à 7 apportent l'essentiel de la sécurité ; 8 à 12 le confort. Aucune n'est urgente :

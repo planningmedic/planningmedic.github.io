@@ -67,6 +67,14 @@ Le soir même : le thème passe dans le socle (v1.11.21), la palette commune dan
 (v1.11.22), une seule police DM Sans (v1.12.0) et le mode sombre sur Indispos (v1.12.1) — tous
 confirmés en production. Connexion, déconnexion et badge restent propres à chaque page : ce n'est
 pas un doublon, c'est ce que chaque page charge après le code.
+
+**14/09/2026, soir — le lot serveur est déployé** (recopie unique des 7 `.gs`, confirmée au
+Diagnostic) : fonctions de test hors production (`dev.gs`, jamais recopié), MEDECINS lu une fois
+par requête avec des colonnes nommées (`COL_MED`, `code.gs`), quotas de congés servis par le serveur
+— staff.html n'a plus de table. Restent du plan : le découpage d'`Indispos.gs` (9), les
+commentaires-journal vers la doc (10), un seul appel à l'ouverture (12).
+⚠️ Le jeton GitHub expire début octobre 2026 : à renouveler dans CONFIG et dans les instructions du
+projet.
 🔴 **L'erreur de méthode du jour :** en retirant la copie locale de planning.html, une ligne voisine
 (`const _MIROIR_PRE`) est partie avec — la page redemandait le code. Compter les appels d'une fonction ne
 prouve pas qu'une page marche : **on rejoue la reprise de session jusqu'au bout** dans le navigateur
