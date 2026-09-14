@@ -30,5 +30,9 @@ console.log('\n═══ 2. staff.html affiche ce que le serveur envoie ══�
   V('la page branche la table dès la réponse (miroir ou serveur)', /if\(pRes\.quotasConges && Object\.keys\(pRes\.quotasConges\)\.length\) QUOTAS_SERVEUR=pRes\.quotasConges;/.test(STAFF));
   V('plus aucune valeur de quota écrite dans la page', !/100:37|90:33|const QUOTAS=\{/.test(STAFF));
 }
+console.log('\n═══ 3. Une copie rapide en retard d\'un champ (production, 14/09 22 h) ═══');
+V('si la charge miroir n\'a pas de quotasConges, la page redemande la config au serveur, une fois',
+  /if\(pRes\.quotasConges===undefined\)\{[\s\S]{0,200}apiCall\(\{action:'getVacancesConfig'\}\)/.test(STAFF));
+V('…et ne le fait PAS quand le champ est là (aucun appel serveur superflu)', /pRes\.quotasConges===undefined/.test(STAFF) && !/pRes\.quotasConges===null/.test(STAFF));
 console.log('\n' + ok + ' OK · ' + ko + ' en échec');
 if (ko) process.exit(1);

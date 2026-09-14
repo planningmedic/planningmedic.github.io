@@ -372,8 +372,16 @@ async function loadData(pre){
        if(mv&&mv.success&&mv.data&&mv.data.vacances_admin&&mv.data.vacances_admin.success) pRes=mv.data.vacances_admin; }catch(e){}
   if(!pRes) pRes=await apiCall({action:'getVacancesConfig'});
   if(!pRes.success)return showToast('Erreur périodes');
+  /* (14/09/2026, 22 h — vu en production dix minutes après la recopie) La copie
+     rapide gardait une charge vacances_admin construite AVANT le nouveau serveur :
+     sans champ quotasConges. Elle n'est refaite qu'à la synchro horaire ou à une
+     modification du classeur. Une copie en retard d'un champ ne doit pas priver
+     le staff de ses quotas : on redemande alors la config au serveur, une fois. */
+  if(pRes.quotasConges===undefined){
+    try{ const direct=await apiCall({action:'getVacancesConfig'}); if(direct&&direct.success) pRes=direct; }catch(e){}
+  }
   if(pRes.quotasConges && Object.keys(pRes.quotasConges).length) QUOTAS_SERVEUR=pRes.quotasConges;   // (14/09/2026) les quotas viennent du serveur
-  else showToast('Quotas de congés non reçus : vérifier CONFIG_CONGES');
+  else showToast('Quotas de congés non reçus : vérifier l\'onglet CONFIG_CONGES du classeur');
 
   /* (04/09/2026) L'historique de Noël arrive AVEC les périodes : le clic sur
      « 🎄 Noël & Jour de l'An » n'appelle plus Apps Script. C'était le dernier
