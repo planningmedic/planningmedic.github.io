@@ -6,10 +6,10 @@ portail/Dashboard, module libéral, contrôle d'absence, veille biblio.
 (Le générateur de comptes rendus a été retiré le 07/09/2026 : il portait le logo de
 l'établissement et 77 noms de praticiens sur une page publique sans code d'accès.)
 
-**Dépôt** `planningmedic/planningmedic.github.io`, branche `main` · **Site v1.11.9** ·
+**Dépôt** `planningmedic/planningmedic.github.io`, branche `main` · **Site v1.11.11** ·
 **Portail** https://planningmedic.github.io ·
 **GAS** (relevé dans le dépôt le 10/09/2026) `code.gs` **2026-09-08.2** ·
-`Indispos.gs` **2026-09-10.1** · `generateur_gardes.gs` **2026-09-10.1** ·
+`Indispos.gs` **2026-09-13.1** · `generateur_gardes.gs` **2026-09-13.1** (poussé le 14/09, recopie Apps Script en attente) ·
 (deux fichiers sous le même numéro : deux lots distincts du 10/09, au soir et en soirée) ·
 `portail.gs` **2026-09-08.1** · `miroir.gs` **2026-09-08.2** ·
 `journal.gs` 2026-08-27.1 · `echanges.gs` **2026-09-08.1** · `veille.gs` 2026-08-27.1 ·
@@ -46,7 +46,11 @@ caractères sur 32 symboles (1,1 × 10¹² combinaisons), force brute impraticab
   Les `.gs` touchés le sont dans leurs commentaires uniquement : `GAS_VERSION` non montée, aucune
   recopie dans Apps Script (décision du responsable : le code qui tourne est identique).
 
-**Confidentialité — reste ouvert :** `ARCHIVE_SS_ID` en dur dans `generateur_gardes.gs` (identifiant
+**À vérifier par le responsable (vu le 14/09 en lisant CONFIG, valeur non citée) :** la ligne
+`GITHUB_TOKEN` du classeur ne porte pas le préfixe du jeton `planningmedic` — probablement l'ancien
+jeton `chpg-anesthesie`, qui lit encore mais n'écrit plus. À remplacer dans CONFIG si c'est le cas.
+
+**Confidentialité — reste ouvert :** ~~`ARCHIVE_SS_ID` en dur~~ (fait le 14/09) dans `generateur_gardes.gs` (identifiant
 d'un fichier privé, pas un secret : à déplacer dans CONFIG) ; `banc/reference/admin_precedent.html`
 (548 Ko) servi sur le site public sans raison ; 21 mentions de Monaco dans le module libéral
 (chantier n° 5 ci-dessous, inchangé).
@@ -71,10 +75,19 @@ Règle du plan : chaque étape laisse le site complet ; une étape qui casse →
 comprendre ensuite ; push en heure creuse ; ROADMAP mise à jour à chaque étape avec
 « confirmé en production le … ».
 
-0. ~~Ancien dépôt supprimé, historique du nouveau réécrit~~ — **fait le 13/09**, purge GitHub en attente.
-1. Retirer `ARCHIVE_SS_ID` du code (→ CONFIG), retirer `admin_precedent.html` du site.
-2. Fonctions de test et installateurs → `dev.gs`, jamais déployé.
-3. `partage/portail.js` (`esc`, `apiPost`, `miroirRead`) branché sur **une** page (`staff.html`).
+0. ~~Ancien dépôt supprimé, historique du nouveau réécrit~~ — **fait le 13/09**. Le formulaire de
+   purge GitHub n'est **pas envoyé, décision du responsable (14/09)** : les anciens commits ne sont
+   joignables que par leur adresse exacte et GitHub les efface de lui-même à terme. Ne pas reproposer.
+1. ~~Identifiant du classeur d'archives → CONFIG~~ — **fait le 14/09 (v1.11.10)**. La ligne
+   `ARCHIVE_DRIVE_ID` existait déjà dans CONFIG, documentée comme inerte : le code la lit désormais
+   (paresseusement, au premier usage). `generateur_gardes.gs` 2026-09-13.1, **recopie Apps Script en
+   attente**. `admin_precedent.html` reste sur le site : **accepté** (aucune donnée dedans, GitHub Pages
+   sert tout le dépôt, le retirer coûterait le scénario iOS du banc).
+2. Fonctions de test et installateurs → `dev.gs`, jamais déployé. **Groupé avec l'étape 8** pour une
+   seule recopie des `.gs` (demande du responsable, 14/09).
+3. ~~`partage/portail.js` branché sur une page~~ — **fait le 14/09 (v1.11.11), confirmé en production
+   sur staff.html**. Le socle porte `MIROIR_URL` et une `miroirRead` unique (code en paramètre ou
+   VIEW_CODE, mesure PERF si présente, délai réglable) ; une copie locale encore présente garde la main.
 4. Même socle page par page : absences, suivi-libéral, indispos, planning, index, admin — six
    pushes ; avant chaque page, les écarts entre sa copie et le socle sont listés au responsable,
    qui tranche ceux qui sont voulus.
