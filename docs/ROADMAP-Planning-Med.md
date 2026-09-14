@@ -6,10 +6,10 @@ portail/Dashboard, module libéral, contrôle d'absence, veille biblio.
 (Le générateur de comptes rendus a été retiré le 07/09/2026 : il portait le logo de
 l'établissement et 77 noms de praticiens sur une page publique sans code d'accès.)
 
-**Dépôt** `planningmedic/planningmedic.github.io`, branche `main` · **Site v1.12.1** ·
+**Dépôt** `planningmedic/planningmedic.github.io`, branche `main` · **Site v1.12.3** ·
 **Portail** https://planningmedic.github.io ·
 **GAS** (relevé dans le dépôt le 10/09/2026) `code.gs` **2026-09-08.2** ·
-`Indispos.gs` **2026-09-13.1** · `generateur_gardes.gs` **2026-09-13.1** (poussé le 14/09, recopie Apps Script en attente) ·
+`Indispos.gs` **2026-09-14.1** · `generateur_gardes.gs` **2026-09-14.1** (et code, miroir, portail, veille : **recopie Apps Script groupée à venir**, après les étapes 8 et 11) ·
 (deux fichiers sous le même numéro : deux lots distincts du 10/09, au soir et en soirée) ·
 `portail.gs` **2026-09-08.1** · `miroir.gs` **2026-09-08.2** ·
 `journal.gs` 2026-08-27.1 · `echanges.gs` **2026-09-08.1** · `veille.gs` 2026-08-27.1 ·
@@ -83,8 +83,11 @@ comprendre ensuite ; push en heure creuse ; ROADMAP mise à jour à chaque étap
    (paresseusement, au premier usage). `generateur_gardes.gs` 2026-09-13.1, **recopie Apps Script en
    attente**. `admin_precedent.html` reste sur le site : **accepté** (aucune donnée dedans, GitHub Pages
    sert tout le dépôt, le retirer coûterait le scénario iOS du banc).
-2. Fonctions de test et installateurs → `dev.gs`, jamais déployé. **Groupé avec l'étape 8** pour une
-   seule recopie des `.gs` (demande du responsable, 14/09).
+2. ~~Fonctions de test → `dev.gs`~~ — **poussé le 14/09 (GAS 2026-09-14.1), recopie en attente.** 12
+   fonctions (209 lignes) sorties de 6 fichiers vers `gas/dev.gs`, jamais déployé. `essaiGenerationGardes`
+   et `essaiEnchainementGardes` **restent** : c'est l'outil « Essai de génération » du comité, pas un
+   test. **La recopie des 6 `.gs` se fera en une fois** avec les étapes 8 et 11 (demande du
+   responsable) ; jusque-là l'ancien code tourne, sans inconvénient.
 3. ~~`partage/portail.js` branché sur une page~~ — **fait le 14/09 (v1.11.11), confirmé en production
    sur staff.html**.
 4. ~~Les autres pages rejoignent le socle `miroirRead`~~ — **TERMINÉ le 14/09**, chaque page confirmée
@@ -130,7 +133,15 @@ comprendre ensuite ; push en heure creuse ; ROADMAP mise à jour à chaque étap
    (`--accent`, `--ll`, `--red-2`, `--teal`).
    **Manquement noté :** v1.12.0 poussée après un banc partiel ; un scénario figé sur « v1.11. »
    est resté rouge jusqu'à v1.12.1. Le banc complet avant tout push n'a pas d'exception.
-7. `partage/rendu_equite.js` : cartes d'équité et d'affectations, une seule version.
+7. ~~`partage/rendu_equite.js`~~ — **fait le 14/09 (v1.12.2, v1.12.3), confirmé.** Une version des
+   cartes d'équité, du calcul des cibles et du verdict pour les deux pages, options par page (MAR
+   connecté, dépliées, sombre, cases neutres). **Décision du responsable :** le comité voit le mode
+   « souhaits » comme le MAR. Puis, vu en production dès le premier écran : le comité et le portail
+   ne construisaient pas la **même liste** (le comité gardait les MARs sans garde et marquait
+   « souhaits » le temps partiel à jours fixes) — aligné sur le portail (v1.12.3), figé au banc
+   (`banc_equite_commun.js`). **Le tableau des affectations reste dans les pages** : mêmes lignes,
+   mais pas les mêmes données (liste éditable du comité vs planning chargé du MAR) — pas un doublon.
+   Reste pour plus tard : les `id` en double et les 4 variables CSS orphelines d'admin.html.
 8. `classeur.gs` : lecture unique de MEDECINS et CONFIG, colonnes nommées.
 9. Découpage d'`Indispos.gs` par sujet + routeur en table `action → rôle → fonction`. Logique
    déplacée, jamais modifiée.
