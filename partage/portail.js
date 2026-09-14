@@ -12,7 +12,7 @@
    LE CHOIX. Une seule fonction, capable de tout ce que faisaient les six :
      · le code d'accès passé en paramètre, sinon le VIEW_CODE de la page ;
      · la mesure de temps si la page expose window.PERF, sinon rien ;
-     · le délai d'abandon en paramètre, 6 s par défaut.
+     · le délai d'abandon en paramètre ou par page (window.MIROIR_DELAI), 6 s par défaut.
    Les pages rejoignent ce socle UNE PAR UNE (staff.html la première) ; tant
    qu'une page garde sa copie locale, c'est sa copie qui gagne — ce fichier ne
    redéfinit jamais une fonction déjà présente.
@@ -34,7 +34,10 @@
      la page appelante, comme avant. */
   if (typeof window.miroirRead !== 'function') {
     window.miroirRead = async function miroirRead(keys, codeAcces, options) {
-      const delai = (options && options.delai) || 6000;
+      /* Délai d'abandon : l'appel, sinon la page (window.MIROIR_DELAI — admin.html
+         le fixe à 10 s depuis v1.20.1 : 6 s coupait les réseaux mobiles lents en
+         plein colis), sinon 6 s. */
+      const delai = (options && options.delai) || window.MIROIR_DELAI || 6000;
       /* VIEW_CODE est déclaré par `let` dans les pages : c'est une variable
          globale de script, pas une propriété de window — on la lit par son
          nom, avec typeof pour ne pas planter si la page ne la déclare pas. */

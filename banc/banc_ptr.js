@@ -21,6 +21,7 @@ async function page(fichier) {
     runScripts: 'dangerously', virtualConsole: vc, pretendToBeVisual: true,
     url: 'https://planningmedic.github.io/',
     beforeParse(w) {
+      w.eval(require('fs').readFileSync(require('path').join(__dirname, '..', 'partage', 'portail.js'), 'utf8'));   // (14/09/2026) le socle commun, comme le vrai site
       w.matchMedia = () => ({ matches:false, addListener(){}, removeListener(){}, addEventListener(){}, removeEventListener(){} });
       w.Element.prototype.scrollIntoView = function () {};
       w.scrollTo = () => {};

@@ -76,7 +76,7 @@ const dstr = v => v instanceof Date
   vc.on('error', (...a) => erreurs.push('console.error: ' + a.map(String).join(' ')));
   if (process.env.VERBEUX) { vc.on('log', (...a) => console.log('    [page]', a.map(String).join(' ').slice(0,160))); vc.on('warn', (...a) => console.log('    [page-warn]', a.map(String).join(' ').slice(0,160))); }
   const dom = new JSDOM(fs.readFileSync('../admin.html','utf8'),
-    { runScripts:'dangerously', virtualConsole:vc, url:'https://planningmedic.github.io/admin.html', pretendToBeVisual:true });
+    { runScripts:'dangerously', virtualConsole:vc, url:'https://planningmedic.github.io/admin.html', pretendToBeVisual:true, beforeParse(win) { win.eval(require('fs').readFileSync(require('path').join(__dirname, '..', 'partage', 'portail.js'), 'utf8')); }   /* (14/09/2026) le socle, comme le vrai site */, beforeParse(win) { win.eval(require('fs').readFileSync(require('path').join(__dirname, '..', 'partage', 'portail.js'), 'utf8')); }   /* (14/09/2026) le socle, comme le vrai site */, beforeParse(win) { win.eval(require('fs').readFileSync(require('path').join(__dirname, '..', 'partage', 'portail.js'), 'utf8')); }   /* (14/09/2026) le socle, comme le vrai site */ });
   const w = dom.window, d = w.document;
   /* Compléments que jsdom n'implémente pas (purement visuels) : sans eux, un
      clic réel lève une erreur et le parcours s'arrête. */

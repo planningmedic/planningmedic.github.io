@@ -29,7 +29,7 @@ async function page(etat) {
   const vc = new VirtualConsole(); const erreurs = [];
   vc.on('jsdomError', e => erreurs.push(e.message));
   const dom = new JSDOM(fs.readFileSync('../admin.html', 'utf8'),
-    { runScripts: 'dangerously', virtualConsole: vc, url: 'https://planningmedic.github.io/admin.html', pretendToBeVisual: true });
+    { runScripts: 'dangerously', virtualConsole: vc, url: 'https://planningmedic.github.io/admin.html', pretendToBeVisual: true, beforeParse(win) { win.eval(require('fs').readFileSync(require('path').join(__dirname, '..', 'partage', 'portail.js'), 'utf8')); }   /* (14/09/2026) le socle, comme le vrai site */, beforeParse(win) { win.eval(require('fs').readFileSync(require('path').join(__dirname, '..', 'partage', 'portail.js'), 'utf8')); }   /* (14/09/2026) le socle, comme le vrai site */, beforeParse(win) { win.eval(require('fs').readFileSync(require('path').join(__dirname, '..', 'partage', 'portail.js'), 'utf8')); }   /* (14/09/2026) le socle, comme le vrai site */ });
   const w = dom.window;
   await dodo(500);
   /* La page déclare ses globales en `let` : ce sont des liaisons lexicales, PAS

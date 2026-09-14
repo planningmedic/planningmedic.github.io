@@ -55,6 +55,12 @@ function fenetre(opts) {
     V('un VIEW_CODE déclaré par `let` dans la page est bien vu (suivi-liberal, index, planning…)', f.appels[0].body.code === 'LETCODE', f.appels[0].body);
   }
   {
+    const f = fenetre({ viewCode: 'C', lent: true, avant: 'window.MIROIR_DELAI = 40;' });
+    const t0 = Date.now();
+    const r = await f.win.miroirRead(['x']);
+    V('le délai se règle PAR PAGE (window.MIROIR_DELAI — admin.html : 10 s)', r === null && Date.now() - t0 < 1000, { r, ms: Date.now() - t0 });
+  }
+  {
     const f = fenetre({ viewCode: 'C', lent: true });
     const t0 = Date.now();
     const r = await f.win.miroirRead(['x'], null, { delai: 50 });
@@ -174,6 +180,15 @@ function fenetre(opts) {
     V('index.html charge partage/portail.js après session.js', page.indexOf('partage/portail.js') > page.indexOf('partage/session.js') && page.indexOf('partage/portail.js') > 0);
     V('plus de miroirRead locale ni de const MIROIR_URL', !/function miroirRead\(/.test(page) && !/const MIROIR_URL/.test(page));
     V('ses 7 lectures du miroir sont intactes', (page.match(/miroirRead\(/g) || []).length === 7, (page.match(/miroirRead\(/g) || []).length);
+  }
+  console.log('\n═══ admin.html a rejoint le socle ═══');
+  {
+    const page = fs.readFileSync(path.join(__dirname, '..', 'admin.html'), 'utf8');
+    V('admin.html charge partage/portail.js avant dispo_jour.js', page.indexOf('partage/portail.js') > 0 && page.indexOf('partage/portail.js') < page.indexOf('partage/dispo_jour.js'));
+    V('plus de miroirRead locale ni de const MIROIR_URL', !/function miroirRead\(/.test(page) && !/const MIROIR_URL/.test(page));
+    V('le délai de 10 s du comité est conservé, posé par la page', /window\.MIROIR_DELAI = 10000;/.test(page));
+    V('ses 11 lectures du miroir sont intactes', (page.match(/miroirRead\(/g) || []).length === 11, (page.match(/miroirRead\(/g) || []).length);
+    V('le dépôt au journal (_journalDeposer) utilise toujours MIROIR_URL', /fetch\(MIROIR_URL \+ '\/ecrire'/.test(page));
   }
   console.log('\n' + ok + ' OK · ' + ko + ' en échec');
   if (ko) process.exit(1);

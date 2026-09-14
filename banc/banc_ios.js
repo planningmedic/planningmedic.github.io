@@ -107,9 +107,11 @@ async function charger(fichier, options) {
   console.log('\n═══ 33. Réseau mobile lent : le miroir abandonne à temps ═══');
   {
     const { w } = await charger('../admin.html');
+    /* (14/09/2026) miroirRead vient du socle partage/portail.js ; la page fixe
+       son délai par window.MIROIR_DELAI. On vérifie la valeur telle que la page
+       l'a posée (ce que voit le socle), plus le réglage écrit dans la source. */
     const src = fs.readFileSync('../admin.html','utf8');
-    const m = src.match(/setTimeout\(\(\) => _ctrl\.abort\(\), (\d+)\)/);
-    V('le délai d\'abandon du miroir est adapté au mobile (10 s)', m && Number(m[1]) === 10000, m && m[1]);
+    V('le délai d\'abandon du miroir est adapté au mobile (10 s)', w.MIROIR_DELAI === 10000 && /window\.MIROIR_DELAI = 10000;/.test(src), w.MIROIR_DELAI);
     let annule = false;
     w.fetch = (url, opt) => new Promise((res, rej) => {
       if (opt && opt.signal) opt.signal.addEventListener('abort', () => { annule = true; rej(new Error('AbortError')); });

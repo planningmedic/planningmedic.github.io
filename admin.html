@@ -1022,6 +1022,7 @@ body { font-family: 'DM Sans', system-ui, sans-serif; background: var(--bg); col
 .cloture-banner.bloque{background:#FEF2F2;border-bottom-color:#FCA5A5;color:#991B1B}
 .cloture-banner.bloque .cb-btn{border-color:#CBD5E1;background:#F1F5F9;color:#94A3B8;cursor:not-allowed}
 </style>
+<script src="partage/portail.js"></script>   <!-- (14/09/2026) socle commun : MIROIR_URL, miroirRead -->
 <script src="partage/dispo_jour.js"></script>   <!-- (etage 2) coeur partage du tri des disponibles — source unique avec le serveur -->
 <script src="version.js"></script>   <!-- (14/08/2026) source unique du numéro de version — ne plus jamais l'écrire en dur ici -->
 <script>
@@ -1984,7 +1985,11 @@ document.getElementById('authInput').addEventListener('keydown', e => { if(e.key
    Tout ecart → getAdminBootstrap GAS, strictement inchange. ADMIN ecrit :
    apres chaque ecriture la page relit le circuit DIRECT, jamais le miroir
    (propagation KV ~60 s). */
-const MIROIR_URL = 'https://miroir.planningmedic.workers.dev';
+/* (14/09/2026) MIROIR_URL et miroirRead viennent du socle partage/portail.js,
+   chargé en tête de page. Seul réglage propre à cette page : le délai d'abandon
+   du miroir, 10 s (v1.20.1 — 6 s coupait les réseaux mobiles lents en plein
+   colis). _journalDeposer et les autres usages de MIROIR_URL sont inchangés. */
+window.MIROIR_DELAI = 10000;
 
 /* ═══ (v1.23) JOURNAL D'INTENTIONS ════════════════════════════════════
    Les gestes du comite (placements, statuts, publication) ne parlent PLUS
@@ -2086,27 +2091,6 @@ let _MIROIR_ANNEES = null;   // {active, annees:[...]} livre par miroirBootAdmin
 let _MIROIR_CFG = null;      // (v1.21.2) config_admin du boot (medecins + drapeaux)
 let _MIROIR_SECTEURS = null; // (v1.21.2) referentiel secteurs du boot
 
-async function miroirRead(keys, codeAcces) {
-  const _dep = Math.round(performance.now()), _t0 = Date.now();
-  const _ctrl = new AbortController();
-  const _timer = setTimeout(() => _ctrl.abort(), 10000);   // (v1.20.1) 6 s coupait les reseaux mobiles lents en plein colis
-  try {
-    const res = await fetch(MIROIR_URL + '/read', {
-      method: 'POST',
-      headers: { 'Content-Type': 'text/plain;charset=utf-8' },
-      body: JSON.stringify({ code: codeAcces, keys }),
-      signal: _ctrl.signal,
-    });
-    const rep = await res.json();
-    try { if (window.PERF) PERF.appel('miroir:' + keys.join('+'), Date.now() - _t0, null, _dep,
-                                      rep && rep.success ? 'ok' : 'ECHEC — ' + ((rep && rep.error) || 'HTTP ' + res.status)); } catch (_e) {}
-    return rep;
-  } catch (e) {
-    try { if (window.PERF) PERF.appel('miroir:' + keys.join('+'), Date.now() - _t0, null, _dep,
-                                      'ECHEC — ' + (e && e.message)); } catch (_e) {}
-    return null;
-  } finally { clearTimeout(_timer); }
-}
 
 /* Reconstruit un objet de la FORME EXACTE de getAdminBootstrap a partir des
    cles miroir (champ a champ : voir Indispos.gs, action getAdminBootstrap).
