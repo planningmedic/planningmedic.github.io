@@ -144,7 +144,8 @@ table.grid td.pick{outline:2px solid var(--rose);outline-offset:1px}
   .lbl-court{display:inline}
 }
 </style>
-<script src="partage/session.js"></script>   <!-- (17/08/2026) source unique : où vit le code d'accès, et 30 jours glissants -->
+<script src="partage/session.js"></script>
+<script src="partage/portail.js"></script>   <!-- (14/09/2026) socle commun : MIROIR_URL, miroirRead -->   <!-- (17/08/2026) source unique : où vit le code d'accès, et 30 jours glissants -->
 <script>/* FALLBACK_SESSION — filet (17/08/2026). Si partage/session.js ne se charge pas
 (réseau, cache), les pages l'appelleraient dans le vide et NE S'OUVRIRAIENT PLUS : le MAR ne
 pourrait même plus taper son code. On retombe alors sur le comportement d'avant — le code vit
@@ -287,19 +288,8 @@ function marge(T, pctVal){
    ressemblait a une reponse. Le releve vit desormais aussi dans la copie
    rapide, reserve aux MEMBRES DU GROUPEMENT (meme regle que l'action
    serveur). Apps Script reste le repli, et un echec se DIT. */
-const MIROIR_URL = 'https://miroir.planningmedic.workers.dev';
-
-async function miroirRead(keys){
-  const ctrl = new AbortController();
-  const t = setTimeout(() => ctrl.abort(), 6000);
-  try{
-    const res = await fetch(MIROIR_URL + '/read', {method:'POST',
-      headers:{'Content-Type':'text/plain;charset=utf-8'},   // requete « simple » : pas de preambule CORS
-      body: JSON.stringify({code:VIEW_CODE, keys}), signal:ctrl.signal});
-    return await res.json();
-  }catch(e){ return null; }                                  // panne de transport -> le repli GAS decide
-  finally{ clearTimeout(t); }
-}
+/* (14/09/2026) MIROIR_URL et miroirRead viennent du socle partage/portail.js
+   (chargé en tête de page) : plus de copie locale ici. */
 
 function panne(txt){
   const el = document.getElementById('panne');

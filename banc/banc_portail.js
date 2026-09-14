@@ -47,6 +47,14 @@ function fenetre(opts) {
     V('sans code en paramètre, c\'est le VIEW_CODE de la page (index, planning, indispos…)', f.appels[0].body.code === 'CODEPAGE', f.appels[0].body);
   }
   {
+    /* Le cas réel : les pages déclarent `let VIEW_CODE = ''` puis l'assignent au
+       login. Un `let` de script n'est PAS window.VIEW_CODE — le socle doit le
+       lire par son nom. */
+    const f = fenetre({ avant: "let VIEW_CODE = ''; VIEW_CODE = 'LETCODE';" });
+    await f.win.miroirRead(['releve_liberal_2026', 'secteurs']);
+    V('un VIEW_CODE déclaré par `let` dans la page est bien vu (suivi-liberal, index, planning…)', f.appels[0].body.code === 'LETCODE', f.appels[0].body);
+  }
+  {
     const f = fenetre({ viewCode: 'C', lent: true });
     const t0 = Date.now();
     const r = await f.win.miroirRead(['x'], null, { delai: 50 });
@@ -77,6 +85,14 @@ function fenetre(opts) {
     V('plus de miroirRead locale dans staff.html', !/function miroirRead\(/.test(page));
     V('plus d\'adresse du miroir écrite en dur dans staff.html', !/const MIROIR_URL/.test(page) && !/workers\.dev/.test(page));
     V('staff.html appelle toujours miroirRead (4 lectures)', (page.match(/miroirRead\(/g) || []).length === 4, (page.match(/miroirRead\(/g) || []).length);
+  }
+  console.log('\n═══ suivi-liberal.html a rejoint le socle ═══');
+  {
+    const page = fs.readFileSync(path.join(__dirname, '..', 'suivi-liberal.html'), 'utf8');
+    V('suivi-liberal.html charge partage/portail.js après session.js', page.indexOf('partage/portail.js') > page.indexOf('partage/session.js') && page.indexOf('partage/portail.js') > 0);
+    V('…avant son script principal', page.indexOf('partage/portail.js') < page.indexOf("let VIEW_CODE"));
+    V('plus de miroirRead locale ni d\'adresse en dur', !/function miroirRead\(/.test(page) && !/const MIROIR_URL/.test(page) && !/workers\.dev/.test(page));
+    V('ses 2 lectures du miroir sont intactes', (page.match(/miroirRead\(/g) || []).length === 2, (page.match(/miroirRead\(/g) || []).length);
   }
   console.log('\n' + ok + ' OK · ' + ko + ' en échec');
   if (ko) process.exit(1);

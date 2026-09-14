@@ -35,7 +35,10 @@
   if (typeof window.miroirRead !== 'function') {
     window.miroirRead = async function miroirRead(keys, codeAcces, options) {
       const delai = (options && options.delai) || 6000;
-      const code = codeAcces || window.VIEW_CODE;
+      /* VIEW_CODE est déclaré par `let` dans les pages : c'est une variable
+         globale de script, pas une propriété de window — on la lit par son
+         nom, avec typeof pour ne pas planter si la page ne la déclare pas. */
+      const code = codeAcces || (typeof VIEW_CODE !== 'undefined' ? VIEW_CODE : window.VIEW_CODE);
       const _dep = (typeof performance !== 'undefined') ? Math.round(performance.now()) : 0;
       const _t0 = Date.now();
       const _ctrl = new AbortController();
