@@ -727,25 +727,8 @@ function _mePastille(r){
   return String(r.id || '').trim().toUpperCase().slice(0,3) || 'MAR';
 }
 
-// ── THÈME (clé localStorage partagée avec planning.html : pmTheme) ──
-function getThemePref(){ try{return localStorage.getItem('pmTheme')||'auto';}catch(e){return 'auto';} }
-function resolveTheme(pref){ return pref==='auto' ? (window.matchMedia('(prefers-color-scheme: dark)').matches?'dark':'light') : pref; }
-function applyTheme(){
-  const pref=getThemePref(), t=resolveTheme(pref);
-  document.documentElement.dataset.theme = t;
-  const meta=document.querySelector('meta[name="theme-color"]');
-  if(meta) meta.content = t==='dark' ? '#0B1220' : '#CE1126';
-  const btn=document.getElementById('themeBtn');
-  if(btn){ btn.textContent = pref==='auto'?'🌗':(pref==='dark'?'🌙':'☀️');
-           btn.title = 'Thème : '+(pref==='auto'?'automatique':(pref==='dark'?'sombre':'clair')); }
-}
-function cycleTheme(){
-  const order=['auto','light','dark'];
-  const next=order[(order.indexOf(getThemePref())+1)%3];
-  try{localStorage.setItem('pmTheme',next);}catch(e){}
-  applyTheme();
-}
-try{ window.matchMedia('(prefers-color-scheme: dark)').addEventListener('change',()=>{ if(getThemePref()==='auto') applyTheme(); }); }catch(e){}
+// ── THÈME : getThemePref, resolveTheme, applyTheme, cycleTheme et l'écoute du
+//    réglage du téléphone viennent du socle partage/portail.js (14/09/2026).
 applyTheme();
 
 // ── API ──
@@ -2467,11 +2450,7 @@ function renderAnnuaire(data, q){
 }
 
 // ── AUTH ──
-function _authErr(msg){
-  const el = document.getElementById('viewAuthErr');
-  el.textContent = msg; el.style.display='block';
-  setTimeout(()=> el.style.display='none', 4000);
-}
+/* _authErr : socle partage/portail.js (14/09/2026). */
 async function viewLogin(){
   const code = document.getElementById('viewAuthInput').value.trim().toUpperCase();
   if(!code){ _authErr("Entrez votre code d'accès."); return; }   // (T05)

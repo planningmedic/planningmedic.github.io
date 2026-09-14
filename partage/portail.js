@@ -65,4 +65,56 @@
       } finally { clearTimeout(_timer); }
     };
   }
+
+  /* ═══ THÈME clair / sombre / automatique (14/09/2026, brique 2) ═══
+     Trois copies identiques (accueil, planning, crh) au tronc près : la clé
+     localStorage `pmTheme`, l'attribut data-theme, la couleur de la barre du
+     téléphone et l'icône du bouton. Ce que chaque page fait EN PLUS après un
+     changement de thème (planning recalcule ses couleurs de secteurs et
+     redessine) passe par des crochets facultatifs :
+       window.onThemeApplied(t, pref)  — après chaque applyTheme()
+       window.apresCycleTheme()        — après un clic sur le bouton
+       window.apresThemeSysteme()      — après un basculement du réglage du
+                                         téléphone (mode auto)
+     Le socle n'applique PAS le thème de lui-même : chaque page garde son
+     appel applyTheme() là où il était (après ses propres déclarations). */
+  if (typeof window.getThemePref !== 'function') {
+    window.getThemePref = function getThemePref() { try { return localStorage.getItem('pmTheme') || 'auto'; } catch (e) { return 'auto'; } };
+    window.resolveTheme = function resolveTheme(pref) { return pref === 'auto' ? (window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light') : pref; };
+    window.applyTheme = function applyTheme() {
+      const pref = getThemePref(), t = resolveTheme(pref);
+      document.documentElement.dataset.theme = t;
+      const meta = document.querySelector('meta[name="theme-color"]');
+      if (meta) meta.content = t === 'dark' ? '#0B1220' : '#CE1126';
+      const btn = document.getElementById('themeBtn');
+      if (btn) { btn.textContent = pref === 'auto' ? '🌗' : (pref === 'dark' ? '🌙' : '☀️');
+                 btn.title = 'Thème : ' + (pref === 'auto' ? 'automatique' : (pref === 'dark' ? 'sombre' : 'clair')); }
+      try { if (typeof window.onThemeApplied === 'function') window.onThemeApplied(t, pref); } catch (e) {}
+    };
+    window.cycleTheme = function cycleTheme() {
+      const order = ['auto', 'light', 'dark'];
+      const next = order[(order.indexOf(getThemePref()) + 1) % 3];
+      try { localStorage.setItem('pmTheme', next); } catch (e) {}
+      applyTheme();
+      try { if (typeof window.apresCycleTheme === 'function') window.apresCycleTheme(); } catch (e) {}
+    };
+    try {
+      window.matchMedia('(prefers-color-scheme: dark)').addEventListener('change', function () {
+        if (getThemePref() !== 'auto') return;
+        applyTheme();
+        try { if (typeof window.apresThemeSysteme === 'function') window.apresThemeSysteme(); } catch (e) {}
+      });
+    } catch (e) {}
+  }
+
+  /* Message d'erreur de l'écran de code (« Code incorrect », « Erreur réseau »),
+     affiché 4 s. Identique dans les trois pages qui ont un écran de code. */
+  if (typeof window._authErr !== 'function') {
+    window._authErr = function _authErr(msg) {
+      const el = document.getElementById('viewAuthErr');
+      if (!el) return;
+      el.textContent = msg; el.style.display = 'block';
+      setTimeout(function () { el.style.display = 'none'; }, 4000);
+    };
+  }
 })();

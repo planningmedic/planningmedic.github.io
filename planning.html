@@ -1161,11 +1161,7 @@ async function _apiPostDirect(payload) {
   } finally { _apiBar(false); }
 }
 
-function _authErr(msg) {
-  const el = document.getElementById('viewAuthErr');
-  el.textContent = msg; el.style.display = 'block';
-  setTimeout(() => el.style.display = 'none', 4000);
-}
+/* _authErr : socle partage/portail.js (14/09/2026). */
 
 async function viewLogin() {
   const code = document.getElementById('viewAuthInput').value.trim().toUpperCase();
@@ -2147,34 +2143,25 @@ async function loadSecteurs(){
   }catch(e){ /* fallback : définitions en dur conservées */ }
 }
 
-function getThemePref(){ try{return localStorage.getItem('pmTheme')||'auto';}catch(e){return 'auto';} }
-function resolveTheme(pref){ return pref==='auto' ? (window.matchMedia('(prefers-color-scheme: dark)').matches?'dark':'light') : pref; }
-function applyTheme(){
-  const pref=getThemePref(), t=resolveTheme(pref);
+/* THÈME (14/09/2026) : getThemePref, resolveTheme, applyTheme, cycleTheme et
+   l'écoute du réglage du téléphone viennent du socle partage/portail.js. Ce que
+   CETTE page fait en plus — ses couleurs de secteurs suivent le thème, et la vue
+   courante est redessinée — passe par les trois crochets du socle, corps
+   inchangés. */
+window.onThemeApplied = function (t) {
   IS_DARK = t==='dark';
-  document.documentElement.dataset.theme = t;
   SECTOR_COLORS = _themeMap(_SECTOR_BASE);
   AVATAR_COLORS_APPLY();
-  const meta=document.querySelector('meta[name="theme-color"]');
-  if(meta) meta.content = IS_DARK ? '#0B1220' : '#CE1126';
-  const btn=document.getElementById('themeBtn');
-  if(btn) btn.textContent = pref==='auto'?'🌗':(pref==='dark'?'🌙':'☀️');
-  if(btn) btn.title = 'Thème : '+(pref==='auto'?'automatique':(pref==='dark'?'sombre':'clair'));
-}
-function cycleTheme(){
-  const order=['auto','light','dark'];
-  const next=order[(order.indexOf(getThemePref())+1)%3];
-  try{localStorage.setItem('pmTheme',next);}catch(e){}
-  applyTheme();
+};
+window.apresCycleTheme = function () {
   // Re-rendu complet de la vue courante (les cartes de couleurs ont changé)
   if(DATA){ buildWeekNav(); render();
     if(currentMainView==='medecins')renderMedecins();
     if(currentMainView==='equite')renderEquite();
     if(currentMainView==='affect')renderAffectations();
     if(currentMainView==='annee')renderAnnee(); }
-}
-try{ window.matchMedia('(prefers-color-scheme: dark)').addEventListener('change',()=>{ if(getThemePref()==='auto') cycleThemeRefresh(); }); }catch(e){}
-function cycleThemeRefresh(){ applyTheme(); if(DATA){ buildWeekNav(); render(); } }
+};
+window.apresThemeSysteme = function () { if(DATA){ buildWeekNav(); render(); } };
 applyTheme();
 const MONTH_NAMES_FR=['Janvier','Février','Mars','Avril','Mai','Juin','Juillet','Août','Septembre','Octobre','Novembre','Décembre'];
 const DAYS_SHORT_FR=['L','M','M','J','V','S','D'];

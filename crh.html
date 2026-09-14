@@ -77,7 +77,8 @@ body{font-family:'DM Sans',-apple-system,BlinkMacSystemFont,sans-serif;backgroun
 .crh-copy{border:1px solid var(--line);background:var(--white);color:var(--red);border-radius:8px;padding:6px 14px;font-size:13px;font-weight:600;cursor:pointer;font-family:inherit;display:none}
 @media(max-width:640px){.header{padding:0 14px;height:52px}.header-sub{display:none}.wrap{padding:24px 16px 48px}}
 </style>
-<script src="partage/session.js"></script>   <!-- (17/08/2026) source unique : où vit le code d'accès, et 30 jours glissants -->
+<script src="partage/session.js"></script>
+<script src="partage/portail.js"></script>   <!-- (14/09/2026) socle commun : thème, _authErr -->   <!-- (17/08/2026) source unique : où vit le code d'accès, et 30 jours glissants -->
 <script>/* FALLBACK_SESSION — filet (17/08/2026). Si partage/session.js ne se charge pas
 (réseau, cache), les pages l'appelleraient dans le vide et NE S'OUVRIRAIENT PLUS : le MAR ne
 pourrait même plus taper son code. On retombe alors sur le comportement d'avant — le code vit
@@ -191,25 +192,7 @@ const _titMaj = id => (TITRES_PR.indexOf(id) > -1 ? 'PR ' : 'DR ');
 const _souhaitsGarantisId = id => SOUHAITS_PLAFOND.indexOf(id) > -1;
 function _meName(id){ return _tit(id)+id.charAt(0)+id.slice(1).toLowerCase(); }
 
-// ── THÈME (clé localStorage partagée : pmTheme) ──
-function getThemePref(){ try{return localStorage.getItem('pmTheme')||'auto';}catch(e){return 'auto';} }
-function resolveTheme(pref){ return pref==='auto' ? (window.matchMedia('(prefers-color-scheme: dark)').matches?'dark':'light') : pref; }
-function applyTheme(){
-  const pref=getThemePref(), t=resolveTheme(pref);
-  document.documentElement.dataset.theme = t;
-  const meta=document.querySelector('meta[name="theme-color"]');
-  if(meta) meta.content = t==='dark' ? '#0B1220' : '#CE1126';
-  const btn=document.getElementById('themeBtn');
-  if(btn){ btn.textContent = pref==='auto'?'🌗':(pref==='dark'?'🌙':'☀️');
-           btn.title = 'Thème : '+(pref==='auto'?'automatique':(pref==='dark'?'sombre':'clair')); }
-}
-function cycleTheme(){
-  const order=['auto','light','dark'];
-  const next=order[(order.indexOf(getThemePref())+1)%3];
-  try{localStorage.setItem('pmTheme',next);}catch(e){}
-  applyTheme();
-}
-try{ window.matchMedia('(prefers-color-scheme: dark)').addEventListener('change',()=>{ if(getThemePref()==='auto') applyTheme(); }); }catch(e){}
+// ── THÈME : tout vient du socle partage/portail.js (14/09/2026).
 applyTheme();
 
 // ── API (POST text/plain, code de session injecté — identique au reste du portail) ──
@@ -262,11 +245,7 @@ function logout(){
 }
 
 // ── AUTH DE SESSION ──
-function _authErr(msg){
-  const el = document.getElementById('viewAuthErr');
-  el.textContent = msg; el.style.display='block';
-  setTimeout(()=> el.style.display='none', 4000);
-}
+/* _authErr : socle partage/portail.js (14/09/2026). */
 function showPortal(){
   document.getElementById('viewAuthOverlay').style.display='none';
   document.getElementById('portal').style.display='block';

@@ -190,6 +190,52 @@ function fenetre(opts) {
     V('ses 11 lectures du miroir sont intactes', (page.match(/miroirRead\(/g) || []).length === 11, (page.match(/miroirRead\(/g) || []).length);
     V('le dépôt au journal (_journalDeposer) utilise toujours MIROIR_URL', /fetch\(MIROIR_URL \+ '\/ecrire'/.test(page));
   }
+  console.log('\n═══ Thème et _authErr dans le socle (brique 2) ═══');
+  {
+    const { JSDOM } = require('jsdom');
+    function fenetreTheme(pref, sombreSysteme) {
+      const dom = new JSDOM('<!doctype html><html><head><meta name="theme-color" content="#CE1126"></head><body><button id="themeBtn">🌗</button><div id="viewAuthErr" style="display:none"></div></body></html>', { runScripts: 'outside-only', pretendToBeVisual: true, url: 'https://planningmedic.github.io/' });
+      const w = dom.window; const ecouteurs = [];
+      w.matchMedia = () => ({ matches: !!sombreSysteme, addEventListener: (ev, f) => ecouteurs.push(f) });
+      if (pref) w.localStorage.setItem('pmTheme', pref);
+      w.eval(SRC);
+      return { w, ecouteurs };
+    }
+    const a = fenetreTheme('dark', false);
+    a.w.applyTheme();
+    V('thème forcé sombre : data-theme=dark, barre du téléphone sombre, icône 🌙',
+      a.w.document.documentElement.dataset.theme === 'dark' && a.w.document.querySelector('meta[name="theme-color"]').content === '#0B1220' && a.w.document.getElementById('themeBtn').textContent === '🌙');
+    const b = fenetreTheme(null, true);
+    b.w.applyTheme();
+    V('mode automatique + téléphone en sombre → sombre, icône 🌗', b.w.document.documentElement.dataset.theme === 'dark' && b.w.document.getElementById('themeBtn').textContent === '🌗');
+    const ordre = []; const c = fenetreTheme(null, false);
+    c.w.onThemeApplied = (t, pref) => ordre.push('applique:' + t + '/' + pref);
+    c.w.apresCycleTheme = () => ordre.push('cycle');
+    c.w.apresThemeSysteme = () => ordre.push('systeme');
+    c.w.cycleTheme(); c.w.cycleTheme();
+    V('le bouton enchaîne auto → clair → sombre, mémorisé dans pmTheme', c.w.localStorage.getItem('pmTheme') === 'dark', c.w.localStorage.getItem('pmTheme'));
+    V('les crochets de la page sont appelés dans l\'ordre (planning redessine après)', ordre.join(' ') === 'applique:light/light cycle applique:dark/dark cycle', ordre);
+    c.w.localStorage.setItem('pmTheme', 'auto'); ordre.length = 0;
+    c.ecouteurs.forEach(f => f());
+    V('un basculement du réglage du téléphone en mode auto réapplique et prévient la page', ordre.join(' ') === 'applique:light/auto systeme', ordre);
+    c.w.localStorage.setItem('pmTheme', 'dark'); ordre.length = 0; c.ecouteurs.forEach(f => f());
+    V('…mais pas quand le thème est forcé', ordre.length === 0, ordre);
+    const d = fenetreTheme(null, false);
+    d.w.eval("window.applyTheme = function () { return 'LOCALE'; };"); d.w.eval(SRC);
+    V('une copie locale de applyTheme encore présente garde la main', d.w.applyTheme() === 'LOCALE');
+    a.w._authErr('Code incorrect');
+    const err = a.w.document.getElementById('viewAuthErr');
+    V('_authErr affiche le message dans #viewAuthErr', err.style.display === 'block' && err.textContent === 'Code incorrect');
+    await new Promise(r => setTimeout(r, 4100));
+    V('…et l\'efface après 4 s', err.style.display === 'none');
+    for (const page of ['index.html', 'planning.html', 'crh.html']) {
+      const src = fs.readFileSync(path.join(__dirname, '..', page), 'utf8');
+      V(page + ' : plus de copie locale du thème ni de _authErr, socle chargé, applyTheme() toujours appelé par la page',
+        !/function (getThemePref|resolveTheme|applyTheme|cycleTheme|_authErr)\b/.test(src) && /partage\/portail\.js/.test(src) && /^applyTheme\(\);$/m.test(src));
+    }
+    const pl = fs.readFileSync(path.join(__dirname, '..', 'planning.html'), 'utf8');
+    V('planning garde ses trois compléments par crochet (couleurs de secteurs, redessin)', /window\.onThemeApplied = /.test(pl) && /window\.apresCycleTheme = /.test(pl) && /window\.apresThemeSysteme = /.test(pl));
+  }
   console.log('\n' + ok + ' OK · ' + ko + ' en échec');
   if (ko) process.exit(1);
 })();
