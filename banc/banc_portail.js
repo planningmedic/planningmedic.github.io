@@ -239,7 +239,8 @@ function fenetre(opts) {
   console.log('\n═══ partage/theme.css — la palette commune (chantier 6, partie 1) ═══');
   {
     const theme = fs.readFileSync(path.join(__dirname, '..', 'partage', 'theme.css'), 'utf8');
-    const socle = {}; (theme.match(/--[a-z0-9-]+\s*:\s*[^;]+;/g) || []).forEach(d => { const m = d.match(/(--[a-z0-9-]+)\s*:\s*([^;]+);/); socle[m[1]] = m[2].trim(); });
+    const clairRoot = (theme.match(/:root\s*\{[^}]*\}/) || [''])[0];
+    const socle = {}; (clairRoot.match(/--[a-z0-9-]+\s*:\s*[^;]+;/g) || []).forEach(d => { const m = d.match(/(--[a-z0-9-]+)\s*:\s*([^;]+);/); socle[m[1]] = m[2].trim(); });
     V('la palette commune porte les 11 variables partagées, rouge du portail compris', Object.keys(socle).length === 11 && socle['--red'] === '#CE1126' && socle['--bg'] === '#F8FAFC', socle);
     const norm = v => String(v).replace(/\s+/g, '').toLowerCase().replace(/^#fff$/, '#ffffff');
     /* Références déjà orphelines AVANT ce chantier (admin.html) : le navigateur y
@@ -268,6 +269,37 @@ function fenetre(opts) {
       const src = fs.readFileSync(path.join(__dirname, '..', page), 'utf8');
       V(page + ' : DM Sans chargée, aucune autre famille de texte', /family=DM\+Sans/.test(src) && !/family=Inter/.test(src) && !/font-family:\s*'Inter'/.test(src));
     }
+  }
+  console.log('\n═══ Mode sombre sur Indispos (décision du responsable, 14/09) ═══');
+  {
+    const theme = fs.readFileSync(path.join(__dirname, '..', 'partage', 'theme.css'), 'utf8');
+    const sombre = (theme.match(/html\[data-theme="dark"\]\s*\{[^}]*\}/) || [''])[0];
+    V('theme.css porte la palette sombre des 10 variables communes (valeurs de l\'accueil)', /--bg:\s*#0B1220/.test(sombre) && /--white:\s*#151D2E/.test(sombre) && /--red:\s*#F4586B/.test(sombre) && /color-scheme:\s*dark/.test(sombre));
+    const src = fs.readFileSync(path.join(__dirname, '..', 'indispos.html'), 'utf8');
+    const css = (src.match(/<style[^>]*>[\s\S]*?<\/style>/g) || []).join('\n');
+    const clair = css.slice(0, css.indexOf('MODE SOMBRE'));
+    V('indispos : plus aucun fond blanc écrit en dur dans les règles claires (surfaces via --white)', !/background:\s*(#fff|white)\b/i.test(clair), (clair.match(/background:\s*(#fff|white)\b/gi) || []).length);
+    V('indispos : bouton 🌗 dans le bandeau, appel du thème en tête ET en fin de page', /id="themeBtn"/.test(src) && (src.match(/^applyTheme\(\);/gm) || []).length >= 1 && /<script>applyTheme\(\);/.test(src));
+    V('indispos : ses fonds de catégories ont une version sombre', /html\[data-theme="dark"\]\s*\{[^}]*--vac:[^}]*--souhait:[^}]*--tpx-garde:/.test(css));
+    const { JSDOM } = require('jsdom');
+    async function indisposEn(pref) {
+      let html = src.replace(/<script src="[^"]*lucide[^"]*"><\/script>/, '').replace(/<script src="version.js"><\/script>/, '');
+      const dom = new JSDOM(html, { runScripts: 'dangerously', pretendToBeVisual: true, url: 'https://planningmedic.github.io/indispos.html',
+        beforeParse(win) {
+          win.matchMedia = () => ({ matches: false, addListener() {}, removeListener() {}, addEventListener() {}, removeEventListener() {} });
+          win.localStorage.setItem('pmTheme', pref);
+          win.fetch = async () => ({ ok: true, status: 200, json: async () => ({ success: false }) });
+          win.eval(fs.readFileSync(path.join(__dirname, '..', 'partage', 'session.js'), 'utf8'));
+          win.eval(fs.readFileSync(path.join(__dirname, '..', 'partage', 'portail.js'), 'utf8'));
+        } });
+      await new Promise(r => setTimeout(r, 300));
+      const w = dom.window;
+      return { theme: w.document.documentElement.dataset.theme, btn: w.document.getElementById('themeBtn').textContent, meta: w.document.querySelector('meta[name="theme-color"]').content };
+    }
+    const d = await indisposEn('dark');
+    V('indispos ouverte en sombre : data-theme=dark, icône 🌙, barre du téléphone sombre', d.theme === 'dark' && d.btn === '🌙' && d.meta === '#0B1220', d);
+    const l = await indisposEn('light');
+    V('indispos ouverte en clair : data-theme=light, icône ☀️, barre rouge', l.theme === 'light' && l.btn === '☀️' && l.meta === '#CE1126', l);
   }
   console.log('\n' + ok + ' OK · ' + ko + ' en échec');
   if (ko) process.exit(1);

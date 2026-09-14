@@ -3,8 +3,12 @@
    Les variables que chaque page redéclarait à l'identique, écrites une fois.
    Une page peut toujours en redéfinir une dans son propre :root (déclaré
    après ce fichier, il a le dernier mot) — c'est ainsi que les nuances
-   propres à une page survivent. Mode sombre : pour l'instant, chaque page
-   qui le propose porte sa palette sombre (décision à prendre pour l'étendre).
+   propres à une page survivent. Mode sombre (14/09/2026, décision du
+   responsable) : la palette sombre des variables communes vit ici, valeurs
+   de l'accueil ; elle ne s'applique qu'aux pages qui posent data-theme, donc
+   à celles qui appellent applyTheme() du socle. L'accueil, le planning et crh
+   gardent leur bloc sombre complet (mêmes valeurs pour ces 11-là, plus les
+   leurs).
    Chargé par <link rel="stylesheet" href="partage/theme.css"> avant <style>. */
 :root {
   --bg: #F8FAFC;
@@ -18,4 +22,18 @@
   --vac-fg: #1D4ED8;
   --white: #FFFFFF;
   --mono: 'DM Mono', monospace;
+}
+
+html[data-theme="dark"] {
+  --bg: #0B1220;
+  --ink: #E7ECF6;
+  --ink-2: #C4CEDF;
+  --ink-3: #8D9AB1;
+  --ink-4: #697891;
+  --line: #28344B;
+  --line-light: #1B2436;
+  --red: #F4586B;
+  --vac-fg: #7BAAF7;
+  --white: #151D2E;
+  color-scheme: dark;
 }

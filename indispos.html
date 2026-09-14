@@ -7,6 +7,7 @@
        l'adresse entre normalement, et se heurte au code personnel. -->
   <meta name="robots" content="noindex, nofollow">
 <meta name="viewport" content="width=device-width,initial-scale=1.0"/>
+<meta name="theme-color" content="#CE1126">   <!-- (14/09/2026) suit le thème via le socle -->
 <title>Indisponibilités — Planning-Med</title>
 <link rel="icon" type="image/svg+xml" href="assets/favicon.svg">
 <link rel="preconnect" href="https://fonts.googleapis.com"/>
@@ -82,7 +83,7 @@ body {
   padding:20px;
 }
 .login-card {
-  background:white;
+  background:var(--white);
   border:1px solid var(--line);
   border-radius:var(--radius);
   padding:32px 28px;
@@ -158,10 +159,10 @@ body {
   align-items:center;justify-content:center;z-index:60;flex-direction:column;gap:14px}
 .reprise-screen img{width:56px;height:56px;border-radius:14px;box-shadow:0 3px 12px rgba(158,12,29,.25)}
 .reprise-txt{font-size:14.5px;color:#475569}
-.reprise-spin{width:22px;height:22px;border:3px solid #E2E8F0;border-top-color:#CE1126;
+.reprise-spin{width:22px;height:22px;border:3px solid var(--line);border-top-color:#CE1126;
   border-radius:50%;animation:reprspin .8s linear infinite}
 @keyframes reprspin{to{transform:rotate(360deg)}}
-.reprise-lien{font-size:12.5px;color:#94A3B8;background:none;border:none;cursor:pointer;
+.reprise-lien{font-size:12.5px;color:var(--ink-4);background:none;border:none;cursor:pointer;
   text-decoration:underline;padding:6px}
 
 /* ── MAIN APP ── */
@@ -177,7 +178,7 @@ body {
   position:sticky; bottom:64px; z-index:80;
   display:flex; gap:6px;
   padding:10px 16px 8px;
-  background:white;
+  background:var(--white);
   border-top:1px solid var(--line);
 }
 .legend-item {
@@ -188,7 +189,7 @@ body {
   padding:12px 4px;
   border-radius:10px;
   border:1.5px solid var(--line);
-  background:#fff;
+  background:var(--white);
   transition:all .15s;
   user-select:none;
   -webkit-tap-highlight-color:transparent;
@@ -207,7 +208,7 @@ body {
   padding:10px 16px;
   font-size:12.5px;
   color:var(--ink-3);
-  background:white;
+  background:var(--white);
   line-height:1.45;
   border-top:1px solid var(--line);
 }
@@ -220,7 +221,7 @@ body {
   align-items:center;
   justify-content:space-between;
   padding:12px 16px;
-  background:white;
+  background:var(--white);
   border-bottom:1px solid var(--line);
   position:sticky;
   top:56px;
@@ -228,7 +229,7 @@ body {
 }
 .month-nav-btn {
   border:1.5px solid var(--line);
-  background:white;
+  background:var(--white);
   border-radius:8px;
   padding:7px 14px;
   font-size:13px;
@@ -285,7 +286,7 @@ body {
   flex-direction:column;
   align-items:center;
   gap:3px;
-  background:white;
+  background:var(--white);
   border-color:var(--line);
   -webkit-tap-highlight-color:transparent;
 }
@@ -349,7 +350,7 @@ body {
   gap: 8px;
   position:fixed;
   bottom:0; left:0; right:0;
-  background:white;
+  background:var(--white);
   border-top:1px solid var(--line);
   padding:12px 16px;
   display:flex;
@@ -388,7 +389,7 @@ body.save-en-cours .legend { pointer-events:none; opacity:.55 }
    jauge — on voit ce qu'il reste à poser, ce qu'aucun chiffre seul ne disait.
    Ce qui n'en a pas se compte, sur une ligne à part. */
 .stats-bar {
-  background:white;
+  background:var(--white);
   border-bottom:1px solid var(--line);
   padding:13px 16px 12px;
 }
@@ -428,7 +429,7 @@ body.save-en-cours .legend { pointer-events:none; opacity:.55 }
 /* ── YEAR OVERVIEW ── */
 .year-btn {
   border:1.5px solid var(--line);
-  background:white;
+  background:var(--white);
   border-radius:8px;
   padding:7px 14px;
   font-size:13px;
@@ -451,7 +452,7 @@ body.save-en-cours .legend { pointer-events:none; opacity:.55 }
   --tpx-reserve-border:#FB923C; --tpx-ferme:#334155; --tpx-ferme-fg:#CBD5E1;
   --tpx-garde:#FEF2F2; --tpx-garde-fg:#B91C1C; --tpx-vac:#EFF6FF; --tpx-vac-fg:#1D4ED8;
 }
-.tpx-phase{background:#fff;border-bottom:1px solid var(--line);padding:14px 16px}
+.tpx-phase{background:var(--white);border-bottom:1px solid var(--line);padding:14px 16px}
 .tpx-phase-title{font-size:14px;font-weight:700;display:flex;align-items:center;gap:7px}
 .tpx-phase-sub{font-size:12.5px;color:var(--ink-3);margin-top:3px;line-height:1.45}
 .tpx-jauge-tete{display:flex;justify-content:space-between;align-items:baseline;margin-bottom:5px}
@@ -459,24 +460,24 @@ body.save-en-cours .legend { pointer-events:none; opacity:.55 }
 .tpx-jauge-val{font-size:12.5px;font-weight:700;color:var(--ink)}
 .tpx-jauge-val span{font-weight:500;color:var(--ink-4)}
 .tpx-jauge-sous{font-size:11px;color:var(--ink-3);margin-top:6px;line-height:1.4}
-.tpx-stats{background:#fff;border-bottom:1px solid var(--line);padding:12px 16px;
+.tpx-stats{background:var(--white);border-bottom:1px solid var(--line);padding:12px 16px;
   display:flex;gap:14px;flex-wrap:wrap;align-items:center}
 .tpx-stat{font-size:12px;font-weight:600;display:flex;align-items:center;gap:4px}
 .tpx-jauge{height:5px;background:var(--bg);border-radius:3px;overflow:hidden;display:flex}
 .tpx-jauge-fill{height:100%;background:var(--tpx-fg);border-radius:3px;transition:width .25s}
-.tpx-legend{position:sticky;bottom:64px;z-index:80;display:flex;gap:6px;padding:10px 16px 8px;background:#fff;border-top:1px solid var(--line)}
+.tpx-legend{position:sticky;bottom:64px;z-index:80;display:flex;gap:6px;padding:10px 16px 8px;background:var(--white);border-top:1px solid var(--line)}
 .tpx-tool{flex:1;text-align:center;font-size:12.5px;font-weight:700;padding:12px 4px;border-radius:10px;cursor:pointer;
   border:1.5px solid transparent;transition:all .12s;user-select:none}
 .tpx-tool.on{border-color:var(--ink);box-shadow:0 0 0 2px rgba(15,23,42,.08)}
 .tpx-tool.t-tp{background:var(--tpx);color:var(--tpx-fg)}
-.tpx-tool.t-erase{background:#fff;color:var(--ink-3);border:1.5px solid var(--line)}
-.tpx-hint{font-size:12.5px;color:var(--ink-3);padding:10px 16px;background:#fff;border-top:1px solid var(--line);line-height:1.45}
+.tpx-tool.t-erase{background:var(--white);color:var(--ink-3);border:1.5px solid var(--line)}
+.tpx-hint{font-size:12.5px;color:var(--ink-3);padding:10px 16px;background:var(--white);border-top:1px solid var(--line);line-height:1.45}
 /* (06/06 → 06/09/2026) La case était haute (62 px) et sa couleur tenait dans un
    badge : le mois débordait de l'écran et l'état d'un jour se lisait au mot, pas
    à la couleur. Elle devient carrée, la couleur remplit, le badge disparaît. */
 .tpx-day{border-radius:8px;padding:2px;aspect-ratio:1;min-height:0;cursor:pointer;transition:all .12s;
   border:1.5px solid var(--line);position:relative;display:flex;flex-direction:column;
-  align-items:center;gap:3px;background:#fff;-webkit-tap-highlight-color:transparent}
+  align-items:center;gap:3px;background:var(--white);-webkit-tap-highlight-color:transparent}
 .tpx-day:active{transform:scale(.95)}
 .tpx-day.empty{background:transparent;border-color:transparent;cursor:default}
 .tpx-day.weekend{background:var(--bg);cursor:default}
@@ -510,15 +511,15 @@ body.save-en-cours .legend { pointer-events:none; opacity:.55 }
 .tpx-day{position:relative}
 .tpx-day.ferme{background:var(--tpx-ferme);border-color:transparent;cursor:default}
 .tpx-day.ferme .tpx-num{color:var(--tpx-ferme-fg)}
-.tpx-day.ferme .tpx-eff{color:#94A3B8}
-.tpx-day.bloque{background:#F1F5F9;border-color:#E2E8F0;cursor:default;opacity:.85}
+.tpx-day.ferme .tpx-eff{color:var(--ink-4)}
+.tpx-day.bloque{background:var(--line-light);border-color:var(--line);cursor:default;opacity:.85}
 .tpx-day.bloque .tpx-num{color:var(--ink-4)}
 .b-tpx-garde{background:var(--tpx-garde);color:var(--tpx-garde-fg)}
 .b-tpx-vac{background:var(--tpx-vac);color:var(--tpx-vac-fg)}
-.b-tpx-tp{background:#fff;color:var(--tpx-fg)}
+.b-tpx-tp{background:var(--white);color:var(--tpx-fg)}
 .b-tpx-recup{background:var(--tpx-libre);color:var(--tpx-libre-fg)}
-.b-tpx-reserve{background:#fff;color:var(--tpx-reserve-fg)}
-.tpx-aide{margin:0 16px 16px;background:#fff;border:1px solid var(--line);border-radius:var(--radius);padding:14px 16px}
+.b-tpx-reserve{background:var(--white);color:var(--tpx-reserve-fg)}
+.tpx-aide{margin:0 16px 16px;background:var(--white);border:1px solid var(--line);border-radius:var(--radius);padding:14px 16px}
 .tpx-aide summary{font-size:12px;color:var(--ink-3);cursor:pointer;font-weight:600}
 .tpx-aide[open] summary{margin-bottom:10px}
 .tpx-aide-row{display:flex;align-items:center;gap:10px;margin-bottom:8px;font-size:12.5px;color:var(--ink-2)}
@@ -526,10 +527,10 @@ body.save-en-cours .legend { pointer-events:none; opacity:.55 }
 .tpx-p-libre{background:var(--tpx-libre);border-color:var(--tpx-libre-border)}
 .tpx-p-pose{background:var(--tpx);border-color:var(--tpx-fg);border-width:2px}
 .tpx-p-plein{background:var(--tpx-plein);border:1.5px dashed var(--tpx-plein-border)}
-.tpx-p-bloque{background:#F1F5F9;border-color:#E2E8F0}
+.tpx-p-bloque{background:var(--line-light);border-color:var(--line)}
 .tpx-p-reserve{background:var(--tpx-reserve);border:2px dashed var(--tpx-reserve-border)}
 .tpx-p-ferme{background:var(--tpx-ferme);border-color:#1E293B}
-.tpx-savebar{position:sticky;bottom:0;background:#fff;border-top:1px solid var(--line);
+.tpx-savebar{position:sticky;bottom:0;background:var(--white);border-top:1px solid var(--line);
   padding:11px 16px;display:flex;align-items:center;gap:12px;z-index:90}
 .tpx-savetxt{font-size:12.5px;color:var(--ink-3);font-weight:600;flex:1;line-height:1.35}
 .tpx-btn-save{background:var(--tpx-fg);color:#fff;border:none;border-radius:10px;padding:11px 20px;
@@ -552,7 +553,7 @@ body.save-en-cours .legend { pointer-events:none; opacity:.55 }
 .tpx-recap-ko .tpx-recap-jours{color:#B91C1C}
 .tpx-sheet-bg{position:fixed;inset:0;background:rgba(15,23,42,.45);z-index:200;display:none}
 .tpx-sheet-bg.show{display:block}
-.tpx-sheet{position:fixed;left:0;right:0;bottom:0;background:#fff;border-radius:16px 16px 0 0;
+.tpx-sheet{position:fixed;left:0;right:0;bottom:0;background:var(--white);border-radius:16px 16px 0 0;
   padding:20px 20px 26px;z-index:201;transform:translateY(100%);transition:transform .22s;
   max-width:520px;margin:0 auto}
 .tpx-sheet.show{transform:translateY(0)}
@@ -567,9 +568,35 @@ body.save-en-cours .legend { pointer-events:none; opacity:.55 }
   background-size:400% 100%;animation:tpxSq 1.3s ease-in-out infinite}
 @keyframes tpxSq{0%{background-position:100% 50%}100%{background-position:0 50%}}
 @media(prefers-reduced-motion:reduce){.tpx-sq-bloc,.tpx-sq-jour{animation:none}}
-.tpx-ferme-msg{margin:24px 16px;background:#fff;border:1px solid var(--line);border-radius:var(--radius);
+.tpx-ferme-msg{margin:24px 16px;background:var(--white);border:1px solid var(--line);border-radius:var(--radius);
   padding:22px 20px;font-size:13.5px;line-height:1.6;color:var(--ink-2);text-align:center}
 @media(max-width:420px){ .tpx-day{min-height:56px} }
+
+/* ── (14/09/2026) MODE SOMBRE — décision du responsable. Les 11 variables
+   communes viennent de partage/theme.css ; ici, ce qui est propre à la page :
+   les fonds pastel des catégories et de la pose de temps partiel, et trois
+   états du calendrier écrits en dur. Le mode clair est inchangé. ── */
+.theme-btn{width:34px;height:34px;border:1px solid rgba(255,255,255,.45);background:rgba(255,255,255,.12);color:#fff;border-radius:10px;cursor:pointer;font-size:15px;line-height:1;flex-shrink:0;margin-left:8px}
+html[data-theme="dark"] {
+  --vac:#152341;    --vac-border:#2B4763;
+  --form:#251B3C;   --form-fg:#B593F2;    --form-border:#3B2E5C;
+  --indispo:#1B2436;--indispo-fg:#8D9AB1; --indispo-border:#28344B;
+  --souhait:#122A1D;--souhait-fg:#5BD08B; --souhait-border:#1F4D2E;
+  --tpx:#251B3C; --tpx-fg:#B593F2; --tpx-libre:#122A1D; --tpx-libre-fg:#5BD08B; --tpx-libre-border:#1F4D2E;
+  --tpx-plein:#38290F; --tpx-plein-fg:#F0A64A; --tpx-reserve:#3A2412; --tpx-reserve-fg:#F0A64A;
+  --tpx-garde:#3A1620; --tpx-garde-fg:#F27D96; --tpx-vac:#152341; --tpx-vac-fg:#7BAAF7;
+}
+html[data-theme="dark"] .cal-day.conflit { background:#4A2A10 !important; }
+html[data-theme="dark"] .cal-day.conflit .cal-day-num { color:#F0A64A; }
+html[data-theme="dark"] .cal-day.sature { background:#38290F !important; }
+html[data-theme="dark"] .cal-day.sature .cal-day-num { color:#F0A64A; }
+html[data-theme="dark"] .tpx-recap-ko { background:#3A1620; border-color:#5A2430; }
+html[data-theme="dark"] .tpx-recap-ko .tpx-recap-titre, html[data-theme="dark"] .tpx-recap-ko .tpx-recap-jours { color:#F27D96; }
+html[data-theme="dark"] .tool-hint.refus { color:#F27D96; }
+html[data-theme="dark"] .tool-hint.ok { color:#5BD08B; }
+html[data-theme="dark"] .tpx-day.libre .tpx-eff { color:#5BD08B; }
+html[data-theme="dark"] .reprise-screen { background:var(--bg); }
+html[data-theme="dark"] .tpx-sq-bloc, html[data-theme="dark"] .tpx-sq-jour { background:linear-gradient(90deg,var(--line-light) 25%,var(--bg) 37%,var(--line-light) 63%); }
 </style>
 </head>
 <body>
@@ -581,6 +608,7 @@ body.save-en-cours .legend { pointer-events:none; opacity:.55 }
     <span class="header-title">Mes indisponibilités</span>
   </div>
   <span class="header-user" id="headerUser"></span>
+  <button class="theme-btn" id="themeBtn" onclick="cycleTheme()" title="Thème" aria-label="Thème">🌗</button>
 </header>
 
 <!-- LOGIN -->
@@ -750,7 +778,8 @@ body.save-en-cours .legend { pointer-events:none; opacity:.55 }
 <div class="toast" id="toast"></div>
 
 <script src="partage/session.js"></script>
-<script src="partage/portail.js"></script>   <!-- (14/09/2026) socle commun : MIROIR_URL, miroirRead -->   <!-- (17/08/2026) source unique : où vit le code d'accès, et 30 jours glissants -->
+<script src="partage/portail.js"></script>   <!-- (14/09/2026) socle commun : MIROIR_URL, miroirRead -->
+<script>applyTheme();   /* (14/09/2026) mode sombre : le fond juste, avant tout rendu (le bouton, plus bas dans la page, est mis à jour par le second appel en fin de script) */</script>   <!-- (17/08/2026) source unique : où vit le code d'accès, et 30 jours glissants -->
 <script>/* FALLBACK_SESSION — filet (17/08/2026). Si partage/session.js ne se charge pas
 (réseau, cache), les pages l'appelleraient dans le vide et NE S'OUVRIRAIENT PLUS : le MAR ne
 pourrait même plus taper son code. On retombe alors sur le comportement d'avant — le code vit
@@ -2362,6 +2391,7 @@ function tpxFermerRecap() {
   document.getElementById('tpxSheetBg').classList.remove('show');
   document.getElementById('tpxSheet').classList.remove('show');
 }
+applyTheme();   /* (14/09/2026) second appel : le bouton 🌗 existe maintenant, son icône suit le réglage */
 </script>
 </body>
 </html>
