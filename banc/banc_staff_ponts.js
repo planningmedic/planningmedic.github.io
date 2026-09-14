@@ -578,30 +578,20 @@ console.log('\n═══ 10. staff.html · les vues par mois respectent l\'anné
    Les valeurs ci-dessous sont celles relevées dans CONFIG_CONGES le 03/09.
    Ce scénario ne prouve pas que le classeur n'a pas rebougé depuis — il fige
    ce qui a été constaté, pour qu'une régression se voie. */
-console.log('\n═══ Quotas de congés : staff.html suit CONFIG_CONGES ═══');
+console.log('\n═══ Quotas de congés : staff.html n\'a PLUS de table, le serveur les envoie ═══');
 {
-  const ctx = vm.createContext({ Math, Object, Number, console });
+  /* (14/09/2026 — chantier 11) La table figée — fausse quatre fois — a disparu de
+     la page. Ce qui reste à vérifier ici : qu'aucune valeur de quota n'est écrite
+     dans staff.html, et que sans table reçue la page affiche 0 et le dit, plutôt
+     qu'un chiffre inventé. Le comportement avec la table du serveur est couvert
+     par banc_quotas_serveur.js. */
+  V('aucune table de quotas dans la page', !/QUOTAS_REPLI|const QUOTAS=|100:37|90:33/.test(src));
+  const ctx = vm.createContext({ Math, Object, Number, String, console });
   ctx.globalThis = ctx;
-  /* Les deux déclarations sont `const` : évaluées dans deux scripts séparés
-     elles resteraient invisibles l'une de l'autre et du banc. Un seul script,
-     et on expose la fonction. */
-  /* (14/09/2026 — chantier 11) La table de staff.html n'est plus une source mais
-     un REPLI (QUOTAS_REPLI), servi tant que le serveur n'envoie pas quotasConges.
-     Ce scénario fige les valeurs du repli ; banc_quotas_serveur.js vérifie que la
-     table du serveur, quand elle arrive, prend le dessus. getQuota est un bloc
-     multi-lignes : on le coupe sur son « }; » de fin, pas au premier « ; ». */
-  const debut = src.indexOf('const QUOTAS_REPLI='), fin = src.indexOf('};', src.indexOf('const getQuota=')) + 2;
+  const debut = src.indexOf('let QUOTAS_SERVEUR=null;'), fin = src.indexOf('\n};', src.indexOf('const getQuota=')) + 3;
   vm.runInContext(src.slice(debut, fin) + '\nglobalThis.gq = getQuota;', ctx);
-  const attenduVac = { 100: 37, 90: 33, 80: 30, 60: 22, 50: 18 };
-  const attenduForm = { 100: 10, 90: 9, 80: 8, 60: 6, 50: 5 };
-  Object.keys(attenduVac).forEach(q =>
-    V('VAC à ' + q + ' % : ' + attenduVac[q] + ' jours',
-      ctx.gq('VAC', Number(q)) === attenduVac[q], ctx.gq('VAC', Number(q))));
-  Object.keys(attenduForm).forEach(q =>
-    V('FORM à ' + q + ' % : ' + attenduForm[q] + ' jours',
-      ctx.gq('FORM', Number(q)) === attenduForm[q], ctx.gq('FORM', Number(q))));
-  V('un temps plein n\'affiche plus l\'ancien 33', ctx.gq('VAC', 100) !== 33);
-  V('une quotité décimale est arrondie au palier', ctx.gq('VAC', 89.6) === 33, ctx.gq('VAC', 89.6));
+  V('sans table reçue : 0, jamais un chiffre inventé', ctx.gq('VAC', 100) === 0 && ctx.gq('FORM', 80) === 0);
+  V('…et la page le signale (toast)', /showToast\('Quotas de congés non reçus/.test(src));
 }
 
 console.log(`\n${ok} OK · ${ko} en échec`);
