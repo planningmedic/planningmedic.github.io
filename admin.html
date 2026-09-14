@@ -5623,6 +5623,12 @@ async function loadStats(year, force){
 /* Profils « souhaits garantis » (souhait_plafond / jours fixes) : leurs jours
    choisis SONT leur cible. Repérés ici une fois pour toutes — les barres s'en
    servent pour l'échelle, le certificat pour les exclure du verdict. */
+/* (14/09/2026) Le test des CARTES : souhaits garantis seulement, comme
+   _souhaitsGarantisId côté planning. */
+function estSouhaitPlafond(name){
+  const x=(typeof marsData!=='undefined'?marsData:[]).find(d=>d.initiales===name||d.nom===name||d.id===name);
+  return !!(x&&x.souhaitPlafond);
+}
 function estSouhaitsGarantis(name){
   const x=(typeof marsData!=='undefined'?marsData:[]).find(d=>d.initiales===name||d.nom===name||d.id===name);
   return !!(x&&(x.souhaitPlafond||x.tpJoursFixes));
@@ -5818,11 +5824,17 @@ function recupsVersStatuts(id){
 
 function renderStats(stats){
   if(!stats||!stats.length){document.getElementById('gardesEmpty').style.display='block';document.getElementById('statsCard').style.display='none';return;}
-  const list = stats.map(s=>({
+  /* (14/09/2026) MÊME LISTE QUE LE PORTAIL MAR (planning.html) : un MAR sans
+     aucune garde n'a rien à faire dans l'équité (filtre total>0), et l'étiquette
+     « souhaits » ne désigne que les souhaits garantis (SOUHAITS_PLAFOND) — pas
+     le temps partiel à jours fixes, qui a une cible comme les autres. Vu en
+     production le jour où le comité a reçu la version commune des cartes. Le
+     certificat garde son propre test (estSouhaitsGarantis), inchangé. */
+  const list = stats.filter(s=>(+s.total||0)>0).map(s=>({
     name:s.medecin, total:s.total||0, cTot:s.cible||0,
     lu:s.lun||0, ma:s.mar||0, me:s.mer||0, je:s.jeu||0, sa:s.sat||0, vd:s.vd||0, jf:s.jf||0, vjf:s.vjf||0,
     cSa:s.cSat||0, cJe:s.cJeu||0, cVd:s.cVd||0, cVjf:s.cVjf||0, cJf:s.cJf||0,
-    wish:estSouhaitsGarantis(s.medecin),
+    wish:estSouhaitPlafond(s.medecin),
   }));
   /* (05/09/2026) Les cartes sont repliables : d'un rendu à l'autre le nombre de
    lignes change, donc morphGrid ne peut plus rapprocher les deux structures. Il

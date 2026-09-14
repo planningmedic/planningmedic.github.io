@@ -62,5 +62,19 @@ for (const page of ['admin.html', 'planning.html']) {
     src.indexOf('partage/rendu_equite.js') > src.indexOf('partage/portail.js') && !/\nfunction (renderEquiteCards|ciblesEquite|eqVerdict)\b/.test(src));
   V(page + ' : chaque appel passe ses options (ouverts, sombre, neutre, axes)', (src.match(/renderEquiteCards\(/g) || []).length === (src.match(/renderEquiteCards\([^;]*?ouverts:/g) || []).length);
 }
+console.log('\n═══ Le comité et le MAR construisent la MÊME liste (production, 14/09 19h) ═══');
+/* Premier écran du comité avec les cartes communes : un MAR à zéro garde y
+   figurait (le portail MAR les filtre), et un temps partiel à jours fixes
+   portait l'étiquette « souhaits » (le portail ne la donne qu'aux souhaits
+   garantis). Deux lecteurs d'une même donnée qui ne construisent pas la même
+   liste : le défaut de toujours, corrigé à la source. */
+{
+  const A = fs.readFileSync(path.join(__dirname, '..', 'admin.html'), 'utf8');
+  const P = fs.readFileSync(path.join(__dirname, '..', 'planning.html'), 'utf8');
+  V('comité : un MAR sans aucune garde ne reçoit pas de carte (filtre total>0, comme le portail)', /const list = stats\.filter\(s=>\(\+s\.total\|\|0\)>0\)\.map/.test(A) && /DATA\.equiteInitiale\.filter\(e=>e\.total>0\)/.test(P));
+  V('comité : l\'étiquette « souhaits » ne vise que les souhaits garantis, pas le temps partiel à jours fixes', /wish:estSouhaitPlafond\(s\.medecin\)/.test(A) && /return !!\(x&&x\.souhaitPlafond\);/.test(A));
+  V('portail : même définition (SOUHAITS_PLAFOND)', /const _souhaitsGarantisId = id => SOUHAITS_PLAFOND\.indexOf\(id\) > -1;/.test(P));
+  V('le certificat du comité garde son test propre, inchangé', /const _spec = name => estSouhaitsGarantis\(name\);/.test(A) && /function estSouhaitsGarantis\(name\)\{/.test(A));
+}
 console.log('\n' + ok + ' OK · ' + ko + ' en échec');
 if (ko) process.exit(1);
