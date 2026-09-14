@@ -17,7 +17,8 @@
 <meta name="apple-mobile-web-app-title" content="Planning-Med">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@300;400;500;600;700&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
-<script src="partage/session.js"></script>   <!-- (17/08/2026) source unique : où vit le code d'accès, et 30 jours glissants -->
+<script src="partage/session.js"></script>
+<script src="partage/portail.js"></script>   <!-- (14/09/2026) socle commun : MIROIR_URL, miroirRead -->   <!-- (17/08/2026) source unique : où vit le code d'accès, et 30 jours glissants -->
 <script>/* FALLBACK_SESSION — filet (17/08/2026). Si partage/session.js ne se charge pas
 (réseau, cache), les pages l'appelleraient dans le vide et NE S'OUVRIRAIENT PLUS : le MAR ne
 pourrait même plus taper son code. On retombe alors sur le comportement d'avant — le code vit
@@ -1047,30 +1048,13 @@ async function _apiPostFilet(payload) {
    FRAICHEUR : le stockage Cloudflare propage en ~60 s au plus. La donnee
    servie peut donc avoir jusqu'a une minute de retard sur une ecriture du
    comite — assume (voir guide technique, section Miroir). */
-const MIROIR_URL = 'https://miroir.planningmedic.workers.dev';
+/* (14/09/2026) MIROIR_URL et miroirRead viennent du socle partage/portail.js
+   (chargé en tête de page). Plus de copie locale ici. _MIROIR_PRE reste : c'est
+   à la page, pas au socle (le 14/09 au soir, l'avoir emporté avec la copie a
+   cassé la reprise de session en production — scénario 'planning : reprise par
+   le miroir' du banc depuis). */
 const _MIROIR_PRE = { annees: null, secteurs: null };   // livre par miroirBoot(), consomme par init()/loadSecteurs()
 
-async function miroirRead(keys) {
-  const _dep = Math.round(performance.now()), _t0 = Date.now();
-  const _ctrl = new AbortController();
-  const _timer = setTimeout(() => _ctrl.abort(), 6000);   // 6 s : au-dela, le GAS fera mieux
-  try {
-    const res = await fetch(MIROIR_URL + '/read', {
-      method: 'POST',
-      headers: { 'Content-Type': 'text/plain;charset=utf-8' },   // requete « simple » : pas de preambule CORS
-      body: JSON.stringify({ code: VIEW_CODE, keys }),
-      signal: _ctrl.signal,
-    });
-    const rep = await res.json();
-    try { if (window.PERF) PERF.appel('miroir:' + keys.join('+'), Date.now() - _t0, null, _dep,
-                                      rep && rep.success ? 'ok' : 'ECHEC — ' + ((rep && rep.error) || 'HTTP ' + res.status)); } catch (_e) {}
-    return rep;
-  } catch (e) {
-    try { if (window.PERF) PERF.appel('miroir:' + keys.join('+'), Date.now() - _t0, null, _dep,
-                                      'ECHEC — ' + (e && e.message)); } catch (_e) {}
-    return null;   // toute panne de transport → le repli GAS decide
-  } finally { clearTimeout(_timer); }
-}
 
 /* Ouverture par le miroir : UN aller-retour qui authentifie et livre annees
    + secteurs + planning + affectations. Renvoie true si la page est partie

@@ -112,6 +112,49 @@ function fenetre(opts) {
     V('plus de miroirRead locale ni de const MIROIR_URL', !/function miroirRead\(/.test(page) && !/const MIROIR_URL/.test(page));
     V('ses 6 lectures du miroir sont intactes', (page.match(/miroirRead\(/g) || []).length === 6, (page.match(/miroirRead\(/g) || []).length);
   }
+  console.log('\n═══ Reprise de session PAR LE MIROIR, jusqu\'au bout (défaut de production du 14/09) ═══');
+  /* Le 14/09 au soir, planning.html poussée avec le socle redemandait le code :
+     la copie locale avait emporté `const _MIROIR_PRE` en partant. Le miroir
+     répondait, puis la page plantait juste après et croyait la connexion
+     ratée. Compter les appels ne suffit pas : on rejoue la reprise ENTIÈRE
+     dans un navigateur simulé — app installée, code mémorisé, miroir qui
+     répond — et l'écran de code doit rester fermé. */
+  {
+    const { JSDOM } = require('jsdom');
+    async function reprise(page) {
+      let html = fs.readFileSync(path.join(__dirname, '..', page), 'utf8')
+        .replace(/<script src="[^"]*lucide[^"]*"><\/script>/, '').replace(/<script src="version.js"><\/script>/, '');
+      const appels = [], erreurs = [];
+      const dom = new JSDOM(html, { runScripts: 'dangerously', pretendToBeVisual: true, url: 'https://planningmedic.github.io/' + page,
+        beforeParse(win) {
+          win.matchMedia = () => ({ matches: true, addListener() {}, removeListener() {}, addEventListener() {}, removeEventListener() {} });
+          win.Element.prototype.scrollIntoView = function () {};
+          win.sessionStorage.setItem('pmViewCode', 'CODE1234');
+          win.fetch = async (url, o) => {
+            let body = null; try { body = JSON.parse(o.body); } catch (e) {}
+            appels.push({ url: String(url), code: body && body.code, action: body && body.action });
+            const Y = new Date().getFullYear();
+            const data = { annees: { active: Y, annees: [Y] }, secteurs: [], config_admin: { medecins: [] } };
+            data['planning_' + Y] = { ok: 1 }; data['affectations_' + Y] = { affectations: {} };
+            data['indispos_' + Y] = { medecins: [], dates: [], data: {} }; data['indispos_' + (Y + 1)] = { medecins: [], dates: [], data: {} };
+            return { ok: true, status: 200, json: async () => ({ success: true, data, identite: { id: 'X', name: 'X', isAdmin: false } }) };
+          };
+          win.eval(fs.readFileSync(path.join(__dirname, '..', 'partage', 'session.js'), 'utf8'));
+          win.eval(fs.readFileSync(path.join(__dirname, '..', 'partage', 'portail.js'), 'utf8'));
+          win.addEventListener('error', e => erreurs.push(String(e.message)));
+        } });
+      await new Promise(r => setTimeout(r, 600));
+      const w = dom.window;
+      const overlay = w.document.getElementById('viewAuthOverlay') || w.document.getElementById('loginScreen');
+      const visible = overlay ? (overlay.style.display !== 'none' && w.getComputedStyle(overlay).display !== 'none') : null;
+      return { appels, erreurs, visible, overlayTrouve: !!overlay };
+    }
+    const rp = await reprise('planning.html');
+    V('planning : le miroir est interrogé avec le code mémorisé', rp.appels.some(a => /workers\.dev\/read/.test(a.url) && a.code === 'CODE1234'), rp.appels);
+    V('planning : aucune erreur de script pendant la reprise', rp.erreurs.length === 0, rp.erreurs);
+    V('planning : l\'écran de code reste fermé (la page s\'ouvre sans ressaisie)', rp.overlayTrouve && rp.visible === false, rp);
+    V('planning : le serveur n\'est pas réveillé quand le miroir répond', !rp.appels.some(a => /script\.google/.test(a.url)), rp.appels.map(a => a.url));
+  }
   console.log('\n' + ok + ' OK · ' + ko + ' en échec');
   if (ko) process.exit(1);
 })();
