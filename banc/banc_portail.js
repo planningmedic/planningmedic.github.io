@@ -262,6 +262,13 @@ function fenetre(opts) {
       V(page + ' : toute variable utilisée est définie (socle ou page)', manque.length === 0, manque);
     }
   }
+  console.log('\n═══ Une seule police : DM Sans partout (décision du responsable, 14/09) ═══');
+  {
+    for (const page of ['index.html', 'planning.html', 'indispos.html', 'absences.html', 'suivi-liberal.html', 'staff.html', 'admin.html', 'crh.html']) {
+      const src = fs.readFileSync(path.join(__dirname, '..', page), 'utf8');
+      V(page + ' : DM Sans chargée, aucune autre famille de texte', /family=DM\+Sans/.test(src) && !/family=Inter/.test(src) && !/font-family:\s*'Inter'/.test(src));
+    }
+  }
   console.log('\n' + ok + ' OK · ' + ko + ' en échec');
   if (ko) process.exit(1);
 })();
