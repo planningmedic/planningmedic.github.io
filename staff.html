@@ -209,6 +209,7 @@ body{font-family:'DM Sans',system-ui,sans-serif;background:var(--bg);color:var(-
 </div>
 <div class="toast" id="toast"></div>
 
+<script src="partage/portail.js"></script>   <!-- (14/09/2026) socle commun : MIROIR_URL, miroirRead -->
 <script>
 const API='https://script.google.com/macros/s/AKfycbxDbTnhgdjCNBqkeAblZWgS3CK-IptjJoRDQd1AtGF7WQoQkXriWGvISIo7LJG8zUtjTQ/exec';
 let adminCode='',currentYear=2027,periodes=[],medecins=[],saisies={},locked={};
@@ -301,22 +302,9 @@ async function apiCall(payload,overrideCode){
    Meme mecanisme que les autres pages. Cles utilisees : config_admin
    (medecins), indispos_{Y} (admin = toutes), vacances_admin (lot B : tant
    que le Worker .4 n'est pas deploye, la cle est refusee et la page repasse
-   par getVacancesConfig — repli par construction). Tout ecart → login GAS. */
-const MIROIR_URL = 'https://miroir.planningmedic.workers.dev';
-
-async function miroirRead(keys, codeAcces) {
-  const _ctrl = new AbortController();
-  const _timer = setTimeout(() => _ctrl.abort(), 6000);
-  try {
-    const res = await fetch(MIROIR_URL + '/read', {
-      method: 'POST',
-      headers: { 'Content-Type': 'text/plain;charset=utf-8' },
-      body: JSON.stringify({ code: codeAcces, keys }),
-      signal: _ctrl.signal,
-    });
-    return await res.json();
-  } catch (e) { return null; } finally { clearTimeout(_timer); }
-}
+   par getVacancesConfig — repli par construction). Tout ecart → login GAS.
+   (14/09/2026) MIROIR_URL et miroirRead viennent du socle partage/portail.js,
+   chargé en tête de page : plus de copie locale ici. */
 
 /* Identite + medecins + indispos de l'annee de campagne, en un aller-retour
    dans le cas courant (les deux annees plausibles demandees d'emblee). */

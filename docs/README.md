@@ -55,6 +55,9 @@ Système web de gestion pour le service d'anesthésie-réanimation du **un servi
 **Le dépôt fait foi à 100 %** : toute modif d'un `.gs` doit exister ici, puis être recopiée dans l'éditeur Apps Script **et redéployée** (sinon perdue à la prochaine recopie, ou sans effet).
 ⚠️ `portail.gs` porte le portail, **tout le module libéral**, la veille et la configuration des secteurs. `Indispos.gs` porte le routeur d'API, le contrôle d'absence et le verrou d'écriture.
 
+### partage/ — ce que les pages ont en commun, écrit une fois
+`session.js` (où vit le code d'accès), `dispo_jour.js` (tri des disponibles, même source que le serveur), `portail.js` (14/09/2026 : adresse du miroir et `miroirRead` unique — les pages le rejoignent une par une, `staff.html` la première). Chargés par `<script src>` ; le banc les exécute tels quels.
+
 ### simulateur/ — banc d'essai de l'algorithme de gardes
 Scripts Node (scénarios, harness, analyses) + expériences. Campagne de référence : **400 années simulées** (20 scénarios × 20 ans).
 
