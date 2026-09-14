@@ -41,7 +41,7 @@
 // ⚠️ RÈGLE (détecteur de dérive dépôt↔Apps Script) : incrémenter cette version
 // à CHAQUE push de ce fichier. Le diagnostic (admin → Maintenance) compare la
 // version déployée ici avec celle du dépôt et signale toute recopie oubliée.
-const GAS_VERSION_GENERATEUR = '2026-09-11.3';
+const GAS_VERSION_GENERATEUR = '2026-09-13.1';
 
 /* (05/09/2026) INTERRUPTEUR DU NOUVEL ALGORITHME.
    À false, le générateur se comporte EXACTEMENT comme avant : c'est le retour
@@ -77,7 +77,30 @@ const MULTI_DEPART_SEUIL = 1;   // écart, en gardes, qui suffit à s'arrêter
 const LEX_SEUIL = 1;
 const LEX_POIDS = 600;
 
-const ARCHIVE_SS_ID = '1U66COnb0IvTvHMy-NOyy3KiLhpwuem3ffgbiw5Bs8Ag';
+/* (13/09/2026) L'identifiant du classeur d'archive ne vit plus dans le dépôt
+   public : il se lit dans l'onglet CONFIG, ligne ARCHIVE_DRIVE_ID — qui
+   existait déjà, documentée comme « inerte », et que le code ignorait. Lecture PARESSEUSE (au premier usage, puis
+   mémorisée) et non au chargement : les fichiers Apps Script s'initialisent
+   dans un ordre non garanti, et lire CONFIG au chargement pouvait tomber avant
+   que code.gs soit prêt. Les huit appelants `openById(ARCHIVE_SS_ID)` sont
+   inchangés ; les stubs du banc qui posent ARCHIVE_SS_ID eux-mêmes aussi. */
+let _archiveSsIdMemo_ = null;
+Object.defineProperty(globalThis, 'ARCHIVE_SS_ID', {
+  configurable: true,
+  get: function () {
+    if (_archiveSsIdMemo_) return _archiveSsIdMemo_;
+    try {
+      const rows = _configRows_();
+      for (let r = 1; r < rows.length; r++) {
+        if (String(rows[r][0]).trim() === 'ARCHIVE_DRIVE_ID') {
+          _archiveSsIdMemo_ = String(rows[r][1]).trim();
+          return _archiveSsIdMemo_;
+        }
+      }
+    } catch (e) { /* CONFIG illisible ou code.gs absent (banc) : '' ci-dessous */ }
+    return '';
+  }
+});
 // Dette inter-annuelle : STATS_GARDES_2026 sont des stats MANUELLES (échanges/dons)
 // → inexploitables. La dette ne lit qu'à partir de cette année (2027 = 1re année
 // générée proprement par l'algo). 2027 part donc en dette NEUTRE ; 1re vraie dette = 2028.
@@ -2743,6 +2766,7 @@ function generateGardes(year, opts){
 // Sûr : copie → vérifie → supprime. À tester en isolé AVANT de câbler en W3.
 function archiveMoveTabs_(year) {
   const master = SpreadsheetApp.getActiveSpreadsheet();
+  if (!ARCHIVE_SS_ID) throw new Error('ARCHIVE_DRIVE_ID absent de l\'onglet CONFIG : archivage impossible');
   const arch   = SpreadsheetApp.openById(ARCHIVE_SS_ID);
   const noms = ['GARDES_'+year, 'INDISPOS_'+year, 'STATS_GARDES_'+year, 'AFFECTATIONS_'+year, 'LIENS_R_'+year]; // (13/08/2026) LIENS_R suit le même cycle de vie annuel
   const rapport = [];

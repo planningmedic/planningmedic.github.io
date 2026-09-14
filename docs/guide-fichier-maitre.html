@@ -244,11 +244,11 @@ code — toute autre ligne est ignorée.</p>
 </table>
 
 <div class="callout warn">
-  <div class="ct">Une ligne qui ne sert à rien</div>
-  <p><span class="tag">ARCHIVE_DRIVE_ID</span> figure dans l'onglet mais <strong>n'est lue par aucune ligne
-  de code</strong> — vérification exhaustive sur les 66 fichiers du dépôt, le 3 août 2026. L'identifiant
-  réellement utilisé est écrit en dur dans <span class="tag">generateur_gardes.gs</span>
-  (<span class="tag">ARCHIVE_SS_ID</span>).</p>
+  <div class="ct">Le classeur d'archives</div>
+  <p><span class="tag">ARCHIVE_DRIVE_ID</span> : identifiant du classeur d'archives (la partie de son adresse
+  Drive entre <code>/d/</code> et <code>/edit</code>). <strong>Depuis le 14 septembre 2026, c'est la seule
+  source</strong> : l'identifiant n'est plus écrit dans le code. Ligne absente = archives introuvables,
+  les années clôturées disparaissent des sélecteurs et l'archivage refuse.</p>
   <p>Les deux valeurs coïncident aujourd'hui. Le piège est pour plus tard : modifier la ligne de CONFIG
   ne changera rien, sans le moindre message d'erreur, et l'archivage continuera d'écrire dans l'ancien
   classeur.</p>

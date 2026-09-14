@@ -2262,8 +2262,8 @@ en pleine largeur dans son attribut de style, mais une règle plus bas dans la f
 transforme en tiroir flottant — lire la feuille de style, pas seulement l'attribut ; et la fonction
 de formatage de dates renvoie le <i>texte</i> « undefined » (et non du vide) quand on l'appelle sans
 valeur — les valeurs par défaut ne se déclenchent alors jamais.</li>
-<li><b>Un réglage inerte</b> : la ligne ARCHIVE_DRIVE_ID de l'onglet CONFIG n'est lue par aucun
-code — documenté pour éviter de chercher.</li>
+<li><b>ARCHIVE_DRIVE_ID</b> (CONFIG) : longtemps inerte, c'est depuis le 14/09/2026 la seule source
+de l'identifiant du classeur d'archives — lu au premier usage par <code>generateur_gardes.gs</code>.</li>
 <li><b>Les échéances du calendrier</b> : renouveler le jeton GitHub avant la mi-octobre 2026 ;
 régénérer l'index des tarifs vers mars 2027 ; et après la démonstration du 4 septembre, dérouler le
 nettoyage (onglets 2027 de test, fichiers de test du Drive, réglages de campagne et d'adresse de
