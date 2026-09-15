@@ -71,9 +71,16 @@ pas un doublon, c'est ce que chaque page charge après le code.
 **14/09/2026, soir — le lot serveur est déployé** (recopie unique des 7 `.gs`, confirmée au
 Diagnostic) : fonctions de test hors production (`dev.gs`, jamais recopié), MEDECINS lu une fois
 par requête avec des colonnes nommées (`COL_MED`, `code.gs`), quotas de congés servis par le serveur
-— staff.html n'a plus de table. Restent du plan : le découpage d'`Indispos.gs` (9 — carte des sept
-fichiers et contrat des 64 actions figés le 14/09, voir ROADMAP : **c'est par là que la prochaine
-session commence**) et les commentaires-journal vers la doc (10). Le 12 est en place par construction.
+— staff.html n'a plus de table. **15/09/2026, matin — Indispos.gs est découpé et le routeur est une table.** Six fichiers serveur au
+lieu d'un : `Indispos.gs` (792 lignes : doGet/doPost, checkCode, la table `_actions_()` des 64
+actions avec leur rôle, le routeur qui l'applique) et cinq fichiers métier (`gardes.gs`,
+`indisponibilites.gs`, `temps_partiel.gs`, `equipe.gs`, `diagnostic.gs`) où chaque action est une
+fonction `_act_<nom>(R)`, corps inchangé. Recopié et confirmé au Diagnostic. Du plan des 12 étapes
+il ne reste que la 10 (commentaires-journal vers la doc), sans urgence. Le 12 est en place par
+construction.
+**Pour lire le serveur désormais :** une action → sa ligne dans `_actions_()` (Indispos.gs) → sa
+fonction `_act_<nom>` dans le fichier métier. Le banc (`banc_contrat_routeur.js`) refuse toute action
+ajoutée, retirée, ou dont le rôle déclaré ne correspondrait plus au corps.
 ⚠️ Le jeton GitHub expire début octobre 2026 : à renouveler dans CONFIG et dans les instructions du
 projet.
 🔴 **L'erreur de méthode du jour :** en retirant la copie locale de planning.html, une ligne voisine

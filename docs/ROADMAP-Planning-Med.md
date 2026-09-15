@@ -9,7 +9,7 @@ l'établissement et 77 noms de praticiens sur une page publique sans code d'acc�
 **Dépôt** `planningmedic/planningmedic.github.io`, branche `main` · **Site v1.12.6** ·
 **Portail** https://planningmedic.github.io ·
 **GAS** (relevé dans le dépôt le 10/09/2026) `code.gs` **2026-09-08.2** ·
-`Indispos.gs` **2026-09-14.3** · `generateur_gardes.gs` **2026-09-14.2** · `code.gs`, `portail.gs` **2026-09-14.2** · `miroir.gs` **2026-09-14.3** · `setup_annee.gs`, `veille.gs` **2026-09-14.1** — **tous recopiés et confirmés au Diagnostic le 14/09 à 21h55** ·
+`Indispos.gs`, `gardes.gs`, `indisponibilites.gs`, `temps_partiel.gs`, `equipe.gs`, `diagnostic.gs` **2026-09-15.2** · `generateur_gardes.gs`, `code.gs`, `portail.gs` **2026-09-14.2** · `miroir.gs` **2026-09-14.3** · `setup_annee.gs`, `veille.gs` **2026-09-14.1** — **tous recopiés et confirmés au Diagnostic le 15/09 à 10h14** ·
 (deux fichiers sous le même numéro : deux lots distincts du 10/09, au soir et en soirée) ·
 `portail.gs` **2026-09-08.1** · `miroir.gs` **2026-09-08.2** ·
 `journal.gs` 2026-08-27.1 · `echanges.gs` **2026-09-08.1** · `veille.gs` 2026-08-27.1 ·
@@ -155,8 +155,8 @@ aux DEUX endroits — ligne GITHUB_TOKEN de CONFIG et §3 des instructions du pr
    qui écrivent dans MEDECINS gardent leur lecture directe et périment le memo. Le banc compare
    `COL_MED` à l'en-tête réel (`banc_medecins_memo.js`) et son stub (`socleMedecins`) fournit le vrai
    code aux scénarios qui extraient une fonction. CONFIG a déjà son memo (`_configRows_`).
-9. Découpage d'`Indispos.gs` par sujet + routeur en table `action → rôle → fonction`. Logique
-   déplacée, jamais modifiée. **Carte posée le 14/09 au soir, à ouvrir en session propre.**
+9. ~~Découpage d'`Indispos.gs` par sujet + routeur en table~~ — **FAIT le 15/09, les deux étapes recopiées
+   et confirmées au Diagnostic (10h14 : 15 fichiers à jour, tout ✅). Étape 3 (nettoyage) sans objet.**
    État mesuré : 6 554 lignes, 89 fonctions, `_routeRequete_` = 2 756 lignes et 64 actions (48 admin,
    14 tout code valide, 2 conditionnelles — getIndispos/saveIndispos —, 2 sans code : les listes
    d'années). **Sept fichiers cibles, Indispos.gs disparaît :**
