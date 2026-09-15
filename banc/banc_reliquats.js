@@ -15,7 +15,7 @@ const fs = require('fs'), vm = require('vm'), path = require('path');
 let ok = 0, ko = 0;
 const V = (t, c, d) => { if (c) { ok++; console.log('  ✓ ' + t); } else { ko++; console.log('  ✗ ' + t + (d !== undefined ? ' → ' + JSON.stringify(d).slice(0, 190) : '')); } };
 const RACINE = path.join(__dirname, '..');
-const IND = fs.readFileSync(path.join(RACINE, 'gas/Indispos.gs'), 'utf8');
+const IND = require('./stubs').sourceGasTout() /* (15/09) Indispos.gs découpé : tout le code serveur métier */;
 const ADM = fs.readFileSync(path.join(RACINE, 'admin.html'), 'utf8');
 
 /* ═══ 1. La source suit l'état de l'année ═══════════════════════════════ */

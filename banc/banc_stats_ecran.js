@@ -23,7 +23,7 @@ const GS   = path.join(__dirname, '..', 'gas', 'portail.gs');
 const INDGS = path.join(__dirname, '..', 'gas', 'Indispos.gs');  // _aDroitTuile_ y vit
 const PAGE = fs.readFileSync(path.join(__dirname, '..', 'docs', 'stats-usage.html'), 'utf8');
 const DASH = fs.readFileSync(path.join(__dirname, '..', 'index.html'), 'utf8');
-const IND  = fs.readFileSync(path.join(__dirname, '..', 'gas', 'Indispos.gs'), 'utf8');
+const IND  = require('./stubs').sourceGasTout() /* (15/09) Indispos.gs découpé : tout le code serveur métier */;
 const VJS  = fs.readFileSync(path.join(__dirname, '..', 'version.js'), 'utf8');
 const BUNDLE = fs.readFileSync(path.join(__dirname, '..', 'assets', 'vendor', 'lucide-icons.js'), 'utf8');
 

@@ -365,7 +365,7 @@ console.log('\n═══ 8. L\'historique de Noël se consulte au lieu de défil
   V('les quatre dates restent 24, 25, 31 décembre et 1er janvier',
     /\$\{y\}-12-24[\s\S]{0,80}\$\{y\}-12-25[\s\S]{0,80}\$\{y\}-12-31[\s\S]{0,80}\$\{y \+ 1\}-01-01/.test(code));
 
-  const ind = fsx.readFileSync(px.join(__dirname, '..', 'gas', 'Indispos.gs'), 'utf8');
+  const ind = require('./stubs').sourceGasTout() /* (15/09) Indispos.gs découpé : tout le code serveur métier */;
   V('l\'historique est un champ À PART de la liste des prioritaires',
     /if \(payload\.historique === true\) _rep\.historique = computeNoelAnHistorique\(yr\)/.test(ind));
   V('…pour que le contrôle du W2 continue de porter sur les seuls prioritaires',

@@ -11,7 +11,7 @@ const { Classeur, extraireFonction, socleMedecins } = require('./stubs');
 let ok = 0, ko = 0;
 const V = (t, c, d) => { if (c) { ok++; console.log('  ✓ ' + t); } else { ko++; console.log('  ✗ ' + t + (d !== undefined ? ' → ' + JSON.stringify(d).slice(0, 190) : '')); } };
 
-const SRC_IND = fs.readFileSync('../gas/Indispos.gs', 'utf8');
+const SRC_IND = require('./stubs').sourceGasTout() /* (15/09) Indispos.gs découpé : tout le code serveur métier */;
 
 /* Le bloc routeur `if (action === 'saveIndispos') { … }` est découpé du vrai
    fichier par appariement d'accolades, puis enveloppé dans une fonction. */

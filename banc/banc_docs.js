@@ -182,7 +182,7 @@ console.log('\n═══ 6. L\'ordre de passage des vacances : une seule règle,
      Une divergence est invisible à l'œil et fait mentir le guide : c'est
      exactement le défaut du 30/07 (serveur tournant à gauche, écrans à
      droite), qui n'avait été vu qu'en réel, sur l'hiver 2027. */
-  const PORTEURS = ['gas/Indispos.gs', 'staff.html', 'admin.html', 'docs/guide-mar.html'];
+  const PORTEURS = ['gas/indisponibilites.gs', 'staff.html', 'admin.html', 'docs/guide-mar.html'];   // (15/09) la table serveur vit dans indisponibilites.gs depuis le découpage
   const tables = [];
   PORTEURS.forEach(f => {
     const h = lire(f);

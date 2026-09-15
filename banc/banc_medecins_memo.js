@@ -16,7 +16,7 @@ console.log('═══ 1. COL_MED dit la vérité sur l\'ordre des colonnes ═�
   const attendu = { ID: 'ID', NOM: 'NOM', INITIALES: 'INITIALES', QUOTITE: 'QUOTITE', PCT_GARDES: 'PCT_GARDES', CODE: 'CODE', EMAIL: 'EMAIL', DECT: 'DECT', DATE_DEBUT: 'DATE_DEBUT', DATE_FIN: 'DATE_FIN', NO_GARDE: 'NO_GARDE', ONLY_18: 'ONLY_18', NO_WEEKEND: 'NO_WEEKEND', RYTHME_2_2: 'RYTHME_2_2', SOUHAIT_PLAFOND: 'SOUHAIT_PLAFOND', TP_JOURS: 'TP_JOURS' };
   const ecarts = Object.entries(attendu).filter(([k, h]) => entete[col[k]] !== h).map(([k]) => k + '→' + entete[col[k]]);
   V('chaque nom de COL_MED tombe sur la bonne colonne de l\'en-tête (16 colonnes nommées)', ecarts.length === 0 && Object.keys(col).length === 17, ecarts);
-  V('ACTIF est la colonne D (indice 3), celle que _buildMedecins_ lit depuis toujours', col.ACTIF === 3 && /actif:isO\(data\[r\]\[COL_MED\.ACTIF\]\)/.test(fs.readFileSync(path.join(__dirname, '..', 'gas', 'Indispos.gs'), 'utf8')));
+  V('ACTIF est la colonne D (indice 3), celle que _buildMedecins_ lit depuis toujours', col.ACTIF === 3 && /actif:isO\(data\[r\]\[COL_MED\.ACTIF\]\)/.test(require('./stubs').sourceGasTout() /* (15/09) Indispos.gs découpé : tout le code serveur métier */));
 }
 
 console.log('\n═══ 2. Une requête = une lecture ═══');
@@ -45,7 +45,7 @@ console.log('\n═══ 2. Une requête = une lecture ═══');
 
 console.log('\n═══ 3. Plus de lecture directe de l\'onglet en dehors des trois écrivains ═══');
 {
-  const gas = ['Indispos.gs','code.gs','generateur_gardes.gs','miroir.gs','portail.gs','setup_annee.gs','veille.gs','echanges.gs','journal.gs']
+  const gas = ['Indispos.gs','gardes.gs','indisponibilites.gs','temps_partiel.gs','equipe.gs','diagnostic.gs','code.gs','generateur_gardes.gs','miroir.gs','portail.gs','setup_annee.gs','veille.gs','echanges.gs','journal.gs']
     .map(f => [f, fs.readFileSync(path.join(__dirname, '..', 'gas', f), 'utf8')]);
   let directes = 0, ecrivainsSansInvalidation = 0, memo = 0;
   gas.forEach(([f, s]) => {

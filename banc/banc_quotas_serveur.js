@@ -7,7 +7,7 @@ let ok = 0, ko = 0;
 const V = (t, c, d) => { if (c) { ok++; console.log('  ✓ ' + t); }
                          else { ko++; console.log('  ✗ ' + t, d === undefined ? '' : JSON.stringify(d)); } };
 const STAFF = fs.readFileSync(path.join(__dirname, '..', 'staff.html'), 'utf8');
-const IND = fs.readFileSync(path.join(__dirname, '..', 'gas', 'Indispos.gs'), 'utf8');
+const IND = require('./stubs').sourceGasTout() /* (15/09) Indispos.gs découpé : tout le code serveur métier */;
 const MIR = fs.readFileSync(path.join(__dirname, '..', 'gas', 'miroir.gs'), 'utf8');
 
 console.log('═══ 1. Le serveur sert la table, par les deux chemins ═══');

@@ -224,7 +224,7 @@ console.log('\n─── 7. Le sixième axe : les jours fériés ───');
    colonne CIBLE JF (23e de STATS_GARDES) soit servie au front. Or c'est l'axe où
    le résidu se concentre : 11 fériés dans l'année, part individuelle ~1,4. */
 const CODEGS = fs.readFileSync(path.join(__dirname, '..', 'gas', 'code.gs'), 'utf8');
-const INDGS  = fs.readFileSync(path.join(__dirname, '..', 'gas', 'Indispos.gs'), 'utf8');
+const INDGS  = require('./stubs').sourceGasTout() /* (15/09) Indispos.gs découpé : tout le code serveur métier */;
 const MIRGS  = fs.readFileSync(path.join(__dirname, '..', 'gas', 'miroir.gs'), 'utf8');
 V('getStats lit la colonne 23 (CIBLE JF)', /cJf:Number\(sd\[r\]\[22\]\)\|\|0/.test(CODEGS));
 V('…et la sert dans la réponse', /cJf:cb\.cJf/.test(CODEGS));

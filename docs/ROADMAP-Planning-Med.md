@@ -167,7 +167,16 @@ aux DEUX endroits — ligne GITHUB_TOKEN de CONFIG et §3 des instructions du pr
    actions ≈1 100) · `equipe.gs` (login, médecins, codes, mails, tuiles privées, secrétariat, bootstrap
    comité, config — 13 actions ≈900) · `annee.gs` (année active, initialisation, archivage, ordre des
    vacances — 4 actions ≈350) · `diagnostic.gs` (Diagnostic, hebdo, sentinelle, battements, sondes ≈1 300).
-   **Méthode :** trois pushes (table du routeur dans Indispos.gs intact → découpage → nettoyage), banc
+   **Étape 1 FAITE le 15/09 (matin), à recopier :** les 80 fonctions métier sont sorties d'Indispos.gs,
+   bornes exactes par analyseur JavaScript (acorn, hors dépôt), commentaires attachés compris, ZÉRO ligne
+   de logique changée : `gardes.gs` (21 fonctions, 1 035 l.), `indisponibilites.gs` (15, 617),
+   `temps_partiel.gs` (20, 544), `equipe.gs` (10, 282), `diagnostic.gs` (14, 995). Indispos.gs passe
+   de 6 554 à 3 129 lignes : le routeur (2 756 l., intact, contrat des 64 actions vérifié au banc),
+   checkCode, doGet/doPost, getActiveYear (appelée au chargement : elle reste avec `TEST_YEAR`),
+   et les constantes globales. Pas de fichier `annee.gs` finalement (rien à y mettre sans toucher au
+   routeur) ; `routeur.gs` viendra à l'étape 2 avec la table. Banc : 3 203 ✓ ; `extraireFonction` et
+   les lectures brutes du banc cherchent désormais dans tout le code métier (`sourceGasTout`).
+   **Méthode initiale (rappel) :** trois pushes (table du routeur dans Indispos.gs intact → découpage → nettoyage), banc
    complet entre chaque, UNE recopie à la fin : le responsable crée 6 fichiers dans Apps Script (menu
    + → Script) et remplace Indispos.gs par routeur.gs ; le Diagnostic vérifie 7 versions.
    **Les trois parades :** aucun appel de fonction au chargement d'un fichier (piège ARCHIVE_DRIVE_ID) et

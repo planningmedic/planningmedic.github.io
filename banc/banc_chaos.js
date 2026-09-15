@@ -127,13 +127,13 @@ function googleCapricieux(scenario) {
        s'en tient a la source et a l'absence de copie locale dans admin. */
     const adm = fs.readFileSync('../admin.html', 'utf8');
     V('admin lit le numero depuis la source, sans copie locale', /const SITE_VERSION = window\.SITE_VERSION/.test(adm));
-    const gs = { 'code.gs': '../gas/code.gs', 'Indispos.gs': '../gas/Indispos.gs', 'miroir.gs': '../gas/miroir.gs', 'journal.gs': '../gas/journal.gs', 'veille.gs': '../gas/veille.gs' };
+    const gs = { 'code.gs': '../gas/code.gs', 'Indispos.gs': '../gas/Indispos.gs', 'gardes.gs': '../gas/gardes.gs', 'indisponibilites.gs': '../gas/indisponibilites.gs', 'temps_partiel.gs': '../gas/temps_partiel.gs', 'equipe.gs': '../gas/equipe.gs', 'diagnostic.gs': '../gas/diagnostic.gs', 'miroir.gs': '../gas/miroir.gs', 'journal.gs': '../gas/journal.gs', 'veille.gs': '../gas/veille.gs' };
     Object.entries(gs).forEach(([nom, f]) => {
       const v = fs.readFileSync(f, 'utf8').match(/GAS_VERSION_\w+ = '([\d-]+\.\d+)'/);
       V(`${nom} porte une version au bon format`, !!v, v && v[1]);
     });
     // le contrôle de dérive doit citer TOUS les fichiers .gs livrés
-    const diag = fs.readFileSync('../gas/Indispos.gs', 'utf8');
+    const diag = require('./stubs').sourceGasTout() /* (15/09) Indispos.gs découpé : tout le code serveur métier */;
     ['code.gs','Indispos.gs','miroir.gs','journal.gs','generateur_gardes.gs','setup_annee.gs','portail.gs','veille.gs'].forEach(n => {
       V(`${n} est surveillé par le contrôle de dérive`, diag.includes(`deployed['${n}']`), n);
     });

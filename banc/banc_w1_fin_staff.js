@@ -19,7 +19,7 @@ const { Classeur } = require('./stubs');
 let ok = 0, ko = 0;
 const V = (t, c, d) => { if (c) { ok++; console.log('  ✓ ' + t); } else { ko++; console.log('  ✗ ' + t + (d !== undefined ? ' → ' + JSON.stringify(d).slice(0, 190) : '')); } };
 
-const GAS = fs.readFileSync('../gas/Indispos.gs', 'utf8');
+const GAS = require('./stubs').sourceGasTout() /* (15/09) Indispos.gs découpé : tout le code serveur métier */;
 const ADMIN = fs.readFileSync('../admin.html', 'utf8');
 
 /* Découpe d'un bloc routeur par appariement d'accolades — même procédé que

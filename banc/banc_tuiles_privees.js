@@ -27,7 +27,7 @@ const V = (nom, cond, detail) => {
 };
 
 const DASH = fs.readFileSync('../index.html', 'utf8');
-const IND  = fs.readFileSync('../gas/Indispos.gs', 'utf8');
+const IND  = require('./stubs').sourceGasTout() /* (15/09) Indispos.gs découpé : tout le code serveur métier */;
 const MIR  = fs.readFileSync('../gas/miroir.gs', 'utf8');
 const WRK  = fs.readFileSync('../cloudflare/worker.js', 'utf8');
 

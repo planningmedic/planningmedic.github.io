@@ -59,7 +59,7 @@ console.log('\n═══ F2. Le tri : seul l\'avenir avertit ═══');
 console.log('\n═══ F3. Les blocs appelants, dans les vrais fichiers ═══');
 {
   const code = fs.readFileSync('../gas/code.gs', 'utf8');
-  const ind = fs.readFileSync('../gas/Indispos.gs', 'utf8');
+  const ind = require('./stubs').sourceGasTout() /* (15/09) Indispos.gs découpé : tout le code serveur métier */;
   const iIf = code.indexOf('if (planningCaducs.length)');
   const iSet = code.indexOf("setProperty('PLANNING_CADUCS'");
   const finIf = code.indexOf('}', code.indexOf('autre(s)`', iIf));

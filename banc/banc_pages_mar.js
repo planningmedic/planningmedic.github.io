@@ -630,7 +630,7 @@ const dodo = ms => new Promise(r => setTimeout(r, ms));
     /* (13/08/2026) stats_{annee} passe aux MAR. Ce n'est pas un elargissement :
        getStatsLive, qui sert les MEMES chiffres, ne porte aucun controle de role
        dans Indispos.gs, et l'onglet Instantane les affiche deja a tout MAR. */
-    const gas = fs.readFileSync('../gas/Indispos.gs', 'utf8');
+    const gas = require('./stubs').sourceGasTout() /* (15/09) Indispos.gs découpé : tout le code serveur métier */;
     const bloc = (gas.match(/if \(action === 'getStatsLive'\)[\s\S]{0,400}?\n    \}/) || [''])[0];
     V('getStatsLive ne filtre effectivement aucun rôle (le fondement de la décision)',
       bloc.length > 0 && !/_deny\(\)/.test(bloc), bloc.slice(0, 120));

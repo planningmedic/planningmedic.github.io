@@ -141,7 +141,7 @@ console.log('\n═══ T130 · la clôture est refusée tant que l\'année sui
      règle réécrite ici : une première version rejouait la logique dans le test,
      et la contre-épreuve a montré qu'elle continuait de passer une fois le
      garde-fou retiré du code. Un test qui recopie ne protège que la copie. */
-  const src   = fs.readFileSync('../gas/Indispos.gs', 'utf8');
+  const src   = require('./stubs').sourceGasTout() /* (15/09) Indispos.gs découpé : tout le code serveur métier */;
   const srcPJ = extraireFonction('../gas/code.gs', 'getPremierJourPlanning');
   const bloc  = (src.match(/\{\s*\n\s*const _debutNext = getPremierJourPlanning\(_next\);[\s\S]*?\n      \}\n/) || [])[0] || '';
   V('le garde-fou de date est présent dans le routage', !!bloc);

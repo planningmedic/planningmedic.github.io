@@ -97,9 +97,19 @@ function fabriqueVerrou(type) {
 
 // ── Extraction d'une fonction réelle depuis un .gs ───────────────────
 function extraireFonction(fichier, nom) {
-  const src = fs.readFileSync(fichier, 'utf8');
-  const i = src.indexOf('function ' + nom + '(');
-  if (i < 0) throw new Error(`${nom} introuvable dans ${fichier}`);
+  let src = fs.readFileSync(fichier, 'utf8');
+  let i = src.indexOf('function ' + nom + '(');
+  if (i < 0) {
+    /* (15/09/2026 — chantier 9) Indispos.gs a été découpé par sujet : une fonction
+       demandée « dans Indispos.gs » vit peut-être dans gardes.gs, equipe.gs… Un
+       seul espace global dans Apps Script : on la cherche dans tous les .gs. */
+    const dir = require('path').join(__dirname, '..', 'gas');
+    for (const f of fs.readdirSync(dir).filter(x => x.endsWith('.gs') && x !== 'dev.gs')) {
+      const s2 = fs.readFileSync(require('path').join(dir, f), 'utf8'); const k = s2.indexOf('function ' + nom + '(');
+      if (k >= 0) { src = s2; i = k; break; }
+    }
+  }
+  if (i < 0) throw new Error(`${nom} introuvable dans ${fichier} ni dans gas/`);
   let prof = 0, debutCorps = src.indexOf('{', i), j = debutCorps;
   for (; j < src.length; j++) {
     if (src[j] === '{') prof++;
@@ -128,4 +138,14 @@ function socleMedecins(ctx, fichierCode) {
   return ctx;
 }
 
-module.exports = { Sheet, Classeur, fabriqueVerrou, VERROUS, journalVerrous, extraireFonction, brancherSurEcriture, socleMedecins };
+/* (15/09/2026 — chantier 9) Le code serveur « Indispos.gs » d'avant le découpage :
+   le routeur + les cinq fichiers métier, dans l'ordre alphabétique d'Apps Script.
+   Pour les scénarios qui lisaient la source brute d'Indispos.gs (regex, exécution
+   entière) : même contenu, plusieurs fichiers. dev.gs exclu (jamais déployé). */
+function sourceGasTout() {
+  const p = require('path'), dir = p.join(__dirname, '..', 'gas');
+  return ['Indispos.gs', 'gardes.gs', 'indisponibilites.gs', 'temps_partiel.gs', 'equipe.gs', 'diagnostic.gs']
+    .filter(f => fs.existsSync(p.join(dir, f))).map(f => fs.readFileSync(p.join(dir, f), 'utf8')).join('\n');
+}
+
+module.exports = { Sheet, Classeur, fabriqueVerrou, VERROUS, journalVerrous, extraireFonction, brancherSurEcriture, socleMedecins, sourceGasTout };

@@ -52,7 +52,7 @@ function monter(opts) {
   ctx.logAction = () => {};
   ctx._configRows_ = () => [['CLE','VALEUR']];
   vm.runInContext(fs.readFileSync('../gas/setup_annee.gs', 'utf8'), ctx);
-  vm.runInContext(fs.readFileSync('../gas/Indispos.gs', 'utf8'), ctx);
+  vm.runInContext(require('./stubs').sourceGasTout() /* (15/09) Indispos.gs découpé : tout le code serveur métier */, ctx);
   if (opts.apres) opts.apres(ctx);
   return ctx;
 }
@@ -204,14 +204,14 @@ function bac() {
     V('un battement mort → UN mail, objet ❌ SENTINELLE', ctxKO._mails.length === 1 && ctxKO._mails[0].b.includes('❌ SENTINELLE'), ctxKO._mails.map(m => m.b));
     V('le corps porte le geste, sans préfixe ✅ parasite', /\n→ LE GESTE/.test(ctxKO._mails[0].c), ctxKO._mails[0].c.slice(0, 300));
     V('…et la dernière ligne du contrat', ctxKO._mails[0].c.includes('ce mail n\'existe pas'));
-    const src2 = fs.readFileSync('../gas/Indispos.gs', 'utf8');
+    const src2 = require('./stubs').sourceGasTout() /* (15/09) Indispos.gs découpé : tout le code serveur métier */;
     V('la sonde relais interroge la RACINE du worker (pas de route /health)', src2.indexOf("workers.dev/health'") === -1 && src2.indexOf('Relais de lecture en service') !== -1);
     V('…et sa panne a un geste (Cloudflare)', src2.indexOf('worker miroir') !== -1);
   }
 
   console.log('— Les intégrations réelles (les stubs avaient masqué deux absences) —');
   {
-    const src = fs.readFileSync('../gas/Indispos.gs', 'utf8');
+    const src = require('./stubs').sourceGasTout() /* (15/09) Indispos.gs découpé : tout le code serveur métier */;
     V('la sonde Pages utilise getGithubToken (l\'accesseur qui EXISTE)', src.includes('const token = getGithubToken()'));
     V('…et plus jamais _githubToken_', !/_githubToken_\(\)/.test(src));
     V('la sonde périodes dérive le concept du NOM (l\'API n\'a pas de champ concept)', src.includes('conceptDe(String(o.nom))'));
@@ -226,7 +226,7 @@ function bac() {
     V('admin rend les chapitres ══ en bandeaux', adm.includes('diag-chap') && adm.includes("startsWith('══')"));
     V('admin rend « → LE GESTE » en encadré rouge', adm.includes('diag-geste') && adm.includes('→ LE GESTE'));
     V('admin prend les compteurs du serveur (le récap n\'est plus compté comme une erreur)', adm.includes('data.nbErr') && adm.includes('problème/'));
-    const dh = fs.readFileSync('../gas/Indispos.gs', 'utf8');
+    const dh = require('./stubs').sourceGasTout() /* (15/09) Indispos.gs découpé : tout le code serveur métier */;
     V('le regroupement est branché dans le diagnostic', dh.includes('_regrouperEnChapitres_(results.splice(0))'));
     ['journal.gs','miroir.gs','echanges.gs','veille.gs'].forEach(f => {
       const c = fs.readFileSync('../gas/' + f, 'utf8');

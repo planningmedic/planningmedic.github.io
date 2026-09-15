@@ -27,7 +27,7 @@ const V = (t, c, d) => { if (c) { ok++; console.log('  ✓ ' + t); }
 
 const IND  = path.join(__dirname, '..', 'gas', 'Indispos.gs');
 const POR  = path.join(__dirname, '..', 'gas', 'portail.gs');
-const SRC  = fs.readFileSync(IND, 'utf8');
+const SRC  = require('./stubs').sourceGasTout();   // (15/09) Indispos.gs découpé : tout le code serveur métier
 const PAGE = fs.readFileSync(path.join(__dirname, '..', 'docs', 'stats-usage.html'), 'utf8');
 
 /* Constante LUE dans le code réel, jamais redéclarée à la main. */

@@ -239,7 +239,7 @@ console.log('\n═══ 4. Chaque levier proposé débloque réellement, et le 
 /* ═══ 4bis. La STRUCTURE part bien jusqu'à l'écran du comité ════════════ */
 console.log('\n═══ 4bis. Le serveur renvoie la structure, pas un pavé de texte ═══');
 {
-  const src = require('fs').readFileSync(require('path').join(__dirname, '..', 'gas', 'Indispos.gs'), 'utf8');
+  const src = require('./stubs').sourceGasTout() /* (15/09) Indispos.gs découpé : tout le code serveur métier */;
   V('le routeur reconnaît une erreur porteuse de jours vides',
     src.includes('if (err && err.joursVides)'));
   V('il renvoie la structure au client', /joursVides: err\.joursVides/.test(src));
@@ -264,7 +264,7 @@ console.log('\n═══ 4ter. Le CONTENU des avertissements est écrit dans LOG
      le comité a constaté « il y a eu des avertissements mais je ne sais plus
      ce que c'était » — et rien ne permettait de les retrouver, le détail ne
      partant que dans le journal d'exécution d'Apps Script. */
-  const src = require('fs').readFileSync(require('path').join(__dirname, '..', 'gas', 'Indispos.gs'), 'utf8');
+  const src = require('./stubs').sourceGasTout() /* (15/09) Indispos.gs découpé : tout le code serveur métier */;
   V('chaque avertissement part dans LOGS, avec son rang',
     /logAction\(`  avertissement \$\{k \+ 1\}\/\$\{_genWarn\.nbWarnings\}/.test(src), src.length);
   V('le nombre total reste sur une ligne de tête',

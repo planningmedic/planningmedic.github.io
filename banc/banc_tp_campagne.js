@@ -25,8 +25,10 @@ const V = (t, c, d) => { if (c) { ok++; console.log('  ✓ ' + t); } else { ko++
 
 const RACINE = path.join(__dirname, '..');
 function extraireFonction(fichier, nom) {
-  const src = fs.readFileSync(path.join(RACINE, fichier), 'utf8');
-  const i = src.indexOf('function ' + nom + '(');
+  // (15/09/2026) Indispos.gs découpé : si la fonction n'est pas dans le fichier demandé, on la cherche dans tout le code métier.
+  let src = fs.readFileSync(path.join(RACINE, fichier), 'utf8');
+  let i = src.indexOf('function ' + nom + '(');
+  if (i < 0) { src = require('./stubs').sourceGasTout(); i = src.indexOf('function ' + nom + '('); }
   if (i < 0) throw new Error(nom + ' introuvable dans ' + fichier);
   let prof = 0, j = src.indexOf('{', i);
   for (; j < src.length; j++) { if (src[j] === '{') prof++; else if (src[j] === '}') { prof--; if (!prof) break; } }
@@ -36,7 +38,7 @@ function extraireFonction(fichier, nom) {
 /* ═══ 1. Le serveur n'ignore plus les TP de la campagne ═════════════════ */
 console.log('\n═══ 1. Indispos.gs · le refus systématique des TP a bien disparu ═══');
 {
-  const src = fs.readFileSync(path.join(RACINE, 'gas/Indispos.gs'), 'utf8');
+  const src = require('./stubs').sourceGasTout() /* (15/09) Indispos.gs découpé : tout le code serveur métier */;
   V('le rejet « TP ignorés » du 23/08 n\'est plus dans le code',
     !src.includes('TP ignorés'));
   V('le circuit de campagne calcule désormais le quota de temps partiel',
@@ -137,7 +139,7 @@ console.log('\n═══ 4. indispos.html · applyTool refuse ce qui doit l\'êt
 /* ═══ 5. Le reliquat : cohérence entre les deux onglets ═════════════════ */
 console.log('\n═══ 5. Indispos.gs · retirer un TP le retire des DEUX onglets ═══');
 {
-  const src = fs.readFileSync(path.join(RACINE, 'gas/Indispos.gs'), 'utf8');
+  const src = require('./stubs').sourceGasTout() /* (15/09) Indispos.gs découpé : tout le code serveur métier */;
   V('un helper retire la case TP dans INDISPOS',
     src.includes('function _tpRetirerDIndispos_(annee, marId, ds)'));
   V('il est appelé au moment où le TP quitte le planning',

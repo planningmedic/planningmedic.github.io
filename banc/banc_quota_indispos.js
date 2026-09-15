@@ -35,7 +35,7 @@ let ok = 0, ko = 0;
 const V = (t, c, d) => { if (c) { ok++; console.log('  ✓ ' + t); }
   else { ko++; console.log('  ✗ ' + t + (d !== undefined ? ' → ' + JSON.stringify(d).slice(0, 220) : '')); } };
 
-const GS = fs.readFileSync(path.join(__dirname, '..', 'gas', 'Indispos.gs'), 'utf8');
+const GS = require('./stubs').sourceGasTout() /* (15/09) Indispos.gs découpé : tout le code serveur métier */;
 const PAGE = fs.readFileSync(path.join(__dirname, '..', 'indispos.html'), 'utf8');
 
 console.log('\n═══ 1. Une seule valeur, envoyée du serveur à l\'écran ═══');

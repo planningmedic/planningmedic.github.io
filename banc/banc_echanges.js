@@ -548,7 +548,7 @@ console.log('\n═══ 20. Un humain lit ces messages : « Dr Durand », jamai
      la copie rapide et la connexion au serveur. Un seul des deux, et le titre
      changerait selon que le relais repond ou non. */
   const mir = fs.readFileSync(path.join(__dirname, '..', 'gas', 'miroir.gs'), 'utf8');
-  const ind = fs.readFileSync(path.join(__dirname, '..', 'gas', 'Indispos.gs'), 'utf8');
+  const ind = require('./stubs').sourceGasTout() /* (15/09) Indispos.gs découpé : tout le code serveur métier */;
   V('la copie rapide porte la liste', /acces\.titresPr/.test(mir));
   V('le serveur porte la même liste', /titresPr: _effectifTitresGas_\(\)/.test(ind));
 }
