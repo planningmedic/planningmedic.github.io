@@ -494,8 +494,10 @@ console.log('\n═══ 13. Chaque scénario du banc est lancé par lancer.sh �
    lecteur qu'il a compris. On tient ici ce qui a été confronté au code. */
 {
   const gt = lire('docs/guide-technique.html');
-  V('le guide technique compte les dix fichiers du serveur',
-    !/neuf fichiers/.test(gt) && /dix fichiers/.test(gt));
+  /* (15/09/2026) Après le découpage d'Indispos.gs : quinze fichiers (14 dans gas/ + sauvegarde.gs),
+     et le guide nomme les cinq fichiers métier nouveaux. */
+  V('le guide technique compte les quinze fichiers du serveur et nomme les cinq fichiers métier',
+    !/dix fichiers/.test(gt) && /quinze fichiers/.test(gt) && /gardes\.gs/.test(gt) && /indisponibilites\.gs/.test(gt) && /temps_partiel\.gs/.test(gt) && /equipe\.gs/.test(gt) && /diagnostic\.gs/.test(gt));
   V('…décrit les cibles ENTIÈRES et les plus forts restes',
     /nombre entier<\/b> : 5 ou 6 samedis/.test(gt) && /plus forts restes<\/b>/.test(gt));
   V('…le numéro de tirage et le multi-départ',

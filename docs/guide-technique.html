@@ -21,13 +21,12 @@
     margin: 0; line-height: 1.7; font-size: 16px;
   }
   .page { max-width: 900px; margin: 0 auto; padding: 24px 20px 80px; }
-  header.tete {
-    background: linear-gradient(135deg, #1E3A8A, #1D4ED8);
-    color: #fff; border-radius: 14px; padding: 34px 32px; margin-bottom: 28px;
-  }
+  /* (15/09/2026) Le bandeau rouge du portail vit seul sur le fond de page : plus de
+     cadre bleu autour (rouge sur bleu, c'était laid). */
+  header.tete { background: none; color: inherit; border-radius: 0; padding: 0; margin-bottom: 28px; }
   header.tete h1 { margin: 0 0 6px; font-size: 27px; letter-spacing: -.3px; }
   header.tete .sous { opacity: .92; font-size: 15px; margin: 0; }
-  header.tete .maj { opacity: .78; font-size: 13px; margin-top: 14px; }
+  header.tete .maj { color: var(--gris); font-size: 13px; margin: 12px 4px 0; }
 
   h2 {
     font-size: 21px; margin: 46px 0 14px; padding-top: 14px;
@@ -220,14 +219,9 @@
       <h1>Guide technique</h1>
     </div>
   </div>
-  <p class="appbar-sub">Comment le portail fonctionne en profondeur, expliqué sans supposer de bagage informatique — pour le responsable du projet, et pour quiconque devrait un jour en reprendre les commandes.</p>
+  <p class="appbar-sub">Comment le portail fonctionne, expliqué sans bagage informatique.</p>
 </div>
-  <p class="maj">Refondu le 9 août 2026, chaque affirmation vérifiée dans le code réellement en
-  service (site v1.30.2) · complété le 24 août 2026 : pose des temps partiels après génération
-  (C13) et cloche des notifications (C12), vérifiés dans le code en service (v1.77). Quatre parcours de lecture : chaque section commence par un résumé
-  « En 2 minutes » en langage courant ; les détails sont rangés dans des blocs dépliables, et les
-  noms techniques exacts dans les blocs gris « Repères techniques » — on peut les ignorer sans rien
-  perdre du raisonnement.</p>
+  <p class="maj">À jour du code en service le 15 septembre 2026 (site v1.12.9, serveur 2026-09-15.2). Chaque section commence par un résumé « En 2 minutes » ; les détails sont dans des blocs dépliables, les noms exacts dans les blocs gris « Repères techniques ».</p>
 </header>
 
 <h2 style="border:none;margin-top:0">Le vocabulaire du guide — 10 mots, une fois pour toutes</h2>
@@ -276,7 +270,7 @@
   <ul>
     <li><span class="n">A1</span> <a href="#a1">Vue d'ensemble : quatre étages, trois chemins</a></li>
     <li><span class="n">A2</span> <a href="#a2">Le dépôt : là où vit tout le code</a></li>
-    <li><span class="n">A3</span> <a href="#a3">Le serveur Google : dix fichiers qui se partagent le travail</a></li>
+    <li><span class="n">A3</span> <a href="#a3">Le serveur Google : quinze fichiers qui se partagent le travail</a></li>
     <li><span class="n">A4</span> <a href="#a4">Les données : le classeur, le Drive, les copies</a></li>
     <li><span class="n">A5</span> <a href="#a5">Le relais Cloudflare : pourquoi les pages s'ouvrent vite</a></li>
     <li><span class="n">A6</span> <a href="#a6">Le journal d'intentions : pourquoi les gestes du comité sont instantanés</a></li>
@@ -405,7 +399,7 @@ ce qui garantit qu'une seule autorité tient les données.</p>
 
 <div class="r2"><div class="titre">En 2 minutes</div>
 <p>Le dépôt <code>planningmedic/planningmedic.github.io</code> contient <b>100 % du code</b> — les pages du
-site comme les dix fichiers du serveur. Il est public : n'importe qui peut le lire, personne
+site comme les quinze fichiers du serveur. Il est public : n'importe qui peut le lire, personne
 d'autre ne peut y écrire. Le site est servi directement depuis le dépôt : pousser une page, c'est la
 mettre en ligne. Règle cardinale : toute modification faite ailleurs sans être enregistrée dans le
 dépôt finit écrasée.</p></div>
@@ -415,19 +409,26 @@ dépôt finit écrasée.</p></div>
 <tr><th>Emplacement</th><th>Contenu</th></tr>
 <tr><td>la racine</td><td>Les pages du site (administration, portail MAR, planning, indisponibilités,
 consultations, staff, libéral, comptes rendus)</td></tr>
-<tr><td><code>gas/</code></td><td>Neuf des dix fichiers du serveur Google, plus la liste des
-autorisations demandées à Google</td></tr>
-<tr><td><code>sauvegarde.gs</code></td><td>Le dixième fichier du serveur : la copie de secours
+<tr><td><code>gas/</code></td><td>Quatorze des quinze fichiers du serveur Google, plus la liste des
+autorisations demandées à Google — et <code>dev.gs</code>, douze fonctions de test manuel gardées pour un
+développeur, <b>jamais recopiées</b> dans Apps Script</td></tr>
+<tr><td><code>sauvegarde.gs</code></td><td>Le quinzième fichier du serveur : la copie de secours
 hebdomadaire du dépôt (§C10)</td></tr>
-<tr><td><code>partage/</code></td><td>Le « module partagé » : un petit morceau de code utilisé à
-l'identique par le serveur <i>et</i> par les pages (§A5)</td></tr>
+<tr><td><code>partage/</code></td><td>Le <b>socle commun des pages</b>, écrit une fois et chargé par
+toutes : <code>session.js</code> (où vit le code d'accès), <code>portail.js</code> (l'adresse du relais, la
+lecture de la copie rapide, le thème clair/sombre, le message d'erreur de l'écran de code),
+<code>theme.css</code> (la palette : 11 couleurs communes et leur version sombre), <code>rendu_equite.js</code>
+(les cartes d'équité, identiques pour le MAR et le comité), et <code>dispo_jour.js</code> (le classement des
+MARs disponibles, à l'identique côté serveur — §A5). Une correction s'y fait une fois au lieu de sept.</td></tr>
 <tr><td><code>cloudflare/</code></td><td>Le code du relais Cloudflare — la version du dépôt fait
 foi</td></tr>
 <tr><td><code>banc/</code></td><td>Le banc d'essai (§D2)</td></tr>
 <tr><td><code>simulateur/</code></td><td>Le banc dédié au générateur de gardes : 400 années
 simulées (§B5)</td></tr>
-<tr><td><code>docs/</code></td><td>Les guides, les présentations, la feuille de route, et le module
-libéral (dont la page de cotation, qui est un outil de production malgré son emplacement)</td></tr>
+<tr><td><code>docs/</code></td><td>Les guides, les présentations, la feuille de route (ROADMAP), le contexte
+(CONTEXTE), le <b>journal des décisions</b> (JOURNAL : les 162 récits datés qui vivaient en commentaires
+dans le code, rangés fichier par fichier), et le module libéral (dont la page de cotation, qui est un
+outil de production malgré son emplacement)</td></tr>
 </table>
 </div></details>
 
@@ -438,8 +439,10 @@ jamais : un montant, un pourcentage individuel, un code d'accès, un mot de pass
 l'un de ces éléments. Un secret poussé par erreur, même une fois, doit être considéré comme grillé
 et remplacé. Les documents qui affichent des chiffres sensibles vont chercher leurs valeurs dans un
 petit fichier local, gardé hors du dépôt.</p></div>
-<p>Ce que le public <i>peut</i> voir : le code, les guides, et les noms de l'équipe — qui figurent
-déjà dans l'annuaire du service. Aucune absence, aucune coordonnée, aucune donnée de patient.</p>
+<p>Ce que le public <i>peut</i> voir : le code et les guides. <b>Aucun nom</b> : depuis le 13 septembre 2026,
+l'historique du dépôt a été réécrit sans nom ni prénom, l'ancien dépôt supprimé, et le dernier identifiant
+d'un fichier privé (le classeur d'archives) lit sa valeur dans l'onglet CONFIG. Aucune absence, aucune
+coordonnée, aucune donnée de patient.</p>
 </div></details>
 
 <details class="tech"><summary>Repères techniques (pour retrouver les termes exacts)</summary><div class="corps">
@@ -454,29 +457,42 @@ Points d'entrée documentaires : <code>docs/README.md</code>,
 
 <p class="haut"><a href="#top">↑ Sommaire</a></p>
 
-<h2 id="a3"><span class="num">A3</span>Le serveur Google : dix fichiers qui se partagent le travail</h2>
+<h2 id="a3"><span class="num">A3</span>Le serveur Google : quinze fichiers qui se partagent le travail</h2>
 
 <div class="r2"><div class="titre">En 2 minutes</div>
 <p>Le serveur est un programme attaché au classeur maître, mis en service comme « application web » :
 les pages lui parlent par internet, jamais directement au classeur. Son code est réparti en
-<b>dix fichiers</b>, chacun avec un rôle précis — plus un onzième morceau, le « module partagé »,
-présent à l'identique côté serveur et côté pages. Le diagnostic de la page d'administration vérifie
+<b>quinze fichiers</b>, chacun avec un rôle précis — plus le « module partagé », présent à l'identique
+côté serveur et côté pages. Depuis le 15 septembre 2026, la répartition suit une règle simple :
+<b>un fichier par sujet</b>, et un chef d'orchestre qui n'est plus qu'une <b>table</b> — une ligne par
+demande possible : son nom, qui a le droit, quelle fonction s'en occupe. Le diagnostic de la page d'administration vérifie
 en permanence que les fichiers en service sont bien ceux du dépôt.</p></div>
 
-<details><summary>Qui fait quoi — la carte des dix fichiers</summary><div class="corps">
+<details><summary>Qui fait quoi — la carte des quinze fichiers</summary><div class="corps">
 <table>
 <tr><th>Fichier</th><th>Son rôle, en clair</th></tr>
-<tr><td><code>Indispos.gs</code></td><td>Le chef d'orchestre : il reçoit toutes les demandes,
-vérifie qui les envoie et ce qu'il a le droit de faire, puis distribue le travail. Il porte aussi la
-saisie des indisponibilités, les vacances, les assistants annuels, le diagnostic complet et la
-lecture de la boîte mail. Le plus gros fichier, de loin.</td></tr>
+<tr><td><code>Indispos.gs</code></td><td>Le chef d'orchestre, réduit à l'essentiel (800 lignes au lieu de
+6 500) : il reçoit chaque demande, vérifie le code d'accès et le droit associé, puis lit dans sa <b>table
+des 64 actions</b> quelle fonction appeler. La table déclare pour chaque action qui y a droit (comité seul :
+48 ; tout code valide : 9 ; selon le rôle : 4 ; MAR seulement : 1 ; sans code : les 2 listes d'années), et
+le banc vérifie que cette déclaration est bien ce que le code fait.</td></tr>
+<tr><td><code>gardes.gs</code></td><td>Tout ce qui touche au planning des gardes : statut, placements manuels
+du comité, affectations, panneau du jour, reliquats, Noël, publication.</td></tr>
+<tr><td><code>indisponibilites.gs</code></td><td>La saisie des indisponibilités et des souhaits, le figeage, les
+vacances (périodes, groupes, quotas de congés), les absences longues, les fériés et les ponts.</td></tr>
+<tr><td><code>temps_partiel.gs</code></td><td>La pose des temps partiels après génération (§C13), la campagne,
+la grille, les décisions du comité.</td></tr>
+<tr><td><code>equipe.gs</code></td><td>Les médecins, les codes d'accès et leur envoi, les mails, les tuiles privées,
+les connexions, la configuration et le bootstrap du comité.</td></tr>
+<tr><td><code>diagnostic.gs</code></td><td>Le Diagnostic complet (§D3), sa version hebdomadaire, la sentinelle
+quotidienne et les battements de cœur.</td></tr>
 <tr><td><code>code.gs</code></td><td>La fabrication du planning affiché (à partir des gardes et des
 affectations), les retouches manuelles du comité, les jours fériés, la sauvegarde hebdomadaire du
 classeur, et les mails automatiques de changement de planning (§C6).</td></tr>
 <tr><td><code>generateur_gardes.gs</code></td><td>L'algorithme qui répartit les gardes de toute une
 année (§B5).</td></tr>
 <tr><td><code>setup_annee.gs</code></td><td>La clôture d'année, l'import des vacances scolaires, le
-rangement des onglets du classeur, les fonctions de test.</td></tr>
+rangement des onglets du classeur.</td></tr>
 <tr><td><code>portail.gs</code></td><td>Le portail personnel des MARs (topos, staffs, protocoles,
 annuaire), <b>tout le module libéral</b> (§C8), le générateur de comptes rendus (§C9), et la
 configuration des secteurs. ⚠️ Nom trompeur : qui cherche le libéral ou les secteurs doit venir
@@ -491,13 +507,19 @@ PubMed (§C7).</td></tr>
 <tr><td><code>sauvegarde.gs</code></td><td>La copie de secours hebdomadaire du <b>dépôt</b> entier
 vers le Drive (§C10).</td></tr>
 </table>
-<p>L'onzième morceau, le <b>module partagé</b>, contient la logique qui classe les MARs
+<p>Deux règles de lecture du serveur depuis septembre 2026 : l'onglet MEDECINS n'est lu <b>qu'une fois par
+demande</b>, et ses colonnes sont désignées par leur nom (<code>COL_MED.EMAIL</code>) dans une table unique de
+<code>code.gs</code> — insérer une colonne dans le classeur n'a plus qu'un endroit à corriger, et le banc vérifie
+que la table correspond à l'en-tête. Et les quotas de congés (vacances, formation, temps partiel, par
+quotité) ne vivent que dans l'onglet <code>CONFIG_CONGES</code> : le serveur les envoie avec la configuration,
+aucune page n'en porte de copie.</p>
+<p>Le <b>module partagé</b> contient la logique qui classe les MARs
 disponibles pour une case du planning — la plus sensible du poste comité. Elle n'est écrite qu'une
 fois, et recopiée à l'identique des deux côtés : c'est ce qui rend toute divergence impossible
 (§A5).</p>
 <div class="note"><p><b>Le symptôme qui trahit une recopie incomplète</b> — un message « Action
 inconnue » ou « fonction introuvable » après une mise à jour du serveur signifie presque toujours
-qu'un des dix fichiers n'a pas été recopié, ou que le dépôt était incomplet. Le dépôt doit toujours
+qu'un des quinze fichiers n'a pas été recopié, ou que le dépôt était incomplet. Le dépôt doit toujours
 refléter la totalité du code en service, et réciproquement.</p></div>
 </div></details>
 
@@ -513,8 +535,10 @@ pas admin.</p>
 <details class="tech"><summary>Repères techniques</summary><div class="corps">
 <p>Environnement : Google Apps Script, déployé en Web App (adresse en <code>/exec</code>). Points
 d'entrée : <code>doGet</code>/<code>doPost</code>, qui confient tout au routeur
-<code>_routeRequete_</code> (dans Indispos.gs). Rôles issus de <code>checkCode</code> ; refus des
-non-admins par <code>_deny()</code>. Chaque fichier poussé incrémente sa constante
+<code>_routeRequete_</code> (Indispos.gs). Celui-ci lit la table <code>_actions_()</code> — nom → rôle déclaré →
+fonction <code>_act_&lt;nom&gt;(R)</code>, R = <code>{ e, payload, action, code, user }</code> — dont les corps
+vivent dans les fichiers métier. Rôles issus de <code>checkCode</code> ; refus des non-admins par
+<code>_deny()</code>, dans le corps de chaque action ; <code>banc_contrat_routeur.js</code> fige les 64 actions. Chaque fichier poussé incrémente sa constante
 <code>GAS_VERSION_*</code> (format AAAA-MM-JJ.N) — c'est elle que le diagnostic compare au dépôt
 (contrôle de dérive, 9 fichiers : les 8 de <code>gas/</code> + le module partagé
 <code>partage/dispo_jour.js</code>). Fonction endormie : <code>setupAnnee</code> (setup_annee.gs)
@@ -855,8 +879,9 @@ sans conservation des données ou hébergée en Europe, à porter avec le réfé
 
 <details><summary>Les limites assumées</summary><div class="corps">
 <ul>
-<li>Le dépôt public montre les noms de l'équipe et les objectifs de gardes de chacun — jugé
-acceptable, ces informations étant déjà accessibles par ailleurs.</li>
+<li>Le dépôt public ne montre <b>plus aucun nom</b> depuis le 13 septembre 2026 (historique réécrit, ancien
+dépôt supprimé). Les règles nominatives (souhaits garantis, tuiles privées, paires à éviter) vivent dans
+le classeur, jamais dans le code.</li>
 <li>Les codes des MARs sont lisibles en clair dans le classeur (protégés par l'accès au compte,
 pas par un chiffrement). Leur format rend le forçage par essais successifs impraticable, mais le
 code admin doit rester un code fort.</li>
@@ -1986,7 +2011,7 @@ version du site.</p></div>
 
 <details><summary>La règle qui sauve, côté serveur</summary><div class="corps">
 <p>Pousser dans le dépôt ne met <b>pas</b> le serveur à jour : le dépôt n'est que la référence. Pour
-que le nouveau code tourne, il faut le recopier dans l'éditeur de Google — <b>les dix fichiers
+que le nouveau code tourne, il faut le recopier dans l'éditeur de Google — <b>les quinze fichiers
 concernés, plus le module partagé</b> — puis publier une <b>nouvelle version</b> de l'application
 web. Les pages appellent une adresse figée sur une version : sans ce dernier geste, l'ancien code
 continue de tourner, y compris pour une génération lancée depuis l'assistant. (Seule exception : une
@@ -2039,7 +2064,8 @@ jamais sans pouvoir contrôler le résultat.</li>
 <p>Le dossier <code>banc/</code> du dépôt fait tourner <b>le vrai code du projet</b> — le serveur,
 le relais, les pages — dans un décor entièrement simulé : un faux Google avec un faux classeur
 rempli de données réalistes, un faux Cloudflare, et même un faux navigateur où les pages sont
-pilotées au clic. Au 10 septembre 2026 : <b>2 909 vérifications</b>, toutes au vert. Règle absolue : avant
+pilotées au clic. Au 15 septembre 2026 : <b>3 205 vérifications</b>, toutes au vert — dont le contrat des 64
+actions du routeur, la palette commune et la reprise de session de chaque page jusqu'au bout. Règle absolue : avant
 toute proposition de mise en ligne touchant une page principale ou le serveur, le banc tourne, et on
 ne présente le résultat qu'une fois tout au vert. Chaque nouveauté part avec son test ; chaque
 défaut trouvé en production devient un scénario du banc.</p></div>
@@ -2107,7 +2133,7 @@ page d'administration si nécessaire.</td></tr>
 <tr><th>Message</th><th>Remède</th></tr>
 <tr><td>❌ <i>fichier</i> : DÉRIVE — dépôt vX, déployé vY</td><td>Le fichier en service n'est plus
 celui du dépôt : le recopier dans l'éditeur et déployer une nouvelle version (§D1). Le contrôle
-couvre les dix fichiers versionnés.</td></tr>
+couvre les quinze fichiers versionnés.</td></tr>
 <tr><td>⚠️ <i>fichier</i> : dépôt illisible</td><td>Le contrôle n'a pas pu lire GitHub — voir la
 famille « Publication GitHub » ci-dessous.</td></tr>
 <tr><td>❌ <i>fichier</i> : vX (attendu vY)</td><td>Un envoi a oublié la montée du numéro de version
@@ -2191,7 +2217,7 @@ erreur.</td></tr>
 <tr><td>« Erreur réseau » sporadique</td><td>Caprice passager de Google. Toutes les pages réessaient
 une fois en silence ; deux échecs consécutifs = vraie panne, regarder le menu Exécutions.</td></tr>
 <tr><td>« Action inconnue » / « fonction introuvable »</td><td>Un fichier n'a pas été recopié dans
-l'éditeur, ou le dépôt était incomplet. Vérifier les dix fichiers + le module partagé,
+l'éditeur, ou le dépôt était incomplet. Vérifier les quinze fichiers + le module partagé,
 redéployer.</td></tr>
 <tr><td>Une modification du serveur n'a aucun effet</td><td>La nouvelle version n'a pas été
 déployée — ou la modification a été faite dans l'éditeur puis écrasée par une recopie du dépôt
@@ -2275,7 +2301,7 @@ test des mails, puis un diagnostic de contrôle).</li>
 
 <footer>
 Planning-Med · Anesthésie-Réanimation Planning-Med — guide technique personnel<br>
-Refondu le 9 août 2026 à partir du code en production (site v1.30.2, banc d'essai : 546 vérifications au vert).
+Refondu le 9 août 2026 ; mis à jour le 15 septembre 2026 sur le code en service (site v1.12.9, serveur 2026-09-15.2, banc : 3 205 vérifications au vert).
 </footer>
 
 </div>
