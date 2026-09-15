@@ -16,27 +16,58 @@ const NOIRE   = '"editorial"[Publication Type]';
 
 /* Monte un monde où UrlFetchApp répond à esearch/esummary selon `plan`,
    en gardant la trace de chaque requête. */
+
+/* (15/09/2026) Une fiche PubMed au format efetch XML, comme le vrai PubMed la rend. */
+function ficheXml(pmid, o) {
+  o = o || {};
+  const auteurs = (o.auteurs || []).map(a => '<Author><LastName>' + a.split(' ')[0] + '</LastName><Initials>' + (a.split(' ')[1] || '') + '</Initials></Author>').join('');
+  const types = (o.pubtypes || ['Journal Article']).map(t => '<PublicationType UI="D016428">' + t + '</PublicationType>').join('');
+  const mesh = (o.mesh || []).map(m => '<MeshHeading><DescriptorName>' + m + '</DescriptorName></MeshHeading>').join('');
+  const kw = (o.motscles || []).map(k => '<Keyword>' + k + '</Keyword>').join('');
+  const d = (o.date || '2026-09-01').split('-');
+  return '<PubmedArticle><MedlineCitation><PMID Version="1">' + pmid + '</PMID><Article PubModel="Print">'
+    + '<Journal><ISOAbbreviation>' + (o.revue || 'Anesthesiology') + '</ISOAbbreviation><Title>' + (o.revue || 'Anesthesiology') + '</Title>'
+    + '<JournalIssue><PubDate><Year>' + d[0] + '</Year><Month>' + d[1] + '</Month><Day>' + d[2] + '</Day></PubDate></JournalIssue></Journal>'
+    + '<ArticleTitle>' + (o.titre || 'Article ' + pmid) + '</ArticleTitle>'
+    + (o.resume ? '<Abstract><AbstractText Label="RESULTS">' + o.resume + '</AbstractText></Abstract>' : '')
+    + '<AuthorList>' + auteurs + '</AuthorList><PublicationTypeList>' + types + '</PublicationTypeList></Article>'
+    + '<MeshHeadingList>' + mesh + '</MeshHeadingList><KeywordList>' + kw + '</KeywordList></MedlineCitation>'
+    + '<PubmedData><ArticleIdList><ArticleId IdType="pubmed">' + pmid + '</ArticleId>' + (o.doi ? '<ArticleId IdType="doi">' + o.doi + '</ArticleId>' : '') + '</ArticleIdList></PubmedData></PubmedArticle>';
+}
+function efetchXml(params, fabrique) {
+  return '<?xml version="1.0"?><PubmedArticleSet>' + (params.get('id') || '').split(',').filter(Boolean).map(id => ficheXml(id, fabrique ? fabrique(id) : {})).join('') + '</PubmedArticleSet>';
+}
 function monde(plan) {
+  const props = {};   // (15/09) propriétés du script (VEILLE_DERNIER_SUCCES)
   const requetes = [];
   const journal = [];
   const ctx = vm.createContext({
     console, JSON, Date, Number, String, Object, Array, Math, Error, isNaN, parseInt, encodeURIComponent,
     SpreadsheetApp: { getActiveSpreadsheet: () => monde.cl },
     ScriptApp: { getProjectTriggers: () => [], newTrigger: () => ({ timeBased: () => ({ onWeekDay: () => ({ atHour: () => ({ create: () => {} }) }) }) }), WeekDay: { MONDAY: 1 }, deleteTrigger: () => {} },
-    Utilities: { sleep: () => {}, formatDate: () => '2026-08-08' },
+    Utilities: { sleep: ms => pauses.push(ms), formatDate: () => '2026-08-08' },
     Logger: { log: m => journal.push(String(m)) },
     _isoDate: v => String(v || ''),
+    _bat_: nom => battements.push(nom),
+    logAction: m => logs.push(String(m)),
+    _configRows_: () => [['CLE', 'VALEUR']],
+    PropertiesService: { getScriptProperties: () => ({ getProperty: k => props[k] || null, setProperty: (k, v) => { props[k] = String(v); } }) },
     UrlFetchApp: { fetch: (url, opt) => {
       const params = new URLSearchParams(opt.payload);
       const endpoint = url.split('/').pop();
       requetes.push({ endpoint, term: params.get('term') || '', id: params.get('id') || '' });
-      return { getResponseCode: () => 200, getContentText: () => JSON.stringify(plan(endpoint, params)) };
+      // (15/09) codes HTTP programmables : monde.codes est une file de codes à servir avant les 200
+      const code = (monde.codes && monde.codes.length) ? monde.codes.shift() : 200;
+      // (15/09) efetch rend du XML brut : le plan peut rendre une chaîne, servie telle quelle
+      const rep = code === 200 ? plan(endpoint, params) : null;
+      return { getResponseCode: () => code, getContentText: () => code === 200 ? (typeof rep === 'string' ? rep : JSON.stringify(rep)) : 'Too Many Requests' };
     } },
   });
+  const pauses = [], battements = [], logs = []; ctx.__pauses = pauses; ctx.__props = props; ctx.__battements = battements; ctx.__logs = logs;
   ctx.globalThis = ctx;
   monde.cl = new Classeur();
   vm.runInContext(fs.readFileSync('../gas/veille.gs', 'utf8'), ctx);
-  return { ctx, requetes, journal, cl: monde.cl };
+  return { ctx, requetes, journal, cl: monde.cl, pauses, battements, logs, props };
 }
 
 (async () => {
@@ -74,13 +105,7 @@ function monde(plan) {
         }
         return { esearchresult: { count: '0', idlist: [] } };
       }
-      if (endpoint === 'esummary.fcgi') {
-        const result = {};
-        (params.get('id') || '').split(',').filter(Boolean).forEach(id => {
-          result[id] = { title: 'Article ' + id, source: 'Rev', authors: [], pubtype: ['Journal Article'] };
-        });
-        return { result };
-      }
+      if (endpoint === 'efetch.fcgi') return efetchXml(params, id => ({ titre: 'Article ' + id, revue: 'Rev' }));   // (15/09) fiches en XML
       return {};
     };
     const { ctx, requetes, journal } = monde(plan);
@@ -148,13 +173,7 @@ function monde(plan) {
         if (general) return { esearchresult: { count: '1', idlist: ['401'] } };
         return { esearchresult: { count: '0', idlist: [] } };
       }
-      if (endpoint === 'esummary.fcgi') {
-        const result = {};
-        (params.get('id') || '').split(',').filter(Boolean).forEach(id => {
-          result[id] = { title: 'A' + id, source: 'Rev', authors: [], pubtype: [] };
-        });
-        return { result };
-      }
+      if (endpoint === 'efetch.fcgi') return efetchXml(params, id => ({ titre: 'A' + id, revue: 'Rev' }));   // (15/09) fiches en XML
       return {};
     };
     const { ctx, cl } = monde(plan);
@@ -361,6 +380,82 @@ function monde(plan) {
     V('REVUE et GENERAL, elles, restent', opts.indexOf('REVUE') !== -1 && opts.indexOf('GENERAL') !== -1);
   }
 
-  console.log(`\n${ok} OK · ${ko} en échec`);
+    console.log('\n═══ Le lundi 6 h de PubMed : HTTP 429 (production, 31/08, 07/09, 14/09) ═══');
+  /* Le passage plantait au 23e appel — un par thème — sur « Too Many Requests », et
+     n'écrivait rien ; le battement de cœur, écrit en tête de fonction, restait vert. */
+  {
+    const plan = (endpoint, params) => endpoint === 'esearch.fcgi' ? { esearchresult: { count: '1', idlist: ['99999001'] } }
+      : efetchXml(params, () => ({ titre: 'Essai', date: '2026-09-10', revue: 'Anesthesiology' }));
+    const m = monde(plan); monde.codes = [429, 429];   // les deux premiers appels : refusés, puis tout passe
+    vm.runInContext('getOrCreateVeilleTabs()', m.ctx);
+    const r = vm.runInContext('runVeille()', m.ctx);
+    V('deux 429 successifs : la veille réessaie et aboutit', r && r.success === true, r);
+    V('…après des pauses croissantes (3 s puis 8 s), pas immédiatement', m.pauses.includes(3000) && m.pauses.includes(8000), m.pauses.slice(0, 4));
+    V('le battement de cœur est écrit UNE fois, à la fin, après le succès', m.battements.length === 1 && m.battements[0] === 'runVeille');
+    V('une ligne est laissée dans LOGS avec le bilan', m.logs.some(l => /^veille — \d+ nouveaux, \d+ écrits/.test(l)), m.logs);
+    const m2 = monde(plan); monde.codes = [429, 429, 429, 429];   // quatre refus : on renonce
+    vm.runInContext('getOrCreateVeilleTabs()', m2.ctx);
+    let err = null; try { vm.runInContext('runVeille()', m2.ctx); } catch (e) { err = e.message; }
+    V('quatre 429 : l\'erreur remonte (Google la montre dans Exécutions), avec le nombre d\'essais', /HTTP 429 après 4 essais/.test(err || ''), err);
+    V('…et AUCUN battement : le Diagnostic verra la veille en retard', m2.battements.length === 0, m2.battements);
+    V('…mais une ligne LOGS dit l\'échec', m2.logs.some(l => /^veille — ÉCHEC : PubMed/.test(l)), m2.logs);
+    V('une erreur non passagère (HTTP 400) ne fait pas réessayer', (() => { const m3 = monde(plan); monde.codes = [400]; vm.runInContext('getOrCreateVeilleTabs()', m3.ctx); try { vm.runInContext('runVeille()', m3.ctx); } catch (e) { return /HTTP 400$/.test(e.message) && !m3.pauses.includes(3000); } return false; })());
+    monde.codes = [];
+  }
+
+  console.log('\n═══ Frugal et pertinent (15/09/2026) : fiches en un appel, thèmes locaux, note expliquée ═══');
+  {
+    const fabrique = id => ({
+      '701': { titre: 'Prone Positioning in <i>ARDS</i>: a Randomized Trial', resume: 'Mechanical ventilation and prone positioning in acute respiratory distress syndrome. Norepinephrine dose was recorded.', pubtypes: ['Journal Article', 'Randomized Controlled Trial', 'Multicenter Study'], auteurs: ['Guerin C', 'Reignier J', 'Richard JC', 'Beuret P'], doi: '10.1000/x701', date: '2026-09-10', revue: 'Anesthesiology' },
+      '702': { titre: 'Letter to the editor on airway management', pubtypes: ['Letter'], date: '2026-08-01', revue: 'Anesthesiology' },
+      '703': { titre: 'Study protocol for a trial of sepsis bundles', resume: 'sepsis and septic shock', pubtypes: ['Journal Article'], date: '2026-09-01', revue: 'Anesthesiology' },
+      '801': { titre: 'Delirium after surgery: systematic review', resume: 'postoperative cognitive outcomes', pubtypes: ['Systematic Review'], mesh: ['Delirium'], date: '2026-09-05', revue: 'N Engl J Med' },
+    }[id] || {});
+    const plan = (endpoint, params) => {
+      if (endpoint === 'esearch.fcgi') {
+        const term = params.get('term') || '';
+        if (term.indexOf('"Anesthesiology"[Journal]') !== -1 && term.indexOf('"N Engl J Med"[Journal]') === -1) return { esearchresult: { count: '3', idlist: ['701', '702', '703'] } };
+        if (term.indexOf('"N Engl J Med"[Journal]') !== -1) return { esearchresult: { count: '1', idlist: ['801'] } };
+        return { esearchresult: { count: '0', idlist: [] } };
+      }
+      return efetchXml(params, fabrique);
+    };
+    const m = monde(plan);
+    vm.runInContext('getOrCreateVeilleTabs()', m.ctx);
+    const res = vm.runInContext('runVeille()', m.ctx);
+    const esearch = m.requetes.filter(q => q.endpoint === 'esearch.fcgi').length, efetch = m.requetes.filter(q => q.endpoint === 'efetch.fcgi').length;
+    V('DEUX requêtes esearch (une par axe), plus AUCUNE par thème', esearch === 2, esearch);
+    V('les fiches viennent d\'efetch, en un lot', efetch === 1 && m.requetes.every(q => q.endpoint !== 'esummary.fcgi'), efetch);
+    const f = m.cl.getSheetByName('VEILLE'); const L = f.lignes.slice(1); const par = {}; L.forEach(l => { par[String(l[0])] = l; });
+    V('15 colonnes écrites, la 15e est MOTIF', f.lignes[0][14] === 'MOTIF' && L.every(l => l.length === 15), f.lignes[0]);
+    V('le titre est débarrassé des balises (<i>ARDS</i>)', par['701'][2] === 'Prone Positioning in ARDS: a Randomized Trial', par['701'][2]);
+    V('quatre auteurs → trois puis « et al. »', /^Guerin C, Reignier J, Richard JC et al\.$/.test(par['701'][3]), par['701'][3]);
+    V('DOI, revue et date lus dans la fiche', par['701'][5] === '10.1000/x701' && par['701'][4] === 'Anesthesiology' && (par['701'][1] instanceof Date ? par['701'][1].toISOString().slice(0, 10) : String(par['701'][1]).slice(0, 10)) === '2026-09-10', [par['701'][5], par['701'][4], par['701'][1]]);
+    V('thèmes posés LOCALEMENT depuis titre + résumé : Ventilation et SDRA + Hémodynamique', /Ventilation et SDRA/.test(par['701'][13]) && /Hémodynamique/.test(par['701'][13]), par['701'][13]);
+    V('…et depuis les descripteurs MeSH (Delirium → Neurologie et délire)', /Neurologie et délire/.test(par['801'][13]), par['801'][13]);
+    V('le type retenu est le plus fort (ECR devant Multicenter)', par['701'][12] === 'Randomized Controlled Trial', par['701'][12]);
+    const n = id => Number(par[id][7]);
+    V('un ECR de revue spécialisée avec résumé et deux thèmes est très haut (≥ 90)', n('701') >= 90, n('701'));
+    V('une lettre sans résumé est tout en bas (< 30)', n('702') < 30, n('702'));
+    V('un protocole d\'essai est pénalisé (< 60)', n('703') < 60, n('703'));
+    V('une revue systématique généraliste est entre les deux', n('801') > n('703') && n('801') < n('701'), [n('801'), n('703'), n('701')]);
+    V('le motif dit pourquoi, en clair', /ECR/.test(par['701'][14]) && /2 thèmes/.test(par['701'][14]) && /revue spécialisée/.test(par['701'][14]), par['701'][14]);
+    V('…et pour la lettre aussi', /lettre\/éditorial/.test(par['702'][14]) && /sans résumé/.test(par['702'][14]), par['702'][14]);
+    const g = vm.runInContext('getVeille()', m.ctx);
+    V('getVeille expose la note et le motif, et trie par note', g.items[0].pmid === '701' && g.items[0].motif.length > 0 && g.items[g.items.length - 1].pmid === '702', g.items.map(i => i.pmid + ':' + i.score));
+    V('le passage réussi pose VEILLE_DERNIER_SUCCES', !!m.props.VEILLE_DERNIER_SUCCES, m.props);
+  }
+  console.log('\n═══ La fenêtre : depuis le dernier passage réussi, pas 180 jours ═══');
+  {
+    const plan = () => ({ esearchresult: { count: '0', idlist: [] } });
+    const jours = (depuis) => { const m = monde(plan); if (depuis) m.props.VEILLE_DERNIER_SUCCES = new Date(Date.now() - depuis * 86400000).toISOString(); vm.runInContext('getOrCreateVeilleTabs()', m.ctx); vm.runInContext('runVeille()', m.ctx); const q = m.requetes.find(r => r.endpoint === 'esearch.fcgi'); return q ? Number(new URLSearchParams(m.requetes[0].raw || '').get('reldate')) || m.journalFenetre : null; };
+    const fen = (depuis) => { const m = monde(plan); if (depuis) m.props.VEILLE_DERNIER_SUCCES = new Date(Date.now() - depuis * 86400000).toISOString(); return vm.runInContext('_veilleFenetreJours(180)', m.ctx); };
+    V('premier passage (aucun marqueur) : la fenêtre entière, 180 j', fen(null) === 180);
+    V('passage 7 jours après un succès : 21 j (7 + 14 de marge, plancher 21)', fen(7) === 21, fen(7));
+    V('40 jours après : 54 j', fen(40) === 54, fen(40));
+    V('un an après : borné à 180 j', fen(400) === 180);
+  }
+
+console.log(`\n${ok} OK · ${ko} en échec`);
   process.exit(ko ? 1 : 0);
 })();

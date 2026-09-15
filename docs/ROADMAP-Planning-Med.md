@@ -75,6 +75,29 @@ Règle du plan : chaque étape laisse le site complet ; une étape qui casse →
 comprendre ensuite ; push en heure creuse ; ROADMAP mise à jour à chaque étape avec
 « confirmé en production le … ».
 
+## 15/09/2026 — la veille bibliographique, refondue en une passe (1+2+3)
+
+**Constat :** aucun article ajouté les lundis 31/08, 07/09 et 14/09 ; « Exécutions » d'Apps Script : `PubMed
+esearch.fcgi HTTP 429` au 23e appel (un par thème, 21 thèmes, 350 ms d'écart). Le battement de cœur
+était écrit en tête de fonction : le Diagnostic voyait la veille verte pendant trois semaines.
+**Fait (veille.gs 2026-09-15.1, diagnostic.gs 2026-09-15.3, site v1.12.12) :**
+1. *Robuste* — réessai sur 429/5xx (3 s, 8 s, 20 s, puis abandon avec le nombre d'essais), pause 600 ms,
+   battement À LA FIN en cas de succès, ligne LOGS à chaque passage (bilan ou échec), `PUBMED_API_KEY`
+   de CONFIG jointe si présente (10 req/s au lieu de 3).
+2. *Frugal* — fenêtre = jours depuis le dernier passage réussi + 14 (plancher 21, plafond JOURS) au lieu
+   de 180 j à chaque fois ; les 21 requêtes « une par thème » remplacées par **une** lecture `efetch` par lot
+   de 200 (titre, résumé, revue, date, auteurs, DOI, types, MeSH, mots-clés — XML lu à la regex, même
+   code dans le banc) et un étiquetage LOCAL par les expressions des thèmes. ~5 appels au lieu de 25.
+3. *Pertinent* — colonne SCORE remplie (0-100 : ECR +35, méta +30, reco +30, revue syst. +25 ; lettre/
+   éditorial −30 ; protocole/erratum −25 ; revue spécialisée +10 ; +6 par thème (max 18) ; résumé ±5/−10 ;
+   récent +5) et nouvelle colonne MOTIF (« ECR · 2 thèmes · revue spécialisée »). L'accueil trie
+   « Pertinence » par la note et affiche le motif. `esummary` n'est plus utilisé.
+   Banc : `banc_veille.js` 85 ✓ (429 réessayés, thèmes locaux, note, fenêtre).
+**À faire ensuite (passe 4, décision prise) :** résumé en français de 2 lignes pour les ~20 meilleurs
+articles de la semaine, par l'API Anthropic (clé déjà dans CONFIG), dans la colonne RESUME ; bloc « Cette
+semaine » en tête de l'écran. Quelques centimes par lundi.
+**Thèmes :** les 21 de VEILLE_CFG jugés bons par le responsable ; à étoffer plus tard.
+
 ⚠️ **Échéance vue au Diagnostic du 14/09 : le jeton GitHub expire dans 23 jours (début octobre 2026).**
 Sans lui, la publication du planning s'arrête. À faire par le responsable : créer un nouveau jeton
 (compte `planningmedic`, dépôt `planningmedic.github.io`, contenu en lecture/écriture) et le poser

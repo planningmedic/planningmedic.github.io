@@ -4,7 +4,7 @@
    quelles : aucune ligne de logique modifiée, seulement déplacée. Le routeur et
    ses aides (checkCode, _deny, _error, doGet/doPost) restent dans Indispos.gs.
    Un seul espace global dans Apps Script : rien à importer. */
-const GAS_VERSION_DIAG = '2026-09-15.2';
+const GAS_VERSION_DIAG = '2026-09-15.3';
 
 // ── LOG ───────────────────────────────────────────────────────────────
 /* ─────────────────────────────────────────────────────────────────────────────
@@ -60,7 +60,7 @@ function _batAttendus_() {
     { nom:'miroirSyncComplet', label:'Synchronisation horaire de la copie rapide', alerte:180 },
     { nom:'miroirDocuments',  label:'Miroir des documents', alerte:26*60 },
     { nom:'expirerEchanges',  label:'Expiration des échanges', alerte:180 },
-    { nom:'runVeille',        label:'Veille bibliographique', alerte:8*24*60 },
+    { nom:'runVeille',        label:'Veille bibliographique (dernier passage RÉUSSI — depuis le 15/09, un passage planté sur PubMed ne bat plus)', alerte:8*24*60 },
     { nom:'diagSentinelle',   label:'La sentinelle quotidienne elle-même', alerte:26*60 }
   ];
 }

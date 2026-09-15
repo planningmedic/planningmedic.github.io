@@ -449,6 +449,7 @@ a.tile:hover, .tile.clickable:hover {
 .vc-title{display:block;font-size:15px;font-weight:700;color:var(--ink);line-height:1.4;text-decoration:none}
 .vc-title:hover{color:var(--me)}
 .vc-resume{font-size:13px;color:var(--ink-2);line-height:1.5;margin-top:5px}
+.vc-motif{font-size:11.5px;color:var(--ink-3);margin-top:2px}   /* (15/09/2026) le pourquoi de la note */
 .vc-journal{font-size:12.5px;color:var(--me);font-weight:600;margin-top:6px}
 .vc-authors{font-size:12.5px;color:var(--ink-3);margin-top:2px}
 .vc-actions{display:flex;flex-wrap:wrap;gap:7px;margin-top:11px}
@@ -2165,6 +2166,10 @@ function renderVeille(){
   if(!shown.length){ box.innerHTML='<div class="topos-empty">Rien à afficher avec ce filtre.</div>'; return; }
   shown.sort(function(a,b){
     if(V_SORT==='relevance'){
+      /* (15/09/2026) la note SCORE (0-100) calculée par le serveur passe devant ;
+         les articles d'avant la note (score vide) gardent le rang par type d'étude */
+      const sa=(a.score==null?-1:a.score), sb=(b.score==null?-1:b.score);
+      if(sa!==sb) return sb-sa;
       const ra=_ptRank(a), rb=_ptRank(b);
       if(ra!==rb) return ra-rb;
     }
@@ -2178,7 +2183,7 @@ function renderVeille(){
           ? '<span class="vc-badge general">Généraliste</span>'
           : '<span class="vc-badge revue">Revue spécialisée</span>');
     const ptBadge = PUBTYPE_FR[it.pubtype] ? '<span class="vc-badge pubtype">'+PUBTYPE_FR[it.pubtype]+'</span>' : '';
-    const right = (it.score!=null?'<span class="vc-score">'+it.score+'</span>':'')
+    const right = (it.score!=null?'<span class="vc-score" title="'+esc(it.motif||'')+'">'+it.score+'</span>':'')
                 + '<span class="vc-date">'+fmtDate(it.date)+'</span>';
     const pub='https://pubmed.ncbi.nlm.nih.gov/'+encodeURIComponent(it.pmid)+'/';
     return '<div class="veille-card'+(it.lu?'':' unread')+'">'
@@ -2186,6 +2191,7 @@ function renderVeille(){
         + '<span class="vc-right">'+right+'</span></div>'
       + '<a class="vc-title" href="'+pub+'" target="_blank" rel="noopener">'+esc(it.titre)+'</a>'
       + (it.resume?'<div class="vc-resume">'+esc(it.resume)+'</div>':'')
+      + (it.motif?'<div class="vc-motif">'+esc(it.motif)+'</div>':'')
       + (it.revue?'<div class="vc-journal">'+esc(it.revue)+'</div>':'')
       + (it.themes&&it.themes.length?'<div class="vc-themes">'+it.themes.map(esc).join(' · ')+'</div>':'')
       + (it.auteurs?'<div class="vc-authors">'+esc(it.auteurs)+'</div>':'')

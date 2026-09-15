@@ -57,7 +57,7 @@
 //  instantané unique et partagé : chantier séparé.
 // ══════════════════════════════════════════════════════════════════════
 
-const GAS_VERSION_VEILLE = '2026-09-14.1';
+const GAS_VERSION_VEILLE = '2026-09-15.1';
 
 const VEILLE_CFG_TAB = 'VEILLE_CFG';
 const VEILLE_TAB     = 'VEILLE';
@@ -68,7 +68,7 @@ const EUTILS_EMAIL   = 'planningmedic@gmail.com';
 const VEILLE_PAGE     = 1000;   // résultats rapatriés par appel esearch
 const VEILLE_PLAFOND  = 6000;   // garde-fou absolu par requête
 const VEILLE_LOT      = 200;    // taille des lots esummary
-const VEILLE_PAUSE    = 350;    // ms entre deux appels PubMed (politesse NCBI)
+const VEILLE_PAUSE    = 600;    // ms entre deux appels PubMed (politesse NCBI) — 350 ms provoquait des 429 le lundi 6 h (15/09/2026)
 
 // ══════════════════════════════════════════════════════════════════════
 //  CONFIGURATION PAR DÉFAUT (onglet VEILLE_CFG)
@@ -241,7 +241,7 @@ function getOrCreateVeilleTabs() {
 // Ajoute en fin les colonnes manquantes sans décaler LU/STAR, référencés
 // par leur position dans markVeille.
 function _ensureVeilleColumns(v) {
-  const need = ['PUBTYPE', 'THEMES'];
+  const need = ['PUBTYPE', 'THEMES', 'MOTIF'];   // (15/09/2026) MOTIF : le « pourquoi » de la note SCORE
   let lastCol = Math.max(v.getLastColumn(), 1);
   const hdr = v.getRange(1, 1, 1, lastCol).getValues()[0].map(function (x) { return String(x || '').trim(); });
   need.forEach(function (name) {
@@ -301,17 +301,37 @@ function _readVeilleCfg() {
 //  ACCÈS PUBMED — POST + pagination
 // ══════════════════════════════════════════════════════════════════════
 
-function _eutilsPost(endpoint, params) {
-  const payload = params + '&tool=' + EUTILS_TOOL + '&email=' + encodeURIComponent(EUTILS_EMAIL);
-  const res = UrlFetchApp.fetch(EUTILS_BASE + endpoint, {
-    method: 'post',
-    contentType: 'application/x-www-form-urlencoded',
-    payload: payload,
-    muteHttpExceptions: true,
-  });
-  const code = res.getResponseCode();
-  if (code !== 200) throw new Error('PubMed ' + endpoint + ' HTTP ' + code);
-  return JSON.parse(res.getContentText());
+/* (15/09/2026) RÉESSAI. Les 31/08, 07/09 et 14/09, le passage du lundi 6 h a
+   planté sur « HTTP 429 » (PubMed : trop de requêtes) au 23e appel — un
+   par thème — et n'a rien écrit, trois semaines de suite. Un 429 ou un 5xx
+   est passager : on attend 3 s, puis 8 s, puis 20 s, et on réessaie ; on ne
+   renonce qu'après quatre échecs. La pause entre appels passe de 350 à 600 ms.
+   Si CONFIG porte une ligne PUBMED_API_KEY, elle est jointe (NCBI accorde
+   alors 10 requêtes/s au lieu de 3). */
+function _eutilsPost(endpoint, params, brut) {
+  let payload = params + '&tool=' + EUTILS_TOOL + '&email=' + encodeURIComponent(EUTILS_EMAIL);
+  try {
+    const rows = _configRows_();
+    for (let r = 1; r < rows.length; r++) {
+      if (String(rows[r][0]).trim() === 'PUBMED_API_KEY' && String(rows[r][1]).trim()) {
+        payload += '&api_key=' + encodeURIComponent(String(rows[r][1]).trim()); break;
+      }
+    }
+  } catch (e) { /* CONFIG illisible : sans clé */ }
+  const attentes = [3000, 8000, 20000];
+  for (let essai = 0; ; essai++) {
+    const res = UrlFetchApp.fetch(EUTILS_BASE + endpoint, {
+      method: 'post',
+      contentType: 'application/x-www-form-urlencoded',
+      payload: payload,
+      muteHttpExceptions: true,
+    });
+    const code = res.getResponseCode();
+    if (code === 200) return brut ? res.getContentText() : JSON.parse(res.getContentText());
+    const passager = (code === 429 || code >= 500);
+    if (!passager || essai >= attentes.length) throw new Error('PubMed ' + endpoint + ' HTTP ' + code + (essai ? ' après ' + (essai + 1) + ' essais' : ''));
+    Utilities.sleep(attentes[essai]);
+  }
 }
 
 /* Rapatrie TOUS les identifiants d'une requête, par pages successives.
@@ -345,6 +365,121 @@ function _esearchTout(term, jours) {
 function _esummary(pmids) {
   return _eutilsPost('esummary.fcgi', 'db=pubmed&retmode=json&id=' + pmids.join(','));
 }
+
+/* ═══ (15/09/2026) FICHES COMPLÈTES EN UN APPEL PAR LOT — efetch XML ═══
+   Avant : les fiches venaient d'esummary (titre, auteurs, revue, date, types),
+   et les THÈMES d'une requête PubMed PAR THÈME — 21 appels de plus chaque
+   lundi, et c'est le 23e appel qui recevait « HTTP 429 » (14/09). Désormais
+   efetch rend pour chaque article, en un lot de 200 : titre, résumé, revue,
+   date, auteurs, DOI, types de publication, descripteurs MeSH et mots-clés.
+   Les thèmes sont posés LOCALEMENT en cherchant les expressions de VEILLE_CFG
+   dans ce texte, et la note SCORE se calcule sans rien demander à personne.
+   Le XML est lu à la regex — délibérément : pas de XmlService, donc le même
+   code tourne dans le banc et chez Google. Les balises de mise en forme
+   (<i>, <sub>, <b>) des titres sont retirées. */
+function _efetch(pmids) {
+  return _eutilsPost('efetch.fcgi', 'db=pubmed&retmode=xml&rettype=abstract&id=' + pmids.join(','), true);
+}
+function _xTexte(bloc, balise) {
+  const m = new RegExp('<' + balise + '(?:\\s[^>]*)?>([\\s\\S]*?)</' + balise + '>', 'i').exec(bloc);
+  return m ? _xNettoie(m[1]) : '';
+}
+function _xTous(bloc, balise, brut) {
+  const re = new RegExp('<' + balise + '(?:\\s[^>]*)?>([\\s\\S]*?)</' + balise + '>', 'gi'), out = []; let m;
+  while ((m = re.exec(bloc))) out.push(brut ? m[1] : _xNettoie(m[1]));   // brut : le bloc garde ses balises internes (Author → LastName/Initials)
+  return out;
+}
+function _xNettoie(t) {
+  return String(t || '').replace(/<[^>]+>/g, '').replace(/&lt;/g, '<').replace(/&gt;/g, '>').replace(/&amp;/g, '&')
+    .replace(/&quot;/g, '"').replace(/&#39;|&apos;/g, "'").replace(/\s+/g, ' ').trim();
+}
+const _MOIS_EN = { jan: '01', feb: '02', mar: '03', apr: '04', may: '05', jun: '06', jul: '07', aug: '08', sep: '09', oct: '10', nov: '11', dec: '12' };
+function _veilleFichesEfetch(xml) {
+  const fiches = {};
+  const blocs = String(xml || '').split(/<PubmedArticle[\s>]/).slice(1);
+  blocs.forEach(function (b) {
+    const pmid = _xTexte(b, 'PMID'); if (!pmid) return;
+    const art = (b.match(/<Article[\s>][\s\S]*?<\/Article>/) || [b])[0];
+    const journal = (art.match(/<Journal>[\s\S]*?<\/Journal>/) || [''])[0];
+    const pubDate = (journal.match(/<PubDate>[\s\S]*?<\/PubDate>/) || [''])[0];
+    let y = _xTexte(pubDate, 'Year'), mo = _xTexte(pubDate, 'Month'), d = _xTexte(pubDate, 'Day');
+    if (!y) { const md = _xTexte(pubDate, 'MedlineDate'); const mm = md.match(/(\d{4})(?:\s+([A-Za-z]{3}))?/); if (mm) { y = mm[1]; mo = mm[2] || ''; } }
+    if (mo && !/^\d+$/.test(mo)) mo = _MOIS_EN[mo.slice(0, 3).toLowerCase()] || '01';
+    const date = y ? (y + '-' + String(mo || '01').padStart(2, '0') + '-' + String(d || '01').padStart(2, '0')) : '';
+    const auteurs = _xTous(art, 'Author', true).map(function (a) { const ln = _xTexte(a, 'LastName'), ini = _xTexte(a, 'Initials'); return ln ? (ln + (ini ? ' ' + ini : '')) : _xTexte(a, 'CollectiveName'); }).filter(Boolean);
+    const doiM = b.match(/<ArticleId IdType="doi">([^<]+)<\/ArticleId>/i);
+    fiches[pmid] = {
+      pmid: pmid, titre: _xTexte(art, 'ArticleTitle'),
+      resume: _xTous(art, 'AbstractText').join(' '),
+      revue: _xTexte(journal, 'ISOAbbreviation') || _xTexte(journal, 'Title'),
+      date: date, auteurs: auteurs, doi: doiM ? _xNettoie(doiM[1]) : '',
+      pubtypes: _xTous(art, 'PublicationType'),
+      mesh: _xTous(b, 'DescriptorName'), motscles: _xTous(b, 'Keyword'),
+    };
+  });
+  return fiches;
+}
+
+/* Les expressions d'un thème : ce qu'il y a entre guillemets dans sa requête
+   PubMed (VEILLE_CFG écrit chaque thème en « "expression"[tiab] OR … »). */
+function _veilleExpressions(valeur) {
+  const out = []; const re = /"([^"]+)"/g; let m;
+  while ((m = re.exec(String(valeur || '')))) out.push(m[1].toLowerCase());
+  return out;
+}
+function _veilleThemesLocaux(fiche, themes) {
+  const texte = (' ' + [fiche.titre, fiche.resume, fiche.motscles.join(' '), fiche.mesh.join(' ')].join(' ') + ' ').toLowerCase()
+    .replace(/[^a-z0-9]+/g, ' ');
+  const trouves = {};
+  themes.forEach(function (th) {
+    const exprs = _veilleExpressions(th.valeur);
+    for (let i = 0; i < exprs.length; i++) {
+      const e = ' ' + exprs[i].replace(/[^a-z0-9]+/g, ' ').trim() + ' ';
+      if (e.trim() && texte.indexOf(e) !== -1) { trouves[th.cle] = true; break; }
+    }
+  });
+  return trouves;
+}
+
+/* ═══ LA NOTE (0-100) ET SON MOTIF — explicable en un coup d'œil ═══
+   Type d'étude d'abord (ce qui change une pratique), puis la revue, le nombre
+   de thèmes touchés, la présence d'un résumé, la fraîcheur. Une lettre, un
+   éditorial, un protocole d'essai ou un erratum descendent tout en bas. */
+function _veilleNote(fiche, source, themes, aujourdhui) {
+  let n = 40; const motifs = [];
+  const pt = (fiche.pubtypes || []).join(' | ');
+  if (/Randomized Controlled Trial/.test(pt)) { n += 35; motifs.push('ECR'); }
+  else if (/Meta-Analysis/.test(pt)) { n += 30; motifs.push('méta-analyse'); }
+  else if (/Practice Guideline|Guideline/.test(pt)) { n += 30; motifs.push('recommandation'); }
+  else if (/Systematic Review/.test(pt)) { n += 25; motifs.push('revue systématique'); }
+  else if (/Multicenter Study|Observational Study|Cohort/.test(pt)) { n += 8; motifs.push('étude'); }
+  else if (/\bReview\b/.test(pt)) { n += 10; motifs.push('revue'); }
+  if (/Letter|Editorial|Comment|Case Reports|News|Published Erratum|Retraction/.test(pt)) { n -= 30; motifs.push('lettre/éditorial'); }
+  if (/protocol for|study protocol|\berratum\b|corrigendum|\bcorrection\b/i.test(fiche.titre || '')) { n -= 25; motifs.push('protocole/erratum'); }
+  if (source === 'REVUE') { n += 10; motifs.push('revue spécialisée'); }
+  const nbTh = Object.keys(themes || {}).length;
+  if (nbTh) { n += Math.min(18, 6 * nbTh); motifs.push(nbTh + (nbTh > 1 ? ' thèmes' : ' thème')); }
+  if (!fiche.resume) { n -= 10; motifs.push('sans résumé'); } else { n += 5; }
+  if (fiche.date && aujourdhui) {
+    const age = (new Date(aujourdhui) - new Date(fiche.date)) / 86400000;
+    if (age >= 0 && age <= 30) { n += 5; motifs.push('récent'); }
+  }
+  n = Math.max(0, Math.min(100, Math.round(n)));
+  return { note: n, motif: motifs.join(' · ') };
+}
+
+/* Fenêtre de recherche : depuis le dernier passage RÉUSSI + 14 jours de marge
+   (PubMed indexe avec retard), bornée entre 21 jours et le paramètre JOURS.
+   Premier passage, ou marqueur perdu : JOURS entier. */
+function _veilleFenetreJours(joursMax) {
+  let depuis = null;
+  try { depuis = PropertiesService.getScriptProperties().getProperty('VEILLE_DERNIER_SUCCES'); } catch (e) {}
+  if (!depuis) return joursMax;
+  const age = Math.ceil((Date.now() - new Date(depuis).getTime()) / 86400000);
+  if (!(age >= 0)) return joursMax;
+  return Math.max(21, Math.min(joursMax, age + 14));
+}
+
 
 // ══════════════════════════════════════════════════════════════════════
 //  CONSTRUCTION DES REQUÊTES
@@ -390,7 +525,17 @@ function _veilleListeBlanche(cfg) {
 // ══════════════════════════════════════════════════════════════════════
 
 function runVeille() {
-  try { if (typeof _bat_ === 'function') _bat_('runVeille'); } catch (e) {}   // (27/08) battement de cœur — lu par le diagnostic
+  /* (15/09/2026) Le battement de cœur était écrit ICI, avant tout travail : un
+     passage planté sur PubMed restait « vert » au Diagnostic pendant trois
+     semaines. Il est désormais écrit À LA FIN, en cas de succès seulement, et
+     chaque passage — réussi ou non — laisse une ligne dans LOGS. */
+  try { return _runVeilleCorps_(); }
+  catch (e) {
+    try { logAction('veille — ÉCHEC : ' + (e && e.message ? e.message : e)); } catch (e2) {}
+    throw e;
+  }
+}
+function _runVeilleCorps_() {
   const t0   = Date.now();
   const tabs = getOrCreateVeilleTabs();
   const cfg  = _readVeilleCfg();
@@ -404,7 +549,8 @@ function runVeille() {
     return { success: false, error: 'aucune revue active' };
   }
 
-  const jours   = parseInt(cfg.params.JOURS, 10) || 180;
+  const joursMax = parseInt(cfg.params.JOURS, 10) || 180;
+  const jours    = _veilleFenetreJours(joursMax);   // (15/09) depuis le dernier passage réussi + 14 j, plus 180 j à chaque fois
   const maxPass = parseInt(cfg.params.MAX_PASSAGE, 10) || 700;
   const filtre  = _veilleFiltre(cfg);
   const themeOr = _veilleOrThemes(cfg.themes);
@@ -436,20 +582,8 @@ function runVeille() {
   idsDirect.forEach(function (id) { source[id] = 'REVUE'; });
   idsGeneral.forEach(function (id) { if (!source[id]) source[id] = 'GENERAL'; });
 
-  // ── Étiquetage par thème ──────────────────────────────────────────
-  // Une requête par thème, bornée à l'univers de revues. Sert à remplir
-  // la colonne THEMES : sans ça le filtre par thème de l'écran est aveugle
-  // pour les articles pêchés par leur revue.
-  const univers = '(' + _veilleOrRevues(cfg.revues.concat(cfg.general)) + ')';
-  const themesParPmid = {};
-  cfg.themes.forEach(function (th) {
-    const ids = _esearchTout(_veilleAvec(univers + ' AND (' + th.valeur + ')', filtre), jours);
-    ids.forEach(function (id) {
-      if (!source[id]) return;                 // hors des deux axes : ignoré
-      if (!themesParPmid[id]) themesParPmid[id] = {};
-      themesParPmid[id][th.cle] = true;
-    });
-  });
+  // ── Étiquetage par thème : LOCAL, après lecture des fiches (15/09/2026) ──
+  // (les 21 requêtes « une par thème » ont disparu : voir _veilleThemesLocaux)
 
   // ── Nouveaux PMID seulement ───────────────────────────────────────
   const data = tabs.veille.getDataRange().getValues();
@@ -468,33 +602,37 @@ function runVeille() {
   const lignes = [];
   for (let i = 0; i < nouveaux.length; i += VEILLE_LOT) {
     const lot = nouveaux.slice(i, i + VEILLE_LOT);
-    let res;
-    try { res = _esummary(lot); } catch (e) { Logger.log('esummary : ' + e); continue; }
+    let fiches;
+    try { fiches = _veilleFichesEfetch(_efetch(lot)); } catch (e) { Logger.log('efetch : ' + e); continue; }
     Utilities.sleep(VEILLE_PAUSE);
-    const r = (res && res.result) || {};
     lot.forEach(function (pmid) {
-      const o = r[pmid];
-      if (!o || o.error) return;
+      const f = fiches[pmid];
+      if (!f) return;
+      const themes = _veilleThemesLocaux(f, cfg.themes);
+      const note = _veilleNote(f, source[pmid] || 'REVUE', themes, aujourdhui);
       lignes.push([
         pmid,
-        _veilleDatePub(o),
-        String(o.title || '').replace(/\s+/g, ' ').trim(),
-        _veilleAuteurs(o.authors),
-        String(o.source || ''),
-        _veilleDoi(o),
+        f.date,
+        f.titre,
+        f.auteurs.length > 3 ? f.auteurs.slice(0, 3).join(', ') + ' et al.' : f.auteurs.join(', '),
+        f.revue,
+        f.doi,
         source[pmid] || 'REVUE',
-        '',                                   // SCORE  — réservé au tri fin
-        '',                                   // RESUME — idem
+        note.note,                            // SCORE  (15/09) la note 0-100
+        '',                                   // RESUME — réservé à la passe 4 (résumé en français)
         'N', 'N',
         aujourdhui,
-        _veillePubType(o.pubtype),
-        _veilleThemes(themesParPmid[pmid]),
+        _veillePubType(f.pubtypes),
+        _veilleThemes(themes),
+        note.motif,                           // MOTIF  (15/09) le pourquoi de la note
       ]);
     });
   }
   if (lignes.length) {
-    tabs.veille.getRange(tabs.veille.getLastRow() + 1, 1, lignes.length, 14).setValues(lignes);
+    _ensureVeilleColumns(tabs.veille);
+    tabs.veille.getRange(tabs.veille.getLastRow() + 1, 1, lignes.length, 15).setValues(lignes);
   }
+
 
   const sec = Math.round((Date.now() - t0) / 1000);
   Logger.log('Veille ' + GAS_VERSION_VEILLE + ' — fenêtre ' + jours + ' j · ' +
@@ -511,6 +649,9 @@ function runVeille() {
              ' · écrits ' + lignes.length + ' · ' + sec + ' s');
   if (plafonne) Logger.log('  → relancer runVeille() pour absorber le reste.');
 
+  try { if (typeof _bat_ === 'function') _bat_('runVeille'); } catch (e) {}   // battement = passage RÉUSSI
+  try { PropertiesService.getScriptProperties().setProperty('VEILLE_DERNIER_SUCCES', new Date().toISOString()); } catch (e) {}
+  try { logAction('veille — ' + trouves + ' nouveaux, ' + lignes.length + ' écrits, ' + uniques + ' uniques sur ' + jours + ' j, ' + sec + ' s'); } catch (e) {}
   return { success: true, trouves: trouves, ecrits: lignes.length,
            parSemaine: parSem, axeDirect: idsDirect.length, axeCroise: idsGeneral.length,
            secondes: sec };
@@ -626,6 +767,7 @@ function getVeille(user) {
       resume: String(data[r][8] || ''), lu: !!lus[pmid],
       star: !!stars[pmid], ajoute: _isoDate(data[r][11]),
       pubtype: String(data[r][12] || ''), themes: _veilleSplitThemes(data[r][13]),
+      motif: String(data[r][14] || ''),   // (15/09) le pourquoi de la note
     });
   }
   items.sort(function (a, b) {
