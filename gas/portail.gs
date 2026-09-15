@@ -834,19 +834,7 @@ function getOrCreateLiberalCaTab(year) {
   return sh;
 }
 
-/* (17/08/2026) LE MOIS DU RELEVE PEUT ETRE UNE DATE, PAS DU TEXTE.
-   getOrCreateLiberalCaTab ecrit la chaine '2026-07' ; Sheets la RECONNAIT comme
-   une date et stocke une vraie date. getValues() renvoie alors un objet Date,
-   dont String() donne 'Wed Jul 01 2026 00:00:00 GMT+0200'. Constate le
-   17/08/2026 sur les 228 cellules de LIBERAL_CA_2026. Deux consequences, vues
-   a l'ecran : la page affichait « cumul janvier -> undefined Wed », et le
-   « dernier mois », choisi par un tri alphabetique, comparait des NOMS DE JOURS
-   ANGLAIS — il serait reste bloque sur juillet jusqu'en decembre (Sat, Sun,
-   Thu, Tue passent tous avant Wed).
-   On normalise ICI, a la lecture : le classeur n'est pas touche, les mois deja
-   saisis sont rattrapes, et 'AAAA-MM' se trie de nouveau dans l'ordre.
-   Canard-typage volontaire (pas `instanceof Date`) : au banc, la date vient
-   d'un autre contexte d'execution et `instanceof` y serait faux. */
+/* (17/08/2026) LE MOIS DU RELEVE PEUT ETRE UNE DATE, PAS DU TEXTE — récit : docs/JOURNAL-Planning-Med.md §150 */
 function _libMoisISO_(v) {
   if (v && typeof v.getFullYear === 'function' && !isNaN(v.getTime())) {
     return v.getFullYear() + '-' + ('0' + (v.getMonth() + 1)).slice(-2);
@@ -1343,12 +1331,7 @@ function deleteLiberal(payload, user) {
   if (!sh) return { success: false, error: 'Aucune déclaration cette année.' };
   const data = sh.getDataRange().getValues();
 
-  /* (02/08/2026) La recherche se faisait sur le SEUL identifiant, et s'arretait a la
-     premiere ligne trouvee. LIBERAL_2026 contient dix lignes partageant un meme ID
-     (heritage d'un ancien schema d'ID par fusion) appartenant a des MAR differents :
-     tous sauf le proprietaire de la premiere occurrence recevaient « pas la votre »
-     et ne pouvaient plus supprimer leur propre declaration. On cherche desormais sur
-     ID + MAR_ID, ce qui rend la suppression insensible aux doublons d'identifiant. */
+  /* (02/08/2026) La recherche se faisait sur le SEUL identifiant, et s'arretait a la — récit : docs/JOURNAL-Planning-Med.md §151 */
   let trouveAutreMar = false;
   for (let r = 1; r < data.length; r++) {
     if (String(data[r][0]).trim() !== id) continue;
@@ -1379,13 +1362,7 @@ function listLiberalJour(payload, user) {
   const items = [];
   for (let r = 1; r < data.length; r++) {
     if (_isoDate(data[r][2]) !== date) continue;
-    /* (2026-08-05.2) RÉPONSE ALLÉGÉE. Le volet du comité n'affiche que QUI
-       opère, dans quel SECTEUR, et le libellé de chirurgie (vérifié dans
-       renderLiberalCard, admin.html) : il regroupe par MAR + secteur et
-       compte les interventions. Les montants (br CCAM / NGAP) et la
-       spécialité voyageaient donc jusqu'au navigateur SANS AUCUN USAGE.
-       Ils restent désormais dans le classeur — moins de donnée sensible en
-       circulation, et cette liste devient mirrorable (affichage instantané). */
+    /* (2026-08-05.2) RÉPONSE ALLÉGÉE — récit : docs/JOURNAL-Planning-Med.md §152 */
     items.push({
       marId:     String(data[r][3]).trim(),
       secteur:   String(data[r][4]).trim().toUpperCase(),

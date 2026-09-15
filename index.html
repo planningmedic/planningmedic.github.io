@@ -675,13 +675,7 @@ a.tile:hover, .tile.clickable:hover {
 const SITE_VERSION = window.SITE_VERSION || '—';   // le numéro vit dans version.js
 const API_URL = 'https://script.google.com/macros/s/AKfycbxDbTnhgdjCNBqkeAblZWgS3CK-IptjJoRDQd1AtGF7WQoQkXriWGvISIo7LJG8zUtjTQ/exec';
 
-/* (08/09/2026) Le titre affiché et le régime de souhaits garantis venaient d'un
-   nom de praticien écrit en dur. Deux défauts : ce nom vivait dans
-   un dépôt public, et une règle qu'il aurait fallu modifier dans le code le jour
-   où elle changerait de titulaire. Les deux listes arrivent maintenant avec
-   l'identité, déduites de MEDECINS — colonne NOM pour le titre, colonne
-   souhait_plafond pour le régime. Vides tant que l'identité n'est pas reçue :
-   « Dr » pour tout le monde, aucun régime particulier. Le bon défaut. */
+/* (08/09/2026) Le titre affiché et le régime de souhaits garantis venaient d'un — récit : docs/JOURNAL-Planning-Med.md §51 */
 let TITRES_PR = [], SOUHAITS_PLAFOND = [];
 const _tit    = id => (TITRES_PR.indexOf(id) > -1 ? 'Pr ' : 'Dr ');
 const _titMaj = id => (TITRES_PR.indexOf(id) > -1 ? 'PR ' : 'DR ');
@@ -805,12 +799,7 @@ async function miroirBootDash() {
   _echDepuisMiroir(m.data && m.data.echanges);   // (13/08) après applyUserBadge : le compteur a besoin de MY_ID
   _notifsDepuisMiroir(m.data && m.data.notifs); // (23/08) après applyUserBadge : la cloche filtre sur MY_ID
   /* Journal de connexion : login GAS en arriere-plan, resultat ignore. */
-  /* (06/08/2026) Journal de connexion en envoi A FOND PERDU.
-     Il n'apporte rien a l'ecran : il alimente l'onglet CONNEXIONS. En passant
-     par le circuit normal, il allumait pourtant le temoin d'activite pendant
-     2 a 3 secondes a CHAQUE ouverture de page — un clignotement sans cause
-     visible pour l'utilisateur. sendBeacon l'envoie hors de la file, sans
-     attendre de reponse, et survit meme a la fermeture de l'onglet. */
+  /* (06/08/2026) Journal de connexion en envoi A FOND PERDU — récit : docs/JOURNAL-Planning-Med.md §52 */
   try {
     const _p = JSON.stringify({ action: 'login', code: VIEW_CODE });
     let _envoye = false;
@@ -1194,12 +1183,7 @@ async function loadMyGardes(){
     let year=new Date().getFullYear();
     try{ year = await getActiveYearOnce(); }catch(e){}
     let list=_extractMyGardes(await _fetchPlanning(year), today);
-    /* (08/08/2026) Transition decembre -> janvier : l'annee suivante est lue
-       SANS aucun appel. Avant, un seuil « des octobre » declenchait un appel
-       Apps Script a chaque ouverture tant que le planning N+1 n'etait pas
-       genere (novembre) — et la tuile attendait sa reponse. Le seuil de date a
-       disparu : il ratait aussi les 1er-3 janvier, ou l'annee de planning est
-       encore la precedente et le mois vaut 0. */
+    /* (08/08/2026) Transition decembre -> janvier — récit : docs/JOURNAL-Planning-Med.md §53 */
     try{ const suiv=_planDejaLa(year+1); if(suiv) list=list.concat(_extractMyGardes(suiv, today)); }catch(e){}
     list.sort(function(a,b){ return a.date<b.date?-1:a.date>b.date?1:0; });
     MY_GARDES=list;
@@ -1612,14 +1596,7 @@ let ECH_AUTORISE = false;    // la clé m'a été servie au moins une fois
    est vu. Sans effet sur les navigateurs qui ne savent pas faire. */
 try { if (navigator.clearAppBadge) navigator.clearAppBadge().catch(function(){}); } catch(e) {}
 
-/* (17/08/2026) La carte ne se propose plus sur ORDINATEUR. Elle s'affichait
-   partout où le navigateur sait recevoir des notifications — donc sur les PC du
-   comité, avec en prime un texte écrit en dur « sur ce téléphone », faux à
-   l'écran. Or une annonce de planning n'a d'intérêt que sur le téléphone qu'on a
-   sur soi : sur un poste, elle arrive là où on est déjà en train de regarder, et
-   sur un poste PARTAGÉ elle s'afficherait chez le suivant.
-   Un abonnement déjà pris sur ordinateur continue de fonctionner : on cache la
-   proposition, on ne révoque rien. */
+/* (17/08/2026) La carte ne se propose plus sur ORDINATEUR — récit : docs/JOURNAL-Planning-Med.md §54 */
 function _appareilMobile(){
   try {
     if (navigator.userAgentData && typeof navigator.userAgentData.mobile === 'boolean')
@@ -1836,12 +1813,7 @@ async function repondreEch(id, reponse, btn){
   try {
     const r = await apiPost({ action:'repondreEchange', id:id, reponse:reponse });
     if (r && r.success) {
-      /* (14/08/2026 — vu en test réel) La réponse du serveur FAIT FOI : on met
-         la liste à jour localement, sans relire la copie rapide tout de suite —
-         elle peut mettre quelques secondes à refléter l'écriture, et la
-         relecture immédiate réaffichait « EN ATTENTE » sur une demande
-         acceptée. La prochaine ouverture de la vue (ou le retour au premier
-         plan) réconciliera. */
+      /* (14/08/2026 — vu en test réel) La réponse du serveur FAIT FOI — récit : docs/JOURNAL-Planning-Med.md §55 */
       const item = ECH_LISTE.find(function(e){ return e.id === id; });
       if (item) { item.etat = r.etat || (reponse==='accepter' ? 'acceptee' : 'refusee'); item.reponduLe = new Date().toISOString(); }
       majEchangesHero();
@@ -2307,16 +2279,7 @@ function _b64ToBlob(b64, mime){
   for(let i=0;i<len;i++) bytes[i]=bin.charCodeAt(i);
   return new Blob([bytes], {type: mime||'application/pdf'});
 }
-/* (2026-08-10) LECTURE D'UN DOCUMENT — miroir d'abord, GAS en repli.
-   Mesure du 08/08 : `getProtocole` 6,1 s et `getTopo` 11,5 s, quand tout le
-   reste de la page arrive du miroir en 100-270 ms. C'était le geste le plus
-   cher du portail, et le seul appel lourd que 23 MARs pouvaient empiler.
-   La copie est déposée par `miroirDocuments` (miroir.gs) sous la clé
-   `doc_<id>`, avec EXACTEMENT la forme que renvoie `getTopo` — d'où une
-   bascule qui ne change que la SOURCE, jamais le traitement en aval.
-   REPLI : toute copie absente (document déposé il y a moins d'une heure,
-   trop lourd, ou erreur de lecture) repasse par l'ancien chemin. Un document
-   sans copie reste donc lent, JAMAIS cassé. */
+/* (2026-08-10) LECTURE D'UN DOCUMENT — récit : docs/JOURNAL-Planning-Med.md §56 */
 async function _lireDoc(id, action){
   try{
     const m = await miroirRead(['doc_' + id]);

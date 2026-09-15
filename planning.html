@@ -435,12 +435,7 @@ body{font-variant-numeric:tabular-nums}
 @media (max-width:768px){ .cons-grid { grid-template-columns:repeat(2,1fr); } .cons-panel { padding:0 16px; } }
 
 /* ── FICHE MÉDECIN ── */
-/* (14/08/2026) DEFAUT VU EN PRODUCTION sur iPhone : la fiche d'un MAR
-   sortait de l'ecran a gauche (largeur figee a 480px) et son en-tete
-   — nom, secteur, croix de fermeture — etait coupe par le haut.
-   Le panneau epouse desormais la zone REELLEMENT visible : l'enveloppe
-   est en position:fixed inset:0, le panneau s'y etire au lieu d'etre
-   colle en bas avec une hauteur de 100vh qui pouvait la depasser. */
+/* (14/08/2026) DEFAUT VU EN PRODUCTION sur iPhone — récit : docs/JOURNAL-Planning-Med.md §41 */
 .doc-panel-overlay {
   position: fixed; inset: 0; background: rgba(13,17,23,.45);
   z-index: 400; display: none; align-items: stretch; justify-content: flex-end;
@@ -700,12 +695,7 @@ body{font-variant-numeric:tabular-nums}
 </style>
   <style>
 .eqv-grid{display:grid;grid-template-columns:1fr;gap:6px}
-/* (13/08/2026) Onglets pleine largeur, souligne actif. AVANT : un interrupteur
-   qui epousait la largeur de son texte, cale a 32 px du bord — sur telephone il
-   flottait dans le coin gauche, et la touche ne faisait que 27 px de haut.
-   La barre n'a plus de marge laterale propre : elle partage le bord gauche de
-   .eq-wrap, son voisin dans #equiteView, donc les onglets s'alignent sur les
-   cartes quelle que soit la marge du conteneur. */
+/* (13/08/2026) Onglets pleine largeur, souligne actif — récit : docs/JOURNAL-Planning-Med.md §42 */
 .eq-switchbar{padding:14px 0 0}
 .eqv-switch{display:grid;grid-template-columns:1fr 1fr;background:transparent;border-radius:0;padding:0;gap:0;border-bottom:1px solid var(--line)}
 .eqv-sw-btn{border:0;background:transparent;padding:9px 4px 10px;border-radius:0;font-family:inherit;font-size:14.5px;font-weight:700;color:var(--ink-4);cursor:pointer;border-bottom:2.5px solid transparent;margin-bottom:-1px}
@@ -897,13 +887,7 @@ body{font-variant-numeric:tabular-nums}
 // La page exige désormais un code valide (MAR ou admin). Le code est
 // mémorisé en sessionStorage et envoyé en POST (jamais dans l'URL).
 // (La liste DOCTORS en dur a été supprimée : code mort + noms en clair.)
-/* (08/09/2026) Le titre affiché et le régime de souhaits garantis venaient d'un
-   nom de praticien écrit en dur. Deux défauts : ce nom vivait dans
-   un dépôt public, et une règle qu'il aurait fallu modifier dans le code le jour
-   où elle changerait de titulaire. Les deux listes arrivent maintenant avec
-   l'identité, déduites de MEDECINS — colonne NOM pour le titre, colonne
-   souhait_plafond pour le régime. Vides tant que l'identité n'est pas reçue :
-   « Dr » pour tout le monde, aucun régime particulier. Le bon défaut. */
+/* (08/09/2026) Le titre affiché et le régime de souhaits garantis venaient d'un — récit : docs/JOURNAL-Planning-Med.md §43 */
 let TITRES_PR = [], SOUHAITS_PLAFOND = [];
 const _tit    = id => (TITRES_PR.indexOf(id) > -1 ? 'Pr ' : 'Dr ');
 const _titMaj = id => (TITRES_PR.indexOf(id) > -1 ? 'PR ' : 'DR ');
@@ -1346,15 +1330,7 @@ async function init(loginYear){
   currentYear = activeYear;
   const planP = loadYear(activeYear);   // rend le planning sans attendre les sondes
 
-  /* (03/08/2026) UN SEUL APPEL au lieu d'une sonde par annee.
-     On sondait chaque annee de 2026 a N+1 avec un getAffectationsJson : 1 appel en
-     2026, 5 en 2030, 10 en 2035. Apps Script serialise les executions d'un meme
-     utilisateur, donc ces sondes ne se recouvrent pas, elles s'additionnent — le
-     plancher mesure par appel est d'environ 2,5 s (1,4 s de plateforme + 0,7 s de
-     compilation), sans compter la file d'attente Google.
-     getAnneesDisponibles repond pour toutes les annees d'un coup, et couvre aussi
-     celles dont les onglets sont partis dans le classeur d'archives.
-     AFF_CACHE n'est plus pre-rempli : loadYear() le remplit a la demande (l. 1376). */
+  /* (03/08/2026) UN SEUL APPEL au lieu d'une sonde par annee — récit : docs/JOURNAL-Planning-Med.md §44 */
   const availableYears = [];
   try {
     // (miroir) liste deja livree par miroirBoot() → zero appel ici dans ce cas.
@@ -1466,17 +1442,7 @@ function buildYearSelect(availableYears) {
       const msel=document.getElementById('monthSelect');
       if(msel && msel.options.length){ msel.value=msel.options[msel.options.length-1].value; msel.onchange(); }
     }
-    /* (13/08/2026) CHANGER D'ANNÉE NE REDESSINAIT QUE « Médecins ».
-       Constaté en réel : le sélecteur affichait 2027, l'écran Équité montrait
-       encore les chiffres de 2026 — totaux ET cibles de l'année précédente, sous
-       le libellé de la nouvelle. Reproduit à l'identique hors ligne : les six
-       écarts affichés (Aubert -2,4 samedis · Aveline -4,0 · Chapuis -3,0 ·
-       Durand +2,2 jeudis · Fauvel +5,0 · Gautier -3,0) sont exactement ceux
-       du planning 2026 comparé à ses propres cibles.
-       C'est pire qu'un écran vide : le certificat annonçait « 19 écarts au-delà
-       de 2 gardes » sur un planning 2027 qui n'en compte aucun.
-       Affectations et Année souffraient du même oubli, plus silencieusement.
-       Toute vue dérivée de DATA doit être redessinée ici. */
+    /* (13/08/2026) CHANGER D'ANNÉE NE REDESSINAIT QUE « Médecins » — récit : docs/JOURNAL-Planning-Med.md §45 */
     if(currentMainView === 'medecins') renderMedecins();
     else if(currentMainView === 'equite') renderEquite();
     else if(currentMainView === 'affect') renderAffectations();
@@ -2453,12 +2419,7 @@ function _cibNum(v){ const n=(v instanceof Date)?NaN:Number(v); return (isFinite
 /* ciblesEquite : partage/rendu_equite.js (14/09/2026). */
 const AX_EQUITE = [['total','cTot','total'],['sa','cSa','samedis'],['je','cJe','jeudis'],
                    ['vd','cVd','week-ends'],['vjf','cVjf','veilles fériés'],
-                   /* (05/09/2026) 6e axe. Le générateur surveille les jours fériés
-                      depuis toujours, mais l'écran ne les montrait pas, faute d'être
-                      servi en cible (colonne 23 de STATS_GARDES, lue par personne).
-                      Or c'est là que le résidu se concentre : 11 fériés dans l'année,
-                      part individuelle autour de 1,4, l'arrondi n'a que 1 ou 2 à
-                      proposer. */
+                   /* (05/09/2026) 6e axe — récit : docs/JOURNAL-Planning-Med.md §46 */
                    ['jf','cJf','fériés']];
 
 /* (05/09/2026) CARTES REPLIABLES — voir admin.html, même mécanique. Le MAR
@@ -2484,14 +2445,7 @@ let EQ_SRC_IDX = 'initiale';
 let CIBLES_CACHE = {};
 async function getCiblesFromStats(year){
   if(CIBLES_CACHE[year]) return CIBLES_CACHE[year];
-  /* (13/08/2026) Le trait de chaque barre — la cible — arrivait d'un appel
-     Apps Script : les barres s'affichaient, puis les traits apparaissaient une
-     seconde plus tard, pour les 21 MAR d'un coup. La copie rapide sert
-     desormais stats_{annee}, ou ces cibles sont deja deposees pour le comite.
-     Ce n'est pas un elargissement : la vue Equite montre deja ces compteurs
-     nominatifs a tout MAR, et getStatsLive ne porte aucun controle de role.
-     L'appel direct reste le repli — et reste seul a fournir l'INSTANTANE, qui
-     recompte les gardes reellement faites. */
+  /* (13/08/2026) Le trait de chaque barre — récit : docs/JOURNAL-Planning-Med.md §47 */
   try{
     const m = await miroirRead(['stats_' + year]);
     const c = m && m.success && m.data && m.data['stats_' + year];
@@ -2513,12 +2467,7 @@ async function getCiblesFromStats(year){
 }
 let LIVE_CACHE = {};
 /* morphGrid : partage/rendu_equite.js (14/09/2026). */
-/* (05/09/2026) MÊME REFONTE QUE CÔTÉ COMITÉ. L'écran annonçait « 5 % » là où il
-   fallait lire « 1 MAR sur 20 », affichait deux cartes portant le même chiffre
-   l'une en rouge l'autre en vert, et déroulait dix-neuf noms en prose rouge —
-   illisible sur téléphone. Nombres de PERSONNES, classement replié, plus
-   d'histogramme (sa légende « la masse doit être à gauche » était contredite par
-   les données qu'il affichait). */
+/* (05/09/2026) MÊME REFONTE QUE CÔTÉ COMITÉ — récit : docs/JOURNAL-Planning-Med.md §48 */
 var CERT_MAR_DEPLIE = false, CERT_MAR_LIST = null, CERT_MAR_WRAP = null;
 function certMarBasculer(){
   CERT_MAR_DEPLIE = !CERT_MAR_DEPLIE;
@@ -2636,16 +2585,7 @@ function setEquiteSourceIdx(src){
   document.querySelectorAll('#eqSwitchIdx .eqv-sw-btn').forEach(b=>b.classList.toggle('active', b.dataset.src===src));
   if(src==='live') loadEquiteLive(); else renderEquite();
 }
-/* (13/08/2026) L'instantane arrive par la copie rapide.
-   AVANT : chaque clic sur l'onglet declenchait computeStatsLive chez Google —
-   le calcul le plus lourd du portail, plusieurs dizaines de secondes ressenties,
-   payees par CHAQUE MAR a CHAQUE consultation.
-   APRES : le calcul tourne une fois pour les 23, dans le declencheur differe du
-   miroir, aux memes moments que les statistiques — un echange de garde le
-   republie dans la minute. L'ecran n'est donc plus exact a la seconde mais a la
-   minute : c'est assume, et le lien « recalculer » force le calcul direct pour
-   qui veut la valeur fraiche.
-   force = true : on saute la copie rapide ET la memoire, on redemande a Google. */
+/* (13/08/2026) L'instantane arrive par la copie rapide — récit : docs/JOURNAL-Planning-Med.md §49 */
 async function loadEquiteLive(force){
   const wrap = document.getElementById('eqWrap');
   if(!wrap) return;
@@ -2808,13 +2748,7 @@ function placerSelecteursPeriode() {
   if (mois.parentNode !== cible) cible.appendChild(mois);
   majSelecteurMois();
 }
-/* (13/08/2026) Equite, Affectations et Annee raisonnent a l'ANNEE : le mois n'y
-   change rien. Sur grand ecran les steppers le savaient deja (updateHeaderSteppers),
-   mais sur mobile les deux listes deroulantes restaient affichees cote a cote, et
-   choisir un mois dans la vue Equite ne produisait aucun effet.
-   ⚠️ On ne remet JAMAIS display:'block' : la regle @media (min-width:769px) masque
-   les deux listes sur grand ecran, et une valeur en dur la court-circuiterait.
-   On repose la chaine vide, qui rend la main a la feuille de style. */
+/* (13/08/2026) Equite, Affectations et Annee raisonnent a l'ANNEE — récit : docs/JOURNAL-Planning-Med.md §50 */
 function majSelecteurMois() {
   const mois = document.getElementById('monthSelect');
   if (!mois) return;

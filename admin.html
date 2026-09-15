@@ -1691,12 +1691,7 @@ if (sessionStorage.getItem('adminCode')) {
 const API_URL = 'https://script.google.com/macros/s/AKfycbxDbTnhgdjCNBqkeAblZWgS3CK-IptjJoRDQd1AtGF7WQoQkXriWGvISIo7LJG8zUtjTQ/exec';
 let ADMIN_CODE = '', YEAR = 2026;
 let INDISPOS_YEAR = null; // null = pas de saisie N+1 ouverte
-/* (03/09/2026) Etat REEL de la campagne. INDISPOS_YEAR ne suffit pas a le
-   dire : cote serveur, getIndisposYear() retombe silencieusement sur l'annee
-   active quand la ligne INDISPOS_ACTIVE est absente de CONFIG. Ces deux
-   drapeaux voyagent deja avec l'identite, par le serveur ET par la copie
-   rapide, et pilotent deja la tuile du portail (index.html) : meme
-   source, meme lecture, pas de troisieme verite. */
+/* (03/09/2026) Etat REEL de la campagne — récit : docs/JOURNAL-Planning-Med.md §1 */
 let INDISPOS_OUVERTE = false;   // la ligne INDISPOS_ACTIVE existe
 let INDISPOS_FIGEES  = false;   // GARDES_{annee} existe : les gardes sont tirees
 let ADMIN_YEAR = YEAR;          // année sélectionnée dans le sélecteur admin
@@ -2173,14 +2168,7 @@ async function ouvrirSession(code) {
       }
       if (_mb && _mb.nonAdmin) return { ident: { success: true, role: _mb.identite.role }, boot: null };
     } catch (e) { /* repli bootstrap GAS */ }
-    /* (28/07/2026, 16 h) DIAGNOSTIC — l'echec du bootstrap etait AVALE ici sans laisser
-       de trace : ni dans le journal (l'exception peut survenir avant son ecriture), ni
-       en console. Symptomes observes toute la journee et tous issus de ce point unique :
-       un `login` apparaissant AVANT le bootstrap (T+0,0 s au chronometre), un
-       getPlanningJson de repli, et le compteur de mails redemande separement — car
-       `window.__boot` reste vide et initDashboard refait tout.
-       Le comportement est INCHANGE (l'erreur reste avalee, le repli fonctionne) : on
-       l'affiche seulement. */
+    /* (28/07/2026, 16 h) DIAGNOSTIC — récit : docs/JOURNAL-Planning-Med.md §2 */
     try { boot = await api({action:'getAdminBootstrap', code}); }
     catch(e) {
       boot = null;
@@ -2196,20 +2184,7 @@ async function ouvrirSession(code) {
   } finally { _sessionEnCours = false; }
 }
 
-/* (28/07/2026, 16 h 15) LA CONNEXION AUTOMATIQUE A ETE DEPLACEE EN FIN DE SCRIPT.
-   CAUSE RACINE trouvee par la trace « [ouverture] » :
-     ReferenceError: Cannot access '_fileAPI' before initialization
-   Cette fonction s'executait ICI (ligne ~1816) alors que `_fileAPI` — la file
-   d'attente utilisee par api() — n'est declaree que ~250 lignes plus bas. Une
-   variable `let` n'existe pas avant sa ligne de declaration : le TOUT PREMIER
-   appel (getAdminBootstrap) levait donc une exception immediate, avalee par le
-   catch d'ouvrirSession.
-   Consequences en cascade, toutes observees le 28/07 et longtemps chassees
-   separement : un `login` parti AVANT le bootstrap (T+0,0 s au chronometre),
-   `window.__boot` vide, donc initDashboard refaisant un bootstrap complet, et
-   les replis getPlanningJson + mailNonLus par-dessus — soit 4 appels au lieu
-   de 1 a CHAQUE rechargement de page avec session active.
-   ⚠️ Ne jamais remonter ce bloc au-dessus des declarations de la section API. */
+/* (28/07/2026, 16 h 15) LA CONNEXION AUTOMATIQUE A ETE DEPLACEE EN FIN DE SCRIPT — récit : docs/JOURNAL-Planning-Med.md §3 */
 
 let _ouvertureFaite = false;   // une ouverture reussie interdit d'en relancer une
 async function authenticate() {
@@ -2269,14 +2244,7 @@ async function authenticate() {
   }
 }
 
-/* (v1.21.2) TIMEOUTS DIFFERENCIES — le 2 min unique etait la cause du
-   « chargement infini » du 04/08 au soir : sur iOS, un onglet mis en
-   arriere-plan gele le fetch ET son minuteur d'abandon ; au retour, l'appel
-   zombie tenait la file SERIELLE jusqu'a 2 minutes, barre figee, et tout
-   attendait derriere (dont le changement d'annee). Lectures : 20 s — un GAS
-   sain repond en < 8 s, au-dela c'est mort, on rejoue ou on echoue VITE et la
-   file vit. Ecritures et taches longues (generation, diagnostic, publication,
-   archivage) : 90 s — on ne coupe pas une ecriture en cours. */
+/* (v1.21.2) TIMEOUTS DIFFERENCIES — récit : docs/JOURNAL-Planning-Med.md §4 */
 const API_TIMEOUT_LECTURE_MS  = 20000;
 const API_TIMEOUT_ECRITURE_MS = 90000;
 const _ACTIONS_LONGUES = new Set(['generateGardes','diagComplet','publishPlanning','archiveYear','initYear']);
@@ -2445,12 +2413,7 @@ async function ouvrirMessage(id, bouton){
    savePlanningOverride y figure parce qu'elle vise la ligne du couple
    (date, MAR) et la met a jour : la rejouer n'ajoute jamais de ligne.
    Toute action ABSENTE de cette liste n'est JAMAIS rejouee. */
-/* (28/07/2026, 11 h) LE REJEU EST RAMENE A UNE SEULE ACTION.
-   Mesure de 10:55 : sur une file d'attente saturee, rejouer AGGRAVE l'engorgement —
-   3 rejeux = 15 executions envoyees au lieu de 12, et des appels a 30-40 s. Le rejeu
-   generalise que j'avais ajoute le matin meme etait donc contre-productif.
-   Il ne reste que getAdminBootstrap, parce que son echec coute le plus cher (repli
-   sur six appels unitaires), et avec une pause franche pour laisser la file se vider. */
+/* (28/07/2026, 11 h) LE REJEU EST RAMENE A UNE SEULE ACTION — récit : docs/JOURNAL-Planning-Med.md §5 */
 const API_REJOUABLES = new Set(['getAdminBootstrap',
   // (28/07/2026) Le lot de placements est rejouable par construction : chaque
   // ligne est visee par le couple (date, MAR) — renvoyer met a jour, ne duplique
@@ -2507,16 +2470,7 @@ const _ACTIONS_ECRITURE_PLANNING = new Set(['publishPlanning','setDailyStatus','
   'deleteOverride','savePlanningOverridesBatch','generateGardes','archiveYear','initYear',
   'saveAffectations','saveAffectationsMar']);
 
-/* (18/08/2026) LA GARDE CONNAIT DESORMAIS L'ANNEE ECRITE. Elle ne portait
-   qu'un horodatage : publier 2026 fermait aussi la copie rapide de 2027, ou
-   rien n'avait ete ecrit. Mesure du 18/08 au matin : publication a T+49 s,
-   bascule sur 2027 a T+118 s — 69 s, donc sous les 90 s — repli Apps Script
-   froid, DEUX delais de 20 s depasses puis 12 a 17 s pour afficher une annee
-   que la copie rapide rendait en 164 ms.
-   LE DOUTE RESTE PROTECTEUR : annee d'ecriture inconnue, ou annee demandee
-   inconnue → toutes les annees sont fermees, exactement comme avant. On ne
-   gagne de la vitesse que la ou on peut PROUVER que l'annee lue n'est pas
-   celle qu'on vient d'ecrire. */
+/* (18/08/2026) LA GARDE CONNAIT DESORMAIS L'ANNEE ECRITE — récit : docs/JOURNAL-Planning-Med.md §6 */
 let _tsEcritureAnnee = null;
 function _anneeEcriture_(payload) {
   try {
@@ -2739,12 +2693,7 @@ function queueOverride(date, marId, slotKey, value, comment) {
   if (!_batchMaxTimer) _batchMaxTimer = setTimeout(flushBatch, BATCH_MAX_WAIT_MS);
 }
 // Vide la file : UN appel pour tout le lot. Renvoie true si tout est confirme.
-/* (v1.22) PUBLICATION COMBINEE — le lot en attente part DANS l'appel de
-   publication (payload.items, Indispos.gs 2026-08-04.8) : un aller-retour au
-   lieu de deux. Conventions IDENTIQUES a flushBatch : le lot fige passe « en
-   vol » (persiste : un crash en pleine publication ne perd rien, le
-   rechargement le renverra), succes → lot vide, echec → tout REVIENT en
-   attente sans ecraser les poses faites entre-temps. */
+/* (v1.22) PUBLICATION COMBINEE — récit : docs/JOURNAL-Planning-Med.md §7 */
 function _prendreLotPourPublication() {
   if (!Object.keys(_batchPending).length && !_batchInFlight) return [];
   clearTimeout(_batchTimer); _batchTimer = null;
@@ -2954,18 +2903,7 @@ function showTab(name) {
   if (name==='planning' && !DATA) loadPlanningData();
   if (name==='affectations') loadAffectations(ADMIN_YEAR);
   if (name==='equipe') { loadEquipe(); loadVacances(); tpcCharger(); }
-  /* (13/08/2026) loadVacancesValidation() retire d'ici. Elle appelait Google a
-     CHAQUE ouverture de l'onglet Equite pour ecrire son tableau dans #vacContent
-     — le conteneur de la section « Gestion des vacances » de l'onglet EQUIPE, le
-     seul de la page a porter ce nom. Le tableau n'etait donc jamais visible
-     (ecrit dans un autre onglet que celui regarde) et ecrasait au passage
-     l'affichage des periodes et des groupes, que loadVacances() reecrivait au
-     retour sur Equipe. Elle manipulait en outre #vacEmpty, absent de la page :
-     toute erreur levait sur cette ligne et etait avalee.
-     Un appel serveur a chaque ouverture, pour un contenu que personne ne voit.
-     Le suivi des vacances (qui a obtenu quoi, periode par periode) reste a
-     construire s'il est juge utile : il lui faudra son propre conteneur, et
-     getVacValidation n'est PAS dans le miroir (calcul croise indispos/seuils). */
+  /* (13/08/2026) loadVacancesValidation() retire d'ici — récit : docs/JOURNAL-Planning-Med.md §8 */
   if (name==='equite') { loadStats(ADMIN_YEAR); }
   if (name==='statuts') loadStatuts();
   if (name==='maintenance') initMaintenance();
@@ -3328,13 +3266,7 @@ function statSelectDay(date){
   } else { if(STAT.selected.has(date)) STAT.selected.delete(date); else STAT.selected.add(date); }
   renderStatuts();
 }
-/* (v1.21, etage 4) POSE DE STATUT OPTIMISTE — l'ecran n'attend plus le
-   serveur. Meme regle de verrouillage que lui (STAT_LOCK sur le code ACTUEL
-   de la cellule) appliquee localement ; l'envoi part derriere, SERIALISE
-   (apiSerie : l'ordre des poses et de la publication est garanti). Le
-   serveur reste l'autorite : un refus de sa part ANNULE la cellule a
-   l'ecran, visiblement, avec un message — rien ne diverge en silence.
-   L'echec de transport (apres le rejeu automatique) annule tout le lot. */
+/* (v1.21, etage 4) POSE DE STATUT OPTIMISTE — récit : docs/JOURNAL-Planning-Med.md §9 */
 async function statApply(statut){
   if(ADMIN_YEAR_READONLY){ toast('Année archivée — lecture seule', 'error'); return; }
   if(!STAT.marId){ toast('Sélectionnez un MAR', 'error'); return; }
@@ -3468,14 +3400,7 @@ async function detectAvailableYears() {
   if (nextYearAvailable) {
     availableYears.push({ year: YEAR + 1, label: (YEAR + 1) + ' — N+1', readonly: false, status: 'n1' });
   }
-  /* (03/08/2026) On demande au SERVEUR quelles annees existent, au lieu de tester
-     « ./archives/stats_{annee}.json » sur le site. Ce fichier n'a jamais existe :
-     depuis le passage au Drive prive, l'archivage ecrit « archives_stats_{annee}.json »
-     sur Drive. Le selecteur ne pouvait donc JAMAIS proposer une annee cloturee, et
-     depensait 4 requetes par ouverture vers des URL en 404.
-     getAnneesDisponibles scanne le maitre ET le classeur d'archives : un seul appel,
-     resultat retenu pour la session (cette fonction est appelee deux fois a
-     l'ouverture). Recharger la page refait la demande. */
+  /* (03/08/2026) On demande au SERVEUR quelles annees existent, au lieu de tester — récit : docs/JOURNAL-Planning-Med.md §10 */
   try {
     if (_anneesServeur === null && _MIROIR_ANNEES && Array.isArray(_MIROIR_ANNEES.annees)) {
       _anneesServeur = _MIROIR_ANNEES.annees;   // (miroir) livre a l'ouverture — zero appel
@@ -3484,13 +3409,7 @@ async function detectAvailableYears() {
       const r = await api({ action: 'getAnneesDisponibles' });
       _anneesServeur = (r && r.success && Array.isArray(r.annees)) ? r.annees : [];
     }
-    /* (v1.26.2, CORRECTIF) La liste du miroir fait foi pour TOUTES les années,
-       futures comprises. Auparavant elle était filtrée sur « années < année
-       active » : l'accès à N+1 dépendait alors du SEUL booléen anneeSuivante,
-       calculé à part. Le jour où ce booléen n'arrive pas (ou pas en booléen),
-       2027 disparaissait du sélecteur sans un mot — constaté le 05/08 au soir,
-       sur mobile, la pastille passant en mode « solo » (sans chevron).
-       Une seule source de vérité désormais, la même qu'planning.html. */
+    /* (v1.26.2, CORRECTIF) La liste du miroir fait foi pour TOUTES les années, — récit : docs/JOURNAL-Planning-Med.md §11 */
     const _dejaLa = new Set(availableYears.map(a => a.year));
     _anneesServeur
       .map(a => Number(a.annee))
@@ -3535,12 +3454,7 @@ async function reloadForYear(year) {
   });
   // Aller directement sur la vue Planning de l'année choisie, et forcer son rechargement
   DATA = null;
-  /* (v1.21.2) LE CHANGEMENT D'ANNEE PASSE PAR LE MIROIR — il passait par la
-     file GAS (2 appels, 5-8 s au mieux, otage de la file au pire : c'est lui
-     que la panne du 04/08 au soir a fige). Desormais : une lecture miroir
-     (~300-800 ms meme en 4G), INSENSIBLE a l'etat de la file, et l'etage 2
-     est rebranche sur la nouvelle annee. Tout ecart → circuit GAS d'origine
-     via loadPlanningData(), inchange. */
+  /* (v1.21.2) LE CHANGEMENT D'ANNEE PASSE PAR LE MIROIR — récit : docs/JOURNAL-Planning-Med.md §12 */
   try {
     /* (v1.22.1) Meme garde que Statuts/Equite : moins de 90 s apres une
        ecriture planning (l'accroche miroir est DIFFEREE depuis miroir.gs .6),
@@ -3567,15 +3481,7 @@ async function reloadForYear(year) {
   showTab('planning');
 }
 
-/* (28/07/2026, 15 h 50) L'ANNEE SUIVANTE EST DETECTEE PAR LE BOOTSTRAP.
-   Avant : cette fonction telechargeait le planning COMPLET de N+1 (255 Ko, ~2,5 s
-   mesurees) pour repondre a une seule question — cette annee existe-t-elle ?
-   Le serveur repond desormais par le champ `anneeSuivante` du bootstrap, sans lire
-   le fichier. Un appel de moins a CHAQUE ouverture.
-   Repli conserve : si le GAS deploye ne fournit pas encore le champ (valeur nulle
-   ou absente), on repasse par l'ancien telechargement — la detection n'est jamais
-   perdue, et elle reste juste des que N+1 est publiee puisqu'elle est recalculee
-   a chaque ouverture. */
+/* (28/07/2026, 15 h 50) L'ANNEE SUIVANTE EST DETECTEE PAR LE BOOTSTRAP — récit : docs/JOURNAL-Planning-Med.md §13 */
 async function checkNextYearAvailable(preAnneeSuivante) {
   if (typeof preAnneeSuivante === 'boolean') {
     nextYearAvailable = preAnneeSuivante;
@@ -3726,22 +3632,8 @@ async function initDashboard() {
   // chronoAPI() reste disponible dans la console, inchange.
   try { chrono(); } catch(e) { try { chronoAPI(); } catch(_) {} }
   try { console.log('Pour le detail des interactions : chronoClics()'); } catch(e) {}
-  /* (04/08/2026, lot A) CHAUFFAGE D'ARRIERE-PLAN — l'ouverture miroir a mis
-     la lenteur GAS a nu : le premier clic sur une case flash ou sur la boite
-     mail payait le peage (2,5-5 s) en direct. Des la page utilisable, on
-     lance en silence, dans la file api() existante : le panneau de la
-     semaine affichee (sans attendre la temporisation de 500 ms) puis la
-     liste des mails. Au clic, dans la grande majorite des cas, tout est
-     deja la. Un clic dans les toutes premieres secondes retombe sur
-     l'attente actuelle — irreductible tant que le GAS est le fournisseur.
-     Aucun risque de fraicheur : le panneau garde son invalidation sur
-     ecriture (invaliderCacheSemaine), les mails ont 2 min de validite. */
-  /* (v1.21.1) FILE VIDE A L'OUVERTURE — exigence : la barre bleue eteinte,
-     aucun clic des premieres secondes ne fait la queue. Les deux chauffages
-     restants partent APRES la fenetre d'action initiale, etales : la semaine
-     affichee a +8 s (nourrit le temoin ; avant elle, un premier panneau
-     declenche lui-meme sa verification, en arriere-plan, sans bloquer), les
-     mails a +15 s (l'appel Gmail est le plus lent de tous). */
+  /* (04/08/2026, lot A) CHAUFFAGE D'ARRIERE-PLAN — récit : docs/JOURNAL-Planning-Med.md §14 */
+  /* (v1.21.1) FILE VIDE A L'OUVERTURE — récit : docs/JOURNAL-Planning-Med.md §15 */
   /* (v1.23.1) PLUS AUCUN APPEL GOOGLE A L'OUVERTURE. Mesure du 05/08 a
      09h43 : les deux chauffages restants ont coute 15,1 s et 20 s (echec)
      pour zero valeur — le panneau est calcule sur la page (etage 2) et le
@@ -3772,19 +3664,7 @@ async function loadPlanningData(pre) {
       DATA = pre.planning;
       window.AFFM = (pre.affectations && pre.affectations.affectations) || {};
     } else {
-    /* (18/08/2026) LA COPIE RAPIDE D'ABORD, ICI AUSSI. Ce chemin etait le SEUL
-       a n'avoir aucune tentative miroir : une fois tombe sur Apps Script, on y
-       restait. Le bouton « Reessayer », un retour sur l'onglet Planning, tout
-       rechargement de l'annee repartaient sur le circuit lent, meme une demi-
-       heure plus tard, quand la garde des 90 s etait retombee depuis longtemps.
-       Constate le 18/08 : trois tentatives a 12, 17 et 20 s (delai depasse)
-       pour une annee que la copie rapide rendait en 164 ms. Seul un aller-
-       retour dans le selecteur d'annees rebranchait le miroir — geste que
-       personne ne peut deviner.
-       La regle de fraicheur est la MEME que partout ailleurs : moins de 90 s
-       apres une ecriture SUR CETTE ANNEE, on ne lit pas la copie. Et tout
-       ecart — pas de code, miroir muet, cle absente — retombe sur le circuit
-       Apps Script ci-dessous, inchange. */
+    /* (18/08/2026) LA COPIE RAPIDE D'ABORD, ICI AUSSI — récit : docs/JOURNAL-Planning-Med.md §16 */
     let _plM = null, _affM = null;
     if (ADMIN_CODE && !_ecritureRecentePour_(ADMIN_YEAR)) {
       try {
@@ -4490,14 +4370,7 @@ let _preEnCours = null;      // Promise du prechargement en vol (evite les doubl
 function _datesSemaineCourante() { return _datesSemaineIdx(currentWeekIdx); }   // (lot A-bis) delegue
 // Lance le prechargement de la semaine affichee. Silencieux : aucun spinner,
 // aucun toast — l'utilisateur continue a travailler pendant ce temps.
-/* (28/07/2026, 14 h 20) CORRECTIF — LE SUIVI SE FAIT PAR JOUR, PAS PAR SEMAINE.
-   Premiere version : une signature `_preCleSemaine` retenait la DERNIERE semaine
-   prechargee. Deux consequences mesurees a 14:17 (9 appels en une seule session,
-   72 s cumulees) : renderWeek() est appele bien plus souvent qu'a un changement de
-   semaine (chaque placement le rappelle), et revenir sur une semaine deja chargee
-   relancait tout, la signature ayant change entre-temps.
-   Desormais on ne demande QUE les jours reellement absents du cache : une semaine
-   revisitee ne coute plus rien, et l'ordre de navigation n'a plus d'importance. */
+/* (28/07/2026, 14 h 20) CORRECTIF — récit : docs/JOURNAL-Planning-Med.md §17 */
 /* (04/08/2026, lot A-bis) Traitement de reponse FACTORISE : prechargement de
    la semaine courante ET des voisines passent ici. Comportement inchange :
    commentaires d'origine conserves dans l'historique du fichier (28/07). */
@@ -4531,13 +4404,7 @@ function _datesSemaineIdx(idx) {
     return (getWeekDays(wk.lundi) || []).filter(d => d && d.date).map(d => d.date);
   } catch(e) { return []; }
 }
-/* (v1.20.1) TRIMESTRE ET VOISINES RETIRES — histoire complete dans le depot.
-   Le chauffage des semaines etait ne AVANT l'etage 2 ; le calcul local du
-   panneau l'a rendu redondant, et son cout etait devenu le principal frein
-   du MOBILE : la file GAS est unique (cote page ET cote Google), chaque
-   semaine de chauffage l'occupait 2,5-5 s, et placements, publications,
-   Statuts et Affectations faisaient la queue derriere. Ne reste que le
-   prechargement de la semaine AFFICHEE (1 appel, nourrit le temoin). */
+/* (v1.20.1) TRIMESTRE ET VOISINES RETIRES — récit : docs/JOURNAL-Planning-Med.md §18 */
 /* (v1.24) Cadence du temoin : 1re semaine, puis 1 sur 5 ; une anomalie remet
    le compteur a zero (on reverifie la semaine suivante). */
 let _temoinCompteur = 0;
@@ -4553,25 +4420,12 @@ function prechargerSemaine(force) {
   if (!toutes.length) return;
   const dates = force ? toutes : toutes.filter(d => !_preSemaine[d]);
   if (!dates.length) return;              // tout est deja en cache : aucun appel
-  /* (28/07/2026, 14 h 35) Un prechargement deja en vol ne doit pas faire ABANDONNER
-     celui-ci : sauter d'un coup a une semaine lointaine pendant que la semaine
-     courante charge encore (5-6 s) laissait cette nouvelle semaine sans cache, donc
-     2 appels unitaires par jour ouvert — mesure de 14:27, lignes 8 a 17.
-     On s'enchaine derriere, et on relit le cache a ce moment-la : ce qui aura ete
-     charge entre-temps ne sera pas redemande. */
+  /* (28/07/2026, 14 h 35) Un prechargement deja en vol ne doit pas faire ABANDONNER — récit : docs/JOURNAL-Planning-Med.md §19 */
   const _precedent = _preEnCours || Promise.resolve();
   _preEnCours = _precedent.catch(() => {}).then(() => {
     const restant = force ? toutes : toutes.filter(d => !_preSemaine[d]);
     if (!restant.length) return;          // le prechargement precedent a tout couvert
-    /* (v1.24) TEMOIN ECHANTILLONNE. Ce prechargement ne sert plus a AFFICHER
-       (le panneau est calcule sur la page depuis l'etage 2) : il sert de
-       TEMOIN — il compare la reponse du serveur au calcul local et signale
-       tout ecart. Or il partait a CHAQUE semaine parcourue : 2,5-5 s de file
-       Google occupee par semaine, qui retardaient les gestes passant encore
-       par le serveur (affectations, echanges de gardes).
-       Regle : la 1re semaine de la session, puis une sur cinq, et TOUJOURS
-       apres une anomalie (le compteur repart a zero). Filet conserve, trafic
-       divise par cinq. */
+    /* (v1.24) TEMOIN ECHANTILLONNE — récit : docs/JOURNAL-Planning-Med.md §20 */
     if (!_temoinDoitVerifier_()) { restant.forEach(d => { _preSemaine[d] = true; }); return; }
     return api({action: 'getPanneauSemaine', dates: restant})
     .then(res => _appliquerReponsePanneau_(res, restant));
@@ -4588,13 +4442,7 @@ let _preTimer = null;
 const PRE_DELAI_MS = 500;
 function planifierPrechargement() {
   clearTimeout(_preTimer);
-  /* (v1.25) PLUS AUCUNE VÉRIFICATION AUTOMATIQUE. Le témoin (getPanneauSemaine)
-     coûtait 2,5-5 s de file Google à chaque semaine où l'on s'arrête, et
-     c'était l'autre occupant de la barre bleue à l'ouverture. Le calcul local
-     est prouvé identique au serveur (oracle 400 cas + banc d'essai) : la
-     vérification devient MANUELLE (Maintenance) et automatique seulement là
-     où le calcul local est indisponible — le panneau appelle alors le serveur
-     de lui-même, comme avant l'étage 2. */
+  /* (v1.25) PLUS AUCUNE VÉRIFICATION AUTOMATIQUE — récit : docs/JOURNAL-Planning-Med.md §21 */
   _preTimer = null;
 }
 // Clic sur une case dont le jour n'est pas encore en cache : on ne part PAS sur
@@ -5215,12 +5063,7 @@ function renderLiberalCard(items, date) {
   }).join('');
   card.style.display = 'block';
 }
-/* (v1.26) Le volet libéral vient du MIROIR (clé liberal_{année}), remplie au
-   chargement de la page. Correction d'une erreur d'analyse du 05/08 : j'avais
-   conclu « non mirrorable » en lisant la réponse SERVEUR (qui portait des
-   montants) sans lire l'AFFICHAGE, qui n'utilise que marId, secteur et
-   chirurgie. La réponse serveur a été allégée en conséquence
-   (portail.gs 2026-08-05.2) : les montants ne quittent plus le classeur. */
+/* (v1.26) Le volet libéral vient du MIROIR (clé liberal_{année}), remplie au — récit : docs/JOURNAL-Planning-Med.md §22 */
 function loadLiberalJour(date) {
   /* (v1.26) La journée entière vient du miroir au chargement de la page : le
      cache est déjà rempli, l'affichage est immédiat et AUCUN appel ne part.
@@ -5256,13 +5099,7 @@ window.liberalJourCharger = liberalJourCharger;
    un appel getOverrides partait pour un affichage qui n'existait plus. Retiré. */
 // ── WORKFLOW ───────────────────────────────────────────────────────────
 // ── PANNEAU ────────────────────────────────────────────────────────────
-/* (08/09/2026) Le titre affiché et le régime de souhaits garantis venaient d'un
-   nom de praticien écrit en dur. Deux défauts : ce nom vivait dans
-   un dépôt public, et une règle qu'il aurait fallu modifier dans le code le jour
-   où elle changerait de titulaire. Les deux listes arrivent maintenant avec
-   l'identité, déduites de MEDECINS — colonne NOM pour le titre, colonne
-   souhait_plafond pour le régime. Vides tant que l'identité n'est pas reçue :
-   « Dr » pour tout le monde, aucun régime particulier. Le bon défaut. */
+/* (08/09/2026) Le titre affiché et le régime de souhaits garantis venaient d'un — récit : docs/JOURNAL-Planning-Med.md §23 */
 let TITRES_PR = [], SOUHAITS_PLAFOND = [];
 const _tit    = id => (TITRES_PR.indexOf(id) > -1 ? 'Pr ' : 'Dr ');
 const _titMaj = id => (TITRES_PR.indexOf(id) > -1 ? 'PR ' : 'DR ');
@@ -5331,16 +5168,7 @@ let DON_ON_DONE = null;
 const _nm = id => _tit(id)+id.charAt(0)+id.slice(1).toLowerCase();
 const _roleTxt = r => r==='G' ? 'G \u00b7 R\u00e9a' : 'G2 \u00b7 Mat';
 function _fmtDate(d){ if(!d) return '\u2014'; const x=new Date(d+'T12:00:00'); return ['dim','lun','mar','mer','jeu','ven','sam'][x.getDay()]+' '+String(x.getDate()).padStart(2,'0')+'/'+String(x.getMonth()+1).padStart(2,'0'); }
-/* (v1.28) Deux défauts corrigés ici, constatés le 05/08 au soir sur mobile.
-   1. UN ÉCHEC ÉTAIT MÉMORISÉ COMME UNE RÉPONSE VIDE : au moindre appel raté,
-      gardesByYear[y] = {} était retenu POUR TOUTE LA SESSION, et le panneau
-      affichait « Aucune garde à cette date » sur chaque date, sans jamais
-      dire qu'un appel avait échoué. L'écran affirmait quelque chose de faux.
-      Désormais un échec ne laisse RIEN en mémoire : le prochain essai
-      recommence, et l'appelant sait que la lecture a échoué (null).
-   2. La lecture passait par Apps Script alors que la clé gardes_{année}
-      existe déjà au miroir et sert ailleurs dans cette page. On la lit là
-      d'abord — ouverture immédiate — le serveur restant le repli. */
+/* (v1.28) Deux défauts corrigés ici, constatés le 05/08 au soir sur mobile — récit : docs/JOURNAL-Planning-Med.md §24 */
 async function ensureGardesYear(y){
   if (gardesByYear[y]) return gardesByYear[y];
   const annee = Number(y);
@@ -5543,17 +5371,7 @@ async function submitPanel(){
     if(panelType==='garde' && GD.mode==='don' && DON_ON_DONE){ const _cb=DON_ON_DONE, _d=GD.d1; DON_ON_DONE=null; try{ _cb(_d); }catch(e){} }
     setTimeout(()=>{loadPlanningData();closePanel();},1500);
   }catch(e){
-    /* (12/08/2026, v1.31.6) Réponse perdue en route ≠ geste refusé. Constaté en
-       réel le 12/08 : échange adjacent APPLIQUÉ côté serveur (doPost « Terminée »
-       en 19 s), mais Google a renvoyé un 404 au lieu de la réponse — travers
-       connu des Web Apps sur les exécutions longues. L'écran disait « Serveur
-       indisponible », le classeur disait le contraire. On dit désormais la
-       vérité : probablement fait, et on RECHARGE le planning pour trancher —
-       c'est la grille rechargée qui fait foi, pas le message.
-       (v1.31.7, choix le responsable) Libellé identique au succès normal : sur 19 s
-       d'exécution un 404 tardif suit quasi toujours un geste fait, et la grille
-       rechargée corrige le cas contraire. Le journal des appels, lui, garde la
-       trace « transport » pour le diagnostic. */
+    /* (12/08/2026, v1.31.6) Réponse perdue en route ≠ geste refusé — récit : docs/JOURNAL-Planning-Med.md §25 */
     if(e && e.transport){
       result.textContent='✅ Modification appliquée — le planning se recharge.';
       result.className='result-box ok'; result.style.display='block';
@@ -5585,18 +5403,7 @@ async function loadStats(year, force){
   if(cached){ renderStats(cached); document.getElementById('gardesLoading').style.display='none'; document.getElementById('gardesEmpty').style.display='none'; }
   else { document.getElementById('gardesLoading').style.display='flex'; document.getElementById('gardesEmpty').style.display='none'; }
   try{
-    /* (04/08/2026, lot B) Miroir + garde de 90 s : dans les 90 secondes suivant
-       une ecriture planning, la copie rapide peut retarder (~60 s) et un editeur
-       ne doit JAMAIS voir du perime — le circuit direct tranche.
-       (13/08/2026) L'INSTANTANE passe lui aussi par le miroir. Le commentaire
-       precedent disait « getStatsLive = calcul vivant, jamais mirore » : c'est
-       devenu faux ce soir. La cle equite_live_{annee} porte ce recalcul, republie
-       aux memes moments que les statistiques — donc dans la minute qui suit un
-       echange de gardes. La garde des 90 s vaut pour les DEUX sources, et le
-       bouton Actualiser (force) court-circuite tout.
-       Les deux sources lisent des cles DISTINCTES : stats_{annee} est la photo
-       figee a la generation, equite_live_{annee} le recompte sur la grille
-       reelle. Les confondre afficherait l'une sous le libelle de l'autre. */
+    /* (04/08/2026, lot B) Miroir + garde de 90 s — récit : docs/JOURNAL-Planning-Med.md §26 */
     const _cleMiroir = (src === 'live' ? 'equite_live_' : 'stats_') + year;
     let data = null;
     if (!force && Date.now() - _tsEcriturePlanning > 90000) {
@@ -5633,12 +5440,7 @@ function estSouhaitsGarantis(name){
   const x=(typeof marsData!=='undefined'?marsData:[]).find(d=>d.initiales===name||d.nom===name||d.id===name);
   return !!(x&&(x.souhaitPlafond||x.tpJoursFixes));
 }
-/* (05/09/2026) CARTES REPLIABLES. Vingt-quatre cartes de neuf lignes, c'était
-   deux écrans de défilement avant de trouver la sienne, et rien qui se compare
-   d'un coup d'œil. Chaque MAR tient désormais sur UNE ligne — son nom, une case
-   par axe, et son écart le plus fort en clair. Un clic déplie le détail.
-   Le MAR connecté (portail) est déplié d'office et remonté en tête ; côté
-   comité, personne n'est connecté comme MAR, donc tout part replié. */
+/* (05/09/2026) CARTES REPLIABLES — récit : docs/JOURNAL-Planning-Med.md §27 */
 const EQ_OUVERTS = new Set();
 let EQ_LIST = null;
 function eqBasculer(nom){
@@ -5723,12 +5525,7 @@ function renderRecups(){
   el.style.display = 'block';
 }
 
-/* (23/08/2026) L'ALERTE DES RÉCUPS, DANS L'ONGLET STATUTS.
-   Même source que la ligne de l'onglet Équité — recupsEcarts() — donc rien de
-   nouveau à calculer et aucune donnée à stocker : l'alerte EST l'écart. Elle
-   nomme le MAR et le manque, et le bouton présélectionne médecin et statut ;
-   le choix de la DATE reste au comité, les sept contraintes de placement
-   vivent dans le générateur et ne sont pas rejouées ici. */
+/* (23/08/2026) L'ALERTE DES RÉCUPS, DANS L'ONGLET STATUTS — récit : docs/JOURNAL-Planning-Med.md §28 */
 function renderRecupsStatuts() {
   const el = document.getElementById('recupStatuts');
   const past = document.getElementById('pastilleRecup');
@@ -5799,12 +5596,7 @@ function recupsVersStatuts(id){
 
 function renderStats(stats){
   if(!stats||!stats.length){document.getElementById('gardesEmpty').style.display='block';document.getElementById('statsCard').style.display='none';return;}
-  /* (14/09/2026) MÊME LISTE QUE LE PORTAIL MAR (planning.html) : un MAR sans
-     aucune garde n'a rien à faire dans l'équité (filtre total>0), et l'étiquette
-     « souhaits » ne désigne que les souhaits garantis (SOUHAITS_PLAFOND) — pas
-     le temps partiel à jours fixes, qui a une cible comme les autres. Vu en
-     production le jour où le comité a reçu la version commune des cartes. Le
-     certificat garde son propre test (estSouhaitsGarantis), inchangé. */
+  /* (14/09/2026) MÊME LISTE QUE LE PORTAIL MAR (planning — récit : docs/JOURNAL-Planning-Med.md §29 */
   const list = stats.filter(s=>(+s.total||0)>0).map(s=>({
     name:s.medecin, total:s.total||0, cTot:s.cible||0,
     lu:s.lun||0, ma:s.mar||0, me:s.mer||0, je:s.jeu||0, sa:s.sat||0, vd:s.vd||0, jf:s.jf||0, vjf:s.vjf||0,
@@ -5859,24 +5651,14 @@ function renderStats(stats){
 /* ciblesEquite : partage/rendu_equite.js (14/09/2026). */
 const AX_EQUITE = [['total','cTot','total'],['sa','cSa','samedis'],['je','cJe','jeudis'],
                    ['vd','cVd','week-ends'],['vjf','cVjf','veilles fériés'],
-                   /* (05/09/2026) 6e axe. Le générateur surveille les jours fériés
-                      depuis toujours, mais l'écran ne les montrait pas, faute d'être
-                      servi en cible (colonne 23 de STATS_GARDES, lue par personne).
-                      Or c'est là que le résidu se concentre : 11 fériés dans l'année,
-                      part individuelle autour de 1,4, l'arrondi n'a que 1 ou 2 à
-                      proposer. */
+                   /* (05/09/2026) 6e axe — récit : docs/JOURNAL-Planning-Med.md §30 */
                    ['jf','cJf','fériés']];
 
 // ── CERTIFICAT D'ÉQUITÉ : synthèse visuelle qui montre, après génération, comment
 // les gardes se répartissent. Réutilise EXACTEMENT la logique des barres (écart
 // réel−cible par axe). Verdict conforme si tous les MAR < 2 de leur cible sur
 // chaque axe.
-/* (05/09/2026) REFONTE DE LA MISE EN PAGE. L'écran annonçait « 5 % » là où il
-   fallait lire « 1 MAR sur 20 », affichait deux cartes portant le MÊME chiffre
-   l'une en rouge l'autre en vert, et déroulait dix-neuf noms en prose rouge —
-   illisible sur téléphone. Il porte désormais des NOMBRES DE PERSONNES et un
-   classement replié. L'histogramme est retiré : sa légende (« la masse doit être
-   à gauche ») était contredite par les données qu'il affichait. */
+/* (05/09/2026) REFONTE DE LA MISE EN PAGE — récit : docs/JOURNAL-Planning-Med.md §31 */
 let CERT_DEPLIE = false;
 function certBasculer(){ CERT_DEPLIE = !CERT_DEPLIE; renderCertificat(CERT_LIST || []); }
 let CERT_LIST = null;
@@ -6161,19 +5943,7 @@ function toggleTension() {
 }
 
 // ── VACANCES ──────────────────────────────────────────────────────────
-/* (13/08/2026) Periodes et groupes par la copie rapide.
-   La cle vacances_admin etait deposee et autorisee au comite depuis le 04/08,
-   mais AUCUN ecran ne la lisait : l'onglet Equipe appelait Google a chaque
-   ouverture. J'ai compare les deux producteurs ligne a ligne — le constructeur
-   du miroir et l'action getVacancesConfig lisent les MEMES colonnes de
-   PERIODES_VAC et GROUPES_VAC et produisent la meme forme
-   ({periodes:[{nom,debut,fin,seuil}], groupes:{A:[{id}],B,C}}), qui est
-   exactement ce que renderPeriodes() et renderGroupes() consomment.
-   Une seule difference, sans effet ici : l'action accepte un parametre `year`
-   qui filtre les periodes — utilise par l'ASSISTANT, jamais par cet ecran.
-   GARDE DE 90 s : cet ecran ECRIT (periodes, groupes). Apres un enregistrement,
-   la copie peut retarder d'une minute et afficherait la version d'avant — on
-   passe alors par le circuit direct. Le bouton Actualiser force de meme. */
+/* (13/08/2026) Periodes et groupes par la copie rapide — récit : docs/JOURNAL-Planning-Med.md §32 */
 let _tsEcritureVacances = 0;
 async function loadVacances(force) {
   document.getElementById('vacLoading').style.display = 'flex';
@@ -6216,12 +5986,7 @@ const MOIS_COURTS = ['Jan','Fév','Mar','Avr','Mai','Jun','Jul','Aoû','Sep','Oc
 // SECTOR_COLORS_AFF et SECTOR_LABELS_AFF : désormais dérivés de SECTEURS_CFG (voir la source unique en haut).
 
 
-/* (v1.20.1) Cache de SESSION des affectations. Cet onglet est un editeur de
-   BROUILLON (source : la feuille, modifications non publiees comprises) — il
-   ne peut PAS lire le fichier publie du miroir. Regles : des modifications en
-   attente ne sont JAMAIS ecrasees par un re-clic d'onglet ; premier clic par
-   annee = serveur ; suivants = memoire ; un enregistrement reussi met la
-   memoire a jour. */
+/* (v1.20.1) Cache de SESSION des affectations — récit : docs/JOURNAL-Planning-Med.md §33 */
 let _affSession = {};
 async function loadAffectations(year, force) {
   year = year || ADMIN_YEAR;
@@ -6333,21 +6098,7 @@ function applySecteurAff() {
   document.getElementById('modalSecteurAff').classList.remove('open');
 }
 
-/* (19/08/2026, après-midi) L'ENVOI DIFFÉRENTIEL remplace la complétion du
-   matin (completerAffectationsActifs, vie brève : ~5 h). Le matin, Enregistrer
-   envoyait TOUTE la grille pour créer les lignes manquantes ; mais
-   toute-la-grille, c'est aussi le vrai danger — depuis une base restée
-   ouverte, on réécrivait tout, y compris le travail des autres. Décision
-   du responsable (19/08 après-midi) : n'envoyer QUE les MARs touchés en session.
-   - un MAR jamais touché n'est JAMAIS réécrit (sa ligne du classeur reste
-     intacte à l'octet — éprouvé au banc T-AFF-2) ;
-   - un MAR sans ligne touché est créé par le serveur (mois absents = VOLANT,
-     ecrireAffectations, Indispos.gs 2026-08-19.1) ;
-   - zéro touche = rien à envoyer, refus poli — la grille vide d'un chargement
-     raté est inoffensive par construction.
-   Volet B (septembre, conçu au ROADMAP) : lecture depuis la copie rapide et
-   dépôt au journal — le différentiel est le préalable qui rend la fraîcheur
-   de la base sans importance. */
+/* (19/08/2026, après-midi) L'ENVOI DIFFÉRENTIEL remplace la complétion du — récit : docs/JOURNAL-Planning-Med.md §34 */
 function construireEnvoiAffectations(aff, touches) {
   const envoi = {};
   if (!aff || !touches) return envoi;
@@ -6454,13 +6205,7 @@ async function exportWeekExcel(){
   const guards=Array(7).fill(null).map(()=>[]);const gardesRea=Array(7).fill(null).map(()=>[]);const gardesAn=Array(7).fill(null).map(()=>[]);const astr=Array(7).fill(null).map(()=>[]);const h18=Array(7).fill('');const sorties=Array(7).fill(null).map(()=>[]);const absents=Array(7).fill(null).map(()=>[]);
   const ABSENT_S=new Set(['RG','CP','A','F','R','TP','V','CTP','CL']);   // (31/07/2026) « I » et « E » retires : I = present sans garde, E n'existe pas
   function pushCS(code,dow,half,init){const raw=code.includes('-')?code.split('-')[1]:code;let idx=subToRow[raw];if(idx==null)idx=POLYI;if(idx>=0&&!csb[idx][dow][half].includes(init))csb[idx][dow][half].push(init);}
-  /* (28/08/2026) Chaque jour est lu dans SON mois — exactement comme renderWeek.
-     Avant, l'export choisissait un seul bloc « mois » pour les 7 jours puis lisait
-     chaque jour par son rang dans ce bloc : sur une semaine à cheval (ex. S36,
-     31/08 → 06/09), les jours de septembre allaient chercher les jours d'août de
-     même rang. Décalage de 31 jours, sans le moindre avertissement : mardi et
-     mercredi tombaient sur un week-end d'août (donc vides) et les gardes étaient
-     celles du mois précédent. ⚠️ Ne jamais revenir à un mois unique par semaine. */
+  /* (28/08/2026) Chaque jour est lu dans SON mois — récit : docs/JOURNAL-Planning-Med.md §35 */
   daySlots.forEach((slot,dow)=>{
     if(!slot)return;
     ((slot.sourceMonth||slot.month).doctors||[]).forEach(doc=>{
@@ -7191,12 +6936,7 @@ function renderWizGLocked(year, reason) {
     ? (year + " n'a pas été produit par l'algorithme : ses gardes et sa preuve d'équité sont saisies manuellement (sanctuarisées). La génération est désactivée pour cette année.")
     : ('Les gardes ' + year + ' ont été générées et la preuve d\'équité (STATS_GARDES_' + year + ') est figée. La régénération est verrouillée pour protéger l\'équité de l\'algorithme et le planning publié.');
   const hint = reason === 'sanctuary' ? '' : ("Pour régénérer (rare) : supprimez manuellement l'onglet GARDES_" + year + ' dans le Google Sheet, puis rouvrez cet assistant.');
-  /* (25/08/2026) Le verrou fermait TOUT l'assistant, y compris les étapes 2 et 3 —
-     publication et envoi des récapitulatifs — qui ne régénèrent rien. Si la
-     génération s'arrêtait après l'étape 1 (fenêtre fermée, réseau coupé), les MARs
-     ne recevaient jamais leur mail « Vos gardes » et il n'existait AUCUN moyen de le
-     renvoyer, sinon supprimer l'onglet et tout régénérer — un interdit du projet.
-     Le renvoi est ici, séparé du verrou, et ne touche pas au planning. */
+  /* (25/08/2026) Le verrou fermait TOUT l'assistant, y compris les étapes 2 et 3 — récit : docs/JOURNAL-Planning-Med.md §36 */
   let extra = '';
   if (reason !== 'sanctuary' && reason !== 'nocampaign') {
     extra = '<div style="text-align:center;margin-top:18px">'
@@ -7632,12 +7372,7 @@ async function renderWizGStep() {
         const bg = n===0?'#fff':over?'#FEF3C7':'#F1F5F9', fg = n===0?'#94A3B8':over?'#92400E':'#334155';
         return '<td style="text-align:center;padding:5px 6px;border-bottom:1px solid var(--line);background:'+bg+';color:'+fg+';font-weight:600">'+n+'<span style="opacity:.45;font-size:9px">/'+lim+'</span></td>';
       };
-      /* (03/09/2026) FRONTIÈRE DES DEUX ÉCRANS. Tout ce qui précède EMPÊCHE de
-         générer ; tout ce qui suit RENSEIGNE sans jamais bloquer. L'étape était
-         devenue un mur d'informations où le bloquant se noyait dans le reste.
-         Le repère est posé dans la chaîne plutôt que dans le code : les blocs
-         qui suivent continuent d'écrire dans `html` sans être touchés, et la
-         coupure se fait une seule fois, à la fin. */
+      /* (03/09/2026) FRONTIÈRE DES DEUX ÉCRANS — récit : docs/JOURNAL-Planning-Med.md §37 */
       html += '<!--WIZG-SPLIT-->';
       html += '<div class="wizard-section-title" style="margin-top:16px">Indispos sur jours à enjeu</div>';
       html += '<div style="font-size:11px;color:var(--ink-3);margin-bottom:8px">Nombre de jours <strong>refusés</strong> (vacances/formations exclues). Rouge = trop peu de jours laissés disponibles pour placer sa part équitable → bloquant.</div>';
@@ -8016,17 +7751,7 @@ let wizCStatsData = null;
 let wizCPlanningOk = false;
 
 async function openWizardCloture() {
-  /* (17/08/2026) VERROU DE DATE — posé le jour où le code administrateur a été
-     remis au comité. Les garde-fous existants (côté serveur) portaient sur
-     l'EXISTENCE des onglets de l'année suivante, jamais sur la date : or ils
-     existaient depuis août, créés par le bac à sable de la démonstration du
-     4 septembre. La clôture était donc à deux clics pour n'importe quel membre
-     du comité, alors qu'elle déplace le planning EN COURS D'USAGE et bascule le
-     service sur l'année suivante. Le Diagnostic l'annonçait, le guide l'écrivait
-     — une consigne n'est pas un verrou.
-     Ici l'assistant ne s'ouvre même pas : c'est la protection qui compte contre
-     une exploration de bonne foi. Le refus serveur (Indispos.gs 2026-08-17.1)
-     est la seconde barrière, celle qui tient quel que soit l'écran. */
+  /* (17/08/2026) VERROU DE DATE — récit : docs/JOURNAL-Planning-Med.md §38 */
   {
     const debut = _premierLundiISO(YEAR + 1);
     if (todayStr() < debut) {
@@ -8782,13 +8507,7 @@ try {
 <script>
 'use strict';
 
-/* (28/07/2026, 15 h 40) BLOC RESIDUEL SUPPRIME.
-   Ce script commencait par un SECOND ecouteur « Entree » sur le champ de code,
-   vestige d'une reorganisation dont les en-tetes vides (TABS, TOAST, MODAL, API)
-   subsistaient sans contenu. Consequence prouvee par simulation : un appui sur
-   Entree declenchait authenticate() DEUX fois, soit deux ouvertures completes
-   — 4 appels au lieu de 2, dont deux getPlanningJson. L'ecouteur utile est
-   declare une seule fois dans le bloc precedent. */
+/* (28/07/2026, 15 h 40) BLOC RESIDUEL SUPPRIME — récit : docs/JOURNAL-Planning-Med.md §39 */
 
 // ── ÉQUIPE ──────────────────────────────────────────────────────────────
 let marData = [];
@@ -10038,12 +9757,7 @@ async function tpcEnvoyer() {
     if (!res || !res.success) { showToast('❌ ' + ((res && res.error) || 'Échec de l\'enregistrement')); return; }
     showToast('✓ ' + res.faits + ' décision' + (res.faits > 1 ? 's' : '') + ' enregistrée'
       + (res.faits > 1 ? 's' : '') + (res.rates ? ' — ' + res.rates + ' en échec' : ''));
-    /* (23/08/2026) AUCUNE RELECTURE ICI. La copie rapide met ~1 min 45 à se
-       rafraîchir (trace LOGS du 23/08) : la relire maintenant ferait revenir
-       les demandes qu'on vient de trancher. Et relire le serveur coûterait
-       10 à 20 secondes d'attente au comité. On sait ce qui est passé — la
-       réponse le dit ligne par ligne : on retire ces lignes, c'est tout.
-       L'écran est juste, instantanément, sans un appel de plus. */
+    /* (23/08/2026) AUCUNE RELECTURE ICI — récit : docs/JOURNAL-Planning-Med.md §40 */
     const passees = {};
     (res.detail || []).forEach(function (x) {
       if (x && x.success) passees[x.decision + '|' + x.date + '|' + (x.doctorId || '')] = true;

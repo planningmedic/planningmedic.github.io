@@ -538,12 +538,7 @@ function _veilleDoi(obj) {
   return '';
 }
 
-/* (2026-08-08.3, MESURÉ) 925 articles sur 2 044 n'avaient que le MOIS de
-   parution (numéro de revue) : sortpubdate les datait tous au « 01 », le
-   tri par date les laissait en blocs par revue (PMID contigus d'un même
-   numéro). Or epubdate — la date de MISE EN LIGNE — est au jour près pour
-   27 échantillons sur 30. On la préfère quand elle porte un jour ; sinon
-   repli sur sortpubdate/pubdate comme avant. */
+/* (2026-08-08.3, MESURÉ) 925 articles sur 2 044 n'avaient que le MOIS de — récit : docs/JOURNAL-Planning-Med.md §159 */
 const _VEILLE_MOIS = { Jan:'01', Feb:'02', Mar:'03', Apr:'04', May:'05', Jun:'06',
                        Jul:'07', Aug:'08', Sep:'09', Oct:'10', Nov:'11', Dec:'12' };
 

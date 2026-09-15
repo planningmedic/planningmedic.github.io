@@ -76,13 +76,7 @@ const VERSION = 'miroir 2026-08-22.2';
 // lecture. Garde-fou contre une faute de frappe côté GAS qui créerait
 // une clé orpheline invisible.
 const CLE_VALIDE = /^(acces|annees|secteurs|specialites|cotations_type|config_admin|topos|staffs|veille|protocoles|annuaire|vacances_admin|planning_\d{4}|affectations_\d{4}|indispos_\d{4}|pose_tp_\d{4}|gardes_\d{4}|joursferies_\d{4}|stats_\d{4}|mail_nonlus|liberal_\d{4}|liberal_mar_\d{4}|releve_liberal_\d{4}|veille_marques|ordre_vac|echanges|notifs|notif_config|equite_live_\d{4}|doc_[A-Za-z0-9_-]{10,80})$/;
-/* (2026-08-10.1) `doc_<idDrive>` : un topo ou un protocole PDF, pousse par la
-   tache dediee de miroir.gs. La valeur a la MEME forme que la reponse de
-   `getTopo`/`getProtocole` cote Apps Script — {success,name,mimeType,dataB64} —
-   pour que la bascule cote page ne change QUE la source, jamais le traitement.
-   Le controle « le fichier est-il bien dans le dossier Topos » n'a plus lieu
-   d'etre ici : seuls les documents reellement pousses existent comme cle, donc
-   un identifiant forge ne renvoie rien. */
+/* (2026-08-10.1) `doc_<idDrive>` — récit : docs/JOURNAL-Planning-Med.md §160 */
 
 // En-têtes communs. Origin * : la protection est le code d'accès, pas
 // l'origine (les pages GitHub Pages n'ont pas d'origine secrète).
@@ -276,13 +270,7 @@ async function lire(corps, env) {
     /* (26/08/2026) Campagne figée : planning de l'année de campagne déjà généré →
        tuile indispos en consultation seule. Vieille clé `acces` : false, tuile normale. */
     indisposFigees: !!acces.indisposFigees,
-    /* (08/09/2026) Tuiles reservees (CONFIG / TUILES_PRIVEES, deposees dans
-       `acces` par miroir.gs). Le Worker ne decide rien : il transmet. La
-       reponse de l'action `login` d'Apps Script porte le meme champ, sinon
-       la tuile clignoterait au gre des pannes du relais.
-       Place en FIN d'objet a dessein : banc_pose_tp mesure la distance entre
-       l'ouverture de `identite` et `phaseTp`. Un champ insere plus haut la
-       fait deborder et casse un garde-fou qui n'a rien demande. */
+    /* (08/09/2026) Tuiles reservees (CONFIG / TUILES_PRIVEES, deposees dans — récit : docs/JOURNAL-Planning-Med.md §161 */
     tuiles: Array.isArray(user.tuiles) ? user.tuiles : [],
     /* (08/09/2026) Titre affiche et regime de souhaits garantis : deux listes
        GLOBALES (pas par utilisateur), deduites de MEDECINS par miroir.gs. Elles
@@ -649,13 +637,7 @@ async function notifEnvoyer(corps, env) {
     corps: String(corps.corps || '').slice(0, 300),
     url: String(corps.url || './index.html').slice(0, 300),
   };
-  /* (pastille, 23/08/2026 — UNIFIÉE) Une seule logique : le compteur de
-     non-vus PAR destinataire (notif_cpt_<id>), +1 à chaque envoi, remis à
-     zéro quand le MAR ouvre son dashboard (/notif-vu). Un `pastille` imposé
-     par l'appelant (les échanges en envoyaient un : les demandes en attente)
-     est IGNORÉ — décision du 23/08 : deux chiffres qui se disputent l'icône,
-     c'est un chiffre faux. La charge devient nominative : chiffrée par
-     destinataire de toute façon, elle l'était déjà. */
+  /* (pastille, 23/08/2026 — UNIFIÉE) Une seule logique — récit : docs/JOURNAL-Planning-Med.md §162 */
 
   /* Quelles clés d'abonnement viser ? Les clés étant nominatives
      (notif_sub_<id>), une cible par id est un accès direct ; une cible par

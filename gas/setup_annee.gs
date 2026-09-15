@@ -515,17 +515,7 @@ function archiveYear(year, moveSheets) {
       }
     }
 
-    /* (03/08/2026) HISTORIQUE reflete desormais les gardes REELLEMENT faites.
-       Il recopiait le snapshot STATS, c'est-a-dire le planning tel que genere. Or la
-       dette d'equite de l'annee suivante n'est PAS lue ici : le generateur va la
-       chercher directement dans STATS_GARDES_{annee-1}, avec repli sur le classeur
-       d'archives (generateur_gardes.gs). HISTORIQUE n'est donc pas un moteur, c'est
-       la memoire longue du service — et une fois GARDES_{annee} parti aux archives,
-       la seule trace qui reste dans le maitre. Autant qu'elle dise la verite.
-       Effet de bord voulu : les MAR presents dans la grille mais absents du snapshot
-       (arrivee en cours d'annee, ex. une prise de fonctions en novembre) obtiennent enfin leur
-       ligne, avec leur Noel reel — sans quoi ils redevenaient eligibles a Noel.
-       Repli : si la grille est illisible, on retombe sur l'ancien comportement. */
+    /* (03/08/2026) HISTORIQUE reflete desormais les gardes REELLEMENT faites — récit : docs/JOURNAL-Planning-Med.md §153 */
     let live = null;
     try { if (gSheet) live = computeStatsLive(year); }
     catch (e) { results.push(`⚠️ Recomptage des gardes ${year} impossible (${e.message}) — HISTORIQUE alimenté depuis STATS`); }
@@ -720,34 +710,10 @@ function TEST_run() {
   const SCENARIO = 'charge';   // 'normal' | 'charge' | 'leger'
   TEST_remplirIndispos(ANNEE, SCENARIO);
 }
-/* (05/09/2026) LANCEUR TEMPORAIRE — essai à blanc de l'année 2028 dans une COPIE
-   du classeur, pour éprouver le nouvel algorithme sur une année complète dont
-   toutes les vacances, formations et TP sont posés (ce qui n'est le cas d'aucune
-   année réelle disponible aujourd'hui).
-   setupAnnee n'est appelée par AUCUN menu ni bouton — le guide technique la
-   décrit comme endormie — et l'éditeur Apps Script ne sait pas passer d'argument
-   à une fonction : d'où ce lanceur, sur le modèle de T() et T7().
-   ⚠️ À N'EXÉCUTER QUE DANS UNE COPIE. Dans le classeur de production, il
-   effacerait la grille d'indisponibilités de 2028 si elle existait. Le garde-fou
-   de setupAnnee demande confirmation dès qu'une saisie est présente, mais ne
-   comptez pas dessus : vérifiez le nom du classeur avant de lancer.
-   ⚠️ À RETIRER avec T() et T7() une fois 2027 publié. */
+/* (05/09/2026) LANCEUR TEMPORAIRE — récit : docs/JOURNAL-Planning-Med.md §154 */
 function W1_2028() { setupAnnee(2028); }
 
-/* (05/09/2026) LANCEUR TEMPORAIRE — régénère 2026 sur des indisponibilités
-   COMPLÉTÉES, pour éprouver le nouvel algorithme sur les VRAIES absences du
-   service, pic de Noël compris (27/12 : 3 gardeurs disponibles sur 20).
-   Le seul intérêt de 2026 : c'est la seule année dont les absences sont réelles.
-   Le planning existant sert de point de comparaison.
-
-   ⚠️ DANGER — À N'EXÉCUTER QUE DANS UNE COPIE DU CLASSEUR.
-   Dans le classeur de production, cette fonction :
-     · exige d'abord la suppression manuelle de GARDES_2026 (verrou anti-
-       régénération), mais une fois l'onglet supprimé plus rien ne protège ;
-     · EFFACE le planning 2026 que l'équipe consulte ;
-     · envoie une notification push à tous les MAR abonnés.
-   Vérifiez le nom du classeur avant de lancer.
-   ⚠️ À RETIRER avec les autres lanceurs une fois 2027 publié. */
+/* (05/09/2026) LANCEUR TEMPORAIRE — récit : docs/JOURNAL-Planning-Med.md §155 */
 function W2_2026() { generateGardes(2026); }
 
 /* (05/09/2026) Visait 2029 alors que TEST_run remplit 2028 : enchaîner les deux

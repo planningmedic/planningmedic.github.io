@@ -64,15 +64,7 @@ const MIROIR_URL = 'https://miroir.planningmedic.workers.dev';
    Principe : pousser un peu trop large plutôt que trop étroit — une clé
    repoussée à l'identique ne coûte qu'un envoi, une clé oubliée coûte une
    donnée périmée servie à 23 MARs. */
-/* (2026-08-04.5, AUDIT) Une famille = ce que l'action MODIFIE REELLEMENT.
-   L'accroche tourne DANS la requete, avant la reponse : chaque famille en
-   trop est du temps d'attente utilisateur. Constats de l'audit :
-   - un lot de placements n'ecrit que PLANNING_OVERRIDES → config_admin seul
-     (le fichier planning ne change qu'a la PUBLICATION) ;
-   - setDailyStatus ecrit GARDES + le reflet INDISPOS, ne republie pas ;
-   - la generation n'a pas encore publie → pas de famille planning.
-   applyModification garde un perimetre large (action rare, doute documente
-   sur la mise a jour du fichier). */
+/* (2026-08-04.5, AUDIT) Une famille = ce que l'action MODIFIE REELLEMENT — récit : docs/JOURNAL-Planning-Med.md §130 */
 const MIROIR_APRES_ECRITURE = {
   publishPlanning:            ['planning', 'affectations', 'annees', 'config_admin', 'gardes', 'stats'],
   setDailyStatus:             ['gardes', 'indispos'],
@@ -124,15 +116,7 @@ const MIROIR_APRES_ECRITURE = {
    Ne pousse que si l'action est une écriture connue ET que la réponse
    annonce un succès (une écriture refusée ne change rien au classeur).
    Coût pour les LECTURES : un lookup d'objet, ~0 ms. */
-/* (2026-08-05.6) ACCROCHE DIFFEREE — mesure du 05/08 au matin : meme avec
-   l'audit des familles (.5), la construction + l'envoi au miroir DANS la
-   requete coutaient encore ~5 s a chaque ecriture (savePlanningOverridesBatch :
-   6,9 s serveur, dont ~1,5-2 s d'ecriture reelle). Desormais la requete se
-   contente de NOTER ce qu'il faudra pousser (fusion dans les proprietes du
-   script, sous verrou) et de garantir UN declencheur unique : la reponse part
-   tout de suite, le declencheur pousse dans la minute qui suit, la synchro
-   horaire ramasse tout echec. Fraicheur MAR : ~1-2 min au lieu de ~1 —
-   l'ecran qui vient d'ecrire relit de toute facon le circuit DIRECT. */
+/* (2026-08-05.6) ACCROCHE DIFFEREE — récit : docs/JOURNAL-Planning-Med.md §131 */
 const MIROIR_CLE_ATTENTE = 'MIROIR_POUSSEES_EN_ATTENTE';
 
 function miroirApresRequete_(e, outTexte) {
@@ -143,12 +127,7 @@ function miroirApresRequete_(e, outTexte) {
     if (String(outTexte || '').indexOf('"success":true') === -1) return;
     const annee = Number(payload.year) || getActiveYear();
     _miroirNoterPoussee_(familles, annee);
-    /* (23/08/2026) TRACE. Cette accroche était entièrement muette : quand une
-       écriture ne rafraîchissait pas la copie rapide, rien ne permettait de
-       savoir si elle avait été notée, avec quelle année, ni si la poussée
-       avait eu lieu. Deux symptômes en production le 23/08 (alertes du comité
-       qui reviennent au rechargement, tuile lente) sans aucune trace pour
-       trancher. LOGS dit désormais la vérité. */
+    /* (23/08/2026) TRACE — récit : docs/JOURNAL-Planning-Med.md §132 */
     logAction('miroir : ' + payload.action + ' → familles [' + familles.join(',') + '] année ' + annee
               + (Number(payload.year) ? '' : ' (ANNÉE ABSENTE du payload — repli sur l\'année active)'));
   } catch (err) { /* jamais bloquant */ }
@@ -184,16 +163,7 @@ function _miroirNoterPoussee_(familles, annee) {
          simultanees → la derniere gagne, l'autre rattrapee par la synchro ;
      (c) echec de creation du declencheur → idem. Pire cas absolu : copie de
      lecture en retard d'UNE heure, donnees du classeur intactes. */
-  /* (23/08/2026) BLOCAGE DÉFINITIF CORRIGÉ. Le déclencheur n'était armé que si
-     la file était VIDE : l'idée était qu'une file non vide signifiait qu'un
-     déclencheur existait déjà. Faux dès qu'une exécution meurt avant d'avoir
-     purgé la file — dépassement de quota, temps limite, erreur non prévue.
-     La file restait alors pleine POUR TOUJOURS, plus aucune note n'armait de
-     déclencheur, et la copie rapide ne se rafraîchissait plus jamais seule.
-     Constaté en production le 23/08 : notes prises à 16h15 et 16h16, aucune
-     poussée derrière, alors que celle de 15h56 était passée.
-     La condition juste n'est pas « la file était vide » mais « aucun
-     déclencheur n'existe » — c'est le seul fait qui compte. */
+  /* (23/08/2026) BLOCAGE DÉFINITIF CORRIGÉ — récit : docs/JOURNAL-Planning-Med.md §133 */
   const deja = ScriptApp.getProjectTriggers().some(function (t) {
     return t.getHandlerFunction() === 'miroirRattrapage';
   });
@@ -263,12 +233,7 @@ function miroirSyncComplet() {
                     'specialites', 'cotations_type', 'releve_liberal',
                     'veille_marques', 'ordre_vac', 'echanges', 'notifs'];
   try { PropertiesService.getScriptProperties().deleteProperty(MIROIR_CLE_ATTENTE); } catch (e) {}   // la synchro pousse un sur-ensemble : la note devient caduque
-  /* (2026-08-20.1) UNE FOIS PAR JOUR, tout repart sans condition. Le filtre
-     différentiel se fie à une mémoire locale ; si elle ment (miroir vidé à la
-     main, écriture perdue chez Cloudflare), une donnée resterait figée sans
-     que rien ne le signale. Le passage de 4 h efface cette mémoire : ~29
-     écritures, une fois par nuit, contre l'assurance qu'aucun écart ne dure
-     plus de 24 h. */
+  /* (2026-08-20.1) UNE FOIS PAR JOUR, tout repart sans condition — récit : docs/JOURNAL-Planning-Med.md §134 */
   try { if (new Date().getHours() === 4) miroirOublierEmpreintes(); } catch (e) {}
   const res = miroirPousserFamilles_(familles, getActiveYear(), true);   // synchro : toutes les annees consultables
   Logger.log('miroirSyncComplet : ' + JSON.stringify(res));
@@ -277,21 +242,8 @@ function miroirSyncComplet() {
 
 /* Installe le déclencheur horaire (idempotent : supprime d'abord les
    déclencheurs existants de miroirSyncComplet pour ne jamais en empiler). */
-/* (2026-08-05.8) MODIFICATIONS MANUELLES DU CLASSEUR. Constat du 05/08 :
-   une correction faite directement dans le Google Sheet n'était vue par
-   personne — aucune requête ne part, donc aucune note miroir ; la copie de
-   lecture ne se réalignait qu'à la synchro HORAIRE (attente jusqu'à 1 h,
-   affichages incohérents entre pages). Ce déclencheur écoute les éditions du
-   classeur et pose la MÊME note que les écritures du portail : la copie suit
-   dans la minute. Le planning PUBLIÉ, lui, ne bouge pas — c'est le rôle du
-   bouton « Publier », qui reste un acte volontaire du comité. */
-/* (2026-08-06.11) Liste établie par INVENTAIRE : pour chaque famille du
-   miroir, on est remonté à l'onglet qui l'alimente réellement, au lieu de
-   lister les onglets « qui viennent à l'esprit ». Trois manquaient —
-   AFFECTATIONS (les cases à pourvoir), STATS_GARDES (l'équité et la dette),
-   CS_TEMPLATE et SEUILS (modèle de consultations, bornes de tension) : une
-   correction manuelle y attendait la synchro HORAIRE sans que rien ne le dise.
-   Toute nouvelle famille du miroir impose de revoir cette table. */
+/* (2026-08-05.8) MODIFICATIONS MANUELLES DU CLASSEUR — récit : docs/JOURNAL-Planning-Med.md §135 */
+/* (2026-08-06.11) Liste établie par INVENTAIRE — récit : docs/JOURNAL-Planning-Med.md §136 */
 const MIROIR_ONGLETS_SUIVIS = {
   GARDES:       ['gardes', 'indispos', 'stats'],   // statuts et gardes
   STATS_GARDES: ['gardes', 'stats'],               // équité de référence et dette
@@ -378,13 +330,7 @@ function miroirPousserFamilles_(familles, annee, toutesAnnees) {
      rarement (un code de specialite, une cotation type ajoutee) mais etaient
      redemandees a Apps Script a CHAQUE ouverture de la page. */
   if (uniq['specialites'])     _miroirAjoute_(items, 'specialites',     function () { return getSpecialites(); });
-  /* (17/08/2026) Relevé du groupement. ⚠️ ANNÉE CIVILE, PAS L'ANNÉE ACTIVE :
-     le relevé de l'administration est calendaire, alors que l'année active du
-     planning bascule dès l'automne (même piège que les onglets LIBERAL_{Y},
-     corrigé le 22/07). En janvier, l'onglet de la nouvelle année n'existe pas
-     encore : getReleveLiberal rend alors une liste vide, ce qui est juste.
-     L'enveloppe complète est déposée telle quelle : la page consomme
-     exactement ce que lui rendait l'action, sans transformation. */
+  /* (17/08/2026) Relevé du groupement — récit : docs/JOURNAL-Planning-Med.md §137 */
   if (uniq['releve_liberal']) {
     const anneeCivile = new Date().getFullYear();
     _miroirAjouteEnveloppe_(items, 'releve_liberal_' + anneeCivile, function () {
@@ -395,13 +341,7 @@ function miroirPousserFamilles_(familles, annee, toutesAnnees) {
   if (uniq['config_admin']) _miroirAjoute_(items, 'config_admin', function () { return _miroirConstruireConfigAdmin_(annee); });
 
   if (uniq['planning'] || uniq['affectations']) {
-    /* (03/08/2026, correctif) TOUTES les annees consultables, pas « active
-       + N+1 ». Constate en reel : annee active 2027, selecteur proposant
-       2026 → planning_2026 jamais depose au miroir, repli GAS a chaque
-       bascule d'annee. Source de la liste : le meme balayage que le
-       selecteur (_miroirConstruireAnnees_ : GARDES_{Y} actifs + archives) ;
-       chaque annee n'est poussee que si son fichier existe sur le Drive
-       (_miroirAjouteFichierDrive_ saute silencieusement les absents). */
+    /* (03/08/2026, correctif) TOUTES les annees consultables, pas « active — récit : docs/JOURNAL-Planning-Med.md §138 */
     const annees = [];
     if (toutesAnnees) {
       try {
@@ -458,17 +398,7 @@ function miroirPousserFamilles_(familles, annee, toutesAnnees) {
         return { success: true, joursFeries: l.sort(), year: y };
       });
       if (uniq['stats'])       _miroirAjouteEnveloppe_(items, 'stats_' + y,       function () { return _miroirConstruireStats_(y); });
-      /* (2026-08-13.2) INSTANTANE D'EQUITE. computeStatsLive recompte les gardes
-         REELLEMENT faites sur toute l'annee, echanges et dons compris. C'est le
-         calcul le plus lourd du portail : mesure du 13/08, plusieurs dizaines de
-         secondes ressenties cote MAR, et c'est lui qui rend le diagnostic long.
-         Le faire ici, c'est le payer UNE fois pour les 23, dans le declencheur
-         differe — jamais dans la requete d'un MAR, jamais dans l'ecriture du
-         comite (celle-ci se contente de noter la poussee depuis le 05/08).
-         Memes declencheurs que la famille stats : un echange de garde republie
-         donc l'instantane dans la minute. Contrepartie assumee : l'ecran n'est
-         plus exact a la seconde mais a la minute — le lien « recalculer » de la
-         page reste la pour qui veut la valeur fraiche. */
+      /* (2026-08-13.2) INSTANTANE D'EQUITE — récit : docs/JOURNAL-Planning-Med.md §139 */
       if (uniq['stats'])       _miroirAjouteEnveloppe_(items, 'equite_live_' + y, function () {
         return { success: true, stats: computeStatsLive(y) };
       });
@@ -488,25 +418,14 @@ function miroirPousserFamilles_(familles, annee, toutesAnnees) {
   }
 
   if (uniq['liberal']) {
-    /* (2026-08-05.9) Activité libérale du jour, pour le volet du panneau de
-       placement. Contenu STRICTEMENT limité à ce que l'écran affiche : qui
-       opère, dans quel secteur, quelle chirurgie. AUCUN montant — ils restent
-       au classeur (voir listLiberalJour, portail.gs 2026-08-05.2).
-       Clé admin seule. Objectif : le volet s'affiche instantanément au lieu
-       des 3,8-9,6 s mesurés le 05/08. */
+    /* (2026-08-05.9) Activité libérale du jour, pour le volet du panneau de — récit : docs/JOURNAL-Planning-Med.md §140 */
     _miroirAjouteEnveloppe_(items, 'liberal_' + annee, function () {
       return _miroirConstruireLiberal_(annee);
     });
   }
 
   if (uniq['liberal']) {
-    /* (17/08/2026) MES DECLARATIONS. La cle liberal_{Y} existante est celle du
-       COMITE : volontairement allegee (ni identifiant, ni montant, ni
-       specialite — decision du 05/08). La page « Mes interventions declarees »
-       a besoin de tout cela : identifiant pour supprimer, dates, specialite,
-       montants. D'ou une cle SEPAREE, structuree par MAR comme les indispos,
-       que le Worker filtre a ses propres lignes. Le comite garde la sienne,
-       allegee : il n'a pas besoin des montants. */
+    /* (17/08/2026) MES DECLARATIONS — récit : docs/JOURNAL-Planning-Med.md §141 */
     _miroirAjoute_(items, 'liberal_mar_' + annee, function () {
       return _miroirConstruireLiberalMar_(annee);
     });
@@ -535,28 +454,14 @@ function miroirPousserFamilles_(familles, annee, toutesAnnees) {
   }
 
   if (uniq['gardes'] || uniq['indispos']) {
-    /* (LOT 3 · 22/08/2026) La cle de l'ecran de pose des TP : effectifs par
-       jour + blocages par MAR + quotas (contenu : _construirePoseTp_,
-       Indispos.gs). Rebatie des que gardes OU indispos bougent — les deux
-       nourrissent l'effectif. Poussee pour l'annee active ET la suivante :
-       hors phase, le constructeur renvoie { ferme: true }, empreinte stable
-       (une ecriture KV une seule fois), et la cle s'auto-nettoie quand
-       GARDES_{Y} est supprime pour regenerer. */
+    /* (LOT 3 · 22/08/2026) La cle de l'ecran de pose des TP — récit : docs/JOURNAL-Planning-Med.md §142 */
     [annee, annee + 1].forEach(function (yP) {
       _miroirAjouteEnveloppe_(items, 'pose_tp_' + yP, function () { return _construirePoseTp_(yP); });
     });
   }
 
   if (uniq['ordre_vac']) {
-    /* (2026-08-13.1) Ordre de passage des vacances, pour l'annee en cours et la
-       suivante. Copie COMMUNE : elle ne contient aucun rang personnel — la page
-       cherche son propre identifiant dans les listes ordonnees.
-       Pourquoi au miroir : le bandeau de « Mes conges » attendait un
-       aller-retour Apps Script a chaque ouverture. Ici il voyage dans le MEME
-       appel que le planning, a l'ouverture du portail — aucune requete de plus.
-       Les annees sont FIGEES a la poussee : la synchro horaire les reactualise
-       au plus tard une heure apres le 1er janvier, et la page compare de toute
-       facon les annees recues a celles qu'elle attend. */
+    /* (2026-08-13.1) Ordre de passage des vacances, pour l'annee en cours et la — récit : docs/JOURNAL-Planning-Med.md §143 */
     _miroirAjoute_(items, 'ordre_vac', function () {
       const y = new Date().getFullYear();
       const r = getOrdreVacances(null, [y, y + 1]);
@@ -803,13 +708,7 @@ function miroirDocumentsInstallerDeclencheur() {
    Defaut trouve au banc le 09/08, invisible en lecture). */
 const MIROIR_PURGE_APRES       = 2;   // annees balayees au-dela de l'annee courante
 const MIROIR_PURGE_MAX_ANNEES  = 3;   // plafond de securite par passe
-/* (16/08/2026) `equite_live_` manquait à cette liste : la clé est poussée PAR
-   ANNÉE depuis le 13/08 (instantané d'équité), donc elle survivait au retrait
-   d'une année — exactement le défaut du 09/08, revenu par une famille ajoutée
-   depuis. Toute nouvelle clé portant une année DOIT entrer ici le jour même,
-   sinon elle reste servie indéfiniment. Le banc compare cette liste aux clés
-   réellement construites par année dans _miroirConstruire_ : il refuse qu'une
-   famille échappe à l'oubli. */
+/* (16/08/2026) `equite_live_` manquait à cette liste — récit : docs/JOURNAL-Planning-Med.md §144 */
 const MIROIR_CLES_PAR_ANNEE    = ['planning_', 'affectations_', 'indispos_',
                                   'gardes_', 'stats_', 'equite_live_',
                                   'joursferies_', 'liberal_', 'liberal_mar_'];
@@ -932,15 +831,7 @@ function _miroirAjouteFichierDrive_(items, cle, nomFichier) {
   } catch (err) { /* omise ; filet horaire */ }
 }
 
-/* (2026-08-05.10) ENVOI PAR PAQUETS. Le Worker refuse plus de 20 clés par
-   appel — garde-fou volontaire contre les requêtes énormes. Or la synchro
-   COMPLÈTE construit 11 clés globales + 5 par année consultable + 1 pour les
-   indispos : 23 clés avec 2026 et 2027, et 28 dès que 2028 existera. Elle
-   échouait donc EN BLOC (« 20 clés maximum », 05/08 17:42) — le filet horaire
-   était hors service sans que rien ne le signale à l'écran.
-   Découpage en lots de 20 : chaque lot part séparément, et le compte rendu
-   agrège les résultats. Un lot en échec n'empêche pas les autres de passer,
-   et le rapport dit lequel a échoué. */
+/* (2026-08-05.10) ENVOI PAR PAQUETS — récit : docs/JOURNAL-Planning-Med.md §145 */
 const MIROIR_MAX_CLES = 20;
 
 /* ═══ ENVOI DIFFÉRENTIEL (2026-08-20.1) ═══════════════════════════════
@@ -1132,14 +1023,7 @@ function _miroirConstruireAcces_() {
      voyager avec l'identite, elle n'a plus aucune lecture a demander au
      serveur. Cle CONFIG / LIBERAL_ADMIN — jamais de nom dans le code. */
   var libAdmin = '';
-  /* (08/09/2026) TUILES RESTREINTES. Cinq tuiles du dashboard ne s'adressent
-     qu'a une ou deux personnes (CRH, statistiques d'usage, guide technique,
-     consultations, liberal en rodage). Leur destinataire etait ECRIT EN DUR
-     dans index.html — un nom de medecin dans un depot public, et une
-     tuile qui disparait pour tout le monde des que ce nom change.
-     Desormais : cle CONFIG / TUILES_PRIVEES, dans le classeur prive.
-     Format : ID:tuile,tuile;ID:tuile   (ex. AFR:crh,stats;WS:liberal)
-     Cle absente = personne ne voit ces tuiles : le defaut sur : ferme. */
+  /* (08/09/2026) TUILES RESTREINTES — récit : docs/JOURNAL-Planning-Med.md §146 */
   var tuilesParMar = {};
   try {
     const cfgA = _configRows_();
@@ -1198,13 +1082,7 @@ function _miroirConstruireAcces_() {
   }
 
   const acces = { users: users, t: Date.now() };
-  /* (08/09/2026) DEUX LISTES GLOBALES, DEDUITES DE MEDECINS.
-     Elles remplacent des noms de medecins ECRITS EN DUR dans les pages :
-       titresPr        — qui s'affiche « Pr » plutot que « Dr » (colonne NOM)
-       souhaitsPlafond — regime de souhaits garantis (colonne souhait_plafond),
-                         qui retire le MAR des calculs d'equite
-     Un depot public n'a pas a nommer un praticien pour savoir comment
-     l'appeler. Deduites, donc rien a saisir : la colonne fait foi. */
+  /* (08/09/2026) DEUX LISTES GLOBALES, DEDUITES DE MEDECINS — récit : docs/JOURNAL-Planning-Med.md §147 */
   try {
     const eff = _effectifTitres_();
     acces.titresPr = eff.titresPr;
@@ -1441,27 +1319,7 @@ function _miroirConstruireVacancesAdmin_() {
       groupes[gk] = tempGroups[gk].sort(function (x, y) { return x.ordre - y.ordre; }).map(function (m) { return {id: m.id}; });
     });
   }
-  /* (04/09/2026) L'HISTORIQUE DE NOËL VOYAGE AVEC LES PÉRIODES.
-     Constaté au staff du 04/09, devant la salle : le bouton « 🎄 Noël & Jour
-     de l'An » a répondu « historique indisponible ». C'était le SEUL appel de
-     staff.html qui partait encore en direct sur Apps Script — tout le reste de
-     la page (médecins, indispos, fériés, périodes) arrive de la copie rapide.
-     Or Apps Script exécute en file : une vingtaine de connexions simultanées
-     ont suffi à mettre le clic derrière tout le monde. Le soir, au calme, le
-     même bouton répondait.
-
-     POURQUOI ICI et pas dans une clé à part : `vacances_admin` est déjà
-     réservée au comité côté Worker, déjà lue au chargement de cet écran, et
-     n'est PAS suffixée par année. Une clé neuve aurait imposé les trois choses
-     qu'on veut éviter — une entrée dans MIROIR_CLES_PAR_ANNEE (sinon elle
-     survit au ménage de fin d'année, défaut déjà vu deux fois), une règle
-     d'accès dans le Worker, et donc un déploiement Cloudflare de plus.
-
-     ⚠️ TRY À LUI SEUL, volontairement. `_miroirAjouteEnveloppe_` abandonne la
-     clé ENTIÈRE au premier jet : sans ce filet, une erreur sur l'historique de
-     Noël emporterait aussi les périodes et les groupes, c'est-à-dire tout
-     l'écran du staff vacances. En cas d'échec, `noel` vaut null et la page
-     repasse par Apps Script exactement comme avant : dégradé, jamais cassé. */
+  /* (04/09/2026) L'HISTORIQUE DE NOËL VOYAGE AVEC LES PÉRIODES — récit : docs/JOURNAL-Planning-Med.md §148 */
   var noel = null;
   try {
     var yNoel = getIndisposYear();
@@ -1523,16 +1381,7 @@ const NOTIF_JOURNAL_JOURS  = 30;
 
 function _notifJournalNoter_(cible, titre, corps, url) {
   try {
-    /* (06/09/2026) DÉFAUT VU EN PRODUCTION. Ce garde-fou visait le canal du
-       COMITÉ, qui n'a pas de cloche. Il écartait en réalité TOUS les rôles — y
-       compris `role:'mar'`, celui de la génération des gardes, c'est-à-dire la
-       notification la plus importante de l'année. Le push partait sur les
-       téléphones, la cloche restait vide, et rien ne pouvait le révéler puisque
-       la notification, elle, arrivait bien.
-       Preuve : NOTIFS_JOURNAL ne contenait que deux lignes, du 25/08, écrites
-       quand l'appel utilisait encore la cible `*`. La génération du 04/09 n'y
-       figure pas.
-       Une cible `role:'mar'` s'adresse à TOUS les MAR : c'est le sens de `*`. */
+    /* (06/09/2026) DÉFAUT VU EN PRODUCTION — récit : docs/JOURNAL-Planning-Med.md §149 */
     if (cible && cible.role && cible.role !== 'mar') return;   // comité : pas de cloche
     const ss = SpreadsheetApp.getActiveSpreadsheet();
     let sh = ss.getSheetByName(NOTIF_JOURNAL_ONGLET);

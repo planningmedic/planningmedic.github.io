@@ -87,14 +87,7 @@ function journalAppliquer() {
   // Un seul applicateur à la fois : deux passages qui se chevauchent
   // appliqueraient les mêmes fiches (sans dégât — idempotence — mais en
   // double travail et double note miroir).
-  /* (2026-08-05.3, CORRECTIF) Verrou de DOCUMENT, pas verrou de script. Les
-     fonctions d'ecriture appelees ensuite (savePlanningOverridesBatch,
-     retirerPlacementsPourDates) prennent, elles, le verrou de SCRIPT : si
-     l'applicateur le tenait deja, chacune de ces ecritures attendrait ses
-     15 s de timeout avant de continuer — une pose de statut par le journal
-     aurait coute 15 s de plus, pour rien. Deux espaces de verrous distincts :
-     l'applicateur ne se chevauche pas avec lui-meme, et les ecritures gardent
-     leur exclusion mutuelle habituelle. */
+  /* (2026-08-05.3, CORRECTIF) Verrou de DOCUMENT, pas verrou de script — récit : docs/JOURNAL-Planning-Med.md §129 */
   const verrou = LockService.getDocumentLock();
   if (!verrou.tryLock(5000)) return;
   try {

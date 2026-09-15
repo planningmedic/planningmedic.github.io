@@ -984,13 +984,7 @@ function installerSentinelle() {
    routage (transformation mecanique verifiee : 4 _error → throw, reponse
    → objet). Une seule source pour le routage ET l'applicateur du journal
    (journal.gs) — meme principe que dispo_jour. */
-/* (2026-08-05.13) Paliers d'alerte du jeton GitHub, isolés pour être
-   éprouvables au banc :
-     expiré ou ≤ 10 j  → ROUGE   (la publication va s'arrêter)
-     11 à 30 j         → ORANGE  (à planifier)
-     > 30 j            → simple information
-   Le renouvellement demande d'aller sur GitHub, de créer un jeton et de le
-   coller dans PARAMETRES : ce n'est pas un geste qu'on improvise la veille. */
+/* (2026-08-05.13) Paliers d'alerte du jeton GitHub, isolés pour être — récit : docs/JOURNAL-Planning-Med.md §83 */
 function _diagNiveauToken_(jours) {
   const j = Number(jours);
   if (!isFinite(j)) return { niveau: 'INFO', message: 'Token GitHub : date d\'expiration illisible' };

@@ -62,18 +62,7 @@ function logAction(message) {
 }
 
 // ── JOURNAL DES CONNEXIONS (qui se connecte, quand, avec quel rôle) ────
-/* (29/08/2026) Trois besoins, trois durées de vie — et une règle qui tient
-   l'ensemble : on ne RECONSTRUIT jamais une statistique depuis les lignes
-   brutes après coup, on la FIGE pendant qu'elles existent encore.
-
-   CONNEXIONS    : le détail nominatif récent. Plafonné, donc borné.
-   STATS_SEMAINE : une ligne par semaine (52/an), figée dès la semaine finie.
-   STATS_HEURES  : grille 7 × 24 cumulée, incrémentée à chaque connexion.
-
-   Conséquence : purger CONNEXIONS ne fait perdre aucune courbe. Sans ce
-   dispositif, le plafond détruirait l'historique en continu — à 25 MAR, les
-   10 000 lignes couvrent environ trois mois, donc la première année d'usage
-   aurait disparu avant d'avoir pu être lue. */
+/* (29/08/2026) Trois besoins, trois durées de vie — récit : docs/JOURNAL-Planning-Med.md §69 */
 const CONNEXIONS_PLAFOND = 10000;    // ~3 mois de détail nominatif à 25 MAR
 const STATS_ORIGINE      = '2026-09-04';  // présentation au service = jour zéro
 
@@ -108,15 +97,7 @@ const CODES_COMITE = new Set(['VAC', 'FORM']);
    publication, écrire dans GARDES ne suffit pas. On ne réveille PAS le
    notifieur de changement de planning — la notification dédiée du circuit TP
    est plus précise, et deux messages pour un même événement se contredisent. */
-/* (23/08/2026) REPUBLICATION DIFFÉRÉE — mesure du 09/08 : republier coûte
-   ~10 s. Dans la requête, chaque validation du comité ferait attendre dix
-   secondes, cinquante sur une série de cinq. On NOTE donc l'année à republier
-   et on garantit UN déclencheur unique : la réponse part tout de suite, la
-   republication tombe dans la minute. Même mécanisme que l'accroche différée
-   de la copie rapide (miroir.gs, 05/08), et mêmes garanties : au pire, le
-   planning publié a une minute de retard — le classeur, lui, est déjà juste.
-   Le déclencheur porte un nom distinct de celui du miroir : les deux files
-   doivent pouvoir vivre en parallèle. */
+/* (23/08/2026) REPUBLICATION DIFFÉRÉE — récit : docs/JOURNAL-Planning-Med.md §70 */
 const TP_CLE_REPUBLIER = 'TP_ANNEES_A_REPUBLIER';
 
 /* Qui porte le titre « Pr », qui releve du regime de souhaits garantis.
@@ -227,33 +208,9 @@ function checkCode(code) {
 // jamais de données périmées). Évite que getVacConfig relise GROUPES_VAC / PERIODES_VAC /
 // INDISPOS / MEDECINS une fois PAR médecin (getConflitsAll boucle sur ~20 MARs).
 var _VAC_SHARED = {};
-/* (11/09/2026) QUOTA D'INDISPONIBILITÉS — source unique.
-   Mesuré sur la grille 2027, effectif réel, congés/formations/temps partiels
-   posés au quota entier, trois tirages par configuration, et les
-   indisponibilités placées dans le PIRE cas — toutes sur des samedis et des
-   dimanches. L'équité (écart réel-cible ≤ 1) tient jusqu'à 36 par MAR et
-   décroche à 37 sur les trois tirages ; la couverture tient bien au-delà.
-   25 laisse donc 30 % de marge, et cette marge n'est pas du luxe : la mesure
-   tire les dates au hasard, la vraie vie fait converger tout le monde sur les
-   mêmes ponts. Vérifié aussi : à 25, la part de week-end n'a AUCUN effet —
-   inutile de compliquer la règle par un sous-quota. */
+/* (11/09/2026) QUOTA D'INDISPONIBILITÉS — récit : docs/JOURNAL-Planning-Med.md §71 */
 const QUOTA_INDISPO = 20;
-/* (11/09/2026) SOUS-QUOTA WEEK-END — vendredis, samedis et dimanches, 8 par an.
-   POURQUOI LE VENDREDI EN FAIT PARTIE. La garde de week-end est une UNITÉ
-   vendredi+dimanche, assurée par le même binôme ; le samedi revient à d'autres.
-   Bloquer le seul vendredi sort donc de l'unité entière. Compter samedi et
-   dimanche seuls laissait une faille béante : une indisponibilité de vendredi
-   évitait tout le week-end sans rien consommer du sous-quota. Les trois jours
-   comptés sont exactement ceux qui retirent d'un axe de garde.
-   À DIRE HONNÊTEMENT : ce plafond ne protège PAS de ce qu'on croit. Mesuré,
-   trois week-ends bloqués PAR TOUT LE MONDE suffisent à rendre la génération
-   impossible, et 3 est en dessous de 8 : vingt personnes qui visent le même
-   pont n'en dépensent qu'un chacune, quel que soit le plafond. Ce que 8 réduit,
-   c'est l'empilement ACCIDENTEL, quand chacun pose au hasard.
-   Ce qui protégerait vraiment de l'empilement volontaire est un seuil PAR DATE,
-   comme le vert/jaune/noir des congés — mesuré à 18 personnes sur 22 pour un
-   même week-end. Ce n'est pas construit : si la question revient, c'est là
-   qu'il faut aller, pas vers un plafond par personne plus bas. */
+/* (11/09/2026) SOUS-QUOTA WEEK-END — récit : docs/JOURNAL-Planning-Med.md §72 */
 const QUOTA_INDISPO_WE = 8;   // vendredi, samedi ou dimanche
 
 let _quotasCache = null;
@@ -401,15 +358,7 @@ function _routeRequete_(e) {
     if (_actions_().sansCode[action]) return _actions_().sansCode[action].fn({ e, payload, action, code, user: null });
     const user = checkCode(code);
     if (!user) {
-      /* (01/08/2026) DEUX CAUSES, DEUX MESSAGES.
-         Mesure du 01/08 a 13:50 : le premier getAdminBootstrap d'une ouverture est
-         revenu « Code invalide » apres 44 s d'attente pour 14 ms de travail serveur.
-         Or 14 ms ne correspond qu'a UN chemin dans checkCode : le retour immediat
-         sur code vide, avant toute lecture d'onglet (un code faux, lui, coute une
-         lecture de MEDECINS). Impossible de trancher : les deux causes rendaient le
-         meme message. On les distingue desormais.
-         Sans risque : aucun code valide n'est revele, et le message ne dit que si le
-         champ etait vide — information que l'appelant possede deja. */
+      /* (01/08/2026) DEUX CAUSES, DEUX MESSAGES — récit : docs/JOURNAL-Planning-Med.md §73 */
       return ContentService.createTextOutput(JSON.stringify({
         success: false,
         error: String(code == null ? '' : code).trim()
@@ -427,20 +376,9 @@ function _routeRequete_(e) {
     }
     // (RH-C) Verrou d'écriture global : sérialise les actions qui modifient
     // les données. Les lectures ne prennent jamais le verrou (dashboard fluide).
-    /* (01/08/2026) TOUTE ECRITURE VIDE LE CACHE DE CONFIGURATION.
-       Place ICI et non action par action : WRITE_ACTIONS_LOCK est la liste de
-       reference des ecritures, et l'accrocher a cette liste garantit qu'aucune
-       action nouvelle ne sera oubliee. L'invalidation est parfois inutile (une
-       ecriture de planning ne touche pas SECTEURS) : cela coute une relecture
-       d'onglet, jamais une donnee perimee. Le sens de l'erreur est le bon. */
+    /* (01/08/2026) TOUTE ECRITURE VIDE LE CACHE DE CONFIGURATION — récit : docs/JOURNAL-Planning-Med.md §74 */
     if (WRITE_ACTIONS_LOCK.has(action)) {
-      /* (31/08/2026) COMPTEUR D'USAGE. Placé ICI pour la même raison que
-         l'invalidation du cache juste dessous : WRITE_ACTIONS_LOCK est la liste
-         de référence des écritures, s'y accrocher garantit qu'aucune action
-         nouvelle ne sera oubliée. On compte la TENTATIVE, pas la réussite : le
-         point de sortie est unique ici, il ne l'est plus après. Les lectures ne
-         sont JAMAIS comptées — une écriture par ouverture d'écran ralentirait
-         tout le portail. */
+      /* (31/08/2026) COMPTEUR D'USAGE — récit : docs/JOURNAL-Planning-Med.md §75 */
       try { _statsActionIncr_(SpreadsheetApp.getActiveSpreadsheet(), user.role, action); } catch (e) {}
       try { viderCacheConfig(); } catch (e) {}
       const _wl = LockService.getScriptLock();
@@ -497,18 +435,7 @@ function doGet(e) {
 }
 function _ajouterDureeServeur_(out, t0) {
   try {
-    /* (01/08/2026) INSERTION PAR TEXTE, PLUS PAR ANALYSE COMPLETE.
-       Version du 28/07 : JSON.parse de TOUTE la reponse, ajout des champs, puis
-       JSON.stringify. Pour le bootstrap cela fait ~350 Ko analyses puis
-       reencodes uniquement pour y glisser deux nombres — sur CHAQUE reponse.
-       Ici les champs sont inseres juste apres l'accolade ouvrante, par simple
-       concatenation. Le JSON produit est rigoureusement identique.
-       CONDITION STRICTE : on n'insere que si le texte commence par `{"`, ce qui
-       garantit qu'un objet NON VIDE suit — donc que la virgule ajoutee reste
-       valide. Un `{}`, un JSON indente ou un tableau retombent sur l'ancienne
-       voie : jamais de JSON invalide produit.
-       Le plafond de 400 000 caracteres ne s'applique plus qu'a ce repli : il
-       n'existait qu'a cause du cout du parse. */
+    /* (01/08/2026) INSERTION PAR TEXTE, PLUS PAR ANALYSE COMPLETE — récit : docs/JOURNAL-Planning-Med.md §76 */
     const txt = out.getContent();
     if (!txt || txt.charAt(0) !== '{') return out;
     let _g = null;
@@ -551,15 +478,7 @@ function _act_getActiveYear(R) {
 }
 
 /* ── action "getAnneesDisponibles" ── */
-/* (03/08/2026) Quelles annees sont consultables ?
-   admin.html testait l'existence de « ./archives/stats_{annee}.json » sur le site —
-   fichier qui n'a JAMAIS ete cree : depuis le passage au Drive prive, l'archivage
-   ecrit « archives_stats_{annee}.json » sur Drive. Le selecteur ne pouvait donc
-   jamais proposer une annee cloturee. planning.html, lui, sondait les annees une par
-   une (un appel par annee, or Apps Script serialise les executions d'un meme
-   utilisateur : 1 sonde en 2026, 5 en 2030, 10 en 2035).
-   Un seul appel repond desormais pour les deux pages. Pas de controle de role :
-   c'est une liste d'annees, et planning.html est la page des MAR. */
+/* (03/08/2026) Quelles annees sont consultables ? — récit : docs/JOURNAL-Planning-Med.md §77 */
 function _act_getAnneesDisponibles(R) {
   const { e, payload, action, code, user } = R;
   const vues = {};

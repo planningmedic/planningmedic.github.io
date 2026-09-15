@@ -43,26 +43,7 @@
 // version déployée ici avec celle du dépôt et signale toute recopie oubliée.
 const GAS_VERSION_GENERATEUR = '2026-09-14.2';
 
-/* (05/09/2026) INTERRUPTEUR DU NOUVEL ALGORITHME.
-   À false, le générateur se comporte EXACTEMENT comme avant : c'est le retour
-   arrière, en une ligne, sans avoir à retrouver l'ancien fichier.
-   À true, quatre mécanismes s'activent ensemble (aucun n'a de sens seul) :
-     1. CIBLES ENTIÈRES — la part de chacun cesse d'être un nombre à virgule
-        (5,4 samedis, jamais atteignable) et devient un entier, réparti par la
-        méthode des plus forts restes pour que la somme reste exacte.
-     2. TIRAGE — à égalité parfaite entre deux MAR, c'est un numéro qui tranche,
-        plus la position dans l'onglet MEDECINS.
-     3. MULTI-DÉPART — jusqu'à N calculs à blanc, on écrit le meilleur.
-     4. OBJECTIF LEXICOGRAPHIQUE de l'optimiseur + interdiction dure de deux
-        week-ends de garde consécutifs.
-   Mesuré sur 45 années simulées (9 scénarios × 5 ans, dette cumulative
-   injectée hors code) : 44 années où personne ne dépasse UNE garde d'écart sur
-   aucun des six axes, contre 29 sur 45 avec l'algorithme d'avant. Zéro journée
-   sans binôme. Gardes rapprochées inchangées (17,8 % d'intervalles de 2 jours
-   contre 17,7 %). Souhaits honorés 75,3 % contre 76,6 %.
-   ⚠️ Ces chiffres viennent du SIMULATEUR, sur des absences fabriquées. Ils
-   prouvent la logique, pas le comportement sur les vraies données : l'essai à
-   blanc sur l'année réelle reste obligatoire avant de générer. */
+/* (05/09/2026) INTERRUPTEUR DU NOUVEL ALGORITHME — récit : docs/JOURNAL-Planning-Med.md §101 */
 const NOUVEL_ALGO_GLOBAL = true;
 
 // Multi-départ : nombre maximum de calculs à blanc avant d'écrire le meilleur.
@@ -77,13 +58,7 @@ const MULTI_DEPART_SEUIL = 1;   // écart, en gardes, qui suffit à s'arrêter
 const LEX_SEUIL = 1;
 const LEX_POIDS = 600;
 
-/* (13/09/2026) L'identifiant du classeur d'archive ne vit plus dans le dépôt
-   public : il se lit dans l'onglet CONFIG, ligne ARCHIVE_DRIVE_ID — qui
-   existait déjà, documentée comme « inerte », et que le code ignorait. Lecture PARESSEUSE (au premier usage, puis
-   mémorisée) et non au chargement : les fichiers Apps Script s'initialisent
-   dans un ordre non garanti, et lire CONFIG au chargement pouvait tomber avant
-   que code.gs soit prêt. Les huit appelants `openById(ARCHIVE_SS_ID)` sont
-   inchangés ; les stubs du banc qui posent ARCHIVE_SS_ID eux-mêmes aussi. */
+/* (13/09/2026) L'identifiant du classeur d'archive ne vit plus dans le dépôt — récit : docs/JOURNAL-Planning-Med.md §102 */
 let _archiveSsIdMemo_ = null;
 Object.defineProperty(globalThis, 'ARCHIVE_SS_ID', {
   configurable: true,
@@ -131,17 +106,7 @@ const SOUHAIT_QUOTA_RARE = 1;
 const DETTE_AMORTI  = 0.6;  // amortissement de la dette : evite la sur-correction/oscillation annuelle (10 ans : 0 annee non-conforme)
 const FREEBUDGET_MARGE = 1;  // marge : reserve ~1 jour pour absorber les pertes de placement VD (multi-mardis robuste)
 const MIN_PRESENT   = {1:16, 2:15, 3:16, 4:15, 5:15};
-/* (2027-XX) PLACEMENT DES RÉCUPÉRATIONS — plancher unique et pluralité par jour.
-   Constaté le 21/08/2026 sur la grille générée : 76 R sur 104 étaient posés AVANT
-   le samedi qu'ils compensent (jusqu'à 354 jours avant), et 90 % tombaient au 1er
-   semestre. Cause : `rAssigned` n'autorisait QU'UN R par jour pour toute l'équipe,
-   et les vacances scolaires — près de 4 mois — étaient exclues. Les 30 samedis du
-   2e semestre réclament 60 R pour 65 jours ouvrables hors vacances : la place
-   n'existait pas, le repli remontait donc chercher en janvier.
-   Relevé du planning réel (193 jours ouvrables) : effectif médian 17, 105 jours à
-   17+ et 30 jours à 16 → 240 poses possibles pour 104 besoins. Le verrou n'a jamais
-   été l'effectif. Règle retenue avec le responsable : n'importe quel jour ouvrable, vacances
-   comprises, tant qu'il reste R_PLANCHER_PRESENTS après la pose ; deux au maximum. */
+/* (2027-XX) PLACEMENT DES RÉCUPÉRATIONS — récit : docs/JOURNAL-Planning-Med.md §103 */
 const R_MAX_PAR_JOUR      = 2;
 const R_PLANCHER_PRESENTS = 15;   // aligné sur le code couleur du planning du service
 // (C2-D3) Rythme 2/2 lu depuis MEDECINS (colonne rythme_2sur2, via getMedecinFlags).
@@ -206,54 +171,14 @@ function isVacancesScolaires(dateStr,year){
   return false;
 }
 
-/* (04/09/2026) CALCUL À BLANC — `generateGardes(year, {dryRun:true})`.
-   POURQUOI. Depuis l'ouverture du portail au service, générer une année ne se
-   voit pas seulement du comité : l'onglet créé fait apparaître l'année dans le
-   sélecteur des 23, et la fonction se termine par une notification push sur
-   leur téléphone. Il n'existe donc plus aucun endroit où éprouver le
-   générateur sur les VRAIES données.
-   CE QUE FAIT LE MODE. Le calcul se déroule à l'identique — mêmes lectures,
-   mêmes règles, même optimiseur. Seuls les quatre gestes VISIBLES sont sautés :
-   l'onglet des gardes, celui des statistiques, celui des liens samedi→récup, et
-   la notification. Rien n'est écrit, rien n'est envoyé, rien n'est effacé.
-   Le verrou anti-régénération ne s'applique pas : il protège un planning
-   existant contre l'écrasement, et un calcul à blanc n'écrase rien. C'est ce
-   qui permet de relancer l'année en cours autant de fois qu'on veut.
-   CE QU'IL RENVOIE. La durée, l'écart réel−cible par axe avec le nom du MAR
-   concerné, et les avertissements — de quoi mesurer sans rien montrer.
-   PRÉREQUIS du multi-départ : lancer N calculs et n'écrire que le meilleur,
-   c'est exactement « calculer sans écrire », N fois, puis écrire une fois. */
-/* (04/09/2026) LANCEUR TEMPORAIRE — sélectionner « T » dans la liste déroulante
-   de l'éditeur Apps Script, puis Exécuter.
-   Il n'existe que parce que l'éditeur ne sait pas passer d'argument à une
-   fonction. Il est DANS LE DÉPÔT à dessein : le fichier recopié dans l'éditeur
-   doit être rigoureusement identique à celui d'ici, sinon la prochaine session
-   comparera deux versions divergentes sans le savoir.
-   ⚠️ À RETIRER une fois la mesure du 04/09 faite. Ne rien construire dessus.
-   Sans risque en attendant : il n'écrit rien et ne part jamais tout seul —
-   aucun déclencheur, aucun bouton, aucune route ne l'appelle. */
+/* (04/09/2026) CALCUL À BLANC — récit : docs/JOURNAL-Planning-Med.md §104 */
+/* (04/09/2026) LANCEUR TEMPORAIRE — ⚠️ À RETIRER une fois la mesure du 04/09 faite. Ne rien construire dessus. — récit : docs/JOURNAL-Planning-Med.md §105 */
 function T() { return comparerAlgorithmes(2026); }
 
-/* (05/09/2026) SECOND LANCEUR — même comparaison, mais sur 2027. À utiliser une
-   fois la campagne d'indisponibilités close (30 octobre), pour voir ce que donnera
-   la génération du 2 novembre AVANT de la lancer. Il n'écrit rien non plus.
-   Deux lanceurs plutôt qu'un seul à modifier : le fichier du dépôt et celui de
-   l'éditeur doivent rester identiques au caractère près, sinon la prochaine
-   session compare deux versions divergentes sans le savoir.
-   ⚠️ À RETIRER avec l'autre lanceur une fois 2027 publié. */
+/* (05/09/2026) SECOND LANCEUR — récit : docs/JOURNAL-Planning-Med.md §106 */
 function T7() { return comparerAlgorithmes(2027); }
 
-/* (04/09/2026) À LANCER DEPUIS L'ÉDITEUR — « Est-ce que N calculs d'affilée
-   tiennent ? ». Un calcul à blanc seul a été mesuré à 4,3 s en production. Rien
-   ne dit que douze à la suite se comportent pareil : Apps Script peut ralentir
-   ou manquer de mémoire en cours de route (la même expérience menée hors ligne
-   s'est fait couper trois fois à une quarantaine de générations, sur une machine
-   pourtant bien plus large). C'est la dernière inconnue avant d'écrire le
-   multi-départ, et la seule qui ne se mesure qu'ici.
-   Elle journalise la durée de CHAQUE passage — c'est la dérive entre le premier
-   et le dernier qui parle, pas la moyenne.
-   Budget d'arrêt à 4 minutes : on s'arrête proprement avant le mur des 6 de
-   Google, et on rend ce qu'on a. Aucune écriture, aucune notification. */
+/* (04/09/2026) À LANCER DEPUIS L'ÉDITEUR — récit : docs/JOURNAL-Planning-Med.md §107 */
 /* (05/09/2026) À LANCER DEPUIS L'ÉDITEUR — « avant / après sur mes vraies données ».
    Deux calculs à blanc de la MÊME année : un avec l'algorithme d'avant, un avec le
    nouveau, et les six écarts côte à côte. Aucune écriture, aucune notification,
@@ -353,12 +278,7 @@ function essaiEnchainementGardes(year, nb) {
 }
 
 
-/* (04/09/2026) À LANCER DEPUIS L'ÉDITEUR APPS SCRIPT — « Essai de génération ».
-   Enveloppe lisible du calcul à blanc : elle chronomètre, met en forme et écrit
-   dans le journal d'exécution. Aucun bouton, aucune page, aucune montée de
-   version du site : c'est un outil de mesure, pas une fonctionnalité.
-   Elle ne modifie RIEN — l'année peut être déjà générée, on peut la relancer
-   autant de fois qu'on veut, l'équipe ne voit rien. */
+/* (04/09/2026) À LANCER DEPUIS L'ÉDITEUR APPS SCRIPT — récit : docs/JOURNAL-Planning-Med.md §108 */
 function essaiGenerationGardes(year) {
   const an = Number(year) || getIndisposYear();
   const r = generateGardes(an, { dryRun: true });
@@ -563,12 +483,7 @@ function generateGardes(year, opts){
     throw new Error(`🔒 GARDES_${year} existe déjà — génération verrouillée pour protéger l'équité. Pour régénérer (rare), supprimez d'abord manuellement l'onglet GARDES_${year}.`);
   }
 
-  /* (05/09/2026) MULTI-DÉPART — on calcule plusieurs fois À BLANC, on retient le
-     meilleur tirage, et on ne l'écrit qu'une fois. Le calcul étant reproductible,
-     rejouer le tirage gagnant redonne exactement le même planning.
-     Aucune écriture pendant la recherche : les passes sont des dryRun.
-     La règle d'arrêt coupe dès qu'un tirage met tout le monde à MULTI_DEPART_SEUIL
-     garde d'écart — mesuré : un seul tirage suffit dans 25 années sur 45. */
+  /* (05/09/2026) MULTI-DÉPART — récit : docs/JOURNAL-Planning-Med.md §109 */
   if(NOUVEL_ALGO && !DRY && !(opts && opts.tirage)){
     const _t = choisirMeilleurTirage(year);
     return generateGardes(year, Object.assign({}, opts || {}, { tirage: _t }));
@@ -580,14 +495,7 @@ function generateGardes(year, opts){
   const ONLY_18    = FLAGS.only18;
   const NO_WEEKEND = FLAGS.noWeekend;
 
-  /* (07/09/2026) PAIRES À ÉVITER — deux MAR jamais la même nuit : ni tous les deux
-     de garde, ni l'un de garde et l'autre de 18h. Deux jours d'affilée restent
-     permis. Lue depuis CONFIG (cf. code.gs) : si rien n'y est déclaré, `evite` est
-     TOUJOURS faux et pas une seule décision du générateur ne change.
-     EXEMPTION NOËL / JOUR DE L'AN : sur ces quatre dates la règle ne s'applique pas.
-     Le tour de Noël se joue sur l'ancienneté (qui n'en a pas fait depuis le plus
-     longtemps) ; faire céder cette ancienneté déclassait quelqu'un qui attendait
-     son tour et cassait en cascade les unités suivantes. */
+  /* (07/09/2026) PAIRES À ÉVITER — récit : docs/JOURNAL-Planning-Med.md §110 */
   const PAIRES_EV = getPairesEvitees();
   const DATES_EXEMPTES = new Set([`${year}-12-24`,`${year}-12-25`,`${year}-12-31`,`${year+1}-01-01`]);
   // d : une date, un tableau de dates (unité), ou rien. Une unité est exemptée dès
@@ -661,12 +569,7 @@ function generateGardes(year, opts){
     for (let i = arr.length - 1; i >= 0; i--) { if (_horsAnnee(arr[i])) arr.splice(i, 1); }
   });
 
-  /* (05/09/2026) NUMÉRO DE TIRAGE — à égalité PARFAITE entre deux MAR, c'est ce
-     numéro qui départage, et non plus la position de la ligne dans MEDECINS.
-     Mesuré en juillet : déplacer une ligne dans l'onglet changeait près d'une
-     garde sur trois. L'ordre est ici recalculé par hachage(nom, tirage) : il ne
-     dépend plus du tableur, et rejouer le même tirage redonne le MÊME planning.
-     L'onglet MEDECINS n'est jamais modifié. */
+  /* (05/09/2026) NUMÉRO DE TIRAGE — récit : docs/JOURNAL-Planning-Med.md §111 */
   const TIRAGE = Math.max(1, Number(opts && opts.tirage) || 1);
   if(NOUVEL_ALGO){
     const _h = s => { let h = 2166136261 ^ Math.imul(TIRAGE, 0x9E3779B1);
@@ -735,19 +638,7 @@ function generateGardes(year, opts){
     // (arrivée/départ, congés longs, TP, no_weekend) au moment de la génération N-1.
     const iCbT=hdr.indexOf('CIBLE'), iCbS=hdr.indexOf('CIBLE SAM'), iCbJ=hdr.indexOf('CIBLE JEU'),
           iCbV=hdr.indexOf('CIBLE VD'), iCbVj=hdr.indexOf('CIBLE VJF'), iCbJf=hdr.indexOf('CIBLE JF');
-    /* (11/09/2026) PART EXACTE — la reference du report, quand elle existe.
-       Les colonnes CIBLE de N-1 portent la cible ENTIERE. Un MAR dont la part
-       valait 5,539 samedis, arrondie a 6, et qui a fait 6 samedis, apparaissait
-       « a jour » alors qu'il en avait fait 0,46 de trop. Ce reliquat se rejouait
-       a l'identique chaque annee, toujours dans le meme sens, l'arbitrage a
-       egalite parfaite etant l'ordre alphabetique. Mesure sur cinq annees
-       consecutives : l'ecart cumule sur l'axe samedi passait de 1 a 5 gardes
-       entre le plus et le moins servi, et c'etaient toujours les memes.
-       En lisant la part exacte, le meme ecart oscille entre 1 et 2 sans monter,
-       et les positions tournent d'une annee a l'autre.
-       REPLI : si les colonnes manquent — statistiques ecrites par une version
-       anterieure a 2026-09-11.1, ou annee reconstruite a la main — on retombe
-       sur les colonnes CIBLE, exactement comme avant. */
+    /* (11/09/2026) PART EXACTE — récit : docs/JOURNAL-Planning-Med.md §112 */
     const iExT=hdr.indexOf('PART EXACTE'), iExS=hdr.indexOf('PART EXACTE SAM'),
           iExJ=hdr.indexOf('PART EXACTE JEU'), iExV=hdr.indexOf('PART EXACTE VD'),
           iExVj=hdr.indexOf('PART EXACTE VJF'), iExJf=hdr.indexOf('PART EXACTE JF');
@@ -861,20 +752,7 @@ function generateGardes(year, opts){
     gardeDoctors.forEach(id=>{cible[id][axis]=SLOTS[axis]*w[id]/sw;});
   });
 
-  /* (05/09/2026) CIBLES ENTIÈRES — méthode des plus forts restes.
-     Une part de 5,4 samedis n'est atteignable par personne : le MAR est TOUJOURS
-     en écart, et l'écart affiché mélange l'injustice réelle et l'impossibilité
-     arithmétique. On passe donc à des entiers, comme on répartit des sièges :
-     chacun reçoit sa partie entière, puis les unités restantes sont attribuées
-     une par une. La SOMME reste exactement égale au nombre de gardes à poser —
-     arrondir chaque cible séparément la casserait (mesuré : +6 jeudis promis en
-     trop, 6 jours fériés sans propriétaire).
-     Qui reçoit l'unité en plus ? Celui qui est le plus CRÉDITEUR, report compris :
-     l'arrondi et la dette deviennent un seul et même mécanisme. Le report est donc
-     plié dans la cible et NE DOIT PLUS être ajouté une seconde fois dans ratio()
-     — d'où la remise à zéro de `dette` juste après.
-     `cibleExacte` conserve la part fractionnaire : c'est la vérité comptable, et
-     c'est elle qui servira à tenir le compteur cumulatif (lot 2). */
+  /* (05/09/2026) CIBLES ENTIÈRES — récit : docs/JOURNAL-Planning-Med.md §113 */
   const cibleExacte={};
   gardeDoctors.forEach(id=>{ cibleExacte[id]=Object.assign({}, cible[id]); });
   if(NOUVEL_ALGO){
@@ -985,14 +863,7 @@ function generateGardes(year, opts){
     if(_tpF&&_tpF.has(new Date(date+'T12:00:00').getDay())) return true;
     const _di=dayByDate[date];
     const _dw=_di?_di.dow:new Date(date+'T12:00:00').getDay();
-    /* (LOT B · 01/09/2026) JAMAIS DE GARDE LA VEILLE D'UN TEMPS PARTIEL.
-       Le lendemain d'une garde est un repos de garde (RG), et le RG s'écrit
-       PAR-DESSUS le TP dans GARDES : le jour de temps partiel disparaissait
-       sans bruit. Mesuré sur les indisponibilités réelles 2027 augmentées des
-       260 jours de TP posables : 16 à 30 jours effacés par an, dans 18 tirages
-       sur 18. Un TP posé est ACQUIS (arbitrage le responsable, 01/09/2026) : cette
-       règle n'est levée par AUCUN dernier recours. Le levier, quand un jour
-       manque, est de libérer des vacances — pas de reprendre un congé accordé. */
+    /* (LOT B · 01/09/2026) JAMAIS DE GARDE LA VEILLE D'UN TEMPS PARTIEL — récit : docs/JOURNAL-Planning-Med.md §114 */
     if(indispos[id]?.[addOneDay(date)]==='TP') return true;
     if(NO_WEEKEND.has(id)&&(_dw===0||_dw===6||_di?.isFerie)) return true;
     if(SOUHAIT_PLAFOND.has(id)&&_di?.isVjf) return true;
@@ -1004,21 +875,7 @@ function generateGardes(year, opts){
     return false;
   }
 
-  /* (LOT C · 01/09/2026) POURQUOI CE MAR NE PEUT-IL PAS PRENDRE CETTE GARDE ?
-     Rend null s'il le peut, sinon { classe, texte }. Trois classes, qui sont
-     les trois blocs du message d'échec :
-       'immediat' — une case saisie dans INDISPOS : le comité ou le MAR peut la
-                    changer aujourd'hui, sans rien recalculer ;
-       'planning' — une conséquence du placement en cours (garde voisine, repos,
-                    récup, combos) : non modifiable directement, mais libérer
-                    ailleurs peut la faire disparaître ;
-       'profil'   — MEDECINS : pas de garde, jamais de week-end, rythme 2/2,
-                    jours fixes, arrivée/départ. Hors de portée du staff.
-     ⚠️ Cette fonction REJOUE les tests de blocked() dans le MÊME ORDRE. Toute
-     divergence produirait des leviers qui ne débloquent rien — le défaut le
-     plus coûteux possible ici, puisque le comité agirait à l'aveugle. Le banc
-     vérifie l'équivalence exhaustive (blocked ⇔ motif non nul) sur une année
-     entière, MAR par MAR et jour par jour. */
+  /* (LOT C · 01/09/2026) POURQUOI CE MAR NE PEUT-IL PAS PRENDRE CETTE GARDE ? — récit : docs/JOURNAL-Planning-Med.md §115 */
   const _LIB_ABS={INDISPO:'indisponible ce jour-là',VAC:'en vacances',FORM:'en formation',
                   TP:'temps partiel posé ce jour-là',CL:'congé long',CTP:'congé temps partiel'};
   function motifBlocage(id,date,_relaxJS,_sansAbsence){
@@ -1104,13 +961,7 @@ function generateGardes(year, opts){
             immediats:immediats, planning:planningC, profil:profil};
   }
   function _messageJoursVides_(detail){
-    /* (01/09/2026) VERSION COURTE. La première énumérait chaque MAR sur sa
-       propre ligne : sur un jour d'été, cela donnait trente lignes où le seul
-       geste utile était noyé — illisible à l'écran, constaté en production le
-       jour même. On GROUPE désormais par motif : « 7 indisponibilités : … »
-       se lit, sept lignes séparées ne se lisent pas.
-       L'écran du comité, lui, met en forme la structure `joursVides` ; ce texte
-       sert au journal et à l'éditeur Apps Script. */
+    /* (01/09/2026) VERSION COURTE — récit : docs/JOURNAL-Planning-Med.md §116 */
     /* [singulier, pluriel] — et l'ORDRE d'affichage va du plus facile à
        retirer au plus coûteux : une indisponibilité se reprend d'un clic, un
        congé validé au staff se renégocie. */
@@ -1158,13 +1009,7 @@ function generateGardes(year, opts){
       if(_di.dow===4&&!_di.isFerie){const sat=toDateStr(new Date(new Date(date+'T12:00:00').getTime()+2*86400000));
         if(gSet[id]?.has(sat)||g2Set[id]?.has(sat)) return true;}
     }
-    /* (05/09/2026) DEUX WEEK-ENDS DE GARDE D'AFFILÉE : INTERDIT.
-       La règle existait, mais seulement comme pénalité dans l'optimiseur — donc
-       franchissable, et de fait franchie dès qu'on donne plus de poids à l'équité
-       (mesuré : 48 enchaînements par an au lieu de 2). Or ils ne naissaient même
-       pas dans l'optimiseur : c'est la POSE qui les créait, sans aucune règle de
-       week-end. On l'ajoute donc ici, au même niveau que le combo jeudi-samedi —
-       relâché uniquement en dernier recours, pour ne jamais laisser un jour vide. */
+    /* (05/09/2026) DEUX WEEK-ENDS DE GARDE D'AFFILÉE — récit : docs/JOURNAL-Planning-Med.md §117 */
     if(NOUVEL_ALGO && _di && !_relaxJS && (_di.dow===5||_di.dow===6||_di.dow===0)){
       const _b=new Date(date+'T12:00:00');
       for(let _n=-9;_n<=9;_n++){
@@ -1947,14 +1792,7 @@ function generateGardes(year, opts){
         // cible effective = cible − dette (qui a trop fait en N-1 vise plus bas)
         const cbA=cible[A][ax]-(dette[A]?.[ax]||0),cbB=cible[B][ax]-(dette[B]?.[ax]||0),a0=cnt[A][ax],b0=cnt[B][ax];
         d+=W[ax]*((Math.pow(a0-ca-cbA,2)-Math.pow(a0-cbA,2))+(Math.pow(b0+ca-cbB,2)-Math.pow(b0-cbB,2)));
-        /* (05/09/2026) OBJECTIF LEXICOGRAPHIQUE. Cette somme de carrés minimise
-           l'écart MOYEN : elle laisse volontiers un MAR à 3 gardes d'écart si le
-           total baisse. On ajoute un terme charnière qui ne se déclenche qu'AU-DELÀ
-           du seuil vert, et qui coûte assez cher pour passer avant tout gain de
-           moyenne — sans écraser la règle des week-ends (poids 1000 plus bas).
-           Effet mesuré sur l'année la plus dure (2041, 15 gardeurs) : 60 calculs
-           complets sans lui ne descendaient jamais sous 2 gardes d'écart ; avec lui,
-           les 20 calculs testés donnent 1. La bonne répartition existait. */
+        /* (05/09/2026) OBJECTIF LEXICOGRAPHIQUE — récit : docs/JOURNAL-Planning-Med.md §118 */
         if(NOUVEL_ALGO){
           const _h=e=>{const x=Math.abs(e)-LEX_SEUIL; return x>0?x*x:0;};
           d+=LEX_POIDS*((_h(a0-ca-cbA)-_h(a0-cbA))+(_h(b0+ca-cbB)-_h(b0-cbB)));
@@ -2343,15 +2181,7 @@ function generateGardes(year, opts){
   // ── 10. 18h ───────────────────────────────────────────────────────────
   const weekdays=allDays.filter(d=>d.isWeekday&&!d.isFerie);
   // (18h proportionnel) Poids = quotité (col MEDECINS) × RATIO_18 pour les "seulement 18h"
-  /* (10/09/2026) POIDS PRORATISE PAR LA PRESENCE REELLE. Le poids ne tenait
-     compte que de la quotite : un MAR present deux mois visait une annee
-     pleine de 18h, et se faisait servir en premier pour rattraper. Le pot des
-     18h etant partage AU PRORATA DES POIDS, un poids faux deplace la part de
-     tous les autres — a commencer par les ONLY_18, dont le RATIO_18 est
-     precisement une compensation calculee sur ce partage.
-     On reutilise structAvail (section 5), deja la reference pour les cibles
-     de gardes : meme notion de presence structurelle (bornes date_debut /
-     date_fin et conges longs), une seule definition dans le fichier. */
+  /* (10/09/2026) POIDS PRORATISE PAR LA PRESENCE REELLE — récit : docs/JOURNAL-Planning-Med.md §119 */
   const dispo18Cnt={};
   allDoctors.forEach(id=>{dispo18Cnt[id]=weekdays.filter(d=>structAvail(id,d)).length;});
   const w18=id=>((quot[id]||100)/100)*(ONLY_18.has(id)?RATIO_18:1)
@@ -2450,12 +2280,7 @@ function generateGardes(year, opts){
                       sam:cnt[id].sam, jeu:cnt[id].jeu, vd:cnt[id].vd, vjf:cnt[id].vjf };
     });
     warnings.forEach(function(w){ Logger.log(w); });
-    /* (08/09/2026) LE CALCUL À BLANC EST LE SEUL ÉCRAN.
-       Il ne crée aucun onglet : tout ce qu'il ne dit pas est perdu. On rend donc
-       ici TOUT ce que la fin du calcul a déjà sous la main — cibles par axe,
-       fériés, Noël, 18 h, souhaits honorés, tenue de la règle des paires. Rien
-       n'est recalculé, rien n'est écrit : ce sont des variables déjà en mémoire
-       que l'ancienne version jetait. */
+    /* (08/09/2026) LE CALCUL À BLANC EST LE SEUL ÉCRAN — récit : docs/JOURNAL-Planning-Med.md §120 */
     const cibles = {}, jf = {}, noel = {}, h18 = {};
     gardeDoctors.forEach(function(id){
       if(!cnt[id]) return;
@@ -2665,16 +2490,7 @@ function generateGardes(year, opts){
   // Les deux dernières colonnes (souhaits) sont AJOUTÉES EN FIN et jamais intercalées :
   // code.gs lit encore des colonnes par position (sd[r][17], [19], [21]) et un décalage
   // fausserait silencieusement les cibles du tableau de bord.
-  /* (11/09/2026) PART EXACTE — colonnes 26 a 31, AJOUTEES EN FIN comme les souhaits.
-     Pourquoi : la colonne CIBLE porte la cible ENTIERE (36 ou 37). La part reelle,
-     36,6, disparaissait a la generation. Deux MAR de meme quotite finissaient donc
-     l'un a 36 et l'autre a 37 sans que rien ne garde trace du reliquat, et le report
-     de N+1 les voyait tous deux « a jour ». On enregistre ici la part fractionnaire
-     AVANT arrondi, pour que le report de N+1 puisse s'y referer.
-     CE PATCH N'ECRIT QUE DE LA DONNEE : aucune decision du generateur ne la lit,
-     aucun planning ne change. La lecture par la dette viendra separement.
-     Colonnes ajoutees EN FIN : code.gs lit encore 1, 17, 18, 19, 21 et 22 par
-     position, et la sonde de diagnostic s'arrete a la colonne 23. */
+  /* (11/09/2026) PART EXACTE — récit : docs/JOURNAL-Planning-Med.md §121 */
   st.getRange(1,1,1,31).setValues([['MEDECIN','CIBLE','TOTAL G','G (REA)','G2 (MAT)','LUN','MAR','MER','JEU','VEN','SAM','DIM','RECUP R','18H','JF','VEILLE JF','NOEL/AN','CIBLE SAM','CIBLE JEU','CIBLE VD','VD','CIBLE VJF','CIBLE JF','SOUHAITS POSES','SOUHAITS HONORES','PART EXACTE','PART EXACTE SAM','PART EXACTE JEU','PART EXACTE VD','PART EXACTE VJF','PART EXACTE JF']]).setFontWeight('bold');
   // Souhaits honorés = dates souhaitées où le MAR est effectivement de garde dans le
   // planning FINAL, quelle que soit la passe qui l'y a placé.
@@ -2749,12 +2565,7 @@ function generateGardes(year, opts){
   /* (12/08/2026) Notification de fin de génération — phase 1 du canal push.
      Dans un try à part : ne doit JAMAIS faire échouer une génération réussie. */
   try {
-    /* (25/08/2026) Le message partait à TOUS les abonnés, vers './admin.html' :
-       le MAR recevait une notification qui ne le concernait pas (« N avertissements »)
-       et atterrissait sur la page du comité — qui n'a pas de portail. Le canal push
-       est celui du MAR (doctrine notifications) : un seul message, ciblé sur eux,
-       vers la page qui les intéresse. Le comité, lui, voit le résultat à l'écran
-       au moment où il génère. */
+    /* (25/08/2026) Le message partait à TOUS les abonnés, vers ' — récit : docs/JOURNAL-Planning-Med.md §122 */
     notifierPush_('Votre planning ' + year + ' est disponible',
       'Vos gardes de l\'année sont réparties. Retrouvez-les dans « Mes gardes ».',
       './index.html#mes-gardes', { role: 'mar' });

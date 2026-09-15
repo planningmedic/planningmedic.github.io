@@ -281,12 +281,7 @@ function marge(T, pctVal){
   return T * (3 - 10 * (pctVal / 100)) / 7;
 }
 
-/* (17/08/2026) LECTURE PAR LA COPIE RAPIDE. Cette page etait la derniere a ne
-   parler qu'a Apps Script : elle tombait par intermittence, et son echec
-   s'affichait « Aucun releve saisi pour le moment » — une phrase fausse, qui
-   ressemblait a une reponse. Le releve vit desormais aussi dans la copie
-   rapide, reserve aux MEMBRES DU GROUPEMENT (meme regle que l'action
-   serveur). Apps Script reste le repli, et un echec se DIT. */
+/* (17/08/2026) LECTURE PAR LA COPIE RAPIDE — récit : docs/JOURNAL-Planning-Med.md §66 */
 /* (14/09/2026) MIROIR_URL et miroirRead viennent du socle partage/portail.js
    (chargé en tête de page) : plus de copie locale ici. */
 
@@ -308,12 +303,7 @@ function authErr(m){
   el.textContent = m; el.style.display = 'block';
   setTimeout(()=>{ el.style.display='none'; }, 4000);
 }
-/* (17/08/2026) OUVERTURE SANS ALLER-RETOUR INUTILE. La page appelait TOUJOURS
-   l'action 'login' d'Apps Script avant d'afficher quoi que ce soit : quelques
-   secondes d'écran d'authentification alors que le code était déjà connu, puis
-   disparition toute seule. Constaté en réel sur mobile.
-   La copie rapide valide le code ET rend l'identité ET le relevé, en un seul
-   appel : plus rien à demander à Apps Script quand elle répond. */
+/* (17/08/2026) OUVERTURE SANS ALLER-RETOUR INUTILE — récit : docs/JOURNAL-Planning-Med.md §67 */
 function ouvrirEcran(nom){
   MOI_NOM = nom || '';
   document.getElementById('mePill').textContent = MOI_NOM;

@@ -198,14 +198,7 @@ const GITHUB_BRANCH = 'main';
 
 // ── MÉDECINS ───────────────────────────────────────────────────────────
 // NOTE : sera chargé dynamiquement depuis l'onglet MEDECINS à terme (P-backlog)
-/* (08/09/2026) LA LISTE NOMINATIVE A ETE SUPPRIMEE.
-   Vingt-cinq noms de medecins vivaient ici, dans un depot public, pour servir
-   de repli si l'onglet MEDECINS etait absent ou vide. planning.html avait deja
-   retire la sienne pour la meme raison — « code mort + noms en clair ».
-   Le repli lui-meme etait dangereux : un onglet momentanement illisible
-   faisait publier un planning bati sur un effectif fige et perime, en
-   silence. Desormais getDoctorsFromMedecins() echoue franchement. Un ecran
-   d'erreur se voit ; un planning faux, non. */
+/* (08/09/2026) LA LISTE NOMINATIVE A ETE SUPPRIMEE — récit : docs/JOURNAL-Planning-Med.md §78 */
 // ── C1 : roster dynamique depuis l'onglet MEDECINS ────────────────────
 // La publication lit l'effectif réel (MAR actifs) au lieu de la liste en dur.
 // Repli sur DOCTORS si MEDECINS absent/vide (sécurité).
@@ -678,14 +671,7 @@ function loadPlanningOverrides() {
 // personne qui fait déjà Noël N-1. On ne compte QUE les années < beforeYear
 // (sinon régénérer une année compterait sa propre assignation) et on garde la
 // plus récente par MAR.
-/* (01/09/2026) TOUTES les années où chacun a tenu Noël ou le Jour de l'An,
-   pas seulement la dernière. Le staff a besoin de l'historique complet pour
-   arbitrer ; le générateur, lui, ne veut que la plus récente.
-   Une SEULE lecture des sources pour les deux besoins : getNoelHistory ne fait
-   plus que prendre le maximum de ce que rend cette fonction. Deux parcours
-   séparés auraient fini par diverger — c'est déjà arrivé sur la rotation des
-   groupes, où serveur et écran tournaient en sens inverse.
-   Rend { id: [années croissantes] }. */
+/* (01/09/2026) TOUTES les années où chacun a tenu Noël ou le Jour de l'An, — récit : docs/JOURNAL-Planning-Med.md §79 */
 function getNoelHistoryDetail(beforeYear) {
   const ss = SpreadsheetApp.getActiveSpreadsheet();
   const lim = Number(beforeYear) || Infinity;
@@ -1154,14 +1140,7 @@ function generatePlanningFromGardes(year) {
       // ── 3d. CS-ORL → désormais géré en 3b-bis (consultation du matin) ─
 
       // ── 4. Appliquer PLANNING_OVERRIDES (dernier layer) ────────────
-      /* (05/08/2026) PLACEMENT CADUC. Constat de terrain : un placement du
-         comité s'appliquait SANS JAMAIS consulter le statut du MAR — poser un
-         TP (ou V, CL, A…) dans GARDES ne défaisait pas le placement, qui
-         continuait d'afficher le MAR en secteur alors qu'il est absent. Seule
-         issue : supprimer la ligne à la main dans PLANNING_OVERRIDES.
-         Désormais le statut PRIME : un placement visant un MAR absent ce
-         jour-là est ignoré et RECENSÉ (planningCaducs) — la ligne reste dans
-         le classeur, elle redeviendra active si le statut est retiré. */
+      /* (05/08/2026) PLACEMENT CADUC — récit : docs/JOURNAL-Planning-Med.md §80 */
       const dayOv = planningOverrides[day.date] || {};
       Object.entries(dayOv).forEach(([docId, ov]) => {
         if (!DOCTORS.find(d => d.id === docId)) return;
@@ -1220,13 +1199,7 @@ function generatePlanningFromGardes(year) {
     });
 
     Logger.log(`✅ ${label} généré (${weeksInMonth.length} semaines)`);
-    /* (05/08/2026) Trace des placements caducs : le comité doit pouvoir
-       comprendre pourquoi un MAR placé n'apparaît pas en secteur. Repris
-       aussi par le diagnostic Maintenance.
-       (24/08/2026) La mémoire du mois est réécrite À CHAQUE publication,
-       même quand il n'y a plus aucun conflit : avant, un mois redevenu
-       propre gardait ses vieilles entrées pour toujours et le Diagnostic
-       ressortait des fantômes. */
+    /* (05/08/2026) Trace des placements caducs — récit : docs/JOURNAL-Planning-Med.md §81 */
     if (planningCaducs.length) {
       Logger.log(`⚠️ ${label} : ${planningCaducs.length} placement(s) ignoré(s) — MAR absent ce jour-là : ` +
         planningCaducs.slice(0, 8).map(x => `${x.marId} ${x.date} (${x.statut})`).join(', ') +
@@ -1576,12 +1549,7 @@ const NOTIF_MOIS  = ['janvier','février','mars','avril','mai','juin',
 // ── Armer / réarmer le minuteur ───────────────────────────────────────
 // Appelée après chaque publication. Supprime le minuteur en attente et en
 // repose un neuf : tant que le comité publie, rien ne part.
-/* (25/08/2026) La propriété ne portait qu'UNE année et l'écrasait à chaque appel :
-   publier 2027 faisait oublier les changements de 2026 encore en attente. Leur photo
-   n'étant recalée qu'après un envoi réussi, ils s'accumulaient et repartaient tous
-   d'un coup à la publication suivante de CETTE année-là — 25 changements et 13 mails
-   d'un seul coup le 25/08, pour des modifications remontant au 21.
-   La propriété porte désormais une FILE d'années ; notifEnvoyer les traite toutes. */
+/* (25/08/2026) La propriété ne portait qu'UNE année et l'écrasait à chaque appel — récit : docs/JOURNAL-Planning-Med.md §82 */
 function notifPlanifier(year) {
   ScriptApp.getProjectTriggers().forEach(function (t) {
     if (t.getHandlerFunction() === 'notifEnvoyer') ScriptApp.deleteTrigger(t);

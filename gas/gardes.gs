@@ -11,12 +11,7 @@ function _sondeStatsEntetes_(check, R, annee) {
   try {
     const sh = SpreadsheetApp.getActiveSpreadsheet().getSheetByName('STATS_GARDES_' + annee);
     if (!sh) return;
-    /* (05/09/2026) La colonne 23 (CIBLE JF) est désormais lue elle aussi : l'écran
-       d'équité surveille les SIX axes du générateur, plus cinq.
-       Elle n'est contrôlée que si elle EXISTE : les années antérieures — 2026, dont
-       les statistiques ont été reconstruites à la main — s'arrêtent à la colonne 22.
-       Exiger la colonne là-bas ferait hurler le diagnostic sur une année qui n'a
-       rien à se reprocher ; l'axe fériés y sera simplement absent de l'écran. */
+    /* (05/09/2026) La colonne 23 (CIBLE JF) est désormais lue elle aussi — récit : docs/JOURNAL-Planning-Med.md §91 */
     const nCol = Math.min(23, sh.getLastColumn());
     const h = sh.getRange(1, 1, 1, nCol).getValues()[0].map(v => String(v).trim());
     const attendu = { 0:'MEDECIN', 1:'CIBLE', 17:'CIBLE SAM', 18:'CIBLE JEU', 19:'CIBLE VD', 21:'CIBLE VJF' };
@@ -398,14 +393,7 @@ function applyModification(mod) {
     });
   }
 
-  /* (12/08/2026 — phase 2 échanges) Un don ne regardait que la grille des
-     gardes : donner une garde à un MAR en congé passait sans un mot, et son
-     absence restait posée sur le même jour que sa nouvelle garde. C'était
-     l'œil du comité qui l'attrapait — indispensable avant d'ouvrir les dons
-     aux MAR eux-mêmes (phase 4), où plus personne ne relira.
-     La source de vérité des absences est INDISPOS_{annee} (même lecture que
-     l'échange de secteurs). Un SOUHAIT n'est PAS une absence : recevoir une
-     garde un jour qu'on a souhaité est exactement le but. */
+  /* (12/08/2026 — phase 2 échanges) Un don ne regardait que la grille des — récit : docs/JOURNAL-Planning-Med.md §92 */
   const ABSENCES = ['INDISPO', 'VAC', 'FORM', 'TP', 'CL', 'CTP', 'CP', 'A'];
   function refuseSiIndisponible(who, jour, motif) {
     const v = readCell(`INDISPOS_${year}`, who, jour).toUpperCase();
@@ -472,13 +460,7 @@ function applyModification(mod) {
       break;
     }
     case 'echangeGarde': {
-      /* (2026-08-05.12, CORRECTIF) TOUT VÉRIFIER AVANT D'ÉCRIRE. L'échange de
-         la date principale était écrit AVANT le contrôle du repos de garde du
-         lendemain : un refus laissait donc le classeur À MOITIÉ modifié — la
-         garde avait changé de titulaire, le comité lisait « échange refusé »,
-         et personne ne voyait la divergence (défaut trouvé au banc d'essai,
-         scénario 39). Un geste doit être entièrement fait, ou entièrement
-         refusé. */
+      /* (2026-08-05.12, CORRECTIF) TOUT VÉRIFIER AVANT D'ÉCRIRE — récit : docs/JOURNAL-Planning-Med.md §93 */
       const jourRG = date2 || nextDay(date);
       verifieCellules([[doctorId, date], [doctorId2, date], [doctorId, jourRG], [doctorId2, jourRG]]);
       refuseSiGarde(doctorId,  jourRG, 'l\'echange deplacerait cette garde — a traiter manuellement');
@@ -681,13 +663,7 @@ function _buildOverrides_() {
     upcoming:overrides.filter(o=>o.isFuture).length };
 }
 
-/* (19/08/2026) Écrit la grille complète des affectations dans l'onglet.
-   Extrait du routeur pour être éprouvable au banc. Défaut corrigé : un MAR
-   sans ligne existante (fiche créée après l'onglet)
-   était ignoré EN SILENCE, et le journal comptait les données reçues, pas
-   les lignes écrites (« 25 mis à jour » pour 24 écrites, constaté le 19/08
-   au matin). La ligne manquante est désormais créée en bas de l'onglet,
-   exactement comme le fait saveAffectationsMar trois écrans plus bas. */
+/* (19/08/2026) Écrit la grille complète des affectations dans l'onglet — récit : docs/JOURNAL-Planning-Med.md §94 */
 function ecrireAffectations(sheet, aff) {
   const data = sheet.getDataRange().getValues();
   const idToRow = {};
@@ -785,17 +761,7 @@ function appliquerStatutJour(year, marIdBrut, statutBrut, datesBrutes) {
       });
 
       if (applied.length) {
-        /* (2026-08-05.11) LE DERNIER GESTE GAGNE. Constat de terrain : un MAR
-           placé en secteur puis passé en TP restait affiché en secteur — la
-           ligne de PLANNING_OVERRIDES survivait au changement de statut, et il
-           fallait la supprimer à la main dans le classeur. Désormais, poser un
-           statut d'ABSENCE retire les placements de ces jours-là pour ce MAR.
-           Le TP y figure : poser un TP annule le placement du jour. L'inverse
-           reste vrai et VOLONTAIRE — un MAR en TP peut être réquisitionné en
-           dernier recours, il suffit de le placer APRÈS (le panneau le
-           propose, et le placement, postérieur, tient).
-           « 18 » (8h-18h) et l'effacement ('') ne retirent RIEN : ce ne sont
-           pas des absences. */
+        /* (2026-08-05.11) LE DERNIER GESTE GAGNE — récit : docs/JOURNAL-Planning-Med.md §95 */
         const STATUTS_RETIRANT_PLACEMENT = new Set(['V', 'F', 'TP', 'CL', 'A']);
         if (STATUTS_RETIRANT_PLACEMENT.has(statut)) {
           try {
@@ -828,12 +794,7 @@ function appliquerStatutJour(year, marIdBrut, statutBrut, datesBrutes) {
 // NOEL_PLAFOND) a ete SUPPRIMEE : aucune des trois lignes n'existait dans le classeur,
 // donc c'etait une lecture d'onglet a chaque affichage du bandeau pour rien.
 // SEUIL = 3 ans : "en retard" = jamais fait, ou pas fait depuis 3 ans.
-/* (01/09/2026) CE QU'IL RESTE À POSER, pour chaque MAR.
-   Un jour de congé se compte en jours TRAVAILLÉS : ni week-end, ni férié —
-   la même règle que le serveur applique déjà au quota de vacances, et que
-   l'écran du staff vient d'adopter.
-   Les temps partiels en attente d'arbitrage (TPA) sont comptés à part : ils
-   ne sont pas acquis, mais ils occupent une place dans le quota. */
+/* (01/09/2026) CE QU'IL RESTE À POSER, pour chaque MAR — récit : docs/JOURNAL-Planning-Med.md §96 */
 function computeReliquats(year) {
   const ss = SpreadsheetApp.getActiveSpreadsheet();
   const gardes = ss.getSheetByName('GARDES_' + year);
@@ -902,21 +863,7 @@ function computeReliquats(year) {
            source: genere ? 'GARDES_' + year : 'INDISPOS_' + year, lignes: lignes };
 }
 
-/* (01/09/2026) L'HISTORIQUE BRUT, pour le tableau du staff vacances.
-   Une ligne par MAR pouvant tenir Noël, avec TOUTES ses années passées.
-   Trié du plus ancien au plus récent — l'ordre de la rotation elle-même.
-
-   AUCUN jugement n'est rendu ici : ni « prioritaire », ni liste des huit à
-   servir. Décision du responsable du 01/09/2026 — il y a souvent plus de huit
-   candidats légitimes, et désigner huit noms donnerait à un calcul le dernier
-   mot sur un arbitrage qui revient au comité. L'écran montre, le comité
-   décide. Le générateur, lui, garde sa propre règle pour l'attribution
-   automatique : c'est computeNoelAnEligibles, inchangée.
-
-   `postes` dit combien de médecins l'année mobilisait : QUATRE jusqu'en 2024
-   (une garde par jour sur les quatre dates), HUIT depuis que la double garde
-   est effective — octobre 2025, donc dès le Noël 2025. Sans ce chiffre, une
-   année ancienne à quatre noms se lirait comme une année incomplète. */
+/* (01/09/2026) L'HISTORIQUE BRUT, pour le tableau du staff vacances — récit : docs/JOURNAL-Planning-Med.md §97 */
 const NOEL_AN_DOUBLE_GARDE_DEPUIS = 2025;   // 4 postes avant, 8 à partir de là
 function noelAnPostes(annee) {
   return Number(annee) >= NOEL_AN_DOUBLE_GARDE_DEPUIS ? 8 : 4;
@@ -1052,16 +999,7 @@ function _act_getStatsLive(R) {
 }
 
 /* ── action "getReliquats" ── */
-/* (01/09/2026) LE RELIQUAT DE CONGÉS, MAR par MAR.
-   Après la génération, le comité place ce qui n'a pas été posé pendant la
-   campagne : encore faut-il savoir ce qu'il reste. Le chiffre existait au
-   staff, mais seulement pour les vacances, et seulement avant la
-   génération. Ici : vacances, formations et temps partiels, à jour.
-   ⚠️ La SOURCE change avec l'état de l'année. Tant que le planning n'est
-   pas généré, tout vit dans INDISPOS_{Y}. Une fois généré, l'onglet
-   Statuts écrit dans GARDES_{Y} et JAMAIS dans INDISPOS : compter dans
-   INDISPOS raterait tout ce que le comité a posé depuis. GARDES fait donc
-   foi dès qu'il existe. */
+/* (01/09/2026) LE RELIQUAT DE CONGÉS, MAR par MAR — récit : docs/JOURNAL-Planning-Med.md §98 */
 function _act_getReliquats(R) {
   const { e, payload, action, code, user } = R;
   if (user.role !== 'admin') return _deny();
@@ -1176,16 +1114,7 @@ try {
         recupR:data[r][12], h18:data[r][13],
         jf:data[r][14], vjf:data[r][15], vd:data[r][20], cSat:data[r][17], cJeu:data[r][18], cVd:data[r][19], cVjf:data[r][21], cJf:data[r][22]});
     }
-    /* (01/09/2026) LES AVERTISSEMENTS DOIVENT SURVIVRE À LA FERMETURE DE
-       L'ASSISTANT. Jusqu'ici LOGS ne gardait que leur NOMBRE : le contenu
-       ne partait que dans le journal d'exécution d'Apps Script, invisible
-       depuis l'application. Constaté le 01/09 — « il y a eu des
-       avertissements mais je ne sais plus ce que c'était », et rien ne
-       permettait de les retrouver. C'est précisément le moment où le comité
-       en a besoin : ils disent quels replis l'algorithme a dû consentir.
-       Plafond de 25 lignes : LOGS est purgé au-delà de 501 lignes, et le
-       générateur peut en produire jusqu'à 60 — les écrire toutes chasserait
-       le reste du journal. Le compte exact figure sur la ligne de tête. */
+    /* (01/09/2026) LES AVERTISSEMENTS DOIVENT SURVIVRE À LA FERMETURE DE — récit : docs/JOURNAL-Planning-Med.md §99 */
     logAction(`generateGardes ${yearToGenerate} — ${_genWarn.nbWarnings} avertissement(s)`);
     {
       const _w = _genWarn.warnings || [];
@@ -1616,17 +1545,7 @@ success: true, date: targetDate, dispo
 }
 
 /* ── action "setDailyStatus" ── */
-/* (10/09/2026) ENVOI DES CODES SUPPRIMÉ — l'action `sendCodesWithRecap`
-   terminait le W1 par un mail portant trois choses : le code d'accès, le
-   récap des congés posés au staff, et l'annonce de l'ouverture.
-   Les trois ont perdu leur raison d'être : le code des indispos est devenu
-   celui du portail (plus rien à rappeler), les VAC/FORM verrouillés sont
-   consultables dans « Mes indispos » avec leur cadenas, et l'ouverture
-   s'annonce de vive voix — le staff est justement en séance à ce moment-là.
-   `renderRecapMailBlocks_` est partie avec : plus aucun appelant.
-   L'ouverture de la saisie N'A JAMAIS été faite ici : elle est écrite à
-   l'étape 4, par setIndisposYear (INDISPOS_ACTIVE). Rien n'a changé de ce
-   côté. */
+/* (10/09/2026) ENVOI DES CODES SUPPRIMÉ — récit : docs/JOURNAL-Planning-Med.md §100 */
 function _act_setDailyStatus(R) {
   const { e, payload, action, code, user } = R;
   if (user.role !== 'admin') return _deny();

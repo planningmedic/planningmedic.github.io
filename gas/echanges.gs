@@ -165,12 +165,7 @@ function _echangesLignes_() {
 
 function _echangesMaintenant_() { return new Date().toISOString(); }
 
-/* (14/08/2026) Un humain lit ces messages : « Dr Durand », pas « DURAND ».
-   MÊME règle que l'écran (index.html, _tit) — titre « Pr » compris.
-   (08/09/2026) Le titre venait d'un nom écrit en dur ; il est maintenant
-   déduit de la colonne NOM de MEDECINS, comme partout ailleurs. Mise en
-   forme d'AFFICHAGE seule : les noms stockés dans l'onglet ne changent pas,
-   les correspondances non plus. */
+/* (14/08/2026) Un humain lit ces messages — récit : docs/JOURNAL-Planning-Med.md §84 */
 function _echangesDr_(id) {
   const brut = String(id == null ? '' : id).trim();
   if (!brut) return '';
@@ -339,13 +334,7 @@ function repondreEchange(user, p) {
    Échec d'envoi = échange VALIDE quand même : la mention « R non transféré »
    reste écrite dans la demande, l'onglet fait foi. */
 function _echangesAlerterComite_(r) {
-  /* (23/08/2026) LE MAIL EST RETIRÉ — un seul canal, décision du responsable.
-     Il partait vers DIAG_EMAIL : muet si l'adresse manquait dans CONFIG, et
-     incapable de dire s'il avait été traité. L'alerte vit désormais dans
-     l'onglet Statuts, là où le geste se fait, avec une pastille sur l'onglet.
-     Elle se CALCULE (écart entre samedis tenus et récups posées) : elle
-     disparaît d'elle-même quand le R est posé, et revient si on l'efface.
-     La trace, elle, reste — LOGS dit la vérité même quand l'écran est fermé. */
+  /* (23/08/2026) LE MAIL EST RETIRÉ — récit : docs/JOURNAL-Planning-Med.md §85 */
   try {
     logAction('récup à replacer — samedi ' + r.samedi + ' transféré de ' + r.donneur
               + ' à ' + r.receveur + (r.dateR ? ', R du ' + r.dateR : '')

@@ -353,12 +353,7 @@ function _act_login(R) {
 }
 
 /* ── action "creerEchange" ── */
-/* (13/08/2026 — échanges, phase 3) Les DEUX verbes du circuit pair-à-pair.
-   Ouverts aux rôles mar ET admin (le secrétariat est déjà refusé par
-   défaut en amont). Le demandeur est TOUJOURS user.id — résolu par
-   checkCode, jamais lu du payload. Toute erreur (contrôle refusé à la
-   création, demande introuvable, mauvais répondeur…) revient en
-   success:false avec son motif : c'est un verdict, pas une panne. */
+/* (13/08/2026 — échanges, phase 3) Les DEUX verbes du circuit pair-à-pair — récit : docs/JOURNAL-Planning-Med.md §86 */
 function _act_creerEchange(R) {
   const { e, payload, action, code, user } = R;
   if (!_echangesAutorise_(user)) return _deny();
@@ -398,27 +393,13 @@ function _act_getAdminBootstrap(R) {
   if (user.role !== 'admin') return _deny();
   const jy = parseInt(payload.year) || getActiveYear();
   const out = { success: true, year: jy };
-  /* (28/07/2026) L'IDENTITE REJOINT LE BOOTSTRAP — mesure du 28/07 a 10:46 :
-     quatre executions lancees ensemble coutent 4 a 7 s chacune, alors qu'une
-     execution SEULE coute 1,8 s. Apps Script met les executions d'un meme
-     utilisateur en file : le parallelisme ne fait pas gagner de temps, il en
-     fait perdre. L'ouverture d'admin appelait login PUIS getAdminBootstrap,
-     soit deux executions concurrentes pour une seule information utile.
-     En livrant l'identite ici, l'ouverture ne coute plus qu'UNE execution.
-     Les champs ci-dessous sont EXACTEMENT ceux de l'action login, qui reste
-     en place pour les autres pages et comme repli. */
+  /* (28/07/2026) L'IDENTITE REJOINT LE BOOTSTRAP — récit : docs/JOURNAL-Planning-Med.md §87 */
   out.role = user.role; out.id = user.id;
   out.name = user.name; out.initials = user.initials;
   out.liberal = !!user.liberal;
   out.rpps = user.rpps || '';
   out.prenom = user.prenom || '';
-  /* (01/08/2026) CHRONOMETRE INTERNE — mesure, ne change RIEN.
-     Mesure du 01/08 a 14:53, ouverture ramenee a UN SEUL appel : doGet vaut
-     3 633 ms, soit 53 % du cout total. Le travail du bootstrap est donc
-     devenu le premier poste, devant le peage. Restait a savoir laquelle de
-     ses dix operations le porte. `_jalon` note le temps ecoule depuis le
-     jalon precedent : aucune expression n'est enveloppee, aucun try/catch
-     deplace. Le detail part dans out._detail et s'affiche dans chrono(). */
+  /* (01/08/2026) CHRONOMETRE INTERNE — récit : docs/JOURNAL-Planning-Med.md §88 */
   const _det = {}; let _tp = Date.now();
   const _jalon = function (nom) { const n = Date.now(); _det[nom] = n - _tp; _tp = n; };
 
@@ -468,27 +449,13 @@ function _act_getAdminBootstrap(R) {
   try { out.anneeStatsFiables = PREMIERE_ANNEE_STATS_FIABLES; } catch (e) { out.anneeStatsFiables = null; }
   try { out.csTemplate = getCsTemplate(); } catch (e) { out.csTemplate = null; }
   _jalon('seuils + modele de consultations');
-  /* (28/07/2026, 15 h) LE COMPTEUR DE MAILS REJOINT LE BOOTSTRAP.
-     Un commentaire d'admin.html disait « NE JAMAIS le mettre dans
-     getAdminBootstrap : ~1 s ajoutee a chaque ouverture ». Cette regle est
-     PERIMEE et remplacee : la mesure du 28/07 donne 129 ms de travail reel
-     pour cette action, quand un appel separe coute 2,4 s au total (le peage
-     d'entree d'Apps Script, mesure a 2-3 s sur une requete vide). Le fusionner
-     SUPPRIME un appel de l'ouverture pour 0,13 s de serveur en plus.
-     Echec tolere : le badge est un confort, jamais une donnee critique. */
+  /* (28/07/2026, 15 h) LE COMPTEUR DE MAILS REJOINT LE BOOTSTRAP — récit : docs/JOURNAL-Planning-Med.md §89 */
   try {
     const _lab = Gmail.Users.Labels.get('me', 'INBOX');
     out.mailNonLus = Number(_lab.messagesUnread || 0);
   } catch (e) { out.mailNonLus = null; }
   _jalon('compteur de mails (Gmail)');
-  /* (28/07/2026, 15 h 50) EXISTENCE DE L'ANNEE SUIVANTE, SANS LA TELECHARGER.
-     Le frontend appelait getPlanningJson sur N+1 pour repondre a une seule
-     question : « cette annee existe-t-elle ? ». Cela telechargeait le planning
-     COMPLET (255 Ko) a chaque ouverture, soit ~2,5 s, pour un oui/non.
-     _jsonFilesByName_ liste les fichiers du dossier Drive SANS lire leur contenu
-     (aucun getBlob) : la reponse coute quelques dizaines de ms.
-     La detection reste exacte et se met a jour des que N+1 est publiee, puisque
-     elle est recalculee a chaque ouverture. */
+  /* (28/07/2026, 15 h 50) EXISTENCE DE L'ANNEE SUIVANTE, SANS LA TELECHARGER — récit : docs/JOURNAL-Planning-Med.md §90 */
   try {
     out.anneeSuivante = _jsonFilesByName_('planning_' + (jy + 1) + '.json').length > 0;
   } catch (e) { out.anneeSuivante = null; }

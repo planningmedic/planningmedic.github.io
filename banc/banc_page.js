@@ -11,7 +11,7 @@ async function page(transport) {
   const vc = new VirtualConsole(); const erreurs = [];
   vc.on('jsdomError', e => erreurs.push(e.message));
   const dom = new JSDOM(fs.readFileSync('../admin.html', 'utf8'),
-    { runScripts:'dangerously', virtualConsole:vc, url:'https://planningmedic.github.io/admin.html', pretendToBeVisual:true, beforeParse(win) { win.eval(require('fs').readFileSync(require('path').join(__dirname, '..', 'partage', 'portail.js'), 'utf8')); win.eval(require('fs').readFileSync(require('path').join(__dirname, '..', 'partage', 'rendu_equite.js'), 'utf8')); }   /* (14/09/2026) le socle, comme le vrai site */, beforeParse(win) { win.eval(require('fs').readFileSync(require('path').join(__dirname, '..', 'partage', 'portail.js'), 'utf8')); win.eval(require('fs').readFileSync(require('path').join(__dirname, '..', 'partage', 'rendu_equite.js'), 'utf8')); }   /* (14/09/2026) le socle, comme le vrai site */, beforeParse(win) { win.eval(require('fs').readFileSync(require('path').join(__dirname, '..', 'partage', 'portail.js'), 'utf8')); win.eval(require('fs').readFileSync(require('path').join(__dirname, '..', 'partage', 'rendu_equite.js'), 'utf8')); }   /* (14/09/2026) le socle, comme le vrai site */ });
+    { runScripts:'dangerously', virtualConsole:vc, url:'https://planningmedic.github.io/admin.html', pretendToBeVisual:true, beforeParse(win) { win.eval(require('fs').readFileSync(require('path').join(__dirname, '..', 'partage', 'portail.js'), 'utf8')); win.eval(require('fs').readFileSync(require('path').join(__dirname, '..', 'partage', 'rendu_equite.js'), 'utf8')); }   /* (14/09/2026) le socle, comme le vrai site */ });
   const w = dom.window;
   await dodo(500);
   w.eval('ADMIN_CODE = "CODE99"; ADMIN_YEAR = 2027; _batchPending = {}; _batchInFlight = null;');
@@ -175,8 +175,11 @@ async function page(transport) {
     /* Le commentaire du 04/08 n'est pas efface : il est CITE et corrige, pour que
        la lecture du code raconte ce qui a change et pourquoi. On verifie donc
        qu'il n'est plus affirme, pas qu'il a disparu. */
-    V('l\'ancien commentaire n\'est plus affirmé mais cité comme dépassé',
-      /disait « getStatsLive = calcul vivant, jamais mirore » : c'est/.test(c));
+    /* (15/09/2026 — chantier 10) Le récit complet a migré dans docs/JOURNAL-Planning-Med.md ;
+       le code garde une ligne datée avec le renvoi. La correction du 04/08 se lit là. */
+    const journal = fs.readFileSync(require('path').join(__dirname, '..', 'docs', 'JOURNAL-Planning-Med.md'), 'utf8');
+    V('l\'ancien commentaire n\'est plus affirmé mais cité comme dépassé (dans le journal des décisions)',
+      /disait « getStatsLive = calcul vivant, jamais mirore » : c'est/.test(journal) && /récit : docs\/JOURNAL-Planning-Med\.md/.test(c));
   }
 
   console.log('\n═══ 57. Onglet Équité : plus d\'appel fantôme aux vacances ═══');

@@ -70,7 +70,7 @@ console.log('\n═══ 3. L\'écran : cinq étapes, la dernière est le staff 
 (async () => {
   const vc = new VirtualConsole();
   const dom = new JSDOM(ADMIN, { runScripts: 'dangerously', virtualConsole: vc,
-    url: 'https://planningmedic.github.io/admin.html', pretendToBeVisual: true, beforeParse(win) { win.eval(require('fs').readFileSync(require('path').join(__dirname, '..', 'partage', 'portail.js'), 'utf8')); win.eval(require('fs').readFileSync(require('path').join(__dirname, '..', 'partage', 'rendu_equite.js'), 'utf8')); }   /* (14/09/2026) le socle, comme le vrai site */, beforeParse(win) { win.eval(require('fs').readFileSync(require('path').join(__dirname, '..', 'partage', 'portail.js'), 'utf8')); win.eval(require('fs').readFileSync(require('path').join(__dirname, '..', 'partage', 'rendu_equite.js'), 'utf8')); }   /* (14/09/2026) le socle, comme le vrai site */, beforeParse(win) { win.eval(require('fs').readFileSync(require('path').join(__dirname, '..', 'partage', 'portail.js'), 'utf8')); win.eval(require('fs').readFileSync(require('path').join(__dirname, '..', 'partage', 'rendu_equite.js'), 'utf8')); }   /* (14/09/2026) le socle, comme le vrai site */ });
+    url: 'https://planningmedic.github.io/admin.html', pretendToBeVisual: true, beforeParse(win) { win.eval(require('fs').readFileSync(require('path').join(__dirname, '..', 'partage', 'portail.js'), 'utf8')); win.eval(require('fs').readFileSync(require('path').join(__dirname, '..', 'partage', 'rendu_equite.js'), 'utf8')); }   /* (14/09/2026) le socle, comme le vrai site */ });
   const w = dom.window;
   await new Promise(r => setTimeout(r, 500));
 

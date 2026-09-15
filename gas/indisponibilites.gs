@@ -636,14 +636,7 @@ function _act_getIndispos(R) {
 function _act_saveIndispos(R) {
   const { e, payload, action, code, user } = R;
   const targetId = user.role === 'admin' ? payload.doctorId : user.id;
-  /* (POSE TP · 22/08/2026) DEUX CIRCUITS, DEUX ANNÉES — jamais l'un vers l'autre.
-     · mode TP (payload.tp === true) : vise l'année de la PHASE (_phaseTp_),
-       JAMAIS getIndisposYear() — qui se replie en silence sur l'année active
-       hors campagne, et enverrait les TP dans la mauvaise année.
-     · mode campagne (défaut) : comportement historique, PLUS le verrou qui
-       manquait — saveIndispos n'interrogeait jamais _indisposOuverte_ : rien
-       n'empêchait un rôle mar d'écrire hors campagne. Le rôle admin n'est pas
-       verrouillé : le comité reste maître des corrections VAC/FORM. */
+  /* (POSE TP · 22/08/2026) DEUX CIRCUITS, DEUX ANNÉES — récit : docs/JOURNAL-Planning-Med.md §123 */
   if (payload.tp === true) {
     const ph = _phaseTp_();
     if (!ph.actif) return _error('La pose des jours de temps partiel n\'est pas ouverte : aucune année générée.');
@@ -662,38 +655,14 @@ function _act_saveIndispos(R) {
     return _error('La campagne de saisie est fermée : indisponibilités et souhaits ne peuvent plus être enregistrés.');
   }
   const anneeInd = getIndisposYear();
-  /* (LOT A · 01/09/2026) LE TEMPS PARTIEL REVIENT DANS LA CAMPAGNE.
-     Le 23/08 les TP avaient été sortis d'INDISPOS : ils se posaient APRÈS
-     la génération, pour ne pas contraindre l'algorithme. Le comité a
-     tranché l'inverse le 01/09 — un MAR à temps partiel pose ses jours EN
-     MÊME TEMPS que ses indisponibilités et ses gardes souhaitées, sur le
-     même écran. Le reliquat non posé reste plaçable au fil de l'eau, dans
-     les trous du planning, par le circuit dédié (payload.tp === true).
-     Mesuré avant de rouvrir : 260 jours de TP posables par 8 MAR, ajoutés
-     aux indisponibilités réelles 2027, ne dégradent ni l'équité (écart
-     maximal 1,6 pour un plafond de 2) ni les gardes rapprochées.
-     Le TP est un CONGÉ : il est exclusif d'une indisponibilité ou d'une
-     garde souhaitée le même jour — une case ne porte qu'un code, poser un
-     TP remplace ce qui s'y trouvait. Le quota annuel (CONFIG_CONGES,
-     colonne CTP) est vérifié ICI : l'écran peut retarder, le serveur non. */
+  /* (LOT A · 01/09/2026) LE TEMPS PARTIEL REVIENT DANS LA CAMPAGNE — récit : docs/JOURNAL-Planning-Med.md §124 */
   const existantC = getIndisposForDoctor(targetId, anneeInd);
   const envoyeC = {}, tpRefuses = [];
   const quotaTpC = getQuotasConges(_quotiteDe_(targetId)).ctp || 0;
   const sansTpProfil = _tpFixeDe_(targetId) || quotaTpC <= 0;
   const jfC = getJoursFeries(anneeInd);
   let nbTpC = 0;
-  /* (11/09/2026) QUOTA D'INDISPONIBILITÉS — vérifié ICI, comme le TP :
-     l'écran peut retarder d'une version, le serveur non.
-     On compte SUR L'ENVOI, et c'est le bon compte : l'écran envoie toujours
-     la carte complète de l'année, jamais un delta, et _fusionIndispos_
-     retire ce qui n'y figure pas pour les codes appartenant au MAR. L'envoi
-     est donc l'état final de ses indisponibilités.
-     Écrit puis corrigé le même jour : la première version ajoutait au compte
-     les INDISPO déjà enregistrées absentes de l'envoi — or la fusion allait
-     justement les supprimer. Elle facturait deux fois des jours retirés, et
-     le banc l'a prise en défaut sur « redescendre à 5 puis remonter à 25 ».
-     Le comité n'est pas plafonné : il arbitre des cas particuliers, et le
-     refuser l'obligerait à passer par le classeur. */
+  /* (11/09/2026) QUOTA D'INDISPONIBILITÉS — récit : docs/JOURNAL-Planning-Med.md §125 */
   const indRefuses = [];
   let nbIndC = 0, nbIndWeC = 0;
   Object.keys(payload.indispos || {}).forEach(function (ds) {
@@ -815,14 +784,7 @@ function _act_getJoursFeries(R) {
 }
 
 /* ── action "getOrdreVacances" ── */
-/* (13/08/2026) Bandeau « mon ordre de passage » de la vue Mes congés.
-   Lecture seule, réservée aux MAR : un code secrétariat n'y accède pas
-   (liste blanche SECRETARIAT_ACTIONS), un code admin n'a pas d'identifiant
-   de MAR et n'aurait donc pas de rang à afficher.
-   L'année mise en avant bascule le 1er septembre : jusqu'au 31 août on
-   regarde l'année en cours, après on prépare le staff de la suivante.
-   C'est une règle d'affichage, tranchée ici pour que la date de référence
-   soit celle du service et non celle du téléphone. */
+/* (13/08/2026) Bandeau « mon ordre de passage » de la vue Mes congés — récit : docs/JOURNAL-Planning-Med.md §126 */
 function _act_getOrdreVacances(R) {
   const { e, payload, action, code, user } = R;
   if (user.role !== 'mar') return _deny();
@@ -845,27 +807,12 @@ function _act_getVacConfig(R) {
   const jfNext = getJoursFeries(indYear + 1);
   const _f = getMedecinFlags();
   const tpFixe = _f.rythme2sur2.has(user.id) || !!_f.tpJoursFixes[user.id];
-  /* (25/08/2026) `genere` : le planning de l'année de campagne existe déjà.
-     L'écran passe alors en LECTURE SEULE — les indispos ne servent plus à
-     rien une fois les gardes tirées, et sans ce signal le MAR pouvait
-     continuer à saisir pendant des semaines en croyant que ça comptait.
-     La campagne n'est PAS fermée pour autant : la clôture (qui archive
-     l'année et bascule sur la suivante) reste un geste du comité, sinon
-     une simple génération d'essai basculerait tout. */
+  /* (25/08/2026) `genere` — récit : docs/JOURNAL-Planning-Med.md §127 */
   const _dejaGenere = _indisposFigees_();   // (26/08) source unique — partagée avec la clé acces
   return ContentService.createTextOutput(JSON.stringify({
     success: true, periodes: cfg.periodes, quotaVac: cfg.quotaVac,
     quotaForm: cfg.quotaForm, quotaCtp: cfg.quotaCtp, tpFixe: tpFixe,
-    /* (13/09/2026) LES DEUX PLAFONDS D'INDISPONIBILITÉS. Ils étaient ajoutés
-       au retour de la fonction interne getVacConfig — que l'écran n'appelle
-       PAS. Cette action-ci reconstruit sa réponse champ par champ : les deux
-       quotas étaient calculés puis jetés. L'écran recevait donc null, et son
-       garde-fou, conditionné à `quotaIndispo != null`, était sauté en entier.
-       Un MAR a pu poser 27 indisponibilités sans rien voir passer.
-       Le serveur, lui, refusait bien au-delà de 20 — mais en silence, sans
-       dire lesquelles il écartait. Le pire des deux mondes.
-       Le banc compare désormais les champs renvoyés ici à ceux que la page
-       lit dans vacConfig. */
+    /* (13/09/2026) LES DEUX PLAFONDS D'INDISPONIBILITÉS — récit : docs/JOURNAL-Planning-Med.md §128 */
     quotaIndispo: QUOTA_INDISPO, quotaIndispoWe: QUOTA_INDISPO_WE,
     totalVacDoc: cfg.totalVacDoc, joursFeries: [...jf, ...jfNext],
     genere: _dejaGenere, anneeCampagne: indYear,

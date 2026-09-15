@@ -55,6 +55,9 @@ Système web de gestion pour le service d'anesthésie-réanimation du **un servi
 **Le dépôt fait foi à 100 %** : toute modif d'un `.gs` doit exister ici, puis être recopiée dans l'éditeur Apps Script **et redéployée** (sinon perdue à la prochaine recopie, ou sans effet).
 ⚠️ `portail.gs` porte le portail, **tout le module libéral**, la veille et la configuration des secteurs. `Indispos.gs` porte le routeur d'API, le contrôle d'absence et le verrou d'écriture.
 
+### docs/JOURNAL-Planning-Med.md — le journal des décisions
+Les 162 récits datés qui vivaient en commentaires dans le code (pourquoi, mesures, cas réels) sont ici, fichier par fichier, dans l'ordre du code ; chaque emplacement d'origine garde une ligne datée avec le renvoi « récit : §n » (15/09/2026, chantier 10).
+
 ### partage/ — ce que les pages ont en commun, écrit une fois
 `session.js` (où vit le code d'accès), `dispo_jour.js` (tri des disponibles, même source que le serveur), `portail.js` (14/09/2026 : adresse du miroir et `miroirRead` unique — les pages le rejoignent une par une, `staff.html` la première). Chargés par `<script src>` ; le banc les exécute tels quels.
 

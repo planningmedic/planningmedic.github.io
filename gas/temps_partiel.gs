@@ -146,13 +146,7 @@ function _tpMondePresence_(annee) {
    Renvoie { success, resultat: {date: 'TP'|'TPA'|motif}, quota:{valides,total} } :
    c'est le récapitulatif que l'écran affiche à l'enregistrement. */
 function _poserTp_(user, targetId, envoye, annee) {
-  /* (23/08/2026 — refonte) LE TP S'ÉCRIT DANS GARDES, L'ONGLET MAÎTRE.
-     INDISPOS n'est plus touché : il sert AVANT la génération, pas après.
-     Une demande non tranchée n'écrit rien dans le planning — elle attend
-     dans TP_DEMANDES. Le comité seul la transforme en TP.
-
-     `envoye` est la photo complète de ce que l'écran croit : { date: 'TP' }.
-     Ce qui n'y figure plus est retiré. */
+  /* (23/08/2026 — refonte) LE TP S'ÉCRIT DANS GARDES, L'ONGLET MAÎTRE — récit : docs/JOURNAL-Planning-Med.md §156 */
   const estAdmin = user && user.role === 'admin';
   const M = _tpMondePresence_(annee);
   const jf = new Set(getJoursFeries(annee));
@@ -551,23 +545,8 @@ function _construirePoseTp_(annee) {
    même chose. */
 
 /* ── action "deciderJourTpLot" ── */
-/* (LOT 4 · 22/08/2026) LES DÉCISIONS DU COMITÉ sur les jours sous réserve.
-   Quatre gestes, tous annulables depuis l'écran, tous journalisés :
-   · valider            : la TPA du MAR devient TP (souveraineté comité,
-                          passe par _poserTp_ — quota et journal compris)
-   · annuler_validation : le TP redevient TPA (même chemin)
-   · refuser            : le JOUR se ferme pour TOUTE l'équipe (TP_FERMES),
-                          et chaque TPA posée ce jour-là est rendue — elles
-                          ne pourraient jamais être validées. La réponse
-                          liste qui a été rendu, pour l'annulation.
-   · annuler_refus      : le jour rouvre, les TPA rendues sont rétablies.
-   AUCUNE notification : le comité le dit de vive voix (maquette). */
-/* (23/08/2026) DÉCISIONS EN LOT — le comité peut marquer toute sa liste
-   puis enregistrer d'un coup. Chaque décision est traitée exactement comme
-   une décision isolée (mêmes contrôles, mêmes notifications) ; seule la
-   republication est mutualisée, puisqu'elle est de toute façon différée et
-   dédoublonnée. Un échec sur une ligne n'arrête pas les autres : la réponse
-   dit ce qui est passé et ce qui ne l'est pas. */
+/* (LOT 4 · 22/08/2026) LES DÉCISIONS DU COMITÉ sur les jours sous réserve — récit : docs/JOURNAL-Planning-Med.md §157 */
+/* (23/08/2026) DÉCISIONS EN LOT — récit : docs/JOURNAL-Planning-Med.md §158 */
 function _act_deciderJourTpLot(R) {
   const { e, payload, action, code, user } = R;
   if (user.role !== 'admin') {

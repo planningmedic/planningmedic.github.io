@@ -220,29 +220,8 @@ let pontsMode=false;            // (LOT E) l'onglet « Ponts » est-il affiché 
 const ORDRE_BASE_STAFF={HIVER:'CAB',PRINTEMPS:'ABC',ETE:'ABC',TOUSSAINT:'BCA',NOEL:'CAB'};
 const GRP_COLORS_STAFF={A:'#3B82F6',B:'#10B981',C:'#F59E0B'};
 let groupesRef={A:[],B:[],C:[]};  // ordre de référence depuis GSheet
-/* (03/09/2026) QUOTAS RECALÉS SUR CONFIG_CONGES. La table VAC était fausse
-   pour TOUTES les quotités : 33 jours annoncés à un temps plein au lieu de 37,
-   30 au lieu de 33 à 90 %, 26 au lieu de 30 à 80 %, 20 au lieu de 22 à 60 %,
-   17 au lieu de 18 à 50 %. FORM était juste.
-   C'était l'ancienne table de 2026, figée ici pendant qu'le responsable mettait
-   CONFIG_CONGES à jour au classeur. Le serveur, lui, lit le classeur
-   (`_loadQuotasConges`) : la page du MAR et « Ce qu'il reste à poser »
-   affichaient donc 37, et le staff 33 — quatrième occurrence du même défaut,
-   deux lecteurs des mêmes données qui ne comptent pas pareil.
-   ⚠️ CETTE TABLE RESTE UNE COPIE. Elle redeviendra fausse au prochain
-   changement du classeur. Le remède durable est de faire renvoyer les quotas
-   par le serveur, avec le reste de la configuration — à faire après le staff.
-   ⚠️ Le repli diffère aussi du serveur : ici une quotité inconnue reçoit le
-   quota d'un temps plein, alors que le serveur prend le palier le plus proche.
-   Aucun MAR actif n'est concerné (quotités relevées le 03/09 : 100, 90, 80,
-   60, 50), donc laissé tel quel plutôt que corrigé à l'aveugle. */
-/* (14/09/2026 — chantier 11) LE CLIENT AFFICHE, IL NE CALCULE PAS. Les quotas de
-   congés arrivent avec la configuration (clé miroir vacances_admin ou action
-   getVacancesConfig), tels que le serveur les lit dans CONFIG_CONGES. Cette page
-   ne porte plus aucune table : c'était la quatrième fois qu'une copie locale
-   se trouvait fausse. Le repli transitoire a été retiré le soir même, une fois
-   la recopie Apps Script confirmée au Diagnostic. Sans table reçue, la page le
-   dit (toast) et affiche 0 plutôt qu'un chiffre inventé. */
+/* (03/09/2026) QUOTAS RECALÉS SUR CONFIG_CONGES — récit : docs/JOURNAL-Planning-Med.md §61 */
+/* (14/09/2026 — chantier 11) LE CLIENT AFFICHE, IL NE CALCULE PAS — récit : docs/JOURNAL-Planning-Med.md §62 */
 let QUOTAS_SERVEUR=null;   // {quotite:{vac,form,ctp}}
 const getQuota=(type,q)=>{
   if(!QUOTAS_SERVEUR) return 0;
@@ -383,14 +362,7 @@ async function loadData(pre){
   if(pRes.quotasConges && Object.keys(pRes.quotasConges).length) QUOTAS_SERVEUR=pRes.quotasConges;   // (14/09/2026) les quotas viennent du serveur
   else showToast('Quotas de congés non reçus : vérifier l\'onglet CONFIG_CONGES du classeur');
 
-  /* (04/09/2026) L'historique de Noël arrive AVEC les périodes : le clic sur
-     « 🎄 Noël & Jour de l'An » n'appelle plus Apps Script. C'était le dernier
-     appel direct de cette page, et le seul sans repli — il a échoué en séance
-     le 04/09, la file d'attente Apps Script étant saturée par les connexions
-     du staff.
-     L'ANNÉE EST CONTRÔLÉE : la copie rapide porte l'année de campagne du
-     serveur, l'écran peut regarder une autre année. En cas d'écart, on ne
-     garde rien et `buildRecapNoel` refait l'appel direct, comme avant. */
+  /* (04/09/2026) L'historique de Noël arrive AVEC les périodes — récit : docs/JOURNAL-Planning-Med.md §63 */
   if(pRes.noel && Number(pRes.noel.annee)===currentYear
      && pRes.noel.historique && Array.isArray(pRes.noel.historique.mars)){
     noelHistoData = pRes.noel.historique;
@@ -422,14 +394,7 @@ async function loadData(pre){
     const bloc=mf&&mf.success&&mf.data&&mf.data['joursferies_'+currentYear];
     if(bloc&&Array.isArray(bloc.joursFeries)) joursFeries=new Set(bloc.joursFeries);
   }catch(e){}
-  /* (03/09/2026) REPLI, comme pour les périodes juste au-dessus. La clé
-     joursferies_{Y} n'est publiée QUE pour les années possédant un onglet
-     GARDES_{Y} : pendant toute la campagne de congés de l'année suivante —
-     c'est-à-dire précisément quand cet écran sert — les gardes ne sont pas
-     encore générées, la clé n'existe pas, et l'onglet des ponts restait en
-     sommeil sans jamais pouvoir en sortir. L'action getJoursFeries renvoie
-     exactement la même forme (année ET suivante), et reste la SEULE source :
-     aucune règle de calendrier n'est recopiée ici. */
+  /* (03/09/2026) REPLI, comme pour les périodes juste au-dessus — récit : docs/JOURNAL-Planning-Med.md §64 */
   if(!joursFeries.size){
     try{
       const fr=await apiCall({action:'getJoursFeries',year:currentYear});
@@ -554,20 +519,7 @@ function getPeriodeDays(p){
 
 function formatDay(ds){const d=new Date(ds+'T12:00:00');return JOURS_FR[d.getDay()]+' '+d.getDate()+'/'+(d.getMonth()+1);}
 function isWeekend(ds){const d=new Date(ds+'T12:00:00').getDay();return d===0||d===6;}
-/* (01/09/2026) LE QUOTA SE COMPTE EN JOURS TRAVAILLÉS : ni week-end, NI FÉRIÉ.
-   Cet écran ne retirait que les week-ends. Le serveur (Indispos.gs,
-   totalVacDoc) et l'écran du MAR (indispos.html) retirent les deux depuis
-   toujours : trois écrans, deux règles, et le comité voyait des dépassements
-   qui n'existaient pas. Constaté le 01/09 sur un jeu réel — douze MAR
-   annoncés au-dessus de leur quota, dont un à 35 jours pour 33, uniquement
-   parce que ses congés traversaient des jours fériés.
-   Un bloc de congés qui enjambe le 1er mai reste posé sur le 1er mai : c'est
-   la saisie normale. Ce jour-là n'était simplement pas travaillé, il ne coûte
-   rien au quota. Même raison que pour les temps partiels, qui ne se posent
-   jamais un férié.
-   `joursFeries` est alimenté à l'ouverture depuis la copie rapide ; s'il est
-   vide, le compte retombe sur l'ancien comportement plutôt que de mentir dans
-   l'autre sens. */
+/* (01/09/2026) LE QUOTA SE COMPTE EN JOURS TRAVAILLÉS — récit : docs/JOURNAL-Planning-Med.md §65 */
 function estChome(ds){ return isWeekend(ds) || joursFeries.has(ds); }
 function countForMAR(marId,type,days){const src=saisies[marId]||{};if(!days)return Object.keys(src).filter(d=>src[d]===type&&!estChome(d)).length;return days.filter(d=>src[d]===type&&!estChome(d)).length;}
 function countForDay(date){return medecins.filter(m=>{const v=(saisies[m.id]||{})[date];return v==='VAC'||v==='FORM';}).length;}

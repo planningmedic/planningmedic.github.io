@@ -6,7 +6,7 @@ portail/Dashboard, module libéral, contrôle d'absence, veille biblio.
 (Le générateur de comptes rendus a été retiré le 07/09/2026 : il portait le logo de
 l'établissement et 77 noms de praticiens sur une page publique sans code d'accès.)
 
-**Dépôt** `planningmedic/planningmedic.github.io`, branche `main` · **Site v1.12.6** ·
+**Dépôt** `planningmedic/planningmedic.github.io`, branche `main` · **Site v1.12.9** ·
 **Portail** https://planningmedic.github.io ·
 **GAS** (relevé dans le dépôt le 10/09/2026) `code.gs` **2026-09-08.2** ·
 `Indispos.gs`, `gardes.gs`, `indisponibilites.gs`, `temps_partiel.gs`, `equipe.gs`, `diagnostic.gs` **2026-09-15.2** · `generateur_gardes.gs`, `code.gs`, `portail.gs` **2026-09-14.2** · `miroir.gs` **2026-09-14.3** · `setup_annee.gs`, `veille.gs` **2026-09-14.1** — **tous recopiés et confirmés au Diagnostic le 15/09 à 10h14** ·
@@ -200,7 +200,12 @@ aux DEUX endroits — ligne GITHUB_TOKEN de CONFIG et §3 des instructions du pr
    l'identique ; check-list de recopie + Diagnostic. Les dizaines de scénarios du banc qui extraient
    une fonction « dans Indispos.gs » par son nom seront à réorienter fichier par fichier — c'est la
    part laborieuse, pas la part risquée.
-10. Commentaires-journal → CONTEXTE, fichier par fichier.
+10. ~~Commentaires-journal → doc~~ — **FAIT le 15/09 (v1.12.9).** 162 blocs datés (1 383 lignes) sortis de
+    22 fichiers vers `docs/JOURNAL-Planning-Med.md`, fichier par fichier dans l'ordre du code, chacun
+    avec la ligne de code qu'il précédait ; l'emplacement d'origine garde une ligne datée + « récit :
+    §n ». Aucun `.gs` ne change de logique : **pas de recopie Apps Script** (commentaires seulement,
+    GAS_VERSION inchangées — même décision que le 13/09). Le marquage « À RETIRER » du lanceur T reste
+    dans le code (le banc l'exige : c'est un avertissement, pas un récit).
 11. ~~Configuration servie par le serveur~~ — **fait le 14/09 pour les quotas (v1.12.4 puis v1.12.5),
     confirmé.** Pas de `getConfig` nouveau : les quotas de congés voyagent avec la config existante
     (action `getVacancesConfig` et clé miroir `vacances_admin`, champ `quotasConges`, lu par la même
