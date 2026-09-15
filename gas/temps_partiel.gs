@@ -4,7 +4,7 @@
    quelles : aucune ligne de logique modifiée, seulement déplacée. Le routeur et
    ses aides (checkCode, _deny, _error, doGet/doPost) restent dans Indispos.gs.
    Un seul espace global dans Apps Script : rien à importer. */
-const GAS_VERSION_TP = '2026-09-15.1';
+const GAS_VERSION_TP = '2026-09-15.2';
 
 /* ── (POSE TP · 22/08/2026) PHASE DE POSE DES TEMPS PARTIELS — DÉDUITE, JAMAIS ÉCRITE ──
    Les jours de temps partiel se posent APRÈS la génération des gardes (décision
@@ -541,4 +541,180 @@ function _construirePoseTp_(annee) {
   return { success: true, year: annee, presents: presents,
            joursFeries: Array.from(jf).sort(),
            fermes: Array.from(_tpFermes_(annee)).sort(), parMar: parMar };
+}
+
+/* ═══ ACTIONS DU ROUTEUR (15/09/2026, chantier 9 — étape 2) ═══
+   Chaque bloc « if (action === …) » de _routeRequete_ est devenu une fonction
+   _act_<nom>(R), corps mot pour mot, R = { e, payload, action, code, user }.
+   Le contrôle de rôle reste dans le corps, là où il était ; la table ACTIONS
+   (Indispos.gs) le déclare aussi, et le banc vérifie que les deux disent la
+   même chose. */
+
+/* ── action "deciderJourTpLot" ── */
+/* (LOT 4 · 22/08/2026) LES DÉCISIONS DU COMITÉ sur les jours sous réserve.
+   Quatre gestes, tous annulables depuis l'écran, tous journalisés :
+   · valider            : la TPA du MAR devient TP (souveraineté comité,
+                          passe par _poserTp_ — quota et journal compris)
+   · annuler_validation : le TP redevient TPA (même chemin)
+   · refuser            : le JOUR se ferme pour TOUTE l'équipe (TP_FERMES),
+                          et chaque TPA posée ce jour-là est rendue — elles
+                          ne pourraient jamais être validées. La réponse
+                          liste qui a été rendu, pour l'annulation.
+   · annuler_refus      : le jour rouvre, les TPA rendues sont rétablies.
+   AUCUNE notification : le comité le dit de vive voix (maquette). */
+/* (23/08/2026) DÉCISIONS EN LOT — le comité peut marquer toute sa liste
+   puis enregistrer d'un coup. Chaque décision est traitée exactement comme
+   une décision isolée (mêmes contrôles, mêmes notifications) ; seule la
+   republication est mutualisée, puisqu'elle est de toute façon différée et
+   dédoublonnée. Un échec sur une ligne n'arrête pas les autres : la réponse
+   dit ce qui est passé et ce qui ne l'est pas. */
+function _act_deciderJourTpLot(R) {
+  const { e, payload, action, code, user } = R;
+  if (user.role !== 'admin') {
+    return ContentService.createTextOutput(JSON.stringify({ success: false, error: 'Réservé au comité' }))
+      .setMimeType(ContentService.MimeType.JSON);
+  }
+  const liste = payload.decisions || [];
+  const detail = [];
+  let faits = 0, rates = 0;
+  liste.forEach(function (d) {
+    try {
+      const r = _routeRequete_({ parameter: { payload: JSON.stringify({
+        action: 'deciderJourTp', code: payload.code, year: payload.year,
+        decision: d.decision, doctorId: d.doctorId, date: d.date, retablir: d.retablir || {},
+      }) } });
+      const rep = JSON.parse(r.getContent());
+      if (rep && rep.success) faits++; else rates++;
+      detail.push({ date: d.date, doctorId: d.doctorId, decision: d.decision,
+                    success: !!(rep && rep.success), error: rep && rep.error,
+                    rendues: rep && rep.rendues });
+    } catch (eL) {
+      rates++;
+      detail.push({ date: d.date, doctorId: d.doctorId, decision: d.decision,
+                    success: false, error: eL.message });
+    }
+  });
+  logAction('deciderJourTpLot par ' + user.id + ' — ' + faits + ' décision(s) appliquée(s), ' + rates + ' échec(s)');
+  return ContentService.createTextOutput(JSON.stringify({ success: true, faits: faits, rates: rates, detail: detail }))
+    .setMimeType(ContentService.MimeType.JSON);
+}
+
+/* ── action "deciderJourTp" ── */
+function _act_deciderJourTp(R) {
+  const { e, payload, action, code, user } = R;
+  /* (23/08/2026 — refonte) LE COMITÉ ÉCRIT DANS LE PLANNING.
+     Valider, c'est écrire TP dans GARDES_{Y} et republier : sans ça, le
+     jour resterait un enregistrement sans effet. Refuser, c'est fermer le
+     jour pour toute l'équipe — rien n'ayant jamais touché le planning,
+     il n'y a rien à défaire. Tout est annulable, tout est journalisé. */
+  if (user.role !== 'admin') {
+    return ContentService.createTextOutput(JSON.stringify({ success: false, error: 'Réservé au comité' }))
+      .setMimeType(ContentService.MimeType.JSON);
+  }
+  const phD = _phaseTp_();
+  if (!phD.actif) {
+    return ContentService.createTextOutput(JSON.stringify({ success: false, error: 'Aucune phase de pose active' }))
+      .setMimeType(ContentService.MimeType.JSON);
+  }
+  const ds = String(payload.date || '').trim();
+  const anneeD = Number(ds.slice(0, 4));
+  if (phD.annees.indexOf(anneeD) === -1) {
+    return ContentService.createTextOutput(JSON.stringify({ success: false, error: 'L\'année ' + anneeD + ' n\'est pas ouverte à la pose' }))
+      .setMimeType(ContentService.MimeType.JSON);
+  }
+  const decision = String(payload.decision || '').trim();
+  let out = { success: false, error: 'décision inconnue : ' + decision };
+
+  if (decision === 'valider') {
+    const cibleId = String(payload.doctorId || '').trim();
+    const attend = _tpDemandes_(anneeD, cibleId).some(function (x) { return x.date === ds; });
+    if (!attend) {
+      out = { success: false, error: 'Cette demande n\'est plus en attente' };
+    } else if (!_tpGrilleEcrire_(anneeD, cibleId, ds, 'TP')) {
+      out = { success: false, error: 'La case du planning n\'est plus libre ce jour-là' };
+    } else {
+      _tpDemandeRetirer_(anneeD, ds, cibleId);
+      _tpRepublier_(anneeD);
+      logAction('deciderJourTp VALIDE ' + ds + ' (' + anneeD + ') ' + cibleId + ' par ' + user.id + ' — planning republié');
+      _tpNotifier_('Temps partiel validé',
+        'Votre jour du ' + _tpJourLisible_(ds) + ' est validé par le comité.', cibleId);
+      out = { success: true, date: ds, doctorId: cibleId };
+    }
+  }
+
+  if (decision === 'annuler_validation') {
+    const cibleId = String(payload.doctorId || '').trim();
+    if (!_tpGrilleEcrire_(anneeD, cibleId, ds, '')) {
+      out = { success: false, error: 'Ce jour n\'est plus un temps partiel accordé' };
+    } else {
+      _tpDemandeAjouter_(anneeD, ds, cibleId);      // il repasse en attente
+      _tpRepublier_(anneeD);
+      logAction('deciderJourTp ANNULE-VALIDATION ' + ds + ' (' + anneeD + ') ' + cibleId + ' par ' + user.id);
+      _tpNotifier_('Temps partiel remis en attente',
+        'Votre jour du ' + _tpJourLisible_(ds) + ' repasse en attente de validation.', cibleId);
+      out = { success: true, date: ds, doctorId: cibleId };
+    }
+  }
+
+  if (decision === 'refuser') {
+    _tpFermerJour_(anneeD, ds, user.id);
+    const rendues = {};
+    _tpDemandes_(anneeD).forEach(function (x) {
+      if (x.date !== ds) return;
+      rendues[x.mar] = 'TPA';
+      _tpDemandeRetirer_(anneeD, ds, x.mar);
+    });
+    logAction('deciderJourTp REFUS ' + ds + ' (' + anneeD + ') par ' + user.id +
+              ' — ' + Object.keys(rendues).length + ' demande(s) rendue(s) : ' + Object.keys(rendues).join(', '));
+    /* Le jour se ferme pour toute l'équipe, mais SEULS ceux qui l'avaient
+       demandé sont prévenus — les autres le verront simplement noir. */
+    Object.keys(rendues).forEach(function (idR) {
+      _tpNotifier_('Temps partiel refusé',
+        'Votre jour du ' + _tpJourLisible_(ds) + ' n\'a pas pu être accordé : l\'équipe serait trop réduite.', idR);
+    });
+    out = { success: true, date: ds, fermes: Array.from(_tpFermes_(anneeD)).sort(), rendues: rendues };
+  }
+
+  if (decision === 'annuler_refus') {
+    _tpRouvrirJour_(anneeD, ds);
+    const retablies = [];
+    Object.keys(payload.retablir || {}).forEach(function (idR) {
+      _tpDemandeAjouter_(anneeD, ds, idR);
+      retablies.push(idR);
+    });
+    logAction('deciderJourTp ANNULE-REFUS ' + ds + ' (' + anneeD + ') par ' + user.id +
+              ' — rétabli : ' + (retablies.join(', ') || 'personne'));
+    retablies.forEach(function (idR) {
+      _tpNotifier_('Temps partiel de nouveau en attente',
+        'Le ' + _tpJourLisible_(ds) + ' rouvre : votre demande est rétablie, en attente du comité.', idR);
+    });
+    out = { success: true, date: ds, fermes: Array.from(_tpFermes_(anneeD)).sort(), retablies: retablies };
+  }
+
+  return ContentService.createTextOutput(JSON.stringify(out))
+    .setMimeType(ContentService.MimeType.JSON);
+}
+
+/* ── action "getPoseTp" ── */
+/* (LOT 3 · 22/08/2026) Repli GAS de la clé pose_tp_{Y} : même contenu,
+   filtré à l'identité pour un rôle mar (le comité voit tout — écran du
+   lot 4). Sert quand le relais est injoignable ou la clé pas encore
+   poussée. Lecture seule, aucun verrou. */
+function _act_getPoseTp(R) {
+  const { e, payload, action, code, user } = R;
+  const ph = _phaseTp_();
+  if (!ph.actif) {
+    return ContentService.createTextOutput(JSON.stringify({ success: true, ferme: true }))
+      .setMimeType(ContentService.MimeType.JSON);
+  }
+  const anneeG = (ph.annees.indexOf(Number(payload.year)) !== -1) ? Number(payload.year) : ph.annee;
+  const t = _construirePoseTp_(anneeG);
+  t.annees = ph.annees;                      // (LOT 5) l'écran apprend ici quelles années sont ouvertes
+  if (user.role !== 'admin') {
+    const mien = {};
+    if (t.parMar && t.parMar[user.id]) mien[user.id] = t.parMar[user.id];
+    t.parMar = mien;
+  }
+  return ContentService.createTextOutput(JSON.stringify(t))
+    .setMimeType(ContentService.MimeType.JSON);
 }

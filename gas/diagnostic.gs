@@ -4,7 +4,7 @@
    quelles : aucune ligne de logique modifiée, seulement déplacée. Le routeur et
    ses aides (checkCode, _deny, _error, doGet/doPost) restent dans Indispos.gs.
    Un seul espace global dans Apps Script : rien à importer. */
-const GAS_VERSION_DIAG = '2026-09-15.1';
+const GAS_VERSION_DIAG = '2026-09-15.2';
 
 // ── LOG ───────────────────────────────────────────────────────────────
 /* ─────────────────────────────────────────────────────────────────────────────
@@ -998,4 +998,20 @@ function _diagNiveauToken_(jours) {
   if (j <= 10) return { niveau: 'ERR',  message: `Token GitHub expire dans ${j} j — À RENOUVELER MAINTENANT : passé cette date, plus aucune publication ne partira.` };
   if (j <= 30) return { niveau: 'WARN', message: `Token GitHub expire dans ${j} j — prévoir son renouvellement (sans lui, la publication s'arrête).` };
   return { niveau: 'INFO', message: `Token GitHub valide, expire dans ${j} j` };
+}
+
+/* ═══ ACTIONS DU ROUTEUR (15/09/2026, chantier 9 — étape 2) ═══
+   Chaque bloc « if (action === …) » de _routeRequete_ est devenu une fonction
+   _act_<nom>(R), corps mot pour mot, R = { e, payload, action, code, user }.
+   Le contrôle de rôle reste dans le corps, là où il était ; la table ACTIONS
+   (Indispos.gs) le déclare aussi, et le banc vérifie que les deux disent la
+   même chose. */
+
+/* ── action "diagComplet" ── */
+function _act_diagComplet(R) {
+  const { e, payload, action, code, user } = R;
+  if (user.role !== 'admin') return _deny();
+  const _d = diagnosticComplet();
+  return ContentService.createTextOutput(JSON.stringify({ success:true, ok:_d.ok, results:_d.results }))
+    .setMimeType(ContentService.MimeType.JSON);
 }

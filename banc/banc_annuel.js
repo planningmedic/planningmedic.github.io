@@ -143,7 +143,8 @@ console.log('\n═══ T130 · la clôture est refusée tant que l\'année sui
      garde-fou retiré du code. Un test qui recopie ne protège que la copie. */
   const src   = require('./stubs').sourceGasTout() /* (15/09) Indispos.gs découpé : tout le code serveur métier */;
   const srcPJ = extraireFonction('../gas/code.gs', 'getPremierJourPlanning');
-  const bloc  = (src.match(/\{\s*\n\s*const _debutNext = getPremierJourPlanning\(_next\);[\s\S]*?\n      \}\n/) || [])[0] || '';
+  // (15/09/2026) le bloc vit dans _act_archiveYear (indenté de 2, plus de 6) : on le borne par sa fermeture « \n  }\n  try {
+  const bloc  = (src.match(/\{\s*\n\s*const _debutNext = getPremierJourPlanning\(_next\);[\s\S]*?\n  \}\n(?=  try \{)/) || [])[0] || '';
   V('le garde-fou de date est présent dans le routage', !!bloc);
   V('il est placé AVANT l\'appel à archiveYear',
     !!bloc && src.indexOf('const _debutNext') < src.indexOf('const rapport = String(archiveYear(yearToArchive)'));

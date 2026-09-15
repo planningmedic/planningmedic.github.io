@@ -76,9 +76,10 @@ console.log('\n═══ 2. Un jour de congé se compte en jours TRAVAILLÉS ═
 /* ═══ 3. L'action est réservée au comité ════════════════════════════════ */
 console.log('\n═══ 3. Indispos.gs · l\'action getReliquats ═══');
 {
-  V('l\'action existe', /if \(action === 'getReliquats'\)/.test(IND));
+  // (15/09/2026) le routeur est une table : l'action est déclarée avec son rôle, son corps est _act_getReliquats
+  V('l\'action existe', /"getReliquats"\s*:\s*\{ role: 'admin'/.test(IND));
   V('elle est réservée au rôle admin',
-    /if \(action === 'getReliquats'\) \{[\s\S]{0,140}user\.role !== 'admin'[\s\S]{0,40}_deny\(\)/.test(IND));
+    /function _act_getReliquats\(R\) \{[\s\S]{0,140}user\.role !== 'admin'[\s\S]{0,40}_deny\(\)/.test(IND));
   V('elle vise une année explicite, avec repli sur l\'année active',
     /Number\(payload\.year\) \|\| getActiveYear\(\)/.test(IND));
   V('c\'est une LECTURE : pas de verrou d\'écriture à prendre',

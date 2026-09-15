@@ -4,7 +4,7 @@
    quelles : aucune ligne de logique modifiée, seulement déplacée. Le routeur et
    ses aides (checkCode, _deny, _error, doGet/doPost) restent dans Indispos.gs.
    Un seul espace global dans Apps Script : rien à importer. */
-const GAS_VERSION_GARDES = '2026-09-15.1';
+const GAS_VERSION_GARDES = '2026-09-15.2';
 
 // ── Sonde : les positions de STATS que code.gs lit à l'aveugle ──
 function _sondeStatsEntetes_(check, R, annee) {
@@ -1032,4 +1032,634 @@ function _caducsTrier_(liste, aujourdhuiIso) {
     (String(x && x.date) >= aujourdhuiIso ? futurs : passes).push(x);
   });
   return { futurs: futurs, passes: passes };
+}
+
+/* ═══ ACTIONS DU ROUTEUR (15/09/2026, chantier 9 — étape 2) ═══
+   Chaque bloc « if (action === …) » de _routeRequete_ est devenu une fonction
+   _act_<nom>(R), corps mot pour mot, R = { e, payload, action, code, user }.
+   Le contrôle de rôle reste dans le corps, là où il était ; la table ACTIONS
+   (Indispos.gs) le déclare aussi, et le banc vérifie que les deux disent la
+   même chose. */
+
+/* ── action "getStatsLive" ── */
+function _act_getStatsLive(R) {
+  const { e, payload, action, code, user } = R;
+  const statsYear = Number(payload.year) || TEST_YEAR;
+  try {
+    return ContentService.createTextOutput(JSON.stringify({success:true, stats:computeStatsLive(statsYear)}))
+      .setMimeType(ContentService.MimeType.JSON);
+  } catch (err) { return _error(err.message); }
+}
+
+/* ── action "getReliquats" ── */
+/* (01/09/2026) LE RELIQUAT DE CONGÉS, MAR par MAR.
+   Après la génération, le comité place ce qui n'a pas été posé pendant la
+   campagne : encore faut-il savoir ce qu'il reste. Le chiffre existait au
+   staff, mais seulement pour les vacances, et seulement avant la
+   génération. Ici : vacances, formations et temps partiels, à jour.
+   ⚠️ La SOURCE change avec l'état de l'année. Tant que le planning n'est
+   pas généré, tout vit dans INDISPOS_{Y}. Une fois généré, l'onglet
+   Statuts écrit dans GARDES_{Y} et JAMAIS dans INDISPOS : compter dans
+   INDISPOS raterait tout ce que le comité a posé depuis. GARDES fait donc
+   foi dès qu'il existe. */
+function _act_getReliquats(R) {
+  const { e, payload, action, code, user } = R;
+  if (user.role !== 'admin') return _deny();
+  const anR = Number(payload.year) || getActiveYear();
+  return ContentService.createTextOutput(JSON.stringify(computeReliquats(anR)))
+    .setMimeType(ContentService.MimeType.JSON);
+}
+
+/* ── action "getNoelAnEligibles" ── */
+function _act_getNoelAnEligibles(R) {
+  const { e, payload, action, code, user } = R;
+  const yr = parseInt(payload.year) || getIndisposYear();
+  const _rep = { success: true, year: yr,
+                 eligibles: computeNoelAnEligibles(yr, payload.tous === true) };
+  /* (01/09/2026) `historique` : l'ÉQUIPE ENTIÈRE avec toutes ses années de
+     Noël, pour le tableau du staff. Champ à part, volontairement : le
+     contrôle du W2 (admin.html) travaille sur `eligibles`, c'est-à-dire les
+     seuls PRIORITAIRES. Élargir cette liste-là ferait signaler comme
+     bloquants des MAR que le comité n'a aucune raison de retenir. */
+  if (payload.historique === true) _rep.historique = computeNoelAnHistorique(yr);
+  return ContentService.createTextOutput(JSON.stringify(_rep))
+    .setMimeType(ContentService.MimeType.JSON);
+}
+
+/* ── action "applyModification" ── */
+function _act_applyModification(R) {
+  const { e, payload, action, code, user } = R;
+  if (user.role !== 'admin') return _deny();
+  return ContentService.createTextOutput(JSON.stringify({
+    success: applyModification(payload.modification)
+  })).setMimeType(ContentService.MimeType.JSON);
+}
+
+/* ── action "getStats" ── */
+function _act_getStats(R) {
+  const { e, payload, action, code, user } = R;
+  if (user.role !== 'admin') return _deny();
+  const statsYear = Number(payload.year) || TEST_YEAR;
+  // (03/08/2026) Repli archives, meme raison que getGardes ci-dessus.
+  const ss = _ssWithSheet(`STATS_GARDES_${statsYear}`) || SpreadsheetApp.getActiveSpreadsheet();
+  const sheet = ss.getSheetByName(`STATS_GARDES_${statsYear}`);
+  if (!sheet) return _error(`Onglet STATS_GARDES_${statsYear} introuvable`);
+  const data = sheet.getDataRange().getValues();
+  const stats = [];
+  for (let r = 1; r < data.length; r++) {
+    if (!data[r][0]) continue;
+    stats.push({medecin:data[r][0], cible:data[r][1], total:data[r][2],
+      g:data[r][3], g2:data[r][4], lun:data[r][5], mar:data[r][6], mer:data[r][7],
+      jeu:data[r][8], ven:data[r][9], sat:data[r][10], dim:data[r][11],
+      recupR:data[r][12], h18:data[r][13],
+      jf:data[r][14], vjf:data[r][15], vd:data[r][20], cSat:data[r][17], cJeu:data[r][18], cVd:data[r][19], cVjf:data[r][21], cJf:data[r][22]});
+  }
+  return ContentService.createTextOutput(JSON.stringify({success:true, stats}))
+    .setMimeType(ContentService.MimeType.JSON);
+}
+
+/* ── action "generateGardes" ── */
+function _act_generateGardes(R) {
+  const { e, payload, action, code, user } = R;
+  if (user.role !== 'admin') return _deny();
+  logAction('DEBUG generateGardes: payload.year=' + payload.year + ' TEST_YEAR=' + TEST_YEAR);
+  const yearToGenerate = Number(payload.year) || TEST_YEAR;
+  logAction('DEBUG yearToGenerate=' + yearToGenerate);
+  if (yearToGenerate === 2026) return _error('Génération désactivée — GARDES_2026 est sanctuarisé');
+if (yearToGenerate === 2026) return _error('Génération désactivée — GARDES_2026 est sanctuarisé');
+  // ── (W2-R) Garde d'idempotence — même principe que archiveYear (15/07/2026).
+  // Cas visé : la génération a RÉUSSI côté serveur mais la réponse s'est
+  // perdue (réseau, onglet fermé, veille) → au réessai, generateGardes()
+  // lèverait « GARDES_{Y} existe déjà — supprimez d'abord l'onglet », un
+  // message que l'utilisateur pourrait suivre et DÉTRUIRE un planning valide.
+  // Ici : si l'année est déjà générée ET cohérente, on ne régénère pas, on
+  // renvoie les stats existantes et le wizard enchaîne sur publication/récaps.
+  // Le verrou de generateGardes() reste intact (appel direct depuis l'éditeur).
+  {
+    const ssChk = SpreadsheetApp.getActiveSpreadsheet();
+    const gChk = ssChk.getSheetByName(`GARDES_${yearToGenerate}`);
+    const sChk = ssChk.getSheetByName(`STATS_GARDES_${yearToGenerate}`);
+    // Cohérence stricte : les DEUX onglets présents et STATS non vide
+    // (au moins une ligne de données sous l'en-tête). Sinon → génération
+    // réellement incomplète : on laisse le flux normal remonter l'erreur.
+    if (gChk && sChk && sChk.getLastRow() > 1) {
+      const dChk = sChk.getDataRange().getValues();
+      const statsChk = [];
+      for (let r = 1; r < dChk.length; r++) {
+        if (!dChk[r][0]) continue;
+        statsChk.push({medecin:dChk[r][0], cible:dChk[r][1], total:dChk[r][2],
+          g:dChk[r][3], g2:dChk[r][4], lun:dChk[r][5], mar:dChk[r][6], mer:dChk[r][7],
+          jeu:dChk[r][8], ven:dChk[r][9], sat:dChk[r][10], dim:dChk[r][11],
+          recupR:dChk[r][12], h18:dChk[r][13],
+          jf:dChk[r][14], vjf:dChk[r][15], vd:dChk[r][20], cSat:dChk[r][17],
+          cJeu:dChk[r][18], cVd:dChk[r][19], cVjf:dChk[r][21], cJf:dChk[r][22]});
+      }
+      logAction(`generateGardes — ${yearToGenerate} déjà générée : reprise sans régénération (${statsChk.length} MARs)`);
+      return ContentService.createTextOutput(JSON.stringify({
+        success: true, alreadyDone: true, stats: statsChk
+      })).setMimeType(ContentService.MimeType.JSON);
+    }
+  }
+let _genWarn = { warnings: [], nbWarnings: 0 };
+try {
+  _genWarn = generateGardes(yearToGenerate) || _genWarn;
+  generatePlanning(yearToGenerate);
+    const ss = SpreadsheetApp.getActiveSpreadsheet();
+    const sheet = ss.getSheetByName(`STATS_GARDES_${yearToGenerate}`);
+    const data = sheet.getDataRange().getValues();
+    const stats = [];
+    for (let r = 1; r < data.length; r++) {
+      if (!data[r][0]) continue;
+      stats.push({medecin:data[r][0], cible:data[r][1], total:data[r][2],
+        g:data[r][3], g2:data[r][4], lun:data[r][5], mar:data[r][6], mer:data[r][7],
+        jeu:data[r][8], ven:data[r][9], sat:data[r][10], dim:data[r][11],
+        recupR:data[r][12], h18:data[r][13],
+        jf:data[r][14], vjf:data[r][15], vd:data[r][20], cSat:data[r][17], cJeu:data[r][18], cVd:data[r][19], cVjf:data[r][21], cJf:data[r][22]});
+    }
+    /* (01/09/2026) LES AVERTISSEMENTS DOIVENT SURVIVRE À LA FERMETURE DE
+       L'ASSISTANT. Jusqu'ici LOGS ne gardait que leur NOMBRE : le contenu
+       ne partait que dans le journal d'exécution d'Apps Script, invisible
+       depuis l'application. Constaté le 01/09 — « il y a eu des
+       avertissements mais je ne sais plus ce que c'était », et rien ne
+       permettait de les retrouver. C'est précisément le moment où le comité
+       en a besoin : ils disent quels replis l'algorithme a dû consentir.
+       Plafond de 25 lignes : LOGS est purgé au-delà de 501 lignes, et le
+       générateur peut en produire jusqu'à 60 — les écrire toutes chasserait
+       le reste du journal. Le compte exact figure sur la ligne de tête. */
+    logAction(`generateGardes ${yearToGenerate} — ${_genWarn.nbWarnings} avertissement(s)`);
+    {
+      const _w = _genWarn.warnings || [];
+      const _MAX = 25;
+      _w.slice(0, _MAX).forEach(function (t, k) {
+        logAction(`  avertissement ${k + 1}/${_genWarn.nbWarnings} · ${yearToGenerate} : ${t}`);
+      });
+      if (_w.length > _MAX) {
+        logAction(`  … ${_w.length - _MAX} avertissement(s) de plus, non détaillés (voir l'écran de génération)`);
+      }
+    }
+    return ContentService.createTextOutput(JSON.stringify({success:true, stats,
+      warnings: _genWarn.warnings, nbWarnings: _genWarn.nbWarnings}))
+      .setMimeType(ContentService.MimeType.JSON);
+  } catch(err) {
+    /* (LOT C · 01/09/2026) Un jour sans binôme n'est pas une panne : c'est
+       un diagnostic. Le générateur attache la STRUCTURE (err.joursVides) ;
+       la renvoyer telle quelle permet à l'écran de la mettre en forme.
+       Sans elle, le comité recevait trente lignes aplaties en un seul
+       paragraphe rouge, où le levier utile était noyé. */
+    if (err && err.joursVides) {
+      logAction('generateGardes ' + yearToGenerate + ' — bloqué : ' +
+        err.joursVides.length + ' jour(s) sans binôme (' +
+        err.joursVides.map(function (o) { return o.date; }).join(', ') + ')');
+      return ContentService.createTextOutput(JSON.stringify({
+        success: false,
+        error: err.joursVides.length + ' jour(s) sans binôme de garde — rien n\'a été écrit.',
+        joursVides: err.joursVides,
+        messageComplet: err.message
+      })).setMimeType(ContentService.MimeType.JSON);
+    }
+    return _error(err.message);
+  }
+}
+
+/* ── action "getGardes" ── */
+function _act_getGardes(R) {
+  const { e, payload, action, code, user } = R;
+  if (user.role !== 'admin') return _deny();
+  const gYear = Number(payload.year) || TEST_YEAR;              // (C3) année paramétrable
+  /* (03/08/2026) Repli sur le classeur d'archives : une annee cloturee voit ses
+     onglets deplaces hors du maitre, et cet endpoint repondait « introuvable ».
+     L'onglet Statuts et l'equite initiale d'une annee passee etaient donc morts. */
+  const ss = _ssWithSheet(`GARDES_${gYear}`) || SpreadsheetApp.getActiveSpreadsheet();
+  const sheet = ss.getSheetByName(`GARDES_${gYear}`);
+  if (!sheet) return _error(`Onglet GARDES_${gYear} introuvable`);
+  const data = sheet.getDataRange().getValues();
+  const dateToCol = buildDateToCol(data, gYear);                // (C3) ancré 1er lundi → fin du décalage + queue janvier N+1
+  const result = {};
+  for (let r = 3; r < data.length; r++) {
+    const id = String(data[r][0]).trim();
+    if (!id) continue;
+    Object.keys(dateToCol).forEach(date => {
+      const val = String(data[r][dateToCol[date]] || '').trim();
+      if (!val) return;
+      if (!result[date]) result[date] = {};
+      result[date][id] = val;
+    });
+  }
+  return ContentService.createTextOutput(JSON.stringify({success:true, data:result, year:gYear}))
+    .setMimeType(ContentService.MimeType.JSON);
+}
+
+/* ── action "publishPlanning" ── */
+function _act_publishPlanning(R) {
+  const { e, payload, action, code, user } = R;
+  if (user.role !== 'admin') return _deny();
+  try {
+    /* (2026-08-04.8) PUBLICATION COMBINEE : le lot de placements en
+       attente arrive DANS le meme appel (payload.items) — un aller-retour
+       au lieu de deux. Meme fonction que l'action dediee : lignes visees
+       par (date, MAR), rejouable sans doublon. Lot vide ou absent :
+       comportement inchange. */
+    let _lotEcrit = 0;
+    if (Array.isArray(payload.items) && payload.items.length) {
+      const _resLot = savePlanningOverridesBatch(payload.items);
+      _lotEcrit = (_resLot && _resLot.saved) || 0;
+    }
+    generatePlanning(Number(payload.year) || TEST_YEAR);
+    // Notifications : arme le minuteur d'accalmie. Isolé : un échec ici
+    // ne doit jamais faire échouer la publication.
+    try { notifPlanifier(Number(payload.year) || TEST_YEAR); } catch (e) {}
+    return ContentService.createTextOutput(JSON.stringify({
+      success: true, message: `Planning ${TEST_YEAR} publié`, lotEcrit: _lotEcrit
+    })).setMimeType(ContentService.MimeType.JSON);
+  } catch(err) { return _error(err.message); }
+}
+
+/* ── action "getOverrides" ── */
+function _act_getOverrides(R) {
+  const { e, payload, action, code, user } = R;
+  if (user.role !== 'admin') return _deny();
+  return ContentService.createTextOutput(JSON.stringify(_buildOverrides_()))
+    .setMimeType(ContentService.MimeType.JSON);
+}
+
+/* ── action "deleteOverride" ── */
+function _act_deleteOverride(R) {
+  const { e, payload, action, code, user } = R;
+  if (user.role !== 'admin') return _deny();
+  const rowIndex = Number(payload.rowIndex);
+  if (!rowIndex || rowIndex < 2) return _error('Index invalide');
+  const ss = SpreadsheetApp.getActiveSpreadsheet();
+  const sheet = ss.getSheetByName('OVERRIDES');
+  if (!sheet) return _error('Onglet OVERRIDES introuvable');
+  sheet.deleteRow(rowIndex);
+  generatePlanning();
+  return ContentService.createTextOutput(JSON.stringify({success:true}))
+    .setMimeType(ContentService.MimeType.JSON);
+}
+
+/* ── action "getAffectations" ── */
+function _act_getAffectations(R) {
+  const { e, payload, action, code, user } = R;
+  if (user.role !== 'admin') return _deny();
+  const affYear = Number(payload.year) || TEST_YEAR;
+  const ss = SpreadsheetApp.getActiveSpreadsheet();
+  const sheet = ss.getSheetByName(`AFFECTATIONS_${affYear}`);
+  if (!sheet) return ContentService.createTextOutput(JSON.stringify({success:true, affectations:{}}))
+    .setMimeType(ContentService.MimeType.JSON);
+  const data = sheet.getDataRange().getValues();
+  const affectations = {};
+  for (let r = 1; r < data.length; r++) {
+    const id = String(data[r][0]).trim();
+    if (!id) continue;
+    affectations[id] = {};
+    for (let m = 1; m <= 12; m++) {
+      const val = String(data[r][m]||'').trim();
+      if (val) affectations[id][m] = val;
+    }
+  }
+  return ContentService.createTextOutput(JSON.stringify({success:true, affectations}))
+    .setMimeType(ContentService.MimeType.JSON);
+}
+
+/* ── action "saveAffectations" ── */
+function _act_saveAffectations(R) {
+  const { e, payload, action, code, user } = R;
+  if (user.role !== 'admin') return _deny();
+  const aff = payload.affectations;
+  if (!aff) return _error('Données manquantes');
+  const ss = SpreadsheetApp.getActiveSpreadsheet();
+  const affYear = Number(payload.year) || TEST_YEAR;
+  const sheetName = `AFFECTATIONS_${affYear}`;
+  const sheet = ss.getSheetByName(sheetName);
+  if (!sheet) return _error(`Onglet ${sheetName} introuvable`);
+  const res = ecrireAffectations(sheet, aff);
+  logAction(`saveAffectations — ${res.maj} MAR(s) mis à jour` +
+        (res.crees ? `, ${res.crees} ligne(s) créée(s)` : ''));
+  
+  // ← AJOUT : republier le planning après chaque modification d'affectation
+  try { generatePlanning(affYear); } catch(e) { Logger.log('generatePlanning error: ' + e.message); }
+
+  return ContentService.createTextOutput(JSON.stringify({success:true}))
+.setMimeType(ContentService.MimeType.JSON);
+}
+
+/* ── action "saveAffectationsMar" ── */
+function _act_saveAffectationsMar(R) {
+  const { e, payload, action, code, user } = R;
+  if (user.role !== 'admin') return _deny();
+  const medecinId = String(payload.medecin || '').trim().toUpperCase();
+  const aff = payload.affectations;
+  if (!medecinId || !aff) return _error('Données manquantes');
+  const ss = SpreadsheetApp.getActiveSpreadsheet();
+  const sheet = ss.getSheetByName(`AFFECTATIONS_${TEST_YEAR}`);
+  if (!sheet) return _error(`Onglet AFFECTATIONS_${TEST_YEAR} introuvable`);
+  const data = sheet.getDataRange().getValues();
+  const vals = [];
+  for (let m = 1; m <= 12; m++) vals.push(aff[m] || 'VOLANT');
+  let found = false;
+  for (let r = 1; r < data.length; r++) {
+if (String(data[r][0]).trim().toUpperCase() === medecinId) {
+  sheet.getRange(r + 1, 2, 1, 12).setValues([vals]);
+  found = true; break;
+}
+  }
+  if (!found) {
+sheet.appendRow([medecinId, ...vals]);
+  }
+  logAction(`saveAffectationsMar — ${medecinId} mis à jour`);
+  return ContentService.createTextOutput(JSON.stringify({success: true, created: !found}))
+.setMimeType(ContentService.MimeType.JSON);
+}
+
+/* ── action "savePlanningOverride" ── */
+// ── ACTION : savePlanningOverride ─────────────────────────────────────
+// Appelé quand le comité place un MAR dans une case flash
+// payload : { action, code, date, marId, morning, afternoon, comment }
+function _act_savePlanningOverride(R) {
+  const { e, payload, action, code, user } = R;
+  if (user.role !== 'admin') return _deny();
+  const { date, marId, morning, afternoon, comment } = payload;
+  if (!date || !marId) return _error('date et marId requis');
+  try {
+// Passer morning/afternoon TELS QUELS : null ou '' = « demi-jour non modifié »
+// (savePlanningOverride ne touchera alors pas cette colonne). Plus de recopie matin→aprem.
+savePlanningOverride(date, marId, morning, afternoon, comment || '');
+logAction(`savePlanningOverride — ${marId} le ${date} → ${morning}`);
+return ContentService.createTextOutput(JSON.stringify({success: true}))
+  .setMimeType(ContentService.MimeType.JSON);
+  } catch(e) {
+return _error(e.message);
+  }
+}
+
+/* ── action "savePlanningOverridesBatch" ── */
+// ── ACTION : savePlanningOverridesBatch ───────────────────────────────
+// Toute une rafale de placements du comité en UN appel (>20 par session mesurés).
+// payload : { action, code, items:[{date, marId, morning, afternoon, comment}, …] }
+// Exclue de WRITE_ACTIONS_LOCK comme l'unitaire : verrou dédié dans code.gs
+// (même verrou de script → exclusion mutuelle avec l'unitaire et deleteOverride).
+function _act_savePlanningOverridesBatch(R) {
+  const { e, payload, action, code, user } = R;
+  if (user.role !== 'admin') return _deny();
+  const items = Array.isArray(payload.items) ? payload.items : [];
+  if (!items.length) return _error('items requis');
+  try {
+const res = savePlanningOverridesBatch(items);
+logAction(`savePlanningOverridesBatch — ${res.saved} placement(s) (${items.length} item(s) reçus)`);
+return ContentService.createTextOutput(JSON.stringify({success: true, saved: res.saved}))
+  .setMimeType(ContentService.MimeType.JSON);
+  } catch(e) {
+return _error(e.message);
+  }
+}
+
+/* ── action "getPanneauSemaine" ── */
+// ── ACTION : getPanneauSemaine ────────────────────────────────────────
+// (28/07/2026) UN SEUL APPEL POUR TOUTE LA SEMAINE.
+// Mesure du jour : une requete qui ne fait RIEN (17 ms de travail) coute 2 a 3 s
+// d'attente a la porte d'entree Google — identique sur un deploiement neuf, donc
+// hors de notre controle. Le seul levier est de payer ce peage moins souvent.
+// Le panneau de placement coutait 2 appels PAR JOUR ouvert (dispos + liberal) ;
+// il n'en coute plus qu'UN pour les 7 jours, lance en arriere-plan des l'affichage
+// de la semaine. Au clic, le panneau s'ouvre sans aucun appel.
+// Le surcout serveur est faible : les onglets (GARDES, AFFECTATIONS, MEDECINS)
+// sont lus UNE fois pour les 7 jours, la ou getMARsDispoJour les relisait a chaque
+// appel. Seule la boucle par jour se repete, sur des donnees deja en memoire.
+// payload : { action, code, dates:[ '2026-08-03', … ] }  (1 a 10 dates)
+function _act_getPanneauSemaine(R) {
+  const { e, payload, action, code, user } = R;
+  if (user.role !== 'admin') return _deny();
+  const dates = Array.isArray(payload.dates) ? payload.dates.map(function(d){ return String(d||'').trim(); }).filter(Boolean) : [];
+  if (!dates.length) return _error('dates requises');
+  if (dates.length > 10) return _error('10 dates maximum');
+  try {
+const ss = SpreadsheetApp.getActiveSpreadsheet();
+// Une seule annee par appel : la semaine a cheval sur deux annees civiles reste
+// dans la meme annee de planning (GARDES_{Y} couvre jusqu'a debut janvier).
+const year = Number(dates[0].slice(0,4));
+const gardesSheet = ss.getSheetByName('GARDES_' + year);
+if (!gardesSheet) return _error('GARDES_' + year + ' introuvable');
+
+// ── Lectures MUTUALISEES : une fois pour les 7 jours ──
+const gardesData = gardesSheet.getDataRange().getValues();
+const dateToCol  = buildDateToCol(gardesData, year);
+const affSheet   = ss.getSheetByName('AFFECTATIONS_' + year);
+const affData    = affSheet ? affSheet.getDataRange().getValues() : null;
+const medSheet   = ss.getSheetByName('MEDECINS');
+const actifs = [];
+const initMap = {};
+if (medSheet) {
+  const medData = _medecinsRows_();
+  for (let r = 1; r < medData.length; r++) {
+    const id = String(medData[r][COL_MED.ID]).trim();
+    if (!id) continue;
+    initMap[id] = String(medData[r][COL_MED.INITIALES] || '').trim();
+    if (String(medData[r][COL_MED.ACTIF]).trim().toUpperCase() === 'O') actifs.push(id);
+  }
+}
+const FLAGS = getMedecinFlags();
+// Affectations par mois : memoisees, la semaine ne couvre au plus que deux mois.
+const affParMois = {};
+const _affDuMois = function (monthIdx) {
+  if (affParMois[monthIdx]) return affParMois[monthIdx];
+  const m = {};
+  if (affData) {
+    for (let r = 1; r < affData.length; r++) {
+      const id = String(affData[r][0]).trim();
+      if (!id) continue;
+      m[id] = normalizeAffectation(String(affData[r][monthIdx] || '').trim().toUpperCase());
+    }
+  }
+  affParMois[monthIdx] = m;
+  return m;
+};
+/* (04/08/2026, etage 2) CŒUR PARTAGÉ — la logique de tri vit desormais
+   dans calculerDispoJour (fichier `dispo_jour`, source unique du depot :
+   partage/dispo_jour.js, incluse A L'IDENTIQUE cote frontend).
+   Equivalence prouvee par test-oracle (400 cas) avant extraction.
+   Toute evolution du tri se fait LA-BAS et se deploie des deux cotes. */
+const jours = {};
+dates.forEach(function (targetDate) {
+  const colIdx = dateToCol[targetDate];
+  if (colIdx === undefined) { jours[targetDate] = {dispo: [], absent: true}; return; }
+  const codeById = {};
+  for (let r = 3; r < gardesData.length; r++) {
+    const gid = String(gardesData[r][0]).trim();
+    if (gid) codeById[gid] = String(gardesData[r][colIdx] || '').trim().toUpperCase();
+  }
+  jours[targetDate] = { dispo: calculerDispoJour(targetDate, {
+    actifs: actifs, initiales: initMap,
+    affectationDuMois: _affDuMois(new Date(targetDate + 'T12:00:00').getMonth() + 1),
+    codeById: codeById, flags: FLAGS,
+  }) };
+});
+
+// ── Liberal : l'onglet LIBERAL_{Y} lu UNE fois pour les 7 jours ──
+// (listLiberalJour le relisait entierement a chaque jour ouvert)
+const liberal = {};
+dates.forEach(function (d) { liberal[d] = []; });
+try {
+  // ⚠️ Une semaine peut chevaucher DEUX annees civiles (28/12 → 03/01), et les
+  // declarations sont rangees par annee civile de la DATE DE BLOC. Lire le seul
+  // onglet du lundi faisait disparaitre les interventions de janvier (mesure du
+  // 29/07/2026 : 3 jours en 2026→2027, 6 en 2029→2030). On lit chaque annee
+  // presente dans la semaine. (Ici c'est bien l'annee CIVILE, pas anneePlanning :
+  // les onglets LIBERAL_{Y} suivent le releve, qui est calendaire.)
+  const _libAns = {};
+  dates.forEach(function (d) { _libAns[_libYearOf(d)] = true; });
+  Object.keys(_libAns).forEach(function (_an) {
+    const libSh = ss.getSheetByName(_libSheetName(Number(_an)));
+    if (!libSh) return;
+    const libData = libSh.getDataRange().getValues();
+    for (let r = 1; r < libData.length; r++) {
+      const dBloc = _isoDate(libData[r][2]);
+      if (!liberal.hasOwnProperty(dBloc)) continue;
+      liberal[dBloc].push({
+        id:         String(libData[r][0]),
+        marId:      String(libData[r][3]).trim(),
+        secteur:    String(libData[r][4]).trim().toUpperCase(),
+        chirurgie:  String(libData[r][5] || '').trim(),
+        specialite: String(libData[r][6] || '').trim().toUpperCase(),
+        brCcam:     _libMoney_(libData[r][7]),
+        brNgap:     _libMoney_(libData[r][8]),
+      });
+    }
+  });
+  Object.keys(liberal).forEach(function (d) {
+    liberal[d].sort(function (a, b) { return String(a.marId).localeCompare(String(b.marId)); });
+  });
+} catch(e) {
+  // Le volet liberal est un confort : son echec ne doit jamais priver le comite
+  // des dispos. On renvoie des listes vides plutot qu'une erreur.
+}
+
+return ContentService.createTextOutput(JSON.stringify({
+  success: true, dates: dates, jours: jours, liberal: liberal
+})).setMimeType(ContentService.MimeType.JSON);
+  } catch(e) {
+return _error(e.message);
+  }
+}
+
+/* ── action "getMARsDispoJour" ── */
+// ── ACTION : getMARsDispoJour ─────────────────────────────────────────
+// Retourne les MARs disponibles un jour donné pour le popup "combler case flash"
+// Groupés par rôle : VOLANT / CTP / R / autres présents
+// payload : { action, code, date }
+function _act_getMARsDispoJour(R) {
+  const { e, payload, action, code, user } = R;
+  if (user.role !== 'admin') return _deny();
+  const targetDate = String(payload.date || '').trim();
+  if (!targetDate) return _error('date requise');
+
+  const ss = SpreadsheetApp.getActiveSpreadsheet();
+  const year = Number(targetDate.slice(0,4));
+  const gardesSheet = ss.getSheetByName(`GARDES_${year}`);
+  if (!gardesSheet) return _error(`GARDES_${year} introuvable`);
+
+  const gardesData = gardesSheet.getDataRange().getValues();
+  const dateToCol = buildDateToCol(gardesData, year);
+  const colIdx = dateToCol[targetDate];
+  if (colIdx === undefined) return _error(`Date ${targetDate} introuvable dans GARDES_${year}`);
+
+  const affSheet = ss.getSheetByName(`AFFECTATIONS_${year}`);
+  const medSheet = ss.getSheetByName('MEDECINS');
+
+  // Lire l'affectation de chaque MAR
+  const affMap = {}; // marId → secteur
+  if (affSheet) {
+const affData = affSheet.getDataRange().getValues();
+const dt = new Date(targetDate + 'T12:00:00');
+const monthIdx = dt.getMonth() + 1; // 1-12
+for (let r = 1; r < affData.length; r++) {
+  const id = String(affData[r][0]).trim();
+  if (!id) continue;
+  // Colonne du mois (1=JAN, 2=FEV, ... 12=DEC)
+  affMap[id] = normalizeAffectation(String(affData[r][monthIdx] || '').trim().toUpperCase());
+}
+  }
+
+  // Lire les actifs depuis MEDECINS
+  const actifs = new Set();
+  const initMap = {};
+  if (medSheet) {
+const medData = _medecinsRows_();
+for (let r = 1; r < medData.length; r++) {
+  const id = String(medData[r][COL_MED.ID]).trim();
+  if (!id) continue;
+  initMap[id] = String(medData[r][COL_MED.INITIALES] || '').trim();   // colonne INITIALES
+  if (String(medData[r][COL_MED.ACTIF]).trim().toUpperCase() === 'O') actifs.add(id);
+}
+  }
+
+  const FLAGS = getMedecinFlags(); // (C2-D2) date_debut/date_fin externalisées → MEDECINS
+
+  // (C2-D2) Index des codes GARDES par MAR (un MAR sans ligne GARDES → code vide).
+  const codeById = {};
+  for (let r = 3; r < gardesData.length; r++) {
+const gid = String(gardesData[r][0]).trim();
+if (gid) codeById[gid] = String(gardesData[r][colIdx] || '').trim().toUpperCase();
+  }
+
+  /* (04/08/2026, etage 2) CŒUR PARTAGÉ — meme delegation que getPanneauSemaine :
+ calculerDispoJour (fichier `dispo_jour` / partage/dispo_jour.js). L'iteration
+ sur l'effectif MEDECINS actifs (C2-D2) et toutes les regles (TP fixes C2-D3,
+ bornes, rythme 2/2, tri VOLANT en tete) vivent dans le module. */
+  const dispo = calculerDispoJour(targetDate, {
+actifs: Array.from(actifs), initiales: initMap,
+affectationDuMois: affMap, codeById: codeById, flags: FLAGS,
+  });
+
+  return ContentService.createTextOutput(JSON.stringify({
+success: true, date: targetDate, dispo
+  })).setMimeType(ContentService.MimeType.JSON);
+}
+
+/* ── action "setDailyStatus" ── */
+/* (10/09/2026) ENVOI DES CODES SUPPRIMÉ — l'action `sendCodesWithRecap`
+   terminait le W1 par un mail portant trois choses : le code d'accès, le
+   récap des congés posés au staff, et l'annonce de l'ouverture.
+   Les trois ont perdu leur raison d'être : le code des indispos est devenu
+   celui du portail (plus rien à rappeler), les VAC/FORM verrouillés sont
+   consultables dans « Mes indispos » avec leur cadenas, et l'ouverture
+   s'annonce de vive voix — le staff est justement en séance à ce moment-là.
+   `renderRecapMailBlocks_` est partie avec : plus aucun appelant.
+   L'ouverture de la saisie N'A JAMAIS été faite ici : elle est écrite à
+   l'étape 4, par setIndisposYear (INDISPOS_ACTIVE). Rien n'a changé de ce
+   côté. */
+function _act_setDailyStatus(R) {
+  const { e, payload, action, code, user } = R;
+  if (user.role !== 'admin') return _deny();
+  /* (2026-08-05.9) Corps extrait dans appliquerStatutJour — une seule
+     source pour le routage et l'applicateur du journal. */
+  try {
+    const res = appliquerStatutJour(
+      Number(payload.year) || TEST_YEAR,
+      payload.marId, payload.statut,
+      Array.isArray(payload.dates) ? payload.dates : (payload.date ? [String(payload.date)] : []));
+    return ContentService.createTextOutput(JSON.stringify({ success: true, applied: res.applied, rejected: res.rejected }))
+      .setMimeType(ContentService.MimeType.JSON);
+  } catch (e) { return _error(e.message); }
+}
+
+/* ── action "getAffectationsJson" ── */
+function _act_getAffectationsJson(R) {
+  const { e, payload, action, code, user } = R;
+  const jy = parseInt(payload.year) || getActiveYear();
+  const raw = readPlanningFromDrive(`affectations_${jy}.json`);
+  if (!raw) return _error(`affectations_${jy}.json introuvable dans le Drive`);
+  return ContentService.createTextOutput(JSON.stringify({success:true, affectations: JSON.parse(raw)}))
+    .setMimeType(ContentService.MimeType.JSON);
+}
+
+/* ── action "getPlanningJson" ── */
+// ── JSON du planning (Drive) — consommés par planning.html / index.html ──
+// (Reconstruits après la régression de recopie : ils n'existaient qu'en prod.)
+function _act_getPlanningJson(R) {
+  const { e, payload, action, code, user } = R;
+  const jy = parseInt(payload.year) || getActiveYear();
+  const raw = readPlanningFromDrive(`planning_${jy}.json`);
+  if (!raw) return _error(`planning_${jy}.json introuvable dans le Drive`);
+  return ContentService.createTextOutput(JSON.stringify({success:true, planning: JSON.parse(raw)}))
+    .setMimeType(ContentService.MimeType.JSON);
 }

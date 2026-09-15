@@ -17,16 +17,8 @@ const FICHIER = '../gas/Indispos.gs';
 const SRC = fs.readFileSync(FICHIER, 'utf8');
 
 /* Découpe du bloc routeur par appariement d'accolades. */
-function extraireBloc(marque, nomFn) {
-  const i = SRC.indexOf(marque);
-  if (i < 0) throw new Error('bloc introuvable : ' + marque);
-  let prof = 0, j = SRC.indexOf('{', i);
-  for (; j < SRC.length; j++) {
-    if (SRC[j] === '{') prof++;
-    else if (SRC[j] === '}') { prof--; if (prof === 0) break; }
-  }
-  return `function ${nomFn}(action, payload, user) {\n` + SRC.slice(i, j + 1) + '\n  return null;\n}';
-}
+/* (15/09/2026) Le bloc routeur est devenu _act_resetCodeMar : même handler, via stubs.blocAction. */
+function extraireBloc(marque, nomFn) { return require('./stubs').blocAction(marque, nomFn); }
 
 /* Un classeur minimal : trois MAR, un code admin dans CONFIG.
    Colonnes MEDECINS de production : 0 id, 1 nom, 6 code, 7 email. */

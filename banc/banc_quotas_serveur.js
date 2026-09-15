@@ -12,7 +12,7 @@ const MIR = fs.readFileSync(path.join(__dirname, '..', 'gas', 'miroir.gs'), 'utf
 
 console.log('═══ 1. Le serveur sert la table, par les deux chemins ═══');
 V('l\'action getVacancesConfig renvoie quotasConges, lu par _loadQuotasConges (la même lecture que les quotas du serveur)',
-  /getVacancesConfig'[\s\S]{0,3000}quotasConges:_loadQuotasConges\(\)/.test(IND));
+  /function _act_getVacancesConfig\(R\)[\s\S]{0,3000}quotasConges:_loadQuotasConges\(\)/.test(require('./stubs').sourceGasTout()));   // (15/09) l'action est une fonction dans indisponibilites.gs
 V('la clé miroir vacances_admin porte la même table', /noel: noel, quotasConges: _loadQuotasConges\(\) \}/.test(MIR));
 V('une modification de CONFIG_CONGES rafraîchit vacances_admin', /CONFIG_CONGES: \['vacances_admin'\]/.test(MIR));
 

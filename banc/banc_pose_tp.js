@@ -15,18 +15,8 @@ const SRC_IND = require('./stubs').sourceGasTout() /* (15/09) Indispos.gs décou
 
 /* Le bloc routeur `if (action === 'saveIndispos') { … }` est découpé du vrai
    fichier par appariement d'accolades, puis enveloppé dans une fonction. */
-function extraireBlocHandler() {
-  const marque = "if (action === 'saveIndispos') {";
-  const i = SRC_IND.indexOf(marque);
-  if (i < 0) throw new Error('bloc saveIndispos introuvable');
-  let prof = 0, j = SRC_IND.indexOf('{', i);
-  for (; j < SRC_IND.length; j++) {
-    if (SRC_IND[j] === '{') prof++;
-    else if (SRC_IND[j] === '}') { prof--; if (prof === 0) break; }
-  }
-  return 'function handlerSaveIndispos(action, payload, user) {\n' +
-         SRC_IND.slice(i, j + 1) + '\n  return null;\n}';
-}
+/* (15/09/2026) Le bloc routeur est devenu _act_saveIndispos(R) : même handler, via stubs.blocAction. */
+function extraireBlocHandler() { return require('./stubs').blocAction('saveIndispos', 'handlerSaveIndispos'); }
 
 /* Constantes réelles extraites du fichier livré (jamais recopiées à la main). */
 function extraireConst(nom) {
@@ -606,14 +596,11 @@ console.log('\n═══ PT16 · la clé pose_tp : effectifs anonymes, blocages 
 console.log('\n═══ PT17 · l\'action getPoseTp : le MAR ne voit que lui, le comité voit tout ═══');
 {
   const b = monde({ indispos: [['ZORRO', '2027-03-09', 'TP']] });
-  const marque = "if (action === 'getPoseTp') {";
-  const i = SRC_IND.indexOf(marque);
-  V('le bloc getPoseTp existe dans le routeur', i > 0);
-  let prof = 0, j = SRC_IND.indexOf('{', i);
-  for (; j < SRC_IND.length; j++) { if (SRC_IND[j] === '{') prof++; else if (SRC_IND[j] === '}') { prof--; if (prof === 0) break; } }
+  // (15/09/2026) l'action est une fonction _act_getPoseTp, déclarée dans la table du routeur
+  V('l\'action getPoseTp existe dans la table du routeur', /"getPoseTp"\s*:\s*\{ role:/.test(SRC_IND));
   ['_tpFermesSheet_', '_tpFermes_'].forEach(n => vm.runInContext(extraireFonction('../gas/Indispos.gs', n), b.ctx));
   vm.runInContext(extraireFonction('../gas/Indispos.gs', '_construirePoseTp_'), b.ctx);
-  vm.runInContext('function handlerGetPoseTp(action, payload, user) {\n' + SRC_IND.slice(i, j + 1) + '\n return null; }', b.ctx);
+  vm.runInContext(require('./stubs').blocAction('getPoseTp', 'handlerGetPoseTp'), b.ctx);
   const mar = vm.runInContext("handlerGetPoseTp('getPoseTp', {}, {role:'mar', id:'POSEUR'})", b.ctx);
   V('rôle mar : effectifs présents, parMar réduit à LUI SEUL',
     mar.presents && Object.keys(mar.parMar).length === 1 && !!mar.parMar['POSEUR'], Object.keys(mar.parMar || {}));
@@ -624,7 +611,7 @@ console.log('\n═══ PT17 · l\'action getPoseTp : le MAR ne voit que lui, l
   const b2 = monde({ gardes2027: false });
   ['_tpFermesSheet_', '_tpFermes_'].forEach(n => vm.runInContext(extraireFonction('../gas/Indispos.gs', n), b2.ctx));
   vm.runInContext(extraireFonction('../gas/Indispos.gs', '_construirePoseTp_'), b2.ctx);
-  vm.runInContext('function handlerGetPoseTp(action, payload, user) {\n' + SRC_IND.slice(i, j + 1) + '\n return null; }', b2.ctx);
+  vm.runInContext(require('./stubs').blocAction('getPoseTp', 'handlerGetPoseTp'), b2.ctx);
   const ferme = vm.runInContext("handlerGetPoseTp('getPoseTp', {}, {role:'mar', id:'POSEUR'})", b2.ctx);
   V('phase fermée → { ferme:true }, jamais d\'erreur', ferme.success === true && ferme.ferme === true, ferme);
 }
@@ -718,12 +705,8 @@ console.log('\n═══ PT21 · TP_FERMES : fermer, refuser pour tous, rouvrir 
 console.log('\n═══ PT22 · deciderJourTp : les quatre gestes du comité, annulables ═══');
 {
   const b = monde({ indispos: [['POSEUR', '2027-03-02', 'TPA'], ['ZORRO', '2027-03-02', 'TPA'], ['POSEUR', '2027-03-05', 'TPA']] });
-  const marque = "if (action === 'deciderJourTp') {";
-  const i = SRC_IND.indexOf(marque);
-  V('le bloc deciderJourTp existe dans le routeur', i > 0);
-  let prof = 0, j = SRC_IND.indexOf('{', i);
-  for (; j < SRC_IND.length; j++) { if (SRC_IND[j] === '{') prof++; else if (SRC_IND[j] === '}') { prof--; if (prof === 0) break; } }
-  vm.runInContext('function handlerDecider(action, payload, user) {\n' + SRC_IND.slice(i, j + 1) + '\n return null; }', b.ctx);
+  V('l\'action deciderJourTp existe dans la table du routeur', /"deciderJourTp"\s*:\s*\{ role:/.test(SRC_IND));
+  vm.runInContext(require('./stubs').blocAction('deciderJourTp', 'handlerDecider'), b.ctx);
   const dec = (p, u) => vm.runInContext(`handlerDecider('deciderJourTp', ${JSON.stringify(p)}, ${JSON.stringify(u)})`, b.ctx);
   V('un rôle mar est refusé', dec({ decision: 'valider', doctorId: 'POSEUR', date: '2027-03-02' }, MAR).success === false);
   const v = dec({ decision: 'valider', doctorId: 'POSEUR', date: '2027-03-02' }, ADMIN);
@@ -932,11 +915,7 @@ console.log('\n═══ PT29 · la réponse du comité se NOTIFIE, à la bonne 
   const b = monde({ indispos: [['POSEUR', '2027-03-02', 'TPA'], ['ZORRO', '2027-03-02', 'TPA'],
                                ['POSEUR', '2027-03-05', 'TPA']] });
   const envois = b.envois;
-  const marque = "if (action === 'deciderJourTp') {";
-  const i = SRC_IND.indexOf(marque);
-  let prof = 0, j = SRC_IND.indexOf('{', i);
-  for (; j < SRC_IND.length; j++) { if (SRC_IND[j] === '{') prof++; else if (SRC_IND[j] === '}') { prof--; if (prof === 0) break; } }
-  vm.runInContext('function handlerDecider(action, payload, user) {\n' + SRC_IND.slice(i, j + 1) + '\n return null; }', b.ctx);
+  vm.runInContext(require('./stubs').blocAction('deciderJourTp', 'handlerDecider'), b.ctx);
   const dec = (p) => vm.runInContext(`handlerDecider('deciderJourTp', ${JSON.stringify(p)}, ${JSON.stringify(ADMIN)})`, b.ctx);
 
   V('la date se dit en toutes lettres, pas en chiffres',
@@ -989,11 +968,7 @@ console.log('\n═══ PT30 · la republication est DIFFÉRÉE : personne n\'a
      minute de retard : le classeur, lui, est déjà juste. */
   const b = monde({ indispos: [['POSEUR', '2027-03-02', 'TPA'], ['ZORRO', '2027-03-02', 'TPA'],
                                ['POSEUR', '2027-03-05', 'TPA']] });
-  const marque = "if (action === 'deciderJourTp') {";
-  const i = SRC_IND.indexOf(marque);
-  let prof = 0, j = SRC_IND.indexOf('{', i);
-  for (; j < SRC_IND.length; j++) { if (SRC_IND[j] === '{') prof++; else if (SRC_IND[j] === '}') { prof--; if (prof === 0) break; } }
-  vm.runInContext('function handlerDecider(action, payload, user) {\n' + SRC_IND.slice(i, j + 1) + '\n return null; }', b.ctx);
+  vm.runInContext(require('./stubs').blocAction('deciderJourTp', 'handlerDecider'), b.ctx);
   const dec = (p) => vm.runInContext(`handlerDecider('deciderJourTp', ${JSON.stringify(p)}, ${JSON.stringify(ADMIN)})`, b.ctx);
 
   b.republications.length = 0;
@@ -1147,7 +1122,7 @@ console.log('\n═══ PT34 · les décisions du comité partent EN LOT ══
   const M = fs.readFileSync('../gas/miroir.gs', 'utf8');
   V('l\'action de lot rafraîchit les mêmes familles',
     /deciderJourTpLot:\s*\['indispos', 'acces', 'gardes', 'planning'\]/.test(M));
-  V('le serveur expose bien l\'action de lot', /if \(action === 'deciderJourTpLot'\)/.test(SRC_IND));
+  V('le serveur expose bien l\'action de lot', /"deciderJourTpLot"\s*:\s*\{ role:/.test(SRC_IND));   // (15/09) table du routeur
   V('…et chaque ligne passe par le MÊME chemin qu\'une décision isolée',
     /_routeRequete_\(\{ parameter: \{ payload: JSON\.stringify\(\{[\s\S]{0,120}action: 'deciderJourTp'/.test(SRC_IND));
   V('…un échec de ligne n\'arrête pas les autres', /catch \(eL\) \{[\s\S]{0,160}rates\+\+/.test(SRC_IND));

@@ -1,7 +1,7 @@
 # Code Google Apps Script — Planning-Med (carte du code)
 
 ⚠️ **Le dépôt fait foi à 100 %** : ce dossier contient le code GAS complet de prod.
-**15/09/2026 — découpage d'Indispos.gs (chantier 9, étape 1) :** `Indispos.gs` ne contient plus que le routeur (doGet/doPost, checkCode, `_routeRequete_` et ses 64 actions, `_deny`/`_error`). Les fonctions métier vivent dans `gardes.gs`, `indisponibilites.gs`, `temps_partiel.gs`, `equipe.gs`, `diagnostic.gs` — déplacées telles quelles, zéro ligne de logique changée. Un seul espace global dans Apps Script : rien à importer. Le Diagnostic contrôle la version des 5 nouveaux fichiers.
+**15/09/2026 — découpage d'Indispos.gs (chantier 9, étape 1) :** `Indispos.gs` ne contient plus que le routeur : doGet/doPost, checkCode, `_actions_()` — **la table des 64 actions** (nom → rôle déclaré → fonction `_act_<nom>`) — et `_routeRequete_` qui l'applique. Le corps de chaque action est une fonction `_act_<nom>(R)` dans son fichier métier, R = `{ e, payload, action, code, user }`. Les fonctions métier vivent dans `gardes.gs`, `indisponibilites.gs`, `temps_partiel.gs`, `equipe.gs`, `diagnostic.gs` — déplacées telles quelles, zéro ligne de logique changée. Un seul espace global dans Apps Script : rien à importer. Le Diagnostic contrôle la version des 5 nouveaux fichiers.
 
 **Exception unique : `dev.gs`** (14/09/2026) — douze fonctions de test manuel, sorties des fichiers de production. Il reste dans le dépôt pour un développeur et **ne se recopie jamais dans l'éditeur**.
 Workflow : Claude pousse ici → le responsable recopie dans l'éditeur Apps Script → **nouvelle version de déploiement**.

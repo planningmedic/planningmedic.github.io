@@ -35,7 +35,8 @@ const GS = require('./stubs').sourceGasTout() /* (15/09) Indispos.gs découpé :
 const PAGE = fs.readFileSync(path.join(__dirname, '..', 'indispos.html'), 'utf8');
 
 console.log('\n═══ 1. Ce que l\'action getVacConfig renvoie ═══');
-const i = GS.indexOf("if (action === 'getVacConfig')");
+// (15/09/2026) l'action est la fonction _act_getVacConfig, dans le code métier
+const i = GS.indexOf("function _act_getVacConfig(R)");
 V('l\'action existe', i > 0);
 const fin = GS.indexOf('setMimeType', i);
 const corps = GS.slice(i, fin);

@@ -176,6 +176,21 @@ aux DEUX endroits — ligne GITHUB_TOKEN de CONFIG et §3 des instructions du pr
    et les constantes globales. Pas de fichier `annee.gs` finalement (rien à y mettre sans toucher au
    routeur) ; `routeur.gs` viendra à l'étape 2 avec la table. Banc : 3 203 ✓ ; `extraireFonction` et
    les lectures brutes du banc cherchent désormais dans tout le code métier (`sourceGasTout`).
+   **Étape 2 FAITE le 15/09 (matin) — LE ROUTEUR EST UNE TABLE.** Analyse du routeur par acorn : 73
+   instructions dans le `try`, dont 64 `if (action === …)` — tous terminés par un `return`, aucun
+   `else`, aucune variable partagée hors `payload/action/code/user`. Chaque bloc est devenu une fonction
+   `_act_<nom>(R)`, R = `{ e, payload, action, code, user }`, **corps mot pour mot** (dé-indenté de 4,
+   commentaires attachés compris), rangée dans son fichier métier : gardes 20, indisponibilites 19,
+   equipe 16, temps_partiel 3, diagnostic 1, Indispos 5 (l'année et les deux listes sans code).
+   `_actions_()` (Indispos.gs) rend les deux tables — `sansCode` (2) et `avecCode` (62) — construites
+   **au premier appel**, pas au chargement (les `_act_` vivent dans d'autres fichiers). Le contrôle de
+   rôle est resté DANS chaque corps ; la table le déclare (admin 48 · tout code valide 9 · conditionnel
+   4 · mar seulement 1 · sans code 2) et `banc_contrat_routeur.js` vérifie déclaration = corps. Quatre
+   étiquettes du 13/09 corrigées à la relecture (getOrdreVacances est « mar seulement », getPoseTp et
+   getConsultAbsences « conditionnel », deciderJourTp « admin ») — le corps n'a pas bougé, l'étiquette
+   si. Indispos.gs : **6 554 → 792 lignes**. Banc 3 206 ✓ ; `stubs.blocAction(nom, handler)` remplace
+   les extractions « if (action === …) » des scénarios. Le nom `Indispos.gs` est conservé (pas de
+   fichier à supprimer/créer de plus dans Apps Script) — `routeur.gs` n'est plus prévu.
    **Méthode initiale (rappel) :** trois pushes (table du routeur dans Indispos.gs intact → découpage → nettoyage), banc
    complet entre chaque, UNE recopie à la fin : le responsable crée 6 fichiers dans Apps Script (menu
    + → Script) et remplace Indispos.gs par routeur.gs ; le Diagnostic vérifie 7 versions.

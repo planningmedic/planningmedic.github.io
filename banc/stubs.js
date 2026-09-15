@@ -148,4 +148,18 @@ function sourceGasTout() {
     .filter(f => fs.existsSync(p.join(dir, f))).map(f => fs.readFileSync(p.join(dir, f), 'utf8')).join('\n');
 }
 
-module.exports = { Sheet, Classeur, fabriqueVerrou, VERROUS, journalVerrous, extraireFonction, brancherSurEcriture, socleMedecins, sourceGasTout };
+/* (15/09/2026 — chantier 9, étape 2) Le routeur est une table : le bloc
+   « if (action === 'X') { … } » d'autrefois est la fonction _act_X(R), R = { e,
+   payload, action, code, user }. Les scénarios qui exécutaient le bloc avec
+   un handler(action, payload, user) obtiennent ici le même handler, qui appelle
+   la fonction. `marque` accepte l'ancienne forme (« if (action === 'X') … ») ou
+   directement le nom de l'action. */
+function blocAction(marque, nomFn) {
+  const m = String(marque).match(/action === '(\w+)'/) || [null, String(marque).trim()];
+  const nom = m[1];
+  const src = extraireFonction(require('path').join(__dirname, '..', 'gas', 'Indispos.gs'), '_act_' + nom);
+  const handler = nomFn ? '\nfunction ' + nomFn + '(action, payload, user) { return _act_' + nom + '({ e: { parameter: {} }, payload: payload || {}, action: action, code: payload && payload.code, user: user }); }' : '';
+  return src + handler;
+}
+
+module.exports = { Sheet, Classeur, fabriqueVerrou, VERROUS, journalVerrous, extraireFonction, brancherSurEcriture, socleMedecins, sourceGasTout, blocAction };

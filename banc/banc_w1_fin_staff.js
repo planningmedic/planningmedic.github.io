@@ -24,16 +24,8 @@ const ADMIN = fs.readFileSync('../admin.html', 'utf8');
 
 /* Découpe d'un bloc routeur par appariement d'accolades — même procédé que
    banc_codes_acces.js : rien n'est recopié, c'est le fichier livré qui parle. */
-function extraireBloc(marque) {
-  const i = GAS.indexOf(marque);
-  if (i < 0) throw new Error('bloc introuvable : ' + marque);
-  let prof = 0, j = GAS.indexOf('{', i);
-  for (; j < GAS.length; j++) {
-    if (GAS[j] === '{') prof++;
-    else if (GAS[j] === '}' && --prof === 0) break;
-  }
-  return GAS.slice(i, j + 1);
-}
+/* (15/09/2026) Le bloc routeur est devenu une fonction _act_<nom> : on rend sa source. */
+function extraireBloc(marque) { return require('./stubs').blocAction(marque); }
 
 console.log('\n═══ 1. L\'ouverture de la saisie ne dépend d\'AUCUN mail ═══');
 {
@@ -50,7 +42,8 @@ console.log('\n═══ 1. L\'ouverture de la saisie ne dépend d\'AUCUN mail �
     Number, String, Error,
   });
   ctx.globalThis = ctx;
-  vm.runInContext('(function(){ ' + bloc + ' })();', ctx);
+  /* (15/09/2026) Le bloc est une fonction _act_setIndisposYear(R) : on la définit puis on l'appelle avec la requête. */
+  vm.runInContext(bloc + "\n_act_setIndisposYear({ e: { parameter: {} }, payload, action, code: payload.code, user });", ctx);
 
   const config = cl.getSheetByName('CONFIG').lignes;
   const ligne = config.find(l => String(l[0]).trim() === 'INDISPOS_ACTIVE');
@@ -68,9 +61,9 @@ console.log('\n═══ 2. Le serveur ne sait plus envoyer de codes en fin de W
     !/function\s+renderRecapMailBlocks_/.test(GAS));
   /* Les envois qui RESTENT légitimes ne doivent pas avoir été emportés. */
   V('resetCodeMar est toujours là (outil de Maintenance)',
-    /if\s*\(\s*action\s*===\s*'resetCodeMar'\s*\)/.test(GAS));
+    /"resetCodeMar"\s*:\s*\{ role:/.test(GAS));   // (15/09) le routeur est une table
   V('sendCodesMar est toujours là (arrivée d\'un nouveau MAR)',
-    /if\s*\(\s*action\s*===\s*'sendCodesMar'\s*\)/.test(GAS));
+    /"sendCodesMar"\s*:\s*\{ role:/.test(GAS));   // (15/09) le routeur est une table
 }
 
 console.log('\n═══ 3. L\'écran : cinq étapes, la dernière est le staff ═══');
