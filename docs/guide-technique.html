@@ -347,7 +347,7 @@ lent, mais toujours là, et c'est lui qui a le dernier mot.</p></div>
       <span class="fl">le serveur dépose des copies fraîches · relève la boîte chaque minute</span></div>
     <div class="boite b-vert">
       <div class="bt">③ Le serveur Google</div>
-      <div class="bd"><b>le seul autorisé à écrire</b> · 9 fichiers de code · vérifie les droits,
+      <div class="bd"><b>le seul autorisé à écrire</b> · 15 fichiers de code, un par sujet · vérifie les droits,
       exécute, range · sert aussi de chemin de secours pour tout lire si le relais flanche</div>
     </div>
     <div class="fleche"><span class="f">▼&nbsp;&nbsp;&nbsp;▲</span>
@@ -540,8 +540,8 @@ fonction <code>_act_&lt;nom&gt;(R)</code>, R = <code>{ e, payload, action, code,
 vivent dans les fichiers métier. Rôles issus de <code>checkCode</code> ; refus des non-admins par
 <code>_deny()</code>, dans le corps de chaque action ; <code>banc_contrat_routeur.js</code> fige les 64 actions. Chaque fichier poussé incrémente sa constante
 <code>GAS_VERSION_*</code> (format AAAA-MM-JJ.N) — c'est elle que le diagnostic compare au dépôt
-(contrôle de dérive, 9 fichiers : les 8 de <code>gas/</code> + le module partagé
-<code>partage/dispo_jour.js</code>). Fonction endormie : <code>setupAnnee</code> (setup_annee.gs)
+(contrôle de dérive, 15 lignes : les 14 fichiers déployés de <code>gas/</code> + le module partagé
+<code>partage/dispo_jour.js</code> ; <code>dev.gs</code> et <code>sauvegarde.gs</code> ne sont pas contrôlés). Fonction endormie : <code>setupAnnee</code> (setup_annee.gs)
 n'est plus appelée par personne — la création des onglets de l'année suivante passe par
 <code>initYear</code>.</p>
 </div></details>
@@ -1138,7 +1138,12 @@ restantes vont à ceux qui sont le plus créditeurs. La somme reste <em>exacteme
 gardes à poser — arrondir chaque cible dans son coin promettait 6 jeudis de trop et laissait 6
 fériés sans propriétaire (mesuré). Le report étant plié dans la cible, le compteur <code>dette</code>
 est remis à zéro pour que <code>ratio()</code> ne l'applique pas deux fois. Dette : amortie à 60 %,
-plafonnée à ±2, lue sur l'année précédente seulement — la version cumulative reste à écrire.</p>
+plafonnée à ±2, lue sur l'année précédente seulement. <b>Elle ne lit que les années générées par
+l'algorithme</b> (<code>PREMIERE_ANNEE_STATS_FIABLES = 2027</code>) : 2026, fait à la main, n'alimente aucune
+dette pour 2027 — vérifié le 15/09/2026 en faisant tourner le générateur sur les vraies indisponibilités
+2027, avec et sans les statistiques 2026 : cibles identiques. Le cumul pluriannuel (réel − part exacte,
+sur six ans) est calculé et affiché dans l'essai à blanc depuis le 11/09, mais pas encore appliqué à la
+cible : la version cumulative de la dette reste à décider.</p>
 <p><b>Numéro de tirage.</b> À égalité parfaite, l'ordre de l'onglet MEDECINS ne départage plus : il
 déplaçait près d'une garde sur trois. L'ordre vient d'un hachage(nom, tirage) ; rejouer le même
 tirage redonne le même planning, et l'onglet n'est jamais modifié.</p>
@@ -2205,6 +2210,15 @@ presque toujours l'histoire.</p></div>
 <details><summary>La table symptôme → cause</summary><div class="corps">
 <table>
 <tr><th>Symptôme</th><th>Cause probable / action</th></tr>
+<tr><td>Juste après une mise à jour du serveur, une page dit qu'il lui manque quelque chose (« quotas non
+reçus », un champ vide) alors que le Diagnostic est vert</td><td>La copie rapide a été fabriquée par
+l'ancien serveur, sans le nouveau champ ; elle n'est refaite qu'au rangement horaire ou à une écriture.
+Lancer <code>miroirSyncComplet</code> depuis l'éditeur. Depuis le 14/09, les pages redemandent au serveur
+quand la copie n'a pas le champ attendu (vécu le 14/09 au soir sur les quotas du staff).</td></tr>
+<tr><td>« Action inconnue » ou « … is not defined » sur une seule action après une mise à jour</td><td>Un
+des quinze fichiers n'a pas été recopié, ou l'a été avant que ses voisins existent : le routeur
+(Indispos.gs) appelle une fonction <code>_act_…</code> qui vit dans un fichier métier. Diagnostic → « Code
+déployé vs dépôt » désigne le fichier en retard ; redéployer après l'avoir recopié.</td></tr>
 <tr><td>Les pages s'ouvrent lentement (10 s et plus)</td><td>Le relais est contourné en silence
 (panne, copie manquante, empreintes jamais déposées). <code>chrono()</code> dit lequel et
 pourquoi ; contrôles du §A5.</td></tr>
