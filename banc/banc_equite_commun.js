@@ -102,5 +102,32 @@ console.log('\n═══ Rafraîchissement sans reconstruction : la ligne repli�
     V(page + ' : plus de copie locale de morphGrid', !/\nfunction morphGrid\b/.test(fs.readFileSync(path.join(__dirname, '..', page), 'utf8')));
   }
 }
+console.log('\n═══ Une cible à zéro est une cible (décision du responsable, 14/09 23 h) ═══');
+/* Veilles de férié : part de 0,5 par MAR → cible entière 0 pour beaucoup. Le
+   générateur ne leur en donne qu'en dernier recours ; deux veilles se voient.
+   Le verdict le disait (« +2 vei »), la barre et la bande restaient grises. */
+{
+  const w = fenetre();
+  const eq = equipe().map(m => Object.assign({}, m));
+  /* Les cibles sont ramenées au réel (somme des cibles = somme des veilles posées).
+     MAR01 : 1 veille pour 1 de cible ; MAR02 : 2 veilles, cible 0 ; MAR03 : 0 veille
+     pour 2 de cible ; MAR04 : ni veille ni cible (pas concerné). 3 réelles = 3 cibles. */
+  eq[0].vjf = 1; eq[0].cVjf = 1; eq[1].vjf = 2; eq[1].cVjf = 0; eq[2].vjf = 0; eq[2].cVjf = 2;
+  eq.push(Object.assign({}, eq[2], { name: 'MAR04', vjf: 0, cVjf: 0 }));
+  const html = w.renderEquiteCards(eq, { moiNom: null, ouverts: new Set(['MAR01', 'MAR02', 'MAR03', 'MAR04']), sombre: false, neutre: '#EEF1F5', axes: AX });
+  const ligne = (nom, lbl, h) => { const c = carte(h || html, nom); const m = c.match(new RegExp('eqv-lbl">' + lbl + '</div>[\\s\\S]*?eqv-val">[^<]*(?:<span>[^<]*</span>)?</div></div>')); return m ? m[0] : ''; };
+  V('2 veilles pour une cible 0 : barre rouge, « 2 /0 », trait à zéro', /background:#CE1126/.test(ligne('MAR02', 'VJF')) && />2<span> \/0<\/span>/.test(ligne('MAR02', 'VJF')) && /eqv-tick/.test(ligne('MAR02', 'VJF')), ligne('MAR02', 'VJF'));
+  const htmlR = w.renderEquiteCards(eq, { moiNom: null, ouverts: new Set(), sombre: false, neutre: '#EEF1F5', axes: AX });   // cartes repliées → bande
+  const cases = (carte(htmlR, 'MAR02').match(/eqv-case[^>]*/g) || []);
+  V('…et la case VJF (dernière) de sa ligne repliée est rouge', cases.length === 9 && /#CE1126/.test(cases[8]), cases[8]);
+  V('1 veille pour 1 de cible : vert', /background:#15803D/.test(ligne('MAR01', 'VJF')) && />1<span> \/1<\/span>/.test(ligne('MAR01', 'VJF')));
+  V('0 veille pour 2 de cible : bleu (en dessous)', /background:#1D4ED8/.test(ligne('MAR03', 'VJF')) && />0<span> \/2<\/span>/.test(ligne('MAR03', 'VJF')), ligne('MAR03', 'VJF'));
+  V('ni veille ni cible : le MAR n\'est pas concerné, barre neutre grise', /background:#94A3B8/.test(ligne('MAR04', 'VJF')) && !/eqv-tick/.test(ligne('MAR04', 'VJF')), ligne('MAR04', 'VJF'));
+  const sansAxe = equipe().map(m => { const c = Object.assign({}, m); delete c.cJf; c.jf = 0; return c; });
+  sansAxe[1].jf = 2;
+  const html2 = w.renderEquiteCards(sansAxe, { moiNom: null, ouverts: new Set(['MAR02']), sombre: false, neutre: '#EEF1F5', axes: AX });
+  const lJf = ligne('MAR02', 'JF', html2);
+  V('axe absent de l\'onglet (aucune cible pour personne) : reste neutre, pas d\'accusation fabriquée (règle du 05/09)', /background:#94A3B8/.test(lJf) && !/#CE1126/.test(lJf), lJf);
+}
 console.log('\n' + ok + ' OK · ' + ko + ' en échec');
 if (ko) process.exit(1);

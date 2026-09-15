@@ -545,7 +545,12 @@ console.log('\n═══ 6. La page de cotation ne dit rien qu\'elle ne sache �
   V('et la page dit ce qui manque', /jour du bloc/i.test(d.getElementById('dclPrev').textContent),
     d.getElementById('dclPrev').textContent);
 
-  d.getElementById('dInt').value = '2026-09-15';
+  /* (15/09/2026) Le jour du bloc était écrit en dur au 15/09 : le 15/09, la date
+     de consultation (« aujourd'hui ») tombait dessus et le test croyait à tort
+     que les deux dates se confondaient. Un jour de bloc calculé (il y a 3 jours)
+     ne peut jamais coïncider avec aujourd'hui. */
+  const _bloc = (() => { const t = new Date(); t.setDate(t.getDate() - 3); return t.toISOString().slice(0, 10); })();
+  d.getElementById('dInt').value = _bloc;
   w.renderDateHint(); w.majBarre();
   await dodo(30);
   V('le secteur et la spécialité manquants bloquent encore',
@@ -641,7 +646,7 @@ console.log('\n═══ 6. La page de cotation ne dit rien qu\'elle ne sache �
   const decl = envois.slice(avant).find(p => p.action === 'declareLiberal');
   V('la déclaration part', !!decl, envois.slice(avant).map(p => p.action));
   if (decl) {
-    V('elle porte le jour du bloc saisi dans la cotation', decl.dateBloc === '2026-09-15', decl.dateBloc);
+    V('elle porte le jour du bloc saisi dans la cotation', decl.dateBloc === _bloc, decl.dateBloc);
     V('la date de consultation est celle du jour', /^\d{4}-\d{2}-\d{2}$/.test(decl.dateConsult), decl.dateConsult);
     V('elle porte le secteur et la spécialité', decl.secteur === 'END' && decl.specialite === 'END', [decl.secteur, decl.specialite]);
     V('elle porte la BR CCAM calculée par la cotation', decl.brCcam > 0, decl.brCcam);
@@ -660,11 +665,11 @@ console.log('\n═══ 6. La page de cotation ne dit rien qu\'elle ne sache �
      ligne qu'on venait de declarer n'apparaissait pas, et recharger la page
      pour la voir faisait perdre le devis du patient. Constate par le responsable. */
   V('la déclaration apparaît dans la liste SANS attendre la relecture',
-    ev('MES_DECL.length') >= 1 && ev('MES_DECL').some(x => x.dateBloc === '2026-09-15'),
+    ev('MES_DECL.length') >= 1 && ev('MES_DECL').some(x => x.dateBloc === _bloc),
     ev('MES_DECL').map(x => x.dateBloc));
   V('elle porte tout ce que la liste affiche',
-    ev("MES_DECL.filter(function(d){return d.dateBloc==='2026-09-15';})[0].secteur") === 'END' &&
-    ev("MES_DECL.filter(function(d){return d.dateBloc==='2026-09-15';})[0].brCcam") > 0);
+    ev("MES_DECL.filter(function(d){return d.dateBloc==='" + _bloc + "';})[0].secteur") === 'END' &&
+    ev("MES_DECL.filter(function(d){return d.dateBloc==='" + _bloc + "';})[0].brCcam") > 0);
   V('après une écriture, la relecture ne passe PAS par la copie rapide',
     /chargerDecl\(true\)/.test(html) && /if\(!direct\) try\{/.test(html));
   V('à l\'ouverture, elle y passe — c\'est là qu\'elle évite les pannes',

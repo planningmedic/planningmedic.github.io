@@ -145,6 +145,16 @@
     const ck=CB[k], t=_CIB[it.name];
     return (t && t[ck]!==undefined) ? t[ck] : (+it[ck]||0);
   };
+  /* (14/09/2026, 23 h — décision du responsable) UNE CIBLE À ZÉRO EST UNE CIBLE.
+     Sur un axe rare (veilles de férié : une part de 0,5 par MAR), la cible entière
+     de beaucoup de MARs vaut 0 ; le générateur ne leur donne une veille qu'en
+     dernier recours. En avoir deux se voit donc, et le verdict le disait déjà
+     (« +2 vei ») — mais la barre et la bande traitaient 0 comme « pas de cible »
+     et restaient grises. Ce qui reste neutre, et doit le rester : un axe ABSENT
+     (années sans colonne fériés : rien à comparer, le 05/09 l'a réglé), et un
+     MAR qui n'a ni cible ni garde sur l'axe (il n'est pas concerné). */
+  const axeAbsent={}; Object.keys(CB).forEach(k=>{ const ck=CB[k]; axeAbsent[k]=!list.some(x=>_CIB[x.name]&&_CIB[x.name][ck]!==undefined); });
+  const cibleDefinie=(it,k)=>{ const ck=CB[k]; if(!ck||axeAbsent[k]) return false; const t=_CIB[it.name]; return !!(t&&t[ck]!==undefined); };
   const colOf=(v,c)=>{const d=v-c;
     const over=_sombre?'#F4586B':'#CE1126', under=_sombre?'#7BAAF7':'#1D4ED8', ok=_sombre?'#5BD08B':'#15803D';
     return d>=2?over:(d<=-2?under:ok);};
@@ -182,7 +192,7 @@
          la barre affichait « 2 /0 » en rouge, une accusation fabriquée de toutes
          pièces. Sans cible, la barre redevient neutre, comme les lundis. */
       const c=cibOf(it,k);
-      if(CB[k] && !(c>0)){
+      if(CB[k] && !cibleDefinie(it,k)){
         const w=Math.min(100,v/mxGris*100);
         return '<div class="eqv-row"><div class="eqv-lbl">'+lbl+'</div><div class="eqv-track"><div class="eqv-fill" style="width:'+w+'%;background:#94A3B8;opacity:.5"></div></div><div class="eqv-val">'+v+'</div></div>';
       }
@@ -198,7 +208,7 @@
                  ['sa','cSa'],['vd','cVd'],['jf',null],['vjf','cVjf']];
     const cib=_CIB[it.name];
     const bande=ORDRE.map(([k,ck])=>{
-      const t=(ck&&cib&&!_wish&&cib[ck]>0)?cib[ck]:undefined;
+      const t=(ck&&cib&&!_wish&&cib[ck]!==undefined&&!axeAbsent[k])?cib[ck]:undefined;   // (14/09/2026) 0 est une cible
       if(t===undefined) return '<div class="eqv-case" style="background:'+_neutre+'"></div>';
       const d=Math.abs((+it[k]||0)-t);
       return '<div class="eqv-case" style="background:'+(d>=2?'#CE1126':'#15803D')+';opacity:'+(d===0?1:(d>=2?1:.35))+'"></div>';

@@ -270,10 +270,15 @@ V('la cible d\'un axe surveillé est affichée entière',
    cible à zéro, donc une accusation fabriquée. Sans cible, la barre est neutre. */
 [['admin.html', ADMIN], ['planning.html', INDEX]].forEach(([nom, SRC]) => {
   const rec = extraire('renderEquiteCards', COMMUN);   // (14/09/2026) une version commune aux deux pages
+  /* (14/09/2026) La règle du 05/09 tient — un axe ABSENT reste neutre — mais
+     elle est maintenant distinguée d'une cible à ZÉRO, qui est une vraie cible
+     (décision du responsable : 2 veilles pour 0 de cible → rouge). La barre est
+     neutre si l'axe n'a de cible pour personne, ou si le MAR n'a ni cible ni
+     garde dessus ; banc_equite_commun.js rejoue les quatre cas au rendu. */
   V(nom + ' : une cible absente rend la barre neutre, pas rouge',
-    /if\(CB\[k\] && !\(c>0\)\)\{/.test(rec) && /background:#94A3B8;opacity:\.5/.test(rec));
-  V(nom + ' : la case repliée reste neutre elle aussi',
-    /cib\[ck\]>0\)\?cib\[ck\]:undefined/.test(rec));
+    /if\(CB\[k\] && !cibleDefinie\(it,k\)\)\{/.test(rec) && /background:#94A3B8;opacity:\.5/.test(rec) && /axeAbsent\[k\]=!list\.some/.test(rec));
+  V(nom + ' : la case repliée reste neutre elle aussi (axe absent), rouge sur cible zéro dépassée',
+    /cib\[ck\]!==undefined&&!axeAbsent\[k\]\)\?cib\[ck\]:undefined/.test(rec));
 });
 
 console.log('\n─── 8. Version du site ───');
