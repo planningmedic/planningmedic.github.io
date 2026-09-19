@@ -57,7 +57,7 @@
 //  instantané unique et partagé : chantier séparé.
 // ══════════════════════════════════════════════════════════════════════
 
-const GAS_VERSION_VEILLE = '2026-09-15.1';
+const GAS_VERSION_VEILLE = '2026-09-15.2';
 
 const VEILLE_CFG_TAB = 'VEILLE_CFG';
 const VEILLE_TAB     = 'VEILLE';
@@ -600,10 +600,12 @@ function _runVeilleCorps_() {
   // ── Métadonnées et écriture ───────────────────────────────────────
   const aujourdhui = Utilities.formatDate(new Date(), 'Europe/Paris', 'yyyy-MM-dd');
   const lignes = [];
+  const fichesRun = {};   // (passe 4) gardées pour les résumés : pas de second efetch pour les articles du jour
   for (let i = 0; i < nouveaux.length; i += VEILLE_LOT) {
     const lot = nouveaux.slice(i, i + VEILLE_LOT);
     let fiches;
     try { fiches = _veilleFichesEfetch(_efetch(lot)); } catch (e) { Logger.log('efetch : ' + e); continue; }
+    Object.keys(fiches).forEach(function (k) { fichesRun[k] = fiches[k]; });
     Utilities.sleep(VEILLE_PAUSE);
     lot.forEach(function (pmid) {
       const f = fiches[pmid];
@@ -649,10 +651,14 @@ function _runVeilleCorps_() {
              ' · écrits ' + lignes.length + ' · ' + sec + ' s');
   if (plafonne) Logger.log('  → relancer runVeille() pour absorber le reste.');
 
+  // (15/09/2026 — passe 4) Les 20 meilleurs articles arrivés depuis 7 jours reçoivent un
+  // résumé en français. Un résumé est définitif : on n'en écrit que pour ceux qui n'en ont pas.
+  let resumes = 0;
+  try { resumes = _veilleResumerRecents_(tabs.veille, 20, 7, fichesRun).ecrits; } catch (e) { Logger.log('résumés : ' + e); }
   try { if (typeof _bat_ === 'function') _bat_('runVeille'); } catch (e) {}   // battement = passage RÉUSSI
   try { PropertiesService.getScriptProperties().setProperty('VEILLE_DERNIER_SUCCES', new Date().toISOString()); } catch (e) {}
-  try { logAction('veille — ' + trouves + ' nouveaux, ' + lignes.length + ' écrits, ' + uniques + ' uniques sur ' + jours + ' j, ' + sec + ' s'); } catch (e) {}
-  return { success: true, trouves: trouves, ecrits: lignes.length,
+  try { logAction('veille — ' + trouves + ' nouveaux, ' + lignes.length + ' écrits, ' + resumes + ' résumés, ' + uniques + ' uniques sur ' + jours + ' j, ' + sec + ' s'); } catch (e) {}
+  return { success: true, trouves: trouves, ecrits: lignes.length, resumes: resumes,
            parSemaine: parSem, axeDirect: idsDirect.length, axeCroise: idsGeneral.length,
            secondes: sec };
 }
@@ -740,6 +746,89 @@ function _veilleSplitThemes(v) {
    PAR le routeur, qui fournit user → les marques du MAR sont fusionnées
    ici même, l'écran n'a rien à faire de plus. Les colonnes LU/STAR de
    l'onglet VEILLE ne sont PLUS lues. */
+/* ═══ (15/09/2026 — passe 4) LE RÉSUMÉ EN DEUX LIGNES ═══
+   Pour les 20 articles les mieux notés arrivés depuis 7 jours, deux phrases
+   en français écrites par l'API Anthropic (la clé ANTHROPIC_TOKEN de CONFIG,
+   déjà en place pour le générateur de comptes rendus). Ce qui part : le titre
+   et le résumé PubMed — rien du classeur, rien de nominatif. Ce qui revient :
+   du factuel (effectif, critère principal, sens du résultat), sans avis ni
+   recommandation. Un résumé écrit ne se réécrit jamais ; une réponse absente
+   ou douteuse laisse la case vide, le passage continue. Aussi lançable à la
+   main : veilleResumerSemaine(). */
+const VEILLE_RESUME_MODELE = 'claude-sonnet-4-6';
+const VEILLE_RESUME_CONSIGNE =
+  "Tu résumes des articles d'anesthésie-réanimation pour des médecins. Réponds en français, en DEUX phrases " +
+  "au plus (60 mots maximum), au présent, sans introduction ni formule. Première phrase : la population, " +
+  "l'intervention et le critère principal, avec les chiffres présents dans le résumé (effectif, risque relatif, " +
+  "différence). Deuxième phrase : le résultat secondaire ou la limite la plus utile en pratique. N'ajoute aucune " +
+  "interprétation, aucun conseil, aucun chiffre absent du texte. Si le texte ne permet pas de résumer " +
+  "(lettre, protocole, erratum), réponds exactement : SANS_RESUME.";
+
+function _veilleResumerRecents_(feuille, maxN, joursRecents, fichesConnues) {
+  const token = (typeof getAnthropicToken === 'function') ? getAnthropicToken() : '';   // portail.gs : la clé ANTHROPIC_TOKEN de CONFIG
+  if (!token) return { ecrits: 0, motif: 'ANTHROPIC_TOKEN absent' };
+  const data = feuille.getDataRange().getValues();
+  const hdr = data[0].map(String);
+  const iScore = hdr.indexOf('SCORE'), iRes = hdr.indexOf('RESUME'), iAj = hdr.indexOf('AJOUTE_LE'), iTitre = hdr.indexOf('TITRE'), iPmid = hdr.indexOf('PMID');
+  if (iScore < 0 || iRes < 0 || iAj < 0) return { ecrits: 0, motif: 'colonnes absentes' };
+  const limite = Date.now() - joursRecents * 86400000;
+  const cands = [];
+  for (let r = 1; r < data.length; r++) {
+    const aj = data[r][iAj]; const t = aj instanceof Date ? aj.getTime() : new Date(String(aj)).getTime();
+    if (!(t >= limite)) continue;
+    if (String(data[r][iRes] || '').trim()) continue;            // déjà résumé (ou marqué SANS_RESUME)
+    const score = Number(data[r][iScore]); if (!(score >= 0)) continue;
+    cands.push({ r: r, score: score, pmid: String(data[r][iPmid]), titre: String(data[r][iTitre] || '') });
+  }
+  cands.sort(function (a, b) { return b.score - a.score || String(a.pmid).localeCompare(String(b.pmid)); });
+  const choisis = cands.slice(0, maxN);
+  if (!choisis.length) return { ecrits: 0, motif: 'rien à résumer' };
+  // le résumé PubMed n'est pas stocké : les fiches du passage sont déjà en main ; les autres
+  // (articles des jours précédents restés sans résumé) sont relues en UN lot efetch
+  const fiches = Object.assign({}, fichesConnues || {});
+  const manquants = choisis.map(function (c) { return c.pmid; }).filter(function (id) { return !fiches[id]; });
+  if (manquants.length) { try { Object.assign(fiches, _veilleFichesEfetch(_efetch(manquants))); } catch (e) { Logger.log('efetch résumés : ' + e); } }
+  let ecrits = 0;
+  choisis.forEach(function (c) {
+    const f = fiches[c.pmid]; const texte = f ? (f.titre + '\n\n' + f.resume) : c.titre;
+    const res = _veilleResumeIA_(token, texte);
+    if (res === null) return;                                   // erreur d'appel : on laisse vide, on réessaiera lundi prochain
+    feuille.getRange(c.r + 1, iRes + 1).setValue(res);          // SANS_RESUME est écrit tel quel : la case n'est plus vide, on ne redemandera pas
+    if (res !== 'SANS_RESUME') ecrits++;
+    Utilities.sleep(300);
+  });
+  return { ecrits: ecrits, demandes: choisis.length };
+}
+function _veilleResumeIA_(token, texte) {
+  const body = { model: VEILLE_RESUME_MODELE, max_tokens: 220, system: VEILLE_RESUME_CONSIGNE,
+                 messages: [{ role: 'user', content: String(texte || '').slice(0, 6000) }] };
+  let res;
+  try {
+    res = UrlFetchApp.fetch('https://api.anthropic.com/v1/messages', {
+      method: 'post', contentType: 'application/json',
+      headers: { 'x-api-key': token, 'anthropic-version': '2023-06-01' },
+      payload: JSON.stringify(body), muteHttpExceptions: true,
+    });
+  } catch (e) { return null; }
+  if (res.getResponseCode() !== 200) return null;
+  let txt = '';
+  try { const j = JSON.parse(res.getContentText()); txt = (j.content || []).filter(function (b) { return b.type === 'text'; }).map(function (b) { return b.text; }).join(' ').trim(); } catch (e) { return null; }
+  if (!txt) return null;
+  if (/^SANS_RESUME/.test(txt)) return 'SANS_RESUME';
+  // garde-fou : deux phrases, pas de liste, pas de préambule
+  txt = txt.replace(/^\s*(Résumé|Voici)[^:]*:\s*/i, '').replace(/\s+/g, ' ').trim();
+  if (txt.length > 420) txt = txt.slice(0, 417).replace(/\s\S*$/, '') + '…';
+  return txt;
+}
+/* Lancement manuel : résume les 20 meilleurs des 7 derniers jours qui n'ont pas encore de résumé. */
+function veilleResumerSemaine() {
+  const tabs = getOrCreateVeilleTabs();
+  const r = _veilleResumerRecents_(tabs.veille, 20, 7);
+  try { logAction('veille — résumés à la main : ' + (r.ecrits || 0) + ' écrit(s)' + (r.motif ? ' (' + r.motif + ')' : '')); } catch (e) {}
+  Logger.log(JSON.stringify(r));
+  return r;
+}
+
 function getVeille(user) {
   const ss = SpreadsheetApp.getActiveSpreadsheet();
   const v  = ss.getSheetByName(VEILLE_TAB);
@@ -764,7 +853,7 @@ function getVeille(user) {
       pmid: pmid, date: _isoDate(data[r][1]), titre: String(data[r][2] || ''),
       auteurs: String(data[r][3] || ''), revue: String(data[r][4] || ''), doi: String(data[r][5] || ''),
       source: _veilleSourceCode(data[r][6]), score: data[r][7] === '' ? null : Number(data[r][7]),
-      resume: String(data[r][8] || ''), lu: !!lus[pmid],
+      resume: (String(data[r][8] || '') === 'SANS_RESUME' ? '' : String(data[r][8] || '')), lu: !!lus[pmid],
       star: !!stars[pmid], ajoute: _isoDate(data[r][11]),
       pubtype: String(data[r][12] || ''), themes: _veilleSplitThemes(data[r][13]),
       motif: String(data[r][14] || ''),   // (15/09) le pourquoi de la note

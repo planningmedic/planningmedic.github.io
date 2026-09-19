@@ -448,8 +448,16 @@ a.tile:hover, .tile.clickable:hover {
 .vc-date{font-size:12px;color:var(--ink-4);font-weight:600}
 .vc-title{display:block;font-size:15px;font-weight:700;color:var(--ink);line-height:1.4;text-decoration:none}
 .vc-title:hover{color:var(--me)}
-.vc-resume{font-size:13px;color:var(--ink-2);line-height:1.5;margin-top:5px}
+.vc-resume{font-size:13.5px;color:var(--ink);line-height:1.55;margin:8px 0 6px;background:var(--bg);border-radius:8px;padding:8px 10px}   /* (15/09/2026) le résumé en deux lignes, encadré */
 .vc-motif{font-size:11.5px;color:var(--ink-3);margin-top:2px}   /* (15/09/2026) le pourquoi de la note */
+.vs-semaine{background:var(--white);border:1px solid var(--line);border-left:3px solid var(--red);padding:12px 14px;margin:0 0 14px}
+.vs-tete{display:flex;justify-content:space-between;align-items:center;gap:8px;font-size:15px}
+.vs-tete span{font-size:12px;color:var(--ink-3)}
+.vs-txt{font-size:13px;color:var(--ink-3);line-height:1.5;margin:6px 0 10px}
+.vs-pills{display:flex;gap:8px;flex-wrap:wrap}
+.vs-pill{background:#EEF2FF;color:#4C1D95;font-size:12px;padding:3px 10px;border-radius:999px}
+html[data-theme="dark"] .vs-pill{background:#251B3C;color:#B593F2}
+.vc-resume-lbl{display:block;font-size:11px;color:var(--ink-4);margin-bottom:3px}
 .vc-journal{font-size:12.5px;color:var(--me);font-weight:600;margin-top:6px}
 .vc-authors{font-size:12.5px;color:var(--ink-3);margin-top:2px}
 .vc-actions{display:flex;flex-wrap:wrap;gap:7px;margin-top:11px}
@@ -2153,6 +2161,17 @@ function _vMatch(it){
   return true;
 }
 
+function _vSemaine(){
+  const lim=Date.now()-7*86400000;
+  const res=VEILLE_ITEMS.filter(function(i){ return i.resume && i.ajoute && new Date(i.ajoute).getTime()>=lim; });
+  if(!res.length) return '';
+  const cat={};
+  res.forEach(function(i){ const k=PUBTYPE_FR[i.pubtype]||'Étude'; cat[k]=(cat[k]||0)+1; });
+  const pills=Object.keys(cat).sort(function(a,b){return cat[b]-cat[a];}).map(function(k){ return '<span class="vs-pill">'+cat[k]+' '+esc(k.toLowerCase())+(cat[k]>1&&!/s$/.test(k)?'s':'')+'</span>'; }).join('');   // « 6 essais randomisés » se lit « 6 essai randomisés » : le pluriel du dernier mot suffit à l'œil
+  return '<div class="vs-semaine"><div class="vs-tete"><b>✦ Cette semaine</b><span>'+res.length+' article'+(res.length>1?'s':'')+' résumé'+(res.length>1?'s':'')+'</span></div>'
+    + '<div class="vs-txt">Les mieux notés des 7 derniers jours, chacun résumé en deux lignes sous son titre. Le reste de la liste suit.</div>'
+    + '<div class="vs-pills">'+pills+'</div></div>';
+}
 function renderVeille(){
   const box=document.getElementById('veilleList');
   const unread=VEILLE_ITEMS.filter(function(i){return !i.lu;}).length;
@@ -2163,7 +2182,10 @@ function renderVeille(){
     box.innerHTML='<div class="topos-empty">Aucun article pour l\'instant.<br><span>Le scan PubMed tourne chaque lundi ; l\'onglet VEILLE se remplit tout seul.</span></div>';
     return;
   }
-  if(!shown.length){ box.innerHTML='<div class="topos-empty">Rien à afficher avec ce filtre.</div>'; return; }
+  /* (15/09/2026 — passe 4) « Cette semaine » : les articles résumés (les 20 mieux notés arrivés depuis
+     7 jours) — un en-tête qui les compte par type, avant la liste. Invisible s'il n'y en a aucun. */
+  const _semaine = _vSemaine();
+  if(!shown.length){ box.innerHTML=_semaine+'<div class="topos-empty">Rien à afficher avec ce filtre.</div>'; return; }
   shown.sort(function(a,b){
     if(V_SORT==='relevance'){
       /* (15/09/2026) la note SCORE (0-100) calculée par le serveur passe devant ;
@@ -2190,7 +2212,7 @@ function renderVeille(){
       + '<div class="vc-top">'+srcBadge+ptBadge+(isNew?'<span class="vc-badge new">nouveau</span>':'')
         + '<span class="vc-right">'+right+'</span></div>'
       + '<a class="vc-title" href="'+pub+'" target="_blank" rel="noopener">'+esc(it.titre)+'</a>'
-      + (it.resume?'<div class="vc-resume">'+esc(it.resume)+'</div>':'')
+      + (it.resume?'<div class="vc-resume"><span class="vc-resume-lbl">✦ En deux lignes</span>'+esc(it.resume)+'</div>':'')
       + (it.motif?'<div class="vc-motif">'+esc(it.motif)+'</div>':'')
       + (it.revue?'<div class="vc-journal">'+esc(it.revue)+'</div>':'')
       + (it.themes&&it.themes.length?'<div class="vc-themes">'+it.themes.map(esc).join(' · ')+'</div>':'')
@@ -2255,7 +2277,7 @@ function renderToposList(data){
   document.getElementById('toposCount').textContent = data.count ? (data.count + (data.count>1?' topos':' topo')) : '';
   const box=document.getElementById('toposList');
   if(!data.topos || !data.topos.length){
-    box.innerHTML='<div class="topos-empty">Aucun topo pour l\'instant.<br><span>Déposez un PDF dans le dossier Drive pour le voir apparaître ici.</span></div>';
+    box.innerHTML=_semaine+'<div class="topos-empty">Aucun topo pour l\'instant.<br><span>Déposez un PDF dans le dossier Drive pour le voir apparaître ici.</span></div>';
     return;
   }
   box.innerHTML = data.topos.map(t => {

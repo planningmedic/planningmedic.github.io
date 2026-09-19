@@ -45,14 +45,20 @@ function monde(plan) {
     console, JSON, Date, Number, String, Object, Array, Math, Error, isNaN, parseInt, encodeURIComponent,
     SpreadsheetApp: { getActiveSpreadsheet: () => monde.cl },
     ScriptApp: { getProjectTriggers: () => [], newTrigger: () => ({ timeBased: () => ({ onWeekDay: () => ({ atHour: () => ({ create: () => {} }) }) }) }), WeekDay: { MONDAY: 1 }, deleteTrigger: () => {} },
-    Utilities: { sleep: ms => pauses.push(ms), formatDate: () => '2026-08-08' },
+    Utilities: { sleep: ms => pauses.push(ms), formatDate: () => new Date().toISOString().slice(0, 10) },   // (15/09) la vraie date : la fenêtre des résumés en dépend
     Logger: { log: m => journal.push(String(m)) },
     _isoDate: v => String(v || ''),
     _bat_: nom => battements.push(nom),
     logAction: m => logs.push(String(m)),
     _configRows_: () => [['CLE', 'VALEUR']],
     PropertiesService: { getScriptProperties: () => ({ getProperty: k => props[k] || null, setProperty: (k, v) => { props[k] = String(v); } }) },
+    getAnthropicToken: () => monde.jetonIA === undefined ? 'sk-test' : monde.jetonIA,   // (15/09) passe 4
     UrlFetchApp: { fetch: (url, opt) => {
+      if (/api\.anthropic\.com/.test(String(url))) {   // (15/09) l'API de résumé : réponse programmable
+        const body = JSON.parse(opt.payload); appelsIA.push(body);
+        const rep = monde.ia ? monde.ia(body) : { code: 200, texte: 'Résumé de test en deux phrases. Seconde phrase.' };
+        return { getResponseCode: () => rep.code || 200, getContentText: () => JSON.stringify({ content: [{ type: 'text', text: rep.texte || '' }] }) };
+      }
       const params = new URLSearchParams(opt.payload);
       const endpoint = url.split('/').pop();
       requetes.push({ endpoint, term: params.get('term') || '', id: params.get('id') || '' });
@@ -63,11 +69,11 @@ function monde(plan) {
       return { getResponseCode: () => code, getContentText: () => code === 200 ? (typeof rep === 'string' ? rep : JSON.stringify(rep)) : 'Too Many Requests' };
     } },
   });
-  const pauses = [], battements = [], logs = []; ctx.__pauses = pauses; ctx.__props = props; ctx.__battements = battements; ctx.__logs = logs;
+  const pauses = [], battements = [], logs = [], appelsIA = []; ctx.__pauses = pauses; ctx.__props = props; ctx.__battements = battements; ctx.__logs = logs;
   ctx.globalThis = ctx;
   monde.cl = new Classeur();
   vm.runInContext(fs.readFileSync('../gas/veille.gs', 'utf8'), ctx);
-  return { ctx, requetes, journal, cl: monde.cl, pauses, battements, logs, props };
+  return { ctx, requetes, journal, cl: monde.cl, pauses, battements, logs, props, appelsIA };
 }
 
 (async () => {
@@ -458,4 +464,46 @@ function monde(plan) {
 
 console.log(`\n${ok} OK · ${ko} en échec`);
   process.exit(ko ? 1 : 0);
-})();
+})();  console.log('\n═══ Passe 4 : le résumé en deux lignes (15/09/2026) ═══');
+  {
+    const fabrique = id => ({
+      '901': { titre: 'Trial A', resume: 'Population 1200 patients. Mortality unchanged.', pubtypes: ['Randomized Controlled Trial'], date: '2026-09-15', revue: 'Anesthesiology' },
+      '902': { titre: 'Trial B', resume: 'Cohort of 300.', pubtypes: ['Observational Study'], date: '2026-09-14', revue: 'Anesthesiology' },
+      '903': { titre: 'Letter about C', pubtypes: ['Letter'], date: '2026-09-13', revue: 'Anesthesiology' },
+    }[id] || {});
+    const plan = (endpoint, params) => endpoint === 'esearch.fcgi'
+      ? ((params.get('term') || '').indexOf('"N Engl J Med"[Journal]') !== -1 ? { esearchresult: { count: '0', idlist: [] } } : { esearchresult: { count: '3', idlist: ['901', '902', '903'] } })
+      : efetchXml(params, fabrique);
+    monde.jetonIA = undefined;
+    monde.ia = body => /Letter about C/.test(body.messages[0].content) ? { code: 200, texte: 'SANS_RESUME' } : { code: 200, texte: 'Voici le résumé : Chez 1 200 patients, la mortalité est inchangée. Le critère secondaire baisse.' };
+    const m = monde(plan);
+    vm.runInContext('getOrCreateVeilleTabs()', m.ctx);
+    const r = vm.runInContext('runVeille()', m.ctx);
+    const f = m.cl.getSheetByName('VEILLE'); const par = {}; f.lignes.slice(1).forEach(l => { par[String(l[0])] = l; });
+    V('les articles du passage reçoivent un résumé, du mieux noté au moins bien noté', m.appelsIA.length === 3 && /Trial A/.test(m.appelsIA[0].messages[0].content), { appels: m.appelsIA.length, journal: m.journal.filter(l => /sum|Anthropic|token|efetch/i.test(l)), retour: r });
+    V('la consigne impose deux phrases, du factuel, et rien qui ne soit dans le texte', /DEUX phrases/.test(m.appelsIA[0].system) && /aucun chiffre absent du texte/.test(m.appelsIA[0].system) && /SANS_RESUME/.test(m.appelsIA[0].system));
+    V('ce qui part à l\'API : titre + résumé PubMed, rien d\'autre', m.appelsIA.every(a => a.messages.length === 1 && !/MAR|CODE|CONFIG/.test(a.messages[0].content)));
+    V('le préambule « Voici le résumé : » est retiré', par['901'][8] === 'Chez 1 200 patients, la mortalité est inchangée. Le critère secondaire baisse.', par['901'][8]);
+    V('une lettre est marquée SANS_RESUME dans la feuille…', par['903'][8] === 'SANS_RESUME');
+    const g = vm.runInContext('getVeille()', m.ctx);
+    V('…et l\'écran ne montre rien pour elle, le résumé pour les autres', g.items.find(i => i.pmid === '903').resume === '' && /Chez 1 200/.test(g.items.find(i => i.pmid === '901').resume));
+    V('le bilan LOGS compte les résumés', m.logs.some(l => /2 résumés/.test(l)) && r.resumes === 2, m.logs);
+    // second passage : rien de nouveau → aucun appel IA (un résumé est définitif)
+    m.appelsIA.length = 0; vm.runInContext('runVeille()', m.ctx);
+    V('au passage suivant, aucun article ne repasse à l\'API (résumé définitif, SANS_RESUME compris)', m.appelsIA.length === 0, m.appelsIA.length);
+    // panne de l'API : la case reste vide, le passage réussit
+    monde.ia = () => ({ code: 529, texte: '' });
+    const m2 = monde(plan); vm.runInContext('getOrCreateVeilleTabs()', m2.ctx);
+    const r2 = vm.runInContext('runVeille()', m2.ctx);
+    const f2 = m2.cl.getSheetByName('VEILLE');
+    V('API en panne : le passage réussit quand même, aucun résumé écrit, cases vides (on réessaiera lundi)', r2.success === true && r2.resumes === 0 && f2.lignes.slice(1).every(l => !l[8]) && m2.battements.length === 1);
+    // sans clé : rien ne part
+    monde.ia = null; monde.jetonIA = '';
+    const m3 = monde(plan); vm.runInContext('getOrCreateVeilleTabs()', m3.ctx); vm.runInContext('runVeille()', m3.ctx);
+    V('sans ANTHROPIC_TOKEN : aucun appel, le passage réussit', m3.appelsIA.length === 0 && m3.battements.length === 1);
+    monde.jetonIA = undefined; monde.ia = null;
+    const page = fs.readFileSync(require('path').join(__dirname, '..', 'index.html'), 'utf8');
+    V('l\'accueil : bloc « Cette semaine » (résumés des 7 jours) et encadré « En deux lignes »', /function _vSemaine\(\)/.test(page) && /Cette semaine/.test(page) && /En deux lignes/.test(page) && /_semaine\+/.test(page));
+  }
+
+
