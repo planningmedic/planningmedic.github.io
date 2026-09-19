@@ -491,6 +491,12 @@ console.log(`\n${ok} OK · ${ko} en échec`);
     // second passage : rien de nouveau → aucun appel IA (un résumé est définitif)
     m.appelsIA.length = 0; vm.runInContext('runVeille()', m.ctx);
     V('au passage suivant, aucun article ne repasse à l\'API (résumé définitif, SANS_RESUME compris)', m.appelsIA.length === 0, m.appelsIA.length);
+    /* (20/09/2026) Un résumé long n'est plus coupé à 420 caractères (le bicarbonate finissait par « ;… ») */
+    monde.ia = () => ({ code: 200, texte: 'X'.repeat(300) + ' fin de première phrase. ' + 'Y'.repeat(300) + ' fin.' });
+    const mL = monde(plan); vm.runInContext('getOrCreateVeilleTabs()', mL.ctx); vm.runInContext('runVeille()', mL.ctx);
+    const long = mL.cl.getSheetByName('VEILLE').lignes.slice(1).map(l => String(l[8] || '')).find(v => v.length > 500) || '';
+    V('un résumé long est gardé entier, jamais amputé d\'un « … »', long.length > 600 && !/…$/.test(long), long.length);
+    monde.ia = null;
     /* (20/09/2026) Une recommandation / revue reçoit une consigne adaptée (question + messages
        pratiques), pas celle des études chiffrées ; SANS_RESUME ne vise plus que lettre, éditorial,
        erratum, protocole. */
@@ -504,7 +510,8 @@ console.log(`\n${ok} OK · ${ko} en échec`);
     V('un consensus et une revue reçoivent la consigne « question + messages pratiques »', mR.appelsIA.length === 2 && mR.appelsIA.every(a => /messages pratiques principaux/.test(a.system) && !/critère principal/.test(a.system)), mR.appelsIA.map(a => a.system.slice(0, 40)));
     V('…et un essai garde la consigne chiffrée (critère principal, chiffres du texte)', /VEILLE_RESUME_CONSIGNE =[\s\S]{0,400}critère principal/.test(fs.readFileSync(require('path').join(__dirname, '..', 'gas', 'veille.gs'), 'utf8')));
     const src = fs.readFileSync(require('path').join(__dirname, '..', 'gas', 'veille.gs'), 'utf8');
-    V('veilleRepasserRefuses efface les SANS_RESUME des 7 jours puis résume (outil après changement de consigne)', /function veilleRepasserRefuses\(\)/.test(src) && /=== 'SANS_RESUME'\) \{ f\.getRange\(r \+ 1, iRes \+ 1\)\.setValue\(''\)/.test(src));
+    V('veilleRepasserRefuses efface les SANS_RESUME et les résumés coupés des 7 jours puis résume', /function veilleRepasserRefuses\(\)/.test(src) && /v === 'SANS_RESUME' \|\| \/…\$\/\.test\(v\)\)\) \{ f\.getRange\(r \+ 1, iRes \+ 1\)\.setValue\(''\)/.test(src));
+    V('l\'accueil trie par pertinence d\'emblée', /let V_SORT   = 'relevance'/.test(fs.readFileSync(require('path').join(__dirname, '..', 'index.html'), 'utf8')) && /<option value="relevance" selected>/.test(fs.readFileSync(require('path').join(__dirname, '..', 'index.html'), 'utf8')));
     // panne de l'API : la case reste vide, le passage réussit
     monde.ia = () => ({ code: 529, texte: '' });
     const m2 = monde(plan); vm.runInContext('getOrCreateVeilleTabs()', m2.ctx);

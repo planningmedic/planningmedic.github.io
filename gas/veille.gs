@@ -57,7 +57,7 @@
 //  instantané unique et partagé : chantier séparé.
 // ══════════════════════════════════════════════════════════════════════
 
-const GAS_VERSION_VEILLE = '2026-09-20.1';
+const GAS_VERSION_VEILLE = '2026-09-20.2';
 
 const VEILLE_CFG_TAB = 'VEILLE_CFG';
 const VEILLE_TAB     = 'VEILLE';
@@ -833,10 +833,12 @@ function _veilleResumeIA_(token, texte, consigne) {
   if (/^SANS_RESUME/.test(txt)) return 'SANS_RESUME';
   // garde-fou : deux phrases, pas de liste, pas de préambule
   txt = txt.replace(/^\s*(Résumé|Voici)[^:]*:\s*/i, '').replace(/\s+/g, ' ').trim();
-  if (txt.length > 420) txt = txt.slice(0, 417).replace(/\s\S*$/, '') + '…';
+  /* (20/09/2026) Plus de coupe à 420 caractères : à l'écran, le bicarbonate finissait par « ;… ».
+     La longueur est tenue par la consigne (60 mots) et par max_tokens ; si le modèle déborde,
+     on garde le texte entier plutôt qu'une phrase amputée. */
   return txt;
 }
-/* (20/09/2026) Lancement manuel : effacer les SANS_RESUME des 7 derniers jours puis résumer. Sert
+/* (20/09/2026) Lancement manuel : effacer les SANS_RESUME et les résumés coupés (« … ») des 7 derniers jours puis résumer. Sert
    après un changement de consigne : les articles refusés à tort repassent, les résumés écrits ne
    bougent pas. */
 function veilleRepasserRefuses() {
@@ -846,7 +848,8 @@ function veilleRepasserRefuses() {
   const limite = Date.now() - 7 * 86400000; let effaces = 0;
   for (let r = 1; r < data.length; r++) {
     const aj = data[r][iAj]; const t = aj instanceof Date ? aj.getTime() : new Date(String(aj)).getTime();
-    if (t >= limite && String(data[r][iRes]) === 'SANS_RESUME') { f.getRange(r + 1, iRes + 1).setValue(''); effaces++; }
+    const v = String(data[r][iRes] || '');
+    if (t >= limite && (v === 'SANS_RESUME' || /…$/.test(v))) { f.getRange(r + 1, iRes + 1).setValue(''); effaces++; }   // (20/09) aussi les résumés coupés de la première version
   }
   const res = _veilleResumerRecents_(f, 20, 7);
   try { logAction('veille — refusés repassés : ' + effaces + ' effacé(s), ' + (res.ecrits || 0) + ' résumé(s) écrit(s)'); } catch (e) {}

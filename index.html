@@ -618,8 +618,8 @@ html[data-theme="dark"] .vs-pill{background:#251B3C;color:#B593F2}
         <option value="">Tous thèmes</option>
       </select>
       <select class="vsel" onchange="onVSort(this.value)">
+        <option value="relevance" selected>Pertinence</option>
         <option value="recent">Plus récents</option>
-        <option value="relevance">Pertinence</option>
       </select>
       <input class="vsearch" type="search" placeholder="Filtrer par titre, auteur, revue…" oninput="onVSearch(this.value)">
     </div>
@@ -2031,7 +2031,7 @@ let VEILLE_ITEMS = [];
 let V_FILTER = 'unread';   // unread | all | star
 let V_SOURCE = '';
 let V_THEME  = '';
-let V_SORT   = 'recent';   // recent | relevance
+let V_SORT   = 'relevance';   // relevance | recent — (20/09/2026) la pertinence d'emblée, décision du responsable
 let V_SEARCH = '';
 let V_SEEN   = '';         // dernière visite (yyyy-MM-dd) → badge "nouveau"
 let V_REVUES = [];         // revues cochées ([] = toutes) — mémorisé sur l'appareil
