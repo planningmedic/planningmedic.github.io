@@ -103,6 +103,13 @@ esearch.fcgi HTTP 429` au 23e appel (un par thème, 21 thèmes, 350 ms d'écart)
    jours précédents sont relus en un lot. Lancement manuel : `veilleResumerSemaine()`. LOGS compte les
    résumés. Accueil : bloc « Cette semaine » (résumés des 7 jours, comptés par type) et encadré « En deux
    lignes » sous le titre. Coût : ~20 appels courts par lundi. Banc : 96 ✓.
+   **20/09 (veille.gs 2026-09-20.1) :** premier vrai passage = 16 résumés écrits + 4 SANS_RESUME, dont un
+   consensus AAGBI et une revue sur la glycémie refusés à tort (consigne pensée pour des études chiffrées).
+   Deux consignes désormais, choisies par le type PubMed et le titre : *étude* (population, intervention,
+   critère chiffré) et *recommandation / consensus / revue* (la question, puis les messages pratiques tels
+   qu'énoncés). SANS_RESUME ne vise plus que lettre, éditorial, erratum, protocole. Outil
+   `veilleRepasserRefuses()` : efface les SANS_RESUME des 7 jours et résume. Rappel : le résumé se fait
+   sur le titre + l'abstract PubMed uniquement (pas de texte intégral : paywall, coût).
    **Ouvert, à décider plus tard :** portée des thèmes (le résumé PubMed étiquette large : « Voies aériennes »
    sur le bicarbonate), et l'échelle de la note (beaucoup d'ECR plafonnent à 100).
 **Thèmes :** les 21 de VEILLE_CFG jugés bons par le responsable ; à étoffer plus tard.

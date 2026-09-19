@@ -491,6 +491,20 @@ console.log(`\n${ok} OK · ${ko} en échec`);
     // second passage : rien de nouveau → aucun appel IA (un résumé est définitif)
     m.appelsIA.length = 0; vm.runInContext('runVeille()', m.ctx);
     V('au passage suivant, aucun article ne repasse à l\'API (résumé définitif, SANS_RESUME compris)', m.appelsIA.length === 0, m.appelsIA.length);
+    /* (20/09/2026) Une recommandation / revue reçoit une consigne adaptée (question + messages
+       pratiques), pas celle des études chiffrées ; SANS_RESUME ne vise plus que lettre, éditorial,
+       erratum, protocole. */
+    const fabriqueReco = id => ({ '911': { titre: 'Peri-operative management of day surgery: a consensus statement', resume: 'Guidance on selection, fasting and discharge.', pubtypes: ['Journal Article', 'Consensus Development Conference'], date: '2026-09-15', revue: 'Anaesthesia' },
+                                  '912': { titre: 'Individualising glucose control in ICU: evidence and practice', resume: 'Narrative review.', pubtypes: ['Review'], date: '2026-09-14', revue: 'Anaesthesia' } }[id] || {});
+    const planReco = (endpoint, params) => endpoint === 'esearch.fcgi'
+      ? ((params.get('term') || '').indexOf('"N Engl J Med"[Journal]') !== -1 ? { esearchresult: { count: '0', idlist: [] } } : { esearchresult: { count: '2', idlist: ['911', '912'] } })
+      : efetchXml(params, fabriqueReco);
+    monde.ia = () => ({ code: 200, texte: 'Le texte traite de la chirurgie ambulatoire. Messages : sélection, jeûne, sortie.' });
+    const mR = monde(planReco); vm.runInContext('getOrCreateVeilleTabs()', mR.ctx); vm.runInContext('runVeille()', mR.ctx);
+    V('un consensus et une revue reçoivent la consigne « question + messages pratiques »', mR.appelsIA.length === 2 && mR.appelsIA.every(a => /messages pratiques principaux/.test(a.system) && !/critère principal/.test(a.system)), mR.appelsIA.map(a => a.system.slice(0, 40)));
+    V('…et un essai garde la consigne chiffrée (critère principal, chiffres du texte)', /VEILLE_RESUME_CONSIGNE =[\s\S]{0,400}critère principal/.test(fs.readFileSync(require('path').join(__dirname, '..', 'gas', 'veille.gs'), 'utf8')));
+    const src = fs.readFileSync(require('path').join(__dirname, '..', 'gas', 'veille.gs'), 'utf8');
+    V('veilleRepasserRefuses efface les SANS_RESUME des 7 jours puis résume (outil après changement de consigne)', /function veilleRepasserRefuses\(\)/.test(src) && /=== 'SANS_RESUME'\) \{ f\.getRange\(r \+ 1, iRes \+ 1\)\.setValue\(''\)/.test(src));
     // panne de l'API : la case reste vide, le passage réussit
     monde.ia = () => ({ code: 529, texte: '' });
     const m2 = monde(plan); vm.runInContext('getOrCreateVeilleTabs()', m2.ctx);

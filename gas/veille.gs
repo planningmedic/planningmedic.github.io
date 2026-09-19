@@ -57,7 +57,7 @@
 //  instantané unique et partagé : chantier séparé.
 // ══════════════════════════════════════════════════════════════════════
 
-const GAS_VERSION_VEILLE = '2026-09-15.2';
+const GAS_VERSION_VEILLE = '2026-09-20.1';
 
 const VEILLE_CFG_TAB = 'VEILLE_CFG';
 const VEILLE_TAB     = 'VEILLE';
@@ -756,13 +756,29 @@ function _veilleSplitThemes(v) {
    ou douteuse laisse la case vide, le passage continue. Aussi lançable à la
    main : veilleResumerSemaine(). */
 const VEILLE_RESUME_MODELE = 'claude-sonnet-4-6';
+/* (20/09/2026) Deux consignes : une étude se résume par ses chiffres ; une recommandation, un
+   consensus ou une revue narrative n'en a pas, et la première version répondait SANS_RESUME
+   (4 refus sur 20 le 19/09, dont un consensus AAGBI et une revue sur la glycémie en réa).
+   SANS_RESUME ne vise plus que ce qui n'a rien à dire : lettre, éditorial, erratum, protocole. */
 const VEILLE_RESUME_CONSIGNE =
   "Tu résumes des articles d'anesthésie-réanimation pour des médecins. Réponds en français, en DEUX phrases " +
   "au plus (60 mots maximum), au présent, sans introduction ni formule. Première phrase : la population, " +
   "l'intervention et le critère principal, avec les chiffres présents dans le résumé (effectif, risque relatif, " +
   "différence). Deuxième phrase : le résultat secondaire ou la limite la plus utile en pratique. N'ajoute aucune " +
-  "interprétation, aucun conseil, aucun chiffre absent du texte. Si le texte ne permet pas de résumer " +
-  "(lettre, protocole, erratum), réponds exactement : SANS_RESUME.";
+  "interprétation, aucun conseil, aucun chiffre absent du texte. Si le texte est une lettre, un éditorial, un " +
+  "erratum ou un protocole d'étude sans résultat, réponds exactement : SANS_RESUME.";
+const VEILLE_RESUME_CONSIGNE_RECO =
+  "Tu résumes des recommandations, consensus et revues d'anesthésie-réanimation pour des médecins. Réponds en " +
+  "français, en DEUX phrases au plus (60 mots maximum), au présent, sans introduction ni formule. Première " +
+  "phrase : la question traitée et pour qui. Deuxième phrase : les deux ou trois messages pratiques principaux " +
+  "tels que le texte les énonce, sans les reformuler en conseil personnel ni en ajouter. Si le texte est une " +
+  "lettre, un éditorial ou un erratum, réponds exactement : SANS_RESUME.";
+function _veilleConsignePour(pubtypes, titre) {
+  const pt = (pubtypes || []).join(' | ');
+  const reco = /Guideline|Consensus|Review|Practice Guideline/.test(pt) && !/Randomized|Trial|Meta-Analysis/.test(pt);
+  const titreReco = /consensus|guideline|recommendation|statement|narrative review|state of the art|update on|overview/i.test(titre || '');
+  return (reco || titreReco) ? VEILLE_RESUME_CONSIGNE_RECO : VEILLE_RESUME_CONSIGNE;
+}
 
 function _veilleResumerRecents_(feuille, maxN, joursRecents, fichesConnues) {
   const token = (typeof getAnthropicToken === 'function') ? getAnthropicToken() : '';   // portail.gs : la clé ANTHROPIC_TOKEN de CONFIG
@@ -791,7 +807,7 @@ function _veilleResumerRecents_(feuille, maxN, joursRecents, fichesConnues) {
   let ecrits = 0;
   choisis.forEach(function (c) {
     const f = fiches[c.pmid]; const texte = f ? (f.titre + '\n\n' + f.resume) : c.titre;
-    const res = _veilleResumeIA_(token, texte);
+    const res = _veilleResumeIA_(token, texte, _veilleConsignePour(f ? f.pubtypes : [], c.titre));
     if (res === null) return;                                   // erreur d'appel : on laisse vide, on réessaiera lundi prochain
     feuille.getRange(c.r + 1, iRes + 1).setValue(res);          // SANS_RESUME est écrit tel quel : la case n'est plus vide, on ne redemandera pas
     if (res !== 'SANS_RESUME') ecrits++;
@@ -799,8 +815,8 @@ function _veilleResumerRecents_(feuille, maxN, joursRecents, fichesConnues) {
   });
   return { ecrits: ecrits, demandes: choisis.length };
 }
-function _veilleResumeIA_(token, texte) {
-  const body = { model: VEILLE_RESUME_MODELE, max_tokens: 220, system: VEILLE_RESUME_CONSIGNE,
+function _veilleResumeIA_(token, texte, consigne) {
+  const body = { model: VEILLE_RESUME_MODELE, max_tokens: 220, system: consigne || VEILLE_RESUME_CONSIGNE,
                  messages: [{ role: 'user', content: String(texte || '').slice(0, 6000) }] };
   let res;
   try {
@@ -819,6 +835,23 @@ function _veilleResumeIA_(token, texte) {
   txt = txt.replace(/^\s*(Résumé|Voici)[^:]*:\s*/i, '').replace(/\s+/g, ' ').trim();
   if (txt.length > 420) txt = txt.slice(0, 417).replace(/\s\S*$/, '') + '…';
   return txt;
+}
+/* (20/09/2026) Lancement manuel : effacer les SANS_RESUME des 7 derniers jours puis résumer. Sert
+   après un changement de consigne : les articles refusés à tort repassent, les résumés écrits ne
+   bougent pas. */
+function veilleRepasserRefuses() {
+  const tabs = getOrCreateVeilleTabs(); const f = tabs.veille;
+  const data = f.getDataRange().getValues(); const hdr = data[0].map(String);
+  const iRes = hdr.indexOf('RESUME'), iAj = hdr.indexOf('AJOUTE_LE');
+  const limite = Date.now() - 7 * 86400000; let effaces = 0;
+  for (let r = 1; r < data.length; r++) {
+    const aj = data[r][iAj]; const t = aj instanceof Date ? aj.getTime() : new Date(String(aj)).getTime();
+    if (t >= limite && String(data[r][iRes]) === 'SANS_RESUME') { f.getRange(r + 1, iRes + 1).setValue(''); effaces++; }
+  }
+  const res = _veilleResumerRecents_(f, 20, 7);
+  try { logAction('veille — refusés repassés : ' + effaces + ' effacé(s), ' + (res.ecrits || 0) + ' résumé(s) écrit(s)'); } catch (e) {}
+  Logger.log(JSON.stringify({ effaces: effaces, resultat: res }));
+  return { effaces: effaces, resultat: res };
 }
 /* Lancement manuel : résume les 20 meilleurs des 7 derniers jours qui n'ont pas encore de résumé. */
 function veilleResumerSemaine() {
