@@ -400,7 +400,7 @@
       <div><b>Protocoles</b><span>Les procédures du service, classées par spécialité.</span></div>
       <div><b>Topos / biblio</b><span>Documents et présentations du service.</span></div>
       <div><b>Staffs à venir</b><span>Programme des réunions et intervenants.</span></div>
-      <div><b>Veille biblio</b><span>Les nouveaux articles en anesthésie-réanimation.</span></div>
+      <div><b>Veille biblio</b><span>Les articles de la semaine, notés et résumés en deux lignes.</span></div>
       <div><b>Annuaire</b><span>Numéros de l'hôpital et DECT de l'équipe.</span></div>
     </div>
 
@@ -410,8 +410,58 @@
     <details class="plus">
       <summary>La veille biblio en détail</summary>
       <div class="dedans">
-        <p>En haut de la liste, le bouton <b>Revues</b> vous laisse cocher celles qui vous intéressent. Le portail s'en souvient d'une visite à l'autre.</p>
-        <p><b>Lu</b> et <b>★</b> sont personnels : marquer un article lu ne le retire que de votre liste, jamais de celle des collègues. Vos marques vous suivent d'un appareil à l'autre.</p>
+        <h3>En 2 minutes</h3>
+        <p>Chaque lundi matin, le portail va chercher les articles parus dans <b>23 revues d'anesthésie-réanimation</b> et,
+        pour <b>21 thèmes</b> du service, dans les grandes revues généralistes (NEJM, JAMA, Lancet…). Il leur donne une
+        <b>note sur 100</b>, écrit un <b>résumé en français de deux lignes</b> pour les 20 meilleurs de la semaine, et les
+        range par pertinence. Vous n'avez rien à faire : la liste se remplit toute seule, et ce que vous marquez lu ou
+        en favori ne concerne que vous.</p>
+
+        <h3>Je veux voir ce qui compte cette semaine</h3>
+        <p>Ouvrez la tuile <b>Veille biblio</b>. Le bloc <b>« Cette semaine »</b>, en tête, compte les articles résumés
+        (« 6 essais randomisés · 3 méta-analyses… »). En dessous, la liste s'ouvre triée par <b>Pertinence</b> : les
+        articles les mieux notés d'abord. Sous le titre de chacun des 20 meilleurs, l'encadré <b>« ✦ En deux
+        lignes »</b> donne la population, l'intervention et le résultat chiffré, puis la limite ou le message pratique
+        le plus utile.</p>
+
+        <h3>Je veux comprendre la note</h3>
+        <p>La petite ligne grise sous le titre dit pourquoi (« ECR · 3 thèmes · récent »). Un essai randomisé, une
+        méta-analyse ou une recommandation partent haut ; une lettre, un éditorial ou un protocole d'essai partent
+        bas ; une revue d'anesthésie-réanimation et un article qui touche plusieurs de nos thèmes gagnent quelques
+        points. La note ne juge pas la qualité de l'étude : elle dit <i>ce qui a le plus de chances de changer une
+        pratique</i>.</p>
+
+        <h3>Je veux filtrer</h3>
+        <ul>
+          <li><b>Non lus / Tous / ★ Favoris</b> : vos marques, personnelles — marquer un article lu ne le retire que de
+          votre liste, jamais de celle des collègues, et vos marques vous suivent d'un appareil à l'autre.</li>
+          <li><b>Sources</b> : <i>Revue</i> (parus dans nos 23 revues) ou <i>Généraliste</i> (pêchés par un thème dans
+          une grande revue).</li>
+          <li><b>Revues</b> : cochez celles qui vous intéressent, le portail s'en souvient.</li>
+          <li><b>Thèmes</b> : hémodynamique, voies aériennes, ventilation et SDRA, obstétrique, douleur… Un article peut
+          porter plusieurs thèmes ; ils sont posés d'après son titre, son résumé et ses mots-clés, donc parfois un peu
+          largement.</li>
+          <li><b>Tri</b> : <i>Pertinence</i> (la note) ou <i>Plus récents</i> (la date de parution).</li>
+          <li>La <b>barre de recherche</b> filtre sur le titre, les auteurs et la revue.</li>
+        </ul>
+
+        <h3>Je veux lire l'article</h3>
+        <p><b>PubMed</b> ouvre la fiche officielle (résumé complet en anglais, auteurs, revue) ; <b>DOI</b> ouvre l'article
+        chez l'éditeur — le texte intégral dépend de l'abonnement de l'hôpital ou de l'accès libre.</p>
+
+        <details class="plus">
+          <summary>Pour les curieux : d'où vient le résumé en deux lignes, et ce qu'il ne sait pas</summary>
+          <div class="dedans">
+            <p>Il est écrit par une intelligence artificielle à partir du <b>résumé PubMed uniquement</b> — pas du texte
+            intégral. Consigne : deux phrases, en français, factuelles, avec les seuls chiffres présents dans le résumé,
+            sans interprétation ni conseil. Pour une recommandation ou un consensus, il donne la question traitée puis les
+            messages pratiques tels que le texte les énonce. Il ne peut donc pas être plus précis que le résumé de l'auteur,
+            et il peut hériter de ses raccourcis : c'est une porte d'entrée pour décider de lire ou pas, pas une lecture de
+            l'article. Une lettre ou un éditorial n'a pas de résumé. Un résumé écrit ne change plus.</p>
+            <p>Les 20 meilleurs de la semaine sont résumés le lundi ; les autres articles gardent leur note et leur motif,
+            sans résumé.</p>
+          </div>
+        </details>
       </div>
     </details>
   </div>
@@ -522,8 +572,6 @@
     <h3>Le geste : un outil, puis des jours</h3>
     <ol class="steps">
       <li>Choisissez un <b>outil</b> parmi les quatre boutons du bas.</li>
-        <li><b>Tri « Pertinence »</b> : chaque article porte une note sur 100, calculée à son arrivée — un essai randomisé, une méta-analyse ou une recommandation en haut, une lettre ou un éditorial en bas, un peu plus pour les revues d'anesthésie-réanimation et les articles qui touchent plusieurs thèmes. La petite ligne grise sous le titre dit pourquoi (« ECR · 2 thèmes · revue spécialisée »). Le tri « Récents » reste la date de parution.</li>
-        <li><b>« En deux lignes »</b> : chaque lundi, les 20 articles les mieux notés de la semaine reçoivent un résumé en français de deux phrases — population, intervention, résultat chiffré, puis la limite ou le résultat secondaire utile. Il est écrit par une intelligence artificielle à partir du seul résumé PubMed, sans interprétation ni conseil : c'est une porte d'entrée, pas une lecture de l'article. Le bloc <b>« Cette semaine »</b> en tête de la liste les compte par type d'étude.</li>
       <li>Touchez les jours concernés. Pour une période, <b>glissez le doigt</b> d'un jour à l'autre.</li>
       <li>Appuyez sur <b>Sauvegarder mes indisponibilités</b>, le bouton rouge tout en bas.</li>
       <li>Revenez quand vous voulez. Vos saisies sont conservées et modifiables jusqu'à la clôture.</li>
