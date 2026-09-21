@@ -352,6 +352,12 @@ a.tile:hover, .tile.clickable:hover {
 .topo-title { font-size:15px; font-weight:700; color:var(--ink); overflow:hidden; text-overflow:ellipsis; }
 .topo-meta { font-size:12px; color:var(--ink-4); margin-top:2px; }
 .topo-open { width:18px; height:18px; color:var(--ink-4); flex-shrink:0; }
+/* (21/09/2026) Dossiers FERMÉS à l'ouverture : l'en-tête est le bouton, le chevron tourne. */
+.topo-card-head { cursor:pointer; transition:background .12s ease; }
+.topo-card-head:hover { background:var(--line-light); }
+.topo-chev { width:18px; height:18px; color:var(--ink-4); flex-shrink:0; transition:transform .15s ease; }
+.topo-card.open .topo-chev { transform:rotate(90deg); }
+.topo-card:not(.open) > .doc-list { display:none; }
 
 .doc-list { border-top:1px solid var(--line); }
 .doc-row { display:flex; align-items:center; gap:10px; padding:12px 18px 12px 22px; cursor:pointer; border-top:1px solid var(--line-light); transition:background .12s ease; }
@@ -2293,13 +2299,20 @@ function renderToposList(data){
       '<div class="doc-row" onclick="openDoc(\''+d.id+'\', this)">'
       + '<i data-lucide="file-text"></i><span class="doc-title">'+esc(d.title)+'</span>'
       + '<span class="doc-size">'+fmtSize(d.size)+'</span></div>').join('');
-    return '<div class="topo-card"><div class="topo-card-head">'
+    return '<div class="topo-card"><div class="topo-card-head" role="button" tabindex="0" aria-expanded="false"'
+      + ' onclick="toggleTopo(this)" onkeydown="if(event.key===\'Enter\'||event.key===\' \'){event.preventDefault();toggleTopo(this);}">'
       + '<div class="topo-ico multi"><i data-lucide="folder"></i></div>'
       + '<div class="topo-body"><div class="topo-title">'+esc(t.title)+'</div>'
-      + '<div class="topo-meta">'+t.docs.length+' documents · '+fmtDate(t.date)+'</div></div></div>'
+      + '<div class="topo-meta">'+t.docs.length+(t.docs.length>1?' documents':' document')+' · '+fmtDate(t.date)+'</div></div>'
+      + '<i data-lucide="chevron-right" class="topo-chev"></i></div>'
       + '<div class="doc-list">'+rows+'</div></div>';
   }).join('');
   if(window.lucide) lucide.createIcons();
+}
+/* (21/09/2026) Un dossier de topos s'ouvre et se referme au clic sur son en-tête. */
+function toggleTopo(head){
+  const ouvert = head.parentNode.classList.toggle('open');
+  head.setAttribute('aria-expanded', ouvert ? 'true' : 'false');
 }
 
 function _b64ToBlob(b64, mime){
