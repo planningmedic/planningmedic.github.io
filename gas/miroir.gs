@@ -1,7 +1,7 @@
 // ⚠️ RÈGLE (détecteur de dérive dépôt↔Apps Script) : incrémenter cette version
 // à CHAQUE push de ce fichier. Le diagnostic (admin → Maintenance) compare la
 // version déployée ici avec celle du dépôt et signale toute recopie oubliée.
-const GAS_VERSION_MIROIR = '2026-09-26.1';
+const GAS_VERSION_MIROIR = '2026-09-26.2';
 
 /* ═══════════════════════════════════════════════════════════════════════
    MIROIR.GS — alimentation du miroir de lecture Cloudflare
@@ -874,9 +874,16 @@ const MIROIR_MAX_CLES = 20;
       — ou un Worker ancien qui ne dit rien — ne laisse aucune empreinte :
       elle repart au passage suivant. La dégradation va vers le renvoi,
       jamais vers le silence.
-   2. Une SUPPRESSION (valeur null) n'est jamais filtrée : effacer une clé
-      déjà absente est sans effet, tandis que ne PAS effacer laisserait une
-      donnée périmée servie à 23 MARs.
+   2. Une SUPPRESSION (valeur null) n'est filtrée QUE si le Worker a déjà
+      confirmé avoir effacé cette clé (`supprimes`) et que rien ne l'a
+      réécrite depuis : ne PAS effacer laisserait une donnée périmée servie
+      à 23 MARs, mais effacer une clé déjà absente n'est PAS gratuit.
+      (26/09/2026) Relevé : la purge des années 2027-2028 renvoyait 18
+      effacements à CHAQUE synchro horaire (~430 opérations/jour sur un
+      plafond gratuit de 1 000) pour des clés absentes depuis des semaines.
+      Désormais une suppression confirmée laisse une marque MIROIR_EFFACEE ;
+      toute réécriture de la clé remplace la marque par une vraie empreinte,
+      et l'oubli de 4 h (garde-fou 3) renvoie tout, effacements compris.
    3. Les empreintes sont oubliées une fois par jour (synchro de 4 h) : tout
       repart sans condition. C'est le filet contre une dérive qu'on ne peut
       pas voir d'ici — miroir vidé à la main, écriture perdue côté
@@ -892,6 +899,7 @@ const MIROIR_MAX_CLES = 20;
    VALEUR ENVOYÉE, elle, n'est pas touchée : on ne change que ce qui sert
    à comparer. */
 const MIROIR_CLE_EMPREINTES = 'MIROIR_EMPREINTES';
+const MIROIR_EFFACEE = '-';                  // (26/09/2026) marque « effacement confirmé par le Worker » (garde-fou 2)
 const MIROIR_CLES_HORODATEES = {
   acces: 1, config_admin: 1, mail_nonlus: 1, ordre_vac: 1, veille_marques: 1,
 };
@@ -951,7 +959,10 @@ function _miroirEnvoyer_(items) {
   const inchangees = [];
   cles.forEach(function (c) {
     const v = items[c];
-    if (v === null) { aEnvoyer[c] = null; return; }              // garde-fou 2
+    if (v === null) {                                             // garde-fou 2
+      if (String(c).indexOf('doc_') !== 0 && empreintes[c] === MIROIR_EFFACEE) { inchangees.push(c); return; }
+      aEnvoyer[c] = null; return;
+    }
     if (String(c).indexOf('doc_') === 0) { aEnvoyer[c] = v; return; }
     const e = _miroirEmpreinte_(c, v);
     if (e && empreintes[c] === e) { inchangees.push(c); return; }
@@ -988,7 +999,11 @@ function _miroirEnvoyer_(items) {
       /* Garde-fou 1 : on ne retient que ce que le Worker DIT avoir traité.
          Une clé refusée n'a pas d'empreinte et repart au passage suivant. */
       (Array.isArray(r.supprimes) ? r.supprimes : []).forEach(function (c) {
-        if (c in empreintes) { delete empreintes[c]; empreintesChangees = true; }
+        if (String(c).indexOf('doc_') === 0) {                    // doc_* : différentiel par date, pas de marque
+          if (c in empreintes) { delete empreintes[c]; empreintesChangees = true; }
+          return;
+        }
+        if (empreintes[c] !== MIROIR_EFFACEE) { empreintes[c] = MIROIR_EFFACEE; empreintesChangees = true; }
       });
       (Array.isArray(r.ecrits) ? r.ecrits : []).forEach(function (c) {
         if (String(c).indexOf('doc_') === 0) return;
