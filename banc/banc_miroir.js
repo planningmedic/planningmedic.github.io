@@ -338,11 +338,12 @@ console.log('\n═══ 56. Inventaire des onglets écoutés (06/08/2026) ═�
       },
       TOPOS_FOLDER: 'Planning-Med-Topos',
       PROTOS_FOLDER: 'Planning-Med-Protocoles',
+      RECOS_FOLDER: 'Planning-Med-Recommandations',
       _miroirEnvoyer_: (items) => { envois.push(items); return { success: opts.envoiKO ? false : true }; },
       ScriptApp: { getProjectTriggers: () => [], newTrigger: () => ({ timeBased: () => ({ everyHours: () => ({ create: () => {} }) }) }) },
     });
     c.globalThis = c;
-    ['DOC_DOSSIERS', 'DOC_POIDS_MAX', 'DOC_PROP_DATES', 'DOC_PAR_PASSAGE'].forEach(n =>
+    ['DOC_DOSSIERS', 'DOC_POIDS_MAX', 'DOC_PROP_DATES', 'DOC_PAR_PASSAGE', 'DOC_BUDGET_PASSAGE'].forEach(n =>
       vm.runInContext(src3.match(new RegExp('const ' + n + ' *=[^;]+;'))[0], c));
     ['_docsRecenser_', '_docsDatesLues_', '_docsDatesEcrites_', 'miroirDocuments'].forEach(n =>
       vm.runInContext(extraireFonction('../gas/miroir.gs', n), c));
@@ -431,6 +432,32 @@ console.log('\n═══ 56. Inventaire des onglets écoutés (06/08/2026) ═�
     const m = monterDocs({ [T]: faireDossier([]), [P]: faireDossier([], [specialite]) });
     const rec = vm.runInContext('_docsRecenser_()', m.c);
     V('les protocoles sont vus sur DEUX niveaux', rec.docs.length === 2, rec.docs.map(d => d.nom));
+  }
+
+  // 7 bis. (26/09/2026) Recommandations : source > theme > PDF (TROIS niveaux)
+  {
+    const R = 'Planning-Med-Recommandations';
+    const fiche = faireDoc('r1', 'RFE 2026 - Voies aeriennes.pdf', '2026-09-26T10:00:00Z', 7e4);
+    const theme = faireDossier([fiche]);
+    const source = faireDossier([], [theme]);
+    const m = monterDocs({ [T]: faireDossier([]), [P]: faireDossier([]), [R]: faireDossier([], [source]) });
+    const rec = vm.runInContext('_docsRecenser_()', m.c);
+    V('les recommandations sont vues sur TROIS niveaux', rec.docs.length === 1 && rec.docs[0].id === 'r1', rec.docs.map(d => d.nom));
+  }
+
+  // 7 ter. (26/09/2026) Budget par passage : les petites fiches passent par paquets
+  {
+    const petits = [];
+    for (let i = 0; i < 20; i++) petits.push(faireDoc('f' + i, 'Fiche ' + i + '.pdf', '2026-09-26T10:00:00Z', 7e4));
+    const m = monterDocs({ [T]: faireDossier([]), [P]: faireDossier(petits) });
+    const r = m.lancer();
+    V('20 fiches de 70 Ko : un paquet de 14 (budget 1 Mo), pas une seule', r.copies.length === 14, r);
+    V('jamais plus de DOC_PAR_PASSAGE cles doc_ dans un envoi', Object.keys(m.envois[0]).length <= 15, Object.keys(m.envois[0]).length);
+    V('les 6 autres restent a faire', r.restants === 6, r);
+    const gros = [faireDoc('g1', 'Gros.pdf', '2026-09-26T10:00:00Z', 5e6), faireDoc('p1', 'Petit.pdf', '2026-09-26T10:00:00Z', 7e4)];
+    const m2 = monterDocs({ [T]: faireDossier(gros), [P]: faireDossier([]) });
+    const r2 = m2.lancer();
+    V('un gros document passe seul (le premier passe toujours, meme au-dela du budget)', r2.copies.length === 1 && r2.copies[0] === 'Gros.pdf', r2);
   }
 
   // 8. Envoi en echec → les dates ne sont PAS enregistrees (on recopiera)
