@@ -1,7 +1,7 @@
 // ⚠️ RÈGLE (détecteur de dérive dépôt↔Apps Script) : incrémenter cette version
 // à CHAQUE push de ce fichier. Le diagnostic (admin → Maintenance) compare la
 // version déployée ici avec celle du dépôt et signale toute recopie oubliée.
-const GAS_VERSION_MIROIR = '2026-09-14.3';
+const GAS_VERSION_MIROIR = '2026-09-26.1';
 
 /* ═══════════════════════════════════════════════════════════════════════
    MIROIR.GS — alimentation du miroir de lecture Cloudflare
@@ -377,6 +377,7 @@ function miroirPousserFamilles_(familles, annee, toutesAnnees) {
     _miroirAjouteEnveloppe_(items, 'veille',     function () { return getVeille(); });
     _miroirAjouteEnveloppe_(items, 'protocoles', function () { return listProtocoles(); });
     _miroirAjouteEnveloppe_(items, 'annuaire',   function () { return listAnnuaire(); });
+    _miroirAjouteEnveloppe_(items, 'recommandations', function () { return listRecommandations(); });   // (26/09/2026)
   }
 
   if (uniq['gardes'] || uniq['joursferies'] || uniq['stats']) {
@@ -528,13 +529,23 @@ function miroirPousserFamilles_(familles, annee, toutesAnnees) {
    la moitie ; au-dela on s'en approche. D'ou le plafond ci-dessous, qui
    ECARTE le document sans jamais le casser : il reste servi par l'ancien
    chemin, et le Diagnostic le signale. */
-const DOC_DOSSIERS      = [TOPOS_FOLDER, PROTOS_FOLDER];   // definis dans portail.gs
+const DOC_DOSSIERS      = [TOPOS_FOLDER, PROTOS_FOLDER, RECOS_FOLDER];   // definis dans portail.gs
 const DOC_POIDS_MAX     = 8 * 1024 * 1024;                 // au-dela : laisse sur le chemin Apps Script
 const DOC_PROP_DATES    = 'MIROIR_DOCS_DATES';             // { idDrive: 'AAAA-MM-JJTHH:MM:SSZ' }
-const DOC_PAR_PASSAGE   = 1;                               // un document par heure
+/* (26/09/2026) BUDGET PAR PASSAGE. Avant : un document par heure, quel que
+   soit son poids — 76 fiches de recommandations de ~70 Ko auraient mis
+   76 heures a arriver. Desormais : le premier document a faire passe
+   TOUJOURS (meme un PDF de 5 Mo, comme avant), puis on en ajoute tant que
+   le cumul reste sous DOC_BUDGET_PASSAGE, sans depasser DOC_PAR_PASSAGE
+   documents (le Worker accepte 20 cles par envoi ; on garde de la marge
+   pour les effacements). Les gros topos continuent donc de passer un par
+   un ; les petites fiches passent par paquets de ~14. */
+const DOC_PAR_PASSAGE   = 15;                              // plafond de documents par passage
+const DOC_BUDGET_PASSAGE = 1024 * 1024;                    // cumul max (octets) au-dela du premier
 
-/* Recense les PDF des deux dossiers (racine + sous-dossiers, 2 niveaux :
-   Topos = 1 niveau, Protocoles = specialite puis sous-dossier). Renvoie
+/* Recense les PDF des dossiers (racine + sous-dossiers, 3 niveaux :
+   Topos = 1 niveau, Protocoles = specialite puis sous-dossier,
+   Recommandations = source > theme > PDF). Renvoie
    { ok:true, docs:[{id,nom,maj,taille}] } ou { ok:false } si UN dossier est
    injoignable — dans ce cas on ne conclut RIEN (regle 3 : « je n'ai pas pu
    lire » n'est pas « ca n'existe plus »). */
@@ -562,7 +573,12 @@ function _docsRecenser_() {
         const sous = n1.next();
         ajouterFichiers(sous);
         const n2 = sous.getFolders();                 // Protocoles : specialite > sous-dossier
-        while (n2.hasNext()) ajouterFichiers(n2.next());
+        while (n2.hasNext()) {
+          const sous2 = n2.next();
+          ajouterFichiers(sous2);
+          const n3 = sous2.getFolders();              // (26/09) Recommandations : source > theme > PDF
+          while (n3.hasNext()) ajouterFichiers(n3.next());
+        }
       }
     } catch (e) { ok = false; }
   });
@@ -620,7 +636,14 @@ function miroirDocuments() {
 
   const copies = [];
   const erreurs = [];
-  aFaire.slice(0, DOC_PAR_PASSAGE).forEach(function (d) {
+  let cumul = 0;
+  const lot = aFaire.filter(function (d, i) {
+    if (i >= DOC_PAR_PASSAGE) return false;
+    if (i > 0 && cumul + d.taille > DOC_BUDGET_PASSAGE) return false;
+    cumul += d.taille;
+    return true;
+  });
+  lot.forEach(function (d) {
     try {
       const blob = DriveApp.getFileById(d.id).getBlob();
       items['doc_' + d.id] = JSON.stringify({

@@ -1,7 +1,7 @@
 // ⚠️ RÈGLE (détecteur de dérive dépôt↔Apps Script) : incrémenter cette version
 // à CHAQUE push de ce fichier. Le diagnostic (admin → Maintenance) compare la
 // version déployée ici avec celle du dépôt et signale toute recopie oubliée.
-const GAS_VERSION_PORTAIL = '2026-09-14.2';
+const GAS_VERSION_PORTAIL = '2026-09-26.1';
 
 /**
  * portail.gs — actions du PORTAIL équipe (index.html).
@@ -25,6 +25,8 @@ function portailRoute(action, payload, user) {
     case 'listStaffsAll': return _portailJson(listStaffsAll());
     case 'listProtocoles': return _portailJson(listProtocoles());
     case 'getProtocole':   return _portailJson(getProtocole(payload && payload.id));
+    case 'listRecommandations': return _portailJson(listRecommandations());   // (26/09/2026)
+    case 'getRecommandation':   return _portailJson(getRecommandation(payload && payload.id));
     case 'listAnnuaire':   return _portailJson(listAnnuaire());
     case 'getSecteurs':    return _portailJson(getSecteurs());
     case 'getSpecialites': return _portailJson(getSpecialites());   // lecture : pas de verrou
@@ -373,6 +375,86 @@ function getProtocole(id) {
   try { file = DriveApp.getFileById(id); }
   catch (e) { return { success: false, error: 'Document introuvable' }; }
   if (!_fileWithinFolder(file, _getProtosFolder().getId())) return { success: false, error: 'Accès refusé' };
+  const blob = file.getBlob();
+  return {
+    success: true, name: file.getName(),
+    mimeType: blob.getContentType() || 'application/pdf',
+    dataB64: Utilities.base64Encode(blob.getBytes()),
+  };
+}
+
+// ══════════════════════════════════════════════════════════════════════
+//  RECOMMANDATIONS  (26/09/2026 — clone de Protocoles, un niveau de plus)
+//  Dossier Drive Planning-Med-Recommandations (auto-créé). Arborescence :
+//    racine > SOURCE (ex. « RFE SFAR ») > THÈME (ex. « 01 Voies aériennes… ») > PDF
+//  PDF posés directement dans une source → thème « Général » ; PDF posés à la
+//  racine → source « Divers ». Les fichiers non PDF (index.json…) sont ignorés.
+//  Un préfixe numérique de thème (« 01 ») sert à l'ordre, la page le masque.
+// ══════════════════════════════════════════════════════════════════════
+
+const RECOS_FOLDER = 'Planning-Med-Recommandations';
+
+function _getRecosFolder() {
+  const it = DriveApp.getFoldersByName(RECOS_FOLDER);
+  return it.hasNext() ? it.next() : DriveApp.createFolder(RECOS_FOLDER);
+}
+
+// Tri des fiches : les plus récentes d'abord quand le titre porte une année
+// (« RFE 2026 - … »), puis ordre alphabétique.
+function _recosTri(a, b) {
+  const ya = (String(a.title).match(/\b(19|20)\d{2}\b/) || ['0'])[0];
+  const yb = (String(b.title).match(/\b(19|20)\d{2}\b/) || ['0'])[0];
+  if (ya !== yb) return ya < yb ? 1 : -1;
+  return a.title.localeCompare(b.title, 'fr');
+}
+
+function _recosPdfs(dossier) {
+  const docs = [];
+  const it = dossier.getFiles();
+  while (it.hasNext()) { const f = it.next(); if (_isPdf(f)) docs.push(_fileMeta(f)); }
+  return docs.sort(_recosTri);
+}
+
+function listRecommandations() {
+  const root = _getRecosFolder();
+  const sources = [];
+
+  const divers = _recosPdfs(root);
+  if (divers.length) sources.push({ nom: 'Divers', count: divers.length, themes: [{ nom: 'Général', docs: divers }] });
+
+  const subs = root.getFolders();
+  const autres = [];
+  while (subs.hasNext()) {
+    const src = subs.next();
+    const themes = [];
+    const general = _recosPdfs(src);
+    if (general.length) themes.push({ nom: 'Général', docs: general });
+    const th = src.getFolders();
+    const liste = [];
+    while (th.hasNext()) {
+      const t = th.next();
+      const docs = _recosPdfs(t);
+      if (docs.length) liste.push({ nom: t.getName(), docs: docs });
+    }
+    liste.sort(function (a, b) { return a.nom.localeCompare(b.nom, 'fr', { numeric: true }); });
+    const tous = themes.concat(liste);
+    if (!tous.length) continue;
+    const n = tous.reduce(function (s, x) { return s + x.docs.length; }, 0);
+    autres.push({ nom: src.getName(), count: n, themes: tous });
+  }
+  autres.sort(function (a, b) { return a.nom.localeCompare(b.nom, 'fr'); });
+
+  const all = sources.concat(autres);
+  const count = all.reduce(function (n, s) { return n + s.count; }, 0);
+  return { success: true, folderUrl: root.getUrl(), count: count, sources: all };
+}
+
+function getRecommandation(id) {
+  if (!id) return { success: false, error: 'Identifiant manquant' };
+  let file;
+  try { file = DriveApp.getFileById(id); }
+  catch (e) { return { success: false, error: 'Document introuvable' }; }
+  if (!_fileWithinFolder(file, _getRecosFolder().getId())) return { success: false, error: 'Accès refusé' };
   const blob = file.getBlob();
   return {
     success: true, name: file.getName(),
