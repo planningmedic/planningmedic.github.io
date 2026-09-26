@@ -42,7 +42,7 @@ console.log('\n═══ 1. Plus aucun nom de médecin en dur ═══');
     !/DURAND|PERRIN/i.test(DASH), (DASH.match(/DURAND|PERRIN/gi) || []).slice(0, 3));
   V('les tuiles réservées sont marquées `prive`', /prive\s*:\s*true/.test(DASH));
   const n = (DASH.match(/prive\s*:\s*true/g) || []).length;
-  V('les six tuiles réservées sont bien marquées', n === 6, n);   // (26/09/2026) + Recommandations, en test
+  V('les cinq tuiles réservées sont bien marquées', n === 5, n);   // (26/09/2026) Recommandations testée réservée puis ouverte à tous
 }
 
 console.log('\n═══ 2. La page filtre sur le droit reçu, pas sur une identité ═══');

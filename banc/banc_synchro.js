@@ -47,6 +47,7 @@ function banc(options) {
   const src = fs.readFileSync('../gas/miroir.gs', 'utf8');
   vm.runInContext('const MIROIR_MAX_CLES = 20;', ctx);
   vm.runInContext(src.match(/const MIROIR_CLE_EMPREINTES = '[^']*';/)[0], ctx);
+  vm.runInContext(src.match(/const MIROIR_EFFACEE = '[^']*';/)[0], ctx);
   vm.runInContext(src.match(/const MIROIR_CLES_HORODATEES = \{[\s\S]*?\};/)[0], ctx);
   return { ctx, envois, PROPS };
 }

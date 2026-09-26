@@ -67,6 +67,7 @@ function monter(options) {
   const src = fs.readFileSync(SRC, 'utf8');
   ['const MIROIR_MAX_CLES = 20;',
    src.match(/const MIROIR_CLE_EMPREINTES = '[^']*';/)[0],
+   src.match(/const MIROIR_EFFACEE = '[^']*';/)[0],
    src.match(/const MIROIR_CLES_HORODATEES = \{[\s\S]*?\};/)[0],
    "const MIROIR_URL = 'https://exemple.test';"].forEach(l => vm.runInContext(l, ctx));
   ['_miroirSha256_', '_miroirValeurStable_', '_miroirEmpreinte_', '_miroirEmpreintesLues_',
@@ -167,15 +168,41 @@ console.log('\n═══ 80. Aucun chemin ne peut figer une donnée au miroir �
     V('aucune empreinte gardée après un échec', !m.PROPS.MIROIR_EMPREINTES, m.PROPS.MIROIR_EMPREINTES);
   }
 
-  // Garde-fou 2 : une SUPPRESSION n'est jamais filtrée
+  // Garde-fou 2 (26/09/2026) : une suppression part tant que le Worker ne l'a
+  // pas CONFIRMÉE ; confirmée, elle n'est plus répétée à chaque synchro.
   {
     const m = monter();
     m.envoyer({ planning_2028: J([1]) });
     m.envoyer({ planning_2028: null });
     V('la suppression atteint le miroir', !('planning_2028' in m.kv), Object.keys(m.kv));
+    V('la clé porte la marque « effacée » et plus son ancienne empreinte',
+      JSON.parse(m.PROPS.MIROIR_EMPREINTES || '{}').planning_2028 === '-', m.PROPS.MIROIR_EMPREINTES);
     const r = m.envoyer({ planning_2028: null });
-    V('une suppression répétée part quand même (jamais filtrée)', m.appels.length === 3, m.appels);
-    V('et l\'empreinte a bien été effacée', !(JSON.parse(m.PROPS.MIROIR_EMPREINTES || '{}').planning_2028));
+    V('une suppression déjà confirmée n\'est PAS renvoyée (18 effacements/heure évités)', m.appels.length === 2 && r.ecrites === 0, m.appels);
+    m.envoyer({ planning_2028: J([2]) });
+    V('une réécriture remplace la marque par une vraie empreinte', m.kv.planning_2028 === J([2]) && JSON.parse(m.PROPS.MIROIR_EMPREINTES).planning_2028 !== '-');
+    m.envoyer({ planning_2028: null });
+    V('…et la suppression suivante repart donc bien', !('planning_2028' in m.kv), Object.keys(m.kv));
+    m.oublier();
+    const n = m.appels.length;
+    m.envoyer({ planning_2028: null });
+    V('après l\'oubli quotidien, la suppression repart une fois (filet)', m.appels.length === n + 1, m.appels.length);
+  }
+
+  // Garde-fou 2 bis : un Worker qui ne CONFIRME pas l'effacement → on réessaie
+  {
+    const m = monter({ workerKO: true });
+    m.envoyer({ planning_2028: null });
+    m.envoyer({ planning_2028: null });
+    V('effacement non confirmé (Worker en panne) : il repart au passage suivant', m.appels.length === 2, m.appels.length);
+  }
+
+  // Garde-fou 2 ter : les documents doc_* ne reçoivent jamais de marque
+  {
+    const m = monter();
+    m.envoyer({ doc_abcdefghijkl: null });
+    V('un effacement de document ne laisse aucune marque dans la table',
+      !('doc_abcdefghijkl' in JSON.parse(m.PROPS.MIROIR_EMPREINTES || '{}')), m.PROPS.MIROIR_EMPREINTES);
   }
 
   // Garde-fou 3 : l'oubli quotidien renvoie tout
