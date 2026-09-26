@@ -406,6 +406,18 @@ a.tile:hover, .tile.clickable:hover {
 .proto-docs .doc-row { background:var(--white); border:1px solid var(--line); border-radius:12px; margin-bottom:8px; }
 .proto-docs .doc-row svg { color:var(--viol); }
 
+/* ── VUE RECOMMANDATIONS (26/09/2026) — mêmes briques que Protocoles, en vert ── */
+.reco-src { display:flex; align-items:center; gap:12px; width:100%; text-align:left; cursor:pointer;
+  background:var(--white); border:1px solid var(--line); border-radius:12px; padding:14px 16px; margin-bottom:10px;
+  font-size:15px; font-weight:700; color:var(--ink); transition:border-color .15s; }
+.reco-src:hover { border-color:var(--ok); }
+.reco-src svg { color:var(--ok); flex-shrink:0; }
+.reco-src .spec-name { flex:1; }
+.reco-src .count, #recommandationsView .proto-spec .count { background:var(--ok-soft); color:var(--ok); border-radius:999px; padding:1px 9px; font-size:12px; font-weight:700; }
+#recommandationsView .proto-spec { color:var(--ok); }
+#recommandationsView .proto-spec:hover { border-color:var(--ok); }
+#recommandationsView .proto-docs .doc-row svg { color:var(--ok); }
+
 /* ── VUE ANNUAIRE ── */
 .annu-search { margin-bottom:14px; }
 .annu-cat { font-size:12px; font-weight:700; text-transform:uppercase; letter-spacing:.05em; color:var(--ink-4); margin:22px 0 10px 4px; }
@@ -639,6 +651,15 @@ html[data-theme="dark"] .vs-pill{background:#251B3C;color:#B593F2}
     </div>
     <input class="vsearch protos-search" type="search" placeholder="Filtrer un protocole…" oninput="onProtoSearch(this.value)" style="display:none">
     <div id="protocolesList"></div>
+  </div>
+  <div id="recommandationsView" style="display:none">
+    <div class="topos-head">
+      <button class="btn-back" onclick="recoRetour()"><i data-lucide="arrow-left" style="width:16px;height:16px"></i> Retour</button>
+      <h2 id="recoTitre">Recommandations</h2>
+      <span class="topos-count" id="recoCount"></span>
+    </div>
+    <input class="vsearch protos-search" id="recoSearch" type="search" placeholder="Filtrer une fiche…" oninput="onRecoSearch(this.value)" style="display:none">
+    <div id="recoList"></div>
   </div>
   <div id="annuaireView" style="display:none">
     <div class="topos-head">
@@ -939,6 +960,10 @@ const TILES = [
   { key:'conges', title:'Mes congés', sub:'Vacances, formation, TP, récup et congés à venir.', icon:'calendar-off', view:'conges', ready:true },
   { key:'topos',    title:'Topos / biblio', sub:'Documents et présentations du service.', icon:'book-open', view:'topos', ready:true },
   { key:'protocoles', title:'Protocoles', sub:'Procédures du service, classées par spécialité.', icon:'clipboard-list', view:'protocoles', tint:'viol', ready:true },
+  // (26/09/2026) Recommandations des societes savantes (RFE SFAR…), une fiche par
+  // texte, rangees source > theme. ACCES RESTREINT (CONFIG / TUILES_PRIVEES) le
+  // temps du test : retirer `prive` pour l'ouvrir a tous (et monter la version).
+  { key:'recommandations', title:'Recommandations', sub:'Fiches de synthèse des RFE, classées par thème.', icon:'folder', view:'recommandations', tint:'vert', ready:true, prive:true },
   { key:'staffs',   title:'Staffs à venir', sub:'Programme des réunions et intervenants.', icon:'presentation', view:'staffs', ready:true },
   { key:'veille',   title:'Veille biblio', sub:'Nouveaux articles PubMed en anesthésie-réanimation.', icon:'radar', view:'veille', ready:true },
   { key:'annuaire', title:'Annuaire', sub:'Numéros de l\'hôpital et DECT de l\'équipe.', icon:'phone', view:'annuaire', ready:true },
@@ -1551,9 +1576,9 @@ function renderMesConges(){
 
 // ── VUE TOPOS ──
 // ── ROUTING PAR HASH (retour natif, liens partageables, réouverture PWA) ──
-const NAV = { 'topos':openTopos, 'staffs':openStaffs, 'veille':openVeille, 'protocoles':openProtocoles, 'annuaire':openAnnuaire, 'mes-gardes':openMesGardes, 'conges':openMesConges, 'echanges':openEchanges };
+const NAV = { 'topos':openTopos, 'staffs':openStaffs, 'veille':openVeille, 'protocoles':openProtocoles, 'recommandations':openRecommandations, 'annuaire':openAnnuaire, 'mes-gardes':openMesGardes, 'conges':openMesConges, 'echanges':openEchanges };
 function _hideAllViews(){
-  ['tilesView','toposView','staffsView','veilleView','protocolesView','annuaireView','mesGardesView','mesCongesView','echangesView']
+  ['tilesView','toposView','staffsView','veilleView','protocolesView','recommandationsView','annuaireView','mesGardesView','mesCongesView','echangesView']
     .forEach(function(id){ const el=document.getElementById(id); if(el) el.style.display='none'; });
 }
 function route(){
@@ -2397,6 +2422,97 @@ function renderProtocoles(data, q){
   if(window.lucide) lucide.createIcons();
 }
 
+// ── VUE RECOMMANDATIONS (26/09/2026) ──
+// Deux niveaux dans la même vue : les SOURCES (ex. « RFE SFAR »), puis les
+// THÈMES dépliables d'une source, avec leurs fiches. La liste vient du miroir
+// (clé `recommandations`), chaque PDF de `doc_<id>` — repli Apps Script sinon.
+let _recoData=null, _recoSrc=-1;
+async function openRecommandations(){
+  document.getElementById('tilesView').style.display='none';
+  document.getElementById('recommandationsView').style.display='block';
+  _recoSrc=-1;
+  document.getElementById('recoTitre').textContent='Recommandations';
+  document.getElementById('recoCount').textContent='';
+  document.getElementById('recoSearch').style.display='none';
+  const box=document.getElementById('recoList');
+  box.innerHTML='<div class="topos-loading">Chargement…</div>';
+  try{
+    const r=await miroirTuile('recommandations','listRecommandations');
+    if(r && r.success){
+      _recoData=r;
+      renderRecoSources();
+    }
+    else { box.innerHTML='<div class="topos-empty">'+esc((r&&r.error)||'Erreur de chargement')+'</div>'; }
+  }catch(e){ box.innerHTML='<div class="topos-empty">Erreur réseau — réessayez.</div>'; }
+}
+function renderRecoSources(){
+  _recoSrc=-1;
+  const d=_recoData||{};
+  document.getElementById('recoTitre').textContent='Recommandations';
+  document.getElementById('recoCount').textContent = d.count ? (d.count + (d.count>1?' fiches':' fiche')) : '';
+  document.getElementById('recoSearch').style.display='none';
+  const box=document.getElementById('recoList');
+  if(!d.sources || !d.sources.length){
+    box.innerHTML='<div class="topos-empty">Aucune recommandation pour l\'instant.<br><span>Range tes PDF dans le dossier Drive : un sous-dossier par source, puis un sous-dossier par thème.</span></div>';
+    return;
+  }
+  box.innerHTML = d.sources.map(function(s,i){
+    return '<button type="button" class="reco-src" onclick="recoOuvrirSource('+i+')">'
+      + '<i data-lucide="folder"></i><span class="spec-name">'+esc(s.nom)+'</span>'
+      + '<span class="count">'+s.count+'</span><i data-lucide="chevron-right"></i></button>';
+  }).join('');
+  if(window.lucide) lucide.createIcons();
+}
+function recoOuvrirSource(i){
+  _recoSrc=i;
+  const s=_recoData.sources[i];
+  document.getElementById('recoTitre').textContent=s.nom;
+  const champ=document.getElementById('recoSearch');
+  champ.value='';
+  champ.style.display = s.count>8 ? 'block' : 'none';
+  renderRecoThemes('');
+}
+function onRecoSearch(q){ renderRecoThemes(q); }
+// « 01 Voies aériennes » → « Voies aériennes » : le numéro ne sert qu'à l'ordre.
+function _recoTheme(nom){ return String(nom||'').replace(/^\d+\s*[-.]?\s*/,''); }
+// « RFE 2026 - Titre » → { titre:'Titre', an:'2026' } ; sinon le titre tel quel.
+function _recoFiche(t){
+  const m=String(t||'').match(/^(?:[A-Z]{2,6}\s+)?((?:19|20)\d{2})\s+-\s+(.+)$/);
+  return m ? { titre:m[2], an:m[1] } : { titre:String(t||''), an:'' };
+}
+function renderRecoThemes(q){
+  q=_norm(q||'');
+  const s=_recoData.sources[_recoSrc];
+  const box=document.getElementById('recoList');
+  let html='', n=0;
+  s.themes.forEach(function(th){
+    const nomTh=_recoTheme(th.nom);
+    const docs = q ? th.docs.filter(function(p){ return _norm(p.title).indexOf(q)>=0 || _norm(nomTh).indexOf(q)>=0; }) : th.docs;
+    if(!docs.length) return;
+    n+=docs.length;
+    html += '<div class="proto-group'+(q?' open':'')+'">'
+      + '<button type="button" class="proto-spec" onclick="this.parentNode.classList.toggle(\'open\')">'
+      + '<span class="chev"><i data-lucide="chevron-right"></i></span>'
+      + '<span class="spec-name">'+esc(nomTh)+'</span>'
+      + '<span class="count">'+docs.length+'</span></button>';
+    html += '<div class="proto-docs">' + docs.map(function(p){
+      const f=_recoFiche(p.title);
+      return '<div class="doc-row" onclick="openDoc(\''+p.id+'\', this, \'getRecommandation\')">'
+        + '<i data-lucide="file-text"></i><span class="doc-title">'+esc(f.titre)+'</span>'
+        + '<span class="doc-size">'+(f.an ? esc(f.an) : fmtSize(p.size))+'</span></div>';
+    }).join('') + '</div>';
+    html += '</div>';
+  });
+  document.getElementById('recoCount').textContent = n + (n>1?' fiches':' fiche');
+  box.innerHTML = html || '<div class="topos-empty">Aucun résultat.</div>';
+  if(window.lucide) lucide.createIcons();
+}
+// Retour : d'une source vers la liste des sources, de la liste vers l'accueil.
+function recoRetour(){
+  if(_recoSrc>-1 && _recoData) renderRecoSources();
+  else backToHome();
+}
+
 // ── VUE ANNUAIRE ──
 let _annu=null;
 function _ini(name){ return String(name||'').trim().split(/\s+/).map(function(w){ return w[0]||''; }).slice(0,2).join('').toUpperCase(); }
@@ -2815,6 +2931,7 @@ try {
     'renderToposList',
     'renderStaffsList',
     'renderProtocoles',
+    'renderRecoThemes',
     'renderAnnuaire',
     'route'
   ]);
