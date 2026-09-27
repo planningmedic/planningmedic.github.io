@@ -20,6 +20,7 @@ Système web de gestion pour le service d'anesthésie-réanimation du **un servi
 | `suivi-liberal.html` | **Suivi des 30 %** — position de chacun par axe, à partir du relevé mensuel |
 | `crh.html` | Générateur de **comptes rendus de réanimation** (accès nominatif restreint) |
 | `sw.js`, `manifest.webmanifest`, `assets/` | PWA (service worker, icônes) |
+| `acr/` | **Outil ACR** (arrêt cardiaque) — page **autonome**, sans code ni serveur, ouverte à tout médecin : sa propre application installable (`manifest.webmanifest`, périmètre `/acr/`) et son propre service worker (`sw.js`, hors réseau). Valeurs modifiables en tête du script de `index.html`. Banc : `banc_acr.js` |
 
 ### docs/ — documentation & documents de travail
 | Fichier | Rôle |

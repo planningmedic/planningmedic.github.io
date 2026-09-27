@@ -12,7 +12,9 @@ self.addEventListener('install', function (e) { self.skipWaiting(); });
 self.addEventListener('activate', function (e) {
   e.waitUntil((async function () {
     var keys = await caches.keys();
-    await Promise.all(keys.map(function (k) { return k.indexOf(VERSION) !== 0 ? caches.delete(k) : null; }));
+    /* (27/09/2026) Ne supprime que SES anciens caches (« pm-sw-… ») : l'outil ACR
+       (acr/sw.js) a le sien sur la même origine, qu'il faut laisser intact. */
+    await Promise.all(keys.map(function (k) { return (k.indexOf('pm-sw-') === 0 && k.indexOf(VERSION) !== 0) ? caches.delete(k) : null; }));
     await self.clients.claim();
   })());
 });

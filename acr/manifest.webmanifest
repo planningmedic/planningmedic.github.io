@@ -1,0 +1,30 @@
+{
+  "id": "/acr/",
+  "name": "ACR",
+  "short_name": "ACR",
+  "description": "Aide à la prise en charge de l'arrêt cardiaque intra-hospitalier",
+  "start_url": "/acr/",
+  "scope": "/acr/",
+  "display": "standalone",
+  "background_color": "#EEF1F4",
+  "theme_color": "#CE1126",
+  "lang": "fr",
+  "icons": [
+    {
+      "src": "icon-192.png",
+      "sizes": "192x192",
+      "type": "image/png"
+    },
+    {
+      "src": "icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png"
+    },
+    {
+      "src": "icon-maskable-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "maskable"
+    }
+  ]
+}

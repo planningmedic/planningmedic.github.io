@@ -1,0 +1,761 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<!-- Outil ACR (arrêt cardiaque intra-hospitalier) — page AUTONOME (27/09/2026).
+     Aucune connexion, aucun code d'accès, aucun appel au portail, au classeur ni
+     à une API : tout est dans ce fichier. Ouverte à tout médecin, y compris hors
+     du service : l'adresse suffit, le portail n'est qu'un raccourci.
+     Installable à part (manifest.webmanifest de ce dossier) et utilisable hors
+     réseau (sw.js de ce dossier, périmètre /acr/).
+     Valeurs modifiables (doses, formules, énergies, délais, numéros) : en tête du script. -->
+<meta name="robots" content="noindex, nofollow">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>ACR</title>
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="icon" type="image/png" href="icon-192.png">
+<link rel="apple-touch-icon" href="apple-touch-icon.png">
+<meta name="theme-color" content="#CE1126">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
+<meta name="apple-mobile-web-app-title" content="ACR">
+<style>
+:root{
+  --fond:#EEF1F4; --surface:#FFFFFF; --encre:#14202C; --doux:#5A6878; --trait:#CDD5DE;
+  --choc:#F2B705; --choc-encre:#2A2100;
+  --adre:#7B3FA0; --amio:#1F6F8B; --ecmo:#C2272D; --ok:#1E7B4A; --alerte:#C2272D;
+  box-sizing:border-box;
+  padding-top:env(safe-area-inset-top,0px); padding-bottom:env(safe-area-inset-bottom,0px);
+}
+@media (prefers-color-scheme:dark){
+  :root:not([data-theme="light"]){
+    --fond:#17212B; --surface:#212D39; --encre:#F1F4F7; --doux:#9AA8B6; --trait:#34424F;
+    --adre:#A36AC7; --amio:#3C9BBD; --ecmo:#E24A4F; --ok:#3FAE72; --alerte:#FF5A5F;
+  }
+}
+:root[data-theme="dark"]{
+  --fond:#17212B; --surface:#212D39; --encre:#F1F4F7; --doux:#9AA8B6; --trait:#34424F;
+  --adre:#A36AC7; --amio:#3C9BBD; --ecmo:#E24A4F; --ok:#3FAE72; --alerte:#FF5A5F;
+}
+html{scroll-padding-top:env(safe-area-inset-top,0px)}
+*,*::before,*::after{box-sizing:inherit}
+/* Police système : aucune ressource externe, rien à télécharger hors réseau. */
+body{margin:0;background:var(--fond);color:var(--encre);
+  font-family:system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;
+  font-size:17px;line-height:1.4;-webkit-tap-highlight-color:transparent}
+button{font:inherit;color:inherit;cursor:pointer;border:0;border-radius:14px;touch-action:manipulation}
+button:focus-visible{outline:3px solid var(--amio);outline-offset:2px}
+.page{max-width:560px;margin:0 auto;padding:12px 14px 40px}
+.cache{display:none!important}
+h1{font-size:26px;margin:18px 0 6px}
+p.sous{color:var(--doux);margin:0 0 18px}
+
+/* Accueil */
+.choix{display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-top:10px}
+.choix button{aspect-ratio:4/5;background:var(--surface);border:2px solid var(--trait);border-radius:20px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:16px;font-size:26px;font-weight:700}
+.choix button:active{border-color:var(--encre)}
+/* Icônes : Font Awesome Free 7.3.1 (faPerson, faBaby), licence CC BY 4.0 — fontawesome.com */
+.choix .picto{height:clamp(64px,22vw,110px);width:auto;fill:var(--encre)}
+/* Encart d'installation (médecins qui n'ont pas le portail) — masqué une fois installé */
+.installer{margin-top:6px;background:var(--surface);border-radius:14px;padding:0 14px;font-size:15px}
+.installer summary{font-weight:700;padding:14px 0;cursor:pointer}
+.installer ul{margin:0 0 12px;padding-left:20px}
+.installer li{margin-bottom:6px}
+.installer .btn-installer{width:100%;margin:0 0 14px;padding:14px;background:var(--encre);color:var(--fond);font-weight:700}
+
+/* Âge */
+.ages{display:grid;grid-template-columns:repeat(4,1fr);gap:8px}
+.ages button{background:var(--surface);border:2px solid var(--trait);padding:14px 4px;font-weight:700}
+.ages h3{grid-column:1/-1;margin:14px 0 2px;font-size:15px;color:var(--doux);font-weight:400}
+.estimation{margin-top:18px;background:var(--surface);border-radius:14px;padding:14px;border-left:6px solid var(--amio)}
+.estimation b{font-size:24px}
+.demarrer{width:100%;margin-top:16px;background:var(--ecmo);color:#fff;font-size:24px;font-weight:700;padding:20px}
+.demarrer:disabled{opacity:.4}
+.retour{background:none;color:var(--doux);padding:8px 0;text-decoration:underline}
+
+/* En cours */
+.tete{position:sticky;top:env(safe-area-inset-top,0px);z-index:5;margin:0 -14px;padding:10px 14px 12px;background:var(--encre);color:var(--fond);text-align:center;box-shadow:0 6px 14px rgba(0,0,0,.25)}
+.tete .patient{color:inherit;opacity:.8}
+.rea-tel{display:inline-block;margin-bottom:6px;padding:4px 14px;border-radius:99px;background:var(--choc);color:var(--choc-encre);font-size:19px;font-weight:700}
+.rea-tel b{font-size:23px;font-variant-numeric:tabular-nums;letter-spacing:1px}
+.patient{font-size:15px;color:var(--doux)}
+.chrono{font-variant-numeric:tabular-nums;font-size:clamp(88px,30vw,150px);font-weight:700;line-height:.95;letter-spacing:-2px}
+.chrono-label{font-size:15px;opacity:.85}
+.cycle{margin:12px 0;background:var(--surface);border-radius:16px;padding:16px 14px;display:flex;flex-direction:column;align-items:center;gap:10px;border:3px solid transparent;text-align:center}
+.cycle.fini{border-color:var(--alerte);animation:clignote 1s steps(2) infinite}
+@keyframes clignote{50%{background:color-mix(in srgb,var(--alerte) 18%,var(--surface))}}
+@media (prefers-reduced-motion:reduce){.cycle.fini{animation:none}}
+.cycle .anneau{position:relative;width:150px;height:150px}
+.cycle .jauge{width:150px;height:150px;display:block}
+.cycle .anneau b{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;font-size:44px;font-variant-numeric:tabular-nums}
+.cycle-info{font-size:18px;font-weight:700;white-space:nowrap}
+.cycle .jauge circle{fill:none;stroke-width:9}
+.cycle .fondj{stroke:var(--trait)}
+.cycle .arc{stroke:var(--ok);stroke-linecap:round;transform:rotate(-90deg);transform-origin:50% 50%;transition:stroke-dashoffset .9s linear}
+.cycle.fini .arc{stroke:var(--alerte)}
+
+.massage{width:100%;margin:12px 0;background:var(--ecmo);color:#fff;font-size:26px;font-weight:700;padding:22px 14px}
+.massage small{display:block;font-size:15px;font-weight:400;margin-top:4px}
+.analyse{width:100%;background:var(--encre);color:var(--fond);font-weight:700;padding:16px 12px;font-size:18px}
+
+.rythme{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:10px}
+.rythme button{background:var(--surface);border:3px solid var(--trait);padding:22px 6px;font-size:clamp(16px,5vw,19px);font-weight:700;white-space:nowrap}
+.rythme button.actif{border-color:var(--encre);background:var(--encre);color:var(--fond)}
+
+.conseils{margin:0 0 12px;display:grid;gap:6px}
+.conseil{background:var(--surface);border-left:6px solid var(--choc);border-radius:10px;padding:10px 12px;font-size:15px}
+.conseil.urgent{border-left-color:var(--alerte);font-weight:700}
+
+.actions{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:10px}
+.act{padding:16px 12px;text-align:left;font-weight:700;font-size:19px;min-height:92px;display:flex;flex-direction:column;justify-content:space-between}
+.act small{font-weight:400;font-size:14px;display:block;margin-top:4px;opacity:.92}
+.act .compte{font-size:14px;font-weight:700;opacity:.95}
+.act-choc{background:var(--choc);color:var(--choc-encre)}
+.act:disabled{opacity:.3;cursor:not-allowed}
+.ecmo{align-items:center;justify-content:center;text-align:center;gap:6px}
+.ecmo-titre{font-size:30px;letter-spacing:1px}
+.ecmo-tel{font-size:clamp(16px,5.5vw,22px);font-variant-numeric:tabular-nums;white-space:nowrap}
+.energie{display:flex;align-items:center;gap:6px;margin:-2px 0 12px;flex-wrap:nowrap}
+.energie span{font-size:15px;color:var(--doux);margin-right:2px}
+.energie button{flex:1;min-width:0;background:var(--surface);border:2px solid var(--trait);padding:10px 2px;font-weight:700;font-size:clamp(13px,4vw,15px);white-space:nowrap}
+.energie button.actif{background:var(--choc);border-color:var(--choc);color:var(--choc-encre)}
+.choc-principal{width:100%;min-height:118px;margin-bottom:10px}
+.choc-principal .titre,.choc-principal .titre .compte{font-size:26px}
+.choc-etat{padding:4px 10px;border-radius:99px;font-size:15px;background:rgba(0,0,0,.12);white-space:nowrap;font-variant-numeric:tabular-nums}
+.choc-etat.pret{background:var(--choc-encre);color:var(--choc)}
+.act-adre{background:var(--adre);color:#fff}
+.act-amio{background:var(--amio);color:#fff}
+.act-ecmo{background:var(--ecmo);color:#fff}
+.act-neutre{background:var(--surface);border:2px solid var(--trait)}
+.large{grid-column:1/-1}
+.act-med{gap:6px;min-width:0}
+.act-med .titre{font-size:clamp(16px,5vw,19px);display:flex;justify-content:space-between;align-items:baseline;gap:6px;white-space:nowrap}
+.act-med .titre .compte,.act-med .bas .compte{font-size:clamp(16px,5vw,19px)}
+.act-med .dose-l{font-size:15px;font-weight:400;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;opacity:.95}
+.act-med .bas{display:flex;justify-content:space-between;align-items:center;gap:6px;min-height:26px}
+.act-med .compte{white-space:nowrap}
+.pastille:empty{display:none}
+.pastille{padding:3px 8px;border-radius:99px;font-size:clamp(13px,4vw,15px);background:rgba(255,255,255,.22);white-space:nowrap;font-variant-numeric:tabular-nums}
+.pastille.pret{background:#fff;color:var(--adre)}
+.pastille.retard{background:var(--choc);color:var(--choc-encre)}
+/* Bas des boutons Adrénaline / Amiodarone : le compteur « ×N » ne sort jamais du
+   bouton. Mesuré à 320 px : « Retard +12:00 » avec « ×12 » débordait de 21 px,
+   « Maintenant » avec « ×12 » de 6 px ; à 375 px, « Retard +15:00 » perdait
+   2 px. Jusqu'à 400 px (iPhone courants : 375 à 393 px), texte un peu plus
+   serré ; et si un téléphone rend la police plus large, la pastille s'abrège (…)
+   plutôt que de pousser le compteur dehors. */
+.act-med .bas>*{min-width:0}
+.act-med .bas .compte{flex:none}
+.pastille{overflow:hidden;text-overflow:ellipsis}
+@media (max-width:400px){
+  .act-med{padding-left:9px;padding-right:9px}
+  .act-med .bas{gap:4px}
+  .pastille{padding:2px 5px;font-size:12px;letter-spacing:-.2px}
+  .act-med .bas .compte{font-size:15px}
+}
+
+.hdt{margin-top:14px;background:var(--surface);border-radius:14px;padding:0 12px}
+.hdt summary{display:flex;justify-content:space-between;align-items:center;font-weight:700;font-size:18px;padding:16px 2px;cursor:pointer;list-style:none}
+.hdt summary::-webkit-details-marker{display:none}
+.hdt summary::after{content:"+";font-size:24px;margin-left:10px}
+.hdt[open] summary::after{content:"−"}
+.hdt-titre{white-space:nowrap;font-size:clamp(15px,4.8vw,18px)}
+.hdt-compte{margin-left:auto;padding-left:10px;font-size:15px;color:var(--doux)}
+/* minmax(0,1fr) : à 320 px, « Hypo/hyperthermie » élargissait sa colonne et
+   poussait la colonne 4T hors de l'écran. Les libellés peuvent tenir sur deux
+   lignes (comme « Kaliémie, métabolique ») ; la case grandit au besoin. */
+.hdt-grille{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:10px}
+.hdt-grille .col{display:grid;gap:8px;align-content:start;min-width:0}
+.hdt-grille .col-titre{font-weight:700;font-size:20px;text-align:center}
+.hdt-grille button{background:var(--fond);border:2px solid var(--trait);padding:10px 6px;text-align:center;min-height:58px;display:flex;align-items:center;justify-content:center;min-width:0}
+.hdt-grille .nom{font-weight:700;font-size:clamp(14px,4.4vw,16px)}
+.hdt-doses{display:grid;gap:6px;margin:12px 0 14px}
+.hdt-doses div{display:flex;gap:10px;align-items:baseline;font-size:16px;padding:8px 10px;border-radius:10px;background:var(--fond)}
+.hdt-doses b{flex:none;width:58px;color:var(--adre)}
+.hdt-grille button.fait{border-color:var(--ok);background:color-mix(in srgb,var(--ok) 14%,var(--surface))}
+.hdt-grille button.fait .nom{color:var(--ok)}
+
+.fin-boutons{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:12px}
+.fin-boutons button{padding:16px 10px;font-weight:700}
+.racs{background:var(--ok);color:#fff}
+.copier{width:100%;margin-top:12px;padding:18px 10px;font-weight:700;font-size:18px}
+.fin-btn{background:#fff;color:#14202C;border:2px solid var(--trait);transition:background .15s,color .15s}
+#a-racs.clic{background:var(--ok);border-color:var(--ok);color:#fff}
+#a-stop.clic{background:var(--alerte);border-color:var(--alerte);color:#fff}
+.stop{background:var(--surface);border:2px solid var(--trait)}
+
+.journal{margin-top:18px}
+.journal h2{font-size:18px;margin:0 0 8px}
+.ligne{display:flex;gap:10px;align-items:flex-start;padding:9px 0;border-bottom:1px solid var(--trait);font-size:15px}
+.ligne .h{font-variant-numeric:tabular-nums;color:var(--doux);flex:none;width:112px}
+.ligne .h b{color:var(--encre)}
+.ligne .quoi{flex:1}
+.ligne.barre .quoi{text-decoration:line-through;color:var(--doux)}
+.ligne .annul{background:none;color:var(--doux);text-decoration:underline;padding:0 2px;font-size:14px;flex:none}
+.vide{color:var(--doux);font-size:15px}
+
+.resume{background:var(--surface);border-radius:14px;padding:14px;white-space:pre-wrap;font-size:14px;font-variant-numeric:tabular-nums;overflow-x:auto}
+.toast{position:fixed;left:50%;bottom:calc(20px + env(safe-area-inset-bottom,0px));transform:translateX(-50%);background:var(--encre);color:var(--fond);padding:10px 16px;border-radius:99px;font-size:15px;opacity:0;transition:opacity .2s;pointer-events:none}
+.toast.vu{opacity:1}
+</style>
+</head>
+<body>
+<main class="page">
+
+  <!-- 1. Accueil -->
+  <section id="ecran-accueil">
+    <h1>Arrêt cardiaque</h1>
+    <p class="sous">Choisissez le patient. Le chronomètre démarre ensuite.</p>
+    <!-- Icônes : Font Awesome Free 7.3.1 (faPerson, faBaby), licence CC BY 4.0 — https://fontawesome.com/license/free -->
+    <div class="choix">
+      <button id="btn-adulte"><svg class="picto" viewBox="0 -32 384 576" aria-hidden="true"><path d="M248 24a56 56 0 1 0 -112 0 56 56 0 1 0 112 0zm24 212.7l46.3 62.4c10.5 14.2 30.6 17.2 44.8 6.6s17.2-30.6 6.6-44.8l-70.5-95C274 132 234.3 112 192 112s-82 20-107.2 53.9l-70.5 95c-10.5 14.2-7.6 34.2 6.6 44.8s34.2 7.6 44.8-6.6L112 236.7 112 512c0 17.7 14.3 32 32 32s32-14.3 32-32l0-160c0-8.8 7.2-16 16-16s16 7.2 16 16l0 160c0 17.7 14.3 32 32 32s32-14.3 32-32l0-275.3z"/></svg><span>Adulte</span></button>
+      <button id="btn-enfant"><svg class="picto" viewBox="0 16 384 496" aria-hidden="true"><path d="M120 88a72 72 0 1 1 144 0 72 72 0 1 1 -144 0zM7.7 144.5c13-17.9 38-21.8 55.9-8.8L99.8 162c26.8 19.5 59.1 30 92.2 30s65.4-10.5 92.2-30l36.2-26.4c17.9-13 42.9-9 55.9 8.8s9 42.9-8.8 55.9l-36.2 26.4c-13.6 9.9-28.1 18.2-43.3 25l0 36.3-192 0 0-36.3c-15.2-6.7-29.7-15.1-43.3-25L16.5 200.3c-17.9-13-21.8-38-8.8-55.9zM97.5 329.3l60.6 53-26 37.2 24.3 24.3c15.6 15.6 15.6 40.9 0 56.6s-40.9 15.6-56.6 0l-48-48C38 438.6 36.1 417 47.2 401.1l50.2-71.8zm128.5 53l60.6-53 50.2 71.8c11.1 15.9 9.2 37.5-4.5 51.2l-48 48c-15.6 15.6-40.9 15.6-56.6 0s-15.6-40.9 0-56.6l24.3-24.3-26-37.2z"/></svg><span>Enfant</span></button>
+    </div>
+    <p class="sous" id="reprise" style="margin-top:18px"></p>
+    <details class="installer" id="installer">
+      <summary>Mettre l'outil sur ce téléphone</summary>
+      <p>Une icône ACR sur l'écran d'accueil, et l'outil marche ensuite sans réseau. À faire à l'avance, une seule fois.</p>
+      <ul>
+        <li><b>iPhone</b> : dans Safari, bouton <b>Partager</b>, puis <b>Sur l'écran d'accueil</b>.</li>
+        <li><b>Android</b> : dans Chrome, menu <b>⋮</b>, puis <b>Installer l'application</b> (ou <b>Ajouter à l'écran d'accueil</b>).</li>
+      </ul>
+      <button class="btn-installer cache" id="btn-installer">Installer maintenant</button>
+    </details>
+  </section>
+
+  <!-- 2. Âge -->
+  <section id="ecran-age" class="cache">
+    <button class="retour" id="age-retour">Retour</button>
+    <h1>Âge de l'enfant</h1>
+    <div class="ages" id="ages"></div>
+    <div class="estimation cache" id="estimation"></div>
+    <button class="demarrer" id="btn-demarrer-enfant" disabled>Démarrer</button>
+  </section>
+
+  <!-- 3. En cours -->
+  <section id="ecran-arret" class="cache">
+    <div class="tete">
+      <div class="rea-tel">N° Réanimateur : <b id="tel-rea"></b></div>
+      <div>
+        <div class="chrono" id="chrono">00:00</div>
+      </div>
+      <div class="patient" id="patient"></div>
+    </div>
+
+    <button class="massage" id="btn-massage">Début du massage</button>
+
+    <div class="cycle cache" id="cycle">
+      <div class="anneau">
+        <svg class="jauge" viewBox="0 0 80 80" aria-hidden="true">
+          <circle class="fondj" cx="40" cy="40" r="34"/>
+          <circle class="arc" id="arc" cx="40" cy="40" r="34" stroke-dasharray="213.6" stroke-dashoffset="0"/>
+        </svg>
+        <b id="cycle-reste">2:00</b>
+      </div>
+      <div class="cycle-info" id="cycle-info">Masseur n°1</div>
+      <button class="analyse" id="btn-analyse">Analyse du rythme et relais</button>
+    </div>
+
+    <div class="rythme">
+      <button id="r-choc">Choquable</button>
+      <button id="r-nonchoc">Non choquable</button>
+    </div>
+
+    <button class="act act-choc act-med choc-principal" id="a-choc"><span class="titre"><span>Choc électrique</span><span class="compte" id="choc-compte"></span></span><span class="dose-l" id="choc-dose"></span><span class="bas"><span class="choc-etat cache" id="choc-etat"></span></span></button>
+    <div class="energie" id="energie"></div>
+
+    <div class="conseils" id="conseils"></div>
+
+    <div class="actions">
+      <button class="act act-adre act-med" id="a-adre"><span class="titre">Adrénaline</span><span class="dose-l" id="adre-dose"></span><span class="bas"><span class="pastille" id="adre-etat">À donner</span><span class="compte" id="adre-compte"></span></span></button>
+      <button class="act act-amio act-med" id="a-amio"><span class="titre">Amiodarone</span><span class="dose-l" id="amio-dose"></span><span class="bas"><span></span><span class="compte" id="amio-compte"></span></span></button>
+      <button class="act act-ecmo large ecmo" id="a-ecmo"><span class="ecmo-titre">ECMO</span><span class="ecmo-tel cache" id="ecmo-tel"></span></button>
+    </div>
+
+    <details class="hdt">
+      <summary><span class="hdt-titre">Causes réversibles 4H/4T</span><span class="hdt-compte" id="hdt-compte">0/8</span></summary>
+      <div class="hdt-grille" id="hdt"></div>
+      <div class="hdt-doses" id="hdt-doses"></div>
+    </details>
+
+    <div class="fin-boutons">
+      <button class="fin-btn" id="a-racs">Reprise d'activité circulatoire</button>
+      <button class="fin-btn" id="a-stop">Arrêt de la réanimation</button>
+    </div>
+
+    <div class="journal">
+      <h2>Chronologie</h2>
+      <div id="journal"><p class="vide">Chaque action touchée s'inscrit ici avec son heure.</p></div>
+    </div>
+  </section>
+
+  <!-- 4. Fin -->
+  <section id="ecran-fin" class="cache">
+    <h1 id="fin-titre">Fin de prise en charge</h1>
+    <p class="sous">Copiez la chronologie pour le dossier.</p>
+    <div class="resume" id="resume"></div>
+    <button class="racs copier" id="btn-copier">Copier la chronologie</button>
+    <button class="retour" id="btn-reprendre">Revenir à la réanimation</button>
+  </section>
+</main>
+<div class="toast" id="toast" role="status"></div>
+
+<script>
+(function(){
+  "use strict";
+
+  /* ═══════════════════════════════════════════════════════════════════════
+     VALEURS MODIFIABLES — tout ce qu'on peut avoir à changer est ICI.
+     Sources (ne rien modifier sans décision du responsable) :
+       · ERC 2025 adulte et pédiatrique : adrénaline, amiodarone, 4 J/kg chez
+         l'enfant sans dépasser la dose adulte, liste 4H/4T ;
+       · ERC 2025 circonstances particulières : gluconate de calcium 10 % 30 mL
+         IV pour l'hyperkaliémie ;
+       · ESC/ERS 2019 : altéplase 0,6 mg/kg en 15 min (max 50 mg), embolie
+         pulmonaire avec arrêt ;
+       · poids estimé par l'âge : formules APLS 2011.
+     Les énergies 150 et 200 J sont des raccourcis de réglage du défibrillateur,
+     pas des doses recommandées.
+     ═══════════════════════════════════════════════════════════════════════ */
+  var TEL_REA = "3636";          // numéro du réanimateur, affiché en tête
+  var TEL_CCT = "";              // numéro CCT pour l'ECMO : vide = case « ECMO » seule
+  var EXPIRATION_H = 2;          // chronologie effacée après 2 h sans activité
+  var CYCLE_S = 120;             // durée d'un cycle de massage (secondes)
+  // Minuteurs des boutons, remis à zéro à chaque dose ou choc, indépendants du cycle :
+  var ADRE_MIN_S = 180;          // adrénaline : « Dans m:ss » jusqu'à 3 min, puis « Maintenant »…
+  var ADRE_MAX_S = 300;          // …puis « Retard +m:ss » après 5 min
+  var CHOC_DELAI_S = 120;        // choc : « Prochain dans m:ss » sur 2 min, puis « Analyse maintenant »
+
+  var ADULTE = { adreMg: 1, amio1: 300, amio2: 150 };
+  var ENFANT = { adreUgKg: 10, adreMaxUg: 1000, amioMgKg: 5, amio1Max: 300, amio2Max: 150, chocJKg: 4 };
+  var ENERGIES_ADULTE = ["150", "200"];          // raccourcis en plus de « DSA »
+  var ENERGIE_AUTRE = { min: 1, max: 400 };      // bornes de la saisie « Autre »
+
+  // Poids estimé = a × âge + b (APLS 2011). « jusqua » : âge maximal inclus.
+  var POIDS = {
+    mois: { a: 0.5, b: 4 },                      // avant 1 an, âge en mois
+    ans: [ { jusqua: 5, a: 2, b: 8 },            // 1 à 5 ans
+           { jusqua: 12, a: 3, b: 7 } ]          // 6 à 12 ans
+  };
+  /* ═══════════════════════════════════════════════════════════════════════ */
+
+  var CLE = "acr-v1";
+  var CIRC = 2 * Math.PI * 34;
+  var EXPIRATION = EXPIRATION_H * 3600 * 1000;
+
+  // ---- Calculs purs (sans écran : c'est ce que vérifie le banc) ----
+  function arrondi(x, n){ var p = Math.pow(10, n||0); return Math.round(x*p)/p; }
+  function fr(x){ return String(x).replace(".", ","); }
+
+  function poidsEstime(age){
+    var f;
+    if (age.unite === "mois"){ f = POIDS.mois; return { kg: f.a * age.v + f.b, formule: fr(f.a) + " × " + age.v + " mois + " + f.b }; }
+    for (var i = 0; i < POIDS.ans.length; i++){
+      f = POIDS.ans[i];
+      if (age.v <= f.jusqua || i === POIDS.ans.length - 1) return { kg: f.a * age.v + f.b, formule: fr(f.a) + " × " + age.v + " ans + " + f.b };
+    }
+  }
+  function adreEnfantUg(poids){ var ug = ENFANT.adreUgKg * poids; return { brut: ug, dose: Math.min(ug, ENFANT.adreMaxUg), plafond: ug > ENFANT.adreMaxUg }; }
+  function amioEnfantMg(poids, rang){ var max = rang === 1 ? ENFANT.amio1Max : ENFANT.amio2Max, mg = ENFANT.amioMgKg * poids; return { brut: mg, dose: Math.min(mg, max), plafond: mg > max, max: max }; }
+  function joulesEnfant(poids){ return arrondi(ENFANT.chocJKg * poids); }
+  // Saisie « Autre » : un nombre entier de joules, « J » facultatif. Sinon null.
+  function energieSaisie(v){
+    var m = /^\s*(\d{1,3})\s*j?\s*$/i.exec(String(v == null ? "" : v));
+    if (!m) return null;
+    var n = parseInt(m[1], 10);
+    return (n >= ENERGIE_AUTRE.min && n <= ENERGIE_AUTRE.max) ? n : null;
+  }
+  window.ACR_CALCUL = { poidsEstime: poidsEstime, adreEnfantUg: adreEnfantUg, amioEnfantMg: amioEnfantMg,
+                        joulesEnfant: joulesEnfant, energieSaisie: energieSaisie, ADULTE: ADULTE, ENFANT: ENFANT };
+
+  // 4H / 4T — doses affichées en mode adulte uniquement (doses pédiatriques non vérifiées)
+  var HDT = [
+    { col: "H", nom: "Hypoxie" },
+    { col: "H", nom: "Hypovolémie" },
+    { col: "H", nom: "Kaliémie, métabolique" },
+    { col: "H", nom: "Hypo/hyperthermie" },
+    { col: "T", nom: "Thrombose (coronaire, EP)" },
+    { col: "T", nom: "Tamponnade" },
+    { col: "T", nom: "Pneumothorax" },
+    { col: "T", nom: "Toxiques" }
+  ];
+  var DOSES_HDT = [
+    { cause: "HyperK", texte: "Gluconate de Ca 10 % : 30 mL IV" },
+    { cause: "EP", texte: "Altéplase : 0,6 mg/kg en 15 min (max 50 mg)" }
+  ];
+
+  // ---- État ----
+  var etat = null, choixAge = null, tic = null, bipDonne = false, audio = null, verrou = null;
+
+  function lire(){ try { var s = localStorage.getItem(CLE); return s ? JSON.parse(s) : null; } catch(e){ return null; } }
+  function ecrire(){ try { localStorage.setItem(CLE, JSON.stringify(etat)); } catch(e){} }
+  function effacer(){ try { localStorage.removeItem(CLE); } catch(e){} }
+
+  var $ = function(id){ return document.getElementById(id); };
+  function ecran(nom){
+    ["accueil","age","arret","fin"].forEach(function(n){ $("ecran-"+n).classList.toggle("cache", n !== nom); });
+    try { window.scrollTo(0,0); } catch(e){}
+  }
+  function deuxChiffres(n){ return (n < 10 ? "0" : "") + n; }
+  function duree(s){ s = Math.max(0, Math.floor(s)); return deuxChiffres(Math.floor(s/60)) + ":" + deuxChiffres(s%60); }
+  function heure(ms){ var d = new Date(ms); return deuxChiffres(d.getHours())+":"+deuxChiffres(d.getMinutes())+":"+deuxChiffres(d.getSeconds()); }
+  function toast(t){ var el = $("toast"); el.textContent = t; el.classList.add("vu"); setTimeout(function(){ el.classList.remove("vu"); }, 1800); }
+
+  // Numéros : posés depuis les constantes, jamais écrits dans le HTML.
+  $("tel-rea").textContent = TEL_REA;
+  if (TEL_CCT){ $("ecmo-tel").textContent = "CCT : " + TEL_CCT; $("ecmo-tel").classList.remove("cache"); }
+
+  // ---- Journal ----
+  function noter(type, texte, mg){
+    etat.evts.push({ id: Date.now() + Math.random(), t: Date.now(), type: type, texte: texte, annule: null, mg: mg || null });
+    ecrire(); rendre();
+  }
+  function actifs(type){ return etat.evts.filter(function(e){ return e.type === type && !e.annule; }); }
+
+  function annuler(id){
+    var e = etat.evts.find(function(x){ return x.id === id; });
+    if (!e || e.annule) return;
+    e.annule = Date.now();
+    if (e.type === "massage"){ etat.cycleDebut = null; etat.massage = null; etat.cycleNo = 1; }
+    etat.evts.push({ id: Date.now()+Math.random(), t: e.annule, type: "annulation", cible: e.type, texte: "Annulation : " + e.texte, annule: null });
+    ecrire(); rendre();
+  }
+
+  // ---- Doses affichées ----
+  function doseAdre(){
+    if (etat.mode === "adulte") return { court: ADULTE.adreMg + " mg IV/IO", calc: ADULTE.adreMg + " mg", mg: ADULTE.adreMg };
+    var d = adreEnfantUg(etat.poids);
+    return { court: fr(arrondi(d.dose)) + " µg IV/IO", mg: d.dose / 1000,
+             calc: ENFANT.adreUgKg + " µg/kg × " + fr(etat.poids) + " kg = " + fr(arrondi(d.brut)) + " µg" + (d.plafond ? " → plafond " + fr(ENFANT.adreMaxUg / 1000) + " mg" : "") };
+  }
+  function doseAmio(n){
+    var rang = n === 0 ? 1 : 2;
+    if (etat.mode === "adulte"){ var a = rang === 1 ? ADULTE.amio1 : ADULTE.amio2; return { court: a + " mg IV/IO", calc: a + " mg", rang: rang, mg: a }; }
+    var d = amioEnfantMg(etat.poids, rang);
+    return { court: fr(arrondi(d.dose)) + " mg IV/IO", mg: d.dose, rang: rang,
+             calc: ENFANT.amioMgKg + " mg/kg × " + fr(etat.poids) + " kg = " + fr(arrondi(d.brut)) + " mg" + (d.plafond ? " → plafond " + d.max + " mg" : "") };
+  }
+  // Énergie : "dsa" (défibrillateur automatique), "calc" (4 J/kg, enfant) ou un nombre de joules
+  function energieParDefaut(){ return etat.mode === "adulte" ? "dsa" : "calc"; }
+  function joulesCalc(){ return joulesEnfant(etat.poids); }
+  function libelleEnergie(){
+    var e = etat.energie || energieParDefaut();
+    if (e === "dsa") return "DSA (énergie automatique)";
+    if (e === "calc") return joulesCalc() + " J (" + ENFANT.chocJKg + " J/kg × " + fr(etat.poids) + " kg)";
+    return e + " J";
+  }
+  function chipsEnergie(){
+    var l = [{ v: "dsa", t: "DSA" }];
+    if (etat.mode === "adulte") ENERGIES_ADULTE.forEach(function(j){ l.push({ v: j, t: j + " J" }); });
+    else l.push({ v: "calc", t: joulesCalc() + " J" });
+    return l;
+  }
+
+  // ---- Démarrage ----
+  function demarrer(mode){
+    var maintenant = Date.now();
+    etat = { mode: mode, debut: maintenant, cycleDebut: null, massage: null, cycleNo: 1, rythme: null, evts: [], fin: null };
+    if (mode === "enfant"){
+      var p = poidsEstime(choixAge);
+      etat.age = choixAge; etat.poids = arrondi(p.kg, 1); etat.formule = p.formule;
+    }
+    noter("debut", mode === "adulte" ? "Début de la réanimation — adulte" :
+      "Début de la réanimation — enfant, " + libelleAge(choixAge) + ", poids estimé " + fr(etat.poids) + " kg (" + etat.formule + ")");
+    garderEcran(); lancer();
+  }
+  function libelleAge(a){ return a.v + (a.unite === "mois" ? " mois" : (a.v > 1 ? " ans" : " an")); }
+
+  function lancer(){
+    ecran("arret");
+    $("patient").textContent = etat.mode === "adulte" ? "Adulte" : "Enfant · " + libelleAge(etat.age) + " · " + fr(etat.poids) + " kg estimés";
+    if (tic) clearInterval(tic);
+    tic = setInterval(battre, 500); battre(); rendre();
+  }
+
+  function garderEcran(){
+    try { if (navigator.wakeLock) navigator.wakeLock.request("screen").then(function(v){ verrou = v; }).catch(function(){}); } catch(e){}
+  }
+  document.addEventListener("visibilitychange", function(){ if (document.visibilityState === "visible" && etat && !etat.fin) garderEcran(); });
+
+  function bip(){
+    try {
+      if (!audio) audio = new (window.AudioContext || window.webkitAudioContext)();
+      [0, .35, .7].forEach(function(dt){
+        var o = audio.createOscillator(), g = audio.createGain();
+        o.frequency.value = 880; o.connect(g); g.connect(audio.destination);
+        g.gain.setValueAtTime(.25, audio.currentTime + dt); g.gain.setValueAtTime(0, audio.currentTime + dt + .22);
+        o.start(audio.currentTime + dt); o.stop(audio.currentTime + dt + .25);
+      });
+    } catch(e){}
+    try { if (navigator.vibrate) navigator.vibrate([300,150,300,150,300]); } catch(e){}
+  }
+
+  // ---- Boucle d'affichage ----
+  function battre(){
+    if (!etat || etat.fin) return;
+    var now = Date.now();
+    $("chrono").textContent = duree((now - etat.debut)/1000);
+    var enCours = !!etat.cycleDebut;
+    $("btn-massage").classList.toggle("cache", enCours);
+    $("cycle").classList.toggle("cache", !enCours);
+    if (!enCours){ majAdre(now); return; }
+    var ecoule = (now - etat.cycleDebut)/1000, reste = CYCLE_S - ecoule, fini = reste <= 0;
+    $("cycle-reste").textContent = fini ? "+" + duree(-reste) : duree(reste).replace(/^0/, "");
+    $("arc").setAttribute("stroke-dashoffset", String(CIRC * Math.min(1, Math.max(0, ecoule/CYCLE_S))));
+    $("cycle").classList.toggle("fini", fini);
+    $("cycle-info").textContent = (fini ? "Analyse et relais maintenant" : "Masseur n°" + etat.cycleNo);
+    if (fini && !bipDonne){ bipDonne = true; bip(); }
+    majAdre(now);
+  }
+
+  // Minuteurs remis à zéro à chaque dose d'adrénaline et à chaque choc (indépendants du cycle de massage)
+  function mm(s){ return duree(s).replace(/^0/, ""); }
+  function majAdre(now){
+    var a = actifs("adre"), el = $("adre-etat");
+    el.className = "pastille";
+    if (!a.length){ el.textContent = "À donner"; }
+    else {
+      var s = (now - a[a.length-1].t)/1000;
+      if (s < ADRE_MIN_S) el.textContent = "Dans " + mm(ADRE_MIN_S - s);
+      else if (s < ADRE_MAX_S){ el.textContent = "Maintenant"; el.classList.add("pret"); }
+      else { el.textContent = "Retard +" + mm(s - ADRE_MAX_S); el.classList.add("retard"); }
+    }
+    majChoc(now);
+  }
+  function majChoc(now){
+    var c = actifs("choc"), el = $("choc-etat");
+    el.className = "choc-etat";
+    if (!c.length || etat.rythme === "nonchoc"){ el.textContent = ""; el.classList.add("cache"); return; }
+    var s = (now - c[c.length-1].t)/1000;
+    if (s < CHOC_DELAI_S) el.textContent = "Prochain dans " + mm(CHOC_DELAI_S - s);
+    else { el.textContent = "Analyse maintenant"; el.classList.add("pret"); }
+  }
+
+  // ---- Conseils (rappels, pas d'ordres) ----
+  // Le rappel « 3 chocs » ne cite que ce qui manque encore (adrénaline, amiodarone, ou les deux).
+  function conseils(){
+    var l = [], chocs = actifs("choc").length, adre = actifs("adre").length, amio = actifs("amio").length;
+    if (etat.rythme === "choc" && chocs >= 3 && adre === 0 && amio === 0) l.push({ u: true, t: "3 chocs délivrés : adrénaline et amiodarone recommandées." });
+    if (etat.rythme === "choc" && chocs >= 3 && adre === 0 && amio > 0) l.push({ u: true, t: "3 chocs délivrés : adrénaline recommandée." });
+    if (etat.rythme === "choc" && chocs >= 3 && amio === 0 && adre > 0) l.push({ u: true, t: "3 chocs délivrés : amiodarone (1re dose) recommandée." });
+    if (etat.rythme === "choc" && chocs >= 5 && amio === 1) l.push({ u: true, t: "5 chocs délivrés : 2e dose d'amiodarone recommandée." });
+    return l;
+  }
+
+  // ---- Rendu ----
+  function rendre(){
+    if (!etat) return;
+    var chocs = actifs("choc").length, adre = actifs("adre").length, amio = actifs("amio").length;
+    $("choc-compte").textContent = chocs ? "×" + chocs : "";
+    $("adre-compte").textContent = adre ? "×" + adre : "";
+    $("amio-compte").textContent = amio ? "×" + amio : "";
+    $("choc-dose").textContent = libelleEnergie();
+    var eCour = String(etat.energie || energieParDefaut()), connu = false;
+    var chips = chipsEnergie().map(function(c){ var a = c.v === eCour; if (a) connu = true; return '<button data-e="' + c.v + '" class="' + (a ? "actif" : "") + '">' + c.t + '</button>'; }).join("");
+    chips += '<button data-e="autre" class="' + (connu ? "" : "actif") + '">' + (connu ? "Autre…" : eCour + " J") + '</button>';
+    $("energie").innerHTML = '<span>Énergie</span>' + chips;
+    $("adre-dose").textContent = doseAdre().court;
+    $("amio-dose").textContent = amio >= 2 ? "Doses faites" : doseAmio(amio).court;
+    $("a-choc").disabled = etat.rythme === "nonchoc";
+    $("r-choc").classList.toggle("actif", etat.rythme === "choc");
+    $("r-nonchoc").classList.toggle("actif", etat.rythme === "nonchoc");
+
+    var c = conseils();
+    $("conseils").innerHTML = c.map(function(x){ return '<div class="conseil' + (x.u ? ' urgent' : '') + '">' + x.t + '</div>'; }).join("");
+
+    var faits = {};
+    actifs("hdt").forEach(function(e){ faits[e.texte] = true; });
+    function tuile(h, i){
+      var t = "Cause éliminée ou traitée : " + h.nom;
+      return '<button data-hdt="' + i + '" class="' + (faits[t] ? "fait" : "") + '"><span class="nom">' + (faits[t] ? "✓ " : "") + h.nom.replace("/", "/<wbr>") + '</span></button>';
+    }
+    var colH = '<div class="col"><div class="col-titre">4H</div>', colT = '<div class="col"><div class="col-titre">4T</div>';
+    HDT.forEach(function(h, i){ if (h.col === "H") colH += tuile(h, i); else colT += tuile(h, i); });
+    $("hdt").innerHTML = colH + '</div>' + colT + '</div>';
+    $("hdt-compte").textContent = Object.keys(faits).length + "/8";
+    $("hdt-doses").innerHTML = etat.mode === "adulte" ? DOSES_HDT.map(function(d){ return '<div><b>' + d.cause + '</b><span>' + d.texte + '</span></div>'; }).join("") : "";
+
+    var j = etat.evts.slice().reverse();
+    $("journal").innerHTML = j.map(function(e){
+      var t = (e.t - etat.debut)/1000;
+      var peutAnnuler = e.type !== "debut" && e.type !== "annulation" && !e.annule;
+      return '<div class="ligne' + (e.annule ? ' barre' : '') + '"><span class="h"><b>' + heure(e.t) + '</b><br>T+' + duree(t) + '</span><span class="quoi">' + e.texte +
+        (e.annule ? '<br><small>annulée à ' + heure(e.annule) + '</small>' : '') + '</span>' +
+        (peutAnnuler ? '<button class="annul" data-annul="' + e.id + '">Annuler</button>' : '') + '</div>';
+    }).join("");
+    battre();
+  }
+
+  function texteChronologie(){
+    var finT = etat.fin || Date.now();
+    function total(type){ return actifs(type).reduce(function(a, e){ return a + (e.mg || 0); }, 0); }
+    function doses(n){ return n + (n > 1 ? " doses" : " dose"); }
+    var nA = actifs("adre").length, nM = actifs("amio").length;
+    var lignes = ["Compte rendu ACR — " + (etat.mode === "adulte" ? "adulte" : "enfant " + libelleAge(etat.age) + ", " + fr(etat.poids) + " kg estimés"), ""];
+    lignes.push("Durée totale : " + duree((finT - etat.debut)/1000));
+    if (etat.massage){
+      lignes.push("No-flow : au moins " + duree((etat.massage - etat.debut)/1000));
+      lignes.push("Low-flow : " + duree((finT - etat.massage)/1000));
+    } else {
+      lignes.push("No-flow et low-flow : non calculables — début du massage non enregistré");
+    }
+    lignes.push("Chocs : " + actifs("choc").length);
+    lignes.push("Adrénaline : " + doses(nA) + " — total " + fr(arrondi(total("adre"), 2)) + " mg");
+    lignes.push("Amiodarone : " + doses(nM) + " — total " + fr(arrondi(total("amio"), 1)) + " mg");
+    lignes.push("", "Chronologie :");
+    etat.evts.forEach(function(e){
+      if (e.type === "hdt" || (e.type === "annulation" && e.cible === "hdt")) return;
+      lignes.push(heure(e.t) + "  T+" + duree((e.t - etat.debut)/1000) + "  " + e.texte + (e.annule ? "  [ANNULÉ à " + heure(e.annule) + "]" : ""));
+    });
+    return lignes.join("\n");
+  }
+
+  // ---- Événements ----
+  $("btn-adulte").onclick = function(){ demarrer("adulte"); };
+  $("btn-enfant").onclick = function(){ choixAge = null; construireAges(); ecran("age"); };
+  $("age-retour").onclick = function(){ ecran("accueil"); };
+  $("btn-demarrer-enfant").onclick = function(){ if (choixAge) demarrer("enfant"); };
+
+  function construireAges(){
+    var h = '<h3>Nourrisson</h3>';
+    [0,3,6,9].forEach(function(m){ h += '<button data-u="mois" data-v="' + m + '">' + m + ' mois</button>'; });
+    h += '<h3>Enfant</h3>';
+    for (var a = 1; a <= 12; a++) h += '<button data-u="ans" data-v="' + a + '">' + a + (a > 1 ? ' ans' : ' an') + '</button>';
+    $("ages").innerHTML = h;
+    $("estimation").classList.add("cache");
+    $("btn-demarrer-enfant").disabled = true;
+  }
+  $("ages").onclick = function(ev){
+    var b = ev.target.closest("button"); if (!b) return;
+    choixAge = { unite: b.dataset.u, v: Number(b.dataset.v) };
+    Array.prototype.forEach.call($("ages").querySelectorAll("button"), function(x){ x.style.borderColor = x === b ? "var(--encre)" : ""; });
+    var p = poidsEstime(choixAge);
+    $("estimation").innerHTML = "Poids estimé : <b>" + fr(arrondi(p.kg,1)) + " kg</b><br><small>" + p.formule + " (formule APLS)</small>";
+    $("estimation").classList.remove("cache");
+    $("btn-demarrer-enfant").disabled = false;
+  };
+
+  $("btn-massage").onclick = function(){
+    var t = Date.now(); etat.massage = t; etat.cycleDebut = t; bipDonne = false;
+    noter("massage", "Début du massage cardiaque (" + duree((t - etat.debut)/1000) + " après l'ouverture de l'outil)");
+  };
+  $("btn-analyse").onclick = function(){
+    etat.cycleNo += 1; etat.cycleDebut = Date.now(); bipDonne = false;
+    noter("analyse", "Analyse du rythme · relais : masseur n°" + etat.cycleNo);
+  };
+  $("r-choc").onclick = function(){ etat.rythme = "choc"; noter("rythme", "Rythme choquable (FV / TV sans pouls)"); };
+  $("r-nonchoc").onclick = function(){ etat.rythme = "nonchoc"; noter("rythme", "Rythme non choquable (asystolie / AESP)"); };
+  $("a-choc").onclick = function(){
+    if (etat.rythme === "nonchoc") return;
+    noter("choc", "Choc n°" + (actifs("choc").length + 1) + " — " + libelleEnergie()); };
+  $("energie").onclick = function(ev){
+    var b = ev.target.closest("button"); if (!b) return;
+    if (b.dataset.e === "autre"){
+      var v = prompt("Énergie du choc en joules (" + ENERGIE_AUTRE.min + " à " + ENERGIE_AUTRE.max + ") :");
+      if (v === null) return;
+      var n = energieSaisie(v);
+      if (n === null){ toast("Énergie non valide"); return; }
+      etat.energie = String(n);
+    } else etat.energie = b.dataset.e;
+    ecrire(); rendre();
+  };
+  $("a-adre").onclick = function(){
+    var d = doseAdre();
+    noter("adre", "Adrénaline n°" + (actifs("adre").length + 1) + " — " + d.calc, d.mg);
+  };
+  $("a-amio").onclick = function(){
+    var n = actifs("amio").length;
+    if (n >= 2){ toast("Les 2 doses d'amiodarone sont déjà notées"); return; }
+    var d = doseAmio(n);
+    noter("amio", "Amiodarone " + (d.rang === 1 ? "1re" : "2e") + " dose — " + d.calc, d.mg);
+  };
+  $("a-ecmo").onclick = function(){ noter("ecmo", "ECMO — appel CCT (durée de réanimation " + duree((Date.now() - etat.debut)/1000) + ")"); };
+  $("hdt").onclick = function(ev){
+    var b = ev.target.closest("button"); if (!b || b.classList.contains("fait")) return;
+    noter("hdt", "Cause éliminée ou traitée : " + HDT[Number(b.dataset.hdt)].nom);
+  };
+  $("journal").onclick = function(ev){
+    var b = ev.target.closest("[data-annul]"); if (!b) return;
+    annuler(Number(b.dataset.annul));
+  };
+  function terminer(texte){
+    noter("fin", texte); etat.fin = Date.now(); ecrire();
+    if (tic) clearInterval(tic);
+    try { if (verrou) verrou.release(); } catch(e){}
+    $("fin-titre").textContent = texte;
+    $("resume").textContent = texteChronologie();
+    ecran("fin");
+  }
+  function finAvecCouleur(btn, texte){
+    btn.classList.add("clic");
+    setTimeout(function(){ btn.classList.remove("clic"); terminer(texte); }, 400);
+  }
+  $("a-racs").onclick = function(){ finAvecCouleur(this, "Reprise d'activité circulatoire"); };
+  $("a-stop").onclick = function(){ finAvecCouleur(this, "Arrêt de la réanimation"); };
+  $("btn-reprendre").onclick = function(){
+    etat.evts = etat.evts.filter(function(e){ return e.type !== "fin"; });
+    etat.fin = null; noter("reprise", "Reprise de la réanimation"); garderEcran(); lancer();
+  };
+  $("btn-copier").onclick = function(){
+    var t = texteChronologie();
+    function secours(){ var z = document.createElement("textarea"); z.value = t; document.body.appendChild(z); z.select(); try { document.execCommand("copy"); } catch(e){} z.remove(); toast("Chronologie copiée"); }
+    if (navigator.clipboard) navigator.clipboard.writeText(t).then(function(){ toast("Chronologie copiée"); }, secours); else secours();
+  };
+
+  // ---- Reprise après fermeture ----
+  // Une chronologie sans activité depuis plus de EXPIRATION_H heures est effacée à l'ouverture.
+  // Un ACR terminé ne bloque jamais l'accueil : son compte rendu reste consultable jusqu'à l'effacement.
+  var ancien = lire();
+  if (ancien && ancien.evts && ancien.evts.length){
+    var dernier = ancien.evts[ancien.evts.length - 1].t;
+    if (Date.now() - dernier > EXPIRATION) effacer();
+    else if (ancien.fin){
+      $("reprise").innerHTML = '<button class="retour" id="voir-dernier">Voir le compte rendu du dernier ACR</button>';
+      $("voir-dernier").onclick = function(){ etat = ancien; $("fin-titre").textContent = "Dernier ACR"; $("resume").textContent = texteChronologie(); ecran("fin"); };
+    }
+    else { etat = ancien; lancer(); toast("Réanimation en cours reprise"); }
+  }
+
+  // ---- Installation (médecins qui arrivent par l'adresse, sans le portail) ----
+  // Déjà installé (ouvert depuis l'icône) : l'encart n'a plus rien à dire.
+  var installe = false;
+  try { installe = (window.matchMedia && window.matchMedia("(display-mode: standalone)").matches) || window.navigator.standalone === true; } catch(e){}
+  if (installe) $("installer").classList.add("cache");
+  // Android / Chrome : le navigateur propose lui-même l'installation, on l'offre en un bouton.
+  var invite = null;
+  window.addEventListener("beforeinstallprompt", function(ev){
+    ev.preventDefault(); invite = ev; $("btn-installer").classList.remove("cache");
+  });
+  $("btn-installer").onclick = function(){
+    if (!invite) return;
+    invite.prompt(); invite = null; $("btn-installer").classList.add("cache");
+  };
+  window.addEventListener("appinstalled", function(){ $("installer").classList.add("cache"); });
+
+  // ---- Hors réseau ----
+  // Service worker propre à ce dossier (périmètre /acr/). Il sert la page depuis
+  // le téléphone quand le réseau manque, et la remplace en fond quand une
+  // nouvelle version est publiée. S'il signale une nouvelle version et qu'aucun
+  // ACR n'est en cours, la page se recharge d'elle-même ; sinon elle attend
+  // l'ouverture suivante — jamais de rechargement en pleine réanimation.
+  // Garde-fou : au plus un rechargement par minute (pendant une publication,
+  // deux serveurs peuvent brièvement servir deux versions différentes).
+  function rechargerPourMaj(){
+    try {
+      var d = Number(sessionStorage.getItem("acr-maj")) || 0;
+      if (Date.now() - d < 60000) return false;
+      sessionStorage.setItem("acr-maj", String(Date.now()));
+    } catch(e){ return false; }
+    location.reload(); return true;
+  }
+  if ("serviceWorker" in navigator){
+    navigator.serviceWorker.addEventListener("message", function(ev){
+      if (ev.data && ev.data.type === "acr-nouvelle-version" && (!etat || etat.fin) && !$("ecran-accueil").classList.contains("cache")) rechargerPourMaj();
+    });
+    window.addEventListener("load", function(){ navigator.serviceWorker.register("sw.js", { scope: "./" }).catch(function(){}); });
+  }
+})();
+</script>
+</body>
+</html>
