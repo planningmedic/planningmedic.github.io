@@ -563,5 +563,36 @@ console.log('\n═══ 13. Chaque scénario du banc est lancé par lancer.sh �
     /Retirer les lanceurs temporaires/.test(rm) && /W2_2026/.test(rm));
 }
 
+console.log('\n═══ 14. Le guide MAR liste toutes les tuiles ouvertes à tous, dans l\'ordre du portail ═══');
+{
+  /* (27/09/2026) Défaut signalé par le responsable : la tuile Recommandations
+     (v1.13.0, 26/09) n'était jamais entrée dans la liste « Ensuite : les
+     tuiles » du guide, et ACR y avait été ajoutée en fin de liste. Une tuile
+     ouverte à tous qui manque au guide, c'est une fonction que personne ne
+     découvre. La liste attendue est lue dans le VRAI tableau TILES de
+     index.html : toute tuile nouvelle, non réservée, fait tomber ce contrôle
+     tant que le guide ne la cite pas. Les tuiles réservées (prive, liberal)
+     n'ont pas leur place dans le guide de tous. */
+  const src = lire('index.html');
+  const mTiles = src.match(/const TILES = \[[\s\S]*?\n\];/);
+  V('le tableau des tuiles est lisible dans index.html', !!mTiles);
+  const bac = vm.createContext({});
+  vm.runInContext(mTiles[0] + '\n;this.T = TILES;', bac);
+  const attendues = bac.T.filter(t => !t.prive && !t.liberal).map(t => t.title);
+  const mar = lire('docs/guide-mar.html');
+  const bloc = (mar.match(/<h3>Ensuite : les tuiles<\/h3>\s*<div class="liste">([\s\S]*?)\n    <\/div>/) || [, ''])[1];
+  const guide = [...bloc.matchAll(/<div><b>([^<]+)<\/b>/g)].map(m => m[1]);
+  V('la liste des tuiles du guide est lisible', guide.length >= 5, guide.length);
+  const manquantes = attendues.filter(t => !guide.includes(t));
+  V('chaque tuile ouverte à tous figure dans le guide (dont Recommandations et ACR)',
+    manquantes.length === 0 && guide.includes('Recommandations') && guide.includes('ACR'), manquantes);
+  const enTrop = guide.filter(t => !attendues.includes(t));
+  V('le guide ne décrit aucune tuile qui n\'existe pas (ou réservée)', enTrop.length === 0, enTrop);
+  V('même ordre que sur le portail', JSON.stringify(guide) === JSON.stringify(attendues.filter(t => guide.includes(t))),
+    { guide, portail: attendues });
+  V('une tuile ajoutée sans le guide serait signalée',
+    attendues.concat(['Tuile fictive']).filter(t => !guide.includes(t)).length === 1);
+}
+
 console.log(`\n${ok} OK · ${ko} en échec`);
 if (ko) process.exit(1);
