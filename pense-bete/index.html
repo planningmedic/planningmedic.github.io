@@ -1,0 +1,170 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<!-- Pense-bête « Mes patients lib » — page AUTONOME (30/09/2026).
+     Remplacement temporaire, en attendant un module libéral utilisable en
+     consultation : date opératoire + secteur + initiales, et rien d'autre.
+     ⚠️ Les saisies restent dans CE navigateur (stockage local du téléphone) :
+     aucun appel réseau, aucune police ni script extérieur, rien vers le portail,
+     le classeur ou le dépôt. Le banc (banc/banc_pense_bete.js) le vérifie.
+     Installable à part (manifest.webmanifest de ce dossier). -->
+<meta name="robots" content="noindex, nofollow">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Mes patients lib</title>
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="icon" type="image/png" href="icon-192.png">
+<link rel="apple-touch-icon" href="apple-touch-icon.png">
+<meta name="theme-color" content="#0E7C7B">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
+<meta name="apple-mobile-web-app-title" content="Patients lib">
+<style>
+:root{
+  --bg:#F6F8F9; --card:#FFFFFF; --ink:#18242F; --mute:#66727E; --line:#DCE2E7;
+  --acc:#0E7C7B; --acc-ink:#FFFFFF; --acc-soft:#E3F2F1; --past:#A3ADB7; --warn:#B4541A;
+  box-sizing:border-box;
+  padding-top:env(safe-area-inset-top,0px); padding-bottom:env(safe-area-inset-bottom,0px);
+}
+@media (prefers-color-scheme: dark){
+  :root:not([data-theme="light"]){
+    --bg:#10171D; --card:#18222A; --ink:#E6EDF2; --mute:#94A2AE; --line:#2A3742;
+    --acc:#3FB8B5; --acc-ink:#062625; --acc-soft:#16302F; --past:#5B6873; --warn:#E59560;
+  }
+}
+:root[data-theme="dark"]{
+  --bg:#10171D; --card:#18222A; --ink:#E6EDF2; --mute:#94A2AE; --line:#2A3742;
+  --acc:#3FB8B5; --acc-ink:#062625; --acc-soft:#16302F; --past:#5B6873; --warn:#E59560;
+}
+*,*::before,*::after{box-sizing:inherit}
+html{scroll-padding-top:env(safe-area-inset-top,0px)}
+body{margin:0;background:var(--bg);color:var(--ink);
+  font:17px/1.4 -apple-system,system-ui,"Segoe UI",Roboto,sans-serif;}
+main{max-width:520px;margin:0 auto;padding:18px 16px 90px}
+h1{font-size:22px;margin:4px 0 14px;font-weight:700}
+form{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:14px}
+label{display:block;font-size:14px;color:var(--mute);margin:0 0 4px}
+.row{display:grid;grid-template-columns:1fr;gap:10px}
+.lbl{display:block;font-size:14px;color:var(--mute);margin:0 0 6px}
+.f{margin-bottom:12px}
+input{width:100%;font:inherit;color:var(--ink);background:var(--bg);border:1px solid var(--line);
+  border-radius:10px;padding:11px 12px;min-height:46px;-webkit-appearance:none;appearance:none}
+input:focus-visible,button:focus-visible{outline:2px solid var(--acc);outline-offset:2px}
+#ini{text-transform:uppercase;letter-spacing:.06em;font-weight:700;font-size:20px}
+.chips{display:grid;grid-template-columns:repeat(3,1fr);gap:8px}
+.chip{font:inherit;font-size:16px;font-weight:700;border:1px solid var(--line);background:var(--bg);color:var(--ink);
+  border-radius:10px;min-height:46px;cursor:pointer}
+.chip[aria-checked="true"]{background:var(--acc);border-color:var(--acc);color:var(--acc-ink)}
+.add{width:100%;font:inherit;font-weight:700;font-size:18px;background:var(--acc);color:var(--acc-ink);
+  border:0;border-radius:10px;min-height:50px;cursor:pointer}
+.msg{font-size:14px;color:var(--warn);margin:8px 0 0;min-height:1em}
+.day{display:grid;grid-template-columns:62px 1fr;gap:12px;padding:14px 0;border-bottom:1px solid var(--line)}
+.dnum{text-align:center;line-height:1}
+.dnum b{display:block;font-size:30px}
+.dnum span{font-size:13px;color:var(--mute)}
+.today .dnum b{color:var(--acc)}
+.pt{display:flex;align-items:center;gap:10px;min-height:38px}
+.pt .i{font-weight:700;font-size:19px;letter-spacing:.04em;min-width:64px}
+.pt .s{color:var(--mute);flex:1}
+.x{font:inherit;background:none;border:0;color:var(--mute);font-size:22px;width:40px;height:40px;cursor:pointer;border-radius:8px}
+.past .dnum b,.past .i{color:var(--past)}
+section{margin-top:22px}
+h2{font-size:16px;margin:0 0 2px;color:var(--mute);font-weight:700}
+details summary{cursor:pointer;color:var(--mute);font-size:15px;padding:10px 0}
+.empty{color:var(--mute);padding:18px 0}
+.undo{position:fixed;left:50%;transform:translateX(-50%);bottom:calc(16px + env(safe-area-inset-bottom,0px));
+  background:var(--ink);color:var(--bg);border-radius:12px;padding:10px 14px;display:none;gap:14px;align-items:center;
+  max-width:calc(100% - 32px);font-size:15px}
+.undo button{font:inherit;font-weight:700;background:none;border:0;color:var(--acc-soft);cursor:pointer}
+.foot{font-size:13px;color:var(--mute);margin-top:26px}
+@media (prefers-reduced-motion:no-preference){ .fresh{animation:f .6s ease-out} @keyframes f{from{background:var(--acc-soft)}to{background:transparent}} }
+</style>
+</head>
+<body>
+<main>
+  <h1>Mes patients lib</h1>
+  <form id="frm" autocomplete="off">
+    <div class="row">
+      <div class="f"><label for="dt">Date opératoire</label><input type="date" id="dt" required></div>
+    </div>
+    <div class="f"><span class="lbl" id="secLbl">Secteur</span>
+      <div class="chips" id="chips" role="radiogroup" aria-labelledby="secLbl"></div></div>
+    <div class="f" style="margin-top:12px"><label for="ini">Initiales</label><input id="ini" maxlength="8" required autocapitalize="characters"></div>
+    <button class="add" type="submit">Ajouter</button>
+    <p class="msg" id="msg" role="status"></p>
+  </form>
+
+  <section><h2>À venir</h2><div id="next"></div></section>
+  <section id="pastBox" hidden><details><summary id="pastSum"></summary><div id="past"></div></details></section>
+
+  <p class="foot">Liste gardée sur cet appareil uniquement, rien n'est envoyé.</p>
+</main>
+<div class="undo" id="undo" role="status"><span id="undoTxt"></span><button type="button" id="undoBtn">Annuler</button></div>
+
+<script>
+const KEY='pense-bete-lib-v1';
+let L=[], lastDel=null, undoT=null, freshId=null, storageOK=true;
+const $=id=>document.getElementById(id);
+const JOURS=['dim','lun','mar','mer','jeu','ven','sam'];
+const MOIS=['janv','févr','mars','avr','mai','juin','juil','août','sept','oct','nov','déc'];
+
+function load(){ try{ L=JSON.parse(localStorage.getItem(KEY)||'[]'); if(!Array.isArray(L)) L=[]; }catch(e){ L=[]; storageOK=false; } }
+function save(){ try{ localStorage.setItem(KEY, JSON.stringify(L)); storageOK=true; }catch(e){ storageOK=false; } }
+function isoToday(){ const d=new Date(); return new Date(d.getTime()-d.getTimezoneOffset()*6e4).toISOString().slice(0,10); }
+function esc(s){ return String(s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c])); }
+
+const SECTEURS=['Endos','Viscéral','Ortho','ORL','Cardio','Mater'];
+let SEC='';
+function renderChips(){
+  $('chips').innerHTML=SECTEURS.map(s=>'<button type="button" role="radio" class="chip" aria-checked="'+(s===SEC)+'" data-s="'+esc(s)+'">'+esc(s)+'</button>').join('');
+}
+function dayBlock(date, pts, cls){
+  const d=new Date(date+'T12:00:00');
+  return '<div class="day '+cls+'"><div class="dnum"><span>'+JOURS[d.getDay()]+'</span><b>'+d.getDate()+'</b><span>'+MOIS[d.getMonth()]+'</span></div><div>'
+    + pts.map(p=>'<div class="pt'+(p.id===freshId?' fresh':'')+'"><span class="i">'+esc(p.i)+'</span><span class="s">'+esc(p.s)+'</span><button class="x" aria-label="Effacer '+esc(p.i)+'" data-id="'+p.id+'">×</button></div>').join('')
+    + '</div></div>';
+}
+function group(list){
+  const g={}; list.forEach(p=>{ (g[p.d]=g[p.d]||[]).push(p); });
+  Object.values(g).forEach(a=>a.sort((x,y)=>x.s.localeCompare(y.s)||x.t-y.t));
+  return g;
+}
+function render(){
+  const today=isoToday();
+  const nx=group(L.filter(p=>p.d>=today)), ps=group(L.filter(p=>p.d<today));
+  const nk=Object.keys(nx).sort(), pk=Object.keys(ps).sort().reverse();
+  $('next').innerHTML = nk.length ? nk.map(k=>dayBlock(k,nx[k],k===today?'today':'')).join('')
+    : '<p class="empty">Aucun patient à venir. Ajoutez le premier ci-dessus.</p>';
+  $('pastBox').hidden=!pk.length;
+  const n=pk.reduce((s,k)=>s+ps[k].length,0);
+  $('pastSum').textContent='Passés ('+n+')';
+  $('past').innerHTML=pk.map(k=>dayBlock(k,ps[k],'past')).join('');
+  renderChips();
+  if(!storageOK) $('msg').textContent="Ce navigateur n'enregistre pas : la liste sera perdue en fermant la page.";
+}
+
+$('frm').addEventListener('submit',e=>{
+  e.preventDefault();
+  const d=$('dt').value, s=SEC, i=$('ini').value.trim().toUpperCase();
+  if(!d||!s||!i){ $('msg').textContent=!s?'Touchez un secteur.':'Date et initiales sont nécessaires.'; return; }
+  const p={id:Date.now().toString(36)+Math.random().toString(36).slice(2,6), d, s, i, t:Date.now()};
+  L.push(p); save(); freshId=p.id;
+  $('msg').textContent='';
+  $('ini').value=''; $('ini').focus();          // date et secteur restent : patient suivant du même jour
+  render();
+});
+$('chips').addEventListener('click',e=>{ const b=e.target.closest('.chip'); if(!b) return; SEC=b.dataset.s; renderChips(); $('ini').focus(); });
+document.addEventListener('click',e=>{
+  const b=e.target.closest('.x'); if(!b) return;
+  const k=L.findIndex(p=>p.id===b.dataset.id); if(k<0) return;
+  lastDel=L.splice(k,1)[0]; save(); freshId=null; render();
+  $('undoTxt').textContent=lastDel.i+' effacé'; $('undo').style.display='flex';
+  clearTimeout(undoT); undoT=setTimeout(()=>{ $('undo').style.display='none'; lastDel=null; },6000);
+});
+$('undoBtn').addEventListener('click',()=>{ if(lastDel){ L.push(lastDel); save(); lastDel=null; render(); } $('undo').style.display='none'; });
+
+load(); $('dt').value=isoToday(); render();
+</script>
+</body>
+</html>
