@@ -457,7 +457,8 @@ function monde(plan) {
   {
     const plan = () => ({ esearchresult: { count: '0', idlist: [] } });
     const jours = (depuis) => { const m = monde(plan); if (depuis) m.props.VEILLE_DERNIER_SUCCES = new Date(Date.now() - depuis * 86400000).toISOString(); vm.runInContext('getOrCreateVeilleTabs()', m.ctx); vm.runInContext('runVeille()', m.ctx); const q = m.requetes.find(r => r.endpoint === 'esearch.fcgi'); return q ? Number(new URLSearchParams(m.requetes[0].raw || '').get('reldate')) || m.journalFenetre : null; };
-    const fen = (depuis) => { const m = monde(plan); if (depuis) m.props.VEILLE_DERNIER_SUCCES = new Date(Date.now() - depuis * 86400000).toISOString(); return vm.runInContext('_veilleFenetreJours(180)', m.ctx); };
+    // + 60 s : _veilleFenetreJours arrondit l'âge au jour SUPÉRIEUR ; pile N jours, la moindre milliseconde écoulée avant sa lecture de l'horloge donnait N+1 (banc instable)
+    const fen = (depuis) => { const m = monde(plan); if (depuis) m.props.VEILLE_DERNIER_SUCCES = new Date(Date.now() - depuis * 86400000 + 60000).toISOString(); return vm.runInContext('_veilleFenetreJours(180)', m.ctx); };
     V('premier passage (aucun marqueur) : la fenêtre entière, 180 j', fen(null) === 180);
     V('passage 7 jours après un succès : 21 j (7 + 14 de marge, plancher 21)', fen(7) === 21, fen(7));
     V('40 jours après : 54 j', fen(40) === 54, fen(40));

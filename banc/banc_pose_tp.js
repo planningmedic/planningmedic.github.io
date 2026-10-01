@@ -106,7 +106,7 @@ function monde(opts) {
 
   const ctx = vm.createContext({ console, JSON, Date, Number, String, Object, Array, Math, Set, RegExp, parseInt, isNaN,
     SpreadsheetApp: { getActiveSpreadsheet: () => cl }, Logger: { log() {} },
-    Utilities: { formatDate: (d, tz, fmt) => d.toISOString().slice(0, 10) },
+    Utilities: { formatDate: (d, tz, fmt) => { const p = n => String(n).padStart(2, '0'); return d.getFullYear() + '-' + p(d.getMonth() + 1) + '-' + p(d.getDate()); } },   // heure LOCALE, comme le vrai formatDate dans le fuseau du script : toISOString() reculait d'un jour hors UTC
     Session: { getScriptTimeZone: () => 'Europe/Paris' } });
   ctx.globalThis = ctx;
   socleMedecins(ctx);   // (14/09/2026) COL_MED, _medecinsRows_, _medecinsInvalider_ (code.gs)

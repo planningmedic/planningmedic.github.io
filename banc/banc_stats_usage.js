@@ -67,7 +67,7 @@ const lignes = (cl, n) => (cl.getSheetByName(n) ? cl.getSheetByName(n).lignes : 
 /* Sheets convertit « 2026-09-07 » en Date à l'écriture : le banc doit lire ce que
    le vrai classeur rendrait, pas ce qu'il aimerait y trouver. */
 const jour = v => (v instanceof Date)
-  ? v.getUTCFullYear()+'-'+String(v.getUTCMonth()+1).padStart(2,'0')+'-'+String(v.getUTCDate()).padStart(2,'0')
+  ? v.getFullYear()+'-'+String(v.getMonth()+1).padStart(2,'0')+'-'+String(v.getDate()).padStart(2,'0')
   : String(v).trim();
 
 console.log('\n═══ 2. Une connexion est enregistrée et datée ═══');

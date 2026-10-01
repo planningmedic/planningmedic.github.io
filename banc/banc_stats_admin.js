@@ -61,7 +61,7 @@ const lignes = (cl, n) => (cl.getSheetByName(n) ? cl.getSheetByName(n).lignes : 
    le vrai classeur rendrait, pas ce qu'il aimerait y trouver — c'est le défaut
    qui avait fait rétrécir les semaines figées le 29/08. */
 const jour = v => (v instanceof Date)
-  ? v.getUTCFullYear()+'-'+String(v.getUTCMonth()+1).padStart(2,'0')+'-'+String(v.getUTCDate()).padStart(2,'0')
+  ? v.getFullYear()+'-'+String(v.getMonth()+1).padStart(2,'0')+'-'+String(v.getDate()).padStart(2,'0')
   : String(v).trim();
 const trouver = (cl, role, action) =>
   lignes(cl, 'STATS_ACTIONS').slice(1).find(l =>
