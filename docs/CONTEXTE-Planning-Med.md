@@ -44,6 +44,19 @@ les fichiers du planning, et attend une semaine de fonctionnement réel avant su
 
 # PARTIE 1 — L'ESSENTIEL
 
+## État au 1er octobre 2026 — module libéral allégé, import Excel des cotations types
+
+Site **v1.17.0**, banc **3 678 ✓, 0 échec** (vert à l'heure de Paris). `portail.gs` et `miroir.gs`
+**2026-10-01.2** dans le dépôt — **redéploiement Apps Script en attente** (voir ROADMAP du 01/10).
+Détail des deux lots dans la ROADMAP.
+
+- **Le dépassement se pré-remplit** : chirurgien qui cote → 50 % du sien ; sinon total France de la
+  cotation type ; sinon calage sur la mutuelle. Toujours modifiable.
+- **Sous Windows**, le banc exige des fins de ligne Unix : `.gitattributes` le garantit depuis
+  `33c1c63` ; sur un clone plus ancien, `git config core.autocrlf false` avant de le lancer.
+- **Pousser depuis cette machine** : deux comptes GitHub sont enregistrés ; viser explicitement
+  `https://planningmedic@github.com/...`, sinon Git ne sait pas lequel choisir.
+
 ## État au 13 septembre 2026 — audit complet, et un plan en 12 étapes
 
 Audit du code sur deux versants (efficience, confidentialité), détail chiffré dans la ROADMAP.

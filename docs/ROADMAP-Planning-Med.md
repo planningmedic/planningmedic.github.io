@@ -18,6 +18,35 @@ l'établissement et 77 noms de praticiens sur une page publique sans code d'acc�
 pas été monté avec le lot cloche du 23/08 (oubli assumé, le code déployé est bien le nouveau) :
 à monter au prochain lot Worker. La constante reste la **seule** version écrite dans le fichier.
 
+## 01/10/2026 — module libéral : cotation allégée (v1.16.0), import Excel des cotations types (v1.17.0)
+
+**Fait.**
+- **v1.16.0 — page de cotation allégée.** Statut en deux boutons France / Monaco (2e rangée Verte ·
+  Rose · Bulle · SPME · NAS), « Français — AME / C2S » retiré, consultation CS ou APC seulement (APC
+  grisée dès Monaco), mutuelle en cinq niveaux 100 → 300 %, un seul champ de dépassement pré-rempli
+  (chirurgien → 50 % ; sinon calage mutuelle), ligne praticien et déclaration dans un bloc replié.
+  La mutuelle repart à vide au patient suivant. Calculs inchangés.
+- **v1.17.0 — import des cotations types depuis Excel.** Colonnes `TOTAL_FR`, `REPERE_BULLE`,
+  `REPERE_NAS` dans `COTATIONS_TYPE` (migration douce, lue dans l'en-tête) ; action
+  `saveCotationsTypeLot` (tout ou rien, un verrou, une écriture, une poussée miroir) ; bouton
+  « Importer » avec aperçu créées / remplacées / rejetées. Estimateur : chirurgien → 50 % ; sinon
+  `TOTAL_FR − BR` (assuré français) ; sinon mutuelle. Bulle / NAS : « Usage : … » affiché, aucun calcul.
+- Banc **3 678 ✓** (+106 sur la journée), vert à l'heure de Paris depuis `33c1c63`.
+
+**⚠️ En attente : redéploiement Apps Script** de `portail.gs` **2026-10-01.2** et `miroir.gs`
+**2026-10-01.2**. Tant qu'il n'est pas fait, le bouton « Importer » répond par un échec (rien
+n'est écrit) et les totaux / repères ne remontent pas ; le reste fonctionne.
+
+**À faire.**
+1. Définir la règle de dépassement Bulle et NAS (aujourd'hui : repère affiché seulement).
+2. Retirer la consultation « C » de la page de fabrication (l'estimateur la ramène déjà sur CS).
+3. `docs/module-liberal/tests/anti_persistance_devis.test.js` est cassé depuis le 17/08 (il appelle
+   `addParcours`, disparu) et n'est pas dans `lancer.sh` : le réparer ou le retirer.
+4. Premier import réel : vérifier que les repères (« +50% ») restent du texte dans le classeur — le
+   format texte est posé sur les colonnes J et K, la doublure du banc ne simule pas cette coercition.
+5. Confirmer que « France avec dépassement » exclut la consultation (hypothèse retenue : comparé à
+   la BR des actes seule).
+
 ## 13/09/2026 — audit du code, ancien dépôt supprimé, historique réécrit
 
 ### Audit (deux versants : efficience, confidentialité)
