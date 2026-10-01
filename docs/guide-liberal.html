@@ -132,7 +132,7 @@
   </div>
   <p class="appbar-sub">Estimer le libéral, calibrer le dépassement sur la mutuelle du patient, générer le devis — et piloter la charge libéral / public.</p>
 </div>
-  <div class="maj">Dernière mise à jour : 1er octobre 2026 · rév. 8 (page de cotation allégée)</div>
+  <div class="maj">Dernière mise à jour : 1er octobre 2026 · rév. 9 (import des cotations types depuis Excel)</div>
   <p style="margin-top:10px"><a href="module-liberal/estimateur-liberal.html" style="display:inline-block;background:var(--acc);color:#fff;padding:9px 16px;border-radius:8px;text-decoration:none;font-weight:600;font-size:14px">→ Ouvrir la cotation</a></p>
 </header>
 
@@ -292,6 +292,33 @@
     <div class="ct">Le modificateur 7 est coché d'office</div>
     <p>La présence permanente de l'anesthésiste (<strong>+6 %</strong>) figure sur tous les relevés observés. Toute nouvelle ligne arrive donc avec la case <strong>7</strong> déjà cochée — qu'elle vienne d'une cotation type, de la recherche ou d'un ajout à la main. Vous pouvez la décocher si le cas se présente. Auparavant, une case oubliée sous-évaluait la base de remboursement de 6 % sans que rien ne le signale.</p>
     <p>Le tableau démarre également <strong>vide</strong>&nbsp;: il n'y a plus les deux lignes d'orthopédie d'exemple à effacer à chaque patient.</p>
+  </div>
+
+  <h3>Importer les cotations types depuis Excel</h3>
+  <ol>
+    <li>Ouvrez <strong>Cotations types</strong> (lien «&nbsp;🛠 gérer&nbsp;» sur la page de cotation), puis <span class="tag">⇪ Importer</span>.</li>
+    <li>Dans Excel, <strong>sélectionnez le tableau</strong> — titres de groupe et lignes d'en-tête compris — et copiez-le.</li>
+    <li>Collez-le dans la grande case, puis <span class="tag">Aperçu</span>. Rien n'est encore enregistré&nbsp;: l'outil annonce combien de cotations seront <strong>créées</strong>, <strong>remplacées</strong> (même groupe et même nom qu'une cotation existante) et <strong>rejetées</strong>, avec la raison de chaque rejet.</li>
+    <li><span class="tag">Enregistrer</span> écrit tout d'un coup. Si une seule cotation pose problème au moment d'écrire, <strong>rien n'est enregistré</strong>&nbsp;: pas d'import à moitié fait.</li>
+  </ol>
+  <div class="callout tip">
+    <div class="ct">Ce que l'outil lit dans votre tableau</div>
+    <p>Une ligne qui ne contient qu'un mot (par exemple «&nbsp;Orthopédie&nbsp;») devient le <strong>groupe</strong> des lignes qui suivent. Les lignes «&nbsp;Note&nbsp;:&nbsp;» sont ignorées. Les colonnes sont reconnues par leur titre, peu importe leur place&nbsp;: <strong>Geste</strong>, <strong>Code CCAM</strong>, <strong>France avec dépassement</strong>, <strong>Bulle</strong>, <strong>NAS</strong>. Les colonnes de tarifs (secteur 1, Monaco, rose) sont ignorées&nbsp;: la page de cotation les recalcule.</p>
+    <p><strong>Plusieurs actes</strong>&nbsp;: dans la case du code, écrivez les codes séparés par un <code>+</code>, par exemple <code>HHQE002+ZZLP025</code>. Le premier compte en entier, les suivants à moitié.</p>
+  </div>
+  <div class="callout warn">
+    <div class="ct">Les messages possibles</div>
+    <ul>
+      <li><strong>«&nbsp;… n'est pas un code CCAM&nbsp;»</strong> — la case contient autre chose qu'un code (un code maison du type «&nbsp;ZZ-…&nbsp;»). Remplacez-le par les vrais codes, séparés par <code>+</code>.</li>
+      <li><strong>«&nbsp;code absent du référentiel CCAM&nbsp;»</strong> — le code n'existe pas, ou est mal tapé. La ligne n'est pas importée.</li>
+      <li><strong>«&nbsp;… n'est pas un montant&nbsp;: total France importé vide&nbsp;»</strong> — la case «&nbsp;France avec dépassement&nbsp;» contient du texte («&nbsp;+100 ou 150&nbsp;»). La cotation est importée, mais sans total&nbsp;: l'outil ne devine jamais un montant.</li>
+      <li><strong>«&nbsp;total France inférieur à la base de remboursement&nbsp;»</strong> — le total est plus petit que ce que l'outil calcule. La cotation est importée&nbsp;; vérifiez la case.</li>
+      <li><strong>«&nbsp;en double dans le collage&nbsp;»</strong>, <strong>«&nbsp;Geste vide&nbsp;»</strong>, <strong>«&nbsp;aucun titre de groupe au-dessus&nbsp;»</strong> — la ligne n'est pas importée.</li>
+    </ul>
+  </div>
+  <div class="callout tip">
+    <div class="ct">Et sur la page de cotation&nbsp;?</div>
+    <p>Pour un patient <strong>France</strong>, une cotation type qui porte un total remplit le dépassement avec <strong>total − base de remboursement</strong> (sauf si le chirurgien cote&nbsp;: la moitié du sien passe avant). Le montant reste modifiable, et le reste à charge suit la mutuelle choisie. Pour <strong>Bulle</strong> ou <strong>NAS</strong>, la valeur de votre tableau s'affiche telle quelle sous le dépassement («&nbsp;Usage&nbsp;: …&nbsp;»)&nbsp;; l'outil n'en fait aucun calcul.</p>
   </div>
 
   <div class="callout warn">

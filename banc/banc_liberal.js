@@ -187,8 +187,8 @@ console.log('\n═══ 5bis. La fabrique de cotations types ═══');
   socleMedecins(ctx);   // (14/09/2026) COL_MED, _medecinsRows_, _medecinsInvalider_ (code.gs)
   ['COTATIONS_TYPE_TAB', '_COTTYPE_HEADER', '_COTTYPE_SEED', '_COTTYPE_ROLES', '_COTTYPE_LC']
     .forEach(n => vm.runInContext(extraireConst('../gas/portail.gs', n), ctx));
-  ['getOrCreateCotationsTypeTab', 'getCotationsType', '_cotTypeAdminId_', '_cotTypeMembre_',
-   'listCotationsTypeEdit', '_cotTypeValide_', '_cotTypeRetirer_', 'saveCotationType', 'deleteCotationType']
+  ['_cotTypeFormatTexte_', 'getOrCreateCotationsTypeTab', '_cotTypeTotal_', '_cotTypeRepere_', 'getCotationsType', '_cotTypeAdminId_', '_cotTypeMembre_',
+   'listCotationsTypeEdit', '_cotTypeValide_', '_cotTypeLignes_', '_cotTypeRetirer_', 'saveCotationType', 'deleteCotationType']
     .forEach(n => vm.runInContext(extraireFonction('../gas/portail.gs', n), ctx));
   ctx.MAR   = { role:'mar',   id:'ALPHA', liberal:true };
   ctx.AUTRE = { role:'mar',   id:'BRAVO', liberal:true };
@@ -269,6 +269,213 @@ console.log('\n═══ 5bis. La fabrique de cotations types ═══');
     run(`deleteCotationType({groupe:'Endoscopie', nom:'Colo seule'}, MAR).success`) === false);
   V('et le droit de supprimer n\'est plus annoncé à l\'écran',
     run('listCotationsTypeEdit({}, MAR).peutSupprimer') === false);
+}
+
+console.log('\n═══ 5quater. Import des cotations types : colonnes, lot, parseur ═══');
+/* (01/10/2026) Trois colonnes de plus dans COTATIONS_TYPE (TOTAL_FR,
+   REPERE_BULLE, REPERE_NAS), portées comme LC par la 1re ligne d'une cotation ;
+   une écriture EN LOT, tout ou rien ; un parseur qui lit la grille Excel telle
+   qu'elle est tenue à la main. Toutes les valeurs ci-dessous sont FICTIVES. */
+{
+  const { brancherSurEcriture } = require('./stubs');
+  const monde5 = (onglet) => {
+    const cl = new Classeur();
+    cl.ajouter('CONFIG', [['CLE', 'VALEUR'], ['LIBERAL_ADMIN', 'ALPHA']]);
+    cl.ajouter('MEDECINS', [['ID', 'NOM', 'ACTIF', 'LIBERAL'], ['ALPHA', 'Dr ALPHA', 'O', 'O'], ['BRAVO', 'Dr BRAVO', 'O', 'O']]);
+    if (onglet) cl.ajouter('COTATIONS_TYPE', onglet);
+    const ctx = vm.createContext({
+      console, JSON, Date, Number, String, Object, Array, Math, Error, isNaN, isFinite, parseInt, parseFloat, RegExp,
+      SpreadsheetApp: { getActiveSpreadsheet: () => cl },
+      Logger: { log: () => {} },
+      LockService: { getScriptLock: () => ({ waitLock: () => {}, releaseLock: () => {} }) },
+    });
+    ctx.globalThis = ctx;
+    socleMedecins(ctx);
+    ['COTATIONS_TYPE_TAB', '_COTTYPE_HEADER', '_COTTYPE_SEED', '_COTTYPE_ROLES', '_COTTYPE_LC', '_COTTYPE_LOT_MAX']
+      .forEach(n => vm.runInContext(extraireConst('../gas/portail.gs', n), ctx));
+    ['_cotTypeFormatTexte_', 'getOrCreateCotationsTypeTab', '_cotTypeTotal_', '_cotTypeRepere_', 'getCotationsType',
+     '_cotTypeAdminId_', '_cotTypeMembre_', '_cotTypeValide_', '_cotTypeLignes_', '_cotTypeRetirer_',
+     'saveCotationType', 'saveCotationsTypeLot']
+      .forEach(n => vm.runInContext(extraireFonction('../gas/portail.gs', n), ctx));
+    ctx.MAR = { role:'mar', id:'ALPHA', liberal:true };
+    ctx.HORS = { role:'mar', id:'CHARLIE', liberal:false };
+    return { cl, run: e => vm.runInContext(e, ctx) };
+  };
+  const ENTETE11 = 'GROUPE,NOM,ORDRE,CODE,ROLE,MOD7,MODA,LC,TOTAL_FR,REPERE_BULLE,REPERE_NAS';
+
+  // ── Migration douce : onglet en 8 colonnes (état actuel du classeur) ──
+  {
+    const lignes8 = [['GROUPE','NOM','ORDRE','CODE','ROLE','MOD7','MODA','LC'],
+                     ['Essai','Une',1,'HHQE002','principal','O','N','CS'],
+                     ['Essai','Une',2,'ZZLP025','associe','O','N','']];
+    const { cl, run } = monde5(lignes8);
+    run('getOrCreateCotationsTypeTab()');
+    const sh = cl.getSheetByName('COTATIONS_TYPE');
+    V('8 colonnes → les trois nouvelles s\'ajoutent à droite', sh.lignes[0].join(',') === ENTETE11, sh.lignes[0]);
+    V('aucune ligne existante n\'est déplacée ni réécrite',
+      sh.lignes[1].slice(0, 8).join(',') === 'Essai,Une,1,HHQE002,principal,O,N,CS' && sh.lignes.length === 3, sh.lignes[1]);
+    const c = run('getCotationsType()')[0];
+    V('une cotation d\'avant se relit sans total ni repère', c.totalFr === null && c.repereBulle === '' && c.repereNas === '', c);
+    run('getOrCreateCotationsTypeTab()');
+    V('rejouer la migration ne change rien (pas de colonne en double)',
+      sh.lignes[0].join(',') === ENTETE11 && sh.lignes[0].length === 11, sh.lignes[0]);
+  }
+  // ── Migration de l'onglet d'origine, en 7 colonnes (sans GROUPE) ──
+  {
+    const { cl, run } = monde5([['NOM','ORDRE','CODE','ROLE','MOD7','MODA','LC'], ['Une',1,'HHQE002','principal','O','N','CS']]);
+    run('getOrCreateCotationsTypeTab()');
+    const sh = cl.getSheetByName('COTATIONS_TYPE');
+    V('7 colonnes → GROUPE inséré en tête ET les trois nouvelles posées', sh.lignes[0].join(',') === ENTETE11, sh.lignes[0]);
+    V('la donnée suit sa colonne', sh.lignes[1][0] === 'Endoscopie' && sh.lignes[1][3] === 'HHQE002', sh.lignes[1]);
+  }
+  // ── Onglet neuf : l'amorce porte bien onze colonnes ──
+  {
+    const { cl, run } = monde5(null);
+    run('getCotationsType()');
+    const sh = cl.getSheetByName('COTATIONS_TYPE');
+    V('un onglet neuf naît avec onze colonnes, amorce comprise',
+      sh.lignes[0].length === 11 && sh.lignes.slice(1).every(l => l.length === 11), sh.lignes.map(l => l.length));
+  }
+
+  // ── Aller-retour écriture / lecture ──
+  const { cl, run } = monde5(null);
+  run('getCotationsType()');
+  const w1 = run(`saveCotationType({groupe:'Essai', nom:'Avec total', lc:'CS', totalFr:1234.5,
+    repereBulle:'suivant devis OU +50%', repereNas:'150',
+    lignes:[{code:'HHQE002', role:'principal'}, {code:'ZZLP025', role:'associe'}]}, MAR)`);
+  V('une cotation avec total et repères s\'enregistre', w1.success === true, w1);
+  const lu = run('getCotationsType()').find(c => c.nom === 'Avec total');
+  V('le total France revient en nombre', lu && lu.totalFr === 1234.5, lu && lu.totalFr);
+  V('le repère Bulle revient TEL QUEL', lu && lu.repereBulle === 'suivant devis OU +50%', lu && lu.repereBulle);
+  V('le repère NAS « 150 » reste un texte', lu && lu.repereNas === '150', lu && lu.repereNas);
+  const shA = cl.getSheetByName('COTATIONS_TYPE');
+  const lignesA = shA.lignes.filter(l => l[1] === 'Avec total');
+  V('portés par la 1re ligne seulement, comme LC',
+    lignesA[0][8] === 1234.5 && lignesA[0][9] && lignesA[1][8] === '' && lignesA[1][9] === '' && lignesA[1][7] === '', lignesA);
+  V('un total qui n\'est pas un nombre est refusé par le serveur',
+    run(`saveCotationType({groupe:'Essai', nom:'X', lc:'CS', totalFr:'+100 ou 150', lignes:[{code:'HHQE002', role:'principal'}]}, MAR).success`) === false);
+  V('un repère de plus de 200 caractères est refusé',
+    run(`saveCotationType({groupe:'Essai', nom:'X', lc:'CS', repereNas:'${'x'.repeat(201)}', lignes:[{code:'HHQE002', role:'principal'}]}, MAR).success`) === false);
+  V('sans total, la cotation garde un total vide',
+    run(`saveCotationType({groupe:'Essai', nom:'Sans total', lc:'CS', lignes:[{code:'HHQE002', role:'principal'}]}, MAR).success`) === true
+    && run('getCotationsType()').find(c => c.nom === 'Sans total').totalFr === null);
+
+  // ── Écriture en lot : tout ou rien ──
+  const avantLot = JSON.stringify(shA.lignes);
+  const lotKo = run(`saveCotationsTypeLot({items:[
+    {groupe:'Essai', nom:'Lot 1', lc:'CS', lignes:[{code:'HHQE002', role:'principal'}]},
+    {groupe:'Essai', nom:'Lot 2', lc:'CS', lignes:[{code:'PAS-UN-CODE', role:'principal'}]}]}, MAR)`);
+  V('une cotation invalide refuse le lot ENTIER', lotKo.success === false && /n° 2/.test(lotKo.error), lotKo);
+  V('et le classeur n\'a pas bougé d\'une case', JSON.stringify(shA.lignes) === avantLot);
+  V('un doublon dans le lot est refusé',
+    run(`saveCotationsTypeLot({items:[{groupe:'Essai', nom:'D', lc:'CS', lignes:[{code:'HHQE002', role:'principal'}]},
+      {groupe:'Essai', nom:'D', lc:'CS', lignes:[{code:'HHQE002', role:'principal'}]}]}, MAR).success`) === false);
+  V('un MAR hors groupement ne peut pas importer',
+    run(`saveCotationsTypeLot({items:[{groupe:'Essai', nom:'H', lc:'CS', lignes:[{code:'HHQE002', role:'principal'}]}]}, HORS).success`) === false);
+
+  let ecritures = 0;
+  brancherSurEcriture(() => { ecritures++; });
+  const lot = run(`saveCotationsTypeLot({items:[
+    {groupe:'Essai', nom:'Avec total', lc:'CS', totalFr:999, repereBulle:'', repereNas:'200', lignes:[{code:'ZZLP025', role:'principal'}]},
+    {groupe:'Essai', nom:'Lot neuf A', lc:'CS', lignes:[{code:'HHQE002', role:'principal'}]},
+    {groupe:'Autre', nom:'Lot neuf B', lc:'CS', totalFr:50, lignes:[{code:'HHQE002', role:'principal'}, {code:'ZZLP025', role:'associe'}]}]}, MAR)`);
+  brancherSurEcriture(null);
+  V('le lot passe : 2 créées, 1 remplacée', lot.success === true && lot.crees === 2 && lot.remplacees === 1, lot);
+  V('en UNE écriture de données (plus le vidage du surplus)', ecritures <= 2, ecritures);
+  const apres = run('getCotationsType()');
+  V('la cotation remplacée n\'existe qu\'une fois, avec ses nouvelles valeurs',
+    apres.filter(c => c.groupe === 'Essai' && c.nom === 'Avec total').length === 1
+    && apres.find(c => c.nom === 'Avec total').totalFr === 999
+    && apres.find(c => c.nom === 'Avec total').lignes.map(l => l.code).join() === 'ZZLP025',
+    apres.find(c => c.nom === 'Avec total'));
+  V('le reste de l\'onglet est intact (amorce, « Sans total »)',
+    apres.filter(c => c.groupe === 'Endoscopie').length === 3 && !!apres.find(c => c.nom === 'Sans total'));
+  V('aucune ligne orpheline ne traîne en bas de l\'onglet',
+    !shA.lignes.slice(1).some(l => (l[0] || l[1]) && !l[3]));
+  const relot = run(`saveCotationsTypeLot({items:[{groupe:'Autre', nom:'Lot neuf B', lc:'CS', lignes:[{code:'HHQE002', role:'principal'}]}]}, MAR)`);
+  V('réimporter la même cotation la remplace, sans doublon',
+    relot.remplacees === 1 && run('getCotationsType()').filter(c => c.nom === 'Lot neuf B').length === 1, relot);
+
+  // ── Producteur → consommateurs : rien ne filtre les nouveaux champs ──
+  const mir = fs.readFileSync('../gas/miroir.gs', 'utf8');
+  V('la copie rapide pousse getCotationsType() tel quel',
+    /_miroirAjoute_\(items, 'cotations_type',\s+function \(\) \{ return getCotationsType\(\); \}\)/.test(mir));
+  V('un import rafraîchit la copie rapide', /saveCotationsTypeLot:\s*\['cotations_type'\]/.test(mir));
+  const portail = fs.readFileSync('../gas/portail.gs', 'utf8');
+  V('l\'action d\'import est routée', /case 'saveCotationsTypeLot':\s+return _portailJson\(saveCotationsTypeLot\(payload, user\)\)/.test(portail));
+  const fab = fs.readFileSync('../docs/module-liberal/cotations-types.html', 'utf8');
+  V('modifier une cotation à la main ne perd ni le total ni les repères',
+    /totalFr: edit\.totalFr == null \? null : edit\.totalFr/.test(fab) && /repereBulle: edit\.repereBulle/.test(fab));
+
+  // ── Le parseur, sur une grille FICTIVE qui reprend toutes les formes ──
+  const pctx = vm.createContext({ console, Math, String, Number, Object, Array, RegExp, parseFloat, JSON,
+    eur: n => (n || 0).toFixed(2).replace('.', ',') + ' €' });
+  vm.runInContext(extraireFonction('../docs/module-liberal/cotations-types.html', 'parserGrille'), pctx);
+  const CCAMJ = JSON.parse(fs.readFileSync('../docs/module-liberal/ccam_actes.json', 'utf8')).actes;
+  const t = (...cases) => cases.join('\t');
+  const grille = [
+    'Orthopédie',
+    t('Geste', 'Code CCAM', 'Secteur 1', 'France avec dépassement', 'Monaco', 'Rose', 'Bulle', 'NAS'),
+    t('Geste un', 'HHQE002', '11', '400', '22', '26', 'suivant devis OU +50%', '150'),
+    'Note : tous les montants sont fictifs',
+    t('Geste associé', 'HHQE002+ZZLP025', '11', '+100 ou 150', '22', '26', '', ''),
+    t('Geste pseudo', 'ZZ-ASSOC', '11', '300', '', '', '', ''),
+    t('Geste inconnu', 'ABCD999', '11', '300', '', '', '', ''),
+    t('Geste trop bas', 'ZZLP025', '11', '5', '', '', '', ''),
+    t('"Geste sur', 'deux lignes"', 'HHQE002', '', '310,50', '', '', '', '').replace('"Geste sur\tdeux lignes"\t', '"Geste sur\ndeux lignes"\t'),
+    t('Geste un', 'HHQE002', '', '', '', '', '', ''),
+    '',
+    'Endoscopie',
+    // En-tête dans un AUTRE ordre : les colonnes se lisent par leur nom.
+    t('NAS', 'Geste', 'Bulle', 'Code CCAM', 'France avec dépassement'),
+    t('texte NAS', 'Colo seule', 'texte bulle', 'HHQE002', '250'),
+  ].join('\r\n');
+  const existants = [{ groupe:'Endoscopie', nom:'Colo seule' }];
+  pctx.G = grille; pctx.C = CCAMJ; pctx.E = existants;
+  const P = vm.runInContext('parserGrille(G, C, E)', pctx);
+  const it = nom => P.items.find(x => x.nom === nom);
+  const rj = re => P.rejets.find(x => re.test(x.texte));
+  V('la ligne de titre devient le GROUPE des lignes suivantes', it('Geste un') && it('Geste un').groupe === 'Orthopédie', it('Geste un'));
+  V('un second titre change de groupe', it('Colo seule') && it('Colo seule').groupe === 'Endoscopie');
+  V('en-têtes et lignes « Note : » ignorées, jamais prises pour un titre',
+    P.ignorees === 3 && !P.items.some(x => /Note|Geste$/.test(x.groupe)), P.ignorees);
+  V('colonnes repérées par leur en-tête, pas leur position',
+    it('Colo seule').totalFr === 250 && it('Colo seule').repereBulle === 'texte bulle' && it('Colo seule').repereNas === 'texte NAS',
+    it('Colo seule'));
+  V('les colonnes de tarifs (secteur 1, Monaco, rose) sont ignorées',
+    !JSON.stringify(P.items).includes('"11"') && !('monaco' in it('Geste un')));
+  V('valeurs par défaut : rôle principal, consultation CS, MODA = N',
+    it('Geste un').lc === 'CS' && it('Geste un').lignes[0].role === 'principal' && it('Geste un').lignes[0].modA === false);
+  V('repères conservés tels quels', it('Geste un').repereBulle === 'suivant devis OU +50%' && it('Geste un').repereNas === '150');
+  V('« HHQE002+ZZLP025 » : 1er principal, suivant associé',
+    it('Geste associé') && it('Geste associé').lignes.map(l => l.code + ':' + l.role).join() === 'HHQE002:principal,ZZLP025:associe',
+    it('Geste associé') && it('Geste associé').lignes);
+  V('un total en texte libre est importé VIDE…', it('Geste associé').totalFr === null);
+  V('…et signalé, jamais deviné', P.signalements.some(s => s.nom === 'Geste associé' && /\+100 ou 150/.test(s.motif)), P.signalements);
+  V('un pseudo-code est rejeté avec la syntaxe des associations',
+    !!rj(/Geste pseudo/) && /HHQE002\+ZZLP025/.test(rj(/Geste pseudo/).motif), rj(/Geste pseudo/));
+  V('un code absent du référentiel est rejeté et nommé',
+    !!rj(/Geste inconnu/) && /ABCD999/.test(rj(/Geste inconnu/).motif), rj(/Geste inconnu/));
+  V('un total inférieur à la BR calculée est signalé (et importé)',
+    !!it('Geste trop bas') && P.signalements.some(s => s.nom === 'Geste trop bas' && /inférieur à la BR/.test(s.motif)));
+  V('une case sur deux lignes (guillemets d\'Excel) est lue d\'un bloc',
+    !!it('Geste sur deux lignes') && it('Geste sur deux lignes').totalFr === 310.5, P.items.map(x => x.nom));
+  V('un doublon dans le collage est rejeté', !!P.rejets.find(x => /en double/.test(x.motif)), P.rejets.map(x => x.motif));
+  V('« même GROUPE + NOM » qu\'une cotation existante → remplacée', it('Colo seule').etat === 'remplace' && it('Geste un').etat === 'cree');
+  V('le compte de l\'aperçu : 4 créées, 1 remplacée, 3 rejetées',
+    P.items.filter(x => x.etat === 'cree').length === 4 && P.items.filter(x => x.etat === 'remplace').length === 1 && P.rejets.length === 3,
+    [P.items.length, P.rejets.length]);
+  pctx.G2 = t('Geste un', 'HHQE002', '400');
+  V('sans ligne d\'en-tête, rien n\'est importé et la page le dit',
+    vm.runInContext('parserGrille(G2, C, [])', pctx).items.length === 0 && vm.runInContext('parserGrille(G2, C, [])', pctx).colonnes === null);
+  pctx.G3 = ['Essai', t('Geste', 'Code CCAM'), t('X', 'HHQE002')].join('\n');
+  const guideL = fs.readFileSync('../docs/guide-liberal.html', 'utf8');
+  V('le guide explique l\'import : le geste, les messages, la syntaxe des associations',
+    /Importer les cotations types depuis Excel/.test(guideL) && /HHQE002\+ZZLP025/.test(guideL)
+    && /n'est pas un code CCAM/.test(guideL) && /code absent du référentiel CCAM/.test(guideL) && /importé vide/.test(guideL));
+  V('chaque item produit est accepté tel quel par le serveur',
+    run(`saveCotationsTypeLot({items:${JSON.stringify(P.items.map(x => ({ groupe:x.groupe, nom:x.nom, lc:x.lc, lignes:x.lignes,
+      totalFr:x.totalFr, repereBulle:x.repereBulle, repereNas:x.repereNas })))}}, MAR).success`) === true);
 }
 
 console.log('\n═══ 5ter. Le jeton unique : reessayer sans jamais doubler ═══');
@@ -446,7 +653,9 @@ console.log('\n═══ 6. La page de cotation ne dit rien qu\'elle ne sache �
   M.set('cotations_type', JSON.stringify([
     { groupe:'Endoscopie', nom:'Gastro + colo', lc:'CS', lignes:[
       { code:'HHQE002', ordre:1, role:'principal', mod7:true, modA:false },
-      { code:'ZZLP025', ordre:2, role:'associe',   mod7:true, modA:false }]}]));
+      { code:'ZZLP025', ordre:2, role:'associe',   mod7:true, modA:false }]},
+    { groupe:'Essai', nom:'Avec total', lc:'CS', totalFr:400, repereBulle:'suivant devis OU +50%', repereNas:'150', lignes:[
+      { code:'HHQE002', ordre:1, role:'principal', mod7:true, modA:false }]}]));
   const env = { KV, PUSH_TOKEN:'JETON' };
 
   // ── La page réelle ──
@@ -861,6 +1070,62 @@ console.log('\n═══ 6. La page de cotation ne dit rien qu\'elle ne sache �
     V('aucune parenthèse explicative dans les rôles', ev("Object.values(ROLES).every(r => !/\\(/.test(r.lab))"));
 
     w.setStatut('verte'); w.patientSuivant(); await dodo(20);
+  }
+
+  /* ═══════════════════════════════════════════════════════════════
+     7ter. TOTAL FRANCE ET REPÈRES D'USAGE (01/10/2026)
+     La cotation « Essai / Avec total » est servie par le VRAI Worker, depuis
+     une copie rapide qui porte totalFr et les deux repères : si le relais les
+     filtrait, rien de ce qui suit ne passerait. Valeurs fictives.
+     ═══════════════════════════════════════════════════════════════ */
+  console.log('\n═══ 7ter. Total France et repères d\'usage ═══');
+  {
+    const dhv = () => parseFloat(d.getElementById('dh').value);
+    const proche = (a, b) => Math.abs(a - b) < 0.011;
+    const mut = p => { if (ev('MUT_PCT') !== p) w.setMut(p); };
+    const servie = ev("COTTYPE.find(c => c.nom === 'Avec total')");
+    V('le relais transmet total et repères sans les filtrer',
+      !!servie && servie.totalFr === 400 && servie.repereBulle === 'suivant devis OU +50%' && servie.repereNas === '150', servie);
+
+    w.setStatut('fr');
+    w.choisirGroupeCotType('Essai');
+    d.getElementById('cotTypeBtns').querySelector('button').click();
+    await dodo(30);
+    const br = ev('parcoursBR()');
+    V('assuré français + total France : dépassement = total − BR', proche(dhv(), 400 - br), [dhv(), 400 - br]);
+    V('l\'encadré dit sur quoi il est calé', /total France/.test(d.getElementById('racTitre').textContent));
+    mut(200); await dodo(20);
+    V('le total France passe AVANT la mutuelle', proche(dhv(), 400 - br), dhv());
+    V('le reste à charge, lui, suit la mutuelle choisie',
+      d.getElementById('rRac').textContent === ev("eur2(Math.max(0,(parcoursBR()+(400-parcoursBR()))-Math.min(coverageCeiling('fr',200,parcoursBR()),400)))"),
+      d.getElementById('rRac').textContent);
+    w.setChir(true); d.getElementById('chirDh').value = '100'; w.chirChange(); await dodo(20);
+    V('le chirurgien qui cote passe avant le total France', proche(dhv(), 50), dhv());
+    w.setChir(false); await dodo(20);
+    V('il ne cote plus : retour au total France', proche(dhv(), 400 - br), dhv());
+    d.getElementById('dh').value = '77'; w.dhSaisi(); await dodo(10);
+    V('le champ reste modifiable', proche(dhv(), 77) && d.getElementById('dh').disabled === false);
+    V('en France, aucun repère d\'usage', d.getElementById('dhUsage').style.display === 'none');
+
+    // ── Bulle et NAS : le repère s'affiche TEL QUEL, aucun calcul ──
+    w.setStatut('bulle'); mut(200); await dodo(20);
+    const brM = ev('parcoursBR()');
+    V('Bulle : « Usage : … » affiché tel quel sous le dépassement',
+      d.getElementById('dhUsage').style.display === 'block' && d.getElementById('dhUsage').textContent === 'Usage : suivant devis OU +50%',
+      d.getElementById('dhUsage').textContent);
+    V('…sans calcul : le dépassement reste celui de la mutuelle', proche(dhv(), ev("dhOptimal('bulle',200,parcoursBR())")) && proche(dhv(), brM), dhv());
+    V('…et le total France ne s\'applique pas hors assuré français', ev('totalFrCourant()') === null);
+    w.setStatut('nas'); await dodo(20);
+    V('NAS : son propre repère', d.getElementById('dhUsage').textContent === 'Usage : 150');
+    V('« 150 » n\'est pas devenu le dépassement', !proche(dhv(), 150), dhv());
+    w.setStatut('rose'); await dodo(20);
+    V('en carte rose, aucun repère', d.getElementById('dhUsage').style.display === 'none');
+    V('le repère s\'écrit en texte, jamais interprété', /el\.textContent = txt \? 'Usage : '\+txt/.test(html));
+
+    w.setStatut('nas'); w.patientSuivant(); await dodo(20);
+    V('patient suivant : la cotation type et son repère disparaissent',
+      ev('COTTYPE_COURANTE') === null && d.getElementById('dhUsage').style.display === 'none');
+    w.setStatut('verte'); await dodo(10);
   }
 
   /* (17/08/2026) La session du portail. Ces deux pages la lisaient en direct dans

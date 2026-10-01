@@ -133,6 +133,21 @@ window.SessionPortail = window.SessionPortail || { lire:function(){try{return se
     <h2 id="listeTitre">Cotations</h2>
     <div id="liste"></div>
     <button class="btn primary" style="margin-top:12px" onclick="nouvelle()">＋ Nouvelle cotation</button>
+    <!-- (01/10/2026) Import depuis Excel. Meme droit que « Nouvelle cotation » : cette
+         carte n'existe que pour un membre du groupement, et le serveur le reverifie. -->
+    <button class="btn" id="bImport" style="margin-top:12px;margin-left:6px;background:var(--track)" onclick="ouvrirImport()">⇪ Importer</button>
+  </div>
+
+  <div class="card edit" id="importeur" style="display:none">
+    <h2>Importer depuis Excel</h2>
+    <label>Sélectionnez le tableau dans Excel, copiez, puis collez ici</label>
+    <textarea id="imTexte" rows="8" style="width:100%;font:inherit;font-size:12px;padding:9px 10px;border:1px solid var(--line);border-radius:9px;font-family:'IBM Plex Mono',monospace"></textarea>
+    <div style="margin-top:10px;display:flex;gap:8px;flex-wrap:wrap">
+      <button class="btn primary" onclick="analyserImport()">Aperçu</button>
+      <button class="btn" style="background:var(--track)" onclick="fermerImport()">Fermer</button>
+    </div>
+    <div id="imApercu" style="margin-top:12px"></div>
+    <button class="btn primary" id="bImEnr" style="margin-top:10px;display:none;background:var(--room)" onclick="enregistrerImport()"></button>
   </div>
 
   <div class="card edit" id="editeur" style="display:none">
@@ -322,7 +337,8 @@ function renderListe(){
   $('liste').innerHTML = l.length ? l.map((k, i) => `<div class="ct">
       <div class="mid">
         <div class="nom">${esc(k.nom)}</div>
-        <div class="det">${esc((k.lignes||[]).map(a => a.code + (a.role==='associe' ? ' ·50%' : '')).join(' + ') + (k.lc ? ' + ' + k.lc : ''))}</div>
+        <div class="det">${esc((k.lignes||[]).map(a => a.code + (a.role==='associe' ? ' ·50%' : '')).join(' + ') + (k.lc ? ' + ' + k.lc : '')
+          + (k.totalFr != null ? ' · France ' + eur(k.totalFr) : ''))}</div>
       </div>
       <div class="br">${eur(brCot(k) + (LC_VAL[k.lc] || 0))}</div>
       <button class="act" onclick="modifier(${i})" title="Modifier">✎</button>
@@ -340,7 +356,10 @@ function nouvelle(){
 function modifier(i){
   const l = COTS.filter(k => k.groupe === grpActif);
   const k = l[i]; if(!k) return;
+  /* (01/10/2026) TOTAL_FR et REPERES voyagent avec la cotation : l'editeur ne les
+     affiche pas, mais un enregistrement qui les omettrait les effacerait. */
   edit = { grp:k.groupe, nom:k.nom, lc:k.lc || '', ancienNom:k.nom, ancienGroupe:k.groupe,
+           totalFr: (k.totalFr == null ? null : k.totalFr), repereBulle: k.repereBulle || '', repereNas: k.repereNas || '',
            actes:(k.lignes || []).map(a => ({ code:a.code, role:a.role, modA:!!a.modA })) };
   $('editTitre').textContent = 'Modifier — ' + k.nom;
   ouvrir();
@@ -434,6 +453,8 @@ async function enregistrer(){
     groupe: edit.grp, nom: edit.nom.trim(), lc: edit.lc,
     lignes: edit.actes.map(a => ({ code:a.code, role:a.role, modA:!!a.modA })),
     ancienGroupe: edit.ancienGroupe, ancienNom: edit.ancienNom,
+    totalFr: edit.totalFr == null ? null : edit.totalFr,
+    repereBulle: edit.repereBulle || '', repereNas: edit.repereNas || '',
   });
   b.disabled = false;
   if(!r || !r.success){ toast(((r && r.error) || 'Échec de l\'enregistrement') + '', false); return; }
@@ -451,6 +472,130 @@ async function supprimer(i){
   if(!r || !r.success){ toast(((r && r.error) || 'Échec de la suppression') + '', false); return; }
   await charger(true);          // en direct : la copie rapide n'est pas encore a jour
   toast('Cotation supprimée', true);
+}
+
+/* ══ IMPORT DEPUIS EXCEL (01/10/2026) ═════════════════════════════════
+   On colle le tableau copie dans Excel (texte separe par des tabulations).
+   Le parseur accepte la grille telle qu'elle est tenue a la main :
+   - une ligne qui ne porte qu'UNE case = titre de groupe (« Orthopedie ») ;
+   - lignes d'en-tete et lignes « Note : » ignorees ;
+   - colonnes reperees par leur EN-TETE, jamais par leur position :
+     Geste -> NOM, Code CCAM -> CODE, France avec depassement -> TOTAL_FR,
+     Bulle -> REPERE_BULLE, NAS -> REPERE_NAS. Les autres colonnes (tarifs
+     secteur 1, Monaco, rose) sont ignorees : la page de cotation les recalcule ;
+   - « HHQE002+ZZLP025 » : 1er code principal, suivants associes ;
+   - chaque code est controle dans ccam_actes.json ;
+   - un total qui n'est pas un montant est importe VIDE et signale, jamais devine.
+   Valeurs par defaut : MOD7 = O, MODA = N, consultation CS.
+   Fonction PURE (texte, referentiel, existants -> resultat) : le banc la rejoue. */
+function parserGrille(texte, ccam, existants){
+  const nrm = t => String(t == null ? '' : t).toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, '')
+    .replace(/\s+/g, ' ').replace(/\s*:\s*$/, '').trim();
+  // TSV d'Excel : une case contenant un retour a la ligne arrive entre guillemets.
+  const lignesTsv = [];
+  { let row = [], cell = '', q = false; const s = String(texte || '');
+    for (let i = 0; i < s.length; i++) {
+      const ch = s[i];
+      if (q) { if (ch === '"') { if (s[i+1] === '"') { cell += '"'; i++; } else q = false; } else cell += ch; continue; }
+      if (ch === '"' && cell === '') q = true;
+      else if (ch === '\t') { row.push(cell); cell = ''; }
+      else if (ch === '\n') { row.push(cell); lignesTsv.push(row); row = []; cell = ''; }
+      else if (ch !== '\r') cell += ch;
+    }
+    if (cell !== '' || row.length) { row.push(cell); lignesTsv.push(row); }
+  }
+  const index = {}; (ccam || []).forEach(a => { index[String(a.c).toUpperCase()] = a; });
+  const deja = {}; (existants || []).forEach(k => { deja[k.groupe + '|' + k.nom] = true; });
+  const TAUX = { principal:1, associe:0.5 }, MOD7_ = 1.06;      // BR d'un assure francais : coefficient 1,00
+  const res = { items:[], rejets:[], signalements:[], colonnes:null, ignorees:0 };
+  let col = null, groupe = '';
+  const vus = {};
+  lignesTsv.forEach((brute, i) => {
+    const n = i + 1;
+    const cells = brute.map(c => String(c).trim());
+    const pleines = cells.filter(Boolean);
+    if (!pleines.length) return;
+    if (/^note\b/.test(nrm(pleines[0]))) { res.ignorees++; return; }
+    const N = cells.map(nrm);
+    if (N.indexOf('geste') >= 0 && N.indexOf('code ccam') >= 0) {           // ligne d'en-tete
+      col = { nom: N.indexOf('geste'), code: N.indexOf('code ccam'),
+              total: N.findIndex(h => h.indexOf('france avec depassement') === 0),
+              bulle: N.indexOf('bulle'), nas: N.indexOf('nas') };
+      res.colonnes = col; res.ignorees++; return;
+    }
+    if (pleines.length === 1) { groupe = pleines[0].slice(0, 40); return; }   // titre de groupe
+    const texteLigne = pleines.join(' · ').slice(0, 90);
+    const rejet = m => res.rejets.push({ ligne:n, texte:texteLigne, motif:m });
+    if (!col) return rejet('aucune ligne d\'en-tête (Geste, Code CCAM) au-dessus');
+    const nom = (cells[col.nom] || '').replace(/\s+/g, ' ').slice(0, 60);   // une case sur deux lignes devient une ligne
+    const brutCode = cells[col.code] || '';
+    if (!groupe) return rejet('aucun titre de groupe au-dessus');
+    if (!nom) return rejet('Geste vide');
+    if (!brutCode) return rejet('Code CCAM vide');
+    const codes = brutCode.toUpperCase().replace(/\s+/g, '').split('+').filter(Boolean);
+    if (codes.length > 12) return rejet('douze actes au plus');
+    for (const c of codes) {
+      if (!/^[A-Z]{4}\d{3}$/.test(c))
+        return rejet('« ' + c + ' » n\'est pas un code CCAM. Pour une association, écrivez les vrais codes séparés par + : HHQE002+ZZLP025');
+      const a = index[c];
+      if (!a) return rejet('code absent du référentiel CCAM : ' + c);
+      if (!(a.t > 0)) return rejet('pas de tarif d\'anesthésie pour ' + c);
+    }
+    const cle = groupe + '|' + nom;
+    if (vus[cle]) return rejet('« ' + nom + ' » en double dans le collage (déjà ligne ' + vus[cle] + ')');
+    vus[cle] = n;
+    const lignes = codes.map((c, j) => ({ code:c, role: j === 0 ? 'principal' : 'associe', modA:false }));
+    const br = Math.round(lignes.reduce((s, l) => s + index[l.code].t * MOD7_ * TAUX[l.role], 0) * 100) / 100;
+    let totalFr = null;
+    const brutTot = col.total >= 0 ? (cells[col.total] || '') : '';
+    if (brutTot) {
+      const s = brutTot.replace(/[\s €]/g, '');
+      if (/^\d+([.,]\d{1,2})?$/.test(s)) totalFr = parseFloat(s.replace(',', '.'));
+      else res.signalements.push({ ligne:n, nom:nom, motif:'« ' + brutTot + ' » n\'est pas un montant : total France importé vide' });
+    }
+    if (totalFr !== null && totalFr < br)
+      res.signalements.push({ ligne:n, nom:nom, motif:'total France (' + eur(totalFr) + ') inférieur à la BR calculée (' + eur(br) + ')' });
+    res.items.push({ groupe:groupe, nom:nom, lc:'CS', lignes:lignes, totalFr:totalFr,
+      repereBulle: col.bulle >= 0 ? (cells[col.bulle] || '').slice(0, 200) : '',
+      repereNas:   col.nas   >= 0 ? (cells[col.nas]   || '').slice(0, 200) : '',
+      etat: deja[cle] ? 'remplace' : 'cree', ligne:n, br:br });
+  });
+  return res;
+}
+
+let IMPORT = null;
+function ouvrirImport(){ annuler(); $('importeur').style.display = 'block'; IMPORT = null; $('imApercu').innerHTML = ''; $('bImEnr').style.display = 'none';
+  try{ $('importeur').scrollIntoView({ behavior:'smooth', block:'start' }); }catch(e){} }
+function fermerImport(){ $('importeur').style.display = 'none'; IMPORT = null; }
+
+function analyserImport(){
+  if(!CCAM.length){ $('imApercu').innerHTML = '<div class="garde">Référentiel CCAM non chargé : rechargez la page.</div>'; return; }
+  IMPORT = parserGrille($('imTexte').value, CCAM, COTS);
+  const r = IMPORT;
+  const nC = r.items.filter(x => x.etat === 'cree').length, nR = r.items.length - nC;
+  let h = `<div class="apercu"><div class="t">Aperçu — rien n'est encore enregistré</div>
+    <div class="v">${nC} créée(s) · ${nR} remplacée(s) · ${r.rejets.length} rejetée(s)</div></div>`;
+  if(!r.colonnes) h += '<div class="garde">Aucune ligne d\'en-tête trouvée : il faut au moins les colonnes « Geste » et « Code CCAM ».</div>';
+  if(r.rejets.length) h += '<div class="garde"><b>Rejetées</b><br>' + r.rejets.map(x => 'ligne ' + x.ligne + ' — ' + esc(x.texte) + ' : <b>' + esc(x.motif) + '</b>').join('<br>') + '</div>';
+  if(r.signalements.length) h += '<div class="garde"><b>À vérifier</b> (importées quand même)<br>' + r.signalements.map(x => 'ligne ' + x.ligne + ' — ' + esc(x.nom) + ' : ' + esc(x.motif)).join('<br>') + '</div>';
+  if(r.items.length) h += '<div style="margin-top:8px">' + r.items.map(x => `<div class="ct"><div class="mid"><div class="nom">${esc(x.groupe)} · ${esc(x.nom)}${x.etat==='remplace' ? ' <span style="color:#8A6516;font-size:11px">remplace</span>' : ''}</div>
+      <div class="det">${esc(x.lignes.map(l => l.code).join(' + '))}${x.totalFr != null ? ' · France ' + eur(x.totalFr) : ''}${x.repereBulle ? ' · Bulle : ' + esc(x.repereBulle) : ''}${x.repereNas ? ' · NAS : ' + esc(x.repereNas) : ''}</div></div></div>`).join('') + '</div>';
+  $('imApercu').innerHTML = h;
+  const b = $('bImEnr');
+  b.style.display = r.items.length ? 'inline-block' : 'none';
+  b.textContent = 'Enregistrer ' + r.items.length + ' cotation(s)';
+}
+
+async function enregistrerImport(){
+  if(!IMPORT || !IMPORT.items.length) return;
+  const b = $('bImEnr'); b.disabled = true;
+  const r = await api('saveCotationsTypeLot', { items: IMPORT.items.map(x => ({ groupe:x.groupe, nom:x.nom, lc:x.lc,
+    lignes:x.lignes, totalFr:x.totalFr, repereBulle:x.repereBulle, repereNas:x.repereNas })) });
+  b.disabled = false;
+  if(!r || !r.success){ toast(((r && r.error) || 'Échec de l\'import') + ' — rien n\'a été enregistré', false); return; }
+  fermerImport(); $('imTexte').value = '';
+  await charger(true);
+  toast(r.crees + ' créée(s), ' + r.remplacees + ' remplacée(s) — disponibles pour tout le groupement', true);
 }
 
 function toast(t, ok){

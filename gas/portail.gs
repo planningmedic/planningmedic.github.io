@@ -1,7 +1,7 @@
 // ⚠️ RÈGLE (détecteur de dérive dépôt↔Apps Script) : incrémenter cette version
 // à CHAQUE push de ce fichier. Le diagnostic (admin → Maintenance) compare la
 // version déployée ici avec celle du dépôt et signale toute recopie oubliée.
-const GAS_VERSION_PORTAIL = '2026-10-01.1';
+const GAS_VERSION_PORTAIL = '2026-10-01.2';
 
 /**
  * portail.gs — actions du PORTAIL équipe (index.html).
@@ -36,6 +36,7 @@ function portailRoute(action, payload, user) {
        decide. */
     case 'listCotationsTypeEdit': return _portailJson(listCotationsTypeEdit(payload, user));
     case 'saveCotationType':      return _portailJson(saveCotationType(payload, user));
+    case 'saveCotationsTypeLot':  return _portailJson(saveCotationsTypeLot(payload, user));   // (01/10/2026) import Excel, tout ou rien
     case 'deleteCotationType':    return _portailJson(deleteCotationType(payload, user));
     // Releve financier du groupement : RESERVE AUX MEMBRES (LIBERAL=O de MEDECINS).
     // Decision le responsable 29/07/2026 : masquer la tuile ne suffit pas, seul le serveur
@@ -1084,45 +1085,88 @@ const _SPECIALITES_SEED = [
    Motif : au-dela d'une dizaine de boutons l'affichage devient illisible ; grouper
    par contexte tient a 50 comme a 3. Un groupe se cree en le tapant dans la cellule.
 
-   Colonnes : GROUPE | NOM | ORDRE | CODE | ROLE | MOD7 | MODA | LC
+   Colonnes : GROUPE | NOM | ORDRE | CODE | ROLE | MOD7 | MODA | LC | TOTAL_FR | REPERE_BULLE | REPERE_NAS
    ROLE : principal | associe (50 %) | complement (100 % en sus)
    LC   : lettre-cle de la consultation associee, sur la 1re ligne de la cotation type.
+   (01/10/2026) TOTAL_FR, REPERE_BULLE, REPERE_NAS : portes comme LC par la 1re ligne.
+   TOTAL_FR = total facture a un assure francais (nombre) ; la page de cotation en
+   tire le depassement (TOTAL_FR - BR). Les deux REPERES sont du TEXTE BRUT, conserve
+   tel quel (« suivant devis OU +50% ») : affiches, jamais calcules.
    ══════════════════════════════════════════════════════════════════ */
 const COTATIONS_TYPE_TAB = 'COTATIONS_TYPE';
-const _COTTYPE_HEADER = ['GROUPE', 'NOM', 'ORDRE', 'CODE', 'ROLE', 'MOD7', 'MODA', 'LC'];
+const _COTTYPE_HEADER = ['GROUPE', 'NOM', 'ORDRE', 'CODE', 'ROLE', 'MOD7', 'MODA', 'LC',
+                         'TOTAL_FR', 'REPERE_BULLE', 'REPERE_NAS'];
 const _COTTYPE_SEED = [
-  ['Endoscopie', 'Gastro + colo', 1, 'HHQE002', 'principal', 'O', 'N', 'CS'],
-  ['Endoscopie', 'Gastro + colo', 2, 'ZZLP025', 'associe',   'O', 'N', ''  ],
-  ['Endoscopie', 'Gastro seule',  1, 'ZZLP025', 'principal', 'O', 'N', 'CS'],
-  ['Endoscopie', 'Colo seule',    1, 'HHQE002', 'principal', 'O', 'N', 'CS'],
+  ['Endoscopie', 'Gastro + colo', 1, 'HHQE002', 'principal', 'O', 'N', 'CS', '', '', ''],
+  ['Endoscopie', 'Gastro + colo', 2, 'ZZLP025', 'associe',   'O', 'N', '',   '', '', ''],
+  ['Endoscopie', 'Gastro seule',  1, 'ZZLP025', 'principal', 'O', 'N', 'CS', '', '', ''],
+  ['Endoscopie', 'Colo seule',    1, 'HHQE002', 'principal', 'O', 'N', 'CS', '', '', ''],
 ];
+
+/* Les deux REPERES sont du texte : sans format texte, Sheets ferait de « +50% »
+   le nombre 0,5 et de « 150 » un nombre. Pose sur les colonnes J et K. */
+function _cotTypeFormatTexte_(sh) {
+  try { sh.getRange(1, 10, Math.max(sh.getMaxRows ? sh.getMaxRows() : 1000, 2), 2).setNumberFormat('@'); } catch (e) {}
+}
 
 function getOrCreateCotationsTypeTab() {
   const ss = SpreadsheetApp.getActiveSpreadsheet();
   let sh = ss.getSheetByName(COTATIONS_TYPE_TAB);
   if (!sh) {
     sh = ss.insertSheet(COTATIONS_TYPE_TAB);
+    _cotTypeFormatTexte_(sh);
     sh.getRange(1, 1, 1, _COTTYPE_HEADER.length).setValues([_COTTYPE_HEADER]).setFontWeight('bold');
     sh.getRange(2, 1, _COTTYPE_SEED.length, _COTTYPE_HEADER.length).setValues(_COTTYPE_SEED);
     sh.setFrozenRows(1);
     sh.setColumnWidth(1, 180);
-  } else if (sh.getLastRow() < 2) {
+    return sh;
+  }
+  if (sh.getLastRow() < 2) {
+    _cotTypeFormatTexte_(sh);
     sh.getRange(1, 1, 1, _COTTYPE_HEADER.length).setValues([_COTTYPE_HEADER]).setFontWeight('bold');
     sh.getRange(2, 1, _COTTYPE_SEED.length, _COTTYPE_HEADER.length).setValues(_COTTYPE_SEED);
     sh.setFrozenRows(1);
-  } else if (sh.getLastColumn() < _COTTYPE_HEADER.length) {
-    // L'onglet a ete cree en 7 colonnes (sans GROUPE) : on insere la colonne en tete
+    return sh;
+  }
+  /* MIGRATIONS DOUCES, lues dans l'EN-TETE et non plus dans le nombre de colonnes :
+     avec onze colonnes attendues, « moins de 8 colonnes = il manque GROUPE » ne
+     tenait plus (un onglet a 8 colonnes aurait recu une 2e colonne GROUPE). */
+  const larg = Math.max(sh.getLastColumn(), 1);
+  const entete = sh.getRange(1, 1, 1, larg).getValues()[0].map(function (v) { return String(v || '').trim().toUpperCase(); });
+  if (entete[0] === 'NOM') {
+    // Onglet d'origine, en 7 colonnes (sans GROUPE) : on insere la colonne en tete
     // et on la remplit avec 'Endoscopie', puisque c'est le seul groupe amorce.
     sh.insertColumnBefore(1);
     sh.getRange(1, 1, 1, _COTTYPE_HEADER.length).setValues([_COTTYPE_HEADER]).setFontWeight('bold');
     const n = sh.getLastRow() - 1;
     if (n > 0) sh.getRange(2, 1, n, 1).setValue('Endoscopie');
+    _cotTypeFormatTexte_(sh);
     Logger.log('Onglet COTATIONS_TYPE : colonne GROUPE ajoutee.');
+  } else if (entete[8] !== 'TOTAL_FR' || entete[9] !== 'REPERE_BULLE' || entete[10] !== 'REPERE_NAS') {
+    // (01/10/2026) Onglet en 8 colonnes : les trois nouvelles s'ajoutent A DROITE,
+    // vides. Aucune ligne existante n'est deplacee ni reecrite.
+    sh.getRange(1, 9, 1, 3).setValues([['TOTAL_FR', 'REPERE_BULLE', 'REPERE_NAS']]).setFontWeight('bold');
+    _cotTypeFormatTexte_(sh);
+    Logger.log('Onglet COTATIONS_TYPE : colonnes TOTAL_FR, REPERE_BULLE, REPERE_NAS ajoutees.');
   }
   return sh;
 }
 
-// Lecture -> [{nom, lc, lignes:[{code, role, mod7, modA}]}], dans l'ordre de l'onglet.
+/* TOTAL_FR lu : un nombre positif, sinon rien. Un texte (« +100 ou 150 ») ne se
+   devine pas : il revient vide. */
+function _cotTypeTotal_(v) {
+  if (v === '' || v === null || v === undefined) return null;
+  const n = typeof v === 'number' ? v : Number(String(v).replace(/[\s €]/g, '').replace(',', '.'));
+  return (isFinite(n) && n >= 0) ? Math.round(n * 100) / 100 : null;
+}
+// REPERE lu : le texte tel qu'ecrit. Un nombre (cellule sans format texte) redevient texte.
+function _cotTypeRepere_(v) {
+  if (v === null || v === undefined) return '';
+  return String(v).trim();
+}
+
+// Lecture -> [{groupe, nom, lc, totalFr, repereBulle, repereNas, lignes:[{code, role, mod7, modA}]}],
+// dans l'ordre de l'onglet.
 function getCotationsType() {
   const rows = getOrCreateCotationsTypeTab().getDataRange().getValues();
   const out = [], index = {};
@@ -1132,17 +1176,28 @@ function getCotationsType() {
     const code   = String(rows[r][3] || '').trim().toUpperCase();
     if (!groupe || !nom || !code) continue;            // ligne incomplete : ignoree
     const cle = groupe + '|' + nom;                    // deux groupes peuvent porter le meme nom
-    if (!index[cle]) { index[cle] = { groupe: groupe, nom: nom, lc: '', lignes: [] }; out.push(index[cle]); }
+    if (!index[cle]) {
+      index[cle] = { groupe: groupe, nom: nom, lc: '', totalFr: null, repereBulle: '', repereNas: '', lignes: [] };
+      out.push(index[cle]);
+    }
+    const c = index[cle];
     const role = String(rows[r][4] || '').trim().toLowerCase();
-    index[cle].lignes.push({
+    c.lignes.push({
       code:  code,
-      ordre: Number(rows[r][2]) || (index[cle].lignes.length + 1),
+      ordre: Number(rows[r][2]) || (c.lignes.length + 1),
       role:  (role === 'associe' || role === 'complement') ? role : 'principal',
       mod7:  String(rows[r][5] || '').trim().toUpperCase() === 'O',
       modA:  String(rows[r][6] || '').trim().toUpperCase() === 'O',
     });
     const lc = String(rows[r][7] || '').trim().toUpperCase();
-    if (lc && !index[cle].lc) index[cle].lc = lc;      // 1re valeur rencontree
+    if (lc && !c.lc) c.lc = lc;                        // 1re valeur rencontree
+    // (01/10/2026) Meme regle que LC : la 1re valeur rencontree.
+    const tot = _cotTypeTotal_(rows[r][8]);
+    if (tot !== null && c.totalFr === null) c.totalFr = tot;
+    const rb = _cotTypeRepere_(rows[r][9]);
+    if (rb && !c.repereBulle) c.repereBulle = rb;
+    const rn = _cotTypeRepere_(rows[r][10]);
+    if (rn && !c.repereNas) c.repereNas = rn;
   }
   out.forEach(function (c) { c.lignes.sort(function (a, b) { return a.ordre - b.ordre; }); });
   return out;
@@ -1215,7 +1270,31 @@ function _cotTypeValide_(payload) {
     if (!_COTTYPE_ROLES[role])            return { err: 'Rôle inconnu : ' + role };
     lignes.push({ code: code, role: role, modA: !!brutes[i].modA });
   }
-  return { groupe: groupe, nom: nom, lc: lc, lignes: lignes };
+  /* (01/10/2026) TOTAL_FR : nombre positif ou vide — JAMAIS un texte converti au
+     jugé. Les REPERES : texte brut, borne en longueur seulement. */
+  const brutTot = payload && payload.totalFr;
+  let totalFr = null;
+  if (brutTot !== null && brutTot !== undefined && brutTot !== '') {
+    if (typeof brutTot !== 'number' || !isFinite(brutTot) || brutTot < 0) return { err: 'Total France invalide : ' + brutTot };
+    totalFr = Math.round(brutTot * 100) / 100;
+  }
+  const repereBulle = String((payload && payload.repereBulle) || '').trim();
+  const repereNas   = String((payload && payload.repereNas)   || '').trim();
+  if (repereBulle.length > 200 || repereNas.length > 200) return { err: 'Repère trop long (200 caractères au plus).' };
+  return { groupe: groupe, nom: nom, lc: lc, lignes: lignes, totalFr: totalFr, repereBulle: repereBulle, repereNas: repereNas };
+}
+
+/* Les lignes d'onglet d'une cotation validee. TOTAL_FR et REPERES vont, comme LC,
+   sur la 1re ligne seulement. */
+function _cotTypeLignes_(v) {
+  return v.lignes.map(function (l, i) {
+    const tete = i === 0;
+    return [v.groupe, v.nom, i + 1, l.code, l.role, 'O', l.modA ? 'O' : 'N',
+            tete ? v.lc : '',
+            tete && v.totalFr !== null ? v.totalFr : '',
+            tete ? v.repereBulle : '',
+            tete ? v.repereNas : ''];
+  });
 }
 
 /* Supprime les lignes d'une cotation (groupe|nom) et renvoie le nombre retire.
@@ -1264,11 +1343,71 @@ function saveCotationType(payload, user) {
        modificateur A, lui, depend de l'AGE DU PATIENT (moins de 4 ans, plus de
        80) : il ne peut pas etre fige dans une cotation type et reste cochable
        acte par acte sur la page de cotation. */
-    const lignes = v.lignes.map(function (l, i) {
-      return [v.groupe, v.nom, i + 1, l.code, l.role, 'O', l.modA ? 'O' : 'N', i === 0 ? v.lc : ''];
-    });
+    const lignes = _cotTypeLignes_(v);
     sh.getRange(sh.getLastRow() + 1, 1, lignes.length, _COTTYPE_HEADER.length).setValues(lignes);
     return { success: true, groupe: v.groupe, nom: v.nom, lignes: lignes.length };
+  } finally {
+    try { verrou.releaseLock(); } catch (e) {}
+  }
+}
+
+/* ══════════════════════════════════════════════════════════════════
+   IMPORT EN LOT (01/10/2026) — saveCotationsTypeLot
+   Pourquoi une action dediee plutot que N appels a saveCotationType :
+   - TOUT OU RIEN. Tout est valide avant la premiere ecriture ; une cotation
+     invalide refuse le lot entier. N appels laisseraient, au premier refus ou a
+     la premiere coupure reseau, une bibliotheque a moitie importee — sans que
+     personne sache laquelle.
+   - UN verrou, UNE ecriture. Lu une fois, l'onglet est reconstruit en memoire
+     (lignes gardees + lignes importees), puis ecrit d'un seul setValues ; le
+     surplus eventuel est vide ensuite. Pas de suppression ligne a ligne : 60
+     cotations remplacees feraient sinon des centaines d'appels a Sheets, au
+     risque de la limite des 6 minutes.
+   - UNE seule poussee vers la copie rapide (miroir.gs) au lieu de N.
+   Remplacement : meme GROUPE + meme NOM. Le reste de l'onglet n'est pas touche.
+   ══════════════════════════════════════════════════════════════════ */
+const _COTTYPE_LOT_MAX = 300;
+
+function saveCotationsTypeLot(payload, user) {
+  if (!_cotTypeMembre_(user)) return { success: false, error: 'Réservé aux membres du groupement libéral.' };
+  const brutes = (payload && payload.items) || [];
+  if (!Array.isArray(brutes) || !brutes.length) return { success: false, error: 'Rien à importer.' };
+  if (brutes.length > _COTTYPE_LOT_MAX) return { success: false, error: _COTTYPE_LOT_MAX + ' cotations au plus par import.' };
+  const valides = [], vues = {};
+  for (let i = 0; i < brutes.length; i++) {
+    const v = _cotTypeValide_(brutes[i]);
+    if (v.err) return { success: false, error: 'Cotation n° ' + (i + 1) + ' : ' + v.err, index: i };
+    const cle = v.groupe + '|' + v.nom;
+    if (vues[cle]) return { success: false, error: 'Cotation n° ' + (i + 1) + ' : « ' + v.nom + ' » en double dans l\'import.', index: i };
+    vues[cle] = true;
+    valides.push(v);
+  }
+
+  const verrou = LockService.getScriptLock();
+  try { verrou.waitLock(15000); }
+  catch (e) { return { success: false, error: 'Classeur occupé, réessayez dans quelques secondes.' }; }
+  try {
+    const sh = getOrCreateCotationsTypeTab();
+    const L = _COTTYPE_HEADER.length;
+    const avant = sh.getDataRange().getValues().slice(1);
+    const remplacees = {};
+    const gardees = avant.filter(function (row) {
+      // Ligne entierement vide (reste d'un import precedent) : on ne la recopie pas.
+      if (!String(row[0] || '').trim() && !String(row[1] || '').trim() && !String(row[3] || '').trim()) return false;
+      const cle = String(row[0] || '').trim() + '|' + String(row[1] || '').trim();
+      if (vues[cle]) { remplacees[cle] = true; return false; }
+      return true;
+    }).map(function (row) {
+      const r = row.slice(0, L); while (r.length < L) r.push(''); return r;
+    });
+    const nouvelles = [];
+    valides.forEach(function (v) { _cotTypeLignes_(v).forEach(function (l) { nouvelles.push(l); }); });
+    const tout = gardees.concat(nouvelles);
+    _cotTypeFormatTexte_(sh);
+    sh.getRange(2, 1, tout.length, L).setValues(tout);
+    if (avant.length > tout.length) sh.getRange(2 + tout.length, 1, avant.length - tout.length, L).clearContent();
+    const nRempl = Object.keys(remplacees).length;
+    return { success: true, crees: valides.length - nRempl, remplacees: nRempl, lignes: nouvelles.length };
   } finally {
     try { verrou.releaseLock(); } catch (e) {}
   }

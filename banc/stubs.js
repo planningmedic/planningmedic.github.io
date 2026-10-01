@@ -33,6 +33,8 @@ class Sheet {
      fonction passant par ce chemin échouait donc silencieusement au banc :
      la purge n'avait jamais été exercée une seule fois. */
   deleteRows(n, combien) { _surEcriture(); this.lignes.splice(n-1, combien); }
+  // (01/10/2026) Migration de COTATIONS_TYPE (colonne GROUPE) : jamais rejouée jusqu'ici.
+  insertColumnBefore(c) { _surEcriture(); this.lignes.forEach(l => l.splice(c-1, 0, '')); }
   setFrozenRows() {}
   appendRow(l) { _surEcriture(); this.lignes.push(l.map(_coerceSheets)); }
   setColumnWidth() {}

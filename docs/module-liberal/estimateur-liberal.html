@@ -685,7 +685,8 @@ function updateRac(){
      le calage est automatique, voir applyDH. */
   const impose = CHIR_LIB && chirDhPropose()!=null;
   const titre=document.getElementById('racTitre');
-  if(titre) titre.textContent = impose ? 'Calé sur le chirurgien' : 'Calé sur la mutuelle';
+  if(titre) titre.textContent = impose ? 'Calé sur le chirurgien'
+    : (totalFrCourant()!=null ? 'Calé sur le total France' : 'Calé sur la mutuelle');
   /* Un reste a charge non nul doit SE VOIR, ici comme sur le devis : le patient
      le decouvrirait sinon en payant. */
   const av=document.getElementById('racAvert');
@@ -823,15 +824,40 @@ function applyDH(){
       dhIn.value=(Math.round(v*100)/100).toFixed(2);
     }
   }
+  renderUsage();
   updateRac();
   renderSummary();
 }
 
+/* (01/10/2026) ORDRE DU PRE-REMPLISSAGE : chirurgien qui cote -> 50 % du sien ;
+   sinon, assure francais et cotation type portant un TOTAL_FR -> TOTAL_FR - BR ;
+   sinon calage mutuelle ; sinon 0. Le reste a charge, lui, suit toujours la
+   mutuelle choisie (updateRac). */
 function dhPropose(){
   const prop=chirDhPropose();
   if(prop!=null) return prop;
+  const tot=totalFrCourant();
+  if(tot!=null) return Math.max(0, tot - parcoursBR());
   const opt=dhOptimal(statutCourant(), currentMutPct(), parcoursBR());
   return opt!=null ? opt : 0;
+}
+
+/* Cotation type posee pour CE patient (null : cotation a la main). Videe au
+   patient suivant. */
+let COTTYPE_COURANTE=null;
+function totalFrCourant(){
+  if(statutCourant()!=='fr' || !COTTYPE_COURANTE) return null;
+  const t=COTTYPE_COURANTE.totalFr;
+  return (typeof t==='number' && isFinite(t)) ? t : null;
+}
+/* Repere d'usage Bulle / NAS : affiche TEL QUEL sous le depassement, sans aucun
+   calcul — la regle sera definie plus tard. textContent : jamais interprete. */
+function renderUsage(){
+  const el=document.getElementById('dhUsage'); if(!el) return;
+  const st=statutCourant(), c=COTTYPE_COURANTE;
+  const txt = !c ? '' : (st==='bulle' ? (c.repereBulle||'') : (st==='nas' ? (c.repereNas||'') : ''));
+  el.textContent = txt ? 'Usage : '+txt : '';
+  el.style.display = txt ? 'block' : 'none';
 }
 
 // ---- BRANCHEMENT AU PORTAIL ----------------------------------------------
@@ -968,10 +994,11 @@ async function chargerCotationsType(){
   const code = SessionPortail.lire();
   if(!code) return;
   try{
+    // (01/10/2026) v3 : TOTAL_FR et REPERES ajoutes a chaque cotation.
     // Cle de cache VERSIONNEE (v2) : sans le suffixe, un changement de structure de
     // l'onglet reste invisible tant que la session n'est pas fermee -- la colonne
     // GROUPE n'est pas apparue pour cette raison. A incrementer a chaque evolution.
-    const c=JSON.parse(sessionStorage.getItem('pmCotTypeLib_v2')||'null');
+    const c=JSON.parse(sessionStorage.getItem('pmCotTypeLib_v3')||'null');
     if(c && c.length){ COTTYPE=c; renderCotTypeBar(); return; }
   }catch(e){}
   try{
@@ -984,7 +1011,7 @@ async function chargerCotationsType(){
     const list=(Array.isArray(brut)?brut:[]).filter(x=>x && x.nom && x.lignes && x.lignes.length);
     if(!list.length) return;                       // aucune cotation type : pas de barre, c'est exact
     COTTYPE=list; renderCotTypeBar();
-    try{ sessionStorage.setItem('pmCotTypeLib_v2', JSON.stringify(list)); }catch(e){}
+    try{ sessionStorage.setItem('pmCotTypeLib_v3', JSON.stringify(list)); }catch(e){}
   }catch(e){
     /* (17/08/2026) L'ECHEC NE DOIT PLUS ETRE MUET. La barre disparaissait sans
        un mot quand l'appel tombait : le responsable a cru la fonctionnalite perdue
@@ -1062,6 +1089,7 @@ function appliquerCotType(i){
   if(!lignes.length) return;
   builder=lignes;
   DH_MANUEL=false;
+  COTTYPE_COURANTE=c;        // (01/10/2026) porte TOTAL_FR et les reperes Bulle / NAS
   // Consultation associee posee par la cotation type. (01/10/2026) Seules CS et APC
   // existent a l'ecran : assocChange ramene toute autre valeur (C, vide) sur CS.
   const sel=document.getElementById('assocLc');
@@ -1342,7 +1370,7 @@ function patientSuivant(){
   const res=document.getElementById('ccamResults'); if(res) res.innerHTML='';
   const dcs=document.getElementById('dCs'); if(dcs) dcs.value=isoToday();
   Object.keys(DCL_TOUCHE).forEach(function(k){ DCL_TOUCHE[k]=false; });
-  lastRac=0; lastMut=null; JETON_COURANT='';
+  lastRac=0; lastMut=null; JETON_COURANT=''; COTTYPE_COURANTE=null;
   renderBuilder(); updateRac(); renderSummary(); renderDateHint();
   try{ window.scrollTo({top:0, behavior:'smooth'}); }catch(e){ window.scrollTo(0,0); }
 }
@@ -1707,7 +1735,7 @@ async function rafraichirCotTypes(){
     const propre=list.filter(x=>x&&x.nom&&x.lignes&&x.lignes.length);
     if(JSON.stringify(propre)===JSON.stringify(COTTYPE)) return;    // rien de neuf
     COTTYPE=propre;
-    try{ sessionStorage.setItem('pmCotTypeLib_v2', JSON.stringify(propre)); }catch(e){}
+    try{ sessionStorage.setItem('pmCotTypeLib_v3', JSON.stringify(propre)); }catch(e){}
     renderCotTypeBar();
   }catch(e){ /* silencieux : la liste en place reste valable */ }
 }

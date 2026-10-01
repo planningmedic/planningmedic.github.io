@@ -1,7 +1,7 @@
 // ⚠️ RÈGLE (détecteur de dérive dépôt↔Apps Script) : incrémenter cette version
 // à CHAQUE push de ce fichier. Le diagnostic (admin → Maintenance) compare la
 // version déployée ici avec celle du dépôt et signale toute recopie oubliée.
-const GAS_VERSION_MIROIR = '2026-10-01.1';
+const GAS_VERSION_MIROIR = '2026-10-01.2';
 
 /* ═══════════════════════════════════════════════════════════════════════
    MIROIR.GS — alimentation du miroir de lecture Cloudflare
@@ -80,6 +80,7 @@ const MIROIR_APRES_ECRITURE = {
   // ce qui est enregistre doit parvenir aux 19 sans attendre la synchro horaire.
   saveCotationType:           ['cotations_type'],
   deleteCotationType:         ['cotations_type'],
+  saveCotationsTypeLot:       ['cotations_type'],   // (01/10/2026) import Excel : une seule poussee pour tout le lot
   archiveYear:                ['planning', 'affectations', 'annees', 'acces', 'config_admin', 'gardes', 'stats'],
   setActiveYear:              ['annees', 'acces', 'config_admin'],
   initYear:                   ['annees', 'config_admin'],
