@@ -436,7 +436,9 @@ function monde(plan) {
     V('15 colonnes écrites, la 15e est MOTIF', f.lignes[0][14] === 'MOTIF' && L.every(l => l.length === 15), f.lignes[0]);
     V('le titre est débarrassé des balises (<i>ARDS</i>)', par['701'][2] === 'Prone Positioning in ARDS: a Randomized Trial', par['701'][2]);
     V('quatre auteurs → trois puis « et al. »', /^Guerin C, Reignier J, Richard JC et al\.$/.test(par['701'][3]), par['701'][3]);
-    V('DOI, revue et date lus dans la fiche', par['701'][5] === '10.1000/x701' && par['701'][4] === 'Anesthesiology' && (par['701'][1] instanceof Date ? par['701'][1].toISOString().slice(0, 10) : String(par['701'][1]).slice(0, 10)) === '2026-09-10', [par['701'][5], par['701'][4], par['701'][1]]);
+    const d701 = par['701'][1];   // date LOCALE (minuit de la machine) : toISOString() la décalerait d'un jour hors UTC (Europe/Paris → la veille à 22:00Z)
+    const jour701 = d701 instanceof Date ? d701.getFullYear() + '-' + String(d701.getMonth() + 1).padStart(2, '0') + '-' + String(d701.getDate()).padStart(2, '0') : String(d701).slice(0, 10);
+    V('DOI, revue et date lus dans la fiche', par['701'][5] === '10.1000/x701' && par['701'][4] === 'Anesthesiology' && jour701 === '2026-09-10', [par['701'][5], par['701'][4], jour701]);
     V('thèmes posés LOCALEMENT depuis titre + résumé : Ventilation et SDRA + Hémodynamique', /Ventilation et SDRA/.test(par['701'][13]) && /Hémodynamique/.test(par['701'][13]), par['701'][13]);
     V('…et depuis les descripteurs MeSH (Delirium → Neurologie et délire)', /Neurologie et délire/.test(par['801'][13]), par['801'][13]);
     V('le type retenu est le plus fort (ECR devant Multicenter)', par['701'][12] === 'Randomized Controlled Trial', par['701'][12]);
