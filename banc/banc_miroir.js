@@ -343,7 +343,7 @@ console.log('\n═══ 56. Inventaire des onglets écoutés (06/08/2026) ═�
       ScriptApp: { getProjectTriggers: () => [], newTrigger: () => ({ timeBased: () => ({ everyHours: () => ({ create: () => {} }) }) }) },
     });
     c.globalThis = c;
-    ['DOC_DOSSIERS', 'DOC_POIDS_MAX', 'DOC_PROP_DATES', 'DOC_PAR_PASSAGE', 'DOC_BUDGET_PASSAGE'].forEach(n =>
+    ['DOC_DOSSIERS', 'DOC_POIDS_MAX', 'DOC_PROP_DATES', 'DOC_PAR_PASSAGE', 'DOC_BUDGET_PASSAGE', 'DOC_PROFONDEUR'].forEach(n =>
       vm.runInContext(src3.match(new RegExp('const ' + n + ' *=[^;]+;'))[0], c));
     ['_docsRecenser_', '_docsDatesLues_', '_docsDatesEcrites_', 'miroirDocuments'].forEach(n =>
       vm.runInContext(extraireFonction('../gas/miroir.gs', n), c));
@@ -443,6 +443,27 @@ console.log('\n═══ 56. Inventaire des onglets écoutés (06/08/2026) ═�
     const m = monterDocs({ [T]: faireDossier([]), [P]: faireDossier([]), [R]: faireDossier([], [source]) });
     const rec = vm.runInContext('_docsRecenser_()', m.c);
     V('les recommandations sont vues sur TROIS niveaux', rec.docs.length === 1 && rec.docs[0].id === 'r1', rec.docs.map(d => d.nom));
+  }
+
+  // 7 bis-2. (01/10/2026) Fiches pratiques : groupe > source > theme > PDF (4e niveau)
+  //          + un niveau de marge ; au-dela, rien (descente bornee).
+  {
+    const R = 'Planning-Med-Recommandations';
+    const reco = faireDoc('g4', 'RFE 2026 - Voies aeriennes.pdf', '2026-10-01T10:00:00Z', 7e4);
+    const memo = faireDoc('m3', 'Duodénopancréatectomie céphalique.pdf', '2026-10-01T10:00:00Z', 9e4);
+    const marge = faireDoc('n5', 'Niveau 5.pdf', '2026-10-01T10:00:00Z', 5e4);
+    const tropLoin = faireDoc('n6', 'Niveau 6.pdf', '2026-10-01T10:00:00Z', 5e4);
+    const groupe = faireDossier([], [faireDossier([], [faireDossier([reco], [faireDossier([marge], [faireDossier([tropLoin])])])])]);
+    const fichesMemo = faireDossier([], [faireDossier([memo])]);
+    const m = monterDocs({ [T]: faireDossier([]), [P]: faireDossier([]), [R]: faireDossier([], [groupe, fichesMemo]) });
+    const rec = vm.runInContext('_docsRecenser_()', m.c);
+    const ids = rec.docs.map(d => d.id).sort();
+    V('un PDF au 4e niveau (groupe > source > thème) est recensé pour la copie', ids.includes('g4'), ids);
+    V('un PDF de fiche mémo (source > spécialité) est recensé', ids.includes('m3'), ids);
+    V('un niveau de marge au-delà est encore recensé', ids.includes('n5'), ids);
+    V('la descente reste bornée (rien au-delà de DOC_PROFONDEUR)', !ids.includes('n6') && rec.ok, ids);
+    const r = m.lancer();
+    V('…et ces PDF partent bien au miroir sous doc_<id>', r.copies.length === 3 && 'doc_g4' in m.envois[0] && 'doc_m3' in m.envois[0], r);
   }
 
   // 7 ter. (26/09/2026) Budget par passage : les petites fiches passent par paquets

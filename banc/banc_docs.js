@@ -584,8 +584,12 @@ console.log('\n═══ 14. Le guide MAR liste toutes les tuiles ouvertes à to
   const guide = [...bloc.matchAll(/<div><b>([^<]+)<\/b>/g)].map(m => m[1]);
   V('la liste des tuiles du guide est lisible', guide.length >= 5, guide.length);
   const manquantes = attendues.filter(t => !guide.includes(t));
-  V('chaque tuile ouverte à tous figure dans le guide (dont Recommandations et ACR)',
-    manquantes.length === 0 && guide.includes('Recommandations') && guide.includes('ACR'), manquantes);
+  /* (01/10/2026) La tuile Recommandations s'appelle désormais « Fiches pratiques ». */
+  V('chaque tuile ouverte à tous figure dans le guide (dont Fiches pratiques et ACR)',
+    manquantes.length === 0 && guide.includes('Fiches pratiques') && guide.includes('ACR'), manquantes);
+  V('le guide ne décrit plus d\'ancienne tuile « Recommandations »', !guide.includes('Recommandations'), guide);
+  V('le guide décrit les deux rayons de Fiches pratiques',
+    /<b>Fiches pratiques<\/b><span>[^\n]*Recommandations[^\n]*Fiches mémo chirurgie lourde/.test(mar));
   const enTrop = guide.filter(t => !attendues.includes(t));
   V('le guide ne décrit aucune tuile qui n\'existe pas (ou réservée)', enTrop.length === 0, enTrop);
   V('même ordre que sur le portail', JSON.stringify(guide) === JSON.stringify(attendues.filter(t => guide.includes(t))),

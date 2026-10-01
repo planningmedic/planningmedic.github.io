@@ -1,7 +1,7 @@
 // ⚠️ RÈGLE (détecteur de dérive dépôt↔Apps Script) : incrémenter cette version
 // à CHAQUE push de ce fichier. Le diagnostic (admin → Maintenance) compare la
 // version déployée ici avec celle du dépôt et signale toute recopie oubliée.
-const GAS_VERSION_MIROIR = '2026-09-26.2';
+const GAS_VERSION_MIROIR = '2026-10-01.1';
 
 /* ═══════════════════════════════════════════════════════════════════════
    MIROIR.GS — alimentation du miroir de lecture Cloudflare
@@ -543,9 +543,12 @@ const DOC_PROP_DATES    = 'MIROIR_DOCS_DATES';             // { idDrive: 'AAAA-M
 const DOC_PAR_PASSAGE   = 15;                              // plafond de documents par passage
 const DOC_BUDGET_PASSAGE = 1024 * 1024;                    // cumul max (octets) au-dela du premier
 
-/* Recense les PDF des dossiers (racine + sous-dossiers, 3 niveaux :
-   Topos = 1 niveau, Protocoles = specialite puis sous-dossier,
-   Recommandations = source > theme > PDF). Renvoie
+const DOC_PROFONDEUR    = 4;                               // (01/10/2026) niveaux de sous-dossiers parcourus sous la racine
+
+/* Recense les PDF des dossiers (racine + sous-dossiers, jusqu'a
+   DOC_PROFONDEUR niveaux : Topos = 1 niveau, Protocoles = specialite puis
+   sous-dossier, Recommandations = source > theme > PDF, Fiches pratiques =
+   groupe > source > theme > PDF). Renvoie
    { ok:true, docs:[{id,nom,maj,taille}] } ou { ok:false } si UN dossier est
    injoignable — dans ce cas on ne conclut RIEN (regle 3 : « je n'ai pas pu
    lire » n'est pas « ca n'existe plus »). */
@@ -562,24 +565,21 @@ function _docsRecenser_() {
                   maj: Utilities.formatDate(f.getLastUpdated(), 'UTC', "yyyy-MM-dd'T'HH:mm:ss'Z'") });
     }
   };
+  /* (01/10/2026) Descente bornee a DOC_PROFONDEUR niveaux de sous-dossiers
+     sous la racine (avant : trois boucles imbriquees, racine + 3 niveaux).
+     Protocoles : specialite > sous-dossier ; Recommandations : source > theme ;
+     Fiches pratiques : groupe > source > theme > PDF, plus un niveau de marge. */
+  const descendre = function (dossier, niveau) {
+    ajouterFichiers(dossier);
+    if (niveau >= DOC_PROFONDEUR) return;
+    const sous = dossier.getFolders();
+    while (sous.hasNext()) descendre(sous.next(), niveau + 1);
+  };
   DOC_DOSSIERS.forEach(function (nomDossier) {
     try {
       const it = DriveApp.getFoldersByName(nomDossier);
       if (!it.hasNext()) return;                      // dossier absent : normal si jamais cree
-      const racine = it.next();
-      ajouterFichiers(racine);
-      const n1 = racine.getFolders();
-      while (n1.hasNext()) {
-        const sous = n1.next();
-        ajouterFichiers(sous);
-        const n2 = sous.getFolders();                 // Protocoles : specialite > sous-dossier
-        while (n2.hasNext()) {
-          const sous2 = n2.next();
-          ajouterFichiers(sous2);
-          const n3 = sous2.getFolders();              // (26/09) Recommandations : source > theme > PDF
-          while (n3.hasNext()) ajouterFichiers(n3.next());
-        }
-      }
+      descendre(it.next(), 0);
     } catch (e) { ok = false; }
   });
   return { ok: ok, docs: docs };

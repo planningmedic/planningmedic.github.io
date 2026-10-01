@@ -1,7 +1,7 @@
 // ⚠️ RÈGLE (détecteur de dérive dépôt↔Apps Script) : incrémenter cette version
 // à CHAQUE push de ce fichier. Le diagnostic (admin → Maintenance) compare la
 // version déployée ici avec celle du dépôt et signale toute recopie oubliée.
-const GAS_VERSION_PORTAIL = '2026-09-26.1';
+const GAS_VERSION_PORTAIL = '2026-10-01.1';
 
 /**
  * portail.gs — actions du PORTAIL équipe (index.html).
@@ -390,6 +390,15 @@ function getProtocole(id) {
 //  PDF posés directement dans une source → thème « Général » ; PDF posés à la
 //  racine → source « Divers ». Les fichiers non PDF (index.json…) sont ignorés.
 //  Un préfixe numérique de thème (« 01 ») sert à l'ordre, la page le masque.
+//
+//  (01/10/2026) TUILE « FICHES PRATIQUES » — un niveau de plus, en option :
+//    racine > GROUPE (« Recommandations ») > SOURCE (« RFE SFAR ») > THÈME > PDF
+//  RÈGLE GÉNÉRIQUE, aucun nom de dossier dans le code : un dossier de 1er
+//  niveau dont au moins un sous-dossier contient lui-même des dossiers est un
+//  GROUPE ; sinon c'est une SOURCE (comportement d'avant). Ainsi
+//  « Fiches mémo chirurgie lourde > 01 Chirurgie digestive > PDF » reste une
+//  source (la spécialité y joue le rôle de thème). Une source ou un groupe
+//  sans aucun PDF n'est pas renvoyé. Titre affiché = nom du fichier sans .pdf.
 // ══════════════════════════════════════════════════════════════════════
 
 const RECOS_FOLDER = 'Planning-Med-Recommandations';
@@ -415,6 +424,35 @@ function _recosPdfs(dossier) {
   return docs.sort(_recosTri);
 }
 
+// Une SOURCE : PDF directs (thème « Général ») + un thème par sous-dossier.
+// Renvoie null si elle ne contient aucun PDF : elle ne s'affiche pas.
+function _recosSource(src) {
+  const themes = [];
+  const general = _recosPdfs(src);
+  if (general.length) themes.push({ nom: 'Général', docs: general });
+  const th = src.getFolders();
+  const liste = [];
+  while (th.hasNext()) {
+    const t = th.next();
+    const docs = _recosPdfs(t);
+    if (docs.length) liste.push({ nom: t.getName(), docs: docs });
+  }
+  liste.sort(_recosTriNom);
+  const tous = themes.concat(liste);
+  if (!tous.length) return null;
+  const n = tous.reduce(function (s, x) { return s + x.docs.length; }, 0);
+  return { nom: src.getName(), count: n, themes: tous };
+}
+
+// (01/10/2026) Vrai si AU MOINS UN sous-dossier contient lui-même un dossier.
+function _recosEstGroupe(dossier) {
+  const it = dossier.getFolders();
+  while (it.hasNext()) { if (it.next().getFolders().hasNext()) return true; }
+  return false;
+}
+
+function _recosTriNom(a, b) { return a.nom.localeCompare(b.nom, 'fr', { numeric: true }); }
+
 function listRecommandations() {
   const root = _getRecosFolder();
   const sources = [];
@@ -425,24 +463,24 @@ function listRecommandations() {
   const subs = root.getFolders();
   const autres = [];
   while (subs.hasNext()) {
-    const src = subs.next();
-    const themes = [];
-    const general = _recosPdfs(src);
-    if (general.length) themes.push({ nom: 'Général', docs: general });
-    const th = src.getFolders();
-    const liste = [];
-    while (th.hasNext()) {
-      const t = th.next();
-      const docs = _recosPdfs(t);
-      if (docs.length) liste.push({ nom: t.getName(), docs: docs });
+    const dossier = subs.next();
+    if (!_recosEstGroupe(dossier)) {                  // SOURCE (comportement d'avant)
+      const s = _recosSource(dossier);
+      if (s) autres.push(s);
+      continue;
     }
-    liste.sort(function (a, b) { return a.nom.localeCompare(b.nom, 'fr', { numeric: true }); });
-    const tous = themes.concat(liste);
-    if (!tous.length) continue;
-    const n = tous.reduce(function (s, x) { return s + x.docs.length; }, 0);
-    autres.push({ nom: src.getName(), count: n, themes: tous });
+    // GROUPE : chaque sous-dossier est une source ; PDF directs → source « Général »
+    const membres = [];
+    const it = dossier.getFolders();
+    while (it.hasNext()) { const s = _recosSource(it.next()); if (s) membres.push(s); }
+    membres.sort(_recosTriNom);
+    const directs = _recosPdfs(dossier);
+    if (directs.length) membres.unshift({ nom: 'Général', count: directs.length, themes: [{ nom: 'Général', docs: directs }] });
+    if (!membres.length) continue;                    // groupe sans aucun PDF : invisible
+    const n = membres.reduce(function (t, s) { return t + s.count; }, 0);
+    autres.push({ nom: dossier.getName(), groupe: true, count: n, sources: membres });
   }
-  autres.sort(function (a, b) { return a.nom.localeCompare(b.nom, 'fr'); });
+  autres.sort(_recosTriNom);
 
   const all = sources.concat(autres);
   const count = all.reduce(function (n, s) { return n + s.count; }, 0);
