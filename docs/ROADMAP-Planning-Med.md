@@ -33,9 +33,16 @@ pas été monté avec le lot cloche du 23/08 (oubli assumé, le code déployé e
   `TOTAL_FR − BR` (assuré français) ; sinon mutuelle. Bulle / NAS : « Usage : … » affiché, aucun calcul.
 - Banc **3 678 ✓** (+106 sur la journée), vert à l'heure de Paris depuis `33c1c63`.
 
-**⚠️ En attente : redéploiement Apps Script** de `portail.gs` **2026-10-01.2** et `miroir.gs`
-**2026-10-01.2**. Tant qu'il n'est pas fait, le bouton « Importer » répond par un échec (rien
-n'est écrit) et les totaux / repères ne remontent pas ; le reste fonctionne.
+**Déployé le 01/10 au soir** (déploiement web **@25**) : `portail.gs` **2026-10-01.2**, `miroir.gs`
+**2026-10-01.3**. Déploiement fait par `clasp` (compte planningmedic) : récupération du projet en ligne,
+remplacement des deux seuls fichiers, mise à jour du déploiement existant à la même adresse.
+
+**Incident pendant le déploiement (v1.17.1).** Le 1er envoi par `clasp` a rangé les fichiers par
+ordre alphabétique : `miroir.gs` se chargeait avant `portail.gs` et lisait `TOPOS_FOLDER` à son
+chargement → tout le serveur en erreur « TOPOS_FOLDER is not defined » pendant quelques minutes,
+jusqu'au retour à la version 23. Corrigé dans le code (`_docDossiers_()` lu à l'appel) et verrouillé
+par `banc_ordre_chargement.js` : les fichiers serveur sont chargés dans l'ordre alphabétique, inverse
+et 40 ordres au hasard — aucun ne doit échouer.
 
 **À faire.**
 1. Définir la règle de dépassement Bulle et NAS (aujourd'hui : repère affiché seulement).

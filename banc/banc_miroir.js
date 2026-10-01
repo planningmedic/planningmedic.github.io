@@ -343,9 +343,9 @@ console.log('\n═══ 56. Inventaire des onglets écoutés (06/08/2026) ═�
       ScriptApp: { getProjectTriggers: () => [], newTrigger: () => ({ timeBased: () => ({ everyHours: () => ({ create: () => {} }) }) }) },
     });
     c.globalThis = c;
-    ['DOC_DOSSIERS', 'DOC_POIDS_MAX', 'DOC_PROP_DATES', 'DOC_PAR_PASSAGE', 'DOC_BUDGET_PASSAGE', 'DOC_PROFONDEUR'].forEach(n =>
+    ['DOC_POIDS_MAX', 'DOC_PROP_DATES', 'DOC_PAR_PASSAGE', 'DOC_BUDGET_PASSAGE', 'DOC_PROFONDEUR'].forEach(n =>
       vm.runInContext(src3.match(new RegExp('const ' + n + ' *=[^;]+;'))[0], c));
-    ['_docsRecenser_', '_docsDatesLues_', '_docsDatesEcrites_', 'miroirDocuments'].forEach(n =>
+    ['_docDossiers_', '_docsRecenser_', '_docsDatesLues_', '_docsDatesEcrites_', 'miroirDocuments'].forEach(n =>
       vm.runInContext(extraireFonction('../gas/miroir.gs', n), c));
     return { c, envois, props, lancer: () => vm.runInContext('miroirDocuments()', c) };
   };

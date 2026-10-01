@@ -1,7 +1,7 @@
 // ⚠️ RÈGLE (détecteur de dérive dépôt↔Apps Script) : incrémenter cette version
 // à CHAQUE push de ce fichier. Le diagnostic (admin → Maintenance) compare la
 // version déployée ici avec celle du dépôt et signale toute recopie oubliée.
-const GAS_VERSION_MIROIR = '2026-10-01.2';
+const GAS_VERSION_MIROIR = '2026-10-01.3';
 
 /* ═══════════════════════════════════════════════════════════════════════
    MIROIR.GS — alimentation du miroir de lecture Cloudflare
@@ -530,7 +530,12 @@ function miroirPousserFamilles_(familles, annee, toutesAnnees) {
    la moitie ; au-dela on s'en approche. D'ou le plafond ci-dessous, qui
    ECARTE le document sans jamais le casser : il reste servi par l'ancien
    chemin, et le Diagnostic le signale. */
-const DOC_DOSSIERS      = [TOPOS_FOLDER, PROTOS_FOLDER, RECOS_FOLDER];   // definis dans portail.gs
+/* (01/10/2026) UNE FONCTION, PLUS UNE CONSTANTE. Les trois noms sont definis dans
+   portail.gs : lus au CHARGEMENT de ce fichier, ils exigeaient que portail.gs soit
+   charge avant miroir.gs. Un envoi par clasp a range les fichiers par ordre
+   alphabetique (miroir avant portail) : « TOPOS_FOLDER is not defined », TOUT le
+   serveur en erreur. Lus a l'appel, ils ne dependent plus de l'ordre. */
+function _docDossiers_() { return [TOPOS_FOLDER, PROTOS_FOLDER, RECOS_FOLDER]; }   // definis dans portail.gs
 const DOC_POIDS_MAX     = 8 * 1024 * 1024;                 // au-dela : laisse sur le chemin Apps Script
 const DOC_PROP_DATES    = 'MIROIR_DOCS_DATES';             // { idDrive: 'AAAA-MM-JJTHH:MM:SSZ' }
 /* (26/09/2026) BUDGET PAR PASSAGE. Avant : un document par heure, quel que
@@ -576,7 +581,7 @@ function _docsRecenser_() {
     const sous = dossier.getFolders();
     while (sous.hasNext()) descendre(sous.next(), niveau + 1);
   };
-  DOC_DOSSIERS.forEach(function (nomDossier) {
+  _docDossiers_().forEach(function (nomDossier) {
     try {
       const it = DriveApp.getFoldersByName(nomDossier);
       if (!it.hasNext()) return;                      // dossier absent : normal si jamais cree
