@@ -132,7 +132,7 @@
   </div>
   <p class="appbar-sub">Estimer le libéral, calibrer le dépassement sur la mutuelle du patient, générer le devis — et piloter la charge libéral / public.</p>
 </div>
-  <div class="maj">Dernière mise à jour : 30 juillet 2026 · rév. 7 (V4.2 — audit du guide contre le code en production)</div>
+  <div class="maj">Dernière mise à jour : 1er octobre 2026 · rév. 8 (page de cotation allégée)</div>
   <p style="margin-top:10px"><a href="module-liberal/estimateur-liberal.html" style="display:inline-block;background:var(--acc);color:#fff;padding:9px 16px;border-radius:8px;text-decoration:none;font-weight:600;font-size:14px">→ Ouvrir la cotation</a></p>
 </header>
 
@@ -193,11 +193,12 @@
   <ol class="steps">
     <li><strong>Chercher l'acte.</strong> Dans le bloc CCAM, tape un <strong>code</strong> (<code>NEKA014</code>), un <strong>mot</strong> (<code>hernie</code>, <code>échoguidage</code>) ou une <strong>abréviation</strong> (<code>PTH</code>, <code>TAP</code>, <code>cœlio</code>). La liste sort dans les deux sens ; un clic remplit la ligne.</li>
     <li><strong>Le tarif se pré-remplit.</strong> Le tarif d'anesthésie (activité 4) est repris automatiquement du référentiel officiel. Tu n'as qu'à cocher les modificateurs (7, A) et choisir le rôle (principal / associé / complément).</li>
-    <li><strong>La BR se calcule.</strong> ×1,95 monégasque, modificateurs, décote d'association — tout est appliqué derrière. La <strong>consultation</strong> du patient se choisit juste à côté, dans «&nbsp;Consultation associée&nbsp;» : elle compte sur l'autre plafond (voir §07).</li>
-    <li><strong>Dire si le chirurgien cote aussi en libéral.</strong> C'est la question qui décide de tout le reste. <strong>S'il cote</strong>, votre dépassement suit le sien à <strong>50 %</strong> (usage du groupement) : renseignez le sien, le vôtre se remplit — modifiable, et le reste à charge s'affiche tel qu'il est. <strong>Si vous cotez seul</strong>, votre dépassement est libre, et c'est là que le calibrage sur la mutuelle prend tout son sens.</li>
-    <li><strong>Renseigner la mutuelle.</strong> On sélectionne la formule du patient (sa ligne « honoraires » en % BR). L'outil affiche le dépassement optimal et le reste à charge.</li>
+    <li><strong>Choisir le patient.</strong> Deux boutons&nbsp;: <strong>France</strong> ou <strong>Monaco</strong>. Pour Monaco, une seconde rangée apparaît&nbsp;: <strong>Verte · Rose · Bulle · SPME · NAS</strong>. Le calcul s'adapte tout seul.</li>
+    <li><strong>La base de remboursement se calcule.</strong> Coefficient monégasque, modificateurs, deuxième acte à moitié prix — tout est appliqué derrière. La <strong>consultation</strong> se choisit juste à côté&nbsp;: <strong>CS</strong> ou <strong>APC</strong>. Elle compte sur l'autre plafond (voir §07).</li>
+    <li><strong>Dire si le chirurgien cote aussi.</strong> <strong>S'il cote</strong>, votre dépassement est la <strong>moitié du sien</strong> (usage du groupement)&nbsp;: tapez le sien, le vôtre se remplit. <strong>S'il ne cote pas</strong>, votre dépassement se règle sur la mutuelle du patient.</li>
+    <li><strong>Choisir la mutuelle.</strong> Cinq boutons&nbsp;: <strong>100, 150, 200, 250 ou 300&nbsp;%</strong> — le chiffre de la ligne «&nbsp;honoraires&nbsp;» du contrat du patient. Le dépassement se remplit tout seul, au montant que la mutuelle rembourse. Il reste modifiable&nbsp;; le reste à charge s'affiche en dessous.</li>
     <li><strong>Générer les documents.</strong> Bouton <span class="tag">📄 Devis</span>, dans la barre noire en bas de l'écran : l'estimation de frais est entièrement pré-remplie, et un second bouton imprime <strong>devis + déclaration de choix</strong> (modèle service soins externes, nom du MAR pré-rempli). <strong>Aucun nom de patient à taper</strong> : le patient l'écrit à la main sur les documents imprimés.</li>
-    <li><strong>Déclarer l'intervention.</strong> Encadré <span class="tag">Déclarer au comité</span> : deux choses seulement à y renseigner, le <strong>secteur</strong> et la <strong>spécialité</strong>. Les dates, la chirurgie et les montants viennent de la cotation ci-dessus. Puis <span class="tag">📅 Déclarer</span>, dans la barre du bas. C'est ce qui alimente le volet ◆ Libéral du comité dans la vue admin — <strong>rien d'autre ne part</strong> : ni patient, ni code CCAM.</li>
+    <li><strong>Déclarer l'intervention.</strong> En bas de la page, le bloc <span class="tag">Praticien et déclaration au comité</span> est fermé&nbsp;; son titre dit ce qui manque, et il s'ouvre tout seul quand il ne manque plus que le secteur ou la spécialité. Deux choses seulement à y renseigner, le <strong>secteur</strong> et la <strong>spécialité</strong>. Les dates, la chirurgie et les montants viennent de la cotation ci-dessus. Puis <span class="tag">📅 Déclarer</span>, dans la barre du bas. C'est ce qui alimente le volet ◆ Libéral du comité dans la vue admin — <strong>rien d'autre ne part</strong> : ni patient, ni code CCAM.</li>
     <li><strong>Patient suivant.</strong> L'écran se vide tout seul. Le <strong>secteur reste</strong> — dix endoscopies d'affilée, c'est zéro geste — mais tout ce qui appartenait au patient précédent disparaît.</li>
   </ol>
   <div class="callout rule">
@@ -216,36 +217,40 @@
 
 <section id="c3">
   <h2><span class="n">03</span>Statut du patient &amp; dépassement</h2>
-  <p>C'est le <strong>statut du patient</strong> qui ouvre le droit de facturer un dépassement&nbsp;; la mutuelle ne fait ensuite que déterminer le remboursement. L'outil applique cette règle dans cet ordre.</p>
+  <p>C'est le <strong>statut du patient</strong> qui dit si l'on peut facturer un dépassement&nbsp;; la mutuelle dit ensuite combien elle en rembourse.</p>
   <table>
-    <tr><th>Statut</th><th>Plafond du dépassement</th><th>Calage mutuelle</th></tr>
-    <tr><td>Carte verte (monég.)</td><td>0 — tarif conventionnel strict</td><td>non</td></tr>
-    <tr><td>SPME (monég.)</td><td>0</td><td>non</td></tr>
-    <tr><td>Carte rose (monég.)</td><td>+20 % de la BR</td><td>oui, plafonné à +20 %</td></tr>
-    <tr><td>Carte bulle (monég.)</td><td>libre — entente préalable</td><td>oui</td></tr>
-    <tr><td>Assuré français</td><td>libre (secteur 2 non-OPTAM)</td><td>oui, plafond non-OPTAM</td></tr>
-    <tr><td>Français — AME / C2S (précarité)</td><td>0 — pas de dépassement</td><td>non</td></tr>
-    <tr><td>NAS</td><td>libre</td><td>oui</td></tr>
-    <tr><td>AME</td><td>0 — pas de dépassement</td><td>non</td></tr>
+    <tr><th>Bouton</th><th>Dépassement</th><th>Mutuelle</th><th>APC</th></tr>
+    <tr><td>France</td><td>libre</td><td>oui — au plus le double de la base de remboursement</td><td>oui</td></tr>
+    <tr><td>Monaco · Verte</td><td>aucun</td><td>non demandée</td><td>non</td></tr>
+    <tr><td>Monaco · Rose</td><td>au plus 20&nbsp;% de la base</td><td>oui, sans dépasser 20&nbsp;%</td><td>non</td></tr>
+    <tr><td>Monaco · Bulle</td><td>libre</td><td>oui</td><td>non</td></tr>
+    <tr><td>Monaco · SPME</td><td>aucun</td><td>non demandée</td><td>non</td></tr>
+    <tr><td>Monaco · NAS</td><td>libre</td><td>oui</td><td>non</td></tr>
   </table>
   <div class="callout warn">
-    <div class="ct">AME — Aide Médicale de l'État (monégasque)</div>
-    <p>À ne pas confondre avec l'AME française. Dispositif propre à Monaco (Ordonnance souveraine 5.743 du 03/03/2016) pour les résidents <strong>sans autre couverture maladie</strong> et <strong>sous condition de ressources</strong>. Le remboursement se fait sur le <strong>tarif de responsabilité monégasque</strong> (coefficient ×1,95, comme les autres régimes), et le bénéficiaire étant indigent, <strong>aucun dépassement</strong> n'est facturé — logique « carte verte ». En pratique, un patient AME relève du secteur public&nbsp;: cas-limite dans l'estimateur, où <span class="tag">DH 0</span> est la bonne garde.</p>
+    <div class="ct">AME et C2S&nbsp;: pas de libéral</div>
+    <p>Les patients à l'AME ou à la C2S, français comme monégasques, relèvent du secteur public. Ils ne figurent donc pas dans l'outil.</p>
+  </div>
+  <div class="callout tip">
+    <div class="ct">La consultation&nbsp;: CS ou APC</div>
+    <p>Deux boutons, <strong>CS</strong> (choisi d'office) et <strong>APC</strong>. L'APC est une cotation française&nbsp;: son bouton est <strong>grisé dès que vous choisissez Monaco</strong>, NAS compris.</p>
   </div>
 </section>
 
 <section id="c4">
   <h2><span class="n">04</span>Le calibrage mutuelle → reste à charge</h2>
-  <p>Là où le dépassement est libre, l'outil le règle sur la mutuelle du patient. Une seule valeur compte&nbsp;: la ligne <strong>« honoraires » en % de la BR</strong> du tableau de garanties.</p>
+  <p>La mutuelle se choisit en un bouton&nbsp;: <strong>100, 150, 200, 250 ou 300&nbsp;%</strong>. C'est le chiffre de la ligne <strong>«&nbsp;honoraires&nbsp;»</strong> du contrat du patient. Un second clic sur le bouton allumé l'éteint&nbsp;: mutuelle inconnue.</p>
   <ul>
-    <li><strong>Absorbé par la mutuelle</strong> = (% BR affiché − 100) × BR. Une formule « 200 % BR » absorbe jusqu'à 100 % de BR de dépassement&nbsp;; « 300 % BR » jusqu'à 200 %&nbsp;; « 100 % BR » n'absorbe <strong>rien</strong>.</li>
-    <li><strong>Dépassement optimal</strong> = le plus petit des deux&nbsp;: ce que la carte autorise, et ce que la mutuelle absorbe. À ce montant, le reste à charge est <strong>nul</strong>.</li>
-    <li>Patient mal couvert (formule 100 % BR)&nbsp;? L'optimal tombe à zéro&nbsp;: l'outil recommande alors de <strong>facturer moins, voire rien</strong>.</li>
+    <li><strong>Ce que la mutuelle rembourse en plus</strong>&nbsp;: tout ce qui dépasse 100&nbsp;%. À 200&nbsp;%, elle couvre un dépassement égal à la base de remboursement&nbsp;; à 300&nbsp;%, le double&nbsp;; à 100&nbsp;%, <strong>rien</strong>.</li>
+    <li><strong>Le dépassement se remplit tout seul</strong> à ce montant — sans dépasser ce que le statut autorise. Le patient n'a alors rien à payer de sa poche.</li>
+    <li><strong>Dans cet ordre</strong>&nbsp;: si le chirurgien cote, la moitié de son dépassement passe avant la mutuelle. Le montant reste toujours modifiable à la main&nbsp;; il se recale dès que vous changez le patient, la mutuelle ou le chirurgien.</li>
+    <li>Patient mal couvert (100&nbsp;%)&nbsp;? Le dépassement proposé tombe à zéro.</li>
   </ul>
   <div class="callout warn">
-    <div class="ct">Piège — colonne OPTAM vs non-OPTAM (patients français)</div>
-    <p>Pour un assuré français avec contrat responsable, vu par un praticien <strong>secteur 2 non-OPTAM</strong>, la mutuelle n'absorbe au maximum que <strong>100 % BR de dépassement</strong> (200 % BR au total), quel que soit le pourcentage affiché. Lis bien la <strong>colonne non-OPTAM</strong> du tableau&nbsp;: l'outil plafonne et t'alerte si le % saisi trahit une lecture de la colonne OPTAM.</p>
+    <div class="ct">Patient français&nbsp;: plafond à 200&nbsp;%</div>
+    <p>Pour un assuré français, la mutuelle ne rembourse jamais plus que le <strong>double de la base de remboursement</strong>, même si le contrat affiche 250 ou 300&nbsp;%. L'outil en tient compte et l'affiche.</p>
   </div>
+  <p>La mutuelle repart à vide à chaque nouveau patient&nbsp;: celle du précédent ne fixe jamais en silence le dépassement du suivant.</p>
 </section>
 
 <section id="c5">
@@ -254,6 +259,7 @@
     <p><strong>C'est fait&nbsp;: depuis le 22 juillet 2026, l'identité du praticien est pré-remplie.</strong> En ouvrant l'outil <strong>par la tuile du Dashboard</strong>, vous êtes déjà identifié&nbsp;: nom, prénom et n° RPPS descendent de l'onglet <code>MEDECINS</code> et alimentent le devis et la déclaration de choix. Un bandeau vert le confirme, et signale ce qui manque encore («&nbsp;prénom à compléter&nbsp;») s'il y a lieu.</p>
     <p>Le champ <strong>ADELI a été supprimé</strong>&nbsp;: le RPPS seul suffit, et une case vide sur un document imprimé finit toujours par être remplie de travers. Ces numéros vivent <strong>uniquement dans le classeur privé</strong>, jamais dans le code de l'outil, et ne sont transmis qu'au praticien identifié par son propre code d'accès.</p>
     <p>Si vous ouvrez la page <strong>en dehors du portail</strong> (URL directe, autre navigateur), le bandeau vous le dit clairement et vous saisissez à la main comme avant. Rien ne se dégrade en silence.</p>
+    <p>Cette ligne se trouve <strong>dans le bloc fermé du bas de la page</strong>. Le devis la lit même fermée&nbsp;; s'il manque le nom ou le RPPS, le titre du bloc l'indique («&nbsp;praticien à compléter&nbsp;»).</p>
   </div>
 
   <h2><span class="n">05</span>Générer le devis</h2>
@@ -277,7 +283,7 @@
     <li><strong>Choisissez votre contexte</strong> dans «&nbsp;Cotations types&nbsp;», en haut du tableau — «&nbsp;Endoscopie&nbsp;» par exemple. Une seule fois pour toute la séance&nbsp;: le choix est conservé même si vous rechargez la page. Tant que rien n'est choisi, aucun bouton ne s'affiche.</li>
     <li><strong>Cliquez sur la cotation type</strong> qui correspond — <em>Gastro + colo</em>, <em>Gastro seule</em>, <em>Colo seule</em>. Le tableau se remplit&nbsp;: les actes, les rôles, les modificateurs et la consultation associée. <strong>Attention&nbsp;: cela remplace les lignes en place</strong>, une cotation type décrit un patient entier. Pour un acte hors liste, la recherche CCAM reste disponible.</li>
     <li><strong>Posez le jour du bloc.</strong> La date de consultation est déjà celle du jour.</li>
-    <li><strong>Choisissez la consultation associée.</strong> Le champ est sur <code>CS</code> par défaut, puisqu'il y a toujours une consultation. Vous pouvez mettre <code>C</code> avec son coefficient, ou un montant libre. <strong>L'APC est une cotation française</strong>&nbsp;: elle est refusée pour un assuré monégasque (carte verte, rose, bulle, SPME).</li>
+    <li><strong>Choisissez la consultation.</strong> <code>CS</code> est choisie d'office, puisqu'il y a toujours une consultation&nbsp;; l'autre bouton est <code>APC</code>. <strong>L'APC est une cotation française</strong>&nbsp;: son bouton est grisé pour un patient de Monaco.</li>
     <li><strong>Imprimez le devis</strong> s'il y a un dépassement. Le patient écrit son nom à la main.</li>
     <li><strong>Choisissez le secteur</strong> — la spécialité se propose alors toute seule, et reste modifiable.</li>
     <li><strong>📅 Déclarer.</strong> Une ligne = un patient.</li>

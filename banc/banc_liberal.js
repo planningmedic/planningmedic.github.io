@@ -337,7 +337,11 @@ console.log('\n═══ 5ter. Le jeton unique : reessayer sans jamais doubler �
   V('l\'AME a disparu de la liste des statuts',
     !/value="ame"/.test(page) && !/ame:\{coeff/.test(page));
   V('et son bandeau d\'incertitude avec elle', !/AME — base de calcul non confirmee/.test(page));
-  V('la C2S, elle, reste intacte', /value="frc2s"/.test(page));
+  /* (01/10/2026) « Français — AME / C2S » retiré à son tour : pas de libéral pour
+     ces patients. Il ne doit plus être lu NULLE PART — ni statut, ni libellé ou
+     taux du devis, ni commentaire qui laisserait croire qu'il existe encore. */
+  V('le statut AME / C2S français a disparu de la page, partout', !/frc2s/.test(page));
+  V('et du guide', !/Français — AME \/ C2S/.test(fs.readFileSync('../docs/guide-liberal.html', 'utf8')));
 }
 
 console.log('\n═══ 6. La page de cotation ne dit rien qu\'elle ne sache ═══');
@@ -513,6 +517,17 @@ console.log('\n═══ 6. La page de cotation ne dit rien qu\'elle ne sache �
 
   V('l\'identité est pré-remplie', d.getElementById('cfgPrat').value === 'Jean ALPHA', d.getElementById('cfgPrat').value);
   V('le RPPS aussi', d.getElementById('cfgRPPS').value === '10000000001');
+  /* (01/10/2026) Ligne praticien et déclaration : un bloc replié en bas, FERMÉ à
+     l'ouverture. Son en-tête dit ce qui manque, pour qu'un bloc fermé ne cache rien. */
+  const repli = d.getElementById('repli');
+  V('praticien et déclaration sont regroupés dans un bloc repliable',
+    !!repli && repli.tagName === 'DETAILS' && repli.contains(d.getElementById('cfgPrat'))
+    && repli.contains(d.getElementById('dclSec')) && repli.contains(d.getElementById('dclListWrap')));
+  V('fermé par défaut', repli && repli.open === false);
+  V('son en-tête dit ce qui manque', /secteur|spécialité/.test(d.getElementById('repliEtat').textContent),
+    d.getElementById('repliEtat').textContent);
+  V('le message après déclaration et la panne des listes restent HORS du bloc',
+    !repli.contains(d.getElementById('dclMsg')) && !repli.contains(d.getElementById('listesKO')));
   const secs = [...d.getElementById('dclSec').options].map(o => o.value).filter(Boolean);
   V('les secteurs sont proposés', secs.indexOf('END') >= 0 && secs.indexOf('ORL') >= 0, secs);
   V('la réanimation, sans libéral, n\'est pas proposée', secs.indexOf('REA') < 0, secs);
@@ -580,6 +595,8 @@ console.log('\n═══ 6. La page de cotation ne dit rien qu\'elle ne sache �
   await dodo(30);
   V('un secteur non ambigu déduit la spécialité', d.getElementById('dclSpec').value === 'END');
   V('le bouton Déclarer devient actif', d.getElementById('dclBtn').disabled === false);
+  V('le bloc s\'est ouvert seul quand il n\'attendait plus que secteur et spécialité',
+    d.getElementById('repli').open === true);
 
   /* ══ L'USAGE DES 50 % (17/08/2026) ══════════════════════════════
      Quand le chirurgien cote aussi en liberal, le depassement de
@@ -613,9 +630,11 @@ console.log('\n═══ 6. La page de cotation ne dit rien qu\'elle ne sache �
     d.getElementById('dh').value);
   V('c\'est 50 % du DÉPASSEMENT, pas des honoraires',
     Math.abs(ev('chirDhPropose()') - 400) < 0.005, ev('chirDhPropose()'));
-  V('le bouton « caler sur l\'optimal » s\'efface : il n\'y a plus rien à optimiser',
-    d.getElementById('calerBtn').disabled === true);
-  V('et l\'encadré ne parle plus de calibrage', /calé sur celui du chirurgien/.test(d.getElementById('racTitre').textContent),
+  /* (01/10/2026) Le bouton « Caler sur l'optimal » et le « total cible » ont
+     disparu : le calage est automatique. */
+  V('plus de bouton « caler » ni de « total cible » : le calage est automatique',
+    !d.getElementById('calerBtn') && !d.getElementById('cible'));
+  V('et l\'encadré dit sur quoi le dépassement est calé', /Calé sur le chirurgien/.test(d.getElementById('racTitre').textContent),
     d.getElementById('racTitre').textContent);
   /* Usage et non regle : la valeur reste modifiable. */
   V('le champ reste modifiable — c\'est un usage, pas une règle',
@@ -624,14 +643,20 @@ console.log('\n═══ 6. La page de cotation ne dit rien qu\'elle ne sache �
   w.setChir(false);
   await dodo(30);
   V('revenir à « je cote seul » rend le calibrage',
-    d.getElementById('chirDhWrap').style.display === 'none' && /Calibrage/.test(d.getElementById('racTitre').textContent));
+    d.getElementById('chirDhWrap').style.display === 'none' && /Calé sur la mutuelle/.test(d.getElementById('racTitre').textContent));
   d.getElementById('statut').value = 'verte'; w.onStatut(); w.applyDH();
   await dodo(30);
 
   /* Le devis part de la cotation AFFICHEE : il n'y a plus de liste ou aller le
      chercher. Le generateur de devis lui-meme n'a pas ete touche. */
+  /* Le devis imprimé LIT la ligne praticien : la replier ne doit rien lui retirer. */
+  d.getElementById('repli').open = false;
   w.ouvrirDevisCourant();
   await dodo(60);
+  V('bloc praticien replié, le devis porte quand même le nom et le RPPS',
+    d.getElementById('dvPratName').textContent === 'Jean ALPHA' && d.getElementById('dvRPPS').textContent === '10000000001'
+    && d.getElementById('dcPratName').textContent === 'Jean ALPHA',
+    [d.getElementById('dvPratName').textContent, d.getElementById('dvRPPS').textContent]);
   const ov = d.getElementById('devisOverlay');
   V('le bouton Devis ouvre le devis du patient affiché', !!ov && ov.style.display !== 'none',
     ov && ov.style.display);
@@ -725,6 +750,118 @@ console.log('\n═══ 6. La page de cotation ne dit rien qu\'elle ne sache �
   V('la date de consultation reste à aujourd\'hui', d.getElementById('dCs').value.length === 10);
   V('le secteur, lui, RESTE : dix endoscopies d\'affilée, zéro geste',
     d.getElementById('dclSec').value === 'END', d.getElementById('dclSec').value);
+  V('la mutuelle repart à vide : elle ne calera pas le patient suivant', ev('MUT_PCT') === 0, ev('MUT_PCT'));
+
+  /* ═══════════════════════════════════════════════════════════════
+     7bis. LA PAGE ALLÉGÉE (01/10/2026)
+     Même logique de calcul, beaucoup moins de texte. Statut en deux boutons,
+     deux consultations, cinq niveaux de mutuelle, un seul champ de dépassement
+     pré-rempli : chirurgien qui cote → 50 % du sien ; sinon calage mutuelle.
+     ═══════════════════════════════════════════════════════════════ */
+  console.log('\n═══ 7bis. La page allégée : mêmes calculs, moins de texte ═══');
+  {
+    const dhv = () => parseFloat(d.getElementById('dh').value);
+    const proche = (a, b) => Math.abs(a - b) < 0.011;
+    const visible = id => d.getElementById(id).style.display !== 'none';
+    const mut = p => { if (ev('MUT_PCT') !== p) w.setMut(p); };   // un clic sur le niveau deja allume l'eteindrait
+
+    // ── Statut : deux boutons, puis la carte pour Monaco ──
+    V('le statut n\'est plus une liste déroulante : deux boutons France / Monaco',
+      d.getElementById('statut').tagName === 'INPUT' && d.getElementById('statut').type === 'hidden'
+      && /France/.test(d.getElementById('stFr').textContent) && /Monaco/.test(d.getElementById('stMc').textContent));
+    const ecran = () => d.querySelector('.wrap').textContent;   // le texte AFFICHÉ, pas les commentaires du code
+    V('plus aucun libellé « DH 0 / DH +20 % / DH libre » à l\'écran', !/DH 0|DH \+20 %|DH libre/.test(ecran()));
+    w.choisirPays('fr'); await dodo(20);
+    V('France : la rangée des cartes est masquée', d.getElementById('stCartes').style.display === 'none' && ev('statutCourant()') === 'fr');
+    w.choisirPays('mc'); await dodo(20);
+    const cartes = [...d.getElementById('stCartes').querySelectorAll('button')].map(b => b.dataset.st);
+    V('Monaco : 2e rangée Verte · Rose · Bulle · SPME · NAS',
+      visible('stCartes') && cartes.join(',') === 'verte,rose,bulle,spme,nas', cartes);
+    V('les valeurs internes et les plafonds ne changent pas',
+      ev('JSON.stringify(STATUTS)') === JSON.stringify({ verte:{coeff:1.95,dh:'0'}, rose:{coeff:1.95,dh:'0.20'},
+        bulle:{coeff:1.95,dh:'libre'}, fr:{coeff:1, dh:'libre'}, nas:{coeff:1, dh:'libre'}, spme:{coeff:1.95,dh:'0'} }),
+      ev('JSON.stringify(STATUTS)'));
+    V('frc2s n\'est plus lu nulle part (statuts, libellé et taux du devis)',
+      ev("!('frc2s' in STATUTS) && !('frc2s' in ST_LABELS) && !('frc2s' in RO_RATE)"));
+
+    // Une cotation pour calculer : la BR est connue, le reste en découle.
+    w.choisirGroupeCotType('Endoscopie');
+    d.getElementById('cotTypeBtns').querySelector('button').click();
+    await dodo(30);
+
+    // ── Consultation : CS et APC seulement, montants lus dans LC ──
+    V('deux consultations seulement : CS et APC',
+      !!d.getElementById('lcCS') && !!d.getElementById('lcAPC') && !d.getElementById('assocCoef') && !d.getElementById('assocLibre'));
+    V('leurs montants sont affichés depuis LC', /CS 46 €/.test(d.getElementById('lcCS').textContent)
+      && /APC 60 €/.test(d.getElementById('lcAPC').textContent),
+      [d.getElementById('lcCS').textContent, d.getElementById('lcAPC').textContent]);
+    ev('LC.CS = 50; assocChange();');
+    V('…et jamais écrits en dur : changer LC change le bouton', /CS 50 €/.test(d.getElementById('lcCS').textContent));
+    ev('LC.CS = 46; assocChange();');
+
+    w.setStatut('verte'); await dodo(20);
+    w.setAssoc('APC'); await dodo(20);
+    V('APC refusée en Monaco : le bouton est grisé et rien ne change',
+      d.getElementById('lcAPC').disabled === true && d.getElementById('assocLc').value === 'CS');
+    w.setStatut('fr'); w.setAssoc('APC'); await dodo(20);
+    V('APC acceptée pour un assuré français', d.getElementById('assocLc').value === 'APC' && proche(ev('assocBR()'), 60));
+    w.setStatut('nas'); await dodo(20);
+    V('passer en NAS (rangée Monaco) ramène la consultation sur CS',
+      d.getElementById('assocLc').value === 'CS' && d.getElementById('lcAPC').disabled === true);
+
+    // ── Mutuelle : cinq boutons, masquée en Verte et SPME ──
+    const niveaux = [...d.getElementById('mutBtns').querySelectorAll('button')].map(b => +b.dataset.p);
+    V('mutuelle : cinq boutons 100 / 150 / 200 / 250 / 300 %', niveaux.join(',') === '100,150,200,250,300', niveaux);
+    const vu = {};
+    for (const st of ['fr', 'rose', 'bulle', 'nas', 'verte', 'spme']) { w.setStatut(st); vu[st] = visible('mutRow'); }
+    V('mutuelle visible pour France, Rose, Bulle, NAS', vu.fr && vu.rose && vu.bulle && vu.nas, vu);
+    V('mutuelle masquée en Verte et en SPME', !vu.verte && !vu.spme, vu);
+
+    let br = ev('parcoursBR()');   // recalculée à chaque statut : 1,95 à Monaco, 1,00 en France
+    // ── Rose : plafonnée à +20 % même avec une mutuelle à 300 % ──
+    w.setStatut('rose'); mut(300); await dodo(20); br = ev('parcoursBR()');
+    V('rose plafonnée à 20 % de la BR avec une mutuelle à 300 %', proche(dhv(), 0.20 * br), [dhv(), 0.20 * br]);
+    V('et ce montant n\'est pas modifiable', d.getElementById('dh').disabled === true);
+
+    // ── Calage automatique, plafond non-OPTAM pour un assuré français ──
+    w.setStatut('bulle'); mut(300); await dodo(20);
+    V('bulle + 300 % : calé sur l\'absorbé, (300 − 100) × BR', proche(dhv(), 2 * br), [dhv(), 2 * br]);
+    w.setStatut('fr'); mut(300); await dodo(20); br = ev('parcoursBR()');
+    V('français + 300 % : plafond non-OPTAM, 100 % BR seulement', proche(dhv(), br), [dhv(), br]);
+    V('et le plafond est signalé', visible('rCapNote'));
+    mut(150); await dodo(20);
+    V('français + 150 % : absorbé = 50 % BR', proche(dhv(), 0.5 * br), [dhv(), 0.5 * br]);
+    w.setMut(150); await dodo(20);
+    V('un second clic éteint la mutuelle : plus rien à caler', ev('MUT_PCT') === 0 && proche(dhv(), 0), dhv());
+
+    // ── Priorité chirurgien > mutuelle ──
+    mut(200); await dodo(20);
+    V('sans chirurgien : calage mutuelle (200 % → 100 % BR)', proche(dhv(), br), [dhv(), br]);
+    w.setChir(true); d.getElementById('chirDh').value = '300'; w.chirChange(); await dodo(20);
+    V('le chirurgien cote : 50 % du sien, devant la mutuelle', proche(dhv(), 150), dhv());
+    V('et le reste à charge suit la mutuelle choisie',
+      d.getElementById('rRac').textContent === ev("eur2(Math.max(0,(parcoursBR()+150)-Math.min(coverageCeiling('fr',200,parcoursBR()),parcoursBR()+150)))"),
+      d.getElementById('rRac').textContent);
+    w.setChir(false); await dodo(20);
+    V('il ne cote plus : retour au calage mutuelle', proche(dhv(), br), [dhv(), br]);
+
+    // ── Le champ reste modifiable, et une saisie n'est pas écrasée en douce ──
+    d.getElementById('dh').value = '123'; w.dhSaisi();
+    ev("upd(0,'mA',true)"); await dodo(20);
+    V('une saisie à la main survit à une case cochée dans le tableau', proche(dhv(), 123), dhv());
+    mut(250); await dodo(20);
+    V('changer de mutuelle relance le calage', !proche(dhv(), 123), dhv());
+    ev("upd(0,'mA',false)");
+
+    // ── Les explications ont quitté les cartes ──
+    V('plus d\'encadré « Estimateur, pas décompte »', !/Estimateur, pas décompte/.test(ecran()));
+    V('plus de formule ni d\'aide dans les cartes',
+      !/DH optimal = min|Absorbé = \(/.test(ecran()) && !d.getElementById('hintCCAM') && !d.getElementById('assocHint'));
+    V('le lien vers les guides reste en tête', /class="guidelink" href="\.\.\/guide-liberal\.html"/.test(html));
+    V('aucune parenthèse explicative dans les rôles', ev("Object.values(ROLES).every(r => !/\\(/.test(r.lab))"));
+
+    w.setStatut('verte'); w.patientSuivant(); await dodo(20);
+  }
 
   /* (17/08/2026) La session du portail. Ces deux pages la lisaient en direct dans
      l'onglet : dans l'app installée, elles redemandaient le code alors que le

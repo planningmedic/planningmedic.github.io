@@ -37,6 +37,19 @@
   .seg{display:inline-flex;background:#EEF1F4;border-radius:8px;padding:3px}
   .seg button{border:0;background:transparent;padding:6px 12px;font:inherit;font-size:12.5px;font-weight:600;color:var(--muted);cursor:pointer;border-radius:6px}
   .seg button.on{background:#fff;color:var(--ink);box-shadow:0 1px 2px rgba(0,0,0,.1)}
+  .seg button:disabled{opacity:.35;cursor:default}
+  .seg{flex-wrap:wrap}
+  /* (01/10/2026) Bloc replie du bas : ligne praticien + declaration au comite.
+     L'en-tete dit ce qui manque, pour qu'un bloc ferme ne cache rien d'utile. */
+  details.repli{margin-top:14px;background:var(--panel);border:1px solid var(--line);border-radius:14px;box-shadow:var(--shadow);padding:0 18px}
+  details.repli>summary{cursor:pointer;padding:13px 0;font-size:13px;font-weight:600;list-style:none;display:flex;gap:10px;align-items:center;flex-wrap:wrap}
+  details.repli>summary::-webkit-details-marker{display:none}
+  details.repli>summary::before{content:'▸';color:var(--muted)}
+  details.repli[open]>summary::before{content:'▾'}
+  details.repli .etat{font-size:11.5px;font-weight:600;color:#8A6516}
+  details.repli .etat.ok{color:#2F6B47}
+  details.repli .declbox,details.repli .decllist{box-shadow:none;border:0;padding:0 0 14px;margin-top:4px}
+  .usage{font-size:11px;color:var(--muted);margin-top:4px;line-height:1.35}
   .coefbadge{font-family:'IBM Plex Mono',monospace;font-size:12px;background:var(--ccam-bg);color:var(--ccam);padding:4px 9px;border-radius:7px;font-weight:600}
 
   table.lines{width:100%;border-collapse:collapse;margin-top:8px;font-size:12.5px}
@@ -269,16 +282,12 @@ window.SessionPortail = window.SessionPortail || { lire:function(){try{return se
   <header>
     <div class="eyebrow">Module libéral · coter · remettre le devis · déclarer au comité</div>
     <h1>Un patient à la fois</h1>
-    <div class="sub">L'outil calcule la base de remboursement et <b>cale le dépassement sur la mutuelle du patient pour minimiser son reste à charge</b>. Votre position sur les 30 % se lit sur la page <b>Suivi des 30 %</b>. <b>Estimateur, pas décompte.</b></div>
-    <a class="guidelink" href="../guide-liberal.html">📘 Guides du libéral — cotation, règle des 30 %, antisèche</a>
+    <!-- (01/10/2026) ALLEGEMENT : la phrase d'explication a disparu, les guides
+         restent en tete. Le lien « Suivi des 30 % » remplace la phrase qui y
+         renvoyait : la position sur les 30 % ne se lit pas ici. -->
+    <a class="guidelink" href="../guide-liberal.html">📘 Guides du libéral</a>
+    <a class="guidelink" href="../../suivi-liberal.html">Suivi des 30 %</a>
   </header>
-
-  <div class="pratbar">
-    <span class="pblab">Praticien :</span>
-    <input id="cfgPrat" placeholder="Dr Nom Prénom">
-    <input id="cfgRPPS" placeholder="N° RPPS">
-    <span class="pbetat" id="pbEtat"></span>
-  </div>
 
   <!-- PARCOURS BUILDER -->
   <div class="card">
@@ -292,16 +301,25 @@ window.SessionPortail = window.SessionPortail || { lire:function(){try{return se
            La comptabilite des deux axes, elle, ne bouge pas : la consultation
            reste comptee en NGAP (mois de la consultation), les actes en CCAM
            (mois du bloc). C'est de la comptabilite, pas de l'ecran. -->
-      <div style="flex:1;min-width:180px"><label>Statut / carte du patient</label>
-        <select id="statut" onchange="onStatut()">
-          <option value="verte">Carte verte (monég. · DH 0)</option>
-          <option value="rose">Carte rose (monég. · DH +20 %)</option>
-          <option value="bulle">Carte bulle (monég. · DH libre)</option>
-          <option value="fr">Assuré français (DH libre)</option>
-          <option value="frc2s">Français — AME / C2S (précarité · DH 0)</option>
-          <option value="nas">NAS / non assuré (DH libre)</option>
-          <option value="spme">SPME (DH 0)</option>
-          </select></div>
+      <!-- (01/10/2026) STATUT EN BOUTONS. La liste deroulante portait sept libelles
+           techniques (« DH 0 », « DH +20 % », « DH libre ») : deux boutons, puis la
+           carte pour Monaco. Les valeurs internes et les plafonds ne changent pas ;
+           le champ cache #statut reste la SEULE source lue par le calcul et le devis.
+           « Francais — AME / C2S » a ete retire : pas de liberal pour ces
+           patients. -->
+      <div style="flex:1;min-width:180px"><label>Patient</label>
+        <div class="seg" id="stPays">
+          <button id="stFr" onclick="choisirPays('fr')">France</button>
+          <button id="stMc" onclick="choisirPays('mc')">Monaco</button>
+        </div>
+        <div class="seg" id="stCartes" style="margin-top:6px;display:none">
+          <button data-st="verte" onclick="setStatut('verte')">Verte</button>
+          <button data-st="rose"  onclick="setStatut('rose')">Rose</button>
+          <button data-st="bulle" onclick="setStatut('bulle')">Bulle</button>
+          <button data-st="spme"  onclick="setStatut('spme')">SPME</button>
+          <button data-st="nas"   onclick="setStatut('nas')">NAS</button>
+        </div>
+        <input type="hidden" id="statut" value="verte"></div>
       <div><label id="coefLbl">Coeff. CCAM</label><span class="coefbadge" id="coefBadge">× 1,95</span></div>
     </div>
 
@@ -319,32 +337,25 @@ window.SessionPortail = window.SessionPortail || { lire:function(){try{return se
            Sans ce champ, il faudrait deviner laquelle des consultations du jour appartient
            a ce patient - impossible des qu'il y en a plusieurs, et elles n'ont pas toutes
            la meme valeur (C 34,40 / CS 46 / APC 60). -->
-      <div class="field" id="assocWrap" style="width:230px"><label>Consultation associée</label>
-        <select id="assocLc" onchange="assocChange()">
-          <option value="CS" selected>CS — spécialiste (46,00 €)</option>
-          <option value="">— aucune</option>
-          <option value="C">C — généraliste (34,40 €)</option>
-          <option value="APC">APC — avis ponctuel (60,00 €) · cotation française</option>
-          <option value="LIBRE">Montant libre…</option>
-        </select></div>
-      <div class="field" id="assocCoefWrap" style="width:120px;display:none"><label>Coefficient</label>
-        <input id="assocCoef" type="number" step="0.5" min="0.5" value="1" onchange="assocChange()"></div>
-      <div class="field" id="assocLibreWrap" style="width:140px;display:none"><label>BR NGAP (€)</label>
-        <input id="assocLibre" type="number" step="0.01" min="0" onchange="assocChange()"></div>
-      <!-- SECTEUR : parcours bloc uniquement. Sert au placement par le comite,
-           n'apparait PAS sur le devis. Facultatif tant que la declaration
-           d'intervention n'existe pas. -->
+      <!-- (01/10/2026) DEUX CONSULTATIONS SEULEMENT : CS et APC. « C + coefficient »,
+           le montant libre et « aucune » ont disparu. Les montants affiches sont lus
+           dans LC, jamais ecrits ici. APC grisee des que le patient est monegasque.
+           Le champ cache #assocLc reste la source lue par assocBR(). -->
+      <div class="field" id="assocWrap"><label>Consultation</label>
+        <div class="seg">
+          <button id="lcCS"  onclick="setAssoc('CS')"></button>
+          <button id="lcAPC" onclick="setAssoc('APC')"></button>
+        </div>
+        <input type="hidden" id="assocLc" value="CS"></div>
       <div class="datehint" id="dateHint"></div>
-      <div class="datehint" id="assocHint"></div>
       <div class="datehint" id="statutAlerte" style="display:none;color:#8A6516"></div>
     </div>
 
-    <!-- MUTUELLE : ligne « honoraires » en % BR (nourrit le calibrage RAC) -->
-    <div id="mutRow" style="display:flex;gap:14px;align-items:flex-end;flex-wrap:wrap;margin:2px 0 6px">
-      <div style="flex:1;min-width:220px"><label>Mutuelle du patient — ligne « honoraires » (% BR)</label>
-        <select id="mut" onchange="onMut()"></select></div>
-      <div class="field" id="mutManWrap" style="display:none;width:140px"><label>% BR (saisie)</label>
-        <input id="mutMan" class="mono" type="number" step="1" value="200" oninput="applyDH()"></div>
+    <!-- MUTUELLE : cinq niveaux de la ligne « honoraires » en % BR. Aucun bouton
+         allume = mutuelle non renseignee. Masquee en Verte et SPME. -->
+    <div id="mutRow" style="margin:2px 0 6px">
+      <label>Mutuelle</label>
+      <div class="seg" id="mutBtns"></div>
     </div>
 
     <!-- CCAM : actes techniques -->
@@ -360,7 +371,7 @@ window.SessionPortail = window.SessionPortail || { lire:function(){try{return se
       </div>
       <div id="tarifAlerte" style="display:none;margin:0 0 10px;padding:9px 12px;border:1px solid;border-radius:9px;font-size:12.5px;line-height:1.45"></div>
       <div class="ccamsearch">
-        <input id="ccamq" autocomplete="off" placeholder="🔍 Rechercher un acte : code, libellé ou abréviation (ex. NEKA014, hernie, PTH)…" oninput="ccamSearch()">
+        <input id="ccamq" autocomplete="off" placeholder="🔍 Code, libellé ou abréviation" oninput="ccamSearch()">
         <div class="ccamresults" id="ccamResults"></div>
       </div>
       <!-- Version des tarifs : mention PERMANENTE et discrete. Sous 8 mois le bandeau
@@ -368,7 +379,7 @@ window.SessionPortail = window.SessionPortail || { lire:function(){try{return se
            travaille — information indispensable le jour ou un montant parait faux. -->
       <div id="tarifVer" style="font-size:10px;color:var(--muted);margin:-4px 0 8px;opacity:.75"></div>
       <table class="lines">
-        <thead><tr><th style="width:30%">Ligne (code / libellé)</th><th style="width:15%">Tarif off. act.4 (€)</th><th class="chkcell">7</th><th class="chkcell">A</th><th style="width:24%">Rôle</th><th style="width:14%;text-align:right">BR</th><th></th></tr></thead>
+        <thead><tr><th style="width:30%">Acte</th><th style="width:15%">Tarif</th><th class="chkcell">7</th><th class="chkcell">A</th><th style="width:24%">Rôle</th><th style="width:14%;text-align:right">BR</th><th></th></tr></thead>
         <tbody id="linesBody"></tbody>
       </table>
       <button class="addline" onclick="addLine()">＋ ajouter une ligne de code</button>
@@ -378,10 +389,13 @@ window.SessionPortail = window.SessionPortail || { lire:function(){try{return se
          a la fois — le devis lui est remis en direct — et les deux gestes qui
          suivent (Devis, Declarer) portent directement sur la cotation en cours. -->
     <div class="parcfoot">
-      <div class="brtot">BR de ce patient : <b id="parcBR">0 €</b></div>
+      <div class="brtot">BR : <b id="parcBR">0 €</b></div>
+      <!-- (01/10/2026) UN SEUL CHAMP. « Total cible » et « Caler sur l'optimal » ont
+           disparu : le depassement se pre-remplit seul (chirurgien qui cote -> 50 %
+           du sien ; sinon calage mutuelle) et reste modifiable. -->
       <div class="dhbox">
-        <div class="field"><label>DH (€)</label><input id="dh" class="mono" type="number" step="0.01" value="0" oninput="updateRac()"></div>
-        <div class="field" id="cibleWrap" style="display:none"><label>ou total cible (€)</label><input id="cible" class="mono" type="number" step="0.01" placeholder="ex. 1500" onchange="fromCible()"></div>
+        <div class="field" style="width:150px"><label>Dépassement</label><input id="dh" class="mono" type="number" step="0.01" value="0" oninput="dhSaisi()">
+          <div class="usage" id="dhUsage" style="display:none"></div></div>
       </div>
     </div>
     <!-- (17/08/2026) LE CHIRURGIEN COTE-T-IL AUSSI EN LIBERAL ?
@@ -392,15 +406,15 @@ window.SessionPortail = window.SessionPortail || { lire:function(){try{return se
          calibrage sur la mutuelle n'a de sens, que si l'anesthesiste cote seul.
          Usage et non regle : la valeur est PROPOSEE, jamais imposee. -->
     <div id="chirRow" style="display:none;background:var(--panel);border:1px solid var(--line);border-radius:11px;padding:11px 13px;margin:8px 0">
-      <div style="font-size:12px;font-weight:600;margin-bottom:8px">Le chirurgien cote-t-il aussi en libéral&nbsp;?</div>
+      <div style="font-size:12px;font-weight:600;margin-bottom:8px">Le chirurgien cote-t-il&nbsp;?</div>
       <div class="seg" style="display:inline-flex">
-        <button id="chirNon" class="on" onclick="setChir(false)">Non — je cote seul</button>
+        <button id="chirNon" class="on" onclick="setChir(false)">Non</button>
         <button id="chirOui" onclick="setChir(true)">Oui</button>
       </div>
       <div id="chirDhWrap" style="display:none;margin-top:10px">
         <div style="display:flex;gap:12px;align-items:flex-end;flex-wrap:wrap">
-          <div class="field" style="width:190px"><label>Dépassement du chirurgien (€)</label>
-            <input id="chirDh" class="mono" type="number" step="0.01" min="0" placeholder="ex. 800" oninput="chirChange()"></div>
+          <div class="field" style="width:190px"><label>Dépassement chirurgien</label>
+            <input id="chirDh" class="mono" type="number" step="0.01" min="0" oninput="chirChange()"></div>
           <div class="datehint" id="chirHint" style="flex:1;min-width:200px"></div>
         </div>
       </div>
@@ -408,20 +422,16 @@ window.SessionPortail = window.SessionPortail || { lire:function(){try{return se
 
     <!-- CALIBRAGE MUTUELLE → RAC -->
     <div class="racbox" id="racBox" style="display:none">
-      <div class="hd" id="racTitre">Calibrage sur la mutuelle — objectif : reste à charge patient minimal</div>
+      <div class="hd" id="racTitre">Calé sur la mutuelle</div>
       <div class="racgrid">
-        <div class="racfig"><div class="l">Plafond carte</div><div class="v" id="rCap">—</div></div>
-        <div class="racfig"><div class="l">Absorbé mutuelle</div><div class="v" id="rAbs">—</div></div>
-        <div class="racfig"><div class="l">DH optimal (RAC 0)</div><div class="v" id="rOpt">—</div></div>
-        <div class="racfig"><div class="l">RAC au DH saisi</div><div class="v" id="rRac">—</div></div>
+        <div class="racfig"><div class="l">Plafond</div><div class="v" id="rCap">—</div></div>
+        <div class="racfig"><div class="l">Absorbé</div><div class="v" id="rAbs">—</div></div>
+        <div class="racfig"><div class="l">Optimal</div><div class="v" id="rOpt">—</div></div>
+        <div class="racfig"><div class="l">Reste à charge</div><div class="v" id="rRac">—</div></div>
       </div>
-      <div class="rachint" id="rCapNote" style="display:none;color:#8A6516;background:#FDF3E3;border:1px solid #EAD9B4;border-radius:8px;padding:7px 10px;margin-top:8px"><b>Plafond non-OPTAM.</b> Assuré français, contrat responsable, praticien secteur 2 non-OPTAM : la mutuelle ne peut absorber que <b>100 % BR de dépassement</b> (200 % BR total, part Sécu incluse), même si la ligne affiche davantage. Le % au-delà de 200 correspond en principe à la colonne <b>OPTAM</b> — vérifie que tu lis bien la colonne <b>non-OPTAM</b>.</div>
-      <button class="calerbtn" id="calerBtn" onclick="caler()" disabled>Caler le DH sur l'optimal</button>
+      <div class="rachint" id="rCapNote" style="display:none;color:#8A6516;background:#FDF3E3;border:1px solid #EAD9B4;border-radius:8px;padding:7px 10px;margin-top:8px"><b>Plafond non-OPTAM : 200 % BR.</b></div>
       <div class="rachint" id="racAvert" style="display:none;color:#8A6516;background:#FDF3E3;border:1px solid #EAD9B4;border-radius:8px;padding:7px 10px;margin-top:8px"></div>
-      <div class="rachint">DH optimal = min( plafond réglementaire de la carte/secteur , dépassement absorbé par la mutuelle ). Absorbé = (%&nbsp;BR&nbsp;−&nbsp;100)&nbsp;× BR, plafonné à 100&nbsp;% BR côté français non-OPTAM. Mal couvert ⇒ optimal bas, voire nul : l'outil recommande alors de <b>facturer moins</b>.</div>
     </div>
-
-    <div class="hint" id="hintCCAM">Rôle : <b>principal</b> 100 % · <b>associé</b> 50 % (2ᵉ acte) · <b>complément</b> 100 % en sus (AHQJ021, YYYY041…). Le modificateur A vaut +23 € (français) ou +44,85 € (monégasque). Tarif officiel : à lire dans le classeur Excel des codes.</div>
   </div>
 
   <!-- Les deux cadrans « % projeté » ont ete RETIRES le 17/08/2026. Ils se
@@ -432,6 +442,23 @@ window.SessionPortail = window.SessionPortail || { lire:function(){try{return se
   <!-- DÉCLARATION D'INTERVENTION LIBÉRALE — geste AUTONOME (rien à voir avec les parcours
        de cotation ci-dessus). Écrit une ligne dans LIBERAL_{Y}, lue par le comité pour
        le placement. Aucune donnée patient, aucun code d'acte. -->
+  <!-- (01/10/2026) LIGNE PRATICIEN + DECLARATION : un bloc replie, ferme par defaut.
+       ⚠️ Le devis imprime LIT cfgPrat et cfgRPPS (nom, RPPS, declaration de choix).
+       Replier ne change pas leur valeur ; l'en-tete du bloc dit ce qui manque
+       (identite, secteur, specialite), et le bloc s'ouvre seul quand la
+       declaration n'attend plus que le secteur ou la specialite.
+       Restent HORS du bloc : le message apres declaration et la panne des listes,
+       qu'un bloc ferme rendrait invisibles. -->
+  <div id="listesKO" style="display:none;background:#FDF3E3;border:1px solid #EAD9B4;border-radius:9px;padding:9px 12px;font-size:12px;color:#8A6516;margin-top:14px"></div>
+  <div class="declmsg" id="dclMsg" style="display:none"></div>
+  <details class="repli" id="repli">
+    <summary>Praticien et déclaration au comité <span class="etat" id="repliEtat"></span></summary>
+  <div class="pratbar">
+    <span class="pblab">Praticien</span>
+    <input id="cfgPrat" placeholder="Prénom Nom" oninput="dclPreview()">
+    <input id="cfgRPPS" placeholder="RPPS" oninput="dclPreview()">
+    <span class="pbetat" id="pbEtat"></span>
+  </div>
   <div class="declbox">
     <h2>Déclarer au comité</h2>
 <!-- (17/08/2026) LES DOUBLONS DE SAISIE ONT DISPARU. Jour du bloc, date de
@@ -439,19 +466,16 @@ window.SessionPortail = window.SessionPortail || { lire:function(){try{return se
          de la cotation ci-dessus : deux endroits pour la meme donnee, donc deux
          valeurs possibles. Ne restent que les deux informations que la cotation
          ne connait pas : ou (secteur) et quelle specialite. -->
-    <div class="sub2">Le comité verra cette intervention lors du placement du jour. Aucune donnée patient, aucun code d'acte. Les dates et les montants viennent de la cotation ci-dessus.</div>
     <div class="declgrid">
       <div class="field"><label>Secteur</label><select id="dclSec" onchange="dclSecChange()"><option value="">— chargement…</option></select>
         <div class="memo" id="secMemo" style="display:none">✓ votre dernier secteur</div></div>
-      <div class="field"><label>Spécialité <span style="color:var(--over)">— obligatoire</span></label><select id="dclSpec" onchange="dclTouche('spec');dclPreview()"><option value="">— chargement…</option></select>
+      <div class="field"><label>Spécialité</label><select id="dclSpec" onchange="dclTouche('spec');dclPreview()"><option value="">— chargement…</option></select>
         <div class="memo" id="specMemo" style="display:none"></div></div>
-      <div class="field"><label>Chirurgie <span style="color:var(--muted)">— facultatif</span></label><input id="dclChir" placeholder="PTH, hernie cœlio…" oninput="dclTouche('chir');dclPreview()"></div>
+      <div class="field"><label>Chirurgie</label><input id="dclChir" oninput="dclTouche('chir');dclPreview()"></div>
     </div>
-    <div id="listesKO" style="display:none;background:#FDF3E3;border:1px solid #EAD9B4;border-radius:9px;padding:9px 12px;font-size:12px;color:#8A6516;margin-bottom:11px"></div>
     <div class="row2">
-      <div class="declpreview" id="dclPrev">Renseignez le jour du bloc, dans la cotation.</div>
+      <div class="declpreview" id="dclPrev">Jour du bloc manquant.</div>
     </div>
-    <div class="declmsg" id="dclMsg" style="display:none"></div>
   </div>
 
   <div class="decllist" id="dclListWrap" style="display:none">
@@ -464,6 +488,7 @@ window.SessionPortail = window.SessionPortail || { lire:function(){try{return se
     <div id="dclListKO" style="display:none;background:#FDF3E3;border:1px solid #EAD9B4;border-radius:9px;padding:10px 12px;font-size:12.5px;color:#8A6516;line-height:1.5"></div>
     <div id="dclRows"></div>
   </div>
+  </details>
 
   <div class="actionbar">
     <div class="inner">
@@ -477,43 +502,30 @@ window.SessionPortail = window.SessionPortail || { lire:function(){try{return se
     </div>
   </div>
 
-  <footer><b>Estimateur, pas décompte.</b> Calcul : BR = coefficient × (tarif officiel × (1+%mod) × taux d'association + €mod). Le tarif officiel a une petite incertitude (à fiabiliser via tes feuilles vertes) ; le DH « libre » se saisit. Le code réel peut différer du prévu ; le relevé officiel recale tout.</footer>
 </div>
 
 <script>
 const STATUTS={
  verte:{coeff:1.95,dh:'0'}, rose:{coeff:1.95,dh:'0.20'}, bulle:{coeff:1.95,dh:'libre'},
- fr:{coeff:1.00,dh:'libre'}, frc2s:{coeff:1.00,dh:'0'}, nas:{coeff:1.00,dh:'libre'}, spme:{coeff:1.95,dh:'0'}
+ fr:{coeff:1.00,dh:'libre'}, nas:{coeff:1.00,dh:'libre'}, spme:{coeff:1.95,dh:'0'}
+ /* (01/10/2026) « Francais — AME / C2S » RETIRE : pas de liberal pour ces
+    patients. Il etait lu par le libelle et le taux de remboursement du devis
+    (ST_LABELS, RO_RATE), retires avec lui. */
  /* (17/08/2026) « AME » RETIRE — decision du responsable : on ne fait pas de liberal
     pour l'AME. L'entree portait un coefficient monegasque (1,95) quand
     « Assure francais — AME / C2S » en portait un francais (1,00) : deux calculs
     opposes, et rien a l'ecran ne disait lequel choisir. La question de la base
     AME, restee ouverte depuis juillet, se ferme avec l'option. */
 };
-const ROLES={principal:{lab:'Principal (100 %)',rate:1.0}, associe:{lab:'Associé (50 %)',rate:0.5}, complement:{lab:'Complément (100 % en sus)',rate:1.0}};
-// NGAP : lettre-clé × coefficient, sans coeff monégasque ni modificateur
-const LC={C:34.40, CS:46.00, APC:60.00, AUTRE:0};
-// Libelles en clair des lettres-cles, pour le detail acte par acte du devis.
-// Bibliothèque de formules mutuelle — SEULE la ligne « honoraires » (en % BR) compte.
-// À enrichir au fil de la collecte des tableaux de garanties. p=0 → non renseignée ; p=-1 → saisie manuelle.
-const FORMULES=[
-  {n:'— mutuelle non renseignée', p:0},
-  // CCSP Mutuelle Monaco (Groupama Gan Vie) — honoraires chirurgie ET consult spécialiste,
-  // même échelle par formule. Source : Notice CG déc. 2025, art. 10. Contrat monégasque : pas de plafond OPTAM.
-  {n:'CCSP Monaco — Formule 1 (100 % BR)', p:100},
-  {n:'CCSP Monaco — Formule 2 (120 % BR)', p:120},
-  {n:'CCSP Monaco — Formule 3 (150 % BR)', p:150},
-  {n:'CCSP Monaco — Formule 4 (200 % BR)', p:200},
-  {n:'CCSP Monaco — Formule 5 (300 % BR)', p:300},
-  {n:'CCSP Monaco — Formule 6 (400 % BR)', p:400},
-  {n:'Générique 100 % BR (aucun DH absorbé)', p:100},
-  {n:'Générique 125 % BR', p:125},
-  {n:'Générique 150 % BR', p:150},
-  {n:'Générique 200 % BR', p:200},
-  {n:'Générique 300 % BR', p:300},
-  {n:'Générique 400 % BR', p:400},
-  {n:'Autre / saisie manuelle…', p:-1},
-];
+const ROLES={principal:{lab:'Principal',rate:1.0}, associe:{lab:'Associé',rate:0.5}, complement:{lab:'Complément',rate:1.0}};
+// NGAP : valeur de la lettre-cle, sans coeff monegasque ni modificateur.
+// (01/10/2026) Deux consultations seulement. C (34,40) et le montant libre ont disparu.
+const LC={CS:46.00, APC:60.00};
+/* (01/10/2026) MUTUELLE : cinq niveaux de la ligne « honoraires » (% BR) au lieu de
+   la bibliotheque de formules. Le calcul ne change pas : absorbe = (% - 100) x BR.
+   MUT_PCT = 0 : mutuelle non renseignee (aucun bouton allume). */
+const MUTUELLES=[100,150,200,250,300];
+let MUT_PCT=0;
 let lastRac=0, lastMut=null;
 let axe='CCAM';
 // Tableau VIDE au demarrage (27/07/2026). Il contenait deux lignes d'orthopedie de
@@ -541,48 +553,54 @@ function lineBR(l){const c=coeff();const pct=l.m7?0.06:0;const rate=ROLES[l.role
 
 // L'APC est une cotation FRANCAISE : elle ne figure pas dans la nomenclature monegasque
 // (annexe III : C, CPN, CS, CSPN, CP3, CPSY, CSC, CALD, CDE, V, VS, VPSY, K, KC, SPM).
-// Interdite pour un assure monegasque.
-const APC_INTERDIT = {verte:true, rose:true, bulle:true, spme:true};
+// (01/10/2026) Refusee des que le patient releve de la rangee Monaco — NAS compris.
+const MONACO = {verte:true, rose:true, bulle:true, spme:true, nas:true};
 function statutCourant(){ const s=document.getElementById('statut'); return s ? s.value : ''; }
+function estMonaco(st){ return !!MONACO[st]; }
+// Montant court lu dans LC : « 46 € », « 34,40 € ».
+function eurLc(n){ return (Number.isInteger(n) ? String(n) : n.toFixed(2).replace('.',',')) + ' €'; }
 
 function assocBR(){
   const sel=document.getElementById('assocLc'); if(!sel) return 0;
-  const v=sel.value;
-  if(!v) return 0;
-  if(v==='LIBRE') return Math.max(0, parseFloat(document.getElementById('assocLibre').value)||0);
-  if(v==='C'){
-    const k=Math.max(0, parseFloat(document.getElementById('assocCoef').value)||1);
-    return Math.round(LC.C*k*100)/100;
-  }
-  return LC[v]||0;
+  return LC[sel.value]||0;
 }
 
+function setAssoc(v){
+  if(!LC[v]) return;
+  if(v==='APC' && estMonaco(statutCourant())) return;    // bouton grise : rien ne passe
+  document.getElementById('assocLc').value=v;
+  assocChange();
+}
+
+/* Recale la consultation sur ce que le statut permet, puis redessine. Une valeur
+   inconnue (ancienne cotation type en « C » ou sans consultation) retombe sur CS. */
 function assocChange(){
   const sel=document.getElementById('assocLc'); if(!sel) return;
-  const v=sel.value;
-  document.getElementById('assocCoefWrap').style.display  = (v==='C')     ? 'block':'none';
-  document.getElementById('assocLibreWrap').style.display = (v==='LIBRE') ? 'block':'none';
-  // Garde-fou APC : interdite pour un assure monegasque, avertie pour NAS / AME
-  // (regimes dont la base n'est pas confirmee - cf. questions ouvertes de la conception).
-  if(v==='APC'){
-    const st=statutCourant();
-    if(APC_INTERDIT[st]){
-      alert("L'APC est une cotation francaise : elle ne peut pas etre appliquee a un assure monegasque.");
-      sel.value=''; assocChange(); return;
-    }
-    if(st==='nas'){
-      alert("APC pour ce statut : base non confirmee. A verifier avec la facturation avant remise du devis.");
-    }
-  }
-  renderAssocHint();
+  if(!LC[sel.value]) sel.value='CS';
+  const monaco=estMonaco(statutCourant());
+  if(sel.value==='APC' && monaco) sel.value='CS';
+  const bCS=document.getElementById('lcCS'), bAPC=document.getElementById('lcAPC');
+  if(bCS){ bCS.textContent='CS '+eurLc(LC.CS); bCS.classList.toggle('on', sel.value==='CS'); }
+  if(bAPC){ bAPC.textContent='APC '+eurLc(LC.APC); bAPC.classList.toggle('on', sel.value==='APC'); bAPC.disabled=monaco; }
+  majBarre();
 }
 
-function renderAssocHint(){
-  const h=document.getElementById('assocHint'); if(!h) return;
-  const br=assocBR();
-  h.innerHTML = br>0
-    ? 'BR NGAP rattachee a ce patient : <b>'+eur2(br)+'</b> — elle partira dans la declaration.'
-    : '';
+/* ── STATUT EN BOUTONS (01/10/2026) ───────────────────────────────────── */
+let DERNIERE_CARTE='verte';     // la carte monegasque retrouvee en revenant sur Monaco
+function choisirPays(p){ setStatut(p==='fr' ? 'fr' : DERNIERE_CARTE); }
+function setStatut(st){
+  if(!STATUTS[st]) return;
+  document.getElementById('statut').value=st;
+  onStatut();
+}
+function renderStatutBtns(){
+  const st=statutCourant(), mc=estMonaco(st);
+  if(mc) DERNIERE_CARTE=st;
+  document.getElementById('stFr').classList.toggle('on', !mc);
+  document.getElementById('stMc').classList.toggle('on', mc);
+  const cartes=document.getElementById('stCartes');
+  cartes.style.display = mc ? 'inline-flex' : 'none';
+  cartes.querySelectorAll('button').forEach(function(b){ b.classList.toggle('on', b.dataset.st===st); });
 }
 
 /* (17/08/2026) Le bandeau AME a disparu avec l'option : il avertissait que la
@@ -600,13 +618,18 @@ function parcoursBR(){ return builder.reduce((s,l)=>s+lineBR(l),0); }
 
 // ---- MOTEUR MUTUELLE ----
 function populateMut(){
-  document.getElementById('mut').innerHTML=FORMULES.map((f,i)=>`<option value="${i}">${f.n}</option>`).join('');
+  document.getElementById('mutBtns').innerHTML=MUTUELLES.map(p=>
+    `<button data-p="${p}" class="${p===MUT_PCT?'on':''}" onclick="setMut(${p})">${p} %</button>`).join('');
+}
+// Un second clic sur le bouton allume l'eteint : mutuelle non renseignee.
+function setMut(p){
+  MUT_PCT = (MUT_PCT===p) ? 0 : p;
+  DH_MANUEL=false;
+  populateMut();
+  applyDH();
 }
 function currentMut(){
-  const sel=document.getElementById('mut'); if(!sel) return {n:null,p:0};
-  const f=FORMULES[+sel.value]||FORMULES[0];
-  if(f.p===-1){const p=parseFloat(document.getElementById('mutMan').value)||0;return {n:'manuel '+p+' % BR',p};}
-  return f;
+  return MUT_PCT>0 ? {n:MUT_PCT+' % BR', p:MUT_PCT} : {n:null, p:0};
 }
 function currentMutPct(){return currentMut().p;}
 function dhEditable(st){return STATUTS[st].dh==='libre';}     // libre = DH ajustable ; rose/verte = auto
@@ -618,10 +641,15 @@ function coverageCeiling(st,pct,br){
   return c;
 }
 function capNonOptam(st,pct){ return st==='fr' && pct>200; }  // le plafond mord
-function onMut(){
-  const f=FORMULES[+document.getElementById('mut').value]||FORMULES[0];
-  document.getElementById('mutManWrap').style.display=f.p===-1?'block':'none';
-  applyDH();
+/* Depassement cale sur la mutuelle = min(plafond du statut, absorbe). null si la
+   mutuelle n'est pas renseignee. Meme formule qu'avant le 01/10/2026, sortie de
+   updateRac pour servir aussi au pre-remplissage. */
+function dhOptimal(st,pct,br){
+  if(!(pct>0)) return null;
+  const S=STATUTS[st];
+  const cap = S.dh==='0.20' ? 0.20*br : Infinity;
+  const absorp=Math.max(0, coverageCeiling(st,pct,br)-br);
+  return Math.min(cap, absorp);
 }
 // RAC = (BR + DH) − min( %BR×BR , BR+DH ). Absorbé = (%BR−100)×BR. DH optimal = min(plafond carte, absorbé).
 function updateRac(){
@@ -635,11 +663,11 @@ function updateRac(){
   const cap = S.dh==='0.20' ? 0.20*br : Infinity;                            // plafond réglementaire €
   document.getElementById('rCap').textContent = cap===Infinity?'libre':eur2(cap);
   const mut=currentMut(), pct=mut.p, dh=parseFloat(document.getElementById('dh').value)||0;
-  let absTxt='—',optTxt='—',racTxt='—',dhOpt=null,racVal=null,cls='';
+  let absTxt='—',optTxt='—',racTxt='—',racVal=null,cls='';
   if(pct>0){
     const ceil=coverageCeiling(st,pct,br);             // plafond de prise en charge total (fr : ≤ 200 % BR)
     const absorp=Math.max(0,ceil-br);                  // DH réellement absorbable
-    dhOpt=Math.min(cap===Infinity?absorp:cap, absorp);
+    const dhOpt=dhOptimal(st,pct,br);
     const reimb=Math.min(ceil, br+dh);
     racVal=Math.max(0,(br+dh)-reimb);
     absTxt=eur2(absorp); optTxt=eur2(dhOpt); racTxt=eur2(racVal);
@@ -652,24 +680,18 @@ function updateRac(){
   const note=document.getElementById('rCapNote');
   if(capNonOptam(st,pct)){ note.style.display='block'; }
   else { note.style.display='none'; }
-  const btn=document.getElementById('calerBtn');
   /* Le chirurgien cote aussi : le montant m'est donne par l'usage, il n'y a
-     rien a caler. Proposer « l'optimal » serait proposer un montant qu'on n'a
-     pas le droit d'appliquer. */
+     rien a caler sur la mutuelle. (01/10/2026) Le bouton « Caler » a disparu :
+     le calage est automatique, voir applyDH. */
   const impose = CHIR_LIB && chirDhPropose()!=null;
-  btn.disabled=!(pct>0 && dhEditable(st) && !impose);
-  btn.dataset.opt = dhOpt==null?'':dhOpt;
   const titre=document.getElementById('racTitre');
-  if(titre) titre.textContent = impose
-    ? 'Reste à charge du patient — dépassement calé sur celui du chirurgien'
-    : 'Calibrage sur la mutuelle — objectif : reste à charge patient minimal';
+  if(titre) titre.textContent = impose ? 'Calé sur le chirurgien' : 'Calé sur la mutuelle';
   /* Un reste a charge non nul doit SE VOIR, ici comme sur le devis : le patient
      le decouvrirait sinon en payant. */
   const av=document.getElementById('racAvert');
   if(av){
     if(impose && racVal>0.005){
-      av.innerHTML='<b>Reste à charge de '+eur2(racVal)+'.</b> La mutuelle n\'absorbe pas tout le dépassement. '
-        +'Le patient doit le savoir <b>avant</b> de signer — le montant figure sur le devis.';
+      av.innerHTML='<b>Reste à charge : '+eur2(racVal)+'.</b> Il figure sur le devis.';
       av.style.display='block';
     } else av.style.display='none';
   }
@@ -706,6 +728,7 @@ function setChir(oui){
   document.getElementById('chirOui').classList.toggle('on', CHIR_LIB);
   document.getElementById('chirNon').classList.toggle('on', !CHIR_LIB);
   document.getElementById('chirDhWrap').style.display = CHIR_LIB ? 'block' : 'none';
+  DH_MANUEL=false;
   chirChange();
 }
 
@@ -722,23 +745,19 @@ function chirChange(){
   const h = document.getElementById('chirHint');
   if(h){
     h.innerHTML = !CHIR_LIB ? ''
-      : (prop == null
-          ? 'Montant du chirurgien inconnu&nbsp;: votre dépassement reste libre. Renseignez-le pour que l\'usage des 50&nbsp;% s\'applique.'
-          : 'Usage&nbsp;: <b>' + eur2(prop) + '</b> pour vous, soit 50&nbsp;% du sien. Proposé, modifiable.');
+      : (prop == null ? 'Montant inconnu : dépassement libre.'
+                      : '50&nbsp;% : <b>' + eur2(prop) + '</b>');
   }
-  if(prop != null){
-    const dhIn = document.getElementById('dh');
-    if(dhIn && !dhIn.disabled) dhIn.value = prop.toFixed(2);
-  }
-  updateRac(); renderSummary();
+  DH_MANUEL=false;           // le montant du chirurgien change : la proposition reprend la main
+  applyDH();
 }
 
-function caler(){
-  const opt=parseFloat(document.getElementById('calerBtn').dataset.opt);
-  if(isNaN(opt))return;
-  document.getElementById('dh').value=(Math.round(opt*100)/100).toFixed(2);
-  updateRac(); renderSummary();
-}
+/* (01/10/2026) caler() et fromCible() ont disparu avec leur bouton et leur champ :
+   le depassement se pre-remplit seul (applyDH). Une saisie a la main est gardee
+   jusqu'au prochain changement de statut, de mutuelle, de chirurgien, de cotation
+   type ou de patient — pas a chaque case cochee dans le tableau. */
+let DH_MANUEL=false;
+function dhSaisi(){ DH_MANUEL=true; updateRac(); renderSummary(); }
 
 /* setAxe() a disparu avec le selecteur (17/08/2026). L'ecran d'ouverture se pose
    une fois : le jour du bloc est demande, la consultation associee aussi. */
@@ -753,9 +772,12 @@ function onStatut(){const st=STATUTS[document.getElementById('statut').value];
   const badge=document.getElementById('coefBadge'), lbl=document.getElementById('coefLbl');
   if(axe==='NGAP'){ badge.textContent='× 1,00'; lbl.textContent='Coeff. NGAP'; badge.title='Le NGAP n’applique pas le coefficient monégasque'; }
   else { badge.textContent='× '+st.coeff.toLocaleString('fr-FR',{minimumFractionDigits:2}); lbl.textContent='Coeff. CCAM'; badge.title=''; }
+  renderStatutBtns();
   renderStatutAlerte();
-  document.getElementById('cibleWrap').style.display = st.dh==='libre'?'block':'none';
-  document.getElementById('mutRow').style.display = st.dh==='0'?'none':'flex';
+  // Mutuelle : visible pour France, Rose, Bulle, NAS ; masquee en Verte et SPME.
+  document.getElementById('mutRow').style.display = st.dh==='0'?'none':'block';
+  DH_MANUEL=false;
+  assocChange();             // APC grisee (et retiree) des que le patient est monegasque
   renderBuilder();}
 // Modificateur 7 (presence permanente de l'anesthesiste, +6 %) COCHE PAR DEFAUT :
 // il est present sur tous les releves observes, et une case oubliee sous-evaluait
@@ -793,16 +815,24 @@ function applyDH(){
   }
   else{
     dhIn.disabled=false;                                     // libre : ajustable
-    // Chirurgien liberal : l'usage des 50 % reprend la main sur la valeur en place.
-    const prop=chirDhPropose();
-    if(prop!=null) dhIn.value=prop.toFixed(2);
+    /* (01/10/2026) PRE-REMPLISSAGE, dans cet ordre : chirurgien qui cote -> 50 %
+       du sien ; sinon calage mutuelle ; sinon 0. Une saisie a la main reste en
+       place (DH_MANUEL) jusqu'au prochain changement de ce qui fonde la proposition. */
+    if(!DH_MANUEL){
+      const v=dhPropose();
+      dhIn.value=(Math.round(v*100)/100).toFixed(2);
+    }
   }
   updateRac();
   renderSummary();
 }
 
-function fromCible(){const c=parseFloat(document.getElementById('cible').value)||0;const br=parcoursBR();
-  document.getElementById('dh').value=(Math.max(0,Math.round((c-br)*100)/100)).toFixed(2);updateRac();renderSummary();}
+function dhPropose(){
+  const prop=chirDhPropose();
+  if(prop!=null) return prop;
+  const opt=dhOptimal(statutCourant(), currentMutPct(), parcoursBR());
+  return opt!=null ? opt : 0;
+}
 
 // ---- BRANCHEMENT AU PORTAIL ----------------------------------------------
 // La page est servie depuis la MEME origine que index.html (GitHub Pages) : la
@@ -836,6 +866,7 @@ function pbSetEtat(txt, ok){
   const e=document.getElementById('pbEtat'); if(!e) return;
   e.textContent=txt; e.className='pbetat '+(ok?'ok':'ko');
   document.querySelector('.pratbar').classList.toggle('lie', !!ok);
+  dclPreview();            // l'en-tete du bloc replie suit l'identite
 }
 
 // Repli VISIBLE : si le code manque ou si l'API ne repond pas, on le DIT et on laisse
@@ -1030,7 +1061,9 @@ function appliquerCotType(i){
   }
   if(!lignes.length) return;
   builder=lignes;
-  // Consultation associee posee par la cotation type (CS par defaut cote onglet).
+  DH_MANUEL=false;
+  // Consultation associee posee par la cotation type. (01/10/2026) Seules CS et APC
+  // existent a l'ecran : assocChange ramene toute autre valeur (C, vide) sur CS.
   const sel=document.getElementById('assocLc');
   if(sel && c.lc){ sel.value=c.lc; assocChange(); }
   renderBuilder();
@@ -1187,17 +1220,36 @@ function dclPreview(){
   const spec=(document.getElementById('dclSpec')||{}).value||'';
   const chir=(document.getElementById('dclChir')||{}).value.trim()||'';
   const prev=document.getElementById('dclPrev'), btn=document.getElementById('dclBtn');
-  const bloqueur = !p ? (parcoursBR()<=0 ? 'Cotez d\'abord le patient, ci-dessus.'
-                                         : 'Renseignez le jour du bloc, dans la cotation.')
-                 : (!sec ? 'Choisissez le secteur.'
-                 : (!spec ? 'Choisissez la spécialité — elle est obligatoire.' : ''));
-  if(btn) btn.disabled=!!bloqueur;
+  const bloqueur = !p ? (parcoursBR()<=0 ? 'Aucun acte.'
+                                         : 'Jour du bloc manquant.')
+                 : (!sec ? 'Secteur à choisir.'
+                 : (!spec ? 'Spécialité à choisir.' : ''));
+  if(btn){ btn.disabled=!!bloqueur; btn.title=bloqueur||''; }
+  majRepli(p, sec, spec);
   if(!prev) return;
   if(bloqueur){ prev.innerHTML=esc(bloqueur); return; }
   prev.innerHTML='Sera écrit : <span class="mono">'+esc(p.dCs)+' · '+esc(p.dInt)+' · [vous] · '+esc(sec)
     +' · '+esc(spec)+(chir?' · '+esc(chir):'')+'</span>'
     +'<br><span style="font-size:11px;color:var(--muted)">BR CCAM '+eur2(p.brCcam||0)
     +' (mois du bloc) · BR NGAP '+eur2(p.brNgap||0)+' (mois de la consultation)</span>';
+}
+
+/* En-tete du bloc replie (01/10/2026) : ce qui manque, en clair. Le bloc s'ouvre
+   SEUL quand la cotation est prete et que la declaration n'attend plus que le
+   secteur ou la specialite — sinon le bouton Declarer resterait gris sans raison
+   visible. Il ne se referme jamais seul : c'est l'utilisateur qui decide. */
+function majRepli(p, sec, spec){
+  const etat=document.getElementById('repliEtat'); if(!etat) return;
+  const manque=[];
+  const nom=(document.getElementById('cfgPrat')||{}).value||'';
+  const rpps=(document.getElementById('cfgRPPS')||{}).value||'';
+  if(!nom.trim() || !rpps.trim()) manque.push('praticien à compléter');
+  if(!sec) manque.push('secteur');
+  if(!spec) manque.push('spécialité');
+  etat.textContent = manque.length ? '· '+manque.join(' · ') : '· prêt';
+  etat.className = 'etat'+(manque.length?'':' ok');
+  const rep=document.getElementById('repli');
+  if(rep && p && (!sec || !spec)) rep.open=true;
 }
 
 function dclFlash(txt, ok){
@@ -1281,8 +1333,11 @@ function rouvrirDevis(id){
    (secteur, contexte de cotation, statut de carte le plus frequent du creneau). */
 function patientSuivant(){
   builder=[]; parcours=[];
-  ['dInt','dclChir','cible','chirDh'].forEach(function(id){ const el=document.getElementById(id); if(el) el.value=''; });
+  ['dInt','dclChir','chirDh'].forEach(function(id){ const el=document.getElementById(id); if(el) el.value=''; });
   const dh=document.getElementById('dh'); if(dh) dh.value='0';
+  /* (01/10/2026) La mutuelle repart a vide : le depassement se cale desormais SEUL
+     sur elle, et celle du patient precedent fixerait sans bruit celui du suivant. */
+  MUT_PCT=0; populateMut(); DH_MANUEL=false;
   const q=document.getElementById('ccamq'); if(q) q.value='';
   const res=document.getElementById('ccamResults'); if(res) res.innerHTML='';
   const dcs=document.getElementById('dCs'); if(dcs) dcs.value=isoToday();
@@ -1399,11 +1454,9 @@ function fmtI(iso){if(!iso)return '\u2014';const q=String(iso).split('-');return
 function renderDateHint(){
   const h=document.getElementById('dateHint'); if(!h)return;
   const dInt=document.getElementById('dInt').value;
-  if(axe==='NGAP'){h.innerHTML="La consultation est l'acte : c'est cette date qui remonte au comit\u00e9 et qui \u00e9tablit le devis.";return;}
-  if(!dInt){h.innerHTML="<b>Date d'intervention requise</b> \u2014 c'est elle qui pose l'alerte du comit\u00e9 sur le planning.";return;}
-  h.innerHTML = (dInt<isoToday())
-    ? "<b style=\"color:#8A6516\">Intervention d\u00e9j\u00e0 pass\u00e9e</b> \u2014 accept\u00e9 (codage r\u00e9trospectif), signal\u00e9 en orange dans la liste."
-    : "L'alerte du comit\u00e9 se posera le <b>"+fmtI(dInt)+"</b>.";
+  // (01/10/2026) Plus de phrase d'explication : seul un jour deja passe se signale.
+  if(axe==='NGAP' || !dInt){h.innerHTML='';return;}
+  h.innerHTML = (dInt<isoToday()) ? "<b style=\"color:#8A6516\">Jour d\u00e9j\u00e0 pass\u00e9</b>" : '';
 }
 
 /* (17/08/2026) UN PATIENT A LA FOIS. `addParcours` empilait des patients dans une
@@ -1455,9 +1508,9 @@ function ouvrirDevisCourant(){
 function renderSummary(){ majBarre(); }
 /* renderRows() a disparu avec la liste des parcours empiles (17/08/2026). */
 // ---- GÉNÉRATEUR DE DEVIS (client-side, zéro persistance patient) ----
-const ST_LABELS={verte:'Carte verte (CCSS Monaco)',rose:'Carte rose (CCSS Monaco)',bulle:'Carte bulle (CCSS Monaco)',fr:'Assuré français (secteur 2)',frc2s:'Assuré français — AME / C2S (précarité)',nas:'NAS — non assuré social',spme:'SPME (Monaco)'};
+const ST_LABELS={verte:'Carte verte (CCSS Monaco)',rose:'Carte rose (CCSS Monaco)',bulle:'Carte bulle (CCSS Monaco)',fr:'Assuré français (secteur 2)',nas:'NAS — non assuré social',spme:'SPME (Monaco)'};
 let dvHonoraire=0;
-const RO_RATE={verte:0.80,rose:0.80,bulle:0.80,spme:0.80,fr:0.70,frc2s:1.00,nas:0.00};
+const RO_RATE={verte:0.80,rose:0.80,bulle:0.80,spme:0.80,fr:0.70,nas:0.00};
 function eText(id,v){document.getElementById(id).textContent=v;}
 function fmtDate(d){return String(d.getDate()).padStart(2,'0')+'/'+String(d.getMonth()+1).padStart(2,'0')+'/'+d.getFullYear();}
 // Libelle lisible d'un code secteur ; a defaut, le code lui-meme.
