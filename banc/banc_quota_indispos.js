@@ -41,28 +41,35 @@ const PAGE = fs.readFileSync(path.join(__dirname, '..', 'indispos.html'), 'utf8'
 console.log('\n═══ 1. Une seule valeur, envoyée du serveur à l\'écran ═══');
 const dec = GS.match(/const QUOTA_INDISPO = (\d+);/);
 V('le quota est déclaré une fois dans le serveur', !!dec, dec && dec[0]);
-V('il vaut 20', dec && dec[1] === '20', dec && dec[1]);
+V('il vaut 30 (05/10/2026)', dec && dec[1] === '30', dec && dec[1]);
 const decW = GS.match(/const QUOTA_INDISPO_WE = (\d+);/);
-V('le sous-quota week-end vaut 8', decW && decW[1] === '8', decW && decW[1]);
+V('le sous-quota week-end vaut 5 week-ends (05/10/2026)', decW && decW[1] === '5', decW && decW[1]);
 V('il n\'est déclaré qu\'une seule fois',
   (GS.match(/const QUOTA_INDISPO_WE\s*=/g) || []).length === 1);
 V('le serveur l\'envoie aussi à l\'écran', /quotaIndispoWe:\s*QUOTA_INDISPO_WE/.test(GS));
 V('le serveur compte vendredis, samedis et dimanches',
   /_dowI === 0 \|\| _dowI === 5 \|\| _dowI === 6/.test(GS));
-V('l\'écran compte les mêmes trois jours',
-  /_dowW === 0 \|\| _dowW === 5 \|\| _dowW === 6/.test(PAGE));
+V('l\'écran compte les mêmes trois jours (même clé de week-end)',
+  /w !== 0 && w !== 5 && w !== 6\) return null/.test(PAGE));
 V('l\'écran distingue les deux refus',
-  /Quota week-end atteint/.test(PAGE) && /Il vous reste des jours de semaine/.test(PAGE));
+  /Quota week-end atteint/.test(PAGE) && /poser des jours de semaine/.test(PAGE));
+/* (05/10/2026) Le sous-quota se compte en WEEK-ENDS : un vendredi, un samedi et
+   un dimanche du même week-end comptent 1. Même clé des deux côtés : le samedi. */
+V('le serveur compte les week-ends touchés, pas les jours', /weVusC\[_cleWe\]/.test(GS) && /if \(!weVusC\[_cleWe\]\)/.test(GS));
+V('l\'écran compte les week-ends touchés, pas les jours', /new Set\(/.test(PAGE) && /weTouches\.size \+ weNouveaux\.size > vacConfig\.quotaIndispoWe/.test(PAGE));
+V('compléter un week-end déjà touché ne consomme rien à l\'écran', /!weTouches\.has\(k\)/.test(PAGE));
+/* Le comportement au clic (unités vendredi + dimanche, tout ou rien) est éprouvé
+   sur le vrai applyTool dans banc_indispo_unite.js. */
 V('il n\'est déclaré qu\'une seule fois',
   (GS.match(/const QUOTA_INDISPO\s*=/g) || []).length === 1);
 V('le serveur l\'envoie à l\'écran', /quotaIndispo:\s*QUOTA_INDISPO/.test(GS));
 V('l\'écran le lit du serveur et ne le réécrit pas',
   /vacConfig\.quotaIndispo/.test(PAGE) && !/quotaIndispo\s*=\s*\d+/.test(PAGE));
-V('aucun nombre en dur dans la page', !/quotaIndispo[^;]*\b(20|8)\b/.test(PAGE));
+V('aucun nombre en dur dans la page', !/quotaIndispo[^;]*\b(20|30|8|5)\b/.test(PAGE));
 
 console.log('\n═══ 2. L\'écran refuse au clic ═══');
 V('le refus vise bien l\'outil Indispo',
-  /currentTool === 'INDISPO' && vacConfig && vacConfig\.quotaIndispo/.test(PAGE));
+  /currentTool === 'INDISPO' && indispos\[date\] !== 'INDISPO'\)[\s\S]{0,900}vacConfig && vacConfig\.quotaIndispo != null/.test(PAGE));
 V('il compte les INDISPO déjà posées',
   /filter\(s => s === 'INDISPO'\)\.length/.test(PAGE));
 V('reposer un jour déjà indisponible ne consomme rien',
@@ -100,11 +107,14 @@ V('la version du site a monté (au moins v1.11.0)',
    une fois en le testant sur une date précise : la vérification est donc écrite
    sur un minimum, pas sur une valeur exacte. */
 V('le marqueur de version du fichier serveur est au moins au 11/09',
-  /GAS_VERSION_INDISPOS = '2026-09-(1[1-9]|[2-9]\d)/.test(GS),
+  /* (05/10/2026) Comparaison de DATES : l'ancienne expression ne connaissait que
+     septembre et tombait au premier marqueur d'octobre. */
+  ((GS.match(/GAS_VERSION_INDISPOS = '(\d{4}-\d{2}-\d{2})/) || [])[1] || '') >= '2026-09-11',
   (GS.match(/GAS_VERSION_INDISPOS = '[^']+'/) || [])[0]);
 const GUIDE = fs.readFileSync(path.join(__dirname, '..', 'docs', 'guide-mar.html'), 'utf8');
 V('le guide annonce les deux nombres et les trois jours',
-  /20 par an/.test(GUIDE) && /8 au maximum sur un vendredi/.test(GUIDE));
+  /30 jours par an, dont 5 week-ends au maximum/.test(GUIDE) && /compte <b>1 week-end<\/b>/.test(GUIDE));
+V('le guide ne parle plus de 20 ni de 8', !/20 indisponibilités par an/.test(GUIDE) && !/compte dans les 8/.test(GUIDE) && !/à 20, ou à 8/.test(GUIDE) && !/limite de 20/.test(GUIDE));
 V('le guide ne promet plus « trente au maximum »', !/trente au maximum/.test(GUIDE));
 
 console.log(`\n${ok} OK · ${ko} en échec`);

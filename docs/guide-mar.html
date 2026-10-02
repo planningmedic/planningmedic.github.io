@@ -279,21 +279,7 @@
   </div>
   <p class="appbar-sub">Le portail, le planning, vos congés — et comment vos gardes sont calculées.</p>
 </div>
-<p class="maj">Mis à jour le 8 septembre 2026</p>
-
-<div class="callout rule" style="margin:18px 0 26px">
-  <div class="ct">Le portail a changé d'adresse</div>
-  <p>La nouvelle adresse, la seule qui fonctionne désormais :</p>
-  <p style="font-size:1.15em"><b><a href="https://planningmedic.github.io">planningmedic.github.io</a></b></p>
-  <p>Cette adresse ouvre directement le portail, avec ses tuiles. Rien à taper de plus.</p>
-  <p><b>Trois gestes, une seule fois :</b></p>
-  <div class="liste">
-    <div><b>Remplacez votre favori</b><span>L'ancienne adresse ne répondra bientôt plus.</span></div>
-    <div><b>Réinstallez l'icône</b><span>Sur téléphone, l'ancienne icône pointe vers l'ancienne adresse : retirez-la et refaites « Ajouter à l'écran d'accueil » depuis la nouvelle. La marche à suivre est juste en dessous, section 02.</span></div>
-    <div><b>Réactivez les notifications</b><span>Elles étaient attachées à l'ancienne adresse et n'ont pas suivi. Touchez la cloche, en haut du portail, et acceptez. Sans ce geste, vous ne recevrez plus rien.</span></div>
-  </div>
-  <p><b>Votre code personnel n'a pas changé.</b> Vos gardes, vos congés et vos souhaits non plus : tout a été repris à l'identique.</p>
-</div>
+<p class="maj">Mis à jour le 5 octobre 2026</p>
 
 <div class="chercher">
   <input id="q" type="search" placeholder="Chercher : récup, code, échange, samedi…" autocomplete="off">
@@ -512,7 +498,7 @@
       <div class="ct">En 2 minutes</div>
       <p>Trois choses se posent ici, et trois seulement : <b>vos indisponibilités</b>, <b>vos gardes souhaitées</b>, et <b>vos jours de temps partiel</b> si vous en avez.</p>
       <p>Vos congés et vos formations ont été posés au staff de vacances. Ils apparaissent sur le calendrier avec un cadenas et <b>ne se modifient pas ici</b>.</p>
-      <p>Les limites : <b>20 indisponibilités par an, dont 8 au maximum sur un vendredi, un samedi ou un dimanche.</b> Les gardes souhaitées ne sont pas limitées, sauf sur les jours rares — une seule par an.</p>
+      <p>Les limites : <b>30 indisponibilités par an, dont 5 week-ends au maximum.</b> Un week-end bloqué compte pour un, que vous posiez le vendredi, le samedi, le dimanche ou les trois. Les gardes souhaitées ne sont pas limitées, sauf sur les jours rares — une seule par an.</p>
     </div>
 
     <h3>Le geste : un outil, puis des jours</h3>
@@ -547,17 +533,19 @@
 
     <h3>Les compteurs du haut</h3>
     <p><b>Deux jauges</b> — <b>Congés</b> et <b>Formation</b> — montrent ce que le comité a posé pour vous au staff, sur votre quota. Une troisième, <b>Temps partiel</b>, n'apparaît que si vous avez des jours à poser.</p>
-    <p>En dessous, <b>deux nombres</b> : combien d'indisponibilités et combien de gardes souhaitées vous avez posées. C'est le premier qui compte pour la limite de 20.</p>
+    <p>En dessous, <b>deux nombres</b> : combien d'indisponibilités et combien de gardes souhaitées vous avez posées. C'est le premier qui compte pour la limite de 30.</p>
     <p>Les compteurs se mettent à jour à chaque clic, avant même la sauvegarde.</p>
 
     <div class="callout rule">
       <div class="ct">Combien en poser</div>
-      <p><b>20 par an, dont 8 au maximum sur un vendredi, un samedi ou un dimanche.</b></p>
+      <p><b>30 jours par an, dont 5 week-ends au maximum.</b></p>
+      <p>Un week-end compte dès que vous touchez son samedi ou son dimanche. Bloquer un week-end entier — vendredi, samedi, dimanche — compte <b>1 week-end</b> et <b>3 jours</b> sur les 30.</p>
       <p>L'écran s'arrête là : au-delà, le clic est refusé. Pour en poser une autre, retirez-en une.</p>
     </div>
 
     <div class="liste">
-      <div><b>Le vendredi compte dans les 8</b><span>La garde de week-end est assurée d'un bloc, du vendredi au dimanche, par le même binôme. Bloquer le vendredi, c'est se retirer du week-end entier.</span></div>
+      <div><b>Vendredi et dimanche vont ensemble</b><span>La garde de week-end est assurée d'un bloc, vendredi et dimanche, par le même binôme. Toucher l'un coche l'autre : <b>1 week-end et 2 jours</b>. Même chose pour un lundi férié (le samedi d'avant vient avec) et un jeudi férié (le samedi d'après). Le samedi du milieu se pose à part, sans week-end en plus.</span></div>
+      <div><b>Week-ends atteints ?</b><span>Vous pouvez encore compléter un week-end déjà touché, ou poser des jours de semaine, jusqu'à 30.</span></div>
       <div><b>Les week-ends de vos congés ne comptent pas</b><span>Seuls les jours que vous marquez vous-même comme indisponibles sont décomptés.</span></div>
       <div><b>Bloquer des week-ends ne réduit pas votre part</b><span>Vous devez le même nombre de samedis et de week-ends que vos collègues. Vous déplacez les dates, vous ne vous allégez pas.</span></div>
     </div>
@@ -590,7 +578,7 @@
     <h3>Si vous vous trompez</h3>
     <div class="liste">
       <div><b>Un jour posé par erreur</b><span>Outil <b>Effacer</b>, puis touchez le jour. Ou reposez le même outil dessus : le second appui retire.</span></div>
-      <div><b>Vous êtes au plafond</b><span>Retirez-en une avant d'en poser une autre. L'écran refuse tant que vous êtes à 20, ou à 8 sur les vendredis, samedis et dimanches.</span></div>
+      <div><b>Vous êtes au plafond</b><span>Retirez-en une avant d'en poser une autre. L'écran refuse tant que vous êtes à 30 jours, ou à 5 week-ends.</span></div>
       <div><b>Vous avez fermé sans sauvegarder</b><span>Rien n'est perdu de ce qui avait déjà été sauvegardé, mais les clics de la session sont oubliés. Recommencez.</span></div>
       <div><b>Un jour refuse de se poser</b><span>Il est peut-être verrouillé — congé ou formation posés au staff — ou déjà passé.</span></div>
     </div>

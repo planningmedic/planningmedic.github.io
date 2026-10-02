@@ -1367,46 +1367,12 @@ function applyTool(date) {
       return;
     }
   }
-  /* (11/09/2026) QUOTA D'INDISPONIBILITÉS. Le refus se fait au clic, avant la
-     pose : découvrir au moment de l'enregistrement qu'une partie des jours n'est
-     pas passée serait déroutant. Le serveur revérifie de son côté — l'écran peut
-     retarder d'une version, pas lui. */
-  if (currentTool === 'INDISPO' && vacConfig && vacConfig.quotaIndispo != null && indispos[date] !== 'INDISPO') {
-    const indCount = Object.values(indispos).filter(s => s === 'INDISPO').length;
-    if (indCount >= vacConfig.quotaIndispo) {
-      showToast(`🚫 Quota d'indisponibilités atteint — ${vacConfig.quotaIndispo} jour(s) maximum`);
-      hintRefus(`🚫 Vous avez posé vos <strong>${vacConfig.quotaIndispo} indisponibilités</strong> de l'année. Retirez-en une pour en poser une autre.`);
-      return;
-    }
-    /* Sous-quota week-end : vendredis, samedis et dimanches. Le vendredi en fait
-       partie parce que la garde de week-end est une unité vendredi+dimanche —
-       bloquer le vendredi sort de l'unité entière. Compté à part et refusé à
-       part : un message qui dirait seulement « quota atteint » laisserait croire
-       que les 20 sont consommés alors qu'il reste des jours de semaine. */
-    const _dowW = new Date(date + 'T12:00:00').getDay();
-    if ((_dowW === 0 || _dowW === 5 || _dowW === 6) && vacConfig.quotaIndispoWe != null) {
-      const weCount = Object.keys(indispos).filter(d => {
-        if (indispos[d] !== 'INDISPO') return false;
-        const w = new Date(d + 'T12:00:00').getDay();
-        return w === 0 || w === 5 || w === 6;
-      }).length;
-      if (weCount >= vacConfig.quotaIndispoWe) {
-        showToast(`🚫 Quota week-end atteint — ${vacConfig.quotaIndispoWe} maximum`);
-        hintRefus(`🚫 Vous avez posé vos <strong>${vacConfig.quotaIndispoWe} indisponibilités de week-end</strong> — vendredis, samedis et dimanches confondus. Il vous reste des jours de semaine.`);
-        return;
-      }
-    }
-  }
-  if (currentTool === 'TP' && vacConfig && vacConfig.quotaCtp != null && indispos[date] !== 'TP') {
-    const ctpCount = Object.values(indispos).filter(s => s === 'TP').length;
-    if (ctpCount >= vacConfig.quotaCtp) {
-      showToast(`🚫 Quota temps partiel atteint — ${vacConfig.quotaCtp} jour(s) maximum`);
-      hintRefus(`🚫 Quota de temps partiel atteint : ${vacConfig.quotaCtp} jour(s) maximum.`);
-      return;
-    }
-  }
-  /* (25/08/2026) JOURS COUPLÉS — récit : docs/JOURNAL-Planning-Med.md §59 */
-  const _uniteSouhait = (d) => {
+  /* (25/08/2026) JOURS COUPLÉS — récit : docs/JOURNAL-Planning-Med.md §59
+     (05/10/2026) La MÊME unité sert aux indisponibilités : un MAR indisponible le
+     vendredi ne peut pas assurer le dimanche (même binôme), cocher l'un coche
+     l'autre. Une seule règle pour les souhaits et les indispos, pour qu'elles ne
+     divergent jamais. */
+  const _uniteGarde = (d) => {
     const dt = new Date(d + 'T12:00:00'), dow = dt.getDay();
     const dec = (n) => { const x = new Date(dt.getTime() + n * 86400000);
       return x.getFullYear() + '-' + String(x.getMonth() + 1).padStart(2, '0') + '-' + String(x.getDate()).padStart(2, '0'); };
@@ -1420,8 +1386,75 @@ function applyTool(date) {
     }
     return null;
   };
+  /* (11/09/2026) QUOTA D'INDISPONIBILITÉS. Le refus se fait au clic, avant la
+     pose : découvrir au moment de l'enregistrement qu'une partie des jours n'est
+     pas passée serait déroutant. Le serveur revérifie de son côté — l'écran peut
+     retarder d'une version, pas lui.
+     (05/10/2026) 30 jours dont 5 WEEK-ENDS, et le contrôle porte sur l'UNITÉ
+     entière (vendredi + dimanche, jeudi férié + samedi, samedi + lundi férié) :
+     tous les jours qu'elle ajoute doivent tenir dans le quota. Un week-end est
+     compté une fois, par son samedi ; compléter un week-end déjà touché ne
+     consomme rien de plus. Même clé que le serveur. */
+  if (currentTool === 'INDISPO' && indispos[date] !== 'INDISPO') {
+    const _b = bornesAnneePlanning(YEAR);
+    const _u = _uniteGarde(date);
+    const _jours = _u ? _u.jours.filter(j => j === date || (j >= _b.debut && j <= _b.fin
+      && indispos[j] !== 'VAC' && indispos[j] !== 'FORM' && indispos[j] !== 'TP')) : [date];
+    const _nouveaux = _jours.filter(j => indispos[j] !== 'INDISPO');
+    const _cleWe = d => {
+      const t = new Date(d + 'T12:00:00'), w = t.getDay();
+      if (w !== 0 && w !== 5 && w !== 6) return null;
+      t.setDate(t.getDate() + (w === 5 ? 1 : w === 0 ? -1 : 0));
+      return t.getFullYear() + '-' + String(t.getMonth() + 1).padStart(2, '0') + '-' + String(t.getDate()).padStart(2, '0');
+    };
+    if (vacConfig && vacConfig.quotaIndispo != null) {
+      const indCount = Object.values(indispos).filter(s => s === 'INDISPO').length;
+      if (indCount + _nouveaux.length > vacConfig.quotaIndispo) {
+        showToast(`🚫 Quota d'indisponibilités atteint — ${vacConfig.quotaIndispo} jour(s) maximum`);
+        hintRefus(_nouveaux.length > 1
+          ? `🚫 Ces jours vont ensemble (${_u.quoi}) : il en faut ${_nouveaux.length}, il vous en reste ${Math.max(0, vacConfig.quotaIndispo - indCount)} sur ${vacConfig.quotaIndispo}.`
+          : `🚫 Vous avez posé vos <strong>${vacConfig.quotaIndispo} indisponibilités</strong> de l'année. Retirez-en une pour en poser une autre.`);
+        return;
+      }
+      if (vacConfig.quotaIndispoWe != null) {
+        const weTouches = new Set(Object.keys(indispos).filter(d => indispos[d] === 'INDISPO').map(_cleWe).filter(Boolean));
+        const weNouveaux = new Set(_nouveaux.map(_cleWe).filter(k => k && !weTouches.has(k)));
+        if (weTouches.size + weNouveaux.size > vacConfig.quotaIndispoWe) {
+          showToast(`🚫 Quota week-end atteint — ${vacConfig.quotaIndispoWe} week-ends maximum`);
+          hintRefus(`🚫 Vous avez bloqué vos <strong>${vacConfig.quotaIndispoWe} week-ends</strong> de l'année. Vous pouvez compléter un week-end déjà touché, ou poser des jours de semaine.`);
+          return;
+        }
+      }
+    }
+    if (_jours.length > 1) {
+      _jours.forEach(j => { indispos[j] = 'INDISPO'; });
+      if (!isDragging) showToast('🚫 Ces jours vont ensemble : vous êtes indisponible sur ' + _u.quoi);
+      hasChanges = true; renderMonth(); updateStats(); majBoutonSave();
+      return;
+    }
+  }
+  /* (05/10/2026) Effacer une indisponibilité couplée retire toute l'unité — sinon
+     on laisserait un dimanche seul qui n'a plus de sens. */
+  if (currentTool === 'ERASE' && indispos[date] === 'INDISPO') {
+    const _u = _uniteGarde(date);
+    const _lies = _u ? _u.jours.filter(j => indispos[j] === 'INDISPO') : [];
+    if (_lies.length > 1) {
+      _lies.forEach(j => { delete indispos[j]; });
+      if (!isDragging) showToast('↩️ Indisponibilité retirée — ' + _u.quoi);
+      hasChanges = true; renderMonth(); updateStats(); majBoutonSave();
+      return;
+    }
+  }
+  if (currentTool === 'TP' && vacConfig && vacConfig.quotaCtp != null && indispos[date] !== 'TP') {
+    const ctpCount = Object.values(indispos).filter(s => s === 'TP').length;
+    if (ctpCount >= vacConfig.quotaCtp) {
+      showToast(`🚫 Quota temps partiel atteint — ${vacConfig.quotaCtp} jour(s) maximum`);
+      hintRefus(`🚫 Quota de temps partiel atteint : ${vacConfig.quotaCtp} jour(s) maximum.`);
+      return;
+    }
+  }
   if (currentTool === 'SOUHAIT' || (currentTool === 'ERASE' && indispos[date] === 'SOUHAIT')) {
-    const u = _uniteSouhait(date);
+    const u = _uniteGarde(date);
     if (u) {
       const b = bornesAnneePlanning(YEAR);
       const posables = u.jours.filter(j => j >= b.debut && j <= b.fin

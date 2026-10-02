@@ -1,7 +1,7 @@
 // ⚠️ RÈGLE (détecteur de dérive dépôt↔Apps Script) : incrémenter cette version
 // à CHAQUE push de ce fichier. Le diagnostic (admin → Maintenance) compare la
 // version déployée ici avec celle du dépôt et signale toute recopie oubliée.
-const GAS_VERSION_INDISPOS = '2026-09-15.2';   // (15/09/2026) chantier 9, étape 2 : le routeur est une TABLE (_actions_) ; les corps des 64 actions vivent dans les fichiers métier (_act_<nom>)
+const GAS_VERSION_INDISPOS = '2026-10-05.1';   // (15/09/2026) chantier 9, étape 2 : le routeur est une TABLE (_actions_) ; les corps des 64 actions vivent dans les fichiers métier (_act_<nom>)
 
 /* ── (01/08/2026) MARQUEUR DE TEMPS GLOBAL — mesure, ne change rien ───────
    `_srv_ms` chronometre l'INTERIEUR de doGet. Or avant que doGet soit appele,
@@ -209,9 +209,17 @@ function checkCode(code) {
 // INDISPOS / MEDECINS une fois PAR médecin (getConflitsAll boucle sur ~20 MARs).
 var _VAC_SHARED = {};
 /* (11/09/2026) QUOTA D'INDISPONIBILITÉS — récit : docs/JOURNAL-Planning-Med.md §71 */
-const QUOTA_INDISPO = 20;
+/* (05/10/2026) 20 → 30 : mesuré sur le vrai générateur (3 tirages par réglage),
+   le surplus tombe en semaine et ne change ni la couverture ni l'équité. */
+const QUOTA_INDISPO = 30;
 /* (11/09/2026) SOUS-QUOTA WEEK-END — récit : docs/JOURNAL-Planning-Med.md §72 */
-const QUOTA_INDISPO_WE = 8;   // vendredi, samedi ou dimanche
+/* (05/10/2026) EN WEEK-ENDS, PLUS EN JOURS. Un week-end est « touché » dès qu'une
+   indisponibilité tombe sur son vendredi, son samedi ou son dimanche ; 1, 2 ou 3
+   jours posés comptent 1. Avant, bloquer un week-end entier (VSD) consommait 3 des
+   8 jours : deux week-ends par an. Mesure : 5 week-ends VSD complets tiennent même
+   quand tout le monde vise les mêmes 12 week-ends ; 6 cassent la génération dans
+   2 tirages sur 3. Les jours posés comptent toujours dans QUOTA_INDISPO. */
+const QUOTA_INDISPO_WE = 5;   // week-ends (vendredi, samedi, dimanche d'un même week-end = 1)
 
 let _quotasCache = null;
 // ── (RH-C) ACTIONS D'ÉCRITURE SÉRIALISÉES PAR VERROU ─────────────────

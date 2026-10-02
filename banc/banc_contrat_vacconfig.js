@@ -71,7 +71,9 @@ V('le garde-fou de la page cède si le quota n\'arrive pas (donc le contrat ci-d
 
 console.log('\n═══ 5. Le marqueur de version a suivi ═══');
 V('GAS_VERSION_INDISPOS est daté du 13/09 ou après',
-  /GAS_VERSION_INDISPOS = '2026-09-1[3-9]/.test(GS),
+  /* (05/10/2026) Comparaison de DATES : l'ancienne expression ne connaissait que
+     les 13-19 septembre et tombait au premier marqueur suivant. */
+  ((GS.match(/GAS_VERSION_INDISPOS = '(\d{4}-\d{2}-\d{2})/) || [])[1] || '') >= '2026-09-13',
   (GS.match(/GAS_VERSION_INDISPOS = '[^']+'/) || [])[0]);
 
 console.log(`\n${ok} OK · ${ko} en échec`);

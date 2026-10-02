@@ -4,7 +4,7 @@
    quelles : aucune ligne de logique modifiée, seulement déplacée. Le routeur et
    ses aides (checkCode, _deny, _error, doGet/doPost) restent dans Indispos.gs.
    Un seul espace global dans Apps Script : rien à importer. */
-const GAS_VERSION_INDISPOS_METIER = '2026-09-15.2';
+const GAS_VERSION_INDISPOS_METIER = '2026-10-05.1';
 
 // La campagne de saisie des indispos est-elle EN COURS ?
 // La ligne INDISPOS_ACTIVE de CONFIG n'existe que pendant la campagne :
@@ -665,14 +665,26 @@ function _act_saveIndispos(R) {
   /* (11/09/2026) QUOTA D'INDISPONIBILITÉS — récit : docs/JOURNAL-Planning-Med.md §125 */
   const indRefuses = [];
   let nbIndC = 0, nbIndWeC = 0;
+  /* (05/10/2026) Sous-quota compté en WEEK-ENDS : la clé d'un week-end est son
+     samedi. Un vendredi ou un dimanche d'un week-end déjà touché ne consomme rien
+     de plus (mais compte toujours un jour dans QUOTA_INDISPO). L'écran couple le
+     vendredi au dimanche (même binôme de garde) : un vendredi n'arrive donc
+     jamais seul, et le compter ici ferme seulement la porte à un envoi qui
+     contournerait l'écran. */
+  const weVusC = {};
   Object.keys(payload.indispos || {}).forEach(function (ds) {
     const v = String(payload.indispos[ds] || '').trim().toUpperCase();
     if (v === 'INDISPO' && user.role !== 'admin') {
       if (nbIndC >= QUOTA_INDISPO) { indRefuses.push(ds); return; }
       const _dowI = new Date(ds + 'T12:00:00').getDay();
       if (_dowI === 0 || _dowI === 5 || _dowI === 6) {
-        if (nbIndWeC >= QUOTA_INDISPO_WE) { indRefuses.push(ds + ' (week-end)'); return; }
-        nbIndWeC++;
+        const _sam = new Date(ds + 'T12:00:00');
+        _sam.setDate(_sam.getDate() + (_dowI === 5 ? 1 : _dowI === 0 ? -1 : 0));
+        const _cleWe = _sam.getFullYear() + '-' + String(_sam.getMonth() + 1).padStart(2, '0') + '-' + String(_sam.getDate()).padStart(2, '0');
+        if (!weVusC[_cleWe]) {
+          if (nbIndWeC >= QUOTA_INDISPO_WE) { indRefuses.push(ds + ' (week-end)'); return; }
+          weVusC[_cleWe] = true; nbIndWeC++;
+        }
       }
       nbIndC++; envoyeC[ds] = payload.indispos[ds]; return;
     }

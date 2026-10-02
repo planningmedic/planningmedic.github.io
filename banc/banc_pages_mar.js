@@ -306,7 +306,9 @@ const dodo = ms => new Promise(r => setTimeout(r, ms));
     V('le lundi 03/01/2028 est REFUSÉ (défaut vu en production)', !JSON.parse(etat())['2028-01-03'], etat());
     pose('2027-01-01');
     V('le 1er janvier 2027, avant le début, est refusé aussi', !JSON.parse(etat())['2027-01-01'], etat());
-    V('rien d\'autre n\'a été écrit', Object.keys(JSON.parse(etat())).length === 2, etat());
+    /* (05/10/2026) Le dimanche 02/01/2028 entraîne son vendredi 31/12/2027 (même
+       binôme de garde) : trois jours, et rien hors de l'année. */
+    V('rien d\'autre n\'a été écrit', JSON.stringify(Object.keys(JSON.parse(etat())).sort()) === '["2027-03-15","2027-12-31","2028-01-02"]', etat());
     V('le refus est expliqué au MAR', /Hors de l'année de planning/.test((w.__toasts || []).join(' ')), w.__toasts);
   }
 
