@@ -351,8 +351,9 @@ window.SessionPortail = window.SessionPortail || { lire:function(){try{return se
       <div class="datehint" id="statutAlerte" style="display:none;color:#8A6516"></div>
     </div>
 
-    <!-- MUTUELLE : cinq niveaux de la ligne « honoraires » en % BR. Aucun bouton
-         allume = mutuelle non renseignee. Masquee en Verte et SPME. -->
+    <!-- MUTUELLE (02/10/2026) : Aucune · 100 … 300 % de la ligne « honoraires ».
+         « Aucune » choisie d'office. Visible pour tous les statuts : elle fixe le
+         reste a charge, depassement ou non. -->
     <div id="mutRow" style="margin:2px 0 6px">
       <label>Mutuelle</label>
       <div class="seg" id="mutBtns"></div>
@@ -521,10 +522,13 @@ const ROLES={principal:{lab:'Principal',rate:1.0}, associe:{lab:'Associé',rate:
 // NGAP : valeur de la lettre-cle, sans coeff monegasque ni modificateur.
 // (01/10/2026) Deux consultations seulement. C (34,40) et le montant libre ont disparu.
 const LC={CS:46.00, APC:60.00};
-/* (01/10/2026) MUTUELLE : cinq niveaux de la ligne « honoraires » (% BR) au lieu de
-   la bibliotheque de formules. Le calcul ne change pas : absorbe = (% - 100) x BR.
-   MUT_PCT = 0 : mutuelle non renseignee (aucun bouton allume). */
-const MUTUELLES=[100,150,200,250,300];
+/* (01/10/2026) MUTUELLE : niveaux de la ligne « honoraires » (% BR) au lieu de la
+   bibliotheque de formules. Absorbe = (% - 100) x BR.
+   (02/10/2026) SIX BOUTONS, VISIBLES POUR TOUS LES STATUTS : Aucune · 100 … 300 %.
+   La mutuelle decide du reste a charge meme sans depassement (ticket moderateur de
+   la carte verte, 20 % de la base). MUT_PCT = 0 : « Aucune », choisie d'office —
+   il n'y a plus d'etat « non renseignee ». */
+const MUTUELLES=[0,100,150,200,250,300];
 let MUT_PCT=0;
 let lastRac=0, lastMut=null;
 let axe='CCAM';
@@ -619,17 +623,32 @@ function parcoursBR(){ return builder.reduce((s,l)=>s+lineBR(l),0); }
 // ---- MOTEUR MUTUELLE ----
 function populateMut(){
   document.getElementById('mutBtns').innerHTML=MUTUELLES.map(p=>
-    `<button data-p="${p}" class="${p===MUT_PCT?'on':''}" onclick="setMut(${p})">${p} %</button>`).join('');
+    `<button data-p="${p}" class="${p===MUT_PCT?'on':''}" onclick="setMut(${p})">${p ? p+' %' : 'Aucune'}</button>`).join('');
 }
-// Un second clic sur le bouton allume l'eteint : mutuelle non renseignee.
+// (02/10/2026) Un bouton est TOUJOURS allume : recliquer ne l'eteint plus.
 function setMut(p){
-  MUT_PCT = (MUT_PCT===p) ? 0 : p;
+  if(MUTUELLES.indexOf(p)<0) return;
+  MUT_PCT = p;
   DH_MANUEL=false;
   populateMut();
   applyDH();
 }
 function currentMut(){
-  return MUT_PCT>0 ? {n:MUT_PCT+' % BR', p:MUT_PCT} : {n:null, p:0};
+  return MUT_PCT>0 ? {n:MUT_PCT+' % BR', p:MUT_PCT} : {n:'aucune', p:0};
+}
+/* (02/10/2026) RESTE A CHARGE — UNE SEULE REGLE, pour l'encadre, la barre du bas
+   ET le devis imprime (avant, la barre et le devis divergeaient en carte verte) :
+   - avec une mutuelle : prise en charge totale (caisse + mutuelle) = % x BR,
+     plafonnee a 200 % pour un assure francais ; reste = total - prise en charge ;
+   - « Aucune » : reste = total - remboursement de la caisse (RO_RATE, les taux deja
+     utilises par le devis : 80 % Monaco, 70 % France, 0 NAS).
+   Carte verte sans mutuelle : 20 % de la base ; avec une mutuelle >= 100 % : 0. */
+function racPatient(st, pct, br, dh){
+  const total=br+dh;
+  if(pct>0) return Math.max(0, total - Math.min(coverageCeiling(st,pct,br), total));
+  const ro = RO_RATE[st]!=null ? RO_RATE[st] : 0.80;
+  // Remboursement arrondi au centime, comme la case « Rembt assur. maladie » du devis.
+  return Math.max(0, total - Math.round(ro*br*100)/100);
 }
 function currentMutPct(){return currentMut().p;}
 function dhEditable(st){return STATUTS[st].dh==='libre';}     // libre = DH ajustable ; rose/verte = auto
@@ -645,11 +664,14 @@ function capNonOptam(st,pct){ return st==='fr' && pct>200; }  // le plafond mord
    mutuelle n'est pas renseignee. Meme formule qu'avant le 01/10/2026, sortie de
    updateRac pour servir aussi au pre-remplissage. */
 function dhOptimal(st,pct,br){
-  if(!(pct>0)) return null;
   const S=STATUTS[st];
-  const cap = S.dh==='0.20' ? 0.20*br : Infinity;
+  /* (02/10/2026) CARTE ROSE : toujours 20 % de la base (tarif CCAM x 1,95),
+     quelle que soit la mutuelle — c'est la regle de la carte, pas un plafond a
+     caler (decision du responsable). La mutuelle ne joue que sur le reste a charge. */
+  if(S.dh==='0.20') return 0.20*br;
+  if(!(pct>0)) return null;                 // « Aucune » : rien a caler
   const absorp=Math.max(0, coverageCeiling(st,pct,br)-br);
-  return Math.min(cap, absorp);
+  return absorp;                            // libre : pas de plafond de statut
 }
 // RAC = (BR + DH) − min( %BR×BR , BR+DH ). Absorbé = (%BR−100)×BR. DH optimal = min(plafond carte, absorbé).
 function updateRac(){
@@ -658,21 +680,27 @@ function updateRac(){
   const chirRow=document.getElementById('chirRow');
   // Carte sans depassement possible : ni calibrage, ni question sur le chirurgien.
   if(chirRow) chirRow.style.display = (S.dh==='0') ? 'none' : 'block';
-  if(S.dh==='0'){box.style.display='none';lastRac=0;lastMut=null;return;}   // verte/SPME : pas de calibrage
+  const mut=currentMut(), pct=mut.p, dh=parseFloat(document.getElementById('dh').value)||0;
+  /* (02/10/2026) Verte / SPME : pas de depassement, donc pas d'encadre de calage —
+     mais le reste a charge existe (ticket moderateur) et la barre du bas le montre.
+     Avant, il etait force a 0 ici et la barre affichait « mutuelle non renseignee »
+     pendant que le devis imprimait 20 % de la base. */
+  if(S.dh==='0'){
+    box.style.display='none';
+    lastRac=racPatient(st,pct,br,dh); lastMut=mut.n;
+    majBarre();
+    return;
+  }
   box.style.display='block';
   const cap = S.dh==='0.20' ? 0.20*br : Infinity;                            // plafond réglementaire €
   document.getElementById('rCap').textContent = cap===Infinity?'libre':eur2(cap);
-  const mut=currentMut(), pct=mut.p, dh=parseFloat(document.getElementById('dh').value)||0;
-  let absTxt='—',optTxt='—',racTxt='—',racVal=null,cls='';
+  let absTxt='—',optTxt='—';
+  const racVal=racPatient(st,pct,br,dh);
+  const racTxt=eur2(racVal), cls = racVal<=0.005?'zero':'pos';
   if(pct>0){
-    const ceil=coverageCeiling(st,pct,br);             // plafond de prise en charge total (fr : ≤ 200 % BR)
-    const absorp=Math.max(0,ceil-br);                  // DH réellement absorbable
-    const dhOpt=dhOptimal(st,pct,br);
-    const reimb=Math.min(ceil, br+dh);
-    racVal=Math.max(0,(br+dh)-reimb);
-    absTxt=eur2(absorp); optTxt=eur2(dhOpt); racTxt=eur2(racVal);
-    cls = racVal<=0.005?'zero':'pos';
-  }
+    const absorp=Math.max(0,coverageCeiling(st,pct,br)-br);   // DH réellement absorbable
+    absTxt=eur2(absorp); optTxt=eur2(dhOptimal(st,pct,br));
+  } else if(S.dh==='0.20') optTxt=eur2(dhOptimal(st,pct,br));
   document.getElementById('rAbs').textContent=absTxt;
   document.getElementById('rOpt').textContent=optTxt;
   const rv=document.getElementById('rRac'); rv.textContent=racTxt; rv.className='v '+cls;
@@ -685,8 +713,10 @@ function updateRac(){
      le calage est automatique, voir applyDH. */
   const impose = CHIR_LIB && chirDhPropose()!=null;
   const titre=document.getElementById('racTitre');
-  if(titre) titre.textContent = impose ? 'Calé sur le chirurgien'
-    : (totalFrCourant()!=null ? 'Calé sur le total France' : 'Calé sur la mutuelle');
+  if(titre) titre.textContent = S.dh==='0.20' ? 'Carte rose : +20 %'
+    : impose ? 'Calé sur le chirurgien'
+    : (totalFrCourant()!=null ? 'Calé sur le total France'
+    : (pct>0 ? 'Calé sur la mutuelle' : 'Sans mutuelle'));
   /* Un reste a charge non nul doit SE VOIR, ici comme sur le devis : le patient
      le decouvrirait sinon en payant. */
   const av=document.getElementById('racAvert');
@@ -696,7 +726,7 @@ function updateRac(){
       av.style.display='block';
     } else av.style.display='none';
   }
-  lastRac = racVal||0; lastMut = pct>0?mut.n:null;
+  lastRac = racVal; lastMut = mut.n;
   majBarre();               // la barre fixe du bas suit le calibrage en direct
 }
 
@@ -775,8 +805,8 @@ function onStatut(){const st=STATUTS[document.getElementById('statut').value];
   else { badge.textContent='× '+st.coeff.toLocaleString('fr-FR',{minimumFractionDigits:2}); lbl.textContent='Coeff. CCAM'; badge.title=''; }
   renderStatutBtns();
   renderStatutAlerte();
-  // Mutuelle : visible pour France, Rose, Bulle, NAS ; masquee en Verte et SPME.
-  document.getElementById('mutRow').style.display = st.dh==='0'?'none':'block';
+  // (02/10/2026) Mutuelle visible pour TOUS les statuts : elle decide du reste a charge.
+  document.getElementById('mutRow').style.display = 'block';
   DH_MANUEL=false;
   assocChange();             // APC grisee (et retiree) des que le patient est monegasque
   renderBuilder();}
@@ -809,9 +839,8 @@ function applyDH(){
   const dhIn=document.getElementById('dh');
   const pct=currentMutPct();
   if(st.dh==='0'){dhIn.value='0';dhIn.disabled=true;}
-  else if(st.dh==='0.20'){                                   // rose : plafond +20 %, mais calé sur l'absorbé si mutuelle connue
-    const cap=0.20*br;
-    const opt = pct>0 ? Math.min(cap, Math.max(0,(pct-100)/100*br)) : cap;
+  else if(st.dh==='0.20'){                                   // (02/10/2026) rose : toujours +20 % de la base, quelle que soit la mutuelle
+    const opt=dhOptimal(document.getElementById('statut').value, pct, br);
     dhIn.value=(Math.round(opt*100)/100).toFixed(2);dhIn.disabled=true;
   }
   else{
@@ -1504,11 +1533,8 @@ function courant(muet){
   if(!dInt){ if(!muet) alert("Renseigne le jour du bloc : c'est lui qui pose l'alerte du comit\u00e9 sur le planning."); return null; }
   const dActe = dInt;                       // ce qui remonte au comite : le jour du bloc
   const st=document.getElementById('statut').value, pct=currentMutPct();
-  let rac=null, mut=null;
-  if(pct>0 && STATUTS[st].dh!=='0'){
-    const reimb=Math.min(coverageCeiling(st,pct,br), br+dh);
-    rac=Math.max(0,(br+dh)-reimb); mut=currentMut().n;
-  }
+  // (02/10/2026) Meme regle que la barre du bas (racPatient), pour TOUS les statuts.
+  const rac=racPatient(st,pct,br,dh), mut=currentMut().n;
   // Detail acte par acte, memorise pour le devis (modele CNOM : un bloc par acte).
   // La BR se repartit ligne par ligne ; le DH, saisi pour l'intervention entiere, NON.
   // Il n'existe pas de cle de repartition du DH : il reste donc sur la ligne de total.

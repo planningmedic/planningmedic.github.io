@@ -851,8 +851,11 @@ console.log('\n═══ 6. La page de cotation ne dit rien qu\'elle ne sache �
 
   w.setChir(false);
   await dodo(30);
+  /* (02/10/2026) Mutuelle « Aucune » d'office : l'encadré ne dit plus « calé sur la
+     mutuelle » mais « sans mutuelle » — l'essentiel est qu'il ne parle plus du chirurgien. */
   V('revenir à « je cote seul » rend le calibrage',
-    d.getElementById('chirDhWrap').style.display === 'none' && /Calé sur la mutuelle/.test(d.getElementById('racTitre').textContent));
+    d.getElementById('chirDhWrap').style.display === 'none' && /Sans mutuelle|Calé sur la mutuelle/.test(d.getElementById('racTitre').textContent),
+    d.getElementById('racTitre').textContent);
   d.getElementById('statut').value = 'verte'; w.onStatut(); w.applyDH();
   await dodo(30);
 
@@ -1018,19 +1021,26 @@ console.log('\n═══ 6. La page de cotation ne dit rien qu\'elle ne sache �
     V('passer en NAS (rangée Monaco) ramène la consultation sur CS',
       d.getElementById('assocLc').value === 'CS' && d.getElementById('lcAPC').disabled === true);
 
-    // ── Mutuelle : cinq boutons, masquée en Verte et SPME ──
-    const niveaux = [...d.getElementById('mutBtns').querySelectorAll('button')].map(b => +b.dataset.p);
-    V('mutuelle : cinq boutons 100 / 150 / 200 / 250 / 300 %', niveaux.join(',') === '100,150,200,250,300', niveaux);
+    // ── Mutuelle (02/10/2026) : six boutons, « Aucune » d'office, visible pour TOUS ──
+    const boutons = [...d.getElementById('mutBtns').querySelectorAll('button')];
+    const niveaux = boutons.map(b => +b.dataset.p);
+    V('mutuelle : six boutons Aucune / 100 / 150 / 200 / 250 / 300 %',
+      niveaux.join(',') === '0,100,150,200,250,300' && boutons[0].textContent === 'Aucune', niveaux);
+    V('« Aucune » est choisie d\'office', ev('MUT_PCT') === 0 && boutons[0].classList.contains('on'));
     const vu = {};
     for (const st of ['fr', 'rose', 'bulle', 'nas', 'verte', 'spme']) { w.setStatut(st); vu[st] = visible('mutRow'); }
-    V('mutuelle visible pour France, Rose, Bulle, NAS', vu.fr && vu.rose && vu.bulle && vu.nas, vu);
-    V('mutuelle masquée en Verte et en SPME', !vu.verte && !vu.spme, vu);
+    V('mutuelle visible pour TOUS les statuts, Verte et SPME compris', Object.values(vu).every(Boolean), vu);
 
     let br = ev('parcoursBR()');   // recalculée à chaque statut : 1,95 à Monaco, 1,00 en France
-    // ── Rose : plafonnée à +20 % même avec une mutuelle à 300 % ──
+    // ── Rose : TOUJOURS +20 % de la base (tarif CCAM × 1,95), quelle que soit la mutuelle ──
     w.setStatut('rose'); mut(300); await dodo(20); br = ev('parcoursBR()');
-    V('rose plafonnée à 20 % de la BR avec une mutuelle à 300 %', proche(dhv(), 0.20 * br), [dhv(), 0.20 * br]);
+    V('rose + 300 % : dépassement = 20 % de la base', proche(dhv(), 0.20 * br), [dhv(), 0.20 * br]);
     V('et ce montant n\'est pas modifiable', d.getElementById('dh').disabled === true);
+    mut(0); await dodo(20);
+    V('rose sans mutuelle : toujours 20 % de la base', proche(dhv(), 0.20 * br), [dhv(), 0.20 * br]);
+    mut(100); await dodo(20);
+    V('rose + 100 % : toujours 20 % (la mutuelle ne joue que sur le reste à charge)',
+      proche(dhv(), 0.20 * br) && proche(ev('lastRac'), 0.20 * br), [dhv(), ev('lastRac')]);
 
     // ── Calage automatique, plafond non-OPTAM pour un assuré français ──
     w.setStatut('bulle'); mut(300); await dodo(20);
@@ -1041,7 +1051,57 @@ console.log('\n═══ 6. La page de cotation ne dit rien qu\'elle ne sache �
     mut(150); await dodo(20);
     V('français + 150 % : absorbé = 50 % BR', proche(dhv(), 0.5 * br), [dhv(), 0.5 * br]);
     w.setMut(150); await dodo(20);
-    V('un second clic éteint la mutuelle : plus rien à caler', ev('MUT_PCT') === 0 && proche(dhv(), 0), dhv());
+    V('recliquer sur le bouton allumé ne l\'éteint plus', ev('MUT_PCT') === 150, ev('MUT_PCT'));
+    mut(0); await dodo(20);
+    V('« Aucune » : pas de dépassement calé', proche(dhv(), 0), dhv());
+    V('« Aucune » : reste à charge = total − remboursement de la caisse (70 % en France)',
+      proche(ev('lastRac'), br - Math.round(0.70 * br * 100) / 100), [ev('lastRac'), br]);
+
+    /* ── RESTE À CHARGE : la barre du bas et le devis imprimé disent la MÊME chose ──
+       (02/10/2026) Constat avant correction : en carte verte, la barre affichait
+       « mutuelle non renseignée » (reste forcé à 0 en interne) pendant que le devis
+       imprimait 20 % de la base en « avant complémentaire ». */
+    const lireEur = t => parseFloat(String(t).replace(/[^\d,]/g, '').replace(',', '.'));
+    d.getElementById('dInt').value = '2099-01-01';
+    const ecarts = [];
+    for (const st of ['verte', 'spme', 'rose', 'bulle', 'fr', 'nas']) {
+      for (const p of [0, 100, 150, 200, 300]) {
+        w.setStatut(st); mut(p); await dodo(5);
+        const barre = lireEur(d.getElementById('totRac').textContent);
+        w.ouvrirDevisCourant();
+        const devis = lireEur(d.getElementById('dvRacAfter').textContent);
+        w.closeDevis();
+        if (!(Math.abs(barre - devis) < 0.005)) ecarts.push(st + ' ' + p + ' % : barre ' + barre + ' / devis ' + devis);
+      }
+    }
+    V('barre du bas = devis imprimé, pour les 6 statuts × 5 mutuelles', ecarts.length === 0, ecarts.slice(0, 4));
+
+    w.setStatut('verte'); mut(0); await dodo(20); br = ev('parcoursBR()');
+    V('verte sans mutuelle : la barre montre un reste à charge de 20 % de la base',
+      proche(lireEur(d.getElementById('totRac').textContent), Math.round(0.20 * br * 100) / 100),
+      [d.getElementById('totRac').textContent, 0.20 * br]);
+    w.ouvrirDevisCourant();
+    V('…comme le devis, avant ET après complémentaire',
+      proche(lireEur(d.getElementById('dvRacBefore').textContent), lireEur(d.getElementById('dvRacAfter').textContent))
+      && /aucune/.test(d.getElementById('dvMut').textContent),
+      [d.getElementById('dvRacBefore').textContent, d.getElementById('dvRacAfter').textContent]);
+    w.closeDevis();
+    V('verte : dépassement toujours 0', proche(dhv(), 0) && d.getElementById('dh').disabled === true);
+    mut(100); await dodo(20);
+    V('verte + mutuelle à 100 % : reste à charge 0', proche(ev('lastRac'), 0) && proche(dhv(), 0), ev('lastRac'));
+    w.setStatut('spme'); mut(0); await dodo(20);
+    V('SPME sans mutuelle : 20 % de la base ; avec 150 % : 0',
+      proche(ev('lastRac'), Math.round(0.20 * ev('parcoursBR()') * 100) / 100) && (mut(150), proche(ev('lastRac'), 0)));
+    w.setStatut('nas'); mut(0); await dodo(20);
+    V('NAS sans mutuelle : la caisse ne rembourse rien, reste = total',
+      proche(ev('lastRac'), ev('parcoursBR()') + dhv()), [ev('lastRac'), ev('parcoursBR()')]);
+    d.getElementById('dInt').value = '';
+    w.setStatut('fr'); mut(0); await dodo(20); br = ev('parcoursBR()');
+    const guideM = fs.readFileSync('../docs/guide-liberal.html', 'utf8');
+    V('le guide décrit les six boutons, la carte verte et la rose à 20 %',
+      /Six boutons/.test(guideM) && /Aucune<\/strong> \(choisi d'office\)/.test(guideM)
+      && /20&nbsp;% restants/.test(guideM) && /toujours de <strong>20&nbsp;% de la base/.test(guideM)
+      && !/Un second clic sur le bouton allumé l'éteint/.test(guideM));
 
     // ── Priorité chirurgien > mutuelle ──
     mut(200); await dodo(20);

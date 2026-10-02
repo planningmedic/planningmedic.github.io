@@ -132,7 +132,7 @@
   </div>
   <p class="appbar-sub">Estimer le libéral, calibrer le dépassement sur la mutuelle du patient, générer le devis — et piloter la charge libéral / public.</p>
 </div>
-  <div class="maj">Dernière mise à jour : 1er octobre 2026 · rév. 9 (import des cotations types depuis Excel)</div>
+  <div class="maj">Dernière mise à jour : 2 octobre 2026 · rév. 10 (mutuelle pour tous les patients, reste à charge unique)</div>
   <p style="margin-top:10px"><a href="module-liberal/estimateur-liberal.html" style="display:inline-block;background:var(--acc);color:#fff;padding:9px 16px;border-radius:8px;text-decoration:none;font-weight:600;font-size:14px">→ Ouvrir la cotation</a></p>
 </header>
 
@@ -196,7 +196,7 @@
     <li><strong>Choisir le patient.</strong> Deux boutons&nbsp;: <strong>France</strong> ou <strong>Monaco</strong>. Pour Monaco, une seconde rangée apparaît&nbsp;: <strong>Verte · Rose · Bulle · SPME · NAS</strong>. Le calcul s'adapte tout seul.</li>
     <li><strong>La base de remboursement se calcule.</strong> Coefficient monégasque, modificateurs, deuxième acte à moitié prix — tout est appliqué derrière. La <strong>consultation</strong> se choisit juste à côté&nbsp;: <strong>CS</strong> ou <strong>APC</strong>. Elle compte sur l'autre plafond (voir §07).</li>
     <li><strong>Dire si le chirurgien cote aussi.</strong> <strong>S'il cote</strong>, votre dépassement est la <strong>moitié du sien</strong> (usage du groupement)&nbsp;: tapez le sien, le vôtre se remplit. <strong>S'il ne cote pas</strong>, votre dépassement se règle sur la mutuelle du patient.</li>
-    <li><strong>Choisir la mutuelle.</strong> Cinq boutons&nbsp;: <strong>100, 150, 200, 250 ou 300&nbsp;%</strong> — le chiffre de la ligne «&nbsp;honoraires&nbsp;» du contrat du patient. Le dépassement se remplit tout seul, au montant que la mutuelle rembourse. Il reste modifiable&nbsp;; le reste à charge s'affiche en dessous.</li>
+    <li><strong>Choisir la mutuelle.</strong> Six boutons&nbsp;: <strong>Aucune</strong> (choisi d'office), <strong>100, 150, 200, 250 ou 300&nbsp;%</strong> — le chiffre de la ligne «&nbsp;honoraires&nbsp;» du contrat du patient. Ils s'affichent pour tous les patients&nbsp;: même sans dépassement, la mutuelle décide de ce qui reste à payer. Quand le dépassement est libre, il se remplit tout seul au montant que la mutuelle rembourse&nbsp;; il reste modifiable. Le reste à charge s'affiche dans la barre du bas, et c'est le même que sur le devis.</li>
     <li><strong>Générer les documents.</strong> Bouton <span class="tag">📄 Devis</span>, dans la barre noire en bas de l'écran : l'estimation de frais est entièrement pré-remplie, et un second bouton imprime <strong>devis + déclaration de choix</strong> (modèle service soins externes, nom du MAR pré-rempli). <strong>Aucun nom de patient à taper</strong> : le patient l'écrit à la main sur les documents imprimés.</li>
     <li><strong>Déclarer l'intervention.</strong> En bas de la page, le bloc <span class="tag">Praticien et déclaration au comité</span> est fermé&nbsp;; son titre dit ce qui manque, et il s'ouvre tout seul quand il ne manque plus que le secteur ou la spécialité. Deux choses seulement à y renseigner, le <strong>secteur</strong> et la <strong>spécialité</strong>. Les dates, la chirurgie et les montants viennent de la cotation ci-dessus. Puis <span class="tag">📅 Déclarer</span>, dans la barre du bas. C'est ce qui alimente le volet ◆ Libéral du comité dans la vue admin — <strong>rien d'autre ne part</strong> : ni patient, ni code CCAM.</li>
     <li><strong>Patient suivant.</strong> L'écran se vide tout seul. Le <strong>secteur reste</strong> — dix endoscopies d'affilée, c'est zéro geste — mais tout ce qui appartenait au patient précédent disparaît.</li>
@@ -221,10 +221,10 @@
   <table>
     <tr><th>Bouton</th><th>Dépassement</th><th>Mutuelle</th><th>APC</th></tr>
     <tr><td>France</td><td>libre</td><td>oui — au plus le double de la base de remboursement</td><td>oui</td></tr>
-    <tr><td>Monaco · Verte</td><td>aucun</td><td>non demandée</td><td>non</td></tr>
-    <tr><td>Monaco · Rose</td><td>au plus 20&nbsp;% de la base</td><td>oui, sans dépasser 20&nbsp;%</td><td>non</td></tr>
+    <tr><td>Monaco · Verte</td><td>aucun</td><td>reste à payer&nbsp;: 20&nbsp;% de la base sans mutuelle, rien avec une mutuelle</td><td>non</td></tr>
+    <tr><td>Monaco · Rose</td><td>toujours 20&nbsp;% de la base</td><td>ne change pas le dépassement, seulement le reste à payer</td><td>non</td></tr>
     <tr><td>Monaco · Bulle</td><td>libre</td><td>oui</td><td>non</td></tr>
-    <tr><td>Monaco · SPME</td><td>aucun</td><td>non demandée</td><td>non</td></tr>
+    <tr><td>Monaco · SPME</td><td>aucun</td><td>comme la carte verte</td><td>non</td></tr>
     <tr><td>Monaco · NAS</td><td>libre</td><td>oui</td><td>non</td></tr>
   </table>
   <div class="callout warn">
@@ -239,18 +239,21 @@
 
 <section id="c4">
   <h2><span class="n">04</span>Le calibrage mutuelle → reste à charge</h2>
-  <p>La mutuelle se choisit en un bouton&nbsp;: <strong>100, 150, 200, 250 ou 300&nbsp;%</strong>. C'est le chiffre de la ligne <strong>«&nbsp;honoraires&nbsp;»</strong> du contrat du patient. Un second clic sur le bouton allumé l'éteint&nbsp;: mutuelle inconnue.</p>
+  <p>La mutuelle se choisit en un bouton&nbsp;: <strong>Aucune</strong>, ou <strong>100, 150, 200, 250, 300&nbsp;%</strong> — le chiffre de la ligne <strong>«&nbsp;honoraires&nbsp;»</strong> du contrat du patient. «&nbsp;Aucune&nbsp;» est choisi d'office.</p>
   <ul>
     <li><strong>Ce que la mutuelle rembourse en plus</strong>&nbsp;: tout ce qui dépasse 100&nbsp;%. À 200&nbsp;%, elle couvre un dépassement égal à la base de remboursement&nbsp;; à 300&nbsp;%, le double&nbsp;; à 100&nbsp;%, <strong>rien</strong>.</li>
-    <li><strong>Le dépassement se remplit tout seul</strong> à ce montant — sans dépasser ce que le statut autorise. Le patient n'a alors rien à payer de sa poche.</li>
+    <li><strong>Le dépassement se remplit tout seul</strong> à ce montant (France, Bulle, NAS). Le patient n'a alors rien à payer de sa poche.</li>
+    <li><strong>Carte rose</strong>&nbsp;: le dépassement est toujours de <strong>20&nbsp;% de la base</strong>, quelle que soit la mutuelle. La mutuelle ne change que ce qui reste à payer.</li>
+    <li><strong>Carte verte et SPME</strong>&nbsp;: jamais de dépassement. La caisse rembourse 80&nbsp;% de la base&nbsp;: sans mutuelle, le patient paie les <strong>20&nbsp;% restants</strong>&nbsp;; avec une mutuelle, il ne paie rien.</li>
+    <li><strong>«&nbsp;Aucune&nbsp;»</strong>&nbsp;: aucun dépassement n'est calculé sur la mutuelle. Le patient paie tout ce que la caisse ne rembourse pas (la caisse rembourse 80&nbsp;% de la base à Monaco, 70&nbsp;% pour un assuré français, rien pour un NAS).</li>
     <li><strong>Dans cet ordre</strong>&nbsp;: si le chirurgien cote, la moitié de son dépassement passe avant la mutuelle. Le montant reste toujours modifiable à la main&nbsp;; il se recale dès que vous changez le patient, la mutuelle ou le chirurgien.</li>
-    <li>Patient mal couvert (100&nbsp;%)&nbsp;? Le dépassement proposé tombe à zéro.</li>
+    <li>Mutuelle à 100&nbsp;%&nbsp;? Elle ne couvre que la base&nbsp;: le dépassement proposé tombe à zéro.</li>
   </ul>
   <div class="callout warn">
     <div class="ct">Patient français&nbsp;: plafond à 200&nbsp;%</div>
     <p>Pour un assuré français, la mutuelle ne rembourse jamais plus que le <strong>double de la base de remboursement</strong>, même si le contrat affiche 250 ou 300&nbsp;%. L'outil en tient compte et l'affiche.</p>
   </div>
-  <p>La mutuelle repart à vide à chaque nouveau patient&nbsp;: celle du précédent ne fixe jamais en silence le dépassement du suivant.</p>
+  <p>La mutuelle revient sur «&nbsp;Aucune&nbsp;» à chaque nouveau patient&nbsp;: celle du précédent ne fixe jamais en silence le dépassement du suivant.</p>
 </section>
 
 <section id="c5">
