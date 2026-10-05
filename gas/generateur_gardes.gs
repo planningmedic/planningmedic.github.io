@@ -41,7 +41,7 @@
 // ⚠️ RÈGLE (détecteur de dérive dépôt↔Apps Script) : incrémenter cette version
 // à CHAQUE push de ce fichier. Le diagnostic (admin → Maintenance) compare la
 // version déployée ici avec celle du dépôt et signale toute recopie oubliée.
-const GAS_VERSION_GENERATEUR = '2026-10-05.1';
+const GAS_VERSION_GENERATEUR = '2026-10-05.2';
 
 /* (05/09/2026) INTERRUPTEUR DU NOUVEL ALGORITHME — récit : docs/JOURNAL-Planning-Med.md §101 */
 const NOUVEL_ALGO_GLOBAL = true;
@@ -2257,6 +2257,24 @@ function generateGardes(year, opts){
     pool.sort((a,b)=>(h18cnt[a]/(h18T[a]||1))-(h18cnt[b]/(h18T[b]||1)));
     set18(pool[0],day.date);
   });
+
+  /* (05/10/2026) PAIRE À ÉVITER — AVERTIR QUAND LA RÈGLE A CÉDÉ. Elle cède en
+     silence quand la couverture l'exige (seul binôme possible, samedi à
+     préserver, dernier recours du 18 h) : décision voulue, l'équité et la
+     couverture priment. Mais le comité doit le voir pour arbitrer à la main
+     (échange). Un seul message par paire, toutes ses dates, en TÊTE de liste
+     pour qu'il ne soit jamais coupé. Les dates exemptées (24, 25, 31/12, 01/01)
+     ne sont pas signalées : la règle ne s'y applique pas. */
+  { const _pv={};
+    allDays.forEach(day=>{
+      const g=gardes[day.date]; if(!g) return;
+      const add=(a,b,txt)=>{const k=[a,b].sort().join(' + ');(_pv[k]||(_pv[k]=[])).push(day.date+txt);};
+      if(evite(g.g,g.g2,day.date)) add(g.g,g.g2,'');
+      const h=h18A[day.date];
+      [g.g,g.g2].forEach(x=>{ if(h&&evite(h,x,day.date)) add(h,x,' (18 h)'); });
+    });
+    Object.keys(_pv).reverse().forEach(k=>warnings.unshift(`Paire à éviter : ${k} ensemble le ${_pv[k].join(', ')} — aucun autre choix ne préservait la couverture`));
+  }
 
   // ── 11. Compteurs JF/Noël (la VJF de semaine est comptée dans cnt.vjf) ──
   const jfCnt={},noelAnCnt={};
