@@ -45,7 +45,7 @@ function ouvrir(stock) {
   const w = dom.window, $ = id => w.document.getElementById(id);
   return {
     w, $, reseau, erreurs,
-    secteur(s) { const b = [...w.document.querySelectorAll('.chip')].find(x => x.dataset.s === s); b && b.click(); return !!b; },
+    secteur(s) { const b = [...w.document.querySelectorAll('#chips .chip')].find(x => x.dataset.s === s); b && b.click(); return !!b; },
     ajouter(date, ini) { if (date) $('dt').value = date; $('ini').value = ini; $('frm').dispatchEvent(new w.Event('submit', { cancelable: true })); },
     stock() { return w.localStorage.getItem(CLE); },
     liste() { return JSON.parse(w.localStorage.getItem(CLE) || '[]'); },
@@ -72,16 +72,16 @@ const p = ouvrir();
 V('ouverture sans erreur', p.erreurs.length === 0, p.erreurs);
 V('date du jour pré-remplie', p.$('dt').value === '2026-09-30', p.$('dt').value);
 V('les 6 secteurs sont des boutons, dans l\'ordre',
-  [...p.w.document.querySelectorAll('.chip')].map(b => b.dataset.s).join('|') === 'Endos|Viscéral|Ortho|ORL|Cardio|Mater');
-V('aucun secteur choisi à l\'ouverture', !p.w.document.querySelector('.chip[aria-checked="true"]'));
+  [...p.w.document.querySelectorAll('#chips .chip')].map(b => b.dataset.s).join('|') === 'Endos|Viscéral|Ortho|ORL|Cardio|Mater');
+V('aucun secteur choisi à l\'ouverture', !p.w.document.querySelector('#chips .chip[aria-checked="true"]'));
 
 p.ajouter('2026-10-14', TEMOIN);
 V('sans secteur : refusé, message clair', p.liste().length === 0 && /secteur/i.test(p.$('msg').textContent), p.$('msg').textContent);
 p.secteur('Ortho');
-V('le secteur touché est marqué', p.w.document.querySelector('.chip[aria-checked="true"]').dataset.s === 'Ortho');
+V('le secteur touché est marqué', p.w.document.querySelector('#chips .chip[aria-checked="true"]').dataset.s === 'Ortho');
 p.ajouter('2026-10-14', 'zq');
 V('ajout : initiales passées en majuscules', p.liste().length === 1 && p.liste()[0].i === TEMOIN && p.liste()[0].s === 'Ortho' && p.liste()[0].d === '2026-10-14', p.liste());
-V('après ajout : date et secteur gardés, initiales vidées', p.$('dt').value === '2026-10-14' && p.w.document.querySelector('.chip[aria-checked="true"]').dataset.s === 'Ortho' && p.$('ini').value === '');
+V('après ajout : date et secteur gardés, initiales vidées', p.$('dt').value === '2026-10-14' && p.w.document.querySelector('#chips .chip[aria-checked="true"]').dataset.s === 'Ortho' && p.$('ini').value === '');
 p.ajouter(null, 'AB');
 p.secteur('Endos'); p.ajouter('2026-10-02', 'CD');
 p.secteur('Mater'); p.ajouter('2026-09-12', 'EF');
@@ -113,6 +113,79 @@ V('la liste est retrouvée à la réouverture', q.liste().length === n0 && q.$('
 V('toujours aucun appel réseau', q.reseau.length === 0, q.reseau);
 const r = ouvrir('{pas du json');
 V('stockage abîmé : la page s\'ouvre quand même, liste vide', r.erreurs.length === 0 && /Aucun patient/.test(r.$('next').textContent));
+
+/* ── 6. COMPTEUR (05/10/2026) ──────────────────────────────────────────── */
+console.log('\n[6] Compteur — règle des 30 %, axe CCAM');
+// Montant « à la française » (1 234,56) hors appels de code type slice(0,10) ;
+// seul l'exemple de saisie, volontairement fictif, est permis.
+const MONTANT = /(?<![(\w,])\d{1,3}(?:[ \u00a0]\d{3})*,\d{2}(?!\d)/g;
+const montants = (PAGE.match(MONTANT) || []).filter(m => m !== '1 234,56');
+V('aucun montant écrit dans la page, commentaires compris (seul l\'exemple fictif 1 234,56)', montants.length === 0, montants);
+const c = ouvrir();
+const cl = c.$('tC'); cl.click();
+V('onglet Compteur s\'ouvre, Patients se cache', !c.$('vC').hidden && c.$('vP').hidden);
+V('sans réglages : boutons grisés, Réglages ouverts', [...c.w.document.querySelectorAll('.geste')].every(b => b.disabled) && c.$('cReg').open);
+// Valeurs FICTIVES (le dépôt est public) — choisies pour des sommes vérifiables à la main.
+const regler = (o, d0, p0, l0, vals) => {
+  o.$('rD0').value = d0; o.$('rP0').value = p0; o.$('rL0').value = l0;
+  for (const [k, v] of Object.entries(vals)) o.$('rv_' + k).value = v;
+  o.$('rSave').click();
+};
+const VALS = { colo_mc: '20,00', colo_fr: '10,00', gastro_mc: '18', gastro_fr: '9,50', combo_mc: '30,01', combo_fr: '15,00' };
+regler(c, '2026-09-30', '1 000,00', '', { ...VALS, combo_fr: '' });
+V('réglage incomplet refusé avec le nom du geste', /Colo \+ gastro · France/.test(c.$('rMsg').textContent), c.$('rMsg').textContent);
+regler(c, '2026-09-30', '1 000,00', '', VALS);
+V('réglages enregistrés (libéral vide = 0)', /Enregistré/.test(c.$('rMsg').textContent) && [...c.w.document.querySelectorAll('.geste')].every(b => !b.disabled));
+V('départ : 0,0 % et marge = 3/7 × 1 000 = 428,57 €', c.$('cPct').textContent === '0,0 %' && /428,57/.test(c.$('cMarge').textContent),
+  [c.$('cPct').textContent, c.$('cMarge').textContent]);
+const geste = (o, g, mode, ass, d) => {
+  if (d) o.$('cDt').value = d;
+  o.w.document.querySelector('#cMode .chip[data-v="' + mode + '"]').click();
+  o.w.document.querySelector('#cAss .chip[data-v="' + ass + '"]').click();
+  o.w.document.querySelector('.geste[data-g="' + g + '"]').click();
+};
+geste(c, 'colo', 'lib', 'mc', '2026-09-30');
+V('acte daté du jour du relevé refusé (déjà compté)', c.$('cList').querySelectorAll('.acte').length === 0 && /déjà compté/.test(c.$('cMsg').textContent));
+geste(c, 'combo', 'lib', 'mc', '2026-10-01');   // 30,01
+geste(c, 'gastro', 'lib', 'fr', '2026-10-02');  //  9,50
+geste(c, 'colo', 'pub', 'fr', '2026-10-02');    // 10,00
+// L = 39,51 ; P = 1 010,00 ; T = 1 049,51 ; 39,51 / 1 049,51 = 3,76 % ; marge = (3×101000 − 7×3951)/7 = 39 334,71 c
+V('libéral = 39,51 € (2 actes), public = 1 010,00 € (+1)', /39,51/.test(c.$('cLib').textContent) && /2 actes/.test(c.$('cLib').textContent) && /1\s010,00/.test(c.$('cPub').textContent),
+  [c.$('cLib').textContent, c.$('cPub').textContent]);
+V('part libérale 3,8 %', c.$('cPct').textContent === '3,8 %', c.$('cPct').textContent);
+V('marge 393,34 € (au centime, arrondi vers le bas)', /393,34/.test(c.$('cMarge').textContent), c.$('cMarge').textContent);
+V('liste : 3 actes, le plus récent en haut', c.$('cList').querySelectorAll('.acte').length === 3 && /02\/10/.test(c.$('cList').querySelector('.acte').textContent));
+// Dépassement : public 100 €, libéral 50 € → T 150, excédent = 50 − 45 = 5,00 ; public à produire = 16,67
+const e = ouvrir(); e.$('tC').click();
+regler(e, '2026-09-30', '100', '50', VALS);
+V('au-delà de 30 % : excédent 5,00 € et public à produire 16,67 €', /Au-delà de 30 % : 5,00/.test(e.$('cMarge').textContent) && /16,67/.test(e.$('cMarge').textContent),
+  e.$('cMarge').textContent);
+V('33,3 % affiché', e.$('cPct').textContent === '33,3 %', e.$('cPct').textContent);
+// Retirer + Annuler, sans toucher la liste des patients
+const n1 = c.liste().length;
+c.$('cList').querySelector('.cx').click();
+V('retirer un acte : 2 restants, barre Annuler', c.$('cList').querySelectorAll('.acte').length === 2 && c.$('undo').style.display === 'flex');
+c.$('undoBtn').click();
+V('Annuler le remet, la liste des patients est intacte', c.$('cList').querySelectorAll('.acte').length === 3 && c.liste().length === n1);
+// Nouveau relevé : les actes antérieurs disparaissent (ils y sont déjà)
+regler(c, '2026-10-01', '1 000,00', '30,01', VALS);
+V('nouveau relevé au 01/10 : l\'acte du 01/10 est retiré, 2 restent', c.$('cList').querySelectorAll('.acte').length === 2 && /1 acte antérieur/.test(c.$('rMsg').textContent),
+  c.$('rMsg').textContent);
+V('aucun appel réseau dans le compteur', c.reseau.length === 0 && e.reseau.length === 0, c.reseau.concat(e.reseau));
+// Réouverture : compteur et onglet retrouvés
+const brut = c.w.localStorage.getItem('pense-bete-compteur-v1');
+const o4 = (() => {
+  const vc2 = new VirtualConsole(); const r4 = [];
+  const d = new JSDOM(PAGE, { runScripts: 'dangerously', pretendToBeVisual: true, virtualConsole: vc2, url: 'https://planningmedic.github.io/pense-bete/',
+    beforeParse(w) { const D = w.Date; w.Date = class extends D { constructor(...a) { super(...(a.length ? a : [T0])); } static now() { return T0; } };
+      w.fetch = () => { r4.push('fetch'); return Promise.reject(); }; w.Element.prototype.focus = function () {};
+      w.localStorage.setItem('pense-bete-compteur-v1', brut); w.localStorage.setItem('pense-bete-onglet', 'C'); } });
+  return { d, r4 };
+})();
+V('réouverture : onglet Compteur et 2 actes retrouvés', !o4.d.window.document.getElementById('vC').hidden && o4.d.window.document.querySelectorAll('#cList .acte').length === 2);
+const o5 = (() => { const d = new JSDOM(PAGE, { runScripts: 'dangerously', url: 'https://planningmedic.github.io/pense-bete/',
+  beforeParse(w) { w.Element.prototype.focus = function () {}; w.localStorage.setItem('pense-bete-compteur-v1', '{abîmé'); } }); return d; })();
+V('compteur abîmé : la page s\'ouvre, réglages demandés', o5.window.document.querySelectorAll('.geste[disabled]').length === 3);
 
 console.log(`\n${ok} ✓  ${ko} ✗`);
 process.exit(ko ? 1 : 0);

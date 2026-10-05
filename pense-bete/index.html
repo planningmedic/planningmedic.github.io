@@ -78,12 +78,39 @@ details summary{cursor:pointer;color:var(--mute);font-size:15px;padding:10px 0}
   max-width:calc(100% - 32px);font-size:15px}
 .undo button{font:inherit;font-weight:700;background:none;border:0;color:var(--acc-soft);cursor:pointer}
 .foot{font-size:13px;color:var(--mute);margin-top:26px}
+/* (05/10/2026) Onglets + compteur de la règle des 30 % (axe CCAM) */
+.tabs{display:grid;grid-template-columns:1fr 1fr;gap:6px;background:var(--card);border:1px solid var(--line);border-radius:12px;padding:4px;margin:0 0 16px}
+.tab{font:inherit;font-weight:700;font-size:16px;border:0;background:none;color:var(--mute);border-radius:9px;min-height:42px;cursor:pointer}
+.tab[aria-selected="true"]{background:var(--acc);color:var(--acc-ink)}
+.chips.deux{grid-template-columns:1fr 1fr}
+.kpi{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:14px;margin-bottom:14px}
+.kpi .big{font-size:40px;font-weight:700;line-height:1.1}
+.kpi .sub{color:var(--mute);font-size:14px}
+.kpi .duo{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:12px;font-size:15px}
+.kpi .duo b{display:block;font-size:18px}
+.marge{margin-top:12px;font-weight:700;font-size:15px}
+.marge.ok{color:var(--acc)} .marge.ko{color:var(--warn)}
+.gestes{display:grid;grid-template-columns:1fr;gap:8px;margin-top:4px}
+.geste{font:inherit;font-weight:700;font-size:18px;background:var(--acc);color:var(--acc-ink);border:0;border-radius:10px;min-height:52px;cursor:pointer}
+.geste:disabled{opacity:.4;cursor:default}
+.acte{display:flex;align-items:center;gap:10px;min-height:40px;border-bottom:1px solid var(--line)}
+.acte .d{color:var(--mute);min-width:54px;font-size:15px}
+.acte .g{flex:1}
+.acte .v{font-variant-numeric:tabular-nums}
+.reg{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:0 14px;margin-top:22px}
+.reg .grille{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.reg h3{font-size:15px;margin:14px 0 8px}
 @media (prefers-reduced-motion:no-preference){ .fresh{animation:f .6s ease-out} @keyframes f{from{background:var(--acc-soft)}to{background:transparent}} }
 </style>
 </head>
 <body>
 <main>
   <h1>Mes patients lib</h1>
+  <div class="tabs" role="tablist">
+    <button type="button" class="tab" role="tab" id="tP" aria-selected="true" aria-controls="vP">Patients</button>
+    <button type="button" class="tab" role="tab" id="tC" aria-selected="false" aria-controls="vC">Compteur</button>
+  </div>
+  <div id="vP" role="tabpanel" aria-labelledby="tP">
   <form id="frm" autocomplete="off">
     <div class="row">
       <div class="f"><label for="dt">Date opératoire</label><input type="date" id="dt" required></div>
@@ -97,8 +124,51 @@ details summary{cursor:pointer;color:var(--mute);font-size:15px;padding:10px 0}
 
   <section><h2>À venir</h2><div id="next"></div></section>
   <section id="pastBox" hidden><details><summary id="pastSum"></summary><div id="past"></div></details></section>
+  </div>
 
-  <p class="foot">Liste gardée sur cet appareil uniquement, rien n'est envoyé.</p>
+  <!-- (05/10/2026) COMPTEUR — règle des 30 %, axe CCAM seulement.
+       Part du dernier relevé (point de départ saisi à la main) et ajoute les
+       actes comptés depuis. Aucune projection. Aucun montant dans ce fichier :
+       valeurs et point de départ se saisissent dans « Réglages », sur l'appareil. -->
+  <div id="vC" role="tabpanel" aria-labelledby="tC" hidden>
+    <div class="kpi">
+      <div class="big" id="cPct">—</div>
+      <div class="sub" id="cSub">part libérale CCAM</div>
+      <div class="duo"><div>Libéral<b id="cLib">—</b></div><div>Public<b id="cPub">—</b></div></div>
+      <div class="marge" id="cMarge"></div>
+    </div>
+    <form id="cFrm" autocomplete="off">
+      <div class="f"><label for="cDt">Date de l'acte</label><input type="date" id="cDt"></div>
+      <div class="f"><div class="chips deux" id="cMode" role="radiogroup" aria-label="Activité">
+        <button type="button" class="chip" role="radio" data-v="lib" aria-checked="true">Libéral</button>
+        <button type="button" class="chip" role="radio" data-v="pub" aria-checked="false">Public</button></div></div>
+      <div class="f"><div class="chips deux" id="cAss" role="radiogroup" aria-label="Assurance">
+        <button type="button" class="chip" role="radio" data-v="mc" aria-checked="true">Monaco</button>
+        <button type="button" class="chip" role="radio" data-v="fr" aria-checked="false">France</button></div></div>
+      <div class="gestes" id="cGestes">
+        <button type="button" class="geste" data-g="colo">Colo</button>
+        <button type="button" class="geste" data-g="gastro">Gastro</button>
+        <button type="button" class="geste" data-g="combo">Colo + gastro</button>
+      </div>
+      <p class="msg" id="cMsg" role="status"></p>
+    </form>
+    <section><h2 id="cListT">Actes comptés</h2><div id="cList"></div></section>
+    <details class="reg" id="cReg">
+      <summary>Réglages</summary>
+      <h3>Point de départ (dernier relevé)</h3>
+      <div class="f"><label for="rD0">Relevé arrêté au</label><input type="date" id="rD0"></div>
+      <div class="grille">
+        <div class="f"><label for="rP0">Public CCAM (€)</label><input id="rP0" inputmode="decimal"></div>
+        <div class="f"><label for="rL0">Libéral CCAM (€)</label><input id="rL0" inputmode="decimal"></div>
+      </div>
+      <h3>Valeur d'un acte (€, sans dépassement)</h3>
+      <div class="grille" id="rVals"></div>
+      <button type="button" class="add" id="rSave" style="margin:6px 0 14px">Enregistrer</button>
+      <p class="msg" id="rMsg" role="status"></p>
+    </details>
+  </div>
+
+  <p class="foot">Tout est gardé sur cet appareil uniquement, rien n'est envoyé.</p>
 </main>
 <div class="undo" id="undo" role="status"><span id="undoTxt"></span><button type="button" id="undoBtn">Annuler</button></div>
 
@@ -156,15 +226,137 @@ $('frm').addEventListener('submit',e=>{
 });
 $('chips').addEventListener('click',e=>{ const b=e.target.closest('.chip'); if(!b) return; SEC=b.dataset.s; renderChips(); $('ini').focus(); });
 document.addEventListener('click',e=>{
-  const b=e.target.closest('.x'); if(!b) return;
+  const b=e.target.closest('.x'); if(!b || b.classList.contains('cx')) return;
   const k=L.findIndex(p=>p.id===b.dataset.id); if(k<0) return;
-  lastDel=L.splice(k,1)[0]; save(); freshId=null; render();
-  $('undoTxt').textContent=lastDel.i+' effacé'; $('undo').style.display='flex';
+  lastDel={k:'p',o:L.splice(k,1)[0]}; save(); freshId=null; render();
+  $('undoTxt').textContent=lastDel.o.i+' effacé'; $('undo').style.display='flex';
   clearTimeout(undoT); undoT=setTimeout(()=>{ $('undo').style.display='none'; lastDel=null; },6000);
 });
-$('undoBtn').addEventListener('click',()=>{ if(lastDel){ L.push(lastDel); save(); lastDel=null; render(); } $('undo').style.display='none'; });
+$('undoBtn').addEventListener('click',()=>{
+  if(lastDel && lastDel.k==='p'){ L.push(lastDel.o); save(); render(); }
+  if(lastDel && lastDel.k==='c'){ C.actes.push(lastDel.o); cSave(); cRender(); }
+  lastDel=null; $('undo').style.display='none';
+});
+function montrerAnnuler(txt){
+  $('undoTxt').textContent=txt; $('undo').style.display='flex';
+  clearTimeout(undoT); undoT=setTimeout(()=>{ $('undo').style.display='none'; lastDel=null; },6000);
+}
+
+/* ══ ONGLETS ══════════════════════════════════════════════════════════════ */
+const KEY_TAB='pense-bete-onglet';
+function onglet(v){
+  const c = v==='C';
+  $('vP').hidden=c; $('vC').hidden=!c;
+  $('tP').setAttribute('aria-selected', String(!c)); $('tC').setAttribute('aria-selected', String(c));
+  try{ localStorage.setItem(KEY_TAB, v); }catch(e){}
+}
+$('tP').addEventListener('click',()=>onglet('P'));
+$('tC').addEventListener('click',()=>onglet('C'));
+
+/* ══ COMPTEUR — règle des 30 %, axe CCAM (05/10/2026) ══════════════════════
+   Libéral L et public P = point de départ (dernier relevé) + actes comptés
+   depuis. Part libérale = L / (L + P). Marge à public constant :
+   3/7·P − L (nulle à 30 %), même formule que la page Suivi libéral.
+   Excédent = L − 30 % (L + P) ; public à produire = 10/3 × excédent.
+   Tout est en CENTIMES entiers : aucune erreur d'arrondi en additionnant.
+   Aucun montant n'est écrit ici : les valeurs viennent des Réglages. */
+const KEY_C='pense-bete-compteur-v1';
+const GESTES={colo:'Colo', gastro:'Gastro', combo:'Colo + gastro'};
+const ASS={mc:'Monaco', fr:'France'};
+let C={d0:'', p0:null, l0:null, v:{}, actes:[]};
+let cMode='lib', cAss='mc';
+function cLoad(){
+  try{ const o=JSON.parse(localStorage.getItem(KEY_C)||'null');
+    if(o && typeof o==='object'){ C=Object.assign(C,o); if(!Array.isArray(C.actes)) C.actes=[]; if(!C.v||typeof C.v!=='object') C.v={}; } }
+  catch(e){ /* stockage abîmé : on repart à vide */ }
+}
+function cSave(){ try{ localStorage.setItem(KEY_C, JSON.stringify(C)); storageOK=true; }catch(e){ storageOK=false; } }
+// « 1 234,56 » → 123456 centimes ; null si illisible
+function enCentimes(t){
+  const s=String(t==null?'':t).replace(/[\s\u00a0\u202f€]/g,'').replace(',','.');
+  if(!/^\d+(\.\d{1,2})?$/.test(s)) return null;
+  const [e,d='']=s.split('.'); return parseInt(e,10)*100 + parseInt((d+'00').slice(0,2),10);
+}
+const euros=c=>(c/100).toLocaleString('fr-FR',{minimumFractionDigits:2,maximumFractionDigits:2})+' €';
+const saisie=c=>c==null?'':(c/100).toFixed(2).replace('.',',');
+function valeur(g,a){ const x=C.v[g+'_'+a]; return Number.isInteger(x)?x:null; }
+function regleComplet(){ return !!C.d0 && Number.isInteger(C.p0) && Number.isInteger(C.l0) && Object.keys(GESTES).every(g=>Object.keys(ASS).every(a=>valeur(g,a)!=null)); }
+function cTotaux(){
+  let L0=C.l0||0, P0=C.p0||0, nl=0, np=0;
+  C.actes.forEach(x=>{ const v=valeur(x.g,x.a)||0; if(x.m==='lib'){ L0+=v; nl++; } else { P0+=v; np++; } });
+  return {L:L0, P:P0, nl, np};
+}
+function cRender(){
+  const ok=regleComplet(), t=cTotaux(), T=t.L+t.P;
+  document.querySelectorAll('.geste').forEach(b=>b.disabled=!ok);
+  $('cMsg').textContent = ok ? '' : 'Remplissez d\'abord les Réglages (en bas) : point de départ et valeur des actes.';
+  if(!ok) $('cReg').open=true;
+  $('cPct').textContent = T>0 ? (t.L*100/T).toLocaleString('fr-FR',{minimumFractionDigits:1,maximumFractionDigits:1})+' %' : '—';
+  $('cSub').textContent = 'part libérale CCAM' + (C.d0 ? ' · depuis le relevé du '+C.d0.split('-').reverse().join('/') : '');
+  $('cLib').textContent = euros(t.L) + (t.nl ? ' · +'+t.nl+' acte'+(t.nl>1?'s':'') : '');
+  $('cPub').textContent = euros(t.P) + (t.np ? ' · +'+t.np+' acte'+(t.np>1?'s':'') : '');
+  const marge7 = 3*t.P - 7*t.L;                   // = 7 × marge, en centimes
+  const m=$('cMarge');
+  if(!ok){ m.textContent=''; m.className='marge'; }
+  else if(marge7>=0){ m.className='marge ok'; m.textContent='Marge avant 30 % : '+euros(Math.floor(marge7/7)); }
+  else { const exc=Math.ceil((7*t.L-3*t.P)/10);     // L − 0,3·T, arrondi au centime supérieur
+    m.className='marge ko'; m.textContent='Au-delà de 30 % : '+euros(exc)+' · public à produire ≈ '+euros(Math.ceil(exc*10/3)); }
+  const tri=[...C.actes].sort((a,b)=>b.d.localeCompare(a.d)||b.t-a.t);
+  $('cListT').textContent='Actes comptés'+(C.actes.length?' ('+C.actes.length+')':'');
+  $('cList').innerHTML = tri.length ? tri.map(x=>'<div class="acte"><span class="d">'+x.d.slice(8,10)+'/'+x.d.slice(5,7)+'</span>'
+      +'<span class="g">'+esc(GESTES[x.g]||x.g)+' · '+(x.m==='lib'?'Lib':'Pub')+' · '+esc(ASS[x.a]||x.a)+'</span>'
+      +'<span class="v">'+(valeur(x.g,x.a)!=null?euros(valeur(x.g,x.a)):'—')+'</span>'
+      +'<button type="button" class="x cx" aria-label="Retirer cet acte" data-id="'+x.id+'">×</button></div>').join('')
+    : '<p class="empty">Aucun acte compté depuis le relevé.</p>';
+  if(!storageOK) $('cMsg').textContent="Ce navigateur n'enregistre pas : le compteur sera perdu en fermant la page.";
+}
+function cReglagesAfficher(){
+  $('rD0').value=C.d0||''; $('rP0').value=saisie(C.p0); $('rL0').value=saisie(C.l0);
+  $('rVals').innerHTML=Object.keys(GESTES).map(g=>Object.keys(ASS).map(a=>
+    '<div class="f"><label for="rv_'+g+'_'+a+'">'+GESTES[g]+' · '+ASS[a]+'</label><input id="rv_'+g+'_'+a+'" inputmode="decimal" value="'+saisie(valeur(g,a))+'"></div>').join('')).join('');
+}
+function radios(id, set){
+  $(id).addEventListener('click',e=>{ const b=e.target.closest('.chip'); if(!b) return;
+    $(id).querySelectorAll('.chip').forEach(x=>x.setAttribute('aria-checked', String(x===b))); set(b.dataset.v); });
+}
+radios('cMode', v=>cMode=v);
+radios('cAss', v=>cAss=v);
+$('cGestes').addEventListener('click',e=>{
+  const b=e.target.closest('.geste'); if(!b || b.disabled) return;
+  const d=$('cDt').value;
+  if(!d){ $('cMsg').textContent='Indiquez la date de l\'acte.'; return; }
+  if(d<=C.d0){ $('cMsg').textContent='Cet acte est antérieur ou égal au relevé du '+C.d0.split('-').reverse().join('/')+' : il y est déjà compté.'; return; }
+  C.actes.push({id:Date.now().toString(36)+Math.random().toString(36).slice(2,6), d, g:b.dataset.g, m:cMode, a:cAss, t:Date.now()});
+  cSave(); cRender();
+  $('cMsg').textContent='+1 '+GESTES[b.dataset.g]+' '+(cMode==='lib'?'libéral':'public')+' '+ASS[cAss]+' le '+d.split('-').reverse().join('/');
+});
+$('cList').addEventListener('click',e=>{
+  const b=e.target.closest('.cx'); if(!b) return;
+  e.stopPropagation();
+  const k=C.actes.findIndex(x=>x.id===b.dataset.id); if(k<0) return;
+  lastDel={k:'c',o:C.actes.splice(k,1)[0]}; cSave(); cRender();
+  montrerAnnuler(GESTES[lastDel.o.g]+' retiré');
+});
+$('rSave').addEventListener('click',()=>{
+  const d0=$('rD0').value, p0=enCentimes($('rP0').value), l0=enCentimes($('rL0').value||'0');
+  if(!d0||p0==null||l0==null){ $('rMsg').textContent='Date du relevé et montants public / libéral nécessaires (ex. 1 234,56).'; return; }
+  const v={};
+  for(const g of Object.keys(GESTES)) for(const a of Object.keys(ASS)){
+    const c=enCentimes($('rv_'+g+'_'+a).value);
+    if(c==null||c===0){ $('rMsg').textContent='Valeur manquante ou illisible : '+GESTES[g]+' · '+ASS[a]+'.'; return; }
+    v[g+'_'+a]=c;
+  }
+  const avant=C.actes.length;
+  C.d0=d0; C.p0=p0; C.l0=l0; C.v=v;
+  C.actes=C.actes.filter(x=>x.d>d0);           // un nouveau relevé contient déjà les actes antérieurs
+  cSave(); cRender(); cReglagesAfficher();
+  const n=avant-C.actes.length;
+  $('rMsg').textContent='Enregistré.'+(n?' '+n+' acte'+(n>1?'s':'')+' antérieur'+(n>1?'s':'')+' au relevé retiré'+(n>1?'s':'')+' (déjà dans le relevé).':'');
+});
 
 load(); $('dt').value=isoToday(); render();
+cLoad(); $('cDt').value=isoToday(); cReglagesAfficher(); cRender();
+try{ if(localStorage.getItem(KEY_TAB)==='C') onglet('C'); }catch(e){}
 </script>
 </body>
 </html>
