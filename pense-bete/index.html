@@ -98,7 +98,8 @@ details summary{cursor:pointer;color:var(--mute);font-size:15px;padding:10px 0}
 .acte .g{flex:1}
 .acte .v{font-variant-numeric:tabular-nums}
 .reg{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:0 14px;margin-top:22px}
-.reg .grille{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.reg .grille{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:10px}
+.reg input{min-width:0;box-sizing:border-box} /* le contenu d'un <details> n'hérite pas toujours du border-box */
 .reg h3{font-size:15px;margin:14px 0 8px}
 .autre{margin-top:14px;padding-top:12px;border-top:1px solid var(--line)}
 .autre .ligne{display:grid;grid-template-columns:1fr auto;gap:8px}
@@ -182,6 +183,8 @@ details summary{cursor:pointer;color:var(--mute);font-size:15px;padding:10px 0}
       </div>
       <h3>Valeur d'un acte (€, sans dépassement)</h3>
       <div class="grille" id="rVals"></div>
+      <h3>Forfaits de réanimation (€, tarif de base)</h3>
+      <div class="grille" id="rRea"></div>
       <button type="button" class="add" id="rSave" style="margin:6px 0 14px">Enregistrer</button>
       <p class="msg" id="rMsg" role="status"></p>
     </details>
@@ -282,11 +285,15 @@ $('tC').addEventListener('click',()=>onglet('C'));
 const KEY_C='pense-bete-compteur-v1';
 const GESTES={colo:'Colo', gastro:'Gastro', combo:'Colo + gastro'};
 const ASS={mc:'Monaco', fr:'France'};
-let C={d0:'', p0:null, l0:null, v:{}, actes:[]};
+let C={d0:'', p0:null, l0:null, v:{}, rea:{}, actes:[]};
+/* (05/10/2026) Forfaits de réanimation : activité 1, absents de la liste CCAM du
+   site (qui ne garde que l'anesthésie). Tarif saisi dans les Réglages, SANS le
+   modificateur 7 (réservé à l'anesthésie), × 50 % éventuel, × coefficient Monaco. */
+const REA={YYYY015:'Forfait de réanimation niveau A', YYYY020:'Forfait de réanimation niveau B'};
 let cMode='lib', cAss='mc';
 function cLoad(){
   try{ const o=JSON.parse(localStorage.getItem(KEY_C)||'null');
-    if(o && typeof o==='object'){ C=Object.assign(C,o); if(!Array.isArray(C.actes)) C.actes=[]; if(!C.v||typeof C.v!=='object') C.v={}; } }
+    if(o && typeof o==='object'){ C=Object.assign(C,o); if(!Array.isArray(C.actes)) C.actes=[]; if(!C.v||typeof C.v!=='object') C.v={}; if(!C.rea||typeof C.rea!=='object') C.rea={}; } }
   catch(e){ /* stockage abîmé : on repart à vide */ }
 }
 function cSave(){ try{ localStorage.setItem(KEY_C, JSON.stringify(C)); storageOK=true; }catch(e){ storageOK=false; } }
@@ -333,6 +340,7 @@ function cRender(){
   if(!storageOK) $('cMsg').textContent="Ce navigateur n'enregistre pas : le compteur sera perdu en fermant la page.";
 }
 function cReglagesAfficher(){
+  $('rRea').innerHTML=Object.keys(REA).map(k=>'<div class="f"><label for="rr_'+k+'">'+(k==='YYYY015'?'Réa A':'Réa B')+' · '+k+'</label><input id="rr_'+k+'" inputmode="decimal" value="'+saisie(Number.isInteger(C.rea[k])?C.rea[k]:null)+'"></div>').join('');
   $('rD0').value=C.d0||''; $('rP0').value=saisie(C.p0); $('rL0').value=saisie(C.l0);
   $('rVals').innerHTML=Object.keys(GESTES).map(g=>Object.keys(ASS).map(a=>
     '<div class="f"><label for="rv_'+g+'_'+a+'">'+GESTES[g]+' · '+ASS[a]+'</label><input id="rv_'+g+'_'+a+'" inputmode="decimal" value="'+saisie(valeur(g,a))+'"></div>').join('')).join('');
@@ -364,17 +372,28 @@ function chargerCCAM(){
 const codeSaisi=()=>$('cCode').value.trim().toUpperCase().replace(/\s/g,'');
 // tarif (€) → centimes : + 6 % (modificateur 7) × 50 % éventuel × coefficient Monaco, arrondi au centime
 function montantAutre(t, r50, a){ return Math.round(Math.round(t*100) * 1.06 * (r50?0.5:1) * (a==='mc'?1.95:1)); }
+// forfait de réa : tarif déjà en centimes, pas de modificateur 7
+function montantRea(c, r50, a){ return Math.round(c * (r50?0.5:1) * (a==='mc'?1.95:1)); }
 async function apercuAutre(){
   const code=codeSaisi(), el=$('cLibelle');
   if(code.length<7){ el.textContent=''; return null; }
   if(!/^[A-Z]{4}\d{3}$/.test(code)){ el.textContent='Un code CCAM, c\'est 4 lettres et 3 chiffres.'; return null; }
+  const lieu=' ('+ASS[cAss]+(cMode==='lib'?', libéral':', public')+')';
+  if(REA[code]){
+    const c=C.rea[code];
+    if(!Number.isInteger(c)){ el.textContent=REA[code]+' : renseignez son tarif dans les Réglages.'; return null; }
+    const v=montantRea(c,$('c50').checked,cAss);
+    el.textContent=REA[code]+' → '+euros(v)+lieu;
+    return {c:code, v};
+  }
   el.textContent='Recherche…';
   let m; try{ m=await chargerCCAM(); }catch(e){ el.textContent='Liste CCAM injoignable (réseau ?). Réessayez.'; return null; }
   if(codeSaisi()!==code) return null;            // le code a changé pendant le chargement
   const a=m[code];
   if(!a){ el.textContent=code+' : absent de la liste (pas de tarif d\'anesthésie).'; return null; }
-  el.textContent=a.l+' → '+euros(montantAutre(a.t,$('c50').checked,cAss))+' ('+ASS[cAss]+(cMode==='lib'?', libéral':', public')+')';
-  return a;
+  const v=montantAutre(a.t,$('c50').checked,cAss);
+  el.textContent=a.l+' → '+euros(v)+lieu;
+  return {c:a.c, v};
 }
 $('cCode').addEventListener('input',apercuAutre);
 $('c50').addEventListener('change',apercuAutre);
@@ -386,7 +405,7 @@ $('cAutre').addEventListener('click',async()=>{
   const a=await apercuAutre();
   if(!a){ $('cMsg').textContent=$('cLibelle').textContent||'Tapez un code CCAM.'; return; }
   const r50=$('c50').checked;
-  C.actes.push({id:Date.now().toString(36)+Math.random().toString(36).slice(2,6), d, g:'autre', code:a.c, r50, v:montantAutre(a.t,r50,cAss), m:cMode, a:cAss, t:Date.now()});
+  C.actes.push({id:Date.now().toString(36)+Math.random().toString(36).slice(2,6), d, g:'autre', code:a.c, r50, v:a.v, m:cMode, a:cAss, t:Date.now()});
   cSave(); cRender();
   $('cMsg').textContent='+1 '+a.c+(r50?' (50 %)':'')+' '+(cMode==='lib'?'libéral':'public')+' '+ASS[cAss]+' le '+d.split('-').reverse().join('/');
   $('cCode').value=''; $('c50').checked=false; $('cLibelle').textContent='';
@@ -415,8 +434,15 @@ $('rSave').addEventListener('click',()=>{
     if(c==null||c===0){ $('rMsg').textContent='Valeur manquante ou illisible : '+GESTES[g]+' · '+ASS[a]+'.'; return; }
     v[g+'_'+a]=c;
   }
+  const rea={};
+  for(const k of Object.keys(REA)){
+    const t=$('rr_'+k).value.trim(); if(!t) continue;      // facultatif
+    const c=enCentimes(t);
+    if(c==null||c===0){ $('rMsg').textContent='Tarif illisible : '+(k==='YYYY015'?'Réa A':'Réa B')+'.'; return; }
+    rea[k]=c;
+  }
   const avant=C.actes.length;
-  C.d0=d0; C.p0=p0; C.l0=l0; C.v=v;
+  C.d0=d0; C.p0=p0; C.l0=l0; C.v=v; C.rea=rea;
   C.actes=C.actes.filter(x=>x.d>d0);           // un nouveau relevé contient déjà les actes antérieurs
   cSave(); cRender(); cReglagesAfficher();
   const n=avant-C.actes.length;

@@ -42,6 +42,7 @@ function ouvrir(stock, opts = {}) {
       w.WebSocket = function (u) { reseau.push(['ws', u]); };
       w.Element.prototype.focus = function () {};
       if (stock) w.localStorage.setItem(CLE, stock);
+      if (opts.compteur) w.localStorage.setItem('pense-bete-compteur-v1', opts.compteur);
     },
   });
   const w = dom.window, $ = id => w.document.getElementById(id);
@@ -242,6 +243,40 @@ V('compteur abîmé : la page s\'ouvre, réglages demandés', o5.window.document
       w.localStorage.setItem('pense-bete-compteur-v1', brut2); } });
   d2.window.document.getElementById('tC').click();
   V('réouverture : montant figé retrouvé sans aucun téléchargement', r2.length === 0 && d2.window.document.getElementById('cLib').textContent.includes(fmt(att(t('HHQE002'), 0, 1))));
+
+  /* ── 8. FORFAITS DE RÉANIMATION (05/10/2026) ─────────────────────────── */
+  console.log('\n[8] Forfaits de réa A et B — tarif des Réglages, sans modificateur 7');
+  const z = ouvrir(null, { ccam: true }); z.$('tC').click();
+  regler(z, '2026-09-30', '1 000,00', '', VALS);
+  z.$('cDt').value = '2026-10-03';
+  const tz = async (code) => { z.$('cCode').value = code; z.$('cCode').dispatchEvent(new z.w.Event('input')); await pause(); };
+  await tz('YYYY015');
+  V('tarif non renseigné : message qui renvoie aux Réglages', /renseignez son tarif dans les Réglages/.test(z.$('cLibelle').textContent), z.$('cLibelle').textContent);
+  V('…et rien n\'est téléchargé pour un forfait de réa', z.reseau.length === 0, z.reseau);
+  z.$('rr_YYYY015').value = 'abc'; z.$('rSave').click();
+  V('tarif illisible refusé', /Tarif illisible : Réa A/.test(z.$('rMsg').textContent), z.$('rMsg').textContent);
+  // Tarifs FICTIFS
+  z.$('rr_YYYY015').value = '100'; z.$('rr_YYYY020').value = '200,50'; z.$('rSave').click();
+  V('tarifs réa enregistrés', /Enregistré/.test(z.$('rMsg').textContent));
+  z.w.document.querySelector('#cMode .chip[data-v="pub"]').click();
+  z.w.document.querySelector('#cAss .chip[data-v="mc"]').click();
+  await tz('yyyy015');
+  V('Réa A Monaco = 100 × coefficient Monaco = 195,00 € (pas de +6 %)', /niveau A → 195,00/.test(z.$('cLibelle').textContent), z.$('cLibelle').textContent);
+  z.$('cAutre').click(); await pause();
+  z.w.document.querySelector('#cAss .chip[data-v="fr"]').click();
+  await tz('YYYY020'); z.$('c50').checked = true; z.$('c50').dispatchEvent(new z.w.Event('change')); await pause();
+  V('Réa B France à 50 % = 100,25 €', /niveau B → 100,25/.test(z.$('cLibelle').textContent), z.$('cLibelle').textContent);
+  z.$('cAutre').click(); await pause();
+  V('public = 1 000 + 195,00 + 100,25 = 1 295,25 €', /1\s295,25/.test(z.$('cPub').textContent), z.$('cPub').textContent);
+  V('liste : YYYY015 et YYYY020 (50 %)', /YYYY015/.test(z.$('cList').textContent) && /YYYY020 \(50 %\)/.test(z.$('cList').textContent));
+  V('aucun téléchargement pour les forfaits de réa', z.reseau.length === 0, z.reseau);
+  V('tarifs réa gardés dans les Réglages après réaffichage', z.$('rr_YYYY015').value === '100,00' && z.$('rr_YYYY020').value === '200,50');
+  // Données enregistrées AVANT cette version (sans tarifs réa) : relues sans perte
+  const ancien = JSON.stringify({ d0: '2026-09-30', p0: 100000, l0: 0, v: { colo_mc: 2000, colo_fr: 1000, gastro_mc: 1800, gastro_fr: 950, combo_mc: 3001, combo_fr: 1500 },
+    actes: [{ id: 'x1', d: '2026-10-01', g: 'colo', m: 'lib', a: 'mc', t: 1 }] });
+  const av = ouvrir(null, { compteur: ancien }); av.$('tC').click();
+  V('données d\'avant la mise à jour : compteur intact (20,00 € libéral, 1 acte)', /20,00/.test(av.$('cLib').textContent) && av.$('cList').querySelectorAll('.acte').length === 1 && av.erreurs.length === 0,
+    [av.$('cLib').textContent, av.erreurs]);
   console.log(`\n${ok} ✓  ${ko} ✗`);
   process.exit(ko ? 1 : 0);
 })();
