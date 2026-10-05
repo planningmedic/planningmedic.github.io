@@ -1180,6 +1180,12 @@ Banc : <code>banc/banc_18h_fenetre.js</code>.</p>
 <p><code>essaiGenerationGardes(année)</code>, lancée depuis l'éditeur Apps Script, exécute le calcul
 complet <b>sans rien écrire</b> : aucun onglet créé, aucune notification, aucun fichier publié.
 Sans argument, elle prend l'année de campagne. Le résultat part dans le journal d'exécution.</p>
+<p>(05/10/2026) Elle calcule <b>le même planning que la vraie génération</b> : même choix parmi les
+plannings candidats (<code>choisirMeilleurTirage</code>), puis ce planning-là à blanc. Avant, elle ne
+calculait que le premier, et pouvait montrer un autre planning que celui qui serait écrit. Le rapport
+annonce le numéro du planning retenu et la durée totale — celle de la vraie génération, écriture en
+moins ; au-delà de 4 minutes, il prévient du risque d'atteindre la limite de 6 minutes.
+Banc : <code>banc/banc_essai_meme_planning.js</code>.</p>
 <p class="warn">Comme elle ne crée aucun onglet, <b>ce qu'elle n'affiche pas est perdu</b>. Le rapport
 a donc été élargi le 8 septembre 2026 pour porter tout ce que la fin du calcul a en mémoire.</p>
 <table>

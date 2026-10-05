@@ -41,7 +41,7 @@
 // ⚠️ RÈGLE (détecteur de dérive dépôt↔Apps Script) : incrémenter cette version
 // à CHAQUE push de ce fichier. Le diagnostic (admin → Maintenance) compare la
 // version déployée ici avec celle du dépôt et signale toute recopie oubliée.
-const GAS_VERSION_GENERATEUR = '2026-10-05.2';
+const GAS_VERSION_GENERATEUR = '2026-10-05.3';
 
 /* (05/09/2026) INTERRUPTEUR DU NOUVEL ALGORITHME — récit : docs/JOURNAL-Planning-Med.md §101 */
 const NOUVEL_ALGO_GLOBAL = true;
@@ -281,13 +281,25 @@ function essaiEnchainementGardes(year, nb) {
 /* (04/09/2026) À LANCER DEPUIS L'ÉDITEUR APPS SCRIPT — récit : docs/JOURNAL-Planning-Med.md §108 */
 function essaiGenerationGardes(year) {
   const an = Number(year) || getIndisposYear();
-  const r = generateGardes(an, { dryRun: true });
+  /* (05/10/2026) LE MÊME PLANNING QUE LA VRAIE GÉNÉRATION. Celle-ci calcule
+     jusqu'à MULTI_DEPART_MAX plannings et écrit le plus équitable ; l'essai ne
+     calculait que le premier, et pouvait donc montrer un autre planning que
+     celui qui serait écrit (constaté le 05/10/2026 sur une campagne 2027
+     simulée : planning 1 affiché, planning 3 retenu). Même choix, même
+     fonction, puis ce planning-là calculé à blanc. La durée affichée est celle
+     de la vraie génération, écriture en moins. */
+  const _t0 = Date.now();
+  const _t = NOUVEL_ALGO_GLOBAL ? choisirMeilleurTirage(an) : 1;
+  const r = generateGardes(an, { dryRun: true, tirage: _t });
+  const _total = (Date.now() - _t0) / 1000;
   const L = [];
   const pad = function (t, n) { t = String(t); return t + Array(Math.max(1, n - t.length + 1)).join(' '); };
   const num = function (v, n) { v = String(v); return Array(Math.max(1, n - v.length + 1)).join(' ') + v; };
 
   L.push('═══ ESSAI DE GÉNÉRATION ' + an + ' — AUCUNE ÉCRITURE ═══');
-  L.push('Durée : ' + (r.ms / 1000).toFixed(1) + ' s   ·   ' + r.gardeurs + ' médecins de garde');
+  L.push('Planning retenu : n° ' + _t + ' — celui qu\'écrirait la vraie génération');
+  L.push('Durée : ' + _total.toFixed(1) + ' s au total (la vraie génération y ajoute l\'écriture)   ·   ' + r.gardeurs + ' médecins de garde');
+  if (_total > 240) L.push('⚠️ Plus de 4 minutes : la vraie génération risque d\'atteindre la limite de 6 minutes de Google.');
   L.push('');
 
   // ── 1. la couverture, avant tout : un trou est plus grave qu'un déséquilibre

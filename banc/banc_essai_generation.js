@@ -131,7 +131,7 @@ V('le verrou n\'est levé QUE pour le calcul à blanc',
 V('l\'enveloppe lançable depuis l\'éditeur existe',
   /function essaiGenerationGardes\(year\)/.test(src));
 V('…et elle passe bien par le mode à blanc',
-  /generateGardes\(an, \{ dryRun: true \}\)/.test(src));
+  /generateGardes\(an, \{ dryRun: true, tirage: _t \}\)/.test(src));
 /* (07/09/2026) Même correction que dans banc_equite_certificat : un numéro exact
    oblige à repasser ici à chaque montée de version, et fait échouer un lot qui
    n'a rien changé au calcul. On contrôle que la version est postérieure au lot
