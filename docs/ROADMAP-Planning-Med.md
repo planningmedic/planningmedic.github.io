@@ -18,6 +18,45 @@ l'établissement et 77 noms de praticiens sur une page publique sans code d'acc�
 pas été monté avec le lot cloche du 23/08 (oubli assumé, le code déployé est bien le nouveau) :
 à monter au prochain lot Worker. La constante reste la **seule** version écrite dans le fichier.
 
+## 05/10/2026 — générateur de gardes : congé long à cible pleine, paires à éviter, calcul à blanc fidèle
+
+**Fait** (trois lots, un commit chacun, banc **3 798 ✓, 0 échec**) :
+- **v1.18.2 — congé long à cible pleine** (`08aca69`). Par défaut un congé long (CL) réduit la cible
+  au prorata et la part libérée va aux autres. Nouvelle option dans le classeur : colonne
+  `CIBLE_PLEINE` (OUI) du registre `ABSENCES_LONGUES`, une ligne par absence. Le MAR garde alors la
+  cible d'une année pleine, concentrée sur ses mois de présence (le lissage mensuel le fait déjà) ;
+  les jours CL restent bloqués, les autres ne paient rien. Effet limité à `structAvail` (cibles et
+  poids des 18 h). Colonne absente ou case vide = comportement d'avant. Banc
+  `banc_cl_cible_pleine.js` (23 ✓). Premier usage réel : un congé paternité de 24 jours en février.
+- **v1.18.3 — avertissement quand une paire à éviter cède** (`ab02f44`). La règle cède en silence
+  quand la couverture l'exige (seul binôme possible un vendredi-dimanche, samedi à préserver,
+  dernier recours du 18 h). Désormais : un message par paire, toutes ses dates, **en tête** des
+  avertissements de génération (affichés dans l'admin). Dates exemptées (24, 25, 31/12, 01/01) non
+  signalées. Planning inchangé. Décision du responsable : **l'équité prime** sur la paire — le choix
+  du meilleur tirage n'en tient pas compte. Banc `banc_paire_avertissement.js` (15 ✓).
+- **v1.18.4 — le calcul à blanc montre le planning qui sera écrit** (`deaa5d9`). La vraie génération
+  calcule jusqu'à 8 tirages et écrit le plus équitable ; `essaiGenerationGardes` ne calculait que le
+  tirage 1. Il fait maintenant le même choix (`choisirMeilleurTirage`) puis calcule ce tirage à
+  blanc, annonce son numéro et la durée totale (alerte au-delà de 4 min). Banc
+  `banc_essai_meme_planning.js` (13 ✓).
+
+**Mesuré en production le 05/10** (classeur réel + campagne 2027 simulée, seuils de vacances +2) :
+tirages 1, 2, 3 (pire écart 2, 2, 1) → tirage 3 retenu ; 0 jour sans binôme ; écart ≤ 1 sur tous
+les axes ; **21 s au total pour 4 calculs** (≈ 5 s chacun). Un essai précédent avait pris 48 s pour
+un seul calcul : lenteur passagère de Google, pas reproduite. Le pire cas (9 calculs) reste loin
+des 6 minutes.
+
+**État du déploiement.** `generateur_gardes.gs` **2026-10-05.3** recopié dans l'éditeur (le calcul à
+blanc de 15h49 affiche « Planning retenu ») ; nouvelle version web **à confirmer au Diagnostic**.
+Classeur : colonne `CIBLE_PLEINE` créée dans `ABSENCES_LONGUES`.
+
+**À faire.**
+1. 🔴 **Avant le 10/10 : `INDISPOS_2027` contient une campagne SIMULÉE** (vacances, formations,
+   temps partiel, indispos, souhaits fictifs). Supprimer l'onglet puis le recréer par l'assistant
+   (« Initialiser ») : les congés longs du registre sont rejoués automatiquement, la case
+   `CIBLE_PLEINE` reste dans le registre.
+2. Confirmer au Diagnostic la version déployée du générateur.
+
 ## 01/10/2026 — module libéral : cotation allégée (v1.16.0), import Excel des cotations types (v1.17.0)
 
 **Fait.**

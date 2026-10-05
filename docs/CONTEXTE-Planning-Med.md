@@ -44,6 +44,28 @@ les fichiers du planning, et attend une semaine de fonctionnement réel avant su
 
 # PARTIE 1 — L'ESSENTIEL
 
+## État au 5 octobre 2026 — générateur : congé long à cible pleine, paires, calcul à blanc fidèle
+
+Site **v1.18.4**, banc **3 798 ✓, 0 échec**. `generateur_gardes.gs` **2026-10-05.3** (recopié ;
+déploiement web à confirmer). Détail des trois lots dans la ROADMAP.
+
+- 🔴 **`INDISPOS_2027` contient une campagne simulée** depuis le 05/10 : à supprimer et recréer par
+  l'assistant **avant l'ouverture du 10/10**. Les congés longs sont rejoués depuis le registre.
+- **Congé long : réduit ou rattrapé ?** Par défaut réduit au prorata. Pour garder une cible pleine :
+  OUI dans `ABSENCES_LONGUES`, colonne `CIBLE_PLEINE`, sur la ligne de l'absence, **avant** la
+  génération. Le calcul à blanc l'affiche (« ℹ️ … congé long à cible pleine »).
+- **Paires à éviter : l'équité prime** (décision du 05/10). La règle peut céder quand la couverture
+  l'exige ; un avertissement en tête de liste le dit, avec les dates.
+- **Le calcul à blanc = la vraie génération, écriture en moins** depuis v1.18.4 (même tirage). Avant,
+  il pouvait montrer un autre planning. Sa durée est celle de la génération réelle.
+- **Le banc reproduit le classeur réel** : sur la même campagne, l'essai en production et le banc ont
+  donné les mêmes chiffres, médecin par médecin. Pour y injecter des données du classeur (en local,
+  jamais dans le dépôt) : passer les dates en **texte 'AAAA-MM-JJ'** — une date créée hors du bac à
+  sable n'y est pas reconnue (`instanceof Date` faux), et les bornes d'activité sont alors ignorées
+  sans erreur.
+- Un MAR **sans groupe de vacances** (`GROUPES_VAC`) n'a pas de rang au staff : c'est voulu, il pose
+  où il veut.
+
 ## État au 1er octobre 2026 — module libéral allégé, import Excel des cotations types
 
 Site **v1.17.1**, banc **3 682 ✓, 0 échec** (vert à l'heure de Paris). `portail.gs` **2026-10-01.2**,
