@@ -210,17 +210,19 @@ console.log('\n═══ 46 ter. Phase 2 : un don exige un receveur DISPONIBLE �
      éprouve le refus (feuille INTACTE) et, surtout, les non-régressions :
      receveur libre = accepté, souhait = accepté. */
   const etat = b => JSON.stringify(b.cl.getSheetByName('GARDES_2027').lignes);
+  /* (05/10/2026) L'absence se lit dans GARDES (plus dans INDISPOS) : les
+     absences sont posées dans GARDES, avec ses codes à elle. */
   const refuses = [
-    ['receveur en VAC le jour de la garde', 'VAC', 0],
+    ['receveur en vacances (V) le jour de la garde', 'V', 0],
+    ['receveur en formation (F)', 'F', 0],
     ['receveur en congé longue durée (CL)', 'CL', 0],
     ['receveur en temps partiel (TP)', 'TP', 0],
-    ['receveur INDISPO ce jour-là', 'INDISPO', 0],
-    ['receveur en VAC le LENDEMAIN (jour de son repos de garde)', 'VAC', 1],
+    ['receveur en vacances (V) le LENDEMAIN (jour de son repos de garde)', 'V', 1],
   ];
   refuses.forEach(([titre, code, decalage]) => {
     const b = monde(2027);
     b.poser('ALPHA', b.dates[20], 'G'); b.poser('ALPHA', b.dates[21], 'RG');
-    b.poserIndispo('BRAVO', b.dates[20 + decalage], code);
+    b.poser('BRAVO', b.dates[20 + decalage], code);
     const avant = etat(b);
     let msg = '';
     try { vm.runInContext(`applyModification({ type:'donGarde', year:2027, date:${JSON.stringify(b.dates[20])}, doctorId:'ALPHA', doctorId2:'BRAVO' })`, b.ctx); }
@@ -246,15 +248,28 @@ console.log('\n═══ 46 ter. Phase 2 : un don exige un receveur DISPONIBLE �
     catch (e) { ok2 = false; }
     V('un SOUHAIT n\'est pas une absence : le don passe', ok2 && b.lire('BRAVO', b.dates[20]) === 'G');
   }
-  {
-    /* L'indisponibilité d'un TIERS ne bloque rien : seule celle du receveur compte. */
+  /* (05/10/2026) Une fois les gardes générées, INDISPOS ne bloque plus rien :
+     l'accord du receveur vaut levée de son indisponibilité de campagne. */
+  [['VAC posée dans INDISPOS seulement', 'VAC'], ['INDISPO de campagne', 'INDISPO']].forEach(([titre, code]) => {
     const b = monde(2027);
     b.poser('ALPHA', b.dates[20], 'G'); b.poser('ALPHA', b.dates[21], 'RG');
-    b.poserIndispo('CHARLI', b.dates[20], 'VAC');
+    b.poserIndispo('BRAVO', b.dates[20], code);
+    b.poserIndispo('BRAVO', b.dates[21], code);
+    let ok4 = true, m4 = '';
+    try { vm.runInContext(`applyModification({ type:'donGarde', year:2027, date:${JSON.stringify(b.dates[20])}, doctorId:'ALPHA', doctorId2:'BRAVO' })`, b.ctx); }
+    catch (e) { ok4 = false; m4 = e.message; }
+    V(`${titre} : ne bloque plus le don (GARDES fait foi)`,
+      ok4 && b.lire('BRAVO', b.dates[20]) === 'G' && b.lire('BRAVO', b.dates[21]) === 'RG', m4);
+  });
+  {
+    /* L'absence d'un TIERS ne bloque rien : seule celle du receveur compte. */
+    const b = monde(2027);
+    b.poser('ALPHA', b.dates[20], 'G'); b.poser('ALPHA', b.dates[21], 'RG');
+    b.poser('CHARLI', b.dates[20], 'V');
     let ok3 = true;
     try { vm.runInContext(`applyModification({ type:'donGarde', year:2027, date:${JSON.stringify(b.dates[20])}, doctorId:'ALPHA', doctorId2:'BRAVO' })`, b.ctx); }
     catch (e) { ok3 = false; }
-    V('la VAC d\'un tiers ne bloque pas le don', ok3 && b.lire('BRAVO', b.dates[20]) === 'G');
+    V('les vacances d\'un tiers ne bloquent pas le don', ok3 && b.lire('BRAVO', b.dates[20]) === 'G');
   }
 }
 
@@ -298,8 +313,10 @@ console.log('\n═══ 46 quater. Échange de deux gardes ADJACENTES (demande 
   const refus = [
     ['ALPHA a une garde au surlendemain+1 : vraie adjacence à l\'arrivée', b => b.poser('ALPHA', b.dates[23], 'G'), /consecutives/],
     ['BRAVO est de garde la veille du lundi : vraie adjacence à l\'arrivée', b => b.poser('BRAVO', b.dates[19], 'G'), /consecutives/],
-    ['BRAVO en VAC le lundi qu\'il recevrait', b => b.poserIndispo('BRAVO', b.dates[20], 'VAC'), /indisponible/],
-    ['ALPHA en VAC le mercredi (son nouveau repos)', b => b.poserIndispo('ALPHA', b.dates[22], 'VAC'), /indisponible/],
+    /* (05/10/2026) Absence lue dans GARDES : la case n'est plus vide, l'échange
+       est donc arrêté dès le contrôle « pas libre » (même refus, feuille intacte). */
+    ['BRAVO en vacances (V) le lundi qu\'il recevrait', b => b.poser('BRAVO', b.dates[20], 'V'), /manuellement|indisponible/],
+    ['ALPHA en vacances (V) le mercredi (son nouveau repos)', b => b.poser('ALPHA', b.dates[22], 'V'), /manuellement|indisponible/],
     ['état anormal : BRAVO sans repos au surlendemain', b => { const f = b.cl.getSheetByName('GARDES_2027');
       f.lignes[f.lignes.findIndex(l => l[0] === 'BRAVO')][b.dates.indexOf(b.dates[22]) + 1] = ''; }, /manuellement/],
   ];

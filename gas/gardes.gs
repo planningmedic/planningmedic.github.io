@@ -4,7 +4,7 @@
    quelles : aucune ligne de logique modifiée, seulement déplacée. Le routeur et
    ses aides (checkCode, _deny, _error, doGet/doPost) restent dans Indispos.gs.
    Un seul espace global dans Apps Script : rien à importer. */
-const GAS_VERSION_GARDES = '2026-09-15.2';
+const GAS_VERSION_GARDES = '2026-10-05.1';
 
 // ── Sonde : les positions de STATS que code.gs lit à l'aveugle ──
 function _sondeStatsEntetes_(check, R, annee) {
@@ -394,9 +394,14 @@ function applyModification(mod) {
   }
 
   /* (12/08/2026 — phase 2 échanges) Un don ne regardait que la grille des — récit : docs/JOURNAL-Planning-Med.md §92 */
-  const ABSENCES = ['INDISPO', 'VAC', 'FORM', 'TP', 'CL', 'CTP', 'CP', 'A'];
+  /* (05/10/2026 — demande du responsable) L'ABSENCE SE LIT DANS GARDES, plus dans
+     INDISPOS. Une fois les gardes générées, c'est GARDES qui fait foi : une
+     absence ajoutée à la main dans GARDES doit bloquer, et une indisponibilité de
+     campagne ne bloque plus un échange que le receveur accepte (son accord vaut
+     levée). Codes de GARDES uniquement ; « 18 » (poste 18h) n'est pas une absence. */
+  const ABSENCES = ['V', 'F', 'TP', 'CL', 'CTP', 'CP', 'A'];
   function refuseSiIndisponible(who, jour, motif) {
-    const v = readCell(`INDISPOS_${year}`, who, jour).toUpperCase();
+    const v = String(readCell(`GARDES_${year}`, who, jour) || '').trim().toUpperCase();
     if (ABSENCES.indexOf(v) > -1) {
       throw new Error(`${who} est indisponible (${v}) le ${jour} — ${motif}`);
     }

@@ -102,7 +102,7 @@ console.log('\n═══ 2. Créer vers un receveur indisponible : refus IMMÉDI
   const b = monde(2027);
   const j = b.dates[9], lendemain = b.dates[10];
   b.poser('ALPHA', j, 'G'); b.poser('ALPHA', lendemain, 'RG');
-  b.poser('BRAVO', j, 'VAC', `INDISPOS_2027`);
+  b.poser('BRAVO', j, 'V');   // (05/10/2026) l'absence se lit dans GARDES
   let refus = null;
   try { vm.runInContext(`creerEchange(${JSON.stringify(user('ALPHA'))}, { type:'don', year:2027, date:${JSON.stringify(j)}, receveur:'BRAVO' })`, b.ctx); }
   catch (e) { refus = e.message; }
@@ -110,7 +110,24 @@ console.log('\n═══ 2. Créer vers un receveur indisponible : refus IMMÉDI
   V('le motif nomme l\'indisponibilité', /indisponi|impossible/i.test(refus || ''), refus);
   V('AUCUNE ligne n\'est écrite', b.echanges().length === 0);
   V('AUCUNE notification ne part', b.notifs.length === 0);
-  V('la grille est intacte (dryRun sans écriture)', b.lire('ALPHA', j) === 'G' && b.lire('BRAVO', j) === '');
+  V('la grille est intacte (dryRun sans écriture)', b.lire('ALPHA', j) === 'G' && b.lire('BRAVO', j) === 'V');
+}
+
+console.log('\n═══ 2 bis. Indisponibilité de campagne seule (INDISPOS) : ne bloque plus, l\'accord fait foi ═══');
+{
+  const b = monde(2027);
+  const j = b.dates[9], lendemain = b.dates[10];
+  b.poser('ALPHA', j, 'G'); b.poser('ALPHA', lendemain, 'RG');
+  b.poser('BRAVO', j, 'VAC', `INDISPOS_2027`);
+  b.poser('BRAVO', lendemain, 'INDISPO', `INDISPOS_2027`);
+  let refus = null, r = null;
+  try { r = vm.runInContext(`creerEchange(${JSON.stringify(user('ALPHA'))}, { type:'don', year:2027, date:${JSON.stringify(j)}, receveur:'BRAVO' })`, b.ctx); }
+  catch (e) { refus = e.message; }
+  V('la demande est créée malgré INDISPOS', !refus && r && !!r.id, refus);
+  let refus2 = null;
+  try { vm.runInContext(`repondreEchange(${JSON.stringify(user('BRAVO'))}, { id:${JSON.stringify(r && r.id)}, reponse:'accepter' })`, b.ctx); }
+  catch (e) { refus2 = e.message; }
+  V('le receveur accepte : la garde et son repos passent chez lui', !refus2 && b.lire('BRAVO', j) === 'G' && b.lire('BRAVO', lendemain) === 'RG', refus2);
 }
 
 console.log('\n═══ 3. Créer sans détenir la garde : refus ═══');
