@@ -41,7 +41,7 @@
 // ⚠️ RÈGLE (détecteur de dérive dépôt↔Apps Script) : incrémenter cette version
 // à CHAQUE push de ce fichier. Le diagnostic (admin → Maintenance) compare la
 // version déployée ici avec celle du dépôt et signale toute recopie oubliée.
-const GAS_VERSION_GENERATEUR = '2026-09-14.2';
+const GAS_VERSION_GENERATEUR = '2026-10-05.1';
 
 /* (05/09/2026) INTERRUPTEUR DU NOUVEL ALGORITHME — récit : docs/JOURNAL-Planning-Med.md §101 */
 const NOUVEL_ALGO_GLOBAL = true;
@@ -711,11 +711,34 @@ function generateGardes(year, opts){
   const nVjf=allDays.filter(d=>d.isVjf).length;
   const nFerie=allDays.filter(d=>d.isFerie&&(d.dow===2||d.dow===3)).length;       // fériés NON couplés (mar/mer)
   const nCoupleSam=allDays.filter(d=>d.isFerie&&(d.dow===1||d.dow===4)).length;   // jeudi/lundi fériés couplés → comptés samedi
+  /* (05/10/2026) CONGÉ LONG À CIBLE PLEINE. Par défaut un CL réduit la cible
+     au prorata (la part libérée va aux autres). Le MAR peut demander l'inverse :
+     garder la cible d'une année pleine et la concentrer sur ses mois de présence.
+     Le choix vit dans le classeur — colonne CIBLE_PLEINE (OUI) du registre
+     ABSENCES_LONGUES, une ligne par absence — jamais dans le code.
+     Effet limité au CALCUL de la cible (structAvail, donc aussi le poids des
+     18 h) : les jours CL restent bloqués pour les gardes partout ailleurs, et le
+     lissage mensuel (5ter) répartit d'office la cible sur les mois de présence. */
+  const clPlein={};
+  { const _abs=ss.getSheetByName('ABSENCES_LONGUES');
+    const _ad=_abs?_abs.getDataRange().getValues():[];
+    const _h=(_ad[0]||[]).map(v=>String(v).trim().toUpperCase());
+    const _iP=_h.indexOf('CIBLE_PLEINE');
+    if(_iP>=0) for(let r=1;r<_ad.length;r++){
+      const _id=String(_ad[r][0]||'').trim().toUpperCase();
+      const _ok=/^(OUI|O|X|TRUE|VRAI)$/i.test(String(_ad[r][_iP]).trim());
+      const _a=toDateStr(_ad[r][1]), _b=toDateStr(_ad[r][2]);
+      if(!_id||!_ok||!_a||!_b||_a>_b) continue;
+      const _s=clPlein[_id]||(clPlein[_id]=new Set());
+      for(let _d=_a;_d<=_b;_d=addOneDay(_d)) _s.add(_d);
+    }
+    Object.keys(clPlein).forEach(_id=>Logger.log(`ℹ️ ${_id} : congé long à cible pleine (${clPlein[_id].size} j) — cible non réduite`));
+  }
   function structAvail(id,d){
     const dd=FLAGS.dateDebut[id], df=FLAGS.dateFin[id];
     if(dd && d.date<dd) return false;
     if(df && d.date>=df) return false;
-    if(indispos[id]?.[d.date]==='CL') return false;
+    if(indispos[id]?.[d.date]==='CL' && !clPlein[String(id).toUpperCase()]?.has(d.date)) return false;
     return true;
   }
   const AX={
