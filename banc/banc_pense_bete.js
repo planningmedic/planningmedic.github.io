@@ -25,7 +25,8 @@ const CLE = 'pense-bete-lib-v1';
 const TEMOIN = 'ZQ';                      // initiales-témoin, improbables ailleurs
 const T0 = new Date(2026, 8, 30, 10, 0, 0).getTime();
 
-function ouvrir(stock) {
+const INDEX = JSON.parse(fs.readFileSync(racine('docs/module-liberal/ccam_actes.json'), 'utf8'));
+function ouvrir(stock, opts = {}) {
   const vc = new VirtualConsole(); const erreurs = [];
   vc.on('jsdomError', e => erreurs.push(e.message));
   const reseau = [];
@@ -34,7 +35,8 @@ function ouvrir(stock) {
     url: 'https://planningmedic.github.io/pense-bete/',
     beforeParse(w) {
       const D = w.Date; w.Date = class extends D { constructor(...a) { super(...(a.length ? a : [T0])); } static now() { return T0; } };
-      w.fetch = (u, o) => { reseau.push(['fetch', String(u), o && o.body]); return Promise.reject(new Error('interdit')); };
+      w.fetch = (u, o) => { reseau.push(['fetch', String(u), o && o.body, o && o.method]);
+        return opts.ccam ? Promise.resolve({ ok: true, json: () => Promise.resolve(INDEX) }) : Promise.reject(new Error('interdit')); };
       w.XMLHttpRequest = function () { reseau.push(['xhr']); this.open = () => {}; this.send = b => reseau.push(['xhr-send', b]); };
       w.navigator.sendBeacon = (u, b) => { reseau.push(['beacon', u, b]); return true; };
       w.WebSocket = function (u) { reseau.push(['ws', u]); };
@@ -55,7 +57,12 @@ function ouvrir(stock) {
 /* ── 1. LECTURE DU FICHIER ─────────────────────────────────────────────── */
 console.log('\n[1] Le fichier ne contient aucun moyen d\'envoyer quoi que ce soit');
 const script = (PAGE.match(/<script>([\s\S]*?)<\/script>/) || ['', ''])[1];
-for (const api of ['fetch', 'XMLHttpRequest', 'sendBeacon', 'WebSocket', 'EventSource', 'document.cookie', 'indexedDB', 'serviceWorker', 'import(']) {
+// (05/10/2026) un SEUL fetch permis : le téléchargement de la liste CCAM publique
+const fetchs = script.match(/fetch\(/g) || [];
+V('un seul fetch, celui de la liste CCAM du site (même adresse), sans contenu envoyé',
+  fetchs.length === 1 && /fetch\(CCAM_URL,\{method:'GET',credentials:'omit'/.test(script)
+  && /const CCAM_URL='\/docs\/module-liberal\/ccam_actes\.json\?v=\d+';/.test(script) && !/\bbody\s*:/.test(script));
+for (const api of ['XMLHttpRequest', 'sendBeacon', 'WebSocket', 'EventSource', 'document.cookie', 'indexedDB', 'serviceWorker', 'import(']) {
   V(api + ' absent du code', !script.includes(api));
 }
 V('aucune adresse extérieure (police, script, image, lien)', !/(https?:)?\/\/[a-z0-9.-]+\.[a-z]/i.test(PAGE.replace(/<!--[\s\S]*?-->/g, '')));
@@ -185,7 +192,56 @@ const o4 = (() => {
 V('réouverture : onglet Compteur et 2 actes retrouvés', !o4.d.window.document.getElementById('vC').hidden && o4.d.window.document.querySelectorAll('#cList .acte').length === 2);
 const o5 = (() => { const d = new JSDOM(PAGE, { runScripts: 'dangerously', url: 'https://planningmedic.github.io/pense-bete/',
   beforeParse(w) { w.Element.prototype.focus = function () {}; w.localStorage.setItem('pense-bete-compteur-v1', '{abîmé'); } }); return d; })();
-V('compteur abîmé : la page s\'ouvre, réglages demandés', o5.window.document.querySelectorAll('.geste[disabled]').length === 3);
+V('compteur abîmé : la page s\'ouvre, réglages demandés', o5.window.document.querySelectorAll('.geste[disabled]').length === 4 && o5.window.document.getElementById('cCode').disabled);
 
-console.log(`\n${ok} ✓  ${ko} ✗`);
-process.exit(ko ? 1 : 0);
+/* ── 7. AUTRE ACTE : code CCAM tapé (05/10/2026) ────────────────────────── */
+(async () => {
+  console.log('\n[7] Autre acte — code CCAM, tarif de la liste du site');
+  const pause = () => new Promise(r => setTimeout(r, 20));
+  const t = (c) => INDEX.actes.find(a => a.c === c).t;
+  const att = (tarif, r50, mc) => Math.round(Math.round(tarif * 100) * 1.06 * (r50 ? 0.5 : 1) * (mc ? 1.95 : 1));
+  const fmt = c => (c / 100).toLocaleString('fr-FR', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+  const a = ouvrir(null, { ccam: true }); a.$('tC').click();
+  regler(a, '2026-09-30', '1 000,00', '', VALS);
+  a.$('cDt').value = '2026-10-03';             // la date du jour simulée est celle du relevé
+  const taper = async (code) => { a.$('cCode').value = code; a.$('cCode').dispatchEvent(new a.w.Event('input')); await pause(); };
+  V('pas de téléchargement tant qu\'aucun code n\'est tapé', a.reseau.length === 0, a.reseau);
+  await taper('hhqe00');
+  V('code incomplet : rien n\'est cherché', a.reseau.length === 0 && a.$('cLibelle').textContent === '');
+  await taper('hhqe002');
+  V('code tapé en minuscules : libellé affiché', /Coloscopie totale/.test(a.$('cLibelle').textContent), a.$('cLibelle').textContent);
+  V('aperçu Monaco libéral = tarif + 6 % × coefficient Monaco', a.$('cLibelle').textContent.includes(fmt(att(t('HHQE002'), 0, 1))), a.$('cLibelle').textContent);
+  a.$('cAutre').click(); await pause();
+  V('ajouté : HHQE002 dans la liste, au montant attendu', /HHQE002/.test(a.$('cList').textContent) && a.$('cList').textContent.includes(fmt(att(t('HHQE002'), 0, 1))), a.$('cList').textContent);
+  V('même valeur que la colo des Réglages, calculée de la même façon (au centime)', att(t('HHQE002'), 0, 1) === Math.round(5203 * 1.06 * 1.95));
+  V('champ vidé après ajout', a.$('cCode').value === '' && !a.$('c50').checked);
+  a.w.document.querySelector('#cAss .chip[data-v="fr"]').click();
+  a.w.document.querySelector('#cMode .chip[data-v="pub"]').click();
+  await taper('ZZLP025'); a.$('c50').checked = true; a.$('c50').dispatchEvent(new a.w.Event('change')); await pause();
+  a.$('cAutre').click(); await pause();
+  V('2e acte France public à 50 % compté au bon montant', /ZZLP025 \(50 %\)/.test(a.$('cList').textContent) && a.$('cPub').textContent.includes(fmt(100000 + att(t('ZZLP025'), 1, 0))),
+    [a.$('cList').textContent, a.$('cPub').textContent]);
+  await taper('AAAA000');
+  V('code absent de la liste : refusé, message clair', /absent de la liste/.test(a.$('cLibelle').textContent));
+  const n = a.$('cList').querySelectorAll('.acte').length;
+  a.$('cAutre').click(); await pause();
+  V('…et Ajouter ne compte rien', a.$('cList').querySelectorAll('.acte').length === n);
+  await taper('1234ABC');
+  V('format faux : 4 lettres et 3 chiffres demandés', /4 lettres et 3 chiffres/.test(a.$('cLibelle').textContent));
+  V('UN seul téléchargement, de la liste CCAM du site, sans contenu ni code dans l\'adresse',
+    a.reseau.length === 1 && a.reseau[0][1] === '/docs/module-liberal/ccam_actes.json?v=84' && a.reseau[0][2] === undefined && a.reseau[0][3] === 'GET', a.reseau);
+  V('rien de saisi ne part dans le réseau (codes absents des appels)', !JSON.stringify(a.reseau).match(/HHQE002|ZZLP025|AAAA000/));
+  // Liste injoignable
+  const b = ouvrir(); b.$('tC').click(); regler(b, '2026-09-30', '1 000,00', '', VALS);
+  b.$('cCode').value = 'HHQE002'; b.$('cCode').dispatchEvent(new b.w.Event('input')); await pause();
+  V('liste injoignable : message, rien de compté', /injoignable/.test(b.$('cLibelle').textContent) && b.$('cList').querySelectorAll('.acte').length === 0);
+  // Réouverture : l'acte « autre » garde sa valeur sans re-télécharger
+  const brut2 = a.w.localStorage.getItem('pense-bete-compteur-v1');
+  const r2 = []; const d2 = new JSDOM(PAGE, { runScripts: 'dangerously', url: 'https://planningmedic.github.io/pense-bete/',
+    beforeParse(w) { w.fetch = (u) => { r2.push(u); return Promise.reject(); }; w.Element.prototype.focus = function () {};
+      w.localStorage.setItem('pense-bete-compteur-v1', brut2); } });
+  d2.window.document.getElementById('tC').click();
+  V('réouverture : montant figé retrouvé sans aucun téléchargement', r2.length === 0 && d2.window.document.getElementById('cLib').textContent.includes(fmt(att(t('HHQE002'), 0, 1))));
+  console.log(`\n${ok} ✓  ${ko} ✗`);
+  process.exit(ko ? 1 : 0);
+})();

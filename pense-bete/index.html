@@ -100,6 +100,13 @@ details summary{cursor:pointer;color:var(--mute);font-size:15px;padding:10px 0}
 .reg{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:0 14px;margin-top:22px}
 .reg .grille{display:grid;grid-template-columns:1fr 1fr;gap:10px}
 .reg h3{font-size:15px;margin:14px 0 8px}
+.autre{margin-top:14px;padding-top:12px;border-top:1px solid var(--line)}
+.autre .ligne{display:grid;grid-template-columns:1fr auto;gap:8px}
+.autre .ligne .geste{padding:0 18px}
+#cCode{text-transform:uppercase;letter-spacing:.06em;font-weight:700}
+.case{display:flex;align-items:center;gap:8px;margin-top:8px;font-size:15px;color:var(--ink)}
+.case input{width:22px;height:22px;min-height:0}
+.lib{font-size:14px;color:var(--mute);margin-top:6px;min-height:1.2em}
 @media (prefers-reduced-motion:no-preference){ .fresh{animation:f .6s ease-out} @keyframes f{from{background:var(--acc-soft)}to{background:transparent}} }
 </style>
 </head>
@@ -149,6 +156,18 @@ details summary{cursor:pointer;color:var(--mute);font-size:15px;padding:10px 0}
         <button type="button" class="geste" data-g="colo">Colo</button>
         <button type="button" class="geste" data-g="gastro">Gastro</button>
         <button type="button" class="geste" data-g="combo">Colo + gastro</button>
+      </div>
+      <!-- (05/10/2026) Autre acte : code CCAM tapé, tarif d'anesthésie lu dans la
+           liste CCAM publique du site (docs/module-liberal/ccam_actes.json),
+           + 6 % (modificateur 7, toujours), × 50 % si 2e acte, × coefficient Monaco.
+           Seul échange réseau de la page : le TÉLÉCHARGEMENT de cette liste,
+           sans rien y ajouter (ni code, ni date, ni montant). -->
+      <div class="autre">
+        <label for="cCode">Autre acte : code CCAM</label>
+        <div class="ligne"><input id="cCode" maxlength="7" autocapitalize="characters" autocomplete="off" spellcheck="false">
+          <button type="button" class="geste" id="cAutre">Ajouter</button></div>
+        <label class="case"><input type="checkbox" id="c50"> 2e acte du même patient (50 %)</label>
+        <div class="lib" id="cLibelle"></div>
       </div>
       <p class="msg" id="cMsg" role="status"></p>
     </form>
@@ -280,15 +299,18 @@ function enCentimes(t){
 const euros=c=>(c/100).toLocaleString('fr-FR',{minimumFractionDigits:2,maximumFractionDigits:2})+' €';
 const saisie=c=>c==null?'':(c/100).toFixed(2).replace('.',',');
 function valeur(g,a){ const x=C.v[g+'_'+a]; return Number.isInteger(x)?x:null; }
+// Valeur d'un acte de la liste : figée à l'ajout pour « autre », lue dans les Réglages sinon
+function valeurActe(x){ return x.g==='autre' ? (Number.isInteger(x.v)?x.v:null) : valeur(x.g,x.a); }
 function regleComplet(){ return !!C.d0 && Number.isInteger(C.p0) && Number.isInteger(C.l0) && Object.keys(GESTES).every(g=>Object.keys(ASS).every(a=>valeur(g,a)!=null)); }
 function cTotaux(){
   let L0=C.l0||0, P0=C.p0||0, nl=0, np=0;
-  C.actes.forEach(x=>{ const v=valeur(x.g,x.a)||0; if(x.m==='lib'){ L0+=v; nl++; } else { P0+=v; np++; } });
+  C.actes.forEach(x=>{ const v=valeurActe(x)||0; if(x.m==='lib'){ L0+=v; nl++; } else { P0+=v; np++; } });
   return {L:L0, P:P0, nl, np};
 }
 function cRender(){
   const ok=regleComplet(), t=cTotaux(), T=t.L+t.P;
   document.querySelectorAll('.geste').forEach(b=>b.disabled=!ok);
+  $('cCode').disabled=!ok;
   $('cMsg').textContent = ok ? '' : 'Remplissez d\'abord les Réglages (en bas) : point de départ et valeur des actes.';
   if(!ok) $('cReg').open=true;
   $('cPct').textContent = T>0 ? (t.L*100/T).toLocaleString('fr-FR',{minimumFractionDigits:1,maximumFractionDigits:1})+' %' : '—';
@@ -304,8 +326,8 @@ function cRender(){
   const tri=[...C.actes].sort((a,b)=>b.d.localeCompare(a.d)||b.t-a.t);
   $('cListT').textContent='Actes comptés'+(C.actes.length?' ('+C.actes.length+')':'');
   $('cList').innerHTML = tri.length ? tri.map(x=>'<div class="acte"><span class="d">'+x.d.slice(8,10)+'/'+x.d.slice(5,7)+'</span>'
-      +'<span class="g">'+esc(GESTES[x.g]||x.g)+' · '+(x.m==='lib'?'Lib':'Pub')+' · '+esc(ASS[x.a]||x.a)+'</span>'
-      +'<span class="v">'+(valeur(x.g,x.a)!=null?euros(valeur(x.g,x.a)):'—')+'</span>'
+      +'<span class="g">'+(x.g==='autre' ? esc(x.code)+(x.r50?' (50 %)':'') : esc(GESTES[x.g]||x.g))+' · '+(x.m==='lib'?'Lib':'Pub')+' · '+esc(ASS[x.a]||x.a)+'</span>'
+      +'<span class="v">'+(valeurActe(x)!=null?euros(valeurActe(x)):'—')+'</span>'
       +'<button type="button" class="x cx" aria-label="Retirer cet acte" data-id="'+x.id+'">×</button></div>').join('')
     : '<p class="empty">Aucun acte compté depuis le relevé.</p>';
   if(!storageOK) $('cMsg').textContent="Ce navigateur n'enregistre pas : le compteur sera perdu en fermant la page.";
@@ -321,11 +343,58 @@ function radios(id, set){
 }
 radios('cMode', v=>cMode=v);
 radios('cAss', v=>cAss=v);
+function dateActe(){
+  const d=$('cDt').value;
+  if(!d){ $('cMsg').textContent='Indiquez la date de l\'acte.'; return null; }
+  if(d<=C.d0){ $('cMsg').textContent='Cet acte est antérieur ou égal au relevé du '+C.d0.split('-').reverse().join('/')+' : il y est déjà compté.'; return null; }
+  return d;
+}
+
+/* ── Autre acte : liste CCAM publique, téléchargée une fois à la demande ── */
+const CCAM_URL='/docs/module-liberal/ccam_actes.json?v=84';
+let CCAM=null, ccamP=null;
+function chargerCCAM(){
+  if(CCAM) return Promise.resolve(CCAM);
+  if(!ccamP) ccamP=fetch(CCAM_URL,{method:'GET',credentials:'omit',cache:'force-cache'})
+    .then(r=>{ if(!r.ok) throw new Error('HTTP '+r.status); return r.json(); })
+    .then(d=>{ const m={}; (d.actes||[]).forEach(a=>{ if(a&&a.c&&typeof a.t==='number') m[a.c]=a; }); CCAM=m; return m; })
+    .catch(e=>{ ccamP=null; throw e; });
+  return ccamP;
+}
+const codeSaisi=()=>$('cCode').value.trim().toUpperCase().replace(/\s/g,'');
+// tarif (€) → centimes : + 6 % (modificateur 7) × 50 % éventuel × coefficient Monaco, arrondi au centime
+function montantAutre(t, r50, a){ return Math.round(Math.round(t*100) * 1.06 * (r50?0.5:1) * (a==='mc'?1.95:1)); }
+async function apercuAutre(){
+  const code=codeSaisi(), el=$('cLibelle');
+  if(code.length<7){ el.textContent=''; return null; }
+  if(!/^[A-Z]{4}\d{3}$/.test(code)){ el.textContent='Un code CCAM, c\'est 4 lettres et 3 chiffres.'; return null; }
+  el.textContent='Recherche…';
+  let m; try{ m=await chargerCCAM(); }catch(e){ el.textContent='Liste CCAM injoignable (réseau ?). Réessayez.'; return null; }
+  if(codeSaisi()!==code) return null;            // le code a changé pendant le chargement
+  const a=m[code];
+  if(!a){ el.textContent=code+' : absent de la liste (pas de tarif d\'anesthésie).'; return null; }
+  el.textContent=a.l+' → '+euros(montantAutre(a.t,$('c50').checked,cAss))+' ('+ASS[cAss]+(cMode==='lib'?', libéral':', public')+')';
+  return a;
+}
+$('cCode').addEventListener('input',apercuAutre);
+$('c50').addEventListener('change',apercuAutre);
+$('cAss').addEventListener('click',()=>{ if(codeSaisi().length===7) apercuAutre(); });
+$('cMode').addEventListener('click',()=>{ if(codeSaisi().length===7) apercuAutre(); });
+$('cAutre').addEventListener('click',async()=>{
+  if($('cAutre').disabled) return;
+  const d=dateActe(); if(!d) return;
+  const a=await apercuAutre();
+  if(!a){ $('cMsg').textContent=$('cLibelle').textContent||'Tapez un code CCAM.'; return; }
+  const r50=$('c50').checked;
+  C.actes.push({id:Date.now().toString(36)+Math.random().toString(36).slice(2,6), d, g:'autre', code:a.c, r50, v:montantAutre(a.t,r50,cAss), m:cMode, a:cAss, t:Date.now()});
+  cSave(); cRender();
+  $('cMsg').textContent='+1 '+a.c+(r50?' (50 %)':'')+' '+(cMode==='lib'?'libéral':'public')+' '+ASS[cAss]+' le '+d.split('-').reverse().join('/');
+  $('cCode').value=''; $('c50').checked=false; $('cLibelle').textContent='';
+});
+
 $('cGestes').addEventListener('click',e=>{
   const b=e.target.closest('.geste'); if(!b || b.disabled) return;
-  const d=$('cDt').value;
-  if(!d){ $('cMsg').textContent='Indiquez la date de l\'acte.'; return; }
-  if(d<=C.d0){ $('cMsg').textContent='Cet acte est antérieur ou égal au relevé du '+C.d0.split('-').reverse().join('/')+' : il y est déjà compté.'; return; }
+  const d=dateActe(); if(!d) return;
   C.actes.push({id:Date.now().toString(36)+Math.random().toString(36).slice(2,6), d, g:b.dataset.g, m:cMode, a:cAss, t:Date.now()});
   cSave(); cRender();
   $('cMsg').textContent='+1 '+GESTES[b.dataset.g]+' '+(cMode==='lib'?'libéral':'public')+' '+ASS[cAss]+' le '+d.split('-').reverse().join('/');
@@ -335,7 +404,7 @@ $('cList').addEventListener('click',e=>{
   e.stopPropagation();
   const k=C.actes.findIndex(x=>x.id===b.dataset.id); if(k<0) return;
   lastDel={k:'c',o:C.actes.splice(k,1)[0]}; cSave(); cRender();
-  montrerAnnuler(GESTES[lastDel.o.g]+' retiré');
+  montrerAnnuler((lastDel.o.g==='autre'?lastDel.o.code:GESTES[lastDel.o.g])+' retiré');
 });
 $('rSave').addEventListener('click',()=>{
   const d0=$('rD0').value, p0=enCentimes($('rP0').value), l0=enCentimes($('rL0').value||'0');
