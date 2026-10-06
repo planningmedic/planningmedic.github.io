@@ -192,7 +192,7 @@ console.log('\n═══ PT00 · le quota d\'indisponibilités tient côté serv
 {
   const b = monde({ campagne: true });
   const Q = vm.runInContext('QUOTA_INDISPO', b.ctx);
-  V('le quota est lu du fichier livré (30 depuis le 05/10/2026)', Q === 30, Q);
+  V('le quota est lu du fichier livré (40 depuis le 06/10/2026)', Q === 40, Q);
 
   /* L'écran envoie TOUJOURS la carte complète, jamais un delta : ce qui n'y est
      pas est retiré. On teste donc comme il envoie. */

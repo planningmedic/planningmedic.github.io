@@ -6,7 +6,7 @@
    Règle désormais, éprouvée ici sur le VRAI applyTool d'indispos.html :
    1. l'outil Indispo couple les jours comme les souhaits (même fonction) :
       vendredi ⇄ dimanche, jeudi férié ⇄ samedi suivant, samedi ⇄ lundi férié ;
-   2. 30 jours, dont 5 week-ends ; un week-end est compté une fois (par son
+   2. 40 jours (30 jusqu'au 06/10/2026), dont 5 week-ends ; un week-end est compté une fois (par son
       samedi), compléter un week-end déjà touché ne consomme rien de plus ;
    3. le contrôle porte sur l'unité ENTIÈRE : tout ou rien ;
    4. effacer un jour couplé retire l'unité.
@@ -28,11 +28,11 @@ function ecran(ind, outil, quotas) {
   const ctx = vm.createContext({ Date, String, Object, Number, Math, Set, console, setTimeout: () => {},
     window: {}, indispos: ind || {}, currentTool: outil || 'INDISPO', isDragging: false,
     joursFeries: new Set(['2027-05-06', '2027-05-17']),   // Ascension (jeudi), lundi de Pentecôte
-    vacConfig: Object.assign({ quotaIndispo: 30, quotaIndispoWe: 5 }, quotas || {}), messages: [], aides: [],
+    vacConfig: Object.assign({ quotaIndispo: 40, quotaIndispoWe: 5 }, quotas || {}), messages: [], aides: [],
     showToast: m => ctx.messages.push(m), renderMonth: () => {}, updateStats: () => {},
     document: { getElementById: () => null } });
   ctx.globalThis = ctx; ctx.YEAR = 2027;
-  ['premierJourAnneePlanning', 'bornesAnneePlanning', 'applyTool'].forEach(n => vm.runInContext(extraireDuHtml(n), ctx));
+  ['premierJourAnneePlanning', 'bornesAnneePlanning', 'cleWeIndispo', 'applyTool'].forEach(n => vm.runInContext(extraireDuHtml(n), ctx));
   vm.runInContext('function majBoutonSave(){}', ctx);
   vm.runInContext('function hintRefus(m){ aides.push(m); }', ctx);
   ctx.clic = d => vm.runInContext(`applyTool('${d}')`, ctx);
@@ -80,18 +80,18 @@ const samedis = n => { const o = {}; for (let k = 0; k < n; k++) { const d = new
 { const c = ecran(samedis(5)); c.clic('2027-03-11');
   V('le quota week-end ne bloque pas les jours de semaine', c.indispos['2027-03-11'] === 'INDISPO', c.indispos); }
 
-console.log('\n═══ 4. Quota de 30 jours : l\'unité passe entière ou pas du tout ═══');
+console.log('\n═══ 4. Quota de 40 jours : l\'unité passe entière ou pas du tout ═══');
 const semaine = n => { const o = {}; let k = 0; const d = new Date(Date.UTC(2027, 1, 1));
   while (Object.keys(o).length < n) { const x = new Date(d); x.setUTCDate(x.getUTCDate() + k++); const w = x.getUTCDay();
     if (w >= 1 && w <= 4 && x.toISOString().slice(0, 10) !== '2027-05-06' && x.toISOString().slice(0, 10) !== '2027-05-17') o[x.toISOString().slice(0, 10)] = 'INDISPO'; }
   return o; };
-{ const c = ecran(semaine(29)); c.clic('2027-01-08');
-  V('29 posés : vendredi + dimanche (2 jours) refusés, rien de posé', !c.indispos['2027-01-08'] && !c.indispos['2027-01-10'], c.indispos);
+{ const c = ecran(semaine(39)); c.clic('2027-01-08');
+  V('39 posés : vendredi + dimanche (2 jours) refusés, rien de posé', !c.indispos['2027-01-08'] && !c.indispos['2027-01-10'], c.indispos);
   V('le refus dit combien il en faut et combien il en reste', c.aides.some(m => /il en faut 2, il vous en reste 1/.test(m)), c.aides); }
-{ const c = ecran(semaine(29)); c.clic('2027-01-09');
-  V('29 posés : un samedi seul passe (30)', c.indispos['2027-01-09'] === 'INDISPO' && ind(c).length === 30, ind(c).length); }
-{ const c = ecran(semaine(30)); c.clic('2027-01-12');
-  V('30 posés : plus rien', !c.indispos['2027-01-12'], ind(c).length); }
+{ const c = ecran(semaine(39)); c.clic('2027-01-09');
+  V('39 posés : un samedi seul passe (40)', c.indispos['2027-01-09'] === 'INDISPO' && ind(c).length === 40, ind(c).length); }
+{ const c = ecran(semaine(40)); c.clic('2027-01-12');
+  V('40 posés : plus rien', !c.indispos['2027-01-12'], ind(c).length); }
 
 console.log('\n═══ 5. Une seule règle pour souhaits et indispos ═══');
 { const src = fs.readFileSync(PAGE, 'utf8');
@@ -100,6 +100,35 @@ console.log('\n═══ 5. Une seule règle pour souhaits et indispos ═══
   V('l\'outil Indispo l\'utilise', /currentTool === 'INDISPO' && indispos\[date\] !== 'INDISPO'\) \{[\s\S]{0,120}_uniteGarde\(date\)/.test(src)); }
 { const c = ecran({}, 'SOUHAIT'); c.clic('2027-01-08');
   V('les souhaits couplent toujours vendredi + dimanche', c.indispos['2027-01-08'] === 'SOUHAIT' && c.indispos['2027-01-10'] === 'SOUHAIT', c.indispos); }
+
+/* (06/10/2026) LE DÉCOMPTE VISIBLE. Le plafond n'apparaissait qu'au refus : le
+   MAR ne voyait pas où il en était. Deux jauges, nourries par la MÊME clé de
+   week-end que le refus au clic (cleWeIndispo) — on vérifie ici le vrai
+   updateStats de la page, et que les deux comptent pareil. */
+console.log('\n═══ 6. Le décompte est visible avant le refus ═══');
+function barre(ind, quotas) {
+  const ctx = vm.createContext({ Date, String, Object, Number, Math, Set, console,
+    indispos: ind || {}, joursFeries: new Set(), html: '',
+    vacConfig: quotas === null ? null : Object.assign({ quotaIndispo: 40, quotaIndispoWe: 5 }, quotas || {}) });
+  ctx.document = { getElementById: id => (id === 'statsBar' ? { set innerHTML(v) { ctx.html = v; } } : null) };
+  ['cleWeIndispo', 'updateStats'].forEach(n => vm.runInContext(extraireDuHtml(n), ctx));
+  vm.runInContext('updateStats()', ctx);
+  return ctx.html.replace(/\s+/g, ' ');
+}
+const jaugeVal = (h, nom) => { const m = h.match(new RegExp(nom + '</span> <span class="jauge-val"[^>]*>(\\d+)<span>([^<]*)</span>')); return m ? m[1] + m[2] : null; };
+{ const ind = Object.assign(semaine(10), { '2027-03-05': 'INDISPO', '2027-03-06': 'INDISPO', '2027-03-07': 'INDISPO', '2027-04-10': 'INDISPO', '2027-04-02': 'SOUHAIT' });
+  const h = barre(ind);
+  V('jauge des jours : 14 / 40 (les souhaits n\'y entrent pas)', jaugeVal(h, 'Indisponibilités') === '14 / 40 jours', jaugeVal(h, 'Indisponibilités'));
+  V('jauge des week-ends : un VSD + un samedi = 2 / 5', jaugeVal(h, 'Week-ends bloqués') === '2 / 5 week-ends', jaugeVal(h, 'Week-ends bloqués'));
+  V('les gardes souhaitées restent un simple nombre', /compte-val">1<\/span><span class="compte-nom">gardes souhaitées/.test(h)); }
+{ const h = barre(samedis(5));
+  V('5 week-ends touchés : la jauge affiche 5 / 5', jaugeVal(h, 'Week-ends bloqués') === '5 / 5 week-ends', jaugeVal(h, 'Week-ends bloqués'));
+  const c = ecran(samedis(5)); c.clic('2027-03-13');
+  V('…et c\'est bien là que le clic refuse (même compte des deux côtés)', !c.indispos['2027-03-13'], c.indispos); }
+{ const h = barre(semaine(3), null);
+  V('quota pas encore reçu : pas de « / 0 » trompeur', jaugeVal(h, 'Indisponibilités') === '3 jours', jaugeVal(h, 'Indisponibilités')); }
+{ const src = fs.readFileSync(PAGE, 'utf8');
+  V('une seule clé de week-end dans la page', (src.match(/function cleWeIndispo\(/g) || []).length === 1 && /const _cleWe = cleWeIndispo;/.test(src)); }
 
 console.log(`\n  ${ok} vérifications OK, ${ko} en échec`);
 if (ko) process.exit(1);

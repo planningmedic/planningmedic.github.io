@@ -1,7 +1,7 @@
 // ⚠️ RÈGLE (détecteur de dérive dépôt↔Apps Script) : incrémenter cette version
 // à CHAQUE push de ce fichier. Le diagnostic (admin → Maintenance) compare la
 // version déployée ici avec celle du dépôt et signale toute recopie oubliée.
-const GAS_VERSION_INDISPOS = '2026-10-05.1';   // (15/09/2026) chantier 9, étape 2 : le routeur est une TABLE (_actions_) ; les corps des 64 actions vivent dans les fichiers métier (_act_<nom>)
+const GAS_VERSION_INDISPOS = '2026-10-06.1';   // (15/09/2026) chantier 9, étape 2 : le routeur est une TABLE (_actions_) ; les corps des 64 actions vivent dans les fichiers métier (_act_<nom>)
 
 /* ── (01/08/2026) MARQUEUR DE TEMPS GLOBAL — mesure, ne change rien ───────
    `_srv_ms` chronometre l'INTERIEUR de doGet. Or avant que doGet soit appele,
@@ -210,8 +210,13 @@ function checkCode(code) {
 var _VAC_SHARED = {};
 /* (11/09/2026) QUOTA D'INDISPONIBILITÉS — récit : docs/JOURNAL-Planning-Med.md §71 */
 /* (05/10/2026) 20 → 30 : mesuré sur le vrai générateur (3 tirages par réglage),
-   le surplus tombe en semaine et ne change ni la couverture ni l'équité. */
-const QUOTA_INDISPO = 30;
+   le surplus tombe en semaine et ne change ni la couverture ni l'équité.
+   (06/10/2026) 30 → 40, sous-quota week-end inchangé à 5. Mesure : vrai
+   générateur, effectif réel, congés de la campagne simulée, pire cas (tout le
+   monde vise les mêmes 12 week-ends), 10 tirages : 30/5 → 4 refus, 40/5 → 3,
+   40/6 → 5, 40/7 → 9. Les 10 jours de plus tombent en semaine et ne changent
+   rien ; c'est le nombre de week-ends qui casse. Écart à la cible : 1 partout. */
+const QUOTA_INDISPO = 40;
 /* (11/09/2026) SOUS-QUOTA WEEK-END — récit : docs/JOURNAL-Planning-Med.md §72 */
 /* (05/10/2026) EN WEEK-ENDS, PLUS EN JOURS. Un week-end est « touché » dès qu'une
    indisponibilité tombe sur son vendredi, son samedi ou son dimanche ; 1, 2 ou 3

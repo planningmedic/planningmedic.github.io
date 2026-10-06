@@ -1390,7 +1390,7 @@ function applyTool(date) {
      pose : découvrir au moment de l'enregistrement qu'une partie des jours n'est
      pas passée serait déroutant. Le serveur revérifie de son côté — l'écran peut
      retarder d'une version, pas lui.
-     (05/10/2026) 30 jours dont 5 WEEK-ENDS, et le contrôle porte sur l'UNITÉ
+     (05/10/2026) 30 jours dont 5 WEEK-ENDS — 40 dont 5 depuis le 06/10 —, et le contrôle porte sur l'UNITÉ
      entière (vendredi + dimanche, jeudi férié + samedi, samedi + lundi férié) :
      tous les jours qu'elle ajoute doivent tenir dans le quota. Un week-end est
      compté une fois, par son samedi ; compléter un week-end déjà touché ne
@@ -1401,12 +1401,7 @@ function applyTool(date) {
     const _jours = _u ? _u.jours.filter(j => j === date || (j >= _b.debut && j <= _b.fin
       && indispos[j] !== 'VAC' && indispos[j] !== 'FORM' && indispos[j] !== 'TP')) : [date];
     const _nouveaux = _jours.filter(j => indispos[j] !== 'INDISPO');
-    const _cleWe = d => {
-      const t = new Date(d + 'T12:00:00'), w = t.getDay();
-      if (w !== 0 && w !== 5 && w !== 6) return null;
-      t.setDate(t.getDate() + (w === 5 ? 1 : w === 0 ? -1 : 0));
-      return t.getFullYear() + '-' + String(t.getMonth() + 1).padStart(2, '0') + '-' + String(t.getDate()).padStart(2, '0');
-    };
+    const _cleWe = cleWeIndispo;
     if (vacConfig && vacConfig.quotaIndispo != null) {
       const indCount = Object.values(indispos).filter(s => s === 'INDISPO').length;
       if (indCount + _nouveaux.length > vacConfig.quotaIndispo) {
@@ -1506,6 +1501,16 @@ function nextMonth() {
   renderMonth();
 }
 
+/* (06/10/2026) Clé d'un week-end = son samedi (vendredi → +1, dimanche → −1).
+   Une seule fonction pour le refus au clic ET le décompte affiché : les deux
+   comptent forcément pareil. Même clé que le serveur (indisponibilites.gs). */
+function cleWeIndispo(d) {
+  const t = new Date(d + 'T12:00:00'), w = t.getDay();
+  if (w !== 0 && w !== 5 && w !== 6) return null;
+  t.setDate(t.getDate() + (w === 5 ? 1 : w === 0 ? -1 : 0));
+  return t.getFullYear() + '-' + String(t.getMonth() + 1).padStart(2, '0') + '-' + String(t.getDate()).padStart(2, '0');
+}
+
 // ── STATS ─────────────────────────────────────────────────────────────
 function updateStats() {
   const counts = {VAC:0, FORM:0, INDISPO:0, SOUHAIT:0};
@@ -1546,6 +1551,15 @@ function updateStats() {
     : quotaForm ? `${counts.FORM}/${quotaForm} jours` : `${counts.FORM} jours`;
   const formColor = (quotaForm && counts.FORM > quotaForm) ? '#B91C1C' : 'var(--form-fg)';
 
+  /* (06/10/2026) Les indisponibilités ont un plafond (jours ET week-ends) qui
+     n'était visible qu'au moment du refus. Deux jauges, comptées exactement
+     comme le refus au clic : tous les INDISPO, et les week-ends touchés comptés
+     une fois chacun (cleWeIndispo). Tant que le quota n'est pas reçu : pas de
+     « / quota », comme les autres jauges. */
+  const quotaInd = vacConfig && vacConfig.quotaIndispo != null ? Number(vacConfig.quotaIndispo) : 0;
+  const quotaIndWe = vacConfig && vacConfig.quotaIndispoWe != null ? Number(vacConfig.quotaIndispoWe) : 0;
+  const weBloques = new Set(Object.keys(indispos).filter(d => indispos[d] === 'INDISPO').map(cleWeIndispo).filter(Boolean)).size;
+
   /* (06/09/2026) Les compteurs étaient cinq pastilles à emoji, de largeurs — récit : docs/JOURNAL-Planning-Med.md §60 */
   const jauge = (nom, fait, quota, coul, unite) => {
     const pct = quota ? Math.min(100, fait / quota * 100) : 0;
@@ -1568,8 +1582,11 @@ function updateStats() {
       ${jauge('Formation', counts.FORM, quotaForm, 'var(--form-fg)', 'jours')}
     </div>
     ${showCtp ? `<div class="jauge-ligne jauge-seule">${jauge('Temps partiel', ctpCount, vacConfig.quotaCtp, '#6D28D9', 'jours')}</div>` : ''}
+    <div class="jauge-ligne">
+      ${jauge('Indisponibilités', counts.INDISPO, quotaInd, 'var(--indispo-fg)', 'jours')}
+      ${jauge('Week-ends bloqués', weBloques, quotaIndWe, 'var(--indispo-fg)', 'week-ends')}
+    </div>
     <div class="compte-ligne">
-      ${compte('indisponibilités', counts.INDISPO, 'var(--indispo-fg)')}
       ${compte('gardes souhaitées', counts.SOUHAIT, 'var(--souhait-fg)')}
     </div>
   `;

@@ -41,7 +41,7 @@ const PAGE = fs.readFileSync(path.join(__dirname, '..', 'indispos.html'), 'utf8'
 console.log('\n═══ 1. Une seule valeur, envoyée du serveur à l\'écran ═══');
 const dec = GS.match(/const QUOTA_INDISPO = (\d+);/);
 V('le quota est déclaré une fois dans le serveur', !!dec, dec && dec[0]);
-V('il vaut 30 (05/10/2026)', dec && dec[1] === '30', dec && dec[1]);
+V('il vaut 40 (06/10/2026)', dec && dec[1] === '40', dec && dec[1]);
 const decW = GS.match(/const QUOTA_INDISPO_WE = (\d+);/);
 V('le sous-quota week-end vaut 5 week-ends (05/10/2026)', decW && decW[1] === '5', decW && decW[1]);
 V('il n\'est déclaré qu\'une seule fois',
@@ -113,7 +113,9 @@ V('le marqueur de version du fichier serveur est au moins au 11/09',
   (GS.match(/GAS_VERSION_INDISPOS = '[^']+'/) || [])[0]);
 const GUIDE = fs.readFileSync(path.join(__dirname, '..', 'docs', 'guide-mar.html'), 'utf8');
 V('le guide annonce les deux nombres et les trois jours',
-  /30 jours par an, dont 5 week-ends au maximum/.test(GUIDE) && /compte <b>1 week-end<\/b>/.test(GUIDE));
+  /40 jours par an, dont 5 week-ends au maximum/.test(GUIDE) && /compte <b>1 week-end<\/b>/.test(GUIDE));
+V('le guide ne parle plus de 30 (06/10/2026)', !/30 indisponibilités par an/.test(GUIDE) && !/30 jours par an, dont/.test(GUIDE) && !/sur les 30\./.test(GUIDE) && !/limite de 30/.test(GUIDE) && !/à 30 jours, ou/.test(GUIDE));
+V('le guide montre les deux jauges', /Week-ends bloqués<\/b>, sur 5/.test(GUIDE) && /<b>Indisponibilités<\/b>, sur 40 jours/.test(GUIDE));
 V('le guide ne parle plus de 20 ni de 8', !/20 indisponibilités par an/.test(GUIDE) && !/compte dans les 8/.test(GUIDE) && !/à 20, ou à 8/.test(GUIDE) && !/limite de 20/.test(GUIDE));
 V('le guide ne promet plus « trente au maximum »', !/trente au maximum/.test(GUIDE));
 
