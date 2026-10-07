@@ -44,6 +44,26 @@ les fichiers du planning, et attend une semaine de fonctionnement réel avant su
 
 # PARTIE 1 — L'ESSENTIEL
 
+## État au 7 octobre 2026 — veille du staff vacances 2027
+
+Aucun code modifié ; décisions et réglages du classeur, détail dans la ROADMAP.
+
+- **15 MAR présents minimum chaque jour ouvré**, vacances scolaires comprises (sauf août et Noël).
+  Seuils de période retenus : **7**, **6** sur l'hiver ; été à couper en Juillet / Août (août à
+  fixer). À saisir dans `PERIODES_VAC` **et à relire sur l'écran des périodes du W1**, qui les
+  réenregistre.
+- **Quotité de garde = quotité de travail** pour tous, sauf une exception validée par le chef
+  (cible d'année pleine malgré un temps partiel subi). Ses jours off seront écrits en **TP** dans le
+  planning **après** la génération, pas avant : posés avant, ils lui retireraient des gardes.
+- **Vacances d'un partant** : quota de sa quotité × jours de présence / 364, en consigne orale.
+  **Pas de prorata pour un congé long.**
+- **Synchro complète** : n'efface pas la copie d'un onglet supprimé, et lit CONFIG / SECTEURS /
+  SEUILS à travers un cache de 10 min. Après une modification à la main : Vider le cache, puis
+  synchro.
+- `INDISPOS_2027` simulé : renommé `INDISPOS_2027_TEST`, plus lu ; le W1 du 09/10 recrée l'onglet.
+  `INDISPOS_ACTIVE` est retirée de CONFIG en attendant.
+- **Cibles de gardes 2027** : à recalculer quand le dernier cas de fin de contrat sera tranché.
+
 ## État au 5 octobre 2026 — générateur : congé long à cible pleine, paires, calcul à blanc fidèle
 
 Site **v1.18.4**, banc **3 798 ✓, 0 échec**. `generateur_gardes.gs` **2026-10-05.3** (recopié ;

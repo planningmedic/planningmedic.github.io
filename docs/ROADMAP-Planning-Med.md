@@ -18,6 +18,49 @@ l'établissement et 77 noms de praticiens sur une page publique sans code d'acc�
 pas été monté avec le lot cloche du 23/08 (oubli assumé, le code déployé est bien le nouveau) :
 à monter au prochain lot Worker. La constante reste la **seule** version écrite dans le fichier.
 
+## 07/10/2026 — préparation du staff vacances et de la génération 2027 (aucun code modifié)
+
+**Décisions du responsable :**
+- **Présence minimale : 15 MAR présents chaque jour ouvré**, vacances scolaires comprises, sauf en
+  août et aux vacances de Noël (programme réduit). Le chef de service compte dans l'effectif (posté
+  si besoin). Traduction en seuil de période (absents simultanés au maximum, effectif de 22) :
+  **7**, et **6** sur l'hiver (une absence longue et un temps partiel sur la période). L'été est à
+  couper en **Juillet** (7) et **Août** (seuil à fixer avec le chef). Effet mesuré : −23 % de
+  jours-MAR de congés possibles sur les vacances scolaires. **Valeurs pas encore saisies** dans
+  `PERIODES_VAC` au soir du 07/10.
+- **Quotité de garde = quotité de travail** (`PCT_GARDES` = `QUOTITE`) pour tous. **Une exception**
+  validée par le chef : un MAR à temps partiel subi garde la cible de garde d'une année pleine, y
+  compris après une fin de contrat théorique (s'il n'est pas prolongé, il assure ses gardes en
+  médecin extérieur). Sa date de fin a été retirée de MEDECINS.
+- **Quota de TP de la ligne 50 % corrigé** dans `CONFIG_CONGES` : il recopiait la ligne 60 %. Même
+  règle que les autres lignes (½ jour par semaine par tranche de 10 %).
+- **Vacances d'un MAR en fin de contrat** : quota de sa quotité × jours de présence / 364, arrondi,
+  donné en consigne orale (le portail ne proratise pas). **Pas de prorata pour un congé long.**
+
+**Parcours retenu pour le MAR en exception :**
+1. Rien sur ses semaines off avant la génération : le générateur peut lui donner des gardes
+   n'importe quel jour (il l'accepte).
+2. Après la génération du 02/11 : écrire **TP** sur ses jours off dans `GARDES_2027` (et dans
+   `GARDES_2026` pour novembre-décembre), sauf les jours de garde ou de vacances. Le planning
+   quotidien le voit alors absent ; le panneau de remplacement peut le proposer en dernier recours
+   (avec CTP, jamais). Écriture par l'assistant, sur accord explicite.
+3. S'il n'est pas prolongé : ses gardes restent ; il est marqué absent en journée à partir de la
+   date, sauf les jours de garde.
+
+**Constats (lus dans le code, rien modifié) :**
+- **Le seuil de période est informatif à la saisie, bloquant au W2** : un jour au-delà met des MAR
+  en conflit et grise « Suivant ». Le serveur ne compte que les membres des groupes A/B/C (trou déjà
+  connu) ; le staff compte tout le monde.
+- **La synchro complète n'efface rien** : un onglet supprimé laisse sa copie en place (la fonction
+  qui la construit renvoie `null` et la clé n'est pas réécrite). Elle lit aussi CONFIG, SECTEURS et
+  SEUILS à travers le cache de 10 min : après une modification à la main, **Vider le cache** d'abord.
+  Correctif proposé (effacer la copie quand l'onglet n'existe plus), non fait.
+- `QUOTITE` n'intervient pas dans le placement quotidien (seulement quotas de congés, poids des 18 h,
+  tuile de pose des TP) : seuls les statuts du planning disent qui est présent.
+- Le W1 réenregistre les seuils affichés sur l'écran des périodes : les relire avant de valider.
+- `INDISPOS_2027` simulé renommé `INDISPOS_2027_TEST` (plus lu par aucun code : tous les motifs sont
+  ancrés) ; le W1 du 09/10 recrée l'onglet et rejoue les congés longs du registre.
+
 ## 05/10/2026 — générateur de gardes : congé long à cible pleine, paires à éviter, calcul à blanc fidèle
 
 **Fait** (trois lots, un commit chacun, banc **3 798 ✓, 0 échec**) :
