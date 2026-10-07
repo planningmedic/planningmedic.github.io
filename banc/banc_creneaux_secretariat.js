@@ -68,6 +68,38 @@ V('toute l\'équipe du secteur absente → seuls les autres secteurs restent', r
 r = C.proposer('2026-11-30', 'END', base());
 V('intervention hors de la fenêtre connue → refus motivé, jamais « disponible »',
   r.erreur === 'hors_horizon' && r.dernier === '2026-10-23' && !r.enSecteur, r);
+/* Délai médico-légal (07/10/2026) : au moins 48 h, au plus 1 mois avant. */
+const B = C.bornes(OP);
+V('bornes : au plus tard l\'avant-veille, au plus tôt un mois avant',
+  B.auPlusTard === '2026-10-19' && B.auPlusTot === '2026-09-21', B);
+V('1 mois avant un 31 mars = dernier jour de février (pas de 3 mars)', C.bornes('2027-03-31').auPlusTot === '2027-02-28');
+V('1 mois avant un 15 janvier = 15 décembre de l\'année précédente', C.bornes('2027-01-15').auPlusTot === '2026-12-15');
+c = base(); c.consultations.push({ date: '2026-10-20', per: 'am', cs: 'CS-END', mar: 'B' });
+V('consultation la veille (moins de 48 h) → écartée',
+  C.proposer(OP, 'END', c).enSecteur.find(x => x.mar === 'B').creneaux.every(x => x.date !== '2026-10-20'));
+c = base(); c.consultations.push({ date: '2026-10-19', per: 'pm', cs: 'CS-END', mar: 'B' });
+V('consultation l\'avant-veille (48 h) → acceptée',
+  C.proposer(OP, 'END', c).enSecteur.find(x => x.mar === 'B').creneaux.some(x => x.date === '2026-10-19'));
+const LOIN = '2026-11-16';
+c = base(); c.aujourdhui = '2026-10-12'; c.jours = J.concat(['2026-11-16']);
+c.consultations = [{ date: '2026-10-15', per: 'am', cs: 'CS-END', mar: 'A' },
+                   { date: '2026-10-16', per: 'am', cs: 'CS-END', mar: 'A' },
+                   { date: '2026-10-19', per: 'am', cs: 'CS-END', mar: 'B' }];
+r = C.proposer(LOIN, 'END', c);
+V('consultation plus d\'un mois avant → écartée ; pile un mois avant → acceptée',
+  C.bornes(LOIN).auPlusTot === '2026-10-16' &&
+  r.enSecteur.find(x => x.mar === 'A').creneaux.map(y => y.date).join() === '2026-10-16' &&
+  r.enSecteur.find(x => x.mar === 'B').creneaux.map(y => y.date).join() === '2026-10-19', r);
+c = base(); c.consultations.push({ date: '2026-10-16', per: 'am', cs: 'CS-END', mar: 'B' });
+r = C.proposer(LOIN, 'END', Object.assign(c, { jours: J.concat([LOIN]) }));
+V('… le 16/10 (pile un mois avant le 16/11) est bien dans la fenêtre',
+  r.enSecteur.some(x => x.creneaux.some(y => y.date === '2026-10-16')), r);
+c = base(); c.aujourdhui = '2026-10-20';
+r = C.proposer(OP, 'END', c);
+V('intervention dans moins de 48 h → refus « délai trop court »', r.erreur === 'delai_court', r);
+c = base(); c.aujourdhui = '2026-10-19'; c.consultations.push({ date: '2026-10-19', per: 'pm', cs: 'CS-END', mar: 'A' });
+r = C.proposer(OP, 'END', c);
+V('à 48 h pile, la consultation du jour même reste possible', !r.erreur && r.enSecteur.length === 1, r);
 V('date mal formée → refus', C.proposer('21/10/2026', 'END', base()).erreur === 'format');
 V('secteur inconnu → refus', C.proposer(OP, 'XYZ', base()).erreur === 'secteur');
 V('la sortie ne contient aucun rang ni chiffre libéral',
@@ -79,6 +111,7 @@ const PAGE = fs.readFileSync(racine('demo-secretariat.html'), 'utf8');
 V('la page charge version.js et porte un emplacement data-version',
   /<script src="version\.js"><\/script>/.test(PAGE) && /data-version/.test(PAGE));
 V('la page annonce des données fictives', /fictifs/.test(PAGE));
+V('la page explique le délai de 48 heures à 1 mois', /au moins 48 heures/.test(PAGE) && /au plus 1 mois/.test(PAGE));
 V('aucune mention de la règle des 30 % ni d\'un montant', !/30\s*%|marge|€|euro/i.test(PAGE.replace(/<!--[\s\S]*?-->/g, '')));
 V('aucun appel serveur dans la page', !/fetch\(|XMLHttpRequest|script\.google|workers\.dev/.test(PAGE));
 
@@ -129,6 +162,11 @@ $('ex3').click();
 V('exemple 3 : date trop lointaine → « pas encore connu », aucun créneau',
   /pas encore connu/.test(txt()) && $('res').querySelectorAll('.slot').length === 0, txt());
 
+$('ex4').click();
+V('exemple 4 : intervention demain → « délai trop court », aucun créneau',
+  /Délai trop court/.test(txt()) && $('res').querySelectorAll('.slot').length === 0, txt());
+$('ex1').click();
+V('la fenêtre de consultation (1 mois → 48 h) est affichée', /Consultation possible du .+ au /.test(txt()));
 $('dt').value = '2026-10-10'; $('dt').dispatchEvent(new w.Event('change'));
 V('un samedi est refusé', /pas un jour d'intervention/.test(txt()));
 V('aucun appel réseau pendant toute la séance', reseau.length === 0, reseau);
