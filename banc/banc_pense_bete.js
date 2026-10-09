@@ -143,7 +143,7 @@ const VALS = { colo_mc: '20,00', colo_fr: '10,00', gastro_mc: '18', gastro_fr: '
 regler(c, '2026-09-30', '1 000,00', '', { ...VALS, combo_fr: '' });
 V('réglage incomplet refusé avec le nom du geste', /Colo \+ gastro · France/.test(c.$('rMsg').textContent), c.$('rMsg').textContent);
 regler(c, '2026-09-30', '1 000,00', '', VALS);
-V('réglages enregistrés (libéral vide = 0)', /Enregistré/.test(c.$('rMsg').textContent) && [...c.w.document.querySelectorAll('.geste')].every(b => !b.disabled));
+V('réglages enregistrés (libéral vide = 0)', /Enregistré/.test(c.$('rMsg').textContent) && [...c.w.document.querySelectorAll('#cCcamF .geste')].every(b => !b.disabled));
 V('départ : 0,0 % et marge = 3/7 × 1 000 = 428,57 €', c.$('cPct').textContent === '0,0 %' && /428,57/.test(c.$('cMarge').textContent),
   [c.$('cPct').textContent, c.$('cMarge').textContent]);
 const geste = (o, g, mode, ass, d) => {
@@ -193,7 +193,7 @@ const o4 = (() => {
 V('réouverture : onglet Compteur et 2 actes retrouvés', !o4.d.window.document.getElementById('vC').hidden && o4.d.window.document.querySelectorAll('#cList .acte').length === 2);
 const o5 = (() => { const d = new JSDOM(PAGE, { runScripts: 'dangerously', url: 'https://planningmedic.github.io/pense-bete/',
   beforeParse(w) { w.Element.prototype.focus = function () {}; w.localStorage.setItem('pense-bete-compteur-v1', '{abîmé'); } }); return d; })();
-V('compteur abîmé : la page s\'ouvre, réglages demandés', o5.window.document.querySelectorAll('.geste[disabled]').length === 4 && o5.window.document.getElementById('cCode').disabled);
+V('compteur abîmé : la page s\'ouvre, réglages demandés', o5.window.document.querySelectorAll('#cCcamF .geste[disabled]').length === 4 && o5.window.document.getElementById('cCode').disabled);
 
 /* ── 7. AUTRE ACTE : code CCAM tapé (05/10/2026) ────────────────────────── */
 (async () => {
@@ -277,6 +277,66 @@ V('compteur abîmé : la page s\'ouvre, réglages demandés', o5.window.document
   const av = ouvrir(null, { compteur: ancien }); av.$('tC').click();
   V('données d\'avant la mise à jour : compteur intact (20,00 € libéral, 1 acte)', /20,00/.test(av.$('cLib').textContent) && av.$('cList').querySelectorAll('.acte').length === 1 && av.erreurs.length === 0,
     [av.$('cLib').textContent, av.erreurs]);
+
+  /* ── 9. AXE NGAP — consultations, compté à part (09/10/2026) ────────────── */
+  console.log('\n[9] Axe NGAP — consultations CS / APC, jamais mêlées au CCAM');
+  const ng = ouvrir(); ng.$('tC').click();
+  regler(ng, '2026-09-30', '1 000,00', '', VALS);
+  const axe = (o, v) => o.w.document.querySelector('#cAxe .chip[data-v="' + v + '"]').click();
+  V('à l\'ouverture : axe CCAM, formulaire CCAM visible, NGAP caché', !ng.$('cCcamF').hidden && ng.$('cNgapF').hidden && ng.$('cSub').textContent.startsWith('part libérale CCAM'));
+  axe(ng, 'ngap');
+  V('axe NGAP : formulaire NGAP, « Date de la consultation », Réglages demandés', ng.$('cCcamF').hidden && !ng.$('cNgapF').hidden
+    && ng.$('cDtL').textContent === 'Date de la consultation' && /point de départ NGAP/.test(ng.$('cMsg').textContent) && ng.$('cReg').open, ng.$('cMsg').textContent);
+  V('NGAP non réglé : CS et APC grisés, le CCAM reste réglé', [...ng.w.document.querySelectorAll('#cNgap .geste')].every(b => b.disabled) && ng.$('cPct').textContent === '—');
+  // Bloc NGAP incomplet → refusé, tout ou rien ; le CCAM n'est pas touché
+  ng.$('rPn0').value = '400'; ng.$('rSave').click();
+  V('NGAP incomplet refusé avec le nom de la consultation', /NGAP : valeur manquante ou illisible : CS/.test(ng.$('rMsg').textContent), ng.$('rMsg').textContent);
+  // Valeurs FICTIVES : CS 10, APC 12,50 ; départ public 400, libéral 0
+  ng.$('rvn_CS').value = '10'; ng.$('rvn_APC').value = '12,50'; ng.$('rSave').click();
+  V('NGAP enregistré : 0,0 % et marge = 3/7 × 400 = 171,42 €', /Enregistré/.test(ng.$('rMsg').textContent) && ng.$('cPct').textContent === '0,0 %' && /171,42/.test(ng.$('cMarge').textContent),
+    [ng.$('rMsg').textContent, ng.$('cPct').textContent, ng.$('cMarge').textContent]);
+  const consult = (o, g, mode, ass, d) => {
+    if (d) o.$('cDt').value = d;
+    o.w.document.querySelector('#cMode .chip[data-v="' + mode + '"]').click();
+    o.w.document.querySelector('#cAss .chip[data-v="' + ass + '"]').click();
+    o.w.document.querySelector('#cNgap .geste[data-n="' + g + '"]').click();
+  };
+  consult(ng, 'CS', 'lib', 'mc', '2026-10-05');
+  V('APC grisée pour un assuré Monaco, avec l\'explication', ng.w.document.querySelector('#cNgap .geste[data-n="APC"]').disabled && /cotation française/.test(ng.$('cApcNote').textContent));
+  ng.w.document.querySelector('#cNgap .geste[data-n="APC"]').click();
+  V('…et un clic sur APC Monaco ne compte rien', ng.$('cList').querySelectorAll('.acte').length === 1);
+  consult(ng, 'APC', 'lib', 'fr', '2026-10-06');   // 12,50
+  consult(ng, 'CS', 'pub', 'fr', '2026-10-06');    // 10,00
+  // L = 22,50 ; P = 410 ; T = 432,50 → 5,2 % ; marge = (3×41000 − 7×2250)/7 = 15 321,42 c
+  V('NGAP : libéral 22,50 € (2), public 410,00 € (+1), 5,2 %', /22,50/.test(ng.$('cLib').textContent) && /2 actes/.test(ng.$('cLib').textContent)
+    && /410,00/.test(ng.$('cPub').textContent) && ng.$('cPct').textContent === '5,2 %', [ng.$('cLib').textContent, ng.$('cPub').textContent, ng.$('cPct').textContent]);
+  V('NGAP : marge 153,21 €', /153,21/.test(ng.$('cMarge').textContent), ng.$('cMarge').textContent);
+  V('liste NGAP : 3 consultations, titre adapté', ng.$('cList').querySelectorAll('.acte').length === 3 && /Consultations comptées \(3\)/.test(ng.$('cListT').textContent) && /APC/.test(ng.$('cList').textContent));
+  // Un geste CCAM n'entre pas dans le NGAP, et inversement
+  axe(ng, 'ccam');
+  V('retour au CCAM : 0,0 %, public 1 000,00 €, aucune consultation dans la liste', ng.$('cPct').textContent === '0,0 %' && /1\s000,00/.test(ng.$('cPub').textContent)
+    && ng.$('cList').querySelectorAll('.acte').length === 0, [ng.$('cPct').textContent, ng.$('cPub').textContent]);
+  geste(ng, 'colo', 'lib', 'mc', '2026-10-07');   // 20,00 CCAM
+  axe(ng, 'ngap');
+  V('un acte CCAM ne bouge pas le NGAP (toujours 22,50 € libéral)', /22,50/.test(ng.$('cLib').textContent) && ng.$('cList').querySelectorAll('.acte').length === 3, ng.$('cLib').textContent);
+  // Retirer + Annuler une consultation
+  ng.$('cList').querySelector('.cx').click();
+  V('retirer une consultation : barre Annuler nommée', ng.$('cList').querySelectorAll('.acte').length === 2 && /(CS|APC) retiré/.test(ng.$('undoTxt').textContent), ng.$('undoTxt').textContent);
+  ng.$('undoBtn').click();
+  V('Annuler la remet', ng.$('cList').querySelectorAll('.acte').length === 3);
+  // Nouveau relevé : les consultations antérieures disparaissent aussi
+  regler(ng, '2026-10-05', '1 000,00', '', VALS);
+  V('nouveau relevé au 05/10 : la CS du 05/10 est retirée, valeurs NGAP gardées', ng.$('cList').querySelectorAll('.acte').length === 2 && ng.$('rvn_APC').value === '12,50' && ng.$('rPn0').value === '400,00');
+  V('aucun appel réseau pour le NGAP', ng.reseau.length === 0, ng.reseau);
+  // Réouverture : axe NGAP retrouvé
+  const brut3 = ng.w.localStorage.getItem('pense-bete-compteur-v1');
+  const d3 = new JSDOM(PAGE, { runScripts: 'dangerously', url: 'https://planningmedic.github.io/pense-bete/',
+    beforeParse(w) { w.Element.prototype.focus = function () {}; w.localStorage.setItem('pense-bete-compteur-v1', brut3);
+      w.localStorage.setItem('pense-bete-axe', 'ngap'); w.localStorage.setItem('pense-bete-onglet', 'C'); } });
+  V('réouverture : axe NGAP et 2 consultations retrouvés', !d3.window.document.getElementById('cNgapF').hidden && d3.window.document.querySelectorAll('#cList .acte').length === 2);
+  // Données d'avant (sans NGAP) : CCAM intact, NGAP simplement à régler
+  const av2 = ouvrir(null, { compteur: ancien }); av2.$('tC').click(); axe(av2, 'ngap');
+  V('données d\'avant : NGAP vide demande ses Réglages, sans erreur', av2.$('cPct').textContent === '—' && av2.erreurs.length === 0 && av2.$('cList').querySelectorAll('.acte').length === 0, av2.erreurs);
   console.log(`\n${ok} ✓  ${ko} ✗`);
   process.exit(ko ? 1 : 0);
 })();

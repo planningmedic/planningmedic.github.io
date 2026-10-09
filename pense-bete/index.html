@@ -78,7 +78,8 @@ details summary{cursor:pointer;color:var(--mute);font-size:15px;padding:10px 0}
   max-width:calc(100% - 32px);font-size:15px}
 .undo button{font:inherit;font-weight:700;background:none;border:0;color:var(--acc-soft);cursor:pointer}
 .foot{font-size:13px;color:var(--mute);margin-top:26px}
-/* (05/10/2026) Onglets + compteur de la règle des 30 % (axe CCAM) */
+/* (05/10/2026) Onglets + compteur de la règle des 30 % (axe CCAM) — (09/10/2026) + axe NGAP */
+#cAxe{margin-bottom:14px}
 .tabs{display:grid;grid-template-columns:1fr 1fr;gap:6px;background:var(--card);border:1px solid var(--line);border-radius:12px;padding:4px;margin:0 0 16px}
 .tab{font:inherit;font-weight:700;font-size:16px;border:0;background:none;color:var(--mute);border-radius:9px;min-height:42px;cursor:pointer}
 .tab[aria-selected="true"]{background:var(--acc);color:var(--acc-ink)}
@@ -134,11 +135,16 @@ details summary{cursor:pointer;color:var(--mute);font-size:15px;padding:10px 0}
   <section id="pastBox" hidden><details><summary id="pastSum"></summary><div id="past"></div></details></section>
   </div>
 
-  <!-- (05/10/2026) COMPTEUR — règle des 30 %, axe CCAM seulement.
+  <!-- (05/10/2026) COMPTEUR — règle des 30 %, axe CCAM.
+       (09/10/2026) + axe NGAP (consultations CS / APC), compté À PART : les deux
+       axes ne se consolident jamais (même règle que la page Suivi libéral).
        Part du dernier relevé (point de départ saisi à la main) et ajoute les
        actes comptés depuis. Aucune projection. Aucun montant dans ce fichier :
        valeurs et point de départ se saisissent dans « Réglages », sur l'appareil. -->
   <div id="vC" role="tabpanel" aria-labelledby="tC" hidden>
+    <div class="chips deux" id="cAxe" role="radiogroup" aria-label="Axe">
+      <button type="button" class="chip" role="radio" data-v="ccam" aria-checked="true">Actes · CCAM</button>
+      <button type="button" class="chip" role="radio" data-v="ngap" aria-checked="false">Consultations · NGAP</button></div>
     <div class="kpi">
       <div class="big" id="cPct">—</div>
       <div class="sub" id="cSub">part libérale CCAM</div>
@@ -146,13 +152,14 @@ details summary{cursor:pointer;color:var(--mute);font-size:15px;padding:10px 0}
       <div class="marge" id="cMarge"></div>
     </div>
     <form id="cFrm" autocomplete="off">
-      <div class="f"><label for="cDt">Date de l'acte</label><input type="date" id="cDt"></div>
+      <div class="f"><label for="cDt" id="cDtL">Date de l'acte</label><input type="date" id="cDt"></div>
       <div class="f"><div class="chips deux" id="cMode" role="radiogroup" aria-label="Activité">
         <button type="button" class="chip" role="radio" data-v="lib" aria-checked="true">Libéral</button>
         <button type="button" class="chip" role="radio" data-v="pub" aria-checked="false">Public</button></div></div>
       <div class="f"><div class="chips deux" id="cAss" role="radiogroup" aria-label="Assurance">
         <button type="button" class="chip" role="radio" data-v="mc" aria-checked="true">Monaco</button>
         <button type="button" class="chip" role="radio" data-v="fr" aria-checked="false">France</button></div></div>
+      <div id="cCcamF">
       <div class="gestes" id="cGestes">
         <button type="button" class="geste" data-g="colo">Colo</button>
         <button type="button" class="geste" data-g="gastro">Gastro</button>
@@ -170,6 +177,17 @@ details summary{cursor:pointer;color:var(--mute);font-size:15px;padding:10px 0}
         <label class="case"><input type="checkbox" id="c50"> 2e acte du même patient (50 %)</label>
         <div class="lib" id="cLibelle"></div>
       </div>
+      </div>
+      <!-- (09/10/2026) NGAP : deux consultations, comme le devis libéral (CS, APC).
+           Valeur saisie dans les Réglages : sans coefficient Monaco ni modificateur.
+           APC = cotation française : grisée pour un assuré Monaco. -->
+      <div id="cNgapF" hidden>
+        <div class="gestes" id="cNgap">
+          <button type="button" class="geste" data-n="CS">CS</button>
+          <button type="button" class="geste" data-n="APC">APC</button>
+        </div>
+        <div class="lib" id="cApcNote"></div>
+      </div>
       <p class="msg" id="cMsg" role="status"></p>
     </form>
     <section><h2 id="cListT">Actes comptés</h2><div id="cList"></div></section>
@@ -181,8 +199,15 @@ details summary{cursor:pointer;color:var(--mute);font-size:15px;padding:10px 0}
         <div class="f"><label for="rP0">Public CCAM (€)</label><input id="rP0" inputmode="decimal"></div>
         <div class="f"><label for="rL0">Libéral CCAM (€)</label><input id="rL0" inputmode="decimal"></div>
       </div>
+      <h3>Point de départ NGAP — consultations (facultatif)</h3>
+      <div class="grille">
+        <div class="f"><label for="rPn0">Public NGAP (€)</label><input id="rPn0" inputmode="decimal"></div>
+        <div class="f"><label for="rLn0">Libéral NGAP (€)</label><input id="rLn0" inputmode="decimal"></div>
+      </div>
       <h3>Valeur d'un acte (€, sans dépassement)</h3>
       <div class="grille" id="rVals"></div>
+      <h3>Valeur d'une consultation NGAP (€, sans dépassement)</h3>
+      <div class="grille" id="rValsN"></div>
       <h3>Forfaits de réanimation (€, tarif de base)</h3>
       <div class="grille" id="rRea"></div>
       <button type="button" class="add" id="rSave" style="margin:6px 0 14px">Enregistrer</button>
@@ -285,15 +310,22 @@ $('tC').addEventListener('click',()=>onglet('C'));
 const KEY_C='pense-bete-compteur-v1';
 const GESTES={colo:'Colo', gastro:'Gastro', combo:'Colo + gastro'};
 const ASS={mc:'Monaco', fr:'France'};
-let C={d0:'', p0:null, l0:null, v:{}, rea:{}, actes:[]};
+let C={d0:'', p0:null, l0:null, v:{}, rea:{}, pn0:null, ln0:null, vn:{}, actes:[]};
 /* (05/10/2026) Forfaits de réanimation : activité 1, absents de la liste CCAM du
    site (qui ne garde que l'anesthésie). Tarif saisi dans les Réglages, SANS le
    modificateur 7 (réservé à l'anesthésie), × 50 % éventuel, × coefficient Monaco. */
 const REA={YYYY015:'Forfait de réanimation niveau A', YYYY020:'Forfait de réanimation niveau B'};
 let cMode='lib', cAss='mc';
+/* (09/10/2026) AXE NGAP — consultations, compté À PART du CCAM (jamais consolidés).
+   Même relevé (même date d0), ses propres montants de départ pn0 / ln0 et la
+   valeur de chaque consultation (vn), saisis dans les Réglages, facultatifs.
+   Un acte NGAP porte ax:'ngap' ; un acte sans ax est CCAM (données d'avant). */
+const NGAP={CS:'CS', APC:'APC'};
+const KEY_AXE='pense-bete-axe';
+let cAxe='ccam';
 function cLoad(){
   try{ const o=JSON.parse(localStorage.getItem(KEY_C)||'null');
-    if(o && typeof o==='object'){ C=Object.assign(C,o); if(!Array.isArray(C.actes)) C.actes=[]; if(!C.v||typeof C.v!=='object') C.v={}; if(!C.rea||typeof C.rea!=='object') C.rea={}; } }
+    if(o && typeof o==='object'){ C=Object.assign(C,o); if(!Array.isArray(C.actes)) C.actes=[]; if(!C.v||typeof C.v!=='object') C.v={}; if(!C.rea||typeof C.rea!=='object') C.rea={}; if(!C.vn||typeof C.vn!=='object') C.vn={}; } }
   catch(e){ /* stockage abîmé : on repart à vide */ }
 }
 function cSave(){ try{ localStorage.setItem(KEY_C, JSON.stringify(C)); storageOK=true; }catch(e){ storageOK=false; } }
@@ -307,21 +339,36 @@ const euros=c=>(c/100).toLocaleString('fr-FR',{minimumFractionDigits:2,maximumFr
 const saisie=c=>c==null?'':(c/100).toFixed(2).replace('.',',');
 function valeur(g,a){ const x=C.v[g+'_'+a]; return Number.isInteger(x)?x:null; }
 // Valeur d'un acte de la liste : figée à l'ajout pour « autre », lue dans les Réglages sinon
-function valeurActe(x){ return x.g==='autre' ? (Number.isInteger(x.v)?x.v:null) : valeur(x.g,x.a); }
+const axeDe=x=>x.ax==='ngap'?'ngap':'ccam';
+function valeurN(g){ const x=C.vn[g]; return Number.isInteger(x)?x:null; }
+function valeurActe(x){ return axeDe(x)==='ngap' ? valeurN(x.g) : x.g==='autre' ? (Number.isInteger(x.v)?x.v:null) : valeur(x.g,x.a); }
+function regleNgap(){ return !!C.d0 && Number.isInteger(C.pn0) && Number.isInteger(C.ln0) && Object.keys(NGAP).every(g=>valeurN(g)!=null); }
+const nomActe=x=>x.g==='autre' ? x.code : axeDe(x)==='ngap' ? (NGAP[x.g]||x.g) : (GESTES[x.g]||x.g);
 function regleComplet(){ return !!C.d0 && Number.isInteger(C.p0) && Number.isInteger(C.l0) && Object.keys(GESTES).every(g=>Object.keys(ASS).every(a=>valeur(g,a)!=null)); }
-function cTotaux(){
-  let L0=C.l0||0, P0=C.p0||0, nl=0, np=0;
-  C.actes.forEach(x=>{ const v=valeurActe(x)||0; if(x.m==='lib'){ L0+=v; nl++; } else { P0+=v; np++; } });
+function cTotaux(ax){
+  const n=ax==='ngap';
+  let L0=(n?C.ln0:C.l0)||0, P0=(n?C.pn0:C.p0)||0, nl=0, np=0;
+  C.actes.forEach(x=>{ if(axeDe(x)!==ax) return; const v=valeurActe(x)||0; if(x.m==='lib'){ L0+=v; nl++; } else { P0+=v; np++; } });
   return {L:L0, P:P0, nl, np};
 }
+function majApc(){
+  const okN=regleNgap(), mc=cAss==='mc';
+  $('cNgap').querySelectorAll('.geste').forEach(b=>b.disabled=!okN || (b.dataset.n==='APC' && mc));
+  $('cApcNote').textContent = okN && mc ? 'APC : cotation française, pas pour un assuré Monaco.' : '';
+}
 function cRender(){
-  const ok=regleComplet(), t=cTotaux(), T=t.L+t.P;
-  document.querySelectorAll('.geste').forEach(b=>b.disabled=!ok);
-  $('cCode').disabled=!ok;
-  $('cMsg').textContent = ok ? '' : 'Remplissez d\'abord les Réglages (en bas) : point de départ et valeur des actes.';
+  const n=cAxe==='ngap', okC=regleComplet(), ok=n?regleNgap():okC, t=cTotaux(cAxe), T=t.L+t.P;
+  $('cCcamF').hidden=n; $('cNgapF').hidden=!n;
+  $('cAxe').querySelectorAll('.chip').forEach(x=>x.setAttribute('aria-checked', String(x.dataset.v===cAxe)));
+  $('cDtL').textContent = n ? 'Date de la consultation' : 'Date de l\'acte';
+  $('cCcamF').querySelectorAll('.geste').forEach(b=>b.disabled=!okC);
+  $('cCode').disabled=!okC;
+  majApc();
+  $('cMsg').textContent = ok ? '' : n ? 'Remplissez d\'abord les Réglages (en bas) : point de départ NGAP et valeur des consultations.'
+    : 'Remplissez d\'abord les Réglages (en bas) : point de départ et valeur des actes.';
   if(!ok) $('cReg').open=true;
   $('cPct').textContent = T>0 ? (t.L*100/T).toLocaleString('fr-FR',{minimumFractionDigits:1,maximumFractionDigits:1})+' %' : '—';
-  $('cSub').textContent = 'part libérale CCAM' + (C.d0 ? ' · depuis le relevé du '+C.d0.split('-').reverse().join('/') : '');
+  $('cSub').textContent = 'part libérale '+(n?'NGAP':'CCAM') + (C.d0 ? ' · depuis le relevé du '+C.d0.split('-').reverse().join('/') : '');
   $('cLib').textContent = euros(t.L) + (t.nl ? ' · +'+t.nl+' acte'+(t.nl>1?'s':'') : '');
   $('cPub').textContent = euros(t.P) + (t.np ? ' · +'+t.np+' acte'+(t.np>1?'s':'') : '');
   const marge7 = 3*t.P - 7*t.L;                   // = 7 × marge, en centimes
@@ -330,13 +377,13 @@ function cRender(){
   else if(marge7>=0){ m.className='marge ok'; m.textContent='Marge avant 30 % : '+euros(Math.floor(marge7/7)); }
   else { const exc=Math.ceil((7*t.L-3*t.P)/10);     // L − 0,3·T, arrondi au centime supérieur
     m.className='marge ko'; m.textContent='Au-delà de 30 % : '+euros(exc)+' · public à produire ≈ '+euros(Math.ceil(exc*10/3)); }
-  const tri=[...C.actes].sort((a,b)=>b.d.localeCompare(a.d)||b.t-a.t);
-  $('cListT').textContent='Actes comptés'+(C.actes.length?' ('+C.actes.length+')':'');
+  const tri=C.actes.filter(x=>axeDe(x)===cAxe).sort((a,b)=>b.d.localeCompare(a.d)||b.t-a.t);
+  $('cListT').textContent=(n?'Consultations comptées':'Actes comptés')+(tri.length?' ('+tri.length+')':'');
   $('cList').innerHTML = tri.length ? tri.map(x=>'<div class="acte"><span class="d">'+x.d.slice(8,10)+'/'+x.d.slice(5,7)+'</span>'
-      +'<span class="g">'+(x.g==='autre' ? esc(x.code)+(x.r50?' (50 %)':'') : esc(GESTES[x.g]||x.g))+' · '+(x.m==='lib'?'Lib':'Pub')+' · '+esc(ASS[x.a]||x.a)+'</span>'
+      +'<span class="g">'+esc(nomActe(x))+(x.g==='autre'&&x.r50?' (50 %)':'')+' · '+(x.m==='lib'?'Lib':'Pub')+' · '+esc(ASS[x.a]||x.a)+'</span>'
       +'<span class="v">'+(valeurActe(x)!=null?euros(valeurActe(x)):'—')+'</span>'
       +'<button type="button" class="x cx" aria-label="Retirer cet acte" data-id="'+x.id+'">×</button></div>').join('')
-    : '<p class="empty">Aucun acte compté depuis le relevé.</p>';
+    : '<p class="empty">'+(n?'Aucune consultation comptée':'Aucun acte compté')+' depuis le relevé.</p>';
   if(!storageOK) $('cMsg').textContent="Ce navigateur n'enregistre pas : le compteur sera perdu en fermant la page.";
 }
 function cReglagesAfficher(){
@@ -344,13 +391,16 @@ function cReglagesAfficher(){
   $('rD0').value=C.d0||''; $('rP0').value=saisie(C.p0); $('rL0').value=saisie(C.l0);
   $('rVals').innerHTML=Object.keys(GESTES).map(g=>Object.keys(ASS).map(a=>
     '<div class="f"><label for="rv_'+g+'_'+a+'">'+GESTES[g]+' · '+ASS[a]+'</label><input id="rv_'+g+'_'+a+'" inputmode="decimal" value="'+saisie(valeur(g,a))+'"></div>').join('')).join('');
+  $('rPn0').value=saisie(Number.isInteger(C.pn0)?C.pn0:null); $('rLn0').value=saisie(Number.isInteger(C.ln0)?C.ln0:null);
+  $('rValsN').innerHTML=Object.keys(NGAP).map(g=>'<div class="f"><label for="rvn_'+g+'">'+NGAP[g]+'</label><input id="rvn_'+g+'" inputmode="decimal" value="'+saisie(valeurN(g))+'"></div>').join('');
 }
 function radios(id, set){
   $(id).addEventListener('click',e=>{ const b=e.target.closest('.chip'); if(!b) return;
     $(id).querySelectorAll('.chip').forEach(x=>x.setAttribute('aria-checked', String(x===b))); set(b.dataset.v); });
 }
 radios('cMode', v=>cMode=v);
-radios('cAss', v=>cAss=v);
+radios('cAss', v=>{ cAss=v; majApc(); });
+radios('cAxe', v=>{ cAxe=v; try{ localStorage.setItem(KEY_AXE, v); }catch(e){} cRender(); });
 function dateActe(){
   const d=$('cDt').value;
   if(!d){ $('cMsg').textContent='Indiquez la date de l\'acte.'; return null; }
@@ -418,12 +468,19 @@ $('cGestes').addEventListener('click',e=>{
   cSave(); cRender();
   $('cMsg').textContent='+1 '+GESTES[b.dataset.g]+' '+(cMode==='lib'?'libéral':'public')+' '+ASS[cAss]+' le '+d.split('-').reverse().join('/');
 });
+$('cNgap').addEventListener('click',e=>{
+  const b=e.target.closest('.geste'); if(!b || b.disabled) return;
+  const d=dateActe(); if(!d) return;
+  C.actes.push({id:Date.now().toString(36)+Math.random().toString(36).slice(2,6), d, ax:'ngap', g:b.dataset.n, m:cMode, a:cAss, t:Date.now()});
+  cSave(); cRender();
+  $('cMsg').textContent='+1 '+NGAP[b.dataset.n]+' '+(cMode==='lib'?'libéral':'public')+' '+ASS[cAss]+' le '+d.split('-').reverse().join('/');
+});
 $('cList').addEventListener('click',e=>{
   const b=e.target.closest('.cx'); if(!b) return;
   e.stopPropagation();
   const k=C.actes.findIndex(x=>x.id===b.dataset.id); if(k<0) return;
   lastDel={k:'c',o:C.actes.splice(k,1)[0]}; cSave(); cRender();
-  montrerAnnuler((lastDel.o.g==='autre'?lastDel.o.code:GESTES[lastDel.o.g])+' retiré');
+  montrerAnnuler(nomActe(lastDel.o)+' retiré');
 });
 $('rSave').addEventListener('click',()=>{
   const d0=$('rD0').value, p0=enCentimes($('rP0').value), l0=enCentimes($('rL0').value||'0');
@@ -441,8 +498,20 @@ $('rSave').addEventListener('click',()=>{
     if(c==null||c===0){ $('rMsg').textContent='Tarif illisible : '+(k==='YYYY015'?'Réa A':'Réa B')+'.'; return; }
     rea[k]=c;
   }
+  // (09/10/2026) NGAP : bloc facultatif, mais tout ou rien
+  const champsN=['rPn0','rLn0'].concat(Object.keys(NGAP).map(g=>'rvn_'+g)).map(id=>$(id).value.trim());
+  let pn0=null, ln0=null; const vn={};
+  if(champsN.some(x=>x)){
+    pn0=enCentimes($('rPn0').value); ln0=enCentimes($('rLn0').value||'0');
+    if(pn0==null||ln0==null){ $('rMsg').textContent='NGAP : montants public / libéral du relevé nécessaires (ex. 1 234,56).'; return; }
+    for(const g of Object.keys(NGAP)){
+      const c=enCentimes($('rvn_'+g).value);
+      if(c==null||c===0){ $('rMsg').textContent='NGAP : valeur manquante ou illisible : '+NGAP[g]+'.'; return; }
+      vn[g]=c;
+    }
+  }
   const avant=C.actes.length;
-  C.d0=d0; C.p0=p0; C.l0=l0; C.v=v; C.rea=rea;
+  C.d0=d0; C.p0=p0; C.l0=l0; C.v=v; C.rea=rea; C.pn0=pn0; C.ln0=ln0; C.vn=vn;
   C.actes=C.actes.filter(x=>x.d>d0);           // un nouveau relevé contient déjà les actes antérieurs
   cSave(); cRender(); cReglagesAfficher();
   const n=avant-C.actes.length;
@@ -450,7 +519,8 @@ $('rSave').addEventListener('click',()=>{
 });
 
 load(); $('dt').value=isoToday(); render();
-cLoad(); $('cDt').value=isoToday(); cReglagesAfficher(); cRender();
+cLoad(); try{ if(localStorage.getItem(KEY_AXE)==='ngap') cAxe='ngap'; }catch(e){}
+$('cDt').value=isoToday(); cReglagesAfficher(); cRender();
 try{ if(localStorage.getItem(KEY_TAB)==='C') onglet('C'); }catch(e){}
 </script>
 </body>
