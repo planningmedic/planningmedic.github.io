@@ -93,6 +93,7 @@ body{font-family:'DM Sans',system-ui,sans-serif;background:var(--bg);color:var(-
 .day-chip.form{background:var(--form-bg);border-color:var(--form-brd);color:var(--form-fg);}
 .day-chip.locked{cursor:pointer;opacity:.7;}
 .day-chip.locked::after{content:'🔒';font-size:7px;position:absolute;top:-3px;right:-3px;}
+.day-chip.cl{background:repeating-linear-gradient(45deg,#E2E8F0 0 4px,#F8FAFC 4px 8px);border-color:#CBD5E1;color:#475569;cursor:not-allowed;}
 .day-chip.we-chip{background:transparent;border:none;color:var(--ink-4);font-size:9px;cursor:default;}
 .gt-cell-total{padding:6px 10px;text-align:center;border-bottom:1px solid var(--ll);background:var(--white);}
 .total-badge{display:inline-flex;align-items:center;padding:2px 8px;border-radius:10px;font-size:10px;font-weight:700;font-family:var(--mono);margin:1px;}
@@ -214,6 +215,12 @@ body{font-family:'DM Sans',system-ui,sans-serif;background:var(--bg);color:var(-
 <script>
 const API='https://script.google.com/macros/s/AKfycbxDbTnhgdjCNBqkeAblZWgS3CK-IptjJoRDQd1AtGF7WQoQkXriWGvISIo7LJG8zUtjTQ/exec';
 let adminCode='',currentYear=2027,periodes=[],medecins=[],saisies={},locked={};
+/* (09/10/2026) CONGÉS LONGS VISIBLES AU STAFF. Le chargement ne retenait que VAC et FORM :
+   un congé long (CL) était invisible, absent du compteur d'absents et du vivier de garde,
+   et cliquable — une VAC posée dessus l'aurait écrasé à la validation. Les CL vivent
+   ici, À PART des saisies : ils ne sont jamais renvoyés au serveur. */
+let congesLongs={};
+const estCL=(id,d)=>!!((congesLongs[id]||{})[d]);
 let currentPeriode=0,currentType='VAC',currentView='grille',currentMonth=0,vacHS=false;
 let joursFeries=new Set();      // (LOT E) alimenté par la copie rapide, jamais recalculé ici
 let pontsMode=false;            // (LOT E) l'onglet « Ponts » est-il affiché ?
@@ -409,9 +416,10 @@ async function loadData(pre){
   // n'existaient qu'en memoire de l'onglet et disparaissaient au rechargement,
   // alors que le verrou, lui, est desormais applique par le serveur.
   medecins.forEach(m=>{
-    saisies[m.id]={};locked[m.id]={};
+    saisies[m.id]={};locked[m.id]={};congesLongs[m.id]={};
     if(iRes.success&&iRes.data[m.id]){
       Object.entries(iRes.data[m.id]).forEach(([date,val])=>{
+        if(val==='CL'){congesLongs[m.id][date]=true;return;}
         if(val==='VAC'||val==='FORM'){saisies[m.id][date]=val;locked[m.id][date]=true;}
       });
     }
@@ -522,7 +530,7 @@ function isWeekend(ds){const d=new Date(ds+'T12:00:00').getDay();return d===0||d
 /* (01/09/2026) LE QUOTA SE COMPTE EN JOURS TRAVAILLÉS — récit : docs/JOURNAL-Planning-Med.md §65 */
 function estChome(ds){ return isWeekend(ds) || joursFeries.has(ds); }
 function countForMAR(marId,type,days){const src=saisies[marId]||{};if(!days)return Object.keys(src).filter(d=>src[d]===type&&!estChome(d)).length;return days.filter(d=>src[d]===type&&!estChome(d)).length;}
-function countForDay(date){return medecins.filter(m=>{const v=(saisies[m.id]||{})[date];return v==='VAC'||v==='FORM';}).length;}
+function countForDay(date){return medecins.filter(m=>{const v=(saisies[m.id]||{})[date];return v==='VAC'||v==='FORM'||estCL(m.id,date);}).length;}
 function tension(date,seuil){const n=countForDay(date);if(n>=seuil)return'hot';if(n>=Math.floor(seuil*.7))return'warn';return'ok';}
 
 /* ══ (LOT D · 01/09/2026) LE VIVIER DE GARDE DES WEEK-ENDS ═════════════════
@@ -571,6 +579,7 @@ function gardeurDispo(m,date){
   const we=isWeekend(date);
   if(we && m.noWeekend) return false;
   if(m.souhaitPlafond && we) return false;   // régime à part : jamais de week-end
+  if(estCL(m.id,date)) return false;
   const v=(saisies[m.id]||{})[date];
   return !(v==='VAC'||v==='FORM');
 }
@@ -759,6 +768,7 @@ function toggleDay(marId,date){
     return;
   }
   if(vacHS&&isScolaire(date)){showToast('Vacances scolaires : à saisir via le bouton VAC');return;}
+  if(estCL(marId,date)){showToast('Congé long ce jour-là : pas de VAC ni de FORM à poser');return;}
   if((locked[marId]||{})[date]){
     if(!confirm('Déverrouiller le '+formatDay(date)+' pour '+marId+' ?'))return;
     locked[marId][date]=false;
@@ -822,6 +832,7 @@ function renderPonts(){
       const val=(saisies[m.id]||{})[p.date];
       const lck=(locked[m.id]||{})[p.date];
       const has=val==='VAC'||val==='FORM';
+      if(estCL(m.id,p.date)){tbody+='<td class="gt-cell-day" title="Congé long"><div class="day-chip cl">CL</div></td>';return;}
       tbody+='<td class="gt-cell-day" onclick="toggleDay(\''+m.id+'\',\''+p.date+'\')">'
         +'<div class="day-chip '+(has?(val==='VAC'?'vac':'form'):'empty')+'">'+(has?val:'')+'</div>'
         +(lck?'<div class="gt-lock">🔒</div>':'')+'</td>';
@@ -950,7 +961,9 @@ function renderGrille(){
       const hasVal=val==='VAC'||val==='FORM';
       const chipCls=hasVal?(val==='VAC'?'vac':'form'):(we?'we-chip':'empty');
       const label=hasVal?val:'';
-      if(vacHS&&isScolaire(date)){
+      if(estCL(m.id,date)){
+        tbody+='<td class="gt-cell-day" title="Congé long"><div class="day-chip cl">CL</div></td>';
+      } else if(vacHS&&isScolaire(date)){
         tbody+='<td class="gt-cell-day" style="cursor:not-allowed;background:#F1F5F9" title="Vacances scolaires — à saisir via le bouton VAC">'
           +'<div class="day-chip '+(hasVal?chipCls:'')+'" style="opacity:.5">'+(hasVal?label:'·')+'</div>'
           +'</td>';

@@ -39,9 +39,18 @@ function extraireConst(nom) {
   return src.slice(i, j + 1);
 }
 
+/* (09/10/2026) gardeurDispo consulte les congés longs (estCL, extrait de la page) :
+   chaque contexte reçoit la fonction et un registre de CL vide. */
+function ctxStaff() {
+  const c = vm.createContext({ Date, Set, String, Object, Number, Math, Array, console, RegExp });
+  c.congesLongs = {};
+  const i = src.indexOf('const estCL=');
+  vm.runInContext(src.slice(i, src.indexOf('\n', i)), c);
+  return c;
+}
 /* Contexte minimal : les DONNÉES sont fabriquées ici, le CODE vient de la page. */
 function monde(medecins, saisies, feries) {
-  const ctx = vm.createContext({ Date, Set, String, Object, Number, Math, Array, console, RegExp });
+  const ctx = ctxStaff();
   ctx.globalThis = ctx;
   ctx.medecins = medecins;
   ctx.saisies = saisies || {};
@@ -475,7 +484,7 @@ console.log('\n═══ 9. staff.html · ni les week-ends ni les fériés ne ma
      l'écran du MAR retirent aussi les fériés. Douze MAR étaient annoncés
      au-dessus de leur quota sur un jeu réel, uniquement parce que leurs congés
      enjambaient des jours fériés. */
-  const ctx = vm.createContext({ Date, Set, String, Object, Number, Math, Array, console, RegExp });
+  const ctx = ctxStaff();
   ctx.globalThis = ctx;
   ctx.saisies = { AA: {
     '2027-05-03':'VAC','2027-05-04':'VAC','2027-05-05':'VAC',
@@ -491,7 +500,7 @@ console.log('\n═══ 9. staff.html · ni les week-ends ni les fériés ne ma
     ctx.countForMAR('AA', 'VAC') === 5, ctx.countForMAR('AA', 'VAC'));
   /* Contre-preuve : sans le retrait des fériés, on compterait 6. Le test
      n° 1 ne prouverait rien si les deux règles donnaient le même chiffre. */
-  const ctx2 = vm.createContext({ Date, Set, String, Object, Number, Math, Array, console, RegExp });
+  const ctx2 = ctxStaff();
   ctx2.globalThis = ctx2; ctx2.saisies = ctx.saisies; ctx2.joursFeries = new Set();
   vm.runInContext(extraire('isWeekend'), ctx2);
   vm.runInContext(extraire('estChome'), ctx2);
@@ -514,7 +523,7 @@ console.log('\n═══ 9. staff.html · ni les week-ends ni les fériés ne ma
    indispos.html (banc T072) — la borne sert a l'AFFICHAGE ET au CLIC. */
 console.log('\n═══ 10. staff.html · les vues par mois respectent l\'année de planning ═══');
 {
-  const ctx = vm.createContext({ Date, Set, String, Object, Number, Math, Array, console, RegExp });
+  const ctx = ctxStaff();
   ctx.globalThis = ctx;
   ctx.currentYear = 2027;
   vm.runInContext(extraire('premierJourAnneePlanning'), ctx);
@@ -537,14 +546,14 @@ console.log('\n═══ 10. staff.html · les vues par mois respectent l\'anné
   V('décembre est intact lui aussi', ctx.getMonthDays(11).length === 31, ctx.getMonthDays(11).length);
 
   /* Contre-preuve : sans la borne, janvier compterait 31 jours. */
-  const ctx2 = vm.createContext({ Date, Set, String, Object, Number, Math, Array, console, RegExp });
+  const ctx2 = ctxStaff();
   ctx2.globalThis = ctx2; ctx2.currentYear = 2027;
   vm.runInContext(extraire('getMonthDays').replace('days.filter(date=>!horsAnneePlanning(date))', 'days'), ctx2);
   V('sans la borne, janvier en comptait 31 (l\'ancien comportement)',
     ctx2.getMonthDays(0).length === 31, ctx2.getMonthDays(0).length);
 
   /* Second rideau : meme atteint autrement, le clic est refuse et EXPLIQUE. */
-  const ctx3 = vm.createContext({ Date, Set, String, Object, Number, Math, Array, console, RegExp });
+  const ctx3 = ctxStaff();
   ctx3.globalThis = ctx3;
   ctx3.currentYear = 2027; ctx3.vacHS = false; ctx3.currentType = 'VAC';
   ctx3.saisies = {}; ctx3.locked = {}; ctx3.periodes = [];
