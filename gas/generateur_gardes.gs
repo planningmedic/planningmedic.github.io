@@ -41,7 +41,7 @@
 // ⚠️ RÈGLE (détecteur de dérive dépôt↔Apps Script) : incrémenter cette version
 // à CHAQUE push de ce fichier. Le diagnostic (admin → Maintenance) compare la
 // version déployée ici avec celle du dépôt et signale toute recopie oubliée.
-const GAS_VERSION_GENERATEUR = '2026-10-05.3';
+const GAS_VERSION_GENERATEUR = '2026-10-09.1';
 
 /* (05/09/2026) INTERRUPTEUR DU NOUVEL ALGORITHME — récit : docs/JOURNAL-Planning-Med.md §101 */
 const NOUVEL_ALGO_GLOBAL = true;
@@ -901,7 +901,10 @@ function generateGardes(year, opts){
     /* (LOT B · 01/09/2026) JAMAIS DE GARDE LA VEILLE D'UN TEMPS PARTIEL — récit : docs/JOURNAL-Planning-Med.md §114 */
     if(indispos[id]?.[addOneDay(date)]==='TP') return true;
     if(NO_WEEKEND.has(id)&&(_dw===0||_dw===6||_di?.isFerie)) return true;
-    if(SOUHAIT_PLAFOND.has(id)&&_di?.isVjf) return true;
+    /* (09/10/2026) VEILLE DE FÉRIÉ : interdite au régime à part SAUF s'il l'a lui-même
+       demandée. Ses souhaits passent en priorité absolue (régime 1) : sans cette
+       exception, un souhait posé sur une veille de férié était refusé en silence. */
+    if(SOUHAIT_PLAFOND.has(id)&&_di?.isVjf&&!isSouhaitDe(id,date)) return true;
     // (Fix A2) souhait_plafond : jamais de week-end ni de férié — le complément des
     // mardis perdus ne peut tomber qu'en semaine. Vendredi bloqué aussi (unité VD).
     if(SOUHAIT_PLAFOND.has(id)&&(_dw===0||_dw===5||_dw===6||_di?.isFerie)) return true;
@@ -929,7 +932,7 @@ function generateGardes(year, opts){
     const _di=dayByDate[date];
     const _dw=_di?_di.dow:new Date(date+'T12:00:00').getDay();
     if(NO_WEEKEND.has(id)&&(_dw===0||_dw===6||_di?.isFerie)) return {classe:'profil',texte:'jamais de week-end ni de férié'};
-    if(SOUHAIT_PLAFOND.has(id)&&_di?.isVjf) return {classe:'profil',texte:'régime à part : pas de veille de férié'};
+    if(SOUHAIT_PLAFOND.has(id)&&_di?.isVjf&&!isSouhaitDe(id,date)) return {classe:'profil',texte:'régime à part : pas de veille de férié non souhaitée'};
     if(SOUHAIT_PLAFOND.has(id)&&(_dw===0||_dw===5||_dw===6||_di?.isFerie)) return {classe:'profil',texte:'régime à part : pas de vendredi, week-end ni férié'};
     if(SOUHAIT_PLAFOND.has(id)&&cnt[id]&&cible[id]&&cnt[id].total>=cible[id].total) return {classe:'profil',texte:'régime à part : a déjà atteint son nombre de gardes'};
     const s=indispos[id]?.[date];

@@ -113,8 +113,15 @@ V('l\'écart cumulé reste sous 3 gardes tout du long',
 V('il ne croît pas strictement d\'année en année',
   ecarts.length === 4 && !(ecarts[1] > ecarts[0] && ecarts[2] > ecarts[1] && ecarts[3] > ecarts[2]),
   ecarts);
-V('la quatrième année reste bien en dessous des 4 d\'avant',
-  ecarts.length === 4 && ecarts[3] < 3, ecarts);
+/* (09/10/2026) Seuil passé de « < 3 » à « ≤ 3 », décision du responsable. Le
+   régime à part peut désormais prendre une veille de férié qu'il a souhaitée
+   (banc_plafond_vjf.js) : une garde de moins par an pour les autres, et la
+   chaîne fictive finit à 1 · 2 · 2 · 3 au lieu de 1 · 1,41 · 2 · 2. Ce test
+   garde son rôle — détecter la dérive d'avant (1 · 2 · 3 · 4 · 6) — et
+   l'équité de CHAQUE année est tenue à part : jamais plus de 2 gardes d'écart
+   à la cible (banc_plafond_vjf.js, section 4). */
+V('la quatrième année reste au plus à 3, sous les 4 d\'avant',
+  ecarts.length === 4 && ecarts[3] <= 3, ecarts);
 const pires = Object.entries(cumul).sort((x, y2) => Math.abs(y2[1]) - Math.abs(x[1]))[0];
 V('aucun médecin ne dépasse 2 samedis d\'écart cumulé',
   pires && Math.abs(pires[1]) < 2, pires);
