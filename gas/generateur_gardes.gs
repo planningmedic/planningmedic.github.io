@@ -41,7 +41,7 @@
 // ⚠️ RÈGLE (détecteur de dérive dépôt↔Apps Script) : incrémenter cette version
 // à CHAQUE push de ce fichier. Le diagnostic (admin → Maintenance) compare la
 // version déployée ici avec celle du dépôt et signale toute recopie oubliée.
-const GAS_VERSION_GENERATEUR = '2026-10-09.1';
+const GAS_VERSION_GENERATEUR = '2026-10-10.1';
 
 /* (05/09/2026) INTERRUPTEUR DU NOUVEL ALGORITHME — récit : docs/JOURNAL-Planning-Med.md §101 */
 const NOUVEL_ALGO_GLOBAL = true;
@@ -99,9 +99,10 @@ const PREMIERE_ANNEE_STATS_FIABLES = 2027;
 // (C2-D1) NO_GARDE / ONLY_18 / NO_WEEKEND sortis vers l'onglet MEDECINS.
 // → lus localement dans generateGardes via getMedecinFlags() (const FLAGS).
 const RATIO_18      = 1.3;
-// Quota annuel de souhaits sur les familles RARES (samedis et week-ends) : ces axes
-// n'offrent qu'environ 5 places par personne et par an, sans marge d'arrondi. Au-delà,
-// le souhait est ignoré — le MAR reçoit sa part normale par l'équité. 0 = fermé.
+// Quota annuel de souhaits sur les FÉRIÉS et VEILLES DE FÉRIÉ (≈ 0,5 date par personne
+// et par an). (10/10/2026) Les samedis et week-ends n'y sont plus soumis : ils sont
+// honorés dans la limite de la part du MAR sur l'axe (okSouhaitRare) — mesuré sur les
+// demandes 2027, le joker unique ne laissait passer que 3 souhaits sur 17. 0 = fermé.
 const SOUHAIT_QUOTA_RARE = 1;
 const DETTE_AMORTI  = 0.6;  // amortissement de la dette : evite la sur-correction/oscillation annuelle (10 ans : 0 annee non-conforme)
 const FREEBUDGET_MARGE = 1;  // marge : reserve ~1 jour pour absorber les pertes de placement VD (multi-mardis robuste)
@@ -1411,7 +1412,7 @@ function generateGardes(year, opts){
     if(!dayByDate[date]) return;
     souhParJour[date]=ids.filter(m=>gardeDoctors.indexOf(m)>=0);
   });
-  const souhaitHonored={}; allDoctors.forEach(id=>{souhaitHonored[id]=0;});
+  const souhaitHonored={}; allDoctors.forEach(id=>{souhaitHonored[id]=0;}); const _slotSouhait=new Set();
   // (25/08/2026) Récapitulatif rendu au MAR : « X souhaits sur Y honorés ». On compte
   // TOUT ce qui est saisi, sans filtrer les demandes irréalistes — poser 43 samedis
   // affichera 5/43, ce qui est l'information juste.
@@ -1475,7 +1476,7 @@ function generateGardes(year, opts){
   const uniteRare=un=>{const c=coutAxesUnite(un);return c.sam>0||c.vd>0||c.vjf>0||c.ferie>0||c.jf>0;};
   const okSouhaitRare=(m,un)=>{
     const c=coutAxesUnite(un);
-    if(uniteRare(un)&&souhaitRare[m]>=SOUHAIT_QUOTA_RARE) return false;      // joker annuel
+    {const _c=coutAxesUnite(un); if((_c.vjf>0||_c.ferie>0||_c.jf>0)&&souhaitRare[m]>=SOUHAIT_QUOTA_RARE) return false;}      // joker annuel
     if(cnt[m].total+un.jours.length>cible[m].total) return false;            // jamais au-delà de sa part
     return Object.keys(c).every(a=>!c[a]
       || ((a==='jeu'||a==='sam'||a==='vd') ? cnt[m][a]<Math.floor(cible[m][a]) : cnt[m][a]<cible[m][a]));
@@ -1516,8 +1517,9 @@ function generateGardes(year, opts){
       }
     }
     if(viaCo) souhaitHonored[partner]++;
-    if(uniteRare(un)){ souhaitRare[id]++; if(viaCo) souhaitRare[partner]++; }
+    {const _c=coutAxesUnite(un); if(_c.vjf>0||_c.ferie>0||_c.jf>0){ souhaitRare[id]++; if(viaCo) souhaitRare[partner]++; }}
     if(un.vd){cnt[id].vd++;cnt[partner].vd++;}
+    jours.forEach(d=>{_slotSouhait.add(d+'|'+id); if(viaCo) _slotSouhait.add(d+'|'+partner);});
     const [g,g2]=assignRoles(id,partner);
     jours.forEach(d=>assign(d,g,g2,dayByDate[d].dow));
     return true;
@@ -1539,6 +1541,7 @@ function generateGardes(year, opts){
       others.sort((a,b)=>cmp(scoreSelect(a,dow,vjf,date),scoreSelect(b,dow,vjf,date)));
       partner=others[0];
     }
+    _slotSouhait.add(date+'|'+id); if(isSouhaitDe(partner,date)) _slotSouhait.add(date+'|'+partner);
     const [g,g2]=assignRoles(id,partner);
     assign(date,g,g2,dow);
     return true;
@@ -1785,7 +1788,7 @@ function generateGardes(year, opts){
       const contrib=contribOf(days_);
       [0,1].forEach(role=>{
         const holder=role===0?gardes[days_[0]].g:gardes[days_[0]].g2;
-        const locked=SOUHAIT_PLAFOND.has(holder)||days_.some(dd=>(souhParJour[dd]||[]).indexOf(holder)>=0)||days_.some(dd=>noelDatesAssigned.has(dd));
+        const locked=SOUHAIT_PLAFOND.has(holder)||days_.some(dd=>_slotSouhait.has(dd+'|'+holder))||days_.some(dd=>noelDatesAssigned.has(dd));
         slots.push({days:days_,role,contrib,locked});
       });
     });
