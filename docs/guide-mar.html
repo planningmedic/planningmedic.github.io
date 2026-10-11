@@ -42,10 +42,12 @@
     background:rgba(255,255,255,.16);border:1px solid rgba(255,255,255,.35);border-radius:99px;
     padding:4px 10px;white-space:nowrap;color:#fff;flex:none}
   .appbar-sub{margin:10px 0 0;font-size:14px;opacity:.92;position:relative;color:#fff;line-height:1.45}
-  /* (11/10/2026) Retour au portail : le guide n'avait aucune sortie vers l'accueil. */
-  .appbar-back{position:relative;display:inline-flex;align-items:center;gap:6px;min-height:36px;margin:0 0 12px;
-    padding:0 14px 0 10px;border-radius:99px;background:rgba(255,255,255,.16);border:1px solid rgba(255,255,255,.4);
-    color:#fff;font-size:13.5px;font-weight:700;text-decoration:none}
+  /* (11/10/2026) Retour au portail : le guide n'avait aucune sortie vers l'accueil.
+     Il prend la place de la pastille de version, à droite du titre : posé au-dessus,
+     il repoussait tout le bandeau vers le bas. La version descend sur la ligne « Mis à jour ». */
+  .appbar-back{margin-left:auto;flex:none;display:inline-flex;align-items:center;gap:5px;min-height:36px;
+    padding:0 13px 0 9px;border-radius:99px;background:rgba(255,255,255,.16);border:1px solid rgba(255,255,255,.4);
+    color:#fff;font-size:13.5px;font-weight:700;white-space:nowrap;text-decoration:none}
   .appbar-back:hover{background:rgba(255,255,255,.26)}
   .appbar-back span{font-size:20px;line-height:1;margin-top:-2px}
   @media print{ .appbar-back{display:none} }
@@ -276,18 +278,17 @@
 
 <div class="appbar">
   <img class="appbar-wm" src="../assets/icon-192.png" alt="" aria-hidden="true">
-  <a class="appbar-back" id="btnPortail" href="../index.html" aria-label="Retour au portail"><span aria-hidden="true">‹</span> Portail</a>
   <div class="appbar-row">
     <img class="appbar-ic" src="../assets/icon-192.png" alt="">
     <div class="appbar-tx">
       <div class="appbar-eyebrow">Planning-Med · Anesthésie-Réanimation</div>
       <h1>Guide du MAR</h1>
     </div>
-    <span class="appbar-chip" data-version>—</span>
+    <a class="appbar-back" id="btnPortail" href="../index.html" aria-label="Retour au portail"><span aria-hidden="true">‹</span> Portail</a>
   </div>
   <p class="appbar-sub">Le portail, le planning, vos congés — et comment vos gardes sont calculées.</p>
 </div>
-<p class="maj">Mis à jour le 5 octobre 2026</p>
+<p class="maj">Mis à jour le 5 octobre 2026 · <span data-version>—</span></p>
 
 <div class="chercher">
   <input id="q" type="search" placeholder="Chercher : récup, code, échange, samedi…" autocomplete="off">

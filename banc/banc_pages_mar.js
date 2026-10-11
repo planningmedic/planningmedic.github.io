@@ -928,6 +928,9 @@ const dodo = ms => new Promise(r => setTimeout(r, ms));
     V('il mène au portail', !!retour && retour.getAttribute('href') === '../index.html', retour && retour.getAttribute('href'));
     V('il est nommé pour les lecteurs d\'écran', !!retour && /portail/i.test(retour.getAttribute('aria-label') || ''));
     V('il n\'ouvre pas de fenêtre à part', !!retour && !retour.hasAttribute('target'));
+    V('il est sur la ligne du titre, pas au-dessus (le bandeau ne grandit pas)',
+      !!retour && retour.parentElement.classList.contains('appbar-row'), retour && retour.parentElement.className);
+    V('la version reste affichée, sur la ligne « Mis à jour »', !!G.querySelector('p.maj [data-version]'));
     V('il disparaît à l\'impression', /@media print\{\s*\.appbar-back\{display:none\}/.test(fs.readFileSync('../docs/guide-mar.html', 'utf8')));
     for (const p of ['index.html', 'planning.html']) {
       const D = new JSDOM(fs.readFileSync('../' + p, 'utf8')).window.document;
