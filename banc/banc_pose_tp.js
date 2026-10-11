@@ -65,6 +65,7 @@ function monde(opts) {
   cl.ajouter('MEDECINS', med);
   const cfg = [['CLE','VALEUR'], ['ANNEE_ACTIVE', '2026']];
   if (opts.campagne) cfg.push(['INDISPOS_ACTIVE', '2027']);
+  if (opts.finSaisie) cfg.push(['INDISPOS_FIN', opts.finSaisie]);   // (11/10/2026) date limite de saisie
   cl.ajouter('CONFIG', cfg);
   cl.ajouter('CONFIG_CONGES', [['QUOTITE','VAC','FORM','CTP'], [100,33,10,0], [90,30,9,2], [80,26,8,3], [60,20,6,4], [50,17,5,4]]);
   const ind27 = ongletIndispos(2027, ids);
@@ -162,7 +163,7 @@ function monde(opts) {
   vm.runInContext(extraireConst('QUOTA_INDISPO'), ctx);
   vm.runInContext(extraireConst('QUOTA_INDISPO_WE'), ctx);
   vm.runInContext("const TP_CLE_REPUBLIER = 'TP_ANNEES_A_REPUBLIER';", ctx);
-  ['_indisposOuverte_', 'getIndisposYear', '_phaseTp_', 'getIndisposForDoctor', 'saveIndisposForDoctor',
+  ['_indisposOuverte_', '_finSaisieIndispos_', '_saisieClose_', '_libelleFinSaisie_', 'getIndisposYear', '_phaseTp_', 'getIndisposForDoctor', 'saveIndisposForDoctor',
    '_fusionIndispos_', '_loadQuotasConges', 'getQuotasConges', '_tpFixeDe_', '_quotiteDe_',
    '_tpFermesSheet_', '_tpFermes_', '_tpFermerJour_', '_tpRouvrirJour_', '_tpJourLisible_', '_tpNotifier_',
   '_tpGrilleEcrire_', '_tpGrilleLire_', '_tpRetirerDIndispos_', '_tpRepublier_', 'tpRepublicationDifferee',
@@ -1171,6 +1172,24 @@ console.log('\n═══ PT35 · après un envoi, l\'écran se corrige SANS un a
   V('la copie rapide reste la source à l\'ouverture — c\'est elle qui est instantanée',
     /const m = await miroirRead\(\['pose_tp_'/.test(adm));
   V('le repli serveur ne sert que si la clé manque', /if \(!cles\.length\) \{\s*\n\s*const r = await api\(\{ action: 'getPoseTp' \}\)/.test(adm));
+}
+
+/* (11/10/2026) DATE LIMITE DE SAISIE — exécutée pour de vrai sur le handler livré.
+   Passé minuit le soir de INDISPOS_FIN, un MAR ne peut plus rien enregistrer ;
+   l'administrateur, si. Avant la date, rien ne change. (banc_fin_saisie.js) */
+console.log('\n═══ PT-FIN · date limite de saisie ═══');
+{
+  const passee = monde({ campagne: true, finSaisie: '2020-10-30' });
+  const r = passee.appel({ indispos: { '2027-03-10': 'INDISPO' }, annee: 2027 }, MAR);
+  V('date passée : l\'enregistrement du MAR est refusé', r && r.success === false, r);
+  V('…le refus dit la date', /close depuis le vendredi 30 octobre à minuit/.test((r && r.error) || ''), r);
+  V('…et rien n\'est écrit', !passee.lireInd('POSEUR', 2027)['2027-03-10'], passee.lireInd('POSEUR', 2027));
+  /* Par cette voie, le comité n'écrit que ses propres codes (congés, formations). */
+  const ra = passee.appel({ doctorId: 'POSEUR', indispos: { '2027-03-10': 'VAC' }, annee: 2027 }, ADMIN);
+  V('le comité peut toujours enregistrer après la date', ra && ra.success !== false && passee.lireInd('POSEUR', 2027)['2027-03-10'] === 'VAC', ra);
+  const avenir = monde({ campagne: true, finSaisie: '2099-10-30' });
+  avenir.appel({ indispos: { '2027-03-10': 'INDISPO' }, annee: 2027 }, MAR);
+  V('date à venir : le MAR enregistre normalement', avenir.lireInd('POSEUR', 2027)['2027-03-10'] === 'INDISPO');
 }
 
 console.log(`\n${ko === 0 ? '✅' : '❌'} banc_pose_tp : ${ok} vérifications, ${ko} échec(s)`);

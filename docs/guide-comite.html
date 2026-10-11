@@ -890,8 +890,10 @@
       <li>L'assistant « Démarrer l'année suivante » crée la grille et ouvre la saisie.</li>
       <li>Vous l'annoncez au staff, en séance : chacun se connecte avec son code habituel, celui du portail.</li>
       <li>Vous suivez l'avancement : combien de MAR ont saisi, lesquels manquent.</li>
-      <li>Vous relancez les retardataires, puis vous clôturez.</li>
+      <li>Vous relancez les retardataires. La saisie se ferme d'elle-même <b>à minuit le soir du dernier vendredi d'octobre</b> : les MAR ne peuvent plus rien modifier, vous si.</li>
+      <li>Vous générez les gardes le lundi suivant, sur un état figé.</li>
     </ol>
+    <p>La date est posée d'office à l'ouverture de la campagne. Pour la décaler, changez la date de la ligne <b>INDISPOS_FIN</b> dans l'onglet CONFIG du classeur ; sans cette ligne, la saisie reste ouverte jusqu'à la génération.</p>
     <div class="callout tip">
       <div class="ct">Un MAR arrivé après l'ouverture</div>
       <p>Un MAR créé après l'initialisation d'une année n'a pas de ligne dans la grille. Le portail l'ajoute automatiquement lors de sa création — mais si vous constatez qu'un MAR ne peut pas saisir, c'est la première chose à vérifier.</p>

@@ -39,9 +39,12 @@ console.log('\n═══ 1. L\'ouverture de la saisie ne dépend d\'AUCUN mail �
     ContentService: { createTextOutput: t => ({ setMimeType: () => sortie.push(JSON.parse(t)) }), MimeType: { JSON: 'json' } },
     _deny: () => sortie.push({ deny: true }), _error: m => sortie.push({ error: m }),
     _configReset_: () => {}, logAction: () => {},
-    Number, String, Error,
+    Number, String, Error, Date,
+    /* (11/10/2026) l'ouverture pose aussi la date limite de saisie (banc_fin_saisie.js) */
+    Utilities: { formatDate: d => d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0') + '-' + String(d.getDate()).padStart(2, '0') },
   });
   ctx.globalThis = ctx;
+  vm.runInContext(require('./stubs').extraireFonction(require('path').join(__dirname, '..', 'gas', 'indisponibilites.gs'), '_dernierVendrediOctobre_'), ctx);
   /* (15/09/2026) Le bloc est une fonction _act_setIndisposYear(R) : on la définit puis on l'appelle avec la requête. */
   vm.runInContext(bloc + "\n_act_setIndisposYear({ e: { parameter: {} }, payload, action, code: payload.code, user });", ctx);
 

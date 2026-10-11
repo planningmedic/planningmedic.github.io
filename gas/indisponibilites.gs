@@ -4,7 +4,7 @@
    quelles : aucune ligne de logique modifiée, seulement déplacée. Le routeur et
    ses aides (checkCode, _deny, _error, doGet/doPost) restent dans Indispos.gs.
    Un seul espace global dans Apps Script : rien à importer. */
-const GAS_VERSION_INDISPOS_METIER = '2026-10-05.1';
+const GAS_VERSION_INDISPOS_METIER = '2026-10-11.1';
 
 // La campagne de saisie des indispos est-elle EN COURS ?
 // La ligne INDISPOS_ACTIVE de CONFIG n'existe que pendant la campagne :
@@ -19,6 +19,46 @@ const GAS_VERSION_INDISPOS_METIER = '2026-10-05.1';
    (getVacConfig) et la clé `acces` du miroir lisent tous deux ici. */
 function _indisposFigees_() {
   return !!SpreadsheetApp.getActiveSpreadsheet().getSheetByName('GARDES_' + getIndisposYear());
+}
+
+/* (11/10/2026) FIN DE SAISIE. La ligne INDISPOS_FIN de CONFIG (une date) ferme la
+   saisie des MAR à minuit le soir de cette date, heure de Paris : le 30/10/2026
+   ferme le samedi 31/10 à 00:00. Le comité génère ensuite (le lundi suivant).
+   L'administrateur peut toujours enregistrer. Sans la ligne : pas de date limite
+   (comportement d'avant). Ouvrir une campagne la pose d'office au dernier vendredi
+   d'octobre de l'année précédente (_dernierVendrediOctobre_). */
+function _finSaisieIndispos_() {
+  try {
+    const data = _configRows_();
+    for (let r = 1; r < data.length; r++) {
+      if (String(data[r][0]).trim() !== 'INDISPOS_FIN') continue;
+      const v = data[r][1];
+      if (v instanceof Date && !isNaN(v)) return Utilities.formatDate(v, 'Europe/Paris', 'yyyy-MM-dd');
+      const t = String(v).trim();
+      let m = t.match(/^(\d{4})-(\d{2})-(\d{2})$/);
+      if (m) return t;
+      m = t.match(/^(\d{1,2})\/(\d{1,2})\/(\d{4})$/);
+      if (m) return m[3] + '-' + ('0' + m[2]).slice(-2) + '-' + ('0' + m[1]).slice(-2);
+      return null;
+    }
+  } catch (e) {}
+  return null;
+}
+function _saisieClose_(maintenant) {
+  const fin = _finSaisieIndispos_();
+  if (!fin) return false;
+  return Utilities.formatDate(maintenant || new Date(), 'Europe/Paris', 'yyyy-MM-dd') > fin;
+}
+function _dernierVendrediOctobre_(annee) {
+  const d = new Date(annee, 9, 31, 12, 0, 0);
+  while (d.getDay() !== 5) d.setDate(d.getDate() - 1);
+  return annee + '-10-' + ('0' + d.getDate()).slice(-2);
+}
+function _libelleFinSaisie_(fin) {
+  const J = ['dimanche','lundi','mardi','mercredi','jeudi','vendredi','samedi'];
+  const M = ['janvier','février','mars','avril','mai','juin','juillet','août','septembre','octobre','novembre','décembre'];
+  const d = new Date(Number(fin.slice(0, 4)), Number(fin.slice(5, 7)) - 1, Number(fin.slice(8, 10)), 12);
+  return J[d.getDay()] + ' ' + d.getDate() + ' ' + M[d.getMonth()];
 }
 
 function _indisposOuverte_() {
@@ -654,6 +694,10 @@ function _act_saveIndispos(R) {
   if (user.role !== 'admin' && !_indisposOuverte_()) {
     return _error('La campagne de saisie est fermée : indisponibilités et souhaits ne peuvent plus être enregistrés.');
   }
+  if (user.role !== 'admin' && _saisieClose_()) {
+    return _error('La saisie est close depuis le ' + _libelleFinSaisie_(_finSaisieIndispos_())
+      + ' à minuit : indisponibilités et souhaits ne peuvent plus être modifiés. Contactez le comité.');
+  }
   const anneeInd = getIndisposYear();
   /* (LOT A · 01/09/2026) LE TEMPS PARTIEL REVIENT DANS LA CAMPAGNE — récit : docs/JOURNAL-Planning-Med.md §124 */
   const existantC = getIndisposForDoctor(targetId, anneeInd);
@@ -828,6 +872,8 @@ function _act_getVacConfig(R) {
     quotaIndispo: QUOTA_INDISPO, quotaIndispoWe: QUOTA_INDISPO_WE,
     totalVacDoc: cfg.totalVacDoc, joursFeries: [...jf, ...jfNext],
     genere: _dejaGenere, anneeCampagne: indYear,
+    /* (11/10/2026) date limite de saisie (AAAA-MM-JJ, ou null) et son état */
+    finSaisie: _finSaisieIndispos_(), saisieClose: _saisieClose_(),
   })).setMimeType(ContentService.MimeType.JSON);
 }
 
@@ -1289,6 +1335,18 @@ function _act_setIndisposYear(R) {
     }
   }
   if (!found) sheet.appendRow(['INDISPOS_ACTIVE', newYear]);
+  /* (11/10/2026) Date limite de saisie : dernier vendredi d'octobre de l'année
+     précédente, posée d'office — sauf si elle est déjà passée (campagne ouverte
+     tard) : on n'ouvre pas une campagne déjà close. Modifiable à la main dans CONFIG. */
+  const _fin = _dernierVendrediOctobre_(newYear - 1);
+  const _auj = Utilities.formatDate(new Date(), 'Europe/Paris', 'yyyy-MM-dd');
+  let _rFin = -1;
+  for (let r = 1; r < data.length; r++) { if (String(data[r][0]).trim() === 'INDISPOS_FIN') { _rFin = r; break; } }
+  if (_fin >= _auj) {
+    if (_rFin > 0) sheet.getRange(_rFin + 1, 2).setValue(_fin); else sheet.appendRow(['INDISPOS_FIN', _fin]);
+  } else if (_rFin > 0) {
+    sheet.deleteRow(_rFin + 1);
+  }
   _configReset_();   // CONFIG modifie : le memo doit repartir a zero
   logAction(`setIndisposYear → ${newYear}`);
   return ContentService.createTextOutput(JSON.stringify({success:true, year:newYear}))

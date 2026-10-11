@@ -1102,6 +1102,11 @@ async function loadVacConfig() {
          sans ce verrou, on pouvait saisir des semaines durant en croyant que ça
          comptait. Pour modifier après coup, c'est le circuit des échanges. */
       if (res.genere) verrouillerEcran(res.anneeCampagne);
+      /* (11/10/2026) DATE LIMITE DE SAISIE. Passé minuit le soir de vacConfig.finSaisie,
+         le serveur refuse tout enregistrement d'un MAR : l'écran passe en lecture
+         seule et le dit. Avant la date, un bandeau discret l'annonce. */
+      else if (vacConfig.saisieClose) verrouillerEcran(res.anneeCampagne, 'close');
+      else if (vacConfig.finSaisie) annoncerFinSaisie(vacConfig.finSaisie);
       /* (LOT A · 01/09/2026) Le bouton « Temps partiel » n'apparaît que pour
          ceux qui ont des jours à poser. `quotaCtp` vient de CONFIG_CONGES via
          la quotité : il vaut 0 à temps plein, et le serveur refuse de toute
@@ -1118,18 +1123,36 @@ async function loadVacConfig() {
 }
 function updateVacBanner() { /* supprimé — le comité gère les conflits */ }
 
+function libelleFinSaisie(fin) {
+  return new Date(fin + 'T12:00:00').toLocaleDateString('fr-FR', { weekday: 'long', day: 'numeric', month: 'long' });
+}
+function annoncerFinSaisie(fin) {
+  if (document.getElementById('finSaisieBanner')) return;
+  const b = document.createElement('div');
+  b.id = 'finSaisieBanner';
+  b.style.cssText = 'background:#EFF6FF;border-left:4px solid #3B82F6;color:#1E3A8A;'
+    + 'padding:10px 14px;margin:0 0 14px;border-radius:8px;font-size:14px;line-height:1.5';
+  b.innerHTML = '🗓️ Saisie ouverte jusqu\'au <b>' + libelleFinSaisie(fin) + ' à minuit</b>. Pensez à sauvegarder.';
+  const hote = document.querySelector('.legend') || document.querySelector('.container') || document.body;
+  hote.parentNode ? hote.parentNode.insertBefore(b, hote) : hote.appendChild(b);
+}
 let ECRAN_FIGE = false;
-function verrouillerEcran(annee) {
+function verrouillerEcran(annee, motif) {
   if (ECRAN_FIGE) return;
   ECRAN_FIGE = true;
+  const close = motif === 'close';
   const btn = document.getElementById('saveBtn');
   if (btn) { btn.disabled = true; btn.style.opacity = '.45'; btn.style.cursor = 'not-allowed';
-             btn.textContent = '🔒 Planning ' + annee + ' publié'; }
+             btn.textContent = close ? '🔒 Saisie ' + annee + ' close' : '🔒 Planning ' + annee + ' publié'; }
   const bandeau = document.createElement('div');
   bandeau.id = 'figeBanner';
   bandeau.style.cssText = 'background:#FEF3C7;border-left:4px solid #D97706;color:#92400E;'
     + 'padding:12px 14px;margin:0 0 14px;border-radius:8px;font-size:14px;line-height:1.55';
-  bandeau.innerHTML = '<b>Le planning ' + annee + ' est établi.</b><br>'
+  bandeau.innerHTML = close
+    ? '<b>La saisie ' + annee + ' est close</b> depuis le ' + libelleFinSaisie(vacConfig.finSaisie) + ' à minuit.<br>'
+      + 'Vos indisponibilités et vos souhaits restent visibles, mais ne peuvent plus être modifiés : '
+      + 'les gardes sont en cours de répartition. Pour un cas urgent, contactez le comité.'
+    : '<b>Le planning ' + annee + ' est établi.</b><br>'
     + 'Vos indisponibilités restent visibles, mais elles ne peuvent plus être modifiées : '
     + 'les gardes sont déjà réparties. Pour changer une garde, passez par <b>Mes échanges</b> '
     + 'depuis le portail.';
@@ -1149,7 +1172,7 @@ function majBoutonSave() {
 }
 
 async function saveIndispos() {
-  if (typeof ECRAN_FIGE !== 'undefined' && ECRAN_FIGE) { showToast('🔒 Planning déjà établi — aucune modification possible'); return; }
+  if (typeof ECRAN_FIGE !== 'undefined' && ECRAN_FIGE) { showToast((vacConfig && vacConfig.saisieClose && !vacConfig.genere) ? '🔒 Saisie close — aucune modification possible' : '🔒 Planning déjà établi — aucune modification possible'); return; }
   const btn = document.getElementById('saveBtn');
   btn.dataset.enCours = '1';
   btn.textContent = '⏳ Sauvegarde...';
