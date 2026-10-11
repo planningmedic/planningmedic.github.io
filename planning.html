@@ -1373,6 +1373,19 @@ async function init(loginYear){
   document.getElementById('btnAffect').onclick = () => setMainView('affect');
   document.getElementById('btnAnnee').onclick = () => setMainView('annee');
   updateHeaderSteppers();
+  ouvrirVueDemandee();
+}
+
+/* (11/10/2026, v1.21) OUVERTURE DIRECTE D'UN ONGLET PAR L'ADRESSE.
+   planning.html#equite ouvre le planning sur l'onglet Équité : c'est la tuile
+   « Équité des gardes » de l'accueil. Les compteurs ne vivent qu'ici — l'accueil
+   n'en garde aucune copie. Adresse inconnue ou absente : l'onglet Planning, comme avant. */
+const VUES_PAR_ADRESSE = { equite: 'equite', medecins: 'medecins', secteurs: 'affect', annee: 'annee' };
+function ouvrirVueDemandee(){
+  const v = VUES_PAR_ADRESSE[(location.hash || '').replace(/^#/, '').trim().toLowerCase()];
+  if (!v) return null;
+  if (isMobile) mobileSetView(v); else setMainView(v);
+  return v;
 }
 
 // ── STEPPERS DU HEADER (PC) ────────────────────────────────────────────

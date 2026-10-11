@@ -42,7 +42,9 @@ console.log('\n═══ 1. Plus aucun nom de médecin en dur ═══');
     !/DURAND|PERRIN/i.test(DASH), (DASH.match(/DURAND|PERRIN/gi) || []).slice(0, 3));
   V('les tuiles réservées sont marquées `prive`', /prive\s*:\s*true/.test(DASH));
   const n = (DASH.match(/prive\s*:\s*true/g) || []).length;
-  V('les cinq tuiles réservées sont bien marquées', n === 5, n);   // (26/09/2026) Recommandations testée réservée puis ouverte à tous
+  /* (26/09/2026) Recommandations testée réservée puis ouverte à tous.
+     (11/10/2026) Six : la tuile Comité rejoint le bloc Réservé (clé `comite`). */
+  V('les six tuiles réservées sont bien marquées (dont Comité)', n === 6 && /key:'comite'[^\n]*prive:true/.test(DASH), n);
 }
 
 console.log('\n═══ 2. La page filtre sur le droit reçu, pas sur une identité ═══');

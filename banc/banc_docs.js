@@ -580,7 +580,10 @@ console.log('\n═══ 14. Le guide MAR liste toutes les tuiles ouvertes à to
   vm.runInContext(mTiles[0] + '\n;this.T = TILES;', bac);
   const attendues = bac.T.filter(t => !t.prive && !t.liberal).map(t => t.title);
   const mar = lire('docs/guide-mar.html');
-  const bloc = (mar.match(/<h3>Ensuite : les tuiles<\/h3>\s*<div class="liste">([\s\S]*?)\n    <\/div>/) || [, ''])[1];
+  /* (11/10/2026, v1.21) Accueil en blocs : la liste est découpée en plusieurs
+     paragraphes (raccourcis, Moi, Le service, Ressources) sous « Les rubriques ».
+     On lit tout ce qui va de ce titre au suivant, dans l'ordre. */
+  const bloc = (mar.match(/<h3>Les rubriques<\/h3>([\s\S]*?)<h3>/) || [, ''])[1];
   const guide = [...bloc.matchAll(/<div><b>([^<]+)<\/b>/g)].map(m => m[1]);
   V('la liste des tuiles du guide est lisible', guide.length >= 5, guide.length);
   const manquantes = attendues.filter(t => !guide.includes(t));
