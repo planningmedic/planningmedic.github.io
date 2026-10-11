@@ -116,6 +116,41 @@ if (ancien) {
   V('contre-preuve sautée (historique git indisponible ici)', true);
 }
 
+/* ═══ 4bis. Deux week-ends d'affilée : jamais imposés, accordés si souhaités ═══ */
+console.log('\n═══ 4bis. Deux week-ends d\'affilée souhaités : accordés tous les deux ═══');
+const enchaines = { [MAR]: { '2027-03-13': 'SOUHAIT', '2027-03-19': 'SOUHAIT' } };   // sam 13 + ven 19 (→ dim 21)
+const re = essai(enchaines);
+V('le samedi 13 mars est de garde', deGarde(re, '2027-03-13'), re.de['2027-03-13']);
+V('le week-end suivant (ven 19 + dim 21) aussi', deGarde(re, '2027-03-19') && deGarde(re, '2027-03-21'), { ven: re.de['2027-03-19'], dim: re.de['2027-03-21'] });
+{
+  /* Sans souhait, personne n'enchaîne deux week-ends : on balaie tous les MAR. */
+  const roster = H.defaultRoster();
+  const ss = H.makeSpreadsheet([
+    H.makeSheet('MEDECINS', H.medecinsRows(roster)),
+    H.makeSheet(`INDISPOS_${YEAR}`, H.indisposRows(YEAR, roster, {})),
+    H.makeSheet('PERIODES_VAC', H.periodesRows(YEAR)),
+    H.makeSheet('CONFIG', [['CLE', 'VALEUR']]),
+  ]);
+  const ctx = H.buildContext(ss, []);
+  ctx.generateGardes(YEAR);
+  const g = ss.getSheetByName(`GARDES_${YEAR}`)._rows;
+  const d0 = ctx.getPremierJourPlanning(YEAR);
+  const ds = c => { const d = new Date(d0.getTime() + (c - 1) * 86400000); return d; };
+  let enchainement = [];
+  g.slice(3).forEach(r => {
+    if (!r || !r[0]) return;
+    const we = new Set();
+    for (let c = 1; c < r.length; c++) {
+      const v = String(r[c] || ''); if (v !== 'G' && v !== 'G2') continue;
+      const d = ds(c), w = d.getDay(); if (w !== 5 && w !== 6 && w !== 0) continue;
+      const lundi = new Date(d); lundi.setDate(d.getDate() - ((w + 6) % 7));
+      we.add(Math.round(lundi.getTime() / (7 * 86400000)));
+    }
+    [...we].forEach(k => { if (we.has(k + 1)) enchainement.push(r[0]); });
+  });
+  V('sans souhait, aucun MAR n\'a deux week-ends de garde d\'affilée', enchainement.length === 0, enchainement.slice(0, 5));
+}
+
 /* ═══ 5. Contrat de code ══════════════════════════════════════════════ */
 console.log('\n═══ 5. Contrat de code ═══');
 const src = fs.readFileSync(path.join(__dirname, '..', 'gas', 'generateur_gardes.gs'), 'utf8');
@@ -125,6 +160,8 @@ V('le verrou de l\'optimiseur ne porte que sur les souhaits honorés',
   /days_\.some\(dd=>_slotSouhait\.has\(dd\+'\|'\+holder\)\)/.test(src));
 V('la version du fichier a été montée',
   (src.match(/GAS_VERSION_GENERATEUR = '(\d{4}-\d{2}-\d{2})\.\d+'/) || [, ''])[1] >= '2026-10-10');
+V('l\'exception « deux week-ends souhaités » est écrite dans blocked()',
+  /!\(weSouhaite\(id,date\)&&weSouhaite\(id,_xs\)\)\) return true;/.test(src));
 
 console.log('\n' + ok + ' ✓   ' + ko + ' ✗');
 if (ko) process.exit(1);

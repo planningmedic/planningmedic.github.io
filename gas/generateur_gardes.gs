@@ -41,7 +41,7 @@
 // ⚠️ RÈGLE (détecteur de dérive dépôt↔Apps Script) : incrémenter cette version
 // à CHAQUE push de ce fichier. Le diagnostic (admin → Maintenance) compare la
 // version déployée ici avec celle du dépôt et signale toute recopie oubliée.
-const GAS_VERSION_GENERATEUR = '2026-10-10.1';
+const GAS_VERSION_GENERATEUR = '2026-10-10.2';
 
 /* (05/09/2026) INTERRUPTEUR DU NOUVEL ALGORITHME — récit : docs/JOURNAL-Planning-Med.md §101 */
 const NOUVEL_ALGO_GLOBAL = true;
@@ -1035,6 +1035,15 @@ function generateGardes(year, opts){
     return L.join('\n');
   }
 
+  // (10/10/2026) Le week-end (ven/sam/dim) qui contient `date` porte-t-il un souhait de `id` ?
+  // Un week-end se demande souvent par un seul de ses jours (le vendredi pour un VD).
+  function weSouhaite(id,date){
+    const _d=dayByDate[date]; if(!_d) return false;
+    const off={5:[0,1,2],6:[-1,0,1],0:[-2,-1,0]}[_d.dow]; if(!off) return false;
+    const _b=new Date(date+'T12:00:00');
+    return off.some(k=>{const _x=new Date(_b);_x.setDate(_b.getDate()+k);return isSouhaitDe(id,toDateStr(_x));});
+  }
+
   function blocked(id,date,_relaxJS){
     if(indispoIndividuelle(id,date)) return true;
     if(rgSet[id].has(date)||rSet[id]?.has(date)) return true;
@@ -1057,7 +1066,10 @@ function generateGardes(year, opts){
         const _xs=toDateStr(_x), _dx=dayByDate[_xs];
         if(!_dx) continue;
         if(_dx.dow!==5&&_dx.dow!==6&&_dx.dow!==0) continue;
-        if(gSet[id]?.has(_xs)||g2Set[id]?.has(_xs)) return true;
+        /* (10/10/2026) Deux week-ends d'affilée restent interdits… SAUF si le MAR
+           a lui-même souhaité les deux. L'algorithme ne les enchaîne jamais de
+           lui-même ; il ne refuse plus ce qu'on lui demande explicitement. */
+        if((gSet[id]?.has(_xs)||g2Set[id]?.has(_xs)) && !(weSouhaite(id,date)&&weSouhaite(id,_xs))) return true;
       }
     }
     return false;   // le reste est dans indispoIndividuelle() — source unique
