@@ -916,6 +916,27 @@ const dodo = ms => new Promise(r => setTimeout(r, ms));
     V('le guide explique comment revenir au portail', /Revenir au portail/.test(g));
   }
 
+  /* (11/10/2026) Le guide MAR n'avait aucune sortie vers le portail. Et il s'ouvrait
+     dans une fenêtre à part : dans l'appli installée sur iPhone, c'est un mini-Safari
+     qui ne partage pas la mémoire de l'appli — un retour y aurait redemandé le code.
+     Le guide s'ouvre donc DANS l'appli, et son bandeau porte « ‹ Portail ». */
+  console.log('\n═══ 28r. guide MAR · on en revient au portail, sans quitter l\'appli ═══');
+  {
+    const G = new JSDOM(fs.readFileSync('../docs/guide-mar.html', 'utf8')).window.document;
+    const retour = G.querySelector('.appbar a#btnPortail');
+    V('le bandeau du guide porte un lien retour', !!retour);
+    V('il mène au portail', !!retour && retour.getAttribute('href') === '../index.html', retour && retour.getAttribute('href'));
+    V('il est nommé pour les lecteurs d\'écran', !!retour && /portail/i.test(retour.getAttribute('aria-label') || ''));
+    V('il n\'ouvre pas de fenêtre à part', !!retour && !retour.hasAttribute('target'));
+    V('il disparaît à l\'impression', /@media print\{\s*\.appbar-back\{display:none\}/.test(fs.readFileSync('../docs/guide-mar.html', 'utf8')));
+    for (const p of ['index.html', 'planning.html']) {
+      const D = new JSDOM(fs.readFileSync('../' + p, 'utf8')).window.document;
+      const aide = [...D.querySelectorAll('a[href]')].filter(a => /guide-mar\.html/.test(a.getAttribute('href')));
+      V(`${p} : un bouton Aide mène au guide MAR`, aide.length === 1, aide.length);
+      V(`${p} : il ouvre le guide dans l'appli (pas de fenêtre à part)`, aide.length === 1 && !aide[0].hasAttribute('target'));
+    }
+  }
+
   console.log(`\n${ok} OK · ${ko} en échec`);
   process.exit(ko ? 1 : 0);
 })();

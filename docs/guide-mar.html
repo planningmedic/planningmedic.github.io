@@ -42,6 +42,13 @@
     background:rgba(255,255,255,.16);border:1px solid rgba(255,255,255,.35);border-radius:99px;
     padding:4px 10px;white-space:nowrap;color:#fff;flex:none}
   .appbar-sub{margin:10px 0 0;font-size:14px;opacity:.92;position:relative;color:#fff;line-height:1.45}
+  /* (11/10/2026) Retour au portail : le guide n'avait aucune sortie vers l'accueil. */
+  .appbar-back{position:relative;display:inline-flex;align-items:center;gap:6px;min-height:36px;margin:0 0 12px;
+    padding:0 14px 0 10px;border-radius:99px;background:rgba(255,255,255,.16);border:1px solid rgba(255,255,255,.4);
+    color:#fff;font-size:13.5px;font-weight:700;text-decoration:none}
+  .appbar-back:hover{background:rgba(255,255,255,.26)}
+  .appbar-back span{font-size:20px;line-height:1;margin-top:-2px}
+  @media print{ .appbar-back{display:none} }
 
   .maj{font-family:var(--mono); font-size:12px; color:var(--ink-3); margin:0 0 14px 2px}
 
@@ -269,6 +276,7 @@
 
 <div class="appbar">
   <img class="appbar-wm" src="../assets/icon-192.png" alt="" aria-hidden="true">
+  <a class="appbar-back" id="btnPortail" href="../index.html" aria-label="Retour au portail"><span aria-hidden="true">‹</span> Portail</a>
   <div class="appbar-row">
     <img class="appbar-ic" src="../assets/icon-192.png" alt="">
     <div class="appbar-tx">
