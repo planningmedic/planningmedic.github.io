@@ -77,8 +77,20 @@ V('le guide annonce que tous les jours sont demandables',
 V('le guide décrit la demande annuelle sur les jours rares',
   /une seule demande par an/.test(gMar));
 V('le guide explique les jours couplés', gMar.includes('vont par paire'));
-V('le guide compte la veille de férié parmi les jours rares',
-  /veille de férié\s*:\s*<\/b>|veille de férié<\/b>|veille de férié\s*:/.test(gMar));
+/* (11/10/2026) Choix du responsable : une veille de férié qui tombe un lundi, un
+   mardi ou un mercredi se demande comme un jour ordinaire (pas de limite annuelle) ;
+   du jeudi au dimanche, elle suit la règle des fériés. Le guide doit dire
+   exactement ce que fait le générateur — les deux sont vérifiés ensemble. */
+V('le guide dit qu\'une veille de férié du jeudi au dimanche suit la règle des fériés',
+  /veille de férié qui tombe un jeudi, un vendredi ou un week-end/.test(gMar));
+V('le guide dit qu\'une veille de férié du lundi au mercredi est un jour ordinaire',
+  /veille de férié qui tombe un lundi, un mardi ou un mercredi se demande comme un jour ordinaire/.test(gMar));
+{
+  const _gen = fs.readFileSync(path.join(__dirname, '..', 'gas', 'generateur_gardes.gs'), 'utf8');
+  V('…et le générateur fait bien cela (lun-mer non férié = jour libre, veille comprise)',
+    /const estJourLibre=date=>\{const d=dayByDate\[date\];return !!d&&d\.dow>=1&&d\.dow<=3&&!d\.isFerie;\};/.test(_gen)
+    && /\n    if\(!estJourLibre\(date\)\)\{\n/.test(_gen));
+}
 V('le guide explique comment demander une garde',
   /être de garde un jour précis/i.test(gMar));
 V('le guide précise qu\'un souhait ne donne pas de garde en plus',
