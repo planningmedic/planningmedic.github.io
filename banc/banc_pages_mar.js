@@ -894,6 +894,28 @@ const dodo = ms => new Promise(r => setTimeout(r, ms));
     V('PC et téléphone proposent les mêmes tuiles', ecart.length === 0, ecart);
   }
 
+  /* (11/10/2026) Le planning était un cul-de-sac : aucun lien ne ramenait au portail.
+     Et le même onglet s'appelait « Affectations » sur ordinateur, « Secteurs » sur
+     téléphone — le guide, lui, dit « Secteurs ». */
+  console.log('\n═══ 28q. planning.html · on revient au portail, et l\'onglet a un seul nom ═══');
+  {
+    const D = new JSDOM(fs.readFileSync('../planning.html', 'utf8')).window.document;
+    const brand = D.querySelector('.header .header-brand');
+    const lien = brand && brand.firstElementChild;
+    V('le bandeau commence par un lien', !!lien && lien.tagName === 'A', lien && lien.tagName);
+    V('ce lien mène au portail', !!lien && lien.getAttribute('href') === 'index.html', lien && lien.getAttribute('href'));
+    V('il est nommé pour les lecteurs d\'écran', !!lien && /portail/i.test(lien.getAttribute('aria-label') || ''));
+    V('il n\'ouvre pas un nouvel onglet', !!lien && !lien.hasAttribute('target'));
+    V('un seul bouton retour dans la page', D.querySelectorAll('#btnPortail').length === 1);
+    const pc = D.getElementById('btnAffect').textContent, tel = D.getElementById('mbtnAffect').textContent;
+    V('ordinateur : l\'onglet s\'appelle « Secteurs »', /Secteurs/.test(pc) && !/Affectations/.test(pc), pc);
+    V('téléphone : l\'onglet s\'appelle « Secteurs »', /Secteurs/.test(tel), tel);
+    V('aucun bouton de vue ne dit plus « Affectations »',
+      [...D.querySelectorAll('.view-main-btn,.mobile-bottom-btn')].every(b => !/Affectations/.test(b.textContent)));
+    const g = fs.readFileSync('../docs/guide-mar.html', 'utf8');
+    V('le guide explique comment revenir au portail', /Revenir au portail/.test(g));
+  }
+
   console.log(`\n${ok} OK · ${ko} en échec`);
   process.exit(ko ? 1 : 0);
 })();

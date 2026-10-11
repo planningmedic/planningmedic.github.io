@@ -195,6 +195,11 @@ body{font-variant-numeric:tabular-nums}
 .header-btn .hb-ico{display:inline-flex;align-items:center;justify-content:center;width:16px;height:16px;border-radius:50%;background:var(--red);color:#fff;font-size:11px;font-weight:800;line-height:1}
 .theme-btn{width:34px;height:34px;border:1px solid var(--line);background:var(--white);border-radius:10px;cursor:pointer;font-size:15px;line-height:1;transition:background .15s ease}
 .theme-btn:hover{background:var(--line-light)}
+/* (11/10/2026) Retour au portail : le planning était un cul-de-sac — aucun lien n'en
+   sortait, et dans l'appli installée seul le geste « retour » du téléphone ramenait
+   à l'accueil. Même gabarit que le bouton thème. */
+.header-back{display:inline-flex;align-items:center;justify-content:center;flex-shrink:0;width:34px;height:34px;border:1px solid var(--line);background:var(--white);border-radius:10px;color:var(--ink);font-size:20px;font-weight:700;line-height:1;text-decoration:none;transition:background .15s ease,border-color .15s ease,color .15s ease}
+.header-back:hover{background:var(--line-light);border-color:var(--red);color:var(--red)}
 .hdr-step-label{min-width:112px;text-align:center;font-size:13px;font-weight:700;color:var(--ink);white-space:nowrap;text-transform:capitalize}
 /* PC : steppers élégants, selects natifs cachés. Mobile : l'inverse (plomberie existante). */
 @media (min-width:769px){ #yearSelect,#monthSelect{display:none} }
@@ -547,6 +552,7 @@ body{font-variant-numeric:tabular-nums}
   .header-right { gap: 6px; flex-shrink: 0; margin-left: 14px; }
   .me-pill { padding: 4px 9px; font-size: 11.5px; flex-shrink: 0; white-space: nowrap; }
   .theme-btn { width: 30px; height: 30px; font-size: 13px; flex-shrink: 0; }
+  .header-back { width: 30px; height: 30px; font-size: 18px; }
   body { overflow-x: hidden; } /* garde-fou : plus jamais de dérive horizontale */
   .header-flag { width: 34px; height: 34px; border-radius: 8px; }
   .year-select { font-size: 12px; padding: 5px 8px; min-width: 68px; }
@@ -756,6 +762,7 @@ body{font-variant-numeric:tabular-nums}
 <!-- HEADER -->
 <div class="header">
   <div class="header-brand">
+    <a href="index.html" class="header-back" id="btnPortail" title="Retour au portail" aria-label="Retour au portail">‹</a>
     <div class="header-flag"><img src="assets/logo.png" alt="" style="width:100%;height:100%;object-fit:cover;display:block"></div>
     <div>
       <div class="header-title">Planning-Med</div>
@@ -791,7 +798,7 @@ body{font-variant-numeric:tabular-nums}
   <button class="view-main-btn active" id="btnPlanning">📋 Planning</button>
   <button class="view-main-btn" id="btnMedecins">👥 Médecins</button>
   <button class="view-main-btn" id="btnEquite">📊 Équité</button>
-  <button class="view-main-btn" id="btnAffect">🔄 Affectations</button>
+  <button class="view-main-btn" id="btnAffect">🔄 Secteurs</button>
   <button class="view-main-btn" id="btnAnnee">🗓️ Année</button>
 </div>
 
