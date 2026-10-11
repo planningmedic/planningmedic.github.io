@@ -41,7 +41,7 @@
 // ⚠️ RÈGLE (détecteur de dérive dépôt↔Apps Script) : incrémenter cette version
 // à CHAQUE push de ce fichier. Le diagnostic (admin → Maintenance) compare la
 // version déployée ici avec celle du dépôt et signale toute recopie oubliée.
-const GAS_VERSION_GENERATEUR = '2026-10-10.2';
+const GAS_VERSION_GENERATEUR = '2026-10-11.1';
 
 /* (05/09/2026) INTERRUPTEUR DU NOUVEL ALGORITHME — récit : docs/JOURNAL-Planning-Med.md §101 */
 const NOUVEL_ALGO_GLOBAL = true;
@@ -2023,12 +2023,15 @@ function generateGardes(year, opts){
           if(!B||B===A) continue;
           // (07/09/2026) A arrive à côté de l'autre rôle du jour Dn : jamais son conjoint.
           if(evite(A, role===0?gardes[Dn].g2:gardes[Dn].g, Dn)) continue;
-          if(dejaGagne[B+'|'+Dn]) continue;            // B y perdrait son propre jour
+          /* (11/10/2026) Un échange ne reprend jamais un jour SOUHAITÉ, ni à B ni à A :
+             avant, un souhait accordé pouvait être retiré ici (jeudis souhaités honorés
+             à 50 % sur une année simulée, 92 % après). Banc : banc_souhaits_rares §6. */
+          if(dejaGagne[B+'|'+Dn]||isSouhaitDe(B,Dn)) continue;   // B y perdrait son propre jour (gagné ou souhaité)
           if(SOUHAIT_PLAFOND.has(A)||SOUHAIT_PLAFOND.has(B)) continue;   // régime à part
           const mesDates=[...(role===0?gSet[A]:g2Set[A])].filter(d2=>
             d2!==Dn && _neutre(d2) && dayByDate[d2].dow===dayByDate[Dn].dow);
           const cede=mesDates.find(d2=>{
-            if(dejaGagne[A+'|'+d2]) return false;      // A ne se saborde pas
+            if(dejaGagne[A+'|'+d2]||isSouhaitDe(A,d2)) return false;   // A ne cède ni un jour gagné ni un jour souhaité
             if(_aG(B,d2)) return false;                // B tiendrait les deux rôles
             if(blocked(B,d2)) return false;
             // (07/09/2026) B hérite du créneau de A sur d2 : jamais à côté de son conjoint.

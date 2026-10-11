@@ -151,6 +151,46 @@ V('le week-end suivant (ven 19 + dim 21) aussi', deGarde(re, '2027-03-19') && de
   V('sans souhait, aucun MAR n\'a deux week-ends de garde d\'affilée', enchainement.length === 0, enchainement.slice(0, 5));
 }
 
+/* ═══ 6. Un échange « veille de congés » ne reprend pas un souhait (11/10/2026) ═══
+   La passe de confort donne à un MAR la garde de la veille de son départ en
+   congés, en l'échangeant avec un collègue. Elle ne regardait pas si le jour
+   repris au collègue était un de ses SOUHAITS : un souhait accordé pouvait
+   être retiré ensuite (jeudis souhaités honorés à 50 % sur une année simulée
+   avec des demandes raisonnables, 92 % après correctif).
+   Effectif fictif saturé (simulateur/demographie.js, souhaits étendus) : on
+   compare le nombre de souhaits honorés avec le générateur d'avant (7a9f4e1). */
+console.log('\n═══ 6. La passe « veille de congés » ne reprend plus un souhait accordé ═══');
+{
+  const D = require(path.join(__dirname, '..', 'simulateur', 'demographie.js'));
+  let avant = null;
+  try {
+    avant = execSync('git show 7a9f4e1:gas/generateur_gardes.gs',
+      { cwd: path.join(__dirname, '..'), encoding: 'utf8', stdio: ['ignore', 'pipe', 'ignore'] });
+  } catch (e) { avant = null; }
+  [1, 2].forEach(scen => {
+    const roster = D.buildRoster(YEAR, { ageExempt: 60, ageRetraite: 67 });
+    const im = D.buildAbsences(YEAR, roster, scen, { souhaitsEtendus: true });
+    const go = src => H.buildContext(H.makeSpreadsheet([
+      H.makeSheet('MEDECINS', H.medecinsRows(roster)),
+      H.makeSheet(`INDISPOS_${YEAR}`, H.indisposRows(YEAR, roster, im)),
+      H.makeSheet('PERIODES_VAC', H.periodesRows(YEAR)),
+      H.makeSheet('CONFIG', [['CLE', 'VALEUR']]),
+    ]), [], src).generateGardes(YEAR, { dryRun: true });
+    const honores = r => Object.entries(r.souhaits).reduce((s, [id, v]) =>
+      s + (roster.find(x => x[0] === id && x[3].souhaitPlafond) ? 0 : v.honores), 0);
+    const apres = go(undefined);
+    const pire = Math.max(...Object.values(apres.ecarts).map(e => e.ecart));
+    V('scénario ' + scen + ' — équité tenue (écart max ' + pire + ' ≤ 2) et année pourvue',
+      pire <= 2 && apres.sansBinome === 0, apres.ecarts);
+    if (avant) {
+      const n0 = honores(go(avant)), n1 = honores(apres);
+      V('scénario ' + scen + ' — plus de souhaits honorés qu\'avant (' + n0 + ' → ' + n1 + ')', n1 > n0, { avant: n0, apres: n1 });
+    } else {
+      V('contre-preuve sautée (historique git indisponible ici)', true);
+    }
+  });
+}
+
 /* ═══ 5. Contrat de code ══════════════════════════════════════════════ */
 console.log('\n═══ 5. Contrat de code ═══');
 const src = fs.readFileSync(path.join(__dirname, '..', 'gas', 'generateur_gardes.gs'), 'utf8');
@@ -162,6 +202,9 @@ V('la version du fichier a été montée',
   (src.match(/GAS_VERSION_GENERATEUR = '(\d{4}-\d{2}-\d{2})\.\d+'/) || [, ''])[1] >= '2026-10-10');
 V('l\'exception « deux week-ends souhaités » est écrite dans blocked()',
   /!\(weSouhaite\(id,date\)&&weSouhaite\(id,_xs\)\)\) return true;/.test(src));
+V('l\'échange « veille de congés » épargne les jours souhaités, des deux côtés',
+  /if\(dejaGagne\[B\+'\|'\+Dn\]\|\|isSouhaitDe\(B,Dn\)\) continue;/.test(src)
+  && /if\(dejaGagne\[A\+'\|'\+d2\]\|\|isSouhaitDe\(A,d2\)\) return false;/.test(src));
 
 console.log('\n' + ok + ' ✓   ' + ko + ' ✗');
 if (ko) process.exit(1);
