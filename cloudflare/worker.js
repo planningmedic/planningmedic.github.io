@@ -70,7 +70,7 @@
    poussée : le client se replie sur le circuit GAS.
    ═══════════════════════════════════════════════════════════════════ */
 
-const VERSION = 'miroir 2026-09-26.1';
+const VERSION = 'miroir 2026-10-11.1';
 
 // Clés admissibles — tout le reste est refusé à l'écriture comme à la
 // lecture. Garde-fou contre une faute de frappe côté GAS qui créerait
@@ -270,6 +270,9 @@ async function lire(corps, env) {
     /* (26/08/2026) Campagne figée : planning de l'année de campagne déjà généré →
        tuile indispos en consultation seule. Vieille clé `acces` : false, tuile normale. */
     indisposFigees: !!acces.indisposFigees,
+    /* (11/10/2026) Date limite de saisie (CONFIG / INDISPOS_FIN) — la tuile indispos
+       passe au cadenas une fois passée. Vieille clé `acces` : null, tuile normale. */
+    finSaisie: (typeof acces.finSaisie === 'string' && /^\d{4}-\d{2}-\d{2}$/.test(acces.finSaisie)) ? acces.finSaisie : null,
     /* (08/09/2026) Tuiles reservees (CONFIG / TUILES_PRIVEES, deposees dans — récit : docs/JOURNAL-Planning-Med.md §161 */
     tuiles: Array.isArray(user.tuiles) ? user.tuiles : [],
     /* (08/09/2026) Titre affiche et regime de souhaits garantis : deux listes

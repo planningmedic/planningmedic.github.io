@@ -815,7 +815,7 @@ const dodo = ms => new Promise(r => setTimeout(r, ms));
     const demandees = new Set();
     [...page.matchAll(/data-lucide="([a-z-]+)"/g)].forEach(m => demandees.add(m[1]));
     [...page.matchAll(/icon:\s*'([a-z-]+)'/g)].forEach(m => demandees.add(m[1]));
-    const mFige = page.match(/icone = fige \? '([a-z-]+)'/);
+    const mFige = page.match(/icone = \(?fige(?: \|\| close\))? \? '([a-z-]+)'/);
     V('l\'icône de la tuile figée est lisible dans la page', !!mFige);
     if (mFige) demandees.add(mFige[1]);
     const absentes = [...demandees].filter(n => !dispo.has(n));
@@ -833,9 +833,12 @@ const dodo = ms => new Promise(r => setTimeout(r, ms));
     const mDeriv = src.match(/const fige = [\s\S]*?const sousTitre = [\s\S]*?;\n/);
     V('les lignes de dérivation de la tuile sont lisibles dans la page', !!mDeriv);
     V('la teinte ambre existe dans la feuille de style', src.indexOf('.tile-ico.ambre') > -1);
-    const derive = (figees) => {
+    /* (11/10/2026) saisieIndisposClose dépend de l'heure : doublée ici pour que le
+       test ne change pas de verdict avec la date (banc_fin_saisie.js teste la vraie). */
+    const derive = (figees, close) => {
       const bac = { t: { key: 'indispos', icon: 'clock', tint: 'viol', sub: 'Déclarez vos souhaits et vos congés {AN}.' },
-                    INDISPOS_FIGEES: figees, INDISPOS_YEAR: 2027, PHASE_TP: null };
+                    INDISPOS_FIGEES: figees, INDISPOS_YEAR: 2027, PHASE_TP: null,
+                    FIN_SAISIE: null, saisieIndisposClose: () => !!close };
       bac.globalThis = bac; vm.createContext(bac);
       vm.runInContext(mDeriv[0] + '\n({fige, icone, teinte, sousTitre})', bac);
       return vm.runInContext('({fige, icone, teinte, sousTitre})', bac);
@@ -846,6 +849,8 @@ const dodo = ms => new Promise(r => setTimeout(r, ms));
     V('figée : « Consultation seule », année comprise', /Consultation seule/.test(f.sousTitre) && /2027/.test(f.sousTitre) && /établi/.test(f.sousTitre), f.sousTitre);
     V('campagne vivante : la tuile ne change pas (horloge, violet)', n.icone === 'clock' && n.teinte === 'viol', n);
     V('campagne vivante : l\'invitation à déclarer, avec l\'année', /Déclarez/.test(n.sousTitre) && /2027/.test(n.sousTitre), n.sousTitre);
+    const c = derive(false, true);
+    V('saisie close (planning pas encore généré) : cadenas, ambre, « Saisie close »', c.icone === 'lock' && c.teinte === 'ambre' && /Saisie close/.test(c.sousTitre), c);
   }
 
   /* ═══ Le module « CR d'anesthésie » a été retiré du portail ═══

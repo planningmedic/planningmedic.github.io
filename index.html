@@ -730,6 +730,7 @@ let MY_LIBERAL = false;      // membre du groupement liberal (colonne LIBERAL de
 let MY_TUILES = [];
 let INDISPOS_OUVERTE = false;   // campagne de saisie en cours (renvoyé par login)
 let INDISPOS_FIGEES  = false;   // (26/08) planning de l'année de campagne déjà généré → tuile en consultation seule
+let FIN_SAISIE = null;          // (11/10) date limite de saisie (CONFIG / INDISPOS_FIN), AAAA-MM-JJ
 let INDISPOS_YEAR = null;       // année concernée par la saisie
 // (POSE TP · 22/08/2026) Phase de pose des temps partiels + profil du MAR.
 // Renvoyés par login depuis le serveur du 22/08 ; avec un serveur plus ancien
@@ -902,6 +903,7 @@ function applyUserBadge(r){
   // État de la campagne de saisie (pilote la tuile « Mes indisponibilités »).
   INDISPOS_OUVERTE = !!r.indisposOuverte;
   INDISPOS_FIGEES  = !!r.indisposFigees;   // (26/08) consultation seule dès le portail
+  FIN_SAISIE = (typeof r.finSaisie === 'string') ? r.finSaisie : null;   // (11/10) CONFIG / INDISPOS_FIN
   // Membre du groupement liberal : pilote la tuile Module liberal.
   MY_LIBERAL = !!r.liberal;
   MY_TUILES = Array.isArray(r.tuiles) ? r.tuiles : [];
@@ -1002,6 +1004,13 @@ const TILES = [
   // ne ferme rien.
   { key:'stats', title:'Statistiques d\'usage', sub:'Qui utilise le portail, à quelle fréquence, à quels moments.', icon:'bar-chart-2', href:'docs/stats-usage.html', ready:true, prive:true },
 ];
+/* (11/10/2026) Saisie close : passé minuit le soir de la date limite (CONFIG /
+   INDISPOS_FIN, transmise par le serveur), heure de Paris. Sans date : jamais close. */
+function saisieIndisposClose(fin, maintenant) {
+  if (!fin || !/^\d{4}-\d{2}-\d{2}$/.test(fin)) return false;
+  const auj = (maintenant || new Date()).toLocaleDateString('fr-CA', { timeZone: 'Europe/Paris' });
+  return auj > fin;
+}
 function renderTiles(){
   const box = document.getElementById('tiles');
   box.innerHTML = TILES.filter(t => (!t.prive || MY_TUILES.indexOf(t.key) > -1) && (!t.campagne || INDISPOS_OUVERTE) && (!t.tp || (PHASE_TP && MY_QUOTITE < 100 && !MY_TPFIXE)) && (!t.liberal || MY_LIBERAL)).map(t => {
@@ -1012,10 +1021,16 @@ function renderTiles(){
        en lecture seule — la tuile le dit dès le portail (icône cadenas, teinte
        ambre, sous-titre explicite) plutôt que de laisser croire à une saisie. */
     const fige = (t.key === 'indispos' && INDISPOS_FIGEES);
-    const icone = fige ? 'lock' : t.icon;
-    const teinte = fige ? 'ambre' : t.tint;
+    /* (11/10/2026) SAISIE CLOSE, planning pas encore généré : même cadenas, dès le
+       portail. Même date que le serveur (CONFIG / INDISPOS_FIN) ; c'est le serveur
+       qui refuse réellement l'enregistrement. */
+    const close = (t.key === 'indispos' && !fige && saisieIndisposClose(FIN_SAISIE));
+    const icone = (fige || close) ? 'lock' : t.icon;
+    const teinte = (fige || close) ? 'ambre' : t.tint;
     const sousTitre = fige
       ? ('Consultation seule — le planning' + (INDISPOS_YEAR ? ' ' + INDISPOS_YEAR : '') + ' est établi.')
+      : close
+      ? ('Saisie close — consultation seule, les gardes' + (INDISPOS_YEAR ? ' ' + INDISPOS_YEAR : '') + ' sont en préparation.')
       : String(t.sub).replace(' {AN}', INDISPOS_YEAR ? (' pour ' + INDISPOS_YEAR) : '').replace(' {ANTP}', PHASE_TP ? (' pour ' + PHASE_TP.annee) : '');
     const inner =
       tag +

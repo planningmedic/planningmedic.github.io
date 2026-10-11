@@ -4,7 +4,7 @@
    quelles : aucune ligne de logique modifiée, seulement déplacée. Le routeur et
    ses aides (checkCode, _deny, _error, doGet/doPost) restent dans Indispos.gs.
    Un seul espace global dans Apps Script : rien à importer. */
-const GAS_VERSION_EQUIPE = '2026-09-15.2';
+const GAS_VERSION_EQUIPE = '2026-10-11.1';
 
 // ── Sonde : les interrupteurs des mails sont-ils cohérents ? ──
 function _sondeInterrupteursMails_(check, R, info) {
@@ -342,6 +342,9 @@ function _act_login(R) {
     // (26/08/2026) Campagne figée : la tuile passe en « consultation seule »
     // dès le portail — même information que le verrou de l'écran indispos.
     indisposFigees: _indisposFigees_(),
+    // (11/10/2026) Date limite de saisie (CONFIG / INDISPOS_FIN, AAAA-MM-JJ, ou null) :
+    // la tuile passe au cadenas dès minuit le soir de cette date.
+    finSaisie: _finSaisieIndispos_(),
     // (POSE TP · 22/08/2026) Phase de pose des temps partiels (déduite) +
     // profil du MAR : la tuile « Mes jours de temps partiel » ne s'affiche
     // que si phaseTp.actif ET quotite < 100 ET !tpFixe. Aucun nom en dur :

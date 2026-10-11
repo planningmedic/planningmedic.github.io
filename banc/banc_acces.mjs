@@ -118,6 +118,22 @@ console.log('\n═══ T012 · campagne figée : le drapeau traverse le Worker
   M.set('acces', avant);
 }
 
+console.log('\n═══ T013 · date limite de saisie : elle traverse le Worker ═══');
+{
+  /* (11/10/2026) `finSaisie` (CONFIG / INDISPOS_FIN) : la tuile indispos passe au
+     cadenas une fois la date passée. Vieille clé `acces` : null. Pas une date : null. */
+  const avant = M.get('acces');
+  const r0 = await lire(MAR_A, ['annees']);
+  V('clé « acces » sans date : null', r0.j.identite.finSaisie === null, r0.j.identite.finSaisie);
+  const j = JSON.parse(avant); j.finSaisie = '2026-10-30'; M.set('acces', JSON.stringify(j));
+  const r1 = await lire(MAR_A, ['annees']);
+  V('date posée dans « acces » : l\'identité la porte', r1.j.identite.finSaisie === '2026-10-30', r1.j.identite.finSaisie);
+  j.finSaisie = '<script>'; M.set('acces', JSON.stringify(j));
+  const r2 = await lire(MAR_A, ['annees']);
+  V('une valeur qui n\'est pas une date est écartée', r2.j.identite.finSaisie === null, r2.j.identite.finSaisie);
+  M.set('acces', avant);
+}
+
 console.log('\n═══ La clé « acces » elle-même n\'est jamais lisible ═══');
 {
   for (const [nom, code] of [['comité', ADMIN], ['MAR', MAR_A], ['secrétariat', SECRET]]) {

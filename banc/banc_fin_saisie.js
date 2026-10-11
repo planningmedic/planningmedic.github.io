@@ -115,5 +115,25 @@ console.log('\n═══ 5. Ouvrir une campagne pose la date d\'office ═══
   V('campagne ouverte après sa date limite : pas de date posée (et l\'ancienne retirée)', d.fin === null, d.cfg);
 }
 
+console.log('\n═══ 6. Le portail : la tuile suit la même date (CONFIG) ═══');
+{
+  const IDX = fs.readFileSync(path.join(__dirname, '..', 'index.html'), 'utf8');
+  const W = fs.readFileSync(path.join(__dirname, '..', 'cloudflare', 'worker.js'), 'utf8');
+  const MIR = fs.readFileSync(path.join(__dirname, '..', 'gas', 'miroir.gs'), 'utf8');
+  const EQ = fs.readFileSync(path.join(__dirname, '..', 'gas', 'equipe.gs'), 'utf8');
+  const c = vm.createContext({ Date });
+  vm.runInContext(extraireFonction(path.join(__dirname, '..', 'index.html'), 'saisieIndisposClose'), c);
+  const f = (fin, iso) => vm.runInContext('saisieIndisposClose(' + JSON.stringify(fin) + ', new Date("' + iso + '"))', c);
+  V('date 2026-10-30, vendredi à 23:30 (Paris) : tuile encore ouverte', f('2026-10-30', '2026-10-30T21:30:00Z') === false);
+  V('date 2026-10-30, samedi à 00:30 (Paris) : tuile au cadenas', f('2026-10-30', '2026-10-30T23:30:00Z') === true);
+  V('date décalée au 2026-11-06 : la tuile suit (encore ouverte le 31/10)', f('2026-11-06', '2026-10-31T10:00:00Z') === false);
+  V('sans date dans CONFIG : jamais de cadenas', f(null, '2035-01-01T10:00:00Z') === false);
+  V('la tuile lit la date transmise par le serveur', /const close = \(t\.key === 'indispos' && !fige && saisieIndisposClose\(FIN_SAISIE\)\);/.test(IDX)
+    && /FIN_SAISIE = \(typeof r\.finSaisie === 'string'\) \? r\.finSaisie : null;/.test(IDX));
+  V('la date part du serveur par les deux chemins (connexion directe et copie rapide)',
+    /finSaisie: _finSaisieIndispos_\(\)/.test(EQ) && /acces\.finSaisie = _finSaisieIndispos_\(\)/.test(MIR));
+  V('le relais la transmet, et seulement si c\'est une date', /finSaisie: \(typeof acces\.finSaisie === 'string' && /.test(W));
+}
+
 console.log('\n' + ok + ' ✓   ' + ko + ' ✗');
 if (ko) process.exit(1);
