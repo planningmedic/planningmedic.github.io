@@ -553,6 +553,13 @@ body{font-variant-numeric:tabular-nums}
   .me-pill { padding: 4px 9px; font-size: 11.5px; flex-shrink: 0; white-space: nowrap; }
   .theme-btn { width: 30px; height: 30px; font-size: 13px; flex-shrink: 0; }
   .header-back { width: 30px; height: 30px; font-size: 18px; }
+  /* (11/10/2026) Bandeau trop serré sur téléphone : le nom du portail était coupé
+     (« Planning… »). Le bouton Aide n'y garde que son « ? », en rond. */
+  .header-btn { width:32px; height:32px; padding:0; justify-content:center; flex-shrink:0; }
+  .header-btn .hb-txt { display:none; }
+  .header-btn .hb-ico { width:20px; height:20px; font-size:12.5px; }
+  .me-pill-ico { display:none; }               /* la silhouette 👤 : place rendue au nom du portail */
+  .header-right { margin-left: 8px; }
   body { overflow-x: hidden; } /* garde-fou : plus jamais de dérive horizontale */
   .header-flag { width: 34px; height: 34px; border-radius: 8px; }
   .year-select { font-size: 12px; padding: 5px 8px; min-width: 68px; }
@@ -770,7 +777,7 @@ body{font-variant-numeric:tabular-nums}
     </div>
   </div>
   <div class="header-right" id="headerRight">
-    <a href="./docs/guide-mar.html" class="header-btn" title="Guide du MAR — mode d'emploi du portail et du planning"><span class="hb-ico">?</span> Aide</a>
+    <a href="./docs/guide-mar.html" class="header-btn" title="Guide du MAR — mode d'emploi du portail et du planning" aria-label="Aide"><span class="hb-ico">?</span><span class="hb-txt">Aide</span></a>
     <button id="themeBtn" class="theme-btn" onclick="cycleTheme()" title="Thème">🌗</button>
     <span id="mePill" class="me-pill" style="display:none"></span>
     <div class="hdr-stepper" id="monthStepper" style="display:none">
@@ -966,7 +973,7 @@ function applyUserBadge(r){
     // MAR : nom (ou initiales sur mobile) · Admin : "Admin". Toujours affiché,
     // cliquable → déconnexion (permet de changer d'utilisateur).
     const label = MY_ID ? (isMobile && r.initials ? r.initials : _meName(MY_ID)) : 'Admin';
-    pill.innerHTML = '👤 ' + esc(label) + ' <span class="me-pill-logout" aria-label="Déconnexion" style="display:inline-flex;align-items:center"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg></span>';
+    pill.innerHTML = '<span class="me-pill-ico">👤 </span>' + esc(label) + ' <span class="me-pill-logout" aria-label="Déconnexion" style="display:inline-flex;align-items:center"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg></span>';
     pill.style.display = 'inline-flex';
     pill.style.cursor = 'pointer';
     pill.title = 'Changer d\'utilisateur / déconnexion';

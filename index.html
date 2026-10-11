@@ -531,6 +531,11 @@ html[data-theme="dark"] .vs-pill{background:#251B3C;color:#B593F2}
   .header-right { flex-shrink: 0; }
   .wrap { padding: 28px 16px 48px; }
   .hello { font-size: 21px; }
+  /* (11/10/2026) Bandeau trop serré sur téléphone : le nom du portail était coupé
+     (« Planning… »). Le bouton Aide n'y garde que son « ? », en rond. */
+  .header-btn { width:32px; height:32px; padding:0; justify-content:center; flex-shrink:0; }
+  .header-btn .hb-txt { display:none; }
+  .header-btn .hb-ico { width:20px; height:20px; font-size:12.5px; }
   .raccourcis { max-width:none; }
   .bloc { margin-top:22px; }
   .tiles { grid-template-columns: repeat(2, minmax(0, 1fr)); gap:10px; }
@@ -594,7 +599,7 @@ html[data-theme="dark"] .vs-pill{background:#251B3C;color:#B593F2}
     </div>
   </div>
   <div class="header-right">
-    <a href="./docs/guide-mar.html" class="header-btn" title="Guide du MAR — mode d'emploi du portail et du planning"><span class="hb-ico">?</span> Aide</a>
+    <a href="./docs/guide-mar.html" class="header-btn" title="Guide du MAR — mode d'emploi du portail et du planning" aria-label="Aide"><span class="hb-ico">?</span><span class="hb-txt">Aide</span></a>
     <button id="notifBell" class="theme-btn bell-btn" onclick="notifsOuvrir()" title="Notifications" aria-label="Notifications" style="display:none"><i data-lucide="bell"></i></button>
     <button id="themeBtn" class="theme-btn" onclick="cycleTheme()" title="Thème">🌗</button>
     <span id="mePill" class="me-pill" style="display:none"></span>

@@ -940,6 +940,28 @@ const dodo = ms => new Promise(r => setTimeout(r, ms));
     }
   }
 
+  /* (11/10/2026) Sur téléphone, le bouton Aide repoussait le nom du portail
+     (« Planning… », coupé). Il n'y garde que son « ? » ; le mot reste sur ordinateur. */
+  console.log('\n═══ 28s. Le bouton Aide se réduit à « ? » sur téléphone ═══');
+  for (const [p, seuil] of [['index.html', 640], ['planning.html', 768]]) {
+    const src = fs.readFileSync('../' + p, 'utf8');
+    const D = new JSDOM(src).window.document;
+    const aide = [...D.querySelectorAll('a.header-btn')].find(a => /guide-mar/.test(a.getAttribute('href')));
+    V(`${p} : le mot « Aide » est isolé pour pouvoir le masquer`, !!aide && aide.querySelector('.hb-txt') && aide.querySelector('.hb-txt').textContent === 'Aide');
+    V(`${p} : le bouton garde un nom pour les lecteurs d'écran`, !!aide && aide.getAttribute('aria-label') === 'Aide');
+    /* Toutes les sections « téléphone » de la page (il peut y en avoir plusieurs). */
+    const mobile = (src.match(new RegExp('@media\\s*\\(max-width:\\s*' + seuil + 'px\\)\\s*\\{[\\s\\S]*?\\n\\}', 'g')) || []).join('\n');
+    V(`${p} : sous ${seuil} px, le mot est masqué`, /\.header-btn \.hb-txt \{ display:none; \}/.test(mobile));
+    V(`${p} : au-dessus, il reste affiché (règle limitée au téléphone)`, !/^\.header-btn \.hb-txt\s*\{\s*display:\s*none/m.test(src));
+  }
+  {
+    /* Planning : la silhouette 👤 de la pastille du MAR mangeait aussi la place. */
+    const src = fs.readFileSync('../planning.html', 'utf8');
+    V('planning.html : la silhouette de la pastille est isolée', /pill\.innerHTML = '<span class="me-pill-ico">👤 <\/span>'/.test(src));
+    const mobile = (src.match(/@media\s*\(max-width:\s*768px\)\s*\{[\s\S]*?\n\}/g) || []).join('\n');
+    V('planning.html : et masquée sur téléphone seulement', /\.me-pill-ico \{ display:none; \}/.test(mobile) && !/^\.me-pill-ico\s*\{\s*display:\s*none/m.test(src));
+  }
+
   console.log(`\n${ok} OK · ${ko} en échec`);
   process.exit(ko ? 1 : 0);
 })();
