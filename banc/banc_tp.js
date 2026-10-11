@@ -108,7 +108,7 @@ console.log('\n═══ 2. admin.html · le récap du W2 mesure le report sur l
     jeudis.forEach(d => { ind[d] = 'VAC'; });             // aucun TP : que des congés
     const a = appel({ MAR1: ind });
     V('congés seuls concentrés sur un axe : vu aussi', a.length === 1, a);
-    V('le message ne parle pas de TP dans ce cas', /congés occupent/.test((a[0]||{}).texte||''), a[0]);
+    V('le message ne parle pas de TP dans ce cas', /^ses absences/.test((a[0]||{}).texte||''), a[0]);
   }
   {
     const jeudis = jours(2027,4); const ind = {};
@@ -127,6 +127,41 @@ console.log('\n═══ 2. admin.html · le récap du W2 mesure le report sur l
   {
     const a = appel({ MAR1: { '2027-05-06': 'TP' } });    // Ascension
     V('un TP posé un férié est signalé', a.some(x => x.grave), a);
+  }
+  /* (11/10/2026) GARDE-FOUS ÉLARGIS. Un jour est aussi perdu quand le LENDEMAIN est
+     un temps partiel (le repos de garde ne peut pas s'y écrire), et un week-end
+     vendredi-dimanche est perdu dès que l'un de ses deux jours l'est. Mesuré sur le
+     vrai générateur : un 80 % qui pose son temps partiel tous les lundis n'obtenait
+     qu'1 week-end sur 4 dus, sans aucune alerte. Et la place restante doit dépasser
+     la part avec la même marge que les indispos (×1,4). */
+  {
+    const a = appel({ MAR1: pose(jours(2027,1), 50) });   // 50 lundis
+    V('temps partiel tous les lundis : les dimanches sont perdus, l\'axe VD est signalé',
+      a.some(x => /vendredi-dimanche/.test(x.texte)), a);
+    V('…et le message dit ce qu\'il faut pour que sa part tienne', a.some(x => /au moins \d+/.test(x.detail)), a);
+  }
+  {
+    const a = appel({ MAR1: pose(jours(2027,5), 52) });   // 52 vendredis
+    V('temps partiel tous les vendredis : les jeudis (veilles) sont signalés aussi',
+      a.some(x => /jeudi/.test(x.texte) && !/vendredi/.test(x.texte)), a);
+  }
+  {
+    const ven = jours(2027,5), ind = {};
+    ven.slice(0, 48).forEach(d => { ind[d] = 'VAC'; });  // 4 vendredis libres pour ~4,7 dus
+    const a = appel({ MAR1: ind });
+    V('4 week-ends libres pour 4,7 dus : en dessous de la marge, alerte levée', a.some(x => /vendredi-dimanche/.test(x.texte)), a);
+  }
+  {
+    const ind = {}; jours(2027,1).slice(0, 25).forEach(d => { ind[d] = 'TP'; });   // un lundi sur deux… en bloc
+    jours(2027,3).slice(0, 25).forEach(d => { ind[d] = 'TP'; });
+    const a = appel({ MAR1: ind });
+    V('un 80 % au temps partiel réparti lundi/mercredi garde la place : aucune alerte', a.length === 0, a);
+  }
+  {
+    const ind = {}; jours(2027,6).slice(0, 5).forEach(d => { ind[d] = 'INDISPO'; });
+    jours(2027,5).slice(0, 26).forEach(d => { ind[d] = 'TP'; });
+    const a = appel({ MAR1: ind });
+    V('indispos et temps partiel se cumulent dans le même calcul (26 vendredis : place suffisante)', a.length === 0, a);
   }
   {
     const sansWe = actifs.map((m,i) => i === 0 ? Object.assign({}, m, { noWeekend: true }) : m);

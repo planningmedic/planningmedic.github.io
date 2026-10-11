@@ -7102,7 +7102,11 @@ function tpDesequilibres(actifs, indisposParMar, feries, annee) {
     { nom: 'samedi',            we: true,  test: ds => dow(ds) === 6 },
     { nom: 'vendredi-dimanche', we: true,  test: ds => dow(ds) === 5 },
     { nom: 'jeudi',             we: false, test: ds => dow(ds) === 4 && !estFerie(ds) },
+    { nom: 'férié',             we: true,  test: ds => estFerie(ds) },
   ];
+  const lendemain = ds => { const d = new Date(ds + 'T12:00:00'); d.setDate(d.getDate() + 1); return iso(d); };
+  const avant = (ds, n) => { const d = new Date(ds + 'T12:00:00'); d.setDate(d.getDate() + n); return iso(d); };
+  const MARGE_PLACE = 1.4;   // même marge que le contrôle des indispos (_MARGE)
   const gardeurs = actifs.filter(m => !m.noGarde);
   const sommePct = gardeurs.reduce((s, m) => s + (Number(m.pctGardes) || 100), 0) || 1;
   gardeurs.forEach(m => {
@@ -7115,6 +7119,14 @@ function tpDesequilibres(actifs, indisposParMar, feries, annee) {
     const BLOQUANTS = ['TP', 'CTP', 'VAC', 'FORM', 'INDISPO', 'I', 'CL'];
     const tousOccupes = Object.keys(ind).filter(d => BLOQUANTS.indexOf(code(d)) >= 0);
     if (!tousOccupes.length) return;
+    /* (11/10/2026) UN JOUR EST PERDU POUR LA GARDE dans deux cas, comme dans le
+       générateur : il porte une absence, OU le lendemain est un temps partiel (le
+       repos de garde ne peut pas s'y écrire). Et un week-end vendredi-dimanche est
+       perdu dès que l'un de ses deux jours l'est. Sans cela, un 80 % qui posait son
+       temps partiel tous les LUNDIS perdait tous ses dimanches sans aucune alerte :
+       1 week-end obtenu sur 4 dus (banc_tp §garde-fous). */
+    const perdu = ds => BLOQUANTS.indexOf(code(ds)) >= 0 || code(lendemain(ds)) === 'TP';
+    const perduAxe = (ax, ds) => ax.nom === 'vendredi-dimanche' ? (perdu(ds) || perdu(avant(ds, 2))) : perdu(ds);
     // 1) TP hors jour ouvré : irrecevable quel que soit le nombre (un TP est un jour travaillé en moins)
     const horsOuvre = tp.filter(d => dow(d) === 0 || dow(d) === 6 || estFerie(d));
     if (horsOuvre.length) alertes.push({ init: m.initiales || m.id, grave: true,
@@ -7134,18 +7146,22 @@ function tpDesequilibres(actifs, indisposParMar, feries, annee) {
          un jeudi de vacances empêche autant de prendre la garde qu'un jeudi de TP.
          Sans cela, un 80 % qui pose ses TP sur tous les jeudis encore libres
          semblait garder 7 jeudis de marge — c'étaient ses vacances. */
-      const occupe = tousOccupes.filter(ax.test).length;
+      const occupe = jours.filter(ds => ax.test(ds) && perduAxe(ax, ds)).length;
       if (!total || !occupe) return;
       const cible  = 2 * total * ((Number(m.pctGardes) || 100) / sommePct);
-      const report = Math.max(0, cible - (total - occupe));
-      if (report < 1) return;
+      /* (11/10/2026) MÊME MARGE QUE LES INDISPOS (×1,4). Avoir autant de jours libres
+         que de gardes dues ne suffit pas : les collègues visent les mêmes dates, et
+         deux week-ends ne s'enchaînent pas. Mesuré : 3 week-ends libres pour 3,9 dus
+         → 1 seul obtenu, sans alerte avec l'ancien seuil. */
+      const libre  = total - occupe, besoin = cible * MARGE_PLACE;
+      if (cible < 1 || libre >= besoin) return;   // moins d'une garde due : rien à reporter
       alertes.push({ init: m.initiales || m.id, grave: false,
         texte: (prisTP
-                 ? prisTP + ' de ses ' + tp.length + ' jours de TP tombent un ' + ax.nom + ' — avec ses congés, '
-                 : 'ses congés occupent ' + occupe + ' ' + ax.nom + 's — ')
-             + 'il ne lui reste que ' + (total - occupe) + ' ' + ax.nom + '(s) libre(s) pour '
+                 ? prisTP + ' de ses ' + tp.length + ' jours de TP tombent un ' + ax.nom + ' — avec ses autres absences, '
+                 : 'ses absences (congés, indispos, temps partiel et veilles de temps partiel) occupent ' + occupe + ' ' + ax.nom + 's — ')
+             + 'il ne lui reste que ' + libre + ' ' + ax.nom + '(s) libre(s) pour '
              + cible.toFixed(1) + ' garde(s) dues',
-        detail: '≈ ' + report.toFixed(1) + ' garde(s) du ' + ax.nom + ' reportée(s) sur les autres' });
+        detail: 'il en faut au moins ' + Math.ceil(besoin) + ' pour que sa part tienne — sinon ses gardes retombent sur les autres' });
     });
   });
   return alertes;
@@ -7268,9 +7284,10 @@ async function renderWizGStep() {
     // Bloc TP concentrés (v1.31.1)
     if (_tpAlertes.length > 0) {
       html += '<div class="wizard-warning" style="background:#FEF2F2;border-left:3px solid #F97316;color:#B91C1C;margin-top:8px">'
-           +  '🔴 <strong>' + _tpAlertes.length + ' pose(s) de temps partiel déséquilibrent les gardes</strong>'
-           +  '<br><small>La génération est bloquée : ces jours de TP retirent leur auteur d\'un type de jour entier, '
-           +  'sans réduire sa part de gardes. Demandez-lui de répartir ses jours autrement, puis rechargez cette fenêtre.</small></div>';
+           +  '🔴 <strong>' + _tpAlertes.length + ' part(s) de gardes impossible(s) à tenir</strong>'
+           +  '<br><small>La génération est bloquée : ses absences (temps partiel, congés, indispos) ne laissent pas assez de jours '
+           +  'de ce type pour faire sa part, qui ne baisse pas pour autant. Ses gardes retomberaient sur les autres. '
+           +  'Demandez-lui de répartir ses jours autrement, puis rechargez cette fenêtre.</small></div>';
       html += '<div class="wiz-mar-list" style="margin-top:8px">';
       _tpAlertes.forEach(a => {
         html += '<div class="wiz-mar-row"><div class="wiz-mar-init" style="background:' + (a.grave ? '#FECACA;color:#991B1B' : '#FED7AA;color:#C2410C') + '">'
