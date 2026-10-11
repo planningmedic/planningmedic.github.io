@@ -41,7 +41,7 @@
 // ⚠️ RÈGLE (détecteur de dérive dépôt↔Apps Script) : incrémenter cette version
 // à CHAQUE push de ce fichier. Le diagnostic (admin → Maintenance) compare la
 // version déployée ici avec celle du dépôt et signale toute recopie oubliée.
-const GAS_VERSION_GENERATEUR = '2026-10-11.1';
+const GAS_VERSION_GENERATEUR = '2026-10-11.2';
 
 /* (05/09/2026) INTERRUPTEUR DU NOUVEL ALGORITHME — récit : docs/JOURNAL-Planning-Med.md §101 */
 const NOUVEL_ALGO_GLOBAL = true;
@@ -51,6 +51,37 @@ const NOUVEL_ALGO_GLOBAL = true;
 // ce qui arrive au premier essai dans plus d'un cas sur deux.
 const MULTI_DEPART_MAX  = 8;
 const MULTI_DEPART_SEUIL = 1;   // écart, en gardes, qui suffit à s'arrêter
+/* (11/10/2026) COUPLES DE WEEK-END — inerte sans la ligne COUPLES_WEEKEND de CONFIG.
+   Deux MAR d'un même foyer (« A+B », plusieurs couples séparés par ';') demandent
+   que, quand l'un fait le vendredi-dimanche, l'autre fasse le samedi du MÊME
+   week-end : le foyer bloque moins de week-ends. AUCUN NOM DANS LE CODE (dépôt
+   public). La règle des paires à éviter n'est pas touchée : le samedi et le
+   vendredi-dimanche ne tombent jamais le même soir.
+   Trois leviers, du plus doux au plus fort, aucun ne change un compteur d'équité :
+   1. placement : le samedi qui suit le vendredi-dimanche de l'un, l'autre passe en
+      tête s'il reste sous sa part de samedis (symétrique pour le vendredi-dimanche) ;
+   2. optimiseur : un transfert qui crée un week-end lié gagne CPL_LAMBDA, un
+      transfert qui en casse un le paie ;
+   3. échanges ciblés après l'optimiseur : même jour, même rôle, même contribution —
+      l'équité est inchangée PAR CONSTRUCTION.
+   Mesuré le 11/10/2026 sur les demandes réelles 2027 : voir banc_couples_weekend.js. */
+const CPL_LAMBDA = 200;
+function getCouplesWeekend() {
+  const m = {};
+  try {
+    const data = _configRows_();
+    for (let r = 1; r < data.length; r++) {
+      if (String(data[r][0]).trim().toUpperCase() !== 'COUPLES_WEEKEND') continue;
+      String(data[r][1] == null ? '' : data[r][1]).split(';').forEach(function (tok) {
+        const p = String(tok).split('+').map(function (x) { return String(x).trim().toUpperCase(); })
+                             .filter(function (x) { return !!x; });
+        if (p.length !== 2 || p[0] === p[1] || m[p[0]] || m[p[1]]) return;   // un MAR, un seul couple
+        m[p[0]] = p[1]; m[p[1]] = p[0];
+      });
+    }
+  } catch (e) { /* CONFIG illisible : règle inerte */ }
+  return m;
+}
 
 // Optimiseur §8c : au-delà de LEX_SEUIL gardes d'écart, la pénalité devient
 // prioritaire sur la baisse de l'écart moyen. Le poids reste SOUS les 1000 de la
@@ -433,6 +464,15 @@ function essaiGenerationGardes(year) {
     L.push('');
   }
 
+  /* (11/10/2026) COUPLES DE WEEK-END : rien sans la ligne COUPLES_WEEKEND de CONFIG. */
+  if (r.couplesWE && r.couplesWE.length) {
+    L.push('── COUPLES DE WEEK-END ──');
+    r.couplesWE.forEach(function (c) {
+      L.push('   ' + c.couple + ' : week-ends en commun : ' + c.lies + '   ·   week-ends bloqués au foyer : ' + c.bloques);
+    });
+    L.push('');
+  }
+
   L.push('── AVERTISSEMENTS (' + r.nbWarnings + ') ──');
   r.warnings.slice(0, 30).forEach(function (w) { L.push('   · ' + w); });
   if (r.nbWarnings > 30) L.push('   … et ' + (r.nbWarnings - 30) + ' autre(s)');
@@ -510,6 +550,8 @@ function generateGardes(year, opts){
 
   /* (07/09/2026) PAIRES À ÉVITER — récit : docs/JOURNAL-Planning-Med.md §110 */
   const PAIRES_EV = getPairesEvitees();
+  const CPL_WE = getCouplesWeekend();                 // (11/10/2026) {} sans la ligne CONFIG
+  const _cplOn = Object.keys(CPL_WE).length > 0;
   const DATES_EXEMPTES = new Set([`${year}-12-24`,`${year}-12-25`,`${year}-12-31`,`${year+1}-01-01`]);
   // d : une date, un tableau de dates (unité), ou rien. Une unité est exemptée dès
   // qu'UN de ses jours l'est — on ne coupe pas une unité en deux régimes.
@@ -1443,6 +1485,12 @@ function generateGardes(year, opts){
   // exactement leur règle (freeBudget). On AJOUTE seulement la possibilité de poser
   // un souhait sur les autres jours, sous plafond de chaque axe touché + quota.
   const shiftDays=(ds,n)=>toDateStr(new Date(new Date(ds+'T12:00:00').getTime()+n*86400000));
+  // (11/10/2026) COUPLES DE WEEK-END — titulaires du vendredi-dimanche du vendredi `fri`
+  // (même binôme vendredi ET dimanche), et « encore sous sa part » sur un axe.
+  const _cplVDde=fri=>{ const gf=gardes[fri], gs=gardes[shiftDays(fri,2)];
+    if(!gf||!gs||!dayByDate[fri]||dayByDate[fri].dow!==5) return [];
+    return [gf.g,gf.g2].filter(x=>x&&(gs.g===x||gs.g2===x)); };
+  const _cplSousPart=(id,ax)=>cnt[id][ax]+(dette[id]?.[ax]||0)+1<=cible[id][ax]+0.5;
   // Chemin HISTORIQUE, strictement inchangé : lundi, mardi, mercredi — y compris les
   // veilles de férié, traitées comme aujourd'hui. Seuls les lun/mar/mer FÉRIÉS en
   // sortent : posés seuls, ils brisaient le couplage samedi↔lundi férié (4 couplages
@@ -1662,6 +1710,12 @@ function generateGardes(year, opts){
       const availVD=(dimExists&&!gardes[dimDate])?avail.filter(id=>!blocked(id,dimDate)):[];
       if(availVD.length>=2){
         availVD.sort((a,b)=>cmp(scoreVD(a,date,dimDate),scoreVD(b,date,dimDate)));
+        /* (11/10/2026) COUPLES DE WEEK-END · levier 1. Le samedi est déjà tenu (un
+           souhait) par l'un : l'autre passe en tête du vendredi-dimanche, s'il reste
+           sous sa part et sans 3e garde dans la semaine. */
+        if(_cplOn){ const _gs=gardes[addOneDay(date)];
+          if(_gs) for(const _h of [_gs.g,_gs.g2]){ const P=CPL_WE[_h]; const i=P?availVD.indexOf(P):-1;
+            if(i>0 && _cplSousPart(P,'vd') && scoreVD(P,date,dimDate)[0]<80){ availVD.splice(i,1); availVD.unshift(P); break; } } }
         let [A,B]=meilleurePaire(availVD,[date,dimDate]);
         // ── (COUVERTURE) Anticipation du SAMEDI intercalé ────────────────
         // Le binôme VD est bloqué vendredi, samedi (veille/lendemain) ET dimanche.
@@ -1699,6 +1753,12 @@ function generateGardes(year, opts){
 
     // Génération normale : sélectionner 2 MARs par équité, puis attribuer rôles
     avail.sort((a,b)=>cmp(scoreSelect(a,dow,day.isVjf,day.date),scoreSelect(b,dow,day.isVjf,day.date)));
+    /* (11/10/2026) COUPLES DE WEEK-END · levier 1. Samedi : si l'un tient le
+       vendredi-dimanche qui l'entoure, l'autre passe en tête — seulement s'il reste
+       sous sa part de samedis et sans garde à deux jours. */
+    if(_cplOn && dow===6){
+      for(const _h of _cplVDde(shiftDays(date,-1))){ const P=CPL_WE[_h]; const i=P?avail.indexOf(P):-1;
+        if(i>0 && _cplSousPart(P,'sam') && spacingPenalty(P,date)<100){ avail.splice(i,1); avail.unshift(P); break; } } }
     let [A,B]=meilleurePaire(avail,day.date);
     // ── (COUVERTURE) Anticipation d'UN jour ────────────────────────────
     // Ne pas vider le vivier du LENDEMAIN : les deux retenus y seront bloqués (jamais
@@ -1906,6 +1966,24 @@ function generateGardes(year, opts){
       }
       return p;
     };
+    /* (11/10/2026) COUPLES DE WEEK-END — nombre de week-ends liés (l'un au
+       vendredi-dimanche, l'autre au samedi) sur le week-end du vendredi `fri`, en
+       supposant éventuellement que `ov` = {days, role, B} a changé de titulaire. */
+    const _cplFri=dd=>{const w=dayByDate[dd].dow; return w===5?dd:w===6?shift(dd,-1):w===0?shift(dd,-2):null;};
+    const _cplTit=(dd,ov)=>{const g=gardes[dd]; if(!g) return [];
+      let a=g.g,b=g.g2; if(ov&&ov.days.indexOf(dd)>=0){ if(ov.role===0)a=ov.B; else b=ov.B; } return [a,b];};
+    const _cplLies=(fri,ov)=>{
+      const sat=shift(fri,1), sun=shift(fri,2);
+      if(!dayByDate[fri]||!dayByDate[sat]||!dayByDate[sun]) return 0;
+      const vf=_cplTit(fri,ov), vs=_cplTit(sun,ov), sa=_cplTit(sat,ov);
+      let n=0; vf.forEach(x=>{ if(x&&vs.indexOf(x)>=0&&CPL_WE[x]&&sa.indexOf(CPL_WE[x])>=0) n++; });
+      return n;
+    };
+    const _cplDelta=(days_,role,B)=>{
+      const fr=[...new Set(days_.map(_cplFri).filter(Boolean))]; let d=0;
+      fr.forEach(f=>{ d+=_cplLies(f,{days:days_,role:role,B:B})-_cplLies(f,null); });
+      return d;
+    };
     // 7) Recherche locale (best-improvement par slot, passes successives).
     const t0=Date.now();let moves=0;
     for(let pass=0;pass<60;pass++){
@@ -1936,6 +2014,8 @@ function generateGardes(year, opts){
             if(hasAdjWeekend(A,days_))dd_-=1000;   // ce transfert soulage A d'un enchaînement
           }
           dd_+=_spacingPen(B,days_)-_spacingPen(A,days_);
+          // (11/10/2026) COUPLES DE WEEK-END · levier 2 : lien créé = gain, lien cassé = coût.
+          if(_cplOn&&_isWE&&(CPL_WE[A]||CPL_WE[B])) dd_-=CPL_LAMBDA*_cplDelta(days_,role,B);
           if(dd_<bestD){bestD=dd_;bestB=B;}}
         if(bestB){applyTr(slot,bestB);moves++;changed=true;}
       }
@@ -1949,6 +2029,66 @@ function generateGardes(year, opts){
       }
     }
     Logger.log('Optimiseur: '+moves+' transferts');
+
+    /* ── 8c-bis. (11/10/2026) COUPLES DE WEEK-END · levier 3 : échanges ciblés ──
+       Un week-end où un seul des deux est de garde : le conjoint ÉCHANGE un de ses
+       créneaux de même nature (samedi contre samedi, vendredi-dimanche contre
+       vendredi-dimanche), de même rôle et de même contribution, avec le titulaire
+       du créneau complémentaire. Les compteurs de chacun ne bougent pas : l'équité
+       est inchangée PAR CONSTRUCTION. Jamais sur un créneau verrouillé (souhait,
+       Noël, régime à part), jamais si une règle dure s'y oppose (canHold), jamais
+       en créant une garde à deux jours (_spacingPen < 250), jamais en cassant un
+       autre lien. */
+    if(_cplOn){
+      const _slotDe=(d,role)=>slots.find(x=>x.role===role&&x.days.indexOf(d)>=0);
+      const _memeContrib=(a,b)=>Object.keys(a).every(k=>a[k]===b[k])&&Object.keys(b).every(k=>a[k]===b[k]);
+      let _cplEch=0;
+      for(let _pass=0;_pass<4;_pass++){
+        let _chg=false;
+        const _fris=allDays.filter(d=>d.dow===5).map(d=>d.date);
+        for(const fri of _fris){
+          const sat=shift(fri,1);
+          if(!gardes[sat]||!dayByDate[sat]) continue;
+          // Qui du couple tient quoi ce week-end ?
+          const vd=_cplVDde(fri);
+          const satT=[gardes[sat].g,gardes[sat].g2];
+          const cas=[];
+          vd.forEach(P=>{ const Q=CPL_WE[P]; if(Q&&satT.indexOf(Q)<0&&!vd.includes(Q)) cas.push({Q:Q,cible:[sat],type:'sam'}); });
+          satT.forEach(P=>{ const Q=CPL_WE[P]; if(Q&&vd.indexOf(Q)<0&&satT.indexOf(Q)<0) cas.push({Q:Q,cible:null,type:'vd'}); });
+          for(const c of cas){
+            const Q=c.Q;
+            // Q ne doit déjà rien tenir ce week-end
+            if([fri,sat,shift(fri,2)].some(d=>gardes[d]&&(gardes[d].g===Q||gardes[d].g2===Q))) continue;
+            let fait=false;
+            for(const role of [0,1]){
+              if(fait) break;
+              const sCible=c.type==='sam'?_slotDe(sat,role):_slotDe(fri,role);
+              if(!sCible||sCible.locked) continue;
+              if(c.type==='vd'&&!(sCible.days.length===2&&sCible.days.indexOf(shift(fri,2))>=0)) continue;
+              const H=role===0?gardes[sCible.days[0]].g:gardes[sCible.days[0]].g2;
+              if(!H||H===Q||CPL_WE[H]===Q) continue;
+              // créneaux de Q de même nature, même rôle, même contribution, non liés
+              const siens=slots.filter(x=>x!==sCible&&!x.locked&&x.role===role
+                &&(role===0?gardes[x.days[0]].g:gardes[x.days[0]].g2)===Q
+                &&_memeContrib(x.contrib,sCible.contrib)
+                &&x.days.every(d=>{const w=dayByDate[d].dow; return c.type==='sam'?w===6:(w===5||w===0);}));
+              for(const sQ of siens){
+                const f2=_cplFri(sQ.days[0]);
+                if(f2&&_cplLies(f2,null)>0) continue;          // ne jamais casser un autre lien
+                if(!canHold(Q,sCible.days,role)||!canHold(H,sQ.days,role)) continue;
+                if(_spacingPen(Q,sCible.days)>=250||_spacingPen(H,sQ.days)>=250) continue;
+                const avant=_cplLies(fri,null);
+                applyTr(sCible,Q); applyTr(sQ,H);
+                if(_cplLies(fri,null)>avant){ _cplEch++; _chg=true; fait=true; break; }
+                applyTr(sQ,Q); applyTr(sCible,H);              // annuler : rien gagné
+              }
+            }
+          }
+        }
+        if(!_chg) break;
+      }
+      if(_cplEch) warnings.push('Couples de week-end : '+_cplEch+' échange(s) ciblé(s), équité inchangée');
+    }
     if(NOUVEL_ALGO && TIRAGE>1) warnings.push('Multi-départ : tirage n°'+TIRAGE+' retenu (équité meilleure que le tirage 1).');
 
     // ── 8bis. PASSE CONFORT — « le jour gagné avant les vacances » ────────
@@ -2327,6 +2467,24 @@ function generateGardes(year, opts){
      visible. Tout ce qui suit écrit dans le classeur ou notifie l'équipe ;
      tout ce qui précède n'a fait que lire et calculer. La frontière est nette,
      et c'est ce qui rend la promesse d'invisibilité tenable. */
+  /* (11/10/2026) COUPLES DE WEEK-END — bilan : week-ends liés (l'un au
+     vendredi-dimanche, l'autre au samedi) et week-ends bloqués au foyer (au moins
+     une garde de l'un ou l'autre du vendredi au dimanche). Vide sans la ligne CONFIG. */
+  function _couplesWEBilan_(){
+    const out=[]; const vus=new Set();
+    Object.keys(CPL_WE).sort().forEach(function(a){ const b=CPL_WE[a]; if(vus.has(a)) return; vus.add(a); vus.add(b);
+      let lies=0, bloques=0;
+      allDays.filter(function(d){return d.dow===5;}).forEach(function(d){
+        const f=d.date, sa=shiftDays(f,1), su=shiftDays(f,2);
+        const tient=function(id){ return [f,sa,su].some(function(x){ const g=gardes[x]; return g&&(g.g===id||g.g2===id); }); };
+        if(tient(a)||tient(b)) bloques++;
+        const vd=_cplVDde(f), gs=gardes[sa]||{};
+        if(vd.some(function(x){ const p=CPL_WE[x]; return p&&(gs.g===p||gs.g2===p); })) lies++;
+      });
+      out.push({ couple: a+' + '+b, lies: lies, bloques: bloques });
+    });
+    return out;
+  }
   if(DRY){
     const _AXES=['total','sam','jeu','vd','vjf','jf'];
     const ecarts={};
@@ -2494,7 +2652,7 @@ function generateGardes(year, opts){
              partExacte:partExacte, cumulPrec:cumulPrec, anneesLues:anneesLues.sort(),
              ecarts:ecarts, compteurs:compteurs, cibles:cibles,
              jf:jf, noel:noel, h18:h18, souhaits:souhaitsBilan,
-             fetes:fetes, paires:pairesBilan,
+             fetes:fetes, paires:pairesBilan, couplesWE:_couplesWEBilan_(),
              sansBinome:sansBinome.length, jours:sansBinome.slice(0,10),
              gardeurs:gardeDoctors.filter(function(id){return cnt[id];}).length,
              warnings: warnings.slice(0, 60), nbWarnings: warnings.length };
