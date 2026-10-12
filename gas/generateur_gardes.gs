@@ -41,7 +41,7 @@
 // ⚠️ RÈGLE (détecteur de dérive dépôt↔Apps Script) : incrémenter cette version
 // à CHAQUE push de ce fichier. Le diagnostic (admin → Maintenance) compare la
 // version déployée ici avec celle du dépôt et signale toute recopie oubliée.
-const GAS_VERSION_GENERATEUR = '2026-10-11.2';
+const GAS_VERSION_GENERATEUR = '2026-10-12.1';
 
 /* (05/09/2026) INTERRUPTEUR DU NOUVEL ALGORITHME — récit : docs/JOURNAL-Planning-Med.md §101 */
 const NOUVEL_ALGO_GLOBAL = true;
@@ -129,7 +129,12 @@ const PREMIERE_ANNEE_STATS_FIABLES = 2027;
 
 // (C2-D1) NO_GARDE / ONLY_18 / NO_WEEKEND sortis vers l'onglet MEDECINS.
 // → lus localement dans generateGardes via getMedecinFlags() (const FLAGS).
-const RATIO_18      = 1.3;
+/* (12/10/2026) 1,3 → 1,2, décision du responsable : à 1,3, un profil « seulement
+   18h » à 60 % tombait à 9 soirées par an (0,6 × 1,3 = 0,78 part), une de trop.
+   À 1,2 : 0,72 part, soit 8 ; un temps plein « seulement 18h » passe de 15 à 14.
+   Mesuré sur la campagne réelle : les ONLY_18 tenaient déjà un rapport réel de
+   1,17 (cf. ROADMAP), le 1,2 rapproche la consigne du constat. */
+const RATIO_18      = 1.2;
 // Quota annuel de souhaits sur les FÉRIÉS et VEILLES DE FÉRIÉ (≈ 0,5 date par personne
 // et par an). (10/10/2026) Les samedis et week-ends n'y sont plus soumis : ils sont
 // honorés dans la limite de la part du MAR sur l'axe (okSouhaitRare) — mesuré sur les
