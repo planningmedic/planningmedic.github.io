@@ -57,7 +57,7 @@
 //  instantané unique et partagé : chantier séparé.
 // ══════════════════════════════════════════════════════════════════════
 
-const GAS_VERSION_VEILLE = '2026-09-20.2';
+const GAS_VERSION_VEILLE = '2026-10-13.1';
 
 const VEILLE_CFG_TAB = 'VEILLE_CFG';
 const VEILLE_TAB     = 'VEILLE';
@@ -445,13 +445,28 @@ function _veilleThemesLocaux(fiche, themes) {
    Type d'étude d'abord (ce qui change une pratique), puis la revue, le nombre
    de thèmes touchés, la présence d'un résumé, la fraîcheur. Une lettre, un
    éditorial, un protocole d'essai ou un erratum descendent tout en bas. */
+/* (13/10/2026) Le type d'étude lu dans le TITRE. PubMed n'étiquette un article
+   « Randomized Controlled Trial » ou « Meta-Analysis » qu'à l'indexation, des
+   semaines après sa mise en ligne : un essai de la semaine arrivait en simple
+   « Journal Article » et perdait 35 points (constaté le 12/10 sur trois ECR
+   d'Anesth Analg et J Clin Anesth notés 66-72 au lieu de 100). La méta-analyse
+   passe avant l'ECR (« … of randomized trials »), et une analyse secondaire,
+   post hoc ou un protocole d'essai n'est pas un ECR. */
+function _veilleTypeTitre(titre) {
+  const t = String(titre || '');
+  if (/meta-?analys/i.test(t)) return 'META';
+  if (/systematic review/i.test(t)) return 'RS';
+  if (/randomi[sz]ed/i.test(t) && /\btrial\b/i.test(t) && !/secondary|post[- ]?hoc|ancillary|protocol|sub-?study|exploratory analysis/i.test(t)) return 'ECR';
+  return '';
+}
 function _veilleNote(fiche, source, themes, aujourdhui) {
   let n = 40; const motifs = [];
   const pt = (fiche.pubtypes || []).join(' | ');
-  if (/Randomized Controlled Trial/.test(pt)) { n += 35; motifs.push('ECR'); }
-  else if (/Meta-Analysis/.test(pt)) { n += 30; motifs.push('méta-analyse'); }
+  const tt = _veilleTypeTitre(fiche.titre);
+  if (/Randomized Controlled Trial/.test(pt) || (tt === 'ECR' && !/Meta-Analysis/.test(pt))) { n += 35; motifs.push('ECR'); }
+  else if (/Meta-Analysis/.test(pt) || tt === 'META') { n += 30; motifs.push('méta-analyse'); }
   else if (/Practice Guideline|Guideline/.test(pt)) { n += 30; motifs.push('recommandation'); }
-  else if (/Systematic Review/.test(pt)) { n += 25; motifs.push('revue systématique'); }
+  else if (/Systematic Review/.test(pt) || tt === 'RS') { n += 25; motifs.push('revue systématique'); }
   else if (/Multicenter Study|Observational Study|Cohort/.test(pt)) { n += 8; motifs.push('étude'); }
   else if (/\bReview\b/.test(pt)) { n += 10; motifs.push('revue'); }
   if (/Letter|Editorial|Comment|Case Reports|News|Published Erratum|Retraction/.test(pt)) { n -= 30; motifs.push('lettre/éditorial'); }
@@ -863,6 +878,43 @@ function veilleResumerSemaine() {
   try { logAction('veille — résumés à la main : ' + (r.ecrits || 0) + ' écrit(s)' + (r.motif ? ' (' + r.motif + ')' : '')); } catch (e) {}
   Logger.log(JSON.stringify(r));
   return r;
+}
+
+/* (13/10/2026) Lancement manuel, UNE fois après la mise à jour du 13/10 :
+   corrige la note des articles DÉJÀ en place dont le titre annonce un ECR, une
+   méta-analyse ou une revue systématique que PubMed n'avait pas encore
+   étiquetés. Seul le bonus de type change (le reste de la note — revue,
+   thèmes, résumé, fraîcheur — est celui du jour d'entrée) : nouvelle note =
+   ancienne − ancien bonus de type + nouveau bonus. Ne touche ni aux articles
+   déjà notés ECR / méta-analyse / revue systématique / recommandation, ni à
+   ceux d'avant la note (SCORE vide). N'écrit que les colonnes SCORE et MOTIF. */
+const _VEILLE_BONUS_TYPE = { 'ECR': 35, 'méta-analyse': 30, 'recommandation': 30, 'revue systématique': 25, 'étude': 8, 'revue': 10 };
+function _veilleRenoterLigne_(titre, score, motif) {
+  if (score === '' || score === null || !(Number(score) >= 0)) return null;
+  const tt = _veilleTypeTitre(titre); if (!tt) return null;
+  const morceaux = String(motif || '').split(' · ').filter(Boolean);
+  const ancien = morceaux.length && _VEILLE_BONUS_TYPE.hasOwnProperty(morceaux[0]) ? morceaux[0] : '';
+  if (ancien && _VEILLE_BONUS_TYPE[ancien] >= 25) return null;      // déjà un type fort : rien à corriger
+  const nouveau = tt === 'ECR' ? 'ECR' : tt === 'META' ? 'méta-analyse' : 'revue systématique';
+  const note = Math.max(0, Math.min(100, Math.round(Number(score) - (ancien ? _VEILLE_BONUS_TYPE[ancien] : 0) + _VEILLE_BONUS_TYPE[nouveau])));
+  const reste = ancien ? morceaux.slice(1) : morceaux;
+  return { note: note, motif: [nouveau].concat(reste).join(' · ') };
+}
+function veilleRenoterParTitre() {
+  const f = getOrCreateVeilleTabs().veille;
+  const data = f.getDataRange().getValues(); const hdr = data[0].map(String);
+  const iT = hdr.indexOf('TITRE'), iS = hdr.indexOf('SCORE'), iM = hdr.indexOf('MOTIF');
+  if (iT < 0 || iS < 0 || iM < 0) { Logger.log('colonnes absentes'); return { corriges: 0 }; }
+  const scores = [], motifs = []; let corriges = 0;
+  for (let r = 1; r < data.length; r++) {
+    const c = _veilleRenoterLigne_(data[r][iT], data[r][iS], data[r][iM]);
+    scores.push([c ? c.note : data[r][iS]]); motifs.push([c ? c.motif : data[r][iM]]);
+    if (c) corriges++;
+  }
+  if (corriges) { f.getRange(2, iS + 1, scores.length, 1).setValues(scores); f.getRange(2, iM + 1, motifs.length, 1).setValues(motifs); }
+  try { logAction('veille — notes corrigées d\'après le titre : ' + corriges); } catch (e) {}
+  Logger.log('veilleRenoterParTitre : ' + corriges + ' note(s) corrigée(s) sur ' + (data.length - 1));
+  return { corriges: corriges, total: data.length - 1 };
 }
 
 function getVeille(user) {

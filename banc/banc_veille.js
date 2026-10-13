@@ -465,6 +465,67 @@ function monde(plan) {
     V('un an après : borné à 180 j', fen(400) === 180);
   }
 
+  console.log('\n═══ Le type d\'étude lu dans le titre (13/10/2026) — défaut constaté en production ═══');
+  {
+    // Le 12/10, trois ECR (Anesth Analg, J Clin Anesth) arrivaient en « Journal Article » :
+    // PubMed n'étiquette le type qu'à l'indexation. Notés 66-72 au lieu de 100.
+    const m0 = monde(() => ({ esearchresult: { count: '0', idlist: [] } }));
+    const tt = t => vm.runInContext('_veilleTypeTitre(' + JSON.stringify(t) + ')', m0.ctx);
+    V('« … : A Randomized Clinical Trial » → ECR', tt('Effect of Deep Versus Moderate Neuromuscular Block on Chronic Postsurgical Pain: A Randomized Clinical Trial') === 'ECR');
+    V('« randomised » (orthographe britannique) → ECR', tt('Remimazolam versus propofol: a randomised controlled trial') === 'ECR');
+    V('« … of randomized trials: a meta-analysis » → méta-analyse, pas ECR', tt('Tranexamic acid in hip surgery: a meta-analysis of randomized trials') === 'META');
+    V('« Systematic Review and Meta-Analysis » → méta-analyse', tt('Hypoalbuminaemia and complications: A Systematic Review and Meta-Analysis') === 'META');
+    V('« A Scoping Review » → rien (pas une revue systématique)', tt('Intravenous Immunoglobulin in Cardiac Surgery: A Scoping Review') === '');
+    V('analyse secondaire d\'un ECR → PAS un ECR', tt('Delirium after surgery: a secondary analysis of a randomized trial') === '');
+    V('analyse post hoc d\'un ECR → PAS un ECR', tt('Post hoc analysis of a randomized controlled trial of ketamine') === '');
+    V('protocole d\'essai randomisé → PAS un ECR', tt('Study protocol for a randomised trial of goal-directed therapy') === '');
+    V('« randomized » sans « trial » → rien', tt('Randomized allocation in observational cohorts') === '');
+    V('cohorte rétrospective → rien', tt('Impact of an Enhanced Recovery Framework on Opioid Use: A Retrospective Cohort Study') === '');
+
+    const fabrique = id => ({
+      '901': { titre: 'Fluid responsiveness-guided preinduction volume optimization and postinduction hypotension: A randomized clinical trial', resume: 'Intraoperative hypotension and fluid responsiveness in frailty.', pubtypes: ['Journal Article'], date: '2026-10-09', revue: 'Anesthesiology' },
+      '902': { titre: 'Hypoalbuminaemia and postoperative complications: A Systematic Review and Meta-Analysis', resume: 'postoperative complications and nutrition', pubtypes: ['Journal Article', 'Review'], date: '2026-10-06', revue: 'Anesthesiology' },
+      '903': { titre: 'Sepsis bundles: a secondary analysis of a randomized trial', resume: 'sepsis and septic shock', pubtypes: ['Journal Article'], date: '2026-10-06', revue: 'Anesthesiology' },
+    }[id] || {});
+    const plan = (endpoint, params) => {
+      if (endpoint === 'esearch.fcgi') {
+        const term = params.get('term') || '';
+        if (term.indexOf('"Anesthesiology"[Journal]') !== -1 && term.indexOf('"N Engl J Med"[Journal]') === -1) return { esearchresult: { count: '3', idlist: ['901', '902', '903'] } };
+        return { esearchresult: { count: '0', idlist: [] } };
+      }
+      return efetchXml(params, fabrique);
+    };
+    const m = monde(plan);
+    vm.runInContext('getOrCreateVeilleTabs()', m.ctx);
+    vm.runInContext('runVeille()', m.ctx);
+    const L = m.cl.getSheetByName('VEILLE').lignes.slice(1); const par = {}; L.forEach(l => { par[String(l[0])] = l; });
+    V('un ECR encore étiqueté « Journal Article » prend le bonus ECR (≥ 90)', Number(par['901'][7]) >= 90 && /^ECR/.test(par['901'][14]), [par['901'][7], par['901'][14]]);
+    V('une méta-analyse étiquetée « Review » est notée méta-analyse, pas revue', /^méta-analyse/.test(par['902'][14]) && Number(par['902'][7]) >= 90, [par['902'][7], par['902'][14]]);
+    V('une analyse secondaire reste sans bonus ECR (< 90)', Number(par['903'][7]) < 90 && !/ECR/.test(par['903'][14]), [par['903'][7], par['903'][14]]);
+
+    const rl = (t, s, mo) => vm.runInContext('_veilleRenoterLigne_(' + JSON.stringify(t) + ',' + JSON.stringify(s) + ',' + JSON.stringify(mo) + ')', m0.ctx);
+    const a = rl('X: a randomized controlled trial', 60, 'étude · revue spécialisée · 1 thème');
+    V('rattrapage : « étude » (+8) devient ECR (+35) → 60 − 8 + 35 = 87', a && a.note === 87 && a.motif === 'ECR · revue spécialisée · 1 thème', a);
+    const b = rl('X: a systematic review and meta-analysis', 62, 'revue · revue spécialisée · 2 thèmes');
+    V('rattrapage : « revue » (+10) devient méta-analyse (+30) → 82, le « revue spécialisée » reste', b && b.note === 82 && b.motif === 'méta-analyse · revue spécialisée · 2 thèmes', b);
+    const c = rl('X: a randomized trial', 66, 'revue spécialisée · 1 thème · récent');
+    V('rattrapage : aucun type (+0) devient ECR → 66 + 35 = 101, plafonné à 100', c && c.note === 100 && /^ECR · revue spécialisée/.test(c.motif), c);
+    V('rattrapage : un article déjà noté ECR n\'est pas touché', rl('X: a randomized trial', 90, 'ECR · revue spécialisée') === null);
+    V('rattrapage : une revue systématique déjà notée ne devient pas méta-analyse', rl('X: systematic review and meta-analysis', 80, 'revue systématique · revue spécialisée') === null);
+    V('rattrapage : un article d\'avant la note (SCORE vide) n\'est pas touché', rl('X: a randomized trial', '', '') === null);
+    V('rattrapage : un titre sans type n\'est pas touché', rl('Retrospective cohort of 49,394 patients', 70, 'revue spécialisée') === null);
+
+    const f = m.cl.getSheetByName('VEILLE'); const iS = f.lignes[0].indexOf('SCORE'), iM = f.lignes[0].indexOf('MOTIF');
+    const r901 = f.lignes.findIndex(l => String(l[0]) === '901'), r903 = f.lignes.findIndex(l => String(l[0]) === '903');
+    f.lignes[r901][iS] = 66; f.lignes[r901][iM] = 'revue spécialisée · 2 thèmes · récent';   // l'état d'avant le correctif
+    const avant903 = [f.lignes[r903][iS], f.lignes[r903][iM]];
+    const res = vm.runInContext('veilleRenoterParTitre()', m.ctx);
+    V('veilleRenoterParTitre corrige l\'ECR sous-noté (66 → 100)', Number(f.lignes[r901][iS]) === 100 && /^ECR/.test(f.lignes[r901][iM]), [f.lignes[r901][iS], f.lignes[r901][iM]]);
+    V('…ne touche pas l\'analyse secondaire', f.lignes[r903][iS] === avant903[0] && f.lignes[r903][iM] === avant903[1]);
+    V('…et ne compte qu\'une correction (la méta-analyse était déjà juste)', res.corriges === 1, res);
+    V('…relancé, ne change plus rien', vm.runInContext('veilleRenoterParTitre()', m.ctx).corriges === 0);
+  }
+
 console.log(`\n${ok} OK · ${ko} en échec`);
   process.exit(ko ? 1 : 0);
 })();  console.log('\n═══ Passe 4 : le résumé en deux lignes (15/09/2026) ═══');
