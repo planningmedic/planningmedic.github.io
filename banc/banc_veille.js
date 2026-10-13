@@ -606,6 +606,10 @@ function monde(plan) {
     const sombre = (page.match(/html\[data-theme="dark"\] \{[\s\S]*?\}/) || [''])[0];
     V('les 5 couleurs de type existent aussi en mode sombre', ['ecr', 'meta', 'rs', 'reco', 'aut'].every(k => sombre.indexOf('--vt-' + k + ':') !== -1 && sombre.indexOf('--vt-' + k + '-bg:') !== -1));
     V('aucune erreur JavaScript pendant toute la navigation', erreurs.length === 0, erreurs.slice(0, 2));
+    // (13/10, v1.22.1) Téléphone : la barre de filtres ne s'étalait pas sur la largeur (constaté en production).
+    const tel = (page.match(/@media \(max-width:640px\)\{\s*\.veille-toolbar\{[^}]*\}[\s\S]*?\n\}/) || [''])[0];
+    V('téléphone : la barre de filtres passe en grille de 2 colonnes, Non lus / Tous / ★ sur toute la ligne', /display:grid/.test(tel) && /\.vfilter\{grid-column:1\/-1/.test(tel) && /\.vfilter button\{flex:1/.test(tel), tel.slice(0, 120));
+    V('…et l\'écran ne lui impose plus « flex » en dur (sinon la grille serait écrasée)', d.getElementById('veilleToolbar').style.display === '' && !/getElementById\('veilleToolbar'\)\.style\.display = VEILLE_ITEMS\.length \? 'flex'/.test(page), d.getElementById('veilleToolbar').style.display);
   }
 
 console.log(`\n${ok} OK · ${ko} en échec`);

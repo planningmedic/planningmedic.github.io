@@ -450,6 +450,16 @@ a.tile:hover, .tile.clickable:hover {
 .vfilter button.on{background:var(--white);color:var(--me);box-shadow:0 1px 2px rgba(15,23,42,.06)}
 .vsel,.vsearch{border:1px solid var(--line);background:var(--white);color:var(--ink);border-radius:10px;padding:7px 12px;font:500 13px 'DM Sans',sans-serif}
 .vsearch{flex:1;min-width:180px}
+/* (13/10/2026, v1.22.1) Téléphone : la barre de filtres en grille pleine largeur —
+   Non lus / Tous / ★ sur toute la ligne, puis Sources | Revues, puis Tri | Recherche. */
+@media (max-width:640px){
+  .veille-toolbar{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:8px}
+  .veille-toolbar .vfilter{grid-column:1/-1;display:flex}
+  .veille-toolbar .vfilter button{flex:1;padding:7px 6px}
+  .veille-toolbar .vsel,.veille-toolbar .vsearch,.veille-toolbar .vrev-wrap{width:100%;min-width:0}
+  .veille-toolbar .vrev-wrap .vsel{text-align:left}
+  .veille-toolbar .vrev-panel{min-width:0;width:calc(200% + 8px);left:auto;right:0}
+}
 .vsel:focus,.vsearch:focus{outline:none;border-color:var(--me-border)}
 .vrev-wrap{position:relative}
 .vrev-panel{position:absolute;top:calc(100% + 6px);left:0;z-index:40;background:var(--white);border:1px solid var(--line);border-radius:12px;box-shadow:0 10px 30px rgba(15,23,42,.18);padding:8px;max-height:320px;overflow-y:auto;min-width:270px}
@@ -738,7 +748,7 @@ html[data-theme="dark"] .vs-pill{background:#251B3C;color:#B593F2}
         <option value="recent">Plus récents</option>
         <option value="journal">Par revue</option>
       </select>
-      <input class="vsearch" type="search" placeholder="Filtrer par titre, auteur, revue…" oninput="onVSearch(this.value)">
+      <input class="vsearch" type="search" placeholder="Titre, auteur, revue…" oninput="onVSearch(this.value)">
     </div>
     <div class="vt-rail" id="vThemeRail"></div>
     <div id="veilleList"></div>
@@ -2294,7 +2304,7 @@ async function openVeille(){
         VEILLE_ITEMS.forEach(function(it){ it.lu=!!L[it.pmid]; it.star=!!S[it.pmid]; });
       }
       _veilleAppliquerFile();                       // marques en attente par-dessus l'état serveur
-      document.getElementById('veilleToolbar').style.display = VEILLE_ITEMS.length ? 'flex' : 'none';
+      document.getElementById('veilleToolbar').style.display = VEILLE_ITEMS.length ? '' : 'none';   // (13/10) '' : la feuille de style décide (barre en ligne, grille sur téléphone)
       populateRevuePanel();
       renderVeille();
       _veilleRejouerFile();                         // et on tente de les poser, sans bloquer l'écran
