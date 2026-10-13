@@ -54,6 +54,10 @@ window.SessionPortail = window.SessionPortail || { lire:function(){try{return se
   --cat-tp-bg:#FEF3C7;    --cat-tp-fg:#92400E;
   --cat-recup-bg:#E7F6F3; --cat-recup-fg:#0F766E;
   --cat-cl-bg:#F3E8FF;    --cat-cl-fg:#7C3AED;
+  /* (13/10/2026, v1.22) Veille : une couleur par type d'étude (anneau de note + étiquette) */
+  --vt-ecr:#0F766E;  --vt-ecr-bg:#DDF4EE;  --vt-meta:#5B4BC4; --vt-meta-bg:#ECEAFD;
+  --vt-rs:#1D6FB8;   --vt-rs-bg:#E3EFFB;   --vt-reco:#B45309; --vt-reco-bg:#FDEFD9;
+  --vt-aut:#64748B;  --vt-aut-bg:#EEF1F5;
 }
 .ver-badge { display:inline-flex; align-items:center; gap:5px; font-family:var(--mono); font-size:11px; font-weight:600; color:var(--ink-4); background:var(--line-light); border:1px solid var(--line); border-radius:20px; padding:3px 10px; letter-spacing:.02em; vertical-align:middle; }
 .ver-dot { width:5px; height:5px; border-radius:50%; background:#22C55E; flex:none; }
@@ -72,6 +76,9 @@ html[data-theme="dark"] {
   --cat-tp-bg:#3A2E0C;    --cat-tp-fg:#EAB308;
   --cat-recup-bg:#0F2A26; --cat-recup-fg:#5BD0B4;
   --cat-cl-bg:#251B3C;    --cat-cl-fg:#B593F2;
+  --vt-ecr:#5ED3BB;  --vt-ecr-bg:#10302A;  --vt-meta:#B3A8F5; --vt-meta-bg:#231E45;
+  --vt-rs:#8CBDEB;   --vt-rs-bg:#162A42;   --vt-reco:#F2B266; --vt-reco-bg:#3A2810;
+  --vt-aut:#9AA7BC;  --vt-aut-bg:#1C2537;
   color-scheme:dark;
 }
 html[data-theme="dark"] body{background:var(--bg)}
@@ -452,23 +459,6 @@ a.tile:hover, .tile.clickable:hover {
 .vrev-item span{margin-left:auto;color:var(--ink-4);font-size:12px}
 .vrev-clear{display:block;width:100%;text-align:left;border:0;background:transparent;color:var(--me);font:600 13px 'DM Sans',sans-serif;padding:6px 8px;border-radius:8px;cursor:pointer}
 .vrev-clear:hover{background:var(--surface-2)}
-.veille-card{background:var(--white);border:1px solid var(--line);border-radius:14px;padding:15px 18px;margin-bottom:11px;border-left:3px solid transparent}
-.veille-card.unread{border-left-color:var(--me)}
-.vc-top{display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin-bottom:7px}
-.vc-right{margin-left:auto;display:flex;align-items:center;gap:8px}
-.vc-badge{font-size:11px;font-weight:700;padding:2px 8px;border-radius:999px}
-.vc-badge.revue{background:var(--me-soft);color:var(--me)}
-.vc-badge.theme{background:var(--viol-soft);color:var(--viol)}
-.vc-badge.general{background:var(--amber-soft);color:var(--amber)}
-.vc-badge.new{background:var(--red-soft);color:var(--red)}
-.vc-badge.pubtype{background:var(--surface-2);color:var(--ink-3)}
-.vc-themes{font-size:12px;color:var(--viol);font-weight:600;margin-top:3px}
-.vc-score{font-size:12px;font-weight:800;color:var(--ok);background:var(--ok-soft);border-radius:8px;padding:2px 8px}
-.vc-date{font-size:12px;color:var(--ink-4);font-weight:600}
-.vc-title{display:block;font-size:15px;font-weight:700;color:var(--ink);line-height:1.4;text-decoration:none}
-.vc-title:hover{color:var(--me)}
-.vc-resume{font-size:13.5px;color:var(--ink);line-height:1.55;margin:8px 0 6px;background:var(--bg);border-radius:8px;padding:8px 10px}   /* (15/09/2026) le résumé en deux lignes, encadré */
-.vc-motif{font-size:11.5px;color:var(--ink-3);margin-top:2px}   /* (15/09/2026) le pourquoi de la note */
 .vs-semaine{background:var(--white);border:1px solid var(--line);border-left:3px solid var(--red);padding:12px 14px;margin:0 0 14px}
 .vs-tete{display:flex;justify-content:space-between;align-items:center;gap:8px;font-size:15px}
 .vs-tete span{font-size:12px;color:var(--ink-3)}
@@ -476,14 +466,47 @@ a.tile:hover, .tile.clickable:hover {
 .vs-pills{display:flex;gap:8px;flex-wrap:wrap}
 .vs-pill{background:#EEF2FF;color:#4C1D95;font-size:12px;padding:3px 10px;border-radius:999px}
 html[data-theme="dark"] .vs-pill{background:#251B3C;color:#B593F2}
-.vc-resume-lbl{display:block;font-size:11px;color:var(--ink-4);margin-bottom:3px}
-.vc-journal{font-size:12.5px;color:var(--me);font-weight:600;margin-top:6px}
-.vc-authors{font-size:12.5px;color:var(--ink-3);margin-top:2px}
-.vc-actions{display:flex;flex-wrap:wrap;gap:7px;margin-top:11px}
-.vc-act{font-size:12px;font-weight:600;color:var(--ink-3);background:var(--surface-2);border:0;border-radius:8px;padding:5px 11px;cursor:pointer;text-decoration:none;display:inline-flex;align-items:center;gap:4px}
+/* (13/10/2026, v1.22) Nouvel habillage : rangée de thèmes, sections par thème, cartes à anneau de note */
+.vt-rail{display:flex;gap:7px;overflow-x:auto;padding:2px 0 4px;margin:-6px 0 10px;scrollbar-width:none;-webkit-overflow-scrolling:touch}
+.vt-rail::-webkit-scrollbar{display:none}
+.vt-chip{flex:none;border:1px solid var(--line);background:var(--white);color:var(--ink-2);font:600 13px 'DM Sans',sans-serif;border-radius:999px;padding:6px 12px;cursor:pointer;display:inline-flex;align-items:center;gap:6px;white-space:nowrap}
+.vt-chip .n{font-weight:500;color:var(--ink-4);font-size:12px}
+.vt-chip.on{background:var(--ink);color:var(--white);border-color:var(--ink)}
+.vt-chip.on .n{color:inherit;opacity:.7}
+.vt-dot{width:8px;height:8px;border-radius:50%;flex:none;display:inline-block}
+.vt-legend{display:flex;flex-wrap:wrap;gap:12px;font-size:11.5px;color:var(--ink-3);margin:0 0 6px}
+.vt-legend span{display:inline-flex;align-items:center;gap:5px}
+.vt-sec{margin:22px 0 4px}
+.vt-sec-h{display:flex;align-items:center;gap:10px;margin-bottom:12px}
+.vt-bar{width:4px;height:22px;border-radius:2px;flex:none}
+.vt-sec-h h3{font-size:18px;font-weight:700;margin:0;letter-spacing:-.01em;color:var(--ink)}
+.vt-sec-h .cnt{font-size:12.5px;color:var(--ink-3)}
+.vt-more{margin-left:auto;border:0;background:none;font:600 13px 'DM Sans',sans-serif;color:var(--me);cursor:pointer;padding:4px 0;white-space:nowrap}
+.vt-back{border:1px solid var(--line);background:var(--white);color:var(--ink-2);font:600 13px 'DM Sans',sans-serif;border-radius:10px;padding:6px 11px;cursor:pointer}
+.vt-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(min(100%,340px),1fr));gap:12px}
+.veille-card{background:var(--white);border:1px solid var(--line);border-radius:16px;padding:15px 16px;display:flex;flex-direction:column;transition:opacity .25s}
+.veille-card.lu{opacity:.6}
+.vc-top{display:flex;align-items:center;gap:12px;margin-bottom:11px}
+.vc-ring{width:50px;height:50px;border-radius:50%;flex:none;display:grid;place-items:center}
+.vc-ring b{width:40px;height:40px;border-radius:50%;background:var(--white);display:grid;place-items:center;font-size:16px;font-weight:700;color:var(--ink)}
+.vc-type{display:inline-block;font-size:11px;font-weight:700;letter-spacing:.04em;text-transform:uppercase;padding:3px 9px;border-radius:999px}
+.vc-new{display:inline-block;font-size:10.5px;font-weight:700;color:var(--red);background:var(--red-soft);border-radius:999px;padding:2px 7px;margin-left:6px;text-transform:uppercase;letter-spacing:.04em}
+.vc-meta{font-size:12.5px;color:var(--ink-3);margin-top:4px}
+.vc-journal{font-weight:600;color:var(--ink-2)}
+.vc-title{display:block;font-size:16px;font-weight:700;color:var(--ink);line-height:1.38;text-decoration:none}
+.vc-title:hover{color:var(--me)}
+.vc-resume{font-family:'Iowan Old Style','Charter','Georgia',serif;font-size:14.5px;line-height:1.55;color:var(--ink-2);margin:9px 0 0;border-left:2px solid var(--line);padding-left:10px}   /* (15/09) le résumé en deux lignes — (13/10) en italique de lecture */
+.vc-resume-lbl{display:block;font:600 10.5px 'DM Sans',sans-serif;letter-spacing:.05em;text-transform:uppercase;color:var(--ink-4);margin-bottom:2px}
+.vc-authors{font-size:12px;color:var(--ink-4);margin-top:8px}
+.vc-motif{font-size:11.5px;color:var(--ink-4);margin-top:3px}   /* (15/09/2026) le pourquoi de la note */
+.vc-ths{display:flex;flex-wrap:wrap;gap:6px;margin-top:11px}
+.vc-th{border:0;font:600 12px 'DM Sans',sans-serif;padding:3px 9px;border-radius:999px;cursor:pointer;display:inline-flex;align-items:center;gap:5px;background:var(--surface-2);color:var(--ink-2)}
+.vc-actions{display:flex;flex-wrap:wrap;gap:7px;margin-top:auto;padding-top:13px}
+.vc-act{font-size:12.5px;font-weight:600;color:var(--ink-3);background:var(--surface-2);border:0;border-radius:9px;padding:7px 11px;cursor:pointer;text-decoration:none;display:inline-flex;align-items:center;gap:4px}
 .vc-act:hover{color:var(--ink)}
 .vc-act.on{background:var(--me-soft);color:var(--me)}
 .vc-act.star.on{background:var(--amber-soft);color:var(--amber)}
+.vc-act.droite{margin-left:auto}
 
 /* Barre de chargement API (fine, en haut) */
 #apiBar{position:fixed;top:0;left:0;height:2px;width:0;background:var(--red);z-index:9998;transition:width .3s ease,opacity .3s ease;opacity:0}
@@ -710,15 +733,14 @@ html[data-theme="dark"] .vs-pill{background:#251B3C;color:#B593F2}
         <button class="vsel" id="vRevBtn" onclick="toggleVRevPanel(event)">Revues (toutes)</button>
         <div class="vrev-panel" id="vRevPanel" style="display:none"></div>
       </div>
-      <select class="vsel" id="vThemeSel" onchange="onVTheme(this.value)">
-        <option value="">Tous thèmes</option>
-      </select>
       <select class="vsel" onchange="onVSort(this.value)">
         <option value="relevance" selected>Pertinence</option>
         <option value="recent">Plus récents</option>
+        <option value="journal">Par revue</option>
       </select>
       <input class="vsearch" type="search" placeholder="Filtrer par titre, auteur, revue…" oninput="onVSearch(this.value)">
     </div>
+    <div class="vt-rail" id="vThemeRail"></div>
     <div id="veilleList"></div>
   </div>
   <div id="protocolesView" style="display:none">
@@ -2242,6 +2264,7 @@ async function openVeille(){
   document.getElementById('veilleView').style.display='block';
   document.getElementById('veilleCount').textContent='';
   document.getElementById('veilleToolbar').style.display='none';
+  document.getElementById('vThemeRail').innerHTML='';
   const box=document.getElementById('veilleList');
   box.innerHTML='<div class="topos-loading">Chargement…</div>';
   try{ V_SEEN = localStorage.getItem('pmVeilleSeen')||''; }catch(e){ V_SEEN=''; }
@@ -2272,7 +2295,6 @@ async function openVeille(){
       }
       _veilleAppliquerFile();                       // marques en attente par-dessus l'état serveur
       document.getElementById('veilleToolbar').style.display = VEILLE_ITEMS.length ? 'flex' : 'none';
-      populateThemeSelect();
       populateRevuePanel();
       renderVeille();
       _veilleRejouerFile();                         // et on tente de les poser, sans bloquer l'écran
@@ -2289,15 +2311,56 @@ function setVFilter(f, el){
   renderVeille();
 }
 function onVSource(v){ V_SOURCE=v; renderVeille(); }
-function onVTheme(v){ V_THEME=v; renderVeille(); }
-function populateThemeSelect(){
-  const sel=document.getElementById('vThemeSel'); if(!sel) return;
-  const set={}; VEILLE_ITEMS.forEach(function(it){ (it.themes||[]).forEach(function(t){ set[t]=true; }); });
-  const list=Object.keys(set).sort(function(a,b){ return a.localeCompare(b,'fr'); });
-  sel.innerHTML='<option value="">Tous thèmes</option>'+list.map(function(t){
-    return '<option value="'+esc(t)+'"'+(t===V_THEME?' selected':'')+'>'+esc(t)+'</option>';
-  }).join('');
+/* (13/10/2026, v1.22) Les thèmes ne sont plus un menu déroulant mais une rangée de
+   pastilles au-dessus de la liste ; toucher une pastille (ou le thème d'une carte,
+   ou « Voir les N ») ouvre le thème. « Tous les thèmes » revient à la vue rangée. */
+function onVTheme(v){
+  V_THEME=v||'';
+  renderVeille();
+  try{ document.getElementById('veilleView').scrollIntoView({block:'start'}); }catch(e){}
 }
+const _VT_PALETTE=['#E4572E','#1D9E75','#5B4BC4','#D97706','#1D6FB8','#C2417A','#0E9AA7','#7A9A01','#8C5E3C','#6D28D9','#B91C1C','#0369A1','#15803D','#A16207','#DB2777','#4F46E5','#0F766E','#9333EA','#EA580C','#2563EB','#65A30D'];
+function _vtCouleur(t){   // une couleur STABLE par thème (calculée sur son nom, pas sur son rang)
+  if(t==='Autres') return '#94A3B8';
+  let h=0; for(let i=0;i<t.length;i++) h=(h*31+t.charCodeAt(i))>>>0;
+  return _VT_PALETTE[h%_VT_PALETTE.length];
+}
+function _vtThemes(it){ return (it.themes&&it.themes.length) ? it.themes : ['Autres']; }
+/* Le type d'étude de la carte : celui que la note a retenu (1er mot du motif, qui
+   sait aussi lire le titre depuis le 13/10), sinon le type PubMed. */
+const _VT_TYPES={ 'ECR':['Essai randomisé','ecr'], 'méta-analyse':['Méta-analyse','meta'], 'revue systématique':['Revue systématique','rs'],
+                  'recommandation':['Recommandation','reco'], 'étude':['Étude','aut'], 'revue':['Mise au point','aut'] };
+/* Les couleurs écrites EN ENTIER (le banc vérifie que chaque var(--…) de la page existe) */
+const _VT_COUL={ ecr:['var(--vt-ecr)','var(--vt-ecr-bg)'], meta:['var(--vt-meta)','var(--vt-meta-bg)'], rs:['var(--vt-rs)','var(--vt-rs-bg)'],
+                 reco:['var(--vt-reco)','var(--vt-reco-bg)'], aut:['var(--vt-aut)','var(--vt-aut-bg)'] };
+function _vtType(it){
+  const k=String(it.motif||'').split(' · ')[0];
+  if(_VT_TYPES[k]) return _VT_TYPES[k];
+  const pt=it.pubtype;
+  if(pt==='Randomized Controlled Trial') return _VT_TYPES['ECR'];
+  if(pt==='Meta-Analysis') return _VT_TYPES['méta-analyse'];
+  if(pt==='Systematic Review') return _VT_TYPES['revue systématique'];
+  if(pt==='Practice Guideline'||pt==='Guideline') return _VT_TYPES['recommandation'];
+  if(pt==='Review') return _VT_TYPES['revue'];
+  return ['Article','aut'];
+}
+function _vtRail(shown){
+  const rail=document.getElementById('vThemeRail'); if(!rail) return;
+  if(!VEILLE_ITEMS.length){ rail.innerHTML=''; return; }
+  const cnt={}; shown.forEach(function(it){ _vtThemes(it).forEach(function(t){ cnt[t]=(cnt[t]||0)+1; }); });
+  const liste=Object.keys(cnt).sort(function(a,b){ return (a==='Autres')-(b==='Autres') || cnt[b]-cnt[a] || a.localeCompare(b,'fr'); });
+  if(V_THEME && !cnt[V_THEME]) liste.unshift(V_THEME);   // le thème ouvert reste visible même vidé par un filtre
+  rail.innerHTML='<button class="vt-chip'+(V_THEME?'':' on')+'" data-vth="">Tous les thèmes</button>'
+    + liste.map(function(t){
+      return '<button class="vt-chip'+(V_THEME===t?' on':'')+'" data-vth="'+esc(t)+'"><span class="vt-dot" style="background:'+_vtCouleur(t)+'"></span>'
+        + esc(t)+' <span class="n">'+(cnt[t]||0)+'</span></button>';
+    }).join('');
+}
+// Un seul écouteur pour les pastilles de la rangée, celles des cartes et « Voir les N ».
+document.addEventListener('click', function(ev){
+  const b=ev.target.closest && ev.target.closest('[data-vth]');
+  if(b && document.getElementById('veilleView').contains(b)) onVTheme(b.getAttribute('data-vth'));
+});
 /* ── Filtre par revues : cases à cocher, mémorisé sur CET appareil
       (localStorage, comme la date de dernière visite). [] = toutes. ── */
 function populateRevuePanel(){
@@ -2362,11 +2425,52 @@ function _vSemaine(){
   const res=VEILLE_ITEMS.filter(function(i){ return i.resume && i.ajoute && new Date(i.ajoute).getTime()>=lim; });
   if(!res.length) return '';
   const cat={};
-  res.forEach(function(i){ const k=PUBTYPE_FR[i.pubtype]||'Étude'; cat[k]=(cat[k]||0)+1; });
+  res.forEach(function(i){ const k=_vtType(i)[0]; cat[k]=(cat[k]||0)+1; });   // (13/10) même type que la carte : un ECR que PubMed n'a pas encore étiqueté compte comme essai
   const pills=Object.keys(cat).sort(function(a,b){return cat[b]-cat[a];}).map(function(k){ return '<span class="vs-pill">'+cat[k]+' '+esc(k.toLowerCase())+(cat[k]>1&&!/s$/.test(k)?'s':'')+'</span>'; }).join('');   // « 6 essais randomisés » se lit « 6 essai randomisés » : le pluriel du dernier mot suffit à l'œil
   return '<div class="vs-semaine"><div class="vs-tete"><b>✦ Cette semaine</b><span>'+res.length+' article'+(res.length>1?'s':'')+' résumé'+(res.length>1?'s':'')+'</span></div>'
     + '<div class="vs-txt">Les mieux notés des 7 derniers jours, chacun résumé en deux lignes sous son titre. Le reste de la liste suit.</div>'
     + '<div class="vs-pills">'+pills+'</div></div>';
+}
+function _vtCarte(it){
+  const isNew = V_SEEN && it.ajoute && it.ajoute>V_SEEN;
+  const ty=_vtType(it), sc=(it.score==null?null:Math.max(0,Math.min(100,Number(it.score))));
+  const pub='https://pubmed.ncbi.nlm.nih.gov/'+encodeURIComponent(it.pmid)+'/';
+  const co=_VT_COUL[ty[1]]||_VT_COUL.aut;
+  const anneau='conic-gradient('+co[0]+' '+(sc==null?0:sc)+'%, var(--line) 0)';
+  return '<div class="veille-card'+(it.lu?' lu':' unread')+'">'
+    + '<div class="vc-top"><div class="vc-ring" style="background:'+anneau+'" title="'+esc(it.motif||'')+'"><b>'+(sc==null?'–':sc)+'</b></div>'
+      + '<div style="min-width:0"><span class="vc-type" style="background:'+co[1]+';color:'+co[0]+'">'+esc(ty[0])+'</span>'
+      + (isNew?'<span class="vc-new">nouveau</span>':'')
+      + '<div class="vc-meta">'+(it.revue?'<span class="vc-journal">'+esc(it.revue)+'</span>':'')
+      + (it.source==='GENERAL'?' · généraliste':'')+(it.date?' · '+fmtDate(it.date):'')+'</div></div></div>'
+    + '<a class="vc-title" href="'+pub+'" target="_blank" rel="noopener">'+esc(it.titre)+'</a>'
+    + (it.resume?'<p class="vc-resume"><span class="vc-resume-lbl">✦ En deux lignes</span>'+esc(it.resume)+'</p>':'')
+    + (it.auteurs?'<div class="vc-authors">'+esc(it.auteurs)+'</div>':'')
+    + (it.motif?'<div class="vc-motif">'+esc(it.motif)+'</div>':'')
+    + (it.themes&&it.themes.length?'<div class="vc-ths">'+it.themes.map(function(t){
+        return '<button class="vc-th" data-vth="'+esc(t)+'"><span class="vt-dot" style="background:'+_vtCouleur(t)+'"></span>'+esc(t)+'</button>'; }).join('')+'</div>':'')
+    + '<div class="vc-actions">'
+      + '<button class="vc-act'+(it.lu?' on':'')+'" onclick="toggleV(\''+it.pmid+'\',\'lu\')">'+(it.lu?'✓ Lu':'Marquer lu')+'</button>'
+      + '<button class="vc-act star'+(it.star?' on':'')+'" onclick="toggleV(\''+it.pmid+'\',\'star\')" aria-label="Favori">'+(it.star?'★':'☆')+'</button>'
+      + (it.doi?'<a class="vc-act droite" href="https://doi.org/'+esc(it.doi)+'" target="_blank" rel="noopener">DOI</a>':'')
+      + '<a class="vc-act'+(it.doi?'':' droite')+'" href="'+pub+'" target="_blank" rel="noopener">PubMed</a>'
+    + '</div></div>';
+}
+function _vtTri(a,b){
+  if(V_SORT==='journal'){ const c=String(a.revue||'').localeCompare(String(b.revue||''),'fr'); if(c) return c; }
+  if(V_SORT==='relevance'||V_SORT==='journal'){
+    /* (15/09/2026) la note SCORE (0-100) calculée par le serveur passe devant ;
+       les articles d'avant la note (score vide) gardent le rang par type d'étude */
+    const sa=(a.score==null?-1:a.score), sb=(b.score==null?-1:b.score);
+    if(sa!==sb) return sb-sa;
+    const ra=_ptRank(a), rb=_ptRank(b);
+    if(ra!==rb) return ra-rb;
+  }
+  return a.date<b.date?1:(a.date>b.date?-1:0);
+}
+function _vtLegende(){
+  return '<div class="vt-legend">'+[['Essai randomisé','ecr'],['Méta-analyse','meta'],['Revue systématique','rs'],['Recommandation','reco'],['Autre','aut']]
+    .map(function(x){ return '<span><i class="vt-dot" style="background:'+_VT_COUL[x[1]][0]+'"></i>'+x[0]+'</span>'; }).join('')+'</div>';
 }
 function renderVeille(){
   const box=document.getElementById('veilleList');
@@ -2374,52 +2478,42 @@ function renderVeille(){
   const shown=VEILLE_ITEMS.filter(_vMatch);
   document.getElementById('veilleCount').textContent =
     VEILLE_ITEMS.length ? (shown.length+' affichés · '+unread+' non lus / '+VEILLE_ITEMS.length+' total') : '';
+  /* La rangée compte ce que les AUTRES filtres laissent passer, thème mis à part. */
+  const sansTheme=V_THEME; V_THEME=''; const pourRail=VEILLE_ITEMS.filter(_vMatch); V_THEME=sansTheme;
+  _vtRail(pourRail);
   if(!VEILLE_ITEMS.length){
     box.innerHTML='<div class="topos-empty">Aucun article pour l\'instant.<br><span>Le scan PubMed tourne chaque lundi ; l\'onglet VEILLE se remplit tout seul.</span></div>';
     return;
   }
   /* (15/09/2026 — passe 4) « Cette semaine » : les articles résumés (les 20 mieux notés arrivés depuis
-     7 jours) — un en-tête qui les compte par type, avant la liste. Invisible s'il n'y en a aucun. */
-  const _semaine = _vSemaine();
+     7 jours) — un en-tête qui les compte par type, avant la liste. Invisible s'il n'y en a aucun.
+     (13/10) Seulement sur la vue rangée par thèmes. */
+  const _semaine = V_THEME ? '' : _vSemaine();
   if(!shown.length){ box.innerHTML=_semaine+'<div class="topos-empty">Rien à afficher avec ce filtre.</div>'; return; }
-  shown.sort(function(a,b){
-    if(V_SORT==='relevance'){
-      /* (15/09/2026) la note SCORE (0-100) calculée par le serveur passe devant ;
-         les articles d'avant la note (score vide) gardent le rang par type d'étude */
-      const sa=(a.score==null?-1:a.score), sb=(b.score==null?-1:b.score);
-      if(sa!==sb) return sb-sa;
-      const ra=_ptRank(a), rb=_ptRank(b);
-      if(ra!==rb) return ra-rb;
-    }
-    return a.date<b.date?1:(a.date>b.date?-1:0);
+  shown.sort(_vtTri);
+  /* Un thème ouvert, une recherche ou les favoris : la liste complète, sans regroupement. */
+  if(V_THEME || V_SEARCH || V_FILTER==='star'){
+    const tete = V_THEME ? '<div class="vt-sec-h" style="margin-top:4px"><button class="vt-back" data-vth="">← Tous les thèmes</button>'
+      + '<span class="vt-bar" style="background:'+_vtCouleur(V_THEME)+'"></span><h3>'+esc(V_THEME)+'</h3><span class="cnt">'+shown.length+'</span></div>' : '';
+    box.innerHTML = _semaine + _vtLegende() + tete + '<div class="vt-grid">'+shown.map(_vtCarte).join('')+'</div>';
+    return;
+  }
+  /* Vue rangée par thèmes : les 3 meilleurs de chaque thème, un article n'apparaît qu'une fois
+     (dans son premier thème libre) ; « Voir les N » ouvre le thème entier. */
+  const parTheme={}, meilleur={};
+  shown.forEach(function(it){ _vtThemes(it).forEach(function(t){ (parTheme[t]=parTheme[t]||[]).push(it); meilleur[t]=Math.max(meilleur[t]||0, it.score==null?0:Number(it.score)); }); });
+  const ordre=Object.keys(parTheme).sort(function(a,b){ return (a==='Autres')-(b==='Autres') || meilleur[b]-meilleur[a] || parTheme[b].length-parTheme[a].length || a.localeCompare(b,'fr'); });
+  const place={}; let html='';
+  ordre.forEach(function(t){
+    const tous=parTheme[t];
+    const L=tous.filter(function(it){ return !place[it.pmid]; }).slice(0,3);
+    if(!L.length) return;
+    L.forEach(function(it){ place[it.pmid]=true; });
+    html+='<section class="vt-sec"><div class="vt-sec-h"><span class="vt-bar" style="background:'+_vtCouleur(t)+'"></span><h3>'+esc(t)+'</h3><span class="cnt">'+tous.length+'</span>'
+      + (tous.length>L.length?'<button class="vt-more" data-vth="'+esc(t)+'">Voir les '+tous.length+' →</button>':'')+'</div>'
+      + '<div class="vt-grid">'+L.map(_vtCarte).join('')+'</div></section>';
   });
-  box.innerHTML = shown.map(function(it){
-    const isNew = V_SEEN && it.ajoute && it.ajoute>V_SEEN;
-    const srcBadge = it.source==='THEME'
-      ? '<span class="vc-badge theme">Thème</span>'
-      : (it.source==='GENERAL'
-          ? '<span class="vc-badge general">Généraliste</span>'
-          : '<span class="vc-badge revue">Revue spécialisée</span>');
-    const ptBadge = PUBTYPE_FR[it.pubtype] ? '<span class="vc-badge pubtype">'+PUBTYPE_FR[it.pubtype]+'</span>' : '';
-    const right = (it.score!=null?'<span class="vc-score" title="'+esc(it.motif||'')+'">'+it.score+'</span>':'')
-                + '<span class="vc-date">'+fmtDate(it.date)+'</span>';
-    const pub='https://pubmed.ncbi.nlm.nih.gov/'+encodeURIComponent(it.pmid)+'/';
-    return '<div class="veille-card'+(it.lu?'':' unread')+'">'
-      + '<div class="vc-top">'+srcBadge+ptBadge+(isNew?'<span class="vc-badge new">nouveau</span>':'')
-        + '<span class="vc-right">'+right+'</span></div>'
-      + '<a class="vc-title" href="'+pub+'" target="_blank" rel="noopener">'+esc(it.titre)+'</a>'
-      + (it.resume?'<div class="vc-resume"><span class="vc-resume-lbl">✦ En deux lignes</span>'+esc(it.resume)+'</div>':'')
-      + (it.motif?'<div class="vc-motif">'+esc(it.motif)+'</div>':'')
-      + (it.revue?'<div class="vc-journal">'+esc(it.revue)+'</div>':'')
-      + (it.themes&&it.themes.length?'<div class="vc-themes">'+it.themes.map(esc).join(' · ')+'</div>':'')
-      + (it.auteurs?'<div class="vc-authors">'+esc(it.auteurs)+'</div>':'')
-      + '<div class="vc-actions">'
-        + '<button class="vc-act'+(it.lu?' on':'')+'" onclick="toggleV(\''+it.pmid+'\',\'lu\')">'+(it.lu?'✓ Lu':'Marquer lu')+'</button>'
-        + '<button class="vc-act star'+(it.star?' on':'')+'" onclick="toggleV(\''+it.pmid+'\',\'star\')">'+(it.star?'★':'☆')+'</button>'
-        + '<a class="vc-act" href="'+pub+'" target="_blank" rel="noopener">PubMed</a>'
-        + (it.doi?'<a class="vc-act" href="https://doi.org/'+esc(it.doi)+'" target="_blank" rel="noopener">DOI</a>':'')
-      + '</div></div>';
-  }).join('');
+  box.innerHTML = _semaine + _vtLegende() + html;
 }
 
 /* ── FILE LOCALE DES MARQUES (v1.30, doctrine des écritures) ─────────────

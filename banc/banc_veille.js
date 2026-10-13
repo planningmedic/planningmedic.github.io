@@ -526,6 +526,88 @@ function monde(plan) {
     V('…relancé, ne change plus rien', vm.runInContext('veilleRenoterParTitre()', m.ctx).corriges === 0);
   }
 
+  console.log('\n═══ Nouvel habillage v1.22 (13/10/2026) — thèmes en rangée, sections, cartes à anneau — piloté au clic ═══');
+  {
+    const { JSDOM, VirtualConsole } = require('jsdom');
+    const vcons = new VirtualConsole(); const erreurs = [];
+    vcons.on('jsdomError', e => erreurs.push(e.message));
+    const page = fs.readFileSync('../index.html', 'utf8');
+    const dom = new JSDOM(page, {
+      runScripts: 'dangerously', virtualConsole: vcons,
+      url: 'https://planningmedic.github.io/index.html', pretendToBeVisual: true,
+      beforeParse(win) {
+        win.eval(require('fs').readFileSync(require('path').join(__dirname, '..', 'partage', 'portail.js'), 'utf8')); win.eval(require('fs').readFileSync(require('path').join(__dirname, '..', 'partage', 'rendu_equite.js'), 'utf8'));
+        win.matchMedia = () => ({ matches:false, addListener(){}, removeListener(){}, addEventListener(){}, removeEventListener(){} });
+        win.Element.prototype.scrollIntoView = function () {};
+        win.scrollTo = () => {};
+      } });
+    const w = dom.window, d = w.document;
+    const envois = [];
+    w.fetch = async (u, o) => { try { envois.push(JSON.parse(o && o.body || '{}')); } catch (e) {} return { ok:true, json: async () => ({ success:true }) }; };
+    await new Promise(r => setTimeout(r, 400));
+    const it = (pmid, titre, revue, score, themes, motif, extra) => Object.assign({ pmid:String(pmid), date:'2026-10-0' + (pmid % 9 + 1), titre, auteurs:'Dupont A', revue, doi:'', source:'REVUE', score, resume:'', lu:false, star:false, ajoute:'', pubtype:'', themes, motif }, extra || {});
+    w.miroirRead = async () => ({ success:true, data: {
+      veille: { success:true, items: [
+        it(10, 'Essai A', 'Anesth Analg', 100, ['Hémodynamique', 'Douleur périopératoire'], 'ECR · revue spécialisée · 2 thèmes', { resume:'Moins de douleur à 3 mois.', pubtype:'Journal Article', ajoute:new Date().toISOString().slice(0, 10) }),
+        it(11, 'Méta B', 'BJA', 90, ['Hémodynamique'], 'méta-analyse · revue spécialisée'),
+        it(12, 'Cohorte C', 'Anaesthesia', 80, ['Hémodynamique'], 'étude · revue spécialisée'),
+        it(13, 'Article D', 'Anesthesiology', 70, ['Hémodynamique'], 'revue spécialisée'),
+        it(14, 'Article E', 'BJA', 60, ['Douleur périopératoire'], 'revue spécialisée'),
+        it(15, 'Revue F', 'Crit Care', null, [], '', { pubtype:'Systematic Review' }),
+      ] },
+      veille_marques: { parMar: {} },
+    } });
+    try { w.localStorage.removeItem('pmVeilleRevues'); w.localStorage.removeItem('pmVeilleFile'); } catch (e) {}
+    await w.openVeille();
+    const cartes = () => [...d.querySelectorAll('#veilleList .veille-card')];
+    const titres = () => cartes().map(c => c.querySelector('.vc-title').textContent);
+    const chips = () => [...d.querySelectorAll('#vThemeRail .vt-chip')].map(c => c.textContent.replace(/\s+/g, ' ').trim());
+    V('la page se charge sans erreur JavaScript', erreurs.length === 0, erreurs.slice(0, 2));
+    V('le menu déroulant des thèmes a disparu, la rangée de pastilles le remplace', !d.getElementById('vThemeSel') && !!d.getElementById('vThemeRail'));
+    V('la rangée : « Tous les thèmes » puis chaque thème avec son compte, « Autres » en dernier', JSON.stringify(chips()) === JSON.stringify(['Tous les thèmes', 'Hémodynamique 4', 'Douleur périopératoire 2', 'Autres 1']), chips());
+    const secs = [...d.querySelectorAll('#veilleList .vt-sec')].map(sct => sct.querySelector('h3').textContent + ':' + sct.querySelectorAll('.veille-card').length);
+    V('vue rangée : 3 meilleurs par thème, un article une seule fois', JSON.stringify(secs) === JSON.stringify(['Hémodynamique:3', 'Douleur périopératoire:1', 'Autres:1']), secs);
+    const plus = [...d.querySelectorAll('#veilleList .vt-sec')].map(sct => (sct.querySelector('.vt-more') || { textContent:'' }).textContent.trim());
+    V('« Voir les N → » dès qu\'un thème a plus d\'articles que ses cartes ; rien sous « Autres », complet', JSON.stringify(plus) === JSON.stringify(['Voir les 4 →', 'Voir les 2 →', '']), plus);
+    const cA = cartes()[0];
+    V('carte : anneau avec la note, étiquette du type d\'après la note (ECR → Essai randomisé)', cA.querySelector('.vc-ring b').textContent === '100' && cA.querySelector('.vc-type').textContent === 'Essai randomisé', [cA.querySelector('.vc-ring b').textContent, cA.querySelector('.vc-type').textContent]);
+    V('…méta-analyse et étude reconnues aussi', /Méta-analyse/.test(cartes()[1].querySelector('.vc-type').textContent) && /Étude/.test(cartes()[2].querySelector('.vc-type').textContent));
+    const cF = cartes().find(c => /Revue F/.test(c.textContent));
+    V('sans note ni motif : « – » dans l\'anneau, type pris dans PubMed (Revue systématique)', cF.querySelector('.vc-ring b').textContent === '–' && cF.querySelector('.vc-type').textContent === 'Revue systématique');
+    V('le résumé garde son étiquette « En deux lignes », le pourquoi de la note reste sous le titre', /En deux lignes/.test(cA.querySelector('.vc-resume').textContent) && /ECR · revue spécialisée/.test(cA.querySelector('.vc-motif').textContent));
+    V('la revue est dans la ligne du type', cA.querySelector('.vc-journal').textContent === 'Anesth Analg');
+    V('« Cette semaine » et la légende des couleurs restent en tête', !!d.querySelector('#veilleList .vt-legend'));
+    V('« Cette semaine » compte par le type de la carte (l\'ECR d\'après la note, pas « étude »)', /1 essai randomisé/.test((d.querySelector('#veilleList .vs-semaine') || { textContent:'' }).textContent), (d.querySelector('#veilleList .vs-semaine') || {}).textContent);
+
+    d.querySelector('.vt-more').click();
+    V('« Voir les 4 » ouvre le thème : 4 cartes, triées par note', JSON.stringify(titres()) === JSON.stringify(['Essai A', 'Méta B', 'Cohorte C', 'Article D']), titres());
+    V('…la pastille du thème s\'allume, un bouton « ← Tous les thèmes » apparaît', /Hémodynamique/.test(d.querySelector('#vThemeRail .vt-chip.on').textContent) && !!d.querySelector('#veilleList .vt-back'));
+    w.onVSort('journal');
+    V('tri « Par revue » : ordre alphabétique des revues', JSON.stringify(cartes().map(c => c.querySelector('.vc-journal').textContent)) === JSON.stringify(['Anaesthesia', 'Anesth Analg', 'Anesthesiology', 'BJA']), cartes().map(c => c.querySelector('.vc-journal').textContent));
+    V('« Par revue » figure dans le menu de tri', [...d.querySelectorAll('select.vsel option')].some(o => o.value === 'journal'));
+    w.onVSort('relevance');
+    d.querySelector('#veilleList .vt-back').click();
+    V('« ← Tous les thèmes » revient à la vue rangée', d.querySelectorAll('#veilleList .vt-sec').length === 3);
+
+    [...d.querySelectorAll('#veilleList .vc-th')].find(b => b.textContent === 'Douleur périopératoire').click();
+    V('toucher le thème d\'une carte ouvre ce thème (2 articles)', JSON.stringify(titres()) === JSON.stringify(['Essai A', 'Article E']), titres());
+    [...d.querySelectorAll('#vThemeRail .vt-chip')][0].click();
+
+    w.onVSearch('cohorte');
+    V('une recherche donne la liste à plat, sans sections', cartes().length === 1 && d.querySelectorAll('#veilleList .vt-sec').length === 0);
+    w.onVSearch('');
+
+    cartes()[0].querySelector('.vc-act').click();
+    await new Promise(r => setTimeout(r, 30));
+    V('« Marquer lu » : la carte quitte les non lus…', !titres().includes('Essai A'), titres());
+    V('…et la marque part au serveur (file locale inchangée)', envois.some(e => e.action === 'markVeille' && e.pmid === '10' && e.field === 'lu' && e.value === true), envois);
+    V('la rangée recompte sans l\'article lu', chips()[1] === 'Hémodynamique 3', chips());
+
+    const sombre = (page.match(/html\[data-theme="dark"\] \{[\s\S]*?\}/) || [''])[0];
+    V('les 5 couleurs de type existent aussi en mode sombre', ['ecr', 'meta', 'rs', 'reco', 'aut'].every(k => sombre.indexOf('--vt-' + k + ':') !== -1 && sombre.indexOf('--vt-' + k + '-bg:') !== -1));
+    V('aucune erreur JavaScript pendant toute la navigation', erreurs.length === 0, erreurs.slice(0, 2));
+  }
+
 console.log(`\n${ok} OK · ${ko} en échec`);
   process.exit(ko ? 1 : 0);
 })();  console.log('\n═══ Passe 4 : le résumé en deux lignes (15/09/2026) ═══');
