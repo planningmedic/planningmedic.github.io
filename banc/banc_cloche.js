@@ -140,7 +140,7 @@ console.log('\n═══ C5. Le dashboard : zéro requête ajoutée, cloche pré
 {
   const html = fs.readFileSync('../index.html', 'utf8');
   V("la clé `notifs` voyage dans L'APPEL D'OUVERTURE (pas une requête de plus)",
-    /miroirRead\(\['annees'[^\]]*'echanges', 'notifs'\]\)/.test(html));
+    /miroirRead\(\['annees'[^\]]*'echanges', 'notifs'[^\]]*\]\)/.test(html));   // (14/10/2026) d'autres clés peuvent suivre (staffs, v1.24.1)
   V('aucun autre appel réseau dédié à la cloche',
     (html.match(/notif-vu/g) || []).length === 1);   // le seul : la remise à zéro, à fond perdu
   V('la cloche est dans l\'en-tête', html.includes('id="notifBell"') && html.includes('data-lucide="bell"'));

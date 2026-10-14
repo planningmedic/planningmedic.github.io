@@ -250,6 +250,34 @@ function planning(annee, mois, statuts) {
     V('aucune erreur JavaScript', a.erreurs.length + b.erreurs.length + c.erreurs.length + rien.erreurs.length === 0, a.erreurs.concat(b.erreurs, c.erreurs, rien.erreurs).slice(0, 2));
   }
 
+  /* ── E. (14/10/2026, v1.24.1) Pastille de la tuile Staffs ── */
+  console.log(`\n═══ 35. Staffs : le prochain sur la tuile, arrivé avec l'ouverture ═══`);
+  {
+    const iso = d => d.toLocaleDateString('fr-CA', { timeZone: 'Europe/Paris' });
+    const j = n => { const d = new Date(); d.setDate(d.getDate() + n); return iso(d); };
+    const JA = ['dim.','lun.','mar.','mer.','jeu.','ven.','sam.'];
+    const etiquette = dt => { const p = dt.split('-'); const d = new Date(+p[0], +p[1]-1, +p[2]); return JA[d.getDay()] + ' ' + d.getDate(); };
+    const staffs = { success: true, count: 3, staffs: [
+      { date: j(-3), heure: '14h', theme: 'Staff passé', intervenant: 'X' },        // la copie du relais peut dater de la veille
+      { date: j(9), heure: '14h', theme: 'Mise au point SedLine', intervenant: 'Y' },
+      { date: j(2), heure: '14h15', theme: 'Présentation Céfiderocol', intervenant: 'Laboratoire' },
+    ] };
+    const a = await ouvrir({ [`planning_${AN}`]: planning(AN, 12, ['', '', '']), annees, staffs });
+    const t = a.w.document.querySelector('#tilesView [data-key="staffs"]');
+    const b = t && t.querySelector('.tile-badge');
+    V('la liste des staffs voyage dans l\'appel d\'ouverture (un seul aller-retour)', a.miroir.some(k => k.includes('staffs') && k.includes('echanges')), a.miroir);
+    V('pastille : le PROCHAIN staff (pas le passé, pas le plus lointain)', b && b.textContent === etiquette(j(2)), b && b.textContent);
+    V('sous-titre : l\'heure et le thème', t.querySelector('.tile-sub').textContent === '14h15 · Présentation Céfiderocol', t.querySelector('.tile-sub').textContent);
+    V('aucun appel Apps Script pour la pastille', !a.gas.includes('listStaffs'), a.gas);
+    const auj = await ouvrir({ [`planning_${AN}`]: planning(AN, 12, ['', '', '']), annees, staffs: { success: true, staffs: [{ date: j(0), heure: '', theme: '', intervenant: 'Laboratoire Z' }] } });
+    const ta = auj.w.document.querySelector('#tilesView [data-key="staffs"]');
+    V('staff le jour même : « aujourd\'hui », et l\'intervenant à défaut de thème', ta.querySelector('.tile-badge').textContent === "aujourd'hui" && ta.querySelector('.tile-sub').textContent === 'Laboratoire Z', ta.textContent);
+    const sans = await ouvrir({ [`planning_${AN}`]: planning(AN, 12, ['', '', '']), annees });
+    const ts = sans.w.document.querySelector('#tilesView [data-key="staffs"]');
+    V('aucune liste : pas de pastille, texte habituel', !ts.querySelector('.tile-badge') && /Programme des réunions/.test(ts.querySelector('.tile-sub').textContent));
+    V('aucune erreur JavaScript', a.erreurs.length + auj.erreurs.length + sans.erreurs.length === 0, a.erreurs.concat(auj.erreurs, sans.erreurs).slice(0, 2));
+  }
+
   console.log(`\n${ok} OK · ${ko} en échec`);
   process.exit(ko ? 1 : 0);
 })();
