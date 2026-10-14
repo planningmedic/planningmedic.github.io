@@ -577,7 +577,7 @@
     <div class="callout warn">
       <div class="ct">Une indisponibilité n'est pas un congé</div>
       <p>Un congé est validé : vous ne travaillez pas ce jour-là.</p>
-      <p>Une indisponibilité veut dire « je travaille, mais je ne peux pas prendre la garde ». Elle est respectée dans la mesure du possible, et le comité vous prévient si elle ne peut pas l'être.</p>
+      <p>Une indisponibilité veut dire « je travaille, mais je ne peux pas prendre la garde ». Aucune garde ne vous sera donnée ce jour-là. Si cela laissait une journée sans binôme, le comité vous demanderait de la retirer avant la génération.</p>
     </div>
 
     <h3>Demander à être de garde un jour précis</h3>
@@ -587,7 +587,7 @@
       <li><b>Un souhait refusé ne vous fait rien perdre.</b> La garde vous revient à une autre date.</li>
       <li><b>Un lundi, un mardi, un mercredi : autant de demandes que vous voulez.</b> Ces jours sont nombreux, mais une demande n'est pas une réservation : si plusieurs MARs visent la même date, tous ne l'auront pas.</li>
       <li><b>Un jeudi, un samedi ou un week-end (vendredi et dimanche) : autant de demandes que votre part le permet</b> — environ cinq ou six de chaque par an pour un temps plein. Au-delà, le surplus est simplement ignoré.</li>
-      <li><b>Un jour férié : une seule demande par an.</b> Il n'y en a qu'une douzaine par an pour toute l'équipe. <b>L'écran vous laissera en cocher davantage</b> — contrairement aux indisponibilités, il ne refuse rien ici — mais une seule sera accordée : la première, dans l'ordre des dates, qui peut l'être. Même règle pour une veille de férié qui tombe un jeudi, un vendredi ou un week-end.</li>
+      <li><b>Un jour férié : une seule demande par an</b>, tous jours fériés confondus. Elle vaut aussi pour un week-end ou un samedi de pont qui contient un férié. Il n'y en a qu'une douzaine par an pour toute l'équipe. <b>L'écran vous laissera en cocher davantage</b> — contrairement aux indisponibilités, il ne refuse rien ici — mais une seule sera accordée : la première, dans l'ordre des dates, qui peut l'être. Même règle pour une veille de férié qui tombe un jeudi. Un vendredi, un samedi ou un dimanche, elle compte comme un week-end ordinaire, dans la limite de votre part.</li>
       <li><b>Une veille de férié qui tombe un lundi, un mardi ou un mercredi se demande comme un jour ordinaire</b>, sans limite particulière.</li>
     </ul>
 
@@ -618,7 +618,7 @@
     </div>
 
     <h3>Le mail « Vos gardes »</h3>
-    <p>Quand le planning est généré, vous recevez la liste de vos gardes de l'année, mois par mois, à reporter dans votre agenda. Les week-ends et les fériés y sont signalés, et le mail vous dit combien de vos demandes ont été retenues.</p>
+    <p>Quand le planning est généré, vous recevez la liste de vos gardes de l'année, mois par mois, à reporter dans votre agenda. Les week-ends et les fériés y sont signalés, et le mail vous dit combien de vos jours demandés ont été retenus (un week-end y compte pour deux jours).</p>
     <p>Il peut mettre un peu de temps à arriver. S'il ne vous parvient pas, regardez vos courriers indésirables, puis signalez-le au comité, qui peut le renvoyer.</p>
   </div>
 </details>
@@ -883,7 +883,7 @@
     <details class="plus">
       <summary>Comment deux MARs à égalité sont départagés</summary>
       <div class="dedans">
-        <p>Quand deux MARs sont exactement à égalité pour une garde, un <b>numéro de tirage</b> tranche. Il ne dépend ni de votre nom ni de votre place dans la liste.</p>
+        <p>Quand deux MARs sont exactement à égalité pour une garde, un <b>numéro de départage</b> tranche. Il ne dépend ni de votre nom ni de votre place dans la liste.</p>
         <p>Le calcul s'arrête dès qu'un tirage met tout le monde à une garde d'écart au plus — ce qui arrive dès le premier essai plus d'une fois sur deux. Sinon il recommence avec un autre numéro, huit fois au maximum, et conserve le meilleur résultat.</p>
         <p>Rejouer le même numéro redonne exactement le même planning.</p>
       </div>
@@ -911,7 +911,7 @@
     <h3>Ce qui fait varier votre cible</h3>
     <div class="liste">
       <div><b>Votre quotité de gardes</b><span>Un MAR à 80 % a une cible égale à 80 % de celle d'un temps plein.</span></div>
-      <div><b>Votre présence réelle dans l'année</b><span>Une arrivée en cours d'année, un départ ou un congé long réduisent la cible au prorata. Un MAR qui arrive en juillet ne doit que la moitié d'une part.</span></div>
+      <div><b>Votre présence réelle dans l'année</b><span>Une arrivée en cours d'année, un départ ou un congé long réduisent la cible au prorata. Un MAR qui arrive en juillet ne doit que la moitié d'une part. Pour un congé long, le comité peut décider de garder la cible pleine.</span></div>
       <div><b>Vos jours fixes non travaillés</b><span>Si vous ne travaillez jamais le jeudi, votre cible « jeudis » est nulle. Mais votre cible totale n'est pas réduite une deuxième fois : la quotité couvre déjà le volume.</span></div>
     </div>
 
@@ -927,9 +927,9 @@
 <details class="sec" id="s16">
   <summary><span class="n">16</span><span>L'ordre : les week-ends d'abord</span><span class="chev">›</span></summary>
   <div class="corps">
-    <p>Tous les jours de garde ne se valent pas. Le calcul équilibre les écarts dans cet ordre strict :</p>
+    <p>Tous les jours de garde ne se valent pas. Le calcul équilibre les écarts par ordre d'importance :</p>
     <ol class="steps">
-      <li><b>Le week-end vendredi + dimanche.</b> La charge la plus lourde. Le même binôme assure le vendredi et le dimanche, avec les mêmes rôles. Un week-end compte pour une unité qui ne se coupe pas.</li>
+      <li><b>Le week-end vendredi + dimanche.</b> La charge la plus lourde. Le même binôme assure le vendredi et le dimanche, avec les mêmes rôles. Un week-end compte pour une unité qui ne se coupe pas, sauf exception rare, quand personne ne peut tenir les deux jours ; le comité en est alors averti.</li>
       <li><b>Les samedis.</b> Chaque samedi de garde ouvre droit à une récupération (section 21).</li>
       <li><b>Les jeudis et les veilles de férié</b>, à égalité, puis <b>les fériés</b>.</li>
       <li><b>Le total de gardes.</b> Équilibré en dernier : les lundis, mardis et mercredis servent de variable d'ajustement.</li>
@@ -978,7 +978,8 @@
     </ul>
 
     <h3>Au-delà des interdits</h3>
-    <p>Le calcul espace aussi vos gardes. Une garde à deux jours d'une autre est fortement pénalisée, à trois ou quatre jours légèrement. <b>Une troisième garde dans la même semaine est très lourdement pénalisée</b> : en pratique elle n'arrive que si la journée resterait sans personne. Et il lisse sur l'année : vos gardes sont réparties au fil des mois en proportion de votre présence, plutôt qu'entassées sur une période.</p>
+    <p>Le calcul espace aussi vos gardes. Une garde à deux jours d'une autre est fortement pénalisée, à trois ou quatre jours légèrement. <b>Une troisième garde dans la même semaine est très lourdement pénalisée</b> : en pratique elle n'arrive que si tous les candidats du jour ont déjà une garde trop proche. Une garde le dimanche puis le mardi n'arrive qu'en dernier recours, sauf si vous avez demandé ce mardi. Et il lisse sur l'année : vos gardes sont réparties au fil des mois en proportion de votre présence, plutôt qu'entassées sur une période.</p>
+    <p>Juste avant un départ en congés, le calcul essaie de vous donner la garde de la veille de votre dernier jour travaillé : votre repos de garde tombe alors sur ce jour-là. Jusqu'à deux fois par an, sans rien changer à vos compteurs.</p>
 
     <p><b>Jeudi et samedi la même semaine, ou deux week-ends d'affilée, sont évités</b> — mais autorisés en dernier recours quand une journée resterait sans personne (voir ci-dessous). <b>Si vous demandez vous-même deux week-ends qui se suivent</b>, ils peuvent vous être accordés tous les deux : le calcul ne vous les impose jamais, mais il ne refuse plus ce que vous avez choisi.</p>
 
@@ -1005,7 +1006,7 @@
     <h3>Ce que vous pouvez demander</h3>
     <ul>
       <li><b>Jeudis, samedis, week-ends</b> : jusqu'à votre part de l'année, soit environ <b>cinq ou six de chaque</b> pour un temps plein, moins à temps partiel. Au-delà, le surplus n'est pas retenu.</li>
-      <li><b>Jours fériés</b> : <b>une seule demande accordée par an</b>, la première dans l'ordre des dates qui peut l'être. Il n'y en a qu'une douzaine pour toute l'équipe. Même règle pour une veille de férié qui tombe un jeudi, un vendredi ou un week-end ; un lundi, un mardi ou un mercredi, elle se demande comme un jour ordinaire.</li>
+      <li><b>Jours fériés</b> : <b>une seule demande accordée par an</b>, tous jours fériés confondus, la première dans l'ordre des dates qui peut l'être. Elle vaut aussi pour un week-end ou un samedi de pont qui contient un férié. Il n'y en a qu'une douzaine pour toute l'équipe. Même règle pour une veille de férié qui tombe un jeudi ; un lundi, un mardi ou un mercredi, elle se demande comme un jour ordinaire ; un vendredi, un samedi ou un dimanche, elle compte comme un week-end ordinaire, dans la limite de votre part.</li>
       <li><b>Lundi, mardi, mercredi</b> : autant que vous voulez, accordés dans la limite des gardes qui vous restent une fois les jours ci-dessus comptés, soit environ <b>dix</b> pour un temps plein.</li>
     </ul>
 
@@ -1039,7 +1040,7 @@
     <p>Le 24 et le 25 décembre, le 31 décembre et le 1<sup>er</sup> janvier sont placés <b>avant tout le reste</b>, selon une rotation qui court sur plusieurs années.</p>
     <ul>
       <li>Priorité à qui ne les a jamais faites, puis à celui qui les a faites il y a le plus longtemps.</li>
-      <li><b>Au plus une de ces quatre dates par personne et par an.</b> Personne n'enchaîne Noël et le Nouvel An la même année.</li>
+      <li><b>Au plus une de ces quatre dates par personne et par an</b>, sauf s'il n'y a pas d'autre moyen de pourvoir la date. Personne n'enchaîne Noël et le Nouvel An la même année.</li>
       <li>La mémoire est tenue au réel : si vous avez échangé votre 25 décembre, c'est votre collègue qui est enregistré comme l'ayant fait.</li>
     </ul>
 
@@ -1052,7 +1053,7 @@
     </details>
 
     <h3>Les fériés en semaine</h3>
-    <p>Un férié isolé un mardi ou un mercredi est compté à part, avec sa propre cible d'équité.</p>
+    <p>Chaque jour férié, quel que soit son jour, compte dans votre compteur des fériés, qui a sa propre cible.</p>
 
     <h3>Les ponts</h3>
     <p>Un férié qui touche un week-end forme un bloc, assuré par un seul binôme :</p>
@@ -1112,7 +1113,7 @@
       <li>Le vendredi, le 18h revient en priorité au MAR de garde réanimation du samedi : il enchaîne naturellement sur son week-end.</li>
       <li>Jamais de 18h un jour de garde, de repos de garde, de récupération, d'absence, ni une semaine « off » — ni avant votre arrivée ou après votre départ du service.</li>
     </ul>
-    <p>Ces règles ne sont relâchées qu'en tout dernier recours, si personne d'autre n'est disponible.</p>
+    <p>Garde, repos, récupération, absence : jamais de 18h, sans exception. En revanche, une indisponibilité de garde, le « pas deux jours de suite » et le « un par semaine » peuvent céder, dans cet ordre, si personne d'autre n'est disponible.</p>
   </div>
 </details>
 
@@ -1123,7 +1124,7 @@
     <p>Que devient le petit écart de fin d'année ? Il est reporté sur l'année suivante. Qui a fait un peu plus que sa part une année en fera un peu moins la suivante, et inversement — <b>type de jour par type de jour</b> : celui qui a fait trop de samedis en fera moins, celui qui a fait trop de week-ends aussi.</p>
 
     <ul>
-      <li>Le report est <b>plafonné à 2 gardes</b> par type de jour, et <b>amorti</b> : seuls 60 % de l'écart sont reportés. La dette corrige en douceur, elle ne bouleverse jamais une année.</li>
+      <li>L'écart est d'abord <b>limité à 2</b>, puis <b>amorti</b> : seuls 60 % sont reportés, soit <b>au plus 1,2 garde</b> par type de jour. La dette corrige en douceur, elle ne bouleverse jamais une année.</li>
       <li>L'écart mesuré est celui du <b>planning généré</b>, figé au moment de la génération — pas l'état au 31 décembre. Vos échanges de gré à gré en cours d'année ne créent ni ne remboursent de dette.</li>
       <li>Un MAR absent l'année précédente démarre à zéro.</li>
     </ul>

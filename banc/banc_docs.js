@@ -466,8 +466,10 @@ console.log('\n═══ 13. Chaque scénario du banc est lancé par lancer.sh �
   /* (11/09/2026) Le guide décrit l'algorithme ACTUEL, sans raconter ce qu'il
      faisait avant. La mention de l'ancien départage par la position dans le
      tableau des médecins est retirée : elle n'apprend rien à qui lit aujourd'hui. */
-  V('…et explique le numéro de tirage sans raconter l\'ancien fonctionnement',
-    /num[ée]ro de tirage/.test(mar) && !/autrefois/.test(mar) && !/position dans le tableau/.test(mar));
+  /* (14/10/2026) « numéro de tirage » → « numéro de départage » dans le guide MAR : le
+     même guide affirme que le calcul « ne tire pas au sort », les deux mots se contredisaient. */
+  V('…et explique le numéro de départage sans raconter l\'ancien fonctionnement',
+    /num[ée]ro de départage/.test(mar) && !/autrefois/.test(mar) && !/position dans le tableau/.test(mar));
   V('…et donne la vraie règle d\'arrêt du multi-départ',
     /une garde d'écart au plus/.test(mar) && /huit fois au maximum/.test(mar));
   V('…et donne la mesure d\'après le changement', /44 années sur 45/.test(mar));

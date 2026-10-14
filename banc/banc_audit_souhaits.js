@@ -81,8 +81,14 @@ V('le guide explique les jours couplés', gMar.includes('vont par paire'));
    mardi ou un mercredi se demande comme un jour ordinaire (pas de limite annuelle) ;
    du jeudi au dimanche, elle suit la règle des fériés. Le guide doit dire
    exactement ce que fait le générateur — les deux sont vérifiés ensemble. */
-V('le guide dit qu\'une veille de férié du jeudi au dimanche suit la règle des fériés',
-  /veille de férié qui tombe un jeudi, un vendredi ou un week-end/.test(gMar));
+/* (14/10/2026) Le générateur ne reconnaît une veille de férié que du lundi au jeudi
+   (isVjf). Le guide annonçait « du jeudi au dimanche » : la moitié vendredi-dimanche
+   n'était pas vérifiée contre le code. Désormais le guide dit ce que fait le code. */
+V('le guide : seule la veille de férié du JEUDI suit la règle des fériés, vendredi-dimanche = week-end ordinaire',
+  /veille de férié qui tombe un jeudi\. Un vendredi, un samedi ou un dimanche, elle compte comme un week-end ordinaire/.test(gMar)
+  && !/veille de férié qui tombe un jeudi, un vendredi ou un week-end/.test(gMar));
+V('…et le générateur fait bien cela (veille de férié = lundi à jeudi seulement)',
+  /const isVjf=!isFerie&&ferieLend&&dow>=1&&dow<=4;/.test(lire("gas/generateur_gardes.gs")));
 V('le guide dit qu\'une veille de férié du lundi au mercredi est un jour ordinaire',
   /veille de férié qui tombe un lundi, un mardi ou un mercredi se demande comme un jour ordinaire/.test(gMar));
 {
@@ -104,6 +110,36 @@ V('le générateur pose les jours couplés en unité complète',
   gen.includes('uniteDeSouhait'));
 V('le chemin des jours libres (lun/mar/mer) est explicitement préservé',
   gen.includes('estJourLibre'));
+
+// 5) (14/10/2026) Relecture du guide MAR contre le générateur : chaque phrase corrigée
+//    est verrouillée ici, avec la ligne de code qui la rend vraie.
+{
+  const txt = gMar.replace(/<[^>]+>/g, '');
+  V('guide : la demande « férié » est commune à tous les fériés, ponts et week-ends qui en contiennent un',
+    /tous jours fériés confondus/.test(txt) && /week-end ou un samedi de pont qui contient un férié/.test(txt));
+  V('…générateur : le joker annuel vaut pour veille, férié de semaine ET tout jour férié de l\'unité',
+    /if\(\(_c\.vjf>0\|\|_c\.ferie>0\|\|_c\.jf>0\)&&souhaitRare\[m\]>=SOUHAIT_QUOTA_RARE\) return false;/.test(gen) && /if\(di\.isFerie\)c\.jf\+\+;/.test(gen));
+  V('guide : une indisponibilité est toujours respectée pour la garde (plus de « dans la mesure du possible »)',
+    /Aucune garde ne vous sera donnée ce jour-là/.test(txt) && !/respectée dans la mesure du possible/.test(txt));
+  V('…générateur : INDISPO bloque toujours la garde',
+    /if\(s==='INDISPO'\|\|s==='VAC'\|\|s==='FORM'\|\|s==='TP'\|\|s==='CL'\|\|s==='CTP'\) return true;/.test(gen));
+  V('guide : chaque férié, quel que soit son jour, compte dans le compteur des fériés',
+    /Chaque jour férié, quel que soit son jour, compte dans votre compteur des fériés/.test(txt) && !/Un férié isolé un mardi ou un mercredi est compté à part/.test(txt));
+  V('…générateur : le compteur des fériés compte tout jour férié',
+    /if\(dayByDate\[date\]\?\.isFerie\)cnt\[id\]\.jf\+\+;/.test(gen));
+  V('guide : 18h — garde, repos, absence jamais ; indispo, veille, « un par semaine » cèdent dans cet ordre',
+    /jamais de 18h, sans exception/.test(txt) && /une indisponibilité de garde, le « pas deux jours de suite » et le « un par semaine » peuvent céder, dans cet ordre/.test(txt));
+  V('…générateur : replis du 18h dans cet ordre (indispo, puis veille, puis semaine), dispo18 jamais levé',
+    (() => { const i1 = gen.indexOf("indispos[id]?.[day.date]!=='INDISPO');"), i2 = gen.indexOf("if(!pool.length) pool=allDoctors.filter(id=>_libre(id)&&dispo18(id,day.date)&&h18A[veille]!==id&&!did18wk(id,day.date));"),
+             i3 = gen.indexOf("if(!pool.length) pool=allDoctors.filter(id=>_libre(id)&&dispo18(id,day.date)&&!did18wk(id,day.date));"), i4 = gen.indexOf("if(!pool.length) pool=allDoctors.filter(id=>_libre(id)&&dispo18(id,day.date));");
+             return i1 > 0 && i1 < i2 && i2 < i3 && i3 < i4; })());
+  V('guide : dette limitée à 2 puis 60 % : au plus 1,2 garde par type de jour',
+    /au plus 1,2 garde/.test(txt) && /seuls 60 % sont reportés/.test(txt));
+  V('…générateur : plafond ±2 puis amortissement 0,6',
+    /const DETTE_AMORTI\s*=\s*0\.6;/.test(gen) && /dette\[id\]\[k\]=DETTE_AMORTI\*Math\.max\(-2,Math\.min\(2,dette\[id\]\[k\]\)\)/.test(gen));
+  V('guide : plus de « ordre strict » ni de « numéro de tirage » (le calcul ne tire pas au sort)',
+    !/ordre strict/.test(txt) && !/numéro de tirage/.test(txt) && /numéro de départage/.test(txt));
+}
 
 console.log(`\nbanc_audit_souhaits : ${ok} ✓ / ${ko} ✗`);
 if (ko) process.exit(1);
