@@ -301,6 +301,67 @@ function fenetre(opts) {
     const l = await indisposEn('light');
     V('indispos ouverte en clair : data-theme=light, icône ☀️, barre rouge', l.theme === 'light' && l.btn === '☀️' && l.meta === '#CE1126', l);
   }
+  console.log('\n═══ Mise à jour sans quitter l\'appli (14/10/2026, v1.23.1) ═══');
+  {
+    const { JSDOM } = require('jsdom');
+    async function page(o) {
+      const appels = []; let recharges = 0;
+      const dom = new JSDOM('<!doctype html><body></body>', { runScripts: 'dangerously', url: 'https://planningmedic.github.io/planning.html',
+        beforeParse(win) {
+          win.matchMedia = () => ({ matches: false, addListener() {}, removeListener() {}, addEventListener() {}, removeEventListener() {} });
+          if (o.version) win.SITE_VERSION = o.version;
+          win.fetch = async (u, opt) => { appels.push({ u: String(u), opt }); if (o.panne) throw new Error('hors réseau');
+            return { ok: true, text: async () => "window.SITE_VERSION = '" + o.enLigne + "';" }; };
+          win.__majRecharger = () => { recharges++; };
+          if (o.auto !== undefined) win.__majRechargeAuto = () => o.auto;
+          win.eval(SRC);
+        } });
+      return { w: dom.window, appels, recharges: () => recharges };
+    }
+    const visible = (w) => { Object.defineProperty(w.document, 'visibilityState', { value: 'visible', configurable: true }); w.document.dispatchEvent(new w.Event('visibilitychange')); };
+    const pause = () => new Promise(r => setTimeout(r, 20));
+
+    let p = await page({ version: 'v1.23.1', enLigne: 'v1.24.0' });
+    V('rien n\'est lu au chargement de la page', p.appels.length === 0);
+    visible(p.w); await pause();
+    V('retour au premier plan moins de 30 min après : aucune lecture', p.appels.length === 0, p.appels);
+    let r = await p.w.__majVerifier(true);
+    V('vérification : lit version.js sans copie (no-store, adresse unique)', p.appels.length === 1 && /^version\.js\?t=\d+$/.test(p.appels[0].u) && p.appels[0].opt.cache === 'no-store', p.appels);
+    V('nouvelle version, page sans rechargement auto : bandeau « Mettre à jour », pas de rechargement', r === 'bandeau' && !!p.w.document.getElementById('majBandeau') && p.recharges() === 0
+      && /Nouvelle version/.test(p.w.document.getElementById('majBandeau').textContent), r);
+    await p.w.__majVerifier(true);
+    V('un seul bandeau, même vérifié deux fois', p.w.document.querySelectorAll('#majBandeau').length === 1);
+    p.w.document.getElementById('majBouton').click();
+    V('« Mettre à jour » recharge la page', p.recharges() === 1);
+
+    p = await page({ version: 'v1.23.1', enLigne: 'v1.24.0', auto: true });
+    r = await p.w.__majVerifier(true);
+    V('accueil autorisé : rechargement automatique, sans bandeau', r === 'recharge' && p.recharges() === 1 && !p.w.document.getElementById('majBandeau'), r);
+    p = await page({ version: 'v1.23.1', enLigne: 'v1.24.0', auto: false });
+    r = await p.w.__majVerifier(true);
+    V('accueil avec saisie en cours (auto refusé) : bandeau, jamais de rechargement', r === 'bandeau' && p.recharges() === 0, r);
+    p = await page({ version: 'v1.23.1', enLigne: 'v1.23.1', auto: true });
+    r = await p.w.__majVerifier(true);
+    V('déjà à jour : rien ne se passe', r === 'a-jour' && p.recharges() === 0 && !p.w.document.getElementById('majBandeau'), r);
+    p = await page({ version: 'v1.23.1', enLigne: 'v1.24.0', panne: true, auto: true });
+    r = await p.w.__majVerifier(true);
+    V('hors réseau : rien ne se passe, aucune erreur', r === null && p.recharges() === 0 && !p.w.document.getElementById('majBandeau'), r);
+    p = await page({ enLigne: 'v1.24.0', auto: true });
+    r = await p.w.__majVerifier(true);
+    V('page qui ne connaît pas son numéro : vérification inactive, aucune lecture', r === null && p.appels.length === 0);
+
+    // Le service worker ne sert plus version.js depuis sa copie
+    const swSrc = fs.readFileSync(path.join(__dirname, '..', 'sw.js'), 'utf8');
+    const ecouteurs = {};
+    const swCtx = { self: { location: { origin: 'https://planningmedic.github.io' }, addEventListener: (t, f) => { ecouteurs[t] = f; }, skipWaiting() {}, clients: { claim() {} } },
+      caches: { match: async () => null, open: async () => ({ put() {} }), keys: async () => [] }, fetch: async () => ({ ok: true, clone() { return this; } }), URL, Response, console };
+    vm.createContext(swCtx); vm.runInContext(swSrc, swCtx);
+    const servi = (u) => { let pris = false; ecouteurs.fetch({ request: { method: 'GET', url: u }, respondWith() { pris = true; } }); return pris; };
+    V('sw.js : version.js passe toujours par le réseau (jamais la copie)', !servi('https://planningmedic.github.io/version.js') && !servi('https://planningmedic.github.io/version.js?t=123'));
+    V('sw.js : les autres scripts restent en copie (rien d\'autre ne change)', servi('https://planningmedic.github.io/partage/portail.js'));
+    V('planning.html charge version.js, avant le socle commun', (() => { const pl = fs.readFileSync(path.join(__dirname, '..', 'planning.html'), 'utf8');
+      return pl.indexOf('<script src="version.js"></script>') > -1 && pl.indexOf('<script src="version.js"></script>') < pl.indexOf('<script src="partage/portail.js"></script>'); })());
+  }
   console.log('\n' + ok + ' OK · ' + ko + ' en échec');
   if (ko) process.exit(1);
 })();

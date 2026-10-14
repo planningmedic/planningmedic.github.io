@@ -181,6 +181,13 @@ function planning(annee, mois, statuts) {
     V('les tuiles ont chacune leur teinte (Mes congés pêche, Veille rose, Topos bleu)',
       !!D.querySelector('.tile-ico.peche') && !!D.querySelector('#bloc-ressources .tile-ico.rose') && !!D.querySelector('#bloc-ressources .tile-ico.bleu'));
     V('aucune erreur JavaScript', a.erreurs.length === 0 && b.erreurs.length === 0 && c.erreurs.length === 0, a.erreurs.concat(b.erreurs, c.erreurs).slice(0, 2));
+    /* (14/10/2026, v1.23.1) Nouvelle version en ligne : l'accueil se recharge seul, jamais ailleurs. */
+    V('accueil affiché, rien en cours : rechargement automatique autorisé', a.w.__majRechargeAuto() === true);
+    a.w.openView('veille'); await dodo(80);
+    V('une rubrique ouverte (Veille) : pas de rechargement automatique (bandeau)', a.w.__majRechargeAuto() === false);
+    a.w.backToHome(); await dodo(30);
+    const champ = a.w.document.createElement('input'); a.w.document.getElementById('tilesView').appendChild(champ); champ.focus();
+    V('un champ en cours de saisie sur l\'accueil : pas de rechargement automatique', a.w.__majRechargeAuto() === false);
   }
 
   console.log(`\n${ok} OK · ${ko} en échec`);

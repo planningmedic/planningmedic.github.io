@@ -107,6 +107,55 @@
     } catch (e) {}
   }
 
+  /* ── MISE À JOUR SANS QUITTER L'APPLI (14/10/2026, v1.23.1) ─────────────
+     Une appli restée en arrière-plan garde le code chargé au départ, même après
+     une publication. Au retour au premier plan (au plus une fois toutes les
+     30 min), on lit le numéro en ligne (version.js, ~1 Ko, jamais mis en cache) :
+       · s'il diffère, et que la page l'autorise (window.__majRechargeAuto() vrai :
+         l'accueil, sans saisie en cours), la page se recharge seule ;
+       · sinon, un bandeau « Nouvelle version — Mettre à jour » : on ne recharge
+         JAMAIS sous les doigts de quelqu'un.
+     Inactif sur une page qui ne connaît pas son numéro (pas de version.js). */
+  if (!window.__majVerifier) {
+    const MAJ_INTERVALLE = 30 * 60 * 1000;
+    let majDerniere = Date.now(), majEnCours = false;
+    function majRecharger() { if (typeof window.__majRecharger === 'function') window.__majRecharger(); else location.reload(); }   // __majRecharger : point d'écoute du banc
+    function majBandeau() {
+      if (!window.document || document.getElementById('majBandeau')) return;
+      const b = document.createElement('div');
+      b.id = 'majBandeau'; b.setAttribute('role', 'status');
+      b.style.cssText = 'position:fixed;left:12px;right:12px;bottom:calc(12px + env(safe-area-inset-bottom,0px));z-index:10000;'
+        + 'max-width:480px;margin:0 auto;background:#0F172A;color:#F8FAFC;border-radius:14px;padding:11px 12px 11px 14px;'
+        + 'display:flex;align-items:center;gap:10px;font:500 14px "DM Sans",-apple-system,sans-serif;box-shadow:0 10px 30px rgba(15,23,42,.35)';
+      b.innerHTML = '<span style="flex:1">Nouvelle version disponible</span>'
+        + '<button type="button" id="majBouton" style="border:0;background:#F8FAFC;color:#0F172A;font:600 14px \'DM Sans\',-apple-system,sans-serif;border-radius:10px;padding:8px 12px;cursor:pointer">Mettre à jour</button>';
+      document.body.appendChild(b);
+      document.getElementById('majBouton').onclick = majRecharger;
+    }
+    window.__majVerifier = async function (forcer) {
+      const actuelle = window.SITE_VERSION;
+      if (!actuelle || typeof actuelle !== 'string' || majEnCours) return null;
+      if (!forcer && Date.now() - majDerniere < MAJ_INTERVALLE) return null;
+      majEnCours = true; majDerniere = Date.now();
+      try {
+        const r = await fetch('version.js?t=' + Date.now(), { cache: 'no-store' });
+        if (!r || !r.ok) return null;
+        const m = /SITE_VERSION\s*=\s*'([^']+)'/.exec(await r.text());
+        if (!m || m[1] === actuelle) return 'a-jour';
+        let auto = false;
+        try { auto = typeof window.__majRechargeAuto === 'function' && !!window.__majRechargeAuto(); } catch (e) {}
+        if (auto) { majRecharger(); return 'recharge'; }
+        majBandeau(); return 'bandeau';
+      } catch (e) { return null; }                 // hors réseau : on réessaiera au prochain retour
+      finally { majEnCours = false; }
+    };
+    try {
+      document.addEventListener('visibilitychange', function () {
+        if (document.visibilityState === 'visible') window.__majVerifier(false);
+      });
+    } catch (e) {}
+  }
+
   /* Message d'erreur de l'écran de code (« Code incorrect », « Erreur réseau »),
      affiché 4 s. Identique dans les trois pages qui ont un écran de code. */
   if (typeof window._authErr !== 'function') {

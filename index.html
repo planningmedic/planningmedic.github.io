@@ -1267,6 +1267,18 @@ function equilibrerBlocs(){
   });
 }
 
+/* (14/10/2026, v1.23.1) Nouvelle version en ligne (voir partage/portail.js) : on ne
+   recharge tout seul que sur l'accueil, connecté, sans champ en cours de saisie ni
+   panneau ouvert ; partout ailleurs, un bandeau propose la mise à jour. */
+window.__majRechargeAuto = function(){
+  const accueil = document.getElementById('tilesView'), portail = document.getElementById('portal');
+  if (!accueil || accueil.style.display === 'none' || !portail || portail.style.display === 'none') return false;
+  const a = document.activeElement;
+  if (a && /^(INPUT|TEXTAREA|SELECT)$/.test(a.tagName)) return false;
+  const np = document.getElementById('notifPanel');
+  if (np && np.style.display !== 'none') return false;
+  return true;
+};
 function showPortal(){
   document.getElementById('viewAuthOverlay').style.display = 'none';
   document.getElementById('portal').style.display = 'block';

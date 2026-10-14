@@ -27,6 +27,9 @@ self.addEventListener('fetch', function (e) {
   if (req.method !== 'GET') return;                        // POST (API) → passthrough total
   var url; try { url = new URL(req.url); } catch (_) { return; }
   if (url.hostname.indexOf('script.google') > -1) return;  // API GAS → jamais touchée
+  /* (14/10/2026, v1.23.1) Le numéro de version doit toujours être le vrai : jamais en copie.
+     Avant : servi depuis la copie, il affichait l'ancien numéro pendant une ouverture. */
+  if (url.origin === self.location.origin && /\/version\.js$/.test(url.pathname)) return;
   if (isFont(url.hostname)) { e.respondWith(cacheFirst(req, FONT_CACHE)); return; }
   if (url.origin === self.location.origin && isStaticAsset(url)) { e.respondWith(cacheFirst(req, ASSET_CACHE)); return; }
   // HTML, .json, autres cross-origin → réseau direct (non intercepté).
