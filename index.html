@@ -426,6 +426,11 @@ a.tile, .tile.clickable { cursor: pointer; }
 .tile-ico.vert { background:var(--ok-soft); color:var(--ok); }
 .tile-ico.ambre { background:var(--amber-soft); color:var(--amber); }   /* (26/08) tuile indispos en consultation seule */
 .tile-ico.rouge { background:var(--red-soft); color:var(--red); }   /* (27/09) tuile ACR */
+.tile-badge { position:absolute; top:14px; right:14px; font-size:11.5px; font-weight:700; padding:3px 8px; border-radius:7px;
+  background:var(--tt-gris); color:var(--tt-gris-i); white-space:nowrap; }   /* (14/10/2026, v1.24) pastille d'information */
+[data-key="conges"] .tile-badge { background:var(--tt-peche); color:var(--tt-peche-i); }
+[data-key="indispos"] .tile-badge { background:var(--viol-soft); color:var(--viol); }
+.tile.large.a-badge, .tile.seul.a-badge { padding-right:92px; }
 .tile-ico.bleu  { background:var(--tt-bleu);  color:var(--tt-bleu-i); }   /* (14/10/2026, v1.23) */
 .tile-ico.peche { background:var(--tt-peche); color:var(--tt-peche-i); }
 .tile-ico.rose  { background:var(--tt-rose);  color:var(--tt-rose-i); }
@@ -1200,12 +1205,86 @@ function renderTiles(){
   });
   equilibrerBlocs();
   if(window.lucide) lucide.createIcons();
+  majPastilles();
+}
+
+/* ══ PASTILLES D'INFORMATION DES TUILES (14/10/2026, v1.24) ═════════════════
+   La tuile dit l'essentiel avant qu'on l'ouvre. Tout vient de données DÉJÀ
+   chargées à l'ouverture (le planning, la date limite des indispos) : aucun
+   appel de plus. Sans donnée, la tuile garde son texte habituel.
+     · Mes congés      : « 3 à venir » + prochain congé (ou « en cours jusqu'au… »)
+     · Planning        : mon affectation du jour (matin / après-midi, garde, congé)
+     · Indisponibilités : « J-16 » avant la date limite de saisie */
+const _AFF_LIB = { VIS:'Viscéral', REA:'Réanimation', ORT:'Ortho', ORL:'ORL', END:'Endoscopies',
+  CI:'Cardio/Inter', RI:'Radio/Inter', MAT:'Maternité', VOLANT:'Volant' };   // repli des libellés de l'onglet SECTEURS (mêmes valeurs que planning.html)
+function _affLib(code){
+  if(!code) return '';
+  const c=String(code);
+  if(/^CS/.test(c)) return 'Consultation';
+  return _AFF_LIB[c] || c;
+}
+function _jjmm(iso){ const p=String(iso).split('-'); return p.length===3 ? p[2]+'/'+p[1] : String(iso); }
+function _monJour(dateIso){
+  const an=+String(dateIso).slice(0,4);
+  const pl=_planCache[an] || (typeof _planDejaLa==='function' ? _planDejaLa(an) : null);
+  if(!pl || !pl.months || !MY_ID) return null;
+  for(const m of pl.months){
+    const i=(m.days||[]).findIndex(function(j){ return j && j.date===dateIso; });
+    if(i<0) continue;
+    const doc=(m.doctors||[]).find(function(d){ return d.id===MY_ID; });
+    return doc && doc.days ? (doc.days[i]||{}) : null;
+  }
+  return null;
+}
+function _texteDuJour(j){
+  if(!j) return '';
+  const st=j.status;
+  if(st==='G')  return 'de garde en Réa';
+  if(st==='G2') return 'de garde en Mater/Bloc';
+  if(CONGE_CODE_TO_CAT[st]) return CAT_META[CONGE_CODE_TO_CAT[st]].label;
+  const am=_affLib(j.morning), pm=_affLib(j.afternoon);
+  if(am && pm && am!==pm) return am+', puis '+pm;
+  return am || pm || '';
+}
+function _pastille(key, badge, sousTitre){
+  const t=document.querySelector('#tilesView [data-key="'+key+'"]'); if(!t) return;
+  const face=t.querySelector('.split-face') || t;
+  let b=face.querySelector('.tile-badge');
+  if(badge){ if(!b){ b=document.createElement('span'); b.className='tile-badge'; face.appendChild(b); } b.textContent=badge; }
+  else if(b) b.remove();
+  t.classList.toggle('a-badge', !!badge);
+  if(sousTitre){ const s=face.querySelector('.tile-sub'); if(s){ if(!s.dataset.orig) s.dataset.orig=s.textContent; s.textContent=sousTitre; } }
+}
+function majPastilles(){
+  try{
+    // Indisponibilités : compte à rebours jusqu'à la date limite (incluse)
+    if(INDISPOS_OUVERTE && !INDISPOS_FIGEES && FIN_SAISIE && /^\d{4}-\d{2}-\d{2}$/.test(FIN_SAISIE) && !saisieIndisposClose(FIN_SAISIE)){
+      const n=_daysBetween(_todayStr(), FIN_SAISIE);
+      _pastille('indispos', n<=0 ? 'Dernier jour' : 'J-'+n, null);
+    }
+    if(!MY_ID) return;
+    // Planning : mon affectation du jour
+    const auj=_texteDuJour(_monJour(_todayStr()));
+    if(auj) _pastille('planning', null, 'Aujourd\'hui : '+auj+'.');
+    // Mes congés : périodes à venir (ou en cours)
+    if(MY_CONGES && MY_CONGES.periods){
+      // les jours de temps partiel reviennent chaque semaine : ils ne font pas un « congé à venir »
+      const today=_todayStr(), P=MY_CONGES.periods.filter(function(p){ return p.cat!=='tp' && p.end>=today; });
+      if(P.length){
+        const p0=P[0], lib=CAT_META[p0.cat].label;
+        const st = p0.start<=today
+          ? (lib+' en cours, jusqu\'au '+_jjmm(p0.end)+'.')
+          : ('Prochain : '+lib.toLowerCase()+(p0.start===p0.end ? ' le '+_jjmm(p0.start) : ' du '+_jjmm(p0.start)+' au '+_jjmm(p0.end))+'.');
+        _pastille('conges', P.length+' à venir', st);
+      }
+    }
+  }catch(e){ /* une pastille n'empêche jamais l'accueil de s'afficher */ }
 }
 
 /* Une tuile de l'accueil. Corps repris tel quel de l'ancien renderTiles. */
 function _tuileAccueil(t){
     const soon = t.ready ? '' : ' soon';
-    const gen = ' data-gen="1"';
+    const gen = ' data-gen="1" data-key="'+t.key+'"';   // (14/10, v1.24) data-key : les pastilles d'information retrouvent leur tuile
     const large = t.large ? ' large' : '';
     const tag  = t.ready ? '' : '<span class="badge-soon">Bientôt</span>';
     const arrow = t.ready ? '<div class="tile-arrow">Ouvrir <i data-lucide="arrow-right" style="width:15px;height:15px"></i></div>' : '';
@@ -1473,6 +1552,8 @@ async function loadMyGardes(){
     list.sort(function(a,b){ return a.date<b.date?-1:a.date>b.date?1:0; });
     MY_GARDES=list;
     renderMyGardesHero();
+    try{ await loadMyConges(); }catch(e){}   // (14/10, v1.24) même planning, déjà en mémoire : aucun appel de plus
+    majPastilles();
   }catch(e){
     MY_GARDES=null;
     const main=document.getElementById('mgHeroMain'), sub=document.getElementById('mgHeroSub');

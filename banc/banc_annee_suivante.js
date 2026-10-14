@@ -190,6 +190,66 @@ function planning(annee, mois, statuts) {
     V('un champ en cours de saisie sur l\'accueil : pas de rechargement automatique', a.w.__majRechargeAuto() === false);
   }
 
+  /* ── D. (14/10/2026, v1.24) Pastilles d'information des tuiles ── */
+  console.log(`\n═══ 34. Pastilles des tuiles : congés à venir, affectation du jour, J-N des indispos ═══`);
+  {
+    const iso = d => d.toLocaleDateString('fr-CA', { timeZone: 'Europe/Paris' });
+    const j = n => { const d = new Date(); d.setDate(d.getDate() + n); return iso(d); };
+    /* Plannings construits sur les SEULES dates utiles, rangées par année et par mois
+       (_extractMyConges suit l'index des jours : une liste creuse suffit). */
+    const construire = (moi) => {
+      const parAn = {};
+      Object.keys(moi).forEach(dt => { const y = +dt.slice(0, 4), m = +dt.slice(5, 7);
+        ((parAn[y] = parAn[y] || {})[m] = parAn[y][m] || []).push(dt); });
+      const out = {};
+      Object.keys(parAn).forEach(y => {
+        out['planning_' + y] = { months: Object.keys(parAn[y]).sort((a, b) => a - b).map(m => { const ds = parAn[y][m].sort();
+          return { year: +y, month: +m, days: ds.map(date => ({ date })), doctors: [{ id: 'ALPHA', days: ds.map(date => moi[date]) }] }; }), equiteInitiale: {} };
+      });
+      if (!out['planning_' + AN]) out['planning_' + AN] = { months: [], equiteInitiale: {} };
+      return out;
+    };
+    const tuile = (w, k) => w.document.querySelector('#tilesView [data-key="' + k + '"]');
+    const sous = (w, k) => (tuile(w, k).querySelector('.tile-sub') || {}).textContent;
+    const badge = (w, k) => { const b = tuile(w, k) && tuile(w, k).querySelector('.tile-badge'); return b ? b.textContent : null; };
+
+    const moi = {};
+    moi[j(0)] = { morning: 'ORT', afternoon: 'CS-ANE' };
+    moi[j(3)] = { status: 'TP' }; moi[j(10)] = { status: 'TP' };
+    moi[j(5)] = { status: 'F' }; moi[j(6)] = { status: 'F' };
+    moi[j(20)] = { status: 'R' };
+    moi[j(40)] = { status: 'V' }; moi[j(41)] = { status: 'V' };
+    const a = await ouvrir(Object.assign(construire(moi), { annees }));
+    V('Planning : l\'affectation du jour, matin puis après-midi', sous(a.w, 'planning') === "Aujourd'hui : Ortho, puis Consultation.", sous(a.w, 'planning'));
+    V('Mes congés : 3 à venir (formation, récup, vacances) — les jours de TP ne comptent pas', badge(a.w, 'conges') === '3 à venir', badge(a.w, 'conges'));
+    const jj = d => d.slice(8, 10) + '/' + d.slice(5, 7);
+    V('Mes congés : le prochain, avec ses dates', sous(a.w, 'conges') === 'Prochain : formation du ' + jj(j(5)) + ' au ' + jj(j(6)) + '.', sous(a.w, 'conges'));
+    V('aucun appel Apps Script pour ces pastilles', !a.gas.includes('getPlanningJson'), a.gas);
+
+    const enCours = {}; enCours[j(-2)] = { status: 'V' }; enCours[j(0)] = { status: 'V' }; enCours[j(1)] = { status: 'V' };
+    const b = await ouvrir(Object.assign(construire(enCours), { annees }));
+    V('en congé aujourd\'hui : « Vacances en cours, jusqu\'au … »', sous(b.w, 'conges') === 'Vacances en cours, jusqu\'au ' + jj(j(1)) + '.', sous(b.w, 'conges'));
+    V('…et le Planning dit « Aujourd\'hui : Vacances. »', sous(b.w, 'planning') === "Aujourd'hui : Vacances.", sous(b.w, 'planning'));
+
+    const garde = {}; garde[j(0)] = { status: 'G2' };
+    const c = await ouvrir(Object.assign(construire(garde), { annees }));
+    V('de garde aujourd\'hui : « de garde en Mater/Bloc »', sous(c.w, 'planning') === "Aujourd'hui : de garde en Mater/Bloc.", sous(c.w, 'planning'));
+    V('aucun congé à venir : pas de pastille, texte habituel', badge(c.w, 'conges') === null && /Vacances, formation/.test(sous(c.w, 'conges')), [badge(c.w, 'conges'), sous(c.w, 'conges')]);
+
+    const rien = await ouvrir(Object.assign(construire({}), { annees }));
+    V('jour sans affectation : le Planning garde son texte habituel', /Qui est où/.test(sous(rien.w, 'planning')), sous(rien.w, 'planning'));
+
+    rien.w.eval("INDISPOS_OUVERTE = true; INDISPOS_FIGEES = false; FIN_SAISIE = '" + j(16) + "'; renderTiles();");
+    V('indispos ouvertes : « J-16 » jusqu\'à la date limite', badge(rien.w, 'indispos') === 'J-16', badge(rien.w, 'indispos'));
+    rien.w.eval("FIN_SAISIE = '" + j(0) + "'; renderTiles();");
+    V('le jour de la date limite : « Dernier jour »', badge(rien.w, 'indispos') === 'Dernier jour', badge(rien.w, 'indispos'));
+    rien.w.eval("FIN_SAISIE = '" + j(-1) + "'; renderTiles();");
+    V('saisie close : plus de pastille (le cadenas prend le relais)', badge(rien.w, 'indispos') === null);
+    rien.w.eval("FIN_SAISIE = '" + j(16) + "'; INDISPOS_FIGEES = true; renderTiles();");
+    V('planning de campagne déjà établi : pas de compte à rebours', badge(rien.w, 'indispos') === null);
+    V('aucune erreur JavaScript', a.erreurs.length + b.erreurs.length + c.erreurs.length + rien.erreurs.length === 0, a.erreurs.concat(b.erreurs, c.erreurs, rien.erreurs).slice(0, 2));
+  }
+
   console.log(`\n${ok} OK · ${ko} en échec`);
   process.exit(ko ? 1 : 0);
 })();
