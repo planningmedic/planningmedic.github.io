@@ -44,6 +44,38 @@ les fichiers du planning, et attend une semaine de fonctionnement réel avant su
 
 # PARTIE 1 — L'ESSENTIEL
 
+## État au 14 octobre 2026 — accueil refait, mise à jour sans quitter l'appli, veille mieux notée
+
+Site **v1.24.1**, banc **4 227 ✓, 0 échec**. GAS relevés dans le dépôt : `veille.gs` **2026-10-13.1**,
+`generateur_gardes.gs` **2026-10-12.1**, `equipe.gs` / `indisponibilites.gs` / `miroir.gs`
+**2026-10-11.1** ; relais **miroir 2026-10-11.1**. Recopie et déploiement de ces GAS **non vérifiés
+depuis cette conversation** : à confirmer au Diagnostic. Détail des lots dans la ROADMAP.
+
+- **Générateur (09-12/10)** : souhaits de samedis et week-ends honorés dans la part du MAR (le joker
+  annuel ne couvre plus que férié et veille de férié) ; deux week-ends d'affilée accordés s'ils sont
+  tous deux souhaités ; la passe « veille de congés » ne reprend plus un jour souhaité ; couples de
+  week-end (CONFIG `COUPLES_WEEKEND`) ; bonus « seulement 18h » 1,3 → 1,2.
+- **Date limite de saisie des indispos** (CONFIG `INDISPOS_FIN`, dernier vendredi d'octobre) : le
+  serveur refuse après minuit, la tuile passe au cadenas, l'accueil affiche « J-N » avant.
+- **Accueil (v1.21 → v1.24)** : blocs Moi · Le service · Ressources · Réservé ; habillage « maquette A »
+  (teintes par tuile, ombres légères, bandeau translucide) ; carte **Prochaine garde** avec le
+  collègue de l'autre ligne (lu dans le planning déjà chargé) ; pastilles d'information (congés à
+  venir, affectation du jour, J-N des indispos, prochain staff). La liste des staffs voyage dans
+  l'appel d'ouverture (~1 Ko). Le mode sombre garde le bleu nuit (le noir n'a pas été retenu).
+- **Mise à jour sans quitter l'appli (v1.23.1)** : au retour au premier plan (≤ 1 fois / 30 min), le
+  socle `partage/portail.js` relit `version.js` ; l'accueil sans saisie se recharge seul, ailleurs un
+  bandeau « Mettre à jour ». `sw.js` ne garde plus `version.js` en copie. **Seuls les téléphones déjà
+  en v1.23.1 en profitent** ; non éprouvé sur un vrai iPhone au 14/10.
+- **Veille** : le type d'étude est aussi lu dans le titre (un ECR pas encore étiqueté par PubMed perdait
+  35 points) ; `veilleRenoterParTitre()` rattrape les notes en place (31 attendues au 13/10, exécution
+  à confirmer). Nouvel écran : thèmes en rangée, sections par thème, anneau de note, tri par revue.
+- **Pense-bête, compteur** : montant corrigeable (montant final du recueil Hôpital Manager), à l'ajout
+  et sur tout acte de la liste ; le calcul reste gardé.
+- 🔴 **Un nom de famille réel** d'un collègue est entré dans le dépôt le 14/10 dans un jeu d'essai
+  (`banc_annee_suivante.js`), corrigé le jour même par un nom fictif. **Il reste dans l'historique**
+  (commits `e4e94e9` à `bf81124`) : le retirer demanderait une réécriture de l'historique, à décider
+  par le responsable.
+
 ## État au 7 octobre 2026 — veille du staff vacances 2027
 
 Aucun code modifié ; décisions et réglages du classeur, détail dans la ROADMAP.

@@ -6,17 +6,98 @@ portail/Dashboard, module libéral, contrôle d'absence, veille biblio.
 (Le générateur de comptes rendus a été retiré le 07/09/2026 : il portait le logo de
 l'établissement et 77 noms de praticiens sur une page publique sans code d'accès.)
 
-**Dépôt** `planningmedic/planningmedic.github.io`, branche `main` · **Site v1.12.9** ·
+**Dépôt** `planningmedic/planningmedic.github.io`, branche `main` · **Site v1.24.1** (14/10/2026) ·
 **Portail** https://planningmedic.github.io ·
-**GAS** (relevé dans le dépôt le 10/09/2026) `code.gs` **2026-09-08.2** ·
-`Indispos.gs`, `gardes.gs`, `indisponibilites.gs`, `temps_partiel.gs`, `equipe.gs`, `diagnostic.gs` **2026-09-15.2** · `generateur_gardes.gs`, `code.gs`, `portail.gs` **2026-09-14.2** · `miroir.gs` **2026-09-14.3** · `setup_annee.gs`, `veille.gs` **2026-09-14.1** — **tous recopiés et confirmés au Diagnostic le 15/09 à 10h14** ·
-(deux fichiers sous le même numéro : deux lots distincts du 10/09, au soir et en soirée) ·
-`portail.gs` **2026-09-08.1** · `miroir.gs` **2026-09-08.2** ·
-`journal.gs` 2026-08-27.1 · `echanges.gs` **2026-09-08.1** · `veille.gs` 2026-08-27.1 ·
-`setup_annee.gs` **2026-09-08.1** · `sauvegarde.gs` 2026-09-07.1 ·
-**Worker** `cloudflare/worker.js` : `const VERSION = 'miroir 2026-08-22.2'` — ⚠️ le marqueur n'a
-pas été monté avec le lot cloche du 23/08 (oubli assumé, le code déployé est bien le nouveau) :
-à monter au prochain lot Worker. La constante reste la **seule** version écrite dans le fichier.
+**GAS** (numéros relevés dans le dépôt le 14/10/2026 — recopie dans l'éditeur à confirmer au
+Diagnostic) : `veille.gs` **2026-10-13.1** · `generateur_gardes.gs` **2026-10-12.1** ·
+`equipe.gs`, `indisponibilites.gs`, `miroir.gs` **2026-10-11.1** · `Indispos.gs` **2026-10-06.1** ·
+`gardes.gs` **2026-10-05.1** · `portail.gs` **2026-10-01.2** · `diagnostic.gs` **2026-09-15.3** ·
+`temps_partiel.gs` **2026-09-15.2** · `code.gs` **2026-09-14.2** · `setup_annee.gs` **2026-09-14.1** ·
+`echanges.gs` **2026-09-08.1** · `journal.gs` **2026-09-07.1** ·
+**Worker** `cloudflare/worker.js` : `const VERSION = 'miroir 2026-10-11.1'` ·
+**Service worker** `sw.js` : `pm-sw-v2` (version.js exclu de la copie depuis le 14/10).
+
+## 08–14/10/2026 — générateur et souhaits, date limite des indispos, accueil refait, veille
+
+### Générateur de gardes (`generateur_gardes.gs` 2026-10-09.1 → 2026-10-12.1)
+- **Régime à part** (`SOUHAIT_PLAFOND`) : peut prendre une veille de férié qu'il a lui-même souhaitée ;
+  vendredi, week-end et férié restent interdits (`banc_plafond_vjf`). Seuil de dette de la 4e année
+  « < 3 » → « ≤ 3 » (décision du responsable, `banc_dette_cumul`).
+- **Souhaits** : samedis et week-ends honorés dans la part du MAR sur l'axe ; le joker annuel ne porte
+  plus que sur férié et veille de férié (mesuré sur 2027 : 3 souhaits honorés sur 17 avant pour un MAR
+  à samedis). L'optimiseur ne verrouille plus que les souhaits réellement accordés. Deux week-ends
+  d'affilée accordés s'ils sont tous deux souhaités. La passe « veille de congés » épargne les jours
+  souhaités des deux côtés (`banc_souhaits_rares`). Guide MAR : section réécrite, chiffres remesurés
+  (une dizaine de demandes : ~4 sur 5 accordées ; une vingtaine : ~2 sur 3).
+- **Veille de férié** : du lundi au mercredi, demandée comme un jour ordinaire ; du jeudi au dimanche,
+  règle des fériés (une seule accordée par an). `banc_audit_souhaits` vérifie que guide et générateur
+  disent la même chose.
+- **Couples de week-end** (CONFIG `COUPLES_WEEKEND`, « A+B ») : l'un en vendredi-dimanche pousse
+  l'autre sur le samedi du même week-end. Mesuré sur 2027, 16 tirages : week-ends en commun 3 → 6,9 ;
+  0 nuit commune. Inerte sans la ligne (`banc_couples_weekend`).
+- **18h** : bonus « seulement 18h » 1,3 → 1,2 (un profil à 60 % passait à 9 soirées, 8 désormais ;
+  `banc_ratio18`).
+
+### Contrôles avant génération et saisie des indispos (v1.20.5 → v1.20.8)
+- Le contrôle des absences compte la veille d'un temps partiel, un week-end perdu dès que vendredi OU
+  dimanche l'est, et la même marge ×1,4 que les indispos (`banc_tp` §2).
+- **Date limite** `INDISPOS_FIN` (CONFIG) : passé minuit le soir de cette date (Paris), le serveur
+  refuse l'enregistrement d'un MAR ; le comité garde la main ; l'ouverture d'une campagne la pose
+  d'office au dernier vendredi d'octobre. La date traverse `equipe.gs`, la clé `acces` du miroir et le
+  relais ; la tuile passe au cadenas (`banc_fin_saisie`).
+- **Staff vacances** (v1.19.4) : les congés longs sont affichés hachurés, comptés absents, retirés du
+  vivier de garde, jamais renvoyés à la validation (`banc_staff_cl`).
+
+### Navigation (v1.20.9 → v1.21.2)
+- Planning : flèche de retour au portail, onglet « Secteurs » partout. Guide MAR : bouton « ‹ Portail »,
+  Aide ouverte dans l'appli (plus de mini-Safari sans code mémorisé).
+- **Accueil en blocs** : raccourcis ACR / Annuaire, puis Moi · Le service · Ressources · Réservé ;
+  tuiles Équité des gardes (`planning.html#equite`) et Comité (réservée, clé `comite`)
+  (`banc_accueil_blocs`).
+
+### Veille bibliographique (13/10, `veille.gs` 2026-10-13.1 ; site v1.22.0 → v1.22.1)
+- **Constat** : sur une liste d'articles d'une newsletter IA, 7 sur 11 étaient dans la veille ; les 4
+  absents venaient de *J Cardiothorac Vasc Anesth*, revue retirée en août. Mais les ECR de la semaine
+  étaient sous-notés (66-72 au lieu de 100) : PubMed n'étiquette le type qu'à l'indexation.
+- **Correctif** : `_veilleTypeTitre` lit ECR / méta-analyse / revue systématique dans le titre
+  (analyses secondaires, post hoc et protocoles exclus). `veilleRenoterParTitre()`, à lancer une fois,
+  corrige SCORE et MOTIF des articles en place (31 attendus, simulés sur une copie locale).
+- **Écran** : rangée de thèmes, sections par thème (3 meilleurs, « Voir les N »), cartes à anneau de
+  note coloré par type d'étude, tri « Par revue », barre de filtres en grille sur téléphone.
+- **Mis de côté** : la pastille « N nouveaux » sur la tuile Veille (la liste fait ~2 700 articles,
+  trop lourde à l'ouverture ; il faudrait un compte calculé par le serveur).
+
+### Accueil refait (14/10, v1.23.0 → v1.24.1) — 100 % HTML, aucun GAS
+- **Habillage « maquette A »** (inspiré des fichiers DESIGN.md de Linear, Notion, Apple, Cal.com, Oura,
+  dépôt `awesome-design-md`) : une teinte par tuile, ombres légères, retour au toucher, bandeau
+  translucide, « ? » rouge plein, date du jour sous « Bonjour », bloc Réservé en grille. Mode sombre
+  inchangé (bleu nuit).
+- **Carte Prochaine garde** : « Sam. 18 oct. · Réa », puis « dans 4 jours · avec X en Mater/Bloc » —
+  le collègue est celui qui tient l'autre ligne (G ↔ G2) ce jour-là, lu dans le planning déjà chargé.
+- **Pastilles d'information** (v1.24.0, v1.24.1) : Mes congés (« 3 à venir » + prochain ; TP exclus,
+  récupérations comptées), Planning (« Aujourd'hui : Ortho, puis Consultation »), Mes indisponibilités
+  (« J-16 », « Dernier jour »), Staffs (« ven. 16 » + heure et thème). La clé `staffs` voyage dans
+  l'appel d'ouverture : ~1 Ko pour ~250 Ko de planning, aucun aller-retour de plus.
+- **Mise à jour sans quitter l'appli** (v1.23.1) : `partage/portail.js` relit `version.js` au retour au
+  premier plan (≤ 1 fois / 30 min) ; l'accueil sans saisie se recharge, ailleurs un bandeau « Mettre à
+  jour ». `sw.js` ne sert plus `version.js` depuis la copie (cause du « v1.22.2 » affiché une ouverture
+  de trop) ; `planning.html` charge `version.js`. Tests : `banc_portail`, `banc_annee_suivante` §33-35.
+
+### Pense-bête « Mes patients lib » (v1.19.3, v1.22.2)
+- Compteur : axe NGAP (CS / APC) compté à part du CCAM ; **montant corrigeable** (montant final du
+  recueil Hôpital Manager, modificateurs compris) à l'ajout d'un code et sur tout acte de la liste.
+  Le calcul reste stocké (retour possible) ; aucun montant ne part sur le réseau.
+
+### À faire / à vérifier
+- Confirmer au Diagnostic la recopie de `veille.gs` 2026-10-13.1 et le passage de
+  `veilleRenoterParTitre()` ; de même pour les GAS du 09 au 12/10.
+- Éprouver sur un vrai iPhone la mise à jour automatique (appli en arrière-plan sur l'accueil, retour
+  30 min après un push).
+- Vérifier sur les vraies données : collègue de la carte de garde, affectation du jour, congés à venir.
+- 🔴 Nom réel dans l'historique du dépôt (jeu d'essai, commits du 14/10) : corrigé dans le code ;
+  réécriture de l'historique à décider par le responsable.
+- Pistes non faites : pastille « N nouveaux » de la Veille (GAS) ; remettre *J Cardiothorac Vasc
+  Anesth* limité aux ECR et méta-analyses (non tranché).
 
 ## 07/10/2026 — préparation du staff vacances et de la génération 2027 (aucun code modifié)
 

@@ -163,10 +163,10 @@ function planning(annee, mois, statuts) {
         { id: 'GAMMA', days: moi.map(() => ({ status: 'BLOC' })) },
       ] }], equiteInitiale: {} };
     };
-    const a = await ouvrir({ [`planning_${AN}`]: deux(AN, 12, ['G', ''], ['G2', ''], 'PRUNET-DUPONT'), annees });
+    const a = await ouvrir({ [`planning_${AN}`]: deux(AN, 12, ['G', ''], ['G2', ''], 'BOISSY-AUBERT'), annees });
     const sub = a.w.document.getElementById('mgHeroSub');
-    V('Réa le 1er décembre : le collègue en Mater/Bloc ce jour-là est nommé', /avec Prunet-Dupont en Mater\/Bloc/.test(sub.textContent), sub.textContent);
-    V('le nom est en gras, sans balise injectée', !!sub.querySelector('b') && sub.querySelector('b').textContent === 'Prunet-Dupont');
+    V('Réa le 1er décembre : le collègue en Mater/Bloc ce jour-là est nommé', /avec Boissy-Aubert en Mater\/Bloc/.test(sub.textContent), sub.textContent);
+    V('le nom est en gras, sans balise injectée', !!sub.querySelector('b') && sub.querySelector('b').textContent === 'Boissy-Aubert');
     V('…et pas un médecin qui n\'est pas de garde (GAMMA au bloc)', !/Gamma/.test(sub.textContent));
     V('le délai est en tête du sous-titre', /^dans \d+ jours · /.test(sub.textContent), sub.textContent);
     V('la carte ne dit plus « autres à venir »', !/autre/.test(sub.textContent));
