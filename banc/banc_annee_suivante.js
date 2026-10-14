@@ -95,8 +95,8 @@ function planning(annee, mois, statuts) {
     V('un seul aller-retour au miroir à l\'ouverture', miroir.length <= 2, miroir.length);
     V('le planning de l\'année suivante n\'est PAS en mémoire (il n\'existe pas)',
       w._planDejaLa(AN+1) === null, w._planDejaLa(AN+1));
-    V('la tuile affiche quand même la garde de décembre',
-      /^\w+ \d{2}\/12 · /.test(w.document.getElementById('mgHeroMain').textContent),
+    V('la tuile affiche quand même la garde de décembre (« Mar. 1 déc. · Réa », v1.23)',
+      /^\w+\. \d{1,2} déc\. · /.test(w.document.getElementById('mgHeroMain').textContent),
       w.document.getElementById('mgHeroMain').textContent);
     V(`l'étiquette de la tuile annonce « Prochaine garde »`,
       /Prochaine garde/.test(w.document.getElementById('mgHeroLabel').textContent),
@@ -129,9 +129,11 @@ function planning(annee, mois, statuts) {
       !gas.includes('getPlanningJson'), gas);
     V('le planning de l\'année suivante est arrivé avec l\'ouverture, sans appel dédié',
       !!w._planDejaLa(AN+1));
-    V('la tuile annonce une garde de plus que la seule année en cours',
-      /1 autre à venir/.test(w.document.getElementById('mgHeroSub').textContent),
-      w.document.getElementById('mgHeroSub').textContent);
+    /* (14/10/2026, v1.23) La carte n'annonce plus « N autres à venir » (allégée à la
+       demande du responsable) : on compte dans la liste Mes gardes, qui reçoit les deux années. */
+    w.openMesGardes(); await dodo(50);
+    const nG = w.document.querySelectorAll('#mesGardesList .staff-card').length;
+    V('Mes gardes compte une garde de plus que la seule année en cours (décembre + janvier)', nG === 2, nG);
     /* Les congés se chargent à la demande : on ouvre la vue comme le ferait un clic. */
     if (typeof w.loadMyConges === 'function') {
       const avant = gas.length;
@@ -148,6 +150,37 @@ function planning(annee, mois, statuts) {
     V('l\'année suivante se lit sans réseau (_planDejaLa)', /function _planDejaLa/.test(contenu));
     V('aucune lecture réseau de l\'année suivante ne subsiste',
       !/_fetchPlanning\(\s*year\s*\+\s*1\s*\)/.test(contenu));
+  }
+
+  /* ── C. (14/10/2026, v1.23) Carte « Prochaine garde » : le collègue de l'AUTRE ligne ── */
+  console.log(`\n═══ 33. Carte « Prochaine garde » : date courte, délai, collègue de l'autre ligne ═══`);
+  {
+    const deux = (annee, mois, moi, lui, idLui) => {
+      const jours = moi.map((_, i) => ({ date: `${annee}-${String(mois).padStart(2,'0')}-${String(i+1).padStart(2,'0')}` }));
+      return { months: [{ year: annee, month: mois, days: jours, doctors: [
+        { id: 'ALPHA', days: moi.map(x => ({ status: x })) },
+        { id: idLui, days: lui.map(x => ({ status: x })) },
+        { id: 'GAMMA', days: moi.map(() => ({ status: 'BLOC' })) },
+      ] }], equiteInitiale: {} };
+    };
+    const a = await ouvrir({ [`planning_${AN}`]: deux(AN, 12, ['G', ''], ['G2', ''], 'PRUNET-DUPONT'), annees });
+    const sub = a.w.document.getElementById('mgHeroSub');
+    V('Réa le 1er décembre : le collègue en Mater/Bloc ce jour-là est nommé', /avec Prunet-Dupont en Mater\/Bloc/.test(sub.textContent), sub.textContent);
+    V('le nom est en gras, sans balise injectée', !!sub.querySelector('b') && sub.querySelector('b').textContent === 'Prunet-Dupont');
+    V('…et pas un médecin qui n\'est pas de garde (GAMMA au bloc)', !/Gamma/.test(sub.textContent));
+    V('le délai est en tête du sous-titre', /^dans \d+ jours · /.test(sub.textContent), sub.textContent);
+    V('la carte ne dit plus « autres à venir »', !/autre/.test(sub.textContent));
+    V('aucun appel Apps Script de plus pour trouver le collègue', !a.gas.includes('getPlanningJson'), a.gas);
+    const b = await ouvrir({ [`planning_${AN}`]: deux(AN, 12, ['G2', ''], ['G', ''], 'BETA'), annees });
+    V('Mater/Bloc : le collègue en Réa est nommé', /Mater\/Bloc$/.test(b.w.document.getElementById('mgHeroMain').textContent)
+      && /avec Beta en Réa/.test(b.w.document.getElementById('mgHeroSub').textContent), b.w.document.getElementById('mgHeroSub').textContent);
+    const c = await ouvrir({ [`planning_${AN}`]: deux(AN, 12, ['G', ''], ['', ''], 'BETA'), annees });
+    V('personne sur l\'autre ligne : seulement le délai, sans « avec »', /^dans \d+ jours$/.test(c.w.document.getElementById('mgHeroSub').textContent), c.w.document.getElementById('mgHeroSub').textContent);
+    const D = a.w.document;
+    V('sous « Bonjour » : la date du jour au lieu de « Choisissez une rubrique »', /^(Lundi|Mardi|Mercredi|Jeudi|Vendredi|Samedi|Dimanche) \d{1,2} \w+/.test(D.getElementById('helloDate').textContent), D.getElementById('helloDate').textContent);
+    V('les tuiles ont chacune leur teinte (Mes congés pêche, Veille rose, Topos bleu)',
+      !!D.querySelector('.tile-ico.peche') && !!D.querySelector('#bloc-ressources .tile-ico.rose') && !!D.querySelector('#bloc-ressources .tile-ico.bleu'));
+    V('aucune erreur JavaScript', a.erreurs.length === 0 && b.erreurs.length === 0 && c.erreurs.length === 0, a.erreurs.concat(b.erreurs, c.erreurs).slice(0, 2));
   }
 
   console.log(`\n${ok} OK · ${ko} en échec`);

@@ -116,7 +116,7 @@ const visible = (D, id) => D.getElementById(id).style.display !== 'none';
       JSON.stringify(titres(D, 'reserve')) === JSON.stringify(['Libéral', 'Mes consultations']), titres(D, 'reserve'));
     V('le Libéral garde ses deux moitiés (cotation / suivi des 30 %)',
       D.querySelectorAll('#tile-liberal .split-half').length === 2);
-    V('les tuiles réservées sont rangées en liste', D.getElementById('tiles-reserve').classList.contains('liste'));
+    V('les tuiles réservées sont en grille comme les autres blocs (v1.23, maquette A validée)', !D.getElementById('tiles-reserve').classList.contains('liste'));
     V('aucune erreur JavaScript', erreurs.length === 0, erreurs.slice(0, 2));
   }
 

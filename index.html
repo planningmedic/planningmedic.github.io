@@ -58,6 +58,11 @@ window.SessionPortail = window.SessionPortail || { lire:function(){try{return se
   --vt-ecr:#0F766E;  --vt-ecr-bg:#DDF4EE;  --vt-meta:#5B4BC4; --vt-meta-bg:#ECEAFD;
   --vt-rs:#1D6FB8;   --vt-rs-bg:#E3EFFB;   --vt-reco:#B45309; --vt-reco-bg:#FDEFD9;
   --vt-aut:#64748B;  --vt-aut-bg:#EEF1F5;
+  /* (14/10/2026, v1.23) Habillage de l'accueil : une teinte par tuile, filets et ombres légers */
+  --tt-bleu:#E3EFFB;  --tt-bleu-i:#1D5E9E;  --tt-peche:#FFEBDA; --tt-peche-i:#9A4A0B;
+  --tt-rose:#FDE4EE;  --tt-rose-i:#A02E6D;  --tt-gris:#EEF1F5;  --tt-gris-i:#475569;
+  --hair:rgba(15,23,42,.07); --sh-tuile:0 1px 2px rgba(15,15,15,.04),0 4px 14px rgba(15,15,15,.06);
+  --vedette:#0F172A; --vedette-2:#94A3B8;
 }
 .ver-badge { display:inline-flex; align-items:center; gap:5px; font-family:var(--mono); font-size:11px; font-weight:600; color:var(--ink-4); background:var(--line-light); border:1px solid var(--line); border-radius:20px; padding:3px 10px; letter-spacing:.02em; vertical-align:middle; }
 .ver-dot { width:5px; height:5px; border-radius:50%; background:#22C55E; flex:none; }
@@ -79,6 +84,10 @@ html[data-theme="dark"] {
   --vt-ecr:#5ED3BB;  --vt-ecr-bg:#10302A;  --vt-meta:#B3A8F5; --vt-meta-bg:#231E45;
   --vt-rs:#8CBDEB;   --vt-rs-bg:#162A42;   --vt-reco:#F2B266; --vt-reco-bg:#3A2810;
   --vt-aut:#9AA7BC;  --vt-aut-bg:#1C2537;
+  --tt-bleu:#10253B;  --tt-bleu-i:#8CC4F5;  --tt-peche:#33210F; --tt-peche-i:#F5B783;
+  --tt-rose:#33141F;  --tt-rose-i:#F29BC0;  --tt-gris:#1A2232;  --tt-gris-i:#A7B2C3;
+  --hair:var(--line); --sh-tuile:none;
+  --vedette:#1B2436; --vedette-2:#8D9AB1;
   color-scheme:dark;
 }
 html[data-theme="dark"] body{background:var(--bg)}
@@ -95,10 +104,15 @@ body {
 /* ── HEADER (repris d'planning.html) ── */
 .header {
   background: var(--white);
+  /* (14/10/2026, v1.23) verre dépoli : la page défile derrière, floutée */
   border-bottom: 1px solid var(--line);
   padding: 0 32px;
   display: flex; align-items: center; justify-content: space-between;
   min-height: 60px; position: sticky; top: 0; z-index: 300;
+}
+@supports ((-webkit-backdrop-filter: blur(1px)) or (backdrop-filter: blur(1px))) {
+  .header { background: color-mix(in srgb, var(--white) 80%, transparent);
+    -webkit-backdrop-filter: saturate(180%) blur(20px); backdrop-filter: saturate(180%) blur(20px); border-bottom-color: var(--hair); }
 }
 .header-brand { display: flex; align-items: center; gap: 11px; min-width: 0; }
 .header-brand > div:last-child { min-width: 0; overflow: hidden; }
@@ -122,7 +136,7 @@ body {
 
 /* ── PAGE ── */
 .wrap { max-width: 960px; margin: 0 auto; padding: 40px 24px 64px; }
-.hello { margin: 0 0 4px; font-size: 24px; font-weight: 700; letter-spacing: -.02em; color: var(--ink); }
+.hello { margin: 0 0 4px; font-size: 28px; font-weight: 600; letter-spacing: -.6px; color: var(--ink); }
 .hello-sub { margin: 0 0 32px; font-size: 14px; color: var(--ink-3); }
 
 .tiles {
@@ -134,28 +148,33 @@ body {
   position: relative;
   display: flex; flex-direction: column; gap: 12px;
   background: var(--white);
-  border: 1px solid var(--line);
-  border-radius: 16px;
-  padding: 22px 20px;
+  border: 1px solid var(--hair);
+  border-radius: 18px;
+  padding: 18px;
+  box-shadow: var(--sh-tuile);
   text-decoration: none;
   color: inherit;
-  transition: transform .15s ease, box-shadow .15s ease, border-color .15s ease;
+  transition: transform .12s ease, box-shadow .15s ease, border-color .15s ease;
 }
+/* (14/10/2026, v1.23) la tuile se tasse sous le doigt */
+a.tile:active, .tile.clickable:active, .tile.split .split-face:active, .racc:active, .mg-hero:active { transform: scale(.97); }
 a.tile, .tile.clickable { cursor: pointer; }
-a.tile:hover, .tile.clickable:hover {
-  transform: translateY(-3px);
-  box-shadow: 0 12px 28px rgba(15,23,42,.10);
-  border-color: var(--me-border);
+@media (hover: hover) {
+  a.tile:hover, .tile.clickable:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 2px 4px rgba(15,15,15,.05), 0 10px 24px rgba(15,15,15,.09);
+  }
 }
 .tile-ico {
-  width: 46px; height: 46px; border-radius: 12px;
+  width: 42px; height: 42px; border-radius: 12px;
   display: flex; align-items: center; justify-content: center;
   background: var(--me-soft); color: var(--me);
 }
-.tile-ico svg { width: 24px; height: 24px; }
-.tile-title { font-size: 16px; font-weight: 700; color: var(--ink); letter-spacing: -.01em; }
-.tile-sub { font-size: 13px; color: var(--ink-3); line-height: 1.45; }
-.tile-arrow { margin-top: auto; font-size: 13px; font-weight: 600; color: var(--me); display: flex; align-items: center; gap: 4px; }
+.tile-ico svg { width: 21px; height: 21px; }
+.tile-title { font-size: 16px; font-weight: 600; color: var(--ink); letter-spacing: -.25px; }
+.tile-sub { font-size: 13px; color: var(--ink-3); line-height: 1.4; }
+/* (14/10/2026, v1.23) plus de « Ouvrir → » : toute la tuile se touche */
+.tile-arrow { display: none; }
 
 .tile.soon { opacity: .62; cursor: default; }
 
@@ -167,7 +186,7 @@ a.tile:hover, .tile.clickable:hover {
    La hauteur est figée à l'ouverture (voir splitOpen) pour éviter que la grille
    ne saute au moment de l'animation. */
 .tile.split { padding: 0; overflow: hidden; cursor: default; }
-.tile.split .split-face { padding: 22px 20px; display: flex; flex-direction: column; gap: 12px;
+.tile.split .split-face { padding: 18px; display: flex; flex-direction: column; gap: 12px;
   transition: opacity .18s ease, transform .28s cubic-bezier(.4,0,.2,1); cursor: pointer; }
 .tile.split.open .split-face { opacity: 0; transform: scale(.97); pointer-events: none; }
 .tile.split .split-halves { position: absolute; inset: 0; display: flex; opacity: 0;
@@ -199,11 +218,11 @@ a.tile:hover, .tile.clickable:hover {
 /* ── BANDEAU « MES GARDES » (accueil) ── */
 .mg-hero {
   display:flex; align-items:center; gap:16px;
-  background:linear-gradient(135deg,#1E293B,#0F172A);
-  border:1px solid #1E293B; border-radius:16px;
-  padding:18px 20px; margin:0 0 20px; cursor:pointer;
-  color:#fff; text-decoration:none;
-  transition:transform .15s ease, box-shadow .15s ease;
+  background:var(--vedette);
+  border:1px solid var(--vedette); border-radius:20px;
+  padding:14px 16px; margin:0 0 20px; cursor:pointer;
+  color:#F8FAFC; text-decoration:none;
+  transition:transform .12s ease, box-shadow .15s ease;
 }
 .mg-hero:hover { transform:translateY(-2px); box-shadow:0 12px 28px rgba(15,23,42,.18); }
 .mg-hero-ico { width:46px; height:46px; border-radius:12px; flex-shrink:0;
@@ -214,6 +233,16 @@ a.tile:hover, .tile.clickable:hover {
 .mg-hero-label { font-size:11px; font-weight:700; text-transform:uppercase; letter-spacing:.05em; opacity:.6; }
 .mg-hero-main { font-size:17px; font-weight:700; letter-spacing:-.01em; margin-top:2px; }
 .mg-hero-sub { font-size:13px; opacity:.72; margin-top:3px; }
+/* (14/10/2026, v1.23) « Prochaine garde » : date et ligne en grand, délai et collègue dessous */
+#myGardesHero { align-items:flex-start; }
+#myGardesHero .mg-hero-ico { display:none; }
+#myGardesHero .mg-hero-label { display:flex; align-items:center; gap:7px; font-size:12px; letter-spacing:1px; opacity:1; color:var(--vedette-2); }
+#myGardesHero .mg-hero-label svg { width:15px; height:15px; }
+#myGardesHero .mg-hero-main { font-size:24px; font-weight:600; letter-spacing:-.6px; margin-top:6px; line-height:1.15; }
+#myGardesHero .mg-hero-sub { font-size:14px; opacity:1; color:var(--vedette-2); }
+#myGardesHero .mg-hero-sub b { color:#F8FAFC; font-weight:600; }
+#notifCard { background:var(--tt-bleu); border-color:var(--tt-bleu); color:var(--tt-bleu-i); }
+#notifCard .mg-hero-ico { background:var(--white); color:var(--tt-bleu-i); }
 .mg-hero-arrow { flex-shrink:0; opacity:.55; display:flex; }
 .mg-hero-arrow svg { width:20px; height:20px; }
 .mg-hero.loading .mg-hero-main { opacity:.45; }
@@ -397,6 +426,10 @@ a.tile:hover, .tile.clickable:hover {
 .tile-ico.vert { background:var(--ok-soft); color:var(--ok); }
 .tile-ico.ambre { background:var(--amber-soft); color:var(--amber); }   /* (26/08) tuile indispos en consultation seule */
 .tile-ico.rouge { background:var(--red-soft); color:var(--red); }   /* (27/09) tuile ACR */
+.tile-ico.bleu  { background:var(--tt-bleu);  color:var(--tt-bleu-i); }   /* (14/10/2026, v1.23) */
+.tile-ico.peche { background:var(--tt-peche); color:var(--tt-peche-i); }
+.tile-ico.rose  { background:var(--tt-rose);  color:var(--tt-rose-i); }
+.tile-ico.gris  { background:var(--tt-gris);  color:var(--tt-gris-i); }
 
 /* ── VUE PROTOCOLES ── */
 .protos-search { margin-bottom:14px; }
@@ -529,21 +562,21 @@ html[data-theme="dark"] .vs-pill{background:#251B3C;color:#B593F2}
    Réservé est une liste de lignes : outils rares, peu de place. */
 .raccourcis { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:10px; max-width:460px; margin:0 0 6px; }
 .raccourcis:empty { display:none; }
-.racc { display:flex; align-items:center; justify-content:center; gap:8px; min-height:48px; border-radius:12px;
-  border:1px solid var(--line); background:var(--white); color:var(--ink); font-family:inherit;
-  font-size:15px; font-weight:800; letter-spacing:.01em; text-decoration:none; cursor:pointer;
-  transition:transform .15s ease, box-shadow .15s ease; }
+.racc { display:flex; align-items:center; justify-content:center; gap:9px; min-height:54px; border-radius:16px;
+  border:1px solid var(--hair); background:var(--white); color:var(--ink); font-family:inherit; box-shadow:var(--sh-tuile);
+  font-size:16.5px; font-weight:600; letter-spacing:-.1px; text-decoration:none; cursor:pointer;
+  transition:transform .12s ease, box-shadow .15s ease; }
 .racc:hover { transform:translateY(-2px); box-shadow:0 8px 20px rgba(15,23,42,.10); }
 .racc svg { width:20px; height:20px; }
-.racc.rouge { background:var(--red); border-color:var(--red); color:#fff; }
+.racc.rouge { background:var(--red); border-color:var(--red); color:#fff; box-shadow:0 6px 16px rgba(206,17,38,.25); }
 .bloc { margin:26px 0 0; }
-.bloc-titre { margin:0 2px 10px; font-size:11.5px; font-weight:800; letter-spacing:.07em; text-transform:uppercase; color:var(--ink-3); }
+.bloc-titre { margin:0 4px 10px; font-size:12px; font-weight:700; letter-spacing:1px; text-transform:uppercase; color:var(--ink-3); }
 .bloc .mg-hero { margin:0 0 12px; }
 /* Mes échanges, habillée en tuile : rouge quand une demande attend une réponse. */
 .ech-tuile { position:relative; }
 .ech-tuile.attente { border-color:var(--red); }
 .ech-tuile.attente .tile-ico { background:var(--red-soft); color:var(--red); }
-.ech-pastille { position:absolute; top:12px; right:12px; min-width:22px; height:22px; padding:0 6px; box-sizing:border-box;
+.ech-pastille { position:absolute; top:-6px; right:-6px; border:2px solid var(--bg); min-width:22px; height:22px; padding:0 6px; box-sizing:border-box;
   border-radius:11px; background:var(--red); color:#fff; font-size:11.5px; font-weight:800;
   display:flex; align-items:center; justify-content:center; }
 /* Liste (bloc Réservé) : une ligne par outil. */
@@ -563,24 +596,28 @@ html[data-theme="dark"] .vs-pill{background:#251B3C;color:#B593F2}
   .header { padding: 0 14px; min-height: 52px; }
   .header-right { flex-shrink: 0; }
   .wrap { padding: 28px 16px 48px; }
-  .hello { font-size: 21px; }
+  .hello { font-size: 26px; }
   /* (11/10/2026) Bandeau trop serré sur téléphone : le nom du portail était coupé
      (« Planning… »). Le bouton Aide n'y garde que son « ? », en rond. */
   .header-btn { width:32px; height:32px; padding:0; justify-content:center; flex-shrink:0; }
   .header-btn .hb-txt { display:none; }
   .header-btn .hb-ico { width:20px; height:20px; font-size:12.5px; }
+  /* (14/10/2026, v1.23) le « ? » devient un bouton rouge plein, comme la maquette */
+  .header-btn { width:34px; height:34px; border-radius:10px; background:var(--red); border-color:var(--red); }
+  .header-btn .hb-ico { background:none; font-size:17px; }
   .raccourcis { max-width:none; }
   .bloc { margin-top:22px; }
   .tiles { grid-template-columns: repeat(2, minmax(0, 1fr)); gap:10px; }
-  .tile { padding:14px; gap:8px; border-radius:14px; }
-  .tile-ico { width:38px; height:38px; border-radius:10px; }
+  .tile { padding:14px; gap:8px; border-radius:18px; }
+  .tile.split .split-face { padding:14px; gap:8px; }
+  .tile-ico { width:40px; height:40px; border-radius:12px; }
   .tile-ico svg { width:20px; height:20px; }
-  .tile-title { font-size:14.5px; line-height:1.25; }
-  .tile-sub { font-size:11.5px; line-height:1.35; display:-webkit-box; -webkit-line-clamp:2; -webkit-box-orient:vertical; overflow:hidden; }
+  .tile-title { font-size:15.5px; line-height:1.25; margin-top:4px; }
+  .tile-sub { font-size:12.5px; line-height:1.38; display:-webkit-box; -webkit-line-clamp:2; -webkit-box-orient:vertical; overflow:hidden; }
   .tile-arrow { display:none; }
   .tile.large, .tile.seul { grid-column:1 / -1; display:grid; grid-template-columns:auto 1fr; column-gap:12px; row-gap:2px; align-items:center; }
   .tile.large .tile-ico, .tile.seul .tile-ico { grid-row:span 2; }
-  .tile.large .tile-title { font-size:16px; }
+  .tile.large .tile-title, .tile.seul .tile-title { font-size:16px; margin-top:0; }
   .tiles.liste { grid-template-columns:1fr; }
   .tiles.liste .tile-title { font-size:14.5px; }
 }
@@ -654,7 +691,7 @@ html[data-theme="dark"] .vs-pill{background:#251B3C;color:#B593F2}
 <div class="wrap" id="portal" style="display:none">
   <div id="tilesView">
     <h1 class="hello" id="hello">Bienvenue</h1>
-    <p class="hello-sub">Choisissez une rubrique du service. <span class="ver-badge"><span class="ver-dot"></span><span id="verBadge" data-version>—</span></span></p>
+    <p class="hello-sub"><span id="helloDate">Choisissez une rubrique du service.</span> <span class="ver-badge"><span class="ver-dot"></span><span id="verBadge" data-version>—</span></span></p>
     <!-- (12/08/2026, v1.31.4) Notifications push — phase 1 : visible rôle admin SEUL.
          Le serveur refuse de toute façon les autres rôles : ceci n'est que l'habillage. -->
     <div id="notifCard" class="mg-hero" style="display:none" onclick="activerNotifications()">
@@ -675,7 +712,7 @@ html[data-theme="dark"] .vs-pill{background:#251B3C;color:#B593F2}
       <div id="myGardesHero" class="mg-hero" style="display:none" onclick="location.hash='#mes-gardes'">
         <div class="mg-hero-ico"><i data-lucide="moon"></i></div>
         <div class="mg-hero-body">
-          <div class="mg-hero-label" id="mgHeroLabel">Prochaine garde</div>
+          <div class="mg-hero-label"><i data-lucide="moon"></i><span id="mgHeroLabel">Prochaine garde</span></div>
           <div class="mg-hero-main" id="mgHeroMain">Chargement…</div>
           <div class="mg-hero-sub" id="mgHeroSub"></div>
         </div>
@@ -703,7 +740,7 @@ html[data-theme="dark"] .vs-pill{background:#251B3C;color:#B593F2}
     </section>
     <section class="bloc" id="bloc-reserve" style="display:none">
       <h2 class="bloc-titre">Réservé</h2>
-      <div class="tiles liste" id="tiles-reserve"></div>
+      <div class="tiles" id="tiles-reserve"></div>
     </section>
   </div>
   <div id="toposView" style="display:none">
@@ -1039,6 +1076,11 @@ function applyUserBadge(r){
   pill.onclick = logout;
   const hello = document.getElementById('hello');
   if(hello) hello.textContent = MY_ID ? ('Bonjour ' + _meName(MY_ID)) : 'Bienvenue';
+  /* (14/10/2026, v1.23) La date du jour remplace « Choisissez une rubrique du service. » */
+  { const hd = document.getElementById('helloDate');
+    if (hd) { const d = new Date(), J = ['Dimanche','Lundi','Mardi','Mercredi','Jeudi','Vendredi','Samedi'],
+      M = ['janvier','février','mars','avril','mai','juin','juillet','août','septembre','octobre','novembre','décembre'];
+      hd.textContent = J[d.getDay()] + ' ' + d.getDate() + ' ' + M[d.getMonth()]; } }
   { const vb = document.getElementById('verBadge'); if (vb) vb.textContent = SITE_VERSION; }
 }
 function logout(){
@@ -1061,7 +1103,7 @@ const TILES = [
   // dont on a besoin en urgence ; elle était 12e.
   { key:'acr', title:'ACR', sub:'Arrêt cardiaque : chronomètre, doses et compte rendu. Fonctionne sans réseau.', icon:'heart-pulse', href:'acr/', tint:'rouge', ready:true, bloc:'raccourci' },
   { key:'annuaire', title:'Annuaire', sub:'Numéros de l\'hôpital et DECT de l\'équipe.', icon:'phone', view:'annuaire', ready:true, bloc:'raccourci' },
-  { key:'conges', title:'Mes congés', sub:'Vacances, formation, TP, récup et congés à venir.', icon:'calendar-off', view:'conges', ready:true, bloc:'moi' },
+  { key:'conges', title:'Mes congés', sub:'Vacances, formation, TP, récup et congés à venir.', icon:'calendar-off', view:'conges', tint:'peche', ready:true, bloc:'moi' },
   // Tuile de CAMPAGNE : visible uniquement pendant la saisie des indispos
   // (octobre → clôture). Hors campagne, indispos.html ne sert à rien : la tuile
   // disparaît plutôt que d'encombrer le portail 10 mois par an.
@@ -1074,12 +1116,12 @@ const TILES = [
   // campagne (année N+1) et la pose TP (année N) COHABITENT — maquette validée
   // le 22/08. Teinte verte : les jours verts de l'écran de pose.
   { key:'tp', title:'Mes jours de temps partiel', sub:'Posez vos jours de TP {ANTP}, dans le planning déjà généré.', icon:'calendar-clock', href:'indispos.html?tp=1', ready:true, tp:true, tint:'vert', bloc:'moi', large:true },
-  { key:'planning', title:'Planning', sub:'Qui est où, jour par jour, et l\'année entière.', icon:'calendar-days', href:'planning.html', ready:true, bloc:'service', large:true },
+  { key:'planning', title:'Planning', sub:'Qui est où, jour par jour, et l\'année entière.', icon:'calendar-days', href:'planning.html', tint:'bleu', ready:true, bloc:'service', large:true },
   // (11/10/2026) Les compteurs d'équité n'étaient qu'un onglet du planning, introuvable
   // depuis l'accueil. La tuile ouvre le planning DIRECTEMENT sur cet onglet
   // (planning.html#equite, lu par ouvrirVueDemandee) : un seul affichage à maintenir.
-  { key:'equite', title:'Équité des gardes', sub:'Les compteurs de gardes de chacun.', icon:'scale', href:'planning.html#equite', ready:true, bloc:'service' },
-  { key:'staffs',   title:'Staffs à venir', sub:'Programme des réunions et intervenants.', icon:'presentation', view:'staffs', ready:true, bloc:'service' },
+  { key:'equite', title:'Équité des gardes', sub:'Les compteurs de gardes de chacun.', icon:'scale', href:'planning.html#equite', tint:'vert', ready:true, bloc:'service' },
+  { key:'staffs',   title:'Staffs à venir', sub:'Programme des réunions et intervenants.', icon:'presentation', view:'staffs', tint:'viol', ready:true, bloc:'service' },
   // (26/09/2026) Recommandations des societes savantes (RFE SFAR…), une fiche par
   // texte, rangees source > theme. Testee en tuile reservee, ouverte a tous le
   // meme jour (v1.13.0). Sources suivantes « Recommandations SPILF » (v1.13.1)
@@ -1090,8 +1132,8 @@ const TILES = [
   { key:'recommandations', title:'Fiches pratiques', sub:'Recommandations des sociétés savantes (SFAR, SPILF, SRLF) et fiches mémo de chirurgie lourde.', icon:'folder', view:'recommandations', tint:'vert', ready:true, bloc:'ressources' },
   { key:'protocoles', title:'Protocoles', sub:'Procédures du service, classées par spécialité.', icon:'clipboard-list', view:'protocoles', tint:'viol', ready:true, bloc:'ressources' },
   // (11/10/2026) « Topos / biblio » → « Topos » : « biblio » figurait aussi dans Veille biblio.
-  { key:'topos',    title:'Topos', sub:'Documents et présentations du service.', icon:'book-open', view:'topos', ready:true, bloc:'ressources' },
-  { key:'veille',   title:'Veille biblio', sub:'Nouveaux articles PubMed en anesthésie-réanimation.', icon:'radar', view:'veille', ready:true, bloc:'ressources' },
+  { key:'topos',    title:'Topos', sub:'Documents et présentations du service.', icon:'book-open', view:'topos', tint:'bleu', ready:true, bloc:'ressources' },
+  { key:'veille',   title:'Veille biblio', sub:'Nouveaux articles PubMed en anesthésie-réanimation.', icon:'radar', view:'veille', tint:'rose', ready:true, bloc:'ressources' },
   // (11/10/2026) Entrée de l'espace comité, jusqu'ici atteint par favori seulement.
   // RÉSERVÉE comme les autres (CONFIG / TUILES_PRIVEES, clé `comite`) : clé absente
   // = tuile invisible. admin.html exige de toute façon le code du comité.
@@ -1114,17 +1156,17 @@ const TILES = [
   // (Lot 5-bis) Consultations a venir + absences du MAR sur les 4 semaines qui
   // suivent chaque consultation. ACCES RESTREINT (CONFIG / TUILES_PRIVEES).
   // (11/10/2026) Rangée dans le bloc Réservé, à côté du Libéral.
-  { key:'consult', title:'Mes consultations', sub:'Vos consultations libérales à venir et vos absences sur la même période.', icon:'calendar-check', href:'absences.html', ready:true, liberal:true, prive:true, bloc:'reserve' },
-  { key:'crh',      title:'CRH', sub:'Comptes rendus de réanimation.', icon:'file-text', href:'crh.html', ready:true, prive:true, bloc:'reserve' },
+  { key:'consult', title:'Mes consultations', sub:'Vos consultations libérales à venir et vos absences sur la même période.', icon:'calendar-check', href:'absences.html', tint:'bleu', ready:true, liberal:true, prive:true, bloc:'reserve' },
+  { key:'crh',      title:'CRH', sub:'Comptes rendus de réanimation.', icon:'file-text', href:'crh.html', tint:'peche', ready:true, prive:true, bloc:'reserve' },
   // Documentation TECHNIQUE du systeme (architecture, wizards, deploiement,
   // depannage). Sans interet pour l'equipe : tuile reservee, comme CRH.
   // Seul moyen d'y acceder jusqu'ici : taper l'adresse a la main.
-  { key:'technique', title:'Guide technique', sub:'Architecture, déploiement, dépannage du système.', icon:'wrench', href:'docs/guide-technique.html', ready:true, prive:true, bloc:'reserve' },
+  { key:'technique', title:'Guide technique', sub:'Architecture, déploiement, dépannage du système.', icon:'wrench', href:'docs/guide-technique.html', tint:'gris', ready:true, prive:true, bloc:'reserve' },
   // Statistiques d'usage du portail (29/08/2026) : qui s'en sert, a quelle
   // frequence, a quels moments. Reservee comme CRH et le guide
   // technique. Le serveur refuse l'action aux autres roles : masquer la tuile
   // ne ferme rien.
-  { key:'stats', title:'Statistiques d\'usage', sub:'Qui utilise le portail, à quelle fréquence, à quels moments.', icon:'bar-chart-2', href:'docs/stats-usage.html', ready:true, prive:true, bloc:'reserve' },
+  { key:'stats', title:'Statistiques d\'usage', sub:'Qui utilise le portail, à quelle fréquence, à quels moments.', icon:'bar-chart-2', href:'docs/stats-usage.html', tint:'gris', ready:true, prive:true, bloc:'reserve' },
 ];
 /* (11/10/2026) Saisie close : passé minuit le soir de la date limite (CONFIG /
    INDISPOS_FIN, transmise par le serveur), heure de Paris. Sans date : jamais close. */
@@ -1439,16 +1481,40 @@ function _mgDateCourte(iso){
   if(isNaN(d.getTime())) return String(iso);
   return _MG_JOURS[d.getDay()]+' '+p[2]+'/'+p[1];
 }
+/* (14/10/2026, v1.23) Carte « Prochaine garde » : « Sam. 18 oct. · Réa », puis le
+   délai et le collègue qui tient l'AUTRE ligne de garde ce jour-là (G ↔ G2), lu dans
+   le planning déjà chargé pour trouver mes gardes — aucun appel de plus. */
+const _MG_J3=['Dim.','Lun.','Mar.','Mer.','Jeu.','Ven.','Sam.'];
+const _MG_M3=['janv.','févr.','mars','avr.','mai','juin','juil.','août','sept.','oct.','nov.','déc.'];
+function _mgDateCarte(iso){
+  const p=String(iso).split('-'); if(p.length!==3) return String(iso);
+  const d=new Date(+p[0], +p[1]-1, +p[2]); if(isNaN(d.getTime())) return String(iso);
+  return _MG_J3[d.getDay()]+' '+d.getDate()+' '+_MG_M3[d.getMonth()];
+}
+function _mgNom(id){ return String(id||'').toLowerCase().replace(/(^|[\s-])\S/g, function(c){ return c.toUpperCase(); }); }
+function _mgCollegue(date, type){
+  const an=+String(date).slice(0,4);
+  const pl=_planCache[an] || (typeof _planDejaLa==='function' ? _planDejaLa(an) : null);
+  if(!pl || !pl.months) return null;
+  const autre = type==='G2' ? 'G' : 'G2';
+  for(const m of pl.months){
+    const i=(m.days||[]).findIndex(function(j){ return j && j.date===date; });
+    if(i<0) continue;
+    const d=(m.doctors||[]).find(function(doc){ return doc.id!==MY_ID && doc.days && doc.days[i] && doc.days[i].status===autre; });
+    return d ? {nom:_mgNom(d.id), ligne:(autre==='G2'?'Mater/Bloc':'Réa')} : null;
+  }
+  return null;
+}
 function renderMyGardesHero(){
   const main=document.getElementById('mgHeroMain'), sub=document.getElementById('mgHeroSub');
   if(!main||!sub) return;
   if(!MY_GARDES || !MY_GARDES.length){ main.textContent='Aucune garde à venir'; sub.textContent=''; return; }
   const g0=MY_GARDES[0], n=_daysUntil(g0.date);
   const secteur = (g0.type==='G2'?'Mater/Bloc':'Réa');
-  main.textContent = _mgDateCourte(g0.date) + ' · ' + secteur;
-  const when = n<=0 ? "Aujourd'hui" : n===1 ? 'Demain' : 'Dans '+n+' jours';
-  const rest=MY_GARDES.length-1;
-  sub.textContent = when + (rest>0 ? (' · '+rest+' autre'+(rest>1?'s':'')+' à venir') : '');
+  main.textContent = _mgDateCarte(g0.date) + ' · ' + secteur;
+  const when = n<=0 ? "Aujourd'hui" : n===1 ? 'Demain' : 'dans '+n+' jours';
+  const c=_mgCollegue(g0.date, g0.type);
+  sub.innerHTML = esc(when) + (c ? (' · avec <b>'+esc(c.nom)+'</b> en '+esc(c.ligne)) : '');
 }
 function openMesGardes(){
   if(!MY_ID) return;
