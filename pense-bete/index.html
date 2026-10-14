@@ -109,6 +109,21 @@ details summary{cursor:pointer;color:var(--mute);font-size:15px;padding:10px 0}
 .case{display:flex;align-items:center;gap:8px;margin-top:8px;font-size:15px;color:var(--ink)}
 .case input{width:22px;height:22px;min-height:0}
 .lib{font-size:14px;color:var(--mute);margin-top:6px;min-height:1.2em}
+.acte{flex-wrap:wrap}
+/* (14/10/2026) Montant corrigé à la main (recueil Hôpital Manager : modificateurs F, P, S, U…) */
+.mt{margin-top:10px}
+#cMt{font-size:20px;font-weight:700;text-align:right;font-variant-numeric:tabular-nums}
+#cMt.mod,.cv.mod{border-color:var(--warn);background:var(--acc-soft)}
+.cv{font:inherit;font-variant-numeric:tabular-nums;color:var(--ink);background:none;border:1px solid transparent;border-radius:8px;padding:6px 8px;cursor:pointer;text-align:right}
+.cv::after{content:" \270E";color:var(--mute);font-size:13px}
+.cv.mod{color:var(--warn)}
+.badge{font-size:12px;font-weight:700;color:var(--warn);border:1px solid var(--warn);border-radius:999px;padding:1px 7px;margin-right:6px}
+.lien{font:inherit;font-size:14px;font-weight:700;color:var(--acc);background:none;border:0;padding:0;cursor:pointer}
+.ed{flex-basis:100%;display:grid;grid-template-columns:minmax(0,1fr) auto auto;gap:8px;padding:2px 0 12px}
+.ed input{text-align:right;font-weight:700;font-variant-numeric:tabular-nums;min-width:0}
+.ed .geste{font-size:16px;min-height:46px;padding:0 14px}
+.ed .non{background:var(--bg);color:var(--mute);border:1px solid var(--line)}
+.ed .lib{grid-column:1/-1;margin-top:0}
 @media (prefers-reduced-motion:no-preference){ .fresh{animation:f .6s ease-out} @keyframes f{from{background:var(--acc-soft)}to{background:transparent}} }
 </style>
 </head>
@@ -176,6 +191,13 @@ details summary{cursor:pointer;color:var(--mute);font-size:15px;padding:10px 0}
           <button type="button" class="geste" id="cAutre">Ajouter</button></div>
         <label class="case"><input type="checkbox" id="c50"> 2e acte du même patient (50 %)</label>
         <div class="lib" id="cLibelle"></div>
+        <!-- (14/10/2026) Montant final, tel que dans le recueil Hôpital Manager :
+             pré-rempli par le calcul, corrigeable (modificateurs). -->
+        <div class="mt" id="cMtB" hidden>
+          <label for="cMt">Montant compté (€) — corrigez-le selon le recueil</label>
+          <input id="cMt" inputmode="decimal" autocomplete="off">
+          <div class="lib" id="cMtEtat"></div>
+        </div>
       </div>
       </div>
       <!-- (09/10/2026) NGAP : deux consultations, comme le devis libéral (CS, APC).
@@ -341,7 +363,11 @@ function valeur(g,a){ const x=C.v[g+'_'+a]; return Number.isInteger(x)?x:null; }
 // Valeur d'un acte de la liste : figée à l'ajout pour « autre », lue dans les Réglages sinon
 const axeDe=x=>x.ax==='ngap'?'ngap':'ccam';
 function valeurN(g){ const x=C.vn[g]; return Number.isInteger(x)?x:null; }
-function valeurActe(x){ return axeDe(x)==='ngap' ? valeurN(x.g) : x.g==='autre' ? (Number.isInteger(x.v)?x.v:null) : valeur(x.g,x.a); }
+function valeurCalc(x){ return axeDe(x)==='ngap' ? valeurN(x.g) : x.g==='autre' ? (Number.isInteger(x.v)?x.v:null) : valeur(x.g,x.a); }
+/* (14/10/2026) x.vm = montant corrigé à la main (montant FINAL du recueil Hôpital
+   Manager, modificateurs compris) : il prime sur le calcul, pour CET acte seulement. */
+function valeurActe(x){ return Number.isInteger(x.vm) ? x.vm : valeurCalc(x); }
+let cEdit=null;
 function regleNgap(){ return !!C.d0 && Number.isInteger(C.pn0) && Number.isInteger(C.ln0) && Object.keys(NGAP).every(g=>valeurN(g)!=null); }
 const nomActe=x=>x.g==='autre' ? x.code : axeDe(x)==='ngap' ? (NGAP[x.g]||x.g) : (GESTES[x.g]||x.g);
 function regleComplet(){ return !!C.d0 && Number.isInteger(C.p0) && Number.isInteger(C.l0) && Object.keys(GESTES).every(g=>Object.keys(ASS).every(a=>valeur(g,a)!=null)); }
@@ -381,8 +407,13 @@ function cRender(){
   $('cListT').textContent=(n?'Consultations comptées':'Actes comptés')+(tri.length?' ('+tri.length+')':'');
   $('cList').innerHTML = tri.length ? tri.map(x=>'<div class="acte"><span class="d">'+x.d.slice(8,10)+'/'+x.d.slice(5,7)+'</span>'
       +'<span class="g">'+esc(nomActe(x))+(x.g==='autre'&&x.r50?' (50 %)':'')+' · '+(x.m==='lib'?'Lib':'Pub')+' · '+esc(ASS[x.a]||x.a)+'</span>'
-      +'<span class="v">'+(valeurActe(x)!=null?euros(valeurActe(x)):'—')+'</span>'
-      +'<button type="button" class="x cx" aria-label="Retirer cet acte" data-id="'+x.id+'">×</button></div>').join('')
+      +'<button type="button" class="v cv'+(Number.isInteger(x.vm)?' mod':'')+'" aria-label="Corriger le montant" data-id="'+x.id+'">'+(valeurActe(x)!=null?euros(valeurActe(x)):'—')+'</button>'
+      +'<button type="button" class="x cx" aria-label="Retirer cet acte" data-id="'+x.id+'">×</button>'
+      +(cEdit===x.id ? '<div class="ed"><input id="cEv" inputmode="decimal" aria-label="Montant final" value="'+saisie(valeurActe(x))+'">'
+          +'<button type="button" class="geste cok" data-id="'+x.id+'">OK</button><button type="button" class="geste non cno">Annuler</button>'
+          +'<div class="lib" id="cEvMsg">Calcul : '+(valeurCalc(x)!=null?euros(valeurCalc(x)):'—')
+          +(Number.isInteger(x.vm)?' · <button type="button" class="lien crz" data-id="'+x.id+'">↺ revenir au calcul</button>':'')+'</div></div>' : '')
+      +'</div>').join('')
     : '<p class="empty">'+(n?'Aucune consultation comptée':'Aucun acte compté')+' depuis le relevé.</p>';
   if(!storageOK) $('cMsg').textContent="Ce navigateur n'enregistre pas : le compteur sera perdu en fermant la page.";
 }
@@ -424,7 +455,25 @@ const codeSaisi=()=>$('cCode').value.trim().toUpperCase().replace(/\s/g,'');
 function montantAutre(t, r50, a){ return Math.round(Math.round(t*100) * 1.06 * (r50?0.5:1) * (a==='mc'?1.95:1)); }
 // forfait de réa : tarif déjà en centimes, pas de modificateur 7
 function montantRea(c, r50, a){ return Math.round(c * (r50?0.5:1) * (a==='mc'?1.95:1)); }
-async function apercuAutre(){
+/* (14/10/2026) Montant compté de « Autre acte » : pré-rempli par le calcul,
+   corrigeable. autreModif = la case a été corrigée à la main (ne plus l'écraser). */
+let autreCalc=null, autreModif=false;
+function montrerMontant(v){
+  autreCalc=v; $('cMtB').hidden = v==null;
+  if(v==null){ autreModif=false; return; }
+  if(!autreModif) $('cMt').value=saisie(v);
+  etatMontant();
+}
+function etatMontant(){
+  const c=enCentimes($('cMt').value), e=$('cMtEtat');
+  autreModif = c!==autreCalc;
+  $('cMt').classList.toggle('mod', autreModif);
+  if(c==null||c===0){ e.textContent='Montant illisible (ex. 1 234,56).'; return; }
+  e.innerHTML = autreModif ? '<span class="badge">Corrigé</span>calcul : '+euros(autreCalc)+' · <button type="button" class="lien" id="cMtRz">↺ revenir au calcul</button>'
+    : 'Touchez le montant pour le corriger (modificateurs).';
+}
+async function apercuAutre(){ const r=await apercuAutre0(); montrerMontant(r?r.v:null); return r; }
+async function apercuAutre0(){
   const code=codeSaisi(), el=$('cLibelle');
   if(code.length<7){ el.textContent=''; return null; }
   if(!/^[A-Z]{4}\d{3}$/.test(code)){ el.textContent='Un code CCAM, c\'est 4 lettres et 3 chiffres.'; return null; }
@@ -445,20 +494,27 @@ async function apercuAutre(){
   el.textContent=a.l+' → '+euros(v)+lieu;
   return {c:a.c, v};
 }
-$('cCode').addEventListener('input',apercuAutre);
-$('c50').addEventListener('change',apercuAutre);
-$('cAss').addEventListener('click',()=>{ if(codeSaisi().length===7) apercuAutre(); });
+// Un nouveau calcul (code, 50 %, assurance) remplace la correction ; Libéral / Public ne change pas le montant.
+$('cCode').addEventListener('input',()=>{ autreModif=false; apercuAutre(); });
+$('c50').addEventListener('change',()=>{ autreModif=false; apercuAutre(); });
+$('cAss').addEventListener('click',()=>{ autreModif=false; if(codeSaisi().length===7) apercuAutre(); });
 $('cMode').addEventListener('click',()=>{ if(codeSaisi().length===7) apercuAutre(); });
+$('cMt').addEventListener('input',etatMontant);
+$('cMtEtat').addEventListener('click',e=>{ if(e.target.id==='cMtRz'){ autreModif=false; $('cMt').value=saisie(autreCalc); etatMontant(); } });
 $('cAutre').addEventListener('click',async()=>{
   if($('cAutre').disabled) return;
   const d=dateActe(); if(!d) return;
   const a=await apercuAutre();
   if(!a){ $('cMsg').textContent=$('cLibelle').textContent||'Tapez un code CCAM.'; return; }
-  const r50=$('c50').checked;
-  C.actes.push({id:Date.now().toString(36)+Math.random().toString(36).slice(2,6), d, g:'autre', code:a.c, r50, v:a.v, m:cMode, a:cAss, t:Date.now()});
+  const r50=$('c50').checked, mt=enCentimes($('cMt').value);
+  if(mt==null||mt===0){ $('cMsg').textContent='Montant illisible (ex. 1 234,56).'; return; }
+  const acte={id:Date.now().toString(36)+Math.random().toString(36).slice(2,6), d, g:'autre', code:a.c, r50, v:a.v, m:cMode, a:cAss, t:Date.now()};
+  if(mt!==a.v) acte.vm=mt;                       // (14/10) montant du recueil, modificateurs compris
+  C.actes.push(acte);
   cSave(); cRender();
-  $('cMsg').textContent='+1 '+a.c+(r50?' (50 %)':'')+' '+(cMode==='lib'?'libéral':'public')+' '+ASS[cAss]+' le '+d.split('-').reverse().join('/');
-  $('cCode').value=''; $('c50').checked=false; $('cLibelle').textContent='';
+  $('cMsg').textContent='+1 '+a.c+(r50?' (50 %)':'')+' '+(cMode==='lib'?'libéral':'public')+' '+ASS[cAss]+' le '+d.split('-').reverse().join('/')
+    +' · '+euros(mt)+(acte.vm!=null?' (corrigé)':'');
+  $('cCode').value=''; $('c50').checked=false; $('cLibelle').textContent=''; autreModif=false; montrerMontant(null);
 });
 
 $('cGestes').addEventListener('click',e=>{
@@ -475,7 +531,23 @@ $('cNgap').addEventListener('click',e=>{
   cSave(); cRender();
   $('cMsg').textContent='+1 '+NGAP[b.dataset.n]+' '+(cMode==='lib'?'libéral':'public')+' '+ASS[cAss]+' le '+d.split('-').reverse().join('/');
 });
+/* (14/10/2026) Corriger le montant d'un acte déjà compté : toucher le montant. */
+function validerEdition(id){
+  const x=C.actes.find(y=>y.id===id); if(!x) return;
+  const c=enCentimes($('cEv').value);
+  if(c==null||c===0){ $('cEvMsg').textContent='Montant illisible (ex. 1 234,56).'; return; }
+  if(c===valeurCalc(x)) delete x.vm; else x.vm=c;
+  cEdit=null; cSave(); cRender();
+  $('cMsg').textContent=nomActe(x)+' : '+euros(c)+(Number.isInteger(x.vm)?' (corrigé)':' (calcul)');
+}
+$('cList').addEventListener('keydown',e=>{ if(e.key==='Enter' && e.target.id==='cEv'){ e.preventDefault(); validerEdition(cEdit); } });
 $('cList').addEventListener('click',e=>{
+  const ed=e.target.closest('.cv');
+  if(ed){ cEdit = cEdit===ed.dataset.id ? null : ed.dataset.id; cRender(); const i=$('cEv'); if(i){ i.focus(); try{ i.select(); }catch(_){} } return; }
+  if(e.target.closest('.cno')){ cEdit=null; cRender(); return; }
+  const ok=e.target.closest('.cok'); if(ok){ validerEdition(ok.dataset.id); return; }
+  const rz=e.target.closest('.crz');
+  if(rz){ const x=C.actes.find(y=>y.id===rz.dataset.id); if(x){ delete x.vm; cEdit=null; cSave(); cRender(); $('cMsg').textContent=nomActe(x)+' : retour au calcul'; } return; }
   const b=e.target.closest('.cx'); if(!b) return;
   e.stopPropagation();
   const k=C.actes.findIndex(x=>x.id===b.dataset.id); if(k<0) return;

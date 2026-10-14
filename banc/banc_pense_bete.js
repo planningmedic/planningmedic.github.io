@@ -337,6 +337,76 @@ V('compteur abîmé : la page s\'ouvre, réglages demandés', o5.window.document
   // Données d'avant (sans NGAP) : CCAM intact, NGAP simplement à régler
   const av2 = ouvrir(null, { compteur: ancien }); av2.$('tC').click(); axe(av2, 'ngap');
   V('données d\'avant : NGAP vide demande ses Réglages, sans erreur', av2.$('cPct').textContent === '—' && av2.erreurs.length === 0 && av2.$('cList').querySelectorAll('.acte').length === 0, av2.erreurs);
+
+  /* ── 10. MONTANT CORRIGÉ À LA MAIN (14/10/2026) ──────────────────────────
+     Demande : les modificateurs changent parfois beaucoup le tarif. Le montant
+     saisi est le montant FINAL du recueil Hôpital Manager : il remplace le calcul,
+     sans ×1,06 ni ×1,95 par-dessus. Valeurs fictives. */
+  console.log('\n[10] Montant corrigé à la main — à l\'ajout et dans la liste');
+  const m = ouvrir(null, { ccam: true }); m.$('tC').click();
+  regler(m, '2026-09-30', '1 000,00', '', VALS);
+  m.$('cDt').value = '2026-10-03';
+  const tape = async (code) => { m.$('cCode').value = code; m.$('cCode').dispatchEvent(new m.w.Event('input')); await pause(); };
+  const montant = (v) => { m.$('cMt').value = v; m.$('cMt').dispatchEvent(new m.w.Event('input')); };
+  const calcH = att(t('HHQE002'), 0, 1);
+  V('sans code : pas de case montant', m.$('cMtB').hidden);
+  await tape('HHQE002');
+  V('code tapé : case « Montant compté » pré-remplie par le calcul', !m.$('cMtB').hidden && m.$('cMt').value === (calcH / 100).toFixed(2).replace('.', ','), m.$('cMt').value);
+  V('…sans marque « Corrigé »', !m.$('cMt').classList.contains('mod') && !/Corrigé/.test(m.$('cMtEtat').textContent));
+  montant('150,00');
+  V('montant changé : « Corrigé » et rappel du calcul', m.$('cMt').classList.contains('mod') && /Corrigé/.test(m.$('cMtEtat').textContent) && m.$('cMtEtat').textContent.includes(fmt(calcH)), m.$('cMtEtat').textContent);
+  m.$('cMtRz').click();
+  V('« ↺ revenir au calcul » remet le calcul', m.$('cMt').value === (calcH / 100).toFixed(2).replace('.', ',') && !m.$('cMt').classList.contains('mod'));
+  montant('150,00');
+  m.$('c50').checked = true; m.$('c50').dispatchEvent(new m.w.Event('change')); await pause();
+  V('changer le 50 % refait le calcul et efface la correction', m.$('cMt').value === (att(t('HHQE002'), 1, 1) / 100).toFixed(2).replace('.', ',') && !m.$('cMt').classList.contains('mod'), m.$('cMt').value);
+  m.$('c50').checked = false; m.$('c50').dispatchEvent(new m.w.Event('change')); await pause();
+  montant('abc');
+  m.$('cAutre').click(); await pause();
+  V('montant illisible : rien n\'est compté, message clair', m.$('cList').querySelectorAll('.acte').length === 0 && /Montant illisible/.test(m.$('cMsg').textContent), m.$('cMsg').textContent);
+  montant('150,00');
+  m.$('cAutre').click(); await pause();
+  V('ajouté au montant CORRIGÉ : 150,00 € libéral, pas le calcul', /150,00/.test(m.$('cLib').textContent) && !m.$('cLib').textContent.includes(fmt(calcH)), m.$('cLib').textContent);
+  V('…le message le dit, et la case se referme', /150,00 € \(corrigé\)/.test(m.$('cMsg').textContent) && m.$('cMtB').hidden, m.$('cMsg').textContent);
+  const st = () => JSON.parse(m.w.localStorage.getItem('pense-bete-compteur-v1'));
+  const aH = st().actes.find(x => x.code === 'HHQE002');
+  V('enregistré : le calcul (v) ET le montant corrigé (vm) sont gardés tous les deux', aH.v === calcH && aH.vm === 15000, aH);
+  V('dans la liste : montant en couleur « corrigé »', m.w.document.querySelector('#cList .cv.mod') && /150,00/.test(m.w.document.querySelector('#cList .cv.mod').textContent));
+  await tape('HHQE002'); m.$('cAutre').click(); await pause();
+  V('sans correction : pas de vm stocké', st().actes.filter(x => x.code === 'HHQE002' && x.vm == null).length === 1);
+  V('libéral = 150,00 + calcul', m.$('cLib').textContent.includes(fmt(15000 + calcH)), m.$('cLib').textContent);
+
+  // Liste : corriger un Colo (valeur des Réglages : 20,00)
+  m.w.document.querySelector('#cGestes .geste[data-g="colo"]').click();
+  const ligneColo = () => [...m.w.document.querySelectorAll('#cList .acte')].find(l => /Colo/.test(l.textContent) && !/gastro/.test(l.textContent));
+  ligneColo().querySelector('.cv').click();
+  V('toucher le montant ouvre la correction, pré-remplie (20,00) avec le calcul rappelé', m.$('cEv') && m.$('cEv').value === '20,00' && /Calcul : 20,00/.test(m.$('cEvMsg').textContent));
+  m.$('cEv').value = 'zz'; ligneColo().querySelector('.cok').click();
+  V('montant illisible dans la liste : refusé, rien ne change', /illisible/.test(m.$('cEvMsg').textContent) && st().actes.find(x => x.g === 'colo').vm == null);
+  m.$('cEv').value = '25,50'; ligneColo().querySelector('.cok').click();
+  V('Colo corrigé à 25,50 € : total libéral recalculé', m.$('cLib').textContent.includes(fmt(15000 + calcH + 2550)) && st().actes.find(x => x.g === 'colo').vm === 2550, m.$('cLib').textContent);
+  V('…seulement CET acte : la valeur Colo des Réglages reste 20,00', m.$('rv_colo_mc').value === '20,00');
+  ligneColo().querySelector('.cv').click();
+  m.w.document.querySelector('#cList .crz').click();
+  V('« ↺ revenir au calcul » dans la liste : 20,00 €, plus de correction', st().actes.find(x => x.g === 'colo').vm == null && m.$('cLib').textContent.includes(fmt(15000 + calcH + 2000)), m.$('cLib').textContent);
+  ligneColo().querySelector('.cv').click();
+  m.$('cEv').value = '20,00'; ligneColo().querySelector('.cok').click();
+  V('corriger au montant du calcul = pas de correction stockée', st().actes.find(x => x.g === 'colo').vm == null);
+  ligneColo().querySelector('.cv').click();
+  m.$('cEv').value = '31,00'; m.$('cEv').dispatchEvent(new m.w.KeyboardEvent('keydown', { key: 'Enter', bubbles: true }));
+  V('Entrée valide la correction', st().actes.find(x => x.g === 'colo').vm === 3100 && !m.$('cEv'));
+  ligneColo().querySelector('.cv').click(); m.w.document.querySelector('#cList .cno').click();
+  V('Annuler referme sans rien changer', !m.$('cEv') && st().actes.find(x => x.g === 'colo').vm === 3100);
+  const pct = m.$('cPct').textContent, lib = m.$('cLib').textContent;
+  // Réouverture : corrections retrouvées, aucun téléchargement
+  const brut10 = m.w.localStorage.getItem('pense-bete-compteur-v1');
+  const r10 = []; const d10 = new JSDOM(PAGE, { runScripts: 'dangerously', url: 'https://planningmedic.github.io/pense-bete/',
+    beforeParse(w) { w.fetch = (u) => { r10.push(u); return Promise.reject(); }; w.Element.prototype.focus = function () {};
+      w.localStorage.setItem('pense-bete-compteur-v1', brut10); } });
+  d10.window.document.getElementById('tC').click();
+  V('réouverture : montants corrigés retrouvés (même %, même libéral), sans téléchargement', r10.length === 0 && d10.window.document.getElementById('cPct').textContent === pct && d10.window.document.getElementById('cLib').textContent === lib, [pct, lib]);
+  V('aucun montant ne part dans le réseau (seul le téléchargement de la liste)', m.reseau.length === 1 && !JSON.stringify(m.reseau).match(/150|25,50|31,00/), m.reseau);
+  V('aucune erreur JavaScript', m.erreurs.length === 0, m.erreurs);
   console.log(`\n${ok} ✓  ${ko} ✗`);
   process.exit(ko ? 1 : 0);
 })();
