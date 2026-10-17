@@ -124,6 +124,12 @@ details summary{cursor:pointer;color:var(--mute);font-size:15px;padding:10px 0}
 .ed .geste{font-size:16px;min-height:46px;padding:0 14px}
 .ed .non{background:var(--bg);color:var(--mute);border:1px solid var(--line)}
 .ed .lib{grid-column:1/-1;margin-top:0}
+/* (16/10/2026) Sauvegarde / restauration (fichier JSON, fusion sans doublon) */
+.sv .row2{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:10px}
+.svb{font:inherit;font-weight:700;font-size:16px;background:var(--acc);color:var(--acc-ink);border:0;border-radius:10px;min-height:48px;padding:0 10px;cursor:pointer}
+.svb.non{background:var(--bg);color:var(--mute);border:1px solid var(--line)}
+.sv .note{font-size:14px;color:var(--mute);margin:0 0 12px}
+.svOk{background:var(--acc-soft);border-radius:10px;padding:10px 12px;margin-bottom:10px;font-size:15px}
 @media (prefers-reduced-motion:no-preference){ .fresh{animation:f .6s ease-out} @keyframes f{from{background:var(--acc-soft)}to{background:transparent}} }
 </style>
 </head>
@@ -236,6 +242,28 @@ details summary{cursor:pointer;color:var(--mute);font-size:15px;padding:10px 0}
       <p class="msg" id="rMsg" role="status"></p>
     </details>
   </div>
+
+  <!-- (16/10/2026) SAUVEGARDE — un fichier JSON avec patients + Compteur.
+       Ne quitte l'appareil que là où l'utilisateur le range (Fichiers, iCloud) :
+       aucun envoi réseau. Restaurer = FUSIONNER (rien n'est effacé, aucun doublon). -->
+  <details class="reg sv" id="sv">
+    <summary>Sauvegarde</summary>
+    <p class="note" style="margin-top:4px">Un fichier avec vos patients et votre Compteur. Rangez-le dans Fichiers ou iCloud : il contient des initiales et des montants, gardez-le pour vous.</p>
+    <div class="row2">
+      <button type="button" class="svb" id="svExp">Sauvegarder</button>
+      <button type="button" class="svb" id="svImp">Restaurer</button>
+    </div>
+    <input type="file" id="svFic" accept=".json,application/json" hidden>
+    <div class="svOk" id="svBilan" hidden>
+      <div id="svTxt"></div>
+      <div class="row2" style="margin:10px 0 0">
+        <button type="button" class="svb" id="svOui">Ajouter</button>
+        <button type="button" class="svb non" id="svNon">Annuler</button>
+      </div>
+    </div>
+    <p class="note">Restaurer ajoute ce qui manque, sans rien effacer ni créer de doublon.</p>
+    <p class="msg" id="svMsg" role="status"></p>
+  </details>
 
   <p class="foot">Tout est gardé sur cet appareil uniquement, rien n'est envoyé.</p>
 </main>
@@ -588,6 +616,95 @@ $('rSave').addEventListener('click',()=>{
   cSave(); cRender(); cReglagesAfficher();
   const n=avant-C.actes.length;
   $('rMsg').textContent='Enregistré.'+(n?' '+n+' acte'+(n>1?'s':'')+' antérieur'+(n>1?'s':'')+' au relevé retiré'+(n>1?'s':'')+' (déjà dans le relevé).':'');
+});
+
+/* ══ SAUVEGARDE / RESTAURATION (16/10/2026) ════════════════════════════════
+   Sauvegarder : un fichier « patients-lib-AAAA-MM-JJ.json » = patients + Compteur
+   (actes ET réglages). Sur iPhone, via le menu de partage (« Enregistrer dans
+   Fichiers ») : depuis l'appli installée, un téléchargement classique est peu
+   fiable. Sinon, téléchargement direct. Aucun envoi réseau.
+   Restaurer : FUSION. On ajoute les patients et actes absents (même identifiant
+   = déjà là), rien n'est effacé. Réglages : le relevé le plus récent gagne (à
+   date égale, ceux de l'appareil restent) ; comme dans les Réglages, un acte
+   daté au plus tard du relevé n'est pas compté (déjà dans le relevé). */
+const SV_APP='pense-bete-lib', SV_FORMAT=1;
+const estDate=d=>typeof d==='string' && /^\d{4}-\d{2}-\d{2}$/.test(d);
+const CHAMPS_ACTE=['id','d','ax','g','code','r50','v','vm','m','a','t'];
+const CHAMPS_REG=['d0','p0','l0','v','rea','pn0','ln0','vn'];
+let svAttente=null;
+function svContenu(){ return {app:SV_APP, format:SV_FORMAT, le:new Date().toISOString(), patients:L, compteur:C}; }
+function svTelecharger(txt, nom){
+  const u=URL.createObjectURL(new Blob([txt],{type:'application/json'}));
+  const a=document.createElement('a'); a.href=u; a.download=nom; document.body.appendChild(a); a.click(); a.remove();
+  setTimeout(()=>{ try{ URL.revokeObjectURL(u); }catch(e){} },2000);
+}
+$('svExp').addEventListener('click',()=>{
+  const txt=JSON.stringify(svContenu()), nom='patients-lib-'+isoToday()+'.json';
+  const bilan=L.length+' patient'+(L.length>1?'s':'')+' et '+C.actes.length+' acte'+(C.actes.length>1?'s':'');
+  let f=null; try{ f=new File([txt],nom,{type:'application/json'}); }catch(e){}
+  if(f && navigator.canShare && navigator.canShare({files:[f]})){
+    navigator.share({files:[f]}).then(()=>{ $('svMsg').textContent='Sauvegarde faite : '+bilan+'.'; })
+      .catch(e=>{ if(e && e.name==='AbortError'){ $('svMsg').textContent='Sauvegarde annulée.'; return; } svTelecharger(txt,nom); $('svMsg').textContent='Fichier '+nom+' : '+bilan+'.'; });
+    return;
+  }
+  svTelecharger(txt,nom); $('svMsg').textContent='Fichier '+nom+' : '+bilan+'.';
+});
+// Lit le fichier et prépare la fusion SANS rien écrire : renvoie le bilan ou une erreur
+function svPreparer(txt){
+  let o; try{ o=JSON.parse(txt); }catch(e){ return {err:"Ce fichier n'est pas une sauvegarde lisible."}; }
+  if(!o || o.app!==SV_APP || !Array.isArray(o.patients) || !o.compteur || typeof o.compteur!=='object') return {err:"Ce fichier n'est pas une sauvegarde de « Mes patients lib »."};
+  if(o.format>SV_FORMAT) return {err:'Sauvegarde faite par une version plus récente : rechargez la page puis réessayez.'};
+  const idsP=new Set(L.map(p=>p.id)), np=[]; let dejaP=0, illP=0;
+  for(const p of o.patients){
+    if(!p || typeof p.id!=='string' || !estDate(p.d) || typeof p.s!=='string' || typeof p.i!=='string' || !p.i){ illP++; continue; }
+    if(idsP.has(p.id)){ dejaP++; continue; }
+    idsP.add(p.id); np.push({id:p.id, d:p.d, s:p.s, i:p.i, t:Number(p.t)||0});
+  }
+  const ic=o.compteur, reg={};
+  const prendreReg = estDate(ic.d0) && (!C.d0 || ic.d0>C.d0);
+  if(prendreReg) for(const k of CHAMPS_REG) reg[k]=ic[k]==null?(k==='v'||k==='rea'||k==='vn'?{}:null):ic[k];
+  const d0 = prendreReg ? ic.d0 : C.d0;
+  const idsA=new Set(C.actes.map(x=>x.id)), na=[]; let dejaA=0, illA=0, avant=0;
+  for(const x of (Array.isArray(ic.actes)?ic.actes:[])){
+    if(!x || typeof x.id!=='string' || !estDate(x.d) || (x.m!=='lib' && x.m!=='pub')){ illA++; continue; }
+    if(idsA.has(x.id)){ dejaA++; continue; }
+    if(d0 && x.d<=d0){ avant++; continue; }
+    const y={}; for(const k of CHAMPS_ACTE) if(x[k]!==undefined) y[k]=x[k];
+    idsA.add(x.id); na.push(y);
+  }
+  const retires = prendreReg ? C.actes.filter(x=>x.d<=d0).length : 0;
+  return {np, na, dejaP, dejaA, illP, illA, avant, prendreReg, reg, retires};
+}
+function pl(n, mot){ return n+' '+mot+(n>1?'s':''); }
+$('svImp').addEventListener('click',()=>{ $('svFic').value=''; $('svFic').click(); });
+$('svFic').addEventListener('change',()=>{
+  const f=$('svFic').files && $('svFic').files[0]; if(!f) return;
+  const r=new FileReader();
+  r.onload=()=>{
+    const b=svPreparer(String(r.result||''));
+    if(b.err){ svAttente=null; $('svBilan').hidden=true; $('svMsg').textContent=b.err; return; }
+    svAttente=b;
+    const lignes=['<b>'+pl(b.np.length,'patient')+'</b> et <b>'+pl(b.na.length,'acte')+'</b> à ajouter.'];
+    if(b.dejaP||b.dejaA) lignes.push(pl(b.dejaP+b.dejaA,'élément')+' déjà présent'+(b.dejaP+b.dejaA>1?'s':'')+', ignoré'+(b.dejaP+b.dejaA>1?'s':'')+'.');
+    if(b.avant) lignes.push(pl(b.avant,'acte')+' antérieur'+(b.avant>1?'s':'')+' au relevé, non compté'+(b.avant>1?'s':'')+'.');
+    if(b.prendreReg) lignes.push('Réglages repris de la sauvegarde (relevé du '+b.reg.d0.split('-').reverse().join('/')+').'+(b.retires?' '+pl(b.retires,'acte')+' de cet appareil, antérieur'+(b.retires>1?'s':'')+' à ce relevé, retiré'+(b.retires>1?'s':'')+'.':''));
+    if(b.illP||b.illA) lignes.push(pl(b.illP+b.illA,'ligne')+' illisible'+(b.illP+b.illA>1?'s':'')+', ignorée'+(b.illP+b.illA>1?'s':'')+'.');
+    $('svTxt').innerHTML=lignes.join('<br>');
+    $('svMsg').textContent='';
+    $('svBilan').hidden=false;
+  };
+  r.onerror=()=>{ $('svMsg').textContent='Fichier illisible.'; };
+  r.readAsText(f);
+});
+$('svNon').addEventListener('click',()=>{ svAttente=null; $('svBilan').hidden=true; $('svMsg').textContent='Rien n\'a été ajouté.'; });
+$('svOui').addEventListener('click',()=>{
+  const b=svAttente; if(!b) return; svAttente=null;
+  L=L.concat(b.np);
+  if(b.prendreReg){ Object.assign(C,b.reg); C.actes=C.actes.filter(x=>x.d>C.d0); }
+  C.actes=C.actes.concat(b.na);
+  save(); cSave(); render(); cReglagesAfficher(); cRender();
+  $('svBilan').hidden=true;
+  $('svMsg').textContent='Ajouté : '+pl(b.np.length,'patient')+' et '+pl(b.na.length,'acte')+'.';
 });
 
 load(); $('dt').value=isoToday(); render();

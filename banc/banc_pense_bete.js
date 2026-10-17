@@ -407,6 +407,73 @@ V('compteur abîmé : la page s\'ouvre, réglages demandés', o5.window.document
   V('réouverture : montants corrigés retrouvés (même %, même libéral), sans téléchargement', r10.length === 0 && d10.window.document.getElementById('cPct').textContent === pct && d10.window.document.getElementById('cLib').textContent === lib, [pct, lib]);
   V('aucun montant ne part dans le réseau (seul le téléchargement de la liste)', m.reseau.length === 1 && !JSON.stringify(m.reseau).match(/150|25,50|31,00/), m.reseau);
   V('aucune erreur JavaScript', m.erreurs.length === 0, m.erreurs);
+
+  /* ── 11. SAUVEGARDE / RESTAURATION (16/10/2026) ──────────────────────────
+     Demande : ne pas perdre ses données, et pouvoir les sortir pour les comparer
+     au relevé de l'hôpital. Un fichier JSON = patients + Compteur. Restaurer
+     FUSIONNE : rien n'est effacé, aucun doublon. Valeurs fictives. */
+  console.log('\n[11] Sauvegarde et restauration (fusion sans doublon)');
+  const lire = (w, blob) => new Promise(r => { const fr = new w.FileReader(); fr.onload = () => r(String(fr.result)); fr.readAsText(blob); });
+  const A = ouvrir();
+  A.secteur('Endos'); A.ajouter('2026-10-05', 'AB'); A.ajouter('2026-10-05', 'CD');
+  A.$('tC').click(); regler(A, '2026-09-30', '1 000,00', '', VALS);
+  geste(A, 'colo', 'lib', 'mc', '2026-10-05'); geste(A, 'gastro', 'pub', 'fr', '2026-10-06');
+  const patA = A.liste(), cA = JSON.parse(A.w.localStorage.getItem('pense-bete-compteur-v1'));
+  // iPhone : menu de partage
+  let partage = null;
+  A.w.navigator.canShare = o => !!(o && o.files && o.files.length);
+  A.w.navigator.share = o => { partage = o; return Promise.resolve(); };
+  A.$('svExp').click(); await pause();
+  V('Sauvegarder ouvre le menu de partage avec UN fichier daté', partage && partage.files.length === 1 && partage.files[0].name === 'patients-lib-2026-09-30.json', partage && partage.files[0].name);
+  const fichier = partage.files[0], txt = await lire(A.w, fichier);
+  const o = JSON.parse(txt);
+  V('le fichier contient les 2 patients, les 2 actes et les réglages', o.app === 'pense-bete-lib' && o.patients.length === 2 && o.compteur.actes.length === 2 && o.compteur.d0 === '2026-09-30' && o.compteur.v.colo_mc === 2000);
+  V('message : « 2 patients et 2 actes »', /2 patients et 2 actes/.test(A.$('svMsg').textContent), A.$('svMsg').textContent);
+  // Ailleurs (ordinateur) : téléchargement direct
+  const B0 = ouvrir(null); let blob0 = null, nomDl = null;
+  B0.w.URL.createObjectURL = b => { blob0 = b; return 'blob:x'; }; B0.w.URL.revokeObjectURL = () => {};
+  B0.w.HTMLAnchorElement.prototype.click = function () { nomDl = this.download; };
+  B0.$('svExp').click();
+  V('sans menu de partage : téléchargement direct du même fichier', blob0 && nomDl === 'patients-lib-2026-09-30.json');
+  // Téléphone perdu : nouvel appareil vide
+  const restaurer = async (X, f) => { Object.defineProperty(X.$('svFic'), 'files', { value: [f], configurable: true }); X.$('svFic').dispatchEvent(new X.w.Event('change')); await pause(); };
+  const B = ouvrir(null);
+  await restaurer(B, new B.w.File([txt], 'patients-lib-2026-09-30.json', { type: 'application/json' }));
+  V('restaurer : bilan affiché avant d\'écrire (2 patients, 2 actes, réglages)', !B.$('svBilan').hidden && /2 patients<\/b> et <b>2 actes/.test(B.$('svTxt').innerHTML) && /Réglages repris/.test(B.$('svTxt').textContent), B.$('svTxt').textContent);
+  V('…rien n\'est écrit tant qu\'on n\'a pas touché « Ajouter »', B.liste().length === 0 && B.w.localStorage.getItem('pense-bete-compteur-v1') === null);
+  B.$('svOui').click();
+  const cB = JSON.parse(B.w.localStorage.getItem('pense-bete-compteur-v1'));
+  V('après « Ajouter » : patients identiques à l\'appareil d\'origine', JSON.stringify(B.liste()) === JSON.stringify(patA), B.liste());
+  V('…Compteur identique (actes et réglages)', JSON.stringify(cB) === JSON.stringify(cA));
+  B.$('tC').click(); A.$('tC').click();
+  V('…même part libérale et même libéral affichés', B.$('cPct').textContent === A.$('cPct').textContent && B.$('cLib').textContent === A.$('cLib').textContent, [B.$('cPct').textContent, A.$('cPct').textContent]);
+  // Restaurer deux fois : aucun doublon
+  await restaurer(B, new B.w.File([txt], 'x.json'));
+  V('2e restauration : 0 à ajouter, 4 déjà présents', /0 patient<\/b> et <b>0 acte/.test(B.$('svTxt').innerHTML) && /4 éléments déjà présents/.test(B.$('svTxt').textContent), B.$('svTxt').textContent);
+  B.$('svOui').click();
+  V('…aucun doublon créé', B.liste().length === 2 && JSON.parse(B.w.localStorage.getItem('pense-bete-compteur-v1')).actes.length === 2);
+  // Fusion : un patient saisi sur l'appareil est gardé
+  const F = ouvrir(null); F.secteur('Ortho'); F.ajouter('2026-10-07', 'EF');
+  await restaurer(F, new F.w.File([txt], 'x.json')); F.$('svOui').click();
+  V('fusion : le patient déjà saisi est gardé, 3 patients en tout', F.liste().length === 3 && F.liste().some(p => p.i === 'EF'));
+  // Annuler
+  const G = ouvrir(null);
+  await restaurer(G, new G.w.File([txt], 'x.json')); G.$('svNon').click();
+  V('« Annuler » : rien n\'est ajouté', G.liste().length === 0 && G.$('svBilan').hidden && /Rien/.test(G.$('svMsg').textContent));
+  // Mauvais fichiers
+  await restaurer(G, new G.w.File(['{pas du json'], 'x.json'));
+  V('fichier illisible : message, rien de changé', /pas une sauvegarde lisible/.test(G.$('svMsg').textContent) && G.$('svBilan').hidden && G.liste().length === 0);
+  await restaurer(G, new G.w.File([JSON.stringify({ patients: [], compteur: {} })], 'x.json'));
+  V('JSON d\'une autre appli : refusé', /pas une sauvegarde de « Mes patients lib »/.test(G.$('svMsg').textContent) && G.liste().length === 0);
+  // Relevé plus récent sur l'appareil : un acte déjà inclus n'est pas recompté
+  const H = ouvrir(null); H.$('tC').click(); regler(H, '2026-10-05', '1 000,00', '', VALS);
+  await restaurer(H, new H.w.File([txt], 'x.json'));
+  V('relevé de l\'appareil plus récent (05/10) : l\'acte du 05/10 n\'est pas recompté, ses réglages restent', /1 acte<\/b>/.test(H.$('svTxt').innerHTML) && /1 acte antérieur au relevé/.test(H.$('svTxt').textContent) && !/Réglages repris/.test(H.$('svTxt').textContent), H.$('svTxt').textContent);
+  H.$('svOui').click();
+  const cH = JSON.parse(H.w.localStorage.getItem('pense-bete-compteur-v1'));
+  V('…seul l\'acte du 06/10 est ajouté, relevé du 05/10 gardé', cH.actes.length === 1 && cH.actes[0].d === '2026-10-06' && cH.d0 === '2026-10-05');
+  V('sauvegarde et restauration : aucun appel réseau', [A, B0, B, F, G, H].every(x => x.reseau.length === 0));
+  V('sauvegarde et restauration : aucune erreur JavaScript', [A, B0, B, F, G, H].every(x => x.erreurs.length === 0), [A, B0, B, F, G, H].map(x => x.erreurs));
   console.log(`\n${ok} ✓  ${ko} ✗`);
   process.exit(ko ? 1 : 0);
 })();
