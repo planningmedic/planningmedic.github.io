@@ -45,10 +45,10 @@ body { font-family:'DM Sans',-apple-system,BlinkMacSystemFont,sans-serif;
   overflow:hidden; flex-shrink:0; box-shadow:0 1px 3px rgba(0,0,0,.15); }
 .header-title { font-size:16px; font-weight:700; color:var(--ink); letter-spacing:-.02em; }
 .header-sub { font-size:11px; color:var(--ink-4); margin-top:1px; }
-.header-right { display:flex; align-items:center; gap:8px; }
-.badge { font-family:var(--mono); font-size:10px; font-weight:600; color:var(--ink-4);
+.header-right { display:flex; align-items:center; gap:8px; flex-shrink:0; }
+.badge { white-space:nowrap; font-family:var(--mono); font-size:10px; font-weight:600; color:var(--ink-4);
   background:var(--line-light); border:1px solid var(--line); border-radius:999px; padding:3px 10px; }
-.header-btn { display:inline-flex; align-items:center; gap:6px; font-size:12px; font-weight:700;
+.header-btn { display:inline-flex; align-items:center; gap:6px; white-space:nowrap; font-size:12px; font-weight:700;
   color:var(--ink); background:var(--bg); border:1px solid var(--line); border-radius:999px;
   padding:5px 12px; text-decoration:none; transition:border-color .15s,box-shadow .15s,color .15s; }
 .header-btn:hover { border-color:var(--red); color:var(--red); box-shadow:0 1px 5px rgba(15,23,42,.08); }
@@ -135,6 +135,7 @@ td:first-child { width:1%; white-space:nowrap; }
 .foot { font-size:12.5px; color:var(--ink-4); text-align:center; margin-top:28px; line-height:1.8; }
 @media (max-width:760px) {
   .header { padding:0 18px; }
+  .header .badge { display:none; }  /* téléphone : pas la place ; l'écran affiche déjà le message utile */
   .wrap { padding:26px 16px 56px; }
   .kpis { grid-template-columns:repeat(2,1fr); gap:12px; }
   .row { grid-template-columns:1fr; }
