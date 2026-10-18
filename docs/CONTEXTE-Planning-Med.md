@@ -44,6 +44,27 @@ les fichiers du planning, et attend une semaine de fonctionnement réel avant su
 
 # PARTIE 1 — L'ESSENTIEL
 
+## État au 18 octobre 2026 — vue paie pour les secrétaires de paie
+
+Site **v1.26.0**, banc **4 392 ✓, 0 échec** (commit `ce2bf91`). `code.gs`, `gardes.gs`, `Indispos.gs`
+**2026-10-18.1**, recopiés et déployés le 18/10. Les lots v1.25.0 – v1.25.1 (15-17/10) ne sont pas
+détaillés ici. Détail de la vue paie dans la ROADMAP.
+
+- **Vue paie** : `paie.html`, lecture seule, gardes réa (G), gardes maternité (G2) et vacances (V) du
+  mois, pour les **secrétaires de paie** — un autre groupe que le secrétariat des consultations, avec
+  un **autre code** (CONFIG `PAIE_CODE`). Le responsable y accède par la tuile cachée `paie`.
+- **Mail paie** à chaque changement de G, G2 ou V (CONFIG `PAIE_EMAILS`), détaillé : gestes à reporter,
+  nouveaux totaux, origine. Indépendant des mails aux MAR (sa propre photo). **Essayé en production
+  le 18/10.**
+- **Règle gravée** : tout rôle qui n'est ni comité ni MAR n'atteint que **sa liste blanche**
+  (`_listeBlancheRole_` dans `Indispos.gs`). Un nouveau rôle se déclare avec sa liste, sinon il est
+  refusé partout.
+- **À savoir** : une clé ajoutée dans CONFIG (par exemple `TUILES_PRIVEES`) n'atteint l'accueil qu'à la
+  synchronisation horaire de la copie rapide, ou après `miroirSyncComplet` lancé à la main. Une
+  saisie manuelle dans `GARDES_{année}` ne déclenche **aucun** mail tant qu'une publication ne suit pas.
+- **Historique du dépôt** : deux traces d'identité restent dans l'historique (07/09 et 14/10).
+  Décision du responsable le 18/10 : **on ne réécrit pas l'historique**. Ne pas le reproposer.
+
 ## État au 14 octobre 2026 — accueil refait, mise à jour sans quitter l'appli, veille mieux notée
 
 Site **v1.24.1**, banc **4 227 ✓, 0 échec**. GAS relevés dans le dépôt : `veille.gs` **2026-10-13.1**,

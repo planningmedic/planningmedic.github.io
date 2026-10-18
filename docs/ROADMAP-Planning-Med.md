@@ -6,16 +6,66 @@ portail/Dashboard, module libéral, contrôle d'absence, veille biblio.
 (Le générateur de comptes rendus a été retiré le 07/09/2026 : il portait le logo de
 l'établissement et 77 noms de praticiens sur une page publique sans code d'accès.)
 
-**Dépôt** `planningmedic/planningmedic.github.io`, branche `main` · **Site v1.24.1** (14/10/2026) ·
+**Dépôt** `planningmedic/planningmedic.github.io`, branche `main` · **Site v1.26.0** (18/10/2026) ·
 **Portail** https://planningmedic.github.io ·
-**GAS** (numéros relevés dans le dépôt le 14/10/2026 — recopie dans l'éditeur à confirmer au
-Diagnostic) : `veille.gs` **2026-10-13.1** · `generateur_gardes.gs` **2026-10-12.1** ·
-`equipe.gs`, `indisponibilites.gs`, `miroir.gs` **2026-10-11.1** · `Indispos.gs` **2026-10-06.1** ·
-`gardes.gs` **2026-10-05.1** · `portail.gs` **2026-10-01.2** · `diagnostic.gs` **2026-09-15.3** ·
-`temps_partiel.gs` **2026-09-15.2** · `code.gs` **2026-09-14.2** · `setup_annee.gs` **2026-09-14.1** ·
+**GAS** (numéros relevés dans le dépôt le 18/10/2026 — recopie dans l'éditeur à confirmer au
+Diagnostic) : `code.gs`, `gardes.gs`, `Indispos.gs` **2026-10-18.1** (recopiés et déployés le 18/10,
+mail paie essayé en production) · `veille.gs` **2026-10-13.1** · `generateur_gardes.gs` **2026-10-12.1** ·
+`equipe.gs`, `indisponibilites.gs`, `miroir.gs` **2026-10-11.1** · `portail.gs` **2026-10-01.2** ·
+`diagnostic.gs` **2026-09-15.3** · `temps_partiel.gs` **2026-09-15.2** · `setup_annee.gs` **2026-09-14.1** ·
 `echanges.gs` **2026-09-08.1** · `journal.gs` **2026-09-07.1** ·
 **Worker** `cloudflare/worker.js` : `const VERSION = 'miroir 2026-10-11.1'` ·
 **Service worker** `sw.js` : `pm-sw-v2` (version.js exclu de la copie depuis le 14/10).
+
+## 18/10/2026 — vue paie : la page et le mail des secrétaires de paie (v1.26.0)
+
+### Le besoin
+Deux secrétaires (un autre groupe que le secrétariat des consultations) saisissent gardes et vacances
+dans le logiciel de paie. Jusqu'ici le responsable leur envoyait les plannings de vacances, et les
+changements de garde devaient leur être signalés par mail. Décisions du responsable : mail automatique,
+**gardes et vacances a minima**, **un mail par changement**, **code partagé**, **vue du mois seulement**,
+pas de ligne « récupération » dans le mail, mail **détaillé** (le premier gabarit était jugé trop concis),
+accès du responsable par une **tuile cachée**.
+
+### Ce qui est en ligne (commit `ce2bf91`, banc 4 258 → **4 392 ✓**)
+- **Rôle `paie`** (CONFIG `PAIE_CODE`, code partagé) : deux actions seulement, `login` et
+  `getPlanningPaie` (liste blanche `PAIE_ACTIONS`). Le tri **G, G2, V** (VAC servi comme V) se fait
+  côté serveur : aucun autre motif ni secteur n'atteint la page ou le mail.
+- **Refus par défaut** dans le routeur : tout rôle autre que comité / MAR n'atteint que sa liste
+  blanche (`_listeBlancheRole_`) ; un rôle sans liste est refusé partout. L'ancien verrou, écrit pour
+  le seul nom « secretariat », aurait laissé un nouveau rôle créer un échange de garde (contre-épreuve
+  au banc).
+- **`paie.html`** : connexion par code (ou session du portail), grille du mois (G / G2 / V, week-ends,
+  fériés), totaux par médecin, cadre orange sur les cases changées depuis moins de 7 jours, fil des
+  changements des 14 derniers jours, export Excel, lien `?m=AAAA-MM`. Un code valide sans droit n'est
+  pas effacé de la session (sinon déconnexion du portail).
+- **Tuile cachée « Planning paie »** (bloc Réservé, clé `paie` de `TUILES_PRIVEES`) ; le serveur
+  contrôle la même clé (`_aDroitTuile_`).
+- **Mail** (CONFIG `PAIE_EMAILS`) : ce qui change (date, garde, avant → après, week-end / férié), gestes
+  à reporter dans le logiciel de paie, nouveaux totaux du mois, origine (don / échange retrouvé dans
+  ECHANGES, sinon comité). **Propre photo** `planning_{année}_paie.json`, appelée en tête de
+  `_notifEnvoyerAnnee_` dans un try/catch, indépendante de `NOTIF_ACTIVE` ; sans adresse, la photo
+  suit le planning ; en cas d'échec, photo non recalée et année remise dans la file ; `notifRecaler`
+  recale aussi la photo paie ; `NOTIF_EMAIL_TEST` la détourne. Derniers changements : propriété
+  `PAIE_RECENTS` (≤ 8 000 caractères, 14 jours).
+- **Guides** : comité §18, fichier maître (`PAIE_CODE`, `PAIE_EMAILS`), technique C14.
+- **Essai en production le 18/10** : mail reçu après une modification d'essai (fonctions lancées à la
+  main depuis l'éditeur).
+
+### Constats du jour
+- **CONFIG ne rafraîchit pas la copie rapide** : `CONFIG` n'est pas dans `MIROIR_ONGLETS_SUIVIS`. Une
+  clé ajoutée à `TUILES_PRIVEES` n'apparaît qu'à la synchronisation horaire, ou en lançant
+  `miroirSyncComplet` à la main. Vu en réel le 18/10 (tuile absente, apparue après synchro).
+- **Une saisie manuelle dans `GARDES_{année}` ne déclenche aucun mail** (ni paie ni MAR) : `onEdit`
+  republie mais n'arme pas `notifPlanifier`. Le changement part avec la publication suivante.
+  Contournement : publier depuis l'interface comité. Branchement serveur proposé, **non fait**.
+- Audit des noms : l'état actuel du dépôt ne contient aucun des noms réels vérifiés ; l'historique
+  garde deux traces (premier commit du 07/09, jeu d'essai du 14/10). Décision du responsable le 18/10 :
+  **ne pas réécrire l'historique**.
+
+### Reste à faire (responsable)
+- Mettre les adresses des deux secrétaires dans `PAIE_EMAILS` (l'adresse d'essai y est encore), leur
+  remettre l'adresse de la page et le code ; durcir le code partagé (code aléatoire).
 
 ## 08–14/10/2026 — générateur et souhaits, date limite des indispos, accueil refait, veille
 
