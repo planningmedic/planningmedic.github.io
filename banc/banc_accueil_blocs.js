@@ -7,7 +7,8 @@
        Libéral…) — la règle « qui voit quoi » reste LA ligne de filtrage d'avant ;
      · le bloc Réservé apparaît, même vide, chez un MAR sans aucun droit ;
      · la carte Mes échanges perd son comportement (compteur, pastille) ;
-     · la tuile Équité n'ouvre pas le planning sur l'onglet Équité.
+     · la tuile Équité n'ouvre pas le planning sur l'onglet Équité ;
+     · la tuile Libéral redevient illisible sur téléphone (feuille du bas, 18/10).
 
    index.html et planning.html sont chargés TELS QUELS dans un navigateur simulé. */
 const { JSDOM, VirtualConsole } = require('jsdom');
@@ -114,8 +115,30 @@ const visible = (D, id) => D.getElementById(id).style.display !== 'none';
     accueil(w, { tuiles: ['liberal', 'consult'], liberal: true });
     V('Libéral et Mes consultations quand les deux conditions sont réunies',
       JSON.stringify(titres(D, 'reserve')) === JSON.stringify(['Libéral', 'Mes consultations']), titres(D, 'reserve'));
-    V('le Libéral garde ses deux moitiés (cotation / suivi des 30 %)',
-      D.querySelectorAll('#tile-liberal .split-half').length === 2);
+    // (18/10/2026) La tuile ne se coupe plus en deux sur place (illisible sur
+    // téléphone) : elle fait monter une feuille du bas avec les deux choix.
+    const tl = D.getElementById('tile-liberal'), voile = D.getElementById('choixVoile'), feuille = D.getElementById('choixFeuille');
+    V('le Libéral est une tuile entière, sans moitiés écrasées dedans',
+      !!tl && tl.querySelectorAll('a').length === 0 && !tl.querySelector('.split-half, .split-face'));
+    V('feuille du bas fermée au départ', !feuille.classList.contains('open') && !voile.classList.contains('open'));
+    tl.click();
+    V('toucher la tuile ouvre la feuille et son voile', feuille.classList.contains('open') && voile.classList.contains('open'));
+    V('la feuille porte le titre de la tuile', D.getElementById('choixTitre').textContent === 'Libéral');
+    const liens = [...D.querySelectorAll('#choixListe a.choix-item')].map(a => a.getAttribute('href'));
+    V('deux choix : la cotation puis le suivi des 30 %',
+      JSON.stringify(liens) === JSON.stringify(['docs/module-liberal/estimateur-liberal.html', 'suivi-liberal.html']), liens);
+    V('chaque choix a son titre en entier',
+      [...D.querySelectorAll('#choixListe .choix-t')].map(e => e.textContent).join('|') === 'Cotation & déclaration|Suivi des 30 %');
+    voile.click();
+    V('toucher à côté referme la feuille', !feuille.classList.contains('open') && !voile.classList.contains('open'));
+    tl.dispatchEvent(new w.KeyboardEvent('keydown', { key: 'Enter', bubbles: true }));
+    V('au clavier, Entrée sur la tuile ouvre aussi la feuille', feuille.classList.contains('open'));
+    D.dispatchEvent(new w.KeyboardEvent('keydown', { key: 'Escape', bubbles: true }));
+    V('Échap referme la feuille', !feuille.classList.contains('open'));
+    tl.click(); D.querySelector('.choix-fermer').click();
+    V('le bouton ✕ referme la feuille', !feuille.classList.contains('open'));
+    tl.click(); w.dispatchEvent(new w.Event('pageshow'));
+    V('retour arrière depuis une des pages : la feuille est refermée', !feuille.classList.contains('open'));
     V('les tuiles réservées sont en grille comme les autres blocs (v1.23, maquette A validée)', !D.getElementById('tiles-reserve').classList.contains('liste'));
     V('aucune erreur JavaScript', erreurs.length === 0, erreurs.slice(0, 2));
   }

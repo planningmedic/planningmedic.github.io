@@ -157,7 +157,7 @@ body {
   transition: transform .12s ease, box-shadow .15s ease, border-color .15s ease;
 }
 /* (14/10/2026, v1.23) la tuile se tasse sous le doigt */
-a.tile:active, .tile.clickable:active, .tile.split .split-face:active, .racc:active, .mg-hero:active { transform: scale(.97); }
+a.tile:active, .tile.clickable:active, .racc:active, .mg-hero:active { transform: scale(.97); }
 a.tile, .tile.clickable { cursor: pointer; }
 @media (hover: hover) {
   a.tile:hover, .tile.clickable:hover {
@@ -178,35 +178,40 @@ a.tile, .tile.clickable { cursor: pointer; }
 
 .tile.soon { opacity: .62; cursor: default; }
 
-/* ── TUILE QUI SE SÉPARE EN DEUX (27/07/2026) ──────────────────────────
+/* ── TUILE À DEUX DESTINATIONS : FEUILLE QUI MONTE DU BAS (18/10/2026) ──
    Le libéral, c'est DEUX outils : coter/déclarer un patient, et suivre les 30 %.
-   Deux tuiles côte à côte alourdiraient la grille ; une page intermédiaire
-   ajouterait un clic pour rien. La tuile s'ouvre donc EN PLACE : la face se
-   retire, les deux moitiés s'écartent. Aucun changement de page.
-   La hauteur est figée à l'ouverture (voir splitOpen) pour éviter que la grille
-   ne saute au moment de l'animation. */
-.tile.split { padding: 0; overflow: hidden; cursor: default; }
-.tile.split .split-face { padding: 18px; display: flex; flex-direction: column; gap: 12px;
-  transition: opacity .18s ease, transform .28s cubic-bezier(.4,0,.2,1); cursor: pointer; }
-.tile.split.open .split-face { opacity: 0; transform: scale(.97); pointer-events: none; }
-.tile.split .split-halves { position: absolute; inset: 0; display: flex; opacity: 0;
-  pointer-events: none; transition: opacity .22s ease .06s; }
-.tile.split.open .split-halves { opacity: 1; pointer-events: auto; }
-.tile.split .split-half { flex: 1; display: flex; flex-direction: column; justify-content: center;
-  gap: 6px; padding: 18px; text-decoration: none; color: inherit;
-  transform: translateX(-14px); transition: transform .3s cubic-bezier(.4,0,.2,1), background .15s ease; }
-.tile.split .split-half + .split-half { transform: translateX(14px); border-left: 1px solid var(--line); }
-.tile.split.open .split-half { transform: translateX(0); }
-.tile.split .split-half:hover { background: var(--line-light); }
-.tile.split .split-half .sh-t { font-size: 14.5px; font-weight: 700; letter-spacing: -.01em; }
-.tile.split .split-half .sh-s { font-size: 11.5px; color: var(--ink-3); line-height: 1.4; }
-.tile.split .split-back { position: absolute; top: 8px; right: 10px; font-size: 11px; font-weight: 700;
-  color: var(--ink-4); background: none; border: none; cursor: pointer; opacity: 0;
-  transition: opacity .2s ease .1s; }
-.tile.split.open .split-back { opacity: 1; }
-@media (prefers-reduced-motion: reduce) {
-  .tile.split .split-face, .tile.split .split-halves, .tile.split .split-half { transition: none; }
-}
+   Avant, la tuile se coupait en deux sur place : sur téléphone chaque moitié
+   faisait ~85 px, le texte s'écrasait et « Fermer » chevauchait le titre.
+   Désormais la tuile reste une tuile normale ; la toucher fait monter une
+   feuille du bas avec les deux choix en grand. Rien ne bouge dans la grille. */
+.choix-voile { position:fixed; inset:0; z-index:400; background:rgba(15,23,42,.45);
+  opacity:0; pointer-events:none; transition:opacity .2s ease; }
+.choix-voile.open { opacity:1; pointer-events:auto; }
+.choix-feuille { position:fixed; left:0; right:0; bottom:0; z-index:401; margin:0 auto; max-width:480px;
+  background:var(--white); border-radius:20px 20px 0 0; padding:10px 16px calc(18px + env(safe-area-inset-bottom));
+  box-shadow:0 -12px 40px rgba(15,23,42,.22); transform:translateY(110%); visibility:hidden;
+  transition:transform .3s cubic-bezier(.32,1.15,.5,1), visibility 0s linear .3s; }
+.choix-feuille.open { transform:translateY(0); visibility:visible; transition:transform .3s cubic-bezier(.32,1.15,.5,1); }
+.choix-poignee { width:38px; height:5px; border-radius:3px; background:var(--line); margin:0 auto 12px; }
+.choix-tete { display:flex; align-items:center; justify-content:space-between; margin:0 2px 12px; }
+.choix-titre { font-size:16px; font-weight:700; color:var(--ink); letter-spacing:-.2px; }
+.choix-fermer { border:none; background:var(--surface-2); color:var(--ink-3); width:30px; height:30px; border-radius:15px;
+  font-size:14px; cursor:pointer; }
+.choix-liste { display:flex; flex-direction:column; gap:10px; }
+.choix-item { display:flex; align-items:center; gap:14px; padding:14px; border:1px solid var(--hair); border-radius:16px;
+  text-decoration:none; color:inherit; background:var(--white); transition:transform .12s ease, background .15s ease; }
+.choix-item:active { transform:scale(.98); background:var(--line-light); }
+@media (hover:hover) { .choix-item:hover { background:var(--line-light); } }
+.choix-item .tile-ico { flex-shrink:0; }
+.choix-txt { flex:1; min-width:0; }
+.choix-t { font-size:15px; font-weight:700; color:var(--ink); letter-spacing:-.15px; }
+.choix-s { font-size:12.5px; color:var(--ink-3); line-height:1.4; margin-top:2px; }
+.choix-fleche { font-size:22px; line-height:1; color:var(--ink-4); }
+@media (min-width:641px) { .choix-feuille { bottom:auto; top:50%; border-radius:20px; transform:translateY(-40%) scale(.97); opacity:0;
+    transition:transform .22s ease, opacity .18s ease, visibility 0s linear .22s; }
+  .choix-feuille.open { transform:translateY(-50%) scale(1); opacity:1; transition:transform .22s ease, opacity .18s ease; }
+  .choix-poignee { display:none; } }
+@media (prefers-reduced-motion: reduce) { .choix-voile, .choix-feuille, .choix-feuille.open { transition:none; } }
 .tile.soon .tile-ico { background: var(--surface-2); color: var(--ink-4); }
 .badge-soon {
   position: absolute; top: 14px; right: 14px;
@@ -586,15 +591,14 @@ html[data-theme="dark"] .vs-pill{background:#251B3C;color:#B593F2}
   display:flex; align-items:center; justify-content:center; }
 /* Liste (bloc Réservé) : une ligne par outil. */
 .tiles.liste { grid-template-columns:repeat(auto-fill,minmax(240px,1fr)); gap:8px; }
-.tiles.liste .tile, .tiles.liste .tile.split .split-face { display:grid; grid-template-columns:auto 1fr auto; align-items:center;
+.tiles.liste .tile { display:grid; grid-template-columns:auto 1fr auto; align-items:center;
   column-gap:12px; padding:12px 14px; }
 .tiles.liste .tile { border-radius:14px; }
-.tiles.liste .tile.split { display:block; padding:0; }
 .tiles.liste .tile-ico { width:36px; height:36px; border-radius:10px; }
 .tiles.liste .tile-ico svg { width:19px; height:19px; }
 .tiles.liste .tile-title { font-size:14.5px; }
-.tiles.liste .tile-sub, .tiles.liste .tile-arrow, .tiles.liste .split-half .sh-s { display:none; }
-.tiles.liste a.tile::after, .tiles.liste .split-face::after { content:'›'; font-size:22px; line-height:1; color:var(--ink-4); }
+.tiles.liste .tile-sub, .tiles.liste .tile-arrow { display:none; }
+.tiles.liste a.tile::after, .tiles.liste .tile[role="button"]::after { content:'›'; font-size:22px; line-height:1; color:var(--ink-4); }
 .tiles.liste .badge-soon { position:static; }
 
 @media(max-width:640px){
@@ -614,7 +618,6 @@ html[data-theme="dark"] .vs-pill{background:#251B3C;color:#B593F2}
   .bloc { margin-top:22px; }
   .tiles { grid-template-columns: repeat(2, minmax(0, 1fr)); gap:10px; }
   .tile { padding:14px; gap:8px; border-radius:18px; }
-  .tile.split .split-face { padding:14px; gap:8px; }
   .tile-ico { width:40px; height:40px; border-radius:12px; }
   .tile-ico svg { width:20px; height:20px; }
   .tile-title { font-size:15.5px; line-height:1.25; margin-top:4px; }
@@ -679,6 +682,17 @@ html[data-theme="dark"] .vs-pill{background:#251B3C;color:#B593F2}
     <button id="themeBtn" class="theme-btn" onclick="cycleTheme()" title="Thème">🌗</button>
     <span id="mePill" class="me-pill" style="display:none"></span>
   </div>
+</div>
+
+<!-- Feuille du bas des tuiles a deux destinations (Libéral) — remplie par choixOuvrir -->
+<div id="choixVoile" class="choix-voile" onclick="choixFermer()"></div>
+<div id="choixFeuille" class="choix-feuille" role="dialog" aria-modal="true" aria-labelledby="choixTitre">
+  <div class="choix-poignee"></div>
+  <div class="choix-tete">
+    <div class="choix-titre" id="choixTitre"></div>
+    <button class="choix-fermer" onclick="choixFermer()" aria-label="Fermer">✕</button>
+  </div>
+  <div class="choix-liste" id="choixListe"></div>
 </div>
 
 <!-- LA CLOCHE (v1.77) : journal des notifications des 30 derniers jours -->
@@ -1155,12 +1169,13 @@ const TILES = [
   // 19 membres du groupement, car c'est elle qui construit le releve LIBERAL_CA_{Y}.
   // Sans `only`, les 18 autres verraient la tuile du jour au lendemain, alors que le
   // module est encore en rodage. Pour OUVRIR : retirer `only` et monter la version.
-  // TUILE QUI SE SEPARE EN DEUX : le liberal, c'est coter/declarer d'un cote,
-  // suivre les 30 % de l'autre. `split` remplace `href` — voir renderTiles.
+  // TUILE A DEUX DESTINATIONS : le liberal, c'est coter/declarer d'un cote,
+  // suivre les 30 % de l'autre. `split` remplace `href` : la tuile ouvre une
+  // feuille du bas avec les deux choix (choixOuvrir) — voir renderTiles.
   { key:'liberal',  title:'Libéral', sub:'Cotation, devis, déclaration — et suivi des 30 %.', icon:'calculator', ready:true, tint:'viol', liberal:true, prive:true,
     split:[
-      {t:'Cotation & déclaration', s:'Coter un patient, imprimer le devis, déclarer l\'intervention.', href:'docs/module-liberal/estimateur-liberal.html'},
-      {t:'Suivi des 30 %',         s:'Ma position, celle du groupe, les marges.',                    href:'suivi-liberal.html'},
+      {t:'Cotation & déclaration', s:'Coter un patient, imprimer le devis, déclarer l\'intervention.', icon:'file-text', tint:'viol', href:'docs/module-liberal/estimateur-liberal.html'},
+      {t:'Suivi des 30 %',         s:'Ma position, celle du groupe, les marges.',                    icon:'scale', tint:'vert', href:'suivi-liberal.html'},
     ], bloc:'reserve' },
   // (Lot 5-bis) Consultations a venir + absences du MAR sur les 4 semaines qui
   // suivent chaque consultation. ACCES RESTREINT (CONFIG / TUILES_PRIVEES).
@@ -1333,19 +1348,11 @@ function _tuileAccueil(t){
       '<div class="tile-title">'+esc(t.title)+'</div>' +
       '<div class="tile-sub">'+esc(sousTitre)+'</div>' +
       arrow;
-    // Tuile a deux destinations : la face reste identique aux autres, les deux
-    // moitiés vivent dessous et n'apparaissent qu'au clic.
-    if (t.ready && t.split) {
-      const moities = t.split.map(h =>
-        '<a class="split-half" href="'+h.href+'">'
-        + '<div class="sh-t">'+esc(h.t)+'</div>'
-        + '<div class="sh-s">'+esc(h.s)+'</div></a>').join('');
-      return '<div class="tile split'+large+'" id="tile-'+t.key+'"'+gen+'>'
-        + '<div class="split-face" onclick="splitOpen(\''+t.key+'\')">'+inner+'</div>'
-        + '<div class="split-halves">'+moities+'</div>'
-        + '<button class="split-back" onclick="splitClose(\''+t.key+'\')">Fermer</button>'
-        + '</div>';
-    }
+    // Tuile a deux destinations : une tuile ordinaire ; les deux choix vivent
+    // dans la feuille du bas (choixOuvrir), remplie au moment du toucher.
+    if (t.ready && t.split) return '<div class="tile clickable'+large+'" id="tile-'+t.key+'" role="button" tabindex="0"'
+      + ' onclick="choixOuvrir(\''+t.key+'\')"'
+      + ' onkeydown="if(event.key===\'Enter\'||event.key===\' \'){event.preventDefault();choixOuvrir(\''+t.key+'\');}"'+gen+'>'+inner+'</div>';
     if (t.ready && t.href) return '<a class="tile'+large+'" href="'+t.href+'"'+gen+'>'+inner+'</a>';
     if (t.ready && t.view) return '<div class="tile clickable'+large+'" onclick="openView(\''+t.view+'\')"'+gen+'>'+inner+'</div>';
     return '<div class="tile'+soon+large+'"'+gen+'>'+inner+'</div>';
@@ -1966,19 +1973,30 @@ function route(){
 // Tuiles et bandeau naviguent en changeant le hash → route() prend le relais.
 function openView(v){ location.hash = '#'+v; }
 
-/* Ouverture EN PLACE de la tuile a deux destinations. La hauteur est figée avant
-   l'animation : sans ça, la face disparaît, la tuile se réduit au contenu des
-   moitiés et TOUTE la grille saute. */
-function splitOpen(key){
-  const el = document.getElementById('tile-'+key);
-  if(!el || el.classList.contains('open')) return;
-  el.style.minHeight = el.offsetHeight + 'px';
-  el.classList.add('open');
+/* Tuile a deux destinations : la toucher fait monter la feuille du bas avec
+   ses deux choix. La feuille est remplie a chaque ouverture depuis TILES : une
+   seule source pour les titres et les liens. Échap ou le voile la referment. */
+function choixOuvrir(key){
+  const t = TILES.find(x => x.key === key);
+  if(!t || !t.split) return;
+  document.getElementById('choixTitre').textContent = t.title;
+  document.getElementById('choixListe').innerHTML = t.split.map(h =>
+    '<a class="choix-item" href="'+h.href+'">'
+    + '<div class="tile-ico'+(h.tint?' '+h.tint:'')+'"><i data-lucide="'+(h.icon||'arrow-right')+'"></i></div>'
+    + '<div class="choix-txt"><div class="choix-t">'+esc(h.t)+'</div><div class="choix-s">'+esc(h.s)+'</div></div>'
+    + '<span class="choix-fleche" aria-hidden="true">›</span></a>').join('');
+  if(window.lucide) lucide.createIcons();
+  document.getElementById('choixVoile').classList.add('open');
+  document.getElementById('choixFeuille').classList.add('open');
 }
-function splitClose(key){
-  const el = document.getElementById('tile-'+key);
-  if(el) el.classList.remove('open');
+function choixFermer(){
+  document.getElementById('choixVoile').classList.remove('open');
+  document.getElementById('choixFeuille').classList.remove('open');
 }
+document.addEventListener('keydown', e => { if(e.key === 'Escape') choixFermer(); });
+// Retour arrière depuis une des deux pages : Safari restaure la page telle
+// qu'on l'a quittée, feuille ouverte comprise. On la referme.
+window.addEventListener('pageshow', () => choixFermer());
 function fmtDate(s){ if(!s) return ''; const p=String(s).split('-'); return p.length===3 ? p[2]+'/'+p[1]+'/'+p[0] : s; }
 function fmtSize(b){ b=Number(b)||0; if(b<1024) return b+' o'; if(b<1048576) return Math.round(b/1024)+' Ko'; return (b/1048576).toFixed(1)+' Mo'; }
 
