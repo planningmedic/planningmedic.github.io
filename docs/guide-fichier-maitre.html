@@ -238,6 +238,8 @@ code — toute autre ligne est ignorée.</p>
 <tr><td>INDISPOS_ACTIVE</td><td>L'année de la campagne d'indisponibilités. <strong>Sa seule présence signale qu'une campagne est ouverte</strong> : créée par le Wizard 1, supprimée par le Wizard 3.</td><td>Wizards 1 et 3</td></tr>
 <tr><td>ADMIN_CODE</td><td>Code d'accès du comité. <strong>Aucune valeur par défaut</strong> : ligne absente = plus personne n'est admin.</td><td>À la main</td></tr>
 <tr><td>SECRETARIAT_CODE</td><td>Code partagé du secrétariat d'anesthésie. Donne accès à <strong>deux actions seulement</strong>.</td><td>À la main</td></tr>
+<tr><td>PAIE_CODE</td><td>Code partagé des <strong>secrétaires de paie</strong> (page <em>Planning paie</em>, lecture seule : gardes et vacances). Donne accès à <strong>deux actions seulement</strong>. Doit être <strong>différent</strong> des autres codes. Ligne absente = la page refuse tout code de secrétaire.</td><td>À la main</td></tr>
+<tr><td>PAIE_EMAILS</td><td>Adresses des secrétaires de paie, séparées par une virgule. Elles reçoivent un mail à chaque changement de garde ou de vacances. Ligne absente ou vide : aucun envoi.</td><td>À la main</td></tr>
 <tr><td>GITHUB_TOKEN</td><td>Clé de publication vers GitHub. Le Diagnostic la teste réellement.</td><td>À la main</td></tr>
 <tr><td>ANTHROPIC_TOKEN</td><td>Clé du générateur de comptes rendus.</td><td>À la main</td></tr>
 <tr><td>DIAG_EMAIL</td><td>Destinataire du diagnostic automatique du lundi. Ligne absente ou vide : aucun envoi, et la raison est notée dans <span class="tag">LOGS</span>.</td><td>À la main</td></tr>

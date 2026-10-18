@@ -1,7 +1,7 @@
 // ⚠️ RÈGLE (détecteur de dérive dépôt↔Apps Script) : incrémenter cette version
 // à CHAQUE push de ce fichier. Le diagnostic (admin → Maintenance) compare la
 // version déployée ici avec celle du dépôt et signale toute recopie oubliée.
-const GAS_VERSION_CODE = '2026-09-14.2';
+const GAS_VERSION_CODE = '2026-10-18.1';   // (18/10/2026) vue paie : tri G/G2/V (_planningPaie_) et mail aux secrétaires de paie (_paieEnvoyerAnnee_)
 
 // ── Reconstruire STATS_GARDES_2026 depuis GARDES_2026 (année reconstruite) ──
 // Renvoie le classeur contenant l'onglet demandé : classeur actif si présent,
@@ -1586,7 +1586,8 @@ function notifRecaler(year) {
   const courant = readPlanningFromDrive('planning_' + y + '.json');
   if (!courant) { Logger.log('notifRecaler : planning_' + y + '.json introuvable'); return; }
   savePlanningToDrive('planning_' + y + '_notifie.json', courant);
-  logAction('notifRecaler ' + y + ' — photo de référence remise à jour, aucun envoi');
+  savePlanningToDrive('planning_' + y + '_paie.json', courant);   // (18/10/2026) la photo du mail paie aussi
+  logAction('notifRecaler ' + y + ' — photos de référence (MAR et paie) remises à jour, aucun envoi');
 }
 
 // ── Envoi (cible du minuteur) ─────────────────────────────────────────
@@ -1613,6 +1614,20 @@ function _notifEnvoyerAnnee_(year, actif) {
   const refName = 'planning_' + year + '_notifie.json';
   const courantRaw = readPlanningFromDrive('planning_' + year + '.json');
   if (!courantRaw) { logAction('notifEnvoyer — planning_' + year + '.json introuvable, abandon'); return; }
+
+  /* (18/10/2026) Mail des secrétaires de paie. AVANT le test de l'interrupteur :
+     il a sa propre photo et sa propre condition (CONFIG / PAIE_EMAILS). Isolé :
+     son échec ne touche jamais les mails aux MAR, et inversement. */
+  try {
+    const _pa = _paieEnvoyerAnnee_(year, courantRaw);
+    if (_pa.nb || _pa.erreur) logAction('mail paie ' + year + ' — ' + _pa.nb + ' changement(s), '
+      + (_pa.envoye ? 'envoyé' : 'NON envoyé (' + _pa.erreur + ') → photo paie non recalée'));
+    if (_pa.erreur) {   // l'année revient dans la file : nouvel essai au prochain passage
+      const _pp = PropertiesService.getScriptProperties(), _pf = _notifFileAnnees_(_pp);
+      if (_pf.indexOf(year) < 0) { _pf.push(year); _pp.setProperty(NOTIF_PROP_YEAR, JSON.stringify(_pf)); }
+    }
+  } catch (e) { logAction('mail paie ' + year + ' — erreur : ' + e.message); }
+
   const refRaw = readPlanningFromDrive(refName);
 
   // Système éteint, ou toute première exécution : on prend la photo, on se tait.
@@ -1995,6 +2010,475 @@ function _notifHtml(nom, chgs, year, LIB) {
         'Le Comité Planning — Planning-Med · message automatique</td></tr>' +
     '</table>' +
   '</td></tr></table>';
+}
+
+// ══════════════════════════════════════════════════════════════════════
+// VUE PAIE — SECRETAIRES QUI SAISISSENT GARDES ET VACANCES DANS CHRONOS
+// ══════════════════════════════════════════════════════════════════════
+// (18/10/2026) Deux usages, une seule règle de tri :
+//   - la page paie.html (action getPlanningPaie, gardes.gs) lit le mois ;
+//   - un mail part aux secrétaires de paie à chaque changement de G, G2 ou V.
+// Seuls trois codes existent pour la paie : G (garde réa), G2 (garde
+// maternité), V (vacances ; VAC en est l'alias). TOUT AUTRE CODE (formation,
+// temps partiel, absence, congé long, repos, 18h…) est écarté ICI, côté
+// serveur : il n'est ni envoyé à la page, ni écrit dans le mail.
+//
+// Le mail a SA PROPRE photo de référence (planning_{année}_paie.json),
+// distincte de celle des mails aux MAR : un échec d'un côté ne fait jamais
+// rejouer ni taire l'autre. Il est appelé par _notifEnvoyerAnnee_, donc au
+// même moment (10 min d'accalmie après une publication), mais il ne dépend
+// pas de l'interrupteur NOTIF_ACTIVE : il vit dès que CONFIG / PAIE_EMAILS
+// porte au moins une adresse.
+// Les adresses ne sont JAMAIS dans le dépôt : CONFIG / PAIE_EMAILS.
+// ──────────────────────────────────────────────────────────────────────
+
+const PAIE_LIB = { G: 'garde réanimation', G2: 'garde maternité', V: 'vacances' };
+const PAIE_SITE = 'https://planningmedic.github.io/paie.html';
+const PAIE_PROP_RECENTS = 'PAIE_RECENTS';     // derniers changements (14 jours)
+const PAIE_RECENTS_JOURS = 14;
+
+// Code du planning → code paie ('G', 'G2', 'V') ou '' (écarté).
+function _paieCode_(st) {
+  const c = String(st == null ? '' : st).trim().toUpperCase();
+  if (c === 'G' || c === 'G2') return c;
+  if (c === 'V' || c === 'VAC') return 'V';
+  return '';
+}
+
+function _paieDr_(id) {
+  try { if (typeof _echangesDr_ === 'function') return _echangesDr_(id); } catch (e) {}
+  return 'Dr ' + String(id);
+}
+
+function _paieNomSession_(user) {
+  if (!user) return '';
+  if (user.role === 'mar') return _paieDr_(user.id);
+  if (user.role === 'admin') return 'Comité';
+  return 'Secrétariat paie';
+}
+
+// ── Aplatir le planning publié, en ne gardant QUE les codes paie ───────
+// { jours: {date: {we, fe, mois}}, ids: {id: true}, cases: {id: {date: code}},
+//   mois: [{id, label, ids: [...]}] }
+function _paieAplatir_(json) {
+  const out = { jours: {}, ids: {}, cases: {}, mois: [] };
+  (json && json.months || []).forEach(function (m) {
+    const dates = (m.days || []).map(function (d) {
+      if (d && d.date) out.jours[d.date] = { we: !!d.isWeekend, fe: !!d.isFerie, mois: m.id };
+      return d && d.date;
+    });
+    const ids = [];
+    (m.doctors || []).forEach(function (doc) {
+      if (!doc || !doc.id) return;
+      ids.push(doc.id);
+      out.ids[doc.id] = true;
+      (doc.days || []).forEach(function (e, i) {
+        const c = _paieCode_(e && e.status);
+        if (!c || !dates[i]) return;
+        if (!out.cases[doc.id]) out.cases[doc.id] = {};
+        out.cases[doc.id][dates[i]] = c;
+      });
+    });
+    out.mois.push({ id: m.id, label: m.label, ids: ids });
+  });
+  return out;
+}
+
+// ── Ce que reçoit la page paie ─────────────────────────────────────────
+function _planningPaie_(json, year, recents) {
+  const p = _paieAplatir_(json);
+  const noms = {};
+  Object.keys(p.ids).forEach(function (id) { noms[id] = _paieDr_(id); });
+  const jours = Object.keys(p.jours).sort().map(function (d) {
+    return { date: d, we: p.jours[d].we, fe: p.jours[d].fe };
+  });
+  return { annee: year, mois: p.mois, jours: jours, noms: noms, cases: p.cases, recents: recents || [] };
+}
+
+// ── Comparer deux états : la liste des changements pour la paie ────────
+// Une date absente de l'ancien état (mois ajouté) ou un MAR absent de l'ancien
+// état ne produit rien : même règle que _notifDiff, sinon la première
+// apparition d'un mois enverrait toute son année d'un coup.
+function _paieDiff_(av, ap) {
+  const gardes = {}, vac = {};
+  Object.keys(ap.ids).forEach(function (id) {
+    if (!av.ids[id]) return;
+    const ca = av.cases[id] || {}, cb = ap.cases[id] || {};
+    Object.keys(ap.jours).forEach(function (date) {
+      if (!av.jours[date]) return;
+      const a = ca[date] || '', b = cb[date] || '';
+      if (a === b) return;
+      if (a === 'G' || a === 'G2') {
+        const k = date + '|' + a;
+        (gardes[k] = gardes[k] || { type: 'garde', date: date, code: a, de: [], a: [] }).de.push(id);
+      }
+      if (b === 'G' || b === 'G2') {
+        const k = date + '|' + b;
+        (gardes[k] = gardes[k] || { type: 'garde', date: date, code: b, de: [], a: [] }).a.push(id);
+      }
+      if (a === 'V' && b !== 'V') ((vac[id] = vac[id] || { ajout: [], retrait: [] }).retrait).push(date);
+      if (b === 'V' && a !== 'V') ((vac[id] = vac[id] || { ajout: [], retrait: [] }).ajout).push(date);
+    });
+  });
+  const items = Object.keys(gardes).map(function (k) {
+    const g = gardes[k]; g.de.sort(); g.a.sort(); return g;
+  });
+  Object.keys(vac).sort().forEach(function (id) {
+    ['ajout', 'retrait'].forEach(function (sens) {
+      _paiePlages_(vac[id][sens].sort(), ap.jours).forEach(function (pl) {
+        items.push({ type: 'vac', id: id, sens: sens, date: pl.du, du: pl.du, au: pl.au, n: pl.n });
+      });
+    });
+  });
+  items.sort(function (x, y) {
+    if (x.date !== y.date) return x.date < y.date ? -1 : 1;
+    return x.type < y.type ? -1 : (x.type > y.type ? 1 : 0);
+  });
+  return items;
+}
+
+// Dates triées → plages continues. Un trou fait seulement de week-ends ou de
+// jours fériés ne coupe pas la plage (vacances du vendredi au lundi = une plage).
+function _paiePlages_(dates, jours) {
+  const out = [];
+  const lendemain = function (d) {
+    const x = new Date(d + 'T12:00:00'); x.setDate(x.getDate() + 1);
+    return x.getFullYear() + '-' + String(x.getMonth() + 1).padStart(2, '0') + '-' + String(x.getDate()).padStart(2, '0');
+  };
+  dates.forEach(function (d) {
+    const cur = out[out.length - 1];
+    if (cur) {
+      let t = lendemain(cur.au), bouche = true;
+      while (t < d) {
+        const j = jours[t];
+        if (!(j && (j.we || j.fe))) { bouche = false; break; }
+        t = lendemain(t);
+      }
+      if (bouche) { cur.au = d; cur.n++; return; }
+    }
+    out.push({ du: d, au: d, n: 1 });
+  });
+  return out;
+}
+
+// ── Totaux du mois, avant / après, pour les médecins concernés ─────────
+function _paieTotaux_(av, ap, items) {
+  const vus = {}, out = [];
+  items.forEach(function (it) {
+    const mois = it.date.slice(0, 7);
+    const ids = it.type === 'garde' ? it.de.concat(it.a) : [it.id];
+    const codes = it.type === 'garde' ? [it.code] : ['V'];
+    ids.forEach(function (id) {
+      const k = id + '|' + mois;
+      if (!vus[k]) { vus[k] = { id: id, mois: mois, codes: {} }; out.push(vus[k]); }
+      codes.forEach(function (c) { vus[k].codes[c] = true; });
+    });
+  });
+  const compter = function (etat, id, mois, code) {
+    const c = etat.cases[id] || {};
+    return Object.keys(c).filter(function (d) { return d.slice(0, 7) === mois && c[d] === code; }).length;
+  };
+  return out.map(function (t) {
+    return { id: t.id, mois: t.mois, lignes: ['G', 'G2', 'V'].filter(function (c) { return t.codes[c]; })
+      .map(function (c) { return { code: c, avant: compter(av, t.id, t.mois, c), apres: compter(ap, t.id, t.mois, c) }; }) };
+  });
+}
+
+// ── D'où vient le changement ? ─────────────────────────────────────────
+// Un don ou un échange accepté depuis moins de 24 h qui porte sur cette date
+// et ces médecins : on le dit. Sinon : le comité (publication, correction).
+function _paieOrigine_(it, echanges, maintenantMs) {
+  const COMITE = 'Modification du planning par le comité.';
+  if (it.type !== 'garde') return COMITE;
+  const qui = it.de.concat(it.a);
+  const l = (echanges || []).filter(function (e) {
+    if (String(e.ETAT) !== 'acceptee') return false;
+    if (String(e.DATE) !== it.date && String(e.DATE2) !== it.date) return false;
+    const t = new Date(String(e.REPONDU_LE)).getTime();
+    if (!(t > 0) || maintenantMs - t > 24 * 3600 * 1000) return false;
+    const deux = [String(e.DEMANDEUR), String(e.RECEVEUR)];
+    return qui.every(function (id) { return deux.indexOf(id) > -1; });
+  }).pop();
+  if (!l) return COMITE;
+  const quand = _paieHeure_(String(l.REPONDU_LE));
+  return (String(l.TYPE) === 'don' ? 'Don de garde proposé par ' : 'Échange de gardes proposé par ')
+    + _paieDr_(l.DEMANDEUR) + ' et accepté par ' + _paieDr_(l.RECEVEUR) + (quand ? ' le ' + quand : '') + '.';
+}
+
+function _paieHeure_(iso) {
+  try {
+    return Utilities.formatDate(new Date(iso), 'Europe/Paris', "dd/MM/yyyy 'à' HH'h'mm");
+  } catch (e) { return ''; }
+}
+
+function _paieJoli_(iso) {
+  const d = new Date(iso + 'T12:00:00');
+  return NOTIF_JOURS[d.getDay()] + ' ' + (d.getDate() === 1 ? '1er' : d.getDate()) + ' '
+    + NOTIF_MOIS[d.getMonth()] + ' ' + d.getFullYear();
+}
+
+function _paieMoisJoli_(ym) {
+  const m = /^(\d{4})-(\d{2})$/.exec(ym);
+  return m ? NOTIF_MOIS[Number(m[2]) - 1] + ' ' + m[1] : ym;
+}
+
+function _paieTag_(date, jours) {
+  const j = jours[date] || {};
+  return j.fe ? 'jour férié' : (j.we ? 'week-end' : '');
+}
+
+function _paieListe_(ids) {
+  return ids.length ? ids.map(_paieDr_).join(', ') : 'personne';
+}
+
+// ── Objet ──────────────────────────────────────────────────────────────
+function _paieSujet_(items) {
+  if (items.length === 1) {
+    const it = items[0];
+    if (it.type === 'garde') {
+      return 'Planning paie · ' + PAIE_LIB[it.code] + ' du ' + _paieJoli_(it.date) + ' : '
+        + _paieListe_(it.de) + ' → ' + _paieListe_(it.a);
+    }
+    return 'Planning paie · vacances ' + (it.sens === 'ajout' ? 'ajoutées' : 'retirées') + ' · ' + _paieDr_(it.id);
+  }
+  return 'Planning paie · ' + items.length + ' changements à reporter dans Chronos';
+}
+
+// ── Gestes à reporter dans Chronos, un par ligne ───────────────────────
+function _paieGestes_(it) {
+  if (it.type === 'garde') {
+    const lib = PAIE_LIB[it.code], j = _paieJoli_(it.date);
+    return it.de.map(function (id) { return 'Retirer la ' + lib + ' du ' + j + ' à ' + _paieDr_(id) + '.'; })
+      .concat(it.a.map(function (id) { return 'Ajouter la ' + lib + ' du ' + j + ' à ' + _paieDr_(id) + '.'; }));
+  }
+  const nb = it.n + ' jour' + (it.n > 1 ? 's' : '') + ' de vacances';
+  const per = it.du === it.au ? 'le ' + _paieJoli_(it.du) : 'du ' + _paieJoli_(it.du) + ' au ' + _paieJoli_(it.au) + ' inclus';
+  return [(it.sens === 'ajout' ? 'Saisir ' : 'Retirer ') + nb + ' pour ' + _paieDr_(it.id) + ', ' + per + '.'];
+}
+
+// ── Corps texte ────────────────────────────────────────────────────────
+function _paieTexte_(items, totaux, origines, jours) {
+  let t = 'Bonjour,\n\nLe planning d\'anesthésie a changé. Voici ce qui touche la paie.\n\n';
+  t += 'CE QUI CHANGE\n';
+  items.forEach(function (it) {
+    const tag = _paieTag_(it.date, jours);
+    if (it.type === 'garde') {
+      t += '  ' + _paieJoli_(it.date) + (tag ? ' (' + tag + ')' : '') + ' — ' + PAIE_LIB[it.code]
+        + ' : avant ' + _paieListe_(it.de) + ', après ' + _paieListe_(it.a) + '\n';
+    } else {
+      t += '  ' + _paieDr_(it.id) + ' — vacances ' + (it.sens === 'ajout' ? 'ajoutées' : 'retirées')
+        + ' : ' + (it.du === it.au ? _paieJoli_(it.du) : 'du ' + _paieJoli_(it.du) + ' au ' + _paieJoli_(it.au))
+        + ' (' + it.n + ' jour' + (it.n > 1 ? 's' : '') + ')\n';
+    }
+  });
+  t += '\nÀ REPORTER DANS CHRONOS\n';
+  items.forEach(function (it) { _paieGestes_(it).forEach(function (g) { t += '  - ' + g + '\n'; }); });
+  t += '\nNOUVEAUX TOTAUX DU MOIS\n';
+  totaux.forEach(function (x) {
+    t += '  ' + _paieDr_(x.id) + ', ' + _paieMoisJoli_(x.mois) + ' : ' + x.lignes.map(function (l) {
+      return PAIE_LIB[l.code] + ' ' + l.avant + ' → ' + l.apres;
+    }).join(' ; ') + '\n';
+  });
+  t += '\nORIGINE\n';
+  origines.forEach(function (o) { t += '  ' + o + '\n'; });
+  const mois = items.length ? items[0].date.slice(0, 7) : '';
+  t += '\nOuvrir le planning paie : ' + PAIE_SITE + (mois ? '?m=' + mois : '') + '\n\n'
+     + 'Message automatique de Planning-Med, merci de ne pas y répondre.\n'
+     + 'Pour une question : planningmedic@gmail.com\n';
+  return t;
+}
+
+// ── Corps HTML : tableaux et styles en ligne seulement (Gmail, Outlook) ─
+function _paieHtml_(items, totaux, origines, jours) {
+  const ROUGE = '#CE1126', ENCRE = '#0f172a', GRIS = '#64748b', PALE = '#94a3b8', LIGNE = '#e2e8f0';
+  const POLICE = "-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif";
+  const th = function (x) {
+    return '<td style="padding:7px 10px;background:#f1f5f9;font-size:11.5px;font-weight:700;color:#334155;'
+      + 'border-bottom:1px solid ' + LIGNE + '">' + x + '</td>';
+  };
+  const td = function (x, gras) {
+    return '<td style="padding:8px 10px;font-size:13.5px;color:' + ENCRE + ';vertical-align:top;'
+      + (gras ? 'font-weight:700;' : '') + 'border-bottom:1px solid ' + LIGNE + '">' + x + '</td>';
+  };
+  const tableau = function (lignes) {
+    return '<table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" '
+      + 'style="border:1px solid ' + LIGNE + ';border-radius:10px;border-collapse:separate;border-spacing:0">'
+      + lignes + '</table>';
+  };
+  const titre = function (x) {
+    return '<div style="font-size:11px;font-weight:800;letter-spacing:.8px;text-transform:uppercase;color:'
+      + PALE + ';margin:22px 0 8px">' + x + '</div>';
+  };
+  const tagHtml = function (date) {
+    const tg = _paieTag_(date, jours);
+    return tg ? '<br><span style="font-size:11px;font-weight:700;color:#c2410c">' + tg + '</span>' : '';
+  };
+
+  let quoi = '';
+  const gardes = items.filter(function (i) { return i.type === 'garde'; });
+  const vacs = items.filter(function (i) { return i.type === 'vac'; });
+  if (gardes.length) {
+    quoi += tableau('<tr>' + th('Date') + th('Garde') + th('Avant') + th('Après') + '</tr>'
+      + gardes.map(function (it) {
+        return '<tr>' + td(_paieJoli_(it.date) + tagHtml(it.date)) + td(PAIE_LIB[it.code])
+          + td(_paieListe_(it.de)) + td(_paieListe_(it.a), true) + '</tr>';
+      }).join(''));
+  }
+  if (vacs.length) {
+    quoi += (gardes.length ? '<div style="height:10px"></div>' : '')
+      + tableau('<tr>' + th('Médecin') + th('Vacances') + th('Période') + th('Jours') + '</tr>'
+      + vacs.map(function (it) {
+        return '<tr>' + td(_paieDr_(it.id), true) + td(it.sens === 'ajout' ? 'ajoutées' : 'retirées')
+          + td(it.du === it.au ? _paieJoli_(it.du) : 'du ' + _paieJoli_(it.du) + '<br>au ' + _paieJoli_(it.au))
+          + td(String(it.n)) + '</tr>';
+      }).join(''));
+  }
+
+  let gestes = '';
+  items.forEach(function (it) {
+    _paieGestes_(it).forEach(function (g) {
+      gestes += '<tr><td width="18" style="padding:3px 0;vertical-align:top;font-size:14px;color:' + ROUGE
+        + '">•</td><td style="padding:3px 0;font-size:13.5px;color:' + ENCRE + ';line-height:1.5">' + g + '</td></tr>';
+    });
+  });
+
+  const tot = tableau('<tr>' + th('Médecin') + th('Mois') + th('Avant → après') + '</tr>'
+    + totaux.map(function (x) {
+      return '<tr>' + td(_paieDr_(x.id), true) + td(_paieMoisJoli_(x.mois)) + td(x.lignes.map(function (l) {
+        return PAIE_LIB[l.code] + ' : ' + l.avant + ' → <b>' + l.apres + '</b>';
+      }).join('<br>')) + '</tr>';
+    }).join(''));
+
+  const orig = origines.map(function (o) {
+    return '<div style="font-size:13.5px;color:' + ENCRE + ';line-height:1.5;margin-bottom:4px">' + o + '</div>';
+  }).join('');
+  const mois = items.length ? items[0].date.slice(0, 7) : '';
+  const lien = PAIE_SITE + (mois ? '?m=' + mois : '');
+
+  return ''
+  + '<table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" '
+  + 'style="background:#f4f6f9;font-family:' + POLICE + '">'
+  + '<tr><td align="center" style="padding:18px 12px">'
+  +   '<table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" '
+  +   'style="max-width:620px;background:#fff;border-radius:18px;border:1px solid ' + LIGNE + '">'
+  +     '<tr><td style="background:' + ROUGE + ';height:5px;line-height:5px;font-size:0">&nbsp;</td></tr>'
+  +     '<tr><td style="padding:24px 24px 4px">'
+  +       '<div style="font-size:11px;font-weight:800;letter-spacing:.9px;text-transform:uppercase;color:' + PALE + '">Planning-Med · paie</div>'
+  +       '<div style="font-size:21px;font-weight:800;color:' + ENCRE + ';margin-top:7px;line-height:1.25">Le planning a changé</div>'
+  +       '<div style="margin-top:10px;font-size:13.5px;color:' + GRIS + ';line-height:1.55">Bonjour,<br>'
+  +       'voici ce qui touche la paie : ' + (items.length === 1 ? 'un changement' : items.length + ' changements') + '.</div>'
+  +       titre('Ce qui change') + quoi
+  +       titre('À reporter dans Chronos')
+  +       '<table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0">' + gestes + '</table>'
+  +       titre('Nouveaux totaux du mois') + tot
+  +       titre('Origine') + orig
+  +     '</td></tr>'
+  +     '<tr><td style="padding:18px 24px 4px">'
+  +       '<a href="' + lien + '" style="display:block;background:' + ENCRE + ';color:#fff;text-decoration:none;'
+  +       'border-radius:11px;font-size:15px;font-weight:700;padding:14px 20px;text-align:center">Ouvrir le planning paie</a>'
+  +     '</td></tr>'
+  +     '<tr><td style="padding:14px 24px 24px;font-size:11.5px;color:' + PALE + ';line-height:1.6">'
+  +       'Message automatique de Planning-Med, merci de ne pas y répondre. Pour une question : planningmedic@gmail.com'
+  +     '</td></tr>'
+  +   '</table>'
+  + '</td></tr></table>';
+}
+
+// ── Destinataires : CONFIG / PAIE_EMAILS (séparés par virgule, point-virgule ou espace)
+function _paieDestinataires_() {
+  try {
+    const rows = _configRows_();
+    for (let r = 1; r < rows.length; r++) {
+      if (String(rows[r][0]).trim() !== 'PAIE_EMAILS') continue;
+      return String(rows[r][1] || '').split(/[,;\s]+/)
+        .map(function (x) { return x.trim(); }).filter(function (x) { return x.indexOf('@') > 0; });
+    }
+  } catch (e) {}
+  return [];
+}
+
+// ── Mémoire des derniers changements (cadre orange de la page) ─────────
+function _paieRecentsLire_(maintenantMs) {
+  try {
+    const brut = PropertiesService.getScriptProperties().getProperty(PAIE_PROP_RECENTS);
+    const liste = JSON.parse(brut || '[]');
+    const limite = (maintenantMs || Date.now()) - PAIE_RECENTS_JOURS * 24 * 3600 * 1000;
+    return (Array.isArray(liste) ? liste : []).filter(function (x) {
+      return x && new Date(x.le).getTime() >= limite;
+    });
+  } catch (e) { return []; }
+}
+
+function _paieRecentsAjouter_(items, maintenantMs) {
+  try {
+    const le = new Date(maintenantMs || Date.now()).toISOString();
+    const liste = _paieRecentsLire_(maintenantMs);
+    items.forEach(function (it) {
+      const cellules = [];
+      if (it.type === 'garde') {
+        it.de.concat(it.a).forEach(function (id) { cellules.push([id, it.date]); });
+      } else {
+        cellules.push([it.id, it.du, it.au]);
+      }
+      liste.push({ le: le, titre: it.type === 'garde'
+        ? PAIE_LIB[it.code] + ' du ' + _paieJoli_(it.date) + ' : ' + _paieListe_(it.de) + ' → ' + _paieListe_(it.a)
+        : 'vacances ' + (it.sens === 'ajout' ? 'ajoutées' : 'retirées') + ' pour ' + _paieDr_(it.id) + ' ('
+          + (it.du === it.au ? _paieJoli_(it.du) : 'du ' + _paieJoli_(it.du) + ' au ' + _paieJoli_(it.au)) + ')',
+        cellules: cellules });
+    });
+    // Une propriété de script tient 9 ko : on retire les plus anciennes.
+    let json = JSON.stringify(liste);
+    while (json.length > 8000 && liste.length) { liste.shift(); json = JSON.stringify(liste); }
+    PropertiesService.getScriptProperties().setProperty(PAIE_PROP_RECENTS, json);
+  } catch (e) { /* la mémoire est un confort : jamais bloquante */ }
+}
+
+// ── Envoi pour une année (appelé par _notifEnvoyerAnnee_) ──────────────
+// Renvoie { envoye, nb, erreur } — pour le journal et le banc.
+function _paieEnvoyerAnnee_(year, courantRaw, maintenantMs) {
+  const refName = 'planning_' + year + '_paie.json';
+  const dest = _paieDestinataires_();
+  const refRaw = readPlanningFromDrive(refName);
+  // Pas d'adresse, ou toute première fois : on prend la photo, on se tait.
+  // (Sans adresse, la photo suit le planning : le jour où les adresses
+  // arrivent, on ne déverse pas des semaines d'historique.)
+  if (!dest.length || !refRaw) {
+    savePlanningToDrive(refName, courantRaw);
+    return { envoye: false, nb: 0, erreur: null, motif: !dest.length ? 'aucune adresse' : 'première photo' };
+  }
+  const av = _paieAplatir_(JSON.parse(refRaw));
+  const ap = _paieAplatir_(JSON.parse(courantRaw));
+  const items = _paieDiff_(av, ap);
+  if (!items.length) {
+    savePlanningToDrive(refName, courantRaw);
+    return { envoye: false, nb: 0, erreur: null, motif: 'rien pour la paie' };
+  }
+  const maintenant = maintenantMs || Date.now();
+  let echanges = [];
+  try { if (typeof _echangesLignes_ === 'function') echanges = _echangesLignes_().lignes || []; } catch (e) { echanges = []; }
+  const origines = [];
+  items.forEach(function (it) {
+    const o = _paieOrigine_(it, echanges, maintenant);
+    if (origines.indexOf(o) < 0) origines.push(o);
+  });
+  const totaux = _paieTotaux_(av, ap, items);
+  const test = String(PropertiesService.getScriptProperties().getProperty(NOTIF_PROP_TEST) || '').trim();
+  try {
+    if (MailApp.getRemainingDailyQuota() < 1) throw new Error('quota de mails épuisé');
+    MailApp.sendEmail({
+      to: test || dest.join(','),
+      subject: _paieSujet_(items),
+      htmlBody: _paieHtml_(items, totaux, origines, ap.jours),
+      body: _paieTexte_(items, totaux, origines, ap.jours),
+      name: 'Planning-Med',
+    });
+  } catch (err) {
+    // Photo NON recalée : les mêmes changements repartiront au prochain passage.
+    return { envoye: false, nb: items.length, erreur: String(err.message) };
+  }
+  savePlanningToDrive(refName, courantRaw);
+  _paieRecentsAjouter_(items, maintenant);
+  return { envoye: true, nb: items.length, erreur: null };
 }
 
 /* (24/08/2026) Fusion de la mémoire des placements caducs : les entrées du

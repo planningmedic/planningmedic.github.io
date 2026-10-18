@@ -4,7 +4,7 @@
    quelles : aucune ligne de logique modifiée, seulement déplacée. Le routeur et
    ses aides (checkCode, _deny, _error, doGet/doPost) restent dans Indispos.gs.
    Un seul espace global dans Apps Script : rien à importer. */
-const GAS_VERSION_GARDES = '2026-10-05.1';
+const GAS_VERSION_GARDES = '2026-10-18.1';   // (18/10/2026) action getPlanningPaie (vue des secrétaires de paie)
 
 // ── Sonde : les positions de STATS que code.gs lit à l'aveugle ──
 function _sondeStatsEntetes_(check, R, annee) {
@@ -1586,4 +1586,30 @@ function _act_getPlanningJson(R) {
   if (!raw) return _error(`planning_${jy}.json introuvable dans le Drive`);
   return ContentService.createTextOutput(JSON.stringify({success:true, planning: JSON.parse(raw)}))
     .setMimeType(ContentService.MimeType.JSON);
+}
+
+/* ── action "getPlanningPaie" (18/10/2026) ──────────────────────────────
+   Vue des SECRETAIRES DE PAIE (saisie Chronos) : gardes réa (G), gardes
+   maternité (G2) et vacances (V), mois par mois. LECTURE SEULE.
+   Qui : le code partagé « paie », le comité, et un MAR qui a la tuile cachée
+   `paie` (CONFIG / TUILES_PRIVEES) — même critère que la tuile du portail.
+   Le tri des codes se fait ICI, côté serveur (_planningPaie_, code.gs) : un
+   motif écarté n'est jamais envoyé, donc jamais lisible dans la page. */
+function _act_getPlanningPaie(R) {
+  const { e, payload, action, code, user } = R;
+  if (user.role !== 'paie' && user.role !== 'admin'
+      && !(user.role === 'mar' && _aDroitTuile_(user.id, 'paie'))) return _deny();
+  try {
+    const y = parseInt(payload.year) || getActiveYear();
+    const raw = readPlanningFromDrive('planning_' + y + '.json');
+    if (!raw) return ContentService.createTextOutput(JSON.stringify({
+      success: true, role: user.role, nom: _paieNomSession_(user), annee: y, absent: true
+    })).setMimeType(ContentService.MimeType.JSON);
+    const vue = _planningPaie_(JSON.parse(raw), y, _paieRecentsLire_());
+    return ContentService.createTextOutput(JSON.stringify(Object.assign(
+      { success: true, role: user.role, nom: _paieNomSession_(user) }, vue
+    ))).setMimeType(ContentService.MimeType.JSON);
+  } catch (err) {
+    return _error(String(err.message));
+  }
 }

@@ -1,7 +1,7 @@
 // ⚠️ RÈGLE (détecteur de dérive dépôt↔Apps Script) : incrémenter cette version
 // à CHAQUE push de ce fichier. Le diagnostic (admin → Maintenance) compare la
 // version déployée ici avec celle du dépôt et signale toute recopie oubliée.
-const GAS_VERSION_INDISPOS = '2026-10-06.1';   // (15/09/2026) chantier 9, étape 2 : le routeur est une TABLE (_actions_) ; les corps des 64 actions vivent dans les fichiers métier (_act_<nom>)
+const GAS_VERSION_INDISPOS = '2026-10-18.1';   // (18/10/2026) rôle « paie » (code partagé des secrétaires de paie) + refus par défaut de tout rôle autre que admin/mar hors de sa liste blanche
 
 /* ── (01/08/2026) MARQUEUR DE TEMPS GLOBAL — mesure, ne change rien ───────
    `_srv_ms` chronometre l'INTERIEUR de doGet. Or avant que doGet soit appele,
@@ -127,6 +127,11 @@ function checkCode(code) {
   // Code PARTAGE du secretariat d'anesthesie (lecture seule). Meme regime que
   // ADMIN_CODE : aucun defaut, la cle doit exister dans CONFIG pour que le role vive.
   let secretariatCode = null;
+  /* (18/10/2026) Code PARTAGE des secrétaires de PAIE (saisie Chronos). Autre
+     groupe que le secrétariat d'anesthésie, autre code, autre périmètre : ce rôle
+     voit les gardes et les vacances (G, G2, V) et RIEN d'autre. Même régime que
+     les deux codes ci-dessus : aucun défaut, la clé CONFIG / PAIE_CODE doit exister. */
+  let paieCode = null;
   /* (08/09/2026) Tuiles reservees — cle CONFIG / TUILES_PRIVEES. Lue ICI, dans
      la boucle qui parcourt deja CONFIG : aucune lecture supplementaire du
      classeur a chaque connexion. */
@@ -139,6 +144,7 @@ function checkCode(code) {
       // le `break` initial faisait deja gagner la premiere ligne ADMIN_CODE).
       if (_cle === 'ADMIN_CODE'       && adminCode === null)       adminCode = String(configData[r][1]).trim();
       else if (_cle === 'SECRETARIAT_CODE' && secretariatCode === null) secretariatCode = String(configData[r][1]).trim();
+      else if (_cle === 'PAIE_CODE'        && paieCode === null)        paieCode = String(configData[r][1]).trim();
       else if (_cle === 'TUILES_PRIVEES'   && tuilesBrut === null)      tuilesBrut = String(configData[r][1]);
     }
   }
@@ -150,6 +156,13 @@ function checkCode(code) {
   // user.name) : le code etant partage, on ne peut pas savoir QUI s'est connecte.
   if (secretariatCode && _normCode(secretariatCode) === codeN) {
     return {role: 'secretariat', id: 'SECRETARIAT', name: 'Secrétariat', initials: 'SEC'};
+  }
+  // ROLE PAIE (18/10/2026). Code partage : perimetre verrouille par PAIE_ACTIONS.
+  // Teste APRES le secretariat : si les deux codes etaient identiques, c'est le
+  // role le plus restreint en motifs (secretariat) qui gagne — le guide du
+  // fichier maitre demande de toute facon deux codes differents.
+  if (paieCode && _normCode(paieCode) === codeN) {
+    return {role: 'paie', id: 'PAIE', name: 'Secrétariat paie', initials: 'PAIE'};
   }
 
   const sheet = ss.getSheetByName('MEDECINS');
@@ -274,6 +287,26 @@ const SECRETARIAT_ACTIONS = new Set([
   'getConsultAbsences',
 ]);
 
+/* (18/10/2026) PERIMETRE DU ROLE PAIE — meme regle : liste blanche, refus par
+   defaut. getPlanningPaie ne renvoie que G, G2 et V : jamais un autre motif
+   d'absence. ⚠️ Comme pour le secretariat, NE JAMAIS y ajouter getPlanningJson
+   ni getAffectationsJson (ils portent tous les codes bruts de l'annee). */
+const PAIE_ACTIONS = new Set([
+  'login',
+  'getPlanningPaie',
+]);
+
+/* (18/10/2026) Liste blanche de chaque role a code PARTAGE. Le routeur refuse
+   tout role qui n'est ni 'admin' ni 'mar' et n'a pas de ligne ici : un role
+   ajoute demain dans checkCode sans sa liste est ferme, pas grand ouvert.
+   Avant : le refus etait ecrit pour le seul nom 'secretariat' — un nouveau role
+   oublie aurait atteint toutes les actions « tout code valide », dont creerEchange. */
+function _listeBlancheRole_(role) {
+  if (role === 'secretariat') return SECRETARIAT_ACTIONS;
+  if (role === 'paie') return PAIE_ACTIONS;
+  return null;
+}
+
 /* ═══ LA TABLE DES ACTIONS (15/09/2026, chantier 9 — étape 2) ═══
    Une ligne par action : son nom, qui a le droit, quelle fonction. Avant : 64
    « if (action === …) » de 2 700 lignes dans lesquels le contrôle de rôle se
@@ -356,6 +389,7 @@ function _actions_() {
     "getConsultAbsences"          : { role: 'conditionnel'      , fn: _act_getConsultAbsences },   // indisponibilites.gs
     "getPlanningJson"             : { role: 'tout code valide'  , fn: _act_getPlanningJson },   // gardes.gs
     "getAffectationsJson"         : { role: 'tout code valide'  , fn: _act_getAffectationsJson },   // gardes.gs
+    "getPlanningPaie"             : { role: 'conditionnel'      , fn: _act_getPlanningPaie },   // gardes.gs (18/10/2026) vue paie
   };
   _ACTIONS_MEMO_ = { sansCode: SANS_CODE, avecCode: AVEC_CODE };
   return _ACTIONS_MEMO_;
@@ -382,10 +416,15 @@ function _routeRequete_(e) {
     // (Lot 5-bis) REFUS PAR DEFAUT du role secretariat. Place ICI, juste apres
     // checkCode et AVANT le verrou d'ecriture et tout traitement d'action : rien
     // ne peut etre atteint qui ne figure pas dans SECRETARIAT_ACTIONS.
-    if (user.role === 'secretariat' && !SECRETARIAT_ACTIONS.has(action)) {
-      return ContentService.createTextOutput(JSON.stringify({
-        success: false, error: 'Action non autorisée pour ce code'
-      })).setMimeType(ContentService.MimeType.JSON);
+    // (18/10/2026) Generalise a tout role autre que admin / mar : liste blanche
+    // du role (_listeBlancheRole_), et refus si le role n'en a pas.
+    if (user.role !== 'admin' && user.role !== 'mar') {
+      const _liste = _listeBlancheRole_(user.role);
+      if (!_liste || !_liste.has(action)) {
+        return ContentService.createTextOutput(JSON.stringify({
+          success: false, error: 'Action non autorisée pour ce code'
+        })).setMimeType(ContentService.MimeType.JSON);
+      }
     }
     // (RH-C) Verrou d'écriture global : sérialise les actions qui modifient
     // les données. Les lectures ne prennent jamais le verrou (dashboard fluide).

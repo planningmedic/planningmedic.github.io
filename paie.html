@@ -1,0 +1,399 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Planning paie — Planning-Med</title>
+<!-- (18/10/2026) VUE PAIE — pour les secrétaires qui saisissent gardes et vacances
+     dans le logiciel de paie. LECTURE SEULE, un mois à la fois.
+     Qui l'ouvre : le code partagé des secrétaires de paie (CONFIG / PAIE_CODE),
+     le comité, et un MAR qui a la tuile cachée `paie` (CONFIG / TUILES_PRIVEES).
+     Le serveur (getPlanningPaie) n'envoie QUE G, G2 et V : aucun autre motif
+     d'absence n'arrive jusqu'ici, il n'y a donc rien à masquer côté page. -->
+<link rel="icon" type="image/svg+xml" href="assets/favicon.svg">
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@300;400;500;600;700&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="partage/theme.css">
+<style>
+:root{
+  --surface-2:#EEF1F5;
+  --g-bg:#E8F4FD; --g-fg:#1D6FB8; --g2-bg:#FFF1F3; --g2-fg:#BE123C; --v-bg:#F0FDF4; --v-fg:#166534;
+  --chg:#D97706; --chg-soft:#FEF3C7; --chg-fg:#92400E;
+  --me:#1D6FB8; --me-soft:#E8F4FD; --me-border:#B9DCF5;
+}
+*{box-sizing:border-box;margin:0;padding:0}
+body{background:var(--bg);font-family:'DM Sans',system-ui,sans-serif;color:var(--ink);
+     -webkit-font-smoothing:antialiased}
+
+.header{background:var(--white);border-bottom:1px solid var(--line);padding:0 26px;
+        display:flex;align-items:center;justify-content:space-between;min-height:58px;
+        position:sticky;top:0;z-index:300}
+.header-brand{display:flex;align-items:center;gap:13px;min-width:0}
+.header-brand>div:last-child{min-width:0}
+.header-flag{display:flex;width:26px;height:26px;border-radius:6px;overflow:hidden;flex-shrink:0;
+             box-shadow:0 1px 3px rgba(0,0,0,.15)}
+.header-title{font-size:14.5px;font-weight:700;letter-spacing:-.02em;
+             white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.header-sub{font-size:11px;color:var(--ink-4);margin-top:1px;
+           white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.header-right{display:flex;align-items:center;gap:9px;flex-shrink:0}
+.hbtn{display:inline-flex;align-items:center;gap:6px;font:inherit;font-size:12px;font-weight:700;
+      color:var(--ink);background:var(--bg);border:1px solid var(--line);border-radius:999px;
+      padding:5px 12px;text-decoration:none;cursor:pointer}
+.me-pill{display:inline-flex;align-items:center;gap:6px;background:var(--me-soft);color:var(--me);
+         border:1px solid var(--me-border);border-radius:999px;padding:5px 12px;font-size:12.5px;
+         font-weight:700;white-space:nowrap}
+.lock-pill{display:inline-flex;align-items:center;gap:6px;background:var(--chg-soft);color:var(--chg-fg);
+           border-radius:999px;padding:5px 12px;font-size:12px;font-weight:700;white-space:nowrap}
+
+.wrap{max-width:1320px;margin:0 auto;padding:24px 26px 60px;display:flex;flex-direction:column;gap:16px}
+.back{display:inline-flex;align-items:center;gap:7px;font-size:13px;font-weight:600;color:var(--me);
+      text-decoration:none;align-self:flex-start}
+.bar{display:flex;align-items:center;gap:10px;flex-wrap:wrap}
+h1{font-size:23px;font-weight:700;letter-spacing:-.02em;min-width:12ch}
+.btn{font:inherit;cursor:pointer;color:var(--ink);background:var(--white);border:1px solid var(--line);
+     border-radius:999px;padding:7px 14px;font-size:13px;font-weight:600}
+.btn:hover{background:var(--line-light)}
+.btn:focus-visible{outline:2px solid var(--me);outline-offset:2px}
+.btn.nav{width:34px;height:34px;padding:0;font-size:17px;line-height:1}
+.sp{flex:1}
+.legend{display:flex;gap:14px;flex-wrap:wrap;font-size:12px;color:var(--ink-3);align-items:center}
+.sw{display:inline-block;width:24px;height:18px;border-radius:5px;font-size:10.5px;font-weight:700;
+    text-align:center;line-height:18px;margin-right:5px;vertical-align:-4px}
+.card{background:var(--white);border:1px solid var(--line);border-radius:16px;overflow:hidden}
+.card>h2{font-size:11px;font-family:var(--mono);font-weight:500;text-transform:uppercase;
+         letter-spacing:.08em;color:var(--ink-3);padding:12px 16px;border-bottom:1px solid var(--line)}
+.scroll{overflow-x:auto}
+table.mois{border-collapse:separate;border-spacing:0;width:100%;font-variant-numeric:tabular-nums}
+table.mois th,table.mois td{padding:0;text-align:center}
+table.mois thead th{font-size:10.5px;font-weight:500;color:var(--ink-3);font-family:var(--mono);
+                    padding:6px 0;border-bottom:1px solid var(--line);min-width:30px;line-height:1.25}
+table.mois .we{background:var(--line-light)}
+table.mois thead th.fe{color:var(--g2-fg);font-weight:700}
+table.mois .nom{position:sticky;left:0;background:var(--white);text-align:left;padding:0 12px;
+                min-width:130px;font-size:13px;font-weight:600;border-right:1px solid var(--line);
+                z-index:1;white-space:nowrap}
+table.mois td{height:34px;border-bottom:1px solid var(--line-light)}
+table.mois td .c{display:block;width:26px;height:24px;line-height:24px;margin:auto;border-radius:6px;
+                 font-size:11px;font-weight:700}
+.G{background:var(--g-bg);color:var(--g-fg)} .G2{background:var(--g2-bg);color:var(--g2-fg)}
+.V{background:var(--v-bg);color:var(--v-fg)}
+.c.mod{box-shadow:0 0 0 2px var(--chg)}
+.c.vide{background:none}
+.tot{font-size:12px;font-weight:700;min-width:40px;border-left:1px solid var(--line)}
+th.tot{color:var(--ink-2)}
+.fil{list-style:none}
+.fil li{display:flex;gap:12px;padding:11px 16px;border-bottom:1px solid var(--line-light);font-size:13px;
+        line-height:1.45}
+.fil li:last-child{border-bottom:none}
+.fil .le{font-family:var(--mono);font-size:11px;color:var(--ink-4);white-space:nowrap;min-width:92px;padding-top:2px}
+.empty{padding:26px 18px;color:var(--ink-3);font-size:13.5px;text-align:center;line-height:1.6}
+.note{font-size:12px;color:var(--ink-4);line-height:1.55}
+.loading{padding:50px 20px;text-align:center;color:var(--ink-3);font-size:13.5px}
+.toast{position:fixed;left:50%;bottom:22px;transform:translateX(-50%);background:var(--ink);color:var(--bg);
+       padding:9px 16px;border-radius:999px;font-size:13px;font-weight:600;z-index:500}
+@media(max-width:900px){.wrap{padding:20px 15px 40px}.header{padding:0 15px}}
+@media(max-width:640px){
+  .header{min-height:52px;padding:0 12px;gap:8px}
+  .header-sub{display:none}
+  .header-right{gap:6px}
+  .me-pill,.lock-pill{padding:4px 9px;font-size:11.5px}
+  .hbtn{padding:4px 10px;font-size:11.5px}
+  h1{font-size:20px}
+}
+</style>
+<script src="partage/session.js"></script>
+<script>/* FALLBACK_SESSION — filet (même règle que les autres pages). Si partage/session.js ne se charge pas,
+la page ne doit pas devenir inutilisable : le code vit alors le temps de l'onglet. */
+window.SessionPortail = window.SessionPortail || { lire:function(){try{return sessionStorage.getItem('pmViewCode')||'';}catch(e){return '';}}, memoriser:function(c){try{sessionStorage.setItem('pmViewCode',c);}catch(e){}}, oublier:function(){try{sessionStorage.removeItem('pmViewCode');}catch(e){}}, estInstallee:function(){return false;}, joursRestants:function(){return null;}, DUREE_JOURS:0 };</script>
+</head>
+<body>
+
+<!-- ── CONNEXION — même habillage que les autres pages ── -->
+<div id="authOverlay" style="position:fixed;inset:0;z-index:9999;background:var(--bg);display:flex;align-items:center;justify-content:center;padding:20px">
+  <div style="background:var(--white);border:1px solid var(--line);border-radius:16px;box-shadow:0 10px 30px rgba(15,23,42,.08);padding:36px 32px;width:100%;max-width:380px;text-align:center">
+    <img src="assets/logo.png" alt="" style="width:48px;height:48px;border-radius:12px;display:block;margin:0 auto 16px;box-shadow:0 4px 12px rgba(206,17,38,.30)">
+    <div style="font-size:18px;font-weight:800;color:var(--ink)">Planning paie</div>
+    <div style="font-size:13px;color:var(--ink-3);margin:4px 0 22px">Gardes et vacances du service d'Anesthésie-Réanimation</div>
+    <input id="authInput" type="password" placeholder="Code d'acc&egrave;s" autocomplete="off" autocapitalize="characters"
+      style="width:100%;box-sizing:border-box;padding:12px 14px;font-size:16px;border:1px solid var(--line);border-radius:10px;text-align:center;letter-spacing:2px;font-family:monospace"/>
+    <button id="authBtn"
+      style="width:100%;margin-top:12px;padding:12px;background:var(--red);color:#fff;border:none;border-radius:10px;font-size:15px;font-weight:700;cursor:pointer">Acc&eacute;der &rarr;</button>
+    <div id="authErr" style="display:none;margin-top:12px;font-size:13px;color:var(--red);font-weight:600"></div>
+  </div>
+</div>
+
+<div class="header" id="hdr" style="display:none">
+  <div class="header-brand">
+    <div class="header-flag"><img src="assets/logo.png" alt="" style="width:100%;height:100%;object-fit:cover;display:block"></div>
+    <div>
+      <div class="header-title">Planning paie</div>
+      <div class="header-sub">Gardes et vacances, pour la saisie de la paie</div>
+    </div>
+  </div>
+  <div class="header-right">
+    <span class="lock-pill">&#128274; Lecture seule</span>
+    <span class="me-pill" id="mePill"></span>
+    <button class="hbtn" id="btnOut">Déconnexion</button>
+  </div>
+</div>
+
+<div class="wrap" id="main" style="display:none">
+  <a class="back" href="index.html" id="lnkBack">&larr; Retour au portail</a>
+  <div class="bar">
+    <button class="btn nav" type="button" id="btnPrev" aria-label="Mois précédent">&lsaquo;</button>
+    <h1 id="titreMois">—</h1>
+    <button class="btn nav" type="button" id="btnNext" aria-label="Mois suivant">&rsaquo;</button>
+    <span class="sp"></span>
+    <button class="btn" type="button" id="btnXls">&darr; Télécharger le mois (Excel)</button>
+  </div>
+  <div class="legend">
+    <span><span class="sw G">G</span>garde réanimation</span>
+    <span><span class="sw G2">G2</span>garde maternité</span>
+    <span><span class="sw V">V</span>vacances</span>
+    <span><span class="sw" style="box-shadow:0 0 0 2px var(--chg)"></span>modifié depuis moins de 7 jours</span>
+    <span><span class="sw we" style="background:var(--line-light)"></span>week-end</span>
+    <span><b style="color:var(--g2-fg)">rouge</b>&nbsp;= jour férié</span>
+  </div>
+  <section class="card">
+    <h2 id="titreGrille">Le mois, médecin par médecin</h2>
+    <div class="scroll" id="zoneGrille"><div class="loading">Chargement…</div></div>
+  </section>
+  <section class="card">
+    <h2>Derniers changements (14 jours)</h2>
+    <ul class="fil" id="fil"></ul>
+  </section>
+  <p class="note">Chaque changement de garde ou de vacances vous est aussi envoyé par mail, une dizaine de minutes après la modification.
+    Une case encadrée d'orange a changé depuis moins de 7 jours : passez la souris dessus pour voir quand.</p>
+</div>
+
+<script>
+const API_URL = 'https://script.google.com/macros/s/AKfycbxDbTnhgdjCNBqkeAblZWgS3CK-IptjJoRDQd1AtGF7WQoQkXriWGvISIo7LJG8zUtjTQ/exec';
+let VIEW_CODE = '', ROLE = '';
+const ANNEES = {};           // année → réponse getPlanningPaie
+let MOIS = '';               // 'AAAA-MM' affiché
+const JOURS_C = ['dim','lun','mar','mer','jeu','ven','sam'];
+const MOIS_L = ['janvier','février','mars','avril','mai','juin','juillet','août','septembre','octobre','novembre','décembre'];
+const LIB = { G:'garde réanimation', G2:'garde maternité', V:'vacances' };
+const RECENT_MS = 7 * 24 * 3600 * 1000;
+
+/* ── Appel serveur : même filet que les autres pages ── */
+const ERR_CORPS_PERDU = 'Code absent de la requête';
+async function apiPost(payload){
+  let r;
+  try { r = await _apiPostDirect(payload); }
+  catch (e) { r = await _apiPostDirect(payload); }          // un unique renvoi sur échec de transport
+  if (r && r.success === false && r.error === ERR_CORPS_PERDU) return await _apiPostDirect(payload);
+  return r;
+}
+async function _apiPostDirect(payload){
+  payload.code = VIEW_CODE;
+  const res = await fetch(API_URL, { method:'POST', headers:{'Content-Type':'text/plain;charset=utf-8'},
+                                     body: JSON.stringify(payload), redirect:'follow' });
+  return await res.json();
+}
+
+function esc(s){ return String(s == null ? '' : s).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c])); }
+function toast(t){ const e=document.createElement('div'); e.className='toast'; e.textContent=t; document.body.appendChild(e); setTimeout(()=>e.remove(), 2600); }
+function moisCourant(){ return new Date().toLocaleDateString('fr-CA', { timeZone:'Europe/Paris' }).slice(0,7); }
+function decaler(ym, n){ let y=+ym.slice(0,4), m=+ym.slice(5,7)-1+n; y+=Math.floor(m/12); m=((m%12)+12)%12; return y+'-'+String(m+1).padStart(2,'0'); }
+function libMois(ym){ return MOIS_L[+ym.slice(5,7)-1].replace(/^./, c=>c.toUpperCase()) + ' ' + ym.slice(0,4); }
+
+/* ── Connexion : UN appel, qui authentifie ET charge l'année du mois voulu ── */
+function refus(r){ return !!(r && r.error && (r.error === 'Accès refusé' || /non autoris/.test(r.error))); }
+function authErr(m){ const el=document.getElementById('authErr'); el.textContent=m; el.style.display='block'; setTimeout(()=>{el.style.display='none';}, 4000); }
+function montrer(ouvert){
+  document.getElementById('authOverlay').style.display = ouvert ? 'none' : 'flex';
+  document.getElementById('hdr').style.display = ouvert ? 'flex' : 'none';
+  document.getElementById('main').style.display = ouvert ? '' : 'none';
+}
+async function doLogin(code){
+  VIEW_CODE = code;
+  const y = +MOIS.slice(0,4);
+  const r = await apiPost({ action:'getPlanningPaie', year:y });
+  if(!(r && r.success)){ VIEW_CODE=''; return r; }
+  SessionPortail.memoriser(code);
+  ROLE = r.role || '';
+  ANNEES[y] = r;
+  document.getElementById('mePill').textContent = r.nom || '';
+  // Les secrétaires n'ont pas de portail : pas de lien de retour.
+  document.getElementById('lnkBack').style.display = (ROLE === 'paie') ? 'none' : '';
+  montrer(true);
+  afficher();
+  return r;
+}
+document.getElementById('authBtn').addEventListener('click', async function(){
+  const code = document.getElementById('authInput').value.trim().toUpperCase();
+  if(!code){ authErr("Entrez votre code d'accès."); return; }
+  const b=this; b.disabled=true; b.textContent='Vérification…';
+  try{ const r = await doLogin(code); if(!(r && r.success)) authErr(refus(r) ? 'Ce code ne donne pas accès au planning paie.' : ((r && r.error) || 'Code incorrect')); }
+  catch(e){ VIEW_CODE=''; authErr('Erreur réseau — réessayez'); }
+  b.disabled=false; b.textContent='Accéder →';
+});
+document.getElementById('authInput').addEventListener('keydown', e=>{ if(e.key==='Enter') document.getElementById('authBtn').click(); });
+document.getElementById('btnOut').addEventListener('click', ()=>{ SessionPortail.oublier(); location.reload(); });
+
+/* ── Données d'un mois : l'année est chargée à la demande, une seule fois ── */
+async function annee(y){
+  if(ANNEES[y]) return ANNEES[y];
+  const r = await apiPost({ action:'getPlanningPaie', year:y });
+  if(r && r.success) ANNEES[y] = r;
+  return r;
+}
+function moisDans(r, ym){ return (r && r.mois || []).find(m => m.id === ym) || null; }
+async function trouverMois(ym){
+  // Un mois appartient en général au planning de son année ; à la jonction
+  // de deux années, il peut vivre dans le planning voisin.
+  for (const y of [+ym.slice(0,4), +ym.slice(0,4)+1, +ym.slice(0,4)-1]) {
+    const r = await annee(y);
+    if(!(r && r.success)) { if (y === +ym.slice(0,4)) return { erreur: (r && r.error) || 'Chargement impossible' }; continue; }
+    const m = moisDans(r, ym);
+    if(m) return { r, m };
+  }
+  return { vide: true };
+}
+
+let RENDU = null;   // ce qui est à l'écran : sert à l'export Excel
+async function afficher(){
+  document.getElementById('titreMois').textContent = libMois(MOIS);
+  try { history.replaceState(null, '', '?m=' + MOIS); } catch(e) {}
+  const zone = document.getElementById('zoneGrille');
+  zone.innerHTML = '<div class="loading">Chargement…</div>';
+  const t = await trouverMois(MOIS);
+  RENDU = null;
+  if(t.erreur){ zone.innerHTML = '<div class="empty">Impossible de charger : '+esc(t.erreur)+'</div>'; rendreFil([]); return; }
+  if(t.vide){ zone.innerHTML = '<div class="empty">Pas de planning publié pour '+esc(libMois(MOIS))+'.</div>'; rendreFil([]); return; }
+  const { r, m } = t;
+  const jours = (r.jours || []).filter(j => j.date.slice(0,7) === MOIS);
+  const ids = (m.ids || []).slice().sort((a,b) => (r.noms[a]||a).localeCompare(r.noms[b]||b, 'fr'));
+  const recents = cellulesRecentes(r.recents || []);
+  let h = '<table class="mois"><thead><tr><th class="nom" scope="col">Médecin</th>';
+  jours.forEach(j => {
+    const d = new Date(j.date+'T12:00:00');
+    h += '<th scope="col" class="'+(j.we?'we ':'')+(j.fe?'fe':'')+'"'+(j.fe?' title="Jour férié"':'')+'>'+JOURS_C[d.getDay()]+'<br>'+d.getDate()+'</th>';
+  });
+  h += '<th class="tot" scope="col">G</th><th class="tot" scope="col">G2</th><th class="tot" scope="col">V</th></tr></thead><tbody>';
+  const lignes = [];
+  ids.forEach(id => {
+    const cases = (r.cases && r.cases[id]) || {};
+    const tot = { G:0, G2:0, V:0 };
+    const ligne = { nom: r.noms[id] || id, cases: [], tot };
+    h += '<tr><th class="nom" scope="row">'+esc(r.noms[id] || id)+'</th>';
+    jours.forEach(j => {
+      const c = cases[j.date] || '';
+      if (c) tot[c]++;
+      ligne.cases.push(c);
+      const rec = recents[id+'|'+j.date];
+      const cls = 'c ' + (c || 'vide') + (rec ? ' mod' : '');
+      const tip = rec ? ' title="'+esc('Modifié le '+rec)+'"' : (c ? ' title="'+esc(LIB[c])+'"' : '');
+      h += '<td class="'+(j.we?'we':'')+'"><span class="'+cls+'"'+tip+'>'+(c||'')+'</span></td>';
+    });
+    h += '<td class="tot">'+(tot.G||'')+'</td><td class="tot">'+(tot.G2||'')+'</td><td class="tot">'+(tot.V||'')+'</td></tr>';
+    lignes.push(ligne);
+  });
+  zone.innerHTML = h + '</tbody></table>';
+  document.getElementById('titreGrille').textContent = 'Le mois, médecin par médecin — ' + ids.length + ' médecins';
+  RENDU = { mois: MOIS, jours, lignes };
+  rendreFil(r.recents || []);
+}
+
+/* Les changements de moins de 7 jours → { 'ID|AAAA-MM-JJ': 'jj/mm/aaaa' } */
+function cellulesRecentes(recents){
+  const out = {}, now = Date.now();
+  recents.forEach(x => {
+    const t = new Date(x.le).getTime();
+    if(!(t > 0) || now - t > RECENT_MS) return;
+    const quand = new Date(x.le).toLocaleDateString('fr-FR', { timeZone:'Europe/Paris' });
+    (x.cellules || []).forEach(c => {
+      const id = c[0], du = c[1], au = c[2] || c[1];
+      for (let d = new Date(du+'T12:00:00'); ; d.setDate(d.getDate()+1)) {
+        const s = d.toLocaleDateString('fr-CA');
+        if (s > au) break;
+        out[id+'|'+s] = quand;
+      }
+    });
+  });
+  return out;
+}
+
+function rendreFil(recents){
+  const ul = document.getElementById('fil');
+  const l = recents.slice().sort((a,b) => a.le < b.le ? 1 : -1);
+  if(!l.length){ ul.innerHTML = '<li class="empty" style="display:block">Aucun changement de garde ou de vacances ces 14 derniers jours.</li>'; return; }
+  ul.innerHTML = l.map(x => {
+    const d = new Date(x.le);
+    const le = d.toLocaleDateString('fr-FR', { timeZone:'Europe/Paris', day:'2-digit', month:'2-digit' }) + ' '
+             + d.toLocaleTimeString('fr-FR', { timeZone:'Europe/Paris', hour:'2-digit', minute:'2-digit' });
+    return '<li><span class="le">'+esc(le)+'</span><span>'+esc(x.titre.charAt(0).toUpperCase()+x.titre.slice(1))+'</span></li>';
+  }).join('');
+}
+
+document.getElementById('btnPrev').addEventListener('click', ()=>{ MOIS = decaler(MOIS, -1); afficher(); });
+document.getElementById('btnNext').addEventListener('click', ()=>{ MOIS = decaler(MOIS, 1); afficher(); });
+
+/* ── Export Excel du mois affiché (bibliothèque chargée au premier clic) ── */
+let _excelP = null;
+function chargerExcel(){
+  if (typeof ExcelJS !== 'undefined') return Promise.resolve();
+  if (_excelP) return _excelP;
+  _excelP = new Promise((ok, ko) => {
+    const s = document.createElement('script');
+    s.src = 'https://cdn.jsdelivr.net/npm/exceljs@4.4.0/dist/exceljs.min.js';
+    s.onload = () => (typeof ExcelJS !== 'undefined') ? ok() : (_excelP = null, ko(new Error('bibliothèque illisible')));
+    s.onerror = () => { _excelP = null; ko(new Error('téléchargement impossible')); };
+    document.head.appendChild(s);
+  });
+  return _excelP;
+}
+const XL_FOND = { G:'FFE8F4FD', G2:'FFFFF1F3', V:'FFF0FDF4' }, XL_ENCRE = { G:'FF1D6FB8', G2:'FFBE123C', V:'FF166534' };
+document.getElementById('btnXls').addEventListener('click', async ()=>{
+  if(!RENDU){ toast('Rien à exporter pour ce mois'); return; }
+  try { toast('Préparation du fichier…'); await chargerExcel(); }
+  catch(e){ toast('Export impossible : ' + e.message); return; }
+  const R = RENDU, wb = new ExcelJS.Workbook(), ws = wb.addWorksheet(libMois(R.mois));
+  ws.addRow(['Médecin'].concat(R.jours.map(j => +j.date.slice(8,10)), ['G','G2','V']));
+  ws.getRow(1).font = { bold:true };
+  R.lignes.forEach(l => {
+    const row = ws.addRow([l.nom].concat(l.cases, [l.tot.G||'', l.tot.G2||'', l.tot.V||'']));
+    l.cases.forEach((c, i) => {
+      if(!c) return;
+      const cell = row.getCell(i+2);
+      cell.fill = { type:'pattern', pattern:'solid', fgColor:{ argb: XL_FOND[c] } };
+      cell.font = { bold:true, color:{ argb: XL_ENCRE[c] } };
+    });
+  });
+  R.jours.forEach((j, i) => { if (j.we || j.fe) ws.getColumn(i+2).eachCell(c => { if(!c.fill || c.fill.pattern !== 'solid') c.fill = { type:'pattern', pattern:'solid', fgColor:{ argb:'FFF1F5F9' } }; }); });
+  ws.getColumn(1).width = 22;
+  for (let i = 2; i <= R.jours.length + 4; i++) { ws.getColumn(i).width = 4.5; ws.getColumn(i).alignment = { horizontal:'center' }; }
+  ws.views = [{ state:'frozen', xSplit:1, ySplit:1 }];
+  const buf = await wb.xlsx.writeBuffer();
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(new Blob([buf], { type:'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' }));
+  a.download = 'planning-paie-' + R.mois + '.xlsx';
+  document.body.appendChild(a); a.click(); a.remove();
+});
+
+/* ── Ouverture : mois demandé (?m=AAAA-MM, lien du mail) ou mois en cours ── */
+(function initMois(){
+  const m = /[?&]m=(\d{4}-\d{2})\b/.exec(location.search);
+  MOIS = (m && +m[1].slice(5,7) >= 1 && +m[1].slice(5,7) <= 12) ? m[1] : moisCourant();
+})();
+/* Reprise de session : le code est connu (portail, ou session précédente). */
+(async function auto(){
+  const saved = SessionPortail.lire();
+  if(!saved) return;
+  montrer(true);
+  try{
+    const r = await doLogin(saved);
+    if(r && r.success) return;
+    montrer(false);
+    /* Code valide mais sans droit sur cette page (un MAR sans la tuile, le code
+       du secrétariat des consultations) : on NE l'efface PAS — ce serait le
+       déconnecter du reste du portail. Seul un code refusé est oublié. */
+    if (refus(r)) { authErr('Ce code ne donne pas accès au planning paie.'); return; }
+    SessionPortail.oublier();
+    authErr((r && r.error) || 'Session expirée — retapez votre code.');
+  }catch(e){ SessionPortail.oublier(); montrer(false); authErr('Planning injoignable — réessayez.'); }
+})();
+</script>
+</body>
+</html>

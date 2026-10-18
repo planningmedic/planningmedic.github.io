@@ -303,6 +303,7 @@
     <li><span class="n">C11</span> <a href="#c11">Mesurer la vitesse des pages</a></li>
     <li><span class="n">C12</span> <a href="#c12">Les échanges de gardes &amp; les notifications</a></li>
     <li><span class="n">C13</span> <a href="#c13">La pose des temps partiels après génération</a></li>
+    <li><span class="n">C14</span> <a href="#c14">La vue paie : page et mail des secrétaires de paie</a></li>
   </ul>
 
   <div class="parcours-titre pd">Parcours D — Mettre en ligne &amp; dépanner</div>
@@ -1979,6 +1980,56 @@ qui fait foi.</p>
 chemin, ne réduit la cible de gardes d'un MAR. Le vieux mécanisme des jours fixes
 (<code>TP_JOURS_FIXES</code> de MEDECINS) neutralisait à tort une cible d'axe — il est neutralisé
 et sa suppression est planifiée après septembre 2026.</p></div>
+
+<p class="haut"><a href="#top">↑ Sommaire</a></p>
+<h2 id="c14"><span class="num">C14</span>La vue paie : page et mail des secrétaires de paie</h2>
+
+<div class="r2"><div class="titre">En 2 minutes</div>
+<p>Deux secrétaires saisissent gardes et vacances dans le logiciel de paie. Elles ont leur page,
+<code>paie.html</code>, en <b>lecture seule</b> : un mois à la fois, gardes réa (G), gardes maternité
+(G2) et vacances (V), avec les totaux du mois. Elles y entrent avec un <b>code partagé</b>, distinct
+de celui du secrétariat des consultations. À chaque changement de G, G2 ou V, un mail leur dit quoi
+retirer et quoi ajouter, avec les nouveaux totaux et l'origine du changement (don, échange, comité).
+Un MAR y accède par une tuile cachée de l'accueil.</p></div>
+
+<details><summary>Ce qu'elles voient, et ce qu'elles ne voient jamais</summary><div class="corps">
+<p>Le tri se fait <b>sur le serveur</b> : seuls G, G2 et V (VAC servi comme V) quittent le classeur.
+Formations, temps partiels, absences, congés longs, repos, 18h et secteurs ne sont jamais envoyés à la
+page ni écrits dans le mail. Il n'y a donc rien à masquer côté navigateur.</p>
+<p>Le code partagé n'atteint que deux actions : <code>login</code> et <code>getPlanningPaie</code>
+(liste blanche <code>PAIE_ACTIONS</code>). Depuis ce chantier, le routeur refuse <b>par défaut</b>
+tout rôle autre que comité et MAR qui n'a pas de liste blanche (<code>_listeBlancheRole_</code>) :
+un rôle ajouté demain sans sa liste est fermé, pas ouvert à toutes les actions « tout code valide ».</p>
+</div></details>
+
+<details><summary>Le mail : quand il part, et quand il se tait</summary><div class="corps">
+<ol>
+<li>Il part au même moment que les mails de changement aux MAR (10 minutes après la dernière
+publication), mais avec <b>sa propre photo de référence</b> : un échec d'un côté ne fait ni rejouer
+ni taire l'autre. Il ne dépend pas de l'allumage des mails aux MAR.</li>
+<li><b>Sans adresse dans CONFIG / PAIE_EMAILS</b>, rien ne part, mais la photo suit le planning : le
+jour où les adresses arrivent, on ne déverse pas des semaines d'historique.</li>
+<li>La toute première fois, il prend la photo et se tait. Un mois qui apparaît dans le planning ne
+déclenche rien.</li>
+<li>En cas d'échec d'envoi, la photo ne bouge pas et l'année revient dans la file : le changement
+repartira au passage suivant.</li>
+<li>L'adresse d'essai des mails de changement le détourne aussi.</li>
+</ol>
+</div></details>
+
+<details class="tech"><summary>Repères techniques</summary><div class="corps">
+<p>Page : <code>paie.html</code> (un appel <code>getPlanningPaie</code> par année, mis en cache ; lien
+<code>?m=AAAA-MM</code> ; export Excel chargé au premier clic). Action :
+<code>_act_getPlanningPaie</code> (gardes.gs) — porte : rôle <code>paie</code>, comité, ou MAR avec la
+clé <code>paie</code> dans <code>TUILES_PRIVEES</code> (<code>_aDroitTuile_</code>, la même que la
+tuile). Tri et mail : module « VUE PAIE » de code.gs (<code>_paieCode_</code>,
+<code>_planningPaie_</code>, <code>_paieDiff_</code>, <code>_paieEnvoyerAnnee_</code>), appelé en tête
+de <code>_notifEnvoyerAnnee_</code> dans un try/catch. Photo : <code>planning_(année)_paie.json</code>,
+recalée aussi par <code>notifRecaler</code>. Derniers changements (cadre orange, fil de 14 jours) :
+propriété <code>PAIE_RECENTS</code>, plafonnée à 8 000 caractères. Clés CONFIG :
+<code>PAIE_CODE</code>, <code>PAIE_EMAILS</code>. Le relais rapide ne connaît pas ce code : la page
+interroge directement le serveur, comme celle des consultations. Banc : <code>banc_paie.js</code>.</p>
+</div></details>
 
 <div class="p-bande pd">Parcours D — Mettre en ligne &amp; dépanner
 <small>Comment le code arrive en service, comment on prouve qu'il marche, comment on répare.</small></div>

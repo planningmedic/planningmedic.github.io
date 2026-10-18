@@ -1176,6 +1176,11 @@ const TILES = [
   // technique. Le serveur refuse l'action aux autres roles : masquer la tuile
   // ne ferme rien.
   { key:'stats', title:'Statistiques d\'usage', sub:'Qui utilise le portail, à quelle fréquence, à quels moments.', icon:'bar-chart-2', href:'docs/stats-usage.html', tint:'gris', ready:true, prive:true, bloc:'reserve' },
+  // (18/10/2026) La vue des secrétaires de paie (gardes et vacances du mois), en
+  // lecture seule. Elles l'ouvrent par son adresse avec leur code partagé ; un MAR
+  // l'ouvre par cette tuile RÉSERVÉE (CONFIG / TUILES_PRIVEES, clé `paie`). Le
+  // serveur contrôle la même clé : masquer la tuile ne ferme rien, il ferme aussi.
+  { key:'paie', title:'Planning paie', sub:'Gardes et vacances du mois, telles que les voient les secrétaires de paie.', icon:'calendar-days', href:'paie.html', tint:'gris', ready:true, prive:true, bloc:'reserve' },
 ];
 /* (11/10/2026) Saisie close : passé minuit le soir de la date limite (CONFIG /
    INDISPOS_FIN, transmise par le serveur), heure de Paris. Sans date : jamais close. */

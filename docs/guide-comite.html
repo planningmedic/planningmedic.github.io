@@ -249,7 +249,7 @@
   </div>
   <p class="appbar-sub">Prise en main de l'interface d'administration, puis la référence écran par écran — document interne au comité.</p>
 </div>
-  <p class="maj">Mis à jour le 26 août 2026</p>
+  <p class="maj">Mis à jour le 18 octobre 2026</p>
 
   <div class="hero">
     <h2>En 2 minutes</h2>
@@ -283,6 +283,7 @@
       <li><a href="#d1"><span class="n">15</span>Vitesse : ce qui est normal</a></li>
       <li><a href="#d2"><span class="n">16</span>Quand ça ne va pas</a></li>
       <li><a href="#d3"><span class="n">17</span>Les annonces sur son téléphone</a></li>
+      <li><a href="#d4"><span class="n">18</span>Les secrétaires de paie</a></li>
     </ol>
   </div>
 
@@ -1036,6 +1037,43 @@
       l'application installée (sur iPhone : partager → « Sur l'écran d'accueil », puis ouvrir
       depuis la nouvelle icône), ou les notifications sont déjà activées sur ce téléphone.
       Cette possibilité est pour l'instant réservée au comité.</div>
+    </details>
+    <a class="backtop" href="#">↑ Sommaire</a>
+  </section>
+
+  <section id="d4">
+    <h2><span class="n">18</span>Les secrétaires de paie</h2>
+    <p><b>En 2 minutes :</b> les deux secrétaires qui saisissent gardes et vacances dans le logiciel de paie
+    ont leur page, <b>en lecture seule</b> : <b>planningmedic.github.io/paie.html</b>. Elles y entrent avec un code
+    qu'elles partagent, et reçoivent un mail à chaque changement de garde ou de vacances, environ
+    10 minutes après. Vous n'avez plus rien à leur envoyer à la main.</p>
+
+    <h3>Je veux leur ouvrir l'accès (une seule fois)</h3>
+    <ol>
+      <li>Dans le classeur, onglet <b>CONFIG</b>, ajoutez une ligne <b>PAIE_CODE</b> avec un code inventé, <b>différent</b> de tous les autres codes.</li>
+      <li>Ajoutez une ligne <b>PAIE_EMAILS</b> avec leurs deux adresses, séparées par une virgule.</li>
+      <li>Donnez-leur l'adresse de la page et le code. Elles l'enregistrent en favori.</li>
+    </ol>
+
+    <h3>Je veux voir ce qu'elles voient</h3>
+    <p>Dans <b>CONFIG</b>, ajoutez <b>paie</b> à votre ligne <b>TUILES_PRIVEES</b>. La tuile <b>« Planning paie »</b>
+    apparaît dans le bloc Réservé de votre accueil.</p>
+
+    <h3>Je veux changer leur code (une secrétaire s'en va)</h3>
+    <p>Remplacez la valeur de <b>PAIE_CODE</b> dans CONFIG. L'ancien code ne marche plus dès la page suivante.</p>
+
+    <table>
+      <tr><th>Ce qu'elles voient et reçoivent</th><th>Ce qu'elles ne voient jamais</th></tr>
+      <tr><td>Les gardes réa (G), les gardes maternité (G2) et les vacances (V), mois par mois, avec les totaux par médecin</td><td>Formations, temps partiels, absences, congés longs, repos, secteurs du bloc</td></tr>
+      <tr><td>Un mail à chaque changement de G, G2 ou V : don, échange, ou correction de votre part. Il dit quoi retirer et quoi ajouter, et donne les nouveaux totaux</td><td>Aucun mail pour un changement de secteur ou de formation</td></tr>
+      <tr><td>Les cases changées depuis moins de 7 jours, encadrées d'orange, et la liste des changements des 14 derniers jours</td><td>Elles ne peuvent rien modifier</td></tr>
+    </table>
+
+    <details class="pourquoi"><summary>Pourquoi le mail arrive 10 minutes après</summary>
+      <div class="corps">On attend que vous ayez fini de publier : plusieurs corrections faites d'affilée partent dans un seul mail, au lieu d'un mail par clic.</div>
+    </details>
+    <details class="pourquoi"><summary>Si elles ne reçoivent rien</summary>
+      <div class="corps">Vérifiez la ligne <b>PAIE_EMAILS</b> dans CONFIG. Le tout premier changement après la mise en place ne part pas : il sert de point de départ. Un changement de secteur ou de formation ne déclenche rien, c'est voulu.</div>
     </details>
     <a class="backtop" href="#">↑ Sommaire</a>
   </section>

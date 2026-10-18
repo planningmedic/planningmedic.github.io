@@ -87,6 +87,8 @@ const CONTRAT = {
   'getConsultAbsences'        : 'conditionnel',
   'getPlanningJson'           : 'tout code valide',
   'getAffectationsJson'       : 'tout code valide',
+  // (18/10/2026) Vue paie : le corps admet le code paie, le comité et le MAR qui a la tuile cachée.
+  'getPlanningPaie'           : 'conditionnel',
 };
 function classer(fn, tout) {
   /* admin : refus hors comité en tête (1 ou plusieurs lignes) ; mar seulement : refus
@@ -119,11 +121,11 @@ function contratActuel() {
   }
   return { fichier: path.basename(cands[0]), actions: out, corps };
 }
-console.log('═══ Le routeur répond au contrat des 64 actions ═══');
+console.log('═══ Le routeur répond au contrat des 65 actions ═══');
 const { fichier, actions, corps } = contratActuel();
 const attendu = Object.assign({}, CONTRAT, { getActiveYear: 'sans code', getAnneesDisponibles: 'sans code' });
 V('le routeur est lu dans ' + fichier, !!fichier);
-V('64 actions, ni plus ni moins', Object.keys(actions).length === 64, Object.keys(actions).length);
+V('65 actions, ni plus ni moins', Object.keys(actions).length === 65, Object.keys(actions).length);
 const manquantes = Object.keys(attendu).filter(a => !(a in actions));
 const enTrop = Object.keys(actions).filter(a => !(a in attendu));
 V('aucune action du contrat ne manque', manquantes.length === 0, manquantes);

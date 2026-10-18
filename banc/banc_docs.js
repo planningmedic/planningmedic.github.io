@@ -258,7 +258,7 @@ console.log('\n═══ 9. Le bandeau du haut ne peut pas deborder de sa hauteu
        3. la hauteur est un minimum, pas une valeur figee.
      jsdom ne calcule aucune largeur : ce test prouve la REGLE, pas le rendu. */
   const BANDEAUX = ['absences.html', 'suivi-liberal.html', 'indispos.html',
-                    'staff.html', 'planning.html', 'index.html'];
+                    'staff.html', 'planning.html', 'index.html', 'paie.html'];
   const bloc = (css, sel) => {
     const i = css.indexOf(sel + '{') > -1 ? css.indexOf(sel + '{') : css.indexOf(sel + ' {');
     if (i < 0) return '';
@@ -277,13 +277,13 @@ console.log('\n═══ 9. Le bandeau du haut ne peut pas deborder de sa hauteu
       /min-width:\s*0/.test(bloc(css, '.header-left')), f);
   });
   /* Les boutons de droite ne doivent jamais ecraser le titre a leur place. */
-  ['absences.html', 'suivi-liberal.html', 'staff.html'].forEach(f => {
+  ['absences.html', 'suivi-liberal.html', 'staff.html', 'paie.html'].forEach(f => {
     const css = lire(f).replace(/\s*\n\s*/g, ' ');
     V(`${f} · les boutons de droite ne s'ecrasent pas`,
       /flex-shrink:\s*0/.test(bloc(css, '.header-right')), f);
   });
   /* Sur telephone, le sous-titre s'efface plutot que de forcer une 2e ligne. */
-  ['absences.html', 'suivi-liberal.html'].forEach(f => {
+  ['absences.html', 'suivi-liberal.html', 'paie.html'].forEach(f => {
     V(`${f} · sous 640px le sous-titre s'efface`,
       /@media\(max-width:640px\)[\s\S]{0,400}\.header-sub\{display:none\}/.test(lire(f)), f);
   });
