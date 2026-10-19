@@ -474,6 +474,56 @@ V('compteur abîmé : la page s\'ouvre, réglages demandés', o5.window.document
   V('…seul l\'acte du 06/10 est ajouté, relevé du 05/10 gardé', cH.actes.length === 1 && cH.actes[0].d === '2026-10-06' && cH.d0 === '2026-10-05');
   V('sauvegarde et restauration : aucun appel réseau', [A, B0, B, F, G, H].every(x => x.reseau.length === 0));
   V('sauvegarde et restauration : aucune erreur JavaScript', [A, B0, B, F, G, H].every(x => x.erreurs.length === 0), [A, B0, B, F, G, H].map(x => x.erreurs));
+
+  /* ── 12. LISTE REGROUPÉE PAR JOUR (19/10/2026) ───────────────────────────
+     Demande : 17 lignes identiques le même jour, c'est illisible. Par jour, un
+     groupe par acte identique (même montant) avec − / +, détail dépliable pour
+     corriger un acte. Un montant corrigé sort de son groupe. Valeurs fictives. */
+  console.log('\n[12] Liste regroupée par jour — compteurs − / + et détail dépliable');
+  const R = ouvrir(); R.$('tC').click(); regler(R, '2026-09-30', '1 000,00', '', VALS);
+  geste(R, 'colo', 'lib', 'mc', '2026-10-03'); geste(R, 'colo', 'lib', 'mc', '2026-10-03'); geste(R, 'colo', 'lib', 'mc', '2026-10-03');
+  geste(R, 'combo', 'pub', 'fr', '2026-10-03'); geste(R, 'colo', 'lib', 'mc', '2026-10-02');
+  const Rd = R.w.document, grps = () => [...Rd.querySelectorAll('#cList .grp')], jrs = () => [...Rd.querySelectorAll('#cList .jr')];
+  const grpDe = re => grps().find(g => re.test(g.querySelector('.gn').textContent));
+  const stR = () => JSON.parse(R.w.localStorage.getItem('pense-bete-compteur-v1'));
+  V('2 jours, 03/10 en haut : « 4 actes · 75,00 € » (3 × 20,00 + 15,00)', jrs().length === 2 && /03\/10/.test(jrs()[0].textContent) && /4 actes · 75,00/.test(jrs()[0].textContent), jrs().map(j => j.textContent));
+  V('3 groupes : les 3 Colo du 03/10 en une ligne « 3 », séparés du 02/10', grps().length === 3 && grpDe(/^Colo · MC/).querySelector('.gq').textContent === '3', grps().map(g => g.textContent));
+  V('le titre compte toujours chaque acte (5)', /Actes comptés \(5\)/.test(R.$('cListT').textContent));
+  V('replié : les 5 actes restent dans la page mais cachés', Rd.querySelectorAll('#cList .acte').length === 5 && Rd.querySelectorAll('#cList .acte:not([hidden])').length === 0);
+  grpDe(/^Colo · MC/).querySelector('.gp').click();
+  V('« + » : 4 Colo le 03/10, libéral 100,00 € (5 Colo × 20,00 sur les deux jours)', grpDe(/^Colo · MC/).querySelector('.gq').textContent === '4' && /^100,00/.test(R.$('cLib').textContent) && stR().actes.filter(x => x.d === '2026-10-03' && x.g === 'colo').length === 4, R.$('cLib').textContent);
+  V('…copie au même jour, nouvel identifiant', new Set(stR().actes.map(x => x.id)).size === 6 && /\+1 Colo libéral Monaco le 03\/10\/2026/.test(R.$('cMsg').textContent), R.$('cMsg').textContent);
+  grpDe(/^Colo · MC/).querySelector('.gm').click();
+  V('« − » : 3 Colo, barre Annuler', grpDe(/^Colo · MC/).querySelector('.gq').textContent === '3' && R.$('undo').style.display === 'flex' && /Colo retiré/.test(R.$('undoTxt').textContent));
+  R.$('undoBtn').click();
+  V('Annuler le remet (4)', grpDe(/^Colo · MC/).querySelector('.gq').textContent === '4');
+  R.$('cList').querySelector('.grp .gm').click(); R.$('undoBtn').click();
+  const combo = () => grpDe(/Colo \+ gastro/);
+  combo().querySelector('.gm').click();
+  V('« − » sur un groupe de 1 : le groupe disparaît', !combo() && grps().length === 2);
+  R.$('undoBtn').click();
+  const colo = () => grpDe(/^Colo · MC/);
+  colo().querySelector('.gch').click();
+  V('chevron : les 4 Colo apparaissent, chacun avec crayon et ×', colo().querySelectorAll('.acte:not([hidden])').length === 4 && colo().querySelectorAll('.cv').length === 4 && colo().querySelectorAll('.cx').length === 4 && colo().querySelector('.gch').getAttribute('aria-expanded') === 'true');
+  V('…les autres groupes restent repliés', combo().querySelectorAll('.acte:not([hidden])').length === 0);
+  colo().querySelector('.acte .cv').click();
+  R.$('cEv').value = '10,00'; Rd.querySelector('#cList .cok').click();
+  const corr = () => grps().find(g => g.querySelector('small.mod'));
+  V('montant corrigé : l\'acte sort du groupe (3 Colo à 20,00 + 1 à 10,00 marqué corrigé)', corr() && corr().querySelector('.gq').textContent === '1' && /10,00/.test(corr().querySelector('small').textContent)
+    && grps().filter(g => /^Colo · MC/.test(g.querySelector('.gn').textContent)).map(g => g.querySelector('.gq').textContent).sort().join() === '1,1,3', grps().map(g => g.textContent));
+  V('…son groupe reste déplié pour voir le résultat', corr().querySelectorAll('.acte:not([hidden])').length === 1);
+  V('…jour 03/10 : 5 actes · 85,00 € (3 × 20 + 10 + 15)', /5 actes · 85,00/.test(jrs()[0].textContent), jrs()[0].textContent);
+  corr().querySelector('.gp').click();
+  V('« + » sur le groupe corrigé : copie au montant corrigé', corr().querySelector('.gq').textContent === '2' && stR().actes.filter(x => x.vm === 1000).length === 2);
+  colo().querySelector('.gch').click();
+  V('chevron à nouveau : groupe replié', colo().querySelectorAll('.acte:not([hidden])').length === 0);
+  R.$('cList').querySelector('.grp .gch').click(); R.$('cList').querySelector('.grp .acte .cv').click();
+  R.$('cList').querySelector('.grp .gch').click();
+  V('replier pendant une correction : la correction se ferme', !R.$('cEv'));
+  // NGAP : même présentation, mot « consultation »
+  R.w.document.querySelector('#cAxe .chip[data-v="ngap"]').click();
+  V('NGAP sans consultation : message vide habituel', /Aucune consultation/.test(R.$('cList').textContent));
+  V('regroupement : aucun appel réseau, aucune erreur JavaScript', R.reseau.length === 0 && R.erreurs.length === 0, R.erreurs);
   console.log(`\n${ok} ✓  ${ko} ✗`);
   process.exit(ko ? 1 : 0);
 })();

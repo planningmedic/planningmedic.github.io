@@ -124,6 +124,24 @@ details summary{cursor:pointer;color:var(--mute);font-size:15px;padding:10px 0}
 .ed .geste{font-size:16px;min-height:46px;padding:0 14px}
 .ed .non{background:var(--bg);color:var(--mute);border:1px solid var(--line)}
 .ed .lib{grid-column:1/-1;margin-top:0}
+/* (19/10/2026) Liste regroupée par jour, puis par acte identique (même montant) */
+.jr{display:flex;justify-content:space-between;align-items:baseline;gap:10px;padding:16px 0 6px;border-bottom:1px solid var(--line)}
+.jr b{font-size:16px}
+.jr span{font-size:14px;color:var(--mute);font-variant-numeric:tabular-nums}
+.grp{border-bottom:1px solid var(--line)}
+.gh{display:flex;align-items:center;gap:6px;min-height:52px}
+.gch{font:inherit;background:none;border:0;color:var(--mute);width:28px;height:40px;padding:0;cursor:pointer;font-size:18px;transition:transform .15s}
+.gch[aria-expanded="true"]{transform:rotate(90deg)}
+.sct{font-size:12px;font-weight:700;border-radius:6px;padding:2px 7px;background:var(--bg);color:var(--mute);border:1px solid var(--line)}
+.sct.lib{background:var(--acc-soft);color:var(--acc);border-color:transparent}
+.gn{flex:1;min-width:0;cursor:pointer;line-height:1.25}
+.gn small{display:block;font-size:13px;color:var(--mute);font-variant-numeric:tabular-nums}
+.gn small.mod{color:var(--warn)}
+.gq{min-width:26px;text-align:center;font-variant-numeric:tabular-nums}
+.gb{font:inherit;font-size:20px;font-weight:700;width:38px;height:38px;padding:0;border-radius:10px;border:1px solid var(--line);background:var(--bg);color:var(--ink);cursor:pointer}
+.grp .acte{padding-left:34px;border-bottom:0;border-top:1px dashed var(--line);font-size:15px}
+.grp .acte .d{display:none}
+.acte[hidden]{display:none}
 /* (16/10/2026) Sauvegarde / restauration (fichier JSON, fusion sans doublon) */
 .sv .row2{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:10px}
 .svb{font:inherit;font-weight:700;font-size:16px;background:var(--acc);color:var(--acc-ink);border:0;border-radius:10px;min-height:48px;padding:0 10px;cursor:pointer}
@@ -396,6 +414,14 @@ function valeurCalc(x){ return axeDe(x)==='ngap' ? valeurN(x.g) : x.g==='autre' 
    Manager, modificateurs compris) : il prime sur le calcul, pour CET acte seulement. */
 function valeurActe(x){ return Number.isInteger(x.vm) ? x.vm : valeurCalc(x); }
 let cEdit=null;
+/* (19/10/2026) Liste regroupée : par jour, puis par acte identique — même nature,
+   secteur, pays, 50 % et MONTANT. Un acte au montant corrigé forme son propre
+   groupe : aucun montant n'est fusionné avec un autre. « + » ajoute une copie
+   de l'acte (même jour), « − » retire le plus récent (avec Annuler), le chevron
+   déplie les actes un par un pour les corriger ou les retirer comme avant. */
+let cOpen=new Set(), cGrp=[];
+const PAYS={mc:'MC',fr:'FR'};
+const cleGrp=x=>[x.d, nomActe(x), x.r50?1:0, x.m, x.a, valeurActe(x), Number.isInteger(x.vm)?1:0].join('|');
 function regleNgap(){ return !!C.d0 && Number.isInteger(C.pn0) && Number.isInteger(C.ln0) && Object.keys(NGAP).every(g=>valeurN(g)!=null); }
 const nomActe=x=>x.g==='autre' ? x.code : axeDe(x)==='ngap' ? (NGAP[x.g]||x.g) : (GESTES[x.g]||x.g);
 function regleComplet(){ return !!C.d0 && Number.isInteger(C.p0) && Number.isInteger(C.l0) && Object.keys(GESTES).every(g=>Object.keys(ASS).every(a=>valeur(g,a)!=null)); }
@@ -433,7 +459,7 @@ function cRender(){
     m.className='marge ko'; m.textContent='Au-delà de 30 % : '+euros(exc)+' · public à produire ≈ '+euros(Math.ceil(exc*10/3)); }
   const tri=C.actes.filter(x=>axeDe(x)===cAxe).sort((a,b)=>b.d.localeCompare(a.d)||b.t-a.t);
   $('cListT').textContent=(n?'Consultations comptées':'Actes comptés')+(tri.length?' ('+tri.length+')':'');
-  $('cList').innerHTML = tri.length ? tri.map(x=>'<div class="acte"><span class="d">'+x.d.slice(8,10)+'/'+x.d.slice(5,7)+'</span>'
+  const ligneActe=(x,ouvert)=>'<div class="acte"'+(ouvert?'':' hidden')+'><span class="d">'+x.d.slice(8,10)+'/'+x.d.slice(5,7)+'</span>'
       +'<span class="g">'+esc(nomActe(x))+(x.g==='autre'&&x.r50?' (50 %)':'')+' · '+(x.m==='lib'?'Lib':'Pub')+' · '+esc(ASS[x.a]||x.a)+'</span>'
       +'<button type="button" class="v cv'+(Number.isInteger(x.vm)?' mod':'')+'" aria-label="Corriger le montant" data-id="'+x.id+'">'+(valeurActe(x)!=null?euros(valeurActe(x)):'—')+'</button>'
       +'<button type="button" class="x cx" aria-label="Retirer cet acte" data-id="'+x.id+'">×</button>'
@@ -441,7 +467,28 @@ function cRender(){
           +'<button type="button" class="geste cok" data-id="'+x.id+'">OK</button><button type="button" class="geste non cno">Annuler</button>'
           +'<div class="lib" id="cEvMsg">Calcul : '+(valeurCalc(x)!=null?euros(valeurCalc(x)):'—')
           +(Number.isInteger(x.vm)?' · <button type="button" class="lien crz" data-id="'+x.id+'">↺ revenir au calcul</button>':'')+'</div></div>' : '')
-      +'</div>').join('')
+      +'</div>';
+  cGrp=[];
+  const jours=[]; tri.forEach(x=>{ let j=jours[jours.length-1]; if(!j||j.d!==x.d){ j={d:x.d,G:new Map()}; jours.push(j); }
+    const k=cleGrp(x); if(!j.G.has(k)) j.G.set(k,[]); j.G.get(k).push(x); });
+  $('cList').innerHTML = tri.length ? jours.map(j=>{
+      const tous=[].concat(...j.G.values()), tot=tous.reduce((a,x)=>a+(valeurActe(x)||0),0);
+      const grps=[...j.G.entries()].sort((a,b)=>Math.min(...b[1].map(x=>x.t))-Math.min(...a[1].map(x=>x.t)));
+      return '<div class="jr"><b>'+JOURS[new Date(j.d+'T12:00:00').getDay()].replace(/^./,c=>c.toUpperCase())+' '+j.d.slice(8,10)+'/'+j.d.slice(5,7)+'</b>'
+        +'<span>'+pl(tous.length,n?'consultation':'acte')+' · '+euros(tot)+'</span></div>'
+        +grps.map(([k,G])=>{
+          const x=G[0], gi=cGrp.push(G)-1, ouvert=cOpen.has(k)||G.some(y=>y.id===cEdit), v=valeurActe(x);
+          return '<div class="grp"><div class="gh">'
+            +'<button type="button" class="gch" aria-label="Voir le détail" aria-expanded="'+ouvert+'" data-gi="'+gi+'">›</button>'
+            +'<span class="sct'+(x.m==='lib'?' lib':'')+'">'+(x.m==='lib'?'Lib':'Pub')+'</span>'
+            +'<span class="gn" data-gi="'+gi+'">'+esc(nomActe(x))+(x.g==='autre'&&x.r50?' (50 %)':'')+' · '+esc(PAYS[x.a]||x.a)
+            +'<small'+(Number.isInteger(x.vm)?' class="mod"':'')+'>'+(v!=null?euros(v):'—')+'</small></span>'
+            +'<button type="button" class="gb gm" aria-label="Retirer un" data-gi="'+gi+'">−</button>'
+            +'<b class="gq">'+G.length+'</b>'
+            +'<button type="button" class="gb gp" aria-label="Ajouter un identique" data-gi="'+gi+'">+</button></div>'
+            +G.map(y=>ligneActe(y,ouvert)).join('')+'</div>';
+        }).join('');
+    }).join('')
     : '<p class="empty">'+(n?'Aucune consultation comptée':'Aucun acte compté')+' depuis le relevé.</p>';
   if(!storageOK) $('cMsg').textContent="Ce navigateur n'enregistre pas : le compteur sera perdu en fermant la page.";
 }
@@ -565,17 +612,28 @@ function validerEdition(id){
   const c=enCentimes($('cEv').value);
   if(c==null||c===0){ $('cEvMsg').textContent='Montant illisible (ex. 1 234,56).'; return; }
   if(c===valeurCalc(x)) delete x.vm; else x.vm=c;
-  cEdit=null; cSave(); cRender();
+  cEdit=null; cOpen.add(cleGrp(x)); cSave(); cRender();
   $('cMsg').textContent=nomActe(x)+' : '+euros(c)+(Number.isInteger(x.vm)?' (corrigé)':' (calcul)');
 }
 $('cList').addEventListener('keydown',e=>{ if(e.key==='Enter' && e.target.id==='cEv'){ e.preventDefault(); validerEdition(cEdit); } });
 $('cList').addEventListener('click',e=>{
+  const gb=e.target.closest('[data-gi]');
+  if(gb){ const G=cGrp[+gb.dataset.gi]; if(!G||!G.length) return; const x=G[0];
+    if(gb.classList.contains('gp')){
+      C.actes.push(Object.assign({},x,{id:Date.now().toString(36)+Math.random().toString(36).slice(2,6), t:Date.now()}));
+      cSave(); cRender(); $('cMsg').textContent='+1 '+nomActe(x)+' '+(x.m==='lib'?'libéral':'public')+' '+(ASS[x.a]||x.a)+' le '+x.d.split('-').reverse().join('/');
+    } else if(gb.classList.contains('gm')){
+      const k=C.actes.indexOf(x); if(k<0) return;
+      lastDel={k:'c',o:C.actes.splice(k,1)[0]}; if(cEdit===x.id) cEdit=null; cSave(); cRender();
+      montrerAnnuler(nomActe(x)+' retiré');
+    } else { const k=cleGrp(x); if(cOpen.has(k)||G.some(y=>y.id===cEdit)){ cOpen.delete(k); if(G.some(y=>y.id===cEdit)) cEdit=null; } else cOpen.add(k); cRender(); }
+    return; }
   const ed=e.target.closest('.cv');
   if(ed){ cEdit = cEdit===ed.dataset.id ? null : ed.dataset.id; cRender(); const i=$('cEv'); if(i){ i.focus(); try{ i.select(); }catch(_){} } return; }
   if(e.target.closest('.cno')){ cEdit=null; cRender(); return; }
   const ok=e.target.closest('.cok'); if(ok){ validerEdition(ok.dataset.id); return; }
   const rz=e.target.closest('.crz');
-  if(rz){ const x=C.actes.find(y=>y.id===rz.dataset.id); if(x){ delete x.vm; cEdit=null; cSave(); cRender(); $('cMsg').textContent=nomActe(x)+' : retour au calcul'; } return; }
+  if(rz){ const x=C.actes.find(y=>y.id===rz.dataset.id); if(x){ delete x.vm; cEdit=null; cOpen.add(cleGrp(x)); cSave(); cRender(); $('cMsg').textContent=nomActe(x)+' : retour au calcul'; } return; }
   const b=e.target.closest('.cx'); if(!b) return;
   e.stopPropagation();
   const k=C.actes.findIndex(x=>x.id===b.dataset.id); if(k<0) return;
