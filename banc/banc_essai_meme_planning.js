@@ -40,13 +40,19 @@ function campagne(seed) {
     if (f.noGarde) return; const x = m[id] = {};
     const sem = (sam, n) => { for (let k = 0; k < 7 * n; k++) { const d = new Date(sam); d.setUTCDate(d.getUTCDate() + k); x[iso(d)] = 'VAC'; } };
     sem(Date.UTC(2027, 6, 3 + 7 * Math.floor(R() * 6)), 2 + Math.floor(R() * 2));
-    sem(Date.UTC(2027, 1, 20 + 7 * Math.floor(R() * 2)), 1);
+    /* (20/10/2026) Depuis la règle « jamais de repos de garde sur un jour de vacances »,
+       un vendredi de bascule entre les deux semaines d'hiver ne peut plus être tenu si
+       TOUT le monde part : ceux de la 1re semaine sont en vacances, ceux de la 2e partent
+       le lendemain. Comme dans la réalité, un quart de l'équipe reste. */
+    if (R() < 0.75) sem(Date.UTC(2027, 1, 20 + 7 * Math.floor(R() * 2)), 1);
     if (R() < 0.6) sem(Date.UTC(2027, 11, 18 + 7 * Math.floor(R() * 2)), 1);
     for (let i = 0; i < 14; i++) { const s = iso(new Date(Date.UTC(2027, 0, 4 + Math.floor(R() * 360)))); if (!x[s]) x[s] = 'INDISPO'; }
   });
   return { roster, m };
 }
-const { roster, m } = campagne(1);
+/* (20/10/2026) graine 6 : avec la règle « pas de garde la veille des vacances », la graine 1
+   ne donnait plus un premier tirage faisable ; la 6 reproduit le cas (1er tirage ≠ retenu). */
+const { roster, m } = campagne(6);
 function monde(genSource) {
   const ss = H.makeSpreadsheet([
     H.makeSheet('MEDECINS', H.medecinsRows(roster)),

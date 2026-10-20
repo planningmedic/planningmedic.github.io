@@ -86,6 +86,15 @@ function checkInvariants(P, {indisposMap={}, ctxFeries, roster}) {
         errs.push(`GARDE SUR INDISPO ${id} ${d} (${indisposMap[id][d]})`);
     });
   });
+  // 5bis. (20/10/2026) Jamais de garde la VEILLE d'une absence : le repos de garde
+  // ne peut pas tomber sur un jour de vacances, de formation, de congé long ni de TP.
+  Object.entries(P.byDoc).forEach(([id,days])=>{
+    Object.keys(days).forEach(d=>{
+      if(days[d]!=='G'&&days[d]!=='G2') return;
+      const nx=addD(d,1), a=indisposMap[id]&&indisposMap[id][nx];
+      if(['VAC','FORM','CL','TP','CTP'].includes(a)) errs.push(`REPOS DE GARDE SUR ABSENCE ${id} ${d}→${nx} (${a})`);
+    });
+  });
   // 6. NO_WEEKEND / NO_GARDE respectés
   Object.entries(P.byDoc).forEach(([id,days])=>{
     const f=flags[id]||{};

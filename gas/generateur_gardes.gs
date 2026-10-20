@@ -41,7 +41,7 @@
 // ⚠️ RÈGLE (détecteur de dérive dépôt↔Apps Script) : incrémenter cette version
 // à CHAQUE push de ce fichier. Le diagnostic (admin → Maintenance) compare la
 // version déployée ici avec celle du dépôt et signale toute recopie oubliée.
-const GAS_VERSION_GENERATEUR = '2026-10-12.1';
+const GAS_VERSION_GENERATEUR = '2026-10-20.1';
 
 /* (05/09/2026) INTERRUPTEUR DU NOUVEL ALGORITHME — récit : docs/JOURNAL-Planning-Med.md §101 */
 const NOUVEL_ALGO_GLOBAL = true;
@@ -934,6 +934,13 @@ function generateGardes(year, opts){
   // Ce qui reste PROPRE à chaque appelant : tout ce qui dépend du planning en cours
   // (repos, récup, gardes adjacentes, combos jeudi↔samedi et dimanche→mardi), car
   // l'optimiseur raisonne sur un GROUPE de jours et doit ignorer l'adjacence interne.
+  // (20/10/2026) Le lendemain est-il un jour de vacances / formation / congé long ?
+  // TOUS les jours comptent, week-ends et fériés compris (arbitrage du responsable :
+  // vacances au départ du samedi → pas de garde le vendredi).
+  function absenceLendemain(id,date){
+    const _sl=indispos[id]?.[addOneDay(date)];
+    return _sl==='VAC'||_sl==='FORM'||_sl==='CL';
+  }
   function indispoIndividuelle(id,date){
     const _dd=FLAGS.dateDebut[id], _df=FLAGS.dateFin[id]; // (F3) arrivée/départ en cours d'année
     if(_dd&&date<_dd) return true;
@@ -948,6 +955,11 @@ function generateGardes(year, opts){
     const _dw=_di?_di.dow:new Date(date+'T12:00:00').getDay();
     /* (LOT B · 01/09/2026) JAMAIS DE GARDE LA VEILLE D'UN TEMPS PARTIEL — récit : docs/JOURNAL-Planning-Med.md §114 */
     if(indispos[id]?.[addOneDay(date)]==='TP') return true;
+    /* (20/10/2026) JAMAIS DE REPOS DE GARDE SUR UN JOUR DE VACANCES — règle du responsable :
+       le repos ne peut pas tomber sur un jour de vacances, de formation ou de congé long,
+       quel qu'il soit (départ un mercredi → pas de garde le mardi ; départ un samedi → pas
+       de garde le vendredi). Même logique que le temps partiel du lendemain ci-dessus. */
+    if(absenceLendemain(id,date)) return true;
     if(NO_WEEKEND.has(id)&&(_dw===0||_dw===6||_di?.isFerie)) return true;
     /* (09/10/2026) VEILLE DE FÉRIÉ : interdite au régime à part SAUF s'il l'a lui-même
        demandée. Ses souhaits passent en priorité absolue (régime 1) : sans cette
@@ -991,6 +1003,11 @@ function generateGardes(year, opts){
     if(s&&_LIB_ABS[s]&&!_sansAbsence) return {classe:'immediat',texte:_LIB_ABS[s],code:s};
     if(s==='RG_TRANSITION') return {classe:'planning',texte:'repos de sa garde du 31 décembre'};
     if(indispos[id]?.[addOneDay(date)]==='TP') return {classe:'immediat',texte:'libre, mais a posé un temps partiel LE LENDEMAIN (le repos de garde ne peut pas s\'y écrire)',code:'TP_LENDEMAIN'};
+    /* `_sansAbsence` : rendre un jour d'un bloc de vacances suppose de rendre aussi
+       le lendemain (le repos). On ne déclasse donc pas ce MAR en « bloqué » : il
+       reste un levier, comme avant la règle du 20/10/2026. */
+    if(!_sansAbsence&&absenceLendemain(id,date)){ const _sl=indispos[id]?.[addOneDay(date)];
+      return {classe:'immediat',texte:'libre, mais '+(_sl==='VAC'?'en vacances':_sl==='FORM'?'en formation':'en congé long')+' LE LENDEMAIN (le repos de garde ne peut pas tomber sur ce jour)',code:'ABS_LENDEMAIN'}; }
     if(rgSet[id].has(date)) return {classe:'planning',texte:'repos de sa garde de la veille'};
     if(rSet[id]?.has(date)) return {classe:'planning',texte:'récupération de samedi posée ce jour'};
     const _lend=addOneDay(date);
@@ -1022,7 +1039,7 @@ function generateGardes(year, opts){
       /* Une absence dont le retrait ne suffirait pas n'est PAS un levier :
          elle descend dans le bloc « bloqués par le planning », avec sa vraie
          raison — celle qui resterait une fois le congé rendu. */
-      if(m.classe==='immediat'&&m.code&&m.code!=='TP_LENDEMAIN'){
+      if(m.classe==='immediat'&&m.code&&m.code!=='TP_LENDEMAIN'&&m.code!=='ABS_LENDEMAIN'){
         const reste=motifBlocage(id,date,false,true);
         if(reste){ planningC.push({mar:id,texte:m.texte+', et de toute façon '+reste.texte,code:null}); return; }
       }
@@ -1053,11 +1070,12 @@ function generateGardes(year, opts){
        congé validé au staff se renégocie. */
     const LIB = {INDISPO:['indisponibilité','indisponibilités'],
                  TP_LENDEMAIN:['temps partiel posé LE LENDEMAIN','temps partiels posés LE LENDEMAIN'],
+                 ABS_LENDEMAIN:['absence posée LE LENDEMAIN','absences posées LE LENDEMAIN'],
                  FORM:['jour de formation','jours de formation'],
                  VAC:['jour de vacances','jours de vacances'],
                  CL:['congé long','congés longs'], CTP:['congé','congés'],
                  TP:['temps partiel','temps partiels']};
-    const ORDRE = ['INDISPO','TP_LENDEMAIN','FORM','VAC','CTP','TP','CL'];
+    const ORDRE = ['INDISPO','TP_LENDEMAIN','ABS_LENDEMAIN','FORM','VAC','CTP','TP','CL'];
     const L=[];
     L.push('❌ GÉNÉRATION IMPOSSIBLE — '+detail.length+' jour'+(detail.length>1?'s':'')+' sans binôme de garde.');
     L.push('Rien n\'a été écrit : aucun onglet, aucune notification. Corrigez et relancez.');

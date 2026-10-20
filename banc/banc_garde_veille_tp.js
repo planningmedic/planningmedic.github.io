@@ -155,8 +155,14 @@ console.log('\n═══ 3. Un jour sans binôme arrête tout, sans rien écrire
       error.slice(0, 300));
     V('le pluriel est correct (« 7 indisponibilités », pas « 7 indisponibilité »)',
       !/▸ [2-9]\d* (indisponibilité|jour de vacances|jour de formation) :/.test(error), error.slice(0, 300));
-    V('le message tient en moins de 25 lignes pour deux jours en défaut',
-      error.split('\n').length < 30, error.split('\n').length);
+    /* (20/10/2026) Seuil exprimé PAR JOUR en défaut : depuis la règle « jamais de
+       repos de garde sur un jour de vacances », le dimanche qui précède la semaine
+       bloquée est lui aussi impossible (le repos tomberait sur le lundi de vacances
+       de tout le monde) — 8 jours en défaut au lieu de 7. Ce qui compte reste la
+       concision : au plus 4 lignes par jour, plus l'en-tête et la conclusion. */
+    const _nj = (error.match(/^■ /gm) || []).length;
+    V('le message reste court : au plus 4 lignes par jour en défaut',
+      _nj > 0 && error.split('\n').length <= 4 * _nj + 6, { lignes: error.split('\n').length, jours: _nj });
     V('le message invite à relancer sans promettre le résultat',
       /recalculé entièrement : d'autres jours peuvent apparaître/.test(error), error.slice(-200));
     /* L'affirmation FAUSSE corrigée le 01/09 ne doit jamais revenir. */
