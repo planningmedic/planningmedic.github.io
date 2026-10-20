@@ -251,14 +251,14 @@ function monde(plan) {
     const cases = panneau.querySelectorAll('input[type=checkbox]');
     V('le panneau liste les 2 revues présentes', cases.length === 2, cases.length);
     V('rien de coché → 3 cartes affichées', w.document.querySelectorAll('.veille-card').length === 3);
-    V('le bouton annonce « toutes »', /toutes/.test(w.document.getElementById('vRevBtn').textContent));
+    V('le bouton dit simplement « Revues » quand rien n\'est coché (v1.29)', w.document.getElementById('vRevBtn').textContent === 'Revues' && !w.document.getElementById('vRevBtn').classList.contains('actif'), w.document.getElementById('vRevBtn').textContent);
 
     // On coche Anesthesiology, AU CLIC.
     const caseAnesth = [...cases].find(c => c.value === 'Anesthesiology');
     caseAnesth.click();
     V('cocher une revue → 2 cartes, la bonne revue', w.document.querySelectorAll('.veille-card').length === 2
       && [...w.document.querySelectorAll('.vc-journal')].every(el => el.textContent === 'Anesthesiology'));
-    V('le bouton annonce le compte', /1 cochée/.test(w.document.getElementById('vRevBtn').textContent), w.document.getElementById('vRevBtn').textContent);
+    V('le bouton annonce le compte et passe en couleur', w.document.getElementById('vRevBtn').textContent === '1 revue' && w.document.getElementById('vRevBtn').classList.contains('actif'), w.document.getElementById('vRevBtn').textContent);
     V('le choix est mémorisé sur l\'appareil', w.localStorage.getItem('pmVeilleRevues') === '["Anesthesiology"]', w.localStorage.getItem('pmVeilleRevues'));
 
     // « Toutes les revues » remet tout.
@@ -606,9 +606,22 @@ function monde(plan) {
     const sombre = (page.match(/html\[data-theme="dark"\] \{[\s\S]*?\}/) || [''])[0];
     V('les 5 couleurs de type existent aussi en mode sombre', ['ecr', 'meta', 'rs', 'reco', 'aut'].every(k => sombre.indexOf('--vt-' + k + ':') !== -1 && sombre.indexOf('--vt-' + k + '-bg:') !== -1));
     V('aucune erreur JavaScript pendant toute la navigation', erreurs.length === 0, erreurs.slice(0, 2));
-    // (13/10, v1.22.1) Téléphone : la barre de filtres ne s'étalait pas sur la largeur (constaté en production).
-    const tel = (page.match(/@media \(max-width:640px\)\{\s*\.veille-toolbar\{[^}]*\}[\s\S]*?\n\}/) || [''])[0];
-    V('téléphone : la barre de filtres passe en grille de 2 colonnes, Non lus / Tous / ★ sur toute la ligne', /display:grid/.test(tel) && /\.vfilter\{grid-column:1\/-1/.test(tel) && /\.vfilter button\{flex:1/.test(tel), tel.slice(0, 120));
+    // (20/10/2026, v1.29) La recherche n'était pas assez visible (Arthur) : en tête, pleine largeur ; puis les marques ; puis Sources | Revues | Tri.
+    const barre = d.getElementById('veilleToolbar');
+    const enfants = [...barre.children].map(e => e.className.split(' ')[0]);
+    V('v1.29 : la barre se lit dans l\'ordre recherche, marques, puis 3 menus', JSON.stringify(enfants) === JSON.stringify(['vsearch-big', 'vfilter', 'vsel', 'vrev-wrap', 'vsel']), enfants);
+    const champ = barre.querySelector('.vsearch-big input');
+    V('…la recherche a sa loupe et une invite claire', !!barre.querySelector('.vsearch-big svg') && champ.placeholder === 'Chercher un article, un auteur…');
+    const cssBarre = (page.match(/\.vsearch-big input\{[^}]*\}/) || [''])[0];
+    V('…texte de 16 px : l\'iPhone ne zoome pas la page en touchant la recherche', /font:500 16px/.test(cssBarre), cssBarre);
+    V('…recherche et marques sur toute la largeur, les 3 menus de même largeur, libellé centré', /\.veille-toolbar\{display:grid;grid-template-columns:repeat\(3,minmax\(0,1fr\)\)/.test(page) && /\.veille-toolbar \.vsearch-big,\.veille-toolbar \.vfilter\{grid-column:1\/-1\}/.test(page) && /\.veille-toolbar \.vsel\{[^}]*text-align-last:center/.test(page));
+    const menus = [...barre.querySelectorAll('select.vsel')];
+    V('…libellés courts : « Sources » et « Tri »', menus[0].options[menus[0].selectedIndex].text === 'Sources' && menus[1].options[menus[1].selectedIndex].text === 'Tri', menus.map(m => m.options[m.selectedIndex].text));
+    menus[0].value = 'GENERAL'; menus[0].dispatchEvent(new w.Event('change'));
+    V('…un menu changé passe en couleur, revenu au défaut il redevient neutre', menus[0].classList.contains('actif') && (menus[0].value = '', menus[0].dispatchEvent(new w.Event('change')), !menus[0].classList.contains('actif')));
+    champ.value = 'Méta B'; champ.dispatchEvent(new w.Event('input'));
+    V('…taper dans la nouvelle recherche filtre bien la liste', titres().length === 1 && titres()[0] === 'Méta B', titres());
+    champ.value = ''; champ.dispatchEvent(new w.Event('input'));
     V('…et l\'écran ne lui impose plus « flex » en dur (sinon la grille serait écrasée)', d.getElementById('veilleToolbar').style.display === '' && !/getElementById\('veilleToolbar'\)\.style\.display = VEILLE_ITEMS\.length \? 'flex'/.test(page), d.getElementById('veilleToolbar').style.display);
   }
 

@@ -487,21 +487,26 @@ a.tile, .tile.clickable { cursor: pointer; }
 .annu-num:hover { text-decoration:underline; }
 
 /* ── VEILLE BIBLIO ── */
-.veille-toolbar{display:flex;flex-wrap:wrap;gap:10px;align-items:center;margin-bottom:18px}
+/* (20/10/2026, v1.29) La recherche en tête, pleine largeur, mise en avant ; dessous les marques,
+   puis Sources | Revues | Tri, trois menus de même largeur au libellé centré. Même ordre partout. */
+.veille-toolbar{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px;margin-bottom:18px}
+.veille-toolbar .vsearch-big,.veille-toolbar .vfilter{grid-column:1/-1}
+.vsearch-big{display:flex;align-items:center;gap:10px;border:1.5px solid var(--me-border);background:var(--white);border-radius:12px;padding:0 14px;color:var(--me);cursor:text}
+.vsearch-big input{flex:1;min-width:0;border:0;outline:none;background:transparent;color:var(--ink);font:500 16px 'DM Sans',sans-serif;padding:12px 0}
+.vsearch-big:focus-within{border-color:var(--me);box-shadow:0 0 0 3px var(--me-soft)}
+.veille-toolbar .vfilter{display:flex}
+.veille-toolbar .vfilter button{flex:1}
+.veille-toolbar .vsel{width:100%;min-width:0;text-align:center;text-align-last:center;-webkit-appearance:none;appearance:none;padding:8px 22px 8px 10px;background:var(--white) url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='%2394A3B8' stroke-width='2.5' stroke-linecap='round'%3E%3Cpath d='M6 9l6 6 6-6'/%3E%3C/svg%3E") no-repeat right 8px center;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;cursor:pointer}
+.veille-toolbar .vsel.actif{border-color:var(--me-border);color:var(--me);font-weight:600}
+.veille-toolbar .vrev-wrap{min-width:0}
 .vfilter{display:inline-flex;background:var(--surface-2);border-radius:10px;padding:3px}
 .vfilter button{border:0;background:transparent;color:var(--ink-3);font:600 13px 'DM Sans',sans-serif;padding:6px 14px;border-radius:8px;cursor:pointer}
 .vfilter button.on{background:var(--white);color:var(--me);box-shadow:0 1px 2px rgba(15,23,42,.06)}
 .vsel,.vsearch{border:1px solid var(--line);background:var(--white);color:var(--ink);border-radius:10px;padding:7px 12px;font:500 13px 'DM Sans',sans-serif}
 .vsearch{flex:1;min-width:180px}
-/* (13/10/2026, v1.22.1) Téléphone : la barre de filtres en grille pleine largeur —
-   Non lus / Tous / ★ sur toute la ligne, puis Sources | Revues, puis Tri | Recherche. */
 @media (max-width:640px){
-  .veille-toolbar{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:8px}
-  .veille-toolbar .vfilter{grid-column:1/-1;display:flex}
-  .veille-toolbar .vfilter button{flex:1;padding:7px 6px}
-  .veille-toolbar .vsel,.veille-toolbar .vsearch,.veille-toolbar .vrev-wrap{width:100%;min-width:0}
-  .veille-toolbar .vrev-wrap .vsel{text-align:left}
-  .veille-toolbar .vrev-panel{min-width:0;width:calc(200% + 8px);left:auto;right:0}
+  .veille-toolbar .vfilter button{padding:7px 6px}
+  .veille-toolbar .vrev-panel{min-width:0;width:calc(300% + 16px);left:50%;transform:translateX(-50%)}
 }
 .vsel:focus,.vsearch:focus{outline:none;border-color:var(--me-border)}
 .vrev-wrap{position:relative}
@@ -785,26 +790,26 @@ html[data-theme="dark"] .vs-pill{background:#251B3C;color:#B593F2}
       <span class="topos-count" id="veilleCount"></span>
     </div>
     <div class="veille-toolbar" id="veilleToolbar" style="display:none">
+      <label class="vsearch-big"><svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" aria-hidden="true"><circle cx="11" cy="11" r="7"/><path d="M20 20l-4-4"/></svg><input type="search" placeholder="Chercher un article, un auteur…" aria-label="Chercher dans la veille" oninput="onVSearch(this.value)"></label>
       <div class="vfilter" id="vfilter">
         <button class="on" onclick="setVFilter('unread',this)">Non lus</button>
         <button onclick="setVFilter('all',this)">Tous</button>
         <button onclick="setVFilter('star',this)">★ Favoris</button>
       </div>
-      <select class="vsel" onchange="onVSource(this.value)">
-        <option value="">Toutes sources</option>
+      <select class="vsel" onchange="onVSource(this.value);_vActif(this)">
+        <option value="">Sources</option>
         <option value="REVUE">Revues spécialisées</option>
         <option value="GENERAL">Généralistes</option>
       </select>
       <div class="vrev-wrap">
-        <button class="vsel" id="vRevBtn" onclick="toggleVRevPanel(event)">Revues (toutes)</button>
+        <button class="vsel" id="vRevBtn" onclick="toggleVRevPanel(event)">Revues</button>
         <div class="vrev-panel" id="vRevPanel" style="display:none"></div>
       </div>
-      <select class="vsel" onchange="onVSort(this.value)">
-        <option value="relevance" selected>Pertinence</option>
+      <select class="vsel" onchange="onVSort(this.value);_vActif(this)">
+        <option value="relevance" selected>Tri</option>
         <option value="recent">Plus récents</option>
         <option value="journal">Par revue</option>
       </select>
-      <input class="vsearch" type="search" placeholder="Titre, auteur, revue…" oninput="onVSearch(this.value)">
     </div>
     <div class="vt-rail" id="vThemeRail"></div>
     <div id="veilleList"></div>
@@ -2594,8 +2599,12 @@ function populateRevuePanel(){
 }
 function majVRevBtn(){
   const b=document.getElementById('vRevBtn');
-  if(b) b.textContent='Revues '+(V_REVUES.length?'('+V_REVUES.length+' cochées)':'(toutes)');
+  if(!b) return;
+  b.textContent = V_REVUES.length ? V_REVUES.length+(V_REVUES.length>1?' revues':' revue') : 'Revues';
+  b.classList.toggle('actif', V_REVUES.length>0);
 }
+/* (20/10/2026, v1.29) Un menu qui n'est plus sur sa valeur par défaut passe en couleur : on voit ce qui filtre. */
+function _vActif(sel){ if(sel) sel.classList.toggle('actif', sel.selectedIndex>0); }
 function toggleVRevPanel(ev){
   if(ev) ev.stopPropagation();
   const p=document.getElementById('vRevPanel');
