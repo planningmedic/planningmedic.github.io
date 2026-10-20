@@ -57,7 +57,7 @@
 //  instantané unique et partagé : chantier séparé.
 // ══════════════════════════════════════════════════════════════════════
 
-const GAS_VERSION_VEILLE = '2026-10-20.5';
+const GAS_VERSION_VEILLE = '2026-10-20.6';
 
 const VEILLE_CFG_TAB = 'VEILLE_CFG';
 const VEILLE_TAB     = 'VEILLE';
@@ -1211,6 +1211,114 @@ function chercherVeilleArchive(q) {
   }
   trouves.sort(function (x, y) { return x.date < y.date ? 1 : (x.date > y.date ? -1 : 0); });
   return { success: true, total: trouves.length, items: trouves.slice(0, VEILLE_ARCHIVE_MAX) };
+}
+
+// ══════════════════════════════════════════════════════════════════════
+//  RATTRAPAGE DU 20/10/2026 — deux fonctions À LANCER UNE FOIS, à la main,
+//  dans cet ordre (accord d'Arthur, 20/10 au soir). Elles écrivent dans le
+//  classeur. Ne pas les lancer pendant la collecte du lundi 6 h.
+// ══════════════════════════════════════════════════════════════════════
+
+/* Les fiches PubMed de plusieurs PMID, par lots, avec la pause de politesse. Un lot en échec
+   est sauté (ses articles gardent leur état) : jamais d'article perdu faute de réseau. */
+function _veilleFichesPour_(pmids) {
+  const out = {};
+  for (let i = 0; i < pmids.length; i += VEILLE_LOT) {
+    const lot = pmids.slice(i, i + VEILLE_LOT);
+    try {
+      const f = _veilleFichesEfetch(_efetch(lot));
+      Object.keys(f).forEach(function (k) { out[k] = f[k]; });
+    } catch (e) { Logger.log('efetch (lot ' + (i / VEILLE_LOT + 1) + ') : ' + e); }
+    Utilities.sleep(VEILLE_PAUSE);
+  }
+  return out;
+}
+
+/* 1/2 — Le soir du 20/10, la règle « thème dans le titre » valait pour les 18 généralistes :
+   57 articles inutiles sont entrés (Fleming Fund, modèle chez le rat, éditoriaux…). Chaque article
+   généraliste de VEILLE est relu sur PubMed et repassé à la règle actuelle :
+     il reste s'il a un résumé ET (grande revue avec un thème dans le TITRE, ou type d'étude
+     reconnu : étiquette PubMed de la liste blanche, titre ou résumé).
+   Ce qui ne passe pas est DÉPLACÉ dans VEILLE_ARCHIVE (rien n'est effacé ; la collecte ne le
+   reprendra pas). Un article étoilé par un MAR reste, quoi qu'il arrive. Fiche introuvable :
+   l'article reste (prudence). */
+function veilleNettoyerGeneralistes() {
+  const ss = SpreadsheetApp.getActiveSpreadsheet();
+  const v = ss.getSheetByName(VEILLE_TAB);
+  if (!v || v.getLastRow() < 2) return { success: true, deplaces: 0, restent: 0 };
+  const lastCol = v.getLastColumn();
+  const data = v.getRange(1, 1, v.getLastRow(), lastCol).getValues();
+  const cfg = _readVeilleCfg();
+  const etoiles = {};
+  const parMar = _veilleMarquesParMar();
+  Object.keys(parMar).forEach(function (id) { parMar[id].stars.forEach(function (p) { etoiles[p] = true; }); });
+
+  const generalistes = [];
+  for (let r = 1; r < data.length; r++) {
+    const p = String(data[r][0] || '').trim();
+    if (p && _veilleSourceCode(data[r][6]) === 'GENERAL' && !etoiles[p]) generalistes.push(p);
+  }
+  const fiches = _veilleFichesPour_(generalistes);
+  const blanche = {};   // types de la liste blanche, comparés tels quels
+  (cfg.pubtypes || []).forEach(function (t) { blanche[t] = true; });
+
+  const garder = [], partir = [];
+  for (let r = 1; r < data.length; r++) {
+    const p = String(data[r][0] || '').trim();
+    const f = fiches[p];
+    let ok = true;
+    if (p && f && _veilleSourceCode(data[r][6]) === 'GENERAL' && !etoiles[p]) {
+      const titreSeul = _veilleThemesLocaux({ titre: f.titre, resume: '', motscles: [], mesh: [] }, cfg.themes);
+      const parTitre = _veilleGrandeRevue(f.revue) && Object.keys(titreSeul).length > 0;
+      const tt = _veilleTypeTitre(f.titre) || _veilleTypeResume(f.titre, f.resume);
+      const type = !!tt || (f.pubtypes || []).some(function (t) { return blanche[t]; });
+      ok = !!f.resume && (parTitre || type);
+    }
+    (ok ? garder : partir).push(data[r]);
+  }
+  if (!partir.length) { Logger.log('Nettoyage : rien à déplacer (' + garder.length + ' articles).'); return { success: true, deplaces: 0, restent: garder.length }; }
+
+  let a = ss.getSheetByName(VEILLE_ARCHIVE_TAB);
+  if (!a) { a = ss.insertSheet(VEILLE_ARCHIVE_TAB); a.getRange(1, 1, 1, lastCol).setValues([data[0]]).setFontWeight('bold'); a.setFrozenRows(1); }
+  const dejaLa = _veillePmidArchives_();
+  const nouveaux = partir.filter(function (l) { return !dejaLa[String(l[0] || '').trim()]; });
+  if (nouveaux.length) a.getRange(a.getLastRow() + 1, 1, nouveaux.length, lastCol).setValues(nouveaux);   // l'archive D'ABORD
+  v.getRange(2, 1, data.length - 1, lastCol).clearContent();
+  if (garder.length) v.getRange(2, 1, garder.length, lastCol).setValues(garder);
+  Logger.log('Nettoyage des généralistes : ' + partir.length + ' déplacés vers ' + VEILLE_ARCHIVE_TAB + ' · ' +
+             garder.length + ' restent · ' + generalistes.length + ' relus sur PubMed, ' + Object.keys(fiches).length + ' fiches obtenues.');
+  return { success: true, deplaces: partir.length, restent: garder.length, relus: generalistes.length };
+}
+
+/* 2/2 — Chaque article de VEILLE reçoit la note du barème ACTUEL (essai lu dans le résumé,
+   +25 pour les 8 grandes revues), avec le même calcul qu'un article qui arrive. Seules SCORE
+   et MOTIF changent ; « récent » se compte à la date d'ARRIVÉE dans la veille, comme au premier
+   calcul. Fiche introuvable : l'ancienne note reste. */
+function veilleRenoterTout() {
+  const v = SpreadsheetApp.getActiveSpreadsheet().getSheetByName(VEILLE_TAB);
+  if (!v || v.getLastRow() < 2) return { success: true, renotes: 0 };
+  _ensureVeilleColumns(v);
+  const hdr = v.getRange(1, 1, 1, v.getLastColumn()).getValues()[0].map(function (x) { return String(x || '').trim(); });
+  const iScore = hdr.indexOf('SCORE'), iMotif = hdr.indexOf('MOTIF');
+  const n = v.getLastRow() - 1;
+  const data = v.getRange(2, 1, n, v.getLastColumn()).getValues();
+  const cfg = _readVeilleCfg();
+  const pmids = data.map(function (l) { return String(l[0] || '').trim(); }).filter(Boolean);
+  const fiches = _veilleFichesPour_(pmids);
+  const scores = [], motifs = [];
+  let renotes = 0, montes = 0;
+  data.forEach(function (l) {
+    const f = fiches[String(l[0] || '').trim()];
+    if (!f) { scores.push([l[iScore]]); motifs.push([l[iMotif]]); return; }
+    const arrivee = l[11] instanceof Date ? Utilities.formatDate(l[11], 'Europe/Paris', 'yyyy-MM-dd') : String(l[11] || '').slice(0, 10);
+    const nn = _veilleNote(f, _veilleSourceCode(l[6]), _veilleThemesLocaux(f, cfg.themes), arrivee || null);
+    if (Number(l[iScore]) < nn.note) montes++;
+    scores.push([nn.note]); motifs.push([nn.motif]); renotes++;
+  });
+  v.getRange(2, iScore + 1, n, 1).setValues(scores);
+  v.getRange(2, iMotif + 1, n, 1).setValues(motifs);
+  Logger.log('Renotation : ' + renotes + ' articles sur ' + n + ' (' + montes + ' montent) · ' + Object.keys(fiches).length + ' fiches obtenues.');
+  return { success: true, renotes: renotes, montes: montes, total: n };
 }
 
 // ══════════════════════════════════════════════════════════════════════

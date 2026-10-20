@@ -903,6 +903,51 @@ function monde(plan) {
     V('un éditorial de grande revue reste pénalisé (sous 60)', edito.note < 60, edito);
   }
 
+  console.log('\n═══ Rattrapage du 20/10 : veilleNettoyerGeneralistes puis veilleRenoterTout ═══');
+  {
+    const FICHES = {
+      '1001': { titre: 'The Fleming Fund: Key Features of Antimicrobial Resistance Surveillance', revue: 'Clin Infect Dis', resume: 'We describe the antibiotic programme.' },
+      '1002': { titre: 'Treating In-Hospital Cardiac Arrest With Sodium Bicarbonate-Reply', revue: 'JAMA', resume: '' },
+      '1003': { titre: 'Intermittent or Continuous Renal-Replacement Therapy in Acute Kidney Injury', revue: 'N Engl J Med', resume: 'In this trial, we randomly assigned critically ill adults with acute kidney injury.' },
+      '1004': { titre: 'Endotracheal Cuff Pressure Monitoring to Prevent Pneumonia', revue: 'Chest', resume: 'Patients were included.', pubtypes: ['Journal Article', 'Randomized Controlled Trial'] },
+      '1005': { titre: 'Fluid Therapy in Mechanically Ventilated Critically Ill Adult Patients', revue: 'JAMA', resume: 'This review summarizes fluid therapy.' },
+      '1006': { titre: 'Budget impact of Plasmodium screening in blood transfusion', revue: 'Transfusion', resume: 'A cost model.' },
+      '1007': { titre: 'Prone positioning in ARDS: a cohort', revue: 'Crit Care', resume: 'We studied mechanical ventilation.' },
+    };   // 1008 : volontairement ABSENT de PubMed (fiche introuvable)
+    const plan = (endpoint, params) => {
+      if (endpoint === 'efetch.fcgi') {
+        const ids = (params.get('id') || '').split(',').filter(id => FICHES[id]);
+        return '<?xml version="1.0"?><PubmedArticleSet>' + ids.map(id => ficheXml(id, Object.assign({ date: '2026-10-10', pubtypes: ['Journal Article'] }, FICHES[id]))).join('') + '</PubmedArticleSet>';
+      }
+      return { esearchresult: { count: '0', idlist: [] } };
+    };
+    const m = monde(plan);
+    vm.runInContext('getOrCreateVeilleTabs()', m.ctx);
+    const v = m.cl.getSheetByName('VEILLE');
+    v.lignes[0] = ['PMID', 'DATE_PUB', 'TITRE', 'AUTEURS', 'REVUE', 'DOI', 'SOURCE', 'SCORE', 'RESUME', 'LU', 'STAR', 'AJOUTE_LE', 'PUBTYPE', 'THEMES', 'MOTIF'];
+    const L = (id, src, score, resumeFr) => [id, new Date('2026-10-10T00:00:00'), (FICHES[id] || { titre: 'Article ' + id }).titre, 'X', (FICHES[id] || { revue: 'Chest' }).revue, '', src, score, resumeFr || '', 'N', 'N', new Date('2026-10-20T00:00:00'), '', 'Sepsis et infection', 'ancien motif'];
+    [L('1001', 'GENERAL', 81), L('1002', 'GENERAL', 66), L('1003', 'GENERAL', 56, 'Résumé FR à garder'), L('1004', 'GENERAL', 97), L('1005', 'GENERAL', 93), L('1006', 'GENERAL', 81), L('1007', 'REVUE', 61), L('1008', 'GENERAL', 70)].forEach(l => v.lignes.push(l));
+    m.cl.getSheetByName('VEILLE_MARQUES').lignes.push(['7', '1006', 'N', 'O', new Date()]);
+    const r1 = vm.runInContext('veilleNettoyerGeneralistes()', m.ctx);
+    const reste = () => v.lignes.slice(1).map(l => String(l[0] || '')).filter(Boolean);
+    V('nettoyage : le Fleming Fund (pas grande revue, pas un essai) et la réponse sans résumé partent', r1.deplaces === 2 && reste().indexOf('1001') === -1 && reste().indexOf('1002') === -1, [r1, reste()]);
+    V('…ICRAKI (essai lu dans le résumé), l\'ECR de Chest et la synthèse JAMA au thème dans le titre restent', ['1003', '1004', '1005'].every(id => reste().indexOf(id) !== -1), reste());
+    V('…l\'article étoilé par un MAR reste, même hors règle', reste().indexOf('1006') !== -1);
+    V('…une revue spécialisée n\'est pas concernée, une fiche introuvable reste (prudence)', reste().indexOf('1007') !== -1 && reste().indexOf('1008') !== -1);
+    const arch = m.cl.getSheetByName('VEILLE_ARCHIVE').lignes;
+    V('les 2 partent DANS l\'archive, ligne entière, rien n\'est effacé', arch.length === 3 && arch.slice(1).map(l => l[0]).sort().join() === '1001,1002' && arch[0][0] === 'PMID', arch.map(l => l[0]));
+    V('relancé : rien ne bouge, rien n\'est dupliqué', vm.runInContext('veilleNettoyerGeneralistes()', m.ctx).deplaces === 0 && m.cl.getSheetByName('VEILLE_ARCHIVE').lignes.length === 3);
+
+    const r2 = vm.runInContext('veilleRenoterTout()', m.ctx);
+    const ligne = id => v.lignes.find(l => String(l[0]) === id);
+    V('renotation : ICRAKI passe de 56 à 100, motif « ECR · grande revue … »', Number(ligne('1003')[7]) === 100 && /^ECR · grande revue/.test(ligne('1003')[14]), [ligne('1003')[7], ligne('1003')[14]]);
+    V('…la synthèse JAMA garde le bonus des grandes revues, l\'ECR de Chest n\'en a pas', /grande revue/.test(ligne('1005')[14]) && /^ECR/.test(ligne('1004')[14]) && !/grande revue/.test(ligne('1004')[14]), [ligne('1005')[14], ligne('1004')[14]]);
+    V('…fiche introuvable : l\'ancienne note et l\'ancien motif restent', Number(ligne('1008')[7]) === 70 && ligne('1008')[14] === 'ancien motif', [ligne('1008')[7], ligne('1008')[14]]);
+    V('…seules SCORE et MOTIF changent : le résumé en français est intact', ligne('1003')[8] === 'Résumé FR à garder' && ligne('1003')[13] === 'Sepsis et infection');
+    V('…« récent » compté à la date d\'arrivée (20/10, article du 10/10)', /récent/.test(ligne('1003')[14]), ligne('1003')[14]);
+    V('…le journal annonce le compte (5 renotés ; la doublure garde 2 lignes vidées que le vrai Sheets ne compte pas)', r2.renotes === 5 && r2.total >= 6 && r2.montes >= 1, r2);
+  }
+
 console.log(`\n${ok} OK · ${ko} en échec`);
   process.exit(ko ? 1 : 0);
 })();  console.log('\n═══ Passe 4 : le résumé en deux lignes (15/09/2026) ═══');
