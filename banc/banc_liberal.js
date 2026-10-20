@@ -1093,24 +1093,27 @@ console.log('\n═══ 6. La page de cotation ne dit rien qu\'elle ne sache �
     V('SPME sans mutuelle : 20 % de la base ; avec 150 % : 0',
       proche(ev('lastRac'), Math.round(0.20 * ev('parcoursBR()') * 100) / 100) && (mut(150), proche(ev('lastRac'), 0)));
     w.setStatut('nas'); mut(0); await dodo(20);
-    V('NAS sans mutuelle : la caisse ne rembourse rien, reste = total',
-      proche(ev('lastRac'), ev('parcoursBR()') + dhv()), [ev('lastRac'), ev('parcoursBR()')]);
+    V('NAS sans mutuelle : la caisse ne rembourse rien, reste = le dépassement seul (coût = DP)',
+      proche(ev('lastRac'), dhv()), [ev('lastRac'), dhv()]);
 
     /* ── DEVIS NAS ET DEVIS EN ANGLAIS (20/10/2026) ──────────────────────────
        Demande du responsable : un NAS n'a pas de remboursement CCAM. Son devis porte
        la somme totale et le nom de l'acte, sans code ni base. Et un clic bascule le
        devis en anglais. */
     {
-      const dhIn = d.getElementById('dh'); dhIn.disabled = false; dhIn.value = '300'; w.majBarre();
+      const dhIn = d.getElementById('dh'); dhIn.disabled = false; dhIn.value = '300'; w.dhSaisi();
       d.getElementById('dInt').value = '2099-01-01';
-      const totNas = ev('parcoursBR()') + 300;
+      /* (20/10/2026) DÉFAUT TROUVÉ EN PRODUCTION : 300 € de DP donnaient un devis à
+         300 € + prix de l'acte. Pour un NAS, coût = DP. */
+      const totNas = 300;
+      V('NAS : la barre du bas affiche le DP seul', /^300\s?€$/.test(d.getElementById('totBR').textContent.trim()), d.getElementById('totBR').textContent);
       w.ouvrirDevisCourant(); await dodo(20);
       const lignes = d.getElementById('dvActes').textContent;
       V('devis NAS : aucun code CCAM, ni dans les lignes ni dans l\'intitulé',
         !/[A-Z]{4}\d{3}/.test(lignes) && !/[A-Z]{4}\d{3}/.test(d.getElementById('dvActe').textContent) && !/CCAM/.test(lignes),
         [lignes.slice(0, 120), d.getElementById('dvActe').textContent]);
       V('…mais le nom de l\'acte est bien là', lignes.trim().length > 3 && d.getElementById('dvActe').textContent.trim().length > 3);
-      V('…et un seul montant : la somme totale', proche(lireEur(d.getElementById('dvHon').textContent), totNas)
+      V('…et un seul montant : le DP saisi, 300 €, sans le prix de l\'acte', proche(lireEur(d.getElementById('dvHon').textContent), totNas)
         && d.getElementById('dvTotLbl').textContent === 'Total à régler',
         [d.getElementById('dvHon').textContent, totNas]);
       V('…colonnes base / dépassement / remboursement et encadrés de reste à charge masqués',
@@ -1136,6 +1139,10 @@ console.log('\n═══ 6. La page de cotation ne dit rien qu\'elle ne sache �
         && /[A-Z]{4}\d{3}/.test(d.getElementById('dvActes').textContent) && d.getElementById('dvTotLbl').textContent === 'Total',
         [h1(), d.getElementById('dvActes').textContent.slice(0, 80)]);
       w.closeDevis(); w.setStatut('nas'); await dodo(10);
+      d.getElementById('dh').value = '300'; w.dhSaisi();
+      mut(300); await dodo(10);
+      V('NAS + mutuelle : le DP n\'est pas recalé sur la mutuelle, le reste = DP', proche(dhv(), 300) && proche(ev('lastRac'), 300), [dhv(), ev('lastRac')]);
+      mut(0); await dodo(10);
     }
     d.getElementById('dInt').value = '';
     w.setStatut('fr'); mut(0); await dodo(20); br = ev('parcoursBR()');

@@ -639,7 +639,7 @@ function populateMut(){
 function setMut(p){
   if(MUTUELLES.indexOf(p)<0) return;
   MUT_PCT = p;
-  DH_MANUEL=false;
+  if(statutCourant()!=='nas') DH_MANUEL=false;   // (20/10/2026) NAS : le DP tape reste, la mutuelle n'y change rien
   populateMut();
   applyDH();
 }
@@ -654,6 +654,9 @@ function currentMut(){
      utilises par le devis : 80 % Monaco, 70 % France, 0 NAS).
    Carte verte sans mutuelle : 20 % de la base ; avec une mutuelle >= 100 % : 0. */
 function racPatient(st, pct, br, dh){
+  /* (20/10/2026) NAS : le coût EST le dépassement saisi — ni base CCAM ajoutée, ni
+     caisse, ni mutuelle calée sur une base (précision du responsable : « coût = DP »). */
+  if(st==='nas') return Math.max(0, dh);
   const total=br+dh;
   if(pct>0) return Math.max(0, total - Math.min(coverageCeiling(st,pct,br), total));
   const ro = RO_RATE[st]!=null ? RO_RATE[st] : 0.80;
@@ -675,6 +678,7 @@ function capNonOptam(st,pct){ return st==='fr' && pct>200; }  // le plafond mord
    updateRac pour servir aussi au pre-remplissage. */
 function dhOptimal(st,pct,br){
   const S=STATUTS[st];
+  if(st==='nas') return null;               // (20/10/2026) NAS : montant libre, rien a caler
   /* (02/10/2026) CARTE ROSE : toujours 20 % de la base (tarif CCAM x 1,98),
      quelle que soit la mutuelle — c'est la regle de la carte, pas un plafond a
      caler (decision du responsable). La mutuelle ne joue que sur le reste a charge. */
@@ -695,7 +699,7 @@ function updateRac(){
      mais le reste a charge existe (ticket moderateur) et la barre du bas le montre.
      Avant, il etait force a 0 ici et la barre affichait « mutuelle non renseignee »
      pendant que le devis imprimait 20 % de la base. */
-  if(S.dh==='0'){
+  if(S.dh==='0' || st==='nas'){             // (20/10/2026) NAS : pas d'encadre de calage, cout = DP
     box.style.display='none';
     lastRac=racPatient(st,pct,br,dh); lastMut=mut.n;
     majBarre();
@@ -745,7 +749,7 @@ function updateRac(){
 function majBarre(){
   const br=parcoursBR();
   const dh=parseFloat(document.getElementById('dh').value)||0;
-  document.getElementById('totBR').textContent=eur(br+dh);
+  document.getElementById('totBR').textContent=eur(statutCourant()==='nas' ? dh : br+dh);   // NAS : cout = DP
   const rc=document.getElementById('totRac');
   if(br<=0){ rc.textContent='reste à charge —'; rc.className='rac'; }
   else if(lastMut==null){ rc.textContent='mutuelle non renseignée'; rc.className='rac'; }
@@ -1610,7 +1614,7 @@ function renderDevisActes(p){
 }
 function openDevis(i){
   const p=parcours[i]; if(!p) return;
-  dvHonoraire=p.br+p.dh;
+  dvHonoraire = p.statut==='nas' ? p.dh : p.br+p.dh;      // (20/10/2026) NAS : cout = DP
   // Praticien (config saisie une fois en haut de page)
   eText('dvPratName', document.getElementById('cfgPrat').value.trim()||'[Nom Prénom]');
   eText('dvRPPS', document.getElementById('cfgRPPS').value.trim()||'—');
