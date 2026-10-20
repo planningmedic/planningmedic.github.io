@@ -497,11 +497,12 @@ console.log('\n═══ 5ter. Le jeton unique : reessayer sans jamais doubler �
   });
   ctx.globalThis = ctx;
   socleMedecins(ctx);   // (14/09/2026) COL_MED, _medecinsRows_, _medecinsInvalider_ (code.gs)
-  ['SPECIALITES_TAB','_SPECIALITES_HEADER','_SPECIALITES_SEED','LIBERAL_HEADER'].forEach(function(n){
+  ['SPECIALITES_TAB','_SPECIALITES_HEADER','_SPECIALITES_SEED','LIBERAL_HEADER','ETAB_TAB','_ETAB_HEADER','_ETAB_CLES'].forEach(function(n){
     try { vm.runInContext(extraireConst('../gas/portail.gs', n), ctx); } catch(e) {}
   });
   ['_isoDate','_todayISO_','_libYearOf','_libSheetName','_getOrCreateLiberalTab','_libNewId',
-   '_libMoney_','getOrCreateSpecialitesTab','getSpecialites','_specialitesActives_','declareLiberal','listLiberal','deleteLiberal']
+   '_libMoney_','getOrCreateSpecialitesTab','getSpecialites','_specialitesActives_','declareLiberal','listLiberal','deleteLiberal',
+   'getOrCreateEtablissementTab','getEtablissement']
     .forEach(n => { try { vm.runInContext(extraireFonction('../gas/portail.gs', n), ctx); } catch(e) {} });
   ctx.MAR = { role:'mar', id:'ALPHA', liberal:true };
   const run = e => vm.runInContext(e, ctx);
@@ -527,6 +528,27 @@ console.log('\n═══ 5ter. Le jeton unique : reessayer sans jamais doubler �
   V('une déclaration sans jeton reste acceptée (ancienne page)', d0.success === true, d0);
   V('un jeton mal formé ne sert pas d\'identifiant',
     run(`declareLiberal(${base}, jeton:'../evasion'}, MAR)`).id.indexOf('J-') !== 0);
+
+  /* (20/10/2026) ÉTABLISSEMENT : nom et adresse du devis, lus dans le classeur.
+     Valeurs FICTIVES ici : le vrai nom ne s'écrit jamais dans le dépôt. */
+  const e0 = run('getEtablissement()');
+  V('établissement : l\'onglet se crée au premier appel, deux clés, valeurs vides',
+    e0.nom === '' && e0.adresse === '' && run("getOrCreateEtablissementTab().getDataRange().getValues().map(function(r){return r[0];}).join(',')") === 'CLE,NOM,ADRESSE',
+    [e0, run("getOrCreateEtablissementTab().getDataRange().getValues().map(function(r){return r[0];}).join(',')")]);
+  run("getOrCreateEtablissementTab().getRange(2, 2, 2, 1).setValues([['  Hôpital Exemple '],['1 rue Exemple, 00000 Ville']])");
+  const e1 = run('getEtablissement()');
+  V('…rempli dans le classeur, il est relu tel quel (espaces retirés)', e1.nom === 'Hôpital Exemple' && e1.adresse === '1 rue Exemple, 00000 Ville', e1);
+  V('…et un second appel ne recrée rien', run('getOrCreateEtablissementTab().getDataRange().getValues().length') === 3);
+  {
+    const wk = fs.readFileSync('../cloudflare/worker.js', 'utf8'), mi = fs.readFileSync('../gas/miroir.gs', 'utf8');
+    const pg = fs.readFileSync('../docs/module-liberal/estimateur-liberal.html', 'utf8');
+    V('établissement : servi aux MAR par la copie rapide, rafraîchi à la modification de l\'onglet, poussé par la synchro',
+      /cle === 'etablissement'\) return true/.test(wk) && /\|etablissement\|/.test(wk) && /ETABLISSEMENT:\s*\['etablissement'\]/.test(mi)
+      && /'cotations_type', 'etablissement'/.test(mi) && /_miroirAjoute_\(items, 'etablissement'/.test(mi));
+    V('aucun nom d\'établissement réel écrit dans la page ni le code serveur',
+      !/Princesse|CHPG|Pasteur/i.test(pg) && !/Princesse|Pasteur/i.test(fs.readFileSync('../gas/portail.gs', 'utf8')));
+  }
+
 
   const page = fs.readFileSync('../docs/module-liberal/estimateur-liberal.html', 'utf8');
   V('la page ne change PAS de jeton entre deux tentatives',
@@ -650,6 +672,7 @@ console.log('\n═══ 6. La page de cotation ne dit rien qu\'elle ne sache �
     { code:'END', label:'Endoscopies digestives', actif:true },
     { code:'OPH', label:'Ophtalmologie (cataracte)', actif:true },
     { code:'ORL', label:'ORL / stomatologie', actif:true }]));
+  M.set('etablissement', JSON.stringify({ nom:'Hôpital Exemple', adresse:'1 rue Exemple, 00000 Ville' }));   // fictif
   M.set('cotations_type', JSON.stringify([
     { groupe:'Endoscopie', nom:'Gastro + colo', lc:'CS', lignes:[
       { code:'HHQE002', ordre:1, role:'principal', mod7:true, modA:false },
@@ -874,6 +897,19 @@ console.log('\n═══ 6. La page de cotation ne dit rien qu\'elle ne sache �
     ov && ov.style.display);
   V('le devis porte le nom du praticien, pas celui d\'un patient',
     /ALPHA/.test(d.body.innerHTML) && !/dclPatient/.test(d.body.innerHTML));
+  {
+    /* (20/10/2026) Nom et adresse de l'établissement, lus dans le classeur */
+    const cases = k => [...d.querySelectorAll('#devisOverlay [data-etab="' + k + '"]')];
+    V('établissement : 5 cases « nom » et 2 « adresse » (devis + déclaration de choix)', cases('nom').length === 5 && cases('adresse').length === 2,
+      [cases('nom').length, cases('adresse').length]);
+    V('…toutes pré-remplies depuis le classeur', cases('nom').every(e => e.textContent === 'Hôpital Exemple') && cases('adresse').every(e => e.textContent === '1 rue Exemple, 00000 Ville'),
+      cases('nom').map(e => e.textContent));
+    V('…et toujours modifiables à la main', cases('nom').concat(cases('adresse')).every(e => e.getAttribute('contenteditable') === 'true'));
+    cases('nom')[0].textContent = 'Corrigé à la main'; w.basculerLangueDevis();
+    V('…une correction à la main n\'est pas écrasée, même en passant en anglais', cases('nom')[0].textContent === 'Corrigé à la main');
+    w.basculerLangueDevis(); w.closeDevis(); w.ouvrirDevisCourant(); await dodo(30);
+    V('…fermer puis rouvrir : de nouveau le nom du classeur', cases('nom')[0].textContent === 'Hôpital Exemple');
+  }
   if (typeof w.closeDevis === 'function') w.closeDevis();
   await dodo(30);
 

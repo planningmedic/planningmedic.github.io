@@ -1,7 +1,7 @@
 // ⚠️ RÈGLE (détecteur de dérive dépôt↔Apps Script) : incrémenter cette version
 // à CHAQUE push de ce fichier. Le diagnostic (admin → Maintenance) compare la
 // version déployée ici avec celle du dépôt et signale toute recopie oubliée.
-const GAS_VERSION_PORTAIL = '2026-10-20.1';
+const GAS_VERSION_PORTAIL = '2026-10-20.2';   // (20/10/2026) .1 recherche dans les archives de la veille · .2 onglet ETABLISSEMENT (nom et adresse du devis)
 
 /**
  * portail.gs — actions du PORTAIL équipe (index.html).
@@ -30,6 +30,7 @@ function portailRoute(action, payload, user) {
     case 'listAnnuaire':   return _portailJson(listAnnuaire());
     case 'getSecteurs':    return _portailJson(getSecteurs());
     case 'getSpecialites': return _portailJson(getSpecialites());   // lecture : pas de verrou
+    case 'getEtablissement': return _portailJson(getEtablissement());   // (20/10/2026) lecture : pas de verrou
     case 'getCotationsType': return _portailJson(getCotationsType());  // lecture : pas de verrou
     /* Fabrique des cotations types (17/08/2026). listCotationsTypeEdit rend AUSSI
        le droit de supprimer : masquer un bouton ne ferme rien, seul le serveur
@@ -1472,6 +1473,39 @@ function getSpecialites() {
     });
   }
   return out;
+}
+
+/* (20/10/2026) ÉTABLISSEMENT — nom et adresse imprimés sur le devis et la
+   déclaration de choix (le minimum légal : le lieu d'exercice). Ils vivent dans
+   le classeur, onglet ETABLISSEMENT, JAMAIS dans le dépôt public. L'onglet est
+   créé au premier appel avec ses deux clés et des valeurs VIDES : le
+   responsable remplit la colonne VALEUR, la copie rapide suit (miroirSurEdition). */
+const ETAB_TAB = 'ETABLISSEMENT';
+const _ETAB_HEADER = ['CLE', 'VALEUR', 'NOTE'];
+const _ETAB_CLES = [
+  ['NOM',     '', 'Nom de l\'établissement, tel qu\'imprimé sur le devis et la déclaration de choix'],
+  ['ADRESSE', '', 'Adresse postale complète, sur une ligne'],
+];
+function getOrCreateEtablissementTab() {
+  const ss = SpreadsheetApp.getActiveSpreadsheet();
+  let sh = ss.getSheetByName(ETAB_TAB);
+  if (!sh) {
+    sh = ss.insertSheet(ETAB_TAB);
+    sh.getRange(1, 1, 1, _ETAB_HEADER.length).setValues([_ETAB_HEADER]).setFontWeight('bold');
+    sh.getRange(2, 1, _ETAB_CLES.length, _ETAB_HEADER.length).setValues(_ETAB_CLES);
+    sh.setFrozenRows(1);
+  }
+  return sh;
+}
+// { nom, adresse } — chaîne vide tant que l'onglet n'est pas rempli.
+function getEtablissement() {
+  const rows = getOrCreateEtablissementTab().getDataRange().getValues();
+  const v = {};
+  for (let r = 1; r < rows.length; r++) {
+    const cle = String(rows[r][0] || '').trim().toUpperCase();
+    if (cle) v[cle] = String(rows[r][1] == null ? '' : rows[r][1]).trim();
+  }
+  return { nom: v.NOM || '', adresse: v.ADRESSE || '' };
 }
 
 // Set des codes ACTIFS, pour valider une declaration.

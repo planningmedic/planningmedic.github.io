@@ -70,12 +70,12 @@
    poussée : le client se replie sur le circuit GAS.
    ═══════════════════════════════════════════════════════════════════ */
 
-const VERSION = 'miroir 2026-10-11.1';
+const VERSION = 'miroir 2026-10-20.1';
 
 // Clés admissibles — tout le reste est refusé à l'écriture comme à la
 // lecture. Garde-fou contre une faute de frappe côté GAS qui créerait
 // une clé orpheline invisible.
-const CLE_VALIDE = /^(acces|annees|secteurs|specialites|cotations_type|config_admin|topos|staffs|veille|protocoles|recommandations|annuaire|vacances_admin|planning_\d{4}|affectations_\d{4}|indispos_\d{4}|pose_tp_\d{4}|gardes_\d{4}|joursferies_\d{4}|stats_\d{4}|mail_nonlus|liberal_\d{4}|liberal_mar_\d{4}|releve_liberal_\d{4}|veille_marques|ordre_vac|echanges|notifs|notif_config|equite_live_\d{4}|doc_[A-Za-z0-9_-]{10,80})$/;
+const CLE_VALIDE = /^(acces|annees|secteurs|specialites|cotations_type|etablissement|config_admin|topos|staffs|veille|protocoles|recommandations|annuaire|vacances_admin|planning_\d{4}|affectations_\d{4}|indispos_\d{4}|pose_tp_\d{4}|gardes_\d{4}|joursferies_\d{4}|stats_\d{4}|mail_nonlus|liberal_\d{4}|liberal_mar_\d{4}|releve_liberal_\d{4}|veille_marques|ordre_vac|echanges|notifs|notif_config|equite_live_\d{4}|doc_[A-Za-z0-9_-]{10,80})$/;
 /* (2026-08-10.1) `doc_<idDrive>` — récit : docs/JOURNAL-Planning-Med.md §160 */
 
 // En-têtes communs. Origin * : la protection est le code d'accès, pas
@@ -438,6 +438,9 @@ function autorise(user, cle) {
      Script a chaque ouverture, en meme temps que trois autres appels : les
      dernieres tombaient par intermittence (« portail injoignable »). */
   if (cle === 'specialites' || cle === 'cotations_type') return true;   // MAR + admin
+  /* (20/10/2026) Nom et adresse de l'etablissement, imprimes sur le devis :
+     information publique, aucune donnee nominative — meme niveau que les listes. */
+  if (cle === 'etablissement') return true;                            // MAR + admin
   if (cle === 'topos' || cle === 'staffs' || cle === 'veille' ||
       cle === 'protocoles' || cle === 'annuaire' || cle === 'recommandations') return true;          // tuiles dashboard : MAR + admin
   if (/^doc_/.test(cle)) return true;                                  // (10/08) PDF topo/protocole : MEME niveau que les listes ci-dessus, ni plus ni moins

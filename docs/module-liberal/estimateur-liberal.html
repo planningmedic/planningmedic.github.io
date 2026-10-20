@@ -1033,6 +1033,32 @@ const SEC_AMBIGU={ORL:'ce secteur mélange ORL et ophtalmologie — à choisir'}
    Aucun tarif n'y est stocke : il vient de l'index CCAM a partir du code. Si un
    code est absent de l'index, on le dit plutot que de poser une ligne a 0 EUR. */
 let COTTYPE=[];
+/* (20/10/2026) NOM ET ADRESSE DE L'ÉTABLISSEMENT — lus dans le classeur (onglet
+   ETABLISSEMENT), jamais écrits dans ce fichier public. Ils pré-remplissent les
+   cases « Établissement » et « Adresse » du devis et de la déclaration de choix ;
+   les cases restent modifiables à la main. Vides : les cases restent à remplir. */
+let ETAB={nom:'', adresse:''};
+function poserEtablissement(e){
+  if(!e || typeof e!=='object') return;
+  ETAB={nom:String(e.nom||'').trim(), adresse:String(e.adresse||'').trim()};
+}
+async function chargerEtablissement(){            // repli Apps Script, si la copie rapide ne répond pas
+  const code = SessionPortail.lire(); if(!code) return;
+  try{
+    const ctrl=new AbortController(); const to=setTimeout(()=>ctrl.abort(), 20000);
+    const r=await fetch(API_URL, {method:'POST', headers:{'Content-Type':'text/plain;charset=utf-8'},
+      body:JSON.stringify({action:'getEtablissement', code:code}), redirect:'follow', signal:ctrl.signal});
+    clearTimeout(to);
+    const j=await r.json();
+    poserEtablissement(j && (j.data || j));
+  }catch(e){ /* cases a remplir a la main, comme avant */ }
+}
+function remplirEtablissement(){
+  document.querySelectorAll('#devisOverlay [data-etab]').forEach(el=>{
+    const v=ETAB[el.dataset.etab];
+    if(v && !el.textContent.trim()) el.textContent=v;
+  });
+}
 async function chargerCotationsType(){
   const code = SessionPortail.lire();
   if(!code) return;
@@ -1642,6 +1668,7 @@ function openDevis(i){
   recalcDevisRac();
   // aucun champ patient : le nom est écrit à la main par le patient après impression
   eText('dcPratName', document.getElementById('cfgPrat').value.trim()||'[Nom Prénom]');
+  remplirEtablissement();                       // (20/10/2026) nom et adresse lus dans le classeur
   document.getElementById('devisOverlay').style.display='block';
   window.scrollTo(0,0);
 }
@@ -1800,7 +1827,7 @@ async function demarrer(){
     const ctrl=new AbortController(); const to=setTimeout(()=>ctrl.abort(), 12000);
     const r=await fetch(MIROIR_URL+'/read', {method:'POST',
       headers:{'Content-Type':'text/plain;charset=utf-8'},        // requete « simple » : pas de preambule CORS
-      body:JSON.stringify({code:code, keys:['secteurs','specialites','cotations_type']}),
+      body:JSON.stringify({code:code, keys:['secteurs','specialites','cotations_type','etablissement']}),
       signal:ctrl.signal});
     clearTimeout(to);
     const j=await r.json();
@@ -1810,6 +1837,7 @@ async function demarrer(){
     if(Array.isArray(d.secteurs)      && d.secteurs.length)      { SECTEURS=filtrerSecteurs(d.secteurs); remplirSecteurs(); }
     if(Array.isArray(d.specialites)   && d.specialites.length)   { SPECIALITES=d.specialites.filter(x=>x&&x.actif); remplirSpecialites(); }
     if(Array.isArray(d.cotations_type)&& d.cotations_type.length){ COTTYPE=d.cotations_type.filter(x=>x&&x.nom&&x.lignes&&x.lignes.length); renderCotTypeBar(); }
+    poserEtablissement(d.etablissement);
     if(!SECTEURS.length || !SPECIALITES.length) throw new Error('listes incomplètes');
     majMemos();
     return;
@@ -1820,6 +1848,7 @@ async function demarrer(){
       await chargerSecteurs();
       await chargerSpecialites();
       await chargerCotationsType();
+      await chargerEtablissement();
       majMemos();
       if(!SECTEURS.length) panneListes(true, 'Listes indisponibles — la déclaration est impossible tant que le secteur ne se charge pas.');
     }catch(e2){
@@ -2001,8 +2030,8 @@ populateMut();poserEcran();renderSummary();
         <div class="meta"><span data-i18n="rpps">N° RPPS</span> <span id="dvRPPS">—</span><br><span data-i18n="libEtab">Activité libérale au sein de l'établissement</span></div>
       </div>
       <div class="estab">
-        <div class="e1"><span class="ed" contenteditable="true" data-ph="Établissement" data-i18n-ph="etab"></span></div>
-        <span class="ed" contenteditable="true" data-ph="Adresse" data-i18n-ph="adresse"></span><br><span data-i18n="intraHosp">Activité libérale intra-hospitalière</span>
+        <div class="e1"><span class="ed" contenteditable="true" data-ph="Établissement" data-i18n-ph="etab" data-etab="nom"></span></div>
+        <span class="ed" contenteditable="true" data-ph="Adresse" data-i18n-ph="adresse" data-etab="adresse"></span><br><span data-i18n="intraHosp">Activité libérale intra-hospitalière</span>
       </div>
     </div>
     <div class="doctitle">
@@ -2025,7 +2054,7 @@ populateMut();poserEcran();renderSummary();
         <h2 data-i18n="interv">Intervention prévue</h2>
         <div class="l"><b id="dvActe">—</b><br>
         <span data-i18n="datePrevue">Date prévue :</span> <span class="ed" id="dvDatePrevue" contenteditable="true" data-ph="JJ/MM/AAAA" data-i18n-ph="date"></span><br>
-        <span data-i18n="etabLbl">Établissement :</span> <span class="ed" contenteditable="true" data-ph="Établissement" data-i18n-ph="etab"></span> <span data-i18n="secteurLib">— secteur libéral</span></div>
+        <span data-i18n="etabLbl">Établissement :</span> <span class="ed" contenteditable="true" data-ph="Établissement" data-i18n-ph="etab" data-etab="nom"></span> <span data-i18n="secteurLib">— secteur libéral</span></div>
       </div>
     </div>
     <h3 class="sec" data-i18n="detail">Détail des actes et des honoraires</h3>
@@ -2057,7 +2086,7 @@ populateMut();poserEcran();renderSummary();
       </div>
     </div>
     <div class="engage">
-      <span data-i18n="engage1">Je soussigné(e), patient(e) désigné(e) ci-dessus, <b>demande à bénéficier d'une prise en charge en activité libérale</b> au sein du</span> <span class="ed" contenteditable="true" data-ph="Établissement" data-i18n-ph="etab"></span><span data-i18n="engage2">, déclare avoir reçu la présente information <b>avant</b> la réalisation de l'acte, en avoir compris le contenu, et <b>m'engage à régler les honoraires</b> indiqués. Le dépassement est fixé avec tact et mesure et calibré, dans la mesure du possible, pour minimiser mon reste à charge.</span>
+      <span data-i18n="engage1">Je soussigné(e), patient(e) désigné(e) ci-dessus, <b>demande à bénéficier d'une prise en charge en activité libérale</b> au sein du</span> <span class="ed" contenteditable="true" data-ph="Établissement" data-i18n-ph="etab" data-etab="nom"></span><span data-i18n="engage2">, déclare avoir reçu la présente information <b>avant</b> la réalisation de l'acte, en avoir compris le contenu, et <b>m'engage à régler les honoraires</b> indiqués. Le dépassement est fixé avec tact et mesure et calibré, dans la mesure du possible, pour minimiser mon reste à charge.</span>
     </div>
     <div class="sign">
       <div class="sig"><div class="lab" data-i18n="sigPrat">Le praticien</div><div class="bp" data-i18n="sig">Signature</div><div class="line"></div></div>
@@ -2076,8 +2105,8 @@ populateMut();poserEcran();renderSummary();
   <div class="sheet decl" id="declSheet">
     <div class="head">
       <div class="prat">
-        <div class="name ed" contenteditable="true" data-ph="Établissement"></div>
-        <div class="meta"><span class="ed" contenteditable="true" data-ph="Adresse de l'établissement"></span><br>Tél. <span class="ed" contenteditable="true" data-ph="Téléphone"></span> — courrier@exemple.fr — <span class="ed" contenteditable="true" data-ph="Site"></span></div>
+        <div class="name ed" contenteditable="true" data-ph="Établissement" data-etab="nom"></div>
+        <div class="meta"><span class="ed" contenteditable="true" data-ph="Adresse de l'établissement" data-etab="adresse"></span><br>Tél. <span class="ed" contenteditable="true" data-ph="Téléphone"></span> — courrier@exemple.fr — <span class="ed" contenteditable="true" data-ph="Site"></span></div>
       </div>
     </div>
     <div class="doctitle">
@@ -2091,7 +2120,7 @@ populateMut();poserEcran();renderSummary();
       Demeurant : <span class="hand" style="min-width:520px"></span><br>
       <span class="hand" style="min-width:620px"></span>
     </div>
-    <p>Je soussigné(e), ci-dessus désigné(e) déclare souhaiter être pris(e) en charge au sein du <span class="ed" contenteditable="true" data-ph="Établissement"></span> à titre libéral, par le praticien ci-après désigné, sous réserve de son acceptation expresse.</p>
+    <p>Je soussigné(e), ci-dessus désigné(e) déclare souhaiter être pris(e) en charge au sein du <span class="ed" contenteditable="true" data-ph="Établissement" data-etab="nom"></span> à titre libéral, par le praticien ci-après désigné, sous réserve de son acceptation expresse.</p>
     <p>J'ai également pris bonne note que tout praticien agissant dans le cadre de son activité libérale est habilité à m'adresser ses honoraires, sachant que leur remboursement sera subordonné aux conditions de prise en charge de mon organisme d'assurance maladie, dont je déclare avoir connaissance. Ceci peut éventuellement impliquer qu'une partie desdits honoraires soit à ma charge.</p>
     <p>En conséquence, je désigne ci-dessous le praticien intervenant à titre libéral :</p>
     <table class="des">

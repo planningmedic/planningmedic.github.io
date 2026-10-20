@@ -1,7 +1,7 @@
 // ⚠️ RÈGLE (détecteur de dérive dépôt↔Apps Script) : incrémenter cette version
 // à CHAQUE push de ce fichier. Le diagnostic (admin → Maintenance) compare la
 // version déployée ici avec celle du dépôt et signale toute recopie oubliée.
-const GAS_VERSION_MIROIR = '2026-10-11.1';
+const GAS_VERSION_MIROIR = '2026-10-20.1';   // (20/10/2026) clé etablissement (nom et adresse du devis)
 
 /* ═══════════════════════════════════════════════════════════════════════
    MIROIR.GS — alimentation du miroir de lecture Cloudflare
@@ -231,7 +231,7 @@ function miroirSyncComplet() {
   const familles = ['acces', 'annees', 'secteurs', 'config_admin',
                     'planning', 'affectations', 'indispos', 'tuiles',
                     'gardes', 'joursferies', 'stats', 'vacances_admin', 'mail', 'liberal',
-                    'specialites', 'cotations_type', 'releve_liberal',
+                    'specialites', 'cotations_type', 'etablissement', 'releve_liberal',
                     'veille_marques', 'ordre_vac', 'echanges', 'notifs'];
   try { PropertiesService.getScriptProperties().deleteProperty(MIROIR_CLE_ATTENTE); } catch (e) {}   // la synchro pousse un sur-ensemble : la note devient caduque
   /* (2026-08-20.1) UNE FOIS PAR JOUR, tout repart sans condition — récit : docs/JOURNAL-Planning-Med.md §134 */
@@ -254,6 +254,7 @@ const MIROIR_ONGLETS_SUIVIS = {
   SECTEURS:     ['secteurs'],
   SPECIALITES:  ['specialites'],                   // (17/08/2026) page de cotation
   COTATIONS_TYPE: ['cotations_type'],              // (17/08/2026) page de cotation
+  ETABLISSEMENT: ['etablissement'],                // (20/10/2026) nom et adresse du devis
   AFFECTATIONS: ['affectations', 'config_admin'],  // détermine les cases à pourvoir
   PLANNING_OVERRIDES: ['config_admin'],
   CS_TEMPLATE:  ['config_admin'],                  // modèle de consultations
@@ -339,6 +340,7 @@ function miroirPousserFamilles_(familles, annee, toutesAnnees) {
     });
   }
   if (uniq['cotations_type'])  _miroirAjoute_(items, 'cotations_type',  function () { return getCotationsType(); });
+  if (uniq['etablissement'])   _miroirAjoute_(items, 'etablissement',   function () { return getEtablissement(); });   // (20/10/2026)
   if (uniq['config_admin']) _miroirAjoute_(items, 'config_admin', function () { return _miroirConstruireConfigAdmin_(annee); });
 
   if (uniq['planning'] || uniq['affectations']) {
