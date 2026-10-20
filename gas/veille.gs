@@ -57,7 +57,7 @@
 //  instantané unique et partagé : chantier séparé.
 // ══════════════════════════════════════════════════════════════════════
 
-const GAS_VERSION_VEILLE = '2026-10-13.1';
+const GAS_VERSION_VEILLE = '2026-10-20.1';
 
 const VEILLE_CFG_TAB = 'VEILLE_CFG';
 const VEILLE_TAB     = 'VEILLE';
@@ -528,11 +528,25 @@ function _veilleAvec(base, filtre) { return filtre ? '(' + base + ') AND ' + fil
 /* Liste blanche de types, servie UNIQUEMENT à l'axe GENERAL. Vide si
    aucune ligne PUBTYPE active dans VEILLE_CFG : l'axe tourne alors sans
    restriction, et runVeille() le signale au journal. */
+/* (20/10/2026) Le TYPE lu aussi dans le TITRE. PubMed n'étiquette un article
+   « Randomized Controlled Trial » qu'à l'indexation MEDLINE, des semaines
+   après sa mise en ligne. Exiger l'étiquette écartait tous les essais récents
+   des généralistes : aucun article JAMA entré du 19/09 au 20/10, dont VASSPR
+   et l'essai dobutamine + noradrénaline du choc septique. Pire, la fenêtre de
+   recherche (~21 j) peut se refermer avant l'étiquette : l'article est alors
+   perdu pour de bon. Même règle que _veilleTypeTitre (la note). Parenthèses
+   partout : PubMed lit les booléens de gauche à droite, sans priorité. */
+const VEILLE_TYPE_TITRE =
+  '(((("randomized"[Title] OR "randomised"[Title]) AND "trial"[Title]) ' +
+  'OR "meta analysis"[Title] OR "metaanalysis"[Title] OR "systematic review"[Title] ' +
+  'OR "guideline"[Title] OR "guidelines"[Title]) ' +
+  'NOT ("secondary"[Title] OR "post hoc"[Title] OR "ancillary"[Title] OR "protocol"[Title]))';
+
 function _veilleListeBlanche(cfg) {
   if (!cfg.pubtypes || !cfg.pubtypes.length) return '';
   return '(' + cfg.pubtypes.map(function (t) {
     return '"' + t + '"[Publication Type]';
-  }).join(' OR ') + ')';
+  }).join(' OR ') + ' OR ' + VEILLE_TYPE_TITRE + ')';
 }
 
 // ══════════════════════════════════════════════════════════════════════

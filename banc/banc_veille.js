@@ -612,6 +612,45 @@ function monde(plan) {
     V('…et l\'écran ne lui impose plus « flex » en dur (sinon la grille serait écrasée)', d.getElementById('veilleToolbar').style.display === '' && !/getElementById\('veilleToolbar'\)\.style\.display = VEILLE_ITEMS\.length \? 'flex'/.test(page), d.getElementById('veilleToolbar').style.display);
   }
 
+  console.log('\n═══ Essai récent d\'une revue généraliste, pas encore étiqueté par PubMed (20/10/2026) — défaut constaté en production ═══');
+  {
+    /* Production, 20/10 : VASSPR et l'essai dobutamine + noradrénaline (JAMA)
+       absents de la veille ; aucun article JAMA entré depuis le 19/09. L'axe
+       croisé exigeait l'étiquette « Randomized Controlled Trial », posée par
+       PubMed des semaines après la parution. PubMed simulé : l'essai n'a QUE
+       « Journal Article » ; il ne répond qu'à une requête qui lit le titre. */
+    const TYPE_TITRE = '("randomized"[Title] OR "randomised"[Title]) AND "trial"[Title]';
+    const TITRE = 'Effect of Vasopressin Initiation Threshold on Septic Shock Mortality: A Cluster Crossover Randomized Strategy Trial';
+    const plan = (endpoint, params) => {
+      if (endpoint === 'esearch.fcgi') {
+        const term = params.get('term') || '';
+        const general = term.indexOf('"JAMA"[Journal]') !== -1 && term.indexOf('"Anesthesiology"[Journal]') === -1;
+        // le marqueur exact de la clause « titre » (« randomized »/« trial » figurent déjà dans la liste noire des protocoles)
+        if (general && term.indexOf(TYPE_TITRE) !== -1)
+          return { esearchresult: { count: '1', idlist: ['301'] } };
+        return { esearchresult: { count: '0', idlist: [] } };
+      }
+      if (endpoint === 'efetch.fcgi') return efetchXml(params, () => ({ titre: TITRE, revue: 'JAMA', pubtypes: ['Journal Article'], resume: 'In septic shock, early vasopressin did not reduce mortality.', date: new Date().toISOString().slice(0, 10) }));
+      return {};
+    };
+    const m = monde(plan);
+    vm.runInContext('getOrCreateVeilleTabs()', m.ctx);
+    const res = vm.runInContext('runVeille()', m.ctx);
+    const qG = m.requetes.filter(q => q.endpoint === 'esearch.fcgi' && q.term.indexOf('"JAMA"[Journal]') !== -1 && q.term.indexOf('"Anesthesiology"[Journal]') === -1);
+    const qD = m.requetes.filter(q => q.endpoint === 'esearch.fcgi' && q.term.indexOf('"Anesthesiology"[Journal]') !== -1);
+    const lignes = m.cl.getSheetByName('VEILLE').lignes.slice(1);
+    V('l\'essai JAMA non étiqueté entre dans la veille', res.axeCroise === 1 && lignes.some(l => String(l[0]) === '301'), [res.axeCroise, lignes.length]);
+    const l = lignes.find(x => String(x[0]) === '301') || [];
+    V('…comme article de revue généraliste, noté en essai randomisé', l[6] === 'GENERAL' && /ECR/.test(String(l[14])) && Number(l[7]) >= 80, [l[6], l[7], l[14]]);
+    V('l\'étiquette PubMed reste acceptée (la liste blanche n\'est pas remplacée)', qG.length === 1 && qG[0].term.indexOf(BLANCHE) !== -1);
+    V('le titre écarte analyses secondaires, post hoc et protocoles', qG.length === 1 && ['"secondary"[Title]', '"post hoc"[Title]', '"protocol"[Title]'].every(x => qG[0].term.indexOf(x) !== -1));
+    V('l\'axe direct n\'est pas touché (aucune restriction de type)', qD.length >= 1 && qD.every(q => q.term.indexOf(TYPE_TITRE) === -1 && q.term.indexOf(BLANCHE) === -1), qD.map(q => q.term.slice(0, 120)));
+    const t = qG.length ? qG[0].term : ''; let prof = 0, mini = 0; for (const ch of t) { if (ch === '(') prof++; if (ch === ')') prof--; mini = Math.min(mini, prof); }
+    V('la requête envoyée à PubMed a ses parenthèses équilibrées', t && prof === 0 && mini === 0, prof);
+    const mots = /"[^"]*\b(of|for|the|a|and|after|in|on|to|with)\b[^"]*"\[Title\]/i;
+    V('aucune expression de titre ne contient de mot vide (PubMed les ignorerait)', t && !mots.test(t), (t.match(mots) || [])[0]);
+  }
+
 console.log(`\n${ok} OK · ${ko} en échec`);
   process.exit(ko ? 1 : 0);
 })();  console.log('\n═══ Passe 4 : le résumé en deux lignes (15/09/2026) ═══');
