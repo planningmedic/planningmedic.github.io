@@ -759,6 +759,76 @@ function monde(plan) {
     V('le guide MAR explique la règle (3 mois, ★ favori) et le geste « garder un article »', /Je veux garder un article/.test(guide) && /3 mois/.test(guide) && /★ Favoris/.test(guide));
   }
 
+  console.log('\n═══ Recherche dans les archives (20/10/2026, v1.31) — consultation seule ═══');
+  {
+    const m = monde(() => ({}));
+    vm.runInContext('getOrCreateVeilleTabs()', m.ctx);
+    const vide = vm.runInContext('chercherVeilleArchive("vasopressine")', m.ctx);
+    V('pas encore d\'onglet VEILLE_ARCHIVE : réponse vide, pas d\'erreur', vide.success === true && vide.total === 0 && vide.items.length === 0, vide);
+    const a = m.cl.insertSheet('VEILLE_ARCHIVE');
+    a.lignes.push(['PMID', 'DATE_PUB', 'TITRE', 'AUTEURS', 'REVUE', 'DOI', 'SOURCE', 'SCORE', 'RESUME', 'LU', 'STAR', 'AJOUTE_LE', 'PUBTYPE', 'THEMES', 'MOTIF']);
+    a.lignes.push(['701', '2026-02-16', 'Attenuated hemodynamic response to adjunct vasopressin in obese septic shock', 'Melchers M', 'Crit Care', '', 'REVUE', 60, '', 'N', 'N', '2026-08-08', 'Multicenter Study', 'Hémodynamique; Sepsis et infection', '']);
+    a.lignes.push(['702', '2026-04-03', 'Vasopressin analogues for hemorrhagic shock resuscitation', 'Jiang S', 'Shock', '', 'REVUE', 50, '', 'N', 'N', '2026-08-08', '', 'Hémorragie et transfusion', '']);
+    a.lignes.push(['703', '2026-03-01', 'Prone positioning in ARDS', 'Bélanger É', 'Intensive Care Med', '', 'REVUE', 70, '', 'N', 'N', '2026-08-08', '', 'Ventilation et SDRA', '']);
+    for (let i = 0; i < 60; i++) a.lignes.push([String(800 + i), '2026-01-' + String(1 + (i % 28)).padStart(2, '0'), 'Sugammadex study ' + i, 'Auteur X', 'Anesth Analg', '', 'REVUE', 40, '', 'N', 'N', '2026-07-01', '', '', '']);
+    const ch = q => vm.runInContext('chercherVeilleArchive(' + JSON.stringify(q) + ')', m.ctx);
+    const r1 = ch('vasopressin');
+    V('un mot du titre : les 2 articles, le plus récent d\'abord', r1.success && r1.total === 2 && r1.items.map(i => i.pmid).join() === '702,701', r1.items && r1.items.map(i => i.pmid));
+    V('chaque mot doit figurer (« vasopressin obese » → 1)', ch('vasopressin obese').total === 1 && ch('vasopressin obese').items[0].pmid === '701');
+    V('accents et majuscules ignorés (« BELANGER » trouve « Bélanger »)', ch('BELANGER').total === 1);
+    V('la revue compte aussi (« shock » trouve le titre ET la revue Shock)', ch('shock').total === 2);
+    V('moins de 3 lettres : refus poli, rien n\'est lu', ch('ab').success === false && /3 lettres/.test(ch('ab').error));
+    const r60 = ch('sugammadex');
+    V('au plus 50 renvoyés, le total exact annoncé (60)', r60.items.length === 50 && r60.total === 60, [r60.items.length, r60.total]);
+    V('consultation seule : ni « lu » ni étoile dans la réponse', r1.items.every(i => !('lu' in i) && !('star' in i)));
+    const portail = fs.readFileSync('../gas/portail.gs', 'utf8');
+    V('le routeur du portail sert chercherVeilleArchive (lecture, hors verrou d\'écriture)', /case 'chercherVeilleArchive': return _portailJson\(chercherVeilleArchive\(payload && payload\.q\)\)/.test(portail) && !/'chercherVeilleArchive'/.test(fs.readFileSync('../gas/Indispos.gs', 'utf8')));
+
+    // L'écran, piloté au clic
+    const { JSDOM, VirtualConsole } = require('jsdom');
+    const vcons = new VirtualConsole(); const erreurs = []; vcons.on('jsdomError', e => erreurs.push(e.message));
+    const dom = new JSDOM(fs.readFileSync('../index.html', 'utf8'), {
+      runScripts: 'dangerously', virtualConsole: vcons, url: 'https://planningmedic.github.io/index.html', pretendToBeVisual: true,
+      beforeParse(win) {
+        win.eval(fs.readFileSync(require('path').join(__dirname, '..', 'partage', 'portail.js'), 'utf8')); win.eval(fs.readFileSync(require('path').join(__dirname, '..', 'partage', 'rendu_equite.js'), 'utf8'));
+        win.matchMedia = () => ({ matches:false, addListener(){}, removeListener(){}, addEventListener(){}, removeEventListener(){} });
+        win.Element.prototype.scrollIntoView = function () {}; win.scrollTo = () => {};
+      } });
+    const w = dom.window, d = w.document;
+    const demandes = [];
+    w.fetch = async (u, o) => { let b = {}; try { b = JSON.parse(o && o.body || '{}'); } catch (e) {} demandes.push(b);
+      if (b.action === 'chercherVeilleArchive') return { ok:true, json: async () => ({ success:true, total: 1, items: [{ pmid:'701', date:'2026-02-16', titre:'Attenuated hemodynamic response to adjunct vasopressin', auteurs:'Melchers M', revue:'Crit Care', doi:'' }] }), text: async () => JSON.stringify({ success:true, total:1, items:[{ pmid:'701', date:'2026-02-16', titre:'Attenuated hemodynamic response to adjunct vasopressin', auteurs:'Melchers M', revue:'Crit Care', doi:'' }] }) };
+      return { ok:true, json: async () => ({ success:true }), text: async () => '{"success":true}' }; };
+    await new Promise(r => setTimeout(r, 300));
+    const art = (pmid, titre) => ({ pmid, date:'2026-10-01', titre, auteurs:'', revue:'JAMA', doi:'', source:'GENERAL', score:90, resume:'', lu:false, star:false, ajoute:'2026-10-19', pubtype:'', themes:['Hémodynamique'], motif:'', vieux:false });
+    w.miroirRead = async () => ({ success:true, data: { veille: { success:true, items: [art('1', 'Vasopressin initiation threshold in septic shock'), art('2', 'Dobutamine plus norepinephrine')] }, veille_marques: { parMar: { '7': { lus: [], stars: [] } } } } });
+    try { w.localStorage.removeItem('pmVeilleFile'); w.localStorage.removeItem('pmVeilleRevues'); } catch (e) {}
+    await w.openVeille();
+    const champ = d.querySelector('.vsearch-big input');
+    const taper = v => { champ.value = v; champ.dispatchEvent(new w.Event('input')); };
+    V('sans recherche : aucun bouton archives', !d.querySelector('.varch-btn'));
+    taper('va');
+    V('moins de 3 lettres : pas de bouton', !d.querySelector('.varch-btn'));
+    taper('vasopressin');
+    const btn = d.querySelector('.varch-btn');
+    V('recherche « vasopressin » : le résultat actuel, puis le bouton « Chercher dans les archives »', [...d.querySelectorAll('#veilleList .veille-card:not(.varch-card) .vc-title')].length === 1 && btn && btn.textContent === 'Chercher dans les archives');
+    V('rien n\'est demandé au serveur tant qu\'on n\'a pas touché le bouton', !demandes.some(b => b.action === 'chercherVeilleArchive'));
+    btn.click();
+    await new Promise(r => setTimeout(r, 50));
+    const q = demandes.find(b => b.action === 'chercherVeilleArchive');
+    V('le bouton interroge les archives avec le texte tapé', q && q.q === 'vasopressin', q);
+    const ac = [...d.querySelectorAll('.varch-card')];
+    V('le résultat archivé s\'affiche avec son badge « Archivé » et l\'en-tête « 1 résultat dans les archives »', ac.length === 1 && ac[0].querySelector('.varch-badge').textContent === 'Archivé' && /1 résultat dans les archives/.test(d.querySelector('.varch-h').textContent));
+    V('consultation seule : ni « Marquer lu » ni étoile sur une carte archivée, le titre ouvre PubMed', !ac[0].querySelector('button.vc-act') && !!ac[0].querySelector('a.vc-act[href*="pubmed"]') && /pubmed\.ncbi\.nlm\.nih\.gov\/701\//.test(ac[0].querySelector('.vc-title').href));
+    taper('dobutamine');
+    V('changer la recherche efface les résultats archivés et repropose le bouton', !d.querySelector('.varch-card') && !!d.querySelector('.varch-btn'));
+    taper('zzzz');
+    V('aucun résultat actuel : le bouton archives reste proposé', /Rien à afficher/.test(d.getElementById('veilleList').textContent) && !!d.querySelector('.varch-btn'));
+    V('aucune erreur JavaScript', erreurs.length === 0, erreurs.slice(0, 2));
+    const guide = fs.readFileSync('../docs/guide-mar.html', 'utf8');
+    V('le guide MAR explique « Chercher dans les archives »', /Chercher dans les archives/.test(guide));
+  }
+
 console.log(`\n${ok} OK · ${ko} en échec`);
   process.exit(ko ? 1 : 0);
 })();  console.log('\n═══ Passe 4 : le résumé en deux lignes (15/09/2026) ═══');

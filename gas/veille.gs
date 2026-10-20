@@ -57,7 +57,7 @@
 //  instantané unique et partagé : chantier séparé.
 // ══════════════════════════════════════════════════════════════════════
 
-const GAS_VERSION_VEILLE = '2026-10-20.2';
+const GAS_VERSION_VEILLE = '2026-10-20.3';
 
 const VEILLE_CFG_TAB = 'VEILLE_CFG';
 const VEILLE_TAB     = 'VEILLE';
@@ -1123,6 +1123,41 @@ function veilleArchiver() {
   Logger.log('Archivage veille : ' + partir.length + ' articles déplacés vers ' + VEILLE_ARCHIVE_TAB +
              ' (anciens de plus de ' + mois + ' mois, sans étoile) · ' + garder.length + ' restent.');
   return { success: true, archives: partir.length, restent: garder.length };
+}
+
+/* (20/10/2026) RECHERCHE DANS LES ARCHIVES — consultation seule (choix d'Arthur :
+   ni étoile ni « lu » sur un archivé). L'archive n'est PAS dans l'instantané
+   servi à l'écran (elle l'alourdirait de ~2 000 lignes pour un usage rare) :
+   elle se lit à la demande, quand un MAR touche « Chercher dans les archives ».
+   Chaque mot tapé doit figurer dans le titre, les auteurs ou la revue, accents
+   et majuscules ignorés. Les 50 plus récents ; `total` dit combien correspondent. */
+const VEILLE_ARCHIVE_MAX = 50;
+
+function _veilleSansAccent(t) {
+  return String(t || '').toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '');
+}
+
+function chercherVeilleArchive(q) {
+  const mots = _veilleSansAccent(q).split(/\s+/).filter(Boolean);
+  if (mots.join('').length < 3) return { success: false, error: 'Tapez au moins 3 lettres.' };
+  const a = SpreadsheetApp.getActiveSpreadsheet().getSheetByName(VEILLE_ARCHIVE_TAB);
+  if (!a || a.getLastRow() < 2) return { success: true, total: 0, items: [] };
+  const data = a.getDataRange().getValues();
+  const trouves = [];
+  for (let r = 1; r < data.length; r++) {
+    const l = data[r];
+    const pmid = String(l[0] || '').trim();
+    if (!pmid) continue;
+    const texte = _veilleSansAccent([l[2], l[3], l[4]].join(' '));
+    if (!mots.every(function (m) { return texte.indexOf(m) !== -1; })) continue;
+    trouves.push({
+      pmid: pmid, date: _isoDate(l[1]), titre: String(l[2] || ''), auteurs: String(l[3] || ''),
+      revue: String(l[4] || ''), doi: String(l[5] || ''), pubtype: String(l[12] || ''),
+      themes: _veilleSplitThemes(l[13]),
+    });
+  }
+  trouves.sort(function (x, y) { return x.date < y.date ? 1 : (x.date > y.date ? -1 : 0); });
+  return { success: true, total: trouves.length, items: trouves.slice(0, VEILLE_ARCHIVE_MAX) };
 }
 
 // ══════════════════════════════════════════════════════════════════════

@@ -499,6 +499,13 @@ a.tile, .tile.clickable { cursor: pointer; }
 .veille-toolbar .vsel{width:100%;min-width:0;text-align:center;text-align-last:center;-webkit-appearance:none;appearance:none;padding:8px 22px 8px 10px;background:var(--white) url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='%2394A3B8' stroke-width='2.5' stroke-linecap='round'%3E%3Cpath d='M6 9l6 6 6-6'/%3E%3C/svg%3E") no-repeat right 8px center;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;cursor:pointer}
 .veille-toolbar .vsel.actif{border-color:var(--me-border);color:var(--me);font-weight:600}
 .veille-toolbar .vrev-wrap{min-width:0}
+.varch{margin:18px 0 8px;padding:14px;border:1px dashed var(--line);border-radius:14px;text-align:center}
+.varch-q{font-size:13px;color:var(--ink-3);margin-bottom:10px}
+.varch-q:last-child{margin-bottom:0}
+.varch-btn{width:100%;max-width:360px;border:1px solid var(--me-border);background:var(--white);color:var(--me);border-radius:10px;padding:10px 12px;font:600 14px 'DM Sans',sans-serif;cursor:pointer}
+.varch-h{margin:22px 0 10px;font:600 13px 'DM Sans',sans-serif;color:var(--ink-3)}
+.varch-card{background:var(--surface-2)}
+.varch-badge{display:inline-block;margin-right:6px;padding:2px 8px;border-radius:6px;background:var(--viol-soft);color:var(--viol);font-size:11px;font-weight:600}
 .vfilter{display:inline-flex;background:var(--surface-2);border-radius:10px;padding:3px}
 .vfilter button{border:0;background:transparent;color:var(--ink-3);font:600 13px 'DM Sans',sans-serif;padding:6px 14px;border-radius:8px;cursor:pointer}
 .vfilter button.on{background:var(--white);color:var(--me);box-shadow:0 1px 2px rgba(15,23,42,.06)}
@@ -2696,6 +2703,45 @@ function _vtLegende(){
   return '<div class="vt-legend">'+[['Essai randomisé','ecr'],['Méta-analyse','meta'],['Revue systématique','rs'],['Recommandation','reco'],['Autre','aut']]
     .map(function(x){ return '<span><i class="vt-dot" style="background:'+_VT_COUL[x[1]][0]+'"></i>'+x[0]+'</span>'; }).join('')+'</div>';
 }
+/* (20/10/2026, v1.31) RECHERCHE DANS LES ARCHIVES — consultation seule. Les articles de plus de
+   3 mois sans étoile quittent la liste (archivage) ; une recherche d'au moins 3 lettres propose de
+   fouiller aussi l'archive, chargée À LA DEMANDE (elle n'est pas dans la liste ouverte à l'écran). */
+let V_ARCH = { q:'', etat:'', items:[], total:0 };
+function _vArchBloc(){
+  const q = V_SEARCH;
+  if(!q || q.replace(/\s+/g,'').length < 3) return '';
+  if(V_ARCH.q !== q) V_ARCH = { q:q, etat:'', items:[], total:0 };
+  const bouton = '<button class="varch-btn" onclick="chercherArchives()">Chercher dans les archives</button>';
+  if(V_ARCH.etat==='') return '<div class="varch"><div class="varch-q">Vous cherchez un article plus ancien ?</div>'+bouton+'</div>';
+  if(V_ARCH.etat==='charge') return '<div class="varch"><div class="varch-q">Recherche dans les archives…</div></div>';
+  if(V_ARCH.etat==='erreur') return '<div class="varch"><div class="varch-q">Recherche impossible pour le moment.</div>'+bouton+'</div>';
+  if(!V_ARCH.items.length) return '<div class="varch"><div class="varch-q">Rien dans les archives pour « '+esc(q)+' ».</div></div>';
+  const n = V_ARCH.total;
+  return '<div class="varch-h">'+n+' résultat'+(n>1?'s':'')+' dans les archives'+(n>V_ARCH.items.length?' · les '+V_ARCH.items.length+' plus récents':'')+'</div>'
+    + '<div class="vt-grid">'+V_ARCH.items.map(_vArchCarte).join('')+'</div>';
+}
+function _vArchCarte(it){
+  const pub='https://pubmed.ncbi.nlm.nih.gov/'+encodeURIComponent(it.pmid)+'/';
+  return '<div class="veille-card varch-card"><div class="vc-meta"><span class="varch-badge">Archivé</span>'
+    + (it.revue?'<span class="vc-journal">'+esc(it.revue)+'</span>':'')+(it.date?' · '+fmtDate(it.date):'')+'</div>'
+    + '<a class="vc-title" href="'+pub+'" target="_blank" rel="noopener">'+esc(it.titre)+'</a>'
+    + (it.auteurs?'<div class="vc-authors">'+esc(it.auteurs)+'</div>':'')
+    + '<div class="vc-actions">'
+      + (it.doi?'<a class="vc-act droite" href="https://doi.org/'+esc(it.doi)+'" target="_blank" rel="noopener">DOI</a>':'')
+      + '<a class="vc-act'+(it.doi?'':' droite')+'" href="'+pub+'" target="_blank" rel="noopener">PubMed</a>'
+    + '</div></div>';
+}
+async function chercherArchives(){
+  const q = V_SEARCH;
+  V_ARCH = { q:q, etat:'charge', items:[], total:0 };
+  renderVeille();
+  let r = null;
+  try{ r = await apiPost({ action:'chercherVeilleArchive', q:q }); }catch(e){ r = null; }
+  if(V_ARCH.q !== q) return;                         // la recherche a changé entre-temps : réponse périmée
+  if(r && r.success){ V_ARCH.etat='ok'; V_ARCH.items=r.items||[]; V_ARCH.total=r.total||0; }
+  else V_ARCH.etat='erreur';
+  renderVeille();
+}
 function renderVeille(){
   const box=document.getElementById('veilleList');
   const unread=VEILLE_ITEMS.filter(function(i){return !i.lu;}).length;
@@ -2713,13 +2759,13 @@ function renderVeille(){
      7 jours) — un en-tête qui les compte par type, avant la liste. Invisible s'il n'y en a aucun.
      (13/10) Seulement sur la vue rangée par thèmes. */
   const _semaine = V_THEME ? '' : _vSemaine();
-  if(!shown.length){ box.innerHTML=_semaine+'<div class="topos-empty">Rien à afficher avec ce filtre.</div>'; return; }
+  if(!shown.length){ box.innerHTML=_semaine+'<div class="topos-empty">Rien à afficher avec ce filtre.</div>'+_vArchBloc(); return; }
   shown.sort(_vtTri);
   /* Un thème ouvert, une recherche ou les favoris : la liste complète, sans regroupement. */
   if(V_THEME || V_SEARCH || V_FILTER==='star'){
     const tete = V_THEME ? '<div class="vt-sec-h" style="margin-top:4px"><button class="vt-back" data-vth="">← Tous les thèmes</button>'
       + '<span class="vt-bar" style="background:'+_vtCouleur(V_THEME)+'"></span><h3>'+esc(V_THEME)+'</h3><span class="cnt">'+shown.length+'</span></div>' : '';
-    box.innerHTML = _semaine + _vtLegende() + tete + '<div class="vt-grid">'+shown.map(_vtCarte).join('')+'</div>';
+    box.innerHTML = _semaine + _vtLegende() + tete + '<div class="vt-grid">'+shown.map(_vtCarte).join('')+'</div>' + _vArchBloc();
     return;
   }
   /* Vue rangée par thèmes : les 3 meilleurs de chaque thème, un article n'apparaît qu'une fois
