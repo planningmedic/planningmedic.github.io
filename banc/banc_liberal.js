@@ -1095,6 +1095,48 @@ console.log('\n═══ 6. La page de cotation ne dit rien qu\'elle ne sache �
     w.setStatut('nas'); mut(0); await dodo(20);
     V('NAS sans mutuelle : la caisse ne rembourse rien, reste = total',
       proche(ev('lastRac'), ev('parcoursBR()') + dhv()), [ev('lastRac'), ev('parcoursBR()')]);
+
+    /* ── DEVIS NAS ET DEVIS EN ANGLAIS (20/10/2026) ──────────────────────────
+       Demande du responsable : un NAS n'a pas de remboursement CCAM. Son devis porte
+       la somme totale et le nom de l'acte, sans code ni base. Et un clic bascule le
+       devis en anglais. */
+    {
+      const dhIn = d.getElementById('dh'); dhIn.disabled = false; dhIn.value = '300'; w.majBarre();
+      d.getElementById('dInt').value = '2099-01-01';
+      const totNas = ev('parcoursBR()') + 300;
+      w.ouvrirDevisCourant(); await dodo(20);
+      const lignes = d.getElementById('dvActes').textContent;
+      V('devis NAS : aucun code CCAM, ni dans les lignes ni dans l\'intitulé',
+        !/[A-Z]{4}\d{3}/.test(lignes) && !/[A-Z]{4}\d{3}/.test(d.getElementById('dvActe').textContent) && !/CCAM/.test(lignes),
+        [lignes.slice(0, 120), d.getElementById('dvActe').textContent]);
+      V('…mais le nom de l\'acte est bien là', lignes.trim().length > 3 && d.getElementById('dvActe').textContent.trim().length > 3);
+      V('…et un seul montant : la somme totale', proche(lireEur(d.getElementById('dvHon').textContent), totNas)
+        && d.getElementById('dvTotLbl').textContent === 'Total à régler',
+        [d.getElementById('dvHon').textContent, totNas]);
+      V('…colonnes base / dépassement / remboursement et encadrés de reste à charge masqués',
+        d.getElementById('dvTable').classList.contains('nas') && d.getElementById('dvRac').classList.contains('nas')
+        && /table\.acts\.nas th:nth-child\(2\)/.test(html) && /\.rac\.nas\{display:none\}/.test(html));
+      w.basculerLangueDevis(); await dodo(10);
+      const h1 = () => d.querySelector('#devisOverlay .sheet:not(.decl) h1').textContent;
+      V('un clic : le devis passe en anglais', /Cost estimate/.test(h1()) && /Not covered/.test(d.getElementById('dvStatut').textContent)
+        && d.getElementById('dvTotLbl').textContent === 'Total payable' && d.getElementById('dvLang').textContent === 'Français'
+        && d.getElementById('dvMut').textContent === 'none',
+        [h1(), d.getElementById('dvStatut').textContent, d.getElementById('dvTotLbl').textContent]);
+      V('…le montant ne change pas', proche(lireEur(d.getElementById('dvHon').textContent), totNas));
+      V('…la déclaration de choix reste en français', /Déclaration de choix/.test(d.querySelector('#declSheet h1').textContent));
+      V('…aucun texte français oublié dans les blocs traduits',
+        [...d.querySelectorAll('#devisOverlay .sheet:not(.decl) [data-i18n]')].every(el => !/[éèàç]|Honoraires|Devis/.test(el.textContent) || /carte verte/.test(el.textContent)));
+      w.basculerLangueDevis(); await dodo(10);
+      V('second clic : retour au français à l\'identique', /Estimation de frais/.test(h1()) && d.getElementById('dvTotLbl').textContent === 'Total à régler'
+        && d.getElementById('dvLang').textContent === 'English');
+      w.basculerLangueDevis(); w.closeDevis();
+      w.setStatut('verte'); await dodo(10); w.ouvrirDevisCourant(); await dodo(20);
+      V('fermer remet le français ; un devis carte verte garde codes, base et encadrés',
+        /Estimation de frais/.test(h1()) && !d.getElementById('dvTable').classList.contains('nas')
+        && /[A-Z]{4}\d{3}/.test(d.getElementById('dvActes').textContent) && d.getElementById('dvTotLbl').textContent === 'Total',
+        [h1(), d.getElementById('dvActes').textContent.slice(0, 80)]);
+      w.closeDevis(); w.setStatut('nas'); await dodo(10);
+    }
     d.getElementById('dInt').value = '';
     w.setStatut('fr'); mut(0); await dodo(20); br = ev('parcoursBR()');
     const guideM = fs.readFileSync('../docs/guide-liberal.html', 'utf8');

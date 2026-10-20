@@ -170,6 +170,14 @@
   #devisOverlay .dvbar button{border:0;border-radius:8px;padding:9px 16px;font:inherit;font-weight:600;font-size:13px;cursor:pointer}
   #devisOverlay .dvprint{background:var(--ccam);color:#fff}
   #devisOverlay .dvclose{background:#fff;color:var(--ink);border:1px solid var(--line)}
+  #devisOverlay .dvlang{background:#fff;color:var(--ccam);border:1px solid var(--ccam)}
+  /* (20/10/2026) DEVIS NAS : un seul montant, le nom de l'acte, ni code ni base de
+     remboursement (aucune caisse ne rembourse un NAS). On masque les colonnes BR,
+     « dont dépassement » et remboursement, et les deux encadrés de reste à charge. */
+  #devisOverlay table.acts.nas th:nth-child(2),#devisOverlay table.acts.nas td:nth-child(2),
+  #devisOverlay table.acts.nas th:nth-child(4),#devisOverlay table.acts.nas td:nth-child(4),
+  #devisOverlay table.acts.nas th:nth-child(5),#devisOverlay table.acts.nas td:nth-child(5){display:none}
+  #devisOverlay .rac.nas{display:none}
   #devisOverlay .dvnote{max-width:800px;margin:0 auto 12px;font-size:11px;color:#5B6C76;text-align:center}
   #devisOverlay .sheet{max-width:800px;margin:0 auto;background:#fff;border:1px solid var(--line);border-radius:6px;box-shadow:0 10px 30px rgba(22,34,44,.10);padding:34px 38px 30px;color:#16222C}
   #devisOverlay .head{display:flex;justify-content:space-between;gap:18px;border-bottom:2px solid #16222C;padding-bottom:14px}
@@ -1582,7 +1590,15 @@ function renderDevisActes(p){
   const tb=document.getElementById('dvActes'); if(!tb) return;
   const nom = (p.axe==='CCAM') ? 'CCAM' : 'NGAP';   // abrege : la ligne doit tenir sur une seule ligne
   const lines = (p.lines && p.lines.length) ? p.lines
-              : [{code:'', lib:p.desc||'Acte', br:p.br, mods:[]}];   // filet : parcours sans detail
+              : [{code:'', lib:p.desc||dvT('acte'), br:p.br, mods:[]}];   // filet : parcours sans detail
+  /* (20/10/2026) NAS : le nom de l'acte seul, sans code ni montant par ligne —
+     un seul montant, sur la ligne de total. */
+  if(p.statut==='nas'){
+    tb.innerHTML = lines.map(l=>`<tr>
+      <td class="l"><span class="lib">${esc(l.lib||dvT('acte'))}</span></td>
+      <td class="num"></td><td class="num"></td><td class="num"></td><td class="num"></td></tr>`).join('');
+    return;
+  }
   tb.innerHTML = lines.map(l=>{
     const m=(l.mods&&l.mods.length) ? ' \u00b7 mod. '+l.mods.join(', ') : '';
     const c=l.code ? esc(l.code)+' \u00b7 ' : '';
@@ -1610,11 +1626,8 @@ function openDevis(i){
   eText('dvDateValid', fmtDate(valid));
   document.getElementById('dvDatePrevue').textContent=fmtI(p.dInt||p.dCs);
   // Acte + statut + mutuelle + montants
-  eText('dvStatut', ST_LABELS[p.statut]||p.statut);
-  eText('dvActe', p.desc||'Acte');
-  renderDevisActes(p);
+  devisTextes(p);
   eText('dvBR', eur2(p.br)); eText('dvHon', eur2(dvHonoraire)); eText('dvDH', eur2(p.dh));
-  eText('dvMut', p.mut||'non renseignée');
   const ra=document.getElementById('dvRacAfter');
   ra.textContent = p.rac!=null?eur2(p.rac):'—';
   ra.className='v '+((p.rac!=null&&p.rac<=0.005)?'zero':'pos');
@@ -1627,6 +1640,80 @@ function openDevis(i){
   eText('dcPratName', document.getElementById('cfgPrat').value.trim()||'[Nom Prénom]');
   document.getElementById('devisOverlay').style.display='block';
   window.scrollTo(0,0);
+}
+/* ── DEVIS EN ANGLAIS (20/10/2026) ──────────────────────────────────────
+   Un clic bascule la FEUILLE DU DEVIS en anglais et retour. La déclaration de
+   choix reste en français : c'est l'imprimé de l'établissement. Les libellés
+   d'actes sont les libellés officiels français : ils ne se traduisent pas.
+   Rien n'est enregistré : la langue revient au français à la fermeture. */
+let DV_LANG='fr';
+const DV_EN={
+  role:'Anaesthesiologist and intensive care physician — sector 2 (free fees, non-OPTAM)',
+  rpps:'RPPS no.', libEtab:'Private practice within the hospital', intraHosp:'In-hospital private practice',
+  titre:'Cost estimate — Prior written information',
+  sousTitre:'Given to the patient before the procedure · please keep',
+  devisNo:'Estimate no.', etabliLe:'Issued on', valable:'Valid until',
+  patient:'Patient', nomPrenom:'Full name:', regime:'Insurance status:', tagBulle:'Free fees · prior agreement',
+  interv:'Planned procedure', datePrevue:'Planned date:', etabLbl:'Hospital:', secteurLib:'— private practice',
+  detail:'Procedures and fees', thBR:'Reimbursement base', thHon:'Fees', thDH:'of which extra fee', thRRO:'Health insurance refund',
+  racAvant:'Out-of-pocket before supplementary insurance',
+  racAvantNote:'Fees − health insurance refund. Enter the refund in the table to display it.',
+  racApres:'Estimated out-of-pocket after supplementary insurance',
+  estimMut:'<b>Estimate</b> — supplementary insurance:', sousReserve:'Subject to the patient\'s actual policy.',
+  engage1:'I, the undersigned patient named above, <b>request to be treated as a private patient</b> at',
+  engage2:', declare that I received this information <b>before</b> the procedure and understood it, and <b>I undertake to pay the fees</b> stated. The extra fee is set with tact and moderation and calibrated, as far as possible, to minimise my out-of-pocket cost.',
+  sigPrat:'The physician', sig:'Signature', sigPat:'The patient — “Read and approved”', dateSig:'Date and signature',
+  legal1:'<b>Status.</b> Sector 2 physician with free fees (not an OPTAM member), set with tact and moderation — art. R.4127-53 of the French Public Health Code. Estimate issued under art. L.1111-3-2 and the decree of 2 October 2008 (written information required from €70 of extra fees).',
+  legal2:'<b>Payment and reimbursement.</b> Payment is due only after the procedure; no deposit cheque is required. Supplementary reimbursement depends on the patient\'s policy: the “estimated out-of-pocket after supplementary insurance” is indicative and does not bind the insurer.',
+  legal3:'<b>Consent and withdrawal.</b> Private care requires a named declaration of choice signed by the patient and the physician and filed in the medical record; otherwise the patient is treated in the public sector. The patient remains free to withdraw and opt for the public sector, with no effect on the quality or timing of care.',
+  legal4:'<b>Protected beneficiaries.</b> No extra fee is charged to beneficiaries of protected coverage (carte verte, SPME, AME, C2S): only the standard tariff applies.',
+  pied:'Issued in two copies: one for the patient, one for the medical record.'
+};
+const DV_PH_EN={etab:'Hospital', adresse:'Address', date:'DD/MM/YYYY'};
+// Textes posés par le code : français / anglais
+const DV_DYN={
+  fr:{acte:'Acte', thActe:'Acte — Code', thActeNas:'Acte', total:'Total', totalNas:'Total à régler', mutNon:'non renseignée', mutAucune:'aucune', mutBR:' % BR'},
+  en:{acte:'Procedure', thActe:'Procedure — Code', thActeNas:'Procedure', total:'Total', totalNas:'Total payable', mutNon:'not specified', mutAucune:'none', mutBR:' % of base'}
+};
+const ST_LABELS_EN={verte:'CCSS Monaco — carte verte',rose:'CCSS Monaco — carte rose',bulle:'CCSS Monaco — carte bulle',fr:'French health insurance (sector 2)',nas:'Not covered by any health insurance (NAS)',spme:'SPME (Monaco)'};
+function dvT(k){ return DV_DYN[DV_LANG][k]; }
+function dvMutTexte(m){
+  if(!m) return dvT('mutNon');
+  if(m==='aucune') return dvT('mutAucune');
+  const x=/^(\d+) % BR$/.exec(m);
+  return x ? x[1]+dvT('mutBR') : m;
+}
+/* Tout ce qui dépend de la langue ou du statut, SANS toucher aux champs saisis à
+   l'écran (dates, remboursement) : appelé à l'ouverture ET à chaque bascule. */
+function devisTextes(p){
+  const nas = p.statut==='nas';
+  eText('dvStatut', (DV_LANG==='en' ? ST_LABELS_EN[p.statut] : ST_LABELS[p.statut]) || p.statut);
+  // NAS : le nom des actes, sans code
+  eText('dvActe', nas ? ((p.lines||[]).map(l=>l.lib||dvT('acte')).join(' + ') || p.desc || dvT('acte')) : (p.desc||dvT('acte')));
+  renderDevisActes(p);
+  eText('dvMut', dvMutTexte(p.mut));
+  eText('dvThActe', dvT(nas ? 'thActeNas' : 'thActe'));
+  eText('dvTotLbl', dvT(nas ? 'totalNas' : 'total'));
+  document.getElementById('dvTable').classList.toggle('nas', nas);
+  document.getElementById('dvRac').classList.toggle('nas', nas);
+  appliquerLangueDevis();
+}
+function appliquerLangueDevis(){
+  const feuille=document.querySelector('#devisOverlay .sheet:not(.decl)'); if(!feuille) return;
+  feuille.querySelectorAll('[data-i18n]').forEach(el=>{
+    if(el.dataset.fr==null) el.dataset.fr=el.innerHTML;
+    el.innerHTML = DV_LANG==='en' ? DV_EN[el.dataset.i18n] : el.dataset.fr;
+  });
+  feuille.querySelectorAll('[data-i18n-ph]').forEach(el=>{
+    if(el.dataset.phFr==null) el.dataset.phFr=el.dataset.ph;
+    el.dataset.ph = DV_LANG==='en' ? DV_PH_EN[el.dataset.i18nPh] : el.dataset.phFr;
+  });
+  const b=document.getElementById('dvLang'); if(b) b.textContent = DV_LANG==='en' ? 'Français' : 'English';
+  feuille.setAttribute('lang', DV_LANG);
+}
+function basculerLangueDevis(){
+  DV_LANG = DV_LANG==='en' ? 'fr' : 'en';
+  if(parcours[0]) devisTextes(parcours[0]); else appliquerLangueDevis();
 }
 function parseEur(t){return parseFloat((t||'').replace(/[^0-9.,-]/g,'').replace(',','.'))||0;}
 function recalcDevisRac(){
@@ -1643,6 +1730,7 @@ function printDevis(withDecl){
 }
 function closeDevis(){
   document.querySelectorAll('#devisOverlay .ed').forEach(e=>e.textContent='');   // rien ne persiste
+  DV_LANG='fr'; appliquerLangueDevis();                                          // retour au français
   document.getElementById('devisOverlay').style.display='none';
 }
 // ---- RECHERCHE CCAM (référentiel v83, chargé depuis ccam_actes.json) ----
@@ -1897,6 +1985,7 @@ populateMut();poserEcran();renderSummary();
   <div class="dvbar">
     <button class="dvprint" onclick="printDevis(false)">Imprimer le devis</button>
     <button class="dvprint" onclick="printDevis(true)">Imprimer devis + déclaration de choix</button>
+    <button class="dvlang" id="dvLang" onclick="basculerLangueDevis()">English</button>
     <button class="dvclose" onclick="closeDevis()">Fermer</button>
   </div>
   <div class="dvnote">Aucun champ patient : <b>le nom est écrit à la main par le patient</b> sur le devis et la déclaration imprimés — aucune donnée patient ne transite par l'outil. Champs bleus restants (dates, remboursement) : saisis à l'écran, jamais enregistrés, effacés à la fermeture. La déclaration de choix est un <b>document autonome</b> : l'imprimer, la faire signer et la verser au dossier vaut aussi bien en soins externes qu'en hospitalisation.</div>
@@ -1904,46 +1993,46 @@ populateMut();poserEcran();renderSummary();
     <div class="head">
       <div class="prat">
         <div class="name">Dr <span id="dvPratName">—</span></div>
-        <div class="role">Médecin anesthésiste-réanimateur — secteur 2 (honoraires libres, non-OPTAM)</div>
-        <div class="meta">N° RPPS <span id="dvRPPS">—</span><br>Activité libérale au sein de l'établissement</div>
+        <div class="role" data-i18n="role">Médecin anesthésiste-réanimateur — secteur 2 (honoraires libres, non-OPTAM)</div>
+        <div class="meta"><span data-i18n="rpps">N° RPPS</span> <span id="dvRPPS">—</span><br><span data-i18n="libEtab">Activité libérale au sein de l'établissement</span></div>
       </div>
       <div class="estab">
-        <div class="e1"><span class="ed" contenteditable="true" data-ph="Établissement"></span></div>
-        <span class="ed" contenteditable="true" data-ph="Adresse"></span><br>Activité libérale intra-hospitalière
+        <div class="e1"><span class="ed" contenteditable="true" data-ph="Établissement" data-i18n-ph="etab"></span></div>
+        <span class="ed" contenteditable="true" data-ph="Adresse" data-i18n-ph="adresse"></span><br><span data-i18n="intraHosp">Activité libérale intra-hospitalière</span>
       </div>
     </div>
     <div class="doctitle">
-      <h1>Estimation de frais — Information écrite préalable</h1>
-      <div class="st">Remis au patient avant la réalisation de l'acte · à conserver</div>
+      <h1 data-i18n="titre">Estimation de frais — Information écrite préalable</h1>
+      <div class="st" data-i18n="sousTitre">Remis au patient avant la réalisation de l'acte · à conserver</div>
     </div>
     <div class="refline">
-      <span>Devis n° <b id="dvNum">—</b></span>
-      <span>Établi le <b id="dvDateEtabli">—</b></span>
-      <span>Valable jusqu'au <b id="dvDateValid">—</b></span>
+      <span><span data-i18n="devisNo">Devis n°</span> <b id="dvNum">—</b></span>
+      <span><span data-i18n="etabliLe">Établi le</span> <b id="dvDateEtabli">—</b></span>
+      <span><span data-i18n="valable">Valable jusqu'au</span> <b id="dvDateValid">—</b></span>
     </div>
     <div class="who">
       <div class="box">
-        <h2>Patient</h2>
-        <div class="l">Nom Prénom : <span class="hand" style="min-width:230px"></span><br>
-        Régime : <b id="dvStatut">—</b></div>
-        <span class="tag" id="dvTag" style="display:none">Honoraires libres · entente préalable</span>
+        <h2 data-i18n="patient">Patient</h2>
+        <div class="l"><span data-i18n="nomPrenom">Nom Prénom :</span> <span class="hand" style="min-width:230px"></span><br>
+        <span data-i18n="regime">Régime :</span> <b id="dvStatut">—</b></div>
+        <span class="tag" id="dvTag" style="display:none" data-i18n="tagBulle">Honoraires libres · entente préalable</span>
       </div>
       <div class="box">
-        <h2>Intervention prévue</h2>
+        <h2 data-i18n="interv">Intervention prévue</h2>
         <div class="l"><b id="dvActe">—</b><br>
-        Date prévue : <span class="ed" id="dvDatePrevue" contenteditable="true" data-ph="JJ/MM/AAAA"></span><br>
-        Établissement : <span class="ed" contenteditable="true" data-ph="Établissement"></span> — secteur libéral</div>
+        <span data-i18n="datePrevue">Date prévue :</span> <span class="ed" id="dvDatePrevue" contenteditable="true" data-ph="JJ/MM/AAAA" data-i18n-ph="date"></span><br>
+        <span data-i18n="etabLbl">Établissement :</span> <span class="ed" contenteditable="true" data-ph="Établissement" data-i18n-ph="etab"></span> <span data-i18n="secteurLib">— secteur libéral</span></div>
       </div>
     </div>
-    <h3 class="sec">Détail des actes et des honoraires</h3>
-    <table class="acts">
-      <thead><tr><th class="l">Acte — Code</th><th>Base rembt (BR)</th><th>Honoraires</th><th>dont dépassement</th><th>Rembt assur. maladie</th></tr></thead>
+    <h3 class="sec" data-i18n="detail">Détail des actes et des honoraires</h3>
+    <table class="acts" id="dvTable">
+      <thead><tr><th class="l" id="dvThActe">Acte — Code</th><th data-i18n="thBR">Base rembt (BR)</th><th data-i18n="thHon">Honoraires</th><th data-i18n="thDH">dont dépassement</th><th data-i18n="thRRO">Rembt assur. maladie</th></tr></thead>
       <!-- Une ligne par acte (rempli par renderDevisActes). Seule la BR se decompose ;
            honoraires, depassement et remboursement sont portes par la ligne de total. -->
       <tbody id="dvActes"></tbody>
       <tbody>
         <tr class="tot">
-          <td class="l">Total</td>
+          <td class="l" id="dvTotLbl">Total</td>
           <td class="num" id="dvBR">—</td>
           <td class="num" id="dvHon">—</td>
           <td class="num dhcol" id="dvDH">—</td>
@@ -1951,32 +2040,32 @@ populateMut();poserEcran();renderSummary();
         </tr>
       </tbody>
     </table>
-    <div class="rac">
+    <div class="rac" id="dvRac">
       <div class="racb">
-        <div class="k">Reste à charge avant complémentaire</div>
+        <div class="k" data-i18n="racAvant">Reste à charge avant complémentaire</div>
         <div class="v pos" id="dvRacBefore">—</div>
-        <div class="note">Honoraires − remboursement assurance maladie. Renseigne le remboursement dans le tableau pour l'afficher.</div>
+        <div class="note" data-i18n="racAvantNote">Honoraires − remboursement assurance maladie. Renseigne le remboursement dans le tableau pour l'afficher.</div>
       </div>
       <div class="racb mut">
-        <div class="k">Reste à charge estimé après mutuelle</div>
+        <div class="k" data-i18n="racApres">Reste à charge estimé après mutuelle</div>
         <div class="v zero" id="dvRacAfter">—</div>
-        <div class="note"><b>Estimation</b> — mutuelle : <span id="dvMut">—</span>. Sous réserve du contrat réel du patient.</div>
+        <div class="note"><span data-i18n="estimMut"><b>Estimation</b> — mutuelle :</span> <span id="dvMut">—</span>. <span data-i18n="sousReserve">Sous réserve du contrat réel du patient.</span></div>
       </div>
     </div>
     <div class="engage">
-      Je soussigné(e), patient(e) désigné(e) ci-dessus, <b>demande à bénéficier d'une prise en charge en activité libérale</b> au sein du <span class="ed" contenteditable="true" data-ph="Établissement"></span>, déclare avoir reçu la présente information <b>avant</b> la réalisation de l'acte, en avoir compris le contenu, et <b>m'engage à régler les honoraires</b> indiqués. Le dépassement est fixé avec tact et mesure et calibré, dans la mesure du possible, pour minimiser mon reste à charge.
+      <span data-i18n="engage1">Je soussigné(e), patient(e) désigné(e) ci-dessus, <b>demande à bénéficier d'une prise en charge en activité libérale</b> au sein du</span> <span class="ed" contenteditable="true" data-ph="Établissement" data-i18n-ph="etab"></span><span data-i18n="engage2">, déclare avoir reçu la présente information <b>avant</b> la réalisation de l'acte, en avoir compris le contenu, et <b>m'engage à régler les honoraires</b> indiqués. Le dépassement est fixé avec tact et mesure et calibré, dans la mesure du possible, pour minimiser mon reste à charge.</span>
     </div>
     <div class="sign">
-      <div class="sig"><div class="lab">Le praticien</div><div class="bp">Signature</div><div class="line"></div></div>
-      <div class="sig"><div class="lab">Le patient — « Bon pour accord »</div><div class="bp">Date et signature</div><div class="line"></div></div>
+      <div class="sig"><div class="lab" data-i18n="sigPrat">Le praticien</div><div class="bp" data-i18n="sig">Signature</div><div class="line"></div></div>
+      <div class="sig"><div class="lab" data-i18n="sigPat">Le patient — « Bon pour accord »</div><div class="bp" data-i18n="dateSig">Date et signature</div><div class="line"></div></div>
     </div>
     <div class="legalblk">
-      <p><b>Statut.</b> Praticien de secteur 2, honoraires libres (non adhérent OPTAM), fixés avec tact et mesure — art. R.4127-53 du code de la santé publique. Devis établi au titre de l'art. L.1111-3-2 et de l'arrêté du 2 octobre 2008 (information écrite dès 70 € de dépassement).</p>
-      <p><b>Paiement et remboursement.</b> Le paiement n'intervient qu'après réalisation de l'acte ; aucun chèque de caution n'est exigé. Le remboursement complémentaire dépend du contrat du patient : le « reste à charge estimé après mutuelle » est indicatif et n'engage pas l'organisme.</p>
-      <p><b>Consentement et rétractation.</b> La prise en charge libérale suppose une déclaration de choix nominative signée par le patient et le praticien, versée au dossier ; à défaut, le patient relève de l'activité publique. Il reste libre d'y renoncer et d'opter pour le secteur public, sans conséquence sur la qualité ni le délai des soins.</p>
-      <p class="imp"><b>Bénéficiaires protégés.</b> Aucun dépassement n'est facturé aux bénéficiaires d'une couverture protégée (carte verte, SPME, AME, C2S) : seul le tarif conventionnel s'applique.</p>
+      <p data-i18n="legal1"><b>Statut.</b> Praticien de secteur 2, honoraires libres (non adhérent OPTAM), fixés avec tact et mesure — art. R.4127-53 du code de la santé publique. Devis établi au titre de l'art. L.1111-3-2 et de l'arrêté du 2 octobre 2008 (information écrite dès 70 € de dépassement).</p>
+      <p data-i18n="legal2"><b>Paiement et remboursement.</b> Le paiement n'intervient qu'après réalisation de l'acte ; aucun chèque de caution n'est exigé. Le remboursement complémentaire dépend du contrat du patient : le « reste à charge estimé après mutuelle » est indicatif et n'engage pas l'organisme.</p>
+      <p data-i18n="legal3"><b>Consentement et rétractation.</b> La prise en charge libérale suppose une déclaration de choix nominative signée par le patient et le praticien, versée au dossier ; à défaut, le patient relève de l'activité publique. Il reste libre d'y renoncer et d'opter pour le secteur public, sans conséquence sur la qualité ni le délai des soins.</p>
+      <p class="imp" data-i18n="legal4"><b>Bénéficiaires protégés.</b> Aucun dépassement n'est facturé aux bénéficiaires d'une couverture protégée (carte verte, SPME, AME, C2S) : seul le tarif conventionnel s'applique.</p>
     </div>
-    <div class="dvfoot">Document établi en deux exemplaires : un pour le patient, un pour le dossier.</div>
+    <div class="dvfoot" data-i18n="pied">Document établi en deux exemplaires : un pour le patient, un pour le dossier.</div>
   </div>
 
   <!-- DÉCLARATION DE CHOIX — modèle service soins externes, praticien pré-rempli, patient manuscrit -->
