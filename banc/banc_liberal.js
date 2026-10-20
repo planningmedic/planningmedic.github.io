@@ -990,8 +990,8 @@ console.log('\n═══ 6. La page de cotation ne dit rien qu\'elle ne sache �
     V('Monaco : 2e rangée Verte · Rose · Bulle · SPME · NAS',
       visible('stCartes') && cartes.join(',') === 'verte,rose,bulle,spme,nas', cartes);
     V('les valeurs internes et les plafonds ne changent pas',
-      ev('JSON.stringify(STATUTS)') === JSON.stringify({ verte:{coeff:1.95,dh:'0'}, rose:{coeff:1.95,dh:'0.20'},
-        bulle:{coeff:1.95,dh:'libre'}, fr:{coeff:1, dh:'libre'}, nas:{coeff:1, dh:'libre'}, spme:{coeff:1.95,dh:'0'} }),
+      ev('JSON.stringify(STATUTS)') === JSON.stringify({ verte:{coeff:1.98,dh:'0'}, rose:{coeff:1.98,dh:'0.20'},
+        bulle:{coeff:1.98,dh:'libre'}, fr:{coeff:1, dh:'libre'}, nas:{coeff:1, dh:'libre'}, spme:{coeff:1.98,dh:'0'} }),
       ev('JSON.stringify(STATUTS)'));
     V('frc2s n\'est plus lu nulle part (statuts, libellé et taux du devis)',
       ev("!('frc2s' in STATUTS) && !('frc2s' in ST_LABELS) && !('frc2s' in RO_RATE)"));
@@ -1031,8 +1031,8 @@ console.log('\n═══ 6. La page de cotation ne dit rien qu\'elle ne sache �
     for (const st of ['fr', 'rose', 'bulle', 'nas', 'verte', 'spme']) { w.setStatut(st); vu[st] = visible('mutRow'); }
     V('mutuelle visible pour TOUS les statuts, Verte et SPME compris', Object.values(vu).every(Boolean), vu);
 
-    let br = ev('parcoursBR()');   // recalculée à chaque statut : 1,95 à Monaco, 1,00 en France
-    // ── Rose : TOUJOURS +20 % de la base (tarif CCAM × 1,95), quelle que soit la mutuelle ──
+    let br = ev('parcoursBR()');   // recalculée à chaque statut : 1,98 à Monaco, 1,00 en France
+    // ── Rose : TOUJOURS +20 % de la base (tarif CCAM × 1,98), quelle que soit la mutuelle ──
     w.setStatut('rose'); mut(300); await dodo(20); br = ev('parcoursBR()');
     V('rose + 300 % : dépassement = 20 % de la base', proche(dhv(), 0.20 * br), [dhv(), 0.20 * br]);
     V('et ce montant n\'est pas modifiable', d.getElementById('dh').disabled === true);

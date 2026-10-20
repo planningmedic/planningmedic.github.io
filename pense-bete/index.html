@@ -526,10 +526,16 @@ function chargerCCAM(){
   return ccamP;
 }
 const codeSaisi=()=>$('cCode').value.trim().toUpperCase().replace(/\s/g,'');
-// tarif (€) → centimes : + 6 % (modificateur 7) × 50 % éventuel × coefficient Monaco, arrondi au centime
-function montantAutre(t, r50, a){ return Math.round(Math.round(t*100) * 1.06 * (r50?0.5:1) * (a==='mc'?1.95:1)); }
+/* (20/10/2026) COEFFICIENT MONACO : celui de l'annexe III en vigueur depuis le
+   01/10/2026, vérifié au centime sur un recueil réel de l'hôpital.
+   ARRONDI : comme l'hôpital, on arrondit APRÈS le modificateur 7, PUIS on applique
+   le coefficient (un seul arrondi final faisait perdre un centime). Le cas réel
+   qui l'a montré est un scénario du banc (banc_pense_bete.js). */
+const COEF_MC = 1.98;
+// tarif (€) → centimes : + 6 % (modificateur 7) arrondi, × 50 % éventuel × coefficient Monaco, arrondi au centime
+function montantAutre(t, r50, a){ return Math.round(Math.round(Math.round(t*100) * 1.06) * (r50?0.5:1) * (a==='mc'?COEF_MC:1)); }
 // forfait de réa : tarif déjà en centimes, pas de modificateur 7
-function montantRea(c, r50, a){ return Math.round(c * (r50?0.5:1) * (a==='mc'?1.95:1)); }
+function montantRea(c, r50, a){ return Math.round(c * (r50?0.5:1) * (a==='mc'?COEF_MC:1)); }
 /* (14/10/2026) Montant compté de « Autre acte » : pré-rempli par le calcul,
    corrigeable. autreModif = la case a été corrigée à la main (ne plus l'écraser). */
 let autreCalc=null, autreModif=false;

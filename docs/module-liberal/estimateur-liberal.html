@@ -320,7 +320,7 @@ window.SessionPortail = window.SessionPortail || { lire:function(){try{return se
           <button data-st="nas"   onclick="setStatut('nas')">NAS</button>
         </div>
         <input type="hidden" id="statut" value="verte"></div>
-      <div><label id="coefLbl">Coeff. CCAM</label><span class="coefbadge" id="coefBadge">× 1,95</span></div>
+      <div><label id="coefLbl">Coeff. CCAM</label><span class="coefbadge" id="coefBadge">× 1,98</span></div>
     </div>
 
     <!-- DATES. Deux dates distinctes, deux usages :
@@ -507,8 +507,10 @@ window.SessionPortail = window.SessionPortail || { lire:function(){try{return se
 
 <script>
 const STATUTS={
- verte:{coeff:1.95,dh:'0'}, rose:{coeff:1.95,dh:'0.20'}, bulle:{coeff:1.95,dh:'libre'},
- fr:{coeff:1.00,dh:'libre'}, nas:{coeff:1.00,dh:'libre'}, spme:{coeff:1.95,dh:'0'}
+ verte:{coeff:1.98,dh:'0'}, rose:{coeff:1.98,dh:'0.20'}, bulle:{coeff:1.98,dh:'libre'},
+ fr:{coeff:1.00,dh:'libre'}, nas:{coeff:1.00,dh:'libre'}, spme:{coeff:1.98,dh:'0'}
+ /* (20/10/2026) Coefficient monegasque 1,95 -> 1,98 au 01/10/2026 (annexe III,
+    carte verte). Verifie sur un recueil reel : 192,00 x 1,98 = 380,16 EUR. */
  /* (01/10/2026) « Francais — AME / C2S » RETIRE : pas de liberal pour ces
     patients. Il etait lu par le libelle et le taux de remboursement du devis
     (ST_LABELS, RO_RATE), retires avec lui. */
@@ -665,7 +667,7 @@ function capNonOptam(st,pct){ return st==='fr' && pct>200; }  // le plafond mord
    updateRac pour servir aussi au pre-remplissage. */
 function dhOptimal(st,pct,br){
   const S=STATUTS[st];
-  /* (02/10/2026) CARTE ROSE : toujours 20 % de la base (tarif CCAM x 1,95),
+  /* (02/10/2026) CARTE ROSE : toujours 20 % de la base (tarif CCAM x 1,98),
      quelle que soit la mutuelle — c'est la regle de la carte, pas un plafond a
      caler (decision du responsable). La mutuelle ne joue que sur le reste a charge. */
   if(S.dh==='0.20') return 0.20*br;

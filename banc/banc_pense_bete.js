@@ -200,7 +200,7 @@ V('compteur abîmé : la page s\'ouvre, réglages demandés', o5.window.document
   console.log('\n[7] Autre acte — code CCAM, tarif de la liste du site');
   const pause = () => new Promise(r => setTimeout(r, 20));
   const t = (c) => INDEX.actes.find(a => a.c === c).t;
-  const att = (tarif, r50, mc) => Math.round(Math.round(tarif * 100) * 1.06 * (r50 ? 0.5 : 1) * (mc ? 1.95 : 1));
+  const att = (tarif, r50, mc) => Math.round(Math.round(Math.round(tarif * 100) * 1.06) * (r50 ? 0.5 : 1) * (mc ? 1.98 : 1));
   const fmt = c => (c / 100).toLocaleString('fr-FR', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
   const a = ouvrir(null, { ccam: true }); a.$('tC').click();
   regler(a, '2026-09-30', '1 000,00', '', VALS);
@@ -214,7 +214,16 @@ V('compteur abîmé : la page s\'ouvre, réglages demandés', o5.window.document
   V('aperçu Monaco libéral = tarif + 6 % × coefficient Monaco', a.$('cLibelle').textContent.includes(fmt(att(t('HHQE002'), 0, 1))), a.$('cLibelle').textContent);
   a.$('cAutre').click(); await pause();
   V('ajouté : HHQE002 dans la liste, au montant attendu', /HHQE002/.test(a.$('cList').textContent) && a.$('cList').textContent.includes(fmt(att(t('HHQE002'), 0, 1))), a.$('cList').textContent);
-  V('même valeur que la colo des Réglages, calculée de la même façon (au centime)', att(t('HHQE002'), 0, 1) === Math.round(5203 * 1.06 * 1.95));
+  V('même valeur que la colo des Réglages, calculée de la même façon (au centime)', att(t('HHQE002'), 0, 1) === Math.round(Math.round(5203 * 1.06) * 1.98));
+  /* (20/10/2026) DÉFAUT TROUVÉ EN PRODUCTION : le Compteur multipliait par 1,95,
+     coefficient périmé depuis le 01/10/2026 (1,98), et n'arrondissait qu'à la fin.
+     Cas réel relevé dans le recueil de l'hôpital : HHFE002, assuré Monaco, avec
+     modificateur 7 → base 113,24 € (le code donnait 111,51 €). */
+  await taper('HHFE002');
+  V('cas réel HHFE002 Monaco : 113,24 € comme le recueil de l\'hôpital', t('HHFE002') === 53.95 && a.$('cLibelle').textContent.includes('113,24'), a.$('cLibelle').textContent);
+  V('…l\'arrondi se fait après le modificateur 7 (un arrondi final unique donnait 113,23)', att(53.95, 0, 1) === 11324 && Math.round(5395 * 1.06 * 1.98) === 11323);
+  V('plus aucun 1,95 dans le calcul du pense-bête', !/1\.95/.test(PAGE) && /COEF_MC = 1\.98/.test(PAGE));
+  a.$('cCode').value = ''; a.$('cCode').dispatchEvent(new a.w.Event('input')); await pause();
   V('champ vidé après ajout', a.$('cCode').value === '' && !a.$('c50').checked);
   a.w.document.querySelector('#cAss .chip[data-v="fr"]').click();
   a.w.document.querySelector('#cMode .chip[data-v="pub"]').click();
@@ -261,13 +270,13 @@ V('compteur abîmé : la page s\'ouvre, réglages demandés', o5.window.document
   z.w.document.querySelector('#cMode .chip[data-v="pub"]').click();
   z.w.document.querySelector('#cAss .chip[data-v="mc"]').click();
   await tz('yyyy015');
-  V('Réa A Monaco = 100 × coefficient Monaco = 195,00 € (pas de +6 %)', /niveau A → 195,00/.test(z.$('cLibelle').textContent), z.$('cLibelle').textContent);
+  V('Réa A Monaco = 100 × coefficient Monaco = 198,00 € (pas de +6 %)', /niveau A → 198,00/.test(z.$('cLibelle').textContent), z.$('cLibelle').textContent);
   z.$('cAutre').click(); await pause();
   z.w.document.querySelector('#cAss .chip[data-v="fr"]').click();
   await tz('YYYY020'); z.$('c50').checked = true; z.$('c50').dispatchEvent(new z.w.Event('change')); await pause();
   V('Réa B France à 50 % = 100,25 €', /niveau B → 100,25/.test(z.$('cLibelle').textContent), z.$('cLibelle').textContent);
   z.$('cAutre').click(); await pause();
-  V('public = 1 000 + 195,00 + 100,25 = 1 295,25 €', /1\s295,25/.test(z.$('cPub').textContent), z.$('cPub').textContent);
+  V('public = 1 000 + 198,00 + 100,25 = 1 298,25 €', /1\s298,25/.test(z.$('cPub').textContent), z.$('cPub').textContent);
   V('liste : YYYY015 et YYYY020 (50 %)', /YYYY015/.test(z.$('cList').textContent) && /YYYY020 \(50 %\)/.test(z.$('cList').textContent));
   V('aucun téléchargement pour les forfaits de réa', z.reseau.length === 0, z.reseau);
   V('tarifs réa gardés dans les Réglages après réaffichage', z.$('rr_YYYY015').value === '100,00' && z.$('rr_YYYY020').value === '200,50');
@@ -341,7 +350,7 @@ V('compteur abîmé : la page s\'ouvre, réglages demandés', o5.window.document
   /* ── 10. MONTANT CORRIGÉ À LA MAIN (14/10/2026) ──────────────────────────
      Demande : les modificateurs changent parfois beaucoup le tarif. Le montant
      saisi est le montant FINAL du recueil Hôpital Manager : il remplace le calcul,
-     sans ×1,06 ni ×1,95 par-dessus. Valeurs fictives. */
+     sans ×1,06 ni ×1,98 par-dessus. Valeurs fictives. */
   console.log('\n[10] Montant corrigé à la main — à l\'ajout et dans la liste');
   const m = ouvrir(null, { ccam: true }); m.$('tC').click();
   regler(m, '2026-09-30', '1 000,00', '', VALS);

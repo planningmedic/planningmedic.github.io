@@ -181,7 +181,7 @@ window.SessionPortail = window.SessionPortail || { lire:function(){try{return se
     </div>
 
     <div class="apercu">
-      <div class="t">Ce que ce bouton posera — carte verte, coefficient 1,95</div>
+      <div class="t">Ce que ce bouton posera — carte verte, coefficient 1,98</div>
       <div class="v" id="apBR">0,00 €</div>
       <div class="d" id="apDet">Ajoutez un acte pour voir le montant.</div>
     </div>
@@ -214,7 +214,7 @@ const MIROIR_URL = 'https://miroir.planningmedic.workers.dev';
    seule raison : montrer le montant PENDANT la construction, pour qu'il se
    compare à un vrai relevé. Le montant réel est toujours recalculé par la page
    de cotation au moment de coter — rien n'est enregistré à partir d'ici. */
-const COEF_MONEGASQUE = 1.95, MOD7 = 1.06;
+const COEF_MONEGASQUE = 1.98, MOD7 = 1.06;   // (20/10/2026) 1,95 -> 1,98 au 01/10/2026
 const ROLES = { principal:{lab:'Principal · 100 %', rate:1},
                 associe:{lab:'Associé · 50 %', rate:0.5},
                 complement:{lab:'Complément · 100 %', rate:1} };
