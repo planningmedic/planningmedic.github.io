@@ -2505,6 +2505,10 @@ async function openVeille(){
         VEILLE_ITEMS.forEach(function(it){ it.lu=!!L[it.pmid]; it.star=!!S[it.pmid]; });
       }
       _veilleAppliquerFile();                       // marques en attente par-dessus l'état serveur
+      /* (20/10/2026) Un article ancien (plus de 3 mois) ne reste à l'écran que pour qui l'a étoilé.
+         Filtré au CHARGEMENT, pas à l'affichage : retirer son étoile ne fait pas disparaître la carte
+         sous le doigt, elle part à la prochaine ouverture. */
+      VEILLE_ITEMS = VEILLE_ITEMS.filter(function(it){ return !it.vieux || it.star; });
       document.getElementById('veilleToolbar').style.display = VEILLE_ITEMS.length ? '' : 'none';   // (13/10) '' : la feuille de style décide (barre en ligne, grille sur téléphone)
       populateRevuePanel();
       renderVeille();

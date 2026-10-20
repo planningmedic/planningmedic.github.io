@@ -57,10 +57,11 @@
 //  instantané unique et partagé : chantier séparé.
 // ══════════════════════════════════════════════════════════════════════
 
-const GAS_VERSION_VEILLE = '2026-10-20.1';
+const GAS_VERSION_VEILLE = '2026-10-20.2';
 
 const VEILLE_CFG_TAB = 'VEILLE_CFG';
 const VEILLE_TAB     = 'VEILLE';
+const VEILLE_ARCHIVE_TAB = 'VEILLE_ARCHIVE';   // (20/10/2026) les articles anciens que personne n'a étoilés
 const EUTILS_BASE    = 'https://eutils.ncbi.nlm.nih.gov/entrez/eutils/';
 const EUTILS_TOOL    = 'PlanningMed';
 const EUTILS_EMAIL   = 'planningmedic@gmail.com';
@@ -181,6 +182,7 @@ const VEILLE_DEFAULT_CFG = [
   ['PARAM', 'ANIMAUX',     'N',         'O'],   // N = exclure l'animal pur
   ['PARAM', 'MAX_PASSAGE', '700',       'O'],   // nouveaux articles par exécution
   ['PARAM', 'ENRICH',      'N',         'O'],
+  ['PARAM', 'ARCHIVE_MOIS', '3',        'O'],   // (20/10/2026) âge au-delà duquel un article quitte l'écran
 ];
 
 // Liste NOIRE de types d'article. Volontairement courte : elle écarte ce
@@ -616,7 +618,7 @@ function _runVeilleCorps_() {
 
   // ── Nouveaux PMID seulement ───────────────────────────────────────
   const data = tabs.veille.getDataRange().getValues();
-  const connus = {};
+  const connus = _veillePmidArchives_();   // (20/10/2026) un article archivé ne revient pas, même sur une fenêtre de 180 j
   for (let r = 1; r < data.length; r++) {
     const p = String(data[r][0] || '').trim();
     if (p) connus[p] = true;
@@ -684,10 +686,13 @@ function _runVeilleCorps_() {
   // résumé en français. Un résumé est définitif : on n'en écrit que pour ceux qui n'en ont pas.
   let resumes = 0;
   try { resumes = _veilleResumerRecents_(tabs.veille, 20, 7, fichesRun).ecrits; } catch (e) { Logger.log('résumés : ' + e); }
+  // (20/10/2026) Archivage, en DERNIER : les résumés ci-dessus repèrent leurs lignes par numéro.
+  let archives = 0;
+  try { archives = veilleArchiver().archives; } catch (e) { Logger.log('archivage : ' + e); }
   try { if (typeof _bat_ === 'function') _bat_('runVeille'); } catch (e) {}   // battement = passage RÉUSSI
   try { PropertiesService.getScriptProperties().setProperty('VEILLE_DERNIER_SUCCES', new Date().toISOString()); } catch (e) {}
-  try { logAction('veille — ' + trouves + ' nouveaux, ' + lignes.length + ' écrits, ' + resumes + ' résumés, ' + uniques + ' uniques sur ' + jours + ' j, ' + sec + ' s'); } catch (e) {}
-  return { success: true, trouves: trouves, ecrits: lignes.length, resumes: resumes,
+  try { logAction('veille — ' + trouves + ' nouveaux, ' + lignes.length + ' écrits, ' + resumes + ' résumés, ' + archives + ' archivés, ' + uniques + ' uniques sur ' + jours + ' j, ' + sec + ' s'); } catch (e) {}
+  return { success: true, trouves: trouves, ecrits: lignes.length, resumes: resumes, archives: archives,
            parSemaine: parSem, axeDirect: idsDirect.length, axeCroise: idsGeneral.length,
            secondes: sec };
 }
@@ -948,6 +953,7 @@ function getVeille(user) {
   const cfg  = _readVeilleCfg();
   const data = v.getDataRange().getValues();
   const items = [];
+  const mois = _veilleArchiveMois(cfg), maintenant = new Date();
   for (let r = 1; r < data.length; r++) {
     const pmid = String(data[r][0] || '').trim();
     if (!pmid) continue;
@@ -959,6 +965,8 @@ function getVeille(user) {
       star: !!stars[pmid], ajoute: _isoDate(data[r][11]),
       pubtype: String(data[r][12] || ''), themes: _veilleSplitThemes(data[r][13]),
       motif: String(data[r][14] || ''),   // (15/09) le pourquoi de la note
+      // (20/10/2026) Ancien : l'écran ne le montre plus qu'à ceux qui l'ont étoilé.
+      vieux: _veilleEstVieux(data[r][1], data[r][11], mois, maintenant),
     });
   }
   items.sort(function (a, b) {
@@ -1024,6 +1032,97 @@ function _veilleMarquesParMar() {
     if (String(data[r][3] || '').toUpperCase() === 'O') parMar[id].stars.push(p);
   }
   return parMar;
+}
+
+// ══════════════════════════════════════════════════════════════════════
+//  ARCHIVAGE (20/10/2026)
+//  Le flux est stable (~75 articles/semaine) mais rien n'était jamais retiré :
+//  2 820 articles le 20/10, tous chargés à chaque ouverture de l'écran.
+//  RÈGLE (décidée par Arthur) : un article ANCIEN quitte l'écran, sauf pour
+//  le MAR qui l'a étoilé. Ancien = paru depuis plus de ARCHIVE_MOIS mois (3)
+//  ET entré dans la veille depuis plus de 4 semaines — sans ce second
+//  verrou, un article à la date de parution ancienne (numéro papier en
+//  retard, indexation tardive) serait archivé dès son arrivée, sans que
+//  personne l'ait vu. La date de parution seule n'archivait rien avant le
+//  08/11 (2 044 articles chargés d'un coup le 08/08) ; la règle retenue en
+//  archive 1 910 sur 2 820 dès le premier passage (mesuré le 20/10).
+//  Un ancien que PERSONNE n'a étoilé part dans l'onglet VEILLE_ARCHIVE :
+//  déplacé, jamais effacé. Un ancien étoilé reste dans VEILLE, et l'écran
+//  ne le montre qu'à ceux qui l'ont étoilé (drapeau `vieux` de getVeille).
+// ══════════════════════════════════════════════════════════════════════
+
+const VEILLE_ARCHIVE_MIN_JOURS = 28;
+
+function _veilleArchiveMois(cfg) {
+  const n = parseInt(cfg && cfg.params && cfg.params.ARCHIVE_MOIS, 10);
+  return n > 0 ? n : 3;   // ligne absente de VEILLE_CFG : 3 mois
+}
+
+/* Une date de l'onglet : objet Date (cellule date) ou texte AAAA-MM-JJ. */
+function _veilleDateCellule(v) {
+  if (v instanceof Date) return isNaN(v.getTime()) ? null : v;
+  const m = String(v || '').match(/^(\d{4})-(\d{2})-(\d{2})/);
+  return m ? new Date(Number(m[1]), Number(m[2]) - 1, Number(m[3])) : null;
+}
+
+function _veilleEstVieux(datePub, ajouteLe, mois, maintenant) {
+  const pub = _veilleDateCellule(datePub), aj = _veilleDateCellule(ajouteLe);
+  if (!aj) return false;   // date d'entrée inconnue : prudence, on garde
+  const borneAj = new Date(maintenant.getTime() - VEILLE_ARCHIVE_MIN_JOURS * 86400000);
+  if (aj >= borneAj) return false;
+  const borneP = new Date(maintenant.getTime()); borneP.setMonth(borneP.getMonth() - mois);
+  return pub ? pub < borneP : aj < borneP;
+}
+
+function _veillePmidArchives_() {
+  const a = SpreadsheetApp.getActiveSpreadsheet().getSheetByName(VEILLE_ARCHIVE_TAB);
+  const out = {};
+  if (!a || a.getLastRow() < 2) return out;
+  a.getRange(2, 1, a.getLastRow() - 1, 1).getValues().forEach(function (r) {
+    const p = String(r[0] || '').trim(); if (p) out[p] = true;
+  });
+  return out;
+}
+
+/* Lancée à la fin de chaque runVeille ; peut aussi se lancer à la main.
+   Ordre sûr : l'archive est écrite AVANT que VEILLE soit réécrit ; une
+   interruption entre les deux laisse au pire un article aux deux endroits,
+   jamais un article perdu (et le passage suivant ne le recopie pas). */
+function veilleArchiver() {
+  const ss = SpreadsheetApp.getActiveSpreadsheet();
+  const v  = ss.getSheetByName(VEILLE_TAB);
+  if (!v || v.getLastRow() < 2) return { success: true, archives: 0, restent: 0 };
+  const lastCol = v.getLastColumn();
+  const data = v.getRange(1, 1, v.getLastRow(), lastCol).getValues();
+  const mois = _veilleArchiveMois(_readVeilleCfg()), maintenant = new Date();
+
+  const etoiles = {};   // étoilé par AU MOINS un MAR
+  const parMar = _veilleMarquesParMar();
+  Object.keys(parMar).forEach(function (id) { parMar[id].stars.forEach(function (p) { etoiles[p] = true; }); });
+
+  const garder = [], partir = [];
+  for (let r = 1; r < data.length; r++) {
+    const pmid = String(data[r][0] || '').trim();
+    if (pmid && !etoiles[pmid] && _veilleEstVieux(data[r][1], data[r][11], mois, maintenant)) partir.push(data[r]);
+    else garder.push(data[r]);
+  }
+  if (!partir.length) return { success: true, archives: 0, restent: garder.length };
+
+  let a = ss.getSheetByName(VEILLE_ARCHIVE_TAB);
+  if (!a) {
+    a = ss.insertSheet(VEILLE_ARCHIVE_TAB);
+    a.getRange(1, 1, 1, lastCol).setValues([data[0]]).setFontWeight('bold');
+    a.setFrozenRows(1);
+  }
+  const dejaLa = _veillePmidArchives_();
+  const nouveaux = partir.filter(function (l) { return !dejaLa[String(l[0] || '').trim()]; });
+  if (nouveaux.length) a.getRange(a.getLastRow() + 1, 1, nouveaux.length, lastCol).setValues(nouveaux);
+
+  v.getRange(2, 1, data.length - 1, lastCol).clearContent();
+  if (garder.length) v.getRange(2, 1, garder.length, lastCol).setValues(garder);
+  Logger.log('Archivage veille : ' + partir.length + ' articles déplacés vers ' + VEILLE_ARCHIVE_TAB +
+             ' (anciens de plus de ' + mois + ' mois, sans étoile) · ' + garder.length + ' restent.');
+  return { success: true, archives: partir.length, restent: garder.length };
 }
 
 // ══════════════════════════════════════════════════════════════════════

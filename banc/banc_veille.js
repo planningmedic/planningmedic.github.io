@@ -651,6 +651,101 @@ function monde(plan) {
     V('aucune expression de titre ne contient de mot vide (PubMed les ignorerait)', t && !mots.test(t), (t.match(mots) || [])[0]);
   }
 
+  console.log('\n═══ Archivage (20/10/2026) : plus de 3 mois → hors de l\'écran, sauf pour qui l\'a étoilé ═══');
+  {
+    /* Production, 20/10 : 2 820 articles, ~75 de plus chaque semaine, rien jamais retiré.
+       Règle d'Arthur : un ancien quitte l'écran sauf pour le MAR qui l'a étoilé. */
+    const jour = n => new Date(Date.now() - n * 86400000).toISOString().slice(0, 10);
+    const ligne = (pmid, pub, ajoute, titre) => [pmid, pub, titre || 'Article ' + pmid, 'Dupont A', 'Anesthesiology', '', 'REVUE', 70, '', 'N', 'N', ajoute, '', 'Hémodynamique', 'revue spécialisée'];
+    const remplir = (m, lignes, marques) => {
+      vm.runInContext('getOrCreateVeilleTabs()', m.ctx);
+      const v = m.cl.getSheetByName('VEILLE'); lignes.forEach(l => v.lignes.push(l.map(x => x)));
+      v.lignes[0] = ['PMID', 'DATE_PUB', 'TITRE', 'AUTEURS', 'REVUE', 'DOI', 'SOURCE', 'SCORE', 'RESUME', 'LU', 'STAR', 'AJOUTE_LE', 'PUBTYPE', 'THEMES', 'MOTIF'];
+      const mq = m.cl.getSheetByName('VEILLE_MARQUES'); (marques || []).forEach(x => mq.lignes.push(x));
+      // la doublure coerce comme le vrai Sheets : les dates texte deviennent des objets Date
+      v.lignes.slice(1).forEach(l => { [1, 11].forEach(c => { if (/^\d{4}-\d{2}-\d{2}$/.test(String(l[c]))) l[c] = new Date(l[c] + 'T00:00:00'); }); });
+    };
+    const lignes = [
+      ligne('501', jour(180), jour(60), 'Ancien sans étoile'),
+      ligne('502', jour(180), jour(60), 'Ancien étoilé par le MAR 7'),
+      ligne('503', jour(180), jour(10), 'Parution ancienne, entré il y a 10 jours'),
+      ligne('504', jour(30),  jour(30), 'Récent'),
+      ligne('505', jour(180), '',       'Sans date d\'entrée'),
+      ligne('506', jour(150), jour(100), 'Ancien, étoile RETIRÉE'),
+    ];
+    const marques = [['7', '502', 'N', 'O', new Date()], ['9', '501', 'O', 'N', new Date()], ['7', '506', 'N', 'N', new Date()]];
+    const m = monde(() => ({ esearchresult: { count: '0', idlist: [] } }));
+    remplir(m, lignes, marques);
+    const r1 = vm.runInContext('veilleArchiver()', m.ctx);
+    const restent = () => m.cl.getSheetByName('VEILLE').lignes.slice(1).map(l => String(l[0] || '')).filter(Boolean);
+    const arch = () => (m.cl.getSheetByName('VEILLE_ARCHIVE') || { lignes: [] }).lignes;
+    V('2 anciens sans étoile partent (une marque « lu » ou une étoile retirée ne protège pas)', r1.archives === 2 && JSON.stringify(restent()) === JSON.stringify(['502', '503', '504', '505']), [r1, restent()]);
+    V('ils sont DÉPLACÉS dans VEILLE_ARCHIVE, en-tête compris, rien n\'est effacé', arch().length === 3 && arch()[0][0] === 'PMID' && arch().slice(1).map(l => l[0]).join() === '501,506' && arch()[1][2] === 'Ancien sans étoile', arch().map(l => l[0]));
+    V('l\'ancien étoilé par un collègue reste dans VEILLE', restent().indexOf('502') !== -1);
+    V('une parution ancienne entrée il y a 10 jours reste (au moins 4 semaines à l\'écran)', restent().indexOf('503') !== -1);
+    V('sans date d\'entrée : prudence, on garde', restent().indexOf('505') !== -1);
+    const r2 = vm.runInContext('veilleArchiver()', m.ctx);
+    V('un second passage n\'archive rien et ne duplique rien', r2.archives === 0 && arch().length === 3, [r2, arch().length]);
+
+    const g = vm.runInContext('getVeille()', m.ctx);
+    const vx = {}; g.items.forEach(i => { vx[i.pmid] = i.vieux; });
+    V('getVeille marque « vieux » l\'ancien étoilé, pas les autres', vx['502'] === true && vx['503'] === false && vx['504'] === false && vx['505'] === false, vx);
+
+    // Un article archivé ne revient pas, même sur la fenêtre pleine de 180 jours (marqueur perdu)
+    const plan = (endpoint, params) => {
+      if (endpoint === 'esearch.fcgi') {
+        const t = params.get('term') || '';
+        return t.indexOf('"Anesthesiology"[Journal]') !== -1 ? { esearchresult: { count: '2', idlist: ['501', '507'] } } : { esearchresult: { count: '0', idlist: [] } };
+      }
+      if (endpoint === 'efetch.fcgi') return efetchXml(params, id => ({ titre: 'Article ' + id, revue: 'Anesthesiology' }));
+      return {};
+    };
+    const m2 = monde(plan); remplir(m2, lignes, marques);
+    vm.runInContext('veilleArchiver()', m2.ctx);
+    const rr = vm.runInContext('runVeille()', m2.ctx);
+    const ids2 = m2.cl.getSheetByName('VEILLE').lignes.slice(1).map(l => String(l[0] || '')).filter(Boolean);
+    V('runVeille : un article archivé n\'est pas recollecté, le nouveau entre', ids2.indexOf('501') === -1 && ids2.indexOf('507') !== -1 && rr.trouves === 1, [ids2, rr.trouves]);
+    V('runVeille archive en fin de passage et le rapporte', typeof rr.archives === 'number' && m2.logs.some(l => /archivés/.test(l)), m2.logs.slice(-1));
+
+    // Le seuil vit dans VEILLE_CFG (ARCHIVE_MOIS) ; absent → 3 mois
+    const m3 = monde(() => ({})); remplir(m3, [ligne('601', jour(150), jour(60))]);
+    const cfg3 = m3.cl.getSheetByName('VEILLE_CFG');
+    V('la configuration par défaut porte ARCHIVE_MOIS = 3', cfg3.lignes.some(l => l[0] === 'PARAM' && l[1] === 'ARCHIVE_MOIS' && String(l[2]) === '3'));
+    cfg3.lignes = cfg3.lignes.map(l => (l[1] === 'ARCHIVE_MOIS' ? ['PARAM', 'ARCHIVE_MOIS', '6', 'O'] : l));
+    V('ARCHIVE_MOIS = 6 : un article de 5 mois reste', vm.runInContext('veilleArchiver()', m3.ctx).archives === 0);
+    cfg3.lignes = cfg3.lignes.filter(l => l[1] !== 'ARCHIVE_MOIS');
+    V('ligne ARCHIVE_MOIS absente du classeur : 3 mois par défaut', vm.runInContext('veilleArchiver()', m3.ctx).archives === 1);
+
+    // L'écran : l'ancien n'est montré qu'à qui l'a étoilé — piloté dans la vraie page
+    const { JSDOM, VirtualConsole } = require('jsdom');
+    const vcons = new VirtualConsole(); const erreurs = []; vcons.on('jsdomError', e => erreurs.push(e.message));
+    const ouvrir = async (mesEtoiles) => {
+      const dom = new JSDOM(fs.readFileSync('../index.html', 'utf8'), {
+        runScripts: 'dangerously', virtualConsole: vcons, url: 'https://planningmedic.github.io/index.html', pretendToBeVisual: true,
+        beforeParse(win) {
+          win.eval(fs.readFileSync(require('path').join(__dirname, '..', 'partage', 'portail.js'), 'utf8')); win.eval(fs.readFileSync(require('path').join(__dirname, '..', 'partage', 'rendu_equite.js'), 'utf8'));
+          win.matchMedia = () => ({ matches:false, addListener(){}, removeListener(){}, addEventListener(){}, removeEventListener(){} });
+          win.Element.prototype.scrollIntoView = function () {}; win.scrollTo = () => {};
+        } });
+      const w = dom.window;
+      w.fetch = async () => ({ ok:true, json: async () => ({ success:true }) });
+      await new Promise(r => setTimeout(r, 300));
+      const art = (pmid, titre, vieux) => ({ pmid, date:'2026-06-01', titre, auteurs:'', revue:'BJA', doi:'', source:'REVUE', score:70, resume:'', lu:false, star:false, ajoute:'2026-07-01', pubtype:'', themes:['Hémodynamique'], motif:'', vieux });
+      w.miroirRead = async () => ({ success:true, data: {
+        veille: { success:true, items: [art('1', 'Récent R', false), art('2', 'Ancien étoilé', true), art('3', 'Ancien libre', true)] },
+        veille_marques: { parMar: { '7': { lus: [], stars: mesEtoiles } } } } });
+      try { w.localStorage.removeItem('pmVeilleFile'); w.localStorage.removeItem('pmVeilleRevues'); } catch (e) {}
+      await w.openVeille();
+      return w.eval('VEILLE_ITEMS').map(i => i.titre);
+    };
+    const avec = await ouvrir(['2']), sans = await ouvrir([]);
+    V('MAR qui a étoilé : il voit le récent et SON ancien, pas l\'ancien libre', JSON.stringify(avec) === JSON.stringify(['Récent R', 'Ancien étoilé']), avec);
+    V('collègue sans étoile : il ne voit que le récent', JSON.stringify(sans) === JSON.stringify(['Récent R']), sans);
+    V('aucune erreur JavaScript à l\'ouverture', erreurs.length === 0, erreurs.slice(0, 2));
+    const guide = fs.readFileSync('../docs/guide-mar.html', 'utf8');
+    V('le guide MAR explique la règle (3 mois, ★ favori) et le geste « garder un article »', /Je veux garder un article/.test(guide) && /3 mois/.test(guide) && /★ Favoris/.test(guide));
+  }
+
 console.log(`\n${ok} OK · ${ko} en échec`);
   process.exit(ko ? 1 : 0);
 })();  console.log('\n═══ Passe 4 : le résumé en deux lignes (15/09/2026) ═══');
