@@ -446,7 +446,8 @@ function monde(plan) {
     V('un ECR de revue spécialisée avec résumé et deux thèmes est très haut (≥ 90)', n('701') >= 90, n('701'));
     V('une lettre sans résumé est tout en bas (< 30)', n('702') < 30, n('702'));
     V('un protocole d\'essai est pénalisé (< 60)', n('703') < 60, n('703'));
-    V('une revue systématique généraliste est entre les deux', n('801') > n('703') && n('801') < n('701'), [n('801'), n('703'), n('701')]);
+    // (20/10/2026) Règle d'Arthur : une grande revue généraliste compte le plus — sa revue systématique rejoint l'ECR spécialisé en tête.
+    V('une revue systématique de grande revue généraliste est en tête (≥ 90), loin devant le protocole', n('801') >= 90 && n('801') > n('703'), [n('801'), n('703'), n('701')]);
     V('le motif dit pourquoi, en clair', /ECR/.test(par['701'][14]) && /2 thèmes/.test(par['701'][14]) && /revue spécialisée/.test(par['701'][14]), par['701'][14]);
     V('…et pour la lettre aussi', /lettre\/éditorial/.test(par['702'][14]) && /sans résumé/.test(par['702'][14]), par['702'][14]);
     const g = vm.runInContext('getVeille()', m.ctx);
@@ -827,6 +828,76 @@ function monde(plan) {
     V('aucune erreur JavaScript', erreurs.length === 0, erreurs.slice(0, 2));
     const guide = fs.readFileSync('../docs/guide-mar.html', 'utf8');
     V('le guide MAR explique « Chercher dans les archives »', /Chercher dans les archives/.test(guide));
+  }
+
+  console.log('\n═══ ICRAKI (NEJM, 14/10/2026) : essai dont seul le RÉSUMÉ dit la randomisation — défaut constaté en production ═══');
+  {
+    const TITRE = 'Intermittent or Continuous Renal-Replacement Therapy in Acute Kidney Injury';
+    const RESUME = 'In this multicenter, open-label, noninferiority trial, we randomly assigned critically ill adults with acute kidney injury to intermittent hemodialysis or continuous renal-replacement therapy.';
+    const MARQUEUR = '"randomly assigned"[tiab]';
+    const plan = (endpoint, params) => {
+      if (endpoint === 'esearch.fcgi') {
+        const t = params.get('term') || '';
+        const general = t.indexOf('"N Engl J Med"[Journal]') !== -1 && t.indexOf('"Anesthesiology"[Journal]') === -1;
+        return (general && t.indexOf(MARQUEUR) !== -1) ? { esearchresult: { count: '1', idlist: ['901'] } } : { esearchresult: { count: '0', idlist: [] } };
+      }
+      if (endpoint === 'efetch.fcgi') return efetchXml(params, () => ({ titre: TITRE, revue: 'N Engl J Med', pubtypes: ['Journal Article'], resume: RESUME, date: new Date().toISOString().slice(0, 10) }));
+      return {};
+    };
+    const m = monde(plan);
+    vm.runInContext('getOrCreateVeilleTabs()', m.ctx);
+    const r = vm.runInContext('runVeille()', m.ctx);
+    const l = m.cl.getSheetByName('VEILLE').lignes.find(x => String(x[0]) === '901') || [];
+    V('ICRAKI, sans étiquette PubMed ni type dans le titre, entre dans la veille', r.axeCroise === 1 && l[2] === TITRE, [r.axeCroise, l[2]]);
+    V('…noté en essai randomisé (au moins 80), pas en simple article', /^ECR/.test(String(l[14])) && Number(l[7]) >= 80, [l[7], l[14]]);
+    const qG = m.requetes.find(q => q.endpoint === 'esearch.fcgi' && q.term.indexOf('"N Engl J Med"[Journal]') !== -1 && q.term.indexOf('"Anesthesiology"[Journal]') === -1);
+    let prof = 0, mini = 0; for (const ch of (qG ? qG.term : '')) { if (ch === '(') prof++; if (ch === ')') prof--; mini = Math.min(mini, prof); }
+    V('la requête des généralistes reste équilibrée en parenthèses', qG && prof === 0 && mini === 0);
+    const vide = /"[^"]*\b(of|for|the|a|and|after|in|on|to|with)\b[^"]*"\[(Title|tiab)\]/i;
+    V('aucune expression titre/résumé ne contient de mot vide', qG && !vide.test(qG.term), qG && (qG.term.match(vide) || [])[0]);
+    const tr = (t, rs) => vm.runInContext('_veilleTypeResume(' + JSON.stringify(t) + ',' + JSON.stringify(rs) + ')', m.ctx);
+    V('analyse secondaire d\'un essai : pas notée en ECR, même si le résumé dit « randomly assigned »', tr('Long-term outcomes: a secondary analysis of the X trial', 'patients were randomly assigned') === '');
+    V('méta-analyse : pas notée en ECR par le résumé', tr('Vasopressors in septic shock: a meta-analysis', 'trials in which patients were randomly assigned') === '');
+    V('résumé sans randomisation : rien', tr('Cohort study of AKI', 'we included 3 000 patients') === '');
+  }
+
+  console.log('\n═══ Règle d\'Arthur (20/10/2026) : revue généraliste + thème dans le TITRE = l\'article entre, quel que soit son type ═══');
+  {
+    const plan = (endpoint, params) => {
+      if (endpoint === 'esearch.fcgi') {
+        const t = params.get('term') || '';
+        const general = t.indexOf('"N Engl J Med"[Journal]') !== -1 && t.indexOf('"Anesthesiology"[Journal]') === -1;
+        return (general && t.indexOf('"acute kidney injury"[Title]') !== -1) ? { esearchresult: { count: '1', idlist: ['951'] } } : { esearchresult: { count: '0', idlist: [] } };
+      }
+      if (endpoint === 'efetch.fcgi') return efetchXml(params, () => ({ titre: 'Acute Kidney Injury in the ICU: a narrative review', revue: 'N Engl J Med', pubtypes: ['Journal Article'], resume: 'We review the management of acute kidney injury.', date: new Date().toISOString().slice(0, 10) }));
+      return {};
+    };
+    const m = monde(plan);
+    vm.runInContext('getOrCreateVeilleTabs()', m.ctx);
+    const r = vm.runInContext('runVeille()', m.ctx);
+    V('NEJM, « acute kidney injury » dans le titre, simple article : il entre', r.axeCroise === 1 && m.cl.getSheetByName('VEILLE').lignes.some(l => String(l[0]) === '951'), r.axeCroise);
+    const qG = m.requetes.find(q => q.endpoint === 'esearch.fcgi' && q.term.indexOf('"N Engl J Med"[Journal]') !== -1 && q.term.indexOf('"Anesthesiology"[Journal]') === -1);
+    const qD = m.requetes.find(q => q.endpoint === 'esearch.fcgi' && q.term.indexOf('"Anesthesiology"[Journal]') !== -1);
+    V('généralistes : (thème dans le titre) OU (thème dans titre/résumé ET type d\'étude)', qG && /AND \(\(\("intubation"\[Title\]/.test(qG.term) && /\) OR \(\(\("intubation"\[tiab\][\s\S]*\) AND \("Randomized Controlled Trial"\[Publication Type\]/.test(qG.term), qG && qG.term.slice(0, 260));
+    V('le thème vu seulement dans le résumé exige toujours un type (la liste blanche est conservée)', qG && qG.term.indexOf(BLANCHE) !== -1);
+    V('revues spécialisées inchangées : thème en titre/résumé, sans restriction de type', qD && qD.term.indexOf('"intubation"[Title]') === -1 && qD.term.indexOf(BLANCHE) === -1);
+    let prof = 0, mini = 0; for (const ch of (qG ? qG.term : '')) { if (ch === '(') prof++; if (ch === ')') prof--; mini = Math.min(mini, prof); }
+    V('parenthèses équilibrées', qG && prof === 0 && mini === 0);
+  }
+
+  console.log('\n═══ Règle d\'Arthur (20/10/2026) : un article d\'une grande revue généraliste est très bien noté ═══');
+  {
+    const m = monde(() => ({}));
+    const jour = new Date().toISOString().slice(0, 10);
+    const note = (fiche, source, themes) => vm.runInContext('_veilleNote(' + JSON.stringify(Object.assign({ pubtypes: ['Journal Article'], titre: '', resume: 'x', date: jour }, fiche)) + ',' + JSON.stringify(source) + ',' + JSON.stringify(themes) + ',' + JSON.stringify(jour) + ')', m.ctx);
+    const synth = note({ titre: 'Acute Kidney Injury in Critical Care' }, 'GENERAL', { 'Insuffisance rénale': true });
+    V('synthèse du NEJM pas encore étiquetée « Review », 1 thème : au moins 80 (≈56 avant)', synth.note >= 80 && /grande revue/.test(synth.motif), synth);
+    const icraki = note({ titre: 'Intermittent or Continuous Renal-Replacement Therapy in Acute Kidney Injury', resume: 'we randomly assigned critically ill adults' }, 'GENERAL', { 'Insuffisance rénale': true });
+    V('ICRAKI (essai lu dans le résumé, NEJM) : 100, motif « ECR · grande revue »', icraki.note === 100 && /^ECR · grande revue/.test(icraki.motif), icraki);
+    const spe = note({ titre: 'Some observational study' }, 'REVUE', { 'Hémodynamique': true });
+    V('un article ordinaire de revue spécialisée reste en dessous d\'une synthèse du NEJM', spe.note < synth.note, [spe.note, synth.note]);
+    const edito = note({ pubtypes: ['Editorial'], titre: 'Kidney injury: time to act' }, 'GENERAL', { 'Insuffisance rénale': true });
+    V('un éditorial de grande revue reste pénalisé (sous 60)', edito.note < 60, edito);
   }
 
 console.log(`\n${ok} OK · ${ko} en échec`);

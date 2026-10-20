@@ -57,7 +57,7 @@
 //  instantané unique et partagé : chantier séparé.
 // ══════════════════════════════════════════════════════════════════════
 
-const GAS_VERSION_VEILLE = '2026-10-20.3';
+const GAS_VERSION_VEILLE = '2026-10-20.4';
 
 const VEILLE_CFG_TAB = 'VEILLE_CFG';
 const VEILLE_TAB     = 'VEILLE';
@@ -461,10 +461,17 @@ function _veilleTypeTitre(titre) {
   if (/randomi[sz]ed/i.test(t) && /\btrial\b/i.test(t) && !/secondary|post[- ]?hoc|ancillary|protocol|sub-?study|exploratory analysis/i.test(t)) return 'ECR';
   return '';
 }
+/* (20/10/2026, soir) Un essai dont seul le RÉSUMÉ dit la randomisation (ICRAKI) :
+   « randomly assigned / allocated », sauf si le titre annonce une analyse secondaire. */
+function _veilleTypeResume(titre, resume) {
+  if (!/randomly (assigned|allocated)/i.test(String(resume || ''))) return '';
+  if (/secondary|post[- ]?hoc|ancillary|protocol|sub-?study|exploratory analysis|meta-?analys|systematic review/i.test(String(titre || ''))) return '';
+  return 'ECR';
+}
 function _veilleNote(fiche, source, themes, aujourdhui) {
   let n = 40; const motifs = [];
   const pt = (fiche.pubtypes || []).join(' | ');
-  const tt = _veilleTypeTitre(fiche.titre);
+  const tt = _veilleTypeTitre(fiche.titre) || _veilleTypeResume(fiche.titre, fiche.resume);
   if (/Randomized Controlled Trial/.test(pt) || (tt === 'ECR' && !/Meta-Analysis/.test(pt))) { n += 35; motifs.push('ECR'); }
   else if (/Meta-Analysis/.test(pt) || tt === 'META') { n += 30; motifs.push('méta-analyse'); }
   else if (/Practice Guideline|Guideline/.test(pt)) { n += 30; motifs.push('recommandation'); }
@@ -474,6 +481,11 @@ function _veilleNote(fiche, source, themes, aujourdhui) {
   if (/Letter|Editorial|Comment|Case Reports|News|Published Erratum|Retraction/.test(pt)) { n -= 30; motifs.push('lettre/éditorial'); }
   if (/protocol for|study protocol|\berratum\b|corrigendum|\bcorrection\b/i.test(fiche.titre || '')) { n -= 25; motifs.push('protocole/erratum'); }
   if (source === 'REVUE') { n += 10; motifs.push('revue spécialisée'); }
+  /* (20/10/2026, soir — règle d'Arthur) Un article d'une grande revue généraliste (NEJM, JAMA,
+     Lancet…) doit être très bien noté, synthèse comprise. Avant : 0 point de revue, et une
+     synthèse du NEJM pas encore étiquetée « Review » par PubMed plafonnait vers 56. +25 :
+     elle passe à ~81 ; un essai du NEJM atteint 100. */
+  if (source === 'GENERAL') { n += 25; motifs.push('grande revue'); }
   const nbTh = Object.keys(themes || {}).length;
   if (nbTh) { n += Math.min(18, 6 * nbTh); motifs.push(nbTh + (nbTh > 1 ? ' thèmes' : ' thème')); }
   if (!fiche.resume) { n -= 10; motifs.push('sans résumé'); } else { n += 5; }
@@ -525,6 +537,11 @@ function _veilleFiltre(cfg) {
   return s;
 }
 
+/* Les mêmes expressions de thèmes, cherchées dans le seul titre. */
+function _veilleThemesEnTitre(themeOr) {
+  return String(themeOr || '').replace(/\[tiab\]/gi, '[Title]');
+}
+
 function _veilleAvec(base, filtre) { return filtre ? '(' + base + ') AND ' + filtre : base; }
 
 /* Liste blanche de types, servie UNIQUEMENT à l'axe GENERAL. Vide si
@@ -538,10 +555,18 @@ function _veilleAvec(base, filtre) { return filtre ? '(' + base + ') AND ' + fil
    recherche (~21 j) peut se refermer avant l'étiquette : l'article est alors
    perdu pour de bon. Même règle que _veilleTypeTitre (la note). Parenthèses
    partout : PubMed lit les booléens de gauche à droite, sans priorité. */
+/* (20/10/2026, soir) …et dans le RÉSUMÉ. ICRAKI (NEJM, 14/10, essai randomisé français
+   sur l'épuration extrarénale) manquait : son titre n'annonce pas le type
+   (« Intermittent or Continuous Renal-Replacement Therapy in Acute Kidney
+   Injury »), seul le résumé dit « we randomly assigned ». Les grands essais du
+   NEJM et du JAMA sont souvent titrés ainsi. */
 const VEILLE_TYPE_TITRE =
   '(((("randomized"[Title] OR "randomised"[Title]) AND "trial"[Title]) ' +
   'OR "meta analysis"[Title] OR "metaanalysis"[Title] OR "systematic review"[Title] ' +
-  'OR "guideline"[Title] OR "guidelines"[Title]) ' +
+  'OR "guideline"[Title] OR "guidelines"[Title] ' +
+  'OR "randomly assigned"[tiab] OR "randomly allocated"[tiab] ' +
+  'OR "randomized trial"[tiab] OR "randomised trial"[tiab] ' +
+  'OR "randomized controlled"[tiab] OR "randomised controlled"[tiab]) ' +
   'NOT ("secondary"[Title] OR "post hoc"[Title] OR "ancillary"[Title] OR "protocol"[Title]))';
 
 function _veilleListeBlanche(cfg) {
@@ -601,8 +626,15 @@ function _runVeilleCorps_() {
       Logger.log('⚠️ aucune ligne PUBTYPE active : axe croisé SANS liste blanche ' +
                  '(volume attendu ×10 — vérifier VEILLE_CFG).');
     }
-    let baseG = '(' + _veilleOrRevues(cfg.general) + ') AND (' + themeOr + ')';
-    if (blanche) baseG += ' AND ' + blanche;
+    /* (20/10/2026, soir — règle d'Arthur) Un thème dans le TITRE suffit : le titre dit de
+       quoi parle l'article (ICRAKI : « …Renal-Replacement Therapy in Acute Kidney Injury »,
+       NEJM). Un thème vu seulement dans le RÉSUMÉ, souvent en passant, exige encore
+       un type d'étude (liste blanche, titre ou résumé) : c'est ce qui avait fait exploser
+       l'axe en août (1 040 articles/180 j). Parenthèses explicites : PubMed lit de gauche
+       à droite, sans priorité. */
+    const themeTitre = _veilleThemesEnTitre(themeOr);
+    let baseG = '(' + _veilleOrRevues(cfg.general) + ') AND ((' + themeTitre + ')';
+    baseG += blanche ? ' OR ((' + themeOr + ') AND ' + blanche + '))' : ' OR (' + themeOr + '))';
     idsGeneral = _esearchTout(_veilleAvec(baseG, filtre), jours);
   }
 
