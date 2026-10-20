@@ -532,13 +532,22 @@ console.log('\n═══ 5ter. Le jeton unique : reessayer sans jamais doubler �
   /* (20/10/2026) ÉTABLISSEMENT : nom et adresse du devis, lus dans le classeur.
      Valeurs FICTIVES ici : le vrai nom ne s'écrit jamais dans le dépôt. */
   const e0 = run('getEtablissement()');
-  V('établissement : l\'onglet se crée au premier appel, deux clés, valeurs vides',
-    e0.nom === '' && e0.adresse === '' && run("getOrCreateEtablissementTab().getDataRange().getValues().map(function(r){return r[0];}).join(',')") === 'CLE,NOM,ADRESSE',
+  V('établissement : l\'onglet se crée au premier appel, quatre clés, valeurs vides',
+    e0.nom === '' && e0.service === '' && e0.adresse === '' && e0.telephone === ''
+    && run("getOrCreateEtablissementTab().getDataRange().getValues().map(function(r){return r[0];}).join(',')") === 'CLE,NOM,SERVICE,ADRESSE,TELEPHONE',
     [e0, run("getOrCreateEtablissementTab().getDataRange().getValues().map(function(r){return r[0];}).join(',')")]);
-  run("getOrCreateEtablissementTab().getRange(2, 2, 2, 1).setValues([['  Hôpital Exemple '],['1 rue Exemple, 00000 Ville']])");
+  run("getOrCreateEtablissementTab().getRange(2, 2, 4, 1).setValues([['  Hôpital Exemple '],['Service Exemple'],['1 rue Exemple, 00000 Ville'],['00 00 00 00']])");
   const e1 = run('getEtablissement()');
-  V('…rempli dans le classeur, il est relu tel quel (espaces retirés)', e1.nom === 'Hôpital Exemple' && e1.adresse === '1 rue Exemple, 00000 Ville', e1);
-  V('…et un second appel ne recrée rien', run('getOrCreateEtablissementTab().getDataRange().getValues().length') === 3);
+  V('…rempli dans le classeur, il est relu tel quel (espaces retirés)', e1.nom === 'Hôpital Exemple' && e1.service === 'Service Exemple'
+    && e1.adresse === '1 rue Exemple, 00000 Ville' && e1.telephone === '00 00 00 00', e1);
+  V('…et un second appel ne recrée rien', run('getOrCreateEtablissementTab().getDataRange().getValues().length') === 5);
+  /* Onglet créé par la version .2 (deux clés, déjà remplies) : les deux clés
+     manquantes s'ajoutent, rien de rempli n'est touché. */
+  run("(function(){var sh=SpreadsheetApp.getActiveSpreadsheet().getSheetByName('ETABLISSEMENT'); sh.deleteRows(2, 4); sh.getRange(2,1,2,3).setValues([['NOM','Hôpital Exemple',''],['ADRESSE','1 rue Exemple, 00000 Ville','']]);})()");
+  const e2 = run('getEtablissement()');
+  V('…un onglet de l\'ancienne version reçoit SERVICE et TELEPHONE, sans rien perdre',
+    e2.nom === 'Hôpital Exemple' && e2.adresse === '1 rue Exemple, 00000 Ville' && e2.service === '' && e2.telephone === ''
+    && run("getOrCreateEtablissementTab().getDataRange().getValues().map(function(r){return r[0];}).join(',')") === 'CLE,NOM,ADRESSE,SERVICE,TELEPHONE', e2);
   {
     const wk = fs.readFileSync('../cloudflare/worker.js', 'utf8'), mi = fs.readFileSync('../gas/miroir.gs', 'utf8');
     const pg = fs.readFileSync('../docs/module-liberal/estimateur-liberal.html', 'utf8');
@@ -672,7 +681,7 @@ console.log('\n═══ 6. La page de cotation ne dit rien qu\'elle ne sache �
     { code:'END', label:'Endoscopies digestives', actif:true },
     { code:'OPH', label:'Ophtalmologie (cataracte)', actif:true },
     { code:'ORL', label:'ORL / stomatologie', actif:true }]));
-  M.set('etablissement', JSON.stringify({ nom:'Hôpital Exemple', adresse:'1 rue Exemple, 00000 Ville' }));   // fictif
+  M.set('etablissement', JSON.stringify({ nom:'Hôpital Exemple', service:'Service Exemple', adresse:'1 rue Exemple, 00000 Ville', telephone:'00 00 00 00' }));   // fictif
   M.set('cotations_type', JSON.stringify([
     { groupe:'Endoscopie', nom:'Gastro + colo', lc:'CS', lignes:[
       { code:'HHQE002', ordre:1, role:'principal', mod7:true, modA:false },
@@ -900,10 +909,12 @@ console.log('\n═══ 6. La page de cotation ne dit rien qu\'elle ne sache �
   {
     /* (20/10/2026) Nom et adresse de l'établissement, lus dans le classeur */
     const cases = k => [...d.querySelectorAll('#devisOverlay [data-etab="' + k + '"]')];
-    V('établissement : 5 cases « nom » et 2 « adresse » (devis + déclaration de choix)', cases('nom').length === 5 && cases('adresse').length === 2,
-      [cases('nom').length, cases('adresse').length]);
-    V('…toutes pré-remplies depuis le classeur', cases('nom').every(e => e.textContent === 'Hôpital Exemple') && cases('adresse').every(e => e.textContent === '1 rue Exemple, 00000 Ville'),
-      cases('nom').map(e => e.textContent));
+    V('établissement : 5 cases « nom », 2 « adresse », 1 « service », 2 « téléphone » (devis + déclaration de choix)',
+      cases('nom').length === 5 && cases('adresse').length === 2 && cases('service').length === 1 && cases('telephone').length === 2,
+      [cases('nom').length, cases('adresse').length, cases('service').length, cases('telephone').length]);
+    V('…toutes pré-remplies depuis le classeur', cases('nom').every(e => e.textContent === 'Hôpital Exemple') && cases('adresse').every(e => e.textContent === '1 rue Exemple, 00000 Ville')
+      && cases('service')[0].textContent === 'Service Exemple' && cases('telephone').every(e => e.textContent === '00 00 00 00'),
+      cases('nom').map(e => e.textContent).concat(cases('telephone').map(e => e.textContent)));
     V('…et toujours modifiables à la main', cases('nom').concat(cases('adresse')).every(e => e.getAttribute('contenteditable') === 'true'));
     cases('nom')[0].textContent = 'Corrigé à la main'; w.basculerLangueDevis();
     V('…une correction à la main n\'est pas écrasée, même en passant en anglais', cases('nom')[0].textContent === 'Corrigé à la main');

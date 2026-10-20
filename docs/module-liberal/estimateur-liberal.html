@@ -1037,10 +1037,11 @@ let COTTYPE=[];
    ETABLISSEMENT), jamais écrits dans ce fichier public. Ils pré-remplissent les
    cases « Établissement » et « Adresse » du devis et de la déclaration de choix ;
    les cases restent modifiables à la main. Vides : les cases restent à remplir. */
-let ETAB={nom:'', adresse:''};
+let ETAB={nom:'', service:'', adresse:'', telephone:''};
 function poserEtablissement(e){
   if(!e || typeof e!=='object') return;
-  ETAB={nom:String(e.nom||'').trim(), adresse:String(e.adresse||'').trim()};
+  const t=k=>String(e[k]||'').trim();
+  ETAB={nom:t('nom'), service:t('service'), adresse:t('adresse'), telephone:t('telephone')};
 }
 async function chargerEtablissement(){            // repli Apps Script, si la copie rapide ne répond pas
   const code = SessionPortail.lire(); if(!code) return;
@@ -1680,7 +1681,7 @@ function openDevis(i){
 let DV_LANG='fr';
 const DV_EN={
   role:'Anaesthesiologist and intensive care physician — sector 2 (free fees, non-OPTAM)',
-  rpps:'RPPS no.', libEtab:'Private practice within the hospital', intraHosp:'In-hospital private practice',
+  tel:'Tel.', rpps:'RPPS no.', libEtab:'Private practice within the hospital', intraHosp:'In-hospital private practice',
   titre:'Cost estimate — Prior written information',
   sousTitre:'Given to the patient before the procedure · please keep',
   devisNo:'Estimate no.', etabliLe:'Issued on', valable:'Valid until',
@@ -1700,7 +1701,7 @@ const DV_EN={
   legal4:'<b>Protected beneficiaries.</b> No extra fee is charged to beneficiaries of protected coverage (carte verte, SPME, AME, C2S): only the standard tariff applies.',
   pied:'Issued in two copies: one for the patient, one for the medical record.'
 };
-const DV_PH_EN={etab:'Hospital', adresse:'Address', date:'DD/MM/YYYY'};
+const DV_PH_EN={etab:'Hospital', service:'Department', adresse:'Address', tel:'Phone', date:'DD/MM/YYYY'};
 // Textes posés par le code : français / anglais
 const DV_DYN={
   fr:{acte:'Acte', thActe:'Acte — Code', thActeNas:'Acte', total:'Total', totalNas:'Total à régler', mutNon:'non renseignée', mutAucune:'aucune', mutBR:' % BR'},
@@ -2031,7 +2032,9 @@ populateMut();poserEcran();renderSummary();
       </div>
       <div class="estab">
         <div class="e1"><span class="ed" contenteditable="true" data-ph="Établissement" data-i18n-ph="etab" data-etab="nom"></span></div>
-        <span class="ed" contenteditable="true" data-ph="Adresse" data-i18n-ph="adresse" data-etab="adresse"></span><br><span data-i18n="intraHosp">Activité libérale intra-hospitalière</span>
+        <span class="ed" contenteditable="true" data-ph="Service" data-i18n-ph="service" data-etab="service"></span><br>
+        <span class="ed" contenteditable="true" data-ph="Adresse" data-i18n-ph="adresse" data-etab="adresse"></span><br>
+        <span data-i18n="tel">Tél.</span> <span class="ed" contenteditable="true" data-ph="Téléphone" data-i18n-ph="tel" data-etab="telephone"></span><br><span data-i18n="intraHosp">Activité libérale intra-hospitalière</span>
       </div>
     </div>
     <div class="doctitle">
@@ -2106,7 +2109,7 @@ populateMut();poserEcran();renderSummary();
     <div class="head">
       <div class="prat">
         <div class="name ed" contenteditable="true" data-ph="Établissement" data-etab="nom"></div>
-        <div class="meta"><span class="ed" contenteditable="true" data-ph="Adresse de l'établissement" data-etab="adresse"></span><br>Tél. <span class="ed" contenteditable="true" data-ph="Téléphone"></span> — courrier@exemple.fr — <span class="ed" contenteditable="true" data-ph="Site"></span></div>
+        <div class="meta"><span class="ed" contenteditable="true" data-ph="Adresse de l'établissement" data-etab="adresse"></span><br>Tél. <span class="ed" contenteditable="true" data-ph="Téléphone" data-etab="telephone"></span> — courrier@exemple.fr — <span class="ed" contenteditable="true" data-ph="Site"></span></div>
       </div>
     </div>
     <div class="doctitle">

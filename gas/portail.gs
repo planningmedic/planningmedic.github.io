@@ -1,7 +1,7 @@
 // ⚠️ RÈGLE (détecteur de dérive dépôt↔Apps Script) : incrémenter cette version
 // à CHAQUE push de ce fichier. Le diagnostic (admin → Maintenance) compare la
 // version déployée ici avec celle du dépôt et signale toute recopie oubliée.
-const GAS_VERSION_PORTAIL = '2026-10-20.2';   // (20/10/2026) .1 recherche dans les archives de la veille · .2 onglet ETABLISSEMENT (nom et adresse du devis)
+const GAS_VERSION_PORTAIL = '2026-10-20.3';   // (20/10/2026) .1 recherche dans les archives de la veille · .2 onglet ETABLISSEMENT (nom et adresse du devis) · .3 + service et téléphone
 
 /**
  * portail.gs — actions du PORTAIL équipe (index.html).
@@ -1482,9 +1482,15 @@ function getSpecialites() {
    responsable remplit la colonne VALEUR, la copie rapide suit (miroirSurEdition). */
 const ETAB_TAB = 'ETABLISSEMENT';
 const _ETAB_HEADER = ['CLE', 'VALEUR', 'NOTE'];
+/* (20/10/2026, .3) + SERVICE et TELEPHONE, comme l'en-tête du devis papier du
+   secrétariat. Un onglet déjà créé avec les deux premières clés reçoit les
+   clés manquantes à l'appel suivant (lignes ajoutées, valeurs vides) : rien
+   de ce qui est déjà rempli n'est touché. */
 const _ETAB_CLES = [
-  ['NOM',     '', 'Nom de l\'établissement, tel qu\'imprimé sur le devis et la déclaration de choix'],
-  ['ADRESSE', '', 'Adresse postale complète, sur une ligne'],
+  ['NOM',       '', 'Nom de l\'établissement, tel qu\'imprimé sur le devis et la déclaration de choix'],
+  ['SERVICE',   '', 'Service, imprimé sous le nom (ex. département)'],
+  ['ADRESSE',   '', 'Adresse postale complète, sur une ligne'],
+  ['TELEPHONE', '', 'Téléphone du service'],
 ];
 function getOrCreateEtablissementTab() {
   const ss = SpreadsheetApp.getActiveSpreadsheet();
@@ -1494,10 +1500,14 @@ function getOrCreateEtablissementTab() {
     sh.getRange(1, 1, 1, _ETAB_HEADER.length).setValues([_ETAB_HEADER]).setFontWeight('bold');
     sh.getRange(2, 1, _ETAB_CLES.length, _ETAB_HEADER.length).setValues(_ETAB_CLES);
     sh.setFrozenRows(1);
+    return sh;
   }
+  const presentes = {};
+  sh.getDataRange().getValues().forEach(function (l) { presentes[String(l[0] || '').trim().toUpperCase()] = true; });
+  _ETAB_CLES.forEach(function (l) { if (!presentes[l[0]]) sh.appendRow(l); });
   return sh;
 }
-// { nom, adresse } — chaîne vide tant que l'onglet n'est pas rempli.
+// { nom, service, adresse, telephone } — chaîne vide tant que l'onglet n'est pas rempli.
 function getEtablissement() {
   const rows = getOrCreateEtablissementTab().getDataRange().getValues();
   const v = {};
@@ -1505,7 +1515,7 @@ function getEtablissement() {
     const cle = String(rows[r][0] || '').trim().toUpperCase();
     if (cle) v[cle] = String(rows[r][1] == null ? '' : rows[r][1]).trim();
   }
-  return { nom: v.NOM || '', adresse: v.ADRESSE || '' };
+  return { nom: v.NOM || '', service: v.SERVICE || '', adresse: v.ADRESSE || '', telephone: v.TELEPHONE || '' };
 }
 
 // Set des codes ACTIFS, pour valider une declaration.
