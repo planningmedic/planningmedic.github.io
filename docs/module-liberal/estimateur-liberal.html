@@ -354,7 +354,8 @@ window.SessionPortail = window.SessionPortail || { lire:function(){try{return se
           <button id="lcCS"  onclick="setAssoc('CS')"></button>
           <button id="lcAPC" onclick="setAssoc('APC')"></button>
         </div>
-        <input type="hidden" id="assocLc" value="CS"></div>
+        <input type="hidden" id="assocLc" value="CS">
+        <div class="datehint" id="lcTot"></div></div>
       <div class="datehint" id="dateHint"></div>
       <div class="datehint" id="statutAlerte" style="display:none;color:#8A6516"></div>
     </div>
@@ -574,6 +575,21 @@ function estMonaco(st){ return !!MONACO[st]; }
 // Montant court lu dans LC : « 46 € », « 34,40 € ».
 function eurLc(n){ return (Number.isInteger(n) ? String(n) : n.toFixed(2).replace('.',',')) + ' €'; }
 
+/* (20/10/2026) CONSULTATION SUR LE DEVIS. Base = la consultation choisie (CS ou
+   APC, lue dans LC). Dépassement selon le statut (règle du responsable) :
+   carte verte et SPME : aucun ; carte rose : 20 % de la base (règle de la carte) ;
+   NAS, carte bulle, assuré français : TOTAL fixé par le groupement, lu dans le
+   classeur (onglet ETABLISSEMENT) — jamais écrit ici. Total absent : pas de dépassement. */
+const CONS_TOTAL_CLE={nas:'nas', bulle:'bulle', fr:'france'};
+function consBR(){ return assocBR(); }
+function consDH(st){
+  st=st||statutCourant();
+  const br=consBR();
+  if(st==='rose') return Math.round(0.20*br*100)/100;
+  const k=CONS_TOTAL_CLE[st]; if(!k) return 0;
+  const t=ETAB.consult && ETAB.consult[k];
+  return (typeof t==='number' && isFinite(t)) ? Math.max(0, Math.round((t-br)*100)/100) : 0;
+}
 function assocBR(){
   const sel=document.getElementById('assocLc'); if(!sel) return 0;
   return LC[sel.value]||0;
@@ -596,7 +612,10 @@ function assocChange(){
   const bCS=document.getElementById('lcCS'), bAPC=document.getElementById('lcAPC');
   if(bCS){ bCS.textContent='CS '+eurLc(LC.CS); bCS.classList.toggle('on', sel.value==='CS'); }
   if(bAPC){ bAPC.textContent='APC '+eurLc(LC.APC); bAPC.classList.toggle('on', sel.value==='APC'); bAPC.disabled=monaco; }
-  majBarre();
+  // (20/10/2026) Ce que la consultation coûtera, dépassement compris
+  const tot=document.getElementById('lcTot');
+  if(tot){ const b=consBR(), d=consDH(); tot.textContent = d>0 ? 'Consultation : '+eur2(b)+' + '+eur2(d)+' = '+eur2(b+d) : 'Consultation : '+eur2(b)+', sans dépassement'; }
+  if(typeof updateRac==='function' && document.getElementById('racBox')) updateRac(); else majBarre();
 }
 
 /* ── STATUT EN BOUTONS (01/10/2026) ───────────────────────────────────── */
@@ -639,7 +658,7 @@ function populateMut(){
 function setMut(p){
   if(MUTUELLES.indexOf(p)<0) return;
   MUT_PCT = p;
-  if(statutCourant()!=='nas') DH_MANUEL=false;   // (20/10/2026) NAS : le DP tape reste, la mutuelle n'y change rien
+  DH_MANUEL=false;
   populateMut();
   applyDH();
 }
@@ -654,9 +673,6 @@ function currentMut(){
      utilises par le devis : 80 % Monaco, 70 % France, 0 NAS).
    Carte verte sans mutuelle : 20 % de la base ; avec une mutuelle >= 100 % : 0. */
 function racPatient(st, pct, br, dh){
-  /* (20/10/2026) NAS : le coût EST le dépassement saisi — ni base CCAM ajoutée, ni
-     caisse, ni mutuelle calée sur une base (précision du responsable : « coût = DP »). */
-  if(st==='nas') return Math.max(0, dh);
   const total=br+dh;
   if(pct>0) return Math.max(0, total - Math.min(coverageCeiling(st,pct,br), total));
   const ro = RO_RATE[st]!=null ? RO_RATE[st] : 0.80;
@@ -678,7 +694,6 @@ function capNonOptam(st,pct){ return st==='fr' && pct>200; }  // le plafond mord
    updateRac pour servir aussi au pre-remplissage. */
 function dhOptimal(st,pct,br){
   const S=STATUTS[st];
-  if(st==='nas') return null;               // (20/10/2026) NAS : montant libre, rien a caler
   /* (02/10/2026) CARTE ROSE : toujours 20 % de la base (tarif CCAM x 1,98),
      quelle que soit la mutuelle — c'est la regle de la carte, pas un plafond a
      caler (decision du responsable). La mutuelle ne joue que sur le reste a charge. */
@@ -699,9 +714,9 @@ function updateRac(){
      mais le reste a charge existe (ticket moderateur) et la barre du bas le montre.
      Avant, il etait force a 0 ici et la barre affichait « mutuelle non renseignee »
      pendant que le devis imprimait 20 % de la base. */
-  if(S.dh==='0' || st==='nas'){             // (20/10/2026) NAS : pas d'encadre de calage, cout = DP
+  if(S.dh==='0'){
     box.style.display='none';
-    lastRac=racPatient(st,pct,br,dh); lastMut=mut.n;
+    lastRac=racPatient(st,pct,br+consBR(),dh+consDH(st)); lastMut=mut.n;
     majBarre();
     return;
   }
@@ -709,7 +724,7 @@ function updateRac(){
   const cap = S.dh==='0.20' ? 0.20*br : Infinity;                            // plafond réglementaire €
   document.getElementById('rCap').textContent = cap===Infinity?'libre':eur2(cap);
   let absTxt='—',optTxt='—';
-  const racVal=racPatient(st,pct,br,dh);
+  const racVal=racPatient(st,pct,br+consBR(),dh+consDH(st));   // (20/10/2026) consultation comprise
   const racTxt=eur2(racVal), cls = racVal<=0.005?'zero':'pos';
   if(pct>0){
     const absorp=Math.max(0,coverageCeiling(st,pct,br)-br);   // DH réellement absorbable
@@ -749,7 +764,7 @@ function updateRac(){
 function majBarre(){
   const br=parcoursBR();
   const dh=parseFloat(document.getElementById('dh').value)||0;
-  document.getElementById('totBR').textContent=eur(statutCourant()==='nas' ? dh : br+dh);   // NAS : cout = DP
+  document.getElementById('totBR').textContent=eur(br+dh+consBR()+consDH());   // (20/10/2026) consultation comprise
   const rc=document.getElementById('totRac');
   if(br<=0){ rc.textContent='reste à charge —'; rc.className='rac'; }
   else if(lastMut==null){ rc.textContent='mutuelle non renseignée'; rc.className='rac'; }
@@ -822,6 +837,8 @@ function onStatut(){const st=STATUTS[document.getElementById('statut').value];
   // (02/10/2026) Mutuelle visible pour TOUS les statuts : elle decide du reste a charge.
   document.getElementById('mutRow').style.display = 'block';
   DH_MANUEL=false;
+  // (20/10/2026) Assure francais : la consultation se cote en APC (decision du responsable)
+  if(document.getElementById('statut').value==='fr'){ const s=document.getElementById('assocLc'); if(s) s.value='APC'; }
   assocChange();             // APC grisee (et retiree) des que le patient est monegasque
   renderBuilder();}
 // Modificateur 7 (presence permanente de l'anesthesiste, +6 %) COCHE PAR DEFAUT :
@@ -1037,11 +1054,15 @@ let COTTYPE=[];
    ETABLISSEMENT), jamais écrits dans ce fichier public. Ils pré-remplissent les
    cases « Établissement » et « Adresse » du devis et de la déclaration de choix ;
    les cases restent modifiables à la main. Vides : les cases restent à remplir. */
-let ETAB={nom:'', service:'', adresse:'', telephone:''};
+let ETAB={nom:'', service:'', adresse:'', telephone:'', consult:{}};
 function poserEtablissement(e){
   if(!e || typeof e!=='object') return;
   const t=k=>String(e[k]||'').trim();
-  ETAB={nom:t('nom'), service:t('service'), adresse:t('adresse'), telephone:t('telephone')};
+  const c=(e.consult && typeof e.consult==='object') ? e.consult : {};
+  const n=v=>(typeof v==='number' && isFinite(v)) ? v : null;
+  ETAB={nom:t('nom'), service:t('service'), adresse:t('adresse'), telephone:t('telephone'),
+        consult:{nas:n(c.nas), bulle:n(c.bulle), france:n(c.france)}};
+  if(typeof assocChange==='function') assocChange();          // le total de consultation s'affiche
 }
 async function chargerEtablissement(){            // repli Apps Script, si la copie rapide ne répond pas
   const code = SessionPortail.lire(); if(!code) return;
@@ -1163,7 +1184,7 @@ function appliquerCotType(i){
   // Consultation associee posee par la cotation type. (01/10/2026) Seules CS et APC
   // existent a l'ecran : assocChange ramene toute autre valeur (C, vide) sur CS.
   const sel=document.getElementById('assocLc');
-  if(sel && c.lc){ sel.value=c.lc; assocChange(); }
+  if(sel && c.lc){ sel.value = statutCourant()==='fr' ? 'APC' : c.lc; assocChange(); }   // (20/10/2026) France : APC
   renderBuilder();
 }
 
@@ -1575,7 +1596,8 @@ function courant(muet){
   const dActe = dInt;                       // ce qui remonte au comite : le jour du bloc
   const st=document.getElementById('statut').value, pct=currentMutPct();
   // (02/10/2026) Meme regle que la barre du bas (racPatient), pour TOUS les statuts.
-  const rac=racPatient(st,pct,br,dh), mut=currentMut().n;
+  const cBR=consBR(), cDH=consDH(st), cCode=(document.getElementById('assocLc')||{}).value||'CS';
+  const rac=racPatient(st,pct,br+cBR,dh+cDH), mut=currentMut().n;   // (20/10/2026) consultation comprise
   // Detail acte par acte, memorise pour le devis (modele CNOM : un bloc par acte).
   // La BR se repartit ligne par ligne ; le DH, saisi pour l'intervention entiere, NON.
   // Il n'existe pas de cle de repartition du DH : il reste donc sur la ligne de total.
@@ -1583,7 +1605,7 @@ function courant(muet){
         mods:[l.m7?'7':null, l.mA?'A':null].filter(Boolean), role:l.role}));
   // 2A : le parcours porte desormais SES DEUX montants. brCcam/brNgap sont ce qui
   // partira dans la declaration ; br reste la BR de l'axe courant (devis, RAC, simulateur).
-  return {axe,statut:st,desc,cnt,br,dh,rac,mut,dCs,dInt,dActe,lines,
+  return {axe,statut:st,desc,cnt,br,dh,rac,mut,dCs,dInt,dActe,lines,cBR,cDH,cCode,
           brCcam:br, brNgap:assocBR()};
 }
 
@@ -1624,13 +1646,20 @@ function renderDevisActes(p){
               : [{code:'', lib:p.desc||dvT('acte'), br:p.br, mods:[]}];   // filet : parcours sans detail
   /* (20/10/2026) NAS : le nom de l'acte seul, sans code ni montant par ligne —
      un seul montant, sur la ligne de total. */
+  /* (20/10/2026) La consultation ouvre le tableau, comme le devis du secrétariat. */
+  const cons = (p.cBR>0) ? {lib:dvT('consult'), code:p.cCode||'CS'} : null;
   if(p.statut==='nas'){
-    tb.innerHTML = lines.map(l=>`<tr>
-      <td class="l"><span class="lib">${esc(l.lib||dvT('acte'))}</span></td>
-      <td class="num"></td><td class="num"></td><td class="num"></td><td class="num"></td></tr>`).join('');
+    // NAS : deux lignes, chacune avec SON montant (base + dépassement) ; pas de code
+    const r=(lib,v)=>`<tr><td class="l"><span class="lib">${esc(lib)}</span></td>
+      <td class="num"></td><td class="num">${eur2(v)}</td><td class="num"></td><td class="num"></td></tr>`;
+    tb.innerHTML = (cons ? r(cons.lib, p.cBR+(p.cDH||0)) : '')
+      + r(lines.map(l=>l.lib||dvT('acte')).join(' + '), p.br+p.dh);
     return;
   }
-  tb.innerHTML = lines.map(l=>{
+  tb.innerHTML = (cons ? `<tr>
+      <td class="l"><span class="lib">${esc(cons.lib)}</span> <span class="code">— ${esc(cons.code)} \u00b7 NGAP</span></td>
+      <td class="num">${eur2(p.cBR)}</td>
+      <td class="num"></td><td class="num"></td><td class="num"></td></tr>` : '') + lines.map(l=>{
     const m=(l.mods&&l.mods.length) ? ' \u00b7 mod. '+l.mods.join(', ') : '';
     const c=l.code ? esc(l.code)+' \u00b7 ' : '';
     return `<tr>
@@ -1641,7 +1670,7 @@ function renderDevisActes(p){
 }
 function openDevis(i){
   const p=parcours[i]; if(!p) return;
-  dvHonoraire = p.statut==='nas' ? p.dh : p.br+p.dh;      // (20/10/2026) NAS : cout = DP
+  dvHonoraire = p.br + p.dh + (p.cBR||0) + (p.cDH||0);   // (20/10/2026) consultation comprise
   // Praticien (config saisie une fois en haut de page)
   eText('dvPratName', document.getElementById('cfgPrat').value.trim()||'[Nom Prénom]');
   eText('dvRPPS', document.getElementById('cfgRPPS').value.trim()||'—');
@@ -1658,14 +1687,14 @@ function openDevis(i){
   document.getElementById('dvDatePrevue').textContent=fmtI(p.dInt||p.dCs);
   // Acte + statut + mutuelle + montants
   devisTextes(p);
-  eText('dvBR', eur2(p.br)); eText('dvHon', eur2(dvHonoraire)); eText('dvDH', eur2(p.dh));
+  eText('dvBR', eur2(p.br+(p.cBR||0))); eText('dvHon', eur2(dvHonoraire)); eText('dvDH', eur2(p.dh+(p.cDH||0)));
   const ra=document.getElementById('dvRacAfter');
   ra.textContent = p.rac!=null?eur2(p.rac):'—';
   ra.className='v '+((p.rac!=null&&p.rac<=0.005)?'zero':'pos');
   document.getElementById('dvTag').style.display=(p.statut==='bulle')?'inline-block':'none';
   // Remboursement assurance maladie pré-calculé (hypothèse de taux, ajustable)
   const rate = (RO_RATE[p.statut]!=null?RO_RATE[p.statut]:0.80);
-  document.getElementById('dvRRO').textContent = eur2(rate*p.br);
+  document.getElementById('dvRRO').textContent = eur2(rate*(p.br+(p.cBR||0)));
   recalcDevisRac();
   // aucun champ patient : le nom est écrit à la main par le patient après impression
   eText('dcPratName', document.getElementById('cfgPrat').value.trim()||'[Nom Prénom]');
@@ -1704,8 +1733,8 @@ const DV_EN={
 const DV_PH_EN={etab:'Hospital', service:'Department', adresse:'Address', tel:'Phone', date:'DD/MM/YYYY'};
 // Textes posés par le code : français / anglais
 const DV_DYN={
-  fr:{acte:'Acte', thActe:'Acte — Code', thActeNas:'Acte', total:'Total', totalNas:'Total à régler', mutNon:'non renseignée', mutAucune:'aucune', mutBR:' % BR'},
-  en:{acte:'Procedure', thActe:'Procedure — Code', thActeNas:'Procedure', total:'Total', totalNas:'Total payable', mutNon:'not specified', mutAucune:'none', mutBR:' % of base'}
+  fr:{consult:'Consultation d\'anesthésie', acte:'Acte', thActe:'Acte — Code', thActeNas:'Acte', total:'Total', totalNas:'Total à régler', mutNon:'non renseignée', mutAucune:'aucune', mutBR:' % BR'},
+  en:{consult:'Anaesthesia consultation', acte:'Procedure', thActe:'Procedure — Code', thActeNas:'Procedure', total:'Total', totalNas:'Total payable', mutNon:'not specified', mutAucune:'none', mutBR:' % of base'}
 };
 const ST_LABELS_EN={verte:'CCSS Monaco — carte verte',rose:'CCSS Monaco — carte rose',bulle:'CCSS Monaco — carte bulle',fr:'French health insurance (sector 2)',nas:'Not covered by any health insurance (NAS)',spme:'SPME (Monaco)'};
 function dvT(k){ return DV_DYN[DV_LANG][k]; }

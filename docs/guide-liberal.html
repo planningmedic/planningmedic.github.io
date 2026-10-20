@@ -273,8 +273,18 @@
   </div>
   <div class="callout tip">
     <div class="ct">Patient NAS ou étranger</div>
-    <p><strong>Patient NAS</strong>&nbsp;: aucune caisse ne rembourse, le devis ne montre donc qu'<strong>une seule somme</strong> («&nbsp;Total à régler&nbsp;») et le nom de l'acte, sans code ni base de remboursement. Cette somme est <strong>le dépassement que vous tapez, et rien d'autre</strong>&nbsp;: 300&nbsp;€ tapés = 300&nbsp;€ sur le devis.</p>
+    <p><strong>Patient NAS</strong>&nbsp;: aucune caisse ne rembourse. Le devis montre deux lignes, <strong>la consultation et l'acte</strong>, chacune avec son montant, puis le «&nbsp;Total à régler&nbsp;» — sans code ni base de remboursement. Comme pour les autres patients, le montant de l'acte = <strong>base + dépassement tapé</strong>&nbsp;: pour annoncer 300&nbsp;€ d'anesthésie, tapez 300&nbsp;€ moins la base.</p>
     <p><strong>Devis en anglais</strong>&nbsp;: bouton <span class="tag">English</span> en haut du devis, puis <span class="tag">Français</span> pour revenir. La déclaration de choix reste en français&nbsp;; les noms d'actes aussi (ce sont les libellés officiels). En fermant, le devis repasse en français.</p>
+  </div>
+  <div class="callout tip">
+    <div class="ct">La consultation est sur le devis</div>
+    <p>Le devis commence par la <strong>consultation d'anesthésie</strong>, puis les actes&nbsp;; le total et le reste à charge comprennent les deux. Le dépassement de consultation se met tout seul selon le patient&nbsp;:</p>
+    <ul>
+      <li><strong>Carte verte, SPME</strong>&nbsp;: aucun.</li>
+      <li><strong>Carte rose</strong>&nbsp;: 20&nbsp;% de la consultation.</li>
+      <li><strong>Carte bulle, NAS, assuré français</strong>&nbsp;: jusqu'au total fixé par le groupement. Un assuré français est coté en <strong>APC</strong> d'office.</li>
+    </ul>
+    <p>Le montant total s'affiche sous les boutons CS / APC. Les tarifs du groupement se règlent dans le classeur, onglet <code>ETABLISSEMENT</code>&nbsp;; s'ils sont vides, pas de dépassement de consultation.</p>
   </div>
   <p>Le devis rappelle les mentions obligatoires&nbsp;: statut secteur 2 honoraires libres (tact et mesure), information préalable dès 70 € de dépassement, paiement après l'acte, remboursement mutuelle dépendant du contrat, et l'exclusion de tout dépassement pour les bénéficiaires protégés (verte, SPME, AME, C2S).</p>
   <div class="callout tip">

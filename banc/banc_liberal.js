@@ -502,7 +502,7 @@ console.log('\n═══ 5ter. Le jeton unique : reessayer sans jamais doubler �
   });
   ['_isoDate','_todayISO_','_libYearOf','_libSheetName','_getOrCreateLiberalTab','_libNewId',
    '_libMoney_','getOrCreateSpecialitesTab','getSpecialites','_specialitesActives_','declareLiberal','listLiberal','deleteLiberal',
-   'getOrCreateEtablissementTab','getEtablissement']
+   'getOrCreateEtablissementTab','getEtablissement','_etabMontant_']
     .forEach(n => { try { vm.runInContext(extraireFonction('../gas/portail.gs', n), ctx); } catch(e) {} });
   ctx.MAR = { role:'mar', id:'ALPHA', liberal:true };
   const run = e => vm.runInContext(e, ctx);
@@ -532,22 +532,24 @@ console.log('\n═══ 5ter. Le jeton unique : reessayer sans jamais doubler �
   /* (20/10/2026) ÉTABLISSEMENT : nom et adresse du devis, lus dans le classeur.
      Valeurs FICTIVES ici : le vrai nom ne s'écrit jamais dans le dépôt. */
   const e0 = run('getEtablissement()');
-  V('établissement : l\'onglet se crée au premier appel, quatre clés, valeurs vides',
+  V('établissement : l\'onglet se crée au premier appel, sept clés, valeurs vides',
     e0.nom === '' && e0.service === '' && e0.adresse === '' && e0.telephone === ''
-    && run("getOrCreateEtablissementTab().getDataRange().getValues().map(function(r){return r[0];}).join(',')") === 'CLE,NOM,SERVICE,ADRESSE,TELEPHONE',
+    && e0.consult.nas === null && e0.consult.bulle === null && e0.consult.france === null
+    && run("getOrCreateEtablissementTab().getDataRange().getValues().map(function(r){return r[0];}).join(',')") === 'CLE,NOM,SERVICE,ADRESSE,TELEPHONE,CONSULT_TOTAL_NAS,CONSULT_TOTAL_BULLE,CONSULT_TOTAL_FRANCE',
     [e0, run("getOrCreateEtablissementTab().getDataRange().getValues().map(function(r){return r[0];}).join(',')")]);
-  run("getOrCreateEtablissementTab().getRange(2, 2, 4, 1).setValues([['  Hôpital Exemple '],['Service Exemple'],['1 rue Exemple, 00000 Ville'],['00 00 00 00']])");
+  run("getOrCreateEtablissementTab().getRange(2, 2, 7, 1).setValues([['  Hôpital Exemple '],['Service Exemple'],['1 rue Exemple, 00000 Ville'],['00 00 00 00'],[111],['99,00 €'],['']])");
   const e1 = run('getEtablissement()');
   V('…rempli dans le classeur, il est relu tel quel (espaces retirés)', e1.nom === 'Hôpital Exemple' && e1.service === 'Service Exemple'
     && e1.adresse === '1 rue Exemple, 00000 Ville' && e1.telephone === '00 00 00 00', e1);
-  V('…et un second appel ne recrée rien', run('getOrCreateEtablissementTab().getDataRange().getValues().length') === 5);
+  V('…totaux de consultation : nombre ou texte « 99,00 € » lus en euros, case vide = aucun', e1.consult.nas === 111 && e1.consult.bulle === 99 && e1.consult.france === null, e1.consult);
+  V('…et un second appel ne recrée rien', run('getOrCreateEtablissementTab().getDataRange().getValues().length') === 8);
   /* Onglet créé par la version .2 (deux clés, déjà remplies) : les deux clés
      manquantes s'ajoutent, rien de rempli n'est touché. */
-  run("(function(){var sh=SpreadsheetApp.getActiveSpreadsheet().getSheetByName('ETABLISSEMENT'); sh.deleteRows(2, 4); sh.getRange(2,1,2,3).setValues([['NOM','Hôpital Exemple',''],['ADRESSE','1 rue Exemple, 00000 Ville','']]);})()");
+  run("(function(){var sh=SpreadsheetApp.getActiveSpreadsheet().getSheetByName('ETABLISSEMENT'); sh.deleteRows(2, 7); sh.getRange(2,1,2,3).setValues([['NOM','Hôpital Exemple',''],['ADRESSE','1 rue Exemple, 00000 Ville','']]);})()");
   const e2 = run('getEtablissement()');
-  V('…un onglet de l\'ancienne version reçoit SERVICE et TELEPHONE, sans rien perdre',
+  V('…un onglet de l\'ancienne version reçoit les clés manquantes, sans rien perdre',
     e2.nom === 'Hôpital Exemple' && e2.adresse === '1 rue Exemple, 00000 Ville' && e2.service === '' && e2.telephone === ''
-    && run("getOrCreateEtablissementTab().getDataRange().getValues().map(function(r){return r[0];}).join(',')") === 'CLE,NOM,ADRESSE,SERVICE,TELEPHONE', e2);
+    && run("getOrCreateEtablissementTab().getDataRange().getValues().map(function(r){return r[0];}).join(',')") === 'CLE,NOM,ADRESSE,SERVICE,TELEPHONE,CONSULT_TOTAL_NAS,CONSULT_TOTAL_BULLE,CONSULT_TOTAL_FRANCE', e2);
   {
     const wk = fs.readFileSync('../cloudflare/worker.js', 'utf8'), mi = fs.readFileSync('../gas/miroir.gs', 'utf8');
     const pg = fs.readFileSync('../docs/module-liberal/estimateur-liberal.html', 'utf8');
@@ -681,7 +683,8 @@ console.log('\n═══ 6. La page de cotation ne dit rien qu\'elle ne sache �
     { code:'END', label:'Endoscopies digestives', actif:true },
     { code:'OPH', label:'Ophtalmologie (cataracte)', actif:true },
     { code:'ORL', label:'ORL / stomatologie', actif:true }]));
-  M.set('etablissement', JSON.stringify({ nom:'Hôpital Exemple', service:'Service Exemple', adresse:'1 rue Exemple, 00000 Ville', telephone:'00 00 00 00' }));   // fictif
+  M.set('etablissement', JSON.stringify({ nom:'Hôpital Exemple', service:'Service Exemple', adresse:'1 rue Exemple, 00000 Ville', telephone:'00 00 00 00',
+    consult:{ nas:111, bulle:99, france:99 } }));   // fictif — totaux de consultation inventés, jamais les vrais
   M.set('cotations_type', JSON.stringify([
     { groupe:'Endoscopie', nom:'Gastro + colo', lc:'CS', lignes:[
       { code:'HHQE002', ordre:1, role:'principal', mod7:true, modA:false },
@@ -1086,8 +1089,11 @@ console.log('\n═══ 6. La page de cotation ne dit rien qu\'elle ne sache �
     mut(0); await dodo(20);
     V('rose sans mutuelle : toujours 20 % de la base', proche(dhv(), 0.20 * br), [dhv(), 0.20 * br]);
     mut(100); await dodo(20);
+    /* (20/10/2026) La consultation entre dans le reste à charge : base CS, et 20 % de
+       dépassement en carte rose, comme l'anesthésie. */
+    const cs = () => ev('consBR()');
     V('rose + 100 % : toujours 20 % (la mutuelle ne joue que sur le reste à charge)',
-      proche(dhv(), 0.20 * br) && proche(ev('lastRac'), 0.20 * br), [dhv(), ev('lastRac')]);
+      proche(dhv(), 0.20 * br) && proche(ev('lastRac'), 0.20 * br + Math.round(0.20 * cs() * 100) / 100), [dhv(), ev('lastRac')]);
 
     // ── Calage automatique, plafond non-OPTAM pour un assuré français ──
     w.setStatut('bulle'); mut(300); await dodo(20);
@@ -1101,8 +1107,10 @@ console.log('\n═══ 6. La page de cotation ne dit rien qu\'elle ne sache �
     V('recliquer sur le bouton allumé ne l\'éteint plus', ev('MUT_PCT') === 150, ev('MUT_PCT'));
     mut(0); await dodo(20);
     V('« Aucune » : pas de dépassement calé', proche(dhv(), 0), dhv());
-    V('« Aucune » : reste à charge = total − remboursement de la caisse (70 % en France)',
-      proche(ev('lastRac'), br - Math.round(0.70 * br * 100) / 100), [ev('lastRac'), br]);
+    /* France : consultation APC + dépassement jusqu'au total du groupement (99 € fictifs ici) */
+    const totFr = br + cs() + dhv() + (99 - cs());
+    V('« Aucune » : reste à charge = total − remboursement de la caisse (70 % en France), consultation comprise',
+      proche(ev('lastRac'), totFr - Math.round(0.70 * (br + cs()) * 100) / 100), [ev('lastRac'), totFr]);
 
     /* ── RESTE À CHARGE : la barre du bas et le devis imprimé disent la MÊME chose ──
        (02/10/2026) Constat avant correction : en carte verte, la barre affichait
@@ -1124,9 +1132,9 @@ console.log('\n═══ 6. La page de cotation ne dit rien qu\'elle ne sache �
     V('barre du bas = devis imprimé, pour les 6 statuts × 5 mutuelles', ecarts.length === 0, ecarts.slice(0, 4));
 
     w.setStatut('verte'); mut(0); await dodo(20); br = ev('parcoursBR()');
-    V('verte sans mutuelle : la barre montre un reste à charge de 20 % de la base',
-      proche(lireEur(d.getElementById('totRac').textContent), Math.round(0.20 * br * 100) / 100),
-      [d.getElementById('totRac').textContent, 0.20 * br]);
+    V('verte sans mutuelle : la barre montre un reste à charge de 20 % de la base (consultation comprise)',
+      proche(lireEur(d.getElementById('totRac').textContent), Math.round(0.20 * (br + cs()) * 100) / 100),
+      [d.getElementById('totRac').textContent, 0.20 * (br + cs())]);
     w.ouvrirDevisCourant();
     V('…comme le devis, avant ET après complémentaire',
       proche(lireEur(d.getElementById('dvRacBefore').textContent), lireEur(d.getElementById('dvRacAfter').textContent))
@@ -1138,10 +1146,12 @@ console.log('\n═══ 6. La page de cotation ne dit rien qu\'elle ne sache �
     V('verte + mutuelle à 100 % : reste à charge 0', proche(ev('lastRac'), 0) && proche(dhv(), 0), ev('lastRac'));
     w.setStatut('spme'); mut(0); await dodo(20);
     V('SPME sans mutuelle : 20 % de la base ; avec 150 % : 0',
-      proche(ev('lastRac'), Math.round(0.20 * ev('parcoursBR()') * 100) / 100) && (mut(150), proche(ev('lastRac'), 0)));
+      proche(ev('lastRac'), Math.round(0.20 * (ev('parcoursBR()') + cs()) * 100) / 100) && (mut(150), proche(ev('lastRac'), 0)));
     w.setStatut('nas'); mut(0); await dodo(20);
-    V('NAS sans mutuelle : la caisse ne rembourse rien, reste = le dépassement seul (coût = DP)',
-      proche(ev('lastRac'), dhv()), [ev('lastRac'), dhv()]);
+    /* (20/10/2026) Décision du responsable, comme le devis du secrétariat : un NAS paie
+       base + dépassement, pour la consultation (total du groupement) comme pour l'anesthésie. */
+    V('NAS sans mutuelle : la caisse ne rembourse rien, reste = base + dépassement, consultation comprise',
+      proche(ev('lastRac'), ev('parcoursBR()') + dhv() + 111), [ev('lastRac'), ev('parcoursBR()') + dhv() + 111]);
 
     /* ── DEVIS NAS ET DEVIS EN ANGLAIS (20/10/2026) ──────────────────────────
        Demande du responsable : un NAS n'a pas de remboursement CCAM. Son devis porte
@@ -1150,17 +1160,23 @@ console.log('\n═══ 6. La page de cotation ne dit rien qu\'elle ne sache �
     {
       const dhIn = d.getElementById('dh'); dhIn.disabled = false; dhIn.value = '300'; w.dhSaisi();
       d.getElementById('dInt').value = '2099-01-01';
-      /* (20/10/2026) DÉFAUT TROUVÉ EN PRODUCTION : 300 € de DP donnaient un devis à
-         300 € + prix de l'acte. Pour un NAS, coût = DP. */
-      const totNas = 300;
-      V('NAS : la barre du bas affiche le DP seul', /^300\s?€$/.test(d.getElementById('totBR').textContent.trim()), d.getElementById('totBR').textContent);
+      /* (20/10/2026) NAS = base + dépassement (comme le devis du secrétariat) :
+         consultation au total du groupement (111 € fictifs) + anesthésie base + 300 €. */
+      const anesNas = ev('parcoursBR()') + 300, totNas = anesNas + 111;
+      V('NAS : la barre du bas affiche consultation + anesthésie, base comprise',
+        proche(lireEur(d.getElementById('totBR').textContent), Math.round(totNas)), [d.getElementById('totBR').textContent, totNas]);
       w.ouvrirDevisCourant(); await dodo(20);
       const lignes = d.getElementById('dvActes').textContent;
       V('devis NAS : aucun code CCAM, ni dans les lignes ni dans l\'intitulé',
         !/[A-Z]{4}\d{3}/.test(lignes) && !/[A-Z]{4}\d{3}/.test(d.getElementById('dvActe').textContent) && !/CCAM/.test(lignes),
         [lignes.slice(0, 120), d.getElementById('dvActe').textContent]);
       V('…mais le nom de l\'acte est bien là', lignes.trim().length > 3 && d.getElementById('dvActe').textContent.trim().length > 3);
-      V('…et un seul montant : le DP saisi, 300 €, sans le prix de l\'acte', proche(lireEur(d.getElementById('dvHon').textContent), totNas)
+      V('…deux lignes, chacune avec son montant : consultation 111 €, anesthésie base + 300 €',
+        /^Consultation d'anesthésie/.test(d.getElementById('dvActes').rows[0].textContent.trim())
+        && proche(lireEur(d.getElementById('dvActes').rows[0].cells[2].textContent), 111)
+        && proche(lireEur(d.getElementById('dvActes').rows[1].cells[2].textContent), anesNas),
+        [...d.getElementById('dvActes').rows].map(r => r.textContent.replace(/\s+/g, ' ').trim()));
+      V('…et « Total à régler » = la somme des deux', proche(lireEur(d.getElementById('dvHon').textContent), totNas)
         && d.getElementById('dvTotLbl').textContent === 'Total à régler',
         [d.getElementById('dvHon').textContent, totNas]);
       V('…colonnes base / dépassement / remboursement et encadrés de reste à charge masqués',
@@ -1181,15 +1197,31 @@ console.log('\n═══ 6. La page de cotation ne dit rien qu\'elle ne sache �
         && d.getElementById('dvLang').textContent === 'English');
       w.basculerLangueDevis(); w.closeDevis();
       w.setStatut('verte'); await dodo(10); w.ouvrirDevisCourant(); await dodo(20);
+      V('carte verte : la consultation ouvre le tableau, en CS, base seule, sans dépassement',
+        /Consultation d'anesthésie\s*— CS · NGAP/.test(d.getElementById('dvActes').rows[0].textContent)
+        && proche(lireEur(d.getElementById('dvActes').rows[0].cells[1].textContent), cs())
+        && proche(lireEur(d.getElementById('dvDH').textContent), 0),
+        [d.getElementById('dvActes').rows[0].textContent.replace(/\s+/g, ' ').trim(), d.getElementById('dvDH').textContent]);
       V('fermer remet le français ; un devis carte verte garde codes, base et encadrés',
         /Estimation de frais/.test(h1()) && !d.getElementById('dvTable').classList.contains('nas')
         && /[A-Z]{4}\d{3}/.test(d.getElementById('dvActes').textContent) && d.getElementById('dvTotLbl').textContent === 'Total',
         [h1(), d.getElementById('dvActes').textContent.slice(0, 80)]);
       w.closeDevis(); w.setStatut('nas'); await dodo(10);
-      d.getElementById('dh').value = '300'; w.dhSaisi();
-      mut(300); await dodo(10);
-      V('NAS + mutuelle : le DP n\'est pas recalé sur la mutuelle, le reste = DP', proche(dhv(), 300) && proche(ev('lastRac'), 300), [dhv(), ev('lastRac')]);
-      mut(0); await dodo(10);
+      /* Consultation : le dépassement suit le statut. Bulle et France : total du
+         groupement ; France cotée en APC d'office ; rose 20 % ; verte aucun. */
+      w.setStatut('bulle'); await dodo(10);
+      V('bulle : consultation CS, dépassement = total du groupement − base', ev("document.getElementById('assocLc').value") === 'CS'
+        && proche(ev('consDH()'), 99 - cs()) && /= 99,00/.test(d.getElementById('lcTot').textContent), [ev('consDH()'), d.getElementById('lcTot').textContent]);
+      w.setStatut('fr'); await dodo(10);
+      V('France : consultation en APC d\'office, total du groupement', ev("document.getElementById('assocLc').value") === 'APC'
+        && proche(cs(), 60) && proche(ev('consDH()'), 99 - 60), [ev("document.getElementById('assocLc').value"), ev('consDH()')]);
+      w.setStatut('rose'); await dodo(10);
+      V('rose : consultation CS + 20 %', ev("document.getElementById('assocLc').value") === 'CS' && proche(ev('consDH()'), Math.round(0.20 * cs() * 100) / 100), ev('consDH()'));
+      w.setStatut('spme'); await dodo(10);
+      V('SPME et verte : pas de dépassement de consultation', proche(ev('consDH()'), 0) && /sans dépassement/.test(d.getElementById('lcTot').textContent));
+      ev("ETAB.consult={nas:null,bulle:null,france:null}"); w.setStatut('bulle'); await dodo(10);
+      V('total du groupement absent du classeur : pas de dépassement inventé', proche(ev('consDH()'), 0));
+      ev("ETAB.consult={nas:111,bulle:99,france:99}"); w.setStatut('nas'); await dodo(10);
     }
     d.getElementById('dInt').value = '';
     w.setStatut('fr'); mut(0); await dodo(20); br = ev('parcoursBR()');
@@ -1204,8 +1236,8 @@ console.log('\n═══ 6. La page de cotation ne dit rien qu\'elle ne sache �
     V('sans chirurgien : calage mutuelle (200 % → 100 % BR)', proche(dhv(), br), [dhv(), br]);
     w.setChir(true); d.getElementById('chirDh').value = '300'; w.chirChange(); await dodo(20);
     V('le chirurgien cote : 50 % du sien, devant la mutuelle', proche(dhv(), 150), dhv());
-    V('et le reste à charge suit la mutuelle choisie',
-      d.getElementById('rRac').textContent === ev("eur2(Math.max(0,(parcoursBR()+150)-Math.min(coverageCeiling('fr',200,parcoursBR()),parcoursBR()+150)))"),
+    V('et le reste à charge suit la mutuelle choisie (consultation comprise)',
+      d.getElementById('rRac').textContent === ev("eur2(racPatient('fr',200,parcoursBR()+consBR(),150+consDH('fr')))"),
       d.getElementById('rRac').textContent);
     w.setChir(false); await dodo(20);
     V('il ne cote plus : retour au calage mutuelle', proche(dhv(), br), [dhv(), br]);
@@ -1252,8 +1284,8 @@ console.log('\n═══ 6. La page de cotation ne dit rien qu\'elle ne sache �
     V('l\'encadré dit sur quoi il est calé', /total France/.test(d.getElementById('racTitre').textContent));
     mut(200); await dodo(20);
     V('le total France passe AVANT la mutuelle', proche(dhv(), 400 - br), dhv());
-    V('le reste à charge, lui, suit la mutuelle choisie',
-      d.getElementById('rRac').textContent === ev("eur2(Math.max(0,(parcoursBR()+(400-parcoursBR()))-Math.min(coverageCeiling('fr',200,parcoursBR()),400)))"),
+    V('le reste à charge, lui, suit la mutuelle choisie (consultation comprise)',
+      d.getElementById('rRac').textContent === ev("eur2(racPatient('fr',200,parcoursBR()+consBR(),(400-parcoursBR())+consDH('fr')))"),
       d.getElementById('rRac').textContent);
     w.setChir(true); d.getElementById('chirDh').value = '100'; w.chirChange(); await dodo(20);
     V('le chirurgien qui cote passe avant le total France', proche(dhv(), 50), dhv());

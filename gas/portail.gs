@@ -1,7 +1,7 @@
 // ⚠️ RÈGLE (détecteur de dérive dépôt↔Apps Script) : incrémenter cette version
 // à CHAQUE push de ce fichier. Le diagnostic (admin → Maintenance) compare la
 // version déployée ici avec celle du dépôt et signale toute recopie oubliée.
-const GAS_VERSION_PORTAIL = '2026-10-20.3';   // (20/10/2026) .1 recherche dans les archives de la veille · .2 onglet ETABLISSEMENT (nom et adresse du devis) · .3 + service et téléphone
+const GAS_VERSION_PORTAIL = '2026-10-20.4';   // (20/10/2026) .1 recherche dans les archives de la veille · .2 onglet ETABLISSEMENT (nom et adresse du devis) · .3 + service et téléphone · .4 + totaux de consultation du groupement
 
 /**
  * portail.gs — actions du PORTAIL équipe (index.html).
@@ -1491,7 +1491,21 @@ const _ETAB_CLES = [
   ['SERVICE',   '', 'Service, imprimé sous le nom (ex. département)'],
   ['ADRESSE',   '', 'Adresse postale complète, sur une ligne'],
   ['TELEPHONE', '', 'Téléphone du service'],
+  /* (20/10/2026, .4) Tarifs du GROUPEMENT pour la consultation (total, base comprise,
+     en euros). Ce sont des montants : ils vivent ici, jamais dans le dépôt public.
+     Vide = pas de dépassement de consultation sur le devis. */
+  ['CONSULT_TOTAL_NAS',    '', 'Consultation, patient NAS : total en € (base comprise)'],
+  ['CONSULT_TOTAL_BULLE',  '', 'Consultation, carte bulle : total en € (base comprise)'],
+  ['CONSULT_TOTAL_FRANCE', '', 'Consultation, assuré français : total en € (base comprise)'],
 ];
+// Montant lu dans une case : nombre, ou texte « 110 » / « 110,00 € ». null si vide ou illisible.
+function _etabMontant_(v) {
+  if (typeof v === 'number') return isFinite(v) ? v : null;
+  const s = String(v == null ? '' : v).replace(/[^\d,.-]/g, '').replace(',', '.');
+  if (!s) return null;
+  const n = Number(s);
+  return isFinite(n) ? n : null;
+}
 function getOrCreateEtablissementTab() {
   const ss = SpreadsheetApp.getActiveSpreadsheet();
   let sh = ss.getSheetByName(ETAB_TAB);
@@ -1510,12 +1524,14 @@ function getOrCreateEtablissementTab() {
 // { nom, service, adresse, telephone } — chaîne vide tant que l'onglet n'est pas rempli.
 function getEtablissement() {
   const rows = getOrCreateEtablissementTab().getDataRange().getValues();
-  const v = {};
+  const v = {}, brut = {};
   for (let r = 1; r < rows.length; r++) {
     const cle = String(rows[r][0] || '').trim().toUpperCase();
-    if (cle) v[cle] = String(rows[r][1] == null ? '' : rows[r][1]).trim();
+    if (cle) { v[cle] = String(rows[r][1] == null ? '' : rows[r][1]).trim(); brut[cle] = rows[r][1]; }
   }
-  return { nom: v.NOM || '', service: v.SERVICE || '', adresse: v.ADRESSE || '', telephone: v.TELEPHONE || '' };
+  return { nom: v.NOM || '', service: v.SERVICE || '', adresse: v.ADRESSE || '', telephone: v.TELEPHONE || '',
+           consult: { nas: _etabMontant_(brut.CONSULT_TOTAL_NAS), bulle: _etabMontant_(brut.CONSULT_TOTAL_BULLE),
+                      france: _etabMontant_(brut.CONSULT_TOTAL_FRANCE) } };
 }
 
 // Set des codes ACTIFS, pour valider une declaration.
