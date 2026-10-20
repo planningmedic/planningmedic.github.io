@@ -57,7 +57,7 @@
 //  instantané unique et partagé : chantier séparé.
 // ══════════════════════════════════════════════════════════════════════
 
-const GAS_VERSION_VEILLE = '2026-10-20.4';
+const GAS_VERSION_VEILLE = '2026-10-20.5';
 
 const VEILLE_CFG_TAB = 'VEILLE_CFG';
 const VEILLE_TAB     = 'VEILLE';
@@ -485,7 +485,7 @@ function _veilleNote(fiche, source, themes, aujourdhui) {
      Lancet…) doit être très bien noté, synthèse comprise. Avant : 0 point de revue, et une
      synthèse du NEJM pas encore étiquetée « Review » par PubMed plafonnait vers 56. +25 :
      elle passe à ~81 ; un essai du NEJM atteint 100. */
-  if (source === 'GENERAL') { n += 25; motifs.push('grande revue'); }
+  if (source === 'GENERAL' && _veilleGrandeRevue(fiche.revue)) { n += 25; motifs.push('grande revue'); }   // (20/10, 21 h) les 8 seulement
   const nbTh = Object.keys(themes || {}).length;
   if (nbTh) { n += Math.min(18, 6 * nbTh); motifs.push(nbTh + (nbTh > 1 ? ' thèmes' : ' thème')); }
   if (!fiche.resume) { n -= 10; motifs.push('sans résumé'); } else { n += 5; }
@@ -535,6 +535,15 @@ function _veilleFiltre(cfg) {
   }
   s += (s ? ' ' : '') + 'NOT (' + VEILLE_EXCLUSIONS + ')';
   return s;
+}
+
+/* (20/10/2026, règle d'Arthur) Les GRANDES revues : un thème dans le titre y suffit, et leurs
+   articles prennent +25 à la note. Noms PubMed exacts (ISO), comparés sans casse. */
+const VEILLE_GRANDES_REVUES = ['N Engl J Med', 'JAMA', 'Lancet', 'BMJ', 'Ann Intern Med',
+                               'JAMA Intern Med', 'JAMA Surg', 'Lancet Respir Med'];
+function _veilleGrandeRevue(nom) {
+  const n = String(nom || '').trim().toLowerCase().replace(/\.$/, '');
+  return VEILLE_GRANDES_REVUES.some(function (g) { return g.toLowerCase() === n; });
 }
 
 /* Les mêmes expressions de thèmes, cherchées dans le seul titre. */
@@ -632,9 +641,20 @@ function _runVeilleCorps_() {
        un type d'étude (liste blanche, titre ou résumé) : c'est ce qui avait fait exploser
        l'axe en août (1 040 articles/180 j). Parenthèses explicites : PubMed lit de gauche
        à droite, sans priorité. */
+    /* (20/10/2026, 21 h) Premier passage avec la règle ci-dessus : 85 articles généralistes en
+       3 semaines, dont 57 inutiles — elle valait pour TOUTES les 18 généralistes, et Clin Infect
+       Dis, J Thromb Haemost, Transfusion… ont « antibiotic », « bleeding », « heparin » dans
+       presque chaque titre (6 articles « Fleming Fund », un modèle chez le rat…). Elle ne vaut
+       plus que pour les 8 GRANDES revues (VEILLE_GRANDES_REVUES) ; les 10 autres reviennent à
+       « thème + type d'étude ». Et un article sans résumé n'entre plus par cet axe : 22 sur 85
+       étaient des éditoriaux, réponses ou résumés grand public pas encore étiquetés par PubMed. */
     const themeTitre = _veilleThemesEnTitre(themeOr);
-    let baseG = '(' + _veilleOrRevues(cfg.general) + ') AND ((' + themeTitre + ')';
-    baseG += blanche ? ' OR ((' + themeOr + ') AND ' + blanche + '))' : ' OR (' + themeOr + '))';
+    const grandes = cfg.general.filter(_veilleGrandeRevue);
+    const parType = '((' + _veilleOrRevues(cfg.general) + ') AND (' + themeOr + ')' + (blanche ? ' AND ' + blanche : '') + ')';
+    let baseG = grandes.length
+      ? '(((' + _veilleOrRevues(grandes) + ') AND (' + themeTitre + ')) OR ' + parType + ')'
+      : parType;
+    baseG += ' AND hasabstract';
     idsGeneral = _esearchTout(_veilleAvec(baseG, filtre), jours);
   }
 
@@ -673,6 +693,7 @@ function _runVeilleCorps_() {
     lot.forEach(function (pmid) {
       const f = fiches[pmid];
       if (!f) return;
+      if (source[pmid] === 'GENERAL' && !f.resume) return;   // (20/10, 21 h) généraliste sans résumé : éditorial, réponse, actualité
       const themes = _veilleThemesLocaux(f, cfg.themes);
       const note = _veilleNote(f, source[pmid] || 'REVUE', themes, aujourdhui);
       lignes.push([

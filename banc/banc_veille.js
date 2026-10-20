@@ -179,7 +179,7 @@ function monde(plan) {
         if (general) return { esearchresult: { count: '1', idlist: ['401'] } };
         return { esearchresult: { count: '0', idlist: [] } };
       }
-      if (endpoint === 'efetch.fcgi') return efetchXml(params, id => ({ titre: 'A' + id, revue: 'Rev' }));   // (15/09) fiches en XML
+      if (endpoint === 'efetch.fcgi') return efetchXml(params, id => ({ titre: 'A' + id, revue: 'Rev', resume: 'Résumé.' }));   // (15/09) fiches en XML · (20/10) avec résumé : un généraliste sans résumé n'entre plus
       return {};
     };
     const { ctx, cl } = monde(plan);
@@ -878,7 +878,8 @@ function monde(plan) {
     V('NEJM, « acute kidney injury » dans le titre, simple article : il entre', r.axeCroise === 1 && m.cl.getSheetByName('VEILLE').lignes.some(l => String(l[0]) === '951'), r.axeCroise);
     const qG = m.requetes.find(q => q.endpoint === 'esearch.fcgi' && q.term.indexOf('"N Engl J Med"[Journal]') !== -1 && q.term.indexOf('"Anesthesiology"[Journal]') === -1);
     const qD = m.requetes.find(q => q.endpoint === 'esearch.fcgi' && q.term.indexOf('"Anesthesiology"[Journal]') !== -1);
-    V('généralistes : (thème dans le titre) OU (thème dans titre/résumé ET type d\'étude)', qG && /AND \(\(\("intubation"\[Title\]/.test(qG.term) && /\) OR \(\(\("intubation"\[tiab\][\s\S]*\) AND \("Randomized Controlled Trial"\[Publication Type\]/.test(qG.term), qG && qG.term.slice(0, 260));
+    V('généralistes : (8 grandes revues ET thème dans le titre) OU (18 revues ET thème ET type d\'étude), avec résumé', qG && /^\(\(\(\("N Engl J Med"\[Journal\] OR "JAMA"\[Journal\] OR "Lancet"\[Journal\] OR "BMJ"\[Journal\] OR "Ann Intern Med"\[Journal\] OR "JAMA Intern Med"\[Journal\] OR "JAMA Surg"\[Journal\] OR "Lancet Respir Med"\[Journal\]\) AND \(\("intubation"\[Title\]/.test(qG.term) && /\) OR \(\([\s\S]*"Chest"\[Journal\][\s\S]*\) AND \(\("intubation"\[tiab\][\s\S]*\) AND \("Randomized Controlled Trial"\[Publication Type\]/.test(qG.term) && /AND hasabstract\) AND /.test(qG.term), qG && qG.term.slice(0, 300));
+    V('Chest, Clin Infect Dis, J Thromb Haemost… ne profitent PAS de la règle du titre', qG && !/"Chest"\[Journal\][^(]*\) AND \(\("intubation"\[Title\]/.test(qG.term) && qG.term.split('"intubation"[Title]').length === 2);
     V('le thème vu seulement dans le résumé exige toujours un type (la liste blanche est conservée)', qG && qG.term.indexOf(BLANCHE) !== -1);
     V('revues spécialisées inchangées : thème en titre/résumé, sans restriction de type', qD && qD.term.indexOf('"intubation"[Title]') === -1 && qD.term.indexOf(BLANCHE) === -1);
     let prof = 0, mini = 0; for (const ch of (qG ? qG.term : '')) { if (ch === '(') prof++; if (ch === ')') prof--; mini = Math.min(mini, prof); }
@@ -890,13 +891,15 @@ function monde(plan) {
     const m = monde(() => ({}));
     const jour = new Date().toISOString().slice(0, 10);
     const note = (fiche, source, themes) => vm.runInContext('_veilleNote(' + JSON.stringify(Object.assign({ pubtypes: ['Journal Article'], titre: '', resume: 'x', date: jour }, fiche)) + ',' + JSON.stringify(source) + ',' + JSON.stringify(themes) + ',' + JSON.stringify(jour) + ')', m.ctx);
-    const synth = note({ titre: 'Acute Kidney Injury in Critical Care' }, 'GENERAL', { 'Insuffisance rénale': true });
+    const synth = note({ titre: 'Acute Kidney Injury in Critical Care', revue: 'N Engl J Med' }, 'GENERAL', { 'Insuffisance rénale': true });
     V('synthèse du NEJM pas encore étiquetée « Review », 1 thème : au moins 80 (≈56 avant)', synth.note >= 80 && /grande revue/.test(synth.motif), synth);
-    const icraki = note({ titre: 'Intermittent or Continuous Renal-Replacement Therapy in Acute Kidney Injury', resume: 'we randomly assigned critically ill adults' }, 'GENERAL', { 'Insuffisance rénale': true });
+    const icraki = note({ titre: 'Intermittent or Continuous Renal-Replacement Therapy in Acute Kidney Injury', resume: 'we randomly assigned critically ill adults', revue: 'N Engl J Med' }, 'GENERAL', { 'Insuffisance rénale': true });
     V('ICRAKI (essai lu dans le résumé, NEJM) : 100, motif « ECR · grande revue »', icraki.note === 100 && /^ECR · grande revue/.test(icraki.motif), icraki);
     const spe = note({ titre: 'Some observational study' }, 'REVUE', { 'Hémodynamique': true });
     V('un article ordinaire de revue spécialisée reste en dessous d\'une synthèse du NEJM', spe.note < synth.note, [spe.note, synth.note]);
-    const edito = note({ pubtypes: ['Editorial'], titre: 'Kidney injury: time to act' }, 'GENERAL', { 'Insuffisance rénale': true });
+    const edito = note({ pubtypes: ['Editorial'], titre: 'Kidney injury: time to act', revue: 'JAMA' }, 'GENERAL', { 'Insuffisance rénale': true });
+    const cid = note({ titre: 'Antimicrobial Resistance Surveillance: Ten Years On', revue: 'Clin Infect Dis' }, 'GENERAL', { 'Sepsis et infection': true });
+    V('(21 h) Clin Infect Dis n\'est pas une « grande revue » : pas de bonus, sous 70', !/grande revue/.test(cid.motif) && cid.note < 70, cid);
     V('un éditorial de grande revue reste pénalisé (sous 60)', edito.note < 60, edito);
   }
 
