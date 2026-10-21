@@ -17,6 +17,25 @@ mail paie essayé en production) · `veille.gs` **2026-10-13.1** · `generateur_
 **Worker** `cloudflare/worker.js` : `const VERSION = 'miroir 2026-10-11.1'` ·
 **Service worker** `sw.js` : `pm-sw-v2` (version.js exclu de la copie depuis le 14/10).
 
+## 21/10/2026 — chantier noté pour plus tard : le reliquat de vacances jusqu'au 31 janvier N+1
+
+Décision du responsable, à construire plus tard (pas pour la campagne 2027).
+
+**La règle.** Les jours de vacances de l'année N se posent légalement jusqu'au 31 janvier N+1.
+Aujourd'hui le portail compte par année civile : un jour de janvier N+1 est pris sur le quota N+1,
+et le reste du quota N est perdu au 31 décembre. Le « reliquat » de l'admin (`computeReliquats`,
+`gardes.gs`) n'est que le reste à poser dans l'année ; il ne reporte rien.
+
+**Ce qui est voulu.**
+- Vacances seulement : formations et temps partiels ne changent pas.
+- Les premiers jours de vacances posés en janvier N+1 sont imputés sur le reste du quota N,
+  jusqu'à épuisement ; les suivants, sur le quota N+1.
+- Au 31/01/N+1, le reste du quota N non pris est perdu ; le MAR en est prévenu avant.
+- Les compteurs (portail MAR, admin, récaps) montrent « reliquat N » et « quota N+1 » séparément.
+
+**À trancher au moment du chantier.** Imputation automatique (proposée : les premiers jours de
+janvier vont au reliquat) ou choix du MAR jour par jour.
+
 ## 18/10/2026 — vue paie : la page et le mail des secrétaires de paie (v1.26.0)
 
 ### Le besoin
