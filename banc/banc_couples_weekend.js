@@ -61,16 +61,25 @@ function bilan(g) {
 }
 
 console.log('\n═══ 1. Sans la ligne COUPLES_WEEKEND : rien ne change ═══');
-let ancien = null;
-try {
-  ancien = execSync('git show f672cae:gas/generateur_gardes.gs',
+/* (21/10/2026) La contre-preuve compare désormais DEUX versions figées de
+   l'historique : f672cae (juste avant la règle) et eddcceb (le commit qui
+   l'ajoute). Elle comparait le générateur DU JOUR à f672cae : deux règles
+   voulues arrivées depuis (pas de garde la veille de vacances, f7f31b8 ; budget
+   des souhaits de semaine, 9d7f239) changent légitimement le planning, et le
+   test échouait sans qu'aucun défaut ne concerne les couples. Vérifié le
+   21/10 : le générateur du jour, privé de ces deux règles, redonne exactement
+   le planning de f672cae. Ce qui reste prouvé ici : à son arrivée, la règle ne
+   changeait rien sans la ligne CONFIG. Le générateur du jour est couvert par
+   l'essai à blanc (aucun couple) et par les sections suivantes. */
+const git = (c) => { try {
+  return execSync('git show ' + c + ':gas/generateur_gardes.gs',
     { cwd: path.join(__dirname, '..'), encoding: 'utf8', stdio: ['ignore', 'pipe', 'ignore'] });
-} catch (e) { ancien = null; }
+} catch (e) { return null; } };
+const ancien = git('f672cae'), introduit = git('eddcceb');
 const sans = generer(false);
-if (ancien) {
-  const ref = generer(false, ancien);
-  V('planning identique, case par case, au générateur d\'avant la règle',
-    JSON.stringify(sans.rows) === JSON.stringify(ref.rows));
+if (ancien && introduit) {
+  V('planning identique, case par case, au générateur d\'avant la règle (commit qui l\'introduit)',
+    JSON.stringify(generer(false, introduit).rows) === JSON.stringify(generer(false, ancien).rows));
 } else {
   V('contre-preuve sautée (historique git indisponible ici)', true);
 }
