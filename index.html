@@ -2535,6 +2535,10 @@ async function openVeille(){
     /* (21/10/2026) Abonnement au mail du lundi : voyage avec MES marques (miroir), ou dans la réponse GAS. */
     { const src = marks || (r && r.abonnement) || {};
       V_ABO = { actif: !!(src.abo && src.abo.actif), email: (src.abo && src.abo.email) || src.mailFichier || '', etat: '', msg: '' };
+      /* (21/10/2026) La copie rapide n'a l'abonnement qu'environ 2 min après l'enregistrement : pendant ce
+         temps, l'appareil qui vient de le changer garde SON dernier choix confirmé (15 min au plus). */
+      try{ const loc=JSON.parse(localStorage.getItem('pmVeilleAbo')||'null');
+        if(loc && loc.id===MY_ID && Date.now()-loc.t < 15*60000){ V_ABO.actif=!!loc.actif; if(loc.email) V_ABO.email=loc.email; } }catch(e){}
       renderVAbo(); }
     if(r && r.success){
       VEILLE_ITEMS = r.items||[];
@@ -2588,6 +2592,7 @@ function renderVAbo(){
   }
   box.innerHTML=h+'</div>';
 }
+function _vAboRetenir(){ try{ localStorage.setItem('pmVeilleAbo', JSON.stringify({ id:MY_ID, actif:V_ABO.actif, email:V_ABO.email, t:Date.now() })); }catch(e){} }
 function editerVAbo(){ V_ABO.etat='edit'; V_ABO.msg=''; renderVAbo(); try{ document.getElementById('vAboMail').focus(); }catch(e){} }
 async function toggleVAbo(){
   if(V_ABO.etat==='envoi') return;
@@ -2596,7 +2601,7 @@ async function toggleVAbo(){
   V_ABO.etat='envoi'; renderVAbo();
   let r=null; try{ r=await apiPost({action:'setVeilleAbo', actif:false}); }catch(e){}
   V_ABO.etat='';
-  if(r&&r.success){ V_ABO.actif=false; V_ABO.msg=''; } else V_ABO.msg='Impossible pour le moment — réessayez.';
+  if(r&&r.success){ V_ABO.actif=false; V_ABO.msg=''; _vAboRetenir(); } else V_ABO.msg='Impossible pour le moment — réessayez.';
   renderVAbo();
 }
 async function validerVAbo(){
@@ -2606,7 +2611,7 @@ async function validerVAbo(){
   V_ABO.email=email; V_ABO.etat='envoi'; V_ABO.msg=''; renderVAbo();
   let r=null; try{ r=await apiPost({action:'setVeilleAbo', actif:true, email:email}); }catch(e){}
   if(r&&r.success){
-    V_ABO.actif=true; V_ABO.etat='';
+    V_ABO.actif=true; V_ABO.etat=''; _vAboRetenir();
     V_ABO.msg = r.confirme ? '✓ Mail de confirmation envoyé — vérifiez votre boîte' : '✓ Abonnement enregistré';
   } else { V_ABO.etat='edit'; V_ABO.msg=(r&&r.error)||'Impossible pour le moment — réessayez.'; }
   renderVAbo();
@@ -2732,13 +2737,18 @@ function _vMatch(it){
   return true;
 }
 
+/* (21/10/2026) Le pluriel juste : « 6 mise au points » et « 26 essai randomisés » se lisaient sur la page
+   (seul le dernier mot prenait un s). Chaque libellé a son pluriel écrit en entier. */
+const _V_PLURIELS={ 'essai randomisé':'essais randomisés', 'méta-analyse':'méta-analyses', 'revue systématique':'revues systématiques',
+  'recommandation':'recommandations', 'étude':'études', 'mise au point':'mises au point', 'analyse secondaire':'analyses secondaires', 'article':'articles' };
+function _vPluriel(lib, n){ return n>1 ? (_V_PLURIELS[lib] || lib+(/s$/.test(lib)?'':'s')) : lib; }
 function _vSemaine(){
   const lim=Date.now()-7*86400000;
   const res=VEILLE_ITEMS.filter(function(i){ return i.resume && i.ajoute && new Date(i.ajoute).getTime()>=lim; });
   if(!res.length) return '';
   const cat={};
   res.forEach(function(i){ const k=_vtType(i)[0]; cat[k]=(cat[k]||0)+1; });   // (13/10) même type que la carte : un ECR que PubMed n'a pas encore étiqueté compte comme essai
-  const pills=Object.keys(cat).sort(function(a,b){return cat[b]-cat[a];}).map(function(k){ return '<span class="vs-pill">'+cat[k]+' '+esc(k.toLowerCase())+(cat[k]>1&&!/s$/.test(k)?'s':'')+'</span>'; }).join('');   // « 6 essais randomisés » se lit « 6 essai randomisés » : le pluriel du dernier mot suffit à l'œil
+  const pills=Object.keys(cat).sort(function(a,b){return cat[b]-cat[a];}).map(function(k){ return '<span class="vs-pill">'+cat[k]+' '+esc(_vPluriel(k.toLowerCase(), cat[k]))+'</span>'; }).join('');
   return '<div class="vs-semaine"><div class="vs-tete"><b>✦ Cette semaine</b><span>'+res.length+' article'+(res.length>1?'s':'')+' résumé'+(res.length>1?'s':'')+'</span></div>'
     + '<div class="vs-txt">Les mieux notés des 7 derniers jours, chacun résumé en deux lignes sous son titre. Le reste de la liste suit.</div>'
     + '<div class="vs-pills">'+pills+'</div></div>';

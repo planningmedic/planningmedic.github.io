@@ -1164,6 +1164,48 @@ function monde(plan) {
     V('le guide MAR explique le geste', /Je veux recevoir la veille par mail/.test(fs.readFileSync('../docs/guide-mar.html', 'utf8')));
   }
 
+  console.log('\n═══ Correctifs du 21/10 : abonnement gardé pendant le délai de la copie rapide, pluriels de « Cette semaine » ═══');
+  {
+    const { JSDOM, VirtualConsole } = require('jsdom');
+    const vcons = new VirtualConsole(); const erreurs = []; vcons.on('jsdomError', e => erreurs.push(e.message));
+    const dom = new JSDOM(fs.readFileSync('../index.html', 'utf8'), {
+      runScripts: 'dangerously', virtualConsole: vcons, url: 'https://planningmedic.github.io/index.html', pretendToBeVisual: true,
+      beforeParse(win) {
+        win.eval(fs.readFileSync(require('path').join(__dirname, '..', 'partage', 'portail.js'), 'utf8')); win.eval(fs.readFileSync(require('path').join(__dirname, '..', 'partage', 'rendu_equite.js'), 'utf8'));
+        win.matchMedia = () => ({ matches:false, addListener(){}, removeListener(){}, addEventListener(){}, removeEventListener(){} });
+        win.Element.prototype.scrollIntoView = function () {}; win.scrollTo = () => {};
+      } });
+    const w = dom.window, d = w.document;
+    w.fetch = async (u, o) => { let b = {}; try { b = JSON.parse(o && o.body || '{}'); } catch (e) {}
+      const rep = b.action === 'setVeilleAbo' ? { success:true, abo:{ actif:!!b.actif, email:b.email || '' }, confirme:true } : { success:true };
+      return { ok:true, json: async () => rep, text: async () => JSON.stringify(rep) }; };
+    await new Promise(r => setTimeout(r, 300));
+    w.eval("MY_ID='7'");
+    const auj = new Date().toISOString().slice(0, 10);
+    const it = (p, motif) => ({ pmid:p, date:auj, titre:'T'+p, auteurs:'', revue:'JAMA', doi:'', source:'GENERAL', score:90, resume:'Résumé.', lu:false, star:false, ajoute:auj, pubtype:'', themes:['Hémodynamique'], motif, vieux:false });
+    // la copie rapide est EN RETARD : elle ne connaît pas encore l'abonnement
+    w.miroirRead = async () => ({ success:true, data: { veille: { success:true, items: [it('1','revue'), it('2','revue'), it('3','ECR'), it('4','ECR'), it('5','revue systématique'), it('6','revue systématique'), it('7','article'), it('8','article')] }, veille_marques: { parMar: { '7': { lus:[], stars:[] } } } } });
+    try { w.localStorage.removeItem('pmVeilleAbo'); w.localStorage.removeItem('pmVeilleFile'); w.localStorage.removeItem('pmVeilleRevues'); } catch (e) {}
+    await w.openVeille();
+    d.querySelector('#vAbo .vabo-sw').click();
+    d.getElementById('vAboMail').value = 'mar7@exemple.mc'; d.querySelector('#vAbo .vabo-in button').click();
+    await new Promise(r => setTimeout(r, 50));
+    await w.openVeille();   // on rouvre la veille AVANT que la copie rapide ait rattrapé
+    const carte = () => d.querySelector('#vAbo .vabo');
+    V('rouvrir la veille dans les minutes qui suivent : la carte reste « Activée » (défaut constaté le 21/10 à 11:36)', carte().classList.contains('on') && /Activée → mar7@exemple\.mc/.test(carte().textContent), carte().textContent);
+    const loc = JSON.parse(w.localStorage.getItem('pmVeilleAbo'));
+    loc.t = Date.now() - 16 * 60000; w.localStorage.setItem('pmVeilleAbo', JSON.stringify(loc));
+    await w.openVeille();
+    V('au-delà de 15 min, c\'est la copie rapide qui fait foi', !carte().classList.contains('on'));
+    loc.t = Date.now(); loc.id = '9'; w.localStorage.setItem('pmVeilleAbo', JSON.stringify(loc));
+    await w.openVeille();
+    V('la mémoire d\'un autre MAR sur le même appareil n\'est pas reprise', !carte().classList.contains('on'));
+    const pills = [...d.querySelectorAll('.vs-pill')].map(x => x.textContent);
+    V('« Cette semaine » : pluriels justes (mises au point, essais randomisés, revues systématiques, articles)', ['2 mises au point', '2 essais randomisés', '2 revues systématiques', '2 articles'].every(t => pills.indexOf(t) !== -1) && !pills.some(t => /mise au points|essai randomisés|revue systématiques/.test(t)), pills);
+    V('…et le singulier reste au singulier', w.eval("_vPluriel('mise au point',1)") === 'mise au point');
+    V('aucune erreur JavaScript', erreurs.length === 0, erreurs.slice(0, 2));
+  }
+
 console.log(`\n${ok} OK · ${ko} en échec`);
   process.exit(ko ? 1 : 0);
 })();  console.log('\n═══ Passe 4 : le résumé en deux lignes (15/09/2026) ═══');
