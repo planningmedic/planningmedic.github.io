@@ -17,6 +17,34 @@ mail paie essayé en production) · `veille.gs` **2026-10-13.1** · `generateur_
 **Worker** `cloudflare/worker.js` : `const VERSION = 'miroir 2026-10-11.1'` ·
 **Service worker** `sw.js` : `pm-sw-v2` (version.js exclu de la copie depuis le 14/10).
 
+## 21/10/2026 — banc d'essai accéléré (aucun changement côté site ni GAS)
+
+**Fait** (commits `9595c50`, `1fdbf03`) :
+- **Scénarios en parallèle** (`banc/lancer.sh`) : autant à la fois que de processeurs, générations
+  de gardes en premier, sorties dans l'ordre de la liste, tous vont au bout, échecs récapitulés.
+  Mesuré sur 2 processeurs, même code : **664 s → 371 s**, mêmes vérifications. `JOBS=1` = ancien
+  comportement.
+- **Mode rapide** (`./lancer.sh rapide <fichier>`, `banc/selection.js`) : seulement les scénarios qui
+  lisent ce fichier ; en cas de doute, tout. Mesuré : `index.html` 25 scénarios / 51 s,
+  `planning.html` 11 / 22 s, un guide 3 / 2 s. **Aide pendant le travail : le banc complet reste
+  obligatoire avant tout push.**
+- **`banc_couples_weekend` réparé** : sa contre-preuve comparait le générateur du jour à celui d'avant
+  la règle (f672cae) et échouait depuis `f7f31b8` (veille de vacances) — puis aussi `9d7f239` (budget
+  des souhaits de semaine). Vérifié : sans ces deux règles, le générateur du jour redonne exactement
+  le planning de f672cae ; aucun défaut des couples. Elle compare désormais f672cae à `eddcceb`
+  (commit qui ajoute la règle).
+- Banc complet : **93 scénarios, 4 620 ✓, 0 ✗**.
+
+**Constats.**
+- Les trois quarts du temps du banc partent dans les 21 scénarios qui génèrent une année de gardes
+  (~3,7 s par génération, plusieurs tirages chacune). Dans le générateur, `toDateStr` pèse ~32 % du
+  calcul : piste d'accélération du banc **et** de la production, non engagée (modification GAS).
+- **Lancer le banc sur un clone avec historique complet.** Cinq contre-preuves relisent un ancien
+  générateur (`git show`) ; dans un clone `--depth 1`, elles sont sautées et comptées ✓ — c'est ainsi
+  que l'échec de `banc_couples_weekend` est passé inaperçu.
+- Écarté : réutiliser les générations identiques d'un scénario à l'autre (101 → 54, ~200 s) — risque
+  de faux vert si un scénario modifie le contexte avant de générer.
+
 ## 21/10/2026 — chantier noté pour plus tard : le reliquat de vacances jusqu'au 31 janvier N+1
 
 Décision du responsable, à construire plus tard (pas pour la campagne 2027).

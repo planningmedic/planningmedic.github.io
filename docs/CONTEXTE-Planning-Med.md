@@ -44,6 +44,18 @@ les fichiers du planning, et attend une semaine de fonctionnement réel avant su
 
 # PARTIE 1 — L'ESSENTIEL
 
+## 21 octobre 2026 — banc d'essai accéléré
+
+Banc **4 620 ✓, 0 échec**, 93 scénarios (commit `1fdbf03`). Rien de changé côté site ni GAS.
+
+- **`cd banc && ./lancer.sh`** lance les scénarios en parallèle : ~6 min au lieu de 11 sur
+  2 processeurs. Obligatoire et complet avant tout push.
+- **`./lancer.sh rapide <fichier modifié>`** pendant le travail : seulement les scénarios
+  concernés (20 à 50 s pour une page). Ne remplace jamais le banc complet.
+- **Cloner avec l'historique complet** (pas `--depth 1`) : sinon cinq contre-preuves sont sautées
+  et comptées ✓.
+- Compter : `grep -cE "^\s+✓ "` sur la sortie complète (inchangé).
+
 ## État au 18 octobre 2026 — vue paie pour les secrétaires de paie
 
 Site **v1.26.0**, banc **4 392 ✓, 0 échec** (commit `ce2bf91`). `code.gs`, `gardes.gs`, `Indispos.gs`
