@@ -1152,6 +1152,24 @@ console.log('\n═══ 6. La page de cotation ne dit rien qu\'elle ne sache �
        l'hôpital applique ×1,98 (HHFE002 activité 4 : 53,95 € → 106,82 €, puis 113,24 € avec le 7). */
     V('NAS : coefficient monégasque, comme le recueil de l\'hôpital (HHFE002 + 7 → 113,24 €)',
       ev("STATUTS.nas.coeff") === 1.98 && proche(ev("1.98*(53.95*1.06)"), 113.24) && ev("STATUTS.nas.coeff") === ev("STATUTS.verte.coeff"));
+    /* (21/10/2026) NAS : on tape le TOTAL de l'anesthésie, le dépassement s'en déduit. */
+    {
+      const nt = d.getElementById('nasTot');
+      V('NAS : le champ « Dépassement » laisse place à « Total anesthésie »',
+        d.getElementById('dhWrap').style.display === 'none' && d.getElementById('nasTotWrap').style.display === '');
+      nt.value = '400'; w.nasTotSaisi(); await dodo(10);
+      const b = ev('parcoursBR()');
+      V('…400 € tapés : dépassement = 400 − base, au centime', proche(dhv(), Math.round((400 - b) * 100) / 100), [dhv(), 400 - b]);
+      ev("upd(0,'m7',false)"); await dodo(10);
+      V('…la base change (modificateur retiré) : le total reste 400, le dépassement suit', proche(ev('parcoursBR()') + dhv(), 400), [ev('parcoursBR()'), dhv()]);
+      ev("upd(0,'m7',true)"); await dodo(10);
+      nt.value = '1'; w.nasTotSaisi(); await dodo(10);
+      V('…total inférieur à la base : aucun dépassement négatif, et c\'est dit', proche(dhv(), 0) && /inférieur à la base/.test(d.getElementById('nasTotInfo').textContent));
+      nt.value = ''; w.nasTotSaisi(); await dodo(10);
+      w.setStatut('bulle'); await dodo(10);
+      V('…autre statut : le champ « Dépassement » revient', d.getElementById('dhWrap').style.display === '' && d.getElementById('nasTotWrap').style.display === 'none');
+      w.setStatut('nas'); mut(0); await dodo(20);
+    }
     /* (20/10/2026) Décision du responsable, comme le devis du secrétariat : un NAS paie
        base + dépassement, pour la consultation (total du groupement) comme pour l'anesthésie. */
     V('NAS sans mutuelle : la caisse ne rembourse rien, reste = base + dépassement, consultation comprise',
@@ -1162,11 +1180,11 @@ console.log('\n═══ 6. La page de cotation ne dit rien qu\'elle ne sache �
        la somme totale et le nom de l'acte, sans code ni base. Et un clic bascule le
        devis en anglais. */
     {
-      const dhIn = d.getElementById('dh'); dhIn.disabled = false; dhIn.value = '300'; w.dhSaisi();
+      d.getElementById('nasTot').value = String(Math.round(ev('parcoursBR()')) + 300); w.nasTotSaisi();
       d.getElementById('dInt').value = '2099-01-01';
       /* (20/10/2026) NAS = base + dépassement (comme le devis du secrétariat) :
          consultation au total du groupement (111 € fictifs) + anesthésie base + 300 €. */
-      const anesNas = ev('parcoursBR()') + 300, totNas = anesNas + 111;
+      const anesNas = Math.round(ev('parcoursBR()')) + 300, totNas = anesNas + 111;   // le total TAPÉ, rond
       V('NAS : la barre du bas affiche consultation + anesthésie, base comprise',
         proche(lireEur(d.getElementById('totBR').textContent), Math.round(totNas)), [d.getElementById('totBR').textContent, totNas]);
       w.ouvrirDevisCourant(); await dodo(20);

@@ -404,8 +404,13 @@ window.SessionPortail = window.SessionPortail || { lire:function(){try{return se
            disparu : le depassement se pre-remplit seul (chirurgien qui cote -> 50 %
            du sien ; sinon calage mutuelle) et reste modifiable. -->
       <div class="dhbox">
-        <div class="field" style="width:150px"><label>Dépassement</label><input id="dh" class="mono" type="number" step="0.01" value="0" oninput="dhSaisi()">
+        <div class="field" id="dhWrap" style="width:150px"><label>Dépassement</label><input id="dh" class="mono" type="number" step="0.01" value="0" oninput="dhSaisi()">
           <div class="usage" id="dhUsage" style="display:none"></div></div>
+        <!-- (21/10/2026) NAS : on tape le TOTAL de l'anesthesie (montant rond annonce au
+             patient), le depassement s'en deduit (total - base). Taper un depassement a
+             virgule etait penible (demande du responsable). -->
+        <div class="field" id="nasTotWrap" style="width:170px;display:none"><label>Total anesthésie</label><input id="nasTot" class="mono" type="number" step="1" min="0" placeholder="ex. 400" oninput="nasTotSaisi()">
+          <div class="usage" id="nasTotInfo"></div></div>
       </div>
     </div>
     <!-- (17/08/2026) LE CHIRURGIEN COTE-T-IL AUSSI EN LIBERAL ?
@@ -821,6 +826,26 @@ function chirChange(){
    type ou de patient — pas a chaque case cochee dans le tableau. */
 let DH_MANUEL=false;
 function dhSaisi(){ DH_MANUEL=true; updateRac(); renderSummary(); }
+/* (21/10/2026) NAS : le total de l'anesthesie est tape, le depassement en decoule.
+   Recalcule a chaque changement de la base (acte ajoute, retire, modificateur). */
+function nasTotSaisi(){ DH_MANUEL=true; appliquerNasTot(); updateRac(); renderSummary(); }
+function appliquerNasTot(){
+  const nas = statutCourant()==='nas';
+  const w1=document.getElementById('dhWrap'), w2=document.getElementById('nasTotWrap');
+  if(w1) w1.style.display = nas ? 'none' : '';
+  if(w2) w2.style.display = nas ? '' : 'none';
+  if(!nas) return;
+  const br=parcoursBR(), inp=document.getElementById('nasTot'), info=document.getElementById('nasTotInfo');
+  const tot=parseFloat(inp.value);
+  const dh = (tot>0) ? Math.max(0, Math.round((tot-br)*100)/100) : 0;
+  document.getElementById('dh').value=dh.toFixed(2);
+  if(info){
+    info.style.display='block';
+    info.textContent = !(tot>0) ? 'Base '+eur2(br)+' — tapez le total annoncé'
+      : (tot<br ? 'Total inférieur à la base ('+eur2(br)+') : rien en dépassement'
+      : 'Base '+eur2(br)+' + dépassement '+eur2(dh));
+  }
+}
 
 /* setAxe() a disparu avec le selecteur (17/08/2026). L'ecran d'ouverture se pose
    une fois : le jour du bloc est demande, la consultation associee aussi. */
@@ -837,6 +862,7 @@ function onStatut(){const st=STATUTS[document.getElementById('statut').value];
   else { badge.textContent='× '+st.coeff.toLocaleString('fr-FR',{minimumFractionDigits:2}); lbl.textContent='Coeff. CCAM'; badge.title=''; }
   renderStatutBtns();
   renderStatutAlerte();
+  appliquerNasTot();          // (21/10/2026) champ « Total anesthésie » pour un NAS
   // (02/10/2026) Mutuelle visible pour TOUS les statuts : elle decide du reste a charge.
   document.getElementById('mutRow').style.display = 'block';
   DH_MANUEL=false;
@@ -877,6 +903,7 @@ function applyDH(){
     const opt=dhOptimal(document.getElementById('statut').value, pct, br);
     dhIn.value=(Math.round(opt*100)/100).toFixed(2);dhIn.disabled=true;
   }
+  else if(document.getElementById('statut').value==='nas'){ appliquerNasTot(); }   // (21/10/2026) total tape
   else{
     dhIn.disabled=false;                                     // libre : ajustable
     /* (01/10/2026) PRE-REMPLISSAGE, dans cet ordre : chirurgien qui cote -> 50 %
@@ -1457,6 +1484,7 @@ function patientSuivant(){
   builder=[]; parcours=[];
   ['dInt','dclChir','chirDh'].forEach(function(id){ const el=document.getElementById(id); if(el) el.value=''; });
   const dh=document.getElementById('dh'); if(dh) dh.value='0';
+  const nt=document.getElementById('nasTot'); if(nt) nt.value='';
   /* (01/10/2026) La mutuelle repart a vide : le depassement se cale desormais SEUL
      sur elle, et celle du patient precedent fixerait sans bruit celui du suivant. */
   MUT_PCT=0; populateMut(); DH_MANUEL=false;
