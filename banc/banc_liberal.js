@@ -900,10 +900,10 @@ console.log('\n═══ 6. La page de cotation ne dit rien qu\'elle ne sache �
   d.getElementById('repli').open = false;
   w.ouvrirDevisCourant();
   await dodo(60);
-  V('bloc praticien replié, le devis porte quand même le nom et le RPPS',
-    d.getElementById('dvPratName').textContent === 'Jean ALPHA' && d.getElementById('dvRPPS').textContent === '10000000001'
+  V('bloc praticien replié, le devis porte quand même le nom (RPPS retiré du devis épuré)',
+    d.getElementById('dvPratName').textContent === 'Jean ALPHA' && !d.getElementById('dvRPPS')   // (21/10/2026) RPPS retiré du devis épuré
     && d.getElementById('dcPratName').textContent === 'Jean ALPHA',
-    [d.getElementById('dvPratName').textContent, d.getElementById('dvRPPS').textContent]);
+    d.getElementById('dvPratName').textContent);
   const ov = d.getElementById('devisOverlay');
   V('le bouton Devis ouvre le devis du patient affiché', !!ov && ov.style.display !== 'none',
     ov && ov.style.display);
@@ -912,8 +912,8 @@ console.log('\n═══ 6. La page de cotation ne dit rien qu\'elle ne sache �
   {
     /* (20/10/2026) Nom et adresse de l'établissement, lus dans le classeur */
     const cases = k => [...d.querySelectorAll('#devisOverlay [data-etab="' + k + '"]')];
-    V('établissement : 5 cases « nom », 2 « adresse », 1 « service », 2 « téléphone » (devis + déclaration de choix)',
-      cases('nom').length === 5 && cases('adresse').length === 2 && cases('service').length === 1 && cases('telephone').length === 2,
+    V('établissement : 3 cases « nom », 2 « adresse », 1 « service », 2 « téléphone » (devis épuré + déclaration de choix)',
+      cases('nom').length === 3 && cases('adresse').length === 2 && cases('service').length === 1 && cases('telephone').length === 2,
       [cases('nom').length, cases('adresse').length, cases('service').length, cases('telephone').length]);
     V('…toutes pré-remplies depuis le classeur', cases('nom').every(e => e.textContent === 'Hôpital Exemple') && cases('adresse').every(e => e.textContent === '1 rue Exemple, 00000 Ville')
       && cases('service')[0].textContent === 'Service Exemple' && cases('telephone').every(e => e.textContent === '00 00 00 00'),
@@ -1119,27 +1119,31 @@ console.log('\n═══ 6. La page de cotation ne dit rien qu\'elle ne sache �
     const lireEur = t => parseFloat(String(t).replace(/[^\d,]/g, '').replace(',', '.'));
     d.getElementById('dInt').value = '2099-01-01';
     const ecarts = [];
+    /* (21/10/2026) Devis épuré : il montre le reste « avant mutuelle » (la mutuelle dépend
+       du contrat). On compare donc la barre et le devis sans mutuelle. NAS : pas d'encadré,
+       le total à régler fait foi. */
     for (const st of ['verte', 'spme', 'rose', 'bulle', 'fr', 'nas']) {
-      for (const p of [0, 100, 150, 200, 300]) {
+      for (const p of [0]) {
         w.setStatut(st); mut(p); await dodo(5);
         const barre = lireEur(d.getElementById('totRac').textContent);
         w.ouvrirDevisCourant();
-        const devis = lireEur(d.getElementById('dvRacAfter').textContent);
+        const devis = lireEur(d.getElementById(st === 'nas' ? 'dvHon' : 'dvRacBefore').textContent);
         w.closeDevis();
-        if (!(Math.abs(barre - devis) < 0.005)) ecarts.push(st + ' ' + p + ' % : barre ' + barre + ' / devis ' + devis);
+        /* (21/10/2026) le devis est en euros ronds (montants approximatifs) : il suit la barre à moins d'1 € */
+        if (!(Math.abs(barre - devis) <= 10)) ecarts.push(st + ' ' + p + ' % : barre ' + barre + ' / devis ' + devis);
       }
     }
-    V('barre du bas = devis imprimé, pour les 6 statuts × 5 mutuelles', ecarts.length === 0, ecarts.slice(0, 4));
+    /* (21/10/2026) devis arrondi (euro, dizaine supérieure en endoscopie) : écart borné à 10 € */
+    V('barre du bas ≈ devis imprimé (écart d\'arrondi ≤ 10 €), pour les 6 statuts, sans mutuelle', ecarts.length === 0, ecarts.slice(0, 4));
 
     w.setStatut('verte'); mut(0); await dodo(20); br = ev('parcoursBR()');
     V('verte sans mutuelle : la barre montre un reste à charge de 20 % de la base (consultation comprise)',
       proche(lireEur(d.getElementById('totRac').textContent), Math.round(0.20 * (br + cs()) * 100) / 100),
       [d.getElementById('totRac').textContent, 0.20 * (br + cs())]);
     w.ouvrirDevisCourant();
-    V('…comme le devis, avant ET après complémentaire',
-      proche(lireEur(d.getElementById('dvRacBefore').textContent), lireEur(d.getElementById('dvRacAfter').textContent))
-      && /aucune/.test(d.getElementById('dvMut').textContent),
-      [d.getElementById('dvRacBefore').textContent, d.getElementById('dvRacAfter').textContent]);
+    V('…le devis montre le remboursement de la caisse et le reste avant mutuelle, en euros ronds',
+      Number.isInteger(lireEur(d.getElementById('dvRRO').textContent)) && Math.abs(lireEur(d.getElementById('dvRacBefore').textContent) - 0.20 * (br + cs())) <= 2,
+      [d.getElementById('dvRRO').textContent, d.getElementById('dvRacBefore').textContent]);
     w.closeDevis();
     V('verte : dépassement toujours 0', proche(dhv(), 0) && d.getElementById('dh').disabled === true);
     mut(100); await dodo(20);
@@ -1179,37 +1183,38 @@ console.log('\n═══ 6. La page de cotation ne dit rien qu\'elle ne sache �
       V('NAS : la barre du bas affiche consultation + anesthésie, base comprise',
         Math.abs(lireEur(d.getElementById('totBR').textContent) - totNas) <= 0.5, [d.getElementById('totBR').textContent, totNas]);
       w.ouvrirDevisCourant(); await dodo(20);
-      const lignes = d.getElementById('dvActes').textContent;
-      V('devis NAS : aucun code CCAM, ni dans les lignes ni dans l\'intitulé',
-        !/[A-Z]{4}\d{3}/.test(lignes) && !/[A-Z]{4}\d{3}/.test(d.getElementById('dvActe').textContent) && !/CCAM/.test(lignes),
-        [lignes.slice(0, 120), d.getElementById('dvActe').textContent]);
-      V('…mais le nom de l\'acte est bien là', lignes.trim().length > 3 && d.getElementById('dvActe').textContent.trim().length > 3);
+      /* (21/10/2026) DEVIS ÉPURÉ : deux lignes « Consultation » et « Anesthésie », colonnes
+         tarif de base / dépassement / total ; l'intervention en clair, sans code. */
       const R = d.getElementById('dvActes').rows, c = (r, i) => lireEur(R[r].cells[i].textContent) || 0;
-      V('…deux lignes, base / honoraires / dépassement : consultation (dépassement de consultation visible), anesthésie base + 300 €',
-        /^Consultation d'anesthésie/.test(R[0].textContent.trim())
-        && proche(c(0, 1), ev('consBR()')) && proche(c(0, 2), 111) && proche(c(0, 3), 111 - ev('consBR()'))
-        && proche(c(1, 1), ev('parcoursBR()')) && proche(c(1, 2), anesNas) && proche(c(1, 3), 300),
-        [...d.getElementById('dvActes').rows].map(r => r.textContent.replace(/\s+/g, ' ').trim()));
-      V('…et « Total à régler » = la somme des deux', proche(lireEur(d.getElementById('dvHon').textContent), totNas)
-        && d.getElementById('dvTotLbl').textContent === 'Total à régler',
-        [d.getElementById('dvHon').textContent, totNas]);
-      V('…seule la colonne remboursement et les encadrés de reste à charge disparaissent',
-        d.getElementById('dvTable').classList.contains('nas') && d.getElementById('dvRac').classList.contains('nas')
-        && !/table\.acts\.nas th:nth-child\(2\)/.test(html) && /table\.acts\.nas th:nth-child\(5\)/.test(html) && /\.rac\.nas\{display:none\}/.test(html));
-      V('…montants annoncés comme approximatifs, comme le devis du secrétariat',
-        /approx\./.test(d.querySelector('#dvTable thead').textContent) && /Montants estimés/.test(d.querySelector('#devisOverlay .approx').textContent));
+      V('devis NAS : aucun code CCAM nulle part sur le devis',
+        !/[A-Z]{4}\d{3}|CCAM|NGAP/.test(d.querySelector('#devisOverlay .sheet:not(.decl)').textContent), d.getElementById('dvActe').textContent);
+      V('…l\'intervention est écrite en clair (nom de la cotation type)', d.getElementById('dvActe').textContent === ev('COTTYPE_COURANTE ? COTTYPE_COURANTE.nom : ""') || d.getElementById('dvActe').textContent.length > 3,
+        d.getElementById('dvActe').textContent);
+      V('…deux lignes : consultation (46 + 65 = 111), anesthésie (base + 300)',
+        R.length === 2 && R[0].cells[0].textContent === 'Consultation' && R[1].cells[0].textContent === 'Anesthésie'
+        && proche(c(0, 1), ev('consBR()')) && proche(c(0, 2), 111 - ev('consBR()')) && proche(c(0, 3), 111)
+        && Math.abs(c(1, 1) - ev('parcoursBR()')) <= 10 && proche(c(1, 2), 300) && proche(c(1, 3), c(1, 1) + 300),
+        [...R].map(r => r.textContent.replace(/\s+/g, ' ').trim()));
+      V('…et « Total à régler » = la somme des deux', proche(lireEur(d.getElementById('dvHon').textContent), c(0, 3) + c(1, 3))
+        && d.getElementById('dvTotLbl').textContent === 'Total à régler', d.getElementById('dvHon').textContent);
+      V('…pas d\'encadré de remboursement, mais la phrase « aucune caisse »',
+        d.getElementById('dvRac').classList.contains('nas') && /\.dvRB\.nas\{display:none\}/.test(html) && /Aucune caisse/.test(d.getElementById('dvNoteFin').textContent));
+      V('…en-têtes sans « remboursable » pour un NAS ; montants annoncés approximatifs',
+        !/rembours/i.test(d.querySelector('#dvTable thead').textContent) && /approximatifs/.test(d.querySelector('#devisOverlay .dvNote').textContent));
+      V('…épuré : ni RPPS, ni « secteur 2 / OPTAM », ni articles de loi, ni n° de devis',
+        !/RPPS|OPTAM|secteur 2|R\.4127|L\.1111|Devis n°|Valable jusqu/.test(d.querySelector('#devisOverlay .sheet:not(.decl)').textContent));
       w.basculerLangueDevis(); await dodo(10);
       const h1 = () => d.querySelector('#devisOverlay .sheet:not(.decl) h1').textContent;
-      V('un clic : le devis passe en anglais', /Cost estimate/.test(h1()) && /Not covered/.test(d.getElementById('dvStatut').textContent)
+      V('un clic : le devis passe en anglais', /Fee estimate/.test(h1()) && /not covered/.test(d.getElementById('dvStatut').textContent)
         && d.getElementById('dvTotLbl').textContent === 'Total payable' && d.getElementById('dvLang').textContent === 'Français'
-        && d.getElementById('dvMut').textContent === 'none',
+        && d.getElementById('dvActes').rows[1].cells[0].textContent === 'Anaesthesia' && /No health insurance/.test(d.getElementById('dvNoteFin').textContent),
         [h1(), d.getElementById('dvStatut').textContent, d.getElementById('dvTotLbl').textContent]);
-      V('…le montant ne change pas', proche(lireEur(d.getElementById('dvHon').textContent), totNas));
+      V('…le montant ne change pas', proche(lireEur(d.getElementById('dvHon').textContent), c(0, 3) + c(1, 3)));
       V('…la déclaration de choix reste en français', /Déclaration de choix/.test(d.querySelector('#declSheet h1').textContent));
       V('…aucun texte français oublié dans les blocs traduits',
         [...d.querySelectorAll('#devisOverlay .sheet:not(.decl) [data-i18n]')].every(el => !/[éèàç]|Honoraires|Devis/.test(el.textContent) || /carte verte/.test(el.textContent)));
       w.basculerLangueDevis(); await dodo(10);
-      V('second clic : retour au français à l\'identique', /Estimation de frais/.test(h1()) && d.getElementById('dvTotLbl').textContent === 'Total à régler'
+      V('second clic : retour au français à l\'identique', /Devis d'honoraires/.test(h1()) && d.getElementById('dvTotLbl').textContent === 'Total à régler'
         && d.getElementById('dvLang').textContent === 'English');
       w.basculerLangueDevis(); w.closeDevis();
       w.setStatut('verte'); await dodo(10); w.ouvrirDevisCourant(); await dodo(20);
@@ -1221,27 +1226,34 @@ console.log('\n═══ 6. La page de cotation ne dit rien qu\'elle ne sache �
       w.ouvrirDevisCourant(); await dodo(20);
       {
         const rows = [...d.getElementById('dvActes').rows], eurc = (r, i) => lireEur(r.cells[i].textContent) || 0;
-        const c0 = rows[0];
-        V('bulle : la ligne consultation porte base, honoraires (total du groupement) et dépassement',
-          /Consultation d'anesthésie/.test(c0.textContent) && proche(eurc(c0, 1), cs()) && proche(eurc(c0, 2), 99) && proche(eurc(c0, 3), 99 - cs()),
+        const c0 = rows[0], c1 = rows[1], brR = ev('parcoursBR()');
+        V('bulle : la ligne consultation porte base, dépassement (part de la consultation) et total du groupement',
+          c0.cells[0].textContent === 'Consultation' && proche(eurc(c0, 1), cs()) && proche(eurc(c0, 2), 99 - cs()) && proche(eurc(c0, 3), 99),
           [...c0.cells].map(c => c.textContent.trim()));
-        const actes = rows.slice(1);
-        const sDH = actes.reduce((s, r) => s + eurc(r, 3), 0), sH = actes.reduce((s, r) => s + eurc(r, 2), 0);
-        V('…les actes : dépassement réparti au prorata, la somme retombe sur 230 € au centime', proche(sDH, 230) && proche(sH, ev('parcoursBR()') + 230),
-          actes.map(r => [...r.cells].map(c => c.textContent.trim()).slice(1, 4)));
-        V('…et le total du tableau = consultation + actes', proche(lireEur(d.getElementById('dvHon').textContent), 99 + ev('parcoursBR()') + 230)
-          && proche(lireEur(d.getElementById('dvDH').textContent), 230 + 99 - cs()));
+        V('…la ligne anesthésie : base à la dizaine supérieure (endoscopie) + 230 € de dépassement',
+          c1.cells[0].textContent === 'Anesthésie' && eurc(c1, 1) % 10 === 0 && eurc(c1, 1) >= brR && eurc(c1, 1) - brR < 10
+          && proche(eurc(c1, 2), 230) && proche(eurc(c1, 3), eurc(c1, 1) + 230), [...c1.cells].map(c => c.textContent.trim()));
+        V('…en-têtes « remboursable / non remboursé », encadrés caisse et reste à charge présents',
+          /remboursable/.test(d.querySelector('#dvTable thead').textContent) && /non remboursé/.test(d.querySelector('#dvTable thead').textContent)
+          && !d.getElementById('dvRac').classList.contains('nas') && /mutuelle dépend/.test(d.getElementById('dvNoteFin').textContent));
+        V('…et le total = consultation + anesthésie ; reste avant mutuelle = total − caisse',
+          proche(lireEur(d.getElementById('dvHon').textContent), eurc(c0, 3) + eurc(c1, 3)) && proche(lireEur(d.getElementById('dvDH').textContent), 230 + 99 - cs())
+          && proche(lireEur(d.getElementById('dvRacBefore').textContent), lireEur(d.getElementById('dvHon').textContent) - lireEur(d.getElementById('dvRRO').textContent)));
       }
       w.closeDevis(); w.setStatut('verte'); await dodo(10); w.ouvrirDevisCourant(); await dodo(20);
-      V('carte verte : la consultation ouvre le tableau, en CS, base seule, sans dépassement',
-        /Consultation d'anesthésie\s*— CS · NGAP/.test(d.getElementById('dvActes').rows[0].textContent)
+      V('hors endoscopie : arrondi à l\'euro seulement (109,2 + 50,37 → 109 + 50)',
+        ev("JSON.stringify(arrondirDevis({statut:'bulle',br:159.57,dh:0,cBR:0,cDH:0,endo:false,lines:[{br:109.2},{br:50.37}]}).lines.map(function(l){return l.br;}))") === '[109,50]'
+        && ev("JSON.stringify(arrondirDevis({statut:'bulle',br:159.57,dh:0,cBR:0,cDH:0,endo:true,lines:[{br:109.2},{br:50.37}]}).lines.map(function(l){return l.br;}))") === '[110,50]'
+        && ev("arrondirDevis({statut:'bulle',br:160,dh:0,cBR:0,cDH:0,endo:true,lines:[{br:110},{br:50}]}).br") === 160);
+      V('carte verte : consultation à la base, aucun dépassement',
+        d.getElementById('dvActes').rows[0].cells[0].textContent === 'Consultation'
         && proche(lireEur(d.getElementById('dvActes').rows[0].cells[1].textContent), cs())
         && proche(lireEur(d.getElementById('dvDH').textContent), 0),
         [d.getElementById('dvActes').rows[0].textContent.replace(/\s+/g, ' ').trim(), d.getElementById('dvDH').textContent]);
-      V('fermer remet le français ; un devis carte verte garde codes, base et encadrés',
-        /Estimation de frais/.test(h1()) && !d.getElementById('dvTable').classList.contains('nas')
-        && /[A-Z]{4}\d{3}/.test(d.getElementById('dvActes').textContent) && d.getElementById('dvTotLbl').textContent === 'Total',
-        [h1(), d.getElementById('dvActes').textContent.slice(0, 80)]);
+      V('fermer remet le français ; carte verte : couverture écrite, encadrés présents',
+        /Devis d'honoraires/.test(h1()) && /carte verte/.test(d.getElementById('dvStatut').textContent)
+        && !d.getElementById('dvTable').classList.contains('nas') && d.getElementById('dvTotLbl').textContent === 'Total',
+        [h1(), d.getElementById('dvStatut').textContent]);
       w.closeDevis(); w.setStatut('nas'); await dodo(10);
       /* Consultation : le dépassement suit le statut. Bulle et France : total du
          groupement ; France cotée en APC d'office ; rose 20 % ; verte aucun. */

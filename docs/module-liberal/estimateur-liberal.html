@@ -180,6 +180,34 @@
   #devisOverlay table.acts.nas th:nth-child(5),#devisOverlay table.acts.nas td:nth-child(5){display:none}
   #devisOverlay .approx{font-size:10.5px;color:#5B6C76;margin-top:6px}
   #devisOverlay .rac.nas{display:none}
+  /* (21/10/2026) DEVIS ÉPURÉ — modèle validé par le responsable. Ce que l'établissement demande
+     (livret d'accueil) : montant des honoraires en plus du tarif, conditions de
+     remboursement, information AVANT les soins, choix signé ; en carte bulle, la
+     « libre et préalable entente » (Caisses sociales). Rien d'autre. */
+  #devisOverlay .dv2 .dvH{display:flex;justify-content:space-between;align-items:flex-start;gap:18px;border-bottom:2px solid #16222C;padding-bottom:12px}
+  #devisOverlay .dv2 .dvE{font-size:12px;color:#44535C;line-height:1.55}
+  #devisOverlay .dv2 .dvE .nom{font-size:15px;font-weight:700;color:#16222C}
+  #devisOverlay .dv2 .dvP{text-align:right;font-size:12.5px;line-height:1.5;color:#44535C}
+  #devisOverlay .dv2 .dvP b{font-size:15px;color:#16222C}
+  #devisOverlay .dv2 h1{font-size:17px;text-align:center;margin:20px 0 4px;letter-spacing:.02em;text-transform:uppercase}
+  #devisOverlay .dv2 .dvSub{text-align:center;font-size:11.5px;color:#5B6C76;margin-bottom:16px}
+  #devisOverlay .dv2 .dvG{display:grid;grid-template-columns:1fr 1fr;gap:6px 24px;font-size:12.5px;margin-bottom:12px}
+  #devisOverlay .dv2 .dvG .r{text-align:right}#devisOverlay .dv2 .dvG .w{grid-column:1/3}
+  #devisOverlay .dv2 .dvG .k{color:#5B6C76}
+  #devisOverlay .dv2 table.dvTab{width:100%;border-collapse:collapse;font-size:13.5px;margin-top:4px}
+  #devisOverlay .dv2 table.dvTab th{font-size:10.5px;text-transform:uppercase;color:#5B6C76;text-align:right;padding:6px 8px;border-bottom:1.5px solid #16222C;font-weight:600;line-height:1.3}
+  #devisOverlay .dv2 table.dvTab th.l,#devisOverlay .dv2 table.dvTab td.l{text-align:left}
+  #devisOverlay .dv2 table.dvTab td{padding:9px 8px;border-bottom:1px solid #DCE3E7;text-align:right;white-space:nowrap}
+  #devisOverlay .dv2 table.dvTab tr.tot td{border-top:1.5px solid #16222C;border-bottom:none;font-weight:700;font-size:15px}
+  #devisOverlay .dv2 .dvRB{display:flex;gap:12px;margin-top:12px}
+  #devisOverlay .dv2 .dvRB>div{flex:1;border:1px solid #DCE3E7;border-radius:6px;padding:8px 12px;font-size:12px;color:#44535C}
+  #devisOverlay .dv2 .dvRB b{display:block;font-size:17px;margin-top:2px;color:#16222C}
+  #devisOverlay .dv2 .dvRB .hl{background:#F2F5F7}
+  #devisOverlay .dv2 .dvRB.nas{display:none}
+  #devisOverlay .dv2 .dvNote{font-size:10.5px;color:#5B6C76;margin-top:7px;line-height:1.45}
+  #devisOverlay .dv2 .dvBox{margin-top:14px;font-size:12.3px;line-height:1.55;border-left:3px solid #16222C;padding:4px 12px}
+  #devisOverlay .dv2 .dvSign{display:flex;gap:28px;margin-top:18px;font-size:12px}
+  #devisOverlay .dv2 .dvSign>div{flex:1}#devisOverlay .dv2 .dvSign .l2{border-bottom:1px solid #16222C;height:44px}
   #devisOverlay .dvnote{max-width:800px;margin:0 auto 12px;font-size:11px;color:#5B6C76;text-align:center}
   #devisOverlay .sheet{max-width:800px;margin:0 auto;background:#fff;border:1px solid var(--line);border-radius:6px;box-shadow:0 10px 30px rgba(22,34,44,.10);padding:34px 38px 30px;color:#16222C}
   #devisOverlay .head{display:flex;justify-content:space-between;gap:18px;border-bottom:2px solid #16222C;padding-bottom:14px}
@@ -207,7 +235,7 @@
      un devis a 3 actes sur une seule page A4. */
   #devisOverlay table.acts td.l .lib{font-weight:600}
   #devisOverlay table.acts td.l .code{font-size:10.5px;color:#5B6C76;font-family:'IBM Plex Mono',monospace;white-space:normal}
-  #devisOverlay table.acts .num{font-family:'IBM Plex Mono',monospace}
+  #devisOverlay table.acts .num{font-family:'IBM Plex Mono',monospace;white-space:nowrap}   /* (21/10/2026) « 100,00 € » ne se coupe plus */
   #devisOverlay table.acts .dhcol{color:var(--dh);font-weight:600}
   #devisOverlay table.acts tr.tot td{border-top:1.5px solid #16222C;border-bottom:none;font-weight:700;padding-top:10px}
   #devisOverlay table.acts tr.tot td.l{font-weight:700}
@@ -1624,7 +1652,12 @@ function courant(muet){
         mods:[l.m7?'7':null, l.mA?'A':null].filter(Boolean), role:l.role}));
   // 2A : le parcours porte desormais SES DEUX montants. brCcam/brNgap sont ce qui
   // partira dans la declaration ; br reste la BR de l'axe courant (devis, RAC, simulateur).
-  return {axe,statut:st,desc,cnt,br,dh,rac,mut,dCs,dInt,dActe,lines,cBR,cDH,cCode,
+  /* (21/10/2026) Endoscopie : cotation type d'un groupe « Endoscopie », ou un acte dont
+     le code CCAM a l'acces « E » en 4e lettre (endoscopie par orifice naturel). */
+  const endo = !!(COTTYPE_COURANTE && /endoscop/i.test(COTTYPE_COURANTE.groupe||''))
+            || builder.some(l=>/^[A-Z]{3}E\d{3}$/.test(l.code||''));
+  const nomCot = COTTYPE_COURANTE ? String(COTTYPE_COURANTE.nom||'') : '';
+  return {axe,statut:st,desc,cnt,br,dh,rac,mut,dCs,dInt,dActe,lines,cBR,cDH,cCode,endo,nomCot,
           brCcam:br, brNgap:assocBR()};
 }
 
@@ -1655,77 +1688,53 @@ function secteurLabel(code){
   return x ? (x.court||x.label||x.code) : code;
 }
 function esc(t){return String(t==null?'':t).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');}
-// Un bloc par acte, comme le modele de note prealable du CNOM (secteur 2), qui demande
-// de mentionner chaque acte selon les memes modalites. Les modificateurs sont portes par
-// LEUR ligne : ils s'appliquent acte par acte, pas au parcours.
+/* (21/10/2026) DEVIS ÉPURÉ : deux lignes, consultation puis anesthésie, chacune tarif de
+   base / dépassement / total, comme le devis du secrétariat. Le nom des actes est dans
+   « Intervention », sans code. */
 function renderDevisActes(p){
   const tb=document.getElementById('dvActes'); if(!tb) return;
-  const nom = (p.axe==='CCAM') ? 'CCAM' : 'NGAP';   // abrege : la ligne doit tenir sur une seule ligne
-  const lines = (p.lines && p.lines.length) ? p.lines
-              : [{code:'', lib:p.desc||dvT('acte'), br:p.br, mods:[]}];   // filet : parcours sans detail
-  /* (20/10/2026) NAS : le nom de l'acte seul, sans code ni montant par ligne —
-     un seul montant, sur la ligne de total. */
-  /* (20/10/2026) La consultation ouvre le tableau, comme le devis du secrétariat. */
-  const cons = (p.cBR>0) ? {lib:dvT('consult'), code:p.cCode||'CS'} : null;
-  if(p.statut==='nas'){
-    // NAS : deux lignes (consultation, anesthésie), chacune base / honoraires / dépassement ; pas de code
-    const r=(lib,br,dh)=>`<tr><td class="l"><span class="lib">${esc(lib)}</span></td>
-      <td class="num">${eur2(br)}</td><td class="num">${eur2(br+dh)}</td><td class="num dhcol">${dh>0.004?eur2(dh):''}</td><td class="num"></td></tr>`;
-    tb.innerHTML = (cons ? r(cons.lib, p.cBR, p.cDH||0) : '')
-      + r(lines.map(l=>l.lib||dvT('acte')).join(' + '), p.br, p.dh||0);
-    return;
+  const r=(lib,br,dh)=>`<tr><td class="l">${esc(lib)}</td><td>${eur(br)}</td><td>${eur(dh)}</td><td>${eur(br+dh)}</td></tr>`;
+  tb.innerHTML = ((p.cBR||0)>0 ? r(dvT('consult'), p.cBR, p.cDH||0) : '') + r(dvT('anesth'), p.br||0, p.dh||0);
+}
+/* (21/10/2026) DEVIS EN EUROS RONDS. Les montants du devis sont approximatifs (l'acte
+   exact n'est connu qu'apres l'intervention) : bases, depassements et totaux y sont
+   arrondis a l'euro, comme le devis du secretariat (demande du responsable). La
+   declaration au comite, elle, garde les montants exacts (elle lit courant(), pas ceci). */
+function arrondirDevis(p){
+  if(!p || p.arrondi) return p;
+  const R=x=>Math.round(x||0);
+  const lines=(p.lines||[]).map(l=>Object.assign({},l,{br:R(l.br)}));
+  /* (21/10/2026) ENDOSCOPIE : base de l'anesthesie arrondie a la DIZAINE SUPERIEURE
+     (decision du responsable) ; l'ecart s'ajoute a l'acte principal (la plus grosse
+     base), pour que les lignes retombent sur le total. */
+  if(p.endo && lines.length){
+    const cible=Math.ceil(((p.br||0)-1e-9)/10)*10;
+    const somme=lines.reduce((s,l)=>s+l.br,0);
+    let k=0; lines.forEach((l,i)=>{ if(l.br>lines[k].br) k=i; });
+    lines[k].br += cible-somme;
   }
-  /* (21/10/2026) CHAQUE LIGNE PORTE SA BASE, SES HONORAIRES ET SON DÉPASSEMENT, comme
-     le devis du secrétariat et le recueil de l'hôpital. Le dépassement de la
-     consultation s'affichait seulement dans le total (constaté par le responsable).
-     Celui de l'anesthésie, saisi pour l'intervention entière, se répartit entre les
-     actes au prorata de leur base — c'est ce que fait le recueil de l'hôpital ; la
-     dernière ligne prend l'arrondi, la somme retombe au centime sur le total. */
-  const dhLignes=[]; let reste=Math.round((p.dh||0)*100);
-  lines.forEach((l,i)=>{
-    const c = (i===lines.length-1) ? reste
-            : (p.br>0 ? Math.round((p.dh||0)*100*(l.br||0)/p.br) : (i===0 ? reste : 0));
-    dhLignes.push(c/100); reste-=c;
-  });
-  const ligne=(lib, code, br, dh)=>`<tr>
-      <td class="l"><span class="lib">${esc(lib)}</span> <span class="code">— ${code}</span></td>
-      <td class="num">${eur2(br)}</td>
-      <td class="num">${eur2(br+dh)}</td><td class="num dhcol">${dh>0.004?eur2(dh):''}</td><td class="num"></td></tr>`;
-  tb.innerHTML = (cons ? ligne(cons.lib, esc(cons.code)+' \u00b7 NGAP', p.cBR, p.cDH||0) : '')
-    + lines.map((l,i)=>{
-      const m=(l.mods&&l.mods.length) ? ' \u00b7 mod. '+l.mods.join(', ') : '';
-      const c=l.code ? esc(l.code)+' \u00b7 ' : '';
-      return ligne(l.lib||'Acte', c+nom+m, l.br||0, dhLignes[i]);
-    }).join('');
+  const q=Object.assign({},p,{lines:lines, br:lines.length ? lines.reduce((s,l)=>s+l.br,0) : R(p.br),
+    dh:R(p.dh), cBR:R(p.cBR), cDH:R(p.cDH), arrondi:true});
+  const m=/^(\d+) % BR$/.exec(p.mut||'');
+  q.rac=racPatient(q.statut, m ? +m[1] : 0, q.br+q.cBR, q.dh+q.cDH);
+  return q;
 }
 function openDevis(i){
-  const p=parcours[i]; if(!p) return;
+  const p=arrondirDevis(parcours[i]); if(!p) return;
+  parcours[i]=p;
   dvHonoraire = p.br + p.dh + (p.cBR||0) + (p.cDH||0);   // (20/10/2026) consultation comprise
-  // Praticien (config saisie une fois en haut de page)
   eText('dvPratName', document.getElementById('cfgPrat').value.trim()||'[Nom Prénom]');
-  eText('dvRPPS', document.getElementById('cfgRPPS').value.trim()||'—');
-  // N° de devis + dates (auto)
-  // Le devis est etabli le jour de la CONSULTATION, pas le jour ou on l'imprime, et
-  // sa validite de 6 mois court a partir de la. La date prevue est celle de
-  // l'intervention ; sur un parcours NGAP l'acte EST la consultation.
+  // Établi le jour de la CONSULTATION ; la date prévue est celle de l'intervention.
   const base = p.dCs ? new Date(p.dCs+'T12:00:00') : new Date();
-  const valid = new Date(base.getTime()); valid.setMonth(valid.getMonth()+6);
-  const now=new Date(), p2=n=>String(n).padStart(2,'0');
-  eText('dvNum', base.getFullYear()+'-'+p2(base.getMonth()+1)+p2(base.getDate())+'-'+p2(now.getHours())+p2(now.getMinutes()));
   eText('dvDateEtabli', fmtDate(base));
-  eText('dvDateValid', fmtDate(valid));
   document.getElementById('dvDatePrevue').textContent=fmtI(p.dInt||p.dCs);
-  // Acte + statut + mutuelle + montants
   devisTextes(p);
-  eText('dvBR', eur2(p.br+(p.cBR||0))); eText('dvHon', eur2(dvHonoraire)); eText('dvDH', eur2(p.dh+(p.cDH||0)));
-  const ra=document.getElementById('dvRacAfter');
-  ra.textContent = p.rac!=null?eur2(p.rac):'—';
-  ra.className='v '+((p.rac!=null&&p.rac<=0.005)?'zero':'pos');
-  document.getElementById('dvTag').style.display=(p.statut==='bulle')?'inline-block':'none';
-  // Remboursement assurance maladie pré-calculé (hypothèse de taux, ajustable)
+  eText('dvBR', eur(p.br+(p.cBR||0))); eText('dvHon', eur(dvHonoraire)); eText('dvDH', eur(p.dh+(p.cDH||0)));
+  // Remboursement de la caisse : estimation sur le tarif de base (80 % Monaco, 70 % France, 0 NAS)
   const rate = (RO_RATE[p.statut]!=null?RO_RATE[p.statut]:0.80);
-  document.getElementById('dvRRO').textContent = eur2(rate*(p.br+(p.cBR||0)));
-  recalcDevisRac();
+  const rro = Math.round(rate*(p.br+(p.cBR||0)));
+  eText('dvRRO', eur(rro));
+  eText('dvRacBefore', eur(Math.max(0, dvHonoraire-rro)));
   // aucun champ patient : le nom est écrit à la main par le patient après impression
   eText('dcPratName', document.getElementById('cfgPrat').value.trim()||'[Nom Prénom]');
   remplirEtablissement();                       // (20/10/2026) nom et adresse lus dans le classeur
@@ -1739,53 +1748,45 @@ function openDevis(i){
    Rien n'est enregistré : la langue revient au français à la fermeture. */
 let DV_LANG='fr';
 const DV_EN={
-  role:'Anaesthesiologist and intensive care physician — sector 2 (free fees, non-OPTAM)',
-  tel:'Tel.', rpps:'RPPS no.', libEtab:'Private practice within the hospital', intraHosp:'In-hospital private practice',
-  titre:'Cost estimate — Prior written information',
-  sousTitre:'Given to the patient before the procedure · please keep',
-  devisNo:'Estimate no.', etabliLe:'Issued on', valable:'Valid until',
-  patient:'Patient', nomPrenom:'Full name:', regime:'Insurance status:', tagBulle:'Free fees · prior agreement',
-  interv:'Planned procedure', datePrevue:'Planned date:', etabLbl:'Hospital:', secteurLib:'— private practice',
-  detail:'Procedures and fees', thBR:'Reimbursement base (approx.)', thHon:'Fees', thDH:'of which extra fee (approx.)',
-  approx:'Estimated amounts: the exact procedure is only known after surgery; the agreed extra fee remains the one stated.', thRRO:'Health insurance refund',
-  racAvant:'Out-of-pocket before supplementary insurance',
-  racAvantNote:'Fees − health insurance refund. Enter the refund in the table to display it.',
-  racApres:'Estimated out-of-pocket after supplementary insurance',
-  estimMut:'<b>Estimate</b> — supplementary insurance:', sousReserve:'Subject to the patient\'s actual policy.',
-  engage1:'I, the undersigned patient named above, <b>request to be treated as a private patient</b> at',
-  engage2:', declare that I received this information <b>before</b> the procedure and understood it, and <b>I undertake to pay the fees</b> stated. The extra fee is set with tact and moderation and calibrated, as far as possible, to minimise my out-of-pocket cost.',
-  sigPrat:'The physician', sig:'Signature', sigPat:'The patient — “Read and approved”', dateSig:'Date and signature',
-  legal1:'<b>Status.</b> Sector 2 physician with free fees (not an OPTAM member), set with tact and moderation — art. R.4127-53 of the French Public Health Code. Estimate issued under art. L.1111-3-2 and the decree of 2 October 2008 (written information required from €70 of extra fees).',
-  legal2:'<b>Payment and reimbursement.</b> Payment is due only after the procedure; no deposit cheque is required. Supplementary reimbursement depends on the patient\'s policy: the “estimated out-of-pocket after supplementary insurance” is indicative and does not bind the insurer.',
-  legal3:'<b>Consent and withdrawal.</b> Private care requires a named declaration of choice signed by the patient and the physician and filed in the medical record; otherwise the patient is treated in the public sector. The patient remains free to withdraw and opt for the public sector, with no effect on the quality or timing of care.',
-  legal4:'<b>Protected beneficiaries.</b> No extra fee is charged to beneficiaries of protected coverage (carte verte, SPME, AME, C2S): only the standard tariff applies.',
-  pied:'Issued in two copies: one for the patient, one for the medical record.'
+  tel:'Tel.', role:'Anaesthesiologist', libre:'in private practice',
+  titre:'Fee estimate — anaesthesia', sousTitre:'Information given to the patient before treatment · please keep',
+  patient:'Patient:', etabliLe:'Issued on', couverture:'Coverage:', interventionLe:'Planned on', intervention:'Procedure:',
+  thLib:'Anaesthesia fees', thTot:'Total',
+  caisse:'Covered by your health insurance', caisseNote:'(estimate, on the base rate)', reste:'Your out-of-pocket cost, before supplementary insurance',
+  approx:'Approximate amounts: the exact procedure is only known after surgery; the agreed extra fee does not change.',
+  engage:'I chose to be treated privately by this physician and received this information <b>before treatment</b>. I accept these fees. I remain free to opt for the public sector instead, with no effect on my care.',
+  sigPrat:'The physician', sigPat:'The patient, date and “Read and approved”'
 };
 const DV_PH_EN={etab:'Hospital', service:'Department', adresse:'Address', tel:'Phone', date:'DD/MM/YYYY'};
 // Textes posés par le code : français / anglais
 const DV_DYN={
-  fr:{consult:'Consultation d\'anesthésie', acte:'Acte', thActe:'Acte — Code', thActeNas:'Acte', total:'Total', totalNas:'Total à régler', mutNon:'non renseignée', mutAucune:'aucune', mutBR:' % BR'},
-  en:{consult:'Anaesthesia consultation', acte:'Procedure', thActe:'Procedure — Code', thActeNas:'Procedure', total:'Total', totalNas:'Total payable', mutNon:'not specified', mutAucune:'none', mutBR:' % of base'}
+  fr:{consult:'Consultation', anesth:'Anesthésie', acte:'Acte', total:'Total', totalNas:'Total à régler',
+      thBR:'Tarif de base<br>(remboursable)', thBRnas:'Tarif de base', thDH:'Dépassement<br>(non remboursé)', thDHnas:'Dépassement',
+      noteMut:' Le remboursement par votre mutuelle dépend de votre contrat.',
+      noteNas:' Aucune caisse d\'assurance maladie ne prend ces honoraires en charge : ils sont entièrement à votre charge.'},
+  en:{consult:'Consultation', anesth:'Anaesthesia', acte:'Procedure', total:'Total', totalNas:'Total payable',
+      thBR:'Base rate<br>(reimbursable)', thBRnas:'Base rate', thDH:'Extra fee<br>(not reimbursed)', thDHnas:'Extra fee',
+      noteMut:' Reimbursement by your supplementary insurance depends on your policy.',
+      noteNas:' No health insurance covers these fees: they are entirely payable by you.'}
 };
-const ST_LABELS_EN={verte:'CCSS Monaco — carte verte',rose:'CCSS Monaco — carte rose',bulle:'CCSS Monaco — carte bulle',fr:'French health insurance (sector 2)',nas:'Not covered by any health insurance (NAS)',spme:'SPME (Monaco)'};
+// Couverture du patient, telle qu'écrite sur le devis
+const DV_COUV={
+  fr:{verte:'CCSS Monaco — carte verte',rose:'CCSS Monaco — carte rose',bulle:'CCSS Monaco — carte bulle',spme:'SPME (Monaco)',fr:'Assurance maladie française',nas:'Aucune (non assuré social)'},
+  en:{verte:'CCSS Monaco — green card',rose:'CCSS Monaco — pink card',bulle:'CCSS Monaco — bubble card',spme:'SPME (Monaco)',fr:'French health insurance',nas:'None (not covered by any health insurance)'}
+};
 function dvT(k){ return DV_DYN[DV_LANG][k]; }
-function dvMutTexte(m){
-  if(!m) return dvT('mutNon');
-  if(m==='aucune') return dvT('mutAucune');
-  const x=/^(\d+) % BR$/.exec(m);
-  return x ? x[1]+dvT('mutBR') : m;
-}
 /* Tout ce qui dépend de la langue ou du statut, SANS toucher aux champs saisis à
-   l'écran (dates, remboursement) : appelé à l'ouverture ET à chaque bascule. */
+   l'écran (dates) : appelé à l'ouverture ET à chaque bascule. */
 function devisTextes(p){
   const nas = p.statut==='nas';
-  eText('dvStatut', (DV_LANG==='en' ? ST_LABELS_EN[p.statut] : ST_LABELS[p.statut]) || p.statut);
-  // NAS : le nom des actes, sans code
-  eText('dvActe', nas ? ((p.lines||[]).map(l=>l.lib||dvT('acte')).join(' + ') || p.desc || dvT('acte')) : (p.desc||dvT('acte')));
+  eText('dvStatut', DV_COUV[DV_LANG][p.statut] || p.statut);
+  // Intervention en clair : nom de la cotation type, sinon libellés des actes — jamais de code
+  eText('dvActe', p.nomCot || (p.lines||[]).map(l=>l.lib||dvT('acte')).join(' + ') || dvT('acte'));
   renderDevisActes(p);
-  eText('dvMut', dvMutTexte(p.mut));
-  eText('dvThActe', dvT(nas ? 'thActeNas' : 'thActe'));
+  document.getElementById('dvThBR').innerHTML = dvT(nas ? 'thBRnas' : 'thBR');
+  document.getElementById('dvThDH').innerHTML = dvT(nas ? 'thDHnas' : 'thDH');
   eText('dvTotLbl', dvT(nas ? 'totalNas' : 'total'));
+  eText('dvNoteFin', dvT(nas ? 'noteNas' : 'noteMut'));
   document.getElementById('dvTable').classList.toggle('nas', nas);
   document.getElementById('dvRac').classList.toggle('nas', nas);
   appliquerLangueDevis();
@@ -1808,12 +1809,6 @@ function basculerLangueDevis(){
   if(parcours[0]) devisTextes(parcours[0]); else appliquerLangueDevis();
 }
 function parseEur(t){return parseFloat((t||'').replace(/[^0-9.,-]/g,'').replace(',','.'))||0;}
-function recalcDevisRac(){
-  const rro=parseEur(document.getElementById('dvRRO').textContent);
-  const el=document.getElementById('dvRacBefore');
-  if(rro>0){const rac=Math.max(0,dvHonoraire-rro);el.textContent=eur2(rac);el.className='v '+(rac<=0.005?'zero':'pos');}
-  else{el.textContent='—';el.className='v pos';}
-}
 function printDevis(withDecl){
   const d=document.getElementById('declSheet');
   d.style.display=withDecl?'block':'none';
@@ -2083,86 +2078,42 @@ populateMut();poserEcran();renderSummary();
     <button class="dvclose" onclick="closeDevis()">Fermer</button>
   </div>
   <div class="dvnote">Aucun champ patient : <b>le nom est écrit à la main par le patient</b> sur le devis et la déclaration imprimés — aucune donnée patient ne transite par l'outil. Champs bleus restants (dates, remboursement) : saisis à l'écran, jamais enregistrés, effacés à la fermeture. La déclaration de choix est un <b>document autonome</b> : l'imprimer, la faire signer et la verser au dossier vaut aussi bien en soins externes qu'en hospitalisation.</div>
-  <div class="sheet">
-    <div class="head">
-      <div class="prat">
-        <div class="name">Dr <span id="dvPratName">—</span></div>
-        <div class="role" data-i18n="role">Médecin anesthésiste-réanimateur — secteur 2 (honoraires libres, non-OPTAM)</div>
-        <div class="meta"><span data-i18n="rpps">N° RPPS</span> <span id="dvRPPS">—</span><br><span data-i18n="libEtab">Activité libérale au sein de l'établissement</span></div>
+  <!-- (21/10/2026) DEVIS ÉPURÉ (modèle validé). Retirés : RPPS, secteur 2 / OPTAM,
+       n° et validité du devis, codes CCAM, colonne remboursement acte par acte, encadré
+       « après mutuelle », bloc d'articles de loi, encadré bénéficiaires protégés. -->
+  <div class="sheet dv2">
+    <div class="dvH">
+      <div class="dvE">
+        <div class="nom ed" contenteditable="true" data-ph="Établissement" data-i18n-ph="etab" data-etab="nom"></div>
+        <div><span class="ed" contenteditable="true" data-ph="Service" data-i18n-ph="service" data-etab="service"></span></div>
+        <div><span class="ed" contenteditable="true" data-ph="Adresse" data-i18n-ph="adresse" data-etab="adresse"></span> · <span data-i18n="tel">Tél.</span> <span class="ed" contenteditable="true" data-ph="Téléphone" data-i18n-ph="tel" data-etab="telephone"></span></div>
       </div>
-      <div class="estab">
-        <div class="e1"><span class="ed" contenteditable="true" data-ph="Établissement" data-i18n-ph="etab" data-etab="nom"></span></div>
-        <span class="ed" contenteditable="true" data-ph="Service" data-i18n-ph="service" data-etab="service"></span><br>
-        <span class="ed" contenteditable="true" data-ph="Adresse" data-i18n-ph="adresse" data-etab="adresse"></span><br>
-        <span data-i18n="tel">Tél.</span> <span class="ed" contenteditable="true" data-ph="Téléphone" data-i18n-ph="tel" data-etab="telephone"></span><br><span data-i18n="intraHosp">Activité libérale intra-hospitalière</span>
-      </div>
+      <div class="dvP"><b>Dr <span id="dvPratName">—</span></b><br><span data-i18n="role">Anesthésiste-réanimateur</span><br><span data-i18n="libre">exerçant à titre libéral</span></div>
     </div>
-    <div class="doctitle">
-      <h1 data-i18n="titre">Estimation de frais — Information écrite préalable</h1>
-      <div class="st" data-i18n="sousTitre">Remis au patient avant la réalisation de l'acte · à conserver</div>
+    <h1 data-i18n="titre">Devis d'honoraires — anesthésie</h1>
+    <div class="dvSub" data-i18n="sousTitre">Information remise au patient avant les soins · à conserver</div>
+    <div class="dvG">
+      <div><span class="k" data-i18n="patient">Patient :</span> <span class="hand" style="min-width:200px"></span></div>
+      <div class="r"><span class="k" data-i18n="etabliLe">Établi le</span> <b id="dvDateEtabli">—</b></div>
+      <div><span class="k" data-i18n="couverture">Couverture :</span> <b id="dvStatut">—</b></div>
+      <div class="r"><span class="k" data-i18n="interventionLe">Intervention prévue le</span> <span class="ed" id="dvDatePrevue" contenteditable="true" data-ph="JJ/MM/AAAA" data-i18n-ph="date"></span></div>
+      <div class="w"><span class="k" data-i18n="intervention">Intervention :</span> <b id="dvActe">—</b></div>
     </div>
-    <div class="refline">
-      <span><span data-i18n="devisNo">Devis n°</span> <b id="dvNum">—</b></span>
-      <span><span data-i18n="etabliLe">Établi le</span> <b id="dvDateEtabli">—</b></span>
-      <span><span data-i18n="valable">Valable jusqu'au</span> <b id="dvDateValid">—</b></span>
-    </div>
-    <div class="who">
-      <div class="box">
-        <h2 data-i18n="patient">Patient</h2>
-        <div class="l"><span data-i18n="nomPrenom">Nom Prénom :</span> <span class="hand" style="min-width:230px"></span><br>
-        <span data-i18n="regime">Régime :</span> <b id="dvStatut">—</b></div>
-        <span class="tag" id="dvTag" style="display:none" data-i18n="tagBulle">Honoraires libres · entente préalable</span>
-      </div>
-      <div class="box">
-        <h2 data-i18n="interv">Intervention prévue</h2>
-        <div class="l"><b id="dvActe">—</b><br>
-        <span data-i18n="datePrevue">Date prévue :</span> <span class="ed" id="dvDatePrevue" contenteditable="true" data-ph="JJ/MM/AAAA" data-i18n-ph="date"></span><br>
-        <span data-i18n="etabLbl">Établissement :</span> <span class="ed" contenteditable="true" data-ph="Établissement" data-i18n-ph="etab" data-etab="nom"></span> <span data-i18n="secteurLib">— secteur libéral</span></div>
-      </div>
-    </div>
-    <h3 class="sec" data-i18n="detail">Détail des actes et des honoraires</h3>
-    <table class="acts" id="dvTable">
-      <thead><tr><th class="l" id="dvThActe">Acte — Code</th><th data-i18n="thBR">Base rembt (approx.)</th><th data-i18n="thHon">Honoraires</th><th data-i18n="thDH">dont dépassement (approx.)</th><th data-i18n="thRRO">Rembt assur. maladie</th></tr></thead>
-      <!-- Une ligne par acte (rempli par renderDevisActes). Seule la BR se decompose ;
-           honoraires, depassement et remboursement sont portes par la ligne de total. -->
+    <table class="dvTab" id="dvTable">
+      <thead><tr><th class="l" data-i18n="thLib">Honoraires d'anesthésie</th><th id="dvThBR"></th><th id="dvThDH"></th><th data-i18n="thTot">Total</th></tr></thead>
       <tbody id="dvActes"></tbody>
-      <tbody>
-        <tr class="tot">
-          <td class="l" id="dvTotLbl">Total</td>
-          <td class="num" id="dvBR">—</td>
-          <td class="num" id="dvHon">—</td>
-          <td class="num dhcol" id="dvDH">—</td>
-          <td class="num"><span class="ed" contenteditable="true" data-ph="0,00 €" id="dvRRO" oninput="recalcDevisRac()"></span></td>
-        </tr>
-      </tbody>
+      <tbody><tr class="tot"><td class="l" id="dvTotLbl">Total</td><td id="dvBR">—</td><td id="dvDH">—</td><td id="dvHon">—</td></tr></tbody>
     </table>
-    <div class="approx" data-i18n="approx">Montants estimés : l'acte exact n'est connu qu'après l'intervention ; le dépassement annoncé reste celui convenu.</div>
-    <div class="rac" id="dvRac">
-      <div class="racb">
-        <div class="k" data-i18n="racAvant">Reste à charge avant complémentaire</div>
-        <div class="v pos" id="dvRacBefore">—</div>
-        <div class="note" data-i18n="racAvantNote">Honoraires − remboursement assurance maladie. Renseigne le remboursement dans le tableau pour l'afficher.</div>
-      </div>
-      <div class="racb mut">
-        <div class="k" data-i18n="racApres">Reste à charge estimé après mutuelle</div>
-        <div class="v zero" id="dvRacAfter">—</div>
-        <div class="note"><span data-i18n="estimMut"><b>Estimation</b> — mutuelle :</span> <span id="dvMut">—</span>. <span data-i18n="sousReserve">Sous réserve du contrat réel du patient.</span></div>
-      </div>
+    <div class="dvRB" id="dvRac">
+      <div><span data-i18n="caisse">Pris en charge par votre caisse</span><br><small data-i18n="caisseNote">(estimation, sur le tarif de base)</small><b id="dvRRO">—</b></div>
+      <div class="hl"><span data-i18n="reste">Reste à votre charge, avant mutuelle</span><b id="dvRacBefore">—</b></div>
     </div>
-    <div class="engage">
-      <span data-i18n="engage1">Je soussigné(e), patient(e) désigné(e) ci-dessus, <b>demande à bénéficier d'une prise en charge en activité libérale</b> au sein du</span> <span class="ed" contenteditable="true" data-ph="Établissement" data-i18n-ph="etab" data-etab="nom"></span><span data-i18n="engage2">, déclare avoir reçu la présente information <b>avant</b> la réalisation de l'acte, en avoir compris le contenu, et <b>m'engage à régler les honoraires</b> indiqués. Le dépassement est fixé avec tact et mesure et calibré, dans la mesure du possible, pour minimiser mon reste à charge.</span>
+    <div class="dvNote"><span data-i18n="approx">Montants approximatifs : l'acte exact n'est connu qu'après l'intervention ; le dépassement convenu ne change pas.</span><span id="dvNoteFin"></span></div>
+    <div class="dvBox" data-i18n="engage">J'ai choisi d'être pris(e) en charge à titre libéral par ce médecin et reçu cette information <b>avant les soins</b>. J'accepte ces honoraires. Je reste libre de renoncer au secteur libéral au profit du secteur public, sans conséquence sur mes soins.</div>
+    <div class="dvSign">
+      <div><span data-i18n="sigPrat">Le médecin</span><div class="l2"></div></div>
+      <div><span data-i18n="sigPat">Le patient, date et « Bon pour accord »</span><div class="l2"></div></div>
     </div>
-    <div class="sign">
-      <div class="sig"><div class="lab" data-i18n="sigPrat">Le praticien</div><div class="bp" data-i18n="sig">Signature</div><div class="line"></div></div>
-      <div class="sig"><div class="lab" data-i18n="sigPat">Le patient — « Bon pour accord »</div><div class="bp" data-i18n="dateSig">Date et signature</div><div class="line"></div></div>
-    </div>
-    <div class="legalblk">
-      <p data-i18n="legal1"><b>Statut.</b> Praticien de secteur 2, honoraires libres (non adhérent OPTAM), fixés avec tact et mesure — art. R.4127-53 du code de la santé publique. Devis établi au titre de l'art. L.1111-3-2 et de l'arrêté du 2 octobre 2008 (information écrite dès 70 € de dépassement).</p>
-      <p data-i18n="legal2"><b>Paiement et remboursement.</b> Le paiement n'intervient qu'après réalisation de l'acte ; aucun chèque de caution n'est exigé. Le remboursement complémentaire dépend du contrat du patient : le « reste à charge estimé après mutuelle » est indicatif et n'engage pas l'organisme.</p>
-      <p data-i18n="legal3"><b>Consentement et rétractation.</b> La prise en charge libérale suppose une déclaration de choix nominative signée par le patient et le praticien, versée au dossier ; à défaut, le patient relève de l'activité publique. Il reste libre d'y renoncer et d'opter pour le secteur public, sans conséquence sur la qualité ni le délai des soins.</p>
-      <p class="imp" data-i18n="legal4"><b>Bénéficiaires protégés.</b> Aucun dépassement n'est facturé aux bénéficiaires d'une couverture protégée (carte verte, SPME, AME, C2S) : seul le tarif conventionnel s'applique.</p>
-    </div>
-    <div class="dvfoot" data-i18n="pied">Document établi en deux exemplaires : un pour le patient, un pour le dossier.</div>
   </div>
 
   <!-- DÉCLARATION DE CHOIX — modèle service soins externes, praticien pré-rempli, patient manuscrit -->
