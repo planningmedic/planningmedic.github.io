@@ -1041,7 +1041,7 @@ console.log('\n═══ 6. La page de cotation ne dit rien qu\'elle ne sache �
       visible('stCartes') && cartes.join(',') === 'verte,rose,bulle,spme,nas', cartes);
     V('les valeurs internes et les plafonds ne changent pas',
       ev('JSON.stringify(STATUTS)') === JSON.stringify({ verte:{coeff:1.98,dh:'0'}, rose:{coeff:1.98,dh:'0.20'},
-        bulle:{coeff:1.98,dh:'libre'}, fr:{coeff:1, dh:'libre'}, nas:{coeff:1, dh:'libre'}, spme:{coeff:1.98,dh:'0'} }),
+        bulle:{coeff:1.98,dh:'libre'}, fr:{coeff:1, dh:'libre'}, nas:{coeff:1.98, dh:'libre'}, spme:{coeff:1.98,dh:'0'} }),
       ev('JSON.stringify(STATUTS)'));
     V('frc2s n\'est plus lu nulle part (statuts, libellé et taux du devis)',
       ev("!('frc2s' in STATUTS) && !('frc2s' in ST_LABELS) && !('frc2s' in RO_RATE)"));
@@ -1148,6 +1148,10 @@ console.log('\n═══ 6. La page de cotation ne dit rien qu\'elle ne sache �
     V('SPME sans mutuelle : 20 % de la base ; avec 150 % : 0',
       proche(ev('lastRac'), Math.round(0.20 * (ev('parcoursBR()') + cs()) * 100) / 100) && (mut(150), proche(ev('lastRac'), 0)));
     w.setStatut('nas'); mut(0); await dodo(20);
+    /* (21/10/2026) DÉFAUT TROUVÉ EN PRODUCTION : le NAS était calculé à ×1,00. Le recueil de
+       l'hôpital applique ×1,98 (HHFE002 activité 4 : 53,95 € → 106,82 €, puis 113,24 € avec le 7). */
+    V('NAS : coefficient monégasque, comme le recueil de l\'hôpital (HHFE002 + 7 → 113,24 €)',
+      ev("STATUTS.nas.coeff") === 1.98 && proche(ev("1.98*(53.95*1.06)"), 113.24) && ev("STATUTS.nas.coeff") === ev("STATUTS.verte.coeff"));
     /* (20/10/2026) Décision du responsable, comme le devis du secrétariat : un NAS paie
        base + dépassement, pour la consultation (total du groupement) comme pour l'anesthésie. */
     V('NAS sans mutuelle : la caisse ne rembourse rien, reste = base + dépassement, consultation comprise',

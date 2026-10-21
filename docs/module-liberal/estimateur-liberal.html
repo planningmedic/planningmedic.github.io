@@ -517,7 +517,10 @@ window.SessionPortail = window.SessionPortail || { lire:function(){try{return se
 <script>
 const STATUTS={
  verte:{coeff:1.98,dh:'0'}, rose:{coeff:1.98,dh:'0.20'}, bulle:{coeff:1.98,dh:'libre'},
- fr:{coeff:1.00,dh:'libre'}, nas:{coeff:1.00,dh:'libre'}, spme:{coeff:1.98,dh:'0'}
+ fr:{coeff:1.00,dh:'libre'}, nas:{coeff:1.98,dh:'libre'}, spme:{coeff:1.98,dh:'0'}
+ /* (21/10/2026) NAS : coefficient monegasque 1,98, et non 1,00. Constate sur un recueil
+    reel de l'hopital : HHFE002 activite 4 a 106,82 = 53,95 x 1,98 ; la BR est remplie
+    (comptee dans les 30 %) et le patient paie BR + depassement. */
  /* (20/10/2026) Coefficient monegasque 1,95 -> 1,98 au 01/10/2026 (annexe III,
     carte verte). Verifie sur un recueil reel : 192,00 x 1,98 = 380,16 EUR. */
  /* (01/10/2026) « Francais — AME / C2S » RETIRE : pas de liberal pour ces
