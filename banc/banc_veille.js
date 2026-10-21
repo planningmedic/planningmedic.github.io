@@ -439,7 +439,8 @@ function monde(plan) {
     const d701 = par['701'][1];   // date LOCALE (minuit de la machine) : toISOString() la décalerait d'un jour hors UTC (Europe/Paris → la veille à 22:00Z)
     const jour701 = d701 instanceof Date ? d701.getFullYear() + '-' + String(d701.getMonth() + 1).padStart(2, '0') + '-' + String(d701.getDate()).padStart(2, '0') : String(d701).slice(0, 10);
     V('DOI, revue et date lus dans la fiche', par['701'][5] === '10.1000/x701' && par['701'][4] === 'Anesthesiology' && jour701 === '2026-09-10', [par['701'][5], par['701'][4], jour701]);
-    V('thèmes posés LOCALEMENT depuis titre + résumé : Ventilation et SDRA + Hémodynamique', /Ventilation et SDRA/.test(par['701'][13]) && /Hémodynamique/.test(par['701'][13]), par['701'][13]);
+    // (21/10/2026) thèmes AFFICHÉS = ceux du titre quand il y en a : « Norepinephrine dose was recorded » (résumé) ne range plus l'essai en Hémodynamique
+    V('thèmes posés LOCALEMENT : ceux du titre quand il y en a (Ventilation et SDRA), pas ceux cités en passant dans le résumé', par['701'][13] === 'Ventilation et SDRA', par['701'][13]);
     V('…et depuis les descripteurs MeSH (Delirium → Neurologie et délire)', /Neurologie et délire/.test(par['801'][13]), par['801'][13]);
     V('le type retenu est le plus fort (ECR devant Multicenter)', par['701'][12] === 'Randomized Controlled Trial', par['701'][12]);
     const n = id => Number(par[id][7]);
@@ -987,6 +988,28 @@ function monde(plan) {
     V('…les autres thèmes ne bougent pas, 3 thèmes modifiés annoncés', val('Douleur périopératoire') === avantDouleur && r1.changes.length === 3, r1);
     V('…relancée, ne change plus rien', vm.runInContext('veilleMajVocabulaire()', m2.ctx).changes.length === 0);
     V('le type « analyse secondaire » a son libellé à l\'écran', /'analyse secondaire':\['Analyse secondaire','aut'\]/.test(fs.readFileSync('../index.html', 'utf8')));
+  }
+
+  console.log('\n═══ Thèmes affichés = thèmes du TITRE quand il y en a (21/10/2026) — PELICAN ═══');
+  {
+    const FICHES = {
+      '1101': { titre: 'Individualized Cardiac Index-Guided Hemodynamic Therapy in High-Risk Patients Undergoing Elective Major Abdominal Surgery', revue: 'JAMA', resume: 'In this multicenter randomized trial of 1128 patients, postoperative complications included cardiac arrest and acute kidney injury.', pubtypes: ['Journal Article', 'Randomized Controlled Trial'] },
+      '1102': { titre: 'Treatment With Mazdutide for Weight Reduction', revue: 'JAMA', resume: 'Nausea and vomiting were frequent; nutrition counselling was given.', pubtypes: ['Journal Article', 'Randomized Controlled Trial'] },
+    };
+    const plan = (endpoint, params) => endpoint === 'efetch.fcgi'
+      ? '<?xml version="1.0"?><PubmedArticleSet>' + (params.get('id') || '').split(',').filter(id => FICHES[id]).map(id => ficheXml(id, Object.assign({ date: '2026-10-14' }, FICHES[id]))).join('') + '</PubmedArticleSet>'
+      : { esearchresult: { count: '0', idlist: [] } };
+    const m = monde(plan);
+    vm.runInContext('getOrCreateVeilleTabs()', m.ctx);
+    const v = m.cl.getSheetByName('VEILLE');
+    v.lignes[0] = ['PMID', 'DATE_PUB', 'TITRE', 'AUTEURS', 'REVUE', 'DOI', 'SOURCE', 'SCORE', 'RESUME', 'LU', 'STAR', 'AJOUTE_LE', 'PUBTYPE', 'THEMES', 'MOTIF'];
+    v.lignes.push(['1101', new Date('2026-10-14T00:00:00'), FICHES['1101'].titre, 'X', 'JAMA', '', 'GENERAL', 100, '', 'N', 'N', new Date('2026-10-20T00:00:00'), '', 'Hémodynamique; Arrêt cardiaque; Médecine périopératoire; Insuffisance rénale', 'ancien']);
+    v.lignes.push(['1102', new Date('2026-10-14T00:00:00'), FICHES['1102'].titre, 'X', 'JAMA', '', 'GENERAL', 66, '', 'N', 'N', new Date('2026-10-20T00:00:00'), '', 'NVPO; Nutrition', 'ancien']);
+    vm.runInContext('veilleRenoterTout()', m.ctx);
+    const l = id => v.lignes.find(x => String(x[0]) === id);
+    V('PELICAN : seulement Hémodynamique (titre) — plus d\'« Arrêt cardiaque » ni de rein venus du résumé', l('1101')[13] === 'Hémodynamique', l('1101')[13]);
+    V('…sa note voit toujours le résumé (multicentrique, n=1128)', /multicentrique/.test(l('1101')[14]) && /n=1128/.test(l('1101')[14]), l('1101')[14]);
+    V('aucun thème au titre : les thèmes du résumé sont gardés (l\'article ne sort d\'aucune rubrique)', /NVPO/.test(l('1102')[13]) && /Nutrition/.test(l('1102')[13]), l('1102')[13]);
   }
 
 console.log(`\n${ok} OK · ${ko} en échec`);

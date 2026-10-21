@@ -57,7 +57,7 @@
 //  instantané unique et partagé : chantier séparé.
 // ══════════════════════════════════════════════════════════════════════
 
-const GAS_VERSION_VEILLE = '2026-10-20.7';
+const GAS_VERSION_VEILLE = '2026-10-21.1';
 
 const VEILLE_CFG_TAB = 'VEILLE_CFG';
 const VEILLE_TAB     = 'VEILLE';
@@ -575,6 +575,15 @@ function _veilleGrandeRevue(nom) {
   return VEILLE_GRANDES_REVUES.some(function (g) { return g.toLowerCase() === n; });
 }
 
+/* (21/10/2026, accord d'Arthur) Les thèmes AFFICHÉS : ceux du TITRE quand il y en a, sinon ceux
+   du titre + résumé. Le résumé cite en passant (PELICAN rangé en « Arrêt cardiaque » parce que
+   son résumé liste les complications ; l'essai isoflurane en « Voies aériennes » à cause de
+   l'intubation). Simulé sur les 949 du 21/10 : 1,7 → 1,3 thème par article ; aucun article ne
+   perd tous ses thèmes. La NOTE, elle, continue de voir les deux. */
+function _veilleThemesAffiches(themes, themesTitre) {
+  return Object.keys(themesTitre || {}).length ? themesTitre : (themes || {});
+}
+
 /* Les mêmes expressions de thèmes, cherchées dans le seul titre. */
 function _veilleThemesEnTitre(themeOr) {
   return String(themeOr || '').replace(/\[tiab\]/gi, '[Title]');
@@ -724,8 +733,8 @@ function _runVeilleCorps_() {
       if (!f) return;
       if (source[pmid] === 'GENERAL' && !f.resume) return;   // (20/10, 21 h) généraliste sans résumé : éditorial, réponse, actualité
       const themes = _veilleThemesLocaux(f, cfg.themes);
-      const note = _veilleNote(f, source[pmid] || 'REVUE', themes, aujourdhui,
-                               _veilleThemesLocaux({ titre: f.titre, resume: '', motscles: [], mesh: [] }, cfg.themes));
+      const themesTitre = _veilleThemesLocaux({ titre: f.titre, resume: '', motscles: [], mesh: [] }, cfg.themes);
+      const note = _veilleNote(f, source[pmid] || 'REVUE', themes, aujourdhui, themesTitre);
       lignes.push([
         pmid,
         f.date,
@@ -739,7 +748,7 @@ function _runVeilleCorps_() {
         'N', 'N',
         aujourdhui,
         _veillePubType(f.pubtypes),
-        _veilleThemes(themes),
+        _veilleThemes(_veilleThemesAffiches(themes, themesTitre)),
         note.motif,                           // MOTIF  (15/09) le pourquoi de la note
       ]);
     });
@@ -1379,10 +1388,10 @@ function veilleRenoterTout() {
     if (!f) { scores.push([l[iScore]]); motifs.push([l[iMotif]]); themesCol.push([l[iThemes]]); return; }
     const arrivee = l[11] instanceof Date ? Utilities.formatDate(l[11], 'Europe/Paris', 'yyyy-MM-dd') : String(l[11] || '').slice(0, 10);
     const th = _veilleThemesLocaux(f, cfg.themes);
-    const nn = _veilleNote(f, _veilleSourceCode(l[6]), th, arrivee || null,
-                           _veilleThemesLocaux({ titre: f.titre, resume: '', motscles: [], mesh: [] }, cfg.themes));
+    const thT = _veilleThemesLocaux({ titre: f.titre, resume: '', motscles: [], mesh: [] }, cfg.themes);
+    const nn = _veilleNote(f, _veilleSourceCode(l[6]), th, arrivee || null, thT);
     if (Number(l[iScore]) < nn.note) montes++;
-    scores.push([nn.note]); motifs.push([nn.motif]); themesCol.push([_veilleThemes(th)]); renotes++;
+    scores.push([nn.note]); motifs.push([nn.motif]); themesCol.push([_veilleThemes(_veilleThemesAffiches(th, thT))]); renotes++;
   });
   v.getRange(2, iScore + 1, n, 1).setValues(scores);
   v.getRange(2, iMotif + 1, n, 1).setValues(motifs);
