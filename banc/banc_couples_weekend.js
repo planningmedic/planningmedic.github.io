@@ -43,7 +43,7 @@ function generer(avecCle, src) {
   const jours = [];
   for (let c = 1; c < rows[0].length; c++) jours.push(new Date(d0.getTime() + (c - 1) * 86400000));
   const de = (id, c) => { const r = rows.find(x => x[0] === id) || []; const v = String(r[c] || ''); return v === 'G' || v === 'G2'; };
-  return { dry, rows, jours, de };
+  return { dry, rows, jours, de, ctx };
 }
 /* Comptage INDÉPENDANT du code testé, sur le planning écrit. */
 function bilan(g) {
@@ -109,7 +109,10 @@ V('jamais la même nuit', b1.nuits === 0, b1.nuits);
       const ds = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
       if ((ABS[id] || {})[ds]) bad.absences.push(id + ' ' + ds);
       if (w === 5 || w === 6 || w === 0) { const lun = new Date(d); lun.setDate(d.getDate() - ((w + 6) % 7)); we.add(Math.round(lun.getTime() / (7 * 86400000))); }
-      if (w === 4 && c + 2 <= n && avec.de(id, c + 2)) bad.jeuSam.push(id + ' ' + ds);
+      /* (21/10/2026) Un jeudi FÉRIÉ est couplé au samedi par règle (même binôme,
+         Ascension, Fête-Dieu) : ce n'est pas un enchaînement interdit. */
+      const _jf = avec.ctx.getJoursFeries(YEAR).has(ds);
+      if (w === 4 && !_jf && c + 2 <= n && avec.de(id, c + 2)) bad.jeuSam.push(id + ' ' + ds);
     }
     [...we].forEach(k => { if (we.has(k + 1)) bad.enchaines.push(id); });
   });

@@ -41,7 +41,7 @@
 // ⚠️ RÈGLE (détecteur de dérive dépôt↔Apps Script) : incrémenter cette version
 // à CHAQUE push de ce fichier. Le diagnostic (admin → Maintenance) compare la
 // version déployée ici avec celle du dépôt et signale toute recopie oubliée.
-const GAS_VERSION_GENERATEUR = '2026-10-20.1';
+const GAS_VERSION_GENERATEUR = '2026-10-21.1';
 
 /* (05/09/2026) INTERRUPTEUR DU NOUVEL ALGORITHME — récit : docs/JOURNAL-Planning-Med.md §101 */
 const NOUVEL_ALGO_GLOBAL = true;
@@ -1520,6 +1520,13 @@ function generateGardes(year, opts){
   // brisés mesurés en 2027 sur la version en production) ; ils passent désormais par
   // le nouveau chemin, qui pose l'unité complète.
   const estJourLibre=date=>{const d=dayByDate[date];return !!d&&d.dow>=1&&d.dow<=3&&!d.isFerie;};
+  /* (21/10/2026) BUDGET DES SOUHAITS DE SEMAINE — ne compter QUE les gardes de
+     lundi-mardi-mercredi déjà posées. Avant, le test portait sur le total des gardes :
+     les jeudis, samedis et week-ends accordés en début d'année vidaient le budget, et
+     les souhaits de semaine suivants étaient refusés sans raison (mesuré sur les vraies
+     demandes 2027 : 102 souhaits accordés sur 144 → 113, équité inchangée). Ces jours
+     rares restent limités par leur propre part (okSouhaitRare), comme le dit le guide. */
+  const cntLibre=m=>{let n=0;for(const d in gardes){const g=gardes[d];if(g&&(g.g===m||g.g2===m)&&estJourLibre(d)&&!dayByDate[d].isVjf)n++;}return n;};
   // Un jour couplé emporte son unité entière (même binôme, mêmes rôles).
   const uniteDeSouhait=date=>{
     const di=dayByDate[date]; if(!di) return null;
@@ -1612,7 +1619,7 @@ function generateGardes(year, opts){
     const dow=new Date(date+'T12:00:00').getDay();
     const vjf=dayByDate[date]?.isVjf;
     let co=(souhParJour[date]||[]).filter(m=>m!==id&&okPaire(id,m,date)&&!blocked(m,date)
-              &&(SOUHAIT_PLAFOND.has(m)||cnt[m].total<freeBudget[m]));
+              &&(SOUHAIT_PLAFOND.has(m)||cntLibre(m)<freeBudget[m]));
     let partner;
     if(co.length){
       co.sort((a,b)=>(souhaitHonored[a]-souhaitHonored[b])
@@ -1657,7 +1664,7 @@ function generateGardes(year, opts){
       return;
     }
     const cands=souhParJour[date].filter(m=>!SOUHAIT_PLAFOND.has(m)&&!blocked(m,date)
-                  &&cnt[m].total<freeBudget[m]);
+                  &&cntLibre(m)<freeBudget[m]);
     if(!cands.length) return; // sera rempli par la passe chronologique
     cands.sort((a,b)=>souhaitHonored[a]-souhaitHonored[b]); // le moins servi mène
     const lead=cands[0];
