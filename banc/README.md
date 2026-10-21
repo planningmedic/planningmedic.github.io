@@ -17,8 +17,26 @@ dans un Google et un Cloudflare simulés. Sert à vérifier une modification
 ## Lancer
 
 ```bash
-cd banc && ./lancer.sh        # tout, d'un coup — 95 vérifications
+cd banc && ./lancer.sh                     # tout le banc — OBLIGATOIRE avant tout push
+cd banc && ./lancer.sh rapide index.html   # seulement les scénarios qui lisent ce fichier
+JOBS=1 ./lancer.sh                         # un scénario à la fois, comme avant
 ```
+
+Les scénarios tournent **en parallèle** (autant que de processeurs) : chaque
+sortie est gardée à part puis affichée dans l'ordre de la liste, tous les
+scénarios vont au bout et les échecs sont récapitulés à la fin. Compter les
+vérifications : `grep -cE "^\s+✓ "` sur la sortie complète.
+
+Le **mode rapide** (`selection.js`) retient les scénarios qui citent le fichier
+modifié, directement ou via un module du banc ; un `.gs` retient en plus tous
+ceux qui chargent le code Google, et les scénarios qui listent un dossier sont
+toujours lancés. Un fichier que personne ne cite, ou un module du banc modifié,
+relance tout. C'est une aide pendant le travail : il ne remplace jamais le banc
+complet avant un push.
+
+Les contre-preuves qui relisent un ancien générateur (`git show <commit>:…`)
+ont besoin de l'historique complet : dans un clone `--depth 1`, elles sont
+sautées.
 
 ou script par script :
 
