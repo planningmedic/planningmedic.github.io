@@ -57,7 +57,7 @@
 //  instantané unique et partagé : chantier séparé.
 // ══════════════════════════════════════════════════════════════════════
 
-const GAS_VERSION_VEILLE = '2026-10-21.1';
+const GAS_VERSION_VEILLE = '2026-10-21.2';
 
 const VEILLE_CFG_TAB = 'VEILLE_CFG';
 const VEILLE_TAB     = 'VEILLE';
@@ -781,6 +781,8 @@ function _runVeilleCorps_() {
   // (20/10/2026) Archivage, en DERNIER : les résumés ci-dessus repèrent leurs lignes par numéro.
   let archives = 0;
   try { archives = veilleArchiver().archives; } catch (e) { Logger.log('archivage : ' + e); }
+  // (21/10/2026) Le mail de la semaine — étape 1 : à l'administrateur seul, une fois par semaine.
+  try { _veilleMailHebdo_(); } catch (e) { Logger.log('mail de la veille : ' + e); try { logAction('veille — mail : ÉCHEC ' + e.message); } catch (e2) {} }
   try { if (typeof _bat_ === 'function') _bat_('runVeille'); } catch (e) {}   // battement = passage RÉUSSI
   try { PropertiesService.getScriptProperties().setProperty('VEILLE_DERNIER_SUCCES', new Date().toISOString()); } catch (e) {}
   try { logAction('veille — ' + trouves + ' nouveaux, ' + lignes.length + ' écrits, ' + resumes + ' résumés, ' + archives + ' archivés, ' + uniques + ' uniques sur ' + jours + ' j, ' + sec + ' s'); } catch (e) {}
@@ -1250,6 +1252,173 @@ function chercherVeilleArchive(q) {
   }
   trouves.sort(function (x, y) { return x.date < y.date ? 1 : (x.date > y.date ? -1 : 0); });
   return { success: true, total: trouves.length, items: trouves.slice(0, VEILLE_ARCHIVE_MAX) };
+}
+
+// ══════════════════════════════════════════════════════════════════════
+//  MAIL DE LA SEMAINE (21/10/2026 — maquette validée par Arthur)
+//  10 articles arrivés depuis 7 jours, 5 réa / 5 anesthésie, chacun avec son
+//  titre cliquable (PubMed) et son résumé en français.
+//  ÉTAPE 1 (ce code) : envoyé à l'administrateur SEUL (CONFIG → DIAG_EMAIL),
+//  après la collecte du lundi, une fois par semaine. L'abonnement des MARs
+//  (interrupteur dans le portail) est l'étape 2, pas encore écrite.
+//  Règles (décidées le 21/10) :
+//   · note minimale 75, abaissée par paliers 70 → 65 → 60 tant qu'il manque
+//     des articles ; jamais sous 60 (le mail en compte alors moins de 10) ;
+//   · au plus 2 articles par thème (thèmes du titre) ;
+//   · réa / anesthésie lus d'abord sur le TITRE (patient critique, choc
+//     septique… / chirurgie, anesthésie, analgésie…), puis sur les thèmes ;
+//     si un côté manque d'articles, l'autre complète.
+// ══════════════════════════════════════════════════════════════════════
+
+const VEILLE_MAIL_N = 10;
+const VEILLE_MAIL_PALIERS = [75, 70, 65, 60];
+const VEILLE_THEMES_REA = ['Ventilation et SDRA', 'Sepsis et infection', 'Arrêt cardiaque', 'Insuffisance rénale', 'Nutrition'];
+const VEILLE_THEMES_ANESTH = ['Voies aériennes', 'Anesthésie locorégionale', 'Douleur périopératoire', 'Agents et pharmacologie',
+                              'Obstétrique', 'Pédiatrie', 'NVPO', 'Ambulatoire', 'Médecine périopératoire'];
+
+/* 'rea' | 'anesth' | 'mixte' — le titre d'abord, les thèmes ensuite. */
+function _veilleCote(titre, themes) {
+  const t = String(titre || '');
+  const rea = /critically ill|intensive care|\bICUs?\b|septic shock|sepsis|mechanically ventilated|respiratory failure|cardiac arrest|resuscitation|ARDS|acute kidney injury/i.test(t);
+  const op = /postoperative|intraoperative|perioperative|surgery|surgical|an(a)?esthe|block|analges/i.test(t);
+  if (rea && !op) return 'rea';
+  if (op) return 'anesth';
+  if (themes.some(function (x) { return VEILLE_THEMES_ANESTH.indexOf(x) !== -1; })) return 'anesth';
+  if (themes.some(function (x) { return VEILLE_THEMES_REA.indexOf(x) !== -1; })) return 'rea';
+  return 'mixte';
+}
+
+/* La sélection. `items` : { pmid, titre, revue, score, resume, themes[], ajoute (AAAA-MM-JJ), motif }.
+   Renvoie { rea: [...], anesth: [...], seuil }. */
+function _veilleSelectionMail_(items, depuis) {
+  const cands = items.filter(function (it) { return it.ajoute >= depuis && Number(it.score) >= VEILLE_MAIL_PALIERS[VEILLE_MAIL_PALIERS.length - 1]; })
+    .map(function (it) { return Object.assign({}, it, { cote: _veilleCote(it.titre, it.themes) }); })
+    .sort(function (a, b) { return Number(b.score) - Number(a.score) || String(a.pmid).localeCompare(String(b.pmid)); });
+  const pris = [], parTheme = {}, nb = { rea: 0, anesth: 0 };
+  const moitie = VEILLE_MAIL_N / 2;
+  let seuil = VEILLE_MAIL_PALIERS[0];
+  function essayer(limiteCote) {
+    cands.forEach(function (c) {
+      if (pris.length >= VEILLE_MAIL_N || Number(c.score) < seuil || pris.indexOf(c) !== -1) return;
+      if (c.themes.some(function (x) { return (parTheme[x] || 0) >= 2; })) return;
+      let cote = c.cote;
+      if (cote === 'mixte') cote = nb.rea <= nb.anesth ? 'rea' : 'anesth';
+      if (limiteCote && nb[cote] >= moitie) {
+        const autre = cote === 'rea' ? 'anesth' : 'rea';
+        if (c.cote !== 'mixte' || nb[autre] >= moitie) return;
+        cote = autre;
+      }
+      c.coteRetenu = cote; nb[cote]++; pris.push(c);
+      c.themes.forEach(function (x) { parTheme[x] = (parTheme[x] || 0) + 1; });
+    });
+  }
+  for (let i = 0; i < VEILLE_MAIL_PALIERS.length && pris.length < VEILLE_MAIL_N; i++) {
+    seuil = VEILLE_MAIL_PALIERS[i];
+    essayer(true);
+  }
+  if (pris.length < VEILLE_MAIL_N) essayer(false);   // un côté manque : l'autre complète (toujours ≥ 60)
+  const tri = function (a, b) { return Number(b.score) - Number(a.score); };
+  return {
+    rea: pris.filter(function (c) { return c.coteRetenu === 'rea'; }).sort(tri),
+    anesth: pris.filter(function (c) { return c.coteRetenu === 'anesth'; }).sort(tri),
+    seuil: seuil,
+  };
+}
+
+function _veilleEsc(t) {
+  return String(t == null ? '' : t).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
+}
+const _VEILLE_MAIL_TYPES = {
+  'ECR': ['Essai randomisé', '#0F7B5F', '#E3F5EE'], 'méta-analyse': ['Méta-analyse', '#5B3FB8', '#EEEAFB'],
+  'revue systématique': ['Revue systématique', '#1D6FB8', '#E8F4FD'], 'recommandation': ['Recommandation', '#B45309', '#FEF3C7'],
+};
+function _veilleCarteMail_(it) {
+  const k = String(it.motif || '').split(' · ')[0];
+  const ty = _VEILLE_MAIL_TYPES[k] || ['Article', '#475569', '#EEF1F5'];
+  const url = 'https://pubmed.ncbi.nlm.nih.gov/' + encodeURIComponent(it.pmid) + '/';
+  return '<tr><td style="padding:0 0 14px 0;"><table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="border:1px solid #E2E8F0;border-radius:12px;background:#FFFFFF;">'
+    + '<tr><td style="padding:14px 16px 4px 16px;font:600 11px Arial,sans-serif;">'
+    + '<span style="display:inline-block;background:' + ty[2] + ';color:' + ty[1] + ';padding:3px 8px;border-radius:6px;letter-spacing:.3px;text-transform:uppercase;">' + ty[0] + '</span>'
+    + '<span style="color:#64748B;font-weight:600;margin-left:6px;">' + _veilleEsc(it.revue) + '</span>'
+    + '<span style="float:right;color:#1D6FB8;font:700 13px Arial,sans-serif;">' + Math.round(Number(it.score)) + '<span style="color:#94A3B8;font-weight:400;font-size:11px;">/100</span></span></td></tr>'
+    + '<tr><td style="padding:4px 16px 0 16px;"><a href="' + url + '" style="font:700 16px/1.35 Arial,sans-serif;color:#0F172A;text-decoration:none;">' + _veilleEsc(String(it.titre).replace(/\.$/, '')) + '</a></td></tr>'
+    + '<tr><td style="padding:8px 16px 14px 16px;font:400 14px/1.5 Arial,sans-serif;color:#334155;">' + _veilleEsc(it.resume)
+    + '<div style="margin-top:8px;"><a href="' + url + '" style="font:600 13px Arial,sans-serif;color:#1D6FB8;text-decoration:none;">Lire sur PubMed →</a></div></td></tr>'
+    + '</table></td></tr>';
+}
+function _veilleSectionMail_(titre, liste, couleur) {
+  if (!liste.length) return '';
+  return '<tr><td style="padding:18px 0 10px 0;font:700 13px Arial,sans-serif;color:' + couleur + ';letter-spacing:.6px;text-transform:uppercase;border-bottom:2px solid ' + couleur + ';">' + titre + ' · ' + liste.length + '</td></tr>'
+    + '<tr><td style="height:12px;"></td></tr>' + liste.map(_veilleCarteMail_).join('');
+}
+function _veilleHtmlMail_(sel) {
+  const n = sel.rea.length + sel.anesth.length;
+  return '<!doctype html><html lang="fr"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width"></head><body style="margin:0;padding:0;background:#F1F5F9;">'
+    + '<table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background:#F1F5F9;"><tr><td align="center" style="padding:20px 12px;">'
+    + '<table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="max-width:640px;">'
+    + '<tr><td style="padding:0 0 6px 0;font:700 22px Arial,sans-serif;color:#0F172A;">Veille biblio</td></tr>'
+    + '<tr><td style="padding:0 0 4px 0;font:400 14px/1.5 Arial,sans-serif;color:#475569;">Les ' + n + ' articles les mieux notés arrivés cette semaine'
+    + (sel.rea.length && sel.anesth.length ? ', ' + sel.rea.length + ' en réanimation et ' + sel.anesth.length + ' en anesthésie' : '')
+    + ', chacun résumé en deux lignes. Touchez un titre pour ouvrir l\'article.</td></tr>'
+    + _veilleSectionMail_('Réanimation', sel.rea, '#B91C1C') + _veilleSectionMail_('Anesthésie', sel.anesth, '#1D6FB8')
+    + '<tr><td align="center" style="padding:10px 0 6px 0;"><a href="https://planningmedic.github.io/#veille" style="display:inline-block;background:#1D6FB8;color:#FFFFFF;font:700 14px Arial,sans-serif;padding:12px 22px;border-radius:10px;text-decoration:none;">Voir toute la veille dans le portail</a></td></tr>'
+    + '<tr><td style="padding:14px 0 0 0;font:400 12px/1.5 Arial,sans-serif;color:#94A3B8;text-align:center;">Résumés écrits automatiquement à partir du résumé PubMed : une porte d\'entrée, pas une lecture de l\'article.</td></tr>'
+    + '</table></td></tr></table></body></html>';
+}
+function _veilleTexteMail_(sel) {   // version texte, pour les messageries qui n'affichent pas le HTML
+  const bloc = function (t, l) { return l.length ? t.toUpperCase() + '\n\n' + l.map(function (it) { return '• ' + it.titre + ' (' + it.revue + ', ' + Math.round(Number(it.score)) + '/100)\n  ' + it.resume + '\n  https://pubmed.ncbi.nlm.nih.gov/' + it.pmid + '/'; }).join('\n\n') + '\n\n' : ''; };
+  return 'Veille biblio — les articles de la semaine\n\n' + bloc('Réanimation', sel.rea) + bloc('Anesthésie', sel.anesth) + 'Toute la veille : https://planningmedic.github.io/#veille';
+}
+
+function _veilleDestAdmin_() {   // lecture DIRECTE de CONFIG (même raison que diagHebdo : pas de cache)
+  const sh = SpreadsheetApp.getActiveSpreadsheet().getSheetByName('CONFIG');
+  const data = sh ? sh.getDataRange().getValues() : [];
+  for (let r = 1; r < data.length; r++) if (String(data[r][0]).trim() === 'DIAG_EMAIL') return String(data[r][1]).trim();
+  return '';
+}
+
+/* Construit et envoie. `force` : ignore la règle « une fois par semaine » (envoi de test). */
+function _veilleEnvoyerMail_(force) {
+  const props = PropertiesService.getScriptProperties();
+  const dernier = props.getProperty('VEILLE_MAIL_DERNIER');
+  if (!force && dernier && (Date.now() - new Date(dernier).getTime()) < 6 * 86400000) {
+    return { envoye: false, raison: 'déjà envoyé le ' + dernier.slice(0, 10) };
+  }
+  const dest = _veilleDestAdmin_();
+  if (!dest) return { envoye: false, raison: 'DIAG_EMAIL absent de CONFIG' };
+  const g = getVeille();
+  const depuis = Utilities.formatDate(new Date(Date.now() - 7 * 86400000), 'Europe/Paris', 'yyyy-MM-dd');
+  /* La limite « 2 par thème » se compte sur les thèmes du TITRE, recalculés ici : un essai qui
+     évoque 4 thèmes dans son résumé bloquait sinon les grands essais suivants (constaté le 21/10
+     sur les données réelles : VASSPR et ICRAKI écartés au profit d'une étude sur la rougeole). */
+  const cfgT = _readVeilleCfg().themes;
+  const items = (g.items || []).map(function (it) {
+    const tt = Object.keys(_veilleThemesLocaux({ titre: it.titre, resume: '', motscles: [], mesh: [] }, cfgT));
+    return Object.assign({}, it, { themes: tt.length ? tt : (it.themes || []) });
+  });
+  const sel = _veilleSelectionMail_(items, depuis);
+  const n = sel.rea.length + sel.anesth.length;
+  if (!n) return { envoye: false, raison: 'aucun article à 60 ou plus depuis le ' + depuis };
+  if (MailApp.getRemainingDailyQuota() < 1) return { envoye: false, raison: 'quota de mails épuisé' };
+  const jour = Utilities.formatDate(new Date(), 'Europe/Paris', 'd MMM');
+  MailApp.sendEmail({
+    to: dest, name: 'Veille biblio — Planning-Med',
+    subject: 'Veille biblio — les ' + n + ' articles de la semaine (' + jour + ')',
+    htmlBody: _veilleHtmlMail_(sel), body: _veilleTexteMail_(sel),
+  });
+  if (!force) props.setProperty('VEILLE_MAIL_DERNIER', new Date().toISOString());
+  return { envoye: true, n: n, rea: sel.rea.length, anesth: sel.anesth.length, seuil: sel.seuil };
+}
+function _veilleMailHebdo_() {
+  const r = _veilleEnvoyerMail_(false);
+  try { logAction('veille — mail : ' + (r.envoye ? r.n + ' articles (' + r.rea + ' réa, ' + r.anesth + ' anesthésie, seuil ' + r.seuil + ')' : 'non envoyé — ' + r.raison)); } catch (e) {}
+  return r;
+}
+/* À lancer à la main : le mail de la semaine, TOUT DE SUITE, à l'administrateur. */
+function veilleEnvoyerMailTest() {
+  const r = _veilleEnvoyerMail_(true);
+  Logger.log('Mail de la veille : ' + (r.envoye ? 'envoyé — ' + r.n + ' articles (' + r.rea + ' réa, ' + r.anesth + ' anesthésie), seuil final ' + r.seuil : 'NON envoyé — ' + r.raison));
+  return r;
 }
 
 // ══════════════════════════════════════════════════════════════════════

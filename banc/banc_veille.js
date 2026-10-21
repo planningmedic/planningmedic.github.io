@@ -1012,6 +1012,65 @@ function monde(plan) {
     V('aucun thème au titre : les thèmes du résumé sont gardés (l\'article ne sort d\'aucune rubrique)', /NVPO/.test(l('1102')[13]) && /Nutrition/.test(l('1102')[13]), l('1102')[13]);
   }
 
+  console.log('\n═══ Mail de la semaine, étape 1 (21/10/2026) : 10 articles, 5 réa / 5 anesthésie, à l\'administrateur seul ═══');
+  {
+    const m = monde(() => ({}));
+    vm.runInContext('getOrCreateVeilleTabs()', m.ctx);
+    const envois = [];
+    let quota = 100;
+    m.ctx.MailApp = { getRemainingDailyQuota: () => quota, sendEmail: o => envois.push(o) };
+    m.ctx._isoDate = v => v instanceof Date ? v.getFullYear() + '-' + String(v.getMonth() + 1).padStart(2, '0') + '-' + String(v.getDate()).padStart(2, '0') : String(v || '').slice(0, 10);
+    m.ctx.Utilities.formatDate = (d, tz, f) => f === 'yyyy-MM-dd' ? m.ctx._isoDate(d) : 'd MMM';
+    const cfg = m.cl.insertSheet('CONFIG'); cfg.lignes.push(['CLE', 'VALEUR'], ['DIAG_EMAIL', 'admin@exemple.mc']);
+    const v = m.cl.getSheetByName('VEILLE');
+    v.lignes[0] = ['PMID', 'DATE_PUB', 'TITRE', 'AUTEURS', 'REVUE', 'DOI', 'SOURCE', 'SCORE', 'RESUME', 'LU', 'STAR', 'AJOUTE_LE', 'PUBTYPE', 'THEMES', 'MOTIF'];
+    const auj = new Date(); const il = n => new Date(auj.getTime() - n * 86400000);
+    const A = (id, titre, revue, score, themes, ajoute) => v.lignes.push([id, il(10), titre, 'X', revue, '', 'REVUE', score, 'Résumé de ' + id + '.', 'N', 'N', ajoute || il(2), '', themes, 'ECR · revue spécialisée']);
+    // Réa (titre « patient critique »)
+    A('r1', 'Isoflurane Sedation in Mechanically Ventilated Adults', 'JAMA', 100, 'Ventilation et SDRA; Agents et pharmacologie');
+    A('r2', 'Vasopressin Threshold in Septic Shock', 'JAMA', 96, 'Sepsis et infection');
+    A('r3', 'Renal-Replacement Therapy in Acute Kidney Injury', 'N Engl J Med', 96, 'Insuffisance rénale');
+    A('r4', 'High-Flow Nasal Cannula Weaning in Critically Ill Adults', 'Crit Care Med', 84, 'Ventilation et SDRA');
+    A('r5', 'Bag-valve ventilation during cardiopulmonary resuscitation in cardiac arrest', 'Resuscitation', 80, 'Arrêt cardiaque');
+    A('r6', 'Another trial in critically ill adults with sepsis', 'Crit Care', 79, 'Sepsis et infection');   // 6e réa : côté plein
+    // Anesthésie (titre « opératoire »)
+    A('a1', 'Intraoperative Dobutamine to Prevent Postoperative Acute Kidney Injury in Septic Shock', 'JAMA', 100, 'Hémodynamique; Sepsis et infection; Insuffisance rénale');
+    A('a2', 'Cardiac Index-Guided Hemodynamic Therapy in Major Abdominal Surgery', 'JAMA', 100, 'Hémodynamique');
+    A('a3', 'Ketamine and Postoperative Delirium after General Anesthesia', 'Anesth Analg', 94, 'Douleur périopératoire; Neurologie et délire');
+    A('a4', 'Intercostal plane block after liver surgery', 'J Clin Anesth', 84, 'Anesthésie locorégionale');
+    A('a5', 'Fibrinogen concentrate and blood products in surgery', 'Br J Anaesth', 66, 'Hémorragie et transfusion');   // ne passe qu'en abaissant le seuil
+    A('vieux', 'Old surgical trial', 'Anesth Analg', 99, 'Médecine périopératoire', il(12));   // hors des 7 jours
+    A('bas', 'Low-scored surgical study', 'Anesth Analg', 55, 'Médecine périopératoire');      // sous le plancher de 60
+    const r = vm.runInContext('veilleEnvoyerMailTest()', m.ctx);
+    const e = envois[0] || {};
+    V('un seul mail, à l\'adresse DIAG_EMAIL de CONFIG', envois.length === 1 && e.to === 'admin@exemple.mc', envois.map(x => x.to));
+    V('10 articles : 5 réa, 5 anesthésie', r.envoye && r.n === 10 && r.rea === 5 && r.anesth === 5, r);
+    V('le seuil descend à 65 pour remplir (fibrinogène noté 66 retenu)', r.seuil === 65 && /a5\//.test(e.htmlBody), r.seuil);
+    V('un 6e article de réa ne prend pas la place d\'un article d\'anesthésie', !/pubmed\.ncbi\.nlm\.nih\.gov\/r6\//.test(e.htmlBody));
+    V('hors des 7 derniers jours, ou sous 60 : jamais dans le mail', !/\/vieux\//.test(e.htmlBody) && !/\/bas\//.test(e.htmlBody));
+    V('chaque titre est un lien vers PubMed, chaque résumé est présent', (e.htmlBody.match(/href="https:\/\/pubmed\.ncbi\.nlm\.nih\.gov\/[a-z0-9]+\/" style="font:700 16px/g) || []).length === 10 && /Résumé de r1\./.test(e.htmlBody));
+    V('rubriques Réanimation puis Anesthésie, bouton vers la veille du portail', e.htmlBody.indexOf('Réanimation · 5') < e.htmlBody.indexOf('Anesthésie · 5') && /planningmedic\.github\.io\/#veille/.test(e.htmlBody));
+    V('objet clair, version texte jointe', /^Veille biblio — les 10 articles de la semaine/.test(e.subject) && /RÉANIMATION/.test(e.body) && /https:\/\/pubmed/.test(e.body));
+    // L'envoi du lundi : une fois par semaine
+    const h1 = vm.runInContext('_veilleMailHebdo_()', m.ctx);
+    const h2 = vm.runInContext('_veilleMailHebdo_()', m.ctx);
+    V('lundi : envoyé une fois ; relancé dans la semaine, il ne repart pas', h1.envoye === true && h2.envoye === false && /déjà envoyé/.test(h2.raison) && envois.length === 2, [h1.envoye, h2.raison]);
+    V('…l\'envoi de test, lui, repart toujours', vm.runInContext('veilleEnvoyerMailTest()', m.ctx).envoye === true && envois.length === 3);
+    cfg.lignes = [['CLE', 'VALEUR']];
+    const sans = vm.runInContext('veilleEnvoyerMailTest()', m.ctx);
+    V('sans DIAG_EMAIL : rien n\'est envoyé, la raison est dite', !sans.envoye && /DIAG_EMAIL/.test(sans.raison) && envois.length === 3);
+    cfg.lignes.push(['DIAG_EMAIL', 'admin@exemple.mc']); quota = 0;
+    V('quota épuisé : rien n\'est envoyé, la raison est dite', /quota/.test(vm.runInContext('veilleEnvoyerMailTest()', m.ctx).raison) && envois.length === 3);
+    // Le mail ne fait jamais échouer la collecte
+    quota = 100; m.ctx.MailApp.sendEmail = () => { throw new Error('serveur de mail indisponible'); };
+    m.ctx.__props.VEILLE_MAIL_DERNIER = '';
+    delete m.ctx.__props.VEILLE_MAIL_DERNIER;
+    const rv = vm.runInContext('runVeille()', m.ctx);
+    V('mail en panne : la collecte réussit quand même, l\'échec est noté dans LOGS', rv.success === true && m.logs.some(l => /mail : ÉCHEC/.test(l)), m.logs.slice(-2));
+    // seule adresse du fichier : le contact technique du projet déclaré à PubMed (EUTILS_EMAIL), qui n'est pas celle d'une personne
+    V('le code n\'écrit l\'adresse de personne : elle vient du classeur', (fs.readFileSync('../gas/veille.gs', 'utf8').match(/[\w.+-]+@[\w-]+\.[\w.]+/g) || []).every(a => a === 'planningmedic@gmail.com'));
+  }
+
 console.log(`\n${ok} OK · ${ko} en échec`);
   process.exit(ko ? 1 : 0);
 })();  console.log('\n═══ Passe 4 : le résumé en deux lignes (15/09/2026) ═══');
