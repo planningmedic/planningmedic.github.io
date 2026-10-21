@@ -57,7 +57,7 @@
 //  instantané unique et partagé : chantier séparé.
 // ══════════════════════════════════════════════════════════════════════
 
-const GAS_VERSION_VEILLE = '2026-10-20.6';
+const GAS_VERSION_VEILLE = '2026-10-20.7';
 
 const VEILLE_CFG_TAB = 'VEILLE_CFG';
 const VEILLE_TAB     = 'VEILLE';
@@ -135,11 +135,11 @@ const VEILLE_DEFAULT_CFG = [
   ['THEME', 'Hémodynamique',
     '"hemodynamic"[tiab] OR "haemodynamic"[tiab] OR "vasopressor"[tiab] OR "vasopressors"[tiab] OR "norepinephrine"[tiab] OR "noradrenaline"[tiab] OR "fluid responsiveness"[tiab] OR "fluid therapy"[tiab] OR "cardiac output"[tiab] OR "intraoperative hypotension"[tiab] OR "circulatory shock"[tiab] OR "microcirculation"[tiab] OR "capillary refill"[tiab] OR "lactate clearance"[tiab] OR "goal directed"[tiab]', 'O'],
   ['THEME', 'Ventilation et SDRA',
-    '"mechanical ventilation"[tiab] OR "ARDS"[tiab] OR "acute respiratory distress syndrome"[tiab] OR "prone position"[tiab] OR "prone positioning"[tiab] OR "PEEP"[tiab] OR "positive end expiratory pressure"[tiab] OR "tidal volume"[tiab] OR "weaning"[tiab] OR "extubation failure"[tiab] OR "one lung ventilation"[tiab] OR "high flow nasal"[tiab] OR "noninvasive ventilation"[tiab] OR "ECMO"[tiab] OR "apnoeic oxygenation"[tiab]', 'O'],
+    '"mechanical ventilation"[tiab] OR "ARDS"[tiab] OR "acute respiratory distress syndrome"[tiab] OR "prone position"[tiab] OR "prone positioning"[tiab] OR "PEEP"[tiab] OR "positive end expiratory pressure"[tiab] OR "tidal volume"[tiab] OR "weaning"[tiab] OR "extubation failure"[tiab] OR "one lung ventilation"[tiab] OR "high flow nasal"[tiab] OR "noninvasive ventilation"[tiab] OR "ECMO"[tiab] OR "apnoeic oxygenation"[tiab] OR "mechanically ventilated"[tiab] OR "acute respiratory failure"[tiab] OR "hypoxemic respiratory failure"[tiab] OR "hypoxaemic respiratory failure"[tiab]', 'O'],
   ['THEME', 'Sepsis et infection',
     '"sepsis"[tiab] OR "septic shock"[tiab] OR "bacteremia"[tiab] OR "bacteraemia"[tiab] OR "antibiotic"[tiab] OR "antibiotics"[tiab] OR "antimicrobial"[tiab] OR "pneumonia"[tiab] OR "nosocomial"[tiab] OR "surgical site infection"[tiab]', 'O'],
   ['THEME', 'Arrêt cardiaque',
-    '"cardiac arrest"[tiab] OR "cardiopulmonary resuscitation"[tiab] OR "resuscitation"[tiab] OR "defibrillation"[tiab] OR "ROSC"[tiab] OR "post cardiac arrest"[tiab] OR "targeted temperature management"[tiab]', 'O'],
+    '"cardiac arrest"[tiab] OR "cardiopulmonary resuscitation"[tiab] OR "defibrillation"[tiab] OR "ROSC"[tiab] OR "post cardiac arrest"[tiab] OR "targeted temperature management"[tiab] OR "chest compression"[tiab]', 'O'],
   ['THEME', 'Hémorragie et transfusion',
     '"hemorrhage"[tiab] OR "haemorrhage"[tiab] OR "bleeding"[tiab] OR "transfusion"[tiab] OR "tranexamic acid"[tiab] OR "coagulopathy"[tiab] OR "fibrinogen"[tiab] OR "massive transfusion"[tiab] OR "patient blood management"[tiab] OR "anemia"[tiab] OR "anaemia"[tiab] OR "viscoelastic"[tiab]', 'O'],
   ['THEME', 'Neurologie et délire',
@@ -147,7 +147,7 @@ const VEILLE_DEFAULT_CFG = [
   ['THEME', 'Médecine périopératoire',
     '"postoperative complications"[tiab] OR "prehabilitation"[tiab] OR "enhanced recovery"[tiab] OR "ERAS"[tiab] OR "frailty"[tiab] OR "preoperative assessment"[tiab] OR "preoperative optimization"[tiab] OR "postoperative outcome"[tiab] OR "postoperative outcomes"[tiab] OR "postoperative mortality"[tiab] OR "myocardial injury"[tiab] OR "perioperative medicine"[tiab]', 'O'],
   ['THEME', 'Agents et pharmacologie',
-    '"propofol"[tiab] OR "sevoflurane"[tiab] OR "desflurane"[tiab] OR "remimazolam"[tiab] OR "dexmedetomidine"[tiab] OR "remifentanil"[tiab] OR "sufentanil"[tiab] OR "neuromuscular block"[tiab] OR "neuromuscular blockade"[tiab] OR "rocuronium"[tiab] OR "sugammadex"[tiab] OR "total intravenous"[tiab] OR "target controlled infusion"[tiab]', 'O'],
+    '"propofol"[tiab] OR "sevoflurane"[tiab] OR "desflurane"[tiab] OR "remimazolam"[tiab] OR "dexmedetomidine"[tiab] OR "remifentanil"[tiab] OR "sufentanil"[tiab] OR "neuromuscular block"[tiab] OR "neuromuscular blockade"[tiab] OR "rocuronium"[tiab] OR "sugammadex"[tiab] OR "total intravenous"[tiab] OR "target controlled infusion"[tiab] OR "isoflurane"[tiab] OR "inhaled sedation"[tiab] OR "esketamine"[tiab]', 'O'],
   ['THEME', 'Obstétrique',
     '"obstetric"[tiab] OR "obstetrical"[tiab] OR "cesarean"[tiab] OR "caesarean"[tiab] OR "labor analgesia"[tiab] OR "labour analgesia"[tiab] OR "preeclampsia"[tiab] OR "postpartum hemorrhage"[tiab] OR "postpartum haemorrhage"[tiab] OR "parturient"[tiab]', 'O'],
   ['THEME', 'Pédiatrie',
@@ -468,31 +468,60 @@ function _veilleTypeResume(titre, resume) {
   if (/secondary|post[- ]?hoc|ancillary|protocol|sub-?study|exploratory analysis|meta-?analys|systematic review/i.test(String(titre || ''))) return '';
   return 'ECR';
 }
-function _veilleNote(fiche, source, themes, aujourdhui) {
-  let n = 40; const motifs = [];
+/* (20/10/2026, 23 h — barème « plus fin », accord d'Arthur) L'ancien barème cumulait trop :
+   140 articles sur 949 à 100, dont des essais du JAMA sur l'obésité (un mot de thème dans le
+   RÉSUMÉ suffisait) et des analyses secondaires étiquetées « essai » par PubMed. Désormais :
+     base 20 · type : ECR 30, méta-analyse 26, recommandation 24, revue systématique 20,
+       étude 8, mise au point 8, ANALYSE SECONDAIRE d'un essai 10, autre article d'une GRANDE revue 18
+     revue : grande (les 8) +20, spécialisée +8, autre généraliste 0
+     thèmes : dans le TITRE 12 pour le 1er, +6 pour le 2e et le 3e ; dans le résumé seul +2 (max 6)
+     multicentrique +4 · effectif lu dans le résumé : ≥100 +2, ≥300 +4, ≥1 000 +6
+     résumé +3 (absent −10) · récent +3 · lettre/éditorial −30 · protocole/erratum −25
+     AUCUN thème dans le titre : note × 0,75.
+   Simulé sur les 949 du 20/10 : 1 seul à 100 (au lieu de 140), 43 à 80 et plus. */
+function _veilleEffectif(resume) {
+  let max = 0; const re = /(\d{1,3}(?:[ ,]\d{3})+|\d+)\s+(?:critically ill\s+)?(?:patients|participants|adults|children|infants|neonates|women|men|subjects|parturients|individuals)/gi; let m;
+  while ((m = re.exec(String(resume || '')))) { const n = parseInt(m[1].replace(/[ ,]/g, ''), 10); if (n > max && n < 10000000) max = n; }
+  return max;
+}
+function _veilleNote(fiche, source, themes, aujourdhui, themesTitre) {
+  let n = 20; const motifs = [];
   const pt = (fiche.pubtypes || []).join(' | ');
-  const tt = _veilleTypeTitre(fiche.titre) || _veilleTypeResume(fiche.titre, fiche.resume);
-  if (/Randomized Controlled Trial/.test(pt) || (tt === 'ECR' && !/Meta-Analysis/.test(pt))) { n += 35; motifs.push('ECR'); }
-  else if (/Meta-Analysis/.test(pt) || tt === 'META') { n += 30; motifs.push('méta-analyse'); }
-  else if (/Practice Guideline|Guideline/.test(pt)) { n += 30; motifs.push('recommandation'); }
-  else if (/Systematic Review/.test(pt) || tt === 'RS') { n += 25; motifs.push('revue systématique'); }
+  const titre = String(fiche.titre || '');
+  const tt = _veilleTypeTitre(titre) || _veilleTypeResume(titre, fiche.resume);
+  const secondaire = /secondary|post[- ]?hoc|ancillary|sub-?study|exploratory analysis/i.test(titre);
+  if ((/Randomized Controlled Trial/.test(pt) || tt === 'ECR') && !/Meta-Analysis/.test(pt) && tt !== 'META') {
+    if (secondaire) { n += 10; motifs.push('analyse secondaire'); } else { n += 30; motifs.push('ECR'); }
+  }
+  else if (/Meta-Analysis/.test(pt) || tt === 'META') { n += 26; motifs.push('méta-analyse'); }
+  else if (/Practice Guideline|Guideline/.test(pt)) { n += 24; motifs.push('recommandation'); }
+  else if (/Systematic Review/.test(pt) || tt === 'RS') { n += 20; motifs.push('revue systématique'); }
+  /* Règle d'Arthur : une synthèse ou un article original d'une GRANDE revue doit rester bien noté
+     (« Fluid Therapy in Mechanically Ventilated Critically Ill Adult Patients », JAMA) : +18. */
+  else if (source === 'GENERAL' && _veilleGrandeRevue(fiche.revue) && !/Letter|Editorial|Comment|News/.test(pt)) { n += 18; motifs.push(/\bReview\b/.test(pt) ? 'revue' : 'article'); }
   else if (/Multicenter Study|Observational Study|Cohort/.test(pt)) { n += 8; motifs.push('étude'); }
-  else if (/\bReview\b/.test(pt)) { n += 10; motifs.push('revue'); }
+  else if (/\bReview\b/.test(pt)) { n += 8; motifs.push('revue'); }
   if (/Letter|Editorial|Comment|Case Reports|News|Published Erratum|Retraction/.test(pt)) { n -= 30; motifs.push('lettre/éditorial'); }
-  if (/protocol for|study protocol|\berratum\b|corrigendum|\bcorrection\b/i.test(fiche.titre || '')) { n -= 25; motifs.push('protocole/erratum'); }
-  if (source === 'REVUE') { n += 10; motifs.push('revue spécialisée'); }
-  /* (20/10/2026, soir — règle d'Arthur) Un article d'une grande revue généraliste (NEJM, JAMA,
-     Lancet…) doit être très bien noté, synthèse comprise. Avant : 0 point de revue, et une
-     synthèse du NEJM pas encore étiquetée « Review » par PubMed plafonnait vers 56. +25 :
-     elle passe à ~81 ; un essai du NEJM atteint 100. */
-  if (source === 'GENERAL' && _veilleGrandeRevue(fiche.revue)) { n += 25; motifs.push('grande revue'); }   // (20/10, 21 h) les 8 seulement
-  const nbTh = Object.keys(themes || {}).length;
-  if (nbTh) { n += Math.min(18, 6 * nbTh); motifs.push(nbTh + (nbTh > 1 ? ' thèmes' : ' thème')); }
-  if (!fiche.resume) { n -= 10; motifs.push('sans résumé'); } else { n += 5; }
+  if (/protocol for|study protocol|\berratum\b|corrigendum|\bcorrection\b/i.test(titre)) { n -= 25; motifs.push('protocole/erratum'); }
+  if (source === 'GENERAL' && _veilleGrandeRevue(fiche.revue)) { n += 20; motifs.push('grande revue'); }
+  else if (source === 'REVUE') { n += 8; motifs.push('revue spécialisée'); }
+  if (!themesTitre) {
+    let cfgT = []; try { cfgT = _readVeilleCfg().themes; } catch (e) {}
+    themesTitre = _veilleThemesLocaux({ titre: titre, resume: '', motscles: [], mesh: [] }, cfgT);
+  }
+  const nT = Object.keys(themesTitre).length;
+  const nR = Object.keys(themes || {}).filter(function (k) { return !themesTitre[k]; }).length;
+  if (nT) { n += 12 + 6 * (Math.min(nT, 3) - 1); motifs.push(nT + (nT > 1 ? ' thèmes' : ' thème') + ' au titre'); }
+  if (nR) { n += 2 * Math.min(nR, 3); if (!nT) motifs.push('thème au résumé seul'); }
+  if (/multi-?cent(?:er|re)/i.test(titre + ' ' + (fiche.resume || '')) || /Multicenter Study/.test(pt)) { n += 4; motifs.push('multicentrique'); }
+  const eff = _veilleEffectif(fiche.resume);
+  if (eff >= 100) { n += eff >= 1000 ? 6 : (eff >= 300 ? 4 : 2); motifs.push('n=' + eff); }
+  if (!fiche.resume) { n -= 10; motifs.push('sans résumé'); } else { n += 3; }
   if (fiche.date && aujourdhui) {
     const age = (new Date(aujourdhui) - new Date(fiche.date)) / 86400000;
-    if (age >= 0 && age <= 30) { n += 5; motifs.push('récent'); }
+    if (age >= 0 && age <= 30) { n += 3; motifs.push('récent'); }
   }
+  if (!nT) n = n * 0.75;
   n = Math.max(0, Math.min(100, Math.round(n)));
   return { note: n, motif: motifs.join(' · ') };
 }
@@ -695,7 +724,8 @@ function _runVeilleCorps_() {
       if (!f) return;
       if (source[pmid] === 'GENERAL' && !f.resume) return;   // (20/10, 21 h) généraliste sans résumé : éditorial, réponse, actualité
       const themes = _veilleThemesLocaux(f, cfg.themes);
-      const note = _veilleNote(f, source[pmid] || 'REVUE', themes, aujourdhui);
+      const note = _veilleNote(f, source[pmid] || 'REVUE', themes, aujourdhui,
+                               _veilleThemesLocaux({ titre: f.titre, resume: '', motscles: [], mesh: [] }, cfg.themes));
       lignes.push([
         pmid,
         f.date,
@@ -1234,6 +1264,42 @@ function _veilleFichesPour_(pmids) {
   return out;
 }
 
+/* 0 — (20/10/2026, 23 h, accord d'Arthur) Le vocabulaire des thèmes dans VEILLE_CFG.
+   « resuscitation » seul rangeait la réanimation HÉMODYNAMIQUE en arrêt cardiaque (PELICAN,
+   « septic shock resuscitation »… 50 articles sur 116). Des essais au cœur du métier n'avaient
+   aucun thème dans le titre (« Isoflurane-Based Inhaled Sedation in Mechanically Ventilated
+   Adults »). Retire / ajoute des expressions dans les lignes THEME concernées ; ne touche à
+   rien d'autre. Relancée, ne change plus rien. À faire AVANT veilleRenoterTout. */
+const VEILLE_VOCAB_20OCT = [
+  { theme: 'Arrêt cardiaque', retirer: ['resuscitation'], ajouter: ['chest compression'] },
+  { theme: 'Ventilation et SDRA', retirer: [], ajouter: ['mechanically ventilated', 'acute respiratory failure', 'hypoxemic respiratory failure', 'hypoxaemic respiratory failure'] },
+  { theme: 'Agents et pharmacologie', retirer: [], ajouter: ['isoflurane', 'inhaled sedation', 'esketamine'] },
+];
+function veilleMajVocabulaire() {
+  const cfg = SpreadsheetApp.getActiveSpreadsheet().getSheetByName(VEILLE_CFG_TAB);
+  if (!cfg) return { success: false, error: 'onglet VEILLE_CFG absent' };
+  const data = cfg.getDataRange().getValues();
+  const changes = [];
+  VEILLE_VOCAB_20OCT.forEach(function (m) {
+    for (let r = 1; r < data.length; r++) {
+      if (String(data[r][0]).trim().toUpperCase() !== 'THEME' || String(data[r][1]).trim() !== m.theme) continue;
+      const avant = String(data[r][2] || '');
+      let morceaux = avant.split(/\s+OR\s+/).map(function (x) { return x.trim(); }).filter(Boolean);
+      const retires = m.retirer.filter(function (e) { return morceaux.indexOf('"' + e + '"[tiab]') !== -1; });
+      morceaux = morceaux.filter(function (x) { return m.retirer.map(function (e) { return '"' + e + '"[tiab]'; }).indexOf(x) === -1; });
+      const ajoutes = m.ajouter.filter(function (e) { return morceaux.indexOf('"' + e + '"[tiab]') === -1; });
+      ajoutes.forEach(function (e) { morceaux.push('"' + e + '"[tiab]'); });
+      const apres = morceaux.join(' OR ');
+      if (apres !== avant) {
+        cfg.getRange(r + 1, 3).setValue(apres);
+        changes.push(m.theme + ' : −' + retires.length + ' / +' + ajoutes.length);
+      }
+    }
+  });
+  Logger.log('Vocabulaire des thèmes : ' + (changes.length ? changes.join(' · ') : 'déjà à jour, rien changé'));
+  return { success: true, changes: changes };
+}
+
 /* 1/2 — Le soir du 20/10, la règle « thème dans le titre » valait pour les 18 généralistes :
    57 articles inutiles sont entrés (Fleming Fund, modèle chez le rat, éditoriaux…). Chaque article
    généraliste de VEILLE est relu sur PubMed et repassé à la règle actuelle :
@@ -1290,33 +1356,37 @@ function veilleNettoyerGeneralistes() {
   return { success: true, deplaces: partir.length, restent: garder.length, relus: generalistes.length };
 }
 
-/* 2/2 — Chaque article de VEILLE reçoit la note du barème ACTUEL (essai lu dans le résumé,
-   +25 pour les 8 grandes revues), avec le même calcul qu'un article qui arrive. Seules SCORE
-   et MOTIF changent ; « récent » se compte à la date d'ARRIVÉE dans la veille, comme au premier
-   calcul. Fiche introuvable : l'ancienne note reste. */
+/* 2/2 — Chaque article de VEILLE reçoit la note du barème ACTUEL (voir _veilleNote), avec le
+   même calcul qu'un article qui arrive. Seules SCORE, MOTIF et THEMES changent (THEMES depuis
+   le 20/10 23 h : le vocabulaire des thèmes a changé) ; « récent » se compte à la date
+   d'ARRIVÉE dans la veille. Fiche introuvable : l'ancienne ligne reste telle quelle.
+   À relancer après toute modification du barème ou du vocabulaire. */
 function veilleRenoterTout() {
   const v = SpreadsheetApp.getActiveSpreadsheet().getSheetByName(VEILLE_TAB);
   if (!v || v.getLastRow() < 2) return { success: true, renotes: 0 };
   _ensureVeilleColumns(v);
   const hdr = v.getRange(1, 1, 1, v.getLastColumn()).getValues()[0].map(function (x) { return String(x || '').trim(); });
-  const iScore = hdr.indexOf('SCORE'), iMotif = hdr.indexOf('MOTIF');
+  const iScore = hdr.indexOf('SCORE'), iMotif = hdr.indexOf('MOTIF'), iThemes = hdr.indexOf('THEMES');
   const n = v.getLastRow() - 1;
   const data = v.getRange(2, 1, n, v.getLastColumn()).getValues();
   const cfg = _readVeilleCfg();
   const pmids = data.map(function (l) { return String(l[0] || '').trim(); }).filter(Boolean);
   const fiches = _veilleFichesPour_(pmids);
-  const scores = [], motifs = [];
+  const scores = [], motifs = [], themesCol = [];   // (23 h) les THÈMES aussi : le vocabulaire a changé (« resuscitation » rangeait PELICAN en arrêt cardiaque)
   let renotes = 0, montes = 0;
   data.forEach(function (l) {
     const f = fiches[String(l[0] || '').trim()];
-    if (!f) { scores.push([l[iScore]]); motifs.push([l[iMotif]]); return; }
+    if (!f) { scores.push([l[iScore]]); motifs.push([l[iMotif]]); themesCol.push([l[iThemes]]); return; }
     const arrivee = l[11] instanceof Date ? Utilities.formatDate(l[11], 'Europe/Paris', 'yyyy-MM-dd') : String(l[11] || '').slice(0, 10);
-    const nn = _veilleNote(f, _veilleSourceCode(l[6]), _veilleThemesLocaux(f, cfg.themes), arrivee || null);
+    const th = _veilleThemesLocaux(f, cfg.themes);
+    const nn = _veilleNote(f, _veilleSourceCode(l[6]), th, arrivee || null,
+                           _veilleThemesLocaux({ titre: f.titre, resume: '', motscles: [], mesh: [] }, cfg.themes));
     if (Number(l[iScore]) < nn.note) montes++;
-    scores.push([nn.note]); motifs.push([nn.motif]); renotes++;
+    scores.push([nn.note]); motifs.push([nn.motif]); themesCol.push([_veilleThemes(th)]); renotes++;
   });
   v.getRange(2, iScore + 1, n, 1).setValues(scores);
   v.getRange(2, iMotif + 1, n, 1).setValues(motifs);
+  v.getRange(2, iThemes + 1, n, 1).setValues(themesCol);
   Logger.log('Renotation : ' + renotes + ' articles sur ' + n + ' (' + montes + ' montent) · ' + Object.keys(fiches).length + ' fiches obtenues.');
   return { success: true, renotes: renotes, montes: montes, total: n };
 }

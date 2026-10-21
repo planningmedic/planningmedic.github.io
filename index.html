@@ -2556,7 +2556,8 @@ function _vtThemes(it){ return (it.themes&&it.themes.length) ? it.themes : ['Aut
 /* Le type d'étude de la carte : celui que la note a retenu (1er mot du motif, qui
    sait aussi lire le titre depuis le 13/10), sinon le type PubMed. */
 const _VT_TYPES={ 'ECR':['Essai randomisé','ecr'], 'méta-analyse':['Méta-analyse','meta'], 'revue systématique':['Revue systématique','rs'],
-                  'recommandation':['Recommandation','reco'], 'étude':['Étude','aut'], 'revue':['Mise au point','aut'] };
+                  'recommandation':['Recommandation','reco'], 'étude':['Étude','aut'], 'revue':['Mise au point','aut'],
+                  'analyse secondaire':['Analyse secondaire','aut'] };   // (20/10/2026) PubMed l'étiquette « essai » : la note, elle, ne la confond plus avec l'essai
 /* Les couleurs écrites EN ENTIER (le banc vérifie que chaque var(--…) de la page existe) */
 const _VT_COUL={ ecr:['var(--vt-ecr)','var(--vt-ecr-bg)'], meta:['var(--vt-meta)','var(--vt-meta-bg)'], rs:['var(--vt-rs)','var(--vt-rs-bg)'],
                  reco:['var(--vt-reco)','var(--vt-reco-bg)'], aut:['var(--vt-aut)','var(--vt-aut-bg)'] };

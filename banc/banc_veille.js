@@ -443,12 +443,13 @@ function monde(plan) {
     V('…et depuis les descripteurs MeSH (Delirium → Neurologie et délire)', /Neurologie et délire/.test(par['801'][13]), par['801'][13]);
     V('le type retenu est le plus fort (ECR devant Multicenter)', par['701'][12] === 'Randomized Controlled Trial', par['701'][12]);
     const n = id => Number(par[id][7]);
-    V('un ECR de revue spécialisée avec résumé et deux thèmes est très haut (≥ 90)', n('701') >= 90, n('701'));
+    // (20/10 23 h) barème « plus fin » : 100 est rare ; un ECR spécialisé à thème au titre reste au-dessus de 75
+    V('un ECR de revue spécialisée avec résumé et thème au titre est haut (≥ 75)', n('701') >= 75, n('701'));
     V('une lettre sans résumé est tout en bas (< 30)', n('702') < 30, n('702'));
     V('un protocole d\'essai est pénalisé (< 60)', n('703') < 60, n('703'));
     // (20/10/2026) Règle d'Arthur : une grande revue généraliste compte le plus — sa revue systématique rejoint l'ECR spécialisé en tête.
-    V('une revue systématique de grande revue généraliste est en tête (≥ 90), loin devant le protocole', n('801') >= 90 && n('801') > n('703'), [n('801'), n('703'), n('701')]);
-    V('le motif dit pourquoi, en clair', /ECR/.test(par['701'][14]) && /2 thèmes/.test(par['701'][14]) && /revue spécialisée/.test(par['701'][14]), par['701'][14]);
+    V('une revue systématique de grande revue généraliste est haute (≥ 70), loin devant le protocole', n('801') >= 70 && n('801') > n('703') + 30, [n('801'), n('703'), n('701')]);
+    V('le motif dit pourquoi, en clair', /ECR/.test(par['701'][14]) && /thème/.test(par['701'][14]) && /au titre/.test(par['701'][14]) && /revue spécialisée/.test(par['701'][14]), par['701'][14]);
     V('…et pour la lettre aussi', /lettre\/éditorial/.test(par['702'][14]) && /sans résumé/.test(par['702'][14]), par['702'][14]);
     const g = vm.runInContext('getVeille()', m.ctx);
     V('getVeille expose la note et le motif, et trie par note', g.items[0].pmid === '701' && g.items[0].motif.length > 0 && g.items[g.items.length - 1].pmid === '702', g.items.map(i => i.pmid + ':' + i.score));
@@ -500,8 +501,8 @@ function monde(plan) {
     vm.runInContext('getOrCreateVeilleTabs()', m.ctx);
     vm.runInContext('runVeille()', m.ctx);
     const L = m.cl.getSheetByName('VEILLE').lignes.slice(1); const par = {}; L.forEach(l => { par[String(l[0])] = l; });
-    V('un ECR encore étiqueté « Journal Article » prend le bonus ECR (≥ 90)', Number(par['901'][7]) >= 90 && /^ECR/.test(par['901'][14]), [par['901'][7], par['901'][14]]);
-    V('une méta-analyse étiquetée « Review » est notée méta-analyse, pas revue', /^méta-analyse/.test(par['902'][14]) && Number(par['902'][7]) >= 90, [par['902'][7], par['902'][14]]);
+    V('un ECR encore étiqueté « Journal Article » prend le bonus ECR (≥ 75)', Number(par['901'][7]) >= 75 && /^ECR/.test(par['901'][14]), [par['901'][7], par['901'][14]]);
+    V('une méta-analyse étiquetée « Review » est notée méta-analyse, pas revue', /^méta-analyse/.test(par['902'][14]) && Number(par['902'][7]) >= 70, [par['902'][7], par['902'][14]]);
     V('une analyse secondaire reste sans bonus ECR (< 90)', Number(par['903'][7]) < 90 && !/ECR/.test(par['903'][14]), [par['903'][7], par['903'][14]]);
 
     const rl = (t, s, mo) => vm.runInContext('_veilleRenoterLigne_(' + JSON.stringify(t) + ',' + JSON.stringify(s) + ',' + JSON.stringify(mo) + ')', m0.ctx);
@@ -889,12 +890,13 @@ function monde(plan) {
   console.log('\n═══ Règle d\'Arthur (20/10/2026) : un article d\'une grande revue généraliste est très bien noté ═══');
   {
     const m = monde(() => ({}));
+    vm.runInContext('getOrCreateVeilleTabs()', m.ctx);   // (23 h) la note lit les thèmes du TITRE dans VEILLE_CFG
     const jour = new Date().toISOString().slice(0, 10);
     const note = (fiche, source, themes) => vm.runInContext('_veilleNote(' + JSON.stringify(Object.assign({ pubtypes: ['Journal Article'], titre: '', resume: 'x', date: jour }, fiche)) + ',' + JSON.stringify(source) + ',' + JSON.stringify(themes) + ',' + JSON.stringify(jour) + ')', m.ctx);
     const synth = note({ titre: 'Acute Kidney Injury in Critical Care', revue: 'N Engl J Med' }, 'GENERAL', { 'Insuffisance rénale': true });
-    V('synthèse du NEJM pas encore étiquetée « Review », 1 thème : au moins 80 (≈56 avant)', synth.note >= 80 && /grande revue/.test(synth.motif), synth);
+    V('synthèse du NEJM pas encore étiquetée « Review », 1 thème : au moins 70 (≈56 avant ; barème fin du 20/10 23 h)', synth.note >= 70 && /grande revue/.test(synth.motif), synth);
     const icraki = note({ titre: 'Intermittent or Continuous Renal-Replacement Therapy in Acute Kidney Injury', resume: 'we randomly assigned critically ill adults', revue: 'N Engl J Med' }, 'GENERAL', { 'Insuffisance rénale': true });
-    V('ICRAKI (essai lu dans le résumé, NEJM) : 100, motif « ECR · grande revue »', icraki.note === 100 && /^ECR · grande revue/.test(icraki.motif), icraki);
+    V('ICRAKI (essai lu dans le résumé, NEJM) : au moins 85, motif « ECR · grande revue »', icraki.note >= 85 && /^ECR · grande revue/.test(icraki.motif), icraki);
     const spe = note({ titre: 'Some observational study' }, 'REVUE', { 'Hémodynamique': true });
     V('un article ordinaire de revue spécialisée reste en dessous d\'une synthèse du NEJM', spe.note < synth.note, [spe.note, synth.note]);
     const edito = note({ pubtypes: ['Editorial'], titre: 'Kidney injury: time to act', revue: 'JAMA' }, 'GENERAL', { 'Insuffisance rénale': true });
@@ -940,12 +942,51 @@ function monde(plan) {
 
     const r2 = vm.runInContext('veilleRenoterTout()', m.ctx);
     const ligne = id => v.lignes.find(l => String(l[0]) === id);
-    V('renotation : ICRAKI passe de 56 à 100, motif « ECR · grande revue … »', Number(ligne('1003')[7]) === 100 && /^ECR · grande revue/.test(ligne('1003')[14]), [ligne('1003')[7], ligne('1003')[14]]);
+    V('renotation : ICRAKI passe de 56 à au moins 85, motif « ECR · grande revue · 1 thème au titre … »', Number(ligne('1003')[7]) >= 85 && /^ECR · grande revue · 1 thème au titre/.test(ligne('1003')[14]), [ligne('1003')[7], ligne('1003')[14]]);
     V('…la synthèse JAMA garde le bonus des grandes revues, l\'ECR de Chest n\'en a pas', /grande revue/.test(ligne('1005')[14]) && /^ECR/.test(ligne('1004')[14]) && !/grande revue/.test(ligne('1004')[14]), [ligne('1005')[14], ligne('1004')[14]]);
     V('…fiche introuvable : l\'ancienne note et l\'ancien motif restent', Number(ligne('1008')[7]) === 70 && ligne('1008')[14] === 'ancien motif', [ligne('1008')[7], ligne('1008')[14]]);
-    V('…seules SCORE et MOTIF changent : le résumé en français est intact', ligne('1003')[8] === 'Résumé FR à garder' && ligne('1003')[13] === 'Sepsis et infection');
+    V('…le résumé en français est intact ; les THÈMES sont recalculés (Sepsis → Insuffisance rénale)', ligne('1003')[8] === 'Résumé FR à garder' && /Insuffisance rénale/.test(ligne('1003')[13]) && !/Sepsis/.test(ligne('1003')[13]), ligne('1003')[13]);
     V('…« récent » compté à la date d\'arrivée (20/10, article du 10/10)', /récent/.test(ligne('1003')[14]), ligne('1003')[14]);
     V('…le journal annonce le compte (5 renotés ; la doublure garde 2 lignes vidées que le vrai Sheets ne compte pas)', r2.renotes === 5 && r2.total >= 6 && r2.montes >= 1, r2);
+  }
+
+  console.log('\n═══ Barème « plus fin » et vocabulaire des thèmes (20/10/2026, 23 h) ═══');
+  {
+    const m = monde(() => ({}));
+    vm.runInContext('getOrCreateVeilleTabs()', m.ctx);
+    const jour = new Date().toISOString().slice(0, 10);
+    const cfgT = vm.runInContext('_readVeilleCfg().themes', m.ctx);
+    const note = (fiche, source) => { const f = Object.assign({ pubtypes: ['Journal Article'], titre: '', resume: '', date: jour, motscles: [], mesh: [] }, fiche);
+      m.ctx.__f = f; m.ctx.__s = source; return vm.runInContext('_veilleNote(__f, __s, _veilleThemesLocaux(__f, _readVeilleCfg().themes), ' + JSON.stringify(jour) + ')', m.ctx); };
+    const icraki = note({ revue: 'N Engl J Med', titre: 'Intermittent or Continuous Renal-Replacement Therapy in Acute Kidney Injury', resume: 'In this multicenter trial, we randomly assigned critically ill adults; a total of 554 patients underwent randomization.' }, 'GENERAL');
+    const obes = note({ revue: 'JAMA', pubtypes: ['Journal Article', 'Randomized Controlled Trial'], titre: 'Treatment With 9-mg Mazdutide for Weight Reduction in Adults With Obesity', resume: 'We randomly assigned 600 adults; nausea and vomiting were common.' }, 'GENERAL');
+    const sec = note({ revue: 'Am J Respir Crit Care Med', pubtypes: ['Journal Article', 'Randomized Controlled Trial'], titre: 'Rocuronium dose and first-attempt intubation success in the critically ill: secondary analysis of a randomized trial', resume: 'Patients undergoing intubation.' }, 'REVUE');
+    const synth = note({ revue: 'JAMA', titre: 'Fluid Therapy in Mechanically Ventilated Critically Ill Adult Patients', resume: 'This review summarizes fluid therapy in mechanical ventilation.' }, 'GENERAL');
+    V('ICRAKI : essai, grande revue, thème au titre, multicentrique, n=554 → 90 et plus', icraki.note >= 90 && /multicentrique/.test(icraki.motif) && /n=554/.test(icraki.motif), icraki);
+    V('essai du JAMA sur l\'obésité, thème seulement dans le résumé → sous 65 (était 100)', obes.note < 65 && /thème au résumé seul/.test(obes.motif), obes);
+    V('analyse secondaire étiquetée « essai » par PubMed → « analyse secondaire », loin sous l\'essai', /^analyse secondaire/.test(sec.motif) && sec.note < icraki.note - 20, sec);
+    V('synthèse d\'une grande revue au thème dans le titre → bien notée (≥ 70)', synth.note >= 70, synth);
+    V('effectif lu dans le résumé (« a total of 554 patients », « 1,234 participants »)', vm.runInContext('_veilleEffectif("a total of 554 patients were included")', m.ctx) === 554 && vm.runInContext('_veilleEffectif("1,234 participants")', m.ctx) === 1234);
+
+    // Vocabulaire
+    const th = t => { m.ctx.__t = t; return Object.keys(vm.runInContext('_veilleThemesLocaux({ titre: __t, resume: "", motscles: [], mesh: [] }, _readVeilleCfg().themes)', m.ctx)); };
+    V('défaut : PELICAN (réanimation hémodynamique) n\'est plus en « Arrêt cardiaque »', th('Hemodynamic resuscitation in high-risk surgery: the PELICAN trial').indexOf('Arrêt cardiaque') === -1);
+    V('…un vrai arrêt cardiaque y reste, et « chest compression » y entre', th('In-hospital cardiac arrest outcomes').indexOf('Arrêt cardiaque') !== -1 && th('Where to place chest compression').indexOf('Arrêt cardiaque') !== -1);
+    V('…l\'essai isoflurane a ses thèmes au titre (Ventilation, Agents)', th('Isoflurane-Based Inhaled Sedation in Mechanically Ventilated Adults').join() === 'Ventilation et SDRA,Agents et pharmacologie', th('Isoflurane-Based Inhaled Sedation in Mechanically Ventilated Adults'));
+    // veilleMajVocabulaire sur un classeur à l'ANCIEN vocabulaire
+    const m2 = monde(() => ({})); vm.runInContext('getOrCreateVeilleTabs()', m2.ctx);
+    const c2 = m2.cl.getSheetByName('VEILLE_CFG');
+    c2.lignes.forEach(l => { if (l[1] === 'Arrêt cardiaque') l[2] = '"cardiac arrest"[tiab] OR "cardiopulmonary resuscitation"[tiab] OR "resuscitation"[tiab] OR "defibrillation"[tiab]'; if (l[1] === 'Agents et pharmacologie') l[2] = '"propofol"[tiab]'; });
+    const avantVent = c2.lignes.find(l => l[1] === 'Ventilation et SDRA')[2].replace(/ OR "(mechanically ventilated|acute respiratory failure|hypox[a]?emic respiratory failure)"\[tiab\]/g, '');
+    c2.lignes.find(l => l[1] === 'Ventilation et SDRA')[2] = avantVent;
+    const avantDouleur = c2.lignes.find(l => l[1] === 'Douleur périopératoire')[2];
+    const r1 = vm.runInContext('veilleMajVocabulaire()', m2.ctx);
+    const val = t => c2.lignes.find(l => l[1] === t)[2];
+    V('veilleMajVocabulaire : « resuscitation » seul retiré, « cardiopulmonary resuscitation » gardé, « chest compression » ajouté', val('Arrêt cardiaque').indexOf('"resuscitation"[tiab]') === -1 && val('Arrêt cardiaque').indexOf('"cardiopulmonary resuscitation"[tiab]') !== -1 && /"chest compression"\[tiab\]$/.test(val('Arrêt cardiaque')), val('Arrêt cardiaque'));
+    V('…les ajouts de Ventilation et d\'Agents sont là', /"mechanically ventilated"\[tiab\]/.test(val('Ventilation et SDRA')) && val('Agents et pharmacologie') === '"propofol"[tiab] OR "isoflurane"[tiab] OR "inhaled sedation"[tiab] OR "esketamine"[tiab]', val('Agents et pharmacologie'));
+    V('…les autres thèmes ne bougent pas, 3 thèmes modifiés annoncés', val('Douleur périopératoire') === avantDouleur && r1.changes.length === 3, r1);
+    V('…relancée, ne change plus rien', vm.runInContext('veilleMajVocabulaire()', m2.ctx).changes.length === 0);
+    V('le type « analyse secondaire » a son libellé à l\'écran', /'analyse secondaire':\['Analyse secondaire','aut'\]/.test(fs.readFileSync('../index.html', 'utf8')));
   }
 
 console.log(`\n${ok} OK · ${ko} en échec`);
