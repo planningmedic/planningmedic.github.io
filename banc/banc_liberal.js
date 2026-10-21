@@ -1152,24 +1152,15 @@ console.log('\n═══ 6. La page de cotation ne dit rien qu\'elle ne sache �
        l'hôpital applique ×1,98 (HHFE002 activité 4 : 53,95 € → 106,82 €, puis 113,24 € avec le 7). */
     V('NAS : coefficient monégasque, comme le recueil de l\'hôpital (HHFE002 + 7 → 113,24 €)',
       ev("STATUTS.nas.coeff") === 1.98 && proche(ev("1.98*(53.95*1.06)"), 113.24) && ev("STATUTS.nas.coeff") === ev("STATUTS.verte.coeff"));
-    /* (21/10/2026) NAS : on tape le TOTAL de l'anesthésie, le dépassement s'en déduit. */
-    {
-      const nt = d.getElementById('nasTot');
-      V('NAS : le champ « Dépassement » laisse place à « Total anesthésie »',
-        d.getElementById('dhWrap').style.display === 'none' && d.getElementById('nasTotWrap').style.display === '');
-      nt.value = '400'; w.nasTotSaisi(); await dodo(10);
-      const b = ev('parcoursBR()');
-      V('…400 € tapés : dépassement = 400 − base, au centime', proche(dhv(), Math.round((400 - b) * 100) / 100), [dhv(), 400 - b]);
-      ev("upd(0,'m7',false)"); await dodo(10);
-      V('…la base change (modificateur retiré) : le total reste 400, le dépassement suit', proche(ev('parcoursBR()') + dhv(), 400), [ev('parcoursBR()'), dhv()]);
-      ev("upd(0,'m7',true)"); await dodo(10);
-      nt.value = '1'; w.nasTotSaisi(); await dodo(10);
-      V('…total inférieur à la base : aucun dépassement négatif, et c\'est dit', proche(dhv(), 0) && /inférieur à la base/.test(d.getElementById('nasTotInfo').textContent));
-      nt.value = ''; w.nasTotSaisi(); await dodo(10);
-      w.setStatut('bulle'); await dodo(10);
-      V('…autre statut : le champ « Dépassement » revient', d.getElementById('dhWrap').style.display === '' && d.getElementById('nasTotWrap').style.display === 'none');
-      w.setStatut('nas'); mut(0); await dodo(20);
-    }
+    /* (21/10/2026) NAS : retour au champ « Dépassement » — « 300 € de DP », c'est par-dessus
+       la base CCAM x 1,98 (précision du responsable, après un essai « Total anesthésie »). */
+    V('NAS : le champ est « Dépassement », plus de « Total anesthésie »', !d.getElementById('nasTot') && !!d.getElementById('dh'));
+    /* Repère chiffré : il pré-remplit le dépassement (bulle et NAS), une fourchette ou un
+       pourcentage restent un rappel. */
+    V('repère « 230 ou 50% JFD+AC » → 230 ; « 780 » → 780 ; « 2500 à 5000 », « +50% », « suivant devis » → rien',
+      ev("(function(){var s=COTTYPE_COURANTE, st=document.getElementById('statut').value, r=[];"
+        + "['230 ou 50% JFD+AC','780','2500 à 5000','+50%','suivant devis'].forEach(function(x){COTTYPE_COURANTE={repereNas:x};r.push(repereChiffre());});"
+        + "COTTYPE_COURANTE=s; return JSON.stringify(r);})()") === '[230,780,null,null,null]');
     /* (20/10/2026) Décision du responsable, comme le devis du secrétariat : un NAS paie
        base + dépassement, pour la consultation (total du groupement) comme pour l'anesthésie. */
     V('NAS sans mutuelle : la caisse ne rembourse rien, reste = base + dépassement, consultation comprise',
@@ -1180,30 +1171,33 @@ console.log('\n═══ 6. La page de cotation ne dit rien qu\'elle ne sache �
        la somme totale et le nom de l'acte, sans code ni base. Et un clic bascule le
        devis en anglais. */
     {
-      d.getElementById('nasTot').value = String(Math.round(ev('parcoursBR()')) + 300); w.nasTotSaisi();
+      d.getElementById('dh').value = '300'; w.dhSaisi();
       d.getElementById('dInt').value = '2099-01-01';
       /* (20/10/2026) NAS = base + dépassement (comme le devis du secrétariat) :
          consultation au total du groupement (111 € fictifs) + anesthésie base + 300 €. */
-      const anesNas = Math.round(ev('parcoursBR()')) + 300, totNas = anesNas + 111;   // le total TAPÉ, rond
+      const anesNas = ev('parcoursBR()') + 300, totNas = anesNas + 111;   // base + 300 € de DP
       V('NAS : la barre du bas affiche consultation + anesthésie, base comprise',
-        proche(lireEur(d.getElementById('totBR').textContent), Math.round(totNas)), [d.getElementById('totBR').textContent, totNas]);
+        Math.abs(lireEur(d.getElementById('totBR').textContent) - totNas) <= 0.5, [d.getElementById('totBR').textContent, totNas]);
       w.ouvrirDevisCourant(); await dodo(20);
       const lignes = d.getElementById('dvActes').textContent;
       V('devis NAS : aucun code CCAM, ni dans les lignes ni dans l\'intitulé',
         !/[A-Z]{4}\d{3}/.test(lignes) && !/[A-Z]{4}\d{3}/.test(d.getElementById('dvActe').textContent) && !/CCAM/.test(lignes),
         [lignes.slice(0, 120), d.getElementById('dvActe').textContent]);
       V('…mais le nom de l\'acte est bien là', lignes.trim().length > 3 && d.getElementById('dvActe').textContent.trim().length > 3);
-      V('…deux lignes, chacune avec son montant : consultation 111 €, anesthésie base + 300 €',
-        /^Consultation d'anesthésie/.test(d.getElementById('dvActes').rows[0].textContent.trim())
-        && proche(lireEur(d.getElementById('dvActes').rows[0].cells[2].textContent), 111)
-        && proche(lireEur(d.getElementById('dvActes').rows[1].cells[2].textContent), anesNas),
+      const R = d.getElementById('dvActes').rows, c = (r, i) => lireEur(R[r].cells[i].textContent) || 0;
+      V('…deux lignes, base / honoraires / dépassement : consultation (dépassement de consultation visible), anesthésie base + 300 €',
+        /^Consultation d'anesthésie/.test(R[0].textContent.trim())
+        && proche(c(0, 1), ev('consBR()')) && proche(c(0, 2), 111) && proche(c(0, 3), 111 - ev('consBR()'))
+        && proche(c(1, 1), ev('parcoursBR()')) && proche(c(1, 2), anesNas) && proche(c(1, 3), 300),
         [...d.getElementById('dvActes').rows].map(r => r.textContent.replace(/\s+/g, ' ').trim()));
       V('…et « Total à régler » = la somme des deux', proche(lireEur(d.getElementById('dvHon').textContent), totNas)
         && d.getElementById('dvTotLbl').textContent === 'Total à régler',
         [d.getElementById('dvHon').textContent, totNas]);
-      V('…colonnes base / dépassement / remboursement et encadrés de reste à charge masqués',
+      V('…seule la colonne remboursement et les encadrés de reste à charge disparaissent',
         d.getElementById('dvTable').classList.contains('nas') && d.getElementById('dvRac').classList.contains('nas')
-        && /table\.acts\.nas th:nth-child\(2\)/.test(html) && /\.rac\.nas\{display:none\}/.test(html));
+        && !/table\.acts\.nas th:nth-child\(2\)/.test(html) && /table\.acts\.nas th:nth-child\(5\)/.test(html) && /\.rac\.nas\{display:none\}/.test(html));
+      V('…montants annoncés comme approximatifs, comme le devis du secrétariat',
+        /approx\./.test(d.querySelector('#dvTable thead').textContent) && /Montants estimés/.test(d.querySelector('#devisOverlay .approx').textContent));
       w.basculerLangueDevis(); await dodo(10);
       const h1 = () => d.querySelector('#devisOverlay .sheet:not(.decl) h1').textContent;
       V('un clic : le devis passe en anglais', /Cost estimate/.test(h1()) && /Not covered/.test(d.getElementById('dvStatut').textContent)
@@ -1219,6 +1213,26 @@ console.log('\n═══ 6. La page de cotation ne dit rien qu\'elle ne sache �
         && d.getElementById('dvLang').textContent === 'English');
       w.basculerLangueDevis(); w.closeDevis();
       w.setStatut('verte'); await dodo(10); w.ouvrirDevisCourant(); await dodo(20);
+      /* (21/10/2026) DÉFAUT TROUVÉ EN PRODUCTION : en carte bulle, le dépassement de la
+         consultation n'apparaissait que dans le total. Chaque ligne porte désormais base,
+         honoraires et dépassement ; l'anesthésie est répartie au prorata, comme le recueil. */
+      w.closeDevis(); w.setStatut('bulle'); await dodo(10);
+      d.getElementById('dh').value = '230'; w.dhSaisi(); await dodo(10);
+      w.ouvrirDevisCourant(); await dodo(20);
+      {
+        const rows = [...d.getElementById('dvActes').rows], eurc = (r, i) => lireEur(r.cells[i].textContent) || 0;
+        const c0 = rows[0];
+        V('bulle : la ligne consultation porte base, honoraires (total du groupement) et dépassement',
+          /Consultation d'anesthésie/.test(c0.textContent) && proche(eurc(c0, 1), cs()) && proche(eurc(c0, 2), 99) && proche(eurc(c0, 3), 99 - cs()),
+          [...c0.cells].map(c => c.textContent.trim()));
+        const actes = rows.slice(1);
+        const sDH = actes.reduce((s, r) => s + eurc(r, 3), 0), sH = actes.reduce((s, r) => s + eurc(r, 2), 0);
+        V('…les actes : dépassement réparti au prorata, la somme retombe sur 230 € au centime', proche(sDH, 230) && proche(sH, ev('parcoursBR()') + 230),
+          actes.map(r => [...r.cells].map(c => c.textContent.trim()).slice(1, 4)));
+        V('…et le total du tableau = consultation + actes', proche(lireEur(d.getElementById('dvHon').textContent), 99 + ev('parcoursBR()') + 230)
+          && proche(lireEur(d.getElementById('dvDH').textContent), 230 + 99 - cs()));
+      }
+      w.closeDevis(); w.setStatut('verte'); await dodo(10); w.ouvrirDevisCourant(); await dodo(20);
       V('carte verte : la consultation ouvre le tableau, en CS, base seule, sans dépassement',
         /Consultation d'anesthésie\s*— CS · NGAP/.test(d.getElementById('dvActes').rows[0].textContent)
         && proche(lireEur(d.getElementById('dvActes').rows[0].cells[1].textContent), cs())
@@ -1313,6 +1327,13 @@ console.log('\n═══ 6. La page de cotation ne dit rien qu\'elle ne sache �
     V('le chirurgien qui cote passe avant le total France', proche(dhv(), 50), dhv());
     w.setChir(false); await dodo(20);
     V('il ne cote plus : retour au total France', proche(dhv(), 400 - br), dhv());
+    /* (21/10/2026) Repère NAS « 150 » de cette cotation : il pré-remplit le dépassement */
+    w.setStatut('nas'); await dodo(20);
+    V('NAS + repère chiffré « 150 » : dépassement pré-rempli à 150 €', proche(dhv(), 150), dhv());
+    V('…une saisie à la main n\'est pas écrasée', (d.getElementById('dh').value = '222', w.dhSaisi(), ev("upd(0,'mA',false)"), proche(dhv(), 222)), dhv());
+    w.setStatut('bulle'); await dodo(20);
+    V('bulle + repère « suivant devis OU +50% » : rien de pré-rempli par le repère (calage habituel)', !(proche(dhv(), 150)), dhv());
+    w.setStatut('fr'); await dodo(20);
     d.getElementById('dh').value = '77'; w.dhSaisi(); await dodo(10);
     V('le champ reste modifiable', proche(dhv(), 77) && d.getElementById('dh').disabled === false);
     V('en France, aucun repère d\'usage', d.getElementById('dhUsage').style.display === 'none');
@@ -1327,7 +1348,9 @@ console.log('\n═══ 6. La page de cotation ne dit rien qu\'elle ne sache �
     V('…et le total France ne s\'applique pas hors assuré français', ev('totalFrCourant()') === null);
     w.setStatut('nas'); await dodo(20);
     V('NAS : son propre repère', d.getElementById('dhUsage').textContent === 'Usage : 150');
-    V('« 150 » n\'est pas devenu le dépassement', !proche(dhv(), 150), dhv());
+    /* (21/10/2026) Règle changée par le responsable : un repère qui est un montant seul
+       pré-remplit désormais le dépassement (il était jusqu'ici un simple rappel). */
+    V('« 150 » (montant seul) pré-remplit désormais le dépassement', proche(dhv(), 150), dhv());
     w.setStatut('rose'); await dodo(20);
     V('en carte rose, aucun repère', d.getElementById('dhUsage').style.display === 'none');
     V('le repère s\'écrit en texte, jamais interprété', /el\.textContent = txt \? 'Usage : '\+txt/.test(html));
