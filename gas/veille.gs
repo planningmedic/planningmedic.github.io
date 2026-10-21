@@ -57,7 +57,7 @@
 //  instantané unique et partagé : chantier séparé.
 // ══════════════════════════════════════════════════════════════════════
 
-const GAS_VERSION_VEILLE = '2026-10-21.2';
+const GAS_VERSION_VEILLE = '2026-10-21.3';
 
 const VEILLE_CFG_TAB = 'VEILLE_CFG';
 const VEILLE_TAB     = 'VEILLE';
@@ -1035,10 +1035,11 @@ function getVeille(user) {
   const v  = ss.getSheetByName(VEILLE_TAB);
   if (!v) return { success: true, count: 0, enrich: false, items: [] };
 
-  let lus = {}, stars = {};
+  let lus = {}, stars = {}, abo = null;
   if (user && user.id) {
     const m = _veilleMarquesParMar()[String(user.id).trim()];
     if (m) {
+      abo = { abo: m.abo || null, mailFichier: m.mailFichier || '' };   // (21/10) repli GAS : même information que le miroir
       m.lus.forEach(function (p) { lus[p] = true; });
       m.stars.forEach(function (p) { stars[p] = true; });
     }
@@ -1072,6 +1073,7 @@ function getVeille(user) {
     success: true, count: items.length,
     enrich: String(cfg.params.ENRICH || 'N').toUpperCase() === 'O',
     items: items,
+    abonnement: abo,
   };
 }
 
@@ -1125,7 +1127,98 @@ function _veilleMarquesParMar() {
     if (String(data[r][2] || '').toUpperCase() === 'O') parMar[id].lus.push(p);
     if (String(data[r][3] || '').toUpperCase() === 'O') parMar[id].stars.push(p);
   }
+  /* (21/10/2026) L'abonnement au mail du lundi voyage avec les marques : la clé miroir
+     `veille_marques` est filtrée par le Worker, chacun ne reçoit QUE la sienne — son
+     adresse comprise. `mailFichier` : l'adresse de MEDECINS, proposée pré-remplie. */
+  const abos = _veilleAbonnes_();
+  Object.keys(abos).forEach(function (id) {
+    if (!parMar[id]) parMar[id] = { lus: [], stars: [] };
+    parMar[id].abo = { actif: abos[id].actif, email: abos[id].email };
+  });
+  const fichier = _veilleMailsMedecins_();
+  Object.keys(fichier).forEach(function (id) {
+    if (!parMar[id]) parMar[id] = { lus: [], stars: [] };
+    parMar[id].mailFichier = fichier[id];
+  });
   return parMar;
+}
+
+// ══════════════════════════════════════════════════════════════════════
+//  ABONNEMENT AU MAIL DU LUNDI (21/10/2026, étape 2 — maquette validée)
+//  Chaque MAR s'abonne lui-même depuis la veille et tape son adresse. Elle est
+//  rangée dans VEILLE_ABONNES, JAMAIS dans MEDECINS : l'adresse de MEDECINS
+//  déclenche aussi « Votre planning a changé », que personne n'a demandé ici.
+//  L'identité vient du code d'accès (portail.gs) — jamais du contenu envoyé.
+// ══════════════════════════════════════════════════════════════════════
+
+const VEILLE_ABONNES_TAB = 'VEILLE_ABONNES';
+const VEILLE_MAIL_FORMAT = /^[^\s@<>",;]+@[^\s@<>",;]+\.[A-Za-z]{2,}$/;
+
+function _veilleAbonnes_() {
+  const sh = SpreadsheetApp.getActiveSpreadsheet().getSheetByName(VEILLE_ABONNES_TAB);
+  const out = {};
+  if (!sh || sh.getLastRow() < 2) return out;
+  sh.getRange(2, 1, sh.getLastRow() - 1, 3).getValues().forEach(function (l) {
+    const id = String(l[0] || '').trim();
+    if (id) out[id] = { actif: String(l[1] || '').toUpperCase() === 'O', email: String(l[2] || '').trim() };
+  });
+  return out;
+}
+function _veilleMailsMedecins_() {
+  const out = {};
+  try {
+    // Lecture par le memo commun _medecinsRows_ (code.gs), comme partout ailleurs. Lecture SEULE : MEDECINS n'est jamais écrit ici.
+    const rows = _medecinsRows_();
+    const cId = COL_MED.ID, cMail = COL_MED.EMAIL;
+    for (let r = 1; r < rows.length; r++) {
+      const id = String(rows[r][cId] || '').trim(), m = String(rows[r][cMail] || '').trim();
+      if (id && VEILLE_MAIL_FORMAT.test(m)) out[id] = m;
+    }
+  } catch (e) {}
+  return out;
+}
+
+/* Action du portail `setVeilleAbo` : { actif: true, email } ou { actif: false }. */
+function setVeilleAbo(payload, user) {
+  if (!user || !user.id) return { success: false, error: 'identité requise' };
+  const id = String(user.id).trim();
+  const actif = !!(payload && payload.actif);
+  const email = String((payload && payload.email) || '').trim();
+  if (actif && !VEILLE_MAIL_FORMAT.test(email)) return { success: false, error: 'Adresse incomplète' };
+  const ss = SpreadsheetApp.getActiveSpreadsheet();
+  let sh = ss.getSheetByName(VEILLE_ABONNES_TAB);
+  if (!sh) {
+    sh = ss.insertSheet(VEILLE_ABONNES_TAB);
+    sh.getRange(1, 1, 1, 4).setValues([['MAR_ID', 'ACTIF', 'EMAIL', 'MAJ_LE']]).setFontWeight('bold');
+    sh.setFrozenRows(1);
+  }
+  const data = sh.getRange(1, 1, Math.max(sh.getLastRow(), 1), 3).getValues();
+  let ligne = 0, emailGarde = email;
+  for (let r = 1; r < data.length; r++) if (String(data[r][0] || '').trim() === id) { ligne = r + 1; break; }
+  if (!actif && ligne) emailGarde = String(data[ligne - 1][2] || '').trim();   // désabonné : l'adresse reste, pour être reproposée
+  const valeurs = [[id, actif ? 'O' : 'N', emailGarde, new Date()]];
+  if (ligne) sh.getRange(ligne, 1, 1, 4).setValues(valeurs);
+  else if (actif) sh.appendRow(valeurs[0]);
+  let confirme = false;
+  if (actif) {
+    try {
+      if (MailApp.getRemainingDailyQuota() > 0) {
+        MailApp.sendEmail({
+          to: email, name: 'Veille biblio — Planning-Med',
+          subject: 'Veille biblio : votre abonnement est enregistré',
+          htmlBody: '<div style="font:15px/1.5 Arial,sans-serif;color:#0F172A;max-width:560px">'
+            + '<p><b>C\'est noté.</b> Vous recevrez chaque lundi matin les 10 articles de la semaine choisis par la veille biblio du portail, '
+            + '5 en réanimation et 5 en anesthésie, chacun résumé en deux lignes.</p>'
+            + '<p style="color:#475569">Pour l\'arrêter ou changer d\'adresse : portail → Veille biblio → « Veille du lundi par mail ».</p></div>',
+          body: 'C\'est noté : vous recevrez chaque lundi matin les 10 articles de la semaine de la veille biblio.\n'
+            + 'Pour l\'arrêter ou changer d\'adresse : portail → Veille biblio → « Veille du lundi par mail ».',
+        });
+        confirme = true;
+      }
+    } catch (e) { /* abonné quand même : la confirmation n'est qu'un contrôle */ }
+  }
+  try { logAction('veille — abonnement ' + id + ' : ' + (actif ? 'activé' : 'arrêté')); } catch (e) {}
+  return { success: true, abo: { actif: actif, email: emailGarde }, confirme: confirme };
 }
 
 // ══════════════════════════════════════════════════════════════════════
@@ -1258,9 +1351,9 @@ function chercherVeilleArchive(q) {
 //  MAIL DE LA SEMAINE (21/10/2026 — maquette validée par Arthur)
 //  10 articles arrivés depuis 7 jours, 5 réa / 5 anesthésie, chacun avec son
 //  titre cliquable (PubMed) et son résumé en français.
-//  ÉTAPE 1 (ce code) : envoyé à l'administrateur SEUL (CONFIG → DIAG_EMAIL),
-//  après la collecte du lundi, une fois par semaine. L'abonnement des MARs
-//  (interrupteur dans le portail) est l'étape 2, pas encore écrite.
+//  Envoyé après la collecte du lundi, une fois par semaine, à l'administrateur
+//  (CONFIG → DIAG_EMAIL) et à chaque MAR abonné depuis le portail (étape 2,
+//  21/10 — voir « ABONNEMENT »). veilleEnvoyerMailTest : à l'administrateur seul.
 //  Règles (décidées le 21/10) :
 //   · note minimale 75, abaissée par paliers 70 → 65 → 60 tant qu'il manque
 //     des articles ; jamais sous 60 (le mail en compte alors moins de 10) ;
@@ -1384,8 +1477,21 @@ function _veilleEnvoyerMail_(force) {
   if (!force && dernier && (Date.now() - new Date(dernier).getTime()) < 6 * 86400000) {
     return { envoye: false, raison: 'déjà envoyé le ' + dernier.slice(0, 10) };
   }
-  const dest = _veilleDestAdmin_();
-  if (!dest) return { envoye: false, raison: 'DIAG_EMAIL absent de CONFIG' };
+  /* Destinataires : l'administrateur (DIAG_EMAIL), puis — sauf en test — chaque abonné actif.
+     Une adresse en double ne reçoit qu'un mail. Si NOTIF_EMAIL_TEST est renseignée (mode test
+     des mails de changements), TOUT part vers elle, une seule fois. */
+  const admin = _veilleDestAdmin_();
+  let dests = admin ? [admin] : [];
+  if (!force) {
+    const abos = _veilleAbonnes_();
+    Object.keys(abos).forEach(function (id) { if (abos[id].actif && abos[id].email) dests.push(abos[id].email); });
+  }
+  const vus = {};
+  dests = dests.filter(function (d) { const k = d.toLowerCase(); if (vus[k]) return false; vus[k] = true; return true; });
+  let redirige = '';
+  try { redirige = String(props.getProperty('NOTIF_EMAIL_TEST') || '').trim(); } catch (e) {}
+  if (redirige && dests.length) dests = [redirige];
+  if (!dests.length) return { envoye: false, raison: 'aucun destinataire (DIAG_EMAIL absent de CONFIG, aucun abonné)' };
   const g = getVeille();
   const depuis = Utilities.formatDate(new Date(Date.now() - 7 * 86400000), 'Europe/Paris', 'yyyy-MM-dd');
   /* La limite « 2 par thème » se compte sur les thèmes du TITRE, recalculés ici : un essai qui
@@ -1401,17 +1507,23 @@ function _veilleEnvoyerMail_(force) {
   if (!n) return { envoye: false, raison: 'aucun article à 60 ou plus depuis le ' + depuis };
   if (MailApp.getRemainingDailyQuota() < 1) return { envoye: false, raison: 'quota de mails épuisé' };
   const jour = Utilities.formatDate(new Date(), 'Europe/Paris', 'd MMM');
-  MailApp.sendEmail({
-    to: dest, name: 'Veille biblio — Planning-Med',
-    subject: 'Veille biblio — les ' + n + ' articles de la semaine (' + jour + ')',
-    htmlBody: _veilleHtmlMail_(sel), body: _veilleTexteMail_(sel),
+  const html = _veilleHtmlMail_(sel), texte = _veilleTexteMail_(sel);
+  let partis = 0, rates = 0;
+  dests.forEach(function (to) {   // un mail par personne : personne ne voit l'adresse des autres
+    try {
+      if (MailApp.getRemainingDailyQuota() < 1) { rates++; return; }
+      MailApp.sendEmail({ to: to, name: 'Veille biblio — Planning-Med',
+        subject: 'Veille biblio — les ' + n + ' articles de la semaine (' + jour + ')', htmlBody: html, body: texte });
+      partis++;
+    } catch (e) { rates++; }
   });
+  if (!partis) return { envoye: false, raison: 'aucun envoi n\'a abouti (' + rates + ' échec(s))' };
   if (!force) props.setProperty('VEILLE_MAIL_DERNIER', new Date().toISOString());
-  return { envoye: true, n: n, rea: sel.rea.length, anesth: sel.anesth.length, seuil: sel.seuil };
+  return { envoye: true, n: n, rea: sel.rea.length, anesth: sel.anesth.length, seuil: sel.seuil, destinataires: partis, rates: rates };
 }
 function _veilleMailHebdo_() {
   const r = _veilleEnvoyerMail_(false);
-  try { logAction('veille — mail : ' + (r.envoye ? r.n + ' articles (' + r.rea + ' réa, ' + r.anesth + ' anesthésie, seuil ' + r.seuil + ')' : 'non envoyé — ' + r.raison)); } catch (e) {}
+  try { logAction('veille — mail : ' + (r.envoye ? r.n + ' articles (' + r.rea + ' réa, ' + r.anesth + ' anesthésie, seuil ' + r.seuil + ') à ' + r.destinataires + ' destinataire(s)' + (r.rates ? ', ' + r.rates + ' échec(s)' : '') : 'non envoyé — ' + r.raison)); } catch (e) {}
   return r;
 }
 /* À lancer à la main : le mail de la semaine, TOUT DE SUITE, à l'administrateur. */

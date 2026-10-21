@@ -499,6 +499,29 @@ a.tile, .tile.clickable { cursor: pointer; }
 .veille-toolbar .vsel{width:100%;min-width:0;text-align:center;text-align-last:center;-webkit-appearance:none;appearance:none;padding:8px 22px 8px 10px;background:var(--white) url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='%2394A3B8' stroke-width='2.5' stroke-linecap='round'%3E%3Cpath d='M6 9l6 6 6-6'/%3E%3C/svg%3E") no-repeat right 8px center;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;cursor:pointer}
 .veille-toolbar .vsel.actif{border-color:var(--me-border);color:var(--me);font-weight:600}
 .veille-toolbar .vrev-wrap{min-width:0}
+/* (21/10/2026) Abonnement au mail du lundi */
+.vabo{background:var(--white);border:1px solid var(--line);border-radius:14px;padding:12px 14px;margin-bottom:12px}
+.vabo-l{display:flex;align-items:center;gap:12px}
+.vabo-ic{width:36px;height:36px;border-radius:10px;background:var(--surface-2);color:var(--ink-4);display:flex;align-items:center;justify-content:center;flex:0 0 auto}
+.vabo-t{flex:1;min-width:0}
+.vabo-t b{display:block;font:600 14px 'DM Sans',sans-serif;color:var(--ink)}
+.vabo-t span{display:block;font:500 12px 'DM Sans',sans-serif;color:var(--ink-3);margin-top:2px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.vabo-sw{position:relative;width:46px;height:28px;border-radius:14px;background:var(--surface-2);border:1px solid var(--line);flex:0 0 auto;cursor:pointer;padding:0}
+.vabo-sw::after{content:"";position:absolute;top:3px;left:3px;width:20px;height:20px;border-radius:50%;background:#fff;box-shadow:0 1px 3px rgba(15,23,42,.25);transition:left .15s}
+.vabo-sw.on{background:var(--me);border-color:var(--me)}
+.vabo-sw.on::after{left:21px}
+.vabo.on,.vabo.edit{border-color:var(--me-border);background:var(--me-soft)}
+.vabo.on .vabo-ic,.vabo.edit .vabo-ic{background:var(--white);color:var(--me)}
+.vabo-f{margin-top:12px;padding-top:12px;border-top:1px solid var(--me-border)}
+.vabo-f label{display:block;font:600 12px 'DM Sans',sans-serif;color:var(--ink-3);margin-bottom:6px}
+.vabo-in{display:flex;gap:8px}
+.vabo-in input{flex:1;min-width:0;border:1.5px solid var(--me-border);border-radius:10px;padding:10px 12px;font:500 16px 'DM Sans',sans-serif;color:var(--ink);background:var(--white)}
+.vabo-in button{border:0;border-radius:10px;background:var(--me);color:#fff;font:700 14px 'DM Sans',sans-serif;padding:0 16px;cursor:pointer}
+.vabo-n{font:500 12px 'DM Sans',sans-serif;color:var(--ink-3);margin-top:8px}
+.vabo-err{font:600 12px 'DM Sans',sans-serif;color:var(--rose);margin-top:8px}
+.vabo-ok{display:flex;gap:6px;align-items:center;font:600 12px 'DM Sans',sans-serif;color:var(--ok);margin-top:8px}
+.vabo-ok-discret{margin-top:4px}
+.vabo-lk{border:0;background:none;padding:0;font:600 12px 'DM Sans',sans-serif;color:var(--me);text-decoration:underline;margin-left:auto;white-space:nowrap;cursor:pointer}
 .varch{margin:18px 0 8px;padding:14px;border:1px dashed var(--line);border-radius:14px;text-align:center}
 .varch-q{font-size:13px;color:var(--ink-3);margin-bottom:10px}
 .varch-q:last-child{margin-bottom:0}
@@ -796,6 +819,7 @@ html[data-theme="dark"] .vs-pill{background:#251B3C;color:#B593F2}
       <h2>Veille biblio</h2>
       <span class="topos-count" id="veilleCount"></span>
     </div>
+    <div id="vAbo"></div>
     <div class="veille-toolbar" id="veilleToolbar" style="display:none">
       <label class="vsearch-big"><svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" aria-hidden="true"><circle cx="11" cy="11" r="7"/><path d="M20 20l-4-4"/></svg><input type="search" placeholder="Chercher un article, un auteur…" aria-label="Chercher dans la veille" oninput="onVSearch(this.value)"></label>
       <div class="vfilter" id="vfilter">
@@ -2508,6 +2532,10 @@ async function openVeille(){
       }
     }catch(e){ /* repli GAS ci-dessous */ }
     if(!r){ r = await apiPost({action:'getVeille'}); marks=null; }
+    /* (21/10/2026) Abonnement au mail du lundi : voyage avec MES marques (miroir), ou dans la réponse GAS. */
+    { const src = marks || (r && r.abonnement) || {};
+      V_ABO = { actif: !!(src.abo && src.abo.actif), email: (src.abo && src.abo.email) || src.mailFichier || '', etat: '', msg: '' };
+      renderVAbo(); }
     if(r && r.success){
       VEILLE_ITEMS = r.items||[];
       if(marks){
@@ -2530,6 +2558,58 @@ async function openVeille(){
       box.innerHTML='<div class="topos-empty">'+esc((r&&r.error)||'Erreur de chargement')+'</div>';
     }
   }catch(e){ box.innerHTML='<div class="topos-empty">Erreur réseau — réessayez.</div>'; }
+}
+
+/* ── ABONNEMENT AU MAIL DU LUNDI (21/10/2026, maquette validée par Arthur) ──
+   Éteint par défaut. L'activer ouvre la saisie de l'adresse (pré-remplie par celle du
+   fichier du service si elle existe) ; Valider enregistre et un mail de confirmation part.
+   L'adresse ne sert qu'à la veille (onglet à part, jamais la fiche du médecin). */
+let V_ABO = { actif:false, email:'', etat:'', msg:'' };
+const _VABO_IC = '<svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="5" width="18" height="14" rx="2"/><path d="m3 7 9 6 9-6"/></svg>';
+function renderVAbo(){
+  const box=document.getElementById('vAbo'); if(!box) return;
+  if(!MY_ID){ box.innerHTML=''; return; }   // l'abonnement est personnel : réservé aux MARs connectés
+  const a=V_ABO, edit=a.etat==='edit'||a.etat==='envoi', on=a.actif&&!edit;
+  const sous = edit ? 'Votre adresse pour la recevoir' : (on ? 'Activée → '+esc(a.email) : '10 articles choisis, chaque lundi matin');
+  let h='<div class="vabo'+(on?' on':'')+(edit?' edit':'')+'"><div class="vabo-l"><div class="vabo-ic">'+_VABO_IC+'</div>'
+    + '<div class="vabo-t"><b>Veille du lundi par mail</b><span>'+sous+'</span></div>'
+    + '<button class="vabo-sw'+((on||edit)?' on':'')+'" role="switch" aria-checked="'+((on||edit)?'true':'false')+'" aria-label="Recevoir la veille du lundi par mail" onclick="toggleVAbo()"></button></div>';
+  if(edit){
+    h+='<div class="vabo-f"><label for="vAboMail">Votre adresse mail</label><div class="vabo-in">'
+      + '<input id="vAboMail" type="email" inputmode="email" autocomplete="email" value="'+esc(a.email)+'" placeholder="prenom.nom@exemple.mc">'
+      + '<button onclick="validerVAbo()"'+(a.etat==='envoi'?' disabled':'')+'>'+(a.etat==='envoi'?'…':'Valider')+'</button></div>'
+      + (a.msg?'<div class="vabo-err">'+esc(a.msg)+'</div>':'<div class="vabo-n">Un mail de confirmation part aussitôt. Cette adresse ne sert qu\'à la veille.</div>')+'</div>';
+  } else if(on && a.msg){
+    h+='<div class="vabo-ok">'+esc(a.msg)+'<button class="vabo-lk" onclick="editerVAbo()">Changer d\'adresse</button></div>';
+  } else if(on){
+    h+='<div class="vabo-ok vabo-ok-discret"><button class="vabo-lk" onclick="editerVAbo()">Changer d\'adresse</button></div>';
+  } else if(a.msg){
+    h+='<div class="vabo-err">'+esc(a.msg)+'</div>';
+  }
+  box.innerHTML=h+'</div>';
+}
+function editerVAbo(){ V_ABO.etat='edit'; V_ABO.msg=''; renderVAbo(); try{ document.getElementById('vAboMail').focus(); }catch(e){} }
+async function toggleVAbo(){
+  if(V_ABO.etat==='envoi') return;
+  if(V_ABO.etat==='edit'){ V_ABO.etat=''; V_ABO.msg=''; renderVAbo(); return; }   // on referme la saisie sans rien changer
+  if(!V_ABO.actif){ editerVAbo(); return; }
+  V_ABO.etat='envoi'; renderVAbo();
+  let r=null; try{ r=await apiPost({action:'setVeilleAbo', actif:false}); }catch(e){}
+  V_ABO.etat='';
+  if(r&&r.success){ V_ABO.actif=false; V_ABO.msg=''; } else V_ABO.msg='Impossible pour le moment — réessayez.';
+  renderVAbo();
+}
+async function validerVAbo(){
+  const champ=document.getElementById('vAboMail');
+  const email=String(champ?champ.value:'').trim();
+  if(!/^[^\s@<>",;]+@[^\s@<>",;]+\.[A-Za-z]{2,}$/.test(email)){ V_ABO.email=email; V_ABO.msg='Adresse incomplète'; renderVAbo(); return; }
+  V_ABO.email=email; V_ABO.etat='envoi'; V_ABO.msg=''; renderVAbo();
+  let r=null; try{ r=await apiPost({action:'setVeilleAbo', actif:true, email:email}); }catch(e){}
+  if(r&&r.success){
+    V_ABO.actif=true; V_ABO.etat='';
+    V_ABO.msg = r.confirme ? '✓ Mail de confirmation envoyé — vérifiez votre boîte' : '✓ Abonnement enregistré';
+  } else { V_ABO.etat='edit'; V_ABO.msg=(r&&r.error)||'Impossible pour le moment — réessayez.'; }
+  renderVAbo();
 }
 
 function setVFilter(f, el){

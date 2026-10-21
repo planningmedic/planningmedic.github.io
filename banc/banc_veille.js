@@ -1066,9 +1066,102 @@ function monde(plan) {
     m.ctx.__props.VEILLE_MAIL_DERNIER = '';
     delete m.ctx.__props.VEILLE_MAIL_DERNIER;
     const rv = vm.runInContext('runVeille()', m.ctx);
-    V('mail en panne : la collecte réussit quand même, l\'échec est noté dans LOGS', rv.success === true && m.logs.some(l => /mail : ÉCHEC/.test(l)), m.logs.slice(-2));
+    V('mail en panne : la collecte réussit quand même, l\'échec est noté dans LOGS', rv.success === true && m.logs.some(l => /mail : (ÉCHEC|non envoyé — aucun envoi n'a abouti)/.test(l)), m.logs.slice(-2));
     // seule adresse du fichier : le contact technique du projet déclaré à PubMed (EUTILS_EMAIL), qui n'est pas celle d'une personne
     V('le code n\'écrit l\'adresse de personne : elle vient du classeur', (fs.readFileSync('../gas/veille.gs', 'utf8').match(/[\w.+-]+@[\w-]+\.[\w.]+/g) || []).every(a => a === 'planningmedic@gmail.com'));
+  }
+
+  console.log('\n═══ Abonnement au mail du lundi, étape 2 (21/10/2026) : chacun s\'abonne et tape son adresse ═══');
+  {
+    const m = monde(() => ({}));
+    vm.runInContext('getOrCreateVeilleTabs()', m.ctx);
+    const envois = [];
+    m.ctx.MailApp = { getRemainingDailyQuota: () => 100, sendEmail: o => envois.push(o) };
+    m.ctx._isoDate = v => v instanceof Date ? v.getFullYear() + '-' + String(v.getMonth() + 1).padStart(2, '0') + '-' + String(v.getDate()).padStart(2, '0') : String(v || '').slice(0, 10);
+    m.ctx.Utilities.formatDate = (d, tz, f) => f === 'yyyy-MM-dd' ? m.ctx._isoDate(d) : 'd MMM';
+    const cfg = m.cl.insertSheet('CONFIG'); cfg.lignes.push(['CLE', 'VALEUR'], ['DIAG_EMAIL', 'admin@exemple.mc']);
+    const med = m.cl.insertSheet('MEDECINS'); med.lignes.push(['ID', 'NOM', 'INI', 'ACTIF', 'Q', 'P', 'CODE', 'EMAIL'], ['7', 'A', 'A', 'O', 1, 1, 'x', 'fiche7@exemple.mc'], ['9', 'B', 'B', 'O', 1, 1, 'y', '']);
+    // le vrai memo et les vraies colonnes de code.gs
+    const codeGs = fs.readFileSync('../gas/code.gs', 'utf8');
+    vm.runInContext((codeGs.match(/const COL_MED = Object\.freeze\(\{[^}]*\}\);/) || [''])[0].replace('const COL_MED', 'var COL_MED'), m.ctx);
+    vm.runInContext((codeGs.match(/function _medecinsRows_\(\) \{[\s\S]*?\n\}/) || [''])[0], m.ctx);
+    const set = (payload, user) => { m.ctx.__p = payload; m.ctx.__u = user; return vm.runInContext('setVeilleAbo(__p, __u)', m.ctx); };
+    V('sans identité : refusé', set({ actif: true, email: 'a@b.mc' }, null).success === false);
+    V('adresse incomplète : refusée, rien n\'est écrit, aucun mail', /incomplète/.test(set({ actif: true, email: 'nom@domaine' }, { id: '9' }).error) && !m.cl.getSheetByName('VEILLE_ABONNES') && envois.length === 0);
+    const r9 = set({ actif: true, email: 'mar9@exemple.mc' }, { id: '9' });
+    const ab = () => m.cl.getSheetByName('VEILLE_ABONNES').lignes;
+    V('abonnement : une ligne (id, O, adresse) dans VEILLE_ABONNES, mail de confirmation À cette adresse', r9.success && r9.confirme && ab().length === 2 && ab()[1][0] === '9' && ab()[1][1] === 'O' && ab()[1][2] === 'mar9@exemple.mc' && envois.length === 1 && envois[0].to === 'mar9@exemple.mc', [r9, ab()]);
+    V('…MEDECINS n\'est PAS touché (l\'adresse y déclencherait les mails de planning)', med.lignes[2][7] === '');
+    V('l\'identité vient de la connexion : le contenu envoyé ne peut pas viser un collègue', set({ actif: true, email: 'pirate@exemple.mc', id: '7' }, { id: '9' }).success && ab().length === 2 && ab()[1][2] === 'pirate@exemple.mc' && !ab().some(l => l[0] === '7'));
+    set({ actif: true, email: 'mar9@exemple.mc' }, { id: '9' });
+    const off = set({ actif: false }, { id: '9' });
+    V('désabonnement : la même ligne passe à N, l\'adresse reste pour être reproposée', off.success && ab().length === 2 && ab()[1][1] === 'N' && off.abo.email === 'mar9@exemple.mc');
+    set({ actif: true, email: 'mar9@exemple.mc' }, { id: '9' });
+    const pm = vm.runInContext('_veilleMarquesParMar()', m.ctx);
+    V('les marques portent l\'abonnement de chacun et l\'adresse du fichier (pré-remplissage)', pm['9'].abo.actif === true && pm['9'].abo.email === 'mar9@exemple.mc' && pm['7'].mailFichier === 'fiche7@exemple.mc' && !pm['9'].mailFichier);
+    m.ctx.__u = { id: '7' };
+    const g7 = vm.runInContext('getVeille(__u)', m.ctx);
+    V('repli GAS : getVeille rend MON abonnement (et rien de celui des autres)', g7.abonnement && g7.abonnement.mailFichier === 'fiche7@exemple.mc' && !g7.abonnement.abo && JSON.stringify(g7).indexOf('mar9@') === -1);
+
+    // Le lundi : l'administrateur + les abonnés actifs, un mail chacun, sans doublon
+    const v = m.cl.getSheetByName('VEILLE');
+    v.lignes[0] = ['PMID', 'DATE_PUB', 'TITRE', 'AUTEURS', 'REVUE', 'DOI', 'SOURCE', 'SCORE', 'RESUME', 'LU', 'STAR', 'AJOUTE_LE', 'PUBTYPE', 'THEMES', 'MOTIF'];
+    v.lignes.push(['p1', new Date(), 'Trial in critically ill adults with septic shock', 'X', 'JAMA', '', 'GENERAL', 90, 'Résumé.', 'N', 'N', new Date(), '', 'Sepsis et infection', 'ECR']);
+    set({ actif: true, email: 'ADMIN@exemple.mc' }, { id: '12' });     // l'admin abonné aussi : un seul mail
+    set({ actif: true, email: 'ancien@exemple.mc' }, { id: '15' }); set({ actif: false }, { id: '15' });   // désabonné
+    envois.length = 0;
+    const h = vm.runInContext('_veilleMailHebdo_()', m.ctx);
+    const tos = envois.map(e => e.to.toLowerCase()).sort();
+    V('lundi : administrateur + abonnés actifs, un mail chacun, adresse en double envoyée une fois, désabonné exclu', h.envoye && JSON.stringify(tos) === JSON.stringify(['admin@exemple.mc', 'mar9@exemple.mc']) && h.destinataires === 2, tos);
+    V('…un mail par personne : personne ne voit l\'adresse d\'un autre', envois.every(e => !/,/.test(e.to) && !e.cc && !e.bcc));
+    envois.length = 0;
+    vm.runInContext('veilleEnvoyerMailTest()', m.ctx);
+    V('l\'envoi de test ne part qu\'à l\'administrateur', envois.length === 1 && envois[0].to === 'admin@exemple.mc', envois.map(e => e.to));
+    envois.length = 0; delete m.ctx.__props.VEILLE_MAIL_DERNIER; m.ctx.__props.NOTIF_EMAIL_TEST = 'test@exemple.mc';
+    vm.runInContext('_veilleMailHebdo_()', m.ctx);
+    V('NOTIF_EMAIL_TEST renseignée : tout part vers elle, une seule fois', envois.length === 1 && envois[0].to === 'test@exemple.mc');
+    delete m.ctx.__props.NOTIF_EMAIL_TEST;
+    V('le routeur du portail sert setVeilleAbo, et le miroir repousse les marques après', /case 'setVeilleAbo': return _portailJson\(setVeilleAbo\(payload, user\)\)/.test(fs.readFileSync('../gas/portail.gs', 'utf8')) && /setVeilleAbo:\s+\['veille_marques'\]/.test(fs.readFileSync('../gas/miroir.gs', 'utf8')));
+
+    // L'écran, piloté au clic
+    const { JSDOM, VirtualConsole } = require('jsdom');
+    const vcons = new VirtualConsole(); const erreurs = []; vcons.on('jsdomError', e => erreurs.push(e.message));
+    const dom = new JSDOM(fs.readFileSync('../index.html', 'utf8'), {
+      runScripts: 'dangerously', virtualConsole: vcons, url: 'https://planningmedic.github.io/index.html', pretendToBeVisual: true,
+      beforeParse(win) {
+        win.eval(fs.readFileSync(require('path').join(__dirname, '..', 'partage', 'portail.js'), 'utf8')); win.eval(fs.readFileSync(require('path').join(__dirname, '..', 'partage', 'rendu_equite.js'), 'utf8'));
+        win.matchMedia = () => ({ matches:false, addListener(){}, removeListener(){}, addEventListener(){}, removeEventListener(){} });
+        win.Element.prototype.scrollIntoView = function () {}; win.scrollTo = () => {};
+      } });
+    const w = dom.window, d = w.document;
+    const demandes = []; let reponse = { success:true, abo:{ actif:true, email:'' }, confirme:true };
+    w.fetch = async (u, o) => { let b = {}; try { b = JSON.parse(o && o.body || '{}'); } catch (e) {} demandes.push(b);
+      const rep = b.action === 'setVeilleAbo' ? Object.assign({}, reponse, { abo: { actif: !!b.actif, email: b.email || 'mar7@exemple.mc' } }) : { success:true };
+      return { ok:true, json: async () => rep, text: async () => JSON.stringify(rep) }; };
+    await new Promise(r => setTimeout(r, 300));
+    w.eval("MY_ID='7'");
+    w.miroirRead = async () => ({ success:true, data: { veille: { success:true, items: [] }, veille_marques: { parMar: { '7': { lus:[], stars:[], mailFichier:'fiche7@exemple.mc' } } } } });
+    await w.openVeille();
+    const carte = () => d.querySelector('#vAbo .vabo');
+    V('état 1 : la carte est là, éteinte, « 10 articles choisis, chaque lundi matin »', carte() && !carte().classList.contains('on') && /10 articles choisis/.test(carte().textContent) && d.querySelector('#vAbo .vabo-sw').getAttribute('aria-checked') === 'false');
+    d.querySelector('#vAbo .vabo-sw').click();
+    const champ = () => d.getElementById('vAboMail');
+    V('état 2 : toucher l\'interrupteur ouvre la saisie, pré-remplie par l\'adresse du fichier ; rien n\'est encore envoyé', champ() && champ().value === 'fiche7@exemple.mc' && !demandes.some(b => b.action === 'setVeilleAbo'));
+    champ().value = 'nom@incomplet'; d.querySelector('#vAbo .vabo-in button').click();
+    await new Promise(r => setTimeout(r, 30));
+    V('adresse incomplète : refusée à l\'écran, rien n\'est envoyé', /Adresse incomplète/.test(d.getElementById('vAbo').textContent) && !demandes.some(b => b.action === 'setVeilleAbo'));
+    champ().value = 'mar7@exemple.mc'; d.querySelector('#vAbo .vabo-in button').click();
+    await new Promise(r => setTimeout(r, 50));
+    const q = demandes.find(b => b.action === 'setVeilleAbo');
+    V('Valider envoie { actif: true, email } au serveur', q && q.actif === true && q.email === 'mar7@exemple.mc', q);
+    V('état 3 : carte bleue, « Activée → adresse », confirmation et « Changer d\'adresse »', carte().classList.contains('on') && /Activée → mar7@exemple\.mc/.test(carte().textContent) && /Mail de confirmation envoyé/.test(carte().textContent) && /Changer d'adresse/.test(carte().textContent));
+    d.querySelector('#vAbo .vabo-sw').click();
+    await new Promise(r => setTimeout(r, 50));
+    V('éteindre : { actif: false } part, la carte redevient grise', demandes.some(b => b.action === 'setVeilleAbo' && b.actif === false) && !carte().classList.contains('on'));
+    w.eval("MY_ID=null"); w.renderVAbo();
+    V('sans identité de MAR (code du comité) : pas de carte', !d.querySelector('#vAbo .vabo'));
+    V('aucune erreur JavaScript', erreurs.length === 0, erreurs.slice(0, 2));
+    V('le guide MAR explique le geste', /Je veux recevoir la veille par mail/.test(fs.readFileSync('../docs/guide-mar.html', 'utf8')));
   }
 
 console.log(`\n${ok} OK · ${ko} en échec`);
