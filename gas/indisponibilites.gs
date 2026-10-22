@@ -4,7 +4,7 @@
    quelles : aucune ligne de logique modifiée, seulement déplacée. Le routeur et
    ses aides (checkCode, _deny, _error, doGet/doPost) restent dans Indispos.gs.
    Un seul espace global dans Apps Script : rien à importer. */
-const GAS_VERSION_INDISPOS_METIER = '2026-10-11.1';
+const GAS_VERSION_INDISPOS_METIER = '2026-10-22.1';
 
 // La campagne de saisie des indispos est-elle EN COURS ?
 // La ligne INDISPOS_ACTIVE de CONFIG n'existe que pendant la campagne :
@@ -1175,6 +1175,19 @@ function _act_envoyerRecapIndispos(R) {
       `<span style="display:inline-block;background:#ecfdf5;color:#0d9488;border:1px solid #cdeee6;border-radius:999px;font-size:12px;font-weight:700;padding:4px 11px;margin:0 6px 6px 0">${nMat} maternité</span>` +
       (nWe ? `<span style="display:inline-block;background:#fff7ed;color:#c2410c;border:1px solid #fde3cf;border-radius:999px;font-size:12px;font-weight:700;padding:4px 11px;margin:0 6px 6px 0">${nWe} jour${nWe>1?'s':''} de week-end</span>` : '') +
       (nFer ? `<span style="display:inline-block;background:#fef2f2;color:#b91c1c;border:1px solid #fbd5d5;border-radius:999px;font-size:12px;font-weight:700;padding:4px 11px;margin:0 6px 6px 0">${nFer} férié${nFer>1?'s':''}</span>` : '');
+
+    /* (22/10/2026) EN-TÊTE DU MAIL — ces deux blocs étaient utilisés plus bas mais
+       définis nulle part : l'envoi s'arrêtait au premier MAR ayant des gardes et
+       personne ne recevait rien. Trouvé en rejouant le mail sur les indispos 2027 ;
+       aucun scénario du banc ne l'envoyait (banc_mail_recap.js le fait désormais). */
+    const summaryHtml =
+      '<div style="margin-bottom:18px">'
+      + '<div style="font-size:15px;font-weight:800;color:#0f172a;margin-bottom:10px">'
+      + gardes.length + ' garde' + (gardes.length > 1 ? 's' : '') + ' en ' + year + '</div>'
+      + chips + '</div>';
+    const emptyHtml =
+      '<div style="background:#f8fafc;border:1px solid #eef1f5;border-radius:12px;padding:13px 16px;'
+      + 'margin-bottom:22px;font-size:14px;color:#64748b">Aucune garde programmée pour vous en ' + year + '.</div>';
 
     let rowsHtml = '';
     /* (26/08/2026) Un week-end de garde (vendredi + dimanche, même binôme) est
