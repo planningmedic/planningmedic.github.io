@@ -4,7 +4,7 @@
    quelles : aucune ligne de logique modifiée, seulement déplacée. Le routeur et
    ses aides (checkCode, _deny, _error, doGet/doPost) restent dans Indispos.gs.
    Un seul espace global dans Apps Script : rien à importer. */
-const GAS_VERSION_INDISPOS_METIER = '2026-10-22.1';
+const GAS_VERSION_INDISPOS_METIER = '2026-10-22.2';
 
 // La campagne de saisie des indispos est-elle EN COURS ?
 // La ligne INDISPOS_ACTIVE de CONFIG n'existe que pendant la campagne :
@@ -1155,14 +1155,33 @@ function _act_envoyerRecapIndispos(R) {
             if (String(_sd[_r][0]).trim() !== String(id).trim()) continue;
             const _p = Number(_sd[_r][_iP]) || 0, _h = Number(_sd[_r][_iH]) || 0;
             if (!_p) break;                       // aucun souhait posé : on ne dit rien
-            const _tous = (_h === _p);
+            /* (22/10/2026) TAUX RAPPORTÉ AU POSSIBLE. « 6 retenus sur 52 » laissait lire
+               12 % à qui avait posé 52 jeudis pour une part de 6, alors que 6 était le
+               maximum. Le générateur écrit désormais ce maximum (SOUHAITS POSSIBLES) et
+               combien de ceux-là sont obtenus (SOUHAITS POSSIBLES OBTENUS). Colonnes
+               absentes (planning généré avant cette date) : l'ancienne phrase. */
+            const _iQ = _sh.indexOf('SOUHAITS POSSIBLES'), _iU = _sh.indexOf('SOUHAITS POSSIBLES OBTENUS');
+            const _avecPossible = _iQ >= 0 && _iU >= 0 && _sd[_r][_iQ] !== '' && _sd[_r][_iQ] != null;
+            const _q = _avecPossible ? (Number(_sd[_r][_iQ]) || 0) : _p;
+            const _u = _avecPossible ? Math.min(Number(_sd[_r][_iU]) || 0, _q) : _h;
+            const _tous = _q > 0 && _u === _q;
+            const _s = n => n > 1 ? 's' : '';
+            let _titre, _detail = '';
+            if (!_avecPossible) _titre = 'Souhaits : ' + _h + ' retenu' + _s(_h) + ' sur ' + _p;
+            else if (!_q) _titre = 'Souhaits : ' + _p + ' demandé' + _s(_p) + ', aucun ne pouvait être accordé vu votre part de gardes';
+            else {
+              _titre = 'Souhaits : ' + _u + ' retenu' + _s(_u) + ' sur ' + _q + ' possible' + _s(_q)
+                     + ' — ' + Math.round(100 * _u / _q) + ' %';
+              if (_p > _q) _detail = _p + ' demandés : le possible tient compte de votre part de gardes, qu\'aucun souhait ne peut dépasser.';
+            }
             souhaitsHtml =
               '<div style="background:' + (_tous ? '#ecfdf5' : '#f8fafc') + ';border:1px solid '
               + (_tous ? '#cdeee6' : '#eef1f5') + ';border-radius:12px;padding:13px 16px;margin-bottom:22px">'
               + '<div style="font-size:13px;color:' + (_tous ? '#0d9488' : '#334155')
-              + ';font-weight:700">' + (_tous ? '✓ ' : '') + 'Souhaits : ' + _h + ' retenu'
-              + (_h > 1 ? 's' : '') + ' sur ' + _p + '</div></div>';
-            souhaitsTexte = 'Souhaits : ' + _h + ' retenu' + (_h > 1 ? 's' : '') + ' sur ' + _p + '.\n';
+              + ';font-weight:700">' + (_tous ? '✓ ' : '') + _titre + '</div>'
+              + (_detail ? '<div style="font-size:12px;color:#64748b;margin-top:4px">' + _detail + '</div>' : '')
+              + '</div>';
+            souhaitsTexte = _titre + '.\n' + (_detail ? _detail + '\n' : '');
             break;
           }
         }

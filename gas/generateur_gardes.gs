@@ -41,7 +41,7 @@
 // ⚠️ RÈGLE (détecteur de dérive dépôt↔Apps Script) : incrémenter cette version
 // à CHAQUE push de ce fichier. Le diagnostic (admin → Maintenance) compare la
 // version déployée ici avec celle du dépôt et signale toute recopie oubliée.
-const GAS_VERSION_GENERATEUR = '2026-10-21.1';
+const GAS_VERSION_GENERATEUR = '2026-10-22.1';
 
 /* (05/09/2026) INTERRUPTEUR DU NOUVEL ALGORITHME — récit : docs/JOURNAL-Planning-Med.md §101 */
 const NOUVEL_ALGO_GLOBAL = true;
@@ -389,15 +389,18 @@ function essaiGenerationGardes(year) {
   L.push('── SOUHAITS · honorés / posés ──');
   if (!sIds.length) { L.push('   aucun souhait posé cette année'); }
   else {
-    let tp = 0, th = 0;
+    /* (22/10/2026) Le % se rapporte au POSSIBLE (part du MAR), plus aux posés :
+       « possible » = ce que l'algorithme pouvait accorder au mieux, vu sa part. */
+    L.push('   ' + pad('', 12) + 'obtenus / posés · possible · taux');
+    let tp = 0, th = 0, tq = 0, tu = 0;
     sIds.forEach(function (id) {
       const s = r.souhaits[id];
-      tp += s.poses; th += s.honores;
-      const pct = s.poses ? Math.round(100 * s.honores / s.poses) : 0;
-      L.push('   ' + pad(id, 12) + num(s.honores, 3) + ' / ' + num(s.poses, 3) + '   ' + num(pct, 3) + ' %');
+      tp += s.poses; th += s.honores; tq += s.possible; tu += s.honoresUtiles;
+      const pct = s.possible ? num(Math.round(100 * s.honoresUtiles / s.possible), 3) + ' %' : '  —  ';
+      L.push('   ' + pad(id, 12) + num(s.honores, 3) + ' / ' + num(s.poses, 3) + ' · ' + num(s.possible, 3) + ' · ' + pct);
     });
-    L.push('   ' + pad('TOTAL', 12) + num(th, 3) + ' / ' + num(tp, 3) + '   '
-           + num(tp ? Math.round(100 * th / tp) : 0, 3) + ' %');
+    L.push('   ' + pad('TOTAL', 12) + num(th, 3) + ' / ' + num(tp, 3) + ' · ' + num(tq, 3) + ' · '
+           + num(tq ? Math.round(100 * tu / tq) : 0, 3) + ' %');
   }
   L.push('');
 
@@ -2515,6 +2518,67 @@ function generateGardes(year, opts){
     });
     return out;
   }
+  /* (22/10/2026) TAUX RAPPORTÉ AU POSSIBLE. honorés ÷ posés pénalisait celui qui
+     pose plus que sa part : 10 jeudis souhaités pour une part de 6, 6 obtenus,
+     affichait 60 % alors que l'algorithme ne pouvait pas faire mieux. Le
+     « possible » reprend les limites mêmes de la passe des souhaits : jeudis,
+     samedis et week-ends jusqu'à la part arrondie à l'inférieur ; une seule
+     unité fériée ou veille de férié (joker) ; lundi-mardi-mercredi jusqu'au
+     budget de semaine ; le tout sous la cible totale. Les honorés sont comptés
+     famille par famille, sans dépasser le possible de chaque famille : une garde
+     de plus obtenue par l'équité ne fait pas passer le taux au-delà de 100 %.
+     Profils « souhaits garantis » : le possible est tout ce qu'ils ont posé.
+     Partagé par l'essai (bilan affiché) et la vraie génération (colonne
+     SOUHAITS POSSIBLES de STATS_GARDES, lue par le mail « Vos gardes »). */
+  const _uniteFixe = function(date){
+    const di = dayByDate[date]; if(!di) return null;
+    if(di.dow===5||di.dow===0){
+      const ven = di.dow===5?date:shiftDays(date,-2), dim = di.dow===5?shiftDays(date,2):date;
+      return { jours:[ven,dim], vd:true };
+    }
+    if(di.isFerie&&di.dow===4) return { jours:[date,shiftDays(date,2)] };
+    if(di.isFerie&&di.dow===1) return { jours:[shiftDays(date,-2),date] };
+    if(di.dow===6){
+      const thu=shiftDays(date,-2), mon=shiftDays(date,2);
+      if(dayByDate[thu]&&dayByDate[thu].isFerie&&dayByDate[thu].dow===4) return { jours:[thu,date] };
+      if(dayByDate[mon]&&dayByDate[mon].isFerie&&dayByDate[mon].dow===1) return { jours:[date,mon] };
+    }
+    return { jours:[date] };
+  };
+  function souhaitsPossibles_(id){
+    let poses = 0, honores = 0;
+    const fam = { jeu:{}, sam:{}, vd:{}, joker:{}, libre:{} };   // clé d'unité -> {voulus, obtenus}
+    Object.keys(souhaits || {}).forEach(function(ds){
+      if((souhaits[ds] || []).indexOf(id) < 0) return;
+      const g = gardes[ds], obtenu = !!(g && (g.g === id || g.g2 === id));
+      poses++; if(obtenu) honores++;
+      if(!dayByDate[ds]) return;
+      let f, cle = ds;
+      if(estJourLibre(ds)) f = 'libre';
+      else {
+        const un = _uniteFixe(ds), c = coutAxesUnite(un);
+        cle = un.jours.join('+');
+        f = (c.vjf||c.ferie||c.jf) ? 'joker' : c.vd ? 'vd' : c.sam ? 'sam' : c.jeu ? 'jeu' : 'libre';
+      }
+      const u = fam[f][cle] || (fam[f][cle] = { voulus:0, obtenus:0 });
+      u.voulus++; if(obtenu) u.obtenus++;
+    });
+    if(SOUHAIT_PLAFOND.has(id) || !cible[id]) return { possible:poses, utiles:Math.min(honores, poses) };
+    const plafond = { jeu:Math.floor(cible[id].jeu), sam:Math.floor(cible[id].sam), vd:Math.floor(cible[id].vd),
+                      joker:SOUHAIT_QUOTA_RARE, libre:Math.max(0, Math.ceil(freeBudget[id] || 0)) };
+    let possible = 0, utiles = 0;
+    Object.keys(fam).forEach(function(f){
+      const us = Object.keys(fam[f]).map(function(k){ return fam[f][k]; });
+      // le possible d'une famille : les unités les plus « remplies », dans la limite du plafond
+      const p = us.map(function(u){ return u.voulus; }).sort(function(x,y){ return y-x; })
+                  .slice(0, Math.max(0, plafond[f])).reduce(function(t,v){ return t+v; }, 0);
+      const o = us.reduce(function(t,u){ return t+u.obtenus; }, 0);
+      possible += p; utiles += Math.min(o, p);
+    });
+    possible = Math.min(possible, Math.floor(cible[id].total));
+    return { possible:possible, utiles:Math.min(utiles, possible) };
+  }
+
   if(DRY){
     const _AXES=['total','sam','jeu','vd','vjf','jf'];
     const ecarts={};
@@ -2563,6 +2627,10 @@ function generateGardes(year, opts){
         const g = gardes[ds];
         if(g && (g.g === id || g.g2 === id)) souhaitsBilan[id].honores++;
       });
+    });
+    Object.keys(souhaitsBilan).forEach(function(id){
+      const p = souhaitsPossibles_(id);
+      souhaitsBilan[id].possible = p.possible; souhaitsBilan[id].honoresUtiles = p.utiles;
     });
 
     /* Qui tient les quatre nuits de fêtes : la question la plus regardée. */
@@ -2753,7 +2821,10 @@ function generateGardes(year, opts){
   // code.gs lit encore des colonnes par position (sd[r][17], [19], [21]) et un décalage
   // fausserait silencieusement les cibles du tableau de bord.
   /* (11/09/2026) PART EXACTE — récit : docs/JOURNAL-Planning-Med.md §121 */
-  st.getRange(1,1,1,31).setValues([['MEDECIN','CIBLE','TOTAL G','G (REA)','G2 (MAT)','LUN','MAR','MER','JEU','VEN','SAM','DIM','RECUP R','18H','JF','VEILLE JF','NOEL/AN','CIBLE SAM','CIBLE JEU','CIBLE VD','VD','CIBLE VJF','CIBLE JF','SOUHAITS POSES','SOUHAITS HONORES','PART EXACTE','PART EXACTE SAM','PART EXACTE JEU','PART EXACTE VD','PART EXACTE VJF','PART EXACTE JF']]).setFontWeight('bold');
+  st.getRange(1,1,1,33).setValues([['MEDECIN','CIBLE','TOTAL G','G (REA)','G2 (MAT)','LUN','MAR','MER','JEU','VEN','SAM','DIM','RECUP R','18H','JF','VEILLE JF','NOEL/AN','CIBLE SAM','CIBLE JEU','CIBLE VD','VD','CIBLE VJF','CIBLE JF','SOUHAITS POSES','SOUHAITS HONORES','PART EXACTE','PART EXACTE SAM','PART EXACTE JEU','PART EXACTE VD','PART EXACTE VJF','PART EXACTE JF','SOUHAITS POSSIBLES','SOUHAITS POSSIBLES OBTENUS']]).setFontWeight('bold');
+  // (22/10/2026) Les deux dernières colonnes : souhaits que l'algorithme pouvait accorder
+  // au mieux vu la part du MAR, et combien de ceux-là sont obtenus (souhaitsPossibles_).
+  // Ajoutées EN FIN de ligne : aucune colonne lue par position ne bouge.
   // Souhaits honorés = dates souhaitées où le MAR est effectivement de garde dans le
   // planning FINAL, quelle que soit la passe qui l'y a placé.
   const souhaitJoursOK={};
@@ -2765,6 +2836,7 @@ function generateGardes(year, opts){
     });
     souhaitJoursOK[id]=k;
   });
+  const _spMemo={}; const _sp=id=>_spMemo[id]||(_spMemo[id]=souhaitsPossibles_(id));
   const sRows=allDoctors.map(id=>{
     const cbT=cible[id]?cible[id].total:0;
     const cbS=cible[id]?cible[id].sam:0, cbJ=cible[id]?cible[id].jeu:0, cbV=cible[id]?cible[id].vd:0, cbVjf=cible[id]?cible[id].vjf:0;
@@ -2778,9 +2850,10 @@ function generateGardes(year, opts){
       h18cnt[id]||0,jfCnt[id]||0,c.vjf||0,noelAnCnt[id]||0,
       +cbS.toFixed(1),+cbJ.toFixed(1),+cbV.toFixed(1),c.vd||0,+cbVjf.toFixed(1),+cbJf.toFixed(1),
       souhaitPose[id]||0,souhaitJoursOK[id]||0,
-      _ex('total'),_ex('sam'),_ex('jeu'),_ex('vd'),_ex('vjf'),_ex('jf')];
+      _ex('total'),_ex('sam'),_ex('jeu'),_ex('vd'),_ex('vjf'),_ex('jf'),
+      _sp(id).possible,_sp(id).utiles];
   });
-  st.getRange(2,1,sRows.length,31).setValues(sRows);
+  st.getRange(2,1,sRows.length,33).setValues(sRows);
   st.getRange(2,2,sRows.length,1).setNumberFormat('@STRING@');
   st.setColumnWidth(1,140);
 

@@ -1042,7 +1042,13 @@ colonnes <code>SOUHAITS POSES</code> / <code>SOUHAITS HONORES</code> cherchées 
 absentes des plannings antérieurs, d'où un repli silencieux. Ces colonnes sont écrites
 <b>en fin</b> de feuille : <code>code.gs</code> lit encore certaines colonnes par position
 (<code>sd[r][17]</code>, <code>[19]</code>, <code>[21]</code>), les intercaler fausserait les
-cibles du tableau de bord. Le marquage « week-end » couvre vendredi, samedi et dimanche depuis
+cibles du tableau de bord. Depuis le 22/10/2026, le taux affiché est rapporté au
+<b>possible</b> : colonnes <code>SOUHAITS POSSIBLES</code> (ce que l'algorithme pouvait accorder
+au mieux vu la part du MAR — jeudis, samedis, week-ends jusqu'à la part arrondie à l'inférieur,
+une unité fériée, lundi-mercredi jusqu'au budget de semaine, sous la cible totale) et
+<code>SOUHAITS POSSIBLES OBTENUS</code>, calculées par <code>souhaitsPossibles_</code> du
+générateur, ajoutées elles aussi en fin de ligne. Sans elles, le mail garde l'ancienne phrase
+« X retenus sur Y ». Le même calcul alimente le bilan de l'essai de génération. Le marquage « week-end » couvre vendredi, samedi et dimanche depuis
 le 25/08 : le vendredi forme une unité avec le dimanche et était omis.</p>
 </div></details>
 
