@@ -41,7 +41,7 @@
 // ⚠️ RÈGLE (détecteur de dérive dépôt↔Apps Script) : incrémenter cette version
 // à CHAQUE push de ce fichier. Le diagnostic (admin → Maintenance) compare la
 // version déployée ici avec celle du dépôt et signale toute recopie oubliée.
-const GAS_VERSION_GENERATEUR = '2026-10-23.1';
+const GAS_VERSION_GENERATEUR = '2026-10-23.2';
 
 /* (05/09/2026) INTERRUPTEUR DU NOUVEL ALGORITHME — récit : docs/JOURNAL-Planning-Med.md §101 */
 const NOUVEL_ALGO_GLOBAL = true;
@@ -1112,6 +1112,37 @@ function generateGardes(year, opts){
     return off.some(k=>{const _x=new Date(_b);_x.setDate(_b.getDate()+k);return isSouhaitDe(id,toDateStr(_x));});
   }
 
+  /* (23/10/2026) JAMAIS 3 GARDES SUR 6 JOURS GLISSANTS. Règle du responsable :
+     « 2 gardes en 3 jours doit être le pire schéma » — garde, repos, garde (le
+     vendredi-dimanche par exemple), puis au moins 4 jours avant la suivante.
+     Constaté sur la simulation 2027 : ven. 15, dim. 17, mar. 19 et jeu. 21/10
+     pour le même MAR, à cheval sur deux semaines (la limite par semaine ne le
+     voyait pas). Règle dure, jamais relâchée, même en dernier recours.
+     `ajout` = la ou les nuits qu'on s'apprête à poser (2 pour un vendredi-dimanche).
+     Seule exception : le MAR a souhaité lui-même toutes les gardes de la fenêtre
+     (un vendredi ou un dimanche souhaité vaut pour les deux nuits du week-end :
+     elles vont ensemble). */
+  const DENSITE_MAX = 2, DENSITE_FENETRE = 6;
+  function souhaitDense(id,ds){
+    if(isSouhaitDe(id,ds)) return true;
+    const w=dayByDate[ds]?.dow, b=new Date(ds+'T12:00:00');
+    const autre=n=>{const x=new Date(b);x.setDate(b.getDate()+n);return toDateStr(x);};
+    return (w===5&&isSouhaitDe(id,autre(2)))||(w===0&&isSouhaitDe(id,autre(-2)));
+  }
+  function tropDense(id,ajout){
+    const set=new Set(ajout);
+    const has=ds=>set.has(ds)||gSet[id]?.has(ds)||g2Set[id]?.has(ds);
+    for(const a of ajout){
+      const b=new Date(a+'T12:00:00');
+      for(let deb=-(DENSITE_FENETRE-1);deb<=0;deb++){
+        const jours=[];
+        for(let k=0;k<DENSITE_FENETRE;k++){const x=new Date(b);x.setDate(b.getDate()+deb+k);const xs=toDateStr(x);if(has(xs))jours.push(xs);}
+        if(jours.length>DENSITE_MAX && !jours.every(ds=>souhaitDense(id,ds))) return true;
+      }
+    }
+    return false;
+  }
+
   function blocked(id,date,_relaxJS){
     if(indispoIndividuelle(id,date)) return true;
     if(rgSet[id].has(date)||rSet[id]?.has(date)) return true;
@@ -1140,6 +1171,7 @@ function generateGardes(year, opts){
         if((gSet[id]?.has(_xs)||g2Set[id]?.has(_xs)) && !(weSouhaite(id,date)&&weSouhaite(id,_xs))) return true;
       }
     }
+    if(tropDense(id,[date])) return true;
     return false;   // le reste est dans indispoIndividuelle() — source unique
   }
 
@@ -1283,7 +1315,7 @@ function generateGardes(year, opts){
       }
       return [...new Set(u)].filter(d=>dayByDate[d]).sort();
     };
-    const canHoldUnit=(m,unit)=>unit.every(d=>!blocked(m,d));
+    const canHoldUnit=(m,unit)=>unit.every(d=>!blocked(m,d))&&!tropDense(m,unit);
     const assignUnit=(unit,A,B)=>{
       const [g,gg]=assignRoles(A,B);
       const hasFri=unit.some(d=>dayByDate[d].dow===5);
@@ -1575,7 +1607,7 @@ function generateGardes(year, opts){
       || ((a==='jeu'||a==='sam'||a==='vd') ? cnt[m][a]<Math.floor(cible[m][a]) : cnt[m][a]<cible[m][a]));
   };
   function placeSouhaitUnite(id,un){
-    const jours=un.jours, free=m=>jours.every(d=>!blocked(m,d));
+    const jours=un.jours, free=m=>jours.every(d=>!blocked(m,d))&&!tropDense(m,jours);
     const wish=new Set(); jours.forEach(d=>(souhParJour[d]||[]).forEach(m=>wish.add(m)));
     const dRef=jours.length>1&&!un.vd ? jours.find(d=>dayByDate[d].dow===6) : jours[0];
     const scoreU=un.vd ? (m=>scoreVD(m,jours[0],jours[1]))
@@ -1794,7 +1826,7 @@ function generateGardes(year, opts){
       // 25/12 tombant un dimanche, posé seul), ne pas reformer d'unité VD :
       // assign(dimDate) écraserait l'attribution de Noël et corromprait les
       // compteurs. Le vendredi est alors placé seul (« VD exception »).
-      const availVD=(dimExists&&!gardes[dimDate])?avail.filter(id=>!blocked(id,dimDate)):[];
+      const availVD=(dimExists&&!gardes[dimDate])?avail.filter(id=>!blocked(id,dimDate)&&!tropDense(id,[date,dimDate])):[];
       if(availVD.length>=2){
         availVD.sort((a,b)=>cmp(scoreVD(a,date,dimDate),scoreVD(b,date,dimDate)));
         /* (11/10/2026) COUPLES DE WEEK-END · levier 1. Le samedi est déjà tenu (un
@@ -1953,6 +1985,8 @@ function generateGardes(year, opts){
     });
     // 4) Faisabilité : B peut-il tenir ce rôle sur tous les jours du groupe ?
     const canHold=(B,days_,role_)=>{
+      // (23/10/2026) Même règle dure que dans blocked() : un transfert ne crée jamais une série trop dense.
+      if(tropDense(B,days_)) return false;
       // (05/09/2026) Même règle dure que dans blocked() : un transfert ne peut pas
       // donner à B un deuxième week-end consécutif.
       if(NOUVEL_ALGO){

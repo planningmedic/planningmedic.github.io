@@ -51,8 +51,11 @@ function campagne(seed) {
   return { roster, m };
 }
 /* (20/10/2026) graine 6 : avec la règle « pas de garde la veille des vacances », la graine 1
-   ne donnait plus un premier tirage faisable ; la 6 reproduit le cas (1er tirage ≠ retenu). */
-const { roster, m } = campagne(6);
+   ne donnait plus un premier tirage faisable ; la 6 reproduit le cas (1er tirage ≠ retenu).
+   (23/10/2026) graine 2 : avec la règle « jamais 3 gardes sur 6 jours », le premier
+   tirage de la graine 6 est déjà retenu ; la 2 reproduit le cas (tirage 3 retenu,
+   le premier reste calculable pour la contre-épreuve). */
+const { roster, m } = campagne(2);
 function monde(genSource) {
   const ss = H.makeSpreadsheet([
     H.makeSheet('MEDECINS', H.medecinsRows(roster)),
