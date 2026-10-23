@@ -57,7 +57,7 @@
 //  instantané unique et partagé : chantier séparé.
 // ══════════════════════════════════════════════════════════════════════
 
-const GAS_VERSION_VEILLE = '2026-10-23.2';
+const GAS_VERSION_VEILLE = '2026-10-23.3';
 
 const VEILLE_CFG_TAB = 'VEILLE_CFG';
 const VEILLE_TAB     = 'VEILLE';
@@ -524,6 +524,9 @@ function _veilleTypeResume(titre, resume) {
      résumé +3 (absent −10) · récent +3 · lettre/éditorial −30 · protocole/erratum −25
      AUCUN thème dans le titre : note × 0,75.
    Simulé sur les 949 du 20/10 : 1 seul à 100 (au lieu de 140), 43 à 80 et plus. */
+/* Le total le plus haut possible : base 20 + ECR 30 + grande revue 20 + 3 thèmes au titre 24 +
+   multicentrique 4 + effectif 8 + résumé 3 + fraîcheur 4. */
+const VEILLE_NOTE_MAX = 113;
 function _veilleEffectif(resume) {
   let max = 0; const re = /(\d{1,3}(?:[ ,]\d{3})+|\d+)\s+(?:critically ill\s+)?(?:patients|participants|adults|children|infants|neonates|women|men|subjects|parturients|individuals)/gi; let m;
   while ((m = re.exec(String(resume || '')))) { const n = parseInt(m[1].replace(/[ ,]/g, ''), 10); if (n > max && n < 10000000) max = n; }
@@ -559,17 +562,22 @@ function _veilleNote(fiche, source, themes, aujourdhui, themesTitre) {
   const metierSeul = nT && Object.keys(themesTitre).every(_veilleEstMetier);
   if (metierSeul) { n += 12; motifs.push(Object.keys(themesTitre).join(' / ').toLowerCase() + ' au titre'); }   // (23/10) les mots du métier valent UN thème
   else if (nT) { n += 12 + 6 * (Math.min(nT, 3) - 1); motifs.push(nT + (nT > 1 ? ' thèmes' : ' thème') + ' au titre'); }
-  if (nR) { n += 2 * Math.min(nR, 3); if (!nT) motifs.push('thème au résumé seul'); }
+  if (nR && !nT) { n += 2 * Math.min(nR, 3); motifs.push('thème au résumé seul'); }   // (23/10) un signal faible : il ne compte que s'il n'y a rien au titre
   if (/multi-?cent(?:er|re)/i.test(titre + ' ' + (fiche.resume || '')) || /Multicenter Study/.test(pt)) { n += 4; motifs.push('multicentrique'); }
+  /* (23/10/2026, soir — échelle « fine », décidée par Arthur) Avant : effectif par paliers (+2/+4/+6),
+     « récent » tout ou rien, puis plafond à 100 — 6 articles à 100 et 54 articles à 80 et plus sur
+     seulement 16 notes différentes. Désormais l'effectif et la fraîcheur sont PROGRESSIFS, et la note
+     est le total rapporté au MAXIMUM possible (VEILLE_NOTE_MAX) : 100 reste théorique, le meilleur
+     article réel tourne autour de 90. Simulé le 23/10 sur les articles renotés : 0 à 100, 19 à 80 et plus. */
   const eff = _veilleEffectif(fiche.resume);
-  if (eff >= 100) { n += eff >= 1000 ? 6 : (eff >= 300 ? 4 : 2); motifs.push('n=' + eff); }
+  if (eff >= 100) { n += Math.min(8, 2 + 4 * Math.log(eff / 100) / Math.LN10); motifs.push('n=' + eff); }   // 100 → 2 · 300 → 3,9 · 1 000 → 6 · 4 000+ → 8
   if (!fiche.resume) { n -= 10; motifs.push('sans résumé'); } else { n += 3; }
   if (fiche.date && aujourdhui) {
     const age = (new Date(aujourdhui) - new Date(fiche.date)) / 86400000;
-    if (age >= 0 && age <= 30) { n += 3; motifs.push('récent'); }
+    if (age >= 0 && age <= 30) { n += 4 * (1 - age / 30); motifs.push('récent'); }   // 4 le jour même, 0 à 30 jours
   }
   if (!nT) n = n * 0.75;
-  n = Math.max(0, Math.min(100, Math.round(n)));
+  n = Math.max(0, Math.min(100, Math.round(n * 100 / VEILLE_NOTE_MAX)));
   return { note: n, motif: motifs.join(' · ') };
 }
 
@@ -1413,7 +1421,7 @@ function chercherVeilleArchive(q) {
 // ══════════════════════════════════════════════════════════════════════
 
 const VEILLE_MAIL_N = 10;
-const VEILLE_MAIL_PALIERS = [75, 70, 65, 60];
+const VEILLE_MAIL_PALIERS = [66, 62, 57, 53];   // (23/10) recalés sur l'échelle fine : même niveau d'articles qu'avec 75 → 70 → 65 → 60
 const VEILLE_THEMES_REA = ['Ventilation et SDRA', 'Sepsis et infection', 'Arrêt cardiaque', 'Insuffisance rénale', 'Nutrition'];
 const VEILLE_THEMES_ANESTH = ['Voies aériennes', 'Anesthésie locorégionale', 'Douleur périopératoire', 'Agents et pharmacologie',
                               'Obstétrique', 'Pédiatrie', 'NVPO', 'Ambulatoire', 'Médecine périopératoire'];
@@ -1627,13 +1635,26 @@ function _veilleFichesPour_(pmids) {
   const out = {};
   for (let i = 0; i < pmids.length; i += VEILLE_LOT) {
     const lot = pmids.slice(i, i + VEILLE_LOT);
-    try {
-      const f = _veilleFichesEfetch(_efetch(lot));
-      Object.keys(f).forEach(function (k) { out[k] = f[k]; });
-    } catch (e) { Logger.log('efetch (lot ' + (i / VEILLE_LOT + 1) + ') : ' + e); }
+    _veilleFichesLot_(lot, out, 'lot ' + (i / VEILLE_LOT + 1));
     Utilities.sleep(VEILLE_PAUSE);
   }
   return out;
+}
+/* (23/10/2026) Un lot refusé (« efetch HTTP 400 » le 23/10 : 200 articles non renotés) est coupé en
+   deux et retenté, jusqu'à isoler l'identifiant fautif ; seul celui-ci est sauté. */
+function _veilleFichesLot_(lot, out, nom) {
+  try {
+    const f = _veilleFichesEfetch(_efetch(lot));
+    Object.keys(f).forEach(function (k) { out[k] = f[k]; });
+  } catch (e) {
+    if (lot.length <= 1) { Logger.log('efetch : identifiant ' + lot[0] + ' sauté (' + e + ')'); return; }
+    Logger.log('efetch (' + nom + ', ' + lot.length + ' articles) : ' + e + ' — coupé en deux et retenté');
+    const mi = Math.ceil(lot.length / 2);
+    Utilities.sleep(VEILLE_PAUSE);
+    _veilleFichesLot_(lot.slice(0, mi), out, nom + 'a');
+    Utilities.sleep(VEILLE_PAUSE);
+    _veilleFichesLot_(lot.slice(mi), out, nom + 'b');
+  }
 }
 
 /* 0 — (20/10/2026, 23 h, accord d'Arthur) Le vocabulaire des thèmes dans VEILLE_CFG.

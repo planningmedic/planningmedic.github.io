@@ -445,11 +445,11 @@ function monde(plan) {
     V('le type retenu est le plus fort (ECR devant Multicenter)', par['701'][12] === 'Randomized Controlled Trial', par['701'][12]);
     const n = id => Number(par[id][7]);
     // (20/10 23 h) barème « plus fin » : 100 est rare ; un ECR spécialisé à thème au titre reste au-dessus de 75
-    V('un ECR de revue spécialisée avec résumé et thème au titre est haut (≥ 75)', n('701') >= 75, n('701'));
+    V('un ECR de revue spécialisée avec résumé et thème au titre est haut (≥ 60 sur l\'échelle fine du 23/10)', n('701') >= 60, n('701'));
     V('une lettre sans résumé est tout en bas (< 30)', n('702') < 30, n('702'));
     V('un protocole d\'essai est pénalisé (< 60)', n('703') < 60, n('703'));
     // (20/10/2026) Règle d'Arthur : une grande revue généraliste compte le plus — sa revue systématique rejoint l'ECR spécialisé en tête.
-    V('une revue systématique de grande revue généraliste est haute (≥ 70), loin devant le protocole', n('801') >= 70 && n('801') > n('703') + 30, [n('801'), n('703'), n('701')]);
+    V('une revue systématique de grande revue généraliste est haute (≥ 60), loin devant le protocole', n('801') >= 60 && n('801') > n('703') + 30, [n('801'), n('703'), n('701')]);
     V('le motif dit pourquoi, en clair', /ECR/.test(par['701'][14]) && /thème/.test(par['701'][14]) && /au titre/.test(par['701'][14]) && /revue spécialisée/.test(par['701'][14]), par['701'][14]);
     V('…et pour la lettre aussi', /lettre\/éditorial/.test(par['702'][14]) && /sans résumé/.test(par['702'][14]), par['702'][14]);
     const g = vm.runInContext('getVeille()', m.ctx);
@@ -502,8 +502,8 @@ function monde(plan) {
     vm.runInContext('getOrCreateVeilleTabs()', m.ctx);
     vm.runInContext('runVeille()', m.ctx);
     const L = m.cl.getSheetByName('VEILLE').lignes.slice(1); const par = {}; L.forEach(l => { par[String(l[0])] = l; });
-    V('un ECR encore étiqueté « Journal Article » prend le bonus ECR (≥ 75)', Number(par['901'][7]) >= 75 && /^ECR/.test(par['901'][14]), [par['901'][7], par['901'][14]]);
-    V('une méta-analyse étiquetée « Review » est notée méta-analyse, pas revue', /^méta-analyse/.test(par['902'][14]) && Number(par['902'][7]) >= 70, [par['902'][7], par['902'][14]]);
+    V('un ECR encore étiqueté « Journal Article » prend le bonus ECR (≥ 60)', Number(par['901'][7]) >= 60 && /^ECR/.test(par['901'][14]), [par['901'][7], par['901'][14]]);
+    V('une méta-analyse étiquetée « Review » est notée méta-analyse, pas revue', /^méta-analyse/.test(par['902'][14]) && Number(par['902'][7]) >= 58, [par['902'][7], par['902'][14]]);
     V('une analyse secondaire reste sans bonus ECR (< 90)', Number(par['903'][7]) < 90 && !/ECR/.test(par['903'][14]), [par['903'][7], par['903'][14]]);
 
     const rl = (t, s, mo) => vm.runInContext('_veilleRenoterLigne_(' + JSON.stringify(t) + ',' + JSON.stringify(s) + ',' + JSON.stringify(mo) + ')', m0.ctx);
@@ -657,7 +657,7 @@ function monde(plan) {
     const lignes = m.cl.getSheetByName('VEILLE').lignes.slice(1);
     V('l\'essai JAMA non étiqueté entre dans la veille', res.axeCroise === 1 && lignes.some(l => String(l[0]) === '301'), [res.axeCroise, lignes.length]);
     const l = lignes.find(x => String(x[0]) === '301') || [];
-    V('…comme article de revue généraliste, noté en essai randomisé', l[6] === 'GENERAL' && /ECR/.test(String(l[14])) && Number(l[7]) >= 80, [l[6], l[7], l[14]]);
+    V('…comme article de revue généraliste, noté en essai randomisé', l[6] === 'GENERAL' && /ECR/.test(String(l[14])) && Number(l[7]) >= 70, [l[6], l[7], l[14]]);
     V('l\'étiquette PubMed reste acceptée (la liste blanche n\'est pas remplacée)', qG.length === 1 && qG[0].term.indexOf(BLANCHE) !== -1);
     V('le titre écarte analyses secondaires, post hoc et protocoles', qG.length === 1 && ['"secondary"[Title]', '"post hoc"[Title]', '"protocol"[Title]'].every(x => qG[0].term.indexOf(x) !== -1));
     V('l\'axe direct n\'est pas touché (aucune restriction de type)', qD.length >= 1 && qD.every(q => q.term.indexOf(TYPE_TITRE) === -1 && q.term.indexOf(BLANCHE) === -1), qD.map(q => q.term.slice(0, 120)));
@@ -895,9 +895,9 @@ function monde(plan) {
     const jour = new Date().toISOString().slice(0, 10);
     const note = (fiche, source, themes) => vm.runInContext('_veilleNote(' + JSON.stringify(Object.assign({ pubtypes: ['Journal Article'], titre: '', resume: 'x', date: jour }, fiche)) + ',' + JSON.stringify(source) + ',' + JSON.stringify(themes) + ',' + JSON.stringify(jour) + ')', m.ctx);
     const synth = note({ titre: 'Acute Kidney Injury in Critical Care', revue: 'N Engl J Med' }, 'GENERAL', { 'Insuffisance rénale': true });
-    V('synthèse du NEJM pas encore étiquetée « Review », 1 thème : au moins 70 (≈56 avant ; barème fin du 20/10 23 h)', synth.note >= 70 && /grande revue/.test(synth.motif), synth);
+    V('synthèse du NEJM pas encore étiquetée « Review », 1 thème : au moins 60 (≈56 avant ; échelle fine du 23/10)', synth.note >= 60 && /grande revue/.test(synth.motif), synth);
     const icraki = note({ titre: 'Intermittent or Continuous Renal-Replacement Therapy in Acute Kidney Injury', resume: 'we randomly assigned critically ill adults', revue: 'N Engl J Med' }, 'GENERAL', { 'Insuffisance rénale': true });
-    V('ICRAKI (essai lu dans le résumé, NEJM) : au moins 85, motif « ECR · grande revue »', icraki.note >= 85 && /^ECR · grande revue/.test(icraki.motif), icraki);
+    V('ICRAKI (essai lu dans le résumé, NEJM) : au moins 75, motif « ECR · grande revue »', icraki.note >= 75 && /^ECR · grande revue/.test(icraki.motif), icraki);
     const spe = note({ titre: 'Some observational study' }, 'REVUE', { 'Hémodynamique': true });
     V('un article ordinaire de revue spécialisée reste en dessous d\'une synthèse du NEJM', spe.note < synth.note, [spe.note, synth.note]);
     const edito = note({ pubtypes: ['Editorial'], titre: 'Kidney injury: time to act', revue: 'JAMA' }, 'GENERAL', { 'Insuffisance rénale': true });
@@ -943,7 +943,7 @@ function monde(plan) {
 
     const r2 = vm.runInContext('veilleRenoterTout()', m.ctx);
     const ligne = id => v.lignes.find(l => String(l[0]) === id);
-    V('renotation : ICRAKI passe de 56 à au moins 85, motif « ECR · grande revue · 1 thème au titre … »', Number(ligne('1003')[7]) >= 85 && /^ECR · grande revue · 1 thème au titre/.test(ligne('1003')[14]), [ligne('1003')[7], ligne('1003')[14]]);
+    V('renotation : ICRAKI passe de 56 à au moins 75, motif « ECR · grande revue · 1 thème au titre … »', Number(ligne('1003')[7]) >= 75 && /^ECR · grande revue · 1 thème au titre/.test(ligne('1003')[14]), [ligne('1003')[7], ligne('1003')[14]]);
     V('…la synthèse JAMA garde le bonus des grandes revues, l\'ECR de Chest n\'en a pas', /grande revue/.test(ligne('1005')[14]) && /^ECR/.test(ligne('1004')[14]) && !/grande revue/.test(ligne('1004')[14]), [ligne('1005')[14], ligne('1004')[14]]);
     V('…fiche introuvable : l\'ancienne note et l\'ancien motif restent', Number(ligne('1008')[7]) === 70 && ligne('1008')[14] === 'ancien motif', [ligne('1008')[7], ligne('1008')[14]]);
     V('…le résumé en français est intact ; les THÈMES sont recalculés (Sepsis → Insuffisance rénale)', ligne('1003')[8] === 'Résumé FR à garder' && /Insuffisance rénale/.test(ligne('1003')[13]) && !/Sepsis/.test(ligne('1003')[13]), ligne('1003')[13]);
@@ -963,7 +963,7 @@ function monde(plan) {
     const obes = note({ revue: 'JAMA', pubtypes: ['Journal Article', 'Randomized Controlled Trial'], titre: 'Treatment With 9-mg Mazdutide for Weight Reduction in Adults With Obesity', resume: 'We randomly assigned 600 adults; nausea and vomiting were common.' }, 'GENERAL');
     const sec = note({ revue: 'Am J Respir Crit Care Med', pubtypes: ['Journal Article', 'Randomized Controlled Trial'], titre: 'Rocuronium dose and first-attempt intubation success in the critically ill: secondary analysis of a randomized trial', resume: 'Patients undergoing intubation.' }, 'REVUE');
     const synth = note({ revue: 'JAMA', titre: 'Fluid Therapy in Mechanically Ventilated Critically Ill Adult Patients', resume: 'This review summarizes fluid therapy in mechanical ventilation.' }, 'GENERAL');
-    V('ICRAKI : essai, grande revue, thème au titre, multicentrique, n=554 → 90 et plus', icraki.note >= 90 && /multicentrique/.test(icraki.motif) && /n=554/.test(icraki.motif), icraki);
+    V('ICRAKI : essai, grande revue, thème au titre, multicentrique, n=554 → 85 et plus (échelle fine)', icraki.note >= 85 && /multicentrique/.test(icraki.motif) && /n=554/.test(icraki.motif), icraki);
     V('essai du JAMA sur l\'obésité, thème seulement dans le résumé → sous 65 (était 100)', obes.note < 65 && /thème au résumé seul/.test(obes.motif), obes);
     V('analyse secondaire étiquetée « essai » par PubMed → « analyse secondaire », loin sous l\'essai', /^analyse secondaire/.test(sec.motif) && sec.note < icraki.note - 20, sec);
     V('synthèse d\'une grande revue au thème dans le titre → bien notée (≥ 70)', synth.note >= 70, synth);
@@ -1038,14 +1038,14 @@ function monde(plan) {
     A('a2', 'Cardiac Index-Guided Hemodynamic Therapy in Major Abdominal Surgery', 'JAMA', 100, 'Hémodynamique');
     A('a3', 'Ketamine and Postoperative Delirium after General Anesthesia', 'Anesth Analg', 94, 'Douleur périopératoire; Neurologie et délire');
     A('a4', 'Intercostal plane block after liver surgery', 'J Clin Anesth', 84, 'Anesthésie locorégionale');
-    A('a5', 'Fibrinogen concentrate and blood products in surgery', 'Br J Anaesth', 66, 'Hémorragie et transfusion');   // ne passe qu'en abaissant le seuil
+    A('a5', 'Fibrinogen concentrate and blood products in surgery', 'Br J Anaesth', 58, 'Hémorragie et transfusion');   // ne passe qu'en abaissant le seuil (échelle fine : 66 → 62 → 57)
     A('vieux', 'Old surgical trial', 'Anesth Analg', 99, 'Médecine périopératoire', il(12));   // hors des 7 jours
     A('bas', 'Low-scored surgical study', 'Anesth Analg', 55, 'Médecine périopératoire');      // sous le plancher de 60
     const r = vm.runInContext('veilleEnvoyerMailTest()', m.ctx);
     const e = envois[0] || {};
     V('un seul mail, à l\'adresse DIAG_EMAIL de CONFIG', envois.length === 1 && e.to === 'admin@exemple.mc', envois.map(x => x.to));
     V('10 articles : 5 réa, 5 anesthésie', r.envoye && r.n === 10 && r.rea === 5 && r.anesth === 5, r);
-    V('le seuil descend à 65 pour remplir (fibrinogène noté 66 retenu)', r.seuil === 65 && /a5\//.test(e.htmlBody), r.seuil);
+    V('le seuil descend à 57 pour remplir (fibrinogène noté 58 retenu)', r.seuil === 57 && /a5\//.test(e.htmlBody), r.seuil);
     V('un 6e article de réa ne prend pas la place d\'un article d\'anesthésie', !/pubmed\.ncbi\.nlm\.nih\.gov\/r6\//.test(e.htmlBody));
     V('hors des 7 derniers jours, ou sous 60 : jamais dans le mail', !/\/vieux\//.test(e.htmlBody) && !/\/bas\//.test(e.htmlBody));
     V('chaque titre est un lien vers PubMed, chaque résumé est présent', (e.htmlBody.match(/href="https:\/\/pubmed\.ncbi\.nlm\.nih\.gov\/[a-z0-9]+\/" style="font:700 16px/g) || []).length === 10 && /Résumé de r1\./.test(e.htmlBody));
@@ -1268,7 +1268,7 @@ function monde(plan) {
     const note = titre => { m.ctx.__f = { titre, revue: 'N Engl J Med', resume: 'In this multicenter trial, 640 patients were randomly assigned.', pubtypes: ['Journal Article', 'Randomized Controlled Trial'], motscles: [], mesh: [], date: jour };
       return vm.runInContext('_veilleNote(__f, "GENERAL", {}, "' + jour + '")', m.ctx); };
     const nb = note('Sodium Bicarbonate for Critically Ill Adults with Metabolic Acidosis and Shock');
-    V('le bicarbonate du NEJM : au moins 90, motif « réanimation au titre »', nb.note >= 90 && /réanimation au titre/.test(nb.motif), nb);
+    V('le bicarbonate du NEJM : au moins 85, motif « réanimation au titre »', nb.note >= 85 && /réanimation au titre/.test(nb.motif), nb);
     const deux = note('Postoperative delirium in critically ill adults after cardiac surgery in the ICU');
     V('…les deux mots du métier ensemble ne comptent pas double (il a ici un thème précis : Neurologie)', !/réanimation \/ anesthésie/.test(deux.motif));
     // Affichage : pas de rubrique « Réanimation » / « Anesthésie »
@@ -1279,6 +1279,35 @@ function monde(plan) {
     const sel = vm.runInContext('_veilleSelectionMail_(__it, "2026-10-20")', m.ctx);
     V('mail : pas de plafond « 2 par thème » sur les mots du métier (3 essais de réa génériques retenus)', sel.rea.length === 3, sel.rea.map(x => x.pmid));
     V('la collecte PubMed n\'utilise PAS ces mots (sinon tout le contenu des revues de réa entrerait)', !/critically ill"\[tiab\]|"shock"\[tiab\]|"perioperative"\[tiab\]/i.test(JSON.stringify(vm.runInContext('VEILLE_DEFAULT_CFG', m.ctx))));
+  }
+
+  console.log('\n═══ 23/10/2026 (nuit) — échelle fine : 100 reste théorique, moins d\'ex æquo ═══');
+  {
+    const m = monde(() => ({}));
+    vm.runInContext('getOrCreateVeilleTabs()', m.ctx);
+    const jour = m.ctx._isoDate = v => v instanceof Date ? v.toISOString().slice(0, 10) : String(v || '').slice(0, 10);
+    const auj = new Date().toISOString().slice(0, 10);
+    const ilya = j => new Date(Date.now() - j * 86400000).toISOString().slice(0, 10);
+    const note = (eff, date, titre) => { m.ctx.__f = { titre: titre || 'Sodium Bicarbonate for Critically Ill Adults with Metabolic Acidosis and Shock', revue: 'N Engl J Med',
+        resume: 'In this multicenter trial, ' + eff + ' patients were randomly assigned.', pubtypes: ['Journal Article', 'Randomized Controlled Trial'], motscles: [], mesh: [], date: date || auj };
+      return vm.runInContext('_veilleNote(__f, "GENERAL", {}, "' + auj + '")', m.ctx).note; };
+    const top = note(4700);
+    V('le meilleur essai possible du jour (NEJM, multicentrique, 4 700 patients, publié aujourd\'hui) n\'atteint pas 100', top < 100 && top >= 85, top);
+    V('la note est un entier', Number.isInteger(top), top);
+    const effs = [238, 500, 1128, 4700].map(e => note(e));
+    V('238 / 500 / 1 128 / 4 700 patients : quatre notes différentes et croissantes', effs.every((x, i) => i === 0 || x > effs[i - 1]), effs);
+    const ages = [0, 10, 20, 29].map(a => note(640, ilya(a)));
+    V('l\'ancienneté baisse la note progressivement (0 / 10 / 20 / 29 jours), sans marche brutale', ages.every((x, i) => i === 0 || x <= ages[i - 1]) && ages[0] - ages[3] <= 5 && ages[0] > ages[3], ages);
+    const sels = vm.runInContext('VEILLE_MAIL_PALIERS', m.ctx);
+    V('les paliers du mail suivent l\'échelle fine (66 → 62 → 57 → 53)', JSON.stringify(sels) === '[66,62,57,53]', sels);
+    // un lot PubMed refusé : on le coupe en deux jusqu'à l'identifiant fautif
+    const appels = [];
+    m.ctx._efetch = lot => { appels.push(lot.length); if (lot.indexOf('bad') !== -1) throw new Error('efetch HTTP 400'); return lot; };
+    m.ctx._veilleFichesEfetch = lot => { const o = {}; lot.forEach(k => { o[k] = { titre: k }; }); return o; };
+    m.ctx.__ids = Array.from({ length: 200 }, (_, i) => i === 137 ? 'bad' : String(1000 + i));
+    const out = vm.runInContext('_veilleFichesPour_(__ids)', m.ctx);
+    V('un lot de 200 refusé : 199 fiches récupérées, seul l\'identifiant fautif est sauté', Object.keys(out).length === 199 && !out.bad, Object.keys(out).length);
+    V('…en une vingtaine d\'appels au plus (découpage par moitiés)', appels.length <= 20, appels.length);
   }
 
 console.log(`\n${ok} OK · ${ko} en échec`);
