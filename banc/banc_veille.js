@@ -1064,7 +1064,7 @@ function monde(plan) {
     // Le mail ne fait jamais échouer la collecte
     quota = 100; m.ctx.MailApp.sendEmail = () => { throw new Error('serveur de mail indisponible'); };
     m.ctx.__props.VEILLE_MAIL_DERNIER = '';
-    delete m.ctx.__props.VEILLE_MAIL_DERNIER;
+    delete m.ctx.__props.VEILLE_MAIL_DERNIER; delete m.ctx.__props.VEILLE_MAIL_ENVOYES;
     const rv = vm.runInContext('runVeille()', m.ctx);
     V('mail en panne : la collecte réussit quand même, l\'échec est noté dans LOGS', rv.success === true && m.logs.some(l => /mail : (ÉCHEC|non envoyé — aucun envoi n'a abouti)/.test(l)), m.logs.slice(-2));
     // seule adresse du fichier : le contact technique du projet déclaré à PubMed (EUTILS_EMAIL), qui n'est pas celle d'une personne
@@ -1117,7 +1117,7 @@ function monde(plan) {
     envois.length = 0;
     vm.runInContext('veilleEnvoyerMailTest()', m.ctx);
     V('l\'envoi de test ne part qu\'à l\'administrateur', envois.length === 1 && envois[0].to === 'admin@exemple.mc', envois.map(e => e.to));
-    envois.length = 0; delete m.ctx.__props.VEILLE_MAIL_DERNIER; m.ctx.__props.NOTIF_EMAIL_TEST = 'test@exemple.mc';
+    envois.length = 0; delete m.ctx.__props.VEILLE_MAIL_DERNIER; delete m.ctx.__props.VEILLE_MAIL_ENVOYES; m.ctx.__props.NOTIF_EMAIL_TEST = 'test@exemple.mc';   // (23/10) l'article a déjà été envoyé : on oublie la mémoire pour ce test
     vm.runInContext('_veilleMailHebdo_()', m.ctx);
     V('NOTIF_EMAIL_TEST renseignée : tout part vers elle, une seule fois', envois.length === 1 && envois[0].to === 'test@exemple.mc');
     delete m.ctx.__props.NOTIF_EMAIL_TEST;
@@ -1204,6 +1204,52 @@ function monde(plan) {
     V('« Cette semaine » : pluriels justes (mises au point, essais randomisés, revues systématiques, articles)', ['2 mises au point', '2 essais randomisés', '2 revues systématiques', '2 articles'].every(t => pills.indexOf(t) !== -1) && !pills.some(t => /mise au points|essai randomisés|revue systématiques/.test(t)), pills);
     V('…et le singulier reste au singulier', w.eval("_vPluriel('mise au point',1)") === 'mise au point');
     V('aucune erreur JavaScript', erreurs.length === 0, erreurs.slice(0, 2));
+  }
+
+  console.log('\n═══ 23/10/2026 — défauts constatés en production : le mail du vendredi, l\'essai de gynécologie du Lancet ═══');
+  {
+    const m = monde(() => ({}));
+    vm.runInContext('getOrCreateVeilleTabs()', m.ctx);
+    const envois = [];
+    m.ctx.MailApp = { getRemainingDailyQuota: () => 100, sendEmail: o => envois.push(o) };
+    m.ctx._isoDate = v => v instanceof Date ? v.getFullYear() + '-' + String(v.getMonth() + 1).padStart(2, '0') + '-' + String(v.getDate()).padStart(2, '0') : String(v || '').slice(0, 10);
+    m.ctx.Utilities.formatDate = (d, tz, f) => f === 'yyyy-MM-dd' ? m.ctx._isoDate(d) : 'd MMM';
+    m.cl.insertSheet('CONFIG').lignes.push(['CLE', 'VALEUR'], ['DIAG_EMAIL', 'admin@exemple.mc']);
+    const v = m.cl.getSheetByName('VEILLE');
+    v.lignes[0] = ['PMID', 'DATE_PUB', 'TITRE', 'AUTEURS', 'REVUE', 'DOI', 'SOURCE', 'SCORE', 'RESUME', 'LU', 'STAR', 'AJOUTE_LE', 'PUBTYPE', 'THEMES', 'MOTIF'];
+    const il = n => new Date(Date.now() - n * 86400000);
+    const A = (id, titre, score) => v.lignes.push([id, il(5), titre, 'X', 'JAMA', '', 'GENERAL', score, 'Résumé.', 'N', 'N', il(1), '', 'Hémodynamique', 'ECR']);
+    A('gyn', 'Endometrial ablation plus levonorgestrel intrauterine system in women with heavy menstrual bleeding: a randomised trial', 96);
+    A('thal', 'Efficacy and safety of mitapivat in adults with transfusion-dependent thalassaemia', 96);
+    for (let i = 1; i <= 12; i++) A('ok' + i, (i % 2 ? 'Vasopressin trial ' + i + ' in septic shock' : 'Postoperative delirium trial ' + i + ' after cardiac surgery'), 95 - i);
+    const cfgT = vm.runInContext('_readVeilleCfg().themes', m.ctx);
+    const tt = t => { m.ctx.__t = t; m.ctx.__c = cfgT; return Object.keys(vm.runInContext('_veilleThemesTitre(__t, __c)', m.ctx)); };
+    V('« heavy menstrual bleeding » seul ne range plus un article en Hémorragie', tt('Endometrial ablation in women with heavy menstrual bleeding').length === 0);
+    V('…« bleeding » avec un contexte chirurgical, si (« Perioperative Bleeding », « bleeding after cardiac surgery »)', tt('Management of Perioperative Bleeding').indexOf('Hémorragie et transfusion') !== -1 && tt('Major bleeding after cardiac surgery').indexOf('Hémorragie et transfusion') !== -1);
+    V('…« anaemia before cardiac surgery » garde son thème, « transfusion-dependent thalassaemia » le perd', tt('Intravenous iron to treat anaemia before cardiac surgery').length > 0 && tt('Mitapivat in transfusion-dependent thalassaemia').length === 0);
+    V('…les mots du métier restent pleins (Delirium, weaning, obstetric)', tt('Delirium').length > 0 && tt('Weaning program in high-risk patients').length > 0);
+    // La note : plus de bonus de thème au titre pour l'essai de gynécologie
+    const note = (titre, src, revue) => { m.ctx.__f = { titre, revue, resume: 'In this multicentre trial, 715 women were randomly assigned.', pubtypes: ['Journal Article', 'Randomized Controlled Trial'], motscles: [], mesh: [], date: m.ctx._isoDate(new Date()) };
+      return vm.runInContext('_veilleNote(__f, "GENERAL", _veilleThemesLocaux(__f, _readVeilleCfg().themes), "' + m.ctx._isoDate(new Date()) + '")', m.ctx); };
+    const ng = note('Endometrial ablation plus levonorgestrel intrauterine system in women with heavy menstrual bleeding (MIRA2): a multicentre randomised trial', 'GENERAL', 'Lancet');
+    V('l\'essai de gynécologie du Lancet passe de 96 à moins de 75 (plus de « thème au titre »)', ng.note < 75 && !/au titre/.test(ng.motif), ng);
+    // Le mail : ni hors sujet, ni doublon, et un envoi un vendredi ne bloque pas le lundi
+    const r1 = vm.runInContext('_veilleEnvoyerMail_(false)', m.ctx);
+    const html1 = envois[0] ? envois[0].htmlBody : '';
+    V('le mail n\'envoie jamais un article sans thème de notre métier dans le titre (gynécologie, thalassémie)', r1.envoye && !/\/gyn\//.test(html1) && !/\/thal\//.test(html1), r1);
+    const env1 = JSON.parse(m.ctx.__props.VEILLE_MAIL_ENVOYES || '[]');
+    V('les articles envoyés sont retenus, tous et seulement eux', env1.length === r1.n && env1.every(p => html1.indexOf('/' + p + '/') !== -1), [env1.length, r1.n]);
+    const vendredi = new Date(); vendredi.setDate(vendredi.getDate() - ((vendredi.getDay() + 6) % 7) - 3); vendredi.setHours(15, 22, 0, 0);   // vendredi de la semaine PRÉCÉDENTE
+    m.ctx.__props.VEILLE_MAIL_DERNIER = vendredi.toISOString();
+    envois.length = 0;
+    const r2 = vm.runInContext('_veilleEnvoyerMail_(false)', m.ctx);
+    V('un envoi le vendredi ne bloque pas le lundi suivant (défaut du 23/10)', r2.envoye === true || /aucun article/.test(r2.raison), r2);
+    V('…et le mail suivant ne reprend AUCUN article déjà envoyé', !envois.length || env1.every(p => envois[0].htmlBody.indexOf('/' + p + '/') === -1));
+    m.ctx.__props.VEILLE_MAIL_DERNIER = new Date().toISOString();
+    V('deux envois dans la même semaine (lundi → dimanche) : le second ne part pas', /déjà envoyé cette semaine/.test(vm.runInContext('_veilleEnvoyerMail_(false)', m.ctx).raison));
+    envois.length = 0; m.ctx.__props.VEILLE_MAIL_ENVOYES = JSON.stringify(['ok1', 'ok2']);
+    vm.runInContext('veilleEnvoyerMailTest()', m.ctx);
+    V('l\'envoi de TEST ignore la mémoire et ne la modifie pas', envois.length === 1 && /\/ok1\//.test(envois[0].htmlBody) && m.ctx.__props.VEILLE_MAIL_ENVOYES === JSON.stringify(['ok1', 'ok2']));
   }
 
 console.log(`\n${ok} OK · ${ko} en échec`);

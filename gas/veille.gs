@@ -57,7 +57,7 @@
 //  instantané unique et partagé : chantier séparé.
 // ══════════════════════════════════════════════════════════════════════
 
-const GAS_VERSION_VEILLE = '2026-10-21.3';
+const GAS_VERSION_VEILLE = '2026-10-23.1';
 
 const VEILLE_CFG_TAB = 'VEILLE_CFG';
 const VEILLE_TAB     = 'VEILLE';
@@ -443,6 +443,36 @@ function _veilleThemesLocaux(fiche, themes) {
   return trouves;
 }
 
+/* (23/10/2026) Les thèmes du TITRE, avec une garde : certains mots sont trop LARGES pour dire,
+   seuls, que l'article est de notre spécialité. « heavy menstrual bleeding » rangeait un essai de
+   gynécologie du Lancet en Hémorragie (96/100, dans le mail du 23/10) ; « transfusion-dependent
+   thalassaemia », un essai d'hématologie. Un mot large ne compte au titre que si le titre a
+   AUSSI un mot de notre contexte (chirurgie, anesthésie, réanimation, choc, traumatisme…).
+   Mesuré le 23/10 : 74 articles sur 938 perdent leur thème au titre, dont les deux cités ;
+   « Delirium », « weaning », « obstetric » restent des mots pleins (ils sont notre métier). */
+const VEILLE_TITRE_LARGES = ['bleeding', 'hemorrhage', 'haemorrhage', 'transfusion', 'anemia', 'anaemia',
+  'antibiotic', 'antibiotics', 'antimicrobial', 'pneumonia', 'nutrition', 'nutritional', 'enteral', 'parenteral',
+  'heparin', 'anticoagulant', 'anticoagulation', 'antiplatelet', 'vomiting', 'opioid', 'opioids', 'analgesic',
+  'analgesia', 'morphine', 'frailty', 'curriculum', 'burnout', 'checklist', 'medical education', 'learning curve',
+  'pulmonary embolism', 'venous thromboembolism', 'deep vein thrombosis', 'bacteremia', 'bacteraemia'];
+const VEILLE_TITRE_CONTEXTE = /surg|operat|an(a)?esth|critically ill|critical care|intensive care|\bICUs?\b|PICU|trauma|sepsis|septic|shock|cardiac arrest|resuscitat|emergenc|ventilat|intubat|airway|cesarean|caesarean|labou?r|postpartum|parturient|block|hospitali[sz]ed|inpatient/i;
+function _veilleThemesTitre(titre, themes) {
+  const t = String(titre || '');
+  const texte = (' ' + t + ' ').toLowerCase().replace(/[^a-z0-9]+/g, ' ');
+  const contexte = VEILLE_TITRE_CONTEXTE.test(t);
+  const trouves = {};
+  (themes || []).forEach(function (th) {
+    const exprs = _veilleExpressions(th.valeur);
+    for (let i = 0; i < exprs.length; i++) {
+      const brut = exprs[i].replace(/[^a-z0-9]+/g, ' ').trim();
+      if (!brut || texte.indexOf(' ' + brut + ' ') === -1) continue;
+      if (!contexte && VEILLE_TITRE_LARGES.indexOf(brut) !== -1) continue;   // mot large sans contexte : pas suffisant
+      trouves[th.cle] = true; break;
+    }
+  });
+  return trouves;
+}
+
 /* ═══ LA NOTE (0-100) ET SON MOTIF — explicable en un coup d'œil ═══
    Type d'étude d'abord (ce qui change une pratique), puis la revue, le nombre
    de thèmes touchés, la présence d'un résumé, la fraîcheur. Une lettre, un
@@ -507,7 +537,7 @@ function _veilleNote(fiche, source, themes, aujourdhui, themesTitre) {
   else if (source === 'REVUE') { n += 8; motifs.push('revue spécialisée'); }
   if (!themesTitre) {
     let cfgT = []; try { cfgT = _readVeilleCfg().themes; } catch (e) {}
-    themesTitre = _veilleThemesLocaux({ titre: titre, resume: '', motscles: [], mesh: [] }, cfgT);
+    themesTitre = _veilleThemesTitre(titre, cfgT);
   }
   const nT = Object.keys(themesTitre).length;
   const nR = Object.keys(themes || {}).filter(function (k) { return !themesTitre[k]; }).length;
@@ -733,7 +763,7 @@ function _runVeilleCorps_() {
       if (!f) return;
       if (source[pmid] === 'GENERAL' && !f.resume) return;   // (20/10, 21 h) généraliste sans résumé : éditorial, réponse, actualité
       const themes = _veilleThemesLocaux(f, cfg.themes);
-      const themesTitre = _veilleThemesLocaux({ titre: f.titre, resume: '', motscles: [], mesh: [] }, cfg.themes);
+      const themesTitre = _veilleThemesTitre(f.titre, cfg.themes);
       const note = _veilleNote(f, source[pmid] || 'REVUE', themes, aujourdhui, themesTitre);
       lignes.push([
         pmid,
@@ -1473,10 +1503,22 @@ function _veilleDestAdmin_() {   // lecture DIRECTE de CONFIG (même raison que 
 /* Construit et envoie. `force` : ignore la règle « une fois par semaine » (envoi de test). */
 function _veilleEnvoyerMail_(force) {
   const props = PropertiesService.getScriptProperties();
+  /* (23/10/2026) « Une fois par semaine » = une fois du LUNDI au DIMANCHE. Avant : « pas deux envois à
+     moins de 6 jours » — un envoi le vendredi 23/10 (runVeille lancé à la main) aurait bloqué celui du
+     lundi 26. */
   const dernier = props.getProperty('VEILLE_MAIL_DERNIER');
-  if (!force && dernier && (Date.now() - new Date(dernier).getTime()) < 6 * 86400000) {
-    return { envoye: false, raison: 'déjà envoyé le ' + dernier.slice(0, 10) };
+  const maintenant = new Date();
+  const lundi = new Date(maintenant.getFullYear(), maintenant.getMonth(), maintenant.getDate() - ((maintenant.getDay() + 6) % 7));
+  if (!force && dernier && new Date(dernier).getTime() >= lundi.getTime()) {
+    return { envoye: false, raison: 'déjà envoyé cette semaine (le ' + dernier.slice(0, 10) + ')' };
   }
+  /* (23/10/2026) Jamais deux fois le même article : les identifiants envoyés sont retenus (les 300
+     derniers). L'envoi de TEST ne les retient pas — il ne « consomme » rien. */
+  let envoyesListe = [];
+  try { envoyesListe = JSON.parse(props.getProperty('VEILLE_MAIL_ENVOYES') || '[]') || []; } catch (e) { envoyesListe = []; }
+  const dejaEnvoyes = {};
+  if (!force) envoyesListe.forEach(function (p) { dejaEnvoyes[String(p)] = true; });
+  const memoireAbsente = props.getProperty('VEILLE_MAIL_ENVOYES') === null;
   /* Destinataires : l'administrateur (DIAG_EMAIL), puis — sauf en test — chaque abonné actif.
      Une adresse en double ne reçoit qu'un mail. Si NOTIF_EMAIL_TEST est renseignée (mode test
      des mails de changements), TOUT part vers elle, une seule fois. */
@@ -1498,10 +1540,27 @@ function _veilleEnvoyerMail_(force) {
      évoque 4 thèmes dans son résumé bloquait sinon les grands essais suivants (constaté le 21/10
      sur les données réelles : VASSPR et ICRAKI écartés au profit d'une étude sur la rougeole). */
   const cfgT = _readVeilleCfg().themes;
-  const items = (g.items || []).map(function (it) {
-    const tt = Object.keys(_veilleThemesLocaux({ titre: it.titre, resume: '', motscles: [], mesh: [] }, cfgT));
-    return Object.assign({}, it, { themes: tt.length ? tt : (it.themes || []) });
+  let items = (g.items || []).map(function (it) {
+    return Object.assign({}, it, { themes: Object.keys(_veilleThemesTitre(it.titre, cfgT)) });
+  }).filter(function (it) {
+    /* (23/10/2026) Le mail est la vitrine : il ne prend QUE des articles dont le titre parle de notre
+       métier (l'essai de gynécologie du 23/10 n'y aurait pas figuré), et jamais un article déjà envoyé. */
+    return it.themes.length > 0 && !dejaEnvoyes[String(it.pmid)];
   });
+  /* (23/10/2026) TRANSITION : la mémoire n'existait pas lors des envois d'avant le 23/10. Si un mail est
+     déjà parti et que la mémoire est vide, on reconstitue sa sélection (mêmes règles, articles arrivés
+     dans les 7 jours qui précédaient cet envoi) et on la mémorise — sans quoi le lundi suivant
+     renverrait les mêmes articles (10 sur 10 le 26/10, simulé). */
+  if (!force && memoireAbsente && dernier) {
+    const dEnv = new Date(dernier);
+    const finEnv = Utilities.formatDate(dEnv, 'Europe/Paris', 'yyyy-MM-dd');
+    const debEnv = Utilities.formatDate(new Date(dEnv.getTime() - 7 * 86400000), 'Europe/Paris', 'yyyy-MM-dd');
+    const avant = _veilleSelectionMail_(items.filter(function (it) { return String(it.ajoute) <= finEnv; }), debEnv);
+    const reconstitues = avant.rea.concat(avant.anesth).map(function (it) { return String(it.pmid); });
+    reconstitues.forEach(function (p) { dejaEnvoyes[p] = true; });
+    envoyesListe = envoyesListe.concat(reconstitues);
+    items = items.filter(function (it) { return !dejaEnvoyes[String(it.pmid)]; });
+  }
   const sel = _veilleSelectionMail_(items, depuis);
   const n = sel.rea.length + sel.anesth.length;
   if (!n) return { envoye: false, raison: 'aucun article à 60 ou plus depuis le ' + depuis };
@@ -1518,7 +1577,11 @@ function _veilleEnvoyerMail_(force) {
     } catch (e) { rates++; }
   });
   if (!partis) return { envoye: false, raison: 'aucun envoi n\'a abouti (' + rates + ' échec(s))' };
-  if (!force) props.setProperty('VEILLE_MAIL_DERNIER', new Date().toISOString());
+  if (!force) {
+    props.setProperty('VEILLE_MAIL_DERNIER', new Date().toISOString());
+    const nouveaux = sel.rea.concat(sel.anesth).map(function (it) { return String(it.pmid); });
+    props.setProperty('VEILLE_MAIL_ENVOYES', JSON.stringify(envoyesListe.concat(nouveaux).slice(-300)));
+  }
   return { envoye: true, n: n, rea: sel.rea.length, anesth: sel.anesth.length, seuil: sel.seuil, destinataires: partis, rates: rates };
 }
 function _veilleMailHebdo_() {
@@ -1624,7 +1687,7 @@ function veilleNettoyerGeneralistes() {
     const f = fiches[p];
     let ok = true;
     if (p && f && _veilleSourceCode(data[r][6]) === 'GENERAL' && !etoiles[p]) {
-      const titreSeul = _veilleThemesLocaux({ titre: f.titre, resume: '', motscles: [], mesh: [] }, cfg.themes);
+      const titreSeul = _veilleThemesTitre(f.titre, cfg.themes);
       const parTitre = _veilleGrandeRevue(f.revue) && Object.keys(titreSeul).length > 0;
       const tt = _veilleTypeTitre(f.titre) || _veilleTypeResume(f.titre, f.resume);
       const type = !!tt || (f.pubtypes || []).some(function (t) { return blanche[t]; });
@@ -1669,7 +1732,7 @@ function veilleRenoterTout() {
     if (!f) { scores.push([l[iScore]]); motifs.push([l[iMotif]]); themesCol.push([l[iThemes]]); return; }
     const arrivee = l[11] instanceof Date ? Utilities.formatDate(l[11], 'Europe/Paris', 'yyyy-MM-dd') : String(l[11] || '').slice(0, 10);
     const th = _veilleThemesLocaux(f, cfg.themes);
-    const thT = _veilleThemesLocaux({ titre: f.titre, resume: '', motscles: [], mesh: [] }, cfg.themes);
+    const thT = _veilleThemesTitre(f.titre, cfg.themes);
     const nn = _veilleNote(f, _veilleSourceCode(l[6]), th, arrivee || null, thT);
     if (Number(l[iScore]) < nn.note) montes++;
     scores.push([nn.note]); motifs.push([nn.motif]); themesCol.push([_veilleThemes(_veilleThemesAffiches(th, thT))]); renotes++;
