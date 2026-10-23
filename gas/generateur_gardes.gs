@@ -41,7 +41,7 @@
 // ⚠️ RÈGLE (détecteur de dérive dépôt↔Apps Script) : incrémenter cette version
 // à CHAQUE push de ce fichier. Le diagnostic (admin → Maintenance) compare la
 // version déployée ici avec celle du dépôt et signale toute recopie oubliée.
-const GAS_VERSION_GENERATEUR = '2026-10-22.1';
+const GAS_VERSION_GENERATEUR = '2026-10-23.1';
 
 /* (05/09/2026) INTERRUPTEUR DU NOUVEL ALGORITHME — récit : docs/JOURNAL-Planning-Med.md §101 */
 const NOUVEL_ALGO_GLOBAL = true;
@@ -1648,8 +1648,60 @@ function generateGardes(year, opts){
     });
   });
 
-  // Régime 2 — autres MAR : équitable, DANS la cible
-  Object.keys(souhParJour).sort().forEach(date=>{
+  /* (23/10/2026) SOUHAITS RARES : ÉTALÉS SUR L'ANNÉE, JOKER BIEN CHOISI.
+     La passe parcourait l'année dans l'ordre : un MAR qui demandait plus que sa
+     part (13 jeudis pour 6) obtenait ses 6 premiers, de janvier à juin, puis plus
+     rien. Et le joker férié partait sur le PREMIER férié demandé, même quand un
+     férié plus loin couvrait deux jours (samedi + lundi de Toussaint).
+     Désormais, pour chaque MAR, on désigne d'avance ses demandes PRIORITAIRES :
+       • jeudis, samedis, week-ends — s'il en demande plus que sa part, une sur
+         deux (ou trois…) réparties sur toute l'année, autant que sa part ;
+       • fériés et veilles de férié — l'unité qui compte le plus de jours
+         demandés, à égalité la moins disputée, puis la plus tôt.
+     Une première passe n'honore que ces demandes ; une seconde, comme avant,
+     tout le reste dans l'ordre de l'année, dans la limite de la part : une
+     demande prioritaire refusée (collègue, couverture) est ainsi remplacée.
+     Rien ne change pour lundi-mardi-mercredi ni pour les souhaits garantis. */
+  const _prioRare={};
+  gardeDoctors.filter(id=>!SOUHAIT_PLAFOND.has(id)&&cible[id]).forEach(id=>{
+    const fam={jeu:[],sam:[],vd:[],joker:[]}, vu={};
+    Object.keys(souhParJour).sort().forEach(ds=>{
+      if(souhParJour[ds].indexOf(id)<0||estJourLibre(ds)) return;
+      const un=_uniteFixe(ds); if(!un) return;
+      const cle=un.jours.join('+');
+      if(vu[cle]){ vu[cle].voulus++; return; }
+      const c=coutAxesUnite(un);
+      const f=(c.vjf||c.ferie||c.jf)?'joker':c.vd?'vd':c.sam?'sam':c.jeu?'jeu':null;
+      if(!f) return;
+      vu[cle]={jours:un.jours,voulus:1}; fam[f].push(vu[cle]);
+    });
+    const P=new Set(), prendre=u=>u.jours.forEach(d=>P.add(d));
+    /* Une demande qui en touche une autre du même MAR à moins de 3 jours (le
+       samedi d'un week-end aussi demandé, le jeudi avant un samedi demandé) ne
+       peut pas être accordée avec elle. Pour l'étalement, on choisit d'abord
+       parmi les demandes sans voisine ; les autres ne complètent qu'à défaut. */
+    const sesRares=Object.keys(vu).reduce((t,k)=>t.concat(vu[k].jours.filter(d=>(souhParJour[d]||[]).indexOf(id)>=0)),[]);
+    const gene=u=>sesRares.some(w=>u.jours.indexOf(w)<0
+                  &&u.jours.some(d=>Math.abs(new Date(w+'T12:00:00')-new Date(d+'T12:00:00'))<=2*86400000));
+    const etaler=(L,k)=>{ const out=[]; for(let i=0;i<k&&L.length;i++) out.push(L[Math.floor((i+0.5)*L.length/k)]); return out; };
+    ['jeu','sam','vd'].forEach(f=>{
+      const L=fam[f], k=Math.max(0,Math.floor(cible[id][f]));
+      if(L.length<=k){ L.forEach(prendre); return; }
+      const libres=L.filter(u=>!gene(u)), genees=L.filter(gene);
+      if(libres.length>=k) etaler(libres,k).forEach(prendre);
+      else { libres.forEach(prendre); etaler(genees,k-libres.length).forEach(prendre); }
+    });
+    if(fam.joker.length){
+      const dispute=u=>u.jours.reduce((t,d)=>t+(souhParJour[d]||[]).length,0)-u.voulus;
+      prendre(fam.joker.slice().sort((a,b)=>(b.voulus-a.voulus)||(dispute(a)-dispute(b)))[0]);
+    }
+    _prioRare[id]=P;
+  });
+  const _estPrio=(m,date)=>!!(_prioRare[m]&&_prioRare[m].has(date));
+
+  // Régime 2 — autres MAR : équitable, DANS la cible. Passe 1 : jours libres +
+  // demandes rares prioritaires ; passe 2 : demandes rares restantes.
+  const _passeSouhaits=phase=>Object.keys(souhParJour).sort().forEach(date=>{
     if(gardes[date]) return;
     // Défense en profondeur : un souhait n'est honoré que sur jour LIBRE (lun/mar/mer).
     // Un souhait sur jeudi/samedi/VD (axe d'équité) est ignoré → le MAR reçoit sa part
@@ -1659,13 +1711,14 @@ function generateGardes(year, opts){
       // POSABLE ; il n'est HONORÉ que s'il tient dans la part du MAR sur chaque axe
       // touché et dans son quota de familles rares. Sinon il est ignoré, sans effet.
       const un=uniteDeSouhait(date); if(!un) return;
-      const cds=souhParJour[date].filter(m=>!SOUHAIT_PLAFOND.has(m)
+      const cds=souhParJour[date].filter(m=>!SOUHAIT_PLAFOND.has(m)&&(phase===2||_estPrio(m,date))
                   &&un.jours.every(d=>!blocked(m,d))&&okSouhaitRare(m,un));
       if(!cds.length) return;
       cds.sort((a,b)=>souhaitHonored[a]-souhaitHonored[b]);
       if(placeSouhaitUnite(cds[0],un)) souhaitHonored[cds[0]]++;
       return;
     }
+    if(phase===2) return;                    // jours libres : passe 1 seulement, inchangée
     const cands=souhParJour[date].filter(m=>!SOUHAIT_PLAFOND.has(m)&&!blocked(m,date)
                   &&cntLibre(m)<freeBudget[m]);
     if(!cands.length) return; // sera rempli par la passe chronologique
@@ -1673,6 +1726,7 @@ function generateGardes(year, opts){
     const lead=cands[0];
     if(placeSouhait(lead,date)) souhaitHonored[lead]++;
   });
+  _passeSouhaits(1); _passeSouhaits(2);
 
   // 8b. Placement chronologique
   allDays.forEach(day=>{
@@ -2530,7 +2584,7 @@ function generateGardes(year, opts){
      Profils « souhaits garantis » : le possible est tout ce qu'ils ont posé.
      Partagé par l'essai (bilan affiché) et la vraie génération (colonne
      SOUHAITS POSSIBLES de STATS_GARDES, lue par le mail « Vos gardes »). */
-  const _uniteFixe = function(date){
+  function _uniteFixe(date){   // déclaration : utilisée aussi par la passe des souhaits, plus haut
     const di = dayByDate[date]; if(!di) return null;
     if(di.dow===5||di.dow===0){
       const ven = di.dow===5?date:shiftDays(date,-2), dim = di.dow===5?shiftDays(date,2):date;
