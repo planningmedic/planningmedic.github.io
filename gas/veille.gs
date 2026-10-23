@@ -57,7 +57,7 @@
 //  instantané unique et partagé : chantier séparé.
 // ══════════════════════════════════════════════════════════════════════
 
-const GAS_VERSION_VEILLE = '2026-10-23.1';
+const GAS_VERSION_VEILLE = '2026-10-23.2';
 
 const VEILLE_CFG_TAB = 'VEILLE_CFG';
 const VEILLE_TAB     = 'VEILLE';
@@ -456,6 +456,18 @@ const VEILLE_TITRE_LARGES = ['bleeding', 'hemorrhage', 'haemorrhage', 'transfusi
   'analgesia', 'morphine', 'frailty', 'curriculum', 'burnout', 'checklist', 'medical education', 'learning curve',
   'pulmonary embolism', 'venous thromboembolism', 'deep vein thrombosis', 'bacteremia', 'bacteraemia'];
 const VEILLE_TITRE_CONTEXTE = /surg|operat|an(a)?esth|critically ill|critical care|intensive care|\bICUs?\b|PICU|trauma|sepsis|septic|shock|cardiac arrest|resuscitat|emergenc|ventilat|intubat|airway|cesarean|caesarean|labou?r|postpartum|parturient|block|hospitali[sz]ed|inpatient/i;
+/* (23/10/2026, soir) Les mots qui disent simplement « c'est de la réa » ou « c'est de l'anesthésie ».
+   Aucun de nos 21 thèmes ne les contenait : « Sodium Bicarbonate for Critically Ill Adults with
+   Metabolic Acidosis and Shock » (NEJM), PRESSURE, GASTRIC-PICU (JAMA), la recommandation AHA 2026
+   « Perioperative Cardiovascular Management » n'avaient AUCUN thème au titre, perdaient un quart de leur
+   note et étaient exclus du mail (41 articles de ce genre le 23/10). Ces mots ne servent qu'à NOTER et
+   à CHOISIR — jamais à collecter (ils feraient entrer presque tout le contenu des revues de réa).
+   Ils ne jouent que si le titre n'a aucun thème précis, et ne s'affichent pas comme rubriques. */
+const VEILLE_METIER_REA = /critically ill|critical illness|critical care|intensive care|\bICUs?\b|\bPICU\b|\bNICU\b|\bshock\b|organ dysfunction|organ failure|\bburns?\b|burn injur/i;
+const VEILLE_METIER_ANESTH = /an(a)?esthe(sia|tic)|perioperative|intraoperative|postoperative|operating (room|theatre)|cardiac surgery|non-?cardiac surgery|cardiopulmonary bypass|sternotomy/i;
+const VEILLE_METIER = { 'Réanimation': VEILLE_METIER_REA, 'Anesthésie': VEILLE_METIER_ANESTH };
+function _veilleEstMetier(cle) { return VEILLE_METIER.hasOwnProperty(cle); }
+
 function _veilleThemesTitre(titre, themes) {
   const t = String(titre || '');
   const texte = (' ' + t + ' ').toLowerCase().replace(/[^a-z0-9]+/g, ' ');
@@ -470,6 +482,9 @@ function _veilleThemesTitre(titre, themes) {
       trouves[th.cle] = true; break;
     }
   });
+  if (!Object.keys(trouves).length) {   // aucun thème précis : les mots du métier
+    Object.keys(VEILLE_METIER).forEach(function (k) { if (VEILLE_METIER[k].test(t)) trouves[k] = true; });
+  }
   return trouves;
 }
 
@@ -541,7 +556,9 @@ function _veilleNote(fiche, source, themes, aujourdhui, themesTitre) {
   }
   const nT = Object.keys(themesTitre).length;
   const nR = Object.keys(themes || {}).filter(function (k) { return !themesTitre[k]; }).length;
-  if (nT) { n += 12 + 6 * (Math.min(nT, 3) - 1); motifs.push(nT + (nT > 1 ? ' thèmes' : ' thème') + ' au titre'); }
+  const metierSeul = nT && Object.keys(themesTitre).every(_veilleEstMetier);
+  if (metierSeul) { n += 12; motifs.push(Object.keys(themesTitre).join(' / ').toLowerCase() + ' au titre'); }   // (23/10) les mots du métier valent UN thème
+  else if (nT) { n += 12 + 6 * (Math.min(nT, 3) - 1); motifs.push(nT + (nT > 1 ? ' thèmes' : ' thème') + ' au titre'); }
   if (nR) { n += 2 * Math.min(nR, 3); if (!nT) motifs.push('thème au résumé seul'); }
   if (/multi-?cent(?:er|re)/i.test(titre + ' ' + (fiche.resume || '')) || /Multicenter Study/.test(pt)) { n += 4; motifs.push('multicentrique'); }
   const eff = _veilleEffectif(fiche.resume);
@@ -611,7 +628,9 @@ function _veilleGrandeRevue(nom) {
    l'intubation). Simulé sur les 949 du 21/10 : 1,7 → 1,3 thème par article ; aucun article ne
    perd tous ses thèmes. La NOTE, elle, continue de voir les deux. */
 function _veilleThemesAffiches(themes, themesTitre) {
-  return Object.keys(themesTitre || {}).length ? themesTitre : (themes || {});
+  const precis = {};   // (23/10) les mots du métier ne sont pas des rubriques : on retombe alors sur le résumé
+  Object.keys(themesTitre || {}).forEach(function (k) { if (!_veilleEstMetier(k)) precis[k] = true; });
+  return Object.keys(precis).length ? precis : (themes || {});
 }
 
 /* Les mêmes expressions de thèmes, cherchées dans le seul titre. */
@@ -1423,7 +1442,7 @@ function _veilleSelectionMail_(items, depuis) {
   function essayer(limiteCote) {
     cands.forEach(function (c) {
       if (pris.length >= VEILLE_MAIL_N || Number(c.score) < seuil || pris.indexOf(c) !== -1) return;
-      if (c.themes.some(function (x) { return (parTheme[x] || 0) >= 2; })) return;
+      if (c.themes.some(function (x) { return !_veilleEstMetier(x) && (parTheme[x] || 0) >= 2; })) return;   // « Réanimation » / « Anesthésie » génériques : pas de plafond
       let cote = c.cote;
       if (cote === 'mixte') cote = nb.rea <= nb.anesth ? 'rea' : 'anesth';
       if (limiteCote && nb[cote] >= moitie) {

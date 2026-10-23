@@ -1252,6 +1252,35 @@ function monde(plan) {
     V('l\'envoi de TEST ignore la mémoire et ne la modifie pas', envois.length === 1 && /\/ok1\//.test(envois[0].htmlBody) && m.ctx.__props.VEILLE_MAIL_ENVOYES === JSON.stringify(['ok1', 'ok2']));
   }
 
+  console.log('\n═══ 23/10/2026 (soir) — les mots du métier : « Critically Ill… and Shock » (NEJM) n\'avait aucun thème au titre ═══');
+  {
+    const m = monde(() => ({}));
+    vm.runInContext('getOrCreateVeilleTabs()', m.ctx);
+    const cfgT = vm.runInContext('_readVeilleCfg().themes', m.ctx);
+    const tt = t => { m.ctx.__t = t; m.ctx.__c = cfgT; return Object.keys(vm.runInContext('_veilleThemesTitre(__t, __c)', m.ctx)); };
+    V('NEJM « Sodium Bicarbonate for Critically Ill Adults with Metabolic Acidosis and Shock » → Réanimation au titre', tt('Sodium Bicarbonate for Critically Ill Adults with Metabolic Acidosis and Shock').join() === 'Réanimation');
+    V('PRESSURE (« Pediatric Critical Care »), GASTRIC-PICU, VICTORY (« Burn Injury ») → Réanimation', ['Permissive Blood Pressure Targets in Pediatric Critical Care', 'Gastric Residual Volume Assessment in Critically Ill Children: The GASTRIC-PICU Trial', 'High-Dose Vitamin C in Severe Burn Injury'].every(x => tt(x).join() === 'Réanimation'));
+    V('recommandation AHA « Perioperative Cardiovascular Management », ORACLE (« Operating Room ») → Anesthésie', tt('2026 Guideline for Perioperative Cardiovascular Management for Noncardiac Surgery').join() === 'Anesthésie' && tt('Operating Room Air Filtration and Surgical Infections').join() === 'Anesthésie');
+    V('un thème précis l\'emporte : « septic shock » reste Sepsis, sans « Réanimation » en plus', tt('Vasopressin in Septic Shock').join() === 'Sepsis et infection');
+    V('hors métier, toujours rien (gynécologie, oncologie)', tt('Endometrial ablation in women with heavy menstrual bleeding').length === 0 && tt('Giredestrant plus Everolimus in Advanced Breast Cancer').length === 0);
+    // La note : un thème « métier » vaut UN thème au titre, et lève la pénalité d'un quart
+    const jour = m.ctx.Utilities.formatDate(new Date(), '', 'yyyy-MM-dd');
+    const note = titre => { m.ctx.__f = { titre, revue: 'N Engl J Med', resume: 'In this multicenter trial, 640 patients were randomly assigned.', pubtypes: ['Journal Article', 'Randomized Controlled Trial'], motscles: [], mesh: [], date: jour };
+      return vm.runInContext('_veilleNote(__f, "GENERAL", {}, "' + jour + '")', m.ctx); };
+    const nb = note('Sodium Bicarbonate for Critically Ill Adults with Metabolic Acidosis and Shock');
+    V('le bicarbonate du NEJM : au moins 90, motif « réanimation au titre »', nb.note >= 90 && /réanimation au titre/.test(nb.motif), nb);
+    const deux = note('Postoperative delirium in critically ill adults after cardiac surgery in the ICU');
+    V('…les deux mots du métier ensemble ne comptent pas double (il a ici un thème précis : Neurologie)', !/réanimation \/ anesthésie/.test(deux.motif));
+    // Affichage : pas de rubrique « Réanimation » / « Anesthésie »
+    m.ctx.__a = { 'Sepsis et infection': true }; m.ctx.__b = { 'Réanimation': true };
+    V('les mots du métier ne deviennent pas des rubriques : on affiche alors les thèmes du résumé', JSON.stringify(Object.keys(vm.runInContext('_veilleThemesAffiches(__a, __b)', m.ctx))) === '["Sepsis et infection"]');
+    // Le mail : trois essais « Réanimation » génériques ne se bloquent pas entre eux
+    m.ctx.__it = ['a', 'b', 'c'].map((p, i) => ({ pmid: p, titre: 'Trial ' + p + ' in critically ill adults', revue: 'JAMA', score: 95 - i, resume: 'R.', themes: ['Réanimation'], ajoute: '2026-10-25', motif: 'ECR' }));
+    const sel = vm.runInContext('_veilleSelectionMail_(__it, "2026-10-20")', m.ctx);
+    V('mail : pas de plafond « 2 par thème » sur les mots du métier (3 essais de réa génériques retenus)', sel.rea.length === 3, sel.rea.map(x => x.pmid));
+    V('la collecte PubMed n\'utilise PAS ces mots (sinon tout le contenu des revues de réa entrerait)', !/critically ill"\[tiab\]|"shock"\[tiab\]|"perioperative"\[tiab\]/i.test(JSON.stringify(vm.runInContext('VEILLE_DEFAULT_CFG', m.ctx))));
+  }
+
 console.log(`\n${ok} OK · ${ko} en échec`);
   process.exit(ko ? 1 : 0);
 })();  console.log('\n═══ Passe 4 : le résumé en deux lignes (15/09/2026) ═══');
