@@ -46,7 +46,10 @@ function monde() {
 console.log('\n═══ 1. Un calcul à blanc ne laisse aucune trace dans le classeur ═══');
 const A = monde();
 const avant = A.onglets();
-const dry = A.ctx.generateGardes(YEAR, { dryRun: true });
+/* (23/10/2026) Le calcul à blanc porte sur le planning que la vraie génération
+   RETIENT (comme l'essai du comité depuis le 05/10) : sans tirage, il calculait le
+   planning n° 1, qui n'est retenu que s'il est déjà le plus équitable. */
+const dry = A.ctx.generateGardes(YEAR, { dryRun: true, tirage: A.ctx.choisirMeilleurTirage(YEAR) });
 const apres = A.onglets();
 
 V('le calcul à blanc se déclare comme tel', dry && dry.dryRun === true);

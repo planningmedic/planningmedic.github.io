@@ -40,7 +40,10 @@ const CODE = fs.readFileSync(path.join(__dirname, '..', 'gas', 'code.gs'), 'utf8
    se croise jamais ferait passer le test sans rien démontrer.
    Elles n'ont aucun rapport avec la configuration réelle du service, qui vit dans le
    classeur et nulle part ailleurs — le dépôt est public. */
-const P1 = ['ORVAL', 'VALLET'], P2 = ['FAUVEL', 'SABLON'];
+/* (23/10/2026) P2 = SERVANT/ZEVACO : avec la passe des périodes tendues, FAUVEL et
+   SABLON ne se croisaient plus du tout sans la règle (0 nuit), et la contre-épreuve
+   ne prouvait plus rien. SERVANT et ZEVACO partagent 10 nuits sans la règle. */
+const P1 = ['ORVAL', 'VALLET'], P2 = ['SERVANT', 'ZEVACO'];
 
 function lancer(config, genSource) {
   const roster = H.defaultRoster();

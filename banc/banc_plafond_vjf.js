@@ -111,7 +111,10 @@ let prec = null; const parAn = [];
     if (prec) f.push(H.makeSheet(`STATS_GARDES_${y - 1}`, prec.map(r => r.slice())));
     return f;
   };
-  const r = H.buildContext(H.makeSpreadsheet(feuilles()), []).generateGardes(y, { dryRun: true });
+  /* (23/10/2026) On mesure le planning RETENU, celui qui serait écrit : le n° 1
+     seul pouvait être moins équitable (2030 : 3) alors que le retenu reste à 1. */
+  const _c = H.buildContext(H.makeSpreadsheet(feuilles()), []);
+  const r = _c.generateGardes(y, { dryRun: true, tirage: _c.choisirMeilleurTirage(y) });
   const pire = Math.max(...Object.values(r.ecarts).map(e => e.ecart));
   parAn.push(y + ' : ' + pire);
   V(y + ' — écart maximal à la cible ≤ 2 gardes, tous types confondus', pire <= 2, r.ecarts);

@@ -54,8 +54,10 @@ function campagne(seed) {
    ne donnait plus un premier tirage faisable ; la 6 reproduit le cas (1er tirage ≠ retenu).
    (23/10/2026) graine 2 : avec la règle « jamais 3 gardes sur 6 jours », le premier
    tirage de la graine 6 est déjà retenu ; la 2 reproduit le cas (tirage 3 retenu,
-   le premier reste calculable pour la contre-épreuve). */
-const { roster, m } = campagne(2);
+   le premier reste calculable pour la contre-épreuve).
+   (23/10/2026, soir) graine 1 : avec la passe des périodes tendues, le premier tirage
+   de la graine 2 est retenu ; la 1 reproduit le cas (tirage 2 retenu, écart 1 contre 2). */
+const { roster, m } = campagne(1);
 function monde(genSource) {
   const ss = H.makeSpreadsheet([
     H.makeSheet('MEDECINS', H.medecinsRows(roster)),

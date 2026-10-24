@@ -41,7 +41,7 @@
 // ⚠️ RÈGLE (détecteur de dérive dépôt↔Apps Script) : incrémenter cette version
 // à CHAQUE push de ce fichier. Le diagnostic (admin → Maintenance) compare la
 // version déployée ici avec celle du dépôt et signale toute recopie oubliée.
-const GAS_VERSION_GENERATEUR = '2026-10-23.2';
+const GAS_VERSION_GENERATEUR = '2026-10-23.3';
 
 /* (05/09/2026) INTERRUPTEUR DU NOUVEL ALGORITHME — récit : docs/JOURNAL-Planning-Med.md §101 */
 const NOUVEL_ALGO_GLOBAL = true;
@@ -1468,10 +1468,13 @@ function generateGardes(year, opts){
           if (essais > MAX_ESSAIS) return;
           if (i === serie.length) { essais++; if (cout < bestCout) { bestCout = cout; best = sol.map(x => x.slice()); } return; }
           const p = pools[i];
+          // (23/10/2026) Jamais 3 gardes sur 6 jours, y compris entre jours de la série
+          // (un MAR le 1er et le 3e jour, plus une garde déjà posée à côté).
+          const _dense = id => tropDense(id, sol.slice(0,i).map((x,j)=>x&&x.indexOf(id)>=0?serie[j].date:null).filter(Boolean).concat([serie[i].date]));
           for (let a=0; a<p.length; a++) {
-            if (prev.indexOf(p[a]) >= 0) continue;
+            if (prev.indexOf(p[a]) >= 0 || _dense(p[a])) continue;
             for (let b=a+1; b<p.length; b++) {
-              if (prev.indexOf(p[b]) >= 0) continue;
+              if (prev.indexOf(p[b]) >= 0 || _dense(p[b])) continue;
               sol[i] = [p[a], p[b]];
               /* (07/09/2026) Paire à éviter : PÉNALITÉ, pas exclusion. Sur ces séries
                  le vivier tombe à 3 ou 4 personnes ; une interdiction dure pourrait
@@ -1680,6 +1683,156 @@ function generateGardes(year, opts){
     });
   });
 
+  /* ── 8a-bis. (23/10/2026) PÉRIODES TENDUES D'ABORD ──────────────────────
+     Règle du responsable : « l'algo doit d'abord gérer les périodes tendues,
+     pas bêtement poser au fil de l'année ». Constaté sur 2027 : mi-août, 6 à 10
+     MAR présents sur deux week-ends de suite. Posé au fil de l'eau, le calcul
+     utilisait en semaine (17-19/08) des MAR dont il avait besoin le week-end
+     suivant, et devait lever l'interdit des deux week-ends d'affilée le 22/08,
+     alors qu'une répartition « 4 un week-end, 4 l'autre » existait.
+     1. Tension d'un jour = nombre de MAR qui peuvent y être de garde (absences,
+        temps partiel, veille de congé…). Un jour est tendu sous FRAC_TENSION de
+        l'effectif de garde (moitié de l'équipe : 45 % laissait passer
+        un été à trois week-ends de suite à moitié présents).
+     2. Les jours tendus proches (moins de FUSION_TENSION jours d'écart) forment
+        une période, jours ordinaires intercalés compris : ce sont eux qui
+        épuisent le vivier du week-end suivant.
+     3. Chaque période est résolue d'un bloc, par recherche avec retour arrière,
+        avec TOUTES les règles strictes (blocked, tropDense) et les unités du
+        service (vendredi-dimanche, férié couplé au samedi). Parmi les solutions
+        trouvées dans le budget, la plus proche de la part de chacun est retenue
+        (part de l'année au prorata de sa présence dans la période).
+     4. Ordre : APRÈS les souhaits garantis (régime à part), AVANT les autres
+        souhaits — posés avant, ils vidaient le vivier du week-end (mesuré sur
+        2027 : 3 MAR seulement pour le vendredi-dimanche du 13-15/08). Dans la
+        période, un souhait posé est préféré (bonus de coût) et compté honoré.
+     5. Le reste de l'année est posé ensuite, souhaits puis fil de l'eau, comme avant.
+     Aucune solution dans le budget → la période est laissée au placement
+     habituel, inchangé. Les MAR à régime à part (souhaits plafonnés) n'y sont
+     pas placés : ils n'ont que leurs souhaits. */
+  const FRAC_TENSION = 0.5, FUSION_TENSION = 6, BUDGET_TENSION = 4000;
+  const periodesTendues = [];
+  if(NOUVEL_ALGO){
+    const _cands = gardeDoctors.filter(id=>!SOUHAIT_PLAFOND.has(id));
+    const _seuil = Math.ceil(FRAC_TENSION*_cands.length);
+    const _viv = allDays.map(d=>_cands.filter(id=>!indispoIndividuelle(id,d.date)).length);
+    const _idx = []; allDays.forEach((d,i)=>{ if(_viv[i]<=_seuil) _idx.push(i); });
+    const _per = [];
+    _idx.forEach(i=>{ const L=_per[_per.length-1];
+      if(L && i-L[1]<=FUSION_TENSION) L[1]=i; else _per.push([i,i]); });
+    const _sd=(ds,n)=>toDateStr(new Date(new Date(ds+'T12:00:00').getTime()+n*86400000));
+    // Disponibilité de chaque MAR par type de jour, sur l'année (pour la part attendue)
+    const _type = d => ({tot:1, sam:d.dow===6?1:0, vd:d.dow===5?1:0, jeu:(d.dow===4&&!d.isFerie)?1:0});
+    const _dispoAn = {}; _cands.forEach(id=>{ const a={tot:0,sam:0,vd:0,jeu:0};
+      allDays.forEach(d=>{ if(!indispoIndividuelle(id,d.date)){ const t=_type(d); Object.keys(a).forEach(k=>a[k]+=t[k]); } });
+      _dispoAn[id]=a; });
+    const _AXP = {tot:'total', sam:'sam', vd:'vd', jeu:'jeu'}, _W = {tot:1, sam:3, vd:3, jeu:2};
+    _per.forEach(([i0,i1])=>{
+      const jours = allDays.slice(i0,i1+1).filter(d=>!gardes[d.date]);
+      if(!jours.length) return;
+      // ── unités de la période
+      const pris = new Set(), unites = [];
+      jours.forEach(d=>{
+        if(pris.has(d.date)) return;
+        let u=[d.date], type=null;
+        if(d.dow===5){ const dim=_sd(d.date,2); if(dayByDate[dim]&&!gardes[dim]){ u=[d.date,dim]; type='vd'; } }
+        else if(d.dow===6){
+          const lun=_sd(d.date,2), jeu=_sd(d.date,-2);
+          if(dayByDate[lun]?.isFerie&&dayByDate[lun].dow===1&&!gardes[lun]) u=[d.date,lun];
+          else if(dayByDate[jeu]?.isFerie&&dayByDate[jeu].dow===4&&!gardes[jeu]&&!pris.has(jeu)) u=[jeu,d.date];
+        } else if(d.isFerie&&d.dow===4){ const sam=_sd(d.date,2); if(dayByDate[sam]&&!gardes[sam]) u=[d.date,sam]; }
+        else if(d.isFerie&&d.dow===1){ const sam=_sd(d.date,-2); if(dayByDate[sam]&&!gardes[sam]&&!pris.has(sam)) return; }
+        u.forEach(x=>pris.add(x)); unites.push({jours:u, type});
+      });
+      if(!unites.length) return;
+      // ── part attendue de chacun dans la période, et gardes déjà posées (souhaits, Noël…)
+      const dansP = new Set(allDays.slice(i0,i1+1).map(d=>d.date));
+      unites.forEach(un=>un.jours.forEach(x=>dansP.add(x)));
+      const att={}, x0={};
+      _cands.forEach(id=>{ const a={tot:0,sam:0,vd:0,jeu:0};
+        dansP.forEach(ds=>{ const d=dayByDate[ds]; if(d&&!indispoIndividuelle(id,ds)){ const t=_type(d); Object.keys(a).forEach(k=>a[k]+=t[k]); } });
+        att[id]={}; Object.keys(a).forEach(k=>{ att[id][k]=_dispoAn[id][k]?(cibleExacte[id][_AXP[k]]||0)*a[k]/_dispoAn[id][k]:0; });
+        x0[id]={tot:0,sam:0,vd:0,jeu:0};
+        dansP.forEach(ds=>{ const d=dayByDate[ds]; if(d&&gardes[ds]&&(gardes[ds].g===id||gardes[ds].g2===id)){ const t=_type(d); Object.keys(t).forEach(k=>x0[id][k]+=t[k]); } });
+      });
+      // Souhait : toutes les nuits de l'unité demandées — un vendredi OU un dimanche
+      // demandé vaut pour le week-end entier (les deux nuits vont ensemble).
+      const _souhaite = (id,un) => un.type==='vd' ? un.jours.some(ds=>isSouhaitDe(id,ds)) : un.jours.every(ds=>isSouhaitDe(id,ds));
+      const contrib = un => { const c={tot:0,sam:0,vd:0,jeu:0}; un.jours.forEach(ds=>{ const t=_type(dayByDate[ds]); c.tot++; c.sam+=t.sam; c.jeu+=t.jeu; }); if(un.type==='vd') c.vd=1; return c; };
+      unites.forEach(un=>un.c=contrib(un));
+      const _souhAilleurs = {}; _cands.forEach(id=>{ _souhAilleurs[id]=unites.some(u=>_souhaite(id,u)); });
+      const X = {}; _cands.forEach(id=>X[id]=Object.assign({},x0[id]));
+      // Réserve : les souhaits de samedi, de week-end et de jeudi posés AILLEURS dans
+      // l'année consommeront la part du MAR sur ces axes. La période ne doit pas la
+      // lui prendre d'avance (mesuré sur 2027 : sans réserve, 5 week-ends souhaités
+      // d'un même MAR en octobre-novembre étaient refusés, sa part étant épuisée en août).
+      const reserve = {};
+      _cands.forEach(id=>{ const r={sam:0,vd:0,jeu:0}, vus=new Set();
+        Object.keys(souhaits).forEach(ds=>{ const d=dayByDate[ds]; if(!d||dansP.has(ds)||!isSouhaitDe(id,ds)) return;
+          if(d.dow===6) r.sam++; else if(d.dow===4&&!d.isFerie) r.jeu++;
+          else if(d.dow===5||d.dow===0){ const f=d.dow===5?ds:_sd(ds,-2); if(!vus.has(f)){ vus.add(f); r.vd++; } } });
+        Object.keys(r).forEach(k=>{ r[k]=Math.min(r[k],Math.floor(cibleExacte[id][_AXP[k]]||0)); });
+        reserve[id]=r; });
+      const coutPose = (id,un) => { let d=0; const c=un.c;
+        Object.keys(_W).forEach(k=>{ if(!c[k]) return; const e=att[id][k], a=X[id][k]; d+=_W[k]*((a+c[k]-e)*(a+c[k]-e)-(a-e)*(a-e)); });
+        if(_souhaite(id,un)) d-=3;
+        else if(_souhAilleurs[id]) d+=3;     // il a demandé une AUTRE nuit de la période : la lui garder
+        else ['sam','vd','jeu'].forEach(k=>{ if(c[k]&&X[id][k]+c[k]+reserve[id][k]>(cibleExacte[id][_AXP[k]]||0)+0.5) d+=6; });
+        un.jours.forEach(ds=>{ for(const n of [2,-2]){ const v=_sd(ds,n); if(un.jours.indexOf(v)<0&&(gSet[id]?.has(v)||g2Set[id]?.has(v))) d+=4; } });
+        return d; };
+      // ── pose provisoire (réversible) pour que blocked / tropDense voient la période
+      const poser = (id,un) => { const tr=[]; un.jours.forEach(ds=>{ gSet[id].add(ds); const r=addOneDay(ds); if(!rgSet[id].has(r)){ rgSet[id].add(r); tr.push(r); } });
+        Object.keys(un.c).forEach(k=>X[id][k]+=un.c[k]); return tr; };
+      const retirer = (id,un,tr) => { un.jours.forEach(ds=>gSet[id].delete(ds)); tr.forEach(r=>rgSet[id].delete(r));
+        Object.keys(un.c).forEach(k=>X[id][k]-=un.c[k]); };
+      const libre = (id,un) => un.jours.every(ds=>!blocked(id,ds)) && !tropDense(id,un.jours);
+      // Ordre de résolution : les unités au plus petit vivier d'abord (les week-ends
+      // tendus), à égalité dans l'ordre du calendrier. Le jour ordinaire, qui a de la
+      // marge, s'arrange ensuite autour.
+      const _jr = ds => allDays.findIndex(d=>d.date===ds);
+      unites.forEach(un=>{ un.viv=_cands.filter(id=>libre(id,un)).length; un.pos=_jr(un.jours[0]); });
+      unites.sort((a,b)=>(a.viv-b.viv)||(a.pos-b.pos));
+      // Voisinage d'une unité : les unités à 9 jours ou moins, les seules dont une
+      // pose peut changer les candidats (veille, lendemain, week-ends, 3 gardes/6 jours).
+      unites.forEach(un=>{ un.voisins=unites.filter(v=>v!==un&&Math.abs(v.pos-un.pos)<=10); });
+      let noeuds=0, meilleur=null, meilleurCout=Infinity;
+      const choix=[], fait=new Set();
+      const rec = (k,cout) => {
+        if(++noeuds>BUDGET_TENSION) return;
+        if(k===unites.length){ if(cout<meilleurCout){ meilleurCout=cout; meilleur=unites.map(u=>choix[unites.indexOf(u)]); } return; }
+        // regard en avant : chaque unité voisine encore libre garde au moins 2 candidats
+        if(k>0){ const prec=unites[k-1];
+          for(const v of prec.voisins){ if(fait.has(v)) continue; let n=0; for(const id of _cands){ if(libre(id,v)&&++n>=2) break; } if(n<2) return; } }
+        const un=unites[k];
+        const L=_cands.filter(id=>libre(id,un)).map(id=>[id,coutPose(id,un)]).sort((a,b)=>a[1]-b[1]);
+        const paires=[];
+        for(let a=0;a<L.length;a++) for(let b=a+1;b<L.length;b++){
+          let c=L[a][1]+L[b][1]; if(evite(L[a][0],L[b][0],un.jours)) c+=1000; paires.push([L[a][0],L[b][0],c]); }
+        paires.sort((p,q)=>p[2]-q[2]);
+        for(const [A,B,c] of paires){
+          if(noeuds>BUDGET_TENSION) return;
+          const tA=poser(A,un);
+          if(!libre(B,un)){ retirer(A,un,tA); continue; }
+          const tB=poser(B,un);
+          choix[k]=[A,B]; fait.add(un); rec(k+1,cout+c); fait.delete(un); choix[k]=undefined;
+          retirer(B,un,tB); retirer(A,un,tA);
+        }
+      };
+      rec(0,0);
+      const deb=allDays[i0].date, fin=allDays[i1].date;
+      if(!meilleur){ periodesTendues.push({deb,fin,unites:unites.length,resolue:false});
+        warnings.push(`Période tendue ${deb}→${fin} : pas de solution trouvée d'un bloc, posée au fil de l'eau`); return; }
+      // ── engagement, dans l'ordre du calendrier
+      const _ordre = unites.map((u,k)=>[u,meilleur[k]]).sort((a,b)=>a[0].pos-b[0].pos);
+      _ordre.forEach(([un,AB])=>{ const [A,B]=AB; const [g,g2]=assignRoles(A,B);
+        if(un.type==='vd'){ cnt[A].vd++; cnt[B].vd++; }
+        [A,B].forEach(m=>{ if(_souhaite(m,un)){ souhaitHonored[m]++; un.jours.forEach(ds=>_slotSouhait.add(ds+'|'+m)); } });
+        un.jours.forEach(ds=>assign(ds,g,g2,dayByDate[ds].isFerie&&dayByDate[ds].dow===4?4:dayByDate[ds].dow)); });
+      periodesTendues.push({deb,fin,unites:unites.length,resolue:true,noeuds});
+      Logger.log(`Période tendue ${deb}→${fin} : ${unites.length} unités posées d'un bloc (${noeuds} essais)`);
+    });
+  }
+
   /* (23/10/2026) SOUHAITS RARES : ÉTALÉS SUR L'ANNÉE, JOKER BIEN CHOISI.
      La passe parcourait l'année dans l'ordre : un MAR qui demandait plus que sa
      part (13 jeudis pour 6) obtenait ses 6 premiers, de janvier à juin, puis plus
@@ -1775,13 +1928,16 @@ function generateGardes(year, opts){
         warnings.push(`Couplage férié : binôme samedi indispo ${date} (repli)`);
       } else if(dow===4){
         // jeudi férié, samedi pas encore placé → placer le binôme sur jeudi ET samedi
-        const availC=gardeDoctors.filter(id=>!blocked(id,date)&&!blocked(id,satDate));
+        const availC=gardeDoctors.filter(id=>!blocked(id,date)&&!blocked(id,satDate)&&!tropDense(id,[date,satDate]));
         if(availC.length>=2){
           const scoreSat=id=>[ratio(id,'sam'),ratioTotal(id),cnt[id].g+cnt[id].g2];
           availC.sort((a,b)=>cmp(scoreSat(a),scoreSat(b)));
           const A=availC[0];
           const rest=availC.filter(id=>id!==A); rest.sort((a,b)=>cmp(scoreSat(a),scoreSat(b)));
-          const B=rest[0];
+          // (23/10/2026) Paire à éviter : ce jumelage ne la consultait pas. Elle reste
+          // levée si personne d'autre ne peut tenir le jeudi et le samedi.
+          const _restOk=rest.filter(id=>!evite(A,id,[date,satDate]));
+          const B=(_restOk.length?_restOk:rest)[0];
           const [g,g2]=assignRoles(A,B);
           assign(date,g,g2,dow);   // jeudi férié (dow=4) : exclu du comptage jour via _coupledF, JF seul
           assign(satDate,g,g2,6);  // samedi suivant, même binôme/rôles : SAMEDI + récup R
