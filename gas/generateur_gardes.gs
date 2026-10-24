@@ -41,7 +41,7 @@
 // ⚠️ RÈGLE (détecteur de dérive dépôt↔Apps Script) : incrémenter cette version
 // à CHAQUE push de ce fichier. Le diagnostic (admin → Maintenance) compare la
 // version déployée ici avec celle du dépôt et signale toute recopie oubliée.
-const GAS_VERSION_GENERATEUR = '2026-10-24.1';
+const GAS_VERSION_GENERATEUR = '2026-10-24.2';
 
 /* (05/09/2026) INTERRUPTEUR DU NOUVEL ALGORITHME — récit : docs/JOURNAL-Planning-Med.md §101 */
 const NOUVEL_ALGO_GLOBAL = true;
@@ -166,7 +166,10 @@ function toDateStr(d){
   const dt=new Date(d);
   return `${dt.getFullYear()}-${String(dt.getMonth()+1).padStart(2,'0')}-${String(dt.getDate()).padStart(2,'0')}`;
 }
-function addOneDay(ds){const dt=new Date(ds+'T12:00:00');dt.setDate(dt.getDate()+1);return toDateStr(dt);}
+// (24/10/2026) VITESSE : mémorisé — appelé des centaines de milliers de fois par génération.
+const _addOneDayMemo_={};
+function addOneDay(ds){const m=_addOneDayMemo_[ds]; if(m) return m;
+  const dt=new Date(ds+'T12:00:00');dt.setDate(dt.getDate()+1);return (_addOneDayMemo_[ds]=toDateStr(dt));}
 // (C3) getJoursFeries() : définition unique dans code.gs (globale, identique).
 function isReducedPeriod(m){return m===7||m===8||m===12;}
 // OPTIM : PERIODES_VAC lu UNE SEULE FOIS par exécution (cache module).
@@ -1226,7 +1229,31 @@ function generateGardes(year, opts){
     const autre=n=>{const x=new Date(b);x.setDate(b.getDate()+n);return toDateStr(x);};
     return (w===5&&isSouhaitDe(id,autre(2)))||(w===0&&isSouhaitDe(id,autre(-2)));
   }
+  /* (24/10/2026) VITESSE — même verdict, sans conversions de dates. Mesuré : la
+     version d'origine (gardée plus bas en secours) prenait 69 % du temps d'une
+     génération (9,7 s sur 14 s), en refabriquant 66 dates par appel. On lit ici
+     les jours par leur rang dans l'année. Les gardes ne se posent que sur les
+     jours de l'année : une fenêtre qui en déborde se lit comme vide au-delà.
+     Le banc compare les deux versions planning par planning. */
+  const _rangJour={}; allDays.forEach((d,i)=>{_rangJour[d.date]=i;});
   function tropDense(id,ajout){
+    const gs=gSet[id], g2=g2Set[id], N=allDays.length, set=new Set(ajout);
+    for(const a of ajout){ if(_rangJour[a]===undefined) return _tropDenseLent(id,ajout); }
+    const has=k=>{ if(k<0||k>=N) return false; const ds=allDays[k].date; return set.has(ds)||(gs&&gs.has(ds))||(g2&&g2.has(ds)); };
+    for(const a of ajout){
+      const i=_rangJour[a], F=DENSITE_FENETRE;
+      const occ=[]; for(let k=i-(F-1);k<=i+(F-1);k++) occ.push(has(k));
+      for(let deb=0;deb<F;deb++){
+        let n=0; for(let k=deb;k<deb+F;k++) if(occ[k]) n++;
+        if(n>DENSITE_MAX){
+          const jours=[]; for(let k=deb;k<deb+F;k++) if(occ[k]) jours.push(allDays[i-(F-1)+k].date);
+          if(!jours.every(ds=>souhaitDense(id,ds))) return true;
+        }
+      }
+    }
+    return false;
+  }
+  function _tropDenseLent(id,ajout){
     const set=new Set(ajout);
     const has=ds=>set.has(ds)||gSet[id]?.has(ds)||g2Set[id]?.has(ds);
     for(const a of ajout){
@@ -2201,7 +2228,10 @@ function generateGardes(year, opts){
     const EQ=['vd','sam','jf','jeu','vjf','total'];
     const KEYS=['dim','lun','mar','mer','jeu','ven','sam'];
     const ABS=new Set(['INDISPO','VAC','FORM','TP','CL','CTP']);
-    const shift=(ds,n)=>toDateStr(new Date(new Date(ds+'T12:00:00').getTime()+n*86400000));
+    // (24/10/2026) VITESSE : décalage de dates mémorisé (même résultat).
+    const _shiftMemo={};
+    const shift=(ds,n)=>{const k=ds+'|'+n; const m=_shiftMemo[k]; if(m) return m;
+      return (_shiftMemo[k]=toDateStr(new Date(new Date(ds+'T12:00:00').getTime()+n*86400000)));};
     // 1) Groupes de jours liés (VD ven/dim, couplages fériés) — union-find.
     const parent={};
     const find=x=>{if(parent[x]===undefined)parent[x]=x;let r=x;while(parent[r]!==r)r=parent[r];while(parent[x]!==r){const nx=parent[x];parent[x]=r;x=nx;}return r;};

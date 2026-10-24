@@ -102,5 +102,20 @@ console.log('\n═══ 3. Exception : 3 gardes souhaitées sur 6 jours restent
   V('les souhaits groupés ne sont pas refusés à cause de la règle', nb(avec) === nb(sans), { avec: nb(avec), sans: nb(sans) });
 }
 
+console.log('\n═══ 4. La version rapide rend exactement le même planning ═══');
+{
+  /* (24/10/2026) tropDense a été réécrite pour la vitesse (69 % du temps d'une
+     génération). On rejoue les jeux 1 et 5 avec l'ancienne version, gardée dans
+     le générateur sous le nom _tropDenseLent : planning et compteurs doivent être
+     identiques, case par case. */
+  const RAP = 'function tropDense(id,ajout){';
+  V('les deux versions sont présentes', SRC.split(RAP).length === 2 && /function _tropDenseLent\(id,ajout\)\{/.test(SRC));
+  const LENT = SRC.split(RAP).join('function tropDense(id,ajout){ return _tropDenseLent(id,ajout); }\n  function _tropDenseRapideInutilise(id,ajout){');
+  [1, 5].forEach(seed => {
+    const a = R[seed].r, b = generer(jeu(seed), LENT);
+    V(`jeu ${seed} : même planning avec l'ancienne et la nouvelle version`, !!a.G && JSON.stringify(a.G) === JSON.stringify(b.G));
+  });
+}
+
 console.log(`\n${ok} réussite(s), ${ko} échec(s)`);
 if (ko) process.exit(1);
