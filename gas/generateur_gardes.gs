@@ -41,7 +41,7 @@
 // ⚠️ RÈGLE (détecteur de dérive dépôt↔Apps Script) : incrémenter cette version
 // à CHAQUE push de ce fichier. Le diagnostic (admin → Maintenance) compare la
 // version déployée ici avec celle du dépôt et signale toute recopie oubliée.
-const GAS_VERSION_GENERATEUR = '2026-10-24.2';
+const GAS_VERSION_GENERATEUR = '2026-10-24.3';
 
 /* (05/09/2026) INTERRUPTEUR DU NOUVEL ALGORITHME — récit : docs/JOURNAL-Planning-Med.md §101 */
 const NOUVEL_ALGO_GLOBAL = true;
@@ -458,6 +458,7 @@ function essaiGenerationGardes(year) {
   Object.keys(r.fetes || {}).sort().forEach(function (d) {
     L.push('   ' + d + '   ' + r.fetes[d][0] + '  +  ' + r.fetes[d][1]);
   });
+  if (r.fetesImposees) L.push('   ' + r.fetesImposees + ' nuit(s) imposée(s) par l\'onglet FETES_' + r.year);
   L.push('');
 
   /* ── 6. LA RÈGLE DES PAIRES. Elle s'applique en silence, en écartant des
@@ -1412,6 +1413,7 @@ function generateGardes(year, opts){
   // rotation possède toute l'unité liée. Historique = onglet NOEL_AN_HISTORIQUE.
   const noelDatesAssigned=new Set();
   const noelAssignees={};
+  let fetesImposees=0;   // (24/10/2026) nuits posées depuis l'onglet FETES_{year}
   {
     // Rotation Noël/An : dernière année où chacun a fait Noël/An.
     // Source unique getNoelHistory(year) = HISTORIQUE (années archivées) ∪ onglets
@@ -1492,6 +1494,55 @@ function generateGardes(year, opts){
     const cmpKey=(a,b)=>a[0]-b[0]||a[1]-b[1]||(a[2]<b[2]?-1:a[2]>b[2]?1:0);
 
     const noelDone=new Set();
+    /* (24/10/2026) FÊTES IMPOSÉES — inerte sans l'onglet FETES_{year}.
+       Le comité décide des binômes des nuits de fêtes (scénario). Jusqu'ici, on
+       l'obtenait en bloquant des cases dans les indisponibilités des autres MAR :
+       fragile — constaté le 24/10, un MAR qui enregistre ses souhaits dépasse la
+       limite de 5 week-ends bloqués, le portail retire la case du Jour de l'An et
+       le scénario saute. Désormais l'onglet dit directement « telle nuit, tel
+       binôme » (une ligne par nuit : Date, MAR 1, MAR 2 — initiales ou
+       identifiants), et le calcul l'impose AVANT tout le reste. Un vendredi et son
+       dimanche imposés au même binôme forment un vendredi-dimanche (compté VD).
+       Une nuit imposée l'est même si une règle s'y oppose (absence, Réa 1,
+       espacement) : c'est la décision du comité, mais elle est signalée. */
+    {
+      const _shF=ss.getSheetByName(`FETES_${year}`);
+      if(_shF){
+        const _v=_shF.getDataRange().getValues();
+        const _ini={}; medData.slice(1).forEach(row=>{const id=String(row[COL_MED.ID]).trim(), ini=String(row[COL_MED.INITIALES]||'').trim().toUpperCase();
+          if(id){ _ini[id.toUpperCase()]=id; if(ini) _ini[ini]=id; }});
+        const _parse=x=>{
+          if(x instanceof Date||Object.prototype.toString.call(x)==='[object Date]') return toDateStr(x);
+          const t=String(x==null?'':x).trim(); let m;
+          if((m=t.match(/^(\d{1,2})\/(\d{1,2})\/(\d{4})$/))) return `${m[3]}-${m[2].padStart(2,'0')}-${m[1].padStart(2,'0')}`;
+          if(/^\d{4}-\d{2}-\d{2}$/.test(t)) return t;
+          return '';
+        };
+        const imp={};
+        for(let r=1;r<_v.length;r++){
+          const d=_parse(_v[r][0]); const a=String(_v[r][1]==null?'':_v[r][1]).trim().toUpperCase(), b=String(_v[r][2]==null?'':_v[r][2]).trim().toUpperCase();
+          if(!d&&!a&&!b) continue;
+          const A=_ini[a], B=_ini[b];
+          if(!d||!dayByDate[d]){ warnings.push(`Fêtes imposées : date hors de l'année de garde ou illisible (ligne ${r+1}), ignorée`); continue; }
+          if(!A||!B||A===B||gardeDoctors.indexOf(A)<0||gardeDoctors.indexOf(B)<0){ warnings.push(`Fêtes imposées : binôme non reconnu le ${d} (« ${a} » + « ${b} »), nuit laissée au calcul`); continue; }
+          imp[d]=[A,B];
+        }
+        const faits=new Set();
+        Object.keys(imp).sort().forEach(d=>{
+          if(faits.has(d)) return;
+          const [A,B]=imp[d], dw=dayByDate[d].dow;
+          const dim=dw===5?shiftD(d,2):null;
+          const unite=(dim&&imp[dim]&&imp[dim].slice().sort().join()===[A,B].slice().sort().join())?[d,dim]:[d];
+          unite.forEach(x=>[A,B].forEach(m=>{ if(blocked(m,x)){ const mo=motifBlocage(m,x); warnings.push(`Fêtes imposées : ${m} posé le ${x} malgré « ${mo?mo.texte:'une règle'} » (décision du comité)`); } }));
+          if(unite.length===2) assignUnit(unite,A,B);
+          else { const [g,gg]=assignRoles(A,B); assign(d,g,gg,dw); noelDatesAssigned.add(d); }
+          unite.forEach(x=>{ faits.add(x); noelAssignees[x]=[A,B]; });
+          noelDone.add(A); noelDone.add(B);
+        });
+        fetesImposees=faits.size;
+        if(faits.size) Logger.log('Fêtes imposées (onglet FETES_'+year+') : '+faits.size+' nuit(s)');
+      }
+    }
     noelDates.forEach(date=>{
       if(gardes[date]) return;
       const unit=noelUnit(date);
@@ -3079,7 +3130,7 @@ function generateGardes(year, opts){
 
     /* Qui tient les quatre nuits de fêtes : la question la plus regardée. */
     const fetes = {};
-    [year + '-12-24', year + '-12-25', year + '-12-31', (year+1) + '-01-01'].forEach(function(d){
+    [year + '-12-24', year + '-12-25', year + '-12-31', (year+1) + '-01-01'].concat(Object.keys(noelAssignees)).forEach(function(d){
       const g = gardes[d];
       if(g) fetes[d] = [g.g || '—', g.g2 || '—'];
     });
@@ -3195,7 +3246,7 @@ function generateGardes(year, opts){
              ecarts:ecarts, compteurs:compteurs, cibles:cibles,
              jf:jf, noel:noel, h18:h18, souhaits:souhaitsBilan,
              fetes:fetes, paires:pairesBilan, couplesWE:_couplesWEBilan_(), coupleAssoupli:_cplOn&&CPL_SANS_BONUS,
-             rea1:rea1Bilan,
+             rea1:rea1Bilan, fetesImposees:fetesImposees,
              sansBinome:sansBinome.length, jours:sansBinome.slice(0,10),
              gardeurs:gardeDoctors.filter(function(id){return cnt[id];}).length,
              warnings: warnings.slice(0, 60), nbWarnings: warnings.length };
