@@ -44,6 +44,23 @@ les fichiers du planning, et attend une semaine de fonctionnement réel avant su
 
 # PARTIE 1 — L'ESSENTIEL
 
+## 24 octobre 2026 (soir) — les gestes du comité appliqués à la demande (v1.42.0)
+
+Site **v1.42.0** ; `journal.gs`, `Indispos.gs`, `diagnostic.gs` **2026-10-24.1** (recopiés, déployés,
+déclencheur réinstallé le 24/10). Banc **4 774 ✓, 0 échec**, 101 scénarios (commit `4a9829c`).
+
+- **Pourquoi** : la tâche qui applique les gestes du comité tournait chaque minute. Elle consommait
+  ~69 des 90 minutes par jour de tâches de fond qu'accorde Google, et ~480 des 1 000 ouvertures de file
+  quotidiennes de Cloudflare (alerte « 50 % » reçue).
+- **Maintenant** : la page admin demande l'application juste après chaque dépôt (quelques secondes) ; la
+  tâche automatique ne passe plus que **toutes les 5 minutes**, en filet. Le comité clique toujours
+  aussi vite et peut toujours fermer la page après avoir publié.
+- **Le classeur** : 41 onglets, 2,15 M cellules sur 20 M — sain, aucun onglet inutile. Seul point :
+  `LIBERAL_`, `LIBERAL_CA_`, `REA1_`, `FETES_` ne partent pas à l'archive à la clôture (+4 onglets/an).
+  À régler **avec la clôture d'année, après la génération 2027** (détail au ROADMAP).
+- **À confirmer** : un `doPost` dans les secondes après un geste (Exécutions) ; listages Cloudflare
+  autour de 150/jour à partir du 25/10.
+
 ## 24 octobre 2026 (après-midi) — semaines Réa 1, réparation par échange, calcul 4× plus rapide
 
 Site **v1.40.0**, `generateur_gardes.gs` **2026-10-24.2** (recopié et déployé ; essai Apps Script du

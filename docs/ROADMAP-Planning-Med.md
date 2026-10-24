@@ -6,16 +6,70 @@ portail/Dashboard, module libéral, contrôle d'absence, veille biblio.
 (Le générateur de comptes rendus a été retiré le 07/09/2026 : il portait le logo de
 l'établissement et 77 noms de praticiens sur une page publique sans code d'accès.)
 
-**Dépôt** `planningmedic/planningmedic.github.io`, branche `main` · **Site v1.40.0** (24/10/2026) ·
+**Dépôt** `planningmedic/planningmedic.github.io`, branche `main` · **Site v1.42.0** (24/10/2026) ·
 **Portail** https://planningmedic.github.io ·
 **GAS** (numéros relevés dans le dépôt le 24/10/2026 — recopie dans l'éditeur à confirmer au
-Diagnostic) : `generateur_gardes.gs` **2026-10-24.2** (recopié, essai lancé le 24/10 à 13h55 : 24 s) ·
+Diagnostic) : `generateur_gardes.gs` **2026-10-24.3** · `journal.gs`, `Indispos.gs`, `diagnostic.gs` **2026-10-24.1** (recopiés et déployés le 24/10 au soir) ·
 `veille.gs` **2026-10-23.3** · `indisponibilites.gs` **2026-10-22.2** · `miroir.gs`, `portail.gs` **2026-10-21.1** ·
-`code.gs`, `gardes.gs`, `Indispos.gs` **2026-10-18.1** · `equipe.gs` **2026-10-11.1** ·
-`diagnostic.gs` **2026-09-15.3** · `temps_partiel.gs` **2026-09-15.2** · `setup_annee.gs` **2026-09-14.1** ·
-`echanges.gs` **2026-09-08.1** · `journal.gs` **2026-09-07.1** ·
+`code.gs`, `gardes.gs` **2026-10-18.1** · `equipe.gs` **2026-10-11.1** ·
+`temps_partiel.gs` **2026-09-15.2** · `setup_annee.gs` **2026-09-14.1** ·
+`echanges.gs` **2026-09-08.1** ·
 **Worker** `cloudflare/worker.js` : `const VERSION = 'miroir 2026-10-20.1'` ·
 **Service worker** `sw.js` : `pm-sw-v2` (version.js exclu de la copie depuis le 14/10).
+
+## 24/10/2026 (soir) — budget des tâches de fond et quota Cloudflare : application à la demande (v1.42.0)
+
+**Question de départ** : le classeur, qui grossit, risque-t-il d'arrêter l'interface ?
+
+**Mesuré.**
+- Classeur : **41 onglets, 2 150 k cellules** (diagnostic). Limite Google actuelle : **20 M** (page d'aide
+  Drive) — le diagnostic affiche encore 10 M et alerte à 8 M : prudent, laissé tel quel. Les 41 onglets
+  sont tous lus par le code (liste relevée onglet par onglet). Le nombre d'onglets ne coûte rien en vitesse.
+- **Tâches de fond (plafond 90 min/jour, compte gmail)**, Exécutions du 24/10 : `journalAppliquer`
+  2,89 s × 1 440 = **69 min/j** · `miroirSyncComplet` 34,7 s × 24 = 13,9 · `miroirDocuments` 17,7 s × 24
+  = 7,1 · `expirerEchanges` 2,6 s × 24 = 1,0 → **~91 min/j estimées**, sans aucun message de dépassement :
+  l'estimation est haute (un seul passage mesuré pour les tâches horaires) ou le quota compte autre chose
+  que la durée affichée (hypothèse du 10/08, toujours non tranchée). Marge nulle dans tous les cas.
+- Échecs depuis le 19/10 : **3 blocages de 8 min** (19/10 05:09, 23/10 08:30, 24/10 00:45, « server error »
+  Google, sans heure ni cause communes), 2 échecs à 0 s, 1 à 7 s — **6 sur ~8 640 passages**, rien perdu.
+- **Cloudflare (namespace MIROIR, 1–24/10)** : listages **11 840 (~497/j = 50 % du plafond de 1 000)** —
+  c'est l'alerte reçue ; écritures 3 640 (~153/j), lectures 46 730 (~1 960/j), suppressions 554.
+  Origine des listages : le filet d'1 minute sur 3 de `/tirer` (480/j à vide) + `/journal-etat` (2 listages
+  par interrogation de la page admin toutes les 20 s pendant une attente).
+
+**Fait** (`4a9829c`, banc **101 scénarios, 4 774 ✓**, 6 min 16) :
+- `admin.html` : après chaque dépôt réussi, `_journalDeclencher()` envoie `journalAppliquerMaintenant`
+  à Apps Script (keepalive, jamais attendu, jamais rejoué ; un appel en vol + un de plus au retour pour
+  les dépôts arrivés entre-temps). Pendant une attente de la file, la garde de fraîcheur (90 s) est
+  réarmée à chaque interrogation : la page ne lit pas la copie rapide tant que la file n'est pas vide.
+- `journal.gs` : `journalAppliquer({direct:true})` — sans battement ni relève du courrier, verrou attendu
+  25 s, renvoie le nombre de fiches. Déclencheur **toutes les 5 min** (filet) ; `journalInstallerDeclencheur`
+  remplace désormais l'ancien (il le gardait). Google n'accepte que 1, 5, 10, 15 ou 30 min.
+- `Indispos.gs` : action `journalAppliquerMaintenant` (comité seul, **hors** `WRITE_ACTIONS_LOCK` — la note
+  miroir prend le verrou de script). Les requêtes de page ne comptent pas dans les 90 min.
+- `diagnostic.gs` : libellé de l'applicateur. Guides comité et technique, README `gas/`.
+- Banc : `banc_journal_direct.js` (33 ✓ ; contre-preuve sur l'ancien code : 9 échecs) ; contrat du routeur
+  66 actions / 49 comité ; `e2e.js` admet la seule demande d'application, qui ne répond jamais dans le test.
+- Recopie des 3 fichiers, nouvelle version déployée, `journalInstallerDeclencheur` exécuté (responsable, 24/10).
+
+**Attendu, à vérifier** : `journalAppliquer` ~14 min/j au lieu de 69 ; listages ~150/j au lieu de ~500 ;
+un `doPost` dans les secondes qui suivent chaque geste du comité.
+
+**Ouvert.**
+- Confirmer en production : un `doPost` après une saisie (Exécutions) ; compteur de listages Cloudflare
+  du 25/10 (après 2 h).
+- **Compteur de budget des tâches de fond** (proposé, non fait) : chaque tâche note sa durée, la sentinelle
+  alerte à 70 min/j et compte les blocages de 8 min.
+- `miroirDocuments` toutes les heures (17,7 s × 24) : à espacer si une page n'en dépend pas à l'heure —
+  non vérifié.
+- **Clôture d'année — 4 familles d'onglets jamais archivées** (`archiveMoveTabs_` ne range que GARDES_,
+  INDISPOS_, STATS_GARDES_, AFFECTATIONS_, LIENS_R_) : +4 onglets par an sans fin. Vérifié dans le code :
+  - `REA1_{Y}`, `FETES_{Y}` : lus par le seul générateur, pour l'année Y → **archivables à la clôture de Y**.
+  - `LIBERAL_{Y}`, `LIBERAL_CA_{Y}` : année CIVILE ; relus après le 31/12 par le panneau de la semaine à
+    cheval (gardes.gs, lecture par année des dates), par la saisie du relevé de décembre en janvier et par
+    le contrôle annuel des 30 % → **archiver ceux de Y-1 à la clôture de Y** (toujours deux années présentes).
+  - Gain : rangement (classeur stable vers 40–45 onglets), pas de vitesse. **À traiter avec la clôture,
+    après la génération 2027** (décision du responsable, 24/10). Premier effet : clôture de 2027.
 
 ## 24/10/2026 (après-midi) — semaines Réa 1, réparation par échange, couple assoupli, calcul 4× plus rapide (v1.40.0)
 
@@ -2132,6 +2186,8 @@ Le document décrivait un chantier ouvert que la production avait déjà referm�
 → Avant toute proposition : chercher la fonction dans le code, pas dans ce fichier.
 
 ### Le quota de temps de calcul — épée de Damoclès mesurée le 10/08/2026
+
+**(24/10/2026) Remesuré et traité : voir l'entrée du 24/10 (soir).** Le texte ci-dessous est l'état du 10/08.
 
 **90 minutes par jour de tâches de fond** sur un compte gmail ordinaire
 (6 heures sur un compte Workspace) — chiffre **vérifié à la source officielle**
