@@ -58,7 +58,16 @@ function campagne(seed) {
    (23/10/2026, soir) graine 1 : avec la passe des périodes tendues, le premier tirage
    de la graine 2 est retenu ; la 1 reproduit le cas (tirage 2 retenu, écart 1 contre 2). */
 const { roster, m } = campagne(1);
+/* (24/10/2026) La réparation par échange (8c-ter) met désormais le PREMIER
+   planning à une garde d'écart sur toutes les graines essayées (2 à 14) : le cas
+   « premier planning non retenu » ne se produit plus naturellement. Ce scénario
+   vérifie le CHOIX du planning, pas sa qualité : il tourne sur une copie du
+   générateur où cette réparation est coupée, qui reproduit le cas (graine 1,
+   tirage 2 retenu). La réparation a son propre scénario (banc_rea1.js). */
+const REP = 'if(NOUVEL_ALGO){\n      const _tit=';
+const GEN = SRC.split(REP).join('if(false){\n      const _tit=');
 function monde(genSource) {
+  genSource = genSource || GEN;
   const ss = H.makeSpreadsheet([
     H.makeSheet('MEDECINS', H.medecinsRows(roster)),
     H.makeSheet(`INDISPOS_${YEAR}`, H.indisposRows(YEAR, roster, m)),
@@ -115,7 +124,8 @@ V('la vraie génération a bien écrit ce planning-là', vrai.logs.some(l => l =
 console.log('\n═══ 4. Contre-épreuve : l\'essai d\'avant montrait un autre planning ═══');
 const a = 'const _t = NOUVEL_ALGO_GLOBAL ? choisirMeilleurTirage(an) : 1;';
 V('la copie sans correctif est bien différente', SRC.indexOf(a) > 0);
-const avant = monde(SRC.replace(a, 'const _t = 1;'));
+V('la copie sans réparation est bien différente du générateur', GEN !== SRC);
+const avant = monde(GEN.replace(a, 'const _t = 1;'));
 const txtAv = avant.ctx.essaiGenerationGardes(YEAR);
 V('sans le correctif, le tableau par médecin n\'est PAS celui du planning écrit', section(txtAv) !== section(txt));
 const pire = t => Math.max(...(String(t).split('── ÉQUITÉ')[1] || '').split('── PAR')[0].match(/\d+\.\d+/g).map(Number));

@@ -871,10 +871,21 @@
       <p>Surveillez le <b>chiffre des week-ends</b> au staff vacances (section 6). Un week-end sous 4 disponibles est précisément ce qui produit un jour sans binôme deux mois plus tard.</p>
     </div>
 
+    <h3>Avant la génération : les semaines Réa 1</h3>
+    <p>La semaine où un MAR de l'équipe réa est Réa 1, il ne prend aucune garde du dimanche soir au jeudi soir, et n'a ni récupération ni 18 h du lundi au vendredi. Le calcul le sait si le tableau de l'équipe réa est dans le classeur.</p>
+    <div class="geste"><b>Le geste :</b> collez le tableau de répartition de l'équipe réa, tel quel, dans un onglet nommé <b>REA1_2027</b> (l'année de la campagne) : une ligne par semaine, avec une colonne <b>« Du »</b> (le lundi) et une colonne <b>« REA 1 »</b> (les initiales). Faites-le <b>avant</b> l'essai de génération.</div>
+    <p>L'essai affiche alors un bloc « Semaines Réa 1 » : le nombre de semaines lues, les souhaits retirés parce qu'ils tombaient sur une nuit Réa 1 de leur auteur, et deux alertes à régler avec l'équipe réa avant de générer — un Réa 1 qui a posé une absence pendant sa propre semaine, ou un nom que le classeur ne reconnaît pas.</p>
+    <details class="pourquoi">
+      <summary>Et l'équité ?</summary>
+      <div class="corps">
+        <p>Elle reste la règle : tout le monde à une garde près de sa part, sur chaque type de garde. Bloquer ces semaines gêne surtout les week-ends de l'équipe réa ; quand un MAR resterait à deux gardes de sa part, le calcul échange une de ses gardes avec un collègue au-dessus de la sienne, sans jamais toucher à une garde demandée.</p>
+      </div>
+    </details>
+
     <h3>Après la génération : deux personnes qui ne devaient pas être de garde ensemble</h3>
     <p>Certains MAR ne doivent jamais être de sortie la même nuit, par exemple un couple. Le calcul l'évite toujours, sauf si c'était le seul moyen de couvrir la garde. Dans ce cas, un avertissement s'affiche <b>en premier</b> sous l'étape de génération, avec les deux noms et les dates.</p>
     <div class="geste"><b>Le geste :</b> regardez ces dates et, si besoin, proposez un <b>échange</b> à l'un des deux. Le planning reste valable tel quel : rien ne vous oblige à le corriger.</div>
-    <p><b>Un couple qui veut grouper ses week-ends</b> : quand l'un fait le vendredi-dimanche, le calcul essaie de donner à l'autre le samedi du même week-end, pour bloquer moins de week-ends au foyer. Chacun reste dans sa part de samedis et de week-ends, à une garde près comme tout le monde, les autres ne font rien de plus, et la règle « jamais la même nuit » reste entière. Pour l'activer, ajoutez dans l'onglet CONFIG du classeur une ligne <b>COUPLES_WEEKEND</b> avec les deux identifiants séparés par « + » ; l'essai de génération affiche alors « week-ends en commun ».</p>
+    <p><b>Un couple qui veut grouper ses week-ends</b> : quand l'un fait le vendredi-dimanche, le calcul essaie de donner à l'autre le samedi du même week-end, pour bloquer moins de week-ends au foyer. Chacun reste dans sa part de samedis et de week-ends, à une garde près comme tout le monde, les autres ne font rien de plus, et la règle « jamais la même nuit » reste entière. Pour l'activer, ajoutez dans l'onglet CONFIG du classeur une ligne <b>COUPLES_WEEKEND</b> avec les deux identifiants séparés par « + » ; l'essai de génération affiche alors « week-ends en commun ». <b>L'équité passe avant</b> : si grouper leurs week-ends empêche de tenir tout le monde à une garde près, la règle s'assouplit d'elle-même et l'essai l'indique par « règle assouplie ».</p>
     <a class="backtop" href="#">↑ Sommaire</a>
   </section>
 

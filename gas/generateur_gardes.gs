@@ -41,7 +41,7 @@
 // ⚠️ RÈGLE (détecteur de dérive dépôt↔Apps Script) : incrémenter cette version
 // à CHAQUE push de ce fichier. Le diagnostic (admin → Maintenance) compare la
 // version déployée ici avec celle du dépôt et signale toute recopie oubliée.
-const GAS_VERSION_GENERATEUR = '2026-10-23.3';
+const GAS_VERSION_GENERATEUR = '2026-10-24.1';
 
 /* (05/09/2026) INTERRUPTEUR DU NOUVEL ALGORITHME — récit : docs/JOURNAL-Planning-Med.md §101 */
 const NOUVEL_ALGO_GLOBAL = true;
@@ -472,9 +472,20 @@ function essaiGenerationGardes(year) {
     L.push('');
   }
 
+  /* (24/10/2026) SEMAINES RÉA 1 : rien sans l'onglet REA1_{année}. */
+  if (r.rea1 && r.rea1.semaines) {
+    L.push('── SEMAINES RÉA 1 ──');
+    L.push('   ' + r.rea1.semaines + ' semaine(s) lue(s) : pas de garde du dimanche au jeudi, ni récupération ni 18 h du lundi au vendredi');
+    L.push('   Souhaits retirés (posés sur une nuit Réa 1) : ' + r.rea1.souhaitsRetires.length);
+    if (r.rea1.absences.length) L.push('   ⚠️ Absences pendant sa propre semaine Réa 1 : ' + r.rea1.absences.join(', '));
+    if (r.rea1.inconnus.length) L.push('   ⚠️ Noms non reconnus : ' + r.rea1.inconnus.join(', '));
+    L.push('');
+  }
+
   /* (11/10/2026) COUPLES DE WEEK-END : rien sans la ligne COUPLES_WEEKEND de CONFIG. */
   if (r.couplesWE && r.couplesWE.length) {
     L.push('── COUPLES DE WEEK-END ──');
+    if (r.coupleAssoupli) L.push('   Règle assouplie : avec la règle entière, aucun planning ne tenait l\'équité');
     r.couplesWE.forEach(function (c) {
       L.push('   ' + c.couple + ' : week-ends en commun : ' + c.lies + '   ·   week-ends bloqués au foyer : ' + c.bloques);
     });
@@ -499,8 +510,30 @@ function essaiGenerationGardes(year) {
    Un calcul en échec n'interrompt pas la recherche. */
 function choisirMeilleurTirage(year){
   const AXES = ['total','sam','jeu','vd','vjf','jf'];
-  let meilleur = 1, cleMeilleure = null;
-  for(let t = 1; t <= MULTI_DEPART_MAX; t++){
+  let meilleur = 1, cleMeilleure = null, atteint = false;
+  /* (24/10/2026) COUPLES DE WEEK-END — LA RÈGLE S'ASSOUPLIT, ELLE NE SAUTE PAS.
+     Règle du responsable : l'équité passe avant le couple. Première série : la
+     règle entière. Si AUCUN planning n'atteint le seuil d'écart, seconde série
+     (numéros MULTI_DEPART_MAX+1 à 2×MULTI_DEPART_MAX, mêmes ordres de départ) où
+     seul le bonus de l'optimiseur (levier 2, le seul qui pèse contre l'équité)
+     est retiré ; le placement (levier 1) et les échanges neutres (levier 3)
+     restent. Filet de sécurité : depuis la réparation par échange (8c-ter), les
+     demandes 2027 avec les semaines Réa 1 tiennent le seuil dès la première série ;
+     avant elle, la règle entière laissait un pire écart de 2 sur les 8 plannings.
+     Sans couple déclaré, la seconde série n'existe pas : rien ne change.
+     Avec un couple, la première série ne s'arrête plus au premier planning
+     équitable : parmi ceux qui tiennent le seuil, elle garde celui qui donne au
+     couple le plus de week-ends en commun (mesuré le même jour : 1 à 5 selon le
+     planning, tous à une garde près). L'équité reste le premier critère. */
+  const avecCouple = Object.keys(getCouplesWeekend()).length > 0;
+  const series = [1];
+  if (avecCouple) series.push(2);
+  for (const serie of series) {
+  if (serie === 2) {
+    if (atteint) break;
+    Logger.log('Multi-départ : aucun planning à ' + MULTI_DEPART_SEUIL + ' garde d\'écart avec la règle du couple entière — nouvel essai sans son bonus');
+  }
+  for(let t = (serie - 1) * MULTI_DEPART_MAX + 1; t <= serie * MULTI_DEPART_MAX; t++){
     let r = null;
     try { r = generateGardes(year, { dryRun: true, tirage: t }); }
     catch(e){ Logger.log('Tirage ' + t + ' en échec : ' + e.message); continue; }
@@ -511,7 +544,8 @@ function choisirMeilleurTirage(year){
       if(e >= 2) nAu++;
       if(e > pire) pire = e;
     });
-    const cle = [r.sansBinome || 0, nAu, pire];
+    const lies = (r.couplesWE || []).reduce(function(t, c){ return t + (c.lies || 0); }, 0);
+    const cle = [r.sansBinome || 0, nAu, pire, -lies];
     let mieux = !cleMeilleure;
     if(cleMeilleure){
       for(let i = 0; i < cle.length; i++){
@@ -519,8 +553,10 @@ function choisirMeilleurTirage(year){
       }
     }
     if(mieux){ cleMeilleure = cle; meilleur = t; }
-    Logger.log('Tirage ' + t + ' : ' + (r.sansBinome || 0) + ' jour(s) sans binôme, pire écart ' + pire);
-    if((r.sansBinome || 0) === 0 && pire <= MULTI_DEPART_SEUIL) break;
+    Logger.log('Tirage ' + t + ' : ' + (r.sansBinome || 0) + ' jour(s) sans binôme, pire écart ' + pire
+               + (avecCouple ? ', week-ends en commun ' + lies : ''));
+    if((r.sansBinome || 0) === 0 && pire <= MULTI_DEPART_SEUIL){ atteint = true; if(!avecCouple) break; }
+  }
   }
   Logger.log('Multi-départ : tirage ' + meilleur + ' retenu');
   return meilleur;
@@ -633,7 +669,12 @@ function generateGardes(year, opts){
   });
 
   /* (05/09/2026) NUMÉRO DE TIRAGE — récit : docs/JOURNAL-Planning-Med.md §111 */
-  const TIRAGE = Math.max(1, Number(opts && opts.tirage) || 1);
+  const TIRAGE_BRUT = Math.max(1, Number(opts && opts.tirage) || 1);
+  /* (24/10/2026) Numéros au-delà de MULTI_DEPART_MAX : même ordre de départ que
+     le tirage (n − MULTI_DEPART_MAX), sans le bonus du couple (voir
+     choisirMeilleurTirage). */
+  const CPL_SANS_BONUS = TIRAGE_BRUT > MULTI_DEPART_MAX;
+  const TIRAGE = ((TIRAGE_BRUT - 1) % MULTI_DEPART_MAX) + 1;
   if(NOUVEL_ALGO){
     const _h = s => { let h = 2166136261 ^ Math.imul(TIRAGE, 0x9E3779B1);
       for(let i=0;i<s.length;i++){ h ^= s.charCodeAt(i); h = Math.imul(h, 16777619); }
@@ -674,6 +715,60 @@ function generateGardes(year, opts){
       [String(td[r][1]).trim(),String(td[r][2]).trim()].forEach(id=>{
         if(id){if(!indispos[id])indispos[id]={};indispos[id][pj]='RG_TRANSITION';}});
       break;
+    }
+  }
+
+  /* ── 3bis. (24/10/2026) SEMAINES RÉA 1 — inerte sans l'onglet REA1_{year} ──
+     Règle du responsable : la semaine Réa 1 est sanctuarisée. Du lundi au
+     vendredi, le Réa 1 désigné fait la réanimation : aucune garde du dimanche
+     soir au jeudi soir (la garde du dimanche mettrait son repos le lundi, celle
+     du jeudi le vendredi), aucune récupération et aucun 18 h du lundi au
+     vendredi. Il reste libre le vendredi soir, le samedi et le week-end VD qui
+     clôt sa semaine. L'onglet est le tableau de répartition de l'équipe réa,
+     collé tel quel : une ligne par semaine, colonne « Du » (le lundi) et colonne
+     « REA 1 … » (initiales ou identifiant). Les souhaits posés sur une nuit
+     Réa 1 de leur auteur sont retirés, et listés dans les avertissements. */
+  const REA1_NUIT={}, REA1_SEM={}, rea1Msgs=[], rea1Bilan={semaines:0,souhaitsRetires:[],absences:[],inconnus:[]};
+  {
+    const _shR=ss.getSheetByName(`REA1_${year}`);
+    if(_shR){
+      const _v=_shR.getDataRange().getValues();
+      const _norm=x=>String(x==null?'':x).normalize('NFD').replace(/[\u0300-\u036f]/g,'').toUpperCase().replace(/\s+/g,' ').trim();
+      const _h=(_v[0]||[]).map(_norm);
+      let _cDu=_h.indexOf('DU'), _cR=_h.findIndex(x=>/^REA ?1\b/.test(x));
+      if(_cDu<0) _cDu=1; if(_cR<0) _cR=4;
+      const _parse=x=>{
+        if(x instanceof Date||Object.prototype.toString.call(x)==='[object Date]') return toDateStr(x);
+        const t=String(x==null?'':x).trim(); let m;
+        if((m=t.match(/^(\d{1,2})\/(\d{1,2})\/(\d{4})$/))) return `${m[3]}-${m[2].padStart(2,'0')}-${m[1].padStart(2,'0')}`;
+        if(/^\d{4}-\d{2}-\d{2}$/.test(t)) return t;
+        return '';
+      };
+      const _ini={}; medData.slice(1).forEach(row=>{const id=String(row[COL_MED.ID]).trim(), ini=String(row[COL_MED.INITIALES]||'').trim().toUpperCase();
+        if(id){ _ini[id.toUpperCase()]=id; if(ini) _ini[ini]=id; }});
+      const _sh=(ds,n)=>toDateStr(new Date(new Date(ds+'T12:00:00').getTime()+n*86400000));
+      for(let r=1;r<_v.length;r++){
+        let lun=_parse(_v[r][_cDu]); const code=String(_v[r][_cR]==null?'':_v[r][_cR]).trim().toUpperCase();
+        if(!lun||!code) continue;
+        const _dw=new Date(lun+'T12:00:00').getDay(); lun=_sh(lun,-((_dw+6)%7));   // ramené au lundi
+        const id=_ini[code];
+        if(!id||gardeDoctors.indexOf(id)<0){ rea1Bilan.inconnus.push(code+' ('+lun+')'); continue; }
+        rea1Bilan.semaines++;
+        (REA1_NUIT[id]=REA1_NUIT[id]||new Set()); (REA1_SEM[id]=REA1_SEM[id]||new Set());
+        for(let k=-1;k<=3;k++) REA1_NUIT[id].add(_sh(lun,k));
+        for(let k=0;k<=4;k++)  REA1_SEM[id].add(_sh(lun,k));
+        for(let k=-1;k<=3;k++){ const d=_sh(lun,k);
+          if(indispos[id]?.[d]==='SOUHAIT'){
+            delete indispos[id][d];
+            if(souhaits[d]){ souhaits[d]=souhaits[d].filter(x=>x!==id); if(!souhaits[d].length) delete souhaits[d]; }
+            rea1Bilan.souhaitsRetires.push(id+' '+d);
+          } }
+        for(let k=0;k<=3;k++){ const d=_sh(lun,k), a=indispos[id]?.[d];
+          if(a==='VAC'||a==='FORM'||a==='CL'||a==='TP'||a==='CTP') rea1Bilan.absences.push(id+' '+d+' ('+a+')'); }
+      }
+      if(rea1Bilan.souhaitsRetires.length) rea1Msgs.push('Réa 1 : '+rea1Bilan.souhaitsRetires.length+' souhait(s) posé(s) sur une nuit Réa 1 de leur auteur, retiré(s) : '+rea1Bilan.souhaitsRetires.join(', '));
+      if(rea1Bilan.absences.length) rea1Msgs.push('Réa 1 : absence posée pendant sa propre semaine Réa 1 — à vérifier avec l\'équipe réa : '+rea1Bilan.absences.join(', '));
+      if(rea1Bilan.inconnus.length) rea1Msgs.push('Réa 1 : nom non reconnu dans REA1_'+year+', semaine ignorée : '+rea1Bilan.inconnus.join(', '));
     }
   }
 
@@ -951,6 +1046,7 @@ function generateGardes(year, opts){
     const s=indispos[id]?.[date];
     if(s==='INDISPO'||s==='VAC'||s==='FORM'||s==='TP'||s==='CL'||s==='CTP') return true;
     if(s==='RG_TRANSITION') return true;      // repos hérité de la garde du 31/12 (CONFIG_TRANSITION)
+    if(REA1_NUIT[id]&&REA1_NUIT[id].has(date)) return true;   // (24/10/2026) semaine Réa 1, dimanche → jeudi
     if(estSemaineOff(id,date)) return true;   // semaine "off" du rythme 2/2
     const _tpF=FLAGS.tpJoursFixes[id];         // (D1) jours fixes non travaillés (MEDECINS col Q)
     if(_tpF&&_tpF.has(new Date(date+'T12:00:00').getDay())) return true;
@@ -998,6 +1094,7 @@ function generateGardes(year, opts){
     if(SOUHAIT_PLAFOND.has(id)&&_di?.isVjf&&!isSouhaitDe(id,date)) return {classe:'profil',texte:'régime à part : pas de veille de férié non souhaitée'};
     if(SOUHAIT_PLAFOND.has(id)&&(_dw===0||_dw===5||_dw===6||_di?.isFerie)) return {classe:'profil',texte:'régime à part : pas de vendredi, week-end ni férié'};
     if(SOUHAIT_PLAFOND.has(id)&&cnt[id]&&cible[id]&&cnt[id].total>=cible[id].total) return {classe:'profil',texte:'régime à part : a déjà atteint son nombre de gardes'};
+    if(REA1_NUIT[id]&&REA1_NUIT[id].has(date)) return {classe:'profil',texte:'semaine Réa 1 (en réanimation du lundi au vendredi)'};
     const s=indispos[id]?.[date];
     /* `_sansAbsence` : « et si on retirait cette absence, serait-il libre ? »
        C'est la question qui décide si un MAR est un LEVIER ou un faux espoir.
@@ -1279,6 +1376,7 @@ function generateGardes(year, opts){
   const gardes={};
   const assignDow={}; // (optim) axe-jour de chaque date (couplages fériés : 6)
   const warnings=[];
+  rea1Msgs.forEach(m=>warnings.push(m));   // (24/10/2026) semaines Réa 1
 
   // ── 7bis. NOËL / JOUR DE L'AN — rotation pluriannuelle ───────────────
   // 4 dates (24/12, 25/12, 31/12, 01/01) = 8 MAR/an. Priorité = jamais fait
@@ -2292,7 +2390,7 @@ function generateGardes(year, opts){
           }
           dd_+=_spacingPen(B,days_)-_spacingPen(A,days_);
           // (11/10/2026) COUPLES DE WEEK-END · levier 2 : lien créé = gain, lien cassé = coût.
-          if(_cplOn&&_isWE&&(CPL_WE[A]||CPL_WE[B])) dd_-=CPL_LAMBDA*_cplDelta(days_,role,B);
+          if(_cplOn&&!CPL_SANS_BONUS&&_isWE&&(CPL_WE[A]||CPL_WE[B])) dd_-=CPL_LAMBDA*_cplDelta(days_,role,B);
           if(dd_<bestD){bestD=dd_;bestB=B;}}
         if(bestB){applyTr(slot,bestB);moves++;changed=true;}
       }
@@ -2306,6 +2404,75 @@ function generateGardes(year, opts){
       }
     }
     Logger.log('Optimiseur: '+moves+' transferts');
+
+    /* ── 8c-ter. (24/10/2026) RÉPARATION PAR ÉCHANGE DE CRÉNEAUX ──────────────
+       L'optimiseur ne déplace qu'UN créneau à la fois. Il reste parfois un MAR à
+       2 gardes de sa cible sur un axe sans qu'aucun transfert simple ne soit
+       permis : constaté le 24/10/2026 sur les demandes 2027 avec les semaines
+       Réa 1 — un MAR à 3 VD pour 5, chaque VD libre tombant à côté d'un de ses
+       samedis (jamais deux week-ends de suite). Il fallait un ÉCHANGE : il prend
+       le VD d'un collègue au-dessus de sa part et lui cède ce samedi.
+       Ne joue QUE pour un écart au-delà de LEX_SEUIL. Un échange n'est gardé que
+       s'il réduit l'excès d'écart des deux MAR concernés (puis l'écart pondéré),
+       en respectant toutes les règles dures (canHold : absences, Réa 1, repos,
+       deux week-ends de suite, 3 gardes sur 6 jours, paires à éviter). Jamais
+       sur un créneau verrouillé (souhait honoré, fêtes, régime à part). */
+    if(NOUVEL_ALGO){
+      const _tit=sl=>sl.role===0?gardes[sl.days[0]].g:gardes[sl.days[0]].g2;
+      const _ec=(id,ax)=>cnt[id][ax]-(cible[id][ax]-(dette[id]?.[ax]||0));
+      const _axOk=(id,ax)=>!!(cible[id]&&cible[id][ax]>0);
+      const _cout=ids=>{ let ex=0,sq=0; ids.forEach(id=>EQ.forEach(ax=>{ if(!_axOk(id,ax)) return;
+        const e=_ec(id,ax), x=Math.abs(e)-LEX_SEUIL; if(x>0) ex+=x; sq+=W[ax]*e*e; })); return [ex,sq]; };
+      const _mieux=(a,b)=>a[0]<b[0]-1e-9||(Math.abs(a[0]-b[0])<1e-9&&a[1]<b[1]-1e-9);
+      let _rep=0;
+      for(let _p=0;_p<6;_p++){
+        let _chg=false;
+        const _def=[]; gardeDoctors.forEach(id=>EQ.forEach(ax=>{ if(_axOk(id,ax)&&Math.abs(_ec(id,ax))>LEX_SEUIL) _def.push([id,ax]); }));
+        if(!_def.length) break;
+        for(const [M,ax] of _def){
+          if(Math.abs(_ec(M,ax))<=LEX_SEUIL) continue;
+          /* Meilleur échange, pas le premier trouvé : un échange déplace aussi
+             d'autres axes (un samedi cédé contre un VD reçu) ; prendre le moins
+             coûteux limite ces effets de bord, qui s'additionnent d'une année sur
+             l'autre. */
+          let best=null;
+          for(const s1 of slots){
+            if(s1.locked||!s1.contrib[ax]) continue;
+            const T1=_tit(s1);
+            // M en déficit : il reçoit s1. M en excès : il cède s1 (il doit le tenir).
+            let recv, gives;
+            if(_ec(M,ax)<0){ if(T1===M) continue; recv=[M]; gives=T1; }
+            else { if(T1!==M) continue; gives=M; recv=gardeDoctors.filter(x=>x!==M); }
+            if(SOUHAIT_PLAFOND.has(gives)) continue;
+            for(const D of recv){
+              if(SOUHAIT_PLAFOND.has(D)) continue;
+              const avant=_cout([D,gives]);
+              for(const s2 of slots){
+                if(s2===s1||s2.locked||_tit(s2)!==D) continue;
+                if(s2.contrib[ax]>=s1.contrib[ax]) continue;          // l'échange doit déplacer l'axe
+                /* Chaque moitié est vérifiée dans l'état FINAL de l'autre : le
+                   créneau cédé est souvent celui qui bloquait (un samedi collé au
+                   VD visé), et le tester avant l'échange le refusait à tort. */
+                applyTr(s1,D);                                        // s1 chez D
+                if(!canHold(gives,s2.days,s2.role)||_spacingPen(gives,s2.days)>=250){ applyTr(s1,gives); continue; }
+                applyTr(s2,gives);                                    // s2 chez l'autre
+                applyTr(s1,gives);                                    // on retire s1 un instant pour tester D
+                const _okD=canHold(D,s1.days,s1.role)&&_spacingPen(D,s1.days)<250;
+                applyTr(s1,D);
+                const apres=_cout([D,gives]);
+                const gain=[avant[0]-apres[0], avant[1]-apres[1]];
+                if(_okD&&_mieux(apres,avant)&&(!best||gain[0]>best.gain[0]+1e-9||(Math.abs(gain[0]-best.gain[0])<1e-9&&gain[1]>best.gain[1]+1e-9)))
+                  best={s1,s2,D,gives,gain};
+                applyTr(s1,gives); applyTr(s2,D);                    // remettre en place
+              }
+            }
+          }
+          if(best){ applyTr(best.s1,best.D); applyTr(best.s2,best.gives); _rep++; _chg=true; }
+        }
+        if(!_chg) break;
+      }
+      if(_rep) Logger.log('Réparation par échange : '+_rep+' échange(s)');
+    }
 
     /* ── 8c-bis. (11/10/2026) COUPLES DE WEEK-END · levier 3 : échanges ciblés ──
        Un week-end où un seul des deux est de garde : le conjoint ÉCHANGE un de ses
@@ -2366,7 +2533,8 @@ function generateGardes(year, opts){
       }
       if(_cplEch) warnings.push('Couples de week-end : '+_cplEch+' échange(s) ciblé(s), équité inchangée');
     }
-    if(NOUVEL_ALGO && TIRAGE>1) warnings.push('Multi-départ : tirage n°'+TIRAGE+' retenu (équité meilleure que le tirage 1).');
+    if(NOUVEL_ALGO && TIRAGE_BRUT>1) warnings.push('Multi-départ : tirage n°'+TIRAGE_BRUT+' retenu (équité meilleure que le tirage 1).');
+    if(_cplOn && CPL_SANS_BONUS) warnings.push('Couples de week-end : règle assouplie (sans bonus d\'optimisation) — avec la règle entière, aucun planning ne tenait l\'équité à '+MULTI_DEPART_SEUIL+' garde près.');
 
     // ── 8bis. PASSE CONFORT — « le jour gagné avant les vacances » ────────
     // Pratique historique du service : donner à un MAR la garde de la veille de son
@@ -2528,6 +2696,7 @@ function generateGardes(year, opts){
     const dd=FLAGS.dateDebut[id], df=FLAGS.dateFin[id];
     if((dd&&date<dd)||(df&&date>=df)) return false;
     if(R_ABSENT.has(indispos[id]?.[date])) return false;
+    if(REA1_SEM[id]&&REA1_SEM[id].has(date)) return false;   // (24/10/2026) pas de récupération en semaine Réa 1
     if(estSemaineOff(id,date)) return false;
     const tpF=FLAGS.tpJoursFixes[id];
     if(tpF&&tpF.has(new Date(date+'T12:00:00').getDay())) return false;
@@ -2670,6 +2839,7 @@ function generateGardes(year, opts){
     const _dd18=FLAGS.dateDebut[id], _df18=FLAGS.dateFin[id];
     if((_dd18&&date<_dd18)||(_df18&&date>=_df18)) return false;
     if(ABSENT_18.has(indispos[id]?.[date])) return false;
+    if(REA1_SEM[id]&&REA1_SEM[id].has(date)) return false;   // (24/10/2026) pas de 18 h en semaine Réa 1
     if(estSemaineOff(id,date)) return false;
     if(gSet[id]?.has(date)||g2Set[id]?.has(date)||rgSet[id]?.has(date)||rSet[id]?.has(date)) return false;
     const _tp=FLAGS.tpJoursFixes[id]; // (C2-D3) jours fixes non travaillés → MEDECINS
@@ -2994,7 +3164,8 @@ function generateGardes(year, opts){
              partExacte:partExacte, cumulPrec:cumulPrec, anneesLues:anneesLues.sort(),
              ecarts:ecarts, compteurs:compteurs, cibles:cibles,
              jf:jf, noel:noel, h18:h18, souhaits:souhaitsBilan,
-             fetes:fetes, paires:pairesBilan, couplesWE:_couplesWEBilan_(),
+             fetes:fetes, paires:pairesBilan, couplesWE:_couplesWEBilan_(), coupleAssoupli:_cplOn&&CPL_SANS_BONUS,
+             rea1:rea1Bilan,
              sansBinome:sansBinome.length, jours:sansBinome.slice(0,10),
              gardeurs:gardeDoctors.filter(function(id){return cnt[id];}).length,
              warnings: warnings.slice(0, 60), nbWarnings: warnings.length };

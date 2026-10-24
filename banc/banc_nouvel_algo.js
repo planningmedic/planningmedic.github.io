@@ -178,9 +178,12 @@ V('elle n\'écrit rien : les deux passes sont des calculs à blanc',
   (SRC.match(/dryRun: true, tirage: 1, forcerAncien/g) || []).length === 1);
 V('le multi-départ ne part jamais sur une écriture directe',
   /if\(NOUVEL_ALGO && !DRY && !\(opts && opts\.tirage\)\)/.test(SRC));
-V('la recherche du meilleur tirage est bornée', /t <= MULTI_DEPART_MAX/.test(SRC));
+/* (24/10/2026) Deux séries au plus (la seconde, sans le bonus du couple de
+   week-end, seulement si la première n'atteint pas le seuil) : 2 × MULTI_DEPART_MAX. */
+V('la recherche du meilleur tirage est bornée', /t <= serie \* MULTI_DEPART_MAX/.test(SRC) && /const series = \[1\];\s*\n\s*if \(avecCouple\) series\.push\(2\);/.test(SRC));
 V('la couverture prime dans le choix du tirage',
-  /const cle = \[r\.sansBinome \|\| 0, nAu, pire\];/.test(SRC));
+  /* (24/10/2026) Les week-ends en commun d'un couple ne viennent qu'en DERNIER critère. */
+  /const cle = \[r\.sansBinome \|\| 0, nAu, pire, -lies\];/.test(SRC));
 V('le poids de l\'équité reste sous celui de la règle des week-ends',
   /const LEX_POIDS = 600;/.test(SRC));
 /* (07/09/2026) Même correction que dans banc_equite_certificat : un numéro exact
