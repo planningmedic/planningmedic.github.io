@@ -89,6 +89,8 @@ const CONTRAT = {
   'getAffectationsJson'       : 'tout code valide',
   // (18/10/2026) Vue paie : le corps admet le code paie, le comité et le MAR qui a la tuile cachée.
   'getPlanningPaie'           : 'conditionnel',
+  // (24/10/2026) Application immédiate du journal, demandée par la page admin après un dépôt.
+  'journalAppliquerMaintenant': 'admin',
 };
 function classer(fn, tout) {
   /* admin : refus hors comité en tête (1 ou plusieurs lignes) ; mar seulement : refus
@@ -121,11 +123,11 @@ function contratActuel() {
   }
   return { fichier: path.basename(cands[0]), actions: out, corps };
 }
-console.log('═══ Le routeur répond au contrat des 65 actions ═══');
+console.log('═══ Le routeur répond au contrat des 66 actions ═══');
 const { fichier, actions, corps } = contratActuel();
 const attendu = Object.assign({}, CONTRAT, { getActiveYear: 'sans code', getAnneesDisponibles: 'sans code' });
 V('le routeur est lu dans ' + fichier, !!fichier);
-V('65 actions, ni plus ni moins', Object.keys(actions).length === 65, Object.keys(actions).length);
+V('66 actions, ni plus ni moins', Object.keys(actions).length === 66, Object.keys(actions).length);
 const manquantes = Object.keys(attendu).filter(a => !(a in actions));
 const enTrop = Object.keys(actions).filter(a => !(a in attendu));
 V('aucune action du contrat ne manque', manquantes.length === 0, manquantes);
@@ -133,7 +135,7 @@ V('aucune action hors contrat', enTrop.length === 0, enTrop);
 const roleChange = Object.keys(attendu).filter(a => actions[a] && actions[a] !== attendu[a]).map(a => a + ': ' + attendu[a] + ' → ' + actions[a]);
 V('chaque action garde exactement son contrôle d\'accès', roleChange.length === 0, roleChange);
 V('exactement deux actions sans code : les listes d\'années', Object.values(actions).filter(r => r === 'sans code').length === 2);
-V('48 actions réservées au comité', Object.values(actions).filter(r => r === 'admin').length === 48, Object.values(actions).filter(r => r === 'admin').length);
+V('49 actions réservées au comité', Object.values(actions).filter(r => r === 'admin').length === 49, Object.values(actions).filter(r => r === 'admin').length);
 const desaccords = Object.keys(actions).filter(a => actions[a] !== 'sans code' && corps[a] !== actions[a]).map(a => a + ': table=' + actions[a] + ' corps=' + corps[a]);
 V('pour chaque action, le rôle DÉCLARÉ dans la table est celui que le CORPS vérifie', desaccords.length === 0, desaccords);
 V('chaque fonction _act_ existe dans le code métier', !Object.values(corps).includes('FONCTION ABSENTE'));

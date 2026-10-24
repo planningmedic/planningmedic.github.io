@@ -1836,7 +1836,7 @@ function showPublishReassurance(via) {
      la publication n'est pas encore faite : elle est GARANTIE, ce qui n'est
      pas la même chose — et c'est précisément ce qui permet de fermer la page. */
   el.innerHTML = (via === 'journal')
-    ? "<b>📤 Publication en route.</b> Vos modifications sont enregistrées et déjà visibles ici. Le serveur publie dans la minute : <b>vous pouvez fermer cette page</b>, la version des MAR sera à jour sous 2 à 3 minutes."
+    ? "<b>📤 Publication en route.</b> Vos modifications sont enregistrées et déjà visibles ici. Le serveur publie dans les secondes qui suivent : <b>vous pouvez fermer cette page</b>, la version des MAR sera à jour, en général, sous 2 à 3 minutes."
     : "<b>✅ Modifications publiées.</b> Elles sont déjà visibles ici. La version des MAR se met à jour dans 1 à 2 minutes — <b>inutile de recharger la page</b>.";
   el.style.display = 'block';
   clearTimeout(window._pubReassureT);
@@ -1981,7 +1981,11 @@ window.MIROIR_DELAI = 10000;
 /* ═══ (v1.23) JOURNAL D'INTENTIONS ════════════════════════════════════
    Les gestes du comite (placements, statuts, publication) ne parlent PLUS
    a Google en direct : ils deposent une FICHE chez Cloudflare (~150 ms,
-   accusee, durable), que le serveur applique chaque minute, dans l'ordre.
+   accusee, durable), que le serveur applique dans l'ordre.
+   (24/10/2026) Juste apres chaque depot, la page DEMANDE l'application
+   (_journalDeclencher, appel non attendu) : quelques secondes au lieu d'une
+   minute. Le serveur ne passe plus de lui-meme que toutes les 5 minutes, en
+   filet (quotas Google et Cloudflare, mesures du 24/10).
    → cliquer a son rythme, publier, FERMER LA PAGE : tout s'applique.
    Chaque depot a son repli GAS integral (l'ancien circuit, conserve tel
    quel) : une panne du Worker ne bloque jamais un geste. */
@@ -2007,9 +2011,34 @@ async function _journalDeposer(intention) {
     if (!(r && r.success)) return null;
     _tsEcriturePlanning = Date.now();   // meme garde de fraicheur que les ecritures directes
     _tsEcritureAnnee = _anneeEcriture_(intention);   // (18/08/2026) les 4 intentions portent toutes `year`
+    _journalDeclencher();
     _journalSuivre();
     return r;
   } catch (e) { return null; }
+}
+
+/* (24/10/2026) Demande au serveur d'appliquer la file MAINTENANT. Partie tout
+   de suite (keepalive : survit a la fermeture de la page), jamais attendue,
+   jamais rejouee : un echec ne coute qu'un delai, le filet de 5 min rattrape.
+   Des depots rapproches ne lancent pas un appel chacun : pendant qu'un appel
+   est en vol, les suivants se resument en UN appel de plus a son retour (les
+   fiches deposees apres la releve du premier). */
+let _jDeclEnVol = false, _jDeclEncore = false;
+function _journalDeclencher() {
+  if (_jDeclEnVol) { _jDeclEncore = true; return; }
+  _jDeclEnVol = true;
+  let p;
+  try {
+    p = fetch(API_URL, {
+      method: 'POST', headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+      body: JSON.stringify({ action: 'journalAppliquerMaintenant', code: ADMIN_CODE }),
+      redirect: 'follow', keepalive: true,
+    });
+  } catch (e) { p = Promise.reject(e); }
+  Promise.resolve(p).catch(() => {}).then(() => {
+    _jDeclEnVol = false;
+    if (_jDeclEncore) { _jDeclEncore = false; _journalDeclencher(); }
+  });
 }
 
 /* Suivi : tant que des fiches attendent, interroger l'etat toutes les 20 s.
@@ -2036,6 +2065,10 @@ function _journalSuivre() {
           _batchBadge();   // plus rien en route : badge au repos
           return;
         }
+        /* (24/10/2026) Tant que la file n'est pas vide, la garde de fraicheur
+           reste armee : les lectures evitent la copie rapide, qui ne contient
+           pas encore ce qui attend. Les 90 s repartent du dernier constat. */
+        _tsEcriturePlanning = Date.now();
         try {
           _batchBadge();   // cree l'element au besoin (il est construit paresseusement)
           const el = document.getElementById('batchBadge');

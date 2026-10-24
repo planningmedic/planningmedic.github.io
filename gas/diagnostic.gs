@@ -4,7 +4,7 @@
    quelles : aucune ligne de logique modifiée, seulement déplacée. Le routeur et
    ses aides (checkCode, _deny, _error, doGet/doPost) restent dans Indispos.gs.
    Un seul espace global dans Apps Script : rien à importer. */
-const GAS_VERSION_DIAG = '2026-09-15.3';
+const GAS_VERSION_DIAG = '2026-10-24.1';   // (24/10/2026) applicateur : filet toutes les 5 min
 
 // ── LOG ───────────────────────────────────────────────────────────────
 /* ─────────────────────────────────────────────────────────────────────────────
@@ -369,7 +369,7 @@ function diagnosticComplet() {
     hdr('Journal d\'intentions');
     try {
       const _trigJ = ScriptApp.getProjectTriggers().some(function (t) { return t.getHandlerFunction() === 'journalAppliquer'; });
-      if (_trigJ) check('Applicateur installé (journalAppliquer, chaque minute)', R.OK);
+      if (_trigJ) check('Applicateur installé (journalAppliquer, filet toutes les 5 minutes + appel de la page admin)', R.OK);
       else check('Applicateur ABSENT — exécuter journalInstallerDeclencheur() : les intentions du comité ne s\'appliquent pas', R.ERR);
       try {
         const _ej = journalEtat_();

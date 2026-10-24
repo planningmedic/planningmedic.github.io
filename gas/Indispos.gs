@@ -1,7 +1,7 @@
 // ⚠️ RÈGLE (détecteur de dérive dépôt↔Apps Script) : incrémenter cette version
 // à CHAQUE push de ce fichier. Le diagnostic (admin → Maintenance) compare la
 // version déployée ici avec celle du dépôt et signale toute recopie oubliée.
-const GAS_VERSION_INDISPOS = '2026-10-18.1';   // (18/10/2026) rôle « paie » (code partagé des secrétaires de paie) + refus par défaut de tout rôle autre que admin/mar hors de sa liste blanche
+const GAS_VERSION_INDISPOS = '2026-10-24.1';   // (24/10/2026) action journalAppliquerMaintenant (journal.gs) · (18/10/2026) rôle « paie » (code partagé des secrétaires de paie) + refus par défaut de tout rôle autre que admin/mar hors de sa liste blanche
 
 /* ── (01/08/2026) MARQUEUR DE TEMPS GLOBAL — mesure, ne change rien ───────
    `_srv_ms` chronometre l'INTERIEUR de doGet. Or avant que doGet soit appele,
@@ -390,6 +390,7 @@ function _actions_() {
     "getPlanningJson"             : { role: 'tout code valide'  , fn: _act_getPlanningJson },   // gardes.gs
     "getAffectationsJson"         : { role: 'tout code valide'  , fn: _act_getAffectationsJson },   // gardes.gs
     "getPlanningPaie"             : { role: 'conditionnel'      , fn: _act_getPlanningPaie },   // gardes.gs (18/10/2026) vue paie
+    "journalAppliquerMaintenant"  : { role: 'admin'             , fn: _act_journalAppliquerMaintenant },   // Indispos.gs → journal.gs (24/10/2026) application immédiate après dépôt
   };
   _ACTIONS_MEMO_ = { sansCode: SANS_CODE, avecCode: AVEC_CODE };
   return _ACTIONS_MEMO_;
@@ -520,6 +521,21 @@ function doPost(e) {
   }
 }
 /* ═══ ACTIONS RESTÉES ICI : l'année (setActiveYear, initYear, archiveYear) et les deux listes sans code ═══ */
+
+/* ── action "journalAppliquerMaintenant" (24/10/2026) ──
+   Corps de l'action dans journal.gs (journalAppliquer). Appelée par admin.html juste après un dépôt au journal, sans attendre la
+   réponse. Hors WRITE_ACTIONS_LOCK : comme le déclencheur, l'applicateur
+   prend son propre verrou de document, et la note miroir prend le verrou de
+   script (les prendre tous deux ici bloquerait la note). Une requête de page
+   ne compte pas dans les 90 min/jour de tâches de fond. */
+function _act_journalAppliquerMaintenant(R) {
+  const { e, payload, action, code, user } = R;
+  if (user.role !== 'admin') return _deny();
+  const n = journalAppliquer({ direct: true });
+  return ContentService.createTextOutput(JSON.stringify({
+    success: true, appliquees: n
+  })).setMimeType(ContentService.MimeType.JSON);
+}
 
 /* ── action "getActiveYear" ── */
 function _act_getActiveYear(R) {

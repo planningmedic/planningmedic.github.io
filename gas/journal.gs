@@ -1,5 +1,5 @@
 // ⚠️ RÈGLE : incrémenter à CHAQUE push. Fichier Apps Script : `journal`.
-const GAS_VERSION_JOURNAL = '2026-09-07.1';
+const GAS_VERSION_JOURNAL = '2026-10-24.1';   // (24/10/2026) application déclenchée par la page admin + filet toutes les 5 min
 
 /* ═══════════════════════════════════════════════════════════════════════
    JOURNAL D'INTENTIONS — L'APPLICATEUR (05/08/2026)
@@ -9,13 +9,22 @@ const GAS_VERSION_JOURNAL = '2026-09-07.1';
    expose le comité à sa porte d'entrée (2,5-5 s au mieux, 30 s+ les mauvais
    matins, 404 sur le canal de réponse). Désormais le comité dépose ses
    INTENTIONS chez Cloudflare (~150 ms, accusé garanti, durable) ; CE fichier
-   les applique côté serveur, chaque minute, dans l'ordre.
+   les applique côté serveur, dans l'ordre.
+
+   (24/10/2026) QUAND. La page admin demande l'application juste après un
+   dépôt (action `journalAppliquerMaintenant`, appel non attendu) : quelques
+   secondes au lieu d'une minute. Le déclencheur ne passe plus que toutes les
+   5 minutes, en FILET (appel direct perdu, page fermée trop tôt). Motif,
+   mesures du 24/10 : 1 440 passages/jour ≈ 69 min sur les 90 min/jour de
+   tâches de fond d'un compte gmail, et ≈ 480 ouvertures de file/jour chez
+   Cloudflare (alerte 50 % du plafond de 1 000 listages). Les requêtes des
+   pages ne comptent pas dans les 90 min.
 
    LE CIRCUIT.
    1. admin.html → POST /ecrire au Worker : la fiche (type, données, auteur,
       horodatage Worker) est stockée en KV sous `j_{ts}_{aléa}` — l'ordre est
       l'ordre des horodatages du Worker, source unique.
-   2. `journalAppliquer` (déclencheur chaque minute) → GET /tirer (jeton) →
+   2. `journalAppliquer` (appel de la page admin, ou filet toutes les 5 min) → GET /tirer (jeton) →
       applique CHAQUE fiche par les fonctions de production existantes
       (savePlanningOverridesBatch, appliquerStatutJour, generatePlanning) —
       AUCUNE logique métier ici, uniquement l'aiguillage.
@@ -40,13 +49,15 @@ const GAS_VERSION_JOURNAL = '2026-09-07.1';
 
 const JOURNAL_TYPES_CONNUS = ['placements', 'statut', 'publier'];
 
+/* (24/10/2026) Remplace le déclencheur existant (l'ancien, à 1 minute, était
+   conservé tel quel par la version précédente) : à exécuter UNE FOIS à la main
+   après la recopie. Idempotent : n'empile jamais deux déclencheurs. */
 function journalInstallerDeclencheur() {
-  const deja = ScriptApp.getProjectTriggers().some(function (t) {
-    return t.getHandlerFunction() === 'journalAppliquer';
+  ScriptApp.getProjectTriggers().forEach(function (t) {
+    if (t.getHandlerFunction() === 'journalAppliquer') ScriptApp.deleteTrigger(t);
   });
-  if (deja) { Logger.log('journalAppliquer : déclencheur déjà installé'); return; }
-  ScriptApp.newTrigger('journalAppliquer').timeBased().everyMinutes(1).create();
-  Logger.log('journalAppliquer : déclencheur installé (chaque minute)');
+  ScriptApp.newTrigger('journalAppliquer').timeBased().everyMinutes(5).create();
+  Logger.log('journalAppliquer : déclencheur installé (filet toutes les 5 minutes)');
 }
 
 function _journalJeton_() {
@@ -67,7 +78,7 @@ function journalEtat_() {
 }
 
 /* (2026-08-05.2) Le compteur de courrier non lu est rafraichi ICI, hors de
-   la file du comite : l'applicateur tourne deja chaque minute, on interroge
+   la file du comite : l'applicateur tourne deja (filet de 5 min), on interroge
    Gmail au plus toutes les 5 minutes (garde d'horodatage). Le badge du
    comite lit ensuite le miroir, sans aucun appel Google. */
 const JOURNAL_CLE_MAIL = 'JOURNAL_MAIL_DERNIER';
@@ -81,25 +92,35 @@ function _journalRafraichirMail_() {
   } catch (e) { /* jamais bloquant : le badge est un confort */ }
 }
 
-function journalAppliquer() {
-  try { if (typeof _bat_ === 'function') _bat_('journalAppliquer'); } catch (e) {}   // (27/08) battement de cœur — lu par le diagnostic
-  _journalRafraichirMail_();
+/* `opts.direct` (24/10/2026) : appel de la page admin (journalAppliquerMaintenant).
+   Le déclencheur, lui, passe un objet événement sans `direct` : comportement
+   inchangé. En direct : ni battement (il mesure le FILET), ni relève du
+   courrier (cadence propre au filet), et une attente de verrou plus longue —
+   si le filet tient la file, on attend sa fin plutôt que de laisser la
+   nouvelle fiche dormir jusqu'au filet suivant. Renvoie le nombre de fiches
+   traitées (0 si rien, -1 si verrou indisponible). */
+function journalAppliquer(opts) {
+  const direct = !!(opts && opts.direct === true);
+  if (!direct) {
+    try { if (typeof _bat_ === 'function') _bat_('journalAppliquer'); } catch (e) {}   // (27/08) battement de cœur — lu par le diagnostic
+    _journalRafraichirMail_();
+  }
   // Un seul applicateur à la fois : deux passages qui se chevauchent
   // appliqueraient les mêmes fiches (sans dégât — idempotence — mais en
   // double travail et double note miroir).
   /* (2026-08-05.3, CORRECTIF) Verrou de DOCUMENT, pas verrou de script — récit : docs/JOURNAL-Planning-Med.md §129 */
   const verrou = LockService.getDocumentLock();
-  if (!verrou.tryLock(5000)) return;
+  if (!verrou.tryLock(direct ? 25000 : 5000)) return -1;
   try {
     const rep = UrlFetchApp.fetch(MIROIR_URL + '/tirer', {
       method: 'post', contentType: 'application/json',
       payload: JSON.stringify({ token: _journalJeton_() }),
       muteHttpExceptions: true,
     });
-    if (rep.getResponseCode() !== 200) return;   // Worker indisponible : on repassera
+    if (rep.getResponseCode() !== 200) return 0;   // Worker indisponible : on repassera
     const corps = JSON.parse(rep.getContentText());
     const fiches = (corps && corps.fiches) || [];
-    if (!fiches.length) return;
+    if (!fiches.length) return 0;
 
     // Ordre STRICT des horodatages Worker (la clé commence par j_{ts}_).
     fiches.sort(function (a, b) { return a.cle < b.cle ? -1 : 1; });
@@ -161,10 +182,12 @@ function journalAppliquer() {
         try { _miroirNoterPoussee_(familles, Number(y)); } catch (e) {}
       });
     }
-    logAction('journalAppliquer — ' + resultats.length + ' fiche(s), ' +
+    logAction('journalAppliquer' + (direct ? ' (page admin)' : '') + ' — ' + resultats.length + ' fiche(s), ' +
               resultats.filter(function (r) { return !r.ok; }).length + ' échec(s)');
+    return resultats.length;
   } catch (e) {
     Logger.log('journalAppliquer : ' + e.message);
+    return 0;
   } finally {
     try { verrou.releaseLock(); } catch (e) {}
   }

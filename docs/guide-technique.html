@@ -251,8 +251,8 @@
   copies : on peut le vider sans rien perdre.</dd>
   <dt>Le journal d'intentions</dt>
   <dd>La boîte aux lettres, chez Cloudflare, où les gestes du comité (placer quelqu'un, poser un
-  statut, publier) sont déposés en un éclair. Le serveur Google la relève chaque minute et exécute
-  les ordres dans l'ordre.</dd>
+  statut, publier) sont déposés en un éclair. La page demande aussitôt au serveur Google de la
+  relever ; il exécute les ordres dans l'ordre, et repasse de lui-même toutes les 5 minutes par sécurité.</dd>
   <dt>Le code d'accès et son empreinte</dt>
   <dd>Chacun se connecte avec un code personnel. Le relais Cloudflare ne connaît jamais les codes
   eux-mêmes : seulement leur <b>empreinte</b>, une signature calculée à partir du code, qui permet
@@ -326,7 +326,7 @@
 en bas, les données. Entre les deux, deux intermédiaires — un relais très rapide pour lire, et le
 serveur Google, seul autorisé à écrire. Trois chemins relient ces étages : <b>lire</b> (par le
 relais, quasi instantané), <b>agir quand on est le comité</b> (les ordres partent dans une boîte aux
-lettres et sont exécutés dans la minute), et le <b>chemin direct vers le serveur Google</b> — plus
+lettres et sont exécutés en quelques secondes), et le <b>chemin direct vers le serveur Google</b> — plus
 lent, mais toujours là, et c'est lui qui a le dernier mot.</p></div>
 
 <div class="schema">
@@ -345,7 +345,7 @@ lent, mais toujours là, et c'est lui qui a le dernier mot.</p></div>
       d'accès par son empreinte · garde la boîte aux lettres des ordres du comité</div>
     </div>
     <div class="fleche"><span class="f">▼&nbsp;&nbsp;&nbsp;▲</span>
-      <span class="fl">le serveur dépose des copies fraîches · relève la boîte chaque minute</span></div>
+      <span class="fl">le serveur dépose des copies fraîches · relève la boîte à la demande de la page (filet : 5 min)</span></div>
     <div class="boite b-vert">
       <div class="bt">③ Le serveur Google</div>
       <div class="bd"><b>le seul autorisé à écrire</b> · 15 fichiers de code, un par sujet · vérifie les droits,
@@ -374,7 +374,7 @@ dernier ressort si un code est valable.</b></p>
 Plutôt que d'attendre le serveur Google — qui peut mettre plusieurs secondes, voire se faire
 attendre les mauvais matins — la page d'administration dépose une <i>fiche d'intention</i> dans la
 boîte aux lettres du relais. Le dépôt prend une fraction de seconde et la fiche est en sécurité. Le
-serveur relève la boîte chaque minute et exécute les fiches dans l'ordre. Détails au §A6.</p>
+serveur relève la boîte dès que la page le lui demande et exécute les fiches dans l'ordre. Détails au §A6.</p>
 <p><b>3 · Tout le reste passe en direct par le serveur Google</b> : la saisie des indisponibilités,
 les réglages de l'équipe, les assistants annuels… La page envoie sa demande, le serveur vérifie les
 droits, écrit dans le classeur, répond. Dans la foulée, il note quelles copies du relais sont à
@@ -474,8 +474,8 @@ en permanence que les fichiers en service sont bien ceux du dépôt.</p></div>
 <tr><th>Fichier</th><th>Son rôle, en clair</th></tr>
 <tr><td><code>Indispos.gs</code></td><td>Le chef d'orchestre, réduit à l'essentiel (800 lignes au lieu de
 6 500) : il reçoit chaque demande, vérifie le code d'accès et le droit associé, puis lit dans sa <b>table
-des 64 actions</b> quelle fonction appeler. La table déclare pour chaque action qui y a droit (comité seul :
-48 ; tout code valide : 9 ; selon le rôle : 4 ; MAR seulement : 1 ; sans code : les 2 listes d'années), et
+des 66 actions</b> quelle fonction appeler. La table déclare pour chaque action qui y a droit (comité seul :
+49 ; tout code valide : 9 ; selon le rôle : 4 ; MAR seulement : 1 ; sans code : les 2 listes d'années), et
 le banc vérifie que cette déclaration est bien ce que le code fait.</td></tr>
 <tr><td><code>gardes.gs</code></td><td>Tout ce qui touche au planning des gardes : statut, placements manuels
 du comité, affectations, panneau du jour, reliquats, Noël, publication.</td></tr>
@@ -500,8 +500,8 @@ configuration des secteurs. ⚠️ Nom trompeur : qui cherche le libéral ou les
 ici.</td></tr>
 <tr><td><code>miroir.gs</code></td><td>L'alimentation du relais Cloudflare : quelles copies
 rafraîchir après quelle écriture, et le grand rangement horaire (§A5).</td></tr>
-<tr><td><code>journal.gs</code></td><td>La relève de la boîte aux lettres du comité, chaque minute
-(§A6). Il ne contient aucune règle métier : il ne fait qu'aiguiller chaque fiche vers la fonction
+<tr><td><code>journal.gs</code></td><td>La relève de la boîte aux lettres du comité, à la demande de la page admin, avec un filet toutes
+les 5 minutes (§A6). Il ne contient aucune règle métier : il ne fait qu'aiguiller chaque fiche vers la fonction
 qui sait la traiter.</td></tr>
 <tr><td><code>veille.gs</code></td><td>La veille bibliographique : l'interrogation hebdomadaire de
 PubMed (§C7).</td></tr>
@@ -539,7 +539,7 @@ d'entrée : <code>doGet</code>/<code>doPost</code>, qui confient tout au routeur
 <code>_routeRequete_</code> (Indispos.gs). Celui-ci lit la table <code>_actions_()</code> — nom → rôle déclaré →
 fonction <code>_act_&lt;nom&gt;(R)</code>, R = <code>{ e, payload, action, code, user }</code> — dont les corps
 vivent dans les fichiers métier. Rôles issus de <code>checkCode</code> ; refus des non-admins par
-<code>_deny()</code>, dans le corps de chaque action ; <code>banc_contrat_routeur.js</code> fige les 64 actions. Chaque fichier poussé incrémente sa constante
+<code>_deny()</code>, dans le corps de chaque action ; <code>banc_contrat_routeur.js</code> fige les 66 actions. Chaque fichier poussé incrémente sa constante
 <code>GAS_VERSION_*</code> (format AAAA-MM-JJ.N) — c'est elle que le diagnostic compare au dépôt
 (contrôle de dérive, 15 lignes : les 14 fichiers déployés de <code>gas/</code> + le module partagé
 <code>partage/dispo_jour.js</code> ; <code>dev.gs</code> et <code>sauvegarde.gs</code> ne sont pas contrôlés). Fonction endormie : <code>setupAnnee</code> (setup_annee.gs)
@@ -712,7 +712,7 @@ console sous <code>[DISPO-TEMOIN]</code>. Diagnostic rapide : ouvrir l'adresse r
 <code>chrono()</code> (§C11) détaille chaque lecture. <b>Drapeau de la file (20/08/2026)</b> :
 <code>/ecrire</code> pose la clé <code>jsignal</code> en même temps que la fiche ;
 <code>/tirer</code> la lit et n'ouvre la file (<code>KV.list</code>, plafond gratuit 1 000/jour
-contre 1 440 passages) que si elle existe — ou une minute sur trois, filet contre une lecture
+contre 1 440 passages à l'époque) que si elle existe — ou une minute sur trois, filet contre une lecture
 périmée. Le drapeau est baissé AVANT l'ouverture, jamais après : une fiche arrivée pendant
 l'ouverture relève le drapeau et sera vue au passage suivant. <code>{forcer:true}</code> ouvre la
 file sans attendre. Aucun changement côté Apps Script : la réponse de <code>/tirer</code> garde la
@@ -727,10 +727,13 @@ même forme.</p>
 <p>Avant : chaque geste du comité attendait la réponse du serveur Google — plusieurs secondes au
 mieux, parfois trente les mauvais matins, avec des échecs aléatoires. Depuis le 05/08/2026, le geste
 est <b>déposé</b> en une fraction de seconde dans une boîte aux lettres chez Cloudflare, avec accusé
-de réception ; le serveur relève la boîte chaque minute et exécute les fiches dans l'ordre. Depuis
+de réception ; le serveur relève la boîte et exécute les fiches dans l'ordre. Depuis
 le 20/08/2026, déposer une fiche lève un <b>drapeau</b> : le serveur regarde le drapeau — un geste
 cent fois moins coûteux — et n'ouvre la boîte que s'il est levé, plus une fois toutes les trois
-minutes par sécurité. Rien ne change à l'usage : le geste passe toujours dans la minute. Trois
+minutes par sécurité. <b>Depuis le 24/10/2026</b>, la page demande au serveur de relever la boîte
+juste après chaque dépôt (quelques secondes) ; le serveur ne repasse plus de lui-même que toutes les
+5 minutes, en filet. Motif : 1 440 passages par jour consommaient ~69 des 90 minutes de tâches de
+fond qu'accorde Google, et ~480 des 1 000 ouvertures de boîte quotidiennes de Cloudflare. Trois
 types de fiches existent : les placements, les statuts du jour, la publication. L'écriture dans le
 classeur reste la seule vérité — la boîte n'est qu'une file d'attente fiable devant elle.</p></div>
 
@@ -741,7 +744,7 @@ classeur reste la seule vérité — la boîte n'est qu'une file d'attente fiabl
       <div class="bd">la page dépose une fiche (quoi, qui, quand) dans la boîte aux lettres —
       un dixième de seconde, accusé de réception garanti</div>
     </div>
-    <div class="fleche"><span class="f">▼</span><span class="fl">chaque minute</span></div>
+    <div class="fleche"><span class="f">▼</span><span class="fl">aussitôt (filet : 5 min)</span></div>
     <div class="boite b-vert">
       <div class="bt">② Le serveur relève la boîte</div>
       <div class="bd">et applique chaque fiche, dans l'ordre du dépôt, avec les fonctions habituelles
@@ -794,7 +797,7 @@ donne les trajets et les chiffres.</p></div>
 <table>
 <tr><th>Qui écrit</th><th>Trajet</th><th>Ressenti de l'auteur</th><th>Visible des MARs</th></tr>
 <tr><td>Le comité (écran admin)</td><td>fiche déposée dans la boîte aux lettres (A6), relevée
-chaque minute par le serveur, qui écrit au classeur</td><td>instantané (accusé de dépôt)</td>
+aussitôt par le serveur (filet : 5 min), qui écrit au classeur</td><td>instantané (accusé de dépôt)</td>
 <td>~1 à 2 min</td></tr>
 <tr><td>Un MAR (indispos, temps partiel, échanges, libéral)</td><td>appel DIRECT au serveur, qui
 écrit au classeur dans la requête</td><td>quelques secondes (le temps de réveil de Google — c'est

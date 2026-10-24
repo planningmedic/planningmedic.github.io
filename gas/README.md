@@ -37,7 +37,7 @@ majuscule comprise.
 | `portail.gs` | `gas/portail.gs` | Portail/Dashboard, topos, staffs, protocoles, annuaire, module libéral |
 | `miroir.gs` | `gas/miroir.gs` | Dépôt des données de lecture vers le miroir rapide, rattrapage et sync horaire |
 | `dispo_jour.gs` | `partage/dispo_jour.js` *(extension différente)* | `calculerDispoJour` — logique partagée avec le frontend |
-| `journal.gs` | `gas/journal.gs` | Relève et application des gestes du comité déposés en attente (toutes les minutes) |
+| `journal.gs` | `gas/journal.gs` | Relève et application des gestes du comité déposés en attente (à la demande de la page admin, filet toutes les 5 minutes) |
 | `sauvegarde.gs` | `sauvegarde.gs` *(racine du dépôt)* | Copie hebdomadaire du dépôt GitHub (zip) dans Drive, dimanche ~3 h |
 | `veille.gs` | `gas/veille.gs` | Veille bibliographique : requêtes PubMed, filtres, `runVeille` (lundi ~6 h) |
 

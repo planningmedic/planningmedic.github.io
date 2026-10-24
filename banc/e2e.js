@@ -74,14 +74,18 @@ const dodo = ms => new Promise(r => setTimeout(r, ms));
   const dom = new JSDOM(fs.readFileSync('../admin.html','utf8'), { runScripts:'dangerously', virtualConsole:vc, url:'https://planningmedic.github.io/admin.html', pretendToBeVisual:true, beforeParse(win) { win.eval(require('fs').readFileSync(require('path').join(__dirname, '..', 'partage', 'portail.js'), 'utf8')); win.eval(require('fs').readFileSync(require('path').join(__dirname, '..', 'partage', 'rendu_equite.js'), 'utf8')); }   /* (14/09/2026) le socle, comme le vrai site */ });
   const w = dom.window;
   await dodo(600);
-  let appelsGAS = 0;
+  let appelsGAS = 0, demandesAppli = 0;
   w.fetch = async (url, opt) => {
     const u = String(url);
     if (u.includes('workers.dev')) {
       const chemin = u.replace(/^https:\/\/[^/]+/, '');
       return W.fetch(new Request('https://worker' + chemin, { method:'POST', body: opt.body }), env);
     }
-    appelsGAS++;   // tout appel Apps Script est compté : il ne doit plus y en avoir
+    /* (24/10/2026) Seule exception admise : la DEMANDE d'application qui suit un
+       dépôt (journalAppliquerMaintenant). Elle n'est jamais attendue : ici elle ne
+       répond JAMAIS, et le parcours doit aboutir quand même. */
+    try { if (JSON.parse(opt.body).action === 'journalAppliquerMaintenant') { demandesAppli++; return new Promise(() => {}); } } catch (e) {}
+    appelsGAS++;   // tout autre appel Apps Script est compté : il ne doit plus y en avoir
     return { ok:true, json: async () => ({ success:false, error:'GAS non disponible dans le banc' }) };
   };
   /* ADMIN_CODE/ADMIN_YEAR sont des liaisons lexicales du script (let), pas des
@@ -133,6 +137,7 @@ const dodo = ms => new Promise(r => setTimeout(r, ms));
   V('la publication part par le journal', via === 'journal', via);
   V('la page ne garde plus rien en attente', Object.keys(w._batchAll()).length === 0, w._batchAll());
   V('AUCUN appel Apps Script sur tout le parcours', appelsGAS === 0, appelsGAS);
+  V('une seule demande d\'application en vol, jamais attendue (elle ne répond pas ici)', demandesAppli === 1, demandesAppli);
   // « je ferme la page » : plus aucun code de la page ne tourne
   applicateur();
   V('APRÈS FERMETURE : le placement final est au classeur',
