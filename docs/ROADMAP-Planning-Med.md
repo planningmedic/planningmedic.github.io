@@ -6,16 +6,63 @@ portail/Dashboard, module libéral, contrôle d'absence, veille biblio.
 (Le générateur de comptes rendus a été retiré le 07/09/2026 : il portait le logo de
 l'établissement et 77 noms de praticiens sur une page publique sans code d'accès.)
 
-**Dépôt** `planningmedic/planningmedic.github.io`, branche `main` · **Site v1.26.0** (18/10/2026) ·
+**Dépôt** `planningmedic/planningmedic.github.io`, branche `main` · **Site v1.39.0** (24/10/2026) ·
 **Portail** https://planningmedic.github.io ·
-**GAS** (numéros relevés dans le dépôt le 18/10/2026 — recopie dans l'éditeur à confirmer au
-Diagnostic) : `code.gs`, `gardes.gs`, `Indispos.gs` **2026-10-18.1** (recopiés et déployés le 18/10,
-mail paie essayé en production) · `veille.gs` **2026-10-13.1** · `generateur_gardes.gs` **2026-10-12.1** ·
-`equipe.gs`, `indisponibilites.gs`, `miroir.gs` **2026-10-11.1** · `portail.gs` **2026-10-01.2** ·
+**GAS** (numéros relevés dans le dépôt le 24/10/2026 — recopie dans l'éditeur à confirmer au
+Diagnostic) : `generateur_gardes.gs` **2026-10-23.3** (recopié, essai lancé le 24/10 : 45 s) ·
+`veille.gs` **2026-10-23.3** · `indisponibilites.gs` **2026-10-22.2** · `miroir.gs`, `portail.gs` **2026-10-21.1** ·
+`code.gs`, `gardes.gs`, `Indispos.gs` **2026-10-18.1** · `equipe.gs` **2026-10-11.1** ·
 `diagnostic.gs` **2026-09-15.3** · `temps_partiel.gs` **2026-09-15.2** · `setup_annee.gs` **2026-09-14.1** ·
 `echanges.gs` **2026-09-08.1** · `journal.gs` **2026-09-07.1** ·
-**Worker** `cloudflare/worker.js` : `const VERSION = 'miroir 2026-10-11.1'` ·
+**Worker** `cloudflare/worker.js` : `const VERSION = 'miroir 2026-10-20.1'` ·
 **Service worker** `sw.js` : `pm-sw-v2` (version.js exclu de la copie depuis le 14/10).
+
+## 23–24/10/2026 — générateur : jamais 3 gardes sur 6 jours, périodes tendues d'abord (v1.38.3, v1.39.0)
+
+**Constat de départ** (simulation 2027 sur les indispos réelles) : un MAR de garde ven., dim., mar. et
+jeu. de la même quinzaine — à cheval sur deux semaines, la limite « 3e garde de la semaine » ne le
+voyait pas.
+
+**Fait.**
+- **v1.38.3** (`967a1da`, générateur 2026-10-23.2) — **jamais 3 gardes sur 6 jours glissants** (règle du
+  responsable : « 2 gardes en 3 jours doit être le pire schéma »). Règle dure, jamais levée, même en
+  dernier recours. Exception : le MAR a souhaité toutes les gardes de la fenêtre (un vendredi ou un
+  dimanche souhaité vaut pour le week-end). Vérifiée à chaque pose : jour seul, vendredi-dimanche,
+  souhaits groupés, Noël, échanges d'équité. Banc : `banc_densite_gardes.js`.
+- **v1.39.0** (`934dfaa`, générateur 2026-10-23.3) — **les périodes tendues sont planifiées en premier**
+  (« l'algo doit d'abord gérer les périodes tendues, pas poser bêtement au fil de l'année »). Jours où
+  la moitié de l'équipe ou moins peut être de garde (`FRAC_TENSION = 0.5`), regroupés en périodes
+  (`FUSION_TENSION = 6` jours), résolues d'un bloc par recherche bornée (`BUDGET_TENSION = 4000`) avec
+  toutes les règles dures, priorité aux souhaits de la période, réserve des souhaits de samedi /
+  week-end / jeudi posés ailleurs. Ordre : fêtes → jours critiques → souhaits garantis → **périodes
+  tendues** → autres souhaits → fil de l'eau → optimiseur. Pas de solution dans le budget → période
+  laissée au fil de l'eau, comme avant. Banc : `banc_periodes_tendues.js`.
+- **Trous fermés au passage** : la règle des 3 gardes / 6 jours ne s'appliquait ni au jeudi férié jumelé
+  à son samedi, ni à la passe des jours critiques ; ce jumelage ne consultait pas les paires à éviter.
+- **Tests du banc** : `banc_essai_generation` et `banc_plafond_vjf` mesurent désormais le planning
+  **retenu** (et non le n° 1, jamais écrit s'il n'est pas le meilleur) ; nouvelles graines pour
+  `banc_essai_meme_planning` (1) et `banc_paire_evitee` (paire synthétique SERVANT/ZEVACO).
+- Banc complet : **98 scénarios, 4 699 ✓, 0 ✗**.
+
+**Mesuré.**
+- 2027 réel (onglet du 24/10, scénario des fêtes saisi) : 364 nuits, écart ≤ 1 sur les 6 compteurs,
+  0 week-end d'affilée, 0 dernier recours, 5 périodes résolues d'un bloc, fêtes conformes, souhaits
+  155 / 172 possibles (90 %). **Essai Apps Script du 24/10 : même planning (n° 4), 45 s.**
+- 35 années simulées, v1.39.0 contre v1.38.3 : années impossibles 5 / 6 ; séries de 3 gardes en 6 jours
+  0 / 17 ; années avec un MAR à 2 de sa cible sur un axe 10 / 19 ; à 3 ou plus 0 / 2. Calcul ~2× plus
+  long par planning (la génération s'arrête au premier planning à écart 1).
+- Coût : quelques souhaits de moins (2027 : 157 / 173 possibles contre 162 en v1.38.3).
+
+**Ouvert.**
+- **Garde-fou souhaits / équité** (demandé le 24/10, non fait) : si le meilleur planning dépasse 1 garde
+  d'écart, recommencer en ignorant les souhaits de samedi / week-end en trop. Aujourd'hui, les souhaits
+  rares restent dans la part et le multi-départ garde le plus équitable, sans garantie absolue.
+- Couples de week-end : des souhaits « en miroir » (l'un le samedi, l'autre le vendredi-dimanche du même
+  week-end, rôles alternés, ≥ 3 semaines d'écart) font passer, en simulation 2027, de 6 à 10 week-ends
+  liés (foyer pris 13 → 11), équité tenue — à transmettre aux intéressés, rien à coder.
+- Réa 1 : toujours pas dans le générateur.
+- Fêtes : le 26/12 d'un MAR n'est pas compté « fête » par le calcul (seuls 24, 25, 31/12 et 01/01) — à
+  reporter à la main dans l'historique.
 
 ## 21/10/2026 — banc d'essai accéléré (aucun changement côté site ni GAS)
 

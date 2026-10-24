@@ -44,6 +44,20 @@ les fichiers du planning, et attend une semaine de fonctionnement réel avant su
 
 # PARTIE 1 — L'ESSENTIEL
 
+## 24 octobre 2026 — générateur : 3 gardes sur 6 jours interdites, périodes tendues d'abord
+
+Site **v1.39.0**, `generateur_gardes.gs` **2026-10-23.3** (recopié ; essai Apps Script du 24/10 : planning
+n° 4, 45 s, identique à la simulation). Banc **4 699 ✓, 0 échec**, 98 scénarios (commit `934dfaa`).
+
+- **Jamais 3 gardes sur 6 jours** : garde-repos-garde (ex. vendredi-dimanche) est le schéma le plus
+  serré, puis au moins 4 jours. Règle dure ; seule exception, toutes les gardes souhaitées par le MAR.
+- **Périodes tendues d'abord** : les jours où la moitié de l'équipe ou moins peut être de garde sont
+  regroupés et résolus d'un bloc avant les souhaits ordinaires et le fil de l'eau (2027 : 5 périodes,
+  dont mi-août et Noël). Effet 2027 : plus de week-end d'affilée ni de dernier recours ; quelques
+  souhaits de moins.
+- **Équité prioritaire sur les souhaits** (rappel du responsable, 24/10) ; garde-fou explicite non codé.
+- **Génération 2027 le 02/11** : scénario des fêtes saisi dans l'onglet ; essai conforme.
+
 ## 21 octobre 2026 — banc d'essai accéléré
 
 Banc **4 620 ✓, 0 échec**, 93 scénarios (commit `1fdbf03`). Rien de changé côté site ni GAS.
