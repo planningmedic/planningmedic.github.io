@@ -6,16 +6,59 @@ portail/Dashboard, module libéral, contrôle d'absence, veille biblio.
 (Le générateur de comptes rendus a été retiré le 07/09/2026 : il portait le logo de
 l'établissement et 77 noms de praticiens sur une page publique sans code d'accès.)
 
-**Dépôt** `planningmedic/planningmedic.github.io`, branche `main` · **Site v1.39.0** (24/10/2026) ·
+**Dépôt** `planningmedic/planningmedic.github.io`, branche `main` · **Site v1.40.0** (24/10/2026) ·
 **Portail** https://planningmedic.github.io ·
 **GAS** (numéros relevés dans le dépôt le 24/10/2026 — recopie dans l'éditeur à confirmer au
-Diagnostic) : `generateur_gardes.gs` **2026-10-23.3** (recopié, essai lancé le 24/10 : 45 s) ·
+Diagnostic) : `generateur_gardes.gs` **2026-10-24.2** (recopié, essai lancé le 24/10 à 13h55 : 24 s) ·
 `veille.gs` **2026-10-23.3** · `indisponibilites.gs` **2026-10-22.2** · `miroir.gs`, `portail.gs` **2026-10-21.1** ·
 `code.gs`, `gardes.gs`, `Indispos.gs` **2026-10-18.1** · `equipe.gs` **2026-10-11.1** ·
 `diagnostic.gs` **2026-09-15.3** · `temps_partiel.gs` **2026-09-15.2** · `setup_annee.gs` **2026-09-14.1** ·
 `echanges.gs` **2026-09-08.1** · `journal.gs` **2026-09-07.1** ·
 **Worker** `cloudflare/worker.js` : `const VERSION = 'miroir 2026-10-20.1'` ·
 **Service worker** `sw.js` : `pm-sw-v2` (version.js exclu de la copie depuis le 14/10).
+
+## 24/10/2026 (après-midi) — semaines Réa 1, réparation par échange, couple assoupli, calcul 4× plus rapide (v1.40.0)
+
+**Constat de départ** : le tableau de répartition des Réa 1 2027 est arrivé (52 semaines, équipe réa de 5).
+Simulé en posant les nuits Réa 1 en indisponible : 0 conflit, mais un MAR de l'équipe réa restait à
+3 VD pour 5 sur les 8 plannings — l'optimiseur ne déplace qu'un créneau à la fois, et chaque VD libre
+tombait à côté d'un de ses samedis (jamais deux week-ends de suite).
+
+**Fait.**
+- **v1.40.0** (`62fdaa6`, générateur 2026-10-24.1) :
+  - **Onglet `REA1_{année}`** lu par le générateur (colonnes « Du » et « REA 1 », initiales ou
+    identifiant). Le Réa 1 : aucune garde du dimanche au jeudi (`REA1_NUIT`), ni récupération ni 18 h
+    du lundi au vendredi (`REA1_SEM`, dans `_rDispo` et `dispo18`). Souhaits incompatibles retirés et
+    listés ; absence pendant sa semaine et nom inconnu signalés ; bloc « Semaines Réa 1 » dans l'essai.
+  - **8c-ter, réparation par échange** : pour tout écart au-delà de `LEX_SEUIL`, échange de deux créneaux
+    entre deux MAR (meilleur échange, chaque moitié vérifiée dans l'état final de l'autre par `canHold`),
+    jamais sur un créneau verrouillé.
+  - **Couple de week-end** : avec un couple déclaré, la première série examine les 8 plannings et garde,
+    parmi les équitables, celui qui a le plus de week-ends en commun (clé `[sansBinome, nAu, pire, -lies]`) ;
+    seconde série (tirages 9 à 16, sans le bonus `CPL_LAMBDA`) seulement si aucun n'est équitable.
+  - Banc : `banc_rea1.js` (25 ✓, contre-preuves sans onglet, sans réparation, sans assouplissement) ;
+    `banc_essai_meme_planning` tourne sur une copie sans réparation (sinon le 1er planning est toujours
+    retenu) ; `banc_nouvel_algo` suit la nouvelle clé. Guides comité et MAR.
+- **Vitesse** (`16eb4db`, générateur 2026-10-24.2) : `tropDense` lit les jours par rang au lieu de
+  refabriquer 66 dates par appel (69 % du temps) ; `addOneDay` et `shift` mémorisés. Ancienne version
+  gardée (`_tropDenseLent`) ; `banc_densite_gardes` compare les deux plannings case par case.
+- Banc complet : **99 scénarios, 4 725 ✓, 0 ✗, 9 min** (26 min avant).
+
+**Mesuré.**
+- 2027 réel (onglets du 24/10 à 14h, tableau Réa 1 provisoire) : 364 nuits, écart ≤ 1 sur les 6 compteurs,
+  0 conflit Réa 1 sur 52 semaines, souhaits 153 / 170 possibles, 10 souhaits retirés, 4 week-ends en commun
+  pour le couple (5 sans Réa 1), un VD coupé (accepté). **Essai Apps Script : planning n° 7, 24 s,
+  compteurs identiques à la simulation pour les 22 MAR.**
+- Une année de calcul : 14,3 s → 3,3 s ; génération complète 2027 (Node) : 2 min 27 → 38 s.
+
+**Ouvert.**
+- Tableau Réa 1 **final** à coller avant le 02/11, puis nouvel essai.
+- Garde-fou souhaits / équité (24/10) : toujours non codé ; la réparation par échange couvre une partie du
+  besoin (aucun écart à 2 sur les plannings réels 2027).
+- Journal de l'essai Apps Script : les 8 calculs répètent leurs avertissements ; la sortie peut être
+  tronquée (constaté avec l'ancien code, plus avec le nouveau). Faire taire les calculs à blanc si ça revient.
+- Banc : pistes restantes (moins de plannings par scénario, année de référence partagée) — gain estimé
+  2 à 3 min, non engagé.
 
 ## 23–24/10/2026 — générateur : jamais 3 gardes sur 6 jours, périodes tendues d'abord (v1.38.3, v1.39.0)
 
@@ -60,7 +103,7 @@ voyait pas.
 - Couples de week-end : des souhaits « en miroir » (l'un le samedi, l'autre le vendredi-dimanche du même
   week-end, rôles alternés, ≥ 3 semaines d'écart) font passer, en simulation 2027, de 6 à 10 week-ends
   liés (foyer pris 13 → 11), équité tenue — à transmettre aux intéressés, rien à coder.
-- Réa 1 : toujours pas dans le générateur.
+- Réa 1 : toujours pas dans le générateur. → fait le 24/10 après-midi (v1.40.0).
 - Fêtes : le 26/12 d'un MAR n'est pas compté « fête » par le calcul (seuls 24, 25, 31/12 et 01/01) — à
   reporter à la main dans l'historique.
 

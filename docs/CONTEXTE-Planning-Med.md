@@ -44,6 +44,29 @@ les fichiers du planning, et attend une semaine de fonctionnement réel avant su
 
 # PARTIE 1 — L'ESSENTIEL
 
+## 24 octobre 2026 (après-midi) — semaines Réa 1, réparation par échange, calcul 4× plus rapide
+
+Site **v1.40.0**, `generateur_gardes.gs` **2026-10-24.2** (recopié et déployé ; essai Apps Script du
+24/10 à 13h55 : planning n° 7, **24 s**, identique à la simulation pour les 22 MAR). Banc
+**4 725 ✓, 0 échec**, 99 scénarios, **9 min** au lieu de 26 (commits `62fdaa6`, `16eb4db`).
+
+- **Semaines Réa 1** : le tableau de l'équipe réa est collé dans l'onglet `REA1_{année}` (colonnes
+  « Du » et « REA 1 »). Le Réa 1 n'a aucune garde du dimanche soir au jeudi soir, ni récupération ni
+  18 h du lundi au vendredi ; il garde le vendredi, le samedi et le VD de fin de semaine. Souhaits
+  posés sur ses nuits Réa 1 retirés et listés ; absence pendant sa propre semaine et nom inconnu
+  signalés. Sans l'onglet, rien ne change.
+- **Réparation par échange** (8c-ter) : un MAR à 2 gardes de sa cible sur un axe échange un créneau
+  avec un collègue au-dessus de la sienne (ex. il prend un VD et cède un samedi). Meilleur échange,
+  jamais sur une garde souhaitée, toutes règles dures respectées.
+- **Couple de week-end assoupli, pas supprimé** : parmi les plannings à 1 garde d'écart, le calcul garde
+  celui qui donne le plus de week-ends en commun ; si aucun n'est équitable, seconde série sans le
+  bonus d'optimisation du couple (« règle assouplie » dans l'essai). L'équité passe avant.
+- **Vitesse** : la règle des 3 gardes sur 6 jours prenait 69 % du temps de calcul ; réécrite (même
+  résultat case par case). Une année 14 s → 3 s ; essai Apps Script 74 s → 24 s.
+- **VD coupé** quand c'est nécessaire : accepté par le responsable (2027 : un week-end de juillet).
+- **Avant la génération du 02/11** : tableau Réa 1 final à coller, conflit d'une absence pendant une
+  semaine Réa 1 à régler, MAR dont des souhaits sont retirés à prévenir.
+
 ## 24 octobre 2026 — générateur : 3 gardes sur 6 jours interdites, périodes tendues d'abord
 
 Site **v1.39.0**, `generateur_gardes.gs` **2026-10-23.3** (recopié ; essai Apps Script du 24/10 : planning
