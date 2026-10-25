@@ -533,6 +533,35 @@ V('compteur abîmé : la page s\'ouvre, réglages demandés', o5.window.document
   R.w.document.querySelector('#cAxe .chip[data-v="ngap"]').click();
   V('NGAP sans consultation : message vide habituel', /Aucune consultation/.test(R.$('cList').textContent));
   V('regroupement : aucun appel réseau, aucune erreur JavaScript', R.reseau.length === 0 && R.erreurs.length === 0, R.erreurs);
+
+  /* ── 13. JOURS REPLIÉS (25/10/2026) ──────────────────────────────────────
+     Demande : la liste fait trop d'écran à faire défiler. Chaque jour est
+     replié sous sa date ; toucher la date déplie les actes de ce jour. Le
+     jour où l'on vient d'ajouter un acte s'ouvre pour voir le résultat. */
+  console.log('\n[13] Jours repliés — toucher la date déplie les actes du jour');
+  const J = ouvrir(null, { compteur: R.w.localStorage.getItem('pense-bete-compteur-v1') }); J.$('tC').click();
+  const Jd = J.w.document, jj = () => [...Jd.querySelectorAll('#cList .jr')], corps = () => [...Jd.querySelectorAll('#cList .jc')];
+  const jour = re => jj().findIndex(x => re.test(x.textContent));
+  V('à l\'ouverture : 2 dates, tous les jours repliés', jj().length === 2 && corps().length === 2 && corps().every(x => x.hidden) && jj().every(x => x.getAttribute('aria-expanded') === 'false'),
+    jj().map(x => x.getAttribute('aria-expanded')));
+  V('…la date reste lisible : jour, nombre d\'actes et total', /03\/10/.test(jj()[0].textContent) && /actes · /.test(jj()[0].textContent), jj()[0].textContent);
+  V('…la date est un bouton (atteignable au clavier)', jj().every(x => x.tagName === 'BUTTON' && x.type === 'button'));
+  V('…les groupes restent dans la page (totaux inchangés)', Jd.querySelectorAll('#cList .grp').length === 4, Jd.querySelectorAll('#cList .grp').length);
+  jj()[jour(/03\/10/)].click();
+  V('toucher le 03/10 : ses groupes apparaissent, le 02/10 reste replié', !corps()[jour(/03\/10/)].hidden && corps()[jour(/02\/10/)].hidden
+    && jj()[jour(/03\/10/)].getAttribute('aria-expanded') === 'true');
+  V('…les − / + du jour sont utilisables', corps()[jour(/03\/10/)].querySelectorAll('.gp').length > 0);
+  jj()[jour(/03\/10/)].click();
+  V('toucher à nouveau : le 03/10 se replie', corps().every(x => x.hidden));
+  geste(J, 'gastro', 'lib', 'mc', '2026-10-02');
+  V('ajouter un acte le 02/10 : ce jour s\'ouvre, le 03/10 reste replié', !corps()[jour(/02\/10/)].hidden && corps()[jour(/03\/10/)].hidden,
+    jj().map(x => x.textContent + ':' + x.getAttribute('aria-expanded')));
+  jj()[jour(/02\/10/)].click(); jj()[jour(/02\/10/)].click();
+  Jd.querySelector('#cList .jc:not([hidden]) .gch').click(); Jd.querySelector('#cList .jc:not([hidden]) .acte .cv').click();
+  V('correction ouverte dans un jour déplié', !!J.$('cEv'));
+  jj()[jour(/02\/10/)].click();
+  V('replier le jour pendant une correction : la correction se ferme', !J.$('cEv') && corps()[jour(/02\/10/)].hidden);
+  V('jours repliés : aucun appel réseau, aucune erreur JavaScript', J.reseau.length === 0 && J.erreurs.length === 0, J.erreurs);
   console.log(`\n${ok} ✓  ${ko} ✗`);
   process.exit(ko ? 1 : 0);
 })();

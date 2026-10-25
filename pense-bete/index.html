@@ -127,6 +127,11 @@ details summary{cursor:pointer;color:var(--mute);font-size:15px;padding:10px 0}
 /* (19/10/2026) Liste regroupée par jour, puis par acte identique (même montant) */
 .jr{display:flex;justify-content:space-between;align-items:baseline;gap:10px;padding:16px 0 6px;border-bottom:1px solid var(--line)}
 .jr b{font-size:16px}
+/* (25/10/2026) Jours repliés : toucher la date déplie les actes du jour */
+button.jr{font:inherit;color:inherit;background:none;border:0;border-bottom:1px solid var(--line);width:100%;text-align:left;cursor:pointer;padding-left:0;padding-right:0;min-height:48px}
+.jch{display:inline-block;width:20px;color:var(--mute);transition:transform .15s}
+.jr[aria-expanded="true"] .jch{transform:rotate(90deg)}
+.jc[hidden]{display:none}
 .jr span{font-size:14px;color:var(--mute);font-variant-numeric:tabular-nums}
 .grp{border-bottom:1px solid var(--line)}
 .gh{display:flex;align-items:center;gap:6px;min-height:52px}
@@ -420,6 +425,7 @@ let cEdit=null;
    de l'acte (même jour), « − » retire le plus récent (avec Annuler), le chevron
    déplie les actes un par un pour les corriger ou les retirer comme avant. */
 let cOpen=new Set(), cGrp=[];
+let cJour=new Set();                             // (25/10) jours dépliés ; tous repliés à l'ouverture
 const PAYS={mc:'MC',fr:'FR'};
 const cleGrp=x=>[x.d, nomActe(x), x.r50?1:0, x.m, x.a, valeurActe(x), Number.isInteger(x.vm)?1:0].join('|');
 function regleNgap(){ return !!C.d0 && Number.isInteger(C.pn0) && Number.isInteger(C.ln0) && Object.keys(NGAP).every(g=>valeurN(g)!=null); }
@@ -474,9 +480,10 @@ function cRender(){
   $('cList').innerHTML = tri.length ? jours.map(j=>{
       const tous=[].concat(...j.G.values()), tot=tous.reduce((a,x)=>a+(valeurActe(x)||0),0);
       const grps=[...j.G.entries()].sort((a,b)=>Math.min(...b[1].map(x=>x.t))-Math.min(...a[1].map(x=>x.t)));
-      return '<div class="jr"><b>'+JOURS[new Date(j.d+'T12:00:00').getDay()].replace(/^./,c=>c.toUpperCase())+' '+j.d.slice(8,10)+'/'+j.d.slice(5,7)+'</b>'
-        +'<span>'+pl(tous.length,n?'consultation':'acte')+' · '+euros(tot)+'</span></div>'
-        +grps.map(([k,G])=>{
+      const jo=cJour.has(j.d)||tous.some(y=>y.id===cEdit);
+      return '<button type="button" class="jr" aria-expanded="'+jo+'" data-jd="'+j.d+'"><b><span class="jch" aria-hidden="true">›</span>'+JOURS[new Date(j.d+'T12:00:00').getDay()].replace(/^./,c=>c.toUpperCase())+' '+j.d.slice(8,10)+'/'+j.d.slice(5,7)+'</b>'
+        +'<span>'+pl(tous.length,n?'consultation':'acte')+' · '+euros(tot)+'</span></button>'
+        +'<div class="jc"'+(jo?'':' hidden')+'>'+grps.map(([k,G])=>{
           const x=G[0], gi=cGrp.push(G)-1, ouvert=cOpen.has(k)||G.some(y=>y.id===cEdit), v=valeurActe(x);
           return '<div class="grp"><div class="gh">'
             +'<button type="button" class="gch" aria-label="Voir le détail" aria-expanded="'+ouvert+'" data-gi="'+gi+'">›</button>'
@@ -487,7 +494,7 @@ function cRender(){
             +'<b class="gq">'+G.length+'</b>'
             +'<button type="button" class="gb gp" aria-label="Ajouter un identique" data-gi="'+gi+'">+</button></div>'
             +G.map(y=>ligneActe(y,ouvert)).join('')+'</div>';
-        }).join('');
+        }).join('')+'</div>';
     }).join('')
     : '<p class="empty">'+(n?'Aucune consultation comptée':'Aucun acte compté')+' depuis le relevé.</p>';
   if(!storageOK) $('cMsg').textContent="Ce navigateur n'enregistre pas : le compteur sera perdu en fermant la page.";
@@ -591,7 +598,7 @@ $('cAutre').addEventListener('click',async()=>{
   if(mt==null||mt===0){ $('cMsg').textContent='Montant illisible (ex. 1 234,56).'; return; }
   const acte={id:Date.now().toString(36)+Math.random().toString(36).slice(2,6), d, g:'autre', code:a.c, r50, v:a.v, m:cMode, a:cAss, t:Date.now()};
   if(mt!==a.v) acte.vm=mt;                       // (14/10) montant du recueil, modificateurs compris
-  C.actes.push(acte);
+  C.actes.push(acte); cJour.add(d);
   cSave(); cRender();
   $('cMsg').textContent='+1 '+a.c+(r50?' (50 %)':'')+' '+(cMode==='lib'?'libéral':'public')+' '+ASS[cAss]+' le '+d.split('-').reverse().join('/')
     +' · '+euros(mt)+(acte.vm!=null?' (corrigé)':'');
@@ -601,14 +608,14 @@ $('cAutre').addEventListener('click',async()=>{
 $('cGestes').addEventListener('click',e=>{
   const b=e.target.closest('.geste'); if(!b || b.disabled) return;
   const d=dateActe(); if(!d) return;
-  C.actes.push({id:Date.now().toString(36)+Math.random().toString(36).slice(2,6), d, g:b.dataset.g, m:cMode, a:cAss, t:Date.now()});
+  C.actes.push({id:Date.now().toString(36)+Math.random().toString(36).slice(2,6), d, g:b.dataset.g, m:cMode, a:cAss, t:Date.now()}); cJour.add(d);
   cSave(); cRender();
   $('cMsg').textContent='+1 '+GESTES[b.dataset.g]+' '+(cMode==='lib'?'libéral':'public')+' '+ASS[cAss]+' le '+d.split('-').reverse().join('/');
 });
 $('cNgap').addEventListener('click',e=>{
   const b=e.target.closest('.geste'); if(!b || b.disabled) return;
   const d=dateActe(); if(!d) return;
-  C.actes.push({id:Date.now().toString(36)+Math.random().toString(36).slice(2,6), d, ax:'ngap', g:b.dataset.n, m:cMode, a:cAss, t:Date.now()});
+  C.actes.push({id:Date.now().toString(36)+Math.random().toString(36).slice(2,6), d, ax:'ngap', g:b.dataset.n, m:cMode, a:cAss, t:Date.now()}); cJour.add(d);
   cSave(); cRender();
   $('cMsg').textContent='+1 '+NGAP[b.dataset.n]+' '+(cMode==='lib'?'libéral':'public')+' '+ASS[cAss]+' le '+d.split('-').reverse().join('/');
 });
@@ -623,6 +630,10 @@ function validerEdition(id){
 }
 $('cList').addEventListener('keydown',e=>{ if(e.key==='Enter' && e.target.id==='cEv'){ e.preventDefault(); validerEdition(cEdit); } });
 $('cList').addEventListener('click',e=>{
+  const jb=e.target.closest('.jr');
+  if(jb){ const d=jb.dataset.jd, ouvert=jb.getAttribute('aria-expanded')==='true';
+    if(ouvert){ cJour.delete(d); const x=C.actes.find(y=>y.id===cEdit); if(x && x.d===d) cEdit=null; } else cJour.add(d);
+    cRender(); return; }
   const gb=e.target.closest('[data-gi]');
   if(gb){ const G=cGrp[+gb.dataset.gi]; if(!G||!G.length) return; const x=G[0];
     if(gb.classList.contains('gp')){
