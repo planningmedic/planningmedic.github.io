@@ -180,6 +180,23 @@ const dodo = ms => new Promise(r => setTimeout(r, ms));
     V('elle tient même sur un iPhone SE 1re génération (320 pt)', total <= 320 + 40, total);
   }
 
+  /* Defaut vu en production le 25/10 : sur iPhone, la ligne « Absents » du Planning
+     et le dernier médecin de l'onglet Équité restaient cachés sous la barre d'onglets,
+     atteignables seulement en forçant le défilement. La page doit réserver en bas
+     au moins la hauteur de la barre + la zone du geste d'accueil. */
+  console.log('\n═══ 28d-bis. planning.html · rien ne reste caché sous la barre d\'onglets ═══');
+  {
+    const c = fs.readFileSync('../planning.html', 'utf8');
+    const mobile = (c.match(/@media \(max-width: 768px\) \{[\s\S]*?\n\}/) || [''])[0];
+    const corps = (mobile.match(/\bbody \{[^}]*padding-bottom[^}]*\}/) || [''])[0];
+    V('sur mobile, la page réserve un espace en bas', !!corps, mobile.length);
+    const px = +((corps.match(/padding-bottom:\s*calc\((\d+)px/) || [])[1] || 0);
+    /* Barre : 8 + 12 de marge + onglet sur 2 lignes (2×13 de texte + 20 de padding + 3 de bordure) = 69 pt */
+    const barre = 8 + 12 + 2 * 13 + 20 + 3;
+    V(`la réserve (${px} pt) dépasse la barre (${barre} pt)`, px > barre, { px, barre });
+    V('la réserve tient compte de la zone du geste d\'accueil iPhone', /env\(safe-area-inset-bottom\)/.test(corps), corps);
+  }
+
   /* Defaut vu le 12/08 : ~790 pt de blanc sous les tableaux des onglets Medecins,
      Equite, Secteurs et Annee. #mobileView (hauteur minimale d'un ecran) restait
      affiche sur tous les onglets alors qu'il ne sert qu'a l'onglet Planning. */

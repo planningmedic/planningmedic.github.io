@@ -688,6 +688,12 @@ body{font-variant-numeric:tabular-nums}
   .mobile-bottom-btn.active { background: var(--red); border-color: var(--red); color: white; }
   .mobile-bottom-btn:active { opacity: .8; }
 
+  /* (25/10/2026) La barre d'onglets du bas est posée PAR-DESSUS la page : elle
+     mesure ~70 pt + la zone du geste d'accueil de l'iPhone (~34 pt). Sans réserve
+     en bas de page, la dernière ligne (Absents, le dernier médecin d'Équité)
+     restait cachée dessous, atteignable seulement en forçant le défilement. */
+  body { padding-bottom: calc(96px + env(safe-area-inset-bottom)); }
+
   /* Masquer desktop */
   .mobile-view { display: flex; }
 }
