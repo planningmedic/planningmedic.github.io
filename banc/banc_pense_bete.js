@@ -606,6 +606,30 @@ V('compteur abîmé : la page s\'ouvre, réglages demandés', o5.window.document
   V('restauration : assurance gardée, valeur inconnue écartée', !!restaure && restaure.find(x => x.id === 'r1').a === 'fr' && !('a' in restaure.find(x => x.id === 'r2')), prep);
   V('assurance : aucun appel réseau, aucune erreur JavaScript', PA.reseau.length + PB.reseau.length === 0 && PA.erreurs.length + PB.erreurs.length + PCr.erreurs.length === 0, [PA.erreurs, PB.erreurs, PCr.erreurs]);
   }
+
+  /* ── 15. COMPTEUR : MÊME CODE COULEUR (26/10/2026) ──────────────────── */
+  {
+  console.log('\n[15] Compteur — fond pastel rouge (Monaco) / bleu (France)');
+  const V0 = { colo_mc: 1000, colo_fr: 500, gastro_mc: 1000, gastro_fr: 500, combo_mc: 1500, combo_fr: 800 };
+  const cpt = JSON.stringify({ d0: '2026-09-30', p0: 100000, l0: 0, v: V0, rea: {}, vn: {}, actes: [
+    { id: 'k1', d: '2026-10-05', g: 'colo', m: 'lib', a: 'mc', t: 1 },
+    { id: 'k2', d: '2026-10-05', g: 'colo', m: 'pub', a: 'fr', t: 2 },
+    { id: 'k3', d: '2026-10-05', g: 'gastro', m: 'lib', a: 'zz', t: 3 }] });
+  const K = ouvrir(null, { compteur: cpt }), Kd = K.w.document;
+  K.$('tC').click();
+  const grps = [...Kd.querySelectorAll('#cList .grp')];
+  const g = re => grps.find(x => re.test(x.querySelector('.gn').textContent));
+  V('acte assuré Monaco : groupe marqué mc', !!g(/Colo.*MC/) && g(/Colo.*MC/).classList.contains('mc') && !g(/Colo.*MC/).classList.contains('fr'), grps.map(x => x.className));
+  V('acte assuré France : groupe marqué fr', !!g(/Colo.*FR/) && g(/Colo.*FR/).classList.contains('fr'));
+  V('assurance inconnue : aucune couleur', !!g(/Gastro/) && g(/Gastro/).className === 'grp', grps.map(x => x.className));
+  V('fonds pastel définis en clair et en sombre', /--mc-bg:#FBE9EC; --fr-bg:#E8EEFA;/.test(PAGE) && (PAGE.match(/--mc-bg:#3A2228; --fr-bg:#1E2B44;/g) || []).length === 2
+    && /\.grp\.mc\{background:var\(--mc-bg\)\}/.test(PAGE) && /\.grp\.fr\{background:var\(--fr-bg\)\}/.test(PAGE));
+  V('boutons Monaco / France de saisie aux mêmes couleurs que l\'onglet Patients',
+    /#cAss \.chip\[data-v="mc"\]\[aria-checked="true"\]\{background:var\(--mc\)/.test(PAGE) && /#cAss \.chip\[data-v="fr"\]\[aria-checked="true"\]\{background:var\(--fr\)/.test(PAGE));
+  Kd.querySelector('#cAss .chip[data-v="fr"]').click();
+  V('choisir France dans le Compteur : bouton France coché seul', Kd.querySelector('#cAss .chip[aria-checked="true"]').dataset.v === 'fr');
+  V('couleurs du Compteur : aucun appel réseau, aucune erreur JavaScript', K.reseau.length === 0 && K.erreurs.length === 0, K.erreurs);
+  }
   console.log(`\n${ok} ✓  ${ko} ✗`);
   process.exit(ko ? 1 : 0);
 })();

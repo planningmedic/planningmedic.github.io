@@ -25,7 +25,7 @@
 :root{
   --bg:#F6F8F9; --card:#FFFFFF; --ink:#18242F; --mute:#66727E; --line:#DCE2E7;
   --acc:#0E7C7B; --acc-ink:#FFFFFF; --acc-soft:#E3F2F1; --past:#A3ADB7; --warn:#B4541A;
-  --mc:#C8102E; --fr:#1F4FA3; --as-ink:#FFFFFF;
+  --mc:#C8102E; --fr:#1F4FA3; --as-ink:#FFFFFF; --mc-bg:#FBE9EC; --fr-bg:#E8EEFA;
   box-sizing:border-box;
   padding-top:env(safe-area-inset-top,0px); padding-bottom:env(safe-area-inset-bottom,0px);
 }
@@ -33,13 +33,13 @@
   :root:not([data-theme="light"]){
     --bg:#10171D; --card:#18222A; --ink:#E6EDF2; --mute:#94A2AE; --line:#2A3742;
     --acc:#3FB8B5; --acc-ink:#062625; --acc-soft:#16302F; --past:#5B6873; --warn:#E59560;
-    --mc:#FF6B7A; --fr:#7EA8FF; --as-ink:#10171D;
+    --mc:#FF6B7A; --fr:#7EA8FF; --as-ink:#10171D; --mc-bg:#3A2228; --fr-bg:#1E2B44;
   }
 }
 :root[data-theme="dark"]{
   --bg:#10171D; --card:#18222A; --ink:#E6EDF2; --mute:#94A2AE; --line:#2A3742;
   --acc:#3FB8B5; --acc-ink:#062625; --acc-soft:#16302F; --past:#5B6873; --warn:#E59560;
-  --mc:#FF6B7A; --fr:#7EA8FF; --as-ink:#10171D;
+  --mc:#FF6B7A; --fr:#7EA8FF; --as-ink:#10171D; --mc-bg:#3A2228; --fr-bg:#1E2B44;
 }
 *,*::before,*::after{box-sizing:inherit}
 html{scroll-padding-top:env(safe-area-inset-top,0px)}
@@ -148,6 +148,12 @@ button.jr{font:inherit;color:inherit;background:none;border:0;border-bottom:1px 
 .jc[hidden]{display:none}
 .jr span{font-size:14px;color:var(--mute);font-variant-numeric:tabular-nums}
 .grp{border-bottom:1px solid var(--line)}
+/* (26/10/2026) Compteur : même code couleur que l'onglet Patients, en fond pastel
+   (rouge = assuré Monaco, bleu = assuré France), et boutons Monaco / France assortis. */
+.grp.mc,.grp.fr{border-bottom:0;border-radius:10px;margin:6px 0;padding:0 8px}
+.grp.mc{background:var(--mc-bg)} .grp.fr{background:var(--fr-bg)}
+#cAss .chip[data-v="mc"][aria-checked="true"]{background:var(--mc);border-color:var(--mc);color:var(--as-ink)}
+#cAss .chip[data-v="fr"][aria-checked="true"]{background:var(--fr);border-color:var(--fr);color:var(--as-ink)}
 .gh{display:flex;align-items:center;gap:6px;min-height:52px}
 .gch{font:inherit;background:none;border:0;color:var(--mute);width:28px;height:40px;padding:0;cursor:pointer;font-size:18px;transition:transform .15s}
 .gch[aria-expanded="true"]{transform:rotate(90deg)}
@@ -519,7 +525,7 @@ function cRender(){
         +'<span>'+pl(tous.length,n?'consultation':'acte')+' · '+euros(tot)+'</span></button>'
         +'<div class="jc"'+(jo?'':' hidden')+'>'+grps.map(([k,G])=>{
           const x=G[0], gi=cGrp.push(G)-1, ouvert=cOpen.has(k)||G.some(y=>y.id===cEdit), v=valeurActe(x);
-          return '<div class="grp"><div class="gh">'
+          return '<div class="grp'+(x.a==='mc'||x.a==='fr'?' '+x.a:'')+'"><div class="gh">'
             +'<button type="button" class="gch" aria-label="Voir le détail" aria-expanded="'+ouvert+'" data-gi="'+gi+'">›</button>'
             +'<span class="sct'+(x.m==='lib'?' lib':'')+'">'+(x.m==='lib'?'Lib':'Pub')+'</span>'
             +'<span class="gn" data-gi="'+gi+'">'+esc(nomActe(x))+(x.g==='autre'&&x.r50?' (50 %)':'')+' · '+esc(PAYS[x.a]||x.a)
