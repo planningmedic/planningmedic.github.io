@@ -49,7 +49,10 @@ function ouvrir(stock, opts = {}) {
   return {
     w, $, reseau, erreurs,
     secteur(s) { const b = [...w.document.querySelectorAll('#chips .chip')].find(x => x.dataset.s === s); b && b.click(); return !!b; },
-    ajouter(date, ini) { if (date) $('dt').value = date; $('ini').value = ini; $('frm').dispatchEvent(new w.Event('submit', { cancelable: true })); },
+    assure(a) { const b = w.document.querySelector('#pAss .chip[data-a="' + a + '"]'); b && b.click(); return !!b; },
+    // (26/10/2026) l'assurance est obligatoire et remise à zéro après chaque ajout :
+    // par défaut le banc touche « Monaco » ; ass === null = ne rien toucher.
+    ajouter(date, ini, ass = 'mc') { if (ass) this.assure(ass); if (date) $('dt').value = date; $('ini').value = ini; $('frm').dispatchEvent(new w.Event('submit', { cancelable: true })); },
     stock() { return w.localStorage.getItem(CLE); },
     liste() { return JSON.parse(w.localStorage.getItem(CLE) || '[]'); },
   };
@@ -562,6 +565,47 @@ V('compteur abîmé : la page s\'ouvre, réglages demandés', o5.window.document
   jj()[jour(/02\/10/)].click();
   V('replier le jour pendant une correction : la correction se ferme', !J.$('cEv') && corps()[jour(/02\/10/)].hidden);
   V('jours repliés : aucun appel réseau, aucune erreur JavaScript', J.reseau.length === 0 && J.erreurs.length === 0, J.erreurs);
+
+  /* ── 14. ASSURÉ MONACO / FRANCE (26/10/2026) ─────────────────────────── */
+  {
+  console.log('\n[14] Assuré Monaco / France — code couleur');
+  const PA = ouvrir(), PAd = PA.w.document;
+  V('deux boutons Monaco / France, aucun choisi à l\'ouverture',
+    [...PAd.querySelectorAll('#pAss .chip')].map(b => b.dataset.a).join('|') === 'mc|fr' && !PAd.querySelector('#pAss .chip[aria-checked="true"]'));
+  PA.secteur('Endos'); PA.ajouter('2026-10-05', 'GH', null);
+  V('sans assurance : refusé, message clair', PA.liste().length === 0 && /Monaco ou France/.test(PA.$('msg').textContent), PA.$('msg').textContent);
+  PA.ajouter('2026-10-05', 'GH', 'fr');
+  V('ajout : l\'assurance est enregistrée', PA.liste().length === 1 && PA.liste()[0].a === 'fr', PA.liste());
+  V('après ajout : assurance remise à zéro (date et secteur gardés)', !PAd.querySelector('#pAss .chip[aria-checked="true"]')
+    && PA.$('dt').value === '2026-10-05' && PAd.querySelector('#chips .chip[aria-checked="true"]').dataset.s === 'Endos');
+  PA.ajouter(null, 'GH', null);
+  V('patient suivant sans retoucher l\'assurance : refusé', PA.liste().length === 1);
+  PA.ajouter(null, 'JK', 'mc');
+  const lignes = () => [...PA.$('next').querySelectorAll('.pt')];
+  const ligne = ini => lignes().find(x => x.querySelector('.i').textContent === ini);
+  V('Monaco : ligne marquée mc, pastille « MC »', ligne('JK').classList.contains('mc') && ligne('JK').querySelector('.as').textContent === 'MC');
+  V('France : ligne marquée fr, pastille « FR »', ligne('GH').classList.contains('fr') && ligne('GH').querySelector('.as').textContent === 'FR');
+  V('couleurs distinctes en clair et en sombre', /--mc:#C8102E; --fr:#1F4FA3; --as-ink:#FFFFFF;/.test(PAGE) && (PAGE.match(/--mc:#FF6B7A; --fr:#7EA8FF; --as-ink:#10171D;/g) || []).length === 2);
+  // Patient saisi avant ce jour (sans champ a) : pastille « ? », un toucher la renseigne
+  const ancien = JSON.stringify([{ id: 'old1', d: '2026-10-06', s: 'Endos', i: 'LM', t: 1 }]);
+  const PB = ouvrir(ancien), lb = () => PB.$('next').querySelector('.pt');
+  V('ancien patient sans assurance : pastille « ? », pas de couleur', lb().querySelector('.as').textContent === '?' && !lb().classList.contains('mc') && !lb().classList.contains('fr'));
+  lb().querySelector('.as').click();
+  V('toucher la pastille : Monaco, enregistré', lb().classList.contains('mc') && PB.liste()[0].a === 'mc');
+  lb().querySelector('.as').click();
+  V('toucher encore : France', lb().classList.contains('fr') && PB.liste()[0].a === 'fr');
+  lb().querySelector('.as').click();
+  V('…puis de nouveau Monaco (pas de retour au « ? »)', PB.liste()[0].a === 'mc');
+  V('toucher la pastille n\'efface pas le patient', PB.liste().length === 1 && PB.$('undo').style.display !== 'flex');
+  // Sauvegarde / restauration : l'assurance suit ; une valeur inconnue est ignorée
+  const sauv = JSON.stringify({ app: 'pense-bete-lib', format: 1, patients: [
+    { id: 'r1', d: '2026-10-07', s: 'ORL', i: 'NP', a: 'fr', t: 2 },
+    { id: 'r2', d: '2026-10-07', s: 'ORL', i: 'QR', a: 'xx', t: 3 }], compteur: { actes: [] } });
+  const PCr = ouvrir(), prep = PCr.w.svPreparer ? PCr.w.svPreparer(sauv) : null;
+  const restaure = prep && prep.np ? prep.np : (prep && prep.patients) || null;
+  V('restauration : assurance gardée, valeur inconnue écartée', !!restaure && restaure.find(x => x.id === 'r1').a === 'fr' && !('a' in restaure.find(x => x.id === 'r2')), prep);
+  V('assurance : aucun appel réseau, aucune erreur JavaScript', PA.reseau.length + PB.reseau.length === 0 && PA.erreurs.length + PB.erreurs.length + PCr.erreurs.length === 0, [PA.erreurs, PB.erreurs, PCr.erreurs]);
+  }
   console.log(`\n${ok} ✓  ${ko} ✗`);
   process.exit(ko ? 1 : 0);
 })();

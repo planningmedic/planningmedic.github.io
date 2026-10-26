@@ -4,7 +4,8 @@
 <meta charset="utf-8">
 <!-- Pense-bête « Mes patients lib » — page AUTONOME (30/09/2026).
      Remplacement temporaire, en attendant un module libéral utilisable en
-     consultation : date opératoire + secteur + initiales, et rien d'autre.
+     consultation : date opératoire + secteur + assuré (Monaco / France, 26/10/2026)
+     + initiales, et rien d'autre.
      ⚠️ Les saisies restent dans CE navigateur (stockage local du téléphone) :
      aucun appel réseau, aucune police ni script extérieur, rien vers le portail,
      le classeur ou le dépôt. Le banc (banc/banc_pense_bete.js) le vérifie.
@@ -24,6 +25,7 @@
 :root{
   --bg:#F6F8F9; --card:#FFFFFF; --ink:#18242F; --mute:#66727E; --line:#DCE2E7;
   --acc:#0E7C7B; --acc-ink:#FFFFFF; --acc-soft:#E3F2F1; --past:#A3ADB7; --warn:#B4541A;
+  --mc:#C8102E; --fr:#1F4FA3; --as-ink:#FFFFFF;
   box-sizing:border-box;
   padding-top:env(safe-area-inset-top,0px); padding-bottom:env(safe-area-inset-bottom,0px);
 }
@@ -31,11 +33,13 @@
   :root:not([data-theme="light"]){
     --bg:#10171D; --card:#18222A; --ink:#E6EDF2; --mute:#94A2AE; --line:#2A3742;
     --acc:#3FB8B5; --acc-ink:#062625; --acc-soft:#16302F; --past:#5B6873; --warn:#E59560;
+    --mc:#FF6B7A; --fr:#7EA8FF; --as-ink:#10171D;
   }
 }
 :root[data-theme="dark"]{
   --bg:#10171D; --card:#18222A; --ink:#E6EDF2; --mute:#94A2AE; --line:#2A3742;
   --acc:#3FB8B5; --acc-ink:#062625; --acc-soft:#16302F; --past:#5B6873; --warn:#E59560;
+  --mc:#FF6B7A; --fr:#7EA8FF; --as-ink:#10171D;
 }
 *,*::before,*::after{box-sizing:inherit}
 html{scroll-padding-top:env(safe-area-inset-top,0px)}
@@ -69,6 +73,16 @@ input:focus-visible,button:focus-visible{outline:2px solid var(--acc);outline-of
 .pt .s{color:var(--mute);flex:1}
 .x{font:inherit;background:none;border:0;color:var(--mute);font-size:22px;width:40px;height:40px;cursor:pointer;border-radius:8px}
 .past .dnum b,.past .i{color:var(--past)}
+/* (26/10/2026) Assuré Monaco (rouge) / France (bleu) : pastille + initiales en couleur.
+   Patient saisi avant ce jour : pastille « ? », la toucher pour choisir. */
+#pAss .chip[data-a="mc"][aria-checked="true"]{background:var(--mc);border-color:var(--mc);color:var(--as-ink)}
+#pAss .chip[data-a="fr"][aria-checked="true"]{background:var(--fr);border-color:var(--fr);color:var(--as-ink)}
+.pt .as{font:inherit;font-size:12px;font-weight:700;min-width:38px;height:28px;border-radius:7px;cursor:pointer;
+  border:1px dashed var(--mute);background:none;color:var(--mute);padding:0 6px}
+.pt.mc .as{background:var(--mc);border:1px solid var(--mc);color:var(--as-ink)}
+.pt.fr .as{background:var(--fr);border:1px solid var(--fr);color:var(--as-ink)}
+.pt.mc .i{color:var(--mc)} .pt.fr .i{color:var(--fr)}
+.past .pt.mc .i,.past .pt.fr .i,.past .pt .as{opacity:.55}
 section{margin-top:22px}
 h2{font-size:16px;margin:0 0 2px;color:var(--mute);font-weight:700}
 details summary{cursor:pointer;color:var(--mute);font-size:15px;padding:10px 0}
@@ -170,6 +184,10 @@ button.jr{font:inherit;color:inherit;background:none;border:0;border-bottom:1px 
     </div>
     <div class="f"><span class="lbl" id="secLbl">Secteur</span>
       <div class="chips" id="chips" role="radiogroup" aria-labelledby="secLbl"></div></div>
+    <div class="f" style="margin-top:12px"><span class="lbl" id="assLbl">Assuré</span>
+      <div class="chips deux" id="pAss" role="radiogroup" aria-labelledby="assLbl">
+        <button type="button" class="chip" role="radio" data-a="mc" aria-checked="false">Monaco</button>
+        <button type="button" class="chip" role="radio" data-a="fr" aria-checked="false">France</button></div></div>
     <div class="f" style="margin-top:12px"><label for="ini">Initiales</label><input id="ini" maxlength="8" required autocapitalize="characters"></div>
     <button class="add" type="submit">Ajouter</button>
     <p class="msg" id="msg" role="status"></p>
@@ -306,13 +324,21 @@ function esc(s){ return String(s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;'
 
 const SECTEURS=['Endos','Viscéral','Ortho','ORL','Cardio','Mater'];
 let SEC='';
+/* (26/10/2026) Assurance du patient : obligatoire, et remise à zéro après chaque
+   ajout (contrairement à la date et au secteur) : deux patients qui se suivent
+   n'ont pas forcément la même, un choix gardé par erreur serait invisible. */
+let PASS='';
+const PA_LIB={mc:'MC', fr:'FR'}, PA_NOM={mc:'Monaco', fr:'France'};
+function renderAss(){ $('pAss').querySelectorAll('.chip').forEach(b=>b.setAttribute('aria-checked', String(b.dataset.a===PASS))); }
 function renderChips(){
   $('chips').innerHTML=SECTEURS.map(s=>'<button type="button" role="radio" class="chip" aria-checked="'+(s===SEC)+'" data-s="'+esc(s)+'">'+esc(s)+'</button>').join('');
 }
 function dayBlock(date, pts, cls){
   const d=new Date(date+'T12:00:00');
   return '<div class="day '+cls+'"><div class="dnum"><span>'+JOURS[d.getDay()]+'</span><b>'+d.getDate()+'</b><span>'+MOIS[d.getMonth()]+'</span></div><div>'
-    + pts.map(p=>'<div class="pt'+(p.id===freshId?' fresh':'')+'"><span class="i">'+esc(p.i)+'</span><span class="s">'+esc(p.s)+'</span><button class="x" aria-label="Effacer '+esc(p.i)+'" data-id="'+p.id+'">×</button></div>').join('')
+    + pts.map(p=>'<div class="pt'+(PA_LIB[p.a]?' '+p.a:'')+(p.id===freshId?' fresh':'')+'">'
+      +'<button type="button" class="as" data-id="'+p.id+'" aria-label="'+(PA_LIB[p.a]?'Assuré '+PA_NOM[p.a]:'Assurance non renseignée')+' — toucher pour changer">'+(PA_LIB[p.a]||'?')+'</button>'
+      +'<span class="i">'+esc(p.i)+'</span><span class="s">'+esc(p.s)+'</span><button class="x" aria-label="Effacer '+esc(p.i)+'" data-id="'+p.id+'">×</button></div>').join('')
     + '</div></div>';
 }
 function group(list){
@@ -330,21 +356,29 @@ function render(){
   const n=pk.reduce((s,k)=>s+ps[k].length,0);
   $('pastSum').textContent='Passés ('+n+')';
   $('past').innerHTML=pk.map(k=>dayBlock(k,ps[k],'past')).join('');
-  renderChips();
+  renderChips(); renderAss();
   if(!storageOK) $('msg').textContent="Ce navigateur n'enregistre pas : la liste sera perdue en fermant la page.";
 }
 
 $('frm').addEventListener('submit',e=>{
   e.preventDefault();
   const d=$('dt').value, s=SEC, i=$('ini').value.trim().toUpperCase();
-  if(!d||!s||!i){ $('msg').textContent=!s?'Touchez un secteur.':'Date et initiales sont nécessaires.'; return; }
-  const p={id:Date.now().toString(36)+Math.random().toString(36).slice(2,6), d, s, i, t:Date.now()};
+  if(!d||!s||!PASS||!i){ $('msg').textContent=!s?'Touchez un secteur.':!PASS?'Touchez Monaco ou France.':'Date et initiales sont nécessaires.'; return; }
+  const p={id:Date.now().toString(36)+Math.random().toString(36).slice(2,6), d, s, i, t:Date.now(), a:PASS};
+  PASS='';
   L.push(p); save(); freshId=p.id;
   $('msg').textContent='';
   $('ini').value=''; $('ini').focus();          // date et secteur restent : patient suivant du même jour
   render();
 });
 $('chips').addEventListener('click',e=>{ const b=e.target.closest('.chip'); if(!b) return; SEC=b.dataset.s; renderChips(); $('ini').focus(); });
+$('pAss').addEventListener('click',e=>{ const b=e.target.closest('.chip'); if(!b) return; PASS=b.dataset.a; renderAss(); $('msg').textContent=''; $('ini').focus(); });
+// Pastille d'un patient de la liste : ? → Monaco → France → Monaco…
+document.addEventListener('click',e=>{
+  const b=e.target.closest('.pt .as'); if(!b) return;
+  const p=L.find(x=>x.id===b.dataset.id); if(!p) return;
+  p.a = p.a==='mc' ? 'fr' : 'mc'; save(); freshId=null; render();
+});
 document.addEventListener('click',e=>{
   const b=e.target.closest('.x'); if(!b || b.classList.contains('cx')) return;
   const k=L.findIndex(p=>p.id===b.dataset.id); if(k<0) return;
@@ -733,7 +767,9 @@ function svPreparer(txt){
   for(const p of o.patients){
     if(!p || typeof p.id!=='string' || !estDate(p.d) || typeof p.s!=='string' || typeof p.i!=='string' || !p.i){ illP++; continue; }
     if(idsP.has(p.id)){ dejaP++; continue; }
-    idsP.add(p.id); np.push({id:p.id, d:p.d, s:p.s, i:p.i, t:Number(p.t)||0});
+    idsP.add(p.id); const q={id:p.id, d:p.d, s:p.s, i:p.i, t:Number(p.t)||0};
+    if(p.a==='mc'||p.a==='fr') q.a=p.a;              // (26/10/2026) assurance, si renseignée
+    np.push(q);
   }
   const ic=o.compteur, reg={};
   const prendreReg = estDate(ic.d0) && (!C.d0 || ic.d0>C.d0);
