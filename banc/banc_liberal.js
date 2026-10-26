@@ -1245,6 +1245,14 @@ console.log('\n═══ 6. La page de cotation ne dit rien qu\'elle ne sache �
         w.ouvrirDevisCourant(); await dodo(20);
         V('…rouvrir le devis : champ « Patient » de nouveau vide', d.getElementById('dvPatient').textContent === '');
         V('…imprimé vide, la ligne reste à remplir à la main (aucune indication grise imprimée)', /#devisOverlay #dvPatient:empty::before\{content:none\}/.test(html));
+        /* (26/10/2026) Impression : un champ rempli n'est plus souligné (nom, date prévue,
+           établissement, adresse, téléphone) ; le téléphone passe sous l'adresse. */
+        const impr = (html.match(/@media print\{[\s\S]*?\n  \}/) || [''])[0];
+        V('…à l\'impression, un champ rempli n\'est plus souligné ; un champ vide garde sa ligne',
+          /#devisOverlay \.ed:not\(:empty\)\{border-bottom:0;padding:0\}/.test(impr) && /#devisOverlay \.ed\{border-bottom:1px solid #16222C\}/.test(impr));
+        const tel = d.querySelector('#devisOverlay .dv2 [data-etab="telephone"]'), adr = d.querySelector('#devisOverlay .dv2 [data-etab="adresse"]');
+        V('…le téléphone de l\'établissement est sous l\'adresse (ligne à part)', !!tel && !!adr && tel.parentElement !== adr.parentElement
+          && adr.parentElement.nextElementSibling === tel.parentElement && /^Tél\./.test(tel.parentElement.textContent.trim()));
         w.basculerLangueDevis();
       }
       w.basculerLangueDevis(); w.closeDevis();

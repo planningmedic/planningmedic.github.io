@@ -276,6 +276,10 @@
     #devisOverlay .sheet.decl{page-break-before:always;margin-top:0}
     #devisOverlay .ed{border-bottom:1px solid #16222C}
     #devisOverlay #dvPatient:empty::before{content:none}   /* laissé vide : ligne à remplir à la main */
+    /* (26/10/2026) Un champ REMPLI s'imprime sans soulignement (nom du patient, date
+       prévue, établissement, adresse, téléphone) ; seul un champ resté vide garde sa
+       ligne, pour être complété à la main. */
+    #devisOverlay .ed:not(:empty){border-bottom:0;padding:0}
     /* --- compactage : le devis tient sur UNE page --- */
     #devisOverlay .head{margin-bottom:9px;padding-bottom:7px}
     #devisOverlay .doctitle{margin:9px 0 7px}
@@ -2088,7 +2092,8 @@ populateMut();poserEcran();renderSummary();
       <div class="dvE">
         <div class="nom ed" contenteditable="true" data-ph="Établissement" data-i18n-ph="etab" data-etab="nom"></div>
         <div><span class="ed" contenteditable="true" data-ph="Service" data-i18n-ph="service" data-etab="service"></span></div>
-        <div><span class="ed" contenteditable="true" data-ph="Adresse" data-i18n-ph="adresse" data-etab="adresse"></span> · <span data-i18n="tel">Tél.</span> <span class="ed" contenteditable="true" data-ph="Téléphone" data-i18n-ph="tel" data-etab="telephone"></span></div>
+        <div><span class="ed" contenteditable="true" data-ph="Adresse" data-i18n-ph="adresse" data-etab="adresse"></span></div>
+        <div><span data-i18n="tel">Tél.</span> <span class="ed" contenteditable="true" data-ph="Téléphone" data-i18n-ph="tel" data-etab="telephone"></span></div>
       </div>
       <div class="dvP"><b>Dr <span id="dvPratName">—</span></b><br><span data-i18n="role">Anesthésiste-réanimateur</span></div>
     </div>
