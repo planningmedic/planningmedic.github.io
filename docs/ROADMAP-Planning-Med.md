@@ -17,6 +17,33 @@ Diagnostic) : `generateur_gardes.gs` **2026-10-24.3** · `journal.gs`, `Indispos
 **Worker** `cloudflare/worker.js` : `const VERSION = 'miroir 2026-10-20.1'` ·
 **Service worker** `sw.js` : `pm-sw-v2` (version.js exclu de la copie depuis le 14/10).
 
+## 26/10/2026 — chantier noté pour APRÈS la génération 2027 : découper le générateur (aucun code modifié)
+
+**Mesuré le 26/10** (`generateur_gardes.gs` 2026-10-24.3, simulation sur le classeur réel) :
+- **Vitesse : rien à faire.** Un planning de l'année ≈ 2,5 s ; la génération réelle (8 tirages, le plus
+  équitable retenu) ≈ 23 s. Limite Google 6 min : marge ≈ ×15.
+- **Taille : 3 429 lignes** — 944 de commentaires, 102 vides, **≈ 2 400 de code**. Les commentaires
+  sont voulus (le pourquoi de chaque règle) : à garder.
+- **Le défaut est l'organisation** : `generateGardes` fait **2 840 lignes** à elle seule (15 fonctions de
+  premier niveau dans le fichier). Toute modification oblige à garder tout le fichier en tête ; risque
+  d'effet de bord à chaque nouvelle règle.
+
+**Décision du responsable (26/10)** : **ne rien toucher avant la génération du 02/11.** Ensuite, découper
+`generateGardes` en blocs nommés, un par conversation :
+chargement des données · fêtes imposées et Réa 1 · périodes tendues · souhaits · placement au fil de
+l'eau · optimiseur · 18 h · récupérations · bilan et écriture.
+
+**Critère d'acceptation de chaque étape** : banc complet vert **et** planning **identique case par case**
+sur l'instantané réel du classeur (même tirage retenu, mêmes compteurs pour chaque MAR). Aucune règle ne
+change pendant le découpage.
+
+**Piège rencontré le 26/10 (simulation sur données réelles)** : des dates fabriquées dans Node puis
+injectées dans le contexte du générateur échouent à `instanceof Date` (deux contextes d'exécution — même
+mécanisme que la clé de semaine plus bas). `date_fin` était lue comme un objet : un MAR parti recevait
+des gardes et la simulation annonçait à tort un jour sans binôme. **Construire les dates avec le `Date`
+du contexte** (`vm.runInContext('Date', ctx)`). À ajouter au harnais : un chargeur d'instantané réel qui
+le fait, pour que le piège ne se représente pas.
+
 ## 24/10/2026 (soir) — budget des tâches de fond et quota Cloudflare : application à la demande (v1.42.0)
 
 **Question de départ** : le classeur, qui grossit, risque-t-il d'arrêter l'interface ?
