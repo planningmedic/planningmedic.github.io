@@ -275,6 +275,7 @@
     #devisOverlay .sheet{box-shadow:none;border:0;border-radius:0;max-width:none;padding:0}
     #devisOverlay .sheet.decl{page-break-before:always;margin-top:0}
     #devisOverlay .ed{border-bottom:1px solid #16222C}
+    #devisOverlay #dvPatient:empty::before{content:none}   /* laissé vide : ligne à remplir à la main */
     /* --- compactage : le devis tient sur UNE page --- */
     #devisOverlay .head{margin-bottom:9px;padding-bottom:7px}
     #devisOverlay .doctitle{margin:9px 0 7px}
@@ -1735,7 +1736,9 @@ function openDevis(i){
   const rro = Math.round(rate*(p.br+(p.cBR||0)));
   eText('dvRRO', eur(rro));
   eText('dvRacBefore', eur(Math.max(0, dvHonoraire-rro)));
-  // aucun champ patient : le nom est écrit à la main par le patient après impression
+  /* (26/10/2026) Nom du patient : tapé à l'écran (champ du devis) pour qu'il sorte
+     imprimé, ou laissé vide et écrit à la main. Jamais enregistré, jamais envoyé :
+     effacé à la fermeture du devis comme les autres champs (closeDevis). */
   eText('dcPratName', document.getElementById('cfgPrat').value.trim()||'[Nom Prénom]');
   remplirEtablissement();                       // (20/10/2026) nom et adresse lus dans le classeur
   document.getElementById('devisOverlay').style.display='block';
@@ -1748,16 +1751,15 @@ function openDevis(i){
    Rien n'est enregistré : la langue revient au français à la fermeture. */
 let DV_LANG='fr';
 const DV_EN={
-  tel:'Tel.', role:'Anaesthesiologist', libre:'in private practice',
+  tel:'Tel.', role:'Anaesthesiologist',
   titre:'Fee estimate — anaesthesia', sousTitre:'Information given to the patient before treatment · please keep',
   patient:'Patient:', etabliLe:'Issued on', couverture:'Coverage:', interventionLe:'Planned on', intervention:'Procedure:',
   thLib:'Anaesthesia fees', thTot:'Total',
   caisse:'Covered by your health insurance', caisseNote:'(estimate, on the base rate)', reste:'Your out-of-pocket cost, before supplementary insurance',
   approx:'Approximate amounts: the exact procedure is only known after surgery; the agreed extra fee does not change.',
-  engage:'I chose to be treated privately by this physician and received this information <b>before treatment</b>. I accept these fees. I remain free to opt for the public sector instead, with no effect on my care.',
   sigPrat:'The physician', sigPat:'The patient, date and “Read and approved”'
 };
-const DV_PH_EN={etab:'Hospital', service:'Department', adresse:'Address', tel:'Phone', date:'DD/MM/YYYY'};
+const DV_PH_EN={etab:'Hospital', service:'Department', adresse:'Address', tel:'Phone', date:'DD/MM/YYYY', patientPh:'Last name First name'};
 // Textes posés par le code : français / anglais
 const DV_DYN={
   fr:{consult:'Consultation', anesth:'Anesthésie', acte:'Acte', total:'Total', totalNas:'Total à régler',
@@ -2077,7 +2079,7 @@ populateMut();poserEcran();renderSummary();
     <button class="dvlang" id="dvLang" onclick="basculerLangueDevis()">English</button>
     <button class="dvclose" onclick="closeDevis()">Fermer</button>
   </div>
-  <div class="dvnote">Aucun champ patient : <b>le nom est écrit à la main par le patient</b> sur le devis et la déclaration imprimés — aucune donnée patient ne transite par l'outil. Champs bleus restants (dates, remboursement) : saisis à l'écran, jamais enregistrés, effacés à la fermeture. La déclaration de choix est un <b>document autonome</b> : l'imprimer, la faire signer et la verser au dossier vaut aussi bien en soins externes qu'en hospitalisation.</div>
+  <div class="dvnote">Nom du patient : tapez-le dans le devis pour qu'il soit imprimé, ou laissez la ligne vide pour qu'il l'écrive à la main. Comme les autres champs (dates), il n'est <b>jamais enregistré ni envoyé</b> et s'efface à la fermeture. La déclaration de choix reste à remplir à la main. La déclaration de choix est un <b>document autonome</b> : l'imprimer, la faire signer et la verser au dossier vaut aussi bien en soins externes qu'en hospitalisation.</div>
   <!-- (21/10/2026) DEVIS ÉPURÉ (modèle validé). Retirés : RPPS, secteur 2 / OPTAM,
        n° et validité du devis, codes CCAM, colonne remboursement acte par acte, encadré
        « après mutuelle », bloc d'articles de loi, encadré bénéficiaires protégés. -->
@@ -2088,12 +2090,12 @@ populateMut();poserEcran();renderSummary();
         <div><span class="ed" contenteditable="true" data-ph="Service" data-i18n-ph="service" data-etab="service"></span></div>
         <div><span class="ed" contenteditable="true" data-ph="Adresse" data-i18n-ph="adresse" data-etab="adresse"></span> · <span data-i18n="tel">Tél.</span> <span class="ed" contenteditable="true" data-ph="Téléphone" data-i18n-ph="tel" data-etab="telephone"></span></div>
       </div>
-      <div class="dvP"><b>Dr <span id="dvPratName">—</span></b><br><span data-i18n="role">Anesthésiste-réanimateur</span><br><span data-i18n="libre">exerçant à titre libéral</span></div>
+      <div class="dvP"><b>Dr <span id="dvPratName">—</span></b><br><span data-i18n="role">Anesthésiste-réanimateur</span></div>
     </div>
     <h1 data-i18n="titre">Devis d'honoraires — anesthésie</h1>
     <div class="dvSub" data-i18n="sousTitre">Information remise au patient avant les soins · à conserver</div>
     <div class="dvG">
-      <div><span class="k" data-i18n="patient">Patient :</span> <span class="hand" style="min-width:200px"></span></div>
+      <div><span class="k" data-i18n="patient">Patient :</span> <span class="ed" id="dvPatient" contenteditable="true" data-ph="Nom Prénom" data-i18n-ph="patientPh" style="min-width:220px"></span></div>
       <div class="r"><span class="k" data-i18n="etabliLe">Établi le</span> <b id="dvDateEtabli">—</b></div>
       <div><span class="k" data-i18n="couverture">Couverture :</span> <b id="dvStatut">—</b></div>
       <div class="r"><span class="k" data-i18n="interventionLe">Intervention prévue le</span> <span class="ed" id="dvDatePrevue" contenteditable="true" data-ph="JJ/MM/AAAA" data-i18n-ph="date"></span></div>
@@ -2109,7 +2111,6 @@ populateMut();poserEcran();renderSummary();
       <div class="hl"><span data-i18n="reste">Reste à votre charge, avant mutuelle</span><b id="dvRacBefore">—</b></div>
     </div>
     <div class="dvNote"><span data-i18n="approx">Montants approximatifs : l'acte exact n'est connu qu'après l'intervention ; le dépassement convenu ne change pas.</span><span id="dvNoteFin"></span></div>
-    <div class="dvBox" data-i18n="engage">J'ai choisi d'être pris(e) en charge à titre libéral par ce médecin et reçu cette information <b>avant les soins</b>. J'accepte ces honoraires. Je reste libre de renoncer au secteur libéral au profit du secteur public, sans conséquence sur mes soins.</div>
     <div class="dvSign">
       <div><span data-i18n="sigPrat">Le médecin</span><div class="l2"></div></div>
       <div><span data-i18n="sigPat">Le patient, date et « Bon pour accord »</span><div class="l2"></div></div>

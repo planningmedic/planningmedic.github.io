@@ -1216,6 +1216,37 @@ console.log('\n═══ 6. La page de cotation ne dit rien qu\'elle ne sache �
       w.basculerLangueDevis(); await dodo(10);
       V('second clic : retour au français à l\'identique', /Devis d'honoraires/.test(h1()) && d.getElementById('dvTotLbl').textContent === 'Total à régler'
         && d.getElementById('dvLang').textContent === 'English');
+      /* (26/10/2026) NOM DU PATIENT tapé dans le devis (demande du responsable) : il sort
+         imprimé, mais n'est ni enregistré ni envoyé, et s'efface à la fermeture. Retirés
+         du devis : « exerçant à titre libéral » et la phrase « J'ai choisi d'être pris(e)
+         en charge à titre libéral… ». */
+      {
+        const TEM = 'ZZ_PATIENT_TEMOIN_2610', feuille = () => d.querySelector('#devisOverlay .sheet:not(.decl)');
+        const pat = d.getElementById('dvPatient');
+        V('devis : champ « Patient » saisissable, vide à l\'ouverture', !!pat && pat.getAttribute('contenteditable') === 'true' && pat.textContent === '' && pat.classList.contains('ed'));
+        V('…indication « Nom Prénom » en français', pat.dataset.ph === 'Nom Prénom');
+        w.basculerLangueDevis(); await dodo(5);
+        V('…en anglais, l\'indication du champ est traduite', pat.dataset.ph === 'Last name First name');
+        w.basculerLangueDevis(); await dodo(5);
+        V('…et revient en français', pat.dataset.ph === 'Nom Prénom');
+        const nEnvois = envois.length;
+        pat.textContent = TEM;
+        V('…le nom tapé figure sur la feuille imprimée', feuille().textContent.includes(TEM));
+        V('…« exerçant à titre libéral » et « J\'ai choisi… » ne figurent plus sur le devis',
+          !/exerçant à titre libéral|in private practice|J'ai choisi d'être|I chose to be treated/.test(feuille().textContent) && !/J'ai choisi d'être pris/.test(html));
+        w.closeDevis(); await dodo(5);
+        const traces = [];
+        try { for (let i = 0; i < w.localStorage.length; i++) { const k = w.localStorage.key(i); if ((k + w.localStorage.getItem(k)).includes(TEM)) traces.push('localStorage'); } } catch (e) {}
+        try { for (let i = 0; i < w.sessionStorage.length; i++) { const k = w.sessionStorage.key(i); if ((k + w.sessionStorage.getItem(k)).includes(TEM)) traces.push('sessionStorage'); } } catch (e) {}
+        if ((d.cookie || '').includes(TEM)) traces.push('cookie');
+        if (d.documentElement.innerHTML.includes(TEM)) traces.push('page');
+        if (JSON.stringify(envois.slice(nEnvois)).includes(TEM) || JSON.stringify(envois).includes(TEM)) traces.push('envoi');
+        V('…à la fermeture du devis, le nom ne reste nulle part (page, stockage, cookies, envois)', traces.length === 0, traces);
+        w.ouvrirDevisCourant(); await dodo(20);
+        V('…rouvrir le devis : champ « Patient » de nouveau vide', d.getElementById('dvPatient').textContent === '');
+        V('…imprimé vide, la ligne reste à remplir à la main (aucune indication grise imprimée)', /#devisOverlay #dvPatient:empty::before\{content:none\}/.test(html));
+        w.basculerLangueDevis();
+      }
       w.basculerLangueDevis(); w.closeDevis();
       w.setStatut('verte'); await dodo(10); w.ouvrirDevisCourant(); await dodo(20);
       /* (21/10/2026) DÉFAUT TROUVÉ EN PRODUCTION : en carte bulle, le dépassement de la
