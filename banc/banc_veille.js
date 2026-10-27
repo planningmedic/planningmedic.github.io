@@ -1310,6 +1310,40 @@ function monde(plan) {
     V('…en une vingtaine d\'appels au plus (découpage par moitiés)', appels.length <= 20, appels.length);
   }
 
+  console.log('\n═══ 27/10/2026 — une recommandation se reconnaît aussi à son titre ═══');
+  {
+    const m = monde(() => ({}));
+    vm.runInContext('getOrCreateVeilleTabs()', m.ctx);
+    const rt = t => { m.ctx.__t = t; return vm.runInContext('_veilleRecoTitre(__t)', m.ctx); };
+    const oui = ['Guidelines for the management of atrial fibrillation in adult patients admitted to an intensive care unit.',
+      'Pain management after total shoulder arthroplasty: a systematic review and procedure-specific postoperative pain management (PROSPECT) recommendations',
+      'Peri-operative management of patients having day surgery: a consensus statement from the Association of Anaesthetists',
+      'Use of landiolol in septic shock patients with new onset of atrial fibrillation: a European Delphi consensus.',
+      'Clinical practice guidelines: management of non-post-operative supra-ventricular tachycardia in neonates and children',
+      'Surviving Sepsis Campaign: International Guidelines for Management of Sepsis and Septic Shock 2026.',
+      'Expert Consensus Statement on Anesthesia Care for Advanced Diagnostic Bronchoscopy'];
+    const non = ['Reply to: 2025 ESAIC and ESPA guidelines on neuromuscular block in children',
+      'Revisiting Diastolic Arterial Pressure in the 2026 Surviving Sepsis Campaign Guidelines',
+      'ARDS management beyond the guidelines: a practical physiology-based approach',
+      'Real-Time Evaluation of a Large Language Model for Clinical Practice Guideline Development.',
+      'The Impact of the "2023 American Society of Anesthesiologists Practice Guidelines for Monitoring and Antagonism"',
+      'Preoxygenation Recommendations in the 2026 ATS Guideline: Concerns about Trial Characterization',
+      'Music Therapy During Weaning From Invasive Mechanical Ventilation in the ICU: A Randomized Controlled Trial'];
+    const okOui = oui.filter(rt), okNon = non.filter(t => !rt(t));
+    V('titres de recommandation reconnus (FA en réa, PROSPECT, consensus, Delphi, Surviving Sepsis…) : ' + oui.length + '/' + oui.length, okOui.length === oui.length, oui.filter(t => !rt(t)));
+    V('réponses, commentaires et études SUR des recommandations non comptés comme recommandation : ' + non.length + '/' + non.length, okNon.length === non.length, non.filter(rt));
+    const jour = new Date().toISOString().slice(0, 10);
+    const note = (titre, pt) => { m.ctx.__f = { titre, revue: 'Ann Intensive Care', resume: 'Eighteen recommendations were formulated.', pubtypes: pt || ['Journal Article'], motscles: [], mesh: [], date: jour };
+      return vm.runInContext('_veilleNote(__f, "REVUE", _veilleThemesLocaux(__f, _readVeilleCfg().themes), "' + jour + '")', m.ctx); };
+    const fa = note('Guidelines for the management of atrial fibrillation in adult patients admitted to an intensive care unit.');
+    const fa0 = note('The management of atrial fibrillation in adult patients admitted to an intensive care unit.');
+    V('les recommandations FA en réa (non étiquetées par PubMed) : motif « recommandation », au moins 15 points de plus qu\'un article ordinaire', /recommandation/.test(fa.motif) && fa.note - fa0.note >= 15, [fa.note, fa0.note, fa.motif]);
+    const cs = note('Landiolol in septic shock: a European view.', ['Journal Article', 'Consensus Statement']);
+    V('l\'étiquette PubMed « Consensus Statement » compte comme recommandation', /recommandation/.test(cs.motif), cs.motif);
+    const ecr = note('Guidelines-based versus usual care for atrial fibrillation in the ICU: a randomized trial', ['Randomized Controlled Trial']);
+    V('un essai randomisé reste un ECR même si son titre parle de recommandations', /^ECR/.test(ecr.motif), ecr.motif);
+  }
+
 console.log(`\n${ok} OK · ${ko} en échec`);
   process.exit(ko ? 1 : 0);
 })();  console.log('\n═══ Passe 4 : le résumé en deux lignes (15/09/2026) ═══');

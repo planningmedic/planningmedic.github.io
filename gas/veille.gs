@@ -57,7 +57,7 @@
 //  instantané unique et partagé : chantier séparé.
 // ══════════════════════════════════════════════════════════════════════
 
-const GAS_VERSION_VEILLE = '2026-10-23.3';
+const GAS_VERSION_VEILLE = '2026-10-27.1';
 
 const VEILLE_CFG_TAB = 'VEILLE_CFG';
 const VEILLE_TAB     = 'VEILLE';
@@ -506,6 +506,16 @@ function _veilleTypeTitre(titre) {
   if (/randomi[sz]ed/i.test(t) && /\btrial\b/i.test(t) && !/secondary|post[- ]?hoc|ancillary|protocol|sub-?study|exploratory analysis/i.test(t)) return 'ECR';
   return '';
 }
+/* (27/10/2026) Une recommandation que PubMed n'a pas encore étiquetée « Guideline » : on la reconnaît
+   à son TITRE. Les recommandations françaises sur la FA en réanimation (« Guidelines for the management of
+   atrial fibrillation… », Ann Intensive Care) étaient notées 38, sans aucun bonus de type ; idem PROSPECT,
+   les consensus d'experts, les consensus Delphi. Exclus : les réponses, commentaires et études SUR des
+   recommandations (« Reply to… », « Revisiting… guidelines », « The Impact of the 2023 … Guidelines »). */
+function _veilleRecoTitre(titre) {
+  const t = String(titre || '');
+  if (/^(reply|response|re:|comment|correction|erratum)\b|beyond the guidelines?|revisiting|concerns? about|overconfidence|lessons from|impact of the|what is new|adherence to|compliance with|guidelines? development/i.test(t)) return false;
+  return /\bguidelines?\s+(for|on)\b|^(clinical practice |practice )?guidelines?\b|clinical practice guidelines?|\bconsensus (statement|recommendations?|conference|guidelines?)\b|\bexpert consensus\b|\bdelphi consensus\b|\(PROSPECT\) recommendations|procedure-specific postoperative pain management|\brecommendations (for|on) (the )?(management|use|prevention|diagnosis|treatment)\b/i.test(t);
+}
 /* (20/10/2026, soir) Un essai dont seul le RÉSUMÉ dit la randomisation (ICRAKI) :
    « randomly assigned / allocated », sauf si le titre annonce une analyse secondaire. */
 function _veilleTypeResume(titre, resume) {
@@ -542,7 +552,7 @@ function _veilleNote(fiche, source, themes, aujourdhui, themesTitre) {
     if (secondaire) { n += 10; motifs.push('analyse secondaire'); } else { n += 30; motifs.push('ECR'); }
   }
   else if (/Meta-Analysis/.test(pt) || tt === 'META') { n += 26; motifs.push('méta-analyse'); }
-  else if (/Practice Guideline|Guideline/.test(pt)) { n += 24; motifs.push('recommandation'); }
+  else if (/Practice Guideline|Guideline|Consensus/.test(pt) || _veilleRecoTitre(titre)) { n += 24; motifs.push('recommandation'); }   // (27/10) + étiquette « Consensus » et titre
   else if (/Systematic Review/.test(pt) || tt === 'RS') { n += 20; motifs.push('revue systématique'); }
   /* Règle d'Arthur : une synthèse ou un article original d'une GRANDE revue doit rester bien noté
      (« Fluid Therapy in Mechanically Ventilated Critically Ill Adult Patients », JAMA) : +18. */
