@@ -861,7 +861,7 @@ console.log('\n═══ 6. La page de cotation ne dit rien qu\'elle ne sache �
 
   w.setChir(true);
   await dodo(30);
-  V('dire « oui » demande le dépassement du chirurgien',
+  V('dire « oui » demande le total du chirurgien (base + dépassement)',
     d.getElementById('chirDhWrap').style.display === 'block');
   /* Montant inconnu au moment de la consultation : la page ne doit pas bloquer. */
   V('tant qu\'il est inconnu, rien n\'est imposé et la page le dit',
@@ -871,10 +871,16 @@ console.log('\n═══ 6. La page de cotation ne dit rien qu\'elle ne sache �
   d.getElementById('chirDh').value = '800';
   w.chirChange();
   await dodo(40);
-  V('mon dépassement se cale à 50 % du sien', parseFloat(d.getElementById('dh').value) === 400,
-    d.getElementById('dh').value);
-  V('c\'est 50 % du DÉPASSEMENT, pas des honoraires',
-    Math.abs(ev('chirDhPropose()') - 400) < 0.005, ev('chirDhPropose()'));
+  /* (27/10/2026) RÈGLE CORRIGÉE d'après un recueil réel (chirurgien 1 000 € → anesthésie
+     500,00 € base comprise) : 50 % du TOTAL du chirurgien, pas de son dépassement. */
+  const biC = ev('baseImprimee()');
+  V('anesthésie = 50 % du total du chirurgien : dépassement = 400 − base imprimée',
+    Math.abs(parseFloat(d.getElementById('dh').value) - Math.max(0, 400 - biC)) < 0.011, [d.getElementById('dh').value, biC]);
+  V('c\'est 50 % du TOTAL (base comprise), plus 50 % du seul dépassement',
+    Math.abs(ev('chirDhPropose()') - Math.max(0, 400 - biC)) < 0.005 && Math.abs(ev('chirDhPropose()') - 400) > 0.5, ev('chirDhPropose()'));
+  V('…et la page affiche la moitié et le dépassement qui en découle', /50\s*%/.test(d.getElementById('chirHint').textContent) && /400,00/.test(d.getElementById('chirHint').textContent),
+    d.getElementById('chirHint').textContent);
+  V('…libellé « Total chirurgien (base + dépassement) »', /Total chirurgien \(base \+ dépassement\)/.test(d.getElementById('chirDhWrap').textContent));
   /* (01/10/2026) Le bouton « Caler sur l'optimal » et le « total cible » ont
      disparu : le calage est automatique. */
   V('plus de bouton « caler » ni de « total cible » : le calage est automatique',
@@ -1378,10 +1384,11 @@ console.log('\n═══ 6. La page de cotation ne dit rien qu\'elle ne sache �
     // ── Priorité chirurgien > mutuelle ──
     mut(200); await dodo(20);
     V('sans chirurgien : calage mutuelle (200 % → 100 % BR)', proche(dhv(), br), [dhv(), br]);
-    w.setChir(true); d.getElementById('chirDh').value = '300'; w.chirChange(); await dodo(20);
-    V('le chirurgien cote : 50 % du sien, devant la mutuelle', proche(dhv(), 150), dhv());
+    w.setChir(true); d.getElementById('chirDh').value = '1000'; w.chirChange(); await dodo(20);
+    const dChir = Math.max(0, Math.round((500 - ev('baseImprimee()')) * 100) / 100);
+    V('le chirurgien cote (1 000 €) : anesthésie à 500 € base comprise, devant la mutuelle', proche(dhv(), dChir), [dhv(), dChir]);
     V('et le reste à charge suit la mutuelle choisie (consultation comprise)',
-      d.getElementById('rRac').textContent === ev("eur2(racPatient('fr',200,parcoursBR()+consBR(),150+consDH('fr')))"),
+      d.getElementById('rRac').textContent === ev("eur2(racPatient('fr',200,parcoursBR()+consBR()," + dChir + "+consDH('fr')))"),
       d.getElementById('rRac').textContent);
     w.setChir(false); await dodo(20);
     V('il ne cote plus : retour au calage mutuelle', proche(dhv(), br), [dhv(), br]);
@@ -1434,8 +1441,8 @@ console.log('\n═══ 6. La page de cotation ne dit rien qu\'elle ne sache �
     V('le reste à charge, lui, suit la mutuelle choisie (consultation comprise)',
       d.getElementById('rRac').textContent === ev("eur2(racPatient('fr',200,parcoursBR()+consBR(),(400-baseImprimee())+consDH('fr')))"),
       d.getElementById('rRac').textContent);
-    w.setChir(true); d.getElementById('chirDh').value = '100'; w.chirChange(); await dodo(20);
-    V('le chirurgien qui cote passe avant le total France', proche(dhv(), 50), dhv());
+    w.setChir(true); d.getElementById('chirDh').value = '1000'; w.chirChange(); await dodo(20);
+    V('le chirurgien qui cote passe avant le total France', proche(dhv(), Math.max(0, Math.round((500 - bi) * 100) / 100)), dhv());
     w.setChir(false); await dodo(20);
     V('il ne cote plus : retour au total France', proche(dhv(), 400 - bi), dhv());
     /* (21/10/2026) Repère NAS « 150 » de cette cotation : il pré-remplit le dépassement */

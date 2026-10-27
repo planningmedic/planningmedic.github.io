@@ -458,7 +458,7 @@ window.SessionPortail = window.SessionPortail || { lire:function(){try{return se
       </div>
       <div id="chirDhWrap" style="display:none;margin-top:10px">
         <div style="display:flex;gap:12px;align-items:flex-end;flex-wrap:wrap">
-          <div class="field" style="width:190px"><label>Dépassement chirurgien</label>
+          <div class="field" style="width:190px"><label>Total chirurgien (base + dépassement)</label>
             <input id="chirDh" class="mono" type="number" step="0.01" min="0" oninput="chirChange()"></div>
           <div class="datehint" id="chirHint" style="flex:1;min-width:200px"></div>
         </div>
@@ -831,22 +831,32 @@ function setChir(oui){
   chirChange();
 }
 
-/* 50 % du DEPASSEMENT du chirurgien, pas de ses honoraires (precision du responsable). */
-function chirDhPropose(){
+/* (27/10/2026) REGLE CORRIGEE (responsable, d'apres les recueils Hopital Manager) :
+   l'anesthesie prend 50 % du TOTAL de l'operateur, base + depassement. Operateur a
+   1 000 EUR -> anesthesie a 500 EUR, base comprise : depassement = 500 - base.
+   Avant : 50 % du seul depassement du chirurgien (262 EUR au lieu de 336 sur un
+   recueil reel). La base est celle que le devis imprime (dizaine superieure en
+   endoscopie), pour que le devis retombe sur la moitie du total. */
+function chirTotalCible(){
   if(!CHIR_LIB) return null;
   const v = parseFloat(document.getElementById('chirDh').value);
-  if(!(v > 0)) return null;                       // montant inconnu : on ne propose rien
-  return Math.round(v * 50) / 100;                // = v * 0.5, arrondi au centime
+  return v > 0 ? Math.round(v * 50) / 100 : null;   // moitie du total, au centime
+}
+function chirDhPropose(){
+  const t = chirTotalCible();
+  if(t == null) return null;                      // montant inconnu : on ne propose rien
+  return Math.max(0, Math.round((t - baseImprimee()) * 100) / 100);
+}
+function majChirHint(){
+  const h = document.getElementById('chirHint'); if(!h) return;
+  const t = chirTotalCible(), prop = chirDhPropose();
+  h.innerHTML = !CHIR_LIB ? ''
+    : (t == null ? 'Montant inconnu : dépassement libre.'
+       : 'Anesthésie = 50&nbsp;% : <b>' + eur2(t) + '</b>, soit dépassement <b>' + eur2(prop) + '</b>'
+         + (t < baseImprimee() ? ' (la base dépasse déjà la moitié)' : ''));
 }
 
 function chirChange(){
-  const prop = chirDhPropose();
-  const h = document.getElementById('chirHint');
-  if(h){
-    h.innerHTML = !CHIR_LIB ? ''
-      : (prop == null ? 'Montant inconnu : dépassement libre.'
-                      : '50&nbsp;% : <b>' + eur2(prop) + '</b>');
-  }
   DH_MANUEL=false;           // le montant du chirurgien change : la proposition reprend la main
   applyDH();
 }
@@ -923,6 +933,7 @@ function applyDH(){
       dhIn.value=(Math.round(v*100)/100).toFixed(2);
     }
   }
+  majChirHint();             // (27/10) la base change -> le depassement « moitie du total » aussi
   renderUsage();
   updateRac();
   renderSummary();
