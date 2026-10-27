@@ -1,7 +1,7 @@
 // ⚠️ RÈGLE (détecteur de dérive dépôt↔Apps Script) : incrémenter cette version
 // à CHAQUE push de ce fichier. Le diagnostic (admin → Maintenance) compare la
 // version déployée ici avec celle du dépôt et signale toute recopie oubliée.
-const GAS_VERSION_CODE = '2026-10-18.1';   // (18/10/2026) vue paie : tri G/G2/V (_planningPaie_) et mail aux secrétaires de paie (_paieEnvoyerAnnee_)
+const GAS_VERSION_CODE = '2026-10-27.1';   // (27/10/2026) journée mobile 2027 (lundi 7 juin) ajoutée aux fériés · (18/10/2026) vue paie : tri G/G2/V (_planningPaie_) et mail aux secrétaires de paie (_paieEnvoyerAnnee_)
 
 // ── Reconstruire STATS_GARDES_2026 depuis GARDES_2026 (année reconstruite) ──
 // Renvoie le classeur contenant l'onglet demandé : classeur actif si présent,
@@ -431,12 +431,21 @@ function getJoursFeries(year) {
     if (dt.getDay() === 0) dt.setDate(dt.getDate() + 1);
     return `${dt.getFullYear()}-${String(dt.getMonth()+1).padStart(2,'0')}-${String(dt.getDate()).padStart(2,'0')}`;
   }
-  return new Set([
+  // JOURNÉE MOBILE : jour chômé fixé CHAQUE ANNÉE par la note de service DRH
+  // « Liste des jours fériés » (remplace les après-midi de mardi gras et de la
+  // mi-carême). Impossible à calculer : une date par année, à ajouter ici à
+  // réception de la note. Année absente = pas de journée mobile connue.
+  const JOURNEE_MOBILE = {
+    2027: '2027-06-07',   // note DRH du 26/10/2026 — lundi 7 juin
+  };
+  const jours = [
     reporte(1,1), dateStr(1,27), reporte(5,1), reporte(8,15),
     reporte(11,1), reporte(11,19), reporte(12,8), reporte(12,25),
     addDays(paques,1), addDays(paques,39), addDays(paques,50),
     feteDieu,
-  ]);
+  ];
+  if (JOURNEE_MOBILE[year]) jours.push(JOURNEE_MOBILE[year]);
+  return new Set(jours);
 }
 
 // ── EN-TÊTES DE MOIS « ANTI-SCROLL » (GARDES / INDISPOS) ─────────────────

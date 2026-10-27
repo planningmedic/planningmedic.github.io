@@ -16,6 +16,22 @@
 const path = require('path');
 const fs = require('fs');
 const H = require(path.join(__dirname, '..', 'simulateur', 'harness.js'));
+/* (27/10/2026) CALENDRIER FIGÉ. Ce scénario compare deux versions du générateur
+   sur une campagne fictive tirée d'une graine fixe : son résultat dépend du
+   calendrier au jour près. Il a été calibré sur les fériés 2027 d'AVANT la
+   journée mobile (lundi 7 juin, note DRH du 26/10/2026) ; l'ajout d'un férié
+   rebat les tirages et le cas démontré ne se reproduit plus. On retire donc
+   la journée mobile de CE scénario seulement, pour qu'il continue de tester
+   ce qu'il teste. L'équité avec le vrai calendrier 2027 reste tenue ailleurs
+   (banc_calendrier.js pour la date, les autres scénarios du générateur). */
+{
+  const _construire = H.buildContext;
+  H.buildContext = (...a) => {
+    const c = _construire(...a), vrai = c.getJoursFeries;
+    c.getJoursFeries = y => { const s = new Set(vrai(y)); s.delete('2027-06-07'); return s; };
+    return c;
+  };
+}
 let ok = 0, ko = 0;
 const V = (t, c, d) => { if (c) { ok++; console.log('  ✓ ' + t); }
   else { ko++; console.log('  ✗ ' + t + (d !== undefined ? ' → ' + JSON.stringify(d).slice(0, 300) : '')); } };

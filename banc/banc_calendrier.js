@@ -50,6 +50,18 @@ console.log('\n═══ Les fériés monégasques fixes ═══');
   V('nombre de fériés cohérent (11 à 13)', f27.length >= 11 && f27.length <= 13, f27.length);
 }
 
+console.log('\n═══ La journée mobile (note de service DRH annuelle) ═══');
+{
+  /* La note DRH du 26/10/2026 fixe la journée mobile 2027 au lundi 7 juin.
+     Elle n'est pas calculable : une date par année, tenue à la main. */
+  const f27 = feries(2027);
+  V('2027 : journée mobile le lundi 7 juin', f27.includes('2027-06-07'), f27.filter(x => x.startsWith('2027-06')));
+  V('le 07/06/2027 est bien un lundi', new Date('2027-06-07T12:00:00').getDay() === 1);
+  V('2027 : 13 fériés à la journée (12 calculés + journée mobile)', f27.length === 13, f27);
+  V('la journée mobile 2027 ne déborde pas sur 2026 ni 2028',
+    !feries(2026).includes('2027-06-07') && !feries(2028).some(x => x.endsWith('-06-07')), [feries(2026).length, feries(2028).length]);
+}
+
 console.log('\n═══ Le report au lundi (loi n°798) ═══');
 {
   /* Un férié tombant un DIMANCHE est reporté au lundi — sauf la Sainte Dévote. */
