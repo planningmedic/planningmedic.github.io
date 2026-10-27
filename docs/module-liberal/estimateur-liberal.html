@@ -1740,6 +1740,10 @@ function openDevis(i){
   const rro = Math.round(rate*(p.br+(p.cBR||0)));
   eText('dvRRO', eur(rro));
   eText('dvRacBefore', eur(Math.max(0, dvHonoraire-rro)));
+  /* (27/10/2026) RESTE À CHARGE INDICATIF, MUTUELLE À 150 % BR (demande du responsable :
+     le contrat le plus courant). Même règle que la barre du bas (racPatient), sur les
+     montants arrondis du devis, quelle que soit la mutuelle choisie à l'écran. */
+  eText('dvRac150', eur(racPatient(p.statut, 150, p.br+(p.cBR||0), p.dh+(p.cDH||0))));
   /* (26/10/2026) Nom du patient : tapé à l'écran (champ du devis) pour qu'il sorte
      imprimé, ou laissé vide et écrit à la main. Jamais enregistré, jamais envoyé :
      effacé à la fermeture du devis comme les autres champs (closeDevis). */
@@ -1760,6 +1764,7 @@ const DV_EN={
   patient:'Patient:', etabliLe:'Issued on', couverture:'Coverage:', interventionLe:'Planned on', intervention:'Procedure:',
   thLib:'Anaesthesia fees', thTot:'Total',
   caisse:'Covered by your health insurance', caisseNote:'(estimate, on the base rate)', reste:'Your out-of-pocket cost, before supplementary insurance',
+  reste150:'With a 150 % supplementary insurance', reste150Note:'(estimate, most common policy)',
   approx:'Approximate amounts: the exact procedure is only known after surgery; the agreed extra fee does not change.',
   sigPrat:'The physician', sigPat:'The patient, date and “Read and approved”'
 };
@@ -2114,6 +2119,7 @@ populateMut();poserEcran();renderSummary();
     <div class="dvRB" id="dvRac">
       <div><span data-i18n="caisse">Pris en charge par votre caisse</span><br><small data-i18n="caisseNote">(estimation, sur le tarif de base)</small><b id="dvRRO">—</b></div>
       <div class="hl"><span data-i18n="reste">Reste à votre charge, avant mutuelle</span><b id="dvRacBefore">—</b></div>
+      <div><span data-i18n="reste150">Avec une mutuelle à 150 % BR</span><br><small data-i18n="reste150Note">(indicatif, cas le plus fréquent)</small><b id="dvRac150">—</b></div>
     </div>
     <div class="dvNote"><span data-i18n="approx">Montants approximatifs : l'acte exact n'est connu qu'après l'intervention ; le dépassement convenu ne change pas.</span><span id="dvNoteFin"></span></div>
     <div class="dvSign">

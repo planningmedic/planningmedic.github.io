@@ -1278,7 +1278,27 @@ console.log('\n═══ 6. La page de cotation ne dit rien qu\'elle ne sache �
         V('…et le total = consultation + anesthésie ; reste avant mutuelle = total − caisse',
           proche(lireEur(d.getElementById('dvHon').textContent), eurc(c0, 3) + eurc(c1, 3)) && proche(lireEur(d.getElementById('dvDH').textContent), 230 + 99 - cs())
           && proche(lireEur(d.getElementById('dvRacBefore').textContent), lireEur(d.getElementById('dvHon').textContent) - lireEur(d.getElementById('dvRRO').textContent)));
+
+        /* (27/10/2026) Reste à charge indicatif avec une mutuelle à 150 % BR, quelle que
+           soit la mutuelle choisie à l'écran (ici « Aucune ») : total − 150 % de la base. */
+        const brDv = eurc(c0, 1) + eurc(c1, 1), totDv = lireEur(d.getElementById('dvHon').textContent);
+        V('…et un reste à charge indicatif avec une mutuelle à 150 % BR = total − 1,5 × base',
+          ev('MUT_PCT') === 0 && proche(lireEur(d.getElementById('dvRac150').textContent), Math.round(Math.max(0, totDv - 1.5 * brDv)))
+          && /150 %/.test(d.getElementById('dvRac').textContent), [d.getElementById('dvRac150').textContent, totDv, brDv]);
       }
+      /* (27/10/2026) Assuré français : prise en charge à 150 % BR, sous le plafond de 200 %. */
+      w.closeDevis(); w.setStatut('fr'); await dodo(10);
+      d.getElementById('dh').value = '40'; w.dhSaisi(); await dodo(10);
+      w.ouvrirDevisCourant(); await dodo(20);
+      {
+        const rows = [...d.getElementById('dvActes').rows], eurc = (r, i) => lireEur(r.cells[i].textContent) || 0;
+        const brDv = rows.reduce((s, r) => s + eurc(r, 1), 0), totDv = lireEur(d.getElementById('dvHon').textContent);
+        V('français : reste à charge indicatif à 150 % BR = total − 1,5 × base (jamais négatif)',
+          proche(lireEur(d.getElementById('dvRac150').textContent), Math.round(Math.max(0, totDv - 1.5 * brDv))),
+          [d.getElementById('dvRac150').textContent, totDv, brDv]);
+      }
+      w.closeDevis(); w.setStatut('nas'); await dodo(10); w.ouvrirDevisCourant(); await dodo(20);
+      V('NAS : l\'encadré des restes à charge (dont 150 %) reste masqué', d.getElementById('dvRac').classList.contains('nas'));
       w.closeDevis(); w.setStatut('verte'); await dodo(10); w.ouvrirDevisCourant(); await dodo(20);
       V('hors endoscopie : arrondi à l\'euro seulement (109,2 + 50,37 → 109 + 50)',
         ev("JSON.stringify(arrondirDevis({statut:'bulle',br:159.57,dh:0,cBR:0,cDH:0,endo:false,lines:[{br:109.2},{br:50.37}]}).lines.map(function(l){return l.br;}))") === '[109,50]'
