@@ -502,6 +502,7 @@ window.SessionPortail = window.SessionPortail || { lire:function(){try{return se
     <span class="pblab">Praticien</span>
     <input id="cfgPrat" placeholder="Prénom Nom" oninput="dclPreview()">
     <input id="cfgRPPS" placeholder="RPPS" oninput="dclPreview()">
+    <input id="cfgOrdre" placeholder="N° Ordre Monaco" title="N° d'inscription à l'Ordre des médecins de Monaco (imprimé sur le devis d'un patient Monaco ou NAS)" style="width:130px">
     <span class="pbetat" id="pbEtat"></span>
   </div>
   <div class="declbox">
@@ -937,11 +938,24 @@ function dhPropose(){
   const rep=repereChiffre();                 // (21/10/2026) bulle / NAS : repere chiffre du groupement
   if(rep!=null) return rep;
   const tot=totalFrCourant();
-  if(tot!=null) return Math.max(0, tot - parcoursBR());
+  if(tot!=null) return Math.max(0, tot - baseImprimee());
   const opt=dhOptimal(statutCourant(), currentMutPct(), parcoursBR());
   return opt!=null ? opt : 0;
 }
 
+/* (21/10/2026) Endoscopie : cotation type d'un groupe « Endoscopie », ou un acte dont
+   le code CCAM a l'acces « E » en 4e lettre (endoscopie par orifice naturel). */
+function estEndo(){
+  return !!(COTTYPE_COURANTE && /endoscop/i.test(COTTYPE_COURANTE.groupe||''))
+      || builder.some(l=>/^[A-Z]{3}E\d{3}$/.test(l.code||''));
+}
+/* (27/10/2026) BASE TELLE QUE LE DEVIS L'IMPRIMERA : a la dizaine superieure en
+   endoscopie (arrondirDevis). Le depassement tire du TOTAL_FR se calcule sur ELLE,
+   sinon le devis depassait le total voulu (colo : 60 + 66 = 126 pour 120). */
+function baseImprimee(){
+  const br=parcoursBR();
+  return estEndo() ? Math.ceil((br-1e-9)/10)*10 : br;
+}
 /* Cotation type posee pour CE patient (null : cotation a la main). Videe au
    patient suivant. */
 let COTTYPE_COURANTE=null;
@@ -1029,6 +1043,8 @@ async function chargerPraticien(){
     const complet=[prenom, nom].filter(Boolean).join(' ');
     if(complet) document.getElementById('cfgPrat').value=complet;
     if(rpps)    document.getElementById('cfgRPPS').value=rpps;
+    const ordre=String(j.ordreMc||'').trim();   // (27/10/2026) n° Ordre de Monaco, colonne ORDRE_MC
+    if(ordre)   document.getElementById('cfgOrdre').value=ordre;
     const manque=[!prenom?'prénom':null, !rpps?'RPPS':null].filter(Boolean);
     pbSetEtat(manque.length ? ('pré-rempli · '+manque.join(' et ')+' à compléter')
                             : 'pré-rempli depuis le portail', !manque.length);
@@ -1657,10 +1673,7 @@ function courant(muet){
         mods:[l.m7?'7':null, l.mA?'A':null].filter(Boolean), role:l.role}));
   // 2A : le parcours porte desormais SES DEUX montants. brCcam/brNgap sont ce qui
   // partira dans la declaration ; br reste la BR de l'axe courant (devis, RAC, simulateur).
-  /* (21/10/2026) Endoscopie : cotation type d'un groupe « Endoscopie », ou un acte dont
-     le code CCAM a l'acces « E » en 4e lettre (endoscopie par orifice naturel). */
-  const endo = !!(COTTYPE_COURANTE && /endoscop/i.test(COTTYPE_COURANTE.groupe||''))
-            || builder.some(l=>/^[A-Z]{3}E\d{3}$/.test(l.code||''));
+  const endo = estEndo();          // (21/10/2026) cotation type « Endoscopie » ou acces « E »
   const nomCot = COTTYPE_COURANTE ? String(COTTYPE_COURANTE.nom||'') : '';
   return {axe,statut:st,desc,cnt,br,dh,rac,mut,dCs,dInt,dActe,lines,cBR,cDH,cCode,endo,nomCot,
           brCcam:br, brNgap:assocBR()};
@@ -1759,7 +1772,7 @@ function openDevis(i){
    Rien n'est enregistré : la langue revient au français à la fermeture. */
 let DV_LANG='fr';
 const DV_EN={
-  tel:'Tel.', role:'Anaesthesiologist',
+  tel:'Tel.', role:'Anaesthesiologist', ordre:'Monaco Medical Council no.',
   titre:'Fee estimate — anaesthesia', sousTitre:'Information given to the patient before treatment · please keep',
   patient:'Patient:', etabliLe:'Issued on', couverture:'Coverage:', interventionLe:'Planned on', intervention:'Procedure:',
   thLib:'Anaesthesia fees', thTot:'Total',
@@ -1791,6 +1804,16 @@ function dvT(k){ return DV_DYN[DV_LANG][k]; }
 function devisTextes(p){
   const nas = p.statut==='nas';
   eText('dvStatut', DV_COUV[DV_LANG][p.statut] || p.statut);
+  /* (27/10/2026) IDENTIFIANT DU PRATICIEN SOUS SON NOM (demande du responsable) : RPPS pour
+     un assuré français ; n° d'inscription à l'Ordre des médecins de Monaco pour tous les
+     autres (cartes Monaco, SPME, NAS). Lus dans cfgRPPS / cfgOrdre, eux-mêmes pré-remplis
+     depuis le classeur (MEDECINS, colonnes RPPS et ORDRE_MC). Case vide : rien d'imprimé. */
+  const rpps=((document.getElementById('cfgRPPS')||{}).value||'').trim();
+  const ordre=((document.getElementById('cfgOrdre')||{}).value||'').trim();
+  const fr = p.statut==='fr';
+  eText('dvRPPS', rpps); eText('dvOrdre', ordre);
+  document.getElementById('dvRppsL').style.display = (fr && rpps) ? '' : 'none';
+  document.getElementById('dvOrdreL').style.display = (!fr && ordre) ? '' : 'none';
   // Intervention en clair : nom de la cotation type, sinon libellés des actes — jamais de code
   eText('dvActe', p.nomCot || (p.lines||[]).map(l=>l.lib||dvT('acte')).join(' + ') || dvT('acte'));
   renderDevisActes(p);
@@ -1967,6 +1990,8 @@ function poserIdentite(j){
   const complet=[prenom, nom].filter(Boolean).join(' ');
   if(complet) document.getElementById('cfgPrat').value=complet;
   if(rpps)    document.getElementById('cfgRPPS').value=rpps;
+  const ordre=String(j.ordreMc||'').trim();     // (27/10/2026) n° Ordre de Monaco, colonne ORDRE_MC
+  if(ordre)   document.getElementById('cfgOrdre').value=ordre;
   const manque=[!prenom?'prénom':null, !rpps?'RPPS':null].filter(Boolean);
   pbSetEtat(manque.length ? ('pré-rempli · '+manque.join(' et ')+' à compléter')
                           : 'pré-rempli depuis le portail', !manque.length);
@@ -2100,7 +2125,7 @@ populateMut();poserEcran();renderSummary();
         <div><span class="ed" contenteditable="true" data-ph="Adresse" data-i18n-ph="adresse" data-etab="adresse"></span></div>
         <div><span data-i18n="tel">Tél.</span> <span class="ed" contenteditable="true" data-ph="Téléphone" data-i18n-ph="tel" data-etab="telephone"></span></div>
       </div>
-      <div class="dvP"><b>Dr <span id="dvPratName">—</span></b><br><span data-i18n="role">Anesthésiste-réanimateur</span></div>
+      <div class="dvP"><b>Dr <span id="dvPratName">—</span></b><br><span data-i18n="role">Anesthésiste-réanimateur</span><span id="dvRppsL" style="display:none"><br>RPPS <span id="dvRPPS"></span></span><span id="dvOrdreL" style="display:none"><br><span data-i18n="ordre">Ordre des médecins de Monaco n°</span> <span id="dvOrdre"></span></span></div>
     </div>
     <h1 data-i18n="titre">Devis d'honoraires — anesthésie</h1>
     <div class="dvSub" data-i18n="sousTitre">Information remise au patient avant les soins · à conserver</div>

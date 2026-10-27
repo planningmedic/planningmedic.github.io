@@ -1,7 +1,7 @@
 // ⚠️ RÈGLE (détecteur de dérive dépôt↔Apps Script) : incrémenter cette version
 // à CHAQUE push de ce fichier. Le diagnostic (admin → Maintenance) compare la
 // version déployée ici avec celle du dépôt et signale toute recopie oubliée.
-const GAS_VERSION_MIROIR = '2026-10-21.1';   // (20/10/2026) clé etablissement (nom et adresse du devis) · (21/10) setVeilleAbo → veille_marques
+const GAS_VERSION_MIROIR = '2026-10-27.1';   // (27/10/2026) champ ordreMc dans acces · (20/10/2026) clé etablissement (nom et adresse du devis) · (21/10) setVeilleAbo → veille_marques
 
 /* ═══════════════════════════════════════════════════════════════════════
    MIROIR.GS — alimentation du miroir de lecture Cloudflare
@@ -1107,6 +1107,7 @@ function _miroirConstruireAcces_() {
       return -1;
     };
     const colLib = colParTitre('LIBERAL'), colRpps = colParTitre('RPPS'), colPre = colParTitre('PRENOM');
+    const colOrdre = colParTitre('ORDRE_MC');   // (27/10/2026) n° Ordre des medecins de Monaco
     for (var i = 1; i < data.length; i++) {
       const code = norm(data[i][COL_MED.CODE]);
       if (!code) continue;
@@ -1119,6 +1120,7 @@ function _miroirConstruireAcces_() {
         libAdmin: !!libAdmin && norm(data[i][COL_MED.ID]) === libAdmin,
         tuiles: tuilesParMar[norm(data[i][0])] || [],
         rpps: colRpps >= 0 ? String(data[i][colRpps] == null ? '' : data[i][colRpps]).trim() : '',
+        ordreMc: colOrdre >= 0 ? String(data[i][colOrdre] == null ? '' : data[i][colOrdre]).trim() : '',
         /* (CORRECTIF 22/08/2026) Éligibilité à la pose des TP. Le portail
            s'ouvre par la COPIE RAPIDE, pas par la connexion au serveur :
            sans ces deux champs ici, la tuile ne peut pas s'afficher. */

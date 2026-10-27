@@ -1,7 +1,7 @@
 // ⚠️ RÈGLE (détecteur de dérive dépôt↔Apps Script) : incrémenter cette version
 // à CHAQUE push de ce fichier. Le diagnostic (admin → Maintenance) compare la
 // version déployée ici avec celle du dépôt et signale toute recopie oubliée.
-const GAS_VERSION_INDISPOS = '2026-10-24.1';   // (24/10/2026) action journalAppliquerMaintenant (journal.gs) · (18/10/2026) rôle « paie » (code partagé des secrétaires de paie) + refus par défaut de tout rôle autre que admin/mar hors de sa liste blanche
+const GAS_VERSION_INDISPOS = '2026-10-27.1';   // (27/10/2026) champ ordreMc (colonne ORDRE_MC) · (24/10/2026) action journalAppliquerMaintenant (journal.gs) · (18/10/2026) rôle « paie » (code partagé des secrétaires de paie) + refus par défaut de tout rôle autre que admin/mar hors de sa liste blanche
 
 /* ── (01/08/2026) MARQUEUR DE TEMPS GLOBAL — mesure, ne change rien ───────
    `_srv_ms` chronometre l'INTERIEUR de doGet. Or avant que doGet soit appele,
@@ -185,6 +185,7 @@ function checkCode(code) {
   };
   const colLib  = _colParTitre('LIBERAL');   // O/N : membre du groupement liberal
   const colRpps = _colParTitre('RPPS');      // n° RPPS, pre-remplissage des devis
+  const colOrdre = _colParTitre('ORDRE_MC'); // (27/10/2026) n° Ordre des medecins de Monaco, devis
   // PRENOM : colonne DEDIEE, ajoutee en fin d'onglet. Surtout NE PAS mettre le prenom
   // dans la colonne NOM : celle-ci alimente le planning, le dashboard et l'export Excel,
   // ou un nom rallonge deborderait partout.
@@ -200,6 +201,8 @@ function checkCode(code) {
               // dans le depot (public). Il n'est renvoye qu'au MAR identifie par SON code
               // personnel, et pour sa seule ligne : personne ne recoit le RPPS d'un autre.
               rpps: colRpps >= 0 ? String(data[r][colRpps] == null ? '' : data[r][colRpps]).trim() : '',
+              // (27/10/2026) Meme regime que le RPPS : classeur prive, renvoye au seul MAR identifie.
+              ordreMc: colOrdre >= 0 ? String(data[r][colOrdre] == null ? '' : data[r][colOrdre]).trim() : '',
               // DONNEE NOMINATIVE, meme regime que le RPPS : classeur prive uniquement,
               // renvoyee au seul MAR identifie par son propre code.
               prenom: colPre >= 0 ? String(data[r][colPre] == null ? '' : data[r][colPre]).trim() : '',

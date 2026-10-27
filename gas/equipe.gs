@@ -4,7 +4,7 @@
    quelles : aucune ligne de logique modifiée, seulement déplacée. Le routeur et
    ses aides (checkCode, _deny, _error, doGet/doPost) restent dans Indispos.gs.
    Un seul espace global dans Apps Script : rien à importer. */
-const GAS_VERSION_EQUIPE = '2026-10-11.1';
+const GAS_VERSION_EQUIPE = '2026-10-27.1';   // (27/10/2026) ordreMc renvoyé au login et au bootstrap
 
 // ── Sonde : les interrupteurs des mails sont-ils cohérents ? ──
 function _sondeInterrupteursMails_(check, R, info) {
@@ -322,6 +322,8 @@ function _act_login(R) {
     // N° RPPS du MAR connecte (colonne RPPS de MEDECINS) : pre-remplit l'identite
     // du praticien sur les devis du module liberal. Chaine vide si non renseigne.
     rpps: user.rpps || '',
+    // (27/10/2026) N° Ordre des medecins de Monaco (colonne ORDRE_MC), meme regime que le RPPS.
+    ordreMc: user.ordreMc || '',
     // Prenom (colonne PRENOM de MEDECINS) : complete le nom sur les devis du
     // module liberal. Chaine vide si la colonne est absente ou non renseignee.
     prenom: user.prenom || '',
@@ -401,6 +403,7 @@ function _act_getAdminBootstrap(R) {
   out.name = user.name; out.initials = user.initials;
   out.liberal = !!user.liberal;
   out.rpps = user.rpps || '';
+  out.ordreMc = user.ordreMc || '';
   out.prenom = user.prenom || '';
   /* (01/08/2026) CHRONOMETRE INTERNE — récit : docs/JOURNAL-Planning-Med.md §88 */
   const _det = {}; let _tp = Date.now();

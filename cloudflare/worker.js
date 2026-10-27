@@ -52,7 +52,7 @@
 
    CONTRAT DES CLÉS KV (le GAS est seul écrivain, il fait foi) :
      acces               {"users":[{"h":"<sha256>","id","role","name",
-                          "initials","prenom","liberal","rpps"}],
+                          "initials","prenom","liberal","rpps","ordreMc"}],
                           "indisposYear":N,"indisposOuverte":bool,"t":ms}
      annees              {"active":2026,"annees":[{"annee","archivee"}]}
      secteurs            (sortie de getSecteurs, telle quelle)
@@ -257,7 +257,7 @@ async function lire(corps, env) {
   const identite = {
     id: user.id, role: user.role, name: user.name,
     initials: user.initials, prenom: user.prenom || '',
-    liberal: !!user.liberal, rpps: user.rpps || '',
+    liberal: !!user.liberal, rpps: user.rpps || '', ordreMc: user.ordreMc || '',
     libAdmin: !!user.libAdmin,          // (17/08) gere la bibliotheque de cotations types
     indisposYear: acces.indisposYear, indisposOuverte: !!acces.indisposOuverte,
     /* (CORRECTIF 22/08/2026) Le portail s'ouvre par le relais, pas par la

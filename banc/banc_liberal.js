@@ -674,7 +674,7 @@ console.log('\n═══ 6. La page de cotation ne dit rien qu\'elle ne sache �
                            return [...new Uint8Array(b)].map(x=>x.toString(16).padStart(2,'0')).join(''); };
   const CODE = 'MARCODE77';
   M.set('acces', JSON.stringify({ indisposYear: 2026, users: [
-    { h: await sha(CODE), role:'mar', id:'ALPHA', name:'Dr ALPHA', initials:'AL', prenom:'Jean', liberal:true, rpps:'10000000001' }]}));
+    { h: await sha(CODE), role:'mar', id:'ALPHA', name:'Dr ALPHA', initials:'AL', prenom:'Jean', liberal:true, rpps:'10000000001', ordreMc:'999' }]}));
   M.set('secteurs', JSON.stringify([
     { code:'END', label:'Endoscopies',        ordre:5, actif:true, aff:true, rendement:'FORT'  },
     { code:'ORL', label:'ORL / Ophtalmologie', ordre:4, actif:true, aff:true, rendement:'FORT' },
@@ -761,6 +761,7 @@ console.log('\n═══ 6. La page de cotation ne dit rien qu\'elle ne sache �
 
   V('l\'identité est pré-remplie', d.getElementById('cfgPrat').value === 'Jean ALPHA', d.getElementById('cfgPrat').value);
   V('le RPPS aussi', d.getElementById('cfgRPPS').value === '10000000001');
+  V('et le n° de l\'Ordre de Monaco (27/10/2026)', d.getElementById('cfgOrdre').value === '999', d.getElementById('cfgOrdre').value);
   /* (01/10/2026) Ligne praticien et déclaration : un bloc replié en bas, FERMÉ à
      l'ouverture. Son en-tête dit ce qui manque, pour qu'un bloc fermé ne cache rien. */
   const repli = d.getElementById('repli');
@@ -900,8 +901,9 @@ console.log('\n═══ 6. La page de cotation ne dit rien qu\'elle ne sache �
   d.getElementById('repli').open = false;
   w.ouvrirDevisCourant();
   await dodo(60);
-  V('bloc praticien replié, le devis porte quand même le nom (RPPS retiré du devis épuré)',
-    d.getElementById('dvPratName').textContent === 'Jean ALPHA' && !d.getElementById('dvRPPS')   // (21/10/2026) RPPS retiré du devis épuré
+  V('bloc praticien replié, le devis porte quand même le nom (RPPS seulement pour un assuré français)',
+    d.getElementById('dvPratName').textContent === 'Jean ALPHA'
+    && (ev("document.getElementById('statut').value") === 'fr' || d.getElementById('dvRppsL').style.display === 'none')   // (27/10/2026)
     && d.getElementById('dcPratName').textContent === 'Jean ALPHA',
     d.getElementById('dvPratName').textContent);
   const ov = d.getElementById('devisOverlay');
@@ -1165,6 +1167,19 @@ console.log('\n═══ 6. La page de cotation ne dit rien qu\'elle ne sache �
       ev("(function(){var s=COTTYPE_COURANTE, st=document.getElementById('statut').value, r=[];"
         + "['230 ou 50% JFD+AC','780','2500 à 5000','+50%','suivant devis'].forEach(function(x){COTTYPE_COURANTE={repereNas:x};r.push(repereChiffre());});"
         + "COTTYPE_COURANTE=s; return JSON.stringify(r);})()") === '[230,780,null,null,null]');
+    /* (27/10/2026) DÉFAUT : en endoscopie, le dépassement tiré du TOTAL_FR se calculait sur la
+       base exacte, puis le devis arrondissait la base à la dizaine supérieure — colo d'un assuré
+       français : 60 + 66 = 126 pour un total de 120. Il se calcule désormais sur la base imprimée. */
+    {
+      const r = JSON.parse(ev("(function(){var s=COTTYPE_COURANTE, sc=statutCourant;"
+        + "statutCourant=function(){return 'fr';};"
+        + "COTTYPE_COURANTE={groupe:'Endoscopie (digestive)', totalFr:1000};"
+        + "var o={br:parcoursBR(), base:baseImprimee(), dh:dhPropose(), endo:estEndo()};"
+        + "COTTYPE_COURANTE=s; statutCourant=sc; return JSON.stringify(o);})()"));
+      V('endoscopie, assuré français : base imprimée à la dizaine supérieure + dépassement = TOTAL_FR exactement',
+        r.endo === true && r.base % 10 === 0 && r.base >= r.br && r.base - r.br < 10 && r.base !== r.br
+        && Math.abs(r.base + r.dh - 1000) < 1e-9, r);
+    }
     /* (20/10/2026) Décision du responsable, comme le devis du secrétariat : un NAS paie
        base + dépassement, pour la consultation (total du groupement) comme pour l'anesthésie. */
     V('NAS sans mutuelle : la caisse ne rembourse rien, reste = base + dépassement, consultation comprise',
@@ -1201,8 +1216,10 @@ console.log('\n═══ 6. La page de cotation ne dit rien qu\'elle ne sache �
         d.getElementById('dvRac').classList.contains('nas') && /\.dvRB\.nas\{display:none\}/.test(html) && /Aucune caisse/.test(d.getElementById('dvNoteFin').textContent));
       V('…en-têtes sans « remboursable » pour un NAS ; montants annoncés approximatifs',
         !/rembours/i.test(d.querySelector('#dvTable thead').textContent) && /approximatifs/.test(d.querySelector('#devisOverlay .dvNote').textContent));
-      V('…épuré : ni RPPS, ni « secteur 2 / OPTAM », ni articles de loi, ni n° de devis',
-        !/RPPS|OPTAM|secteur 2|R\.4127|L\.1111|Devis n°|Valable jusqu/.test(d.querySelector('#devisOverlay .sheet:not(.decl)').textContent));
+      /* (27/10/2026) Le RPPS n'existe plus que dans sa ligne dédiée, masquée hors assuré français. */
+      V('…épuré : RPPS masqué (NAS), ni « secteur 2 / OPTAM », ni articles de loi, ni n° de devis',
+        d.getElementById('dvRppsL').style.display === 'none'
+        && !/RPPS|OPTAM|secteur 2|R\.4127|L\.1111|Devis n°|Valable jusqu/.test(d.querySelector('#devisOverlay .sheet:not(.decl)').textContent.replace(d.getElementById('dvRppsL').textContent, '')));
       w.basculerLangueDevis(); await dodo(10);
       const h1 = () => d.querySelector('#devisOverlay .sheet:not(.decl) h1').textContent;
       V('un clic : le devis passe en anglais', /Fee estimate/.test(h1()) && /not covered/.test(d.getElementById('dvStatut').textContent)
@@ -1297,8 +1314,28 @@ console.log('\n═══ 6. La page de cotation ne dit rien qu\'elle ne sache �
           proche(lireEur(d.getElementById('dvRac150').textContent), Math.round(Math.max(0, totDv - 1.5 * brDv))),
           [d.getElementById('dvRac150').textContent, totDv, brDv]);
       }
+      /* (27/10/2026) RPPS : imprimé pour un assuré français seulement. */
+      const rppsAvant = d.getElementById('cfgRPPS').value, ordreAvant = d.getElementById('cfgOrdre').value;
+      d.getElementById('cfgRPPS').value = '10001234567'; d.getElementById('cfgOrdre').value = '999';
+      w.closeDevis(); w.ouvrirDevisCourant(); await dodo(20);
+      V('assuré français : le devis imprime le RPPS du praticien',
+        d.getElementById('dvRppsL').style.display !== 'none' && d.getElementById('dvRPPS').textContent === '10001234567'
+        && d.getElementById('dvOrdreL').style.display === 'none',
+        [d.getElementById('dvRppsL').style.display, d.getElementById('dvRPPS').textContent]);
       w.closeDevis(); w.setStatut('nas'); await dodo(10); w.ouvrirDevisCourant(); await dodo(20);
       V('NAS : l\'encadré des restes à charge (dont 150 %) reste masqué', d.getElementById('dvRac').classList.contains('nas'));
+      V('NAS : n° de l\'Ordre de Monaco, pas de RPPS', d.getElementById('dvRppsL').style.display === 'none'
+        && d.getElementById('dvOrdreL').style.display !== 'none' && d.getElementById('dvOrdre').textContent === '999'
+        && /Ordre des médecins de Monaco/.test(d.getElementById('dvOrdreL').textContent));
+      w.closeDevis(); w.setStatut('rose'); await dodo(10); w.ouvrirDevisCourant(); await dodo(20);
+      V('carte rose : n° de l\'Ordre de Monaco, pas de RPPS', d.getElementById('dvRppsL').style.display === 'none'
+        && d.getElementById('dvOrdreL').style.display !== 'none');
+      d.getElementById('cfgOrdre').value = ''; w.closeDevis(); w.ouvrirDevisCourant(); await dodo(20);
+      V('carte rose sans n° de l\'Ordre renseigné : rien d\'imprimé', d.getElementById('dvOrdreL').style.display === 'none');
+      w.closeDevis(); w.setStatut('fr'); d.getElementById('cfgRPPS').value = ''; await dodo(10); w.ouvrirDevisCourant(); await dodo(20);
+      V('assuré français sans RPPS renseigné : rien d\'imprimé (pas de « RPPS » vide)', d.getElementById('dvRppsL').style.display === 'none');
+      d.getElementById('cfgRPPS').value = rppsAvant; d.getElementById('cfgOrdre').value = ordreAvant;
+      w.closeDevis(); w.setStatut('nas'); await dodo(10); w.ouvrirDevisCourant(); await dodo(20);
       w.closeDevis(); w.setStatut('verte'); await dodo(10); w.ouvrirDevisCourant(); await dodo(20);
       V('hors endoscopie : arrondi à l\'euro seulement (109,2 + 50,37 → 109 + 50)',
         ev("JSON.stringify(arrondirDevis({statut:'bulle',br:159.57,dh:0,cBR:0,cDH:0,endo:false,lines:[{br:109.2},{br:50.37}]}).lines.map(function(l){return l.br;}))") === '[109,50]'
@@ -1387,17 +1424,20 @@ console.log('\n═══ 6. La page de cotation ne dit rien qu\'elle ne sache �
     d.getElementById('cotTypeBtns').querySelector('button').click();
     await dodo(30);
     const br = ev('parcoursBR()');
-    V('assuré français + total France : dépassement = total − BR', proche(dhv(), 400 - br), [dhv(), 400 - br]);
+    /* (27/10/2026) Le dépassement se calcule sur la base IMPRIMÉE (dizaine supérieure en
+       endoscopie), pour que le devis retombe sur le total : total − base imprimée. */
+    const bi = ev('baseImprimee()');
+    V('assuré français + total France : dépassement = total − base imprimée', proche(dhv(), 400 - bi) && bi >= br && bi - br < 10, [dhv(), 400 - bi, br]);
     V('l\'encadré dit sur quoi il est calé', /total France/.test(d.getElementById('racTitre').textContent));
     mut(200); await dodo(20);
-    V('le total France passe AVANT la mutuelle', proche(dhv(), 400 - br), dhv());
+    V('le total France passe AVANT la mutuelle', proche(dhv(), 400 - bi), dhv());
     V('le reste à charge, lui, suit la mutuelle choisie (consultation comprise)',
-      d.getElementById('rRac').textContent === ev("eur2(racPatient('fr',200,parcoursBR()+consBR(),(400-parcoursBR())+consDH('fr')))"),
+      d.getElementById('rRac').textContent === ev("eur2(racPatient('fr',200,parcoursBR()+consBR(),(400-baseImprimee())+consDH('fr')))"),
       d.getElementById('rRac').textContent);
     w.setChir(true); d.getElementById('chirDh').value = '100'; w.chirChange(); await dodo(20);
     V('le chirurgien qui cote passe avant le total France', proche(dhv(), 50), dhv());
     w.setChir(false); await dodo(20);
-    V('il ne cote plus : retour au total France', proche(dhv(), 400 - br), dhv());
+    V('il ne cote plus : retour au total France', proche(dhv(), 400 - bi), dhv());
     /* (21/10/2026) Repère NAS « 150 » de cette cotation : il pré-remplit le dépassement */
     w.setStatut('nas'); await dodo(20);
     V('NAS + repère chiffré « 150 » : dépassement pré-rempli à 150 €', proche(dhv(), 150), dhv());
