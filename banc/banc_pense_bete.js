@@ -630,6 +630,66 @@ V('compteur abîmé : la page s\'ouvre, réglages demandés', o5.window.document
   V('choisir France dans le Compteur : bouton France coché seul', Kd.querySelector('#cAss .chip[aria-checked="true"]').dataset.v === 'fr');
   V('couleurs du Compteur : aucun appel réseau, aucune erreur JavaScript', K.reseau.length === 0 && K.erreurs.length === 0, K.erreurs);
   }
+  /* ── 16. PATIENT À DEUX ACTES (27/10/2026) ──────────────────────────────
+     Demande : HHFE004 puis HJQJ002 coché « 2e acte (50 %) » = le même patient ;
+     une seule ligne dépliable. Le 2e acte se rattache à l'acte à 100 % saisi juste
+     avant (même jour, secteur, pays). « Détacher » défait le lien. Valeurs fictives. */
+  {
+  console.log('\n[16] Patient à deux actes — une ligne, dépliable, détachable');
+  const pause = () => new Promise(r => setTimeout(r, 20));
+  const V0 = { colo_mc: 1000, colo_fr: 500, gastro_mc: 1000, gastro_fr: 500, combo_mc: 1500, combo_fr: 800 };
+  const base = { d0: '2026-09-30', p0: 100000, l0: 0, v: V0, rea: {}, vn: {} };
+  const cpt = JSON.stringify(Object.assign({}, base, { actes: [
+    { id: 'a1', d: '2026-10-27', g: 'autre', code: 'HHFE004', v: 6248, m: 'pub', a: 'fr', t: 1 },
+    { id: 'a2', d: '2026-10-27', g: 'autre', code: 'HJQJ002', r50: true, v: 2717, m: 'pub', a: 'fr', t: 2 },
+    { id: 'a3', d: '2026-10-27', g: 'colo', m: 'pub', a: 'fr', t: 3 } ] }));
+  const P = ouvrir(null, { compteur: cpt }); P.$('tC').click();
+  const Pd = P.w.document, gr = () => [...Pd.querySelectorAll('#cList .grp')];
+  const ligne = re => gr().find(g => re.test(g.querySelector('.gn').textContent));
+  const st = () => JSON.parse(P.w.localStorage.getItem('pense-bete-compteur-v1'));
+  V('actes déjà saisis : HHFE004 puis HJQJ002 (50 %) réunis sur une ligne « HHFE004 + HJQJ002 · FR »',
+    !!ligne(/^HHFE004 \+ HJQJ002 · FR/) && ligne(/^HHFE004 \+ HJQJ002/).querySelector('.gq').textContent === '1', gr().map(g => g.querySelector('.gn').textContent));
+  V('…montant de la ligne = somme des deux (62,48 + 27,17 = 89,65 €)', /89,65/.test(ligne(/^HHFE004 \+/).querySelector('small').textContent), ligne(/^HHFE004 \+/).querySelector('small').textContent);
+  V('…le lien est enregistré (même p), la colo d\'après reste seule', st().actes.find(x => x.id === 'a1').p && st().actes.find(x => x.id === 'a1').p === st().actes.find(x => x.id === 'a2').p && !st().actes.find(x => x.id === 'a3').p);
+  V('…le jour compte toujours chaque acte (3 actes) et le même total', Pd.querySelector('#cList .jr').textContent.includes('3 actes') && Pd.querySelector('#cList .jr').textContent.includes('94,65'), Pd.querySelector('#cList .jr').textContent);
+  ligne(/^HHFE004 \+/).querySelector('.gch').click();
+  V('chevron : les deux actes apparaissent, « détacher » sur le 2e seulement',
+    ligne(/^HHFE004 \+/).querySelectorAll('.acte:not([hidden])').length === 2 && ligne(/^HHFE004 \+/).querySelectorAll('.cdet').length === 1
+    && ligne(/^HHFE004 \+/).querySelector('.cdet').dataset.id === 'a2');
+  ligne(/^HHFE004 \+/).querySelector('.gp').click();
+  const ids = st().actes.filter(x => x.code === 'HHFE004' || x.code === 'HJQJ002');
+  V('« + » : un 2e patient identique (2 actes de plus, reliés entre eux, compteur 2)',
+    ligne(/^HHFE004 \+/).querySelector('.gq').textContent === '2' && ids.length === 4 && new Set(ids.map(x => x.p)).size === 2, ids.map(x => x.p));
+  ligne(/^HHFE004 \+/).querySelector('.gm').click();
+  V('« − » : retire un patient entier (2 actes), barre Annuler', ligne(/^HHFE004 \+/).querySelector('.gq').textContent === '1' && st().actes.length === 3 && /HHFE004 \+ HJQJ002 retiré/.test(P.$('undoTxt').textContent));
+  P.$('undoBtn').click();
+  V('Annuler : les 2 actes reviennent, toujours reliés', ligne(/^HHFE004 \+/).querySelector('.gq').textContent === '2' && st().actes.length === 5
+    && new Set(st().actes.filter(x => x.code === 'HJQJ002').map(x => x.p)).size === 2);
+  Pd.querySelector('#cList .cdet[data-id="a2"]').click();
+  V('« détacher » : HJQJ002 (50 %) redevient une ligne seule, HHFE004 aussi pour ce patient',
+    !!ligne(/^HJQJ002 \(50 %\) · FR/) && !!ligne(/^HHFE004 · FR/) && ligne(/^HHFE004 \+/).querySelector('.gq').textContent === '1', gr().map(g => g.querySelector('.gn').textContent));
+  const R2 = ouvrir(null, { compteur: P.w.localStorage.getItem('pense-bete-compteur-v1') }); R2.$('tC').click();
+  V('…et le reste au rechargement (pas de rattachement d\'office)', [...R2.w.document.querySelectorAll('#cList .gn')].some(g => /^HJQJ002 \(50 %\) · FR/.test(g.textContent)));
+  V('le lien voyage avec la sauvegarde (champs p et sl importés)', /const CHAMPS_ACTE=\[[^\]]*'p','sl'\]/.test(PAGE));
+
+  // Saisie en direct : le 2e acte coché 50 % rejoint l'acte saisi juste avant
+  const a = ouvrir(null, { ccam: true }); a.$('tC').click();
+  regler(a, '2026-09-30', '1 000,00', '', VALS);
+  a.$('cDt').value = '2026-10-03';
+  a.w.document.querySelector('#cMode .chip[data-v="pub"]').click(); a.w.document.querySelector('#cAss .chip[data-v="fr"]').click();
+  const taper = async (code) => { a.$('cCode').value = code; a.$('cCode').dispatchEvent(new a.w.Event('input')); await pause(); };
+  await taper('HHFE002'); a.$('cAutre').click(); await pause();
+  await taper('HJQJ002'); a.$('c50').checked = true; a.$('c50').dispatchEvent(new a.w.Event('change')); await pause();
+  a.$('cAutre').click(); await pause();
+  V('saisie : « 2e acte (50 %) » rattaché à l\'acte d\'avant, message explicite', /même patient que HHFE002/.test(a.$('cMsg').textContent), a.$('cMsg').textContent);
+  V('…une seule ligne « HHFE002 + HJQJ002 · FR »', [...a.w.document.querySelectorAll('#cList .gn')].some(g => /^HHFE002 \+ HJQJ002 · FR/.test(g.textContent)),
+    [...a.w.document.querySelectorAll('#cList .gn')].map(g => g.textContent));
+  await taper('HJQJ002'); a.$('c50').checked = true; a.$('c50').dispatchEvent(new a.w.Event('change')); await pause();
+  a.$('cAutre').click(); await pause();
+  V('un 2e « 50 % » sans nouvel acte à 100 % : il reste seul (l\'acte d\'avant est déjà pris)', !/même patient/.test(a.$('cMsg').textContent)
+    && [...a.w.document.querySelectorAll('#cList .gn')].some(g => /^HJQJ002 \(50 %\) · FR/.test(g.textContent)), a.$('cMsg').textContent);
+  V('patient à deux actes : aucune erreur JavaScript', P.erreurs.length === 0 && R2.erreurs.length === 0 && a.erreurs.length === 0, [P.erreurs, R2.erreurs, a.erreurs]);
+  }
   console.log(`\n${ok} ✓  ${ko} ✗`);
   process.exit(ko ? 1 : 0);
 })();

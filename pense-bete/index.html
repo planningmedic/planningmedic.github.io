@@ -243,6 +243,7 @@ button.jr{font:inherit;color:inherit;background:none;border:0;border-bottom:1px 
         <div class="ligne"><input id="cCode" maxlength="7" autocapitalize="characters" autocomplete="off" spellcheck="false">
           <button type="button" class="geste" id="cAutre">Ajouter</button></div>
         <label class="case"><input type="checkbox" id="c50"> 2e acte du même patient (50 %)</label>
+        <p class="note" style="margin-top:2px">Coché : l'acte rejoint celui saisi juste avant (même jour, secteur et pays), sur une seule ligne.</p>
         <div class="lib" id="cLibelle"></div>
         <!-- (14/10/2026) Montant final, tel que dans le recueil Hôpital Manager :
              pré-rempli par le calcul, corrigeable (modificateurs). -->
@@ -394,7 +395,7 @@ document.addEventListener('click',e=>{
 });
 $('undoBtn').addEventListener('click',()=>{
   if(lastDel && lastDel.k==='p'){ L.push(lastDel.o); save(); render(); }
-  if(lastDel && lastDel.k==='c'){ C.actes.push(lastDel.o); cSave(); cRender(); }
+  if(lastDel && lastDel.k==='c'){ [].concat(lastDel.o).forEach(o=>C.actes.push(o)); cSave(); cRender(); }   // (27/10) un acte ou un patient entier
   lastDel=null; $('undo').style.display='none';
 });
 function montrerAnnuler(txt){
@@ -468,6 +469,29 @@ let cOpen=new Set(), cGrp=[];
 let cJour=new Set();                             // (25/10) jours dépliés ; tous repliés à l'ouverture
 const PAYS={mc:'MC',fr:'FR'};
 const cleGrp=x=>[x.d, nomActe(x), x.r50?1:0, x.m, x.a, valeurActe(x), Number.isInteger(x.vm)?1:0].join('|');
+/* (27/10/2026) PATIENT À DEUX ACTES. x.p relie les actes d'un même patient (même valeur
+   sur chacun). Un acte coché « 2e acte (50 %) » se rattache à l'acte à 100 % saisi juste
+   AVANT lui, même jour, même secteur, même pays, pas déjà pris par un autre 2e acte.
+   « Détacher » défait le lien et pose x.sl (sans lien) : l'acte n'est plus jamais
+   rattaché d'office. Les actes d'avant ce changement se rattachent au chargement. */
+const nouvId=()=>Date.now().toString(36)+Math.random().toString(36).slice(2,6);
+function premierPour(x){
+  const pris=new Set(C.actes.filter(y=>y.p && y.r50 && y!==x).map(y=>y.p));
+  return C.actes.filter(y=>y!==x && axeDe(y)==='ccam' && !y.r50 && y.d===x.d && y.m===x.m && y.a===x.a
+      && y.t<=x.t && !(y.p && pris.has(y.p))).sort((a,b)=>b.t-a.t)[0]||null;
+}
+function lier(x){ const y=premierPour(x); if(!y) return null; if(!y.p) y.p=y.id; x.p=y.p; return y; }
+function lierAnciens(){
+  let n=0;
+  C.actes.filter(x=>x.r50 && !x.p && !x.sl && axeDe(x)==='ccam').sort((a,b)=>a.t-b.t).forEach(x=>{ if(lier(x)) n++; });
+  if(n) cSave();
+}
+// Actes du patient de x (le même jour) ; x seul s'il n'est relié à personne
+function patientDe(x){ const m=x.p ? C.actes.filter(y=>y.p===x.p && y.d===x.d) : [x];
+  return m.length>1 ? m.sort((a,b)=>(a.r50?1:0)-(b.r50?1:0)||a.t-b.t) : [x]; }
+// Clé d'une ligne : un acte seul garde sa clé ; un patient = la suite des clés de ses actes
+const cleU=u=>u.length>1 ? 'P|'+u.map(cleGrp).join('§') : cleGrp(u[0]);
+const cleDe=x=>cleU(patientDe(x));
 function regleNgap(){ return !!C.d0 && Number.isInteger(C.pn0) && Number.isInteger(C.ln0) && Object.keys(NGAP).every(g=>valeurN(g)!=null); }
 const nomActe=x=>x.g==='autre' ? x.code : axeDe(x)==='ngap' ? (NGAP[x.g]||x.g) : (GESTES[x.g]||x.g);
 function regleComplet(){ return !!C.d0 && Number.isInteger(C.p0) && Number.isInteger(C.l0) && Object.keys(GESTES).every(g=>Object.keys(ASS).every(a=>valeur(g,a)!=null)); }
@@ -505,8 +529,9 @@ function cRender(){
     m.className='marge ko'; m.textContent='Au-delà de 30 % : '+euros(exc)+' · public à produire ≈ '+euros(Math.ceil(exc*10/3)); }
   const tri=C.actes.filter(x=>axeDe(x)===cAxe).sort((a,b)=>b.d.localeCompare(a.d)||b.t-a.t);
   $('cListT').textContent=(n?'Consultations comptées':'Actes comptés')+(tri.length?' ('+tri.length+')':'');
-  const ligneActe=(x,ouvert)=>'<div class="acte"'+(ouvert?'':' hidden')+'><span class="d">'+x.d.slice(8,10)+'/'+x.d.slice(5,7)+'</span>'
-      +'<span class="g">'+esc(nomActe(x))+(x.g==='autre'&&x.r50?' (50 %)':'')+' · '+(x.m==='lib'?'Lib':'Pub')+' · '+esc(ASS[x.a]||x.a)+'</span>'
+  const ligneActe=(x,ouvert,lie)=>'<div class="acte"'+(ouvert?'':' hidden')+'><span class="d">'+x.d.slice(8,10)+'/'+x.d.slice(5,7)+'</span>'
+      +'<span class="g">'+esc(nomActe(x))+(x.g==='autre'&&x.r50?' (50 %)':'')+' · '+(x.m==='lib'?'Lib':'Pub')+' · '+esc(ASS[x.a]||x.a)
+      +(lie&&x.r50?' · <button type="button" class="lien cdet" data-id="'+x.id+'">détacher</button>':'')+'</span>'
       +'<button type="button" class="v cv'+(Number.isInteger(x.vm)?' mod':'')+'" aria-label="Corriger le montant" data-id="'+x.id+'">'+(valeurActe(x)!=null?euros(valeurActe(x)):'—')+'</button>'
       +'<button type="button" class="x cx" aria-label="Retirer cet acte" data-id="'+x.id+'">×</button>'
       +(cEdit===x.id ? '<div class="ed"><input id="cEv" inputmode="decimal" aria-label="Montant final" value="'+saisie(valeurActe(x))+'">'
@@ -515,25 +540,32 @@ function cRender(){
           +(Number.isInteger(x.vm)?' · <button type="button" class="lien crz" data-id="'+x.id+'">↺ revenir au calcul</button>':'')+'</div></div>' : '')
       +'</div>';
   cGrp=[];
-  const jours=[]; tri.forEach(x=>{ let j=jours[jours.length-1]; if(!j||j.d!==x.d){ j={d:x.d,G:new Map()}; jours.push(j); }
-    const k=cleGrp(x); if(!j.G.has(k)) j.G.set(k,[]); j.G.get(k).push(x); });
+  /* (27/10/2026) Une ligne = un acte seul OU un patient à deux actes ; des lignes identiques
+     se cumulent dans le compteur. G = liste de patients (chacun = ses actes). */
+  const jours=[], vu=new Set(); tri.forEach(x=>{ if(vu.has(x.id)) return;
+    let j=jours[jours.length-1]; if(!j||j.d!==x.d){ j={d:x.d,G:new Map()}; jours.push(j); }
+    const u=patientDe(x); u.forEach(y=>vu.add(y.id));
+    const k=cleU(u); if(!j.G.has(k)) j.G.set(k,[]); j.G.get(k).push(u); });
   $('cList').innerHTML = tri.length ? jours.map(j=>{
-      const tous=[].concat(...j.G.values()), tot=tous.reduce((a,x)=>a+(valeurActe(x)||0),0);
-      const grps=[...j.G.entries()].sort((a,b)=>Math.min(...b[1].map(x=>x.t))-Math.min(...a[1].map(x=>x.t)));
+      const tous=[].concat(...[].concat(...j.G.values())), tot=tous.reduce((a,x)=>a+(valeurActe(x)||0),0);
+      const tMax=U=>Math.max(...[].concat(...U).map(x=>x.t));
+      const grps=[...j.G.entries()].sort((a,b)=>tMax(b[1])-tMax(a[1]));
       const jo=cJour.has(j.d)||tous.some(y=>y.id===cEdit);
       return '<button type="button" class="jr" aria-expanded="'+jo+'" data-jd="'+j.d+'"><b><span class="jch" aria-hidden="true">›</span>'+JOURS[new Date(j.d+'T12:00:00').getDay()].replace(/^./,c=>c.toUpperCase())+' '+j.d.slice(8,10)+'/'+j.d.slice(5,7)+'</b>'
         +'<span>'+pl(tous.length,n?'consultation':'acte')+' · '+euros(tot)+'</span></button>'
-        +'<div class="jc"'+(jo?'':' hidden')+'>'+grps.map(([k,G])=>{
-          const x=G[0], gi=cGrp.push(G)-1, ouvert=cOpen.has(k)||G.some(y=>y.id===cEdit), v=valeurActe(x);
+        +'<div class="jc"'+(jo?'':' hidden')+'>'+grps.map(([k,U])=>{
+          const u0=U[0], x=u0[0], lie=u0.length>1, A=[].concat(...U), gi=cGrp.push({k,U})-1;
+          const ouvert=cOpen.has(k)||A.some(y=>y.id===cEdit);
+          const v=u0.some(y=>valeurActe(y)==null) ? null : u0.reduce((a,y)=>a+valeurActe(y),0);
           return '<div class="grp'+(x.a==='mc'||x.a==='fr'?' '+x.a:'')+'"><div class="gh">'
             +'<button type="button" class="gch" aria-label="Voir le détail" aria-expanded="'+ouvert+'" data-gi="'+gi+'">›</button>'
             +'<span class="sct'+(x.m==='lib'?' lib':'')+'">'+(x.m==='lib'?'Lib':'Pub')+'</span>'
-            +'<span class="gn" data-gi="'+gi+'">'+esc(nomActe(x))+(x.g==='autre'&&x.r50?' (50 %)':'')+' · '+esc(PAYS[x.a]||x.a)
-            +'<small'+(Number.isInteger(x.vm)?' class="mod"':'')+'>'+(v!=null?euros(v):'—')+'</small></span>'
+            +'<span class="gn" data-gi="'+gi+'">'+(lie ? u0.map(y=>esc(nomActe(y))).join(' + ') : esc(nomActe(x))+(x.g==='autre'&&x.r50?' (50 %)':''))+' · '+esc(PAYS[x.a]||x.a)
+            +'<small'+(u0.some(y=>Number.isInteger(y.vm))?' class="mod"':'')+'>'+(v!=null?euros(v):'—')+'</small></span>'
             +'<button type="button" class="gb gm" aria-label="Retirer un" data-gi="'+gi+'">−</button>'
-            +'<b class="gq">'+G.length+'</b>'
+            +'<b class="gq">'+U.length+'</b>'
             +'<button type="button" class="gb gp" aria-label="Ajouter un identique" data-gi="'+gi+'">+</button></div>'
-            +G.map(y=>ligneActe(y,ouvert)).join('')+'</div>';
+            +A.map(y=>ligneActe(y,ouvert,lie)).join('')+'</div>';
         }).join('')+'</div>';
     }).join('')
     : '<p class="empty">'+(n?'Aucune consultation comptée':'Aucun acte compté')+' depuis le relevé.</p>';
@@ -638,10 +670,11 @@ $('cAutre').addEventListener('click',async()=>{
   if(mt==null||mt===0){ $('cMsg').textContent='Montant illisible (ex. 1 234,56).'; return; }
   const acte={id:Date.now().toString(36)+Math.random().toString(36).slice(2,6), d, g:'autre', code:a.c, r50, v:a.v, m:cMode, a:cAss, t:Date.now()};
   if(mt!==a.v) acte.vm=mt;                       // (14/10) montant du recueil, modificateurs compris
+  const p1 = r50 ? lier(acte) : null;            // (27/10) 2e acte : même patient que l'acte d'avant
   C.actes.push(acte); cJour.add(d);
   cSave(); cRender();
   $('cMsg').textContent='+1 '+a.c+(r50?' (50 %)':'')+' '+(cMode==='lib'?'libéral':'public')+' '+ASS[cAss]+' le '+d.split('-').reverse().join('/')
-    +' · '+euros(mt)+(acte.vm!=null?' (corrigé)':'');
+    +' · '+euros(mt)+(acte.vm!=null?' (corrigé)':'')+(p1?' · même patient que '+nomActe(p1):'');
   $('cCode').value=''; $('c50').checked=false; $('cLibelle').textContent=''; autreModif=false; montrerMontant(null);
 });
 
@@ -665,7 +698,7 @@ function validerEdition(id){
   const c=enCentimes($('cEv').value);
   if(c==null||c===0){ $('cEvMsg').textContent='Montant illisible (ex. 1 234,56).'; return; }
   if(c===valeurCalc(x)) delete x.vm; else x.vm=c;
-  cEdit=null; cOpen.add(cleGrp(x)); cSave(); cRender();
+  cEdit=null; cOpen.add(cleDe(x)); cSave(); cRender();
   $('cMsg').textContent=nomActe(x)+' : '+euros(c)+(Number.isInteger(x.vm)?' (corrigé)':' (calcul)');
 }
 $('cList').addEventListener('keydown',e=>{ if(e.key==='Enter' && e.target.id==='cEv'){ e.preventDefault(); validerEdition(cEdit); } });
@@ -675,22 +708,33 @@ $('cList').addEventListener('click',e=>{
     if(ouvert){ cJour.delete(d); const x=C.actes.find(y=>y.id===cEdit); if(x && x.d===d) cEdit=null; } else cJour.add(d);
     cRender(); return; }
   const gb=e.target.closest('[data-gi]');
-  if(gb){ const G=cGrp[+gb.dataset.gi]; if(!G||!G.length) return; const x=G[0];
+  if(gb){ const G=cGrp[+gb.dataset.gi]; if(!G||!G.U.length) return;
+    const u0=G.U[0], x=u0[0], nom=u0.map(nomActe).join(' + '), A=[].concat(...G.U);
     if(gb.classList.contains('gp')){
-      C.actes.push(Object.assign({},x,{id:Date.now().toString(36)+Math.random().toString(36).slice(2,6), t:Date.now()}));
-      cSave(); cRender(); $('cMsg').textContent='+1 '+nomActe(x)+' '+(x.m==='lib'?'libéral':'public')+' '+(ASS[x.a]||x.a)+' le '+x.d.split('-').reverse().join('/');
+      /* (27/10) « + » copie la ligne : un acte, ou le patient entier (ses deux actes, reliés entre eux) */
+      const p=u0.length>1 ? nouvId() : null, t0=Date.now();
+      u0.forEach((y,i)=>{ const c=Object.assign({},y,{id:nouvId(), t:t0+i}); delete c.p; delete c.sl; if(p) c.p=p; C.actes.push(c); });
+      cSave(); cRender(); $('cMsg').textContent='+1 '+nom+' '+(x.m==='lib'?'libéral':'public')+' '+(ASS[x.a]||x.a)+' le '+x.d.split('-').reverse().join('/');
     } else if(gb.classList.contains('gm')){
-      const k=C.actes.indexOf(x); if(k<0) return;
-      lastDel={k:'c',o:C.actes.splice(k,1)[0]}; if(cEdit===x.id) cEdit=null; cSave(); cRender();
-      montrerAnnuler(nomActe(x)+' retiré');
-    } else { const k=cleGrp(x); if(cOpen.has(k)||G.some(y=>y.id===cEdit)){ cOpen.delete(k); if(G.some(y=>y.id===cEdit)) cEdit=null; } else cOpen.add(k); cRender(); }
+      /* « − » retire le patient le plus récent de la ligne, tous ses actes, avec Annuler */
+      const o=u0.map(y=>C.actes.splice(C.actes.indexOf(y),1)[0]).filter(Boolean);
+      lastDel={k:'c',o}; if(u0.some(y=>y.id===cEdit)) cEdit=null; cSave(); cRender();
+      montrerAnnuler(nom+' retiré');
+    } else { const k=G.k; if(cOpen.has(k)||A.some(y=>y.id===cEdit)){ cOpen.delete(k); if(A.some(y=>y.id===cEdit)) cEdit=null; } else cOpen.add(k); cRender(); }
+    return; }
+  const dt=e.target.closest('.cdet');
+  if(dt){ const x=C.actes.find(y=>y.id===dt.dataset.id); if(!x) return;
+    /* (27/10) Détacher : le 2e acte redevient seul, et n'est plus rattaché d'office */
+    const p=x.p, k=cleDe(x); delete x.p; x.sl=true;
+    const reste=C.actes.filter(y=>y.p===p); if(reste.length===1) delete reste[0].p;
+    cOpen.delete(k); cSave(); cRender(); $('cMsg').textContent=nomActe(x)+' détaché : compté comme un acte seul';
     return; }
   const ed=e.target.closest('.cv');
   if(ed){ cEdit = cEdit===ed.dataset.id ? null : ed.dataset.id; cRender(); const i=$('cEv'); if(i){ i.focus(); try{ i.select(); }catch(_){} } return; }
   if(e.target.closest('.cno')){ cEdit=null; cRender(); return; }
   const ok=e.target.closest('.cok'); if(ok){ validerEdition(ok.dataset.id); return; }
   const rz=e.target.closest('.crz');
-  if(rz){ const x=C.actes.find(y=>y.id===rz.dataset.id); if(x){ delete x.vm; cEdit=null; cOpen.add(cleGrp(x)); cSave(); cRender(); $('cMsg').textContent=nomActe(x)+' : retour au calcul'; } return; }
+  if(rz){ const x=C.actes.find(y=>y.id===rz.dataset.id); if(x){ delete x.vm; cEdit=null; cOpen.add(cleDe(x)); cSave(); cRender(); $('cMsg').textContent=nomActe(x)+' : retour au calcul'; } return; }
   const b=e.target.closest('.cx'); if(!b) return;
   e.stopPropagation();
   const k=C.actes.findIndex(x=>x.id===b.dataset.id); if(k<0) return;
@@ -744,7 +788,7 @@ $('rSave').addEventListener('click',()=>{
    daté au plus tard du relevé n'est pas compté (déjà dans le relevé). */
 const SV_APP='pense-bete-lib', SV_FORMAT=1;
 const estDate=d=>typeof d==='string' && /^\d{4}-\d{2}-\d{2}$/.test(d);
-const CHAMPS_ACTE=['id','d','ax','g','code','r50','v','vm','m','a','t'];
+const CHAMPS_ACTE=['id','d','ax','g','code','r50','v','vm','m','a','t','p','sl'];   // (27/10) p : même patient · sl : détaché
 const CHAMPS_REG=['d0','p0','l0','v','rea','pn0','ln0','vn'];
 let svAttente=null;
 function svContenu(){ return {app:SV_APP, format:SV_FORMAT, le:new Date().toISOString(), patients:L, compteur:C}; }
@@ -818,14 +862,14 @@ $('svOui').addEventListener('click',()=>{
   const b=svAttente; if(!b) return; svAttente=null;
   L=L.concat(b.np);
   if(b.prendreReg){ Object.assign(C,b.reg); C.actes=C.actes.filter(x=>x.d>C.d0); }
-  C.actes=C.actes.concat(b.na);
+  C.actes=C.actes.concat(b.na); lierAnciens();     // (27/10) un 2e acte importé sans lien retrouve son patient
   save(); cSave(); render(); cReglagesAfficher(); cRender();
   $('svBilan').hidden=true;
   $('svMsg').textContent='Ajouté : '+pl(b.np.length,'patient')+' et '+pl(b.na.length,'acte')+'.';
 });
 
 load(); $('dt').value=isoToday(); render();
-cLoad(); try{ if(localStorage.getItem(KEY_AXE)==='ngap') cAxe='ngap'; }catch(e){}
+cLoad(); lierAnciens(); try{ if(localStorage.getItem(KEY_AXE)==='ngap') cAxe='ngap'; }catch(e){}
 $('cDt').value=isoToday(); cReglagesAfficher(); cRender();
 try{ if(localStorage.getItem(KEY_TAB)==='C') onglet('C'); }catch(e){}
 </script>
