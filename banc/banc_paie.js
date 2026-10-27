@@ -159,10 +159,10 @@ function monterPaie(extra) {
     _configRows_: () => [['CLE', 'VALEUR']].concat(ctx.__config || []),
     _echangesLignes_: () => ({ lignes: ctx.__echanges || [] }),
   }, extra || {}));
-  ['NOTIF_JOURS', 'NOTIF_MOIS', 'NOTIF_PROP_TEST', 'PAIE_LIB', 'PAIE_SITE', 'PAIE_PROP_RECENTS', 'PAIE_RECENTS_JOURS']
+  ['NOTIF_JOURS', 'NOTIF_MOIS', 'NOTIF_PROP_TEST', 'PAIE_LIB', 'PAIE_DEMI', 'PAIE_SITE', 'PAIE_PROP_RECENTS', 'PAIE_RECENTS_JOURS']
     .forEach(n => vm.runInContext(extraireConst(CODE, n), ctx));
   ['_paieCode_', '_paieDr_', '_paieNomSession_', '_paieAplatir_', '_planningPaie_', '_paieDiff_', '_paiePlages_',
-   '_paieTotaux_', '_paieOrigine_', '_paieHeure_', '_paieJoli_', '_paieMoisJoli_', '_paieTag_', '_paieListe_',
+   '_paieTotaux_', '_paieNb_', '_paieOrigine_', '_paieHeure_', '_paieJoli_', '_paieMoisJoli_', '_paieTag_', '_paieListe_',
    '_paieSujet_', '_paieGestes_', '_paieTexte_', '_paieHtml_', '_paieDestinataires_', '_paieRecentsLire_',
    '_paieRecentsAjouter_', '_paieEnvoyerAnnee_']
     .forEach(n => vm.runInContext(extraireFonction(CODE, n), ctx));

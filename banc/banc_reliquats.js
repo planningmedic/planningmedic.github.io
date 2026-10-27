@@ -119,11 +119,11 @@ console.log('\n═══ 4. admin.html · le panneau de l\'onglet Statuts ══
   /* (01/09/2026) L'écran affiche POSÉ sur QUOTA — « 37/37 » se lit d'un coup,
      là où un reste demandait de savoir ce que le premier chiffre voulait dire. */
   V('chaque case donne les jours posés sur le quota',
-    /o\.pose \+ '\/' \+ o\.quota/.test(ADM));
+    /String\(o\.pose\)\.replace\('\.', ','\) \+ '\/' \+ String\(o\.quota\)\.replace\('\.', ','\)/.test(ADM));   // (27/10/2026) demi-journées : « 40,5/41,5 »
   V('vert quand le compte y est, rouge quand il manque des jours',
     /const complet = o\.reste <= 0;/.test(ADM) && /complet \? '#166534' : '#B91C1C'/.test(ADM));
   V('le nombre de jours restants reste visible sous la case',
-    /o\.reste \+ ' à poser<\/div>'/.test(ADM));
+    /String\(o\.reste\)\.replace\('\.', ','\) \+ ' à poser<\/div>'/.test(ADM));
   V('le serveur rend bien le nombre posé, pas seulement le reste',
     /vac:  \{ pose: p\.vac,  quota: q\.vac,  reste: q\.vac  - p\.vac \}/.test(IND));
   /* L'onglet Statuts suit l'année choisie en haut d'écran, qui n'est pas

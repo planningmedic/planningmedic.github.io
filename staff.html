@@ -220,6 +220,13 @@ let adminCode='',currentYear=2027,periodes=[],medecins=[],saisies={},locked={};
    et cliquable — une VAC posée dessus l'aurait écrasé à la validation. Les CL vivent
    ici, À PART des saisies : ils ne sont jamais renvoyés au serveur. */
 let congesLongs={};
+/* (27/10/2026) Demi-journées de vacances (VM matin / VA après-midi), posées à la
+   main par le responsable dans le classeur. Le staff les MONTRE et les COMPTE
+   (0,5 jour), mais ne les pose ni ne les retire : le serveur les protège. */
+let demiVac={};
+const estDemiVac=(id,d)=>!!((demiVac[id]||{})[d]);
+const nbFr=x=>String(x).replace('.',',');
+const chipDemi=(id,d)=>{const v=demiVac[id][d];return '<td class="gt-cell-day" title="Demi-journée de vacances ('+(v==='VM'?'matin':'après-midi')+') — posée par le comité dans le classeur"><div class="day-chip vac">½</div></td>';};
 const estCL=(id,d)=>!!((congesLongs[id]||{})[d]);
 let currentPeriode=0,currentType='VAC',currentView='grille',currentMonth=0,vacHS=false;
 let joursFeries=new Set();      // (LOT E) alimenté par la copie rapide, jamais recalculé ici
@@ -416,10 +423,11 @@ async function loadData(pre){
   // n'existaient qu'en memoire de l'onglet et disparaissaient au rechargement,
   // alors que le verrou, lui, est desormais applique par le serveur.
   medecins.forEach(m=>{
-    saisies[m.id]={};locked[m.id]={};congesLongs[m.id]={};
+    saisies[m.id]={};locked[m.id]={};congesLongs[m.id]={};demiVac[m.id]={};
     if(iRes.success&&iRes.data[m.id]){
       Object.entries(iRes.data[m.id]).forEach(([date,val])=>{
         if(val==='CL'){congesLongs[m.id][date]=true;return;}
+        if(val==='VM'||val==='VA'){demiVac[m.id][date]=val;return;}
         if(val==='VAC'||val==='FORM'){saisies[m.id][date]=val;locked[m.id][date]=true;}
       });
     }
@@ -529,7 +537,10 @@ function formatDay(ds){const d=new Date(ds+'T12:00:00');return JOURS_FR[d.getDay
 function isWeekend(ds){const d=new Date(ds+'T12:00:00').getDay();return d===0||d===6;}
 /* (01/09/2026) LE QUOTA SE COMPTE EN JOURS TRAVAILLÉS — récit : docs/JOURNAL-Planning-Med.md §65 */
 function estChome(ds){ return isWeekend(ds) || joursFeries.has(ds); }
-function countForMAR(marId,type,days){const src=saisies[marId]||{};if(!days)return Object.keys(src).filter(d=>src[d]===type&&!estChome(d)).length;return days.filter(d=>src[d]===type&&!estChome(d)).length;}
+function countForMAR(marId,type,days){const src=saisies[marId]||{};
+  /* (27/10/2026) Une demi-journée de vacances compte 0,5 dans les VAC. */
+  const demi=type==='VAC'?Object.keys(demiVac[marId]||{}).filter(d=>!estChome(d)&&(!days||days.includes(d))).length*0.5:0;
+  if(!days)return Object.keys(src).filter(d=>src[d]===type&&!estChome(d)).length+demi;return days.filter(d=>src[d]===type&&!estChome(d)).length+demi;}
 function countForDay(date){return medecins.filter(m=>{const v=(saisies[m.id]||{})[date];return v==='VAC'||v==='FORM'||estCL(m.id,date);}).length;}
 function tension(date,seuil){const n=countForDay(date);if(n>=seuil)return'hot';if(n>=Math.floor(seuil*.7))return'warn';return'ok';}
 
@@ -760,6 +771,7 @@ function unlockAll(){
 function isScolaire(date){return periodes.some(p=>date>=p.debut&&date<=p.fin);}
 
 function toggleDay(marId,date){
+  if(estDemiVac(marId,date)){showToast('Demi-journée de vacances posée dans le classeur : à modifier là-bas');return;}
   /* (03/09/2026) Filet de second rideau : les vues bornent déjà les jours
      affichés, mais le serveur jette silencieusement une date hors année —
      mieux vaut un refus visible qu'un enregistrement fantôme. */
@@ -833,6 +845,7 @@ function renderPonts(){
       const lck=(locked[m.id]||{})[p.date];
       const has=val==='VAC'||val==='FORM';
       if(estCL(m.id,p.date)){tbody+='<td class="gt-cell-day" title="Congé long"><div class="day-chip cl">CL</div></td>';return;}
+      if(estDemiVac(m.id,p.date)){tbody+=chipDemi(m.id,p.date);return;}
       tbody+='<td class="gt-cell-day" onclick="toggleDay(\''+m.id+'\',\''+p.date+'\')">'
         +'<div class="day-chip '+(has?(val==='VAC'?'vac':'form'):'empty')+'">'+(has?val:'')+'</div>'
         +(lck?'<div class="gt-lock">🔒</div>':'')+'</td>';
@@ -953,7 +966,7 @@ function renderGrille(){
       +((m.quotite||100)<100?'<span class="gt-quotite">'+m.quotite+'%</span>':'')
       +'<span class="gt-rang">#'+m.rang+'</span>'
       +'</td>';
-    tbody+='<td class="gt-cell-quota">'+quota+'j</td>';
+    tbody+='<td class="gt-cell-quota">'+nbFr(quota)+'j</td>';
     days.forEach(date=>{
       const we=isWeekend(date);
       const val=(saisies[m.id]||{})[date];
@@ -963,6 +976,8 @@ function renderGrille(){
       const label=hasVal?val:'';
       if(estCL(m.id,date)){
         tbody+='<td class="gt-cell-day" title="Congé long"><div class="day-chip cl">CL</div></td>';
+      } else if(estDemiVac(m.id,date)){
+        tbody+=chipDemi(m.id,date);
       } else if(vacHS&&isScolaire(date)){
         tbody+='<td class="gt-cell-day" style="cursor:not-allowed;background:#F1F5F9" title="Vacances scolaires — à saisir via le bouton VAC">'
           +'<div class="day-chip '+(hasVal?chipCls:'')+'" style="opacity:.5">'+(hasVal?label:'·')+'</div>'
@@ -974,7 +989,7 @@ function renderGrille(){
       }
     });
     tbody+='<td class="gt-cell-total">'
-      +'<span class="total-badge '+(vacTot>vacQ?'over':vacTot>0?'ok':'zero')+'">VAC '+vacTot+'/'+vacQ+'</span>'
+      +'<span class="total-badge '+(vacTot>vacQ?'over':vacTot>0?'ok':'zero')+'">VAC '+nbFr(vacTot)+'/'+nbFr(vacQ)+'</span>'
       +'<span class="total-badge '+(frmTot>frmQ?'over':frmTot>0?'ok':'zero')+'">F '+frmTot+'/'+frmQ+'</span>'
       +'</td>';
     tbody+='</tr>';
@@ -996,7 +1011,7 @@ function renderRecap(){
       +((m.quotite||100)<100?'<span style="font-size:10px;color:var(--ink-4);">'+m.quotite+'%</span>':'')
       +'</div>'
       +'<div class="recap-counts">'
-      +'<div class="rcb" style="background:var(--vac-bg);"><div class="rcb-lbl" style="color:var(--vac-fg);">VAC</div><div class="rcb-val" style="color:'+(vp>vq?'#DC2626':'var(--vac-fg)')+';">'+vp+'</div><div class="rcb-quota" style="color:var(--vac-fg);">/ '+vq+'j</div></div>'
+      +'<div class="rcb" style="background:var(--vac-bg);"><div class="rcb-lbl" style="color:var(--vac-fg);">VAC</div><div class="rcb-val" style="color:'+(vp>vq?'#DC2626':'var(--vac-fg)')+';">'+nbFr(vp)+'</div><div class="rcb-quota" style="color:var(--vac-fg);">/ '+nbFr(vq)+'j</div></div>'
       +'<div class="rcb" style="background:var(--form-bg);"><div class="rcb-lbl" style="color:var(--form-fg);">FORM</div><div class="rcb-val" style="color:'+(fp>fq?'#DC2626':'var(--form-fg)')+';">'+fp+'</div><div class="rcb-quota" style="color:var(--form-fg);">/ '+fq+'j</div></div>'
       +'</div></div>';
   });

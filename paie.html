@@ -76,7 +76,7 @@ table.mois td{height:34px;border-bottom:1px solid var(--line-light)}
 table.mois td .c{display:block;width:26px;height:24px;line-height:24px;margin:auto;border-radius:6px;
                  font-size:11px;font-weight:700}
 .G{background:var(--g-bg);color:var(--g-fg)} .G2{background:var(--g2-bg);color:var(--g2-fg)}
-.V{background:var(--v-bg);color:var(--v-fg)}
+.V,.VM,.VA{background:var(--v-bg);color:var(--v-fg)}
 .c.mod{box-shadow:0 0 0 2px var(--chg)}
 .c.vide{background:none}
 .tot{font-size:12px;font-weight:700;min-width:40px;border-left:1px solid var(--line)}
@@ -173,7 +173,8 @@ const ANNEES = {};           // année → réponse getPlanningPaie
 let MOIS = '';               // 'AAAA-MM' affiché
 const JOURS_C = ['dim','lun','mar','mer','jeu','ven','sam'];
 const MOIS_L = ['janvier','février','mars','avril','mai','juin','juillet','août','septembre','octobre','novembre','décembre'];
-const LIB = { G:'garde réanimation', G2:'garde maternité', V:'vacances' };
+const LIB = { G:'garde réanimation', G2:'garde maternité', V:'vacances',
+              VM:'demi-journée de vacances (matin)', VA:'demi-journée de vacances (après-midi)' };
 const RECENT_MS = 7 * 24 * 3600 * 1000;
 
 /* ── Appel serveur : même filet que les autres pages ── */
@@ -280,14 +281,15 @@ async function afficher(){
     h += '<tr><th class="nom" scope="row">'+esc(r.noms[id] || id)+'</th>';
     jours.forEach(j => {
       const c = cases[j.date] || '';
-      if (c) tot[c]++;
+      if (c === 'VM' || c === 'VA') tot.V += 0.5;   // (27/10/2026) demi-journée de vacances
+      else if (c) tot[c]++;
       ligne.cases.push(c);
       const rec = recents[id+'|'+j.date];
       const cls = 'c ' + (c || 'vide') + (rec ? ' mod' : '');
       const tip = rec ? ' title="'+esc('Modifié le '+rec)+'"' : (c ? ' title="'+esc(LIB[c])+'"' : '');
       h += '<td class="'+(j.we?'we':'')+'"><span class="'+cls+'"'+tip+'>'+(c||'')+'</span></td>';
     });
-    h += '<td class="tot">'+(tot.G||'')+'</td><td class="tot">'+(tot.G2||'')+'</td><td class="tot">'+(tot.V||'')+'</td></tr>';
+    h += '<td class="tot">'+(tot.G||'')+'</td><td class="tot">'+(tot.G2||'')+'</td><td class="tot">'+(tot.V ? String(tot.V).replace('.', ',') : '')+'</td></tr>';
     lignes.push(ligne);
   });
   zone.innerHTML = h + '</tbody></table>';
@@ -344,7 +346,7 @@ function chargerExcel(){
   });
   return _excelP;
 }
-const XL_FOND = { G:'FFE8F4FD', G2:'FFFFF1F3', V:'FFF0FDF4' }, XL_ENCRE = { G:'FF1D6FB8', G2:'FFBE123C', V:'FF166534' };
+const XL_FOND = { G:'FFE8F4FD', G2:'FFFFF1F3', V:'FFF0FDF4', VM:'FFF0FDF4', VA:'FFF0FDF4' }, XL_ENCRE = { G:'FF1D6FB8', G2:'FFBE123C', V:'FF166534', VM:'FF166534', VA:'FF166534' };
 document.getElementById('btnXls').addEventListener('click', async ()=>{
   if(!RENDU){ toast('Rien à exporter pour ce mois'); return; }
   try { toast('Préparation du fichier…'); await chargerExcel(); }

@@ -57,6 +57,7 @@ console.log('\n═══ 2. Indispos.gs · _fusionIndispos_ range le TP du bon c
   const ctx = vm.createContext({ Set, String, Object, console });
   ctx.globalThis = ctx;
   vm.runInContext('const CODES_COMITE = new Set([\'VAC\', \'FORM\']);', ctx);
+  vm.runInContext('const CODES_DEMI_VAC = new Set([\'VM\', \'VA\']);', ctx);   // (27/10/2026) lue par _fusionIndispos_
   vm.runInContext(extraireFonction('gas/Indispos.gs', '_fusionIndispos_'), ctx);
   const f = ctx._fusionIndispos_;
 

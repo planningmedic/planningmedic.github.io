@@ -4,7 +4,7 @@
    quelles : aucune ligne de logique modifiée, seulement déplacée. Le routeur et
    ses aides (checkCode, _deny, _error, doGet/doPost) restent dans Indispos.gs.
    Un seul espace global dans Apps Script : rien à importer. */
-const GAS_VERSION_GARDES = '2026-10-18.1';   // (18/10/2026) action getPlanningPaie (vue des secrétaires de paie)
+const GAS_VERSION_GARDES = '2026-10-27.1';   // (27/10/2026) VM/VA : bloquent un don/échange, comptent 0,5 jour au reliquat · (18/10/2026) action getPlanningPaie (vue des secrétaires de paie)
 
 // ── Sonde : les positions de STATS que code.gs lit à l'aveugle ──
 function _sondeStatsEntetes_(check, R, annee) {
@@ -399,7 +399,7 @@ function applyModification(mod) {
      absence ajoutée à la main dans GARDES doit bloquer, et une indisponibilité de
      campagne ne bloque plus un échange que le receveur accepte (son accord vaut
      levée). Codes de GARDES uniquement ; « 18 » (poste 18h) n'est pas une absence. */
-  const ABSENCES = ['V', 'F', 'TP', 'CL', 'CTP', 'CP', 'A'];
+  const ABSENCES = ['V', 'VM', 'VA', 'F', 'TP', 'CL', 'CTP', 'CP', 'A'];   // (27/10/2026) VM/VA : demi-journée de vacances
   function refuseSiIndisponible(who, jour, motif) {
     const v = String(readCell(`GARDES_${year}`, who, jour) || '').trim().toUpperCase();
     if (ABSENCES.indexOf(v) > -1) {
@@ -829,7 +829,9 @@ function computeReliquats(year) {
     for (let c = 1; c < data[r].length; c++) {
       const ds = genere ? colDate[c] : dates[c - 1];
       if (!ds || !ouvre(ds)) continue;
-      const k = CODES[String(data[r][c] || '').trim().toUpperCase()];
+      const _v = String(data[r][c] || '').trim().toUpperCase();
+      if (_v === 'VM' || _v === 'VA') { p.vac += 0.5; continue; }   // (27/10/2026) demi-journée, même code dans les deux onglets
+      const k = CODES[_v];
       if (k) p[k]++;
     }
   }

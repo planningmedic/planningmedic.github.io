@@ -1,7 +1,7 @@
 // ⚠️ RÈGLE (détecteur de dérive dépôt↔Apps Script) : incrémenter cette version
 // à CHAQUE push de ce fichier. Le diagnostic (admin → Maintenance) compare la
 // version déployée ici avec celle du dépôt et signale toute recopie oubliée.
-const GAS_VERSION_CODE = '2026-10-27.1';   // (27/10/2026) journée mobile 2027 (lundi 7 juin) ajoutée aux fériés · (18/10/2026) vue paie : tri G/G2/V (_planningPaie_) et mail aux secrétaires de paie (_paieEnvoyerAnnee_)
+const GAS_VERSION_CODE = '2026-10-27.2';   // (27/10/2026) demi-journées de vacances VM/VA (planning, paie, notifications) · (27/10/2026) journée mobile 2027 (lundi 7 juin) ajoutée aux fériés · (18/10/2026) vue paie : tri G/G2/V (_planningPaie_) et mail aux secrétaires de paie (_paieEnvoyerAnnee_)
 
 // ── Reconstruire STATS_GARDES_2026 depuis GARDES_2026 (année reconstruite) ──
 // Renvoie le classeur contenant l'onglet demandé : classeur actif si présent,
@@ -1167,6 +1167,22 @@ function generatePlanningFromGardes(year) {
         if (ov.afternoon) result[docId][dayIdx].afternoon = ov.afternoon;
         if (ov.tag === 'LIB') result[docId][dayIdx].lib = true;   // consult libérale endo (affectation manuelle du comité)
       });
+
+      // ── 5. Demi-journée de vacances (VM matin / VA après-midi) ─────
+      /* (27/10/2026) Le MAR travaille l'autre demi-journée : il reste dans
+         presentsPool (VM/VA ne sont pas dans ABSENT_CODES), puis la demi-journée
+         posée est remplacée par 'V' — en DERNIER, après les overrides, pour
+         qu'aucun placement ne l'y fasse réapparaître. 'V' n'est pas un secteur :
+         le planning ne l'affiche dans aucune ligne ce demi-jour-là, et l'écran
+         du comité le compte absent (contrôle « à placer »). */
+      DOCTORS.forEach(doc => {
+        const st = result[doc.id][dayIdx].status;
+        if (st !== 'VM' && st !== 'VA') return;
+        const champ = st === 'VM' ? 'morning' : 'afternoon';
+        const e = result[doc.id][dayIdx];
+        if (e.cs && e[champ] === e.cs) e.cs = '';
+        e[champ] = 'V';
+      });
     });
 
     // ── Calculer les semaines et leur statut de validation ─────────────
@@ -1534,6 +1550,8 @@ const NOTIF_STATUTS = {
   '18':  '18h',
   'V':   'vacances',
   'VAC': 'vacances',
+  'VM':  'vacances le matin',
+  'VA':  'vacances l\'après-midi',
   'F':   'formation',
   'FORM':'formation',
   'TP':  'jour de temps partiel',
@@ -2041,7 +2059,10 @@ function _notifHtml(nom, chgs, year, LIB) {
 // Les adresses ne sont JAMAIS dans le dépôt : CONFIG / PAIE_EMAILS.
 // ──────────────────────────────────────────────────────────────────────
 
-const PAIE_LIB = { G: 'garde réanimation', G2: 'garde maternité', V: 'vacances' };
+const PAIE_LIB = { G: 'garde réanimation', G2: 'garde maternité', V: 'vacances',
+                   VM: 'demi-journée de vacances (matin)', VA: 'demi-journée de vacances (après-midi)' };
+// (27/10/2026) VM/VA valent une demi-journée : 0,5 dans les totaux de vacances.
+const PAIE_DEMI = { VM: 'matin', VA: 'après-midi' };
 const PAIE_SITE = 'https://planningmedic.github.io/paie.html';
 const PAIE_PROP_RECENTS = 'PAIE_RECENTS';     // derniers changements (14 jours)
 const PAIE_RECENTS_JOURS = 14;
@@ -2051,6 +2072,7 @@ function _paieCode_(st) {
   const c = String(st == null ? '' : st).trim().toUpperCase();
   if (c === 'G' || c === 'G2') return c;
   if (c === 'V' || c === 'VAC') return 'V';
+  if (c === 'VM' || c === 'VA') return c;
   return '';
 }
 
@@ -2109,7 +2131,7 @@ function _planningPaie_(json, year, recents) {
 // état ne produit rien : même règle que _notifDiff, sinon la première
 // apparition d'un mois enverrait toute son année d'un coup.
 function _paieDiff_(av, ap) {
-  const gardes = {}, vac = {};
+  const gardes = {}, vac = {}, demis = [];
   Object.keys(ap.ids).forEach(function (id) {
     if (!av.ids[id]) return;
     const ca = av.cases[id] || {}, cb = ap.cases[id] || {};
@@ -2127,6 +2149,9 @@ function _paieDiff_(av, ap) {
       }
       if (a === 'V' && b !== 'V') ((vac[id] = vac[id] || { ajout: [], retrait: [] }).retrait).push(date);
       if (b === 'V' && a !== 'V') ((vac[id] = vac[id] || { ajout: [], retrait: [] }).ajout).push(date);
+      // Demi-journée : une ligne à elle, jamais fusionnée dans une plage de jours entiers.
+      if (PAIE_DEMI[a]) demis.push({ type: 'vac', id: id, sens: 'retrait', date: date, du: date, au: date, n: 0.5, demi: a });
+      if (PAIE_DEMI[b]) demis.push({ type: 'vac', id: id, sens: 'ajout', date: date, du: date, au: date, n: 0.5, demi: b });
     });
   });
   const items = Object.keys(gardes).map(function (k) {
@@ -2139,6 +2164,7 @@ function _paieDiff_(av, ap) {
       });
     });
   });
+  demis.forEach(function (d) { items.push(d); });
   items.sort(function (x, y) {
     if (x.date !== y.date) return x.date < y.date ? -1 : 1;
     return x.type < y.type ? -1 : (x.type > y.type ? 1 : 0);
@@ -2185,13 +2211,21 @@ function _paieTotaux_(av, ap, items) {
   });
   const compter = function (etat, id, mois, code) {
     const c = etat.cases[id] || {};
-    return Object.keys(c).filter(function (d) { return d.slice(0, 7) === mois && c[d] === code; }).length;
+    return Object.keys(c).reduce(function (s, d) {
+      if (d.slice(0, 7) !== mois) return s;
+      if (c[d] === code) return s + 1;
+      if (code === 'V' && PAIE_DEMI[c[d]]) return s + 0.5;   // VM/VA : une demi-journée
+      return s;
+    }, 0);
   };
   return out.map(function (t) {
     return { id: t.id, mois: t.mois, lignes: ['G', 'G2', 'V'].filter(function (c) { return t.codes[c]; })
       .map(function (c) { return { code: c, avant: compter(av, t.id, t.mois, c), apres: compter(ap, t.id, t.mois, c) }; }) };
   });
 }
+
+// 2.5 → « 2,5 » : virgule française pour les demi-journées.
+function _paieNb_(x) { return String(x).replace('.', ','); }
 
 // ── D'où vient le changement ? ─────────────────────────────────────────
 // Un don ou un échange accepté depuis moins de 24 h qui porte sur cette date
@@ -2260,6 +2294,10 @@ function _paieGestes_(it) {
     return it.de.map(function (id) { return 'Retirer la ' + lib + ' du ' + j + ' à ' + _paieDr_(id) + '.'; })
       .concat(it.a.map(function (id) { return 'Ajouter la ' + lib + ' du ' + j + ' à ' + _paieDr_(id) + '.'; }));
   }
+  if (it.demi) {
+    return [(it.sens === 'ajout' ? 'Saisir ' : 'Retirer ') + 'une demi-journée de vacances (' + PAIE_DEMI[it.demi]
+      + ') pour ' + _paieDr_(it.id) + ', le ' + _paieJoli_(it.du) + '.'];
+  }
   const nb = it.n + ' jour' + (it.n > 1 ? 's' : '') + ' de vacances';
   const per = it.du === it.au ? 'le ' + _paieJoli_(it.du) : 'du ' + _paieJoli_(it.du) + ' au ' + _paieJoli_(it.au) + ' inclus';
   return [(it.sens === 'ajout' ? 'Saisir ' : 'Retirer ') + nb + ' pour ' + _paieDr_(it.id) + ', ' + per + '.'];
@@ -2277,7 +2315,7 @@ function _paieTexte_(items, totaux, origines, jours) {
     } else {
       t += '  ' + _paieDr_(it.id) + ' — vacances ' + (it.sens === 'ajout' ? 'ajoutées' : 'retirées')
         + ' : ' + (it.du === it.au ? _paieJoli_(it.du) : 'du ' + _paieJoli_(it.du) + ' au ' + _paieJoli_(it.au))
-        + ' (' + it.n + ' jour' + (it.n > 1 ? 's' : '') + ')\n';
+        + ' (' + (it.demi ? 'demi-journée, ' + PAIE_DEMI[it.demi] : it.n + ' jour' + (it.n > 1 ? 's' : '')) + ')\n';
     }
   });
   t += '\nÀ REPORTER DANS CHRONOS\n';
@@ -2285,7 +2323,7 @@ function _paieTexte_(items, totaux, origines, jours) {
   t += '\nNOUVEAUX TOTAUX DU MOIS\n';
   totaux.forEach(function (x) {
     t += '  ' + _paieDr_(x.id) + ', ' + _paieMoisJoli_(x.mois) + ' : ' + x.lignes.map(function (l) {
-      return PAIE_LIB[l.code] + ' ' + l.avant + ' → ' + l.apres;
+      return PAIE_LIB[l.code] + ' ' + _paieNb_(l.avant) + ' → ' + _paieNb_(l.apres);
     }).join(' ; ') + '\n';
   });
   t += '\nORIGINE\n';
@@ -2339,7 +2377,7 @@ function _paieHtml_(items, totaux, origines, jours) {
       + vacs.map(function (it) {
         return '<tr>' + td(_paieDr_(it.id), true) + td(it.sens === 'ajout' ? 'ajoutées' : 'retirées')
           + td(it.du === it.au ? _paieJoli_(it.du) : 'du ' + _paieJoli_(it.du) + '<br>au ' + _paieJoli_(it.au))
-          + td(String(it.n)) + '</tr>';
+          + td(it.demi ? '½ (' + PAIE_DEMI[it.demi] + ')' : String(it.n)) + '</tr>';
       }).join(''));
   }
 
@@ -2354,7 +2392,7 @@ function _paieHtml_(items, totaux, origines, jours) {
   const tot = tableau('<tr>' + th('Médecin') + th('Mois') + th('Avant → après') + '</tr>'
     + totaux.map(function (x) {
       return '<tr>' + td(_paieDr_(x.id), true) + td(_paieMoisJoli_(x.mois)) + td(x.lignes.map(function (l) {
-        return PAIE_LIB[l.code] + ' : ' + l.avant + ' → <b>' + l.apres + '</b>';
+        return PAIE_LIB[l.code] + ' : ' + _paieNb_(l.avant) + ' → <b>' + _paieNb_(l.apres) + '</b>';
       }).join('<br>')) + '</tr>';
     }).join(''));
 

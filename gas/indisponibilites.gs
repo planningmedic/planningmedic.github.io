@@ -4,7 +4,8 @@
    quelles : aucune ligne de logique modifiée, seulement déplacée. Le routeur et
    ses aides (checkCode, _deny, _error, doGet/doPost) restent dans Indispos.gs.
    Un seul espace global dans Apps Script : rien à importer. */
-const GAS_VERSION_INDISPOS_METIER = '2026-10-22.2';
+const GAS_VERSION_INDISPOS_METIER = '2026-10-27.1';   // (27/10/2026) VM/VA posés à la main : jamais écrasés par un enregistrement (MAR ou staff)
+// précédente : '2026-10-22.2'
 
 // La campagne de saisie des indispos est-elle EN COURS ?
 // La ligne INDISPOS_ACTIVE de CONFIG n'existe que pendant la campagne :
@@ -99,15 +100,19 @@ function getIndisposForDoctor(doctorId, year) {
 function _fusionIndispos_(existant, envoye, estRoleComite) {
   const out = {};
   const auComite = v => CODES_COMITE.has(String(v || '').trim().toUpperCase());
-  // 1) conserver les cases de L'AUTRE proprietaire, telles qu'en base
+  const demiVac = v => CODES_DEMI_VAC.has(String(v || '').trim().toUpperCase());
+  // 1) conserver les cases de L'AUTRE proprietaire, telles qu'en base —
+  //    et TOUJOURS les demi-journees de vacances (VM/VA), posees a la main
+  //    dans le classeur : aucun ecran n'en est proprietaire.
   Object.keys(existant || {}).forEach(function (d) {
     const v = String(existant[d] || '').trim();
-    if (v && auComite(v) !== estRoleComite) out[d] = v;
+    if (v && (demiVac(v) || auComite(v) !== estRoleComite)) out[d] = v;
   });
   // 2) poser MES cases telles qu'envoyees (une date absente = retrait)
   Object.keys(envoye || {}).forEach(function (d) {
     const v = String(envoye[d] || '').trim();
     if (!v) return;
+    if (demiVac(v) || demiVac(out[d])) return;  // VM/VA : intouchables depuis un ecran
     if (auComite(v) !== estRoleComite) return;  // code hors de mon perimetre : ignore
     if (estRoleComite) { out[d] = v; return; }  // le comite ecrase (verrou vacances)
     if (out[d]) return;                         // MAR : case VAC/FORM intouchable

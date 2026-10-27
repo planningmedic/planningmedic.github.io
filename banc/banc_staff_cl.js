@@ -28,6 +28,8 @@ ctx.toasts = []; ctx.showToast = m => ctx.toasts.push(m);
 ctx.horsAnneePlanning = () => false; ctx.vacHS = false; ctx.isScolaire = () => true;
 ctx.locked = {}; ctx.currentType = 'VAC'; ctx.updateStatsBar = () => {}; ctx.renderCurrent = () => {};
 vm.runInContext(ligneConst('estCL'), ctx);
+ctx.demiVac = {};   // (27/10/2026) demi-journées de vacances : aucune ici
+vm.runInContext(ligneConst('estDemiVac'), ctx);
 ['VIVIER_MINI', 'VIVIER_CONFORT', 'ANCRE_2SUR2', 'JOURS_CODE'].forEach(n => {
   const i = src.indexOf('const ' + n); vm.runInContext(src.slice(i, src.indexOf(';', i) + 1), ctx);
 });

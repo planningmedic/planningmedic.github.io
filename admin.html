@@ -2953,6 +2953,8 @@ const STAT_LOCK = new Set(['G','G2','RG']); // gardes → verrouillées
 const STAT_META = {
   '':   {label:'Présent',        bg:'#FFFFFF', fg:'#94A3B8', bd:'#E5E9F0'},
   'V':  {label:'Vacances',       bg:'#EEF4FB', fg:'#1D6FB8', bd:'#CFE0F2'},
+  'VM': {label:'Vacances le matin',       bg:'#EEF4FB', fg:'#1D6FB8', bd:'#CFE0F2'},   // (27/10/2026) demi-journée posée dans le classeur
+  'VA': {label:'Vacances l\'après-midi',  bg:'#EEF4FB', fg:'#1D6FB8', bd:'#CFE0F2'},
   'F':  {label:'Formation',      bg:'#FDF3E3', fg:'#B45309', bd:'#F2D98A'},
   'TP': {label:'Temps partiel',  bg:'#FEF3C7', fg:'#92400E', bd:'#FDE68A'},
   'CL': {label:'Congé long',     bg:'#F3E8FF', fg:'#7C3AED', bd:'#E9D5FF'},
@@ -3030,8 +3032,8 @@ async function renderReliquats(){
     return '<td style="text-align:center;padding:6px 8px">'
       + '<span style="display:inline-block;background:' + fond + ';color:' + c
       + ';border-radius:6px;padding:2px 9px;font-weight:700">'
-      + o.pose + '/' + o.quota + '</span>'
-      + (o.reste > 0 ? '<div style="font-size:10.5px;color:#B91C1C">' + o.reste + ' à poser</div>' : '')
+      + String(o.pose).replace('.', ',') + '/' + String(o.quota).replace('.', ',') + '</span>'
+      + (o.reste > 0 ? '<div style="font-size:10.5px;color:#B91C1C">' + String(o.reste).replace('.', ',') + ' à poser</div>' : '')
       + (attente ? '<div style="font-size:10.5px;color:#6D28D9">' + attente + ' en attente</div>' : '')
       + '</td>';
   };
@@ -7149,7 +7151,7 @@ function tpDesequilibres(actifs, indisposParMar, feries, annee) {
     /* Empêchent de prendre une garde ce jour-là — mêmes codes que le générateur
        (generateur_gardes.gs, ABSENT_STRUCT). SOUHAIT en est exclu : c'est une
        demande de garde, pas une absence. */
-    const BLOQUANTS = ['TP', 'CTP', 'VAC', 'FORM', 'INDISPO', 'I', 'CL'];
+    const BLOQUANTS = ['TP', 'CTP', 'VAC', 'VM', 'VA', 'FORM', 'INDISPO', 'I', 'CL'];
     const tousOccupes = Object.keys(ind).filter(d => BLOQUANTS.indexOf(code(d)) >= 0);
     if (!tousOccupes.length) return;
     /* (11/10/2026) UN JOUR EST PERDU POUR LA GARDE dans deux cas, comme dans le
@@ -7284,7 +7286,7 @@ async function renderWizGStep() {
     if (wizGNoel && wizGNoel.length && wizGIndisposData) {
       const _dN = [INDISPOS_YEAR + '-12-24', INDISPOS_YEAR + '-12-25',
                    INDISPOS_YEAR + '-12-31', (INDISPOS_YEAR + 1) + '-01-01'];
-      const _abs = new Set(['INDISPO', 'VAC', 'FORM', 'CL', 'TP', 'CTP']);
+      const _abs = new Set(['INDISPO', 'VAC', 'VM', 'VA', 'FORM', 'CL', 'TP', 'CTP']);
       wizGNoel.forEach(e => {
         const m = wizGIndisposData[e.id] || {};
         const j = _dN.filter(d => _abs.has(String(m[d] || '').trim().toUpperCase()));
@@ -7447,7 +7449,7 @@ async function renderWizGStep() {
       // 🔴 < 4 = trou quasi certain · 🟠 4-5 = possible (contraintes dynamiques : RG de
       // la veille, binôme VD, combos) · objectif : ≥ 6 partout ⇒ 0 trou.
       {
-        const _blkJ = new Set(['INDISPO','VAC','FORM','CL','CTP','TP']);
+        const _blkJ = new Set(['INDISPO','VAC','VM','VA','FORM','CL','CTP','TP']);
         const _gMarsJ = actifs.filter(m => !m.noGarde);
         const _anc22 = Date.UTC(2026,5,1); // rythme 2/2 : ancre semaine ISO 23/2026 (= generateur_gardes.gs)
         const _off22 = ds => { const dt=new Date(ds+'T12:00:00');
@@ -7539,7 +7541,7 @@ async function renderWizGStep() {
       // les espacements). Requis = jours de la semaine × 2. Seuil calibré en simulation : les trous
       // apparaissent quand la capacité passe sous le requis (≈ 17 MAR absents la même quinzaine).
       {
-        const _blk = new Set(['INDISPO','VAC','FORM','CL','CTP','TP']);
+        const _blk = new Set(['INDISPO','VAC','VM','VA','FORM','CL','CTP','TP']);
         const _gMars = actifs.filter(m => !m.noGarde);
         const _wk = {};
         for (let dt=new Date(_y,0,1); dt<=new Date(_y,11,31); dt.setDate(dt.getDate()+1)) {

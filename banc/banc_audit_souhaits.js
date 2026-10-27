@@ -122,7 +122,7 @@ V('le chemin des jours libres (lun/mar/mer) est explicitement préservé',
   V('guide : une indisponibilité est toujours respectée pour la garde (plus de « dans la mesure du possible »)',
     /Aucune garde ne vous sera donnée ce jour-là/.test(txt) && !/respectée dans la mesure du possible/.test(txt));
   V('…générateur : INDISPO bloque toujours la garde',
-    /if\(s==='INDISPO'\|\|s==='VAC'\|\|s==='FORM'\|\|s==='TP'\|\|s==='CL'\|\|s==='CTP'\) return true;/.test(gen));
+    /if\(s==='INDISPO'\|\|s==='VAC'\|\|s==='VM'\|\|s==='VA'\|\|s==='FORM'\|\|s==='TP'\|\|s==='CL'\|\|s==='CTP'\) return true;/.test(gen));   // (27/10/2026) + demi-journées VM/VA
   V('guide : chaque férié, quel que soit son jour, compte dans le compteur des fériés',
     /Chaque jour férié, quel que soit son jour, compte dans votre compteur des fériés/.test(txt) && !/Un férié isolé un mardi ou un mercredi est compté à part/.test(txt));
   V('…générateur : le compteur des fériés compte tout jour férié',

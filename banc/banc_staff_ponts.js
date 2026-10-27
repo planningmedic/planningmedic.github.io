@@ -46,6 +46,9 @@ function ctxStaff() {
   c.congesLongs = {};
   const i = src.indexOf('const estCL=');
   vm.runInContext(src.slice(i, src.indexOf('\n', i)), c);
+  /* (27/10/2026) demi-journées de vacances : registre vide, mêmes lignes que la page */
+  c.demiVac = {};
+  ['const estDemiVac=', 'const nbFr='].forEach(k => { const j = src.indexOf(k); vm.runInContext(src.slice(j, src.indexOf('\n', j)), c); });
   return c;
 }
 /* Contexte minimal : les DONNÉES sont fabriquées ici, le CODE vient de la page. */

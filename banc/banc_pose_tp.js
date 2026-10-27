@@ -157,6 +157,7 @@ function monde(opts) {
   vm.runInContext(extraireFonction('../gas/generateur_gardes.gs', 'estSemaineOff'), ctx);
   vm.runInContext('let _quotasCache = null;', ctx);
   vm.runInContext(extraireConst('CODES_COMITE'), ctx);
+  vm.runInContext(extraireConst('CODES_DEMI_VAC'), ctx);   // (27/10/2026) lue par _fusionIndispos_
   /* (11/09/2026) Le bloc routeur est découpé du fichier : les constantes qu'il
      lit au niveau du fichier ne suivent pas. Elles sont extraites du fichier
      livré, jamais recopiées ici — un quota écrit en double finit par diverger. */

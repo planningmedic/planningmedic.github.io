@@ -1,7 +1,7 @@
 // ⚠️ RÈGLE (détecteur de dérive dépôt↔Apps Script) : incrémenter cette version
 // à CHAQUE push de ce fichier. Le diagnostic (admin → Maintenance) compare la
 // version déployée ici avec celle du dépôt et signale toute recopie oubliée.
-const GAS_VERSION_INDISPOS = '2026-10-27.1';   // (27/10/2026) champ ordreMc (colonne ORDRE_MC) · (24/10/2026) action journalAppliquerMaintenant (journal.gs) · (18/10/2026) rôle « paie » (code partagé des secrétaires de paie) + refus par défaut de tout rôle autre que admin/mar hors de sa liste blanche
+const GAS_VERSION_INDISPOS = '2026-10-27.2';   // (27/10/2026) demi-journées de vacances VM/VA (CODES_DEMI_VAC) · (27/10/2026) champ ordreMc (colonne ORDRE_MC) · (24/10/2026) action journalAppliquerMaintenant (journal.gs) · (18/10/2026) rôle « paie » (code partagé des secrétaires de paie) + refus par défaut de tout rôle autre que admin/mar hors de sa liste blanche
 
 /* ── (01/08/2026) MARQUEUR DE TEMPS GLOBAL — mesure, ne change rien ───────
    `_srv_ms` chronometre l'INTERIEUR de doGet. Or avant que doGet soit appele,
@@ -83,6 +83,14 @@ const STATS_ORIGINE      = '2026-09-04';  // présentation au service = jour zé
 // celles de l'autre. En cas de conflit sur une date, la case du comite
 // gagne : c'est le verrou des vacances, cote SERVEUR et non navigateur.
 const CODES_COMITE = new Set(['VAC', 'FORM']);
+/* (27/10/2026) DEMI-JOURNÉES DE VACANCES. VM = vacances le matin, VA = vacances
+   l'après-midi. Posées À LA MAIN par le responsable, dans INDISPOS_{Y} avant la
+   génération puis dans GARDES_{Y} après : au staff vacances, la demi-journée
+   n'est pas encore connue. Elles n'appartiennent donc à AUCUN écran — ni le MAR
+   ni le staff ne peuvent les poser, les retirer ou les écraser en enregistrant
+   (voir _fusionIndispos_). Effets : pas de garde ce jour-là NI la veille,
+   absent du planning sur la seule demi-journée, 0,5 jour de vacances. */
+const CODES_DEMI_VAC = new Set(['VM', 'VA']);
 /* ═══ (POSE TP · 22/08/2026) LE CIRCUIT DE POSE DES TEMPS PARTIELS ═══════════
    Les TP se posent APRÈS la génération, dans ce qui reste. Trois familles de
    codes cohabitent désormais dans INDISPOS_{Y}, chacune avec son propriétaire :

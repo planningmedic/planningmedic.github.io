@@ -322,6 +322,10 @@ body {
 .cal-day.indispo { background:var(--indispo-fg); border-color:transparent; }
 .cal-day.souhait { background:var(--souhait-fg); border-color:transparent; }
 .cal-day.tp      { background:#6D28D9;           border-color:transparent; }
+/* (27/10/2026) Demi-journée de vacances posée par le responsable : la moitié
+   de la case (haut = matin, bas = après-midi) prend la couleur des vacances. */
+.cal-day.vm      { background:linear-gradient(to bottom, var(--vac-fg) 50%, transparent 50%); }
+.cal-day.va      { background:linear-gradient(to top, var(--vac-fg) 50%, transparent 50%); }
 
 .cal-day.vac .cal-day-num, .cal-day.form .cal-day-num,
 .cal-day.indispo .cal-day-num, .cal-day.souhait .cal-day-num,
@@ -825,7 +829,7 @@ const MONTHS_FR = ['Janvier','Février','Mars','Avril','Mai','Juin',
 const DAYS_FR = ['Lun','Mar','Mer','Jeu','Ven','Sam','Dim'];
 const STATUS_LABELS = {
   VAC:'Vacances', FORM:'Formation', INDISPO:'Indisponible', SOUHAIT:'Garde souhaitée',
-  TP:'Temps partiel'
+  TP:'Temps partiel', VM:'Vacances le matin', VA:'Vacances l\'après-midi'
 };
 
 // ── STATE ─────────────────────────────────────────────────────────────
@@ -1288,7 +1292,7 @@ if (vacConfig) {
     const badge = '';
     /* VAC et FORM viennent du staff : ils ne se modifient pas ici. Le cadenas le
        dit avant le geste, le message d'aide le redit après. */
-    const lockIcon = (status === 'VAC' || status === 'FORM')
+    const lockIcon = (status === 'VAC' || status === 'FORM' || status === 'VM' || status === 'VA')
       ? '<div class="cal-lock">🔒</div>' : '';
     const ferieIcon = isJourFerie
       ? `<div style="font-size:8px;position:absolute;top:2px;left:3px;color:${status?'#fff':'#C2410C'};font-weight:700;opacity:.9">JF</div>`
@@ -1365,6 +1369,11 @@ function applyTool(date) {
     }
   }
   // VAC et FORM posés par le comité — non modifiables par le MAR
+  if (indispos[date] === 'VM' || indispos[date] === 'VA') {
+    showToast('🔒 Demi-journée de vacances posée par le comité — contactez-les pour modifier');
+    hintRefus('🔒 Cette demi-journée de vacances a été posée par le comité — voyez-le pour la changer.');
+    return;
+  }
   if (indispos[date] === 'VAC' || indispos[date] === 'FORM') {
     showToast('🔒 Congé posé par le comité — contactez-les pour modifier');
     hintRefus('🔒 Ce jour a été posé au staff — voyez le comité pour le changer.');
@@ -1541,9 +1550,9 @@ function updateStats() {
   let vacOuvres = 0;
   Object.entries(indispos).forEach(([date, s]) => {
     if (counts[s] !== undefined) counts[s]++;
-    if (s === 'VAC') {
+    if (s === 'VAC' || s === 'VM' || s === 'VA') {
       const dow = new Date(date).getDay();
-      if (dow !== 0 && dow !== 6 && !joursFeries.has(date)) vacOuvres++;
+      if (dow !== 0 && dow !== 6 && !joursFeries.has(date)) vacOuvres += (s === 'VAC' ? 1 : 0.5);
     }
   });
 
@@ -1554,7 +1563,7 @@ function updateStats() {
   const quotaVac = vacConfig ? vacConfig.quotaVac : null;
   const quotaColor = quotaVac && vacOuvres >= quotaVac ? '#B91C1C' : 'var(--vac-fg)';
   const quotaLabel = !quotaConnu ? '— jours ouvrés'
-    : quotaVac ? `${vacOuvres}/${quotaVac} jours ouvrés` : `${vacOuvres} jours ouvrés`;
+    : quotaVac ? `${String(vacOuvres).replace('.', ',')}/${String(quotaVac).replace('.', ',')} jours ouvrés` : `${String(vacOuvres).replace('.', ',')} jours ouvrés`;
   /* (LOT A · 01/09/2026) Le compteur suit le BOUTON : il s'affiche dès qu'il y
      a des jours à poser. L'ancienne condition passait par le quota de vacances
      (< 33 jours = temps partiel), un détour qui pouvait diverger de la seule
@@ -1590,7 +1599,7 @@ function updateStats() {
     return `<div class="jauge-bloc">
       <div class="jauge-tete">
         <span class="jauge-nom">${nom}</span>
-        <span class="jauge-val"${trop ? ' style="color:#B91C1C"' : ''}>${fait}<span>${quota ? ' / ' + quota : ''}${unite ? ' ' + unite : ''}</span></span>
+        <span class="jauge-val"${trop ? ' style="color:#B91C1C"' : ''}>${String(fait).replace('.', ',')}<span>${quota ? ' / ' + String(quota).replace('.', ',') : ''}${unite ? ' ' + unite : ''}</span></span>
       </div>
       <div class="jauge-piste"><div class="jauge-fill" style="width:${pct}%;background:${trop ? '#B91C1C' : coul}"></div></div>
     </div>`;
@@ -2128,6 +2137,7 @@ function tpxBadge(code) {
   if (c === 'R') return { b: 'RÉCUP', k: 'b-tpx-recup' };
   if (c === '18') return { b: '18H', k: 'b-tpx-garde' };
   if (c === 'VAC' || c === 'CP') return { b: 'CONGÉS', k: 'b-tpx-vac' };
+  if (c === 'VM' || c === 'VA') return { b: '½ CONGÉ', k: 'b-tpx-vac' };
   if (c === 'FORM') return { b: 'FORMATION', k: 'b-tpx-vac' };
   return { b: c, k: 'b-tpx-vac' };
 }

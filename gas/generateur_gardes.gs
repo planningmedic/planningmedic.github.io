@@ -41,7 +41,8 @@
 // ⚠️ RÈGLE (détecteur de dérive dépôt↔Apps Script) : incrémenter cette version
 // à CHAQUE push de ce fichier. Le diagnostic (admin → Maintenance) compare la
 // version déployée ici avec celle du dépôt et signale toute recopie oubliée.
-const GAS_VERSION_GENERATEUR = '2026-10-24.3';
+const GAS_VERSION_GENERATEUR = '2026-10-27.1';   // (27/10/2026) demi-journées de vacances VM/VA : pas de garde le jour ni la veille, recopiées dans GARDES
+// précédente : '2026-10-24.3'
 
 /* (05/09/2026) INTERRUPTEUR DU NOUVEL ALGORITHME — récit : docs/JOURNAL-Planning-Med.md §101 */
 const NOUVEL_ALGO_GLOBAL = true;
@@ -768,7 +769,7 @@ function generateGardes(year, opts){
             rea1Bilan.souhaitsRetires.push(id+' '+d);
           } }
         for(let k=0;k<=3;k++){ const d=_sh(lun,k), a=indispos[id]?.[d];
-          if(a==='VAC'||a==='FORM'||a==='CL'||a==='TP'||a==='CTP') rea1Bilan.absences.push(id+' '+d+' ('+a+')'); }
+          if(a==='VAC'||a==='VM'||a==='VA'||a==='FORM'||a==='CL'||a==='TP'||a==='CTP') rea1Bilan.absences.push(id+' '+d+' ('+a+')'); }
       }
       if(rea1Bilan.souhaitsRetires.length) rea1Msgs.push('Réa 1 : '+rea1Bilan.souhaitsRetires.length+' souhait(s) posé(s) sur une nuit Réa 1 de leur auteur, retiré(s) : '+rea1Bilan.souhaitsRetires.join(', '));
       if(rea1Bilan.absences.length) rea1Msgs.push('Réa 1 : absence posée pendant sa propre semaine Réa 1 — à vérifier avec l\'équipe réa : '+rea1Bilan.absences.join(', '));
@@ -991,7 +992,7 @@ function generateGardes(year, opts){
   // ── 5ter. Lissage annuel : espérance de gardes par MOIS, proportionnelle aux
   // jours STRUCTURELLEMENT disponibles ce mois (respecte 2/2, CL, dates, absences
   // fixes). Un MAR en rythme 2/2 a une espérance nulle ses semaines off.
-  const ABSENT_STRUCT=new Set(['INDISPO','VAC','FORM','TP','CL','CTP']);
+  const ABSENT_STRUCT=new Set(['INDISPO','VAC','VM','VA','FORM','TP','CL','CTP']);
   const monthExp={};
   gardeDoctors.forEach(id=>{
     const ma={}; for(let m=1;m<=12;m++) ma[m]=0;
@@ -1039,16 +1040,18 @@ function generateGardes(year, opts){
   // (20/10/2026) Le lendemain est-il un jour de vacances / formation / congé long ?
   // TOUS les jours comptent, week-ends et fériés compris (arbitrage du responsable :
   // vacances au départ du samedi → pas de garde le vendredi).
+  /* (27/10/2026) VM/VA (demi-journée de vacances) comptent aussi : une garde
+     la veille mettrait le repos de garde sur la demi-journée posée. */
   function absenceLendemain(id,date){
     const _sl=indispos[id]?.[addOneDay(date)];
-    return _sl==='VAC'||_sl==='FORM'||_sl==='CL';
+    return _sl==='VAC'||_sl==='VM'||_sl==='VA'||_sl==='FORM'||_sl==='CL';
   }
   function indispoIndividuelle(id,date){
     const _dd=FLAGS.dateDebut[id], _df=FLAGS.dateFin[id]; // (F3) arrivée/départ en cours d'année
     if(_dd&&date<_dd) return true;
     if(_df&&date>=_df) return true;
     const s=indispos[id]?.[date];
-    if(s==='INDISPO'||s==='VAC'||s==='FORM'||s==='TP'||s==='CL'||s==='CTP') return true;
+    if(s==='INDISPO'||s==='VAC'||s==='VM'||s==='VA'||s==='FORM'||s==='TP'||s==='CL'||s==='CTP') return true;
     if(s==='RG_TRANSITION') return true;      // repos hérité de la garde du 31/12 (CONFIG_TRANSITION)
     if(REA1_NUIT[id]&&REA1_NUIT[id].has(date)) return true;   // (24/10/2026) semaine Réa 1, dimanche → jeudi
     if(estSemaineOff(id,date)) return true;   // semaine "off" du rythme 2/2
@@ -1077,7 +1080,7 @@ function generateGardes(year, opts){
   }
 
   /* (LOT C · 01/09/2026) POURQUOI CE MAR NE PEUT-IL PAS PRENDRE CETTE GARDE ? — récit : docs/JOURNAL-Planning-Med.md §115 */
-  const _LIB_ABS={INDISPO:'indisponible ce jour-là',VAC:'en vacances',FORM:'en formation',
+  const _LIB_ABS={INDISPO:'indisponible ce jour-là',VAC:'en vacances',VM:'en vacances le matin',VA:'en vacances l\'après-midi',FORM:'en formation',
                   TP:'temps partiel posé ce jour-là',CL:'congé long',CTP:'congé temps partiel'};
   function motifBlocage(id,date,_relaxJS,_sansAbsence){
     /* ORDRE DÉLIBÉRÉMENT DIFFÉRENT de indispoIndividuelle() : le PROFIL est
@@ -1111,7 +1114,7 @@ function generateGardes(year, opts){
        le lendemain (le repos). On ne déclasse donc pas ce MAR en « bloqué » : il
        reste un levier, comme avant la règle du 20/10/2026. */
     if(!_sansAbsence&&absenceLendemain(id,date)){ const _sl=indispos[id]?.[addOneDay(date)];
-      return {classe:'immediat',texte:'libre, mais '+(_sl==='VAC'?'en vacances':_sl==='FORM'?'en formation':'en congé long')+' LE LENDEMAIN (le repos de garde ne peut pas tomber sur ce jour)',code:'ABS_LENDEMAIN'}; }
+      return {classe:'immediat',texte:'libre, mais '+(_sl==='VAC'?'en vacances':_sl==='VM'?'en vacances le matin':_sl==='VA'?'en vacances l\'après-midi':_sl==='FORM'?'en formation':'en congé long')+' LE LENDEMAIN (le repos de garde ne peut pas tomber sur ce jour)',code:'ABS_LENDEMAIN'}; }
     if(rgSet[id].has(date)) return {classe:'planning',texte:'repos de sa garde de la veille'};
     if(rSet[id]?.has(date)) return {classe:'planning',texte:'récupération de samedi posée ce jour'};
     const _lend=addOneDay(date);
@@ -1177,9 +1180,11 @@ function generateGardes(year, opts){
                  ABS_LENDEMAIN:['absence posée LE LENDEMAIN','absences posées LE LENDEMAIN'],
                  FORM:['jour de formation','jours de formation'],
                  VAC:['jour de vacances','jours de vacances'],
+                 VM:['demi-journée de vacances (matin)','demi-journées de vacances (matin)'],
+                 VA:['demi-journée de vacances (après-midi)','demi-journées de vacances (après-midi)'],
                  CL:['congé long','congés longs'], CTP:['congé','congés'],
                  TP:['temps partiel','temps partiels']};
-    const ORDRE = ['INDISPO','TP_LENDEMAIN','ABS_LENDEMAIN','FORM','VAC','CTP','TP','CL'];
+    const ORDRE = ['INDISPO','TP_LENDEMAIN','ABS_LENDEMAIN','FORM','VM','VA','VAC','CTP','TP','CL'];
     const L=[];
     L.push('❌ GÉNÉRATION IMPOSSIBLE — '+detail.length+' jour'+(detail.length>1?'s':'')+' sans binôme de garde.');
     L.push('Rien n\'a été écrit : aucun onglet, aucune notification. Corrigez et relancez.');
@@ -2278,7 +2283,7 @@ function generateGardes(year, opts){
     const W={vd:7,sam:6,jeu:5,vjf:5,jf:4,total:2}, WGG2=1;
     const EQ=['vd','sam','jf','jeu','vjf','total'];
     const KEYS=['dim','lun','mar','mer','jeu','ven','sam'];
-    const ABS=new Set(['INDISPO','VAC','FORM','TP','CL','CTP']);
+    const ABS=new Set(['INDISPO','VAC','VM','VA','FORM','TP','CL','CTP']);
     // (24/10/2026) VITESSE : décalage de dates mémorisé (même résultat).
     const _shiftMemo={};
     const shift=(ds,n)=>{const k=ds+'|'+n; const m=_shiftMemo[k]; if(m) return m;
@@ -2772,7 +2777,7 @@ function generateGardes(year, opts){
      Mesuré le 21/08 sur les indisponibilités réelles 2027 : sans cette distinction,
      4 MARs restaient privés de tout week-end de récupération sur des lundis pourtant
      libres avec 20 présents. */
-  const R_ABSENT=new Set(['VAC','FORM','CL','TP','CTP','CP','A','RG_TRANSITION']);
+  const R_ABSENT=new Set(['VAC','VM','VA','FORM','CL','TP','CTP','CP','A','RG_TRANSITION']);
   function _rDispo(id,date){
     const dd=FLAGS.dateDebut[id], df=FLAGS.dateFin[id];
     if((dd&&date<dd)||(df&&date>=df)) return false;
@@ -2915,7 +2920,7 @@ function generateGardes(year, opts){
   allDoctors.forEach(id=>{h18T[id]=Math.round(baseT*w18(id));h18cnt[id]=0;});
   // Disponibilité 18h : exclut absences totales, gardes/récups, semaines "off"
   // (rythme 2/2) et un autre les jeudi/vendredi (60%).
-  const ABSENT_18 = new Set(['VAC','FORM','CL','TP','CTP','CP','A','RG_TRANSITION']);
+  const ABSENT_18 = new Set(['VAC','VM','VA','FORM','CL','TP','CTP','CP','A','RG_TRANSITION']);
   function dispo18(id,date){
     const _dd18=FLAGS.dateDebut[id], _df18=FLAGS.dateFin[id];
     if((_dd18&&date<_dd18)||(_df18&&date>=_df18)) return false;
@@ -3282,7 +3287,7 @@ function generateGardes(year, opts){
       // vit dans INDISPOS, sa place. Recopiee ici, elle devenait un « statut » que
       // 4 ecrans interpretaient comme une ABSENCE — le MAR disparaissait de son
       // secteur alors qu'il travaille normalement (842 cas sur 2027).
-      else{const s=indispos[id]?.[day.date];if(s==='VAC')v='V';else if(s==='FORM')v='F';else if(s==='CL')v='CL';else if(s==='TP'||s==='CTP')v='TP';}
+      else{const s=indispos[id]?.[day.date];if(s==='VAC')v='V';else if(s==='VM'||s==='VA')v=s;else if(s==='FORM')v='F';else if(s==='CL')v='CL';else if(s==='TP'||s==='CTP')v='TP';}
       row.push(v);
     });
     return row;

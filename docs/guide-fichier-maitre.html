@@ -577,7 +577,13 @@ et on y corrige ponctuellement une case. Ce sont eux qui portent la donnée rée
 <p>Valeurs rencontrées dans les cases : <span class="tag">VAC</span> (vacances),
 <span class="tag">INDISPO</span>, <span class="tag">FORM</span> (formation), <span class="tag">SOUHAIT</span>
 (garde souhaitée), <span class="tag">CL</span> (absence longue, posée par le registre),
-<span class="tag">TP</span> / <span class="tag">CTP</span> (temps partiel).</p>
+<span class="tag">TP</span> / <span class="tag">CTP</span> (temps partiel),
+<span class="tag">VM</span> / <span class="tag">VA</span> (demi-journée de vacances, le matin / l'après-midi).</p>
+
+<div class="callout rule">
+  <div class="ct">VM et VA se tapent à la main</div>
+  <p>Une demi-journée de vacances ne se pose pas au staff : le responsable tape <span class="tag">VM</span> ou <span class="tag">VA</span> dans la case du jour, ici avant la génération, dans <span class="tag">GARDES_{année}</span> après. Elle bloque la garde du jour et celle de la veille, et compte ½ jour de vacances. Aucun écran ne peut l'effacer : seul le classeur le peut.</p>
+</div>
 
 <p>Créé par le Wizard 1. <strong>Son existence bloque une seconde initialisation</strong> de la même année :
 tant que l'onglet est là, « Démarrer l'année » refuse de tourner et le dit clairement.</p>
@@ -589,7 +595,7 @@ tant que l'onglet est là, « Démarrer l'année » refuse de tourner et le dit 
 <span class="tag">G</span> = garde de réanimation, <span class="tag">G2</span> = garde d'anesthésie
 (maternité / bloc). On y trouve aussi les codes d'absence recopiés depuis la campagne
 (<span class="tag">V</span>, <span class="tag">I</span>, <span class="tag">F</span>, <span class="tag">CL</span>,
-<span class="tag">TP</span>), les récupérations <span class="tag">R</span>, les repos de garde
+<span class="tag">TP</span>, <span class="tag">VM</span>, <span class="tag">VA</span>), les récupérations <span class="tag">R</span>, les repos de garde
 <span class="tag">RG</span> et les <span class="tag">18</span>.</p>
 
 <div class="callout rule">

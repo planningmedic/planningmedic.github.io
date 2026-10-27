@@ -1694,7 +1694,7 @@ function _goToTodayInCurrentData(){
 function renderAnnee(){
   const wrap=document.getElementById('annWrap');
   if(!DATA||!DATA.months){ wrap.innerHTML=''; return; }
-  const META=_themeMap({'':{bg:'#fff',fg:'#94A3B8'},'V':{bg:'#EEF4FB',fg:'#1D6FB8'},'F':{bg:'#FDF3E3',fg:'#B45309'},
+  const META=_themeMap({'':{bg:'#fff',fg:'#94A3B8'},'V':{bg:'#EEF4FB',fg:'#1D6FB8'},'VM':{bg:'#EEF4FB',fg:'#1D6FB8'},'VA':{bg:'#EEF4FB',fg:'#1D6FB8'},'F':{bg:'#FDF3E3',fg:'#B45309'},
     'TP':{bg:'#FEF3C7',fg:'#92400E'},'CL':{bg:'#F3E8FF',fg:'#7C3AED'},'A':{bg:'#F8FAFC',fg:'#94A3B8'},
     'G':{bg:'#1E293B',fg:'#fff'},'G2':{bg:'#334155',fg:'#fff'},'RG':{bg:'#FFF7ED',fg:'#C2410C'},
     '18':{bg:'#F0FDF4',fg:'#166534'},'R':{bg:'#ECFEFF',fg:'#0E7490'}});
@@ -2346,7 +2346,8 @@ function renderDocPanel(){
       morning.split('+').forEach(raw=>{
         const part=raw.trim(); if(!part) return;
         const mIsCs = part.startsWith('CS-');
-        const sc2 = mIsCs ? SECTOR_COLORS['CS'] : (SECTOR_COLORS[part]||{bg:'#F1F5F9',fg:'#64748B'});
+        // (27/10/2026) 'V' sur une seule demi-journée = vacances ce matin-là (VM)
+        const sc2 = mIsCs ? SECTOR_COLORS['CS'] : part==='V' ? {bg:'#EEF4FB',fg:'#1D6FB8'} : (SECTOR_COLORS[part]||{bg:'#F1F5F9',fg:'#64748B'});
         tags.push(`<div class="doc-cal-tag${mIsCs?' cs':''}" style="background:${sc2.bg};color:${sc2.fg}">${part}</div>`);
       });
       const pmRaw = afternoon && afternoon !== morning ? afternoon : '';
@@ -2354,7 +2355,7 @@ function renderDocPanel(){
         pmRaw.split('+').forEach(raw=>{
           const part=raw.trim(); if(!part) return;
           const pIsCs = part.startsWith('CS-');
-          const sc3 = pIsCs ? SECTOR_COLORS['CS'] : (SECTOR_COLORS[part]||{bg:'#F1F5F9',fg:'#64748B'});
+          const sc3 = pIsCs ? SECTOR_COLORS['CS'] : part==='V' ? {bg:'#EEF4FB',fg:'#1D6FB8'} : (SECTOR_COLORS[part]||{bg:'#F1F5F9',fg:'#64748B'});
           tags.push(`<div class="doc-cal-tag${pIsCs?' cs':''}" style="background:${sc3.bg};color:${sc3.fg}">${part}</div>`);
         });
       }
