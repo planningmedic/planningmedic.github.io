@@ -44,6 +44,21 @@ les fichiers du planning, et attend une semaine de fonctionnement réel avant su
 
 # PARTIE 1 — L'ESSENTIEL
 
+## 27–28 octobre 2026 — fériés 2027 et demi-journées de vacances (v1.48.0)
+
+Site **v1.48.0** (puis v1.49.x par d'autres lots) ; `code.gs`, `Indispos.gs` **2026-10-27.2**,
+`generateur_gardes.gs`, `gardes.gs`, `indisponibilites.gs` **2026-10-27.1** — recopiés et déployés
+le 28/10. Banc **4 894 ✓, 0 échec**, 102 scénarios (commit `ad08436`).
+
+- **Journée mobile** : lundi 7 juin 2027 férié. Elle change chaque année : une ligne à ajouter dans
+  `JOURNEE_MOBILE` (`getJoursFeries`) à chaque note DRH.
+- **VM / VA** : demi-journée de vacances (matin / après-midi), tapée à la main par le responsable dans
+  INDISPOS puis GARDES. Pas de garde le jour ni la veille, 0,5 j partout, jamais effacée par un écran.
+- **Quotas 2027** : 41,5 j pour un temps plein (33 + 4 + 4,5). Les après-midi fériés des 24 et 31/12
+  se prennent le jour même ; garde, 18 h ou repos ces jours-là donnent +0,5 j.
+- **Dette** : sur l'attribution, jamais sur le réel (décision du responsable, 28/10).
+- Détail et liste « après génération » : ROADMAP du 27–28/10 et documents du projet Claude.
+
 ## 24 octobre 2026 (soir) — les gestes du comité appliqués à la demande (v1.42.0)
 
 Site **v1.42.0** ; `journal.gs`, `Indispos.gs`, `diagnostic.gs` **2026-10-24.1** (recopiés, déployés,

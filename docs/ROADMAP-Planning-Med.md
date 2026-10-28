@@ -6,16 +6,52 @@ portail/Dashboard, module libéral, contrôle d'absence, veille biblio.
 (Le générateur de comptes rendus a été retiré le 07/09/2026 : il portait le logo de
 l'établissement et 77 noms de praticiens sur une page publique sans code d'accès.)
 
-**Dépôt** `planningmedic/planningmedic.github.io`, branche `main` · **Site v1.42.0** (24/10/2026) ·
+**Dépôt** `planningmedic/planningmedic.github.io`, branche `main` · **Site v1.49.1** (28/10/2026) ·
 **Portail** https://planningmedic.github.io ·
-**GAS** (numéros relevés dans le dépôt le 24/10/2026 — recopie dans l'éditeur à confirmer au
-Diagnostic) : `generateur_gardes.gs` **2026-10-24.3** · `journal.gs`, `Indispos.gs`, `diagnostic.gs` **2026-10-24.1** (recopiés et déployés le 24/10 au soir) ·
-`veille.gs` **2026-10-23.3** · `indisponibilites.gs` **2026-10-22.2** · `miroir.gs`, `portail.gs` **2026-10-21.1** ·
-`code.gs`, `gardes.gs` **2026-10-18.1** · `equipe.gs` **2026-10-11.1** ·
-`temps_partiel.gs` **2026-09-15.2** · `setup_annee.gs` **2026-09-14.1** ·
-`echanges.gs` **2026-09-08.1** ·
+**GAS** (numéros relevés dans le dépôt le 28/10/2026) : `code.gs`, `Indispos.gs` **2026-10-27.2** ·
+`generateur_gardes.gs`, `gardes.gs`, `indisponibilites.gs` **2026-10-27.1** (ces 5 fichiers recopiés et déployés
+le 28/10 — journée mobile visible à l'écran indispos) · `equipe.gs`, `miroir.gs`, `veille.gs` **2026-10-27.1** ·
+`journal.gs`, `diagnostic.gs` **2026-10-24.1** · `portail.gs` **2026-10-21.1** ·
+`temps_partiel.gs` **2026-09-15.2** · `setup_annee.gs` **2026-09-14.1** · `echanges.gs` **2026-09-08.1** ·
 **Worker** `cloudflare/worker.js` : `const VERSION = 'miroir 2026-10-20.1'` ·
 **Service worker** `sw.js` : `pm-sw-v2` (version.js exclu de la copie depuis le 14/10).
+
+## 27–28/10/2026 — fériés 2027 (note DRH du 26/10) et demi-journées de vacances VM / VA (v1.48.0)
+
+**Journée mobile** (`code.gs` 2026-10-27.1, commit `62b8a9f`). Le lundi **7 juin 2027** est férié
+(remplace les après-midi de mardi gras et de la mi-carême). Non calculable : table `JOURNEE_MOBILE`
+dans `getJoursFeries`, **une ligne à ajouter chaque année** à réception de la note DRH. Banc :
+`banc_calendrier.js` (+4) ; 3 scénarios du générateur figés sur le calendrier d'avant (comparaisons
+de versions calibrées au jour près). Comparaison avec la note : les 12 autres fériés concordaient.
+
+**Demi-journées de vacances VM / VA** (v1.48.0, commit `ad08436`). VM = vacances le matin, VA =
+l'après-midi. **Posées à la main par le responsable** — INDISPOS_{Y} avant la génération, GARDES_{Y}
+après — jamais au staff (la demi-journée n'y est pas connue). Effets :
+- pas de garde ni de 18 h le jour même, **ni de garde la veille** ; recopiées telles quelles dans GARDES ;
+- planning du jour : absent sur la seule demi-journée (case `V`), présent l'autre ;
+- 0,5 j dans tous les compteurs (staff, écran MAR, reliquat, paie) ; un don/échange vers ce jour est refusé ;
+- **aucun écran ne peut les effacer** (`CODES_DEMI_VAC` dans `_fusionIndispos_`).
+Limite connue : le panneau de placement peut proposer un MAR en VM le matin ; la publication remet `V`.
+Banc : `banc_demi_vacances.js` (37 vérifications, contre-épreuves). Guides comité, MAR, classeur.
+
+**Règles de congés 2027 décidées par le responsable (aucun code)** :
+- Quotas CONFIG_CONGES **41,5 / 38,5 / 34,5 / 28,5 / 25,5** = 33 j au prorata + 4 (18 h) + **4,5** :
+  4 fériés tombés un week-end (Pâques, 1er mai, Pentecôte, Noël) + l'après-midi du Jeudi/Vendredi
+  saint, **posable librement** (rien d'imposé).
+- **Après-midi fériés des vendredis 24 et 31/12** : ceux qui travaillent partent à midi ; en vacances
+  ces jours-là = 0,5 j ; de garde, de 18 h ou en repos de garde = +0,5 j à reporter ailleurs.
+- **Dette inter-annuelle : calculée sur l'attribution** (STATS_GARDES figé à la génération), pas sur
+  le réel après échanges et dons. Décision du 28/10 : rien à changer.
+- Reliquats 2026 et vacances 2027 posées en janvier 2028 : traités à la main dans les récaps tant que
+  le chantier « reliquat N+1 » (21/10) n'est pas fait.
+
+**Liste « après génération »** (18 h et repos de garde des 24 et 31/12, VM/VA dans GARDES,
+reliquats) : tenue dans les documents du projet Claude, pas dans le dépôt (elle contient des noms).
+
+**Piste 2028, non décidée** : des failles laissent choisir ses week-ends sans en faire moins —
+vacances posées sur un seul samedi-dimanche (0 j décompté), temps partiel collé au week-end,
+fériés/veilles hors plafond de 5 week-ends. Vérifié sur une génération à blanc : les cibles par
+axe restent tenues (écarts de 1 au plus, absorbés par la dette).
 
 ## 26/10/2026 — chantier noté pour APRÈS la génération 2027 : découper le générateur (aucun code modifié)
 
