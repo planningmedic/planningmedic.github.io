@@ -304,7 +304,7 @@ V('compteur abîmé : la page s\'ouvre, réglages demandés', o5.window.document
   ng.$('rPn0').value = '400'; ng.$('rSave').click();
   V('NGAP incomplet refusé avec le nom de la consultation', /NGAP : valeur manquante ou illisible : CS/.test(ng.$('rMsg').textContent), ng.$('rMsg').textContent);
   // Valeurs FICTIVES : CS 10, APC 12,50 ; départ public 400, libéral 0
-  ng.$('rvn_CS').value = '10'; ng.$('rvn_APC').value = '12,50'; ng.$('rSave').click();
+  ng.$('rvn_CS').value = '10'; ng.$('rvn_CSfr').value = '10'; ng.$('rvn_APC').value = '12,50'; ng.$('rSave').click();   // (28/10) CS France réglée à part
   V('NGAP enregistré : 0,0 % et marge = 3/7 × 400 = 171,42 €', /Enregistré/.test(ng.$('rMsg').textContent) && ng.$('cPct').textContent === '0,0 %' && /171,42/.test(ng.$('cMarge').textContent),
     [ng.$('rMsg').textContent, ng.$('cPct').textContent, ng.$('cMarge').textContent]);
   const consult = (o, g, mode, ass, d) => {
@@ -670,7 +670,7 @@ V('compteur abîmé : la page s\'ouvre, réglages demandés', o5.window.document
     !!ligne(/^HJQJ002 \(50 %\) · FR/) && !!ligne(/^HHFE004 · FR/) && ligne(/^HHFE004 \+/).querySelector('.gq').textContent === '1', gr().map(g => g.querySelector('.gn').textContent));
   const R2 = ouvrir(null, { compteur: P.w.localStorage.getItem('pense-bete-compteur-v1') }); R2.$('tC').click();
   V('…et le reste au rechargement (pas de rattachement d\'office)', [...R2.w.document.querySelectorAll('#cList .gn')].some(g => /^HJQJ002 \(50 %\) · FR/.test(g.textContent)));
-  V('le lien voyage avec la sauvegarde (champs p et sl importés)', /const CHAMPS_ACTE=\[[^\]]*'p','sl'\]/.test(PAGE));
+  V('le lien voyage avec la sauvegarde (champs p et sl importés)', /const CHAMPS_ACTE=\[[^\]]*'p','sl'[,\]]/.test(PAGE));
 
   // Saisie en direct : le 2e acte coché 50 % rejoint l'acte saisi juste avant
   const a = ouvrir(null, { ccam: true }); a.$('tC').click();
@@ -689,6 +689,56 @@ V('compteur abîmé : la page s\'ouvre, réglages demandés', o5.window.document
   V('un 2e « 50 % » sans nouvel acte à 100 % : il reste seul (l\'acte d\'avant est déjà pris)', !/même patient/.test(a.$('cMsg').textContent)
     && [...a.w.document.querySelectorAll('#cList .gn')].some(g => /^HJQJ002 \(50 %\) · FR/.test(g.textContent)), a.$('cMsg').textContent);
   V('patient à deux actes : aucune erreur JavaScript', P.erreurs.length === 0 && R2.erreurs.length === 0 && a.erreurs.length === 0, [P.erreurs, R2.erreurs, a.erreurs]);
+  }
+  /* ── 17. NGAP PAR PAYS (28/10/2026) ─────────────────────────────────────
+     Constat : une CS publique d'assuré France vaut 26,50 € (souvent + 5 € de
+     majoration MCS), pas la valeur de la CS Monaco ; l'APC (60 €) n'existe qu'en
+     libéral France. Valeurs FICTIVES ci-dessous. */
+  {
+  console.log('\n[17] NGAP par pays — CS Monaco, CS France public (+ MCS), APC libéral France');
+  const N = ouvrir(); N.$('tC').click();
+  regler(N, '2026-09-30', '1 000,00', '', VALS);
+  N.w.document.querySelector('#cAxe .chip[data-v="ngap"]').click();
+  N.$('rPn0').value = '400'; N.$('rLn0').value = '0';
+  N.$('rvn_CS').value = '40'; N.$('rvn_APC').value = '60'; N.$('rSave').click();
+  const btn = sel => N.w.document.querySelector('#cNgap ' + sel);
+  const mode = (m, a) => { N.w.document.querySelector('#cMode .chip[data-v="' + m + '"]').click(); N.w.document.querySelector('#cAss .chip[data-v="' + a + '"]').click(); };
+  V('Réglages : 4 valeurs NGAP (CS Monaco, CS France public, MCS, APC France libéral)', ['CS', 'CSfr', 'MCS', 'APC'].every(g => !!N.$('rvn_' + g))
+    && /CS · France \(public\)/.test(N.$('rValsN').textContent) && /MCS/.test(N.$('rValsN').textContent), N.$('rValsN').textContent);
+  V('CS France et MCS facultatifs : enregistré sans eux', /Enregistré/.test(N.$('rMsg').textContent), N.$('rMsg').textContent);
+  mode('pub', 'fr');
+  V('public France sans CS France réglée : CS et CS + MCS grisées, avec le pourquoi', btn('[data-n="CS"]:not([data-mcs])').disabled && btn('[data-mcs]').disabled
+    && /Renseignez CS France et MCS/.test(N.$('cApcNote').textContent), N.$('cApcNote').textContent);
+  N.$('rvn_CSfr').value = '26,50'; N.$('rvn_MCS').value = '5'; N.$('rSave').click();
+  mode('pub', 'fr');
+  V('public France réglé : CS et CS + MCS actives, APC grisée', !btn('[data-n="CS"]:not([data-mcs])').disabled && !btn('[data-mcs]').disabled && btn('[data-n="APC"]').disabled);
+  N.$('cDt').value = '2026-10-05';
+  btn('[data-n="CS"]:not([data-mcs])').click();
+  btn('[data-mcs]').click();
+  V('CS France public comptée 26,50 €, CS + MCS 31,50 € (public 400 + 58 = 458,00 €)', /26,50/.test(N.$('cList').textContent) && /CS \+ MCS/.test(N.$('cList').textContent) && /31,50/.test(N.$('cList').textContent)
+    && /^458,00/.test(N.$('cPub').textContent), [N.$('cPub').textContent, N.$('cList').textContent]);
+  mode('lib', 'fr');
+  V('libéral France : APC seule active (CS grisée)', !btn('[data-n="APC"]').disabled && btn('[data-n="CS"]:not([data-mcs])').disabled && btn('[data-mcs]').disabled
+    && /Libéral France : APC/.test(N.$('cApcNote').textContent));
+  btn('[data-n="APC"]').click();
+  V('APC libérale France comptée 60,00 €', /60,00/.test(N.$('cLib').textContent), N.$('cLib').textContent);
+  mode('lib', 'mc');
+  V('Monaco (libéral) : CS active à la valeur Monaco, APC et MCS grisées', !btn('[data-n="CS"]:not([data-mcs])').disabled && btn('[data-n="APC"]').disabled && btn('[data-mcs]').disabled);
+  mode('pub', 'mc');
+  V('Monaco (public) : CS active aussi', !btn('[data-n="CS"]:not([data-mcs])').disabled && btn('[data-mcs]').disabled);
+  btn('[data-n="CS"]:not([data-mcs])').click();
+  V('CS Monaco publique comptée à 40,00 € (public 458 + 40 = 498,00 €)', /^498,00/.test(N.$('cPub').textContent), N.$('cPub').textContent);
+  // Changer un réglage revalorise les consultations déjà comptées
+  N.$('rvn_CSfr').value = '30'; N.$('rSave').click();
+  V('CS France passée à 30 € : les CS France déjà comptées suivent (public 400 + 30 + 35 + 40 = 505,00 €)', /^505,00/.test(N.$('cPub').textContent), N.$('cPub').textContent);
+  // Données d'avant : une CS France sans réglage CS France n'est pas valorisée à la CS Monaco
+  const vieux = JSON.stringify({ d0: '2026-09-30', p0: 100000, l0: 0, v: {}, rea: {}, pn0: 40000, ln0: 0, vn: { CS: 4000, APC: 6000 },
+    actes: [{ id: 'n1', d: '2026-10-02', ax: 'ngap', g: 'CS', m: 'pub', a: 'fr', t: 1 }] });
+  const O = ouvrir(null, { compteur: vieux }); O.$('tC').click(); O.w.document.querySelector('#cAxe .chip[data-v="ngap"]').click();
+  V('données d\'avant : une CS France n\'est plus comptée au prix de la CS Monaco (montant « — » tant que CS France n\'est pas réglée)',
+    !/40,00/.test(O.$('cList').textContent) && /—/.test(O.$('cList').textContent), O.$('cList').textContent);
+  V('la majoration voyage avec la sauvegarde (champ mcs importé)', /const CHAMPS_ACTE=\[[^\]]*'mcs'\]/.test(PAGE));
+  V('NGAP par pays : aucune erreur JavaScript, aucun appel réseau', N.erreurs.length === 0 && O.erreurs.length === 0 && N.reseau.length === 0, [N.erreurs, O.erreurs]);
   }
   console.log(`\n${ok} ✓  ${ko} ✗`);
   process.exit(ko ? 1 : 0);
