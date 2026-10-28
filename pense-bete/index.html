@@ -257,12 +257,11 @@ button.jr{font:inherit;color:inherit;background:none;border:0;border-bottom:1px 
       <!-- (09/10/2026) NGAP : deux consultations, comme le devis libéral (CS, APC).
            Valeur saisie dans les Réglages : sans coefficient Monaco ni modificateur.
            APC = cotation française : grisée pour un assuré Monaco.
-           (28/10/2026) APC = libéral France seulement ; CS France = public, avec
-           ou sans majoration MCS ; valeurs par pays dans les Réglages. -->
+           (28/10/2026) APC = libéral France seulement ; CS France = public, MCS
+           comprise dans sa valeur ; valeurs par pays dans les Réglages. -->
       <div id="cNgapF" hidden>
         <div class="gestes" id="cNgap">
           <button type="button" class="geste" data-n="CS">CS</button>
-          <button type="button" class="geste" data-n="CS" data-mcs="1">CS + MCS</button>
           <button type="button" class="geste" data-n="APC">APC</button>
         </div>
         <div class="lib" id="cApcNote"></div>
@@ -439,12 +438,14 @@ let cMode='lib', cAss='mc';
    Un acte NGAP porte ax:'ngap' ; un acte sans ax est CCAM (données d'avant). */
 const NGAP={CS:'CS', APC:'APC'};
 /* (28/10/2026) VALEURS NGAP PAR PAYS (demande du responsable) : CS Monaco (libéral
-   ou public), CS France = PUBLIC seulement (26,50 € en 2026), majoration MCS (+5 €,
-   CS France), APC = LIBÉRAL France seulement (60 €). Montants saisis dans les
-   Réglages, jamais ici. CS (Monaco) et APC restent obligatoires ; CS France et MCS
-   sont facultatifs : sans eux, leur bouton reste grisé. Les consultations sont
-   valorisées à l'affichage : changer un réglage revalorise celles déjà comptées. */
-const REG_N=[['CS','CS · Monaco'],['CSfr','CS · France (public)'],['MCS','MCS · majoration CS France'],['APC','APC · France (libéral)']];
+   ou public), CS France = PUBLIC seulement, APC = LIBÉRAL France seulement. Montants
+   saisis dans les Réglages, jamais ici. CS (Monaco) et APC restent obligatoires ;
+   CS France est facultative : sans elle, le bouton CS reste grisé en public France.
+   Les consultations sont valorisées à l'affichage : changer un réglage revalorise
+   celles déjà comptées.
+   (28/10, même jour) Bouton « CS + MCS » retiré : au vu du volume, toute CS publique
+   France est comptée avec sa majoration MCS, comprise dans la valeur CS France. */
+const REG_N=[['CS','CS · Monaco'],['CSfr','CS · France (public, MCS comprise)'],['APC','APC · France (libéral)']];
 const REG_N_OBLIG=['CS','APC'];
 const KEY_AXE='pense-bete-axe';
 let cAxe='ccam';
@@ -466,12 +467,8 @@ function valeur(g,a){ const x=C.v[g+'_'+a]; return Number.isInteger(x)?x:null; }
 // Valeur d'un acte de la liste : figée à l'ajout pour « autre », lue dans les Réglages sinon
 const axeDe=x=>x.ax==='ngap'?'ngap':'ccam';
 function valeurN(g){ const x=C.vn[g]; return Number.isInteger(x)?x:null; }
-// (28/10) Valeur d'une consultation comptée : CS France = CS France (+ MCS), sinon la valeur du type
-function valeurNg(x){
-  if(x.g==='CS' && x.a==='fr'){ const c=valeurN('CSfr'); if(c==null) return null;
-    if(!x.mcs) return c; const m=valeurN('MCS'); return m==null ? null : c+m; }
-  return valeurN(x.g);
-}
+// (28/10) Valeur d'une consultation comptée : CS d'un assuré France = valeur CS France
+function valeurNg(x){ return valeurN(x.g==='CS' && x.a==='fr' ? 'CSfr' : x.g); }
 function valeurCalc(x){ return axeDe(x)==='ngap' ? valeurNg(x) : x.g==='autre' ? (Number.isInteger(x.v)?x.v:null) : valeur(x.g,x.a); }
 /* (14/10/2026) x.vm = montant corrigé à la main (montant FINAL du recueil Hôpital
    Manager, modificateurs compris) : il prime sur le calcul, pour CET acte seulement. */
@@ -510,7 +507,7 @@ function patientDe(x){ const m=x.p ? C.actes.filter(y=>y.p===x.p && y.d===x.d) :
 const cleU=u=>u.length>1 ? 'P|'+u.map(cleGrp).join('§') : cleGrp(u[0]);
 const cleDe=x=>cleU(patientDe(x));
 function regleNgap(){ return !!C.d0 && Number.isInteger(C.pn0) && Number.isInteger(C.ln0) && REG_N_OBLIG.every(g=>valeurN(g)!=null); }
-const nomActe=x=>x.g==='autre' ? x.code : axeDe(x)==='ngap' ? (NGAP[x.g]||x.g)+(x.mcs?' + MCS':'') : (GESTES[x.g]||x.g);
+const nomActe=x=>x.g==='autre' ? x.code : axeDe(x)==='ngap' ? (NGAP[x.g]||x.g) : (GESTES[x.g]||x.g);
 function regleComplet(){ return !!C.d0 && Number.isInteger(C.p0) && Number.isInteger(C.l0) && Object.keys(GESTES).every(g=>Object.keys(ASS).every(a=>valeur(g,a)!=null)); }
 function cTotaux(ax){
   const n=ax==='ngap';
@@ -519,21 +516,20 @@ function cTotaux(ax){
   return {L:L0, P:P0, nl, np};
 }
 /* (28/10) Quel bouton pour quel patient : APC = libéral France ; CS = Monaco, ou France
-   en public ; CS + MCS = France en public. Un bouton sans valeur réglée reste grisé. */
+   en public. Un bouton sans valeur réglée reste grisé. */
 function majApc(){
   const okN=regleNgap(), fr=cAss==='fr', lib=cMode==='lib', notes=[];
   $('cNgap').querySelectorAll('.geste').forEach(b=>{
     let ok=okN;
     if(b.dataset.n==='APC') ok = ok && fr && lib;
-    else if(b.dataset.mcs) ok = ok && fr && !lib && valeurN('CSfr')!=null && valeurN('MCS')!=null;
     else ok = ok && (!fr || (!lib && valeurN('CSfr')!=null));
     b.disabled=!ok;
   });
   if(okN){
-    if(!fr) notes.push('APC et MCS : cotation française, pas pour un assuré Monaco.');
+    if(!fr) notes.push('APC : cotation française, pas pour un assuré Monaco.');
     else if(lib) notes.push('Libéral France : APC.');
-    else { notes.push('Public France : CS, ou CS + MCS. APC réservée au libéral.');
-      if(valeurN('CSfr')==null || valeurN('MCS')==null) notes.push('Renseignez CS France et MCS dans les Réglages.'); }
+    else { notes.push('Public France : CS (MCS comprise). APC réservée au libéral.');
+      if(valeurN('CSfr')==null) notes.push('Renseignez CS France dans les Réglages.'); }
   }
   $('cApcNote').textContent = notes.join(' ');
 }
@@ -720,7 +716,6 @@ $('cNgap').addEventListener('click',e=>{
   const b=e.target.closest('.geste'); if(!b || b.disabled) return;
   const d=dateActe(); if(!d) return;
   const x={id:Date.now().toString(36)+Math.random().toString(36).slice(2,6), d, ax:'ngap', g:b.dataset.n, m:cMode, a:cAss, t:Date.now()};
-  if(b.dataset.mcs) x.mcs=true;                    // (28/10) CS France + majoration MCS
   C.actes.push(x); cJour.add(d);
   cSave(); cRender();
   $('cMsg').textContent='+1 '+nomActe(x)+' '+(cMode==='lib'?'libéral':'public')+' '+ASS[cAss]+' le '+d.split('-').reverse().join('/')
@@ -799,7 +794,7 @@ $('rSave').addEventListener('click',()=>{
     if(pn0==null||ln0==null){ $('rMsg').textContent='NGAP : montants public / libéral du relevé nécessaires (ex. 1 234,56).'; return; }
     for(const [g,l] of REG_N){
       const t=$('rvn_'+g).value.trim();
-      if(!t && !REG_N_OBLIG.includes(g)) continue;  // (28/10) CS France et MCS facultatifs
+      if(!t && !REG_N_OBLIG.includes(g)) continue;  // (28/10) CS France facultative
       const c=enCentimes(t);
       if(c==null||c===0){ $('rMsg').textContent='NGAP : valeur manquante ou illisible : '+l+'.'; return; }
       vn[g]=c;
@@ -824,7 +819,7 @@ $('rSave').addEventListener('click',()=>{
    daté au plus tard du relevé n'est pas compté (déjà dans le relevé). */
 const SV_APP='pense-bete-lib', SV_FORMAT=1;
 const estDate=d=>typeof d==='string' && /^\d{4}-\d{2}-\d{2}$/.test(d);
-const CHAMPS_ACTE=['id','d','ax','g','code','r50','v','vm','m','a','t','p','sl','mcs'];   // (27/10) p : même patient · sl : détaché
+const CHAMPS_ACTE=['id','d','ax','g','code','r50','v','vm','m','a','t','p','sl'];   // (27/10) p : même patient · sl : détaché
 const CHAMPS_REG=['d0','p0','l0','v','rea','pn0','ln0','vn'];
 let svAttente=null;
 function svContenu(){ return {app:SV_APP, format:SV_FORMAT, le:new Date().toISOString(), patients:L, compteur:C}; }
