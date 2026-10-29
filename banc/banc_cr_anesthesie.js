@@ -85,6 +85,22 @@ console.log('\n═══ 2. La page fonctionne : intervention, noms tapés, comp
   anes.value = ''; evt(anes, 'input');
   V('sans nom tapé, aucun nom n\'apparaît', /Anesthésiste : \n/.test($('report').value), $('report').value.slice(0, 80));
   V('aucune erreur pendant la saisie', erreurs.length === 0, erreurs);
+
+  /* (29/10/2026) « Réinitialiser » demande confirmation : un clic de trop ne doit
+     plus effacer le CR. Refusé, rien ne bouge ; accepté, la page se recharge
+     (jsdom ne sait pas recharger : il le signale, c'est la preuve du rechargement). */
+  anes.value = 'Exemple'; evt(anes, 'input');
+  const avant = $('report').value;
+  const questions = [];
+  w.confirm = q => { questions.push(q); return false; };
+  $('resetBtn').click();
+  V('Réinitialiser pose une question avant d\'effacer', questions.length === 1, questions);
+  V('la question dit que le CR sera effacé', /effacer/i.test(questions[0] || ''), questions);
+  V('refusé, le CR est intact', $('report').value === avant && anes.value === 'Exemple');
+  V('refusé, la page ne se recharge pas', erreurs.length === 0, erreurs);
+  w.confirm = q => { questions.push(q); return true; };
+  $('resetBtn').click();
+  V('accepté, la page se recharge', erreurs.some(e => /reload|navigation/i.test(e)), erreurs);
 }
 
 console.log('\n═══ 3. Pas de tuile : le module s\'ouvre par son adresse ═══');

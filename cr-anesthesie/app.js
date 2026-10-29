@@ -833,6 +833,8 @@ async function copyReport(){
   }, 1500);
 }
 function resetForm(){
+  /* (29/10/2026) Un clic de trop effaçait tout le CR sans prévenir. */
+  if(!confirm("Effacer tout le compte rendu en cours ?")) return;
   location.reload();
 }
 function initState(){
