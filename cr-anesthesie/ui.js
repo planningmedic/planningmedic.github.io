@@ -40,7 +40,7 @@ chip.className =
 
   idx > -1 ? arr.splice(idx, 1) : arr.push(item);
 
-  if(key === "reveil" && (isSedationMode() || isECTMode())){
+  if(key === "reveil" && (isSedationMode() || isECTMode() || isALRSeule())){
     if(idx === -1){
       state.reveil = [item];
     }
@@ -84,6 +84,7 @@ chip.className =
        MAR). Une seule fois, au choix du curare : on peut le décocher ensuite. */
     if(!state.monitorage.includes("TOF")){
       state.monitorage.push("TOF");
+      state.tofAuto = true;
       createChips("monitorage", DATA.monitorage, "monitorage");
       renderMonitorageDetails();
     }
@@ -93,6 +94,7 @@ chip.className =
     state.curare = state.curare.filter(x => x !== "Aucun");
   }
 }
+      if(key === "monitorage" && item === "TOF") state.tofAuto = false; // choix manuel
       if(key === "monitorage" && item === "VVP" && !state.monitorage.includes("VVP")){
   state.vvpCount = 1;
 }
@@ -106,10 +108,11 @@ chip.className =
       if(key === "alr") renderALRDetails();
       if(key === "analgesie") renderAnalgesieDetails();
       if(key === "curare") updateCurare();
+      if(key === "typeAnesth") applyAnesthesiaMode();
       if(key === "transfusion") renderTransfusionDetails();
       if(key === "drains") renderDrainsDetails();
       if(key === "reveil"){
-        if(isSedationMode() || isECTMode()){
+        if(isSedationMode() || isECTMode() || isALRSeule()){
           renderSedationSuitesDetails();
         }else{
           renderReveilDetails();

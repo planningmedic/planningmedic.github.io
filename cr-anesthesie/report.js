@@ -27,6 +27,7 @@ txt += `${intervenantLabel} : ${chirs.join(", ")}\n`;
 const labelIntervention =
   gestes.join(" associée à ") +
   (isSedationMode() ? " sous sédation" : "") +
+  (isALRSeule() ? " sous ALR seule" : "") +
   (state.urgence ? " en urgence" : "");
 
 txt += `Intervention : ${labelIntervention}\n\n`;
@@ -85,7 +86,7 @@ if(position || mon.length || state.monitorage.includes("KTA") || state.monitorag
 
 if(isECTMode()){
   ordre = ["Propofol","Célocurine","Kétamine"];
-}else if(isSedationMode()){
+}else if(isSedationMode() || isALRSeule()){
   ordre = ["Midazolam","Propofol","Sufentanil","Kétamine"];
 }else{
   ordre = ["Sufentanil","Rémifentanil","Kétamine","Etomidate","Propofol"];
@@ -107,7 +108,7 @@ const curares = state.curare.filter(x=>x !== "Aucun");
 
 if(meds.length){
 
-  if(isSedationMode()){
+  if(isSedationMode() || isALRSeule()){
 
     txt += "SÉDATION\n";
     txt += "Sédation par ";
@@ -391,7 +392,20 @@ if(isSedationMode() || isECTMode()){
     }
     
 txt += "Transfert en service pour suite de la prise en charge.\n";
-    
+
+  }else if(isALRSeule()){
+    /* (29/10/2026) ALR seule : pas d'extubation ; la destination n'est écrite
+       que si elle a été choisie. */
+    if(reveil.includes("Simples")) txt += "Suites simples.\n";
+
+    const txtLibre = $("sedationSuitesOtherText")?.value?.trim();
+    if(reveil.includes("Autre") && txtLibre) txt += txtLibre + ".\n";
+
+    const destination = $("destinationPostop")?.value;
+    if(destination){
+      txt += `Transfert en ${destination.toLowerCase()} pour suite de la prise en charge.\n`;
+    }
+
   }else{
 
     const destination = $("destinationPostop")?.value;

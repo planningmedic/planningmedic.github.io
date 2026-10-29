@@ -140,6 +140,78 @@ console.log('\n═══ 2 bis. Antibioprophylaxie : RFE SFAR/SPILF 2024 V3.0 (0
   V('chaque antibiotique proposé a une dose', sansDose.length === 0, [...new Set(sansDose)]);
 }
 
+/* Ouvre la page dans un navigateur simulé (même montage qu'au §2). */
+function ouvrirPage() {
+  let html = lire('index.html');
+  for (const f of ['data.js', 'rules.js', 'ui.js', 'report.js', 'app.js'])
+    html = html.replace(`<script src="./${f}"></script>`, `<script>${lire(f)}</script>`);
+  const vc = new VirtualConsole(); const erreurs = [];
+  vc.on('jsdomError', e => erreurs.push(e.message));
+  const dom = new JSDOM(html, { runScripts: 'dangerously', pretendToBeVisual: true, virtualConsole: vc,
+    url: 'https://planningmedic.github.io/cr-anesthesie/' });
+  const w = dom.window, d = w.document, $ = id => d.getElementById(id);
+  const evt = (el, t) => el.dispatchEvent(new w.Event(t, { bubbles: true }));
+  const puce = (zone, txt) => [...$(zone).children].find(c => c.textContent === txt);
+  const visible = id => !$(id).classList.contains('hidden');
+  const choisir = (spe, geste) => {
+    $('specialite').value = spe; evt($('specialite'), 'change');
+    const g = d.querySelector('.geste-select'); g.value = geste; evt(g, 'change');
+  };
+  return { w, d, $, evt, puce, visible, choisir, erreurs, cr: () => $('report').value };
+}
+
+console.log('\n═══ 2 ter. Type d\'anesthésie : AG / AG + ALR / ALR seule (29/10/2026) ═══');
+{
+  const p = ouvrirPage();
+  const { $, puce, visible, choisir, cr } = p;
+  const actifs = z => [...$(z).children].filter(c => c.classList.contains('active')).map(c => c.textContent);
+
+  choisir('Orthopédie', 'Canal carpien');
+  V('le choix du type est proposé', visible('typeAnesthCard') && !!puce('typeAnesthOptions', 'ALR seule'));
+  V('aucun type n\'est coché d\'office', actifs('typeAnesthOptions').length === 0);
+  V('sans choix, l\'écran AG reste comme avant', visible('curareCard') && visible('vaCard') && visible('entretienCard'));
+  V('sans choix, le CR ne parle pas d\'ALR seule', !/ALR seule/.test(cr()));
+
+  /* Un MAR commence une AG puis se ravise : rien de l'AG ne doit survivre. */
+  puce('induction', 'Propofol').click();
+  puce('curare', 'Rocuronium').click();
+  puce('vaOptions', 'Masque laryngé').click();
+  puce('typeAnesthOptions', 'ALR seule').click();
+  V('ALR seule : cartes Curare, Voies aériennes, Entretien masquées',
+    !visible('curareCard') && !visible('vaCard') && !visible('entretienCard'));
+  V('ALR seule : la carte devient « Sédation (facultative) »', /Sédation/.test($('inductionTitle').textContent));
+  V('ALR seule : sédation proposée, rien de coché', actifs('induction').length === 0 &&
+    ['Midazolam', 'Propofol', 'Sufentanil', 'Kétamine'].every(m => puce('induction', m)));
+  V('ALR seule : le CR ne garde ni induction, ni curare, ni voies aériennes',
+    !/INDUCTION|curarisation|VOIES AÉRIENNES|masque laryngé/i.test(cr()), cr());
+  V('ALR seule : le TOF ajouté par le curare disparaît', !/TOF/.test(cr()), cr());
+  V('ALR seule : le CR l\'écrit dans l\'intervention', /Intervention : Canal carpien sous ALR seule/.test(cr()), cr().slice(0, 200));
+  V('ALR seule : la carte ALR est ouverte, rien coché', visible('alrCard') && actifs('alrOptions').length === 0);
+  V('ALR seule : rachianesthésie et péridurale proposées', visible('neuraxialCard') &&
+    !!puce('neuraxialOptions', 'Rachianesthésie') && !!puce('neuraxialOptions', 'Péridurale'));
+
+  puce('induction', 'Midazolam').click();
+  V('sédation cochée ⇒ « Sédation par Midazolam »', /SÉDATION\nSédation par Midazolam\./.test(cr()), cr());
+  puce('reveilOptions', 'Simples').click();
+  V('suites : « Suites simples », sans extubation', /Suites simples\./.test(cr()) && !/extub/i.test(cr()), cr());
+  V('suites : aucune destination inventée', !/Transfert en/.test(cr()), cr());
+
+  puce('typeAnesthOptions', 'AG').click();
+  V('AG : retour de l\'écran AG', visible('curareCard') && visible('vaCard') && /Induction/.test($('inductionTitle').textContent));
+  V('AG : la sédation cochée ne devient pas une induction', !/Midazolam/.test(cr()), cr());
+  V('AG : les cartes ALR sont masquées', !visible('alrCard') && !visible('neuraxialCard'));
+
+  puce('typeAnesthOptions', 'AG + ALR').click();
+  V('AG + ALR : AG et ALR à l\'écran', visible('curareCard') && visible('alrCard') && visible('neuraxialCard'));
+  choisir('Orthopédie', 'Recalibrage');
+  V('AG + ALR sans bloc prévu : la carte ALR reste ouverte avec « Autre »', visible('alrCard') && !!puce('alrOptions', 'Autre'));
+
+  choisir('Ophtalmologie', 'Cataracte');
+  V('cataracte : le type est masqué (mode sédation imposé)', !visible('typeAnesthCard'));
+  V('cataracte : pas de carte ALR restée ouverte', !visible('alrCard') && !visible('neuraxialCard'));
+  V('aucune erreur pendant ces bascules', p.erreurs.length === 0, p.erreurs);
+}
+
 console.log('\n═══ 3. Pas de tuile : le module s\'ouvre par son adresse ═══');
 {
   /* (29/10/2026) Décision du responsable : outil d'ordinateur du bloc (copier-coller

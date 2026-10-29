@@ -15,6 +15,7 @@ const state = {
   entretien: "",
   analgesie: [],
   antibio: "",
+  typeAnesth: "",
   alr: [],
   continuousALR: {},
   continuousALRText: {},
@@ -643,6 +644,9 @@ renderReveilDetails();
     
     updateCurare();
   }
+
+applyTypeAnesthesie(ect || sedation || endoscopy || endoscopyIntubated);
+
 const endoscopyGesture = isEndoscopyGestureSelected();
 
 $("endoscopyIntubationChip").classList.toggle(
@@ -655,6 +659,89 @@ $("endoscopyIntubationChip").classList.toggle(
   endoscopyGesture && state.endoscopyIntubation
 );
   renderMonitorageDetails();
+}
+
+/* (29/10/2026) Type d'anesthésie : AG / AG + ALR / ALR seule. Rien n'est coché
+   d'office ; sans choix, la page se comporte comme avant. Masqué quand
+   l'intervention impose déjà son mode (sédation, ECT, endoscopie). */
+const TYPES_ANESTHESIE = ["AG", "AG + ALR", "ALR seule"];
+
+function isALRSeule(){
+  return state.typeAnesth === "ALR seule" &&
+    !$("typeAnesthCard").classList.contains("hidden");
+}
+
+function applyTypeAnesthesie(modeImpose){
+  $("typeAnesthCard").classList.toggle("hidden", modeImpose);
+
+  if(modeImpose){
+    state.typeAnesth = "";
+    state.alrSeuleAppliquee = false;
+    renderALR();
+    return;
+  }
+
+  createChips("typeAnesthOptions", TYPES_ANESTHESIE, "typeAnesth", true);
+
+  const alrSeule = state.typeAnesth === "ALR seule";
+
+  /* En passant de l'AG à l'ALR seule (ou l'inverse), les drogues cochées
+     changent de sens (induction ↔ sédation) : on repart d'une liste vide. */
+  if(alrSeule !== !!state.alrSeuleAppliquee){
+    state.induction = [];
+  }
+  state.alrSeuleAppliquee = alrSeule;
+
+  $("curareCard").classList.toggle("hidden", alrSeule);
+  $("vaCard").classList.toggle("hidden", alrSeule);
+  $("entretienCard").classList.toggle("hidden", alrSeule);
+
+  if(alrSeule){
+    /* Pas d'AG : rien de l'AG ne doit rester dans le CR. */
+    state.curare = [];
+    state.antagonisation = false;
+    $("antagonisationChip").classList.remove("active");
+    state.va = "";
+    state.ventilation = "";
+    state.entretien = "";
+    $("sequenceRapide").checked = false;
+    $("sequenceRapideToggle")?.classList.remove("active");
+    createChips("vaOptions", ["Ventilation spontanée","Masque laryngé","Intubation oro-trachéale"], "va", true);
+    createChips("entretienOptions", DATA.entretien, "entretien", true);
+    renderVADetails();
+    updateCurare();
+
+    /* Le TOF ajouté d'office par le curare n'a plus lieu d'être. */
+    if(state.tofAuto){
+      state.monitorage = state.monitorage.filter(x => x !== "TOF");
+      state.tofAuto = false;
+      createChips("monitorage", DATA.monitorage, "monitorage");
+      renderMonitorageDetails();
+    }
+
+    /* Sédation facultative, mêmes molécules que la sédation de la cataracte. */
+    $("inductionTitle").textContent = "Sédation (facultative)";
+    state.induction = state.induction.filter(x => DATA.sedationMedications.includes(x));
+    createChips("induction", DATA.sedationMedications, "induction");
+
+    /* Suites : pas d'extubation à décrire. */
+    state.reveil = state.reveil.filter(x => ["Simples", "Autre"].includes(x));
+    createChips("reveilOptions", ["Simples", "Autre"], "reveil");
+    renderReveilDetails();
+    renderSedationSuitesDetails();
+  }else{
+    $("inductionTitle").textContent = "Induction";
+    state.induction = state.induction.filter(x => DATA.induction.includes(x));
+    createChips("induction", DATA.induction, "induction");
+    state.reveil = state.reveil.filter(x =>
+      ["Extubation", "Complication extubation", "Patient transféré intubé ventilé"].includes(x)
+    );
+    createChips("reveilOptions", ["Extubation", "Complication extubation", "Patient transféré intubé ventilé"], "reveil");
+    renderSedationSuitesDetails();
+    renderReveilDetails();
+  }
+
+  renderALR();
 }
 
 function updateCurare(){
@@ -712,9 +799,21 @@ function renderALR(){
     (ALR_NEURAXIAL_MAP[g] || []).forEach(a=>neuraxials.add(a));
   });
 
+  /* (29/10/2026) « AG » : pas d'ALR. « AG + ALR » ou « ALR seule » : la carte
+     reste ouverte même si l'intervention n'a pas de bloc prévu (« Autre »),
+     et la rachianesthésie / péridurale sont toujours proposées. Rien coché. */
+  const type = $("typeAnesthCard")?.classList.contains("hidden") ? "" : state.typeAnesth;
+
+  if(type === "AG"){
+    alrs.clear();
+    neuraxials.clear();
+  }else if(type){
+    ["Rachianesthésie", "Péridurale"].forEach(n=>neuraxials.add(n));
+  }
+
   let alrList = [...alrs];
 
-if(alrList.length > 0 && !alrList.includes("Autre")){
+if((alrList.length > 0 || (type && type !== "AG")) && !alrList.includes("Autre")){
   alrList.push("Autre");
 }
 
@@ -847,6 +946,7 @@ function initUI(){
   addChir(false);
   addGeste(false);
 
+  createChips("typeAnesthOptions", TYPES_ANESTHESIE, "typeAnesth", true);
   createChips("monitorage", DATA.monitorage, "monitorage");
   createChips("induction", DATA.induction, "induction");
   createChips("curare", ["Aucun","Atracurium","Rocuronium"], "curare");
