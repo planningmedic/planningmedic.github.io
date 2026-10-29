@@ -95,7 +95,7 @@ const ANTIBIO_MAP = {
   "Pose de prothèse biliaire": "Céfoxitine",
   "Dissection sous-muqueuse": "Aucune",
   "Mucosectomie": "Aucune",
-  "POEM": "Amoxicilline / Acide clavulanique",
+  "POEM": "Aucune", // non cité par la RFE ; rattaché à la FOGD thérapeutique avec dissection sous-muqueuse (p. 85), décision du MAR 29/10/2026
 
   "Ablation de FA": "Aucune",
   "Ablation de flutter": "Aucune",

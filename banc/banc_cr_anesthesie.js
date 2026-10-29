@@ -132,7 +132,7 @@ console.log('\n═══ 2 bis. Antibioprophylaxie : RFE SFAR/SPILF 2024 V3.0 (0
     'Recalibrage': 'Aucune', 'Ostéosynthèse plateau tibial': 'Céfazoline', 'Hystérectomie': 'Céfoxitine',
     'Kystectomie ovarienne': 'Aucune', 'Segmentectomie hépatique': 'Céfazoline', 'REV': 'Aucune',
     'Néphrectomie': 'Aucune', 'Posthectomie': 'Aucune', 'Extraction DDS': 'Amoxicilline',
-    'Cataracte': 'Céfuroxime intracamérulaire', 'Blépharoplastie': 'Aucune',
+    'Cataracte': 'Céfuroxime intracamérulaire', 'Blépharoplastie': 'Aucune', 'POEM': 'Aucune',
   };
   for (const [g, a] of Object.entries(attendu)) V(`${g} → ${a}`, ctx.M[g] === a, ctx.M[g]);
   V('amoxicilline : 2 g (p. 43-44)', ctx.D['Amoxicilline'] === '2 g', ctx.D['Amoxicilline']);
