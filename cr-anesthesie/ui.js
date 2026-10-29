@@ -104,7 +104,10 @@ chip.className =
       if(key === "va") renderVADetails();
       if(key === "ventilation") renderVentilationDetails();
       if(key === "neuraxial") renderNeuraxialDetails();
-      if(key === "antibio") renderAntibioDetails();
+      if(key === "antibio"){
+        state.antibioManuel = !!state.antibio; // choix fait à la main
+        renderAntibioDetails();
+      }
       if(key === "alr") renderALRDetails();
       if(key === "analgesie") renderAnalgesieDetails();
       if(key === "curare") updateCurare();

@@ -274,6 +274,69 @@ console.log('\n═══ 2 quater. Détail de l\'ALR, bloc par bloc, rien d\'éc
   V('aucune erreur pendant la saisie de l\'ALR', p.erreurs.length === 0, p.erreurs);
 }
 
+console.log('\n═══ 2 quinquies. Antibioprophylaxie selon le geste réel (RFE 2024 V3.0) ═══');
+{
+  /* (29/10/2026) Chaque règle relue dans le PDF V3.0 ; page entre parenthèses. */
+  const ctx = {};
+  require('vm').runInNewContext(lire('rules.js') + ';this.C = ANTIBIO_CONDITIONS; this.D = ANTIBIO_DOSES;', ctx);
+  const attendu = {
+    'Hernie inguinale': ['Oui', 'Céfazoline', 'Non', 'Aucune'],
+    'Hernie ombilicale': ['Oui', 'Céfazoline', 'Non', 'Aucune'],
+    'Cure de hernie hiatale': ['Oui', 'Céfazoline', 'Non', 'Aucune'],
+    'Mastectomie partielle': ['Oui', 'Céfazoline', 'Non (ou ganglion sentinelle)', 'Aucune'],
+    'Cholécystectomie': ['Oui', 'Céfazoline', 'Non', 'Aucune'],
+    'Duodénopancréatectomie céphalique': ['Oui', 'Pipéracilline-tazobactam', 'Non', 'Céfoxitine'],
+    'ERCP': ['Oui', 'Aucune', 'Non (incomplet, ou cholangioscopie)', 'Céfoxitine'],
+    'Pose de prothèse biliaire': ['Oui', 'Aucune', 'Non (incomplet)', 'Céfoxitine'],
+    'Biopsies de prostate': ['Transrectale', 'Fosfomycine-trométamol', 'Transpérinéale', 'Aucune'],
+    'Rhinoplastie': ['Oui', 'Céfazoline', 'Non', 'Aucune'],
+    'Varices': ['Oui', 'Céfazoline', 'Non', 'Aucune'],
+  };
+  for (const [g, [r1, a1, r2, a2]] of Object.entries(attendu)) {
+    const c = ctx.C[g] || { options: {} };
+    V(`${g} : ${r1} → ${a1} ; ${r2} → ${a2} (${c.source})`,
+      c.options[r1] === a1 && c.options[r2] === a2 && Object.keys(c.options).length === 2 && /^p\. \d+$/.test(c.source || ''), c);
+  }
+  V('aucune autre intervention conditionnelle non vérifiée', Object.keys(ctx.C).length === Object.keys(attendu).length, Object.keys(ctx.C));
+  V('pipéracilline-tazobactam 4 g (p. 83)', ctx.D['Pipéracilline-tazobactam'] === '4 g');
+  V('fosfomycine-trométamol 3 g per os, 2 à 4 h avant (p. 88)', ctx.D['Fosfomycine-trométamol'] === '3 g per os, 2 à 4 h avant le geste');
+  const sansDose = Object.values(ctx.C).flatMap(c => Object.values(c.options)).filter(a => a !== 'Aucune' && !ctx.D[a]);
+  V('chaque antibiotique des questions a une dose', sansDose.length === 0, sansDose);
+
+  const p = ouvrirPage();
+  const { d, $, puce, choisir, cr } = p;
+  const ligne = () => (cr().match(/ANTIBIOPROPHYLAXIE\n(.*)/) || [])[1];
+  const actifs = () => [...$('antibioOptions').children].filter(c => c.classList.contains('active')).map(c => c.textContent);
+  const repondre = (g, r) => [...d.querySelector(`.antibio-question[data-geste="${g}"]`).querySelectorAll('.chip')].find(c => c.textContent === r).click();
+
+  choisir('Viscéral', 'Hernie inguinale');
+  const q = d.querySelector('.antibio-question[data-geste="Hernie inguinale"]');
+  V('hernie : la question « Prothèse posée ? » est posée', !!q && /Prothèse posée \?/.test(q.textContent));
+  V('hernie : aucune réponse cochée d\'office', q.querySelectorAll('.chip.active').length === 0);
+  V('sans réponse : aucun antibiotique coché', actifs().length === 0, actifs());
+  V('sans réponse : le CR écrit « à préciser »', ligne() === 'Antibioprophylaxie : à préciser.', ligne());
+  V('la source est affichée sous la question', /RFE SFAR\/SPILF 2024 \(V3\.0\), p\. 83/.test(q.textContent));
+  repondre('Hernie inguinale', 'Oui');
+  V('prothèse : oui ⇒ céfazoline 2 g', ligne() === 'Antibioprophylaxie par Céfazoline 2 g.', ligne());
+  repondre('Hernie inguinale', 'Non');
+  V('prothèse : non ⇒ pas d\'antibioprophylaxie', ligne() === 'Pas d\'antibioprophylaxie.', ligne());
+  repondre('Hernie inguinale', 'Non');
+  V('réponse retirée ⇒ de nouveau « à préciser »', ligne() === 'Antibioprophylaxie : à préciser.', ligne());
+  puce('antibioOptions', 'Aucune').click();
+  V('choix manuel sans répondre : respecté', ligne() === 'Pas d\'antibioprophylaxie.', ligne());
+
+  choisir('Viscéral', 'Colectomie');
+  V('intervention sans question : comportement inchangé (céfoxitine)', ligne() === 'Antibioprophylaxie par Céfoxitine 2 g.' && !d.querySelector('.antibio-question'), ligne());
+  choisir('Viscéral', 'Hernie inguinale');
+  V('revenir sur la hernie : la question est reposée, sans réponse', d.querySelectorAll('.antibio-question .chip.active').length === 0 && ligne() === 'Antibioprophylaxie : à préciser.', ligne());
+
+  choisir('Urologie', 'Biopsies de prostate');
+  repondre('Biopsies de prostate', 'Transrectale');
+  V('biopsies transrectales ⇒ fosfomycine-trométamol 3 g per os',
+    ligne() === 'Antibioprophylaxie par Fosfomycine-trométamol 3 g per os, 2 à 4 h avant le geste.', ligne());
+  V('aucune erreur pendant les questions', p.erreurs.length === 0, p.erreurs);
+}
+
 console.log('\n═══ 3. Pas de tuile : le module s\'ouvre par son adresse ═══');
 {
   /* (29/10/2026) Décision du responsable : outil d'ordinateur du bloc (copier-coller

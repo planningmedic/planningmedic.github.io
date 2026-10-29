@@ -15,6 +15,8 @@ const state = {
   entretien: "",
   analgesie: [],
   antibio: "",
+  antibioReponses: {},
+  antibioManuel: false,
   typeAnesth: "",
   alr: [],
   alrDetails: {},
@@ -108,6 +110,7 @@ function addGeste(removable=true){
       wrapper.remove();
       state.peropForced = false;
       state.peropHidden = false;
+      state.antibioManuel = false;
 renderALR();
 renderAntibio();
 renderPeropVisibility();
@@ -124,6 +127,7 @@ fillSelect(sel, list, "Choisir...");
   sel.addEventListener("change", ()=>{
     state.peropForced = false;
     state.peropHidden = false;
+    state.antibioManuel = false;
     renderGesteExtra(wrapper, sel.value);
 
     applySmartPreset(sel.value);
@@ -847,8 +851,23 @@ const neuraxialList = [...neuraxials];
 function renderAntibio(){
   const gestes = getSelectedGestesRaw();
   const antibios = new Set();
+  let enAttente = false;
+
+  /* (29/10/2026) Une réponse ne vaut que pour une intervention encore choisie. */
+  Object.keys(state.antibioReponses).forEach(g=>{
+    if(!gestes.includes(g)) delete state.antibioReponses[g];
+  });
 
   gestes.forEach(g=>{
+    const condition = ANTIBIO_CONDITIONS[g];
+
+    if(condition){
+      const reponse = state.antibioReponses[g];
+      if(reponse) antibios.add(condition.options[reponse]);
+      else enAttente = true;
+      return;
+    }
+
     antibios.add(ANTIBIO_MAP[g] || "Aucune");
   });
 
@@ -862,12 +881,60 @@ function renderAntibio(){
     list.push("Autre");
   }
 
-  if(!list.includes(state.antibio)){
-    state.antibio = list[0];
+  if(enAttente && !state.antibioManuel){
+    /* Question sans réponse : rien de coché, le CR écrira « à préciser ». */
+    state.antibio = "";
+  }else if(!list.includes(state.antibio)){
+    state.antibio = enAttente ? "" : list[0];
   }
 
+  renderAntibioQuestions(gestes);
   createChips("antibioOptions", list, "antibio", true);
   renderAntibioDetails();
+}
+
+function renderAntibioQuestions(gestes){
+  const box = $("antibioQuestions");
+  box.innerHTML = "";
+
+  [...new Set(gestes)].forEach(g=>{
+    const condition = ANTIBIO_CONDITIONS[g];
+    if(!condition) return;
+
+    const bloc = document.createElement("div");
+    bloc.className = "detail-box antibio-question";
+    bloc.dataset.geste = g;
+
+    const q = document.createElement("div");
+    q.className = "alr-bloc-titre";
+    q.textContent = `${g} : ${condition.question}`;
+    bloc.appendChild(q);
+
+    const zone = document.createElement("div");
+    zone.className = "chip-zone mt8";
+
+    Object.keys(condition.options).forEach(r=>{
+      const c = document.createElement("div");
+      c.className = "chip sub-chip" + (state.antibioReponses[g] === r ? " active" : "");
+      c.textContent = r;
+      c.onclick = ()=>{
+        if(state.antibioReponses[g] === r) delete state.antibioReponses[g];
+        else state.antibioReponses[g] = r;
+        state.antibioManuel = false;
+        renderAntibio();
+        renderReport();
+      };
+      zone.appendChild(c);
+    });
+    bloc.appendChild(zone);
+
+    const src = document.createElement("div");
+    src.className = "antibio-source";
+    src.textContent = `RFE SFAR/SPILF 2024 (V3.0), ${condition.source}`;
+    bloc.appendChild(src);
+
+    box.appendChild(bloc);
+  });
 }
 
 function shouldHidePeropByDefault(){
@@ -1113,6 +1180,7 @@ function initListeners(){
   specialiteSelect.onchange = ()=>{
     state.peropForced = false;
     state.peropHidden = false;
+    state.antibioManuel = false;
     updateChirurgiens();
 
     $("chirLabel").textContent =

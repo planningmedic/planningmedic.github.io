@@ -370,6 +370,9 @@ if(state.transfusion.includes("Calcium")){
     txt += autre
       ? `Antibioprophylaxie par ${autre}.\n`
       : "Antibioprophylaxie par autre antibiotique à préciser.\n";
+  }else if(!state.antibio){
+    /* (29/10/2026) Question sur le geste sans réponse : rien n'est affirmé. */
+    txt += "Antibioprophylaxie : à préciser.\n";
   }else{
     const dose = ANTIBIO_DOSES[state.antibio];
     txt += dose

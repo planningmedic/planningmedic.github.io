@@ -471,3 +471,10 @@ box-shadow: 0 4px 12px rgba(176,48,96,.28);
 .alr-bloc-titre{
   font-weight:600;
 }
+
+/* (29/10/2026) Source de la règle d'antibioprophylaxie */
+.antibio-source{
+  margin-top:6px;
+  font-size:12px;
+  opacity:.7;
+}

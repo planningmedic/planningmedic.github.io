@@ -153,7 +153,71 @@ const ANTIBIO_DOSES = {
   "Amoxicilline / Acide clavulanique": "2 g",
   "Métronidazole": "1 g",
   "Amoxicilline": "2 g", // p. 43-44
-  "Céfuroxime intracamérulaire": "1 mg/0,1 mL en fin d'intervention" // p. 45
+  "Céfuroxime intracamérulaire": "1 mg/0,1 mL en fin d'intervention", // p. 45
+  "Pipéracilline-tazobactam": "4 g", // p. 83
+  "Fosfomycine-trométamol": "3 g per os, 2 à 4 h avant le geste" // p. 88
+};
+
+/* (29/10/2026) Interventions dont l'antibioprophylaxie dépend du geste réel
+   (RFE SFAR/SPILF 2024 V3.0). La page pose la question, sans réponse cochée
+   d'office ; sans réponse, rien n'est coché et le CR écrit « à préciser ».
+   Ces règles priment sur ANTIBIO_MAP. */
+const ANTIBIO_CONDITIONS = {
+  "Hernie inguinale": {
+    question: "Prothèse posée ?",
+    options: { "Oui": "Céfazoline", "Non": "Aucune" },
+    source: "p. 83"
+  },
+  "Hernie ombilicale": {
+    question: "Prothèse posée ?",
+    options: { "Oui": "Céfazoline", "Non": "Aucune" },
+    source: "p. 83"
+  },
+  "Cure de hernie hiatale": {
+    question: "Prothèse posée ?",
+    options: { "Oui": "Céfazoline", "Non": "Aucune" },
+    source: "p. 83"
+  },
+  "Mastectomie partielle": {
+    question: "Curage axillaire ?",
+    options: { "Oui": "Céfazoline", "Non (ou ganglion sentinelle)": "Aucune" },
+    source: "p. 57"
+  },
+  "Cholécystectomie": {
+    question: "Laparotomie, ou patient à haut risque (> 80 ans, grossesse, immunosuppression, cholécystite aiguë récente, ictère, calcul de la VBP, prothèse, conversion, fuite biliaire) ?",
+    options: { "Oui": "Céfazoline", "Non": "Aucune" },
+    source: "p. 81"
+  },
+  "Duodénopancréatectomie céphalique": {
+    question: "Ampullome, ou drainage biliaire / sphinctérotomie préopératoire ?",
+    options: { "Oui": "Pipéracilline-tazobactam", "Non": "Céfoxitine" },
+    source: "p. 83"
+  },
+  "ERCP": {
+    question: "Drainage biliaire complet ?",
+    options: { "Oui": "Aucune", "Non (incomplet, ou cholangioscopie)": "Céfoxitine" },
+    source: "p. 84"
+  },
+  "Pose de prothèse biliaire": {
+    question: "Drainage biliaire complet ?",
+    options: { "Oui": "Aucune", "Non (incomplet)": "Céfoxitine" },
+    source: "p. 84"
+  },
+  "Biopsies de prostate": {
+    question: "Voie d'abord ?",
+    options: { "Transrectale": "Fosfomycine-trométamol", "Transpérinéale": "Aucune" },
+    source: "p. 88"
+  },
+  "Rhinoplastie": {
+    question: "Greffe de cartilage ?",
+    options: { "Oui": "Céfazoline", "Non": "Aucune" },
+    source: "p. 58"
+  },
+  "Varices": {
+    question: "Abord chirurgical du Scarpa ?",
+    options: { "Oui": "Céfazoline", "Non": "Aucune" },
+    source: "p. 50"
+  }
 };
 
 const SIMPLE_PEROP_SPECIALITES = [
