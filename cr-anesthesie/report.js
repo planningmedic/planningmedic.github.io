@@ -383,6 +383,8 @@ const reveil = state.reveil || [];
 
 if(reveil.length){
 
+  /* (29/10/2026) Une ligne vide avant la rubrique, comme pour les autres. */
+  if(!txt.endsWith("\n\n")) txt += "\n";
   txt += "SUITES IMMÉDIATES\n";
 
 if(isSedationMode() || isECTMode()){

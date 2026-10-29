@@ -195,6 +195,7 @@ console.log('\n═══ 2 ter. Type d\'anesthésie : AG / AG + ALR / ALR seule 
   puce('reveilOptions', 'Simples').click();
   V('suites : « Suites simples », sans extubation', /Suites simples\./.test(cr()) && !/extub/i.test(cr()), cr());
   V('suites : aucune destination inventée', !/Transfert en/.test(cr()), cr());
+  V('une ligne vide sépare l\'antibioprophylaxie des suites', /\.\n\nSUITES IMMÉDIATES\n/.test(cr()), cr());
 
   puce('typeAnesthOptions', 'AG').click();
   V('AG : retour de l\'écran AG', visible('curareCard') && visible('vaCard') && /Induction/.test($('inductionTitle').textContent));
