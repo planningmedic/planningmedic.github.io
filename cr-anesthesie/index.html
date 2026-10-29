@@ -1,0 +1,366 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>CR d'anesthésie</title>
+  <link rel="stylesheet" href="./style.css" />
+</head>
+<body>
+
+<div class="app">
+
+  <header class="topbar">
+    <div class="brand">
+
+      <div class="brand-text">
+        <h1>Compte-rendu d’anesthésie</h1>
+        <p>Aucune donnée patient n’est conservée. Brouillon à relire avant de le coller dans le dossier.</p>
+      </div>
+    </div>
+
+    <div class="topbar-actions">
+  <button id="resetBtn" type="button">Réinitialiser</button>
+  <button id="copyBtn" type="button">Copier le CR</button>
+</div>
+  </header>
+
+  <main class="layout">
+
+    <section class="panel left-panel">
+   <div class="panel-title title-with-chip">
+  <span>Intervention</span>
+<div class="chip" id="urgenceChip">Urgence</div>
+   </div>
+
+      <div class="field">
+        <label>Date</label>
+        <input type="date" id="date">
+      </div>
+
+     <label>Anesthésiste</label>
+<div id="anesthContainer"></div>
+<button class="action-btn" id="addAnesthBtn" type="button">+ Anesthésiste</button>
+
+      <div class="field">
+        <label>Spécialité</label>
+        <select id="specialite"></select>
+      </div>
+
+   <div class="field">
+<label id="chirLabel">Chirurgien</label>
+     <div id="chirContainer"></div>
+</div>
+<button class="action-btn" id="addChirBtn" type="button">+ Chirurgien</button>
+
+<div style="height:14px"></div>
+
+<div class="field">
+<label>Intervention</label>
+<div id="gesteContainer"></div>
+</div>
+
+<button class="action-btn" id="addGesteBtn" type="button">+ Intervention</button>
+    </section>
+
+    <section class="panel middle-panel">
+
+      <div class="mini-card">
+        <h3>Monitorage</h3>
+        <div class="chip-zone" id="monitorage"></div>
+        <div id="monitorageDetails"></div>
+
+        <div style="margin-top:10px;">
+          <label>Position</label>
+          <select id="positionPatient">
+            <option value="">Choisir...</option>
+            <option>Décubitus dorsal</option>
+            <option>Décubitus ventral</option>
+            <option>Décubitus latéral droit</option>
+            <option>Décubitus latéral gauche</option>
+            <option>Position assise</option>
+          </select>
+        </div>
+      </div>
+
+<div class="mini-card" id="inductionCard">
+
+  <div
+    class="row-inline"
+    style="justify-content:space-between;"
+  >
+
+    <h3 id="inductionTitle">Induction</h3>
+
+    <div
+      class="chip sub-chip hidden"
+      id="endoscopyIntubationChip"
+    >
+    
+      <img
+        src="./laryngoscope.png"
+        class="laryngo-icon"
+        alt=""
+      />
+
+      <span>Intubation</span>
+      
+    </div>
+
+  </div>
+
+  <div class="chip-zone" id="induction"></div>
+
+</div>
+  <div class="mini-card" id="curareCard">
+  <h3>Curare</h3>
+  <div class="chip-zone" id="curare"></div>
+
+  <div id="antagonisationBlock" class="hidden" style="margin-top:10px;">
+    <div class="chip-zone">
+      <div class="chip sub-chip" id="antagonisationChip">Antagonisation</div>
+    </div>
+  </div>
+</div>
+
+     <div class="mini-card" id="vaCard">
+  <h3>Voies aériennes</h3>
+        <div class="chip-zone" id="vaOptions"></div>
+        <div id="vaDetails"></div>
+
+        <div id="srBlock" class="hidden" style="margin-top:10px;">
+  <input type="checkbox" id="sequenceRapide" class="hidden">
+
+  <div class="chip-zone">
+    <div class="chip sub-chip" id="sequenceRapideToggle">Séquence rapide</div>
+  </div>
+</div>
+
+        <div id="ventilationBlock" class="hidden" style="margin-top:10px;">
+          <label>Ventilation au masque</label>
+          <div class="chip-zone" id="ventilationOptions"></div>
+          <input
+            type="text"
+            id="ventilationPrecision"
+            class="hidden"
+            style="margin-top:8px;"
+            placeholder="Précision ventilation..."
+          >
+        </div>
+      </div>
+
+     <div class="mini-card" id="entretienCard">
+  <h3>Entretien</h3>
+        <div class="chip-zone" id="entretienOptions"></div>
+      </div>
+
+<div class="mini-card" id="analgesieCard">
+  <h3>Analgésie</h3>
+
+  <div class="chip-zone" id="analgesieOptions"></div>
+
+  <div id="analgesieOtherBlock" class="hidden" style="margin-top:10px;">
+    <input
+      type="text"
+      id="analgesieOtherText"
+      placeholder="Préciser l’analgésie..."
+    >
+  </div>
+</div>
+
+      <div class="mini-card hidden" id="alrCard">
+        <h3>ALR périphérique</h3>
+        <div class="chip-zone" id="alrOptions"></div>
+<input
+  type="text"
+  id="alrOtherText"
+  class="hidden"
+  style="margin-top:8px;"
+  placeholder="Préciser l’ALR..."
+>
+        <div class="inline mt8">
+       <select id="localAgent">
+  <option>Ropivacaïne 0,2%</option>
+  <option>Ropivacaïne 0,375%</option>
+  <option>Ropivacaïne 0,5%</option>
+
+  <option>Mépivacaïne 1%</option>
+  <option>Mépivacaïne 1,5%</option>
+  <option>Mépivacaïne 2%</option>
+
+  <option>Lidocaïne 1%</option>
+  <option>Lidocaïne 2%</option>
+  <option>Lidocaïne 2% adrénalinée</option>
+</select>
+
+          <input type="number" id="localVolume" value="20" placeholder="mL">
+        </div>
+      </div>
+
+      <div class="mini-card hidden" id="neuraxialCard">
+        <h3>ALR neuraxiale</h3>
+        <div class="chip-zone" id="neuraxialOptions"></div>
+
+        <div id="periduraleDetails" class="hidden mt8">
+          <input
+            type="text"
+            id="periduraleNiveau"
+            placeholder="Niveau de ponction, ex : T7-T8"
+          >
+        </div>
+      </div>
+
+      <button class="action-btn hidden" id="showPeropBtn" type="button">
+        + Ajouter données per-opératoires
+      </button>
+
+      <div class="mini-card" id="peropCard">
+        <div class="row-inline">
+  <h3>Per-opératoire</h3>
+  <button class="remove-btn" id="removePeropBtn" type="button">–</button>
+</div>
+
+<div class="detail-box" style="margin-top:10px; margin-bottom:10px;">
+  <div class="field">
+    <label>Diurèse (mL)</label>
+    <input type="number" id="diurese">
+  </div>
+
+  <div class="field">
+    <label>Saignement (mL)</label>
+    <input type="number" id="saignement" placeholder="Ex : 200">
+  </div>
+
+  <div class="field">
+    <label>Remplissage</label>
+    <input type="text" id="remplissage">
+  </div>
+</div>
+
+      <div class="chip-zone">
+  <div class="chip" id="noradToggle">Noradrénaline</div>
+</div>
+
+<div id="noradBlock" class="hidden" style="margin-top:10px;">
+  <input type="text" id="noradText" placeholder="Ex : maximum 0,08 µg/kg/min">
+</div>
+<div style="margin-top:14px;">
+  <div class="chip-zone">
+    <div class="chip" id="transfusionToggle">Transfusion</div>
+  </div>
+
+<div id="transfusionBlock" class="hidden" style="margin-top:10px;">
+  <div class="chip-zone" id="transfusionOptions"></div>
+
+<div id="transfusionQuantities" class="detail-box hidden">
+  <input class="qte-transfusion hidden" type="number" id="qteCGR" placeholder="Nombre de CGR">
+  <input class="qte-transfusion hidden" type="number" id="qtePFC" placeholder="Nombre de PFC">
+  <input class="qte-transfusion hidden" type="number" id="qtePlaquettes" placeholder="Nombre de plaquettes">
+<input class="qte-transfusion hidden" type="number" id="qteFibrinogene" placeholder="g de Fibrinogène">
+<input class="qte-transfusion hidden" type="number" id="qteCalcium" placeholder="g de Calcium">
+</div>
+
+  <input
+    type="text"
+    id="transfusionOtherText"
+    class="hidden"
+    style="margin-top:8px;"
+    placeholder="Préciser..."
+  >
+</div>
+</div>
+<div style="margin-top:14px;">
+  <div class="chip-zone">
+    <div class="chip" id="drainsToggle">Drains</div>
+  </div>
+
+<div id="drainsBlock" class="hidden" style="margin-top:10px;">
+  <div class="chip-zone" id="drainsOptions"></div>
+  <div id="drainsDetailsBox" class="detail-box hidden">
+  <input class="hidden" type="text" id="drainThoraciqueText" style="margin-top:8px;" placeholder="Drain thoracique : ex x2 apex droit">
+  <input class="hidden" type="text" id="redonText" style="margin-top:8px;" placeholder="Redon : localisation">
+  <input class="hidden" type="text" id="lameText" style="margin-top:8px;" placeholder="Lame : localisation">
+  <input class="hidden" type="number" id="svText" style="margin-top:8px;" placeholder="Sonde vésicale : taille Fr">
+
+  <input
+    type="text"
+    id="drainsOtherText"
+    class="hidden"
+    style="margin-top:8px;"
+    placeholder="Préciser..."
+  >
+</div>
+</div>
+</div>
+        <div style="margin-top:14px;">
+  <div class="chip-zone">
+    <div class="chip" id="incidentToggle">Incident peropératoire</div>
+  </div>
+
+  <div id="incidentBlock" class="hidden" style="margin-top:10px;">
+    <textarea id="incidentText" placeholder="Décrire l’incident..." style="height:80px;"></textarea>
+  </div>
+</div>
+      </div>
+
+      <div class="mini-card" id="antibioCard">
+        <h3>Antibioprophylaxie</h3>
+        <div class="chip-zone" id="antibioOptions"></div>
+
+        <div id="antibioOtherBlock" class="hidden" style="margin-top:10px;">
+          <input
+            type="text"
+            id="antibioOtherText"
+            placeholder="Préciser l’antibioprophylaxie..."
+          >
+        </div>
+      </div>
+     <div class="mini-card" id="suitesCard">
+  <h3>Suites immédiates</h3>
+
+  <div class="chip-zone" id="reveilOptions"></div>
+       
+<div id="sedationSuitesOtherBlock" class="hidden" style="margin-top:10px;">
+  <textarea
+    id="sedationSuitesOtherText"
+    placeholder="Préciser les suites..."
+    style="height:70px;"
+  ></textarea>
+</div>
+       
+  <div id="complicationExtubationBlock" class="hidden" style="margin-top:10px;">
+    <textarea id="complicationExtubationText" placeholder="Décrire la complication à l’extubation..." style="height:70px;"></textarea>
+  </div>
+
+  <div id="intubeVentileBlock" class="hidden" style="margin-top:10px;">
+    <input type="text" id="intubeVentileReason" placeholder="Raison du transfert intubé ventilé...">
+  </div>
+
+ <div class="field" id="destinationPostopBlock" style="margin-top:10px;">
+  <label>Destination post-opératoire</label>
+  <select id="destinationPostop">
+      <option value="">Choisir...</option>
+      <option>Réanimation</option>
+      <option>USCC</option>
+      <option>Service</option>
+    </select>
+  </div>
+</div>
+    </section>
+
+    <section class="panel report-panel">
+      <div class="panel-title">Compte-rendu généré</div>
+      <textarea id="report"></textarea>
+    </section>
+
+  </main>
+</div>
+
+<script src="./data.js"></script>
+<script src="./rules.js"></script>
+<script src="./ui.js"></script>
+<script src="./report.js"></script>
+<script src="./app.js"></script>
+
+</body>
+</html>

@@ -870,19 +870,23 @@ const dodo = ms => new Promise(r => setTimeout(r, ms));
     V('saisie close (planning pas encore généré) : cadenas, ambre, « Saisie close »', c.icone === 'lock' && c.teinte === 'ambre' && /Saisie close/.test(c.sousTitre), c);
   }
 
-  /* ═══ Le module « CR d'anesthésie » a été retiré du portail ═══
+  /* ═══ Le module « CR d'anesthésie » : revenu sans nom ni logo ═══
      (07/09/2026) Le générateur portait le logo officiel de l'établissement et la
      liste nominative des praticiens sur une page publique sans code d'accès.
-     Il a été retiré en entier. Ce scénario remplace l'ancien §29 (qui vérifiait
-     que la tuile ne s'affichait que sur grand écran) : il garde la porte fermée
-     et échouera si le module revient sans décision explicite. */
+     Il avait été retiré en entier.
+     (29/10/2026) Remis en service par décision du responsable, SANS logo et SANS
+     aucun nom : anesthésiste et chirurgien se tapent en texte libre. Pas de
+     tuile : il s'ouvre par son adresse, sur les ordinateurs du bloc. Les verrous
+     détaillés (aucun nom, aucune image d'établissement, aucun appel réseau) sont
+     dans banc_cr_anesthesie.js. */
   {
-    console.log('\n═══ 29. Le module CR d\'anesthésie est absent ═══');
+    console.log('\n═══ 29. Le module CR d\'anesthésie est revenu, sans nom ni logo ═══');
     const src = fs.readFileSync('../index.html', 'utf8');
-    V('aucune tuile ne pointe vers le module', !/cr-anesth/.test(src));
-    V('le dossier du module n\'existe plus', !fs.existsSync('../cr-anesthesie'));
-    V('aucun logo d\'établissement dans le dépôt',
-      !fs.existsSync('../cr-anesthesie/logo-etablissement.png'));
+    /* Pas de tuile : on ouvre le module en tapant son adresse sur un PC du bloc. */
+    V('aucune tuile ne pointe vers le module (accès par l\'adresse)', !/cr-anesth/.test(src));
+    V('le dossier du module existe', fs.existsSync('../cr-anesthesie/index.html'));
+    V('aucun logo dans le dossier du module',
+      fs.readdirSync('../cr-anesthesie').filter(n => /logo/i.test(n)).length === 0);
     /* La clause `pc` du filtre n'existait que pour cette tuile : elle part avec
        elle, sinon on garde une condition que plus aucune tuile ne déclenche. */
     V('la clause d\'écran du filtre a disparu', !/t\.pc/.test(src));
