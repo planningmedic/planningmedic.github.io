@@ -79,6 +79,14 @@ chip.className =
       x !== (item === "Atracurium" ? "Rocuronium" : "Atracurium")
     );
     state.antagonisation = false;
+
+    /* (29/10/2026) Curare non dépolarisant ⇒ TOF coché d'office (décision du
+       MAR). Une seule fois, au choix du curare : on peut le décocher ensuite. */
+    if(!state.monitorage.includes("TOF")){
+      state.monitorage.push("TOF");
+      createChips("monitorage", DATA.monitorage, "monitorage");
+      renderMonitorageDetails();
+    }
   }
 
   if(item === "Célocurine" && state.curare.includes("Célocurine")){

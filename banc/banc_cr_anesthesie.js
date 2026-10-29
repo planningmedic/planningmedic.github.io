@@ -101,6 +101,25 @@ console.log('\n═══ 2. La page fonctionne : intervention, noms tapés, comp
   w.confirm = q => { questions.push(q); return true; };
   $('resetBtn').click();
   V('accepté, la page se recharge', erreurs.some(e => /reload|navigation/i.test(e)), erreurs);
+
+  /* (29/10/2026) Curare non dépolarisant ⇒ TOF coché d'office, mais décochable. */
+  erreurs.length = 0;
+  spe.value = 'Orthopédie'; evt(spe, 'change');
+  const g2 = d.querySelector('.geste-select'); g2.value = 'PTH'; evt(g2, 'change');
+  const puce = (zone, txt) => [...$(zone).children].find(c => c.textContent === txt);
+  const tofActif = () => !!puce('monitorage', 'TOF') && puce('monitorage', 'TOF').classList.contains('active');
+  V('avant le curare, TOF n\'est pas coché', !tofActif());
+  puce('curare', 'Rocuronium').click();
+  V('Rocuronium coché ⇒ TOF coché d\'office', tofActif());
+  V('le CR mentionne le TOF', /TOF/.test($('report').value));
+  puce('monitorage', 'TOF').click();
+  V('TOF se décoche à la main', !tofActif());
+  puce('curare', 'Atracurium').click();
+  V('changer de curare ne recoche pas le TOF… sauf s\'il manque : Atracurium ⇒ TOF', tofActif());
+  puce('monitorage', 'TOF').click();
+  puce('curare', 'Aucun').click();
+  V('« Aucun » curare ne coche pas le TOF', !tofActif());
+  V('aucune erreur pendant le curare', erreurs.length === 0, erreurs);
 }
 
 console.log('\n═══ 3. Pas de tuile : le module s\'ouvre par son adresse ═══');
