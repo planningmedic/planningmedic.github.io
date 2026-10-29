@@ -466,3 +466,8 @@ box-shadow: 0 4px 12px rgba(176,48,96,.28);
 .laryngo-icon{
   pointer-events:none;
 }
+
+/* (29/10/2026) Détail de chaque bloc d'ALR */
+.alr-bloc-titre{
+  font-weight:600;
+}

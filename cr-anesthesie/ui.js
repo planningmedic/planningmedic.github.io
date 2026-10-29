@@ -291,6 +291,38 @@ function renderNeuraxialDetails(){
   if(!hasPeridurale){
     $("periduraleNiveau").value = "";
   }
+
+  /* (29/10/2026) Produit/dose et adjuvants, en texte libre, par technique.
+     Vides au départ : rien n'est écrit dans le CR tant qu'ils le restent. */
+  const box = $("neuraxialDetailsBox");
+  box.innerHTML = "";
+
+  state.neuraxial.forEach(n=>{
+    const d = state.neuraxialDetails[n] || (state.neuraxialDetails[n] = {});
+
+    const bloc = document.createElement("div");
+    bloc.className = "detail-box neuraxial-bloc";
+    bloc.dataset.technique = n;
+    bloc.style.marginTop = "8px";
+
+    const titre = document.createElement("div");
+    titre.className = "alr-bloc-titre";
+    titre.textContent = n;
+    bloc.appendChild(titre);
+
+    [["produit", "Produit et dose"], ["adjuvants", "Adjuvants et doses (facultatif)"]]
+      .forEach(([cle, libelle])=>{
+        const i = document.createElement("input");
+        i.type = "text";
+        i.className = "neuraxial-" + cle + " mt8";
+        i.placeholder = libelle;
+        i.value = d[cle] || "";
+        i.oninput = ()=>{ d[cle] = i.value; };
+        bloc.appendChild(i);
+      });
+
+    box.appendChild(bloc);
+  });
 }
 
 function renderAntibioDetails(){
@@ -408,61 +440,101 @@ function renderALRDetails(){
     $("alrOtherText").value = "";
   }
 
-  let ktBox = $("continuousALRBox");
-
-  if(!ktBox){
-    ktBox = document.createElement("div");
-    ktBox.id = "continuousALRBox";
-    ktBox.style.marginTop = "10px";
-    $("alrCard").appendChild(ktBox);
-  }
-
-  ktBox.innerHTML = "";
+  /* (29/10/2026) Un encadré par bloc coché : produit, volume, échoguidage,
+     neurostimulation, KT. Tout est vide ou décoché au départ : le CR n'écrit
+     que ce qui a été saisi. */
+  const box = $("alrDetailsBox");
+  box.innerHTML = "";
 
   state.alr.forEach(alr=>{
+    const d = state.alrDetails[alr] || (state.alrDetails[alr] = {});
 
-    if(!CONTINUOUS_ALR.includes(alr)) return;
+    const bloc = document.createElement("div");
+    bloc.className = "detail-box alr-bloc";
+    bloc.dataset.alr = alr;
+    bloc.style.marginTop = "8px";
 
-    const row = document.createElement("div");
-    row.style.marginTop = "8px";
+    const titre = document.createElement("div");
+    titre.className = "alr-bloc-titre";
+    titre.textContent = alr === "Autre" ? "ALR précisée ci-dessus" : alr;
+    bloc.appendChild(titre);
 
-    const chip = document.createElement("div");
-    chip.className =
-      "chip sub-chip" +
-      (state.continuousALR[alr] ? " active" : "");
+    const ligne = document.createElement("div");
+    ligne.className = "inline mt8";
 
-    chip.textContent = "KT continu";
-    chip.style.display = "inline-flex";
-    chip.style.width = "fit-content";
-    chip.onclick = ()=>{
-      state.continuousALR[alr] =
-        !state.continuousALR[alr];
-
+    const sel = document.createElement("select");
+    sel.className = "alr-produit";
+    fillSelect(sel, [...ANESTHESIQUES_LOCAUX, "Autre"], "Produit...");
+    sel.value = d.produit || "";
+    sel.onchange = ()=>{
+      d.produit = sel.value;
+      if(sel.value !== "Autre") d.produitAutre = "";
       renderALRDetails();
-      renderReport();
     };
+    ligne.appendChild(sel);
 
-    row.appendChild(chip);
+    const vol = document.createElement("input");
+    vol.type = "number";
+    vol.className = "alr-volume";
+    vol.placeholder = "mL";
+    vol.min = "0";
+    vol.value = d.volume || "";
+    vol.oninput = ()=>{ d.volume = vol.value; };
+    ligne.appendChild(vol);
+    bloc.appendChild(ligne);
 
-    if(state.continuousALR[alr]){
-
-      const input = document.createElement("input");
-      input.type = "number";
-      input.placeholder = "mL/h";
-      input.value = state.continuousALRText[alr] || "";
-      input.style.marginTop = "8px";
-
-      input.oninput = ()=>{
-        state.continuousALRText[alr] = input.value;
-        renderReport();
-      };
-
-      row.appendChild(input);
+    if(d.produit === "Autre"){
+      const autre = document.createElement("input");
+      autre.type = "text";
+      autre.className = "alr-produit-autre mt8";
+      autre.placeholder = "Préciser le produit...";
+      autre.value = d.produitAutre || "";
+      autre.oninput = ()=>{ d.produitAutre = autre.value; };
+      bloc.appendChild(autre);
     }
 
-    ktBox.appendChild(row);
+    const puces = document.createElement("div");
+    puces.className = "chip-zone mt8";
+
+    const puce = (libelle, cle, classe)=>{
+      const c = document.createElement("div");
+      c.className = "chip sub-chip " + classe + (d[cle] ? " active" : "");
+      c.textContent = libelle;
+      c.onclick = ()=>{
+        d[cle] = !d[cle];
+        renderALRDetails();
+        renderReport();
+      };
+      puces.appendChild(c);
+    };
+
+    puce("Échoguidé", "echo", "alr-echo");
+    puce("Neurostimulation", "neurostim", "alr-neurostim");
+    if(CONTINUOUS_ALR.includes(alr) || alr === "Autre"){
+      puce("KT continu", "kt", "alr-kt");
+    }
+    bloc.appendChild(puces);
+
+    if(d.kt){
+      const kt = document.createElement("input");
+      kt.type = "text";
+      kt.className = "alr-kt-texte mt8";
+      kt.placeholder = "Produit et débit du KT (facultatif)";
+      kt.value = d.ktTexte || "";
+      kt.oninput = ()=>{ d.ktTexte = kt.value; };
+      bloc.appendChild(kt);
+    }
+
+    box.appendChild(bloc);
   });
 }
+
+/* Produits proposés pour l'ALR périphérique : la liste de la page d'origine. */
+const ANESTHESIQUES_LOCAUX = [
+  "Ropivacaïne 0,2%", "Ropivacaïne 0,375%", "Ropivacaïne 0,5%",
+  "Mépivacaïne 1%", "Mépivacaïne 1,5%", "Mépivacaïne 2%",
+  "Lidocaïne 1%", "Lidocaïne 2%", "Lidocaïne 2% adrénalinée"
+];
 
 function renderECTMedications(){
   const box = $("induction");

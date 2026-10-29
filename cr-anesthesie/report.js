@@ -200,56 +200,61 @@ if(state.analgesie.length){
   }
 }
 
-  if(state.alr.length){
-  const alrList = state.alr
-    .map(x => x === "Autre" ? $("alrOtherText")?.value?.trim() : x)
-    .filter(Boolean);
+  /* (29/10/2026) Une ligne par bloc, avec seulement ce qui a été saisi :
+     ni produit, ni volume, ni échoguidage écrits d'office. */
+  const lignesALR = [];
 
-  if(alrList.length){
+  state.alr.forEach(alr=>{
+    const nom = alr === "Autre" ? $("alrOtherText")?.value?.trim() : alr;
+    if(!nom) return;
+
+    const d = state.alrDetails?.[alr] || {};
+    let ligne = nom;
+
+    const reperage = [
+      d.echo ? "échoguidage" : "",
+      d.neurostim ? "neurostimulation" : ""
+    ].filter(Boolean);
+    if(reperage.length) ligne += `, sous ${reperage.join(" et ")}`;
+
+    const produit = d.produit === "Autre" ? (d.produitAutre || "").trim() : (d.produit || "");
+    const volume = (d.volume || "").toString().trim();
+    if(volume && produit) ligne += `, ${volume} mL de ${produit}`;
+    else if(produit) ligne += `, ${produit}`;
+    else if(volume) ligne += `, ${volume} mL`;
+
+    if(d.kt){
+      ligne += ", puis mise en place d’un cathéter périnerveux continu";
+      const kt = (d.ktTexte || "").trim();
+      if(kt) ligne += ` (${kt})`;
+    }
+
+    lignesALR.push(ligne + ".");
+  });
+
+  if(lignesALR.length){
     txt += "ALR PÉRIPHÉRIQUE\n";
-    let alrSentence =
-  `ALR de type ${alrList.join(", ")} réalisée de manière échoguidée avec ${$("localVolume").value} mL de ${$("localAgent").value}`;
-
-const ktList = [];
-
-alrList.forEach(alr=>{
-
-  if(state.continuousALR?.[alr]){
-
-    let ktTxt =
-  `puis mise en place d’un cathéter périnerveux continu`;
-
-const precision =
-  state.continuousALRText?.[alr];
-
-if(precision){
-  ktTxt += ` (ropivacaïne 0,2% à ${precision} mL/h)`;
-}
-
-    ktList.push(ktTxt);
+    txt += lignesALR.join("\n") + "\n\n";
   }
-});
-
-if(ktList.length){
-  alrSentence += `. ${ktList.join(", ")}`;
-}
-
-txt += alrSentence + ".\n\n";
-  }
-}
 
   if(state.neuraxial.length){
     txt += "ALR NEURAXIALE\n";
 
     state.neuraxial.forEach(n=>{
+      const d = state.neuraxialDetails?.[n] || {};
+      txt += `${n} réalisée`;
+
       if(n === "Péridurale" || n === "Péridurale thoracique"){
         const niveau = $("periduraleNiveau").value;
-        txt += `${n} réalisée`;
         if(niveau) txt += ` au niveau ${niveau}`;
-        txt += ".\n";
-      }else{
-        txt += `${n} réalisée.\n`;
       }
+
+      const produit = (d.produit || "").trim();
+      const adjuvants = (d.adjuvants || "").trim();
+      if(produit) txt += ` : ${produit}`;
+      if(adjuvants) txt += `${produit ? "," : " :"} adjuvants : ${adjuvants}`;
+
+      txt += ".\n";
     });
 
     txt += "\n";

@@ -17,9 +17,9 @@ const state = {
   antibio: "",
   typeAnesth: "",
   alr: [],
-  continuousALR: {},
-  continuousALRText: {},
+  alrDetails: {},
   neuraxial: [],
+  neuraxialDetails: {},
   reveil: [],
   transfusionActive: false,
   transfusion: [],
@@ -829,12 +829,14 @@ const neuraxialList = [...neuraxials];
     $("alrCard").classList.remove("hidden");
     createChips("alrOptions", alrList, "alr");
   }
+  renderALRDetails();
 
   if(neuraxialList.length === 0){
     $("neuraxialCard").classList.add("hidden");
     state.neuraxial = [];
     $("periduraleDetails").classList.add("hidden");
     $("periduraleNiveau").value = "";
+    $("neuraxialDetailsBox").innerHTML = "";
   }else{
     $("neuraxialCard").classList.remove("hidden");
     createChips("neuraxialOptions", neuraxialList, "neuraxial");

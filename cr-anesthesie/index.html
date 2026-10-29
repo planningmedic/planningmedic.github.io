@@ -183,23 +183,9 @@
   style="margin-top:8px;"
   placeholder="Préciser l’ALR..."
 >
-        <div class="inline mt8">
-       <select id="localAgent">
-  <option>Ropivacaïne 0,2%</option>
-  <option>Ropivacaïne 0,375%</option>
-  <option>Ropivacaïne 0,5%</option>
-
-  <option>Mépivacaïne 1%</option>
-  <option>Mépivacaïne 1,5%</option>
-  <option>Mépivacaïne 2%</option>
-
-  <option>Lidocaïne 1%</option>
-  <option>Lidocaïne 2%</option>
-  <option>Lidocaïne 2% adrénalinée</option>
-</select>
-
-          <input type="number" id="localVolume" value="20" placeholder="mL">
-        </div>
+        <!-- (29/10/2026) Détail bloc par bloc (produit, volume, repérage, KT),
+             rempli par renderALRDetails() : plus rien de pré-rempli. -->
+        <div id="alrDetailsBox"></div>
       </div>
 
       <div class="mini-card hidden" id="neuraxialCard">
@@ -213,6 +199,8 @@
             placeholder="Niveau de ponction, ex : T7-T8"
           >
         </div>
+
+        <div id="neuraxialDetailsBox"></div>
       </div>
 
       <button class="action-btn hidden" id="showPeropBtn" type="button">

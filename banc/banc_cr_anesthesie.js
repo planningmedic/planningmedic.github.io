@@ -212,6 +212,68 @@ console.log('\n═══ 2 ter. Type d\'anesthésie : AG / AG + ALR / ALR seule 
   V('aucune erreur pendant ces bascules', p.erreurs.length === 0, p.erreurs);
 }
 
+console.log('\n═══ 2 quater. Détail de l\'ALR, bloc par bloc, rien d\'écrit d\'office (29/10/2026) ═══');
+{
+  const p = ouvrirPage();
+  const { d, $, evt, puce, choisir, cr } = p;
+  const section = t => (cr().split(t + '\n')[1] || '').split('\n\n')[0];
+  const bloc = n => d.querySelector(`.alr-bloc[data-alr="${n}"]`);
+
+  V('plus de produit ni de volume pré-remplis dans la page', !$('localAgent') && !$('localVolume'));
+
+  choisir('Orthopédie', 'PTG');
+  puce('typeAnesthOptions', 'AG + ALR').click();
+  puce('alrOptions', 'Bloc fémoral').click();
+  V('bloc coché sans rien saisir ⇒ le CR ne nomme que le bloc', section('ALR PÉRIPHÉRIQUE') === 'Bloc fémoral.', section('ALR PÉRIPHÉRIQUE'));
+  V('ni échoguidage, ni produit, ni volume inventés', !/écho|mL|caïne/i.test(section('ALR PÉRIPHÉRIQUE')));
+  V('un encadré de détail par bloc coché', !!bloc('Bloc fémoral') && d.querySelectorAll('.alr-bloc').length === 1);
+  V('dans l\'encadré : produit vide, volume vide, rien coché',
+    bloc('Bloc fémoral').querySelector('.alr-produit').value === '' &&
+    bloc('Bloc fémoral').querySelector('.alr-volume').value === '' &&
+    bloc('Bloc fémoral').querySelectorAll('.chip.active').length === 0);
+
+  const s = bloc('Bloc fémoral').querySelector('.alr-produit'); s.value = 'Ropivacaïne 0,375%'; evt(s, 'change');
+  const v = bloc('Bloc fémoral').querySelector('.alr-volume'); v.value = '20'; evt(v, 'input');
+  bloc('Bloc fémoral').querySelector('.alr-echo').click();
+  V('produit, volume et échoguidage saisis ⇒ écrits',
+    section('ALR PÉRIPHÉRIQUE') === 'Bloc fémoral, sous échoguidage, 20 mL de Ropivacaïne 0,375%.', section('ALR PÉRIPHÉRIQUE'));
+
+  bloc('Bloc fémoral').querySelector('.alr-kt').click();
+  V('KT coché sans précision ⇒ pas de produit inventé pour le KT',
+    /cathéter périnerveux continu\.$/.test(section('ALR PÉRIPHÉRIQUE')) && !/0,2%/.test(section('ALR PÉRIPHÉRIQUE')), section('ALR PÉRIPHÉRIQUE'));
+  const k = bloc('Bloc fémoral').querySelector('.alr-kt-texte'); k.value = 'précision du KT'; evt(k, 'input');
+  V('KT précisé ⇒ la précision est reprise telle quelle', /cathéter périnerveux continu \(précision du KT\)\./.test(cr()), section('ALR PÉRIPHÉRIQUE'));
+
+  puce('alrOptions', 'Bloc saphène').click();
+  V('deuxième bloc : sa propre ligne, sans hériter du premier',
+    section('ALR PÉRIPHÉRIQUE').split('\n')[1] === 'Bloc saphène.', section('ALR PÉRIPHÉRIQUE'));
+  V('deuxième bloc : son propre encadré', d.querySelectorAll('.alr-bloc').length === 2);
+
+  puce('alrOptions', 'Autre').click();
+  $('alrOtherText').value = 'Bloc tapé à la main'; evt($('alrOtherText'), 'input');
+  const sa = bloc('Autre').querySelector('.alr-produit'); sa.value = 'Autre'; evt(sa, 'change');
+  const pa = bloc('Autre').querySelector('.alr-produit-autre'); pa.value = 'Produit tapé'; evt(pa, 'input');
+  V('« Autre » : nom et produit tapés repris', /Bloc tapé à la main, Produit tapé\./.test(cr()), section('ALR PÉRIPHÉRIQUE'));
+
+  puce('alrOptions', 'Bloc fémoral').click();
+  V('bloc décoché ⇒ sa ligne et son encadré disparaissent', !/Bloc fémoral/.test(cr()) && !bloc('Bloc fémoral'));
+
+  puce('neuraxialOptions', 'Rachianesthésie').click();
+  V('rachianesthésie sans détail ⇒ « Rachianesthésie réalisée. »', /ALR NEURAXIALE\nRachianesthésie réalisée\./.test(cr()), section('ALR NEURAXIALE'));
+  const nb = d.querySelector('.neuraxial-bloc[data-technique="Rachianesthésie"]');
+  V('rachianesthésie : champs produit/dose et adjuvants, vides', !!nb &&
+    nb.querySelector('.neuraxial-produit').value === '' && nb.querySelector('.neuraxial-adjuvants').value === '');
+  const np = nb.querySelector('.neuraxial-produit'); np.value = 'produit et dose tapés'; evt(np, 'input');
+  const na = nb.querySelector('.neuraxial-adjuvants'); na.value = 'adjuvants tapés'; evt(na, 'input');
+  V('rachianesthésie : produit et adjuvants repris',
+    /Rachianesthésie réalisée : produit et dose tapés, adjuvants : adjuvants tapés\./.test(cr()), section('ALR NEURAXIALE'));
+
+  puce('neuraxialOptions', 'Péridurale').click();
+  $('periduraleNiveau').value = 'L3-L4'; evt($('periduraleNiveau'), 'input');
+  V('péridurale : niveau repris, rien d\'autre inventé', /Péridurale réalisée au niveau L3-L4\./.test(cr()), section('ALR NEURAXIALE'));
+  V('aucune erreur pendant la saisie de l\'ALR', p.erreurs.length === 0, p.erreurs);
+}
+
 console.log('\n═══ 3. Pas de tuile : le module s\'ouvre par son adresse ═══');
 {
   /* (29/10/2026) Décision du responsable : outil d'ordinateur du bloc (copier-coller
