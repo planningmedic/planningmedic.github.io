@@ -578,6 +578,43 @@ console.log('\n═══ J1. Service worker de l\'outil : hors réseau et mises 
   await p.vie('activate');
   V('service worker du portail : il garde le cache de l\'outil ACR', p.noms.has('acr-v1'));
   V('…et continue de supprimer ses propres anciens caches', !p.noms.has('pm-sw-v1-assets') && p.noms.has('pm-sw-v2-assets') && p.noms.has('pm-sw-v2-fonts'));
+  /* (29/10/2026) DÉFAUT TROUVÉ EN PRODUCTION : au retour sur l'appli restée ouverte,
+     l'iPhone réaffichait une copie de l'accueil vieille de deux semaines. Le service
+     worker du portail demande désormais chaque page au réseau, et garde la dernière
+     version reçue pour le seul cas sans réseau. */
+  {
+    const RACINE = 'https://planningmedic.github.io/';
+    const srvP = { '/': 'ACCUEIL-v1', '/index.html': 'ACCUEIL-v1', '/pense-bete/': 'PENSE-v1', '/planning.html': 'PLANNING-v1' };
+    const q = monde('sw.js', RACINE, srvP);
+    await q.vie('install'); await q.vie('activate');
+    let r = q.requete(RACINE, 'navigate');
+    V('portail : une page ouverte passe par le service worker et vient du réseau', r.intercepte && (await (await r.reponse()).text()) === 'ACCUEIL-v1');
+    srvP['/'] = 'ACCUEIL-v2';
+    r = q.requete(RACINE, 'navigate');
+    V('…nouvelle version publiée : affichée tout de suite (jamais une vieille copie)', (await (await r.reponse()).text()) === 'ACCUEIL-v2');
+    r = q.requete(RACINE + 'pense-bete/?x=1', 'navigate'); await r.reponse();
+    const pages = q.noms.get('pm-sw-v2-pages');
+    V('…la dernière version reçue est gardée, rangée sans le « ?… » de l\'adresse',
+      !!pages && (await (await pages.match(RACINE)).text()) === 'ACCUEIL-v2' && [...pages.m.keys()].every(k => !k.includes('?')), pages && [...pages.m.keys()]);
+    q.reseau.en = false;
+    r = q.requete(RACINE, 'navigate');
+    V('sans réseau : la copie de la DERNIÈRE ouverture (v2), pas une ancienne', (await (await r.reponse()).text()) === 'ACCUEIL-v2');
+    r = q.requete(RACINE + 'pense-bete/', 'navigate');
+    V('sans réseau : le pense-bête s\'ouvre quand même', (await (await r.reponse()).text()) === 'PENSE-v1');
+    r = q.requete(RACINE + 'planning.html', 'navigate');
+    const jamais = await r.reponse();
+    V('sans réseau, page jamais ouverte : une erreur réseau ordinaire, pas une autre page', jamais.type === 'error' || jamais.status === 0, [jamais.type, jamais.status]);
+    q.reseau.en = true;
+    V('les scripts gardent leur copie (rien d\'autre ne change), version.js reste au réseau',
+      q.requete(RACINE + 'partage/portail.js').intercepte && !q.requete(RACINE + 'version.js').intercepte);
+    V('une requête POST (API) n\'est jamais interceptée', !q.requete(RACINE + 'index.html', 'navigate', 'POST').intercepte);
+    const swTxt = lire('sw.js');
+    V('le service worker ne touche jamais au stockage local (pense-bête, réglages)', !/localStorage|sessionStorage|indexedDB/.test(swTxt));
+    ['pm-sw-v1-pages', 'acr-v1'].forEach(n => q.noms.set(n, new (pages.constructor)()));
+    await q.vie('activate');
+    V('activation : garde ses copies de pages actuelles et celles de l\'outil ACR, supprime les anciennes',
+      q.noms.has('pm-sw-v2-pages') && q.noms.has('acr-v1') && !q.noms.has('pm-sw-v1-pages'));
+  }
   V('la page enregistre son service worker dans son propre périmètre',
     /navigator\.serviceWorker\.register\("sw\.js", \{ scope: "\.\/" \}\)/.test(PAGE));
 }

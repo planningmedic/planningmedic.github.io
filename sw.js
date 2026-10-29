@@ -1,11 +1,15 @@
 /*!
  * sw.js — Service worker (candidat conservateur).
- * Ne met en cache QUE les assets figés (js/css/images/polices).
- * API Google Apps Script, .json et HTML : réseau direct, JAMAIS interceptés.
+ * Met en cache les assets figés (js/css/images/polices), cache d'abord.
+ * API Google Apps Script et .json : réseau direct, JAMAIS interceptés.
+ * (29/10/2026) Pages (navigations) : RÉSEAU D'ABORD, copie de la dernière
+ * ouverture réussie si pas de réseau — voir pageReseauDabord().
  */
 var VERSION = 'pm-sw-v2';
 var ASSET_CACHE = VERSION + '-assets';
 var FONT_CACHE  = VERSION + '-fonts';
+var PAGE_CACHE  = VERSION + '-pages';   // (29/10/2026) dernière version vue de chaque page
+var PAGE_DELAI  = 6000;                 // au-delà, sans réponse du réseau : la copie
 
 self.addEventListener('install', function (e) { self.skipWaiting(); });
 
@@ -30,10 +34,38 @@ self.addEventListener('fetch', function (e) {
   /* (14/10/2026, v1.23.1) Le numéro de version doit toujours être le vrai : jamais en copie.
      Avant : servi depuis la copie, il affichait l'ancien numéro pendant une ouverture. */
   if (url.origin === self.location.origin && /\/version\.js$/.test(url.pathname)) return;
+  /* (29/10/2026) DÉFAUT TROUVÉ EN PRODUCTION : au retour sur l'appli restée ouverte,
+     l'iPhone réaffichait parfois une copie de l'accueil vieille de deux semaines
+     (« Choisissez une rubrique du service. », ancien habillage) — sa propre copie,
+     puisque ce service worker ne touchait pas aux pages. Désormais chaque page est
+     demandée au réseau, sans copie intermédiaire ; la dernière version reçue est
+     gardée et ne sert QUE sans réseau. Le stockage local (pense-bête, réglages) est
+     un autre tiroir : un service worker n'y a pas accès. */
+  if (req.mode === 'navigate' && url.origin === self.location.origin) { e.respondWith(pageReseauDabord(req, url)); return; }
   if (isFont(url.hostname)) { e.respondWith(cacheFirst(req, FONT_CACHE)); return; }
   if (url.origin === self.location.origin && isStaticAsset(url)) { e.respondWith(cacheFirst(req, ASSET_CACHE)); return; }
   // HTML, .json, autres cross-origin → réseau direct (non intercepté).
 });
+
+/* Page : le réseau d'abord, en revalidant (jamais la copie HTTP du téléphone) ; la
+   copie gardée est rangée SANS le « ?… » de l'adresse (aucun code ni paramètre
+   conservé) et ne ressort que si le réseau manque ou ne répond pas à temps. */
+async function pageReseauDabord(req, url) {
+  var cle = url.origin + url.pathname;
+  try {
+    var res = await Promise.race([
+      fetch(req.url, { cache: 'no-cache', credentials: 'same-origin' }),
+      new Promise(function (_, ko) { setTimeout(function () { ko(new Error('délai')); }, PAGE_DELAI); })
+    ]);
+    if (res && res.redirected) return Response.redirect(res.url, 302);   // iPhone : pas de réponse redirigée pour une page
+    if (res && res.ok) { var c = await caches.open(PAGE_CACHE); await c.put(cle, res.clone()); }
+    return res;
+  } catch (e) {
+    var copie = await (await caches.open(PAGE_CACHE)).match(cle);
+    if (copie) return copie;
+    try { return await fetch(req); } catch (e2) { return Response.error(); }
+  }
+}
 
 async function cacheFirst(req, cacheName) {
   var cached = await caches.match(req);
