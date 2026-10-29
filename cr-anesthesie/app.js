@@ -583,18 +583,9 @@ state.analgesie = state.analgesie.filter(x =>
 
 renderAnalgesieDetails();
     
-    createChips(
-  "antibioOptions",
-  ["Aucune", "Autre"],
-  "antibio",
-  true
-);
-
-if(!["Aucune", "Autre"].includes(state.antibio)){
-  state.antibio = "Aucune";
-}
-
-renderAntibioDetails();
+    /* (29/10/2026) La sédation forçait « Aucune » : la céfuroxime intracamérulaire
+       de la cataracte (RFE 2024 V3.0, GRADE 1, p. 45) n'apparaissait jamais. */
+    renderAntibio();
     
     state.reveil = state.reveil.filter(x =>
   ["Simples", "Autre"].includes(x)

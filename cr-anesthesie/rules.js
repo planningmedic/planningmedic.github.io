@@ -45,18 +45,23 @@ const ALR_NEURAXIAL_MAP = {
   "Cystectomie totale": ["Péridurale thoracique"]
 };
 
+/* ANTIBIOPROPHYLAXIE — source : RFE SFAR/SPILF « Antibioprophylaxie en chirurgie
+   et médecine interventionnelle » 2024, V3.0 du 04/05/2026 (PDF infectiologie.com).
+   (29/10/2026) Lignes corrigées ou ajoutées d'après ce document : page en commentaire.
+   Une intervention absente de ce tableau vaut « Aucune ». */
 const ANTIBIO_MAP = {
   "PTH": "Céfazoline",
   "PTG": "Céfazoline",
   "Ostéosynthèse cheville": "Céfazoline",
   "Ostéosynthèse poignet": "Céfazoline",
-  "Recalibrage": "Céfazoline",
+  "Recalibrage": "Aucune", // rachis sans matériel (canal lombaire étroit), p. 39
   "Canal carpien": "Aucune",
   "Hallux valgus": "Céfazoline",
   "Clou gamma": "Céfazoline",
   "Prothèse d'épaule": "Céfazoline",
   "Arthroscopie de genou": "Aucune",
   "Arthroscopie d'épaule": "Aucune",
+  "Ostéosynthèse plateau tibial": "Céfazoline", // fracture fermée, foyer ouvert, p. 75
 
   "Duodénopancréatectomie céphalique": "Céfoxitine",
   "Œsophagectomie Lewis-Santy": "Céfazoline",
@@ -72,10 +77,10 @@ const ANTIBIO_MAP = {
   "Mastectomie totale": "Céfazoline",
   "Injection Bulkamide": "Aucune",
   "Annexectomie": "Céfazoline",
-  "Hystérectomie": "Céfazoline",
+  "Hystérectomie": "Céfoxitine", // hystérectomie totale, toute voie, p. 67-68
   "CHIP": "Céfoxitine",
-  "Kystectomie ovarienne": "Céfazoline",
-  "Segmentectomie hépatique": "Céfoxitine",
+  "Kystectomie ovarienne": "Aucune", // annexes par cœlioscopie, p. 66
+  "Segmentectomie hépatique": "Céfazoline", // hépatectomie sans geste biliaire, p. 82
 
   "Lobectomie pulmonaire": "Céfazoline",
   "Segmentectomie": "Céfazoline",
@@ -107,16 +112,18 @@ const ANTIBIO_MAP = {
   "Prostatectomie totale": "Aucune",
   "Biopsies de prostate": "Céfazoline",
   "REP HOLEP": "Céfazoline",
-  "REV": "Céfazoline",
+  "REV": "Aucune", // RTUV, GRADE 1, p. 88
   "URS + Laser": "Céfazoline",
   "Montée de JJ": "Céfazoline",
   "Cystectomie totale": "Céfoxitine",
+  "Néphrectomie": "Aucune", // chirurgie du rein, p. 89
+  "Posthectomie": "Aucune", // verge sans prothèse, p. 89
 
   "Septoplastie": "Aucune",
   "Rhinoplastie": "Aucune",
   "Thyroïdectomie totale": "Aucune",
   "Thyroïdectomie partielle": "Aucune",
-  "Extraction DDS": "Amoxicilline / Acide clavulanique",
+  "Extraction DDS": "Amoxicilline", // dents incluses ou ectopiques, GRADE 1, p. 43-44
   "Carcinome cutané": "Aucune",
   "Cholestéatome": "Aucune",
   "Adénoidectomie": "Aucune",
@@ -125,7 +132,8 @@ const ANTIBIO_MAP = {
   "Adénoamygdalectomie": "Aucune",
 
   "Varices": "Aucune",
-  "Cataracte": "Céfuroxime",
+  "Cataracte": "Céfuroxime intracamérulaire", // GRADE 1, p. 45
+  "Blépharoplastie": "Aucune", // paupières, GRADE 1, p. 45
   "Amputation abdomino-périnéale": "Céfoxitine",
 "Sigmoïdectomie": "Céfoxitine",
 "Résection grêlique": "Céfoxitine",
@@ -144,7 +152,8 @@ const ANTIBIO_DOSES = {
   "Céfoxitine": "2 g",
   "Amoxicilline / Acide clavulanique": "2 g",
   "Métronidazole": "1 g",
-  "Céfuroxime": ""
+  "Amoxicilline": "2 g", // p. 43-44
+  "Céfuroxime intracamérulaire": "1 mg/0,1 mL en fin d'intervention" // p. 45
 };
 
 const SIMPLE_PEROP_SPECIALITES = [

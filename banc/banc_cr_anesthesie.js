@@ -80,7 +80,8 @@ console.log('\n═══ 2. La page fonctionne : intervention, noms tapés, comp
   V('le CR reprend le nom tapé pour l\'anesthésiste', /Anesthésiste : Exemple/.test(cr), cr.slice(0, 160));
   V('le CR reprend le nom tapé pour le chirurgien', /Chirurgien : Modèle/.test(cr), cr.slice(0, 160));
   V('le CR nomme l\'intervention', /Cataracte/.test(cr));
-
+  V('cataracte : céfuroxime intracamérulaire 1 mg/0,1 mL (RFE 2024 V3.0 p. 45)',
+    /Antibioprophylaxie par Céfuroxime intracamérulaire 1 mg\/0,1 mL en fin d'intervention\./.test(cr), cr.match(/Antibio.*/));
   /* Sans nom tapé, la ligne reste vide : rien n'est inventé. */
   anes.value = ''; evt(anes, 'input');
   V('sans nom tapé, aucun nom n\'apparaît', /Anesthésiste : \n/.test($('report').value), $('report').value.slice(0, 80));
@@ -120,6 +121,23 @@ console.log('\n═══ 2. La page fonctionne : intervention, noms tapés, comp
   puce('curare', 'Aucun').click();
   V('« Aucun » curare ne coche pas le TOF', !tofActif());
   V('aucune erreur pendant le curare', erreurs.length === 0, erreurs);
+}
+
+console.log('\n═══ 2 bis. Antibioprophylaxie : RFE SFAR/SPILF 2024 V3.0 (04/05/2026) ═══');
+{
+  /* (29/10/2026) Lignes corrigées d'après la RFE ; chaque valeur a été relue dans le PDF. */
+  const ctx = {};
+  require('vm').runInNewContext(lire('rules.js') + ';this.M = ANTIBIO_MAP; this.D = ANTIBIO_DOSES;', ctx);
+  const attendu = {
+    'Recalibrage': 'Aucune', 'Ostéosynthèse plateau tibial': 'Céfazoline', 'Hystérectomie': 'Céfoxitine',
+    'Kystectomie ovarienne': 'Aucune', 'Segmentectomie hépatique': 'Céfazoline', 'REV': 'Aucune',
+    'Néphrectomie': 'Aucune', 'Posthectomie': 'Aucune', 'Extraction DDS': 'Amoxicilline',
+    'Cataracte': 'Céfuroxime intracamérulaire', 'Blépharoplastie': 'Aucune',
+  };
+  for (const [g, a] of Object.entries(attendu)) V(`${g} → ${a}`, ctx.M[g] === a, ctx.M[g]);
+  V('amoxicilline : 2 g (p. 43-44)', ctx.D['Amoxicilline'] === '2 g', ctx.D['Amoxicilline']);
+  const sansDose = Object.values(ctx.M).filter(a => a !== 'Aucune' && !ctx.D[a]);
+  V('chaque antibiotique proposé a une dose', sansDose.length === 0, [...new Set(sansDose)]);
 }
 
 console.log('\n═══ 3. Pas de tuile : le module s\'ouvre par son adresse ═══');
