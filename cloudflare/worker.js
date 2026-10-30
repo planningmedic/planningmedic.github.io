@@ -66,11 +66,13 @@
      j_{ts}_{aléa}       une fiche en attente (journal d'intentions)
      jfait_{…}           registre d'audit, 90 jours
      jsignal             drapeau « la file n'est pas vide » (2026-08-20.1)
+     pbw_{id}            boîte CHIFFRÉE du widget « Patients lib » (2026-10-30.1)
+     pbu_{idMar}         la boîte de ce MAR (une seule par personne)
    Chaque valeur est une chaîne JSON. Clé absente = donnée pas encore
    poussée : le client se replie sur le circuit GAS.
    ═══════════════════════════════════════════════════════════════════ */
 
-const VERSION = 'miroir 2026-10-20.1';
+const VERSION = 'miroir 2026-10-30.1';
 
 // Clés admissibles — tout le reste est refusé à l'écriture comme à la
 // lecture. Garde-fou contre une faute de frappe côté GAS qui créerait
@@ -131,6 +133,11 @@ export default {
     if (url.pathname === '/notif-abonner') return notifAbonner(corps, env);
     if (url.pathname === '/notif-vu') return notifVu(corps, env);
     if (url.pathname === '/notif-envoyer') return notifEnvoyer(corps, env);
+    // ── Widget « Patients lib » : boîte chiffrée (30/10/2026) ──
+    if (url.pathname === '/pb-ouvrir') return pbOuvrir(corps, env);
+    if (url.pathname === '/pb-depot') return pbDepot(corps, env);
+    if (url.pathname === '/pb-lire') return pbLire(corps, env);
+    if (url.pathname === '/pb-fermer') return pbFermer(corps, env);
     return reponse({ success: false, error: 'Chemin inconnu' }, 404);
   }
 };
@@ -760,3 +767,82 @@ async function notifExpedier(sub, message, env) {
 
   function te2octets(s) { return new TextEncoder().encode(s); }
 }
+
+
+/* ═══ WIDGET « PATIENTS LIB » — BOÎTE CHIFFRÉE (30/10/2026) ══════════════
+
+   Le pense-bête (pense-bete/) chiffre SUR LE TÉLÉPHONE la liste des patients
+   des 7 prochains jours, puis la dépose ici ; le widget (Scriptable) vient la
+   relire et la déchiffre lui-même. La clé ne quitte jamais le téléphone et le
+   widget : ce Worker ne stocke qu'une suite de caractères illisible.
+
+   Quatre routes, toutes en POST :
+   - /pb-ouvrir  { code, id, jeton } : crée la boîte. Exige un CODE du portail
+                  valide (personne d'autre ne peut créer de boîte). Une seule
+                  boîte par personne : l'ancienne est effacée.
+   - /pb-depot   { id, jeton, c }    : remplace le contenu chiffré. Le jeton
+                  d'écriture n'est connu que du téléphone ; on n'en garde ici
+                  que l'empreinte SHA-256.
+   - /pb-lire    { id }              : rend { c, t }. L'identifiant (128 bits
+                  tirés au hasard) ne sert à rien sans la clé.
+   - /pb-fermer  { id, jeton }       : efface la boîte.
+   Préfixes pbw_ / pbu_ ABSENTS de CLE_VALIDE : ni /read ni /push n'y touchent. */
+
+const PB_ID = /^[A-Za-z0-9_-]{22}$/;           // 16 octets en base64url
+const PB_JETON = /^[A-Za-z0-9_-]{43}$/;        // 32 octets en base64url
+const PB_MAX = 30000;                          // ~ 300 patients : large marge
+
+async function pbBoite(corps, env) {
+  const id = String(corps && corps.id || '');
+  if (!PB_ID.test(id)) return { err: reponse({ success: false, error: 'Identifiant de boîte invalide' }, 400) };
+  const brut = await env.KV.get('pbw_' + id);
+  if (!brut) return { err: reponse({ success: false, error: 'Boîte inconnue' }, 404) };
+  let b; try { b = JSON.parse(brut); } catch (e) { return { err: reponse({ success: false, error: 'Boîte illisible' }, 500) }; }
+  return { id, b };
+}
+async function pbJetonOk(corps, b) {
+  const jeton = String(corps && corps.jeton || '');
+  return PB_JETON.test(jeton) && (await sha256hex(jeton)) === b.h;
+}
+
+async function pbOuvrir(corps, env) {
+  const code = String(corps && corps.code == null ? '' : corps.code).trim().toUpperCase();
+  const id = String(corps && corps.id || ''), jeton = String(corps && corps.jeton || '');
+  if (!code) return reponse({ success: false, error: 'Code requis' }, 403);
+  if (!PB_ID.test(id) || !PB_JETON.test(jeton)) return reponse({ success: false, error: 'Boîte mal formée' }, 400);
+  const accesBrut = await env.KV.get('acces');
+  if (!accesBrut) return reponse({ success: false, error: 'Miroir vide' }, 503);
+  let acces; try { acces = JSON.parse(accesBrut); } catch (e) { return reponse({ success: false, error: 'acces illisible' }, 500); }
+  const h = await sha256hex(code);
+  const u = (acces.users || []).find(x => x && x.h === h);
+  if (!u) return reponse({ success: false, error: 'Code invalide' }, 403);
+  const avant = await env.KV.get('pbu_' + u.id);
+  if (avant && avant !== id) await env.KV.delete('pbw_' + avant);
+  await env.KV.put('pbw_' + id, JSON.stringify({ h: await sha256hex(jeton), uid: u.id, c: '', t: 0 }));
+  await env.KV.put('pbu_' + u.id, id);
+  return reponse({ success: true, version: VERSION });
+}
+
+async function pbDepot(corps, env) {
+  const { id, b, err } = await pbBoite(corps, env); if (err) return err;
+  if (!(await pbJetonOk(corps, b))) return reponse({ success: false, error: 'Jeton invalide' }, 403);
+  const c = String(corps.c || '');
+  if (!c || c.length > PB_MAX || !/^[A-Za-z0-9_-]+$/.test(c)) return reponse({ success: false, error: 'Contenu refusé' }, 400);
+  const t = Date.now();
+  await env.KV.put('pbw_' + id, JSON.stringify({ h: b.h, uid: b.uid, c, t }));
+  return reponse({ success: true, t, version: VERSION });
+}
+
+async function pbLire(corps, env) {
+  const { b, err } = await pbBoite(corps, env); if (err) return err;
+  return reponse({ success: true, c: b.c || '', t: b.t || 0, version: VERSION });
+}
+
+async function pbFermer(corps, env) {
+  const { id, b, err } = await pbBoite(corps, env); if (err) return err;
+  if (!(await pbJetonOk(corps, b))) return reponse({ success: false, error: 'Jeton invalide' }, 403);
+  await env.KV.delete('pbw_' + id);
+  if ((await env.KV.get('pbu_' + b.uid)) === id) await env.KV.delete('pbu_' + b.uid);
+  return reponse({ success: true, version: VERSION });
+}
+

@@ -16,7 +16,12 @@
      patients ; le formulaire s'ouvre dans un panneau par le bas (bouton +) et
      reste ouvert pour le patient suivant ; toucher un patient le MODIFIE,
      le glisser vers la gauche montre « Effacer ». Sauvegarde : onglet Réglages.
-     Les données ne changent pas de forme : mêmes clés, mêmes champs. -->
+     Les données ne changent pas de forme : mêmes clés, mêmes champs.
+     (30/10/2026) WIDGET (Réglages, facultatif, éteint par défaut) : une fois
+     activé avec un code du portail, le pense-bête CHIFFRE ici même la liste des
+     7 prochains jours et la dépose sur le serveur du portail ; le widget
+     Scriptable (widget-scriptable.js) la relit et la déchiffre. La clé ne quitte
+     que vers le widget, par copier-coller. Widget éteint : aucun envoi. -->
 <meta name="robots" content="noindex, nofollow">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>Mes patients lib</title>
@@ -249,6 +254,14 @@ button.jr{font:inherit;color:inherit;background:none;border:0;border-bottom:1px 
 .grp .acte .d{display:none}
 .acte[hidden]{display:none}
 /* (16/10/2026) Sauvegarde / restauration (fichier JSON, fusion sans doublon) */
+.wg{padding-bottom:12px}
+.wg .note{font-size:14px;color:var(--mute);margin:0 0 12px;line-height:1.4}
+.wpas{padding-left:20px}.wpas li{margin-bottom:6px}
+.wg a{color:var(--acc);font-weight:600}
+.wetat{font-size:15px;font-weight:600;color:var(--ok);margin:0 0 10px}
+.wetat.ko{color:var(--warn)}
+.wcle{font-family:ui-monospace,Menlo,monospace;font-size:13px;word-break:break-all;background:var(--bg);border-radius:8px;padding:8px 10px;margin:0 0 12px;-webkit-user-select:all;user-select:all}
+.wg .row2{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:10px}
 .sv .row2{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:10px}
 .svb{font:inherit;font-weight:700;font-size:16px;background:var(--acc);color:var(--acc-ink);border:0;border-radius:10px;min-height:48px;padding:0 10px;cursor:pointer}
 .svb.non{background:var(--bg);color:var(--mute);border:1px solid var(--line)}
@@ -351,6 +364,32 @@ button.jr{font:inherit;color:inherit;background:none;border:0;border-bottom:1px 
   <!-- (30/10/2026) ONGLET RÉGLAGES : la sauvegarde y vit désormais. -->
   <div id="vR" role="tabpanel" aria-labelledby="tR" hidden>
   <h1>Réglages</h1>
+  <!-- (30/10/2026) WIDGET de l'écran d'accueil / verrouillé (appli Scriptable). -->
+  <section class="reg wg" id="wBox">
+    <h3>Widget de l'écran d'accueil</h3>
+    <div id="wOff">
+      <p class="note">Vos patients du jour sur l'écran d'accueil (initiales, secteur, Monaco / France) et leur nombre sur l'écran verrouillé, avec l'appli gratuite Scriptable. Pour cela, le pense-bête dépose une copie <b>chiffrée</b> des 7 prochains jours sur le serveur du portail : sans la clé, qui reste sur cet iPhone et dans le widget, elle est illisible.</p>
+      <div class="f"><label for="wCode">Votre code du portail</label><input id="wCode" type="password" autocomplete="off" autocapitalize="characters" spellcheck="false"></div>
+      <button type="button" class="svb" id="wOn" style="width:100%">Activer le widget</button>
+    </div>
+    <div id="wOnB" hidden>
+      <p class="wetat" id="wEtat"></p>
+      <ol class="note wpas">
+        <li>Installez <b>Scriptable</b> (App Store, gratuit).</li>
+        <li>Ouvrez <a href="widget-scriptable.js" target="_blank" rel="noopener" id="wScript">le script du widget</a>, copiez tout le texte, puis dans Scriptable : <b>+</b>, collez, nommez-le « Patients lib ».</li>
+        <li>Touchez <b>Copier la clé</b> ci-dessous, lancez le script une fois dans Scriptable et collez la clé quand il la demande.</li>
+        <li>Écran d'accueil : appui long → <b>+</b> → Scriptable → grand widget → touchez-le → Script : « Patients lib ». Même chose sur l'écran verrouillé (widget rectangle).</li>
+      </ol>
+      <div class="row2">
+        <button type="button" class="svb" id="wCopier">Copier la clé</button>
+        <button type="button" class="svb non" id="wEnv">Envoyer maintenant</button>
+      </div>
+      <p class="note">Clé du widget (à garder pour vous) :</p>
+      <p class="wcle" id="wCle"></p>
+      <button type="button" class="svb non" id="wOffB" style="width:100%">Désactiver le widget</button>
+    </div>
+    <p class="msg" id="wMsg" role="status"></p>
+  </section>
   <!-- (30/10/2026) Réglages du Compteur : venus de l'onglet Compteur, mêmes champs. -->
   <details class="reg" id="cReg">
       <summary>Compteur : point de départ et valeurs</summary>
@@ -392,7 +431,7 @@ button.jr{font:inherit;color:inherit;background:none;border:0;border-bottom:1px 
     <p class="note">Restaurer ajoute ce qui manque, sans rien effacer ni créer de doublon.</p>
     <p class="msg" id="svMsg" role="status"></p>
   </section>
-  <p class="foot">Tout est gardé sur cet appareil uniquement, rien n'est envoyé.</p>
+  <p class="foot" id="pFoot">Tout est gardé sur cet appareil uniquement, rien n'est envoyé.</p>
   </div>
 </main>
 
@@ -433,7 +472,7 @@ const JOURS=['dim','lun','mar','mer','jeu','ven','sam'];
 const MOIS=['janv','févr','mars','avr','mai','juin','juil','août','sept','oct','nov','déc'];
 
 function load(){ try{ L=JSON.parse(localStorage.getItem(KEY)||'[]'); if(!Array.isArray(L)) L=[]; }catch(e){ L=[]; storageOK=false; } }
-function save(){ try{ localStorage.setItem(KEY, JSON.stringify(L)); storageOK=true; }catch(e){ storageOK=false; } }
+function save(){ try{ localStorage.setItem(KEY, JSON.stringify(L)); storageOK=true; }catch(e){ storageOK=false; } wPlanifier(); }
 function isoToday(){ const d=new Date(); return new Date(d.getTime()-d.getTimezoneOffset()*6e4).toISOString().slice(0,10); }
 function esc(s){ return String(s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c])); }
 
@@ -1114,10 +1153,197 @@ $('svOui').addEventListener('click',()=>{
   $('svMsg').textContent='Ajouté : '+pl(b.np.length,'patient')+' et '+pl(b.na.length,'acte')+'.';
 });
 
+/* ═══ CHIFFREMENT PB1 — début ══════════════════════════════════════════════
+   (30/10/2026) Code IDENTIQUE dans pense-bete/index.html et dans
+   pense-bete/widget-scriptable.js (le banc le vérifie caractère pour caractère).
+   ChaCha20-Poly1305 (RFC 8439) écrit en JavaScript simple, sans bibliothèque ni
+   fonction du navigateur : le widget (Scriptable) n'a ni crypto.subtle ni
+   TextEncoder garantis. Le banc compare le résultat à celui de Node (OpenSSL).
+   Message chiffré = base64url( nonce 12 octets | texte chiffré | sceau 16 octets ).
+   Sans la clé (32 octets, gardée sur le téléphone et dans le widget), le serveur
+   ne voit qu'une suite de caractères illisible. */
+const PB=(function(){
+  function rotl(v,n){ return (v<<n)|(v>>>(32-n)); }
+  function u32(b,o){ return (b[o]|(b[o+1]<<8)|(b[o+2]<<16)|(b[o+3]<<24))>>>0; }
+  function qr(x,a,b,c,d){
+    x[a]=(x[a]+x[b])>>>0; x[d]=rotl(x[d]^x[a],16)>>>0;
+    x[c]=(x[c]+x[d])>>>0; x[b]=rotl(x[b]^x[c],12)>>>0;
+    x[a]=(x[a]+x[b])>>>0; x[d]=rotl(x[d]^x[a],8)>>>0;
+    x[c]=(x[c]+x[d])>>>0; x[b]=rotl(x[b]^x[c],7)>>>0;
+  }
+  function bloc(cle,compteur,nonce){
+    const s=[0x61707865,0x3320646e,0x79622d32,0x6b206574];
+    for(let i=0;i<8;i++) s.push(u32(cle,4*i));
+    s.push(compteur>>>0); for(let i=0;i<3;i++) s.push(u32(nonce,4*i));
+    const x=s.slice();
+    for(let i=0;i<10;i++){
+      qr(x,0,4,8,12); qr(x,1,5,9,13); qr(x,2,6,10,14); qr(x,3,7,11,15);
+      qr(x,0,5,10,15); qr(x,1,6,11,12); qr(x,2,7,8,13); qr(x,3,4,9,14);
+    }
+    const out=new Uint8Array(64);
+    for(let i=0;i<16;i++){ const v=(x[i]+s[i])>>>0; out[4*i]=v&255; out[4*i+1]=(v>>>8)&255; out[4*i+2]=(v>>>16)&255; out[4*i+3]=(v>>>24)&255; }
+    return out;
+  }
+  function flux(cle,compteur,nonce,data){
+    const out=new Uint8Array(data.length);
+    for(let o=0,k=compteur;o<data.length;o+=64,k++){
+      const b=bloc(cle,k,nonce);
+      for(let i=0;i<64 && o+i<data.length;i++) out[o+i]=data[o+i]^b[i];
+    }
+    return out;
+  }
+  function nb(b,de,a){ let n=0n; for(let i=a-1;i>=de;i--) n=(n<<8n)|BigInt(b[i]); return n; }
+  function poly(cle,msg){
+    const r=nb(cle,0,16)&0x0ffffffc0ffffffc0ffffffc0fffffffn, s=nb(cle,16,32), p=(1n<<130n)-5n;
+    let acc=0n;
+    for(let o=0;o<msg.length;o+=16){
+      const fin=Math.min(o+16,msg.length);
+      acc=((acc+nb(msg,o,fin)+(1n<<BigInt(8*(fin-o))))*r)%p;
+    }
+    acc=(acc+s)&((1n<<128n)-1n);
+    const t=new Uint8Array(16); for(let i=0;i<16;i++){ t[i]=Number(acc&255n); acc>>=8n; }
+    return t;
+  }
+  function sceau(cle,nonce,ct){
+    const pk=bloc(cle,0,nonce).slice(0,32), pad=(ct.length%16)?16-(ct.length%16):0;
+    const m=new Uint8Array(ct.length+pad+16); m.set(ct,0);
+    let n=ct.length; for(let i=0;i<8;i++){ m[ct.length+pad+8+i]=n%256; n=Math.floor(n/256); }
+    return poly(pk,m);
+  }
+  function utf8e(t){
+    const o=[]; t=String(t);
+    for(let i=0;i<t.length;i++){
+      let c=t.charCodeAt(i);
+      if(c>=0xd800 && c<0xdc00 && i+1<t.length){ const d=t.charCodeAt(i+1); if(d>=0xdc00 && d<0xe000){ c=0x10000+((c-0xd800)<<10)+(d-0xdc00); i++; } }
+      if(c>=0xd800 && c<0xe000) c=0xfffd;           // moitié de caractère isolée : « � », comme partout
+      if(c<0x80) o.push(c);
+      else if(c<0x800) o.push(0xc0|(c>>6),0x80|(c&63));
+      else if(c<0x10000) o.push(0xe0|(c>>12),0x80|((c>>6)&63),0x80|(c&63));
+      else o.push(0xf0|(c>>18),0x80|((c>>12)&63),0x80|((c>>6)&63),0x80|(c&63));
+    }
+    return Uint8Array.from(o);
+  }
+  function utf8d(b){
+    let t='';
+    for(let i=0;i<b.length;){
+      let c=b[i++];
+      if(c>=0xf0){ c=((c&7)<<18)|((b[i++]&63)<<12)|((b[i++]&63)<<6)|(b[i++]&63); }
+      else if(c>=0xe0){ c=((c&15)<<12)|((b[i++]&63)<<6)|(b[i++]&63); }
+      else if(c>=0xc0){ c=((c&31)<<6)|(b[i++]&63); }
+      if(c>=0x10000){ c-=0x10000; t+=String.fromCharCode(0xd800+(c>>10),0xdc00+(c&1023)); } else t+=String.fromCharCode(c);
+    }
+    return t;
+  }
+  const ABC='ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789-_';
+  function b64e(b){
+    let t='';
+    for(let i=0;i<b.length;i+=3){
+      const n=(b[i]<<16)|((b[i+1]||0)<<8)|(b[i+2]||0);
+      t+=ABC[n>>18]+ABC[(n>>12)&63]+(i+1<b.length?ABC[(n>>6)&63]:'')+(i+2<b.length?ABC[n&63]:'');
+    }
+    return t;
+  }
+  function b64d(t){
+    t=String(t); if(!/^[A-Za-z0-9_-]*$/.test(t) || t.length%4===1) return null;
+    const o=[];
+    for(let i=0;i<t.length;i+=4){
+      const q=[0,1,2,3].map(k=>i+k<t.length?ABC.indexOf(t[i+k]):-1);
+      const n=(q[0]<<18)|(q[1]<<12)|((q[2]<0?0:q[2])<<6)|(q[3]<0?0:q[3]);
+      o.push((n>>16)&255); if(q[2]>=0) o.push((n>>8)&255); if(q[3]>=0) o.push(n&255);
+    }
+    return Uint8Array.from(o);
+  }
+  function chiffrer(cle,texte,nonce){
+    const ct=flux(cle,1,nonce,utf8e(texte)), tag=sceau(cle,nonce,ct);
+    const o=new Uint8Array(12+ct.length+16); o.set(nonce,0); o.set(ct,12); o.set(tag,12+ct.length);
+    return b64e(o);
+  }
+  function dechiffrer(cle,chaine){
+    const b=b64d(chaine); if(!b || b.length<28 || !cle || cle.length!==32) return null;
+    const nonce=b.slice(0,12), ct=b.slice(12,b.length-16), tag=b.slice(b.length-16), att=sceau(cle,nonce,ct);
+    let d=0; for(let i=0;i<16;i++) d|=att[i]^tag[i];
+    return d ? null : utf8d(flux(cle,1,nonce,ct));
+  }
+  return {chiffrer, dechiffrer, b64e, b64d, utf8e, utf8d};
+})();
+/* ═══ CHIFFREMENT PB1 — fin ═══ */
+
+/* ══ WIDGET (30/10/2026) ═══════════════════════════════════════════════════
+   Éteint par défaut : tant qu'il n'est pas activé, AUCUN envoi (le banc le
+   vérifie). Activé : à chaque changement de la liste (1,5 s après) et à la
+   première ouverture de la journée, la liste des 7 prochains jours (date,
+   secteur, initiales, Monaco / France) est chiffrée ICI puis déposée sur le
+   serveur. Seuls partent : l'identifiant de la boîte, le jeton d'écriture et le
+   texte chiffré — à l'activation, le code du portail (jamais gardé). */
+const KEY_W='pense-bete-widget-v1', MIROIR='https://miroir.planningmedic.workers.dev', W_JOURS=7;
+let wT=null, wConfirme=false;
+function wLire(){ try{ const o=JSON.parse(localStorage.getItem(KEY_W)||'null'); return o && o.id && o.jeton && o.cle ? o : null; }catch(e){ return null; } }
+function wEcrire(o){ try{ if(o) localStorage.setItem(KEY_W, JSON.stringify(o)); else localStorage.removeItem(KEY_W); }catch(e){} }
+function alea(n){ const b=new Uint8Array(n); crypto.getRandomValues(b); return b; }
+const wCleTexte=W=>'PB1.'+W.id+'.'+W.cle;
+function wContenu(){
+  const today=isoToday(), fin=isoPlus(today,W_JOURS);
+  const p=L.filter(x=>x.d>=today && x.d<=fin).map(x=>({d:x.d, s:x.s, i:x.i, a:PA_LIB[x.a]?x.a:''}));
+  return JSON.stringify({v:1, le:today, p});
+}
+async function wPoster(route, corps){
+  const r=await fetch(MIROIR+route,{method:'POST',credentials:'omit',cache:'no-store',headers:{'Content-Type':'application/json'},body:JSON.stringify(corps)});
+  let j=null; try{ j=await r.json(); }catch(e){}
+  return {ok:!!(r.ok && j && j.success), statut:r.status};
+}
+function wPlanifier(){ if(!wLire()) return; clearTimeout(wT); wT=setTimeout(wEnvoyer,1500); }
+async function wEnvoyer(){
+  const W=wLire(); if(!W) return false;
+  const c=PB.chiffrer(PB.b64d(W.cle), wContenu(), alea(12));
+  try{
+    const r=await wPoster('/pb-depot',{id:W.id, jeton:W.jeton, c});
+    if(r.ok){ W.dernier=Date.now(); W.jour=isoToday(); W.erreur=''; }
+    else W.erreur = r.statut===404 ? 'boîte inconnue : désactivez puis réactivez le widget' : 'envoi refusé ('+r.statut+')';
+  }catch(e){ W.erreur='pas de réseau : nouvel essai à la prochaine modification'; }
+  if(wLire()) wEcrire(W);
+  wAfficher(); return !W.erreur;
+}
+function wAfficher(){
+  const W=wLire();
+  $('wOff').hidden=!!W; $('wOnB').hidden=!W;
+  $('pFoot').textContent = W ? 'Widget activé : il reçoit une copie chiffrée des '+W_JOURS+' prochains jours. Le reste ne quitte pas cet appareil.'
+    : 'Tout est gardé sur cet appareil uniquement, rien n\'est envoyé.';
+  if(!W) return;
+  $('wCle').textContent=wCleTexte(W);
+  const e=$('wEtat');
+  if(W.erreur){ e.className='wetat ko'; e.textContent='Widget activé · '+W.erreur; }
+  else if(W.dernier){ const d=new Date(W.dernier); e.className='wetat'; e.textContent='Widget activé · dernier envoi chiffré '+(W.jour===isoToday()?'aujourd\'hui':'le '+W.jour.split('-').reverse().join('/'))+' à '+String(d.getHours()).padStart(2,'0')+':'+String(d.getMinutes()).padStart(2,'0'); }
+  else { e.className='wetat'; e.textContent='Widget activé · en attente du premier envoi'; }
+  $('wOffB').textContent = wConfirme ? 'Toucher encore pour désactiver' : 'Désactiver le widget';
+}
+$('wOn').addEventListener('click',async()=>{
+  const code=$('wCode').value.trim();
+  if(!code){ $('wMsg').textContent='Tapez votre code du portail.'; return; }
+  const W={id:PB.b64e(alea(16)), jeton:PB.b64e(alea(32)), cle:PB.b64e(alea(32))};
+  $('wMsg').textContent='Activation…';
+  let r; try{ r=await wPoster('/pb-ouvrir',{code, id:W.id, jeton:W.jeton}); }catch(e){ $('wMsg').textContent='Serveur injoignable (réseau ?). Réessayez.'; return; }
+  if(!r.ok){ $('wMsg').textContent = r.statut===403 ? 'Code refusé.' : 'Activation refusée ('+r.statut+').'; return; }
+  $('wCode').value=''; wEcrire(W); wAfficher();
+  $('wMsg').textContent = (await wEnvoyer()) ? 'Widget activé. Suivez les étapes ci-dessus.' : '';
+});
+$('wEnv').addEventListener('click',async()=>{ $('wMsg').textContent = (await wEnvoyer()) ? 'Envoyé.' : ''; });
+$('wCopier').addEventListener('click',()=>{
+  const W=wLire(); if(!W) return;
+  const ok=()=>{ $('wMsg').textContent='Clé copiée. Collez-la dans Scriptable.'; }, ko=()=>{ $('wMsg').textContent='Copie impossible : touchez la clé ci-dessous pour la sélectionner.'; };
+  try{ navigator.clipboard.writeText(wCleTexte(W)).then(ok,ko); }catch(e){ ko(); }
+});
+$('wOffB').addEventListener('click',async()=>{
+  if(!wConfirme){ wConfirme=true; wAfficher(); setTimeout(()=>{ wConfirme=false; wAfficher(); },5000); return; }
+  wConfirme=false; const W=wLire(); clearTimeout(wT); wEcrire(null); wAfficher();
+  $('wMsg').textContent='Widget désactivé.';
+  if(W){ try{ await wPoster('/pb-fermer',{id:W.id, jeton:W.jeton}); }catch(e){} }
+});
+
 load(); $('dt').value=isoToday(); render();
 cLoad(); lierAnciens(); try{ if(localStorage.getItem(KEY_AXE)==='ngap') cAxe='ngap'; }catch(e){}
 $('cDt').value=isoToday(); cReglagesAfficher(); cRender();
 try{ const t=localStorage.getItem(KEY_TAB); if(t==='C'||t==='R') onglet(t); }catch(e){}
+wAfficher(); { const W=wLire(); if(W && W.jour!==isoToday()) wEnvoyer(); }   // 1re ouverture du jour : la fenêtre de 7 jours avance
 </script>
 </body>
 </html>

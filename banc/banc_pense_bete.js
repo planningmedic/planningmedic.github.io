@@ -61,15 +61,23 @@ function ouvrir(stock, opts = {}) {
 /* ── 1. LECTURE DU FICHIER ─────────────────────────────────────────────── */
 console.log('\n[1] Le fichier ne contient aucun moyen d\'envoyer quoi que ce soit');
 const script = (PAGE.match(/<script>([\s\S]*?)<\/script>/) || ['', ''])[1];
-// (05/10/2026) un SEUL fetch permis : le téléchargement de la liste CCAM publique
+// (05/10/2026) un SEUL fetch permis : le téléchargement de la liste CCAM publique.
+// (30/10/2026) + UN second, celui du widget (éteint par défaut), vers le serveur du
+// portail seulement ; le seul contenu envoyé de toute la page passe par lui (wPoster).
+// Ce qu'il envoie est vérifié plus bas, section 20 (rien en clair).
 const fetchs = script.match(/fetch\(/g) || [];
-V('un seul fetch, celui de la liste CCAM du site (même adresse), sans contenu envoyé',
-  fetchs.length === 1 && /fetch\(CCAM_URL,\{method:'GET',credentials:'omit'/.test(script)
-  && /const CCAM_URL='\/docs\/module-liberal\/ccam_actes\.json\?v=\d+';/.test(script) && !/\bbody\s*:/.test(script));
+V('deux fetch seulement : la liste CCAM du site (GET, sans contenu) et le widget (serveur du portail)',
+  fetchs.length === 2 && /fetch\(CCAM_URL,\{method:'GET',credentials:'omit'/.test(script)
+  && /const CCAM_URL='\/docs\/module-liberal\/ccam_actes\.json\?v=\d+';/.test(script)
+  && /fetch\(MIROIR\+route,\{method:'POST',credentials:'omit'/.test(script)
+  && /MIROIR='https:\/\/miroir\.planningmedic\.workers\.dev'/.test(script)
+  && (script.match(/\bbody\s*:/g) || []).length === 1 && /body:JSON\.stringify\(corps\)\}\);/.test(script));
 for (const api of ['XMLHttpRequest', 'sendBeacon', 'WebSocket', 'EventSource', 'document.cookie', 'indexedDB', 'serviceWorker', 'import(']) {
   V(api + ' absent du code', !script.includes(api));
 }
-V('aucune adresse extérieure (police, script, image, lien)', !/(https?:)?\/\/[a-z0-9.-]+\.[a-z]/i.test(PAGE.replace(/<!--[\s\S]*?-->/g, '')));
+// (30/10/2026) une seule adresse extérieure admise : le serveur du portail (widget)
+V('aucune adresse extérieure (police, script, image, lien) hors le serveur du portail',
+  !/(https?:)?\/\/[a-z0-9.-]+\.[a-z]/i.test(PAGE.replace(/<!--[\s\S]*?-->/g, '').split("'https://miroir.planningmedic.workers.dev'").join("''")));
 V('aucun <script src>, aucun <link rel="stylesheet">', !/<script[^>]+src=/i.test(PAGE) && !/rel="stylesheet"/i.test(PAGE));
 V('noindex posé', /name="robots" content="noindex, nofollow"/.test(PAGE));
 V('manifeste propre au dossier (périmètre /pense-bete/)', MANIF.id === '/pense-bete/' && MANIF.scope === '/pense-bete/' && MANIF.start_url === '/pense-bete/');
