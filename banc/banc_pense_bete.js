@@ -739,6 +739,92 @@ V('compteur abîmé : la page s\'ouvre, réglages demandés', o5.window.document
   V('…CS France réglée : les deux comptent 31,50 €, l\'ancienne « CS + MCS » sans majoration en double (400 + 63 = 463,00 €)', /^463,00/.test(O.$('cPub').textContent), O.$('cPub').textContent);
   V('NGAP par pays : aucune erreur JavaScript, aucun appel réseau', N.erreurs.length === 0 && O.erreurs.length === 0 && N.reseau.length === 0, [N.erreurs, O.erreurs]);
   }
+  /* ── 18. NOUVEL HABILLAGE (30/10/2026) ──────────────────────────────────
+     Demande : une appli « façon iPhone ». Barre d'onglets en bas (Patients ·
+     Compteur · Réglages) ; « Aujourd'hui » en premier, un titre par jour avec
+     son nombre ; formulaire dans un panneau du bas qui reste ouvert pour le
+     patient suivant ; toucher un patient le MODIFIE ; le glisser à gauche
+     découvre « Effacer ». Les données ne changent pas de forme. */
+  {
+  console.log('\n[18] Nouvel habillage — onglets, jours, panneau, modifier, glisser');
+  const Hn = ouvrir(), Hd = Hn.w.document, $h = Hn.$;
+  V('3 onglets en bas : Patients, Compteur, Réglages', [...Hd.querySelectorAll('.tabbar .tab')].map(b => b.id).join('|') === 'tP|tC|tR'
+    && /Patients/.test($h('tP').textContent) && /Réglages/.test($h('tR').textContent));
+  $h('tR').click();
+  V('onglet Réglages : la sauvegarde y est, Patients et Compteur cachés', !$h('vR').hidden && $h('vP').hidden && $h('vC').hidden
+    && $h('vR').contains($h('svExp')) && $h('tR').getAttribute('aria-selected') === 'true');
+  const RR = ouvrir(null); RR.w.localStorage.setItem('pense-bete-onglet', 'R');
+  const RR2 = new JSDOM(PAGE, { runScripts: 'dangerously', url: 'https://planningmedic.github.io/pense-bete/',
+    beforeParse(w) { w.Element.prototype.focus = function () {}; w.localStorage.setItem('pense-bete-onglet', 'R'); } });
+  V('réouverture : onglet Réglages retrouvé', !RR2.window.document.getElementById('vR').hidden && RR2.window.document.getElementById('vP').hidden);
+  $h('tP').click();
+  V('le formulaire est dans le panneau, fermé à l\'ouverture', $h('pSheet').contains($h('frm')) && !$h('pSheet').classList.contains('on') && $h('pSheet').getAttribute('aria-hidden') === 'true');
+  $h('pPlus').click();
+  V('« + » ouvre le panneau « Nouveau patient », sans « Effacer »', $h('pSheet').classList.contains('on') && $h('pTit').textContent === 'Nouveau patient'
+    && $h('pGo').textContent === 'Ajouter' && $h('pDel').hidden);
+  Hn.secteur('Ortho'); Hn.ajouter('2026-09-30', 'AB', 'mc');
+  V('après un ajout : le panneau reste ouvert, confirmation, initiales vidées', $h('pSheet').classList.contains('on') && /AB ajouté · Ortho/.test($h('pRes').textContent) && $h('ini').value === '');
+  Hn.secteur('Endos'); Hn.ajouter('2026-09-30', 'CD', 'fr');
+  Hn.ajouter('2026-10-01', 'EF', 'mc');
+  Hn.ajouter('2026-10-14', 'GH', 'fr');
+  $h('pOk').click();
+  V('« OK » ferme le panneau', !$h('pSheet').classList.contains('on') && $h('pSheet').getAttribute('aria-hidden') === 'true');
+  const titres = () => [...$h('next').querySelectorAll('.dh span')].map(x => x.textContent);
+  V('titres : « Aujourd\'hui · mercredi 30 septembre », « Demain · jeudi 1 octobre », « Mercredi 14 octobre »',
+    titres().join('|') === "Aujourd'hui · mercredi 30 septembre|Demain · jeudi 1 octobre|Mercredi 14 octobre", titres());
+  V('aujourd\'hui en premier et en couleur, son nombre à droite (2)', $h('next').querySelector('.day').classList.contains('today') && $h('next').querySelector('.dh b').textContent === '2');
+  V('dans un jour, secteurs dans l\'ordre des boutons (Endos avant Ortho)', [...$h('next').querySelector('.day').querySelectorAll('.pt .i')].map(x => x.textContent).join() === 'CD,AB');
+  V('résumé du jour sous le titre', $h('pSub').textContent === "2 aujourd'hui · Monaco 1 · France 1 · 2 à venir", $h('pSub').textContent);
+  // Modifier
+  const lg = ini => [...$h('next').querySelectorAll('.pt')].find(x => x.querySelector('.i').textContent === ini);
+  const idEF = Hn.liste().find(x => x.i === 'EF').id, nAvant = Hn.liste().length;
+  Hn.secteur('Mater'); $h('dt').value = '2026-11-20';      // saisie en cours, à retrouver après la modification
+  lg('EF').click();
+  V('toucher un patient : panneau « Modifier le patient », rempli', $h('pSheet').classList.contains('on') && $h('pTit').textContent === 'Modifier le patient'
+    && $h('dt').value === '2026-10-01' && $h('ini').value === 'EF' && Hd.querySelector('#chips .chip[aria-checked="true"]').dataset.s === 'Endos'
+    && Hd.querySelector('#pAss .chip[aria-checked="true"]').dataset.a === 'mc' && !$h('pDel').hidden && $h('pGo').textContent === 'Enregistrer');
+  Hn.secteur('ORL'); Hn.assure('fr'); $h('dt').value = '2026-10-02'; $h('ini').value = 'ef2';
+  $h('frm').dispatchEvent(new Hn.w.Event('submit', { cancelable: true }));
+  const ef = Hn.liste().find(x => x.id === idEF);
+  V('« Enregistrer » change CE patient (même identifiant), sans en créer un autre', Hn.liste().length === nAvant && ef.i === 'EF2' && ef.s === 'ORL' && ef.a === 'fr' && ef.d === '2026-10-02', ef);
+  V('…le panneau se ferme et la saisie en cours revient (date, secteur)', !$h('pSheet').classList.contains('on') && $h('dt').value === '2026-11-20'
+    && Hd.querySelector('#chips .chip[aria-checked="true"]').dataset.s === 'Mater');
+  V('…les champs enregistrés gardent la même forme', Object.keys(ef).sort().join() === 'a,d,i,id,s,t', Object.keys(ef));
+  lg('EF2').click(); $h('ini').value = 'ZZ'; $h('pAnn').click();
+  V('« Annuler » referme sans rien changer', Hn.liste().find(x => x.id === idEF).i === 'EF2' && !$h('pSheet').classList.contains('on'));
+  lg('EF2').querySelector('.as').click();
+  V('toucher la pastille MC / FR change l\'assurance sans ouvrir le panneau', Hn.liste().find(x => x.id === idEF).a === 'mc' && !$h('pSheet').classList.contains('on'));
+  // Patient d'avant l'assurance : la modification l'exige
+  const Ho = ouvrir(JSON.stringify([{ id: 'v1', d: '2026-10-06', s: 'Endos', i: 'LM', t: 1 }]));
+  Ho.$('next').querySelector('.pt').click(); Ho.$('frm').dispatchEvent(new Ho.w.Event('submit', { cancelable: true }));
+  V('patient sans assurance : « Enregistrer » demande Monaco ou France', /Monaco ou France/.test(Ho.$('msg').textContent) && !('a' in Ho.liste()[0]) && Ho.$('pSheet').classList.contains('on'));
+  // Effacer depuis le panneau, puis Annuler
+  lg('GH').click(); $h('pDel').click();
+  V('« Effacer ce patient » : effacé, panneau fermé, barre Annuler', !Hn.liste().some(x => x.i === 'GH') && !$h('pSheet').classList.contains('on') && /GH effacé/.test($h('undoTxt').textContent));
+  $h('undoBtn').click();
+  V('Annuler le remet', Hn.liste().some(x => x.i === 'GH'));
+  // Glisser vers la gauche
+  const ev = (cible, type, x, y) => cible.dispatchEvent(new Hn.w.MouseEvent(type, { bubbles: true, clientX: x, clientY: y || 100 }));
+  const gli = (ini, dx, dy) => { const c = lg(ini); ev(c, 'pointerdown', 300); ev(Hn.w, 'pointermove', 300 + dx / 2, 100 + (dy || 0) / 2); ev(Hn.w, 'pointermove', 300 + dx, 100 + (dy || 0)); ev(Hn.w, 'pointerup', 300 + dx, 100 + (dy || 0)); return c; };
+  let c = gli('AB', -120);
+  V('glisser à gauche : la ligne reste ouverte sur « Effacer »', c.classList.contains('ouvert') && c.style.transform === 'translateX(-92px)' && /Effacer/.test(c.parentNode.querySelector('.x').textContent));
+  c.click();
+  V('…le toucher qui suit un glissement n\'ouvre pas le panneau', !$h('pSheet').classList.contains('on'));
+  const apres = () => new Promise(r => setTimeout(r, 80));   // un vrai toucher arrive bien après le glissement
+  await apres();
+  c.click();
+  V('…toucher la ligne ouverte la referme, toujours sans panneau', !c.classList.contains('ouvert') && c.style.transform === '' && !$h('pSheet').classList.contains('on'));
+  await apres(); c = gli('AB', -20);
+  V('petit glissement (moins de la moitié) : la ligne revient', !c.classList.contains('ouvert') && c.style.transform === '');
+  await apres(); c = gli('AB', -5, 60);
+  V('geste vertical (défilement) : la ligne ne bouge pas', !c.classList.contains('ouvert') && c.style.transform === '');
+  await apres(); c = gli('CD', -120); await apres();
+  const nG = Hn.liste().length;
+  c.parentNode.querySelector('.x').click();
+  V('« Effacer » découvert : efface, avec Annuler', Hn.liste().length === nG - 1 && !Hn.liste().some(x => x.i === 'CD') && Hn.$('undo').style.display === 'flex');
+  V('nouvel habillage : aucun appel réseau, aucune erreur JavaScript', Hn.reseau.length === 0 && Ho.reseau.length === 0 && Hn.erreurs.length === 0 && Ho.erreurs.length === 0, [Hn.erreurs, Ho.erreurs]);
+  V('couleur de l\'appli = rouge de l\'icône', /--acc:#C8102E;/.test(PAGE) && /<meta name="theme-color" content="#F2F2F7">/.test(PAGE));
+  }
   console.log(`\n${ok} ✓  ${ko} ✗`);
   process.exit(ko ? 1 : 0);
 })();

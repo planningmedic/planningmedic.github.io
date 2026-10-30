@@ -9,44 +9,57 @@
      ⚠️ Les saisies restent dans CE navigateur (stockage local du téléphone) :
      aucun appel réseau, aucune police ni script extérieur, rien vers le portail,
      le classeur ou le dépôt. Le banc (banc/banc_pense_bete.js) le vérifie.
-     Installable à part (manifest.webmanifest de ce dossier). -->
+     Installable à part (manifest.webmanifest de ce dossier).
+     (30/10/2026) NOUVEL HABILLAGE, façon appli iPhone : barre d'onglets en bas
+     (Patients · Compteur · Réglages), rouge de l'icône comme couleur de l'appli.
+     Patients : « Aujourd'hui » en premier, un titre par jour avec son nombre de
+     patients ; le formulaire s'ouvre dans un panneau par le bas (bouton +) et
+     reste ouvert pour le patient suivant ; toucher un patient le MODIFIE,
+     le glisser vers la gauche montre « Effacer ». Sauvegarde : onglet Réglages.
+     Les données ne changent pas de forme : mêmes clés, mêmes champs. -->
 <meta name="robots" content="noindex, nofollow">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>Mes patients lib</title>
 <link rel="manifest" href="manifest.webmanifest">
 <link rel="icon" type="image/png" href="icon-192.png">
 <link rel="apple-touch-icon" href="apple-touch-icon.png">
-<meta name="theme-color" content="#0E7C7B">
+<meta name="theme-color" content="#F2F2F7">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="default">
 <meta name="apple-mobile-web-app-title" content="Patients lib">
 <style>
+/* (30/10/2026) Couleurs de l'iPhone (fond gris clair, cartes blanches) ; rouge de
+   l'icône comme couleur de l'appli. Monaco / France gardent leurs couleurs. */
 :root{
-  --bg:#F6F8F9; --card:#FFFFFF; --ink:#18242F; --mute:#66727E; --line:#DCE2E7;
-  --acc:#0E7C7B; --acc-ink:#FFFFFF; --acc-soft:#E3F2F1; --past:#A3ADB7; --warn:#B4541A;
+  --bg:#F2F2F7; --card:#FFFFFF; --ink:#000000; --mute:#8E8E93; --line:#E5E5EA;
+  --acc:#C8102E; --acc-ink:#FFFFFF; --acc-soft:#FBE9EC; --past:#AEAEB2; --warn:#B4541A;
   --mc:#C8102E; --fr:#1F4FA3; --as-ink:#FFFFFF; --mc-bg:#FBE9EC; --fr-bg:#E8EEFA;
+  --sep:#C6C6C8; --bar:rgba(249,249,249,.94); --ok:#248A3D; --del:#FF3B30;
   box-sizing:border-box;
   padding-top:env(safe-area-inset-top,0px); padding-bottom:env(safe-area-inset-bottom,0px);
 }
 @media (prefers-color-scheme: dark){
   :root:not([data-theme="light"]){
-    --bg:#10171D; --card:#18222A; --ink:#E6EDF2; --mute:#94A2AE; --line:#2A3742;
-    --acc:#3FB8B5; --acc-ink:#062625; --acc-soft:#16302F; --past:#5B6873; --warn:#E59560;
+    --bg:#000000; --card:#1C1C1E; --ink:#FFFFFF; --mute:#8E8E93; --line:#38383A;
+    --acc:#E5243B; --acc-ink:#FFFFFF; --acc-soft:#3A1E23; --past:#636366; --warn:#E59560;
     --mc:#FF6B7A; --fr:#7EA8FF; --as-ink:#10171D; --mc-bg:#3A2228; --fr-bg:#1E2B44;
+    --sep:#38383A; --bar:rgba(22,22,24,.94); --ok:#30D158; --del:#FF453A;
   }
 }
 :root[data-theme="dark"]{
-  --bg:#10171D; --card:#18222A; --ink:#E6EDF2; --mute:#94A2AE; --line:#2A3742;
-  --acc:#3FB8B5; --acc-ink:#062625; --acc-soft:#16302F; --past:#5B6873; --warn:#E59560;
+  --bg:#000000; --card:#1C1C1E; --ink:#FFFFFF; --mute:#8E8E93; --line:#38383A;
+  --acc:#E5243B; --acc-ink:#FFFFFF; --acc-soft:#3A1E23; --past:#636366; --warn:#E59560;
   --mc:#FF6B7A; --fr:#7EA8FF; --as-ink:#10171D; --mc-bg:#3A2228; --fr-bg:#1E2B44;
+  --sep:#38383A; --bar:rgba(22,22,24,.94); --ok:#30D158; --del:#FF453A;
 }
 *,*::before,*::after{box-sizing:inherit}
+[hidden]{display:none!important}
 html{scroll-padding-top:env(safe-area-inset-top,0px)}
 body{margin:0;background:var(--bg);color:var(--ink);
   font:17px/1.4 -apple-system,system-ui,"Segoe UI",Roboto,sans-serif;}
-main{max-width:520px;margin:0 auto;padding:18px 16px 90px}
-h1{font-size:22px;margin:4px 0 14px;font-weight:700}
+main{max-width:520px;margin:0 auto;padding:6px 16px calc(110px + env(safe-area-inset-bottom,0px))}
+h1{font-size:34px;margin:4px 4px 2px;font-weight:700;letter-spacing:.2px}
 form{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:14px}
 label{display:block;font-size:14px;color:var(--mute);margin:0 0 4px}
 .row{display:grid;grid-template-columns:1fr;gap:10px}
@@ -63,16 +76,55 @@ input:focus-visible,button:focus-visible{outline:2px solid var(--acc);outline-of
 .add{width:100%;font:inherit;font-weight:700;font-size:18px;background:var(--acc);color:var(--acc-ink);
   border:0;border-radius:10px;min-height:50px;cursor:pointer}
 .msg{font-size:14px;color:var(--warn);margin:8px 0 0;min-height:1em}
-.day{display:grid;grid-template-columns:62px 1fr;gap:12px;padding:14px 0;border-bottom:1px solid var(--line)}
-.dnum{text-align:center;line-height:1}
-.dnum b{display:block;font-size:30px}
-.dnum span{font-size:13px;color:var(--mute)}
-.today .dnum b{color:var(--acc)}
-.pt{display:flex;align-items:center;gap:10px;min-height:38px}
-.pt .i{font-weight:700;font-size:19px;letter-spacing:.04em;min-width:64px}
+/* (30/10/2026) Patients : un titre par jour (nombre de patients à droite), puis une
+   carte blanche ; chaque patient est une ligne qu'on touche (modifier) ou qu'on
+   glisse vers la gauche (le bouton rouge « Effacer » est caché dessous). */
+.topbar{display:flex;justify-content:flex-end;align-items:center;min-height:44px}
+.plus{width:36px;height:36px;border-radius:18px;background:var(--acc);color:var(--acc-ink);border:0;cursor:pointer;
+  display:flex;align-items:center;justify-content:center;padding:0}
+.plus svg{width:20px;height:20px}
+.psub{color:var(--mute);font-size:15px;margin:0 4px 6px}
+.day{margin-top:18px}
+.dh{display:flex;justify-content:space-between;align-items:baseline;gap:10px;padding:0 16px 6px;font-size:13px;color:var(--mute);text-transform:uppercase;letter-spacing:.1px}
+.dh b{font-weight:600;color:var(--ink)}
+.today .dh,.today .dh b{color:var(--acc)}
+.liste{background:var(--card);border-radius:12px;overflow:hidden}
+.ptw{position:relative;overflow:hidden}
+.ptw+.ptw .pt::before{content:"";position:absolute;top:0;left:66px;right:0;height:.5px;background:var(--sep)}
+.pt{position:relative;display:flex;align-items:center;gap:12px;min-height:52px;padding:6px 14px 6px 16px;background:var(--card);
+  transition:transform .2s;touch-action:pan-y;cursor:pointer;-webkit-user-select:none;user-select:none}
+.pt.glisse{transition:none}
+.pt .i{font-weight:700;font-size:19px;letter-spacing:.04em;min-width:56px}
 .pt .s{color:var(--mute);flex:1}
+.pt .chev{color:var(--past);font-size:20px;line-height:1}
 .x{font:inherit;background:none;border:0;color:var(--mute);font-size:22px;width:40px;height:40px;cursor:pointer;border-radius:8px}
-.past .dnum b,.past .i{color:var(--past)}
+.ptw .x{position:absolute;top:0;right:0;bottom:0;width:92px;height:auto;border-radius:0;background:var(--del);color:#FFFFFF;font-size:15px;font-weight:600}
+.past .i{color:var(--past)}
+.hint{font-size:13px;color:var(--mute);text-align:center;margin:16px 20px 0;line-height:1.4}
+#pastBox{margin-top:22px}
+.pastc summary{background:var(--card);border-radius:12px;padding:13px 16px;color:var(--acc);font-size:16px;list-style:none}
+.pastc summary::-webkit-details-marker{display:none}
+/* Panneau qui monte du bas : ajouter (reste ouvert pour le patient suivant) ou modifier */
+.dim{position:fixed;inset:0;background:rgba(0,0,0,.35);opacity:0;pointer-events:none;transition:opacity .25s;z-index:40}
+.dim.on{opacity:1;pointer-events:auto}
+.sheet{position:fixed;left:0;right:0;bottom:0;max-width:520px;margin:0 auto;max-height:calc(100% - 44px);overflow-y:auto;background:var(--bg);
+  border-radius:14px 14px 0 0;padding:8px 16px calc(24px + env(safe-area-inset-bottom,0px));z-index:41;
+  transform:translateY(105%);visibility:hidden;transition:transform .3s cubic-bezier(.2,.8,.2,1),visibility 0s .3s}
+.sheet.on{transform:none;visibility:visible;transition:transform .3s cubic-bezier(.2,.8,.2,1)}
+.grab{width:36px;height:5px;border-radius:3px;background:var(--past);margin:0 auto 6px;opacity:.6}
+.shd{display:grid;grid-template-columns:1fr auto 1fr;align-items:center;margin:0 0 12px}
+.shd b{font-size:17px;font-weight:600}
+.shd button{font:inherit;font-size:17px;background:none;border:0;color:var(--acc);padding:8px 0;cursor:pointer;justify-self:start}
+.shd button:last-child{justify-self:end;font-weight:600}
+#frm{background:none;border:0;padding:0}
+.sheet input,.sheet .chip{background:var(--card)}
+.sheet #chips .chip[aria-checked="true"]{background:var(--acc);border-color:var(--acc);color:var(--acc-ink)}
+.pok{font-size:15px;color:var(--ok);text-align:center;min-height:1.2em;margin:10px 0 0}
+.supp{width:100%;margin-top:14px;font:inherit;font-weight:600;font-size:17px;min-height:50px;border-radius:10px;border:0;background:var(--card);color:var(--del);cursor:pointer}
+/* Barre d'onglets en bas, comme une appli iPhone */
+.tabbar{position:fixed;left:0;right:0;bottom:0;z-index:30;display:flex;justify-content:space-around;
+  padding:7px 0 calc(6px + env(safe-area-inset-bottom,0px));background:var(--bar);
+  -webkit-backdrop-filter:blur(20px);backdrop-filter:blur(20px);border-top:.5px solid var(--sep)}
 /* (26/10/2026) Assuré Monaco (rouge) / France (bleu) : pastille + initiales en couleur.
    Patient saisi avant ce jour : pastille « ? », la toucher pour choisir. */
 #pAss .chip[data-a="mc"][aria-checked="true"]{background:var(--mc);border-color:var(--mc);color:var(--as-ink)}
@@ -86,17 +138,18 @@ input:focus-visible,button:focus-visible{outline:2px solid var(--acc);outline-of
 section{margin-top:22px}
 h2{font-size:16px;margin:0 0 2px;color:var(--mute);font-weight:700}
 details summary{cursor:pointer;color:var(--mute);font-size:15px;padding:10px 0}
-.empty{color:var(--mute);padding:18px 0}
-.undo{position:fixed;left:50%;transform:translateX(-50%);bottom:calc(16px + env(safe-area-inset-bottom,0px));
+.empty{color:var(--mute);padding:18px 4px}
+.undo{position:fixed;left:50%;transform:translateX(-50%);bottom:calc(92px + env(safe-area-inset-bottom,0px));z-index:35;
   background:var(--ink);color:var(--bg);border-radius:12px;padding:10px 14px;display:none;gap:14px;align-items:center;
   max-width:calc(100% - 32px);font-size:15px}
 .undo button{font:inherit;font-weight:700;background:none;border:0;color:var(--acc-soft);cursor:pointer}
-.foot{font-size:13px;color:var(--mute);margin-top:26px}
+.foot{font-size:13px;color:var(--mute);margin:16px 20px 0;text-align:center;line-height:1.4}
 /* (05/10/2026) Onglets + compteur de la règle des 30 % (axe CCAM) — (09/10/2026) + axe NGAP */
 #cAxe{margin-bottom:14px}
-.tabs{display:grid;grid-template-columns:1fr 1fr;gap:6px;background:var(--card);border:1px solid var(--line);border-radius:12px;padding:4px;margin:0 0 16px}
-.tab{font:inherit;font-weight:700;font-size:16px;border:0;background:none;color:var(--mute);border-radius:9px;min-height:42px;cursor:pointer}
-.tab[aria-selected="true"]{background:var(--acc);color:var(--acc-ink)}
+.tab{font:inherit;font-size:10px;font-weight:500;color:var(--mute);background:none;border:0;display:flex;flex-direction:column;align-items:center;gap:2px;width:96px;padding:0;cursor:pointer}
+.tab svg{width:27px;height:27px}
+.tab[aria-selected="true"]{color:var(--acc)}
+#vC h1,#vR h1{margin:22px 4px 14px}
 .chips.deux{grid-template-columns:1fr 1fr}
 .kpi{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:14px;margin-bottom:14px}
 .kpi .big{font-size:40px;font-weight:700;line-height:1.1}
@@ -178,29 +231,15 @@ button.jr{font:inherit;color:inherit;background:none;border:0;border-bottom:1px 
 </head>
 <body>
 <main>
-  <h1>Mes patients lib</h1>
-  <div class="tabs" role="tablist">
-    <button type="button" class="tab" role="tab" id="tP" aria-selected="true" aria-controls="vP">Patients</button>
-    <button type="button" class="tab" role="tab" id="tC" aria-selected="false" aria-controls="vC">Compteur</button>
-  </div>
+  <!-- (30/10/2026) PATIENTS : « Aujourd'hui » en premier. Le formulaire vit dans
+       le panneau du bas (bouton +), voir plus bas. -->
   <div id="vP" role="tabpanel" aria-labelledby="tP">
-  <form id="frm" autocomplete="off">
-    <div class="row">
-      <div class="f"><label for="dt">Date opératoire</label><input type="date" id="dt" required></div>
-    </div>
-    <div class="f"><span class="lbl" id="secLbl">Secteur</span>
-      <div class="chips" id="chips" role="radiogroup" aria-labelledby="secLbl"></div></div>
-    <div class="f" style="margin-top:12px"><span class="lbl" id="assLbl">Assuré</span>
-      <div class="chips deux" id="pAss" role="radiogroup" aria-labelledby="assLbl">
-        <button type="button" class="chip" role="radio" data-a="mc" aria-checked="false">Monaco</button>
-        <button type="button" class="chip" role="radio" data-a="fr" aria-checked="false">France</button></div></div>
-    <div class="f" style="margin-top:12px"><label for="ini">Initiales</label><input id="ini" maxlength="8" required autocapitalize="characters"></div>
-    <button class="add" type="submit">Ajouter</button>
-    <p class="msg" id="msg" role="status"></p>
-  </form>
-
-  <section><h2>À venir</h2><div id="next"></div></section>
-  <section id="pastBox" hidden><details><summary id="pastSum"></summary><div id="past"></div></details></section>
+    <div class="topbar"><button type="button" class="plus" id="pPlus" aria-label="Ajouter un patient"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 5v14M5 12h14" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round"/></svg></button></div>
+    <h1>Patients lib</h1>
+    <p class="psub" id="pSub"></p>
+    <div id="next"></div>
+    <section id="pastBox" hidden><details class="pastc"><summary id="pastSum"></summary><div id="past"></div></details></section>
+    <p class="hint">Touchez un patient pour le modifier · glissez-le vers la gauche pour l'effacer.</p>
   </div>
 
   <!-- (05/10/2026) COMPTEUR — règle des 30 %, axe CCAM.
@@ -210,6 +249,7 @@ button.jr{font:inherit;color:inherit;background:none;border:0;border-bottom:1px 
        actes comptés depuis. Aucune projection. Aucun montant dans ce fichier :
        valeurs et point de départ se saisissent dans « Réglages », sur l'appareil. -->
   <div id="vC" role="tabpanel" aria-labelledby="tC" hidden>
+    <h1>Compteur</h1>
     <div class="chips deux" id="cAxe" role="radiogroup" aria-label="Axe">
       <button type="button" class="chip" role="radio" data-v="ccam" aria-checked="true">Actes · CCAM</button>
       <button type="button" class="chip" role="radio" data-v="ngap" aria-checked="false">Consultations · NGAP</button></div>
@@ -270,7 +310,7 @@ button.jr{font:inherit;color:inherit;background:none;border:0;border-bottom:1px 
     </form>
     <section><h2 id="cListT">Actes comptés</h2><div id="cList"></div></section>
     <details class="reg" id="cReg">
-      <summary>Réglages</summary>
+      <summary>Réglages du Compteur</summary>
       <h3>Point de départ (dernier relevé)</h3>
       <div class="f"><label for="rD0">Relevé arrêté au</label><input type="date" id="rD0"></div>
       <div class="grille">
@@ -296,8 +336,11 @@ button.jr{font:inherit;color:inherit;background:none;border:0;border-bottom:1px 
   <!-- (16/10/2026) SAUVEGARDE — un fichier JSON avec patients + Compteur.
        Ne quitte l'appareil que là où l'utilisateur le range (Fichiers, iCloud) :
        aucun envoi réseau. Restaurer = FUSIONNER (rien n'est effacé, aucun doublon). -->
-  <details class="reg sv" id="sv">
-    <summary>Sauvegarde</summary>
+  <!-- (30/10/2026) ONGLET RÉGLAGES : la sauvegarde y vit désormais. -->
+  <div id="vR" role="tabpanel" aria-labelledby="tR" hidden>
+  <h1>Réglages</h1>
+  <section class="reg sv" id="sv">
+    <h3>Sauvegarde</h3>
     <p class="note" style="margin-top:4px">Un fichier avec vos patients et votre Compteur. Rangez-le dans Fichiers ou iCloud : il contient des initiales et des montants, gardez-le pour vous.</p>
     <div class="row2">
       <button type="button" class="svb" id="svExp">Sauvegarder</button>
@@ -313,10 +356,38 @@ button.jr{font:inherit;color:inherit;background:none;border:0;border-bottom:1px 
     </div>
     <p class="note">Restaurer ajoute ce qui manque, sans rien effacer ni créer de doublon.</p>
     <p class="msg" id="svMsg" role="status"></p>
-  </details>
-
+  </section>
   <p class="foot">Tout est gardé sur cet appareil uniquement, rien n'est envoyé.</p>
+  </div>
 </main>
+
+<!-- (30/10/2026) PANNEAU DU BAS : ajouter un patient (le panneau reste ouvert pour le
+     suivant : date et secteur gardés) ou modifier celui qu'on a touché. -->
+<div class="dim" id="pDim"></div>
+<div class="sheet" id="pSheet" role="dialog" aria-modal="true" aria-labelledby="pTit" aria-hidden="true">
+  <div class="grab"></div>
+  <div class="shd"><button type="button" id="pAnn">Annuler</button><b id="pTit">Nouveau patient</b><button type="button" id="pOk">OK</button></div>
+  <form id="frm" autocomplete="off">
+    <div class="f"><label for="dt">Date opératoire</label><input type="date" id="dt" required></div>
+    <div class="f"><span class="lbl" id="secLbl">Secteur</span>
+      <div class="chips" id="chips" role="radiogroup" aria-labelledby="secLbl"></div></div>
+    <div class="f" style="margin-top:12px"><span class="lbl" id="assLbl">Assuré</span>
+      <div class="chips deux" id="pAss" role="radiogroup" aria-labelledby="assLbl">
+        <button type="button" class="chip" role="radio" data-a="mc" aria-checked="false">Monaco</button>
+        <button type="button" class="chip" role="radio" data-a="fr" aria-checked="false">France</button></div></div>
+    <div class="f" style="margin-top:12px"><label for="ini">Initiales</label><input id="ini" maxlength="8" required autocapitalize="characters"></div>
+    <button class="add" type="submit" id="pGo">Ajouter</button>
+    <p class="msg" id="msg" role="status"></p>
+    <p class="pok" id="pRes" role="status"></p>
+    <button type="button" class="supp" id="pDel" hidden>Effacer ce patient</button>
+  </form>
+</div>
+
+<nav class="tabbar" role="tablist" aria-label="Onglets">
+  <button type="button" class="tab" role="tab" id="tP" aria-selected="true" aria-controls="vP"><svg viewBox="0 0 24 24" aria-hidden="true"><g fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><rect x="4" y="5" width="16" height="16" rx="2.5"/><path d="M16 3v4M8 3v4M4 11h16M9 16l2 2 4-4"/></g></svg>Patients</button>
+  <button type="button" class="tab" role="tab" id="tC" aria-selected="false" aria-controls="vC"><svg viewBox="0 0 24 24" aria-hidden="true"><g fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M4.5 17a8.5 8.5 0 1 1 15 0"/><path d="M12 13l4-4"/></g><circle cx="12" cy="13" r="1.3" fill="currentColor"/></svg>Compteur</button>
+  <button type="button" class="tab" role="tab" id="tR" aria-selected="false" aria-controls="vR"><svg viewBox="0 0 24 24" aria-hidden="true"><g fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round"><circle cx="12" cy="12" r="3"/><circle cx="12" cy="12" r="7.5"/><path d="M12 2v2.5M12 19.5V22M2 12h2.5M19.5 12H22M4.9 4.9l1.8 1.8M17.3 17.3l1.8 1.8M4.9 19.1l1.8-1.8M17.3 6.7l1.8-1.8"/></g></svg>Réglages</button>
+</nav>
 <div class="undo" id="undo" role="status"><span id="undoTxt"></span><button type="button" id="undoBtn">Annuler</button></div>
 
 <script>
@@ -342,41 +413,98 @@ function renderAss(){ $('pAss').querySelectorAll('.chip').forEach(b=>b.setAttrib
 function renderChips(){
   $('chips').innerHTML=SECTEURS.map(s=>'<button type="button" role="radio" class="chip" aria-checked="'+(s===SEC)+'" data-s="'+esc(s)+'">'+esc(s)+'</button>').join('');
 }
-function dayBlock(date, pts, cls){
-  const d=new Date(date+'T12:00:00');
-  return '<div class="day '+cls+'"><div class="dnum"><span>'+JOURS[d.getDay()]+'</span><b>'+d.getDate()+'</b><span>'+MOIS[d.getMonth()]+'</span></div><div>'
-    + pts.map(p=>'<div class="pt'+(PA_LIB[p.a]?' '+p.a:'')+(p.id===freshId?' fresh':'')+'">'
-      +'<button type="button" class="as" data-id="'+p.id+'" aria-label="'+(PA_LIB[p.a]?'Assuré '+PA_NOM[p.a]:'Assurance non renseignée')+' — toucher pour changer">'+(PA_LIB[p.a]||'?')+'</button>'
-      +'<span class="i">'+esc(p.i)+'</span><span class="s">'+esc(p.s)+'</span><button class="x" aria-label="Effacer '+esc(p.i)+'" data-id="'+p.id+'">×</button></div>').join('')
-    + '</div></div>';
+/* (30/10/2026) Titre d'un jour : « Aujourd'hui · lundi 2 novembre », « Demain · … »,
+   sinon « Mercredi 14 octobre » ; le nombre de patients à droite. */
+const JOURS_L=['dimanche','lundi','mardi','mercredi','jeudi','vendredi','samedi'];
+const MOIS_L=['janvier','février','mars','avril','mai','juin','juillet','août','septembre','octobre','novembre','décembre'];
+function isoPlus(iso,n){ const d=new Date(iso+'T12:00:00'); d.setDate(d.getDate()+n);
+  return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0'); }
+function titreJour(date, today){
+  const d=new Date(date+'T12:00:00'), nom=JOURS_L[d.getDay()]+' '+d.getDate()+' '+MOIS_L[d.getMonth()];
+  if(date===today) return 'Aujourd\'hui · '+nom;
+  if(date===isoPlus(today,1)) return 'Demain · '+nom;
+  return nom.charAt(0).toUpperCase()+nom.slice(1);
 }
+function ligneP(p){
+  return '<div class="ptw"><button type="button" class="x" tabindex="-1" aria-label="Effacer '+esc(p.i)+'" data-id="'+p.id+'">Effacer</button>'
+    +'<div class="pt'+(PA_LIB[p.a]?' '+p.a:'')+(p.id===freshId?' fresh':'')+'" data-id="'+p.id+'" tabindex="0">'
+    +'<button type="button" class="as" data-id="'+p.id+'" aria-label="'+(PA_LIB[p.a]?'Assuré '+PA_NOM[p.a]:'Assurance non renseignée')+' — toucher pour changer">'+(PA_LIB[p.a]||'?')+'</button>'
+    +'<span class="i">'+esc(p.i)+'</span><span class="s">'+esc(p.s)+'</span><span class="chev" aria-hidden="true">›</span></div></div>';
+}
+function dayBlock(date, pts, cls, today){
+  return '<div class="day '+cls+'"><div class="dh"><span>'+titreJour(date, today)+'</span><b>'+pts.length+'</b></div>'
+    + '<div class="liste">'+pts.map(ligneP).join('')+'</div></div>';
+}
+// (30/10/2026) Dans un jour : secteurs dans l'ordre des boutons, puis ordre de saisie
 function group(list){
   const g={}; list.forEach(p=>{ (g[p.d]=g[p.d]||[]).push(p); });
-  Object.values(g).forEach(a=>a.sort((x,y)=>x.s.localeCompare(y.s)||x.t-y.t));
+  const rang=s=>{ const k=SECTEURS.indexOf(s); return k<0?99:k; };
+  Object.values(g).forEach(a=>a.sort((x,y)=>rang(x.s)-rang(y.s)||x.s.localeCompare(y.s)||x.t-y.t));
   return g;
 }
 function render(){
   const today=isoToday();
   const nx=group(L.filter(p=>p.d>=today)), ps=group(L.filter(p=>p.d<today));
   const nk=Object.keys(nx).sort(), pk=Object.keys(ps).sort().reverse();
-  $('next').innerHTML = nk.length ? nk.map(k=>dayBlock(k,nx[k],k===today?'today':'')).join('')
-    : '<p class="empty">Aucun patient à venir. Ajoutez le premier ci-dessus.</p>';
+  $('next').innerHTML = nk.length ? nk.map(k=>dayBlock(k,nx[k],k===today?'today':'',today)).join('')
+    : '<p class="empty">Aucun patient à venir. Touchez + pour ajouter le premier.</p>';
+  const auj=nx[today]||[], mc=auj.filter(p=>p.a==='mc').length, fr=auj.filter(p=>p.a==='fr').length;
+  const avenir=nk.filter(k=>k!==today).reduce((n,k)=>n+nx[k].length,0);
+  $('pSub').textContent=(auj.length ? auj.length+' aujourd\'hui · Monaco '+mc+' · France '+fr : 'Aucun patient aujourd\'hui')
+    + (avenir ? ' · '+avenir+' à venir' : '');
   $('pastBox').hidden=!pk.length;
   const n=pk.reduce((s,k)=>s+ps[k].length,0);
   $('pastSum').textContent='Passés ('+n+')';
-  $('past').innerHTML=pk.map(k=>dayBlock(k,ps[k],'past')).join('');
+  $('past').innerHTML=pk.map(k=>dayBlock(k,ps[k],'past',today)).join('');
   renderChips(); renderAss();
   if(!storageOK) $('msg').textContent="Ce navigateur n'enregistre pas : la liste sera perdue en fermant la page.";
 }
+
+/* ══ PANNEAU DU BAS (30/10/2026) ═══════════════════════════════════════════
+   Ajouter : le panneau reste ouvert après chaque ajout (date et secteur gardés,
+   assurance et initiales vidées) ; « OK » le ferme.
+   Modifier : toucher un patient ouvre le panneau rempli ; « Enregistrer »
+   change CE patient (même identifiant), « Annuler » referme sans rien changer.
+   Le choix date / secteur de la saisie en cours est remis en place après. */
+let edit=null, avantEdit=null;
+function ouvrirFiche(p){
+  edit=p||null; $('msg').textContent=''; $('pRes').textContent='';
+  if(p){ avantEdit={d:$('dt').value, s:SEC}; $('dt').value=p.d; SEC=p.s; PASS=PA_LIB[p.a]?p.a:''; $('ini').value=p.i; }
+  else { PASS=''; $('ini').value=''; }
+  $('pTit').textContent=p?'Modifier le patient':'Nouveau patient';
+  $('pGo').textContent=p?'Enregistrer':'Ajouter';
+  $('pDel').hidden=!p;
+  $('pAnn').style.visibility=p?'visible':'hidden'; $('pOk').style.visibility=p?'hidden':'visible';
+  renderChips(); renderAss();
+  $('pDim').classList.add('on'); $('pSheet').classList.add('on'); $('pSheet').setAttribute('aria-hidden','false');
+}
+function fermerFiche(){
+  if(edit && avantEdit){ $('dt').value=avantEdit.d; SEC=avantEdit.s; PASS=''; $('ini').value=''; }
+  edit=null; avantEdit=null; $('msg').textContent=''; $('pRes').textContent='';
+  $('pDim').classList.remove('on'); $('pSheet').classList.remove('on'); $('pSheet').setAttribute('aria-hidden','true');
+  renderChips(); renderAss();
+}
+$('pPlus').addEventListener('click',()=>ouvrirFiche(null));
+$('pOk').addEventListener('click',fermerFiche);
+$('pAnn').addEventListener('click',fermerFiche);
+$('pDim').addEventListener('click',fermerFiche);
+document.addEventListener('keydown',e=>{ if(e.key==='Escape' && $('pSheet').classList.contains('on')) fermerFiche(); });
+$('pDel').addEventListener('click',()=>{ const id=edit && edit.id; fermerFiche(); if(id) effacerPatient(id); });
 
 $('frm').addEventListener('submit',e=>{
   e.preventDefault();
   const d=$('dt').value, s=SEC, i=$('ini').value.trim().toUpperCase();
   if(!d||!s||!PASS||!i){ $('msg').textContent=!s?'Touchez un secteur.':!PASS?'Touchez Monaco ou France.':'Date et initiales sont nécessaires.'; return; }
+  if(edit){                                       // (30/10) modifier : même patient, même identifiant
+    const p=L.find(x=>x.id===edit.id);
+    if(p){ p.d=d; p.s=s; p.i=i; p.a=PASS; save(); freshId=p.id; }
+    fermerFiche(); render(); return;
+  }
   const p={id:Date.now().toString(36)+Math.random().toString(36).slice(2,6), d, s, i, t:Date.now(), a:PASS};
   PASS='';
   L.push(p); save(); freshId=p.id;
   $('msg').textContent='';
+  $('pRes').textContent='✓ '+i+' ajouté · '+s+' — patient suivant ?';
   $('ini').value=''; $('ini').focus();          // date et secteur restent : patient suivant du même jour
   render();
 });
@@ -388,12 +516,54 @@ document.addEventListener('click',e=>{
   const p=L.find(x=>x.id===b.dataset.id); if(!p) return;
   p.a = p.a==='mc' ? 'fr' : 'mc'; save(); freshId=null; render();
 });
-document.addEventListener('click',e=>{
-  const b=e.target.closest('.x'); if(!b || b.classList.contains('cx')) return;
-  const k=L.findIndex(p=>p.id===b.dataset.id); if(k<0) return;
+function effacerPatient(id){
+  const k=L.findIndex(p=>p.id===id); if(k<0) return;
   lastDel={k:'p',o:L.splice(k,1)[0]}; save(); freshId=null; render();
   $('undoTxt').textContent=lastDel.o.i+' effacé'; $('undo').style.display='flex';
   clearTimeout(undoT); undoT=setTimeout(()=>{ $('undo').style.display='none'; lastDel=null; },6000);
+}
+document.addEventListener('click',e=>{
+  const b=e.target.closest('.x'); if(!b || b.classList.contains('cx')) return;
+  effacerPatient(b.dataset.id);
+});
+/* (30/10/2026) Toucher une ligne = la modifier ; la glisser vers la gauche découvre
+   « Effacer ». Un glissement n'ouvre jamais le panneau ; une ligne déjà ouverte
+   se referme au premier toucher. */
+let gl=null, glissee=false;
+function refermerLignes(sauf){ document.querySelectorAll('.pt.ouvert').forEach(x=>{ if(x!==sauf){ x.classList.remove('ouvert'); x.style.transform=''; } }); }
+$('vP').addEventListener('pointerdown',e=>{
+  const c=e.target.closest('.pt'); if(!c || e.target.closest('.as') || (e.pointerType==='mouse' && e.button!==0)) return;
+  gl={c, x:e.clientX, y:e.clientY, dx:0, base:c.classList.contains('ouvert')?-92:0, actif:false};
+});
+window.addEventListener('pointermove',e=>{
+  if(!gl) return;
+  const dx=e.clientX-gl.x, dy=e.clientY-gl.y;
+  if(!gl.actif){
+    if(Math.abs(dy)>10 && Math.abs(dy)>Math.abs(dx)){ gl=null; return; }   // défilement vertical : on laisse faire
+    if(Math.abs(dx)<10) return;
+    gl.actif=true; gl.c.classList.add('glisse'); refermerLignes(gl.c);
+  }
+  gl.dx=dx; gl.c.style.transform='translateX('+Math.min(0,Math.max(-140,gl.base+dx))+'px)';
+});
+function finGlisse(){
+  if(!gl) return;
+  if(gl.actif){
+    glissee=true; setTimeout(()=>{ glissee=false; },60);
+    const c=gl.c, ouvrir=gl.base+gl.dx < -46;
+    c.classList.remove('glisse'); c.classList.toggle('ouvert',ouvrir); c.style.transform=ouvrir?'translateX(-92px)':'';
+  }
+  gl=null;
+}
+window.addEventListener('pointerup',finGlisse);
+window.addEventListener('pointercancel',finGlisse);
+$('vP').addEventListener('click',e=>{
+  const c=e.target.closest('.pt'); if(!c || e.target.closest('.as') || glissee) return;
+  if(document.querySelector('.pt.ouvert')){ refermerLignes(null); return; }
+  const p=L.find(x=>x.id===c.dataset.id); if(p) ouvrirFiche(p);
+});
+$('vP').addEventListener('keydown',e=>{
+  if(e.key!=='Enter' || !e.target.classList || !e.target.classList.contains('pt')) return;
+  const p=L.find(x=>x.id===e.target.dataset.id); if(p){ e.preventDefault(); ouvrirFiche(p); }
 });
 $('undoBtn').addEventListener('click',()=>{
   if(lastDel && lastDel.k==='p'){ L.push(lastDel.o); save(); render(); }
@@ -405,16 +575,15 @@ function montrerAnnuler(txt){
   clearTimeout(undoT); undoT=setTimeout(()=>{ $('undo').style.display='none'; lastDel=null; },6000);
 }
 
-/* ══ ONGLETS ══════════════════════════════════════════════════════════════ */
-const KEY_TAB='pense-bete-onglet';
+/* ══ ONGLETS ══════════════════════════════════════════════════════════════
+   (30/10/2026) Barre en bas : Patients · Compteur · Réglages (sauvegarde). */
+const KEY_TAB='pense-bete-onglet', ONGLETS=['P','C','R'];
 function onglet(v){
-  const c = v==='C';
-  $('vP').hidden=c; $('vC').hidden=!c;
-  $('tP').setAttribute('aria-selected', String(!c)); $('tC').setAttribute('aria-selected', String(c));
+  if(!ONGLETS.includes(v)) v='P';
+  ONGLETS.forEach(k=>{ $('v'+k).hidden = k!==v; $('t'+k).setAttribute('aria-selected', String(k===v)); });
   try{ localStorage.setItem(KEY_TAB, v); }catch(e){}
 }
-$('tP').addEventListener('click',()=>onglet('P'));
-$('tC').addEventListener('click',()=>onglet('C'));
+ONGLETS.forEach(k=>$('t'+k).addEventListener('click',()=>onglet(k)));
 
 /* ══ COMPTEUR — règle des 30 %, axe CCAM (05/10/2026) ══════════════════════
    Libéral L et public P = point de départ (dernier relevé) + actes comptés
@@ -902,7 +1071,7 @@ $('svOui').addEventListener('click',()=>{
 load(); $('dt').value=isoToday(); render();
 cLoad(); lierAnciens(); try{ if(localStorage.getItem(KEY_AXE)==='ngap') cAxe='ngap'; }catch(e){}
 $('cDt').value=isoToday(); cReglagesAfficher(); cRender();
-try{ if(localStorage.getItem(KEY_TAB)==='C') onglet('C'); }catch(e){}
+try{ const t=localStorage.getItem(KEY_TAB); if(t==='C'||t==='R') onglet(t); }catch(e){}
 </script>
 </body>
 </html>
