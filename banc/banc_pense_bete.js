@@ -825,6 +825,40 @@ V('compteur abîmé : la page s\'ouvre, réglages demandés', o5.window.document
   V('nouvel habillage : aucun appel réseau, aucune erreur JavaScript', Hn.reseau.length === 0 && Ho.reseau.length === 0 && Hn.erreurs.length === 0 && Ho.erreurs.length === 0, [Hn.erreurs, Ho.erreurs]);
   V('couleur de l\'appli = rouge de l\'icône', /--acc:#C8102E;/.test(PAGE) && /<meta name="theme-color" content="#F2F2F7">/.test(PAGE));
   }
+  /* ── 19. COMPTEUR REDESSINÉ (30/10/2026, livraison 2) ───────────────────
+     Jauge de la part libérale (zone rose jusqu'à 30 %, orange au-delà),
+     sélecteurs façon iPhone, « Autre acte » repliable ; les réglages du
+     Compteur passent dans l'onglet Réglages. Calculs inchangés. Valeurs fictives. */
+  {
+  console.log('\n[19] Compteur redessiné — jauge, réglages dans l\'onglet Réglages');
+  const Q = ouvrir(), Qd = Q.w.document, $q = Q.$;
+  $q('tC').click();
+  V('les réglages du Compteur sont dans l\'onglet Réglages, plus dans le Compteur',
+    $q('vR').contains($q('cReg')) && $q('vR').contains($q('rSave')) && !$q('vC').contains($q('cReg')));
+  V('sans réglages : message qui renvoie à l\'onglet Réglages, bouton visible', /onglet Réglages/.test($q('cMsg').textContent) && !$q('cVersR').hidden, $q('cMsg').textContent);
+  V('…jauge vide (pas d\'arc), « — » au centre', $q('cArc').style.visibility === 'hidden' && $q('cPct').textContent === '—');
+  $q('cVersR').click();
+  V('« Ouvrir les Réglages » : onglet Réglages, bloc Compteur déplié', !$q('vR').hidden && $q('vC').hidden && $q('cReg').open && $q('tR').getAttribute('aria-selected') === 'true');
+  regler(Q, '2026-09-30', '1 000,00', '', VALS); $q('tC').click();
+  V('réglages faits : bouton caché, message vide', $q('cVersR').hidden && $q('cMsg').textContent === '');
+  geste(Q, 'combo', 'lib', 'mc', '2026-10-01'); geste(Q, 'gastro', 'lib', 'fr', '2026-10-02'); geste(Q, 'colo', 'pub', 'fr', '2026-10-02');
+  const arcLong = () => parseFloat($q('cArc').getAttribute('stroke-dasharray'));
+  // part libérale = 3 951 / 104 951 (même cas que la section 6) → 3,76 % d'un tour de 515,22
+  V('jauge : arc = part libérale × tour (3,76 % → 19,40), sans orange', Math.abs(arcLong() - 3951 / 104951 * 515.22) < 0.01 && !$q('cArc').classList.contains('ko')
+    && $q('cArc').style.visibility === 'visible', $q('cArc').getAttribute('stroke-dasharray'));
+  V('zone rose = 30 % du tour (154,57)', /class="jz"[^>]*stroke-dasharray="154\.57 515\.22"/.test(PAGE));
+  V('montants : nombre d\'actes en petit sous le montant', $q('cLib').querySelector('small').textContent === '+2 actes' && $q('cPub').querySelector('small').textContent === '+1 acte'
+    && /^39,51/.test($q('cLib').textContent), $q('cLib').innerHTML);
+  const Z = ouvrir(); Z.$('tC').click(); regler(Z, '2026-09-30', '100', '50', VALS);
+  V('au-delà de 30 % : arc orange (33,3 % → 171,74)', Z.$('cArc').classList.contains('ko') && Math.abs(parseFloat(Z.$('cArc').getAttribute('stroke-dasharray')) - 515.22 / 3) < 0.01,
+    Z.$('cArc').getAttribute('stroke-dasharray'));
+  V('sélecteurs façon iPhone : axe, libéral / public, Monaco / France', ['cAxe', 'cMode', 'cAss'].every(id => $q(id).classList.contains('seg')));
+  V('« Autre acte » dans un bloc repliable, fermé à l\'ouverture', $q('cAutreD').tagName === 'DETAILS' && $q('cAutreD').contains($q('cCode')) && !$q('cAutreD').open);
+  V('titre de la saisie : « Ajouter un acte »', $q('cAjT').textContent === 'Ajouter un acte');
+  Qd.querySelector('#cAxe .chip[data-v="ngap"]').click();
+  V('axe NGAP : « Ajouter une consultation », bouton Réglages revenu (NGAP non réglé)', $q('cAjT').textContent === 'Ajouter une consultation' && !$q('cVersR').hidden);
+  V('Compteur redessiné : aucun appel réseau, aucune erreur JavaScript', Q.reseau.length === 0 && Z.reseau.length === 0 && Q.erreurs.length === 0 && Z.erreurs.length === 0, [Q.erreurs, Z.erreurs]);
+  }
   console.log(`\n${ok} ✓  ${ko} ✗`);
   process.exit(ko ? 1 : 0);
 })();

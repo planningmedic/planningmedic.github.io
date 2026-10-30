@@ -35,7 +35,7 @@
   --bg:#F2F2F7; --card:#FFFFFF; --ink:#000000; --mute:#8E8E93; --line:#E5E5EA;
   --acc:#C8102E; --acc-ink:#FFFFFF; --acc-soft:#FBE9EC; --past:#AEAEB2; --warn:#B4541A;
   --mc:#C8102E; --fr:#1F4FA3; --as-ink:#FFFFFF; --mc-bg:#FBE9EC; --fr-bg:#E8EEFA;
-  --sep:#C6C6C8; --bar:rgba(249,249,249,.94); --ok:#248A3D; --del:#FF3B30;
+  --sep:#C6C6C8; --bar:rgba(249,249,249,.94); --ok:#248A3D; --del:#FF3B30; --seg:#E3E3E8; --segon:#FFFFFF;
   box-sizing:border-box;
   padding-top:env(safe-area-inset-top,0px); padding-bottom:env(safe-area-inset-bottom,0px);
 }
@@ -44,14 +44,14 @@
     --bg:#000000; --card:#1C1C1E; --ink:#FFFFFF; --mute:#8E8E93; --line:#38383A;
     --acc:#E5243B; --acc-ink:#FFFFFF; --acc-soft:#3A1E23; --past:#636366; --warn:#E59560;
     --mc:#FF6B7A; --fr:#7EA8FF; --as-ink:#10171D; --mc-bg:#3A2228; --fr-bg:#1E2B44;
-    --sep:#38383A; --bar:rgba(22,22,24,.94); --ok:#30D158; --del:#FF453A;
+    --sep:#38383A; --bar:rgba(22,22,24,.94); --ok:#30D158; --del:#FF453A; --seg:#2C2C2E; --segon:#636366;
   }
 }
 :root[data-theme="dark"]{
   --bg:#000000; --card:#1C1C1E; --ink:#FFFFFF; --mute:#8E8E93; --line:#38383A;
   --acc:#E5243B; --acc-ink:#FFFFFF; --acc-soft:#3A1E23; --past:#636366; --warn:#E59560;
   --mc:#FF6B7A; --fr:#7EA8FF; --as-ink:#10171D; --mc-bg:#3A2228; --fr-bg:#1E2B44;
-  --sep:#38383A; --bar:rgba(22,22,24,.94); --ok:#30D158; --del:#FF453A;
+  --sep:#38383A; --bar:rgba(22,22,24,.94); --ok:#30D158; --del:#FF453A; --seg:#2C2C2E; --segon:#636366;
 }
 *,*::before,*::after{box-sizing:inherit}
 [hidden]{display:none!important}
@@ -60,7 +60,7 @@ body{margin:0;background:var(--bg);color:var(--ink);
   font:17px/1.4 -apple-system,system-ui,"Segoe UI",Roboto,sans-serif;}
 main{max-width:520px;margin:0 auto;padding:6px 16px calc(110px + env(safe-area-inset-bottom,0px))}
 h1{font-size:34px;margin:4px 4px 2px;font-weight:700;letter-spacing:.2px}
-form{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:14px}
+form{background:var(--card);border:0;border-radius:12px;padding:14px}
 label{display:block;font-size:14px;color:var(--mute);margin:0 0 4px}
 .row{display:grid;grid-template-columns:1fr;gap:10px}
 .lbl{display:block;font-size:14px;color:var(--mute);margin:0 0 6px}
@@ -151,25 +151,53 @@ details summary{cursor:pointer;color:var(--mute);font-size:15px;padding:10px 0}
 .tab[aria-selected="true"]{color:var(--acc)}
 #vC h1,#vR h1{margin:22px 4px 14px}
 .chips.deux{grid-template-columns:1fr 1fr}
-.kpi{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:14px;margin-bottom:14px}
-.kpi .big{font-size:40px;font-weight:700;line-height:1.1}
-.kpi .sub{color:var(--mute);font-size:14px}
-.kpi .duo{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:12px;font-size:15px}
-.kpi .duo b{display:block;font-size:18px}
-.marge{margin-top:12px;font-weight:700;font-size:15px}
-.marge.ok{color:var(--acc)} .marge.ko{color:var(--warn)}
+.kpi{display:none}
+/* (30/10/2026) Compteur : jauge de la part libérale (zone rose = jusqu'au seuil de 30 %),
+   sélecteurs façon iPhone, boutons d'actes sur une ligne, historique en carte. */
+.jauge{position:relative;width:200px;height:200px;margin:4px auto 0}
+.jauge svg{width:200px;height:200px;transform:rotate(-90deg)}
+.jauge circle{fill:none;stroke-width:16}
+.jauge .jt{stroke:var(--line)} .jauge .jz{stroke:var(--acc-soft)}
+.jauge .ja{stroke:var(--acc);stroke-linecap:round;transition:stroke-dasharray .4s}
+.jauge .ja.ko{stroke:var(--warn)}
+.jx{position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center}
+.jx .big{font-size:40px;font-weight:700;line-height:1.1;font-variant-numeric:tabular-nums}
+.jl{font-size:13px;color:var(--mute)}
+.csub{text-align:center;color:var(--mute);font-size:14px;margin-top:2px}
+.duo2{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);background:var(--card);border-radius:12px;margin-top:14px}
+.duo2>div{padding:10px 14px;font-size:13px;color:var(--mute)} .duo2>div+div{border-left:.5px solid var(--sep)}
+.duo2 b{display:block;font-size:18px;font-weight:600;color:var(--ink);font-variant-numeric:tabular-nums}
+.duo2 b small{display:block;font-size:13px;font-weight:400;color:var(--mute)}
+.case input{-webkit-appearance:checkbox;appearance:auto;padding:0;flex:none;accent-color:var(--acc)}
+.autre .note{font-size:13px;color:var(--mute);margin:2px 0 0;line-height:1.35}
+.reg summary{cursor:pointer;padding:13px 0;font-size:16px;color:var(--ink)}
+.marge{margin-top:10px;font-weight:600;font-size:15px;text-align:center}
+.marge.ok{color:var(--ok)} .marge.ko{color:var(--warn)}
+.sect,#vC h2{font-size:13px;font-weight:400;text-transform:uppercase;letter-spacing:.1px;color:var(--mute);margin:22px 16px 6px}
+.seg{background:var(--seg);border-radius:9px;padding:2px;gap:2px}
+.seg .chip{border:0;background:none;min-height:36px;font-size:15px;font-weight:600;border-radius:7px}
+.seg .chip[aria-checked="true"]{background:var(--segon);color:var(--ink);box-shadow:0 2px 6px rgba(0,0,0,.12)}
+#cFrm .seg{margin-bottom:8px}
+.hist{background:var(--card);border-radius:12px;padding:0 12px}
+.autreD{margin-top:10px;border-top:.5px solid var(--sep)}
+.autreD summary{list-style:none;cursor:pointer;display:flex;justify-content:space-between;align-items:center;min-height:46px;font-size:16px}
+.autreD summary::-webkit-details-marker{display:none}
+.autreD summary::after{content:"›";color:var(--past);font-size:20px;transition:transform .15s}
+.autreD[open] summary::after{transform:rotate(90deg)}
 .gestes{display:grid;grid-template-columns:1fr;gap:8px;margin-top:4px}
-.geste{font:inherit;font-weight:700;font-size:18px;background:var(--acc);color:var(--acc-ink);border:0;border-radius:10px;min-height:52px;cursor:pointer}
+#cGestes{grid-template-columns:repeat(3,minmax(0,1fr))}
+#cNgap{grid-template-columns:repeat(2,minmax(0,1fr))}
+.geste{font:inherit;font-weight:700;font-size:17px;line-height:1.15;background:var(--acc);color:var(--acc-ink);border:0;border-radius:12px;min-height:56px;padding:4px 6px;cursor:pointer}
 .geste:disabled{opacity:.4;cursor:default}
 .acte{display:flex;align-items:center;gap:10px;min-height:40px;border-bottom:1px solid var(--line)}
 .acte .d{color:var(--mute);min-width:54px;font-size:15px}
 .acte .g{flex:1}
 .acte .v{font-variant-numeric:tabular-nums}
-.reg{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:0 14px;margin-top:22px}
+.reg{background:var(--card);border:0;border-radius:12px;padding:0 14px;margin-top:22px}
 .reg .grille{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:10px}
 .reg input{min-width:0;box-sizing:border-box} /* le contenu d'un <details> n'hérite pas toujours du border-box */
 .reg h3{font-size:15px;margin:14px 0 8px}
-.autre{margin-top:14px;padding-top:12px;border-top:1px solid var(--line)}
+.autre{padding:0 0 10px}
 .autre .ligne{display:grid;grid-template-columns:1fr auto;gap:8px}
 .autre .ligne .geste{padding:0 18px}
 #cCode{text-transform:uppercase;letter-spacing:.06em;font-weight:700}
@@ -250,21 +278,24 @@ button.jr{font:inherit;color:inherit;background:none;border:0;border-bottom:1px 
        valeurs et point de départ se saisissent dans « Réglages », sur l'appareil. -->
   <div id="vC" role="tabpanel" aria-labelledby="tC" hidden>
     <h1>Compteur</h1>
-    <div class="chips deux" id="cAxe" role="radiogroup" aria-label="Axe">
+    <div class="chips deux seg" id="cAxe" role="radiogroup" aria-label="Axe">
       <button type="button" class="chip" role="radio" data-v="ccam" aria-checked="true">Actes · CCAM</button>
-      <button type="button" class="chip" role="radio" data-v="ngap" aria-checked="false">Consultations · NGAP</button></div>
-    <div class="kpi">
-      <div class="big" id="cPct">—</div>
-      <div class="sub" id="cSub">part libérale CCAM</div>
-      <div class="duo"><div>Libéral<b id="cLib">—</b></div><div>Public<b id="cPub">—</b></div></div>
-      <div class="marge" id="cMarge"></div>
+      <button type="button" class="chip" role="radio" data-v="ngap" aria-checked="false">Consult. · NGAP</button></div>
+    <!-- (30/10/2026) Jauge : l'arc rouge = part libérale ; la zone rose va jusqu'à 30 %. -->
+    <div class="jauge">
+      <svg viewBox="0 0 200 200" aria-hidden="true"><circle class="jt" cx="100" cy="100" r="82"/><circle class="jz" cx="100" cy="100" r="82" stroke-dasharray="154.57 515.22"/><circle class="ja" id="cArc" cx="100" cy="100" r="82" stroke-dasharray="0 515.22" style="visibility:hidden"/></svg>
+      <div class="jx"><div class="big" id="cPct">—</div><div class="jl">seuil 30 %</div></div>
     </div>
+    <div class="csub" id="cSub">part libérale CCAM</div>
+    <div class="marge" id="cMarge"></div>
+    <div class="duo2"><div>Libéral<b id="cLib">—</b></div><div>Public<b id="cPub">—</b></div></div>
+    <h2 class="sect" id="cAjT">Ajouter un acte</h2>
     <form id="cFrm" autocomplete="off">
       <div class="f"><label for="cDt" id="cDtL">Date de l'acte</label><input type="date" id="cDt"></div>
-      <div class="f"><div class="chips deux" id="cMode" role="radiogroup" aria-label="Activité">
+      <div class="f"><div class="chips deux seg" id="cMode" role="radiogroup" aria-label="Activité">
         <button type="button" class="chip" role="radio" data-v="lib" aria-checked="true">Libéral</button>
         <button type="button" class="chip" role="radio" data-v="pub" aria-checked="false">Public</button></div></div>
-      <div class="f"><div class="chips deux" id="cAss" role="radiogroup" aria-label="Assurance">
+      <div class="f"><div class="chips deux seg" id="cAss" role="radiogroup" aria-label="Assurance">
         <button type="button" class="chip" role="radio" data-v="mc" aria-checked="true">Monaco</button>
         <button type="button" class="chip" role="radio" data-v="fr" aria-checked="false">France</button></div></div>
       <div id="cCcamF">
@@ -278,8 +309,9 @@ button.jr{font:inherit;color:inherit;background:none;border:0;border-bottom:1px 
            + 6 % (modificateur 7, toujours), × 50 % si 2e acte, × coefficient Monaco.
            Seul échange réseau de la page : le TÉLÉCHARGEMENT de cette liste,
            sans rien y ajouter (ni code, ni date, ni montant). -->
+      <details class="autreD" id="cAutreD"><summary>Autre acte · code CCAM</summary>
       <div class="autre">
-        <label for="cCode">Autre acte : code CCAM</label>
+        <label for="cCode">Code CCAM</label>
         <div class="ligne"><input id="cCode" maxlength="7" autocapitalize="characters" autocomplete="off" spellcheck="false">
           <button type="button" class="geste" id="cAutre">Ajouter</button></div>
         <label class="case"><input type="checkbox" id="c50"> 2e acte du même patient (50 %)</label>
@@ -293,6 +325,7 @@ button.jr{font:inherit;color:inherit;background:none;border:0;border-bottom:1px 
           <div class="lib" id="cMtEtat"></div>
         </div>
       </div>
+      </details>
       </div>
       <!-- (09/10/2026) NGAP : deux consultations, comme le devis libéral (CS, APC).
            Valeur saisie dans les Réglages : sans coefficient Monaco ni modificateur.
@@ -307,10 +340,20 @@ button.jr{font:inherit;color:inherit;background:none;border:0;border-bottom:1px 
         <div class="lib" id="cApcNote"></div>
       </div>
       <p class="msg" id="cMsg" role="status"></p>
+      <button type="button" class="lien" id="cVersR" hidden style="margin-top:8px">Ouvrir les Réglages ›</button>
     </form>
-    <section><h2 id="cListT">Actes comptés</h2><div id="cList"></div></section>
-    <details class="reg" id="cReg">
-      <summary>Réglages du Compteur</summary>
+    <section><h2 id="cListT">Actes comptés</h2><div id="cList" class="hist"></div></section>
+  </div>
+
+  <!-- (16/10/2026) SAUVEGARDE — un fichier JSON avec patients + Compteur.
+       Ne quitte l'appareil que là où l'utilisateur le range (Fichiers, iCloud) :
+       aucun envoi réseau. Restaurer = FUSIONNER (rien n'est effacé, aucun doublon). -->
+  <!-- (30/10/2026) ONGLET RÉGLAGES : la sauvegarde y vit désormais. -->
+  <div id="vR" role="tabpanel" aria-labelledby="tR" hidden>
+  <h1>Réglages</h1>
+  <!-- (30/10/2026) Réglages du Compteur : venus de l'onglet Compteur, mêmes champs. -->
+  <details class="reg" id="cReg">
+      <summary>Compteur : point de départ et valeurs</summary>
       <h3>Point de départ (dernier relevé)</h3>
       <div class="f"><label for="rD0">Relevé arrêté au</label><input type="date" id="rD0"></div>
       <div class="grille">
@@ -331,14 +374,6 @@ button.jr{font:inherit;color:inherit;background:none;border:0;border-bottom:1px 
       <button type="button" class="add" id="rSave" style="margin:6px 0 14px">Enregistrer</button>
       <p class="msg" id="rMsg" role="status"></p>
     </details>
-  </div>
-
-  <!-- (16/10/2026) SAUVEGARDE — un fichier JSON avec patients + Compteur.
-       Ne quitte l'appareil que là où l'utilisateur le range (Fichiers, iCloud) :
-       aucun envoi réseau. Restaurer = FUSIONNER (rien n'est effacé, aucun doublon). -->
-  <!-- (30/10/2026) ONGLET RÉGLAGES : la sauvegarde y vit désormais. -->
-  <div id="vR" role="tabpanel" aria-labelledby="tR" hidden>
-  <h1>Réglages</h1>
   <section class="reg sv" id="sv">
     <h3>Sauvegarde</h3>
     <p class="note" style="margin-top:4px">Un fichier avec vos patients et votre Compteur. Rangez-le dans Fichiers ou iCloud : il contient des initiales et des montants, gardez-le pour vous.</p>
@@ -585,6 +620,7 @@ function onglet(v){
 }
 ONGLETS.forEach(k=>$('t'+k).addEventListener('click',()=>onglet(k)));
 
+$('cVersR').addEventListener('click',()=>{ onglet('R'); $('cReg').open=true; const r=$('cReg'); if(r.scrollIntoView) r.scrollIntoView({block:'start'}); });
 /* ══ COMPTEUR — règle des 30 %, axe CCAM (05/10/2026) ══════════════════════
    Libéral L et public P = point de départ (dernier relevé) + actes comptés
    depuis. Part libérale = L / (L + P). Marge à public constant :
@@ -710,13 +746,23 @@ function cRender(){
   $('cCcamF').querySelectorAll('.geste').forEach(b=>b.disabled=!okC);
   $('cCode').disabled=!okC;
   majApc();
-  $('cMsg').textContent = ok ? '' : n ? 'Remplissez d\'abord les Réglages (en bas) : point de départ NGAP et valeur des consultations.'
-    : 'Remplissez d\'abord les Réglages (en bas) : point de départ et valeur des actes.';
+  /* (30/10/2026) Les réglages du Compteur vivent dans l'onglet Réglages : le message y
+     renvoie, avec un bouton ; le bloc s'y ouvre déjà déplié. */
+  $('cMsg').textContent = ok ? '' : n ? 'Remplissez d\'abord les réglages du Compteur (onglet Réglages) : point de départ NGAP et valeur des consultations.'
+    : 'Remplissez d\'abord les réglages du Compteur (onglet Réglages) : point de départ et valeur des actes.';
+  $('cVersR').hidden=ok;
   if(!ok) $('cReg').open=true;
+  $('cAjT').textContent = n ? 'Ajouter une consultation' : 'Ajouter un acte';
   $('cPct').textContent = T>0 ? (t.L*100/T).toLocaleString('fr-FR',{minimumFractionDigits:1,maximumFractionDigits:1})+' %' : '—';
+  // Jauge : arc proportionnel à la part libérale (tour complet = 100 %), orange au-delà de 30 %
+  const part = T>0 ? t.L/T : 0, arc=$('cArc'), TOUR=515.22;
+  arc.setAttribute('stroke-dasharray', (Math.min(part,1)*TOUR).toFixed(2)+' '+TOUR);
+  arc.classList.toggle('ko', part>0.3);
+  arc.style.visibility = part>0 ? 'visible' : 'hidden';
   $('cSub').textContent = 'part libérale '+(n?'NGAP':'CCAM') + (C.d0 ? ' · depuis le relevé du '+C.d0.split('-').reverse().join('/') : '');
-  $('cLib').textContent = euros(t.L) + (t.nl ? ' · +'+t.nl+' acte'+(t.nl>1?'s':'') : '');
-  $('cPub').textContent = euros(t.P) + (t.np ? ' · +'+t.np+' acte'+(t.np>1?'s':'') : '');
+  // (30/10/2026) le nombre d'actes ajoutés passe sous le montant, en petit
+  $('cLib').innerHTML = euros(t.L) + (t.nl ? '<small>+'+t.nl+' acte'+(t.nl>1?'s':'')+'</small>' : '');
+  $('cPub').innerHTML = euros(t.P) + (t.np ? '<small>+'+t.np+' acte'+(t.np>1?'s':'')+'</small>' : '');
   const marge7 = 3*t.P - 7*t.L;                   // = 7 × marge, en centimes
   const m=$('cMarge');
   if(!ok){ m.textContent=''; m.className='marge'; }
