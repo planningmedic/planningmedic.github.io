@@ -137,8 +137,14 @@ V('code accepté : widget activé, état affiché, code effacé du champ', !!EW 
 V('…la clé à copier a la forme « PB1.identifiant.clé »', /^PB1\.[A-Za-z0-9_-]{22}\.[A-Za-z0-9_-]{43}$/.test(P.$('wCle').textContent));
 V('…le code du portail n\'est gardé nulle part dans l\'appareil', !JSON.stringify(Object.assign({}, P.w.localStorage)).includes(CODE));
 const corpsEnvoyes = () => P.envois.map(e => e.o.body).join(' ');
-V('ce qui est parti : le code (à l\'activation), l\'identifiant, le jeton, du texte chiffré — aucune initiale, aucun secteur',
-  !corpsEnvoyes().includes(TEMOIN) && !corpsEnvoyes().includes('KL') && !/Endos|Ortho|ORL/.test(corpsEnvoyes()) && !corpsEnvoyes().includes(EW.cle), corpsEnvoyes().slice(0, 200));
+/* (30/10/2026) Contrôle robuste : l'identifiant et le jeton sont tirés au hasard et peuvent
+   contenir « KL » par hasard — on vérifie donc les CHAMPS envoyés, puis que le texte
+   chiffré, décodé tel quel, ne contient pas la liste en clair. */
+const corps = P.envois.map(e => JSON.parse(e.o.body));
+const champsOk = corps.every(c => { const k = Object.keys(c).sort().join(); return k === 'code,id,jeton' || k === 'c,id,jeton'; });
+const enClair = corps.filter(c => c.c).some(c => { const o = Buffer.from(c.c, 'base64url').toString('latin1'); return o.includes(TEMOIN) || /Endos|Ortho|"i":|"s":/.test(o); });
+V('ce qui est parti : seulement { code, id, jeton } puis { id, jeton, c } — le contenu c ne contient rien en clair, ni la clé',
+  champsOk && !enClair && !corpsEnvoyes().includes(EW.cle) && !/Endos|Ortho|ORL/.test(corpsEnvoyes()), corps.map(c => Object.keys(c)));
 V('…uniquement vers le serveur du portail, routes de la boîte', P.envois.every(e => /^https:\/\/miroir\.planningmedic\.workers\.dev\/pb-(ouvrir|depot)$/.test(e.u)), P.envois.map(e => e.u));
 const boite = () => JSON.parse(M.get('pbw_' + EW.id) || 'null');
 const lu = () => JSON.parse(PB.dechiffrer(PB.b64d(EW.cle), boite().c));
@@ -156,6 +162,23 @@ V('« Envoyer maintenant » : envoyé', /Envoyé/.test(P.$('wMsg').textContent))
 let copie = null; P.w.navigator.clipboard = { writeText: t => { copie = t; return Promise.resolve(); } };
 P.$('wCopier').click(); await pause(10);
 V('« Copier la clé » copie la clé complète', copie === P.$('wCle').textContent && /Clé copiée/.test(P.$('wMsg').textContent));
+// (30/10/2026) Carte épurée : une fois activé, l'état et deux boutons ; l'installation est repliée
+V('carte activée épurée : état + « Envoyer maintenant » + « Désactiver », installation repliée',
+  !P.$('wRe').open && P.$('wRe').contains(P.$('wCle')) && P.$('wRe').contains(P.$('wInst')) && P.$('wRe').contains(P.$('wCopier'))
+  && !P.$('wRe').contains(P.$('wEnv')) && !P.$('wRe').contains(P.$('wOffB')));
+P.$('wInst').click(); await pause(10);
+const INST = copie;
+V('« Copier l\'installateur » : 4 lignes, adresse du script tirée de la page (rien en dur)',
+  /Installateur copié/.test(P.$('wMsg').textContent) && INST.split('\n').filter(Boolean).length === 4
+  && INST.includes("new Request('https://planningmedic.github.io/pense-bete/widget-scriptable.js')") && !PAGE.includes('planningmedic.github.io/pense-bete/widget-scriptable.js'), INST);
+{ // l'installateur, exécuté dans une imitation de Scriptable, enregistre bien le vrai script
+  const ecrits = new Map(); let alerte = null;
+  const g = { Request: class { constructor(u) { this.u = u; } async loadString() { return this.u.endsWith('/pense-bete/widget-scriptable.js') ? SCRIPT : ''; } },
+    FileManager: { iCloud: () => ({ documentsDirectory: () => '/icloud', joinPath: (x, y) => x + '/' + y, writeString: (f, t) => ecrits.set(f, t) }), local: () => { throw new Error('non'); } },
+    Alert: class { addAction() {} async present() { alerte = this.title; return 0; } } };
+  let err = null; try { await new Function(...Object.keys(g), 'return (async () => {\n' + INST + '\n})();')(...Object.values(g)); } catch (e) { err = e.message; }
+  V('…exécuté dans Scriptable : « Patients lib.js » contient exactement le script du widget', !err && ecrits.get('/icloud/Patients lib.js') === SCRIPT && alerte === 'Installé', err);
+}
 // Réouverture le lendemain : la fenêtre avance toute seule
 const Q = ouvrir(P.w.localStorage.getItem('pense-bete-lib-v1'), JSON.stringify(Object.assign({}, EW, { jour: '2026-11-01' })));
 await pause(80);
@@ -169,7 +192,7 @@ await pause(50);
 V('pas de réseau : l\'état le dit, sans erreur JavaScript', /pas de réseau/.test(H.$('wEtat').textContent) && H.$('wEtat').classList.contains('ko') && H.erreurs.length === 0, H.$('wEtat').textContent);
 // Désactiver (deux touchers)
 P.$('wOffB').click();
-V('désactiver : demande un 2e toucher', /Toucher encore/.test(P.$('wOffB').textContent) && !!P.etatW());
+V('désactiver : demande un 2e toucher (« Confirmer »)', P.$('wOffB').textContent === 'Confirmer' && !!P.etatW());
 P.$('wOffB').click(); await pause(60);
 V('2e toucher : désactivé, clé oubliée, boîte effacée sur le serveur', !P.etatW() && !P.$('wOff').hidden && !M.has('pbw_' + EW.id) && /rien n'est envoyé/.test(P.$('pFoot').textContent));
 const n1 = P.envois.length;

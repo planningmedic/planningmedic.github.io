@@ -257,6 +257,8 @@ button.jr{font:inherit;color:inherit;background:none;border:0;border-bottom:1px 
 .wg{padding-bottom:12px}
 .wg .note{font-size:14px;color:var(--mute);margin:0 0 12px;line-height:1.4}
 .wpas{padding-left:20px}.wpas li{margin-bottom:6px}
+.wre summary{cursor:pointer;color:var(--acc);font-size:15px;padding:6px 0 10px}
+.wre[open] summary{padding-bottom:8px}
 .wg a{color:var(--acc);font-weight:600}
 .wetat{font-size:15px;font-weight:600;color:var(--ok);margin:0 0 10px}
 .wetat.ko{color:var(--warn)}
@@ -368,25 +370,31 @@ button.jr{font:inherit;color:inherit;background:none;border:0;border-bottom:1px 
   <section class="reg wg" id="wBox">
     <h3>Widget de l'écran d'accueil</h3>
     <div id="wOff">
-      <p class="note">Vos patients du jour sur l'écran d'accueil (initiales, secteur, Monaco / France) et leur nombre sur l'écran verrouillé, avec l'appli gratuite Scriptable. Pour cela, le pense-bête dépose une copie <b>chiffrée</b> des 7 prochains jours sur le serveur du portail : sans la clé, qui reste sur cet iPhone et dans le widget, elle est illisible.</p>
+      <p class="note">Vos patients du jour sur l'écran d'accueil, avec l'appli gratuite Scriptable. Une copie <b>chiffrée</b> des 7 prochains jours est déposée sur le serveur du portail ; sans la clé, elle est illisible.</p>
       <div class="f"><label for="wCode">Votre code du portail</label><input id="wCode" type="password" autocomplete="off" autocapitalize="characters" spellcheck="false"></div>
       <button type="button" class="svb" id="wOn" style="width:100%">Activer le widget</button>
     </div>
     <div id="wOnB" hidden>
       <p class="wetat" id="wEtat"></p>
-      <ol class="note wpas">
-        <li>Installez <b>Scriptable</b> (App Store, gratuit).</li>
-        <li>Ouvrez <a href="widget-scriptable.js" target="_blank" rel="noopener" id="wScript">le script du widget</a>, copiez tout le texte, puis dans Scriptable : <b>+</b>, collez, nommez-le « Patients lib ».</li>
-        <li>Touchez <b>Copier la clé</b> ci-dessous, lancez le script une fois dans Scriptable et collez la clé quand il la demande.</li>
-        <li>Écran d'accueil : appui long → <b>+</b> → Scriptable → grand widget → touchez-le → Script : « Patients lib ». Même chose sur l'écran verrouillé (widget rectangle).</li>
-      </ol>
       <div class="row2">
-        <button type="button" class="svb" id="wCopier">Copier la clé</button>
-        <button type="button" class="svb non" id="wEnv">Envoyer maintenant</button>
+        <button type="button" class="svb non" id="wEnv">Envoyer</button>
+        <button type="button" class="svb non" id="wOffB">Désactiver</button>
       </div>
-      <p class="note">Clé du widget (à garder pour vous) :</p>
-      <p class="wcle" id="wCle"></p>
-      <button type="button" class="svb non" id="wOffB" style="width:100%">Désactiver le widget</button>
+      <!-- (30/10/2026) Une fois le widget en place, l'installation se replie : elle ne sert
+           plus que pour un autre iPhone ou un nouvel écran. -->
+      <details class="wre" id="wRe">
+        <summary>Réinstaller le widget</summary>
+        <ol class="note wpas">
+          <li>Dans Scriptable : <b>+</b>, collez l'installateur, touchez ▶︎.</li>
+          <li>Lancez le script « Patients lib » et collez la clé.</li>
+          <li>Appui long sur l'écran → <b>+</b> → Scriptable → touchez le widget → Script : « Patients lib ».</li>
+        </ol>
+        <div class="row2">
+          <button type="button" class="svb" id="wInst">Copier l'installateur</button>
+          <button type="button" class="svb" id="wCopier">Copier la clé</button>
+        </div>
+        <p class="wcle" id="wCle"></p>
+      </details>
     </div>
     <p class="msg" id="wMsg" role="status"></p>
   </section>
@@ -1314,7 +1322,7 @@ function wAfficher(){
   if(W.erreur){ e.className='wetat ko'; e.textContent='Widget activé · '+W.erreur; }
   else if(W.dernier){ const d=new Date(W.dernier); e.className='wetat'; e.textContent='Widget activé · dernier envoi chiffré '+(W.jour===isoToday()?'aujourd\'hui':'le '+W.jour.split('-').reverse().join('/'))+' à '+String(d.getHours()).padStart(2,'0')+':'+String(d.getMinutes()).padStart(2,'0'); }
   else { e.className='wetat'; e.textContent='Widget activé · en attente du premier envoi'; }
-  $('wOffB').textContent = wConfirme ? 'Toucher encore pour désactiver' : 'Désactiver le widget';
+  $('wOffB').textContent = wConfirme ? 'Confirmer' : 'Désactiver';
 }
 $('wOn').addEventListener('click',async()=>{
   const code=$('wCode').value.trim();
@@ -1331,6 +1339,19 @@ $('wCopier').addEventListener('click',()=>{
   const W=wLire(); if(!W) return;
   const ok=()=>{ $('wMsg').textContent='Clé copiée. Collez-la dans Scriptable.'; }, ko=()=>{ $('wMsg').textContent='Copie impossible : touchez la clé ci-dessous pour la sélectionner.'; };
   try{ navigator.clipboard.writeText(wCleTexte(W)).then(ok,ko); }catch(e){ ko(); }
+});
+/* (30/10/2026) Installateur Scriptable : quatre lignes qui téléchargent le script du
+   widget depuis le site et l'enregistrent sous « Patients lib ». */
+function wInstallateur(){
+  const url=new URL('widget-scriptable.js', location.href).href;
+  return "const t = await new Request('"+url+"').loadString();\n"
+    +"let fm; try { fm = FileManager.iCloud(); fm.documentsDirectory(); } catch (e) { fm = FileManager.local(); }\n"
+    +"fm.writeString(fm.joinPath(fm.documentsDirectory(), 'Patients lib.js'), t);\n"
+    +"const a = new Alert(); a.title = 'Installé'; a.message = 'Le script « Patients lib » est prêt.'; a.addAction('OK'); await a.present();\n";
+}
+$('wInst').addEventListener('click',()=>{
+  const ok=()=>{ $('wMsg').textContent='Installateur copié. Collez-le dans Scriptable (+), puis ▶︎.'; }, ko=()=>{ $('wMsg').textContent='Copie impossible depuis ce navigateur.'; };
+  try{ navigator.clipboard.writeText(wInstallateur()).then(ok,ko); }catch(e){ ko(); }
 });
 $('wOffB').addEventListener('click',async()=>{
   if(!wConfirme){ wConfirme=true; wAfficher(); setTimeout(()=>{ wConfirme=false; wAfficher(); },5000); return; }
