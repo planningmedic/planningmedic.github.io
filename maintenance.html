@@ -59,6 +59,23 @@ body{background:var(--bg);font-family:'DM Sans',system-ui,sans-serif;color:var(-
 .liste .em{font-size:11.5px;color:var(--ink-4)}
 .vide{padding:14px;color:var(--ink-3);font-size:13px}
 .pied{text-align:center;font-size:11.5px;color:var(--ink-4);margin-top:8px}
+/* (01/11/2026) Carte « Mise à jour du serveur » (livreur) */
+#cMaj{border:2px solid var(--red)}
+.cases{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px;margin-bottom:10px}
+.case{background:var(--bg);border-radius:10px;padding:9px 10px;min-width:0}
+.case .l{font-size:11.5px;color:var(--ink-3)}
+.case .v{font-size:15px;font-weight:700;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.case .s{font-size:11.5px;color:var(--ink-4);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.case.pret{background:#FEF3C7}.case.pret .l,.case.pret .v,.case.pret .s{color:#92400E}
+.case.ajour{background:#F0FDF4}.case.ajour .l,.case.ajour .v,.case.ajour .s{color:#166534}
+.fic{font-size:13px;margin-bottom:10px}
+.fic div{display:flex;justify-content:space-between;gap:8px;padding:3px 0}
+.fic .e{font-size:12px;white-space:nowrap}
+.fic .e.mod{color:#B45309}.fic .e.nouv{color:#166534}.fic .e.hors{color:var(--ink-4)}
+.fic .r{font-size:12px;color:var(--ink-4)}
+.histo{font-size:12px;color:var(--ink-3);margin-top:10px;border-top:1px solid var(--line-light);padding-top:8px}
+.histo div{display:flex;justify-content:space-between;gap:8px;padding:2px 0}
+.histo span:last-child{white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:65%;text-align:right}
 .toast{position:fixed;left:50%;bottom:calc(22px + env(safe-area-inset-bottom));transform:translateX(-50%);background:var(--ink);color:var(--bg);
        padding:9px 16px;border-radius:999px;font-size:13px;font-weight:600;z-index:500;max-width:90vw;text-align:center}
 #authOverlay{position:fixed;inset:0;z-index:9999;background:var(--bg);display:flex;align-items:center;justify-content:center;padding:20px}
@@ -90,6 +107,20 @@ window.SessionPortail = window.SessionPortail || { lire:function(){try{return se
     <div class="t"><h1>Maintenance</h1><div class="s">Réservé · <span data-version>—</span></div></div>
     <button class="out" id="btnOut" type="button">Déconnexion</button>
   </div>
+
+  <!-- 0. Mise à jour du serveur (livreur, 01/11/2026) -->
+  <section class="card" id="cMaj">
+    <h2>☁️ Mise à jour du serveur</h2>
+    <div id="majCorps"><p class="d">Vérification…</p></div>
+    <button class="btn p" id="btnMajAppliquer" type="button" hidden>Appliquer la mise à jour</button>
+    <p class="d" id="majNote" style="text-align:center;margin:8px 0 0" hidden>Une sauvegarde de la version en service est faite avant toute modification.</p>
+    <div class="duo" style="margin-top:8px">
+      <button class="btn" id="btnMajVerifier" type="button">Vérifier</button>
+      <button class="btn" id="btnMajRevenir" type="button" disabled>Revenir</button>
+    </div>
+    <div class="res" id="majRes"></div>
+    <div class="histo" id="majHisto" hidden></div>
+  </section>
 
   <!-- 1. Diagnostic -->
   <section class="card" id="cDiag">
@@ -126,6 +157,11 @@ window.SessionPortail = window.SessionPortail || { lire:function(){try{return se
 <script>
 'use strict';
 const API_URL = 'https://script.google.com/macros/s/AKfycbxDbTnhgdjCNBqkeAblZWgS3CK-IptjJoRDQd1AtGF7WQoQkXriWGvISIo7LJG8zUtjTQ/exec';
+/* (01/11/2026) Adresse du LIVREUR (projet Apps Script séparé, livreur/livreur.gs).
+   Publique sans danger : il ne fait rien sans un code qui a la clé `maintenance`,
+   qu'il vérifie auprès du serveur du portail. Vide = livreur pas encore installé. */
+const LIVREUR_URL = '';
+const DEPOT_API = 'https://api.github.com/repos/planningmedic/planningmedic.github.io/commits/main';
 let VIEW_CODE = '';
 let MEDECINS = [];
 let RAPPORT = '';
@@ -153,11 +189,12 @@ const $ = id => document.getElementById(id);
 /* Deux appuis pour les gestes qui partent vraiment (pas de boîte de dialogue :
    sur iPhone, elles bloquent la page). Le bouton s'arme, puis se désarme seul. */
 function deuxAppuis(btn, libelleArme, action){
-  const libelle = btn.textContent;
+  let libelle = btn.textContent;
   let arme = false, minuteur = null;
   btn.addEventListener('click', async () => {
     if (btn.disabled) return;
     if (!arme) {
+      libelle = btn.textContent;   // le libellé peut avoir changé depuis (« Revenir (v57) »)
       arme = true; btn.classList.add('arm'); btn.textContent = libelleArme();
       minuteur = setTimeout(() => { arme = false; btn.classList.remove('arm'); btn.textContent = libelle; }, 5000);
       return;
@@ -185,6 +222,7 @@ async function doLogin(code){
   MEDECINS = r.medecins || [];
   montrer(true);
   rendreCodes();
+  majCharger();
   return r;
 }
 $('authBtn').addEventListener('click', async function(){
@@ -197,6 +235,87 @@ $('authBtn').addEventListener('click', async function(){
 });
 $('authInput').addEventListener('keydown', e=>{ if(e.key==='Enter') $('authBtn').click(); });
 $('btnOut').addEventListener('click', ()=>{ SessionPortail.oublier(); location.reload(); });
+
+/* ── 0. Mise à jour du serveur ─────────────────────────────────────────────
+   Le commit est lu ICI, sur GitHub, puis envoyé au livreur : il livre CE commit-là,
+   même si quelqu'un pousse entre-temps (et la limite de lecture de GitHub compte
+   par téléphone, pas pour tous les serveurs Google à la fois). */
+let MAJ = null;                       // dernière réponse « etat » + le commit lu
+async function livreur(payload){
+  payload.code = VIEW_CODE;
+  const res = await fetch(LIVREUR_URL, { method:'POST', headers:{'Content-Type':'text/plain;charset=utf-8'},
+                                         body: JSON.stringify(payload), redirect:'follow' });
+  return await res.json();
+}
+function majRendre(){
+  const z = $('majCorps'), b = $('btnMajAppliquer'), note = $('majNote'), rev = $('btnMajRevenir');
+  const e = MAJ && MAJ.etat;
+  if (!e) return;
+  const pret = e.aChanger > 0;
+  const message = (MAJ.message || '').split('\n')[0];
+  let h = '<div class="cases">'
+    + `<div class="case"><div class="l">En service</div><div class="v">version ${esc(e.enService || '—')}</div><div class="s">${esc(e.historique && e.historique[0] && e.historique[0].n === e.enService ? e.historique[0].description : '')}</div></div>`
+    + `<div class="case ${pret ? 'pret' : 'ajour'}"><div class="l">${pret ? 'Prête sur le dépôt' : 'Dépôt'}</div><div class="v">${pret ? esc(e.aChanger) + ' fichier' + (e.aChanger > 1 ? 's' : '') + ' à changer' : 'À jour'}</div><div class="s">${esc(String(MAJ.sha).slice(0,7))} · ${esc(message)}</div></div>`
+    + '</div>';
+  const changes = (e.fichiers || []).filter(f => f.etat !== 'identique');
+  const nbId = (e.fichiers || []).length - changes.length;
+  if (changes.length) {
+    h += '<div class="fic">' + changes.map(f => {
+      const cls = f.etat === 'modifié' ? 'mod' : f.etat === 'nouveau' ? 'nouv' : 'hors';
+      const vers = (f.avant || f.apres) && f.etat !== 'hors dépôt (conservé)' ? `<span class="r">${esc(f.avant || '—')} → ${esc(f.apres || '—')}</span>` : '';
+      return `<div><span>${esc(f.nom)} ${vers}</span><span class="e ${cls}">${esc(f.etat)}</span></div>`;
+    }).join('') + `<div class="r">Les ${nbId} autres fichiers sont identiques.</div></div>`;
+  }
+  if (e.blocage) h += `<div class="res err" style="margin:0 0 10px">⛔ ${esc(e.blocage)}</div>`;
+  z.innerHTML = h;
+  b.hidden = !pret || !!e.blocage; note.hidden = b.hidden;
+  rev.disabled = !e.precedente;
+  rev.textContent = e.precedente ? 'Revenir (v' + e.precedente + ')' : 'Revenir';
+  const hi = $('majHisto');
+  hi.hidden = !(e.historique && e.historique.length);
+  hi.innerHTML = '<div style="font-weight:600">Dernières versions</div>' + (e.historique || []).slice(0, 5).map(v =>
+    `<div><span>v${esc(v.n)}${v.n === e.enService ? ' · en service' : ''}</span><span>${esc(v.description || (v.le || '').slice(0, 10))}</span></div>`).join('');
+}
+async function majCharger(){
+  const z = $('majCorps'), out = $('majRes');
+  if (!LIVREUR_URL) { z.innerHTML = '<p class="d">Le livreur n\'est pas encore installé : la mise à jour du serveur se fait encore depuis l\'ordinateur.</p>'; $('btnMajVerifier').disabled = true; return; }
+  z.innerHTML = '<p class="d">Comparaison du serveur avec le dépôt…</p>'; out.innerHTML = '';
+  try {
+    const g = await fetch(DEPOT_API, { cache:'no-store' });
+    if (!g.ok) throw new Error('Dépôt illisible (GitHub, HTTP ' + g.status + ') — réessayez dans un instant.');
+    const c = await g.json();
+    const sha = c && c.sha, message = c && c.commit && c.commit.message || '';
+    if (!/^[0-9a-f]{40}$/.test(String(sha || ''))) throw new Error('Commit du dépôt illisible.');
+    const e = await livreur({ action:'etat', sha });
+    if (!e || !e.success) throw new Error(refus(e) ? MSG_RESERVE : ((e && e.error) || 'Livreur injoignable'));
+    MAJ = { sha, message, etat: e };
+    majRendre();
+  } catch (err) { z.innerHTML = '<div class="res err" style="margin:0">❌ ' + esc(err.message) + '</div>'; }
+}
+$('btnMajVerifier').addEventListener('click', majCharger);
+deuxAppuis($('btnMajAppliquer'), () => 'Confirmer : livrer ' + (MAJ ? String(MAJ.sha).slice(0,7) : ''), async () => {
+  if (!MAJ) return;
+  const b = $('btnMajAppliquer'), out = $('majRes');
+  b.disabled = true; const lib = b.textContent; b.textContent = 'Sauvegarde, envoi, nouvelle version…';
+  try {
+    const r = await livreur({ action:'appliquer', sha: MAJ.sha });
+    if (!r || !r.success) throw new Error(refus(r) ? MSG_RESERVE : ((r && r.error) || 'échec'));
+    out.innerHTML = r.rien ? '<span class="ok">✅ Rien à changer : le serveur est déjà à jour.</span>'
+      : `<span class="ok">✅ En service : version ${esc(r.version)} (${esc(r.fichiers)} fichier${r.fichiers > 1 ? 's' : ''}). Même adresse, rien à changer dans le portail.</span>`;
+  } catch (err) { out.innerHTML = '<span class="err">❌ ' + esc(err.message) + '</span>'; }
+  b.disabled = false; b.textContent = lib;
+  const garde = out.innerHTML; await majCharger(); $('majRes').innerHTML = garde;
+});
+deuxAppuis($('btnMajRevenir'), () => 'Confirmer : revenir à la v' + (MAJ && MAJ.etat.precedente), async () => {
+  const b = $('btnMajRevenir'), out = $('majRes');
+  b.disabled = true;
+  try {
+    const r = await livreur({ action:'revenir' });
+    if (!r || !r.success) throw new Error(refus(r) ? MSG_RESERVE : ((r && r.error) || 'échec'));
+    out.innerHTML = `<span class="ok">✅ Retour effectué : la version ${esc(r.enService)} est en service.</span>`;
+  } catch (err) { out.innerHTML = '<span class="err">❌ ' + esc(err.message) + '</span>'; }
+  const garde = out.innerHTML; await majCharger(); $('majRes').innerHTML = garde;
+});
 
 /* ── 1. Diagnostic ─────────────────────────────────────────────────────────
    Repris de l'ancien onglet Maintenance d'admin.html, rendu identique : les

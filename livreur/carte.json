@@ -1,0 +1,90 @@
+{
+ "_lisezmoi": "(01/11/2026) Carte du LIVREUR : quel fichier du dépôt devient quel fichier du projet Apps Script du classeur. Lue au commit livré. dev.gs n'y figure pas (jamais déployé). Les fichiers du projet absents d'ici sont conservés tels quels.",
+ "fichiers": [
+  {
+   "depot": "gas/Indispos.gs",
+   "nom": "Indispos",
+   "type": "SERVER_JS"
+  },
+  {
+   "depot": "gas/code.gs",
+   "nom": "Code",
+   "type": "SERVER_JS"
+  },
+  {
+   "depot": "gas/diagnostic.gs",
+   "nom": "diagnostic",
+   "type": "SERVER_JS"
+  },
+  {
+   "depot": "gas/echanges.gs",
+   "nom": "echanges",
+   "type": "SERVER_JS"
+  },
+  {
+   "depot": "gas/equipe.gs",
+   "nom": "equipe",
+   "type": "SERVER_JS"
+  },
+  {
+   "depot": "gas/gardes.gs",
+   "nom": "gardes",
+   "type": "SERVER_JS"
+  },
+  {
+   "depot": "gas/generateur_gardes.gs",
+   "nom": "generateur_gardes",
+   "type": "SERVER_JS"
+  },
+  {
+   "depot": "gas/indisponibilites.gs",
+   "nom": "indisponibilites",
+   "type": "SERVER_JS"
+  },
+  {
+   "depot": "gas/journal.gs",
+   "nom": "journal",
+   "type": "SERVER_JS"
+  },
+  {
+   "depot": "gas/miroir.gs",
+   "nom": "miroir",
+   "type": "SERVER_JS"
+  },
+  {
+   "depot": "gas/portail.gs",
+   "nom": "portail",
+   "type": "SERVER_JS"
+  },
+  {
+   "depot": "gas/setup_annee.gs",
+   "nom": "setup_annee",
+   "type": "SERVER_JS"
+  },
+  {
+   "depot": "gas/temps_partiel.gs",
+   "nom": "temps_partiel",
+   "type": "SERVER_JS"
+  },
+  {
+   "depot": "gas/veille.gs",
+   "nom": "veille",
+   "type": "SERVER_JS"
+  },
+  {
+   "depot": "sauvegarde.gs",
+   "nom": "sauvegarde",
+   "type": "SERVER_JS"
+  },
+  {
+   "depot": "partage/dispo_jour.js",
+   "nom": "dispo_jour",
+   "type": "SERVER_JS"
+  },
+  {
+   "depot": "gas/appsscript.json",
+   "nom": "appsscript",
+   "type": "JSON"
+  }
+ ]
+}

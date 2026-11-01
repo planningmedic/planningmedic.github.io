@@ -2064,8 +2064,8 @@ version du site.</p></div>
     <div class="fleche"><span class="f">▼</span><span class="fl">puis</span></div>
     <div class="boite b-vert">
       <div class="bt">② Le serveur Google</div>
-      <div class="bd">dépôt → recopie manuelle dans l'éditeur Apps Script →
-      <b>Déployer → nouvelle version</b> → rechargement complet des pages<br>
+      <div class="bd">dépôt → page Maintenance, carte « Mise à jour du serveur » →
+      <b>Appliquer</b> (depuis le téléphone, novembre 2026) → rechargement complet des pages<br>
       contrôle : le diagnostic compare les versions en service à celles du dépôt</div>
     </div>
     <div class="fleche"><span class="f">▼</span><span class="fl">puis</span></div>
@@ -2078,6 +2078,26 @@ version du site.</p></div>
   <div class="legende">Pourquoi cet ordre : une page mise à jour avant son serveur demanderait des
   choses que l'ancien serveur ne connaît pas encore.</div>
 </div>
+
+<details><summary>La mise à jour du serveur depuis le téléphone (le livreur)</summary><div class="corps">
+<p>Depuis novembre 2026, la recopie dans l'éditeur n'est plus nécessaire. La page
+<code>maintenance.html</code> (tuile réservée « Maintenance ») porte en tête une carte
+<b>Mise à jour du serveur</b> : elle compare le code en service au dépôt et liste les fichiers qui
+changent. <b>Appliquer</b> (deux appuis) fait, dans l'ordre : une sauvegarde de l'état actuel (une
+version Apps Script, immuable), l'envoi du code du dépôt, une nouvelle version, puis la bascule du
+<b>déploiement existant</b> — la même adresse, rien à changer dans les pages. <b>Revenir</b> rebascule
+sur la version précédente.</p>
+<p>Le travail est fait par un petit projet Apps Script séparé, le livreur (<code>livreur/</code>), le
+seul à pouvoir réécrire le serveur. Il ne connaît aucun code : il demande au serveur du portail si
+le code reçu porte la clé <code>maintenance</code>. Il livre le commit précis lu par la page, pas
+« la dernière version », et la carte <code>livreur/carte.json</code> dit quel fichier du dépôt
+devient quel fichier du projet.</p>
+<p class="warn"><b>Ce qui reste sur l'ordinateur</b> : un changement des autorisations du serveur
+(<code>oauthScopes</code>) ou de l'accès du site (<code>webapp</code>) dans
+<code>gas/appsscript.json</code>. Le livreur le refuse et le dit : le propriétaire doit
+réautoriser dans l'éditeur, sinon le site cesserait de répondre. Et une modification du livreur
+lui-même se recopie à la main (procédure : <code>livreur/README.md</code>).</p>
+</div></details>
 
 <details><summary>La règle qui sauve, côté serveur</summary><div class="corps">
 <p>Pousser dans le dépôt ne met <b>pas</b> le serveur à jour : le dépôt n'est que la référence. Pour
