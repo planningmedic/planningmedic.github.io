@@ -852,13 +852,16 @@ V('compteur abîmé : la page s\'ouvre, réglages demandés', o5.window.document
   geste(Q, 'combo', 'lib', 'mc', '2026-10-01'); geste(Q, 'gastro', 'lib', 'fr', '2026-10-02'); geste(Q, 'colo', 'pub', 'fr', '2026-10-02');
   const arcLong = () => parseFloat($q('cArc').getAttribute('stroke-dasharray'));
   // part libérale = 3 951 / 104 951 (même cas que la section 6) → 3,76 % d'un tour de 515,22
-  V('jauge : arc = part libérale × tour (3,76 % → 19,40), sans orange', Math.abs(arcLong() - 3951 / 104951 * 515.22) < 0.01 && !$q('cArc').classList.contains('ko')
+  V('jauge : arc = part libérale × tour (3,76 % → 19,40), vert', Math.abs(arcLong() - 3951 / 104951 * 515.22) < 0.01 && !$q('cArc').classList.contains('ko')
     && $q('cArc').style.visibility === 'visible', $q('cArc').getAttribute('stroke-dasharray'));
-  V('zone rose = 30 % du tour (154,57)', /class="jz"[^>]*stroke-dasharray="154\.57 515\.22"/.test(PAGE));
+  V('zone vert pâle = 30 % du tour (154,57)', /class="jz"[^>]*stroke-dasharray="154\.57 515\.22"/.test(PAGE));
   V('montants : nombre d\'actes en petit sous le montant', $q('cLib').querySelector('small').textContent === '+2 actes' && $q('cPub').querySelector('small').textContent === '+1 acte'
     && /^39,51/.test($q('cLib').textContent), $q('cLib').innerHTML);
   const Z = ouvrir(); Z.$('tC').click(); regler(Z, '2026-09-30', '100', '50', VALS);
-  V('au-delà de 30 % : arc orange (33,3 % → 171,74)', Z.$('cArc').classList.contains('ko') && Math.abs(parseFloat(Z.$('cArc').getAttribute('stroke-dasharray')) - 515.22 / 3) < 0.01,
+  V('arc vert sous 30 %, rouge au-delà (01/11/2026)', /\.jauge \.ja\{stroke:var\(--ok\);/.test(PAGE) && /\.jauge \.ja\.ko\{stroke:var\(--acc\)\}/.test(PAGE));
+  V('zone jusqu\'à 30 % en vert pâle, texte « Au-delà de 30 % » en rouge (01/11/2026)', /\.jauge \.jz\{stroke:var\(--ok-soft\)\}/.test(PAGE) && /\.marge\.ko\{color:var\(--acc\)\}/.test(PAGE)
+    && (PAGE.match(/--ok-soft:#/g) || []).length === 3);
+  V('au-delà de 30 % : arc rouge (33,3 % → 171,74)', Z.$('cArc').classList.contains('ko') && Math.abs(parseFloat(Z.$('cArc').getAttribute('stroke-dasharray')) - 515.22 / 3) < 0.01,
     Z.$('cArc').getAttribute('stroke-dasharray'));
   V('sélecteurs façon iPhone : axe, libéral / public, Monaco / France', ['cAxe', 'cMode', 'cAss'].every(id => $q(id).classList.contains('seg')));
   V('« Autre acte » dans un bloc repliable, fermé à l\'ouverture', $q('cAutreD').tagName === 'DETAILS' && $q('cAutreD').contains($q('cCode')) && !$q('cAutreD').open);

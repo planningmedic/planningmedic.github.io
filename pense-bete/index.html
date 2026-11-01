@@ -40,7 +40,7 @@
   --bg:#F2F2F7; --card:#FFFFFF; --ink:#000000; --mute:#8E8E93; --line:#E5E5EA;
   --acc:#C8102E; --acc-ink:#FFFFFF; --acc-soft:#FBE9EC; --past:#AEAEB2; --warn:#B4541A;
   --mc:#C8102E; --fr:#1F4FA3; --as-ink:#FFFFFF; --mc-bg:#FBE9EC; --fr-bg:#E8EEFA;
-  --sep:#C6C6C8; --bar:rgba(249,249,249,.94); --ok:#248A3D; --del:#FF3B30; --seg:#E3E3E8; --segon:#FFFFFF;
+  --sep:#C6C6C8; --bar:rgba(249,249,249,.94); --ok:#248A3D; --ok-soft:#E3F2E7; --del:#FF3B30; --seg:#E3E3E8; --segon:#FFFFFF;
   box-sizing:border-box;
   padding-top:env(safe-area-inset-top,0px); padding-bottom:env(safe-area-inset-bottom,0px);
 }
@@ -49,14 +49,14 @@
     --bg:#000000; --card:#1C1C1E; --ink:#FFFFFF; --mute:#8E8E93; --line:#38383A;
     --acc:#E5243B; --acc-ink:#FFFFFF; --acc-soft:#3A1E23; --past:#636366; --warn:#E59560;
     --mc:#FF6B7A; --fr:#7EA8FF; --as-ink:#10171D; --mc-bg:#3A2228; --fr-bg:#1E2B44;
-    --sep:#38383A; --bar:rgba(22,22,24,.94); --ok:#30D158; --del:#FF453A; --seg:#2C2C2E; --segon:#636366;
+    --sep:#38383A; --bar:rgba(22,22,24,.94); --ok:#30D158; --ok-soft:#17301E; --del:#FF453A; --seg:#2C2C2E; --segon:#636366;
   }
 }
 :root[data-theme="dark"]{
   --bg:#000000; --card:#1C1C1E; --ink:#FFFFFF; --mute:#8E8E93; --line:#38383A;
   --acc:#E5243B; --acc-ink:#FFFFFF; --acc-soft:#3A1E23; --past:#636366; --warn:#E59560;
   --mc:#FF6B7A; --fr:#7EA8FF; --as-ink:#10171D; --mc-bg:#3A2228; --fr-bg:#1E2B44;
-  --sep:#38383A; --bar:rgba(22,22,24,.94); --ok:#30D158; --del:#FF453A; --seg:#2C2C2E; --segon:#636366;
+  --sep:#38383A; --bar:rgba(22,22,24,.94); --ok:#30D158; --ok-soft:#17301E; --del:#FF453A; --seg:#2C2C2E; --segon:#636366;
 }
 *,*::before,*::after{box-sizing:inherit}
 [hidden]{display:none!important}
@@ -162,9 +162,10 @@ details summary{cursor:pointer;color:var(--mute);font-size:15px;padding:10px 0}
 .jauge{position:relative;width:200px;height:200px;margin:4px auto 0}
 .jauge svg{width:200px;height:200px;transform:rotate(-90deg)}
 .jauge circle{fill:none;stroke-width:16}
-.jauge .jt{stroke:var(--line)} .jauge .jz{stroke:var(--acc-soft)}
-.jauge .ja{stroke:var(--acc);stroke-linecap:round;transition:stroke-dasharray .4s}
-.jauge .ja.ko{stroke:var(--warn)}
+.jauge .jt{stroke:var(--line)} .jauge .jz{stroke:var(--ok-soft)}
+.jauge .ja{stroke:var(--ok);stroke-linecap:round;transition:stroke-dasharray .4s,stroke .4s}
+/* (01/11/2026) Arc vert jusqu'à 30 % inclus, rouge au-delà (CCAM comme NGAP) ; zone jusqu'à 30 % en vert pâle. */
+.jauge .ja.ko{stroke:var(--acc)}
 .jx{position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center}
 .jx .big{font-size:40px;font-weight:700;line-height:1.1;font-variant-numeric:tabular-nums}
 .jl{font-size:13px;color:var(--mute)}
@@ -177,7 +178,7 @@ details summary{cursor:pointer;color:var(--mute);font-size:15px;padding:10px 0}
 .autre .note{font-size:13px;color:var(--mute);margin:2px 0 0;line-height:1.35}
 .reg summary{cursor:pointer;padding:13px 0;font-size:16px;color:var(--ink)}
 .marge{margin-top:10px;font-weight:600;font-size:15px;text-align:center}
-.marge.ok{color:var(--ok)} .marge.ko{color:var(--warn)}
+.marge.ok{color:var(--ok)} .marge.ko{color:var(--acc)}
 .sect,#vC h2{font-size:13px;font-weight:400;text-transform:uppercase;letter-spacing:.1px;color:var(--mute);margin:22px 16px 6px}
 .seg{background:var(--seg);border-radius:9px;padding:2px;gap:2px}
 .seg .chip{border:0;background:none;min-height:36px;font-size:15px;font-weight:600;border-radius:7px}
@@ -296,7 +297,7 @@ button.jr{font:inherit;color:inherit;background:none;border:0;border-bottom:1px 
     <div class="chips deux seg" id="cAxe" role="radiogroup" aria-label="Axe">
       <button type="button" class="chip" role="radio" data-v="ccam" aria-checked="true">Actes · CCAM</button>
       <button type="button" class="chip" role="radio" data-v="ngap" aria-checked="false">Consult. · NGAP</button></div>
-    <!-- (30/10/2026) Jauge : l'arc rouge = part libérale ; la zone rose va jusqu'à 30 %. -->
+    <!-- (30/10/2026) Jauge : l'arc = part libérale (vert jusqu'à 30 %, rouge au-delà, 01/11/2026) ; la zone vert pâle va jusqu'à 30 %. -->
     <div class="jauge">
       <svg viewBox="0 0 200 200" aria-hidden="true"><circle class="jt" cx="100" cy="100" r="82"/><circle class="jz" cx="100" cy="100" r="82" stroke-dasharray="154.57 515.22"/><circle class="ja" id="cArc" cx="100" cy="100" r="82" stroke-dasharray="0 515.22" style="visibility:hidden"/></svg>
       <div class="jx"><div class="big" id="cPct">—</div><div class="jl">seuil 30 %</div></div>
@@ -801,7 +802,7 @@ function cRender(){
   if(!ok) $('cReg').open=true;
   $('cAjT').textContent = n ? 'Ajouter une consultation' : 'Ajouter un acte';
   $('cPct').textContent = T>0 ? (t.L*100/T).toLocaleString('fr-FR',{minimumFractionDigits:1,maximumFractionDigits:1})+' %' : '—';
-  // Jauge : arc proportionnel à la part libérale (tour complet = 100 %), orange au-delà de 30 %
+  // Jauge : arc proportionnel à la part libérale (tour complet = 100 %), vert jusqu'à 30 %, rouge au-delà
   const part = T>0 ? t.L/T : 0, arc=$('cArc'), TOUR=515.22;
   arc.setAttribute('stroke-dasharray', (Math.min(part,1)*TOUR).toFixed(2)+' '+TOUR);
   arc.classList.toggle('ko', part>0.3);
