@@ -1975,6 +1975,7 @@ async function _journalDeposer(intention) {
     if (!(r && r.success)) return null;
     _tsEcriturePlanning = Date.now();   // meme garde de fraicheur que les ecritures directes
     _tsEcritureAnnee = _anneeEcriture_(intention);   // (18/08/2026) les 4 intentions portent toutes `year`
+    if (intention && intention.type === 'statut') _tsEcritureDispo = Date.now();   // (01/11/2026) seul geste du journal qui change les disponibles
     _journalDeclencher();
     _journalSuivre();
     return r;
@@ -2484,11 +2485,24 @@ function _ecritureRecentePour_(annee) {
   return Number(annee) === Number(_tsEcritureAnnee);
 }
 
+/* (01/11/2026) GARDE DU PANNEAU DES DISPONIBLES, distincte de la garde
+   generale. Le panneau ne lit que les STATUTS (GARDES), les affectations du
+   mois et MEDECINS : un placement ou une publication n'y change rien. Avant,
+   la garde generale (armee a chaque placement) coupait le calcul local
+   pendant 90 s : en pleine seance, chaque nouveau jour ouvert partait chez
+   Google (3 a 4,6 s mesurees au banc, jusqu'a 15 s en production). Elle ne
+   s'arme plus que sur une ecriture qui change vraiment les disponibles. */
+let _tsEcritureDispo = 0;
+const _ACTIONS_ECRITURE_DISPO = new Set(['setDailyStatus','applyModification','generateGardes',
+  'archiveYear','initYear','saveAffectations','saveAffectationsMar',
+  'poserAbsenceLongue','annulerAbsenceLongue','deciderJourTpLot','saveMedecin']);
+
 async function api(payload) {
   if (payload && _ACTIONS_ECRITURE_PLANNING.has(payload.action)) {
     _tsEcriturePlanning = Date.now();
     _tsEcritureAnnee = _anneeEcriture_(payload);
   }
+  if (payload && _ACTIONS_ECRITURE_DISPO.has(payload.action)) _tsEcritureDispo = Date.now();
   const _suivant = _fileAPI.then(() => _apiAvecFilet(payload), () => _apiAvecFilet(payload));
   _fileAPI = _suivant.catch(() => {});
   return _suivant;
@@ -4574,7 +4588,7 @@ function _dispoLocale(date) {
   try {
     if (!_ETAGE2 || !_ETAGE2.gardes || typeof calculerDispoJour !== 'function') return null;
     if (Number(date.slice(0, 4)) !== _ETAGE2.annee) return null;
-    if (Date.now() - _tsEcriturePlanning < 90000) return null;   // ecriture recente → serveur
+    if (Date.now() - _tsEcritureDispo < 90000) return null;      // (01/11/2026) statut/affectation recent → serveur ; un placement ne compte plus
     if (!(date in _ETAGE2.gardes)) return null;                  // jour hors GARDES → chemins existants
     const mois = new Date(date + 'T12:00:00').getMonth() + 1;
     const affMois = {};
