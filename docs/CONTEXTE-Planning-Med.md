@@ -44,6 +44,22 @@ les fichiers du planning, et attend une semaine de fonctionnement réel avant su
 
 # PARTIE 1 — L'ESSENTIEL
 
+## 1er novembre 2026 — page Maintenance réservée et serveur mis à jour depuis le téléphone (v1.54.2)
+
+Site **v1.54.2** ; `Indispos.gs`, `equipe.gs`, `diagnostic.gs` **2026-11-01.1** ; tout le dépôt en service
+(**version 61**). Livreur **2026-11-01.2**. Banc **5 290 ✓, 0 échec**, 106 scénarios.
+
+- **Mettre à jour le serveur** : pousser, puis le responsable ouvre la tuile **Maintenance** → carte
+  « Mise à jour du serveur » → **Appliquer** (deux appuis). Même adresse, sauvegarde automatique,
+  **Revenir** possible. Plus de recopie dans l'éditeur, sauf changement d'autorisations ou d'accès du site
+  (la carte le refuse et le dit) et mise à jour du livreur (`livreur/README.md`).
+- **Maintenance** (diagnostic, cache, renvoi des codes) n'est plus dans admin.html : `maintenance.html`,
+  clé `maintenance` de TUILES_PRIVEES. Le code comité est refusé côté serveur.
+- **Projet Google Cloud standard** depuis le 01/11 (irréversible) : toute API utilisée doit y être activée
+  (Apps Script, Gmail, Drive) ; une nouvelle autorisation demande la réautorisation du propriétaire.
+- **Pense-bête** refait (v1.50–v1.52) avec widget iPhone chiffré (Scriptable) ; avis DPO en attente.
+- Détail : ROADMAP du 30/10 – 01/11.
+
 ## 27–28 octobre 2026 — fériés 2027 et demi-journées de vacances (v1.48.0)
 
 Site **v1.48.0** (puis v1.49.x par d'autres lots) ; `code.gs`, `Indispos.gs` **2026-10-27.2**,

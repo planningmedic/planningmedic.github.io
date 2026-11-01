@@ -6,15 +6,57 @@ portail/Dashboard, module libéral, contrôle d'absence, veille biblio.
 (Le générateur de comptes rendus a été retiré le 07/09/2026 : il portait le logo de
 l'établissement et 77 noms de praticiens sur une page publique sans code d'accès.)
 
-**Dépôt** `planningmedic/planningmedic.github.io`, branche `main` · **Site v1.49.1** (28/10/2026) ·
+**Dépôt** `planningmedic/planningmedic.github.io`, branche `main` · **Site v1.54.2** (01/11/2026) ·
 **Portail** https://planningmedic.github.io ·
-**GAS** (numéros relevés dans le dépôt le 28/10/2026) : `code.gs`, `Indispos.gs` **2026-10-27.2** ·
-`generateur_gardes.gs`, `gardes.gs`, `indisponibilites.gs` **2026-10-27.1** (ces 5 fichiers recopiés et déployés
-le 28/10 — journée mobile visible à l'écran indispos) · `equipe.gs`, `miroir.gs`, `veille.gs` **2026-10-27.1** ·
-`journal.gs`, `diagnostic.gs` **2026-10-24.1** · `portail.gs` **2026-10-21.1** ·
+**GAS** (numéros relevés dans le dépôt le 01/11/2026 ; tout le dépôt est **en service, version 61**, livrée
+depuis le téléphone par le livreur) : `Indispos.gs`, `equipe.gs`, `diagnostic.gs` **2026-11-01.1** ·
+`code.gs` **2026-10-27.2** · `generateur_gardes.gs`, `gardes.gs`, `indisponibilites.gs`, `miroir.gs`, `veille.gs`
+**2026-10-27.1** · `journal.gs` **2026-10-24.1** · `portail.gs` **2026-10-21.1** ·
 `temps_partiel.gs` **2026-09-15.2** · `setup_annee.gs` **2026-09-14.1** · `echanges.gs` **2026-09-08.1** ·
-**Worker** `cloudflare/worker.js` : `const VERSION = 'miroir 2026-10-20.1'` ·
+**Livreur** `livreur/livreur.gs` **2026-11-01.2** (projet Apps Script séparé, application web) ·
+**Worker** `cloudflare/worker.js` : `const VERSION = 'miroir 2026-10-30.1'` ·
 **Service worker** `sw.js` : `pm-sw-v2` (version.js exclu de la copie depuis le 14/10).
+
+## 30/10 – 01/11/2026 — pense-bête refait, widget iPhone, page Maintenance, livreur (v1.50.0 → v1.54.2)
+
+**Pense-bête « Mes patients lib »** (v1.50.0 → v1.52.1). Habillage iOS en trois onglets (Patients,
+Compteur, Réglages), fiche patient en feuille du bas, glisser pour effacer ; Compteur refait (jauge des
+30 %) ; **widget d'écran d'accueil et nombre sur l'écran verrouillé** (Scriptable, `pense-bete/widget-scriptable.js`).
+Les 7 prochains jours sont **chiffrés sur le téléphone** (ChaCha20-Poly1305, même code dans le widget) et
+déposés dans une boîte du serveur miroir (routes `/pb-ouvrir`, `/pb-depot`, `/pb-lire`, `/pb-fermer`,
+`miroir 2026-10-30.1`, **déployé par le connecteur Cloudflare** depuis la conversation). Éteint par défaut,
+activé par le code du portail. Question ouverte : avis du DPO sur les initiales chiffrées hors du téléphone.
+
+**Page Maintenance réservée** (v1.53.0, commit `d910f54`). Diagnostic, vidage du cache et renvoi des codes
+quittent l'onglet Maintenance d'admin.html pour `maintenance.html` (téléphone d'abord), tuile réservée
+`maintenance` (CONFIG / TUILES_PRIVEES). **Le code comité ne suffit plus** : `_droitMaintenance_`
+(equipe.gs) ; `diagComplet`, `viderCacheConfig`, `sendCodes` → rôle `maintenance` ; `getMedecins` et
+`sendCodesMar` → comité OU maintenance (onglet Équipe, assistant d'arrivée). Banc `banc_maintenance.js`.
+
+**Livreur : mise à jour du serveur depuis le téléphone** (v1.54.0 → v1.54.2, commits `bc3689d`, `d09eae3`,
+`18350c8`). Carte « Mise à jour du serveur » en tête de la page Maintenance. Le livreur (`livreur/`,
+projet Apps Script séparé publié en application web) compare la **version en service** au dépôt à un
+commit précis, puis **Appliquer** = sauvegarde (une version) → envoi du code → nouvelle version → bascule
+du **déploiement existant** (même adresse) ; **Revenir** = version précédente. Porte : `getMedecins.maintenance`
+du serveur du portail. Refuse un manifeste qui change `oauthScopes` ou `webapp` (cas qui restent sur
+l'ordinateur). Carte des fichiers : `livreur/carte.json` (17). Banc `banc_livreur.js` (82 tests).
+**Premier essai réel le 01/11** : appliquer (v59), revenir (v57), relivrer (v61) — validés au téléphone.
+Défaut vu au premier essai (comparaison avec le dernier code envoyé au lieu de la version servie : après
+« Revenir », « À jour » et Appliquer masqué) corrigé en .2 et devenu scénario du banc.
+
+**Projet Google Cloud** (01/11). Le projet du classeur et le livreur sont rattachés à un projet Google
+Cloud **standard** (exigé par l'API Apps Script). **Irréversible.** Conséquences vécues : les tâches
+automatiques s'arrêtent jusqu'à la réautorisation du propriétaire dans l'éditeur ; **chaque API utilisée
+doit y être activée** (Apps Script, Gmail, **Drive** — oubliée au départ : diagnostic « Autorisation refusée
+… drive », réglé à 17 h) ; écran de consentement « Planning-Med » **publié** (en mode Test, Google
+couperait l'autorisation tous les 7 jours).
+
+**Désormais, pour un patch .gs** : push → page Maintenance → Appliquer. Plus de recopie manuelle, sauf
+changement d'autorisations ou d'accès du site, et mise à jour du livreur lui-même (`livreur/README.md`).
+
+**À faire / à voir** : badge « mise à jour prête » sur la tuile Maintenance (non fait) ; 23 MARs actifs sur
+24 sans e-mail dans MEDECINS (renvoi des codes inopérant pour eux) ; 3 MARs hors GROUPES_VAC ; avis DPO
+(widget).
 
 ## 27–28/10/2026 — fériés 2027 (note DRH du 26/10) et demi-journées de vacances VM / VA (v1.48.0)
 
