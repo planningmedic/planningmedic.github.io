@@ -106,7 +106,8 @@ function monde(opts) {
     'gas/appsscript.json': '{"oauthScopes":["a","b"],"webapp":{"executeAs":"USER_DEPLOYING","access":"ANYONE_ANONYMOUS"}}',   // identique
   }, opts.depot || {});
   let deployee = opts.deployee || 57, prochaine = 58;
-  const versions = [{ versionNumber: 57, description: 'v1.53.0' }, { versionNumber: 56, description: '' }];
+  const copieFichiers = () => projet.files.map(f => Object.assign({}, f));
+  const versions = [{ versionNumber: 57, description: 'v1.53.0', fichiers: copieFichiers() }, { versionNumber: 56, description: '', fichiers: copieFichiers() }];
   const reponse = (code, body) => ({ getResponseCode: () => code, getContentText: () => (typeof body === 'string' ? body : JSON.stringify(body)) });
   const ctx = vm.createContext({
     Logger: { log: () => {} }, ScriptApp: { getOAuthToken: () => 'JETON' }, encodeURIComponent, JSON, String, Number, Object, Array,
@@ -123,11 +124,13 @@ function monde(opts) {
         if (opts.manquant === k || !(k in depot)) return reponse(404, 'Not Found');
         return reponse(200, depot[k]);
       }
+      const vq = u.match(/\/content\?versionNumber=(\d+)$/);
+      if (vq) { const v = versions.find(x => x.versionNumber === Number(vq[1])); return v ? reponse(200, { files: v.fichiers }) : reponse(404, { error: { message: 'not found' } }); }
       if (/\/content$/.test(u) && m === 'get') return reponse(200, projet);
       if (/\/content$/.test(u) && m === 'put') { projet.files = corps.files; return reponse(200, corps); }
-      if (/\/deployments$/.test(u)) return reponse(200, { deployments: [{ deploymentId: 'AUTRE' }, { deploymentId: SITE, deploymentConfig: { versionNumber: deployee } }] });
+      if (/\/deployments$/.test(u)) return reponse(200, { deployments: [{ deploymentId: 'AUTRE' }, { deploymentId: SITE, deploymentConfig: { versionNumber: opts.deploiementFige || deployee } }] });
       if (/\/deployments\//.test(u) && m === 'put') { if (opts.basculeRefusee) return reponse(500, { error: { message: 'boom' } }); deployee = corps.deploymentConfig.versionNumber; return reponse(200, {}); }
-      if (/\/versions/.test(u) && m === 'post') { const n = prochaine++; versions.unshift({ versionNumber: n, description: corps.description }); return reponse(200, { versionNumber: n }); }
+      if (/\/versions/.test(u) && m === 'post') { const n = prochaine++; versions.unshift({ versionNumber: n, description: corps.description, fichiers: copieFichiers() }); return reponse(200, { versionNumber: n }); }
       if (/\/versions/.test(u)) return reponse(200, { versions });
       return reponse(500, {});
     } },
@@ -197,6 +200,29 @@ console.log('\n[5] La livraison, de bout en bout');
   V('revenir : le déploiement rebascule sur la 57', r.success && w.deployee() === 57 && r.enService === 57);
   V('revenir : et l\'on peut re-revenir (la 59 devient la précédente)', w.props.PRECEDENTE === '59');
   V('revenir : aucune réécriture du code (seulement le déploiement)', ecritures(w.appels).slice(4).every(a => /\/deployments\//.test(a.u)));
+
+  /* (01/11/2026) DÉFAUT VU AU PREMIER ESSAI RÉEL : après « Revenir », la carte disait
+     « À jour » (comparaison avec le dernier code ENVOYÉ) et masquait « Appliquer ».
+     On compare désormais avec la version qui TOURNE. */
+  r = w.post({ action: 'etat', code: 'MOI', sha: SHA });
+  V('après un retour : l\'état compare à la version qui TOURNE (57) — 2 fichiers à relivrer', r.success && r.enService === 57 && r.aChanger === 2, { en: r.enService, n: r.aChanger });
+  V('l\'état lit le code de la version servie (content?versionNumber=57)', w.appels.some(a => /\/content\?versionNumber=57$/.test(a.u)));
+  r = w.post({ action: 'appliquer', code: 'MOI', sha: SHA });
+  V('après un retour : on peut RELIVRER (nouvelle version servie, 61)', r.success && !r.rien && w.deployee() === 61 && r.version === 61, r);
+  V('et la précédente redevient 57', w.props.PRECEDENTE === '57');
+}
+{
+  /* Google renvoie l'ancien déploiement quelques secondes après la bascule : la page
+     indique la version qu'elle sait en service. */
+  const w = monde();
+  w.post({ action: 'appliquer', code: 'MOI', sha: SHA });
+  const fige = monde({ deploiementFige: 57 });
+  fige.post({ action: 'appliquer', code: 'MOI', sha: SHA });
+  const sansIndice = fige.post({ action: 'etat', code: 'MOI', sha: SHA });
+  const avecIndice = fige.post({ action: 'etat', code: 'MOI', sha: SHA, version: 59 });
+  V('déploiement relu en retard : sans indice, l\'état montre l\'ancienne version (le défaut affiché)', sansIndice.enService === 57);
+  V('avec la version indiquée par la page : « 59 », et rien à changer', avecIndice.enService === 59 && avecIndice.aChanger === 0, { en: avecIndice.enService, n: avecIndice.aChanger });
+  V('une version indiquée non numérique est ignorée', fige.post({ action: 'etat', code: 'MOI', sha: SHA, version: '59; x' }).enService === 57);
 }
 {
   const w = monde({ manquant: 'gas/neuf.gs' });
@@ -274,6 +300,7 @@ console.log('\n[5] La livraison, de bout en bout');
     V('premier appui : armé, rien n\'est livré', b.classList.contains('arm') && !applique);
     b.click(); await dodo(200);
     V('second appui : livre CE commit-là', applique && applique.sha === SHA && applique.code === 'MOI');
+    V('après la livraison, la carte redemande l\'état en indiquant la version livrée (59)', appels.some(a => a.u.indexOf('LIVREUR') > -1 && a.c.action === 'etat' && a.c.version === 59));
     V('le résultat dit la version en service et « même adresse »', /version 59/.test(d.getElementById('majRes').textContent) && /Même adresse/.test(d.getElementById('majRes').textContent), d.getElementById('majRes').textContent);
     V('aucune erreur JavaScript', erreurs.length === 0, erreurs.slice(0, 2));
   }

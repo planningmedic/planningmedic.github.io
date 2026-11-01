@@ -1,4 +1,4 @@
-const GAS_VERSION_LIVREUR = '2026-11-01.1';
+const GAS_VERSION_LIVREUR = '2026-11-01.2';
 /* ═══ LIVREUR — mise à jour du serveur Apps Script depuis le téléphone ═══════
    PROJET APPS SCRIPT SÉPARÉ, à ne PAS recopier dans le projet du classeur.
    Idée (conçue le 09/08/2026, relancée le 31/10/2026) : ce petit projet est le
@@ -20,6 +20,13 @@ const GAS_VERSION_LIVREUR = '2026-11-01.1';
    Qui : le MAR qui a la tuile cachée `maintenance`. Le livreur ne connaît
    aucun code : il demande au serveur du portail (getMedecins → maintenance)
    — une seule porte, un seul critère, comme la page.
+   (01/11/2026, .2) DÉFAUT VU AU PREMIER ESSAI : la comparaison se faisait avec le
+   dernier code ENVOYÉ dans le projet, pas avec la version qui TOURNE. Après un
+   « Revenir », la carte disait « À jour » et masquait « Appliquer » : impossible de
+   relivrer. On compare et on livre désormais à partir de la version EN SERVICE
+   (content?versionNumber=N), lue au déploiement du site — ou à la version indiquée
+   par la page juste après un geste (Google peut renvoyer l'ancien déploiement
+   quelques secondes : c'était le « version 57 » affiché après la livraison).
    Garde-fous : un seul passage à la fois (verrou) ; un fichier du dépôt
    illisible = rien n'est touché ; un manifeste qui change les autorisations
    ou l'accès du site est REFUSÉ (ces changements-là demandent l'ordinateur :
@@ -149,10 +156,18 @@ function _livreurDeploiement_(id) {
   if (!site) throw new Error('Le déploiement utilisé par le site est introuvable : rien n\'a été modifié.');
   return site;
 }
-function livreurEtat_(sha) {
+/* Le code qui TOURNE : celui de la version servie par le déploiement du site
+   (ou de la version indiquée, si la page vient de faire un geste). Sans numéro
+   (déploiement « dernière version enregistrée »), le dernier code envoyé. */
+function _livreurEnService_(id, version) {
+  const chemin = 'projects/' + encodeURIComponent(id) + '/content' + (version ? '?versionNumber=' + version : '');
+  return _livreurExiger_(_livreurLire_(chemin), 'Lecture du code en service');
+}
+function livreurEtat_(sha, versionIndiquee) {
   const id = _livreurCible_();
-  const contenu = _livreurExiger_(_livreurLire_('projects/' + encodeURIComponent(id) + '/content'), 'Lecture du code en service');
   const site = _livreurDeploiement_(id);
+  const servie = versionIndiquee || (site.deploymentConfig || {}).versionNumber || null;
+  const contenu = _livreurEnService_(id, servie);
   const v = _livreurLire_('projects/' + encodeURIComponent(id) + '/versions?pageSize=6');
   const depot = _livreurDepot_(sha);
   const lignes = livreurComparer_(contenu.files, depot);
@@ -161,7 +176,7 @@ function livreurEtat_(sha) {
   const P = PropertiesService.getScriptProperties();
   return {
     success: true, sha: sha,
-    enService: (site.deploymentConfig || {}).versionNumber || null,
+    enService: servie,
     fichiers: lignes,
     aChanger: lignes.filter(function (l) { return l.etat === 'modifié' || l.etat === 'nouveau'; }).length,
     blocage: manif ? livreurVerifierManifeste_(manifActuel, manif) : null,
@@ -171,9 +186,9 @@ function livreurEtat_(sha) {
 }
 function livreurAppliquer_(sha) {
   const id = _livreurCible_(), P = PropertiesService.getScriptProperties();
-  const contenu = _livreurExiger_(_livreurLire_('projects/' + encodeURIComponent(id) + '/content'), 'Lecture du code en service');
   const site = _livreurDeploiement_(id);
   const avant = (site.deploymentConfig || {}).versionNumber || null;
+  const contenu = _livreurEnService_(id, avant);                         // ce qui TOURNE
   const depot = _livreurDepot_(sha);                                   // tout ou rien
   const manif = (depot.find(function (d) { return d.type === 'JSON'; }) || {}).source;
   const manifActuel = ((contenu.files || []).find(function (f) { return f.type === 'JSON'; }) || {}).source;
@@ -217,7 +232,7 @@ function doPost(e) {
     if (!_livreurDroit_(p.code)) rep = { success: false, error: 'Accès refusé' };
     else if (p.action === 'etat' || p.action === 'appliquer') {
       if (!/^[0-9a-f]{40}$/.test(String(p.sha || ''))) rep = { success: false, error: 'Commit du dépôt manquant ou invalide.' };
-      else if (p.action === 'etat') rep = livreurEtat_(p.sha);
+      else if (p.action === 'etat') rep = livreurEtat_(p.sha, /^\d{1,6}$/.test(String(p.version || '')) ? Number(p.version) : null);
       else rep = _livreurSousVerrou_(function () { return livreurAppliquer_(p.sha); });
     }
     else if (p.action === 'revenir') rep = _livreurSousVerrou_(livreurRevenir_);

@@ -241,6 +241,7 @@ $('btnOut').addEventListener('click', ()=>{ SessionPortail.oublier(); location.r
    même si quelqu'un pousse entre-temps (et la limite de lecture de GitHub compte
    par téléphone, pas pour tous les serveurs Google à la fois). */
 let MAJ = null;                       // dernière réponse « etat » + le commit lu
+let R_VERSION = null;                 // version annoncée par le dernier geste (livraison ou retour)
 async function livreur(payload){
   payload.code = VIEW_CODE;
   const res = await fetch(LIVREUR_URL, { method:'POST', headers:{'Content-Type':'text/plain;charset=utf-8'},
@@ -276,7 +277,10 @@ function majRendre(){
   hi.innerHTML = '<div style="font-weight:600">Dernières versions</div>' + (e.historique || []).slice(0, 5).map(v =>
     `<div><span>v${esc(v.n)}${v.n === e.enService ? ' · en service' : ''}</span><span>${esc(v.description || (v.le || '').slice(0, 10))}</span></div>`).join('');
 }
-async function majCharger(){
+/* (01/11/2026) `version` : juste après un geste, la page indique au livreur la version
+   qu'elle sait en service (Google peut renvoyer l'ancien déploiement quelques secondes). */
+async function majCharger(version){
+  const indiquee = (typeof version === 'number' && version > 0) ? version : null;
   const z = $('majCorps'), out = $('majRes');
   if (!LIVREUR_URL) { z.innerHTML = '<p class="d">Le livreur n\'est pas encore installé : la mise à jour du serveur se fait encore depuis l\'ordinateur.</p>'; $('btnMajVerifier').disabled = true; return; }
   z.innerHTML = '<p class="d">Comparaison du serveur avec le dépôt…</p>'; out.innerHTML = '';
@@ -286,25 +290,27 @@ async function majCharger(){
     const c = await g.json();
     const sha = c && c.sha, message = c && c.commit && c.commit.message || '';
     if (!/^[0-9a-f]{40}$/.test(String(sha || ''))) throw new Error('Commit du dépôt illisible.');
-    const e = await livreur({ action:'etat', sha });
+    const e = await livreur(indiquee ? { action:'etat', sha, version: indiquee } : { action:'etat', sha });
     if (!e || !e.success) throw new Error(refus(e) ? MSG_RESERVE : ((e && e.error) || 'Livreur injoignable'));
     MAJ = { sha, message, etat: e };
     majRendre();
   } catch (err) { z.innerHTML = '<div class="res err" style="margin:0">❌ ' + esc(err.message) + '</div>'; }
 }
-$('btnMajVerifier').addEventListener('click', majCharger);
+$('btnMajVerifier').addEventListener('click', () => majCharger());
 deuxAppuis($('btnMajAppliquer'), () => 'Confirmer : livrer ' + (MAJ ? String(MAJ.sha).slice(0,7) : ''), async () => {
   if (!MAJ) return;
   const b = $('btnMajAppliquer'), out = $('majRes');
   b.disabled = true; const lib = b.textContent; b.textContent = 'Sauvegarde, envoi, nouvelle version…';
+  R_VERSION = null;
   try {
     const r = await livreur({ action:'appliquer', sha: MAJ.sha });
     if (!r || !r.success) throw new Error(refus(r) ? MSG_RESERVE : ((r && r.error) || 'échec'));
+    R_VERSION = r.rien ? null : r.version;
     out.innerHTML = r.rien ? '<span class="ok">✅ Rien à changer : le serveur est déjà à jour.</span>'
       : `<span class="ok">✅ En service : version ${esc(r.version)} (${esc(r.fichiers)} fichier${r.fichiers > 1 ? 's' : ''}). Même adresse, rien à changer dans le portail.</span>`;
   } catch (err) { out.innerHTML = '<span class="err">❌ ' + esc(err.message) + '</span>'; }
   b.disabled = false; b.textContent = lib;
-  const garde = out.innerHTML; await majCharger(); $('majRes').innerHTML = garde;
+  const garde = out.innerHTML; await majCharger(R_VERSION); $('majRes').innerHTML = garde;
 });
 deuxAppuis($('btnMajRevenir'), () => 'Confirmer : revenir à la v' + (MAJ && MAJ.etat.precedente), async () => {
   const b = $('btnMajRevenir'), out = $('majRes');
@@ -313,8 +319,9 @@ deuxAppuis($('btnMajRevenir'), () => 'Confirmer : revenir à la v' + (MAJ && MAJ
     const r = await livreur({ action:'revenir' });
     if (!r || !r.success) throw new Error(refus(r) ? MSG_RESERVE : ((r && r.error) || 'échec'));
     out.innerHTML = `<span class="ok">✅ Retour effectué : la version ${esc(r.enService)} est en service.</span>`;
-  } catch (err) { out.innerHTML = '<span class="err">❌ ' + esc(err.message) + '</span>'; }
-  const garde = out.innerHTML; await majCharger(); $('majRes').innerHTML = garde;
+    R_VERSION = r.enService;
+  } catch (err) { out.innerHTML = '<span class="err">❌ ' + esc(err.message) + '</span>'; R_VERSION = null; }
+  const garde = out.innerHTML; await majCharger(R_VERSION); $('majRes').innerHTML = garde;
 });
 
 /* ── 1. Diagnostic ─────────────────────────────────────────────────────────
