@@ -6,7 +6,7 @@ portail/Dashboard, module libéral, contrôle d'absence, veille biblio.
 (Le générateur de comptes rendus a été retiré le 07/09/2026 : il portait le logo de
 l'établissement et 77 noms de praticiens sur une page publique sans code d'accès.)
 
-**Dépôt** `planningmedic/planningmedic.github.io`, branche `main` · **Site v1.54.2** (01/11/2026) ·
+**Dépôt** `planningmedic/planningmedic.github.io`, branche `main` · **Site v1.54.5** (01/11/2026) ·
 **Portail** https://planningmedic.github.io ·
 **GAS** (numéros relevés dans le dépôt le 01/11/2026 ; tout le dépôt est **en service, version 61**, livrée
 depuis le téléphone par le livreur) : `Indispos.gs`, `equipe.gs`, `diagnostic.gs` **2026-11-01.1** ·
@@ -16,6 +16,40 @@ depuis le téléphone par le livreur) : `Indispos.gs`, `equipe.gs`, `diagnostic.
 **Livreur** `livreur/livreur.gs` **2026-11-01.2** (projet Apps Script séparé, application web) ·
 **Worker** `cloudflare/worker.js` : `const VERSION = 'miroir 2026-10-30.1'` ·
 **Service worker** `sw.js` : `pm-sw-v2` (version.js exclu de la copie depuis le 14/10).
+
+## 01/11/2026 (soir) — panneau des disponibles instantané et à jour (v1.54.4, v1.54.5)
+
+**Défaut signalé par le responsable** : « le panneau latéral met parfois du temps à s'ouvrir ».
+**Mesuré** dans la vraie page admin pilotée au banc (Google ralenti à 3 s) : 0,08 s au premier clic, puis
+**4,6 s et 3,0 s** sur les jours suivants dès qu'un placement avait été enregistré (en production, un
+appel unitaire a été mesuré jusqu'à 15 s le 28/07).
+
+**Cause** : `_dispoLocale` (calcul du panneau sur la page) se coupait 90 s après **toute** écriture planning
+(`_tsEcriturePlanning`) — placements compris, armés 3 s après chaque clic. En séance, chaque nouveau jour
+ouvert partait donc chez Google (`getMARsDispoJour`). Or le panneau ne lit que les **statuts** (GARDES), les
+**affectations** du mois et **MEDECINS** : un placement ou une publication n'y change rien.
+
+**Correctif** (commit `f7d7569`, admin.html seul, aucun GAS) : garde propre au panneau `_tsEcritureDispo`,
+armée seulement par les écritures qui changent les disponibles — intention `statut` du journal, et
+`setDailyStatus`, `applyModification`, `generateGardes`, `archiveYear`, `initYear`, `saveAffectations`,
+`saveAffectationsMar`, `poserAbsenceLongue`, `annulerAbsenceLongue`, `deciderJourTpLot`, `saveMedecin`
+(les quatre derniers n'armaient aucune garde avant). La garde générale (lectures Statuts / Équité) est
+inchangée. Après : 0,01 à 0,03 s. Banc `banc_panneau_rapide.js` (21 tests, contre-épreuve sur `27233d4`) ;
+banc complet **5 313 ✓**, 107 scénarios.
+
+**v1.54.5 — statuts du calcul local tenus à jour.** Défaut antérieur, vu en préparant v1.54.4 :
+`_ETAGE2.gardes` n'était chargé qu'à l'ouverture de la page. 90 s après une pose de statut, le panneau
+repartait des statuts d'avant (un MAR posé en vacances redevenait proposé ce jour-là) ; l'onglet Statuts,
+qui se recharge depuis cette même mémoire, pouvait aussi réafficher l'état d'avant. Correctif :
+- `statApply` recopie chaque pose et chaque annulation dans `_ETAGE2.gardes` (`_etage2PoserStatuts_`) ;
+- les autres écritures qui changent les statuts (liste `_ACTIONS_ECRITURE_DISPO` sauf `setDailyStatus`)
+  marquent la mémoire périmée (`_etage2Perime`) : la garde passée, `gardes_{Y}` est relu une fois sur la
+  copie rapide (`_etage2Rafraichir_`) ; d'ici là, panneau par le serveur, onglet Statuts par la copie rapide.
+- Limite : si une pose de statut attend encore son application plus de 90 s ET qu'une autre écriture a
+  marqué la mémoire périmée, la relecture peut revenir à l'état d'avant cette pose. Cas jugé marginal.
+Banc `banc_panneau_rapide.js` : 31 tests (dont contre-épreuves sur `27233d4`) ; `banc_portail.js` : lectures du miroir d'admin.html 11 → 12. Banc complet **5 323 ✓**.
+
+**Aussi ce jour** : v1.54.3 — pense-bête, Compteur : jauge verte jusqu'à 30 % inclus (commit `27233d4`).
 
 ## 30/10 – 01/11/2026 — pense-bête refait, widget iPhone, page Maintenance, livreur (v1.50.0 → v1.54.2)
 
@@ -54,7 +88,8 @@ couperait l'autorisation tous les 7 jours).
 **Désormais, pour un patch .gs** : push → page Maintenance → Appliquer. Plus de recopie manuelle, sauf
 changement d'autorisations ou d'accès du site, et mise à jour du livreur lui-même (`livreur/README.md`).
 
-**À faire / à voir** : badge « mise à jour prête » sur la tuile Maintenance (non fait) ; 23 MARs actifs sur
+**À faire / à voir** : ~~badge « mise à jour prête » sur la tuile Maintenance~~ **refusé par le
+responsable (01/11)** : il ouvre la tuile lui-même, ne pas le reproposer ; 23 MARs actifs sur
 24 sans e-mail dans MEDECINS (renvoi des codes inopérant pour eux) ; 3 MARs hors GROUPES_VAC ; avis DPO
 (widget).
 

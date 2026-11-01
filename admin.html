@@ -2502,7 +2502,10 @@ async function api(payload) {
     _tsEcriturePlanning = Date.now();
     _tsEcritureAnnee = _anneeEcriture_(payload);
   }
-  if (payload && _ACTIONS_ECRITURE_DISPO.has(payload.action)) _tsEcritureDispo = Date.now();
+  if (payload && _ACTIONS_ECRITURE_DISPO.has(payload.action)) {
+    _tsEcritureDispo = Date.now();
+    if (payload.action !== 'setDailyStatus') _etage2Perime = true;   // (01/11/2026) statApply recopie lui-meme ses statuts
+  }
   const _suivant = _fileAPI.then(() => _apiAvecFilet(payload), () => _apiAvecFilet(payload));
   _fileAPI = _suivant.catch(() => {});
   return _suivant;
@@ -3067,7 +3070,7 @@ async function loadStatuts(){
        et ne doit pas toucher les donnees du panneau. Memes gardes-fous que
        le miroir (annee, 90 s apres ecriture). */
     if (_ETAGE2 && _ETAGE2.gardes && _ETAGE2.joursFeries
-        && _ETAGE2.annee === Number(ADMIN_YEAR)
+        && _ETAGE2.annee === Number(ADMIN_YEAR) && !_etage2Perime
         && Date.now() - _tsEcriturePlanning > 90000) {
       g  = { success: true, data: JSON.parse(JSON.stringify(_ETAGE2.gardes)), year: ADMIN_YEAR };
       jf = { success: true, joursFeries: _ETAGE2.joursFeries.slice(), year: ADMIN_YEAR };
@@ -3299,6 +3302,7 @@ async function statApply(statut){
   });
   const verrouilles = dates.length - poses.length;
   if(!poses.length){ toast('Jour(s) verrouillé(s) par une garde', 'error'); return; }
+  _etage2PoserStatuts_(year, marId, poses.map(d => [d, statut]));   // (01/11/2026) le panneau voit la pose
   STAT.pending += poses.length;
   invaliderCacheSemaine();   // les statuts changent les dispos : cache perime
   STAT.selected.clear();
@@ -3311,6 +3315,7 @@ async function statApply(statut){
       if(!STAT.gardes[d]) STAT.gardes[d]={};
       if(avant[d]) STAT.gardes[d][marId]=avant[d]; else delete STAT.gardes[d][marId];
     });
+    _etage2PoserStatuts_(year, marId, liste.map(d => [d, avant[d] || '']));   // (01/11/2026) idem pour l'annulation
     STAT.pending = Math.max(0, STAT.pending - liste.length);
     invaliderCacheSemaine();
     if (STAT.year === year) renderStatuts();
@@ -4531,6 +4536,38 @@ async function openSidePanel(sector, date, sectorLabel, slotKey, isLib) {
    ecriture planning → pas de calcul local, circuit serveur direct. */
 let _ETAGE2 = null;
 
+/* (01/11/2026) STATUTS DU CALCUL LOCAL TENUS A JOUR — _ETAGE2.gardes n'etait
+   charge qu'a l'ouverture : 90 s apres une pose de statut, le panneau (et
+   l'onglet Statuts, qui en fait une copie) repartait des statuts d'avant.
+   1) L'onglet Statuts recopie chaque pose (et chaque annulation) ici.
+   2) Les autres ecritures qui changent les statuts (absence longue, temps
+      partiel, echange, affectations, fiche MAR, generation…) marquent la
+      copie perimee : une fois la garde des 90 s passee, elle est relue sur la
+      copie rapide ; d'ici la, le panneau passe par le serveur. */
+let _etage2Perime = false, _etage2Relecture = null;
+function _etage2PoserStatuts_(annee, marId, paires) {
+  try {
+    if (!_ETAGE2 || !_ETAGE2.gardes || _ETAGE2.annee !== Number(annee)) return;
+    paires.forEach(function (p) {
+      const d = p[0], code = p[1];
+      if (!_ETAGE2.gardes[d]) _ETAGE2.gardes[d] = {};
+      if (code) _ETAGE2.gardes[d][marId] = code; else delete _ETAGE2.gardes[d][marId];
+    });
+  } catch (e) {}
+}
+function _etage2Rafraichir_() {
+  if (_etage2Relecture || !_ETAGE2) return;
+  const annee = _ETAGE2.annee;
+  _etage2Relecture = miroirRead(['gardes_' + annee], ADMIN_CODE).then(function (m) {
+    const g = m && m.success && m.data && m.data['gardes_' + annee];
+    if (g && g.success && g.data && _ETAGE2 && _ETAGE2.annee === annee
+        && Date.now() - _tsEcritureDispo >= 90000) {
+      _ETAGE2.gardes = g.data;
+      _etage2Perime = false;
+    }
+  }).catch(function () {}).finally(function () { _etage2Relecture = null; });
+}
+
 function _construireEtage2_(annee, cfg, secteurs, affFichier) {
   try {
     const meds = (cfg && cfg.medecins) || [];
@@ -4589,6 +4626,7 @@ function _dispoLocale(date) {
     if (!_ETAGE2 || !_ETAGE2.gardes || typeof calculerDispoJour !== 'function') return null;
     if (Number(date.slice(0, 4)) !== _ETAGE2.annee) return null;
     if (Date.now() - _tsEcritureDispo < 90000) return null;      // (01/11/2026) statut/affectation recent → serveur ; un placement ne compte plus
+    if (_etage2Perime) { _etage2Rafraichir_(); return null; }   // (01/11/2026) statuts changes ailleurs : relecture, serveur en attendant
     if (!(date in _ETAGE2.gardes)) return null;                  // jour hors GARDES → chemins existants
     const mois = new Date(date + 'T12:00:00').getMonth() + 1;
     const affMois = {};

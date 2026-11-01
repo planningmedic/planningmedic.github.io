@@ -14,6 +14,11 @@
    une écriture qui change les disponibles (statut, échange, affectations,
    absence longue, temps partiel, fiche MAR, génération, archivage).
 
+   (01/11/2026, second temps) Les statuts du calcul local n'étaient chargés qu'à
+   l'ouverture : 90 s après une pose de statut, le panneau repartait des
+   statuts d'avant. Ils sont désormais recopiés à chaque pose, et relus sur la
+   copie rapide après les autres écritures qui les changent.
+
    CONTRE-ÉPREUVE : la version v1.54.3 d'admin.html (commit 27233d4) est rejouée ; elle
    doit couper le calcul local après un placement. */
 const { JSDOM, VirtualConsole } = require('jsdom');
@@ -55,7 +60,7 @@ async function monter(html) {
   `);
   return w;
 }
-const raz = w => w.eval(`_tsEcriturePlanning = 0; if (typeof _tsEcritureDispo !== 'undefined') _tsEcritureDispo = 0;`);
+const raz = w => w.eval(`_tsEcriturePlanning = 0; if (typeof _tsEcritureDispo !== 'undefined') _tsEcritureDispo = 0; if (typeof _etage2Perime !== 'undefined') _etage2Perime = false;`);
 const local = w => w.eval(`(function(){ const r = _dispoLocale('2027-03-02'); return r ? r.length : null; })()`);
 
 (async () => {
@@ -102,6 +107,47 @@ const local = w => w.eval(`(function(){ const r = _dispoLocale('2027-03-02'); re
   const contenu = w.document.getElementById('pspContent').textContent;
   V('… et le panneau affiche aussitôt les disponibles', /AAA/.test(contenu) && /BBB/.test(contenu), contenu.slice(0, 120));
 
+  console.log('\n═══ STATUTS DU CALCUL LOCAL — tenus à jour pendant la session ═══');
+  // Le geste réel de l'onglet Statuts : AAA en vacances le mardi 02/03.
+  const poserVacance = async (w2) => {
+    w2.eval(`
+      renderStatuts = function () {}; toast = function () {};
+      STAT.year = 2027; STAT.marId = 'AAA'; STAT.gardes = {}; STAT.selected = new Set(['2027-03-02']);
+    `);
+    await w2.eval(`statApply('V')`);
+    await dodo(50);   // le dépôt au journal se termine (il réarme la garde)
+    // La garde des 90 s est passée (la pose remonte à plus d'1 min 30).
+    w2.eval(`_tsEcriturePlanning = Date.now() - 91000; if (typeof _tsEcritureDispo !== 'undefined') _tsEcritureDispo = Date.now() - 91000;`);
+  };
+  const proposes = w2 => JSON.parse(w2.eval(`JSON.stringify((_dispoLocale('2027-03-02') || []).map(m => m.id))`));
+  raz(w);
+  await poserVacance(w);
+  V('vacance posée dans Statuts, 90 s plus tard : AAA n\'est plus proposé', !proposes(w).includes('AAA'), proposes(w));
+  V('… BBB l\'est toujours', proposes(w).includes('BBB'), proposes(w));
+  V('… et l\'onglet Statuts relirait la même chose (copie à jour)', w.eval(`_ETAGE2.gardes['2027-03-02'].AAA`) === 'V');
+
+  // Statut effacé (pose annulée) : AAA redevient proposé.
+  w.eval(`STAT.selected = new Set(['2027-03-02'])`);
+  await w.eval(`statApply('')`);
+  await dodo(50);
+  w.eval(`_tsEcritureDispo = Date.now() - 91000`);
+  V('statut effacé : AAA est de nouveau proposé', proposes(w).includes('AAA'), proposes(w));
+
+  // Autre écriture qui change les statuts (absence longue) : relecture de la copie rapide.
+  let lectures = 0;
+  w.miroirRead = async (cles) => { lectures++; return { success: true, data: { ['gardes_2027']: { success: true, data: { '2027-03-02': { BBB: 'F' } } } } }; };
+  raz(w);
+  w.eval(`api({ action: 'poserAbsenceLongue', year: 2027 })`);
+  await dodo(50);
+  V('absence longue : le panneau passe par le serveur pendant 90 s', local(w) === null);
+  w.eval(`_tsEcritureDispo = Date.now() - 91000`);
+  V('… puis, la garde passée, il attend la relecture des statuts', local(w) === null);
+  await dodo(50);
+  V('… relus UNE fois sur la copie rapide', lectures === 1, lectures);
+  V('… et le panneau repart des statuts relus (BBB en formation, plus proposé)',
+    JSON.stringify(proposes(w)) === JSON.stringify(['AAA']), proposes(w));
+  V('… l\'onglet Statuts ne recopie plus une mémoire périmée', w.eval(`_etage2Perime`) === false);
+
   console.log('\n═══ CONTRE-ÉPREUVE — version v1.54.3 (27233d4) ═══');
   let ancien = null;
   try { ancien = execSync('git show 27233d4:admin.html', { cwd: RACINE, encoding: 'utf8', maxBuffer: 64e6 }); } catch (e) {}
@@ -111,6 +157,9 @@ const local = w => w.eval(`(function(){ const r = _dispoLocale('2027-03-02'); re
     raz(w0);
     await w0.eval(`_journalDeposer({ type: 'placements', year: 2027, items: [] })`);
     V('CONTRE-ÉPREUVE : l\'ancienne page coupait bien le calcul local après un placement', local(w0) === null, local(w0));
+    raz(w0);
+    await poserVacance(w0);
+    V('CONTRE-ÉPREUVE : l\'ancienne page reproposait AAA en vacances 90 s après la pose', proposes(w0).includes('AAA'), proposes(w0));
   }
 
   console.log(`\n  ${ok} ✓  ${ko} ✗`);

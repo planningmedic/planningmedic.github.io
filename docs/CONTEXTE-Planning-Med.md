@@ -44,6 +44,20 @@ les fichiers du planning, et attend une semaine de fonctionnement réel avant su
 
 # PARTIE 1 — L'ESSENTIEL
 
+## 1er novembre 2026 (soir) — panneau des disponibles instantané et à jour (v1.54.4, v1.54.5)
+
+Site **v1.54.5**, aucun GAS. Banc **5 323 ✓, 0 échec**, 107 scénarios.
+
+- Le panneau d'une case orange se calcule de nouveau **sur la page** pendant une séance de placement
+  (0,01 s au lieu de 3 à 4,6 s au banc). Seule une écriture qui change les disponibles (statut, échange,
+  affectations, absence longue, temps partiel, fiche MAR, génération, archivage) le renvoie 90 s au
+  serveur. Un placement ou une publication, non.
+- v1.54.5 : les statuts du calcul local ne sont plus figés à l'ouverture de la page. Une pose dans
+  Statuts y est recopiée aussitôt ; après une autre écriture (absence longue, temps partiel, échange…),
+  ils sont relus sur la copie rapide une fois la garde des 90 s passée.
+- Badge « mise à jour prête » sur la tuile Maintenance : **refusé** par le responsable, ne pas reproposer.
+- Détail : ROADMAP du 01/11 (soir).
+
 ## 1er novembre 2026 — page Maintenance réservée et serveur mis à jour depuis le téléphone (v1.54.2)
 
 Site **v1.54.2** ; `Indispos.gs`, `equipe.gs`, `diagnostic.gs` **2026-11-01.1** ; tout le dépôt en service

@@ -187,7 +187,8 @@ function fenetre(opts) {
     V('admin.html charge partage/portail.js avant dispo_jour.js', page.indexOf('partage/portail.js') > 0 && page.indexOf('partage/portail.js') < page.indexOf('partage/dispo_jour.js'));
     V('plus de miroirRead locale ni de const MIROIR_URL', !/function miroirRead\(/.test(page) && !/const MIROIR_URL/.test(page));
     V('le délai de 10 s du comité est conservé, posé par la page', /window\.MIROIR_DELAI = 10000;/.test(page));
-    V('ses 11 lectures du miroir sont intactes', (page.match(/miroirRead\(/g) || []).length === 11, (page.match(/miroirRead\(/g) || []).length);
+    // (01/11/2026) 11 → 12 : relecture des statuts du panneau après une écriture qui les change (_etage2Rafraichir_, v1.54.5).
+    V('ses 12 lectures du miroir sont intactes', (page.match(/miroirRead\(/g) || []).length === 12, (page.match(/miroirRead\(/g) || []).length);
     V('le dépôt au journal (_journalDeposer) utilise toujours MIROIR_URL', /fetch\(MIROIR_URL \+ '\/ecrire'/.test(page));
   }
   console.log('\n═══ Thème et _authErr dans le socle (brique 2) ═══');
