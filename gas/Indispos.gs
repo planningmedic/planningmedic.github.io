@@ -1,7 +1,7 @@
 // ⚠️ RÈGLE (détecteur de dérive dépôt↔Apps Script) : incrémenter cette version
 // à CHAQUE push de ce fichier. Le diagnostic (admin → Maintenance) compare la
 // version déployée ici avec celle du dépôt et signale toute recopie oubliée.
-const GAS_VERSION_INDISPOS = '2026-10-27.2';   // (27/10/2026) demi-journées de vacances VM/VA (CODES_DEMI_VAC) · (27/10/2026) champ ordreMc (colonne ORDRE_MC) · (24/10/2026) action journalAppliquerMaintenant (journal.gs) · (18/10/2026) rôle « paie » (code partagé des secrétaires de paie) + refus par défaut de tout rôle autre que admin/mar hors de sa liste blanche
+const GAS_VERSION_INDISPOS = '2026-11-01.1';   // (01/11/2026) rôle `maintenance` (diagComplet, viderCacheConfig, sendCodes) · (27/10/2026) demi-journées de vacances VM/VA (CODES_DEMI_VAC) · (27/10/2026) champ ordreMc (colonne ORDRE_MC) · (24/10/2026) action journalAppliquerMaintenant (journal.gs) · (18/10/2026) rôle « paie » (code partagé des secrétaires de paie) + refus par défaut de tout rôle autre que admin/mar hors de sa liste blanche
 
 /* ── (01/08/2026) MARQUEUR DE TEMPS GLOBAL — mesure, ne change rien ───────
    `_srv_ms` chronometre l'INTERIEUR de doGet. Or avant que doGet soit appele,
@@ -326,7 +326,9 @@ function _listeBlancheRole_(role) {
    le DÉCLARE, et banc_contrat_routeur.js vérifie que la déclaration et le corps
    disent la même chose. Rôles : admin (refus sec hors comité) · mar seulement ·
    tout code valide (tout code authentifié ; le secrétariat n'accède qu'aux
-   SECRETARIAT_ACTIONS) · conditionnel (le rôle décide du périmètre à l'intérieur).
+   SECRETARIAT_ACTIONS) · conditionnel (le rôle décide du périmètre à l'intérieur) ·
+   maintenance (01/11/2026 : seul un MAR qui a la tuile cachée `maintenance` —
+   _droitMaintenance_, equipe.gs ; le code comité ne suffit pas).
    Les tables sont construites AU PREMIER APPEL, pas au chargement : les fonctions
    _act_… vivent dans d'autres fichiers, et Apps Script charge les fichiers dans un
    ordre qu'il ne garantit pas (piège déjà rencontré avec ARCHIVE_DRIVE_ID). */
@@ -338,7 +340,7 @@ function _actions_() {
     "getAnneesDisponibles"        : { role: 'sans code'         , fn: _act_getAnneesDisponibles },
   };
   const AVEC_CODE = {
-    "viderCacheConfig"            : { role: 'admin'             , fn: _act_viderCacheConfig },   // equipe.gs
+    "viderCacheConfig"            : { role: 'maintenance'       , fn: _act_viderCacheConfig },   // equipe.gs
     "getStatus"                   : { role: 'tout code valide'  , fn: _act_getStatus },   // equipe.gs
     "getStatsLive"                : { role: 'tout code valide'  , fn: _act_getStatsLive },   // gardes.gs
     "login"                       : { role: 'tout code valide'  , fn: _act_login },   // equipe.gs
@@ -367,7 +369,7 @@ function _actions_() {
     "getOverrides"                : { role: 'admin'             , fn: _act_getOverrides },   // gardes.gs
     "deleteOverride"              : { role: 'admin'             , fn: _act_deleteOverride },   // gardes.gs
     "getAdminBootstrap"           : { role: 'admin'             , fn: _act_getAdminBootstrap },   // equipe.gs
-    "getMedecins"                 : { role: 'admin'             , fn: _act_getMedecins },   // equipe.gs
+    "getMedecins"                 : { role: 'conditionnel'      , fn: _act_getMedecins },   // equipe.gs
     "saveMedecin"                 : { role: 'admin'             , fn: _act_saveMedecin },   // equipe.gs
     "getAffectations"             : { role: 'admin'             , fn: _act_getAffectations },   // gardes.gs
     "saveAffectations"            : { role: 'admin'             , fn: _act_saveAffectations },   // gardes.gs
@@ -375,16 +377,16 @@ function _actions_() {
     "savePeriodes"                : { role: 'admin'             , fn: _act_savePeriodes },   // indisponibilites.gs
     "saveGroupes"                 : { role: 'admin'             , fn: _act_saveGroupes },   // indisponibilites.gs
     "saveConfig"                  : { role: 'admin'             , fn: _act_saveConfig },   // equipe.gs
-    "sendCodes"                   : { role: 'admin'             , fn: _act_sendCodes },   // equipe.gs
+    "sendCodes"                   : { role: 'maintenance'       , fn: _act_sendCodes },   // equipe.gs
     "mailNonLus"                  : { role: 'admin'             , fn: _act_mailNonLus },   // equipe.gs
     "mailListe"                   : { role: 'admin'             , fn: _act_mailListe },   // equipe.gs
     "mailMessage"                 : { role: 'admin'             , fn: _act_mailMessage },   // equipe.gs
-    "diagComplet"                 : { role: 'admin'             , fn: _act_diagComplet },   // diagnostic.gs
+    "diagComplet"                 : { role: 'maintenance'       , fn: _act_diagComplet },   // diagnostic.gs
     "archiveYear"                 : { role: 'admin'             , fn: _act_archiveYear },   // Indispos.gs
     "saveAffectationsMar"         : { role: 'admin'             , fn: _act_saveAffectationsMar },   // gardes.gs
     "addMedecinToGroupe"          : { role: 'admin'             , fn: _act_addMedecinToGroupe },   // equipe.gs
     "resetCodeMar"                : { role: 'admin'             , fn: _act_resetCodeMar },   // equipe.gs
-    "sendCodesMar"                : { role: 'admin'             , fn: _act_sendCodesMar },   // equipe.gs
+    "sendCodesMar"                : { role: 'conditionnel'      , fn: _act_sendCodesMar },   // equipe.gs
     "getConflitsAll"              : { role: 'admin'             , fn: _act_getConflitsAll },   // indisponibilites.gs
     "envoyerRecapIndispos"        : { role: 'admin'             , fn: _act_envoyerRecapIndispos },   // indisponibilites.gs
     "setIndisposYear"             : { role: 'admin'             , fn: _act_setIndisposYear },   // indisponibilites.gs

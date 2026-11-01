@@ -40,7 +40,7 @@ console.log('\n═══ 1. Concordance des numéros de version (remplace T150) 
      numéro vit dans version.js. Ce qui doit être vérifié a changé : que
      chaque page AFFICHEUSE se branche sur la source, et qu'aucune ne
      réintroduise un numéro en dur (l'erreur reviendrait sans bruit). */
-  const AFFICHEUSES = ['admin.html', 'index.html',
+  const AFFICHEUSES = ['admin.html', 'index.html', 'maintenance.html',
                        'docs/guide-comite.html', 'docs/guide-mar.html', 'docs/roadmap.html'];
   const vjs = lire('version.js');
   const src = vjs.match(/window\.SITE_VERSION = '(v[\d.]+)'/);
@@ -341,7 +341,9 @@ console.log('\n═══ 11. Le guide du comité décrit l\'interface RÉELLE �
 
   /* Les six onglets, lus dans la barre de navigation. */
   const onglets = [...admin.matchAll(/class="nav-tab[^"]*" onclick="showTab\('([a-z]+)'\)/g)].map(m => m[1]);
-  V('admin.html porte bien six onglets', onglets.length === 6, onglets);
+  /* (01/11/2026) Cinq : l'onglet Maintenance a quitté l'écran du comité (maintenance.html). */
+  V('admin.html porte bien cinq onglets', onglets.length === 5, onglets);
+  V('l\'onglet Maintenance n\'est plus dans l\'écran du comité', !onglets.includes('maintenance'), onglets);
   const NOM = { planning:'Planning', equipe:'Équipe', affectations:'Affectations',
                 equite:'Équité', statuts:'Statuts', maintenance:'Maintenance' };
   /* Dans les TITRES de section, pas dans le sommaire : renommer une section

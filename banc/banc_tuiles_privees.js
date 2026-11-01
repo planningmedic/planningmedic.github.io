@@ -45,7 +45,8 @@ console.log('\n═══ 1. Plus aucun nom de médecin en dur ═══');
   /* (26/09/2026) Recommandations testée réservée puis ouverte à tous.
      (11/10/2026) Six : la tuile Comité rejoint le bloc Réservé (clé `comite`).
      (18/10/2026) Sept : la tuile Planning paie (clé `paie`). */
-  V('les sept tuiles réservées sont bien marquées (dont Comité et Planning paie)', n === 7 && /key:'comite'[^\n]*prive:true/.test(DASH) && /key:'paie'[^\n]*prive:true/.test(DASH), n);
+  /* (01/11/2026) Huit : la tuile Maintenance rejoint les réservées. */
+  V('les huit tuiles réservées sont bien marquées (dont Comité, Planning paie et Maintenance)', n === 8 && /key:'comite'[^\n]*prive:true/.test(DASH) && /key:'paie'[^\n]*prive:true/.test(DASH) && /key:'maintenance'[^\n]*prive:true/.test(DASH), n);
 }
 
 console.log('\n═══ 2. La page filtre sur le droit reçu, pas sur une identité ═══');

@@ -1,0 +1,337 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<meta name="robots" content="noindex">
+<title>Maintenance — Planning-Med</title>
+<!-- (01/11/2026) PAGE MAINTENANCE — réservée au responsable technique du portail.
+     Les outils qui vivaient dans l'onglet Maintenance de admin.html (diagnostic,
+     vidage du cache, renvoi des codes) étaient à portée de tout détenteur du code
+     comité. Ils vivent ici, pensés d'abord pour le téléphone.
+     Qui l'ouvre : un MAR qui a la tuile cachée `maintenance` (CONFIG /
+     TUILES_PRIVEES), avec son code personnel. Le serveur contrôle la même clé
+     (_droitMaintenance_, equipe.gs) : masquer la page ne fermerait rien, c'est le
+     serveur qui refuse. Un code comité est refusé. -->
+<link rel="icon" type="image/svg+xml" href="assets/favicon.svg">
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@300;400;500;600;700&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="partage/theme.css">
+<script src="version.js"></script>
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+[hidden]{display:none!important}
+body{background:var(--bg);font-family:'DM Sans',system-ui,sans-serif;color:var(--ink);
+     -webkit-font-smoothing:antialiased;padding-bottom:env(safe-area-inset-bottom)}
+.wrap{max-width:560px;margin:0 auto;padding:14px 14px 48px}
+.top{display:flex;align-items:center;gap:10px;margin:4px 0 14px}
+.top a.back{display:flex;align-items:center;justify-content:center;width:40px;height:40px;border-radius:12px;
+            background:var(--white);border:1px solid var(--line);color:var(--ink);text-decoration:none;font-size:20px;flex-shrink:0}
+.top .t{flex:1;min-width:0}
+.top h1{font-size:21px;font-weight:700;letter-spacing:-.02em;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.top .s{font-size:12px;color:var(--ink-4)}
+.top button.out{font:inherit;font-size:12px;font-weight:600;color:var(--ink-3);background:none;border:none;padding:8px;cursor:pointer}
+.card{background:var(--white);border:1px solid var(--line);border-radius:16px;padding:15px;margin-bottom:12px}
+.card h2{display:flex;align-items:center;gap:8px;font-size:15.5px;font-weight:700;margin-bottom:5px}
+.card .d{font-size:12.5px;color:var(--ink-3);line-height:1.5;margin-bottom:12px}
+.btn{font:inherit;cursor:pointer;width:100%;min-height:44px;border-radius:12px;border:1px solid var(--line);
+     background:var(--white);color:var(--ink);font-size:14px;font-weight:600;padding:0 12px}
+.btn.p{background:var(--red);border-color:var(--red);color:#fff}
+.btn.arm{background:#B45309;border-color:#B45309;color:#fff}
+.btn:disabled{opacity:.6;cursor:default}
+.duo{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px}
+.res{font-size:13px;margin-top:10px;line-height:1.5}
+.res:empty{display:none}
+.ok{color:#166534}.warn{color:#C2410C}.err{color:#B91C1C;font-weight:600}.info{color:#64748B;font-weight:600;margin-top:4px}
+.diag-chap{margin:12px 0 5px;padding:7px 11px;background:#0F172A;color:#fff;border-radius:8px;font-weight:700;font-size:13px}
+.diag-geste{margin:4px 0 8px 10px;padding:7px 10px;background:#FDECEC;border-left:3px solid #B91C1C;font-size:12.5px}
+.diag-geste b{color:#B91C1C}
+.resume{font-weight:700;margin-bottom:4px}
+.barre{display:flex;align-items:center;justify-content:space-between;gap:8px;margin-bottom:6px}
+.barre .n{font-size:12.5px;color:var(--ink-3)}
+.barre .btn{width:auto;min-height:34px;font-size:12.5px}
+.liste{border:1px solid var(--line);border-radius:12px;max-height:340px;overflow-y:auto;margin-bottom:10px}
+.liste label{display:flex;align-items:center;gap:10px;padding:10px 11px;border-bottom:1px solid var(--line-light);font-size:13.5px;cursor:pointer}
+.liste label:last-child{border-bottom:none}
+.liste label.off{opacity:.5;cursor:not-allowed}
+.liste input{width:18px;height:18px;flex-shrink:0}
+.liste b{min-width:40px;font-weight:700}
+.liste .nm{flex:1;min-width:0;color:var(--ink-2);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.liste .em{font-size:11.5px;color:var(--ink-4)}
+.vide{padding:14px;color:var(--ink-3);font-size:13px}
+.pied{text-align:center;font-size:11.5px;color:var(--ink-4);margin-top:8px}
+.toast{position:fixed;left:50%;bottom:calc(22px + env(safe-area-inset-bottom));transform:translateX(-50%);background:var(--ink);color:var(--bg);
+       padding:9px 16px;border-radius:999px;font-size:13px;font-weight:600;z-index:500;max-width:90vw;text-align:center}
+#authOverlay{position:fixed;inset:0;z-index:9999;background:var(--bg);display:flex;align-items:center;justify-content:center;padding:20px}
+#authOverlay .box{background:var(--white);border:1px solid var(--line);border-radius:16px;padding:32px 26px;width:100%;max-width:380px;text-align:center}
+#authInput{width:100%;padding:12px 14px;font-size:16px;border:1px solid var(--line);border-radius:10px;text-align:center;letter-spacing:2px;font-family:monospace}
+#authErr{margin-top:12px;font-size:13px;color:var(--red);font-weight:600}
+</style>
+<script src="partage/session.js"></script>
+<script>/* FALLBACK_SESSION — filet (même règle que les autres pages). Si partage/session.js ne se charge pas,
+la page ne doit pas devenir inutilisable : le code vit alors le temps de l'onglet. */
+window.SessionPortail = window.SessionPortail || { lire:function(){try{return sessionStorage.getItem('pmViewCode')||'';}catch(e){return '';}}, memoriser:function(c){try{sessionStorage.setItem('pmViewCode',c);}catch(e){}}, oublier:function(){try{sessionStorage.removeItem('pmViewCode');}catch(e){}}, estInstallee:function(){return false;}, joursRestants:function(){return null;}, DUREE_JOURS:0 };</script>
+</head>
+<body>
+
+<div id="authOverlay">
+  <div class="box">
+    <img src="assets/logo.png" alt="" style="width:48px;height:48px;border-radius:12px;display:block;margin:0 auto 16px">
+    <div style="font-size:18px;font-weight:800">Maintenance</div>
+    <div style="font-size:13px;color:var(--ink-3);margin:4px 0 22px">Accès réservé</div>
+    <input id="authInput" type="password" placeholder="Votre code d'acc&egrave;s" autocomplete="off" autocapitalize="characters">
+    <button id="authBtn" class="btn p" style="margin-top:12px">Acc&eacute;der &rarr;</button>
+    <div id="authErr" hidden></div>
+  </div>
+</div>
+
+<div class="wrap" id="main" hidden>
+  <div class="top">
+    <a class="back" href="index.html" aria-label="Retour au portail">&lsaquo;</a>
+    <div class="t"><h1>Maintenance</h1><div class="s">Réservé · <span data-version>—</span></div></div>
+    <button class="out" id="btnOut" type="button">Déconnexion</button>
+  </div>
+
+  <!-- 1. Diagnostic -->
+  <section class="card" id="cDiag">
+    <h2>🔍 Diagnostic système</h2>
+    <p class="d">Passe en revue toute la chaîne : réglages et onglets du classeur, équipe (doublons, codes, adresses), gardes jour par jour, indisponibilités, synchronisation du code, fichiers publiés et santé du classeur. Compter 20 à 60 secondes.</p>
+    <div class="duo">
+      <button class="btn p" id="btnDiag" type="button">Lancer</button>
+      <button class="btn" id="btnDiagCopie" type="button" disabled>Copier le rapport</button>
+    </div>
+    <div class="res" id="diagRes"></div>
+  </section>
+
+  <!-- 2. Cache -->
+  <section class="card" id="cCache">
+    <h2>🧹 Vider le cache</h2>
+    <p class="d">Les réglages du classeur (CONFIG, SECTEURS, CS_TEMPLATE, SEUILS) sont gardés en mémoire 10 minutes. Toute modification faite depuis le portail les rafraîchit déjà. Ce bouton ne sert qu'après une modification faite <b>à la main</b> dans le classeur — un code d'accès changé, par exemple — pour la voir prise en compte tout de suite.</p>
+    <button class="btn" id="btnCache" type="button">Vider le cache</button>
+    <div class="res" id="cacheRes"></div>
+  </section>
+
+  <!-- 3. Codes -->
+  <section class="card" id="cCodes">
+    <h2>✉️ Renvoyer les codes d'accès</h2>
+    <p class="d">Renvoie par e-mail le code <b>actuel</b> des MARs cochés. Les codes ne changent pas. Par défaut, tous les MARs actifs qui ont une adresse sont cochés.</p>
+    <div class="barre"><span class="n" id="codesNb">—</span><button class="btn" id="btnTout" type="button">Tout décocher</button></div>
+    <div class="liste" id="codesListe"><div class="vide">Chargement de l'équipe…</div></div>
+    <button class="btn" id="btnEnvoi" type="button">Envoyer aux MARs cochés</button>
+    <div class="res" id="codesRes"></div>
+  </section>
+
+  <p class="pied">Les gestes de cette page sont réservés : le serveur refuse tout autre code que le vôtre.</p>
+</div>
+
+<script>
+'use strict';
+const API_URL = 'https://script.google.com/macros/s/AKfycbxDbTnhgdjCNBqkeAblZWgS3CK-IptjJoRDQd1AtGF7WQoQkXriWGvISIo7LJG8zUtjTQ/exec';
+let VIEW_CODE = '';
+let MEDECINS = [];
+let RAPPORT = '';
+
+/* ── Appel serveur : même filet que les autres pages ── */
+const ERR_CORPS_PERDU = 'Code absent de la requête';
+async function _apiDirect(payload){
+  payload.code = VIEW_CODE;
+  const res = await fetch(API_URL, { method:'POST', headers:{'Content-Type':'text/plain;charset=utf-8'},
+                                     body: JSON.stringify(payload), redirect:'follow' });
+  return await res.json();
+}
+async function api(payload, rejouable){
+  let r;
+  try { r = await _apiDirect(payload); }
+  catch (e) { if (!rejouable) throw e; r = await _apiDirect(payload); }   // un unique renvoi, lectures seulement
+  if (r && r.success === false && r.error === ERR_CORPS_PERDU) return await _apiDirect(payload);
+  return r;
+}
+
+function esc(s){ return String(s == null ? '' : s).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c])); }
+function toast(t){ const e=document.createElement('div'); e.className='toast'; e.textContent=t; document.body.appendChild(e); setTimeout(()=>e.remove(), 2800); }
+const $ = id => document.getElementById(id);
+
+/* Deux appuis pour les gestes qui partent vraiment (pas de boîte de dialogue :
+   sur iPhone, elles bloquent la page). Le bouton s'arme, puis se désarme seul. */
+function deuxAppuis(btn, libelleArme, action){
+  const libelle = btn.textContent;
+  let arme = false, minuteur = null;
+  btn.addEventListener('click', async () => {
+    if (btn.disabled) return;
+    if (!arme) {
+      arme = true; btn.classList.add('arm'); btn.textContent = libelleArme();
+      minuteur = setTimeout(() => { arme = false; btn.classList.remove('arm'); btn.textContent = libelle; }, 5000);
+      return;
+    }
+    clearTimeout(minuteur); arme = false; btn.classList.remove('arm'); btn.textContent = libelle;
+    await action();
+  });
+}
+
+/* ── Connexion : getMedecins authentifie ET dit si la page peut s'ouvrir ── */
+function refus(r){ return !!(r && r.error && (r.error === 'Accès refusé' || /non autoris/.test(r.error))); }
+function authErr(m){ const el=$('authErr'); el.textContent=m; el.hidden=false; setTimeout(()=>{el.hidden=true;}, 5000); }
+function montrer(ouvert){ $('authOverlay').style.display = ouvert ? 'none' : 'flex'; $('main').hidden = !ouvert; }
+const MSG_RESERVE = 'Cette page est réservée au responsable technique du portail.';
+async function doLogin(code){
+  VIEW_CODE = code;
+  const r = await api({ action:'getMedecins' }, true);
+  if (!(r && r.success && r.maintenance === true)) {
+    VIEW_CODE = '';
+    /* Un code comité lit la liste de l'équipe, mais n'ouvre pas cette page. */
+    if (r && r.success) return { success:false, error:'Accès refusé' };
+    return r;
+  }
+  SessionPortail.memoriser(code);
+  MEDECINS = r.medecins || [];
+  montrer(true);
+  rendreCodes();
+  return r;
+}
+$('authBtn').addEventListener('click', async function(){
+  const code = $('authInput').value.trim().toUpperCase();
+  if(!code){ authErr("Entrez votre code d'accès."); return; }
+  const b=this; b.disabled=true; b.textContent='Vérification…';
+  try{ const r = await doLogin(code); if(!(r && r.success)) authErr(refus(r) ? MSG_RESERVE : ((r && r.error) || 'Code incorrect')); }
+  catch(e){ VIEW_CODE=''; authErr('Erreur réseau — réessayez'); }
+  b.disabled=false; b.textContent='Accéder →';
+});
+$('authInput').addEventListener('keydown', e=>{ if(e.key==='Enter') $('authBtn').click(); });
+$('btnOut').addEventListener('click', ()=>{ SessionPortail.oublier(); location.reload(); });
+
+/* ── 1. Diagnostic ─────────────────────────────────────────────────────────
+   Repris de l'ancien onglet Maintenance d'admin.html, rendu identique : les
+   chapitres « ══ » en bandeaux, les lignes « → LE GESTE » en encadrés. */
+/* Fraîcheur de l'index CCAM : contrôle CÔTÉ PAGE (le fichier est servi par le
+   site, le serveur ne le voit pas). Mêmes seuils que la page de cotation. On ne
+   télécharge pas le fichier (1 Mo) : les premiers octets suffisent. */
+const CCAM_ALERTE_MOIS = 8, CCAM_PERIME_MOIS = 14;
+async function diagCcamFraicheur() {
+  const url = 'docs/module-liberal/ccam_actes.json';
+  try {
+    const r = await fetch(url, { headers: { Range: 'bytes=0-600' }, cache: 'no-store' });
+    if (!r.ok && r.status !== 206) return '⚠️ Index CCAM (tarifs) — fichier illisible (HTTP ' + r.status + ')';
+    const tete = (await r.text()).slice(0, 600);
+    const ver = (tete.match(/"version"\s*:\s*"([^"]{0,40})"/) || [])[1] || 'version inconnue';
+    const eff = (tete.match(/"effet"\s*:\s*"(\d{4}-\d{2}-\d{2})"/) || [])[1];
+    if (!eff) return '⚠️ Index CCAM (tarifs) — date d\'effet absente du fichier';
+    const d = new Date(eff + 'T12:00:00'), now = new Date();
+    const jours = Math.floor((now - d) / 86400000);
+    const mois = (now.getFullYear() - d.getFullYear()) * 12 + (now.getMonth() - d.getMonth());
+    const detail = ver + ', effet ' + eff.split('-').reverse().join('/') + ' — ' + jours + ' jours';
+    if (mois >= CCAM_PERIME_MOIS) return '❌ Index CCAM (tarifs) : ' + detail + ' — À METTRE À JOUR (procédure : guide technique)';
+    if (mois >= CCAM_ALERTE_MOIS)  return '⚠️ Index CCAM (tarifs) : ' + detail + ' — à mettre à jour (procédure : guide technique)';
+    return '✅ Index CCAM (tarifs) : ' + detail;
+  } catch (e) {
+    return '⚠️ Index CCAM (tarifs) — vérification impossible : ' + (e && e.message ? e.message : e);
+  }
+}
+$('btnDiag').addEventListener('click', async () => {
+  const btn = $('btnDiag'), out = $('diagRes');
+  btn.disabled = true; btn.textContent = 'Analyse…';
+  out.innerHTML = '<div class="info">Analyse en cours — 20 à 60 secondes.</div>';
+  try {
+    const data = await api({ action:'diagComplet' });
+    if (!data || !data.success) throw new Error(refus(data) ? MSG_RESERVE : ((data && data.error) || 'Diagnostic indisponible'));
+    const lignes = (data.results || []).slice();
+    const ccam = await diagCcamFraicheur();
+    lignes.push(ccam);
+    RAPPORT = lignes.join('\n');
+    const nbE = (typeof data.nbErr === 'number' ? data.nbErr : lignes.filter(l => l.startsWith('❌') && !/^❌ \d+ problème/.test(l)).length)
+              + (ccam.startsWith('❌') ? 1 : 0);
+    const nbW = (typeof data.nbWarn === 'number' ? data.nbWarn : lignes.filter(l => l.startsWith('⚠️')).length)
+              + (ccam.startsWith('⚠️') ? 1 : 0);
+    const resume = nbE ? `<div class="resume err">❌ ${nbE} erreur(s) · ⚠️ ${nbW} avertissement(s)</div>`
+                 : nbW ? `<div class="resume warn">⚠️ ${nbW} avertissement(s), aucune erreur bloquante</div>`
+                       : `<div class="resume ok">✅ Aucune anomalie détectée</div>`;
+    out.innerHTML = resume + lignes.map(line => {
+      if (line.startsWith('══')) return `<div class="diag-chap">${esc(line.replace(/═/g, '').trim())}</div>`;
+      if (line.indexOf('→ LE GESTE') !== -1) return `<div class="diag-geste"><b>→ LE GESTE :</b>${esc(line.split('→ LE GESTE :')[1] || '')}</div>`;
+      const cls = line.startsWith('✅') ? 'ok' : line.startsWith('❌') ? 'err' : line.startsWith('⚠️') ? 'warn' : 'info';
+      return `<div class="${cls}">${esc(line)}</div>`;
+    }).join('');
+    $('btnDiagCopie').disabled = false;
+    toast(nbE ? 'Points à vérifier — voir le détail' : 'Tout est en ordre');
+  } catch (e) {
+    out.innerHTML = '<div class="err">❌ ' + esc(e.message) + '</div>';
+  } finally { btn.disabled = false; btn.textContent = 'Relancer'; }
+});
+$('btnDiagCopie').addEventListener('click', async () => {
+  if (!RAPPORT) return;
+  const txt = `Diagnostic Planning-Med — copié le ${new Date().toLocaleString('fr-FR')}\n\n${RAPPORT}`;
+  try { await navigator.clipboard.writeText(txt); toast('Rapport copié'); }
+  catch (e) {
+    const ta = document.createElement('textarea'); ta.value = txt; document.body.appendChild(ta); ta.select();
+    try { document.execCommand('copy'); toast('Rapport copié'); } catch (e2) { toast('Copie impossible'); }
+    ta.remove();
+  }
+});
+
+/* ── 2. Cache ── */
+$('btnCache').addEventListener('click', async () => {
+  const btn = $('btnCache'), out = $('cacheRes');
+  btn.disabled = true; btn.textContent = 'Vidage…';
+  try {
+    const r = await api({ action:'viderCacheConfig' });
+    if (!r || !r.success) throw new Error(refus(r) ? MSG_RESERVE : ((r && r.error) || 'réponse illisible'));
+    out.innerHTML = '<span class="ok">✅ ' + esc(r.message || 'Cache vidé.') + '</span>';
+  } catch (e) { out.innerHTML = '<span class="err">❌ ' + esc(e.message) + '</span>'; }
+  finally { btn.disabled = false; btn.textContent = 'Vider le cache'; }
+});
+
+/* ── 3. Codes ── */
+function cases(){ return [...document.querySelectorAll('#codesListe input[type=checkbox]:not(:disabled)')]; }
+function majCompte(){
+  const tot = cases().length, n = cases().filter(c => c.checked).length;
+  $('codesNb').textContent = n + ' / ' + tot + ' coché' + (n > 1 ? 's' : '');
+  $('btnTout').textContent = n ? 'Tout décocher' : 'Tout cocher';
+}
+function rendreCodes(){
+  const actifs = MEDECINS.filter(m => m.actif);
+  const zone = $('codesListe');
+  if (!actifs.length) { zone.innerHTML = '<div class="vide">Aucun MAR actif.</div>'; majCompte(); return; }
+  zone.innerHTML = actifs.map(m => {
+    const sans = !m.email;
+    return `<label class="${sans ? 'off' : ''}"><input type="checkbox" value="${esc(m.id)}" ${sans ? 'disabled' : 'checked'}>`
+      + `<b>${esc(m.initiales || m.id)}</b><span class="nm">${esc(m.nom || '')}</span>`
+      + `<span class="em">${sans ? '✕ pas d\'e-mail' : ''}</span></label>`;
+  }).join('');
+  zone.querySelectorAll('input').forEach(c => c.addEventListener('change', majCompte));
+  majCompte();
+}
+$('btnTout').addEventListener('click', () => { const on = !cases().some(c => c.checked); cases().forEach(c => c.checked = on); majCompte(); });
+deuxAppuis($('btnEnvoi'), () => { const n = cases().filter(c => c.checked).length; return 'Confirmer : envoyer à ' + n + ' MAR' + (n > 1 ? 's' : ''); }, async () => {
+  const ids = cases().filter(c => c.checked).map(c => c.value);
+  const out = $('codesRes'), btn = $('btnEnvoi');
+  if (!ids.length) { out.innerHTML = '<span class="err">Cochez au moins un MAR.</span>'; return; }
+  btn.disabled = true; const lib = btn.textContent; btn.textContent = 'Envoi…';
+  let ok = 0; const errs = [];
+  for (const id of ids) {
+    try {
+      const r = await api({ action:'sendCodesMar', medecin:id });
+      if (r && r.success) ok++; else errs.push(id + ' : ' + ((r && r.error) || 'échec'));
+    } catch (e) { errs.push(id + ' : ' + e.message); }
+  }
+  out.innerHTML = `<b class="ok">${ok} code${ok > 1 ? 's' : ''} envoyé${ok > 1 ? 's' : ''}.</b>`
+    + (errs.length ? `<div class="warn" style="margin-top:6px">${errs.length} échec(s) :<br>${errs.map(esc).join('<br>')}</div>` : '');
+  btn.disabled = false; btn.textContent = lib;
+});
+
+/* ── Reprise de session : le code est connu (portail, ou session précédente). ── */
+(async function auto(){
+  const saved = SessionPortail.lire();
+  if(!saved) return;
+  montrer(true);
+  try{
+    const r = await doLogin(saved);
+    if(r && r.success) return;
+    montrer(false);
+    /* Code valide mais sans droit sur cette page : on NE l'efface PAS — ce serait
+       le déconnecter du reste du portail. Seul un code refusé est oublié. */
+    if (refus(r)) { authErr(MSG_RESERVE); return; }
+    SessionPortail.oublier();
+    authErr((r && r.error) || 'Session expirée — retapez votre code.');
+  }catch(e){ montrer(false); authErr('Serveur injoignable — réessayez.'); }
+})();
+</script>
+</body>
+</html>

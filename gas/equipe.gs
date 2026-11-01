@@ -4,7 +4,7 @@
    quelles : aucune ligne de logique modifiée, seulement déplacée. Le routeur et
    ses aides (checkCode, _deny, _error, doGet/doPost) restent dans Indispos.gs.
    Un seul espace global dans Apps Script : rien à importer. */
-const GAS_VERSION_EQUIPE = '2026-10-27.1';   // (27/10/2026) ordreMc renvoyé au login et au bootstrap
+const GAS_VERSION_EQUIPE = '2026-11-01.1';   // (01/11/2026) outils de maintenance réservés à la tuile `maintenance` · (27/10/2026) ordreMc renvoyé au login et au bootstrap
 
 // ── Sonde : les interrupteurs des mails sont-ils cohérents ? ──
 function _sondeInterrupteursMails_(check, R, info) {
@@ -288,14 +288,25 @@ function _buildMedecins_() {
    (Indispos.gs) le déclare aussi, et le banc vérifie que les deux disent la
    même chose. */
 
+/* ── (01/11/2026) LES OUTILS DE MAINTENANCE — réservés à la tuile `maintenance` ──
+   Diagnostic, vidage du cache, renvoi des codes : ils vivaient dans l'onglet
+   Maintenance de admin.html, donc à portée de TOUT détenteur du code comité.
+   Ils passent sur maintenance.html, ouverte par un MAR qui a la tuile cachée
+   `maintenance` (CONFIG / TUILES_PRIVEES) — même critère que la tuile du
+   portail, comme `paie` et `stats`. Le code comité seul ne suffit PLUS : masquer
+   la page ne fermerait rien, c'est ici que la porte se ferme. */
+function _droitMaintenance_(user) {
+  return !!user && user.role === 'mar' && _aDroitTuile_(user.id, 'maintenance');
+}
+
 /* ── action "viderCacheConfig" ── */
 // (B1 sécurité) getStatus / getStatsLive : désormais code-gated (données nominatives)
-// Purge manuelle du cache de configuration (bouton de l'onglet Maintenance).
+// Purge manuelle du cache de configuration (page Maintenance).
 // Utile apres une modification faite A LA MAIN dans le classeur, ou pour
 // rendre immediate la revocation d'un code d'acces.
 function _act_viderCacheConfig(R) {
   const { e, payload, action, code, user } = R;
-  if (user.role !== 'admin') return _deny();
+  if (!_droitMaintenance_(user)) return _deny();
   viderCacheConfig();
   return ContentService.createTextOutput(JSON.stringify({
     success: true, message: 'Cache de configuration vidé — la prochaine lecture ira au classeur.'
@@ -483,10 +494,14 @@ function _act_getAdminBootstrap(R) {
 /* ── action "getMedecins" ── */
 function _act_getMedecins(R) {
   const { e, payload, action, code, user } = R;
-  if (user.role !== 'admin') return _deny();
+  /* (01/11/2026) Le comité, et la page Maintenance (liste « Renvoyer les codes »).
+     `maintenance` dit à la page si elle peut s'ouvrir : un code comité lit la
+     liste comme avant, mais n'ouvre pas la page. */
+  const _maint = _droitMaintenance_(user);
+  if (user.role !== 'admin' && !_maint) return _deny();
   const _m = _buildMedecins_();
   if (_m.error) return _error(_m.error);
-  return ContentService.createTextOutput(JSON.stringify({success:true, medecins:_m.medecins}))
+  return ContentService.createTextOutput(JSON.stringify({success:true, medecins:_m.medecins, maintenance:_maint}))
     .setMimeType(ContentService.MimeType.JSON);
 }
 
@@ -574,7 +589,7 @@ function _act_saveConfig(R) {
 /* ── action "sendCodes" ── */
 function _act_sendCodes(R) {
   const { e, payload, action, code, user } = R;
-  if (user.role !== 'admin') return _deny();
+  if (!_droitMaintenance_(user)) return _deny();
   { const _q = _quotaEmailInsuffisant_(_marsAvecEmail_()); if (_q) return _error(_q); }
   const ss = SpreadsheetApp.getActiveSpreadsheet();
   const medSheet = ss.getSheetByName('MEDECINS');
@@ -836,7 +851,9 @@ try {
 /* ── action "sendCodesMar" ── */
 function _act_sendCodesMar(R) {
   const { e, payload, action, code, user } = R;
-  if (user.role !== 'admin') return _deny();
+  /* (01/11/2026) Le comité (fin de l'assistant d'arrivée d'un MAR) et la page
+     Maintenance (« Renvoyer les codes d'accès »). */
+  if (user.role !== 'admin' && !_droitMaintenance_(user)) return _deny();
   const medecinId = String(payload.medecin || '').trim().toUpperCase();
   if (!medecinId) return _error('Médecin manquant');
   const ss = SpreadsheetApp.getActiveSpreadsheet();

@@ -346,17 +346,12 @@ const dstr = v => v instanceof Date
   V('l\'onglet Équipe affiche l\'adresse tout de suite',
     !!ligneCible() && ligneCible().textContent.includes('test.banc@exemple.fr'),
     ligneCible() && ligneCible().textContent.replace(/\s+/g,' ').trim().slice(0,120));
-  V('la liste servant à Maintenance suit aussi',
+  V('la liste interne de la page (marsData) suit aussi',
     w.eval('(marsData.find(function(m){return m.id===' + JSON.stringify(CIBLE) + '})||{}).email') === 'test.banc@exemple.fr',
     w.eval('JSON.stringify((marsData.find(function(m){return m.id===' + JSON.stringify(CIBLE) + '})||{}).email)'));
 
-  w.eval('initMaintenance()'); await dodo(600);
-  const ligneMaint = [...d.querySelectorAll('#codesList label')].find(l => l.textContent.includes(CIBLE) || l.textContent.includes('test.banc@exemple.fr'));
-  V('Maintenance ne dit plus « pas d\'email » pour ce MAR',
-    !!ligneMaint && !/pas d'email/.test(ligneMaint.textContent),
-    ligneMaint && ligneMaint.textContent.replace(/\s+/g,' ').trim().slice(0,120));
-  V('sa case est cochable (envoi possible)',
-    !!ligneMaint && !ligneMaint.querySelector('input').disabled);
+  /* (01/11/2026) Les deux vérifications « Maintenance » (case cochable, plus de
+     « pas d'email ») suivent l'outil sur maintenance.html : banc_maintenance.js. */
 
   console.log('\n═══ 26. Un champ e-mail vidé ne peut plus effacer l\'adresse en silence ═══');
   /* Le serveur écrit la colonne EMAIL telle qu\'elle arrive : un champ vide

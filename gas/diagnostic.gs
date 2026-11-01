@@ -4,7 +4,7 @@
    quelles : aucune ligne de logique modifiée, seulement déplacée. Le routeur et
    ses aides (checkCode, _deny, _error, doGet/doPost) restent dans Indispos.gs.
    Un seul espace global dans Apps Script : rien à importer. */
-const GAS_VERSION_DIAG = '2026-10-24.1';   // (24/10/2026) applicateur : filet toutes les 5 min
+const GAS_VERSION_DIAG = '2026-11-01.1';   // (01/11/2026) diagnostic réservé à la tuile `maintenance` · (24/10/2026) applicateur : filet toutes les 5 min
 
 // ── LOG ───────────────────────────────────────────────────────────────
 /* ─────────────────────────────────────────────────────────────────────────────
@@ -1004,7 +1004,7 @@ function _diagNiveauToken_(jours) {
 /* ── action "diagComplet" ── */
 function _act_diagComplet(R) {
   const { e, payload, action, code, user } = R;
-  if (user.role !== 'admin') return _deny();
+  if (!_droitMaintenance_(user)) return _deny();   // (01/11/2026) page Maintenance seulement (equipe.gs)
   const _d = diagnosticComplet();
   return ContentService.createTextOutput(JSON.stringify({ success:true, ok:_d.ok, results:_d.results }))
     .setMimeType(ContentService.MimeType.JSON);

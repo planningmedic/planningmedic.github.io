@@ -186,7 +186,7 @@
 
   <ol class="steps">
     <li><b>Sauvegarde du classeur maître.</b> Fichier → Créer une copie, nommée <code>SAUVEGARDE-AVANT-RECETTE-2026-08-01</code>, rangée sur ton compte perso. Non négociable : la phase 10 supprime des onglets.</li>
-    <li><b>Contrôle de version.</b> admin.html → onglet Maintenance → 🔍 Diagnostic. Aucune ligne ne doit signaler de désynchronisation entre le dépôt et le déployé. Si une recopie manque, fais-la maintenant : sinon tu testeras un code différent de celui que je lis.</li>
+    <li><b>Contrôle de version.</b> Tuile Maintenance du portail → 🔍 Diagnostic. Aucune ligne ne doit signaler de désynchronisation entre le dépôt et le déployé. Si une recopie manque, fais-la maintenant : sinon tu testeras un code différent de celui que je lis.</li>
     <li><b>État de départ, noté sur papier.</b> Dans CONFIG : valeur de <code>ANNEE_ACTIVE</code> (attendu 2027) et de <code>INDISPOS_ACTIVE</code>. Dans le classeur : la liste des onglets présents. C'est ta référence pour le nettoyage final.</li>
     <li><b>Classeur d'archive.</b> Ouvre-le et vérifie s'il contient déjà <code>STATS_GARDES_2027</code>. Si oui, note-le : la clôture l'écrasera sans prévenir.</li>
     <li><b>Emails.</b> Tu confirmes que seule ton adresse est renseignée dans MEDECINS. Recompte-le une fois, ligne par ligne, avant la phase 10 : c'est le seul point où une erreur touche l'équipe.</li>
@@ -252,7 +252,7 @@
 
   <div class="test" data-id="T008"><div class="test-head"><span class="tid">T008</span><div class="test-body">
     <div class="t-do">Session ouverte sur dashboard. Dans le classeur, modifier ton code d'accès dans MEDECINS. Cliquer ensuite sur une tuile qui charge des données.</div>
-    <div class="t-exp">Attendu : le refus arrive — immédiatement, ou après le bouton « vider le cache de configuration » de Maintenance. Note lequel des deux. C'est le délai réel de révocation d'un code.</div>
+    <div class="t-exp">Attendu : le refus arrive — immédiatement, ou après le bouton « vider le cache » de la page Maintenance. Note lequel des deux. C'est le délai réel de révocation d'un code.</div>
   
     <div class="verdicts"><label class="v-ok"><input type="radio" name="v-T008" value="ok"><span>Conforme</span></label><label class="v-ko"><input type="radio" name="v-T008" value="ko"><span>Anomalie</span></label><label class="v-na"><input type="radio" name="v-T008" value="na"><span>Non fait</span></label><input class="note" type="text" placeholder="Ce que tu as observé"></div>
   </div></div></div>
@@ -624,7 +624,7 @@
   </div></div></div>
 
   <div class="test" id="t059" data-id="T059"><div class="test-head"><span class="tid">T059</span><div class="test-body">
-    <div class="t-do">Onglet Maintenance : lancer le 🔍 Diagnostic complet et lire chaque ligne.</div>
+    <div class="t-do">Page Maintenance (tuile réservée) : lancer le 🔍 Diagnostic complet et lire chaque ligne. Vérifier aussi qu'admin.html n'a plus d'onglet Maintenance, et que le code comité seul n'ouvre pas la page.</div>
     <div class="t-exp">Attendu : aucune anomalie non expliquée. Recopie ici toute ligne rouge ou orange.</div>
   
     <div class="verdicts"><label class="v-ok"><input type="radio" name="v-T059" value="ok"><span>Conforme</span></label><label class="v-ko"><input type="radio" name="v-T059" value="ko"><span>Anomalie</span></label><label class="v-na"><input type="radio" name="v-T059" value="na"><span>Non fait</span></label><input class="note" type="text" placeholder="Ce que tu as observé"></div>
@@ -1480,8 +1480,8 @@
     <div class="verdicts"><label class="v-ok"><input type="radio" name="v-T152" value="ok"><span>Conforme</span></label><label class="v-ko"><input type="radio" name="v-T152" value="ko"><span>Anomalie</span></label><label class="v-na"><input type="radio" name="v-T152" value="na"><span>Non fait</span></label><input class="note" type="text" placeholder="Ce que tu as observé"></div>
   </div></div></div>
   <div class="test" data-id="T153"><div class="test-head"><span class="tid">T153</span><div class="test-body">
-    <div class="t-do">Vérifier que le guide comité décrit bien les outils réellement présents dans l'onglet Maintenance.</div>
-    <div class="t-exp">Attendu : trois outils — diagnostic, vidage du cache, renvoi des codes.</div>
+    <div class="t-do">Vérifier que le guide comité dit bien où sont passés les outils de maintenance.</div>
+    <div class="t-exp">Attendu : section 10 — plus dans l'écran du comité ; code oublié par le 🔄 de l'onglet Équipe ; le reste via le responsable technique.</div>
     <div class="verdicts"><label class="v-ok"><input type="radio" name="v-T153" value="ok"><span>Conforme</span></label><label class="v-ko"><input type="radio" name="v-T153" value="ko"><span>Anomalie</span></label><label class="v-na"><input type="radio" name="v-T153" value="na"><span>Non fait</span></label><input class="note" type="text" placeholder="Ce que tu as observé"></div>
   </div></div></div>
 </section>
@@ -1574,7 +1574,7 @@
   </div></div></div>
 
   <div class="test" data-id="T193"><div class="test-head"><span class="tid">T193</span><div class="test-body">
-    <div class="t-do">Dans Maintenance, essayer d'ouvrir la carte « Clôturer l'année ».</div>
+    <div class="t-do">Dans Planning → Opérations annuelles, essayer d'ouvrir la carte « Clôturer l'année ».</div>
     <div class="t-exp">Attendu : <b>refus</b>, avec affichage de la date à partir de laquelle ce sera possible (le premier lundi de l'année de planning suivante). Le serveur refuse également, pas seulement l'écran. Ce verrou date du 17 août.</div>
     <div class="verdicts"><label class="v-ok"><input type="radio" name="v-T193" value="ok"><span>Conforme</span></label><label class="v-ko"><input type="radio" name="v-T193" value="ko"><span>Anomalie</span></label><label class="v-na"><input type="radio" name="v-T193" value="na"><span>Non fait</span></label><input class="note" type="text" placeholder="Ce que tu as observé"></div>
   </div></div></div>
@@ -1594,7 +1594,7 @@
     <li><b>Drive.</b> Supprimer les JSON créés pendant la séance : <code>archives_stats_2027.json</code>, <code>archives_indispos_2027.json</code>, <code>planning_2028.json</code> et assimilés.</li>
     <li><b>MEDECINS.</b> Remettre actif tout MAR passé inactif, retirer les MARs de test, vérifier ton code d'accès.</li>
     <li><b>Overrides.</b> La clôture a purgé PLANNING_OVERRIDES ≤ 2027 : si tes échanges de test comptaient, les reprendre depuis la sauvegarde P0-1.</li>
-    <li><b>Vider le cache</b> de configuration depuis Maintenance, puis relancer le 🔍 Diagnostic complet : il doit être aussi propre qu'en P0-2.</li>
+    <li><b>Vider le cache</b> de configuration depuis la page Maintenance, puis relancer le 🔍 Diagnostic complet : il doit être aussi propre qu'en P0-2.</li>
     <li><b>Contrôle final</b> par les yeux d'un MAR : ouvrir index.html et planning.html avec ton code, et vérifier que 2027 est revenu comme avant.</li>
   </ol>
 

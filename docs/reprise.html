@@ -185,7 +185,8 @@
   <ol class="steps">
     <li>Obtenir l'accès au compte Google titulaire ; vérifier l'ouverture du classeur <strong>et</strong> de l'éditeur Apps Script.</li>
     <li>Se faire ajouter à l'organisation GitHub <code>planningmedic</code>.</li>
-    <li>Ouvrir <code>admin.html</code> avec le code admin → onglet <strong>Maintenance</strong> → 🔍 <strong>Diagnostic système</strong>. Il audite le classeur, GitHub, les JSON du Drive et la concordance des versions de code. Tout doit être vert.</li>
+    <li>Dans le classeur, onglet CONFIG, ligne <code>TUILES_PRIVEES</code> : ajouter <code>maintenance</code> à votre identifiant (format <code>ID:cle1,cle2;…</code>). La tuile <strong>Maintenance</strong> apparaît alors dans votre portail ; le code comité seul ne l'ouvre pas.</li>
+    <li>Tuile <strong>Maintenance</strong> → 🔍 <strong>Diagnostic système</strong>. Il audite le classeur, GitHub, les JSON du Drive et la concordance des versions de code. Tout doit être vert.</li>
     <li>Lire <a href="guide-technique.html">guide-technique.html</a> (la référence), puis <a href="guide-comite.html">guide-comite.html</a> (usage comité) et <a href="guide-mar.html">guide-mar.html</a> (usage MAR).</li>
   </ol>
 
@@ -245,7 +246,7 @@
   <h3>8.3 · Le serveur ne répond plus, ou répond « Action inconnue »</h3>
   <p>Ce message a presque toujours la même cause : le code déployé ne correspond pas au code du dépôt. Soit une recopie a été oubliée, soit le déploiement n'a pas été mis à jour après la recopie.</p>
   <ol class="steps">
-    <li>Onglet Maintenance → 🔍 <strong>Diagnostic système</strong> : il compare les versions du dépôt et celles réellement déployées, et signale les décalages.</li>
+    <li>Tuile Maintenance du portail → 🔍 <strong>Diagnostic système</strong> : il compare les versions du dépôt et celles réellement déployées, et signale les décalages.</li>
     <li>Recopier dans l'éditeur Apps Script les fichiers signalés, depuis le dossier <code>gas/</code> du dépôt.</li>
     <li><strong>Déployer une nouvelle version</strong> de la Web App. Sans cette étape, l'ancien code continue de tourner.</li>
   </ol>

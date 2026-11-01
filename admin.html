@@ -1178,7 +1178,6 @@ if (sessionStorage.getItem('adminCode')) {
   <button class="nav-tab" onclick="showTab('affectations')" id="tab-affectations">📋 Affectations <span id="affPendingDot" style="display:none;width:6px;height:6px;background:#F59E0B;border-radius:50%;margin-left:4px;vertical-align:middle"></span></button>
   <button class="nav-tab" onclick="showTab('equite')" id="tab-equite">📊 Équité</button>
   <button class="nav-tab" onclick="showTab('statuts')" id="tab-statuts">✏️ Statuts<span id="pastilleRecup" style="display:none;margin-left:7px;min-width:18px;height:18px;padding:0 5px;border-radius:9px;background:#CA8A04;color:#fff;font-size:11px;font-weight:800;display:none;align-items:center;justify-content:center;vertical-align:1px"></span></button>
-  <button class="nav-tab" onclick="showTab('maintenance')" id="tab-maintenance">🔧 Maintenance</button>
   <!-- (13/08/2026) Avancement de la campagne d'indisponibilites. N'apparait QUE
        pendant la campagne (INDISPOS_YEAR non nul) et disparait des sa cloture. -->
   <button class="ind-chip" id="indChip" style="display:none" onclick="basculerIndChip()"></button>
@@ -1591,43 +1590,8 @@ if (sessionStorage.getItem('adminCode')) {
     </div>
     <div id="statutsContent" style="display:none"></div>
   </div>
-<div class="tab-panel" id="panel-maintenance">
-  <div class="maint-grid">
-
-    <div class="maint-action">
-      <div class="maint-title">🔍 Diagnostic système</div>
-      <div class="maint-desc">Passe en revue toute la chaîne : environnement (fuseaux, quota email, verrou), onglets et réglages, équipe (doublons, codes, emails), intégrité des gardes jour par jour (1 G + 1 G2), indisponibilités et placements orphelins, clé de publication, synchronisation du code, fichiers publiés et santé du classeur.</div>
-      <div style="display:flex;gap:8px;flex-wrap:wrap">
-        <button class="btn-primary" onclick="runDiag()" id="btnDiagSys">Lancer le diagnostic</button>
-        <button class="btn-secondary" onclick="copyDiag()" id="btnDiagCopy" style="display:none">📋 Copier le rapport</button>
-      </div>
-      <div id="diagSysResult" style="display:none;margin-top:12px;font-size:12px;font-family:var(--mono,monospace);background:#F8FAFC;border:1px solid var(--line);border-radius:10px;padding:12px;max-height:340px;overflow-y:auto;line-height:1.85"></div>
-    </div>
-
-    <div class="maint-action">
-      <div class="maint-title">🧹 Vider le cache de configuration</div>
-      <div class="maint-desc">Les onglets <b>CONFIG</b>, <b>SECTEURS</b>, <b>CS_TEMPLATE</b> et <b>SEUILS</b> sont gardés en mémoire par le serveur pendant 10 minutes : c'est ce qui rend l'ouverture des pages rapide et régulière. Toute action qui écrit dans le classeur les rafraîchit automatiquement. Ce bouton ne sert que si vous avez modifié l'un de ces onglets <b>à la main</b> et voulez le voir pris en compte tout de suite — notamment après avoir changé un code d'accès.</div>
-      <div style="display:flex;gap:8px;flex-wrap:wrap">
-        <button class="btn-secondary" onclick="viderCacheConfig()" id="btnCacheVider">Vider le cache</button>
-      </div>
-      <div id="cacheResult" style="display:none;margin-top:10px;font-size:12.5px"></div>
-    </div>
-
-    <div class="maint-action">
-      <div class="maint-title">✉️ Renvoyer les codes d'accès</div>
-      <div class="maint-desc">Sélectionnez un ou plusieurs MARs, puis envoyez-leur leur code individuel de saisie. Par défaut, tous les MARs actifs sont cochés.</div>
-      <div id="codesToolbar" style="display:flex;gap:8px;flex-wrap:wrap;align-items:center;margin:4px 0 10px">
-        <button class="btn-secondary" type="button" onclick="codesSelectAll(true)">Tout cocher</button>
-        <button class="btn-secondary" type="button" onclick="codesSelectAll(false)">Tout décocher</button>
-        <span id="codesCount" style="font-size:12px;color:var(--ink-3)"></span>
-      </div>
-      <div id="codesList" style="max-height:280px;overflow-y:auto;border:1px solid var(--line);border-radius:10px;padding:6px"></div>
-      <button class="btn-primary" style="margin-top:12px" onclick="sendCodesSelected()" id="btnSendCodes">Envoyer aux MARs sélectionnés</button>
-      <div id="codesResult" style="display:none;margin-top:10px;font-size:12.5px;line-height:1.6"></div>
-    </div>
-
-  </div>
-</div>
+<!-- (01/11/2026) L'onglet Maintenance (diagnostic, cache, renvoi des codes) a quitté
+     l'écran du comité : il vit sur maintenance.html, réservée (tuile cachée `maintenance`). -->
 <!-- /main -->
 
 <!-- PANNEAU MODIFICATION -->
@@ -2280,7 +2244,7 @@ async function authenticate() {
 /* (v1.21.2) TIMEOUTS DIFFERENCIES — récit : docs/JOURNAL-Planning-Med.md §4 */
 const API_TIMEOUT_LECTURE_MS  = 20000;
 const API_TIMEOUT_ECRITURE_MS = 90000;
-const _ACTIONS_LONGUES = new Set(['generateGardes','diagComplet','publishPlanning','archiveYear','initYear']);
+const _ACTIONS_LONGUES = new Set(['generateGardes','publishPlanning','archiveYear','initYear']);
 function _apiTimeoutPour(action) {
   if (_ACTIONS_LONGUES.has(action)) return API_TIMEOUT_ECRITURE_MS;
   try { if (_ACTIONS_ECRITURE_PLANNING.has(action)) return API_TIMEOUT_ECRITURE_MS; } catch (e) {}
@@ -2939,7 +2903,6 @@ function showTab(name) {
   /* (13/08/2026) loadVacancesValidation() retire d'ici — récit : docs/JOURNAL-Planning-Med.md §8 */
   if (name==='equite') { loadStats(ADMIN_YEAR); }
   if (name==='statuts') loadStatuts();
-  if (name==='maintenance') initMaintenance();
 }
 
 // ══════════════════════════════════════════════════════════════════
@@ -6507,7 +6470,7 @@ async function openWizard() {
     document.getElementById('wizBody').innerHTML = wizardLockedHTML(
       'Lecture du classeur impossible',
       "Les périodes de vacances et les groupes A/B/C n'ont pas pu être lus. L'assistant s'arrête ici : rien n'a été modifié.",
-      "Vérifiez la connexion, puis Réessayer. Si l'erreur persiste, onglet Maintenance → 🔍 Diagnostic."
+      "Vérifiez la connexion, puis Réessayer. Si l'erreur persiste, prévenez le responsable technique du portail."
     );
     return;
   }
@@ -8962,123 +8925,7 @@ async function saveGroupes() {
    (10/09/2026) Le wizard n'envoie plus de codes du tout : le code des indispos
    est celui du portail. Seuls subsistent l'outil de Maintenance et le wizard
    d'arrivée d'un nouveau MAR. */
-// ── MAINTENANCE ──────────────────────────────────────────────────────────
-let _diagRapport = '';
-async function copyDiag() {
-  if (!_diagRapport) { toast('Lancez d\'abord le diagnostic', 'error'); return; }
-  const txt = `Diagnostic Planning-Med — copié le ${new Date().toLocaleString('fr-FR')}\n\n${_diagRapport}`;
-  try {
-    await navigator.clipboard.writeText(txt);
-    toast('📋 Rapport copié — collez-le tel quel pour le faire analyser', 'success');
-  } catch (e) {
-    // Repli si le presse-papiers est bloqué
-    const ta = document.createElement('textarea');
-    ta.value = txt; document.body.appendChild(ta); ta.select();
-    document.execCommand('copy'); ta.remove();
-    toast('📋 Rapport copié', 'success');
-  }
-}
-/* ── FRAÎCHEUR DE L'INDEX CCAM ────────────────────────────────────────────
-   Le fichier des tarifs (docs/module-liberal/ccam_actes.json) ne se met pas à jour
-   tout seul, et son obsolescence est silencieuse : constaté le 27/07/2026 avec des
-   tarifs v80 (2025) sous des codes v83 — environ 3 € de moins par acte sur 78 %
-   des tarifs. Le Diagnostic est le seul écran regardé systématiquement, d'où cette
-   ligne. Mêmes seuils que le bandeau de la page de cotation : UNE seule règle.
-
-   ⚠️ On ne télécharge PAS le fichier (1 Mo) : les métadonnées sont au tout début,
-   une requête HTTP Range suffit à en lire les premiers octets. Si le serveur ignore
-   Range, on lit quand même le début du flux — jamais de parsing JSON complet.
-   Purement côté page : même origine que admin.html, aucun appel serveur, donc rien
-   à recopier dans Apps Script. */
-const CCAM_ALERTE_MOIS = 8, CCAM_PERIME_MOIS = 14;
-async function _diagCcamFraicheur() {
-  const url = 'docs/module-liberal/ccam_actes.json';
-  try {
-    const r = await fetch(url, { headers: { Range: 'bytes=0-600' }, cache: 'no-store' });
-    if (!r.ok && r.status !== 206) return '⚠️ Index CCAM (tarifs) — fichier illisible (HTTP ' + r.status + ')';
-    const tete = (await r.text()).slice(0, 600);
-    const ver = (tete.match(/"version"\s*:\s*"([^"]{0,40})"/) || [])[1] || 'version inconnue';
-    const eff = (tete.match(/"effet"\s*:\s*"(\d{4}-\d{2}-\d{2})"/) || [])[1];
-    if (!eff) return '⚠️ Index CCAM (tarifs) — date d\'effet absente du fichier';
-    const d = new Date(eff + 'T12:00:00'), now = new Date();
-    const jours = Math.floor((now - d) / 86400000);
-    const mois = (now.getFullYear() - d.getFullYear()) * 12 + (now.getMonth() - d.getMonth());
-    const detail = ver + ', effet ' + eff.split('-').reverse().join('/') + ' — ' + jours + ' jours';
-    if (mois >= CCAM_PERIME_MOIS) return '❌ Index CCAM (tarifs) : ' + detail + ' — À METTRE À JOUR (procédure : guide technique)';
-    if (mois >= CCAM_ALERTE_MOIS)  return '⚠️ Index CCAM (tarifs) : ' + detail + ' — à mettre à jour (procédure : guide technique)';
-    return '✅ Index CCAM (tarifs) : ' + detail;
-  } catch (e) {
-    return '⚠️ Index CCAM (tarifs) — vérification impossible : ' + (e && e.message ? e.message : e);
-  }
-}
-
-/* Purge du cache de configuration serveur (onglet Maintenance).
-   Le cache accelere et surtout REGULARISE les ouvertures : mesure du 01/08, les
-   onglets SEUILS + CS_TEMPLATE ont coute 702 ms puis 6 956 ms a trois minutes
-   d'ecart. Ce bouton n'est utile qu'apres une modification faite A LA MAIN dans
-   le classeur — toute ecriture passant par l'interface vide deja le cache. */
-async function viderCacheConfig() {
-  const btn = document.getElementById('btnCacheVider');
-  const zone = document.getElementById('cacheResult');
-  if (btn) { btn.disabled = true; btn.textContent = 'Vidage…'; }
-  try {
-    const r = await api({action: 'viderCacheConfig'});
-    if (!r || !r.success) throw new Error((r && r.error) || 'réponse illisible');
-    if (zone) { zone.style.display = 'block'; zone.style.color = '#15803D';
-                zone.textContent = '✅ ' + (r.message || 'Cache vidé.'); }
-  } catch (e) {
-    if (zone) { zone.style.display = 'block'; zone.style.color = '#B91C1C';
-                zone.textContent = '❌ ' + (e && e.message ? e.message : 'échec'); }
-  } finally { if (btn) { btn.disabled = false; btn.textContent = 'Vider le cache'; } }
-}
-
-async function runDiag() {
-  const btn = document.getElementById('btnDiagSys');
-  const out = document.getElementById('diagSysResult');
-  if (btn) { btn.disabled = true; btn.textContent = '⏳ Analyse…'; }
-  try {
-    const data = await api({action: 'diagComplet'});
-    if (!data.success) throw new Error(data.error || 'Diagnostic indisponible');
-    const lignes = data.results || [];
-    // Contrôle CÔTÉ PAGE, ajouté après la réponse serveur : le fichier de tarifs est
-    // servi par GitHub Pages, le serveur GAS ne le voit pas. Ne doit jamais faire
-    // échouer le diagnostic — _diagCcamFraicheur() attrape ses propres erreurs.
-    const ccam = await _diagCcamFraicheur();
-    lignes.push(ccam);
-    _diagRapport = lignes.join('\n');
-    // (27/08/2026 soir) Le serveur compte AVANT d'ajouter sa ligne de récap ; la
-    // recompter ici la faisait entrer dans le total (« 2 erreurs » pour une seule).
-    // On prend donc ses compteurs, plus la ligne CCAM ajoutée côté page.
-    const nbE = (typeof data.nbErr === 'number' ? data.nbErr : lignes.filter(l => l.startsWith('❌') && !/^❌ \d+ problème/.test(l)).length)
-              + (ccam.startsWith('❌') ? 1 : 0);
-    const nbW = (typeof data.nbWarn === 'number' ? data.nbWarn : lignes.filter(l => l.startsWith('⚠️')).length)
-              + (ccam.startsWith('⚠️') ? 1 : 0);
-    if (out) {
-      out.style.display = 'block';
-      const resume = nbE
-        ? `<div class="diag-err" style="font-weight:700">❌ ${nbE} erreur(s) · ⚠️ ${nbW} avertissement(s) — détail ci-dessous</div>`
-        : nbW
-          ? `<div class="diag-warn" style="font-weight:700">⚠️ ${nbW} avertissement(s), aucune erreur bloquante</div>`
-          : `<div class="diag-ok" style="font-weight:700">✅ Aucune anomalie détectée</div>`;
-      // (27/08/2026) Trois questions : les chapitres `══` deviennent des bandeaux,
-      // les lignes « → LE GESTE » des encadrés rouges — le reste est inchangé.
-      out.innerHTML = resume + lignes.map(line => {
-        if (line.startsWith('══')) return `<div class="diag-chap">${line.replace(/═/g, '').trim()}</div>`;
-        if (line.indexOf('→ LE GESTE') !== -1) return `<div class="diag-geste"><b>→ LE GESTE :</b>${line.split('→ LE GESTE :')[1] || ''}</div>`;
-        const cls = line.startsWith('✅') ? 'diag-ok' : line.startsWith('❌') ? 'diag-err' : line.startsWith('⚠️') ? 'diag-warn' : 'diag-info';
-        return `<div class="${cls}">${line}</div>`;
-      }).join('');
-    }
-    const bc = document.getElementById('btnDiagCopy');
-    if (bc) bc.style.display = '';
-    toast(data.ok ? '✅ Tout est en ordre' : '⚠️ Points à vérifier — voir le détail', data.ok ? 'success' : 'error');
-  } catch(e) {
-    if (out) { out.style.display = 'block'; out.innerHTML = '<div class="diag-err">❌ ' + e.message + '</div>'; }
-    toast('Erreur : ' + e.message, 'error');
-  } finally {
-    if (btn) { btn.disabled = false; btn.textContent = 'Relancer le diagnostic'; }
-  }
-}
+// (01/11/2026) Diagnostic et vidage du cache : déplacés sur maintenance.html (réservée).
 
 function markPending() { _pendingChanges++; renderPublishBtn(); pubMarkDirty(); }
 function renderPublishBtn() {
@@ -9519,74 +9366,7 @@ const WIZ_SECTEURS = ['MAT','AMB','REA','VOLANT'];
 const WIZ_MOIS = ['Jan','Fév','Mar','Avr','Mai','Jun','Jul','Aoû','Sep','Oct','Nov','Déc'];
 
 
-// ── Maintenance P16 ──────────────────────────────────────────────
-
-// Prépare l'onglet Maintenance à l'ouverture : année d'archivage + liste des MARs.
-async function initMaintenance() {
-  const list = document.getElementById('codesList');
-  if (!list) return;
-  // Deux caches possibles selon la navigation (marsData / marData) ; sinon on charge.
-  let meds = (Array.isArray(marsData) && marsData.length) ? marsData
-           : (typeof marData !== 'undefined' && Array.isArray(marData) && marData.length) ? marData
-           : null;
-  if (!meds) {
-    list.innerHTML = '<div style="padding:12px;color:var(--ink-3)">Chargement de l\'équipe…</div>';
-    try {
-      const r = await api({action: 'getMedecins'});
-      if (r && r.success) { meds = r.medecins; marsData = r.medecins; _majTitres(marsData); }
-    } catch (e) {}
-  }
-  if (!meds || !meds.length) {
-    list.innerHTML = '<div style="padding:12px;color:#B91C1C">Impossible de charger la liste des MARs.</div>';
-    return;
-  }
-  const actifs = meds.filter(m => m.actif);
-  if (!actifs.length) {
-    list.innerHTML = '<div style="padding:12px;color:var(--ink-3)">Aucun MAR actif.</div>';
-    return;
-  }
-  list.innerHTML = actifs.map(m => {
-    const noMail = !m.email;
-    return `<label class="code-row" style="display:flex;align-items:center;gap:10px;padding:7px 9px;border-radius:8px;cursor:${noMail?'not-allowed':'pointer'};opacity:${noMail?'.5':'1'}">
-      <input type="checkbox" class="code-cb" value="${m.id}" ${noMail?'disabled':'checked'} onchange="codesUpdateCount()">
-      <span style="font-weight:600;min-width:44px">${m.initiales||m.id}</span>
-      <span style="flex:1;color:var(--ink-2)">${m.nom||''}</span>
-      <span style="font-size:11.5px;color:var(--ink-3)">${noMail?'✕ pas d\'email':(m.email)}</span>
-    </label>`;
-  }).join('');
-  codesUpdateCount();
-}
-function codesSelectAll(v) {
-  document.querySelectorAll('#codesList .code-cb:not(:disabled)').forEach(cb => cb.checked = v);
-  codesUpdateCount();
-}
-function codesUpdateCount() {
-  const n = document.querySelectorAll('#codesList .code-cb:checked').length;
-  const el = document.getElementById('codesCount');
-  if (el) el.textContent = n + ' sélectionné' + (n > 1 ? 's' : '');
-}
-async function sendCodesSelected() {
-  const ids = [...document.querySelectorAll('#codesList .code-cb:checked')].map(cb => cb.value);
-  if (!ids.length) { toast('Aucun MAR sélectionné', 'error'); return; }
-  if (!confirm(`Renvoyer leur code ACTUEL par email à ${ids.length} MAR${ids.length>1?'s':''} ?\nLes codes ne sont pas modifiés.`)) return;
-  const btn = document.getElementById('btnSendCodes');
-  const out = document.getElementById('codesResult');
-  if (btn) { btn.disabled = true; btn.textContent = '⏳ Envoi…'; }
-  let ok = 0; const errs = [];
-  for (const id of ids) {
-    try {
-      const r = await api({action: 'sendCodesMar', medecin: id});
-      if (r && r.success) ok++; else errs.push(`${id} : ${(r && r.error) || 'échec'}`);
-    } catch(e) { errs.push(`${id} : ${e.message}`); }
-  }
-  if (out) {
-    out.style.display = 'block';
-    out.innerHTML = `<b>${ok} code${ok>1?'s':''} envoyé${ok>1?'s':''}.</b>`
-      + (errs.length ? `<div style="color:#C2410C;margin-top:6px">${errs.length} échec(s) :<br>${errs.join('<br>')}</div>` : '');
-  }
-  toast(errs.length ? `${ok} envoyé(s), ${errs.length} échec(s)` : `✅ ${ok} code(s) envoyé(s)`, errs.length ? 'error' : 'success');
-  if (btn) { btn.disabled = false; btn.textContent = 'Envoyer aux MARs sélectionnés'; }
-}
+// (01/11/2026) Liste et renvoi des codes d'accès : déplacés sur maintenance.html (réservée).
 
 async function resetCodeMAR(marId, marNom) {
   if (window._sendCodeBusy) return; // anti double-clic : évite un double changement de code

@@ -12,7 +12,8 @@ Système web de gestion pour le service d'anesthésie-réanimation du **un servi
 | Fichier | Rôle |
 |---|---|
 | `index.html` | **Portail** personnel du MAR — le seul carrefour : toutes les autres pages s'ouvrent depuis ses tuiles |
-| `admin.html` | Interface **comité** (PC) : planning, équipe, affectations, équité, statuts, maintenance |
+| `admin.html` | Interface **comité** (PC) : planning, équipe, affectations, équité, statuts |
+| `maintenance.html` | Outils de **maintenance** (téléphone d'abord) : diagnostic, cache, renvoi des codes — tuile réservée `maintenance`, le serveur contrôle la même clé |
 | `planning.html` | **Planning** de l'équipe (vue MAR) |
 | `indispos.html` | Saisie des **indisponibilités** et souhaits de garde |
 | `absences.html` | **Consultations à venir** — contrôle d'absence (deux portes : tuile MAR et session secrétariat) |

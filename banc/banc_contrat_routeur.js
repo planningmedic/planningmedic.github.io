@@ -25,7 +25,7 @@ const V = (t, c, d) => { if (c) { ok++; console.log('  ✓ ' + t); }
 const CONTRAT = {
   'getActiveYear'             : 'sans code',
   'getAnneesDisponibles'      : 'sans code',
-  'viderCacheConfig'          : 'admin',
+  'viderCacheConfig'          : 'maintenance',
   'getStatus'                 : 'tout code valide',
   'getStatsLive'              : 'tout code valide',
   'login'                     : 'tout code valide',
@@ -54,7 +54,7 @@ const CONTRAT = {
   'getOverrides'              : 'admin',
   'deleteOverride'            : 'admin',
   'getAdminBootstrap'         : 'admin',
-  'getMedecins'               : 'admin',
+  'getMedecins'               : 'conditionnel',
   'saveMedecin'               : 'admin',
   'getAffectations'           : 'admin',
   'saveAffectations'          : 'admin',
@@ -62,16 +62,16 @@ const CONTRAT = {
   'savePeriodes'              : 'admin',
   'saveGroupes'               : 'admin',
   'saveConfig'                : 'admin',
-  'sendCodes'                 : 'admin',
+  'sendCodes'                 : 'maintenance',
   'mailNonLus'                : 'admin',
   'mailListe'                 : 'admin',
   'mailMessage'               : 'admin',
-  'diagComplet'               : 'admin',
+  'diagComplet'               : 'maintenance',
   'archiveYear'               : 'admin',
   'saveAffectationsMar'       : 'admin',
   'addMedecinToGroupe'        : 'admin',
   'resetCodeMar'              : 'admin',
-  'sendCodesMar'              : 'admin',
+  'sendCodesMar'              : 'conditionnel',
   'getConflitsAll'            : 'admin',
   'envoyerRecapIndispos'      : 'admin',
   'setIndisposYear'           : 'admin',
@@ -91,6 +91,10 @@ const CONTRAT = {
   'getPlanningPaie'           : 'conditionnel',
   // (24/10/2026) Application immédiate du journal, demandée par la page admin après un dépôt.
   'journalAppliquerMaintenant': 'admin',
+  /* (01/11/2026) Outils de maintenance retirés au comité : diagComplet, viderCacheConfig
+     et sendCodes passent au rôle `maintenance` (seul le MAR qui a la tuile cachée) ;
+     getMedecins et sendCodesMar deviennent `conditionnel` (comité OU maintenance) —
+     l'assistant d'arrivée d'un MAR et l'onglet Équipe les utilisent toujours. */
 };
 function classer(fn, tout) {
   /* admin : refus hors comité en tête (1 ou plusieurs lignes) ; mar seulement : refus
@@ -100,7 +104,8 @@ function classer(fn, tout) {
   let prof = 0, j = tout.indexOf('{', k); for (; j < tout.length; j++) { if (tout[j] === '{') prof++; else if (tout[j] === '}') { prof--; if (!prof) break; } }
   const sans = tout.slice(k, j + 1).replace(/\/\*[\s\S]*?\*\//g, '').replace(/^\s*\/\/.*$/gm, '');
   const l = sans.split('\n').slice(2).map(x => x.trim()).filter(Boolean);
-  for (const x of l.slice(0, 3)) { if (/^if \(user\.role !== 'admin'\)/.test(x)) return 'admin'; if (/^if \(user\.role !== 'mar'\)/.test(x)) return 'mar seulement'; }
+  for (const x of l.slice(0, 3)) { if (/^if \(user\.role !== 'admin'\)/.test(x)) return 'admin'; if (/^if \(user\.role !== 'mar'\)/.test(x)) return 'mar seulement';
+    if (/^if \(!_droitMaintenance_\(user\)\) return _deny\(\);/.test(x)) return 'maintenance'; }
   if (/if \([^)]*user\.role/.test(sans) || /user\.role\s*[!=]==/.test(sans)) return 'conditionnel';
   return 'tout code valide';
 }
@@ -135,7 +140,15 @@ V('aucune action hors contrat', enTrop.length === 0, enTrop);
 const roleChange = Object.keys(attendu).filter(a => actions[a] && actions[a] !== attendu[a]).map(a => a + ': ' + attendu[a] + ' → ' + actions[a]);
 V('chaque action garde exactement son contrôle d\'accès', roleChange.length === 0, roleChange);
 V('exactement deux actions sans code : les listes d\'années', Object.values(actions).filter(r => r === 'sans code').length === 2);
-V('49 actions réservées au comité', Object.values(actions).filter(r => r === 'admin').length === 49, Object.values(actions).filter(r => r === 'admin').length);
+V('44 actions réservées au comité', Object.values(actions).filter(r => r === 'admin').length === 44, Object.values(actions).filter(r => r === 'admin').length);
+V('exactement trois actions de maintenance : diagnostic, cache, envoi groupé des codes',
+  JSON.stringify(Object.keys(actions).filter(a => actions[a] === 'maintenance').sort()) === JSON.stringify(['diagComplet', 'sendCodes', 'viderCacheConfig']),
+  Object.keys(actions).filter(a => actions[a] === 'maintenance'));
+{ /* La porte de maintenance n'admet QUE le MAR qui a la tuile : ni le comité, ni un MAR sans la clé. */
+  const tout = require('./stubs').sourceGasTout();
+  const k = tout.indexOf('function _droitMaintenance_('); const corpsM = k < 0 ? '' : tout.slice(k, tout.indexOf('\n}', k));
+  V('_droitMaintenance_ exige un MAR ET la tuile `maintenance`',
+    /user\.role === 'mar'/.test(corpsM) && /_aDroitTuile_\(user\.id, 'maintenance'\)/.test(corpsM) && !/'admin'/.test(corpsM), corpsM.slice(0, 200)); }
 const desaccords = Object.keys(actions).filter(a => actions[a] !== 'sans code' && corps[a] !== actions[a]).map(a => a + ': table=' + actions[a] + ' corps=' + corps[a]);
 V('pour chaque action, le rôle DÉCLARÉ dans la table est celui que le CORPS vérifie', desaccords.length === 0, desaccords);
 V('chaque fonction _act_ existe dans le code métier', !Object.values(corps).includes('FONCTION ABSENTE'));

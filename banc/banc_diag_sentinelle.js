@@ -222,10 +222,11 @@ function bac() {
   {
     const ctx = monter();
     V('installerSentinelle existe (déclencheur quotidien 6 h)', typeof ctx.installerSentinelle === 'function');
-    const adm = fs.readFileSync('../admin.html', 'utf8');
-    V('admin rend les chapitres ══ en bandeaux', adm.includes('diag-chap') && adm.includes("startsWith('══')"));
-    V('admin rend « → LE GESTE » en encadré rouge', adm.includes('diag-geste') && adm.includes('→ LE GESTE'));
-    V('admin prend les compteurs du serveur (le récap n\'est plus compté comme une erreur)', adm.includes('data.nbErr') && adm.includes('problème/'));
+    /* (01/11/2026) Le rendu du diagnostic a suivi l'outil sur maintenance.html. */
+    const adm = fs.readFileSync('../maintenance.html', 'utf8');
+    V('la page Maintenance rend les chapitres ══ en bandeaux', adm.includes('diag-chap') && adm.includes("startsWith('══')"));
+    V('la page Maintenance rend « → LE GESTE » en encadré rouge', adm.includes('diag-geste') && adm.includes('→ LE GESTE'));
+    V('la page Maintenance prend les compteurs du serveur (le récap n\'est plus compté comme une erreur)', adm.includes('data.nbErr') && adm.includes('problème/'));
     const dh = require('./stubs').sourceGasTout() /* (15/09) Indispos.gs découpé : tout le code serveur métier */;
     V('le regroupement est branché dans le diagnostic', dh.includes('_regrouperEnChapitres_(results.splice(0))'));
     ['journal.gs','miroir.gs','echanges.gs','veille.gs'].forEach(f => {
