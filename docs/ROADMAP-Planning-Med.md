@@ -89,9 +89,9 @@ couperait l'autorisation tous les 7 jours).
 changement d'autorisations ou d'accès du site, et mise à jour du livreur lui-même (`livreur/README.md`).
 
 **À faire / à voir** : ~~badge « mise à jour prête » sur la tuile Maintenance~~ **refusé par le
-responsable (01/11)** : il ouvre la tuile lui-même, ne pas le reproposer ; 23 MARs actifs sur
-24 sans e-mail dans MEDECINS (renvoi des codes inopérant pour eux) ; 3 MARs hors GROUPES_VAC ; avis DPO
-(widget).
+responsable (01/11)** : il ouvre la tuile lui-même, ne pas le reproposer. **Écartés par le responsable
+(02/11), ne pas reproposer** : e-mails manquants dans MEDECINS (les admins n'utilisent pas encore
+l'interface) ; 3 MARs hors GROUPES_VAC (normal et voulu pour le moment) ; avis DPO sur le widget.
 
 ## 27–28/10/2026 — fériés 2027 (note DRH du 26/10) et demi-journées de vacances VM / VA (v1.48.0)
 
@@ -247,8 +247,7 @@ tombait à côté d'un de ses samedis (jamais deux week-ends de suite).
 
 **Ouvert.**
 - Tableau Réa 1 **final** à coller avant le 02/11, puis nouvel essai.
-- Garde-fou souhaits / équité (24/10) : toujours non codé ; la réparation par échange couvre une partie du
-  besoin (aucun écart à 2 sur les plannings réels 2027).
+- ~~Garde-fou souhaits / équité~~ **abandonné le 02/11** (voir plus bas).
 - Journal de l'essai Apps Script : les 8 calculs répètent leurs avertissements ; la sortie peut être
   tronquée (constaté avec l'ancien code, plus avec le nouveau). Faire taire les calculs à blanc si ça revient.
 - Banc : pistes restantes (moins de plannings par scénario, année de référence partagée) — gain estimé
@@ -291,9 +290,11 @@ voyait pas.
 - Coût : quelques souhaits de moins (2027 : 157 / 173 possibles contre 162 en v1.38.3).
 
 **Ouvert.**
-- **Garde-fou souhaits / équité** (demandé le 24/10, non fait) : si le meilleur planning dépasse 1 garde
-  d'écart, recommencer en ignorant les souhaits de samedi / week-end en trop. Aujourd'hui, les souhaits
-  rares restent dans la part et le multi-départ garde le plus équitable, sans garantie absolue.
+- ~~**Garde-fou souhaits / équité**~~ **abandonné par le responsable le 02/11.** Les souhaits rares
+  (jeudi, samedi, week-end, férié) ne sont déjà accordés que dans la part du MAR (passe du 23/10) ; le
+  risque restant (cases figées par les souhaits des autres) est couvert en pratique par les 8 tirages et
+  la réparation par échange — aucun écart > 1 sur 2027 réel. À rouvrir seulement si une génération sort
+  un MAR à 2 ou plus de sa cible.
 - Couples de week-end : des souhaits « en miroir » (l'un le samedi, l'autre le vendredi-dimanche du même
   week-end, rôles alternés, ≥ 3 semaines d'écart) font passer, en simulation 2027, de 6 à 10 week-ends
   liés (foyer pris 13 → 11), équité tenue — à transmettre aux intéressés, rien à coder.

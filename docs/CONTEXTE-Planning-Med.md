@@ -71,7 +71,7 @@ Site **v1.54.2** ; `Indispos.gs`, `equipe.gs`, `diagnostic.gs` **2026-11-01.1** 
   clé `maintenance` de TUILES_PRIVEES. Le code comité est refusé côté serveur.
 - **Projet Google Cloud standard** depuis le 01/11 (irréversible) : toute API utilisée doit y être activée
   (Apps Script, Gmail, Drive) ; une nouvelle autorisation demande la réautorisation du propriétaire.
-- **Pense-bête** refait (v1.50–v1.52) avec widget iPhone chiffré (Scriptable) ; avis DPO en attente.
+- **Pense-bête** refait (v1.50–v1.52) avec widget iPhone chiffré (Scriptable) ; avis DPO : écarté par le responsable (02/11).
 - Détail : ROADMAP du 30/10 – 01/11.
 
 ## 27–28 octobre 2026 — fériés 2027 et demi-journées de vacances (v1.48.0)
