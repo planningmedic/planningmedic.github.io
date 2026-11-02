@@ -3750,7 +3750,7 @@ function renderWeek() {
       } else if (p.lib) {
         // Case combinée : badge LIB + initiales du MAR qui fait la consultation libérale
         const cls = p.isNew ? 'slot-name cs-chip cs-chip-lib slot-new slot-clickable' : 'slot-name cs-chip cs-chip-lib slot-clickable';
-        prim += `<span class="cs-chip-wrap"><span class="${cls}" title="${p.id||''} — consultation libérale endoscopie (rotation GR)" onclick="openMarMenu('${p.id}','${p.init}','${type}','${date}','${slotKey}')"><span class="cs-lib-inline">LIB</span>${p.init}</span>${_chipX(p.id,p.init)}</span>`;
+        prim += `<span class="cs-chip-wrap"><span class="${cls}" title="${p.id||''} — consultation libérale endoscopie" onclick="openMarMenu('${p.id}','${p.init}','${type}','${date}','${slotKey}')"><span class="cs-lib-inline">LIB</span>${p.init}</span>${_chipX(p.id,p.init)}</span>`;
       } else {
         const cls = p.isNew ? 'slot-name cs-chip slot-new slot-clickable' : 'slot-name cs-chip slot-clickable';
         prim += `<span class="cs-chip-wrap"><span class="${cls}" title="${p.id||''}" onclick="openMarMenu('${p.id}','${p.init}','${type}','${date}','${slotKey}')">${p.init}</span>${_chipX(p.id,p.init)}</span>`;
@@ -4260,7 +4260,7 @@ function consultCountsForMonth(ym) {
 // Présent = statut hors absents (RG,V,F,CTP,R,A,TP) ; G/G2/18 = présents en journée.
 // Non placé = valeur EFFECTIVE (override de session sinon JSON) vide ou VOLANT.
 // motif : 'volant' (affectation de base VOLANT) ou 'retiré de X' (sectorisé sans poste).
-// Exclus : Pr PERRIN (BP) ; les absences posées sur la demi-journée elle-même.
+// Exclus : Pr PERRIN ; les absences posées sur la demi-journée elle-même.
 // Week-ends et fériés : gérés par l'appelant (jamais contrôlés).
 function nonPlacesJour(date) {
   const out = {am: [], pm: []};
@@ -4427,7 +4427,7 @@ function renderSidePanelContent(dispo, sector) {
   });
 
   if (!html) html = '<div style="color:var(--ink-4);font-size:13px;padding:8px 0;">Aucun MAR disponible ce jour</div>';
-  // Rappel des présents encore à poster ce demi-jour : volants ET retirés de leur secteur (hors BP)
+  // Rappel des présents encore à poster ce demi-jour : volants ET retirés de leur secteur (hors régime à part)
   const _ctx = window._sideCtx || {};
   const _vap = nonPlacesJour(_ctx.date)[_ctx.slotKey] || [];
   const _sl = (_ctx.slotKey||'').toUpperCase();
@@ -5984,7 +5984,7 @@ async function exportWeekExcel(){
     .filter(m => m.actif && (!_semDates.length || _semDates.some(d => statActive(m, d))))
     .slice().sort((a,b)=>(a.nom||'').localeCompare(b.nom||''));
   let rr=10;
-  roster.forEach(m=>{const pre=(m.initiales==='BP')?'PR':'DR';const dect=m.dect||DECTFB[m.initiales]||'';
+  roster.forEach(m=>{const pre=/^\s*PR\s/i.test(m.nom||'')?'PR':'DR';const dect=m.dect||DECTFB[m.initiales]||'';
     const nom=(m.nom||'').replace(/^\s*(DR|PR)\s+/i,'');
     mc(rr,22,rr,25);setCell(rr,22,' '+pre+' '+nom,font(false,10),fill(C.white),align('left','middle'),bAll);
     setCell(rr,26,m.initiales||'',font(true,10),fill(C.white),align('center','middle'),bAll);

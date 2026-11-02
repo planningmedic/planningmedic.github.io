@@ -1994,7 +1994,7 @@ consultations, liberal en rodage). Leur destinataire etait ECRIT EN DUR
 dans index.html — un nom de medecin dans un depot public, et une
 tuile qui disparait pour tout le monde des que ce nom change.
 Desormais : cle CONFIG / TUILES_PRIVEES, dans le classeur prive.
-Format : ID:tuile,tuile;ID:tuile   (ex. AFR:crh,stats;WS:liberal)
+Format : ID:tuile,tuile;ID:tuile   (ex. AXE:crh,stats;WY:liberal)
 Cle absente = personne ne voit ces tuiles : le defaut sur : ferme.
 
 ### §147 — `gas/miroir.gs` · (08/09/2026)

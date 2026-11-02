@@ -80,23 +80,23 @@ console.log('\n═══ 4. Lecture de la clé : le défaut est FERMÉ ═══
   const lire = new Function(src + '; return _tuilesPriveesDe_;')();
 
   V('un identifiant cité reçoit ses tuiles',
-    JSON.stringify(lire('AFR:crh,stats;WS:liberal', 'AFR')) === '["crh","stats"]',
-    lire('AFR:crh,stats;WS:liberal', 'AFR'));
+    JSON.stringify(lire('AXE:crh,stats;WY:liberal', 'AXE')) === '["crh","stats"]',
+    lire('AXE:crh,stats;WY:liberal', 'AXE'));
   V('un autre identifiant reçoit les siennes',
-    JSON.stringify(lire('AFR:crh,stats;WS:liberal', 'WS')) === '["liberal"]');
+    JSON.stringify(lire('AXE:crh,stats;WY:liberal', 'WY')) === '["liberal"]');
   V('un identifiant absent ne reçoit rien',
-    JSON.stringify(lire('AFR:crh,stats', 'SUBLET')) === '[]');
-  V('clé absente : personne ne voit rien', JSON.stringify(lire('', 'AFR')) === '[]');
-  V('clé nulle : personne ne voit rien', JSON.stringify(lire(null, 'AFR')) === '[]');
+    JSON.stringify(lire('AXE:crh,stats', 'SUBLET')) === '[]');
+  V('clé absente : personne ne voit rien', JSON.stringify(lire('', 'AXE')) === '[]');
+  V('clé nulle : personne ne voit rien', JSON.stringify(lire(null, 'AXE')) === '[]');
   V('la casse de l\'identifiant est indifférente',
-    JSON.stringify(lire('afr:crh', 'AFR')) === '["crh"]');
+    JSON.stringify(lire('axe:crh', 'AXE')) === '["crh"]');
   V('les espaces autour des noms sont tolérés',
-    JSON.stringify(lire(' AFR : crh , stats ', 'AFR')) === '["crh","stats"]');
+    JSON.stringify(lire(' AXE : crh , stats ', 'AXE')) === '["crh","stats"]');
   /* Une valeur saisie de travers dans le classeur ne doit pas empêcher la
      connexion : elle ne doit qu'empêcher l'affichage des tuiles réservées. */
   V('une valeur mal formée n\'ouvre rien et ne casse rien',
-    JSON.stringify(lire('n\'importe quoi', 'AFR')) === '[]');
-  V('un identifiant vide ne reçoit rien', JSON.stringify(lire('AFR:crh', '')) === '[]');
+    JSON.stringify(lire('n\'importe quoi', 'AXE')) === '[]');
+  V('un identifiant vide ne reçoit rien', JSON.stringify(lire('AXE:crh', '')) === '[]');
 }
 
 console.log('\n═══ 5. Les deux analyseurs comprennent le même format ═══');
@@ -109,14 +109,14 @@ console.log('\n═══ 5. Les deux analyseurs comprennent le même format ═�
   const lireI = new Function(srcI + '; return _tuilesPriveesDe_;')();
 
   const essais = [
-    'AFR:crh,stats;WS:liberal',
-    ' afr : crh , technique ',
-    'AFR:crh;AFR:stats',
+    'AXE:crh,stats;WY:liberal',
+    ' axe : crh , technique ',
+    'AXE:crh;AXE:stats',
     '',
-    'AFR:',
+    'AXE:',
   ];
   essais.forEach((valeur, i) => {
-    ['AFR', 'WS'].forEach((id) => {
+    ['AXE', 'WY'].forEach((id) => {
       const parMiroir = (lireM(valeur) || {})[id] || [];
       const parServeur = lireI(valeur, id) || [];
       V(`essai ${i + 1}, ${id} : les deux lectures concordent`,

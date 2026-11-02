@@ -6,12 +6,12 @@ portail/Dashboard, module libéral, contrôle d'absence, veille biblio.
 (Le générateur de comptes rendus a été retiré le 07/09/2026 : il portait le logo de
 l'établissement et 77 noms de praticiens sur une page publique sans code d'accès.)
 
-**Dépôt** `planningmedic/planningmedic.github.io`, branche `main` · **Site v1.54.6** (02/11/2026) ·
+**Dépôt** `planningmedic/planningmedic.github.io`, branche `main` · **Site v1.54.7** (02/11/2026) ·
 **Portail** https://planningmedic.github.io ·
 **GAS** (numéros relevés dans le dépôt le 01/11/2026 ; tout le dépôt est **en service, version 61**, livrée
-depuis le téléphone par le livreur) : `Indispos.gs`, `equipe.gs`, `diagnostic.gs` **2026-11-01.1** ·
-`code.gs` **2026-10-27.2** · `veille.gs` **2026-11-02.1** (commentaires seuls) · `generateur_gardes.gs`, `gardes.gs`,
-`indisponibilites.gs`, `miroir.gs` **2026-10-27.1** · `journal.gs` **2026-10-24.1** · `portail.gs` **2026-10-21.1** ·
+depuis le téléphone par le livreur) : `Indispos.gs`, `diagnostic.gs` **2026-11-01.1** ·
+`code.gs`, `equipe.gs`, `miroir.gs`, `veille.gs` **2026-11-02.1** (commentaires seuls) · `generateur_gardes.gs`,
+`gardes.gs`, `indisponibilites.gs` **2026-10-27.1** · `journal.gs` **2026-10-24.1** · `portail.gs` **2026-10-21.1** ·
 `temps_partiel.gs` **2026-09-15.2** · `setup_annee.gs` **2026-09-14.1** · `echanges.gs` **2026-09-08.1** ·
 **Livreur** `livreur/livreur.gs` **2026-11-01.2** (projet Apps Script séparé, application web) ·
 **Worker** `cloudflare/worker.js` : `const VERSION = 'miroir 2026-10-30.1'` ·
@@ -30,9 +30,15 @@ texte suivis par git.
   reliaient un nom fictif à des initiales réelles, retirés. Prénom du responsable (18 commentaires) →
   « le responsable » (`veille.gs`, `banc_veille.js`, `index.html`, `creneaux_secretariat.js`). Ancien nom de
   compte GitHub (6 mentions) → « l'ancien compte / dépôt ».
-- **Restent** : des initiales réelles isolées (ROADMAP, JOURNAL, illustration de guide-comite, identifiants
-  d'essai du banc, commentaires) — statut à trancher par le responsable ; le motif de l'établissement dans le
-  garde-fou de `banc_liberal.js` (une expression qui vérifie son ABSENCE des pages).
+- **Second temps (v1.54.7, accord du responsable)** : initiales réelles remplacées par des fictives partout
+  (ROADMAP, JOURNAL, CONTEXTE, cahier de tests, illustration de guide-comite, identifiants d'essai de 11
+  scénarios du banc, commentaires de `code.gs`, `equipe.gs`, `miroir.gs`, simulateur). `admin.html` (export
+  Excel) décidait du titre « PR » par des **initiales en dur** : il le lit désormais dans le champ NOM du
+  classeur. Infobulle « (rotation …) » retirée d'admin et de planning. Motif de l'établissement du garde-fou
+  de `banc_liberal.js` reconstitué (plus en clair). **Nouveau scénario `banc_noms_reels.js`** : liste hors
+  dépôt (`~/.planningmedic/noms_reels.txt`, procédure dans CONTEXTE), échec si un nom réel entre dans le dépôt
+  ou si la liste manque. Restent des initiales à deux lettres qui sont aussi des codes (CS, LC…) : non
+  contrôlables par motif, vérifiées à la main ce jour.
 - **Historique** : tout ce qui précède reste lisible dans l'historique git (décision du 18/10 de ne pas le
   réécrire — à reconsidérer pour la page démographie, qui portait des années de naissance).
 
@@ -1435,7 +1441,7 @@ exacte d'un « présent non placé ». Elle était réclamée « à placer » **
 prise de fonctions, matin et après-midi. Symétrique pour un partant en cours de mois.
 `nonPlacesJour` s'aligne désormais sur `statActive()`, convention de tout le reste de l'appli.
 Même famille que le défaut du 01/08 sur la colonne ACTIF : autre colonne, même oubli.
-Seul LC était concernée : ANCEL arrive un 1er du mois, TESSIER part un 1er du mois, tous deux sont
+Seule l'arrivante de fin septembre était concernée : ANCEL arrive un 1er du mois, TESSIER part un 1er du mois, tous deux sont
 exclus proprement. Nouveau scénario `banc/banc_a_placer.js` (11 vérifications), contre-épreuve à
 4 échecs. Rien à recopier côté Apps Script pour ce lot.
 
@@ -1688,7 +1694,7 @@ test devenu faux se corrige, un test gênant ne se supprime pas.
   `getVacValidation` construisent tous deux `marEnVacCeJour` à partir de la seule liste ordonnée
   des membres de `GROUPES_VAC`. Un actif absent de ces groupes n'a jamais de rang — donc ses
   congés ne peuvent jamais être refusés, **et ils ne comptent pas dans le seuil**. Une période où
-  il est absent avec 8 autres s'affiche VALIDE avec un seuil à 8. Cas visé : **PERRIN (BP)**, qui
+  il est absent avec 8 autres s'affiche VALIDE avec un seuil à 8. Cas visé : **PERRIN** (régime à part), qui
   pose ses congés où il veut par régime. **FAUVEL était aussi hors groupe le 03/09** alors qu'il
   est actif — à réintégrer. Côté `staff.html` **rien à faire, c'est déjà correct** : `countForDay`
   et `vivierGarde` bouclent sur tous les médecins actifs sans regarder le groupe ; le trou est
@@ -2085,7 +2091,7 @@ vendredi 16 h au dimanche +9), au-delà l'Excel suivant fera foi. Documenté dep
 ### Répétition générale : le 1er septembre, seul, en 4G
 
 Déplacée du 28 août au **1er septembre** (le responsable ne revient à l'hôpital que le 31, et il est de garde
-le 1er). **Faite seul : WS découvrira l'outil en direct devant la salle**, choix assumé — un collègue
+le 1er). **Faite seul : un collègue découvrira l'outil en direct devant la salle**, choix assumé — un collègue
 qui n'a jamais cliqué et qui s'en sort convainc plus qu'une démonstration rodée. Consigne unique à lui
 donner le jour J : au bout de 45 s un message « toujours en cours » peut s'afficher, ne pas recliquer.
 
@@ -2912,7 +2918,7 @@ en production le 09/08.
 le 13/08. Le banc compare désormais cette liste aux clés réellement construites par année : une famille
 qui échapperait à l'oubli fait échouer le banc.)*
 
-**7. Code d'accès de WS** : saisi devant la salle → « Régénérer le code » dans MEDECINS (`resetCodeMar`) :
+**7. Code d'accès d'un MAR** : saisi devant la salle → « Régénérer le code » dans MEDECINS (`resetCodeMar`) :
 nouveau code envoyé par mail, ancien tracé dans `HISTORIQUE`. Idem `ADMIN_CODE` (CONFIG, à la main) s'il
 a été projeté.
 
@@ -2933,12 +2939,12 @@ Aucune urgence pour le 04/09, mais elles faussent la génération réelle si ell
 le responsable n'avait pas la réponse au 29/07.
 
 - **`date_fin` de FAUVEL.** `simulateur/demographie.js` le fait partir fin février 2027 ; `MEDECINS`
-  n'a aucune `date_fin`. Le probable, d'après le responsable : le 150 % cumulé AF + LC devient un 50 % seul en
+  n'a aucune `date_fin`. Le probable, d'après le responsable : le 150 % cumulé des deux MAR concernés devient un 50 % seul en
   mars 2027. Si le départ est réel et la colonne vide, l'algorithme lui donne une cible pleine de 34,6
   au lieu de ~5,4, et **les cibles des 21 autres sont fausses de ~1,5 garde chacune**.
 - **MERCIER et l'exemption de garde à 60 ans.** Il atteint 60 ans en 2027 (né en 1967 d'après le modèle).
-  La règle d'exemption est réelle ; WS en est une exception assumée et continue les gardes. Si RM
-  l'invoque, Σ des poids passe de 21,05 à 20,05 : **la base passe de 34,6 à 36,3**, soit +1,7 garde
+  La règle d'exemption est réelle ; un MAR de plus de 60 ans en est une exception assumée et continue les
+  gardes. Si un autre l'invoque, Σ des poids passe de 21,05 à 20,05 : **la base passe de 34,6 à 36,3**, soit +1,7 garde
   pour chacun des autres, et le slide des cibles devient faux dans ses 24 lignes.
 
 ### Priorité 2 — Module libéral, brique convergence 30 %
@@ -3132,7 +3138,7 @@ uniquement, couleurs du portail.
 4. **Écran et ouverture aux MAR.** « Mes échanges » dans `index.html` (lecture miroir
    exclusivement), bouton notifications ouvert à tous, levée du `if (user.role !== 'admin')`
    l.2216 **en dernier**. Montée de version site (2e chiffre) ; guides dans le même push.
-   **Sas entre 4a et 4b** : quelques vrais échanges avec 1-2 volontaires (RW, WS) avant les 23 —
+   **Sas entre 4a et 4b** : quelques vrais échanges avec 1-2 volontaires (deux collègues) avant les 23 —
    un défaut à 3 utilisateurs se corrige tranquillement, à 23 il génère des appels.
    **Pastille d'icône (constat du 12/08, décision : phase 4)** : une notification web ne pose
    PAS de pastille toute seule sur iPhone — bannière et pastille sont deux mécanismes séparés,

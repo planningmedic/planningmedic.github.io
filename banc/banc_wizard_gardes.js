@@ -31,7 +31,7 @@ const SRC = fs.readFileSync('../admin.html', 'utf8');
 const MARS = [
   { id:'ALPHA', initiales:'AL', nom:'DR ALPHA', actif:true, pctGardes:100, quotite:100 },
   { id:'BETA',  initiales:'BE', nom:'DR BETA',  actif:true, pctGardes:100, quotite:100 },
-  { id:'GAMMA', initiales:'GA', nom:'DR GAMMA', actif:true, pctGardes:100, quotite:100 },
+  { id:'GAMMA', initiales:'GM', nom:'DR GAMMA', actif:true, pctGardes:100, quotite:100 },
 ];
 const PERIODES = [
   { nom:'Hiver', debut:'2027-02-20', fin:'2027-03-07', seuil:8, mars:[] },
@@ -125,7 +125,7 @@ const brut  = w => w.document.getElementById('wizGBody').innerHTML;
     await w.renderWizGStep();
     const t = corps(w);
     V('un MAR sans aucune saisie est signalé', /n'ont pas encore saisi/.test(t), t.slice(0, 220));
-    V('le bandeau le nomme lui-même', /1 MAR\(s\) sur 3 n'ont pas encore saisi/.test(t) && /GA/.test(t), t.slice(0, 220));
+    V('le bandeau le nomme lui-même', /1 MAR\(s\) sur 3 n'ont pas encore saisi/.test(t) && /GM/.test(t), t.slice(0, 220));
     V('et rappelle que la génération est impossible', /impossible tant que tout le monde/.test(t));
     V('le bouton Suivant est verrouillé',
       w.document.getElementById('wizGNextBtn').disabled === true);

@@ -70,7 +70,7 @@ personne, jamais soldée.
 ## Mesures
 
 Cinq années enchaînées (2027→2031), vrai générateur dans le harnais Node,
-absences fabriquées, BP demandant tous ses mardis hors ses propres congés.
+absences fabriquées, PERRIN demandant tous ses mardis hors ses propres congés.
 Script : `simulateur/cinq_ans_bp.js`.
 
 | | Dette sur un an | Dette cumulative |

@@ -1,7 +1,7 @@
-/* ═══ CINQ ANNÉES ENCHAÎNÉES — BP sur tous ses mardis, dette active ═══
+/* ═══ CINQ ANNÉES ENCHAÎNÉES — PERRIN sur tous ses mardis, dette active ═══
    Exécute le VRAI generateur_gardes.gs (patché option B) sur 2027→2031,
    chaque année héritant des STATS de la précédente : la dette joue.
-   BP demande TOUS les mardis hors vacances scolaires et hors veille de férié.
+   PERRIN demande TOUS les mardis hors vacances scolaires et hors veille de férié.
    Les autres MARs reçoivent des absences réalistes, tirées différemment
    chaque année à partir d'une graine reproductible. */
 const H = require('./harness.js');
@@ -46,8 +46,8 @@ function tousLesJours(y){
 }
 
 // ── Absences ───────────────────────────────────────────────────────────
-/* Chaque MAR (hors BP) pose ~7 semaines de congés + 2 semaines de formation,
-   par blocs, plus quelques jours isolés d'indisponibilité. BP pose ses congés
+/* Chaque MAR (hors PERRIN) pose ~7 semaines de congés + 2 semaines de formation,
+   par blocs, plus quelques jours isolés d'indisponibilité. PERRIN pose ses congés
    par blocs lui aussi, et demande ensuite TOUS ses mardis restants. */
 function absences(year, roster, seed){
   const R=rng(seed), jours=tousLesJours(year), F=new Set([...feries(year),...feries(year+1)]);
@@ -68,7 +68,7 @@ function absences(year, roster, seed){
       if(!map[id][d]) map[id][d]='INDISPO';
     }
   });
-  // BP : tous les mardis libres, hors vacances scolaires, hors veille de férié
+  // PERRIN : tous les mardis libres, hors vacances scolaires, hors veille de férié
   const add1=d=>{const x=new Date(d+'T12:00:00');x.setDate(x.getDate()+1);return ds(x);};
   let n=0;
   jours.forEach(d=>{
@@ -93,7 +93,7 @@ const AXES = [['CIBLE','TOTAL G','total'],['CIBLE SAM','SAM','samedis'],['CIBLE 
 let prev=null;
 const passees=[];          // TOUS les onglets STATS des années déjà générées
 const histo={}, vrai={};
-console.log('══ CINQ ANNÉES ENCHAÎNÉES — dette active, BP sur tous ses mardis ══\n');
+console.log('══ CINQ ANNÉES ENCHAÎNÉES — dette active, PERRIN sur tous ses mardis ══\n');
 
 for(let i=0;i<5;i++){
   const year=2027+i;
@@ -136,7 +136,7 @@ for(let i=0;i<5;i++){
 
   console.log(`── ${year} ──`);
   console.log(`   durée du calcul : ${_ms} ms   |   ${jrn[0]||'compteur : —'}`);
-  console.log(`   mardis demandés par BP : ${mardisBP}   |   obtenus : ${n(bp['TOTAL G'])}   |   sa cible : ${n(bp['CIBLE'])}`);
+  console.log(`   mardis demandés par PERRIN : ${mardisBP}   |   obtenus : ${n(bp['TOTAL G'])}   |   sa cible : ${n(bp['CIBLE'])}`);
   console.log(`   somme des cibles : ${sommeCible}   |   gardes posées : ${sommeReel}   ${sommeCible===sommeReel?'✔ tombe juste':'✘ ÉCART DE '+(sommeCible-sommeReel)}`);
   const cles=Object.keys(rep).map(Number).sort((a,b)=>a-b);
   console.log(`   écarts max par MAR : ${cles.map(k=>`${k>0?'+':''}${k} → ${rep[k]}`).join('   ')}`);

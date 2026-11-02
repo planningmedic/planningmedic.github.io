@@ -221,8 +221,8 @@ console.log('\n═══ 6. Le tableau montre TOUT le service ═══');
                            + '-' + String(d.getDate()).padStart(2,'0');
   };
   const D = { medecins: [
-    { i:'AFR', d:jourISO(0) }, { i:'LL', d:'' }, { i:'NP', d:'' },
-    { i:'RW', d:jourISO(50) }, { i:'ZZ', d:jourISO(1) }, { i:'AA', d:'' }
+    { i:'AXE', d:jourISO(0) }, { i:'LX', d:'' }, { i:'NX', d:'' },
+    { i:'RX', d:jourISO(50) }, { i:'ZZ', d:jourISO(1) }, { i:'AA', d:'' }
   ]};
   eval(aux + src);
   tableau();
@@ -234,7 +234,7 @@ console.log('\n═══ 6. Le tableau montre TOUT le service ═══');
   V('les jamais connectés viennent en tête',
     lignes.slice(0,3).every(function(l){ return l[1] === 'jamais'; }), lignes.map(function(l){return l[0];}));
   V('puis du plus ancien au plus récent',
-    lignes[3][0] === 'RW' && lignes[4][0] === 'ZZ' && lignes[5][0] === 'AFR',
+    lignes[3][0] === 'RX' && lignes[4][0] === 'ZZ' && lignes[5][0] === 'AXE',
     lignes.map(function(l){return l[0];}));
   V('« aujourd\'hui » plutôt que « il y a 0 jours »', lignes[5][1] === "aujourd'hui", lignes[5]);
   V('« hier » plutôt que « il y a 1 jours »', lignes[4][1] === 'hier', lignes[4]);

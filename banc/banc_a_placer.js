@@ -1,5 +1,5 @@
 /* ═══ BANC — BADGE « À PLACER » ET DATES D'ARRIVÉE / DÉPART ═══
-   Défaut signalé en production le 28/08/2026 : LC était réclamée « 1 à placer »
+   Défaut signalé en production le 28/08/2026 : LT était réclamée « 1 à placer »
    dès le 1er septembre alors qu'elle ne prend ses fonctions que fin septembre.
 
    Cause : côté GAS, un MAR est exclu du bloc « mois » seulement si sa période
@@ -9,7 +9,7 @@
    l'application (bande de présence, annuaire de l'Excel, comité) passe déjà par
    statActive() ; nonPlacesJour() était le seul endroit qui l'ignorait.
 
-   CONTRE-ÉPREUVE : sans le correctif, LC est réclamée le 02/09. */
+   CONTRE-ÉPREUVE : sans le correctif, LT est réclamée le 02/09. */
 const { JSDOM, VirtualConsole } = require('jsdom');
 const fs = require('fs');
 let ok = 0, ko = 0;
@@ -18,7 +18,7 @@ const dodo = ms => new Promise(r => setTimeout(r, ms));
 
 // ── Septembre 2026 : un arrivant tardif, un partant, un absent, un vrai trou ──
 const MARS = [
-  { id: 'LATE',  initials: 'LC' },  // arrive le 28/09
+  { id: 'LATE',  initials: 'LT' },  // arrive le 28/09
   { id: 'GONE',  initials: 'PA' },  // part le 10/09
   { id: 'TROU',  initials: 'TR' },  // présent, non placé : doit être réclamé
   { id: 'ABSNT', initials: 'AB' },  // en congé : ne doit jamais être réclamé
@@ -53,7 +53,7 @@ const poser = (dateISO, marId, e) => {
 
 // MEDECINS tel que le frontend le reçoit (getMedecins).
 const MEDECINS = [
-  { id: 'LATE',  initiales: 'LC', nom: 'DR LATE',  actif: true, dateDebut: '2026-09-28' },
+  { id: 'LATE',  initiales: 'LT', nom: 'DR LATE',  actif: true, dateDebut: '2026-09-28' },
   { id: 'GONE',  initiales: 'PA', nom: 'DR GONE',  actif: true, dateFin:   '2026-09-10' },
   { id: 'TROU',  initiales: 'TR', nom: 'DR TROU',  actif: true },
   { id: 'ABSNT', initiales: 'AB', nom: 'DR ABSNT', actif: true },
@@ -81,25 +81,25 @@ const MEDECINS = [
 
   charger(MEDECINS);
 
-  // ── Le 2 septembre : LC n'est pas encore là ──
+  // ── Le 2 septembre : LT n'est pas encore là ──
   V('02/09 matin : le vrai trou est réclamé', reclames('2026-09-02', 'am').includes('TR'), reclames('2026-09-02', 'am'));
-  V('02/09 matin : LC n\'est PAS réclamée (arrivée le 28/09)', !reclames('2026-09-02', 'am').includes('LC'), reclames('2026-09-02', 'am'));
-  V('02/09 après-midi : LC n\'est PAS réclamée', !reclames('2026-09-02', 'pm').includes('LC'), reclames('2026-09-02', 'pm'));
+  V('02/09 matin : LT n\'est PAS réclamée (arrivée le 28/09)', !reclames('2026-09-02', 'am').includes('LT'), reclames('2026-09-02', 'am'));
+  V('02/09 après-midi : LT n\'est PAS réclamée', !reclames('2026-09-02', 'pm').includes('LT'), reclames('2026-09-02', 'pm'));
   V('02/09 : le MAR en congé n\'est pas réclamé', !reclames('2026-09-02', 'am').includes('AB'));
   V('02/09 : le MAR placé au bloc n\'est pas réclamé', !reclames('2026-09-02', 'am').includes('PL'));
   V('02/09 : le partant du 10/09 est encore réclamé', reclames('2026-09-02', 'am').includes('PA'), reclames('2026-09-02', 'am'));
 
-  // ── Le 15 septembre : le partant est parti, LC toujours pas là ──
+  // ── Le 15 septembre : le partant est parti, LT toujours pas là ──
   V('15/09 : le partant n\'est plus réclamé', !reclames('2026-09-15', 'am').includes('PA'), reclames('2026-09-15', 'am'));
-  V('15/09 : LC toujours pas réclamée', !reclames('2026-09-15', 'am').includes('LC'), reclames('2026-09-15', 'am'));
+  V('15/09 : LT toujours pas réclamée', !reclames('2026-09-15', 'am').includes('LT'), reclames('2026-09-15', 'am'));
 
-  // ── Le 29 septembre : LC a pris ses fonctions, elle DOIT être réclamée ──
-  V('29/09 : LC est réclamée (elle est arrivée)', reclames('2026-09-29', 'am').includes('LC'), reclames('2026-09-29', 'am'));
-  V('29/09 après-midi : LC est réclamée', reclames('2026-09-29', 'pm').includes('LC'), reclames('2026-09-29', 'pm'));
+  // ── Le 29 septembre : LT a pris ses fonctions, elle DOIT être réclamée ──
+  V('29/09 : LT est réclamée (elle est arrivée)', reclames('2026-09-29', 'am').includes('LT'), reclames('2026-09-29', 'am'));
+  V('29/09 après-midi : LT est réclamée', reclames('2026-09-29', 'pm').includes('LT'), reclames('2026-09-29', 'pm'));
 
   // ── Prudence : tant que la fiche MEDECINS n'est pas arrivée, on n'exclut personne ──
   charger([]);
-  V('MEDECINS pas encore chargé : personne n\'est retiré à tort', reclames('2026-09-02', 'am').includes('LC'), reclames('2026-09-02', 'am'));
+  V('MEDECINS pas encore chargé : personne n\'est retiré à tort', reclames('2026-09-02', 'am').includes('LT'), reclames('2026-09-02', 'am'));
 
   charger(MEDECINS);
   console.log('\n  ' + ok + ' vérifications OK, ' + ko + ' en échec');

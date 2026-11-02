@@ -17,7 +17,7 @@ const sha = async t => { const b = await crypto.subtle.digest('SHA-256', new Tex
 
 const ADMIN = 'COMITE2027', MAR_A = 'MARALPHA1', MAR_B = 'MARBRAVO2', SECRET = 'SECRET123';
 M.set('acces', JSON.stringify({ indisposYear: 2027, indisposOuverte: true, users: [
-  { h: await sha(ADMIN),  role: 'admin',       id: 'DURAND', name: 'DURAND', initials: 'AF', prenom: 'Admin', liberal: true },
+  { h: await sha(ADMIN),  role: 'admin',       id: 'DURAND', name: 'DURAND', initials: 'DU', prenom: 'Admin', liberal: true },
   { h: await sha(MAR_A),  role: 'mar',         id: 'ALPHA',    name: 'ALPHA',    initials: 'AL', prenom: 'Test' },
   { h: await sha(MAR_B),  role: 'mar',         id: 'BRAVO',    name: 'BRAVO',    initials: 'BR', prenom: 'Test' },
   { h: await sha(SECRET), role: 'secretariat', id: 'SECR',     name: 'Secrétariat', initials: 'SE' },

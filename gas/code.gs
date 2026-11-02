@@ -1,7 +1,7 @@
 // ⚠️ RÈGLE (détecteur de dérive dépôt↔Apps Script) : incrémenter cette version
 // à CHAQUE push de ce fichier. Le diagnostic (admin → Maintenance) compare la
 // version déployée ici avec celle du dépôt et signale toute recopie oubliée.
-const GAS_VERSION_CODE = '2026-10-27.2';   // (27/10/2026) demi-journées de vacances VM/VA (planning, paie, notifications) · (27/10/2026) journée mobile 2027 (lundi 7 juin) ajoutée aux fériés · (18/10/2026) vue paie : tri G/G2/V (_planningPaie_) et mail aux secrétaires de paie (_paieEnvoyerAnnee_)
+const GAS_VERSION_CODE = '2026-11-02.1';   // (02/11/2026) commentaire sans initiales réelles · (27/10/2026) demi-journées de vacances VM/VA (planning, paie, notifications) · (27/10/2026) journée mobile 2027 (lundi 7 juin) ajoutée aux fériés · (18/10/2026) vue paie : tri G/G2/V (_planningPaie_) et mail aux secrétaires de paie (_paieEnvoyerAnnee_)
 
 // ── Reconstruire STATS_GARDES_2026 depuis GARDES_2026 (année reconstruite) ──
 // Renvoie le classeur contenant l'onglet demandé : classeur actif si présent,
@@ -976,7 +976,7 @@ function generatePlanningFromGardes(year) {
         const colIdx = dateToCol[day.date];
         if (colIdx === undefined) return '';
         // (C2-D3) hors période d'activité (date_debut/date_fin) → ni présence ni rythme.
-        // Empêche le 'A' du rythme 2/2 avant l'arrivée (ex. LC avant le 28/09) / après le départ.
+        // Empêche le 'A' du rythme 2/2 avant l'arrivée (ex. une arrivée le 28/09) / après le départ.
         const _dd0 = FLAGS.dateDebut[doc.id], _df0 = FLAGS.dateFin[doc.id];
         if ((_dd0 && day.date < _dd0) || (_df0 && day.date >= _df0)) return '';
         let code = String(doctorRows[doc.id]?.[colIdx] || '').trim();

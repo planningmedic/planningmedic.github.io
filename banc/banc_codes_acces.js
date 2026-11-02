@@ -27,7 +27,7 @@ function monde(opts) {
   const cl = new Classeur();
   cl.ajouter('MEDECINS', [
     ['ID', 'NOM', 'INITIALES', 'ACTIF', 'QUOTITE', 'PCT_GARDES', 'CODE', 'EMAIL'],
-    ['MERCIER', 'DR MERCIER', 'RM', 'O', 100, 100, 'ANCIENRM', opts.sansEmail ? '' : 'rm@exemple.mc'],
+    ['MERCIER', 'DR MERCIER', 'ME', 'O', 100, 100, 'ANCIENME', opts.sansEmail ? '' : 'me@exemple.mc'],
     ['ALPHA', 'DR ALPHA', 'AL', 'O', 100, 100, 'CODEALPH', 'al@exemple.mc'],
     ['BRAVO', 'DR BRAVO', 'BR', 'O', 100, 100, 'CODEBRAV', 'br@exemple.mc'],
   ]);
@@ -99,7 +99,7 @@ console.log('\n═══ C002 · le geste complet : nouveau code écrit ET envoy
   V('le code a bien changé', b.codeDe('MERCIER') !== avant, b.codeDe('MERCIER'));
   V('le nouveau code respecte l\'alphabet', /^[A-Z2-9]{8}$/.test(b.codeDe('MERCIER')), b.codeDe('MERCIER'));
   V('un seul email est parti', b.envois.length === 1, b.envois.length);
-  V('il part à la bonne adresse', b.envois[0] && b.envois[0].to === 'rm@exemple.mc', b.envois[0]);
+  V('il part à la bonne adresse', b.envois[0] && b.envois[0].to === 'me@exemple.mc', b.envois[0]);
   V('l\'email porte le NOUVEAU code', b.envois[0] && b.envois[0].__code === b.codeDe('MERCIER'), b.envois[0] && b.envois[0].__code);
   V('formulation « code renouvelé »', b.envois[0] && b.envois[0].__renouvele === true);
   V('l\'ancien code est tracé AVANT écrasement', b.journal.some(l => l.indexOf(avant) >= 0), b.journal);
@@ -138,7 +138,7 @@ console.log('\n═══ C004 · sans email, on ne change RIEN ═══');
   const r = b.appel('MERCIER');
   V('refus explicite', r.success === false, r);
   V('le motif nomme le MAR', /MERCIER/.test(r.error || ''), r.error);
-  V('le code reste INCHANGÉ', b.codeDe('MERCIER') === 'ANCIENRM', b.codeDe('MERCIER'));
+  V('le code reste INCHANGÉ', b.codeDe('MERCIER') === 'ANCIENME', b.codeDe('MERCIER'));
 }
 
 console.log('\n═══ C005 · email en panne : le dire franchement ═══');
@@ -149,7 +149,7 @@ console.log('\n═══ C005 · email en panne : le dire franchement ═══'
   const r = b.appel('MERCIER');
   V('réponse en erreur', r.success === false, r);
   V('le nouveau code est donné à l\'admin', (r.error || '').indexOf(b.codeDe('MERCIER')) >= 0, r.error);
-  V('le classeur porte bien le nouveau code', b.codeDe('MERCIER') !== 'ANCIENRM');
+  V('le classeur porte bien le nouveau code', b.codeDe('MERCIER') !== 'ANCIENME');
   V('l\'échec est tracé avec le nouveau code', b.journal.some(l => /ECHEC EMAIL/.test(l) && l.indexOf(b.codeDe('MERCIER')) >= 0), b.journal);
 }
 
@@ -158,7 +158,7 @@ console.log('\n═══ C006 · réservé au comité, et médecin inconnu refus
   const b = monde();
   const r = b.appel('MERCIER', 'mar');
   V('un MAR ne peut pas réinitialiser un code', r.success === false, r);
-  V('le code reste INCHANGÉ', b.codeDe('MERCIER') === 'ANCIENRM');
+  V('le code reste INCHANGÉ', b.codeDe('MERCIER') === 'ANCIENME');
   V('aucun email n\'est parti', b.envois.length === 0);
 
   const b2 = monde();
@@ -168,7 +168,7 @@ console.log('\n═══ C006 · réservé au comité, et médecin inconnu refus
   const b3 = monde();
   const r3 = b3.appel('');
   V('médecin manquant refusé', r3.success === false, r3);
-  V('aucune écriture', b3.codeDe('MERCIER') === 'ANCIENRM');
+  V('aucune écriture', b3.codeDe('MERCIER') === 'ANCIENME');
 }
 
 console.log(`\n──────── ${ok} vérifications, ${ko} échec(s) ────────`);

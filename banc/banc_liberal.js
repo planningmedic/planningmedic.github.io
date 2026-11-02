@@ -556,8 +556,10 @@ console.log('\n═══ 5ter. Le jeton unique : reessayer sans jamais doubler �
     V('établissement : servi aux MAR par la copie rapide, rafraîchi à la modification de l\'onglet, poussé par la synchro',
       /cle === 'etablissement'\) return true/.test(wk) && /\|etablissement\|/.test(wk) && /ETABLISSEMENT:\s*\['etablissement'\]/.test(mi)
       && /'cotations_type', 'etablissement'/.test(mi) && /_miroirAjoute_\(items, 'etablissement'/.test(mi));
+  /* (02/11/2026) Motifs de l'établissement reconstitués : le dépôt ne doit pas les porter en clair. */
+  const ETAB_RE = new RegExp(['Prin'+'cesse', 'C'+'H'+'PG', 'Pas'+'teur'].join('|'), 'i'), ETAB_RE_GS = new RegExp(['Prin'+'cesse', 'Pas'+'teur'].join('|'), 'i');
     V('aucun nom d\'établissement réel écrit dans la page ni le code serveur',
-      !/Princesse|CHPG|Pasteur/i.test(pg) && !/Princesse|Pasteur/i.test(fs.readFileSync('../gas/portail.gs', 'utf8')));
+      !ETAB_RE.test(pg) && !ETAB_RE_GS.test(fs.readFileSync('../gas/portail.gs', 'utf8')));
   }
 
 

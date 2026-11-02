@@ -1,7 +1,7 @@
 // ⚠️ RÈGLE (détecteur de dérive dépôt↔Apps Script) : incrémenter cette version
 // à CHAQUE push de ce fichier. Le diagnostic (admin → Maintenance) compare la
 // version déployée ici avec celle du dépôt et signale toute recopie oubliée.
-const GAS_VERSION_MIROIR = '2026-10-27.1';   // (27/10/2026) champ ordreMc dans acces · (20/10/2026) clé etablissement (nom et adresse du devis) · (21/10) setVeilleAbo → veille_marques
+const GAS_VERSION_MIROIR = '2026-11-02.1';   // (02/11/2026) commentaire : identifiants d'exemple fictifs · (27/10/2026) champ ordreMc dans acces · (20/10/2026) clé etablissement (nom et adresse du devis) · (21/10) setVeilleAbo → veille_marques
 
 /* ═══════════════════════════════════════════════════════════════════════
    MIROIR.GS — alimentation du miroir de lecture Cloudflare
@@ -1169,7 +1169,7 @@ function _effectifTitres_() {
 }
 
 /* Analyse la valeur de CONFIG / TUILES_PRIVEES.
-   « AFR:crh,stats;WS:liberal » -> { AFR:['crh','stats'], WS:['liberal'] }
+   « AXE:crh,stats;WY:liberal » -> { AXE:['crh','stats'], WY:['liberal'] }
    Tolerant aux espaces et a la casse des identifiants ; une entree mal
    formee est ignoree plutot que de faire tomber la connexion de tous. */
 function _tuilesPriveesLire_(valeur) {

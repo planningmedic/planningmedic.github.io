@@ -31,6 +31,12 @@ découle, et prime sur les habitudes antérieures.
 - **Une règle qui vise une personne se configure dans le classeur, jamais dans le code.**
   Trois clés existent pour cela : `TUILES_PRIVEES`, `DVI_HABILITES`, et les colonnes NOM et
   `souhait_plafond` de MEDECINS d'où sont déduits le titre affiché et le régime de souhaits.
+- **Contrôle des noms réels (02/11/2026)** : `banc/banc_noms_reels.js` échoue si un nom réel entre dans le
+  dépôt. La liste vit **hors du dépôt**, dans `~/.planningmedic/noms_reels.txt` : à reconstituer **à chaque
+  session, avant le banc**, depuis la copie rapide (connecteur Cloudflare, stockage MIROIR, clé `config_admin`,
+  champ `nom` des MAR) + prénom du responsable + nom de l'établissement ; section `[exact]` pour les initiales
+  à trois lettres. Fichier absent = banc en échec, exprès. Jamais d'empreintes dans le dépôt (une empreinte de
+  nom se retrouve en essayant tous les noms). Identifiants d'essai : toujours fictifs.
 - **Une information d'identité doit voyager par LES DEUX chemins** — copie rapide et connexion au
   serveur. Un seul des deux couvert, et l'affichage change selon que le relais répond ou non.
   C'est le défaut du précédent `libAdmin`.
@@ -538,7 +544,7 @@ supposé — n'a pas été tenue.
 - 🔴 **Les MAR hors groupe ne consomment aucune place du seuil de présence.** `getVacConfig` et
   `getVacValidation` construisent `marEnVacCeJour` à partir des seuls membres de `GROUPES_VAC`.
   Un actif absent de ces groupes n'a pas de rang : ses congés ne peuvent jamais être refusés **et
-  ne comptent pas dans le seuil**. Cas visé : **PERRIN (BP)**, qui pose où il veut par régime.
+  ne comptent pas dans le seuil**. Cas visé : **PERRIN** (régime à part), qui pose où il veut par régime.
   **FAUVEL était hors groupe le 03/09 alors qu'il est actif — à réintégrer.**
   ⚠️ Côté `staff.html`, **rien à faire** : `countForDay` et `vivierGarde` bouclent sur tous les
   médecins actifs, le trou est purement serveur. Remède envisagé, à confirmer par le responsable : les

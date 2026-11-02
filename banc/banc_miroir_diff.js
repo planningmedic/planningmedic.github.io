@@ -112,12 +112,12 @@ console.log('\n═══ 79. Les six clés horodatées sont bien filtrées ═�
      passage — soit les six plus fréquentes du miroir, et le filtre ne
      servirait à rien. C'est le défaut qui a failli passer. */
   const m = monter();
-  const base = { users: [{ h: 'abc', id: 'WS' }] };
+  const base = { users: [{ h: 'abc', id: 'WY' }] };
   m.envoyer({ acces: J(Object.assign({ t: 1000 }, base)) });
   const r = m.envoyer({ acces: J(Object.assign({ t: 9999 }, base)) });
   V('acces : seul l\'horodatage a changé → pas de renvoi', r.inchangees === 1 && m.appels.length === 1, r);
 
-  const r2 = m.envoyer({ acces: J({ t: 9999, users: [{ h: 'zzz', id: 'WS' }] }) });
+  const r2 = m.envoyer({ acces: J({ t: 9999, users: [{ h: 'zzz', id: 'WY' }] }) });
   V('acces : un VRAI changement repart bien', r2.ecrites === 1, r2);
 
   const m2 = monter();
@@ -128,8 +128,8 @@ console.log('\n═══ 79. Les six clés horodatées sont bien filtrées ═�
   V('mail_nonlus : le compteur change → renvoi', r4.ecrites === 1, r4);
 
   const m3 = monter();
-  m3.envoyer({ indispos_2027: J({ parMar: { WS: {} }, annee: 2027, t: 1 }) });
-  const r5 = m3.envoyer({ indispos_2027: J({ parMar: { WS: {} }, annee: 2027, t: 2 }) });
+  m3.envoyer({ indispos_2027: J({ parMar: { WY: {} }, annee: 2027, t: 1 }) });
+  const r5 = m3.envoyer({ indispos_2027: J({ parMar: { WY: {} }, annee: 2027, t: 2 }) });
   V('indispos_{Y} : horodatage neutralisé lui aussi', r5.inchangees === 1, r5);
 
   /* Contre-épreuve : une clé NON horodatée garde son contenu intact dans la

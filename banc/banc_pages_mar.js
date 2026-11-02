@@ -433,7 +433,7 @@ const dodo = ms => new Promise(r => setTimeout(r, ms));
       days: Array.from({ length: nb }, (_, k) => ({
         date: an + '-' + String(m).padStart(2,'0') + '-' + String(k+1).padStart(2,'0'),
         day: k+1, isWeekend:false, isFerie:false })),
-      doctors: [{ id:'AFR', initials:'AFR', days: Array.from({ length: nb }, () => ({ status:'' })) }]
+      doctors: [{ id:'AXE', initials:'AXE', days: Array.from({ length: nb }, () => ({ status:'' })) }]
     });
     /* Aout complet, puis les 3 jours de janvier 2027 qui ferment l'annee de planning. */
     w.eval('DATA = ' + JSON.stringify({ months: [mois(2026,8,31), mois(2027,1,3)] }) + '; renderAnnee();');
@@ -488,14 +488,14 @@ const dodo = ms => new Promise(r => setTimeout(r, ms));
       days: codes.map((_, k) => ({
         date:'2027-03-' + String(k+1).padStart(2,'0'), day:k+1,
         weekday:(k % 7) + 1, isWeekend:false, isFerie:false })),
-      doctors: [{ id:'AFR', initials:'AFR',
+      doctors: [{ id:'AXE', initials:'AXE',
         days: codes.map(c => ({ status:c, morning:'', afternoon:'' })) }]
     };
     w.eval('DATA = ' + JSON.stringify({ months:[mois] }) + ';'
          + 'AFFECTATIONS_DATA = {};'
          + 'currentMonthId = "2027-03";'
          + 'renderMedecins();'
-         + 'openDocPanel("AFR");');
+         + 'openDocPanel("AXE");');
     await dodo(30);
 
     /* 14 absences : 10 V + 2 TP + 1 CL + 1 F. Ni R ni RG ni 18. */

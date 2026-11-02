@@ -607,7 +607,7 @@ V('compteur abîmé : la page s\'ouvre, réglages demandés', o5.window.document
   V('toucher la pastille n\'efface pas le patient', PB.liste().length === 1 && PB.$('undo').style.display !== 'flex');
   // Sauvegarde / restauration : l'assurance suit ; une valeur inconnue est ignorée
   const sauv = JSON.stringify({ app: 'pense-bete-lib', format: 1, patients: [
-    { id: 'r1', d: '2026-10-07', s: 'ORL', i: 'NP', a: 'fr', t: 2 },
+    { id: 'r1', d: '2026-10-07', s: 'ORL', i: 'NX', a: 'fr', t: 2 },
     { id: 'r2', d: '2026-10-07', s: 'ORL', i: 'QR', a: 'xx', t: 3 }], compteur: { actes: [] } });
   const PCr = ouvrir(), prep = PCr.w.svPreparer ? PCr.w.svPreparer(sauv) : null;
   const restaure = prep && prep.np ? prep.np : (prep && prep.patients) || null;

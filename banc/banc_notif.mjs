@@ -28,7 +28,7 @@ const b64u = buf => Buffer.from(buf).toString('base64url');
 
 const ADMIN = 'COMITE2027', MAR_A = 'MARALPHA1';
 M.set('acces', JSON.stringify({ users: [
-  { h: await sha(ADMIN), role: 'admin', id: 'DURAND', name: 'DURAND', initials: 'AF' },
+  { h: await sha(ADMIN), role: 'admin', id: 'DURAND', name: 'DURAND', initials: 'DU' },
   { h: await sha(MAR_A), role: 'mar', id: 'ALPHA', name: 'ALPHA', initials: 'AL' },
 ] }));
 

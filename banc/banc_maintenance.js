@@ -61,9 +61,9 @@ function monterServeur(tuilesPrivees, corpsDiag) {
   };
   return { ctx, appel, envois, purges };
 }
-const MOI = { role: 'mar', id: 'AFR' }, AUTRE = { role: 'mar', id: 'WS' };
+const MOI = { role: 'mar', id: 'AXE' }, AUTRE = { role: 'mar', id: 'WY' };
 const COMITE = { role: 'admin', id: 'ADMIN' }, PAIE = { role: 'paie', id: 'PAIE' };
-const TP = 'AFR:crh,stats,maintenance;WS:liberal';
+const TP = 'AXE:crh,stats,maintenance;WY:liberal';
 
 console.log('\n═══ M1. La porte serveur ═══');
 {
@@ -73,9 +73,9 @@ console.log('\n═══ M1. La porte serveur ═══');
   V('un MAR sans la clé ne passe pas', ctx._droitMaintenance_(AUTRE) === false);
   V('le code paie ne passe pas', ctx._droitMaintenance_(PAIE) === false);
   V('aucun utilisateur : porte fermée', ctx._droitMaintenance_(null) === false);
-  const sans = monterServeur('AFR:crh,stats;WS:liberal').ctx;
+  const sans = monterServeur('AXE:crh,stats;WY:liberal').ctx;
   V('contre-épreuve (b) : la même ligne SANS la clé ferme la porte au même MAR', sans._droitMaintenance_(MOI) === false);
-  const forme = monterServeur('afr : maintenance').ctx;
+  const forme = monterServeur('axe : maintenance').ctx;
   V('identifiant en minuscules et espaces : même lecture que la tuile du portail', forme._droitMaintenance_(MOI) === true);
 }
 

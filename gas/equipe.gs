@@ -4,7 +4,7 @@
    quelles : aucune ligne de logique modifiée, seulement déplacée. Le routeur et
    ses aides (checkCode, _deny, _error, doGet/doPost) restent dans Indispos.gs.
    Un seul espace global dans Apps Script : rien à importer. */
-const GAS_VERSION_EQUIPE = '2026-11-01.1';   // (01/11/2026) outils de maintenance réservés à la tuile `maintenance` · (27/10/2026) ordreMc renvoyé au login et au bootstrap
+const GAS_VERSION_EQUIPE = '2026-11-02.1';   // (02/11/2026) commentaire : identifiants d'exemple fictifs · (01/11/2026) outils de maintenance réservés à la tuile `maintenance` · (27/10/2026) ordreMc renvoyé au login et au bootstrap
 
 // ── Sonde : les interrupteurs des mails sont-ils cohérents ? ──
 function _sondeInterrupteursMails_(check, R, info) {
@@ -194,7 +194,7 @@ function _mailCodeAcces_(nom, code, renouvele) {
 
 // ── VÉRIFIER CODE ACCÈS ───────────────────────────────────────────────
 /* Analyse CONFIG / TUILES_PRIVEES pour UN identifiant.
-   « AFR:crh,stats;WS:liberal » + « AFR »  ->  ['crh','stats']
+   « AXE:crh,stats;WY:liberal » + « AXE »  ->  ['crh','stats']
    Cle absente, identifiant non cite, valeur mal formee : tableau vide.
    Le defaut est FERME — une tuile reservee ne s'ouvre jamais par accident.
    Meme format que _tuilesPriveesLire_ (miroir.gs) : une seule ecriture dans

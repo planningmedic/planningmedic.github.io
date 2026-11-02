@@ -1986,7 +1986,7 @@ function renderConsPanel(month,daySlots,today){
   const _total=cons.reduce((n,c)=>n+c.am.length+c.pm.length,0);
   if(!_total){ panel.innerHTML=''; return; }
   let _hasLib=false;
-  const chip=c=>{ const sc=csColor(c.spec), lbl=CS_LABELS[c.spec]||c.spec; const isLib=!!c.lib; if(isLib)_hasLib=true; const cls='cons-chip'+(isLib?' cons-chip-lib':''); const tag=isLib?'<span class="cons-lib">LIB</span>':''; const ttl=isLib?`${lbl} · libéral (rotation GR) · ${nameOf(c.id)}`:`${lbl} · ${nameOf(c.id)}`; return `<div class="${cls}" style="background:${sc.bg};color:${sc.fg}" title="${esc(ttl)}">${tag}<span class="cons-spec">${esc(lbl)}</span><span class="cons-mar">${esc(nameOf(c.id))}</span></div>`; };
+  const chip=c=>{ const sc=csColor(c.spec), lbl=CS_LABELS[c.spec]||c.spec; const isLib=!!c.lib; if(isLib)_hasLib=true; const cls='cons-chip'+(isLib?' cons-chip-lib':''); const tag=isLib?'<span class="cons-lib">LIB</span>':''; const ttl=isLib?`${lbl} · libéral · ${nameOf(c.id)}`:`${lbl} · ${nameOf(c.id)}`; return `<div class="${cls}" style="background:${sc.bg};color:${sc.fg}" title="${esc(ttl)}">${tag}<span class="cons-spec">${esc(lbl)}</span><span class="cons-mar">${esc(nameOf(c.id))}</span></div>`; };
   const half=arr=>arr.length?arr.map(chip).join(''):'<div class="cons-empty">—</div>';
   let _cols='';
   cols.forEach(function(col){
