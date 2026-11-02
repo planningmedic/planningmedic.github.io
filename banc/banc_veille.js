@@ -448,7 +448,7 @@ function monde(plan) {
     V('un ECR de revue spécialisée avec résumé et thème au titre est haut (≥ 60 sur l\'échelle fine du 23/10)', n('701') >= 60, n('701'));
     V('une lettre sans résumé est tout en bas (< 30)', n('702') < 30, n('702'));
     V('un protocole d\'essai est pénalisé (< 60)', n('703') < 60, n('703'));
-    // (20/10/2026) Règle d'Arthur : une grande revue généraliste compte le plus — sa revue systématique rejoint l'ECR spécialisé en tête.
+    // (20/10/2026) Règle du responsable : une grande revue généraliste compte le plus — sa revue systématique rejoint l'ECR spécialisé en tête.
     V('une revue systématique de grande revue généraliste est haute (≥ 60), loin devant le protocole', n('801') >= 60 && n('801') > n('703') + 30, [n('801'), n('703'), n('701')]);
     V('le motif dit pourquoi, en clair', /ECR/.test(par['701'][14]) && /thème/.test(par['701'][14]) && /au titre/.test(par['701'][14]) && /revue spécialisée/.test(par['701'][14]), par['701'][14]);
     V('…et pour la lettre aussi', /lettre\/éditorial/.test(par['702'][14]) && /sans résumé/.test(par['702'][14]), par['702'][14]);
@@ -609,7 +609,7 @@ function monde(plan) {
     const sombre = (page.match(/html\[data-theme="dark"\] \{[\s\S]*?\}/) || [''])[0];
     V('les 5 couleurs de type existent aussi en mode sombre', ['ecr', 'meta', 'rs', 'reco', 'aut'].every(k => sombre.indexOf('--vt-' + k + ':') !== -1 && sombre.indexOf('--vt-' + k + '-bg:') !== -1));
     V('aucune erreur JavaScript pendant toute la navigation', erreurs.length === 0, erreurs.slice(0, 2));
-    // (20/10/2026, v1.29) La recherche n'était pas assez visible (Arthur) : en tête, pleine largeur ; puis les marques ; puis Sources | Revues | Tri.
+    // (20/10/2026, v1.29) La recherche n'était pas assez visible (le responsable) : en tête, pleine largeur ; puis les marques ; puis Sources | Revues | Tri.
     const barre = d.getElementById('veilleToolbar');
     const enfants = [...barre.children].map(e => e.className.split(' ')[0]);
     V('v1.29 : la barre se lit dans l\'ordre recherche, marques, puis 3 menus', JSON.stringify(enfants) === JSON.stringify(['vsearch-big', 'vfilter', 'vsel', 'vrev-wrap', 'vsel']), enfants);
@@ -670,7 +670,7 @@ function monde(plan) {
   console.log('\n═══ Archivage (20/10/2026) : plus de 3 mois → hors de l\'écran, sauf pour qui l\'a étoilé ═══');
   {
     /* Production, 20/10 : 2 820 articles, ~75 de plus chaque semaine, rien jamais retiré.
-       Règle d'Arthur : un ancien quitte l'écran sauf pour le MAR qui l'a étoilé. */
+       Règle du responsable : un ancien quitte l'écran sauf pour le MAR qui l'a étoilé. */
     const jour = n => new Date(Date.now() - n * 86400000).toISOString().slice(0, 10);
     const ligne = (pmid, pub, ajoute, titre) => [pmid, pub, titre || 'Article ' + pmid, 'Dupont A', 'Anesthesiology', '', 'REVUE', 70, '', 'N', 'N', ajoute, '', 'Hémodynamique', 'revue spécialisée'];
     const remplir = (m, lignes, marques) => {
@@ -863,7 +863,7 @@ function monde(plan) {
     V('résumé sans randomisation : rien', tr('Cohort study of AKI', 'we included 3 000 patients') === '');
   }
 
-  console.log('\n═══ Règle d\'Arthur (20/10/2026) : revue généraliste + thème dans le TITRE = l\'article entre, quel que soit son type ═══');
+  console.log('\n═══ Règle du responsable (20/10/2026) : revue généraliste + thème dans le TITRE = l\'article entre, quel que soit son type ═══');
   {
     const plan = (endpoint, params) => {
       if (endpoint === 'esearch.fcgi') {
@@ -888,7 +888,7 @@ function monde(plan) {
     V('parenthèses équilibrées', qG && prof === 0 && mini === 0);
   }
 
-  console.log('\n═══ Règle d\'Arthur (20/10/2026) : un article d\'une grande revue généraliste est très bien noté ═══');
+  console.log('\n═══ Règle du responsable (20/10/2026) : un article d\'une grande revue généraliste est très bien noté ═══');
   {
     const m = monde(() => ({}));
     vm.runInContext('getOrCreateVeilleTabs()', m.ctx);   // (23 h) la note lit les thèmes du TITRE dans VEILLE_CFG

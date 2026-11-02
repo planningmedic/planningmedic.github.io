@@ -212,7 +212,7 @@ section.slide{margin:0}
     <div class="fact f3"><div class="big">7</div><div class="t">collègues nés en cinq ans (1974-1978)</div>
       <p class="d">Ils atteindront 60 ans entre 2034 et 2038 — une sortie groupée, la plus dense de l'histoire du service.</p></div>
   </div>
-  <p class="impact"><b>Résultat mécanique&nbsp;:</b> un temps plein passe de <b>36 gardes par an aujourd'hui</b> à <b>~52 en 2040</b> — <b>+17 nuits par an</b>, soit <b>+47&nbsp;%</b>. Et la première marche est dès <b>2027</b>&nbsp;: +4 gardes (RM atteint 60 ans&nbsp;; et le binôme AF/LC passe de 150&nbsp;% cumulés à un seul poste de 50&nbsp;% à partir de mars 2027).</p>
+  <p class="impact"><b>Résultat mécanique&nbsp;:</b> un temps plein passe de <b>36 gardes par an aujourd'hui</b> à <b>~52 en 2040</b> — <b>+17 nuits par an</b>, soit <b>+47&nbsp;%</b>. Et la première marche est dès <b>2027</b>&nbsp;: +4 gardes (MAR 3 atteint 60 ans&nbsp;; et le binôme MAR 20/MAR 18 passe de 150&nbsp;% cumulés à un seul poste de 50&nbsp;% à partir de mars 2027).</p>
   <p>Le chiffre d'aujourd'hui — <b>36 gardes/an pour un temps plein</b> — est la charge observée actuellement&nbsp;: c'est le point de départ, vérifiable. Tout le reste n'est que l'application de ces trois faits à la pyramide des âges réelle du service.</p>
 </section>
 
@@ -226,7 +226,7 @@ section.slide{margin:0}
   </div>
 </section>
 
-<section class="rv slide top" data-notes="Les hypothèses écrites noir sur blanc : retraite, exemption à 60 ans, remplacements, cas particuliers (BP, MB/LB, AF/LC). C'est la section à montrer si contestation.">
+<section class="rv slide top" data-notes="Les hypothèses écrites noir sur blanc : retraite, exemption à 60 ans, remplacements, cas particuliers (MAR 10, MAR 2/MAR 6, MAR 20/MAR 18). C'est la section à montrer si contestation.">
   <h2><span class="num">3</span>Les règles du calcul — écrites noir sur blanc</h2>
   <p class="lead">Pour que les chiffres soient indiscutables, voici exactement comment ils sont calculés.</p>
   <div class="rule">
@@ -235,25 +235,25 @@ section.slide{margin:0}
       <li><b>730 gardes physiques par an</b> = 365 nuits × 2 médecins. Ce nombre ne change jamais.</li>
       <li><b>Fin des gardes à 60 ans</b> : règle actuelle du service (paramétrable ci-dessous pour tester d'autres seuils).</li>
       <li><b>Départ en retraite à 67 ans</b> (paramétrable).</li>
-      <li><b>Remplacement</b> : tout départ en retraite est remplacé par un nouveau collègue de 35 ans à temps plein — <i>sauf</i> le premier départ (WS, 1961), non remplacé (poste transformé).</li>
-      <li>Les quotités réduites connues sont intégrées (LL 90 %, MS 80 %).</li>
-      <li><b>Cas particulier BP</b> : il assure ~<b>48 gardes/an</b> selon un rythme qui lui est propre. Ses gardes sont comptées <b>à part</b> : le pool des autres est donc de 730 − 48 = <b>682 gardes</b> tant qu'il maintient ce rythme (jusqu'à ses 60 ans en 2037 dans le modèle).</li>
-      <li><b>Transition de mars 2027</b> : RM atteint 60 ans (fin des gardes) ; et le binôme AF/LC, aujourd'hui à <b>150 % cumulés</b>, ne conservera qu'un <b>seul poste à 50 %</b> — lequel des deux poursuit n'est pas encore décidé. Effet net : environ deux temps pleins en moins la même année.</li>
-      <li><b>Deux renforts différés</b> : MB et LB ne prennent pas de gardes aujourd'hui, mais leurs remplaçants en prendront — à 100&nbsp;% pour le successeur de MB (dès ~2031), à 60&nbsp;% pour celui de LB (dès ~2042, quotité du poste).</li>
+      <li><b>Remplacement</b> : tout départ en retraite est remplacé par un nouveau collègue de 35 ans à temps plein — <i>sauf</i> le premier départ (MAR 1, 1961), non remplacé (poste transformé).</li>
+      <li>Les quotités réduites connues sont intégrées (MAR 12 90 %, MAR 15 80 %).</li>
+      <li><b>Cas particulier MAR 10</b> : il assure ~<b>48 gardes/an</b> selon un rythme qui lui est propre. Ses gardes sont comptées <b>à part</b> : le pool des autres est donc de 730 − 48 = <b>682 gardes</b> tant qu'il maintient ce rythme (jusqu'à ses 60 ans en 2037 dans le modèle).</li>
+      <li><b>Transition de mars 2027</b> : MAR 3 atteint 60 ans (fin des gardes) ; et le binôme MAR 20/MAR 18, aujourd'hui à <b>150 % cumulés</b>, ne conservera qu'un <b>seul poste à 50 %</b> — lequel des deux poursuit n'est pas encore décidé. Effet net : environ deux temps pleins en moins la même année.</li>
+      <li><b>Deux renforts différés</b> : MAR 2 et MAR 6 ne prennent pas de gardes aujourd'hui, mais leurs remplaçants en prendront — à 100&nbsp;% pour le successeur de MAR 2 (dès ~2031), à 60&nbsp;% pour celui de MAR 6 (dès ~2042, quotité du poste).</li>
     </ul>
   </div>
   <h3>La formule</h3>
   <p>Pour une année donnée, on calcule «&nbsp;l'effectif pondéré&nbsp;» — la somme des disponibilités de chacun (un temps plein compte 1, un 80&nbsp;% compte 0,8, un exempté compte 0)&nbsp;:</p>
-  <div class="formula">pool = 730 − 48 (gardes de BP, comptées à part)<br>effectif_pondéré = Σ (quotité de chaque gardeur, selon son âge et les règles)<br><br>gardes/an pour un temps plein = <span class="hl">682 ÷ effectif_pondéré</span></div>
+  <div class="formula">pool = 730 − 48 (gardes de MAR 10, comptées à part)<br>effectif_pondéré = Σ (quotité de chaque gardeur, selon son âge et les règles)<br><br>gardes/an pour un temps plein = <span class="hl">682 ÷ effectif_pondéré</span></div>
   <p>Vérification sur <b>aujourd'hui</b> : l'effectif pondéré 2026 vaut 19,2 (comptez vous-même dans l'annexe) → 682 ÷ 19,2 = <b>35,5 ≈ 36</b>, soit la charge observée actuellement. Le modèle est calé sur la réalité — pas sur une théorie.</p>
   <div class="verified">✓ Projection arithmétique, recoupée avec l'outil de génération des gardes (en développement)</div>
 
   <h3>Exemple : le calcul de 2040, posé à la main</h3>
   <p>N'importe qui peut refaire cette division. En 2040, on liste qui a <b>moins de 60 ans</b> et <b>n'est pas encore retraité</b> — en tenant compte des remplaçants déjà arrivés&nbsp;:</p>
   <div class="formula">Gardeurs disponibles en 2040 (règles actuelles)&nbsp;:<br>
-  &nbsp;• encore &lt; 60 ans&nbsp;: LL(90%), NO, FZ, MS(80%), NS, LUL, CS, le poste AF/LC (50%), RW, AFR, NP, CA<br>
-  &nbsp;• remplaçants déjà en poste (arrivés à 35 ans)&nbsp;: ceux de RM, JPG et MB → +3<br>
-  &nbsp;• exemptés (≥ 60 ans)&nbsp;: JC, GA, GR, SA, BP, SG → <span class="hl">0 garde</span> — BP compris&nbsp;: ses 48 gardes retournent au pool<br><br>
+  &nbsp;• encore &lt; 60 ans&nbsp;: MAR 12(90%), MAR 13, MAR 14, MAR 15(80%), MAR 16, MAR 17, MAR 19, le poste MAR 20/MAR 18 (50%), MAR 21, MAR 22, MAR 23, MAR 24<br>
+  &nbsp;• remplaçants déjà en poste (arrivés à 35 ans)&nbsp;: ceux de MAR 3, MAR 4 et MAR 2 → +3<br>
+  &nbsp;• exemptés (≥ 60 ans)&nbsp;: MAR 5, MAR 7, MAR 8, MAR 9, MAR 10, MAR 11 → <span class="hl">0 garde</span> — MAR 10 compris&nbsp;: ses 48 gardes retournent au pool<br><br>
   effectif pondéré = 14,2&nbsp;&nbsp;→&nbsp;&nbsp;730 ÷ 14,2 ≈ <span class="hl">51 gardes / an</span></div>
   <p>Le chiffre de la page 1 n'est donc pas une estimation&nbsp;: c'est une division que chacun peut vérifier. L'outil de génération des gardes (en développement), exécuté année par année, donne <b>52</b> — l'accord entre les deux approches est à une garde près.</p>
 </section>
@@ -283,7 +283,7 @@ section.slide{margin:0}
       <span><i class="sw" style="background:var(--reduced)"></i> allégé 55-60</span>
       <span><i class="sw" style="background:var(--partial)"></i> partiel 60+</span>
       <span><i class="sw" style="background:var(--zero)"></i> exempté (0 garde)</span>
-      <span><i class="sw" style="background:var(--bp)"></i> BP (48 gardes à part)</span>
+      <span><i class="sw" style="background:var(--bp)"></i> MAR 10 (48 gardes à part)</span>
       <span><i class="sw" style="background:var(--repl)"></i> remplaçant (35 ans)</span>
       <span><i class="sw" style="border:1px solid var(--line)"></i> retraité</span>
     </div>
@@ -306,7 +306,7 @@ section.slide{margin:0}
   </div>
 </section>
 
-<section class="rv slide top" data-notes="La matrice complète, ligne par ligne. Invitation : chacun vérifie SA ligne et signale toute erreur — c'est ça, la transparence.">
+<section class="rv slide top" data-notes="La matrice complète, ligne par ligne. Invitation : chacun vérifie MAR 9 ligne et signale toute erreur — c'est ça, la transparence.">
   <h2><span class="num">6</span>Annexe — vérifiez votre propre ligne</h2>
   <p class="lead">Voici, sans exception, toutes les données qui alimentent les calculs. Chaque collègue peut contrôler sa ligne&nbsp;: si votre année de naissance est juste, votre trajectoire l'est aussi. Aucune autre donnée n'entre dans le modèle.</p>
   <div class="card" style="padding:0;overflow:hidden">
@@ -317,39 +317,39 @@ section.slide{margin:0}
           <th>Fin des gardes<br>(60 ans)</th><th>Retraite<br>(67 ans)</th><th style="text-align:left;padding-left:14px">Remplacement</th>
         </tr></thead>
         <tbody>
-<tr><td class="name">WS</td><td>1961</td><td>100 %</td><td>2021</td><td>2028</td><td style="text-align:left">non remplacé (poste transformé)</td></tr>
-<tr><td class="name">MB</td><td>1964</td><td>ne garde pas</td><td>—</td><td>2031</td><td style="text-align:left">son remplaçant gardera à 100 % dès 2031</td></tr>
-<tr><td class="name">RM</td><td>1967</td><td>100 %</td><td>2027</td><td>2034</td><td style="text-align:left">remplacé par un MAR de 35 ans en 2034</td></tr>
-<tr><td class="name">JPG</td><td>1969</td><td>100 %</td><td>2029</td><td>2036</td><td style="text-align:left">remplacé par un MAR de 35 ans en 2036</td></tr>
-<tr><td class="name">JC</td><td>1974</td><td>100 %</td><td>2034</td><td>2041</td><td style="text-align:left">remplacé par un MAR de 35 ans en 2041</td></tr>
-<tr><td class="name">LB</td><td>1975</td><td>ne garde pas (poste à 60 %)</td><td>—</td><td>2042</td><td style="text-align:left">son remplaçant gardera à 60 % dès 2042</td></tr>
-<tr><td class="name">GA</td><td>1975</td><td>100 %</td><td>2035</td><td>2042</td><td style="text-align:left">remplacé par un MAR de 35 ans en 2042</td></tr>
-<tr><td class="name">GR</td><td>1976</td><td>100 %</td><td>2036</td><td>2043</td><td style="text-align:left">remplacé par un MAR de 35 ans en 2043</td></tr>
-<tr><td class="name">SA</td><td>1977</td><td>100 %</td><td>2037</td><td>2044</td><td style="text-align:left">remplacé par un MAR de 35 ans en 2044</td></tr>
-<tr><td class="name">BP</td><td>1977</td><td>48 gardes/an à part (rythme personnel)</td><td>2037</td><td>2044</td><td style="text-align:left">remplacé par un MAR de 35 ans en 2044</td></tr>
-<tr><td class="name">SG</td><td>1978</td><td>100 %</td><td>2038</td><td>2045</td><td style="text-align:left">remplacé par un MAR de 35 ans en 2045</td></tr>
-<tr><td class="name">LL</td><td>1981</td><td>90 %</td><td>2041</td><td>2048</td><td style="text-align:left">remplacé par un MAR de 35 ans en 2048</td></tr>
-<tr><td class="name">NO</td><td>1982</td><td>100 %</td><td>2042</td><td>2049</td><td style="text-align:left">remplacé par un MAR de 35 ans en 2049</td></tr>
-<tr><td class="name">FZ</td><td>1986</td><td>100 %</td><td>2046</td><td>2053</td><td style="text-align:left">remplacé par un MAR de 35 ans en 2053</td></tr>
-<tr><td class="name">MS</td><td>1986</td><td>80 %</td><td>2046</td><td>2053</td><td style="text-align:left">remplacé par un MAR de 35 ans en 2053</td></tr>
-<tr><td class="name">NS</td><td>1986</td><td>100 %</td><td>2046</td><td>2053</td><td style="text-align:left">remplacé par un MAR de 35 ans en 2053</td></tr>
-<tr><td class="name">LUL</td><td>1987</td><td>100 %</td><td>2047</td><td>2054</td><td style="text-align:left">remplacé par un MAR de 35 ans en 2054</td></tr>
-<tr><td class="name">LC</td><td>1990</td><td>50 %</td><td colspan="3" style="text-align:left">AF et LC totalisent <b>150 % aujourd'hui</b>. À partir de <b>mars 2027</b>, un seul des deux poursuit, à <b>50 %</b> — titulaire non encore décidé. Le poste conservé atteindra 60 ans vers 2050.</td></tr>
-<tr><td class="name">CS</td><td>1990</td><td>100 %</td><td>2050</td><td>2057</td><td style="text-align:left">remplacé par un MAR de 35 ans en 2057</td></tr>
-<tr><td class="name">AF</td><td>1991</td><td>100 %</td><td colspan="3" style="text-align:left">— transition AF/LC de mars 2027, voir ligne LC —</td></tr>
-<tr><td class="name">RW</td><td>1991</td><td>100 %</td><td>2051</td><td>2058</td><td style="text-align:left">remplacé par un MAR de 35 ans en 2058</td></tr>
-<tr><td class="name">AFR</td><td>1992</td><td>100 %</td><td>2052</td><td>2059</td><td style="text-align:left">remplacé par un MAR de 35 ans en 2059</td></tr>
-<tr><td class="name">NP</td><td>1992</td><td>100 %</td><td>2052</td><td>2059</td><td style="text-align:left">remplacé par un MAR de 35 ans en 2059</td></tr>
-<tr><td class="name">CA</td><td>1993</td><td>100 %</td><td>2053</td><td>2060</td><td style="text-align:left">remplacé par un MAR de 35 ans en 2060</td></tr>
+<tr><td class="name">MAR 1</td><td>1961</td><td>100 %</td><td>2021</td><td>2028</td><td style="text-align:left">non remplacé (poste transformé)</td></tr>
+<tr><td class="name">MAR 2</td><td>1964</td><td>ne garde pas</td><td>—</td><td>2031</td><td style="text-align:left">son remplaçant gardera à 100 % dès 2031</td></tr>
+<tr><td class="name">MAR 3</td><td>1967</td><td>100 %</td><td>2027</td><td>2034</td><td style="text-align:left">remplacé par un MAR de 35 ans en 2034</td></tr>
+<tr><td class="name">MAR 4</td><td>1969</td><td>100 %</td><td>2029</td><td>2036</td><td style="text-align:left">remplacé par un MAR de 35 ans en 2036</td></tr>
+<tr><td class="name">MAR 5</td><td>1974</td><td>100 %</td><td>2034</td><td>2041</td><td style="text-align:left">remplacé par un MAR de 35 ans en 2041</td></tr>
+<tr><td class="name">MAR 6</td><td>1975</td><td>ne garde pas (poste à 60 %)</td><td>—</td><td>2042</td><td style="text-align:left">son remplaçant gardera à 60 % dès 2042</td></tr>
+<tr><td class="name">MAR 7</td><td>1975</td><td>100 %</td><td>2035</td><td>2042</td><td style="text-align:left">remplacé par un MAR de 35 ans en 2042</td></tr>
+<tr><td class="name">MAR 8</td><td>1976</td><td>100 %</td><td>2036</td><td>2043</td><td style="text-align:left">remplacé par un MAR de 35 ans en 2043</td></tr>
+<tr><td class="name">MAR 9</td><td>1977</td><td>100 %</td><td>2037</td><td>2044</td><td style="text-align:left">remplacé par un MAR de 35 ans en 2044</td></tr>
+<tr><td class="name">MAR 10</td><td>1977</td><td>48 gardes/an à part (rythme personnel)</td><td>2037</td><td>2044</td><td style="text-align:left">remplacé par un MAR de 35 ans en 2044</td></tr>
+<tr><td class="name">MAR 11</td><td>1978</td><td>100 %</td><td>2038</td><td>2045</td><td style="text-align:left">remplacé par un MAR de 35 ans en 2045</td></tr>
+<tr><td class="name">MAR 12</td><td>1981</td><td>90 %</td><td>2041</td><td>2048</td><td style="text-align:left">remplacé par un MAR de 35 ans en 2048</td></tr>
+<tr><td class="name">MAR 13</td><td>1982</td><td>100 %</td><td>2042</td><td>2049</td><td style="text-align:left">remplacé par un MAR de 35 ans en 2049</td></tr>
+<tr><td class="name">MAR 14</td><td>1986</td><td>100 %</td><td>2046</td><td>2053</td><td style="text-align:left">remplacé par un MAR de 35 ans en 2053</td></tr>
+<tr><td class="name">MAR 15</td><td>1986</td><td>80 %</td><td>2046</td><td>2053</td><td style="text-align:left">remplacé par un MAR de 35 ans en 2053</td></tr>
+<tr><td class="name">MAR 16</td><td>1986</td><td>100 %</td><td>2046</td><td>2053</td><td style="text-align:left">remplacé par un MAR de 35 ans en 2053</td></tr>
+<tr><td class="name">MAR 17</td><td>1987</td><td>100 %</td><td>2047</td><td>2054</td><td style="text-align:left">remplacé par un MAR de 35 ans en 2054</td></tr>
+<tr><td class="name">MAR 18</td><td>1990</td><td>50 %</td><td colspan="3" style="text-align:left">MAR 20 et MAR 18 totalisent <b>150 % aujourd'hui</b>. À partir de <b>mars 2027</b>, un seul des deux poursuit, à <b>50 %</b> — titulaire non encore décidé. Le poste conservé atteindra 60 ans vers 2050.</td></tr>
+<tr><td class="name">MAR 19</td><td>1990</td><td>100 %</td><td>2050</td><td>2057</td><td style="text-align:left">remplacé par un MAR de 35 ans en 2057</td></tr>
+<tr><td class="name">MAR 20</td><td>1991</td><td>100 %</td><td colspan="3" style="text-align:left">— transition MAR 20/MAR 18 de mars 2027, voir ligne MAR 18 —</td></tr>
+<tr><td class="name">MAR 21</td><td>1991</td><td>100 %</td><td>2051</td><td>2058</td><td style="text-align:left">remplacé par un MAR de 35 ans en 2058</td></tr>
+<tr><td class="name">MAR 22</td><td>1992</td><td>100 %</td><td>2052</td><td>2059</td><td style="text-align:left">remplacé par un MAR de 35 ans en 2059</td></tr>
+<tr><td class="name">MAR 23</td><td>1992</td><td>100 %</td><td>2052</td><td>2059</td><td style="text-align:left">remplacé par un MAR de 35 ans en 2059</td></tr>
+<tr><td class="name">MAR 24</td><td>1993</td><td>100 %</td><td>2053</td><td>2060</td><td style="text-align:left">remplacé par un MAR de 35 ans en 2060</td></tr>
         </tbody>
       </table>
     </div>
   </div>
-  <p class="fnote">Les seuils 60 ans et 67 ans sont les réglages actuels&nbsp;; le simulateur (section 4) permet d'en tester d'autres. Un collègue à quotité réduite (ex. 80&nbsp;%) compte pour 0,8 dans l'effectif pondéré. Les remplaçants sont supposés arriver à 35 ans à temps plein l'année du départ. BP est compté à part (48 gardes/an) jusqu'à ses 60 ans&nbsp;: s'il levait le pied avant, chaque temps plein prendrait +2 à +3 gardes de plus que les projections.</p>
+  <p class="fnote">Les seuils 60 ans et 67 ans sont les réglages actuels&nbsp;; le simulateur (section 4) permet d'en tester d'autres. Un collègue à quotité réduite (ex. 80&nbsp;%) compte pour 0,8 dans l'effectif pondéré. Les remplaçants sont supposés arriver à 35 ans à temps plein l'année du départ. MAR 10 est compté à part (48 gardes/an) jusqu'à ses 60 ans&nbsp;: s'il levait le pied avant, chaque temps plein prendrait +2 à +3 gardes de plus que les projections.</p>
   <div class="annexe-note">
     <b>Comment ce document a été fabriqué</b>
     <ul>
-      <li>Le chiffre d'<b>aujourd'hui</b> (36 gardes/an, BP à part avec 48) correspond à la charge observée actuellement. Le modèle le reproduit à 0,5 près (682 ÷ 19,2 = 35,5).</li>
+      <li>Le chiffre d'<b>aujourd'hui</b> (36 gardes/an, MAR 10 à part avec 48) correspond à la charge observée actuellement. Le modèle le reproduit à 0,5 près (682 ÷ 19,2 = 35,5).</li>
       <li>Les <b>projections</b> appliquent la formule de la section 3 à ce tableau d'âges — une simple division, refaisable au tableau.</li>
       <li>Les chiffres de <b>charge de week-end</b> (section 5) sont produits par l'<b>outil de génération des gardes</b>, en cours de développement, exécuté sur 21 années consécutives (2026-2046) avec report d'équité et ~35 jours d'absence par MAR et par an. Accord entre le modèle arithmétique et cet outil : à une garde près sur toute la trajectoire.</li>
     </ul>
@@ -368,40 +368,40 @@ section.slide{margin:0}
 <script>
 // ── Données démographiques (initiales, année de naissance, quotité) ──────
 const TEAM = [
-  ['WS',1961,100],['MB',1964,0],['RM',1967,100],['JPG',1969,100],['JC',1974,100],['LB',1975,0],['GA',1975,100],
-  ['GR',1976,100],['SA',1977,100],['BP',1977,100],['SG',1978,100],['LL',1981,90],
-  ['NO',1982,100],['FZ',1986,100],['MS',1986,80],['NS',1986,100],['LUL',1987,100],
-  ['LC',1990,50],['CS',1990,100],['AF',1991,100],['RW',1991,100],['AFR',1992,100],
-  ['NP',1992,100],['CA',1993,100]
+  ['MAR 1',1961,100],['MAR 2',1964,0],['MAR 3',1967,100],['MAR 4',1969,100],['MAR 5',1974,100],['MAR 6',1975,0],['MAR 7',1975,100],
+  ['MAR 8',1976,100],['MAR 9',1977,100],['MAR 10',1977,100],['MAR 11',1978,100],['MAR 12',1981,90],
+  ['MAR 13',1982,100],['MAR 14',1986,100],['MAR 15',1986,80],['MAR 16',1986,100],['MAR 17',1987,100],
+  ['MAR 18',1990,50],['MAR 19',1990,100],['MAR 20',1991,100],['MAR 21',1991,100],['MAR 22',1992,100],
+  ['MAR 23',1992,100],['MAR 24',1993,100]
 ];
 const POOL = 730;
-const BP_GARDES = 48;        // BP : ~48 gardes/an, comptées à part
+const BP_GARDES = 48;        // MAR 10 : ~48 gardes/an, comptées à part
 const BP_BORN = 1977;        // tant qu'il n'est pas exempté (60 ans → 2037)
 // Postes sans garde aujourd'hui, dont le REMPLAÇANT gardera (quotité du poste) :
-const NOGARDE = { MB:{born:1964, replQ:100}, LB:{born:1975, replQ:60} };
+const NOGARDE = { 'MAR 2':{born:1964, replQ:100}, 'MAR 6':{born:1975, replQ:60} };
 const YEARS = []; for(let y=2026;y<=2050;y++) YEARS.push(y);
 
 // ── Modèle : état de chaque MAR une année donnée, selon les curseurs ──────
 function stateOf(id, born, baseQuota, year, P){
-  // Postes MB/LB : 0 garde de leur vivant professionnel, remplaçant gardeur ensuite
+  // Postes MAR 2/MAR 6 : 0 garde de leur vivant professionnel, remplaçant gardeur ensuite
   if(NOGARDE[id]){
     const retYear = NOGARDE[id].born + P.ret;
     if(year >= retYear) return {q:NOGARDE[id].replQ, cls:'repl'};
     return {q:0, cls:'zero'};
   }
-  // Transition mars 2027 : le binôme AF/LC passe de 150 % à 50 % cumulés
+  // Transition mars 2027 : le binôme MAR 20/MAR 18 passe de 150 % à 50 % cumulés
   // (un seul des deux reste, à 50 % ; lequel n'est pas encore décidé — sans effet sur le total pondéré)
-  if(id==='LC' && year >= 2027) return {q:0, cls:'ret'};
-  if(id==='AF' && year >= 2027) baseQuota = 50;
+  if(id==='MAR 18' && year >= 2027) return {q:0, cls:'ret'};
+  if(id==='MAR 20' && year >= 2027) baseQuota = 50;
   const age = year - born;
   const retYear = born + P.ret;
   if(year >= retYear){
-    if(born === 1961) return {q:0, cls:'ret', repl:false};      // WS non remplacé
+    if(born === 1961) return {q:0, cls:'ret', repl:false};      // MAR 1 non remplacé
     return {q:100, cls:'repl'};                                  // remplaçant 35 ans, 100%
   }
-  // BP : régime spécial (48 gardes/an à part) tant qu'il a < 60 ans.
+  // MAR 10 : régime spécial (48 gardes/an à part) tant qu'il a < 60 ans.
   // À 60 ans il suit les règles communes (exemption ou partiel selon les curseurs).
-  if(id==='BP' && age < 60) return {q:0, cls:'bp'};
+  if(id==='MAR 10' && age < 60) return {q:0, cls:'bp'};
   if(age >= 60) return {q: baseQuota * P.part/100, cls: P.part>0?'partial':'zero'};
   if(age >= P.age) return {q: baseQuota * (100-P.red)/100, cls:'reduced'};
   return {q: baseQuota, cls:'full'};
@@ -414,7 +414,7 @@ function computeYear(year, P){
     cells[id]=s; wsum += s.q/100;
     if(s.cls==='bp') bpActive=true;
   });
-  const pool = POOL - (bpActive ? BP_GARDES : 0);   // les 48 de BP sortent du pool
+  const pool = POOL - (bpActive ? BP_GARDES : 0);   // les 48 de MAR 10 sortent du pool
   const base = wsum>0 ? pool/wsum : 0;               // gardes/an pour un 100%
   let gardeurs=0;
   TEAM.forEach(([id])=>{ if(cells[id].q>0 || cells[id].cls==='bp') gardeurs++; });

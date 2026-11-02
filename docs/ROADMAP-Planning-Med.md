@@ -6,16 +6,35 @@ portail/Dashboard, module libéral, contrôle d'absence, veille biblio.
 (Le générateur de comptes rendus a été retiré le 07/09/2026 : il portait le logo de
 l'établissement et 77 noms de praticiens sur une page publique sans code d'accès.)
 
-**Dépôt** `planningmedic/planningmedic.github.io`, branche `main` · **Site v1.54.5** (01/11/2026) ·
+**Dépôt** `planningmedic/planningmedic.github.io`, branche `main` · **Site v1.54.6** (02/11/2026) ·
 **Portail** https://planningmedic.github.io ·
 **GAS** (numéros relevés dans le dépôt le 01/11/2026 ; tout le dépôt est **en service, version 61**, livrée
 depuis le téléphone par le livreur) : `Indispos.gs`, `equipe.gs`, `diagnostic.gs` **2026-11-01.1** ·
-`code.gs` **2026-10-27.2** · `generateur_gardes.gs`, `gardes.gs`, `indisponibilites.gs`, `miroir.gs`, `veille.gs`
-**2026-10-27.1** · `journal.gs` **2026-10-24.1** · `portail.gs` **2026-10-21.1** ·
+`code.gs` **2026-10-27.2** · `veille.gs` **2026-11-02.1** (commentaires seuls) · `generateur_gardes.gs`, `gardes.gs`,
+`indisponibilites.gs`, `miroir.gs` **2026-10-27.1** · `journal.gs` **2026-10-24.1** · `portail.gs` **2026-10-21.1** ·
 `temps_partiel.gs` **2026-09-15.2** · `setup_annee.gs` **2026-09-14.1** · `echanges.gs` **2026-09-08.1** ·
 **Livreur** `livreur/livreur.gs` **2026-11-01.2** (projet Apps Script séparé, application web) ·
 **Worker** `cloudflare/worker.js` : `const VERSION = 'miroir 2026-10-30.1'` ·
 **Service worker** `sw.js` : `pm-sw-v2` (version.js exclu de la copie depuis le 14/10).
+
+## 02/11/2026 — audit des noms réels dans le dépôt (v1.54.6)
+
+Demande du responsable : vérifier tout le dépôt. Méthode : les 25 MAR de la copie rapide (`config_admin`,
+noms et initiales, lus par le connecteur Cloudflare, **jamais écrits dans le dépôt**), comparés aux 235 fichiers
+texte suivis par git.
+- **Noms de famille réels : aucun** (une homonymie : un auteur d'essai publié cité par `banc_veille.js`).
+- **Corrigé** : `docs/staff_gardes_demographie.html` portait 24 initiales réelles avec année de naissance,
+  quotité et années des 60 ans / de la retraite — **désormais MAR 1 à MAR 24** (rang de naissance, choix du
+  responsable) ; calculs inchangés. Limite assumée : années de naissance et quotités restent, donc la page
+  reste lisible par quelqu'un du service qui connaît l'équipe. `simulateur/demographie.js` : deux commentaires
+  reliaient un nom fictif à des initiales réelles, retirés. Prénom du responsable (18 commentaires) →
+  « le responsable » (`veille.gs`, `banc_veille.js`, `index.html`, `creneaux_secretariat.js`). Ancien nom de
+  compte GitHub (6 mentions) → « l'ancien compte / dépôt ».
+- **Restent** : des initiales réelles isolées (ROADMAP, JOURNAL, illustration de guide-comite, identifiants
+  d'essai du banc, commentaires) — statut à trancher par le responsable ; le motif de l'établissement dans le
+  garde-fou de `banc_liberal.js` (une expression qui vérifie son ABSENCE des pages).
+- **Historique** : tout ce qui précède reste lisible dans l'historique git (décision du 18/10 de ne pas le
+  réécrire — à reconsidérer pour la page démographie, qui portait des années de naissance).
 
 ## 01/11/2026 (soir) — panneau des disponibles instantané et à jour (v1.54.4, v1.54.5)
 
@@ -613,9 +632,9 @@ valide sans contrôle de rôle, cohérentes avec ce que `planning.html` affiche 
 caractères sur 32 symboles (1,1 × 10¹² combinaisons), force brute impraticable derrière Apps Script.
 
 **Confidentialité — trouvé et traité le jour même :**
-- L'ancien dépôt `chpg-anesthesie/Planning-CHPG` existait encore, **public, 2 328 commits**, avec
+- L'ancien dépôt existait encore, **public, 2 328 commits**, avec
   tout l'historique nominatif d'avant la migration. **Supprimé par le responsable le 13/09**
-  (vérifié : API 404, compte `chpg-anesthesie` à 0 dépôt public).
+  (vérifié : API 404, ancien compte GitHub à 0 dépôt public).
 - Le commit initial du nouveau dépôt (07/09) portait encore 25 noms de praticiens (210 lignes) ; le
   nettoyage du 08/09 avait purgé l'arbre, pas l'histoire. **Historique réécrit** (`git filter-repo`) :
   25 noms → `MAR01`…`MAR25`, prénom du responsable → « le responsable » (200 lignes), y compris
@@ -629,7 +648,7 @@ caractères sur 32 symboles (1,1 × 10¹² combinaisons), force brute impraticab
 
 **À vérifier par le responsable (vu le 14/09 en lisant CONFIG, valeur non citée) :** la ligne
 `GITHUB_TOKEN` du classeur ne porte pas le préfixe du jeton `planningmedic` — probablement l'ancien
-jeton `chpg-anesthesie`, qui lit encore mais n'écrit plus. À remplacer dans CONFIG si c'est le cas.
+jeton de l'ancien compte, qui lit encore mais n'écrit plus. À remplacer dans CONFIG si c'est le cas.
 
 **Confidentialité — reste ouvert :** ~~`ARCHIVE_SS_ID` en dur~~ (fait le 14/09) dans `generateur_gardes.gs` (identifiant
 d'un fichier privé, pas un secret : à déplacer dans CONFIG) ; `banc/reference/admin_precedent.html`
@@ -1120,7 +1139,7 @@ vise la sortie elle-même.
 
 ### Reste à faire
 
-~~Supprimer l'ancien dépôt~~ (**fait le 13/09**), fermer le compte `chpg-anesthesie` (vide) et l'ancien Worker. **Le compte Google
+~~Supprimer l'ancien dépôt~~ (**fait le 13/09**), fermer l'ancien compte GitHub (vide) et l'ancien Worker. **Le compte Google
 d'origine attend une semaine de fonctionnement réel** — il porte le classeur, les archives et les
 fichiers du planning. Vider `INDISPOS_2027` de son jeu d'essai **avant le 10 octobre**.
 

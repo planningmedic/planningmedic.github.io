@@ -57,7 +57,7 @@
 //  instantané unique et partagé : chantier séparé.
 // ══════════════════════════════════════════════════════════════════════
 
-const GAS_VERSION_VEILLE = '2026-10-27.1';
+const GAS_VERSION_VEILLE = '2026-11-02.1';
 
 const VEILLE_CFG_TAB = 'VEILLE_CFG';
 const VEILLE_TAB     = 'VEILLE';
@@ -523,7 +523,7 @@ function _veilleTypeResume(titre, resume) {
   if (/secondary|post[- ]?hoc|ancillary|protocol|sub-?study|exploratory analysis|meta-?analys|systematic review/i.test(String(titre || ''))) return '';
   return 'ECR';
 }
-/* (20/10/2026, 23 h — barème « plus fin », accord d'Arthur) L'ancien barème cumulait trop :
+/* (20/10/2026, 23 h — barème « plus fin », accord du responsable) L'ancien barème cumulait trop :
    140 articles sur 949 à 100, dont des essais du JAMA sur l'obésité (un mot de thème dans le
    RÉSUMÉ suffisait) et des analyses secondaires étiquetées « essai » par PubMed. Désormais :
      base 20 · type : ECR 30, méta-analyse 26, recommandation 24, revue systématique 20,
@@ -554,7 +554,7 @@ function _veilleNote(fiche, source, themes, aujourdhui, themesTitre) {
   else if (/Meta-Analysis/.test(pt) || tt === 'META') { n += 26; motifs.push('méta-analyse'); }
   else if (/Practice Guideline|Guideline|Consensus/.test(pt) || _veilleRecoTitre(titre)) { n += 24; motifs.push('recommandation'); }   // (27/10) + étiquette « Consensus » et titre
   else if (/Systematic Review/.test(pt) || tt === 'RS') { n += 20; motifs.push('revue systématique'); }
-  /* Règle d'Arthur : une synthèse ou un article original d'une GRANDE revue doit rester bien noté
+  /* Règle du responsable : une synthèse ou un article original d'une GRANDE revue doit rester bien noté
      (« Fluid Therapy in Mechanically Ventilated Critically Ill Adult Patients », JAMA) : +18. */
   else if (source === 'GENERAL' && _veilleGrandeRevue(fiche.revue) && !/Letter|Editorial|Comment|News/.test(pt)) { n += 18; motifs.push(/\bReview\b/.test(pt) ? 'revue' : 'article'); }
   else if (/Multicenter Study|Observational Study|Cohort/.test(pt)) { n += 8; motifs.push('étude'); }
@@ -574,7 +574,7 @@ function _veilleNote(fiche, source, themes, aujourdhui, themesTitre) {
   else if (nT) { n += 12 + 6 * (Math.min(nT, 3) - 1); motifs.push(nT + (nT > 1 ? ' thèmes' : ' thème') + ' au titre'); }
   if (nR && !nT) { n += 2 * Math.min(nR, 3); motifs.push('thème au résumé seul'); }   // (23/10) un signal faible : il ne compte que s'il n'y a rien au titre
   if (/multi-?cent(?:er|re)/i.test(titre + ' ' + (fiche.resume || '')) || /Multicenter Study/.test(pt)) { n += 4; motifs.push('multicentrique'); }
-  /* (23/10/2026, soir — échelle « fine », décidée par Arthur) Avant : effectif par paliers (+2/+4/+6),
+  /* (23/10/2026, soir — échelle « fine », décidée par le responsable) Avant : effectif par paliers (+2/+4/+6),
      « récent » tout ou rien, puis plafond à 100 — 6 articles à 100 et 54 articles à 80 et plus sur
      seulement 16 notes différentes. Désormais l'effectif et la fraîcheur sont PROGRESSIFS, et la note
      est le total rapporté au MAXIMUM possible (VEILLE_NOTE_MAX) : 100 reste théorique, le meilleur
@@ -631,7 +631,7 @@ function _veilleFiltre(cfg) {
   return s;
 }
 
-/* (20/10/2026, règle d'Arthur) Les GRANDES revues : un thème dans le titre y suffit, et leurs
+/* (20/10/2026, règle du responsable) Les GRANDES revues : un thème dans le titre y suffit, et leurs
    articles prennent +25 à la note. Noms PubMed exacts (ISO), comparés sans casse. */
 const VEILLE_GRANDES_REVUES = ['N Engl J Med', 'JAMA', 'Lancet', 'BMJ', 'Ann Intern Med',
                                'JAMA Intern Med', 'JAMA Surg', 'Lancet Respir Med'];
@@ -640,7 +640,7 @@ function _veilleGrandeRevue(nom) {
   return VEILLE_GRANDES_REVUES.some(function (g) { return g.toLowerCase() === n; });
 }
 
-/* (21/10/2026, accord d'Arthur) Les thèmes AFFICHÉS : ceux du TITRE quand il y en a, sinon ceux
+/* (21/10/2026, accord du responsable) Les thèmes AFFICHÉS : ceux du TITRE quand il y en a, sinon ceux
    du titre + résumé. Le résumé cite en passant (PELICAN rangé en « Arrêt cardiaque » parce que
    son résumé liste les complications ; l'essai isoflurane en « Voies aériennes » à cause de
    l'intubation). Simulé sur les 949 du 21/10 : 1,7 → 1,3 thème par article ; aucun article ne
@@ -740,7 +740,7 @@ function _runVeilleCorps_() {
       Logger.log('⚠️ aucune ligne PUBTYPE active : axe croisé SANS liste blanche ' +
                  '(volume attendu ×10 — vérifier VEILLE_CFG).');
     }
-    /* (20/10/2026, soir — règle d'Arthur) Un thème dans le TITRE suffit : le titre dit de
+    /* (20/10/2026, soir — règle du responsable) Un thème dans le TITRE suffit : le titre dit de
        quoi parle l'article (ICRAKI : « …Renal-Replacement Therapy in Acute Kidney Injury »,
        NEJM). Un thème vu seulement dans le RÉSUMÉ, souvent en passant, exige encore
        un type d'étude (liste blanche, titre ou résumé) : c'est ce qui avait fait exploser
@@ -1292,7 +1292,7 @@ function setVeilleAbo(payload, user) {
 //  ARCHIVAGE (20/10/2026)
 //  Le flux est stable (~75 articles/semaine) mais rien n'était jamais retiré :
 //  2 820 articles le 20/10, tous chargés à chaque ouverture de l'écran.
-//  RÈGLE (décidée par Arthur) : un article ANCIEN quitte l'écran, sauf pour
+//  RÈGLE (décidée par le responsable) : un article ANCIEN quitte l'écran, sauf pour
 //  le MAR qui l'a étoilé. Ancien = paru depuis plus de ARCHIVE_MOIS mois (3)
 //  ET entré dans la veille depuis plus de 4 semaines — sans ce second
 //  verrou, un article à la date de parution ancienne (numéro papier en
@@ -1379,7 +1379,7 @@ function veilleArchiver() {
   return { success: true, archives: partir.length, restent: garder.length };
 }
 
-/* (20/10/2026) RECHERCHE DANS LES ARCHIVES — consultation seule (choix d'Arthur :
+/* (20/10/2026) RECHERCHE DANS LES ARCHIVES — consultation seule (choix du responsable :
    ni étoile ni « lu » sur un archivé). L'archive n'est PAS dans l'instantané
    servi à l'écran (elle l'alourdirait de ~2 000 lignes pour un usage rare) :
    elle se lit à la demande, quand un MAR touche « Chercher dans les archives ».
@@ -1415,7 +1415,7 @@ function chercherVeilleArchive(q) {
 }
 
 // ══════════════════════════════════════════════════════════════════════
-//  MAIL DE LA SEMAINE (21/10/2026 — maquette validée par Arthur)
+//  MAIL DE LA SEMAINE (21/10/2026 — maquette validée par le responsable)
 //  10 articles arrivés depuis 7 jours, 5 réa / 5 anesthésie, chacun avec son
 //  titre cliquable (PubMed) et son résumé en français.
 //  Envoyé après la collecte du lundi, une fois par semaine, à l'administrateur
@@ -1635,7 +1635,7 @@ function veilleEnvoyerMailTest() {
 
 // ══════════════════════════════════════════════════════════════════════
 //  RATTRAPAGE DU 20/10/2026 — deux fonctions À LANCER UNE FOIS, à la main,
-//  dans cet ordre (accord d'Arthur, 20/10 au soir). Elles écrivent dans le
+//  dans cet ordre (accord du responsable, 20/10 au soir). Elles écrivent dans le
 //  classeur. Ne pas les lancer pendant la collecte du lundi 6 h.
 // ══════════════════════════════════════════════════════════════════════
 
@@ -1667,7 +1667,7 @@ function _veilleFichesLot_(lot, out, nom) {
   }
 }
 
-/* 0 — (20/10/2026, 23 h, accord d'Arthur) Le vocabulaire des thèmes dans VEILLE_CFG.
+/* 0 — (20/10/2026, 23 h, accord du responsable) Le vocabulaire des thèmes dans VEILLE_CFG.
    « resuscitation » seul rangeait la réanimation HÉMODYNAMIQUE en arrêt cardiaque (PELICAN,
    « septic shock resuscitation »… 50 articles sur 116). Des essais au cœur du métier n'avaient
    aucun thème dans le titre (« Isoflurane-Based Inhaled Sedation in Mechanically Ventilated

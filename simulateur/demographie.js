@@ -31,9 +31,9 @@ const EQUIPE=[
   ['SERVANT',    80, 80, 1986, {}],
   ['SABLON',      100,100, 1986, {}],
   ['LEBRUN',100, 90, 1987, {}],   // 90 % de travail, 100 % des gardes
-  ['CHASTEL', 50, 50, 1990, {r2s2:1}],   // LC — le poste conservé, 50 %
+  ['CHASTEL', 50, 50, 1990, {r2s2:1}],   // le poste conservé, 50 %
   ['SUREAU',     100,100, 1990, {}],
-  ['FAUVEL',  100,100, 1991, {}],          // AF — date_fin VIDE dans MEDECINS : il reste
+  ['FAUVEL',  100,100, 1991, {}],          // date_fin VIDE dans MEDECINS : il reste
   ['VALLET',  100, 90, 1991, {}],   // 90 % de travail, 100 % des gardes
   ['DURAND',  100,100, 1992, {}],
   ['PELLETIER', 100,100, 1992, {}],

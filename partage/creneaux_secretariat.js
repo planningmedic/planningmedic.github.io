@@ -11,7 +11,7 @@
      1. c'est une consultation du secteur demandé, ou une consultation
         polyvalente (rare : elles vont en général aux MARs hors libéral) ;
      2. délai médico-légal : AU MOINS 48 h et AU PLUS 1 mois avant le jour de
-        l'intervention (07/10/2026, Arthur) — et pas avant aujourd'hui.
+        l'intervention (07/10/2026, le responsable) — et pas avant aujourd'hui.
         48 h = au plus tard l'avant-veille (l'heure du geste n'est pas connue).
         1 mois = même quantième le mois précédent (31 mars → 28/29 février) ;
      3. le médecin est membre du groupement libéral ;

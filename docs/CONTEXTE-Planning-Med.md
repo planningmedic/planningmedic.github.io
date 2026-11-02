@@ -15,7 +15,7 @@ découle, et prime sur les habitudes antérieures.
 
 | | avant | maintenant |
 |---|---|---|
-| Dépôt | `chpg-anesthesie/Planning-CHPG` | **`planningmedic/planningmedic.github.io`** |
+| Dépôt | ancien dépôt (supprimé le 13/09) | **`planningmedic/planningmedic.github.io`** |
 | Portail | — | **https://planningmedic.github.io** |
 | Compte Google | — | **planningmedic@gmail.com** |
 | Relais | — | **miroir.planningmedic.workers.dev** |
@@ -36,7 +36,7 @@ découle, et prime sur les habitudes antérieures.
   C'est le défaut du précédent `libAdmin`.
 
 **Ce qui n'est pas encore fait :** ~~l'ancien dépôt~~ (**supprimé le 13/09/2026** ; l'historique
-du nouveau dépôt a été réécrit le même jour, purge GitHub en attente), le compte `chpg-anesthesie`
+du nouveau dépôt a été réécrit le même jour, purge GitHub en attente), l'ancien compte GitHub
 (vide) et l'ancien Worker existent toujours. Le compte Google d'origine aussi — il porte le classeur, les archives et
 les fichiers du planning, et attend une semaine de fonctionnement réel avant suppression.
 
