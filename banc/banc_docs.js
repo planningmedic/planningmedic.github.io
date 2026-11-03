@@ -484,8 +484,9 @@ console.log('\n═══ 13. Chaque scénario du banc est lancé par lancer.sh �
   /* (06/09/2026) L'année de planning fait 364 ou 371 jours, jamais 365 : le
      guide l'écrivait dans un sens au début et dans l'autre à la fin. */
   V('…et ne parle plus de 365 jours', !/365 jours/.test(mar) && /364 jours/.test(mar));
+  /* (03/11/2026, v1.56) La journée sur téléphone est un tableau aimanté. */
   V('…décrit la vue téléphone du planning, pas celle de l\'ordinateur',
-    /une journée<\/b>/.test(mar) && /carte par secteur<\/b>/.test(mar));
+    /une journée<\/b>/.test(mar) && /tableau aimanté<\/b>/.test(mar) && /Hors du tableau<\/b>/.test(mar));
   V('…décrit la saisie par outil puis glissement, et non « le premier puis le dernier »',
     /glissez le doigt<\/b>/.test(mar) && !/touchez le premier puis le dernier/.test(mar));
   V('…affiche les codes réels du planning (V et F, pas VAC et FORM)',

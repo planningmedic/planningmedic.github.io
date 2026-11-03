@@ -604,70 +604,69 @@ body{font-variant-numeric:tabular-nums}
   /* Contenu jour */
   .mobile-day-content { padding: 12px 16px 80px; display: flex; flex-direction: column; gap: 8px; }
 
-  /* Carte secteur */
-  .mobile-sector-card {
-    background: var(--white); border: 1px solid var(--line); border-radius: 12px;
-    overflow: hidden;
-  }
-  .mobile-sector-header {
-    padding: 8px 12px; background: var(--line-light);
-    border-bottom: 1px solid var(--line);
-    display: flex; align-items: center; gap: 8px;
-  }
-  .mobile-sector-name { font-size: 12px; font-weight: 700; color: var(--ink-2); }
-  .mobile-sector-body { padding: 8px 12px; display: flex; gap: 8px; }
-  .mobile-slot { flex: 1; }
-  .mobile-slot-label {
-    font-size: 9px; font-weight: 700; text-transform: uppercase; letter-spacing: .06em;
-    color: var(--ink-4); margin-bottom: 4px;
-  }
-  .mobile-slot-names { display: flex; flex-wrap: wrap; gap: 4px; }
-  .mobile-chip {
-    font-size: 12px; font-weight: 700; font-family: var(--mono);
-    padding: 4px 8px; border-radius: 6px; background: var(--line-light); color: var(--ink-2);
-  }
-  .mobile-chip.guard { background: var(--red); color: var(--white); box-shadow: 0 1px 2px rgba(206,17,38,.3); }
-  .mobile-chip.h18 { background: var(--amber); color: var(--white); box-shadow: 0 1px 2px rgba(217,119,6,.3); }
-  .mobile-chip.dash { color: var(--ink-4); font-size: 11px; }
-  .mobile-chip.me-chip { outline: 2px solid var(--me); outline-offset: 1px; font-weight: 800; }
-  .mobile-chip.lib-chip { box-shadow: 0 0 0 2px #c4b5fd; padding-left: 5px; }
-  .mobile-chip .lib-tag { display:inline-block; font-size:8px; font-weight:800; color:#fff; background:#7c3aed; border-radius:3px; padding:0 3px; margin-right:4px; letter-spacing:.4px; vertical-align:1px; }
-  .m-tonight { background: linear-gradient(135deg,#1E293B,#0F172A); border-radius: 12px; padding: 11px 14px; color: #fff; }
-  .m-tonight-main { display: flex; align-items: center; gap: 10px; font-size: 15px; }
-  .m-tonight-label { font-size: 10px; font-weight: 700; text-transform: uppercase; letter-spacing: .4px; opacity: .7; }
-  .m-tonight-name { font-weight: 800; }
-  .m-tonight-sub { margin-top: 6px; padding-top: 6px; border-top: 1px solid rgba(255,255,255,.15); font-size: 12px; opacity: .85; }
+  /* Planning du jour — tableau aimanté (03/11/2026, v1.56, maquette B1) */
+  .mobile-day-content{--jb-plaque:#F5F7F9;--jb-bac:#E3E8ED;--jb-trait:#C9D0D7;--jb-pointille:#C3CAD2;--jb-aim:#FFFFFF;--jb-aim-ombre:#BCC5CE;--jb-nuit:#22334A;--jb-nuit-2:#2C405B;--jb-h18:#C2560C;--jb-lib:#6A3FB0;--jb-moi:#B3122E;--jb-moi-ombre:#7A0C20}
+  html[data-theme="dark"] .mobile-day-content{--jb-plaque:#151D2E;--jb-bac:#1B2436;--jb-trait:#28344B;--jb-pointille:#34425C;--jb-aim:#E7ECF6;--jb-aim-ombre:#05080F;--jb-nuit:#1A2740;--jb-nuit-2:#24344F;--jb-moi:#D8324B;--jb-moi-ombre:#7A0C20}
+  .jb-aim{position:relative;min-width:46px;height:40px;padding:0 9px;border-radius:8px;background:var(--jb-aim);color:#18222E;font-weight:800;font-size:17px;display:inline-flex;align-items:center;justify-content:center;box-shadow:0 2px 0 var(--jb-aim-ombre)}
+  .jb-aim.moi{background:var(--jb-moi);color:#fff;box-shadow:0 2px 0 var(--jb-moi-ombre)}
+  .jb-aim.petit{min-width:42px;height:34px;font-size:15px;padding:0 7px}
+  .jb-ong{position:absolute;top:-8px;right:-6px;padding:1px 5px;border-radius:6px;color:#fff;font-size:10px;font-weight:800;line-height:1.4}
+  .jb-ong.g{background:var(--jb-nuit)}.jb-ong.h{background:var(--jb-h18)}.jb-ong.l{background:var(--jb-lib);top:auto;bottom:-8px}
+  .jb-ico{display:inline-flex;flex-shrink:0}.jb-ico svg{width:100%;height:100%}
+  .jb-nuit{background:var(--jb-nuit);border-radius:14px;padding:12px 14px;color:#E3E9F1}
+  .jb-nuit-l{display:flex;align-items:center;gap:12px}
+  .jb-nuit-t{flex-grow:1;display:flex;flex-direction:column;align-items:flex-start;gap:4px}
+  .jb-nuit-t h2{margin:0;font-weight:800;font-size:19px;line-height:1.15;color:#fff}
+  .jb-vous-nuit{padding:2px 8px;border-radius:7px;background:#F2C46B;color:#22334A;font-size:12px;font-weight:800}
+  .jb-duo{display:flex;gap:10px}.jb-duo>div{display:flex;flex-direction:column;align-items:center;gap:4px}
+  .jb-duo small{font-size:12px;font-weight:700;color:#D6DEE8}
+  .jb-duo .jb-aim{min-width:52px;height:44px;font-size:18px;box-shadow:0 2px 0 #0F1A28}
+  .jb-demain{border-top:1px solid #3A4C64;margin-top:10px;padding-top:8px;font-weight:600;font-size:13px;color:#B9C5D4}
+  .jb-vous{position:relative;margin-top:4px;background:var(--white);border-radius:14px;padding:10px 12px;display:flex;align-items:center;gap:10px;box-shadow:0 0 0 2px var(--jb-moi)}
+  .jb-vous .jb-aim{flex-shrink:0}
+  .jb-demi{flex:1 1 0;min-width:0;display:flex;flex-direction:column;gap:2px;padding-left:10px;border-left:2px dotted var(--jb-pointille)}
+  .jb-demi.seul{border-left:0;padding-left:0}
+  .jb-demi small{font-weight:600;font-size:12px;color:var(--ink-3)}
+  .jb-demi b{font-weight:800;font-size:15px;line-height:1.2;color:var(--ink);display:flex;align-items:center;gap:5px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .jb-demi b i{width:9px;height:9px;border-radius:2px;flex-shrink:0}
+  .jb-cs{font-weight:600;color:var(--ink-3)}
+  .jb-devoir{position:absolute;top:-9px;right:10px;padding:2px 7px;border-radius:7px;color:#fff;font-size:11px;font-weight:800}
+  .jb-devoir.g{background:var(--jb-nuit)}.jb-devoir.h{background:var(--jb-h18)}
+  .jb-cols{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px;padding:10px 4px 0;font-weight:700;font-size:13px;color:var(--ink-3)}
+  .jb-cols div:last-child{padding-left:12px}
+  .jb-plaques{display:flex;flex-direction:column;gap:10px}
+  .jb-plaque{background:var(--jb-plaque);border-radius:12px;padding:0 0 10px;box-shadow:0 1px 0 var(--jb-trait)}
+  .jb-ruban{display:inline-flex;align-items:center;gap:7px;margin:0 0 8px 12px;padding:5px 12px 6px 10px;border-radius:0 0 8px 8px;color:#fff;font-weight:700;font-size:13px}
+  .jb-deux{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px;padding:0 10px}
+  .jb-case{display:flex;flex-wrap:wrap;gap:8px 6px;align-content:flex-start;min-height:44px;padding-top:4px}
+  .jb-case+.jb-case{border-left:2px dotted var(--jb-pointille);padding-left:10px}
+  .jb-vide{height:40px;display:flex;align-items:center;font-weight:600;font-size:13px;color:var(--ink-3)}
+  .jb-h2{margin:14px 4px 0;font-weight:800;font-size:17px;color:var(--ink)}
+  .jb-h2 span{font-weight:600;font-size:14px;color:var(--ink-3)}
+  .jb-liste{background:var(--jb-plaque);border-radius:12px;padding:2px 12px;box-shadow:0 1px 0 var(--jb-trait)}
+  .jb-ligne{display:grid;grid-template-columns:104px minmax(0,1fr) minmax(0,1fr);align-items:center;gap:6px;min-height:50px;padding:7px 0;border-bottom:1px solid var(--line)}
+  .jb-ligne:last-child{border-bottom:0}
+  .jb-lib{font-weight:700;font-size:14px;color:var(--ink-2)}
+  .jb-cel{display:flex;flex-wrap:wrap;gap:8px 6px;align-items:center}
+  .jb-bacs{display:flex;flex-direction:column;gap:6px}
+  .jb-bac{background:var(--jb-bac);border-radius:12px;padding:8px 10px;display:grid;grid-template-columns:104px minmax(0,1fr);align-items:center;gap:8px}
+  .jb-bac>.jb-mag:only-child{grid-column:1/-1}
+  .jb-mag{display:flex;flex-wrap:wrap;gap:6px}
+  .jb-bac .jb-aim{min-width:40px;height:32px;font-size:14px;padding:0 6px;background:var(--white);color:var(--ink-3);box-shadow:none}
+  .jb-bac .jb-aim.moi{background:var(--jb-moi);color:#fff}
+  .jb-bac-t{font-weight:700;font-size:13px;line-height:1.25;color:var(--ink-2)}
+  .jb-bac-t span{display:block;color:var(--ink-3);font-weight:600;font-size:12px}
+  .jb-we{padding:14px;border-radius:12px;background:var(--jb-plaque);font-weight:600;font-size:14px;color:var(--ink-2);box-shadow:0 1px 0 var(--jb-trait)}
+  .jb-legende{display:flex;flex-wrap:wrap;gap:6px 14px;padding:12px 4px 0;font-weight:600;font-size:12px;color:var(--ink-2)}
+  .jb-legende span{display:flex;align-items:center;gap:5px}
+  .jb-legende i{font-style:normal;padding:1px 5px;border-radius:6px;color:#fff;font-size:10px;font-weight:800}
+  .jb-legende i.g{background:var(--jb-nuit)}.jb-legende i.h{background:var(--jb-h18)}.jb-legende i.l{background:var(--jb-lib)}.jb-legende i.m{background:var(--jb-moi)}
   .mobile-today-fab { position: fixed; right: 14px; bottom: calc(74px + env(safe-area-inset-bottom)); z-index: 90;
     background: var(--red); color: #fff; border: none; border-radius: 999px; padding: 10px 16px;
     font-size: 13px; font-weight: 700; box-shadow: 0 4px 14px rgba(206,17,38,.4); display: flex; align-items: center; gap: 6px; }
   @keyframes slideL { from { transform: translateX(24px); opacity:.4 } to { transform: none; opacity:1 } }
   @keyframes slideR { from { transform: translateX(-24px); opacity:.4 } to { transform: none; opacity:1 } }
   .slide-l { animation: slideL .18s ease } .slide-r { animation: slideR .18s ease }
-
-  /* Section gardes */
-  .mobile-gardes-section {
-    background: var(--white); border: 1px solid var(--line); border-radius: 12px; overflow: hidden;
-  }
-  .mobile-gardes-title {
-    padding: 8px 12px; background: var(--line-light); border-bottom: 1px solid var(--line);
-    font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: .06em;
-    color: var(--ink-4);
-  }
-  .mobile-garde-row {
-    padding: 8px 12px; border-bottom: 1px solid var(--line-light);
-    display: flex; align-items: center; gap: 8px;
-  }
-  .mobile-garde-row:last-child { border-bottom: none; }
-  .mobile-garde-label { font-size: 11px; color: var(--ink-4); width: 110px; flex-shrink: 0; }
-  .mobile-garde-names { display: flex; flex-wrap: wrap; gap: 4px; }
-  .mobile-garde-name {
-    font-size: 12px; font-weight: 700; font-family: var(--mono);
-    padding: 3px 8px; border-radius: 6px;
-  }
-  .mobile-garde-name.guard { background: var(--red); color: var(--white); box-shadow: 0 1px 2px rgba(206,17,38,.3); }
-  .mobile-garde-name.h18 { background: var(--amber); color: var(--white); box-shadow: 0 1px 2px rgba(217,119,6,.3); }
-  .mobile-garde-name.rg { background: var(--viol-soft); color: var(--viol); }
-  .mobile-garde-name.absent { background: var(--line-light); color: var(--ink-4); }
 
   /* Bottom nav mobile */
   /* Les 5 onglets exigeaient 410 pt de large (mot le plus long : « Médecins », 56 pt
@@ -2118,7 +2117,7 @@ async function loadSecteurs(){
     if(Array.isArray(arr) && arr.length){
       const actifs = arr.filter(s=>s.actif);
       // Grille : mêmes champs qu'avant ; l'entrée CS (hors onglet) est conservée.
-      SECTORS_DEF = actifs.map(s=>({code:s.code, label:s.label, icon:s.icon}))
+      SECTORS_DEF = actifs.map(s=>({code:s.code, label:s.label, icon:s.icon, court:s.court}))
                           .concat([{code:'CS', label:'Consultation', icon:'Stethoscope'}]);
       // Couleurs : codes de l'onglet + extras CS/VOLANT conservés.
       const base = {};
@@ -2886,6 +2885,26 @@ document.addEventListener('touchend', e => {
   }
 }, {passive:true});
 
+/* Icône de secteur du planning du jour (03/11/2026). Par défaut l'icône de
+   l'onglet SECTEURS (colonne ICON). Deux dessins faits pour le service, que la
+   bibliothèque d'icônes n'a pas : le tube digestif (bloc viscéral) et
+   l'endoscope (endoscopies). */
+const SECT_ICO_PROPRES = {
+  VIS: c => { const T='M9.5 2.2V3c0 1.5 1.5 2 3.5 2 2.5 0 3.5 1.5 3.5 3s-1 2.3-2.5 2.3H8c-1.5 0-2.5 1-2.5 2.3S6.5 14.8 8 14.8h8c1.5 0 2.5 1 2.5 2.2s-1 2.2-2.5 2.2h-3.5c-1.2 0-2 .8-2 2v.4';
+    const id='jbTube'+(++SECT_ICO_PROPRES.n);
+    return '<defs><mask id="'+id+'" maskUnits="userSpaceOnUse" x="0" y="0" width="24" height="24"><path d="'+T+'" stroke="#fff" stroke-width="4.2" fill="none"/><path d="'+T+'" stroke="#000" stroke-width="1.6" fill="none"/></mask></defs><rect width="24" height="24" fill="'+c+'" stroke="none" mask="url(#'+id+')"/>'; },
+  END: () => '<rect x="5.5" y="3" width="5.5" height="9" rx="1.6"/><path d="M7.3 3V1.6h1.9V3"/><path d="M11 6.5h1"/><circle cx="13.6" cy="6.5" r="1.4"/><path d="M8.25 12v3.8c0 2.6 2.1 4.6 4.7 4.6s4.7-2 4.7-4.6V12.6"/><ellipse cx="17.65" cy="10.6" rx="1.3" ry="1.8"/>',
+  n: 0
+};
+function sectIco(code, couleur, taille){
+  const propre = SECT_ICO_PROPRES[code];
+  if (typeof propre === 'function')
+    return '<svg class="jb-ico" width="'+taille+'" height="'+taille+'" viewBox="0 0 24 24" fill="none" stroke="'+couleur+'" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">'+propre(couleur)+'</svg>';
+  const def = SECTORS_DEF.find(s=>s.code===code);
+  if (!def || !def.icon) return '';
+  return '<span class="jb-ico" style="width:'+taille+'px;height:'+taille+'px;color:'+couleur+'" aria-hidden="true"><i data-lucide="'+esc(def.icon)+'"></i></span>';
+}
+
 function renderMobileDay() {
   if (!DATA || !allDaysFlat.length) return;
   const dayData = allDaysFlat[currentDayIdx];
@@ -2933,87 +2952,98 @@ function renderMobileDay() {
     }
   });
 
-  const specCol = sp => SECTOR_COLORS[sp] || (sp==='INTER'?SECTOR_COLORS.CI:sp==='POLY'?SECTOR_COLORS.VOLANT:{bg:'#F1F5F9',fg:'#64748B'});
+  /* (03/11/2026, v1.56) TABLEAU AIMANTÉ — maquette B1 validée par le responsable.
+     Chaque MAR est un aimant posé dans la case de son secteur (matin / après-midi).
+     Sur l'aimant : « G » de garde le soir, « 18 h » poste jusqu'à 18 h, « lib. »
+     consultation libérale. Le MAR connecté est l'aimant rouge. Les absents vont
+     « hors du tableau », une ligne par motif. Les données sont les mêmes qu'avant :
+     seul le dessin change. */
   const _meDoc = MY_ID ? month.doctors.find(d=>d.id===MY_ID) : null;
   const MY_INIT = _meDoc ? _meDoc.initials : null;
-  const chip = (init, cls='', col=null) => `<span class="mobile-chip ${cls}${init===MY_INIT?' me-chip':''}"${col?` style="background:${col.bg};color:${col.fg}"`:''}>${init}</span>`;
-  const dash = () => '<span class="mobile-chip dash">—</span>';
-  // Qui est de garde / 18h aujourd'hui → pour les repérer DANS leur secteur de journée
   const guardSet = new Set(guards), h18Set = new Set(h18arr);
-  const schip = (init, col) => {
-    const duty = guardSet.has(init) ? {c:'#CE1126',t:'G'} : (h18Set.has(init) ? {c:'#D97706',t:'18'} : null);
-    const base = col ? `background:${col.bg};color:${col.fg}` : '';
-    const ring = duty ? `;box-shadow:0 0 0 2px ${duty.c}` : '';
-    const tag  = duty ? `<sup style="color:${duty.c};font-weight:800;font-size:9px;margin-left:1px">${duty.t}</sup>` : '';
-    return `<span class="mobile-chip${init===MY_INIT?' me-chip':''}" style="${base}${ring}">${init}${tag}</span>`;
-  };
+  const aim = (init, o) => { o=o||{}; const moi = init===MY_INIT;
+    const ong = (o.duty!==false && guardSet.has(init) ? '<span class="jb-ong g">G</span>' : (o.duty!==false && h18Set.has(init) ? '<span class="jb-ong h">18 h</span>' : ''))
+      + (o.lib ? '<span class="jb-ong l">lib.</span>' : '');
+    return '<span class="jb-aim'+(moi?' moi':'')+(o.petit?' petit':'')+'"'+(moi?' aria-label="'+esc(init)+', vous"':'')+'>'+esc(init)+ong+'</span>'; };
+  const vide = '<span class="jb-vide">Libre</span>';
   let html = '';
 
-  if (isToday) {
-    const nm=id=>_tit(id)+id.charAt(0)+id.slice(1).toLowerCase();
-    const tomIds=_gardeOn(_plusDays(today,1));
-    const meTonight = MY_INIT && guards.includes(MY_INIT);
-    html += `<div class="m-tonight">
-      <div class="m-tonight-main"><span>🌙</span><div><div class="m-tonight-label">Cette nuit</div><div class="m-tonight-name">${guards.length?guards.join(' + '):'—'}${meTonight?' · c\u2019est vous':''}</div></div></div>
-      ${tomIds.length?`<div class="m-tonight-sub">Demain : ${tomIds.map(nm).join(' + ')}</div>`:''}
-    </div>`;
+  // Garde de la nuit — Réa (G) toujours en premier, Maternité (G2) ensuite
+  const gardesDu = date => { for (const m of DATA.months) { const di=m.days.findIndex(d=>d.date===date); if(di<0) continue;
+      return m.doctors.map(dc=>({i:dc.initials, st:(dc.days[di]||{}).status||''})).filter(x=>x.st==='G'||x.st==='G2').sort((x,y)=>(x.st==='G'?0:1)-(y.st==='G'?0:1)); }
+    return []; };
+  const nuit = gardesDu(dayData.date), dem = gardesDu(_plusDays(dayData.date,1));
+  if (nuit.length) {
+    html += '<section class="jb-nuit" aria-label="Garde de la nuit"><div class="jb-nuit-l">'
+      + '<svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#F2C46B" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20 14.5A8 8 0 1 1 9.5 4a6.5 6.5 0 0 0 10.5 10.5z"/></svg>'
+      + '<div class="jb-nuit-t"><h2>'+(isToday?'De garde ce soir':'De garde la nuit')+'</h2>'+(nuit.some(g=>g.i===MY_INIT)?'<span class="jb-vous-nuit">c’est vous</span>':'')+'</div>'
+      + '<div class="jb-duo">'+nuit.map(g=>'<div>'+aim(g.i,{duty:false})+'<small>'+(g.st==='G'?'Réa':'Maternité')+'</small></div>').join('')+'</div></div>'
+      + (dem.length?'<div class="jb-demain">Le lendemain soir : '+dem.map(g=>esc(g.i)).join(' et ')+'</div>':'')+'</section>';
   }
 
+  // Votre journée (MAR connecté)
+  const LIB_ST={RG:'Repos de garde',TP:'Temps partiel',CTP:'Temps partiel',V:'Vacances',A:'Vacances',F:'Formation',R:'Récupération',CL:'Congé long',CP:'Congé'};
   const isWE = dayData.isWeekend || dayData.isFerie;
-  if (!isWE) {
-    const activeSectors = SECTORS_DEF.filter(s => s.code!=='CS' && (smap[s.code].am.length || smap[s.code].pm.length));
-    activeSectors.forEach(s => {
-      const am = smap[s.code].am;
-      const pm = smap[s.code].pm;
-      const col = SECTOR_COLORS[s.code] || null;
-      html += `<div class="mobile-sector-card"${col?` style="border-left:3px solid ${col.fg}"`:''}>
-        <div class="mobile-sector-header"><span class="mobile-sector-name">${s.label}</span></div>
-        <div class="mobile-sector-body">
-          <div class="mobile-slot">
-            <div class="mobile-slot-label">Matin</div>
-            <div class="mobile-slot-names">${am.length ? am.map(i=>schip(i,col)).join('') : dash()}</div>
-          </div>
-          <div class="mobile-slot">
-            <div class="mobile-slot-label">Après-midi</div>
-            <div class="mobile-slot-names">${pm.length ? pm.map(i=>schip(i,col)).join('') : dash()}</div>
-          </div>
-        </div>
-      </div>`;
-    });
-    // Consultations — une carte PAR spécialité, classées (fini le vrac)
+  if (_meDoc) {
+    const e = _meDoc.days[dayIdx] || {}, st = e.status || '';
+    const COURT_CS={END:'endo',MAT:'mater.',VIS:'viscéral',ORT:'ortho',ORL:'ORL',INTER:'interv.',POLY:'poly.'};
+    const coul = c => (SECTOR_COLORS[c]&&SECTOR_COLORS[c].fg) || '#8A939E';
+    const demi = v => { const p=String(v||'').split('+').map(x=>x.trim()).filter(Boolean);
+      if(!p.length) return {t:'—',c:'#C9D0D7',k:''};
+      const x=p[0];
+      if(x.startsWith('CS-')){ const sp=x.slice(3); return {t:COURT_CS[sp]||sp,c:coul(sp),k:sp,cs:true}; }
+      const def=SECTORS_DEF.find(s=>s.code===x);
+      return {t:((def&&(def.court||def.label))||x)+(p.length>1?' +'+(p.length-1):''),c:coul(x),k:x}; };
+    let corps;
+    if (ABSENT_STATUSES.has(st)) corps='<div class="jb-demi seul"><small>Aujourd’hui</small><b>'+esc(LIB_ST[st]||'Absent')+'</b></div>';
+    else if (isWE && !e.morning && !e.afternoon) corps='<div class="jb-demi seul"><small>'+(dayData.isFerie?'Férié':'Week-end')+'</small><b>'+((st==='G'||st==='G2')?'De garde':'Libre')+'</b></div>';
+    else { const libPm = !!(e.lib && String(e.afternoon||'').indexOf('CS-END')>=0);
+      const cell = (lab, x, lib) => '<div class="jb-demi"><small>'+lab+'</small><b>'+(x.k&&sectIco(x.k,x.c,14)||'<i style="background:'+x.c+'"></i>')
+        +(x.cs?'<span class="jb-cs">'+(lib?'Consult. lib.':'Consult.')+'</span>'+(lib?'':esc(x.t)):esc(x.t))+'</b></div>';
+      corps = cell('Matin', demi(e.morning), false) + cell('Après-midi', demi(e.afternoon), libPm); }
+    const devoir = (st==='G'||st==='G2')?'<span class="jb-devoir g">garde ce soir</span>':(st==='18'?'<span class="jb-devoir h">poste 18 h</span>':'');
+    html += '<section class="jb-vous" aria-label="Votre journée">'+aim(MY_INIT,{duty:false})+corps+devoir+'</section>';
+  }
+
+  if (isWE) {
+    html += '<div class="jb-we">'+(dayData.isFerie?'Jour férié':'Week-end')+' : pas de programme opératoire, seules les gardes sont tenues.</div>';
+    if (h18arr.length) html += '<h2 class="jb-h2">Poste 18 h</h2><div class="jb-bacs"><div class="jb-bac"><div class="jb-mag">'+h18arr.map(i=>aim(i,{petit:true})).join('')+'</div></div></div>';
+  } else {
+    const actifs = SECTORS_DEF.filter(s => s.code!=='CS' && (smap[s.code].am.length || smap[s.code].pm.length));
+    html += '<div class="jb-cols" aria-hidden="true"><div>Matin</div><div>Après-midi</div></div><div class="jb-plaques">';
+    actifs.forEach(s => { const x=smap[s.code], c=(_SECTOR_BASE[s.code]&&_SECTOR_BASE[s.code].fg)||'#4E5966';
+      html += '<section class="jb-plaque" aria-label="'+esc(s.label)+'"><div class="jb-ruban" style="background:'+c+'">'+sectIco(s.code,'#FFFFFF',15)+esc(s.label)+'</div><div class="jb-deux">'
+        + '<div class="jb-case">'+(x.am.length?x.am.map(i=>aim(i)).join(''):vide)+'</div>'
+        + '<div class="jb-case">'+(x.pm.length?x.pm.map(i=>aim(i)).join(''):vide)+'</div></div></section>'; });
+    html += '</div>';
+    // Consultations — une ligne par spécialité, l'aimant porte « lib. » quand c'est la consultation libérale
     const CS_LABELS={VIS:'Viscéral',ORL:'ORL',ORT:'Ortho',END:'Endoscopies',MAT:'Maternité',INTER:'Interventionnel',POLY:'Polyvalent'};
     const CS_ORDER=['VIS','ORL','ORT','END','MAT','INTER','POLY'];
     const consSpecs=Object.keys(cons).sort((a,b)=>{const ia=CS_ORDER.indexOf(a),ib=CS_ORDER.indexOf(b);return (ia<0?99:ia)-(ib<0?99:ib)||a.localeCompare(b);});
-    const cchip=(o,col)=>{ if(o&&o.lib){ const base=col?`background:${col.bg};color:${col.fg}`:''; return `<span class="mobile-chip lib-chip" style="${base}"><span class="lib-tag">LIB</span>${o.init}</span>`; } return schip(o.init,col); };
-    consSpecs.forEach(sp=>{
-      const am=cons[sp].am, pm=cons[sp].pm;
-      const lbl=CS_LABELS[sp]||(sp||'Consultation');
-      const col=specCol(sp);
-      html += `<div class="mobile-sector-card" style="border-left:3px solid ${col.fg}">
-        <div class="mobile-sector-header"><span class="mobile-sector-name">Consultation · ${lbl}</span></div>
-        <div class="mobile-sector-body">
-          <div class="mobile-slot">
-            <div class="mobile-slot-label">Matin</div>
-            <div class="mobile-slot-names">${am.length ? am.map(i=>cchip(i,col)).join('') : dash()}</div>
-          </div>
-          <div class="mobile-slot">
-            <div class="mobile-slot-label">Après-midi</div>
-            <div class="mobile-slot-names">${pm.length ? pm.map(i=>cchip(i,col)).join('') : dash()}</div>
-          </div>
-        </div>
-      </div>`;
-    });
+    if (consSpecs.length) {
+      const cel = arr => arr.map(o=>aim(o.init,{petit:true,lib:o.lib})).join('');
+      html += '<h2 class="jb-h2">Consultations</h2><div class="jb-liste">'
+        + consSpecs.map(sp=>'<div class="jb-ligne"><div class="jb-lib">'+esc(CS_LABELS[sp]||sp)+'</div><div class="jb-cel">'+cel(cons[sp].am)+'</div><div class="jb-cel">'+cel(cons[sp].pm)+'</div></div>').join('')
+        + '</div>';
+    }
   }
 
-  html += `<div class="mobile-gardes-section"><div class="mobile-gardes-title">Gardes &amp; fonctions</div>`;
-  if (guards.length) html += `<div class="mobile-garde-row"><div class="mobile-garde-label">Garde 24h</div><div class="mobile-garde-names">${guards.map(i=>chip(i,'guard')).join('')}</div></div>`;
-  if (h18arr.length) html += `<div class="mobile-garde-row"><div class="mobile-garde-label">8h – 18h</div><div class="mobile-garde-names">${h18arr.map(i=>chip(i,'h18')).join('')}</div></div>`;
-  if (rg.length) html += `<div class="mobile-garde-row"><div class="mobile-garde-label">Sortie de garde</div><div class="mobile-garde-names">${rg.map(i=>`<span class="mobile-garde-name rg">${i}</span>`).join('')}</div></div>`;
-  if (absents.length) html += `<div class="mobile-garde-row"><div class="mobile-garde-label">Absents</div><div class="mobile-garde-names">${absents.map(i=>`<span class="mobile-garde-name absent">${i}</span>`).join('')}</div></div>`;
-  if (!guards.length && !h18arr.length && !rg.length && !absents.length) html += `<div class="mobile-garde-row"><div style="color:var(--ink-4);font-size:12px;padding:4px 0">—</div></div>`;
-  html += `</div>`;
+  // Hors du tableau : une ligne par motif (repos de garde, vacances, temps partiel…)
+  const BACS=[['RG','Repos de garde'],['TP','Temps partiel'],['CTP','Temps partiel'],['V','Vacances'],['A','Vacances'],['F','Formation'],['R','Récupération'],['CL','Congé long'],['CP','Congé']];
+  const groupes=[], vus=new Set();
+  BACS.forEach(([code,lab])=>{ const qui=month.doctors.filter(dc=>((dc.days[dayIdx]||{}).status||'')===code).map(dc=>dc.initials);
+    if(!qui.length) return; let g=groupes.find(x=>x.lab===lab); if(!g){ g={lab,v:[]}; groupes.push(g); }
+    qui.forEach(i=>{ if(!vus.has(i)){ vus.add(i); g.v.push(i); } }); });
+  if (groupes.length) {
+    const total=groupes.reduce((n,g)=>n+g.v.length,0);
+    html += '<h2 class="jb-h2">Hors du tableau <span>'+total+'</span></h2><div class="jb-bacs">'
+      + groupes.map(g=>'<div class="jb-bac"><div class="jb-bac-t">'+esc(g.lab)+'<span>'+g.v.length+'</span></div><div class="jb-mag">'+g.v.map(i=>aim(i,{petit:true,duty:false})).join('')+'</div></div>').join('')+'</div>';
+  }
+  html += '<div class="jb-legende"><span><i class="g">G</i>de garde le soir</span><span><i class="h">18 h</i>poste jusqu’à 18 h</span><span><i class="l">lib.</i>consultation libérale</span>'
+    + (MY_INIT?'<span><i class="m">'+esc(MY_INIT)+'</i>vous</span>':'')+'</div>';
 
   document.getElementById('mobileDayContent').innerHTML = html;
+  if (typeof lucide!=='undefined') { try { lucide.createIcons(); } catch(e){} }
 }
 
 // PWA : au retour dans l'appli après > 15 min, recharger silencieusement les
