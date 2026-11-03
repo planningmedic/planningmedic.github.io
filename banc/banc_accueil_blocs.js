@@ -194,6 +194,11 @@ const visible = (D, id) => D.getElementById(id).style.display !== 'none';
     V('ordinateur : #equite → onglet Équité', e.vue === 'pc:equite', e);
     e = essai('#equite', true);
     V('téléphone : #equite → onglet Équité de la barre du bas', e.vue === 'tel:equite', e);
+    /* (03/11/2026) La tuile de l'accueil est le SEUL accès : le bouton Équité est
+       retiré des deux barres d'onglets du planning (doublon), la vue reste. */
+    V('plus de bouton Équité dans les barres d\'onglets du planning (ordinateur et téléphone)',
+      !/id="btnEquite"/.test(src) && !/id="mbtnEquite"/.test(src));
+    V('…mais la vue Équité existe toujours, ouverte par la tuile', /id="equiteView"/.test(src) && /equite: 'equite'/.test(src));
     e = essai('#secteurs', false);
     V('#secteurs → onglet Secteurs', e.vue === 'pc:affect', e);
     e = essai('#annee', true);

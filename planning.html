@@ -811,7 +811,6 @@ body{font-variant-numeric:tabular-nums}
 <div class="view-toggle-main">
   <button class="view-main-btn active" id="btnPlanning">📋 Planning</button>
   <button class="view-main-btn" id="btnMedecins">👥 Médecins</button>
-  <button class="view-main-btn" id="btnEquite">📊 Équité</button>
   <button class="view-main-btn" id="btnAffect">🔄 Secteurs</button>
   <button class="view-main-btn" id="btnAnnee">🗓️ Année</button>
 </div>
@@ -1383,7 +1382,6 @@ async function init(loginYear){
 
   document.getElementById('btnPlanning').onclick = () => setMainView('planning');
   document.getElementById('btnMedecins').onclick = () => setMainView('medecins');
-  document.getElementById('btnEquite').onclick = () => setMainView('equite');
   document.getElementById('btnAffect').onclick = () => setMainView('affect');
   document.getElementById('btnAnnee').onclick = () => setMainView('annee');
   updateHeaderSteppers();
@@ -1392,7 +1390,9 @@ async function init(loginYear){
 
 /* (11/10/2026, v1.21) OUVERTURE DIRECTE D'UN ONGLET PAR L'ADRESSE.
    planning.html#equite ouvre le planning sur l'onglet Équité : c'est la tuile
-   « Équité des gardes » de l'accueil. Les compteurs ne vivent qu'ici — l'accueil
+   « Équité des gardes » de l'accueil. (03/11/2026) C'est désormais le SEUL
+   chemin : le bouton Équité est retiré des barres d'onglets du planning,
+   doublon de la tuile (décision du responsable). La vue reste ici. Les compteurs ne vivent qu'ici — l'accueil
    n'en garde aucune copie. Adresse inconnue ou absente : l'onglet Planning, comme avant. */
 const VUES_PAR_ADRESSE = { equite: 'equite', medecins: 'medecins', secteurs: 'affect', annee: 'annee' };
 function ouvrirVueDemandee(){
@@ -3464,7 +3464,6 @@ try {
 <div class="mobile-bottom-nav" id="mobileBottomNav" style="display:none">
   <button class="mobile-bottom-btn active" id="mbtnPlanning" onclick="mobileSetView('planning')">📋 Planning</button>
   <button class="mobile-bottom-btn" id="mbtnMedecins" onclick="mobileSetView('medecins')">👥 Médecins</button>
-  <button class="mobile-bottom-btn" id="mbtnEquite" onclick="mobileSetView('equite')">📊 Équité</button>
   <button class="mobile-bottom-btn" id="mbtnAffect" onclick="mobileSetView('affect')">🔄 Secteurs</button>
   <button class="mobile-bottom-btn" id="mbtnAnnee" onclick="mobileSetView('annee')">🗓️ Année</button>
 </div>
