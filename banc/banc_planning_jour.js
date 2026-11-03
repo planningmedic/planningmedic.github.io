@@ -44,12 +44,12 @@ function monter(html) {
 
 /* Jeu fictif : mardi 2 mars 2027 (« aujourd'hui »), mercredi 3, samedi 6. */
 const J = (date, day, dow, we) => ({ date, day, dow, isWeekend: !!we, isFerie: false });
-const jours = [J('2027-03-02', 2, 2), J('2027-03-03', 3, 3), J('2027-03-06', 6, 6, true)];
+const jours = [J('2027-03-02', 2, 2), J('2027-03-03', 3, 3), J('2027-03-06', 6, 6, true), J('2027-03-04', 4, 4)];
 const d = (id, initials, days) => ({ id, initials, days });
 const MOIS = [{ id: 'm3', year: 2027, month: 3, days: jours, doctors: [
   // QB, garde de MATERNITÉ, listé AVANT le médecin de réanimation
   d('QB', 'QB', [{ status: 'G2', morning: 'MAT' }, {}, {}]),
-  d('QA', 'QA', [{ status: 'G', morning: 'REA', afternoon: 'REA' }, {}, {}]),
+  d('QA', 'QA', [{ status: 'G', morning: 'REA', afternoon: 'REA' }, {}, {}, { status: 'G' }]),
   d('QC', 'QC', [{ status: '18', morning: 'VIS', afternoon: 'VIS' }, {}, {}]),
   // le MAR connecté : viscéral le matin, consultation libérale d'endoscopie l'après-midi
   d('MOI', 'QM', [{ status: '', morning: 'VIS', afternoon: 'CS-END', lib: true }, { status: 'G', morning: 'REA' }, {}]),
@@ -92,7 +92,7 @@ const aimant = (C, init) => [...C.querySelectorAll('.jb-aim')].filter(a => a.fir
   const duo = [...nuit.querySelectorAll('.jb-duo > div')].map(txt);
   V('réanimation AVANT maternité, même si la maternité est listée en premier', duo[0] === 'QARéa' && duo[1] === 'QBMaternité', duo);
   V('« Réa » et « Maternité » avec une majuscule', duo.every(x => /Réa$|Maternité$/.test(x)), duo);
-  V('le lendemain soir : réanimation puis maternité', /Le lendemain soir : QM et QD/.test(txt(nuit)), txt(nuit));
+  V('aujourd\'hui : « Demain soir », réanimation puis maternité', /Demain soir : QM et QD/.test(txt(nuit)) && !/lendemain/.test(txt(nuit)), txt(nuit));
   V('le MAR connecté de garde demain n\'est pas dit « c\'est vous » ce soir', !/c’est vous/.test(txt(nuit)));
 
   console.log('\n═══ P2. Votre journée ═══');
@@ -132,6 +132,7 @@ const aimant = (C, init) => [...C.querySelectorAll('.jb-aim')].filter(a => a.fir
   console.log('\n═══ P6. Un autre jour, le week-end, sans connexion MAR, en sombre ═══');
   C = jour(w, '2027-03-03', true);
   V('un autre jour : « De garde la nuit » et « c\'est vous »', /De garde la nuit/.test(txt(C.querySelector('.jb-nuit'))) && /c’est vous/.test(txt(C.querySelector('.jb-nuit'))));
+  V('un autre jour : « Le lendemain soir », pas « Demain soir »', /Le lendemain soir : QA/.test(txt(C.querySelector('.jb-nuit'))), txt(C.querySelector('.jb-nuit')));
   V('« garde ce soir » sur votre journée', /garde ce soir/.test(txt(C.querySelector('.jb-vous'))));
   C = jour(w, '2027-03-06', true);
   V('week-end : pas de secteurs, la mention du week-end', !C.querySelector('.jb-plaque') && /pas de programme opératoire/.test(txt(C)));

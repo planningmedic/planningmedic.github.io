@@ -2978,7 +2978,7 @@ function renderMobileDay() {
       + '<svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#F2C46B" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20 14.5A8 8 0 1 1 9.5 4a6.5 6.5 0 0 0 10.5 10.5z"/></svg>'
       + '<div class="jb-nuit-t"><h2>'+(isToday?'De garde ce soir':'De garde la nuit')+'</h2>'+(nuit.some(g=>g.i===MY_INIT)?'<span class="jb-vous-nuit">c’est vous</span>':'')+'</div>'
       + '<div class="jb-duo">'+nuit.map(g=>'<div>'+aim(g.i,{duty:false})+'<small>'+(g.st==='G'?'Réa':'Maternité')+'</small></div>').join('')+'</div></div>'
-      + (dem.length?'<div class="jb-demain">Le lendemain soir : '+dem.map(g=>esc(g.i)).join(' et ')+'</div>':'')+'</section>';
+      + (dem.length?'<div class="jb-demain">'+(isToday?'Demain soir':'Le lendemain soir')+' : '+dem.map(g=>esc(g.i)).join(' et ')+'</div>':'')+'</section>';
   }
 
   // Votre journée (MAR connecté)
