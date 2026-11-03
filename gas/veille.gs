@@ -57,7 +57,7 @@
 //  instantané unique et partagé : chantier séparé.
 // ══════════════════════════════════════════════════════════════════════
 
-const GAS_VERSION_VEILLE = '2026-11-02.1';
+const GAS_VERSION_VEILLE = '2026-11-03.1';
 
 const VEILLE_CFG_TAB = 'VEILLE_CFG';
 const VEILLE_TAB     = 'VEILLE';
@@ -124,7 +124,7 @@ const VEILLE_DEFAULT_CFG = [
   ['GENERAL', 'Chest',             'Chest',             'O'],
   ['GENERAL', 'Lancet Respir Med', 'Lancet Respir Med', 'O'],
 
-  // ── 21 thèmes, en TITRE/RÉSUMÉ (pas en MeSH : disponible dès la
+  // ── 22 thèmes (21 + Allergie le 03/11/2026), en TITRE/RÉSUMÉ (pas en MeSH : disponible dès la
   //    parution, donc aucun retard d'indexation) ────────────────────
   ['THEME', 'Voies aériennes',
     '"intubation"[tiab] OR "extubation"[tiab] OR "difficult airway"[tiab] OR "airway management"[tiab] OR "videolaryngoscopy"[tiab] OR "video laryngoscopy"[tiab] OR "laryngoscopy"[tiab] OR "laryngeal mask"[tiab] OR "supraglottic airway"[tiab] OR "preoxygenation"[tiab] OR "cricothyroidotomy"[tiab] OR "tracheostomy"[tiab]', 'O'],
@@ -145,7 +145,7 @@ const VEILLE_DEFAULT_CFG = [
   ['THEME', 'Neurologie et délire',
     '"delirium"[tiab] OR "postoperative cognitive"[tiab] OR "neurocognitive"[tiab] OR "anesthetic depth"[tiab] OR "anaesthetic depth"[tiab] OR "processed EEG"[tiab] OR "bispectral"[tiab] OR "traumatic brain injury"[tiab] OR "intracranial pressure"[tiab] OR "perioperative stroke"[tiab] OR "sedation depth"[tiab] OR "sedation practice"[tiab]', 'O'],
   ['THEME', 'Médecine périopératoire',
-    '"postoperative complications"[tiab] OR "prehabilitation"[tiab] OR "enhanced recovery"[tiab] OR "ERAS"[tiab] OR "frailty"[tiab] OR "preoperative assessment"[tiab] OR "preoperative optimization"[tiab] OR "postoperative outcome"[tiab] OR "postoperative outcomes"[tiab] OR "postoperative mortality"[tiab] OR "myocardial injury"[tiab] OR "perioperative medicine"[tiab]', 'O'],
+    '"postoperative complications"[tiab] OR "prehabilitation"[tiab] OR "enhanced recovery"[tiab] OR "ERAS"[tiab] OR "frailty"[tiab] OR "preoperative assessment"[tiab] OR "preoperative optimization"[tiab] OR "postoperative outcome"[tiab] OR "postoperative outcomes"[tiab] OR "postoperative mortality"[tiab] OR "myocardial injury"[tiab] OR "perioperative medicine"[tiab] OR "shared decision making"[tiab] OR "high risk surgical"[tiab] OR "high risk surgery"[tiab]', 'O'],
   ['THEME', 'Agents et pharmacologie',
     '"propofol"[tiab] OR "sevoflurane"[tiab] OR "desflurane"[tiab] OR "remimazolam"[tiab] OR "dexmedetomidine"[tiab] OR "remifentanil"[tiab] OR "sufentanil"[tiab] OR "neuromuscular block"[tiab] OR "neuromuscular blockade"[tiab] OR "rocuronium"[tiab] OR "sugammadex"[tiab] OR "total intravenous"[tiab] OR "target controlled infusion"[tiab] OR "isoflurane"[tiab] OR "inhaled sedation"[tiab] OR "esketamine"[tiab]', 'O'],
   ['THEME', 'Obstétrique',
@@ -168,6 +168,10 @@ const VEILLE_DEFAULT_CFG = [
     '"patient safety"[tiab] OR "medication error"[tiab] OR "medication errors"[tiab] OR "checklist"[tiab] OR "human factors"[tiab] OR "critical incident"[tiab] OR "near miss"[tiab] OR "morbidity conference"[tiab] OR "burnout"[tiab] OR "wrong site"[tiab]', 'O'],
   ['THEME', 'Simulation et formation',
     '"simulation based"[tiab] OR "simulation training"[tiab] OR "high fidelity simulation"[tiab] OR "medical education"[tiab] OR "competency based"[tiab] OR "learning curve"[tiab] OR "curriculum"[tiab]', 'O'],
+  /* (03/11/2026, accord du responsable) Aucun thème ne couvrait l'allergie : « Use of perioperative
+     allergy labels appears to be harming, not helping, patients » (BJA) n'était jamais entré. */
+  ['THEME', 'Allergie et anaphylaxie',
+    '"anaphylaxis"[tiab] OR "anaphylactic"[tiab] OR "allergy"[tiab] OR "allergies"[tiab] OR "allergic reaction"[tiab] OR "allergic reactions"[tiab] OR "drug hypersensitivity"[tiab] OR "allergy label"[tiab] OR "allergy labels"[tiab] OR "delabelling"[tiab] OR "delabeling"[tiab]', 'O'],
 
   // ── Liste blanche de types — axe GENERAL uniquement ───────────────
   ['PUBTYPE', 'ECR',        'Randomized Controlled Trial', 'O'],
@@ -454,8 +458,10 @@ const VEILLE_TITRE_LARGES = ['bleeding', 'hemorrhage', 'haemorrhage', 'transfusi
   'antibiotic', 'antibiotics', 'antimicrobial', 'pneumonia', 'nutrition', 'nutritional', 'enteral', 'parenteral',
   'heparin', 'anticoagulant', 'anticoagulation', 'antiplatelet', 'vomiting', 'opioid', 'opioids', 'analgesic',
   'analgesia', 'morphine', 'frailty', 'curriculum', 'burnout', 'checklist', 'medical education', 'learning curve',
-  'pulmonary embolism', 'venous thromboembolism', 'deep vein thrombosis', 'bacteremia', 'bacteraemia'];
-const VEILLE_TITRE_CONTEXTE = /surg|operat|an(a)?esth|critically ill|critical care|intensive care|\bICUs?\b|PICU|trauma|sepsis|septic|shock|cardiac arrest|resuscitat|emergenc|ventilat|intubat|airway|cesarean|caesarean|labou?r|postpartum|parturient|block|hospitali[sz]ed|inpatient/i;
+  'pulmonary embolism', 'venous thromboembolism', 'deep vein thrombosis', 'bacteremia', 'bacteraemia',
+  // (03/11/2026) l'allergie alimentaire d'un essai du NEJM n'est pas notre métier ; « perioperative allergy » l'est
+  'allergy', 'allergies', 'allergic reaction', 'allergic reactions', 'anaphylaxis', 'anaphylactic'];
+const VEILLE_TITRE_CONTEXTE = /surg|operat|an(a)?esth|critically ill|critical care|intensive care|\bICUs?\b|PICU|trauma|sepsis|septic|shock|cardiac arrest|resuscitat|emergenc|ventilat|intubat|airway|cesarean|caesarean|labou?r|postpartum|parturient|block|hospitali[sz]ed|inpatient|peri-?procedur/i;   // (03/11) « periprocedural » : consensus GIHP/SFAR sur le risque hémorragique, noté 43 faute de contexte
 /* (23/10/2026, soir) Les mots qui disent simplement « c'est de la réa » ou « c'est de l'anesthésie ».
    Aucun de nos 21 thèmes ne les contenait : « Sodium Bicarbonate for Critically Ill Adults with
    Metabolic Acidosis and Shock » (NEJM), PRESSURE, GASTRIC-PICU (JAMA), la recommandation AHA 2026
@@ -1434,7 +1440,7 @@ const VEILLE_MAIL_N = 10;
 const VEILLE_MAIL_PALIERS = [66, 62, 57, 53];   // (23/10) recalés sur l'échelle fine : même niveau d'articles qu'avec 75 → 70 → 65 → 60
 const VEILLE_THEMES_REA = ['Ventilation et SDRA', 'Sepsis et infection', 'Arrêt cardiaque', 'Insuffisance rénale', 'Nutrition'];
 const VEILLE_THEMES_ANESTH = ['Voies aériennes', 'Anesthésie locorégionale', 'Douleur périopératoire', 'Agents et pharmacologie',
-                              'Obstétrique', 'Pédiatrie', 'NVPO', 'Ambulatoire', 'Médecine périopératoire'];
+                              'Obstétrique', 'Pédiatrie', 'NVPO', 'Ambulatoire', 'Médecine périopératoire', 'Allergie et anaphylaxie'];
 
 /* 'rea' | 'anesth' | 'mixte' — le titre d'abord, les thèmes ensuite. */
 function _veilleCote(titre, themes) {
@@ -1677,6 +1683,10 @@ const VEILLE_VOCAB_20OCT = [
   { theme: 'Arrêt cardiaque', retirer: ['resuscitation'], ajouter: ['chest compression'] },
   { theme: 'Ventilation et SDRA', retirer: [], ajouter: ['mechanically ventilated', 'acute respiratory failure', 'hypoxemic respiratory failure', 'hypoxaemic respiratory failure'] },
   { theme: 'Agents et pharmacologie', retirer: [], ajouter: ['isoflurane', 'inhaled sedation', 'esketamine'] },
+  /* (03/11/2026, accord du responsable) Le Delphi du BJA sur la décision partagée chez l'opéré à haut
+     risque n'avait aucun thème ; l'allergie n'avait pas de thème du tout (créé s'il manque). */
+  { theme: 'Médecine périopératoire', retirer: [], ajouter: ['shared decision making', 'high risk surgical', 'high risk surgery'] },
+  { theme: 'Allergie et anaphylaxie', creer: true, retirer: [], ajouter: ['anaphylaxis', 'anaphylactic', 'allergy', 'allergies', 'allergic reaction', 'allergic reactions', 'drug hypersensitivity', 'allergy label', 'allergy labels', 'delabelling', 'delabeling'] },
 ];
 function veilleMajVocabulaire() {
   const cfg = SpreadsheetApp.getActiveSpreadsheet().getSheetByName(VEILLE_CFG_TAB);
@@ -1684,6 +1694,13 @@ function veilleMajVocabulaire() {
   const data = cfg.getDataRange().getValues();
   const changes = [];
   VEILLE_VOCAB_20OCT.forEach(function (m) {
+    const existe = data.some(function (l, r) { return r > 0 && String(l[0]).trim().toUpperCase() === 'THEME' && String(l[1]).trim() === m.theme; });
+    if (!existe && m.creer) {   // (03/11) thème absent : une ligne neuve, active
+      const valeur = m.ajouter.map(function (e) { return '"' + e + '"[tiab]'; }).join(' OR ');
+      cfg.getRange(cfg.getLastRow() + 1, 1, 1, 4).setValues([['THEME', m.theme, valeur, 'O']]);
+      changes.push(m.theme + ' : thème créé (' + m.ajouter.length + ' expressions)');
+      return;
+    }
     for (let r = 1; r < data.length; r++) {
       if (String(data[r][0]).trim().toUpperCase() !== 'THEME' || String(data[r][1]).trim() !== m.theme) continue;
       const avant = String(data[r][2] || '');

@@ -1344,6 +1344,40 @@ function monde(plan) {
     V('un essai randomisé reste un ECR même si son titre parle de recommandations', /^ECR/.test(ecr.motif), ecr.motif);
   }
 
+  console.log('\n═══ 03/11/2026 — trois « recommandations » de la veille externe : allergie, décision partagée, consensus périprocédural ═══');
+  {
+    const m = monde(() => ({}));
+    vm.runInContext('getOrCreateVeilleTabs()', m.ctx);
+    const jour = new Date().toISOString().slice(0, 10);
+    const thT = t => { m.ctx.__t = t; return Object.keys(vm.runInContext('_veilleThemesTitre(__t, _readVeilleCfg().themes)', m.ctx)); };
+    const godier = 'Procedure-specific bleeding risk assessment: a multidisciplinary expert consensus companion to the 2026 periprocedural anticoagulant management guidelines.';
+    const webster = 'Use of perioperative allergy labels appears to be harming, not helping, patients: risks, systems, and research opportunities';
+    const hughes = 'Conceptual model of multidisciplinary shared decision-making for high-risk surgical patients: a Delphi study';
+    V('consensus GIHP/SFAR « periprocedural » : bleeding et anticoagulant comptent au titre (Hémorragie, Thrombose)', thT(godier).indexOf('Hémorragie et transfusion') !== -1 && thT(godier).indexOf('Thrombose et anticoagulation') !== -1, thT(godier));
+    m.ctx.__f = { titre: godier, revue: 'Anaesth Crit Care Pain Med', resume: 'This multidisciplinary expert consensus proposes a classification of bleeding risk for anticoagulant management.', pubtypes: ['Journal Article'], motscles: [], mesh: [], date: jour };
+    const ng = vm.runInContext('_veilleNote(__f, "REVUE", _veilleThemesLocaux(__f, _readVeilleCfg().themes), "' + jour + '")', m.ctx);
+    V('…noté au-dessus du premier seuil du mail (66), motif « recommandation » (était 43)', ng.note >= 66 && /recommandation/.test(ng.motif) && /thèmes au titre/.test(ng.motif), ng);
+    V('Webster (BJA) : « perioperative allergy labels » → thème Allergie au titre', thT(webster).indexOf('Allergie et anaphylaxie') !== -1, thT(webster));
+    V('…et rangé côté anesthésie pour le mail', vm.runInContext('_veilleCote(' + JSON.stringify('Allergy labels and drug choice') + ', ["Allergie et anaphylaxie"])', m.ctx) === 'anesth');
+    V('Delphi de Hughes (BJA) : décision partagée chez l\'opéré à haut risque → Médecine périopératoire au titre', thT(hughes).indexOf('Médecine périopératoire') !== -1, thT(hughes));
+    V('allergie alimentaire sans contexte (« Oral Immunotherapy for Peanut Allergy in Toddlers », NEJM) : pas de thème Allergie au titre', thT('Oral Immunotherapy for Peanut Allergy in Toddlers').indexOf('Allergie et anaphylaxie') === -1, thT('Oral Immunotherapy for Peanut Allergy in Toddlers'));
+    V('« procedure » seul ne donne pas de contexte (« Bleeding after dental procedures in haemophilia ») : pas d\'Hémorragie au titre', thT('Bleeding after dental procedures in haemophilia').indexOf('Hémorragie et transfusion') === -1);
+    V('la collecte cherche aussi l\'allergie et la décision partagée (requête PubMed)', /"anaphylaxis"\[tiab\]/.test(vm.runInContext('_veilleOrThemes(_readVeilleCfg().themes)', m.ctx)) && /"shared decision making"\[tiab\]/.test(vm.runInContext('_veilleOrThemes(_readVeilleCfg().themes)', m.ctx)));
+    // migration d'un classeur à 21 thèmes
+    const m2 = monde(() => ({})); vm.runInContext('getOrCreateVeilleTabs()', m2.ctx);
+    const c2 = m2.cl.getSheetByName('VEILLE_CFG');
+    c2.lignes = c2.lignes.filter(l => l[1] !== 'Allergie et anaphylaxie');
+    const peri = c2.lignes.find(l => l[1] === 'Médecine périopératoire');
+    peri[2] = peri[2].replace(/ OR "(shared decision making|high risk surgical|high risk surgery)"\[tiab\]/g, '');
+    const nAvant = c2.lignes.length;
+    const r1 = vm.runInContext('veilleMajVocabulaire()', m2.ctx);
+    const allerg = c2.lignes.find(l => l[1] === 'Allergie et anaphylaxie');
+    V('veilleMajVocabulaire sur un classeur à 21 thèmes : la ligne Allergie est créée, active, une seule', !!allerg && allerg[0] === 'THEME' && allerg[3] === 'O' && /"anaphylaxis"\[tiab\]/.test(allerg[2]) && c2.lignes.length === nAvant + 1, allerg);
+    V('…Médecine périopératoire reçoit la décision partagée, 2 changements annoncés', /"shared decision making"\[tiab\]/.test(c2.lignes.find(l => l[1] === 'Médecine périopératoire')[2]) && r1.changes.length === 2, r1);
+    V('…relancée, ne change plus rien (pas de doublon)', vm.runInContext('veilleMajVocabulaire()', m2.ctx).changes.length === 0 && c2.lignes.length === nAvant + 1);
+    V('la configuration lue compte 22 thèmes', vm.runInContext('_readVeilleCfg().themes.length', m2.ctx) === 22);
+  }
+
 console.log(`\n${ok} OK · ${ko} en échec`);
   process.exit(ko ? 1 : 0);
 })();  console.log('\n═══ Passe 4 : le résumé en deux lignes (15/09/2026) ═══');
