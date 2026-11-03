@@ -2526,7 +2526,7 @@ function renderCertificatMAR(list){
       var ec = (+m[a[0]] || 0) - cb;
       if(Math.abs(ec) > Math.abs(worst)){ worst = ec; wax = a[2]; }
     });
-    if(Math.abs(worst) < 1) within1++;
+    if(Math.abs(worst) <= 1) within1++;   // (03/11/2026) parts entières : « à 1 garde près » est l'objectif
     lignes.push({ name: m.name, worst: worst, wax: wax });
   });
   lignes.sort(function(a, b){ return Math.abs(b.worst) - Math.abs(a.worst); });
@@ -2546,7 +2546,7 @@ function renderCertificatMAR(list){
      + (conforme ? ' — équitable' : ' — écarts importants') + '</div>';
   h += '<div style="font-size:12.5px;color:var(--ink-3);line-height:1.5;margin-top:3px">'
      + (conforme
-        ? 'Aucun MAR ne s\u2019écarte de plus de 2 gardes de sa juste part, sur aucun de ses axes.'
+        ? 'Chaque MAR est à <b>1 garde près</b> de sa part, sur chacun de ses compteurs.'
         : flag.length + ' MAR sur ' + nEval + ' s\u2019écartent de plus de 2 gardes de leur juste part.')
      + '</div>';
 
@@ -2557,8 +2557,8 @@ function renderCertificatMAR(list){
   }
   h += '<div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:12px">'
      + (conforme
-        ? carte(within1, 'MAR à moins d\u2019une garde de leur part', '#DCFCE7', VERT)
-          + carte(nEval - within1, 'entre 1 et 2 gardes d\u2019écart', 'var(--white)', '#334155')
+        ? carte(within1 + ' / ' + nEval, 'MAR à 1 garde près de leur part', '#DCFCE7', VERT)
+          + carte(_fmtEcart(Math.abs(lignes[0].worst)), 'plus grand écart, tous MAR et compteurs', 'var(--white)', '#334155')
         : carte(flag.length, 'MAR au-delà de 2 gardes', '#FEE2E2', ROUGE)
           + carte(nEval - flag.length, 'MAR dans leur juste part', 'var(--white)', '#334155'))
      + '</div>';
@@ -2569,7 +2569,7 @@ function renderCertificatMAR(list){
      + (CERT_MAR_DEPLIE ? 'Tous les MAR, du plus fort écart au plus faible' : 'Les cinq écarts les plus forts') + '</div>';
   visibles.forEach(function(x){
     var w = Math.min(50, Math.abs(x.worst) / maxAbs * 50);
-    var col = Math.abs(x.worst) >= SEUIL ? ROUGE : (Math.abs(x.worst) < 1 ? VERT : '#65A30D');
+    var col = x.worst >= SEUIL ? ROUGE : (x.worst <= -SEUIL ? '#1D4ED8' : (Math.abs(x.worst) < 1 ? VERT : '#65A30D'));   // (03/11/2026) bleu en dessous
     var barre = x.worst >= 0
       ? '<div style="position:absolute;left:50%;top:0;bottom:0;width:' + w + '%;background:' + col + ';opacity:.55;border-radius:0 3px 3px 0"></div>'
       : '<div style="position:absolute;right:50%;top:0;bottom:0;width:' + w + '%;background:' + col + ';opacity:.55;border-radius:3px 0 0 3px"></div>';
@@ -2579,7 +2579,7 @@ function renderCertificatMAR(list){
        + '<div style="position:absolute;left:50%;top:-2px;bottom:-2px;width:1px;background:var(--line)"></div>' + barre + '</div>'
        + '<div style="width:50px;text-align:right;font-size:12px;font-weight:800;color:' + col + '">'
        + (x.worst >= 0 ? '+' : '') + _fmtEcart(x.worst) + '</div></div>'
-       + '<div style="font-size:11px;color:var(--ink-4);margin:-2px 0 4px 92px">' + (x.wax || '—') + '</div>';
+       + '<div style="font-size:11px;color:var(--ink-4);margin:-2px 0 4px 92px">' + (x.wax === 'week-ends' ? 'WE' : (x.wax || '—')) + '</div>';
   });
   if(lignes.length > 5){
     h += '<div style="margin-top:6px"><span onclick="certMarBasculer()" style="font-size:12px;font-weight:700;color:var(--ink);'
@@ -2589,9 +2589,9 @@ function renderCertificatMAR(list){
   h += '</div>';
 
   /* (05/09/2026) Texte raccourci — voir admin.html, même formulation. */
-  h += '<div style="font-size:11.5px;color:var(--ink-3);margin-top:11px;line-height:1.55">'
+  h += '<div style="font-size:11.5px;color:var(--ink-3);margin-top:11px;line-height:1.55' + (conforme ? ';margin-right:118px' : '') + '">'   // (03/11/2026) ne pas passer sous le tampon
      + '<b>\u2212</b> moins de gardes que sa part, <b>+</b> davantage. '
-     + 'On retient l\u2019axe le plus tendu de chacun.'
+     + 'On retient le compteur le plus tendu de chacun.'
      + '</div>';
 
   if(conforme){
@@ -2611,9 +2611,34 @@ function paintEquite(wrap, headHtml, list){
   const gridHtml = renderEquiteCards(list, { moiNom: MY_ID ? _meName(MY_ID) : null, ouverts: EQ_OUVERTS, sombre: IS_DARK, neutre: 'var(--surface-2)', axes: AX_EQUITE });
   if(grid && morphGrid(grid, gridHtml)){
     const head = wrap.querySelector('#eqHead'); if(head) head.innerHTML = certHtml + headHtml;
+    eqLignesMoi(wrap, list);
     return;
   }
   wrap.innerHTML = '<div id="eqHead">'+certHtml+headHtml+'</div>' + gridHtml;
+  eqLignesMoi(wrap, list);
+}
+/* (03/11/2026) Deux lignes de plus sur la carte du MAR connecté : sa part, ses
+   fêtes et ses week-ends de garde (planning du jour, échanges compris). */
+function eqLignesMoi(wrap, list){
+  try{
+    const me = wrap.querySelector('.eqv-card.me-card');
+    if(!me || !MY_ID || !DATA || !DATA.months || me.querySelector('.eq-moi')) return;
+    const it = list.find(x => x.name === _meName(MY_ID));
+    if(!it || it.wish) return;
+    const Y = +currentYear, FETES = new Set([Y+'-12-24', Y+'-12-25', Y+'-12-31', (Y+1)+'-01-01']);
+    let fetes = 0; const we = new Set();
+    DATA.months.forEach(m => { const doc = (m.doctors||[]).find(d => d.id === MY_ID); if(!doc) return;
+      (m.days||[]).forEach((j, i) => { const st = (doc.days[i]||{}).status; if(st !== 'G' && st !== 'G2') return;
+        if(FETES.has(j.date)) fetes++;
+        const d = new Date(j.date + 'T12:00:00'), w = d.getDay();
+        if(w === 5 || w === 6 || w === 0){ d.setDate(d.getDate() - ((w + 2) % 7)); we.add(d.toDateString()); } }); });
+    const part = Math.round(+it.cTot || 0), b = t => '<b style="color:var(--ink-2)">' + t + '</b>';
+    const div = document.createElement('div'); div.className = 'eq-moi';
+    div.style.cssText = 'margin-top:10px;padding-top:10px;border-top:1px solid var(--line);font-size:12.5px;color:var(--ink-3);line-height:1.6';
+    div.innerHTML = (part ? '<div>' + b('Votre part : ' + part + ' gardes') + '</div>' : '')
+      + '<div>Fêtes : ' + b(fetes) + ' · Week-ends de garde : ' + b(we.size) + '</div>';
+    me.appendChild(div);
+  }catch(e){}
 }
 function setEquiteSourceIdx(src){
   EQ_SRC_IDX = src;
@@ -2633,15 +2658,7 @@ async function loadEquiteLive(force){
       cSa:_cibNum(s.cSat), cJe:_cibNum(s.cJeu), cVd:_cibNum(s.cVd), cVjf:_cibNum(s.cVjf), cJf:_cibNum(s.cJf),
     }));
     if(!list.length){ wrap.innerHTML = '<div style="padding:30px;text-align:center;color:#94A3B8">Aucune garde dans ce planning.</div>'; return; }
-    const sum=list.reduce((s,a)=>s+a.total,0), mean=sum/list.length;
-    const totals=list.map(a=>a.total), max=Math.max(...totals), min=Math.min(...totals);
-    const html = `<div class="eq-summary">
-      <div class="eq-kpi"><div class="eq-kpi-num">${sum}</div><div class="eq-kpi-lbl">Gardes réparties</div></div>
-      <div class="eq-kpi"><div class="eq-kpi-num">${list.length}</div><div class="eq-kpi-lbl">MAR de garde</div></div>
-      <div class="eq-kpi"><div class="eq-kpi-num">${mean.toFixed(1)}</div><div class="eq-kpi-lbl">Moyenne / MAR</div></div>
-      <div class="eq-kpi"><div class="eq-kpi-num">${min}\u2013${max}</div><div class="eq-kpi-lbl">Étendue</div></div>
-    </div>
-    <div class="eqv-legend">Instantané — gardes réelles, échanges et dons compris · à la minute près · trait = cible (STATS_GARDES) · Lun/Mar/Mer neutres · <button type="button" class="eqv-recalc" onclick="loadEquiteLive(true)">recalculer maintenant</button></div>`;
+    const html = `<div class="eqv-legend">Instantané — gardes réelles, échanges et dons compris · à la minute près · trait = sa part · Lun/Mar/Mer neutres · <button type="button" class="eqv-recalc" onclick="loadEquiteLive(true)">recalculer maintenant</button></div>`;
     paintEquite(wrap, html, list);
   };
   const cached = force ? null : LIVE_CACHE[currentYear];
@@ -2682,19 +2699,13 @@ function renderEquite(){
       return {
         name:nameOf(e.id), wish:_souhaitsGarantisId(e.id), total:e.total, cTot:_cibNum(cb.cible),
         lu:e.lu||0, ma:e.ma||0, me:e.me||0, je:e.je||0, sa:e.sa||0, vd:e.vd||0, jf:e.jf||0, vjf:e.vjf||0,
-        cSa:_cibNum(cb.cSat), cJe:_cibNum(cb.cJeu), cVd:_cibNum(cb.cVd), cVjf:_cibNum(cb.cVjf),
+        cSa:_cibNum(cb.cSat), cJe:_cibNum(cb.cJeu), cVd:_cibNum(cb.cVd), cVjf:_cibNum(cb.cVjf), cJf:_cibNum(cb.cJf),   // (03/11/2026) les fériés comparés à la part, pas à une moyenne
       };
     });
     if(!list.length){ wrap.innerHTML = '<div style="padding:30px;text-align:center;color:#94A3B8">Aucune garde dans ce planning.</div>'; return; }
-    const sum=list.reduce((s,a)=>s+a.total,0), mean=sum/list.length;
-    const totals=list.map(a=>a.total), max=Math.max(...totals), min=Math.min(...totals);
-    const html = `<div class="eq-summary">
-      <div class="eq-kpi"><div class="eq-kpi-num">${sum}</div><div class="eq-kpi-lbl">Gardes r\u00e9parties</div></div>
-      <div class="eq-kpi"><div class="eq-kpi-num">${list.length}</div><div class="eq-kpi-lbl">MAR de garde</div></div>
-      <div class="eq-kpi"><div class="eq-kpi-num">${mean.toFixed(1)}</div><div class="eq-kpi-lbl">Moyenne / MAR</div></div>
-      <div class="eq-kpi"><div class="eq-kpi-num">${min}\u2013${max}</div><div class="eq-kpi-lbl">\u00c9tendue</div></div>
-    </div>
-    <div class="eqv-legend">Barre = r\u00e9el \u00b7 trait = cible (Jeu/Sam/VD/VJF) ou moyenne (JF) \u00b7 Lun/Mar/Mer neutres (hors \u00e9quit\u00e9) \u00b7 <b style="color:#CE1126">rouge</b> \u2265 2 au-dessus \u00b7 <b style="color:#1D4ED8">bleu</b> \u2265 2 en-dessous \u00b7 <b style="color:#15803D">vert</b> \u00e0 \u00b12 de la cible. R\u00e9partition fig\u00e9e \u00e0 la g\u00e9n\u00e9ration ; cibles lues dans STATS_GARDES.</div>`;
+    /* (03/11/2026) Plus de moyenne ni d'étendue : avec des quotités de 50 à 100 %
+       et un régime à part, elles faisaient croire à une injustice qui n'existe pas. */
+    const html = `<div class="eqv-legend">Barre = r\u00e9el \u00b7 trait = sa part \u00b7 Lun/Mar/Mer neutres (hors \u00e9quit\u00e9) \u00b7 <b style="color:#15803D">vert</b> \u00e0 1 garde pr\u00e8s \u00b7 <b style="color:#CE1126">rouge</b> 2 gardes ou plus au-dessus \u00b7 <b style="color:#1D4ED8">bleu</b> 2 gardes ou plus en dessous. R\u00e9partition fig\u00e9e \u00e0 la g\u00e9n\u00e9ration.</div>`;
     paintEquite(wrap, html, list);
   };
   const cached = CIBLES_CACHE[currentYear];

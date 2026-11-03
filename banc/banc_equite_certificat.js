@@ -127,12 +127,16 @@ V('cibles et gardes qui tombent juste : chacun garde sa cible',
   JUSTE.every(m => TJ[m.name].cTot === m.cTot), JUSTE.map(m => TJ[m.name].cTot));
 
 /* Une garde manquante ne se lisse jamais : l'anomalie doit rester visible dans
-   les écarts individuels, pas être répartie sur tout le monde. */
+   les écarts individuels, pas être répartie sur tout le monde.
+   (03/11/2026) Avec des parts ENTIÈRES (celles du générateur depuis 2027), rien
+   n'est plus ramené au réel : le MAR à qui il manque la garde reste à −1, les
+   autres gardent leur part. Avant, la somme des parts suivait le réel et l'écart
+   se diluait — c'est exactement le lissage que ce commentaire interdit. */
 const UNJOUR = JUSTE.map(m => Object.assign({}, m));
 UNJOUR[0].total = 39;
 const TU = fEq(UNJOUR, AXES);
-V('une garde manquante : la somme des cibles suit les gardes réellement posées',
-  UNJOUR.reduce((s, m) => s + TU[m.name].cTot, 0) === UNJOUR.reduce((s, m) => s + m.total, 0),
+V('une garde manquante (parts entières) : chacun garde sa part, l\'écart reste visible chez celui qui l\'a',
+  UNJOUR.every(m => TU[m.name].cTot === m.cTot) && UNJOUR[0].total - TU[UNJOUR[0].name].cTot === -1,
   UNJOUR.map(m => TU[m.name].cTot));
 
 /* (11/09/2026) ÉLIGIBILITÉ. Un MAR dont la cible entière vaut 0 sur un axe rare

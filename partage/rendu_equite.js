@@ -42,6 +42,17 @@
     let sr = 0, sc = 0;
     elig.forEach(m => { sr += +m[rk] || 0; sc += +m[ck] || 0; });
     if(!(sc > 0)) return;
+    /* (03/11/2026) PARTS DU GÉNÉRATEUR, TELLES QUELLES. Depuis 2027, le générateur
+       écrit des parts ENTIÈRES, report de l'année précédente compris : ce sont
+       elles qu'il tient à 1 garde près. Les « ramener au réel » les faussait —
+       sur la simulation 2027 du 03/11, un MAR à régime à part prend 9 nuits de
+       plus que sa part et des vendredis-dimanches sont coupés : les parts
+       baissaient pour tous, deux MAR à +1 passaient à +2 et l'écran annonçait
+       « écarts importants » sur un planning à 1 garde près partout. Décision du
+       responsable : l'écran montre les parts du générateur. La correction ne
+       vaut plus que pour les parts à virgule des années d'avant (2026 : gardes
+       d'un médecin extérieur absent de la liste — voir plus haut). */
+    if(elig.every(m => Number.isInteger(+m[ck] || 0))){ elig.forEach(m => { T[m.name][ck] = +m[ck] || 0; }); return; }
     ECART[ck] = Math.abs(sr - sc) > SEUIL * sc;
     const f = sr / sc;                       // ramène les cibles au réel
     const base = {}; let somme = 0;
@@ -81,7 +92,10 @@
     const d=(+it[a[0]]||0)-t; if(Math.abs(d)>Math.abs(pire)){ pire=d; axe=a[2]; } });
   if(!axe) return {t:'—', c:'var(--ink-3)', pire:0};
   if(pire===0) return {t:'à la cible', c:'#15803D', pire:0};
-  return {t:(pire>0?'+':'')+pire+' '+axe.slice(0,3), c:Math.abs(pire)>=2?'#CE1126':'var(--ink-3)', pire:pire};
+  /* (03/11/2026) Libellés courts fixes (« week-ends » donnait « wee »), et le
+     bleu pour 2 gardes ou plus EN DESSOUS de sa part, comme les barres. */
+  const COURT={'total':'tot','samedis':'sam','jeudis':'jeu','week-ends':'WE','veilles fériés':'VJF','fériés':'JF'};
+  return {t:(pire>0?'+':'')+pire+' '+(COURT[axe]||axe.slice(0,3)), c:pire>=2?'#CE1126':(pire<=-2?'#1D4ED8':'var(--ink-3)'), pire:pire};
 }
 
   /* Rafraîchit une grille déjà affichée sans la reconstruire (pas de saut de
@@ -210,8 +224,8 @@
     const bande=ORDRE.map(([k,ck])=>{
       const t=(ck&&cib&&!_wish&&cib[ck]!==undefined&&!axeAbsent[k])?cib[ck]:undefined;   // (14/09/2026) 0 est une cible
       if(t===undefined) return '<div class="eqv-case" style="background:'+_neutre+'"></div>';
-      const d=Math.abs((+it[k]||0)-t);
-      return '<div class="eqv-case" style="background:'+(d>=2?'#CE1126':'#15803D')+';opacity:'+(d===0?1:(d>=2?1:.35))+'"></div>';
+      const ds=(+it[k]||0)-t, d=Math.abs(ds);   // (03/11/2026) bleu en dessous, comme les barres
+      return '<div class="eqv-case" style="background:'+(ds>=2?'#CE1126':(ds<=-2?'#1D4ED8':'#15803D'))+';opacity:'+(d===0?1:(d>=2?1:.35))+'"></div>';
     }).join('');
     const v=_wish?{t:'souhaits',c:'#7c3aed'}:window.eqVerdict(it,cib,opts.axes || window.AX_EQUITE);
     // Le MAR connecté est TOUJOURS déplié : c'est sa carte qu'il vient voir.
