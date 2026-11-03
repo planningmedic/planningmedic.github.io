@@ -41,8 +41,8 @@
 // ⚠️ RÈGLE (détecteur de dérive dépôt↔Apps Script) : incrémenter cette version
 // à CHAQUE push de ce fichier. Le diagnostic (admin → Maintenance) compare la
 // version déployée ici avec celle du dépôt et signale toute recopie oubliée.
-const GAS_VERSION_GENERATEUR = '2026-10-27.1';   // (27/10/2026) demi-journées de vacances VM/VA : pas de garde le jour ni la veille, recopiées dans GARDES
-// précédente : '2026-10-24.3'
+const GAS_VERSION_GENERATEUR = '2026-11-03.1';   // (03/11/2026) période tendue sans solution parfaite : le moins possible de doubles week-ends, au lieu de les subir au fil de l'eau
+// précédente : '2026-10-27.1'
 
 /* (05/09/2026) INTERRUPTEUR DU NOUVEL ALGORITHME — récit : docs/JOURNAL-Planning-Med.md §101 */
 const NOUVEL_ALGO_GLOBAL = true;
@@ -1273,6 +1273,26 @@ function generateGardes(year, opts){
     return false;
   }
 
+  /* (03/11/2026) DEUX WEEK-ENDS D'AFFILÉE — la règle, isolée pour servir à deux
+     endroits : l'interdit de blocked(), et le coût de la seconde recherche des
+     périodes tendues (section 8a). Même texte qu'avant, sorti de blocked(). */
+  function deuxWeAffilee(id,date){
+    const _di=dayByDate[date];
+    if(!_di||(_di.dow!==5&&_di.dow!==6&&_di.dow!==0)) return false;
+    const _b=new Date(date+'T12:00:00');
+    for(let _n=-9;_n<=9;_n++){
+      if(_n>=-4&&_n<=4) continue;                 // le week-end courant lui-même
+      const _x=new Date(_b); _x.setDate(_b.getDate()+_n);
+      const _xs=toDateStr(_x), _dx=dayByDate[_xs];
+      if(!_dx) continue;
+      if(_dx.dow!==5&&_dx.dow!==6&&_dx.dow!==0) continue;
+      if((gSet[id]?.has(_xs)||g2Set[id]?.has(_xs)) && !(weSouhaite(id,date)&&weSouhaite(id,_xs))) return true;
+    }
+    return false;
+  }
+  /* Vrai seulement pendant la seconde recherche d'une période tendue : l'interdit
+     y devient un coût très lourd (voir section 8a). Partout ailleurs : faux. */
+  let toleranceDeuxWE=false;
   function blocked(id,date,_relaxJS){
     if(indispoIndividuelle(id,date)) return true;
     if(rgSet[id].has(date)||rSet[id]?.has(date)) return true;
@@ -1287,20 +1307,10 @@ function generateGardes(year, opts){
         if(gSet[id]?.has(sat)||g2Set[id]?.has(sat)) return true;}
     }
     /* (05/09/2026) DEUX WEEK-ENDS DE GARDE D'AFFILÉE — récit : docs/JOURNAL-Planning-Med.md §117 */
-    if(NOUVEL_ALGO && _di && !_relaxJS && (_di.dow===5||_di.dow===6||_di.dow===0)){
-      const _b=new Date(date+'T12:00:00');
-      for(let _n=-9;_n<=9;_n++){
-        if(_n>=-4&&_n<=4) continue;                 // le week-end courant lui-même
-        const _x=new Date(_b); _x.setDate(_b.getDate()+_n);
-        const _xs=toDateStr(_x), _dx=dayByDate[_xs];
-        if(!_dx) continue;
-        if(_dx.dow!==5&&_dx.dow!==6&&_dx.dow!==0) continue;
-        /* (10/10/2026) Deux week-ends d'affilée restent interdits… SAUF si le MAR
-           a lui-même souhaité les deux. L'algorithme ne les enchaîne jamais de
-           lui-même ; il ne refuse plus ce qu'on lui demande explicitement. */
-        if((gSet[id]?.has(_xs)||g2Set[id]?.has(_xs)) && !(weSouhaite(id,date)&&weSouhaite(id,_xs))) return true;
-      }
-    }
+    /* (10/10/2026) Deux week-ends d'affilée restent interdits… SAUF si le MAR
+       a lui-même souhaité les deux. L'algorithme ne les enchaîne jamais de
+       lui-même ; il ne refuse plus ce qu'on lui demande explicitement. */
+    if(NOUVEL_ALGO && _di && !_relaxJS && !toleranceDeuxWE && deuxWeAffilee(id,date)) return true;
     if(tropDense(id,[date])) return true;
     return false;   // le reste est dans indispoIndividuelle() — source unique
   }
@@ -1891,7 +1901,7 @@ function generateGardes(year, opts){
      Aucune solution dans le budget → la période est laissée au placement
      habituel, inchangé. Les MAR à régime à part (souhaits plafonnés) n'y sont
      pas placés : ils n'ont que leurs souhaits. */
-  const FRAC_TENSION = 0.5, FUSION_TENSION = 6, BUDGET_TENSION = 4000;
+  const FRAC_TENSION = 0.5, FUSION_TENSION = 6, BUDGET_TENSION = 4000, COUT_DEUX_WE = 500, COUT_JEUDI_SAMEDI = 200;
   const periodesTendues = [];
   if(NOUVEL_ALGO){
     const _cands = gardeDoctors.filter(id=>!SOUHAIT_PLAFOND.has(id));
@@ -1955,6 +1965,9 @@ function generateGardes(year, opts){
         Object.keys(r).forEach(k=>{ r[k]=Math.min(r[k],Math.floor(cibleExacte[id][_AXP[k]]||0)); });
         reserve[id]=r; });
       const coutPose = (id,un) => { let d=0; const c=un.c;
+        // (03/11/2026) seconde recherche : chaque double week-end coûte plus que tout le reste réuni
+        if(toleranceDeuxWE && un.jours.some(ds=>deuxWeAffilee(id,ds))) d+=COUT_DEUX_WE;
+        if(toleranceDeuxWE && un.jours.some(ds=>jeudiSamedi(id,ds))) d+=COUT_JEUDI_SAMEDI;
         Object.keys(_W).forEach(k=>{ if(!c[k]) return; const e=att[id][k], a=X[id][k]; d+=_W[k]*((a+c[k]-e)*(a+c[k]-e)-(a-e)*(a-e)); });
         if(_souhaite(id,un)) d-=3;
         else if(_souhAilleurs[id]) d+=3;     // il a demandé une AUTRE nuit de la période : la lui garder
@@ -1966,7 +1979,15 @@ function generateGardes(year, opts){
         Object.keys(un.c).forEach(k=>X[id][k]+=un.c[k]); return tr; };
       const retirer = (id,un,tr) => { un.jours.forEach(ds=>gSet[id].delete(ds)); tr.forEach(r=>rgSet[id].delete(r));
         Object.keys(un.c).forEach(k=>X[id][k]-=un.c[k]); };
-      const libre = (id,un) => un.jours.every(ds=>!blocked(id,ds)) && !tropDense(id,un.jours);
+      /* Seconde recherche : le jeudi→samedi devient lui aussi un coût (plus léger
+         que le double week-end), comme le faisait déjà le dernier recours. Sans
+         cela, un samedi que seul un MAR de garde le jeudi peut tenir forçait un
+         second double week-end. Toutes les autres règles restent des interdits. */
+      const libre = (id,un) => un.jours.every(ds=>!blocked(id,ds,toleranceDeuxWE)) && !tropDense(id,un.jours);
+      const jeudiSamedi = (id,ds) => { const d=dayByDate[ds]; if(!d) return false;
+        if(d.dow===6){ const j=_sd(ds,-2), dj=dayByDate[j]; return !!dj&&!dj.isFerie&&(gSet[id]?.has(j)||g2Set[id]?.has(j)); }
+        if(d.dow===4&&!d.isFerie){ const sa=_sd(ds,2); return gSet[id]?.has(sa)||g2Set[id]?.has(sa); }
+        return false; };
       // Ordre de résolution : les unités au plus petit vivier d'abord (les week-ends
       // tendus), à égalité dans l'ordre du calendrier. Le jour ordinaire, qui a de la
       // marge, s'arrange ensuite autour.
@@ -1978,38 +1999,70 @@ function generateGardes(year, opts){
       unites.forEach(un=>{ un.voisins=unites.filter(v=>v!==un&&Math.abs(v.pos-un.pos)<=10); });
       let noeuds=0, meilleur=null, meilleurCout=Infinity;
       const choix=[], fait=new Set();
-      const rec = (k,cout) => {
+      /* nd : doubles week-ends déjà posés dans la branche (seconde recherche
+         seulement ; toujours 0 sinon). Une branche qui en compte déjà plus que la
+         meilleure solution connue est abandonnée : le budget d'essais sert à
+         chercher MOINS de doubles, pas à polir une solution déjà battue. */
+      let meilleurND=Infinity;
+      const rec = (k,cout,nd=0) => {
         if(++noeuds>BUDGET_TENSION) return;
-        if(k===unites.length){ if(cout<meilleurCout){ meilleurCout=cout; meilleur=unites.map(u=>choix[unites.indexOf(u)]); } return; }
+        if(nd>meilleurND) return;
+        if(k===unites.length){ if(nd<meilleurND||(nd===meilleurND&&cout<meilleurCout)){ meilleurND=nd; meilleurCout=cout; meilleur=unites.map(u=>choix[unites.indexOf(u)]); } return; }
         // regard en avant : chaque unité voisine encore libre garde au moins 2 candidats
         if(k>0){ const prec=unites[k-1];
           for(const v of prec.voisins){ if(fait.has(v)) continue; let n=0; for(const id of _cands){ if(libre(id,v)&&++n>=2) break; } if(n<2) return; } }
         const un=unites[k];
-        const L=_cands.filter(id=>libre(id,un)).map(id=>[id,coutPose(id,un)]).sort((a,b)=>a[1]-b[1]);
+        const _dbl = id => toleranceDeuxWE && un.jours.some(ds=>deuxWeAffilee(id,ds)) ? 1 : 0;
+        const L=_cands.filter(id=>libre(id,un)).map(id=>[id,coutPose(id,un),_dbl(id)]).sort((a,b)=>a[1]-b[1]);
         const paires=[];
         for(let a=0;a<L.length;a++) for(let b=a+1;b<L.length;b++){
-          let c=L[a][1]+L[b][1]; if(evite(L[a][0],L[b][0],un.jours)) c+=1000; paires.push([L[a][0],L[b][0],c]); }
+          let c=L[a][1]+L[b][1]; if(evite(L[a][0],L[b][0],un.jours)) c+=1000; paires.push([L[a][0],L[b][0],c,L[a][2]+L[b][2]]); }
         paires.sort((p,q)=>p[2]-q[2]);
-        for(const [A,B,c] of paires){
+        for(const [A,B,c,n2] of paires){
           if(noeuds>BUDGET_TENSION) return;
           const tA=poser(A,un);
           if(!libre(B,un)){ retirer(A,un,tA); continue; }
           const tB=poser(B,un);
-          choix[k]=[A,B]; fait.add(un); rec(k+1,cout+c); fait.delete(un); choix[k]=undefined;
+          choix[k]=[A,B]; fait.add(un); rec(k+1,cout+c,nd+n2); fait.delete(un); choix[k]=undefined;
           retirer(B,un,tB); retirer(A,un,tA);
         }
       };
       rec(0,0);
+      /* (03/11/2026) SECONDE RECHERCHE — décision du responsable : « trouver des
+         parades pour ne pas avoir 2 WE d'affilée ». Constaté sur 2027 (onglet du
+         02/11) : le week-end du 20-22/08 demande 4 MAR et 3 seulement sortent
+         d'un week-end libre. Aucune solution parfaite : la période partait au fil
+         de l'eau, et le dernier recours lâchait la règle sans compter — 2 MAR à
+         deux week-ends de suite. Ici, la même recherche est relancée avec la
+         règle changée en coût très lourd : la solution retenue en fait le MOINS
+         possible (1 sur ce cas), et le comité est prévenu nommément. Toutes les
+         autres règles strictes restent strictes. */
+      let _toleree=false;
+      if(!meilleur){
+        toleranceDeuxWE=true;
+        unites.forEach(un=>{ un.viv=_cands.filter(id=>libre(id,un)).length; });
+        unites.sort((a,b)=>(a.viv-b.viv)||(a.pos-b.pos));
+        unites.forEach(un=>{ un.voisins=unites.filter(v=>v!==un&&Math.abs(v.pos-un.pos)<=10); });
+        noeuds=0; meilleurCout=Infinity; meilleurND=Infinity; rec(0,0);
+        toleranceDeuxWE=false;
+        _toleree=!!meilleur;
+      }
       const deb=allDays[i0].date, fin=allDays[i1].date;
       if(!meilleur){ periodesTendues.push({deb,fin,unites:unites.length,resolue:false});
         warnings.push(`Période tendue ${deb}→${fin} : pas de solution trouvée d'un bloc, posée au fil de l'eau`); return; }
       // ── engagement, dans l'ordre du calendrier
       const _ordre = unites.map((u,k)=>[u,meilleur[k]]).sort((a,b)=>a[0].pos-b[0].pos);
+      const _doublesWE=[], _jeudisSam=[];
       _ordre.forEach(([un,AB])=>{ const [A,B]=AB; const [g,g2]=assignRoles(A,B);
+        if(_toleree) [A,B].forEach(m=>{ if(un.jours.some(ds=>deuxWeAffilee(m,ds))) _doublesWE.push(m+' '+un.jours[0]);
+          if(un.jours.some(ds=>jeudiSamedi(m,ds))) _jeudisSam.push(m+' '+un.jours[0]); });
         if(un.type==='vd'){ cnt[A].vd++; cnt[B].vd++; }
         [A,B].forEach(m=>{ if(_souhaite(m,un)){ souhaitHonored[m]++; un.jours.forEach(ds=>_slotSouhait.add(ds+'|'+m)); } });
         un.jours.forEach(ds=>assign(ds,g,g2,dayByDate[ds].isFerie&&dayByDate[ds].dow===4?4:dayByDate[ds].dow)); });
-      periodesTendues.push({deb,fin,unites:unites.length,resolue:true,noeuds});
+      periodesTendues.push({deb,fin,unites:unites.length,resolue:true,noeuds,doublesWE:_doublesWE,jeudisSamedi:_jeudisSam});
+      if(_toleree) warnings.push(`Période tendue ${deb}→${fin} : aucune répartition parfaite — le moins trouvé : `
+        + `${_doublesWE.length} double(s) week-end${_doublesWE.length?' ('+_doublesWE.join(', ')+')':''}, `
+        + `${_jeudisSam.length} jeudi→samedi${_jeudisSam.length?' ('+_jeudisSam.join(', ')+')':''}`);
       Logger.log(`Période tendue ${deb}→${fin} : ${unites.length} unités posées d'un bloc (${noeuds} essais)`);
     });
   }
