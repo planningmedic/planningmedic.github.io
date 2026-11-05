@@ -5,7 +5,11 @@
 <!-- Pense-bête « Mes patients lib » — page AUTONOME (30/09/2026).
      Remplacement temporaire, en attendant un module libéral utilisable en
      consultation : date opératoire + secteur + assuré (Monaco / France, 26/10/2026)
-     + initiales, et rien d'autre.
+     + patient, et rien d'autre.
+     (05/11/2026) « Patient » en texte libre (nom prénom, 40 caractères), gardé tel
+     qu'il est tapé ; les anciennes initiales restent valables. Le widget ne reçoit
+     que les INITIALES, calculées ici par initialesDe() : le nom ne quitte jamais
+     le téléphone (le banc le vérifie).
      ⚠️ Les saisies restent dans CE navigateur (stockage local du téléphone) :
      aucun appel réseau, aucune police ni script extérieur, rien vers le portail,
      le classeur ou le dépôt. Le banc (banc/banc_pense_bete.js) le vérifie.
@@ -99,8 +103,8 @@ input:focus-visible,button:focus-visible{outline:2px solid var(--acc);outline-of
 .pt{position:relative;display:flex;align-items:center;gap:12px;min-height:52px;padding:6px 14px 6px 16px;background:var(--card);
   transition:transform .2s;touch-action:pan-y;cursor:pointer;-webkit-user-select:none;user-select:none}
 .pt.glisse{transition:none}
-.pt .i{font-weight:700;font-size:19px;letter-spacing:.04em;min-width:56px}
-.pt .s{color:var(--mute);flex:1}
+.pt .i{font-weight:700;font-size:17px;letter-spacing:.01em;min-width:56px;flex:0 1 auto;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.pt .s{color:var(--mute);flex:1 0 auto}
 .pt .chev{color:var(--past);font-size:20px;line-height:1}
 .x{font:inherit;background:none;border:0;color:var(--mute);font-size:22px;width:40px;height:40px;cursor:pointer;border-radius:8px}
 .ptw .x{position:absolute;top:0;right:0;bottom:0;width:92px;height:auto;border-radius:0;background:var(--del);color:#FFFFFF;font-size:15px;font-weight:600}
@@ -424,7 +428,7 @@ button.jr{font:inherit;color:inherit;background:none;border:0;border-bottom:1px 
     </details>
   <section class="reg sv" id="sv">
     <h3>Sauvegarde</h3>
-    <p class="note" style="margin-top:4px">Un fichier avec vos patients et votre Compteur. Rangez-le dans Fichiers ou iCloud : il contient des initiales et des montants, gardez-le pour vous.</p>
+    <p class="note" style="margin-top:4px">Un fichier avec vos patients et votre Compteur. Rangez-le dans Fichiers ou iCloud : il contient les noms de vos patients et des montants, gardez-le pour vous.</p>
     <div class="row2">
       <button type="button" class="svb" id="svExp">Sauvegarder</button>
       <button type="button" class="svb" id="svImp">Restaurer</button>
@@ -458,7 +462,7 @@ button.jr{font:inherit;color:inherit;background:none;border:0;border-bottom:1px 
       <div class="chips deux" id="pAss" role="radiogroup" aria-labelledby="assLbl">
         <button type="button" class="chip" role="radio" data-a="mc" aria-checked="false">Monaco</button>
         <button type="button" class="chip" role="radio" data-a="fr" aria-checked="false">France</button></div></div>
-    <div class="f" style="margin-top:12px"><label for="ini">Initiales</label><input id="ini" maxlength="8" required autocapitalize="characters"></div>
+    <div class="f" style="margin-top:12px"><label for="ini">Patient</label><input id="ini" maxlength="40" required autocapitalize="words" placeholder="Nom prénom"></div>
     <button class="add" type="submit" id="pGo">Ajouter</button>
     <p class="msg" id="msg" role="status"></p>
     <p class="pok" id="pRes" role="status"></p>
@@ -545,7 +549,7 @@ function render(){
 
 /* ══ PANNEAU DU BAS (30/10/2026) ═══════════════════════════════════════════
    Ajouter : le panneau reste ouvert après chaque ajout (date et secteur gardés,
-   assurance et initiales vidées) ; « OK » le ferme.
+   assurance et patient vidés) ; « OK » le ferme.
    Modifier : toucher un patient ouvre le panneau rempli ; « Enregistrer »
    change CE patient (même identifiant), « Annuler » referme sans rien changer.
    Le choix date / secteur de la saisie en cours est remis en place après. */
@@ -576,8 +580,8 @@ $('pDel').addEventListener('click',()=>{ const id=edit && edit.id; fermerFiche()
 
 $('frm').addEventListener('submit',e=>{
   e.preventDefault();
-  const d=$('dt').value, s=SEC, i=$('ini').value.trim().toUpperCase();
-  if(!d||!s||!PASS||!i){ $('msg').textContent=!s?'Touchez un secteur.':!PASS?'Touchez Monaco ou France.':'Date et initiales sont nécessaires.'; return; }
+  const d=$('dt').value, s=SEC, i=$('ini').value.trim().replace(/\s+/g,' ');
+  if(!d||!s||!PASS||!i){ $('msg').textContent=!s?'Touchez un secteur.':!PASS?'Touchez Monaco ou France.':'Date et patient sont nécessaires.'; return; }
   if(edit){                                       // (30/10) modifier : même patient, même identifiant
     const p=L.find(x=>x.id===edit.id);
     if(p){ p.d=d; p.s=s; p.i=i; p.a=PASS; save(); freshId=p.id; }
@@ -1281,7 +1285,7 @@ const PB=(function(){
    Éteint par défaut : tant qu'il n'est pas activé, AUCUN envoi (le banc le
    vérifie). Activé : à chaque changement de la liste (1,5 s après) et à la
    première ouverture de la journée, la liste des 7 prochains jours (date,
-   secteur, initiales, Monaco / France) est chiffrée ICI puis déposée sur le
+   secteur, INITIALES seulement — jamais le nom —, Monaco / France) est chiffrée ICI puis déposée sur le
    serveur. Seuls partent : l'identifiant de la boîte, le jeton d'écriture et le
    texte chiffré — à l'activation, le code du portail (jamais gardé). */
 const KEY_W='pense-bete-widget-v1', MIROIR='https://miroir.planningmedic.workers.dev', W_JOURS=7;
@@ -1290,9 +1294,16 @@ function wLire(){ try{ const o=JSON.parse(localStorage.getItem(KEY_W)||'null'); 
 function wEcrire(o){ try{ if(o) localStorage.setItem(KEY_W, JSON.stringify(o)); else localStorage.removeItem(KEY_W); }catch(e){} }
 function alea(n){ const b=new Uint8Array(n); crypto.getRandomValues(b); return b; }
 const wCleTexte=W=>'PB1.'+W.id+'.'+W.cle;
+// (05/11/2026) Initiales d'un patient : « Dupont Jean » → « DJ ». Une saisie déjà
+// en initiales (un seul mot en majuscules, ancienne saisie) est gardée telle quelle.
+function initialesDe(t){
+  const m=String(t||'').trim().split(/[\s\-'’.]+/).filter(Boolean);
+  if(m.length===1 && m[0]===m[0].toUpperCase() && m[0].length<=8) return m[0];
+  return m.map(x=>x.charAt(0).toUpperCase()).join('').slice(0,8);
+}
 function wContenu(){
   const today=isoToday(), fin=isoPlus(today,W_JOURS);
-  const p=L.filter(x=>x.d>=today && x.d<=fin).map(x=>({d:x.d, s:x.s, i:x.i, a:PA_LIB[x.a]?x.a:''}));
+  const p=L.filter(x=>x.d>=today && x.d<=fin).map(x=>({d:x.d, s:x.s, i:initialesDe(x.i), a:PA_LIB[x.a]?x.a:''}));
   return JSON.stringify({v:1, le:today, p});
 }
 async function wPoster(route, corps){

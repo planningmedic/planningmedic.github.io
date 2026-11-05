@@ -122,7 +122,7 @@ function ouvrir(stock, w0, reseauCoupe) {
     etatW() { return JSON.parse(w.localStorage.getItem('pense-bete-widget-v1') || 'null'); } };
 }
 const P = ouvrir();
-P.ajouter('2026-11-02', 'Endos', TEMOIN, 'mc'); P.ajouter('2026-11-02', 'Ortho', 'KL', 'fr'); P.ajouter('2026-11-03', 'ORL', 'PB', 'mc');
+P.ajouter('2026-11-02', 'Endos', 'Zorglub  quentin', 'mc'); P.ajouter('2026-11-02', 'Ortho', 'KL', 'fr'); P.ajouter('2026-11-03', 'ORL', 'PB', 'mc');
 P.ajouter('2026-11-20', 'Endos', 'LOIN', 'fr'); P.ajouter('2026-10-20', 'Endos', 'VIEUX', 'mc');
 await pause(1700);
 V('widget éteint (par défaut) : aucun envoi, même après plusieurs ajouts', P.envois.length === 0, P.envois.length);
@@ -142,7 +142,7 @@ const corpsEnvoyes = () => P.envois.map(e => e.o.body).join(' ');
    chiffré, décodé tel quel, ne contient pas la liste en clair. */
 const corps = P.envois.map(e => JSON.parse(e.o.body));
 const champsOk = corps.every(c => { const k = Object.keys(c).sort().join(); return k === 'code,id,jeton' || k === 'c,id,jeton'; });
-const enClair = corps.filter(c => c.c).some(c => { const o = Buffer.from(c.c, 'base64url').toString('latin1'); return o.includes(TEMOIN) || /Endos|Ortho|"i":|"s":/.test(o); });
+const enClair = corps.filter(c => c.c).some(c => { const o = Buffer.from(c.c, 'base64url').toString('latin1'); return o.includes(TEMOIN) || /Zorglub|Endos|Ortho|"i":|"s":/.test(o); });
 V('ce qui est parti : seulement { code, id, jeton } puis { id, jeton, c } — le contenu c ne contient rien en clair, ni la clé',
   champsOk && !enClair && !corpsEnvoyes().includes(EW.cle) && !/Endos|Ortho|ORL/.test(corpsEnvoyes()), corps.map(c => Object.keys(c)));
 V('…uniquement vers le serveur du portail, routes de la boîte', P.envois.every(e => /^https:\/\/miroir\.planningmedic\.workers\.dev\/pb-(ouvrir|depot)$/.test(e.u)), P.envois.map(e => e.u));
@@ -151,6 +151,12 @@ const lu = () => JSON.parse(PB.dechiffrer(PB.b64d(EW.cle), boite().c));
 V('la boîte déchiffrée avec la clé : les 3 patients des 7 prochains jours, avec secteur et Monaco / France',
   lu().p.length === 3 && lu().p.some(x => x.i === TEMOIN && x.s === 'Endos' && x.a === 'mc' && x.d === '2026-11-02') && lu().le === '2026-11-02', lu());
 V('…ni le patient du 20/11 (au-delà de 7 jours), ni le passé', !lu().p.some(x => x.i === 'LOIN' || x.i === 'VIEUX'));
+// (05/11/2026) Le pense-bête garde le nom prénom ; le widget ne reçoit que les initiales.
+V('(05/11) nom prénom saisi « Zorglub quentin » : le widget reçoit « ZQ », jamais le nom (même déchiffré)',
+  JSON.parse(P.w.localStorage.getItem('pense-bete-lib-v1')).some(x => x.i === 'Zorglub quentin') && !JSON.stringify(lu()).includes('orglub') && lu().p.some(x => x.i === TEMOIN));
+V('(05/11) initiales : « Jean-Baptiste Dupont » → JBD, « d\'Arc Jeanne » → DAJ, « dupont » → D, anciennes « AB » / « LOIN » gardées',
+  P.w.initialesDe('Jean-Baptiste Dupont') === 'JBD' && P.w.initialesDe("d'Arc Jeanne") === 'DAJ' && P.w.initialesDe('dupont') === 'D' && P.w.initialesDe('AB') === 'AB' && P.w.initialesDe('LOIN') === 'LOIN',
+  ['Jean-Baptiste Dupont', "d'Arc Jeanne", 'dupont'].map(P.w.initialesDe));
 const n0 = P.envois.length;
 P.ajouter('2026-11-04', 'Cardio', 'YZ', 'fr'); P.ajouter('2026-11-04', 'Cardio', 'YW', 'fr');
 await pause(300);

@@ -98,8 +98,8 @@ p.ajouter('2026-10-14', TEMOIN);
 V('sans secteur : refusé, message clair', p.liste().length === 0 && /secteur/i.test(p.$('msg').textContent), p.$('msg').textContent);
 p.secteur('Ortho');
 V('le secteur touché est marqué', p.w.document.querySelector('#chips .chip[aria-checked="true"]').dataset.s === 'Ortho');
-p.ajouter('2026-10-14', 'zq');
-V('ajout : initiales passées en majuscules', p.liste().length === 1 && p.liste()[0].i === TEMOIN && p.liste()[0].s === 'Ortho' && p.liste()[0].d === '2026-10-14', p.liste());
+p.ajouter('2026-10-14', '  ' + TEMOIN + ' ');
+V('ajout : patient gardé tel que tapé, espaces du bord retirés', p.liste().length === 1 && p.liste()[0].i === TEMOIN && p.liste()[0].s === 'Ortho' && p.liste()[0].d === '2026-10-14', p.liste());
 V('après ajout : date et secteur gardés, initiales vidées', p.$('dt').value === '2026-10-14' && p.w.document.querySelector('#chips .chip[aria-checked="true"]').dataset.s === 'Ortho' && p.$('ini').value === '');
 p.ajouter(null, 'AB');
 p.secteur('Endos'); p.ajouter('2026-10-02', 'CD');
@@ -791,16 +791,19 @@ V('compteur abîmé : la page s\'ouvre, réglages demandés', o5.window.document
   V('toucher un patient : panneau « Modifier le patient », rempli', $h('pSheet').classList.contains('on') && $h('pTit').textContent === 'Modifier le patient'
     && $h('dt').value === '2026-10-01' && $h('ini').value === 'EF' && Hd.querySelector('#chips .chip[aria-checked="true"]').dataset.s === 'Endos'
     && Hd.querySelector('#pAss .chip[aria-checked="true"]').dataset.a === 'mc' && !$h('pDel').hidden && $h('pGo').textContent === 'Enregistrer');
-  Hn.secteur('ORL'); Hn.assure('fr'); $h('dt').value = '2026-10-02'; $h('ini').value = 'ef2';
+  Hn.secteur('ORL'); Hn.assure('fr'); $h('dt').value = '2026-10-02'; $h('ini').value = 'Ef  Deux';
   $h('frm').dispatchEvent(new Hn.w.Event('submit', { cancelable: true }));
   const ef = Hn.liste().find(x => x.id === idEF);
-  V('« Enregistrer » change CE patient (même identifiant), sans en créer un autre', Hn.liste().length === nAvant && ef.i === 'EF2' && ef.s === 'ORL' && ef.a === 'fr' && ef.d === '2026-10-02', ef);
+  V('« Enregistrer » change CE patient (même identifiant), sans en créer un autre', Hn.liste().length === nAvant && ef.i === 'Ef Deux' && ef.s === 'ORL' && ef.a === 'fr' && ef.d === '2026-10-02', ef);
+  V('(05/11) nom prénom gardé en minuscules/majuscules tel que tapé, espaces doublés réduits', ef.i === 'Ef Deux', ef.i);
+  V('(05/11) champ « Patient » : 40 caractères, sans majuscules forcées', $h('ini').maxLength === 40 && $h('ini').getAttribute('autocapitalize') === 'words'
+    && Hd.querySelector('label[for="ini"]').textContent === 'Patient', [$h('ini').maxLength, $h('ini').getAttribute('autocapitalize')]);
   V('…le panneau se ferme et la saisie en cours revient (date, secteur)', !$h('pSheet').classList.contains('on') && $h('dt').value === '2026-11-20'
     && Hd.querySelector('#chips .chip[aria-checked="true"]').dataset.s === 'Mater');
   V('…les champs enregistrés gardent la même forme', Object.keys(ef).sort().join() === 'a,d,i,id,s,t', Object.keys(ef));
-  lg('EF2').click(); $h('ini').value = 'ZZ'; $h('pAnn').click();
-  V('« Annuler » referme sans rien changer', Hn.liste().find(x => x.id === idEF).i === 'EF2' && !$h('pSheet').classList.contains('on'));
-  lg('EF2').querySelector('.as').click();
+  lg('Ef Deux').click(); $h('ini').value = 'ZZ'; $h('pAnn').click();
+  V('« Annuler » referme sans rien changer', Hn.liste().find(x => x.id === idEF).i === 'Ef Deux' && !$h('pSheet').classList.contains('on'));
+  lg('Ef Deux').querySelector('.as').click();
   V('toucher la pastille MC / FR change l\'assurance sans ouvrir le panneau', Hn.liste().find(x => x.id === idEF).a === 'mc' && !$h('pSheet').classList.contains('on'));
   // Patient d'avant l'assurance : la modification l'exige
   const Ho = ouvrir(JSON.stringify([{ id: 'v1', d: '2026-10-06', s: 'Endos', i: 'LM', t: 1 }]));
