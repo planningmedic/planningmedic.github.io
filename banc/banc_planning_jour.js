@@ -144,6 +144,16 @@ const aimant = (C, init) => [...C.querySelectorAll('.jb-aim')].filter(a => a.fir
   V('mode sombre : la journée se dessine', !!C.querySelector('.jb-plaque'));
   V('aucune erreur JavaScript', erreurs.length === 0, erreurs.slice(0, 3));
 
+  console.log('\n═══ P6 bis. Matin et après-midi ont la même largeur (05/11/2026) ═══');
+  /* Constat du responsable : 3 aimants (dont un à trois lettres) tenaient sur une ligne le matin
+     et passaient à la ligne l'après-midi. Cause : la case de l'après-midi portait le
+     pointillé en bordure + 10 px de retrait, soit 12 px de moins. Le banc n'a pas de
+     mise en page : il lit la règle CSS de la seconde case. */
+  const regleCase = (h) => { const m = h.match(/\.jb-case\+\.jb-case\{([^}]*)\}/); return m ? m[1] : null; };
+  const rc = regleCase(lire('planning.html'));
+  V('la case de l\'après-midi n\'a ni bordure ni retrait (même largeur que le matin)', rc !== null && !/border-left|padding-left/.test(rc), rc);
+  V('le pointillé entre matin et après-midi existe toujours', /\.jb-case\+\.jb-case::before\{[^}]*border-left:2px dotted/.test(lire('planning.html')));
+
   console.log('\n═══ P7. Contre-preuve : la version d\'avant ═══');
   let AVANT = null;
   try { AVANT = execSync('git show 61e0e77:planning.html', { cwd: RACINE, encoding: 'utf8', stdio: ['ignore', 'pipe', 'ignore'] }); } catch (e) {}
@@ -152,6 +162,12 @@ const aimant = (C, init) => [...C.querySelectorAll('.jb-aim')].filter(a => a.fir
     const CA = jour(a.w, '2027-03-02', true);
     V('AVANT : la maternité passait en premier (« QB + QA »)', /QB \+ QA/.test(txt(CA.querySelector('.m-tonight'))), txt(CA.querySelector('.m-tonight')));
     V('AVANT : ni aimants ni « hors du tableau »', !CA.querySelector('.jb-aim') && !/Hors du tableau/.test(txt(CA)));
+  } else V('historique git disponible pour la contre-preuve (cloner sans --depth 1)', false);
+  let AVANT2 = null;
+  try { AVANT2 = execSync('git show 525e2cf:planning.html', { cwd: RACINE, encoding: 'utf8', stdio: ['ignore', 'pipe', 'ignore'] }); } catch (e) {}
+  if (AVANT2) {
+    const r2 = regleCase(AVANT2);
+    V('AVANT (v1.56.1) : la case de l\'après-midi avait un retrait (12 px de moins)', !!r2 && /padding-left:10px/.test(r2), r2);
   } else V('historique git disponible pour la contre-preuve (cloner sans --depth 1)', false);
 
   console.log(`\n${ok} réussite(s), ${ko} échec(s)`);

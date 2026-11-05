@@ -632,14 +632,16 @@ body{font-variant-numeric:tabular-nums}
   .jb-cs{font-weight:600;color:var(--ink-3)}
   .jb-devoir{position:absolute;top:-9px;right:10px;padding:2px 7px;border-radius:7px;color:#fff;font-size:11px;font-weight:800}
   .jb-devoir.g{background:var(--jb-nuit)}.jb-devoir.h{background:var(--jb-h18)}
-  .jb-cols{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px;padding:10px 4px 0;font-weight:700;font-size:13px;color:var(--ink-3)}
-  .jb-cols div:last-child{padding-left:12px}
+  .jb-cols{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px;padding:10px 10px 0;font-weight:700;font-size:13px;color:var(--ink-3)}
   .jb-plaques{display:flex;flex-direction:column;gap:10px}
   .jb-plaque{background:var(--jb-plaque);border-radius:12px;padding:0 0 10px;box-shadow:0 1px 0 var(--jb-trait)}
   .jb-ruban{display:inline-flex;align-items:center;gap:7px;margin:0 0 8px 12px;padding:5px 12px 6px 10px;border-radius:0 0 8px 8px;color:#fff;font-weight:700;font-size:13px}
   .jb-deux{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px;padding:0 10px}
   .jb-case{display:flex;flex-wrap:wrap;gap:8px 6px;align-content:flex-start;min-height:44px;padding-top:4px}
-  .jb-case+.jb-case{border-left:2px dotted var(--jb-pointille);padding-left:10px}
+  /* (05/11/2026) Le pointillé est dessiné DANS l'espace entre les deux cases : avec une bordure et un retrait,
+     l'après-midi avait 12 px de moins que le matin, et 3 aimants tenant le matin passaient à la ligne l'après-midi. */
+  .jb-case+.jb-case{position:relative}
+  .jb-case+.jb-case::before{content:'';position:absolute;left:-5px;top:4px;bottom:0;border-left:2px dotted var(--jb-pointille)}
   .jb-vide{height:40px;display:flex;align-items:center;font-weight:600;font-size:13px;color:var(--ink-3)}
   .jb-h2{margin:14px 4px 0;font-weight:800;font-size:17px;color:var(--ink)}
   .jb-h2 span{font-weight:600;font-size:14px;color:var(--ink-3)}
