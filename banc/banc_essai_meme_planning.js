@@ -20,6 +20,7 @@
    Campagne entièrement fictive, tirée d'une graine fixe — le dépôt est public. */
 const path = require('path');
 const fs = require('fs');
+process.env.BANC_MULTI_DEPART = '1';   // (05/11/2026) ce scénario vérifie le choix du meilleur planning : génération complète, 8 plannings (voir simulateur/harness.js)
 const H = require(path.join(__dirname, '..', 'simulateur', 'harness.js'));
 /* (27/10/2026) CALENDRIER FIGÉ. Ce scénario compare deux versions du générateur
    sur une campagne fictive tirée d'une graine fixe : son résultat dépend du

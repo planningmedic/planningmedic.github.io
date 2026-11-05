@@ -47,7 +47,11 @@ V('…et relus par le widget', dec === 0, dec);
 V('un message altéré d\'un seul bit est refusé', alt === 0, alt);
 const k1 = nodeCrypto.randomBytes(32), k2 = nodeCrypto.randomBytes(32);
 V('mauvaise clé : refusé (rien de lisible)', PB.dechiffrer(new Uint8Array(k2), PB.chiffrer(new Uint8Array(k1), 'AB Endos', new Uint8Array(12))) === null);
-V('texte chiffré illisible : les initiales n\'y apparaissent pas', !PB.chiffrer(new Uint8Array(k1), JSON.stringify({ p: [{ i: TEMOIN }] }), nodeCrypto.randomBytes(12)).includes(TEMOIN));
+/* (05/11/2026) Témoin LONG ici : un texte chiffré est une suite de lettres au hasard, où « ZQ »
+   (2 lettres) apparaît par pur hasard ~1 fois sur 70 — le banc échouait sans défaut réel.
+   TEMOIN reste « ZQ » plus bas : ce sont les initiales attendues de « Zorglub quentin ». */
+const TEMOIN_LONG = 'ZQXWVKJY';
+V('texte chiffré illisible : les initiales n\'y apparaissent pas', !PB.chiffrer(new Uint8Array(k1), JSON.stringify({ p: [{ i: TEMOIN_LONG }] }), nodeCrypto.randomBytes(12)).includes(TEMOIN_LONG));
 
 /* ── 2. LE VRAI WORKER ──────────────────────────────────────────────────── */
 console.log('\n[2] Serveur — la boîte chiffrée');

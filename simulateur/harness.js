@@ -101,6 +101,22 @@ function buildContext(ss, logs, genSource) {
     : fs.readFileSync(path.join(__dirname, '..', 'gas', 'generateur_gardes.gs'), 'utf8');
   vm.runInContext(code, ctx, { filename: 'code.gs' });
   vm.runInContext(gen, ctx, { filename: 'generateur_gardes.gs' });
+  /* (05/11/2026) DURÉE DU BANC — UN SEUL PLANNING PAR GÉNÉRATION.
+     Une vraie génération calcule jusqu'à MULTI_DEPART_MAX plannings pour garder
+     le plus équitable, puis le réécrit : ~9 calculs complets. Les scénarios qui
+     vérifient une RÈGLE (densité, veille de temps partiel, Réa 1…) n'ont pas
+     besoin du meilleur : une règle doit tenir dans TOUS les plannings. Ici, une
+     génération sans tirage explicite calcule donc le planning n° 1 seulement.
+     Un appel qui précise son tirage n'est pas touché. Les scénarios qui
+     vérifient le CHOIX du meilleur planning posent BANC_MULTI_DEPART=1 avant de
+     charger le harnais. Le générateur lui-même n'est pas modifié. */
+  if (process.env.BANC_MULTI_DEPART !== '1' && typeof ctx.generateGardes === 'function') {
+    const vrai = ctx.generateGardes;
+    ctx.generateGardes = function (year, opts) {
+      if (opts && opts.tirage) return vrai(year, opts);
+      return vrai(year, Object.assign({}, opts || {}, { tirage: 1 }));
+    };
+  }
   return ctx;
 }
 

@@ -12,6 +12,7 @@
 
    Le VRAI generateur_gardes.gs est exécuté, via le harnais du simulateur. */
 const path = require('path'), fs = require('fs');
+process.env.BANC_MULTI_DEPART = '1';   // (05/11/2026) ce scénario vérifie le choix du meilleur planning : génération complète, 8 plannings (voir simulateur/harness.js)
 const h = require(path.join(__dirname, '..', 'simulateur', 'harness.js'));
 let ok = 0, ko = 0;
 const V = (t, c, d) => { if (c) { ok++; console.log('  ✓ ' + t); } else { ko++; console.log('  ✗ ' + t + (d !== undefined ? ' → ' + JSON.stringify(d).slice(0, 220) : '')); } };

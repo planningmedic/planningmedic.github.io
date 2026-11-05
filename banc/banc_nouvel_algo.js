@@ -20,6 +20,7 @@
    Le vrai générateur du dépôt est exécuté, jamais recopié.  */
 const path = require('path');
 const fs = require('fs');
+process.env.BANC_MULTI_DEPART = '1';   // (05/11/2026) ce scénario vérifie le choix du meilleur planning : génération complète, 8 plannings (voir simulateur/harness.js)
 const H = require(path.join(__dirname, '..', 'simulateur', 'harness.js'));
 const A = require(path.join(__dirname, '..', 'simulateur', 'analyse.js'));
 

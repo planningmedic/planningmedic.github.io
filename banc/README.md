@@ -34,6 +34,15 @@ toujours lancés. Un fichier que personne ne cite, ou un module du banc modifié
 relance tout. C'est une aide pendant le travail : il ne remplace jamais le banc
 complet avant un push.
 
+**Un seul planning par génération** (05/11/2026) : dans le harnais
+(`simulateur/harness.js`), une génération sans tirage précisé calcule le
+planning n° 1, au lieu des 8 de la vraie génération. Une règle doit tenir dans
+tous les plannings, pas seulement dans le meilleur. Les scénarios qui vérifient
+le **choix** du meilleur planning posent `BANC_MULTI_DEPART=1` avant de charger
+le harnais (`banc_essai_meme_planning`, `banc_essai_generation`,
+`banc_nouvel_algo`, `banc_periodes_tendues`) ; `banc_harnais_tirage` le vérifie.
+Mesuré sur 2 processeurs : 644 s → ~450 s.
+
 Les contre-preuves qui relisent un ancien générateur (`git show <commit>:…`)
 ont besoin de l'historique complet : dans un clone `--depth 1`, elles sont
 sautées.
