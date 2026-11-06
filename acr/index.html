@@ -75,12 +75,39 @@ p.sous{color:var(--doux);margin:0 0 18px}
 .retour{background:none;color:var(--doux);padding:8px 0;text-decoration:underline}
 
 /* En cours */
-.tete{position:sticky;top:env(safe-area-inset-top,0px);z-index:5;margin:0 -14px;padding:10px 14px 12px;background:var(--encre);color:var(--fond);text-align:center;box-shadow:0 6px 14px rgba(0,0,0,.25)}
-.tete .patient{color:inherit;opacity:.8}
-.rea-tel{display:inline-block;margin-bottom:6px;padding:4px 14px;border-radius:99px;background:var(--choc);color:var(--choc-encre);font-size:19px;font-weight:700}
-.rea-tel b{font-size:23px;font-variant-numeric:tabular-nums;letter-spacing:1px}
-.patient{font-size:15px;color:var(--doux)}
-.chrono{font-variant-numeric:tabular-nums;font-size:clamp(88px,30vw,150px);font-weight:700;line-height:.95;letter-spacing:-2px}
+/* Bandeau compact (06/11/2026) : chrono à gauche, numéro et patient à droite (~80 px au lieu de ~210). */
+.tete{position:sticky;top:env(safe-area-inset-top,0px);z-index:5;margin:0 -14px;padding:8px 14px;background:var(--encre);color:var(--fond);display:flex;align-items:center;justify-content:space-between;gap:10px;box-shadow:0 6px 14px rgba(0,0,0,.25)}
+.tete .droite{display:flex;flex-direction:column;align-items:flex-end;gap:4px;min-width:0}
+.tete .patient{color:inherit;opacity:.8;text-align:right}
+.rea-tel{display:inline-block;padding:3px 10px;border-radius:99px;background:var(--choc);color:var(--choc-encre);font-size:14px;font-weight:700;white-space:nowrap}
+.rea-tel b{font-size:19px;font-variant-numeric:tabular-nums;letter-spacing:1px}
+.patient{font-size:14px;color:var(--doux)}
+.chrono{font-variant-numeric:tabular-nums;font-size:clamp(52px,17vw,72px);font-weight:700;line-height:1;letter-spacing:-2px}
+/* Cycle compact : anneau à gauche, relais à droite */
+.cycle{flex-direction:row!important;text-align:left!important;padding:10px 12px!important;gap:12px!important}
+.cycle .anneau,.cycle .jauge{width:92px!important;height:92px!important;flex:none}
+.cycle .anneau b{font-size:28px!important}
+.cycle .cote{flex:1;display:flex;flex-direction:column;gap:8px;min-width:0}
+.cycle-info{white-space:normal!important;font-size:16px!important}
+.analyse{padding:14px 8px!important;font-size:16px!important}
+.massage{padding:16px 14px!important;font-size:22px!important}
+.rythme button{padding:14px 6px!important}
+.choc-principal{min-height:84px!important}
+.choc-principal .titre,.choc-principal .titre .compte{font-size:22px!important}
+.act{min-height:80px!important}
+/* Question après l'analyse */
+.question{margin:0 0 10px;background:var(--surface);border:3px solid var(--encre);border-radius:16px;padding:12px}
+.question h3{margin:0 0 10px;font-size:18px;text-align:center}
+.question .q3{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+.question .q3 button{padding:16px 6px;font-weight:700;background:var(--fond);border:2px solid var(--trait)}
+.question .q3 .q-racs{grid-column:1/-1;background:var(--ok);color:#fff;border-color:var(--ok)}
+#question:not(.cache) + .rythme{display:none}
+.question .plus-tard{display:block;margin:8px auto 0;background:none;color:var(--doux);text-decoration:underline;padding:4px}
+/* Reprise d'un ACR non clôturé */
+.ancien{background:var(--surface);border-left:6px solid var(--alerte);border-radius:14px;padding:14px;margin-top:10px}
+.ancien .deux{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:12px}
+.ancien .deux button{padding:16px 8px;font-weight:700}
+.nouvel{width:100%;margin-top:12px;padding:18px 10px;font-weight:700;font-size:18px;background:var(--ecmo);color:#fff}
 .chrono-label{font-size:15px;opacity:.85}
 .cycle{margin:12px 0;background:var(--surface);border-radius:16px;padding:16px 14px;display:flex;flex-direction:column;align-items:center;gap:10px;border:3px solid transparent;text-align:center}
 .cycle.fini{border-color:var(--alerte);animation:clignote 1s steps(2) infinite}
@@ -212,6 +239,7 @@ p.sous{color:var(--doux);margin:0 0 18px}
       <button id="btn-adulte"><svg class="picto" viewBox="0 -32 384 576" aria-hidden="true"><path d="M248 24a56 56 0 1 0 -112 0 56 56 0 1 0 112 0zm24 212.7l46.3 62.4c10.5 14.2 30.6 17.2 44.8 6.6s17.2-30.6 6.6-44.8l-70.5-95C274 132 234.3 112 192 112s-82 20-107.2 53.9l-70.5 95c-10.5 14.2-7.6 34.2 6.6 44.8s34.2 7.6 44.8-6.6L112 236.7 112 512c0 17.7 14.3 32 32 32s32-14.3 32-32l0-160c0-8.8 7.2-16 16-16s16 7.2 16 16l0 160c0 17.7 14.3 32 32 32s32-14.3 32-32l0-275.3z"/></svg><span>Adulte</span></button>
       <button id="btn-enfant"><svg class="picto" viewBox="0 16 384 496" aria-hidden="true"><path d="M120 88a72 72 0 1 1 144 0 72 72 0 1 1 -144 0zM7.7 144.5c13-17.9 38-21.8 55.9-8.8L99.8 162c26.8 19.5 59.1 30 92.2 30s65.4-10.5 92.2-30l36.2-26.4c17.9-13 42.9-9 55.9 8.8s9 42.9-8.8 55.9l-36.2 26.4c-13.6 9.9-28.1 18.2-43.3 25l0 36.3-192 0 0-36.3c-15.2-6.7-29.7-15.1-43.3-25L16.5 200.3c-17.9-13-21.8-38-8.8-55.9zM97.5 329.3l60.6 53-26 37.2 24.3 24.3c15.6 15.6 15.6 40.9 0 56.6s-40.9 15.6-56.6 0l-48-48C38 438.6 36.1 417 47.2 401.1l50.2-71.8zm128.5 53l60.6-53 50.2 71.8c11.1 15.9 9.2 37.5-4.5 51.2l-48 48c-15.6 15.6-40.9 15.6-56.6 0s-15.6-40.9 0-56.6l24.3-24.3-26-37.2z"/></svg><span>Enfant</span></button>
     </div>
+    <div id="ancien"></div>
     <p class="sous" id="reprise" style="margin-top:18px"></p>
     <details class="installer" id="installer">
       <summary>Mettre l'outil sur ce téléphone</summary>
@@ -236,11 +264,11 @@ p.sous{color:var(--doux);margin:0 0 18px}
   <!-- 3. En cours -->
   <section id="ecran-arret" class="cache">
     <div class="tete">
-      <div class="rea-tel">N° Réanimateur : <b id="tel-rea"></b></div>
-      <div>
-        <div class="chrono" id="chrono">00:00</div>
+      <div class="chrono" id="chrono">00:00</div>
+      <div class="droite">
+        <div class="rea-tel">Réa : <b id="tel-rea"></b></div>
+        <div class="patient" id="patient"></div>
       </div>
-      <div class="patient" id="patient"></div>
     </div>
 
     <button class="massage" id="btn-massage">Début du massage</button>
@@ -253,8 +281,20 @@ p.sous{color:var(--doux);margin:0 0 18px}
         </svg>
         <b id="cycle-reste">2:00</b>
       </div>
-      <div class="cycle-info" id="cycle-info">Masseur n°1</div>
-      <button class="analyse" id="btn-analyse">Analyse du rythme et relais</button>
+      <div class="cote">
+        <div class="cycle-info" id="cycle-info">Masseur n°1</div>
+        <button class="analyse" id="btn-analyse">Analyse du rythme et relais</button>
+      </div>
+    </div>
+
+    <div class="question cache" id="question">
+      <h3>Rythme à l'analyse ?</h3>
+      <div class="q3">
+        <button data-q="choc">Choquable</button>
+        <button data-q="nonchoc">Non choquable</button>
+        <button data-q="racs" class="q-racs">Reprise d'activité circulatoire</button>
+      </div>
+      <button class="plus-tard" data-q="">Plus tard</button>
     </div>
 
     <div class="rythme">
@@ -296,6 +336,7 @@ p.sous{color:var(--doux);margin:0 0 18px}
     <p class="sous">Copiez la chronologie pour le dossier.</p>
     <div class="resume" id="resume"></div>
     <button class="racs copier" id="btn-copier">Copier la chronologie</button>
+    <button class="nouvel" id="btn-nouvel">Nouvel ACR</button>
     <button class="retour" id="btn-reprendre">Revenir à la réanimation</button>
   </section>
 </main>
@@ -341,6 +382,8 @@ p.sous{color:var(--doux);margin:0 0 18px}
   /* ═══════════════════════════════════════════════════════════════════════ */
 
   var CLE = "acr-v1";
+  var DOUBLE_S = 3;            // même bouton retouché en moins de 3 s : ignoré
+  var ANCIEN_MIN = 10;         // ACR non clôturé, inactif depuis 10 min : on demande
   var CIRC = 2 * Math.PI * 34;
   var EXPIRATION = EXPIRATION_H * 3600 * 1000;
 
@@ -407,17 +450,33 @@ p.sous{color:var(--doux);margin:0 0 18px}
   if (TEL_CCT){ $("ecmo-tel").textContent = "CCT : " + TEL_CCT; $("ecmo-tel").classList.remove("cache"); }
 
   // ---- Journal ----
-  function noter(type, texte, mg){
-    etat.evts.push({ id: Date.now() + Math.random(), t: Date.now(), type: type, texte: texte, annule: null, mg: mg || null });
+  function noter(type, texte, mg, v){
+    etat.evts.push({ id: Date.now() + Math.random(), t: Date.now(), type: type, texte: texte, annule: null, mg: mg || null, v: v || null });
     ecrire(); rendre();
   }
   function actifs(type){ return etat.evts.filter(function(e){ return e.type === type && !e.annule; }); }
+  // Double appui : le même bouton retouché en moins de DOUBLE_S secondes n'est pas noté une 2e fois.
+  function doublon(type){
+    var a = actifs(type); if (!a.length) return false;
+    var s = (Date.now() - a[a.length-1].t) / 1000;
+    if (s >= DOUBLE_S) return false;
+    toast("Déjà noté il y a " + Math.max(1, Math.round(s)) + " s"); return true;
+  }
+  // Rythme et cycle recalculés depuis la chronologie (une annulation remet l'état d'avant).
+  function rythmeDe(e){ return e.v || (/non choquable/i.test(e.texte) ? "nonchoc" : "choc"); }
+  function recalculer(){
+    var r = actifs("rythme"); etat.rythme = r.length ? rythmeDe(r[r.length-1]) : null;
+    var m = actifs("massage"), an = actifs("analyse");
+    if (!m.length){ etat.massage = null; etat.cycleDebut = null; etat.cycleNo = 1; return; }
+    etat.massage = m[0].t; etat.cycleNo = 1 + an.length;
+    etat.cycleDebut = an.length ? an[an.length-1].t : m[m.length-1].t;
+  }
 
   function annuler(id){
     var e = etat.evts.find(function(x){ return x.id === id; });
     if (!e || e.annule) return;
     e.annule = Date.now();
-    if (e.type === "massage"){ etat.cycleDebut = null; etat.massage = null; etat.cycleNo = 1; }
+    recalculer();
     etat.evts.push({ id: Date.now()+Math.random(), t: e.annule, type: "annulation", cible: e.type, texte: "Annulation : " + e.texte, annule: null });
     ecrire(); rendre();
   }
@@ -514,7 +573,11 @@ p.sous{color:var(--doux);margin:0 0 18px}
   function majAdre(now){
     var a = actifs("adre"), el = $("adre-etat");
     el.className = "pastille";
-    if (!a.length){ el.textContent = "À donner"; }
+    if (!a.length){
+      // ERC : en rythme choquable, adrénaline après le 3e choc.
+      if (etat.rythme === "choc" && actifs("choc").length < 3) el.textContent = "Après 3e choc";
+      else { el.textContent = "À donner"; if (etat.rythme === "nonchoc") el.classList.add("pret"); }
+    }
     else {
       var s = (now - a[a.length-1].t)/1000;
       if (s < ADRE_MIN_S) el.textContent = "Dans " + mm(ADRE_MIN_S - s);
@@ -641,13 +704,26 @@ p.sous{color:var(--doux);margin:0 0 18px}
     noter("massage", "Début du massage cardiaque (" + duree((t - etat.debut)/1000) + " après l'ouverture de l'outil)");
   };
   $("btn-analyse").onclick = function(){
+    if (doublon("analyse")) return;
     etat.cycleNo += 1; etat.cycleDebut = Date.now(); bipDonne = false;
     noter("analyse", "Analyse du rythme · relais : masseur n°" + etat.cycleNo);
+    $("question").classList.remove("cache");
   };
-  $("r-choc").onclick = function(){ etat.rythme = "choc"; noter("rythme", "Rythme choquable (FV / TV sans pouls)"); };
-  $("r-nonchoc").onclick = function(){ etat.rythme = "nonchoc"; noter("rythme", "Rythme non choquable (asystolie / AESP)"); };
+  function poserRythme(r){
+    etat.rythme = r;
+    noter("rythme", r === "choc" ? "Rythme choquable (FV / TV sans pouls)" : "Rythme non choquable (asystolie / AESP)", null, r);
+  }
+  $("question").onclick = function(ev){
+    var b = ev.target.closest("[data-q]"); if (!b) return;
+    $("question").classList.add("cache");
+    var q = b.dataset.q;
+    if (q === "racs") terminer("Reprise d'activité circulatoire");
+    else if (q) poserRythme(q);
+  };
+  $("r-choc").onclick = function(){ if (etat.rythme === "choc"){ toast("Déjà en rythme choquable"); return; } poserRythme("choc"); };
+  $("r-nonchoc").onclick = function(){ if (etat.rythme === "nonchoc"){ toast("Déjà en rythme non choquable"); return; } poserRythme("nonchoc"); };
   $("a-choc").onclick = function(){
-    if (etat.rythme === "nonchoc") return;
+    if (etat.rythme === "nonchoc" || doublon("choc")) return;
     noter("choc", "Choc n°" + (actifs("choc").length + 1) + " — " + libelleEnergie()); };
   $("energie").onclick = function(ev){
     var b = ev.target.closest("button"); if (!b) return;
@@ -661,16 +737,18 @@ p.sous{color:var(--doux);margin:0 0 18px}
     ecrire(); rendre();
   };
   $("a-adre").onclick = function(){
+    if (doublon("adre")) return;
     var d = doseAdre();
     noter("adre", "Adrénaline n°" + (actifs("adre").length + 1) + " — " + d.calc, d.mg);
   };
   $("a-amio").onclick = function(){
+    if (doublon("amio")) return;
     var n = actifs("amio").length;
     if (n >= 2){ toast("Les 2 doses d'amiodarone sont déjà notées"); return; }
     var d = doseAmio(n);
     noter("amio", "Amiodarone " + (d.rang === 1 ? "1re" : "2e") + " dose — " + d.calc, d.mg);
   };
-  $("a-ecmo").onclick = function(){ noter("ecmo", "ECMO — appel CCT (durée de réanimation " + duree((Date.now() - etat.debut)/1000) + ")"); };
+  $("a-ecmo").onclick = function(){ if (doublon("ecmo")) return; noter("ecmo", "ECMO — appel CCT (durée de réanimation " + duree((Date.now() - etat.debut)/1000) + ")"); };
   $("hdt").onclick = function(ev){
     var b = ev.target.closest("button"); if (!b || b.classList.contains("fait")) return;
     noter("hdt", "Cause éliminée ou traitée : " + HDT[Number(b.dataset.hdt)].nom);
@@ -680,6 +758,7 @@ p.sous{color:var(--doux);margin:0 0 18px}
     annuler(Number(b.dataset.annul));
   };
   function terminer(texte){
+    $("question").classList.add("cache");
     noter("fin", texte); etat.fin = Date.now(); ecrire();
     if (tic) clearInterval(tic);
     try { if (verrou) verrou.release(); } catch(e){}
@@ -697,6 +776,19 @@ p.sous{color:var(--doux);margin:0 0 18px}
     etat.evts = etat.evts.filter(function(e){ return e.type !== "fin"; });
     etat.fin = null; noter("reprise", "Reprise de la réanimation"); garderEcran(); lancer();
   };
+  // Nouvel ACR : retour à l'accueil ; le compte rendu de celui-ci reste consultable.
+  function accueil(){
+    if (tic) clearInterval(tic);
+    $("ancien").innerHTML = "";
+    if (etat && etat.fin) lienDernier(etat);
+    ecran("accueil");
+  }
+  // Lien « Voir le compte rendu du dernier ACR » sur l'accueil.
+  function lienDernier(fini){
+    $("reprise").innerHTML = '<button class="retour" id="voir-dernier">Voir le compte rendu du dernier ACR</button>';
+    $("voir-dernier").onclick = function(){ etat = fini; $("fin-titre").textContent = "Dernier ACR"; $("resume").textContent = texteChronologie(); ecran("fin"); };
+  }
+  $("btn-nouvel").onclick = accueil;
   $("btn-copier").onclick = function(){
     var t = texteChronologie();
     function secours(){ var z = document.createElement("textarea"); z.value = t; document.body.appendChild(z); z.select(); try { document.execCommand("copy"); } catch(e){} z.remove(); toast("Chronologie copiée"); }
@@ -710,9 +802,17 @@ p.sous{color:var(--doux);margin:0 0 18px}
   if (ancien && ancien.evts && ancien.evts.length){
     var dernier = ancien.evts[ancien.evts.length - 1].t;
     if (Date.now() - dernier > EXPIRATION) effacer();
-    else if (ancien.fin){
-      $("reprise").innerHTML = '<button class="retour" id="voir-dernier">Voir le compte rendu du dernier ACR</button>';
-      $("voir-dernier").onclick = function(){ etat = ancien; $("fin-titre").textContent = "Dernier ACR"; $("resume").textContent = texteChronologie(); ecran("fin"); };
+    else if (ancien.fin) lienDernier(ancien);
+    else if (Date.now() - dernier > ANCIEN_MIN * 60000){
+      // Non clôturé et inactif depuis plus de 10 min : on demande au lieu de reprendre d'office.
+      $("ancien").innerHTML = '<div class="ancien"><b>Une réanimation commencée à ' + heure(ancien.debut).slice(0,5) +
+        ' n\'a pas été clôturée.</b><br><small>Dernière action à ' + heure(dernier).slice(0,5) + '.</small>' +
+        '<div class="deux"><button class="act-neutre" id="anc-reprendre">La reprendre</button><button class="racs" id="anc-clore">La clore</button></div></div>';
+      $("anc-reprendre").onclick = function(){ etat = ancien; $("ancien").innerHTML = ""; lancer(); };
+      $("anc-clore").onclick = function(){
+        etat = ancien; etat.evts.push({ id: Date.now()+Math.random(), t: dernier, type: "fin", texte: "Réanimation non clôturée dans l'outil", annule: null });
+        etat.fin = dernier; ecrire(); accueil();
+      };
     }
     else { etat = ancien; lancer(); toast("Réanimation en cours reprise"); }
   }

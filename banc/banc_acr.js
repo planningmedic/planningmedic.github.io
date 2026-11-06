@@ -152,7 +152,7 @@ console.log('\n═══ B2. Doses et plafonds ═══');
   V('…amiodarone 1re dose 215 mg', e.texte('amio-dose') === '215 mg IV/IO', e.texte('amio-dose'));
   e.$('a-amio').click();
   V('…2e dose plafonnée : 150 mg', e.texte('amio-dose') === '150 mg IV/IO', e.texte('amio-dose'));
-  e.$('a-amio').click();
+  e.avancer(5); e.$('a-amio').click();
   V('…le calcul et le plafond sont écrits dans la chronologie', /215 mg → plafond 150 mg/.test(ligne(e, 'Amiodarone 2e dose').textContent));
   V('…choc par défaut : 172 J (4 J/kg × 43 kg)', e.texte('choc-dose') === '172 J (4 J/kg × 43 kg)', e.texte('choc-dose'));
   e.fermer();
@@ -162,9 +162,9 @@ console.log('\n═══ B2. Doses et plafonds ═══');
   V('adulte : amiodarone 300 mg', a.texte('amio-dose') === '300 mg IV/IO');
   a.$('a-amio').click();
   V('adulte : puis 150 mg', a.texte('amio-dose') === '150 mg IV/IO');
-  a.$('a-amio').click();
+  a.avancer(5); a.$('a-amio').click();
   V('adulte : après deux doses, « Doses faites »', a.texte('amio-dose') === 'Doses faites');
-  a.$('a-amio').click();
+  a.avancer(5); a.$('a-amio').click();
   V('une 3e amiodarone n\'est pas notée (×2 reste ×2)', a.texte('amio-compte') === '×2' && a.etat().evts.filter(x => x.type === 'amio').length === 2);
   a.fermer();
 }
@@ -180,7 +180,7 @@ console.log('\n═══ B3. Totaux du compte rendu, en mg, doses annulées excl
   V('la dose annulée reste visible dans la chronologie, marquée', /Adrénaline n°3 .*\[ANNULÉ à/.test(cr));
   p.fermer();
   const a = ouvrir(); a.$('btn-adulte').click();
-  a.$('a-amio').click(); a.$('a-amio').click();
+  a.$('a-amio').click(); a.avancer(5); a.$('a-amio').click();
   const cra = await finir(a, 'a-racs');
   V('adulte : amiodarone 300 + 150 → total 450 mg', /Amiodarone : 2 doses — total 450 mg/.test(cra));
   a.fermer();
@@ -204,24 +204,24 @@ console.log('\n═══ C1. Bouton Choc et rythme ═══');
 console.log('\n═══ C2. Rappels « 3 chocs » et « 5 chocs » (rythme choquable) ═══');
 {
   const p = ouvrir(); p.$('btn-adulte').click(); p.$('r-choc').click();
-  p.$('a-choc').click(); p.$('a-choc').click();
+  p.avancer(5); p.$('a-choc').click(); p.avancer(5); p.$('a-choc').click();
   V('2 chocs : aucun rappel', conseils(p).length === 0, conseils(p));
-  p.$('a-choc').click();
+  p.avancer(5); p.$('a-choc').click();
   V('3e choc : adrénaline ET amiodarone recommandées', conseils(p).some(t => /adrénaline et amiodarone/.test(t)), conseils(p));
   p.$('a-adre').click();
   V('adrénaline donnée : il ne reste que l\'amiodarone (1re dose)', conseils(p).length === 1 && /amiodarone \(1re dose\)/.test(conseils(p)[0]), conseils(p));
   p.$('a-amio').click();
   V('amiodarone donnée : plus de rappel « 3 chocs »', !conseils(p).some(t => /3 chocs/.test(t)), conseils(p));
-  p.$('a-choc').click();
+  p.avancer(5); p.$('a-choc').click();
   V('4 chocs : rien de nouveau', !conseils(p).some(t => /5 chocs/.test(t)));
-  p.$('a-choc').click();
+  p.avancer(5); p.$('a-choc').click();
   V('5e choc : 2e dose d\'amiodarone recommandée', conseils(p).some(t => /5 chocs.*2e dose/.test(t)), conseils(p));
   p.$('a-amio').click();
   V('2e amiodarone donnée : le rappel disparaît', !conseils(p).some(t => /5 chocs/.test(t)));
   p.fermer();
 
   const q = ouvrir(); q.$('btn-adulte').click(); q.$('r-choc').click();
-  q.$('a-choc').click(); q.$('a-choc').click(); q.$('a-choc').click(); q.$('a-amio').click();
+  q.avancer(5); q.$('a-choc').click(); q.avancer(5); q.$('a-choc').click(); q.avancer(5); q.$('a-choc').click(); q.$('a-amio').click();
   V('amiodarone donnée sans adrénaline : le rappel ne cite que l\'adrénaline', conseils(q).length === 1 && /adrénaline recommandée/.test(conseils(q)[0]) && !/amiodarone/.test(conseils(q)[0]), conseils(q));
   q.$('r-nonchoc').click();
   V('en rythme non choquable, pas de rappel lié aux chocs', conseils(q).length === 0, conseils(q));
@@ -416,6 +416,137 @@ console.log('\n═══ G1. Encart d\'installation (médecins hors portail) ═
   const q = ouvrir({ installe: true });
   V('ouvert depuis l\'icône installée : l\'encart disparaît', !q.visible('installer'));
   q.fermer();
+}
+
+console.log('\n═══ K1. Double appui (06/11/2026) : le même bouton retouché en moins de 3 s n\'est pas noté deux fois ═══');
+{
+  const p = ouvrir(); p.$('btn-adulte').click();
+  const n = type => p.etat().evts.filter(x => x.type === type && !x.annule).length;
+  p.$('a-choc').click(); p.$('a-choc').click();
+  V('Choc touché deux fois de suite : ×1', p.texte('choc-compte') === '×1' && n('choc') === 1, p.texte('choc-compte'));
+  V('…et le message « Déjà noté » s\'affiche', /Déjà noté/.test(p.texte('toast')), p.texte('toast'));
+  p.avancer(2); p.$('a-choc').click();
+  V('2 s après : toujours ×1', n('choc') === 1);
+  p.avancer(1); p.$('a-choc').click();
+  V('3 s après : le 2e choc est noté (×2)', n('choc') === 2 && p.texte('choc-compte') === '×2');
+  p.$('a-adre').click(); p.$('a-adre').click();
+  V('Adrénaline touchée deux fois : une seule dose', n('adre') === 1 && p.texte('adre-compte') === '×1');
+  p.$('a-amio').click(); p.$('a-amio').click();
+  V('Amiodarone touchée deux fois : une seule dose (300 mg)', n('amio') === 1 && p.texte('amio-dose') === '150 mg IV/IO');
+  p.$('a-ecmo').click(); p.$('a-ecmo').click();
+  V('ECMO touchée deux fois : une seule ligne', n('ecmo') === 1);
+  p.$('btn-massage').click(); p.avancer(30);
+  p.$('btn-analyse').click(); p.$('btn-analyse').click();
+  V('Analyse touchée deux fois : un seul relais (masseur n°2)', n('analyse') === 1 && p.texte('cycle-info') === 'Masseur n°2', p.texte('cycle-info'));
+  p.avancer(10); p.$('r-choc').click(); p.avancer(10); p.$('r-choc').click();
+  V('le rythme déjà choisi, retouché même 10 s après : rien de plus', n('rythme') === 1, n('rythme'));
+  V('…et un message le dit', /Déjà en rythme choquable/.test(p.texte('toast')));
+  V('l\'anti-double appui ne bloque pas un geste différent', (p.$('r-nonchoc').click(), n('rythme') === 2));
+  p.fermer();
+}
+
+console.log('\n═══ K2. Annuler un rythme ou un relais remet l\'état d\'avant ═══');
+{
+  const p = ouvrir(); p.$('btn-adulte').click();
+  p.$('r-nonchoc').click();
+  annulerLigne(p, 'Rythme non choquable');
+  V('« Non choquable » annulé : le bouton Choc redevient actif', p.$('a-choc').disabled === false && p.etat().rythme === null);
+  V('…et aucun rythme n\'est plus sélectionné', !p.$('r-nonchoc').classList.contains('actif') && !p.$('r-choc').classList.contains('actif'));
+  p.$('r-choc').click(); p.avancer(5); p.$('r-nonchoc').click();
+  annulerLigne(p, 'Rythme non choquable');
+  V('choquable puis non choquable annulé : retour à « choquable »', p.etat().rythme === 'choc' && p.$('r-choc').classList.contains('actif') && !p.$('a-choc').disabled);
+  p.$('btn-massage').click(); const m = p.etat().massage;
+  p.avancer(60); p.$('btn-analyse').click(); p.$('question').querySelector('[data-q=""]').click();
+  p.avancer(20);
+  V('relais fait : masseur n°2', p.texte('cycle-info') === 'Masseur n°2');
+  annulerLigne(p, 'Analyse du rythme');
+  V('relais annulé : retour au masseur n°1', p.texte('cycle-info') === 'Masseur n°1' && p.etat().cycleNo === 1, p.texte('cycle-info'));
+  V('…et le cycle reprend depuis le début du massage (1:20 écoulée → 0:40 restant)', p.etat().cycleDebut === m && p.texte('cycle-reste') === '0:40', p.texte('cycle-reste'));
+  V('…le début du massage, lui, est conservé', p.etat().massage === m);
+  p.fermer();
+}
+
+console.log('\n═══ K3. Adrénaline en rythme choquable : après le 3e choc (ERC) ═══');
+{
+  const p = ouvrir(); p.$('btn-adulte').click();
+  const pas = () => p.$('adre-etat');
+  V('rythme inconnu : « À donner »', pas().textContent === 'À donner');
+  p.$('r-choc').click();
+  V('rythme choquable, aucun choc : « Après 3e choc »', pas().textContent === 'Après 3e choc', pas().textContent);
+  p.$('a-choc').click(); p.avancer(5); p.$('a-choc').click();
+  V('2 chocs : toujours « Après 3e choc »', pas().textContent === 'Après 3e choc');
+  V('…et le bouton reste utilisable', p.$('a-adre').disabled === false);
+  p.avancer(5); p.$('a-choc').click();
+  V('3e choc : « À donner »', pas().textContent === 'À donner', pas().textContent);
+  p.fermer();
+  const q = ouvrir(); q.$('btn-adulte').click(); q.$('r-nonchoc').click();
+  V('rythme non choquable : « À donner », mis en évidence', q.$('adre-etat').textContent === 'À donner' && q.$('adre-etat').classList.contains('pret'));
+  q.fermer();
+}
+
+console.log('\n═══ K4. Après l\'analyse, le rythme est demandé directement ═══');
+{
+  const p = ouvrir(); p.$('btn-adulte').click(); p.$('btn-massage').click();
+  const q = sel => p.$('question').querySelector(`[data-q="${sel}"]`);
+  V('pas de question avant l\'analyse', !p.visible('question'));
+  p.avancer(120); p.$('btn-analyse').click();
+  V('« Analyse et relais » : la question du rythme apparaît', p.visible('question'));
+  q('choc').click();
+  V('« Choquable » : rythme noté, question fermée, Choc actif', p.etat().rythme === 'choc' && !p.visible('question') && !p.$('a-choc').disabled);
+  V('…une seule ligne de rythme dans la chronologie', p.etat().evts.filter(x => x.type === 'rythme').length === 1);
+  p.avancer(120); p.$('btn-analyse').click(); q('nonchoc').click();
+  V('analyse suivante « Non choquable » : Choc inactif', p.etat().rythme === 'nonchoc' && p.$('a-choc').disabled);
+  p.avancer(120); p.$('btn-analyse').click(); q('nonchoc').click();
+  V('même rythme qu\'avant à l\'analyse : il est noté quand même (chaque analyse compte)', p.etat().evts.filter(x => x.type === 'rythme').length === 3);
+  p.avancer(120); p.$('btn-analyse').click(); q('').click();
+  V('« Plus tard » : question fermée, rien de noté', !p.visible('question') && p.etat().evts.filter(x => x.type === 'rythme').length === 3);
+  p.avancer(120); p.$('btn-analyse').click(); q('racs').click();
+  V('« Reprise d\'activité circulatoire » : fin de réanimation, titrée comme telle', p.visible('ecran-fin') && p.texte('fin-titre') === 'Reprise d\'activité circulatoire');
+  V('…le masseur du relais est bien passé au n°6', p.etat().cycleNo === 6);
+  p.$('btn-reprendre').click();
+  V('revenir à la réanimation : la question n\'est plus affichée', p.visible('ecran-arret') && !p.visible('question'));
+  p.fermer();
+}
+
+console.log('\n═══ K5. Bouton « Nouvel ACR » sur l\'écran de fin ═══');
+{
+  const p = ouvrir(); p.$('btn-adulte').click(); p.avancer(5); p.$('a-choc').click();
+  await finir(p, 'a-racs');
+  V('l\'écran de fin propose « Nouvel ACR »', p.visible('btn-nouvel'));
+  p.$('btn-nouvel').click();
+  V('« Nouvel ACR » ramène à l\'accueil', p.visible('ecran-accueil') && !p.visible('ecran-fin'));
+  V('…avec le lien vers le compte rendu qui vient d\'être clos', !!p.$('voir-dernier'));
+  p.avancer(30);
+  p.$('btn-adulte').click();
+  V('nouvel ACR adulte : chrono à 00:00, aucun choc', p.texte('chrono') === '00:00' && p.texte('choc-compte') === '' && p.etat().fin === null, p.texte('chrono'));
+  p.fermer();
+}
+
+console.log('\n═══ K6. ACR non clôturé : au-delà de 10 min sans activité, l\'outil demande ═══');
+{
+  const p = ouvrir(); p.$('btn-adulte').click(); p.$('btn-massage').click(); p.$('a-choc').click();
+  const sto = p.stock(); const t = p.H.t; p.fermer();
+  const a = ouvrir({ stockage: sto, t: t + 9 * 60000 });
+  V('9 min sans activité : reprise directe', a.visible('ecran-arret') && !a.$('anc-reprendre'));
+  a.fermer();
+  const b = ouvrir({ stockage: sto, t: t + 10 * 60000 + 1000 });
+  V('10 min et 1 s : l\'accueil s\'affiche avec la question', b.visible('ecran-accueil') && !!b.$('anc-reprendre') && !!b.$('anc-clore'));
+  V('…qui donne l\'heure de début (14:00)', /commencée à 14:00/.test(b.texte('ancien')), b.texte('ancien'));
+  b.$('anc-reprendre').click();
+  V('« La reprendre » : la réanimation reprend avec ses gestes (×1 choc)', b.visible('ecran-arret') && b.texte('choc-compte') === '×1');
+  b.fermer();
+  const c = ouvrir({ stockage: sto, t: t + 30 * 60000 });
+  c.$('anc-clore').click();
+  V('« La clore » : retour à l\'accueil, question retirée', c.visible('ecran-accueil') && !c.$('anc-reprendre'));
+  V('…l\'ACR est marqué terminé à sa dernière action', c.etat().fin === t);
+  V('…et son compte rendu reste consultable', !!c.$('voir-dernier'));
+  c.$('voir-dernier').click();
+  V('…avec la mention « non clôturée dans l\'outil » et une durée arrêtée à la dernière action', /non clôturée dans l'outil/.test(c.texte('resume')) && /Durée totale : 00:00/.test(c.texte('resume')), c.texte('resume').split('\n').slice(0, 4));
+  c.fermer();
+  const d = ouvrir({ stockage: sto, t: t + 30 * 60000 });
+  d.$('btn-adulte').click();
+  V('sans répondre, toucher « Adulte » démarre un nouvel ACR', d.visible('ecran-arret') && d.texte('choc-compte') === '' && d.texte('chrono') === '00:00');
+  d.fermer();
 }
 
 console.log('\n═══ H1. Forme de la page : balises équilibrées, id uniques ═══');
