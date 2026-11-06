@@ -1,7 +1,7 @@
 // ⚠️ RÈGLE (détecteur de dérive dépôt↔Apps Script) : incrémenter cette version
 // à CHAQUE push de ce fichier. Le diagnostic (admin → Maintenance) compare la
 // version déployée ici avec celle du dépôt et signale toute recopie oubliée.
-const GAS_VERSION_MIROIR = '2026-11-02.1';   // (02/11/2026) commentaire : identifiants d'exemple fictifs · (27/10/2026) champ ordreMc dans acces · (20/10/2026) clé etablissement (nom et adresse du devis) · (21/10) setVeilleAbo → veille_marques
+const GAS_VERSION_MIROIR = '2026-11-06.1';   // (06/11/2026) annonceFinSaisie (temporaire) · (02/11/2026) commentaire : identifiants d'exemple fictifs · (27/10/2026) champ ordreMc dans acces · (20/10/2026) clé etablissement (nom et adresse du devis) · (21/10) setVeilleAbo → veille_marques
 
 /* ═══════════════════════════════════════════════════════════════════════
    MIROIR.GS — alimentation du miroir de lecture Cloudflare
@@ -1416,6 +1416,17 @@ function notifierPush_(titre, corps, url, cible, sansJournal) {
     Logger.log('notifierPush_ : échec — ' + err.message);
     return { success: false, error: err.message };
   }
+}
+
+/* (06/11/2026) TEMPORAIRE — annonce ponctuelle de la clôture de la saisie des
+   indispos. À lancer UNE FOIS à la main depuis l'éditeur, puis à retirer. */
+function annonceFinSaisie() {
+  const r = notifierPush_(
+    'Indispos : clôture ce soir à minuit',
+    'Dernier délai pour saisir ou corriger vos indispos 2027 : ce soir minuit. Après, la saisie sera fermée.',
+    './indispos.html'
+  );
+  Logger.log(JSON.stringify(r));
 }
 
 /* ═══ LE JOURNAL DES NOTIFICATIONS — la cloche du dashboard (23/08/2026) ═══
