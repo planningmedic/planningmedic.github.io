@@ -41,7 +41,7 @@
 // ⚠️ RÈGLE (détecteur de dérive dépôt↔Apps Script) : incrémenter cette version
 // à CHAQUE push de ce fichier. Le diagnostic (admin → Maintenance) compare la
 // version déployée ici avec celle du dépôt et signale toute recopie oubliée.
-const GAS_VERSION_GENERATEUR = '2026-11-07.1';   // (07/11/2026) vendredi-dimanche rompu : le dimanche garde d'abord les MAR du vendredi · (03/11/2026) période tendue sans solution parfaite : le moins possible de doubles week-ends, au lieu de les subir au fil de l'eau
+const GAS_VERSION_GENERATEUR = '2026-11-07.2';   // (07/11/2026) vendredi-dimanche rompu : réparation finale par échange neutre · (07/11/2026) le dimanche garde d'abord les MAR du vendredi · (03/11/2026) période tendue sans solution parfaite : le moins possible de doubles week-ends, au lieu de les subir au fil de l'eau
 // précédente : '2026-10-27.1'
 
 /* (05/09/2026) INTERRUPTEUR DU NOUVEL ALGORITHME — récit : docs/JOURNAL-Planning-Med.md §101 */
@@ -2804,6 +2804,66 @@ function generateGardes(year, opts){
       });
       Logger.log('Confort vacances: '+_ech+' echange(s) pour '+Object.keys(_benef).length+' MAR');
       if(_ech) warnings.push(`Confort : ${_ech} garde(s) déplacée(s) pour prolonger un départ en congés (équité inchangée)`);
+    }
+    /* ── 8ter. (07/11/2026) VENDREDI-DIMANCHE ROMPU : RÉPARATION FINALE ────────
+       La règle du placement (garder au dimanche les MAR du vendredi) ne tenait
+       pas : l'optimiseur et les échanges déplacent le vendredi et le dimanche
+       chacun de son côté (mesuré le 07/11/2026 sur les indispos réelles : 4
+       week-ends regroupés au placement, 0 dans le planning final).
+       Ici, une fois tout le reste fait : pour chaque week-end cassé, un MAR du
+       vendredi reprend un rôle du dimanche ; en échange, il cède au titulaire de
+       ce dimanche une de ses gardes de lundi, mardi ou mercredi (ni férié, ni
+       veille de férié), DANS LE MÊME RÔLE. Un dimanche seul et un lun/mar/mer
+       ne comptent sur aucun axe d'équité (samedi, jeudi, ven-dim, veille de
+       férié, férié) et pèsent 1 au total : l'équité et le partage G/G2 sont
+       donc inchangés PAR CONSTRUCTION. Jamais sur un jour souhaité, un jour de
+       fêtes, un régime à part ; toutes les règles dures via canHold (absences,
+       repos, deux gardes d'affilée, deux week-ends de suite, densité, paires à
+       éviter). Seul le vendredi n'est jamais déplacé : il porte l'axe ven-dim. */
+    if(NOUVEL_ALGO){
+      const _slotDe=(d,r)=>slots.find(sl=>sl.days.length===1&&sl.days[0]===d&&sl.role===r);
+      const _tient=(sl)=>sl.role===0?gardes[sl.days[0]].g:gardes[sl.days[0]].g2;
+      const _libreSem=d=>{const di=dayByDate[d];return !!di&&di.dow>=1&&di.dow<=3&&!di.isFerie&&!di.isVjf;};
+      const _bloque=(id,d)=>SOUHAIT_PLAFOND.has(id)||isSouhaitDe(id,d)||noelDatesAssigned.has(d);
+      let _recolle=0; const _detail=[];
+      allDays.forEach(di=>{
+        if(di.dow!==5) return;
+        const F=di.date, S=shift(F,2);
+        if(!gardes[F]||!gardes[S]||!gardes[F].g||!gardes[S].g||noelDatesAssigned.has(F)||noelDatesAssigned.has(S)) return;
+        for(let _tour=0;_tour<2;_tour++){
+          const fr=[gardes[F].g,gardes[F].g2], su=[gardes[S].g,gardes[S].g2];
+          const aPrendre=fr.filter(x=>su.indexOf(x)<0);
+          if(!aPrendre.length) break;                          // déjà réuni
+          let fait=false;
+          for(const A of aPrendre){
+            if(fait||SOUHAIT_PLAFOND.has(A)) continue;
+            for(const r of [0,1]){
+              if(fait) break;
+              const sS=_slotDe(S,r); if(!sS) continue;
+              const C=_tient(sS);
+              if(!C||fr.indexOf(C)>=0||_bloque(C,S)) continue;    // on ne retire jamais un MAR du vendredi ni un souhait
+              // une garde lun/mar/mer de A, même rôle, cessible à C
+              const mes=[...(r===0?gSet[A]:g2Set[A])].filter(d2=>_libreSem(d2)&&!isSouhaitDe(A,d2)&&!noelDatesAssigned.has(d2)).sort();
+              for(const W of mes){
+                const sW=_slotDe(W,r); if(!sW||_tient(sW)!==A) continue;
+                // Le vendredi de A, deux jours avant, est le vendredi-dimanche lui-même :
+                // il ne compte pas comme rapprochement.
+                const _penA=_spacingPen(A,[S])-(isSouhaitDe(A,F)?5:250);
+                if(!canHold(A,[S],r)||_penA>=250) continue;
+                applyTr(sS,A);                                   // A prend le dimanche
+                if(!canHold(C,[W],r)||_spacingPen(C,[W])>=250){ applyTr(sS,C); continue; }
+                applyTr(sW,C);                                   // C prend le lun/mar/mer
+                _recolle++; _detail.push(F+' '+A+'↔'+C+' ('+W+')'); fait=true; break;
+              }
+            }
+          }
+          if(!fait) break;
+        }
+      });
+      if(_recolle){
+        Logger.log('Réparation des vendredis-dimanches rompus : '+_detail.join(' · '));
+        warnings.push(`Vendredi-dimanche rompu : ${_recolle} échange(s) pour réunir les MAR du week-end (équité inchangée)`);
+      }
     }
     // 8) Recomposer rgSet / recupDue depuis l'état optimisé (pour R + 18h + STATS).
     allDoctors.forEach(id=>{rgSet[id]=new Set();});

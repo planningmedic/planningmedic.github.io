@@ -15,6 +15,8 @@
       dimanche — la règle marche dans les deux sens.
    3. Les règles dures ne cèdent pas : le MAR gardé n'est jamais de garde la
       veille ou le lendemain, et jamais sur une absence.
+   5. Réparation finale (07/11/2026) : week-ends réunis après l'optimiseur,
+      compteurs d'équité et souhaits identiques à un générateur sans elle.
    4. Contre-preuve : le générateur d'avant le correctif ne garde personne
       dans le cas 1 — le test échoue bien sans la règle.
    Mesure sur les indispos réelles 2027 (07/11/2026) : avant, 4 week-ends cassés
@@ -156,6 +158,54 @@ console.log('\n═══ 4. Contre-preuve sur le générateur d\'avant le correc
        L'effet se voit sur les indispos réelles 2027 : les week-ends du 05/03 et
        du 23/07, dimanche posé en premier, passent de 4 MAR à 2. */
   }
+}
+
+/* ═══ 5. Réparation finale : réunir les week-ends cassés, équité intacte ═══
+   (07/11/2026) La règle du placement ne tenait pas : l'optimiseur et les
+   échanges déplacent vendredi et dimanche séparément. Une passe finale échange
+   un dimanche contre un lun/mar/mer du même rôle : aucun axe d'équité ne bouge.
+   Effectif fictif saturé (simulateur/demographie.js, année 6 : 6 week-ends
+   cassés), comparé au même générateur privé de cette passe. */
+console.log('\n═══ 5. Réparation finale : week-ends réunis, équité et souhaits intacts ═══');
+{
+  const D = require(path.join(__dirname, '..', 'simulateur', 'demographie.js'));
+  const SRC = fs.readFileSync(path.join(__dirname, '..', 'gas', 'generateur_gardes.gs'), 'utf8');
+  const CLE = "    if(NOUVEL_ALGO){\n      const _slotDe=";
+  V('la passe de réparation est présente dans le générateur', SRC.split(CLE).length === 2);
+  const SANS = SRC.split(CLE).join("    if(false){\n      const _slotDe=");
+  const roster = D.buildRoster(YEAR, { ageExempt: 60, ageRetraite: 67 });
+  const im = D.buildAbsences(YEAR, roster, 6, { souhaitsEtendus: true });
+  const run = src => {
+    const mk = () => h.makeSpreadsheet([
+      h.makeSheet('MEDECINS', h.medecinsRows(roster)),
+      h.makeSheet(`INDISPOS_${YEAR}`, h.indisposRows(YEAR, roster, im)),
+      h.makeSheet('PERIODES_VAC', h.periodesRows(YEAR)),
+      h.makeSheet('CONFIG', [['CLE', 'VALEUR']])]);
+    const r = h.buildContext(mk(), [], src).generateGardes(YEAR, { dryRun: true, tirage: 1 });
+    const ss = mk(); h.buildContext(ss, [], src).generateGardes(YEAR, { tirage: 1 });
+    return { r, G: grilleDe(ss) };
+  };
+  const A = run(SRC), B = run(SANS);
+  const cles = r => JSON.stringify(Object.keys(r.compteurs).sort().map(id => { const c = r.compteurs[id];
+    return [id, c.total, c.sam, c.jeu, c.vd, c.vjf, c.jf, c.g, c.g2]; }));
+  const hon = r => Object.values(r.souhaits).reduce((t, o) => t + o.honores, 0);
+  /* Nombre de MAR mobilisés sur les week-ends cassés (vendredi ≠ dimanche). */
+  const mobil = G => { let n = 0, k = 0; const ids = Object.keys(G);
+    const jours = [...new Set([].concat(...ids.map(id => Object.keys(G[id]))))].filter(d => new Date(d + 'T12:00:00').getDay() === 5);
+    jours.forEach(f => { const dd = new Date(f + 'T12:00:00'); dd.setDate(dd.getDate() + 2);
+      const s = `${dd.getFullYear()}-${String(dd.getMonth() + 1).padStart(2, '0')}-${String(dd.getDate()).padStart(2, '0')}`;
+      const v = deGarde(G, f), d = deGarde(G, s); if (v.length !== 2 || d.length !== 2) return;
+      if (JSON.stringify(v) !== JSON.stringify(d)) { k++; n += new Set(v.concat(d)).size; } });
+    return { casses: k, mar: n }; };
+  const w = A.r.warnings.filter(x => /Vendredi-dimanche rompu : \d+ échange/.test(x));
+  V('la réparation a joué sur cette année (au moins un échange)', w.length === 1, A.r.warnings.filter(x => /rompu/.test(x)));
+  V('compteurs d\'équité identiques MAR par MAR (total, samedis, jeudis, ven-dim, veilles, fériés, G/G2)', cles(A.r) === cles(B.r));
+  V('écarts d\'équité identiques', JSON.stringify(A.r.ecarts) === JSON.stringify(B.r.ecarts), { avec: A.r.ecarts, sans: B.r.ecarts });
+  V('souhaits honorés identiques', hon(A.r) === hon(B.r), { avec: hon(A.r), sans: hon(B.r) });
+  V('toujours aucune nuit sans binôme', A.r.sansBinome === 0);
+  const mA = A.G ? mobil(A.G) : null, mB = B.G ? mobil(B.G) : null;
+  V('moins de MAR mobilisés sur les week-ends cassés que sans la réparation (contre-preuve)',
+    mA && mB && mA.mar < mB.mar, { avec: mA, sans: mB });
 }
 
 console.log(`\n${ok} ✓ · ${ko} ✗`);
