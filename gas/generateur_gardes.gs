@@ -41,7 +41,7 @@
 // ⚠️ RÈGLE (détecteur de dérive dépôt↔Apps Script) : incrémenter cette version
 // à CHAQUE push de ce fichier. Le diagnostic (admin → Maintenance) compare la
 // version déployée ici avec celle du dépôt et signale toute recopie oubliée.
-const GAS_VERSION_GENERATEUR = '2026-11-03.1';   // (03/11/2026) période tendue sans solution parfaite : le moins possible de doubles week-ends, au lieu de les subir au fil de l'eau
+const GAS_VERSION_GENERATEUR = '2026-11-07.1';   // (07/11/2026) vendredi-dimanche rompu : le dimanche garde d'abord les MAR du vendredi · (03/11/2026) période tendue sans solution parfaite : le moins possible de doubles week-ends, au lieu de les subir au fil de l'eau
 // précédente : '2026-10-27.1'
 
 /* (05/09/2026) INTERRUPTEUR DU NOUVEL ALGORITHME — récit : docs/JOURNAL-Planning-Med.md §101 */
@@ -2268,6 +2268,27 @@ function generateGardes(year, opts){
     if(_cplOn && dow===6){
       for(const _h of _cplVDde(shiftDays(date,-1))){ const P=CPL_WE[_h]; const i=P?avail.indexOf(P):-1;
         if(i>0 && _cplSousPart(P,'sam') && spacingPenalty(P,date)<100){ avail.splice(i,1); avail.unshift(P); break; } } }
+    /* (07/11/2026) VENDREDI-DIMANCHE ROMPU : ON GARDE LES MAR DE L'AUTRE JOUR.
+       Quand l'unité a été cassée (« VD exception »), le jour restant était choisi
+       sans regarder qui tenait l'autre : 4 MAR mobilisés au lieu de 2 (mesuré sur
+       les 4 ruptures des indispos 2027). Règle du responsable : garder un MAR de
+       l'autre jour, ou les deux, plutôt que d'en prendre de nouveaux. Il fait alors
+       un vendredi-dimanche normal (repos le samedi). Dans les deux sens : le
+       dimanche est parfois posé AVANT le vendredi (période tendue, souhait).
+       Préférence, pas obligation : seulement s'il est libre ce jour-là (règles
+       dures déjà appliquées par avail), encore sous sa part totale, et si aucun
+       MAR disponible n'a souhaité ce jour. */
+    if(dow===0||dow===5){
+      const _autre=shiftDays(date,dow===0?-2:2), _ga=gardes[_autre];
+      /* Option 2 du responsable (07/11/2026) : jamais au détriment d'un souhait.
+         Si un MAR disponible a souhaité ce jour-là, la règle s'efface. */
+      const _souhaitDuJour=(souhaits[date]||[]).some(id=>avail.indexOf(id)>=0);
+      if(_ga && !_souhaitDuJour && dayByDate[_autre] && dayByDate[_autre].dow===(dow===0?5:0)){
+        const _gardes=[_ga.g,_ga.g2].filter(id=>id && avail.indexOf(id)>=0 && _cplSousPart(id,'total'));
+        for(let _k=_gardes.length-1;_k>=0;_k--){ const i=avail.indexOf(_gardes[_k]); avail.splice(i,1); avail.unshift(_gardes[_k]); }
+        if(_gardes.length) warnings.push(`VD rompu ${dow===5?date:_autre} : ${_gardes.join(' et ')} garde(nt) le vendredi et le dimanche`);
+      }
+    }
     let [A,B]=meilleurePaire(avail,day.date);
     // ── (COUVERTURE) Anticipation d'UN jour ────────────────────────────
     // Ne pas vider le vivier du LENDEMAIN : les deux retenus y seront bloqués (jamais

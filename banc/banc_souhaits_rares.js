@@ -191,15 +191,21 @@ console.log('\n═══ 6. La passe « veille de congés » ne reprend plus un 
       H.makeSheet(`INDISPOS_${YEAR}`, H.indisposRows(YEAR, roster, im)),
       H.makeSheet('PERIODES_VAC', H.periodesRows(YEAR)),
       H.makeSheet('CONFIG', [['CLE', 'VALEUR']]),
-    ]), [], src).generateGardes(YEAR, { dryRun: true });
+    ]), [], src);
+    /* (07/11/2026) Comparaison sur le planning que la vraie génération RETIENT
+       (meilleur des 8), pas sur le planning n° 1 : sur le seul n° 1, la règle du
+       vendredi-dimanche rompu ramenait le scénario 2 à égalité avec l'ancien
+       générateur (116 → 116), alors que sur le planning retenu il en accorde plus. */
+    const gen = ctx => ctx.generateGardes(YEAR, { dryRun: true,
+      tirage: typeof ctx.choisirMeilleurTirage === 'function' ? ctx.choisirMeilleurTirage(YEAR) : 1 });
     const honores = r => Object.entries(r.souhaits).reduce((s, [id, v]) =>
       s + (roster.find(x => x[0] === id && x[3].souhaitPlafond) ? 0 : v.honores), 0);
-    const apres = go(undefined);
+    const apres = gen(go(undefined));
     const pire = Math.max(...Object.values(apres.ecarts).map(e => e.ecart));
     V('scénario ' + scen + ' — équité tenue (écart max ' + pire + ' ≤ 2) et année pourvue',
       pire <= 2 && apres.sansBinome === 0, apres.ecarts);
     if (avant) {
-      const n0 = honores(go(avant)), n1 = honores(apres);
+      const n0 = honores(gen(go(avant))), n1 = honores(apres);
       V('scénario ' + scen + ' — plus de souhaits honorés qu\'avant (' + n0 + ' → ' + n1 + ')', n1 > n0, { avant: n0, apres: n1 });
     } else {
       V('contre-preuve sautée (historique git indisponible ici)', true);

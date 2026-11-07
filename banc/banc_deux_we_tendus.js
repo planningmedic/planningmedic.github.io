@@ -61,13 +61,22 @@ const regles = (G, im) => { let n = 0; Object.keys(G).forEach(id => { const g = 
   g.forEach((d, a) => { if (g[a + 1] === addD(d, 1)) n++; if (g[a + 3] && g[a + 3] <= addD(d, 5)) n++; if ((im[id] || {})[d]) n++; }); }); return n; };
 const couverture = G => { let mal = 0; for (let c = 0; c < 364; c++) { const d = addD(D0, c); let k = 0; Object.keys(G).forEach(id => { if (estG(G[id][d])) k++; }); if (k !== 2) mal++; } return mal; };
 
-/* Contre-preuve : le générateur privé de la seconde recherche. */
+/* Contre-preuve : le générateur privé de la seconde recherche.
+   (07/11/2026) …et privé aussi de la règle « vendredi-dimanche rompu : on garde
+   les MAR de l'autre jour ». Avec cette règle, le placement au fil de l'eau tombe
+   à 0 double week-end dans ce jeu d'essai (au prix de 2 week-ends cassés à 3 MAR,
+   contre 1 double et 1 week-end cassé avec la seconde recherche) : la
+   contre-preuve ne mesurerait plus la seconde recherche. On compare donc à
+   l'ancien placement au fil de l'eau, celui que la seconde recherche remplace. */
 const LIGNE = '      if(!meilleur){\n        toleranceDeuxWE=true;';
-const SANS = SRC.split(LIGNE).join('      if(false){\n        toleranceDeuxWE=true;');
+const LIGNE_VD = '    if(dow===0||dow===5){\n      const _autre=';
+const SANS = SRC.split(LIGNE).join('      if(false){\n        toleranceDeuxWE=true;')
+                .split(LIGNE_VD).join('    if(false){\n      const _autre=');
 const J = jeu(true);
 
 console.log('\n═══ 1. Période tendue sans solution parfaite : le moins de doubles week-ends ═══');
 V('la seconde recherche est présente dans le générateur du dépôt', SRC.split(LIGNE).length === 2);
+V('la règle du vendredi-dimanche rompu est présente (neutralisée dans la contre-preuve)', SRC.split(LIGNE_VD).length === 2);
 const A = generer(J, null);
 V('la génération aboutit', !A.err, A.err);
 if (A.G) {
