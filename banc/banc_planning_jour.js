@@ -124,7 +124,9 @@ const aimant = (C, init) => [...C.querySelectorAll('.jb-aim')].filter(a => a.fir
 
   console.log('\n═══ P5. Hors du tableau ═══');
   const bacs = [...C.querySelectorAll('.jb-bac')].map(b => ({ t: txt(b.querySelector('.jb-bac-t')), m: [...b.querySelectorAll('.jb-aim')].map(txt) }));
-  V('une ligne par motif, avec son nombre', JSON.stringify(bacs) === JSON.stringify([{ t: 'Repos de garde1', m: ['QE'] }, { t: 'Temps partiel1', m: ['QG'] }, { t: 'Vacances1', m: ['QF'] }]), bacs);
+  /* (08/11/2026) « A » s'affiche « Absence » et non plus « Vacances » : c'est désormais
+     le statut « absent de jour, garde possible » (ex. période hors contrat). */
+  V('une ligne par motif, avec son nombre', JSON.stringify(bacs) === JSON.stringify([{ t: 'Repos de garde1', m: ['QE'] }, { t: 'Temps partiel1', m: ['QG'] }, { t: 'Absence1', m: ['QF'] }]), bacs);
   V('le total est dans le titre', /Hors du tableau 3/.test(txt([...C.querySelectorAll('.jb-h2')].find(h => /Hors/.test(txt(h))))));
   V('un repos de garde n\'est posé dans aucun secteur', aimant(C.querySelector('.jb-plaques'), 'QE').length === 0);
   V('légende : G, 18 h, lib., vous', /de garde le soir.*poste jusqu’à 18 h.*consultation libérale.*QM ?vous/.test(txt(C.querySelector('.jb-legende'))));

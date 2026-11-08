@@ -3031,7 +3031,7 @@ function renderMobileDay() {
   }
 
   // Hors du tableau : une ligne par motif (repos de garde, vacances, temps partiel…)
-  const BACS=[['RG','Repos de garde'],['TP','Temps partiel'],['CTP','Temps partiel'],['V','Vacances'],['A','Vacances'],['F','Formation'],['R','Récupération'],['CL','Congé long'],['CP','Congé']];
+  const BACS=[['RG','Repos de garde'],['TP','Temps partiel'],['CTP','Temps partiel'],['V','Vacances'],['A','Absence'],['F','Formation'],['R','Récupération'],['CL','Congé long'],['CP','Congé']];
   const groupes=[], vus=new Set();
   BACS.forEach(([code,lab])=>{ const qui=month.doctors.filter(dc=>((dc.days[dayIdx]||{}).status||'')===code).map(dc=>dc.initials);
     if(!qui.length) return; let g=groupes.find(x=>x.lab===lab); if(!g){ g={lab,v:[]}; groupes.push(g); }

@@ -41,7 +41,7 @@
 // ⚠️ RÈGLE (détecteur de dérive dépôt↔Apps Script) : incrémenter cette version
 // à CHAQUE push de ce fichier. Le diagnostic (admin → Maintenance) compare la
 // version déployée ici avec celle du dépôt et signale toute recopie oubliée.
-const GAS_VERSION_GENERATEUR = '2026-11-07.2';   // (07/11/2026) vendredi-dimanche rompu : réparation finale par échange neutre · (07/11/2026) le dimanche garde d'abord les MAR du vendredi · (03/11/2026) période tendue sans solution parfaite : le moins possible de doubles week-ends, au lieu de les subir au fil de l'eau
+const GAS_VERSION_GENERATEUR = '2026-11-08.1';   // (08/11/2026) le statut « A » (absent de jour, garde possible) est recopié dans le planning · (07/11/2026) vendredi-dimanche rompu : réparation finale par échange neutre · (07/11/2026) le dimanche garde d'abord les MAR du vendredi · (03/11/2026) période tendue sans solution parfaite : le moins possible de doubles week-ends, au lieu de les subir au fil de l'eau
 // précédente : '2026-10-27.1'
 
 /* (05/09/2026) INTERRUPTEUR DU NOUVEL ALGORITHME — récit : docs/JOURNAL-Planning-Med.md §101 */
@@ -3421,7 +3421,11 @@ function generateGardes(year, opts){
       // vit dans INDISPOS, sa place. Recopiee ici, elle devenait un « statut » que
       // 4 ecrans interpretaient comme une ABSENCE — le MAR disparaissait de son
       // secteur alors qu'il travaille normalement (842 cas sur 2027).
-      else{const s=indispos[id]?.[day.date];if(s==='VAC')v='V';else if(s==='VM'||s==='VA')v=s;else if(s==='FORM')v='F';else if(s==='CL')v='CL';else if(s==='TP'||s==='CTP')v='TP';}
+      /* (08/11/2026) « A » (absence de jour, garde possible — ex. période hors contrat)
+         est désormais recopié : il ne bloque pas la garde (ni la cible), mais le MAR
+         n'est pas posté de jour. Sans la recopie, la case restait vide et le planning
+         du jour le croyait présent. Une garde, un repos ou une récup passent avant. */
+      else{const s=indispos[id]?.[day.date];if(s==='VAC')v='V';else if(s==='VM'||s==='VA')v=s;else if(s==='FORM')v='F';else if(s==='CL')v='CL';else if(s==='TP'||s==='CTP')v='TP';else if(s==='A')v='A';}
       row.push(v);
     });
     return row;
