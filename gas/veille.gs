@@ -57,7 +57,7 @@
 //  instantané unique et partagé : chantier séparé.
 // ══════════════════════════════════════════════════════════════════════
 
-const GAS_VERSION_VEILLE = '2026-11-03.1';
+const GAS_VERSION_VEILLE = '2026-11-09.1';
 
 const VEILLE_CFG_TAB = 'VEILLE_CFG';
 const VEILLE_TAB     = 'VEILLE';
@@ -1508,6 +1508,7 @@ function _veilleCarteMail_(it) {
     + '<span style="color:#64748B;font-weight:600;margin-left:6px;">' + _veilleEsc(it.revue) + '</span>'
     + '<span style="float:right;color:#1D6FB8;font:700 13px Arial,sans-serif;">' + Math.round(Number(it.score)) + '<span style="color:#94A3B8;font-weight:400;font-size:11px;">/100</span></span></td></tr>'
     + '<tr><td style="padding:4px 16px 0 16px;"><a href="' + url + '" style="font:700 16px/1.35 Arial,sans-serif;color:#0F172A;text-decoration:none;">' + _veilleEsc(String(it.titre).replace(/\.$/, '')) + '</a></td></tr>'
+    + (it.auteursMail ? '<tr><td style="padding:4px 16px 0 16px;font:400 12px/1.4 Arial,sans-serif;color:#64748B;">' + _veilleEsc(it.auteursMail) + '</td></tr>' : '')   // (09/11) 1er et dernier auteur
     + '<tr><td style="padding:8px 16px 14px 16px;font:400 14px/1.5 Arial,sans-serif;color:#334155;">' + _veilleEsc(it.resume)
     + '<div style="margin-top:8px;"><a href="' + url + '" style="font:600 13px Arial,sans-serif;color:#1D6FB8;text-decoration:none;">Lire sur PubMed →</a></div></td></tr>'
     + '</table></td></tr>';
@@ -1516,6 +1517,25 @@ function _veilleSectionMail_(titre, liste, couleur) {
   if (!liste.length) return '';
   return '<tr><td style="padding:18px 0 10px 0;font:700 13px Arial,sans-serif;color:' + couleur + ';letter-spacing:.6px;text-transform:uppercase;border-bottom:2px solid ' + couleur + ';">' + titre + ' · ' + liste.length + '</td></tr>'
     + '<tr><td style="height:12px;"></td></tr>' + liste.map(_veilleCarteMail_).join('');
+}
+/* (09/11/2026) Ligne d'auteurs du mail : le 1er et le DERNIER auteur, puis « et al. » s'il y en a d'autres.
+   La colonne AUTEURS ne garde que les 3 premiers : le dernier est relu sur PubMed (un seul appel pour
+   les 10 articles). PubMed injoignable : on se rabat sur le 1er auteur de la colonne — le mail part quand même. */
+function _veilleAuteursCourts(noms) {
+  noms = (noms || []).filter(Boolean);
+  if (noms.length <= 2) return noms.join(', ');
+  return noms[0] + ', ' + noms[noms.length - 1] + ' et al.';
+}
+function _veilleAuteursPourMail_(liste) {
+  let fiches = {};
+  try { if (liste.length) fiches = _veilleFichesEfetch(_efetch(liste.map(function (it) { return String(it.pmid); }))) || {}; } catch (e) { fiches = {}; }
+  liste.forEach(function (it) {
+    const f = fiches[String(it.pmid)];
+    if (f && f.auteurs && f.auteurs.length) { it.auteursMail = _veilleAuteursCourts(f.auteurs); return; }
+    const stock = String(it.auteurs || '').trim();
+    const premier = stock.replace(/\s+et al\.?$/, '').split(',')[0].trim();
+    it.auteursMail = premier ? premier + (/,| et al/.test(stock) ? ' et al.' : '') : '';
+  });
 }
 function _veilleHtmlMail_(sel) {
   const n = sel.rea.length + sel.anesth.length;
@@ -1532,7 +1552,7 @@ function _veilleHtmlMail_(sel) {
     + '</table></td></tr></table></body></html>';
 }
 function _veilleTexteMail_(sel) {   // version texte, pour les messageries qui n'affichent pas le HTML
-  const bloc = function (t, l) { return l.length ? t.toUpperCase() + '\n\n' + l.map(function (it) { return '• ' + it.titre + ' (' + it.revue + ', ' + Math.round(Number(it.score)) + '/100)\n  ' + it.resume + '\n  https://pubmed.ncbi.nlm.nih.gov/' + it.pmid + '/'; }).join('\n\n') + '\n\n' : ''; };
+  const bloc = function (t, l) { return l.length ? t.toUpperCase() + '\n\n' + l.map(function (it) { return '• ' + it.titre + ' (' + it.revue + ', ' + Math.round(Number(it.score)) + '/100)' + (it.auteursMail ? '\n  ' + it.auteursMail : '') + '\n  ' + it.resume + '\n  https://pubmed.ncbi.nlm.nih.gov/' + it.pmid + '/'; }).join('\n\n') + '\n\n' : ''; };
   return 'Veille biblio — les articles de la semaine\n\n' + bloc('Réanimation', sel.rea) + bloc('Anesthésie', sel.anesth) + 'Toute la veille : https://planningmedic.github.io/#veille';
 }
 
@@ -1609,6 +1629,7 @@ function _veilleEnvoyerMail_(force) {
   if (!n) return { envoye: false, raison: 'aucun article à 60 ou plus depuis le ' + depuis };
   if (MailApp.getRemainingDailyQuota() < 1) return { envoye: false, raison: 'quota de mails épuisé' };
   const jour = Utilities.formatDate(new Date(), 'Europe/Paris', 'd MMM');
+  _veilleAuteursPourMail_(sel.rea.concat(sel.anesth));
   const html = _veilleHtmlMail_(sel), texte = _veilleTexteMail_(sel);
   let partis = 0, rates = 0;
   dests.forEach(function (to) {   // un mail par personne : personne ne voit l'adresse des autres

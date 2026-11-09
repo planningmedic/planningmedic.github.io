@@ -1071,6 +1071,40 @@ function monde(plan) {
     V('le code n\'écrit l\'adresse de personne : elle vient du classeur', (fs.readFileSync('../gas/veille.gs', 'utf8').match(/[\w.+-]+@[\w-]+\.[\w.]+/g) || []).every(a => a === 'planningmedic@gmail.com'));
   }
 
+  console.log('\n═══ Mail de la semaine (09/11/2026) : une ligne d\'auteurs, le 1er et le dernier puis « et al. » ═══');
+  {
+    let pubmedEnPanne = false;
+    const AUT = { r1: ['Dupont A', 'Bernard C', 'Petit D', 'Roux E', 'Martin B'], a1: ['Leroy F', 'Moreau G'], a2: ['Seul H'] };
+    const m = monde((endpoint, params) => {
+      if (endpoint !== 'efetch.fcgi') return {};
+      if (pubmedEnPanne) throw new Error('PubMed injoignable');
+      return efetchXml(params, id => ({ titre: 'T' + id, revue: 'JAMA', auteurs: AUT[id] || [] }));
+    });
+    vm.runInContext('getOrCreateVeilleTabs()', m.ctx);
+    const envois = [];
+    m.ctx.MailApp = { getRemainingDailyQuota: () => 100, sendEmail: o => envois.push(o) };
+    m.ctx._isoDate = v => v instanceof Date ? v.getFullYear() + '-' + String(v.getMonth() + 1).padStart(2, '0') + '-' + String(v.getDate()).padStart(2, '0') : String(v || '').slice(0, 10);
+    m.ctx.Utilities.formatDate = (d, tz, f) => f === 'yyyy-MM-dd' ? m.ctx._isoDate(d) : 'd MMM';
+    const cfg = m.cl.insertSheet('CONFIG'); cfg.lignes.push(['CLE', 'VALEUR'], ['DIAG_EMAIL', 'admin@exemple.mc']);
+    const v = m.cl.getSheetByName('VEILLE');
+    v.lignes[0] = ['PMID', 'DATE_PUB', 'TITRE', 'AUTEURS', 'REVUE', 'DOI', 'SOURCE', 'SCORE', 'RESUME', 'LU', 'STAR', 'AJOUTE_LE', 'PUBTYPE', 'THEMES', 'MOTIF'];
+    const auj = new Date(); const il = n => new Date(auj.getTime() - n * 86400000);
+    const A = (id, titre, aut, score) => v.lignes.push([id, il(10), titre, aut, 'JAMA', '', 'REVUE', score, 'Résumé de ' + id + '.', 'N', 'N', il(2), '', '', 'ECR · revue spécialisée']);
+    A('r1', 'Vasopressin Threshold in Septic Shock', 'Dupont A, Bernard C, Petit D et al.', 96);
+    A('a1', 'Cardiac Index-Guided Hemodynamic Therapy in Major Abdominal Surgery', 'Leroy F, Moreau G', 94);
+    A('a2', 'Ketamine and Postoperative Delirium after General Anesthesia', 'Seul H', 90);
+    vm.runInContext('veilleEnvoyerMailTest()', m.ctx);
+    const e = envois[0] || { htmlBody: '', body: '' };
+    V('plus de 2 auteurs : le 1er et le DERNIER (relu sur PubMed), puis « et al. »', /Dupont A, Martin B et al\./.test(e.htmlBody) && !/Bernard C/.test(e.htmlBody), e.htmlBody.match(/Dupont[^<]*/));
+    V('2 auteurs : les deux, sans « et al. » ; 1 auteur : lui seul', /Leroy F, Moreau G</.test(e.htmlBody) && /Seul H</.test(e.htmlBody) && !/Moreau G et al/.test(e.htmlBody));
+    V('la version texte porte aussi la ligne d\'auteurs', /\n  Dupont A, Martin B et al\.\n/.test(e.body));
+    V('PubMed relu en UN seul appel pour tout le mail', m.requetes.filter(q => q.endpoint === 'efetch.fcgi').length === 1);
+    pubmedEnPanne = true;
+    vm.runInContext('veilleEnvoyerMailTest()', m.ctx);
+    const e2 = envois[1] || { htmlBody: '' };
+    V('PubMed en panne : le mail part quand même, 1er auteur de la colonne + « et al. »', envois.length === 2 && /Dupont A et al\./.test(e2.htmlBody) && /Leroy F et al\./.test(e2.htmlBody) && /Seul H</.test(e2.htmlBody));
+  }
+
   console.log('\n═══ Abonnement au mail du lundi, étape 2 (21/10/2026) : chacun s\'abonne et tape son adresse ═══');
   {
     const m = monde(() => ({}));
