@@ -99,6 +99,10 @@ function buildContext(ss, logs, genSource) {
   const gen  = genSource !== undefined && genSource !== null
     ? genSource
     : fs.readFileSync(path.join(__dirname, '..', 'gas', 'generateur_gardes.gs'), 'utf8');
+  /* (09/11/2026) OPTIMISATION FINALE : coupée par défaut au banc (elle ajoute des
+     dizaines de secondes à chaque génération, et une RÈGLE doit tenir sans elle).
+     BANC_OPTIM_ITERS=<n> la rallume avec n essais ; banc_optim_finale.js le fait. */
+  ctx.__BANC_OPTIM_ITERS__ = process.env.BANC_OPTIM_ITERS !== undefined ? Number(process.env.BANC_OPTIM_ITERS) : 0;
   vm.runInContext(code, ctx, { filename: 'code.gs' });
   vm.runInContext(gen, ctx, { filename: 'generateur_gardes.gs' });
   /* (05/11/2026) DURÉE DU BANC — UN SEUL PLANNING PAR GÉNÉRATION.

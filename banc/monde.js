@@ -75,6 +75,7 @@ function monter(annee) {
   const cl = classeurComplet(annee);
   const PROPS = { MIROIR_PUSH_TOKEN: 'JETON' }, fichiersDrive = {}, triggers = [];
   const ctx = vm.createContext({
+    __BANC_OPTIM_ITERS__: 0,   // (09/11/2026) optimisation finale coupée : ce monde teste l'interface, pas le planning
     console, JSON, Date, Number, String, Object, Array, Set, Map, Math, Error, isNaN, parseInt, parseFloat, RegExp, encodeURIComponent, decodeURIComponent,
     SpreadsheetApp: { getActiveSpreadsheet: () => cl, getActive: () => cl },
     PropertiesService: { getScriptProperties: () => ({ getProperty: k => (k in PROPS ? PROPS[k] : null), setProperty: (k,v) => { PROPS[k]=String(v); }, deleteProperty: k => { delete PROPS[k]; } }) },

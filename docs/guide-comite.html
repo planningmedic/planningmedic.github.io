@@ -827,6 +827,23 @@
       <p><b>Relancer un assistant est sans danger.</b> S'il a déjà abouti, il le dit et n'y touche pas. Un assistant interrompu se reprend là où il s'était arrêté.</p>
     </div>
 
+    <h3>Comment le planning est choisi</h3>
+    <p>La génération calcule plusieurs plannings et garde le plus équitable. Puis une dernière étape l'affine : elle essaie des centaines de milliers d'échanges et de transferts entre MAR, et garde ceux qui améliorent le planning, <b>sans que rien ne recule</b>.</p>
+    <details class="pourquoi">
+      <summary>Ce que cette dernière étape cherche, dans l'ordre d'importance</summary>
+      <div class="corps">
+      <ul>
+        <li>ne pas couper un vendredi-dimanche, éviter « garde, repos, garde » et les doubles week-ends non demandés ;</li>
+        <li>accorder les souhaits ;</li>
+        <li>mettre chacun au plus près de sa part ;</li>
+        <li>placer des gardes qui allongent un départ en vacances ;</li>
+        <li>en bonus, les week-ends en commun d'un couple déclaré.</li>
+      </ul>
+      <p>Elle respecte toutes les règles (absences, Réa 1, repos, fêtes, souhaits déjà accordés) et ne garde un résultat que s'il est au moins aussi bon sur chaque point. Sinon, le planning de départ est conservé. L'essai de génération montre exactement le planning qui sera écrit, avec ce qu'elle a gagné.</p>
+      <p>Elle prend une à trois minutes : l'essai comme la génération sont plus longs qu'avant, c'est normal.</p>
+      </div>
+    </details>
+
     <h3>Si la génération s'arrête : un jour n'a pas de binôme</h3>
     <p>La répartition des gardes peut refuser d'aboutir. Un message rouge vous dit alors : <b>« Génération impossible »</b>, suivi de la liste des jours concernés.</p>
     <div class="callout rule">

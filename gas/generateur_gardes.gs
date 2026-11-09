@@ -41,7 +41,7 @@
 // ⚠️ RÈGLE (détecteur de dérive dépôt↔Apps Script) : incrémenter cette version
 // à CHAQUE push de ce fichier. Le diagnostic (admin → Maintenance) compare la
 // version déployée ici avec celle du dépôt et signale toute recopie oubliée.
-const GAS_VERSION_GENERATEUR = '2026-11-09.2';   // (09/11/2026) souhaits accordés et gardes à deux jours évitées par échange neutre en fin de calcul · (09/11/2026) couples de week-end : chaque moitié de l'échange jugée dans l'état final · (09/11/2026) vendredi-dimanche rompu : le MAR du vendredi est jugé sans la garde qu'il cède · (08/11/2026) le statut « A » (absent de jour, garde possible) est recopié dans le planning · (07/11/2026) vendredi-dimanche rompu : réparation finale par échange neutre · (07/11/2026) le dimanche garde d'abord les MAR du vendredi · (03/11/2026) période tendue sans solution parfaite : le moins possible de doubles week-ends, au lieu de les subir au fil de l'eau
+const GAS_VERSION_GENERATEUR = '2026-11-09.3';   // (09/11/2026) optimisation finale par recuit simulé, rien ne recule · (09/11/2026) souhaits accordés et gardes à deux jours évitées par échange neutre en fin de calcul · (09/11/2026) couples de week-end : chaque moitié de l'échange jugée dans l'état final · (09/11/2026) vendredi-dimanche rompu : le MAR du vendredi est jugé sans la garde qu'il cède · (08/11/2026) le statut « A » (absent de jour, garde possible) est recopié dans le planning · (07/11/2026) vendredi-dimanche rompu : réparation finale par échange neutre · (07/11/2026) le dimanche garde d'abord les MAR du vendredi · (03/11/2026) période tendue sans solution parfaite : le moins possible de doubles week-ends, au lieu de les subir au fil de l'eau
 // précédente : '2026-10-27.1'
 
 /* (05/09/2026) INTERRUPTEUR DU NOUVEL ALGORITHME — récit : docs/JOURNAL-Planning-Med.md §101 */
@@ -89,6 +89,18 @@ function getCouplesWeekend() {
 // règle des week-ends : à 3000, l'équité l'écrasait (48 enchaînements par an).
 const LEX_SEUIL = 1;
 const LEX_POIDS = 600;
+
+/* (09/11/2026) OPTIMISATION FINALE (passe 8sexies) — barème fixé par le responsable :
+   week-end coupé et « garde, repos, garde » non souhaitée pires qu'un souhait
+   refusé ; trois écarts d'une garde à la part pires qu'un souhait refusé ; le
+   couple de week-end n'est qu'un bonus ; les gardes qui allongent les vacances
+   ne reculent pas. Graine et nombre d'essais FIXES : le calcul à blanc et la
+   vraie génération écrivent le même planning. Banc : OPTIM_ITERS se règle par la
+   variable globale __BANC_OPTIM_ITERS__ (absente en production). */
+const OPTIM_ITERS  = 400000;
+const OPTIM_GRAINE = 2;
+const OPTIM_POIDS  = { ecart:0.5, souhait:1, split:2, j2:2, dwe:3, couple:0.2, confort:1 };
+function _optimIters_(){ return (typeof __BANC_OPTIM_ITERS__ === 'number') ? __BANC_OPTIM_ITERS__ : OPTIM_ITERS; }
 
 /* (13/09/2026) L'identifiant du classeur d'archive ne vit plus dans le dépôt — récit : docs/JOURNAL-Planning-Med.md §102 */
 let _archiveSsIdMemo_ = null;
@@ -540,7 +552,7 @@ function choisirMeilleurTirage(year){
   }
   for(let t = (serie - 1) * MULTI_DEPART_MAX + 1; t <= serie * MULTI_DEPART_MAX; t++){
     let r = null;
-    try { r = generateGardes(year, { dryRun: true, tirage: t }); }
+    try { r = generateGardes(year, { dryRun: true, tirage: t, selection: true }); }   // (09/11/2026) sans l'optimisation finale : on choisit sur le planning de base
     catch(e){ Logger.log('Tirage ' + t + ' en échec : ' + e.message); continue; }
     if(!r || !r.ecarts) continue;
     let pire = 0, nAu = 0;
@@ -675,6 +687,7 @@ function generateGardes(year, opts){
 
   /* (05/09/2026) NUMÉRO DE TIRAGE — récit : docs/JOURNAL-Planning-Med.md §111 */
   const TIRAGE_BRUT = Math.max(1, Number(opts && opts.tirage) || 1);
+  let _optimBilan = null;   // (09/11/2026) bilan de l'optimisation finale, pour le calcul à blanc
   /* (24/10/2026) Numéros au-delà de MULTI_DEPART_MAX : même ordre de départ que
      le tirage (n − MULTI_DEPART_MAX), sans le bonus du couple (voir
      choisirMeilleurTirage). */
@@ -3013,6 +3026,97 @@ function generateGardes(year, opts){
         warnings.push(`Confort : ${_lGain} garde(s) échangée(s) pour éviter une garde à deux jours d'une autre (équité inchangée)`);
       }
     }
+    /* ── 8sexies. (09/11/2026) OPTIMISATION FINALE PAR RECUIT SIMULÉ ─────────────
+       Le planning est construit jour par jour puis retouché ; il restait meilleur
+       ailleurs. Mesuré sur les indispos réelles 2027 (09/11/2026) : sur 200 ordres
+       de départ, aucun ne battait le planning retenu partout, mais partir de lui et
+       essayer des centaines de milliers de transferts et d'échanges donnait
+       10 souhaits de plus, 6 écarts d'une garde de moins, 0 « garde, repos, garde »
+       au lieu de 1, 11 gardes de confort de plus — sans rien perdre ailleurs.
+       Chaque mouvement passe par canHold (absences, Réa 1, repos, deux gardes
+       d'affilée, deux week-ends de suite, densité, paires à éviter…). Jamais sur un
+       créneau verrouillé (souhait accordé à la construction, fêtes, régime à part).
+       GARDE-FOU : on n'écrit que le meilleur état qui ne recule sur AUCUN critère
+       (écarts, souhaits, week-ends coupés, garde-repos-garde, doubles week-ends,
+       confort ; pire écart ≤ 1). Sinon le planning de départ reste. Absent du choix
+       du tirage (opts.selection) : on optimise le tirage retenu, une seule fois. */
+    if(NOUVEL_ALGO && !(opts && opts.selection) && _optimIters_() > 0){
+      const _t0o = Date.now();
+      let _s = (OPTIM_GRAINE * 2654435761) >>> 0 || 1;
+      const rnd = () => { _s ^= _s << 13; _s >>>= 0; _s ^= _s >>> 17; _s ^= _s << 5; _s >>>= 0; return _s / 4294967296; };
+      const W_ = OPTIM_POIDS;
+      const ids = gardeDoctors.filter(id => !SOUHAIT_PLAFOND.has(id));
+      const hold = (id, d) => !!gardes[d] && (gardes[d].g === id || gardes[d].g2 === id);
+      const fris = allDays.filter(d => d.dow === 5 && dayByDate[shift(d.date, 2)]).map(d => d.date);
+      const souhL = []; Object.keys(souhaits || {}).forEach(d => (souhaits[d] || []).forEach(id => souhL.push([id, d])));
+      const unite = (a, b) => { const A_ = dayByDate[a], B_ = dayByDate[b]; if (!A_ || !B_) return false;
+        return (A_.dow === 5 && B_.dow === 0) || (A_.dow === 4 && A_.isFerie && B_.dow === 6) || (A_.dow === 6 && B_.dow === 1 && B_.isFerie); };
+      const wkey = d => { const w = dayByDate[d].dow; return w === 5 ? d : w === 6 ? shift(d, -1) : w === 0 ? shift(d, -2) : null; };
+      const vac = (id, d) => !!indispos[id] && indispos[id][d] === 'VAC';
+      const confortDe = (id, d) => { const r = shift(d, 1), dr = dayByDate[r]; if (!dr || dr.dow === 0 || dr.dow === 6 || dr.isFerie) return false;
+        for (let k = 2; k <= 4; k++) { const x = shift(d, k); if (vac(id, x)) return true; const dx = dayByDate[x]; if (!dx) return false;
+          if (!(dx.dow === 0 || dx.dow === 6 || dx.isFerie)) return false; if (indispos[id] && indispos[id][x]) return false; } return false; };
+      const mesure = () => { let n1 = 0, pire = 0, n2 = 0, sh = 0, split = 0, j2 = 0, dwe = 0, cpl = 0, conf = 0;
+        ids.forEach(id => EQ.forEach(ax => { const cb = (cible[id] && cible[id][ax]) || 0; const a = Math.abs(cnt[id][ax] - cb); if (a > pire) pire = a; if (a > 0.5) n1 += Math.round(a); if (a > 1.5) n2 += Math.round(a) - 1; }));
+        souhL.forEach(([id, d]) => { if (hold(id, d)) sh++; });
+        fris.forEach(f => { if (noelDatesAssigned.has(f) || noelDatesAssigned.has(shift(f, 2))) return; const a = gardes[f], b = gardes[shift(f, 2)]; if (!a || !b) return;
+          if ([a.g, a.g2].sort().join() !== [b.g, b.g2].sort().join()) split++; if (_cplOn) cpl += _cplLies(f, null); });
+        gardeDoctors.forEach(id => { const all = [...gSet[id], ...g2Set[id]].sort(); const wk = {};
+          all.forEach(d => { const x = shift(d, 2); if (hold(id, x) && !unite(d, x) && !(isSouhaitDe(id, d) && isSouhaitDe(id, x))) j2++;
+            const k = wkey(d); if (k) (wk[k] = wk[k] || []).push(d); if (confortDe(id, d)) conf++; });
+          Object.keys(wk).forEach(k => { const k2 = shift(k, 7); if (wk[k2] && !wk[k].concat(wk[k2]).every(d => isSouhaitDe(id, d))) dwe++; }); });
+        return { n1, pire, n2, sh, split, j2, dwe, cpl, conf }; };
+      /* n2 = gardes de trop au-delà d'une garde d'écart (équité principale) : chacune
+         pèse 1000, bien au-dessus de toute la température du recuit — la recherche ne
+         la dégrade jamais et la répare dès qu'elle peut. */
+      const note = m => 1000 * m.n2 + W_.ecart * m.n1 - W_.souhait * m.sh + W_.split * m.split + W_.j2 * m.j2 + W_.dwe * m.dwe - W_.couple * m.cpl - W_.confort * m.conf;
+      const m0 = mesure();
+      const sur = m => m.n2 <= m0.n2 && m.pire <= Math.max(1, m0.pire) && m.n1 <= m0.n1 && m.sh >= m0.sh && m.split <= m0.split && m.j2 <= m0.j2 && m.dwe <= m0.dwe && m.conf >= m0.conf;
+      const tit = sl => sl.role === 0 ? gardes[sl.days[0]].g : gardes[sl.days[0]].g2;
+      const libres = slots.filter(sl => !sl.locked);
+      const depart = slots.map(tit);
+      let cur = note(m0), best = cur, bestSnap = depart.slice(), bestM = m0;
+      const N = _optimIters_();
+      for (let it = 0; it < N && libres.length; it++) {
+        const T = 1.5 * Math.pow(0.002, it / N);
+        const s1 = libres[(rnd() * libres.length) | 0], A = tit(s1);
+        if (!A || SOUHAIT_PLAFOND.has(A)) continue;
+        let annule;
+        if (rnd() < 0.35) {
+          const B = ids[(rnd() * ids.length) | 0]; if (B === A || !canHold(B, s1.days, s1.role)) continue;
+          applyTr(s1, B); annule = () => applyTr(s1, A);
+        } else {
+          const s2 = libres[(rnd() * libres.length) | 0]; if (s2 === s1 || s2.role !== s1.role) continue;
+          const B = tit(s2); if (!B || B === A || SOUHAIT_PLAFOND.has(B)) continue;
+          applyTr(s1, B); const okA = canHold(A, s2.days, s2.role); applyTr(s1, A); if (!okA) continue;
+          applyTr(s2, A); const okB = canHold(B, s1.days, s1.role); applyTr(s2, B); if (!okB) continue;
+          applyTr(s1, B); applyTr(s2, A); annule = () => { applyTr(s1, A); applyTr(s2, B); };
+        }
+        const m = mesure(), v = note(m);
+        if (v <= cur || rnd() < Math.exp((cur - v) / T)) {
+          cur = v;
+          if (v < best && sur(m)) { best = v; bestSnap = slots.map(tit); bestM = m; }
+        } else annule();
+      }
+      // Remise dans le meilleur état sûr rencontré (ou le départ). Chaque créneau
+      // reprend son titulaire ; l'état final est un état déjà validé mouvement par mouvement.
+      for (let k = 0; k < 3; k++) slots.forEach((sl, i) => { const w = bestSnap[i]; if (w && tit(sl) !== w) applyTr(sl, w); });
+      const mF = mesure();
+      const garde = sur(mF) && note(mF) <= note(m0);
+      if (!garde) { for (let k = 0; k < 3; k++) slots.forEach((sl, i) => { const w = depart[i]; if (w && tit(sl) !== w) applyTr(sl, w); }); }
+      const mE = garde ? mF : mesure();
+      _optimBilan = { avant: m0, apres: mE, iterations: N, ms: Date.now() - _t0o, garde: garde };
+      Logger.log('Optimisation finale : ' + JSON.stringify(_optimBilan));
+      if (garde && note(mE) < note(m0)) {
+        const dif = [];
+        if (mE.sh > m0.sh) dif.push('+' + (mE.sh - m0.sh) + ' souhait(s)');
+        if (mE.n1 < m0.n1) dif.push((m0.n1 - mE.n1) + ' écart(s) d\'une garde en moins');
+        if (mE.j2 < m0.j2) dif.push((m0.j2 - mE.j2) + ' « garde, repos, garde » en moins');
+        if (mE.split < m0.split) dif.push((m0.split - mE.split) + ' week-end(s) coupé(s) en moins');
+        if (mE.conf > m0.conf) dif.push('+' + (mE.conf - m0.conf) + ' garde(s) qui allongent les vacances');
+        warnings.push('Optimisation finale : ' + (dif.join(', ') || 'planning affiné') + ' (rien ne recule)');
+      }
+    }
     // 8) Recomposer rgSet / recupDue depuis l'état optimisé (pour R + 18h + STATS).
     allDoctors.forEach(id=>{rgSet[id]=new Set();});
     gardeDoctors.forEach(id=>{recupDue[id]=[];});
@@ -3529,7 +3633,7 @@ function generateGardes(year, opts){
 
     return { dryRun:true, year:year, ms:Date.now()-_tGen,
              raresDetail:raresDetail, raresManque:raresManque,
-             partExacte:partExacte, cumulPrec:cumulPrec, anneesLues:anneesLues.sort(),
+             partExacte:partExacte, cumulPrec:cumulPrec, anneesLues:anneesLues.sort(), optim:_optimBilan,
              ecarts:ecarts, compteurs:compteurs, cibles:cibles,
              jf:jf, noel:noel, h18:h18, souhaits:souhaitsBilan,
              fetes:fetes, paires:pairesBilan, couplesWE:_couplesWEBilan_(), coupleAssoupli:_cplOn&&CPL_SANS_BONUS,
