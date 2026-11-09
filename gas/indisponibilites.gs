@@ -4,7 +4,7 @@
    quelles : aucune ligne de logique modifiée, seulement déplacée. Le routeur et
    ses aides (checkCode, _deny, _error, doGet/doPost) restent dans Indispos.gs.
    Un seul espace global dans Apps Script : rien à importer. */
-const GAS_VERSION_INDISPOS_METIER = '2026-10-27.1';   // (27/10/2026) VM/VA posés à la main : jamais écrasés par un enregistrement (MAR ou staff)
+const GAS_VERSION_INDISPOS_METIER = '2026-11-09.1';   // (09/11/2026) mail « Vos gardes » : 18 h, souhaits honorés, gardes qui allongent les vacances · (27/10/2026) VM/VA posés à la main : jamais écrasés par un enregistrement (MAR ou staff)
 // précédente : '2026-10-22.2'
 
 // La campagne de saisie des indispos est-elle EN COURS ?
@@ -1063,6 +1063,92 @@ function _act_getConflitsAll(R) {
   })).setMimeType(ContentService.MimeType.JSON);
 }
 
+/* ── (09/11/2026) PIÈCE JOINTE DU MAIL « VOS GARDES » : L'ANNÉE DU MAR EN UNE PAGE ──
+   Demandé par le responsable : le récapitulatif annuel du MAR, sur le modèle de
+   la « fiche récap » (tuiles + calendrier des 12 mois), limité à ce que le
+   logiciel a posé ou attribué : vacances, formation, temps partiel, gardes et
+   18 h. Ni indisponibilités, ni souhaits. Fériés : liseré rouge, même sur une
+   case colorée (code habituel du responsable).
+   Le PDF est produit par la conversion HTML → PDF de Google, qui ne connaît ni
+   flex ni grid : TABLEAUX ET COULEURS SEULEMENT. `codeDu` = codes de la ligne du
+   MAR dans GARDES_{year} ({'2027-03-08':'G', …}). Fonction pure, testée au banc. */
+function _htmlRecapMar_(nom, year, codeDu, isF) {
+  const COUL = { G:['#dc2626','#ffffff'], G2:['#dc2626','#ffffff'], '18':['#fb923c','#ffffff'], RG:['#fecaca','#7f1d1d'],
+                 V:['#93c5fd','#1e3a8a'], VA:['#bfdbfe','#1e3a8a'], VM:['#bfdbfe','#1e3a8a'], F:['#5eead4','#134e4a'],
+                 TP:['#c4b5fd','#3b0764'], CL:['#cbd5e1','#334155'] };
+  const pad = n => String(n).padStart(2, '0');
+  const iso = (y, m, d) => y + '-' + pad(m) + '-' + pad(d);
+  const MOIS = ['Janvier','Février','Mars','Avril','Mai','Juin','Juillet','Août','Septembre','Octobre','Novembre','Décembre'];
+  const ouvre = ds => { const w = new Date(ds + 'T12:00:00').getDay(); return w >= 1 && w <= 5 && !isF(ds); };
+  let nG = 0, nG2 = 0, n18 = 0, vac = 0, form = 0, tp = 0;
+  Object.keys(codeDu).forEach(ds => {
+    const c = codeDu[ds];
+    if (c === 'G') nG++; else if (c === 'G2') nG2++; else if (c === '18') n18++;
+    if (!ouvre(ds)) return;
+    if (c === 'V') vac += 1; else if (c === 'VA' || c === 'VM') vac += 0.5;
+    else if (c === 'F') form += 1; else if (c === 'TP') tp += 1;
+  });
+  const fmt = x => String(x).replace('.', ',');
+  const tuile = (val, lib, bg, fg) => '<td style="width:20%;padding:3px">'
+    + '<div style="background:' + bg + ';border-radius:6px;padding:6px 8px">'
+    + '<div style="font-size:17pt;font-weight:bold;color:' + fg + '">' + val + '</div>'
+    + '<div style="font-size:7.5pt;color:#334155">' + lib + '</div></div></td>';
+  const mois = m => {
+    const premier = new Date(year, m, 1, 12), nb = new Date(year, m + 1, 0, 12).getDate();
+    let dec = (premier.getDay() + 6) % 7, h = '<table style="border-collapse:collapse;width:100%">'
+      + '<tr><td colspan="7" style="font-size:8pt;font-weight:bold;color:#0f172a;padding:2px 0 3px">' + MOIS[m] + '</td></tr><tr>';
+    ['L','M','M','J','V','S','D'].forEach(j => { h += '<td style="font-size:6pt;color:#94a3b8;text-align:center">' + j + '</td>'; });
+    h += '</tr><tr>';
+    for (let k = 0; k < dec; k++) h += '<td></td>';
+    for (let d = 1; d <= nb; d++) {
+      const ds = iso(year, m + 1, d), c = codeDu[ds] || '', w = (dec + d - 1) % 7;
+      const col = COUL[c], fer = isF(ds);
+      const bg = col ? col[0] : (w >= 5 ? '#f1f5f9' : '#ffffff'), fg = col ? col[1] : '#334155';
+      const bord = fer ? '1.5px solid #dc2626' : '1px solid #e2e8f0';
+      h += '<td style="width:14%;height:13px;text-align:center;font-size:6.5pt;background:' + bg + ';color:' + fg
+        + ';border:' + bord + (c === 'G' || c === 'G2' || c === '18' ? ';font-weight:bold' : '') + '">' + d + '</td>';
+      if (w === 6 && d < nb) h += '</tr><tr>';
+    }
+    return h + '</tr></table>';
+  };
+  let cal = '<table style="border-collapse:collapse;width:100%">';
+  for (let r = 0; r < 4; r++) {
+    cal += '<tr>';
+    for (let c = 0; c < 3; c++) cal += '<td style="vertical-align:top;padding:4px 7px;width:33%">' + mois(r * 3 + c) + '</td>';
+    cal += '</tr>';
+  }
+  cal += '</table>';
+  const suite = [1, 2].map(d => iso(year + 1, 1, d)).filter(ds => codeDu[ds] === 'G' || codeDu[ds] === 'G2' || codeDu[ds] === '18')
+    .map(ds => ds.slice(8) + '/01/' + (year + 1) + ' : ' + (codeDu[ds] === '18' ? '18 h' : 'garde'));
+  const leg = (c, l) => '<td style="padding:2px 8px 2px 0;font-size:7pt;color:#334155;white-space:nowrap">'
+    + '<span style="display:inline-block;width:9px;height:9px;background:' + c + ';border:1px solid #cbd5e1"></span> ' + l + '</td>';
+  return '<html><head><meta charset="utf-8"></head><body style="font-family:Arial,Helvetica,sans-serif;margin:0;color:#0f172a">'
+    + '<div style="background:#0f172a;color:#ffffff;padding:12px 16px;border-radius:8px">'
+    + '<div style="font-size:8pt;color:#94a3b8">PLANNING-MED · RÉCAPITULATIF ' + year + '</div>'
+    + '<div style="font-size:16pt;font-weight:bold;margin-top:3px">' + nom + '</div>'
+    + '<div style="font-size:8pt;color:#cbd5e1;margin-top:2px">Vacances, formation, temps partiel, gardes et 18 h attribués par le logiciel</div></div>'
+    + '<table style="border-collapse:collapse;width:100%;margin-top:8px"><tr>'
+    + tuile(nG + nG2, 'gardes (' + nG + ' réa · ' + nG2 + ' mat)', '#fee2e2', '#b91c1c')
+    + tuile(n18, '18 h', '#ffedd5', '#c2410c')
+    + tuile(fmt(vac), 'jours de vacances (ouvrés)', '#dbeafe', '#1d4ed8')
+    + tuile(fmt(form), 'jours de formation', '#ccfbf1', '#0f766e')
+    + tuile(tp, 'jours de temps partiel', '#ede9fe', '#6d28d9')
+    + '</tr></table>'
+    + '<div style="margin-top:6px">' + cal + '</div>'
+    + (suite.length ? '<div style="font-size:7.5pt;color:#334155;margin:4px 7px">Hors calendrier : ' + suite.join(' · ') + '</div>' : '')
+    + '<table style="border-collapse:collapse;margin:6px 7px 0"><tr>'
+    + leg('#dc2626', 'Garde') + leg('#fecaca', 'Repos de garde') + leg('#fb923c', '18 h') + leg('#93c5fd', 'Vacances')
+    + leg('#5eead4', 'Formation') + leg('#c4b5fd', 'Temps partiel') + leg('#cbd5e1', 'Congé long')
+    + '<td style="padding:2px 0;font-size:7pt;color:#334155;white-space:nowrap"><span style="display:inline-block;width:9px;height:9px;border:1.5px solid #dc2626"></span> Férié</td>'
+    + '</tr></table>'
+    + '<div style="font-size:6.5pt;color:#94a3b8;margin:8px 7px 0">Document généré par Planning-Med à la génération du planning. Les échanges ultérieurs n\'y figurent pas : le planning en ligne fait foi.</div>'
+    + '</body></html>';
+}
+function _pdfRecapMar_(nom, year, codeDu, isF) {
+  return Utilities.newBlob(_htmlRecapMar_(nom, year, codeDu, isF), 'text/html', 'recap.html')
+    .getAs('application/pdf').setName('Recapitulatif-' + year + '.pdf');
+}
+
 /* ── action "envoyerRecapIndispos" ── */
 function _act_envoyerRecapIndispos(R) {
   const { e, payload, action, code, user } = R;
@@ -1103,13 +1189,42 @@ function _act_envoyerRecapIndispos(R) {
   };
   const fnames = Object.assign({}, feriesNamed(year), feriesNamed(year + 1));
 
-  const site = 'https://planningmedic.github.io/';
   const JOURS = ['Dim','Lun','Mar','Mer','Jeu','Ven','Sam'];
   const MOIS  = ['Janvier','Février','Mars','Avril','Mai','Juin','Juillet','Août','Septembre','Octobre','Novembre','Décembre'];
   const dd = n => String(n).padStart(2,'0');
 
+  /* (09/11/2026) SOUHAITS DE L'ANNÉE — lus une fois dans INDISPOS_{year}, pour
+     marquer dans le mail chaque garde que le MAR avait demandée. Onglet absent :
+     aucune étiquette, le mail part quand même. */
+  const souhaitsDe = {};
+  try {
+    const _ind = ss.getSheetByName(`INDISPOS_${year}`);
+    if (_ind) {
+      const _d = _ind.getDataRange().getValues();
+      const _dates = reconstruireDatesHeaders(_d, year);
+      for (let _r = 3; _r < _d.length; _r++) {
+        const _id = String(_d[_r][0]).trim(); if (!_id) continue;
+        _dates.forEach((_dt, _i) => { if (_dt && String(_d[_r][_i + 1] || '').trim().toUpperCase() === 'SOUHAIT') (souhaitsDe[_id] = souhaitsDe[_id] || {})[_dt] = true; });
+      }
+    }
+  } catch (eS0) { /* confort d'affichage, jamais bloquant */ }
+
+  /* (09/11/2026) COUPLES DE WEEK-END (ligne COUPLES_WEEKEND de CONFIG, aucun nom
+     dans le code) : chacun des deux reçoit un encadré sur leurs week-ends en
+     commun, et le constat chiffré — nuits de garde ensemble, garde pendant le
+     18 h de l'autre — lu sur le planning, jamais supposé. */
+  let couples = {};
+  try { couples = (typeof getCouplesWeekend === 'function') ? getCouplesWeekend() : {}; } catch (eC) { couples = {}; }
+  const codesDe = {}, nomDe = {};
+  for (let ri = 3; ri < gData.length; ri++) {
+    const _id = String(gData[ri][0]).trim(); if (!_id) continue;
+    const o = {}; Object.keys(colToDate).forEach(col => { const v = String(gData[ri][Number(col)] || '').trim().toUpperCase(); if (v) o[colToDate[col]] = v; });
+    codesDe[_id] = o;
+  }
+  for (let r0 = 1; r0 < medData.length; r0++) nomDe[String(medData[r0][COL_MED.ID]).trim()] = String(medData[r0][COL_MED.NOM]).trim();
+
   let sent = 0, skipped = 0;
-  const errors = [];
+  const errors = [], pjEchecs = [];
 
   for (let r = 1; r < medData.length; r++) {
     const id = String(medData[r][COL_MED.ID]).trim();
@@ -1120,25 +1235,49 @@ function _act_envoyerRecapIndispos(R) {
     if (!email) { skipped++; continue; }
 
     // Gardes du MAR (G / G2 uniquement)
-    const gardes = [];
+    const gardes = [], h18 = [], codeDu = {};
     for (let ri = 3; ri < gData.length; ri++) {
       if (String(gData[ri][0]).trim() !== id) continue;
       Object.keys(colToDate).forEach(col => {
         const date = colToDate[col];
         const val = String(gData[ri][Number(col)] || '').trim().toUpperCase();
+        if (val) codeDu[date] = val;
         if (val === 'G' || val === 'G2') gardes.push({ date, type: val });
+        if (val === '18') h18.push(date);           // (09/11/2026) les 18 h, demandés par le responsable
       });
       break;
     }
+    h18.sort();
+    const _souh = souhaitsDe[id] || {};
+    /* (09/11/2026) GARDE QUI ALLONGE LES VACANCES : son repos tombe sur le dernier
+       jour travaillé avant un départ (repos un jour de semaine, puis vacances,
+       éventuellement après un samedi-dimanche). C'est ce que cherche la passe
+       « confort » du générateur ; on le lit ici sur le planning lui-même. */
+    const _plus = (ds, n) => { const x = new Date(ds + 'T12:00:00'); x.setDate(x.getDate() + n);
+      return `${x.getFullYear()}-${String(x.getMonth()+1).padStart(2,'0')}-${String(x.getDate()).padStart(2,'0')}`; };
+    const libelleCourt = ds => { const t = new Date(ds + 'T12:00:00'); return JOURS[t.getDay()].toLowerCase() + ' ' + dd(t.getDate()) + '/' + dd(t.getMonth()+1); };
+    const allonge = ds => {
+      const rep = _plus(ds, 1), wr = new Date(rep + 'T12:00:00').getDay();
+      if (codeDu[rep] !== 'RG' || wr === 0 || wr === 6 || isF(rep)) return false;
+      for (let k = 2; k <= 4; k++) {
+        const x = _plus(ds, k), c = codeDu[x] || '', w = new Date(x + 'T12:00:00').getDay();
+        if (c === 'V') return true;
+        if (!(w === 0 || w === 6 || isF(x)) || c) return false;
+      }
+      return false;
+    };
     gardes.sort((x,y2) => x.date < y2.date ? -1 : (x.date > y2.date ? 1 : 0));
 
-    let nRea=0, nMat=0, nWe=0, nFer=0;
+    let nRea=0, nMat=0, nWe=0, nFer=0, nSouh=0, nAll=0;
     const byMonth = {};
     gardes.forEach(gg => {
       const dt = new Date(gg.date + 'T12:00:00'), dw = dt.getDay();
       if (gg.type === 'G') nRea++; else nMat++;
       if (dw === 0 || dw === 5 || dw === 6) nWe++;   // même définition que le marquage
       if (isF(gg.date)) nFer++;
+      gg.souh = !!_souh[gg.date]; gg.all = allonge(gg.date);
+      if (gg.souh) nSouh++;
+      if (gg.all) nAll++;
       const mo = Number(gg.date.slice(5,7)) - 1;
       (byMonth[mo] = byMonth[mo] || []).push(gg);
     });
@@ -1193,12 +1332,43 @@ function _act_envoyerRecapIndispos(R) {
       }
     } catch (eS) { /* le récapitulatif des souhaits est un confort, jamais bloquant */ }
 
+    let coupleHtml = '', coupleTexte = '';
+    const P = couples[String(id).trim().toUpperCase()];
+    if (P && codesDe[P]) {
+      const moi = codeDu, lui = codesDe[P], nomP = nomDe[P] || P;
+      const garde = (c, d) => c[d] === 'G' || c[d] === 'G2';
+      let ensemble = 0, sur18 = 0; const weCommuns = [];
+      Object.keys(colToDate).map(k => colToDate[k]).sort().forEach(d => {
+        if (garde(moi, d) && garde(lui, d)) ensemble++;
+        if ((garde(moi, d) && lui[d] === '18') || (garde(lui, d) && moi[d] === '18')) sur18++;
+        if (new Date(d + 'T12:00:00').getDay() !== 5) return;
+        const j = [d, _plus(d, 1), _plus(d, 2)];
+        if (j.some(x => garde(moi, x)) && j.some(x => garde(lui, x))) {
+          const qui = c => { const t = j.filter(x => garde(c, x)).map(x => JOURS[new Date(x + 'T12:00:00').getDay()].toLowerCase()); return t.join('-'); };
+          weCommuns.push({ d, texte: libelleCourt(d) + ' → ' + libelleCourt(j[2]) + ' : vous ' + qui(moi) + ', ' + nomP + ' ' + qui(lui) });
+        }
+      });
+      const ok = n => n === 0 ? '#047857' : '#b45309';
+      coupleHtml = '<div style="background:#fdf4ff;border:1px solid #f5d0fe;border-radius:12px;padding:13px 16px;margin-bottom:22px">'
+        + '<div style="font-size:13px;font-weight:700;color:#86198f">Vos week-ends avec ' + nomP + '</div>'
+        + '<div style="font-size:12.5px;color:#334155;margin-top:6px"><b>' + weCommuns.length + '</b> week-end' + (weCommuns.length > 1 ? 's' : '') + ' de garde en commun'
+        + (weCommuns.length ? ' :' : '.') + '</div>'
+        + weCommuns.map(w => '<div style="font-size:12px;color:#475569;margin:3px 0 0 10px">• ' + w.texte + '</div>').join('')
+        + '<div style="font-size:12.5px;margin-top:8px;color:' + ok(ensemble) + ';font-weight:700">' + (ensemble === 0 ? '✓ ' : '') + ensemble + ' nuit' + (ensemble > 1 ? 's' : '') + ' de garde en même temps</div>'
+        + '<div style="font-size:12.5px;margin-top:2px;color:' + ok(sur18) + ';font-weight:700">' + (sur18 === 0 ? '✓ ' : '') + sur18 + ' jour' + (sur18 > 1 ? 's' : '') + ' où l\'un est de garde pendant le 18 h de l\'autre</div>'
+        + '</div>';
+      coupleTexte = 'Vos week-ends avec ' + nomP + ' : ' + weCommuns.length + ' en commun' + (weCommuns.length ? ' (' + weCommuns.map(w => w.texte).join(' ; ') + ')' : '')
+        + '. ' + ensemble + ' nuit(s) de garde en même temps. ' + sur18 + ' jour(s) où l\'un est de garde pendant le 18 h de l\'autre.\n';
+    }
+
     // ---------- HTML ----------
-    const chips =
+    const chips = (gardes.length ?
       `<span style="display:inline-block;background:#eef4ff;color:#1d4ed8;border:1px solid #dbe6ff;border-radius:999px;font-size:12px;font-weight:700;padding:4px 11px;margin:0 6px 6px 0">${nRea} réanimation</span>` +
-      `<span style="display:inline-block;background:#ecfdf5;color:#0d9488;border:1px solid #cdeee6;border-radius:999px;font-size:12px;font-weight:700;padding:4px 11px;margin:0 6px 6px 0">${nMat} maternité</span>` +
+      `<span style="display:inline-block;background:#ecfdf5;color:#0d9488;border:1px solid #cdeee6;border-radius:999px;font-size:12px;font-weight:700;padding:4px 11px;margin:0 6px 6px 0">${nMat} maternité</span>` : '') +
       (nWe ? `<span style="display:inline-block;background:#fff7ed;color:#c2410c;border:1px solid #fde3cf;border-radius:999px;font-size:12px;font-weight:700;padding:4px 11px;margin:0 6px 6px 0">${nWe} jour${nWe>1?'s':''} de week-end</span>` : '') +
-      (nFer ? `<span style="display:inline-block;background:#fef2f2;color:#b91c1c;border:1px solid #fbd5d5;border-radius:999px;font-size:12px;font-weight:700;padding:4px 11px;margin:0 6px 6px 0">${nFer} férié${nFer>1?'s':''}</span>` : '');
+      (nFer ? `<span style="display:inline-block;background:#fef2f2;color:#b91c1c;border:1px solid #fbd5d5;border-radius:999px;font-size:12px;font-weight:700;padding:4px 11px;margin:0 6px 6px 0">${nFer} férié${nFer>1?'s':''}</span>` : '') +
+      (h18.length ? `<span style="display:inline-block;background:#f5f3ff;color:#6d28d9;border:1px solid #e4dcfd;border-radius:999px;font-size:12px;font-weight:700;padding:4px 11px;margin:0 6px 6px 0">${h18.length} × 18 h</span>` : '') +
+      (nAll ? `<span style="display:inline-block;background:#f0f9ff;color:#0369a1;border:1px solid #cfe8f7;border-radius:999px;font-size:12px;font-weight:700;padding:4px 11px;margin:0 6px 6px 0">☀ ${nAll} garde${nAll>1?'s':''} qui allonge${nAll>1?'nt':''} vos vacances</span>` : '');
 
     /* (22/10/2026) EN-TÊTE DU MAIL — ces deux blocs étaient utilisés plus bas mais
        définis nulle part : l'envoi s'arrêtait au premier MAR ayant des gardes et
@@ -1207,7 +1377,7 @@ function _act_envoyerRecapIndispos(R) {
     const summaryHtml =
       '<div style="margin-bottom:18px">'
       + '<div style="font-size:15px;font-weight:800;color:#0f172a;margin-bottom:10px">'
-      + gardes.length + ' garde' + (gardes.length > 1 ? 's' : '') + ' en ' + year + '</div>'
+      + (gardes.length ? gardes.length + ' garde' + (gardes.length > 1 ? 's' : '') + (h18.length ? ' et ' + h18.length + ' × 18 h' : '') : h18.length + ' × 18 h') + ' en ' + year + '</div>'
       + chips + '</div>';
     const emptyHtml =
       '<div style="background:#f8fafc;border:1px solid #eef1f5;border-radius:12px;padding:13px 16px;'
@@ -1246,6 +1416,8 @@ function _act_envoyerRecapIndispos(R) {
       unites.push({ we: false, jours: [gg] });
     });
 
+    h18.forEach(d18 => unites.push({ h18: true, jours: [{ date: d18 }] }));
+    unites.sort((a, b) => a.jours[0].date < b.jours[0].date ? -1 : 1);
     const parMois = {};
     unites.forEach(u => {
       const mo = Number(u.jours[0].date.slice(5,7)) - 1;
@@ -1253,8 +1425,13 @@ function _act_envoyerRecapIndispos(R) {
     });
 
     const badgeDe = t => t === 'G'
-      ? '<span style="display:inline-block;background:#eef4ff;color:#1d4ed8;border-radius:7px;font-size:12px;font-weight:700;padding:4px 10px">G &middot; Réa</span>'
-      : '<span style="display:inline-block;background:#ecfdf5;color:#0d9488;border-radius:7px;font-size:12px;font-weight:700;padding:4px 10px">G2 &middot; Mat</span>';
+      ? '<span style="display:inline-block;white-space:nowrap;background:#eef4ff;color:#1d4ed8;border-radius:7px;font-size:12px;font-weight:700;padding:4px 10px">G &middot; Réa</span>'
+      : '<span style="display:inline-block;white-space:nowrap;background:#ecfdf5;color:#0d9488;border-radius:7px;font-size:12px;font-weight:700;padding:4px 10px">G2 &middot; Mat</span>';
+    const _m = (c, b, t) => '<span style="display:inline-block;white-space:nowrap;font-size:10.5px;font-weight:700;color:' + c + ';background:' + b + ';border-radius:5px;padding:2px 7px;margin:4px 6px 0 0">' + t + '</span>';
+    /* Étiquettes sous la date, sur leur propre ligne : sur un téléphone, date,
+       étiquettes et badge Réa/Mat ne tiennent pas sur une seule ligne. */
+    const marques = g => (g.souh || g.all)
+      ? '<div>' + (g.souh ? _m('#047857', '#dcfce7', '★ Souhait') : '') + (g.all ? _m('#0369a1', '#e0f2fe', '☀ Allonge vos vacances') : '') + '</div>' : '';
     const libelle = ds => {
       const dt = new Date(ds + 'T12:00:00');
       return `${JOURS[dt.getDay()]} ${dd(dt.getDate())}/${dd(dt.getMonth()+1)}`;
@@ -1263,6 +1440,12 @@ function _act_envoyerRecapIndispos(R) {
     Object.keys(parMois).map(Number).sort((p,q)=>p-q).forEach(mo => {
       rowsHtml += `<div style="font-size:12px;font-weight:800;letter-spacing:.6px;text-transform:uppercase;color:#94a3b8;margin:18px 0 8px 2px">${MOIS[mo]}</div>`;
       parMois[mo].forEach(u => {
+        if (u.h18) {
+          rowsHtml += `<div style="display:flex;align-items:center;justify-content:space-between;padding:7px 12px;border:1px dashed #e4dcfd;background:#fbfaff;border-radius:10px;margin-bottom:7px">`
+            + `<span style="font-size:13px;font-weight:600;color:#475569">${libelle(u.jours[0].date)}</span>`
+            + `<span style="display:inline-block;background:#f5f3ff;color:#6d28d9;border-radius:7px;font-size:12px;font-weight:700;padding:3px 10px">18 h</span></div>`;
+          return;
+        }
         if (u.we) {
           /* Chaque jour garde SA ligne (sa date, son rôle) ; c'est le cadre qui les
              réunit — le vendredi et le dimanche sont un seul week-end de garde. */
@@ -1270,7 +1453,7 @@ function _act_envoyerRecapIndispos(R) {
             + `<div style="font-size:10.5px;font-weight:800;color:#c2410c;letter-spacing:.3px;margin-bottom:2px">WEEK-END</div>`
             + u.jours.map((g, i) => `<div style="display:flex;align-items:center;justify-content:space-between;padding:7px 0;`
                 + `${i ? 'border-top:1px solid #fde3cf;' : ''}">`
-                + `<span style="font-size:14px;font-weight:700;color:#0f172a">${libelle(g.date)}</span>`
+                + `<div><span style="font-size:14px;font-weight:700;color:#0f172a">${libelle(g.date)}</span>${marques(g)}</div>`
                 + `${badgeDe(g.type)}</div>`).join('')
             + `</div>`;
           return;
@@ -1282,16 +1465,18 @@ function _act_envoyerRecapIndispos(R) {
         if (ferie) {
           const nm = fnames[gg.date];
           rowStyle = 'border:1px solid #fbd5d5;background:#fef6f6;';
-          tag = `<span style="font-size:10.5px;font-weight:700;color:#b91c1c;background:#fdeaea;border-radius:5px;padding:2px 7px">Férié${nm?' &middot; '+nm:''}</span>`;
+          tag = `<span style="white-space:nowrap;font-size:10.5px;font-weight:700;color:#b91c1c;background:#fdeaea;border-radius:5px;padding:2px 7px">Férié${nm?' &middot; '+nm:''}</span>`;
         } else if (sam) {
           rowStyle = 'border:1px solid #fde3cf;background:#fffaf5;';
           tag = '<span style="font-size:10.5px;font-weight:700;color:#c2410c;background:#fff1e6;border-radius:5px;padding:2px 7px">Samedi</span>';
         }
-        rowsHtml += `<div style="display:flex;align-items:center;justify-content:space-between;padding:10px 12px;${rowStyle}border-radius:10px;margin-bottom:7px"><div style="display:flex;align-items:center;gap:8px"><span style="font-size:14px;font-weight:700;color:#0f172a">${libelle(gg.date)}</span>${tag}</div>${badgeDe(gg.type)}</div>`;
+        rowsHtml += `<div style="display:flex;align-items:center;justify-content:space-between;padding:10px 12px;${rowStyle}border-radius:10px;margin-bottom:7px"><div><div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap"><span style="font-size:14px;font-weight:700;color:#0f172a;white-space:nowrap">${libelle(gg.date)}</span>${tag}</div>${marques(gg)}</div>${badgeDe(gg.type)}</div>`;
       });
     });
 
-    const coreHtml = gardes.length ? (summaryHtml + souhaitsHtml + rowsHtml) : (emptyHtml + souhaitsHtml);
+    /* MAR à 18 h seulement : le message « aucune garde », puis ses 18 h. */
+    const coreHtml = gardes.length ? (summaryHtml + souhaitsHtml + coupleHtml + rowsHtml)
+      : h18.length ? (emptyHtml + summaryHtml + souhaitsHtml + coupleHtml + rowsHtml) : (emptyHtml + souhaitsHtml + coupleHtml);
 
     const html =
       '<div style="background:#e9edf1;padding:0;margin:0">' +
@@ -1303,11 +1488,13 @@ function _act_envoyerRecapIndispos(R) {
             '<div style="color:#94a3b8;font-size:14px;margin-top:3px">' + nom + '</div>' +
           '</div>' +
           '<div style="padding:22px 26px 8px">' +
-            '<p style="margin:0 0 16px;font-size:14px;line-height:1.55;color:#334155">Bonjour ' + nom + ',<br>Le planning ' + year + ' vient d\'être généré. Voici vos gardes pour l\'année — à reporter dans votre agenda.</p>' +
+            '<p style="margin:0 0 16px;font-size:14px;line-height:1.55;color:#334155">Bonjour ' + nom + ',<br>Le planning ' + year + ' vient d\'être généré. Voici vos gardes et vos 18 h pour l\'année — à reporter dans votre agenda. Votre récapitulatif de l\'année (calendrier) est en pièce jointe.</p>' +
             coreHtml +
             '<div style="border-top:1px solid #eef1f5;margin:8px 0 18px"></div>' +
-            '<div style="text-align:center"><a href="' + site + '" style="display:inline-block;background:#15803d;color:#ffffff;text-decoration:none;font-weight:700;font-size:14px;padding:12px 24px;border-radius:10px">Voir le planning complet &rarr;</a>' +
-            '<p style="margin:14px 0 0;font-size:12px;color:#9aa4b2;line-height:1.5">Une erreur ou un échange à signaler ? Contactez le comité planning.</p></div>' +
+            /* (09/11/2026) Plus de bouton vers le site : sur iPhone, un lien de mail s'ouvre
+               dans Safari, jamais dans l'application installée, et redemande le code. */
+            '<div style="text-align:center"><p style="margin:0;font-size:13px;color:#475569;line-height:1.5">Retrouvez le planning à jour dans l\'application Planning-Med.</p>' +
+            '<p style="margin:10px 0 0;font-size:12px;color:#9aa4b2;line-height:1.5">Une erreur ou un échange à signaler ? Contactez le comité planning.</p></div>' +
           '</div>' +
           '<div style="background:#f8fafc;border-top:1px solid #eef1f5;padding:14px;text-align:center"><div style="font-size:11px;color:#9aa4b2">Le Comité Planning-Med</div></div>' +
         '</div>' +
@@ -1317,6 +1504,7 @@ function _act_envoyerRecapIndispos(R) {
     // ---------- Texte brut (repli) ----------
     let bodyText = 'Bonjour ' + nom + ',\n\nLe planning ' + year + ' vient d\'être généré. Voici vos gardes :\n\n';
     if (souhaitsTexte) bodyText += souhaitsTexte + '\n';
+    if (coupleTexte) bodyText += coupleTexte + '\n';
     if (!gardes.length) {
       bodyText += 'Aucune garde programmée pour vous en ' + year + '.\n';
     } else {
@@ -1329,28 +1517,32 @@ function _act_envoyerRecapIndispos(R) {
           const dt = new Date(gg.date + 'T12:00:00'), dw = dt.getDay();
           const nm = fnames[gg.date];
           const tag = isF(gg.date) ? ' [Férié' + (nm?' '+nm:'') + ']' : ((dw===0||dw===5||dw===6) ? ' [week-end]' : '');
-          bodyText += '  ' + JOURS[dw] + ' ' + dd(dt.getDate()) + '/' + dd(mo+1) + ' \u2014 ' + (gg.type==='G'?'G (réa)':'G2 (mat)') + tag + '\n';
+          bodyText += '  ' + JOURS[dw] + ' ' + dd(dt.getDate()) + '/' + dd(mo+1) + ' \u2014 ' + (gg.type==='G'?'G (réa)':'G2 (mat)') + tag
+            + (gg.souh ? ' [souhait]' : '') + (gg.all ? ' [allonge vos vacances]' : '') + '\n';
         });
       });
     }
-    bodyText += '\nVoir le planning : ' + site + '\n\nLe Comité Planning-Med';
+    if (h18.length) bodyText += '\n18 h (' + h18.length + ') : ' + h18.map(x => { const t = new Date(x + 'T12:00:00'); return JOURS[t.getDay()] + ' ' + dd(t.getDate()) + '/' + dd(t.getMonth()+1); }).join(', ') + '\n';
+    bodyText += '\nRetrouvez le planning à jour dans l\'application Planning-Med.\n\nLe Comité Planning-Med';
 
     try {
-      MailApp.sendEmail({
-        to: email,
-        subject: `[Planning-Med ${year}] Vos gardes ${year}`,
-        htmlBody: html,
-        body: bodyText,
-      });
+      /* (09/11/2026) Pièce jointe : jamais bloquante. Si la conversion échoue,
+         le mail part sans elle et l'échec est compté (pjEchecs). */
+      let pj = null;
+      try { pj = _pdfRecapMar_(nom, year, codeDu, isF); } catch (ePj) { pjEchecs.push(`${nom} : ${ePj.message}`); }
+      const envoi = { to: email, subject: `[Planning-Med ${year}] Vos gardes ${year}`, htmlBody: html, body: bodyText };
+      if (pj) envoi.attachments = [pj];
+      MailApp.sendEmail(envoi);
       sent++;
     } catch(err) {
       errors.push(`${nom} : ${err.message}`);
     }
   }
 
-  logAction(`envoyerRecapGardes ${year} — ${sent} emails, ${skipped} sans email, ${errors.length} erreur(s)`);
+  logAction(`envoyerRecapGardes ${year} — ${sent} emails, ${skipped} sans email, ${errors.length} erreur(s), ${pjEchecs.length} pièce(s) jointe(s) non produite(s)`);
+  pjEchecs.slice(0, 5).forEach(t => logAction('  pièce jointe non produite : ' + t));
   return ContentService.createTextOutput(JSON.stringify({
-    success: true, sent, skipped, errors
+    success: true, sent, skipped, errors, pjEchecs
   })).setMimeType(ContentService.MimeType.JSON);
 }
 
