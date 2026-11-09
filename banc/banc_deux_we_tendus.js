@@ -67,16 +67,23 @@ const couverture = G => { let mal = 0; for (let c = 0; c < 364; c++) { const d =
    à 0 double week-end dans ce jeu d'essai (au prix de 2 week-ends cassés à 3 MAR,
    contre 1 double et 1 week-end cassé avec la seconde recherche) : la
    contre-preuve ne mesurerait plus la seconde recherche. On compare donc à
-   l'ancien placement au fil de l'eau, celui que la seconde recherche remplace. */
+   l'ancien placement au fil de l'eau, celui que la seconde recherche remplace.
+   (09/11/2026) …et privé enfin de la réparation finale des vendredis-dimanches
+   rompus : depuis qu'elle juge le MAR du vendredi sans la garde qu'il cède, elle
+   réunit aussi ces week-ends-là et fait tomber la contre-preuve à 0 double
+   week-end, pour la même raison. */
+const LIGNE_REP = "    if(NOUVEL_ALGO){\n      const _slotDe=";
 const LIGNE = '      if(!meilleur){\n        toleranceDeuxWE=true;';
 const LIGNE_VD = '    if(dow===0||dow===5){\n      const _autre=';
 const SANS = SRC.split(LIGNE).join('      if(false){\n        toleranceDeuxWE=true;')
-                .split(LIGNE_VD).join('    if(false){\n      const _autre=');
+                .split(LIGNE_VD).join('    if(false){\n      const _autre=')
+                .split(LIGNE_REP).join("    if(false){\n      const _slotDe=");
 const J = jeu(true);
 
 console.log('\n═══ 1. Période tendue sans solution parfaite : le moins de doubles week-ends ═══');
 V('la seconde recherche est présente dans le générateur du dépôt', SRC.split(LIGNE).length === 2);
 V('la règle du vendredi-dimanche rompu est présente (neutralisée dans la contre-preuve)', SRC.split(LIGNE_VD).length === 2);
+V('la réparation finale des vendredis-dimanches est présente (neutralisée dans la contre-preuve)', SRC.split(LIGNE_REP).length === 2);
 const A = generer(J, null);
 V('la génération aboutit', !A.err, A.err);
 if (A.G) {

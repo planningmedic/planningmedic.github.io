@@ -17,6 +17,8 @@
       veille ou le lendemain, et jamais sur une absence.
    5. Réparation finale (07/11/2026) : week-ends réunis après l'optimiseur,
       compteurs d'équité et souhaits identiques à un générateur sans elle.
+   6. Réparation (09/11/2026) : le MAR du vendredi est jugé sans la garde
+      qu'il cède (cas réel du 23/07/2027), avec contre-preuve.
    4. Contre-preuve : le générateur d'avant le correctif ne garde personne
       dans le cas 1 — le test échoue bien sans la règle.
    Mesure sur les indispos réelles 2027 (07/11/2026) : avant, 4 week-ends cassés
@@ -206,6 +208,48 @@ console.log('\n═══ 5. Réparation finale : week-ends réunis, équité et 
   const mA = A.G ? mobil(A.G) : null, mB = B.G ? mobil(B.G) : null;
   V('moins de MAR mobilisés sur les week-ends cassés que sans la réparation (contre-preuve)',
     mA && mB && mA.mar < mB.mar, { avec: mA, sans: mB });
+}
+
+/* ═══ 6. Le MAR du vendredi est jugé SANS la garde qu'il cède (09/11/2026) ═══
+   Cas réel 2027 : vendredi 23/07 MAR A + MAR B, dimanche 25/07 MAR C + MAR D,
+   et A comme B de garde le mercredi 28. La réparation testait « B prend le
+   dimanche » AVANT de lui retirer le mercredi : 23 + 25 + 28 = 3 gardes en
+   6 jours, refus. Or le mercredi part justement à D dans l'échange. Correctif : W passe à C
+   à titre provisoire le temps de juger A. Mesuré sur les indispos réelles du
+   09/11/2026 : le 23/07 passe de 4 MAR à 2 (A + B les deux nuits), équité et
+   souhaits identiques. Ici : effectif fictif, année 7, où l'ancien ordre ne
+   réunissait aucun week-end. */
+console.log('\n═══ 6. Réparation : le MAR du vendredi jugé sans la garde qu\'il cède ═══');
+{
+  const D = require(path.join(__dirname, '..', 'simulateur', 'demographie.js'));
+  const SRC = fs.readFileSync(path.join(__dirname, '..', 'gas', 'generateur_gardes.gs'), 'utf8');
+  const CLE = "    if(NOUVEL_ALGO){\n      const _slotDe=";
+  const SANS = SRC.split(CLE).join("    if(false){\n      const _slotDe=");
+  let ANCIEN = null;
+  try { ANCIEN = execSync('git show ae834e4:gas/generateur_gardes.gs', { cwd: path.join(__dirname, '..'), encoding: 'utf8', stdio: ['ignore', 'pipe', 'ignore'] }); } catch (e) { ANCIEN = null; }
+  const roster = D.buildRoster(YEAR, { ageExempt: 60, ageRetraite: 67 });
+  const im = D.buildAbsences(YEAR, roster, 7, { souhaitsEtendus: true });
+  const mk = () => h.makeSpreadsheet([
+    h.makeSheet('MEDECINS', h.medecinsRows(roster)),
+    h.makeSheet(`INDISPOS_${YEAR}`, h.indisposRows(YEAR, roster, im)),
+    h.makeSheet('PERIODES_VAC', h.periodesRows(YEAR)),
+    h.makeSheet('CONFIG', [['CLE', 'VALEUR']])]);
+  const dry = src => h.buildContext(mk(), [], src).generateGardes(YEAR, { dryRun: true, tirage: 1 });
+  const nEch = r => { const w = r.warnings.find(x => /échange\(s\) pour réunir/.test(x)); return w ? Number(w.match(/(\d+) échange/)[1]) : 0; };
+  const cles = r => JSON.stringify(Object.keys(r.compteurs).sort().map(id => { const c = r.compteurs[id];
+    return [id, c.total, c.sam, c.jeu, c.vd, c.vjf, c.jf, c.g, c.g2]; }));
+  const hon = r => Object.values(r.souhaits).reduce((t, o) => t + o.honores, 0);
+  const N = dry(SRC), Z = dry(SANS);
+  V('nouveau générateur : au moins un week-end réuni sur cette année', nEch(N) >= 1, nEch(N));
+  V('compteurs d\'équité identiques à un générateur sans réparation', cles(N) === cles(Z));
+  V('écarts d\'équité identiques', JSON.stringify(N.ecarts) === JSON.stringify(Z.ecarts));
+  V('souhaits honorés identiques', hon(N) === hon(Z), { avec: hon(N), sans: hon(Z) });
+  V('toujours aucune nuit sans binôme', N.sansBinome === 0);
+  if (!ANCIEN) V('version d\'avant le correctif lisible dans l\'historique (clone complet requis)', false);
+  else {
+    const O = dry(ANCIEN);
+    V('contre-preuve : l\'ancien ordre des contrôles réunit moins de week-ends', nEch(O) < nEch(N), { ancien: nEch(O), nouveau: nEch(N) });
+  }
 }
 
 console.log(`\n${ok} ✓ · ${ko} ✗`);

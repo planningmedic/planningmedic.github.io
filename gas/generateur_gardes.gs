@@ -41,7 +41,7 @@
 // ⚠️ RÈGLE (détecteur de dérive dépôt↔Apps Script) : incrémenter cette version
 // à CHAQUE push de ce fichier. Le diagnostic (admin → Maintenance) compare la
 // version déployée ici avec celle du dépôt et signale toute recopie oubliée.
-const GAS_VERSION_GENERATEUR = '2026-11-08.1';   // (08/11/2026) le statut « A » (absent de jour, garde possible) est recopié dans le planning · (07/11/2026) vendredi-dimanche rompu : réparation finale par échange neutre · (07/11/2026) le dimanche garde d'abord les MAR du vendredi · (03/11/2026) période tendue sans solution parfaite : le moins possible de doubles week-ends, au lieu de les subir au fil de l'eau
+const GAS_VERSION_GENERATEUR = '2026-11-09.1';   // (09/11/2026) vendredi-dimanche rompu : le MAR du vendredi est jugé sans la garde qu'il cède · (08/11/2026) le statut « A » (absent de jour, garde possible) est recopié dans le planning · (07/11/2026) vendredi-dimanche rompu : réparation finale par échange neutre · (07/11/2026) le dimanche garde d'abord les MAR du vendredi · (03/11/2026) période tendue sans solution parfaite : le moins possible de doubles week-ends, au lieu de les subir au fil de l'eau
 // précédente : '2026-10-27.1'
 
 /* (05/09/2026) INTERRUPTEUR DU NOUVEL ALGORITHME — récit : docs/JOURNAL-Planning-Med.md §101 */
@@ -2848,8 +2848,16 @@ function generateGardes(year, opts){
                 const sW=_slotDe(W,r); if(!sW||_tient(sW)!==A) continue;
                 // Le vendredi de A, deux jours avant, est le vendredi-dimanche lui-même :
                 // il ne compte pas comme rapprochement.
+                /* (09/11/2026) ORDRE DES CONTRÔLES. A est jugé SANS la garde W qu'il
+                   cède : c'est l'état final. Avant, A était refusé à cause de W
+                   elle-même (ex. 23/07/2027 : ven 23 + dim 25 + mer 28 = 3 gardes
+                   en 6 jours, alors que le mer 28 part justement à C). W passe
+                   donc d'abord à C, à titre provisoire, le temps de juger A. */
+                applyTr(sW,C);                                   // provisoire : A ne tient plus W
                 const _penA=_spacingPen(A,[S])-(isSouhaitDe(A,F)?5:250);
-                if(!canHold(A,[S],r)||_penA>=250) continue;
+                const _okA=canHold(A,[S],r)&&_penA<250;
+                applyTr(sW,A);                                   // on rend W à A
+                if(!_okA) continue;
                 applyTr(sS,A);                                   // A prend le dimanche
                 if(!canHold(C,[W],r)||_spacingPen(C,[W])>=250){ applyTr(sS,C); continue; }
                 applyTr(sW,C);                                   // C prend le lun/mar/mer
