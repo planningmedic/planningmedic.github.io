@@ -41,7 +41,7 @@
 // ⚠️ RÈGLE (détecteur de dérive dépôt↔Apps Script) : incrémenter cette version
 // à CHAQUE push de ce fichier. Le diagnostic (admin → Maintenance) compare la
 // version déployée ici avec celle du dépôt et signale toute recopie oubliée.
-const GAS_VERSION_GENERATEUR = '2026-11-09.1';   // (09/11/2026) vendredi-dimanche rompu : le MAR du vendredi est jugé sans la garde qu'il cède · (08/11/2026) le statut « A » (absent de jour, garde possible) est recopié dans le planning · (07/11/2026) vendredi-dimanche rompu : réparation finale par échange neutre · (07/11/2026) le dimanche garde d'abord les MAR du vendredi · (03/11/2026) période tendue sans solution parfaite : le moins possible de doubles week-ends, au lieu de les subir au fil de l'eau
+const GAS_VERSION_GENERATEUR = '2026-11-09.2';   // (09/11/2026) souhaits accordés et gardes à deux jours évitées par échange neutre en fin de calcul · (09/11/2026) couples de week-end : chaque moitié de l'échange jugée dans l'état final · (09/11/2026) vendredi-dimanche rompu : le MAR du vendredi est jugé sans la garde qu'il cède · (08/11/2026) le statut « A » (absent de jour, garde possible) est recopié dans le planning · (07/11/2026) vendredi-dimanche rompu : réparation finale par échange neutre · (07/11/2026) le dimanche garde d'abord les MAR du vendredi · (03/11/2026) période tendue sans solution parfaite : le moins possible de doubles week-ends, au lieu de les subir au fil de l'eau
 // précédente : '2026-10-27.1'
 
 /* (05/09/2026) INTERRUPTEUR DU NOUVEL ALGORITHME — récit : docs/JOURNAL-Planning-Med.md §101 */
@@ -2679,8 +2679,19 @@ function generateGardes(year, opts){
               for(const sQ of siens){
                 const f2=_cplFri(sQ.days[0]);
                 if(f2&&_cplLies(f2,null)>0) continue;          // ne jamais casser un autre lien
-                if(!canHold(Q,sCible.days,role)||!canHold(H,sQ.days,role)) continue;
-                if(_spacingPen(Q,sCible.days)>=250||_spacingPen(H,sQ.days)>=250) continue;
+                /* (09/11/2026) ORDRE DES CONTRÔLES — même défaut que la réparation des
+                   vendredis-dimanches : Q était jugé en tenant encore sQ, qu'il cède,
+                   et H en tenant encore sCible, qu'il cède. Un créneau cédé peut être
+                   justement celui qui bloquait (densité, week-ends d'affilée). Chacun
+                   est désormais jugé dans l'état FINAL de l'autre moitié. */
+                applyTr(sQ,H);                                   // provisoire : Q ne tient plus sQ
+                const _okQ=canHold(Q,sCible.days,role)&&_spacingPen(Q,sCible.days)<250;
+                applyTr(sQ,Q);
+                if(!_okQ) continue;
+                applyTr(sCible,Q);                               // provisoire : H ne tient plus sCible
+                const _okH=canHold(H,sQ.days,role)&&_spacingPen(H,sQ.days)<250;
+                applyTr(sCible,H);
+                if(!_okH) continue;
                 const avant=_cplLies(fri,null);
                 applyTr(sCible,Q); applyTr(sQ,H);
                 if(_cplLies(fri,null)>avant){ _cplEch++; _chg=true; fait=true; break; }
@@ -2871,6 +2882,135 @@ function generateGardes(year, opts){
       if(_recolle){
         Logger.log('Réparation des vendredis-dimanches rompus : '+_detail.join(' · '));
         warnings.push(`Vendredi-dimanche rompu : ${_recolle} échange(s) pour réunir les MAR du week-end (équité inchangée)`);
+      }
+    }
+    /* ── 8quater. (09/11/2026) SOUHAITS ACCORDÉS PAR ÉCHANGE NEUTRE ─────────────
+       Les souhaits n'étaient accordés qu'au placement. Une fois le planning
+       établi, rien ne revenait chercher un échange qui en accorde un de plus sans
+       rien coûter à personne. Mesuré sur les indispos réelles 2027 (09/11/2026) :
+       3 souhaits ainsi laissés de côté (2 pour un MAR à 14/16 de son possible,
+       1 pour un MAR à 32/34).
+       Ici : X a souhaité le jour d, tenu par Y. X cède à Y une de ses gardes e de
+       même nature (même jour de semaine, ou lun/mar/mer ordinaires entre eux ;
+       ni férié, ni veille de férié, ni fêtes), même rôle, contribution identique
+       sur tous les axes d'équité : l'équité et le partage G/G2 sont inchangés PAR
+       CONSTRUCTION. Jamais sur un créneau verrouillé (souhait déjà accordé,
+       fêtes, régime à part), jamais un jour souhaité par Y ni par X sur e, jamais
+       le jour qui allonge un départ en congés de Y. Chacun est jugé dans l'état
+       FINAL de l'échange (canHold : absences, Réa 1, repos, deux gardes
+       d'affilée, deux week-ends de suite, densité, paires à éviter ; jamais de
+       garde à deux jours d'une autre). Les MAR les moins servis passent d'abord. */
+    if(NOUVEL_ALGO){
+      const _sl1=(d,r)=>slots.find(sl=>sl.days.length===1&&sl.days[0]===d&&sl.role===r);
+      const _tit1=sl=>sl.role===0?gardes[sl.days[0]].g:gardes[sl.days[0]].g2;
+      const _classe=d=>{ const di=dayByDate[d];
+        if(!di||noelDatesAssigned.has(d)||di.isFerie||di.isVjf) return null;
+        return (di.dow>=1&&di.dow<=3)?'sem':'j'+di.dow; };
+      const _CLES=EQ.concat(['jf','ferie']);
+      const _memeContrib=(a,b)=>_CLES.every(k=>(a[k]||0)===(b[k]||0));
+      const _aG1=(id,d)=>!!gardes[d]&&(gardes[d].g===id||gardes[d].g2===id);
+      /* Jour de confort : la garde dont le repos tombe sur le dernier jour
+         travaillé avant des vacances (d+2 en vacances, ou d+2 = samedi/dimanche
+         suivi de vacances). C'est ce que la passe « confort » cherche à donner. */
+      const _confortDe=(id,d)=>{ const m=indispos[id]||{};
+        for(let k=2;k<=4;k++){ const x=shift(d,k); if(m[x]==='VAC') return true;
+          const w=dayByDate[x]?dayByDate[x].dow:new Date(x+'T12:00:00').getDay(); if(w!==6&&w!==0) return false; }
+        return false; };
+      const _servi=id=>{ let p=0,h=0; Object.keys(souhaits||{}).forEach(dd=>{ if((souhaits[dd]||[]).indexOf(id)>=0){ p++; if(_aG1(id,dd)) h++; } }); return p?h/p:1; };
+      /* Garde à deux jours d'une autre, sauf si le MAR a souhaité les deux. Plus
+         strict que _spacingPen (qui tolère un voisin souhaité) : un échange ne
+         doit jamais en créer une. */
+      /* Unités voulues, jamais comptées comme « serrées » : vendredi-dimanche,
+         jeudi férié + samedi, samedi + lundi férié. */
+      const _unite=(a,b)=>{ const A_=dayByDate[a],B_=dayByDate[b]; if(!A_||!B_) return false;
+        const [p,q]=a<b?[A_,B_]:[B_,A_];
+        return (p.dow===5&&q.dow===0)||(p.dow===4&&p.isFerie&&q.dow===6)||(p.dow===6&&q.dow===1&&q.isFerie); };
+      const _serre=(id,d)=>{ for(const k of [-2,2]){ const x=shift(d,k);
+        if(_aG1(id,x)&&!_unite(d,x)&&!(isSouhaitDe(id,d)&&isSouhaitDe(id,x))) return true; } return false; };
+      let _sGain=0; const _sDet=[];
+      for(let _p=0;_p<4;_p++){
+        let _chg=false;
+        const cand=[];
+        Object.keys(souhaits||{}).forEach(d=>(souhaits[d]||[]).forEach(X=>{
+          if(_aG1(X,d)||SOUHAIT_PLAFOND.has(X)||gardeDoctors.indexOf(X)<0||!_classe(d)) return;
+          cand.push({X,d});
+        }));
+        const _t={}; cand.forEach(c=>{ if(_t[c.X]===undefined) _t[c.X]=_servi(c.X); });
+        cand.sort((a,b)=>(_t[a.X]-_t[b.X])||(a.d<b.d?-1:a.d>b.d?1:0)||(a.X<b.X?-1:1));
+        for(const {X,d} of cand){
+          if(_aG1(X,d)) continue;
+          const cl=_classe(d); let fait=false;
+          for(const r of [0,1]){
+            if(fait) break;
+            const sD=_sl1(d,r); if(!sD||sD.locked) continue;
+            const Y=_tit1(sD);
+            if(!Y||Y===X||SOUHAIT_PLAFOND.has(Y)||isSouhaitDe(Y,d)||_confortDe(Y,d)) continue;
+            const miens=[...(r===0?gSet[X]:g2Set[X])].filter(e=>e!==d&&_classe(e)===cl&&!isSouhaitDe(X,e)).sort();
+            for(const e of miens){
+              const sE=_sl1(e,r); if(!sE||sE.locked||_tit1(sE)!==X||!_memeContrib(sD.contrib,sE.contrib)) continue;
+              applyTr(sE,Y);                                   // provisoire : X ne tient plus e
+              const _okX=canHold(X,[d],r)&&_spacingPen(X,[d])<250&&!_serre(X,d);
+              applyTr(sE,X);
+              if(!_okX) continue;
+              applyTr(sD,X);                                   // X prend son jour souhaité
+              if(!canHold(Y,[e],r)||_spacingPen(Y,[e])>=250||_serre(Y,e)){ applyTr(sD,Y); continue; }
+              applyTr(sE,Y);                                   // Y prend e
+              sD.locked=true; _slotSouhait.add(d+'|'+X); souhaitHonored[X]=(souhaitHonored[X]||0)+1;
+              _sGain++; _sDet.push(X+' '+d+' ↔ '+Y+' '+e); fait=true; _chg=true; break;
+            }
+          }
+        }
+        if(!_chg) break;
+      }
+      if(_sGain){
+        Logger.log('Souhaits par échange neutre : '+_sDet.join(' · '));
+        warnings.push(`Souhaits : ${_sGain} souhait(s) de plus accordé(s) par échange neutre (équité inchangée)`);
+      }
+      /* ── 8quinquies. (09/11/2026) GARDE, REPOS, GARDE NON SOUHAITÉ : LISSAGE FINAL ──
+         Même constat que pour les souhaits : la garde à deux jours d'une autre
+         n'était que pénalisée au placement, jamais reprise ensuite. Mesuré sur les
+         indispos réelles 2027 (09/11/2026) : 4 cas hors unités voulues (vendredi-
+         dimanche, jeudi férié + samedi, samedi + lundi férié), tous supprimables
+         sans rien coûter. Une garde de X à deux jours d'une autre (non souhaitées
+         toutes deux) est échangée avec une garde de même nature et même rôle d'un
+         collègue Y, contribution identique : équité inchangée PAR CONSTRUCTION.
+         Chacun est jugé dans l'état final ; ni l'un ni l'autre ne se retrouve à
+         deux jours d'une garde (_serre, plus strict que _spacingPen) : chaque
+         échange en retire au moins un, n'en crée aucun. Jamais un créneau verrouillé, un jour souhaité,
+         ni le jour qui allonge un départ en congés. */
+      let _lGain=0; const _lDet=[];
+      for(let _p=0;_p<4;_p++){
+        let _chg=false;
+        for(const X of gardeDoctors){
+          if(SOUHAIT_PLAFOND.has(X)) continue;
+          const siens=[...gSet[X]].map(d=>[d,0]).concat([...g2Set[X]].map(d=>[d,1])).sort((a,b)=>a[0]<b[0]?-1:1);
+          for(const [d,r] of siens){
+            if(!_aG1(X,d)||!_serre(X,d)||isSouhaitDe(X,d)||_confortDe(X,d)) continue;
+            const cl=_classe(d); if(!cl) continue;
+            const sD=_sl1(d,r); if(!sD||sD.locked||_tit1(sD)!==X) continue;
+            let fait=false;
+            for(const sE of slots){
+              if(sE===sD||sE.role!==r||sE.days.length!==1||sE.locked) continue;
+              const e=sE.days[0]; if(_classe(e)!==cl||!_memeContrib(sD.contrib,sE.contrib)) continue;
+              const Y=_tit1(sE);
+              if(!Y||Y===X||SOUHAIT_PLAFOND.has(Y)||isSouhaitDe(Y,e)||_confortDe(Y,e)) continue;
+              applyTr(sD,Y);                                   // provisoire : X ne tient plus d
+              const _okX=canHold(X,[e],r)&&_spacingPen(X,[e])<250&&!_serre(X,e);
+              applyTr(sD,X);
+              if(!_okX) continue;
+              applyTr(sE,X);                                   // X prend e
+              if(!canHold(Y,[d],r)||_spacingPen(Y,[d])>=250||_serre(Y,d)){ applyTr(sE,Y); continue; }
+              applyTr(sD,Y);                                   // Y prend d
+              _lGain++; _lDet.push(X+' '+d+' ↔ '+Y+' '+e); fait=true; _chg=true; break;
+            }
+            if(fait) break;                                     // les gardes de X ont changé : on relit
+          }
+        }
+        if(!_chg) break;
+      }
+      if(_lGain){
+        Logger.log('Lissage garde-repos-garde : '+_lDet.join(' · '));
+        warnings.push(`Confort : ${_lGain} garde(s) échangée(s) pour éviter une garde à deux jours d'une autre (équité inchangée)`);
       }
     }
     // 8) Recomposer rgSet / recupDue depuis l'état optimisé (pour R + 18h + STATS).

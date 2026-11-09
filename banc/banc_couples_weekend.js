@@ -135,7 +135,12 @@ const src = fs.readFileSync(path.join(__dirname, '..', 'gas', 'generateur_gardes
 V('la règle se lit dans CONFIG (COUPLES_WEEKEND), aucun identifiant en dur',
   /'COUPLES_WEEKEND'/.test(src) && !/COUPLES_WEEKEND\s*=\s*['"][A-Z]/.test(src));
 V('les échanges ciblés exigent la même contribution, le même rôle et canHold des deux côtés',
-  /_memeContrib\(x\.contrib,sCible\.contrib\)/.test(src) && /canHold\(Q,sCible\.days,role\)\|\|!canHold\(H,sQ\.days,role\)/.test(src));
+  /_memeContrib\(x\.contrib,sCible\.contrib\)/.test(src) && /canHold\(Q,sCible\.days,role\)/.test(src) && /canHold\(H,sQ\.days,role\)/.test(src));
+/* (09/11/2026) Chaque moitié de l'échange est jugée dans l'état FINAL de l'autre :
+   Q sans le créneau qu'il cède, H sans le sien (même défaut d'ordre que la
+   réparation des vendredis-dimanches, corrigé le même jour). */
+V('chaque moitié de l\'échange du couple est jugée sans le créneau qu\'elle cède',
+  /applyTr\(sQ,H\);[^\n]*\n\s*const _okQ=canHold\(Q,sCible\.days,role\)/.test(src) && /applyTr\(sCible,Q\);[^\n]*\n\s*const _okH=canHold\(H,sQ\.days,role\)/.test(src));
 V('la version du fichier a été montée',
   (src.match(/GAS_VERSION_GENERATEUR = '(\d{4}-\d{2}-\d{2})\.(\d+)'/) || []).slice(1).join('.') >= '2026-10-11.2');
 
