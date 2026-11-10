@@ -35,7 +35,7 @@ function monde(annee, opts) {
   cl.ajouter(`INDISPOS_${annee}`, grille());
   if (opts.liensR) cl.ajouter(`LIENS_R_${annee}`, [['SAMEDI','MEDECIN','DATE R']].concat(opts.liensR));
 
-  const notifs = [], kv = [], journal = [], mails = [];
+  const notifs = [], kv = [], journal = [], mails = [], annees = { republie: [], prevenu: [] };
   /* Le piège du 14/08 : des écritures « en attente » tant que flush n'est
      pas appelé. Toute poussée au relais partie dans cet état aurait, en
      vrai, pu embarquer l'ancien état de l'onglet. */
@@ -51,9 +51,9 @@ function monde(annee, opts) {
     /* (14/08/2026) L'alerte comité passe par mail, jamais par push. */
     MailApp: { sendEmail: (to, sujet, corps) => { mails.push({ to, sujet, corps }); },
                getRemainingDailyQuota: () => 100 },
-    TEST_YEAR: annee,
-    generatePlanning: () => { ctxCompteurs.republications++; },
-    notifPlanifier: () => {},
+    TEST_YEAR: opts.anneeActive || annee,
+    generatePlanning: (y) => { ctxCompteurs.republications++; annees.republie.push(y); },
+    notifPlanifier: (y) => { annees.prevenu.push(y); },
     /* Doublures ENREGISTREUSES : le banc vérifie les destinataires réels. */
     notifierPush_: (titre, corps, url, cible) => { notifs.push({ titre, corps, url, cible }); return { success: true }; },
     _miroirEnvoyerLot_: (items) => { if (attente.ecritures) attente.poussesSansFlush++; kv.push(Object.keys(items)); return { success: true }; },
@@ -76,7 +76,7 @@ function monde(annee, opts) {
     const f = feuille('ECHANGES');
     return f ? f.lignes.slice(1).filter(l => l[0]) : [];
   };
-  return { cl, ctx, dates, poser, lire, echanges, notifs, kv, journal, annee, attente, mails };
+  return { cl, ctx, dates, poser, lire, echanges, notifs, kv, journal, annee, attente, mails, annees };
 }
 const ctxCompteurs = { republications: 0 };
 const COL = { ID:0, CREE_LE:1, TYPE:2, ANNEE:3, DATE:4, DATE2:5, DEMANDEUR:6, RECEVEUR:7, ETAT:8, REPONDU_LE:9, RAPPEL_LE:10, INFO:11 };
@@ -568,6 +568,21 @@ console.log('\n═══ 20. Un humain lit ces messages : « Dr Durand », jamai
   const ind = require('./stubs').sourceGasTout() /* (15/09) Indispos.gs découpé : tout le code serveur métier */;
   V('la copie rapide porte la liste', /acces\.titresPr/.test(mir));
   V('le serveur porte la même liste', /titresPr: _effectifTitresGas_\(\)/.test(ind));
+}
+
+/* (10/11/2026) Défaut trouvé en production : deux dons de 2027 acceptés pendant
+   que 2026 était l'année active n'ont jamais atteint les secrétaires de paie —
+   le planning et les mails étaient relancés pour 2026. */
+console.log('\n═══ ANNÉE · un don de 2027 accepté quand 2026 est l\'année active ═══');
+{
+  const b = monde(2027, { anneeActive: 2026 });
+  const j = b.dates[9], lendemain = b.dates[10];
+  b.poser('ALPHA', j, 'G2'); b.poser('ALPHA', lendemain, 'RG');
+  const r = vm.runInContext(`creerEchange(${JSON.stringify(user('ALPHA'))}, { type:'don', year:2027, date:${JSON.stringify(j)}, receveur:'BRAVO' })`, b.ctx);
+  vm.runInContext(`repondreEchange(${JSON.stringify(user('BRAVO'))}, { id:${JSON.stringify(r.id)}, reponse:'accepter' })`, b.ctx);
+  V('la garde a bien changé de mains', b.lire('BRAVO', j) === 'G2' && b.lire('ALPHA', j) === '');
+  V('le planning republié est celui de 2027', b.annees.republie.length > 0 && b.annees.republie.every(y => Number(y) === 2027), b.annees.republie);
+  V('les mails (MAR et paie) sont prévus pour 2027', b.annees.prevenu.length > 0 && b.annees.prevenu.every(y => Number(y) === 2027), b.annees.prevenu);
 }
 
 console.log('\n' + ok + ' OK · ' + ko + ' en échec');

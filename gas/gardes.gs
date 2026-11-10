@@ -4,7 +4,7 @@
    quelles : aucune ligne de logique modifiée, seulement déplacée. Le routeur et
    ses aides (checkCode, _deny, _error, doGet/doPost) restent dans Indispos.gs.
    Un seul espace global dans Apps Script : rien à importer. */
-const GAS_VERSION_GARDES = '2026-11-10.3';   // (10/11/2026) le suivi des gestes écrit dans son propre onglet TRACES, plus jamais dans HISTORIQUE (archive des gardes par année) · (10/11/2026) onglet de suivi (TP, modifications, échanges, lot de 18 h), jamais effacé · (10/11/2026) lot18hVerifier / lot18hAppliquer (réattribution de 18 h par lot, depuis l'éditeur) · (27/10/2026) VM/VA : bloquent un don/échange, comptent 0,5 jour au reliquat · (18/10/2026) action getPlanningPaie (vue des secrétaires de paie)
+const GAS_VERSION_GARDES = '2026-11-10.4';   // (10/11/2026) lotRolesVerifier / lotRolesAppliquer (inversion réa / mater par lot, depuis l'éditeur) · (10/11/2026) un échange, un don ou une modification republie et prévient (MAR et paie) pour l'année DE LA GARDE, plus l'année active · (10/11/2026) le suivi des gestes écrit dans son propre onglet TRACES, plus jamais dans HISTORIQUE (archive des gardes par année) · (10/11/2026) onglet de suivi (TP, modifications, échanges, lot de 18 h), jamais effacé · (10/11/2026) lot18hVerifier / lot18hAppliquer (réattribution de 18 h par lot, depuis l'éditeur) · (27/10/2026) VM/VA : bloquent un don/échange, comptent 0,5 jour au reliquat · (18/10/2026) action getPlanningPaie (vue des secrétaires de paie)
 
 // ── Sonde : les positions de STATS que code.gs lit à l'aveugle ──
 function _sondeStatsEntetes_(check, R, annee) {
@@ -594,13 +594,16 @@ function applyModification(mod) {
   /* (10/11/2026) HISTORIQUE : le geste réussi y laisse une ligne horodatée. */
   (typeof historiser_ === 'function') && historiser_([{ annee: year, quoi: 'modification : ' + type, mar: doctorId, jour: date, jour2: date2 || '',
                  autre: doctorId2 || '', par: mod.par || '', detail: value ? 'code ' + value : '' }]);
-  generatePlanning();
+  /* (10/11/2026) L'ANNÉE DE LA GARDE, jamais l'année active par défaut : un don de
+     2027 accepté pendant que 2026 est l'année active republiait 2026 et armait les
+     mails (MAR et secrétaires de paie) pour 2026 — rien ne partait pour 2027. */
+  generatePlanning(year);
   // (01/08/2026) Un don, un echange de gardes ou de secteurs modifie le statut ou le
   // secteur des MAR concernes. On arme le notifieur comme le fait publishPlanning :
   // le filtre existant fait le tri (un statut part toujours, un secteur seulement
   // dans la fenetre de l'Excel). Isole : un echec du notifieur ne doit jamais faire
   // echouer la modification, qui est deja ecrite dans le classeur a ce stade.
-  try { notifPlanifier(); }
+  try { notifPlanifier(year); }
   catch (e) { logAction('notifPlanifier apres modification : ' + e.message); }
   return true;
 }
@@ -1683,6 +1686,67 @@ function _lot18h_(ecrire) {
   return { ok: true, ecrit: ch.length };
 }
 
+
+/* ── (10/11/2026) LOT D'INVERSION RÉA / MATER, à lancer depuis l'éditeur ──────
+   Après la génération 2027, l'écart entre gardes réa (G) et mater (G2) allait
+   jusqu'à 10 chez certains MAR. La correction inverse les rôles des DEUX MAR
+   d'une même nuit : personne ne change de nuit, repos et récupérations restent
+   en place, le nombre de gardes de chacun est inchangé. Le lot vit dans un
+   fichier JSON du Drive, jamais dans le code : { annee, motif, changements:
+   [{ date, g, g2 }] } — « g » tient aujourd'hui la réa et passe en mater,
+   « g2 » l'inverse.
+     1. lotRolesVerifier()  : contrôle seul, n'écrit rien.
+     2. lotRolesAppliquer() : contrôle, puis écrit, republie, arme les notifications.
+   Tout ou rien : une seule nuit qui n'est plus dans l'état attendu (G chez « g »,
+   G2 chez « g2 ») et RIEN n'est écrit. */
+const LOT_ROLES_FICHIER = 'lot-roles-2027.json';
+function lotRolesVerifier()  { return _lotRoles_(false); }
+function lotRolesAppliquer() { return _lotRoles_(true); }
+function _lotRoles_(ecrire) {
+  let f = null;
+  const it = DriveApp.getFilesByName(LOT_ROLES_FICHIER);
+  while (it.hasNext()) { const x = it.next(); if (!x.isTrashed()) { f = x; break; } }
+  if (!f) throw new Error('Fichier ' + LOT_ROLES_FICHIER + ' introuvable dans le Drive');
+  const lot = JSON.parse(f.getBlob().getDataAsString());
+  const year = Number(lot.annee), ch = Array.isArray(lot.changements) ? lot.changements : [];
+  if (!year || !ch.length) throw new Error('Lot vide ou sans année');
+  const sh = SpreadsheetApp.getActiveSpreadsheet().getSheetByName('GARDES_' + year);
+  if (!sh) throw new Error('Onglet GARDES_' + year + ' introuvable');
+  const lock = LockService.getScriptLock(); lock.waitLock(30000);
+  try {
+    const data = sh.getDataRange().getValues(), d2c = buildDateToCol(data, year), ligne = {};
+    for (let r = 3; r < data.length; r++) { const id = String(data[r][0]).trim(); if (id) ligne[id] = r; }
+    const pbs = [], vus = {};
+    ch.forEach(c => {
+      const col = d2c[c.date], ra = ligne[c.g], rb = ligne[c.g2];
+      if (col === undefined || ra === undefined || rb === undefined || c.g === c.g2) { pbs.push(c.date + ' : date ou MAR inconnu'); return; }
+      if (vus[c.date]) pbs.push(c.date + ' : date présente deux fois dans le lot');
+      vus[c.date] = true;
+      if (String(data[ra][col]).trim().toUpperCase() !== 'G')  pbs.push(c.date + ' : ' + c.g + ' n\'est plus de garde réa');
+      if (String(data[rb][col]).trim().toUpperCase() !== 'G2') pbs.push(c.date + ' : ' + c.g2 + ' n\'est plus de garde mater');
+    });
+    if (pbs.length) {
+      Logger.log('LOT REFUSÉ — rien n\'a été écrit :\n' + pbs.join('\n'));
+      return { ok: false, problemes: pbs };
+    }
+    Logger.log('Lot vérifié : ' + ch.length + ' nuit(s) dans l\'état attendu.');
+    if (!ecrire) return { ok: true, verifie: ch.length };
+    ch.forEach(c => {
+      sh.getRange(ligne[c.g] + 1, d2c[c.date] + 1).setValue('G2');
+      sh.getRange(ligne[c.g2] + 1, d2c[c.date] + 1).setValue('G');
+    });
+    SpreadsheetApp.flush();
+  } finally { lock.releaseLock(); }
+  (typeof historiser_ === 'function') && historiser_(ch.map(c => ({ annee: year, quoi: 'réa / mater inversés (lot)', mar: c.g, jour: c.date, autre: c.g2,
+    par: 'comité (lot)', detail: lot.motif || '' })));
+  logAction('lotRoles ' + year + ' — ' + ch.length + ' nuit(s) réa / mater inversée(s) (' + (lot.motif || '') + ')');
+  generatePlanning(year);
+  try { miroirPousserFamilles_(['planning', 'affectations', 'gardes', 'stats'], year); }
+  catch (eM) { logAction('lotRoles — rafraîchissement du portail : ' + eM.message); }
+  try { notifPlanifier(year); } catch (eN) { logAction('lotRoles — notifPlanifier : ' + eN.message); }
+  Logger.log('Lot appliqué : ' + ch.length + ' nuit(s) écrite(s), planning ' + year + ' republié.');
+  return { ok: true, ecrit: ch.length };
+}
 
 /* ── (10/11/2026) ONGLET HISTORIQUE — une ligne par geste, jamais effacée ──
    Pour arbitrer (« qui a posé ce TP en premier ? ») : le journal LOGS ne
