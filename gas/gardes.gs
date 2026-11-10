@@ -4,7 +4,7 @@
    quelles : aucune ligne de logique modifiée, seulement déplacée. Le routeur et
    ses aides (checkCode, _deny, _error, doGet/doPost) restent dans Indispos.gs.
    Un seul espace global dans Apps Script : rien à importer. */
-const GAS_VERSION_GARDES = '2026-11-10.2';   // (10/11/2026) onglet HISTORIQUE (TP, modifications, échanges, lot de 18 h), jamais effacé · (10/11/2026) lot18hVerifier / lot18hAppliquer (réattribution de 18 h par lot, depuis l'éditeur) · (27/10/2026) VM/VA : bloquent un don/échange, comptent 0,5 jour au reliquat · (18/10/2026) action getPlanningPaie (vue des secrétaires de paie)
+const GAS_VERSION_GARDES = '2026-11-10.3';   // (10/11/2026) le suivi des gestes écrit dans son propre onglet TRACES, plus jamais dans HISTORIQUE (archive des gardes par année) · (10/11/2026) onglet de suivi (TP, modifications, échanges, lot de 18 h), jamais effacé · (10/11/2026) lot18hVerifier / lot18hAppliquer (réattribution de 18 h par lot, depuis l'éditeur) · (27/10/2026) VM/VA : bloquent un don/échange, comptent 0,5 jour au reliquat · (18/10/2026) action getPlanningPaie (vue des secrétaires de paie)
 
 // ── Sonde : les positions de STATS que code.gs lit à l'aveugle ──
 function _sondeStatsEntetes_(check, R, annee) {
@@ -1690,7 +1690,10 @@ function _lot18h_(ecrire) {
    quoi, quel MAR, quels jours, qui a agi. Jamais bloquant : un échec
    d'écriture ne fait jamais échouer le geste lui-même. Aucune ligne n'est
    jamais supprimée par le code. */
-const HISTORIQUE_ONGLET = 'HISTORIQUE';
+/* (10/11/2026) TRACES et non HISTORIQUE : « HISTORIQUE » est déjà l'archive des gardes
+   par MAR et par année (18 colonnes, lue par la rotation de Noël, la clôture et le
+   Diagnostic). Le premier envoi y avait écrit 16 lignes par erreur de nom. */
+const HISTORIQUE_ONGLET = 'TRACES';
 const HISTORIQUE_ENTETE = ['QUAND', 'ANNEE', 'QUOI', 'MAR', 'JOUR', 'JOUR2', 'AUTRE_MAR', 'PAR', 'DETAIL'];
 function historiser_(lignes) {
   try {
