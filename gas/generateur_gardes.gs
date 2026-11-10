@@ -41,7 +41,7 @@
 // ⚠️ RÈGLE (détecteur de dérive dépôt↔Apps Script) : incrémenter cette version
 // à CHAQUE push de ce fichier. Le diagnostic (admin → Maintenance) compare la
 // version déployée ici avec celle du dépôt et signale toute recopie oubliée.
-const GAS_VERSION_GENERATEUR = '2026-11-10.1';   // (10/11/2026) optimisation finale : 4 fois plus d'essais, et un week-end compte autant de fois qu'il a de MAR en trop (4 MAR ne remplace plus 3) · (09/11/2026) optimisation finale par recuit simulé, rien ne recule · (09/11/2026) souhaits accordés et gardes à deux jours évitées par échange neutre en fin de calcul · (09/11/2026) couples de week-end : chaque moitié de l'échange jugée dans l'état final · (09/11/2026) vendredi-dimanche rompu : le MAR du vendredi est jugé sans la garde qu'il cède · (08/11/2026) le statut « A » (absent de jour, garde possible) est recopié dans le planning · (07/11/2026) vendredi-dimanche rompu : réparation finale par échange neutre · (07/11/2026) le dimanche garde d'abord les MAR du vendredi · (03/11/2026) période tendue sans solution parfaite : le moins possible de doubles week-ends, au lieu de les subir au fil de l'eau
+const GAS_VERSION_GENERATEUR = '2026-11-10.2';   // (10/11/2026) optimisation finale 4 fois plus rapide, planning identique (score recalculé seulement là où un mouvement touche) · (10/11/2026) optimisation finale : 4 fois plus d'essais, et un week-end compte autant de fois qu'il a de MAR en trop (4 MAR ne remplace plus 3) · (09/11/2026) optimisation finale par recuit simulé, rien ne recule · (09/11/2026) souhaits accordés et gardes à deux jours évitées par échange neutre en fin de calcul · (09/11/2026) couples de week-end : chaque moitié de l'échange jugée dans l'état final · (09/11/2026) vendredi-dimanche rompu : le MAR du vendredi est jugé sans la garde qu'il cède · (08/11/2026) le statut « A » (absent de jour, garde possible) est recopié dans le planning · (07/11/2026) vendredi-dimanche rompu : réparation finale par échange neutre · (07/11/2026) le dimanche garde d'abord les MAR du vendredi · (03/11/2026) période tendue sans solution parfaite : le moins possible de doubles week-ends, au lieu de les subir au fil de l'eau
 // précédente : '2026-10-27.1'
 
 /* (05/09/2026) INTERRUPTEUR DU NOUVEL ALGORITHME — récit : docs/JOURNAL-Planning-Med.md §101 */
@@ -100,9 +100,11 @@ const LEX_POIDS = 600;
    (10/11/2026) 400 000 → 1 600 000 essais : à 400 000, une seule indisponibilité
    ajoutée faisait passer de 0 à 2 week-ends coupés selon le hasard du départ ;
    à 1 600 000 avec le décompte des MAR en trop, quatre graines différentes
-   donnent toutes 0. Coût : ~110 s de plus
-   côté Google, d'où le délai d'attente de generateGardes porté à 330 s dans
-   admin.html. */
+   donnent toutes 0. Mesuré chez Google (essai du 10/11, 11h11) : 215 s pour
+   la passe, 254 s au total — trop près de la limite de 6 min une fois
+   l'écriture ajoutée. Le score est désormais tenu en morceaux (voir 8sexies) :
+   même planning, ~4 fois plus vite (simulateur : 123 s → 29 s). Délai
+   d'attente de generateGardes dans admin.html : 330 s. */
 const OPTIM_ITERS  = 1600000;
 const OPTIM_GRAINE = 2;
 const OPTIM_POIDS  = { ecart:0.5, souhait:1, split:2, j2:2, dwe:3, couple:0.2, confort:1 };
@@ -3072,6 +3074,40 @@ function generateGardes(year, opts){
             const k = wkey(d); if (k) (wk[k] = wk[k] || []).push(d); if (confortDe(id, d)) conf++; });
           Object.keys(wk).forEach(k => { const k2 = shift(k, 7); if (wk[k2] && !wk[k].concat(wk[k2]).every(d => isSouhaitDe(id, d))) dwe++; }); });
         return { n1, pire, n2, sh, split, j2, dwe, cpl, conf }; };
+      /* (10/11/2026) VITESSE, MÊME RÉSULTAT. mesure() recompte toute l'année à
+         chaque essai, alors qu'un mouvement ne touche que deux MAR (A et B) et les
+         week-ends de ses jours : 70 % du temps de la passe (essai réel 2027 :
+         215 s sur 254). Ici le score est tenu en morceaux — par MAR (écarts,
+         souhaits, garde-repos-garde, doubles week-ends, confort) et par vendredi
+         (MAR en trop, couple) — et seuls les morceaux touchés sont recalculés.
+         Mêmes formules que mesure(), même ordre de tirage : le planning produit
+         est identique case pour case (banc : comparé au calcul complet). */
+      const _souhDe = {}; souhL.forEach(([id, d]) => (_souhDe[id] = _souhDe[id] || []).push(d));
+      const _friSet = new Set(fris), _idsSet = new Set(ids), _gdSet = new Set(gardeDoctors);
+      const _eqDe = id => { let n1 = 0, n2 = 0, pire = 0;
+        EQ.forEach(ax => { const cb = (cible[id] && cible[id][ax]) || 0; const a = Math.abs(cnt[id][ax] - cb); if (a > pire) pire = a; if (a > 0.5) n1 += Math.round(a); if (a > 1.5) n2 += Math.round(a) - 1; });
+        return [n1, n2, pire]; };
+      const _shDe = id => { let n = 0; (_souhDe[id] || []).forEach(d => { if (hold(id, d)) n++; }); return n; };
+      const _persoDe = id => { let j2 = 0, dwe = 0, conf = 0; const all = [...gSet[id], ...g2Set[id]].sort(); const wk = {};
+        all.forEach(d => { const x = shift(d, 2); if (hold(id, x) && !unite(d, x) && !(isSouhaitDe(id, d) && isSouhaitDe(id, x))) j2++;
+          const k = wkey(d); if (k) (wk[k] = wk[k] || []).push(d); if (confortDe(id, d)) conf++; });
+        Object.keys(wk).forEach(k => { const k2 = shift(k, 7); if (wk[k2] && !wk[k].concat(wk[k2]).every(d => isSouhaitDe(id, d))) dwe++; });
+        return [j2, dwe, conf]; };
+      const _friDe = f => { if (noelDatesAssigned.has(f) || noelDatesAssigned.has(shift(f, 2))) return [0, 0];
+        const a = gardes[f], b = gardes[shift(f, 2)]; if (!a || !b) return [0, 0];
+        return [new Set([a.g, a.g2, b.g, b.g2]).size - 2, _cplOn ? _cplLies(f, null) : 0]; };
+      const PE = {}, PS = {}, PP = {}, PF = {}, T = { n1: 0, n2: 0, sh: 0, split: 0, j2: 0, dwe: 0, cpl: 0, conf: 0 };
+      const _majId = (id, signe) => {
+        if (_idsSet.has(id)) { const e = signe > 0 ? (PE[id] = _eqDe(id)) : PE[id]; T.n1 += signe * e[0]; T.n2 += signe * e[1]; }
+        if (_souhDe[id]) { const v = signe > 0 ? (PS[id] = _shDe(id)) : PS[id]; T.sh += signe * v; }
+        if (_gdSet.has(id)) { const v = signe > 0 ? (PP[id] = _persoDe(id)) : PP[id]; T.j2 += signe * v[0]; T.dwe += signe * v[1]; T.conf += signe * v[2]; } };
+      const _majFri = (f, signe) => { const v = signe > 0 ? (PF[f] = _friDe(f)) : PF[f]; T.split += signe * v[0]; T.cpl += signe * v[1]; };
+      Object.keys(_souhDe).concat(gardeDoctors).forEach(id => { if (!(id in PS) && !(id in PP) && !(id in PE)) _majId(id, 1); });
+      fris.forEach(f => _majFri(f, 1));
+      const _fridays = days_ => { const fs = new Set(); days_.forEach(d => { for (let k = 0; k <= 2; k++) { const f = shift(d, -k); if (_friSet.has(f)) fs.add(f); } }); return fs; };
+      const recalc = (aff, days_) => { aff.forEach(id => { _majId(id, -1); _majId(id, 1); }); _fridays(days_).forEach(f => { _majFri(f, -1); _majFri(f, 1); }); };
+      const mesureVite = () => { let pire = 0; ids.forEach(id => { if (PE[id][2] > pire) pire = PE[id][2]; });
+        return { n1: T.n1, pire, n2: T.n2, sh: T.sh, split: T.split, j2: T.j2, dwe: T.dwe, cpl: T.cpl, conf: T.conf }; };
       /* n2 = gardes de trop au-delà d'une garde d'écart (équité principale) : chacune
          pèse 1000, bien au-dessus de toute la température du recuit — la recherche ne
          la dégrade jamais et la répare dès qu'elle peut. */
@@ -3087,23 +3123,25 @@ function generateGardes(year, opts){
         const T = 1.5 * Math.pow(0.002, it / N);
         const s1 = libres[(rnd() * libres.length) | 0], A = tit(s1);
         if (!A || SOUHAIT_PLAFOND.has(A)) continue;
-        let annule;
+        let annule, aff, jrs;
         if (rnd() < 0.35) {
           const B = ids[(rnd() * ids.length) | 0]; if (B === A || !canHold(B, s1.days, s1.role)) continue;
-          applyTr(s1, B); annule = () => applyTr(s1, A);
+          applyTr(s1, B); annule = () => applyTr(s1, A); aff = [A, B]; jrs = s1.days;
         } else {
           const s2 = libres[(rnd() * libres.length) | 0]; if (s2 === s1 || s2.role !== s1.role) continue;
           const B = tit(s2); if (!B || B === A || SOUHAIT_PLAFOND.has(B)) continue;
           applyTr(s1, B); const okA = canHold(A, s2.days, s2.role); applyTr(s1, A); if (!okA) continue;
           applyTr(s2, A); const okB = canHold(B, s1.days, s1.role); applyTr(s2, B); if (!okB) continue;
-          applyTr(s1, B); applyTr(s2, A); annule = () => { applyTr(s1, A); applyTr(s2, B); };
+          applyTr(s1, B); applyTr(s2, A); annule = () => { applyTr(s1, A); applyTr(s2, B); }; aff = [A, B]; jrs = s1.days.concat(s2.days);
         }
-        const m = mesure(), v = note(m);
+        recalc(aff, jrs);
+        const m = mesureVite(), v = note(m);
         if (v <= cur || rnd() < Math.exp((cur - v) / T)) {
           cur = v;
           if (v < best && sur(m)) { best = v; bestSnap = slots.map(tit); bestM = m; }
-        } else annule();
+        } else { annule(); recalc(aff, jrs); }
       }
+      if (typeof __BANC_OPTIM_VERIF__ === 'object' && __BANC_OPTIM_VERIF__) __BANC_OPTIM_VERIF__.push(JSON.stringify(mesureVite()) === JSON.stringify(mesure()));
       // Remise dans le meilleur état sûr rencontré (ou le départ). Chaque créneau
       // reprend son titulaire ; l'état final est un état déjà validé mouvement par mouvement.
       for (let k = 0; k < 3; k++) slots.forEach((sl, i) => { const w = bestSnap[i]; if (w && tit(sl) !== w) applyTr(sl, w); });

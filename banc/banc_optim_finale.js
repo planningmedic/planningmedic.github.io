@@ -22,6 +22,9 @@
       (3 MAR = 1, 4 MAR = 2). Avant, « coupé » valait 1 quel que soit le nombre
       de MAR : sur les indispos réelles 2027, l'optimisation a changé un
       week-end à 3 MAR en week-end à 4 MAR sans rien « faire reculer ».
+   7. (10/11/2026) Le score tenu en morceaux (calcul rapide) donne exactement le
+      calcul complet, et le planning écrit est identique case pour case à celui
+      du calcul complet. Essai réel du 10/11 : 215 s de passe chez Google.
 
    Le VRAI generateur_gardes.gs est exécuté, via le harnais du simulateur. */
 process.env.BANC_MULTI_DEPART = '1';
@@ -41,7 +44,7 @@ function monde(k) {
   const im = D.buildAbsences(YEAR, roster, k, { souhaitsEtendus: true });
   return { roster, im };
 }
-function lancer(w, iters, src) {
+function lancer(w, iters, src, verif) {
   const mk = () => h.makeSpreadsheet([
     h.makeSheet('MEDECINS', h.medecinsRows(w.roster)),
     h.makeSheet(`INDISPOS_${YEAR}`, h.indisposRows(YEAR, w.roster, w.im)),
@@ -49,7 +52,7 @@ function lancer(w, iters, src) {
     h.makeSheet('CONFIG', [['CLE', 'VALEUR']])]);
   const c0 = h.buildContext(mk(), [], src || SRC); c0.__BANC_OPTIM_ITERS__ = iters;
   const r = c0.generateGardes(YEAR, { dryRun: true, tirage: 1 });
-  const ss = mk(); const c1 = h.buildContext(ss, [], src || SRC); c1.__BANC_OPTIM_ITERS__ = iters;
+  const ss = mk(); const c1 = h.buildContext(ss, [], src || SRC); c1.__BANC_OPTIM_ITERS__ = iters; if (verif) c1.__BANC_OPTIM_VERIF__ = verif;
   c1.generateGardes(YEAR, { tirage: 1 });
   const feries = new Set([...c1.getJoursFeries(YEAR), ...c1.getJoursFeries(YEAR + 1)]);
   const P = A.parsePlanning(ss, YEAR);
@@ -128,6 +131,29 @@ V('le critère compte les MAR en trop (3 MAR = 1, 4 MAR = 2)', /split \+= new Se
   V('contre-preuve : l\'ancien critère ne distinguait pas 3 MAR de 4 MAR', ancien(...trois) === ancien(...quatre));
   V('le nouveau les distingue (1 contre 2)', nouveau(...trois) === 1 && nouveau(...quatre) === 2);
   const corps = SRC.match(/split \+= ([^;]+);/); V('… et c\'est bien cette formule que le générateur applique', !!corps && /new Set\(\[a\.g, a\.g2, b\.g, b\.g2\]\)\.size - 2/.test(corps[1])); }
+
+console.log('\n═══ 7. Calcul rapide = calcul complet, planning identique case pour case ═══');
+{ const APPEL = 'const m = mesureVite(), v = note(m);';
+  V('le recuit utilise le calcul rapide', SRC.includes(APPEL));
+  const COMPLET = SRC.replace(APPEL, 'const m = mesure(), v = note(m);');
+  V('version de référence au calcul complet construite', COMPLET !== SRC);
+  let okEq = true, okId = true, okDiff = false; const d7 = [];
+  for (const k of [1, 2, 3, 8]) { const w = monde(k), verif = [];
+    const R = lancer(w, ITERS, SRC, verif), C = lancer(w, ITERS, COMPLET);
+    if (!verif.length || verif.some(x => !x)) { okEq = false; d7.push(k + ' score rapide ≠ complet'); }
+    const g1 = JSON.stringify(R.ss.getSheetByName('GARDES_' + YEAR)._rows), g2 = JSON.stringify(C.ss.getSheetByName('GARDES_' + YEAR)._rows);
+    if (g1 !== g2) { okId = false; d7.push(k + ' planning différent'); }
+    if (JSON.stringify(R.r.optim.apres) !== JSON.stringify(R.r.optim.avant)) okDiff = true;
+    if (JSON.stringify(R.r.optim.apres) !== JSON.stringify(C.r.optim.apres)) { okId = false; d7.push(k + ' bilan différent'); } }
+  V('en fin de recuit, le score rapide = le score complet (4 années)', okEq, d7);
+  V('le planning écrit est identique case pour case au calcul complet (4 années)', okId, d7);
+  V('contre-preuve : la passe a bien bougé le planning (la comparaison porte sur quelque chose)', okDiff);
+  /* Contre-preuve du contrôle : un score rapide faussé (on oublie de recalculer
+     les vendredis) doit être détecté. */
+  const FAUX = SRC.replace('_fridays(days_).forEach(f => { _majFri(f, -1); _majFri(f, 1); });', '');
+  V('version faussée construite (vendredis non recalculés)', FAUX !== SRC);
+  const w = monde(3), vf = []; lancer(w, ITERS, FAUX, vf);
+  V('… et le contrôle la détecte', vf.some(x => !x), vf); }
 
 console.log(`\n${ok} ✓ · ${ko} ✗`);
 process.exit(ko ? 1 : 0);
