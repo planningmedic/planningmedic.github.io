@@ -585,20 +585,29 @@ n'est attribuée et la vacation apparaît non pourvue. C'est voulu : une vacatio
 vacation confiée à un MAR non habilité, non.</p>
 </div></details>
 
-<details><summary>Le classeur maître : les familles d'onglets</summary><div class="corps">
-<p>Une fonction de rangement organise le classeur en familles colorées et masque les onglets que
-personne n'édite à la main (les masquer ne change rien pour le code, qui les lit et les écrit
-pareil) :</p>
+<details><summary>Le classeur maître : les sept familles d'onglets</summary><div class="corps">
+<p>Le classeur compte <b>45 onglets</b> (relevé du 10/11/2026), rangés en <b>sept familles</b>, toujours dans
+le même ordre et la même couleur. Les onglets que personne n'édite à la main sont masqués — le code les
+lit et les écrit pareil. Le détail de chaque onglet est dans le
+<a href="guide-fichier-maitre.html#familles">guide du fichier maître</a>, qui suit le même découpage.</p>
 <table>
-<tr><th>Famille</th><th>Onglets</th></tr>
-<tr><td>Configuration courante (bleu foncé)</td><td>CONFIG · MEDECINS · SECTEURS · CS_TEMPLATE · ANNUAIRE · SEUILS</td></tr>
-<tr><td>Configuration annuelle (bleu clair)</td><td>GROUPES_VAC · PERIODES_VAC · CONFIG_CONGES · CONFIG_TRANSITION</td></tr>
-<tr><td>Contenu du portail (violet)</td><td>VEILLE_CFG · STAFFS</td></tr>
-<tr><td>Dépannage (orange, visible)</td><td>PLANNING_OVERRIDES — les retouches manuelles du comité</td></tr>
-<tr><td>Module libéral (turquoise)</td><td>SPECIALITES · COTATIONS_TYPE · LIBERAL_(année) · LIBERAL_CA_(année)</td></tr>
-<tr><td>Annuels (vert — une série par année)</td><td>GARDES · INDISPOS · AFFECTATIONS · STATS_GARDES</td></tr>
-<tr><td>Masqués (réservés au code)</td><td>ABSENCES_LONGUES · HISTORIQUE · VEILLE · VEILLE_MARQUES · LOGS · CONNEXIONS</td></tr>
+<tr><th>Famille</th><th>Onglets</th><th>Visibles ?</th></tr>
+<tr><td>1. Réglages permanents (bleu foncé)</td><td>CONFIG · MEDECINS · SECTEURS · CS_TEMPLATE · SEUILS · ANNUAIRE · ETABLISSEMENT</td><td>oui</td></tr>
+<tr><td>2. Préparation de l'année (bleu clair)</td><td>GROUPES_VAC · PERIODES_VAC · CONFIG_CONGES · CONFIG_TRANSITION</td><td>oui</td></tr>
+<tr><td>3. Les années (vert — une série par année, la plus récente en tête)</td><td>INDISPOS · REA1 · FETES · GARDES · LIENS_R · STATS_GARDES · AFFECTATIONS</td><td>oui</td></tr>
+<tr><td>4. Écrits par l'interface (orange)</td><td>PLANNING_OVERRIDES · TP_DEMANDES · TP_FERMES · ECHANGES · ABSENCES_LONGUES</td><td>oui, pour le dépannage</td></tr>
+<tr><td>5. Libéral (turquoise)</td><td>SPECIALITES · COTATIONS_TYPE · LIBERAL_(année) · LIBERAL_CA_(année)</td><td>oui</td></tr>
+<tr><td>6. Contenu du portail (violet)</td><td>VEILLE_CFG · STAFFS — puis VEILLE · VEILLE_MARQUES · VEILLE_ARCHIVE · VEILLE_ABONNES</td><td>les deux premiers</td></tr>
+<tr><td>7. Mémoires et journaux (gris)</td><td>HISTORIQUE · TRACES · CONNEXIONS · LOGS · NOTIFS_JOURNAL · STATS_HEURES · STATS_ACTIONS · STATS_SEMAINE</td><td>non</td></tr>
 </table>
+<p><b>Ranger le classeur :</b> dans l'éditeur, exécuter <code>organiserOnglets</code> (fichier
+<code>setup_annee.gs</code>). Il range, colore et masque, sans toucher à aucune donnée, et cite dans son
+compte rendu tout onglet <b>non prévu</b> — laissé visible, à la fin. Pour tout réafficher :
+<code>afficherTousLesOnglets</code>.</p>
+<p><b>Ajouter un onglet au code</b> impose de lui donner sa famille dans <code>_FAMILLES_ONGLETS</code>, en tête de
+<code>setup_annee.gs</code> : le banc (<code>banc_rangement_onglets.js</code>) relit tout le code serveur et échoue
+sinon. C'est ce qui manquait avant le 10/11/2026 : 14 onglets créés au fil des mois s'empilaient en tête
+du classeur, devant MEDECINS.</p>
 <p>Les quatre repères à garder en tête : <b>MEDECINS</b> (l'effectif et ses particularités),
 <b>INDISPOS</b> (ce qui entre dans l'algorithme), <b>GARDES</b> (ce qui en sort — et le verrou qui
 interdit de régénérer), <b>STATS_GARDES</b> (la preuve d'équité, qui sert de point de départ à

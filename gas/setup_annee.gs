@@ -1,56 +1,72 @@
 // ⚠️ RÈGLE (détecteur de dérive dépôt↔Apps Script) : incrémenter cette version
 // à CHAQUE push de ce fichier. Le diagnostic (admin → Maintenance) compare la
 // version déployée ici avec celle du dépôt et signale toute recopie oubliée.
-const GAS_VERSION_SETUP = '2026-09-14.1';
+const GAS_VERSION_SETUP = '2026-11-10.1';   // (10/11/2026) rangement des onglets en 7 familles, tous les onglets annuels reconnus quelle que soit l'année
 
 
 // ══════════════════════════════════════════════════════════════════════
 //  RANGEMENT DES ONGLETS  (one-shot, réversible)
 // ══════════════════════════════════════════════════════════════════════
-// 22 onglets, c'est beaucoup pour s'y retrouver. On les range en 4 familles,
-// on les colore, et on MASQUE ceux que personne n'édite à la main.
+// (10/11/2026) Sept familles, dans cet ordre. Chaque famille a sa couleur ;
+// certains onglets, que personne n'édite à la main, sont MASQUÉS.
+// Le guide du fichier maître suit exactement ce découpage.
 //
 // ⚠️ Masquer ne casse RIEN : getSheetByName() lit et écrit un onglet masqué
 // exactement comme un onglet visible. Aucun code n'est concerné.
 // Pour tout revoir : menu Affichage ▸ Feuilles masquées, ou lancer
 // afficherTousLesOnglets().
 //
-// Un onglet absent est simplement ignoré (pas d'erreur).
-
-// Ordre + couleur. Les onglets ANNUELS (GARDES_2026…) sont insérés
-// automatiquement après cette liste, du plus récent au plus ancien.
-const _ONGLETS_PLAN = [
-  // ── Configuration courante — bleu foncé
-  { n:'CONFIG',             c:'#1D4ED8' },
-  { n:'MEDECINS',           c:'#1D4ED8' },
-  { n:'SECTEURS',           c:'#1D4ED8' },
-  { n:'CS_TEMPLATE',        c:'#1D4ED8' },
-  { n:'ANNUAIRE',           c:'#1D4ED8' },
-  { n:'SEUILS',             c:'#1D4ED8' },
-  // ── Configuration annuelle (staff d'octobre) — bleu clair
-  { n:'GROUPES_VAC',        c:'#60A5FA' },
-  { n:'PERIODES_VAC',       c:'#60A5FA' },
-  { n:'CONFIG_CONGES',      c:'#60A5FA' },
-  { n:'CONFIG_TRANSITION',  c:'#60A5FA' },
-  // ── Contenu du portail — violet
-  { n:'VEILLE_CFG',         c:'#7E22CE' },
-  { n:'STAFFS',             c:'#7E22CE' },
-  // ── Technique mais consultable en dépannage — orange (VISIBLE)
-  { n:'PLANNING_OVERRIDES', c:'#C2410C' },
-  // ── Module libéral — turquoise
-  { n:'SPECIALITES',        c:'#0D9488' },
-  { n:'COTATIONS_TYPE',     c:'#0D9488' },
-  { n:'LIBERAL_2026',       c:'#0D9488' },
-  { n:'LIBERAL_CA_2026',    c:'#0D9488' },
+// Un onglet absent est simplement ignoré (pas d'erreur). Un onglet inconnu
+// reste visible, à la fin, et il est signalé dans le journal d'exécution.
+// ⚠️ Tout NOUVEL onglet créé par le code doit être ajouté ici : le banc
+// (banc_rangement_onglets.js) échoue sinon.
+//
+//   fixes   : onglets visibles, dans cet ordre
+//   annuels : préfixes des onglets {PREFIXE}_{année} de la famille, dans
+//             l'ordre voulu à l'intérieur d'une année ; années décroissantes
+//   masques : onglets masqués, rangés en fin de famille
+const _FAMILLES_ONGLETS = [
+  { nom: 'Réglages permanents', c: '#1D4ED8',
+    fixes: ['CONFIG', 'MEDECINS', 'SECTEURS', 'CS_TEMPLATE', 'SEUILS', 'ANNUAIRE', 'ETABLISSEMENT'] },
+  { nom: "Préparation de l'année", c: '#60A5FA',
+    fixes: ['GROUPES_VAC', 'PERIODES_VAC', 'CONFIG_CONGES', 'CONFIG_TRANSITION'] },
+  { nom: 'Années', c: '#166534',
+    // ce qui entre dans l'algorithme → ce qui en sort → les affectations
+    annuels: ['INDISPOS', 'REA1', 'FETES', 'GARDES', 'LIENS_R', 'STATS_GARDES', 'AFFECTATIONS'] },
+  { nom: "Écrits par l'interface", c: '#C2410C',
+    fixes: ['PLANNING_OVERRIDES', 'TP_DEMANDES', 'TP_FERMES', 'ECHANGES', 'ABSENCES_LONGUES'] },
+  { nom: 'Libéral', c: '#0D9488',
+    fixes: ['SPECIALITES', 'COTATIONS_TYPE'],
+    annuels: ['LIBERAL', 'LIBERAL_CA'] },
+  { nom: 'Contenu du portail', c: '#7E22CE',
+    fixes: ['VEILLE_CFG', 'STAFFS'],
+    masques: ['VEILLE', 'VEILLE_MARQUES', 'VEILLE_ARCHIVE', 'VEILLE_ABONNES'] },
+  { nom: 'Mémoires et journaux', c: '#9CA3AF',
+    masques: ['HISTORIQUE', 'TRACES', 'NOEL_AN_HISTORIQUE', 'CONNEXIONS', 'LOGS',
+              'NOTIFS_JOURNAL', 'STATS_HEURES', 'STATS_ACTIONS', 'STATS_SEMAINE'] },
 ];
 
-// Écrits et lus par le code seul : masqués.
-const _ONGLETS_MASQUES = [
-  'ABSENCES_LONGUES', 'HISTORIQUE',
-  'VEILLE', 'VEILLE_MARQUES', 'LOGS', 'CONNEXIONS',
-];
-
-const _ONGLET_ANNUEL_RE = /^(GARDES|INDISPOS|AFFECTATIONS|STATS_GARDES)_(\d{4})$/;
+// Famille d'un onglet d'après son nom : { famille, annee, rang, masque } ou null.
+// Le préfixe le plus long gagne : LIBERAL_CA_2027 n'est pas un LIBERAL_.
+function familleDOnglet_(nom) {
+  nom = String(nom || '');
+  for (let i = 0; i < _FAMILLES_ONGLETS.length; i++) {
+    const f = _FAMILLES_ONGLETS[i];
+    const k = (f.fixes || []).indexOf(nom);
+    if (k >= 0) return { famille: f.nom, i: i, annee: 0, rang: k, masque: false };
+    const m = (f.masques || []).indexOf(nom);
+    if (m >= 0) return { famille: f.nom, i: i, annee: 0, rang: 100 + m, masque: true };
+  }
+  const r = /^([A-Z0-9_]+)_(\d{4})$/.exec(nom);
+  if (!r) return null;
+  for (let i = 0; i < _FAMILLES_ONGLETS.length; i++) {
+    const a = _FAMILLES_ONGLETS[i].annuels || [];
+    const k = a.indexOf(r[1]);
+    if (k >= 0) return { famille: _FAMILLES_ONGLETS[i].nom, i: i, annee: Number(r[2]),
+                         rang: 50 + k, masque: false };
+  }
+  return null;
+}
 
 function organiserOnglets() {
   const ss = SpreadsheetApp.getActiveSpreadsheet();
@@ -59,48 +75,40 @@ function organiserOnglets() {
   // 1) Tout afficher d'abord : un onglet masqué ne peut pas être déplacé.
   toutes.forEach(function (sh) { try { sh.showSheet(); } catch (e) {} });
 
-  // 2) Onglets annuels, groupés par année décroissante (l'année en cours en tête).
-  const annuels = [];
+  // 2) Chaque onglet reçoit sa famille ; les inconnus restent à la fin.
+  const connus = [], orphelins = [];
   toutes.forEach(function (sh) {
-    const m = _ONGLET_ANNUEL_RE.exec(sh.getName());
-    if (m) annuels.push({ n: sh.getName(), an: Number(m[2]), fam: m[1] });
+    const nom = sh.getName(), f = familleDOnglet_(nom);
+    if (f) connus.push({ sh: sh, n: nom, f: f }); else orphelins.push(nom);
   });
-  const ordreFam = { GARDES:1, INDISPOS:2, AFFECTATIONS:3, STATS_GARDES:4 };
-  annuels.sort(function (a, b) {
-    return (b.an - a.an) || ((ordreFam[a.fam] || 9) - (ordreFam[b.fam] || 9));
+  // Ordre : famille → fixes → annuels (année décroissante, puis rang) → masqués.
+  connus.sort(function (a, b) {
+    return (a.f.i - b.f.i)
+        || ((a.f.rang >= 100) - (b.f.rang >= 100))
+        || (b.f.annee - a.f.annee)
+        || (a.f.rang - b.f.rang);
   });
 
-  // 3) Ordre final : plan → annuels (vert) → masqués (gris)
-  const plan = _ONGLETS_PLAN.slice();
-  annuels.forEach(function (x) { plan.push({ n: x.n, c: '#166534' }); });
-  _ONGLETS_MASQUES.forEach(function (n) { plan.push({ n: n, c: '#9CA3AF', cacher: true } ); });
-
-  let pos = 0, rangés = 0, cachés = 0;
-  const absents = [];
-  plan.forEach(function (item) {
-    const sh = ss.getSheetByName(item.n);
-    if (!sh) { absents.push(item.n); return; }
+  // 3) Déplacer, colorer, masquer.
+  let pos = 0, cachés = 0;
+  connus.forEach(function (x) {
     pos++;
-    ss.setActiveSheet(sh);
+    ss.setActiveSheet(x.sh);
     ss.moveActiveSheet(pos);
-    try { sh.setTabColor(item.c); } catch (e) {}
-    rangés++;
-    if (item.cacher) { try { sh.hideSheet(); cachés++; } catch (e) {} }
+    try { x.sh.setTabColor(_FAMILLES_ONGLETS[x.f.i].c); } catch (e) {}
+  });
+  // Masquer en dernier, en gardant un onglet visible (Google refuse de tout masquer).
+  ss.setActiveSheet(ss.getSheets()[0]);
+  connus.forEach(function (x) {
+    if (x.f.masque) { try { x.sh.hideSheet(); cachés++; } catch (e) {} }
   });
 
-  // 4) Tout onglet non prévu reste visible, à la fin, sans couleur imposée.
-  const prévus = {};
-  plan.forEach(function (i) { prévus[i.n] = true; });
-  const orphelins = ss.getSheets().map(function (s) { return s.getName(); })
-                      .filter(function (n) { return !prévus[n]; });
-
-  ss.setActiveSheet(ss.getSheets()[0]);
-  Logger.log('✅ ' + rangés + ' onglet(s) rangé(s), ' + cachés + ' masqué(s).');
-  Logger.log('   Visibles : ' + (rangés - cachés + orphelins.length));
-  if (absents.length)   Logger.log('   ℹ️ Prévus mais absents : ' + absents.join(', '));
+  Logger.log('✅ ' + connus.length + ' onglet(s) rangé(s) en ' + _FAMILLES_ONGLETS.length
+           + ' familles, ' + cachés + ' masqué(s).');
+  Logger.log('   Visibles : ' + (connus.length - cachés + orphelins.length));
   if (orphelins.length) Logger.log('   ⚠️ Non prévus, laissés à la fin : ' + orphelins.join(', '));
   Logger.log('   Pour tout revoir : afficherTousLesOnglets()');
-  return rangés;
+  return { ranges: connus.length, caches: cachés, orphelins: orphelins };
 }
 
 // Réaffiche TOUS les onglets (annule le masquage, garde l'ordre et les couleurs).

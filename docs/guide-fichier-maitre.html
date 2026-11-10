@@ -129,7 +129,11 @@
   </div>
   <p class="appbar-sub">Le classeur Google Sheets, onglet par onglet : à quoi il sert, qui l'écrit, ce qu'on peut y toucher, et ce qui casse si on se trompe.</p>
 </div>
-<p class="maj">Mis à jour : 11 août 2026 — inventaire complet : <strong>31 onglets présents</strong>, soit 27 noms distincts (les onglets annuels existent en double : année en cours et année suivante). S'y ajoutent 3 onglets décrits pour mémoire mais absents du classeur : <span class="tag">NOEL_AN_HISTORIQUE</span>, <span class="tag">OVERRIDES</span> et <span class="tag">SEMAINES_VALIDEES</span>, ce dernier supprimé le 3 août 2026 après vérification qu'aucune ligne de code ne le lisait. <strong>Ajouté depuis :</strong> <span class="tag">VEILLE_MARQUES</span> (§24 bis, 8 août), <span class="tag">LIENS_R_{année}</span> (§15 bis, 21 août), <span class="tag">TP_DEMANDES</span> et <span class="tag">TP_FERMES</span> (§18 bis, 22-23 août — créés au premier usage, ils peuvent être absents), et <span class="tag">NOTIFS_JOURNAL</span> (§25 bis, 23 août). <em>Inventaire relu dans le classeur le 11 août 2026, complété depuis le code en service le 24 août.</em></p>
+<p class="maj">Mis à jour : 10 novembre 2026 — <strong>45 onglets</strong> relevés dans le classeur, rangés en
+<strong>sept familles</strong> (le même découpage que le rangement automatique du classeur). Décrits pour mémoire mais
+absents : <span class="tag">NOEL_AN_HISTORIQUE</span> (§<a href="#noel">7.3</a>) et le vestige <span class="tag">OVERRIDES</span>
+(§<a href="#vestiges">+.1</a>). Ajoutés le 10 novembre : ETABLISSEMENT, REA1, FETES, ECHANGES, VEILLE_ARCHIVE, VEILLE_ABONNES,
+TRACES et les trois compteurs STATS_*.</p>
 
 <div class="callout rule">
   <div class="ct">Ce que ce guide est, et ce qu'il n'est pas</div>
@@ -143,44 +147,55 @@
   <h2>Sommaire</h2>
   <ol>
     <li><span class="n">00</span><a href="#regles">Les six règles qui valent pour tous</a></li>
-    <li><span class="n">I</span><a href="#p1"><strong>Les onglets qu'on remplit à la main</strong></a></li>
-    <li><span class="n">01</span><a href="#config">CONFIG</a></li>
-    <li><span class="n">01 bis</span><a href="#seuils">SEUILS</a></li>
-    <li><span class="n">02</span><a href="#medecins">MEDECINS</a></li>
-    <li><span class="n">03</span><a href="#secteurs">SECTEURS</a></li>
-    <li><span class="n">04</span><a href="#cstemplate">CS_TEMPLATE</a></li>
-    <li><span class="n">05</span><a href="#periodes">PERIODES_VAC</a></li>
-    <li><span class="n">06</span><a href="#groupes">GROUPES_VAC</a></li>
-    <li><span class="n">07</span><a href="#conges">CONFIG_CONGES</a></li>
-    <li><span class="n">08</span><a href="#absences">ABSENCES_LONGUES</a></li>
-    <li><span class="n">09</span><a href="#cottype">COTATIONS_TYPE</a></li>
-    <li><span class="n">10</span><a href="#specialites">SPECIALITES</a></li>
-    <li><span class="n">11</span><a href="#libca">LIBERAL_CA_{année}</a></li>
-    <li><span class="n">12</span><a href="#veillecfg">VEILLE_CFG</a></li>
-    <li><span class="n">II</span><a href="#p2"><strong>Les onglets annuels</strong></a></li>
-    <li><span class="n">13</span><a href="#indispos">INDISPOS_{année}</a></li>
-    <li><span class="n">14</span><a href="#gardes">GARDES_{année}</a></li>
-    <li><span class="n">15</span><a href="#stats">STATS_GARDES_{année}</a></li>
-    <li><span class="n">15 bis</span><a href="#liensr">LIENS_R_{année}</a></li>
-    <li><span class="n">16</span><a href="#affectations">AFFECTATIONS_{année}</a></li>
-    <li><span class="n">17</span><a href="#liberal">LIBERAL_{année}</a></li>
-    <li><span class="n">III</span><a href="#p3"><strong>Écrits en continu par l'interface</strong></a></li>
-    <li><span class="n">18</span><a href="#overrides">PLANNING_OVERRIDES</a></li>
-    <li><span class="n">18 bis</span><a href="#tp-onglets">TP_DEMANDES et TP_FERMES</a></li>
-    <li><span class="n">19</span><a href="#transition">CONFIG_TRANSITION</a></li>
-    <li><span class="n">IV</span><a href="#p4"><strong>Les mémoires longues</strong></a></li>
-    <li><span class="n">20</span><a href="#historique">HISTORIQUE</a></li>
-    <li><span class="n">21</span><a href="#noel">NOEL_AN_HISTORIQUE <em>(absent)</em></a></li>
-    <li><span class="n">V</span><a href="#p5"><strong>Les contenus du portail</strong></a></li>
-    <li><span class="n">22</span><a href="#annuaire">ANNUAIRE</a></li>
-    <li><span class="n">23</span><a href="#staffs">STAFFS</a></li>
-    <li><span class="n">24</span><a href="#veille">VEILLE</a></li>
-    <li><span class="n">24 bis</span><a href="#veille-marques">VEILLE_MARQUES</a></li>
-    <li><span class="n">VI</span><a href="#p6"><strong>Journaux, vestiges, et ce qui n'est pas dans le classeur</strong></a></li>
-    <li><span class="n">25</span><a href="#journaux">CONNEXIONS et LOGS</a></li>
-    <li><span class="n">25 bis</span><a href="#notifsjournal">NOTIFS_JOURNAL</a></li>
-    <li><span class="n">26</span><a href="#vestiges">OVERRIDES <em>(absent)</em></a></li>
-    <li><span class="n">27</span><a href="#dehors">Ce qui vit ailleurs (Drive, archives)</a></li>
+    <li><span class="n">✦</span><a href="#familles"><strong>Les sept familles d'un coup d'œil</strong></a></li>
+    <li><span class="n">1</span><a href="#p1"><strong>Réglages permanents</strong></a></li>
+    <li><span class="n">1.1</span><a href="#config">CONFIG</a></li>
+    <li><span class="n">1.2</span><a href="#medecins">MEDECINS</a></li>
+    <li><span class="n">1.3</span><a href="#secteurs">SECTEURS</a></li>
+    <li><span class="n">1.4</span><a href="#cstemplate">CS_TEMPLATE</a></li>
+    <li><span class="n">1.5</span><a href="#seuils">SEUILS</a></li>
+    <li><span class="n">1.6</span><a href="#annuaire">ANNUAIRE</a></li>
+    <li><span class="n">1.7</span><a href="#etablissement">ETABLISSEMENT</a></li>
+    <li><span class="n">2</span><a href="#p1b"><strong>Préparation de l'année</strong></a></li>
+    <li><span class="n">2.1</span><a href="#groupes">GROUPES_VAC</a></li>
+    <li><span class="n">2.2</span><a href="#periodes">PERIODES_VAC</a></li>
+    <li><span class="n">2.3</span><a href="#conges">CONFIG_CONGES</a></li>
+    <li><span class="n">2.4</span><a href="#transition">CONFIG_TRANSITION</a></li>
+    <li><span class="n">3</span><a href="#p2"><strong>Les années</strong></a></li>
+    <li><span class="n">3.1</span><a href="#indispos">INDISPOS_{année}</a></li>
+    <li><span class="n">3.2</span><a href="#rea1">REA1_{année}</a></li>
+    <li><span class="n">3.3</span><a href="#fetes">FETES_{année}</a></li>
+    <li><span class="n">3.4</span><a href="#gardes">GARDES_{année}</a></li>
+    <li><span class="n">3.5</span><a href="#liensr">LIENS_R_{année}</a></li>
+    <li><span class="n">3.6</span><a href="#stats">STATS_GARDES_{année}</a></li>
+    <li><span class="n">3.7</span><a href="#affectations">AFFECTATIONS_{année}</a></li>
+    <li><span class="n">4</span><a href="#p3"><strong>Écrits par l'interface</strong></a></li>
+    <li><span class="n">4.1</span><a href="#overrides">PLANNING_OVERRIDES</a></li>
+    <li><span class="n">4.2</span><a href="#tp-onglets">TP_DEMANDES et TP_FERMES</a></li>
+    <li><span class="n">4.3</span><a href="#echanges">ECHANGES</a></li>
+    <li><span class="n">4.4</span><a href="#absences">ABSENCES_LONGUES</a></li>
+    <li><span class="n">5</span><a href="#p4"><strong>Libéral</strong></a></li>
+    <li><span class="n">5.1</span><a href="#specialites">SPECIALITES</a></li>
+    <li><span class="n">5.2</span><a href="#cottype">COTATIONS_TYPE</a></li>
+    <li><span class="n">5.3</span><a href="#liberal">LIBERAL_{année}</a></li>
+    <li><span class="n">5.4</span><a href="#libca">LIBERAL_CA_{année}</a></li>
+    <li><span class="n">6</span><a href="#p5"><strong>Contenu du portail</strong></a></li>
+    <li><span class="n">6.1</span><a href="#veillecfg">VEILLE_CFG</a></li>
+    <li><span class="n">6.2</span><a href="#staffs">STAFFS</a></li>
+    <li><span class="n">6.3</span><a href="#veille">VEILLE</a></li>
+    <li><span class="n">6.4</span><a href="#veille-marques">VEILLE_MARQUES</a></li>
+    <li><span class="n">6.5</span><a href="#veille-archive">VEILLE_ARCHIVE</a></li>
+    <li><span class="n">6.6</span><a href="#veille-abonnes">VEILLE_ABONNES</a></li>
+    <li><span class="n">7</span><a href="#p6"><strong>Mémoires et journaux</strong></a></li>
+    <li><span class="n">7.1</span><a href="#historique">HISTORIQUE</a></li>
+    <li><span class="n">7.2</span><a href="#traces">TRACES</a></li>
+    <li><span class="n">7.3</span><a href="#noel">NOEL_AN_HISTORIQUE <em>(absent)</em></a></li>
+    <li><span class="n">7.4</span><a href="#journaux">CONNEXIONS et LOGS</a></li>
+    <li><span class="n">7.5</span><a href="#notifsjournal">NOTIFS_JOURNAL</a></li>
+    <li><span class="n">7.6</span><a href="#stats-usage">STATS_HEURES, STATS_ACTIONS et STATS_SEMAINE</a></li>
+    <li><span class="n">+</span><a href="#hors"><strong>Hors familles</strong></a></li>
+    <li><span class="n">+.1</span><a href="#vestiges">OVERRIDES — vestige <em>(absent)</em></a></li>
+    <li><span class="n">+.2</span><a href="#dehors">Ce qui vit ailleurs</a></li>
   </ol>
 </div>
 
@@ -221,14 +236,50 @@ des versions de code.</p>
 </div>
 </section>
 
+<section id="familles">
+<h2><span class="n">✦</span>Les sept familles d'un coup d'œil</h2>
+<div class="callout tip">
+  <div class="ct">En 2 minutes</div>
+  <p>Le classeur compte <strong>45 onglets</strong> (relevé du 10 novembre 2026), rangés en <strong>sept familles</strong>.
+  Chaque famille a sa couleur d'onglet et sa place, toujours dans le même ordre, de gauche à droite.
+  Les onglets que personne n'édite à la main sont masqués : ils restent lus et écrits normalement.</p>
+  <p>Ce guide suit le même découpage : la famille 1 en premier, la famille 7 en dernier.</p>
+</div>
+<table>
+<tr><th>Famille</th><th>Onglets</th><th>Dans le classeur</th></tr>
+<tr><td><span style="display:inline-block;width:11px;height:11px;border-radius:3px;background:#1D4ED8;margin-right:7px;vertical-align:-1px"></span><a href="#p1">1. Réglages permanents</a></td><td>CONFIG · MEDECINS · SECTEURS · CS_TEMPLATE · SEUILS · ANNUAIRE · ETABLISSEMENT</td><td>visibles</td></tr>
+<tr><td><span style="display:inline-block;width:11px;height:11px;border-radius:3px;background:#60A5FA;margin-right:7px;vertical-align:-1px"></span><a href="#p1b">2. Préparation de l'année</a></td><td>GROUPES_VAC · PERIODES_VAC · CONFIG_CONGES · CONFIG_TRANSITION</td><td>visibles</td></tr>
+<tr><td><span style="display:inline-block;width:11px;height:11px;border-radius:3px;background:#166534;margin-right:7px;vertical-align:-1px"></span><a href="#p2">3. Les années</a></td><td>INDISPOS_{année} · REA1_{année} · FETES_{année} · GARDES_{année} · LIENS_R_{année} · STATS_GARDES_{année} · AFFECTATIONS_{année}</td><td>visibles</td></tr>
+<tr><td><span style="display:inline-block;width:11px;height:11px;border-radius:3px;background:#C2410C;margin-right:7px;vertical-align:-1px"></span><a href="#p3">4. Écrits par l'interface</a></td><td>PLANNING_OVERRIDES · TP_DEMANDES et TP_FERMES · ECHANGES · ABSENCES_LONGUES</td><td>visibles</td></tr>
+<tr><td><span style="display:inline-block;width:11px;height:11px;border-radius:3px;background:#0D9488;margin-right:7px;vertical-align:-1px"></span><a href="#p4">5. Libéral</a></td><td>SPECIALITES · COTATIONS_TYPE · LIBERAL_{année} · LIBERAL_CA_{année}</td><td>visibles</td></tr>
+<tr><td><span style="display:inline-block;width:11px;height:11px;border-radius:3px;background:#7E22CE;margin-right:7px;vertical-align:-1px"></span><a href="#p5">6. Contenu du portail</a></td><td>VEILLE_CFG · STAFFS · VEILLE · VEILLE_MARQUES · VEILLE_ARCHIVE · VEILLE_ABONNES</td><td>en partie masqués</td></tr>
+<tr><td><span style="display:inline-block;width:11px;height:11px;border-radius:3px;background:#9CA3AF;margin-right:7px;vertical-align:-1px"></span><a href="#p6">7. Mémoires et journaux</a></td><td>HISTORIQUE · TRACES · CONNEXIONS et LOGS · NOTIFS_JOURNAL · STATS_HEURES, STATS_ACTIONS et STATS_SEMAINE</td><td>masqués</td></tr>
+</table>
+<h3>Remettre le classeur en ordre</h3>
+<p>Quand des onglets se sont ajoutés en vrac, ou après avoir tout réaffiché :</p>
+<ol class="steps">
+<li>Ouvrir l'éditeur de scripts du classeur (menu <span class="kbd">Extensions ▸ Apps Script</span>).</li>
+<li>Choisir la fonction <span class="tag">organiserOnglets</span> et cliquer <span class="btn-ex">Exécuter</span>.</li>
+<li>Lire le compte rendu d'exécution : il donne le nombre d'onglets rangés et masqués, et cite tout onglet
+<strong>non prévu</strong> — celui-là reste visible, à la fin, sans couleur.</li>
+</ol>
+<p>Ne touche à aucune donnée : l'ordre, la couleur et le masquage seulement. Pour tout réafficher :
+<span class="tag">afficherTousLesOnglets</span>.</p>
+<details style="margin:8px 0 0"><summary style="cursor:pointer;font-weight:600;color:var(--ink)">Un onglet nouveau apparaît « non prévu » ?</summary>
+<p style="margin-top:8px">C'est qu'il a été créé à la main, ou par une fonction récente que le rangement ne connaît pas encore.
+Un onglet créé à la main n'a rien à faire dans le classeur maître. Un onglet créé par le portail doit recevoir
+sa famille — le banc d'essai le refuse sinon, il ne devrait donc jamais arriver en production.</p>
+</details>
+</section>
+
 <section id="p1">
-<h2><span class="n">I</span>Partie I — Les onglets qu'on remplit à la main</h2>
-<p>Douze onglets de configuration. C'est là que se prennent les décisions ; tout le reste en découle.
-Ils sont classés par ordre d'importance : les quatre premiers commandent le fonctionnement quotidien.</p>
+<h2><span class="n" style="background:#1D4ED8">1</span>Famille 1 — Réglages permanents</h2>
+<p class="maj" style="margin-top:0">Onglets bleu foncé dans le classeur · visibles</p>
+<p>Les onglets qu'on remplit à la main et qui valent toutes les années : l'équipe, les secteurs, les codes d'accès. Ce sont eux qui commandent le fonctionnement quotidien.</p>
 </section>
 
 <section id="config">
-<h2><span class="n">01</span>CONFIG</h2>
+<h2><span class="n">1.1</span>CONFIG</h2>
 <p><strong>Deux colonnes : clé, valeur.</strong> Le tableau de bord du système. Sept clés sont lues par le
 code — toute autre ligne est ignorée.</p>
 
@@ -268,36 +319,8 @@ code — toute autre ligne est ignorée.</p>
 Une modification faite à la main dans le classeur est prise en compte dès la requête suivante.</p>
 </section>
 
-<section id="seuils">
-<h2><span class="n">01 bis</span>SEUILS</h2>
-<p><strong>Trois colonnes : clé, valeur, description.</strong> Les bornes d'affichage réglables par le
-comité. Volontairement <strong>séparé de CONFIG</strong> : régler une couleur ne doit pas obliger à ouvrir
-l'onglet qui porte les codes d'accès. Aucune valeur sensible ici, jamais de code.</p>
-
-<table>
-<tr><th>Clé</th><th>Rôle</th><th>Défaut</th></tr>
-<tr><td>SEUIL_PRESENCE_ALERTE</td><td>Bande de présence de l'onglet Planning : au-dessous de ce nombre de MAR présents, la journée vire à l'orange puis au rouge.</td><td>13</td></tr>
-<tr><td>SEUIL_PRESENCE_CONFORT</td><td>Bande de présence : à partir de ce nombre de présents, la journée est verte.</td><td>17</td></tr>
-</table>
-
-<div class="callout rule">
-  <div class="ct">Rien à créer, rien à casser</div>
-  <p>L'onglet est <strong>fabriqué et pré-rempli automatiquement</strong> au premier chargement d'<span class="tag">admin.html</span>
-  après le déploiement (<span class="tag">getSeuils()</span>, portail.gs) — comme SECTEURS et CS_TEMPLATE.</p>
-  <p>Une valeur <strong>non numérique est ignorée</strong>, une ligne supprimée ou l'onglet entier absent font
-  simplement revenir aux défauts : la bande s'affiche toujours. Si les deux bornes sont saisies à
-  l'envers, l'échelle est corrigée à la volée plutôt que de rendre l'affichage incohérent.</p>
-  <p>La <strong>légende sous la bande se met à jour toute seule</strong> à partir de ces deux nombres :
-  après modification, un <span class="tag">Ctrl+Maj+R</span> suffit à voir le nouveau découpage.</p>
-</div>
-
-<p>Mesure de référence (année 2026, bornes 13 et 17) : <strong>9 / 44 / 68 / 70 / 58 jours du rouge au
-vert</strong>. Les cinq couleurs servent et aucune n'écrase les autres — c'est le repère pour juger si de
-nouvelles bornes découpent encore l'année utilement.</p>
-</section>
-
 <section id="medecins">
-<h2><span class="n">02</span>MEDECINS</h2>
+<h2><span class="n">1.2</span>MEDECINS</h2>
 <p>L'effectif, et la source de vérité sur qui existe, qui est actif, avec quelles particularités.
 Les 17 premières colonnes sont réécrites par le formulaire d'admin ; les suivantes sont lues
 <strong>par leur titre</strong> et jamais réécrites.</p>
@@ -335,10 +358,10 @@ Les 17 premières colonnes sont réécrites par le formulaire d'admin ; les suiv
 </section>
 
 <section id="secteurs">
-<h2><span class="n">03</span>SECTEURS</h2>
+<h2><span class="n">1.3</span>SECTEURS</h2>
 <p>La configuration vivante des secteurs : la grille d'admin, les couleurs, les icônes et l'export
 Excel en découlent. <strong>Créer un secteur ici suffit à le voir apparaître</strong> — marche à suivre
-complète au §18 du guide technique.</p>
+complète au §<a href="guide-technique.html#c3">C3</a> du guide technique.</p>
 
 <table class="sig">
 <tr><th>Col.</th><th>Titre</th><th>Contenu</th></tr>
@@ -366,7 +389,7 @@ complète au §18 du guide technique.</p>
 </section>
 
 <section id="cstemplate">
-<h2><span class="n">04</span>CS_TEMPLATE</h2>
+<h2><span class="n">1.4</span>CS_TEMPLATE</h2>
 <p>Le gabarit des consultations : quels types existent, et <strong>combien de créneaux sont requis</strong>
 pour chaque jour et chaque demi-journée. C'est ce nombre qui fait apparaître un « + » sur une case
 de consultation non pourvue.</p>
@@ -388,8 +411,79 @@ de consultation non pourvue.</p>
 </div>
 </section>
 
+<section id="seuils">
+<h2><span class="n">1.5</span>SEUILS</h2>
+<p><strong>Trois colonnes : clé, valeur, description.</strong> Les bornes d'affichage réglables par le
+comité. Volontairement <strong>séparé de CONFIG</strong> : régler une couleur ne doit pas obliger à ouvrir
+l'onglet qui porte les codes d'accès. Aucune valeur sensible ici, jamais de code.</p>
+
+<table>
+<tr><th>Clé</th><th>Rôle</th><th>Défaut</th></tr>
+<tr><td>SEUIL_PRESENCE_ALERTE</td><td>Bande de présence de l'onglet Planning : au-dessous de ce nombre de MAR présents, la journée vire à l'orange puis au rouge.</td><td>13</td></tr>
+<tr><td>SEUIL_PRESENCE_CONFORT</td><td>Bande de présence : à partir de ce nombre de présents, la journée est verte.</td><td>17</td></tr>
+</table>
+
+<div class="callout rule">
+  <div class="ct">Rien à créer, rien à casser</div>
+  <p>L'onglet est <strong>fabriqué et pré-rempli automatiquement</strong> au premier chargement d'<span class="tag">admin.html</span>
+  après le déploiement (<span class="tag">getSeuils()</span>, portail.gs) — comme SECTEURS et CS_TEMPLATE.</p>
+  <p>Une valeur <strong>non numérique est ignorée</strong>, une ligne supprimée ou l'onglet entier absent font
+  simplement revenir aux défauts : la bande s'affiche toujours. Si les deux bornes sont saisies à
+  l'envers, l'échelle est corrigée à la volée plutôt que de rendre l'affichage incohérent.</p>
+  <p>La <strong>légende sous la bande se met à jour toute seule</strong> à partir de ces deux nombres :
+  après modification, un <span class="tag">Ctrl+Maj+R</span> suffit à voir le nouveau découpage.</p>
+</div>
+
+<p>Mesure de référence (année 2026, bornes 13 et 17) : <strong>9 / 44 / 68 / 70 / 58 jours du rouge au
+vert</strong>. Les cinq couleurs servent et aucune n'écrase les autres — c'est le repère pour juger si de
+nouvelles bornes découpent encore l'année utilement.</p>
+</section>
+
+<section id="annuaire">
+<h2><span class="n">1.6</span>ANNUAIRE</h2>
+<p>Quatre colonnes : <span class="tag">CATÉGORIE</span>, <span class="tag">LIBELLÉ</span>,
+<span class="tag">NUMÉRO</span>, <span class="tag">INFO</span>. Alimente la tuile Annuaire du portail.
+La catégorie sert de regroupement à l'affichage.</p>
+</section>
+
+<section id="etablissement">
+<h2><span class="n">1.7</span>ETABLISSEMENT</h2>
+<p>Trois colonnes : <span class="tag">CLE</span>, <span class="tag">VALEUR</span>, <span class="tag">NOTE</span>. Ce que le devis et la déclaration de choix
+du module libéral impriment en en-tête : <span class="tag">NOM</span>, <span class="tag">SERVICE</span>, <span class="tag">ADRESSE</span>,
+<span class="tag">TELEPHONE</span>, puis les tarifs de consultation du groupement (<span class="tag">CONSULT_TOTAL_NAS</span>,
+<span class="tag">CONSULT_TOTAL_BULLE</span>, <span class="tag">CONSULT_TOTAL_FRANCE</span>, en euros, base comprise).</p>
+<p><strong>On ne remplit que la colonne VALEUR.</strong> L'onglet se crée tout seul au premier devis, avec ses
+clés et des valeurs vides ; une clé ajoutée plus tard par le code arrive en nouvelle ligne, sans toucher
+à ce qui est rempli. Une valeur vide n'imprime rien (tarif vide = pas de dépassement de consultation
+sur le devis).</p>
+<p>Il vit ici et nulle part ailleurs : le nom du lieu d'exercice et les tarifs n'ont pas leur place dans le
+code, qui est public.</p>
+</section>
+
+<section id="p1b">
+<h2><span class="n" style="background:#60A5FA">2</span>Famille 2 — Préparation de l'année</h2>
+<p class="maj" style="margin-top:0">Onglets bleu clair dans le classeur · visibles</p>
+<p>Les réglages qu'on revoit une fois par an, au staff d'octobre, avant d'ouvrir la campagne d'indisponibilités.</p>
+</section>
+
+<section id="groupes">
+<h2><span class="n">2.1</span>GROUPES_VAC</h2>
+<p>Les trois groupes de priorité pour les vacances. Trois colonnes : <span class="tag">GROUPE</span>
+(<span class="tag">A</span>, <span class="tag">B</span> ou <span class="tag">C</span>),
+<span class="tag">MEDECIN_ID</span>, <span class="tag">ORDRE</span> (rang dans le groupe).</p>
+
+<p>Le système fait <strong>tourner l'ordre chaque année</strong> : le rang saisi ici est celui de 2026, et le
+décalage des années suivantes est calculé automatiquement. <strong>Ne pas « corriger » l'ordre à la main
+d'une année sur l'autre</strong> — la rotation serait appliquée deux fois.</p>
+
+<p>Ce même rang sert au wizard de génération pour désigner le MAR le moins prioritaire à qui demander
+de décaler ses vacances quand un jour manque de monde.</p>
+
+<p>Comme <span class="tag">PERIODES_VAC</span>, l'enregistrement depuis le wizard réécrit tout l'onglet.</p>
+</section>
+
 <section id="periodes">
-<h2><span class="n">05</span>PERIODES_VAC</h2>
+<h2><span class="n">2.2</span>PERIODES_VAC</h2>
 <p>Les périodes de vacances scolaires qui servent à la campagne d'indisponibilités et à la génération
 des gardes. Quatre colonnes : <span class="tag">NOM</span>, <span class="tag">DEBUT</span>,
 <span class="tag">FIN</span>, <span class="tag">SEUIL</span> (nombre maximal de MARs simultanément absents,
@@ -407,24 +501,8 @@ défaut 8).</p>
 erreur, mais l'équité des congés n'est plus prise en compte.</p>
 </section>
 
-<section id="groupes">
-<h2><span class="n">06</span>GROUPES_VAC</h2>
-<p>Les trois groupes de priorité pour les vacances. Trois colonnes : <span class="tag">GROUPE</span>
-(<span class="tag">A</span>, <span class="tag">B</span> ou <span class="tag">C</span>),
-<span class="tag">MEDECIN_ID</span>, <span class="tag">ORDRE</span> (rang dans le groupe).</p>
-
-<p>Le système fait <strong>tourner l'ordre chaque année</strong> : le rang saisi ici est celui de 2026, et le
-décalage des années suivantes est calculé automatiquement. <strong>Ne pas « corriger » l'ordre à la main
-d'une année sur l'autre</strong> — la rotation serait appliquée deux fois.</p>
-
-<p>Ce même rang sert au wizard de génération pour désigner le MAR le moins prioritaire à qui demander
-de décaler ses vacances quand un jour manque de monde.</p>
-
-<p>Comme <span class="tag">PERIODES_VAC</span>, l'enregistrement depuis le wizard réécrit tout l'onglet.</p>
-</section>
-
 <section id="conges">
-<h2><span class="n">07</span>CONFIG_CONGES</h2>
+<h2><span class="n">2.3</span>CONFIG_CONGES</h2>
 <p>Les quotas de congés par quotité de temps de travail. Quatre colonnes :
 <span class="tag">QUOTITE</span>, <span class="tag">VAC</span>, <span class="tag">FORM</span>,
 <span class="tag">CTP</span>.</p>
@@ -469,97 +547,24 @@ de temps partiel.</p>
 </div>
 </section>
 
-<section id="absences">
-<h2><span class="n">08</span>ABSENCES_LONGUES</h2>
-<p>Le registre des absences longues. Quatre colonnes : <span class="tag">MAR_ID</span>,
-<span class="tag">DATE_DEBUT</span>, <span class="tag">DATE_FIN</span>, <span class="tag">POSE_LE</span>.</p>
+<section id="transition">
+<h2><span class="n">2.4</span>CONFIG_TRANSITION</h2>
+<p>Trois colonnes : l'<strong>année</strong>, puis les identifiants des deux MARs de garde
+(<span class="tag">G</span> et <span class="tag">G2</span>) <strong>le dernier jour de l'année précédente</strong>.</p>
 
-<p>Son rôle est de <strong>survivre au changement d'année</strong> : à la création d'une nouvelle année, toute
-absence de ce registre qui chevauche l'année créée est rejouée automatiquement dans
-<span class="tag">INDISPOS_{Y}</span> sous le code <span class="tag">CL</span>.</p>
+<p>Son unique rôle : ces deux-là sont en repos de garde le premier jour de l'année nouvelle. Sans
+cette mémoire, le générateur pourrait leur attribuer une garde le 1er jour, juste après une nuit.
+La ligne est écrite automatiquement à chaque publication du planning, et relue par le générateur de
+l'année suivante.</p>
 
-<div class="callout rule">
-  <div class="ct">Annuler une absence longue passe par l'interface</div>
-  <p>Effacer les cases <span class="tag">CL</span> à la main <strong>ne suffit pas</strong> : tant que la ligne
-  reste dans ce registre, l'absence sera rejouée à la prochaine initialisation d'année. L'annulation
-  depuis l'interface fait les deux — effacer les cases <em>et</em> mettre à jour le registre.</p>
-</div>
-</section>
-
-<section id="cottype">
-<h2><span class="n">09</span>COTATIONS_TYPE</h2>
-<p>Les combinaisons de cotation fréquentes, proposées en un clic dans le module libéral.</p>
-
-<table class="sig">
-<tr><th>Titre</th><th>Contenu</th></tr>
-<tr><td>GROUPE</td><td>La famille affichée dans le sélecteur (ex. <span class="tag">Endoscopie</span>). La page n'affiche <strong>rien</strong> tant qu'aucun groupe n'est choisi — l'onglet tient donc à 3 cotations comme à 50.</td></tr>
-<tr><td>NOM</td><td>Nom de la combinaison (ex. <span class="tag">Gastro + colo</span>)</td></tr>
-<tr><td>ORDRE</td><td>Rang de la ligne dans la combinaison</td></tr>
-<tr><td>CODE</td><td>Code CCAM</td></tr>
-<tr><td>ROLE</td><td><span class="tag">principal</span> ou <span class="tag">associe</span></td></tr>
-<tr><td>MOD7</td><td>Modificateur 7. <strong>Coché par défaut</strong> : présent sur tous les relevés observés, l'oublier sous-évalue la base de 6 %.</td></tr>
-<tr><td>MODA</td><td>Modificateur A</td></tr>
-<tr><td>LC</td><td>Lettre-clé associée (ex. <span class="tag">CS</span>)</td></tr>
-</table>
-
-<p><strong>Aucun tarif n'est stocké ici</strong> : il vient de l'index CCAM. Uniquement des lignes d'activité 4,
-et aucun modificateur d'urgence — il n'y a pas de libéral en urgence au service.</p>
-</section>
-
-<section id="specialites">
-<h2><span class="n">10</span>SPECIALITES</h2>
-<p>La liste fermée des spécialités utilisées par la déclaration d'intervention libérale.
-Trois colonnes : <span class="tag">CODE</span>, <span class="tag">LABEL</span>, <span class="tag">ACTIF</span>.</p>
-<p>Douze codes : <span class="tag">OPH ORL VIS URO ORT END GYN PED CI RI VAS AUT</span>.</p>
-
-<div class="callout tip">
-  <div class="ct">La règle métier à ne pas oublier</div>
-  <p><strong>Patient mineur ⇒ <span class="tag">PED</span></strong>, quelle que soit la chirurgie.</p>
-</div>
-
-<p>Une spécialité vide est tolérée (compatibilité avec les lignes anciennes) ; une spécialité
-inconnue est refusée. Le rendement libéral se modélise <strong>par spécialité et non par secteur</strong>,
-parce que les secteurs changeront au déménagement, pas les spécialités.</p>
-</section>
-
-<section id="libca">
-<h2><span class="n">11</span>LIBERAL_CA_{année}</h2>
-<p>La recopie du relevé mensuel certifié, un onglet par année. Huit colonnes :
-<span class="tag">MOIS</span>, <span class="tag">MAR_ID</span>, puis <span class="tag">T_CCAM</span>,
-<span class="tag">PCT_CCAM</span>, <span class="tag">EXC_CCAM</span> et les trois mêmes pour l'axe
-<span class="tag">NGAP</span> — total, pourcentage, excédent.</p>
-
-<div class="callout rule">
-  <div class="ct">Saisie à la main, volontairement</div>
-  <p>Rien ne passe par admin.html : le comité gère le planning, pas le libéral. Le relevé se recopie
-  dans le classeur, le portail le lit en <strong>lecture seule</strong>. Le relevé étant cumulé, rattraper un
-  retard ne demande que <strong>le dernier mois</strong>, pas tous les précédents.</p>
-</div>
-
-<p><strong>Le seuil de 30 % s'applique séparément à chaque axe.</strong> Les deux totaux ne doivent jamais
-être consolidés : la réanimation ne corrige que le CCAM, et un dépassement purement NGAP ne se
-rattrape pas de la même façon.</p>
-</section>
-
-<section id="veillecfg">
-<h2><span class="n">12</span>VEILLE_CFG</h2>
-<p>La configuration de la veille bibliographique : quatre colonnes <span class="tag">TYPE</span>,
-<span class="tag">CLE</span>, <span class="tag">VALEUR</span>, <span class="tag">ACTIF</span>. Les valeurs de
-<span class="tag">TYPE</span> observées dans le code : <span class="tag">REVUE</span>,
-<span class="tag">GENERAL</span> (revue généraliste — NEJM, JAMA, Lancet : ses articles ne
-remontent que s'ils touchent un THEME actif), <span class="tag">THEME</span>,
-<span class="tag">PUBTYPE</span>, <span class="tag">PARAM</span>.</p>
-
-<p>Cet onglet a déjà son mode d'emploi détaillé — revues suivies, thèmes, requêtes, réglages du scan
-du lundi matin : voir <span class="tag">docs/VEILLE_CFG-mode-emploi.md</span>. Il n'est pas repris ici pour
-ne pas en créer une seconde version qui divergerait.</p>
+<p>Petit onglet, effet invisible, mais <strong>le supprimer crée une violation de règle dure à la charnière
+des années</strong>.</p>
 </section>
 
 <section id="p2">
-<h2><span class="n">II</span>Partie II — Les onglets annuels</h2>
-<p>Un jeu par année, créé par les wizards. <strong>On ne les remplit pas à la main</strong> : on les consulte,
-et on y corrige ponctuellement une case. Ce sont eux qui portent la donnée réelle du service.</p>
-
+<h2><span class="n" style="background:#166534">3</span>Famille 3 — Les années</h2>
+<p class="maj" style="margin-top:0">Onglets vert dans le classeur · visibles</p>
+<p>Un jeu d'onglets par année, rangés <strong>de la plus récente à la plus ancienne</strong>, et dans chaque année dans l'ordre du travail : ce qui entre dans le calcul des gardes (INDISPOS, REA1, FETES), ce qui en sort (GARDES, LIENS_R, STATS_GARDES), puis les affectations. Créés par les assistants ; on ne les remplit pas à la main, sauf REA1 et FETES. La clôture d'une année les transfère dans le classeur d'archives.</p>
 <div class="callout warn">
   <div class="ct">Géométrie commune à INDISPOS et GARDES</div>
   <p><strong>Trois lignes d'en-tête</strong> (mois, jour de la semaine, date), <strong>les MARs à partir de la
@@ -567,10 +572,11 @@ et on y corrige ponctuellement une case. Ce sont eux qui portent la donnée rée
   l'année jusqu'à la veille du premier lundi de l'année suivante. C'est ce qu'on appelle
   « l'année de planning », qui ne coïncide pas avec l'année civile.</p>
 </div>
+
 </section>
 
 <section id="indispos">
-<h2><span class="n">13</span>INDISPOS_{année}</h2>
+<h2><span class="n">3.1</span>INDISPOS_{année}</h2>
 <p>La grille de saisie des MARs : ce que chacun a déclaré pour l'année à venir. C'est
 <strong>l'entrée</strong> de l'algorithme de gardes.</p>
 
@@ -589,8 +595,33 @@ et on y corrige ponctuellement une case. Ce sont eux qui portent la donnée rée
 tant que l'onglet est là, « Démarrer l'année » refuse de tourner et le dit clairement.</p>
 </section>
 
+<section id="rea1">
+<h2><span class="n">3.2</span>REA1_{année}</h2>
+<p>Le tableau de répartition de l'équipe réa, <strong>collé tel quel</strong> : une ligne par semaine,
+colonnes <span class="tag">Semaine n°</span>, <span class="tag">Du</span> (le lundi), <span class="tag">Au</span>, <span class="tag">REA 1 (1re semaine)</span>,
+<span class="tag">REA 2 (2e semaine)</span>. Initiales ou identifiants, les deux sont reconnus.</p>
+<p>Ce qu'il change à la génération des gardes : la semaine du Réa 1 désigné est protégée — <strong>aucune
+garde du dimanche soir au jeudi soir</strong>, aucune récupération ni 18 h du lundi au vendredi. Il reste
+libre le vendredi soir, le samedi et le week-end qui clôt sa semaine. Ses souhaits posés sur ces nuits
+sont retirés et listés dans les avertissements du rapport.</p>
+<p><strong>Sans cet onglet, rien ne se passe</strong> : la règle est simplement inactive pour l'année. Seule la colonne
+REA 1 est lue.</p>
+</section>
+
+<section id="fetes">
+<h2><span class="n">3.3</span>FETES_{année}</h2>
+<p>Les nuits de fêtes décidées par le comité : une ligne par nuit, <span class="tag">Date</span>, <span class="tag">MAR 1</span>,
+<span class="tag">MAR 2</span> (initiales ou identifiants).</p>
+<p>La génération des gardes <strong>impose ces binômes avant tout le reste</strong>, même si une règle s'y oppose
+(absence, semaine Réa 1, espacement) — c'est la décision du comité, mais chaque entorse est signalée dans
+le rapport. Un vendredi et son dimanche donnés au même binôme comptent comme un week-end.</p>
+<p>Pourquoi un onglet plutôt que des cases bloquées dans les indisponibilités : bloquer les autres MARs était
+fragile (le 24/10/2026, la limite de week-ends bloqués a fait sauter la case du Jour de l'An et le scénario
+avec). Sans cet onglet, la rotation de Noël et du Jour de l'An s'applique normalement.</p>
+</section>
+
 <section id="gardes">
-<h2><span class="n">14</span>GARDES_{année}</h2>
+<h2><span class="n">3.4</span>GARDES_{année}</h2>
 <p>Le planning de gardes produit par l'algorithme, même géométrie qu'INDISPOS.
 <span class="tag">G</span> = garde de réanimation, <span class="tag">G2</span> = garde d'anesthésie
 (maternité / bloc). On y trouve aussi les codes d'absence recopiés depuis la campagne
@@ -611,8 +642,23 @@ y est recopiée en traduisant les codes, et une absence longue y écrit <span cl
 tout le reste.</p>
 </section>
 
+<section id="liensr">
+<h2><span class="n">3.5</span>LIENS_R_{année}</h2>
+<p>Écrit par le générateur depuis le 21 août 2026 : quel jour de récupération correspond à quel
+samedi. Trois colonnes — <span class="tag">SAMEDI</span>, <span class="tag">MEDECIN</span>,
+<span class="tag">DATE R</span> — une ligne par samedi <em>et par tenant</em> (un samedi porte deux
+gardes, donc deux lignes). C'est lui qui permet à un échange de samedi d'emmener <strong>sa</strong>
+récupération, à sa date.</p>
+<div class="callout rule">
+  <div class="ct">Ne jamais le nettoyer à la main avant une régénération</div>
+  <p>Le générateur le <strong>détruit et le recrée lui-même</strong> à chaque calcul — vérifié dans le
+  code le 23 août 2026 : le geste serait inutile. Il suit le cycle annuel de
+  <span class="tag">GARDES</span> et <span class="tag">STATS</span>, et s'archive avec eux.</p>
+</div>
+</section>
+
 <section id="stats">
-<h2><span class="n">15</span>STATS_GARDES_{année}</h2>
+<h2><span class="n">3.6</span>STATS_GARDES_{année}</h2>
 <p>La preuve d'équité, figée au moment de la génération. <strong>23 colonnes</strong>, une ligne par MAR :</p>
 
 <table class="sig">
@@ -636,23 +682,8 @@ tout le reste.</p>
 </div>
 </section>
 
-<section id="liensr">
-<h2><span class="n">15 bis</span>LIENS_R_{année}</h2>
-<p>Écrit par le générateur depuis le 21 août 2026 : quel jour de récupération correspond à quel
-samedi. Trois colonnes — <span class="tag">SAMEDI</span>, <span class="tag">MEDECIN</span>,
-<span class="tag">DATE R</span> — une ligne par samedi <em>et par tenant</em> (un samedi porte deux
-gardes, donc deux lignes). C'est lui qui permet à un échange de samedi d'emmener <strong>sa</strong>
-récupération, à sa date.</p>
-<div class="callout rule">
-  <div class="ct">Ne jamais le nettoyer à la main avant une régénération</div>
-  <p>Le générateur le <strong>détruit et le recrée lui-même</strong> à chaque calcul — vérifié dans le
-  code le 23 août 2026 : le geste serait inutile. Il suit le cycle annuel de
-  <span class="tag">GARDES</span> et <span class="tag">STATS</span>, et s'archive avec eux.</p>
-</div>
-</section>
-
 <section id="affectations">
-<h2><span class="n">16</span>AFFECTATIONS_{année}</h2>
+<h2><span class="n">3.7</span>AFFECTATIONS_{année}</h2>
 <p>L'affectation mensuelle de chaque MAR à un secteur. <strong>Une ligne d'en-tête</strong> puis les MARs
 <strong>dès la ligne 2</strong> : colonne A l'identifiant, puis <strong>douze colonnes</strong>, une par mois
 (<span class="tag">JAN 2027</span> … <span class="tag">DEC 2027</span>).</p>
@@ -665,8 +696,130 @@ régulier est absent et n'est pas remplacé, la case signale qu'il manque quelqu
 onglet préexistant est conservé tel quel, avec son contenu.</p>
 </section>
 
+<section id="p3">
+<h2><span class="n" style="background:#C2410C">4</span>Famille 4 — Écrits par l'interface</h2>
+<p class="maj" style="margin-top:0">Onglets orange dans le classeur · visibles</p>
+<p>Le système les alimente pendant qu'on travaille : retouches du comité, temps partiel, échanges, absences longues. Ils restent visibles pour le dépannage. Les lire : oui. Les éditer à la main : seulement en connaissance de cause — le geste passe normalement par le portail.</p>
+</section>
+
+<section id="overrides">
+<h2><span class="n">4.1</span>PLANNING_OVERRIDES</h2>
+<p>Les placements décidés par le comité, jour par jour : ce que produit chaque clic dans la grille
+d'admin. Cinq colonnes : <span class="tag">DATE</span>, <span class="tag">MAR_ID</span>,
+<span class="tag">MATIN</span>, <span class="tag">APREM</span>, <span class="tag">COMMENTAIRE</span>.</p>
+
+<p>Les deux colonnes de secteur acceptent un code (<span class="tag">ORT</span>), plusieurs codes séparés
+par <span class="tag">+</span>, ou deux valeurs spéciales : <span class="tag">VOLANT</span> (retiré du
+secteur) et <span class="tag">VIDE</span> (case laissée volontairement vide).</p>
+
+<div class="callout warn">
+  <div class="ct">Onglet à ne pas éditer pendant que le comité travaille</div>
+  <p>Les placements sont envoyés <strong>par lots</strong> depuis le navigateur. Une modification manuelle
+  faite au même moment peut être écrasée sans le moindre avertissement.</p>
+</div>
+
+<p>C'est aussi la <strong>seule</strong> source des consultations à venir : les consultations ne sont pas
+générées automatiquement, le comité place chaque MAR à la main. <span class="tag">CS_TEMPLATE</span> ne
+dit que <em>combien</em> de créneaux sont requis, jamais <em>qui</em> les tient.</p>
+</section>
+
+<section id="tp-onglets">
+<h2><span class="n">4.2</span>TP_DEMANDES et TP_FERMES</h2>
+<p>Les deux registres du circuit des temps partiels posés <strong>après</strong> génération (22-23 août
+2026). Ni l'un ni l'autre n'existe tant qu'il n'a pas servi : <span class="tag">TP_DEMANDES</span>
+naît à la première demande « sous réserve », <span class="tag">TP_FERMES</span> au premier refus du
+comité.</p>
+<table class="sig">
+<tr><th>Onglet</th><th>Colonnes</th><th>Contenu</th></tr>
+<tr><td>TP_DEMANDES</td><td>ANNEE · DATE · MAR · QUAND</td><td>Les jours demandés que le comité n'a pas
+encore tranchés. <strong>Rien n'est écrit dans le planning</strong> tant qu'une ligne vit ici : le MAR
+travaille.</td></tr>
+<tr><td>TP_FERMES</td><td>ANNEE · DATE · PAR · QUAND</td><td>Les jours fermés par un refus — pour
+<strong>toute l'équipe</strong>, pas seulement le demandeur. Rouvrir un jour refusé par erreur =
+supprimer sa ligne.</td></tr>
+</table>
+<div class="callout warn">
+  <div class="ct">Aucun des deux n'est rattaché à une année</div>
+  <p>Comme <span class="tag">PLANNING_OVERRIDES</span> et <span class="tag">ECHANGES</span> : supprimer
+  les onglets annuels ne les purge pas. Le ménage se fait <strong>ligne à ligne, sur la colonne
+  ANNEE</strong> — il fait partie des gestes d'après-démo. Le jour accordé, lui, ne vit dans aucun des
+  deux : il s'écrit en <span class="tag">TP</span> directement dans <span class="tag">GARDES_{année}</span> (§<a href="#gardes">3.4</a>).</p>
+</div>
+</section>
+
+<section id="echanges">
+<h2><span class="n">4.3</span>ECHANGES</h2>
+<p>Une ligne par demande d'échange ou de don de garde entre MARs, douze colonnes : <span class="tag">ID</span>,
+<span class="tag">CREE_LE</span>, <span class="tag">TYPE</span>, <span class="tag">ANNEE</span>, <span class="tag">DATE</span>, <span class="tag">DATE2</span>, <span class="tag">DEMANDEUR</span>,
+<span class="tag">RECEVEUR</span>, <span class="tag">ETAT</span>, <span class="tag">REPONDU_LE</span>, <span class="tag">RAPPEL_LE</span>, <span class="tag">INFO</span>.</p>
+<p><span class="tag">ETAT</span> vaut <span class="tag">attente</span>, puis <span class="tag">acceptee</span>, <span class="tag">refusee</span>, <span class="tag">expiree</span>
+(48 h sans réponse, rappel unique au receveur à 24 h) ou <span class="tag">impossible</span> (le planning a bougé
+depuis la demande : la grille reste intacte, les deux MARs sont prévenus).</p>
+<p><strong>À ne pas éditer à la main.</strong> Accepter une demande en changeant l'état ici ne déplacerait aucune garde :
+seul le geste depuis le portail modifie le planning.</p>
+</section>
+
+<section id="absences">
+<h2><span class="n">4.4</span>ABSENCES_LONGUES</h2>
+<p>Le registre des absences longues. Quatre colonnes : <span class="tag">MAR_ID</span>,
+<span class="tag">DATE_DEBUT</span>, <span class="tag">DATE_FIN</span>, <span class="tag">POSE_LE</span>.</p>
+
+<p>Son rôle est de <strong>survivre au changement d'année</strong> : à la création d'une nouvelle année, toute
+absence de ce registre qui chevauche l'année créée est rejouée automatiquement dans
+<span class="tag">INDISPOS_{Y}</span> sous le code <span class="tag">CL</span>.</p>
+
+<div class="callout rule">
+  <div class="ct">Annuler une absence longue passe par l'interface</div>
+  <p>Effacer les cases <span class="tag">CL</span> à la main <strong>ne suffit pas</strong> : tant que la ligne
+  reste dans ce registre, l'absence sera rejouée à la prochaine initialisation d'année. L'annulation
+  depuis l'interface fait les deux — effacer les cases <em>et</em> mettre à jour le registre.</p>
+</div>
+</section>
+
+<section id="p4">
+<h2><span class="n" style="background:#0D9488">5</span>Famille 5 — Libéral</h2>
+<p class="maj" style="margin-top:0">Onglets turquoise dans le classeur · visibles</p>
+<p>Le module libéral : le référentiel des spécialités et des cotations, puis, chaque année, les déclarations et le chiffre d'affaires. Sans effet sur le planning.</p>
+</section>
+
+<section id="specialites">
+<h2><span class="n">5.1</span>SPECIALITES</h2>
+<p>La liste fermée des spécialités utilisées par la déclaration d'intervention libérale.
+Trois colonnes : <span class="tag">CODE</span>, <span class="tag">LABEL</span>, <span class="tag">ACTIF</span>.</p>
+<p>Douze codes : <span class="tag">OPH ORL VIS URO ORT END GYN PED CI RI VAS AUT</span>.</p>
+
+<div class="callout tip">
+  <div class="ct">La règle métier à ne pas oublier</div>
+  <p><strong>Patient mineur ⇒ <span class="tag">PED</span></strong>, quelle que soit la chirurgie.</p>
+</div>
+
+<p>Une spécialité vide est tolérée (compatibilité avec les lignes anciennes) ; une spécialité
+inconnue est refusée. Le rendement libéral se modélise <strong>par spécialité et non par secteur</strong>,
+parce que les secteurs changeront au déménagement, pas les spécialités.</p>
+</section>
+
+<section id="cottype">
+<h2><span class="n">5.2</span>COTATIONS_TYPE</h2>
+<p>Les combinaisons de cotation fréquentes, proposées en un clic dans le module libéral.</p>
+
+<table class="sig">
+<tr><th>Titre</th><th>Contenu</th></tr>
+<tr><td>GROUPE</td><td>La famille affichée dans le sélecteur (ex. <span class="tag">Endoscopie</span>). La page n'affiche <strong>rien</strong> tant qu'aucun groupe n'est choisi — l'onglet tient donc à 3 cotations comme à 50.</td></tr>
+<tr><td>NOM</td><td>Nom de la combinaison (ex. <span class="tag">Gastro + colo</span>)</td></tr>
+<tr><td>ORDRE</td><td>Rang de la ligne dans la combinaison</td></tr>
+<tr><td>CODE</td><td>Code CCAM</td></tr>
+<tr><td>ROLE</td><td><span class="tag">principal</span> ou <span class="tag">associe</span></td></tr>
+<tr><td>MOD7</td><td>Modificateur 7. <strong>Coché par défaut</strong> : présent sur tous les relevés observés, l'oublier sous-évalue la base de 6 %.</td></tr>
+<tr><td>MODA</td><td>Modificateur A</td></tr>
+<tr><td>LC</td><td>Lettre-clé associée (ex. <span class="tag">CS</span>)</td></tr>
+</table>
+
+<p><strong>Aucun tarif n'est stocké ici</strong> : il vient de l'index CCAM. Uniquement des lignes d'activité 4,
+et aucun modificateur d'urgence — il n'y a pas de libéral en urgence au service.</p>
+</section>
+
 <section id="liberal">
-<h2><span class="n">17</span>LIBERAL_{année}</h2>
+<h2><span class="n">5.3</span>LIBERAL_{année}</h2>
 <p>Les déclarations d'intervention libérale. <strong>Neuf colonnes</strong>, dans cet ordre :</p>
 
 <table class="sig">
@@ -690,140 +843,54 @@ onglet préexistant est conservé tel quel, avec son contenu.</p>
 </div>
 </section>
 
-<section id="p3">
-<h2><span class="n">III</span>Partie III — Écrits en continu par l'interface</h2>
-<p>Deux onglets que le système alimente pendant qu'on travaille. Les lire pour comprendre : oui.
-Les éditer à la main : seulement en connaissance de cause.</p>
-</section>
+<section id="libca">
+<h2><span class="n">5.4</span>LIBERAL_CA_{année}</h2>
+<p>La recopie du relevé mensuel certifié, un onglet par année. Huit colonnes :
+<span class="tag">MOIS</span>, <span class="tag">MAR_ID</span>, puis <span class="tag">T_CCAM</span>,
+<span class="tag">PCT_CCAM</span>, <span class="tag">EXC_CCAM</span> et les trois mêmes pour l'axe
+<span class="tag">NGAP</span> — total, pourcentage, excédent.</p>
 
-<section id="overrides">
-<h2><span class="n">18</span>PLANNING_OVERRIDES</h2>
-<p>Les placements décidés par le comité, jour par jour : ce que produit chaque clic dans la grille
-d'admin. Cinq colonnes : <span class="tag">DATE</span>, <span class="tag">MAR_ID</span>,
-<span class="tag">MATIN</span>, <span class="tag">APREM</span>, <span class="tag">COMMENTAIRE</span>.</p>
-
-<p>Les deux colonnes de secteur acceptent un code (<span class="tag">ORT</span>), plusieurs codes séparés
-par <span class="tag">+</span>, ou deux valeurs spéciales : <span class="tag">VOLANT</span> (retiré du
-secteur) et <span class="tag">VIDE</span> (case laissée volontairement vide).</p>
-
-<div class="callout warn">
-  <div class="ct">Onglet à ne pas éditer pendant que le comité travaille</div>
-  <p>Les placements sont envoyés <strong>par lots</strong> depuis le navigateur. Une modification manuelle
-  faite au même moment peut être écrasée sans le moindre avertissement.</p>
+<div class="callout rule">
+  <div class="ct">Saisie à la main, volontairement</div>
+  <p>Rien ne passe par admin.html : le comité gère le planning, pas le libéral. Le relevé se recopie
+  dans le classeur, le portail le lit en <strong>lecture seule</strong>. Le relevé étant cumulé, rattraper un
+  retard ne demande que <strong>le dernier mois</strong>, pas tous les précédents.</p>
 </div>
 
-<p>C'est aussi la <strong>seule</strong> source des consultations à venir : les consultations ne sont pas
-générées automatiquement, le comité place chaque MAR à la main. <span class="tag">CS_TEMPLATE</span> ne
-dit que <em>combien</em> de créneaux sont requis, jamais <em>qui</em> les tient.</p>
-</section>
-
-<section id="tp-onglets">
-<h2><span class="n">18 bis</span>TP_DEMANDES et TP_FERMES</h2>
-<p>Les deux registres du circuit des temps partiels posés <strong>après</strong> génération (22-23 août
-2026). Ni l'un ni l'autre n'existe tant qu'il n'a pas servi : <span class="tag">TP_DEMANDES</span>
-naît à la première demande « sous réserve », <span class="tag">TP_FERMES</span> au premier refus du
-comité.</p>
-<table class="sig">
-<tr><th>Onglet</th><th>Colonnes</th><th>Contenu</th></tr>
-<tr><td>TP_DEMANDES</td><td>ANNEE · DATE · MAR · QUAND</td><td>Les jours demandés que le comité n'a pas
-encore tranchés. <strong>Rien n'est écrit dans le planning</strong> tant qu'une ligne vit ici : le MAR
-travaille.</td></tr>
-<tr><td>TP_FERMES</td><td>ANNEE · DATE · PAR · QUAND</td><td>Les jours fermés par un refus — pour
-<strong>toute l'équipe</strong>, pas seulement le demandeur. Rouvrir un jour refusé par erreur =
-supprimer sa ligne.</td></tr>
-</table>
-<div class="callout warn">
-  <div class="ct">Aucun des deux n'est rattaché à une année</div>
-  <p>Comme <span class="tag">PLANNING_OVERRIDES</span> et <span class="tag">ECHANGES</span> : supprimer
-  les onglets annuels ne les purge pas. Le ménage se fait <strong>ligne à ligne, sur la colonne
-  ANNEE</strong> — il fait partie des gestes d'après-démo. Le jour accordé, lui, ne vit dans aucun des
-  deux : il s'écrit en <span class="tag">TP</span> directement dans <span class="tag">GARDES_{année}</span> (§14).</p>
-</div>
-</section>
-
-<section id="transition">
-<h2><span class="n">19</span>CONFIG_TRANSITION</h2>
-<p>Trois colonnes : l'<strong>année</strong>, puis les identifiants des deux MARs de garde
-(<span class="tag">G</span> et <span class="tag">G2</span>) <strong>le dernier jour de l'année précédente</strong>.</p>
-
-<p>Son unique rôle : ces deux-là sont en repos de garde le premier jour de l'année nouvelle. Sans
-cette mémoire, le générateur pourrait leur attribuer une garde le 1er jour, juste après une nuit.
-La ligne est écrite automatiquement à chaque publication du planning, et relue par le générateur de
-l'année suivante.</p>
-
-<p>Petit onglet, effet invisible, mais <strong>le supprimer crée une violation de règle dure à la charnière
-des années</strong>.</p>
-</section>
-
-<section id="p4">
-<h2><span class="n">IV</span>Partie IV — Les mémoires longues</h2>
-<p>Deux onglets qui traversent les années et alimentent l'équité pluriannuelle.</p>
-</section>
-
-<section id="historique">
-<h2><span class="n">20</span>HISTORIQUE</h2>
-<p>Le cumul par MAR et par année, <strong>18 colonnes</strong> : <span class="tag">ID</span>,
-<span class="tag">ANNEE</span>, <span class="tag">TOTAL</span>, <span class="tag">G</span>,
-<span class="tag">G2</span>, les sept jours de la semaine, <span class="tag">VD</span>,
-<span class="tag">VEILLE JF</span>, <span class="tag">JF</span>, <span class="tag">NOEL/AN</span>,
-<span class="tag">RECUP R</span>, <span class="tag">18H</span>.</p>
-
-<p>C'est un onglet <strong>obligatoire</strong> pour le Diagnostic. Il se remplit à la clôture, et peut être
-amorcé rétroactivement à partir des STATS des années passées.</p>
-
-<p><strong>Ne pas confondre avec <span class="tag">TRACES</span></strong> (créé au premier usage, 10 novembre 2026) :
-une ligne horodatée par geste — jour de temps partiel posé, demandé ou retiré, décision du comité,
-échange accepté, modification depuis la page admin — en 9 colonnes <span class="tag">QUAND</span>,
-<span class="tag">ANNEE</span>, <span class="tag">QUOI</span>, <span class="tag">MAR</span>,
-<span class="tag">JOUR</span>, <span class="tag">JOUR2</span>, <span class="tag">AUTRE_MAR</span>,
-<span class="tag">PAR</span>, <span class="tag">DETAIL</span>. Rien n'y est jamais effacé. Il sert à arbitrer
-« qui a fait quoi, et quand » ; aucun calcul ne le lit.</p>
-</section>
-
-<section id="noel">
-<h2><span class="n">21</span>NOEL_AN_HISTORIQUE</h2>
-<p><strong>Cet onglet n'existe pas dans le classeur</strong> (vérifié le 30/07/2026), et son absence est
-sans conséquence. Il est décrit ici parce que le code le mentionne, et pour éviter qu'on le
-cherche.</p>
-
-<p>Ce qu'il aurait contenu : deux colonnes, <span class="tag">ID</span> et <span class="tag">ANNEE</span>, pour
-mémoriser qui avait fait Noël ou le Jour de l'an <strong>avant le système</strong> (2023-2025). Un seul
-endroit le lit — la fonction manuelle d'amorçage de <span class="tag">HISTORIQUE</span>, qui s'en passe
-s'il est absent.</p>
-
-<div class="callout warn">
-  <div class="ct">Un commentaire de code périmé, à ne pas croire</div>
-  <p>Le générateur porte encore la mention « Historique = onglet NOEL_AN_HISTORIQUE ». <strong>C'est
-  faux</strong> : cinq lignes plus bas, la rotation de Noël lit en réalité <span class="tag">HISTORIQUE</span>
-  (années archivées) <strong>et</strong> les onglets <span class="tag">GARDES_{Y}</span> encore présents. C'est
-  <span class="tag">HISTORIQUE</span> qui porte cette mémoire, via sa colonne <span class="tag">NOEL/AN</span>.</p>
-</div>
-
-<p>La règle métier, elle, reste : personne ne reprend Noël tant que tout le monde n'y est pas passé.</p>
+<p><strong>Le seuil de 30 % s'applique séparément à chaque axe.</strong> Les deux totaux ne doivent jamais
+être consolidés : la réanimation ne corrige que le CCAM, et un dépassement purement NGAP ne se
+rattrape pas de la même façon.</p>
 </section>
 
 <section id="p5">
-<h2><span class="n">V</span>Partie V — Les contenus du portail</h2>
-<p>Trois onglets qui alimentent les tuiles du Dashboard. Aucun n'a d'effet sur le planning : les
-modifier ne peut rien casser d'autre que l'affichage concerné.</p>
+<h2><span class="n" style="background:#7E22CE">6</span>Famille 6 — Contenu du portail</h2>
+<p class="maj" style="margin-top:0">Onglets violet dans le classeur · en partie masqués</p>
+<p>Ce qui alimente les tuiles du Dashboard : la veille bibliographique et le programme des staffs (l'annuaire est rangé avec les réglages). Aucun n'a d'effet sur le planning. <strong>VEILLE_CFG</strong> et <strong>STAFFS</strong> se remplissent à la main et restent visibles ; les quatre onglets VEILLE*, écrits par le scan du lundi et par l'écran, sont masqués.</p>
 </section>
 
-<section id="annuaire">
-<h2><span class="n">22</span>ANNUAIRE</h2>
-<p>Quatre colonnes : <span class="tag">CATÉGORIE</span>, <span class="tag">LIBELLÉ</span>,
-<span class="tag">NUMÉRO</span>, <span class="tag">INFO</span>. Alimente la tuile Annuaire du portail.
-La catégorie sert de regroupement à l'affichage.</p>
+<section id="veillecfg">
+<h2><span class="n">6.1</span>VEILLE_CFG</h2>
+<p>La configuration de la veille bibliographique : quatre colonnes <span class="tag">TYPE</span>,
+<span class="tag">CLE</span>, <span class="tag">VALEUR</span>, <span class="tag">ACTIF</span>. Les valeurs de
+<span class="tag">TYPE</span> observées dans le code : <span class="tag">REVUE</span>,
+<span class="tag">GENERAL</span> (revue généraliste — NEJM, JAMA, Lancet : ses articles ne
+remontent que s'ils touchent un THEME actif), <span class="tag">THEME</span>,
+<span class="tag">PUBTYPE</span>, <span class="tag">PARAM</span>.</p>
+
+<p>Cet onglet a déjà son mode d'emploi détaillé — revues suivies, thèmes, requêtes, réglages du scan
+du lundi matin : voir <span class="tag">docs/VEILLE_CFG-mode-emploi.md</span>. Il n'est pas repris ici pour
+ne pas en créer une seconde version qui divergerait.</p>
 </section>
 
 <section id="staffs">
-<h2><span class="n">23</span>STAFFS</h2>
+<h2><span class="n">6.2</span>STAFFS</h2>
 <p>Cinq colonnes : <span class="tag">DATE</span>, <span class="tag">HEURE</span>,
 <span class="tag">THÈME</span>, <span class="tag">INTERVENANT</span>, <span class="tag">LIEU</span>.
 Le programme des staffs affiché sur le Dashboard.</p>
 </section>
 
 <section id="veille">
-<h2><span class="n">24</span>VEILLE</h2>
+<h2><span class="n">6.3</span>VEILLE</h2>
 <p>Le résultat du scan bibliographique hebdomadaire (lundi matin), <strong>14 colonnes</strong> :
 <span class="tag">PMID</span>, <span class="tag">DATE_PUB</span>, <span class="tag">TITRE</span>,
 <span class="tag">AUTEURS</span>, <span class="tag">REVUE</span>, <span class="tag">DOI</span>,
@@ -835,7 +902,7 @@ Le programme des staffs affiché sur le Dashboard.</p>
   <div class="ct">LU et STAR ne sont plus lus — ne vous y fiez pas</div>
   <p>Ces deux colonnes servaient de marques <strong>communes aux 23 MAR</strong> : un article lu par l'un
   disparaissait de la liste de tous. Depuis le 8 août 2026, les marques sont personnelles et vivent dans
-  <span class="tag">VEILLE_MARQUES</span> (§24 bis). <span class="tag">LU</span> et
+  <span class="tag">VEILLE_MARQUES</span> (§<a href="#veille-marques">6.4</a>). <span class="tag">LU</span> et
   <span class="tag">STAR</span> restent présentes ici mais <strong>ne sont ni lues ni écrites</strong> :
   leur contenu est un vestige, sans effet sur ce que voient les MAR.</p>
   <p>Les colonnes sont atteintes <strong>par leur position</strong> : toute colonne nouvelle s'ajoute en
@@ -847,7 +914,7 @@ Le programme des staffs affiché sur le Dashboard.</p>
 </section>
 
 <section id="veille-marques">
-<h2><span class="n">24 bis</span>VEILLE_MARQUES</h2>
+<h2><span class="n">6.4</span>VEILLE_MARQUES</h2>
 <p>Les marques <strong>« lu »</strong> et <strong>« ★ »</strong> de la veille, <strong>personnelles à chaque
 MAR</strong> depuis le 8 août 2026. <strong>Cinq colonnes</strong> : <span class="tag">MAR_ID</span>,
 <span class="tag">PMID</span>, <span class="tag">LU</span>, <span class="tag">STAR</span>,
@@ -880,12 +947,79 @@ dernier changement.</p>
 lente : il ne grossit qu'au rythme des clics, pas des publications.</p>
 </section>
 
+<section id="veille-archive">
+<h2><span class="n">6.5</span>VEILLE_ARCHIVE</h2>
+<p>Les mêmes colonnes que <span class="tag">VEILLE</span>. Un article ancien <strong>que personne n'a étoilé</strong> y est
+déplacé — jamais effacé — et quitte l'écran de la veille ; un article étoilé reste dans
+<span class="tag">VEILLE</span>. L'âge d'archivage se règle dans <span class="tag">VEILLE_CFG</span> (ligne <span class="tag">ARCHIVE_MOIS</span>,
+3 mois par défaut), avec un minimum de 28 jours de présence pour qu'un article arrivé en retard ait le
+temps d'être vu.</p>
+<p>La recherche de la veille fouille aussi cet onglet.</p>
+</section>
+
+<section id="veille-abonnes">
+<h2><span class="n">6.6</span>VEILLE_ABONNES</h2>
+<p>Les MARs abonnés au mail de la veille du lundi : <span class="tag">MAR_ID</span>, <span class="tag">ACTIF</span>, <span class="tag">EMAIL</span>,
+<span class="tag">MAJ_LE</span>. Chacun s'abonne et se désabonne lui-même depuis la veille, en tapant son adresse.</p>
+<p>L'adresse est rangée ici et <strong>jamais dans MEDECINS</strong> : celle de MEDECINS déclenche aussi les mails
+« Votre planning a changé », que personne n'a demandés en s'abonnant à la veille.</p>
+</section>
+
 <section id="p6">
-<h2><span class="n">VI</span>Partie VI — Journaux, vestiges, et ce qui n'est pas dans le classeur</h2>
+<h2><span class="n" style="background:#9CA3AF">7</span>Famille 7 — Mémoires et journaux</h2>
+<p class="maj" style="margin-top:0">Onglets gris dans le classeur · masqués</p>
+<p>Ce que le code écrit pour s'en souvenir : le cumul des gardes par année, la trace de chaque geste, les connexions, les compteurs d'usage. <strong>Tous masqués</strong> : personne n'a à les éditer.</p>
+</section>
+
+<section id="historique">
+<h2><span class="n">7.1</span>HISTORIQUE</h2>
+<p>Le cumul par MAR et par année, <strong>18 colonnes</strong> : <span class="tag">ID</span>,
+<span class="tag">ANNEE</span>, <span class="tag">TOTAL</span>, <span class="tag">G</span>,
+<span class="tag">G2</span>, les sept jours de la semaine, <span class="tag">VD</span>,
+<span class="tag">VEILLE JF</span>, <span class="tag">JF</span>, <span class="tag">NOEL/AN</span>,
+<span class="tag">RECUP R</span>, <span class="tag">18H</span>.</p>
+
+<p>C'est un onglet <strong>obligatoire</strong> pour le Diagnostic. Il se remplit à la clôture, et peut être
+amorcé rétroactivement à partir des STATS des années passées.</p>
+
+<p><strong>Ne pas confondre avec <span class="tag">TRACES</span></strong> (§<a href="#traces">7.2</a>), qui note chaque geste un par un.</p>
+</section>
+
+<section id="traces">
+<h2><span class="n">7.2</span>TRACES</h2>
+<p>Une ligne horodatée par geste, depuis le 10 novembre 2026 : jour de temps partiel posé, demandé ou
+retiré, décision du comité, échange accepté, modification depuis la page admin, lot de 18 h. Neuf colonnes :
+<span class="tag">QUAND</span>, <span class="tag">ANNEE</span>, <span class="tag">QUOI</span>, <span class="tag">MAR</span>, <span class="tag">JOUR</span>, <span class="tag">JOUR2</span>,
+<span class="tag">AUTRE_MAR</span>, <span class="tag">PAR</span>, <span class="tag">DETAIL</span>.</p>
+<p>Rien n'y est jamais effacé, et aucun calcul ne le lit. Il sert à arbitrer « qui a fait quoi, et
+quand » — ce que <span class="tag">LOGS</span> ne peut pas faire : il ne garde que ses 500 dernières lignes et ne dit pas
+quels jours.</p>
+</section>
+
+<section id="noel">
+<h2><span class="n">7.3</span>NOEL_AN_HISTORIQUE</h2>
+<p><strong>Cet onglet n'existe pas dans le classeur</strong> (vérifié le 30/07/2026), et son absence est
+sans conséquence. Il est décrit ici parce que le code le mentionne, et pour éviter qu'on le
+cherche.</p>
+
+<p>Ce qu'il aurait contenu : deux colonnes, <span class="tag">ID</span> et <span class="tag">ANNEE</span>, pour
+mémoriser qui avait fait Noël ou le Jour de l'an <strong>avant le système</strong> (2023-2025). Un seul
+endroit le lit — la fonction manuelle d'amorçage de <span class="tag">HISTORIQUE</span>, qui s'en passe
+s'il est absent.</p>
+
+<div class="callout warn">
+  <div class="ct">Un commentaire de code périmé, à ne pas croire</div>
+  <p>Le générateur porte encore la mention « Historique = onglet NOEL_AN_HISTORIQUE ». <strong>C'est
+  faux</strong> : cinq lignes plus bas, la rotation de Noël lit en réalité <span class="tag">HISTORIQUE</span>
+  (années archivées) <strong>et</strong> les onglets <span class="tag">GARDES_{Y}</span> encore présents. C'est
+  <span class="tag">HISTORIQUE</span> qui porte cette mémoire, via sa colonne <span class="tag">NOEL/AN</span>.</p>
+</div>
+
+<p>La règle métier, elle, reste : personne ne reprend Noël tant que tout le monde n'y est pas passé.</p>
 </section>
 
 <section id="journaux">
-<h2><span class="n">25</span>CONNEXIONS et LOGS</h2>
+<h2><span class="n">7.4</span>CONNEXIONS et LOGS</h2>
 <p><span class="tag">CONNEXIONS</span> — quatre colonnes : <span class="tag">HORODATAGE</span>,
 <span class="tag">NOM</span>, <span class="tag">INITIALES</span>, <span class="tag">ROLE</span>. Une ligne par
 connexion. <strong>Purge automatique au-delà de 2 000 lignes.</strong></p>
@@ -903,7 +1037,7 @@ réinitialisations de code). <strong>Purge automatique au-delà de 500 lignes.</
 </section>
 
 <section id="notifsjournal">
-<h2><span class="n">25 bis</span>NOTIFS_JOURNAL</h2>
+<h2><span class="n">7.5</span>NOTIFS_JOURNAL</h2>
 <p>Le registre de la <strong>cloche</strong> du dashboard (23 août 2026) : une ligne par notification
 envoyée, inscrite par le serveur <strong>avant</strong> même de tenter l'envoi. Cinq colonnes —
 <span class="tag">QUAND</span>, <span class="tag">MAR</span> (un identifiant, ou <span class="tag">*</span>
@@ -919,8 +1053,27 @@ pour « tout le monde »), <span class="tag">TITRE</span>, <span class="tag">COR
 </div>
 </section>
 
+<section id="stats-usage">
+<h2><span class="n">7.6</span>STATS_HEURES, STATS_ACTIONS et STATS_SEMAINE</h2>
+<p>Les compteurs de la page de statistiques d'usage. Ils sont <strong>incrémentés au moment du geste</strong> et
+survivent à la purge de <span class="tag">CONNEXIONS</span> : c'est l'historique de l'usage, pas un calcul refait après coup.</p>
+<table>
+<tr><th>Onglet</th><th>Colonnes</th><th>Contenu</th></tr>
+<tr><td>STATS_HEURES</td><td>JOUR · H00 → H23</td><td>Une grille 7 jours × 24 heures : le nombre de connexions par créneau, cumulé.</td></tr>
+<tr><td>STATS_ACTIONS</td><td>ROLE · ACTION · NOMBRE · DERNIERE</td><td>Combien de fois chaque rôle a fait chaque geste. Le rôle, jamais la personne.</td></tr>
+<tr><td>STATS_SEMAINE</td><td>SEMAINE · CONNEXIONS · ACTIFS · FIGEE</td><td>Une ligne par semaine. Une semaine figée n'est plus recalculée.</td></tr>
+</table>
+<p>Créés au premier usage, jamais réinitialisés au changement d'année. Les vider remet les courbes à zéro,
+sans autre conséquence.</p>
+</section>
+
+<section id="hors">
+<h2><span class="n">+</span>Hors familles</h2>
+<p>Un onglet que le code lit encore mais qu'il ne faut pas recréer, et ce qui ne vit pas dans le classeur.</p>
+</section>
+
 <section id="vestiges">
-<h2><span class="n">26</span>OVERRIDES — vestige</h2>
+<h2><span class="n">+.1</span>OVERRIDES — vestige</h2>
 <p><strong>Cet onglet n'existe plus dans le classeur</strong> (vérifié le 30/07/2026). Il n'est mentionné ici
 que parce que <strong>le code le cherche encore</strong> : ancien système de retouches, mêmes cinq colonnes
 (date, MAR, matin, après-midi, commentaire), remplacé par <span class="tag">PLANNING_OVERRIDES</span>.</p>
@@ -940,7 +1093,7 @@ du code mort. À supprimer un jour, avec la ligne correspondante du guide techni
 </section>
 
 <section id="dehors">
-<h2><span class="n">27</span>Ce qui vit ailleurs</h2>
+<h2><span class="n">+.2</span>Ce qui vit ailleurs</h2>
 <p>Trois choses qu'on cherche parfois dans le classeur alors qu'elles n'y sont pas :</p>
 
 <table>
