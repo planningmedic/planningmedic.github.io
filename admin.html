@@ -2252,6 +2252,10 @@ const API_TIMEOUT_GENERATION_MS = 330000;
 const _ACTIONS_LONGUES = new Set(['generateGardes','publishPlanning','archiveYear','initYear']);
 function _apiTimeoutPour(action) {
   if (action === 'generateGardes') return API_TIMEOUT_GENERATION_MS;
+  /* (10/11/2026) L'envoi des récapitulatifs fabrique un PDF par MAR via un
+     document Google temporaire (quelques secondes chacun) : 24 MAR dépassent
+     les 90 s d'une écriture ordinaire. */
+  if (action === 'envoyerRecapIndispos') return API_TIMEOUT_GENERATION_MS;
   if (_ACTIONS_LONGUES.has(action)) return API_TIMEOUT_ECRITURE_MS;
   try { if (_ACTIONS_ECRITURE_PLANNING.has(action)) return API_TIMEOUT_ECRITURE_MS; } catch (e) {}
   return API_TIMEOUT_LECTURE_MS;

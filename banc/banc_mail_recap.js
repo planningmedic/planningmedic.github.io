@@ -25,7 +25,8 @@ const YEAR = 2027, SOUHAITEUR = 'GARNIER', SANS_GARDE = 'BOISSY';
 const FICHIER = path.join(__dirname, '..', 'gas', 'indisponibilites.gs');
 const DEBUT = '/* ── (09/11/2026) PIÈCE JOINTE', FIN = '/* ── action "setIndisposYear"';
 
-function envoyer(srcMetier, configEnPlus) {
+function envoyer(srcMetier, configEnPlus, opts) {
+  opts = opts || {};
   const roster = H.defaultRoster();
   const map = { [SOUHAITEUR]: { '2027-03-09': 'SOUHAIT', '2027-05-11': 'SOUHAIT' } };
   /* (09/11/2026) Des vacances, pour que des gardes « allongent les vacances » existent. */
@@ -46,12 +47,12 @@ function envoyer(srcMetier, configEnPlus) {
     _error: m => { throw new Error(m); }, logAction: () => {}, TEST_YEAR: YEAR,
     MailApp: { sendEmail: o => mails.push(o) },
     Utilities: Object.assign({}, ctx.Utilities, { newBlob: (h) => ({ getAs: (t) => ({ _html: h, _type: t, setName(x) { this.name = x; return this; } }) }) }),
-    ContentService: { createTextOutput: t => ({ setMimeType: () => t }), MimeType: { JSON: 1 } } });
+    ContentService: { createTextOutput: t => ({ setMimeType: () => t }), MimeType: { JSON: 1 } } }, opts.mocks || {});
   let a = srcMetier.indexOf(DEBUT); if (a < 0) a = srcMetier.indexOf('function _act_envoyerRecapIndispos'); const b = srcMetier.indexOf(FIN);
   if (a < 0 || b < a) throw new Error('action envoyerRecapIndispos introuvable');
   vm.runInContext(srcMetier.slice(a, b), ctx);
   let rep = null, err = null;
-  try { rep = JSON.parse(ctx._act_envoyerRecapIndispos({ e: {}, payload: { year: YEAR }, user: { role: 'admin' } })); }
+  try { rep = JSON.parse(ctx._act_envoyerRecapIndispos({ e: {}, payload: Object.assign({ year: YEAR }, opts.payload || {}), user: { role: 'admin' } })); }
   catch (e) { err = e.message; }
   return { mails, rep, err, roster, ss };
 }
@@ -122,10 +123,10 @@ V('aucun échec de pièce jointe signalé', r.rep && Array.isArray(r.rep.pjEchec
 { let okG = true, ok18b = true, okNom = true; const det2 = [];
   r.roster.forEach(([id]) => { const m = de(id); if (!m || !m.attachments) return; const h = m.attachments[0]._html, c = GR[id] || {};
     const nG = Object.keys(c).filter(d => (c[d] === 'G' || c[d] === 'G2') && d.slice(0, 4) === String(YEAR)).length;
-    const lu = (h.match(/background:#dc2626;color:#ffffff/g) || []).length;
+    const lu = (h.match(/bgcolor="#dc2626" style="background-color:#dc2626;width:14%/g) || []).length;
     if (nG !== lu) { okG = false; det2.push(id + ' G ' + nG + '/' + lu); }
     const n18 = Object.keys(c).filter(d => c[d] === '18' && d.slice(0, 4) === String(YEAR)).length;
-    if (n18 !== (h.match(/background:#fb923c;color:#ffffff/g) || []).length) { ok18b = false; det2.push(id + ' 18h'); }
+    if (n18 !== (h.match(/bgcolor="#fb923c" style="background-color:#fb923c;width:14%/g) || []).length) { ok18b = false; det2.push(id + ' 18h'); }
     if (h.indexOf('DR ' + id) < 0) okNom = false; });
   V('le calendrier colore chaque garde du MAR, et elles seules', okG, det2);
   V('le calendrier colore chaque 18 h du MAR, et eux seuls', ok18b, det2);
@@ -136,6 +137,41 @@ V('aucun échec de pièce jointe signalé', r.rep && Array.isArray(r.rep.pjEchec
     !r2.err && r2.mails.length === r.mails.length && r2.mails.every(x => !x.attachments) && r2.rep.pjEchecs.length === r2.mails.length, r2.err || r2.rep); }
 
 V('plus de lien vers le site dans le mail (sur iPhone il ouvre Safari et redemande le code)', r.mails.every(m => !/<a\s/i.test(m.htmlBody) && !/https?:\/\//.test(m.body)));
+console.log('\n═══ 2 quinquies. Le PDF passe par un document Google : les couleurs restent (10/11/2026) ═══');
+/* Constat du 10/11 : le convertisseur HTML direct jetait tous les fonds (PDF
+   des mails tout blanc). Le PDF passe désormais par un document Google
+   temporaire, qui ne garde que les fonds de CASES DE TABLEAU. */
+function mocksDrive(exportOk) {
+  const j = { cree: 0, exporte: 0, supprime: 0 };
+  return { j, mocks: {
+    ScriptApp: { getOAuthToken: () => 'jeton' },
+    UrlFetchApp: { fetch: (url, o) => {
+      o = o || {};
+      if (/upload\/drive\/v3\/files/.test(url) && o.method === 'post') { j.cree++; return { getResponseCode: () => 200, getContentText: () => JSON.stringify({ id: 'DOC' + j.cree }) }; }
+      if (/\/export\?mimeType=application\/pdf/.test(url)) { j.exporte++; return { getResponseCode: () => exportOk ? 200 : 500, getBlob: () => ({ _type: 'application/pdf', _viaDoc: true, setName(x) { this.name = x; return this; } }) }; }
+      if (o.method === 'delete') { j.supprime++; return { getResponseCode: () => 204 }; }
+      throw new Error('appel inattendu ' + url); } } } };
+}
+{ const md = mocksDrive(true);
+  md.mocks.Utilities = { getUuid: () => '1234-5678', newBlob: (h) => ({ getBytes: () => [], getAs: (t) => ({ _html: h, _type: t, setName(x) { this.name = x; return this; } }) }) };
+  const rd = envoyer(fs.readFileSync(FICHIER, 'utf8'), null, { mocks: md.mocks });
+  V('chaque pièce jointe vient du document Google', rd.mails.length > 0 && rd.mails.every(m => m.attachments && m.attachments[0]._viaDoc && /\.pdf$/.test(m.attachments[0].name)), rd.err || rd.rep);
+  V('un document temporaire par MAR, chacun supprimé', md.j.cree === rd.mails.length && md.j.supprime === md.j.cree, md.j); }
+{ const md = mocksDrive(false);
+  md.mocks.Utilities = { getUuid: () => '1234-5678', newBlob: (h) => ({ getBytes: () => [], getAs: (t) => ({ _html: h, _type: t, setName(x) { this.name = x; return this; } }) }) };
+  const rd = envoyer(fs.readFileSync(FICHIER, 'utf8'), null, { mocks: md.mocks });
+  V('export en échec : le document temporaire est quand même supprimé', md.j.supprime === md.j.cree && md.j.cree > 0, md.j);
+  V('… et la pièce jointe part par l\'ancien convertisseur (repli)', rd.mails.every(m => m.attachments && m.attachments[0]._html && !m.attachments[0]._viaDoc)); }
+{ const hs = r.mails.map(m => m.attachments[0]._html);
+  V('aucun fond porté par un bloc (div) : il serait perdu', hs.every(h => !/<div[^>]*background/.test(h)));
+  V('chaque fond est une case de tableau avec bgcolor', hs.every(h => (h.match(/background-color:/g) || []).length === (h.match(/ bgcolor="/g) || []).length));
+  const ANCIEN = require('child_process').execSync('git -C ' + JSON.stringify(path.join(__dirname, '..')) + ' show 18ad37e:gas/indisponibilites.gs', { encoding: 'utf8' });
+  const ra = envoyer(ANCIEN);
+  V('contre-épreuve : l\'ancienne page portait ses fonds sur des blocs (perdus par Google)', ra.mails.some(m => m.attachments && /<div[^>]*background/.test(m.attachments[0]._html))); }
+{ const rp = envoyer(fs.readFileSync(FICHIER, 'utf8'), null, { payload: { pdfSeul: true } });
+  V('renvoi du seul PDF : un mail court par MAR, avec sa pièce jointe', rp.mails.length === r.mails.length && rp.mails.every(m => /PDF corrigé/.test(m.subject) && m.attachments && m.attachments.length === 1), rp.err || rp.rep);
+  V('… qui annonce les couleurs et les 18 h réajustés, sans la liste des gardes', rp.mails.every(m => /couleurs/.test(m.body) && /18 h/.test(m.body) && !/G &middot; Réa/.test(m.htmlBody))); }
+
 console.log('\n═══ 2 quater. Couple de week-end : l\'encadré et son constat chiffré (09/11/2026) ═══');
 { const A_ = 'AUBERT', B_ = 'DURAND';
   const rc = envoyer(fs.readFileSync(FICHIER, 'utf8'), [['COUPLES_WEEKEND', A_ + '+' + B_]]);

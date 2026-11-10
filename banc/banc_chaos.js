@@ -110,6 +110,9 @@ function googleCapricieux(scenario) {
        limite Google de 6 min. */
     V('la génération des gardes est attendue 330 s', gen === 330000, gen);
     V('… sous la limite Google de 6 min', gen < 360000, gen);
+    /* (10/11/2026) l'envoi des récapitulatifs (un PDF par MAR) a le même délai. */
+    const rec = w.eval('_apiTimeoutPour("envoyerRecapIndispos")');
+    V('l\'envoi des récapitulatifs est attendu 330 s', rec === 330000, rec);
   }
 
   console.log('\n═══ 27. Cohérence du dépôt : versions et marqueurs ═══');

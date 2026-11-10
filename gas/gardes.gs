@@ -4,7 +4,7 @@
    quelles : aucune ligne de logique modifiée, seulement déplacée. Le routeur et
    ses aides (checkCode, _deny, _error, doGet/doPost) restent dans Indispos.gs.
    Un seul espace global dans Apps Script : rien à importer. */
-const GAS_VERSION_GARDES = '2026-10-27.1';   // (27/10/2026) VM/VA : bloquent un don/échange, comptent 0,5 jour au reliquat · (18/10/2026) action getPlanningPaie (vue des secrétaires de paie)
+const GAS_VERSION_GARDES = '2026-11-10.1';   // (10/11/2026) lot18hVerifier / lot18hAppliquer (réattribution de 18 h par lot, depuis l'éditeur) · (27/10/2026) VM/VA : bloquent un don/échange, comptent 0,5 jour au reliquat · (18/10/2026) action getPlanningPaie (vue des secrétaires de paie)
 
 // ── Sonde : les positions de STATS que code.gs lit à l'aveugle ──
 function _sondeStatsEntetes_(check, R, annee) {
@@ -1614,4 +1614,65 @@ function _act_getPlanningPaie(R) {
   } catch (err) {
     return _error(String(err.message));
   }
+}
+
+
+/* ── (10/11/2026) LOT DE 18 H, à lancer depuis l'éditeur ───────────────────
+   Après la génération 2027, des 18 h tombaient la veille d'une absence, et le
+   18 h du vendredi n'allait pas toujours à un MAR de garde le samedi. Le lot
+   (calculé hors du classeur, vérifié règle par règle) vit dans un fichier JSON
+   du Drive, jamais dans le code : { annee, motif, changements: [{ date, avant,
+   apres }] } — « avant » perd le 18 h de ce jour, « apres » le reçoit.
+     1. lot18hVerifier()  : contrôle seul, n'écrit rien.
+     2. lot18hAppliquer() : contrôle, puis écrit, republie, arme les notifications.
+   Tout ou rien : une seule case qui n'est plus dans l'état attendu (18 h chez
+   « avant », case vide chez « apres ») et RIEN n'est écrit. Chacun garde son
+   nombre de 18 h (solde nul exigé). */
+const LOT_18H_FICHIER = 'lot-18h-2027.json';
+function lot18hVerifier()  { return _lot18h_(false); }
+function lot18hAppliquer() { return _lot18h_(true); }
+function _lot18h_(ecrire) {
+  let f = null;
+  const it = DriveApp.getFilesByName(LOT_18H_FICHIER);
+  while (it.hasNext()) { const x = it.next(); if (!x.isTrashed()) { f = x; break; } }
+  if (!f) throw new Error('Fichier ' + LOT_18H_FICHIER + ' introuvable dans le Drive');
+  const lot = JSON.parse(f.getBlob().getDataAsString());
+  const year = Number(lot.annee), ch = Array.isArray(lot.changements) ? lot.changements : [];
+  if (!year || !ch.length) throw new Error('Lot vide ou sans année');
+  const sh = SpreadsheetApp.getActiveSpreadsheet().getSheetByName('GARDES_' + year);
+  if (!sh) throw new Error('Onglet GARDES_' + year + ' introuvable');
+  const lock = LockService.getScriptLock(); lock.waitLock(30000);
+  try {
+    const data = sh.getDataRange().getValues(), d2c = buildDateToCol(data, year), ligne = {};
+    for (let r = 3; r < data.length; r++) { const id = String(data[r][0]).trim(); if (id) ligne[id] = r; }
+    const pbs = [], solde = {}, vus = {};
+    ch.forEach(c => {
+      const col = d2c[c.date], ra = ligne[c.avant], rb = ligne[c.apres];
+      if (col === undefined || ra === undefined || rb === undefined) { pbs.push(c.date + ' : date ou MAR inconnu'); return; }
+      if (vus[c.date]) pbs.push(c.date + ' : date présente deux fois dans le lot');
+      vus[c.date] = true;
+      if (String(data[ra][col]).trim() !== '18') pbs.push(c.date + ' : ' + c.avant + ' n\'a plus le 18 h');
+      if (String(data[rb][col]).trim() !== '') pbs.push(c.date + ' : ' + c.apres + ' n\'est plus libre');
+      solde[c.avant] = (solde[c.avant] || 0) - 1; solde[c.apres] = (solde[c.apres] || 0) + 1;
+    });
+    Object.keys(solde).forEach(k => { if (solde[k]) pbs.push(k + ' : nombre de 18 h modifié (' + solde[k] + ')'); });
+    if (pbs.length) {
+      Logger.log('LOT REFUSÉ — rien n\'a été écrit :\n' + pbs.join('\n'));
+      return { ok: false, problemes: pbs };
+    }
+    Logger.log('Lot vérifié : ' + ch.length + ' case(s) de 18 h dans l\'état attendu, soldes nuls.');
+    if (!ecrire) return { ok: true, verifie: ch.length };
+    ch.forEach(c => {
+      sh.getRange(ligne[c.avant] + 1, d2c[c.date] + 1).setValue('');
+      sh.getRange(ligne[c.apres] + 1, d2c[c.date] + 1).setValue(18);
+    });
+    SpreadsheetApp.flush();
+  } finally { lock.releaseLock(); }
+  logAction('lot18h ' + year + ' — ' + ch.length + ' case(s) de 18 h réattribuée(s) (' + (lot.motif || '') + ')');
+  generatePlanning(year);
+  try { miroirPousserFamilles_(['planning', 'affectations', 'gardes', 'stats'], year); }
+  catch (eM) { logAction('lot18h — rafraîchissement du portail : ' + eM.message); }
+  try { notifPlanifier(year); } catch (eN) { logAction('lot18h — notifPlanifier : ' + eN.message); }
+  Logger.log('Lot appliqué : ' + ch.length + ' case(s) écrite(s), planning ' + year + ' republié.');
+  return { ok: true, ecrit: ch.length };
 }

@@ -4,7 +4,7 @@
    quelles : aucune ligne de logique modifiée, seulement déplacée. Le routeur et
    ses aides (checkCode, _deny, _error, doGet/doPost) restent dans Indispos.gs.
    Un seul espace global dans Apps Script : rien à importer. */
-const GAS_VERSION_INDISPOS_METIER = '2026-11-09.1';   // (09/11/2026) mail « Vos gardes » : 18 h, souhaits honorés, gardes qui allongent les vacances · (27/10/2026) VM/VA posés à la main : jamais écrasés par un enregistrement (MAR ou staff)
+const GAS_VERSION_INDISPOS_METIER = '2026-11-10.1';   // (10/11/2026) PDF récapitulatif par document Google (les couleurs passent) + renvoyerRecapPdf2027 · (09/11/2026) mail « Vos gardes » : 18 h, souhaits honorés, gardes qui allongent les vacances · (27/10/2026) VM/VA posés à la main : jamais écrasés par un enregistrement (MAR ou staff)
 // précédente : '2026-10-22.2'
 
 // La campagne de saisie des indispos est-elle EN COURS ?
@@ -1073,6 +1073,13 @@ function _act_getConflitsAll(R) {
    flex ni grid : TABLEAUX ET COULEURS SEULEMENT. `codeDu` = codes de la ligne du
    MAR dans GARDES_{year} ({'2027-03-08':'G', …}). Fonction pure, testée au banc. */
 function _htmlRecapMar_(nom, year, codeDu, isF) {
+  /* (10/11/2026) RENDU « DOCUMENT GOOGLE ». Le PDF ne passe plus par le
+     convertisseur HTML direct, qui jetait tous les fonds de couleur (constat sur
+     les mails du 10/11 : calendrier tout blanc). Il passe par un document Google
+     temporaire (voir _pdfRecapMar_), qui garde les fonds des CASES DE TABLEAU,
+     mais pas ceux des blocs ni des pastilles. D'où : tout fond coloré est une
+     case de tableau (bandeau, tuiles, légende), avec bgcolor ET background-color,
+     et toute case de mise en page porte border:none (sinon : bordure noire). */
   const COUL = { G:['#dc2626','#ffffff'], G2:['#dc2626','#ffffff'], '18':['#fb923c','#ffffff'], RG:['#fecaca','#7f1d1d'],
                  V:['#93c5fd','#1e3a8a'], VA:['#bfdbfe','#1e3a8a'], VM:['#bfdbfe','#1e3a8a'], F:['#5eead4','#134e4a'],
                  TP:['#c4b5fd','#3b0764'], CL:['#cbd5e1','#334155'] };
@@ -1080,6 +1087,8 @@ function _htmlRecapMar_(nom, year, codeDu, isF) {
   const iso = (y, m, d) => y + '-' + pad(m) + '-' + pad(d);
   const MOIS = ['Janvier','Février','Mars','Avril','Mai','Juin','Juillet','Août','Septembre','Octobre','Novembre','Décembre'];
   const ouvre = ds => { const w = new Date(ds + 'T12:00:00').getDay(); return w >= 1 && w <= 5 && !isF(ds); };
+  const SANS = 'border:none;';
+  const fond = c => ' bgcolor="' + c + '" style="background-color:' + c + ';';
   let nG = 0, nG2 = 0, n18 = 0, vac = 0, form = 0, tp = 0;
   Object.keys(codeDu).forEach(ds => {
     const c = codeDu[ds];
@@ -1089,23 +1098,22 @@ function _htmlRecapMar_(nom, year, codeDu, isF) {
     else if (c === 'F') form += 1; else if (c === 'TP') tp += 1;
   });
   const fmt = x => String(x).replace('.', ',');
-  const tuile = (val, lib, bg, fg) => '<td style="width:20%;padding:3px">'
-    + '<div style="background:' + bg + ';border-radius:6px;padding:6px 8px">'
-    + '<div style="font-size:17pt;font-weight:bold;color:' + fg + '">' + val + '</div>'
-    + '<div style="font-size:7.5pt;color:#334155">' + lib + '</div></div></td>';
+  const tuile = (val, lib, bg, fg) => '<td' + fond(bg) + 'width:20%;padding:6px 8px;border:3px solid #ffffff">'
+    + '<p style="margin:0;font-size:17pt;font-weight:bold;color:' + fg + '">' + val + '</p>'
+    + '<p style="margin:0;font-size:7.5pt;color:#334155">' + lib + '</p></td>';
   const mois = m => {
     const premier = new Date(year, m, 1, 12), nb = new Date(year, m + 1, 0, 12).getDate();
     let dec = (premier.getDay() + 6) % 7, h = '<table style="border-collapse:collapse;width:100%">'
-      + '<tr><td colspan="7" style="font-size:8pt;font-weight:bold;color:#0f172a;padding:2px 0 3px">' + MOIS[m] + '</td></tr><tr>';
-    ['L','M','M','J','V','S','D'].forEach(j => { h += '<td style="font-size:6pt;color:#94a3b8;text-align:center">' + j + '</td>'; });
+      + '<tr><td colspan="7" style="' + SANS + 'font-size:8pt;font-weight:bold;color:#0f172a;padding:2px 0 3px">' + MOIS[m] + '</td></tr><tr>';
+    ['L','M','M','J','V','S','D'].forEach(j => { h += '<td style="' + SANS + 'font-size:6pt;color:#94a3b8;text-align:center">' + j + '</td>'; });
     h += '</tr><tr>';
-    for (let k = 0; k < dec; k++) h += '<td></td>';
+    for (let k = 0; k < dec; k++) h += '<td style="' + SANS + '"></td>';
     for (let d = 1; d <= nb; d++) {
       const ds = iso(year, m + 1, d), c = codeDu[ds] || '', w = (dec + d - 1) % 7;
       const col = COUL[c], fer = isF(ds);
       const bg = col ? col[0] : (w >= 5 ? '#f1f5f9' : '#ffffff'), fg = col ? col[1] : '#334155';
       const bord = fer ? '1.5px solid #dc2626' : '1px solid #e2e8f0';
-      h += '<td style="width:14%;height:13px;text-align:center;font-size:6.5pt;background:' + bg + ';color:' + fg
+      h += '<td' + fond(bg) + 'width:14%;height:13px;text-align:center;font-size:6.5pt;color:' + fg
         + ';border:' + bord + (c === 'G' || c === 'G2' || c === '18' ? ';font-weight:bold' : '') + '">' + d + '</td>';
       if (w === 6 && d < nb) h += '</tr><tr>';
     }
@@ -1114,19 +1122,20 @@ function _htmlRecapMar_(nom, year, codeDu, isF) {
   let cal = '<table style="border-collapse:collapse;width:100%">';
   for (let r = 0; r < 4; r++) {
     cal += '<tr>';
-    for (let c = 0; c < 3; c++) cal += '<td style="vertical-align:top;padding:4px 7px;width:33%">' + mois(r * 3 + c) + '</td>';
+    for (let c = 0; c < 3; c++) cal += '<td style="' + SANS + 'vertical-align:top;padding:4px 7px;width:33%">' + mois(r * 3 + c) + '</td>';
     cal += '</tr>';
   }
   cal += '</table>';
   const suite = [1, 2].map(d => iso(year + 1, 1, d)).filter(ds => codeDu[ds] === 'G' || codeDu[ds] === 'G2' || codeDu[ds] === '18')
     .map(ds => ds.slice(8) + '/01/' + (year + 1) + ' : ' + (codeDu[ds] === '18' ? '18 h' : 'garde'));
-  const leg = (c, l) => '<td style="padding:2px 8px 2px 0;font-size:7pt;color:#334155;white-space:nowrap">'
-    + '<span style="display:inline-block;width:9px;height:9px;background:' + c + ';border:1px solid #cbd5e1"></span> ' + l + '</td>';
+  const leg = (c, l, bord) => '<td' + fond(c) + 'width:2%;border:' + (bord || '1px solid #cbd5e1') + '"></td>'
+    + '<td style="' + SANS + 'width:10.5%;padding:0 4px;font-size:7pt;color:#334155">' + l + '</td>';
   return '<html><head><meta charset="utf-8"></head><body style="font-family:Arial,Helvetica,sans-serif;margin:0;color:#0f172a">'
-    + '<div style="background:#0f172a;color:#ffffff;padding:12px 16px;border-radius:8px">'
-    + '<div style="font-size:8pt;color:#94a3b8">PLANNING-MED · RÉCAPITULATIF ' + year + '</div>'
-    + '<div style="font-size:16pt;font-weight:bold;margin-top:3px">' + nom + '</div>'
-    + '<div style="font-size:8pt;color:#cbd5e1;margin-top:2px">Vacances, formation, temps partiel, gardes et 18 h attribués par le logiciel</div></div>'
+    + '<table style="border-collapse:collapse;width:100%"><tr><td' + fond('#0f172a') + 'padding:10px 14px;border:none">'
+    + '<p style="margin:0;font-size:8pt;color:#94a3b8">PLANNING-MED · RÉCAPITULATIF ' + year + '</p>'
+    + '<p style="margin:3px 0 0;font-size:16pt;font-weight:bold;color:#ffffff">' + nom + '</p>'
+    + '<p style="margin:2px 0 0;font-size:8pt;color:#cbd5e1">Vacances, formation, temps partiel, gardes et 18 h attribués par le logiciel</p>'
+    + '</td></tr></table>'
     + '<table style="border-collapse:collapse;width:100%;margin-top:8px"><tr>'
     + tuile(nG + nG2, 'gardes (' + nG + ' réa · ' + nG2 + ' mat)', '#fee2e2', '#b91c1c')
     + tuile(n18, '18 h', '#ffedd5', '#c2410c')
@@ -1134,19 +1143,60 @@ function _htmlRecapMar_(nom, year, codeDu, isF) {
     + tuile(fmt(form), 'jours de formation', '#ccfbf1', '#0f766e')
     + tuile(tp, 'jours de temps partiel', '#ede9fe', '#6d28d9')
     + '</tr></table>'
-    + '<div style="margin-top:6px">' + cal + '</div>'
-    + (suite.length ? '<div style="font-size:7.5pt;color:#334155;margin:4px 7px">Hors calendrier : ' + suite.join(' · ') + '</div>' : '')
-    + '<table style="border-collapse:collapse;margin:6px 7px 0"><tr>'
+    + cal
+    + (suite.length ? '<p style="font-size:7.5pt;color:#334155;margin:4px 7px">Hors calendrier : ' + suite.join(' · ') + '</p>' : '')
+    + '<table style="border-collapse:collapse;width:100%;margin:6px 0 0"><tr>'
     + leg('#dc2626', 'Garde') + leg('#fecaca', 'Repos de garde') + leg('#fb923c', '18 h') + leg('#93c5fd', 'Vacances')
     + leg('#5eead4', 'Formation') + leg('#c4b5fd', 'Temps partiel') + leg('#cbd5e1', 'Congé long')
-    + '<td style="padding:2px 0;font-size:7pt;color:#334155;white-space:nowrap"><span style="display:inline-block;width:9px;height:9px;border:1.5px solid #dc2626"></span> Férié</td>'
+    + leg('#ffffff', 'Férié', '1.5px solid #dc2626')
     + '</tr></table>'
-    + '<div style="font-size:6.5pt;color:#94a3b8;margin:8px 7px 0">Document généré par Planning-Med à la génération du planning. Les échanges ultérieurs n\'y figurent pas : le planning en ligne fait foi.</div>'
+    + '<p style="font-size:6.5pt;color:#94a3b8;margin:8px 7px 0">Document généré par Planning-Med. Les échanges ultérieurs n\'y figurent pas : le planning en ligne fait foi.</p>'
     + '</body></html>';
 }
 function _pdfRecapMar_(nom, year, codeDu, isF) {
-  return Utilities.newBlob(_htmlRecapMar_(nom, year, codeDu, isF), 'text/html', 'recap.html')
-    .getAs('application/pdf').setName('Recapitulatif-' + year + '.pdf');
+  const html = _htmlRecapMar_(nom, year, codeDu, isF), nomPdf = 'Recapitulatif-' + year + '.pdf';
+  /* (10/11/2026) Chemin principal : document Google temporaire → PDF (garde les
+     couleurs). Repli : l'ancien convertisseur direct (PDF sans fonds, mais le
+     mail part quand même avec sa pièce jointe). */
+  try { return _pdfParDocGoogle_(html).setName(nomPdf); }
+  catch (eDoc) {
+    Logger.log('PDF récapitulatif : repli sur le convertisseur direct (' + eDoc.message + ')');
+    return Utilities.newBlob(html, 'text/html', 'recap.html').getAs('application/pdf').setName(nomPdf);
+  }
+}
+/* (10/11/2026) HTML → document Google → PDF, par l'API Drive (autorisation
+   drive déjà accordée au script). Le document temporaire est supprimé
+   définitivement dans tous les cas, même si l'export échoue. */
+function _pdfParDocGoogle_(html) {
+  const jeton = ScriptApp.getOAuthToken(), ent = { Authorization: 'Bearer ' + jeton };
+  const sep = 'pm' + Utilities.getUuid().replace(/-/g, '');
+  const meta = JSON.stringify({ name: 'planning-med-recap-temporaire', mimeType: 'application/vnd.google-apps.document' });
+  const corps = '--' + sep + '\r\nContent-Type: application/json; charset=UTF-8\r\n\r\n' + meta + '\r\n'
+    + '--' + sep + '\r\nContent-Type: text/html; charset=UTF-8\r\n\r\n' + html + '\r\n--' + sep + '--';
+  const cree = UrlFetchApp.fetch('https://www.googleapis.com/upload/drive/v3/files?uploadType=multipart&fields=id', {
+    method: 'post', contentType: 'multipart/related; boundary=' + sep, headers: ent,
+    payload: Utilities.newBlob(corps).getBytes(), muteHttpExceptions: true });
+  if (cree.getResponseCode() !== 200) throw new Error('création du document : HTTP ' + cree.getResponseCode());
+  const id = JSON.parse(cree.getContentText()).id;
+  try {
+    const pdf = UrlFetchApp.fetch('https://www.googleapis.com/drive/v3/files/' + id + '/export?mimeType=application/pdf',
+      { headers: ent, muteHttpExceptions: true });
+    if (pdf.getResponseCode() !== 200) throw new Error('export PDF : HTTP ' + pdf.getResponseCode());
+    return pdf.getBlob();
+  } finally {
+    try { UrlFetchApp.fetch('https://www.googleapis.com/drive/v3/files/' + id, { method: 'delete', headers: ent, muteHttpExceptions: true }); }
+    catch (eDel) { Logger.log('document temporaire non supprimé : ' + id); }
+  }
+}
+/* (10/11/2026) RENVOI DU SEUL PDF, à lancer depuis l'éditeur. Le PDF parti
+   avec le mail « Vos gardes » 2027 avait perdu ses couleurs, et les 18 h ont
+   été réajustés ensuite (lot18hAppliquer). Chaque MAR reçoit un mail court
+   avec son récapitulatif à jour ; ni le mail complet ni la notification ne
+   repartent. */
+function renvoyerRecapPdf2027() {
+  const r = JSON.parse(_act_envoyerRecapIndispos({ e: {}, payload: { year: 2027, pdfSeul: true }, user: { role: 'admin' } }).getContent());
+  Logger.log('Renvoi du PDF : ' + JSON.stringify(r));
+  return r;
 }
 
 /* ── action "envoyerRecapIndispos" ── */
@@ -1531,6 +1581,18 @@ function _act_envoyerRecapIndispos(R) {
       let pj = null;
       try { pj = _pdfRecapMar_(nom, year, codeDu, isF); } catch (ePj) { pjEchecs.push(`${nom} : ${ePj.message}`); }
       const envoi = { to: email, subject: `[Planning-Med ${year}] Vos gardes ${year}`, htmlBody: html, body: bodyText };
+      if (payload.pdfSeul) {
+        /* (10/11/2026) Renvoi du seul récapitulatif : sans pièce jointe, pas de mail. */
+        if (!pj) throw new Error('récapitulatif non produit, mail non envoyé');
+        const txt = 'Bonjour ' + nom + ',\n\nVoici votre récapitulatif ' + year + ' corrigé, en pièce jointe : les couleurs manquaient '
+          + 'dans celui envoyé avec le mail « Vos gardes ».\n\nLes 18 h ont aussi été réajustés pour toute l\'équipe : le 18 h du '
+          + 'vendredi revient autant que possible au MAR de garde le samedi, et aucun 18 h ne tombe la veille d\'une absence. '
+          + 'Ce récapitulatif en tient compte.\n\nLe planning en ligne fait foi.\n\nLe Comité Planning-Med';
+        envoi.subject = `[Planning-Med ${year}] Votre récapitulatif ${year} (PDF corrigé)`;
+        envoi.body = txt;
+        envoi.htmlBody = '<div style="font-family:Arial,Helvetica,sans-serif;font-size:14px;color:#0f172a;line-height:1.5">'
+          + txt.split('\n\n').map(p => '<p>' + p + '</p>').join('') + '</div>';
+      }
       if (pj) envoi.attachments = [pj];
       MailApp.sendEmail(envoi);
       sent++;
