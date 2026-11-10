@@ -2245,8 +2245,13 @@ async function authenticate() {
 /* (v1.21.2) TIMEOUTS DIFFERENCIES — récit : docs/JOURNAL-Planning-Med.md §4 */
 const API_TIMEOUT_LECTURE_MS  = 20000;
 const API_TIMEOUT_ECRITURE_MS = 90000;
+/* (10/11/2026) La génération des gardes dure 2 à 3 minutes côté serveur depuis
+   l'optimisation finale à 1 600 000 essais : à 90 s, le navigateur abandonnait
+   alors que le calcul continuait. 330 s reste sous la limite Google de 6 min. */
+const API_TIMEOUT_GENERATION_MS = 330000;
 const _ACTIONS_LONGUES = new Set(['generateGardes','publishPlanning','archiveYear','initYear']);
 function _apiTimeoutPour(action) {
+  if (action === 'generateGardes') return API_TIMEOUT_GENERATION_MS;
   if (_ACTIONS_LONGUES.has(action)) return API_TIMEOUT_ECRITURE_MS;
   try { if (_ACTIONS_ECRITURE_PLANNING.has(action)) return API_TIMEOUT_ECRITURE_MS; } catch (e) {}
   return API_TIMEOUT_LECTURE_MS;
@@ -7667,7 +7672,7 @@ async function launchWizardGardes() {
       const t = setTimeout(() => {
         const el = document.getElementById('wizg-p1');
         if (el && el.classList.contains('running'))
-          el.textContent = '⏳ Génération des gardes ' + (YEAR+1) + '… (toujours en cours, patience…)';
+          el.textContent = '⏳ Génération des gardes ' + (YEAR+1) + '… (toujours en cours : comptez 2 à 3 minutes, ne fermez pas la page)';
       }, 45000);
       return api({action:'generateGardes', year: YEAR+1}).then(res => {
         /* (LOT C · 01/09/2026) UN JOUR SANS BINÔME : on met en forme, on

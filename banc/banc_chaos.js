@@ -100,10 +100,16 @@ function googleCapricieux(scenario) {
     const { w } = await ouvrirPage(googleCapricieux());
     const lecture = w.eval('_apiTimeoutPour("getPlanningJson")');
     const ecriture = w.eval('_apiTimeoutPour("savePlanningOverridesBatch")');
-    const longue = w.eval('_apiTimeoutPour("generateGardes")');
+    const longue = w.eval('_apiTimeoutPour("publishPlanning")');
+    const gen = w.eval('_apiTimeoutPour("generateGardes")');
     V('une LECTURE abandonne vite (20 s)', lecture === 20000, lecture);
     V('une ÉCRITURE a le temps (90 s)', ecriture === 90000, ecriture);
     V('une tâche longue aussi (90 s)', longue === 90000, longue);
+    /* (10/11/2026) la génération des gardes dure 2 à 3 min (optimisation finale
+       à 1 600 000 essais) : le navigateur doit l'attendre, sans dépasser la
+       limite Google de 6 min. */
+    V('la génération des gardes est attendue 330 s', gen === 330000, gen);
+    V('… sous la limite Google de 6 min', gen < 360000, gen);
   }
 
   console.log('\n═══ 27. Cohérence du dépôt : versions et marqueurs ═══');

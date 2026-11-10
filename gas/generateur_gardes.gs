@@ -41,7 +41,7 @@
 // ⚠️ RÈGLE (détecteur de dérive dépôt↔Apps Script) : incrémenter cette version
 // à CHAQUE push de ce fichier. Le diagnostic (admin → Maintenance) compare la
 // version déployée ici avec celle du dépôt et signale toute recopie oubliée.
-const GAS_VERSION_GENERATEUR = '2026-11-09.3';   // (09/11/2026) optimisation finale par recuit simulé, rien ne recule · (09/11/2026) souhaits accordés et gardes à deux jours évitées par échange neutre en fin de calcul · (09/11/2026) couples de week-end : chaque moitié de l'échange jugée dans l'état final · (09/11/2026) vendredi-dimanche rompu : le MAR du vendredi est jugé sans la garde qu'il cède · (08/11/2026) le statut « A » (absent de jour, garde possible) est recopié dans le planning · (07/11/2026) vendredi-dimanche rompu : réparation finale par échange neutre · (07/11/2026) le dimanche garde d'abord les MAR du vendredi · (03/11/2026) période tendue sans solution parfaite : le moins possible de doubles week-ends, au lieu de les subir au fil de l'eau
+const GAS_VERSION_GENERATEUR = '2026-11-10.1';   // (10/11/2026) optimisation finale : 4 fois plus d'essais, et un week-end compte autant de fois qu'il a de MAR en trop (4 MAR ne remplace plus 3) · (09/11/2026) optimisation finale par recuit simulé, rien ne recule · (09/11/2026) souhaits accordés et gardes à deux jours évitées par échange neutre en fin de calcul · (09/11/2026) couples de week-end : chaque moitié de l'échange jugée dans l'état final · (09/11/2026) vendredi-dimanche rompu : le MAR du vendredi est jugé sans la garde qu'il cède · (08/11/2026) le statut « A » (absent de jour, garde possible) est recopié dans le planning · (07/11/2026) vendredi-dimanche rompu : réparation finale par échange neutre · (07/11/2026) le dimanche garde d'abord les MAR du vendredi · (03/11/2026) période tendue sans solution parfaite : le moins possible de doubles week-ends, au lieu de les subir au fil de l'eau
 // précédente : '2026-10-27.1'
 
 /* (05/09/2026) INTERRUPTEUR DU NOUVEL ALGORITHME — récit : docs/JOURNAL-Planning-Med.md §101 */
@@ -96,8 +96,14 @@ const LEX_POIDS = 600;
    couple de week-end n'est qu'un bonus ; les gardes qui allongent les vacances
    ne reculent pas. Graine et nombre d'essais FIXES : le calcul à blanc et la
    vraie génération écrivent le même planning. Banc : OPTIM_ITERS se règle par la
-   variable globale __BANC_OPTIM_ITERS__ (absente en production). */
-const OPTIM_ITERS  = 400000;
+   variable globale __BANC_OPTIM_ITERS__ (absente en production).
+   (10/11/2026) 400 000 → 1 600 000 essais : à 400 000, une seule indisponibilité
+   ajoutée faisait passer de 0 à 2 week-ends coupés selon le hasard du départ ;
+   à 1 600 000 avec le décompte des MAR en trop, quatre graines différentes
+   donnent toutes 0. Coût : ~110 s de plus
+   côté Google, d'où le délai d'attente de generateGardes porté à 330 s dans
+   admin.html. */
+const OPTIM_ITERS  = 1600000;
 const OPTIM_GRAINE = 2;
 const OPTIM_POIDS  = { ecart:0.5, souhait:1, split:2, j2:2, dwe:3, couple:0.2, confort:1 };
 function _optimIters_(){ return (typeof __BANC_OPTIM_ITERS__ === 'number') ? __BANC_OPTIM_ITERS__ : OPTIM_ITERS; }
@@ -3060,7 +3066,7 @@ function generateGardes(year, opts){
         ids.forEach(id => EQ.forEach(ax => { const cb = (cible[id] && cible[id][ax]) || 0; const a = Math.abs(cnt[id][ax] - cb); if (a > pire) pire = a; if (a > 0.5) n1 += Math.round(a); if (a > 1.5) n2 += Math.round(a) - 1; }));
         souhL.forEach(([id, d]) => { if (hold(id, d)) sh++; });
         fris.forEach(f => { if (noelDatesAssigned.has(f) || noelDatesAssigned.has(shift(f, 2))) return; const a = gardes[f], b = gardes[shift(f, 2)]; if (!a || !b) return;
-          if ([a.g, a.g2].sort().join() !== [b.g, b.g2].sort().join()) split++; if (_cplOn) cpl += _cplLies(f, null); });
+          split += new Set([a.g, a.g2, b.g, b.g2]).size - 2; /* (10/11/2026) MAR en trop : 3 MAR = 1, 4 MAR = 2 */ if (_cplOn) cpl += _cplLies(f, null); });
         gardeDoctors.forEach(id => { const all = [...gSet[id], ...g2Set[id]].sort(); const wk = {};
           all.forEach(d => { const x = shift(d, 2); if (hold(id, x) && !unite(d, x) && !(isSouhaitDe(id, d) && isSouhaitDe(id, x))) j2++;
             const k = wkey(d); if (k) (wk[k] = wk[k] || []).push(d); if (confortDe(id, d)) conf++; });
@@ -3112,7 +3118,7 @@ function generateGardes(year, opts){
         if (mE.sh > m0.sh) dif.push('+' + (mE.sh - m0.sh) + ' souhait(s)');
         if (mE.n1 < m0.n1) dif.push((m0.n1 - mE.n1) + ' écart(s) d\'une garde en moins');
         if (mE.j2 < m0.j2) dif.push((m0.j2 - mE.j2) + ' « garde, repos, garde » en moins');
-        if (mE.split < m0.split) dif.push((m0.split - mE.split) + ' week-end(s) coupé(s) en moins');
+        if (mE.split < m0.split) dif.push((m0.split - mE.split) + ' MAR en moins sur les week-ends coupés');
         if (mE.conf > m0.conf) dif.push('+' + (mE.conf - m0.conf) + ' garde(s) qui allongent les vacances');
         warnings.push('Optimisation finale : ' + (dif.join(', ') || 'planning affiné') + ' (rien ne recule)');
       }
