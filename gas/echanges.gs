@@ -38,7 +38,7 @@
    depuis l'éditeur : installerDeclencheurEchanges().
    ═══════════════════════════════════════════════════════════════════════ */
 
-const GAS_VERSION_ECHANGES = '2026-09-08.1';
+const GAS_VERSION_ECHANGES = '2026-11-10.1';   // (10/11/2026) l'historique dit qui a accepté (onglet HISTORIQUE)
 
 const ECHANGES_ONGLET = 'ECHANGES';
 const ECHANGES_ENTETE = ['ID', 'CREE_LE', 'TYPE', 'ANNEE', 'DATE', 'DATE2',
@@ -275,7 +275,7 @@ function repondreEchange(user, p) {
   // Le planning a pu bouger depuis la création : un refus ici ne casse
   // rien — état `impossible`, grille intacte, les deux MAR prévenus.
   try {
-    applyModification(_echangesVersMod_(d));
+    applyModification(Object.assign({ par: String(d.RECEVEUR) + ' (accepte la demande de ' + String(d.DEMANDEUR) + ')' }, _echangesVersMod_(d)));
   } catch (err) {
     sh.getRange(d._row, colEtat).setValue('impossible');
     sh.getRange(d._row, colRep).setValue(_echangesMaintenant_());
@@ -371,7 +371,7 @@ function _transfererR_(year, samedi, donneur, receveur) {
   // Le déplacement lui-même passe par le même chemin cellule à cellule
   // qu'applyModification : lecture, contrôles, écriture.
   try {
-    applyModification({ type: 'transfertR', year: year, date: dateR, doctorId: donneur, doctorId2: receveur });
+    applyModification({ type: 'transfertR', year: year, date: dateR, doctorId: donneur, doctorId2: receveur, par: 'transfert du R avec le samedi' });
   } catch (err) {
     return Object.assign(base, { dateR: dateR, motif: String(err.message), resume: 'R non transféré (' + String(err.message).slice(0, 80) + ')' });
   }

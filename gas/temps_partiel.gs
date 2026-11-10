@@ -4,7 +4,7 @@
    quelles : aucune ligne de logique modifiée, seulement déplacée. Le routeur et
    ses aides (checkCode, _deny, _error, doGet/doPost) restent dans Indispos.gs.
    Un seul espace global dans Apps Script : rien à importer. */
-const GAS_VERSION_TP = '2026-09-15.2';
+const GAS_VERSION_TP = '2026-11-10.1';   // (10/11/2026) chaque jour de TP posé, retiré, demandé ou tranché laisse une ligne dans l'onglet HISTORIQUE
 
 /* ── (POSE TP · 22/08/2026) PHASE DE POSE DES TEMPS PARTIELS — DÉDUITE, JAMAIS ÉCRITE ──
    Les jours de temps partiel se posent APRÈS la génération des gardes (décision
@@ -243,6 +243,20 @@ function _poserTp_(user, targetId, envoye, annee) {
   });
 
   if (grilleTouchee) _tpRepublier_(annee);
+
+  /* (10/11/2026) HISTORIQUE : chaque jour qui change d'état, horodaté, avec
+     l'auteur (le MAR lui-même, ou le comité pour lui). Les jours renvoyés
+     tels quels (déjà acquis, déjà en attente) ne font pas de ligne. */
+  { const par = estAdmin ? 'comité (' + (user.id || 'admin') + ')' : String((user && user.id) || targetId);
+    const lignes = [];
+    Object.keys(resultat).sort().forEach(function (ds) {
+      const r = resultat[ds];
+      if (r === 'TP' && grille[ds] !== 'TP') lignes.push({ quoi: 'TP posé', jour: ds });
+      else if (r === 'TPA' && !enAttente[ds]) lignes.push({ quoi: 'TP demandé (sous réserve du comité)', jour: ds });
+      else if (r === 'retiré') lignes.push({ quoi: grille[ds] === 'TP' ? 'TP retiré' : 'demande de TP retirée', jour: ds });
+    });
+    (typeof historiser_ === 'function') && historiser_(lignes.map(function (l) { return { annee: annee, quoi: l.quoi, mar: targetId, jour: l.jour, par: par,
+      detail: nbTP + '/' + quotaTotal + ' posés après ce geste' }; })); }
 
   logAction('poserTp ' + targetId + ' (' + annee + ') — ' + nbTP + '/' + quotaTotal
             + ' posés, ' + Object.keys(resultat).length + ' jours traités'
@@ -615,6 +629,7 @@ function _act_deciderJourTp(R) {
       _tpDemandeRetirer_(anneeD, ds, cibleId);
       _tpRepublier_(anneeD);
       logAction('deciderJourTp VALIDE ' + ds + ' (' + anneeD + ') ' + cibleId + ' par ' + user.id + ' — planning republié');
+      (typeof historiser_ === 'function') && historiser_([{ annee: anneeD, quoi: 'TP validé par le comité', mar: cibleId, jour: ds, par: 'comité (' + user.id + ')' }]);
       _tpNotifier_('Temps partiel validé',
         'Votre jour du ' + _tpJourLisible_(ds) + ' est validé par le comité.', cibleId);
       out = { success: true, date: ds, doctorId: cibleId };
@@ -629,6 +644,7 @@ function _act_deciderJourTp(R) {
       _tpDemandeAjouter_(anneeD, ds, cibleId);      // il repasse en attente
       _tpRepublier_(anneeD);
       logAction('deciderJourTp ANNULE-VALIDATION ' + ds + ' (' + anneeD + ') ' + cibleId + ' par ' + user.id);
+      (typeof historiser_ === 'function') && historiser_([{ annee: anneeD, quoi: 'validation de TP annulée', mar: cibleId, jour: ds, par: 'comité (' + user.id + ')' }]);
       _tpNotifier_('Temps partiel remis en attente',
         'Votre jour du ' + _tpJourLisible_(ds) + ' repasse en attente de validation.', cibleId);
       out = { success: true, date: ds, doctorId: cibleId };
@@ -645,6 +661,8 @@ function _act_deciderJourTp(R) {
     });
     logAction('deciderJourTp REFUS ' + ds + ' (' + anneeD + ') par ' + user.id +
               ' — ' + Object.keys(rendues).length + ' demande(s) rendue(s) : ' + Object.keys(rendues).join(', '));
+    (typeof historiser_ === 'function') && historiser_(Object.keys(rendues).map(function (idR) { return { annee: anneeD, quoi: 'TP refusé (jour fermé par le comité)', mar: idR, jour: ds, par: 'comité (' + user.id + ')' }; })
+      .concat(Object.keys(rendues).length ? [] : [{ annee: anneeD, quoi: 'jour fermé au TP par le comité', jour: ds, par: 'comité (' + user.id + ')' }]));
     /* Le jour se ferme pour toute l'équipe, mais SEULS ceux qui l'avaient
        demandé sont prévenus — les autres le verront simplement noir. */
     Object.keys(rendues).forEach(function (idR) {
@@ -663,6 +681,7 @@ function _act_deciderJourTp(R) {
     });
     logAction('deciderJourTp ANNULE-REFUS ' + ds + ' (' + anneeD + ') par ' + user.id +
               ' — rétabli : ' + (retablies.join(', ') || 'personne'));
+    (typeof historiser_ === 'function') && historiser_([{ annee: anneeD, quoi: 'jour rouvert au TP par le comité', jour: ds, par: 'comité (' + user.id + ')', detail: 'demandes rétablies : ' + (retablies.join(', ') || 'aucune') }]);
     retablies.forEach(function (idR) {
       _tpNotifier_('Temps partiel de nouveau en attente',
         'Le ' + _tpJourLisible_(ds) + ' rouvre : votre demande est rétablie, en attente du comité.', idR);

@@ -4,7 +4,7 @@
    quelles : aucune ligne de logique modifiée, seulement déplacée. Le routeur et
    ses aides (checkCode, _deny, _error, doGet/doPost) restent dans Indispos.gs.
    Un seul espace global dans Apps Script : rien à importer. */
-const GAS_VERSION_GARDES = '2026-11-10.1';   // (10/11/2026) lot18hVerifier / lot18hAppliquer (réattribution de 18 h par lot, depuis l'éditeur) · (27/10/2026) VM/VA : bloquent un don/échange, comptent 0,5 jour au reliquat · (18/10/2026) action getPlanningPaie (vue des secrétaires de paie)
+const GAS_VERSION_GARDES = '2026-11-10.2';   // (10/11/2026) onglet HISTORIQUE (TP, modifications, échanges, lot de 18 h), jamais effacé · (10/11/2026) lot18hVerifier / lot18hAppliquer (réattribution de 18 h par lot, depuis l'éditeur) · (27/10/2026) VM/VA : bloquent un don/échange, comptent 0,5 jour au reliquat · (18/10/2026) action getPlanningPaie (vue des secrétaires de paie)
 
 // ── Sonde : les positions de STATS que code.gs lit à l'aveugle ──
 function _sondeStatsEntetes_(check, R, annee) {
@@ -591,6 +591,9 @@ function applyModification(mod) {
   // (13/08/2026) dryRun : rien n'a été écrit — pas de republication, pas de notifieur.
   if (mod.dryRun) return true;
 
+  /* (10/11/2026) HISTORIQUE : le geste réussi y laisse une ligne horodatée. */
+  (typeof historiser_ === 'function') && historiser_([{ annee: year, quoi: 'modification : ' + type, mar: doctorId, jour: date, jour2: date2 || '',
+                 autre: doctorId2 || '', par: mod.par || '', detail: value ? 'code ' + value : '' }]);
   generatePlanning();
   // (01/08/2026) Un don, un echange de gardes ou de secteurs modifie le statut ou le
   // secteur des MAR concernes. On arme le notifieur comme le fait publishPlanning :
@@ -1035,8 +1038,9 @@ function _act_getNoelAnEligibles(R) {
 function _act_applyModification(R) {
   const { e, payload, action, code, user } = R;
   if (user.role !== 'admin') return _deny();
+  const _mod = Object.assign({}, payload.modification, { par: 'comité (' + (user.id || 'admin') + ')' });
   return ContentService.createTextOutput(JSON.stringify({
-    success: applyModification(payload.modification)
+    success: applyModification(_mod)
   })).setMimeType(ContentService.MimeType.JSON);
 }
 
@@ -1668,6 +1672,8 @@ function _lot18h_(ecrire) {
     });
     SpreadsheetApp.flush();
   } finally { lock.releaseLock(); }
+  (typeof historiser_ === 'function') && historiser_(ch.map(c => ({ annee: year, quoi: '18 h réattribué (lot)', mar: c.avant, jour: c.date, autre: c.apres,
+    par: 'comité (lot)', detail: lot.motif || '' })));
   logAction('lot18h ' + year + ' — ' + ch.length + ' case(s) de 18 h réattribuée(s) (' + (lot.motif || '') + ')');
   generatePlanning(year);
   try { miroirPousserFamilles_(['planning', 'affectations', 'gardes', 'stats'], year); }
@@ -1675,4 +1681,25 @@ function _lot18h_(ecrire) {
   try { notifPlanifier(year); } catch (eN) { logAction('lot18h — notifPlanifier : ' + eN.message); }
   Logger.log('Lot appliqué : ' + ch.length + ' case(s) écrite(s), planning ' + year + ' republié.');
   return { ok: true, ecrit: ch.length };
+}
+
+
+/* ── (10/11/2026) ONGLET HISTORIQUE — une ligne par geste, jamais effacée ──
+   Pour arbitrer (« qui a posé ce TP en premier ? ») : le journal LOGS ne
+   garde que ses 500 dernières lignes et ne dit pas quels jours. Ici : quand,
+   quoi, quel MAR, quels jours, qui a agi. Jamais bloquant : un échec
+   d'écriture ne fait jamais échouer le geste lui-même. Aucune ligne n'est
+   jamais supprimée par le code. */
+const HISTORIQUE_ONGLET = 'HISTORIQUE';
+const HISTORIQUE_ENTETE = ['QUAND', 'ANNEE', 'QUOI', 'MAR', 'JOUR', 'JOUR2', 'AUTRE_MAR', 'PAR', 'DETAIL'];
+function historiser_(lignes) {
+  try {
+    if (!lignes || !lignes.length) return;
+    const ss = SpreadsheetApp.getActiveSpreadsheet();
+    let sh = ss.getSheetByName(HISTORIQUE_ONGLET);
+    if (!sh) { sh = ss.insertSheet(HISTORIQUE_ONGLET); sh.appendRow(HISTORIQUE_ENTETE); }
+    const quand = Utilities.formatDate(new Date(), Session.getScriptTimeZone(), 'yyyy-MM-dd HH:mm:ss');
+    lignes.forEach(l => sh.appendRow([quand, l.annee || '', l.quoi || '', l.mar || '', l.jour || '', l.jour2 || '',
+                                      l.autre || '', l.par || '', l.detail || '']));
+  } catch (e) { try { logAction('historique — écriture impossible : ' + e.message); } catch (e2) {} }
 }

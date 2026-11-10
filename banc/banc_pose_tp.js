@@ -171,6 +171,10 @@ function monde(opts) {
    '_tpDemandesSheet_', '_tpDemandes_', '_tpDemandeAjouter_', '_tpDemandeRetirer_',
    '_tpMondePresence_', '_poserTp_', '_error'].forEach(n =>
     vm.runInContext(extraireFonction('../gas/Indispos.gs', n), ctx));
+  /* (10/11/2026) Onglet HISTORIQUE : la vraie fonction, extraite du fichier livré. */
+  vm.runInContext(extraireConst('HISTORIQUE_ONGLET'), ctx);
+  vm.runInContext(extraireConst('HISTORIQUE_ENTETE'), ctx);
+  vm.runInContext(extraireFonction('../gas/Indispos.gs', 'historiser_'), ctx);
   vm.runInContext(extraireBlocHandler(), ctx);
   const appel = (payload, user) => vm.runInContext(
     `handlerSaveIndispos('saveIndispos', ${JSON.stringify(payload)}, ${JSON.stringify(user)})`, ctx);
@@ -1192,6 +1196,41 @@ console.log('\n═══ PT-FIN · date limite de saisie ═══');
   avenir.appel({ indispos: { '2027-03-10': 'INDISPO' }, annee: 2027 }, MAR);
   V('date à venir : le MAR enregistre normalement', avenir.lireInd('POSEUR', 2027)['2027-03-10'] === 'INDISPO');
 }
+
+/* (10/11/2026) HISTORIQUE — chaque jour qui change d'état laisse une ligne
+   horodatée, avec son auteur, et rien n'est jamais effacé. Demande du
+   responsable : pouvoir arbitrer « qui a posé en premier ». */
+console.log('\n═══ PT-HISTO · l\'onglet HISTORIQUE trace chaque TP posé, demandé, retiré ═══');
+{
+  const b = monde({ indispos: [['PLEIN01', '2027-03-02', 'VAC']] });
+  /* Sheets convertit les textes de date en dates (le décor l'imite) : on relit en jour local. */
+  const norm = v => (v instanceof Date || (v && typeof v.getFullYear === 'function'))
+    ? v.getFullYear() + '-' + String(v.getMonth() + 1).padStart(2, '0') + '-' + String(v.getDate()).padStart(2, '0') : v;
+  const histo = () => { const f = b.cl.getSheetByName('HISTORIQUE'); return f ? f.lignes.map(l => l.map(norm)) : []; };
+  b.appel({ tp: true, indispos: { '2027-03-01': 'TP', '2027-03-02': 'TP' } }, MAR);
+  let h = histo();
+  V('l\'onglet est créé avec son en-tête', h.length >= 1 && h[0].join('|') === 'QUAND|ANNEE|QUOI|MAR|JOUR|JOUR2|AUTRE_MAR|PAR|DETAIL', h[0]);
+  V('le TP posé et la demande sous réserve ont chacun leur ligne', h.some(l => l[2] === 'TP posé' && l[4] === '2027-03-01' && l[3] === 'POSEUR')
+    && h.some(l => /sous réserve/.test(l[2]) && l[4] === '2027-03-02'), h);
+  V('chaque ligne est horodatée et dit qui a agi (le MAR lui-même)', h.slice(1).every(l => /^\d{4}-\d\d-\d\d/.test(String(l[0])) && l[7] === 'POSEUR'), h);
+  const n1 = h.length;
+  b.appel({ tp: true, indispos: { '2027-03-01': 'TP', '2027-03-02': 'TP' } }, MAR);
+  V('renvoyer les mêmes jours ne crée aucune ligne', histo().length === n1, histo().length);
+  b.appel({ tp: true, indispos: { '2027-03-02': 'TP' } }, MAR);
+  h = histo();
+  V('un TP retiré a sa ligne', h.some(l => l[2] === 'TP retiré' && l[4] === '2027-03-01'), h);
+  V('les lignes précédentes sont toujours là (rien n\'est effacé)', h.length === n1 + 1 && h.slice(0, n1).join() === histo().slice(0, n1).join());
+  b.appel({ tp: true, doctorId: 'POSEUR', indispos: { '2027-03-02': 'TP', '2027-03-04': 'TP' } }, ADMIN);
+  V('posé par le comité pour un MAR : l\'auteur est le comité', histo().some(l => l[2] === 'TP posé' && l[4] === '2027-03-04' && /^comité \(ADMIN\)/.test(l[7])), histo());
+  /* Contrat : la pose passe par l'historique. */
+  const src = require('./stubs').sourceGasTout();
+  V('le code de pose appelle bien l\'historique', /historiser_\(lignes\.map/.test(src));
+}
+{ const src = require('./stubs').sourceGasTout() + fs.readFileSync('../gas/echanges.gs', 'utf8');
+  V('modifications du comité, échanges acceptés, décisions sur les TP et lot de 18 h passent aussi par l\'historique',
+    /quoi: 'modification : ' \+ type/.test(src) && /accepte la demande de/.test(src) && /TP validé par le comité/.test(src)
+    && /TP refusé \(jour fermé par le comité\)/.test(src) && /18 h réattribué \(lot\)/.test(src));
+  V('le code ne supprime jamais de ligne de l\'historique', !/HISTORIQUE[^\n]*(deleteRow|clear)/.test(src)); }
 
 console.log(`\n${ko === 0 ? '✅' : '❌'} banc_pose_tp : ${ok} vérifications, ${ko} échec(s)`);
 if (ko > 0) process.exit(1);
