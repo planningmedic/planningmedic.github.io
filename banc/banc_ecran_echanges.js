@@ -204,6 +204,37 @@ const dodo = ms => new Promise(r => setTimeout(r, ms));
     V('le panneau se referme', w.document.getElementById('echProposition').style.display === 'none');
   }
 
+  console.log('\n═══ 4. Noté en vacances : l\'écran pose la question, la confirmation repart (11/11/2026) ═══');
+  {
+    const kv = await baseKV();
+    kv.notif_config = JSON.stringify({ ouvert:true, pilotes:[] });
+    const reponses = [];
+    const surGas = (charge) => {
+      if (charge.action === 'repondreEchange') {
+        reponses.push(charge);
+        return charge.accepteAbsence === true ? { success:true, etat:'acceptee' }
+          : { success:false, error:'[ABS] Attention, vous êtes noté en vacances le 12/03/2027. Vous confirmez ? Ce jour sera effacé et remplacé par la garde ou son repos.' };
+      }
+      if (charge.action === 'login') return { success:true, role:'mar', id:'ALPHA', year:2027 };
+      return { success:true };
+    };
+    const { w, erreurs } = await monterPage(kv, surGas);
+    V('la page se charge sans erreur JavaScript', erreurs.length === 0, erreurs.slice(0,2));
+    w.location.hash = '#echanges'; w.route();
+    await dodo(400);
+    const btn = [...w.document.querySelectorAll('.ech-accepter')][0];
+    btn.click();
+    await dodo(500);
+    const msg = w.document.getElementById('echMsg-E1');
+    V('la question s\'affiche, sans le préfixe technique', msg.style.display === 'block' && /^Attention, vous êtes noté en vacances le 12\/03\/2027\. Vous confirmez \?/.test(msg.textContent), msg.textContent);
+    V('le bouton devient « Confirmer : je prends cette garde »', /Confirmer : je prends cette garde/.test(btn.textContent) && !btn.disabled, btn.textContent);
+    V('la première réponse est partie SANS l\'accord', reponses.length === 1 && reponses[0].accepteAbsence !== true, reponses);
+    btn.click();
+    await dodo(500);
+    V('la confirmation repart AVEC l\'accord', reponses.length === 2 && reponses[1].accepteAbsence === true && reponses[1].reponse === 'accepter', reponses);
+    V('l\'écran passe à Acceptée', /Acceptée/.test(w.document.getElementById('echList').innerHTML));
+  }
+
   console.log('\n═══ 5. La carte des notifications : téléphone oui, ordinateur non ═══');
   {
     /* (17/08/2026) Vu par le responsable en se connectant depuis son PC : la carte

@@ -2391,13 +2391,15 @@ function renderEchanges(){
   box.innerHTML = html;
 }
 
-async function repondreEch(id, reponse, btn){
+async function repondreEch(id, reponse, btn, confirmeAbs){
   const carte = btn.closest('.ech-card');
   carte.querySelectorAll('button').forEach(function(b){ b.disabled = true; });
   btn.textContent = reponse==='accepter' ? 'Écriture du planning…' : 'Envoi…';
   const msg = document.getElementById('echMsg-'+id);
   try {
-    const r = await apiPost({ action:'repondreEchange', id:id, reponse:reponse });
+    const charge = { action:'repondreEchange', id:id, reponse:reponse };
+    if (confirmeAbs === true) charge.accepteAbsence = true;   // (11/11/2026) il a lu et confirmé
+    const r = await apiPost(charge);
     if (r && r.success) {
       /* (14/08/2026 — vu en test réel) La réponse du serveur FAIT FOI — récit : docs/JOURNAL-Planning-Med.md §55 */
       const item = ECH_LISTE.find(function(e){ return e.id === id; });
@@ -2405,6 +2407,16 @@ async function repondreEch(id, reponse, btn){
       majEchangesHero();
       renderEchanges();
       if (typeof loadMyGardes === 'function') { try { window.__rafraichirDonnees(); } catch(e){} }
+      return;
+    }
+    /* (11/11/2026) Vous êtes noté absent un jour que vous prendriez : rien n'est
+       écrit ; on vous le dit et le bouton devient « Confirmer ». */
+    if (r && /^\[ABS\] /.test(r.error || '')) {
+      msg.className='ech-msg err'; msg.style.display='block';
+      msg.textContent = r.error.replace(/^\[ABS\] /, '');
+      carte.querySelectorAll('button').forEach(function(b){ b.disabled=false; });
+      btn.textContent = 'Confirmer : je prends cette garde';
+      btn.onclick = function(){ repondreEch(id, 'accepter', btn, true); };
       return;
     }
     msg.className='ech-msg err'; msg.style.display='block';
@@ -2553,8 +2565,8 @@ async function echMajProposition(){
   /* Samedi d'une année SANS lien samedi→R (2026) : la récup ne suit pas,
      le comité replacera — averti AVANT l'envoi, comme convenu. */
   const av = document.getElementById('echAvert');
-  // (11/11/2026) Toute nouvelle sélection redemande la confirmation du 18 h.
-  ECH_PROP.ok18 = false;
+  // (11/11/2026) Toute nouvelle sélection redemande la confirmation du 18 h et de l'absence.
+  ECH_PROP.ok18 = false; ECH_PROP.okAbs = false;
   const _btn = document.getElementById('echEnvoyer');
   if (_btn) { _btn.textContent = 'Envoyer la proposition'; _btn.disabled = false; }
   const samedi = new Date(g.date+'T12:00:00').getDay()===6;
@@ -2578,6 +2590,7 @@ async function envoyerProposition(btn){
     charge.date2 = contre;
   }
   if (ECH_PROP.ok18) charge.accepte18 = true;   // (11/11/2026) le donneur a lu et confirmé
+  if (ECH_PROP.okAbs) charge.accepteAbsence = true;   // (11/11/2026) noté absent ce jour-là, il a confirmé
   btn.disabled = true; btn.textContent='Vérification et envoi…';
   try {
     const r = await apiPost(charge);
@@ -2595,6 +2608,14 @@ async function envoyerProposition(btn){
     }
     /* (11/11/2026) Le don écraserait un 18 h du collègue : il vous reviendrait.
        Rien n'est parti ; on l'explique et on demande de confirmer. */
+    /* (11/11/2026) Vous êtes noté absent un jour que l'échange vous ferait prendre. */
+    if (r && /^\[ABS\] /.test(r.error || '')) {
+      const av = document.getElementById('echAvert');
+      av.style.display = 'block'; av.textContent = r.error.replace(/^\[ABS\] /, '');
+      ECH_PROP.okAbs = true;
+      btn.disabled = false; btn.textContent = 'Confirmer : je prends cette garde';
+      return;
+    }
     if (r && /^\[18\] /.test(r.error || '')) {
       const av = document.getElementById('echAvert');
       av.style.display = 'block'; av.textContent = r.error.replace(/^\[18\] /, '');

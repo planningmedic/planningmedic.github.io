@@ -322,10 +322,12 @@ console.log('\n═══ 10. Échange de gardes : le repos d\'arrivée n\'écras
     try { b.run(`creerEchange(${JSON.stringify(user('ALPHA'))}, { type:'echange', year:2027, date:'2027-03-09', date2:'2027-03-23', receveur:'BRAVO' })`); } catch (e) { err = String(e.message); }
     return { b, err };
   };
+  /* (11/11/2026) Une absence ne refuse plus : le MAR concerné confirme. Le
+     receveur sera interrogé à l'acceptation ; le demandeur l'est dès l'envoi. */
   let t = essai(b => b.poser('BRAVO', '2027-03-10', 'V'));
-  V('refusé si le repos du receveur tomberait sur ses vacances', /BRAVO est indisponible \(V\) le 2027-03-10/.test(t.err), t.err);
+  V('repos du receveur sur ses vacances : l\'envoi passe (il confirmera en acceptant)', !t.err, t.err);
   t = essai(b => b.poser('ALPHA', '2027-03-24', 'F'));
-  V('refusé si le repos du demandeur tomberait sur sa formation', /ALPHA est indisponible \(F\) le 2027-03-24/.test(t.err), t.err);
+  V('repos du demandeur sur sa formation : la confirmation lui est demandée à l\'envoi', /^\[ABS\] Attention, vous êtes noté en formation le 24\/03\/2027/.test(t.err), t.err);
   t = essai(b => b.garde('BRAVO', '2027-03-10'));
   V('refusé si le receveur est de garde le lendemain (deux gardes de suite)', /BRAVO est de garde \(G\) le 2027-03-10/.test(t.err), t.err);
   t = essai(b => b.poser('ALPHA', '2027-03-22', 'G'));

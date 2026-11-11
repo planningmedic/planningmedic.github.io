@@ -4,7 +4,7 @@
    quelles : aucune ligne de logique modifiée, seulement déplacée. Le routeur et
    ses aides (checkCode, _deny, _error, doGet/doPost) restent dans Indispos.gs.
    Un seul espace global dans Apps Script : rien à importer. */
-const GAS_VERSION_GARDES = '2026-11-11.4';   // (11/11/2026) applyModification du comité : don et échange passent par appliquerGesteComite_ · (11/11/2026) échange de gardes : le repos d'arrivée n'écrase plus une absence, pas de garde la veille ni le lendemain · (11/11/2026) échange de deux 18 h (echange18Jours) · (11/11/2026) le comité pose un R (statut « R ») et le lien samedi → R se recolle · (10/11/2026) lotRolesVerifier / lotRolesAppliquer (inversion réa / mater par lot, depuis l'éditeur) · (10/11/2026) un échange, un don ou une modification republie et prévient (MAR et paie) pour l'année DE LA GARDE, plus l'année active · (10/11/2026) le suivi des gestes écrit dans son propre onglet TRACES, plus jamais dans HISTORIQUE (archive des gardes par année) · (10/11/2026) onglet de suivi (TP, modifications, échanges, lot de 18 h), jamais effacé · (10/11/2026) lot18hVerifier / lot18hAppliquer (réattribution de 18 h par lot, depuis l'éditeur) · (27/10/2026) VM/VA : bloquent un don/échange, comptent 0,5 jour au reliquat · (18/10/2026) action getPlanningPaie (vue des secrétaires de paie)
+const GAS_VERSION_GARDES = '2026-11-11.5';   // (11/11/2026) don et échange : une absence (V, VM, VA, F, TP, CL, CTP, CP, A) confirmée par le MAR est écrasée par la garde et son repos (mod.ecraserAbsences), tracée dans l'historique · (11/11/2026) applyModification du comité : don et échange passent par appliquerGesteComite_ · (11/11/2026) échange de gardes : le repos d'arrivée n'écrase plus une absence, pas de garde la veille ni le lendemain · (11/11/2026) échange de deux 18 h (echange18Jours) · (11/11/2026) le comité pose un R (statut « R ») et le lien samedi → R se recolle · (10/11/2026) lotRolesVerifier / lotRolesAppliquer (inversion réa / mater par lot, depuis l'éditeur) · (10/11/2026) un échange, un don ou une modification republie et prévient (MAR et paie) pour l'année DE LA GARDE, plus l'année active · (10/11/2026) le suivi des gestes écrit dans son propre onglet TRACES, plus jamais dans HISTORIQUE (archive des gardes par année) · (10/11/2026) onglet de suivi (TP, modifications, échanges, lot de 18 h), jamais effacé · (10/11/2026) lot18hVerifier / lot18hAppliquer (réattribution de 18 h par lot, depuis l'éditeur) · (27/10/2026) VM/VA : bloquent un don/échange, comptent 0,5 jour au reliquat · (18/10/2026) action getPlanningPaie (vue des secrétaires de paie)
 
 // ── Sonde : les positions de STATS que code.gs lit à l'aveugle ──
 function _sondeStatsEntetes_(check, R, annee) {
@@ -400,9 +400,30 @@ function applyModification(mod) {
      campagne ne bloque plus un échange que le receveur accepte (son accord vaut
      levée). Codes de GARDES uniquement ; « 18 » (poste 18h) n'est pas une absence. */
   const ABSENCES = ['V', 'VM', 'VA', 'F', 'TP', 'CL', 'CTP', 'CP', 'A'];   // (27/10/2026) VM/VA : demi-journée de vacances
-  function refuseSiIndisponible(who, jour, motif) {
+  /* (11/11/2026 — décision du responsable) UNE ABSENCE PEUT ÊTRE ÉCRASÉE PAR UN
+     MAR QUI L'A CONFIRMÉE. Un MAR noté absent (vacances, formation, TP, congé…)
+     qui veut quand même prendre une garde en est responsable : l'écran l'avertit,
+     il confirme, et la garde et son repos s'écrivent par-dessus. Seuls les MAR
+     listés dans mod.ecraserAbsences (ceux qui ont confirmé) en bénéficient ; le
+     comité et tous les autres chemins restent bloqués comme avant. Les absences
+     effacées sont rendues dans mod._absencesEcrasees (dryRun compris) : c'est ce
+     qui permet à l'écran de dire, avant toute écriture, quels jours seront effacés. */
+  const ecraseurs = (mod.ecraserAbsences || []).map(String);
+  mod._absencesEcrasees = [];
+  function absenceDe(who, jour) {
     const v = String(readCell(`GARDES_${year}`, who, jour) || '').trim().toUpperCase();
-    if (ABSENCES.indexOf(v) > -1) {
+    return ABSENCES.indexOf(v) > -1 ? v : '';
+  }
+  function ecraseAbsence(who, jour) {   // vrai si l'absence de ce jour peut être écrasée (et la note)
+    const v = absenceDe(who, jour);
+    if (!v || ecraseurs.indexOf(String(who)) < 0) return false;
+    if (!mod._absencesEcrasees.some(a => a.who === who && a.jour === jour))
+      mod._absencesEcrasees.push({ who: who, jour: jour, code: v });
+    return true;
+  }
+  function refuseSiIndisponible(who, jour, motif) {
+    const v = absenceDe(who, jour);
+    if (v && !ecraseAbsence(who, jour)) {
       throw new Error(`${who} est indisponible (${v}) le ${jour} — ${motif}`);
     }
   }
@@ -551,9 +572,10 @@ function applyModification(mod) {
           throw new Error(`${tA} n'a pas son repos de garde le ${dB} — échange à traiter manuellement`);
         if (String(readCell(`GARDES_${year}`, tB, dC)).toUpperCase() !== 'RG')
           throw new Error(`${tB} n'a pas son repos de garde le ${dC} — échange à traiter manuellement`);
-        if (readCell(`GARDES_${year}`, tB, dA) !== '')
+        // (11/11/2026) Une absence confirmée n'empêche plus d'être « libre » : elle sera écrasée.
+        if (readCell(`GARDES_${year}`, tB, dA) !== '' && !ecraseAbsence(tB, dA))
           throw new Error(`${tB} n'est pas libre le ${dA} — échange à traiter manuellement`);
-        if (readCell(`GARDES_${year}`, tA, dC) !== '')
+        if (readCell(`GARDES_${year}`, tA, dC) !== '' && !ecraseAbsence(tA, dC))
           throw new Error(`${tA} n'est pas libre le ${dC} — échange à traiter manuellement`);
         // Vraies adjacences à l'ARRIVÉE : tB garderait dA avec une garde la veille,
         // tA garderait dB avec une garde le surlendemain.
@@ -578,7 +600,9 @@ function applyModification(mod) {
       const rg1 = nextDay(date), rg2 = nextDay(date2);
       verifieCellules([[doctorId, date], [doctorId2, date], [doctorId, date2], [doctorId2, date2], [doctorId2, rg1], [doctorId, rg2]]);
       // refus si un MAR a déjà quelque chose à la date d'arrivée (évite d'écraser une garde existante)
-      if (readCell(`GARDES_${year}`, doctorId, date2) || readCell(`GARDES_${year}`, doctorId2, date))
+      // (11/11/2026) Une absence confirmée à la date d'arrivée n'est pas « quelque chose » : elle sera écrasée.
+      if ((readCell(`GARDES_${year}`, doctorId, date2) && !ecraseAbsence(doctorId, date2))
+          || (readCell(`GARDES_${year}`, doctorId2, date) && !ecraseAbsence(doctorId2, date)))
         throw new Error('Un des médecins a déjà une garde à l\'autre date — échange à traiter manuellement');
       /* (11/11/2026) LE REPOS DE GARDE D'ARRIVÉE ÉTAIT ÉCRIT SANS REGARDER LA CASE :
          un jour de vacances ou de formation, une garde le lendemain, étaient écrasés.
@@ -623,7 +647,10 @@ function applyModification(mod) {
 
   /* (10/11/2026) HISTORIQUE : le geste réussi y laisse une ligne horodatée. */
   (typeof historiser_ === 'function') && historiser_([{ annee: year, quoi: 'modification : ' + type, mar: doctorId, jour: date, jour2: date2 || '',
-                 autre: doctorId2 || '', par: mod.par || '', detail: value ? 'code ' + value : '' }]);
+                 autre: doctorId2 || '', par: mod.par || '', detail: value ? 'code ' + value : '' }]
+    // (11/11/2026) Chaque absence effacée par un MAR qui l'a confirmée laisse sa ligne.
+    .concat(mod._absencesEcrasees.map(a => ({ annee: year, quoi: 'absence effacée (confirmée par le MAR)', mar: a.who, jour: a.jour, jour2: '',
+                 autre: '', par: mod.par || '', detail: 'code ' + a.code + ' remplacé par la garde ou son repos' }))));
   /* (10/11/2026) L'ANNÉE DE LA GARDE, jamais l'année active par défaut : un don de
      2027 accepté pendant que 2026 est l'année active republiait 2026 et armait les
      mails (MAR et secrétaires de paie) pour 2026 — rien ne partait pour 2027. */

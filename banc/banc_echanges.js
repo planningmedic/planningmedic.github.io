@@ -97,20 +97,79 @@ console.log('\n═══ 1. Créer un don : contrôles joués TOUT DE SUITE, rie
   V('la clé `echanges` est poussée au miroir', b.kv.some(cles => cles.indexOf('echanges') > -1), b.kv);
 }
 
-console.log('\n═══ 2. Créer vers un receveur indisponible : refus IMMÉDIAT, onglet vide ═══');
+console.log('\n═══ 2. Receveur noté en vacances : l\'envoi passe, il confirme en acceptant (11/11/2026) ═══');
 {
   const b = monde(2027);
   const j = b.dates[9], lendemain = b.dates[10];
   b.poser('ALPHA', j, 'G'); b.poser('ALPHA', lendemain, 'RG');
-  b.poser('BRAVO', j, 'V');   // (05/10/2026) l'absence se lit dans GARDES
-  let refus = null;
-  try { vm.runInContext(`creerEchange(${JSON.stringify(user('ALPHA'))}, { type:'don', year:2027, date:${JSON.stringify(j)}, receveur:'BRAVO' })`, b.ctx); }
+  b.poser('BRAVO', j, 'V'); b.poser('BRAVO', lendemain, 'V');   // l'absence se lit dans GARDES
+  let refus = null, r = null;
+  try { r = vm.runInContext(`creerEchange(${JSON.stringify(user('ALPHA'))}, { type:'don', year:2027, date:${JSON.stringify(j)}, receveur:'BRAVO' })`, b.ctx); }
   catch (e) { refus = e.message; }
-  V('la création est refusée sur-le-champ', !!refus, refus);
-  V('le motif nomme l\'indisponibilité', /indisponi|impossible/i.test(refus || ''), refus);
-  V('AUCUNE ligne n\'est écrite', b.echanges().length === 0);
-  V('AUCUNE notification ne part', b.notifs.length === 0);
-  V('la grille est intacte (dryRun sans écriture)', b.lire('ALPHA', j) === 'G' && b.lire('BRAVO', j) === 'V');
+  V('la proposition part (c\'est au receveur de confirmer)', !refus && r && !!r.id, refus);
+  V('sa notification le prévient qu\'il est noté en vacances', b.notifs.length === 1 && /Attention, vous êtes noté en vacances le/.test(b.notifs[0].corps), b.notifs);
+  V('la grille est intacte tant que personne n\'a accepté', b.lire('ALPHA', j) === 'G' && b.lire('BRAVO', j) === 'V');
+  // Il accepte SANS avoir confirmé : la question lui est posée, rien n'est écrit.
+  let q = null;
+  try { vm.runInContext(`repondreEchange(${JSON.stringify(user('BRAVO'))}, { id:${JSON.stringify(r.id)}, reponse:'accepter' })`, b.ctx); }
+  catch (e) { q = e.message; }
+  V('accepter sans confirmer → la question « vous confirmez ? »', /^\[ABS\] Attention, vous êtes noté en vacances le .* et en vacances le .*Vous confirmez \?/.test(q || ''), q);
+  V('…la demande reste en attente', b.echanges()[0][COL.ETAT] === 'attente');
+  V('…la grille est intacte (garde chez ALPHA, vacances chez BRAVO)', b.lire('ALPHA', j) === 'G' && b.lire('BRAVO', j) === 'V' && b.lire('BRAVO', lendemain) === 'V');
+  // Il confirme : la garde et le repos s'écrivent par-dessus ses vacances.
+  let rep = null, err = null;
+  try { rep = vm.runInContext(`repondreEchange(${JSON.stringify(user('BRAVO'))}, { id:${JSON.stringify(r.id)}, reponse:'accepter', accepteAbsence:true })`, b.ctx); }
+  catch (e) { err = e.message; }
+  V('il confirme → acceptée', !err && rep && rep.etat === 'acceptee', err || rep);
+  V('G puis RG écrits sur ses deux jours de vacances', b.lire('BRAVO', j) === 'G' && b.lire('BRAVO', lendemain) === 'RG');
+  V('le donneur est libéré (ni garde ni repos)', b.lire('ALPHA', j) === '' && b.lire('ALPHA', lendemain) === '');
+  V('le suivi de la demande dit quelles vacances ont été effacées', /V du .* effacé \(BRAVO, confirmé\)/.test(String(b.echanges()[0][COL.INFO])), b.echanges()[0][COL.INFO]);
+}
+
+console.log('\n═══ 2 ter. Échange : le demandeur noté absent confirme à l\'envoi (11/11/2026) ═══');
+{
+  const prep = () => {
+    const b = monde(2027);
+    const a = b.dates[9], c = b.dates[20];
+    b.poser('ALPHA', a, 'G'); b.poser('ALPHA', b.dates[10], 'RG');
+    b.poser('BRAVO', c, 'G2'); b.poser('BRAVO', b.dates[21], 'RG');
+    return { b, a, c };
+  };
+  const creer = (b, a, c, conf) => vm.runInContext(`creerEchange(${JSON.stringify(user('ALPHA'))}, { type:'echange', year:2027, date:${JSON.stringify(a)}, date2:${JSON.stringify(c)}, receveur:'BRAVO'${conf ? ', accepteAbsence:true' : ''} })`, b.ctx);
+  let { b, a, c } = prep();
+  b.poser('ALPHA', c, 'F');   // ALPHA en formation le jour de la garde qu'il recevrait
+  let e1 = null; try { creer(b, a, c, false); } catch (e) { e1 = e.message; }
+  V('sans confirmer : la question lui est posée, rien ne part', /^\[ABS\] Attention, vous êtes noté en formation le/.test(e1 || '') && b.echanges().length === 0 && b.notifs.length === 0, e1);
+  const r = creer(b, a, c, true);
+  V('il confirme : la proposition part, sa confirmation est notée', !!r.id && /\[ABS-OK\]/.test(String(b.echanges()[0][COL.INFO])));
+  const rep = vm.runInContext(`repondreEchange(${JSON.stringify(user('BRAVO'))}, { id:${JSON.stringify(r.id)}, reponse:'accepter' })`, b.ctx);
+  V('le receveur accepte sans question (lui n\'est pas absent)', rep.etat === 'acceptee', rep);
+  V('la garde reçue écrase la formation du demandeur', b.lire('ALPHA', c) === 'G2' && b.lire('BRAVO', a) === 'G');
+
+  // CONTRE-PREUVE : une absence posée APRÈS l'envoi n'a jamais été confirmée → impossible, grille intacte.
+  ({ b, a, c } = prep());
+  const r2 = creer(b, a, c, false);
+  b.poser('ALPHA', b.dates[21], 'V');   // vacances posées après coup sur son futur repos
+  const avant = JSON.stringify(b.cl.getSheetByName('GARDES_2027').lignes);
+  const rep2 = vm.runInContext(`repondreEchange(${JSON.stringify(user('BRAVO'))}, { id:${JSON.stringify(r2.id)}, reponse:'accepter', accepteAbsence:true })`, b.ctx);
+  V('contre-preuve : absence du demandeur jamais confirmée → impossible', rep2.etat === 'impossible' && /ALPHA est indisponible \(V\)/.test(rep2.error), rep2);
+  V('contre-preuve : la grille est intacte', JSON.stringify(b.cl.getSheetByName('GARDES_2027').lignes) === avant);
+}
+
+console.log('\n═══ 2 quater. Vacances écrasées ET 18 h repris : les deux confirmations, le 18 h suit (11/11/2026) ═══');
+{
+  const b = monde(2027);
+  const j = b.dates[9], lendemain = b.dates[10];
+  b.poser('ALPHA', j, 'G'); b.poser('ALPHA', lendemain, 'RG');
+  b.poser('BRAVO', j, 'V'); b.poser('BRAVO', lendemain, '18');
+  let e18 = null; try { vm.runInContext(`creerEchange(${JSON.stringify(user('ALPHA'))}, { type:'don', year:2027, date:${JSON.stringify(j)}, receveur:'BRAVO' })`, b.ctx); } catch (e) { e18 = e.message; }
+  V('le donneur est d\'abord prévenu qu\'il reprendra le 18 h', /^\[18\] /.test(e18 || ''), e18);
+  const r = vm.runInContext(`creerEchange(${JSON.stringify(user('ALPHA'))}, { type:'don', year:2027, date:${JSON.stringify(j)}, receveur:'BRAVO', accepte18:true })`, b.ctx);
+  let q = null; try { vm.runInContext(`repondreEchange(${JSON.stringify(user('BRAVO'))}, { id:${JSON.stringify(r.id)}, reponse:'accepter' })`, b.ctx); } catch (e) { q = e.message; }
+  V('puis le receveur est interrogé sur ses vacances', /^\[ABS\] .*en vacances le/.test(q || ''), q);
+  const rep = vm.runInContext(`repondreEchange(${JSON.stringify(user('BRAVO'))}, { id:${JSON.stringify(r.id)}, reponse:'accepter', accepteAbsence:true })`, b.ctx);
+  V('acceptée : G sur ses vacances, RG sur son ancien 18 h', rep.etat === 'acceptee' && b.lire('BRAVO', j) === 'G' && b.lire('BRAVO', lendemain) === 'RG', rep);
+  V('le 18 h passe au donneur, comme avant', String(b.lire('ALPHA', lendemain)) === '18', b.lire('ALPHA', lendemain));
 }
 
 console.log('\n═══ 2 bis. Indisponibilité de campagne seule (INDISPOS) : ne bloque plus, l\'accord fait foi ═══');

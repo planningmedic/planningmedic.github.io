@@ -39,7 +39,7 @@
    depuis l'éditeur : installerDeclencheurEchanges().
    ═══════════════════════════════════════════════════════════════════════ */
 
-const GAS_VERSION_ECHANGES = '2026-11-11.4';   // (11/11/2026) gestes du comité (don, échange) : mêmes suites que entre MAR (_gesteSuites_, appliquerGesteComite_) · (11/11/2026) échange de deux 18 h entre MAR (type echange18) · (11/11/2026) un 18 h écrasé par un don passe au donneur, prévenu avant d'envoyer (accepte18) · (11/11/2026) récupérations automatiques : R neuf quand il ne peut pas suivre son samedi, R écrasé reposé, bouton Réparer (recupsReparer), lien recollé à la pose manuelle · (10/11/2026) l'historique dit qui a accepté (onglet HISTORIQUE)
+const GAS_VERSION_ECHANGES = '2026-11-11.5';   // (11/11/2026) don et échange sur un jour d'absence : le MAR concerné confirme ([ABS], accepteAbsence) et ses jours d'absence sont écrasés par la garde et son repos · (11/11/2026) gestes du comité (don, échange) : mêmes suites que entre MAR (_gesteSuites_, appliquerGesteComite_) · (11/11/2026) échange de deux 18 h entre MAR (type echange18) · (11/11/2026) un 18 h écrasé par un don passe au donneur, prévenu avant d'envoyer (accepte18) · (11/11/2026) récupérations automatiques : R neuf quand il ne peut pas suivre son samedi, R écrasé reposé, bouton Réparer (recupsReparer), lien recollé à la pose manuelle · (10/11/2026) l'historique dit qui a accepté (onglet HISTORIQUE)
 
 const ECHANGES_ONGLET = 'ECHANGES';
 const ECHANGES_ENTETE = ['ID', 'CREE_LE', 'TYPE', 'ANNEE', 'DATE', 'DATE2',
@@ -200,6 +200,31 @@ function _echangesVersMod_(d) {
   throw new Error('Type de demande inconnu : ' + d.TYPE);
 }
 
+/* ── (11/11/2026) ABSENCES CONFIRMÉES PAR LE MAR ───────────────────────
+   Décision du responsable : responsabiliser chacun. Un MAR noté absent un jour
+   qu'un don ou un échange lui ferait prendre (la garde ou son repos) n'est plus
+   bloqué : l'écran lui dit « vous êtes noté en vacances ce jour, vous
+   confirmez ? » ; s'il confirme, la garde et le repos s'écrivent par-dessus.
+   - le DEMANDEUR (échange) confirme à l'envoi ; sa confirmation est notée
+     [ABS-OK] dans INFO, pour que l'acceptation puisse écraser ses jours ;
+   - le RECEVEUR confirme à l'acceptation.
+   Le préfixe [ABS] est lu par l'écran, qui demande la confirmation et renvoie
+   avec accepteAbsence. Les absences que le geste écraserait sont données par
+   applyModification lui-même (dryRun, mod._absencesEcrasees) : aucun contrôle
+   n'est dupliqué ici. */
+const ECHANGES_LIBELLES_ABSENCE = { V: 'en vacances', VM: 'en vacances le matin', VA: 'en vacances l\'après-midi',
+  F: 'en formation', TP: 'en temps partiel', CTP: 'en temps partiel', CL: 'en congé long', CP: 'en congé', A: 'absent' };
+function _echangesAbsencesDe_(mod, who) {
+  return (mod._absencesEcrasees || []).filter(a => String(a.who) === String(who));
+}
+function _echangesTexteAbsences_(abs) {
+  return abs.map(a => (ECHANGES_LIBELLES_ABSENCE[a.code] || 'absent') + ' le ' + _echangesJoli_(a.jour)).join(' et ');
+}
+function _echangesQuestionAbsence_(abs) {
+  return '[ABS] Attention, vous êtes noté ' + _echangesTexteAbsences_(abs)
+    + '. Vous confirmez ? Ce jour sera effacé et remplacé par la garde ou son repos.';
+}
+
 /* ── 1. CRÉER ───────────────────────────────────────────────────────────
    p = { type:'don'|'echange', year, date, date2?, receveur }
    Le demandeur est user.id, point. Les contrôles d'applyModification sont
@@ -227,7 +252,14 @@ function creerEchange(user, p) {
                     DEMANDEUR: user.id, RECEVEUR: receveur };
   // Contrôles joués DÈS LA CRÉATION (décision du 11/08) : mêmes juges que
   // l'écriture réelle, aucune duplication. Lève en cas de refus.
-  applyModification(Object.assign({ dryRun: true }, _echangesVersMod_(demande)));
+  /* (11/11/2026) Les absences des deux MAR ne bloquent plus à l'envoi : celles
+     du demandeur lui sont demandées ici, celles du receveur le seront quand il
+     acceptera. Tous les autres contrôles jouent comme avant. */
+  const essai = Object.assign({ dryRun: true, ecraserAbsences: [user.id, receveur] }, _echangesVersMod_(demande));
+  applyModification(essai);
+  const absMoi = _echangesAbsencesDe_(essai, user.id);
+  const absLui = _echangesAbsencesDe_(essai, receveur);
+  if (absMoi.length && p.accepteAbsence !== true) throw new Error(_echangesQuestionAbsence_(absMoi));
 
   /* (11/11/2026) Le don écraserait un 18 h du receveur : il passera au
      donneur. Rien ne part tant que le donneur ne l'a pas confirmé. Le préfixe
@@ -244,7 +276,7 @@ function creerEchange(user, p) {
   const plage = sh.getRange(ligne, 1, 1, ECHANGES_ENTETE.length);
   try { plage.setNumberFormat('@'); } catch (e) {}   // ceinture : l'onglet hérité d'avant le correctif n'est pas en texte
   plage.setValues([[id, _echangesMaintenant_(), type, year, date, demande.DATE2,
-                    user.id, receveur, 'attente', '', '', '']]);
+                    user.id, receveur, 'attente', '', '', absMoi.length ? '[ABS-OK]' : '']]);
   logAction('creerEchange ' + id + ' — ' + type + ' ' + date + (demande.DATE2 ? '/' + demande.DATE2 : '')
     + ' | ' + user.id + ' -> ' + receveur);
 
@@ -254,9 +286,11 @@ function creerEchange(user, p) {
     type === 'don'
       ? _echangesDr_(user.id) + ' vous propose sa garde du ' + _echangesJoli_(date) + '.'
         + (menaces18.length ? ' En acceptant, votre 18 h du ' + menaces18.map(_echangesJoli_).join(' et du ') + ' passe au ' + _echangesDr_(user.id) + '.' : '')
+        + (absLui.length ? ' Attention, vous êtes noté ' + _echangesTexteAbsences_(absLui) + '.' : '')
       : type === 'echange18'
         ? _echangesDr_(user.id) + ' vous propose son 18 h du ' + _echangesJoli_(date) + ' contre le vôtre du ' + _echangesJoli_(demande.DATE2) + '.'
-        : _echangesDr_(user.id) + ' vous propose sa garde du ' + _echangesJoli_(date) + ' contre la vôtre du ' + _echangesJoli_(demande.DATE2) + '.',
+        : _echangesDr_(user.id) + ' vous propose sa garde du ' + _echangesJoli_(date) + ' contre la vôtre du ' + _echangesJoli_(demande.DATE2) + '.'
+          + (absLui.length ? ' Attention, vous êtes noté ' + _echangesTexteAbsences_(absLui) + '.' : ''),
     './index.html', { id: receveur, pastille: _echangesEnAttentePour_(receveur) });
   return { id: id };
 }
@@ -293,10 +327,23 @@ function repondreEchange(user, p) {
   // Le planning a pu bouger depuis la création : un refus ici ne casse
   // rien — état `impossible`, grille intacte, les deux MAR prévenus.
   // (11/11/2026) Les R des deux MAR AVANT le geste : un R écrasé sera reposé.
+  /* (11/11/2026) Le receveur noté absent un jour que le geste lui fait prendre :
+     on lui pose la question AVANT d'écrire (préfixe [ABS], demande toujours en
+     attente). Il renvoie avec accepteAbsence s'il confirme. Les jours du
+     demandeur ne sont écrasables que s'il les a confirmés à l'envoi ([ABS-OK]). */
+  const ecraser = [String(d.RECEVEUR)].concat(/\[ABS-OK\]/.test(String(d.INFO)) ? [String(d.DEMANDEUR)] : []);
+  if (p.accepteAbsence !== true) {
+    const essai = Object.assign({ dryRun: true, ecraserAbsences: ecraser }, _echangesVersMod_(d));
+    let essaiOk = true;
+    try { applyModification(essai); } catch (e) { essaiOk = false; }   // le refus est rejoué et tracé juste en dessous
+    const absLui = essaiOk ? _echangesAbsencesDe_(essai, d.RECEVEUR) : [];
+    if (absLui.length) throw new Error(_echangesQuestionAbsence_(absLui));
+  }
   const releveR = _recupsReleve_(Number(d.ANNEE), [String(d.DEMANDEUR), String(d.RECEVEUR)]);
   const releve18 = _echanges18Releve_(Number(d.ANNEE), [String(d.DEMANDEUR), String(d.RECEVEUR)]);
+  const geste = Object.assign({ par: String(d.RECEVEUR) + ' (accepte la demande de ' + String(d.DEMANDEUR) + ')', ecraserAbsences: ecraser }, _echangesVersMod_(d));
   try {
-    applyModification(Object.assign({ par: String(d.RECEVEUR) + ' (accepte la demande de ' + String(d.DEMANDEUR) + ')' }, _echangesVersMod_(d)));
+    applyModification(geste);
   } catch (err) {
     sh.getRange(d._row, colEtat).setValue('impossible');
     sh.getRange(d._row, colRep).setValue(_echangesMaintenant_());
@@ -316,7 +363,8 @@ function repondreEchange(user, p) {
 
   sh.getRange(d._row, colEtat).setValue('acceptee');
   sh.getRange(d._row, colRep).setValue(_echangesMaintenant_());
-  const infos = suites.infos;
+  // (11/11/2026) Les absences effacées, confirmées par le MAR, figurent dans le suivi de la demande.
+  const infos = (geste._absencesEcrasees || []).map(a => a.code + ' du ' + a.jour + ' effacé (' + a.who + ', confirmé)').concat(suites.infos);
   if (infos.length) sh.getRange(d._row, colInfo).setValue(infos.join(' · ').slice(0, 200));
   logAction('repondreEchange ' + id + ' — acceptée' + (infos.length ? ' | ' + infos.join(' · ') : ''));
   _echangesVersKV_();
