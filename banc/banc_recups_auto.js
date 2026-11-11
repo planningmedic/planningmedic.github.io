@@ -332,6 +332,14 @@ console.log('\n═══ 10. Échange de gardes : le repos d\'arrivée n\'écras
   V('refusé si le receveur est de garde le lendemain (deux gardes de suite)', /BRAVO est de garde \(G\) le 2027-03-10/.test(t.err), t.err);
   t = essai(b => b.poser('ALPHA', '2027-03-22', 'G'));
   V('refusé si le demandeur est de garde la veille de la garde reçue', /ALPHA est de garde \(G\) le 2027-03-22/.test(t.err), t.err);
+  /* (11/11/2026 — vu en réel) Le motif disait « un des médecins a déjà une garde à
+     l'autre date » alors que le collègue était en repos de garde : il nomme
+     désormais qui, quel jour et pourquoi. */
+  t = essai(b => b.garde('BRAVO', '2027-03-08'));   // BRAVO de garde la veille → RG le 09/03
+  V('motif clair : le collègue en repos de garde le jour reçu, nommé, date lisible', t.err === 'Dr Bravo est en repos de garde le 09/03/2027 (de garde la veille) : deux gardes de suite sont impossibles — échange impossible', t.err);
+  t = essai(b => b.poser('ALPHA', '2027-03-23', '18'));
+  V('motif clair : un 18 h sur le jour reçu', /^Dr Alpha est de 18 h le 23\/03\/2027/.test(t.err), t.err);
+  V('plus jamais « un des médecins a déjà une garde »', !/Un des médecins/.test(fs.readFileSync(path.join(__dirname, '..', 'gas', 'gardes.gs'), 'utf8').replace(/\/\*[\s\S]*?\*\//g, '')));
   t = essai(() => {});
   V('sans conflit, l\'échange se propose comme avant', !t.err, t.err);
 }
