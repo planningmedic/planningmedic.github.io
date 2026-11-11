@@ -72,7 +72,7 @@
    poussée : le client se replie sur le circuit GAS.
    ═══════════════════════════════════════════════════════════════════ */
 
-const VERSION = 'miroir 2026-11-11.1';
+const VERSION = 'miroir 2026-11-11.2';
 
 // Clés admissibles — tout le reste est refusé à l'écriture comme à la
 // lecture. Garde-fou contre une faute de frappe côté GAS qui créerait
@@ -253,6 +253,13 @@ async function lire(corps, env) {
       // (08/08) Ce qu'un collègue lit est PERSONNEL : filtré pour TOUS les
       // rôles, admin compris — contrairement aux indispos.
       valeur = filtreIndispos(valeur, user.id);
+    }
+    if (cle === 'echanges' && user.role !== 'admin') {
+      /* (11/11/2026 — décision d'Arthur) Chacun ne voit QUE ses échanges :
+         ceux qu'il a proposés ou reçus. Filtré ici, côté serveur — masquer
+         un bouton ne suffit pas, la liste entière partait sur chaque
+         téléphone. L'admin garde la vue complète. */
+      valeur = filtreEchanges(valeur, user.id);
     }
     if (cle === 'notifs') {
       /* (23/08 — cloche) Une notification est personnelle : chacun ne reçoit
@@ -480,10 +487,10 @@ function autorise(user, cle) {
      le planning — c'est ce que le comite projette a l'ecran au staff. Aucun
      rang personnel dedans : la page cherche son identifiant dans les listes. */
   if (cle === 'ordre_vac') return true;                                // MAR + admin
-  /* (13/08 — phase 3) Demandes d'echange/don entre MAR. Noms + dates de
-     gardes : rien que planning_{annee} ne montre deja a tout MAR. Le filtre
-     « mes demandes seulement » est un confort d'ECRAN, pas une regle
-     d'acces. Le secretariat, lui, n'atteint jamais /read. */
+  /* (13/08 — phase 3) Demandes d'echange/don entre MAR. (11/11/2026) Servie
+     FILTREE plus loin : un MAR ne recoit que les demandes dont il est
+     demandeur ou receveur (filtreEchanges) ; l'admin recoit tout. Le
+     secretariat, lui, n'atteint jamais /read. */
   if (cle === 'echanges') return true;                                 // MAR + admin
   if (cle === 'notifs') return true;                                   // (23/08 — cloche) filtré plus loin, POUR TOUS
   if (cle === 'config_admin') return user.role === 'admin';            // admin seul
@@ -525,6 +532,16 @@ function filtreNotifs(valeur, id) {
   if (id && tous[id] !== undefined) mien[id] = tous[id];
   if (tous['*'] !== undefined) mien['*'] = tous['*'];
   return { success: true, notifs: mien };
+}
+
+/* (11/11/2026) Un MAR ne reçoit que SES demandes d'échange (proposées ou
+   reçues). Structure poussée par le GAS : {"success":true,"echanges":[…]}. */
+function filtreEchanges(valeur, id) {
+  const moi = String(id || '').toUpperCase();
+  const liste = (valeur && Array.isArray(valeur.echanges)) ? valeur.echanges : [];
+  return { success: !!(valeur && valeur.success), echanges: moi ? liste.filter(function (e) {
+    return e && (String(e.demandeur || '').toUpperCase() === moi || String(e.receveur || '').toUpperCase() === moi);
+  }) : [] };
 }
 
 async function sha256hex(texte) {

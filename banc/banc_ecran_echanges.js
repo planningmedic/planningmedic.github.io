@@ -289,6 +289,47 @@ const dodo = ms => new Promise(r => setTimeout(r, ms));
     V('le receveur, lui, n\'a pas de bouton Annuler', !w.document.querySelector('.ech-annuler') && !!w.document.querySelector('.ech-accepter'));
   }
 
+  console.log('\n═══ 4 quinquies. Chacun ne voit que SES échanges (11/11/2026) ═══');
+  {
+    /* Décision d'Arthur : les échanges des autres ne regardent personne.
+       Le serveur filtre (la liste entière partait sur chaque téléphone) et
+       le bouton « Tout voir » disparaît pour un MAR. */
+    const kv = await baseKV();
+    kv.notif_config = JSON.stringify({ ouvert:true, pilotes:[] });
+    kv.echanges = JSON.stringify({ success:true, echanges:[
+      demande,
+      Object.assign({}, demande, { id:'E7', demandeur:'CHARLI', receveur:'DELTA' }),
+      Object.assign({}, demande, { id:'E8', demandeur:'ALPHA', receveur:'DELTA', etat:'refusee' }) ] });
+    const { w } = await monterPage(kv, (c) => c.action === 'login' ? { success:true, role:'mar', id:'ALPHA', year:2027 } : { success:true });
+    w.location.hash = '#echanges'; w.route();
+    await dodo(400);
+    const cartes = () => w.document.querySelectorAll('.ech-card').length;
+    const html = () => w.document.getElementById('echList').innerHTML;
+    V('ALPHA voit ses 2 demandes, pas celle de CHARLI ↔ DELTA', cartes() === 2 && !/Charli/.test(html()), cartes());
+    V('« Tout voir » est caché pour un MAR', w.document.getElementById('echFiltres').style.display === 'none');
+    w.echFiltrer(true); await dodo(50);
+    V('même « Tout voir » forcé : rien des autres (le serveur ne l\'a pas envoyé)', cartes() === 2 && !/Charli/.test(html()), cartes());
+  }
+  {
+    /* Le filtre du Worker en direct : un MAR, puis l'admin. */
+    const wctx = vm.createContext({ globalThis:{}, console, crypto, TextEncoder, Response, Request, URL, JSON, Date, Math, Object, Array, String, Number, Set, Promise });
+    wctx.globalThis = wctx; vm.runInContext(src, wctx);
+    const WK = wctx.__W, M = new Map();
+    const tous = [demande, Object.assign({}, demande, { id:'E7', demandeur:'CHARLI', receveur:'DELTA' })];
+    M.set('acces', JSON.stringify({ indisposYear:2027, indisposOuverte:false, users:[
+      { h: await sha(CODE), role:'mar', id:'ALPHA', name:'ALPHA', initials:'AL' },
+      { h: await sha('ADMINBANC9'), role:'admin', id:'ADMIN', name:'ADMIN', initials:'AD' }]}));
+    M.set('notif_config', JSON.stringify({ ouvert:true, pilotes:[] }));
+    M.set('echanges', JSON.stringify({ success:true, echanges: tous }));
+    const env = { KV:{ get: async k => (M.has(k)?M.get(k):null), put: async ()=>{}, delete: async ()=>{}, list: async ()=>({keys:[]}) }, PUSH_TOKEN:'JETON' };
+    const lire = async code => (await (await WK.fetch(new Request('https://worker/read', { method:'POST', body: JSON.stringify({ code, keys:['echanges'] }) }), env)).json());
+    const rm = await lire(CODE), ra = await lire('ADMINBANC9');
+    const lm = (rm.data && rm.data.echanges && rm.data.echanges.echanges) || [];
+    const la = (ra.data && ra.data.echanges && ra.data.echanges.echanges) || [];
+    V('Worker : un MAR reçoit 1 demande sur 2 (la sienne)', lm.length === 1 && lm[0].id === 'E1' && rm.data.echanges.success === true, rm);
+    V('Worker : l\'admin reçoit les 2', la.length === 2, ra);
+  }
+
   console.log('\n═══ 4 ter. Un arrivant en cours d\'année est proposé comme receveur (11/11/2026) ═══');
   {
     /* Vu en réel : un MAR arrivé au 01/11 manquait à la liste « À » — elle ne

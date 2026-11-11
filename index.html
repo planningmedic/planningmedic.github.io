@@ -918,7 +918,7 @@ html[data-theme="dark"] .vs-pill{background:#251B3C;color:#B593F2}
       <span class="topos-count" id="echCount"></span>
     </div>
     <div class="ech-bar">
-      <div class="ech-filtres">
+      <div class="ech-filtres" id="echFiltres" style="display:none">
         <button id="echFiltreMoi" class="ech-filtre actif" onclick="echFiltrer(false)">Mes demandes</button>
         <button id="echFiltreTous" class="ech-filtre" onclick="echFiltrer(true)">Tout voir</button>
       </div>
@@ -2322,6 +2322,10 @@ async function openEchanges(){
   document.getElementById('tilesView').style.display='none';
   document.getElementById('echangesView').style.display='block';
   document.getElementById('echProposerBtn').style.display = MY_ID ? 'inline-flex' : 'none';
+  /* (11/11/2026) « Tout voir » : admin seul. Un MAR ne reçoit de toute façon
+     que ses propres échanges (filtrés par le serveur). */
+  document.getElementById('echFiltres').style.display = MY_ROLE === 'admin' ? '' : 'none';
+  if (MY_ROLE !== 'admin') ECH_TOUT = false;
   const liste = await chargerEchanges(true);
   if (liste === null) {
     document.getElementById('echList').innerHTML = '<div class="topos-empty">Les échanges de gardes ne sont pas encore ouverts.<br><span>Cet écran s\'activera à la mise en service.</span></div>';
