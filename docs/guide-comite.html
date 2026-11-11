@@ -1079,7 +1079,7 @@
 
   <section id="d4">
     <h2><span class="n">18</span>Les secrétaires de paie</h2>
-    <p><b>En 2 minutes :</b> les deux secrétaires qui saisissent gardes et vacances dans le logiciel de paie
+    <p><b>En 2 minutes :</b> les deux secrétaires qui saisissent gardes, vacances et temps partiels dans le logiciel de paie
     ont leur page, <b>en lecture seule</b> : <b>planningmedic.github.io/paie.html</b>. Elles y entrent avec un code
     qu'elles partagent, et reçoivent un mail à chaque changement de garde ou de vacances, environ
     10 minutes après. Vous n'avez plus rien à leur envoyer à la main.</p>
@@ -1100,8 +1100,8 @@
 
     <table>
       <tr><th>Ce qu'elles voient et reçoivent</th><th>Ce qu'elles ne voient jamais</th></tr>
-      <tr><td>Les gardes réa (G), les gardes maternité (G2) et les vacances (V, y compris les demi-journées), mois par mois, avec les totaux par médecin</td><td>Formations, temps partiels, absences, congés longs, repos, secteurs du bloc</td></tr>
-      <tr><td>Un mail à chaque changement de G, G2 ou V : don, échange, ou correction de votre part. Il dit quoi retirer et quoi ajouter, et donne les nouveaux totaux</td><td>Aucun mail pour un changement de secteur ou de formation</td></tr>
+      <tr><td>Les gardes réa (G), les gardes maternité (G2), les vacances (V, y compris les demi-journées) et les jours de temps partiel (TP, y compris les semaines off du rythme deux semaines sur deux), mois par mois, avec les totaux par médecin</td><td>Formations, absences, congés longs, repos, secteurs du bloc</td></tr>
+      <tr><td>Un mail à chaque changement de G, G2 ou V : don, échange, ou correction de votre part. Il dit quoi retirer et quoi ajouter, et donne les nouveaux totaux</td><td>Aucun mail pour un changement de temps partiel, de secteur ou de formation : le temps partiel se lit sur la page</td></tr>
       <tr><td>Les cases changées depuis moins de 7 jours, encadrées d'orange, et la liste des changements des 14 derniers jours</td><td>Elles ne peuvent rien modifier</td></tr>
     </table>
 
@@ -1109,7 +1109,7 @@
       <div class="corps">On attend que vous ayez fini de publier : plusieurs corrections faites d'affilée partent dans un seul mail, au lieu d'un mail par clic.</div>
     </details>
     <details class="pourquoi"><summary>Si elles ne reçoivent rien</summary>
-      <div class="corps">Vérifiez la ligne <b>PAIE_EMAILS</b> dans CONFIG. Le tout premier changement après la mise en place ne part pas : il sert de point de départ. Un changement de secteur ou de formation ne déclenche rien, c'est voulu.</div>
+      <div class="corps">Vérifiez la ligne <b>PAIE_EMAILS</b> dans CONFIG. Le tout premier changement après la mise en place ne part pas : il sert de point de départ. Un changement de temps partiel, de secteur ou de formation ne déclenche rien, c'est voulu.</div>
     </details>
     <a class="backtop" href="#">↑ Sommaire</a>
   </section>

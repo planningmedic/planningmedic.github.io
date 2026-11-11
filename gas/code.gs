@@ -1,7 +1,7 @@
 // ⚠️ RÈGLE (détecteur de dérive dépôt↔Apps Script) : incrémenter cette version
 // à CHAQUE push de ce fichier. Le diagnostic (admin → Maintenance) compare la
 // version déployée ici avec celle du dépôt et signale toute recopie oubliée.
-const GAS_VERSION_CODE = '2026-11-11.1';   // (11/11/2026) mail paie lisible sur téléphone (une carte par changement) · (02/11/2026) commentaire sans initiales réelles · (27/10/2026) demi-journées de vacances VM/VA (planning, paie, notifications) · (27/10/2026) journée mobile 2027 (lundi 7 juin) ajoutée aux fériés · (18/10/2026) vue paie : tri G/G2/V (_planningPaie_) et mail aux secrétaires de paie (_paieEnvoyerAnnee_)
+const GAS_VERSION_CODE = '2026-11-11.2';   // (11/11/2026) vue paie : jours de TP (TP, CTP, semaine off du rythme 2/2) affichés, sans mail · (11/11/2026) mail paie lisible sur téléphone (une carte par changement) · (02/11/2026) commentaire sans initiales réelles · (27/10/2026) demi-journées de vacances VM/VA (planning, paie, notifications) · (27/10/2026) journée mobile 2027 (lundi 7 juin) ajoutée aux fériés · (18/10/2026) vue paie : tri G/G2/V (_planningPaie_) et mail aux secrétaires de paie (_paieEnvoyerAnnee_)
 
 // ── Reconstruire STATS_GARDES_2026 depuis GARDES_2026 (année reconstruite) ──
 // Renvoie le classeur contenant l'onglet demandé : classeur actif si présent,
@@ -2045,10 +2045,13 @@ function _notifHtml(nom, chgs, year, LIB) {
 // (18/10/2026) Deux usages, une seule règle de tri :
 //   - la page paie.html (action getPlanningPaie, gardes.gs) lit le mois ;
 //   - un mail part aux secrétaires de paie à chaque changement de G, G2 ou V.
-// Seuls trois codes existent pour la paie : G (garde réa), G2 (garde
-// maternité), V (vacances ; VAC en est l'alias). TOUT AUTRE CODE (formation,
-// temps partiel, absence, congé long, repos, 18h…) est écarté ICI, côté
-// serveur : il n'est ni envoyé à la page, ni écrit dans le mail.
+// Codes de la paie : G (garde réa), G2 (garde maternité), V (vacances ; VAC
+// en est l'alias), VM/VA (demi-journées) et, depuis le 11/11/2026, TP (jour
+// de temps partiel : TP, CTP, et la semaine off du rythme 2/2, un jour ouvré
+// seulement). TOUT AUTRE CODE (formation, absence, congé long, repos, 18h…)
+// est écarté ICI, côté serveur : il n'est ni envoyé à la page, ni écrit dans
+// le mail. Le TP est montré sur la page mais NE DÉCLENCHE AUCUN MAIL
+// (_paieDiff_ ne regarde que G, G2, V, VM, VA) — décision du 11/11/2026.
 //
 // Le mail a SA PROPRE photo de référence (planning_{année}_paie.json),
 // distincte de celle des mails aux MAR : un échec d'un côté ne fait jamais
@@ -2060,19 +2063,35 @@ function _notifHtml(nom, chgs, year, LIB) {
 // ──────────────────────────────────────────────────────────────────────
 
 const PAIE_LIB = { G: 'garde réanimation', G2: 'garde maternité', V: 'vacances',
-                   VM: 'demi-journée de vacances (matin)', VA: 'demi-journée de vacances (après-midi)' };
+                   VM: 'demi-journée de vacances (matin)', VA: 'demi-journée de vacances (après-midi)',
+                   TP: 'jour de temps partiel' };
 // (27/10/2026) VM/VA valent une demi-journée : 0,5 dans les totaux de vacances.
 const PAIE_DEMI = { VM: 'matin', VA: 'après-midi' };
 const PAIE_SITE = 'https://planningmedic.github.io/paie.html';
 const PAIE_PROP_RECENTS = 'PAIE_RECENTS';     // derniers changements (14 jours)
 const PAIE_RECENTS_JOURS = 14;
 
-// Code du planning → code paie ('G', 'G2', 'V') ou '' (écarté).
+// Code du planning → code paie ('G', 'G2', 'V', 'VM', 'VA', 'TP') ou '' (écarté).
 function _paieCode_(st) {
   const c = String(st == null ? '' : st).trim().toUpperCase();
   if (c === 'G' || c === 'G2') return c;
   if (c === 'V' || c === 'VAC') return 'V';
   if (c === 'VM' || c === 'VA') return c;
+  if (c === 'TP' || c === 'CTP') return 'TP';
+  return '';
+}
+
+// (11/11/2026) Jour de TP pour la paie, un jour ouvré seulement : TP/CTP, ou
+// « A » posé par la semaine off du rythme 2/2. Un « A » hors rythme 2/2
+// (statut A : absent de jour, garde possible) reste écarté.
+function _paieCodeJour_(id, date, st, jour) {
+  const c = _paieCode_(st);
+  const ouvre = !!jour && !jour.we && !jour.fe;
+  if (c === 'TP') return ouvre ? 'TP' : '';
+  if (c) return c;
+  if (ouvre && String(st == null ? '' : st).trim().toUpperCase() === 'A') {
+    try { if (typeof estSemaineOff === 'function' && estSemaineOff(id, date)) return 'TP'; } catch (e) {}
+  }
   return '';
 }
 
@@ -2104,8 +2123,9 @@ function _paieAplatir_(json) {
       ids.push(doc.id);
       out.ids[doc.id] = true;
       (doc.days || []).forEach(function (e, i) {
-        const c = _paieCode_(e && e.status);
-        if (!c || !dates[i]) return;
+        if (!dates[i]) return;
+        const c = _paieCodeJour_(doc.id, dates[i], e && e.status, out.jours[dates[i]]);
+        if (!c) return;
         if (!out.cases[doc.id]) out.cases[doc.id] = {};
         out.cases[doc.id][dates[i]] = c;
       });

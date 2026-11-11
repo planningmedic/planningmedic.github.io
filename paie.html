@@ -8,8 +8,9 @@
      dans le logiciel de paie. LECTURE SEULE, un mois à la fois.
      Qui l'ouvre : le code partagé des secrétaires de paie (CONFIG / PAIE_CODE),
      le comité, et un MAR qui a la tuile cachée `paie` (CONFIG / TUILES_PRIVEES).
-     Le serveur (getPlanningPaie) n'envoie QUE G, G2 et V : aucun autre motif
-     d'absence n'arrive jusqu'ici, il n'y a donc rien à masquer côté page. -->
+     Le serveur (getPlanningPaie) n'envoie QUE G, G2, V (VM/VA) et, depuis le
+     11/11/2026, TP (jours de temps partiel, semaine off du 2/2 comprise) :
+     aucun autre motif d'absence n'arrive jusqu'ici, rien à masquer côté page. -->
 <link rel="icon" type="image/svg+xml" href="assets/favicon.svg">
 <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@300;400;500;600;700&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="partage/theme.css">
@@ -17,6 +18,7 @@
 :root{
   --surface-2:#EEF1F5;
   --g-bg:#E8F4FD; --g-fg:#1D6FB8; --g2-bg:#FFF1F3; --g2-fg:#BE123C; --v-bg:#F0FDF4; --v-fg:#166534;
+  --tp-bg:#EEF0F4; --tp-fg:#475569;
   --chg:#D97706; --chg-soft:#FEF3C7; --chg-fg:#92400E;
   --me:#1D6FB8; --me-soft:#E8F4FD; --me-border:#B9DCF5;
 }
@@ -77,6 +79,7 @@ table.mois td .c{display:block;width:26px;height:24px;line-height:24px;margin:au
                  font-size:11px;font-weight:700}
 .G{background:var(--g-bg);color:var(--g-fg)} .G2{background:var(--g2-bg);color:var(--g2-fg)}
 .V,.VM,.VA{background:var(--v-bg);color:var(--v-fg)}
+.TP{background:var(--tp-bg);color:var(--tp-fg)}
 .c.mod{box-shadow:0 0 0 2px var(--chg)}
 .c.vide{background:none}
 .tot{font-size:12px;font-weight:700;min-width:40px;border-left:1px solid var(--line)}
@@ -113,7 +116,7 @@ window.SessionPortail = window.SessionPortail || { lire:function(){try{return se
   <div style="background:var(--white);border:1px solid var(--line);border-radius:16px;box-shadow:0 10px 30px rgba(15,23,42,.08);padding:36px 32px;width:100%;max-width:380px;text-align:center">
     <img src="assets/logo.png" alt="" style="width:48px;height:48px;border-radius:12px;display:block;margin:0 auto 16px;box-shadow:0 4px 12px rgba(206,17,38,.30)">
     <div style="font-size:18px;font-weight:800;color:var(--ink)">Planning paie</div>
-    <div style="font-size:13px;color:var(--ink-3);margin:4px 0 22px">Gardes et vacances du service d'Anesthésie-Réanimation</div>
+    <div style="font-size:13px;color:var(--ink-3);margin:4px 0 22px">Gardes, vacances et temps partiels du service d'Anesthésie-Réanimation</div>
     <input id="authInput" type="password" placeholder="Code d'acc&egrave;s" autocomplete="off" autocapitalize="characters"
       style="width:100%;box-sizing:border-box;padding:12px 14px;font-size:16px;border:1px solid var(--line);border-radius:10px;text-align:center;letter-spacing:2px;font-family:monospace"/>
     <button id="authBtn"
@@ -127,7 +130,7 @@ window.SessionPortail = window.SessionPortail || { lire:function(){try{return se
     <div class="header-flag"><img src="assets/logo.png" alt="" style="width:100%;height:100%;object-fit:cover;display:block"></div>
     <div>
       <div class="header-title">Planning paie</div>
-      <div class="header-sub">Gardes et vacances, pour la saisie de la paie</div>
+      <div class="header-sub">Gardes, vacances et temps partiels, pour la saisie de la paie</div>
     </div>
   </div>
   <div class="header-right">
@@ -150,6 +153,7 @@ window.SessionPortail = window.SessionPortail || { lire:function(){try{return se
     <span><span class="sw G">G</span>garde réanimation</span>
     <span><span class="sw G2">G2</span>garde maternité</span>
     <span><span class="sw V">V</span>vacances</span>
+    <span><span class="sw TP">TP</span>temps partiel</span>
     <span><span class="sw" style="box-shadow:0 0 0 2px var(--chg)"></span>modifié depuis moins de 7 jours</span>
     <span><span class="sw we" style="background:var(--line-light)"></span>week-end</span>
     <span><b style="color:var(--g2-fg)">rouge</b>&nbsp;= jour férié</span>
@@ -174,7 +178,8 @@ let MOIS = '';               // 'AAAA-MM' affiché
 const JOURS_C = ['dim','lun','mar','mer','jeu','ven','sam'];
 const MOIS_L = ['janvier','février','mars','avril','mai','juin','juillet','août','septembre','octobre','novembre','décembre'];
 const LIB = { G:'garde réanimation', G2:'garde maternité', V:'vacances',
-              VM:'demi-journée de vacances (matin)', VA:'demi-journée de vacances (après-midi)' };
+              VM:'demi-journée de vacances (matin)', VA:'demi-journée de vacances (après-midi)',
+              TP:'jour de temps partiel' };
 const RECENT_MS = 7 * 24 * 3600 * 1000;
 
 /* ── Appel serveur : même filet que les autres pages ── */
@@ -272,11 +277,11 @@ async function afficher(){
     const d = new Date(j.date+'T12:00:00');
     h += '<th scope="col" class="'+(j.we?'we ':'')+(j.fe?'fe':'')+'"'+(j.fe?' title="Jour férié"':'')+'>'+JOURS_C[d.getDay()]+'<br>'+d.getDate()+'</th>';
   });
-  h += '<th class="tot" scope="col">G</th><th class="tot" scope="col">G2</th><th class="tot" scope="col">V</th></tr></thead><tbody>';
+  h += '<th class="tot" scope="col">G</th><th class="tot" scope="col">G2</th><th class="tot" scope="col">V</th><th class="tot" scope="col">TP</th></tr></thead><tbody>';
   const lignes = [];
   ids.forEach(id => {
     const cases = (r.cases && r.cases[id]) || {};
-    const tot = { G:0, G2:0, V:0 };
+    const tot = { G:0, G2:0, V:0, TP:0 };
     const ligne = { nom: r.noms[id] || id, cases: [], tot };
     h += '<tr><th class="nom" scope="row">'+esc(r.noms[id] || id)+'</th>';
     jours.forEach(j => {
@@ -289,7 +294,7 @@ async function afficher(){
       const tip = rec ? ' title="'+esc('Modifié le '+rec)+'"' : (c ? ' title="'+esc(LIB[c])+'"' : '');
       h += '<td class="'+(j.we?'we':'')+'"><span class="'+cls+'"'+tip+'>'+(c||'')+'</span></td>';
     });
-    h += '<td class="tot">'+(tot.G||'')+'</td><td class="tot">'+(tot.G2||'')+'</td><td class="tot">'+(tot.V ? String(tot.V).replace('.', ',') : '')+'</td></tr>';
+    h += '<td class="tot">'+(tot.G||'')+'</td><td class="tot">'+(tot.G2||'')+'</td><td class="tot">'+(tot.V ? String(tot.V).replace('.', ',') : '')+'</td><td class="tot">'+(tot.TP||'')+'</td></tr>';
     lignes.push(ligne);
   });
   zone.innerHTML = h + '</tbody></table>';
@@ -346,16 +351,16 @@ function chargerExcel(){
   });
   return _excelP;
 }
-const XL_FOND = { G:'FFE8F4FD', G2:'FFFFF1F3', V:'FFF0FDF4', VM:'FFF0FDF4', VA:'FFF0FDF4' }, XL_ENCRE = { G:'FF1D6FB8', G2:'FFBE123C', V:'FF166534', VM:'FF166534', VA:'FF166534' };
+const XL_FOND = { G:'FFE8F4FD', G2:'FFFFF1F3', V:'FFF0FDF4', VM:'FFF0FDF4', VA:'FFF0FDF4', TP:'FFEEF0F4' }, XL_ENCRE = { G:'FF1D6FB8', G2:'FFBE123C', V:'FF166534', VM:'FF166534', VA:'FF166534', TP:'FF475569' };
 document.getElementById('btnXls').addEventListener('click', async ()=>{
   if(!RENDU){ toast('Rien à exporter pour ce mois'); return; }
   try { toast('Préparation du fichier…'); await chargerExcel(); }
   catch(e){ toast('Export impossible : ' + e.message); return; }
   const R = RENDU, wb = new ExcelJS.Workbook(), ws = wb.addWorksheet(libMois(R.mois));
-  ws.addRow(['Médecin'].concat(R.jours.map(j => +j.date.slice(8,10)), ['G','G2','V']));
+  ws.addRow(['Médecin'].concat(R.jours.map(j => +j.date.slice(8,10)), ['G','G2','V','TP']));
   ws.getRow(1).font = { bold:true };
   R.lignes.forEach(l => {
-    const row = ws.addRow([l.nom].concat(l.cases, [l.tot.G||'', l.tot.G2||'', l.tot.V||'']));
+    const row = ws.addRow([l.nom].concat(l.cases, [l.tot.G||'', l.tot.G2||'', l.tot.V||'', l.tot.TP||'']));
     l.cases.forEach((c, i) => {
       if(!c) return;
       const cell = row.getCell(i+2);
@@ -365,7 +370,7 @@ document.getElementById('btnXls').addEventListener('click', async ()=>{
   });
   R.jours.forEach((j, i) => { if (j.we || j.fe) ws.getColumn(i+2).eachCell(c => { if(!c.fill || c.fill.pattern !== 'solid') c.fill = { type:'pattern', pattern:'solid', fgColor:{ argb:'FFF1F5F9' } }; }); });
   ws.getColumn(1).width = 22;
-  for (let i = 2; i <= R.jours.length + 4; i++) { ws.getColumn(i).width = 4.5; ws.getColumn(i).alignment = { horizontal:'center' }; }
+  for (let i = 2; i <= R.jours.length + 5; i++) { ws.getColumn(i).width = 4.5; ws.getColumn(i).alignment = { horizontal:'center' }; }
   ws.views = [{ state:'frozen', xSplit:1, ySplit:1 }];
   const buf = await wb.xlsx.writeBuffer();
   const a = document.createElement('a');

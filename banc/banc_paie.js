@@ -156,12 +156,14 @@ function monterPaie(extra) {
     MailApp: { getRemainingDailyQuota: () => 100, sendEmail: o => { if (ctx.__panne) throw new Error(ctx.__panne); mails.push(o); } },
     Utilities: { formatDate: (d, tz, f) => d.toISOString().slice(0, 16).replace('T', ' ') },
     _echangesDr_: id => 'Dr ' + id,
+    // (11/11/2026) Rythme 2/2 simulé : MAR02 est en semaine off du 23 au 29/11.
+    estSemaineOff: (id, d) => id === 'MAR02' && d >= '2026-11-23' && d <= '2026-11-29',
     _configRows_: () => [['CLE', 'VALEUR']].concat(ctx.__config || []),
     _echangesLignes_: () => ({ lignes: ctx.__echanges || [] }),
   }, extra || {}));
   ['NOTIF_JOURS', 'NOTIF_MOIS', 'NOTIF_PROP_TEST', 'PAIE_LIB', 'PAIE_DEMI', 'PAIE_SITE', 'PAIE_PROP_RECENTS', 'PAIE_RECENTS_JOURS']
     .forEach(n => vm.runInContext(extraireConst(CODE, n), ctx));
-  ['_paieCode_', '_paieDr_', '_paieNomSession_', '_paieAplatir_', '_planningPaie_', '_paieDiff_', '_paiePlages_',
+  ['_paieCode_', '_paieCodeJour_', '_paieDr_', '_paieNomSession_', '_paieAplatir_', '_planningPaie_', '_paieDiff_', '_paiePlages_',
    '_paieTotaux_', '_paieNb_', '_paieOrigine_', '_paieHeure_', '_paieJoli_', '_paieMoisJoli_', '_paieTag_', '_paieListe_',
    '_paieSujet_', '_paieGestes_', '_paieTexte_', '_paieHtml_', '_paieDestinataires_', '_paieRecentsLire_',
    '_paieRecentsAjouter_', '_paieEnvoyerAnnee_']
@@ -170,7 +172,7 @@ function monterPaie(extra) {
 }
 
 /* ═══ P3. getPlanningPaie ═══ */
-console.log('\n═══ P3. getPlanningPaie : seuls G, G2 et V sortent ═══');
+console.log('\n═══ P3. getPlanningPaie : seuls G, G2, V et TP sortent ═══');
 {
   const { ctx, drive } = monterPaie({
     getActiveYear: () => 2026,
@@ -179,17 +181,30 @@ console.log('\n═══ P3. getPlanningPaie : seuls G, G2 et V sortent ══�
     _aDroitTuile_: (id, cle) => id === 'MAR01' && cle === 'paie',
   });
   vm.runInContext(extraireFonction(GARDES, '_act_getPlanningPaie'), ctx);
-  drive['planning_2026.json'] = JSON.stringify(fabriquerPlanning(BASE));
+  // (11/11/2026) + une semaine off du 2/2 pour MAR02 (A du lundi 23 au dimanche 29)
+  // et un TP posé sur le férié du 11 : ni le week-end ni le férié ne sortent en TP.
+  const BASE_TP = copie(BASE);
+  ['23', '24', '25', '26', '27', '28', '29'].forEach(j => { BASE_TP.MAR02['2026-11-' + j] = 'A'; });
+  BASE_TP.MAR04['2026-11-11'] = 'TP';
+  drive['planning_2026.json'] = JSON.stringify(fabriquerPlanning(BASE_TP));
   const lire = (user, year) => JSON.parse(ctx._act_getPlanningPaie({ payload: { year: year || 2026 }, user }));
 
   const r = lire({ role: 'paie', id: 'PAIE' });
   V('le code paie lit le mois', r.success === true && r.role === 'paie', r);
   const valeurs = [].concat(...Object.values(r.cases).map(c => Object.values(c)));
-  V('chaque case vaut G, G2 ou V — rien d\'autre', valeurs.length > 0 && valeurs.every(v => v === 'G' || v === 'G2' || v === 'V'), valeurs);
+  V('chaque case vaut G, G2, V ou TP — rien d\'autre', valeurs.length > 0 && valeurs.every(v => ['G', 'G2', 'V', 'TP'].indexOf(v) > -1), valeurs);
   V('le compte est exact : 3 G, 3 G2, 3 V', valeurs.filter(v => v === 'G').length === 3 && valeurs.filter(v => v === 'G2').length === 3 && valeurs.filter(v => v === 'V').length === 3);
   V('VAC est servi comme V (même saisie dans le logiciel de paie)', r.cases.MAR03['2026-11-02'] === 'V');
+  // (11/11/2026) Jours de TP : TP et CTP servis comme TP, un jour ouvré seulement.
+  V('TP : un jour TP est servi comme TP', r.cases.MAR04['2026-11-24'] === 'TP');
+  V('TP : un jour CTP est servi comme TP', r.cases.MAR01['2026-11-05'] === 'TP');
+  V('TP : un « A » hors rythme 2/2 (statut A) reste écarté', !('2026-11-10' in r.cases.MAR01));
+  V('TP : un TP posé un jour férié ne sort pas', !('2026-11-11' in r.cases.MAR04));
+  const off = Object.keys(r.cases.MAR02 || {}).filter(d => r.cases.MAR02[d] === 'TP').sort();
+  V('TP : la semaine off du 2/2 (A) sort en TP, du lundi au vendredi seulement',
+    off.join(',') === '2026-11-23,2026-11-24,2026-11-25,2026-11-26,2026-11-27', off);
   const brut = JSON.stringify(r);
-  ['"CTP"', '"F"', '"A"', '"RG"', '"18"', '"CL"', '"TP"', '"R"', 'VIS', 'morning', 'afternoon'].forEach(x =>
+  ['"CTP"', '"F"', '"A"', '"RG"', '"18"', '"CL"', '"R"', 'VIS', 'morning', 'afternoon'].forEach(x =>
     V('la réponse ne contient nulle part ' + x, brut.indexOf(x) < 0));
   V('les jours portent week-end et férié', r.jours.find(j => j.date === '2026-11-14').we === true && r.jours.find(j => j.date === '2026-11-19').fe === true);
   V('les noms sont lisibles (Dr …)', r.noms.MAR02 === 'Dr MAR02');
@@ -240,6 +255,12 @@ const MAINTENANT = Date.parse('2026-11-16T09:00:00Z');
   const conges = copie(BASE); conges.MAR02['2026-11-06'] = 'CTP'; conges.MAR04['2026-11-10'] = 'F';
   r = envoyer(conges);
   V('un congé ou une formation ne produit aucun mail', mails.length === 0, r);
+
+  // 4 bis. (11/11/2026) Un jour de TP ajouté ou déplacé : visible sur la page, aucun mail.
+  const tp = copie(BASE); tp.MAR04['2026-11-26'] = 'TP'; delete tp.MAR04['2026-11-24'];
+  r = envoyer(tp);
+  V('un changement de TP ne produit aucun mail', mails.length === 0 && r.motif === 'rien pour la paie', r);
+  r = envoyer(conges);
 
   // 5. DON : la garde réa du samedi 14 passe de MAR01 à MAR02 (et le congé reste muet).
   ctx.__echanges = [{ TYPE: 'don', DATE: '2026-11-14', DATE2: '', DEMANDEUR: 'MAR01', RECEVEUR: 'MAR02', ETAT: 'acceptee', REPONDU_LE: '2026-11-16T08:42:00.000Z' }];
@@ -414,12 +435,13 @@ console.log('\n═══ P5. Branchement : indépendant des mails aux MAR ══
     V('le titre est le mois demandé par le lien', d.getElementById('titreMois').textContent === 'Novembre 2026');
     const lignes = d.querySelectorAll('table.mois tbody tr');
     V('une ligne par médecin : 4', lignes.length === 4);
-    V('30 colonnes de jours + 3 totaux', d.querySelectorAll('table.mois thead th').length === 1 + 30 + 3);
+    V('30 colonnes de jours + 4 totaux (G, G2, V, TP)', d.querySelectorAll('table.mois thead th').length === 1 + 30 + 4);
     const textes = [...d.querySelectorAll('table.mois tbody td .c')].map(e => e.textContent).filter(Boolean);
-    V('les cases ne montrent que G, G2, V', textes.length === 9 && textes.every(t => ['G', 'G2', 'V'].includes(t)), textes);
+    V('les cases ne montrent que G, G2, V, TP', textes.length === 11 && textes.every(t => ['G', 'G2', 'V', 'TP'].includes(t)), textes);
+    V('les 2 jours de TP (TP et CTP) sont affichés TP', textes.filter(t => t === 'TP').length === 2, textes);
     const l1 = [...lignes].find(tr => tr.querySelector('th').textContent === 'Dr MAR01');
     const tots = [...l1.querySelectorAll('td.tot')].map(t => t.textContent);
-    V('totaux de Dr MAR01 : 2 G, 0 G2, 0 V', tots.join('|') === '2||', tots);
+    V('totaux de Dr MAR01 : 2 G, 0 G2, 0 V, 1 TP', tots.join('|') === '2|||1', tots);
     const mods = [...d.querySelectorAll('.c.mod')];
     V('cadre orange sur les 2 cases changées il y a 2 jours (pas sur celles d\'il y a 10 jours)', mods.length === 2, mods.length);
     V('le 19 novembre (férié) est en rouge', [...d.querySelectorAll('table.mois thead th.fe')].some(th => /19/.test(th.textContent)));
