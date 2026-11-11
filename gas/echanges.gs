@@ -39,7 +39,7 @@
    depuis l'éditeur : installerDeclencheurEchanges().
    ═══════════════════════════════════════════════════════════════════════ */
 
-const GAS_VERSION_ECHANGES = '2026-11-11.2';   // (11/11/2026) un 18 h écrasé par un don passe au donneur, prévenu avant d'envoyer (accepte18) · (11/11/2026) récupérations automatiques : R neuf quand il ne peut pas suivre son samedi, R écrasé reposé, bouton Réparer (recupsReparer), lien recollé à la pose manuelle · (10/11/2026) l'historique dit qui a accepté (onglet HISTORIQUE)
+const GAS_VERSION_ECHANGES = '2026-11-11.3';   // (11/11/2026) échange de deux 18 h entre MAR (type echange18) · (11/11/2026) un 18 h écrasé par un don passe au donneur, prévenu avant d'envoyer (accepte18) · (11/11/2026) récupérations automatiques : R neuf quand il ne peut pas suivre son samedi, R écrasé reposé, bouton Réparer (recupsReparer), lien recollé à la pose manuelle · (10/11/2026) l'historique dit qui a accepté (onglet HISTORIQUE)
 
 const ECHANGES_ONGLET = 'ECHANGES';
 const ECHANGES_ENTETE = ['ID', 'CREE_LE', 'TYPE', 'ANNEE', 'DATE', 'DATE2',
@@ -187,6 +187,11 @@ function _echangesVersMod_(d) {
     return { type: 'donGarde', year: Number(d.ANNEE), date: d.DATE,
              doctorId: d.DEMANDEUR, doctorId2: d.RECEVEUR };
   }
+  if (d.TYPE === 'echange18') {   // (11/11/2026) deux 18 h échangés
+    return { type: 'echange18Jours', year: Number(d.ANNEE),
+             date: d.DATE, date2: d.DATE2,
+             doctorId: d.DEMANDEUR, doctorId2: d.RECEVEUR };
+  }
   if (d.TYPE === 'echange') {
     return { type: 'echangeGardeJours', year: Number(d.ANNEE),
              date: d.DATE, date2: d.DATE2,
@@ -206,9 +211,9 @@ function creerEchange(user, p) {
   const date2 = String(p.date2 || '').trim();
   const receveur = String(p.receveur || '').trim();
 
-  if (type !== 'don' && type !== 'echange') throw new Error('Type de demande inconnu');
+  if (type !== 'don' && type !== 'echange' && type !== 'echange18') throw new Error('Type de demande inconnu');
   if (!/^\d{4}-\d{2}-\d{2}$/.test(date)) throw new Error('Date invalide');
-  if (type === 'echange' && !/^\d{4}-\d{2}-\d{2}$/.test(date2)) throw new Error('Seconde date invalide');
+  if ((type === 'echange' || type === 'echange18') && !/^\d{4}-\d{2}-\d{2}$/.test(date2)) throw new Error('Seconde date invalide');
   if (!receveur) throw new Error('Destinataire absent');
   if (receveur === user.id) throw new Error('On ne se propose pas une garde à soi-même');
   /* Circuit fermé (avant ouvrirEchanges) : le RECEVEUR aussi doit être
@@ -218,7 +223,7 @@ function creerEchange(user, p) {
     throw new Error('Les échanges ne sont pas encore ouverts à ' + receveur);
   }
 
-  const demande = { TYPE: type, ANNEE: year, DATE: date, DATE2: type === 'echange' ? date2 : '',
+  const demande = { TYPE: type, ANNEE: year, DATE: date, DATE2: type !== 'don' ? date2 : '',
                     DEMANDEUR: user.id, RECEVEUR: receveur };
   // Contrôles joués DÈS LA CRÉATION (décision du 11/08) : mêmes juges que
   // l'écriture réelle, aucune duplication. Lève en cas de refus.
@@ -245,11 +250,13 @@ function creerEchange(user, p) {
 
   _echangesVersKV_();
   notifierPush_(
-    type === 'don' ? 'Proposition de garde' : 'Proposition d\'échange',
+    type === 'don' ? 'Proposition de garde' : type === 'echange18' ? 'Proposition d\'échange de 18 h' : 'Proposition d\'échange',
     type === 'don'
       ? _echangesDr_(user.id) + ' vous propose sa garde du ' + _echangesJoli_(date) + '.'
         + (menaces18.length ? ' En acceptant, votre 18 h du ' + menaces18.map(_echangesJoli_).join(' et du ') + ' passe au ' + _echangesDr_(user.id) + '.' : '')
-      : _echangesDr_(user.id) + ' vous propose sa garde du ' + _echangesJoli_(date) + ' contre la vôtre du ' + _echangesJoli_(demande.DATE2) + '.',
+      : type === 'echange18'
+        ? _echangesDr_(user.id) + ' vous propose son 18 h du ' + _echangesJoli_(date) + ' contre le vôtre du ' + _echangesJoli_(demande.DATE2) + '.'
+        : _echangesDr_(user.id) + ' vous propose sa garde du ' + _echangesJoli_(date) + ' contre la vôtre du ' + _echangesJoli_(demande.DATE2) + '.',
     './index.html', { id: receveur, pastille: _echangesEnAttentePour_(receveur) });
   return { id: id };
 }
@@ -306,7 +313,8 @@ function repondreEchange(user, p) {
   // ailleurs AVANT les transferts : seuls les R écrasés sont vus manquants.
   const reposes = _recupsReposerPerdus_(Number(d.ANNEE), releveR, String(d.RECEVEUR) + ' (accepte ' + d.ID + ')');
   // (11/11/2026) Un 18 h écrasé passe à l'autre MAR du geste, libéré ce jour-là.
-  const reports18 = _echanges18Reporter_(Number(d.ANNEE), releve18, String(d.RECEVEUR) + ' (accepte ' + d.ID + ')');
+  // Un échange de 18 h déplace des 18 h exprès : rien à reporter.
+  const reports18 = d.TYPE === 'echange18' ? [] : _echanges18Reporter_(Number(d.ANNEE), releve18, String(d.RECEVEUR) + ' (accepte ' + d.ID + ')');
 
   // Samedi qui change de mains → transfert du R de CE samedi.
   // Don : la garde du DATE passe au receveur. Échange : chaque samedi
@@ -335,6 +343,8 @@ function repondreEchange(user, p) {
 
   let corps = (d.TYPE === 'don')
     ? 'La garde du ' + _echangesJoli_(d.DATE) + ' passe du ' + _echangesDr_(d.DEMANDEUR) + ' au ' + _echangesDr_(d.RECEVEUR) + '.'
+    : (d.TYPE === 'echange18')
+    ? '18 h échangés : le ' + _echangesDr_(d.DEMANDEUR) + ' fait le ' + _echangesJoli_(d.DATE2) + ', le ' + _echangesDr_(d.RECEVEUR) + ' fait le ' + _echangesJoli_(d.DATE) + '.'
     : 'Gardes échangées : le ' + _echangesDr_(d.DEMANDEUR) + ' prend le ' + _echangesJoli_(d.DATE2) + ', le ' + _echangesDr_(d.RECEVEUR) + ' prend le ' + _echangesJoli_(d.DATE) + '.';
   rInfos.forEach(r => { if (r.fait && !r.neuf) corps += ' La récupération du ' + _echangesJoli_(r.dateR) + ' est transférée.'; });
   notifierPush_('Échange confirmé', corps, './index.html', { id: String(d.DEMANDEUR) });

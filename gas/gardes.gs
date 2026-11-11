@@ -4,7 +4,7 @@
    quelles : aucune ligne de logique modifiée, seulement déplacée. Le routeur et
    ses aides (checkCode, _deny, _error, doGet/doPost) restent dans Indispos.gs.
    Un seul espace global dans Apps Script : rien à importer. */
-const GAS_VERSION_GARDES = '2026-11-11.1';   // (11/11/2026) le comité pose un R (statut « R ») et le lien samedi → R se recolle · (10/11/2026) lotRolesVerifier / lotRolesAppliquer (inversion réa / mater par lot, depuis l'éditeur) · (10/11/2026) un échange, un don ou une modification republie et prévient (MAR et paie) pour l'année DE LA GARDE, plus l'année active · (10/11/2026) le suivi des gestes écrit dans son propre onglet TRACES, plus jamais dans HISTORIQUE (archive des gardes par année) · (10/11/2026) onglet de suivi (TP, modifications, échanges, lot de 18 h), jamais effacé · (10/11/2026) lot18hVerifier / lot18hAppliquer (réattribution de 18 h par lot, depuis l'éditeur) · (27/10/2026) VM/VA : bloquent un don/échange, comptent 0,5 jour au reliquat · (18/10/2026) action getPlanningPaie (vue des secrétaires de paie)
+const GAS_VERSION_GARDES = '2026-11-11.2';   // (11/11/2026) échange de deux 18 h (echange18Jours) · (11/11/2026) le comité pose un R (statut « R ») et le lien samedi → R se recolle · (10/11/2026) lotRolesVerifier / lotRolesAppliquer (inversion réa / mater par lot, depuis l'éditeur) · (10/11/2026) un échange, un don ou une modification republie et prévient (MAR et paie) pour l'année DE LA GARDE, plus l'année active · (10/11/2026) le suivi des gestes écrit dans son propre onglet TRACES, plus jamais dans HISTORIQUE (archive des gardes par année) · (10/11/2026) onglet de suivi (TP, modifications, échanges, lot de 18 h), jamais effacé · (10/11/2026) lot18hVerifier / lot18hAppliquer (réattribution de 18 h par lot, depuis l'éditeur) · (27/10/2026) VM/VA : bloquent un don/échange, comptent 0,5 jour au reliquat · (18/10/2026) action getPlanningPaie (vue des secrétaires de paie)
 
 // ── Sonde : les positions de STATS que code.gs lit à l'aveugle ──
 function _sondeStatsEntetes_(check, R, annee) {
@@ -497,6 +497,25 @@ function applyModification(mod) {
       writeCell(`GARDES_${year}`, doctorId2, date,   valGarde);
       writeCell(`GARDES_${year}`, doctorId,  jourRG, '');
       writeCell(`GARDES_${year}`, doctorId2, jourRG, 'RG');
+      break;
+    }
+    case 'echange18Jours': {
+      /* (11/11/2026 — demande de l'équipe) Échange de DEUX 18 h à deux dates :
+         doctorId@date (18) <-> doctorId2@date2 (18). Chacun doit être libre à la
+         date qu'il reçoit (case vide) : rien n'est jamais écrasé. */
+      if (date === date2) throw new Error('Les deux dates doivent être différentes');
+      verifieCellules([[doctorId, date], [doctorId, date2], [doctorId2, date], [doctorId2, date2]]);
+      const _c = v => String(v == null ? '' : v).trim().replace(/\.0$/, '');
+      if (_c(readCell(`GARDES_${year}`, doctorId,  date))  !== '18') throw new Error(`${doctorId} n'est pas de 18 h le ${date}`);
+      if (_c(readCell(`GARDES_${year}`, doctorId2, date2)) !== '18') throw new Error(`${doctorId2} n'est pas de 18 h le ${date2}`);
+      const surA = _c(readCell(`GARDES_${year}`, doctorId,  date2));
+      const surB = _c(readCell(`GARDES_${year}`, doctorId2, date));
+      if (surA) throw new Error(`${doctorId} n'est pas libre le ${date2} (${surA}) — échange de 18 h impossible`);
+      if (surB) throw new Error(`${doctorId2} n'est pas libre le ${date} (${surB}) — échange de 18 h impossible`);
+      writeCell(`GARDES_${year}`, doctorId,  date,  '');
+      writeCell(`GARDES_${year}`, doctorId2, date,  '18');
+      writeCell(`GARDES_${year}`, doctorId2, date2, '');
+      writeCell(`GARDES_${year}`, doctorId,  date2, '18');
       break;
     }
     case 'echangeGardeJours': {

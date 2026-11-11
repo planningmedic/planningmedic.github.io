@@ -804,7 +804,7 @@ html[data-theme="dark"] .vs-pill{background:#251B3C;color:#B593F2}
           <span class="ech-pastille" id="echPastille" style="display:none"></span>
           <div class="tile-ico"><i data-lucide="repeat"></i></div>
           <div class="tile-title" id="echHeroMain">Mes échanges</div>
-          <div class="tile-sub" id="echHeroSub">Donner ou échanger une garde avec un collègue.</div>
+          <div class="tile-sub" id="echHeroSub">Donner ou échanger une garde, échanger un 18 h.</div>
           <div class="tile-arrow">Ouvrir <i data-lucide="arrow-right" style="width:15px;height:15px"></i></div>
         </div>
       </div>
@@ -2295,7 +2295,7 @@ function majEchangesHero(){
     sub.textContent = 'Touchez pour répondre.';
   } else {
     main.textContent = 'Mes échanges';
-    sub.textContent = 'Donner ou échanger une garde avec un collègue.';
+    sub.textContent = 'Donner ou échanger une garde, échanger un 18 h.';
   }
 }
 
@@ -2346,7 +2346,7 @@ function renderEchanges(){
     const don = e.type==='don';
     const titre = don
       ? 'Don de garde — ' + _echDrLisible(e.demandeur) + ' → ' + _echDrLisible(e.receveur)
-      : 'Échange — ' + _echDrLisible(e.demandeur) + ' ↔ ' + _echDrLisible(e.receveur);
+      : (e.type==='echange18' ? 'Échange de 18 h — ' : 'Échange — ') + _echDrLisible(e.demandeur) + ' ↔ ' + _echDrLisible(e.receveur);
     let detail = don
       ? 'Garde du <b>' + esc(fmtDate(e.date)) + '</b> → planning de ' + esc(_echDrLisible(e.receveur))
       : esc(_echDrLisible(e.demandeur)) + ' prend le <b>' + esc(fmtDate(e.date2)) + '</b>, ' + esc(_echDrLisible(e.receveur)) + ' prend le <b>' + esc(fmtDate(e.date)) + '</b>';
@@ -2420,7 +2420,8 @@ async function _echMesGardesAvecAnnee(){
       if(!doc||!doc.days) return;
       for(let i=0;i<doc.days.length;i++){
         const st=(doc.days[i]||{}).status;
-        if((st==='G'||st==='G2') && m.days[i] && m.days[i].date>=today)
+        // (11/11/2026) les 18 h aussi : ils s'échangent contre un 18 h (demande de l'équipe)
+        if((st==='G'||st==='G2'||st==='18') && m.days[i] && m.days[i].date>=today)
           out.push({date:m.days[i].date, type:st, annee:y});
       }
     });
@@ -2443,13 +2444,27 @@ function _echGardesDe(plan, id, today){
   return out;
 }
 
+/* (11/11/2026) Les 18 h à venir d'un collègue : contreparties d'un échange de 18 h. */
+function _ech18De(plan, id, today){
+  const out=[];
+  if(!plan||!plan.months) return out;
+  plan.months.forEach(function(m){
+    const doc=(m.doctors||[]).find(function(d){ return d.id===id; });
+    if(!doc||!doc.days) return;
+    for(let i=0;i<doc.days.length;i++){
+      if(String((doc.days[i]||{}).status)==='18' && m.days[i] && m.days[i].date>=today) out.push({date:m.days[i].date, type:'18'});
+    }
+  });
+  return out;
+}
+
 async function echOuvrirProposition(){
   const p = document.getElementById('echProposition');
   if (p.style.display !== 'none') { p.style.display='none'; return; }
   p.style.display='block';
-  p.innerHTML = '<div class="topos-loading">Chargement de vos gardes…</div>';
+  p.innerHTML = '<div class="topos-loading">Chargement de vos gardes et 18 h…</div>';
   const gardes = await _echMesGardesAvecAnnee();
-  if (!gardes.length) { p.innerHTML = '<div class="topos-empty">Aucune garde à venir à proposer.</div>'; return; }
+  if (!gardes.length) { p.innerHTML = '<div class="topos-empty">Aucune garde ni 18 h à venir à proposer.</div>'; return; }
   ECH_PROP = { type:'don', gardes:gardes };
   let plan = null;
   try { plan = _planDejaLa(gardes[0].annee) || await _fetchPlanning(gardes[0].annee); } catch(e){}
@@ -2457,21 +2472,21 @@ async function echOuvrirProposition(){
   if (plan && plan.months && plan.months[0]) (plan.months[0].doctors||[]).forEach(function(d){ if(d.id && d.id!==MY_ID) medecins.push(d.id); });
   medecins.sort();
   p.innerHTML =
-      '<label>Ma garde</label>'
+      '<label>Ma garde ou mon 18 h</label>'
     + '<select id="echSelGarde" onchange="echMajProposition()">'
-    + gardes.map(function(g,i){ return '<option value="'+i+'">'+esc(fmtDate(g.date))+' — '+(g.type==='G2'?'Mater/Bloc':'Réa')+'</option>'; }).join('')
+    + gardes.map(function(g,i){ return '<option value="'+i+'">'+esc(fmtDate(g.date))+' — '+(g.type==='18'?'18 h':g.type==='G2'?'Mater/Bloc':'Réa')+'</option>'; }).join('')
     + '</select>'
-    + '<label>Je souhaite</label>'
+    + '<div id="echBlocTypes"><label>Je souhaite</label>'
     + '<div class="ech-types">'
     + '<button id="echTypeDon" class="actif" onclick="echType(\'don\')">La donner</button>'
     + '<button id="echTypeEch" onclick="echType(\'echange\')">L\'échanger</button>'
-    + '</div>'
+    + '</div></div>'
     + '<label>À</label>'
     + '<select id="echSelQui" onchange="echMajProposition()">'
     + '<option value="">Choisir un collègue…</option>'
     + medecins.map(function(id){ return '<option value="'+esc(id)+'">'+esc(_echDrLisible(id))+'</option>'; }).join('')
     + '</select>'
-    + '<div id="echBlocContre" style="display:none"><label>Contre sa garde du</label><select id="echSelContre"><option value="">Choisir…</option></select></div>'
+    + '<div id="echBlocContre" style="display:none"><label id="echLblContre">Contre sa garde du</label><select id="echSelContre"><option value="">Choisir…</option></select></div>'
     + '<div id="echAvert" class="ech-avert" style="display:none"></div>'
     + '<button id="echEnvoyer" class="ech-envoyer" onclick="envoyerProposition(this)">Envoyer la proposition</button>'
     + '<div class="ech-msg" id="echMsgProp" style="display:none"></div>';
@@ -2489,7 +2504,23 @@ async function echMajProposition(){
   const g = ECH_PROP.gardes[Number(document.getElementById('echSelGarde').value)||0];
   const qui = document.getElementById('echSelQui').value;
   const blocContre = document.getElementById('echBlocContre');
-  if (ECH_PROP.type==='echange') {
+  /* (11/11/2026) Un 18 h ne se donne pas : il s'échange contre un 18 h du collègue. */
+  const est18 = g.type==='18';
+  document.getElementById('echBlocTypes').style.display = est18 ? 'none' : 'block';
+  if (est18) ECH_PROP.type = 'echange18';
+  else if (ECH_PROP.type==='echange18') { ECH_PROP.type = 'don'; document.getElementById('echTypeDon').classList.add('actif'); document.getElementById('echTypeEch').classList.remove('actif'); }
+  document.getElementById('echLblContre').textContent = est18 ? 'Contre son 18 h du' : 'Contre sa garde du';
+  if (est18) {
+    blocContre.style.display='block';
+    const sel = document.getElementById('echSelContre');
+    if (qui) {
+      let plan=null; try { plan=_planDejaLa(g.annee) || await _fetchPlanning(g.annee); } catch(e){}
+      const siens=_ech18De(plan, qui, _todayStr()).filter(function(s){ return s.date!==g.date; });
+      sel.innerHTML = siens.length
+        ? '<option value="">Choisir…</option>' + siens.map(function(s){ return '<option value="'+esc(s.date)+'">'+esc(fmtDate(s.date))+' — 18 h</option>'; }).join('')
+        : '<option value="">Aucun 18 h à venir chez ce collègue</option>';
+    } else sel.innerHTML='<option value="">Choisir d\'abord un collègue…</option>';
+  } else if (ECH_PROP.type==='echange') {
     blocContre.style.display='block';
     const sel = document.getElementById('echSelContre');
     if (qui) {
@@ -2522,9 +2553,9 @@ async function envoyerProposition(btn){
   const erreur = function(t){ msg.className='ech-msg err'; msg.style.display='block'; msg.textContent=t; };
   if (!qui) return erreur('Choisissez un collègue.');
   const charge = { action:'creerEchange', type:ECH_PROP.type, year:g.annee, date:g.date, receveur:qui };
-  if (ECH_PROP.type==='echange') {
+  if (ECH_PROP.type==='echange' || ECH_PROP.type==='echange18') {
     const contre = document.getElementById('echSelContre').value;
-    if (!contre) return erreur('Choisissez la garde à recevoir en échange.');
+    if (!contre) return erreur(ECH_PROP.type==='echange18' ? 'Choisissez le 18 h à recevoir en échange.' : 'Choisissez la garde à recevoir en échange.');
     charge.date2 = contre;
   }
   if (ECH_PROP.ok18) charge.accepte18 = true;   // (11/11/2026) le donneur a lu et confirmé

@@ -260,6 +260,41 @@ console.log('\n═══ 7. Un don qui écraserait un 18 h : prévenu avant, le 
   V('sans 18 h en jeu, aucune confirmation demandée', !err, err);
 }
 
+console.log('\n═══ 8. Échanger un 18 h contre un 18 h (demande de l\'équipe, 11/11/2026) ═══');
+{
+  const b = monde();
+  b.poser('ALPHA', '2027-03-10', '18'); b.poser('BRAVO', '2027-03-17', '18');
+  b.notifs.length = 0;
+  const r = b.run(`creerEchange(${JSON.stringify(user('ALPHA'))}, { type:'echange18', year:2027, date:'2027-03-10', date2:'2027-03-17', receveur:'BRAVO' })`);
+  V('la proposition part', !!r.id);
+  V('le collègue lit « son 18 h du … contre le vôtre du … »', b.notifs.some(n => n.cible.id === 'BRAVO' && /son 18 h du 10\/03\/2027 contre le vôtre du 17\/03\/2027/.test(n.corps)), b.notifs);
+  V('rien n\'est écrit avant l\'acceptation', String(b.lire('ALPHA', '2027-03-10')) === '18' && b.lire('BRAVO', '2027-03-10') === '');
+  b.notifs.length = 0;
+  const rep = b.run(`repondreEchange(${JSON.stringify(user('BRAVO'))}, { id:${JSON.stringify(r.id)}, reponse:'accepter' })`);
+  V('accepté : chacun fait le 18 h de l\'autre', rep.etat === 'acceptee'
+    && b.lire('ALPHA', '2027-03-10') === '' && String(b.lire('BRAVO', '2027-03-10')) === '18'
+    && b.lire('BRAVO', '2027-03-17') === '' && String(b.lire('ALPHA', '2027-03-17')) === '18', rep);
+  V('les deux sont prévenus', b.notifs.filter(n => /18 h échangés/.test(n.corps)).length === 2, b.notifs);
+  V('aucun « 18 h perdu » ni report parasite', !b.journal.some(m => /perdu par|repris par l'autre MAR/.test(m)), b.journal.slice(-5));
+}
+{
+  const b = monde();
+  b.poser('ALPHA', '2027-03-10', '18'); b.poser('BRAVO', '2027-03-17', '18'); b.poser('BRAVO', '2027-03-10', 'V');
+  let err = '';
+  try { b.run(`creerEchange(${JSON.stringify(user('ALPHA'))}, { type:'echange18', year:2027, date:'2027-03-10', date2:'2027-03-17', receveur:'BRAVO' })`); } catch (e) { err = e.message; }
+  V('refusé dès l\'envoi si le collègue n\'est pas libre le jour qu\'il reçoit', /BRAVO n'est pas libre le 2027-03-10/.test(err), err);
+  V('…et rien n\'est créé', !b.cl.getSheetByName('ECHANGES') || b.cl.getSheetByName('ECHANGES').lignes.slice(1).filter(l => l[0]).length === 0);
+  b.poser('BRAVO', '2027-03-10', '');
+  b.poser('ALPHA', '2027-03-10', '');
+  err = '';
+  try { b.run(`creerEchange(${JSON.stringify(user('ALPHA'))}, { type:'echange18', year:2027, date:'2027-03-10', date2:'2027-03-17', receveur:'BRAVO' })`); } catch (e) { err = e.message; }
+  V('refusé si la date proposée n\'est pas un 18 h du demandeur', /ALPHA n'est pas de 18 h le 2027-03-10/.test(err), err);
+  b.poser('ALPHA', '2027-03-10', '18'); b.garde('ALPHA', '2027-03-17');
+  err = '';
+  try { b.run(`creerEchange(${JSON.stringify(user('ALPHA'))}, { type:'echange18', year:2027, date:'2027-03-10', date2:'2027-03-17', receveur:'BRAVO' })`); } catch (e) { err = e.message; }
+  V('jamais un 18 h sur une garde : refusé', /ALPHA n'est pas libre le 2027-03-17 \(G\)/.test(err), err);
+}
+
 console.log('\n═══ 6. Les pages ═══');
 {
   const admin = fs.readFileSync(path.join(__dirname, '..', 'admin.html'), 'utf8');
@@ -271,6 +306,8 @@ console.log('\n═══ 6. Les pages ═══');
   V('portail : un refus [18] affiche l\'avertissement et demande la confirmation', /\/\^\\\[18\\\] \/\.test\(r\.error/.test(idx) && /Confirmer : je ferai ce 18 h/.test(idx));
   V('portail : la confirmation part avec la demande (accepte18)', /if \(ECH_PROP\.ok18\) charge\.accepte18 = true;/.test(idx));
   V('portail : changer de garde ou de collègue redemande la confirmation', /ECH_PROP\.ok18 = false;/.test(idx));
+  V('portail : mes 18 h sont proposables, échangés contre un 18 h du collègue', /st==='18'\) && m\.days\[i\]/.test(idx) && /function _ech18De\(/.test(idx) && /ECH_PROP\.type = 'echange18'/.test(idx) && /Contre son 18 h du/.test(idx));
+  V('portail : la liste affiche « Échange de 18 h »', /e\.type==='echange18' \? 'Échange de 18 h — '/.test(idx));
   V('Réparer demande deux appuis et envoie l\'année', /deuxAppuis\(\$\('btnRecRep'\)/.test(m) && /action:'recupsReparer', appliquer: true, year: y/.test(m));
 }
 
