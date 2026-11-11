@@ -1048,8 +1048,10 @@ console.log('\n═══ PT31 · deux défauts trouvés en production le 23/08 �
     /action: 'deciderJourTpLot', year: TPC\.annee/.test(adm), 'année absente');
   V('…et TPC porte bien une année, prise sur la clé la plus récente', /annee: Number\(\(cles\[cles\.length - 1\]/.test(adm));
   const M = fs.readFileSync('../gas/miroir.gs', 'utf8');
+  // (11/11/2026) La lecture est passée dans _miroirAnneeDuPayload_ (qui sait aussi
+  // retrouver l'année d'une demande d'échange) ; la règle reste : payload, sinon active.
   V('témoin : le serveur lit l\'année dans le payload, sinon l\'année active',
-    /Number\(payload\.year\) \|\| getActiveYear\(\)/.test(M));
+    /if \(Number\(payload\.year\)\) return Number\(payload\.year\);/.test(M) && /const annee = anneeLue \|\| getActiveYear\(\);/.test(M));
 
   /* (b) RETIRER N'EST PAS REFUSER. Le récapitulatif rangeait tout verdict
      autre que TP/TPA dans les refusés : un MAR qui corrigeait sa propre

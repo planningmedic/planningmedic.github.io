@@ -194,6 +194,27 @@ console.log('\n═══ 2 quinquies. Annuler sa proposition (11/11/2026) ══
   V('CONTRE-PREUVE : une proposition annulée ne s\'accepte plus', /déjà annulee/.test(e3 || '') && JSON.stringify(b.cl.getSheetByName('GARDES_2027').lignes) === avant, e3);
 }
 
+console.log('\n═══ 2 sexies. Accepter ou annuler rafraîchit le planning de l\'année DE LA DEMANDE (11/11/2026) ═══');
+{
+  /* Vu en réel : année active 2026, échange sur 2027. L'accroche ne recevait
+     que l'identifiant, se repliait sur 2026 et ne repoussait pas le planning
+     2027 : vue annuelle et « Mes gardes » restaient sur l'ancien planning. */
+  const b = monde(2027, { anneeActive: 2026 });
+  const j = b.dates[9];
+  b.poser('ALPHA', j, 'G'); b.poser('ALPHA', b.dates[10], 'RG');
+  const r = vm.runInContext(`creerEchange(${JSON.stringify(user('ALPHA'))}, { type:'don', year:2027, date:${JSON.stringify(j)}, receveur:'BRAVO' })`, b.ctx);
+  vm.runInContext(extraireFonction('../gas/miroir.gs', '_miroirAnneeDuPayload_'), b.ctx);
+  const an = p => vm.runInContext('_miroirAnneeDuPayload_(' + JSON.stringify(p) + ')', b.ctx);
+  V('accepter (identifiant seul) → année 2027, lue dans la demande', an({ action:'repondreEchange', id:r.id, reponse:'accepter' }) === 2027);
+  V('annuler (identifiant seul) → année 2027', an({ action:'annulerEchange', id:r.id }) === 2027);
+  V('une année envoyée par l\'écran reste prioritaire', an({ action:'repondreEchange', id:r.id, year:2028 }) === 2028);
+  V('CONTRE-PREUVE : identifiant inconnu → 0 (repli sur l\'année active, comme avant)', an({ action:'repondreEchange', id:'E-inconnu' }) === 0);
+  V('une autre action sans année n\'est pas touchée', an({ action:'saveIndispos' }) === 0);
+  const idx = fs.readFileSync(path.join(__dirname, '..', 'index.html'), 'utf8');
+  V('l\'écran envoie l\'année de la demande quand il accepte', /if \(_it && _it\.annee\) charge\.year = Number\(_it\.annee\);/.test(idx));
+  V('…et quand il annule', /action:'annulerEchange', id:id \}, _it && _it\.annee \? \{ year: Number\(_it\.annee\) \}/.test(idx));
+}
+
 console.log('\n═══ 2 bis. Indisponibilité de campagne seule (INDISPOS) : ne bloque plus, l\'accord fait foi ═══');
 {
   const b = monde(2027);

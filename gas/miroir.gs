@@ -1,7 +1,7 @@
 // ⚠️ RÈGLE (détecteur de dérive dépôt↔Apps Script) : incrémenter cette version
 // à CHAQUE push de ce fichier. Le diagnostic (admin → Maintenance) compare la
 // version déployée ici avec celle du dépôt et signale toute recopie oubliée.
-const GAS_VERSION_MIROIR = '2026-11-11.2';   // (11/11/2026) annulerEchange rafraîchit les échanges · (11/11/2026) recupsReparer rafraîchit planning et gardes · (06/11/2026) retrait d'annonceFinSaisie (envoyée) · (02/11/2026) commentaire : identifiants d'exemple fictifs · (27/10/2026) champ ordreMc dans acces · (20/10/2026) clé etablissement (nom et adresse du devis) · (21/10) setVeilleAbo → veille_marques
+const GAS_VERSION_MIROIR = '2026-11-11.3';   // (11/11/2026) accepter ou annuler un échange repousse le planning de l'année DE LA DEMANDE (lue dans ECHANGES), plus l'année active · (11/11/2026) annulerEchange rafraîchit les échanges · (11/11/2026) recupsReparer rafraîchit planning et gardes · (06/11/2026) retrait d'annonceFinSaisie (envoyée) · (02/11/2026) commentaire : identifiants d'exemple fictifs · (27/10/2026) champ ordreMc dans acces · (20/10/2026) clé etablissement (nom et adresse du devis) · (21/10) setVeilleAbo → veille_marques
 
 /* ═══════════════════════════════════════════════════════════════════════
    MIROIR.GS — alimentation du miroir de lecture Cloudflare
@@ -123,17 +123,35 @@ const MIROIR_APRES_ECRITURE = {
 /* (2026-08-05.6) ACCROCHE DIFFEREE — récit : docs/JOURNAL-Planning-Med.md §131 */
 const MIROIR_CLE_ATTENTE = 'MIROIR_POUSSEES_EN_ATTENTE';
 
+/* (11/11/2026 — vu en réel) L'ANNÉE D'UN ÉCHANGE SE LIT DANS LA DEMANDE.
+   Accepter ou annuler n'envoie que l'identifiant de la demande, sans année :
+   l'accroche se repliait sur l'année ACTIVE (2026) et ne repoussait pas le
+   planning 2027 que l'échange venait de modifier. Les écrans (vue annuelle,
+   « Mes gardes ») restaient sur l'ancien planning jusqu'à la poussée suivante
+   (mails de changement, environ 10 min plus tard) ou la synchro horaire. */
+function _miroirAnneeDuPayload_(payload) {
+  if (Number(payload.year)) return Number(payload.year);
+  if (payload.id && (payload.action === 'repondreEchange' || payload.action === 'annulerEchange')) {
+    try {
+      const d = _echangesLignes_().lignes.find(function (l) { return String(l.ID) === String(payload.id); });
+      if (d && Number(d.ANNEE)) return Number(d.ANNEE);
+    } catch (e) { /* repli ci-dessous */ }
+  }
+  return 0;
+}
+
 function miroirApresRequete_(e, outTexte) {
   try {
     const payload = JSON.parse((e && e.parameter && e.parameter.payload) || '{}');
     const familles = MIROIR_APRES_ECRITURE[payload.action];
     if (!familles) return;
     if (String(outTexte || '').indexOf('"success":true') === -1) return;
-    const annee = Number(payload.year) || getActiveYear();
+    const anneeLue = _miroirAnneeDuPayload_(payload);
+    const annee = anneeLue || getActiveYear();
     _miroirNoterPoussee_(familles, annee);
     /* (23/08/2026) TRACE — récit : docs/JOURNAL-Planning-Med.md §132 */
     logAction('miroir : ' + payload.action + ' → familles [' + familles.join(',') + '] année ' + annee
-              + (Number(payload.year) ? '' : ' (ANNÉE ABSENTE du payload — repli sur l\'année active)'));
+              + (anneeLue ? '' : ' (ANNÉE ABSENTE du payload — repli sur l\'année active)'));
   } catch (err) { /* jamais bloquant */ }
 }
 

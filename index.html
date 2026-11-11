@@ -2406,7 +2406,8 @@ async function annulerEch(id, btn){
   }
   btn.disabled = true; btn.textContent = 'Annulation…';
   try {
-    const r = await apiPost({ action:'annulerEchange', id:id });
+    const _it = (ECH_LISTE||[]).find(function(e){ return e.id === id; });
+    const r = await apiPost(Object.assign({ action:'annulerEchange', id:id }, _it && _it.annee ? { year: Number(_it.annee) } : {}));
     if (r && r.success) {
       const item = ECH_LISTE.find(function(e){ return e.id === id; });
       if (item) { item.etat = 'annulee'; item.reponduLe = new Date().toISOString(); }
@@ -2430,6 +2431,10 @@ async function repondreEch(id, reponse, btn, confirmeAbs){
   const msg = document.getElementById('echMsg-'+id);
   try {
     const charge = { action:'repondreEchange', id:id, reponse:reponse };
+    /* (11/11/2026) L'année de la demande : sans elle, le serveur rafraîchissait
+       l'année active et la vue annuelle restait sur l'ancien planning. */
+    const _it = (ECH_LISTE||[]).find(function(e){ return e.id === id; });
+    if (_it && _it.annee) charge.year = Number(_it.annee);
     if (confirmeAbs === true) charge.accepteAbsence = true;   // (11/11/2026) il a lu et confirmé
     const r = await apiPost(charge);
     if (r && r.success) {
