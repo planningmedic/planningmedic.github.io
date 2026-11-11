@@ -26,8 +26,10 @@
      (section « LES RÉCUPÉRATIONS SE RÈGLENT TOUTES SEULES », en fin de
      fichier). Année sans lien (2026) : rien d'automatique.
    - Échange samedi ↔ samedi : aucun R ne bouge (décision du 12/08 — le
-     compte de samedis de chacun ne change pas). Les lignes LIENS_R gardent
-     alors leur tenant d'origine : accepté par conception.
+     compte de samedis de chacun ne change pas). Depuis le 11/11/2026, les
+     lignes LIENS_R suivent : chaque R, à SA date, est rattaché au samedi que
+     son titulaire tient désormais (_recupsCroiserLiens_). Sans cela, le
+     bouton « Réparer » prenait l'échange pour une erreur et déplaçait les R.
 
    ÉTATS D'UNE DEMANDE : attente → acceptee | refusee | expiree | impossible | annulee
    (annulee, 11/11/2026 : le demandeur retire sa proposition).
@@ -40,7 +42,7 @@
    depuis l'éditeur : installerDeclencheurEchanges().
    ═══════════════════════════════════════════════════════════════════════ */
 
-const GAS_VERSION_ECHANGES = '2026-11-11.6';   // (11/11/2026) annulerEchange : le demandeur annule sa proposition en attente, le collègue est prévenu · (11/11/2026) don et échange sur un jour d'absence : le MAR concerné confirme ([ABS], accepteAbsence) et ses jours d'absence sont écrasés par la garde et son repos · (11/11/2026) gestes du comité (don, échange) : mêmes suites que entre MAR (_gesteSuites_, appliquerGesteComite_) · (11/11/2026) échange de deux 18 h entre MAR (type echange18) · (11/11/2026) un 18 h écrasé par un don passe au donneur, prévenu avant d'envoyer (accepte18) · (11/11/2026) récupérations automatiques : R neuf quand il ne peut pas suivre son samedi, R écrasé reposé, bouton Réparer (recupsReparer), lien recollé à la pose manuelle · (10/11/2026) l'historique dit qui a accepté (onglet HISTORIQUE)
+const GAS_VERSION_ECHANGES = '2026-11-11.7';   // (11/11/2026) échange samedi ↔ samedi : les R gardent leur date, les liens LIENS_R suivent le samedi tenu ; « Réparer » recolle de même un échange passé au lieu de déplacer les R · (11/11/2026) annulerEchange : le demandeur annule sa proposition en attente, le collègue est prévenu · (11/11/2026) don et échange sur un jour d'absence : le MAR concerné confirme ([ABS], accepteAbsence) et ses jours d'absence sont écrasés par la garde et son repos · (11/11/2026) gestes du comité (don, échange) : mêmes suites que entre MAR (_gesteSuites_, appliquerGesteComite_) · (11/11/2026) échange de deux 18 h entre MAR (type echange18) · (11/11/2026) un 18 h écrasé par un don passe au donneur, prévenu avant d'envoyer (accepte18) · (11/11/2026) récupérations automatiques : R neuf quand il ne peut pas suivre son samedi, R écrasé reposé, bouton Réparer (recupsReparer), lien recollé à la pose manuelle · (10/11/2026) l'historique dit qui a accepté (onglet HISTORIQUE)
 
 const ECHANGES_ONGLET = 'ECHANGES';
 const ECHANGES_ENTETE = ['ID', 'CREE_LE', 'TYPE', 'ANNEE', 'DATE', 'DATE2',
@@ -807,6 +809,29 @@ function _recupsLier_(cx, samedi, med, dateR, ecrire, ancienMed) {
   if (ecrire && cx.liensSh) { try { cx.liensSh.getRange(row, 1, 1, 3).setNumberFormat('@'); } catch (e) {}
     cx.liensSh.getRange(row, 1, 1, 3).setValues([[samedi, med, dateR]]); cx.ecrit = true; }
 }
+/* (11/11/2026) Rattache un lien existant à un autre samedi, SANS toucher à la
+   date du R ni à la grille : seule la colonne SAMEDI de LIENS_R change. */
+function _recupsRelierSamedi_(cx, lien, samedi, ecrire) {
+  lien.samedi = samedi;
+  if (ecrire && cx.liensSh && lien.row) {
+    try { cx.liensSh.getRange(lien.row, 1).setNumberFormat('@'); } catch (e) {}
+    cx.liensSh.getRange(lien.row, 1).setValue(samedi);
+  }
+}
+/* Échange samedi ↔ samedi accepté : a tenait s1, b tenait s2 ; désormais a
+   tient s2 et b tient s1. Chaque R reste à sa date, son lien suit. */
+function _recupsCroiserLiens_(year, s1, s2, a, b) {
+  let cx;
+  try { cx = _recupsContexte_(year); } catch (e) { return ''; }
+  if (!cx.liensSh) return '';
+  const la = cx.liens.find(function (x) { return x.samedi === s1 && x.med === a; });
+  const lb = cx.liens.find(function (x) { return x.samedi === s2 && x.med === b; });
+  if (la) _recupsRelierSamedi_(cx, la, s2, true);
+  if (lb) _recupsRelierSamedi_(cx, lb, s1, true);
+  if (!la && !lb) return '';
+  try { logAction('récups — échange de samedis ' + s1 + ' ↔ ' + s2 + ' (' + a + ', ' + b + ') : R à leur date, liens croisés'); } catch (e) {}
+  return 'R à leur date, liens des samedis croisés';
+}
 /* Pose un R neuf pour (samedi, id), lien compris. Renvoie la date ou ''. */
 function _recupsPoserNeuf_(cx, id, samedi, ecrire, ancienMed) {
   const d = _recupsChoisir_(cx, id, samedi);
@@ -819,7 +844,7 @@ function _recupsPoserNeuf_(cx, id, samedi, ecrire, ancienMed) {
 /* Après des écritures de R : republier, armer les mails, prévenir les MAR. */
 function _recupsConclure_(cx, par) {
   if (!cx.ecrit) return;
-  try { if (typeof historiser_ === 'function') historiser_(cx.journal.filter(function (j) { return j.quoi !== 'sansDate'; }).map(function (j) {
+  try { if (typeof historiser_ === 'function') historiser_(cx.journal.filter(function (j) { return j.quoi !== 'sansDate' && j.quoi !== 'relien'; }).map(function (j) {
     return { annee: cx.year, quoi: j.quoi === 'retrait' ? 'récupération retirée' : 'récupération posée',
              mar: j.med, jour: j.date || '', jour2: j.samedi || '', autre: '', par: par || 'automatique', detail: j.samedi ? 'samedi ' + j.samedi : '' };
   })); } catch (e) {}
@@ -897,6 +922,19 @@ function recupsReparer(year, appliquer) {
   if (!cx.liensSh) return { annee: year, actions: [], note: 'pas de liens samedi → récupération pour ' + year };
   const ecrire = !!appliquer;
   const samedis = cx.dates.filter(function (d) { return _recupsDow_(d) === 6 && d > cx.aujourdhui; });
+  /* 0. (11/11/2026) Échange samedi ↔ samedi passé : le MAR n'a plus le samedi
+     de son lien, mais il tient un autre samedi à venir qui n'a pas de lien à
+     son nom. Son R est celui de ce samedi-là : on rattache le lien, on ne
+     touche ni à la date ni à la grille (décision du 12/08 : aucun R ne bouge). */
+  const _tient = function (id, s) { return /^G2?$/.test(_recupsCase_(cx, id, s) || ''); };
+  cx.liens.filter(function (x) { return x.samedi > cx.aujourdhui && !_tient(x.med, x.samedi); }).forEach(function (x) {
+    const autre = samedis.filter(function (s) {
+      return _tient(x.med, s) && !cx.liens.some(function (y) { return y.samedi === s && y.med === x.med; });
+    })[0];
+    if (!autre) return;
+    cx.journal.push({ quoi: 'relien', med: x.med, samedi: autre, ancien: x.samedi, date: x.dateR });
+    _recupsRelierSamedi_(cx, x, autre, ecrire);
+  });
   const traites = {};
   samedis.forEach(function (s) {
     const tenants = cx.ids.filter(function (id) { return /^G2?$/.test(_recupsCase_(cx, id, s) || ''); });
@@ -1029,7 +1067,10 @@ function _gesteSuites_(d, releveR, releve18, par) {
       else    rInfos.push(_transfererR_(y, d.DATE2, String(d.RECEVEUR), String(d.DEMANDEUR)));
     }
   }
-  const infos = rInfos.map(r => r.resume).concat((reposes || []).map(j =>
+  // (11/11/2026) Samedi ↔ samedi : les R restent à leur date, les liens suivent.
+  const croises = (d.TYPE === 'echange' && _echangesEstSamedi_(d.DATE) && _echangesEstSamedi_(d.DATE2))
+    ? _recupsCroiserLiens_(y, d.DATE, d.DATE2, String(d.DEMANDEUR), String(d.RECEVEUR)) : '';
+  const infos = rInfos.map(r => r.resume).concat(croises ? [croises] : []).concat((reposes || []).map(j =>
     j.quoi === 'pose' ? 'R de ' + j.med + ' reposé le ' + j.date : 'R de ' + j.med + ' à placer par le comité'))
     .concat((reports18 || []).map(f => f.a ? '18 h du ' + f.date + ' : ' + f.de + ' → ' + f.a : '18 h du ' + f.date + ' perdu par ' + f.de));
   rInfos.forEach(r => { if (!r.fait) _echangesAlerterComite_(r); });

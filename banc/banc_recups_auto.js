@@ -396,6 +396,48 @@ console.log('\n═══ 11. Les gestes du COMITÉ ont les mêmes suites (11/11/
   V('l\'avertissement « la récup ne suit pas » ne vaut plus que pour 2026', (ad.match(/Number\(GD\.d1\.slice\(0,4\)\) <= 2026/g) || []).length === 2);
 }
 
+console.log('\n═══ 12. Échange samedi ↔ samedi : les R gardent leur date, les liens suivent (11/11/2026) ═══');
+{
+  /* Vu en réel le 11/11 : un échange de deux samedis accepté ; aucun R ne
+     bouge (décision du 12/08), mais LIENS_R pointait toujours l'ancien tenant
+     et « Réparer » proposait de retirer et reposer les deux R. */
+  const b = monde({ liens: [['2027-03-13', 'ALPHA', '2027-03-15'], ['2027-05-29', 'BRAVO', '2027-05-31']] });
+  b.garde('ALPHA', '2027-03-13'); b.poser('ALPHA', '2027-03-15', 'R');
+  b.garde('BRAVO', '2027-05-29'); b.poser('BRAVO', '2027-05-31', 'R');
+  const r = b.run(`creerEchange(${JSON.stringify(user('ALPHA'))}, { type:'echange', year:2027, date:'2027-03-13', date2:'2027-05-29', receveur:'BRAVO' })`);
+  const rep = b.run(`repondreEchange(${JSON.stringify(user('BRAVO'))}, { id:${JSON.stringify(r.id)}, reponse:'accepter' })`);
+  V('l\'échange passe', rep && rep.etat === 'acceptee' && b.lire('ALPHA', '2027-05-29') === 'G' && b.lire('BRAVO', '2027-03-13') === 'G', rep);
+  V('aucun R ne bouge : chacun garde le sien, à sa date',
+    JSON.stringify(b.R('ALPHA')) === '["2027-03-15"]' && JSON.stringify(b.R('BRAVO')) === '["2027-05-31"]', [b.R('ALPHA'), b.R('BRAVO')]);
+  V('les liens suivent le samedi tenu', JSON.stringify(b.liens()) === JSON.stringify([['2027-05-29', 'ALPHA', '2027-03-15'], ['2027-03-13', 'BRAVO', '2027-05-31']]), b.liens());
+  V('« Vérifier » ne signale plus rien', b.run('recupsReparer(2027, false)').actions.length === 0);
+}
+{
+  /* Le cas déjà en place (échange accepté avant ce correctif) : « Réparer »
+     recolle les liens, sans retirer ni poser aucun R. */
+  const b = monde({ liens: [['2027-05-29', 'ALPHA', '2027-06-07'], ['2027-12-11', 'BRAVO', '2027-12-17']] });
+  b.garde('BRAVO', '2027-05-29'); b.garde('ALPHA', '2027-12-11');
+  b.poser('ALPHA', '2027-06-07', 'R'); b.poser('BRAVO', '2027-12-17', 'R');
+  const grille = JSON.stringify(b.cl.getSheetByName('GARDES_2027').lignes);
+  const ap = b.run('recupsReparer(2027, false)').actions;
+  V('aperçu : deux rattachements, aucun retrait, aucune pose', ap.length === 2 && ap.every(a => a.quoi === 'relien'), ap);
+  const fait = b.run('recupsReparer(2027, true)').actions;
+  V('réparé : la grille est INTACTE (dates des R inchangées)', JSON.stringify(b.cl.getSheetByName('GARDES_2027').lignes) === grille && fait.length === 2);
+  V('les liens pointent le samedi tenu', JSON.stringify(b.liens()) === JSON.stringify([['2027-12-11', 'ALPHA', '2027-06-07'], ['2027-05-29', 'BRAVO', '2027-12-17']]), b.liens());
+  V('aucune notification ni republication pour un simple rattachement', b.notifs.length === 0 && b.republie.length === 0, b.notifs);
+  V('relancé : plus rien à corriger', b.run('recupsReparer(2027, false)').actions.length === 0);
+}
+{
+  /* Contre-épreuve : un DON de samedi dont le R n'a pas suivi reste traité
+     comme avant (retrait au donneur, R neuf au receveur). */
+  const b = monde({ liens: [['2027-03-13', 'ALPHA', '2027-03-19']] });
+  b.garde('BRAVO', '2027-03-13'); b.poser('ALPHA', '2027-03-19', 'R');
+  const ap = b.run('recupsReparer(2027, false)').actions;
+  V('don : retrait au donneur et pose au receveur, pas de rattachement', ap.some(a => a.quoi === 'retrait' && a.med === 'ALPHA') && ap.some(a => a.quoi === 'pose' && a.med === 'BRAVO') && !ap.some(a => a.quoi === 'relien'), ap);
+  const m = fs.readFileSync(path.join(__dirname, '..', 'maintenance.html'), 'utf8');
+  V('la page Maintenance affiche le rattachement', /a\.quoi === 'relien'/.test(m));
+}
+
 console.log('\n═══ 6. Les pages ═══');
 {
   const admin = fs.readFileSync(path.join(__dirname, '..', 'admin.html'), 'utf8');

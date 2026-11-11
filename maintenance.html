@@ -410,6 +410,7 @@ let REC_ANNEES = [];
 function _jj(d){ const m = /^(\d{4})-(\d{2})-(\d{2})/.exec(String(d || '')); return m ? m[3] + '/' + m[2] + '/' + m[1] : esc(d); }
 function recLigne(a){
   if (a.quoi === 'retrait') return '<div class="warn">➖ ' + esc(a.med) + ' : récupération du ' + _jj(a.date) + ' retirée (le samedi ' + _jj(a.samedi) + ' n\'est plus le sien)</div>';
+  if (a.quoi === 'relien') return '<div class="ok">🔗 ' + esc(a.med) + ' : récupération du ' + _jj(a.date) + ' rattachée au samedi ' + _jj(a.samedi) + ' (échange de samedis, date inchangée)</div>';
   if (a.quoi === 'pose') return '<div class="ok">➕ ' + esc(a.med) + ' : récupération le ' + _jj(a.date) + (a.samedi ? ' (samedi ' + _jj(a.samedi) + ')' : '') + '</div>';
   return '<div class="err">❌ ' + esc(a.med) + ' : aucune date possible' + (a.samedi ? ' pour le samedi ' + _jj(a.samedi) : '') + ' — à placer à la main (onglet Statuts)</div>';
 }
