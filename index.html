@@ -2521,11 +2521,32 @@ function _ech18De(plan, id, today){
   return out;
 }
 
+/* (11/11/2026 — vu en réel) Le panneau « Proposer » lisait le planning gardé en
+   mémoire depuis l'ouverture de l'appli : après quelques échanges, il proposait
+   des gardes qui n'appartenaient plus à personne de la liste. On relit donc la
+   copie rapide (à jour quelques secondes après chaque échange) à CHAQUE ouverture
+   du panneau. En cas d'échec, on garde ce qu'on a : le serveur refusera de
+   toute façon une garde qui n'est plus la bonne. */
+async function _echPlanningsFrais(){
+  let year = new Date().getFullYear();
+  try { year = await getActiveYearOnce(); } catch(e){}
+  const cles = ['planning_' + year, 'planning_' + (year + 1)];
+  try {
+    const mi = await miroirRead(cles);
+    if (!mi || !mi.success || !mi.data) return;
+    [year, year + 1].forEach(function(y){
+      const p = mi.data['planning_' + y];
+      if (p && p.months) { _planCache[y] = p; _ssPlanSet(y, p); }
+    });
+  } catch(e){}
+}
+
 async function echOuvrirProposition(){
   const p = document.getElementById('echProposition');
   if (p.style.display !== 'none') { p.style.display='none'; return; }
   p.style.display='block';
   p.innerHTML = '<div class="topos-loading">Chargement de vos gardes et 18 h…</div>';
+  await _echPlanningsFrais();
   const gardes = await _echMesGardesAvecAnnee();
   if (!gardes.length) { p.innerHTML = '<div class="topos-empty">Aucune garde ni 18 h à venir à proposer.</div>'; return; }
   ECH_PROP = { type:'don', gardes:gardes };

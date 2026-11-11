@@ -179,7 +179,8 @@ function fenetre(opts) {
     const page = fs.readFileSync(path.join(__dirname, '..', 'index.html'), 'utf8');
     V('index.html charge partage/portail.js après session.js', page.indexOf('partage/portail.js') > page.indexOf('partage/session.js') && page.indexOf('partage/portail.js') > 0);
     V('plus de miroirRead locale ni de const MIROIR_URL', !/function miroirRead\(/.test(page) && !/const MIROIR_URL/.test(page));
-    V('ses 7 lectures du miroir sont intactes', (page.match(/miroirRead\(/g) || []).length === 7, (page.match(/miroirRead\(/g) || []).length);
+    // (11/11/2026) 7 → 8 : le panneau « Proposer » relit le planning du moment (_echPlanningsFrais).
+    V('ses 8 lectures du miroir sont intactes', (page.match(/miroirRead\(/g) || []).length === 8, (page.match(/miroirRead\(/g) || []).length);
   }
   console.log('\n═══ admin.html a rejoint le socle ═══');
   {

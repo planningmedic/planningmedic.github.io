@@ -3048,7 +3048,8 @@ function renderMobileDay() {
   if (typeof lucide!=='undefined') { try { lucide.createIcons(); } catch(e){} }
 }
 
-// PWA : au retour dans l'appli après > 15 min, recharger silencieusement les
+// PWA : au retour dans l'appli après > 2 min (15 min avant le 11/11/2026 : avec les
+// échanges, un MAR choisissait sur un planning périmé), recharger silencieusement les
 // données de l'année affichée (sinon un onglet gardé ouvert des jours montre
 // un planning périmé).
 let _lastFetch = Date.now();
@@ -3129,7 +3130,7 @@ window.__rafraichirDonnees = async function () {
 
 document.addEventListener('visibilitychange', async () => {
   if (document.visibilityState !== 'visible' || !DATA) return;
-  if (Date.now() - _lastFetch < 15*60*1000) return;
+  if (Date.now() - _lastFetch < 2*60*1000) return;
   _lastFetch = Date.now();
   try {
     delete PLANNING_CACHE[currentYear]; delete AFF_CACHE[currentYear];

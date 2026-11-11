@@ -235,6 +235,28 @@ const dodo = ms => new Promise(r => setTimeout(r, ms));
     V('l\'écran passe à Acceptée', /Acceptée/.test(w.document.getElementById('echList').innerHTML));
   }
 
+  console.log('\n═══ 3 bis. Proposer relit le planning du moment, jamais la copie gardée en mémoire (11/11/2026) ═══');
+  {
+    const kv = await baseKV();
+    kv.notif_config = JSON.stringify({ ouvert:true, pilotes:[] });
+    kv.echanges = JSON.stringify({ success:true, echanges:[] });
+    const { w, M, erreurs } = await monterPage(kv, (c) => c.action === 'login' ? { success:true, role:'mar', id:'ALPHA', year:2027 } : { success:true });
+    V('la page se charge sans erreur JavaScript', erreurs.length === 0, erreurs.slice(0,2));
+    // Pendant que l'appli est ouverte, un échange a lieu : ALPHA n'a plus le 09/03, il a le 11/03.
+    const neuf = JSON.parse(JSON.stringify(planning));
+    neuf.months[0].doctors[0].days = st(['','','','G','RG','']);
+    M.set('planning_2027', JSON.stringify(neuf));
+    w.location.hash = '#echanges'; w.route();
+    await dodo(400);
+    await w.echOuvrirProposition();
+    await dodo(300);
+    const sel = w.document.getElementById('echSelGarde');
+    V('la garde reçue entre-temps est proposée (11/03)', sel && /11\/03\/2027/.test(sel.innerHTML), sel && sel.innerHTML.slice(0,200));
+    V('CONTRE-PREUVE : la garde partie (09/03) n\'est plus proposée', sel && !/09\/03\/2027/.test(sel.innerHTML), sel && sel.innerHTML.slice(0,200));
+  }
+  V('planning.html : au retour dans l\'appli, le planning se relit après 2 minutes (plus 15)',
+    /if \(Date\.now\(\) - _lastFetch < 2\*60\*1000\) return;/.test(fs.readFileSync(path.join(__dirname, '..', 'planning.html'), 'utf8')));
+
   console.log('\n═══ 4 bis. Annuler sa proposition : deux touches, puis « Annulée » (11/11/2026) ═══');
   {
     const kv = await baseKV();
