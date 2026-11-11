@@ -39,7 +39,7 @@
    depuis l'éditeur : installerDeclencheurEchanges().
    ═══════════════════════════════════════════════════════════════════════ */
 
-const GAS_VERSION_ECHANGES = '2026-11-11.1';   // (11/11/2026) récupérations automatiques : R neuf quand il ne peut pas suivre son samedi, R écrasé reposé, bouton Réparer (recupsReparer), lien recollé à la pose manuelle · (10/11/2026) l'historique dit qui a accepté (onglet HISTORIQUE)
+const GAS_VERSION_ECHANGES = '2026-11-11.2';   // (11/11/2026) un 18 h écrasé par un don passe au donneur, prévenu avant d'envoyer (accepte18) · (11/11/2026) récupérations automatiques : R neuf quand il ne peut pas suivre son samedi, R écrasé reposé, bouton Réparer (recupsReparer), lien recollé à la pose manuelle · (10/11/2026) l'historique dit qui a accepté (onglet HISTORIQUE)
 
 const ECHANGES_ONGLET = 'ECHANGES';
 const ECHANGES_ENTETE = ['ID', 'CREE_LE', 'TYPE', 'ANNEE', 'DATE', 'DATE2',
@@ -224,6 +224,15 @@ function creerEchange(user, p) {
   // l'écriture réelle, aucune duplication. Lève en cas de refus.
   applyModification(Object.assign({ dryRun: true }, _echangesVersMod_(demande)));
 
+  /* (11/11/2026) Le don écraserait un 18 h du receveur : il passera au
+     donneur. Rien ne part tant que le donneur ne l'a pas confirmé. Le préfixe
+     [18] est lu par l'écran, qui demande la confirmation. */
+  const menaces18 = type === 'don' ? _echanges18Menaces_(year, date, receveur) : [];
+  if (menaces18.length && p.accepte18 !== true) {
+    throw new Error('[18] Le ' + _echangesDr_(receveur) + ' est de 18 h le ' + menaces18.map(_echangesJoli_).join(' et le ')
+      + ' : en lui donnant cette garde, c\'est vous qui ferez ce 18 h. Confirmez pour envoyer la proposition.');
+  }
+
   const id = 'E' + Date.now() + '-' + Math.floor(Math.random() * 1000);
   const sh = _echangesFeuille_();
   const ligne = sh.getLastRow() + 1;
@@ -239,6 +248,7 @@ function creerEchange(user, p) {
     type === 'don' ? 'Proposition de garde' : 'Proposition d\'échange',
     type === 'don'
       ? _echangesDr_(user.id) + ' vous propose sa garde du ' + _echangesJoli_(date) + '.'
+        + (menaces18.length ? ' En acceptant, votre 18 h du ' + menaces18.map(_echangesJoli_).join(' et du ') + ' passe au ' + _echangesDr_(user.id) + '.' : '')
       : _echangesDr_(user.id) + ' vous propose sa garde du ' + _echangesJoli_(date) + ' contre la vôtre du ' + _echangesJoli_(demande.DATE2) + '.',
     './index.html', { id: receveur, pastille: _echangesEnAttentePour_(receveur) });
   return { id: id };
@@ -277,6 +287,7 @@ function repondreEchange(user, p) {
   // rien — état `impossible`, grille intacte, les deux MAR prévenus.
   // (11/11/2026) Les R des deux MAR AVANT le geste : un R écrasé sera reposé.
   const releveR = _recupsReleve_(Number(d.ANNEE), [String(d.DEMANDEUR), String(d.RECEVEUR)]);
+  const releve18 = _echanges18Releve_(Number(d.ANNEE), [String(d.DEMANDEUR), String(d.RECEVEUR)]);
   try {
     applyModification(Object.assign({ par: String(d.RECEVEUR) + ' (accepte la demande de ' + String(d.DEMANDEUR) + ')' }, _echangesVersMod_(d)));
   } catch (err) {
@@ -294,6 +305,8 @@ function repondreEchange(user, p) {
   // (11/11/2026) Un R écrasé par la garde reçue (ou son repos) est reposé
   // ailleurs AVANT les transferts : seuls les R écrasés sont vus manquants.
   const reposes = _recupsReposerPerdus_(Number(d.ANNEE), releveR, String(d.RECEVEUR) + ' (accepte ' + d.ID + ')');
+  // (11/11/2026) Un 18 h écrasé passe à l'autre MAR du geste, libéré ce jour-là.
+  const reports18 = _echanges18Reporter_(Number(d.ANNEE), releve18, String(d.RECEVEUR) + ' (accepte ' + d.ID + ')');
 
   // Samedi qui change de mains → transfert du R de CE samedi.
   // Don : la garde du DATE passe au receveur. Échange : chaque samedi
@@ -314,7 +327,8 @@ function repondreEchange(user, p) {
   sh.getRange(d._row, colEtat).setValue('acceptee');
   sh.getRange(d._row, colRep).setValue(_echangesMaintenant_());
   const infos = rInfos.map(r => r.resume).concat((reposes || []).map(j =>
-    j.quoi === 'pose' ? 'R de ' + j.med + ' reposé le ' + j.date : 'R de ' + j.med + ' à placer par le comité'));
+    j.quoi === 'pose' ? 'R de ' + j.med + ' reposé le ' + j.date : 'R de ' + j.med + ' à placer par le comité'))
+    .concat((reports18 || []).map(f => f.a ? '18 h du ' + f.date + ' : ' + f.de + ' → ' + f.a : '18 h du ' + f.date + ' perdu par ' + f.de));
   if (infos.length) sh.getRange(d._row, colInfo).setValue(infos.join(' · ').slice(0, 200));
   logAction('repondreEchange ' + id + ' — acceptée' + (infos.length ? ' | ' + infos.join(' · ') : ''));
   _echangesVersKV_();
@@ -855,4 +869,75 @@ function recupsReparer(year, appliquer) {
     logAction('recupsReparer ' + year + ' — ' + cx.journal.length + ' geste(s)');
   }
   return { annee: year, actions: cx.journal };
+}
+
+/* ═══════════════════════════════════════════════════════════════════════
+   (11/11/2026) LE 18 H ÉCRASÉ PAR UN DON PASSE AU DONNEUR — ET ON LE DIT AVANT
+   ═══════════════════════════════════════════════════════════════════════
+   Constat du 11/11 (2027) : un don de garde du dimanche, accepté par un MAR
+   de 18 h le lundi. Son repos de garde a remplacé le 18 h sans rien dire :
+   le lundi n'avait plus de 18 h. Décision du responsable :
+   - le 18 h passe AU DONNEUR, libéré ce jour-là par le geste (sa garde ou
+     son repos vient de partir) ;
+   - le donneur en est PRÉVENU AVANT d'envoyer : le serveur refuse la
+     proposition tant qu'il ne l'a pas confirmée (accepte18), et le receveur
+     le lit dans la proposition.
+   À l'acceptation, le report se fait sur tout 18 h perdu par l'un des deux
+   MAR (don ou échange), vers l'autre s'il est libre ce jour-là ; sinon le
+   comité le voit dans les jours à découvert de l'onglet Statuts. */
+function _echanges18Code_(v) { return String(v == null ? '' : v).trim().replace(/\.0$/, ''); }
+
+/* Les 18 h du receveur qu'un DON écraserait : le jour de la garde, et le
+   lendemain (son repos de garde). */
+function _echanges18Menaces_(year, date, receveur) {
+  try {
+    const cx = _recupsContexte_(year);
+    return [date, _recupsDecale_(date, 1)].filter(function (d) { return _echanges18Code_(_recupsCase_(cx, receveur, d)) === '18'; });
+  } catch (e) { return []; }
+}
+function _echanges18Releve_(year, ids) {
+  const out = {};
+  try {
+    const cx = _recupsContexte_(year);
+    ids.forEach(function (id) { out[id] = cx.dates.filter(function (d) { return _echanges18Code_(_recupsCase_(cx, id, d)) === '18'; }); });
+  } catch (e) {}
+  return out;
+}
+/* releve : { A: [dates 18], B: [...] } AVANT le geste ; les deux MAR du geste. */
+function _echanges18Reporter_(year, releve, par) {
+  const ids = Object.keys(releve || {});
+  if (ids.length !== 2) return [];
+  let cx;
+  try { cx = _recupsContexte_(year); } catch (e) { return []; }
+  const faits = [];
+  ids.forEach(function (id, i) {
+    const autre = ids[1 - i];
+    releve[id].forEach(function (d) {
+      if (_echanges18Code_(_recupsCase_(cx, id, d)) === '18') return;
+      if (_recupsCase_(cx, autre, d) === '') {
+        _recupsEcrireCase_(cx, autre, d, '18', true);
+        faits.push({ de: id, a: autre, date: d });
+      } else faits.push({ de: id, a: '', date: d });
+    });
+  });
+  if (!faits.length) return [];
+  try { if (typeof historiser_ === 'function') historiser_(faits.filter(function (f) { return f.a; }).map(function (f) {
+    return { annee: year, quoi: '18 h repris avec la garde', mar: f.a, jour: f.date, jour2: '', autre: f.de, par: par || 'automatique', detail: '' };
+  })); } catch (e) {}
+  if (cx.ecrit) {
+    try { generatePlanning(year); } catch (e) {}
+    try { notifPlanifier(year); } catch (e) {}
+  }
+  faits.forEach(function (f) {
+    try {
+      if (f.a) {
+        notifierPush_('18 h', 'Vous faites le 18 h du ' + _echangesJoli_(f.date) + ', repris du ' + _echangesDr_(f.de) + ' avec la garde.', './index.html', { id: f.a });
+        notifierPush_('18 h', 'Votre 18 h du ' + _echangesJoli_(f.date) + ' passe au ' + _echangesDr_(f.a) + '.', './index.html', { id: f.de });
+        logAction('18 h du ' + f.date + ' : ' + f.de + ' → ' + f.a + ' (écrasé par le geste, repris par l\'autre MAR)');
+      } else {
+        logAction('18 h du ' + f.date + ' perdu par ' + f.de + ' : l\'autre MAR n\'est pas libre ce jour-là — jour à découvert (onglet Statuts)');
+      }
+    } catch (e) {}
+  });
+  return faits;
 }

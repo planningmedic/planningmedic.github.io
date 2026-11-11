@@ -2503,6 +2503,10 @@ async function echMajProposition(){
   /* Samedi d'une année SANS lien samedi→R (2026) : la récup ne suit pas,
      le comité replacera — averti AVANT l'envoi, comme convenu. */
   const av = document.getElementById('echAvert');
+  // (11/11/2026) Toute nouvelle sélection redemande la confirmation du 18 h.
+  ECH_PROP.ok18 = false;
+  const _btn = document.getElementById('echEnvoyer');
+  if (_btn) { _btn.textContent = 'Envoyer la proposition'; _btn.disabled = false; }
   const samedi = new Date(g.date+'T12:00:00').getDay()===6;
   if (samedi && g.annee <= 2026) {
     av.style.display='block';
@@ -2523,6 +2527,7 @@ async function envoyerProposition(btn){
     if (!contre) return erreur('Choisissez la garde à recevoir en échange.');
     charge.date2 = contre;
   }
+  if (ECH_PROP.ok18) charge.accepte18 = true;   // (11/11/2026) le donneur a lu et confirmé
   btn.disabled = true; btn.textContent='Vérification et envoi…';
   try {
     const r = await apiPost(charge);
@@ -2536,6 +2541,15 @@ async function envoyerProposition(btn){
         demandeur: MY_ID, receveur: qui, etat: 'attente', reponduLe: '', info: '' });
       majEchangesHero();
       renderEchanges();
+      return;
+    }
+    /* (11/11/2026) Le don écraserait un 18 h du collègue : il vous reviendrait.
+       Rien n'est parti ; on l'explique et on demande de confirmer. */
+    if (r && /^\[18\] /.test(r.error || '')) {
+      const av = document.getElementById('echAvert');
+      av.style.display = 'block'; av.textContent = r.error.replace(/^\[18\] /, '');
+      ECH_PROP.ok18 = true;
+      btn.disabled = false; btn.textContent = 'Confirmer : je ferai ce 18 h';
       return;
     }
     erreur((r && r.error) || 'Envoi impossible — réessayez.');

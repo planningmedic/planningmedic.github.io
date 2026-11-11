@@ -222,6 +222,44 @@ console.log('\n═══ 5. Le comité pose un R à la main : accepté, lien rec
   V('une garde ou un repos de garde reste verrouillé', res2.applied.length === 0, res2);
 }
 
+console.log('\n═══ 7. Un don qui écraserait un 18 h : prévenu avant, le 18 h passe au donneur ═══');
+{
+  /* Le cas réel du 11/11 : don d'une garde du dimanche à un MAR de 18 h le lundi.
+     Son repos de garde remplaçait le 18 h sans rien dire. */
+  const b = monde();
+  b.garde('ALPHA', '2027-05-30'); b.poser('BRAVO', '2027-05-31', '18');
+  let err = '';
+  try { b.run(`creerEchange(${JSON.stringify(user('ALPHA'))}, { type:'don', year:2027, date:'2027-05-30', receveur:'BRAVO' })`); }
+  catch (e) { err = String(e.message); }
+  V('sans confirmation, la proposition est refusée et le dit (préfixe [18] lu par l\'écran)', /^\[18\] /.test(err) && /31\/05\/2027/.test(err) && /c'est vous qui ferez ce 18 h/.test(err), err);
+  V('…et rien n\'est créé', !b.cl.getSheetByName('ECHANGES') || b.cl.getSheetByName('ECHANGES').lignes.slice(1).filter(l => l[0]).length === 0);
+  b.notifs.length = 0;
+  const r = b.run(`creerEchange(${JSON.stringify(user('ALPHA'))}, { type:'don', year:2027, date:'2027-05-30', receveur:'BRAVO', accepte18: true })`);
+  V('confirmée, la proposition part', !!r.id);
+  V('le receveur lit dans la proposition que son 18 h passera au donneur', b.notifs.some(n => n.cible.id === 'BRAVO' && /votre 18 h du 31\/05\/2027 passe au/.test(n.corps)), b.notifs);
+  b.notifs.length = 0;
+  b.run(`repondreEchange(${JSON.stringify(user('BRAVO'))}, { id:${JSON.stringify(r.id)}, reponse:'accepter' })`);
+  V('à l\'acceptation : garde et repos chez le receveur', b.lire('BRAVO', '2027-05-30') === 'G' && b.lire('BRAVO', '2027-05-31') === 'RG');
+  V('le 18 h du lundi passe au donneur — le jour n\'est plus à découvert', String(b.lire('ALPHA', '2027-05-31')) === '18', b.lire('ALPHA', '2027-05-31'));
+  V('les deux sont prévenus', b.notifs.some(n => n.cible.id === 'ALPHA' && /Vous faites le 18 h du 31\/05\/2027/.test(n.corps))
+    && b.notifs.some(n => n.cible.id === 'BRAVO' && /Votre 18 h du 31\/05\/2027 passe au/.test(n.corps)), b.notifs);
+  V('la demande le garde en mémoire', /18 h du 2027-05-31 : BRAVO → ALPHA/.test(String(b.cl.getSheetByName('ECHANGES').lignes[1][11])), b.cl.getSheetByName('ECHANGES').lignes[1]);
+}
+{
+  const b = monde();
+  b.garde('ALPHA', '2027-05-26'); b.poser('BRAVO', '2027-05-26', '18');
+  const r = b.run(`creerEchange(${JSON.stringify(user('ALPHA'))}, { type:'don', year:2027, date:'2027-05-26', receveur:'BRAVO', accepte18: true })`);
+  b.run(`repondreEchange(${JSON.stringify(user('BRAVO'))}, { id:${JSON.stringify(r.id)}, reponse:'accepter' })`);
+  V('18 h le jour même de la garde : il passe aussi au donneur', b.lire('BRAVO', '2027-05-26') === 'G' && String(b.lire('ALPHA', '2027-05-26')) === '18');
+}
+{
+  const b = monde();
+  b.garde('ALPHA', '2027-05-26');
+  let err = '';
+  try { b.run(`creerEchange(${JSON.stringify(user('ALPHA'))}, { type:'don', year:2027, date:'2027-05-26', receveur:'BRAVO' })`); } catch (e) { err = e.message; }
+  V('sans 18 h en jeu, aucune confirmation demandée', !err, err);
+}
+
 console.log('\n═══ 6. Les pages ═══');
 {
   const admin = fs.readFileSync(path.join(__dirname, '..', 'admin.html'), 'utf8');
@@ -229,6 +267,10 @@ console.log('\n═══ 6. Les pages ═══');
   V('le bandeau compte aussi les récupérations en trop', /recupsEcarts\(\)\s*:\s*\[\]/.test(admin) && /en trop/.test(admin));
   const m = fs.readFileSync(path.join(__dirname, '..', 'maintenance.html'), 'utf8');
   V('page Maintenance : Vérifier et Réparer', /id="btnRecVerif"/.test(m) && /id="btnRecRep"/.test(m));
+  const idx = fs.readFileSync(path.join(__dirname, '..', 'index.html'), 'utf8');
+  V('portail : un refus [18] affiche l\'avertissement et demande la confirmation', /\/\^\\\[18\\\] \/\.test\(r\.error/.test(idx) && /Confirmer : je ferai ce 18 h/.test(idx));
+  V('portail : la confirmation part avec la demande (accepte18)', /if \(ECH_PROP\.ok18\) charge\.accepte18 = true;/.test(idx));
+  V('portail : changer de garde ou de collègue redemande la confirmation', /ECH_PROP\.ok18 = false;/.test(idx));
   V('Réparer demande deux appuis et envoie l\'année', /deuxAppuis\(\$\('btnRecRep'\)/.test(m) && /action:'recupsReparer', appliquer: true, year: y/.test(m));
 }
 
