@@ -277,7 +277,7 @@
   <h1>Guide du MAR</h1>
   <p class="appbar-sub">Le portail, le planning, vos congés — et comment vos gardes sont calculées.</p>
 </div>
-<p class="maj">Mis à jour le 14 octobre 2026 · <span data-version>—</span></p>
+<p class="maj">Mis à jour le 11 novembre 2026 · <span data-version>—</span></p>
 
 <div class="chercher">
   <input id="q" type="search" placeholder="Chercher : récup, code, échange, samedi…" autocomplete="off">
@@ -578,7 +578,7 @@
 
     <div class="liste">
       <div><b>Vendredi et dimanche vont ensemble</b><span>La garde de week-end est assurée d'un bloc, vendredi et dimanche, par le même binôme. Toucher l'un coche l'autre : <b>1 week-end et 2 jours</b>. Même chose pour un lundi férié (le samedi d'avant vient avec) et un jeudi férié (le samedi d'après). Le samedi du milieu se pose à part, sans week-end en plus.</span></div>
-      <div><b>Week-ends atteints ?</b><span>Vous pouvez encore compléter un week-end déjà touché, ou poser des jours de semaine, jusqu'à 30.</span></div>
+      <div><b>Week-ends atteints ?</b><span>Vous pouvez encore compléter un week-end déjà touché, ou poser des jours de semaine, jusqu'à 40.</span></div>
       <div><b>Les week-ends de vos congés ne comptent pas</b><span>Seuls les jours que vous marquez vous-même comme indisponibles sont décomptés.</span></div>
       <div><b>Bloquer des week-ends ne réduit pas votre part</b><span>Vous devez le même nombre de samedis et de week-ends que vos collègues. Vous déplacez les dates, vous ne vous allégez pas.</span></div>
     </div>
@@ -906,7 +906,7 @@
   <summary><span class="n">14</span><span>Le principe</span><span class="chev">›</span></summary>
   <div class="corps">
     <img class="illu" src="img/illu-gardes.webp" alt="Un calendrier et des engrenages" loading="lazy">
-    <p>Chaque année en novembre, un calcul construit le planning de gardes de l'année suivante, en une quinzaine de secondes. Il ne tire pas au sort.</p>
+    <p>Chaque année en novembre, un calcul construit le planning de gardes de l'année suivante, en quelques minutes. Il ne tire pas au sort.</p>
     <p>Il donne à chacun un <b>nombre de gardes à faire</b>, proportionnel à son temps de travail. Puis il remplit les jours un par un. À chaque jour, il prend les deux MARs les plus en retard sur leur compte, parmi ceux qui sont disponibles.</p>
 
     <div class="ex">
@@ -932,6 +932,7 @@
         <p>Quand deux MARs sont exactement à égalité pour une garde, un <b>numéro de départage</b> tranche. Il ne dépend ni de votre nom ni de votre place dans la liste.</p>
         <p>Le calcul s'arrête dès qu'un tirage met tout le monde à une garde d'écart au plus — ce qui arrive dès le premier essai plus d'une fois sur deux. Sinon il recommence avec un autre numéro, huit fois au maximum, et conserve le meilleur résultat.</p>
         <p>Rejouer le même numéro redonne exactement le même planning.</p>
+        <p>Une dernière étape affine ensuite ce planning : elle essaie plus d'un million d'échanges entre MAR et ne garde que ceux qui améliorent quelque chose (souhaits, écarts, week-ends coupés) sans que rien d'autre ne recule.</p>
       </div>
     </details>
   </div>

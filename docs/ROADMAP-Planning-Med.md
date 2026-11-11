@@ -6,7 +6,7 @@ portail/Dashboard, module libéral, contrôle d'absence, veille biblio.
 (Le générateur de comptes rendus a été retiré le 07/09/2026 : il portait le logo de
 l'établissement et 77 noms de praticiens sur une page publique sans code d'accès.)
 
-**Dépôt** `planningmedic/planningmedic.github.io`, branche `main` · **Site v1.62.1** (11/11/2026) ·
+**Dépôt** `planningmedic/planningmedic.github.io`, branche `main` · **Site v1.62.2** (11/11/2026) ·
 **Portail** https://planningmedic.github.io ·
 **GAS** (numéros relevés dans le dépôt le 11/11/2026 ; la version en service se lit au 🔍 Diagnostic de la page
 Maintenance — les lots du 11/11 attendent la mise à jour du serveur) : `echanges.gs` **2026-11-11.3** ·
