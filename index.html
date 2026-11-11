@@ -298,6 +298,7 @@ a.tile, .tile.clickable { cursor: pointer; }
   border-radius:999px; padding:2px 9px; margin-left:8px; vertical-align:middle; }
 .mg-tag.g  { background:var(--me-soft);  color:var(--me); }
 .mg-tag.g2 { background:var(--red-soft); color:var(--rose); }
+.mg-tag.h18 { background:#F0FDF4; color:#166534; text-transform:none; }   /* (11/11/2026) 18 h dans « Mes gardes » : même vert que partout ailleurs */
 .mg-month { font-size:12px; font-weight:700; text-transform:uppercase; letter-spacing:.05em;
   color:var(--ink-4); margin:22px 0 10px 4px; }
 .mg-month:first-child { margin-top:0; }
@@ -1704,13 +1705,15 @@ function _mgCollegue(date, type){
 function renderMyGardesHero(){
   const main=document.getElementById('mgHeroMain'), sub=document.getElementById('mgHeroSub');
   if(!main||!sub) return;
-  if(!MY_GARDES || !MY_GARDES.length){ main.textContent='Aucune garde à venir'; sub.textContent=''; return; }
+  // (11/11/2026) Le prochain 18 h, sur sa propre ligne : visible d'un coup d'œil.
+  let p18=''; try { const h=_mes18(); if(h.length) p18='<br><span style="color:#166534;font-weight:600">18 h · '+esc(_mgDateCarte(h[0].date))+'</span>'; } catch(e){}
+  if(!MY_GARDES || !MY_GARDES.length){ main.textContent='Aucune garde à venir'; sub.innerHTML=p18.replace(/^<br>/,''); return; }
   const g0=MY_GARDES[0], n=_daysUntil(g0.date);
   const secteur = (g0.type==='G2'?'Mater/Bloc':'Réa');
   main.textContent = _mgDateCarte(g0.date) + ' · ' + secteur;
   const when = n<=0 ? "Aujourd'hui" : n===1 ? 'Demain' : 'dans '+n+' jours';
   const c=_mgCollegue(g0.date, g0.type);
-  sub.innerHTML = esc(when) + (c ? (' · avec <b>'+esc(c.nom)+'</b> en '+esc(c.ligne)) : '');
+  sub.innerHTML = esc(when) + (c ? (' · avec <b>'+esc(c.nom)+'</b> en '+esc(c.ligne)) : '') + p18;
 }
 function openMesGardes(){
   if(!MY_ID) return;
@@ -1781,19 +1784,35 @@ function agendaNouveau(){
   _agCharger(true);
 }
 
+/* (11/11/2026) Mes 18 h à venir, lus dans les plannings déjà en mémoire (aucun
+   appel de plus) : ils s'affichent dans « Mes gardes » pour les voir d'un coup
+   d'œil (demande du responsable). */
+function _mes18(){
+  const today=_todayStr(), vus={}, out=[];
+  const annees=Object.keys(_planCache||{}).map(Number).filter(Boolean);
+  annees.slice().forEach(function(y){ if(annees.indexOf(y+1)<0 && _planDejaLa(y+1)) annees.push(y+1); });
+  annees.forEach(function(y){
+    const pl=_planCache[y] || _planDejaLa(y);
+    _ech18De(pl, MY_ID, today).forEach(function(x){ if(!vus[x.date]){ vus[x.date]=1; out.push(x); } });
+  });
+  return out;
+}
 function renderMesGardes(){
   const box=document.getElementById('mesGardesList'), cnt=document.getElementById('mesGardesCount');
-  if(!MY_GARDES || !MY_GARDES.length){
+  let h18=[]; try { h18=_mes18(); } catch(e){}
+  const liste=(MY_GARDES||[]).concat(h18).sort(function(a,b){ return a.date<b.date?-1:a.date>b.date?1:0; });
+  if(!liste.length){
     cnt.textContent='';
-    box.innerHTML='<div class="topos-empty">Aucune garde à venir 🎉<br><span>Vos prochaines gardes apparaîtront ici dès leur publication.</span></div>';
+    box.innerHTML='<div class="topos-empty">Aucune garde à venir 🎉<br><span>Vos prochaines gardes et vos 18 h apparaîtront ici dès leur publication.</span></div>';
     return;
   }
-  cnt.textContent = MY_GARDES.length + (MY_GARDES.length>1?' gardes à venir':' garde à venir');
+  const nG=(MY_GARDES||[]).length;
+  cnt.textContent = (nG ? nG + (nG>1?' gardes':' garde') : '') + (nG && h18.length ? ' · ' : '') + (h18.length ? h18.length + ' × 18 h' : '') + ' à venir';
   let html='', curMonth='';
-  MY_GARDES.forEach(function(g){
+  liste.forEach(function(g){
     const dp=staffDateParts(g.date), p=g.date.split('-'), mKey=p[0]+'-'+p[1];
     if(mKey!==curMonth){ curMonth=mKey; html+='<div class="mg-month">'+_mgCap(_MOIS[(+p[1])-1])+' '+p[0]+'</div>'; }
-    const tag = g.type==='G2' ? '<span class="mg-tag g2">Mater/Bloc</span>' : '<span class="mg-tag g">Réa</span>';
+    const tag = g.type==='18' ? '<span class="mg-tag h18">18 h</span>' : g.type==='G2' ? '<span class="mg-tag g2">Mater/Bloc</span>' : '<span class="mg-tag g">Réa</span>';
     html+='<div class="staff-card">'
       + '<div class="staff-date"><div class="staff-dow">'+dp.dow+'</div><div class="staff-dnum">'+dp.dnum+'</div><div class="staff-month">'+dp.month+'</div></div>'
       + '<div class="staff-body"><div class="staff-theme">'+_mgCap(dp.dow)+' '+dp.dnum+' '+dp.month+tag+'</div></div>'

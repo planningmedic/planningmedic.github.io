@@ -295,6 +295,23 @@ console.log('\n═══ 8. Échanger un 18 h contre un 18 h (demande de l\'équ
   V('jamais un 18 h sur une garde : refusé', /ALPHA n'est pas libre le 2027-03-17 \(G\)/.test(err), err);
 }
 
+console.log('\n═══ 9. Les 18 h visibles dans « Mes gardes » (11/11/2026) ═══');
+{
+  const IDX = path.join(__dirname, '..', 'index.html');
+  const pl = (annee, jours) => ({ months: [{ days: jours.map(d => ({ date: d })),
+    doctors: [{ id: 'ALPHA', days: jours.map((d, i) => ({ status: i % 2 ? '18' : 'G' })) }, { id: 'BRAVO', days: jours.map(() => ({ status: '18' })) }] }] });
+  const c = vm.createContext({ console, Object, Number, String, Array,
+    _planCache: { 2027: pl(2027, ['2026-11-02', '2026-11-20', '2027-01-04', '2027-01-05']) },
+    _planDejaLa: y => (y === 2028 ? pl(2028, ['2027-12-27', '2028-01-04']) : null),
+    _todayStr: () => '2026-11-11', MY_ID: 'ALPHA' });
+  vm.runInContext(extraireFonction(IDX, '_ech18De') + '\n' + extraireFonction(IDX, '_mes18'), c);
+  const h = vm.runInContext('_mes18()', c).map(x => x.date);
+  V('mes 18 h à venir, et seulement les miens (pas ceux d\'un collègue, pas les passés)', JSON.stringify(h) === JSON.stringify(['2026-11-20', '2027-01-05', '2028-01-04']), h);
+  const idx = fs.readFileSync(IDX, 'utf8');
+  V('la liste « Mes gardes » mêle gardes et 18 h, triés par date, étiquette « 18 h »', /\(MY_GARDES\|\|\[\]\)\.concat\(h18\)\.sort/.test(idx) && /<span class="mg-tag h18">18 h<\/span>/.test(idx));
+  V('la carte « Prochaine garde » montre le prochain 18 h', /p18='<br><span style="color:#166534;font-weight:600">18 h · '/.test(idx) && /\+ p18;/.test(idx));
+}
+
 console.log('\n═══ 6. Les pages ═══');
 {
   const admin = fs.readFileSync(path.join(__dirname, '..', 'admin.html'), 'utf8');
