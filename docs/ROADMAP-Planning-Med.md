@@ -6,16 +6,72 @@ portail/Dashboard, module libéral, contrôle d'absence, veille biblio.
 (Le générateur de comptes rendus a été retiré le 07/09/2026 : il portait le logo de
 l'établissement et 77 noms de praticiens sur une page publique sans code d'accès.)
 
-**Dépôt** `planningmedic/planningmedic.github.io`, branche `main` · **Site v1.54.7** (02/11/2026) ·
+**Dépôt** `planningmedic/planningmedic.github.io`, branche `main` · **Site v1.62.0** (11/11/2026) ·
 **Portail** https://planningmedic.github.io ·
-**GAS** (numéros relevés dans le dépôt le 01/11/2026 ; tout le dépôt est **en service, version 61**, livrée
-depuis le téléphone par le livreur) : `Indispos.gs`, `diagnostic.gs` **2026-11-01.1** ·
-`code.gs`, `equipe.gs`, `miroir.gs`, `veille.gs` **2026-11-02.1** (commentaires seuls) · `generateur_gardes.gs`,
-`gardes.gs`, `indisponibilites.gs` **2026-10-27.1** · `journal.gs` **2026-10-24.1** · `portail.gs` **2026-10-21.1** ·
-`temps_partiel.gs` **2026-09-15.2** · `setup_annee.gs` **2026-09-14.1** · `echanges.gs` **2026-09-08.1** ·
+**GAS** (numéros relevés dans le dépôt le 11/11/2026 ; la version en service se lit au 🔍 Diagnostic de la page
+Maintenance — les lots du 11/11 attendent la mise à jour du serveur) : `echanges.gs` **2026-11-11.3** ·
+`gardes.gs` **2026-11-11.2** · `Indispos.gs`, `miroir.gs`, `code.gs` **2026-11-11.1** · `generateur_gardes.gs` **2026-11-10.2** ·
+`indisponibilites.gs`, `setup_annee.gs`, `temps_partiel.gs` **2026-11-10.1** · `veille.gs` **2026-11-09.1** ·
+`equipe.gs` **2026-11-02.1** · `diagnostic.gs` **2026-11-01.1** · `journal.gs` **2026-10-24.1** · `portail.gs` **2026-10-21.1** ·
 **Livreur** `livreur/livreur.gs` **2026-11-01.2** (projet Apps Script séparé, application web) ·
-**Worker** `cloudflare/worker.js` : `const VERSION = 'miroir 2026-10-30.1'` ·
+**Worker** `cloudflare/worker.js` : `const VERSION = 'miroir 2026-11-11.1'` ·
 **Service worker** `sw.js` : `pm-sw-v2` (version.js exclu de la copie depuis le 14/10).
+
+## 11/11/2026 — récupérations de samedi automatiques, 18 h protégés et échangeables (v1.59.0 → v1.62.0)
+
+**Défauts trouvés en production (année 2027, classeur du 11/11)** :
+- trois R d'un même MAR **écrasés en silence** par des dons de garde acceptés sur ses jours de récupération
+  (`donGarde` ne contrôlait pas le R) ;
+- un samedi donné dont le R n'avait pas pu suivre : R **en trop** chez le donneur, R manquant chez le receveur,
+  `LIENS_R_2027` pointant toujours vers le donneur — l'onglet Statuts ne montrait que les manquants ;
+- le bouton « Récup » annoncé par l'alerte des récups **n'avait jamais existé**, et `setDailyStatus` refusait le code R ;
+- un don de garde du dimanche à un MAR de 18 h le lundi : le repos de garde a **écrasé le 18 h** (jour à découvert).
+
+**v1.59.0** (`echanges.gs`, `gardes.gs`, `Indispos.gs`, `miroir.gs` 2026-11-11.1) — décision du responsable : tout automatique.
+- Règles de choix d'une date de R (celles du générateur + responsable) : plancher 15 présents, 2 R/jour, 3 jours
+  d'écart, case vide seulement, **jamais pendant les vacances scolaires** (PERIODES_VAC, sans dérogation), d'abord
+  un jour qui allonge un week-end libre / un pont / des congés posés, après le samedi au plus tôt, avant seulement
+  en dernier recours. Aucune date : rien n'est forcé, l'onglet Statuts le montre.
+- Samedi qui change de mains et R qui ne suit pas à la même date : le donneur rend son R (s'il est à venir), R neuf
+  au receveur, lien suivi, les deux notifiés. R écrasé par un don ou un échange : reposé ailleurs.
+- Onglet Statuts : bouton « Récup » (le serveur accepte R, le lien samedi → R se recolle), récups **en trop** signalées.
+- Page Maintenance : carte « Récupérations de samedi », Vérifier (aperçu) / Réparer (deux appuis), action
+  `recupsReparer` (rôle maintenance, 67 actions). **Réparation faite le 11/11** : 4 R posés, 1 retiré.
+
+**v1.60.0** (`echanges.gs` 2026-11-11.2) — un don qui écraserait un 18 h du receveur (jour de la garde ou lendemain) :
+le donneur est **prévenu avant d'envoyer** (refus « [18] … », bouton « Confirmer : je ferai ce 18 h »), le receveur le
+lit dans la proposition, et le 18 h passe au donneur à l'acceptation.
+
+**v1.61.0** (`echanges.gs` 2026-11-11.3, `gardes.gs` 2026-11-11.2) — demande de l'équipe : **échanger un 18 h contre un
+18 h** (type `echange18`, chacun libre le jour qu'il reçoit, rien d'écrasé). Un 18 h ne se donne pas.
+
+**v1.62.0** — les 18 h dans « Mes gardes » : prochain 18 h sur la carte d'accueil, liste mêlée gardes + 18 h.
+
+Banc : `banc_recups_auto.js` (77), `banc_echanges`, `banc_page`, `banc_contrat_routeur` mis à jour —
+**5 788 ✓**, 121 scénarios. Un seul échec, **antérieur et sans lien** : `banc_veille.js` « récent compté à la date
+d'arrivée » (dépend de la date du jour) — **à corriger**.
+
+**Reste à faire**
+- Responsable : mettre à jour le serveur (`echanges.gs`, `gardes.gs`) pour v1.60–v1.61, puis tester un don sur 18 h et
+  un échange de 18 h. Jours à découvert 2027 encore ouverts : 15/03 et 18/08 (18 h manquant).
+- Échange de garde (`echangeGardeJours`) : le repos de garde s'écrit sans contrôler la case d'arrivée ; R et 18 h sont
+  désormais rattrapés après coup, mais un V ou un F y serait écrasé — à fermer.
+- Annuler une proposition d'échange envoyée (FAQ du guide MAR : « pas encore »).
+
+## 03 – 10/11/2026 — génération 2027, mails et suivi (v1.54.8 → v1.58.0)
+
+- **Générateur** (2026-11-03.1 → 2026-11-10.2) : moins de doubles week-ends en période tendue (v1.54.9) ;
+  vendredi-dimanche rompu réparé par échange neutre (07/11) ; souhaits accordés et gardes à deux jours évitées par
+  échange neutre (09/11) ; **optimisation finale par recuit simulé**, 1 600 000 essais, rien ne recule (09–10/11).
+  **Gardes 2027 générées le 09/11.**
+- **Onglet Équité** (v1.55.0) : parts du générateur affichées telles quelles, verdict « à 1 garde près ».
+- **Planning du jour sur téléphone** : tableau aimanté (v1.56.0 → v1.56.2).
+- **Mail « Vos gardes »** enrichi (18 h, souhaits, vacances allongées, couple de week-end) + PDF récapitulatif (v1.57.3, v1.57.6).
+- **Onglets TRACES / HISTORIQUE** : suivi horodaté des gestes dans TRACES, HISTORIQUE reste l'archive des gardes (v1.57.7, v1.57.8).
+- **Classeur rangé en 7 familles** (v1.57.9). Un don ou un échange republie et prévient pour l'année DE LA GARDE (10/11).
+- **Mail paie** lisible sur téléphone (code.gs 2026-11-11.1). **« Mes gardes dans mon calendrier »** : abonnement
+  personnel (relais 2026-11-11.1, v1.58.0).
+- Outil ACR plus fiable (v1.57.0) ; pense-bête : champ « Patient » (v1.56.3) ; veille : thème Allergie, ligne d'auteurs.
 
 ## 02/11/2026 — audit des noms réels dans le dépôt (v1.54.6)
 

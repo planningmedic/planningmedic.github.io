@@ -50,6 +50,23 @@ les fichiers du planning, et attend une semaine de fonctionnement réel avant su
 
 # PARTIE 1 — L'ESSENTIEL
 
+## 11 novembre 2026 — récups de samedi et 18 h gérés tout seuls (v1.59.0 → v1.62.0)
+
+Site **v1.62.0**. Gardes 2027 **générées le 09/11** ; dons et échanges entre MAR en cours. Banc **5 788 ✓**,
+121 scénarios ; seul échec : `banc_veille.js` (dépend de la date du jour, antérieur, à corriger).
+
+- **Récupérations de samedi : tout automatique** (décision du responsable). Un samedi qui change de mains emmène
+  son R ; s'il ne peut pas suivre à la même date, le donneur rend le sien et le receveur en reçoit un neuf. Un R
+  écrasé par un don est reposé. Règles de date : générateur + **jamais pendant les vacances scolaires** + week-end,
+  pont ou congés d'abord + après le samedi. Rattrapage : page Maintenance → « Récupérations de samedi »
+  (Vérifier / Réparer). Le comité a enfin le bouton « Récup » dans Statuts.
+- **18 h** : un don qui écraserait un 18 h du receveur le fait passer au donneur, **prévenu et confirmant avant
+  d'envoyer**. Les MAR peuvent **échanger un 18 h contre un 18 h**. Les 18 h s'affichent dans « Mes gardes ».
+- **À faire par le responsable** : mettre à jour le serveur (`echanges.gs` 2026-11-11.3, `gardes.gs` 2026-11-11.2).
+- **Contrôle des noms réels** : la liste hors dépôt peut aussi se reconstituer depuis l'onglet MEDECINS du classeur
+  maître (ID, NOM, INITIALES à trois lettres) + prénom du responsable + établissement.
+- Détail : ROADMAP du 11/11 et du 03–10/11.
+
 ## 1er novembre 2026 (soir) — panneau des disponibles instantané et à jour (v1.54.4, v1.54.5)
 
 Site **v1.54.5**, aucun GAS. Banc **5 323 ✓, 0 échec**, 107 scénarios.
