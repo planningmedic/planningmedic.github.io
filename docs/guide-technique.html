@@ -474,7 +474,7 @@ en permanence que les fichiers en service sont bien ceux du dépôt.</p></div>
 <tr><th>Fichier</th><th>Son rôle, en clair</th></tr>
 <tr><td><code>Indispos.gs</code></td><td>Le chef d'orchestre, réduit à l'essentiel (800 lignes au lieu de
 6 500) : il reçoit chaque demande, vérifie le code d'accès et le droit associé, puis lit dans sa <b>table
-des 66 actions</b> quelle fonction appeler. La table déclare pour chaque action qui y a droit (comité seul :
+des 67 actions</b> quelle fonction appeler. La table déclare pour chaque action qui y a droit (comité seul :
 49 ; tout code valide : 9 ; selon le rôle : 4 ; MAR seulement : 1 ; sans code : les 2 listes d'années), et
 le banc vérifie que cette déclaration est bien ce que le code fait.</td></tr>
 <tr><td><code>gardes.gs</code></td><td>Tout ce qui touche au planning des gardes : statut, placements manuels
@@ -539,7 +539,7 @@ d'entrée : <code>doGet</code>/<code>doPost</code>, qui confient tout au routeur
 <code>_routeRequete_</code> (Indispos.gs). Celui-ci lit la table <code>_actions_()</code> — nom → rôle déclaré →
 fonction <code>_act_&lt;nom&gt;(R)</code>, R = <code>{ e, payload, action, code, user }</code> — dont les corps
 vivent dans les fichiers métier. Rôles issus de <code>checkCode</code> ; refus des non-admins par
-<code>_deny()</code>, dans le corps de chaque action ; <code>banc_contrat_routeur.js</code> fige les 66 actions. Chaque fichier poussé incrémente sa constante
+<code>_deny()</code>, dans le corps de chaque action ; <code>banc_contrat_routeur.js</code> fige les 67 actions. Chaque fichier poussé incrémente sa constante
 <code>GAS_VERSION_*</code> (format AAAA-MM-JJ.N) — c'est elle que le diagnostic compare au dépôt
 (contrôle de dérive, 15 lignes : les 14 fichiers déployés de <code>gas/</code> + le module partagé
 <code>partage/dispo_jour.js</code> ; <code>dev.gs</code> et <code>sauvegarde.gs</code> ne sont pas contrôlés). Fonction endormie : <code>setupAnnee</code> (setup_annee.gs)
@@ -1885,10 +1885,24 @@ moments.</p>
 <code>LIENS_R_{année}</code> quel jour de récupération correspond à quel samedi (une ligne par
 samedi et par tenant — un samedi a deux gardes, donc deux lignes). Quand un samedi change de
 mains, la récupération de <b>ce</b> samedi est transférée au receveur, à sa date, et la ligne suit.
-Trois cas d'échec prévus — année sans lien (2026), récupération déjà prise, receveur occupé ce
-jour-là — laissent l'échange valide et déclenchent une notification au comité : « Récupération à
-replacer ». Un échange samedi contre samedi ne déplace aucune récupération (le compte de chacun ne
-change pas). L'onglet suit le même cycle annuel que GARDES et STATS (archivé avec eux).</p>
+Depuis le 11/11/2026, si elle ne peut pas suivre (récupération déjà prise, receveur occupé ce
+jour-là), le donneur rend la sienne et le receveur en reçoit une <b>neuve</b> ; un R écrasé par un
+don ou un échange est reposé ailleurs ; une récupération posée à la main dans Statuts recolle son
+lien. Règles de date : celles du générateur (15 présents, 2 R par jour, 3 jours d'écart), plus jamais
+pendant les vacances scolaires, d'abord un jour qui allonge un week-end, un pont ou des congés, au plus
+tôt après le samedi. Sans date possible, rien n'est forcé : l'alerte de l'onglet Statuts le montre.
+Le rattrapage d'ensemble se fait page Maintenance, carte « Récupérations de samedi » (action
+<code>recupsReparer</code>, aperçu puis réparation). Année sans lien (2026) : rien d'automatique.
+Un échange samedi contre samedi ne déplace aucune récupération (le compte de chacun ne change pas).
+L'onglet suit le même cycle annuel que GARDES et STATS (archivé avec eux).</p>
+
+<h3>Les 18 h dans les échanges (11/11/2026)</h3>
+<p>Un don qui écraserait un 18 h du receveur (jour de la garde ou lendemain) est refusé tant que le
+donneur n'a pas confirmé (<code>accepte18</code>) ; à l'acceptation, le 18 h passe au donneur, libéré
+ce jour-là. Un 18 h écrasé par un échange passe de même à l'autre MAR s'il est libre. Les MAR peuvent
+aussi échanger <b>un 18 h contre un 18 h</b> (type <code>echange18</code>, chacun libre le jour qu'il
+reçoit). Dans un échange de gardes, le repos d'arrivée ne peut tomber ni sur une absence ni à côté
+d'une autre garde.</p>
 
 <h3>Les notifications : ciblées, avec une pastille unifiée</h3>
 <p>Les notifications d'échange ne partent qu'à la personne concernée — jamais de bruit pour les
