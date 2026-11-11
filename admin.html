@@ -2954,7 +2954,7 @@ const STAT_META = {
   '18': {label:'8h–18h',         bg:'#F0FDF4', fg:'#166534', bd:'#BBF7D0'},
   'R':  {label:'Récup',          bg:'#DCFCE7', fg:'#166534', bd:'#BBF7D0'},
 };
-const STAT_POSABLES = ['V','F','TP','CL','18'];
+const STAT_POSABLES = ['V','F','TP','CL','18','R'];   // (11/11/2026) « R » : « Placer la récup » renvoyait vers un bouton qui n'existait pas
 const MOIS_FR = ['','Janvier','Février','Mars','Avril','Mai','Juin','Juillet','Août','Septembre','Octobre','Novembre','Décembre'];
 const MOIS_AB = ['','Jan','Fév','Mar','Avr','Mai','Jun','Jul','Aoû','Sep','Oct','Nov','Déc'];
 
@@ -5590,23 +5590,27 @@ function renderRecupsStatuts() {
   const past = document.getElementById('pastilleRecup');
   if (!el) return;
   const utilisable = ANNEE_STATS_FIABLES && Number(ADMIN_YEAR) >= Number(ANNEE_STATS_FIABLES) && DATA;
-  const ec = utilisable ? recupsEcarts().filter(function (x) { return x.d > 0; }) : [];
+  /* (11/11/2026) Les récupérations EN TROP aussi : un samedi donné dont le R
+     n'avait pas pu suivre laissait au donneur un R qu'il ne devait plus, sans
+     que rien ne le montre. Les dons et échanges règlent désormais tout seuls
+     ces écarts ; ce qui reste se règle ici, ou par « Réparer » (page Maintenance). */
+  const ec = utilisable ? recupsEcarts() : [];
   if (past) {
     past.textContent = ec.length;
     past.style.display = ec.length ? 'inline-flex' : 'none';
   }
   if (!ec.length) { el.style.display = 'none'; el.innerHTML = ''; return; }
   const ouverte = el.getAttribute('data-ouverte') === '1';
-  const total = ec.reduce(function (n, x) { return n + x.d; }, 0);
+  const total = ec.reduce(function (n, x) { return n + Math.abs(x.d); }, 0);
   el.innerHTML =
     '<div style="display:flex;align-items:flex-start;gap:12px;background:#FEF9C3;border:1px solid #CA8A04;'
     + 'border-radius:12px;padding:14px 16px;margin-bottom:14px">'
     + '<span style="font-size:18px;line-height:1.2">🟡</span>'
     + '<div style="flex:1;min-width:0">'
     + '<div style="font-size:13.5px;font-weight:700">' + total + ' récupération' + (total > 1 ? 's' : '')
-    + ' de samedi à replacer</div>'
+    + ' de samedi à régler</div>'
     + '<div style="font-size:12.5px;color:#334155;line-height:1.5;margin-top:3px">'
-    + 'Un échange a déplacé la garde, mais pas la récupération : elle ne pouvait pas suivre.</div>'
+    + 'Le nombre de récupérations ne correspond plus aux samedis tenus. Placez la récupération qui manque, ou effacez celle en trop.</div>'
     + '</div>'
     + '<span onclick="recupsBasculer()" style="font-size:12.5px;font-weight:700;color:#92400E;'
     + 'cursor:pointer;white-space:nowrap;user-select:none;padding-top:2px">'
@@ -5617,11 +5621,12 @@ function renderRecupsStatuts() {
           + '<div style="font-family:\'DM Mono\',monospace;font-size:12px;font-weight:700;background:#F1F5F9;'
           + 'border-radius:7px;padding:7px 10px">' + x.id + '</div>'
           + '<div style="flex:1;min-width:0"><div style="font-size:13px;font-weight:700">'
-          + x.d + ' récupération' + (x.d > 1 ? 's' : '') + ' due' + (x.d > 1 ? 's' : '') + '</div>'
+          + (x.d > 0 ? x.d + ' récupération' + (x.d > 1 ? 's' : '') + ' due' + (x.d > 1 ? 's' : '')
+                     : (-x.d) + ' récupération' + (x.d < -1 ? 's' : '') + ' en trop') + '</div>'
           + '<div style="font-size:12px;color:var(--ink-3);margin-top:2px">'
           + x.sam + ' samedi' + (x.sam > 1 ? 's' : '') + ' tenu' + (x.sam > 1 ? 's' : '')
           + ' · ' + x.r + ' récup' + (x.r > 1 ? 's' : '') + ' posée' + (x.r > 1 ? 's' : '') + '</div></div>'
-          + '<button class="btn-sm" onclick="recupsPreparer(&quot;' + x.id + '&quot;)">Placer la récup</button>'
+          + '<button class="btn-sm" onclick="recupsPreparer(&quot;' + x.id + '&quot;)">' + (x.d > 0 ? 'Placer la récup' : 'Voir ses récups') + '</button>'
           + '</div>';
       }).join('') : '');
   el.style.display = 'block';
@@ -5641,7 +5646,7 @@ function recupsPreparer(id) {
   try {
     STAT.view = 'mar'; STAT.marId = id; STAT.selected.clear();
     loadStatuts();
-    toast('Dr ' + id + ' sélectionné — choisissez le ou les jours, puis « Récup »');
+    toast('Dr ' + id + ' sélectionné — choisissez le ou les jours, puis « Récup » (ou « Effacer statut »)');
   } catch (e) { toast('Sélection impossible : ' + e.message, 'error'); }
 }
 

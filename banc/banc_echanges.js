@@ -272,7 +272,11 @@ console.log('\n═══ 10. Don d\'un samedi SANS lien (2026) : l\'échange abo
     b.journal.some(m => /onglet Statuts/.test(m)), b.journal.slice(-3));
 }
 
-console.log('\n═══ 11. Samedi dont le receveur est occupé le jour du R : échange fait, comité prévenu ═══');
+/* (11/11/2026) Le R ne reste plus chez le donneur : il ne lui est plus dû.
+   Le receveur reçoit un R neuf (banc_recups_auto.js) ; ICI, huit MAR
+   seulement, le plancher de quinze présents rend toute date impossible :
+   c'est le seul cas où le comité entre en scène. */
+console.log('\n═══ 11. Samedi dont le receveur est occupé le jour du R, aucune date possible : R rendu, comité prévenu ═══');
 {
   const b = monde(2027);
   const samedi = b.dates.find(d => new Date(d + 'T12:00:00').getDay() === 6);
@@ -285,11 +289,13 @@ console.log('\n═══ 11. Samedi dont le receveur est occupé le jour du R : 
   b.notifs.length = 0;
   const rep = vm.runInContext(`repondreEchange(${JSON.stringify(user('BRAVO'))}, { id:${JSON.stringify(r.id)}, reponse:'accepter' })`, b.ctx);
   V('l\'échange aboutit', rep.etat === 'acceptee');
-  V('le R n\'a PAS bougé (rien d\'écrasé)', b.lire('ALPHA', dateR) === 'R' && b.lire('BRAVO', dateR) === '18');
-  V('la ligne LIENS_R garde son tenant d\'origine', b.cl.getSheetByName('LIENS_R_2027').lignes[1][1] === 'ALPHA');
+  V('le donneur rend son R (le samedi n\'est plus le sien), rien d\'écrasé chez le receveur', b.lire('ALPHA', dateR) === '' && b.lire('BRAVO', dateR) === '18');
+  V('la ligne LIENS_R passe au receveur, sans date', String(b.cl.getSheetByName('LIENS_R_2027').lignes[1][1]) === 'BRAVO' && !b.cl.getSheetByName('LIENS_R_2027').lignes[1][2], b.cl.getSheetByName('LIENS_R_2027').lignes[1]);
   V('la trace porte le motif ET la date du R — sans aucun mail',
     b.mails.length === 0
     && b.journal.some(m => /récup à replacer/i.test(m) && m.indexOf(dateR) > -1), b.journal.slice(-3));
+  V('la trace dit qu\'aucune date n\'était possible', b.journal.some(m => /AUCUNE DATE POSSIBLE/.test(m) && /BRAVO/.test(m)), b.journal.slice(-4));
+  V('le donneur est prévenu que sa récupération est retirée', b.notifs.some(n => n.cible && n.cible.id === 'ALPHA' && /retirée/.test(n.corps)), b.notifs);
 }
 
 console.log('\n═══ 12. Échange samedi ↔ samedi : AUCUN R ne bouge (décision du 12/08) ═══');

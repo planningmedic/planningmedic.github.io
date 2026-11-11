@@ -1,7 +1,7 @@
 // ⚠️ RÈGLE (détecteur de dérive dépôt↔Apps Script) : incrémenter cette version
 // à CHAQUE push de ce fichier. Le diagnostic (admin → Maintenance) compare la
 // version déployée ici avec celle du dépôt et signale toute recopie oubliée.
-const GAS_VERSION_INDISPOS = '2026-11-01.1';   // (01/11/2026) rôle `maintenance` (diagComplet, viderCacheConfig, sendCodes) · (27/10/2026) demi-journées de vacances VM/VA (CODES_DEMI_VAC) · (27/10/2026) champ ordreMc (colonne ORDRE_MC) · (24/10/2026) action journalAppliquerMaintenant (journal.gs) · (18/10/2026) rôle « paie » (code partagé des secrétaires de paie) + refus par défaut de tout rôle autre que admin/mar hors de sa liste blanche
+const GAS_VERSION_INDISPOS = '2026-11-11.1';   // (11/11/2026) action recupsReparer (rôle maintenance) · (01/11/2026) rôle `maintenance` (diagComplet, viderCacheConfig, sendCodes) · (27/10/2026) demi-journées de vacances VM/VA (CODES_DEMI_VAC) · (27/10/2026) champ ordreMc (colonne ORDRE_MC) · (24/10/2026) action journalAppliquerMaintenant (journal.gs) · (18/10/2026) rôle « paie » (code partagé des secrétaires de paie) + refus par défaut de tout rôle autre que admin/mar hors de sa liste blanche
 
 /* ── (01/08/2026) MARQUEUR DE TEMPS GLOBAL — mesure, ne change rien ───────
    `_srv_ms` chronometre l'INTERIEUR de doGet. Or avant que doGet soit appele,
@@ -276,7 +276,7 @@ const WRITE_ACTIONS_LOCK = new Set([
   'addMedecinToGroupe', 'annulerAbsenceLongue', 'applyModification',
   'archiveYear', 'clearIndisposYear', 'creerEchange', 'deleteOverride',
   'generateGardes', 'initYear', 'poserAbsenceLongue', 'publishPlanning',
-  'repondreEchange',
+  'repondreEchange', 'recupsReparer',
   'saveAffectations', 'saveAffectationsMar', 'saveConfig', 'saveGroupes',
   'resetCodeMar',
   'saveIndispos', 'saveIndisposBatch', 'saveMedecin', 'savePeriodes', 'setActiveYear',
@@ -382,6 +382,7 @@ function _actions_() {
     "mailListe"                   : { role: 'admin'             , fn: _act_mailListe },   // equipe.gs
     "mailMessage"                 : { role: 'admin'             , fn: _act_mailMessage },   // equipe.gs
     "diagComplet"                 : { role: 'maintenance'       , fn: _act_diagComplet },   // diagnostic.gs
+    "recupsReparer"               : { role: 'maintenance'       , fn: _act_recupsReparer },   // gardes.gs (11/11/2026) récupérations de samedi : aperçu puis réparation
     "archiveYear"                 : { role: 'admin'             , fn: _act_archiveYear },   // Indispos.gs
     "saveAffectationsMar"         : { role: 'admin'             , fn: _act_saveAffectationsMar },   // gardes.gs
     "addMedecinToGroupe"          : { role: 'admin'             , fn: _act_addMedecinToGroupe },   // equipe.gs

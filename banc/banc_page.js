@@ -229,7 +229,10 @@ async function page(transport) {
   V('une pastille est posée sur l\'onglet Statuts', /id="tab-statuts"[\s\S]{0,200}id="pastilleRecup"/.test(c));
   V('elle se calcule depuis l\'écart existant, sans rien stocker',
     /function renderRecupsStatuts[\s\S]{0,700}recupsEcarts\(\)/.test(c));
-  V('…et ne retient que les récups MANQUANTES', /recupsEcarts\(\)\.filter\(function \(x\) \{ return x\.d > 0; \}\)/.test(c));
+  /* (11/11/2026) Les récupérations EN TROP aussi : un samedi donné dont le R
+     n'avait pas suivi laissait au donneur un R qu'il ne devait plus, et rien
+     ne le montrait (cas réel de 2027). */
+  V('…et retient les récups manquantes ET en trop', /const ec = utilisable \? recupsEcarts\(\) : \[\];/.test(c) && /récupération' \+ \(x\.d < -1 \? 's' : ''\) \+ ' en trop'/.test(c));
   V('elle se rafraîchit à l\'ouverture de l\'onglet', /loadStatuts[\s\S]{0,4000}renderRecupsStatuts\(\)/.test(c));
   V('…et au chargement du planning, pour la pastille',
     /renderRecups\(\)[\s\S]{0,300}renderRecupsStatuts\(\)/.test(c));

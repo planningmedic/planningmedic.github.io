@@ -484,14 +484,18 @@
     </div>
     <div class="callout warn">
       <div class="ct">Le cas du samedi</div>
-      <p>Un samedi tenu ouvre une récupération. À partir du planning <b>2027</b>, elle est <b>transférée automatiquement</b> avec la garde : le nouveau tenant reçoit la récupération de ce samedi, à sa date, et les deux MAR en sont informés.</p>
-      <p>Si le transfert est impossible (récupération déjà prise, jour occupé chez le receveur), le geste se fait quand même et <b>vous recevez un mail</b> à l'adresse du comité, dont l'objet commence par « Récupération à replacer » : il donne le samedi concerné, les deux médecins et la date de la récupération. C'est le seul cas où le comité entre en scène.</p>
+      <p>Un samedi tenu ouvre une récupération. À partir du planning <b>2027</b>, elle <b>suit la garde automatiquement</b> : le nouveau tenant reçoit la récupération de ce samedi, à la même date si elle est libre chez lui, sinon à une nouvelle date choisie par le portail. Le donneur rend la sienne. Les MAR concernés sont prévenus.</p>
+      <p>Même chose si un MAR accepte une garde qui tombe sur l'une de ses récupérations : le don se fait, et la récupération est <b>reposée ailleurs</b> toute seule.</p>
+      <div class="geste"><b>Le geste :</b> aucun. Une alerte n'apparaît dans l'onglet Statuts que si aucune date ne convient : c'est le seul cas où le comité entre en scène.</div>
+      <details class="pourquoi"><summary>Comment le portail choisit la date</summary>
+        <div class="corps"><p>Les mêmes règles que le calcul des gardes : au moins quinze présents ce jour-là, deux récupérations au plus le même jour, trois jours d'écart entre deux récupérations d'un même MAR, jamais sur un jour déjà occupé. En plus : <b>jamais pendant les vacances scolaires</b>, de préférence un vendredi ou un lundi qui allonge un week-end libre (ou un jour collé à un pont ou à des congés), et le plus tôt possible après le samedi.</p></div>
+      </details>
       <p>Sur le planning <b>2026</b> (année de transition), rien d'automatique : le donneur conserve sa récupération et le portail vous prévient au moment du geste.</p>
     </div>
 
     <h3>Les MAR échangent aussi entre eux</h3>
     <p>Depuis leur portail, les MAR peuvent se <b>donner ou échanger des gardes directement</b>, sans passer par vous : l'un propose, l'autre reçoit une notification et accepte ou refuse. Les <b>mêmes règles</b> s'appliquent que pour vos gestes — mêmes refus, mêmes protections, rien d'écrasé — et votre planning reste juste en permanence : chaque échange accepté s'y écrit dans la minute.</p>
-    <p>Une demande sans réponse expire seule au bout de 48&nbsp;heures, sans rien modifier. Vous n'avez donc <b>rien à surveiller</b> : votre seul rôle est de replacer une récupération quand un mail vous le demande.</p>
+    <p>Une demande sans réponse expire seule au bout de 48&nbsp;heures, sans rien modifier. Vous n'avez donc <b>rien à surveiller</b> : votre seul rôle est de placer une récupération quand l'onglet Statuts vous le demande.</p>
     <a class="backtop" href="#">↑ Sommaire</a>
   </section>
 
@@ -691,7 +695,7 @@
     </div>
 
     <h3>Le bandeau « Récupérations de samedi »</h3>
-    <p>Il annonce soit que chaque samedi tenu a bien sa récupération, soit un nombre de <b>gestes en attente</b>. Cliquez une ligne : elle vous emmène dans l'onglet Statuts, sur le MAR concerné. Un écart signale un geste à finir, pas une erreur.</p>
+    <p>Il annonce soit que chaque samedi tenu a bien sa récupération, soit un nombre de <b>gestes en attente</b> (récupération manquante ou en trop). Cliquez une ligne : elle vous emmène dans l'onglet Statuts, sur le MAR concerné. Un écart signale un geste à finir, pas une erreur.</p>
 
     <div class="callout tip">
       <div class="ct">Ce qu'on peut répondre à un collègue</div>
@@ -724,16 +728,17 @@
     </div>
 
     <h3>Les récupérations de samedi à replacer</h3>
-    <p>Un don ou un échange déplace la garde du samedi et son repos, <b>mais pas la récupération</b>.
-      L'outil essaie de la transférer tout seul ; quand il n'y arrive pas — le jour est déjà pris chez
-      celui qui reprend la garde, par exemple — <b>c'est à vous de la replacer</b>.</p>
+    <p>Quand un samedi change de mains, sa récupération suit toute seule (voir l'onglet Planning).
+      Il ne reste quelque chose à faire que si <b>aucune date ne convient</b>, ou si une récupération
+      a été effacée à la main : <b>c'est alors à vous de la placer</b>.</p>
     <p>Vous le voyez sans avoir à y penser : une <b>pastille ambre apparaît sur l'onglet Statuts</b>,
       visible depuis n'importe quelle page, et une alerte s'affiche en haut de cet onglet. Elle nomme le
-      médecin et ce qui lui est dû.</p>
+      médecin et ce qui lui est dû — ou ce qu'il a en trop.</p>
     <ol class="steps">
       <li>Dépliez l'alerte avec <span class="btn-ex">Voir →</span>.</li>
       <li><span class="btn-ex">Placer la récup</span> sélectionne le médecin et ouvre son calendrier.</li>
-      <li>Touchez le ou les jours de votre choix, puis <span class="btn-ex">Récup</span>.</li>
+      <li>Touchez le jour de votre choix, puis <span class="btn-ex">Récup</span> (ou, pour une récupération en trop, le jour à libérer puis <span class="btn-ex">Effacer statut</span>).</li>
+      <li>Cliquez <span class="btn-ex red">Publier</span>.</li>
     </ol>
     <div class="callout tip">
       <div class="ct">L'alerte s'éteint toute seule</div>
@@ -743,8 +748,8 @@
     </div>
     <div class="callout rule">
       <div class="ct">Le choix du jour vous appartient</div>
-      <p>L'outil ne propose pas de date : il ne rejoue pas ici les règles de placement de l'algorithme.
-        Choisissez un jour qui tient — un jour de garde sera de toute façon refusé.</p>
+      <p>Ici, l'outil ne propose pas de date : choisissez un jour qui tient — un jour de garde sera de
+        toute façon refusé. La récupération posée est rattachée toute seule au samedi qu'elle compense.</p>
     </div>
 
     <h3>Poser un statut — vue MAR</h3>
@@ -761,12 +766,13 @@
       <tr><td>Temps partiel</td><td>Jour non travaillé au titre de la quotité</td></tr>
       <tr><td>Congé long</td><td>Arrêt, maternité, disponibilité</td></tr>
       <tr><td>8 h – 18 h</td><td>Modalité de journée</td></tr>
+      <tr><td>Récup</td><td>Récupération d'un samedi de garde</td></tr>
       <tr><td>Effacer statut</td><td>Rend le jour à l'état « présent »</td></tr>
     </table>
     <div class="callout rule">
       <div class="ct">Un jour de garde ne se modifie pas ici</div>
       <p>Les gardes (G, G2) et les repos de garde (RG) sont <b>verrouillés</b>, cadenas à l'appui : ils se traitent par un échange ou un don, dans l'onglet Planning. Si votre sélection en contient, le portail pose le statut sur les autres jours et vous dit combien étaient verrouillés.</p>
-      <p>Une récupération (R) s'affiche et peut être <b>effacée</b>, mais elle ne se pose pas depuis cet écran : replacer une récupération se fait dans le classeur.</p>
+      <p>Une récupération (R) se pose avec le bouton <span class="btn-ex">Récup</span> et s'efface avec <span class="btn-ex">Effacer statut</span>.</p>
     </div>
     <div class="callout warn">
       <div class="ct">Poser une absence retire les placements de ce jour</div>

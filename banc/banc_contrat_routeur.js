@@ -67,6 +67,7 @@ const CONTRAT = {
   'mailListe'                 : 'admin',
   'mailMessage'               : 'admin',
   'diagComplet'               : 'maintenance',
+  'recupsReparer'             : 'maintenance',   // (11/11/2026) récupérations de samedi : aperçu puis réparation
   'archiveYear'               : 'admin',
   'saveAffectationsMar'       : 'admin',
   'addMedecinToGroupe'        : 'admin',
@@ -128,11 +129,11 @@ function contratActuel() {
   }
   return { fichier: path.basename(cands[0]), actions: out, corps };
 }
-console.log('═══ Le routeur répond au contrat des 66 actions ═══');
+console.log('═══ Le routeur répond au contrat des 67 actions ═══');
 const { fichier, actions, corps } = contratActuel();
 const attendu = Object.assign({}, CONTRAT, { getActiveYear: 'sans code', getAnneesDisponibles: 'sans code' });
 V('le routeur est lu dans ' + fichier, !!fichier);
-V('66 actions, ni plus ni moins', Object.keys(actions).length === 66, Object.keys(actions).length);
+V('67 actions, ni plus ni moins', Object.keys(actions).length === 67, Object.keys(actions).length);
 const manquantes = Object.keys(attendu).filter(a => !(a in actions));
 const enTrop = Object.keys(actions).filter(a => !(a in attendu));
 V('aucune action du contrat ne manque', manquantes.length === 0, manquantes);
@@ -141,8 +142,8 @@ const roleChange = Object.keys(attendu).filter(a => actions[a] && actions[a] !==
 V('chaque action garde exactement son contrôle d\'accès', roleChange.length === 0, roleChange);
 V('exactement deux actions sans code : les listes d\'années', Object.values(actions).filter(r => r === 'sans code').length === 2);
 V('44 actions réservées au comité', Object.values(actions).filter(r => r === 'admin').length === 44, Object.values(actions).filter(r => r === 'admin').length);
-V('exactement trois actions de maintenance : diagnostic, cache, envoi groupé des codes',
-  JSON.stringify(Object.keys(actions).filter(a => actions[a] === 'maintenance').sort()) === JSON.stringify(['diagComplet', 'sendCodes', 'viderCacheConfig']),
+V('exactement quatre actions de maintenance : diagnostic, cache, envoi groupé des codes, réparation des récupérations',
+  JSON.stringify(Object.keys(actions).filter(a => actions[a] === 'maintenance').sort()) === JSON.stringify(['diagComplet', 'recupsReparer', 'sendCodes', 'viderCacheConfig']),
   Object.keys(actions).filter(a => actions[a] === 'maintenance'));
 { /* La porte de maintenance n'admet QUE le MAR qui a la tuile : ni le comité, ni un MAR sans la clé. */
   const tout = require('./stubs').sourceGasTout();

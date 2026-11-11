@@ -4,7 +4,7 @@
    quelles : aucune ligne de logique modifiée, seulement déplacée. Le routeur et
    ses aides (checkCode, _deny, _error, doGet/doPost) restent dans Indispos.gs.
    Un seul espace global dans Apps Script : rien à importer. */
-const GAS_VERSION_GARDES = '2026-11-10.4';   // (10/11/2026) lotRolesVerifier / lotRolesAppliquer (inversion réa / mater par lot, depuis l'éditeur) · (10/11/2026) un échange, un don ou une modification republie et prévient (MAR et paie) pour l'année DE LA GARDE, plus l'année active · (10/11/2026) le suivi des gestes écrit dans son propre onglet TRACES, plus jamais dans HISTORIQUE (archive des gardes par année) · (10/11/2026) onglet de suivi (TP, modifications, échanges, lot de 18 h), jamais effacé · (10/11/2026) lot18hVerifier / lot18hAppliquer (réattribution de 18 h par lot, depuis l'éditeur) · (27/10/2026) VM/VA : bloquent un don/échange, comptent 0,5 jour au reliquat · (18/10/2026) action getPlanningPaie (vue des secrétaires de paie)
+const GAS_VERSION_GARDES = '2026-11-11.1';   // (11/11/2026) le comité pose un R (statut « R ») et le lien samedi → R se recolle · (10/11/2026) lotRolesVerifier / lotRolesAppliquer (inversion réa / mater par lot, depuis l'éditeur) · (10/11/2026) un échange, un don ou une modification republie et prévient (MAR et paie) pour l'année DE LA GARDE, plus l'année active · (10/11/2026) le suivi des gestes écrit dans son propre onglet TRACES, plus jamais dans HISTORIQUE (archive des gardes par année) · (10/11/2026) onglet de suivi (TP, modifications, échanges, lot de 18 h), jamais effacé · (10/11/2026) lot18hVerifier / lot18hAppliquer (réattribution de 18 h par lot, depuis l'éditeur) · (27/10/2026) VM/VA : bloquent un don/échange, comptent 0,5 jour au reliquat · (18/10/2026) action getPlanningPaie (vue des secrétaires de paie)
 
 // ── Sonde : les positions de STATS que code.gs lit à l'aveugle ──
 function _sondeStatsEntetes_(check, R, annee) {
@@ -745,7 +745,10 @@ function appliquerStatutJour(year, marIdBrut, statutBrut, datesBrutes) {
         : (payload.date ? [String(payload.date)] : []);
       if (!marId || !dates.length) throw new Error('marId et date(s) requis');
 
-      const ALLOWED = new Set(['', 'V', 'F', 'TP', 'CL', 'A', '18']);   // (31/07/2026) « I » retire : l'indispo de garde se pose dans INDISPOS
+      /* (11/11/2026) « R » : le comité pose une récupération de samedi. Le bouton
+         existait dans le texte de l'écran, jamais dans le code : depuis le 23/08,
+         « Placer la récup » ne menait à rien. Le lien samedi → R se recolle ensuite. */
+      const ALLOWED = new Set(['', 'V', 'F', 'TP', 'CL', 'A', '18', 'R']);   // (31/07/2026) « I » retire : l'indispo de garde se pose dans INDISPOS
       if (!ALLOWED.has(statut)) throw new Error(`Statut non autorisé : ${statut}`);
 
       const ss = SpreadsheetApp.getActiveSpreadsheet();
@@ -781,11 +784,15 @@ function appliquerStatutJour(year, marIdBrut, statutBrut, datesBrutes) {
           } catch (e) { Logger.log('Retrait des placements : ' + e.message); }
         }
         try {
-          const indMap = {'':'', 'V':'VAC', 'F':'FORM', 'TP':'TP', 'CL':'CL', 'A':'A', '18':'INDISPO'};
+          const indMap = {'':'', 'V':'VAC', 'F':'FORM', 'TP':'TP', 'CL':'CL', 'A':'A', '18':'INDISPO', 'R':''};
           const existing = getIndisposForDoctor(marId, year);
           applied.forEach(d => { existing[d] = indMap[statut]; });
           saveIndisposForDoctor(marId, existing, year);
         } catch(e) { Logger.log('Miroir INDISPOS: ' + e.message); }
+        if (statut === 'R' && typeof recupsRelierPose_ === 'function') {
+          try { const _nl = recupsRelierPose_(year, marId, applied); if (_nl) logAction(`setDailyStatus — ${_nl} lien(s) samedi → R recollé(s) (${marId})`); }
+          catch (e) { Logger.log('Liens R : ' + e.message); }
+        }
         // (C3) plus d'auto-republication : déclenchée par le bouton « Publier » (action publishPlanning).
       }
       logAction(`setDailyStatus — ${marId} "${statut || '∅'}" ×${applied.length}, ${rejected.length} rejeté(s)`);
@@ -1556,6 +1563,23 @@ affectationDuMois: affMap, codeById: codeById, flags: FLAGS,
   return ContentService.createTextOutput(JSON.stringify({
 success: true, date: targetDate, dispo
   })).setMimeType(ContentService.MimeType.JSON);
+}
+
+/* ── action "recupsReparer" (11/11/2026) ── page Maintenance : aperçu ou
+   réparation des récupérations de samedi (echanges.gs, recupsReparer), pour
+   chaque année qui a ses liens samedi → R, ou la seule année demandée. */
+function _act_recupsReparer(R) {
+  const { payload, user } = R;
+  if (!_droitMaintenance_(user)) return _deny();   // page Maintenance seulement (equipe.gs)
+  try {
+    const ss = SpreadsheetApp.getActiveSpreadsheet();
+    const annees = ss.getSheets().map(function (s) { const m = /^LIENS_R_(\d{4})$/.exec(s.getName()); return m ? Number(m[1]) : 0; })
+      .filter(function (y) { return y && ss.getSheetByName('GARDES_' + y); })
+      .filter(function (y) { return !Number(payload.year) || y === Number(payload.year); }).sort();
+    const res = annees.map(function (y) { return recupsReparer(y, payload.appliquer === true); });
+    return ContentService.createTextOutput(JSON.stringify({ success: true, appliquer: payload.appliquer === true, annees: res }))
+      .setMimeType(ContentService.MimeType.JSON);
+  } catch (e) { return _error(e.message); }
 }
 
 /* ── action "setDailyStatus" ── */

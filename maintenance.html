@@ -133,6 +133,17 @@ window.SessionPortail = window.SessionPortail || { lire:function(){try{return se
     <div class="res" id="diagRes"></div>
   </section>
 
+  <!-- 1 bis. Récupérations de samedi (11/11/2026) -->
+  <section class="card" id="cRecups">
+    <h2>🔁 Récupérations de samedi</h2>
+    <p class="d">Vérifie que chaque samedi de garde à venir a sa récupération, chez le bon MAR. « Vérifier » montre ce qui serait corrigé, sans rien changer. « Réparer » le fait, prévient les MAR concernés et met le planning à jour.</p>
+    <div class="duo">
+      <button class="btn p" id="btnRecVerif" type="button">Vérifier</button>
+      <button class="btn" id="btnRecRep" type="button" disabled>Réparer</button>
+    </div>
+    <div class="res" id="recRes"></div>
+  </section>
+
   <!-- 2. Cache -->
   <section class="card" id="cCache">
     <h2>🧹 Vider le cache</h2>
@@ -390,6 +401,51 @@ $('btnDiagCopie').addEventListener('click', async () => {
     try { document.execCommand('copy'); toast('Rapport copié'); } catch (e2) { toast('Copie impossible'); }
     ta.remove();
   }
+});
+
+/* ── 1 bis. Récupérations de samedi (11/11/2026) ──
+   Le serveur choisit les dates (mêmes règles que le calcul des gardes, jamais
+   pendant les vacances scolaires) : la page n'affiche que son verdict. */
+let REC_ANNEES = [];
+function _jj(d){ const m = /^(\d{4})-(\d{2})-(\d{2})/.exec(String(d || '')); return m ? m[3] + '/' + m[2] + '/' + m[1] : esc(d); }
+function recLigne(a){
+  if (a.quoi === 'retrait') return '<div class="warn">➖ ' + esc(a.med) + ' : récupération du ' + _jj(a.date) + ' retirée (le samedi ' + _jj(a.samedi) + ' n\'est plus le sien)</div>';
+  if (a.quoi === 'pose') return '<div class="ok">➕ ' + esc(a.med) + ' : récupération le ' + _jj(a.date) + (a.samedi ? ' (samedi ' + _jj(a.samedi) + ')' : '') + '</div>';
+  return '<div class="err">❌ ' + esc(a.med) + ' : aucune date possible' + (a.samedi ? ' pour le samedi ' + _jj(a.samedi) : '') + ' — à placer à la main (onglet Statuts)</div>';
+}
+function recRendre(r, fait){
+  const annees = (r.annees || []).filter(x => (x.actions || []).length);
+  if (!annees.length) return '<div class="resume ok">✅ Chaque samedi à venir a sa récupération.</div>';
+  return annees.map(x => '<div class="diag-chap">' + esc(x.annee) + (fait ? ' — fait' : ' — à corriger') + '</div>'
+    + x.actions.map(recLigne).join('')).join('');
+}
+$('btnRecVerif').addEventListener('click', async () => {
+  const btn = $('btnRecVerif'), out = $('recRes');
+  btn.disabled = true; $('btnRecRep').disabled = true; btn.textContent = 'Vérification…';
+  try {
+    const r = await api({ action:'recupsReparer' }, true);
+    if (!r || !r.success) throw new Error(refus(r) ? MSG_RESERVE : ((r && r.error) || 'réponse illisible'));
+    REC_ANNEES = (r.annees || []).filter(x => (x.actions || []).some(a => a.quoi !== 'sansDate')).map(x => x.annee);
+    out.innerHTML = recRendre(r, false);
+    $('btnRecRep').disabled = !REC_ANNEES.length;
+  } catch (e) { out.innerHTML = '<div class="err">❌ ' + esc(e.message) + '</div>'; }
+  finally { btn.disabled = false; btn.textContent = 'Vérifier'; }
+});
+deuxAppuis($('btnRecRep'), () => 'Confirmer : réparer', async () => {
+  const btn = $('btnRecRep'), out = $('recRes');
+  btn.disabled = true; const lib = btn.textContent; btn.textContent = 'Réparation…';
+  const faits = { annees: [] };
+  try {
+    for (const y of REC_ANNEES) {   // une année par appel : le planning publié suit la bonne année
+      const r = await api({ action:'recupsReparer', appliquer: true, year: y });
+      if (!r || !r.success) throw new Error(refus(r) ? MSG_RESERVE : ((r && r.error) || 'réponse illisible'));
+      faits.annees = faits.annees.concat(r.annees || []);
+    }
+    out.innerHTML = recRendre(faits, true);
+    REC_ANNEES = [];
+    toast('Récupérations réparées');
+  } catch (e) { out.innerHTML += '<div class="err">❌ ' + esc(e.message) + '</div>'; btn.disabled = false; }
+  finally { btn.textContent = lib; }
 });
 
 /* ── 2. Cache ── */
