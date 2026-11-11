@@ -312,6 +312,43 @@ console.log('\n═══ 9. Les 18 h visibles dans « Mes gardes » (11/11/2026)
   V('la carte « Prochaine garde » montre le prochain 18 h', /p18='<br><span style="color:#166534;font-weight:600">18 h · '/.test(idx) && /\+ p18;/.test(idx));
 }
 
+console.log('\n═══ 10. Échange de gardes : le repos d\'arrivée n\'écrase plus rien (11/11/2026) ═══');
+{
+  const essai = (prep) => {
+    const b = monde();
+    b.garde('ALPHA', '2027-03-09'); b.garde('BRAVO', '2027-03-23');
+    prep(b);
+    let err = '';
+    try { b.run(`creerEchange(${JSON.stringify(user('ALPHA'))}, { type:'echange', year:2027, date:'2027-03-09', date2:'2027-03-23', receveur:'BRAVO' })`); } catch (e) { err = String(e.message); }
+    return { b, err };
+  };
+  let t = essai(b => b.poser('BRAVO', '2027-03-10', 'V'));
+  V('refusé si le repos du receveur tomberait sur ses vacances', /BRAVO est indisponible \(V\) le 2027-03-10/.test(t.err), t.err);
+  t = essai(b => b.poser('ALPHA', '2027-03-24', 'F'));
+  V('refusé si le repos du demandeur tomberait sur sa formation', /ALPHA est indisponible \(F\) le 2027-03-24/.test(t.err), t.err);
+  t = essai(b => b.garde('BRAVO', '2027-03-10'));
+  V('refusé si le receveur est de garde le lendemain (deux gardes de suite)', /BRAVO est de garde \(G\) le 2027-03-10/.test(t.err), t.err);
+  t = essai(b => b.poser('ALPHA', '2027-03-22', 'G'));
+  V('refusé si le demandeur est de garde la veille de la garde reçue', /ALPHA est de garde \(G\) le 2027-03-22/.test(t.err), t.err);
+  t = essai(() => {});
+  V('sans conflit, l\'échange se propose comme avant', !t.err, t.err);
+}
+{
+  const b = monde({ liens: [['2027-02-27', 'BRAVO', '2027-03-10']] });
+  b.garde('ALPHA', '2027-03-09'); b.garde('BRAVO', '2027-03-23');
+  b.poser('BRAVO', '2027-02-27', 'G'); b.poser('BRAVO', '2027-02-28', 'RG'); b.poser('BRAVO', '2027-03-10', 'R');
+  const r = b.run(`creerEchange(${JSON.stringify(user('ALPHA'))}, { type:'echange', year:2027, date:'2027-03-09', date2:'2027-03-23', receveur:'BRAVO' })`);
+  b.run(`repondreEchange(${JSON.stringify(user('BRAVO'))}, { id:${JSON.stringify(r.id)}, reponse:'accepter' })`);
+  V('un R sur le jour de repos reste permis : il est reposé ailleurs', b.lire('BRAVO', '2027-03-10') === 'RG' && b.R('BRAVO').length === 1, b.R('BRAVO'));
+}
+{
+  const b = monde();
+  b.garde('ALPHA', '2027-03-09'); b.garde('BRAVO', '2027-03-23'); b.poser('BRAVO', '2027-03-10', '18');
+  const r = b.run(`creerEchange(${JSON.stringify(user('ALPHA'))}, { type:'echange', year:2027, date:'2027-03-09', date2:'2027-03-23', receveur:'BRAVO' })`);
+  b.run(`repondreEchange(${JSON.stringify(user('BRAVO'))}, { id:${JSON.stringify(r.id)}, reponse:'accepter' })`);
+  V('un 18 h sur le jour de repos passe à l\'autre MAR, libéré ce jour-là', b.lire('BRAVO', '2027-03-10') === 'RG' && String(b.lire('ALPHA', '2027-03-10')) === '18');
+}
+
 console.log('\n═══ 6. Les pages ═══');
 {
   const admin = fs.readFileSync(path.join(__dirname, '..', 'admin.html'), 'utf8');

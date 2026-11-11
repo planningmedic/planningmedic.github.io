@@ -4,7 +4,7 @@
    quelles : aucune ligne de logique modifiée, seulement déplacée. Le routeur et
    ses aides (checkCode, _deny, _error, doGet/doPost) restent dans Indispos.gs.
    Un seul espace global dans Apps Script : rien à importer. */
-const GAS_VERSION_GARDES = '2026-11-11.2';   // (11/11/2026) échange de deux 18 h (echange18Jours) · (11/11/2026) le comité pose un R (statut « R ») et le lien samedi → R se recolle · (10/11/2026) lotRolesVerifier / lotRolesAppliquer (inversion réa / mater par lot, depuis l'éditeur) · (10/11/2026) un échange, un don ou une modification republie et prévient (MAR et paie) pour l'année DE LA GARDE, plus l'année active · (10/11/2026) le suivi des gestes écrit dans son propre onglet TRACES, plus jamais dans HISTORIQUE (archive des gardes par année) · (10/11/2026) onglet de suivi (TP, modifications, échanges, lot de 18 h), jamais effacé · (10/11/2026) lot18hVerifier / lot18hAppliquer (réattribution de 18 h par lot, depuis l'éditeur) · (27/10/2026) VM/VA : bloquent un don/échange, comptent 0,5 jour au reliquat · (18/10/2026) action getPlanningPaie (vue des secrétaires de paie)
+const GAS_VERSION_GARDES = '2026-11-11.3';   // (11/11/2026) échange de gardes : le repos d'arrivée n'écrase plus une absence, pas de garde la veille ni le lendemain · (11/11/2026) échange de deux 18 h (echange18Jours) · (11/11/2026) le comité pose un R (statut « R ») et le lien samedi → R se recolle · (10/11/2026) lotRolesVerifier / lotRolesAppliquer (inversion réa / mater par lot, depuis l'éditeur) · (10/11/2026) un échange, un don ou une modification republie et prévient (MAR et paie) pour l'année DE LA GARDE, plus l'année active · (10/11/2026) le suivi des gestes écrit dans son propre onglet TRACES, plus jamais dans HISTORIQUE (archive des gardes par année) · (10/11/2026) onglet de suivi (TP, modifications, échanges, lot de 18 h), jamais effacé · (10/11/2026) lot18hVerifier / lot18hAppliquer (réattribution de 18 h par lot, depuis l'éditeur) · (27/10/2026) VM/VA : bloquent un don/échange, comptent 0,5 jour au reliquat · (18/10/2026) action getPlanningPaie (vue des secrétaires de paie)
 
 // ── Sonde : les positions de STATS que code.gs lit à l'aveugle ──
 function _sondeStatsEntetes_(check, R, annee) {
@@ -576,9 +576,20 @@ function applyModification(mod) {
         break;
       }
       const rg1 = nextDay(date), rg2 = nextDay(date2);
+      verifieCellules([[doctorId, date], [doctorId2, date], [doctorId, date2], [doctorId2, date2], [doctorId2, rg1], [doctorId, rg2]]);
       // refus si un MAR a déjà quelque chose à la date d'arrivée (évite d'écraser une garde existante)
       if (readCell(`GARDES_${year}`, doctorId, date2) || readCell(`GARDES_${year}`, doctorId2, date))
         throw new Error('Un des médecins a déjà une garde à l\'autre date — échange à traiter manuellement');
+      /* (11/11/2026) LE REPOS DE GARDE D'ARRIVÉE ÉTAIT ÉCRIT SANS REGARDER LA CASE :
+         un jour de vacances ou de formation, une garde le lendemain, étaient écrasés.
+         Même règle que le don : pas de garde la veille ni le lendemain de la garde
+         reçue, pas d'absence le jour du repos. Un R ou un 18 h sur ce jour reste
+         permis : ils sont rattrapés après coup (R reposé, 18 h repris par l'autre
+         MAR, libéré ce jour-là — echanges.gs). */
+      refuseSiAdjacente(doctorId2, date);
+      refuseSiAdjacente(doctorId,  date2);
+      refuseSiIndisponible(doctorId2, rg1, 'son repos de garde tomberait sur cette absence — echange impossible');
+      refuseSiIndisponible(doctorId,  rg2, 'son repos de garde tomberait sur cette absence — echange impossible');
       // échange des gardes (chaque date conserve son rôle G/G2)
       writeCell(`GARDES_${year}`, doctorId,  date,  '');
       writeCell(`GARDES_${year}`, doctorId2, date,  codeA);
