@@ -457,6 +457,29 @@ console.log('\n═══ P5. Branchement : indépendant des mails aux MAR ══
     d.getElementById('btnPrev').click(); await dodo(150);
     V('retour en novembre : la grille revient, sans nouvel appel', d.querySelectorAll('table.mois tbody tr').length === 4 && appels.filter(a => a.year === 2026).length === 1);
     V('l\'adresse garde le mois (lien partageable)', /\?m=2026-11$/.test(w.location.href));
+
+    // (11/11/2026) Vue « Gardes jour par jour » : une ligne par jour, réa et mater en clair.
+    d.getElementById('vueGardes').click(); await dodo(150);
+    const rangs = [...d.querySelectorAll('table.gj tbody tr')];
+    const jour = n => rangs[n - 1].querySelectorAll('td');
+    V('gardes jour par jour : une ligne par jour (30)', rangs.length === 30, rangs.length);
+    V('… le bouton est enfoncé, la grille a disparu', d.getElementById('vueGardes').getAttribute('aria-pressed') === 'true' && !d.querySelector('table.mois'));
+    V('… le 3 : réa Dr MAR01, pas de garde mater ce jour-là', jour(3)[1].textContent === 'Dr MAR01' && jour(3)[2].textContent === '—', [jour(3)[1].textContent, jour(3)[2].textContent]);
+    V('… le samedi 21 : mater Dr MAR02, ligne de week-end', jour(21)[2].textContent === 'Dr MAR02' && rangs[20].classList.contains('we'));
+    V('… le samedi 14, changé il y a 2 jours : nom encadré d\'orange', jour(14)[1].querySelector('.nm.mod') && jour(14)[1].textContent === 'Dr MAR01');
+    V('… un nom non changé n\'est pas encadré', !jour(3)[1].querySelector('.nm.mod'));
+    V('… le 19 est marqué férié', /férié/.test(jour(19)[0].textContent) && jour(19)[0].classList.contains('fe'));
+    V('… aucun motif autre que G et G2 dans cette vue (ni V ni TP)', d.querySelectorAll('table.gj .nm:not(.G):not(.G2):not(.aucun)').length === 0);
+    V('… sans nouvel appel au serveur', appels.filter(a => a.year === 2026).length === 1);
+    V('… l\'adresse garde la vue', /\?m=2026-11&vue=gardes$/.test(w.location.href), w.location.href);
+    d.getElementById('btnNext').click(); await dodo(150); d.getElementById('btnPrev').click(); await dodo(150);
+    V('… changer de mois garde la vue', d.querySelectorAll('table.gj tbody tr').length === 30);
+    d.getElementById('vueGrille').click(); await dodo(150);
+    V('retour à la grille du mois', d.querySelectorAll('table.mois tbody tr').length === 4 && !d.querySelector('table.gj') && /\?m=2026-11$/.test(w.location.href));
+  }
+  {
+    const { d } = await monter('paie', servir, 'https://planningmedic.github.io/paie.html?m=2026-11&vue=gardes');
+    V('un lien ?vue=gardes ouvre directement les gardes jour par jour', d.querySelectorAll('table.gj tbody tr').length === 30);
   }
   {
     const { d } = await monter('mar', servir);

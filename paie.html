@@ -80,6 +80,21 @@ table.mois td .c{display:block;width:26px;height:24px;line-height:24px;margin:au
 .G{background:var(--g-bg);color:var(--g-fg)} .G2{background:var(--g2-bg);color:var(--g2-fg)}
 .V,.VM,.VA{background:var(--v-bg);color:var(--v-fg)}
 .TP{background:var(--tp-bg);color:var(--tp-fg)}
+/* (11/11/2026) Vue « Gardes jour par jour » : une ligne par jour, le nom en clair */
+.seg{display:inline-flex;border:1px solid var(--line);border-radius:999px;overflow:hidden;background:var(--white)}
+.seg button{font:inherit;font-size:13px;font-weight:600;color:var(--ink-3);background:none;border:0;padding:7px 14px;cursor:pointer}
+.seg button[aria-pressed="true"]{background:var(--line-light);color:var(--ink)}
+.seg button:focus-visible{outline:2px solid var(--me);outline-offset:-2px}
+table.gj{border-collapse:collapse;width:100%;max-width:760px;font-size:14px}
+table.gj th{font-size:10.5px;font-weight:500;color:var(--ink-3);font-family:var(--mono);text-transform:uppercase;
+            letter-spacing:.06em;text-align:left;padding:10px 16px;border-bottom:1px solid var(--line)}
+table.gj td{padding:7px 16px;border-bottom:1px solid var(--line-light);vertical-align:middle}
+table.gj tr.we td{background:var(--surface-2)}
+table.gj td.jr{font-family:var(--mono);font-size:12.5px;color:var(--ink-3);white-space:nowrap;width:120px}
+table.gj td.jr.fe{color:var(--g2-fg)}
+.nm{display:inline-block;padding:3px 10px;border-radius:6px;font-size:13px;font-weight:700;margin:1px 4px 1px 0}
+.nm.mod{box-shadow:0 0 0 2px var(--chg)}
+.nm.aucun{background:none;color:var(--ink-4);font-weight:500}
 .c.mod{box-shadow:0 0 0 2px var(--chg)}
 .c.vide{background:none}
 .tot{font-size:12px;font-weight:700;min-width:40px;border-left:1px solid var(--line)}
@@ -147,6 +162,10 @@ window.SessionPortail = window.SessionPortail || { lire:function(){try{return se
     <h1 id="titreMois">—</h1>
     <button class="btn nav" type="button" id="btnNext" aria-label="Mois suivant">&rsaquo;</button>
     <span class="sp"></span>
+    <div class="seg" role="group" aria-label="Affichage">
+      <button type="button" id="vueGrille" aria-pressed="true">Grille du mois</button>
+      <button type="button" id="vueGardes" aria-pressed="false">Gardes jour par jour</button>
+    </div>
     <button class="btn" type="button" id="btnXls">&darr; Télécharger le mois (Excel)</button>
   </div>
   <div class="legend">
@@ -259,9 +278,18 @@ async function trouverMois(ym){
 }
 
 let RENDU = null;   // ce qui est à l'écran : sert à l'export Excel
+/* (11/11/2026) Deux affichages du même mois : la grille (médecin par médecin) et
+   « Gardes jour par jour » (une ligne par jour, réa et mater en clair), pour la
+   saisie jour par jour dans le logiciel de paie. L'export Excel reste la grille. */
+let VUE = (function(){ try { return new URLSearchParams(location.search).get('vue') === 'gardes' ? 'gardes' : 'grille'; } catch(e) { return 'grille'; } })();
+function majBoutonsVue(){
+  document.getElementById('vueGrille').setAttribute('aria-pressed', VUE === 'grille' ? 'true' : 'false');
+  document.getElementById('vueGardes').setAttribute('aria-pressed', VUE === 'gardes' ? 'true' : 'false');
+}
 async function afficher(){
   document.getElementById('titreMois').textContent = libMois(MOIS);
-  try { history.replaceState(null, '', '?m=' + MOIS); } catch(e) {}
+  majBoutonsVue();
+  try { history.replaceState(null, '', '?m=' + MOIS + (VUE === 'gardes' ? '&vue=gardes' : '')); } catch(e) {}
   const zone = document.getElementById('zoneGrille');
   zone.innerHTML = '<div class="loading">Chargement…</div>';
   const t = await trouverMois(MOIS);
@@ -300,8 +328,35 @@ async function afficher(){
   zone.innerHTML = h + '</tbody></table>';
   document.getElementById('titreGrille').textContent = 'Le mois, médecin par médecin — ' + ids.length + ' médecins';
   RENDU = { mois: MOIS, jours, lignes };
+  if (VUE === 'gardes') {
+    zone.innerHTML = tableGardes(r, jours, ids, recents);
+    document.getElementById('titreGrille').textContent = 'Les gardes, jour par jour';
+  }
   rendreFil(r.recents || []);
 }
+
+/* Une ligne par jour : qui est de garde réa (G), qui est de garde mater (G2). */
+function tableGardes(r, jours, ids, recents){
+  const qui = (date, code) => ids.filter(id => ((r.cases && r.cases[id]) || {})[date] === code);
+  const noms = (date, code) => {
+    const l = qui(date, code);
+    if (!l.length) return '<span class="nm aucun">—</span>';
+    return l.map(id => {
+      const rec = recents[id+'|'+date];
+      return '<span class="nm '+code+(rec ? ' mod' : '')+'"'+(rec ? ' title="'+esc('Modifié le '+rec)+'"' : '')+'>'+esc(r.noms[id] || id)+'</span>';
+    }).join('');
+  };
+  let h = '<table class="gj"><thead><tr><th scope="col">Jour</th><th scope="col">Garde réanimation</th><th scope="col">Garde maternité</th></tr></thead><tbody>';
+  jours.forEach(j => {
+    const d = new Date(j.date+'T12:00:00');
+    h += '<tr'+(j.we ? ' class="we"' : '')+'><td class="jr'+(j.fe ? ' fe' : '')+'"'+(j.fe ? ' title="Jour férié"' : '')+'>'
+       + JOURS_C[d.getDay()]+' '+d.getDate()+(j.fe ? ' · férié' : '')+'</td>'
+       + '<td>'+noms(j.date, 'G')+'</td><td>'+noms(j.date, 'G2')+'</td></tr>';
+  });
+  return h + '</tbody></table>';
+}
+document.getElementById('vueGrille').addEventListener('click', ()=>{ if(VUE !== 'grille'){ VUE = 'grille'; afficher(); } });
+document.getElementById('vueGardes').addEventListener('click', ()=>{ if(VUE !== 'gardes'){ VUE = 'gardes'; afficher(); } });
 
 /* Les changements de moins de 7 jours → { 'ID|AAAA-MM-JJ': 'jj/mm/aaaa' } */
 function cellulesRecentes(recents){
