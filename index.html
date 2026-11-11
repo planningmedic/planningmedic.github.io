@@ -269,7 +269,7 @@ a.tile, .tile.clickable { cursor: pointer; }
   border-radius:999px; padding:3px 9px; }
 .ech-etat.attente { background:#FEF3C7; color:#92400E; }
 .ech-etat.acceptee { background:#DCFCE7; color:#166534; }
-.ech-etat.refusee, .ech-etat.expiree, .ech-etat.impossible { background:#F1F5F9; color:#64748B; }
+.ech-etat.refusee, .ech-etat.expiree, .ech-etat.impossible, .ech-etat.annulee { background:#F1F5F9; color:#64748B; }
 .ech-actions { display:flex; gap:8px; margin-top:11px; }
 .ech-actions button { flex:1; border-radius:10px; padding:10px 0; font-size:14px; font-weight:700; cursor:pointer; border:none; }
 .ech-accepter { background:#16A34A; color:#fff; }
@@ -2359,7 +2359,7 @@ function renderEchanges(){
     box.innerHTML = '<div class="topos-empty">Aucun échange pour le moment.<br><span>Proposez une garde à un collègue : il recevra une notification et pourra accepter en un geste.</span></div>';
     return;
   }
-  const ETATS = { attente:'En attente', acceptee:'Acceptée', refusee:'Refusée', expiree:'Expirée', impossible:'Impossible' };
+  const ETATS = { attente:'En attente', acceptee:'Acceptée', refusee:'Refusée', expiree:'Expirée', impossible:'Impossible', annulee:'Annulée' };
   let html = '';
   liste.forEach(function(e){
     const don = e.type==='don';
@@ -2375,6 +2375,7 @@ function renderEchanges(){
     if (e.etat==='attente') meta = 'Expire dans ' + _echHeuresRestantes(e.creeLe) + ' h · rappel à mi-parcours';
     else if (e.reponduLe) meta = ETATS[e.etat] + ' · ' + esc(fmtDate(String(e.reponduLe).slice(0,10)));
     const repondable = e.etat==='attente' && e.receveur===MY_ID;
+    const annulable = e.etat==='attente' && e.demandeur===MY_ID;   // (11/11/2026) le demandeur retire sa proposition
     html += '<div class="ech-card">'
       + '<div class="ech-titre">' + esc(titre) + ' <span class="ech-etat ' + esc(e.etat) + '">' + (ETATS[e.etat]||e.etat) + '</span></div>'
       + '<div class="ech-detail">' + detail + '</div>'
@@ -2385,10 +2386,41 @@ function renderEchanges(){
           + '<button class="ech-refuser" onclick="repondreEch(\'' + esc(e.id) + '\',\'refuser\',this)">Refuser</button>'
           + '</div>'
         : '')
+      + (annulable
+        ? '<div class="ech-actions"><button class="ech-refuser ech-annuler" onclick="annulerEch(\'' + esc(e.id) + '\',this)">Annuler ma proposition</button></div>'
+        : '')
       + '<div class="ech-msg" id="echMsg-' + esc(e.id) + '" style="display:none"></div>'
       + '</div>';
   });
   box.innerHTML = html;
+}
+
+/* (11/11/2026) Annuler sa propre proposition en attente. Deux touches : la
+   première demande confirmation (sans fenêtre du navigateur), la seconde envoie. */
+async function annulerEch(id, btn){
+  const msg = document.getElementById('echMsg-'+id);
+  if (btn.dataset.confirme !== '1') {
+    btn.dataset.confirme = '1';
+    btn.textContent = 'Confirmer l\'annulation';
+    return;
+  }
+  btn.disabled = true; btn.textContent = 'Annulation…';
+  try {
+    const r = await apiPost({ action:'annulerEchange', id:id });
+    if (r && r.success) {
+      const item = ECH_LISTE.find(function(e){ return e.id === id; });
+      if (item) { item.etat = 'annulee'; item.reponduLe = new Date().toISOString(); }
+      majEchangesHero();
+      renderEchanges();
+      return;
+    }
+    msg.className='ech-msg err'; msg.style.display='block';
+    msg.textContent = (r && r.error) || 'Annulation impossible — réessayez.';
+  } catch(e) {
+    msg.className='ech-msg err'; msg.style.display='block';
+    msg.textContent = 'Erreur réseau — l\'annulation n\'est pas partie. Réessayez.';
+  }
+  btn.disabled = false; btn.dataset.confirme = ''; btn.textContent = 'Annuler ma proposition';
 }
 
 async function repondreEch(id, reponse, btn, confirmeAbs){

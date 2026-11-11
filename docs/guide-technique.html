@@ -474,7 +474,7 @@ en permanence que les fichiers en service sont bien ceux du dépôt.</p></div>
 <tr><th>Fichier</th><th>Son rôle, en clair</th></tr>
 <tr><td><code>Indispos.gs</code></td><td>Le chef d'orchestre, réduit à l'essentiel (800 lignes au lieu de
 6 500) : il reçoit chaque demande, vérifie le code d'accès et le droit associé, puis lit dans sa <b>table
-des 67 actions</b> quelle fonction appeler. La table déclare pour chaque action qui y a droit (comité seul :
+des 68 actions</b> quelle fonction appeler. La table déclare pour chaque action qui y a droit (comité seul :
 49 ; tout code valide : 9 ; selon le rôle : 4 ; MAR seulement : 1 ; sans code : les 2 listes d'années), et
 le banc vérifie que cette déclaration est bien ce que le code fait.</td></tr>
 <tr><td><code>gardes.gs</code></td><td>Tout ce qui touche au planning des gardes : statut, placements manuels
@@ -539,7 +539,7 @@ d'entrée : <code>doGet</code>/<code>doPost</code>, qui confient tout au routeur
 <code>_routeRequete_</code> (Indispos.gs). Celui-ci lit la table <code>_actions_()</code> — nom → rôle déclaré →
 fonction <code>_act_&lt;nom&gt;(R)</code>, R = <code>{ e, payload, action, code, user }</code> — dont les corps
 vivent dans les fichiers métier. Rôles issus de <code>checkCode</code> ; refus des non-admins par
-<code>_deny()</code>, dans le corps de chaque action ; <code>banc_contrat_routeur.js</code> fige les 67 actions. Chaque fichier poussé incrémente sa constante
+<code>_deny()</code>, dans le corps de chaque action ; <code>banc_contrat_routeur.js</code> fige les 68 actions. Chaque fichier poussé incrémente sa constante
 <code>GAS_VERSION_*</code> (format AAAA-MM-JJ.N) — c'est elle que le diagnostic compare au dépôt
 (contrôle de dérive, 15 lignes : les 14 fichiers déployés de <code>gas/</code> + le module partagé
 <code>partage/dispo_jour.js</code> ; <code>dev.gs</code> et <code>sauvegarde.gs</code> ne sont pas contrôlés). Fonction endormie : <code>setupAnnee</code> (setup_annee.gs)
@@ -1814,7 +1814,8 @@ le planning s'écrit par le chemin d'écriture historique (<code>applyModificati
 ses garde-fous — rien de nouveau ne touche à la grille. Chaque demande vit dans l'onglet
 <code>ECHANGES</code> du classeur, avec son état : en attente, acceptée, refusée, expirée, ou
 impossible (le planning a bougé entre la proposition et l'acceptation — rien n'est écrit, les deux
-sont prévenus). Sans réponse : rappel unique à 24&nbsp;h, expiration à 48&nbsp;h.</p></div>
+sont prévenus), ou annulée (le demandeur retire sa proposition tant qu'elle attend, action
+<code>annulerEchange</code> ; le collègue est prévenu). Sans réponse : rappel unique à 24&nbsp;h, expiration à 48&nbsp;h.</p></div>
 
 <h3>Ouvrir, fermer : l'interrupteur</h3>
 <p>Qui a accès aux échanges (et à la carte d'activation des notifications) se commande depuis

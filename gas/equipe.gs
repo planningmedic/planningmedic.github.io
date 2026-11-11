@@ -4,7 +4,7 @@
    quelles : aucune ligne de logique modifiée, seulement déplacée. Le routeur et
    ses aides (checkCode, _deny, _error, doGet/doPost) restent dans Indispos.gs.
    Un seul espace global dans Apps Script : rien à importer. */
-const GAS_VERSION_EQUIPE = '2026-11-02.1';   // (02/11/2026) commentaire : identifiants d'exemple fictifs · (01/11/2026) outils de maintenance réservés à la tuile `maintenance` · (27/10/2026) ordreMc renvoyé au login et au bootstrap
+const GAS_VERSION_EQUIPE = '2026-11-11.1';   // (11/11/2026) action annulerEchange · (02/11/2026) commentaire : identifiants d'exemple fictifs · (01/11/2026) outils de maintenance réservés à la tuile `maintenance` · (27/10/2026) ordreMc renvoyé au login et au bootstrap
 
 // ── Sonde : les interrupteurs des mails sont-ils cohérents ? ──
 function _sondeInterrupteursMails_(check, R, info) {
@@ -391,6 +391,21 @@ function _act_repondreEchange(R) {
   try {
     return ContentService.createTextOutput(JSON.stringify(Object.assign(
       { success: true }, repondreEchange(user, payload)
+    ))).setMimeType(ContentService.MimeType.JSON);
+  } catch (err) {
+    return ContentService.createTextOutput(JSON.stringify({
+      success: false, error: String(err.message)
+    })).setMimeType(ContentService.MimeType.JSON);
+  }
+}
+
+/* ── action "annulerEchange" ── (11/11/2026) le demandeur retire sa proposition */
+function _act_annulerEchange(R) {
+  const { e, payload, action, code, user } = R;
+  if (!_echangesAutorise_(user)) return _deny();
+  try {
+    return ContentService.createTextOutput(JSON.stringify(Object.assign(
+      { success: true }, annulerEchange(user, payload)
     ))).setMimeType(ContentService.MimeType.JSON);
   } catch (err) {
     return ContentService.createTextOutput(JSON.stringify({

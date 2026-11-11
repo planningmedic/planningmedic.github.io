@@ -235,6 +235,38 @@ const dodo = ms => new Promise(r => setTimeout(r, ms));
     V('l\'écran passe à Acceptée', /Acceptée/.test(w.document.getElementById('echList').innerHTML));
   }
 
+  console.log('\n═══ 4 bis. Annuler sa proposition : deux touches, puis « Annulée » (11/11/2026) ═══');
+  {
+    const kv = await baseKV();
+    kv.notif_config = JSON.stringify({ ouvert:true, pilotes:[] });
+    kv.echanges = JSON.stringify({ success:true, echanges:[Object.assign({}, demande, { id:'E9', demandeur:'ALPHA', receveur:'BRAVO' })] });
+    const appels = [];
+    const surGas = (charge) => {
+      if (charge.action === 'annulerEchange') { appels.push(charge); return { success:true, etat:'annulee' }; }
+      if (charge.action === 'login') return { success:true, role:'mar', id:'ALPHA', year:2027 };
+      return { success:true };
+    };
+    const { w, erreurs } = await monterPage(kv, surGas);
+    V('la page se charge sans erreur JavaScript', erreurs.length === 0, erreurs.slice(0,2));
+    w.location.hash = '#echanges'; w.route();
+    await dodo(400);
+    const btn = w.document.querySelector('.ech-annuler');
+    V('le demandeur voit « Annuler ma proposition » (et pas Accepter)', !!btn && /Annuler ma proposition/.test(btn.textContent) && !w.document.querySelector('.ech-accepter'));
+    btn.click(); await dodo(200);
+    V('première touche : on demande confirmation, rien ne part', /Confirmer l'annulation/.test(btn.textContent) && appels.length === 0, btn.textContent);
+    btn.click(); await dodo(500);
+    V('seconde touche : annulerEchange part avec l\'identifiant', appels.length === 1 && appels[0].id === 'E9', appels);
+    V('l\'écran passe à « Annulée »', /Annulée/.test(w.document.getElementById('echList').innerHTML) && !w.document.querySelector('.ech-annuler'));
+  }
+  {
+    const kv = await baseKV();
+    kv.notif_config = JSON.stringify({ ouvert:true, pilotes:[] });
+    const { w } = await monterPage(kv, (c) => c.action === 'login' ? { success:true, role:'mar', id:'ALPHA', year:2027 } : { success:true });
+    w.location.hash = '#echanges'; w.route();
+    await dodo(400);
+    V('le receveur, lui, n\'a pas de bouton Annuler', !w.document.querySelector('.ech-annuler') && !!w.document.querySelector('.ech-accepter'));
+  }
+
   console.log('\n═══ 5. La carte des notifications : téléphone oui, ordinateur non ═══');
   {
     /* (17/08/2026) Vu par le responsable en se connectant depuis son PC : la carte

@@ -1,7 +1,7 @@
 // ⚠️ RÈGLE (détecteur de dérive dépôt↔Apps Script) : incrémenter cette version
 // à CHAQUE push de ce fichier. Le diagnostic (admin → Maintenance) compare la
 // version déployée ici avec celle du dépôt et signale toute recopie oubliée.
-const GAS_VERSION_MIROIR = '2026-11-11.1';   // (11/11/2026) recupsReparer rafraîchit planning et gardes · (06/11/2026) retrait d'annonceFinSaisie (envoyée) · (02/11/2026) commentaire : identifiants d'exemple fictifs · (27/10/2026) champ ordreMc dans acces · (20/10/2026) clé etablissement (nom et adresse du devis) · (21/10) setVeilleAbo → veille_marques
+const GAS_VERSION_MIROIR = '2026-11-11.2';   // (11/11/2026) annulerEchange rafraîchit les échanges · (11/11/2026) recupsReparer rafraîchit planning et gardes · (06/11/2026) retrait d'annonceFinSaisie (envoyée) · (02/11/2026) commentaire : identifiants d'exemple fictifs · (27/10/2026) champ ordreMc dans acces · (20/10/2026) clé etablissement (nom et adresse du devis) · (21/10) setVeilleAbo → veille_marques
 
 /* ═══════════════════════════════════════════════════════════════════════
    MIROIR.GS — alimentation du miroir de lecture Cloudflare
@@ -71,6 +71,7 @@ const MIROIR_APRES_ECRITURE = {
   applyModification:          ['planning', 'config_admin', 'gardes', 'stats'],
   creerEchange:               ['echanges'],   // (13/08/2026) une demande créée → l'écran des 23 suit
   repondreEchange:            ['planning', 'config_admin', 'gardes', 'stats', 'echanges'],   // acceptation = écriture planning
+  annulerEchange:             ['echanges'],   // (11/11/2026) demande annulée : seul l'onglet des échanges change
   recupsReparer:              ['planning', 'config_admin', 'gardes', 'stats'],   // (11/11/2026) bouton Réparer : R posés ou retirés
   deleteOverride:             ['config_admin'],
   savePlanningOverridesBatch: ['config_admin'],

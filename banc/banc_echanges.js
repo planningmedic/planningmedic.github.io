@@ -172,6 +172,28 @@ console.log('\n═══ 2 quater. Vacances écrasées ET 18 h repris : les deux
   V('le 18 h passe au donneur, comme avant', String(b.lire('ALPHA', lendemain)) === '18', b.lire('ALPHA', lendemain));
 }
 
+console.log('\n═══ 2 quinquies. Annuler sa proposition (11/11/2026) ═══');
+{
+  const b = monde(2027);
+  const j = b.dates[9], lendemain = b.dates[10];
+  b.poser('ALPHA', j, 'G'); b.poser('ALPHA', lendemain, 'RG');
+  const r = vm.runInContext(`creerEchange(${JSON.stringify(user('ALPHA'))}, { type:'don', year:2027, date:${JSON.stringify(j)}, receveur:'BRAVO' })`, b.ctx);
+  const avant = JSON.stringify(b.cl.getSheetByName('GARDES_2027').lignes);
+  let e1 = null; try { vm.runInContext(`annulerEchange(${JSON.stringify(user('BRAVO'))}, { id:${JSON.stringify(r.id)} })`, b.ctx); } catch (e) { e1 = e.message; }
+  V('le collègue ne peut pas annuler la proposition d\'un autre', /Seul celui qui a fait la proposition/.test(e1 || ''), e1);
+  V('…elle reste en attente', b.echanges()[0][COL.ETAT] === 'attente');
+  b.notifs.length = 0; b.kv.length = 0;
+  const rep = vm.runInContext(`annulerEchange(${JSON.stringify(user('ALPHA'))}, { id:${JSON.stringify(r.id)} })`, b.ctx);
+  V('le demandeur annule : état « annulee »', rep.etat === 'annulee' && b.echanges()[0][COL.ETAT] === 'annulee' && !!b.echanges()[0][COL.REPONDU_LE], b.echanges()[0]);
+  V('le planning n\'a pas bougé', JSON.stringify(b.cl.getSheetByName('GARDES_2027').lignes) === avant);
+  V('le collègue est prévenu, et lui seul', b.notifs.length === 1 && b.notifs[0].cible.id === 'BRAVO' && /a annulé sa proposition du/.test(b.notifs[0].corps), b.notifs);
+  V('la clé `echanges` est poussée au miroir', b.kv.some(c => c.indexOf('echanges') > -1), b.kv);
+  let e2 = null; try { vm.runInContext(`annulerEchange(${JSON.stringify(user('ALPHA'))}, { id:${JSON.stringify(r.id)} })`, b.ctx); } catch (e) { e2 = e.message; }
+  V('annuler deux fois : refusé (plus rien à annuler)', /plus rien à annuler/.test(e2 || ''), e2);
+  let e3 = null; try { vm.runInContext(`repondreEchange(${JSON.stringify(user('BRAVO'))}, { id:${JSON.stringify(r.id)}, reponse:'accepter' })`, b.ctx); } catch (e) { e3 = e.message; }
+  V('CONTRE-PREUVE : une proposition annulée ne s\'accepte plus', /déjà annulee/.test(e3 || '') && JSON.stringify(b.cl.getSheetByName('GARDES_2027').lignes) === avant, e3);
+}
+
 console.log('\n═══ 2 bis. Indisponibilité de campagne seule (INDISPOS) : ne bloque plus, l\'accord fait foi ═══');
 {
   const b = monde(2027);

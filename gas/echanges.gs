@@ -29,7 +29,8 @@
      compte de samedis de chacun ne change pas). Les lignes LIENS_R gardent
      alors leur tenant d'origine : accepté par conception.
 
-   ÉTATS D'UNE DEMANDE : attente → acceptee | refusee | expiree | impossible.
+   ÉTATS D'UNE DEMANDE : attente → acceptee | refusee | expiree | impossible | annulee
+   (annulee, 11/11/2026 : le demandeur retire sa proposition).
    `impossible` (ajout du 13/08) : l'acceptation a rejoué les contrôles et le
    planning ne permet plus le geste (il a bougé depuis la création). Les deux
    MAR sont prévenus ; la grille reste INTACTE.
@@ -39,7 +40,7 @@
    depuis l'éditeur : installerDeclencheurEchanges().
    ═══════════════════════════════════════════════════════════════════════ */
 
-const GAS_VERSION_ECHANGES = '2026-11-11.5';   // (11/11/2026) don et échange sur un jour d'absence : le MAR concerné confirme ([ABS], accepteAbsence) et ses jours d'absence sont écrasés par la garde et son repos · (11/11/2026) gestes du comité (don, échange) : mêmes suites que entre MAR (_gesteSuites_, appliquerGesteComite_) · (11/11/2026) échange de deux 18 h entre MAR (type echange18) · (11/11/2026) un 18 h écrasé par un don passe au donneur, prévenu avant d'envoyer (accepte18) · (11/11/2026) récupérations automatiques : R neuf quand il ne peut pas suivre son samedi, R écrasé reposé, bouton Réparer (recupsReparer), lien recollé à la pose manuelle · (10/11/2026) l'historique dit qui a accepté (onglet HISTORIQUE)
+const GAS_VERSION_ECHANGES = '2026-11-11.6';   // (11/11/2026) annulerEchange : le demandeur annule sa proposition en attente, le collègue est prévenu · (11/11/2026) don et échange sur un jour d'absence : le MAR concerné confirme ([ABS], accepteAbsence) et ses jours d'absence sont écrasés par la garde et son repos · (11/11/2026) gestes du comité (don, échange) : mêmes suites que entre MAR (_gesteSuites_, appliquerGesteComite_) · (11/11/2026) échange de deux 18 h entre MAR (type echange18) · (11/11/2026) un 18 h écrasé par un don passe au donneur, prévenu avant d'envoyer (accepte18) · (11/11/2026) récupérations automatiques : R neuf quand il ne peut pas suivre son samedi, R écrasé reposé, bouton Réparer (recupsReparer), lien recollé à la pose manuelle · (10/11/2026) l'historique dit qui a accepté (onglet HISTORIQUE)
 
 const ECHANGES_ONGLET = 'ECHANGES';
 const ECHANGES_ENTETE = ['ID', 'CREE_LE', 'TYPE', 'ANNEE', 'DATE', 'DATE2',
@@ -381,6 +382,27 @@ function repondreEchange(user, p) {
   // Aucune date possible pour un R neuf : la trace est laissée par _gesteSuites_
   // (l'onglet Statuts le montre, calculé).
   return { etat: 'acceptee', r: rInfos };
+}
+
+/* ── 2 bis. ANNULER (11/11/2026 — demande du responsable) ─────────────
+   p = { id } — seul le DEMANDEUR annule, et seulement une demande encore en
+   attente. Rien n'est écrit dans le planning : la demande passe à « annulée »,
+   le collègue est prévenu et sa pastille se met à jour. */
+function annulerEchange(user, p) {
+  const id = String(p.id || '').trim();
+  const { sh, lignes } = _echangesLignes_();
+  const d = lignes.find(l => String(l.ID) === id);
+  if (!d) throw new Error('Demande introuvable');
+  if (String(d.DEMANDEUR) !== user.id) throw new Error('Seul celui qui a fait la proposition peut l\'annuler');
+  if (String(d.ETAT) !== 'attente') throw new Error('Demande déjà ' + d.ETAT + ' — plus rien à annuler');
+  sh.getRange(d._row, ECHANGES_ENTETE.indexOf('ETAT') + 1).setValue('annulee');
+  sh.getRange(d._row, ECHANGES_ENTETE.indexOf('REPONDU_LE') + 1).setValue(_echangesMaintenant_());
+  logAction('annulerEchange ' + id + ' — annulée par ' + user.id);
+  _echangesVersKV_();
+  notifierPush_('Proposition annulée',
+    _echangesDr_(d.DEMANDEUR) + ' a annulé sa proposition du ' + _echangesJoli_(d.DATE) + '.',
+    './index.html', { id: String(d.RECEVEUR), pastille: _echangesEnAttentePour_(String(d.RECEVEUR)) });
+  return { etat: 'annulee' };
 }
 
 /* ── Alerte du comité : E-MAIL, jamais push ─────────────────────────────

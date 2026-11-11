@@ -41,6 +41,7 @@ const CONTRAT = {
   'applyModification'         : 'admin',
   'creerEchange'              : 'tout code valide',
   'repondreEchange'           : 'tout code valide',
+  'annulerEchange'            : 'tout code valide',
   'getStats'                  : 'admin',
   'generateGardes'            : 'admin',
   'getGardes'                 : 'admin',
@@ -129,11 +130,11 @@ function contratActuel() {
   }
   return { fichier: path.basename(cands[0]), actions: out, corps };
 }
-console.log('═══ Le routeur répond au contrat des 67 actions ═══');
+console.log('═══ Le routeur répond au contrat des 68 actions ═══');
 const { fichier, actions, corps } = contratActuel();
 const attendu = Object.assign({}, CONTRAT, { getActiveYear: 'sans code', getAnneesDisponibles: 'sans code' });
 V('le routeur est lu dans ' + fichier, !!fichier);
-V('67 actions, ni plus ni moins', Object.keys(actions).length === 67, Object.keys(actions).length);
+V('68 actions, ni plus ni moins', Object.keys(actions).length === 68, Object.keys(actions).length);
 const manquantes = Object.keys(attendu).filter(a => !(a in actions));
 const enTrop = Object.keys(actions).filter(a => !(a in attendu));
 V('aucune action du contrat ne manque', manquantes.length === 0, manquantes);
