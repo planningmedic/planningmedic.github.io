@@ -4,7 +4,7 @@
    quelles : aucune ligne de logique modifiée, seulement déplacée. Le routeur et
    ses aides (checkCode, _deny, _error, doGet/doPost) restent dans Indispos.gs.
    Un seul espace global dans Apps Script : rien à importer. */
-const GAS_VERSION_GARDES = '2026-11-11.3';   // (11/11/2026) échange de gardes : le repos d'arrivée n'écrase plus une absence, pas de garde la veille ni le lendemain · (11/11/2026) échange de deux 18 h (echange18Jours) · (11/11/2026) le comité pose un R (statut « R ») et le lien samedi → R se recolle · (10/11/2026) lotRolesVerifier / lotRolesAppliquer (inversion réa / mater par lot, depuis l'éditeur) · (10/11/2026) un échange, un don ou une modification republie et prévient (MAR et paie) pour l'année DE LA GARDE, plus l'année active · (10/11/2026) le suivi des gestes écrit dans son propre onglet TRACES, plus jamais dans HISTORIQUE (archive des gardes par année) · (10/11/2026) onglet de suivi (TP, modifications, échanges, lot de 18 h), jamais effacé · (10/11/2026) lot18hVerifier / lot18hAppliquer (réattribution de 18 h par lot, depuis l'éditeur) · (27/10/2026) VM/VA : bloquent un don/échange, comptent 0,5 jour au reliquat · (18/10/2026) action getPlanningPaie (vue des secrétaires de paie)
+const GAS_VERSION_GARDES = '2026-11-11.4';   // (11/11/2026) applyModification du comité : don et échange passent par appliquerGesteComite_ · (11/11/2026) échange de gardes : le repos d'arrivée n'écrase plus une absence, pas de garde la veille ni le lendemain · (11/11/2026) échange de deux 18 h (echange18Jours) · (11/11/2026) le comité pose un R (statut « R ») et le lien samedi → R se recolle · (10/11/2026) lotRolesVerifier / lotRolesAppliquer (inversion réa / mater par lot, depuis l'éditeur) · (10/11/2026) un échange, un don ou une modification republie et prévient (MAR et paie) pour l'année DE LA GARDE, plus l'année active · (10/11/2026) le suivi des gestes écrit dans son propre onglet TRACES, plus jamais dans HISTORIQUE (archive des gardes par année) · (10/11/2026) onglet de suivi (TP, modifications, échanges, lot de 18 h), jamais effacé · (10/11/2026) lot18hVerifier / lot18hAppliquer (réattribution de 18 h par lot, depuis l'éditeur) · (27/10/2026) VM/VA : bloquent un don/échange, comptent 0,5 jour au reliquat · (18/10/2026) action getPlanningPaie (vue des secrétaires de paie)
 
 // ── Sonde : les positions de STATS que code.gs lit à l'aveugle ──
 function _sondeStatsEntetes_(check, R, annee) {
@@ -1079,6 +1079,13 @@ function _act_applyModification(R) {
   const { e, payload, action, code, user } = R;
   if (user.role !== 'admin') return _deny();
   const _mod = Object.assign({}, payload.modification, { par: 'comité (' + (user.id || 'admin') + ')' });
+  /* (11/11/2026) Don et échange de gardes : mêmes suites qu'entre MAR (récup du
+     samedi, R ou 18 h écrasés) — echanges.gs, appliquerGesteComite_. */
+  if (!_mod.dryRun && (_mod.type === 'donGarde' || _mod.type === 'echangeGardeJours') && typeof appliquerGesteComite_ === 'function') {
+    const _s = appliquerGesteComite_(_mod);
+    return ContentService.createTextOutput(JSON.stringify({ success: true, suites: _s.infos }))
+      .setMimeType(ContentService.MimeType.JSON);
+  }
   return ContentService.createTextOutput(JSON.stringify({
     success: applyModification(_mod)
   })).setMimeType(ContentService.MimeType.JSON);

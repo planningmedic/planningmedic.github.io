@@ -62,7 +62,7 @@ Site **v1.62.0**. Gardes 2027 **générées le 09/11** ; dons et échanges entre
   (Vérifier / Réparer). Le comité a enfin le bouton « Récup » dans Statuts.
 - **18 h** : un don qui écraserait un 18 h du receveur le fait passer au donneur, **prévenu et confirmant avant
   d'envoyer**. Les MAR peuvent **échanger un 18 h contre un 18 h**. Les 18 h s'affichent dans « Mes gardes ».
-- **À faire par le responsable** : mettre à jour le serveur (`echanges.gs` 2026-11-11.3, `gardes.gs` 2026-11-11.3 — ce dernier ferme aussi l'écrasement d'une absence par le repos d'un échange de gardes).
+- **À faire par le responsable** : mettre à jour le serveur (`echanges.gs` 2026-11-11.4, `gardes.gs` 2026-11-11.4 — repos d'un échange de gardes contrôlé, et gestes du comité avec les mêmes suites que ceux des MAR).
 - **Contrôle des noms réels** : la liste hors dépôt peut aussi se reconstituer depuis l'onglet MEDECINS du classeur
   maître (ID, NOM, INITIALES à trois lettres) + prénom du responsable + établissement.
 - Détail : ROADMAP du 11/11 et du 03–10/11.

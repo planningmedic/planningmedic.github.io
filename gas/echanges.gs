@@ -39,7 +39,7 @@
    depuis l'éditeur : installerDeclencheurEchanges().
    ═══════════════════════════════════════════════════════════════════════ */
 
-const GAS_VERSION_ECHANGES = '2026-11-11.3';   // (11/11/2026) échange de deux 18 h entre MAR (type echange18) · (11/11/2026) un 18 h écrasé par un don passe au donneur, prévenu avant d'envoyer (accepte18) · (11/11/2026) récupérations automatiques : R neuf quand il ne peut pas suivre son samedi, R écrasé reposé, bouton Réparer (recupsReparer), lien recollé à la pose manuelle · (10/11/2026) l'historique dit qui a accepté (onglet HISTORIQUE)
+const GAS_VERSION_ECHANGES = '2026-11-11.4';   // (11/11/2026) gestes du comité (don, échange) : mêmes suites que entre MAR (_gesteSuites_, appliquerGesteComite_) · (11/11/2026) échange de deux 18 h entre MAR (type echange18) · (11/11/2026) un 18 h écrasé par un don passe au donneur, prévenu avant d'envoyer (accepte18) · (11/11/2026) récupérations automatiques : R neuf quand il ne peut pas suivre son samedi, R écrasé reposé, bouton Réparer (recupsReparer), lien recollé à la pose manuelle · (10/11/2026) l'historique dit qui a accepté (onglet HISTORIQUE)
 
 const ECHANGES_ONGLET = 'ECHANGES';
 const ECHANGES_ENTETE = ['ID', 'CREE_LE', 'TYPE', 'ANNEE', 'DATE', 'DATE2',
@@ -309,34 +309,14 @@ function repondreEchange(user, p) {
     return { etat: 'impossible', error: String(err.message) };
   }
 
-  // (11/11/2026) Un R écrasé par la garde reçue (ou son repos) est reposé
-  // ailleurs AVANT les transferts : seuls les R écrasés sont vus manquants.
-  const reposes = _recupsReposerPerdus_(Number(d.ANNEE), releveR, String(d.RECEVEUR) + ' (accepte ' + d.ID + ')');
-  // (11/11/2026) Un 18 h écrasé passe à l'autre MAR du geste, libéré ce jour-là.
-  // Un échange de 18 h déplace des 18 h exprès : rien à reporter.
-  const reports18 = d.TYPE === 'echange18' ? [] : _echanges18Reporter_(Number(d.ANNEE), releve18, String(d.RECEVEUR) + ' (accepte ' + d.ID + ')');
-
-  // Samedi qui change de mains → transfert du R de CE samedi.
-  // Don : la garde du DATE passe au receveur. Échange : chaque samedi
-  // échangé suit la règle « exactement un des deux jours est un samedi ».
-  const rInfos = [];
-  const y = Number(d.ANNEE);
-  if (d.TYPE === 'don' && _echangesEstSamedi_(d.DATE)) {
-    rInfos.push(_transfererR_(y, d.DATE, String(d.DEMANDEUR), String(d.RECEVEUR)));
-  } else if (d.TYPE === 'echange') {
-    const s1 = _echangesEstSamedi_(d.DATE), s2 = _echangesEstSamedi_(d.DATE2);
-    if (s1 !== s2) { // exactement UN samedi change de mains
-      if (s1) rInfos.push(_transfererR_(y, d.DATE, String(d.DEMANDEUR), String(d.RECEVEUR)));
-      else    rInfos.push(_transfererR_(y, d.DATE2, String(d.RECEVEUR), String(d.DEMANDEUR)));
-    }
-    // samedi ↔ samedi : aucun R ne bouge (décision du 12/08).
-  }
+  // (11/11/2026) Récupérations et 18 h : mêmes suites pour un geste du comité
+  // (appliquerGesteComite_) — une seule source, _gesteSuites_.
+  const suites = _gesteSuites_(d, releveR, releve18, String(d.RECEVEUR) + ' (accepte ' + d.ID + ')');
+  const rInfos = suites.rInfos;
 
   sh.getRange(d._row, colEtat).setValue('acceptee');
   sh.getRange(d._row, colRep).setValue(_echangesMaintenant_());
-  const infos = rInfos.map(r => r.resume).concat((reposes || []).map(j =>
-    j.quoi === 'pose' ? 'R de ' + j.med + ' reposé le ' + j.date : 'R de ' + j.med + ' à placer par le comité'))
-    .concat((reports18 || []).map(f => f.a ? '18 h du ' + f.date + ' : ' + f.de + ' → ' + f.a : '18 h du ' + f.date + ' perdu par ' + f.de));
+  const infos = suites.infos;
   if (infos.length) sh.getRange(d._row, colInfo).setValue(infos.join(' · ').slice(0, 200));
   logAction('repondreEchange ' + id + ' — acceptée' + (infos.length ? ' | ' + infos.join(' · ') : ''));
   _echangesVersKV_();
@@ -350,9 +330,8 @@ function repondreEchange(user, p) {
   notifierPush_('Échange confirmé', corps, './index.html', { id: String(d.DEMANDEUR) });
   notifierPush_('Échange confirmé', corps, './index.html', { id: String(d.RECEVEUR) });
 
-  // Aucune date possible pour un R neuf : seul cas où le comité entre en scène
+  // Aucune date possible pour un R neuf : la trace est laissée par _gesteSuites_
   // (l'onglet Statuts le montre, calculé).
-  rInfos.forEach(r => { if (!r.fait) _echangesAlerterComite_(r); });
   return { etat: 'acceptee', r: rInfos };
 }
 
@@ -950,4 +929,54 @@ function _echanges18Reporter_(year, releve, par) {
     } catch (e) {}
   });
   return faits;
+}
+
+/* (11/11/2026) LES SUITES D'UN GESTE SUR LES GARDES, une seule source pour les
+   échanges entre MAR (repondreEchange) et les gestes du comité (admin, carte
+   « Modifier une garde » → appliquerGesteComite_). Défaut trouvé le 11/11 :
+   le comité passait directement par applyModification, sans aucune de ces
+   suites — la récup du samedi ne suivait pas, un R ou un 18 h écrasé disparaissait.
+   d = { TYPE: 'don'|'echange'|'echange18', ANNEE, DATE, DATE2, DEMANDEUR, RECEVEUR }.
+   À appeler APRÈS applyModification, avec les relevés pris AVANT. */
+function _gesteSuites_(d, releveR, releve18, par) {
+  const y = Number(d.ANNEE);
+  // Un R écrasé par la garde reçue (ou son repos) est reposé ailleurs AVANT les
+  // transferts : seuls les R écrasés sont vus manquants.
+  const reposes = _recupsReposerPerdus_(y, releveR, par);
+  // Un 18 h écrasé passe à l'autre MAR du geste, libéré ce jour-là.
+  // Un échange de 18 h déplace des 18 h exprès : rien à reporter.
+  const reports18 = d.TYPE === 'echange18' ? [] : _echanges18Reporter_(y, releve18, par);
+  // Samedi qui change de mains → transfert du R de CE samedi.
+  // Don : la garde du DATE passe au receveur. Échange : exactement un des deux
+  // jours est un samedi ; samedi ↔ samedi, aucun R ne bouge (décision du 12/08).
+  const rInfos = [];
+  if (d.TYPE === 'don' && _echangesEstSamedi_(d.DATE)) {
+    rInfos.push(_transfererR_(y, d.DATE, String(d.DEMANDEUR), String(d.RECEVEUR)));
+  } else if (d.TYPE === 'echange') {
+    const s1 = _echangesEstSamedi_(d.DATE), s2 = _echangesEstSamedi_(d.DATE2);
+    if (s1 !== s2) {
+      if (s1) rInfos.push(_transfererR_(y, d.DATE, String(d.DEMANDEUR), String(d.RECEVEUR)));
+      else    rInfos.push(_transfererR_(y, d.DATE2, String(d.RECEVEUR), String(d.DEMANDEUR)));
+    }
+  }
+  const infos = rInfos.map(r => r.resume).concat((reposes || []).map(j =>
+    j.quoi === 'pose' ? 'R de ' + j.med + ' reposé le ' + j.date : 'R de ' + j.med + ' à placer par le comité'))
+    .concat((reports18 || []).map(f => f.a ? '18 h du ' + f.date + ' : ' + f.de + ' → ' + f.a : '18 h du ' + f.date + ' perdu par ' + f.de));
+  rInfos.forEach(r => { if (!r.fait) _echangesAlerterComite_(r); });
+  return { rInfos: rInfos, reposes: reposes, reports18: reports18, infos: infos };
+}
+
+/* Un don ou un échange de gardes fait par le comité (page admin) : mêmes
+   contrôles (applyModification), mêmes suites que entre MAR. Renvoie les
+   suites en clair, que l'écran affiche. Lève si le geste est refusé. */
+function appliquerGesteComite_(mod) {
+  const TYPES = { donGarde: 'don', echangeGardeJours: 'echange' };
+  const d = { TYPE: TYPES[mod.type], ANNEE: Number(mod.year) || TEST_YEAR, DATE: mod.date, DATE2: mod.date2 || '',
+              DEMANDEUR: String(mod.doctorId), RECEVEUR: String(mod.doctorId2) };
+  const releveR = _recupsReleve_(d.ANNEE, [d.DEMANDEUR, d.RECEVEUR]);
+  const releve18 = _echanges18Releve_(d.ANNEE, [d.DEMANDEUR, d.RECEVEUR]);
+  applyModification(mod);
+  const s = _gesteSuites_(d, releveR, releve18, mod.par || 'comité');
+  if (s.infos.length) logAction('geste du comité ' + mod.type + ' ' + d.DATE + ' — ' + s.infos.join(' · '));
+  return s;
 }

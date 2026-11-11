@@ -6,11 +6,11 @@ portail/Dashboard, module libéral, contrôle d'absence, veille biblio.
 (Le générateur de comptes rendus a été retiré le 07/09/2026 : il portait le logo de
 l'établissement et 77 noms de praticiens sur une page publique sans code d'accès.)
 
-**Dépôt** `planningmedic/planningmedic.github.io`, branche `main` · **Site v1.62.2** (11/11/2026) ·
+**Dépôt** `planningmedic/planningmedic.github.io`, branche `main` · **Site v1.62.3** (11/11/2026) ·
 **Portail** https://planningmedic.github.io ·
 **GAS** (numéros relevés dans le dépôt le 11/11/2026 ; la version en service se lit au 🔍 Diagnostic de la page
-Maintenance — les lots du 11/11 attendent la mise à jour du serveur) : `echanges.gs` **2026-11-11.3** ·
-`gardes.gs` **2026-11-11.3** · `Indispos.gs`, `miroir.gs`, `code.gs` **2026-11-11.1** · `generateur_gardes.gs` **2026-11-10.2** ·
+Maintenance — les lots du 11/11 attendent la mise à jour du serveur) : `echanges.gs` **2026-11-11.4** ·
+`gardes.gs` **2026-11-11.4** · `Indispos.gs`, `miroir.gs`, `code.gs` **2026-11-11.1** · `generateur_gardes.gs` **2026-11-10.2** ·
 `indisponibilites.gs`, `setup_annee.gs`, `temps_partiel.gs` **2026-11-10.1** · `veille.gs` **2026-11-09.1** ·
 `equipe.gs` **2026-11-02.1** · `diagnostic.gs` **2026-11-01.1** · `journal.gs` **2026-10-24.1** · `portail.gs` **2026-10-21.1** ·
 **Livreur** `livreur/livreur.gs` **2026-11-01.2** (projet Apps Script séparé, application web) ·
@@ -52,11 +52,15 @@ Banc : `banc_recups_auto.js` (77), `banc_echanges`, `banc_page`, `banc_contrat_r
 d'arrivée » (dépend de la date du jour) — **à corriger**.
 
 **Reste à faire**
-- Responsable : mettre à jour le serveur (`echanges.gs` 2026-11-11.3, `gardes.gs` 2026-11-11.3), puis tester un don sur 18 h et
+- Responsable : mettre à jour le serveur (`echanges.gs` 2026-11-11.4, `gardes.gs` 2026-11-11.4), puis tester un don sur 18 h et
   un échange de 18 h. Jours à découvert 2027 encore ouverts : 15/03 et 18/08 (18 h manquant).
 - ~~Échange de garde : le repos d'arrivée écrasait une absence~~ — **fermé** (`gardes.gs` 2026-11-11.3, `c27cfbb`) :
   refus dès l'envoi si le repos tombe sur une absence ou à côté d'une autre garde ; R et 18 h restent rattrapés.
 - Annuler une proposition d'échange envoyée (FAQ du guide MAR : « pas encore »).
+- **Fermé (v1.62.3, `echanges.gs` / `gardes.gs` 2026-11-11.4)** : les dons et échanges faits par le **comité** (admin,
+  « Modifier une garde ») passaient directement par `applyModification`, sans suite — récup du samedi, R et 18 h écrasés.
+  Ils passent désormais par `appliquerGesteComite_` → `_gesteSuites_`, la même source que les échanges entre MAR ;
+  le message vert de l'admin dit ce qui a suivi. Trouvé à la relecture des guides (v1.62.2).
 
 ## 03 – 10/11/2026 — génération 2027, mails et suivi (v1.54.8 → v1.58.0)
 

@@ -5334,10 +5334,12 @@ function pickGiver(id){ const h=_holdersFor(GD.d1).find(x=>x.id===id); GD.p1=id;
 function onDonRecv(v){ GD.recv=v; _updateDonRecap(); }
 function _updateDonRecap(){
   const h=_holdersFor(GD.d1).find(x=>x.id===GD.p1);
-  if(h && GD.recv) _setRecap('<b>'+_nm(GD.p1)+'</b> donne sa garde <b>'+_roleTxt(h.role)+'</b> du <b>'+_fmtDate(GD.d1)+'</b> \u00e0 <b>'+_nm(GD.recv)+'</b>.<br><span style="color:var(--ink-3)">Le repos du lendemain suit automatiquement.</span>');
+  if(h && GD.recv) _setRecap('<b>'+_nm(GD.p1)+'</b> donne sa garde <b>'+_roleTxt(h.role)+'</b> du <b>'+_fmtDate(GD.d1)+'</b> \u00e0 <b>'+_nm(GD.recv)+'</b>.<br><span style="color:var(--ink-3)">Le repos du lendemain suit automatiquement'+(Number(GD.d1.slice(0,4))>=2027?', comme la récupération d\'un samedi ; un R ou un 18 h écrasé est replacé':'')+'.</span>');
   else _setRecap('');
   // Don d'un samedi : le nombre de samedis change pour les deux → recup a deplacer.
-  if(h && GD.recv && _estSamedi(GD.d1))
+  /* (11/11/2026) À partir de 2027 la récup suit toute seule (même mécanique
+     qu'entre MAR) : l'avertissement ne vaut plus que pour 2026, sans lien samedi → R. */
+  if(h && GD.recv && _estSamedi(GD.d1) && Number(GD.d1.slice(0,4)) <= 2026)
     _setWarn('<b>Samedi donn\u00e9 \u2014 la r\u00e9cup\u00e9ration ne suit pas.</b><br>'
       + _nm(GD.recv) + ' n\'a aucune r\u00e9cup pour ce samedi : <b>posez-lui un R</b> dans l\'onglet Statuts. '
       + 'Si ' + _nm(GD.p1) + ' a encore un R \u00e0 venir, d\u00e9placez celui-l\u00e0 ; sinon il en aura eu un de trop, ce n\'est pas rattrap\u00e9.');
@@ -5376,7 +5378,7 @@ function _updateEchRecap(){
   // samedi : les comptes sont inchangés, on n'affiche RIEN (un avertissement qui
   // sort pour rien finit par ne plus être lu).
   const _sa=_estSamedi(GD.d1), _sb=_estSamedi(GD.d2);
-  if(ha && hb && (_sa !== _sb)){
+  if(ha && hb && (_sa !== _sb) && Number(GD.d1.slice(0,4)) <= 2026){
     const perd = _sa ? GD.p1 : GD.p2, prend = _sa ? GD.p2 : GD.p1;
     _setWarn('<b>Un samedi change de mains.</b><br>'
       + _nm(perd) + ' perd son samedi, ' + _nm(prend) + ' le prend : <b>posez un R \u00e0 '
@@ -5425,7 +5427,9 @@ async function submitPanel(){
     mod.year = (panelType==='garde' && GD.d1) ? (Number(GD.d1.slice(0,4))||ADMIN_YEAR) : ADMIN_YEAR;
     const data=await api({action:'applyModification',modification:mod});
     if(!data.success) throw new Error(data.error);
-    result.textContent='✅ Modification appliquée — planning republié automatiquement.';
+    // (11/11/2026) Les suites automatiques (récup du samedi, R ou 18 h écrasés) sont dites ici.
+    result.textContent='✅ Modification appliquée — planning republié automatiquement.'
+      + ((data.suites && data.suites.length) ? ' ' + data.suites.join(' · ') + '.' : '');
     result.className='result-box ok'; result.style.display='block';
     if(panelType==='garde' && GD.mode==='don' && DON_ON_DONE){ const _cb=DON_ON_DONE, _d=GD.d1; DON_ON_DONE=null; try{ _cb(_d); }catch(e){} }
     setTimeout(()=>{loadPlanningData();closePanel();},1500);

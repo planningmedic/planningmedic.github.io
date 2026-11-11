@@ -349,6 +349,43 @@ console.log('\n═══ 10. Échange de gardes : le repos d\'arrivée n\'écras
   V('un 18 h sur le jour de repos passe à l\'autre MAR, libéré ce jour-là', b.lire('BRAVO', '2027-03-10') === 'RG' && String(b.lire('ALPHA', '2027-03-10')) === '18');
 }
 
+console.log('\n═══ 11. Les gestes du COMITÉ ont les mêmes suites (11/11/2026) ═══');
+{
+  /* Défaut trouvé à la relecture des guides : le comité (admin, « Modifier une
+     garde ») passait directement par applyModification, sans aucune suite. */
+  const b = monde({ liens: [['2027-03-13', 'ALPHA', '2027-03-19']] });
+  b.garde('ALPHA', '2027-03-13'); b.poser('ALPHA', '2027-03-19', 'R');
+  const s = b.run(`appliquerGesteComite_({ type:'donGarde', year:2027, date:'2027-03-13', doctorId:'ALPHA', doctorId2:'BRAVO', par:'comité' })`);
+  V('don d\'un samedi par le comité : la récup suit, même date', b.lire('BRAVO', '2027-03-19') === 'R' && b.lire('ALPHA', '2027-03-19') === '', s.infos);
+  V('le lien suit', JSON.stringify(b.liens()) === JSON.stringify([['2027-03-13', 'BRAVO', '2027-03-19']]), b.liens());
+  V('les suites sont rendues en clair pour l\'écran', s.infos.some(t => /R du 2027-03-19 transféré/.test(t)), s.infos);
+}
+{
+  const b = monde({ liens: [['2027-03-13', 'BRAVO', '2027-03-23']] });
+  b.garde('BRAVO', '2027-03-13'); b.poser('BRAVO', '2027-03-23', 'R'); b.garde('CHARLI', '2027-03-23');
+  b.run(`appliquerGesteComite_({ type:'donGarde', year:2027, date:'2027-03-23', doctorId:'CHARLI', doctorId2:'BRAVO', par:'comité' })`);
+  V('don du comité sur un jour de R : le R est reposé', b.lire('BRAVO', '2027-03-23') === 'G' && b.lire('BRAVO', '2027-03-19') === 'R', b.R('BRAVO'));
+}
+{
+  const b = monde();
+  b.garde('ALPHA', '2027-05-30'); b.poser('BRAVO', '2027-05-31', '18');
+  b.run(`appliquerGesteComite_({ type:'donGarde', year:2027, date:'2027-05-30', doctorId:'ALPHA', doctorId2:'BRAVO', par:'comité' })`);
+  V('don du comité qui écrase un 18 h : il passe au donneur', b.lire('BRAVO', '2027-05-31') === 'RG' && String(b.lire('ALPHA', '2027-05-31')) === '18');
+}
+{
+  const b = monde();
+  b.garde('ALPHA', '2027-03-09'); b.garde('BRAVO', '2027-03-23'); b.poser('BRAVO', '2027-03-10', 'V');
+  const avant = JSON.stringify(b.cl.getSheetByName('GARDES_2027').lignes);
+  let err = '';
+  try { b.run(`appliquerGesteComite_({ type:'echangeGardeJours', year:2027, date:'2027-03-09', date2:'2027-03-23', doctorId:'ALPHA', doctorId2:'BRAVO', par:'comité' })`); } catch (e) { err = e.message; }
+  V('un geste refusé lève avec son motif et ne touche à rien', /indisponible \(V\)/.test(err) && JSON.stringify(b.cl.getSheetByName('GARDES_2027').lignes) === avant, err);
+  const g = fs.readFileSync(path.join(GAS, 'gardes.gs'), 'utf8');
+  V('le routeur envoie don et échange du comité vers appliquerGesteComite_', /_mod\.type === 'donGarde' \|\| _mod\.type === 'echangeGardeJours'\) && typeof appliquerGesteComite_ === 'function'/.test(g));
+  const ad = fs.readFileSync(path.join(__dirname, '..', 'admin.html'), 'utf8');
+  V('l\'écran du comité affiche les suites', /data\.suites\.join\(' · '\)/.test(ad));
+  V('l\'avertissement « la récup ne suit pas » ne vaut plus que pour 2026', (ad.match(/Number\(GD\.d1\.slice\(0,4\)\) <= 2026/g) || []).length === 2);
+}
+
 console.log('\n═══ 6. Les pages ═══');
 {
   const admin = fs.readFileSync(path.join(__dirname, '..', 'admin.html'), 'utf8');
