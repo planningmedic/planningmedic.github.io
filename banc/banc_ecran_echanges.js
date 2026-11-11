@@ -289,6 +289,33 @@ const dodo = ms => new Promise(r => setTimeout(r, ms));
     V('le receveur, lui, n\'a pas de bouton Annuler', !w.document.querySelector('.ech-annuler') && !!w.document.querySelector('.ech-accepter'));
   }
 
+  console.log('\n═══ 4 ter. Un arrivant en cours d\'année est proposé comme receveur (11/11/2026) ═══');
+  {
+    /* Vu en réel : un MAR arrivé au 01/11 manquait à la liste « À » — elle ne
+       lisait que le 1er mois du planning. CHARLI n'existe qu'au 2e mois. */
+    const kv = await baseKV();
+    kv.notif_config = JSON.stringify({ ouvert:true, pilotes:[] });
+    kv.echanges = JSON.stringify({ success:true, echanges:[] });
+    const jours2 = ['2027-04-05','2027-04-06','2027-04-07'];
+    const st2 = arr => jours2.map((d,i)=>({ status: arr[i]||'' }));
+    kv.planning_2027 = JSON.stringify({ months: [ planning.months[0], {
+      days: jours2.map(d => ({ date: d })),
+      doctors: [ { id:'ALPHA', days: st2(['','','']) }, { id:'BRAVO', days: st2(['','','']) },
+                 { id:'CHARLI', days: st2(['','G','RG']) } ],
+    }] });
+    const surGas = (charge) => (charge.action === 'login' ? { success:true, role:'mar', id:'ALPHA', year:2027 } : { success:true });
+    const { w, erreurs } = await monterPage(kv, surGas);
+    V('la page se charge sans erreur JavaScript', erreurs.length === 0, erreurs.slice(0,2));
+    w.location.hash = '#echanges'; w.route();
+    await dodo(400);
+    await w.echOuvrirProposition();
+    await dodo(300);
+    const opts = [...w.document.getElementById('echSelQui').options].map(o => o.value).filter(Boolean);
+    V('l\'arrivant (absent du 1er mois) figure dans la liste', opts.indexOf('CHARLI') > -1, opts);
+    V('chaque collègue n\'apparaît qu\'une fois, moi exclu',
+      opts.length === new Set(opts).size && opts.indexOf('ALPHA') === -1 && opts.indexOf('BRAVO') > -1, opts);
+  }
+
   console.log('\n═══ 5. La carte des notifications : téléphone oui, ordinateur non ═══');
   {
     /* (17/08/2026) Vu par le responsable en se connectant depuis son PC : la carte

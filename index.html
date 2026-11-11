@@ -2552,8 +2552,21 @@ async function echOuvrirProposition(){
   ECH_PROP = { type:'don', gardes:gardes };
   let plan = null;
   try { plan = _planDejaLa(gardes[0].annee) || await _fetchPlanning(gardes[0].annee); } catch(e){}
+  /* (11/11/2026) Un arrivant en cours d'année (ex. début au 01/11) manquait :
+     la liste ne lisait que le 1er mois. On réunit tous les mois des années
+     de mes gardes à venir. */
   const medecins = [];
-  if (plan && plan.months && plan.months[0]) (plan.months[0].doctors||[]).forEach(function(d){ if(d.id && d.id!==MY_ID) medecins.push(d.id); });
+  const _vus = {};
+  const _annees = Array.from(new Set(gardes.map(function(g){ return g.annee; })));
+  for (const y of _annees) {
+    let pl = null;
+    try { pl = (y === gardes[0].annee && plan) || _planDejaLa(y) || await _fetchPlanning(y); } catch(e){}
+    ((pl && pl.months) || []).forEach(function(m){
+      (m.doctors||[]).forEach(function(d){
+        if (d.id && d.id!==MY_ID && !_vus[d.id]) { _vus[d.id]=1; medecins.push(d.id); }
+      });
+    });
+  }
   medecins.sort();
   p.innerHTML =
       '<label>Ma garde ou mon 18 h</label>'
