@@ -1,7 +1,7 @@
 // ⚠️ RÈGLE (détecteur de dérive dépôt↔Apps Script) : incrémenter cette version
 // à CHAQUE push de ce fichier. Le diagnostic (admin → Maintenance) compare la
 // version déployée ici avec celle du dépôt et signale toute recopie oubliée.
-const GAS_VERSION_CODE = '2026-11-02.1';   // (02/11/2026) commentaire sans initiales réelles · (27/10/2026) demi-journées de vacances VM/VA (planning, paie, notifications) · (27/10/2026) journée mobile 2027 (lundi 7 juin) ajoutée aux fériés · (18/10/2026) vue paie : tri G/G2/V (_planningPaie_) et mail aux secrétaires de paie (_paieEnvoyerAnnee_)
+const GAS_VERSION_CODE = '2026-11-11.1';   // (11/11/2026) mail paie lisible sur téléphone (une carte par changement) · (02/11/2026) commentaire sans initiales réelles · (27/10/2026) demi-journées de vacances VM/VA (planning, paie, notifications) · (27/10/2026) journée mobile 2027 (lundi 7 juin) ajoutée aux fériés · (18/10/2026) vue paie : tri G/G2/V (_planningPaie_) et mail aux secrétaires de paie (_paieEnvoyerAnnee_)
 
 // ── Reconstruire STATS_GARDES_2026 depuis GARDES_2026 (année reconstruite) ──
 // Renvoie le classeur contenant l'onglet demandé : classeur actif si présent,
@@ -2336,68 +2336,72 @@ function _paieTexte_(items, totaux, origines, jours) {
 }
 
 // ── Corps HTML : tableaux et styles en ligne seulement (Gmail, Outlook) ─
+// Pensé pour l'écran du téléphone : une carte par changement (date, garde, gestes
+// Chronos), totaux sur deux colonnes, jamais plus — pas de colonne écrasée.
 function _paieHtml_(items, totaux, origines, jours) {
   const ROUGE = '#CE1126', ENCRE = '#0f172a', GRIS = '#64748b', PALE = '#94a3b8', LIGNE = '#e2e8f0';
+  const VERT = '#15803d', RETRAIT = '#b91c1c';
   const POLICE = "-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif";
-  const th = function (x) {
-    return '<td style="padding:7px 10px;background:#f1f5f9;font-size:11.5px;font-weight:700;color:#334155;'
-      + 'border-bottom:1px solid ' + LIGNE + '">' + x + '</td>';
-  };
-  const td = function (x, gras) {
-    return '<td style="padding:8px 10px;font-size:13.5px;color:' + ENCRE + ';vertical-align:top;'
-      + (gras ? 'font-weight:700;' : '') + 'border-bottom:1px solid ' + LIGNE + '">' + x + '</td>';
-  };
-  const tableau = function (lignes) {
-    return '<table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" '
-      + 'style="border:1px solid ' + LIGNE + ';border-radius:10px;border-collapse:separate;border-spacing:0">'
-      + lignes + '</table>';
-  };
+  // Coupe la détection automatique des dates (soulignement bleu de Mail sur iPhone).
+  const sansLien = function (x) { return String(x).replace(/(\d) /g, '$1&zwnj; '); };
   const titre = function (x) {
     return '<div style="font-size:11px;font-weight:800;letter-spacing:.8px;text-transform:uppercase;color:'
       + PALE + ';margin:22px 0 8px">' + x + '</div>';
   };
-  const tagHtml = function (date) {
-    const tg = _paieTag_(date, jours);
-    return tg ? '<br><span style="font-size:11px;font-weight:700;color:#c2410c">' + tg + '</span>' : '';
+  const badge = function (date) {
+    const tg = date ? _paieTag_(date, jours) : '';
+    return tg ? ' <span style="display:inline-block;margin-left:4px;padding:2px 7px;border-radius:6px;background:#fff7ed;'
+      + 'font-size:10.5px;font-weight:800;letter-spacing:.4px;text-transform:uppercase;color:#c2410c;vertical-align:2px">'
+      + tg + '</span>' : '';
+  };
+  const geste = function (g) {
+    const retrait = /^Retirer/.test(g);
+    return '<tr><td width="20" style="padding:3px 0;vertical-align:top;font-size:15px;font-weight:800;line-height:1.45;color:'
+      + (retrait ? RETRAIT : VERT) + '">' + (retrait ? '−' : '+') + '</td>'
+      + '<td style="padding:3px 0;font-size:14px;color:' + ENCRE + ';line-height:1.45">' + sansLien(g) + '</td></tr>';
+  };
+  const carte = function (entete, sous, gestes) {
+    return '<table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" '
+      + 'style="border:1px solid ' + LIGNE + ';border-left:4px solid ' + ROUGE + ';border-radius:10px;'
+      + 'border-collapse:separate;border-spacing:0;margin-bottom:10px">'
+      + '<tr><td style="padding:12px 14px">'
+      +   '<div style="font-size:15px;font-weight:800;color:' + ENCRE + ';line-height:1.35">' + entete + '</div>'
+      +   '<div style="font-size:13px;color:' + GRIS + ';margin:2px 0 8px;line-height:1.4">' + sous + '</div>'
+      +   '<table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0">'
+      +     gestes.map(geste).join('') + '</table>'
+      + '</td></tr></table>';
   };
 
-  let quoi = '';
-  const gardes = items.filter(function (i) { return i.type === 'garde'; });
-  const vacs = items.filter(function (i) { return i.type === 'vac'; });
-  if (gardes.length) {
-    quoi += tableau('<tr>' + th('Date') + th('Garde') + th('Avant') + th('Après') + '</tr>'
-      + gardes.map(function (it) {
-        return '<tr>' + td(_paieJoli_(it.date) + tagHtml(it.date)) + td(PAIE_LIB[it.code])
-          + td(_paieListe_(it.de)) + td(_paieListe_(it.a), true) + '</tr>';
-      }).join(''));
-  }
-  if (vacs.length) {
-    quoi += (gardes.length ? '<div style="height:10px"></div>' : '')
-      + tableau('<tr>' + th('Médecin') + th('Vacances') + th('Période') + th('Jours') + '</tr>'
-      + vacs.map(function (it) {
-        return '<tr>' + td(_paieDr_(it.id), true) + td(it.sens === 'ajout' ? 'ajoutées' : 'retirées')
-          + td(it.du === it.au ? _paieJoli_(it.du) : 'du ' + _paieJoli_(it.du) + '<br>au ' + _paieJoli_(it.au))
-          + td(it.demi ? '½ (' + PAIE_DEMI[it.demi] + ')' : String(it.n)) + '</tr>';
-      }).join(''));
-  }
+  const cartes = items.map(function (it) {
+    if (it.type === 'garde') {
+      const j = _paieJoli_(it.date);
+      return carte(sansLien(j.charAt(0).toUpperCase() + j.slice(1)) + badge(it.date),
+        PAIE_LIB[it.code].charAt(0).toUpperCase() + PAIE_LIB[it.code].slice(1),
+        it.de.map(function (id) { return 'Retirer à ' + _paieDr_(id); })
+          .concat(it.a.map(function (id) { return 'Ajouter à <b>' + _paieDr_(id) + '</b>'; })));
+    }
+    const per = it.du === it.au ? _paieJoli_(it.du) : 'du ' + _paieJoli_(it.du) + ' au ' + _paieJoli_(it.au);
+    return carte(_paieDr_(it.id) + ' · vacances ' + (it.sens === 'ajout' ? 'ajoutées' : 'retirées'),
+      sansLien(per) + ' · ' + (it.demi ? 'demi-journée (' + PAIE_DEMI[it.demi] + ')' : it.n + ' jour' + (it.n > 1 ? 's' : '')),
+      _paieGestes_(it));
+  }).join('');
 
-  let gestes = '';
-  items.forEach(function (it) {
-    _paieGestes_(it).forEach(function (g) {
-      gestes += '<tr><td width="18" style="padding:3px 0;vertical-align:top;font-size:14px;color:' + ROUGE
-        + '">•</td><td style="padding:3px 0;font-size:13.5px;color:' + ENCRE + ';line-height:1.5">' + g + '</td></tr>';
-    });
-  });
-
-  const tot = tableau('<tr>' + th('Médecin') + th('Mois') + th('Avant → après') + '</tr>'
-    + totaux.map(function (x) {
-      return '<tr>' + td(_paieDr_(x.id), true) + td(_paieMoisJoli_(x.mois)) + td(x.lignes.map(function (l) {
-        return PAIE_LIB[l.code] + ' : ' + _paieNb_(l.avant) + ' → <b>' + _paieNb_(l.apres) + '</b>';
-      }).join('<br>')) + '</tr>';
-    }).join(''));
+  const tot = '<table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" '
+    + 'style="border:1px solid ' + LIGNE + ';border-radius:10px;border-collapse:separate;border-spacing:0">'
+    + totaux.map(function (x, k) {
+      const bord = k < totaux.length - 1 ? 'border-bottom:1px solid ' + LIGNE + ';' : '';
+      return x.lignes.map(function (l, n) {
+        const b = n === x.lignes.length - 1 ? bord : '';
+        return '<tr><td style="padding:10px 14px;vertical-align:middle;' + b + '">'
+          + (n === 0 ? '<div style="font-size:14px;font-weight:800;color:' + ENCRE + '">' + _paieDr_(x.id) + '</div>' : '')
+          + '<div style="font-size:12.5px;color:' + GRIS + ';line-height:1.4">' + PAIE_LIB[l.code] + ' · ' + _paieMoisJoli_(x.mois) + '</div></td>'
+          + '<td align="right" style="padding:10px 14px;white-space:nowrap;vertical-align:middle;font-size:15px;color:' + GRIS + ';' + b + '">'
+          + _paieNb_(l.avant) + ' → <b style="font-size:18px;color:' + ENCRE + '">' + _paieNb_(l.apres) + '</b></td></tr>';
+      }).join('');
+    }).join('') + '</table>';
 
   const orig = origines.map(function (o) {
-    return '<div style="font-size:13.5px;color:' + ENCRE + ';line-height:1.5;margin-bottom:4px">' + o + '</div>';
+    return '<div style="font-size:13px;color:' + GRIS + ';line-height:1.5;margin-bottom:4px">' + sansLien(o) + '</div>';
   }).join('');
   const mois = items.length ? items[0].date.slice(0, 7) : '';
   const lien = PAIE_SITE + (mois ? '?m=' + mois : '');
@@ -2405,26 +2409,24 @@ function _paieHtml_(items, totaux, origines, jours) {
   return ''
   + '<table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" '
   + 'style="background:#f4f6f9;font-family:' + POLICE + '">'
-  + '<tr><td align="center" style="padding:18px 12px">'
+  + '<tr><td align="center" style="padding:10px 6px">'
   +   '<table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" '
-  +   'style="max-width:620px;background:#fff;border-radius:18px;border:1px solid ' + LIGNE + '">'
+  +   'style="max-width:620px;background:#fff;border-radius:16px;border:1px solid ' + LIGNE + '">'
   +     '<tr><td style="background:' + ROUGE + ';height:5px;line-height:5px;font-size:0">&nbsp;</td></tr>'
-  +     '<tr><td style="padding:24px 24px 4px">'
+  +     '<tr><td style="padding:20px 16px 4px">'
   +       '<div style="font-size:11px;font-weight:800;letter-spacing:.9px;text-transform:uppercase;color:' + PALE + '">Planning-Med · paie</div>'
   +       '<div style="font-size:21px;font-weight:800;color:' + ENCRE + ';margin-top:7px;line-height:1.25">Le planning a changé</div>'
-  +       '<div style="margin-top:10px;font-size:13.5px;color:' + GRIS + ';line-height:1.55">Bonjour,<br>'
-  +       'voici ce qui touche la paie : ' + (items.length === 1 ? 'un changement' : items.length + ' changements') + '.</div>'
-  +       titre('Ce qui change') + quoi
-  +       titre('À reporter dans Chronos')
-  +       '<table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0">' + gestes + '</table>'
+  +       '<div style="margin-top:8px;font-size:14px;color:' + GRIS + ';line-height:1.55">Bonjour, voici '
+  +       (items.length === 1 ? 'le changement' : 'les ' + items.length + ' changements') + ' à reporter dans Chronos.</div>'
+  +       titre('À reporter dans Chronos') + cartes
   +       titre('Nouveaux totaux du mois') + tot
   +       titre('Origine') + orig
   +     '</td></tr>'
-  +     '<tr><td style="padding:18px 24px 4px">'
+  +     '<tr><td style="padding:18px 16px 4px">'
   +       '<a href="' + lien + '" style="display:block;background:' + ENCRE + ';color:#fff;text-decoration:none;'
   +       'border-radius:11px;font-size:15px;font-weight:700;padding:14px 20px;text-align:center">Ouvrir le planning paie</a>'
   +     '</td></tr>'
-  +     '<tr><td style="padding:14px 24px 24px;font-size:11.5px;color:' + PALE + ';line-height:1.6">'
+  +     '<tr><td style="padding:14px 16px 22px;font-size:11.5px;color:' + PALE + ';line-height:1.6">'
   +       'Message automatique de Planning-Med, merci de ne pas y répondre. Pour une question : planningmedic@gmail.com'
   +     '</td></tr>'
   +   '</table>'
