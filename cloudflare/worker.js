@@ -72,7 +72,7 @@
    poussée : le client se replie sur le circuit GAS.
    ═══════════════════════════════════════════════════════════════════ */
 
-const VERSION = 'miroir 2026-10-30.1';
+const VERSION = 'miroir 2026-11-11.1';
 
 // Clés admissibles — tout le reste est refusé à l'écriture comme à la
 // lecture. Garde-fou contre une faute de frappe côté GAS qui créerait
@@ -110,6 +110,10 @@ export default {
         return new Response(JSON.stringify({ ok: true, service: VERSION }),
                             { status: 200, headers: CORS });
       }
+      /* (11/11/2026) Agenda d'abonnement : le calendrier du téléphone relit
+         cette adresse tout seul. Seul autre GET admis. */
+      const ag = AGENDA_CHEMIN.exec(url.pathname);
+      if (ag) return agendaIcs(ag[1], env);
       return reponse({ success: false, error: 'Méthode non autorisée — POST uniquement' }, 405);
     }
 
@@ -134,6 +138,7 @@ export default {
     if (url.pathname === '/notif-vu') return notifVu(corps, env);
     if (url.pathname === '/notif-envoyer') return notifEnvoyer(corps, env);
     // ── Widget « Patients lib » : boîte chiffrée (30/10/2026) ──
+    if (url.pathname === '/agenda-lien') return agendaLien(corps, env);
     if (url.pathname === '/pb-ouvrir') return pbOuvrir(corps, env);
     if (url.pathname === '/pb-depot') return pbDepot(corps, env);
     if (url.pathname === '/pb-lire') return pbLire(corps, env);
@@ -846,3 +851,94 @@ async function pbFermer(corps, env) {
   return reponse({ success: true, version: VERSION });
 }
 
+/* ═══ AGENDA D'ABONNEMENT (11/11/2026) ════════════════════════════════
+   POURQUOI. Chaque MAR s'abonne une fois, depuis « Mes gardes », à un
+   agenda qui ne contient que SES gardes (réa, mater) et ses 18h, en
+   journée entière. Le calendrier du téléphone relit l'adresse tout seul :
+   un don ou un échange accepté republie le planning ici, l'agenda suit.
+
+   LE LIEN. Le calendrier ne tape pas de code : il lit une adresse. La
+   suite tirée au hasard au bout (32 caractères, 192 bits) tient lieu de
+   mot de passe. Qui détient le lien voit les gardes de ce MAR, rien
+   d'autre, et ne peut rien modifier. « Nouveau lien » rend l'ancien muet.
+
+   CLÉS (jamais déposées par le GAS : hors CLE_VALIDE, le /push les refuse)
+     agu_<ID>              le jeton du MAR, pour pouvoir lui réafficher son lien
+     agj_<sha256(jeton)>   l'identité du MAR à qui appartient ce jeton
+
+   AUCUNE donnée inventée : l'agenda est lu dans planning_{année}, tel que
+   publié. Années servies : celles de `annees`, à partir de l'an dernier. */
+const AGENDA_CHEMIN = /^\/agenda\/([A-Za-z0-9_-]{32})\.ics$/;
+const AGENDA_LIB = { G: 'Garde réa', G2: 'Garde mater', '18': '18h' };
+
+function agendaJetonNeuf() {
+  const o = new Uint8Array(24); crypto.getRandomValues(o);
+  let b = ''; for (let i = 0; i < o.length; i++) b += String.fromCharCode(o[i]);
+  return btoa(b).replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '');
+}
+
+async function agendaLien(corps, env) {
+  const code = String(corps && corps.code == null ? '' : corps.code).trim().toUpperCase();
+  if (!code) return reponse({ success: false, error: 'Code requis' }, 403);
+  const accesBrut = await env.KV.get('acces');
+  if (!accesBrut) return reponse({ success: false, error: 'Miroir vide' }, 503);
+  let acces; try { acces = JSON.parse(accesBrut); } catch (e) { return reponse({ success: false, error: 'acces illisible' }, 500); }
+  const h = await sha256hex(code);
+  const u = (acces.users || []).find(x => x && x.h === h);
+  if (!u) return reponse({ success: false, error: 'Code invalide' }, 403);
+  if (u.role === 'secretariat' || !u.id) return reponse({ success: false, error: 'Accès non autorisé pour ce rôle' }, 403);
+  const id = String(u.id).toUpperCase();
+  let jeton = await env.KV.get('agu_' + id);
+  if (corps.nouveau === true || !jeton) {
+    if (jeton) await env.KV.delete('agj_' + await sha256hex(jeton));
+    jeton = agendaJetonNeuf();
+    await env.KV.put('agj_' + await sha256hex(jeton), id);
+    await env.KV.put('agu_' + id, jeton);
+  }
+  return reponse({ success: true, chemin: '/agenda/' + jeton + '.ics', version: VERSION });
+}
+
+function agendaDateIcs(iso) { return iso.replace(/-/g, ''); }
+function agendaLendemain(iso) {
+  const d = new Date(iso + 'T12:00:00Z'); d.setUTCDate(d.getUTCDate() + 1);
+  return d.toISOString().slice(0, 10).replace(/-/g, '');
+}
+
+async function agendaIcs(jeton, env) {
+  const id = await env.KV.get('agj_' + await sha256hex(jeton));
+  // Lien inconnu ou remplacé : 404, le calendrier garde ce qu'il avait sans rien ajouter.
+  if (!id) return new Response('Lien inconnu', { status: 404, headers: { 'Content-Type': 'text/plain; charset=utf-8' } });
+  const anDernier = new Date().getUTCFullYear() - 1;
+  let annees = [];
+  try {
+    const a = JSON.parse((await env.KV.get('annees')) || 'null') || {};
+    annees = (a.annees || []).map(x => Number(x && x.annee)).filter(y => y >= anDernier);
+  } catch (e) { annees = []; }
+  const evts = [];
+  for (const y of annees) {
+    let pl; try { pl = JSON.parse((await env.KV.get('planning_' + y)) || 'null'); } catch (e) { pl = null; }
+    ((pl && pl.months) || []).forEach(m => {
+      const doc = (m.doctors || []).find(d => d && String(d.id).toUpperCase() === id);
+      if (!doc || !doc.days) return;
+      doc.days.forEach((j, i) => {
+        const st = String((j && j.status) || ''), date = m.days && m.days[i] && m.days[i].date;
+        if (AGENDA_LIB[st] && /^\d{4}-\d{2}-\d{2}$/.test(String(date))) evts.push({ date, st });
+      });
+    });
+  }
+  const tampon = new Date().toISOString().replace(/[-:]/g, '').replace(/\.\d+/, '');
+  const L = ['BEGIN:VCALENDAR', 'VERSION:2.0', 'PRODID:-//Planning-Med//Mes gardes//FR', 'CALSCALE:GREGORIAN',
+    'METHOD:PUBLISH', 'X-WR-CALNAME:Mes gardes', 'X-WR-TIMEZONE:Europe/Monaco',
+    'REFRESH-INTERVAL;VALUE=DURATION:PT1H', 'X-PUBLISHED-TTL:PT1H'];
+  evts.forEach(e => {
+    L.push('BEGIN:VEVENT', 'UID:' + e.date + '-' + (e.st === '18' ? 'h18' : e.st.toLowerCase()) + '@planningmedic.github.io',
+      'DTSTAMP:' + tampon, 'DTSTART;VALUE=DATE:' + agendaDateIcs(e.date), 'DTEND;VALUE=DATE:' + agendaLendemain(e.date),
+      'SUMMARY:' + AGENDA_LIB[e.st], 'TRANSP:TRANSPARENT', 'END:VEVENT');
+  });
+  L.push('END:VCALENDAR');
+  return new Response(L.join('\r\n') + '\r\n', { status: 200, headers: {
+    'Content-Type': 'text/calendar; charset=utf-8',
+    'Content-Disposition': 'inline; filename="mes-gardes.ics"',
+    'Cache-Control': 'no-cache, max-age=0',
+  } });
+}

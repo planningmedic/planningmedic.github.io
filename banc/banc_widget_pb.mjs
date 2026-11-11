@@ -98,7 +98,7 @@ r = await appel('/pb-fermer', { id: id2, jeton: b64(32) });
 V('fermer sans le jeton : refusé', r.statut === 403 && M.has('pbw_' + id2));
 r = await appel('/pb-fermer', { id: id2, jeton: jeton2 });
 V('fermer avec le jeton : boîte et lien effacés', r.j.success && !M.has('pbw_' + id2) && !M.has('pbu_MARTIN'));
-V('version du serveur montée', /const VERSION = 'miroir 2026-10-30\.\d+';/.test(WORKER));
+V('version du serveur montée (au moins celle des boîtes du 30/10)', ((WORKER.match(/const VERSION = 'miroir (\d{4}-\d{2}-\d{2})\.\d+';/) || [])[1] || '') >= '2026-10-30');
 
 /* ── 3. LE VRAI PENSE-BÊTE ──────────────────────────────────────────────── */
 console.log('\n[3] Pense-bête — activer, envoyer chiffré, désactiver');

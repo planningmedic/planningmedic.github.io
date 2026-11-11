@@ -684,6 +684,31 @@ html[data-theme="dark"] .vs-pill{background:#251B3C;color:#B593F2}
 .notif-item-c{font-size:12.5px;color:var(--ink-4);margin-top:2px}
 .notif-item-h{font-size:11px;color:var(--ink-4);margin-top:4px}
 .notif-vide{padding:26px 10px;text-align:center;font-size:13px;color:var(--ink-4)}
+/* ── (11/11/2026) MES GARDES DANS MON CALENDRIER — carte + feuille d'abonnement ── */
+.ag-carte { display:flex; align-items:center; gap:12px; width:100%; text-align:left; font-family:inherit; cursor:pointer;
+  background:var(--white); border:1.5px solid var(--me); border-radius:14px; padding:13px 14px; margin:0 0 18px; color:var(--ink); }
+.ag-ico { width:40px; height:40px; border-radius:10px; background:var(--me-soft); color:var(--me); display:flex; align-items:center; justify-content:center; flex-shrink:0; }
+.ag-t { font-size:15px; font-weight:700; }
+.ag-s { font-size:12.5px; color:var(--ink-3); margin-top:2px; }
+.ag-fl { margin-left:auto; color:var(--me); display:flex; }
+.ag-voile { position:fixed; inset:0; background:rgba(15,23,42,.45); z-index:900; }
+.ag-feuille { position:fixed; left:0; right:0; bottom:0; z-index:901; max-width:560px; margin:0 auto; background:var(--white);
+  border-radius:22px 22px 0 0; padding:10px 18px calc(22px + env(safe-area-inset-bottom)); color:var(--ink); }
+.ag-poignee { width:40px; height:5px; border-radius:3px; background:var(--line); margin:0 auto 14px; }
+.ag-ft { font-size:19px; font-weight:800; }
+.ag-fs { font-size:13.5px; color:var(--ink-3); line-height:1.5; margin:6px 0 12px; }
+.ag-puce { display:flex; gap:9px; font-size:13.5px; color:var(--ink-2); line-height:1.45; margin-bottom:7px; }
+.ag-puce b { color:var(--ok); }
+.ag-b1, .ag-b2 { display:block; width:100%; text-align:center; font-family:inherit; border-radius:12px; font-size:15px; font-weight:700; cursor:pointer; text-decoration:none; }
+.ag-b1 { background:var(--ink); color:var(--white); border:none; padding:14px; margin-top:14px; }
+.ag-b2 { background:var(--white); color:var(--ink); border:1px solid var(--line); padding:13px; margin-top:9px; }
+.ag-b1[disabled], .ag-b2[disabled] { opacity:.5; }
+.ag-aide { font-size:11.5px; color:var(--ink-4); text-align:center; margin-top:7px; line-height:1.45; }
+.ag-lien { width:100%; margin-top:9px; font-size:12px; padding:9px 10px; border:1px solid var(--line); border-radius:10px; background:var(--line-light); color:var(--ink-2); }
+.ag-b3 { display:block; margin:14px auto 0; background:none; border:none; color:var(--ink-3); font-size:13px; text-decoration:underline; cursor:pointer; font-family:inherit; }
+.ag-msg { font-size:13px; margin-top:10px; padding:9px 12px; border-radius:10px; line-height:1.45; }
+.ag-msg.ok { background:var(--ok-soft); color:var(--ok); }
+.ag-msg.err { background:#FEF2F2; color:#B91C1C; }
 </style>
 </head>
 <body>
@@ -877,6 +902,12 @@ html[data-theme="dark"] .vs-pill{background:#251B3C;color:#B593F2}
       <h2>Mes gardes</h2>
       <span class="topos-count" id="mesGardesCount"></span>
     </div>
+    <button type="button" class="ag-carte" id="agCarte" onclick="agendaOuvrir()">
+      <span class="ag-ico"><i data-lucide="calendar-days" style="width:21px;height:21px"></i></span>
+      <span><span class="ag-t" style="display:block">Mes gardes dans mon calendrier</span>
+      <span class="ag-s" style="display:block">Gardes et 18h, mises à jour toutes seules</span></span>
+      <span class="ag-fl"><i data-lucide="chevron-right" style="width:20px;height:20px"></i></span>
+    </button>
     <div id="mesGardesList"></div>
   </div>
   <div id="echangesView" style="display:none">
@@ -1693,6 +1724,63 @@ function openMesGardes(){
   }
   renderMesGardes();
 }
+// ── (11/11/2026) MES GARDES DANS MON CALENDRIER ──
+// Le relais donne à chaque MAR un lien personnel d'abonnement. Le calendrier du
+// téléphone le relit tout seul : un don ou un échange accepté y apparaît sans
+// rien faire. Le lien n'est demandé qu'à l'ouverture de la feuille.
+let AGENDA_CHEMIN = null, AGENDA_CONFIRME = false;
+function _agHote(){ try { return new URL(window.MIROIR_URL).host; } catch(e){ return ''; } }
+function _agApple(){ return /iPhone|iPad|iPod|Macintosh/.test(navigator.userAgent||''); }
+function _agMsg(txt, cls){ const m=document.getElementById('agMsg'); m.className=txt?'ag-msg '+cls:''; m.textContent=txt||''; }
+function _agPret(){
+  const ok=!!AGENDA_CHEMIN;
+  document.getElementById('agAbonner').disabled=!ok;
+  document.getElementById('agCopier').disabled=!ok;
+}
+async function _agCharger(nouveau){
+  AGENDA_CHEMIN=null; _agPret(); _agMsg('Préparation de votre lien…','ok');
+  try{
+    const res=await fetch(window.MIROIR_URL+'/agenda-lien',{ method:'POST', headers:{'Content-Type':'text/plain;charset=utf-8'},
+      body:JSON.stringify({ code:VIEW_CODE, nouveau:!!nouveau }) });
+    const rep=await res.json();
+    if(!rep || !rep.success || !rep.chemin) throw new Error((rep&&rep.error)||'réponse vide');
+    AGENDA_CHEMIN=rep.chemin; _agPret();
+    _agMsg(nouveau?'Nouveau lien créé : l\'ancien ne fonctionne plus. Réabonnez-vous ci-dessus.':'', 'ok');
+  }catch(e){ _agMsg('Lien indisponible pour le moment. Réessayez dans un instant.','err'); }
+}
+function agendaOuvrir(){
+  document.getElementById('agAbonner').style.display=_agApple()?'block':'none';
+  document.getElementById('agAbonner').textContent=/Macintosh/.test(navigator.userAgent||'')?'S\'abonner sur ce Mac':'S\'abonner sur cet iPhone';
+  document.getElementById('agLien').style.display='none';
+  AGENDA_CONFIRME=false; document.getElementById('agNouveau').textContent='Lien transmis par erreur ? En créer un nouveau';
+  document.getElementById('agVoile').style.display='block';
+  document.getElementById('agFeuille').style.display='block';
+  if(AGENDA_CHEMIN){ _agPret(); _agMsg('',''); } else _agCharger(false);
+}
+function agendaFermer(){
+  document.getElementById('agVoile').style.display='none';
+  document.getElementById('agFeuille').style.display='none';
+}
+function agendaAbonner(){ if(AGENDA_CHEMIN) window.location.href='webcal://'+_agHote()+AGENDA_CHEMIN; }
+function agendaCopier(){
+  if(!AGENDA_CHEMIN) return;
+  const url='https://'+_agHote()+AGENDA_CHEMIN, champ=document.getElementById('agLien');
+  champ.value=url; champ.style.display='block';
+  const fait=function(){ _agMsg('Lien copié. Collez-le dans votre agenda.','ok'); };
+  try{
+    if(navigator.clipboard && navigator.clipboard.writeText){
+      navigator.clipboard.writeText(url).then(fait, function(){ champ.select(); _agMsg('Copiez le lien affiché ci-dessus.','ok'); });
+    } else { champ.select(); _agMsg('Copiez le lien affiché ci-dessus.','ok'); }
+  }catch(e){ champ.select(); _agMsg('Copiez le lien affiché ci-dessus.','ok'); }
+}
+function agendaNouveau(){
+  const b=document.getElementById('agNouveau');
+  if(!AGENDA_CONFIRME){ AGENDA_CONFIRME=true; b.textContent='Appuyez encore : l\'ancien lien cessera de fonctionner'; return; }
+  AGENDA_CONFIRME=false; b.textContent='Lien transmis par erreur ? En créer un nouveau';
+  document.getElementById('agLien').style.display='none';
+  _agCharger(true);
+}
+
 function renderMesGardes(){
   const box=document.getElementById('mesGardesList'), cnt=document.getElementById('mesGardesCount');
   if(!MY_GARDES || !MY_GARDES.length){
@@ -3636,5 +3724,20 @@ if('serviceWorker' in navigator){
   window.addEventListener('load', function(){ navigator.serviceWorker.register('sw.js').catch(function(){}); });
 }
 </script>
+<div id="agVoile" class="ag-voile" style="display:none" onclick="agendaFermer()"></div>
+<div id="agFeuille" class="ag-feuille" style="display:none" role="dialog" aria-label="Mes gardes dans mon calendrier">
+  <div class="ag-poignee"></div>
+  <div class="ag-ft">Mes gardes dans mon calendrier</div>
+  <div class="ag-fs">Vous vous abonnez une seule fois. Ensuite, votre calendrier se met à jour tout seul.</div>
+  <div class="ag-puce"><b>✓</b><span>Gardes réa, gardes mater et 18h, en « journée entière »</span></div>
+  <div class="ag-puce"><b>✓</b><span>Un don ou un échange accepté ? La garde suit, sans rien faire</span></div>
+  <div class="ag-puce"><b>✓</b><span>Lien personnel : il ne montre que vos gardes</span></div>
+  <button type="button" class="ag-b1" id="agAbonner" onclick="agendaAbonner()" disabled>S'abonner sur cet iPhone</button>
+  <button type="button" class="ag-b2" id="agCopier" onclick="agendaCopier()" disabled>Copier le lien (Android, Google Agenda, Outlook)</button>
+  <div class="ag-aide">Google Agenda : sur ordinateur, « Autres agendas » → « À partir de l'URL », puis coller.</div>
+  <input class="ag-lien" id="agLien" readonly style="display:none" onfocus="this.select()">
+  <div id="agMsg"></div>
+  <button type="button" class="ag-b3" id="agNouveau" onclick="agendaNouveau()">Lien transmis par erreur ? En créer un nouveau</button>
+</div>
 </body>
 </html>

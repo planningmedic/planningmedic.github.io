@@ -2,7 +2,7 @@
 import fs from 'fs';
 import vm from 'vm';
 const src = fs.readFileSync('../cloudflare/worker.js', 'utf8').replace('export default', 'globalThis.__W =');
-const ctx = vm.createContext({ globalThis: {}, console, crypto, TextEncoder, Response, Request, URL, JSON, Date, Math, Object, Array, String, Number, Set, Promise });
+const ctx = vm.createContext({ globalThis: {}, console, crypto, TextEncoder, Response, Request, URL, JSON, Date, Math, Object, Array, String, Number, Set, Promise, btoa, atob });
 ctx.globalThis = ctx; vm.runInContext(src, ctx);
 const W = ctx.__W;
 
@@ -115,6 +115,65 @@ console.log('\n═══ Lu/★ par MAR : la clé veille_marques, filtrée POUR 
   V('le GAS peut pousser veille_marques', r.j.success === true, r.j);
   r = await appel('/read', { code: CODE_MAR, keys: ['veille_marques'] });
   V('la nouvelle valeur est servie, toujours filtrée', r.j.data.veille_marques.parMar.BOISSY.lus[0] === '999', r.j.data.veille_marques);
+}
+
+console.log('\n═══ Agenda d\'abonnement : gardes et 18h d\'un MAR, qui suivent dons et échanges ═══');
+{
+  const CODE_SEC = 'CODESEC77', CODE_MAR2 = 'CODEMAR22';
+  const acc = JSON.parse(M.get('acces'));
+  acc.users.push({ h: await sha256hex(CODE_SEC), role: 'secretariat', id: 'SECR' }, { h: await sha256hex(CODE_MAR2), role: 'mar', id: 'LEROY' });
+  M.set('acces', JSON.stringify(acc));
+  const jours = ['2026-11-28', '2026-11-29', '2026-11-30'];
+  const plan = (boissy, leroy) => JSON.stringify({ months: [{ id: '2026-11', days: jours.map(date => ({ date })),
+    doctors: [{ id: 'BOISSY', days: boissy.map(status => ({ status })) }, { id: 'LEROY', days: leroy.map(status => ({ status })) }] }] });
+  M.set('annees', JSON.stringify({ active: 2026, annees: [{ annee: 2020 }, { annee: 2026 }] }));
+  M.set('planning_2026', plan(['G', 'V', '18'], ['', 'G2', 'G']));
+  M.set('planning_2020', JSON.stringify({ months: [{ days: [{ date: '2020-03-03' }], doctors: [{ id: 'BOISSY', days: [{ status: 'G' }] }] }] }));
+  const getIcs = chemin => W.fetch(new Request('https://x' + chemin, { method: 'GET' }), env).then(async r => ({ statut: r.status, type: r.headers.get('Content-Type') || '', txt: await r.text() }));
+
+  let r = await appel('/agenda-lien', { code: '' });
+  V('agenda : lien refusé sans code', r.statut === 403);
+  r = await appel('/agenda-lien', { code: 'FAUX' });
+  V('agenda : lien refusé pour un code inconnu', r.statut === 403);
+  r = await appel('/agenda-lien', { code: CODE_SEC });
+  V('agenda : pas de lien pour le secrétariat', r.statut === 403);
+  r = await appel('/agenda-lien', { code: CODE_MAR });
+  const ch1 = r.j.chemin;
+  V('agenda : un MAR obtient son lien personnel', r.j.success === true && /^\/agenda\/[A-Za-z0-9_-]{32}\.ics$/.test(ch1 || ''), r.j);
+  r = await appel('/agenda-lien', { code: CODE_MAR });
+  V('agenda : le même lien lui est réaffiché (pas un nouveau à chaque appui)', r.j.chemin === ch1);
+  const chL = (await appel('/agenda-lien', { code: CODE_MAR2 })).j.chemin;
+  V('agenda : deux MAR, deux liens différents', chL && chL !== ch1);
+
+  let a = await getIcs(ch1);
+  V('agenda : servi comme calendrier', a.statut === 200 && /^text\/calendar/.test(a.type), a);
+  V('agenda : nom « Mes gardes » et relecture horaire demandée', /X-WR-CALNAME:Mes gardes/.test(a.txt) && /REFRESH-INTERVAL;VALUE=DURATION:PT1H/.test(a.txt));
+  V('agenda : la garde réa du 28/11 en journée entière', /DTSTART;VALUE=DATE:20261128\r\nDTEND;VALUE=DATE:20261129\r\nSUMMARY:Garde réa/.test(a.txt), a.txt);
+  V('agenda : le 18h du 30/11, fin au 1er décembre', /DTSTART;VALUE=DATE:20261130\r\nDTEND;VALUE=DATE:20261201\r\nSUMMARY:18h/.test(a.txt));
+  V('agenda : les vacances n\'y sont pas', (a.txt.match(/BEGIN:VEVENT/g) || []).length === 2, a.txt);
+  V('agenda : rien des gardes d\'un collègue', !/Garde mater/.test(a.txt));
+  V('agenda : une vieille année (2020) n\'est pas servie', !/2020/.test(a.txt.replace(/DTSTAMP:\S+/g, '')));
+  V('agenda : lignes au format calendrier (CRLF)', a.txt.indexOf('\r\n') > 0 && a.txt.split('\r\n').every(l => l.length <= 75));
+  const b = await getIcs(chL);
+  V('agenda : celui du collègue ne montre que les siennes', /SUMMARY:Garde mater/.test(b.txt) && (b.txt.match(/BEGIN:VEVENT/g) || []).length === 2);
+
+  // DON : la garde réa du 28 passe de BOISSY à LEROY → les deux agendas suivent.
+  M.set('planning_2026', plan(['', 'V', '18'], ['G', 'G2', 'G']));
+  a = await getIcs(ch1);
+  V('agenda : après un don, la garde quitte l\'agenda du donneur', !/20261128/.test(a.txt) && /SUMMARY:18h/.test(a.txt));
+  V('agenda : … et arrive dans celui du receveur', /DTSTART;VALUE=DATE:20261128/.test((await getIcs(chL)).txt));
+
+  // NOUVEAU LIEN : l'ancien devient muet.
+  r = await appel('/agenda-lien', { code: CODE_MAR, nouveau: true });
+  V('agenda : « nouveau lien » en tire un autre', r.j.success && r.j.chemin !== ch1);
+  V('agenda : l\'ancien lien ne renvoie plus rien (404)', (await getIcs(ch1)).statut === 404);
+  V('agenda : le nouveau fonctionne', (await getIcs(r.j.chemin)).statut === 200);
+  V('agenda : un lien inventé → 404', (await getIcs('/agenda/' + 'A'.repeat(32) + '.ics')).statut === 404);
+  V('agenda : un chemin mal formé reste refusé (405)', (await getIcs('/agenda/court.ics')).statut === 405);
+
+  // Le GAS ne peut ni écrire ni effacer les liens.
+  r = await appel('/push', { token: 'JETON-SECRET', items: { agu_BOISSY: null, ['agj_x']: 'X' } });
+  V('agenda : le dépôt du serveur ne touche pas aux liens', M.has('agu_BOISSY') && (r.j.refuses || []).length === 2, r.j);
 }
 
 console.log('\n═══ 3 ter. La version du Worker ne vit qu'+"'"+'à un seul endroit ═══');
