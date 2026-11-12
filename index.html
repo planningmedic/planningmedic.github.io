@@ -2428,7 +2428,7 @@ async function annulerEch(id, btn){
   btn.disabled = false; btn.dataset.confirme = ''; btn.textContent = 'Annuler ma proposition';
 }
 
-async function repondreEch(id, reponse, btn, confirmeAbs){
+async function repondreEch(id, reponse, btn, confirmeAbs, confirmeRea1){
   const carte = btn.closest('.ech-card');
   carte.querySelectorAll('button').forEach(function(b){ b.disabled = true; });
   btn.textContent = reponse==='accepter' ? 'Écriture du planning…' : 'Envoi…';
@@ -2440,6 +2440,7 @@ async function repondreEch(id, reponse, btn, confirmeAbs){
     const _it = (ECH_LISTE||[]).find(function(e){ return e.id === id; });
     if (_it && _it.annee) charge.year = Number(_it.annee);
     if (confirmeAbs === true) charge.accepteAbsence = true;   // (11/11/2026) il a lu et confirmé
+    if (confirmeRea1 === true) charge.accepteRea1 = true;   // (12/11/2026) sa semaine Réa 1 : il a lu et confirmé
     const r = await apiPost(charge);
     if (r && r.success) {
       /* (14/08/2026 — vu en test réel) La réponse du serveur FAIT FOI — récit : docs/JOURNAL-Planning-Med.md §55 */
@@ -2458,7 +2459,17 @@ async function repondreEch(id, reponse, btn, confirmeAbs){
       msg.textContent = r.error.replace(/^\[ABS\] /, '');
       carte.querySelectorAll('button').forEach(function(b){ b.disabled=false; });
       btn.textContent = 'Confirmer : je prends cette garde';
-      btn.onclick = function(){ repondreEch(id, 'accepter', btn, true); };
+      btn.onclick = function(){ repondreEch(id, 'accepter', btn, true, confirmeRea1); };
+      return;
+    }
+    /* (12/11/2026) La garde tombe dans votre semaine Réa 1 : rien n'est écrit ;
+       on vous le dit et le bouton devient « Confirmer ». */
+    if (r && /^\[REA1\] /.test(r.error || '')) {
+      msg.className='ech-msg err'; msg.style.display='block';
+      msg.textContent = r.error.replace(/^\[REA1\] /, '');
+      carte.querySelectorAll('button').forEach(function(b){ b.disabled=false; });
+      btn.textContent = 'Confirmer malgré ma semaine Réa 1';
+      btn.onclick = function(){ repondreEch(id, 'accepter', btn, confirmeAbs, true); };
       return;
     }
     msg.className='ech-msg err'; msg.style.display='block';
@@ -2642,7 +2653,7 @@ async function echMajProposition(){
      le comité replacera — averti AVANT l'envoi, comme convenu. */
   const av = document.getElementById('echAvert');
   // (11/11/2026) Toute nouvelle sélection redemande la confirmation du 18 h et de l'absence.
-  ECH_PROP.ok18 = false; ECH_PROP.okAbs = false;
+  ECH_PROP.ok18 = false; ECH_PROP.okAbs = false; ECH_PROP.okRea1 = false;
   const _btn = document.getElementById('echEnvoyer');
   if (_btn) { _btn.textContent = 'Envoyer la proposition'; _btn.disabled = false; }
   const samedi = new Date(g.date+'T12:00:00').getDay()===6;
@@ -2667,6 +2678,7 @@ async function envoyerProposition(btn){
   }
   if (ECH_PROP.ok18) charge.accepte18 = true;   // (11/11/2026) le donneur a lu et confirmé
   if (ECH_PROP.okAbs) charge.accepteAbsence = true;   // (11/11/2026) noté absent ce jour-là, il a confirmé
+  if (ECH_PROP.okRea1) charge.accepteRea1 = true;   // (12/11/2026) dans sa semaine Réa 1, il a confirmé
   btn.disabled = true; btn.textContent='Vérification et envoi…';
   try {
     const r = await apiPost(charge);
@@ -2697,6 +2709,14 @@ async function envoyerProposition(btn){
       av.style.display = 'block'; av.textContent = r.error.replace(/^\[18\] /, '');
       ECH_PROP.ok18 = true;
       btn.disabled = false; btn.textContent = 'Confirmer : je ferai ce 18 h';
+      return;
+    }
+    /* (12/11/2026) Ce que vous prendriez tombe dans votre semaine Réa 1. */
+    if (r && /^\[REA1\] /.test(r.error || '')) {
+      const av = document.getElementById('echAvert');
+      av.style.display = 'block'; av.textContent = r.error.replace(/^\[REA1\] /, '');
+      ECH_PROP.okRea1 = true;
+      btn.disabled = false; btn.textContent = 'Confirmer malgré ma semaine Réa 1';
       return;
     }
     erreur((r && r.error) || 'Envoi impossible — réessayez.');

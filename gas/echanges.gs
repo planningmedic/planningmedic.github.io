@@ -42,7 +42,7 @@
    depuis l'éditeur : installerDeclencheurEchanges().
    ═══════════════════════════════════════════════════════════════════════ */
 
-const GAS_VERSION_ECHANGES = '2026-11-12.1';   // (12/11/2026) demandes « sans objet » fermées toutes seules quand la garde a changé de mains ou est passée (_echangesSansObjet_), doublon refusé à l'envoi, garde passée refusée à l'envoi et à l'acceptation · (11/11/2026) échange samedi ↔ samedi : les R gardent leur date, les liens LIENS_R suivent le samedi tenu ; « Réparer » recolle de même un échange passé au lieu de déplacer les R · (11/11/2026) annulerEchange : le demandeur annule sa proposition en attente, le collègue est prévenu · (11/11/2026) don et échange sur un jour d'absence : le MAR concerné confirme ([ABS], accepteAbsence) et ses jours d'absence sont écrasés par la garde et son repos · (11/11/2026) gestes du comité (don, échange) : mêmes suites que entre MAR (_gesteSuites_, appliquerGesteComite_) · (11/11/2026) échange de deux 18 h entre MAR (type echange18) · (11/11/2026) un 18 h écrasé par un don passe au donneur, prévenu avant d'envoyer (accepte18) · (11/11/2026) récupérations automatiques : R neuf quand il ne peut pas suivre son samedi, R écrasé reposé, bouton Réparer (recupsReparer), lien recollé à la pose manuelle · (10/11/2026) l'historique dit qui a accepté (onglet HISTORIQUE)
+const GAS_VERSION_ECHANGES = '2026-11-12.2';   // (12/11/2026) semaine Réa 1 : une garde ou un 18 h pris dans sa propre semaine Réa 1 est dit au MAR, qui confirme ([REA1], accepteRea1) ; le comité en est averti dans les suites de son geste · (12/11/2026) demandes « sans objet » fermées toutes seules quand la garde a changé de mains ou est passée (_echangesSansObjet_), doublon refusé à l'envoi, garde passée refusée à l'envoi et à l'acceptation · (11/11/2026) échange samedi ↔ samedi : les R gardent leur date, les liens LIENS_R suivent le samedi tenu ; « Réparer » recolle de même un échange passé au lieu de déplacer les R · (11/11/2026) annulerEchange : le demandeur annule sa proposition en attente, le collègue est prévenu · (11/11/2026) don et échange sur un jour d'absence : le MAR concerné confirme ([ABS], accepteAbsence) et ses jours d'absence sont écrasés par la garde et son repos · (11/11/2026) gestes du comité (don, échange) : mêmes suites que entre MAR (_gesteSuites_, appliquerGesteComite_) · (11/11/2026) échange de deux 18 h entre MAR (type echange18) · (11/11/2026) un 18 h écrasé par un don passe au donneur, prévenu avant d'envoyer (accepte18) · (11/11/2026) récupérations automatiques : R neuf quand il ne peut pas suivre son samedi, R écrasé reposé, bouton Réparer (recupsReparer), lien recollé à la pose manuelle · (10/11/2026) l'historique dit qui a accepté (onglet HISTORIQUE)
 
 const ECHANGES_ONGLET = 'ECHANGES';
 const ECHANGES_ENTETE = ['ID', 'CREE_LE', 'TYPE', 'ANNEE', 'DATE', 'DATE2',
@@ -228,6 +228,89 @@ function _echangesQuestionAbsence_(abs) {
     + '. Vous confirmez ? Ce jour sera effacé et remplacé par la garde ou son repos.';
 }
 
+/* ── (12/11/2026) SEMAINE RÉA 1 : DITE AU MAR, JAMAIS BLOQUANTE ─────────
+   Décision du responsable : un don ou un échange qui fait prendre à un MAR de
+   l'équipe réa une garde dans SA semaine Réa 1 doit lui être dit. Il confirme,
+   ou il renonce : rien n'est interdit.
+   - garde : du dimanche de veille au jeudi (les nuits que le générateur lui
+     épargne) ; vendredi et samedi ne déclenchent rien ;
+   - 18 h : du lundi au vendredi.
+   Le préfixe [REA1] est lu par l'écran, qui demande la confirmation et renvoie
+   avec accepteRea1. Seuls les MAR listés dans REA1_{année} sont concernés :
+   sans l'onglet, rien ne se passe. */
+/* { id: { 'AAAA-MM-JJ': 1 } } — les jours (lundi → vendredi) des semaines Réa 1
+   de chacun, lus dans REA1_{année} (colonnes « Du » et « REA 1 »). */
+function _rea1Jours_(year) {
+  const rea1 = {};
+  try {
+    const ss = SpreadsheetApp.getActiveSpreadsheet();
+    const sr = ss.getSheetByName('REA1_' + year);
+    if (sr) {
+      const v = sr.getDataRange().getValues();
+      const ini = {};
+      if (ss.getSheetByName('MEDECINS') && typeof _medecinsRows_ === 'function') {
+        _medecinsRows_().slice(1).forEach(function (m) {
+          const id = String(m[COL_MED.ID]).trim(), i = String(m[COL_MED.INITIALES] || '').trim().toUpperCase();
+          if (id) { ini[id.toUpperCase()] = id; if (i) ini[i] = id; }
+        });
+      }
+      for (let r = 1; r < v.length; r++) {
+        let lun = _echangesTexteDate_(v[r][1]);
+        if (/^(\d{1,2})\/(\d{1,2})\/(\d{4})$/.test(lun)) { const m = lun.match(/^(\d{1,2})\/(\d{1,2})\/(\d{4})$/); lun = m[3] + '-' + m[2].padStart(2, '0') + '-' + m[1].padStart(2, '0'); }
+        const id = ini[String(v[r][3] == null ? '' : v[r][3]).trim().toUpperCase()];
+        if (!id || !/^\d{4}-\d{2}-\d{2}$/.test(lun)) continue;
+        lun = _recupsDecale_(lun, -((_recupsDow_(lun) + 6) % 7));
+        (rea1[id] = rea1[id] || {});
+        for (let k = 0; k <= 4; k++) rea1[id][_recupsDecale_(lun, k)] = 1;
+      }
+    }
+  } catch (e) {}
+  return rea1;
+}
+/* Le lundi de la semaine Réa 1 de `id` que toucherait ce jour, ou ''.
+   quoi = 'garde' (dimanche de veille → jeudi) ou '18' (lundi → vendredi). */
+function _echangesRea1Lundi_(id, ds, quoi) {
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(String(ds))) return '';
+  const dow = _recupsDow_(ds);
+  let lundi = '';
+  if (quoi === '18') { if (dow >= 1 && dow <= 5) lundi = _recupsDecale_(ds, -(dow - 1)); }
+  else if (dow === 0) lundi = _recupsDecale_(ds, 1);
+  else if (dow >= 1 && dow <= 4) lundi = _recupsDecale_(ds, -(dow - 1));
+  if (!lundi) return '';
+  // Le dimanche de veille peut appartenir à l'année d'avant : l'onglet est celui du lundi.
+  const jours = _rea1Jours_(Number(lundi.slice(0, 4)))[String(id)];
+  return jours && jours[lundi] ? lundi : '';
+}
+/* Ce que la demande ferait prendre à chacun dans SA semaine Réa 1.
+   d = { TYPE, DATE, DATE2, DEMANDEUR, RECEVEUR } ; menaces18 = les 18 h du
+   receveur qu'un don ferait passer au donneur. → [{ who, jour, quoi, lundi }] */
+function _echangesRea1Prises_(d, menaces18) {
+  const dem = String(d.DEMANDEUR), rec = String(d.RECEVEUR);
+  let prises = [];
+  if (d.TYPE === 'don') {
+    prises = [{ who: rec, jour: d.DATE, quoi: 'garde' }]
+      .concat((menaces18 || []).map(function (j) { return { who: dem, jour: j, quoi: '18' }; }));
+  } else if (d.TYPE === 'echange') {
+    prises = [{ who: rec, jour: d.DATE, quoi: 'garde' }, { who: dem, jour: d.DATE2, quoi: 'garde' }];
+  } else if (d.TYPE === 'echange18') {
+    prises = [{ who: rec, jour: d.DATE, quoi: '18' }, { who: dem, jour: d.DATE2, quoi: '18' }];
+  }
+  return prises.filter(function (x) { x.lundi = _echangesRea1Lundi_(x.who, x.jour, x.quoi); return !!x.lundi; });
+}
+function _echangesTexteRea1_(prises) {
+  return prises.map(function (x) {
+    return (x.quoi === '18' ? 'le 18 h du ' : 'la garde du ') + _echangesJoli_(x.jour)
+      + ' tombe dans votre semaine Réa 1 (du ' + _echangesJoli_(x.lundi) + ' au ' + _echangesJoli_(_recupsDecale_(x.lundi, 4)) + ')';
+  }).join(' et ');
+}
+function _echangesQuestionRea1_(prises) {
+  return '[REA1] Attention, ' + _echangesTexteRea1_(prises) + '. Vous confirmez ?';
+}
+/* Pour le suivi (INFO de la demande, message au comité) : sans « votre ». */
+function _echangesTraceRea1_(x) {
+  return '⚠ ' + (x.quoi === '18' ? '18 h' : 'garde') + ' du ' + x.jour + ' en semaine Réa 1 de ' + x.who;
+}
+
 /* ── 1. CRÉER ───────────────────────────────────────────────────────────
    p = { type:'don'|'echange', year, date, date2?, receveur }
    Le demandeur est user.id, point. Les contrôles d'applyModification sont
@@ -287,6 +370,12 @@ function creerEchange(user, p) {
       + ' : en lui donnant cette garde, c\'est vous qui ferez ce 18 h. Confirmez pour envoyer la proposition.');
   }
 
+  /* (12/11/2026) Semaine Réa 1 : ce que le demandeur prendrait dans la sienne
+     lui est demandé ici ; le receveur sera prévenu, puis interrogé à l'acceptation. */
+  const rea1 = _echangesRea1Prises_(demande, menaces18);
+  const rea1Moi = rea1.filter(x => x.who === String(user.id)), rea1Lui = rea1.filter(x => x.who === receveur);
+  if (rea1Moi.length && p.accepteRea1 !== true) throw new Error(_echangesQuestionRea1_(rea1Moi));
+
   const id = 'E' + Date.now() + '-' + Math.floor(Math.random() * 1000);
   const sh = _echangesFeuille_();
   const ligne = sh.getLastRow() + 1;
@@ -300,14 +389,15 @@ function creerEchange(user, p) {
   _echangesVersKV_();
   notifierPush_(
     type === 'don' ? 'Proposition de garde' : type === 'echange18' ? 'Proposition d\'échange de 18 h' : 'Proposition d\'échange',
-    type === 'don'
+    (type === 'don'
       ? _echangesDr_(user.id) + ' vous propose sa garde du ' + _echangesJoli_(date) + '.'
         + (menaces18.length ? ' En acceptant, votre 18 h du ' + menaces18.map(_echangesJoli_).join(' et du ') + ' passe au ' + _echangesDr_(user.id) + '.' : '')
         + (absLui.length ? ' Attention, vous êtes noté ' + _echangesTexteAbsences_(absLui) + '.' : '')
       : type === 'echange18'
         ? _echangesDr_(user.id) + ' vous propose son 18 h du ' + _echangesJoli_(date) + ' contre le vôtre du ' + _echangesJoli_(demande.DATE2) + '.'
         : _echangesDr_(user.id) + ' vous propose sa garde du ' + _echangesJoli_(date) + ' contre la vôtre du ' + _echangesJoli_(demande.DATE2) + '.'
-          + (absLui.length ? ' Attention, vous êtes noté ' + _echangesTexteAbsences_(absLui) + '.' : ''),
+          + (absLui.length ? ' Attention, vous êtes noté ' + _echangesTexteAbsences_(absLui) + '.' : ''))
+      + (rea1Lui.length ? ' Attention, ' + _echangesTexteRea1_(rea1Lui) + '.' : ''),
     './index.html', { id: receveur, pastille: _echangesEnAttentePour_(receveur) });
   return { id: id };
 }
@@ -366,6 +456,17 @@ function repondreEchange(user, p) {
     try { applyModification(essai); } catch (e) { essaiOk = false; }   // le refus est rejoué et tracé juste en dessous
     const absLui = essaiOk ? _echangesAbsencesDe_(essai, d.RECEVEUR) : [];
     if (absLui.length) throw new Error(_echangesQuestionAbsence_(absLui));
+  }
+  /* (12/11/2026) Semaine Réa 1 du receveur : même principe, préfixe [REA1],
+     renvoi avec accepteRea1. La question n'est posée que si le geste passerait :
+     une demande devenue impossible suit son chemin habituel, juste en dessous. */
+  if (p.accepteRea1 !== true) {
+    const r1 = _echangesRea1Prises_(d, []).filter(x => x.who === String(d.RECEVEUR));
+    if (r1.length) {
+      let passe = true;
+      try { applyModification(Object.assign({ dryRun: true, ecraserAbsences: ecraser }, _echangesVersMod_(d))); } catch (e) { passe = false; }
+      if (passe) throw new Error(_echangesQuestionRea1_(r1));
+    }
   }
   const releveR = _recupsReleve_(Number(d.ANNEE), [String(d.DEMANDEUR), String(d.RECEVEUR)]);
   const releve18 = _echanges18Releve_(Number(d.ANNEE), [String(d.DEMANDEUR), String(d.RECEVEUR)]);
@@ -772,29 +873,7 @@ function _recupsContexte_(year) {
     });
   } catch (e) {}
   // Semaines Réa 1 (lundi → vendredi) : ni récupération ni 18 h (générateur, 24/10/2026).
-  const rea1 = {};
-  try {
-    const sr = ss.getSheetByName('REA1_' + year);
-    if (sr) {
-      const v = sr.getDataRange().getValues();
-      const ini = {};
-      if (ss.getSheetByName('MEDECINS') && typeof _medecinsRows_ === 'function') {
-        _medecinsRows_().slice(1).forEach(function (m) {
-          const id = String(m[COL_MED.ID]).trim(), i = String(m[COL_MED.INITIALES] || '').trim().toUpperCase();
-          if (id) { ini[id.toUpperCase()] = id; if (i) ini[i] = id; }
-        });
-      }
-      for (let r = 1; r < v.length; r++) {
-        let lun = _echangesTexteDate_(v[r][1]);
-        if (/^(\d{1,2})\/(\d{1,2})\/(\d{4})$/.test(lun)) { const m = lun.match(/^(\d{1,2})\/(\d{1,2})\/(\d{4})$/); lun = m[3] + '-' + m[2].padStart(2, '0') + '-' + m[1].padStart(2, '0'); }
-        const id = ini[String(v[r][3] == null ? '' : v[r][3]).trim().toUpperCase()];
-        if (!id || !/^\d{4}-\d{2}-\d{2}$/.test(lun)) continue;
-        lun = _recupsDecale_(lun, -((_recupsDow_(lun) + 6) % 7));
-        (rea1[id] = rea1[id] || {});
-        for (let k = 0; k <= 4; k++) rea1[id][_recupsDecale_(lun, k)] = 1;
-      }
-    }
-  } catch (e) {}
+  const rea1 = _rea1Jours_(year);
   const liensSh = ss.getSheetByName('LIENS_R_' + year);
   const liens = [];
   if (liensSh) liensSh.getDataRange().getValues().forEach(function (l, i) {
@@ -1170,8 +1249,17 @@ function _gesteSuites_(d, releveR, releve18, par) {
   const infos = rInfos.map(r => r.resume).concat(croises ? [croises] : []).concat((reposes || []).map(j =>
     j.quoi === 'pose' ? 'R de ' + j.med + ' reposé le ' + j.date : 'R de ' + j.med + ' à placer par le comité'))
     .concat((reports18 || []).map(f => f.a ? '18 h du ' + f.date + ' : ' + f.de + ' → ' + f.a : '18 h du ' + f.date + ' perdu par ' + f.de));
+  // (12/11/2026) Semaine Réa 1 : ce qui vient d'y être pris est dit — au suivi de la
+  // demande entre MAR (qui l'ont confirmé), et au comité quand le geste est le sien.
+  let enRea1 = [];
+  try {
+    enRea1 = _echangesRea1Prises_(d, []).concat((reports18 || []).filter(f => f.a).map(function (f) {
+      return { who: String(f.a), jour: f.date, quoi: '18', lundi: _echangesRea1Lundi_(f.a, f.date, '18') };
+    }).filter(x => x.lundi));
+  } catch (e) {}
+  enRea1.forEach(x => infos.push(_echangesTraceRea1_(x)));
   rInfos.forEach(r => { if (!r.fait) _echangesAlerterComite_(r); });
-  return { rInfos: rInfos, reposes: reposes, reports18: reports18, infos: infos };
+  return { rInfos: rInfos, reposes: reposes, reports18: reports18, infos: infos, rea1: enRea1 };
 }
 
 /* Un don ou un échange de gardes fait par le comité (page admin) : mêmes

@@ -235,6 +235,91 @@ const dodo = ms => new Promise(r => setTimeout(r, ms));
     V('l\'écran passe à Acceptée', /Acceptée/.test(w.document.getElementById('echList').innerHTML));
   }
 
+  console.log('\n═══ 4 sexies. Semaine Réa 1 : la question est posée, en acceptant comme en proposant (12/11/2026) ═══');
+  {
+    const QUESTION = '[REA1] Attention, la garde du 10/01/2027 tombe dans votre semaine Réa 1 (du 11/01/2027 au 15/01/2027). Vous confirmez ?';
+    // a) Le receveur accepte : question, puis confirmation.
+    const kv = await baseKV();
+    kv.notif_config = JSON.stringify({ ouvert:true, pilotes:[] });
+    const reponses = [];
+    const surGas = (charge) => {
+      if (charge.action === 'repondreEchange') {
+        reponses.push(charge);
+        return charge.accepteRea1 === true ? { success:true, etat:'acceptee' } : { success:false, error:QUESTION };
+      }
+      if (charge.action === 'login') return { success:true, role:'mar', id:'ALPHA', year:2027 };
+      return { success:true };
+    };
+    const { w, erreurs } = await monterPage(kv, surGas);
+    V('la page se charge sans erreur JavaScript', erreurs.length === 0, erreurs.slice(0,2));
+    w.location.hash = '#echanges'; w.route();
+    await dodo(400);
+    const btn = [...w.document.querySelectorAll('.ech-accepter')][0];
+    btn.click();
+    await dodo(500);
+    const msg = w.document.getElementById('echMsg-E1');
+    V('la question s\'affiche, sans le préfixe technique', msg.style.display === 'block' && /^Attention, la garde du 10\/01\/2027 tombe dans votre semaine Réa 1/.test(msg.textContent), msg.textContent);
+    V('le bouton devient « Confirmer malgré ma semaine Réa 1 »', /Confirmer malgré ma semaine Réa 1/.test(btn.textContent) && !btn.disabled, btn.textContent);
+    V('la première réponse est partie SANS l\'accord', reponses.length === 1 && reponses[0].accepteRea1 !== true, reponses);
+    btn.click();
+    await dodo(500);
+    V('la confirmation repart AVEC l\'accord', reponses.length === 2 && reponses[1].accepteRea1 === true && reponses[1].reponse === 'accepter', reponses);
+    V('l\'écran passe à Acceptée', /Acceptée/.test(w.document.getElementById('echList').innerHTML));
+
+    // b) Vacances PUIS semaine Réa 1 : les deux accords voyagent ensemble.
+    const kv2 = await baseKV();
+    kv2.notif_config = JSON.stringify({ ouvert:true, pilotes:[] });
+    const rep2 = [];
+    const surGas2 = (charge) => {
+      if (charge.action === 'repondreEchange') {
+        rep2.push(charge);
+        if (charge.accepteAbsence !== true) return { success:false, error:'[ABS] Attention, vous êtes noté en vacances le 10/01/2027. Vous confirmez ? Ce jour sera effacé et remplacé par la garde ou son repos.' };
+        return charge.accepteRea1 === true ? { success:true, etat:'acceptee' } : { success:false, error:QUESTION };
+      }
+      if (charge.action === 'login') return { success:true, role:'mar', id:'ALPHA', year:2027 };
+      return { success:true };
+    };
+    const p2 = await monterPage(kv2, surGas2);
+    p2.w.location.hash = '#echanges'; p2.w.route();
+    await dodo(400);
+    const btn2 = [...p2.w.document.querySelectorAll('.ech-accepter')][0];
+    btn2.click(); await dodo(500); btn2.click(); await dodo(500); btn2.click(); await dodo(500);
+    V('trois touches : la dernière porte les DEUX accords', rep2.length === 3 && rep2[2].accepteAbsence === true && rep2[2].accepteRea1 === true, rep2);
+    V('…et l\'écran passe à Acceptée', /Acceptée/.test(p2.w.document.getElementById('echList').innerHTML));
+
+    // c) Celui qui PROPOSE : question à l'envoi, puis confirmation.
+    const kv3 = await baseKV();
+    kv3.notif_config = JSON.stringify({ ouvert:true, pilotes:[] });
+    kv3.echanges = JSON.stringify({ success:true, echanges:[] });
+    const envois = [];
+    const surGas3 = (charge) => {
+      if (charge.action === 'creerEchange') {
+        envois.push(charge);
+        return charge.accepteRea1 === true ? { success:true, id:'E9' } : { success:false, error:QUESTION };
+      }
+      if (charge.action === 'login') return { success:true, role:'mar', id:'ALPHA', year:2027 };
+      return { success:true };
+    };
+    const p3 = await monterPage(kv3, surGas3);
+    p3.w.location.hash = '#echanges'; p3.w.route();
+    await dodo(400);
+    await p3.w.echOuvrirProposition();
+    await dodo(300);
+    p3.w.document.getElementById('echSelQui').value = 'BRAVO';
+    await p3.w.echMajProposition();
+    const env = p3.w.document.getElementById('echEnvoyer');
+    env.click();
+    await dodo(500);
+    const av = p3.w.document.getElementById('echAvert');
+    V('à l\'envoi : l\'avertissement s\'affiche, sans le préfixe', av.style.display === 'block' && /^Attention, la garde du 10\/01\/2027 tombe dans votre semaine Réa 1/.test(av.textContent), av.textContent);
+    V('le bouton d\'envoi devient « Confirmer malgré ma semaine Réa 1 »', /Confirmer malgré ma semaine Réa 1/.test(env.textContent) && !env.disabled, env.textContent);
+    V('rien n\'est parti avec l\'accord tant qu\'il n\'a pas confirmé', envois.length === 1 && envois[0].accepteRea1 !== true, envois);
+    env.click();
+    await dodo(500);
+    V('la confirmation part avec la demande (accepteRea1)', envois.length === 2 && envois[1].accepteRea1 === true, envois);
+    V('la demande apparaît dans la liste', /Don de garde/.test(p3.w.document.getElementById('echList').innerHTML));
+  }
+
   console.log('\n═══ 3 bis. Proposer relit le planning du moment, jamais la copie gardée en mémoire (11/11/2026) ═══');
   {
     const kv = await baseKV();

@@ -857,5 +857,110 @@ console.log('\n═══ L1-D. Garde passée : ni proposée, ni acceptée ══
   V('témoin : le comité peut toujours corriger une garde passée', errC === null && m.lire('BRAVO', hier) === 'G', errC);
 }
 
+console.log('\n═══ RÉA 1 · une garde prise dans SA semaine Réa 1 est dite au MAR, qui confirme (12/11/2026) ═══');
+{
+  /* 2027 : dates[0] = lundi 04/01. BRAVO est Réa 1 la semaine du 11/01,
+     ALPHA celle du 18/01. Le tableau est écrit comme le vrai : dates en
+     JJ/MM/AAAA, initiales (BR, AL) traduites par l'onglet MEDECINS. */
+  const prep = (sansRea1) => {
+    const b = monde(2027);
+    b.cl.ajouter('MEDECINS', [['ID','NOM','INITIALES'], ['ALPHA','DR ALPHA','AL'], ['BRAVO','DR BRAVO','BR'], ['CHARLI','DR CHARLI','CH']]);
+    if (!sansRea1) b.cl.ajouter('REA1_2027', [['Semaine n°','Du','Au','REA 1 (1re semaine)','REA 2 (2e semaine)'],
+      ['2','11/01/2027','15/01/2027','BR','AL'], ['3','18/01/2027','22/01/2027','AL','BR']]);
+    vm.runInContext(`var COL_MED = { ID:0, NOM:1, INITIALES:2 };
+      function _medecinsRows_() { return SpreadsheetApp.getActiveSpreadsheet().getSheetByName('MEDECINS').getDataRange().getValues(); }`, b.ctx);
+    return b;
+  };
+  const DIM = '2027-01-10', LUN = '2027-01-11', MAR_ = '2027-01-12', VEN = '2027-01-15', SAM = '2027-01-16';
+  const creer = (b, qui, p) => vm.runInContext(`creerEchange(${JSON.stringify(user(qui))}, ${JSON.stringify(p)})`, b.ctx);
+  const repondre = (b, qui, p) => vm.runInContext(`repondreEchange(${JSON.stringify(user(qui))}, ${JSON.stringify(p)})`, b.ctx);
+  const grille = b => JSON.stringify(b.cl.getSheetByName('GARDES_2027').lignes);
+
+  // A. DON : le receveur prendrait le dimanche, veille de sa semaine Réa 1.
+  let b = prep();
+  b.poser('ALPHA', DIM, 'G'); b.poser('ALPHA', LUN, 'RG');
+  let r = creer(b, 'ALPHA', { type:'don', year:2027, date:DIM, receveur:'BRAVO' });
+  V('A. la proposition part (le donneur n\'est pas concerné)', !!r.id);
+  V('A. la notification prévient le receveur, semaine nommée', /Attention, la garde du 10\/01\/2027 tombe dans votre semaine Réa 1 \(du 11\/01\/2027 au 15\/01\/2027\)\./.test(b.notifs[0].corps), b.notifs[0].corps);
+  let avant = grille(b), q = null;
+  try { repondre(b, 'BRAVO', { id:r.id, reponse:'accepter' }); } catch (e) { q = e.message; }
+  V('A. accepter sans confirmer → la question [REA1]', /^\[REA1\] Attention, la garde du 10\/01\/2027 tombe dans votre semaine Réa 1 \(du 11\/01\/2027 au 15\/01\/2027\)\. Vous confirmez \?$/.test(q || ''), q);
+  V('A. …rien n\'est écrit, la demande attend toujours', grille(b) === avant && b.echanges()[0][COL.ETAT] === 'attente');
+  let rep = repondre(b, 'BRAVO', { id:r.id, reponse:'accepter', accepteRea1:true });
+  V('A. il confirme → acceptée, la garde est chez lui', rep.etat === 'acceptee' && b.lire('BRAVO', DIM) === 'G' && b.lire('ALPHA', DIM) === '', rep);
+  V('A. le suivi de la demande garde la trace', /⚠ garde du 2027-01-10 en semaine Réa 1 de BRAVO/.test(String(b.echanges()[0][COL.INFO])), b.echanges()[0][COL.INFO]);
+
+  // B. Les jours qui ne déclenchent RIEN : vendredi, samedi ; et un MAR hors équipe réa.
+  [[VEN, 'vendredi de sa semaine'], [SAM, 'samedi']].forEach(([j, nom]) => {
+    const w = prep(); w.poser('ALPHA', j, 'G'); w.poser('ALPHA', w.dates[w.dates.indexOf(j) + 1], 'RG');
+    const d = creer(w, 'ALPHA', { type:'don', year:2027, date:j, receveur:'BRAVO' });
+    let e = null, a = null; try { a = repondre(w, 'BRAVO', { id:d.id, reponse:'accepter' }); } catch (x) { e = x.message; }
+    V('B. garde du ' + nom + ' : aucune question, acceptée d\'un geste', !e && a && a.etat === 'acceptee' && !/Réa 1/.test(w.notifs[0].corps), e);
+  });
+  {
+    const w = prep(); w.poser('ALPHA', MAR_, 'G'); w.poser('ALPHA', '2027-01-13', 'RG');
+    const d = creer(w, 'ALPHA', { type:'don', year:2027, date:MAR_, receveur:'CHARLI' });
+    let e = null, a = null; try { a = repondre(w, 'CHARLI', { id:d.id, reponse:'accepter' }); } catch (x) { e = x.message; }
+    V('B. un MAR hors équipe réa prend la même nuit sans question', !e && a && a.etat === 'acceptee', e);
+    V('B. …et aucune trace Réa 1 dans le suivi', !/Réa 1/.test(String(w.echanges()[0][COL.INFO])));
+  }
+  {
+    const w = prep(true); w.poser('ALPHA', DIM, 'G'); w.poser('ALPHA', LUN, 'RG');
+    const d = creer(w, 'ALPHA', { type:'don', year:2027, date:DIM, receveur:'BRAVO' });
+    let e = null, a = null; try { a = repondre(w, 'BRAVO', { id:d.id, reponse:'accepter' }); } catch (x) { e = x.message; }
+    V('B. sans onglet REA1 : rien ne change', !e && a && a.etat === 'acceptee', e);
+  }
+
+  // C. ÉCHANGE : le DEMANDEUR prendrait un mardi de sa propre semaine Réa 1 → question à l'envoi.
+  b = prep();
+  b.poser('ALPHA', '2027-02-10', 'G'); b.poser('ALPHA', '2027-02-11', 'RG');
+  b.poser('BRAVO', '2027-01-19', 'G2'); b.poser('BRAVO', '2027-01-20', 'RG');
+  q = null; try { creer(b, 'ALPHA', { type:'echange', year:2027, date:'2027-02-10', date2:'2027-01-19', receveur:'BRAVO' }); } catch (e) { q = e.message; }
+  V('C. sans confirmer : la question lui est posée, rien ne part', /^\[REA1\] Attention, la garde du 19\/01\/2027 tombe dans votre semaine Réa 1 \(du 18\/01\/2027 au 22\/01\/2027\)/.test(q || '') && b.echanges().length === 0 && b.notifs.length === 0, q);
+  r = creer(b, 'ALPHA', { type:'echange', year:2027, date:'2027-02-10', date2:'2027-01-19', receveur:'BRAVO', accepteRea1:true });
+  V('C. il confirme : la proposition part', !!r.id && b.echanges().length === 1);
+  V('C. le receveur, lui, n\'est pas alerté (sa garde reçue est hors de sa semaine)', !/Réa 1/.test(b.notifs[0].corps), b.notifs[0].corps);
+  rep = repondre(b, 'BRAVO', { id:r.id, reponse:'accepter' });
+  V('C. le receveur accepte sans question', rep.etat === 'acceptee' && b.lire('ALPHA', '2027-01-19') === 'G2', rep);
+  V('C. la trace nomme le demandeur', /⚠ garde du 2027-01-19 en semaine Réa 1 de ALPHA/.test(String(b.echanges()[0][COL.INFO])), b.echanges()[0][COL.INFO]);
+
+  // D. ÉCHANGE DE 18 h : un 18 h reçu du lundi au vendredi de sa semaine.
+  b = prep();
+  b.poser('ALPHA', '2027-02-10', '18'); b.poser('BRAVO', '2027-01-22', '18');
+  q = null; try { creer(b, 'ALPHA', { type:'echange18', year:2027, date:'2027-02-10', date2:'2027-01-22', receveur:'BRAVO' }); } catch (e) { q = e.message; }
+  V('D. 18 h du vendredi de sa semaine Réa 1 : la question', /^\[REA1\] Attention, le 18 h du 22\/01\/2027 tombe dans votre semaine Réa 1/.test(q || ''), q);
+  r = creer(b, 'ALPHA', { type:'echange18', year:2027, date:'2027-02-10', date2:'2027-01-22', receveur:'BRAVO', accepteRea1:true });
+  V('D. confirmé : la proposition part', !!r.id);
+
+  // E. DON : le 18 h du receveur passerait au donneur, dans la semaine Réa 1 du donneur.
+  b = prep();
+  b.poser('ALPHA', '2027-01-22', 'G'); b.poser('ALPHA', '2027-01-23', 'RG');   // vendredi de sa semaine : permis
+  b.poser('BRAVO', '2027-01-22', '18');
+  q = null; try { creer(b, 'ALPHA', { type:'don', year:2027, date:'2027-01-22', receveur:'BRAVO' }); } catch (e) { q = e.message; }
+  V('E. d\'abord la question du 18 h repris', /^\[18\] /.test(q || ''), q);
+  q = null; try { creer(b, 'ALPHA', { type:'don', year:2027, date:'2027-01-22', receveur:'BRAVO', accepte18:true }); } catch (e) { q = e.message; }
+  V('E. puis celle de sa semaine Réa 1', /^\[REA1\] Attention, le 18 h du 22\/01\/2027 tombe dans votre semaine Réa 1/.test(q || '') && b.echanges().length === 0, q);
+  r = creer(b, 'ALPHA', { type:'don', year:2027, date:'2027-01-22', receveur:'BRAVO', accepte18:true, accepteRea1:true });
+  rep = repondre(b, 'BRAVO', { id:r.id, reponse:'accepter' });
+  V('E. les deux confirmées : acceptée, le 18 h est chez le donneur', rep.etat === 'acceptee' && String(b.lire('ALPHA', '2027-01-22')) === '18', rep);
+  V('E. la trace dit le 18 h en semaine Réa 1', /⚠ 18 h du 2027-01-22 en semaine Réa 1 de ALPHA/.test(String(b.echanges()[0][COL.INFO])), b.echanges()[0][COL.INFO]);
+
+  // F. Demande devenue IMPOSSIBLE : pas de question inutile, le chemin habituel.
+  b = prep();
+  b.poser('ALPHA', DIM, 'G'); b.poser('ALPHA', LUN, 'RG');
+  r = creer(b, 'ALPHA', { type:'don', year:2027, date:DIM, receveur:'BRAVO' });
+  b.poser('ALPHA', DIM, ''); b.poser('ALPHA', LUN, '');   // la garde est partie entre-temps
+  q = null; rep = null; try { rep = repondre(b, 'BRAVO', { id:r.id, reponse:'accepter' }); } catch (e) { q = e.message; }
+  V('F. impossible → dit tout de suite, sans demander de confirmer', !q && rep && rep.etat === 'impossible', q || rep);
+
+  // G. COMITÉ : le geste passe, l'avertissement est rendu dans ses suites.
+  b = prep();
+  b.poser('ALPHA', DIM, 'G'); b.poser('ALPHA', LUN, 'RG');
+  const s = vm.runInContext(`appliquerGesteComite_({ type:'donGarde', year:2027, date:'${DIM}', doctorId:'ALPHA', doctorId2:'BRAVO' })`, b.ctx);
+  V('G. le geste du comité s\'écrit', b.lire('BRAVO', DIM) === 'G' && b.lire('ALPHA', DIM) === '');
+  V('G. ses suites portent l\'avertissement Réa 1', s.infos.some(t => /⚠ garde du 2027-01-10 en semaine Réa 1 de BRAVO/.test(t)), s.infos);
+  V('G. …et le journal aussi', b.journal.some(l => /geste du comité donGarde .*semaine Réa 1 de BRAVO/.test(l)), b.journal.slice(-2));
+}
+
 console.log('\n' + ok + ' OK · ' + ko + ' en échec');
 if (ko) process.exit(1);

@@ -1910,6 +1910,17 @@ chaque R reste à sa date et son lien passe au samedi que son titulaire tient d�
 fait avant ce réglage est recollé de la même façon par « Réparer », sans toucher aux dates.
 L'onglet suit le même cycle annuel que GARDES et STATS (archivé avec eux).</p>
 
+<h3>La semaine Réa 1 dans les échanges (12/11/2026)</h3>
+<p>Un don ou un échange qui fait prendre à un MAR listé dans <code>REA1_{année}</code> une garde dans sa
+propre semaine Réa 1 (dimanche de veille → jeudi) ou un 18 h (lundi → vendredi) n'est jamais bloqué :
+il lui est demandé de confirmer. Le demandeur confirme à l'envoi, le receveur à l'acceptation (refus
+préfixé <code>[REA1]</code>, renvoi avec <code>accepteRea1</code>) ; la notification de proposition
+prévient déjà le receveur. La question du receveur n'est posée que si le geste passerait. La trace
+« ⚠ garde du … en semaine Réa 1 de … » est ajoutée par <code>_gesteSuites_</code> : elle figure dans le
+suivi de la demande et dans la réponse rendue au comité pour ses propres gestes. La lecture de l'onglet
+est unique (<code>_rea1Jours_</code>), partagée avec le placement des récupérations. Sans l'onglet,
+rien ne se passe.</p>
+
 <h3>Les 18 h dans les échanges (11/11/2026)</h3>
 <p>Un don qui écraserait un 18 h du receveur (jour de la garde ou lendemain) est refusé tant que le
 donneur n'a pas confirmé (<code>accepte18</code>) ; à l'acceptation, le 18 h passe au donneur, libéré
