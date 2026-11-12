@@ -42,7 +42,7 @@
    depuis l'éditeur : installerDeclencheurEchanges().
    ═══════════════════════════════════════════════════════════════════════ */
 
-const GAS_VERSION_ECHANGES = '2026-11-12.3';   // (12/11/2026) don d'un 18 h entre MAR (type don18, demande de l'équipe) : le receveur doit être libre ce jour-là ; 18 h reçu la veille, le lendemain ou la même semaine qu'un autre 18 h : dit au MAR, qui confirme ([18H], accepte18h) · (12/11/2026) semaine Réa 1 : une garde ou un 18 h pris dans sa propre semaine Réa 1 est dit au MAR, qui confirme ([REA1], accepteRea1) ; le comité en est averti dans les suites de son geste · (12/11/2026) demandes « sans objet » fermées toutes seules quand la garde a changé de mains ou est passée (_echangesSansObjet_), doublon refusé à l'envoi, garde passée refusée à l'envoi et à l'acceptation · (11/11/2026) échange samedi ↔ samedi : les R gardent leur date, les liens LIENS_R suivent le samedi tenu ; « Réparer » recolle de même un échange passé au lieu de déplacer les R · (11/11/2026) annulerEchange : le demandeur annule sa proposition en attente, le collègue est prévenu · (11/11/2026) don et échange sur un jour d'absence : le MAR concerné confirme ([ABS], accepteAbsence) et ses jours d'absence sont écrasés par la garde et son repos · (11/11/2026) gestes du comité (don, échange) : mêmes suites que entre MAR (_gesteSuites_, appliquerGesteComite_) · (11/11/2026) échange de deux 18 h entre MAR (type echange18) · (11/11/2026) un 18 h écrasé par un don passe au donneur, prévenu avant d'envoyer (accepte18) · (11/11/2026) récupérations automatiques : R neuf quand il ne peut pas suivre son samedi, R écrasé reposé, bouton Réparer (recupsReparer), lien recollé à la pose manuelle · (10/11/2026) l'historique dit qui a accepté (onglet HISTORIQUE)
+const GAS_VERSION_ECHANGES = '2026-11-12.4';   // (12/11/2026) les gardes ET les 18 h d'une année sans suivi des récupérations (2026) ne se donnent ni ne s'échangent plus entre MAR (_echangesFermee_) : refus à l'envoi, demande en attente fermée « sans objet » ; le comité n'est pas concerné · (12/11/2026) don d'un 18 h entre MAR (type don18, demande de l'équipe) : le receveur doit être libre ce jour-là ; 18 h reçu la veille, le lendemain ou la même semaine qu'un autre 18 h : dit au MAR, qui confirme ([18H], accepte18h) · (12/11/2026) semaine Réa 1 : une garde ou un 18 h pris dans sa propre semaine Réa 1 est dit au MAR, qui confirme ([REA1], accepteRea1) ; le comité en est averti dans les suites de son geste · (12/11/2026) demandes « sans objet » fermées toutes seules quand la garde a changé de mains ou est passée (_echangesSansObjet_), doublon refusé à l'envoi, garde passée refusée à l'envoi et à l'acceptation · (11/11/2026) échange samedi ↔ samedi : les R gardent leur date, les liens LIENS_R suivent le samedi tenu ; « Réparer » recolle de même un échange passé au lieu de déplacer les R · (11/11/2026) annulerEchange : le demandeur annule sa proposition en attente, le collègue est prévenu · (11/11/2026) don et échange sur un jour d'absence : le MAR concerné confirme ([ABS], accepteAbsence) et ses jours d'absence sont écrasés par la garde et son repos · (11/11/2026) gestes du comité (don, échange) : mêmes suites que entre MAR (_gesteSuites_, appliquerGesteComite_) · (11/11/2026) échange de deux 18 h entre MAR (type echange18) · (11/11/2026) un 18 h écrasé par un don passe au donneur, prévenu avant d'envoyer (accepte18) · (11/11/2026) récupérations automatiques : R neuf quand il ne peut pas suivre son samedi, R écrasé reposé, bouton Réparer (recupsReparer), lien recollé à la pose manuelle · (10/11/2026) l'historique dit qui a accepté (onglet HISTORIQUE)
 
 const ECHANGES_ONGLET = 'ECHANGES';
 const ECHANGES_ENTETE = ['ID', 'CREE_LE', 'TYPE', 'ANNEE', 'DATE', 'DATE2',
@@ -394,6 +394,10 @@ function creerEchange(user, p) {
   /* (12/11/2026 — diagnostic du 11/11) Une garde déjà passée ne se propose
      plus : le planning du passé se réécrivait et la paie recevait un mail.
      Le jour même reste permis. */
+  /* (12/11/2026 — décision du responsable) Les gardes et les 18 h d'une année sans
+     suivi des récupérations ne passent plus par l'application : voir _echangesFermee_. */
+  const fermee = _echangesFermee_(demande);
+  if (fermee) throw new Error(fermee + ' : voyez avec le responsable.');
   const passee = _echangesPassee_(demande, _recupsAujourdhui_());
   if (passee) throw new Error(passee + ' : ' + (_echangesEst18_(type) ? 'il' : 'elle') + ' ne peut plus être proposé' + (_echangesEst18_(type) ? '' : 'e') + '.');
   /* (12/11/2026 — vu dans le classeur réel) La même garde proposée deux fois
@@ -503,7 +507,7 @@ function repondreEchange(user, p) {
      demandeur ne sont écrasables que s'il les a confirmés à l'envoi ([ABS-OK]). */
   /* (12/11/2026) Garde passée entre la proposition et la réponse : rien ne
      s'écrit dans le planning, la demande se ferme « sans objet ». */
-  const passee = _echangesPassee_(d, _recupsAujourdhui_());
+  const passee = _echangesPassee_(d, _recupsAujourdhui_()) || _echangesFermee_(d);
   if (passee) {
     sh.getRange(d._row, colEtat).setValue('sansobjet');
     sh.getRange(d._row, colRep).setValue(_echangesMaintenant_());
@@ -636,8 +640,35 @@ function _echangesPassee_(d, auj) {
   if (!_echangesEstDon_(d.TYPE) && String(d.DATE2 || '') && String(d.DATE2) < auj) return dit(String(d.DATE2));
   return '';
 }
+/* (12/11/2026 — décision du responsable) LES GARDES ET LES 18 H D'UNE ANNÉE SANS
+   SUIVI DES RÉCUPÉRATIONS NE S'ÉCHANGENT PAS ENTRE MAR. En pratique : le planning 2026,
+   seul à ne pas avoir d'onglet LIENS_R (il court jusqu'au dimanche 3 janvier
+   2027). Deux raisons, toutes deux vues en réel :
+   - la récupération d'un samedi n'y suit pas la garde (« R non transféré, pas
+     de lien 2026 », 11/11) : chaque don laissait un R à replacer à la main ;
+   - la garde du dernier jour ne peut pas changer de mains, son repos tombant
+     dans l'onglet de l'année suivante (diagnostic du 11/11).
+   Plutôt que de toucher au juge des modifications de garde à sept semaines de
+   la bascule, ces gardes repassent par le responsable, qui garde ainsi la main
+   sur le planning 2026 jusqu'à sa clôture.
+   Le critère est l'EXISTENCE de l'onglet LIENS_R_{année}, jamais un millésime
+   écrit dans le code : toute année générée par le portail l'a.
+   Les 18 h sont bloqués AUSSI (décision du responsable, le même jour : « tout
+   est bloqué en 2026, gardes comme 18 ») : une seule règle, simple à dire à
+   l'équipe. Seuls les gestes du comité (page admin) ne sont pas concernés.
+   Renvoie le motif en clair, ou '' si l'année est ouverte. Classeur illisible :
+   on ne ferme rien. */
+function _echangesFermee_(d) {
+  const y = Number(d.ANNEE);
+  try {
+    const ss = SpreadsheetApp.getActiveSpreadsheet();
+    if (!ss.getSheetByName('GARDES_' + y)) return '';            // année absente ou archivée : d'autres contrôles le disent
+    if (ss.getSheetByName('LIENS_R_' + y)) return '';
+  } catch (e) { return ''; }
+  return 'Les gardes et les 18 h de ' + y + ' ne s\'échangent pas dans l\'application';
+}
 function _echangesMotifSansObjet_(d, cx, auj) {
-  const passee = _echangesPassee_(d, auj);
+  const passee = _echangesPassee_(d, auj) || _echangesFermee_(d);
   if (passee) return passee;
   if (!cx) return '';
   const est18 = _echangesEst18_(d.TYPE);

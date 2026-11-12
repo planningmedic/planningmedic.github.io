@@ -40,7 +40,9 @@ function monde(opts) {
   cl.ajouter('PERIODES_VAC', [['NOM', 'DATE_DEBUT', 'DATE_FIN', 'SEUIL'],
     ['Hiver', '2027-02-20', '2027-03-07', 8], ['Printemps', '2027-04-17', '2027-05-02', 8],
     ['Été', '2027-07-03', '2027-09-01', 10], ['Toussaint', '2027-10-23', '2027-11-07', 8], ['Noël', '2027-12-18', '2028-01-02', 11]]);
-  if (opts.liens) cl.ajouter('LIENS_R_2027', [['SAMEDI', 'MEDECIN', 'DATE R']].concat(opts.liens));
+  /* (12/11/2026) Une année ouverte aux échanges entre MAR a son onglet LIENS_R : présent par défaut (vide).
+     `sansLiens` fabrique l'année héritée (2026), sans suivi des récupérations. */
+  if (!opts.sansLiens) cl.ajouter('LIENS_R_2027', [['SAMEDI', 'MEDECIN', 'DATE R']].concat(opts.liens || []));
 
   const notifs = [], journal = [], republie = [];
   const ctx = vm.createContext({ console, JSON, Date, Number, String, Object, Array, Set, Math, Error, isNaN, parseInt, RegExp,
@@ -207,7 +209,7 @@ console.log('\n═══ 4. Le bouton « Réparer » ═══');
   V('relancée, la vérification ne trouve plus rien', b.run('recupsReparer(2027, false)').actions.length === 0);
 }
 {
-  const b = monde();
+  const b = monde({ sansLiens: true });
   V('sans onglet de liens (année 2026), rien n\'est touché', b.run('recupsReparer(2027, true)').actions.length === 0 && b.republie.length === 0);
 }
 

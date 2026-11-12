@@ -36,7 +36,9 @@ function monde(annee, opts) {
   cl.ajouter('CONFIG', [['CLE','VALEUR'], ['DIAG_EMAIL','comite@example.test']]);
   cl.ajouter(`GARDES_${annee}`, grille());
   cl.ajouter(`INDISPOS_${annee}`, grille());
-  if (opts.liensR) cl.ajouter(`LIENS_R_${annee}`, [['SAMEDI','MEDECIN','DATE R']].concat(opts.liensR));
+  /* (12/11/2026) Une année ouverte aux échanges entre MAR a son onglet LIENS_R : le monde l'a
+     donc par défaut (vide). `sansLiens` fabrique l'année héritée, sans suivi des récupérations. */
+  if (!opts.sansLiens) cl.ajouter(`LIENS_R_${annee}`, [['SAMEDI','MEDECIN','DATE R']].concat(opts.liensR || []));
 
   const notifs = [], kv = [], journal = [], mails = [], annees = { republie: [], prevenu: [] };
   /* Le piège du 14/08 : des écritures « en attente » tant que flush n'est
@@ -341,7 +343,7 @@ console.log('\n═══ 9. Don d\'un samedi AVEC lien : le R suit, le lien est 
   const dateR = b.dates[60]; // un jour de semaine lointain, PAS ENCORE PASSÉ (2027 > aujourd'hui)
   b.poser('ALPHA', samedi, 'G'); b.poser('ALPHA', lendemain, 'RG'); b.poser('ALPHA', dateR, 'R');
   /* Comme en PRODUCTION : Sheets a coercé les cellules en objets Date. */
-  b.cl.getSheetByName('LIENS_R_2027') || b.cl.ajouter('LIENS_R_2027', [['SAMEDI','MEDECIN','DATE R'], [new Date(samedi+'T00:00:00'), 'ALPHA', new Date(dateR+'T00:00:00')]]);
+  b.cl.ajouter('LIENS_R_2027', [['SAMEDI','MEDECIN','DATE R'], [new Date(samedi+'T00:00:00'), 'ALPHA', new Date(dateR+'T00:00:00')]]);
   const r = vm.runInContext(`creerEchange(${JSON.stringify(user('ALPHA'))}, { type:'don', year:2027, date:${JSON.stringify(samedi)}, receveur:'BRAVO' })`, b.ctx);
   b.notifs.length = 0;
   const rep = vm.runInContext(`repondreEchange(${JSON.stringify(user('BRAVO'))}, { id:${JSON.stringify(r.id)}, reponse:'accepter' })`, b.ctx);
@@ -354,21 +356,14 @@ console.log('\n═══ 9. Don d\'un samedi AVEC lien : le R suit, le lien est 
   V('AUCUNE alerte au comité (le transfert a réussi)', b.mails.length === 0 && !b.notifs.some(n => n.cible && n.cible.role === 'admin'), { mails: b.mails });
 }
 
-console.log('\n═══ 10. Don d\'un samedi SANS lien (2026) : l\'échange aboutit, le comité replace ═══');
+console.log('\n═══ 10. Année SANS suivi des récupérations (2026) : un don du comité aboutit, la récup est à replacer ═══');
 {
-  const b = monde(2027); // pas d'onglet LIENS_R du tout
+  const b = monde(2027, { sansLiens: true }); // pas d'onglet LIENS_R du tout
   const samedi = b.dates.find(d => new Date(d + 'T12:00:00').getDay() === 6);
   const lendemain = b.dates[b.dates.indexOf(samedi) + 1];
   b.poser('ALPHA', samedi, 'G'); b.poser('ALPHA', lendemain, 'RG');
-  const r = vm.runInContext(`creerEchange(${JSON.stringify(user('ALPHA'))}, { type:'don', year:2027, date:${JSON.stringify(samedi)}, receveur:'BRAVO' })`, b.ctx);
-  b.notifs.length = 0;
-  const rep = vm.runInContext(`repondreEchange(${JSON.stringify(user('BRAVO'))}, { id:${JSON.stringify(r.id)}, reponse:'accepter' })`, b.ctx);
-  V('l\'échange aboutit QUAND MÊME', rep.etat === 'acceptee' && b.lire('BRAVO', samedi) === 'G');
-  /* (23/08/2026) LE MAIL EST RETIRÉ — un seul canal, décision du responsable.
-     Il partait vers DIAG_EMAIL : muet si l'adresse manquait, et incapable de
-     dire s'il avait été traité. L'alerte vit désormais dans l'onglet Statuts,
-     là où le geste se fait, et se CALCULE : elle disparaît quand le R est posé.
-     Ne reste ici que la TRACE, qui parle même écran fermé. */
+  vm.runInContext(`appliquerGesteComite_({ type:'donGarde', year:2027, date:${JSON.stringify(samedi)}, doctorId:'ALPHA', doctorId2:'BRAVO' })`, b.ctx);
+  V('le don fait par le comité aboutit', b.lire('BRAVO', samedi) === 'G' && b.lire('ALPHA', samedi) === '');
   V('plus aucun mail n\'est envoyé au comité', b.mails.length === 0, b.mails);
   V('aucune notification ne cible le rôle admin', !b.notifs.some(n => n.cible && n.cible.role === 'admin'), b.notifs);
   V('la trace nomme le samedi, les deux MAR et le motif',
@@ -376,6 +371,54 @@ console.log('\n═══ 10. Don d\'un samedi SANS lien (2026) : l\'échange abo
                         && /ALPHA/.test(m) && /BRAVO/.test(m)), b.journal.slice(-3));
   V('…et renvoie vers l\'écran où le geste se fait',
     b.journal.some(m => /onglet Statuts/.test(m)), b.journal.slice(-3));
+}
+
+console.log('\n═══ 10 bis. Année SANS suivi des récupérations : ni ses gardes ni ses 18 h ne s\'échangent entre MAR (12/11/2026) ═══');
+{
+  const essai = (b, qui, p) => { try { return vm.runInContext(`creerEchange(${JSON.stringify(user(qui))}, ${JSON.stringify(p)})`, b.ctx); } catch (e) { return { erreur: e.message }; } };
+  const b = monde(2027, { sansLiens: true });
+  const j = b.dates[9], k = b.dates[30];
+  b.poser('ALPHA', j, 'G'); b.poser('ALPHA', b.dates[10], 'RG');
+  b.poser('BRAVO', k, 'G2'); b.poser('BRAVO', b.dates[31], 'RG');
+  const avant = JSON.stringify(b.cl.getSheetByName('GARDES_2027').lignes);
+  const don = essai(b, 'ALPHA', { type:'don', year:2027, date:j, receveur:'BRAVO' });
+  V('don de garde : refusé à l\'envoi, message clair', /Les gardes et les 18 h de 2027 ne s'échangent pas dans l'application : voyez avec le responsable/.test(don.erreur || ''), don);
+  const ech = essai(b, 'ALPHA', { type:'echange', year:2027, date:j, date2:k, receveur:'BRAVO' });
+  V('échange de gardes : refusé de même', /ne s'échangent pas dans l'application/.test(ech.erreur || ''), ech);
+  V('rien n\'est créé, personne n\'est notifié, la grille ne bouge pas',
+    b.echanges().length === 0 && b.notifs.length === 0 && JSON.stringify(b.cl.getSheetByName('GARDES_2027').lignes) === avant);
+  // Décision du responsable : tout est bloqué, les 18 h comme les gardes.
+  b.poser('ALPHA', b.dates[50], '18'); b.poser('BRAVO', b.dates[52], '18');
+  const e18 = essai(b, 'ALPHA', { type:'echange18', year:2027, date:b.dates[50], date2:b.dates[52], receveur:'BRAVO' });
+  V('échange de deux 18 h : refusé aussi', /ne s'échangent pas dans l'application/.test(e18.erreur || ''), e18);
+  const d18 = essai(b, 'ALPHA', { type:'don18', year:2027, date:b.dates[50], receveur:'BRAVO' });
+  V('don d\'un 18 h : refusé aussi', /ne s'échangent pas dans l'application/.test(d18.erreur || ''), d18);
+  V('toujours rien de créé', b.echanges().length === 0 && b.notifs.length === 0);
+  // Témoin : dans une année ouverte, les 18 h s'échangent.
+  const o = monde(2027);
+  o.poser('ALPHA', o.dates[50], '18'); o.poser('BRAVO', o.dates[52], '18');
+  V('témoin : année ouverte, l\'échange de deux 18 h passe', !!essai(o, 'ALPHA', { type:'echange18', year:2027, date:o.dates[50], date2:o.dates[52], receveur:'BRAVO' }).id);
+
+  // Une demande restée en attente d'avant la règle : fermée à la réponse, rien n'est écrit.
+  const c = monde(2027);
+  c.poser('ALPHA', j, 'G'); c.poser('ALPHA', c.dates[10], 'RG');
+  const d = essai(c, 'ALPHA', { type:'don', year:2027, date:j, receveur:'BRAVO' });
+  delete c.cl.feuilles['LIENS_R_2027'];
+  const g = JSON.stringify(c.cl.getSheetByName('GARDES_2027').lignes);
+  let rep; try { rep = vm.runInContext(`repondreEchange(${JSON.stringify(user('BRAVO'))}, { id:${JSON.stringify(d.id)}, reponse:'accepter' })`, c.ctx); } catch (e) { rep = { erreur: e.message }; }
+  V('demande déjà en attente, acceptée : fermée « sans objet », motif rendu', rep.etat === 'sansobjet' && /ne s'échangent pas dans l'application/.test(rep.error || ''), rep);
+  V('…la grille ne bouge pas', JSON.stringify(c.cl.getSheetByName('GARDES_2027').lignes) === g);
+  // …ou fermée toute seule au passage horaire.
+  const h = monde(2027);
+  h.poser('ALPHA', j, 'G'); h.poser('ALPHA', h.dates[10], 'RG');
+  essai(h, 'ALPHA', { type:'don', year:2027, date:j, receveur:'BRAVO' });
+  delete h.cl.feuilles['LIENS_R_2027'];
+  vm.runInContext('expirerEchanges()', h.ctx);
+  V('…ou fermée seule au passage horaire', h.echanges()[0][COL.ETAT] === 'sansobjet', h.echanges()[0]);
+  // Témoin : l'année qui a son suivi reste ouverte.
+  const t = monde(2027);
+  t.poser('ALPHA', j, 'G'); t.poser('ALPHA', t.dates[10], 'RG');
+  V('témoin : une année avec son suivi des récupérations reste ouverte', !!essai(t, 'ALPHA', { type:'don', year:2027, date:j, receveur:'BRAVO' }).id);
 }
 
 /* (11/11/2026) Le R ne reste plus chez le donneur : il ne lui est plus dû.

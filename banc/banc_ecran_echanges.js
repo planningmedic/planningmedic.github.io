@@ -339,6 +339,32 @@ const dodo = ms => new Promise(r => setTimeout(r, ms));
     V('la garde reçue entre-temps est proposée (11/03)', sel && /11\/03\/2027/.test(sel.innerHTML), sel && sel.innerHTML.slice(0,200));
     V('CONTRE-PREUVE : la garde partie (09/03) n\'est plus proposée', sel && !/09\/03\/2027/.test(sel.innerHTML), sel && sel.innerHTML.slice(0,200));
   }
+  console.log('\n═══ 3 quinquies. Rien du planning 2026 ne se propose plus, ni garde ni 18 h (12/11/2026) ═══');
+  {
+    const kv = await baseKV();
+    kv.notif_config = JSON.stringify({ ouvert:true, pilotes:[] });
+    kv.echanges = JSON.stringify({ success:true, echanges:[] });
+    kv.annees = JSON.stringify({ success:true, active:2026, annees:[{annee:2026, statut:'ACTIF'}, {annee:2027, statut:'ACTIF'}] });
+    // Planning « 2026 » : il court jusqu'au dimanche 3 janvier 2027.
+    const j26 = ['2026-12-30', '2026-12-31', '2027-01-02', '2027-01-03'];
+    kv.planning_2026 = JSON.stringify({ months: [{ days: j26.map(d => ({ date: d })), doctors: [
+      { id:'ALPHA', days: [{ status:'18' }, { status:'G' }, { status:'' }, { status:'G2' }] },
+      { id:'BRAVO', days: [{ status:'' }, { status:'' }, { status:'G' }, { status:'RG' }] } ] }] });
+    const { w, erreurs } = await monterPage(kv, (c) => (c.action === 'login' || c.action === 'getActiveYear') ? { success:true, role:'mar', id:'ALPHA', year:2026 } : { success:true });
+    V('la page se charge sans erreur JavaScript', erreurs.length === 0, erreurs.slice(0,2));
+    w.location.hash = '#echanges'; w.route();
+    await dodo(400);
+    await w.echOuvrirProposition();
+    await dodo(300);
+    const sel = w.document.getElementById('echSelGarde');
+    const h = sel ? sel.innerHTML : '';
+    V('la garde 2027 est proposée (09/03/2027)', /09\/03\/2027/.test(h), h.slice(0, 300));
+    V('les gardes du planning 2026 ne sont plus proposées (31/12/2026, 03/01/2027)', !/31\/12\/2026/.test(h) && !/03\/01\/2027/.test(h), h.slice(0, 300));
+    V('le 18 h du planning 2026 n\'est plus proposé non plus (30/12/2026)', !/30\/12\/2026/.test(h), h.slice(0, 300));
+    V('la liste ne contient que du 2027', (h.match(/<option/g) || []).length >= 1 && !/\/2026/.test(h), h.slice(0, 300));
+    V('l\'ancien avertissement « samedi 2026 » a disparu du code de la page', !/votre récupération ne suivra pas/.test(w.document.documentElement.innerHTML));
+  }
+
   console.log('\n═══ 3 ter. Un 18 h se donne ou s\'échange (demande de l\'équipe, 12/11/2026) ═══');
   {
     const kv = await baseKV();

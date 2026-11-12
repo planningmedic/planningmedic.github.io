@@ -1816,6 +1816,14 @@ ses garde-fous — rien de nouveau ne touche à la grille. Chaque demande vit da
 impossible (le planning a bougé entre la proposition et l'acceptation — rien n'est écrit, les deux
 sont prévenus), ou annulée (le demandeur retire sa proposition tant qu'elle attend, action
 <code>annulerEchange</code> ; le collègue est prévenu), ou sans objet (12/11/2026, état <code>sansobjet</code>). Sans réponse : rappel unique à 24&nbsp;h, expiration à 48&nbsp;h.</p>
+<p>Année sans suivi des récupérations (12/11/2026, décision du responsable) : les gardes et les 18&nbsp;h d'une année
+qui n'a pas d'onglet <code>LIENS_R_{année}</code> — en pratique le planning 2026, jusqu'au 3 janvier
+2027 — ne se donnent ni ne s'échangent entre MAR (<code>_echangesFermee_</code>) : refus à l'envoi,
+demande en attente fermée « sans objet ». Le critère est l'existence de l'onglet, jamais un millésime.
+Le comité n'est pas concerné. Côté écran, la liste de ce qui se propose commence à
+<code>ECH_PREMIERE_ANNEE</code> ; le serveur reste le juge. Raisons : la récupération d'un samedi
+n'y suit pas la garde, et la garde du dernier jour ne peut pas changer de mains (son repos tombe dans
+l'onglet de l'année suivante).</p>
 <p>Sans objet (12/11/2026) : une demande en attente se ferme seule quand la garde proposée est passée,
 quand le demandeur ne la tient plus, ou quand le receveur ne tient plus la garde demandée en retour
 (<code>_echangesSansObjet_</code>). Le contrôle tourne après chaque acceptation, après un don ou un

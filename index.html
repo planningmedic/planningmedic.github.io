@@ -2498,6 +2498,13 @@ async function repondreEch(id, reponse, btn, confirmeAbs, confirmeRea1, confirme
 /* ── Proposer : ma garde, don ou échange, à qui, contre quoi ─────────── */
 let ECH_PROP = { type:'don' };
 
+/* (12/11/2026 — décision du responsable) Les gardes et les 18 h du planning 2026 ne
+   se donnent ni ne s'échangent dans l'application : cette année n'a pas de suivi
+   des récupérations, tout y repasse par le responsable. 2026 est la seule année dans
+   ce cas (toute année générée par le portail a ce suivi) : cette borne ne bouge
+   donc pas d'une année sur l'autre. Le serveur reste le juge ; ici on évite
+   seulement de proposer ce qu'il refusera. */
+const ECH_PREMIERE_ANNEE = 2027;
 async function _echMesGardesAvecAnnee(){
   /* MY_GARDES ne porte pas l'année de PLANNING (une garde de début janvier
      appartient à l'année d'avant). On la retrouve dans le fichier qui la
@@ -2516,7 +2523,8 @@ async function _echMesGardesAvecAnnee(){
       for(let i=0;i<doc.days.length;i++){
         const st=(doc.days[i]||{}).status;
         // (11/11/2026) les 18 h aussi : ils s'échangent contre un 18 h (demande de l'équipe)
-        if((st==='G'||st==='G2'||st==='18') && m.days[i] && m.days[i].date>=today)
+        if((st==='G'||st==='G2'||st==='18') && m.days[i] && m.days[i].date>=today
+           && y >= ECH_PREMIERE_ANNEE)
           out.push({date:m.days[i].date, type:st, annee:y});
       }
     });
@@ -2662,18 +2670,14 @@ async function echMajProposition(){
         : '<option value="">Aucune garde à venir chez ce collègue</option>';
     } else sel.innerHTML='<option value="">Choisir d\'abord un collègue…</option>';
   } else blocContre.style.display='none';
-  /* Samedi d'une année SANS lien samedi→R (2026) : la récup ne suit pas,
-     le comité replacera — averti AVANT l'envoi, comme convenu. */
   const av = document.getElementById('echAvert');
   // (11/11/2026) Toute nouvelle sélection redemande la confirmation du 18 h et de l'absence.
   ECH_PROP.ok18 = false; ECH_PROP.okAbs = false; ECH_PROP.okRea1 = false; ECH_PROP.ok18h = false;
   const _btn = document.getElementById('echEnvoyer');
   if (_btn) { _btn.textContent = 'Envoyer la proposition'; _btn.disabled = false; }
-  const samedi = new Date(g.date+'T12:00:00').getDay()===6;
-  if (samedi && !est18 && g.annee <= 2026) {
-    av.style.display='block';
-    av.textContent='Garde d\'un samedi ' + g.annee + ' : votre récupération ne suivra pas automatiquement, elle sera replacée à la main.';
-  } else av.style.display='none';
+  // (12/11/2026) L'avertissement « samedi 2026 : la récupération ne suivra pas » a disparu
+  // avec son objet : rien du planning 2026 ne se propose plus (ECH_PREMIERE_ANNEE).
+  av.style.display='none';
 }
 
 async function envoyerProposition(btn){
