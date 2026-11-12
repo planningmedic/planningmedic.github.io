@@ -41,7 +41,7 @@
 // ⚠️ RÈGLE (détecteur de dérive dépôt↔Apps Script) : incrémenter cette version
 // à CHAQUE push de ce fichier. Le diagnostic (admin → Maintenance) compare la
 // version déployée ici avec celle du dépôt et signale toute recopie oubliée.
-const GAS_VERSION_GENERATEUR = '2026-11-10.2';   // (10/11/2026) optimisation finale 4 fois plus rapide, planning identique (score recalculé seulement là où un mouvement touche) · (10/11/2026) optimisation finale : 4 fois plus d'essais, et un week-end compte autant de fois qu'il a de MAR en trop (4 MAR ne remplace plus 3) · (09/11/2026) optimisation finale par recuit simulé, rien ne recule · (09/11/2026) souhaits accordés et gardes à deux jours évitées par échange neutre en fin de calcul · (09/11/2026) couples de week-end : chaque moitié de l'échange jugée dans l'état final · (09/11/2026) vendredi-dimanche rompu : le MAR du vendredi est jugé sans la garde qu'il cède · (08/11/2026) le statut « A » (absent de jour, garde possible) est recopié dans le planning · (07/11/2026) vendredi-dimanche rompu : réparation finale par échange neutre · (07/11/2026) le dimanche garde d'abord les MAR du vendredi · (03/11/2026) période tendue sans solution parfaite : le moins possible de doubles week-ends, au lieu de les subir au fil de l'eau
+const GAS_VERSION_GENERATEUR = '2026-11-12.1';   // (12/11/2026) plus aucun nom de personne dans le code (liste des médecins) — aucune ligne MEDECINS ne le portait, résultat inchangé · (10/11/2026) optimisation finale 4 fois plus rapide, planning identique (score recalculé seulement là où un mouvement touche) · (10/11/2026) optimisation finale : 4 fois plus d'essais, et un week-end compte autant de fois qu'il a de MAR en trop (4 MAR ne remplace plus 3) · (09/11/2026) optimisation finale par recuit simulé, rien ne recule · (09/11/2026) souhaits accordés et gardes à deux jours évitées par échange neutre en fin de calcul · (09/11/2026) couples de week-end : chaque moitié de l'échange jugée dans l'état final · (09/11/2026) vendredi-dimanche rompu : le MAR du vendredi est jugé sans la garde qu'il cède · (08/11/2026) le statut « A » (absent de jour, garde possible) est recopié dans le planning · (07/11/2026) vendredi-dimanche rompu : réparation finale par échange neutre · (07/11/2026) le dimanche garde d'abord les MAR du vendredi · (03/11/2026) période tendue sans solution parfaite : le moins possible de doubles week-ends, au lieu de les subir au fil de l'eau
 // précédente : '2026-10-27.1'
 
 /* (05/09/2026) INTERRUPTEUR DU NOUVEL ALGORITHME — récit : docs/JOURNAL-Planning-Med.md §101 */
@@ -672,7 +672,7 @@ function generateGardes(year, opts){
   const allDoctors=[],gardeDoctors=[],pct={},quot={};
   for(let r=1;r<medData.length;r++){
     const id=String(medData[r][COL_MED.ID]).trim();
-    if(!id||id==='DRUGE') continue;
+    if(!id) continue;
     allDoctors.push(id);pct[id]=Number(medData[r][COL_MED.PCT_GARDES])||100;quot[id]=Number(medData[r][COL_MED.QUOTITE])||100;
     if(!NO_GARDE.has(id)) gardeDoctors.push(id);
     if(!indispos[id]) indispos[id]={};

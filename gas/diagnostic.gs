@@ -4,7 +4,7 @@
    quelles : aucune ligne de logique modifiée, seulement déplacée. Le routeur et
    ses aides (checkCode, _deny, _error, doGet/doPost) restent dans Indispos.gs.
    Un seul espace global dans Apps Script : rien à importer. */
-const GAS_VERSION_DIAG = '2026-11-12.1';   // (12/11/2026) la sentinelle de 6 h contrôle aussi les données (jours à venir, chaque année suivie) ; récupérations et intégrité des gardes pour chaque année suivie ; placements de l'année suivante plus comptés en reliquat · (01/11/2026) diagnostic réservé à la tuile `maintenance` · (24/10/2026) applicateur : filet toutes les 5 min
+const GAS_VERSION_DIAG = '2026-11-12.2';   // (12/11/2026) contrôles nouveaux : code inconnu dans une case, MAR actif sans ligne dans les gardes (sentinelle et lundi), sans ligne dans les indisponibilités (vigilance) ; jour ouvré sans 18 h, trois gardes en six jours, demandes d'échange sans objet (lundi) · (12/11/2026) la sentinelle de 6 h contrôle aussi les données (jours à venir, chaque année suivie) ; récupérations et intégrité des gardes pour chaque année suivie ; placements de l'année suivante plus comptés en reliquat · (01/11/2026) diagnostic réservé à la tuile `maintenance` · (24/10/2026) applicateur : filet toutes les 5 min
 
 // ── LOG ───────────────────────────────────────────────────────────────
 /* ─────────────────────────────────────────────────────────────────────────────
@@ -288,6 +288,119 @@ function _diagRecups_(y, check, info, R, niveau, avecDecompte) {
       } catch (e) { check('Décompte ' + y + ' des récupérations non vérifiable : ' + e.message, R.WARN); }
     }
   }
+}
+
+/* ═══ (12/11/2026 — lot 3, morceau 3) CE QUE PERSONNE NE REGARDAIT ═══════════════
+   Cinq défauts qui se découvraient par un signalement : une case au code que le
+   portail ne comprend pas (il l'ignore sans rien dire — le MAR paraît présent),
+   un MAR actif sans ligne dans un onglet de l'année, un jour ouvré sans 18 h, trois
+   gardes en six jours, une demande d'échange restée en attente alors qu'elle n'a
+   plus d'objet. Toujours les jours À VENIR : le passé est de l'histoire.
+   Les codes connus ne sont PAS une nouvelle liste : ce sont ceux que le serveur
+   lit déjà (ABSENT_CODES, NOTIF_STATUTS) — un code ajouté là est connu ici. */
+function _diagCodesConnus_() {
+  const g = new Set(['G', 'G2', '18', 'VM', 'VA']);
+  try { ABSENT_CODES.forEach(function (c) { g.add(c); }); } catch (e) {}
+  const i = new Set(['INDISPO', 'SOUHAIT', 'TPA']);
+  try { Object.keys(NOTIF_STATUTS).forEach(function (c) { i.add(c); }); } catch (e) {}
+  return { gardes: g, indispos: i };
+}
+function _diagJour_(d) { return d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0') + '-' + String(d.getDate()).padStart(2, '0'); }
+function _diagCodesEtLignes_(y, check, info, R, niveau) {
+  try {
+    const ss = SpreadsheetApp.getActiveSpreadsheet();
+    const aujd = Utilities.formatDate(new Date(), ss.getSpreadsheetTimeZone(), 'yyyy-MM-dd');
+    const connus = _diagCodesConnus_();
+    const liste = function (arr) { return arr.slice(0, 10).join(' · ') + (arr.length > 10 ? ' … et ' + (arr.length - 10) + ' autre(s)' : ''); };
+    const debut = getPremierJourPlanning(y), fin = new Date(debut); fin.setDate(fin.getDate() + 363);
+    const dDebut = _diagJour_(debut), dFin = _diagJour_(fin);
+    /* Qui DOIT avoir une ligne : actif, et encore là sur ce qui reste du planning. */
+    const attendus = [];
+    const md = _medecinsRows_();
+    const jour = function (v) { return !v ? '' : (v instanceof Date ? _diagJour_(v) : String(v).trim().slice(0, 10)); };
+    for (let r = 1; r < md.length; r++) {
+      const id = String(md[r][COL_MED.ID]).trim(); if (!id) continue;
+      if (String(md[r][COL_MED.ACTIF]).trim().toUpperCase() !== 'O') continue;
+      const dd = jour(md[r][COL_MED.DATE_DEBUT]), df = jour(md[r][COL_MED.DATE_FIN]);
+      if (dd && dd > dFin) continue;                       // pas encore arrivé cette année-là
+      if (df && (df < dDebut || df < aujd)) continue;      // parti avant, ou déjà parti
+      attendus.push(id);
+    }
+    const inconnus = [], sansLigne = [], sansLigneInd = [];
+    const lire = function (onglet, datesDe, codes, nom) {
+      const sh = ss.getSheetByName(onglet + '_' + y);
+      if (!sh || sh.getLastRow() <= 3) { info(onglet + '_' + y + ' absent ou vide — codes et lignes non contrôlés'); return; }
+      const data = sh.getDataRange().getValues();
+      const cols = datesDe(data);                           // [{ date, c }]
+      const ids = new Set();
+      for (let r = 3; r < data.length; r++) {
+        const id = String(data[r][0]).trim(); if (!id) continue;
+        ids.add(id);
+        cols.forEach(function (k) {
+          if (k.date < aujd) return;
+          const v = String(data[r][k.c] || '').trim().toUpperCase();
+          if (v && !codes.has(v)) inconnus.push(id + ' ' + k.date + ' « ' + v + ' » (' + nom + ')');
+        });
+      }
+      attendus.forEach(function (id) { if (!ids.has(id)) (onglet === 'GARDES' ? sansLigne : sansLigneInd).push(id); });
+    };
+    lire('GARDES', function (data) { const m = buildDateToCol(data, y); return Object.keys(m).sort().map(function (d) { return { date: d, c: m[d] }; }); }, connus.gardes, 'gardes');
+    lire('INDISPOS', function (data) { return reconstruireDatesHeaders(data, y).map(function (d, i) { return { date: d || '', c: i + 1 }; }).filter(function (k) { return k.date; }); }, connus.indispos, 'indisponibilités');
+    check('Cases à venir de ' + y + ' au code inconnu du portail : ' + (inconnus.length ? inconnus.length + ' → ' + liste(inconnus) + ' — le portail IGNORE ces cases' : 'aucune'), inconnus.length ? (niveau || R.WARN) : R.OK);
+    if (inconnus.length) check('   → LE GESTE : corriger la case dans le classeur (codes des gardes : G, G2, RG, R, 18, V, VM, VA, F, TP, CL, CP, A).', R.OK);
+    check('MARs actifs sans ligne dans les gardes ' + y + ' : ' + (sansLigne.length ? liste(sansLigne) + ' — rien ne peut leur être attribué ni échangé' : 'aucun'), sansLigne.length ? (niveau || R.WARN) : R.OK);
+    if (sansLigne.length) check('   → LE GESTE : ajouter la ligne du MAR dans GARDES_' + y + ' (même identifiant que dans MEDECINS).', R.OK);
+    /* (décision du responsable, 12/11/2026) Pas de ligne dans les indisponibilités : normal pour un
+       MAR arrivé en cours d'année. Un point de vigilance, jamais une alerte. */
+    check('MARs actifs sans ligne dans les indisponibilités ' + y + ' : ' + (sansLigneInd.length ? liste(sansLigneInd) + ' — normal pour une arrivée en cours d\'année' : 'aucun'), sansLigneInd.length ? R.WARN : R.OK);
+  } catch (e) { check('Codes et lignes ' + y + ' non vérifiables : ' + e.message, R.WARN); }
+}
+/* Rapport du lundi seulement : des points de vigilance, pas des alertes. */
+function _diagRythme_(y, check, info, R) {
+  try {
+    const ss = SpreadsheetApp.getActiveSpreadsheet();
+    const sh = ss.getSheetByName('GARDES_' + y);
+    if (!sh || sh.getLastRow() <= 3) return;
+    const aujd = Utilities.formatDate(new Date(), ss.getSpreadsheetTimeZone(), 'yyyy-MM-dd');
+    const data = sh.getDataRange().getValues();
+    const d2c = buildDateToCol(data, y), dates = Object.keys(d2c).sort();
+    const feries = new Set();
+    [y, y + 1].forEach(function (a) { try { getJoursFeries(a).forEach(function (d) { feries.add(d); }); } catch (e) {} });
+    const liste = function (arr) { return arr.slice(0, 8).join(' · ') + (arr.length > 8 ? ' … et ' + (arr.length - 8) + ' autre(s)' : ''); };
+    const sans18 = [];
+    dates.forEach(function (ds) {
+      if (ds < aujd || feries.has(ds)) return;
+      const dow = new Date(ds + 'T12:00:00').getDay();
+      if (dow === 0 || dow === 6) return;
+      for (let r = 3; r < data.length; r++) if (String(data[r][d2c[ds]] || '').trim() === '18') return;
+      sans18.push(ds);
+    });
+    check('Jours ouvrés à venir de ' + y + ' sans 18 h : ' + (sans18.length ? sans18.length + ' → ' + liste(sans18) : 'aucun'), sans18.length ? R.WARN : R.OK);
+    const serres = [];
+    for (let r = 3; r < data.length; r++) {
+      const id = String(data[r][0]).trim(); if (!id) continue;
+      const g = dates.filter(function (ds) { const v = String(data[r][d2c[ds]] || '').trim().toUpperCase(); return v === 'G' || v === 'G2'; });
+      for (let k = 2; k < g.length; k++) {
+        if (g[k] < aujd) continue;
+        const ecart = Math.round((new Date(g[k] + 'T12:00:00') - new Date(g[k - 2] + 'T12:00:00')) / 86400000);
+        if (ecart <= 5) serres.push(id + ' ' + g[k - 2].slice(5) + ', ' + g[k - 1].slice(5) + ', ' + g[k].slice(5));
+      }
+    }
+    check('Trois gardes en six jours, à venir en ' + y + ' : ' + (serres.length ? serres.length + ' → ' + liste(serres) : 'aucune'), serres.length ? R.WARN : R.OK);
+  } catch (e) { check('Rythme des gardes ' + y + ' non vérifiable : ' + e.message, R.WARN); }
+}
+/* Les demandes d'échange se ferment seules chaque heure quand elles n'ont plus
+   d'objet. S'il en reste, c'est ce nettoyage qui est en panne. Lecture seule. */
+function _diagDemandes_(check, info, R) {
+  try {
+    if (typeof _echangesLignes_ !== 'function' || typeof _echangesMotifSansObjet_ !== 'function') { info('Demandes d\'échange : contrôle indisponible'); return; }
+    const attente = (_echangesLignes_().lignes || []).filter(function (d) { return String(d.ETAT) === 'attente'; });
+    const auj = _recupsAujourdhui_(), grilles = {};
+    const grille = function (a) { if (!(a in grilles)) { try { grilles[a] = _recupsContexte_(a); } catch (e) { grilles[a] = null; } } return grilles[a]; };
+    const ko = [];
+    attente.forEach(function (d) { const m = _echangesMotifSansObjet_(d, grille(Number(d.ANNEE)), auj); if (m) ko.push(d.ID + ' (' + m + ')'); });
+    check('Demandes d\'échange en attente : ' + attente.length + (ko.length ? ' — dont ' + ko.length + ' sans objet, que le nettoyage horaire aurait dû fermer → ' + ko.slice(0, 5).join(' · ') : ', toutes cohérentes'), ko.length ? R.WARN : R.OK);
+  } catch (e) { check('Demandes d\'échange non vérifiables : ' + e.message, R.WARN); }
 }
 
 function diagnosticComplet() {
@@ -691,9 +804,12 @@ function diagnosticComplet() {
       /* (12/11/2026) Les récupérations de samedi, pour CHAQUE année suivie : avant, le
          contrôle portait sur la seule année active et ne tournait pour aucune. */
       _diagRecups_(y, check, info, R, R.WARN, true);
+      _diagCodesEtLignes_(y, check, info, R, R.ERR);
+      _diagRythme_(y, check, info, R);
     };
     auditGardesIntegrite(Y);
     if (rows(`GARDES_${N1}`) > 3) auditGardesIntegrite(N1);
+    _diagDemandes_(check, info, R);
 
     // ── 5ter. Indisponibilités : lignes orphelines ──
     hdr(`Indisponibilités ${Y}`);
@@ -1016,6 +1132,7 @@ function diagSentinelle() {
       lignes.push('── Planning ' + y + ' (jours à venir) ──');
       _diagIntegriteGardes_(y, check, info, R, null, true);
       _diagRecups_(y, check, info, R, R.ERR, false);
+      _diagCodesEtLignes_(y, check, info, R, R.ERR);
     });
   } catch (e) { check('Contrôle des données impossible : ' + e.message, R.WARN); }
   logAction('diagSentinelle — ' + (nbErr ? nbErr + ' ERREUR(S)' : 'RAS') + ' (' + ((Date.now() - t0) / 1000).toFixed(1) + ' s)');

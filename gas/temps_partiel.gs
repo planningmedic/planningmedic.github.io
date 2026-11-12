@@ -4,7 +4,7 @@
    quelles : aucune ligne de logique modifiée, seulement déplacée. Le routeur et
    ses aides (checkCode, _deny, _error, doGet/doPost) restent dans Indispos.gs.
    Un seul espace global dans Apps Script : rien à importer. */
-const GAS_VERSION_TP = '2026-11-10.1';   // (10/11/2026) chaque jour de TP posé, retiré, demandé ou tranché laisse une ligne dans l'onglet HISTORIQUE
+const GAS_VERSION_TP = '2026-11-12.1';   // (12/11/2026) plus aucun nom de personne dans le code (effectif présent) · (10/11/2026) chaque jour de TP posé, retiré, demandé ou tranché laisse une ligne dans l'onglet HISTORIQUE
 
 /* ── (POSE TP · 22/08/2026) PHASE DE POSE DES TEMPS PARTIELS — DÉDUITE, JAMAIS ÉCRITE ──
    Les jours de temps partiel se posent APRÈS la génération des gardes (décision
@@ -54,7 +54,7 @@ function _quotiteDe_(marId) {
 
 /* ── L'EFFECTIF PRÉSENT, CÔTÉ SERVEUR — réplique de _rPresents du générateur ──
    Même définition que generateur_gardes.gs (validée contre la ligne
-   « TOTAL PRESENTS » du planning du service) : tous les MAR actifs sauf DRUGE,
+   « TOTAL PRESENTS » du planning du service) : tous les MAR actifs,
    bornés par date_debut/date_fin ; absent = VAC/FORM/CL/TP/CTP/CP/A lu dans
    INDISPOS_{Y} (JAMAIS dans GARDES, qui écrit RG par-dessus TP — l.≈1535),
    semaine off du rythme 2/2, jour fixe tp_jours_fixes, et RG/R lus dans
@@ -69,7 +69,7 @@ function _tpMondePresence_(annee) {
   const ids = [];
   for (let r = 1; r < medData.length; r++) {
     const id = String(medData[r][COL_MED.ID]).trim();
-    if (!id || id === 'DRUGE') continue;                     // même exclusion que le générateur
+    if (!id) continue;
     if (String(medData[r][COL_MED.ACTIF]).trim().toUpperCase() !== 'O') continue;
     ids.push(id);
   }

@@ -4,7 +4,7 @@
    quelles : aucune ligne de logique modifiée, seulement déplacée. Le routeur et
    ses aides (checkCode, _deny, _error, doGet/doPost) restent dans Indispos.gs.
    Un seul espace global dans Apps Script : rien à importer. */
-const GAS_VERSION_GARDES = '2026-11-12.1';   // (12/11/2026) don d'un 18 h (don18Jour) : le receveur doit être libre ce jour-là, rien n'est écrasé · (11/11/2026) échange de gardes refusé : le motif nomme le MAR, le jour et la raison (garde, repos de garde, 18 h, récupération) au lieu de « un des médecins a déjà une garde » · (11/11/2026) don et échange : une absence (V, VM, VA, F, TP, CL, CTP, CP, A) confirmée par le MAR est écrasée par la garde et son repos (mod.ecraserAbsences), tracée dans l'historique · (11/11/2026) applyModification du comité : don et échange passent par appliquerGesteComite_ · (11/11/2026) échange de gardes : le repos d'arrivée n'écrase plus une absence, pas de garde la veille ni le lendemain · (11/11/2026) échange de deux 18 h (echange18Jours) · (11/11/2026) le comité pose un R (statut « R ») et le lien samedi → R se recolle · (10/11/2026) lotRolesVerifier / lotRolesAppliquer (inversion réa / mater par lot, depuis l'éditeur) · (10/11/2026) un échange, un don ou une modification republie et prévient (MAR et paie) pour l'année DE LA GARDE, plus l'année active · (10/11/2026) le suivi des gestes écrit dans son propre onglet TRACES, plus jamais dans HISTORIQUE (archive des gardes par année) · (10/11/2026) onglet de suivi (TP, modifications, échanges, lot de 18 h), jamais effacé · (10/11/2026) lot18hVerifier / lot18hAppliquer (réattribution de 18 h par lot, depuis l'éditeur) · (27/10/2026) VM/VA : bloquent un don/échange, comptent 0,5 jour au reliquat · (18/10/2026) action getPlanningPaie (vue des secrétaires de paie)
+const GAS_VERSION_GARDES = '2026-11-12.2';   // (12/11/2026) plus aucun nom de personne dans le code : l'exclusion d'une ligne MEDECINS par son nom (rotation des fêtes) est retirée, aucune ligne ne le portait · (12/11/2026) don d'un 18 h (don18Jour) : le receveur doit être libre ce jour-là, rien n'est écrasé · (11/11/2026) échange de gardes refusé : le motif nomme le MAR, le jour et la raison (garde, repos de garde, 18 h, récupération) au lieu de « un des médecins a déjà une garde » · (11/11/2026) don et échange : une absence (V, VM, VA, F, TP, CL, CTP, CP, A) confirmée par le MAR est écrasée par la garde et son repos (mod.ecraserAbsences), tracée dans l'historique · (11/11/2026) applyModification du comité : don et échange passent par appliquerGesteComite_ · (11/11/2026) échange de gardes : le repos d'arrivée n'écrase plus une absence, pas de garde la veille ni le lendemain · (11/11/2026) échange de deux 18 h (echange18Jours) · (11/11/2026) le comité pose un R (statut « R ») et le lien samedi → R se recolle · (10/11/2026) lotRolesVerifier / lotRolesAppliquer (inversion réa / mater par lot, depuis l'éditeur) · (10/11/2026) un échange, un don ou une modification republie et prévient (MAR et paie) pour l'année DE LA GARDE, plus l'année active · (10/11/2026) le suivi des gestes écrit dans son propre onglet TRACES, plus jamais dans HISTORIQUE (archive des gardes par année) · (10/11/2026) onglet de suivi (TP, modifications, échanges, lot de 18 h), jamais effacé · (10/11/2026) lot18hVerifier / lot18hAppliquer (réattribution de 18 h par lot, depuis l'éditeur) · (27/10/2026) VM/VA : bloquent un don/échange, comptent 0,5 jour au reliquat · (18/10/2026) action getPlanningPaie (vue des secrétaires de paie)
 
 // ── Sonde : les positions de STATS que code.gs lit à l'aveugle ──
 function _sondeStatsEntetes_(check, R, annee) {
@@ -985,7 +985,7 @@ function computeNoelAnHistorique(year) {
   if (med) {
     const md = _medecinsRows_();
     for (let r = 1; r < md.length; r++) {
-      const id = String(md[r][COL_MED.ID]).trim(); if (!id || id === 'DRUGE') continue;
+      const id = String(md[r][COL_MED.ID]).trim(); if (!id) continue;
       if (String(md[r][COL_MED.ACTIF]).trim().toUpperCase() !== 'O') continue;
       if (FLAGS.noGarde.has(id)) continue;
       if (FLAGS.souhaitPlafond.has(id)) continue;
@@ -1041,7 +1041,7 @@ function computeNoelAnEligibles(year, tous) {
   if (med) {
     const md = _medecinsRows_();
     for (let r=1;r<md.length;r++){
-      const id = String(md[r][COL_MED.ID]).trim(); if(!id || id==='DRUGE') continue;
+      const id = String(md[r][COL_MED.ID]).trim(); if(!id) continue;
       initMap[id] = String(md[r][COL_MED.INITIALES]||'').trim() || id;
       if (String(md[r][COL_MED.ACTIF]).trim().toUpperCase() !== 'O') continue;
       if (FLAGS.noGarde.has(id)) continue;

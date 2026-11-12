@@ -221,6 +221,27 @@ function bac() {
     ['journalAppliquer','miroirSyncComplet','miroirDocuments','expirerEchanges','runVeille','diagSentinelle'].forEach(n => propsVerts['BAT_' + n] = String(t - 60000));
     propsVerts['NOTIF_ACTIVE'] = 'N';
     const NJ = 364, ids = ['MAR01','MAR02','MAR03','MAR04','MAR05','MAR06'];
+    /* Le vrai socle de code.gs : calendrier, fériés, colonnes de MEDECINS, et les
+       deux tables de codes que le contrôle réutilise — pas des imitations. */
+    const codeGs = fs.readFileSync('../gas/code.gs', 'utf8');
+    const constante = n => { const m = codeGs.match(new RegExp('^const ' + n + ' = [\\s\\S]*?;\\s*$', 'm')); if (!m) throw new Error('constante introuvable : ' + n); return m[0].replace(/^const /, 'var '); };
+    const socle = c => {
+      ['getPremierJourPlanning', 'buildDateToCol', 'reconstruireDatesHeaders', 'getJoursFeries', '_medecinsRows_'].forEach(n => vm.runInContext(require('./stubs').extraireFonction('../gas/code.gs', n), c));
+      ['COL_MED', 'ABSENT_CODES', 'NOTIF_STATUTS'].forEach(n => vm.runInContext(constante(n), c));
+    };
+    const MOIS = ['Janvier','Février','Mars','Avril','Mai','Juin','Juillet','Août','Septembre','Octobre','Novembre','Décembre'];
+    const premierJour = y => { const c = vm.createContext({ Date }); vm.runInContext(require('./stubs').extraireFonction('../gas/code.gs', 'getPremierJourPlanning'), c); return c.getPremierJourPlanning(y); };
+    const p2 = n => String(n).padStart(2, '0');
+    const jourN = (y, j) => { const d = new Date(premierJour(y).getTime()); d.setDate(d.getDate() + j); return d; };
+    const dsN = (y, j) => { const d = jourN(y, j); return d.getFullYear() + '-' + p2(d.getMonth() + 1) + '-' + p2(d.getDate()); };
+    const indispos = (y, lignes) => {
+      const h = [0, 1, 2].map(() => new Array(NJ + 1).fill(''));
+      for (let j = 0; j < NJ; j++) { const d = jourN(y, j); if (j === 0 || d.getDate() === 1) h[0][1 + j] = MOIS[d.getMonth()] + (j === 0 ? ' ' + y : ''); h[2][1 + j] = d.getDate(); }
+      (lignes || ids).forEach(id => h.push([id].concat(new Array(NJ).fill(''))));
+      return h;
+    };
+    const medecins = extra => [['ID','NOM','INITIALES','ACTIF','QUOTITE','PCT_GARDES','CODE','EMAIL','DECT','DATE_DEBUT','DATE_FIN']]
+      .concat(ids.map(id => [id, id, id, 'O', 100, 100, '', '', '', '', ''])).concat(extra || []);
     const gardes = () => {
       const g = [0, 1, 2].map(() => new Array(NJ + 1).fill(''));   // trois lignes d'en-tête, à la largeur de l'année
       ids.forEach(id => g.push([id].concat(new Array(NJ).fill(''))));
@@ -234,17 +255,21 @@ function bac() {
       o = o || {};
       const feuilles = { 'CONFIG': [ ['CLE','VALEUR'], ['DIAG_EMAIL', 'chef@exemple.fr'] ] };
       feuilles['GARDES_' + annee] = o.gardes || gardes();
+      feuilles['MEDECINS'] = o.medecins || medecins();
+      if (o.indispos !== false) feuilles['INDISPOS_' + annee] = o.indispos || indispos(annee);
+      if (o.suivante) feuilles['INDISPOS_' + (annee + 1)] = indispos(annee + 1);
       if (o.suivante) feuilles['GARDES_' + (annee + 1)] = o.suivante;
       if (o.liens !== false) { feuilles['LIENS_R_' + annee] = [['SAMEDI','MED','R']]; feuilles['LIENS_R_' + (annee + 1)] = [['SAMEDI','MED','R']]; }
       const vus = [];
       const ctx = monter({ props: Object.assign({}, propsVerts), fetch: ghOK, feuilles, apres: c => {
         c.getGithubToken = () => 'jeton'; c.logAction = () => {}; c.getActiveYear = () => annee;
         /* le vrai calendrier du planning (code.gs), pas une imitation */
-        ['getPremierJourPlanning', 'buildDateToCol'].forEach(n => vm.runInContext(require('./stubs').extraireFonction('../gas/code.gs', n), c));
+        socle(c);
+        if (o.echanges) { c._echangesLignes_ = () => ({ lignes: o.echanges }); c._echangesMotifSansObjet_ = d => d.MOTIF || ''; c._recupsAujourdhui_ = () => '2099-01-01'; c._recupsContexte_ = () => ({}); }
         c.recupsReparer = (y, ecrire) => { vus.push([y, ecrire]); return { actions: (o.recups || {})[y] || [] }; };
       } });
       ctx.diagSentinelle();
-      return { mails: ctx._mails, vus };
+      return { mails: ctx._mails, vus, ctx };
     };
     let m = monde(2099);
     V('planning complet et récupérations à jour → AUCUN mail (le contrat tient)', m.mails.length === 0, m.mails.map(x => x.c));
@@ -252,7 +277,7 @@ function bac() {
       /* Garde-fou du test lui-même : « aucun mail » ne vaut que si le contrôle a
          réellement tourné (un contrôle en panne ne rend qu'un ⚠️, donc pas de mail). */
       const b = bac(); const f = { 'GARDES_2099': gardes() };
-      const cx = monter({ feuilles: f, apres: c => { ['getPremierJourPlanning', 'buildDateToCol'].forEach(n => vm.runInContext(require('./stubs').extraireFonction('../gas/code.gs', n), c)); } });
+      const cx = monter({ feuilles: f, apres: socle });
       cx._diagIntegriteGardes_(2099, b.check, b.info, b.R, null, true);
       V('le contrôle a bien tourné : 7 réponses, toutes ✅, aucune « impossible »', b.lignes.length === 7 && b.lignes.every(l => l.startsWith('✅')) && !b.lignes.some(l => l.includes('impossible')), b.lignes);
       V('…et il a vraiment lu les 364 jours du planning', Object.keys(cx.buildDateToCol(f['GARDES_2099'], 2099)).length === 364);
@@ -285,9 +310,77 @@ function bac() {
     m = monde(2099, { liens: false, recups: { 2099: [{ med: 'MAR02', samedi: '2099-05-09', quoi: 'pose' }] } });
     V('année sans suivi des récupérations → contrôle sans objet, le réparateur n\'est pas appelé', m.mails.length === 0 && m.vus.length === 0, m.vus);
 
+    console.log('— (12/11/2026) Morceau 3 : code inconnu, MAR sans ligne, 18 h, trois gardes en six jours, demandes —');
+    {
+      /* Garde-fou : les contrôles tournent vraiment dans ce monde (sinon tout « aucun mail » serait vide de sens). */
+      const b = bac(); const f = { 'GARDES_2099': gardes(), 'INDISPOS_2099': indispos(2099), 'MEDECINS': medecins() };
+      const cx = monter({ feuilles: f, apres: socle });
+      cx._diagCodesEtLignes_(2099, b.check, b.info, b.R, b.R.ERR);
+      V('monde sain : trois réponses, toutes ✅, rien d\'« invérifiable »', b.lignes.length === 3 && b.lignes.every(l => l.startsWith('✅')), b.lignes);
+      V('les codes connus viennent des tables du serveur (CTP et CP sont connus sans être recopiés)', cx._diagCodesConnus_().gardes.has('CTP') && cx._diagCodesConnus_().gardes.has('CP') && cx._diagCodesConnus_().indispos.has('SOUHAIT'));
+      V('l\'onglet des indisponibilités est bien daté sur toute l\'année, queue de janvier comprise', cx.reconstruireDatesHeaders(f['INDISPOS_2099'], 2099)[363] === dsN(2099, 363), cx.reconstruireDatesHeaders(f['INDISPOS_2099'], 2099)[363]);
+    }
+    /* Une case « FORM » dans les gardes : le code des indisponibilités, que le planning ne lit pas. */
+    let gx = gardes(); gx[3 + 1][1 + 200] = 'FORM';
+    m = monde(2099, { gardes: gx });
+    V('code inconnu dans une case À VENIR des gardes → UN mail : MAR, jour et code cités', m.mails.length === 1 && m.mails[0].c.includes('MAR02 ' + dsN(2099, 200) + ' « FORM »') && m.mails[0].c.includes('IGNORE'), m.mails.map(x => x.c.slice(-700)));
+    V('…avec le geste', m.mails.length === 1 && /\n→ LE GESTE : corriger la case/.test(m.mails[0].c));
+    gx = gardes(); gx[3 + 1][1 + 200] = 'FORM';
+    m = monde(2020, { gardes: gx });
+    V('le même code dans le PASSÉ → aucun mail', m.mails.length === 0, m.mails.map(x => x.c.slice(-500)));
+    let ix = indispos(2099); ix[3][1 + 30] = 'VAC'; ix[4][1 + 31] = 'SOUHAIT'; ix[5][1 + 32] = 'TPA'; ix[6][1 + 33] = 'INDISPO';
+    m = monde(2099, { indispos: ix });
+    V('les codes des indisponibilités (VAC, SOUHAIT, TPA, INDISPO) sont connus → aucun mail', m.mails.length === 0, m.mails.map(x => x.c.slice(-500)));
+    ix = indispos(2099); ix[3][1 + 30] = 'VACS';
+    m = monde(2099, { indispos: ix });
+    V('faute de frappe dans les indisponibilités → UN mail, onglet nommé', m.mails.length === 1 && m.mails[0].c.includes('« VACS » (indisponibilités)'), m.mails.map(x => x.c.slice(-500)));
+
+    /* Le cas vécu : un MAR actif, arrivé en cours d'année, sans ligne. */
+    m = monde(2099, { medecins: medecins([['MAR07', 'x', 'x', 'O', 100, 100, '', '', '', '2099-03-01', '']]) });
+    V('MAR actif sans ligne dans les gardes → UN mail qui nomme le MAR, avec le geste', m.mails.length === 1 && /❌ MARs actifs sans ligne dans les gardes 2099 : MAR07/.test(m.mails[0].c) && m.mails[0].c.includes('→ LE GESTE : ajouter la ligne du MAR dans GARDES_2099'), m.mails.map(x => x.c.slice(-600)));
+    m = monde(2099, { indispos: indispos(2099, ids.slice(0, 5)) });
+    V('ligne manquante dans les seules indisponibilités (arrivée en cours d\'année) → AUCUN mail', m.mails.length === 0, m.mails.map(x => x.c.slice(-500)));
+    {
+      const b = bac(); const cx = monter({ feuilles: { 'GARDES_2099': gardes(), 'INDISPOS_2099': indispos(2099, ids.slice(0, 5)), 'MEDECINS': medecins() }, apres: socle });
+      cx._diagCodesEtLignes_(2099, b.check, b.info, b.R, b.R.ERR);
+      V('…mais le rapport du lundi le mentionne en ⚠️, MAR cité', b.lignes.some(l => l.startsWith('⚠️') && l.includes('indisponibilités 2099 : MAR06')) && !b.lignes.some(l => l.startsWith('❌')), b.lignes);
+    }
+    m = monde(2099, { medecins: medecins([['MAR07', 'x', 'x', 'N', 100, 100, '', '', '', '', ''], ['MAR08', 'x', 'x', 'O', 100, 100, '', '', '', '', '2098-06-30'], ['MAR09', 'x', 'x', 'O', 100, 100, '', '', '', '2101-01-01', '']]) });
+    V('inactif, déjà parti, pas encore arrivé : aucune ligne attendue → aucun mail', m.mails.length === 0, m.mails.map(x => x.c.slice(-500)));
+
+    /* Rapport du lundi : vigilance, jamais d'alerte. */
+    {
+      const lundi = (g) => { const b = bac(); const cx = monter({ feuilles: { 'GARDES_2099': g, 'MEDECINS': medecins() }, apres: socle }); cx._diagRythme_(2099, b.check, b.info, b.R); return b.lignes; };
+      const c = vm.createContext({ Math, Date, String, Set }); vm.runInContext(require('./stubs').extraireFonction('../gas/code.gs', 'getJoursFeries'), c);
+      const jf = new Set([...c.getJoursFeries(2099), ...c.getJoursFeries(2100)]);
+      const ouvre = j => { const dow = jourN(2099, j).getDay(); return dow !== 0 && dow !== 6 && !jf.has(dsN(2099, j)); };
+      const g18 = gardes();
+      for (let j = 0; j < NJ; j++) if (ouvre(j)) g18[3 + ((j + 1) % 6)][1 + j] = '18';   // (j+1)%6 : ni de garde ni de repos ce jour-là
+      let l = lundi(g18);
+      V('18 h posé chaque jour ouvré (fériés exclus) → ✅', l[0].startsWith('✅') && l[0].includes('sans 18 h : aucun'), l[0]);
+      V('…et le monde contient bien des fériés en semaine (sinon l\'exclusion ne serait pas éprouvée)', [...jf].some(d => d.startsWith('2099') && [1, 2, 3, 4, 5].includes(new Date(d + 'T12:00:00').getDay())));
+      let j0 = 60; while (!ouvre(j0)) j0++;
+      g18[3 + ((j0 + 1) % 6)][1 + j0] = '';
+      l = lundi(g18);
+      V('un jour ouvré sans 18 h → ⚠️ (pas ❌), le jour cité', l[0].startsWith('⚠️') && l[0].includes(dsN(2099, j0)) && l[0].includes(' 1 →'), l[0]);
+      const serre = [0, 1, 2].map(() => new Array(NJ + 1).fill('')); ids.forEach(id => serre.push([id].concat(new Array(NJ).fill(''))));
+      [10, 12, 15].forEach(j => { serre[3][1 + j] = 'G'; }); [40, 43, 46].forEach(j => { serre[4][1 + j] = 'G2'; });
+      l = lundi(serre);
+      V('gardes à J, J+2, J+5 → ⚠️ « trois gardes en six jours », MAR cité', l[1].startsWith('⚠️') && l[1].includes('MAR01') && l[1].includes(' 1 →'), l[1]);
+      V('gardes à J, J+3, J+6 (sept jours) → pas signalé', !l[1].includes('MAR02'), l[1]);
+    }
+    {
+      const b = bac(); const cx = monter({ apres: c => { c._echangesLignes_ = () => ({ lignes: [{ ID: 'E1', ETAT: 'attente', ANNEE: 2099 }, { ID: 'E2', ETAT: 'attente', ANNEE: 2099, MOTIF: 'la garde est passée' }, { ID: 'E3', ETAT: 'acceptee', ANNEE: 2099, MOTIF: 'x' }] }); c._echangesMotifSansObjet_ = d => d.MOTIF || ''; c._recupsAujourdhui_ = () => '2099-01-01'; c._recupsContexte_ = () => ({}); } });
+      cx._diagDemandes_(b.check, b.info, b.R);
+      V('demande en attente sans objet → ⚠️ le lundi, la demande et son motif cités ; une demande close n\'est pas comptée', b.lignes.length === 1 && b.lignes[0].startsWith('⚠️') && b.lignes[0].includes('E2 (la garde est passée)') && b.lignes[0].includes(': 2 ') && !b.lignes[0].includes('E3'), b.lignes);
+    }
+    m = monde(2099, { echanges: [{ ID: 'E2', ETAT: 'attente', ANNEE: 2099, MOTIF: 'la garde est passée' }] });
+    V('…et elle ne déclenche JAMAIS le mail du matin', m.mails.length === 0, m.mails.map(x => x.c.slice(-400)));
+
     const src3 = fs.readFileSync('../gas/diagnostic.gs', 'utf8');
     V('rapport du lundi : seuls les placements d\'une année ANTÉRIEURE sont un reliquat', src3.includes('Number(ds.slice(0, 4)) < Y') && !src3.includes("!ds.startsWith(String(Y) + '-')) ovHorsAnnee++"));
     V('rapport du lundi : les récupérations passent par le même contrôle, pour chaque année', src3.includes('_diagRecups_(y, check, info, R, R.WARN, true)'));
+    V('rapport du lundi : codes, lignes, 18 h, rythme pour chaque année ; demandes une fois', src3.includes('_diagCodesEtLignes_(y, check, info, R, R.ERR);\n      _diagRythme_(y, check, info, R);') && src3.includes('_diagDemandes_(check, info, R);'));
   }
 
   console.log('— Les intégrations réelles (les stubs avaient masqué deux absences) —');

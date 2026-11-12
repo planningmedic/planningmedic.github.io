@@ -125,7 +125,7 @@ function generateGardes(year){
   const allDoctors=[],gardeDoctors=[],pct={},quot={};
   for(let r=1;r<medData.length;r++){
     const id=String(medData[r][0]).trim();
-    if(!id||id==='DRUGE') continue;
+    if(!id) continue;
     allDoctors.push(id);pct[id]=Number(medData[r][5])||100;quot[id]=Number(medData[r][4])||100;
     if(!NO_GARDE.has(id)) gardeDoctors.push(id);
     if(!indispos[id]) indispos[id]={};
