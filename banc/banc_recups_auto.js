@@ -295,6 +295,100 @@ console.log('\n═══ 8. Échanger un 18 h contre un 18 h (demande de l\'équ
   V('jamais un 18 h sur une garde : refusé', /ALPHA n'est pas libre le 2027-03-17 \(G\)/.test(err), err);
 }
 
+console.log('\n═══ 8 bis. Donner un 18 h (demande de l\'équipe, 12/11/2026) ═══');
+{
+  const b = monde();
+  b.poser('ALPHA', '2027-03-10', '18');
+  b.notifs.length = 0;
+  const r = b.run(`creerEchange(${JSON.stringify(user('ALPHA'))}, { type:'don18', year:2027, date:'2027-03-10', receveur:'BRAVO' })`);
+  V('don de 18 h : la proposition part, sans seconde date', !!r.id);
+  V('don de 18 h : le collègue lit « vous propose son 18 h du … »', b.notifs.some(n => n.cible.id === 'BRAVO' && n.titre === 'Proposition de 18 h' && /vous propose son 18 h du 10\/03\/2027\./.test(n.corps)), b.notifs);
+  V('don de 18 h : rien n\'est écrit avant l\'acceptation', String(b.lire('ALPHA', '2027-03-10')) === '18' && b.lire('BRAVO', '2027-03-10') === '');
+  let err = '';
+  try { b.run(`creerEchange(${JSON.stringify(user('ALPHA'))}, { type:'don18', year:2027, date:'2027-03-10', receveur:'BRAVO' })`); } catch (e) { err = e.message; }
+  V('don de 18 h : le même 18 h ne se propose pas deux fois au même collègue', /Vous avez déjà proposé ce 18 h/.test(err), err);
+  b.notifs.length = 0;
+  const rep = b.run(`repondreEchange(${JSON.stringify(user('BRAVO'))}, { id:${JSON.stringify(r.id)}, reponse:'accepter' })`);
+  V('don de 18 h accepté : le 18 h passe au receveur, le donneur est libre', rep.etat === 'acceptee'
+    && b.lire('ALPHA', '2027-03-10') === '' && String(b.lire('BRAVO', '2027-03-10')) === '18', rep);
+  V('don de 18 h : les deux sont prévenus (« Le 18 h du … passe du … au … »)', b.notifs.filter(n => /Le 18 h du 10\/03\/2027 passe du Dr Alpha au Dr Bravo\./.test(n.corps)).length === 2, b.notifs);
+  V('don de 18 h : aucun « 18 h perdu » ni report parasite', !b.journal.some(m => /perdu par|repris par l'autre MAR/.test(m)), b.journal.slice(-5));
+}
+{
+  const b = monde();
+  b.poser('ALPHA', '2027-03-10', '18'); b.poser('BRAVO', '2027-03-10', 'V');
+  let err = '';
+  try { b.run(`creerEchange(${JSON.stringify(user('ALPHA'))}, { type:'don18', year:2027, date:'2027-03-10', receveur:'BRAVO' })`); } catch (e) { err = e.message; }
+  V('don de 18 h refusé dès l\'envoi si le collègue est en vacances ce jour-là', /BRAVO n'est pas libre le 2027-03-10 \(V\)/.test(err), err);
+  b.poser('BRAVO', '2027-03-10', ''); b.garde('BRAVO', '2027-03-10');
+  err = '';
+  try { b.run(`creerEchange(${JSON.stringify(user('ALPHA'))}, { type:'don18', year:2027, date:'2027-03-10', receveur:'BRAVO' })`); } catch (e) { err = e.message; }
+  V('don de 18 h refusé si le collègue est de garde ce jour-là', /BRAVO n'est pas libre le 2027-03-10 \(G2?\)/.test(err), err);
+  V('…et rien n\'est créé', !b.cl.getSheetByName('ECHANGES') || b.cl.getSheetByName('ECHANGES').lignes.slice(1).filter(l => l[0]).length === 0);
+  err = '';
+  try { b.run(`creerEchange(${JSON.stringify(user('BRAVO'))}, { type:'don18', year:2027, date:'2027-03-11', receveur:'ALPHA' })`); } catch (e) { err = e.message; }
+  V('don de 18 h refusé si la date n\'est pas un 18 h du demandeur', /BRAVO n'est pas de 18 h le 2027-03-11/.test(err), err);
+}
+{
+  // Le planning bouge entre la proposition et la réponse : la demande se ferme seule.
+  const b = monde();
+  b.poser('ALPHA', '2027-03-10', '18');
+  const r = b.run(`creerEchange(${JSON.stringify(user('ALPHA'))}, { type:'don18', year:2027, date:'2027-03-10', receveur:'BRAVO' })`);
+  b.poser('ALPHA', '2027-03-10', '');
+  b.run('_echangesSansObjet_()');
+  const l = b.cl.getSheetByName('ECHANGES').lignes.slice(1).find(x => x[0] === r.id);
+  V('don de 18 h : le donneur n\'a plus ce 18 h → demande « sans objet », motif « n\'a plus le 18 h »', !!l && l.indexOf('sansobjet') > -1 && l.some(c => /n'a plus le 18 h du 10\/03\/2027/.test(String(c))), l);
+}
+
+console.log('\n═══ 8 ter. Deux 18 h de suite ou la même semaine : dit au MAR, qui confirme (12/11/2026) ═══');
+{
+  const creer = (b, qui, p) => { try { return { r: b.run(`creerEchange(${JSON.stringify(user(qui))}, ${JSON.stringify(p)})`) }; } catch (e) { return { q: e.message }; } };
+  const repondre = (b, qui, p) => { try { return { r: b.run(`repondreEchange(${JSON.stringify(user(qui))}, ${JSON.stringify(p)})`) }; } catch (e) { return { q: e.message }; } };
+  // 2027-03-08 est un lundi. A. DON : le receveur est déjà de 18 h la veille.
+  let b = monde();
+  b.poser('ALPHA', '2027-03-10', '18'); b.poser('BRAVO', '2027-03-09', '18');
+  b.notifs.length = 0;
+  let c = creer(b, 'ALPHA', { type:'don18', year:2027, date:'2027-03-10', receveur:'BRAVO' });
+  V('A. la proposition part (le donneur n\'est pas concerné)', !!(c.r && c.r.id), c);
+  V('A. la notification prévient le receveur : « deux 18 h de suite »', b.notifs.some(n => n.cible.id === 'BRAVO' && /Attention, avec le 18 h du 10\/03\/2027 vous ferez deux 18 h de suite \(vous êtes déjà de 18 h le 09\/03\/2027\)\./.test(n.corps)), b.notifs);
+  let a = repondre(b, 'BRAVO', { id:c.r.id, reponse:'accepter' });
+  V('A. accepter sans confirmer → la question [18H]', /^\[18H\] Attention, avec le 18 h du 10\/03\/2027 vous ferez deux 18 h de suite \(vous êtes déjà de 18 h le 09\/03\/2027\)\. Vous confirmez \?$/.test(a.q || ''), a);
+  V('A. rien n\'est écrit, la demande attend toujours', String(b.lire('ALPHA', '2027-03-10')) === '18' && b.lire('BRAVO', '2027-03-10') === ''
+    && b.cl.getSheetByName('ECHANGES').lignes.slice(1).some(l => l[0] === c.r.id && l.indexOf('attente') > -1));
+  a = repondre(b, 'BRAVO', { id:c.r.id, reponse:'accepter', accepte18h:true });
+  V('A. confirmé : le 18 h passe, jamais bloquant', a.r && a.r.etat === 'acceptee' && String(b.lire('BRAVO', '2027-03-10')) === '18', a);
+  V('A. le suivi de la demande garde la trace', b.cl.getSheetByName('ECHANGES').lignes.slice(1).some(l => l.some(x => /⚠ deux 18 h de suite pour BRAVO \(2027-03-09, 2027-03-10\)/.test(String(x)))), b.cl.getSheetByName('ECHANGES').lignes.slice(1));
+
+  // B. DON : même semaine, pas de suite (lundi et jeudi).
+  b = monde();
+  b.poser('ALPHA', '2027-03-11', '18'); b.poser('BRAVO', '2027-03-08', '18');
+  c = creer(b, 'ALPHA', { type:'don18', year:2027, date:'2027-03-11', receveur:'BRAVO' });
+  a = repondre(b, 'BRAVO', { id:c.r.id, reponse:'accepter' });
+  V('B. même semaine → « deux 18 h la même semaine »', /^\[18H\] Attention, avec le 18 h du 11\/03\/2027 vous ferez deux 18 h la même semaine \(vous êtes déjà de 18 h le 08\/03\/2027\)/.test(a.q || ''), a);
+
+  // C. CONTRE-PREUVE : un 18 h la semaine d'avant (vendredi → lundi) ne déclenche rien.
+  b = monde();
+  b.poser('ALPHA', '2027-03-15', '18'); b.poser('BRAVO', '2027-03-12', '18');
+  c = creer(b, 'ALPHA', { type:'don18', year:2027, date:'2027-03-15', receveur:'BRAVO' });
+  a = repondre(b, 'BRAVO', { id:c.r.id, reponse:'accepter' });
+  V('C. CONTRE-PREUVE : vendredi puis lundi suivant → aucune question', a.r && a.r.etat === 'acceptee', a);
+
+  // D. ÉCHANGE : le demandeur est interrogé à l'envoi ; le 18 h qu'il rend ne compte pas.
+  b = monde();
+  b.poser('ALPHA', '2027-03-09', '18'); b.poser('ALPHA', '2027-03-18', '18'); b.poser('BRAVO', '2027-03-17', '18');
+  c = creer(b, 'ALPHA', { type:'echange18', year:2027, date:'2027-03-09', date2:'2027-03-17', receveur:'BRAVO' });
+  V('D. échange : le demandeur est interrogé avant l\'envoi, rien ne part', /^\[18H\] Attention, avec le 18 h du 17\/03\/2027 vous ferez deux 18 h de suite \(vous êtes déjà de 18 h le 18\/03\/2027\)/.test(c.q || '')
+    && (!b.cl.getSheetByName('ECHANGES') || b.cl.getSheetByName('ECHANGES').lignes.slice(1).filter(l => l[0]).length === 0), c);
+  c = creer(b, 'ALPHA', { type:'echange18', year:2027, date:'2027-03-09', date2:'2027-03-17', receveur:'BRAVO', accepte18h:true });
+  V('D. confirmé : la proposition part', !!(c.r && c.r.id), c);
+  b = monde();
+  b.poser('ALPHA', '2027-03-09', '18'); b.poser('BRAVO', '2027-03-10', '18');
+  c = creer(b, 'ALPHA', { type:'echange18', year:2027, date:'2027-03-09', date2:'2027-03-10', receveur:'BRAVO' });
+  V('D. CONTRE-PREUVE : le 18 h rendu dans l\'échange (la veille) ne compte pas', !!(c.r && c.r.id), c);
+  a = repondre(b, 'BRAVO', { id:c.r.id, reponse:'accepter' });
+  V('D. …ni pour le receveur', a.r && a.r.etat === 'acceptee', a);
+}
+
 console.log('\n═══ 9. Les 18 h visibles dans « Mes gardes » (11/11/2026) ═══');
 {
   const IDX = path.join(__dirname, '..', 'index.html');
@@ -449,7 +543,10 @@ console.log('\n═══ 6. Les pages ═══');
   V('portail : un refus [18] affiche l\'avertissement et demande la confirmation', /\/\^\\\[18\\\] \/\.test\(r\.error/.test(idx) && /Confirmer : je ferai ce 18 h/.test(idx));
   V('portail : la confirmation part avec la demande (accepte18)', /if \(ECH_PROP\.ok18\) charge\.accepte18 = true;/.test(idx));
   V('portail : changer de garde ou de collègue redemande la confirmation', /ECH_PROP\.ok18 = false;/.test(idx));
-  V('portail : mes 18 h sont proposables, échangés contre un 18 h du collègue', /st==='18'\) && m\.days\[i\]/.test(idx) && /function _ech18De\(/.test(idx) && /ECH_PROP\.type = 'echange18'/.test(idx) && /Contre son 18 h du/.test(idx));
+  V('portail : mes 18 h sont proposables, échangés contre un 18 h du collègue', /st==='18'\) && m\.days\[i\]/.test(idx) && /function _ech18De\(/.test(idx) && /echanger \? 'echange18' : 'don18'/.test(idx) && /Contre son 18 h du/.test(idx));
+  V('portail : la question [18H] est lue en proposant et en acceptant, le bouton devient « Confirmer : je prends ce 18 h »', (idx.match(/\/\^\\\[18H\\\] \/\.test\(r\.error/g) || []).length === 2 && (idx.match(/Confirmer : je prends ce 18 h/g) || []).length === 2
+    && /if \(ECH_PROP\.ok18h\) charge\.accepte18h = true;/.test(idx) && /if \(confirme18h === true\) charge\.accepte18h = true;/.test(idx) && /ECH_PROP\.ok18h = false;/.test(idx));
+  V('portail : la liste affiche « Don de 18 h »', /e\.type==='don18' \? 'Don de 18 h — '/.test(idx));
   V('portail : la liste affiche « Échange de 18 h »', /e\.type==='echange18' \? 'Échange de 18 h — '/.test(idx));
   V('Réparer demande deux appuis et envoie l\'année', /deuxAppuis\(\$\('btnRecRep'\)/.test(m) && /action:'recupsReparer', appliquer: true, year: y/.test(m));
 }

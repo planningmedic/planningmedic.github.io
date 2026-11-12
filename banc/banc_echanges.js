@@ -932,6 +932,17 @@ console.log('\n═══ RÉA 1 · une garde prise dans SA semaine Réa 1 est di
   r = creer(b, 'ALPHA', { type:'echange18', year:2027, date:'2027-02-10', date2:'2027-01-22', receveur:'BRAVO', accepteRea1:true });
   V('D. confirmé : la proposition part', !!r.id);
 
+  // D bis. DON DE 18 h (12/11/2026) : le receveur le prendrait dans sa semaine Réa 1.
+  b = prep();
+  b.poser('ALPHA', MAR_, '18');
+  r = creer(b, 'ALPHA', { type:'don18', year:2027, date:MAR_, receveur:'BRAVO' });
+  V('D bis. don de 18 h : la proposition part, le receveur est prévenu de sa semaine Réa 1', !!r.id
+    && /Attention, le 18 h du 12\/01\/2027 tombe dans votre semaine Réa 1/.test(b.notifs[b.notifs.length - 1].corps), b.notifs[b.notifs.length - 1].corps);
+  q = null; try { repondre(b, 'BRAVO', { id:r.id, reponse:'accepter' }); } catch (e) { q = e.message; }
+  V('D bis. accepter sans confirmer → la question [REA1], rien d\'écrit', /^\[REA1\] Attention, le 18 h du 12\/01\/2027 tombe dans votre semaine Réa 1/.test(q || '') && String(b.lire('ALPHA', MAR_)) === '18', q);
+  rep = repondre(b, 'BRAVO', { id:r.id, reponse:'accepter', accepteRea1:true });
+  V('D bis. confirmé : le 18 h passe au receveur', rep.etat === 'acceptee' && String(b.lire('BRAVO', MAR_)) === '18' && b.lire('ALPHA', MAR_) === '', rep);
+
   // E. DON : le 18 h du receveur passerait au donneur, dans la semaine Réa 1 du donneur.
   b = prep();
   b.poser('ALPHA', '2027-01-22', 'G'); b.poser('ALPHA', '2027-01-23', 'RG');   // vendredi de sa semaine : permis

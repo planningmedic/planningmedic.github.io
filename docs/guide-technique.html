@@ -1926,7 +1926,12 @@ rien ne se passe.</p>
 donneur n'a pas confirmé (<code>accepte18</code>) ; à l'acceptation, le 18 h passe au donneur, libéré
 ce jour-là. Un 18 h écrasé par un échange passe de même à l'autre MAR s'il est libre. Les MAR peuvent
 aussi échanger <b>un 18 h contre un 18 h</b> (type <code>echange18</code>, chacun libre le jour qu'il
-reçoit). Dans un échange de gardes, le repos d'arrivée ne peut tomber ni sur une absence ni à côté
+reçoit) et, depuis le 12/11/2026, <b>donner un 18 h</b> (type <code>don18</code>, modification
+<code>don18Jour</code>) : le receveur doit avoir la case vide ce jour-là, rien n'est écrasé, aucun
+report de 18 h ni de récupération n'est joué. Un 18 h reçu (don ou échange) la veille, le lendemain
+ou la même semaine (lundi → dimanche) qu'un autre 18 h du même MAR est dit à celui qui le reçoit,
+qui confirme (<code>_echanges18Proches_</code>, préfixe <code>[18H]</code>, <code>accepte18h</code>) :
+jamais bloquant, trace dans INFO. La semaine Réa 1 vaut aussi pour le don de 18 h. Dans un échange de gardes, le repos d'arrivée ne peut tomber ni sur une absence ni à côté
 d'une autre garde.</p>
 
 <h3>Les notifications : ciblées, avec une pastille unifiée</h3>

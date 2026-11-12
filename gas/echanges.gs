@@ -42,7 +42,7 @@
    depuis l'éditeur : installerDeclencheurEchanges().
    ═══════════════════════════════════════════════════════════════════════ */
 
-const GAS_VERSION_ECHANGES = '2026-11-12.2';   // (12/11/2026) semaine Réa 1 : une garde ou un 18 h pris dans sa propre semaine Réa 1 est dit au MAR, qui confirme ([REA1], accepteRea1) ; le comité en est averti dans les suites de son geste · (12/11/2026) demandes « sans objet » fermées toutes seules quand la garde a changé de mains ou est passée (_echangesSansObjet_), doublon refusé à l'envoi, garde passée refusée à l'envoi et à l'acceptation · (11/11/2026) échange samedi ↔ samedi : les R gardent leur date, les liens LIENS_R suivent le samedi tenu ; « Réparer » recolle de même un échange passé au lieu de déplacer les R · (11/11/2026) annulerEchange : le demandeur annule sa proposition en attente, le collègue est prévenu · (11/11/2026) don et échange sur un jour d'absence : le MAR concerné confirme ([ABS], accepteAbsence) et ses jours d'absence sont écrasés par la garde et son repos · (11/11/2026) gestes du comité (don, échange) : mêmes suites que entre MAR (_gesteSuites_, appliquerGesteComite_) · (11/11/2026) échange de deux 18 h entre MAR (type echange18) · (11/11/2026) un 18 h écrasé par un don passe au donneur, prévenu avant d'envoyer (accepte18) · (11/11/2026) récupérations automatiques : R neuf quand il ne peut pas suivre son samedi, R écrasé reposé, bouton Réparer (recupsReparer), lien recollé à la pose manuelle · (10/11/2026) l'historique dit qui a accepté (onglet HISTORIQUE)
+const GAS_VERSION_ECHANGES = '2026-11-12.3';   // (12/11/2026) don d'un 18 h entre MAR (type don18, demande de l'équipe) : le receveur doit être libre ce jour-là ; 18 h reçu la veille, le lendemain ou la même semaine qu'un autre 18 h : dit au MAR, qui confirme ([18H], accepte18h) · (12/11/2026) semaine Réa 1 : une garde ou un 18 h pris dans sa propre semaine Réa 1 est dit au MAR, qui confirme ([REA1], accepteRea1) ; le comité en est averti dans les suites de son geste · (12/11/2026) demandes « sans objet » fermées toutes seules quand la garde a changé de mains ou est passée (_echangesSansObjet_), doublon refusé à l'envoi, garde passée refusée à l'envoi et à l'acceptation · (11/11/2026) échange samedi ↔ samedi : les R gardent leur date, les liens LIENS_R suivent le samedi tenu ; « Réparer » recolle de même un échange passé au lieu de déplacer les R · (11/11/2026) annulerEchange : le demandeur annule sa proposition en attente, le collègue est prévenu · (11/11/2026) don et échange sur un jour d'absence : le MAR concerné confirme ([ABS], accepteAbsence) et ses jours d'absence sont écrasés par la garde et son repos · (11/11/2026) gestes du comité (don, échange) : mêmes suites que entre MAR (_gesteSuites_, appliquerGesteComite_) · (11/11/2026) échange de deux 18 h entre MAR (type echange18) · (11/11/2026) un 18 h écrasé par un don passe au donneur, prévenu avant d'envoyer (accepte18) · (11/11/2026) récupérations automatiques : R neuf quand il ne peut pas suivre son samedi, R écrasé reposé, bouton Réparer (recupsReparer), lien recollé à la pose manuelle · (10/11/2026) l'historique dit qui a accepté (onglet HISTORIQUE)
 
 const ECHANGES_ONGLET = 'ECHANGES';
 const ECHANGES_ENTETE = ['ID', 'CREE_LE', 'TYPE', 'ANNEE', 'DATE', 'DATE2',
@@ -179,6 +179,11 @@ function _echangesDr_(id) {
   return titre + brut.charAt(0).toUpperCase() + brut.slice(1).toLowerCase();
 }
 
+/* (12/11/2026) Deux familles de demandes : un DON n'a qu'une date (garde ou
+   18 h), un échange en a deux ; un geste « 18 » porte sur des 18 h. */
+function _echangesEstDon_(type) { return String(type) === 'don' || String(type) === 'don18'; }
+function _echangesEst18_(type)  { return String(type) === 'echange18' || String(type) === 'don18'; }
+
 function _echangesEstSamedi_(date) {
   return new Date(date + 'T12:00:00').getDay() === 6;
 }
@@ -188,6 +193,10 @@ function _echangesEstSamedi_(date) {
 function _echangesVersMod_(d) {
   if (d.TYPE === 'don') {
     return { type: 'donGarde', year: Number(d.ANNEE), date: d.DATE,
+             doctorId: d.DEMANDEUR, doctorId2: d.RECEVEUR };
+  }
+  if (d.TYPE === 'don18') {   // (12/11/2026) un 18 h donné
+    return { type: 'don18Jour', year: Number(d.ANNEE), date: d.DATE,
              doctorId: d.DEMANDEUR, doctorId2: d.RECEVEUR };
   }
   if (d.TYPE === 'echange18') {   // (11/11/2026) deux 18 h échangés
@@ -294,6 +303,8 @@ function _echangesRea1Prises_(d, menaces18) {
     prises = [{ who: rec, jour: d.DATE, quoi: 'garde' }, { who: dem, jour: d.DATE2, quoi: 'garde' }];
   } else if (d.TYPE === 'echange18') {
     prises = [{ who: rec, jour: d.DATE, quoi: '18' }, { who: dem, jour: d.DATE2, quoi: '18' }];
+  } else if (d.TYPE === 'don18') {   // (12/11/2026) un 18 h donné : seul le receveur prend quelque chose
+    prises = [{ who: rec, jour: d.DATE, quoi: '18' }];
   }
   return prises.filter(function (x) { x.lundi = _echangesRea1Lundi_(x.who, x.jour, x.quoi); return !!x.lundi; });
 }
@@ -311,8 +322,52 @@ function _echangesTraceRea1_(x) {
   return '⚠ ' + (x.quoi === '18' ? '18 h' : 'garde') + ' du ' + x.jour + ' en semaine Réa 1 de ' + x.who;
 }
 
+/* ── (12/11/2026) DEUX 18 H RAPPROCHÉS : DIT AU MAR, JAMAIS BLOQUANT ────
+   Décision du responsable. Le générateur ne pose jamais deux 18 h de suite ni
+   deux 18 h la même semaine (lundi → dimanche) au même MAR. Un don ou un
+   échange de 18 h peut le faire : celui qui reçoit le 18 h le lit et confirme,
+   ou renonce. Le demandeur d'un échange à l'envoi, le receveur à l'acceptation ;
+   la notification de proposition le dit déjà. Préfixe [18H], renvoi accepte18h.
+   Le 18 h qu'on rend dans le même geste (échange) ne compte pas. */
+function _echanges18Proches_(d) {
+  const dem = String(d.DEMANDEUR), rec = String(d.RECEVEUR);
+  let prises = [];
+  if (d.TYPE === 'don18') prises = [{ who: rec, jour: String(d.DATE), sauf: '' }];
+  else if (d.TYPE === 'echange18') prises = [{ who: rec, jour: String(d.DATE), sauf: String(d.DATE2) },
+                                             { who: dem, jour: String(d.DATE2), sauf: String(d.DATE) }];
+  if (!prises.length) return [];
+  let cx;
+  try { cx = _recupsContexte_(Number(d.ANNEE)); } catch (e) { return []; }
+  const a18 = function (id, ds) { return _echanges18Code_(_recupsCase_(cx, id, ds)) === '18'; };
+  return prises.filter(function (x) {
+    if (!/^\d{4}-\d{2}-\d{2}$/.test(x.jour)) return false;
+    x.suite = [_recupsDecale_(x.jour, -1), _recupsDecale_(x.jour, 1)].filter(function (j) { return j !== x.sauf && a18(x.who, j); });
+    const lundi = _recupsDecale_(x.jour, -((_recupsDow_(x.jour) + 6) % 7));
+    x.semaine = [];
+    for (let k = 0; k <= 6; k++) {
+      const j = _recupsDecale_(lundi, k);
+      if (j !== x.jour && j !== x.sauf && x.suite.indexOf(j) < 0 && a18(x.who, j)) x.semaine.push(j);
+    }
+    return x.suite.length > 0 || x.semaine.length > 0;
+  });
+}
+function _echangesTexte18Proches_(prises) {
+  return prises.map(function (x) {
+    const autres = x.suite.length ? x.suite : x.semaine;
+    return 'avec le 18 h du ' + _echangesJoli_(x.jour) + ' vous ferez deux 18 h '
+      + (x.suite.length ? 'de suite' : 'la même semaine')
+      + ' (vous êtes déjà de 18 h le ' + autres.map(_echangesJoli_).join(' et le ') + ')';
+  }).join(' et ');
+}
+function _echangesQuestion18Proches_(prises) {
+  return '[18H] Attention, ' + _echangesTexte18Proches_(prises) + '. Vous confirmez ?';
+}
+function _echangesTrace18Proches_(x) {
+  return '⚠ deux 18 h ' + (x.suite.length ? 'de suite' : 'la même semaine') + ' pour ' + x.who + ' (' + [x.jour].concat(x.suite.length ? x.suite : x.semaine).sort().join(', ') + ')';
+}
+
 /* ── 1. CRÉER ───────────────────────────────────────────────────────────
-   p = { type:'don'|'echange', year, date, date2?, receveur }
+   p = { type:'don'|'don18'|'echange'|'echange18', year, date, date2?, receveur }
    Le demandeur est user.id, point. Les contrôles d'applyModification sont
    joués en dryRun : un refus est renvoyé TOUT DE SUITE, rien n'est écrit. */
 function creerEchange(user, p) {
@@ -322,11 +377,11 @@ function creerEchange(user, p) {
   const date2 = String(p.date2 || '').trim();
   const receveur = String(p.receveur || '').trim();
 
-  if (type !== 'don' && type !== 'echange' && type !== 'echange18') throw new Error('Type de demande inconnu');
+  if (type !== 'don' && type !== 'don18' && type !== 'echange' && type !== 'echange18') throw new Error('Type de demande inconnu');
   if (!/^\d{4}-\d{2}-\d{2}$/.test(date)) throw new Error('Date invalide');
   if ((type === 'echange' || type === 'echange18') && !/^\d{4}-\d{2}-\d{2}$/.test(date2)) throw new Error('Seconde date invalide');
   if (!receveur) throw new Error('Destinataire absent');
-  if (receveur === user.id) throw new Error('On ne se propose pas une garde à soi-même');
+  if (receveur === user.id) throw new Error('On ne se propose pas ' + (_echangesEst18_(type) ? 'un 18 h' : 'une garde') + ' à soi-même');
   /* Circuit fermé (avant ouvrirEchanges) : le RECEVEUR aussi doit être
      autorisé — sinon il recevrait une notification pour un écran qu'il ne
      voit pas. Après ouverture, ce contrôle laisse tout passer. */
@@ -334,13 +389,13 @@ function creerEchange(user, p) {
     throw new Error('Les échanges ne sont pas encore ouverts à ' + receveur);
   }
 
-  const demande = { TYPE: type, ANNEE: year, DATE: date, DATE2: type !== 'don' ? date2 : '',
+  const demande = { TYPE: type, ANNEE: year, DATE: date, DATE2: _echangesEstDon_(type) ? '' : date2,
                     DEMANDEUR: user.id, RECEVEUR: receveur };
   /* (12/11/2026 — diagnostic du 11/11) Une garde déjà passée ne se propose
      plus : le planning du passé se réécrivait et la paie recevait un mail.
      Le jour même reste permis. */
   const passee = _echangesPassee_(demande, _recupsAujourdhui_());
-  if (passee) throw new Error(passee + ' : ' + (type === 'echange18' ? 'il' : 'elle') + ' ne peut plus être proposé' + (type === 'echange18' ? '' : 'e') + '.');
+  if (passee) throw new Error(passee + ' : ' + (_echangesEst18_(type) ? 'il' : 'elle') + ' ne peut plus être proposé' + (_echangesEst18_(type) ? '' : 'e') + '.');
   /* (12/11/2026 — vu dans le classeur réel) La même garde proposée deux fois
      au même collègue : deux demandes en attente, dont une promise à
      « impossible ». Proposer la même garde à un AUTRE collègue reste permis. */
@@ -348,7 +403,7 @@ function creerEchange(user, p) {
     && String(l.TYPE) === type && Number(l.ANNEE) === year && String(l.DATE) === date
     && String(l.DATE2 || '') === demande.DATE2
     && String(l.DEMANDEUR) === user.id && String(l.RECEVEUR) === receveur);
-  if (jumelle) throw new Error('Vous avez déjà proposé ' + (type === 'echange18' ? 'ce 18 h' : 'cette garde')
+  if (jumelle) throw new Error('Vous avez déjà proposé ' + (_echangesEst18_(type) ? 'ce 18 h' : 'cette garde')
     + ' au ' + _echangesDr_(receveur) + ' : la demande attend sa réponse.');
   // Contrôles joués DÈS LA CRÉATION (décision du 11/08) : mêmes juges que
   // l'écriture réelle, aucune duplication. Lève en cas de refus.
@@ -376,6 +431,11 @@ function creerEchange(user, p) {
   const rea1Moi = rea1.filter(x => x.who === String(user.id)), rea1Lui = rea1.filter(x => x.who === receveur);
   if (rea1Moi.length && p.accepteRea1 !== true) throw new Error(_echangesQuestionRea1_(rea1Moi));
 
+  /* (12/11/2026) Deux 18 h de suite ou la même semaine : même principe. */
+  const proches = _echanges18Proches_(demande);
+  const prochesMoi = proches.filter(x => x.who === String(user.id)), prochesLui = proches.filter(x => x.who === receveur);
+  if (prochesMoi.length && p.accepte18h !== true) throw new Error(_echangesQuestion18Proches_(prochesMoi));
+
   const id = 'E' + Date.now() + '-' + Math.floor(Math.random() * 1000);
   const sh = _echangesFeuille_();
   const ligne = sh.getLastRow() + 1;
@@ -388,8 +448,10 @@ function creerEchange(user, p) {
 
   _echangesVersKV_();
   notifierPush_(
-    type === 'don' ? 'Proposition de garde' : type === 'echange18' ? 'Proposition d\'échange de 18 h' : 'Proposition d\'échange',
-    (type === 'don'
+    type === 'don' ? 'Proposition de garde' : type === 'don18' ? 'Proposition de 18 h' : type === 'echange18' ? 'Proposition d\'échange de 18 h' : 'Proposition d\'échange',
+    (type === 'don18'
+      ? _echangesDr_(user.id) + ' vous propose son 18 h du ' + _echangesJoli_(date) + '.'
+      : type === 'don'
       ? _echangesDr_(user.id) + ' vous propose sa garde du ' + _echangesJoli_(date) + '.'
         + (menaces18.length ? ' En acceptant, votre 18 h du ' + menaces18.map(_echangesJoli_).join(' et du ') + ' passe au ' + _echangesDr_(user.id) + '.' : '')
         + (absLui.length ? ' Attention, vous êtes noté ' + _echangesTexteAbsences_(absLui) + '.' : '')
@@ -397,7 +459,8 @@ function creerEchange(user, p) {
         ? _echangesDr_(user.id) + ' vous propose son 18 h du ' + _echangesJoli_(date) + ' contre le vôtre du ' + _echangesJoli_(demande.DATE2) + '.'
         : _echangesDr_(user.id) + ' vous propose sa garde du ' + _echangesJoli_(date) + ' contre la vôtre du ' + _echangesJoli_(demande.DATE2) + '.'
           + (absLui.length ? ' Attention, vous êtes noté ' + _echangesTexteAbsences_(absLui) + '.' : ''))
-      + (rea1Lui.length ? ' Attention, ' + _echangesTexteRea1_(rea1Lui) + '.' : ''),
+      + (rea1Lui.length ? ' Attention, ' + _echangesTexteRea1_(rea1Lui) + '.' : '')
+      + (prochesLui.length ? ' Attention, ' + _echangesTexte18Proches_(prochesLui) + '.' : ''),
     './index.html', { id: receveur, pastille: _echangesEnAttentePour_(receveur) });
   return { id: id };
 }
@@ -468,6 +531,18 @@ function repondreEchange(user, p) {
       if (passe) throw new Error(_echangesQuestionRea1_(r1));
     }
   }
+  /* (12/11/2026) Deux 18 h de suite ou la même semaine pour le receveur :
+     préfixe [18H], renvoi avec accepte18h — posé seulement si le geste passerait.
+     Relevé AVANT d'écrire : il sert aussi au suivi de la demande. */
+  const proches18 = _echanges18Proches_(d);
+  if (p.accepte18h !== true) {
+    const p18 = proches18.filter(x => x.who === String(d.RECEVEUR));
+    if (p18.length) {
+      let passe = true;
+      try { applyModification(Object.assign({ dryRun: true, ecraserAbsences: ecraser }, _echangesVersMod_(d))); } catch (e) { passe = false; }
+      if (passe) throw new Error(_echangesQuestion18Proches_(p18));
+    }
+  }
   const releveR = _recupsReleve_(Number(d.ANNEE), [String(d.DEMANDEUR), String(d.RECEVEUR)]);
   const releve18 = _echanges18Releve_(Number(d.ANNEE), [String(d.DEMANDEUR), String(d.RECEVEUR)]);
   const geste = Object.assign({ par: String(d.RECEVEUR) + ' (accepte la demande de ' + String(d.DEMANDEUR) + ')', ecraserAbsences: ecraser }, _echangesVersMod_(d));
@@ -493,14 +568,17 @@ function repondreEchange(user, p) {
   sh.getRange(d._row, colEtat).setValue('acceptee');
   sh.getRange(d._row, colRep).setValue(_echangesMaintenant_());
   // (11/11/2026) Les absences effacées, confirmées par le MAR, figurent dans le suivi de la demande.
-  const infos = (geste._absencesEcrasees || []).map(a => a.code + ' du ' + a.jour + ' effacé (' + a.who + ', confirmé)').concat(suites.infos);
+  const infos = (geste._absencesEcrasees || []).map(a => a.code + ' du ' + a.jour + ' effacé (' + a.who + ', confirmé)').concat(suites.infos)
+    .concat(proches18.map(_echangesTrace18Proches_));   // (12/11/2026) deux 18 h rapprochés, confirmés par le MAR
   if (infos.length) sh.getRange(d._row, colInfo).setValue(infos.join(' · ').slice(0, 200));
   logAction('repondreEchange ' + id + ' — acceptée' + (infos.length ? ' | ' + infos.join(' · ') : ''));
   // (12/11/2026) Les autres demandes en attente sur une garde qui vient de bouger se ferment seules.
   _echangesSansObjet_();
   _echangesVersKV_();
 
-  let corps = (d.TYPE === 'don')
+  let corps = (d.TYPE === 'don18')
+    ? 'Le 18 h du ' + _echangesJoli_(d.DATE) + ' passe du ' + _echangesDr_(d.DEMANDEUR) + ' au ' + _echangesDr_(d.RECEVEUR) + '.'
+    : (d.TYPE === 'don')
     ? 'La garde du ' + _echangesJoli_(d.DATE) + ' passe du ' + _echangesDr_(d.DEMANDEUR) + ' au ' + _echangesDr_(d.RECEVEUR) + '.'
     : (d.TYPE === 'echange18')
     ? '18 h échangés : le ' + _echangesDr_(d.DEMANDEUR) + ' fait le ' + _echangesJoli_(d.DATE2) + ', le ' + _echangesDr_(d.RECEVEUR) + ' fait le ' + _echangesJoli_(d.DATE) + '.'
@@ -551,18 +629,18 @@ function annulerEchange(user, p) {
    par le passage horaire, qui rattrape les autres chemins. Renvoie le nombre
    de demandes fermées ; l'appelant pousse la copie rapide. */
 function _echangesPassee_(d, auj) {
-  const est18 = String(d.TYPE) === 'echange18';
+  const est18 = _echangesEst18_(d.TYPE);
   const dit = function (ds) { return est18 ? 'Le 18 h du ' + _echangesJoli_(ds) + ' est déjà passé'
                                            : 'La garde du ' + _echangesJoli_(ds) + ' est déjà passée'; };
   if (String(d.DATE) < auj) return dit(String(d.DATE));
-  if (String(d.TYPE) !== 'don' && String(d.DATE2 || '') && String(d.DATE2) < auj) return dit(String(d.DATE2));
+  if (!_echangesEstDon_(d.TYPE) && String(d.DATE2 || '') && String(d.DATE2) < auj) return dit(String(d.DATE2));
   return '';
 }
 function _echangesMotifSansObjet_(d, cx, auj) {
   const passee = _echangesPassee_(d, auj);
   if (passee) return passee;
   if (!cx) return '';
-  const est18 = String(d.TYPE) === 'echange18';
+  const est18 = _echangesEst18_(d.TYPE);
   const tient = function (id, ds) {
     const v = _recupsCase_(cx, id, ds);
     if (v === null) return null;                       // ligne ou date introuvable : on ne décide pas
@@ -570,7 +648,7 @@ function _echangesMotifSansObjet_(d, cx, auj) {
   };
   const dit = function (id, ds) { return 'Le ' + _echangesDr_(id) + ' n\'a plus ' + (est18 ? 'le 18 h' : 'la garde') + ' du ' + _echangesJoli_(ds); };
   if (tient(String(d.DEMANDEUR), String(d.DATE)) === false) return dit(String(d.DEMANDEUR), String(d.DATE));
-  if (String(d.TYPE) !== 'don' && tient(String(d.RECEVEUR), String(d.DATE2)) === false) return dit(String(d.RECEVEUR), String(d.DATE2));
+  if (!_echangesEstDon_(d.TYPE) && tient(String(d.RECEVEUR), String(d.DATE2)) === false) return dit(String(d.RECEVEUR), String(d.DATE2));
   return '';
 }
 function _echangesSansObjet_() {
@@ -713,7 +791,7 @@ function expirerEchanges() {
       changements++;
       logAction('expirerEchanges ' + d.ID + ' — rappel 24 h');
       notifierPush_('Proposition en attente',
-        _echangesDr_(d.DEMANDEUR) + ' attend votre réponse pour la garde du ' + _echangesJoli_(d.DATE) + ' (expire dans 24 h).',
+        _echangesDr_(d.DEMANDEUR) + ' attend votre réponse pour ' + (_echangesEst18_(d.TYPE) ? 'le 18 h' : 'la garde') + ' du ' + _echangesJoli_(d.DATE) + ' (expire dans 24 h).',
         './index.html', { id: String(d.RECEVEUR), pastille: _echangesEnAttentePour_(String(d.RECEVEUR)) });
     }
   });
@@ -1220,7 +1298,7 @@ function _echanges18Reporter_(year, releve, par) {
    « Modifier une garde » → appliquerGesteComite_). Défaut trouvé le 11/11 :
    le comité passait directement par applyModification, sans aucune de ces
    suites — la récup du samedi ne suivait pas, un R ou un 18 h écrasé disparaissait.
-   d = { TYPE: 'don'|'echange'|'echange18', ANNEE, DATE, DATE2, DEMANDEUR, RECEVEUR }.
+   d = { TYPE: 'don'|'don18'|'echange'|'echange18', ANNEE, DATE, DATE2, DEMANDEUR, RECEVEUR }.
    À appeler APRÈS applyModification, avec les relevés pris AVANT. */
 function _gesteSuites_(d, releveR, releve18, par) {
   const y = Number(d.ANNEE);
@@ -1228,8 +1306,8 @@ function _gesteSuites_(d, releveR, releve18, par) {
   // transferts : seuls les R écrasés sont vus manquants.
   const reposes = _recupsReposerPerdus_(y, releveR, par);
   // Un 18 h écrasé passe à l'autre MAR du geste, libéré ce jour-là.
-  // Un échange de 18 h déplace des 18 h exprès : rien à reporter.
-  const reports18 = d.TYPE === 'echange18' ? [] : _echanges18Reporter_(y, releve18, par);
+  // Un échange ou un don de 18 h déplace des 18 h exprès : rien à reporter.
+  const reports18 = _echangesEst18_(d.TYPE) ? [] : _echanges18Reporter_(y, releve18, par);
   // Samedi qui change de mains → transfert du R de CE samedi.
   // Don : la garde du DATE passe au receveur. Échange : exactement un des deux
   // jours est un samedi ; samedi ↔ samedi, aucun R ne bouge (décision du 12/08).

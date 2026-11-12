@@ -805,7 +805,7 @@ html[data-theme="dark"] .vs-pill{background:#251B3C;color:#B593F2}
           <span class="ech-pastille" id="echPastille" style="display:none"></span>
           <div class="tile-ico"><i data-lucide="repeat"></i></div>
           <div class="tile-title" id="echHeroMain">Mes échanges</div>
-          <div class="tile-sub" id="echHeroSub">Donner ou échanger une garde, échanger un 18 h.</div>
+          <div class="tile-sub" id="echHeroSub">Donner ou échanger une garde ou un 18 h.</div>
           <div class="tile-arrow">Ouvrir <i data-lucide="arrow-right" style="width:15px;height:15px"></i></div>
         </div>
       </div>
@@ -2314,7 +2314,7 @@ function majEchangesHero(){
     sub.textContent = 'Touchez pour répondre.';
   } else {
     main.textContent = 'Mes échanges';
-    sub.textContent = 'Donner ou échanger une garde, échanger un 18 h.';
+    sub.textContent = 'Donner ou échanger une garde ou un 18 h.';
   }
 }
 
@@ -2366,12 +2366,12 @@ function renderEchanges(){
   const ETATS = { attente:'En attente', acceptee:'Acceptée', refusee:'Refusée', expiree:'Expirée', impossible:'Impossible', annulee:'Annulée', sansobjet:'Sans objet' };   // (12/11/2026) sans objet : la garde a changé de mains ou est passée
   let html = '';
   liste.forEach(function(e){
-    const don = e.type==='don';
+    const don = e.type==='don' || e.type==='don18';   // (12/11/2026) un 18 h se donne aussi
     const titre = don
-      ? 'Don de garde — ' + _echDrLisible(e.demandeur) + ' → ' + _echDrLisible(e.receveur)
+      ? (e.type==='don18' ? 'Don de 18 h — ' : 'Don de garde — ') + _echDrLisible(e.demandeur) + ' → ' + _echDrLisible(e.receveur)
       : (e.type==='echange18' ? 'Échange de 18 h — ' : 'Échange — ') + _echDrLisible(e.demandeur) + ' ↔ ' + _echDrLisible(e.receveur);
     let detail = don
-      ? 'Garde du <b>' + esc(fmtDate(e.date)) + '</b> → planning de ' + esc(_echDrLisible(e.receveur))
+      ? (e.type==='don18' ? '18 h du <b>' : 'Garde du <b>') + esc(fmtDate(e.date)) + '</b> → planning de ' + esc(_echDrLisible(e.receveur))
       : esc(_echDrLisible(e.demandeur)) + ' prend le <b>' + esc(fmtDate(e.date2)) + '</b>, ' + esc(_echDrLisible(e.receveur)) + ' prend le <b>' + esc(fmtDate(e.date)) + '</b>';
     if (e.etat==='acceptee' && e.info) detail += '<br>' + esc(e.info);
     if ((e.etat==='impossible' || e.etat==='sansobjet') && e.info) detail += '<br>Motif : ' + esc(e.info);
@@ -2428,7 +2428,7 @@ async function annulerEch(id, btn){
   btn.disabled = false; btn.dataset.confirme = ''; btn.textContent = 'Annuler ma proposition';
 }
 
-async function repondreEch(id, reponse, btn, confirmeAbs, confirmeRea1){
+async function repondreEch(id, reponse, btn, confirmeAbs, confirmeRea1, confirme18h){
   const carte = btn.closest('.ech-card');
   carte.querySelectorAll('button').forEach(function(b){ b.disabled = true; });
   btn.textContent = reponse==='accepter' ? 'Écriture du planning…' : 'Envoi…';
@@ -2441,6 +2441,7 @@ async function repondreEch(id, reponse, btn, confirmeAbs, confirmeRea1){
     if (_it && _it.annee) charge.year = Number(_it.annee);
     if (confirmeAbs === true) charge.accepteAbsence = true;   // (11/11/2026) il a lu et confirmé
     if (confirmeRea1 === true) charge.accepteRea1 = true;   // (12/11/2026) sa semaine Réa 1 : il a lu et confirmé
+    if (confirme18h === true) charge.accepte18h = true;   // (12/11/2026) deux 18 h rapprochés : il a lu et confirmé
     const r = await apiPost(charge);
     if (r && r.success) {
       /* (14/08/2026 — vu en test réel) La réponse du serveur FAIT FOI — récit : docs/JOURNAL-Planning-Med.md §55 */
@@ -2459,7 +2460,7 @@ async function repondreEch(id, reponse, btn, confirmeAbs, confirmeRea1){
       msg.textContent = r.error.replace(/^\[ABS\] /, '');
       carte.querySelectorAll('button').forEach(function(b){ b.disabled=false; });
       btn.textContent = 'Confirmer : je prends cette garde';
-      btn.onclick = function(){ repondreEch(id, 'accepter', btn, true, confirmeRea1); };
+      btn.onclick = function(){ repondreEch(id, 'accepter', btn, true, confirmeRea1, confirme18h); };
       return;
     }
     /* (12/11/2026) La garde tombe dans votre semaine Réa 1 : rien n'est écrit ;
@@ -2469,7 +2470,17 @@ async function repondreEch(id, reponse, btn, confirmeAbs, confirmeRea1){
       msg.textContent = r.error.replace(/^\[REA1\] /, '');
       carte.querySelectorAll('button').forEach(function(b){ b.disabled=false; });
       btn.textContent = 'Confirmer malgré ma semaine Réa 1';
-      btn.onclick = function(){ repondreEch(id, 'accepter', btn, confirmeAbs, true); };
+      btn.onclick = function(){ repondreEch(id, 'accepter', btn, confirmeAbs, true, confirme18h); };
+      return;
+    }
+    /* (12/11/2026) Ce 18 h vous en ferait deux de suite ou deux la même semaine :
+       rien n'est écrit ; on vous le dit et le bouton devient « Confirmer ». */
+    if (r && /^\[18H\] /.test(r.error || '')) {
+      msg.className='ech-msg err'; msg.style.display='block';
+      msg.textContent = r.error.replace(/^\[18H\] /, '');
+      carte.querySelectorAll('button').forEach(function(b){ b.disabled=false; });
+      btn.textContent = 'Confirmer : je prends ce 18 h';
+      btn.onclick = function(){ repondreEch(id, 'accepter', btn, confirmeAbs, confirmeRea1, true); };
       return;
     }
     msg.className='ech-msg err'; msg.style.display='block';
@@ -2570,7 +2581,7 @@ async function echOuvrirProposition(){
   await _echPlanningsFrais();
   const gardes = await _echMesGardesAvecAnnee();
   if (!gardes.length) { p.innerHTML = '<div class="topos-empty">Aucune garde ni 18 h à venir à proposer.</div>'; return; }
-  ECH_PROP = { type:'don', gardes:gardes };
+  ECH_PROP = { type:'don', mode:'don', gardes:gardes };
   let plan = null;
   try { plan = _planDejaLa(gardes[0].annee) || await _fetchPlanning(gardes[0].annee); } catch(e){}
   /* (11/11/2026) Un arrivant en cours d'année (ex. début au 01/11) manquait :
@@ -2612,7 +2623,7 @@ async function echOuvrirProposition(){
 }
 
 function echType(t){
-  ECH_PROP.type = t;
+  ECH_PROP.mode = t;
   document.getElementById('echTypeDon').classList.toggle('actif', t==='don');
   document.getElementById('echTypeEch').classList.toggle('actif', t==='echange');
   echMajProposition();
@@ -2622,13 +2633,15 @@ async function echMajProposition(){
   const g = ECH_PROP.gardes[Number(document.getElementById('echSelGarde').value)||0];
   const qui = document.getElementById('echSelQui').value;
   const blocContre = document.getElementById('echBlocContre');
-  /* (11/11/2026) Un 18 h ne se donne pas : il s'échange contre un 18 h du collègue. */
+  /* (12/11/2026 — demande de l'équipe) Un 18 h se donne ou s'échange contre un
+     18 h du collègue. Le choix « donner / échanger » (ECH_PROP.mode) est le même
+     pour une garde et pour un 18 h ; le type envoyé en découle. */
   const est18 = g.type==='18';
-  document.getElementById('echBlocTypes').style.display = est18 ? 'none' : 'block';
-  if (est18) ECH_PROP.type = 'echange18';
-  else if (ECH_PROP.type==='echange18') { ECH_PROP.type = 'don'; document.getElementById('echTypeDon').classList.add('actif'); document.getElementById('echTypeEch').classList.remove('actif'); }
+  const echanger = ECH_PROP.mode==='echange';
+  ECH_PROP.type = est18 ? (echanger ? 'echange18' : 'don18') : (echanger ? 'echange' : 'don');
+  document.getElementById('echTypeDon').textContent = est18 ? 'Le donner' : 'La donner';
   document.getElementById('echLblContre').textContent = est18 ? 'Contre son 18 h du' : 'Contre sa garde du';
-  if (est18) {
+  if (ECH_PROP.type==='echange18') {
     blocContre.style.display='block';
     const sel = document.getElementById('echSelContre');
     if (qui) {
@@ -2653,11 +2666,11 @@ async function echMajProposition(){
      le comité replacera — averti AVANT l'envoi, comme convenu. */
   const av = document.getElementById('echAvert');
   // (11/11/2026) Toute nouvelle sélection redemande la confirmation du 18 h et de l'absence.
-  ECH_PROP.ok18 = false; ECH_PROP.okAbs = false; ECH_PROP.okRea1 = false;
+  ECH_PROP.ok18 = false; ECH_PROP.okAbs = false; ECH_PROP.okRea1 = false; ECH_PROP.ok18h = false;
   const _btn = document.getElementById('echEnvoyer');
   if (_btn) { _btn.textContent = 'Envoyer la proposition'; _btn.disabled = false; }
   const samedi = new Date(g.date+'T12:00:00').getDay()===6;
-  if (samedi && g.annee <= 2026) {
+  if (samedi && !est18 && g.annee <= 2026) {
     av.style.display='block';
     av.textContent='Garde d\'un samedi ' + g.annee + ' : votre récupération ne suivra pas automatiquement, elle sera replacée à la main.';
   } else av.style.display='none';
@@ -2679,6 +2692,7 @@ async function envoyerProposition(btn){
   if (ECH_PROP.ok18) charge.accepte18 = true;   // (11/11/2026) le donneur a lu et confirmé
   if (ECH_PROP.okAbs) charge.accepteAbsence = true;   // (11/11/2026) noté absent ce jour-là, il a confirmé
   if (ECH_PROP.okRea1) charge.accepteRea1 = true;   // (12/11/2026) dans sa semaine Réa 1, il a confirmé
+  if (ECH_PROP.ok18h) charge.accepte18h = true;   // (12/11/2026) deux 18 h rapprochés, il a confirmé
   btn.disabled = true; btn.textContent='Vérification et envoi…';
   try {
     const r = await apiPost(charge);
@@ -2717,6 +2731,14 @@ async function envoyerProposition(btn){
       av.style.display = 'block'; av.textContent = r.error.replace(/^\[REA1\] /, '');
       ECH_PROP.okRea1 = true;
       btn.disabled = false; btn.textContent = 'Confirmer malgré ma semaine Réa 1';
+      return;
+    }
+    /* (12/11/2026) Le 18 h reçu en échange vous en ferait deux de suite ou deux la même semaine. */
+    if (r && /^\[18H\] /.test(r.error || '')) {
+      const av = document.getElementById('echAvert');
+      av.style.display = 'block'; av.textContent = r.error.replace(/^\[18H\] /, '');
+      ECH_PROP.ok18h = true;
+      btn.disabled = false; btn.textContent = 'Confirmer : je prends ce 18 h';
       return;
     }
     erreur((r && r.error) || 'Envoi impossible — réessayez.');

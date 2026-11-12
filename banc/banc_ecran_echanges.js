@@ -339,6 +339,95 @@ const dodo = ms => new Promise(r => setTimeout(r, ms));
     V('la garde reçue entre-temps est proposée (11/03)', sel && /11\/03\/2027/.test(sel.innerHTML), sel && sel.innerHTML.slice(0,200));
     V('CONTRE-PREUVE : la garde partie (09/03) n\'est plus proposée', sel && !/09\/03\/2027/.test(sel.innerHTML), sel && sel.innerHTML.slice(0,200));
   }
+  console.log('\n═══ 3 ter. Un 18 h se donne ou s\'échange (demande de l\'équipe, 12/11/2026) ═══');
+  {
+    const kv = await baseKV();
+    kv.notif_config = JSON.stringify({ ouvert:true, pilotes:[] });
+    kv.echanges = JSON.stringify({ success:true, echanges:[] });
+    let cree = null;
+    const surGas = (c) => {
+      if (c.action === 'creerEchange') { cree = c; return { success:true, id:'E18' }; }
+      if (c.action === 'login') return { success:true, role:'mar', id:'ALPHA', year:2027 };
+      return { success:true };
+    };
+    const { w, M, erreurs } = await monterPage(kv, surGas);
+    V('la page se charge sans erreur JavaScript', erreurs.length === 0, erreurs.slice(0,2));
+    const neuf = JSON.parse(JSON.stringify(planning));
+    neuf.months[0].doctors[0].days = st(['','G','RG','18','','']);   // ALPHA : garde le 09/03, 18 h le 11/03
+    neuf.months[0].doctors[1].days = st(['18','','','','G','RG']);   // BRAVO : 18 h le 08/03
+    M.set('planning_2027', JSON.stringify(neuf));
+    w.Date.now = Date.now;
+    w._todayStr = () => '2027-03-01';
+    w.location.hash = '#echanges'; w.route();
+    await dodo(400);
+    await w.echOuvrirProposition();
+    await dodo(300);
+    const sel = w.document.getElementById('echSelGarde');
+    const i18 = [...sel.options].findIndex(o => /11\/03\/2027 — 18 h/.test(o.textContent));
+    V('mon 18 h du 11/03 est dans la liste', i18 > -1, sel.innerHTML.slice(0,200));
+    sel.value = String(i18);
+    w.document.getElementById('echSelQui').value = 'BRAVO';
+    await w.echMajProposition();
+    V('pour un 18 h, le choix « Le donner / L\'échanger » reste affiché', w.document.getElementById('echBlocTypes').style.display !== 'none'
+      && /Le donner/.test(w.document.getElementById('echTypeDon').textContent));
+    V('donner : aucune contrepartie demandée', w.document.getElementById('echBlocContre').style.display === 'none');
+    w.echType('echange');
+    await dodo(100);
+    V('échanger : la liste des 18 h du collègue apparaît (08/03)', w.document.getElementById('echBlocContre').style.display === 'block'
+      && /08\/03\/2027 — 18 h/.test(w.document.getElementById('echSelContre').innerHTML), w.document.getElementById('echSelContre').innerHTML);
+    w.echType('don');
+    await dodo(100);
+    w.document.getElementById('echEnvoyer').click();
+    await dodo(500);
+    V('creerEchange part en don de 18 h : type don18, date exacte, pas de seconde date',
+      !!cree && cree.type === 'don18' && cree.date === '2027-03-11' && cree.receveur === 'BRAVO' && !cree.date2, cree);
+    V('la demande s\'affiche « Don de 18 h » avec « 18 h du … »', /Don de 18 h — /.test(w.document.getElementById('echList').innerHTML)
+      && /18 h du <b>/.test(w.document.getElementById('echList').innerHTML));
+    // Retour sur une garde : le verbe redevient « La donner », le type « don ».
+    cree = null;
+    await w.echOuvrirProposition(); await dodo(100);
+    if (w.document.getElementById('echProposition').style.display === 'none') { await w.echOuvrirProposition(); }
+    await dodo(300);
+    const sel2 = w.document.getElementById('echSelGarde');
+    sel2.value = String([...sel2.options].findIndex(o => /09\/03\/2027/.test(o.textContent)));
+    w.document.getElementById('echSelQui').value = 'BRAVO';
+    await w.echMajProposition();
+    V('pour une garde, le bouton redit « La donner »', /La donner/.test(w.document.getElementById('echTypeDon').textContent));
+    w.document.getElementById('echEnvoyer').click();
+    await dodo(500);
+    V('CONTRE-PREUVE : une garde part toujours en « don », jamais en don18', !!cree && cree.type === 'don' && cree.date === '2027-03-09', cree);
+  }
+
+  console.log('\n═══ 3 quater. Deux 18 h rapprochés : l\'écran pose la question, la confirmation repart (12/11/2026) ═══');
+  {
+    const Q = '[18H] Attention, avec le 18 h du 12/03/2027 vous ferez deux 18 h de suite (vous êtes déjà de 18 h le 11/03/2027). Vous confirmez ?';
+    const kv = await baseKV();
+    kv.notif_config = JSON.stringify({ ouvert:true, pilotes:[] });
+    kv.echanges = JSON.stringify({ success:true, echanges:[Object.assign({}, demande, { id:'E18H', type:'don18' })] });
+    const reponses = [];
+    const surGas = (charge) => {
+      if (charge.action === 'repondreEchange') { reponses.push(charge); return charge.accepte18h === true ? { success:true, etat:'acceptee' } : { success:false, error:Q }; }
+      if (charge.action === 'login') return { success:true, role:'mar', id:'ALPHA', year:2027 };
+      return { success:true };
+    };
+    const { w, erreurs } = await monterPage(kv, surGas);
+    V('la page se charge sans erreur JavaScript', erreurs.length === 0, erreurs.slice(0,2));
+    w.location.hash = '#echanges'; w.route();
+    await dodo(400);
+    V('la carte dit « Don de 18 h »', /Don de 18 h — /.test(w.document.getElementById('echList').innerHTML));
+    const btn = [...w.document.querySelectorAll('.ech-accepter')][0];
+    btn.click();
+    await dodo(500);
+    const msg = w.document.getElementById('echMsg-E18H');
+    V('la question s\'affiche, sans le préfixe technique', msg.style.display === 'block' && /^Attention, avec le 18 h du 12\/03\/2027 vous ferez deux 18 h de suite/.test(msg.textContent), msg.textContent);
+    V('le bouton devient « Confirmer : je prends ce 18 h »', /Confirmer : je prends ce 18 h/.test(btn.textContent) && !btn.disabled, btn.textContent);
+    V('la première réponse est partie SANS l\'accord', reponses.length === 1 && reponses[0].accepte18h !== true, reponses);
+    btn.click();
+    await dodo(500);
+    V('la confirmation repart AVEC l\'accord', reponses.length === 2 && reponses[1].accepte18h === true && reponses[1].reponse === 'accepter', reponses);
+    V('l\'écran passe à Acceptée', /Acceptée/.test(w.document.getElementById('echList').innerHTML));
+  }
+
   V('planning.html : au retour dans l\'appli, le planning se relit après 2 minutes (plus 15)',
     /if \(Date\.now\(\) - _lastFetch < 2\*60\*1000\) return;/.test(fs.readFileSync(path.join(__dirname, '..', 'planning.html'), 'utf8')));
 
