@@ -42,7 +42,7 @@
    depuis l'éditeur : installerDeclencheurEchanges().
    ═══════════════════════════════════════════════════════════════════════ */
 
-const GAS_VERSION_ECHANGES = '2026-11-11.7';   // (11/11/2026) échange samedi ↔ samedi : les R gardent leur date, les liens LIENS_R suivent le samedi tenu ; « Réparer » recolle de même un échange passé au lieu de déplacer les R · (11/11/2026) annulerEchange : le demandeur annule sa proposition en attente, le collègue est prévenu · (11/11/2026) don et échange sur un jour d'absence : le MAR concerné confirme ([ABS], accepteAbsence) et ses jours d'absence sont écrasés par la garde et son repos · (11/11/2026) gestes du comité (don, échange) : mêmes suites que entre MAR (_gesteSuites_, appliquerGesteComite_) · (11/11/2026) échange de deux 18 h entre MAR (type echange18) · (11/11/2026) un 18 h écrasé par un don passe au donneur, prévenu avant d'envoyer (accepte18) · (11/11/2026) récupérations automatiques : R neuf quand il ne peut pas suivre son samedi, R écrasé reposé, bouton Réparer (recupsReparer), lien recollé à la pose manuelle · (10/11/2026) l'historique dit qui a accepté (onglet HISTORIQUE)
+const GAS_VERSION_ECHANGES = '2026-11-12.1';   // (12/11/2026) demandes « sans objet » fermées toutes seules quand la garde a changé de mains ou est passée (_echangesSansObjet_), doublon refusé à l'envoi, garde passée refusée à l'envoi et à l'acceptation · (11/11/2026) échange samedi ↔ samedi : les R gardent leur date, les liens LIENS_R suivent le samedi tenu ; « Réparer » recolle de même un échange passé au lieu de déplacer les R · (11/11/2026) annulerEchange : le demandeur annule sa proposition en attente, le collègue est prévenu · (11/11/2026) don et échange sur un jour d'absence : le MAR concerné confirme ([ABS], accepteAbsence) et ses jours d'absence sont écrasés par la garde et son repos · (11/11/2026) gestes du comité (don, échange) : mêmes suites que entre MAR (_gesteSuites_, appliquerGesteComite_) · (11/11/2026) échange de deux 18 h entre MAR (type echange18) · (11/11/2026) un 18 h écrasé par un don passe au donneur, prévenu avant d'envoyer (accepte18) · (11/11/2026) récupérations automatiques : R neuf quand il ne peut pas suivre son samedi, R écrasé reposé, bouton Réparer (recupsReparer), lien recollé à la pose manuelle · (10/11/2026) l'historique dit qui a accepté (onglet HISTORIQUE)
 
 const ECHANGES_ONGLET = 'ECHANGES';
 const ECHANGES_ENTETE = ['ID', 'CREE_LE', 'TYPE', 'ANNEE', 'DATE', 'DATE2',
@@ -253,6 +253,20 @@ function creerEchange(user, p) {
 
   const demande = { TYPE: type, ANNEE: year, DATE: date, DATE2: type !== 'don' ? date2 : '',
                     DEMANDEUR: user.id, RECEVEUR: receveur };
+  /* (12/11/2026 — diagnostic du 11/11) Une garde déjà passée ne se propose
+     plus : le planning du passé se réécrivait et la paie recevait un mail.
+     Le jour même reste permis. */
+  const passee = _echangesPassee_(demande, _recupsAujourdhui_());
+  if (passee) throw new Error(passee + ' : ' + (type === 'echange18' ? 'il' : 'elle') + ' ne peut plus être proposé' + (type === 'echange18' ? '' : 'e') + '.');
+  /* (12/11/2026 — vu dans le classeur réel) La même garde proposée deux fois
+     au même collègue : deux demandes en attente, dont une promise à
+     « impossible ». Proposer la même garde à un AUTRE collègue reste permis. */
+  const jumelle = _echangesLignes_().lignes.find(l => String(l.ETAT) === 'attente'
+    && String(l.TYPE) === type && Number(l.ANNEE) === year && String(l.DATE) === date
+    && String(l.DATE2 || '') === demande.DATE2
+    && String(l.DEMANDEUR) === user.id && String(l.RECEVEUR) === receveur);
+  if (jumelle) throw new Error('Vous avez déjà proposé ' + (type === 'echange18' ? 'ce 18 h' : 'cette garde')
+    + ' au ' + _echangesDr_(receveur) + ' : la demande attend sa réponse.');
   // Contrôles joués DÈS LA CRÉATION (décision du 11/08) : mêmes juges que
   // l'écriture réelle, aucune duplication. Lève en cas de refus.
   /* (11/11/2026) Les absences des deux MAR ne bloquent plus à l'envoi : celles
@@ -334,6 +348,17 @@ function repondreEchange(user, p) {
      on lui pose la question AVANT d'écrire (préfixe [ABS], demande toujours en
      attente). Il renvoie avec accepteAbsence s'il confirme. Les jours du
      demandeur ne sont écrasables que s'il les a confirmés à l'envoi ([ABS-OK]). */
+  /* (12/11/2026) Garde passée entre la proposition et la réponse : rien ne
+     s'écrit dans le planning, la demande se ferme « sans objet ». */
+  const passee = _echangesPassee_(d, _recupsAujourdhui_());
+  if (passee) {
+    sh.getRange(d._row, colEtat).setValue('sansobjet');
+    sh.getRange(d._row, colRep).setValue(_echangesMaintenant_());
+    sh.getRange(d._row, colInfo).setValue(passee);
+    logAction('repondreEchange ' + id + ' — SANS OBJET : ' + passee);
+    _echangesVersKV_();
+    return { etat: 'sansobjet', error: passee };
+  }
   const ecraser = [String(d.RECEVEUR)].concat(/\[ABS-OK\]/.test(String(d.INFO)) ? [String(d.DEMANDEUR)] : []);
   if (p.accepteAbsence !== true) {
     const essai = Object.assign({ dryRun: true, ecraserAbsences: ecraser }, _echangesVersMod_(d));
@@ -370,6 +395,8 @@ function repondreEchange(user, p) {
   const infos = (geste._absencesEcrasees || []).map(a => a.code + ' du ' + a.jour + ' effacé (' + a.who + ', confirmé)').concat(suites.infos);
   if (infos.length) sh.getRange(d._row, colInfo).setValue(infos.join(' · ').slice(0, 200));
   logAction('repondreEchange ' + id + ' — acceptée' + (infos.length ? ' | ' + infos.join(' · ') : ''));
+  // (12/11/2026) Les autres demandes en attente sur une garde qui vient de bouger se ferment seules.
+  _echangesSansObjet_();
   _echangesVersKV_();
 
   let corps = (d.TYPE === 'don')
@@ -405,6 +432,73 @@ function annulerEchange(user, p) {
     _echangesDr_(d.DEMANDEUR) + ' a annulé sa proposition du ' + _echangesJoli_(d.DATE) + '.',
     './index.html', { id: String(d.RECEVEUR), pastille: _echangesEnAttentePour_(String(d.RECEVEUR)) });
   return { etat: 'annulee' };
+}
+
+/* ── 2 ter. SANS OBJET (12/11/2026 — diagnostic du 11/11) ──────────────
+   Une demande en attente ne suivait pas le planning : garde proposée à deux
+   collègues, le premier accepte, la seconde restait « en attente » avec sa
+   pastille et finissait en « impossible » au clic. Le responsable en a fermé
+   trois à la main le 11/11.
+   Une demande n'a plus d'objet quand :
+   - la garde (ou le 18 h) proposée est passée ;
+   - le demandeur ne tient plus ce qu'il propose ;
+   - pour un échange, le receveur ne tient plus ce qui est demandé en retour.
+   Elle passe alors à l'état `sansobjet`, motif dans INFO. Aucune notification
+   (décision du 12/11) : personne n'a rien à faire. Une grille illisible ou une
+   case introuvable ne décide RIEN : la demande reste en attente.
+   Appelée après chaque geste réussi (acceptation, don ou échange du comité) et
+   par le passage horaire, qui rattrape les autres chemins. Renvoie le nombre
+   de demandes fermées ; l'appelant pousse la copie rapide. */
+function _echangesPassee_(d, auj) {
+  const est18 = String(d.TYPE) === 'echange18';
+  const dit = function (ds) { return est18 ? 'Le 18 h du ' + _echangesJoli_(ds) + ' est déjà passé'
+                                           : 'La garde du ' + _echangesJoli_(ds) + ' est déjà passée'; };
+  if (String(d.DATE) < auj) return dit(String(d.DATE));
+  if (String(d.TYPE) !== 'don' && String(d.DATE2 || '') && String(d.DATE2) < auj) return dit(String(d.DATE2));
+  return '';
+}
+function _echangesMotifSansObjet_(d, cx, auj) {
+  const passee = _echangesPassee_(d, auj);
+  if (passee) return passee;
+  if (!cx) return '';
+  const est18 = String(d.TYPE) === 'echange18';
+  const tient = function (id, ds) {
+    const v = _recupsCase_(cx, id, ds);
+    if (v === null) return null;                       // ligne ou date introuvable : on ne décide pas
+    return est18 ? _echanges18Code_(v) === '18' : (v === 'G' || v === 'G2');
+  };
+  const dit = function (id, ds) { return 'Le ' + _echangesDr_(id) + ' n\'a plus ' + (est18 ? 'le 18 h' : 'la garde') + ' du ' + _echangesJoli_(ds); };
+  if (tient(String(d.DEMANDEUR), String(d.DATE)) === false) return dit(String(d.DEMANDEUR), String(d.DATE));
+  if (String(d.TYPE) !== 'don' && tient(String(d.RECEVEUR), String(d.DATE2)) === false) return dit(String(d.RECEVEUR), String(d.DATE2));
+  return '';
+}
+function _echangesSansObjet_() {
+  let fermees = 0;
+  try {
+    SpreadsheetApp.flush();                            // les écritures du geste d'abord, la relecture ensuite
+    const { sh, lignes } = _echangesLignes_();
+    const attente = lignes.filter(function (d) { return String(d.ETAT) === 'attente'; });
+    if (!sh || !attente.length) return 0;
+    const auj = _recupsAujourdhui_();
+    const grilles = {};
+    const grille = function (y) {
+      if (!(y in grilles)) { try { grilles[y] = _recupsContexte_(y); } catch (e) { grilles[y] = null; } }
+      return grilles[y];
+    };
+    const colEtat = ECHANGES_ENTETE.indexOf('ETAT') + 1;
+    const colRep  = ECHANGES_ENTETE.indexOf('REPONDU_LE') + 1;
+    const colInfo = ECHANGES_ENTETE.indexOf('INFO') + 1;
+    attente.forEach(function (d) {
+      const motif = _echangesMotifSansObjet_(d, grille(Number(d.ANNEE)), auj);
+      if (!motif) return;
+      sh.getRange(d._row, colEtat).setValue('sansobjet');
+      sh.getRange(d._row, colRep).setValue(_echangesMaintenant_());
+      sh.getRange(d._row, colInfo).setValue(motif.slice(0, 200));
+      logAction('echanges ' + d.ID + ' — sans objet : ' + motif);
+      fermees++;
+    });
+  } catch (e) { try { logAction('_echangesSansObjet_ — erreur : ' + e.message); } catch (e2) {} }
+  return fermees;
 }
 
 /* ── Alerte du comité : E-MAIL, jamais push ─────────────────────────────
@@ -491,6 +585,9 @@ function _recupsSuivreSamedi_(year, base, dateDonneur, motif) {
    attente > 24 h sans rappel → rappel UNIQUE au receveur. */
 function expirerEchanges() {
   try { if (typeof _bat_ === 'function') _bat_('expirerEchanges'); } catch (e) {}   // (27/08) battement de cœur — lu par le diagnostic
+  /* (12/11/2026) Filet horaire : une garde déplacée par un autre chemin (statut,
+     absence longue, saisie dans le classeur) ou passée ferme aussi sa demande. */
+  const sansObjet = _echangesSansObjet_();
   const { sh, lignes } = _echangesLignes_();
   const maintenant = Date.now();
   const colEtat = ECHANGES_ENTETE.indexOf('ETAT') + 1;
@@ -519,8 +616,8 @@ function expirerEchanges() {
         './index.html', { id: String(d.RECEVEUR), pastille: _echangesEnAttentePour_(String(d.RECEVEUR)) });
     }
   });
-  if (changements) _echangesVersKV_();
-  return { changements: changements };
+  if (changements || sansObjet) _echangesVersKV_();
+  return { changements: changements + sansObjet };
 }
 
 /* Installe le déclencheur horaire (idempotent — même règle que le miroir :
@@ -1089,5 +1186,7 @@ function appliquerGesteComite_(mod) {
   applyModification(mod);
   const s = _gesteSuites_(d, releveR, releve18, mod.par || 'comité');
   if (s.infos.length) logAction('geste du comité ' + mod.type + ' ' + d.DATE + ' — ' + s.infos.join(' · '));
+  // (12/11/2026) Une demande entre MAR qui portait sur cette garde n'a plus d'objet.
+  if (!mod.dryRun && _echangesSansObjet_()) _echangesVersKV_();
   return s;
 }

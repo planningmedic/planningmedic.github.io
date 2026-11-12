@@ -1815,7 +1815,15 @@ ses garde-fous — rien de nouveau ne touche à la grille. Chaque demande vit da
 <code>ECHANGES</code> du classeur, avec son état : en attente, acceptée, refusée, expirée, ou
 impossible (le planning a bougé entre la proposition et l'acceptation — rien n'est écrit, les deux
 sont prévenus), ou annulée (le demandeur retire sa proposition tant qu'elle attend, action
-<code>annulerEchange</code> ; le collègue est prévenu). Sans réponse : rappel unique à 24&nbsp;h, expiration à 48&nbsp;h.</p>
+<code>annulerEchange</code> ; le collègue est prévenu), ou sans objet (12/11/2026, état <code>sansobjet</code>). Sans réponse : rappel unique à 24&nbsp;h, expiration à 48&nbsp;h.</p>
+<p>Sans objet (12/11/2026) : une demande en attente se ferme seule quand la garde proposée est passée,
+quand le demandeur ne la tient plus, ou quand le receveur ne tient plus la garde demandée en retour
+(<code>_echangesSansObjet_</code>). Le contrôle tourne après chaque acceptation, après un don ou un
+échange fait par le comité, et à chaque passage horaire, qui rattrape les autres chemins (statut,
+absence longue, saisie dans le classeur). Le motif est écrit dans la demande ; aucune notification.
+Une grille illisible ne ferme rien. À l'envoi, deux refus : la même garde déjà proposée au même
+collègue et encore en attente, et une garde dont la date est passée (le comité, lui, peut toujours
+corriger le passé).</p>
 <p>Confidentialité (11/11/2026) : la copie rapide ne sert à un MAR que les demandes dont il est
 demandeur ou receveur (<code>filtreEchanges</code>, côté serveur) ; seul l'admin reçoit la liste
 complète et garde le bouton « Tout voir ».</p></div>

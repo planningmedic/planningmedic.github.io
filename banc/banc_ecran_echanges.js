@@ -289,6 +289,31 @@ const dodo = ms => new Promise(r => setTimeout(r, ms));
     V('le receveur, lui, n\'a pas de bouton Annuler', !w.document.querySelector('.ech-annuler') && !!w.document.querySelector('.ech-accepter'));
   }
 
+  console.log('\n═══ 4 sexies. « Sans objet » : libellé, motif, plus aucun bouton (12/11/2026) ═══');
+  {
+    const kv = await baseKV();
+    kv.notif_config = JSON.stringify({ ouvert:true, pilotes:[] });
+    kv.echanges = JSON.stringify({ success:true, echanges:[
+      Object.assign({}, demande, { id:'E20', demandeur:'BRAVO', receveur:'ALPHA', etat:'sansobjet', reponduLe:'2026-11-12T08:00:00.000Z', info:'Le Dr Bravo n\'a plus la garde du 12/01/2027' }),
+      Object.assign({}, demande, { id:'E21', demandeur:'BRAVO', receveur:'ALPHA' }) ] });
+    const surGas = (charge) => {
+      if (charge.action === 'repondreEchange') return { success:true, etat:'sansobjet', error:'La garde du 12/01/2027 est déjà passée' };
+      if (charge.action === 'login') return { success:true, role:'mar', id:'ALPHA', year:2027 };
+      return { success:true };
+    };
+    const { w, erreurs } = await monterPage(kv, surGas);
+    V('la page se charge sans erreur JavaScript', erreurs.length === 0, erreurs.slice(0,2));
+    w.location.hash = '#echanges'; w.route();
+    await dodo(400);
+    const html = () => w.document.getElementById('echList').innerHTML;
+    V('une demande fermée s\'affiche « Sans objet », jamais le mot interne', /Sans objet/.test(html()) && !/>sansobjet</.test(html()), html().slice(0, 300));
+    V('…avec son motif en clair', /Motif : Le Dr Bravo n'a plus la garde/.test(html().replace(/&#39;|&#x27;/g, "'")));
+    V('…et sans bouton : un seul « Accepter » à l\'écran, celui de la demande en attente', w.document.querySelectorAll('.ech-accepter').length === 1);
+    w.document.querySelector('.ech-accepter').click(); await dodo(500);
+    V('acceptée trop tard : la carte passe à « Sans objet » avec le motif rendu par le serveur',
+      w.document.querySelectorAll('.ech-etat.sansobjet').length === 2 && /déjà passée/.test(html()) && !w.document.querySelector('.ech-accepter'), html().slice(0, 400));
+  }
+
   console.log('\n═══ 4 quinquies. Chacun ne voit que SES échanges (11/11/2026) ═══');
   {
     /* Décision d'Arthur : les échanges des autres ne regardent personne.

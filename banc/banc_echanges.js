@@ -14,6 +14,9 @@ const vm = require('vm'), fs = require('fs'), path = require('path');
 const { Classeur, fabriqueVerrou, VERROUS, extraireFonction , brancherSurEcriture } = require('./stubs');
 const { MARS } = require('./jeu_donnees');
 let ok = 0, ko = 0;
+/* (12/11/2026) Date FIGÉE : depuis que les gardes passées sont refusées, un banc
+   à l'heure réelle aurait viré au rouge tout seul en janvier 2027. */
+const AUJOURDHUI = '2026-11-11';
 const V = (t, c, d) => { if (c) { ok++; console.log('  ✓ ' + t); } else { ko++; console.log('  ✗ ' + t + (d !== undefined ? ' → ' + JSON.stringify(d).slice(0, 200) : '')); } };
 
 /* Monde : GARDES + INDISPOS (géométrie identique, comme en production),
@@ -46,7 +49,8 @@ function monde(annee, opts) {
     PropertiesService: { getScriptProperties: () => ({ getProperty: k => (k === 'MIROIR_PUSH_TOKEN' ? 'JETON' : (k === 'ECHANGES_OUVERTS' ? 'O' : null)), setProperty: () => {}, deleteProperty: () => {} }) },
     LockService: { getScriptLock: () => fabriqueVerrou('script'), getDocumentLock: () => fabriqueVerrou('document') },
     ScriptApp: { getProjectTriggers: () => [], newTrigger: () => ({ timeBased: () => ({ everyHours: () => ({ create: () => {} }) }) }), deleteTrigger: () => {} },
-    Utilities: { formatDate: (d) => { const x = new Date(d); return `${x.getFullYear()}-${String(x.getMonth()+1).padStart(2,'0')}-${String(x.getDate()).padStart(2,'0')}`; } },
+    Utilities: { formatDate: (d) => { const x = new Date(d); if (Math.abs(x - Date.now()) < 60000) return opts.aujourdhui || AUJOURDHUI;
+      return `${x.getFullYear()}-${String(x.getMonth()+1).padStart(2,'0')}-${String(x.getDate()).padStart(2,'0')}`; } },
     Logger: { log: () => {} }, logAction: m => journal.push(String(m)),
     /* (14/08/2026) L'alerte comité passe par mail, jamais par push. */
     MailApp: { sendEmail: (to, sujet, corps) => { mails.push({ to, sujet, corps }); },
@@ -691,6 +695,166 @@ console.log('\n═══ ANNÉE · un don de 2027 accepté quand 2026 est l\'ann
   V('la garde a bien changé de mains', b.lire('BRAVO', j) === 'G2' && b.lire('ALPHA', j) === '');
   V('le planning republié est celui de 2027', b.annees.republie.length > 0 && b.annees.republie.every(y => Number(y) === 2027), b.annees.republie);
   V('les mails (MAR et paie) sont prévus pour 2027', b.annees.prevenu.length > 0 && b.annees.prevenu.every(y => Number(y) === 2027), b.annees.prevenu);
+}
+
+/* ═══════════════════════════════════════════════════════════════════════
+   (12/11/2026) LOT 1 DU DIAGNOSTIC — sans objet, doublons, gardes passées
+   Contre-preuve : ces trois sections échouent sur echanges.gs 2026-11-11.7.
+   ═══════════════════════════════════════════════════════════════════════ */
+const C3 = MARS[2], C4 = MARS[3];
+const creer = (b, qui, p) => { try { return vm.runInContext(`creerEchange(${JSON.stringify(user(qui))}, ${JSON.stringify(p)})`, b.ctx); } catch (e) { return { erreur: e.message }; } };
+const repondre = (b, qui, id, rep) => { try { return vm.runInContext(`repondreEchange(${JSON.stringify(user(qui))}, ${JSON.stringify({ id, reponse: rep || 'accepter' })})`, b.ctx); } catch (e) { return { erreur: e.message }; } };
+const etats = b => b.echanges().map(e => e[COL.RECEVEUR] + ':' + e[COL.ETAT]);
+
+console.log('\n═══ L1-A. Une garde proposée à deux collègues : le premier accepte, l\'autre demande se ferme seule ═══');
+{
+  const b = monde(2027);
+  const j = b.dates[9];
+  b.poser('ALPHA', j, 'G'); b.poser('ALPHA', b.dates[10], 'RG');
+  const d1 = creer(b, 'ALPHA', { type:'don', year:2027, date:j, receveur:'BRAVO' });
+  const d2 = creer(b, 'ALPHA', { type:'don', year:2027, date:j, receveur:C3 });
+  V('les deux propositions partent (deux collègues différents : permis)', !!d1.id && !!d2.id, [d1, d2]);
+  const nAvant = b.notifs.length;
+  const r = repondre(b, 'BRAVO', d1.id);
+  V('BRAVO accepte : la garde est à lui', r.etat === 'acceptee' && b.lire('BRAVO', j) === 'G', r);
+  const e = b.echanges();
+  V('la demande faite à ' + C3 + ' passe « sans objet », plus « en attente »', e[1][COL.ETAT] === 'sansobjet', etats(b));
+  V('…avec le motif en clair', /n'a plus la garde du/.test(String(e[1][COL.INFO])), e[1][COL.INFO]);
+  V('…et une date de clôture', !!String(e[1][COL.REPONDU_LE]).trim());
+  V('la pastille de ' + C3 + ' retombe à 0', vm.runInContext(`_echangesEnAttentePour_(${JSON.stringify(C3)})`, b.ctx) === 0);
+  V('aucune notification pour ' + C3 + ' (décision du 12/11 : il n\'a rien à faire)',
+    b.notifs.slice(nAvant).every(n => !(n.cible && n.cible.id === C3)), b.notifs.slice(nAvant).map(n => n.cible));
+  const avant = JSON.stringify(b.cl.getSheetByName('GARDES_2027').lignes);
+  const r2 = repondre(b, C3, d2.id);
+  V(C3 + ' ne peut plus l\'accepter, la grille ne bouge pas', /déjà sansobjet/.test(r2.erreur || '') && JSON.stringify(b.cl.getSheetByName('GARDES_2027').lignes) === avant, r2);
+  V('la copie rapide reçoit la liste à jour après la fermeture', b.kv.length > 0 && b.attente.poussesSansFlush === 0, b.attente);
+}
+
+console.log('\n═══ L1-B. Sans objet : échange dont la contrepartie est partie, geste du comité, filet horaire ═══');
+{
+  // Échange ALPHA(j) ↔ BRAVO(k) en attente ; BRAVO donne k à un tiers → l'échange n'a plus d'objet.
+  const b = monde(2027);
+  const j = b.dates[9], k = b.dates[30];
+  b.poser('ALPHA', j, 'G'); b.poser('ALPHA', b.dates[10], 'RG');
+  b.poser('BRAVO', k, 'G2'); b.poser('BRAVO', b.dates[31], 'RG');
+  const ech = creer(b, 'ALPHA', { type:'echange', year:2027, date:j, date2:k, receveur:'BRAVO' });
+  const don = creer(b, 'BRAVO', { type:'don', year:2027, date:k, receveur:C3 });
+  repondre(b, C3, don.id);
+  const e = b.echanges();
+  V('la garde demandée en retour a changé de mains : l\'échange passe « sans objet »', e[0][COL.ETAT] === 'sansobjet' && /Bravo n'a plus la garde/i.test(String(e[0][COL.INFO])), e[0]);
+  V('la garde d\'ALPHA n\'a pas bougé', b.lire('ALPHA', j) === 'G');
+
+  // Geste du comité : la garde proposée est donnée à un autre par le comité.
+  const c = monde(2027);
+  c.poser('ALPHA', j, 'G'); c.poser('ALPHA', c.dates[10], 'RG');
+  creer(c, 'ALPHA', { type:'don', year:2027, date:j, receveur:'BRAVO' });
+  vm.runInContext(`appliquerGesteComite_({ type:'donGarde', year:2027, date:${JSON.stringify(j)}, doctorId:'ALPHA', doctorId2:${JSON.stringify(C3)} })`, c.ctx);
+  V('don fait par le comité : la demande entre MAR se ferme', c.echanges()[0][COL.ETAT] === 'sansobjet', etats(c));
+  V('…et la copie rapide est poussée', c.kv.length >= 2, c.kv);
+
+  // Filet horaire : la case est vidée par un autre chemin (saisie dans le classeur).
+  const d = monde(2027);
+  d.poser('ALPHA', j, 'G'); d.poser('ALPHA', d.dates[10], 'RG');
+  creer(d, 'ALPHA', { type:'don', year:2027, date:j, receveur:'BRAVO' });
+  d.poser('ALPHA', j, 'V');
+  const x = vm.runInContext('expirerEchanges()', d.ctx);
+  V('passage horaire : garde remplacée par des vacances → sans objet', d.echanges()[0][COL.ETAT] === 'sansobjet' && x.changements === 1, [etats(d), x]);
+
+  // TÉMOINS : ce qui ne doit PAS se fermer.
+  const t = monde(2027);
+  t.poser('ALPHA', j, 'G'); t.poser('ALPHA', t.dates[10], 'RG');
+  t.poser(C3, k, 'G'); t.poser(C3, t.dates[31], 'RG');
+  t.poser('ALPHA', t.dates[50], '18'); t.poser('BRAVO', t.dates[52], '18');
+  creer(t, 'ALPHA', { type:'don', year:2027, date:j, receveur:'BRAVO' });
+  creer(t, 'ALPHA', { type:'echange18', year:2027, date:t.dates[50], date2:t.dates[52], receveur:'BRAVO' });
+  const autre = creer(t, C3, { type:'don', year:2027, date:k, receveur:C4 });
+  repondre(t, C4, autre.id);
+  V('témoin : un geste sur une AUTRE garde ne ferme rien', t.echanges()[0][COL.ETAT] === 'attente' && t.echanges()[1][COL.ETAT] === 'attente', etats(t));
+  t.poser('BRAVO', t.dates[52], '');
+  vm.runInContext('expirerEchanges()', t.ctx);
+  V('échange de 18 h : le 18 h demandé en retour a disparu → sans objet, le don reste en attente',
+    t.echanges()[1][COL.ETAT] === 'sansobjet' && /n'a plus le 18 h/.test(String(t.echanges()[1][COL.INFO])) && t.echanges()[0][COL.ETAT] === 'attente', t.echanges().map(e => [e[COL.ETAT], e[COL.INFO]]));
+
+  // Grille illisible : on ne décide RIEN.
+  const u = monde(2027);
+  u.poser('ALPHA', j, 'G'); u.poser('ALPHA', u.dates[10], 'RG');
+  creer(u, 'ALPHA', { type:'don', year:2027, date:j, receveur:'BRAVO' });
+  const f = u.cl.getSheetByName('ECHANGES'); f.lignes[1][COL.ANNEE] = 2031;   // année sans onglet
+  vm.runInContext('expirerEchanges()', u.ctx);
+  V('onglet de l\'année introuvable : la demande reste en attente (jamais fermée à l\'aveugle)', u.echanges()[0][COL.ETAT] === 'attente', etats(u));
+}
+
+console.log('\n═══ L1-C. Doublon : la même garde ne se propose pas deux fois au même collègue ═══');
+{
+  const b = monde(2027);
+  const j = b.dates[9];
+  b.poser('ALPHA', j, 'G'); b.poser('ALPHA', b.dates[10], 'RG');
+  const p = { type:'don', year:2027, date:j, receveur:'BRAVO' };
+  const d1 = creer(b, 'ALPHA', p);
+  const nAvant = b.notifs.length;
+  const d2 = creer(b, 'ALPHA', p);
+  V('second envoi refusé avec un message clair', /déjà proposé cette garde/.test(d2.erreur || ''), d2);
+  V('une seule ligne dans ECHANGES', b.echanges().length === 1, etats(b));
+  V('le collègue n\'est pas notifié une seconde fois', b.notifs.length === nAvant);
+  V('la même garde à un AUTRE collègue reste permise', !!creer(b, 'ALPHA', { type:'don', year:2027, date:j, receveur:C3 }).id);
+  repondre(b, 'BRAVO', d1.id, 'refuser');
+  V('après un refus, on peut la lui reproposer', !!creer(b, 'ALPHA', p).id, etats(b));
+  // même date, mais échange contre une autre garde : ce n'est pas un doublon
+  const k = b.dates[30], k2 = b.dates[40];
+  b.poser('BRAVO', k, 'G'); b.poser('BRAVO', b.dates[31], 'RG'); b.poser('BRAVO', k2, 'G'); b.poser('BRAVO', b.dates[41], 'RG');
+  const e1 = creer(b, 'ALPHA', { type:'echange', year:2027, date:j, date2:k, receveur:'BRAVO' });
+  const e2 = creer(b, 'ALPHA', { type:'echange', year:2027, date:j, date2:k2, receveur:'BRAVO' });
+  const e3 = creer(b, 'ALPHA', { type:'echange', year:2027, date:j, date2:k2, receveur:'BRAVO' });
+  V('deux échanges contre deux gardes différentes : permis ; le même échange deux fois : refusé', !!e1.id && !!e2.id && /déjà proposé/.test(e3.erreur || ''), [e1, e2, e3]);
+}
+
+console.log('\n═══ L1-D. Garde passée : ni proposée, ni acceptée ═══');
+{
+  const b = monde(2027, { aujourdhui: '2027-01-20' });
+  const hier = '2027-01-19', jour = '2027-01-20', demain = '2027-01-21';
+  [hier, jour].forEach(x => b.poser('ALPHA', x, ''));
+  b.poser('ALPHA', hier, 'G'); b.poser('ALPHA', jour, 'RG');
+  const avant = JSON.stringify(b.cl.getSheetByName('GARDES_2027').lignes);
+  const r = creer(b, 'ALPHA', { type:'don', year:2027, date:hier, receveur:'BRAVO' });
+  V('garde d\'hier : proposition refusée', /est déjà passée/.test(r.erreur || ''), r);
+  V('…rien n\'est créé, la grille ne bouge pas', b.echanges().length === 0 && JSON.stringify(b.cl.getSheetByName('GARDES_2027').lignes) === avant);
+
+  const c = monde(2027, { aujourdhui: '2027-01-20' });
+  c.poser('ALPHA', jour, 'G'); c.poser('ALPHA', demain, 'RG');
+  V('garde du JOUR MÊME : toujours donnable', !!creer(c, 'ALPHA', { type:'don', year:2027, date:jour, receveur:'BRAVO' }).id);
+  c.poser('BRAVO', hier, 'G'); c.poser('BRAVO', jour, '');
+  c.poser(C3, '2027-01-12', 'G'); c.poser(C3, '2027-01-13', 'RG'); c.poser('ALPHA', '2027-02-10', 'G'); c.poser('ALPHA', '2027-02-11', 'RG');
+  const e = creer(c, 'ALPHA', { type:'echange', year:2027, date:'2027-02-10', date2:'2027-01-12', receveur:C3 });
+  V('échange contre une garde passée du collègue : refusé', /est déjà passée/.test(e.erreur || ''), e);
+
+  // Proposée la veille, acceptée après la garde.
+  const horlogeD = { aujourdhui: '2027-01-18' };   // l'horloge du monde se lit à chaque appel : on l'avance
+  const d = monde(2027, horlogeD);
+  d.poser('ALPHA', hier, 'G'); d.poser('ALPHA', jour, 'RG');
+  const dd = creer(d, 'ALPHA', { type:'don', year:2027, date:hier, receveur:'BRAVO' });
+  V('proposée la veille : acceptée normalement à l\'envoi', !!dd.id, dd);
+  horlogeD.aujourdhui = '2027-01-21';
+  const g = JSON.stringify(d.cl.getSheetByName('GARDES_2027').lignes);
+  const nAvant = d.notifs.length, repAvant = d.annees.republie.length;
+  const rr = repondre(d, 'BRAVO', dd.id);
+  V('acceptée APRÈS la garde : fermée « sans objet », motif rendu à l\'écran', rr.etat === 'sansobjet' && /est déjà passée/.test(rr.error || ''), rr);
+  V('…le planning du passé n\'est pas réécrit', JSON.stringify(d.cl.getSheetByName('GARDES_2027').lignes) === g);
+  V('…aucune republication (donc aucun mail paie), aucune notification', d.annees.republie.length === repAvant && d.notifs.length === nAvant);
+  V('…l\'état est écrit dans ECHANGES', d.echanges()[0][COL.ETAT] === 'sansobjet' && /passée/.test(String(d.echanges()[0][COL.INFO])), d.echanges()[0]);
+
+  // Filet horaire : une demande restée en attente dont la garde est passée.
+  const horlogeH = { aujourdhui: '2027-01-18' };
+  const h = monde(2027, horlogeH);
+  h.poser('ALPHA', hier, 'G'); h.poser('ALPHA', jour, 'RG');
+  creer(h, 'ALPHA', { type:'don', year:2027, date:hier, receveur:'BRAVO' });
+  horlogeH.aujourdhui = '2027-01-20';
+  vm.runInContext('expirerEchanges()', h.ctx);
+  V('passage horaire : garde passée → sans objet', h.echanges()[0][COL.ETAT] === 'sansobjet', etats(h));
+  // Le comité, lui, garde la main sur le passé (correction d'un planning).
+  const m = monde(2027, { aujourdhui: '2027-01-25' });
+  m.poser('ALPHA', hier, 'G'); m.poser('ALPHA', jour, 'RG');
+  let errC = null; try { vm.runInContext(`applyModification({ type:'donGarde', year:2027, date:'${hier}', doctorId:'ALPHA', doctorId2:'BRAVO' })`, m.ctx); } catch (x) { errC = x.message; }
+  V('témoin : le comité peut toujours corriger une garde passée', errC === null && m.lire('BRAVO', hier) === 'G', errC);
 }
 
 console.log('\n' + ok + ' OK · ' + ko + ' en échec');

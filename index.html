@@ -269,7 +269,7 @@ a.tile, .tile.clickable { cursor: pointer; }
   border-radius:999px; padding:3px 9px; }
 .ech-etat.attente { background:#FEF3C7; color:#92400E; }
 .ech-etat.acceptee { background:#DCFCE7; color:#166534; }
-.ech-etat.refusee, .ech-etat.expiree, .ech-etat.impossible, .ech-etat.annulee { background:#F1F5F9; color:#64748B; }
+.ech-etat.refusee, .ech-etat.expiree, .ech-etat.impossible, .ech-etat.annulee, .ech-etat.sansobjet { background:#F1F5F9; color:#64748B; }
 .ech-actions { display:flex; gap:8px; margin-top:11px; }
 .ech-actions button { flex:1; border-radius:10px; padding:10px 0; font-size:14px; font-weight:700; cursor:pointer; border:none; }
 .ech-accepter { background:#16A34A; color:#fff; }
@@ -2363,7 +2363,7 @@ function renderEchanges(){
     box.innerHTML = '<div class="topos-empty">Aucun échange pour le moment.<br><span>Proposez une garde à un collègue : il recevra une notification et pourra accepter en un geste.</span></div>';
     return;
   }
-  const ETATS = { attente:'En attente', acceptee:'Acceptée', refusee:'Refusée', expiree:'Expirée', impossible:'Impossible', annulee:'Annulée' };
+  const ETATS = { attente:'En attente', acceptee:'Acceptée', refusee:'Refusée', expiree:'Expirée', impossible:'Impossible', annulee:'Annulée', sansobjet:'Sans objet' };   // (12/11/2026) sans objet : la garde a changé de mains ou est passée
   let html = '';
   liste.forEach(function(e){
     const don = e.type==='don';
@@ -2374,7 +2374,7 @@ function renderEchanges(){
       ? 'Garde du <b>' + esc(fmtDate(e.date)) + '</b> → planning de ' + esc(_echDrLisible(e.receveur))
       : esc(_echDrLisible(e.demandeur)) + ' prend le <b>' + esc(fmtDate(e.date2)) + '</b>, ' + esc(_echDrLisible(e.receveur)) + ' prend le <b>' + esc(fmtDate(e.date)) + '</b>';
     if (e.etat==='acceptee' && e.info) detail += '<br>' + esc(e.info);
-    if (e.etat==='impossible' && e.info) detail += '<br>Motif : ' + esc(e.info);
+    if ((e.etat==='impossible' || e.etat==='sansobjet') && e.info) detail += '<br>Motif : ' + esc(e.info);
     let meta = '';
     if (e.etat==='attente') meta = 'Expire dans ' + _echHeuresRestantes(e.creeLe) + ' h · rappel à mi-parcours';
     else if (e.reponduLe) meta = ETATS[e.etat] + ' · ' + esc(fmtDate(String(e.reponduLe).slice(0,10)));
@@ -2444,7 +2444,8 @@ async function repondreEch(id, reponse, btn, confirmeAbs){
     if (r && r.success) {
       /* (14/08/2026 — vu en test réel) La réponse du serveur FAIT FOI — récit : docs/JOURNAL-Planning-Med.md §55 */
       const item = ECH_LISTE.find(function(e){ return e.id === id; });
-      if (item) { item.etat = r.etat || (reponse==='accepter' ? 'acceptee' : 'refusee'); item.reponduLe = new Date().toISOString(); }
+      if (item) { item.etat = r.etat || (reponse==='accepter' ? 'acceptee' : 'refusee'); item.reponduLe = new Date().toISOString();
+        if ((item.etat==='impossible' || item.etat==='sansobjet') && r.error && !item.info) item.info = r.error; }   // (12/11/2026) le motif s'affiche tout de suite
       majEchangesHero();
       renderEchanges();
       if (typeof loadMyGardes === 'function') { try { window.__rafraichirDonnees(); } catch(e){} }
