@@ -17,6 +17,36 @@ Maintenance — les lots du 11/11 attendent la mise à jour du serveur) : `echan
 **Worker** `cloudflare/worker.js` : `const VERSION = 'miroir 2026-11-11.1'` ·
 **Service worker** `sw.js` : `pm-sw-v2` (version.js exclu de la copie depuis le 14/10).
 
+## 12/11/2026 (soir) — diagnostic plus rapide, et qui dit où va son temps (GAS seul, site inchangé)
+
+**Constat du soir (page Maintenance, iPhone)** : un échec « Échec du service Feuilles de calcul » (message de Google,
+une fois), puis plusieurs « Load failed » et une attente sans fin. Vérifié dans `LOGS` : le serveur terminait pourtant
+ses passages sans erreur. Le calcul n'était donc pas en cause — 34,1 s mesurées. Hypothèse retenue, **non prouvée** :
+la page quittée pendant l'analyse (iOS coupe alors l'appel en cours).
+
+**`diagnostic.gs` 2026-11-12.3** (commit `7f8b629`, en service — confirmé au Diagnostic de 20:34) — demande du
+responsable : plus vite, sans rien retirer.
+- Le rapport lisait le dépôt fichier par fichier : 15 lectures pour « Code déployé vs dépôt », 6 pour « Version du
+  site ». Elles partent désormais en **deux envois groupés** (`_diagLireDepot_`). Envoi groupé en panne → repli sur
+  l'ancienne lecture à la file. Mêmes fichiers comparés, mêmes lignes au rapport.
+- Une ligne s'ajoute en fin de rapport : **« Étapes les plus longues »** (`_diagTempsParEtape_`, six au plus, celles
+  de plus d'une seconde).
+- Banc : `banc_diag_sentinelle` +24 (contre-preuve : échoue sur l'ancien code). Complet au vert : **6 159 ✓, 0 ✗**.
+
+**Mesuré en production** : 34,1 s → **25,8 s**. Reste, d'après la nouvelle ligne : Intégrité GARDES_2027 7,6 s ·
+Publication JSON (Drive) 4,7 s · Intégrité GARDES_2026 2,0 s · Année active 1,5 s · Code déployé vs dépôt 1,3 s ·
+Périodes vs calendrier officiel 1,1 s.
+
+**Laissé de côté, décision du responsable (« on s'arrête là pour le moment »)** :
+- le bloc 2027 coûte près de 4 fois celui de 2026 ; piste **non vérifiée dans le code** : les contrôles propres à 2027
+  (récupérations de samedi, demandes d'échange) reliraient plusieurs fois les mêmes onglets ;
+- la page Maintenance n'a ni délai ni reprise : quittée pendant l'analyse, elle affiche « Load failed » ou tourne
+  sans fin. Une relance automatique au retour sur la page est possible (le diagnostic ne fait que lire) — non faite ;
+- une lecture du classeur refusée à un endroit non protégé de `diagnosticComplet` fait perdre tout le rapport.
+
+⚠️ L'en-tête de cette ROADMAP (versions du site et des fichiers serveur) date du 11/11 : les lots du 12/11
+(v1.63 → v1.72.1) n'y sont pas reportés. La version en service se lit au Diagnostic.
+
 ## 11/11/2026 — récupérations de samedi automatiques, 18 h protégés et échangeables (v1.59.0 → v1.62.0)
 
 **Défauts trouvés en production (année 2027, classeur du 11/11)** :

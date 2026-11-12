@@ -50,6 +50,18 @@ les fichiers du planning, et attend une semaine de fonctionnement réel avant su
 
 # PARTIE 1 — L'ESSENTIEL
 
+## 12 novembre 2026 (soir) — diagnostic plus rapide (serveur seul, site inchangé)
+
+`diagnostic.gs` **2026-11-12.3**, en service (confirmé au Diagnostic). Banc **6 159 ✓, 0 ✗**, 122 scénarios.
+
+- Le diagnostic lit le dépôt par **deux envois groupés** au lieu de 21 lectures à la file : **34 s → 26 s**
+  mesurées, aucun contrôle retiré.
+- Sa dernière ligne, **« Étapes les plus longues »**, dit où va le temps : c'est elle qu'on lit avant d'optimiser
+  encore. Le plus long reste le bloc « Intégrité GARDES_2027 » (7,6 s).
+- **Le diagnostic se lance en restant sur la page** : quittée pendant l'analyse, la page Maintenance affiche
+  « Load failed » ou tourne sans fin alors que le serveur a fini (hypothèse non prouvée, cohérente avec `LOGS`).
+- Détail et pistes laissées de côté : ROADMAP du 12/11 (soir).
+
 ## 11 novembre 2026 — récups de samedi et 18 h gérés tout seuls (v1.59.0 → v1.62.0)
 
 Site **v1.62.0**. Gardes 2027 **générées le 09/11** ; dons et échanges entre MAR en cours. Banc **5 788 ✓**,
