@@ -2425,6 +2425,9 @@ function renderDocPanel(){
 
 
 function _cibNum(v){ const n=(v instanceof Date)?NaN:Number(v); return (isFinite(n)&&n>=0&&n<1000)?n:0; }
+/* (12/11/2026) Part absente (années sans colonne week-ends) : on la laisse absente,
+   la case reste neutre — jamais une part à zéro inventée. */
+function _cibOpt(v){ return (v===undefined||v===null||v==='') ? undefined : _cibNum(v); }
 /* ── CIBLES ENTIÈRES, RAMENÉES AUX GARDES RÉELLEMENT RÉPARTIES ─────────
    (05/09/2026) Deux défauts vus EN PRODUCTION sur l'écran 2026.
 
@@ -2453,8 +2456,10 @@ function _cibNum(v){ const n=(v instanceof Date)?NaN:Number(v); return (isFinite
    de plus de 1 % des gardes réparties, le certificat affiche la mention qui
    l'explique au lecteur. */
 /* ciblesEquite : partage/rendu_equite.js (14/09/2026). */
+/* (12/11/2026) Deux compteurs distincts : les vendredis-dimanches (VD), et les
+   week-ends de garde (WE), comparés à la part juste — c'est ce que chacun compte. */
 const AX_EQUITE = [['total','cTot','total'],['sa','cSa','samedis'],['je','cJe','jeudis'],
-                   ['vd','cVd','week-ends'],['vjf','cVjf','veilles fériés'],
+                   ['vd','cVd','vendredis-dimanches'],['we','cWe','week-ends'],['vjf','cVjf','veilles fériés'],
                    /* (05/09/2026) 6e axe — récit : docs/JOURNAL-Planning-Med.md §46 */
                    ['jf','cJf','fériés']];
 
@@ -2487,7 +2492,7 @@ async function getCiblesFromStats(year){
     const c = m && m.success && m.data && m.data['stats_' + year];
     if(c && Array.isArray(c.stats) && c.stats.length){
       const mm = {};
-      c.stats.forEach(s=>{ mm[s.medecin] = {cible:s.cible||0, cSat:s.cSat||0, cJeu:s.cJeu||0, cVd:s.cVd||0, cVjf:s.cVjf||0, cJf:s.cJf||0}; });
+      c.stats.forEach(s=>{ mm[s.medecin] = {cible:s.cible||0, cSat:s.cSat||0, cJeu:s.cJeu||0, cVd:s.cVd||0, cVjf:s.cVjf||0, cJf:s.cJf||0, vd:s.vd, we:s.we, cWe:s.cWe}; });
       CIBLES_CACHE[year] = mm;
       return mm;
     }
@@ -2496,7 +2501,7 @@ async function getCiblesFromStats(year){
     const j = await apiPost({action:'getStatsLive', year});
     if(!j || !j.success || !Array.isArray(j.stats)) return {};
     const m = {};
-    j.stats.forEach(s=>{ m[s.medecin] = {cible:s.cible||0, cSat:s.cSat||0, cJeu:s.cJeu||0, cVd:s.cVd||0, cVjf:s.cVjf||0, cJf:s.cJf||0}; });
+    j.stats.forEach(s=>{ m[s.medecin] = {cible:s.cible||0, cSat:s.cSat||0, cJeu:s.cJeu||0, cVd:s.cVd||0, cVjf:s.cVjf||0, cJf:s.cJf||0, vd:s.vd, we:s.we, cWe:s.cWe}; });
     CIBLES_CACHE[year] = m;
     return m;
   }catch(e){ return {}; }
@@ -2627,12 +2632,14 @@ function eqLignesMoi(wrap, list){
     const it = list.find(x => x.name === _meName(MY_ID));
     if(!it || it.wish) return;
     const Y = +currentYear, FETES = new Set([Y+'-12-24', Y+'-12-25', Y+'-12-31', (Y+1)+'-01-01']);
-    let fetes = 0; const we = new Set();
+    /* (12/11/2026) Même règle que la case « WE » et que le serveur
+       (compterWeekends) : les lundis et jeudis fériés collés comptent avec le week-end. */
+    let fetes = 0; const jours = [], feries = new Set();
     DATA.months.forEach(m => { const doc = (m.doctors||[]).find(d => d.id === MY_ID); if(!doc) return;
-      (m.days||[]).forEach((j, i) => { const st = (doc.days[i]||{}).status; if(st !== 'G' && st !== 'G2') return;
+      (m.days||[]).forEach((j, i) => { if(j.isFerie) feries.add(j.date); const st = (doc.days[i]||{}).status; if(st !== 'G' && st !== 'G2') return;
         if(FETES.has(j.date)) fetes++;
-        const d = new Date(j.date + 'T12:00:00'), w = d.getDay();
-        if(w === 5 || w === 6 || w === 0){ d.setDate(d.getDate() - ((w + 2) % 7)); we.add(d.toDateString()); } }); });
+        jours.push(j.date); }); });
+    const we = { size: window.compterWeekends(jours, ds => feries.has(ds)).we };
     const part = Math.round(+it.cTot || 0), b = t => '<b style="color:var(--ink-2)">' + t + '</b>';
     const div = document.createElement('div'); div.className = 'eq-moi';
     div.style.cssText = 'margin-top:10px;padding-top:10px;border-top:1px solid var(--line);font-size:12.5px;color:var(--ink-3);line-height:1.6';
@@ -2657,6 +2664,7 @@ async function loadEquiteLive(force){
       name:nameOf(s.medecin), wish:_souhaitsGarantisId(s.medecin), total:s.total||0, cTot:_cibNum(s.cible),
       lu:s.lun||0, ma:s.mar||0, me:s.mer||0, je:s.jeu||0, sa:s.sat||0, vd:s.vd||0, jf:s.jf||0, vjf:s.vjf||0,
       cSa:_cibNum(s.cSat), cJe:_cibNum(s.cJeu), cVd:_cibNum(s.cVd), cVjf:_cibNum(s.cVjf), cJf:_cibNum(s.cJf),
+      we:s.we||0, cWe:_cibOpt(s.cWe),   // (12/11/2026) week-ends de garde
     }));
     if(!list.length){ wrap.innerHTML = '<div style="padding:30px;text-align:center;color:#94A3B8">Aucune garde dans ce planning.</div>'; return; }
     const html = `<div class="eqv-legend">Instantané — gardes réelles, échanges et dons compris · à la minute près · trait = sa part · Lun/Mar/Mer neutres · <button type="button" class="eqv-recalc" onclick="loadEquiteLive(true)">recalculer maintenant</button></div>`;
@@ -2699,7 +2707,11 @@ function renderEquite(){
       const cb = cibles[e.id] || {};
       return {
         name:nameOf(e.id), wish:_souhaitsGarantisId(e.id), total:e.total, cTot:_cibNum(cb.cible),
-        lu:e.lu||0, ma:e.ma||0, me:e.me||0, je:e.je||0, sa:e.sa||0, vd:e.vd||0, jf:e.jf||0, vjf:e.vjf||0,
+        /* (12/11/2026) Vendredis-dimanches et week-ends lus dans les statistiques
+           dès qu'elles sont là : l'onglet a été recompté, la photographie publiée
+           ne l'est qu'à la publication suivante. */
+        lu:e.lu||0, ma:e.ma||0, me:e.me||0, je:e.je||0, sa:e.sa||0, vd:(cb.vd!==undefined?(+cb.vd||0):(e.vd||0)), jf:e.jf||0, vjf:e.vjf||0,
+        we:(cb.we!==undefined?(+cb.we||0):(e.we||0)), cWe:_cibOpt(cb.cWe!==undefined?cb.cWe:e.cWe),
         cSa:_cibNum(cb.cSat), cJe:_cibNum(cb.cJeu), cVd:_cibNum(cb.cVd), cVjf:_cibNum(cb.cVjf), cJf:_cibNum(cb.cJf),   // (03/11/2026) les fériés comparés à la part, pas à une moyenne
       };
     });

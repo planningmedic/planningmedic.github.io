@@ -1,7 +1,7 @@
 // ⚠️ RÈGLE (détecteur de dérive dépôt↔Apps Script) : incrémenter cette version
 // à CHAQUE push de ce fichier. Le diagnostic (admin → Maintenance) compare la
 // version déployée ici avec celle du dépôt et signale toute recopie oubliée.
-const GAS_VERSION_CODE = '2026-11-11.2';   // (11/11/2026) vue paie : jours de TP (TP, CTP, semaine off du rythme 2/2) affichés, sans mail · (11/11/2026) mail paie lisible sur téléphone (une carte par changement) · (02/11/2026) commentaire sans initiales réelles · (27/10/2026) demi-journées de vacances VM/VA (planning, paie, notifications) · (27/10/2026) journée mobile 2027 (lundi 7 juin) ajoutée aux fériés · (18/10/2026) vue paie : tri G/G2/V (_planningPaie_) et mail aux secrétaires de paie (_paieEnvoyerAnnee_)
+const GAS_VERSION_CODE = '2026-11-12.1';   // (12/11/2026) week-ends : le nombre de week-ends de garde de chacun et sa part juste, une seule règle de compte (compterWeekends_, partsWeekends_, champsWeStats_) · (11/11/2026) vue paie : jours de TP (TP, CTP, semaine off du rythme 2/2) affichés, sans mail · (11/11/2026) mail paie lisible sur téléphone (une carte par changement) · (02/11/2026) commentaire sans initiales réelles · (27/10/2026) demi-journées de vacances VM/VA (planning, paie, notifications) · (27/10/2026) journée mobile 2027 (lundi 7 juin) ajoutée aux fériés · (18/10/2026) vue paie : tri G/G2/V (_planningPaie_) et mail aux secrétaires de paie (_paieEnvoyerAnnee_)
 
 // ── Reconstruire STATS_GARDES_2026 depuis GARDES_2026 (année reconstruite) ──
 // Renvoie le classeur contenant l'onglet demandé : classeur actif si présent,
@@ -11,6 +11,77 @@ function _ssWithSheet(sheetName) {
   if (ss.getSheetByName(sheetName)) return ss;
   try { const arch = SpreadsheetApp.openById(ARCHIVE_SS_ID); if (arch.getSheetByName(sheetName)) return arch; } catch (e) {}
   return null;
+}
+
+/* (12/11/2026) WEEK-ENDS DE GARDE — UNE SEULE FAÇON DE COMPTER, PARTOUT.
+   Vu le 12/11/2026 sur les gardes 2027 attribuées : un MAR à 13 week-ends,
+   deux autres à 10, pour la même quotité, sans que l'écran d'équité le montre.
+   Trois comptes différents portaient la même étiquette « week-ends » :
+   l'onglet de statistiques (92 vendredis-dimanches pour 104 vendredis de garde :
+   le compteur du générateur perdait ceux que ses dernières passes déplacent),
+   l'instantané (les vendredis seuls) et la carte du MAR (sans les fériés collés).
+   Règles :
+   - un VENDREDI-DIMANCHE se compte par son VENDREDI, comme le générateur le
+     répartit (le vendredi porte le compteur ; un vendredi-dimanche coupé compte
+     pour celui qui tient le vendredi, le dimanche seul ne compte que comme
+     week-end). Compter les seules paires vendredi + dimanche du même MAR
+     faussait le report d'une année sur l'autre : mesuré au banc, l'écart cumulé
+     des samedis passait de 3 à 4 en quatre ans (banc_dette_cumul) ;
+   - un WEEK-END DE GARDE = un week-end où le MAR a au moins une garde : vendredi,
+     samedi ou dimanche, plus le lundi férié qui le suit ou le jeudi férié qui le
+     précède (le générateur les couple au samedi). Fêtes comprises.
+   `dates` : les jours de garde (G ou G2) du MAR, au format aaaa-mm-jj.
+   Même règle dans partage/rendu_equite.js (compterWeekends) : le banc compare. */
+function compterWeekends_(dates, estFerie) {
+  const set = new Set(dates || []);
+  const plus = function (ds, n) {
+    const x = new Date(ds + 'T12:00:00'); x.setDate(x.getDate() + n);
+    return x.getFullYear() + '-' + String(x.getMonth() + 1).padStart(2, '0') + '-' + String(x.getDate()).padStart(2, '0');
+  };
+  const fe = typeof estFerie === 'function' ? estFerie : function () { return false; };
+  const we = new Set(); let vd = 0;
+  set.forEach(function (ds) {
+    const w = new Date(ds + 'T12:00:00').getDay();
+    let ven = null;
+    if (w === 5) ven = ds;
+    else if (w === 6) ven = plus(ds, -1);
+    else if (w === 0) ven = plus(ds, -2);
+    else if (w === 1 && fe(ds)) ven = plus(ds, -3);
+    else if (w === 4 && fe(ds)) ven = plus(ds, 1);
+    if (ven) we.add(ven);
+    if (w === 5) vd++;
+  });
+  return { we: we.size, vd: vd };
+}
+/* (12/11/2026) PART JUSTE DE WEEK-ENDS. Les week-ends de garde de l'année
+   (somme de ceux de chaque MAR) se partagent comme les samedis et les
+   vendredis-dimanches : au prorata de la part exacte de chacun sur ces deux
+   compteurs (quotité, arrivée ou départ, congé long déjà pris en compte par le
+   générateur). La part se garde à virgule ; la cible affichée est la part
+   ARRONDIE AU PLUS PRÈS, la même pour deux MAR de même part : aucun
+   départage, donc aucun ordre de passage qui avantage toujours les mêmes.
+   lignes : [{ id, we, poids }] → { id: { part, cible } } */
+function partsWeekends_(lignes) {
+  const tot = lignes.reduce(function (s, l) { return s + (Number(l.we) || 0); }, 0);
+  const sp = lignes.reduce(function (s, l) { return s + (Number(l.poids) || 0); }, 0);
+  const out = {};
+  lignes.forEach(function (l) {
+    const part = sp > 0 ? tot * (Number(l.poids) || 0) / sp : 0;
+    out[l.id] = { part: Math.round(part * 1000) / 1000, cible: Math.round(part) };
+  });
+  return out;
+}
+/* (12/11/2026) Lecture des deux colonnes week-ends de l'onglet de statistiques,
+   PAR LEUR NOM : elles sont ajoutées en fin de ligne, et les années d'avant ne
+   les ont pas. Colonne absente → champ absent (undefined) : l'écran laisse la
+   case neutre au lieu d'inventer une part à zéro. */
+function champsWeStats_(hdr, row) {
+  const h = (hdr || []).map(function (x) { return String(x).trim().toUpperCase(); });
+  const i = h.indexOf('WE'), j = h.indexOf('CIBLE WE');
+  const o = {};
+  if (i >= 0 && row[i] !== '' && row[i] != null) o.we = Number(row[i]) || 0;
+  if (j >= 0 && row[j] !== '' && row[j] != null) o.cWe = Number(row[j]) || 0;
+  return o;
 }
 
 // ── Stats LIVE : recalcule depuis GARDES_YYYY (échanges/dons inclus), cibles lues dans STATS_GARDES ──
@@ -44,6 +115,7 @@ function computeStatsLive(year) {
       cibById[id] = { cible:Number(sd[r][1])||0, cSat:Number(sd[r][17])||0,
         cJeu:Number(sd[r][18])||0, cVd:Number(sd[r][19])||0, cVjf:Number(sd[r][21])||0,
         cJf:Number(sd[r][22])||0 };
+      Object.assign(cibById[id], champsWeStats_(sd[0], sd[r]));   // (12/11/2026) cible de week-ends
     }
   }
   const stats = [];
@@ -51,6 +123,7 @@ function computeStatsLive(year) {
     const id = String(data[r][0]).trim();
     if (!id) continue;
     const c = {total:0,g:0,g2:0,lun:0,mar:0,mer:0,jeu:0,ven:0,sam:0,dim:0,recupR:0,h18:0,jf:0,vjf:0,vd:0,noelAn:0};
+    const _jours = [];   // (12/11/2026) jours de garde, pour compter week-ends et vendredis-dimanches
     Object.keys(colToDate).forEach(col => {
       const date = colToDate[col];
       const val = String(data[r][Number(col)] || '').trim().toUpperCase();
@@ -61,16 +134,21 @@ function computeStatsLive(year) {
       c.total++;
       if (val === 'G') c.g++; else c.g2++;
       c[KEYS[dow]]++;
+      _jours.push(date);
       if (isF(date)) c.jf++;
-      if (dow === 5) c.vd++;
       if (!isF(date) && isF(nextDay(date)) && dow >= 1 && dow <= 4) c.vjf++;
       if (NOEL.has(date)) c.noelAn++;
     });
+    /* (12/11/2026) Vendredis-dimanches et week-ends de garde, par la règle
+       unique (compterWeekends_). */
+    const _wk = compterWeekends_(_jours, isF);
+    c.vd = _wk.vd;
     const cb = cibById[id] || {cible:0,cSat:0,cJeu:0,cVd:0,cVjf:0,cJf:0};
     stats.push({medecin:id, cible:cb.cible, total:c.total, g:c.g, g2:c.g2,
       lun:c.lun, mar:c.mar, mer:c.mer, jeu:c.jeu, ven:c.ven, sat:c.sam, dim:c.dim,
       recupR:c.recupR, h18:c.h18, jf:c.jf, vjf:c.vjf, vd:c.vd,
-      cSat:cb.cSat, cJeu:cb.cJeu, cVd:cb.cVd, cVjf:cb.cVjf, cJf:cb.cJf});
+      cSat:cb.cSat, cJeu:cb.cJeu, cVd:cb.cVd, cVjf:cb.cVjf, cJf:cb.cJf,
+      we:_wk.we, cWe:cb.cWe});
   }
   return stats;
 }
@@ -864,7 +942,7 @@ function generatePlanning(yearOverride) {
     if (stSheet && stSheet.getLastRow() > 1) {
       const sd = stSheet.getDataRange().getValues();
       // colonnes : 0 MEDECIN · 2 TOTAL G · 5 LUN · 6 MAR · 7 MER · 8 JEU · 9 VEN · 10 SAM · 11 DIM · 14 JF · 15 VEILLE JF · 20 VD
-      equiteInitiale = sd.slice(1).filter(r => r[0]).map(r => ({
+      equiteInitiale = sd.slice(1).filter(r => r[0]).map(r => Object.assign({
         id: String(r[0]).trim(),
         total: Number(r[2]) || 0,
         lu: Number(r[5]) || 0, ma: Number(r[6]) || 0, me: Number(r[7]) || 0,
@@ -872,7 +950,7 @@ function generatePlanning(yearOverride) {
         vd: Number(r[20]) || 0, jf: Number(r[14]) || 0, vjf: Number(r[15]) || 0,
         cible: Number(r[1]) || 0, cSa: Number(r[17]) || 0, cJe: Number(r[18]) || 0, cVd: Number(r[19]) || 0, cVjf: Number(r[21]) || 0,
         cJf: Number(r[22]) || 0,   // (05/09/2026) 6e axe : jours fériés
-      }));
+      }, champsWeStats_(sd[0], r)));   // (12/11/2026) week-ends de garde et leur cible
     }
   } catch(e) { Logger.log('equiteInitiale: ' + e.message); }
 

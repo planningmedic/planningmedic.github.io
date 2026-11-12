@@ -19,6 +19,26 @@
    Une copie locale encore présente garde la main. Banc : banc_equite_commun.js. */
 (function () {
   if (typeof window === 'undefined') return;
+  /* (12/11/2026) WEEK-ENDS DE GARDE — la même règle que le serveur
+     (compterWeekends_, gas/code.gs ; le banc compare les deux) : un week-end
+     compte dès que le MAR y a une garde — vendredi, samedi, dimanche, plus le
+     lundi férié qui suit ou le jeudi férié qui précède ; un vendredi-dimanche
+     se compte par son vendredi, comme le générateur le répartit. */
+  if (typeof window.compterWeekends !== 'function') window.compterWeekends = function compterWeekends(dates, estFerie){
+    const set = new Set(dates || []), fe = typeof estFerie === 'function' ? estFerie : () => false;
+    const plus = (ds, n) => { const x = new Date(ds + 'T12:00:00'); x.setDate(x.getDate() + n);
+      return x.getFullYear() + '-' + String(x.getMonth() + 1).padStart(2, '0') + '-' + String(x.getDate()).padStart(2, '0'); };
+    const we = new Set(); let vd = 0;
+    set.forEach(ds => {
+      const w = new Date(ds + 'T12:00:00').getDay();
+      let ven = null;
+      if (w === 5) ven = ds; else if (w === 6) ven = plus(ds, -1); else if (w === 0) ven = plus(ds, -2);
+      else if (w === 1 && fe(ds)) ven = plus(ds, -3); else if (w === 4 && fe(ds)) ven = plus(ds, 1);
+      if (ven) we.add(ven);
+      if (w === 5) vd++;
+    });
+    return { we: we.size, vd: vd };
+  };
   if (typeof window.ciblesEquite !== 'function') window.ciblesEquite = function ciblesEquite(evalues, axes){
   const T = {}, ECART = { }, SEUIL = 0.01;
   evalues.forEach(m => { T[m.name] = {}; });
@@ -94,7 +114,9 @@
   if(pire===0) return {t:'à la cible', c:'#15803D', pire:0};
   /* (03/11/2026) Libellés courts fixes (« week-ends » donnait « wee »), et le
      bleu pour 2 gardes ou plus EN DESSOUS de sa part, comme les barres. */
-  const COURT={'total':'tot','samedis':'sam','jeudis':'jeu','week-ends':'WE','veilles fériés':'VJF','fériés':'JF'};
+  /* (12/11/2026) « WE » désigne désormais les week-ends de garde ; les
+     vendredis-dimanches s'abrègent « VD », comme leur barre. */
+  const COURT={'total':'tot','samedis':'sam','jeudis':'jeu','vendredis-dimanches':'VD','week-ends':'WE','veilles fériés':'VJF','fériés':'JF'};
   return {t:(pire>0?'+':'')+pire+' '+(COURT[axe]||axe.slice(0,3)), c:pire>=2?'#CE1126':(pire<=-2?'#1D4ED8':'var(--ink-3)'), pire:pire};
 }
 
@@ -143,11 +165,12 @@
   if (typeof window.renderEquiteCards !== 'function') window.renderEquiteCards = function renderEquiteCards(list, opts){
   opts = opts || {};
   const _sombre = !!opts.sombre, _ouverts = opts.ouverts || new Set(), _neutre = opts.neutre || 'var(--surface-2)';
-  const AX=[['lu','Lun'],['ma','Mar'],['me','Mer'],['je','Jeu'],['sa','Sam'],['vd','VD'],['jf','JF'],['vjf','VJF']];
+  /* (12/11/2026) « WE » : les week-ends de garde, comparés à la part juste. */
+  const AX=[['lu','Lun'],['ma','Mar'],['me','Mer'],['je','Jeu'],['sa','Sam'],['vd','VD'],['we','WE'],['jf','JF'],['vjf','VJF']];
   /* (05/09/2026) Les fériés ont désormais une CIBLE, servie par getStats. La barre
      « JF » était jusqu'ici tracée contre une moyenne d'équipe — un repère qui ne
      dit rien de la justice de la répartition. */
-  const CB={je:'cJe',sa:'cSa',vd:'cVd',vjf:'cVjf',jf:'cJf'};
+  const CB={je:'cJe',sa:'cSa',vd:'cVd',we:'cWe',vjf:'cVjf',jf:'cJf'};
   const NEUTRAL={lu:1,ma:1,me:1}; // hors équité : pas de cible, barre neutre
   const meanAx={};
   ['lu','ma','me'].forEach(k=>{const v=list.map(x=>+x[k]||0);meanAx[k]=v.length?v.reduce((s,n)=>s+n,0)/v.length:0;});
@@ -219,7 +242,7 @@
     /* Ligne repliée : une case par axe, dans le MÊME ordre que les barres, pour
        que les colonnes se lisent d'une ligne à l'autre. */
     const ORDRE=[['total','cTot'],['lu',null],['ma',null],['me',null],['je','cJe'],
-                 ['sa','cSa'],['vd','cVd'],['jf',null],['vjf','cVjf']];
+                 ['sa','cSa'],['vd','cVd'],['we','cWe'],['jf',null],['vjf','cVjf']];
     const cib=_CIB[it.name];
     const bande=ORDRE.map(([k,ck])=>{
       const t=(ck&&cib&&!_wish&&cib[ck]!==undefined&&!axeAbsent[k])?cib[ck]:undefined;   // (14/09/2026) 0 est une cible

@@ -1,7 +1,7 @@
 // ⚠️ RÈGLE (détecteur de dérive dépôt↔Apps Script) : incrémenter cette version
 // à CHAQUE push de ce fichier. Le diagnostic (admin → Maintenance) compare la
 // version déployée ici avec celle du dépôt et signale toute recopie oubliée.
-const GAS_VERSION_MIROIR = '2026-11-11.3';   // (11/11/2026) accepter ou annuler un échange repousse le planning de l'année DE LA DEMANDE (lue dans ECHANGES), plus l'année active · (11/11/2026) annulerEchange rafraîchit les échanges · (11/11/2026) recupsReparer rafraîchit planning et gardes · (06/11/2026) retrait d'annonceFinSaisie (envoyée) · (02/11/2026) commentaire : identifiants d'exemple fictifs · (27/10/2026) champ ordreMc dans acces · (20/10/2026) clé etablissement (nom et adresse du devis) · (21/10) setVeilleAbo → veille_marques
+const GAS_VERSION_MIROIR = '2026-11-12.1';   // (12/11/2026) copie des statistiques : week-ends de garde et leur cible (champsWeStats_) · (11/11/2026) accepter ou annuler un échange repousse le planning de l'année DE LA DEMANDE (lue dans ECHANGES), plus l'année active · (11/11/2026) annulerEchange rafraîchit les échanges · (11/11/2026) recupsReparer rafraîchit planning et gardes · (06/11/2026) retrait d'annonceFinSaisie (envoyée) · (02/11/2026) commentaire : identifiants d'exemple fictifs · (27/10/2026) champ ordreMc dans acces · (20/10/2026) clé etablissement (nom et adresse du devis) · (21/10) setVeilleAbo → veille_marques
 
 /* ═══════════════════════════════════════════════════════════════════════
    MIROIR.GS — alimentation du miroir de lecture Cloudflare
@@ -1313,11 +1313,11 @@ function _miroirConstruireStats_(statsYear) {
   const stats = [];
   for (var r = 1; r < data.length; r++) {
     if (!data[r][0]) continue;
-    stats.push({medecin:data[r][0], cible:data[r][1], total:data[r][2],
+    stats.push(Object.assign({medecin:data[r][0], cible:data[r][1], total:data[r][2],
       g:data[r][3], g2:data[r][4], lun:data[r][5], mar:data[r][6], mer:data[r][7],
       jeu:data[r][8], ven:data[r][9], sat:data[r][10], dim:data[r][11],
       recupR:data[r][12], h18:data[r][13],
-      jf:data[r][14], vjf:data[r][15], vd:data[r][20], cSat:data[r][17], cJeu:data[r][18], cVd:data[r][19], cVjf:data[r][21], cJf:data[r][22]});
+      jf:data[r][14], vjf:data[r][15], vd:data[r][20], cSat:data[r][17], cJeu:data[r][18], cVd:data[r][19], cVjf:data[r][21], cJf:data[r][22]}, champsWeStats_(data[0], data[r])));
   }
   return { success: true, stats: stats };
 }
