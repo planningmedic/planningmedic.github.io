@@ -582,6 +582,59 @@ const dodo = ms => new Promise(r => setTimeout(r, ms));
       opts.length === new Set(opts).size && opts.indexOf('ALPHA') === -1 && opts.indexOf('BRAVO') > -1, opts);
   }
 
+  console.log('\n═══ 3 sexies. Choix par carte + panneau : gardes et 18 h jamais mélangés (12/11/2026) ═══');
+  {
+    const kv = await baseKV();
+    kv.notif_config = JSON.stringify({ ouvert:true, pilotes:[] });
+    kv.echanges = JSON.stringify({ success:true, echanges:[] });
+    let cree = null;
+    const surGas = (c) => {
+      if (c.action === 'creerEchange') { cree = c; return { success:true, id:'EP' }; }
+      if (c.action === 'login') return { success:true, role:'mar', id:'ALPHA', year:2027 };
+      return { success:true };
+    };
+    const { w, M, erreurs } = await monterPage(kv, surGas);
+    V('la page se charge sans erreur JavaScript', erreurs.length === 0, erreurs.slice(0,2));
+    const neuf = JSON.parse(JSON.stringify(planning));
+    neuf.months[0].doctors[0].days = st(['','G','RG','18','','']);   // ALPHA : garde le 09/03, 18 h le 11/03
+    neuf.months[0].doctors[1].days = st(['18','','','','G','RG']);   // BRAVO : 18 h le 08/03, garde le 12/03
+    M.set('planning_2027', JSON.stringify(neuf));
+    w.Date.now = Date.now;
+    w._todayStr = () => '2027-03-01';
+    w.location.hash = '#echanges'; w.route();
+    await dodo(400);
+    await w.echOuvrirProposition();
+    await dodo(300);
+    const carte = w.document.getElementById('echCarteGarde');
+    V('la garde choisie s\'affiche en carte (mardi 9 mars 2027, Garde Réa)', !!carte && /Garde Réa/.test(carte.textContent) && /mardi 9 mars 2027/.test(carte.textContent), carte && carte.textContent);
+    V('le titre dit « Ma garde » pour une garde', w.document.getElementById('echLblGarde').textContent === 'Ma garde');
+    carte.click(); await dodo(50);
+    const voile = () => w.document.getElementById('echVoile');
+    V('toucher la carte ouvre le panneau', !!voile());
+    const onglets = voile() ? [...voile().querySelectorAll('[data-onglet]')].map(b => b.textContent) : [];
+    V('deux onglets : « Mes gardes » et « Mes 18 h », pas de « Tout »', onglets.length === 2 && /Mes gardes/.test(onglets[0]) && /Mes 18 h/.test(onglets[1]) && !/Tout/.test(voile().innerHTML), onglets);
+    let lignes = [...voile().querySelectorAll('[data-valeur]')].map(b => b.textContent);
+    V('onglet gardes : la garde du 09/03 seule, aucun 18 h', lignes.length === 1 && /Garde Réa/.test(lignes[0]) && !lignes.some(l => /18 h/.test(l)), lignes);
+    voile().querySelector('[data-onglet="18"]').click(); await dodo(30);
+    lignes = [...voile().querySelectorAll('[data-valeur]')].map(b => b.textContent);
+    V('onglet 18 h : le 18 h du 11/03 seul, aucune garde', lignes.length === 1 && /18 h/.test(lignes[0]) && !lignes.some(l => /Garde/.test(l)), lignes);
+    V('les lignes sont rangées sous leur mois', /mars 2027/.test(voile().querySelector('.ech-mois').textContent));
+    voile().querySelector('[data-valeur]').click(); await dodo(100);
+    V('choisir une ligne referme le panneau', !voile());
+    V('le 18 h devient la valeur choisie (titre « Mon 18 h », carte 18 h)', w.document.getElementById('echLblGarde').textContent === 'Mon 18 h' && /jeudi 11 mars 2027/.test(carte.textContent), carte.textContent);
+    w.document.getElementById('echSelQui').value = 'BRAVO';
+    w.echType('echange');
+    await dodo(150);
+    w.document.getElementById('echCarteContre').click(); await dodo(50);
+    const contre = voile() ? [...voile().querySelectorAll('[data-valeur]')].map(b => b.getAttribute('data-valeur')) : [];
+    V('« Contre son 18 h » : seul son 18 h du 08/03, jamais sa garde du 12/03', contre.length === 1 && contre[0] === '2027-03-08' && !voile().querySelector('[data-onglet]'), contre);
+    voile().querySelector('[data-valeur]').click(); await dodo(50);
+    V('la carte « contre » affiche le 18 h choisi', /lundi 8 mars 2027/.test(w.document.getElementById('echCarteContre').textContent), w.document.getElementById('echCarteContre').textContent);
+    w.document.getElementById('echEnvoyer').click();
+    await dodo(500);
+    V('l\'envoi part exactement comme avant : echange18, 11/03 contre 08/03', !!cree && cree.type === 'echange18' && cree.date === '2027-03-11' && cree.date2 === '2027-03-08' && cree.receveur === 'BRAVO', cree);
+  }
+
   console.log('\n═══ 5. La carte des notifications : téléphone oui, ordinateur non ═══');
   {
     /* (17/08/2026) Vu par le responsable en se connectant depuis son PC : la carte

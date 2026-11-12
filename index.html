@@ -292,6 +292,42 @@ a.tile, .tile.clickable { cursor: pointer; }
 .ech-msg { font-size:13px; margin-top:10px; padding:10px 12px; border-radius:10px; line-height:1.45; }
 .ech-msg.err { background:#FEF2F2; color:#B91C1C; }
 .ech-msg.ok { background:#DCFCE7; color:#166534; }
+/* (12/11/2026) Choix d'une garde ou d'un 18 h : carte + panneau qui monte du bas,
+   à la place de la liste déroulante du téléphone. Les <select> restent, cachés :
+   ils portent toujours la valeur lue à l'envoi. Gardes et 18 h jamais mélangés.
+   Couleurs fixes, comme le panneau .ech-panneau (blanc aussi en mode sombre). */
+.ech-panneau select.ech-natif { display:none; }
+.ech-carte { width:100%; display:flex; align-items:center; gap:12px; border:1.5px solid #E2E8F0; border-radius:14px;
+  padding:9px 12px; background:#fff; color:#0F172A; cursor:pointer; text-align:left; font:inherit; }
+.ech-carte.choisi { border-color:#CE1126; box-shadow:0 0 0 3px rgba(206,17,38,.09); }
+.ech-carte .ech-chev { color:#94A3B8; font-size:18px; margin-left:auto; }
+.ech-carte .ech-vide { color:#64748B; font-size:14.5px; padding:6px 0; }
+.ech-dt { width:46px; flex:none; text-align:center; border-radius:10px; padding:5px 0; line-height:1; }
+.ech-dt small { display:block; font-size:10px; font-weight:700; text-transform:uppercase; opacity:.85; }
+.ech-dt b { font-size:20px; }
+.ech-tx { flex:1; min-width:0; }
+.ech-tx b { display:block; font-size:15.5px; }
+.ech-tx span { font-size:13px; color:#64748B; }
+.ech-k-g  .ech-dt, .ech-k-g  .ech-pas { background:#FDE7EA; color:#B4101F; }
+.ech-k-g2 .ech-dt, .ech-k-g2 .ech-pas { background:#EFE7FB; color:#6B2FA8; }
+.ech-k-18 .ech-dt, .ech-k-18 .ech-pas { background:#FFEFD6; color:#B45309; }
+.ech-pas { font-size:12px; font-weight:700; border-radius:999px; padding:4px 10px; flex:none; }
+.ech-voile { position:fixed; inset:0; background:rgba(15,23,42,.45); z-index:1000; display:flex; align-items:flex-end; }
+.ech-feuille { width:100%; max-height:82vh; overflow-y:auto; background:#fff; color:#0F172A;
+  border-radius:22px 22px 0 0; padding:10px 16px calc(18px + env(safe-area-inset-bottom)); }
+.ech-poignee { width:42px; height:5px; border-radius:9px; background:#CBD5E1; margin:0 auto 10px; }
+.ech-feuille h3 { font-size:18px; margin:0 0 10px; }
+.ech-onglets { display:flex; background:#F1F5F9; border-radius:12px; padding:4px; margin-bottom:6px; }
+.ech-onglets button { flex:1; border:none; background:none; font:inherit; font-size:14px; font-weight:700; color:#64748B;
+  padding:8px 0; border-radius:9px; cursor:pointer; }
+.ech-onglets button.actif { background:#fff; color:#0F172A; box-shadow:0 1px 3px rgba(0,0,0,.15); }
+.ech-onglets i { font-style:normal; font-size:12px; color:#94A3B8; margin-left:4px; }
+.ech-mois { font-size:12px; font-weight:800; color:#94A3B8; text-transform:uppercase; letter-spacing:.08em; margin:12px 2px 6px; }
+.ech-ligne { width:100%; display:flex; align-items:center; gap:12px; padding:8px 10px; border-radius:14px; margin-bottom:4px;
+  border:none; background:none; color:inherit; font:inherit; text-align:left; cursor:pointer; }
+.ech-ligne.choisi { background:#FEF2F2; outline:1.5px solid #CE1126; }
+.ech-coche { width:22px; height:22px; flex:none; border-radius:50%; background:#CE1126; color:#fff; font-size:13px;
+  display:flex; align-items:center; justify-content:center; }
 
 /* ── VUE MES GARDES (détail) ── */
 .mg-tag { font-size:10.5px; font-weight:700; text-transform:uppercase; letter-spacing:.04em;
@@ -2609,9 +2645,10 @@ async function echOuvrirProposition(){
   }
   medecins.sort();
   p.innerHTML =
-      '<label>Ma garde ou mon 18 h</label>'
-    + '<select id="echSelGarde" onchange="echMajProposition()">'
-    + gardes.map(function(g,i){ return '<option value="'+i+'">'+esc(fmtDate(g.date))+' — '+(g.type==='18'?'18 h':g.type==='G2'?'Mater/Bloc':'Réa')+'</option>'; }).join('')
+      '<label id="echLblGarde">Ma garde</label>'
+    + '<button type="button" id="echCarteGarde" class="ech-carte" onclick="echChoisirGarde()"></button>'
+    + '<select id="echSelGarde" class="ech-natif" onchange="echMajProposition()">'
+    + gardes.map(function(g,i){ return '<option value="'+i+'" data-type="'+esc(g.type)+'">'+esc(fmtDate(g.date))+' — '+(g.type==='18'?'18 h':g.type==='G2'?'Mater/Bloc':'Réa')+'</option>'; }).join('')
     + '</select>'
     + '<div id="echBlocTypes"><label>Je souhaite</label>'
     + '<div class="ech-types">'
@@ -2623,11 +2660,92 @@ async function echOuvrirProposition(){
     + '<option value="">Choisir un collègue…</option>'
     + medecins.map(function(id){ return '<option value="'+esc(id)+'">'+esc(_echDrLisible(id))+'</option>'; }).join('')
     + '</select>'
-    + '<div id="echBlocContre" style="display:none"><label id="echLblContre">Contre sa garde du</label><select id="echSelContre"><option value="">Choisir…</option></select></div>'
+    + '<div id="echBlocContre" style="display:none"><label id="echLblContre">Contre sa garde du</label><button type="button" id="echCarteContre" class="ech-carte" onclick="echChoisirContre()"></button><select id="echSelContre" class="ech-natif"><option value="">Choisir…</option></select></div>'
     + '<div id="echAvert" class="ech-avert" style="display:none"></div>'
     + '<button id="echEnvoyer" class="ech-envoyer" onclick="envoyerProposition(this)">Envoyer la proposition</button>'
     + '<div class="ech-msg" id="echMsgProp" style="display:none"></div>';
   echMajProposition();
+}
+
+/* (12/11/2026) Carte + panneau de choix. Le <select> caché reste la référence :
+   choisir dans le panneau ne fait que changer sa valeur, puis relancer le calcul
+   habituel. Gardes et 18 h sont deux onglets séparés : on n'échange jamais une
+   garde contre un 18 h. */
+const _ECH_JOURS = ['dim','lun','mar','mer','jeu','ven','sam'];
+const _ECH_JOURS_L = ['dimanche','lundi','mardi','mercredi','jeudi','vendredi','samedi'];
+const _ECH_MOIS = ['janvier','février','mars','avril','mai','juin','juillet','août','septembre','octobre','novembre','décembre'];
+function _echJour(date){ const p=String(date).split('-').map(Number); return new Date(p[0], p[1]-1, p[2], 12); }
+function _echLibType(t){ return t==='18' ? '18 h' : t==='G2' ? 'Garde Mater/Bloc' : 'Garde Réa'; }
+function _echClasse(t){ return t==='18' ? 'ech-k-18' : t==='G2' ? 'ech-k-g2' : 'ech-k-g'; }
+function _echPastille(date){ const d=_echJour(date); return '<span class="ech-dt"><small>'+_ECH_JOURS[d.getDay()]+'</small><b>'+d.getDate()+'</b></span>'; }
+function _echNote(date){
+  const d=_echJour(date);
+  if (d.getMonth()===11 && (d.getDate()===24 || d.getDate()===31)) return 'réveillon';
+  return (d.getDay()===0 || d.getDay()===6) ? 'week-end' : '';
+}
+function _echCarte(id, item, vide){
+  const el=document.getElementById(id); if (!el) return;
+  if (!item || !item.date) { el.className='ech-carte'; el.innerHTML='<span class="ech-vide">'+esc(vide||'Choisir…')+'</span><span class="ech-chev">⌄</span>'; return; }
+  const d=_echJour(item.date);
+  el.className='ech-carte choisi '+_echClasse(item.type);
+  el.innerHTML=_echPastille(item.date)
+    + '<span class="ech-tx"><b>'+esc(_echLibType(item.type))+'</b><span>'+_ECH_JOURS_L[d.getDay()]+' '+d.getDate()+' '+_ECH_MOIS[d.getMonth()]+' '+d.getFullYear()+'</span></span>'
+    + '<span class="ech-chev">⌄</span>';
+}
+function _echMajCarteContre(){
+  const sel=document.getElementById('echSelContre'); if (!sel) return;
+  const o=sel.options[sel.selectedIndex];
+  const vide=(sel.options[0] && !sel.options[0].value) ? sel.options[0].textContent : 'Choisir…';
+  _echCarte('echCarteContre', (o && o.value) ? { date:o.value, type:o.getAttribute('data-type') } : null, vide);
+}
+function _echFermerFeuille(){ const v=document.getElementById('echVoile'); if (v) v.remove(); }
+/* items : [{valeur, date, type}] ; onglets : null, ou [{cle, titre, filtre(item)}] */
+function _echFeuille(titre, items, valeur, choisir, onglets){
+  _echFermerFeuille();
+  const voile=document.createElement('div');
+  voile.id='echVoile'; voile.className='ech-voile';
+  voile.onclick=function(e){ if (e.target===voile) _echFermerFeuille(); };
+  let onglet = onglets ? (onglets.find(function(o){ return items.some(function(it){ return it.valeur===valeur && o.filtre(it); }); }) || onglets[0]).cle : null;
+  function dessiner(){
+    const vus = onglets ? items.filter(onglets.find(function(o){ return o.cle===onglet; }).filtre) : items;
+    let h='<div class="ech-feuille"><div class="ech-poignee"></div><h3>'+esc(titre)+'</h3>';
+    if (onglets) h+='<div class="ech-onglets">'+onglets.map(function(o){
+      return '<button type="button" data-onglet="'+o.cle+'" class="'+(o.cle===onglet?'actif':'')+'">'+esc(o.titre)+'<i>'+items.filter(o.filtre).length+'</i></button>';
+    }).join('')+'</div>';
+    let mois='';
+    if (!vus.length) h+='<div class="topos-empty">Rien à proposer ici.</div>';
+    vus.forEach(function(it){
+      const d=_echJour(it.date), m=_ECH_MOIS[d.getMonth()]+' '+d.getFullYear();
+      if (m!==mois) { mois=m; h+='<div class="ech-mois">'+esc(m)+'</div>'; }
+      const note=_echNote(it.date), pris=it.valeur===valeur;
+      h+='<button type="button" class="ech-ligne '+_echClasse(it.type)+(pris?' choisi':'')+'" data-valeur="'+esc(it.valeur)+'">'
+        + _echPastille(it.date)
+        + '<span class="ech-tx"><b>'+esc(_echLibType(it.type))+'</b>'+(note?'<span>'+note+'</span>':'')+'</span>'
+        + (pris ? '<span class="ech-coche">✓</span>' : '<span class="ech-pas">'+(it.type==='18'?'18 h':it.type==='G2'?'Mater':'Réa')+'</span>')
+        + '</button>';
+    });
+    voile.innerHTML=h+'</div>';
+    voile.querySelectorAll('[data-onglet]').forEach(function(b){ b.onclick=function(){ onglet=b.getAttribute('data-onglet'); dessiner(); }; });
+    voile.querySelectorAll('[data-valeur]').forEach(function(b){ b.onclick=function(){ _echFermerFeuille(); choisir(b.getAttribute('data-valeur')); }; });
+  }
+  dessiner();
+  document.body.appendChild(voile);
+}
+function echChoisirGarde(){
+  const sel=document.getElementById('echSelGarde');
+  const items=ECH_PROP.gardes.map(function(g,i){ return { valeur:String(i), date:g.date, type:g.type }; });
+  const avec18=items.some(function(it){ return it.type==='18'; });
+  _echFeuille('Que voulez-vous céder ?', items, sel.value, function(v){ sel.value=v; echMajProposition(); },
+    avec18 ? [ { cle:'g', titre:'Mes gardes', filtre:function(it){ return it.type!=='18'; } },
+               { cle:'18', titre:'Mes 18 h', filtre:function(it){ return it.type==='18'; } } ] : null);
+}
+function echChoisirContre(){
+  const sel=document.getElementById('echSelContre');
+  const items=[].slice.call(sel.options).filter(function(o){ return o.value; })
+    .map(function(o){ return { valeur:o.value, date:o.value, type:o.getAttribute('data-type') }; });
+  if (!items.length) return;
+  _echFeuille(ECH_PROP.type==='echange18' ? 'Contre quel 18 h ?' : 'Contre quelle garde ?', items, sel.value,
+    function(v){ sel.value=v; _echMajCarteContre(); });
 }
 
 function echType(t){
@@ -2649,6 +2767,8 @@ async function echMajProposition(){
   ECH_PROP.type = est18 ? (echanger ? 'echange18' : 'don18') : (echanger ? 'echange' : 'don');
   document.getElementById('echTypeDon').textContent = est18 ? 'Le donner' : 'La donner';
   document.getElementById('echLblContre').textContent = est18 ? 'Contre son 18 h du' : 'Contre sa garde du';
+  document.getElementById('echLblGarde').textContent = est18 ? 'Mon 18 h' : 'Ma garde';
+  _echCarte('echCarteGarde', { date:g.date, type:g.type }, '');
   if (ECH_PROP.type==='echange18') {
     blocContre.style.display='block';
     const sel = document.getElementById('echSelContre');
@@ -2656,7 +2776,7 @@ async function echMajProposition(){
       let plan=null; try { plan=_planDejaLa(g.annee) || await _fetchPlanning(g.annee); } catch(e){}
       const siens=_ech18De(plan, qui, _todayStr()).filter(function(s){ return s.date!==g.date; });
       sel.innerHTML = siens.length
-        ? '<option value="">Choisir…</option>' + siens.map(function(s){ return '<option value="'+esc(s.date)+'">'+esc(fmtDate(s.date))+' — 18 h</option>'; }).join('')
+        ? '<option value="">Choisir…</option>' + siens.map(function(s){ return '<option value="'+esc(s.date)+'" data-type="18">'+esc(fmtDate(s.date))+' — 18 h</option>'; }).join('')
         : '<option value="">Aucun 18 h à venir chez ce collègue</option>';
     } else sel.innerHTML='<option value="">Choisir d\'abord un collègue…</option>';
   } else if (ECH_PROP.type==='echange') {
@@ -2666,10 +2786,11 @@ async function echMajProposition(){
       let plan=null; try { plan=_planDejaLa(g.annee) || await _fetchPlanning(g.annee); } catch(e){}
       const siennes=_echGardesDe(plan, qui, _todayStr()).filter(function(s){ return s.date!==g.date; });
       sel.innerHTML = siennes.length
-        ? '<option value="">Choisir…</option>' + siennes.map(function(s){ return '<option value="'+esc(s.date)+'">'+esc(fmtDate(s.date))+' — '+(s.type==='G2'?'Mater/Bloc':'Réa')+'</option>'; }).join('')
+        ? '<option value="">Choisir…</option>' + siennes.map(function(s){ return '<option value="'+esc(s.date)+'" data-type="'+(s.type==='G2'?'G2':'G')+'">'+esc(fmtDate(s.date))+' — '+(s.type==='G2'?'Mater/Bloc':'Réa')+'</option>'; }).join('')
         : '<option value="">Aucune garde à venir chez ce collègue</option>';
     } else sel.innerHTML='<option value="">Choisir d\'abord un collègue…</option>';
   } else blocContre.style.display='none';
+  if (blocContre.style.display==='block') _echMajCarteContre();
   const av = document.getElementById('echAvert');
   // (11/11/2026) Toute nouvelle sélection redemande la confirmation du 18 h et de l'absence.
   ECH_PROP.ok18 = false; ECH_PROP.okAbs = false; ECH_PROP.okRea1 = false; ECH_PROP.ok18h = false;
