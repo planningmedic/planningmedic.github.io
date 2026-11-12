@@ -481,6 +481,66 @@ console.log('\n═══ P5. Branchement : indépendant des mails aux MAR ══
     const { d } = await monter('paie', servir, 'https://planningmedic.github.io/paie.html?m=2026-11&vue=gardes');
     V('un lien ?vue=gardes ouvre directement les gardes jour par jour', d.querySelectorAll('table.gj tbody tr').length === 30);
   }
+  console.log('\n═══ P6 bis. Janvier vit dans deux plannings : les 1er, 2 et 3 janvier réapparaissent (12/11/2026) ═══');
+  {
+    // Le planning « 2026 » finit le dimanche 3 janvier 2027 ; le planning « 2027 » commence le lundi 4.
+    const jour = (ds, st) => { const x = new Date(ds + 'T12:00:00'); return { date: ds, isWeekend: x.getDay() === 0 || x.getDay() === 6, isFerie: ds === '2027-01-01' }; };
+    const jan = (de, a) => { const o = []; for (let i = de; i <= a; i++) o.push('2027-01-' + String(i).padStart(2, '0')); return o; };
+    const mois = (dates, docs) => ({ id: '2027-01', label: 'Janvier 2027', days: dates.map(d => jour(d)),
+      doctors: Object.keys(docs).map(id => ({ id, days: dates.map(d => ({ status: docs[id][d] || '' })) })) });
+    const plan2026 = { months: [mois(jan(1, 3), {
+      MAR01: { '2027-01-01': 'G', '2027-01-02': 'RG', '2027-01-03': 'G' },
+      MAR02: { '2027-01-01': 'G2', '2027-01-02': 'RG' },
+      MAR05: { '2027-01-02': 'G', '2027-01-03': 'RG' } })] };          // MAR05 quitte le service fin 2026
+    const plan2027 = { months: [mois(jan(4, 31), {
+      MAR01: { '2027-01-04': 'RG', '2027-01-11': 'V', '2027-01-12': 'V' },
+      MAR02: { '2027-01-05': 'G2', '2027-01-06': 'RG' },
+      MAR03: { '2027-01-04': 'G' } })] };                              // MAR03 arrive en 2027
+    const il_y_a = j => new Date(Date.now() - j * 24 * 3600 * 1000).toISOString();
+    const r26 = Object.assign({ success: true }, JSON.parse(JSON.stringify(srv._planningPaie_(plan2026, 2026,
+      [{ le: il_y_a(1), titre: 'garde réanimation du dimanche 3 janvier 2027 : Dr MAR05 → Dr MAR01', cellules: [['MAR01', '2027-01-03']] }]))));
+    const r27 = Object.assign({ success: true }, JSON.parse(JSON.stringify(srv._planningPaie_(plan2027, 2027,
+      [{ le: il_y_a(2), titre: 'vacances ajoutées pour Dr MAR01', cellules: [['MAR01', '2027-01-11', '2027-01-12']] }]))));
+    const servirJonction = (c, role) => {
+      if (c.action !== 'getPlanningPaie') return { success: false, error: 'Action non autorisée pour ce code' };
+      if (c.year === 2026) return Object.assign({}, r26, { role });
+      if (c.year === 2027) return Object.assign({}, r27, { role });
+      return { success: true, role, annee: c.year, absent: true };
+    };
+    const { d, appels, erreurs } = await monter('paie', servirJonction, 'https://planningmedic.github.io/paie.html?m=2027-01');
+    await dodo(200);
+    V('la page s\'ouvre sans erreur JavaScript', erreurs.length === 0, erreurs);
+    const tetes = [...d.querySelectorAll('table.mois thead th')];
+    V('janvier 2027 affiche ses 31 jours (28 avant : le mois commençait le 4)', tetes.length === 1 + 31 + 4, tetes.length);
+    V('…dans l\'ordre, du 1er au 31', tetes.slice(1, 32).map(th => th.textContent.replace(/\D/g, '')).join(',') === jan(1, 31).map(x => String(+x.slice(8))).join(','));
+    V('…le 1er janvier est marqué férié', /1$/.test(tetes[1].textContent) && tetes[1].classList.contains('fe'));
+    const lignes = [...d.querySelectorAll('table.mois tbody tr')];
+    const ligne = nom => lignes.find(tr => tr.querySelector('th').textContent === nom);
+    V('les médecins des DEUX plannings sont là : celui qui part fin 2026 et celui qui arrive en 2027', lignes.length === 4 && !!ligne('Dr MAR05') && !!ligne('Dr MAR03'), lignes.map(l => l.querySelector('th').textContent));
+    const tot = nom => ligne(nom) ? [...ligne(nom).querySelectorAll('td.tot')].map(t => t.textContent).join('|') : 'absent';
+    V('Dr MAR01 : ses 2 gardes des 1er et 3 janvier sont comptées, avec ses 2 jours de vacances', tot('Dr MAR01') === '2||2|', tot('Dr MAR01'));
+    V('Dr MAR02 : la garde mater du 1er (planning 2026) et celle du 5 (planning 2027)', tot('Dr MAR02') === '|2||', tot('Dr MAR02'));
+    V('Dr MAR05 : sa garde du samedi 2 janvier apparaît', tot('Dr MAR05') === '1|||', tot('Dr MAR05'));
+    V('les changements récents des deux plannings sont encadrés (1 + 2 cases)', d.querySelectorAll('.c.mod').length === 3, d.querySelectorAll('.c.mod').length);
+    V('le fil liste les changements des deux plannings', d.querySelectorAll('#fil li').length === 2);
+    V('deux appels, pas plus : 2027 puis 2026 (le mois est alors complet)', appels.map(a => a.year).join(',') === '2027,2026', appels.map(a => a.year));
+    d.getElementById('vueGardes').click(); await dodo(150);
+    const rangs = [...d.querySelectorAll('table.gj tbody tr')];
+    const g = n => rangs[n - 1] ? [...rangs[n - 1].querySelectorAll('td')].map(td => td.textContent) : ['', '', ''];
+    V('gardes jour par jour : 31 lignes', rangs.length === 31, rangs.length);
+    V('…vendredi 1er, férié : réa Dr MAR01, mater Dr MAR02', /férié/.test(g(1)[0]) && g(1)[1] === 'Dr MAR01' && g(1)[2] === 'Dr MAR02', g(1));
+    V('…samedi 2 : réa Dr MAR05', g(2)[1] === 'Dr MAR05', g(2));
+    V('…dimanche 3 : réa Dr MAR01', g(3)[1] === 'Dr MAR01', g(3));
+    V('…lundi 4 (planning 2027) : réa Dr MAR03', g(4)[1] === 'Dr MAR03', g(4));
+    V('…sans appel de plus au serveur', appels.length === 2, appels.map(a => a.year));
+    // Témoin : décembre 2026, complet dans son année, ne lit pas le planning voisin.
+    const t = await monter('paie', (c, role) => c.year === 2026
+      ? Object.assign({}, { success: true, role }, JSON.parse(JSON.stringify(srv._planningPaie_({ months: [{ id: '2026-12', label: 'Décembre 2026',
+          days: Array.from({ length: 31 }, (_, i) => jour('2026-12-' + String(i + 1).padStart(2, '0'))), doctors: [{ id: 'MAR01', days: [{ status: 'G' }] }] }] }, 2026, []))))
+      : { success: true, role, annee: c.year, absent: true }, 'https://planningmedic.github.io/paie.html?m=2026-12');
+    await dodo(150);
+    V('témoin : un mois complet dans son année reste à un seul appel', t.appels.length === 1 && t.d.querySelectorAll('table.mois thead th').length === 1 + 31 + 4, t.appels.map(a => a.year));
+  }
   {
     const { d } = await monter('mar', servir);
     V('un MAR (tuile cachée) a le lien de retour au portail', d.getElementById('lnkBack').style.display !== 'none');

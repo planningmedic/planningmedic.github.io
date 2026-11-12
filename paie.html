@@ -265,16 +265,41 @@ async function annee(y){
   return r;
 }
 function moisDans(r, ym){ return (r && r.mois || []).find(m => m.id === ym) || null; }
+/* (12/11/2026 — diagnostic du 11/11) JANVIER VIT DANS DEUX PLANNINGS. Le planning
+   d'une année commence au premier lundi : les tout premiers jours de janvier
+   (1er, 2 et 3 janvier 2027) appartiennent au planning de l'année d'AVANT. La
+   page s'arrêtait au premier planning qui contenait le mois : ces jours-là —
+   un férié et un week-end de garde — n'apparaissaient dans aucun mois.
+   Tant que le mois n'est pas complet, on lit aussi les plannings voisins et on
+   réunit : jours, médecins, cases, changements récents. Un mois complet dans
+   son année ne coûte toujours qu'un appel. */
+function joursDuMois(ym){ return new Date(+ym.slice(0,4), +ym.slice(5,7), 0).getDate(); }
+function reunirMois(trouves, ym){
+  const r = { jours: [], noms: {}, cases: {}, recents: [] }, vus = {}, ids = {};
+  trouves.forEach(t => {
+    (t.r.jours || []).forEach(j => { if (j.date.slice(0,7) === ym && !vus[j.date]) { vus[j.date] = 1; r.jours.push(j); } });
+    Object.keys(t.r.noms || {}).forEach(id => { if (!(id in r.noms)) r.noms[id] = t.r.noms[id]; });
+    Object.keys(t.r.cases || {}).forEach(id => { r.cases[id] = Object.assign({}, t.r.cases[id], r.cases[id] || {}); });
+    (t.m.ids || []).forEach(id => { ids[id] = 1; });
+    r.recents = r.recents.concat(t.r.recents || []);
+  });
+  r.jours.sort((a, b) => a.date < b.date ? -1 : 1);
+  return { r, m: { id: ym, ids: Object.keys(ids) } };
+}
 async function trouverMois(ym){
-  // Un mois appartient en général au planning de son année ; à la jonction
-  // de deux années, il peut vivre dans le planning voisin.
-  for (const y of [+ym.slice(0,4), +ym.slice(0,4)+1, +ym.slice(0,4)-1]) {
+  const Y = +ym.slice(0,4), trouves = [], dates = {};
+  // L'année du mois d'abord ; puis celle d'AVANT, seule à pouvoir porter les premiers jours de janvier.
+  for (const y of [Y, Y-1, Y+1]) {
     const r = await annee(y);
-    if(!(r && r.success)) { if (y === +ym.slice(0,4)) return { erreur: (r && r.error) || 'Chargement impossible' }; continue; }
+    if(!(r && r.success)) { if (y === Y) return { erreur: (r && r.error) || 'Chargement impossible' }; continue; }
     const m = moisDans(r, ym);
-    if(m) return { r, m };
+    if(!m) continue;
+    trouves.push({ r, m });
+    (r.jours || []).forEach(j => { if (j.date.slice(0,7) === ym) dates[j.date] = 1; });
+    if (Object.keys(dates).length >= joursDuMois(ym)) break;   // mois complet : inutile d'aller plus loin
   }
-  return { vide: true };
+  if (!trouves.length) return { vide: true };
+  return trouves.length === 1 ? trouves[0] : reunirMois(trouves, ym);
 }
 
 let RENDU = null;   // ce qui est à l'écran : sert à l'export Excel
