@@ -659,7 +659,7 @@ récupération, à sa date.</p>
 
 <section id="stats">
 <h2><span class="n">3.6</span>STATS_GARDES_{année}</h2>
-<p>La preuve d'équité, figée au moment de la génération. <strong>36 colonnes</strong>, une ligne par MAR :</p>
+<p>La preuve d'équité, figée au moment de la génération. <strong>33 colonnes</strong>, une ligne par MAR :</p>
 
 <table class="sig">
 <tr><th>Colonnes</th><th>Contenu</th></tr>
@@ -669,8 +669,7 @@ récupération, à sa date.</p>
 <tr><td>RECUP R · 18H</td><td>Récupérations et 18 h</td></tr>
 <tr><td>JF · VEILLE JF · NOEL/AN</td><td>Fériés, veilles de férié, et le compte Noël / Jour de l'an</td></tr>
 <tr><td>CIBLE SAM · CIBLE JEU · CIBLE VD · CIBLE VJF · CIBLE JF</td><td><strong>Les cibles par axe</strong></td></tr>
-<tr><td>VD</td><td>Le compte de vendredis-dimanches, par leur vendredi (un vendredi-dimanche coupé compte pour celui qui tient le vendredi), recompté sur le planning final</td></tr>
-<tr><td>WE · CIBLE WE · PART EXACTE WE</td><td>Ajoutées le 12/11/2026, en fin de ligne. <strong>WE</strong> : le nombre de week-ends où le MAR a au moins une garde (vendredi, samedi ou dimanche ; un lundi ou un jeudi férié collé compte avec le week-end ; fêtes comprises). <strong>PART EXACTE WE</strong> : sa part juste, au prorata de ses parts exactes de samedis et de vendredis-dimanches. <strong>CIBLE WE</strong> : cette part arrondie au plus près, la même pour deux MAR de même part.</td></tr>
+<tr><td>VD</td><td>Les vendredis de garde, recomptés sur le planning final (depuis le 12/11/2026 ; avant, un compteur qui en perdait — en 2027, 92 pour 104). L'écran et le report lisent les vendredis dans VEN.</td></tr>
 </table>
 
 <div class="callout rule">

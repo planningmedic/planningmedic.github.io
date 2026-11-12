@@ -41,7 +41,7 @@
 // ⚠️ RÈGLE (détecteur de dérive dépôt↔Apps Script) : incrémenter cette version
 // à CHAQUE push de ce fichier. Le diagnostic (admin → Maintenance) compare la
 // version déployée ici avec celle du dépôt et signale toute recopie oubliée.
-const GAS_VERSION_GENERATEUR = '2026-11-12.2';   // (12/11/2026) onglet de statistiques : vendredis-dimanches recomptés sur le planning final (12 sur 104 manquaient en 2027), et trois colonnes WE, CIBLE WE, PART EXACTE WE · (12/11/2026) plus aucun nom de personne dans le code (liste des médecins) — aucune ligne MEDECINS ne le portait, résultat inchangé · (10/11/2026) optimisation finale 4 fois plus rapide, planning identique (score recalculé seulement là où un mouvement touche) · (10/11/2026) optimisation finale : 4 fois plus d'essais, et un week-end compte autant de fois qu'il a de MAR en trop (4 MAR ne remplace plus 3) · (09/11/2026) optimisation finale par recuit simulé, rien ne recule · (09/11/2026) souhaits accordés et gardes à deux jours évitées par échange neutre en fin de calcul · (09/11/2026) couples de week-end : chaque moitié de l'échange jugée dans l'état final · (09/11/2026) vendredi-dimanche rompu : le MAR du vendredi est jugé sans la garde qu'il cède · (08/11/2026) le statut « A » (absent de jour, garde possible) est recopié dans le planning · (07/11/2026) vendredi-dimanche rompu : réparation finale par échange neutre · (07/11/2026) le dimanche garde d'abord les MAR du vendredi · (03/11/2026) période tendue sans solution parfaite : le moins possible de doubles week-ends, au lieu de les subir au fil de l'eau
+const GAS_VERSION_GENERATEUR = '2026-11-12.3';   // (12/11/2026) onglet de statistiques : colonne VD = vendredis de la grille finale (12 sur 104 manquaient en 2027) ; le report d'une année sur l'autre lit les vendredis dans VEN · (12/11/2026) plus aucun nom de personne dans le code (liste des médecins) — aucune ligne MEDECINS ne le portait, résultat inchangé · (10/11/2026) optimisation finale 4 fois plus rapide, planning identique (score recalculé seulement là où un mouvement touche) · (10/11/2026) optimisation finale : 4 fois plus d'essais, et un week-end compte autant de fois qu'il a de MAR en trop (4 MAR ne remplace plus 3) · (09/11/2026) optimisation finale par recuit simulé, rien ne recule · (09/11/2026) souhaits accordés et gardes à deux jours évitées par échange neutre en fin de calcul · (09/11/2026) couples de week-end : chaque moitié de l'échange jugée dans l'état final · (09/11/2026) vendredi-dimanche rompu : le MAR du vendredi est jugé sans la garde qu'il cède · (08/11/2026) le statut « A » (absent de jour, garde possible) est recopié dans le planning · (07/11/2026) vendredi-dimanche rompu : réparation finale par échange neutre · (07/11/2026) le dimanche garde d'abord les MAR du vendredi · (03/11/2026) période tendue sans solution parfaite : le moins possible de doubles week-ends, au lieu de les subir au fil de l'eau
 // précédente : '2026-10-27.1'
 
 /* (05/09/2026) INTERRUPTEUR DU NOUVEL ALGORITHME — récit : docs/JOURNAL-Planning-Med.md §101 */
@@ -817,7 +817,10 @@ function generateGardes(year, opts){
   if(prevStats){
     const ps=prevStats.getDataRange().getValues();
     const hdr=ps[0].map(h=>String(h).trim());
-    const iSam=hdr.indexOf('SAM'), iJeu=hdr.indexOf('JEU'), iVd=hdr.indexOf('VD'), iVjf=hdr.indexOf('VEILLE JF'), iJf=hdr.indexOf('JF'), iTot=hdr.indexOf('TOTAL G');
+    /* (12/11/2026) Le réel des vendredis-dimanches se lit dans VEN (les vendredis
+       de garde) : la colonne VD de 2027 a été écrite par un compteur qui en
+       perdait 12 sur 104. Repli sur VD pour un onglet sans VEN. */
+    const iSam=hdr.indexOf('SAM'), iJeu=hdr.indexOf('JEU'), iVd=(hdr.indexOf('VEN')>=0?hdr.indexOf('VEN'):hdr.indexOf('VD')), iVjf=hdr.indexOf('VEILLE JF'), iJf=hdr.indexOf('JF'), iTot=hdr.indexOf('TOTAL G');
     // (RH-3) Colonnes CIBLE de N-1 : déjà pro-ratées par la présence structurelle
     // (arrivée/départ, congés longs, TP, no_weekend) au moment de la génération N-1.
     const iCbT=hdr.indexOf('CIBLE'), iCbS=hdr.indexOf('CIBLE SAM'), iCbJ=hdr.indexOf('CIBLE JEU'),
@@ -3756,7 +3759,7 @@ function generateGardes(year, opts){
   // code.gs lit encore des colonnes par position (sd[r][17], [19], [21]) et un décalage
   // fausserait silencieusement les cibles du tableau de bord.
   /* (11/09/2026) PART EXACTE — récit : docs/JOURNAL-Planning-Med.md §121 */
-  st.getRange(1,1,1,36).setValues([['MEDECIN','CIBLE','TOTAL G','G (REA)','G2 (MAT)','LUN','MAR','MER','JEU','VEN','SAM','DIM','RECUP R','18H','JF','VEILLE JF','NOEL/AN','CIBLE SAM','CIBLE JEU','CIBLE VD','VD','CIBLE VJF','CIBLE JF','SOUHAITS POSES','SOUHAITS HONORES','PART EXACTE','PART EXACTE SAM','PART EXACTE JEU','PART EXACTE VD','PART EXACTE VJF','PART EXACTE JF','SOUHAITS POSSIBLES','SOUHAITS POSSIBLES OBTENUS','WE','CIBLE WE','PART EXACTE WE']]).setFontWeight('bold');
+  st.getRange(1,1,1,33).setValues([['MEDECIN','CIBLE','TOTAL G','G (REA)','G2 (MAT)','LUN','MAR','MER','JEU','VEN','SAM','DIM','RECUP R','18H','JF','VEILLE JF','NOEL/AN','CIBLE SAM','CIBLE JEU','CIBLE VD','VD','CIBLE VJF','CIBLE JF','SOUHAITS POSES','SOUHAITS HONORES','PART EXACTE','PART EXACTE SAM','PART EXACTE JEU','PART EXACTE VD','PART EXACTE VJF','PART EXACTE JF','SOUHAITS POSSIBLES','SOUHAITS POSSIBLES OBTENUS']]).setFontWeight('bold');
   // (22/10/2026) Les deux dernières colonnes : souhaits que l'algorithme pouvait accorder
   // au mieux vu la part du MAR, et combien de ceux-là sont obtenus (souhaitsPossibles_).
   // Ajoutées EN FIN de ligne : aucune colonne lue par position ne bouge.
@@ -3772,25 +3775,14 @@ function generateGardes(year, opts){
     souhaitJoursOK[id]=k;
   });
   const _spMemo={}; const _sp=id=>_spMemo[id]||(_spMemo[id]=souhaitsPossibles_(id));
-  /* (12/11/2026) WEEK-ENDS RECOMPTÉS SUR LE PLANNING FINAL. Le compteur interne
-     des vendredis-dimanches ne suivait pas les dernières passes (échanges et
-     optimisation finale) : sur 2027, la colonne VD comptait 92 vendredis-dimanches
-     pour 104 vendredis de garde (un MAR à 6 pour 7 vendredis tenus), et l'écran
-     d'équité les montrait en moins. On
-     recompte ici, sur la grille écrite, avec la règle unique (compterWeekends_,
-     code.gs) ; on y ajoute le nombre de week-ends de garde et sa part juste
-     (partsWeekends_), au prorata des parts exactes samedis + vendredis-dimanches.
-     Trois colonnes ajoutées EN FIN : aucune colonne lue par position ne bouge. */
-  const _estFe=ds=>!!(dayByDate[ds]&&dayByDate[ds].isFerie);
-  const _wkDe={};
-  allDoctors.forEach(id=>{
-    const _j=[]; allDays.forEach(d=>{ if(gSet[id]?.has(d.date)||g2Set[id]?.has(d.date)) _j.push(d.date); });
-    _wkDe[id]=compterWeekends_(_j,_estFe);
-  });
-  const _partsWe=partsWeekends_(allDoctors.map(id=>{
-    const ex=cibleExacte[id]||{};
-    return { id:id, we:_wkDe[id].we, poids:(Number(ex.sam)||0)+(Number(ex.vd)||0) };
-  }));
+  /* (12/11/2026) VENDREDIS RECOMPTÉS SUR LE PLANNING FINAL. La colonne VD est le
+     compteur interne des vendredis-dimanches, qui ne suivait pas les dernières
+     passes (vendredis de fêtes imposés, échanges, optimisation finale) : sur 2027,
+     92 pour 104 vendredis de garde (un MAR à 6 pour 7 vendredis tenus). On écrit
+     ici les vendredis de la grille finale, comme le générateur répartit ses
+     vendredis-dimanches (le vendredi porte le compteur). */
+  const _venDe={};
+  allDoctors.forEach(id=>{ let n=0; allDays.forEach(d=>{ if(d.dow===5&&(gSet[id]?.has(d.date)||g2Set[id]?.has(d.date))) n++; }); _venDe[id]=n; });
   const sRows=allDoctors.map(id=>{
     const cbT=cible[id]?cible[id].total:0;
     const cbS=cible[id]?cible[id].sam:0, cbJ=cible[id]?cible[id].jeu:0, cbV=cible[id]?cible[id].vd:0, cbVjf=cible[id]?cible[id].vjf:0;
@@ -3802,13 +3794,12 @@ function generateGardes(year, opts){
     const _ex=k=>ex[k]===undefined?'':+Number(ex[k]).toFixed(3);
     return[id,"'"+cbT.toFixed(1),c.total,c.g,c.g2,c.lun,c.mar,c.mer,c.jeu,c.ven,c.sam,c.dim,c.recupR,
       h18cnt[id]||0,jfCnt[id]||0,c.vjf||0,noelAnCnt[id]||0,
-      +cbS.toFixed(1),+cbJ.toFixed(1),+cbV.toFixed(1),_wkDe[id].vd,+cbVjf.toFixed(1),+cbJf.toFixed(1),
+      +cbS.toFixed(1),+cbJ.toFixed(1),+cbV.toFixed(1),_venDe[id],+cbVjf.toFixed(1),+cbJf.toFixed(1),
       souhaitPose[id]||0,souhaitJoursOK[id]||0,
       _ex('total'),_ex('sam'),_ex('jeu'),_ex('vd'),_ex('vjf'),_ex('jf'),
-      _sp(id).possible,_sp(id).utiles,
-      _wkDe[id].we,_partsWe[id].cible,_partsWe[id].part];
+      _sp(id).possible,_sp(id).utiles];
   });
-  st.getRange(2,1,sRows.length,36).setValues(sRows);
+  st.getRange(2,1,sRows.length,33).setValues(sRows);
   st.getRange(2,2,sRows.length,1).setNumberFormat('@STRING@');
   st.setColumnWidth(1,140);
 

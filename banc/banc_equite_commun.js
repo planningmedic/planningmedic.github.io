@@ -119,8 +119,8 @@ console.log('\n═══ Une cible à zéro est une cible (décision du responsa
   V('2 veilles pour une cible 0 : barre rouge, « 2 /0 », trait à zéro', /background:#CE1126/.test(ligne('MAR02', 'VJF')) && />2<span> \/0<\/span>/.test(ligne('MAR02', 'VJF')) && /eqv-tick/.test(ligne('MAR02', 'VJF')), ligne('MAR02', 'VJF'));
   const htmlR = w.renderEquiteCards(eq, { moiNom: null, ouverts: new Set(), sombre: false, neutre: '#EEF1F5', axes: AX });   // cartes repliées → bande
   const cases = (carte(htmlR, 'MAR02').match(/eqv-case[^>]*/g) || []);
-  /* (12/11/2026) Dix cases depuis l'ajout des week-ends de garde (WE). */
-  V('…et la case VJF (dernière) de sa ligne repliée est rouge', cases.length === 10 && /#CE1126/.test(cases[9]), cases[9]);
+  /* (12/11/2026) Onze cases depuis l'ajout des dimanches et des week-ends (WE). */
+  V('…et la case VJF (dernière) de sa ligne repliée est rouge', cases.length === 11 && /#CE1126/.test(cases[10]), cases[10]);
   V('1 veille pour 1 de cible : vert', /background:#15803D/.test(ligne('MAR01', 'VJF')) && />1<span> \/1<\/span>/.test(ligne('MAR01', 'VJF')));
   V('0 veille pour 2 de cible : bleu (en dessous)', /background:#1D4ED8/.test(ligne('MAR03', 'VJF')) && />0<span> \/2<\/span>/.test(ligne('MAR03', 'VJF')), ligne('MAR03', 'VJF'));
   V('ni veille ni cible : le MAR n\'est pas concerné, barre neutre grise', /background:#94A3B8/.test(ligne('MAR04', 'VJF')) && !/eqv-tick/.test(ligne('MAR04', 'VJF')), ligne('MAR04', 'VJF'));

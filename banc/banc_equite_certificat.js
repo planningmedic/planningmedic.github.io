@@ -209,7 +209,7 @@ console.log('\n─── 6. Cartes repliables ───');
     !!rec && /class="eqv-tete" onclick="eqBasculer/.test(rec));
   V(nom + ' : la bande porte une case par axe, dans l\'ordre des barres',
     !!rec && /\['total','cTot'\],\['lu',null\],\['ma',null\],\['me',null\],\['je','cJe'\]/.test(rec)
-    && /\['sa','cSa'\],\['vd','cVd'\],\['we','cWe'\],\['jf',null\],\['vjf','cVjf'\]/.test(rec));   // (12/11/2026) + la case des week-ends
+    && /\['vd','cVd'\],\['sa','cSa'\],\['di',null\],\['we','cWe'\],\['jf',null\],\['vjf','cVjf'\]/.test(rec));   // (12/11/2026) V, S, D, WE
   V(nom + ' : le détail n\'est rendu QUE si la carte est ouverte',
     !!rec && /\(ouvert\?\('<div style="padding:0 11px 10px">'\+totBar\+bars\+'<\/div>'\):''\)/.test(rec));
   V(nom + ' : le verdict vient de la même source que le certificat',

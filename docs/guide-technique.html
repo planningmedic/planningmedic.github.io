@@ -1062,20 +1062,17 @@ une unité fériée, lundi-mercredi jusqu'au budget de semaine, sous la cible to
 générateur, ajoutées elles aussi en fin de ligne. Sans elles, le mail garde l'ancienne phrase
 « X retenus sur Y ». Le même calcul alimente le bilan de l'essai de génération. Le marquage « week-end » couvre vendredi, samedi et dimanche depuis
 le 25/08 : le vendredi forme une unité avec le dimanche et était omis.</p>
-<p><b>Week-ends de garde (12/11/2026).</b> Une seule règle de compte, <code>compterWeekends_</code>
-(<code>code.gs</code>) et sa jumelle <code>window.compterWeekends</code> (<code>partage/rendu_equite.js</code>) :
-un vendredi-dimanche se compte par son vendredi, comme le générateur le répartit (le vendredi porte
-l'axe ; compter les seules paires vendredi + dimanche faussait le report : écart cumulé des samedis
-de 3 à 4 en quatre ans, <code>banc_dette_cumul</code>) ; un week-end de garde = un week-end
-(vendredi, samedi, dimanche, plus le lundi férié qui suit ou le jeudi férié qui précède) portant au
-moins une garde. Le générateur recompte la colonne <code>VD</code> sur la grille finale (le compteur
-interne en perdait 12 sur 104 en 2027 : ceux que les dernières passes déplacent) et
-ajoute en fin de ligne <code>WE</code>, <code>CIBLE WE</code>, <code>PART EXACTE WE</code>
-(<code>partsWeekends_</code> : total des week-ends de l'année au prorata des parts exactes samedis +
-vendredis-dimanches ; cible = part arrondie au plus près, sans départage). Lecture par nom
-(<code>champsWeStats_</code>) dans <code>getStats</code>, la copie <code>stats_{Y}</code>, l'instantané
-<code>computeStatsLive</code> (même règle)
-et la photographie <code>equiteInitiale</code>. Colonne absente (années d'avant) : champ absent, case neutre.
+<p><b>Week-ends (12/11/2026, décision du responsable).</b> L'écran d'équité montre V (vendredis), S, D et
+<b>WE = samedis + dimanches</b>, tous lus dans <code>STATS_GARDES_{Y}</code> tel que la génération l'a écrit —
+rien n'est reconstruit à partir des échanges. <code>champsWeStats_(data, r)</code> (<code>code.gs</code>) :
+V = colonne <code>VEN</code> ; WE = <code>SAM</code> + <code>DIM</code> ; part de WE = les samedis + dimanches de
+l'année au prorata de <code>PART EXACTE SAM</code> + <code>PART EXACTE VD</code>, arrondie au plus près (même part,
+même cible : aucun départage). Sans colonnes de part (années d'avant) : pas de cible, case neutre. La colonne
+<code>VD</code> écrite par le générateur était un compteur interne qui perdait des vendredis (92 pour 104 en
+2027 : vendredis de fêtes imposés, dernières passes) ; elle est désormais recomptée sur la grille finale, et le
+report d'une année sur l'autre lit les vendredis dans <code>VEN</code>. Mêmes champs dans <code>getStats</code>,
+la copie <code>stats_{Y}</code>, l'instantané <code>computeStatsLive</code> (V = vendredis, WE = samedis +
+dimanches réels, part lue dans l'onglet) et la photographie <code>equiteInitiale</code>.
 Banc : <code>banc_comptage_we.js</code>.</p>
 </div></details>
 
