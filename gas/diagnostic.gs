@@ -4,7 +4,7 @@
    quelles : aucune ligne de logique modifiée, seulement déplacée. Le routeur et
    ses aides (checkCode, _deny, _error, doGet/doPost) restent dans Indispos.gs.
    Un seul espace global dans Apps Script : rien à importer. */
-const GAS_VERSION_DIAG = '2026-11-12.2';   // (12/11/2026) contrôles nouveaux : code inconnu dans une case, MAR actif sans ligne dans les gardes (sentinelle et lundi), sans ligne dans les indisponibilités (vigilance) ; jour ouvré sans 18 h, trois gardes en six jours, demandes d'échange sans objet (lundi) · (12/11/2026) la sentinelle de 6 h contrôle aussi les données (jours à venir, chaque année suivie) ; récupérations et intégrité des gardes pour chaque année suivie ; placements de l'année suivante plus comptés en reliquat · (01/11/2026) diagnostic réservé à la tuile `maintenance` · (24/10/2026) applicateur : filet toutes les 5 min
+const GAS_VERSION_DIAG = '2026-11-12.3';   // (12/11/2026) les lectures du dépôt partent ensemble (21 allers-retours à la file → 2 envois groupés), et le rapport dit quelles étapes ont pris le plus de temps · (12/11/2026) contrôles nouveaux : code inconnu dans une case, MAR actif sans ligne dans les gardes (sentinelle et lundi), sans ligne dans les indisponibilités (vigilance) ; jour ouvré sans 18 h, trois gardes en six jours, demandes d'échange sans objet (lundi) · (12/11/2026) la sentinelle de 6 h contrôle aussi les données (jours à venir, chaque année suivie) ; récupérations et intégrité des gardes pour chaque année suivie ; placements de l'année suivante plus comptés en reliquat · (01/11/2026) diagnostic réservé à la tuile `maintenance` · (24/10/2026) applicateur : filet toutes les 5 min
 
 // ── LOG ───────────────────────────────────────────────────────────────
 /* ─────────────────────────────────────────────────────────────────────────────
@@ -42,6 +42,42 @@ function _versionSiteAnomalies_(sourceJs, pages) {
 }
 
 // ── Battements de cœur : chaque tâche périodique horodate son passage. ──
+/* ═══ (12/11/2026) LE DIAGNOSTIC PLUS RAPIDE, SANS RIEN RETIRER ═══
+   34 s mesurées le 12/11 au soir. Le rapport lisait le dépôt fichier par
+   fichier : 15 lectures pour « Code déployé vs dépôt », 6 pour « Version du
+   site », chacune attendant la précédente.
+   - _diagLireDepot_ : les lectures partent ENSEMBLE (fetchAll). Même adresse,
+     même clé, même réponse attendue : le rapport ne change pas d'une ligne.
+     Si l'envoi groupé échoue en bloc, on retombe sur l'ancienne lecture à la
+     file — plus lente, jamais muette. Rend { chemin : texte | null }.
+   - _diagTempsParEtape_ : une ligne en fin de rapport nomme les étapes les
+     plus longues. On optimise ce qu'on a mesuré, pas ce qu'on devine. */
+function _diagLireDepot_(chemins, token) {
+  const H = { Authorization: 'token ' + token, Accept: 'application/vnd.github.raw' };
+  const reqs = chemins.map(function (c) {
+    return { url: 'https://api.github.com/repos/' + GITHUB_USER + '/' + GITHUB_REPO + '/contents/' + c + '?ref=' + GITHUB_BRANCH, headers: H, muteHttpExceptions: true };
+  });
+  let reps = null;
+  try { reps = UrlFetchApp.fetchAll(reqs); } catch (e) { reps = null; }
+  const out = {};
+  chemins.forEach(function (c, i) {
+    let r = reps ? reps[i] : null;
+    if (!reps) { try { r = UrlFetchApp.fetch(reqs[i].url, { headers: H, muteHttpExceptions: true }); } catch (e) { r = null; } }
+    let texte = null;
+    try { if (r && r.getResponseCode() === 200) texte = r.getContentText(); } catch (e) {}
+    out[c] = texte;
+  });
+  return out;
+}
+function _diagTempsParEtape_(etapes, fin) {
+  const d = etapes.map(function (e, i) { return { nom: e[0], ms: (i + 1 < etapes.length ? etapes[i + 1][1] : fin) - e[1] }; })
+    .filter(function (x) { return x.ms >= 1000; })
+    .sort(function (a, b) { return b.ms - a.ms; })
+    .slice(0, 6);
+  if (!d.length) return null;
+  return 'ℹ️ Étapes les plus longues : ' + d.map(function (x) { return x.nom + ' ' + (x.ms / 1000).toFixed(1) + ' s'; }).join(' · ');
+}
+
 function _bat_(nom) {
   try { PropertiesService.getScriptProperties().setProperty('BAT_' + nom, String(Date.now())); } catch (e) {}
 }
@@ -413,7 +449,8 @@ function diagnosticComplet() {
       else { results.push(`❌ ${label}`); ok = false; }
     }
     const info = t => results.push(`ℹ️ ${t}`);
-    const hdr  = t => results.push(`── ${t} ${'─'.repeat(Math.max(0,32-t.length))}`);
+    const etapes = [];   // (12/11/2026) [nom, heure de début] — voir _diagTempsParEtape_
+    const hdr  = t => { etapes.push([t, Date.now()]); results.push(`── ${t} ${'─'.repeat(Math.max(0,32-t.length))}`); };
     const ss = SpreadsheetApp.getActiveSpreadsheet();
     const has = n => !!ss.getSheetByName(n);
     const rows = n => { const sh = ss.getSheetByName(n); return sh ? sh.getLastRow() : 0; };
@@ -558,17 +595,15 @@ function diagnosticComplet() {
       try { deployed['equipe.gs'] = GAS_VERSION_EQUIPE; } catch (e) { deployed['equipe.gs'] = null; }
       try { deployed['diagnostic.gs'] = GAS_VERSION_DIAG; } catch (e) { deployed['diagnostic.gs'] = null; }
       const tokSync = getGithubToken();
+      const cheminDe = fn => fn.indexOf('/') !== -1 ? fn : 'gas/' + fn;   // chemin complet si fourni (module partage)
+      const depotGas = _diagLireDepot_(Object.keys(deployed).map(cheminDe), tokSync);   // (12/11/2026) 15 lectures en un envoi
       Object.keys(deployed).forEach(fn => {
         let repoV = null;
-        try {
-          const r = UrlFetchApp.fetch(
-            `https://api.github.com/repos/${GITHUB_USER}/${GITHUB_REPO}/contents/${fn.indexOf('/') !== -1 ? fn : 'gas/' + fn}?ref=${GITHUB_BRANCH}`,   // chemin complet si fourni (module partage)
-            { headers: { Authorization: 'token ' + tokSync, Accept: 'application/vnd.github.raw' }, muteHttpExceptions: true });
-          if (r.getResponseCode() === 200) {
-            const m = r.getContentText().match(/GAS_VERSION_\w+\s*=\s*'([^']+)'/);
-            repoV = m ? m[1] : '(sans version)';
-          }
-        } catch (e) {}
+        const txt = depotGas[cheminDe(fn)];
+        if (txt !== null && txt !== undefined) {
+          const m = txt.match(/GAS_VERSION_\w+\s*=\s*'([^']+)'/);
+          repoV = m ? m[1] : '(sans version)';
+        }
         if (repoV === null) check(`${fn} : dépôt illisible (réseau/clé)`, R.WARN);
         else if (!deployed[fn]) check(`${fn} : version déployée absente — recopier le fichier depuis le dépôt`, R.WARN);
         else if (repoV === deployed[fn]) check(`${fn} : à jour (v${repoV})`, R.OK);
@@ -657,18 +692,11 @@ function diagnosticComplet() {
     hdr('Version du site');
     try {
       const tokV = getGithubToken();
-      const _lireDepot = fn => {
-        try {
-          const r = UrlFetchApp.fetch(
-            `https://api.github.com/repos/${GITHUB_USER}/${GITHUB_REPO}/contents/${fn}?ref=${GITHUB_BRANCH}`,
-            { headers: { Authorization: 'token ' + tokV, Accept: 'application/vnd.github.raw' }, muteHttpExceptions: true });
-          return r.getResponseCode() === 200 ? r.getContentText() : null;
-        } catch (e) { return null; }
-      };
+      const nomsPages = ['index.html', 'admin.html', 'docs/guide-mar.html', 'docs/guide-comite.html', 'docs/roadmap.html'];
+      const depotSite = _diagLireDepot_(nomsPages.concat(['version.js']), tokV);   // (12/11/2026) 6 lectures en un envoi
       const pages = {};
-      ['index.html', 'admin.html', 'docs/guide-mar.html', 'docs/guide-comite.html', 'docs/roadmap.html']
-        .forEach(fn => { pages[fn] = _lireDepot(fn); });
-      const v = _versionSiteAnomalies_(_lireDepot('version.js'), pages);
+      nomsPages.forEach(fn => { pages[fn] = depotSite[fn]; });
+      const v = _versionSiteAnomalies_(depotSite['version.js'], pages);
       if (!v.version) check('version.js illisible — version du site non vérifiable', R.WARN);
       else if (!v.anomalies.length) {
         check(`Les ${Object.keys(pages).length} pages affichent la version du dépôt (${v.version})`, R.OK);
@@ -1022,6 +1050,8 @@ function diagnosticComplet() {
     const nbWarn = results.filter(l => l.startsWith('⚠️')).length;
     results.push(ok ? `✅ Tout est en ordre${nbWarn ? ` (${nbWarn} point(s) de vigilance)` : ''}` : `❌ ${nbErr} problème(s) à corriger${nbWarn ? `, ${nbWarn} avertissement(s)` : ''}`);
     results.push(`ℹ️ Diagnostic exécuté en ${((Date.now() - t0) / 1000).toFixed(1)} s — ${Utilities.formatDate(new Date(), ss.getSpreadsheetTimeZone(), 'dd/MM/yyyy HH:mm')} (v${GAS_VERSION_INDISPOS})`);
+    const _tps = _diagTempsParEtape_(etapes, Date.now());   // (12/11/2026) après les compteurs : une ligne d'information, jamais un constat
+    if (_tps) results.push(_tps);
     logAction(`diagComplet — ${ok ? 'OK' : 'ERREURS'} (${nbErr} err, ${nbWarn} warn)`);
   return { ok, results, nbErr, nbWarn };
 }

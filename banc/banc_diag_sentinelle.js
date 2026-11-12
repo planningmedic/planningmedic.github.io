@@ -31,7 +31,10 @@ function monter(opts) {
       setProperty: (k, v) => props.set(k, String(v)),
       deleteProperty: k => props.delete(k) }) },
     MailApp: { sendEmail: (a, b, c) => mails.push({ a, b, c }), getRemainingDailyQuota: () => 90 },
-    UrlFetchApp: { fetch: (url, opt) => (opts.fetch || (() => ({ getResponseCode: () => 500, getContentText: () => '{}' })))(String(url), opt) },
+    /* (12/11/2026) fetchAll : absent du monde par défaut, il LÈVE — le code doit
+       alors retomber sur la lecture à la file, ce que les essais existants éprouvent. */
+    UrlFetchApp: { fetch: (url, opt) => (opts.fetch || (() => ({ getResponseCode: () => 500, getContentText: () => '{}' })))(String(url), opt),
+                   fetchAll: reqs => { if (!opts.fetchAll) throw new Error('envoi groupé indisponible'); return opts.fetchAll(reqs); } },
     SpreadsheetApp: { getActiveSpreadsheet: () => ({
       getSheetByName: n => feuilles[n] ? feuille(feuilles[n]) : null,
       getSpreadsheetTimeZone: () => 'Europe/Paris' }) },
@@ -390,6 +393,65 @@ function bac() {
     V('…et plus jamais _githubToken_', !/_githubToken_\(\)/.test(src));
     V('la sonde périodes dérive le concept du NOM (l\'API n\'a pas de champ concept)', src.includes('conceptDe(String(o.nom))'));
     V('le cas « rien de comparable » parle au lieu de se taire', src.includes('aucune ligne du classeur ne correspond'));
+  }
+
+  console.log('— (12/11/2026) Les lectures du dépôt partent ensemble, et le rapport dit où va le temps —');
+  {
+    const rep = (code, txt) => ({ getResponseCode: () => code, getContentText: () => txt });
+    const chemins = ['gas/code.gs', 'partage/dispo_jour.js', 'gas/absent.gs'];
+    const servir = url => /absent\.gs/.test(url) ? rep(404, 'Not Found') : rep(200, 'contenu de ' + url.split('/contents/')[1].split('?')[0]);
+
+    /* L'adresse du dépôt vit dans code.gs, que ce monde ne charge pas : on en
+       tire les TROIS VRAIES lignes, pour ne pas éprouver une adresse inventée. */
+    const codeGs = fs.readFileSync('../gas/code.gs', 'utf8');
+    const depotConst = ['GITHUB_USER', 'GITHUB_REPO', 'GITHUB_BRANCH'].map(k => (codeGs.match(new RegExp('^const ' + k + " = '[^']+';", 'm')) || [''])[0]);
+    V('garde-fou : les trois réglages du dépôt sont bien lus dans code.gs', depotConst.every(l => l.length > 0), depotConst);
+    const apres = c => vm.runInContext(depotConst.join('\n'), c);
+
+    // 1. Le chemin normal : UN envoi groupé, aucune lecture à la file
+    let groupes = [], unitaires = 0;
+    let ctx = monter({ apres, fetchAll: reqs => { groupes.push(reqs); return reqs.map(r => servir(r.url)); }, fetch: url => { unitaires++; return servir(url); } });
+    V('le code expose la lecture groupée du dépôt', typeof ctx._diagLireDepot_ === 'function');
+    let out = ctx._diagLireDepot_(chemins, 'CLE');
+    V('3 fichiers demandés → UN seul envoi groupé', groupes.length === 1 && groupes[0].length === 3, groupes.length);
+    V('…et aucune lecture à la file', unitaires === 0, unitaires);
+    V('chaque adresse vise le bon fichier, sur la branche publiée', groupes[0].every((r, i) => r.url.endsWith('/contents/' + chemins[i] + '?ref=main') && r.url.indexOf('api.github.com/repos/') !== -1), groupes[0].map(r => r.url));
+    V('la clé part avec chaque demande, les refus ne lèvent pas', groupes[0].every(r => r.headers.Authorization === 'token CLE' && r.muteHttpExceptions === true));
+    V('un fichier lu rend son texte', out['gas/code.gs'] === 'contenu de gas/code.gs' && out['partage/dispo_jour.js'] === 'contenu de partage/dispo_jour.js', out);
+    V('un fichier introuvable rend null (→ « dépôt illisible », comme avant)', out['gas/absent.gs'] === null, out['gas/absent.gs']);
+    V('garde-fou : autant de réponses que de demandes', Object.keys(out).length === 3);
+
+    // 2. L'envoi groupé échoue en bloc → on retombe sur l'ancienne lecture, même résultat
+    unitaires = 0;
+    ctx = monter({ apres, fetchAll: () => { throw new Error('réseau'); }, fetch: url => { unitaires++; return servir(url); } });
+    const out2 = ctx._diagLireDepot_(chemins, 'CLE');
+    V('envoi groupé en panne → 3 lectures à la file', unitaires === 3, unitaires);
+    V('…et le même résultat qu\'en groupé', JSON.stringify(out2) === JSON.stringify(out), out2);
+
+    // 3. En repli, une lecture qui plante n'emporte pas les autres
+    ctx = monter({ apres, fetchAll: () => { throw new Error('réseau'); }, fetch: url => { if (/dispo_jour/.test(url)) throw new Error('coupure'); return servir(url); } });
+    const out3 = ctx._diagLireDepot_(chemins, 'CLE');
+    V('en repli, une lecture plantée rend null sans emporter les autres', out3['partage/dispo_jour.js'] === null && out3['gas/code.gs'] === 'contenu de gas/code.gs', out3);
+
+    // 4. Le rapport n'appelle plus le dépôt fichier par fichier
+    const src = fs.readFileSync('../gas/diagnostic.gs', 'utf8');
+    const corps = src.slice(src.indexOf('function diagnosticComplet()'), src.indexOf('function diagHebdo()'));
+    V('garde-fou : le corps du rapport est bien isolé', corps.length > 5000 && corps.indexOf('Code déployé vs dépôt') !== -1);
+    V('le rapport lit le dépôt par DEUX envois groupés (code serveur, version du site)', (corps.match(/_diagLireDepot_\(/g) || []).length === 2, (corps.match(/_diagLireDepot_\(/g) || []).length);
+    V('…et plus aucune lecture « contents/ » à la file dans le rapport', !/UrlFetchApp\.fetch\([^)]*\n?[^)]*\/contents\//.test(corps));
+    V('les 15 fichiers serveur et les 6 fichiers du site sont toujours comparés', (corps.match(/deployed\['[^']+'\] = GAS_VERSION_/g) || []).length === 15 && /nomsPages\.concat\(\['version\.js'\]\)/.test(corps) && (corps.match(/'index\.html', 'admin\.html', 'docs\/guide-mar\.html', 'docs\/guide-comite\.html', 'docs\/roadmap\.html'/) || []).length === 1);
+
+    // 5. Le temps par étape
+    V('le code expose le temps par étape', typeof ctx._diagTempsParEtape_ === 'function');
+    const l = ctx._diagTempsParEtape_([['Environnement', 0], ['Code déployé vs dépôt', 400], ['Équipe', 6400], ['Publication JSON (Drive)', 6900]], 18900);
+    V('les étapes sortent de la plus longue à la plus courte', l === 'ℹ️ Étapes les plus longues : Publication JSON (Drive) 12.0 s · Code déployé vs dépôt 6.0 s', l);
+    V('la dernière étape se mesure jusqu\'à la fin du rapport', /Publication JSON \(Drive\) 12\.0 s/.test(l));
+    V('les étapes de moins d\'une seconde ne sont pas citées', l.indexOf('Environnement') === -1 && l.indexOf('Équipe') === -1);
+    V('rien de long → pas de ligne du tout', ctx._diagTempsParEtape_([['A', 0], ['B', 200]], 500) === null);
+    const dix = []; for (let i = 0; i < 10; i++) dix.push(['E' + i, i * 2000]);
+    V('six étapes citées au plus', (ctx._diagTempsParEtape_(dix, 20000).match(/ s/g) || []).length === 6);
+    V('la ligne est une information, jamais un constat (ni ❌ ni ⚠️)', l.startsWith('ℹ️ '));
+    V('le rapport chronomètre chaque étape et pose la ligne en fin', corps.indexOf('etapes.push([t, Date.now()])') !== -1 && corps.indexOf('_diagTempsParEtape_(etapes, Date.now())') > corps.indexOf('const nbWarn'));
   }
 
   console.log('— L\'installateur et le rendu admin —');
