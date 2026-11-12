@@ -941,6 +941,11 @@ function monde(plan) {
     V('les 2 partent DANS l\'archive, ligne entière, rien n\'est effacé', arch.length === 3 && arch.slice(1).map(l => l[0]).sort().join() === '1001,1002' && arch[0][0] === 'PMID', arch.map(l => l[0]));
     V('relancé : rien ne bouge, rien n\'est dupliqué', vm.runInContext('veilleNettoyerGeneralistes()', m.ctx).deplaces === 0 && m.cl.getSheetByName('VEILLE_ARCHIVE').lignes.length === 3);
 
+    /* (12/11/2026) La doublure par défaut rend la date DU JOUR quelle que soit la date demandée : la
+       date d'arrivée (20/10) était lue « aujourd'hui », et « récent » (30 jours après le 10/10) a
+       disparu tout seul le 9 novembre — le scénario était rouge depuis, à code inchangé. La doublure
+       rend désormais la date qu'on lui donne, comme dans les sections voisines. */
+    m.ctx.Utilities.formatDate = (d, tz, f) => { const x = new Date(d); return x.getFullYear() + '-' + String(x.getMonth() + 1).padStart(2, '0') + '-' + String(x.getDate()).padStart(2, '0'); };
     const r2 = vm.runInContext('veilleRenoterTout()', m.ctx);
     const ligne = id => v.lignes.find(l => String(l[0]) === id);
     V('renotation : ICRAKI passe de 56 à au moins 75, motif « ECR · grande revue · 1 thème au titre … »', Number(ligne('1003')[7]) >= 75 && /^ECR · grande revue · 1 thème au titre/.test(ligne('1003')[14]), [ligne('1003')[7], ligne('1003')[14]]);

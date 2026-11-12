@@ -516,7 +516,7 @@ const dodo = ms => new Promise(r => setTimeout(r, ms));
 
   console.log('\n═══ 4 quinquies. Chacun ne voit que SES échanges (11/11/2026) ═══');
   {
-    /* Décision d'Arthur : les échanges des autres ne regardent personne.
+    /* Décision du responsable : les échanges des autres ne regardent personne.
        Le serveur filtre (la liste entière partait sur chaque téléphone) et
        le bouton « Tout voir » disparaît pour un MAR. */
     const kv = await baseKV();

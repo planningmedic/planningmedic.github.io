@@ -209,6 +209,87 @@ function bac() {
     V('…et sa panne a un geste (Cloudflare)', src2.indexOf('worker miroir') !== -1);
   }
 
+  console.log('— (12/11/2026) La sentinelle regarde AUSSI les données, jours à venir, chaque année suivie —');
+  {
+    /* Un monde qui ne vieillit pas : l'année active est 2099 (tout est à venir) ou
+       2020 (tout est passé). Six MARs, une garde et une garde mater par jour, le
+       repos le lendemain. */
+    const t = Date.now();
+    const ghOK = (url) => ({ getResponseCode: () => 200, getContentText: () => JSON.stringify(
+      url.includes('/git/ref/') ? { object: { sha: 'x1' } } : url.includes('/actions/runs') ? { workflow_runs: [{ head_sha: 'x1' }] } : url.includes('workers.dev') ? { ok: true, service: 'miroir banc' } : {} ) });
+    const propsVerts = {};
+    ['journalAppliquer','miroirSyncComplet','miroirDocuments','expirerEchanges','runVeille','diagSentinelle'].forEach(n => propsVerts['BAT_' + n] = String(t - 60000));
+    propsVerts['NOTIF_ACTIVE'] = 'N';
+    const NJ = 364, ids = ['MAR01','MAR02','MAR03','MAR04','MAR05','MAR06'];
+    const gardes = () => {
+      const g = [0, 1, 2].map(() => new Array(NJ + 1).fill(''));   // trois lignes d'en-tête, à la largeur de l'année
+      ids.forEach(id => g.push([id].concat(new Array(NJ).fill(''))));
+      for (let j = 0; j < NJ; j++) {
+        g[3 + (j % 6)][1 + j] = 'G'; g[3 + ((j + 3) % 6)][1 + j] = 'G2';
+        if (j + 1 < NJ) { g[3 + (j % 6)][2 + j] = 'RG'; g[3 + ((j + 3) % 6)][2 + j] = 'RG'; }
+      }
+      return g;
+    };
+    const monde = (annee, o) => {
+      o = o || {};
+      const feuilles = { 'CONFIG': [ ['CLE','VALEUR'], ['DIAG_EMAIL', 'chef@exemple.fr'] ] };
+      feuilles['GARDES_' + annee] = o.gardes || gardes();
+      if (o.suivante) feuilles['GARDES_' + (annee + 1)] = o.suivante;
+      if (o.liens !== false) { feuilles['LIENS_R_' + annee] = [['SAMEDI','MED','R']]; feuilles['LIENS_R_' + (annee + 1)] = [['SAMEDI','MED','R']]; }
+      const vus = [];
+      const ctx = monter({ props: Object.assign({}, propsVerts), fetch: ghOK, feuilles, apres: c => {
+        c.getGithubToken = () => 'jeton'; c.logAction = () => {}; c.getActiveYear = () => annee;
+        /* le vrai calendrier du planning (code.gs), pas une imitation */
+        ['getPremierJourPlanning', 'buildDateToCol'].forEach(n => vm.runInContext(require('./stubs').extraireFonction('../gas/code.gs', n), c));
+        c.recupsReparer = (y, ecrire) => { vus.push([y, ecrire]); return { actions: (o.recups || {})[y] || [] }; };
+      } });
+      ctx.diagSentinelle();
+      return { mails: ctx._mails, vus };
+    };
+    let m = monde(2099);
+    V('planning complet et récupérations à jour → AUCUN mail (le contrat tient)', m.mails.length === 0, m.mails.map(x => x.c));
+    {
+      /* Garde-fou du test lui-même : « aucun mail » ne vaut que si le contrôle a
+         réellement tourné (un contrôle en panne ne rend qu'un ⚠️, donc pas de mail). */
+      const b = bac(); const f = { 'GARDES_2099': gardes() };
+      const cx = monter({ feuilles: f, apres: c => { ['getPremierJourPlanning', 'buildDateToCol'].forEach(n => vm.runInContext(require('./stubs').extraireFonction('../gas/code.gs', n), c)); } });
+      cx._diagIntegriteGardes_(2099, b.check, b.info, b.R, null, true);
+      V('le contrôle a bien tourné : 7 réponses, toutes ✅, aucune « impossible »', b.lignes.length === 7 && b.lignes.every(l => l.startsWith('✅')) && !b.lignes.some(l => l.includes('impossible')), b.lignes);
+      V('…et il a vraiment lu les 364 jours du planning', Object.keys(cx.buildDateToCol(f['GARDES_2099'], 2099)).length === 364);
+    }
+    V('les récupérations sont lues en APERÇU, jamais réparées par la sentinelle', m.vus.length === 1 && m.vus[0][0] === 2099 && m.vus[0][1] === false, m.vus);
+
+    const troue = gardes(); troue[3 + (100 % 6)][1 + 100] = '';
+    m = monde(2099, { gardes: troue });
+    V('un jour À VENIR sans garde → UN mail', m.mails.length === 1 && m.mails[0].b.includes('❌ SENTINELLE'), m.mails.map(x => x.b));
+    V('…qui nomme le planning et le jour', m.mails.length === 1 && m.mails[0].c.includes('Planning 2099') && m.mails[0].c.includes('2099-04-1'), m.mails[0] && m.mails[0].c.slice(-900));
+
+    const passe = gardes(); passe[3 + (100 % 6)][1 + 100] = '';
+    m = monde(2020, { gardes: passe });
+    V('le même trou dans le PASSÉ → aucun mail (la sentinelle ne juge que ce qui reste à venir)', m.mails.length === 0, m.mails.map(x => x.c.slice(-600)));
+
+    m = monde(2099, { recups: { 2099: [{ med: 'MAR02', samedi: '2099-05-09', quoi: 'pose' }] } });
+    V('une récupération de samedi MANQUANTE → UN mail, MAR et samedi cités', m.mails.length === 1 && m.mails[0].c.includes('MAR02') && m.mails[0].c.includes('2099-05-09') && m.mails[0].c.includes('à poser'), m.mails.map(x => x.c.slice(-500)));
+    V('…avec le geste', m.mails.length === 1 && /\n→ LE GESTE : page Maintenance → Récupérations de samedi/.test(m.mails[0].c));
+    m = monde(2099, { recups: { 2099: [{ med: 'MAR02', samedi: '2099-05-09', quoi: 'sansDate' }] } });
+    V('« aucune date possible » est dit en clair (le mot du réparateur est sansDate)', m.mails.length === 1 && m.mails[0].c.includes('aucune date possible') && !m.mails[0].c.includes('sansDate'), m.mails.map(x => x.c.slice(-400)));
+    m = monde(2099, { recups: { 2099: [{ med: 'MAR02', samedi: '2099-05-09', quoi: 'retrait' }] } });
+    V('une récupération EN TROP ne réveille personne (vigilance, pas d\'alerte)', m.mails.length === 0, m.mails.map(x => x.c.slice(-400)));
+
+    /* L'année suivante, dès qu'elle est générée — c'est elle que rien ne regardait. */
+    const suivTrouee = gardes(); suivTrouee[3 + (50 % 6)][1 + 50] = '';
+    m = monde(2099, { suivante: suivTrouee });
+    V('année SUIVANTE générée, un jour sans garde → UN mail qui nomme le planning suivant', m.mails.length === 1 && m.mails[0].c.includes('Planning 2100'), m.mails.map(x => x.c.slice(-600)));
+    m = monde(2099, { suivante: gardes(), recups: { 2100: [{ med: 'MAR05', samedi: '2100-02-06', quoi: 'pose' }] } });
+    V('…et ses récupérations sont suivies aussi', m.mails.length === 1 && m.mails[0].c.includes('MAR05') && m.vus.length === 2, m.vus);
+    m = monde(2099, { liens: false, recups: { 2099: [{ med: 'MAR02', samedi: '2099-05-09', quoi: 'pose' }] } });
+    V('année sans suivi des récupérations → contrôle sans objet, le réparateur n\'est pas appelé', m.mails.length === 0 && m.vus.length === 0, m.vus);
+
+    const src3 = fs.readFileSync('../gas/diagnostic.gs', 'utf8');
+    V('rapport du lundi : seuls les placements d\'une année ANTÉRIEURE sont un reliquat', src3.includes('Number(ds.slice(0, 4)) < Y') && !src3.includes("!ds.startsWith(String(Y) + '-')) ovHorsAnnee++"));
+    V('rapport du lundi : les récupérations passent par le même contrôle, pour chaque année', src3.includes('_diagRecups_(y, check, info, R, R.WARN, true)'));
+  }
+
   console.log('— Les intégrations réelles (les stubs avaient masqué deux absences) —');
   {
     const src = require('./stubs').sourceGasTout() /* (15/09) Indispos.gs découpé : tout le code serveur métier */;

@@ -4,7 +4,7 @@
    quelles : aucune ligne de logique modifiée, seulement déplacée. Le routeur et
    ses aides (checkCode, _deny, _error, doGet/doPost) restent dans Indispos.gs.
    Un seul espace global dans Apps Script : rien à importer. */
-const GAS_VERSION_DIAG = '2026-11-01.1';   // (01/11/2026) diagnostic réservé à la tuile `maintenance` · (24/10/2026) applicateur : filet toutes les 5 min
+const GAS_VERSION_DIAG = '2026-11-12.1';   // (12/11/2026) la sentinelle de 6 h contrôle aussi les données (jours à venir, chaque année suivie) ; récupérations et intégrité des gardes pour chaque année suivie ; placements de l'année suivante plus comptés en reliquat · (01/11/2026) diagnostic réservé à la tuile `maintenance` · (24/10/2026) applicateur : filet toutes les 5 min
 
 // ── LOG ───────────────────────────────────────────────────────────────
 /* ─────────────────────────────────────────────────────────────────────────────
@@ -172,6 +172,122 @@ function _regrouperEnChapitres_(lignes) {
   const out = [];
   [1, 2, 3].forEach(c => { if (blocs[c].length) { out.push(TITRES[c]); out.push.apply(out, blocs[c]); } });
   return out.concat(queue);
+}
+
+/* ═══ (12/11/2026) CONTRÔLES DE DONNÉES PARTAGÉS : rapport du lundi ET sentinelle du matin ═══
+   Diagnostic du 11/11 : le rapport ne contrôlait les données que le lundi, et
+   les récupérations de samedi pour AUCUNE année (le contrôle portait sur
+   l'année active, 2026, et ne s'applique qu'à partir de 2027). Les récupérations
+   écrasées par des dons, en 2027, n'ont donc été vues par personne.
+   Ces deux fonctions sortent de diagnosticComplet pour servir aussi la
+   sentinelle. Elles ne font que LIRE.
+   - _diagIntegriteGardes_ : une garde réa et une garde mater par jour, repos
+     présents, pas de repos orphelin, pas de gardes consécutives. `aVenirSeul`
+     (sentinelle) : seuls les jours à venir comptent — le passé ne se corrige plus.
+   - _diagRecups_ : ce que le bouton « Réparer » de la page Maintenance
+     proposerait (samedi tenu sans récupération, récupération restée chez un
+     MAR qui n'a plus le samedi, lien à recoller). Sans objet pour une année
+     sans suivi des récupérations. `niveau` : gravité d'un écart (⚠️ dans le
+     rapport, ❌ dans la sentinelle, qui envoie alors son mail). */
+function _diagAnneesSuivies_() {
+  const ss = SpreadsheetApp.getActiveSpreadsheet();
+  const Y = getActiveYear(), out = [];
+  [Y, Y + 1].forEach(function (y) { const sh = ss.getSheetByName('GARDES_' + y); if (sh && sh.getLastRow() > 3) out.push(y); });
+  return out;
+}
+function _diagIntegriteGardes_(y, check, info, R, tousIds, aVenirSeul) {
+  const ss = SpreadsheetApp.getActiveSpreadsheet();
+  tousIds = tousIds || new Set();
+  try {
+    const gSheet = ss.getSheetByName(`GARDES_${y}`);
+    if (!gSheet || gSheet.getLastRow() <= 3) { info('Onglet absent ou vide — contrôle sans objet'); return; }
+    const gd = gSheet.getDataRange().getValues();
+    const orphelins = new Set();
+    for (let r = 3; r < gd.length; r++) {
+      const id = String(gd[r][0]).trim();
+      if (id && tousIds.size && !tousIds.has(id)) orphelins.add(id);
+    }
+    check(`Lignes avec identifiant inconnu de MEDECINS : ${orphelins.size || 'aucune'}${orphelins.size ? ' (' + [...orphelins].join(', ') + ') — leurs gardes sont IGNORÉES à la publication' : ''}`, orphelins.size ? R.WARN : R.OK);
+    const d2c = buildDateToCol(gd, y);
+    // Passé vs futur : un trou PASSÉ est de l'histoire (redistribution manuelle
+    // non reportée, ex. départ d'un MAR) → ⚠️ ; un trou FUTUR = jour sans
+    // médecin de garde → ❌ à traiter immédiatement.
+    const aujd = Utilities.formatDate(new Date(), ss.getSpreadsheetTimeZone(), 'yyyy-MM-dd');
+    const sansGFut = [], sansGPas = [], multiG = [], g2KO = [];
+    Object.keys(d2c).sort().forEach(ds => {
+      const c = d2c[ds];
+      let nG = 0, nG2 = 0;
+      for (let r = 3; r < gd.length; r++) {
+        const v = String(gd[r][c] || '').trim().toUpperCase();
+        if (v === 'G') nG++; else if (v === 'G2') nG2++;
+      }
+      if (nG === 0) (ds >= aujd ? sansGFut : sansGPas).push(ds);
+      else if (nG > 1) multiG.push(`${ds} (×${nG})`);
+      if (nG2 === 0) g2KO.push(ds); else if (nG2 > 1) g2KO.push(`${ds} (×${nG2})`);
+    });
+    const liste = arr => arr.slice(0, 10).join(', ') + (arr.length > 10 ? ` … et ${arr.length - 10} autre(s)` : '');
+    check(`Jours FUTURS sans garde G : ${sansGFut.length || 'aucun'}${sansGFut.length ? ' → ' + liste(sansGFut) + ' — À TRAITER IMMÉDIATEMENT' : ''}`, sansGFut.length ? R.ERR : R.OK);
+    if (!aVenirSeul) check(`Jours passés sans garde G (historique, tableau non tenu à jour) : ${sansGPas.length || 'aucun'}${sansGPas.length ? ' → ' + liste(sansGPas) : ''}`, sansGPas.length ? R.WARN : R.OK);
+    check(`Jours avec PLUSIEURS gardes G : ${multiG.length || 'aucun'}${multiG.length ? ' → ' + liste(multiG) : ''}`, multiG.length ? R.WARN : R.OK);
+    check(`Jours sans exactement une G2 : ${g2KO.length || 'aucun'}${g2KO.length ? ' → ' + liste(g2KO) : ''}`, g2KO.length ? R.WARN : R.OK);
+    /* (03/08/2026) Les repos de garde n'etaient jamais controles : le diagnostic
+       voyait le symptome (jour sans G) mais jamais la cause. Un repos orphelin —
+       un RG sans garde la veille — designe la garde effacee ET son porteur, ce qui
+       a permis d'identifier DURAND sur le 26/03/2027. */
+    const dates = Object.keys(d2c).sort();
+    const estG = x => x === 'G' || x === 'G2';
+    const rgOrph = [], consec = [], sansRepos = [];
+    for (let r = 3; r < gd.length; r++) {
+      const id = String(gd[r][0]).trim(); if (!id) continue;
+      for (let i = 0; i < dates.length; i++) {
+        const v  = String(gd[r][d2c[dates[i]]] || '').trim().toUpperCase();
+        const av = i > 0 ? String(gd[r][d2c[dates[i-1]]] || '').trim().toUpperCase() : null;
+        const ap = i < dates.length - 1 ? String(gd[r][d2c[dates[i+1]]] || '').trim().toUpperCase() : null;
+        if (aVenirSeul && dates[i] < aujd) continue;      // la sentinelle ne juge que ce qui reste à venir
+        if (v === 'RG' && av !== null && !estG(av))   rgOrph.push(`${id} ${dates[i]}`);
+        if (estG(v)   && av !== null && estG(av))     consec.push(`${id} ${dates[i]}`);
+        if (estG(v)   && ap !== null && ap !== 'RG')  sansRepos.push(`${id} ${dates[i]}`);
+      }
+    }
+    check(`Repos orphelins (RG sans garde la veille) : ${rgOrph.length || 'aucun'}${rgOrph.length ? ' → ' + liste(rgOrph) + ' — une garde a probablement ete ecrasee' : ''}`, rgOrph.length ? R.ERR : R.OK);
+    check(`Gardes consecutives : ${consec.length || 'aucune'}${consec.length ? ' → ' + liste(consec) : ''}`, consec.length ? R.ERR : R.OK);
+    check(`Gardes sans repos le lendemain : ${sansRepos.length || 'aucune'}${sansRepos.length ? ' → ' + liste(sansRepos) : ''}`, sansRepos.length ? R.WARN : R.OK);
+  } catch (e) { check(`Contrôle GARDES_${y} impossible : ` + e.message, R.WARN); }
+}
+function _diagRecups_(y, check, info, R, niveau, avecDecompte) {
+  try {
+    const ss = SpreadsheetApp.getActiveSpreadsheet();
+    if (!ss.getSheetByName('LIENS_R_' + y)) { info('Récupérations de samedi ' + y + ' : année sans suivi des récupérations — contrôle sans objet'); avecDecompte = false; return; }
+    if (typeof recupsReparer !== 'function') { info('Récupérations de samedi ' + y + ' : contrôle indisponible'); return; }
+    const actions = (recupsReparer(y, false) || {}).actions || [];   // aperçu : n'écrit rien
+    if (!actions.length) { check('Récupérations de samedi ' + y + ' : une par samedi tenu à venir, liens à jour', R.OK); return; }
+    const LIB = { pose: 'à poser', retrait: 'à retirer', relien: 'lien à recoller', sansDate: 'aucune date possible' };
+    const detail = actions.slice(0, 8).map(function (a) {
+      return a.med + ' (samedi ' + a.samedi + ' : ' + (LIB[a.quoi] || a.quoi) + ')';
+    }).join(' · ') + (actions.length > 8 ? ' … et ' + (actions.length - 8) + ' autre(s)' : '');
+    /* Ce qui prive un MAR de sa récupération (à poser, ou aucune date possible) prend le
+       niveau demandé ; un surplus ou un lien à recoller reste un point de vigilance. */
+    const manque = actions.some(function (a) { return a.quoi === 'pose' || a.quoi === 'sansDate'; });
+    check('Récupérations de samedi ' + y + ' : ' + actions.length + ' écart(s) — ' + detail, manque ? (niveau || R.WARN) : R.WARN);
+    check('   → LE GESTE : page Maintenance → Récupérations de samedi → Vérifier, puis Réparer.', R.OK);
+  } catch (e) { check('Récupérations de samedi ' + y + ' non vérifiables : ' + e.message, R.WARN); }
+  finally {
+    /* Le décompte de l'année entière (passé compris) : un samedi tenu = une récupération.
+       Rapport du lundi seulement — un écart du passé ne doit pas réveiller la sentinelle chaque matin. */
+    if (avecDecompte) {
+      try {
+        if (y >= PREMIERE_ANNEE_STATS_FIABLES && typeof computeStatsLive === 'function') {
+          const ecarts = computeStatsLive(y)
+            .map(function (x) { return { id: x.medecin, d: (Number(x.sat) || 0) - (Number(x.recupR) || 0) }; })
+            .filter(function (x) { return x.d !== 0; })
+            .map(function (x) { return x.d > 0
+              ? x.id + ' : ' + x.d + ' récup' + (x.d > 1 ? 's' : '') + ' manquante' + (x.d > 1 ? 's' : '')
+              : x.id + ' : ' + (-x.d) + ' récup' + (-x.d > 1 ? 's' : '') + ' en trop'; });
+          check('Décompte ' + y + ' des récupérations : ' + (ecarts.length ? ecarts.join(' · ') : 'une par samedi tenu, pour tous'), ecarts.length ? R.WARN : R.OK);
+        }
+      } catch (e) { check('Décompte ' + y + ' des récupérations non vérifiable : ' + e.message, R.WARN); }
+    }
+  }
 }
 
 function diagnosticComplet() {
@@ -516,27 +632,7 @@ function diagnosticComplet() {
     check(`INDISPOS_${Y} présent`, has(`INDISPOS_${Y}`) ? R.OK : R.WARN);
     check(`GARDES_${Y} avec données`, rows(`GARDES_${Y}`) > 3 ? R.OK : R.WARN);
     check(`STATS_GARDES_${Y} (référence équité/dette)`, rows(`STATS_GARDES_${Y}`) > 1 ? R.OK : R.WARN);
-    // ── Récups de samedi ────────────────────────────────────────────────
-    // Chaque samedi tenu (G ou G2) ouvre EXACTEMENT une récup, et le générateur
-    // garantit sa pose (repli en 2 passes sur toute l'année, section 9). Or un don
-    // ou un échange déplace la garde et le repos du lendemain, JAMAIS le R
-    // (`applyModification`) : tout écart signale un geste manuel resté à faire.
-    // Sans objet avant PREMIERE_ANNEE_STATS_FIABLES : une année reconstruite à la
-    // main n'a pas de R issus de ce mécanisme, l'écart n'y voudrait rien dire.
-    if (Y >= PREMIERE_ANNEE_STATS_FIABLES && rows(`GARDES_${Y}`) > 3) {
-      try {
-        const _ecarts = computeStatsLive(Y)
-          .map(s => ({ id: s.medecin, d: (Number(s.sat) || 0) - (Number(s.recupR) || 0) }))
-          .filter(x => x.d !== 0)
-          .map(x => x.d > 0
-            ? `${x.id} : ${x.d} récup${x.d > 1 ? 's' : ''} manquante${x.d > 1 ? 's' : ''}`
-            : `${x.id} : ${-x.d} récup${-x.d > 1 ? 's' : ''} en trop`);
-        check(`Récups de samedi : ${_ecarts.length
-            ? _ecarts.join(' · ') + ' — à corriger dans l\'onglet Statuts'
-            : 'une par samedi tenu, pour tous'}`,
-          _ecarts.length ? R.WARN : R.OK);
-      } catch (e) { check('Récups de samedi non vérifiables : ' + e.message, R.WARN); }
-    }
+    // (12/11/2026) Récups de samedi : contrôlées plus bas pour CHAQUE année suivie (_diagRecups_).
     const affSheet = ss.getSheetByName(`AFFECTATIONS_${Y}`);
     if (affSheet && actifs.length) {
       const affIds = new Set();
@@ -591,60 +687,10 @@ function diagnosticComplet() {
     // ── 5bis. Intégrité GARDES (couverture 1 G + 1 G2 par jour, IDs orphelins) ──
     const auditGardesIntegrite = y => {
       hdr(`Intégrité GARDES_${y}`);
-      try {
-        const gSheet = ss.getSheetByName(`GARDES_${y}`);
-        if (!gSheet || gSheet.getLastRow() <= 3) { info('Onglet absent ou vide — contrôle sans objet'); return; }
-        const gd = gSheet.getDataRange().getValues();
-        const orphelins = new Set();
-        for (let r = 3; r < gd.length; r++) {
-          const id = String(gd[r][0]).trim();
-          if (id && tousIds.size && !tousIds.has(id)) orphelins.add(id);
-        }
-        check(`Lignes avec identifiant inconnu de MEDECINS : ${orphelins.size || 'aucune'}${orphelins.size ? ' (' + [...orphelins].join(', ') + ') — leurs gardes sont IGNORÉES à la publication' : ''}`, orphelins.size ? R.WARN : R.OK);
-        const d2c = buildDateToCol(gd, y);
-        // Passé vs futur : un trou PASSÉ est de l'histoire (redistribution manuelle
-        // non reportée, ex. départ d'un MAR) → ⚠️ ; un trou FUTUR = jour sans
-        // médecin de garde → ❌ à traiter immédiatement.
-        const aujd = Utilities.formatDate(new Date(), ss.getSpreadsheetTimeZone(), 'yyyy-MM-dd');
-        const sansGFut = [], sansGPas = [], multiG = [], g2KO = [];
-        Object.keys(d2c).sort().forEach(ds => {
-          const c = d2c[ds];
-          let nG = 0, nG2 = 0;
-          for (let r = 3; r < gd.length; r++) {
-            const v = String(gd[r][c] || '').trim().toUpperCase();
-            if (v === 'G') nG++; else if (v === 'G2') nG2++;
-          }
-          if (nG === 0) (ds >= aujd ? sansGFut : sansGPas).push(ds);
-          else if (nG > 1) multiG.push(`${ds} (×${nG})`);
-          if (nG2 === 0) g2KO.push(ds); else if (nG2 > 1) g2KO.push(`${ds} (×${nG2})`);
-        });
-        const liste = arr => arr.slice(0, 10).join(', ') + (arr.length > 10 ? ` … et ${arr.length - 10} autre(s)` : '');
-        check(`Jours FUTURS sans garde G : ${sansGFut.length || 'aucun'}${sansGFut.length ? ' → ' + liste(sansGFut) + ' — À TRAITER IMMÉDIATEMENT' : ''}`, sansGFut.length ? R.ERR : R.OK);
-        check(`Jours passés sans garde G (historique, tableau non tenu à jour) : ${sansGPas.length || 'aucun'}${sansGPas.length ? ' → ' + liste(sansGPas) : ''}`, sansGPas.length ? R.WARN : R.OK);
-        check(`Jours avec PLUSIEURS gardes G : ${multiG.length || 'aucun'}${multiG.length ? ' → ' + liste(multiG) : ''}`, multiG.length ? R.WARN : R.OK);
-        check(`Jours sans exactement une G2 : ${g2KO.length || 'aucun'}${g2KO.length ? ' → ' + liste(g2KO) : ''}`, g2KO.length ? R.WARN : R.OK);
-        /* (03/08/2026) Les repos de garde n'etaient jamais controles : le diagnostic
-           voyait le symptome (jour sans G) mais jamais la cause. Un repos orphelin —
-           un RG sans garde la veille — designe la garde effacee ET son porteur, ce qui
-           a permis d'identifier DURAND sur le 26/03/2027. */
-        const dates = Object.keys(d2c).sort();
-        const estG = x => x === 'G' || x === 'G2';
-        const rgOrph = [], consec = [], sansRepos = [];
-        for (let r = 3; r < gd.length; r++) {
-          const id = String(gd[r][0]).trim(); if (!id) continue;
-          for (let i = 0; i < dates.length; i++) {
-            const v  = String(gd[r][d2c[dates[i]]] || '').trim().toUpperCase();
-            const av = i > 0 ? String(gd[r][d2c[dates[i-1]]] || '').trim().toUpperCase() : null;
-            const ap = i < dates.length - 1 ? String(gd[r][d2c[dates[i+1]]] || '').trim().toUpperCase() : null;
-            if (v === 'RG' && av !== null && !estG(av))   rgOrph.push(`${id} ${dates[i]}`);
-            if (estG(v)   && av !== null && estG(av))     consec.push(`${id} ${dates[i]}`);
-            if (estG(v)   && ap !== null && ap !== 'RG')  sansRepos.push(`${id} ${dates[i]}`);
-          }
-        }
-        check(`Repos orphelins (RG sans garde la veille) : ${rgOrph.length || 'aucun'}${rgOrph.length ? ' → ' + liste(rgOrph) + ' — une garde a probablement ete ecrasee' : ''}`, rgOrph.length ? R.ERR : R.OK);
-        check(`Gardes consecutives : ${consec.length || 'aucune'}${consec.length ? ' → ' + liste(consec) : ''}`, consec.length ? R.ERR : R.OK);
-        check(`Gardes sans repos le lendemain : ${sansRepos.length || 'aucune'}${sansRepos.length ? ' → ' + liste(sansRepos) : ''}`, sansRepos.length ? R.WARN : R.OK);
-      } catch (e) { check(`Contrôle GARDES_${y} impossible : ` + e.message, R.WARN); }
+      _diagIntegriteGardes_(y, check, info, R, tousIds, false);
+      /* (12/11/2026) Les récupérations de samedi, pour CHAQUE année suivie : avant, le
+         contrôle portait sur la seule année active et ne tournait pour aucune. */
+      _diagRecups_(y, check, info, R, R.WARN, true);
     };
     auditGardesIntegrite(Y);
     if (rows(`GARDES_${N1}`) > 3) auditGardesIntegrite(N1);
@@ -748,13 +794,13 @@ function diagnosticComplet() {
         if (seen.has(key)) dup.push(key); else seen.add(key);
         if (id && tousIds.size && !tousIds.has(id)) ovIdKO.add(id);
         if (!/^\d{4}-\d{2}-\d{2}$/.test(ds)) ovDateKO++;
-        else if (!ds.startsWith(String(Y) + '-')) ovHorsAnnee++;
+        else if (Number(ds.slice(0, 4)) < Y) ovHorsAnnee++;   // (12/11/2026) seuls les placements d'une année ANTÉRIEURE sont un reliquat : ceux de l'année suivante étaient comptés à tort
       }
       info(`${od.length - 1} placement(s) manuel(s) enregistré(s)`);
       check(`Doublons (même date + MAR) : ${dup.length || 'aucun'}`, dup.length ? R.WARN : R.OK);
       check(`Placements sur MAR inconnu de MEDECINS : ${ovIdKO.size || 'aucun'}${ovIdKO.size ? ' (' + [...ovIdKO].join(', ') + ')' : ''}`, ovIdKO.size ? R.WARN : R.OK);
       check(`Placements avec date illisible : ${ovDateKO || 'aucun'}`, ovDateKO ? R.WARN : R.OK);
-      check(`Placements hors année active ${Y} : ${ovHorsAnnee || 'aucun'}${ovHorsAnnee ? ' — reliquat à purger (clôture W3)' : ''}`, ovHorsAnnee ? R.WARN : R.OK);
+      check(`Placements d'une année antérieure à ${Y} : ${ovHorsAnnee || 'aucun'}${ovHorsAnnee ? ' — reliquat à purger (clôture W3)' : ''}`, ovHorsAnnee ? R.WARN : R.OK);
     } else {
       info('Aucun placement manuel enregistré');
     }
@@ -958,6 +1004,20 @@ function diagSentinelle() {
     const q = MailApp.getRemainingDailyQuota();
     check('Quota email : ' + q + ' restants', q > 10 ? R.OK : R.WARN);
   } catch (e) {}
+  /* (12/11/2026 — décision du responsable) LES DONNÉES AUSSI, CHAQUE MATIN. La
+     sentinelle ne regardait que la mécanique ; le planning n'était contrôlé que le
+     lundi. Pour chaque année suivie (l'active et la suivante si elle est générée),
+     sur les jours À VENIR seulement : une garde réa par jour, repos présents, pas de
+     gardes consécutives ; et les récupérations de samedi. Un jour sans garde ou une
+     récupération manquante est un ❌ : le mail part. Le contrat ne change pas —
+     tout va bien, pas de mail. */
+  try {
+    _diagAnneesSuivies_().forEach(function (y) {
+      lignes.push('── Planning ' + y + ' (jours à venir) ──');
+      _diagIntegriteGardes_(y, check, info, R, null, true);
+      _diagRecups_(y, check, info, R, R.ERR, false);
+    });
+  } catch (e) { check('Contrôle des données impossible : ' + e.message, R.WARN); }
   logAction('diagSentinelle — ' + (nbErr ? nbErr + ' ERREUR(S)' : 'RAS') + ' (' + ((Date.now() - t0) / 1000).toFixed(1) + ' s)');
   if (!nbErr) return;                                  // silence : le contrat
   let dest = '';

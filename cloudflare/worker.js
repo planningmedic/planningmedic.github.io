@@ -255,7 +255,7 @@ async function lire(corps, env) {
       valeur = filtreIndispos(valeur, user.id);
     }
     if (cle === 'echanges' && user.role !== 'admin') {
-      /* (11/11/2026 — décision d'Arthur) Chacun ne voit QUE ses échanges :
+      /* (11/11/2026 — décision du responsable) Chacun ne voit QUE ses échanges :
          ceux qu'il a proposés ou reçus. Filtré ici, côté serveur — masquer
          un bouton ne suffit pas, la liste entière partait sur chaque
          téléphone. L'admin garde la vue complète. */
