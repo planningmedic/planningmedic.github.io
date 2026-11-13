@@ -220,7 +220,8 @@ console.log('\n═══ 5. L\'arrondi lit le cumul des années, pas seulement N
       const truque = a27.rows.map(r => r.slice()), iS = truque[0].indexOf('SAM');
       const ligne = truque.find(r => r[0] === X); ligne[iS] = Math.max(0, num(ligne[iS]) - 2);
       const apres = c29(SRC, truque);
-      V('en retard de 2 samedis sur N-2, il passe à l\'arrondi HAUT', apres.cibles[X].sam === vrai.cibles[X].sam + 1, { medecin: X, vrai: vrai.cibles[X].sam, truque: apres.cibles[X].sam });
+      /* (13/11/2026) Le retard cumulé entre dans la visée à 60 % : 2 samedis de retard = 1,2 samedi de plus visé, donc 1 ou 2 après arrondi, jamais plus que le retard. */
+      V('en retard de 2 samedis sur N-2, sa cible monte de 1 ou 2 — jamais plus que son retard', apres.cibles[X].sam >= vrai.cibles[X].sam + 1 && apres.cibles[X].sam <= vrai.cibles[X].sam + 2, { medecin: X, vrai: vrai.cibles[X].sam, truque: apres.cibles[X].sam });
       V('le total des samedis à répartir ne change pas', somme(apres, 'sam') === somme(vrai, 'sam'), [somme(apres, 'sam'), somme(vrai, 'sam')]);
       /* (13/11/2026) ANNÉE ARCHIVÉE. En production, l'onglet de N-2 n'est plus dans le
          classeur maître : la clôture l'a déplacé dans le classeur d'archives. Défaut
@@ -231,7 +232,7 @@ console.log('\n═══ 5. L\'arrondi lit le cumul des années, pas seulement N
         const r = ctx.generateGardes(2029, { dryRun: true, tirage: 1, selection: true }); r._ouvertures = ouvertures; return r; };
       const archV = c29arch(SRC, a27.rows), archT = c29arch(SRC, truque);
       V('N-2 archivée : mêmes cibles que si l\'onglet était resté dans le classeur maître', JSON.stringify(archV.cibles) === JSON.stringify(vrai.cibles) && JSON.stringify(archT.cibles) === JSON.stringify(apres.cibles));
-      V('N-2 archivée : le retard de 2 samedis compte toujours', archT.cibles[X].sam === archV.cibles[X].sam + 1, [archV.cibles[X].sam, archT.cibles[X].sam]);
+      V('N-2 archivée : le retard de 2 samedis compte toujours', archT.cibles[X].sam >= archV.cibles[X].sam + 1 && archT.cibles[X].sam <= archV.cibles[X].sam + 2, [archV.cibles[X].sam, archT.cibles[X].sam]);
       V('le classeur d\'archives n\'est ouvert qu\'une fois', archT._ouvertures === 1, archT._ouvertures);
       { const REPLI = "if(!_sh && _y!==year-1){";
         V('le repli vers les archives est repérable dans le code (pour le couper)', SRC.split(REPLI).length === 2);
@@ -240,6 +241,29 @@ console.log('\n═══ 5. L\'arrondi lit le cumul des années, pas seulement N
       { const ctx = h.buildContext(h.makeSpreadsheet(feuilles(2029, roster, im29, [h.makeSheet('STATS_GARDES_2028', a28.rows)])), [], SRC);
         let err = null, r = null; try { r = ctx.generateGardes(2029, { dryRun: true, tirage: 1, selection: true }); } catch (e) { err = e.message; }
         V('archives inaccessibles : le calcul continue, avec l\'année précédente seule', !err && !!r && !!r.cibles, err); }
+      /* (13/11/2026) LE RETARD N'EST COMPTÉ QU'UNE FOIS. Vu sur l'estimation 2028 des données
+         réelles : un MAR à 0 férié pour une part de 1,4 visait 2,1 (60 % du retard) puis
+         recevait 3, le retard servant une seconde fois à choisir l'arrondi haut. Il reprenait
+         plus que son retard en une seule année. */
+      { const im28 = D.buildAbsences(2028, roster, 1);
+        const cJ = (src, s27) => cibles(src, 2028, roster, im28, [h.makeSheet('STATS_GARDES_2027', s27)]);
+        const H27 = a27.rows[0], iJ = H27.indexOf('JF');
+        let AV3 = null; try { AV3 = execSync('git show 34f4de1:gas/generateur_gardes.gs', { cwd: RACINE, encoding: 'utf8', maxBuffer: 1 << 26, stdio: ['ignore', 'pipe', 'ignore'] }); } catch (e) {}
+        V('le générateur du 13/11 midi est lisible dans l\'historique', !!AV3);
+        /* On prive tour à tour un MAR de ses fériés de 2027, et on garde le premier cas où le
+           générateur d'avant lui rendait PLUS que son retard dès 2028. */
+        const sans = id => { const s27 = a27.rows.map(r => r.slice()); s27.find(r => r[0] === id)[iJ] = 0; return s27; };
+        const base28 = cJ(SRC, a27.rows);
+        const cand = Object.keys(base28.cibles).filter(id => { const l = a27.rows.find(r => r[0] === id), pe = base28.partExacte[id]; return l && pe && pe.jf > 1 && num(l[iJ]) >= 1; });
+        let F = null, o = null;
+        if (AV3) for (const id of cand) { const x = cJ(AV3, sans(id)); if (x.cibles[id].jf - x.partExacte[id].jf > -x.cumulPrec[id].jf + 1e-9) { F = id; o = x; break; } }
+        V('contre-preuve : avant, un MAR privé de ses fériés reprenait plus que son retard en une seule année', !!F, { essayes: cand.length });
+        if (F) {
+          const n = cJ(SRC, sans(F)), retard = -n.cumulPrec[F].jf, part = n.partExacte[F].jf, repris = n.cibles[F].jf - part;
+          V('le même MAR est bien en retard d\'au moins 1 férié', retard >= 1, retard);
+          V('nouveau : sa cible monte, mais il reprend moins que son retard', repris > 0 && repris < retard && n.cibles[F].jf < o.cibles[F].jf, { part, retard, avant: o.cibles[F].jf, nouveau: n.cibles[F].jf });
+          V('la somme des cibles de fériés ne change pas', somme(n, 'jf') === somme(base28, 'jf'), [somme(n, 'jf'), somme(base28, 'jf')]);
+        } }
       if (AVANT) {
         const vA = c29(AVANT, a27.rows), tA = c29(AVANT, truque);
         V('contre-preuve : le générateur d\'avant ne voyait pas N-2 (cible inchangée)', tA.cibles[X].sam === vA.cibles[X].sam, [vA.cibles[X].sam, tA.cibles[X].sam]);

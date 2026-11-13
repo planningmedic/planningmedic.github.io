@@ -1191,6 +1191,14 @@ plus en retard. Une année dont l'onglet de statistiques a été archivé à la 
 Le compteur interne <code>we</code> est déduit des autres : poids 3
 dans l'optimiseur, et traité comme un écart de 2 gardes quand un MAR est au-dessus (ou en dessous) sur
 les deux à la fois.</p>
+<p><b>Le retard n'est compté qu'une fois (générateur 2026-11-13.4).</b> Le retard d'un MAR décalait sa
+visée (60 % de l'écart), puis servait encore à choisir qui était arrondi vers le haut : un MAR à 0 férié
+pour une part de 1,38 visait 2,11 et recevait 3, soit plus que son retard en une seule année. Désormais la
+visée porte 60 % du retard <b>cumulé</b> des années en mémoire (plafonné à ±2), et l'arrondi va au plus
+proche : le plus grand reste d'abord. Le retard cumulé ne départage plus que les restes quasi égaux
+(<code>ARRONDI_SERRE</code>). Ce qui n'est pas rendu une année reste dû la suivante. Sur cinq années
+fictives : plus aucun MAR à 1,5 garde ou plus de sa part cumulée en week-ends, samedis, vendredis, jeudis
+et total ; les fériés, peu nombreux, convergent plus lentement (deux MAR entre 1,5 et 1,7).</p>
 <p><b>Des comptes exacts (générateur 2026-11-13.3).</b> Le compteur des vendredis-dimanches était tenu à la
 main : +1 à chaque week-end posé d'un bloc. Un vendredi posé <b>seul</b> (week-end rompu, repli de Noël) n'y
 entrait jamais : sur les indisponibilités 2027, neuf MAR avaient un vendredi de plus que leur compteur, un

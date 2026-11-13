@@ -41,7 +41,7 @@
 // ⚠️ RÈGLE (détecteur de dérive dépôt↔Apps Script) : incrémenter cette version
 // à CHAQUE push de ce fichier. Le diagnostic (admin → Maintenance) compare la
 // version déployée ici avec celle du dépôt et signale toute recopie oubliée.
-const GAS_VERSION_GENERATEUR = '2026-11-13.3';   // (13/11/2026) comptes exacts : vendredis-dimanches et week-ends déduits du planning réel · retouche : les week-ends d'abord · mémoire de plusieurs années : les années archivées sont relues dans le classeur d'archives · 18 h du vendredi à l'un des deux MAR du samedi · week-ends : cible égale à quotité égale, été, réa / maternité
+const GAS_VERSION_GENERATEUR = '2026-11-13.4';   // (13/11/2026) rattrapage : 60 % du retard cumulé dans la visée, arrondi au plus proche (le retard n'est plus compté deux fois) · comptes exacts : vendredis-dimanches et week-ends déduits du planning réel · retouche : les week-ends d'abord · mémoire de plusieurs années : les années archivées sont relues dans le classeur d'archives · 18 h du vendredi à l'un des deux MAR du samedi · week-ends : cible égale à quotité égale, été, réa / maternité
 // précédente : '2026-10-27.1'
 
 /* (05/09/2026) INTERRUPTEUR DU NOUVEL ALGORITHME — récit : docs/JOURNAL-Planning-Med.md §101 */
@@ -995,7 +995,8 @@ function generateGardes(year, opts){
        part exacte, par compteur) : passe au-dessus celui qui, arrondi compris, resterait
        le plus en retard sur l'ensemble des années. L'écart cumulé de deux MAR de même
        quotité ne peut donc plus dériver d'année en année.
-       Sans année en mémoire avec part exacte : priorité d'avant (report N-1, puis reste). */
+       (13/11/2026) Ce cumul entre désormais dans la VISÉE, à 60 %, et l'arrondi se fait au
+       plus proche : voir « le retard n'est compté qu'une fois » plus bas. */
     const _hist={}; let _histAns=0, _histArch;
     for(let _y=year-1; _y>=year-6 && _y>=PREMIERE_ANNEE_STATS_FIABLES; _y--){
       let _sh=null;
@@ -1042,10 +1043,21 @@ function generateGardes(year, opts){
       while(reste<0 && k<ordre.length*4){ const id=ordre[ordre.length-1-(k%ordre.length)]; if(base[id]>0){ base[id]--; reste++; } k++; }
       return base;
     };
-    /* clé d'un compteur : avec mémoire, retard cumulé une fois arrondi vers le bas ; sinon report N-1 puis reste */
-    const _cle=(axes,exact,det)=>(id,plancher,frac)=> _histAns
-      ? axes.reduce((t,a)=>t+_hA(id,a),0)+plancher-exact(id)
-      : det(id)-frac;
+    /* (13/11/2026) LE RETARD N'EST COMPTÉ QU'UNE FOIS — arbitrage du responsable.
+       Le retard décalait déjà la visée (60 % de l'écart), puis servait ENCORE à choisir qui
+       était arrondi vers le haut : un MAR à 0 férié pour une part de 1,38 visait 2,11 et
+       recevait 3, soit plus de 100 % de son retard rattrapé en un an (mesuré sur
+       l'estimation 2028 : deux MAR de 0 à 3 fériés, un de 4 à 7 jeudis).
+       Désormais :
+         • la visée porte 60 % du retard CUMULÉ des années en mémoire (et non plus de la
+           seule année précédente) : ce qui n'est pas rendu cette année reste dû l'an prochain ;
+         • l'arrondi va au plus proche — le plus grand reste d'abord. Le retard cumulé ne
+           départage que les restes quasi égaux (ARRONDI_SERRE par garde de retard). */
+    if(_histAns) gardeDoctors.forEach(id=>['sam','jeu','vd','vjf','jf','total'].forEach(k=>{
+      dette[id][k]=DETTE_AMORTI*Math.max(-2,Math.min(2,_hA(id,k))); }));
+    const ARRONDI_SERRE=0.02;
+    const _cle=(axes,exact,det)=>(id,plancher,frac)=>
+      -frac + ARRONDI_SERRE*Math.max(-2,Math.min(2, _histAns ? axes.reduce((t,a)=>t+_hA(id,a),0) : det(id)/DETTE_AMORTI));
     { // 1 et 2 : week-ends, puis samedis / vendredis-dimanches
       const elig=gardeDoctors.filter(id=>cible[id].sam>0||cible[id].vd>0);
       if(elig.length){
