@@ -41,7 +41,7 @@
 // ⚠️ RÈGLE (détecteur de dérive dépôt↔Apps Script) : incrémenter cette version
 // à CHAQUE push de ce fichier. Le diagnostic (admin → Maintenance) compare la
 // version déployée ici avec celle du dépôt et signale toute recopie oubliée.
-const GAS_VERSION_GENERATEUR = '2026-11-13.6';   // (13/11/2026) chiffres de mesure de la passe 8nonies rectifiés dans son commentaire (34 → 18, dont 12 d'arrondis : un premier décompte comptait à tort les jeudis fériés comme des jeudis), aucun changement de calcul · tout lisser : dernière passe qui apparie les +1 et les −1 d'un même compteur (week-ends, été, fériés, jeudis, samedis, vendredis), un souhait pouvant être retiré pour remettre un compteur à sa cible · rattrapage : 60 % du retard cumulé dans la visée, arrondi au plus proche (le retard n'est plus compté deux fois) · comptes exacts : vendredis-dimanches et week-ends déduits du planning réel · retouche : les week-ends d'abord · mémoire de plusieurs années : les années archivées sont relues dans le classeur d'archives · 18 h du vendredi à l'un des deux MAR du samedi · week-ends : cible égale à quotité égale, été, réa / maternité
+const GAS_VERSION_GENERATEUR = '2026-11-13.7';   // (13/11/2026) mesures de la passe 8nonies remplacées par celles de l'essai de génération chez Google (32 → 24, dont 12 d'arrondis ; 8 s) : les précédentes venaient d'une simulation qui ignorait les indisponibilités du dernier jour de l'année. Aucun changement de calcul · tout lisser : dernière passe qui apparie les +1 et les −1 d'un même compteur (week-ends, été, fériés, jeudis, samedis, vendredis), un souhait pouvant être retiré pour remettre un compteur à sa cible · rattrapage : 60 % du retard cumulé dans la visée, arrondi au plus proche (le retard n'est plus compté deux fois) · comptes exacts : vendredis-dimanches et week-ends déduits du planning réel · retouche : les week-ends d'abord · mémoire de plusieurs années : les années archivées sont relues dans le classeur d'archives · 18 h du vendredi à l'un des deux MAR du samedi · week-ends : cible égale à quotité égale, été, réa / maternité
 // précédente : '2026-10-27.1'
 
 /* (05/09/2026) INTERRUPTEUR DU NOUVEL ALGORITHME — récit : docs/JOURNAL-Planning-Med.md §101 */
@@ -3452,10 +3452,12 @@ function generateGardes(year, opts){
          tirage ni quand l'optimisation finale est coupée (même condition qu'elle).
          Aucun hasard : le calcul à blanc et la vraie génération font les mêmes coups,
          sauf si le plafond de temps APP_LIMITE_MS coupe la recherche (signalé).
-         Mesuré sur les indisponibilités 2027 du 13/11/2026 (simulateur) : 34 → 18
-         écarts d'une garde (12 tiennent aux arrondis des cibles), 21 MAR sur 21 pile
-         sur leurs week-ends, plus personne à 3 week-ends d'été, 9 souhaits retirés,
-         1 accordé, ~20 s. Banc : banc_appariement.js. */
+         Mesuré sur les indisponibilités 2027 du 13/11/2026, par un essai de génération
+         chez Google (21 h 18) que le simulateur reproduit ligne à ligne : 32 → 24 écarts
+         d'une garde (12 tiennent aux arrondis des cibles ; restent 6 fériés, 4 samedis,
+         2 vendredis), 21 MAR sur 21 pile sur leurs week-ends, 1 MAR encore à 3 week-ends
+         d'été, 6 souhaits retirés, 2 accordés ; 8 s chez Google, 168 s pour l'essai entier.
+         Banc : banc_appariement.js. */
       if (_appariementOn_()) {
         const _t0P = Date.now();
         const AXP = ['we', 'sam', 'vd', 'jeu', 'jf', 'vjf', 'total'], APP_SOUHAIT = 0.45, APP_POIDS = { we: 2.5 }, APP_ETE_HAUT = 2.5, APP_ETE_BAS = 1, APP_ESSAIS = 400, APP_LIMITE_MS = 60000;
