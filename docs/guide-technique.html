@@ -1229,7 +1229,7 @@ que le même binôme les tient) sont inversées d'un bloc ; si une nuit solidair
 rôles dépareillés, tout est remis comme avant. Bilan dans <code>optim.roles</code>. Ces deux passes ne
 tournent que dans la génération complète, pas pendant le choix du tirage. Scénario :
 <code>banc/banc_we_equite.js</code>.</p>
-<p><b>Passe 8nonies — appariement des +1 et des −1 (générateur 2026-11-13.5).</b> Placée après la retouche
+<p><b>Passe 8nonies — appariement des +1 et des −1 (générateur 2026-11-13.5, chiffres rectifiés en 13.6).</b> Placée après la retouche
 des week-ends et avant 8octies, dans le même bloc que l'optimisation finale (donc ni pendant le choix du
 tirage, ni quand <code>OPTIM_ITERS</code> vaut 0). Elle cherche, sans hasard, le transfert ou l'échange de
 créneaux qui remet le plus de compteurs pile sur leur cible entière (<code>cible − dette</code>) : total,
@@ -1246,7 +1246,8 @@ le coût d'un compteur à 2 de sa cible (100) interdit d'en créer. Plafond de t
 <code>APP_LIMITE_MS</code> : au-delà, l'état atteint est gardé et l'essai le dit. Bilan dans
 <code>optim.appariement</code> (écarts avant / après, créneaux déplacés, souhaits retirés et accordés,
 été). <code>__BANC_APPARIEMENT__</code> coupe la passe au banc. Mesuré au simulateur sur les
-indisponibilités 2027 du 13/11/2026 : 38 → 22 écarts d'une garde (dont 14 dus aux arrondis des cibles),
+indisponibilités 2027 du 13/11/2026 : 34 → 18 écarts d'une garde (dont 12 dus aux arrondis des cibles ;
+un jeudi férié compte sur l'axe des fériés, pas sur celui des jeudis),
 21 MAR sur 21 pile sur leurs week-ends, plus personne à 3 week-ends d'été, 9 souhaits retirés, environ
 20 s ; non mesuré chez Google. Scénario : <code>banc/banc_appariement.js</code>.</p>
 <p><b>18 h du vendredi (générateur 2026-11-13.1).</b> Il revient à l'un des <b>deux</b> MAR de garde le
