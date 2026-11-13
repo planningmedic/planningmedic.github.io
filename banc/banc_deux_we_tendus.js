@@ -15,6 +15,14 @@
    week-ends de 4 MAR chacun. Mesuré le 03/11/2026 : sans la seconde
    recherche, 2 doubles week-ends ; avec, 1.
 
+   (12/11/2026) JEU D'ESSAI RECALÉ. Le générateur 2026-11-13.1 arrondit les
+   cibles autrement (week-ends d'abord, plus d'ordre alphabétique) : les
+   placements changent, et avec les 8 MAR d'origine l'ancien placement au fil de
+   l'eau tombait par hasard à 0 double week-end — la contre-preuve ne prouvait
+   plus rien. Période avancée d'une semaine (02 au 22/08) et 8 autres MAR
+   présents : avec la seconde recherche, 1 double week-end ; sans, 4 et des
+   nuits couvertes en dernier recours. Les vérifications sont inchangées.
+
    Le VRAI generateur_gardes.gs est exécuté, via le harnais du simulateur. */
 const path = require('path'), fs = require('fs');
 const h = require(path.join(__dirname, '..', 'simulateur', 'harness.js'));
@@ -30,7 +38,7 @@ const SRC = fs.readFileSync(path.join(__dirname, '..', 'gas', 'generateur_gardes
 function jeu(tendu) {
   const roster = h.defaultRoster(), im = {};
   const ids = roster.filter(([id, p, q, f]) => !f.noGarde && p > 0 && !f.souhaitPlafond && !f.r2s2 && !f.dateDebut).map(r => r[0]);
-  if (tendu) ids.slice(8).forEach(id => { im[id] = {}; for (let k = 0; k < 21; k++) im[id][addD('2027-08-09', k)] = 'VAC'; });
+  if (tendu) ids.filter((id, i) => i < 3 || i >= 11).forEach(id => { im[id] = {}; for (let k = 0; k < 21; k++) im[id][addD('2027-08-02', k)] = 'VAC'; });
   return { roster, im };
 }
 function generer({ roster, im }, src) {
@@ -56,7 +64,7 @@ function doublesWE(G) {
 }
 /* Jeudi (non férié en août : aucun) puis samedi pour le même MAR, dans la période. */
 const jeudiSamedi = G => { const out = []; Object.keys(G).forEach(id => { for (let c = 0; c < 364; c++) { const j = addD(D0, c);
-  if (dow(j) === 4 && j >= '2027-08-05' && j <= '2027-09-02' && garde(G, id, j) && garde(G, id, addD(j, 2))) out.push(id + ' ' + j); } }); return out; };
+  if (dow(j) === 4 && j >= '2027-07-29' && j <= '2027-08-26' && garde(G, id, j) && garde(G, id, addD(j, 2))) out.push(id + ' ' + j); } }); return out; };
 const regles = (G, im) => { let n = 0; Object.keys(G).forEach(id => { const g = Object.keys(G[id]).filter(d => estG(G[id][d])).sort();
   g.forEach((d, a) => { if (g[a + 1] === addD(d, 1)) n++; if (g[a + 3] && g[a + 3] <= addD(d, 5)) n++; if ((im[id] || {})[d]) n++; }); }); return n; };
 const couverture = G => { let mal = 0; for (let c = 0; c < 364; c++) { const d = addD(D0, c); let k = 0; Object.keys(G).forEach(id => { if (estG(G[id][d])) k++; }); if (k !== 2) mal++; } return mal; };

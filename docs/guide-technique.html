@@ -1175,6 +1175,45 @@ dette pour 2027 — vérifié le 15/09/2026 en faisant tourner le générateur s
 2027, avec et sans les statistiques 2026 : cibles identiques. Le cumul pluriannuel (réel − part exacte,
 sur six ans) est calculé et affiché dans l'essai à blanc depuis le 11/09, mais pas encore appliqué à la
 cible : la version cumulative de la dette reste à décider.</p>
+<p><b>Week-ends, à quotité égale (générateur 2026-11-13.1).</b> Jusque-là, samedis et vendredis-dimanches
+étaient arrondis chacun de leur côté, et à égalité parfaite c'était l'ordre alphabétique des identifiants
+qui tranchait : le même MAR pouvait être arrondi vers le haut des deux côtés, un autre vers le bas des
+deux côtés — 12 week-ends visés contre 10, à part égale (constaté sur 2027). Désormais : (1) le nombre de
+<b>week-ends</b> de chacun (samedis + vendredis-dimanches) est arrondi <b>d'abord</b>, puis réparti entre les
+deux ; (2) fériés, jeudis, veilles de férié et total suivent ; un MAR dont une nuit de fêtes fériée est
+imposée reçoit d'abord la cible haute en fériés ; le régime à part reçoit l'entier le plus proche de sa
+part, hors départage ; (3) <b>plus aucun départage alphabétique</b> : à égalité, passe celui qui a été le
+moins arrondi vers le haut jusque-là, puis un rang haché par année. <b>Mémoire de plusieurs années :</b>
+le report décale toujours la visée à partir de N-1 seulement, mais l'<em>ordre</em> de l'arrondi lit le
+cumul des années en mémoire (réel − part exacte, six ans au plus, années ≥
+<code>PREMIERE_ANNEE_STATS_FIABLES</code>) : passe au-dessus celui qui, arrondi vers le bas, resterait le
+plus en retard. Sans année en mémoire avec part exacte, l'ordre d'avant s'applique (report, puis reste).
+Le compteur interne <code>we</code> = samedis + vendredis-dimanches est déduit des deux autres : poids 3
+dans l'optimiseur, et traité comme un écart de 2 gardes quand un MAR est au-dessus (ou en dessous) sur
+les deux à la fois.</p>
+<p><b>Passe 8septies — week-ends de l'été et de l'année.</b> Après l'optimisation finale, un recuit
+confiné (<code>WE_ITERS</code> essais, graine fixe) reprend les mêmes mouvements et rapproche chacun de sa
+part de week-ends réels (samedis + dimanches) : sur l'année, et sur l'été (<code>WE_ETE_MOIS</code>,
+juillet-août, places au prorata des parts et de la présence). Il ne quitte jamais un état où un critère
+de l'optimisation finale recule (écarts, souhaits, week-ends coupés, garde-repos-garde, doubles
+week-ends, confort), ni où les gardes à 3 ou 4 jours d'une autre et les semaines à 3 gardes augmentent ;
+il garde le meilleur état où ni l'été ni l'année ne reculent. Filet de sécurité
+<code>WE_LIMITE_MS</code> : au-delà, la passe s'arrête sur son meilleur état et l'essai le dit.
+Bilan dans <code>optim.weekEnds</code> du calcul à blanc.</p>
+<p><b>Passe 8octies — réa / maternité.</b> Les deux MAR d'une même nuit échangent leurs rôles quand
+cela rapproche chacun de l'équilibre : personne ne change de nuit, aucun compteur d'équité ne bouge.
+Les nuits solidaires (même groupe, vendredi et son dimanche, samedi et jeudi ou lundi férié couplé, dès
+que le même binôme les tient) sont inversées d'un bloc ; si une nuit solidaire se retrouvait avec des
+rôles dépareillés, tout est remis comme avant. Bilan dans <code>optim.roles</code>. Ces deux passes ne
+tournent que dans la génération complète, pas pendant le choix du tirage. Scénario :
+<code>banc/banc_we_equite.js</code>.</p>
+<p><b>18 h du vendredi (générateur 2026-11-13.1).</b> Il revient à l'un des <b>deux</b> MAR de garde le
+samedi — réa d'abord, maternité sinon (le code n'essayait que la réa). Les 18 h étant posés du lundi au
+vendredi, le MAR du samedi a souvent déjà eu le sien : une passe d'échanges <b>un pour un</b> rattrape
+alors les vendredis manqués (le MAR du samedi prend le vendredi, l'autre prend son 18 h le plus proche),
+avec les règles de la pose — disponibilité, pas deux jours de suite, un par semaine, paire à éviter. Chacun
+garde son nombre de 18 h, aucune garde ne bouge, un vendredi déjà bon n'est jamais défait. Bilan dans
+<code>h18Vendredi</code> du calcul à blanc.</p>
 <p><b>Numéro de tirage.</b> À égalité parfaite, l'ordre de l'onglet MEDECINS ne départage plus : il
 déplaçait près d'une garde sur trois. L'ordre vient d'un hachage(nom, tirage) ; rejouer le même
 tirage redonne le même planning, et l'onglet n'est jamais modifié.</p>

@@ -73,8 +73,11 @@ function campagne(seed) {
    tirage de la graine 6 est déjà retenu ; la 2 reproduit le cas (tirage 3 retenu,
    le premier reste calculable pour la contre-épreuve).
    (23/10/2026, soir) graine 1 : avec la passe des périodes tendues, le premier tirage
-   de la graine 2 est retenu ; la 1 reproduit le cas (tirage 2 retenu, écart 1 contre 2). */
-const { roster, m } = campagne(1);
+   de la graine 2 est retenu ; la 1 reproduit le cas (tirage 2 retenu, écart 1 contre 2).
+   (12/11/2026) graine 4 : avec les cibles du générateur 2026-11-13.1 (week-ends arrondis
+   d'abord, plus d'ordre alphabétique), le premier tirage des graines 1 à 3 est retenu ;
+   la 4 reproduit le cas (tirage 2 retenu, écart 1 contre 2). */
+const { roster, m } = campagne(4);
 /* (24/10/2026) La réparation par échange (8c-ter) met désormais le PREMIER
    planning à une garde d'écart sur toutes les graines essayées (2 à 14) : le cas
    « premier planning non retenu » ne se produit plus naturellement. Ce scénario

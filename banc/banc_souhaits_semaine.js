@@ -35,7 +35,11 @@ const H = require(path.join(__dirname, '..', 'simulateur', 'harness.js'));
 let ok = 0, ko = 0;
 const V = (t, c, d) => { if (c) { ok++; console.log('  ✓ ' + t); }
   else { ko++; console.log('  ✗ ' + t + (d !== undefined ? ' → ' + JSON.stringify(d).slice(0, 300) : '')); } };
-const YEAR = 2027, MAR = 'GARNIER';
+/* (12/11/2026) MAR recalé : GARNIER → FAUVEL. Avec les cibles du générateur 2026-11-13.1
+   (week-ends arrondis d'abord, plus d'ordre alphabétique), l'ancien test accordait par
+   hasard les 8 souhaits de GARNIER : la contre-épreuve ne prouvait plus rien. Sur FAUVEL,
+   mêmes dates : 8 souhaits de semaine accordés avec le correctif, 7 sans, équité identique. */
+const YEAR = 2027, MAR = 'FAUVEL';
 const SRC = fs.readFileSync(path.join(__dirname, '..', 'gas', 'generateur_gardes.gs'), 'utf8');
 /* Début d'année : 5 jeudis et 1 week-end souhaités (dans sa part). */
 const JEUDIS = ['2027-01-14', '2027-02-11', '2027-03-11', '2027-04-08', '2027-04-29'];

@@ -176,7 +176,9 @@ console.log('\n═══ 5. Réparation finale : week-ends réunis, équité et 
   V('la passe de réparation est présente dans le générateur', SRC.split(CLE).length === 2);
   const SANS = SRC.split(CLE).join("    if(false){\n      const _slotDe=");
   const roster = D.buildRoster(YEAR, { ageExempt: 60, ageRetraite: 67 });
-  const im = D.buildAbsences(YEAR, roster, 6, { souhaitsEtendus: true });
+  /* (12/11/2026) année 6 → 2 : avec les cibles du générateur 2026-11-13.1, l'année 6 n'a
+     plus de week-end à réunir ; l'année 2 en a (4 échanges). Vérifications inchangées. */
+  const im = D.buildAbsences(YEAR, roster, 2, { souhaitsEtendus: true });
   const run = src => {
     const mk = () => h.makeSpreadsheet([
       h.makeSheet('MEDECINS', h.medecinsRows(roster)),
@@ -228,7 +230,9 @@ console.log('\n═══ 6. Réparation : le MAR du vendredi jugé sans la garde
   let ANCIEN = null;
   try { ANCIEN = execSync('git show ae834e4:gas/generateur_gardes.gs', { cwd: path.join(__dirname, '..'), encoding: 'utf8', stdio: ['ignore', 'pipe', 'ignore'] }); } catch (e) { ANCIEN = null; }
   const roster = D.buildRoster(YEAR, { ageExempt: 60, ageRetraite: 67 });
-  const im = D.buildAbsences(YEAR, roster, 7, { souhaitsEtendus: true });
+  /* (12/11/2026) année 7 → 14 : même raison ; sur l'année 14, l'ancien ordre des contrôles
+     ne réunit aucun week-end, le nouveau 2. */
+  const im = D.buildAbsences(YEAR, roster, 14, { souhaitsEtendus: true });
   const mk = () => h.makeSpreadsheet([
     h.makeSheet('MEDECINS', h.medecinsRows(roster)),
     h.makeSheet(`INDISPOS_${YEAR}`, h.indisposRows(YEAR, roster, im)),
