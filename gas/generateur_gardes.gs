@@ -41,7 +41,7 @@
 // ⚠️ RÈGLE (détecteur de dérive dépôt↔Apps Script) : incrémenter cette version
 // à CHAQUE push de ce fichier. Le diagnostic (admin → Maintenance) compare la
 // version déployée ici avec celle du dépôt et signale toute recopie oubliée.
-const GAS_VERSION_GENERATEUR = '2026-11-13.4';   // (13/11/2026) rattrapage : 60 % du retard cumulé dans la visée, arrondi au plus proche (le retard n'est plus compté deux fois) · comptes exacts : vendredis-dimanches et week-ends déduits du planning réel · retouche : les week-ends d'abord · mémoire de plusieurs années : les années archivées sont relues dans le classeur d'archives · 18 h du vendredi à l'un des deux MAR du samedi · week-ends : cible égale à quotité égale, été, réa / maternité
+const GAS_VERSION_GENERATEUR = '2026-11-13.5';   // (13/11/2026) tout lisser : dernière passe qui apparie les +1 et les −1 d'un même compteur (week-ends, été, fériés, jeudis, samedis, vendredis), un souhait pouvant être retiré pour remettre un compteur à sa cible · rattrapage : 60 % du retard cumulé dans la visée, arrondi au plus proche (le retard n'est plus compté deux fois) · comptes exacts : vendredis-dimanches et week-ends déduits du planning réel · retouche : les week-ends d'abord · mémoire de plusieurs années : les années archivées sont relues dans le classeur d'archives · 18 h du vendredi à l'un des deux MAR du samedi · week-ends : cible égale à quotité égale, été, réa / maternité
 // précédente : '2026-10-27.1'
 
 /* (05/09/2026) INTERRUPTEUR DU NOUVEL ALGORITHME — récit : docs/JOURNAL-Planning-Med.md §101 */
@@ -109,6 +109,12 @@ const OPTIM_ITERS  = 1600000;
 const OPTIM_GRAINE = 2;
 const OPTIM_POIDS  = { ecart:0.5, souhait:1, split:2, j2:2, dwe:3, couple:0.2, confort:1 };
 function _optimIters_(){ return (typeof __BANC_OPTIM_ITERS__ === 'number') ? __BANC_OPTIM_ITERS__ : OPTIM_ITERS; }
+/* (13/11/2026) APPARIEMENT (passe 8nonies) — « le +1 donne au −1 ». Décision du
+   responsable : pour remettre un compteur d'équité à sa cible, un souhait accordé
+   peut être retiré. Banc : __BANC_APPARIEMENT__ (absente en production) coupe ou
+   rallume la passe, pour les contre-preuves. */
+const APPARIEMENT = true;
+function _appariementOn_(){ return (typeof __BANC_APPARIEMENT__ === 'boolean') ? __BANC_APPARIEMENT__ : APPARIEMENT; }
 /* (12/11/2026) ÉQUITÉ DES WEEK-ENDS — passe 8septies. WE = samedis + dimanches.
    Été = week-ends dont le samedi tombe un de ces mois.
    WE_LIMITE_MS : filet de sécurité. Si le calcul entier a déjà duré plus que cela,
@@ -3429,6 +3435,116 @@ function generateGardes(year, opts){
         Logger.log('Week-ends (été, année) : ' + JSON.stringify({ garde: tient, mouvements: _nb, avant: _bilanWE.avant, apres: _bilanWE.apres, ms: _bilanWE.ms }));
         if (tient) warnings.push('Week-ends : répartition de l\'été et de l\'année améliorée par échanges (rien ne recule)');
         if (_coupe) warnings.push('Week-ends : la retouche finale a été écourtée (calcul trop long) — le meilleur état trouvé est gardé');
+      }
+
+      /* ── 8nonies. (13/11/2026) TOUT LISSER : APPARIEMENT DES +1 ET DES −1 ──────────────
+         Reproche de l'équipe : « untel est à +1 sur un compteur, un autre à −1 sur le
+         même : le +1 n'a qu'à donner au −1 ». Dernière passe : elle cherche le
+         transfert (A donne à B) ou l'échange (A et B se donnent chacun un créneau) qui
+         fait tomber le plus de compteurs pile sur leur cible — total, week-ends,
+         samedis, vendredis, jeudis, fériés, veilles de férié, et week-ends de
+         juillet-août — puis recommence. Quand aucun coup simple n'existe, elle essaie
+         deux coups enchaînés (échange à trois). Un souhait accordé peut être retiré
+         si cela remet au moins un compteur à sa cible (APP_SOUHAIT < 1 compteur).
+         Jamais sur les fêtes ni sur un régime à part ; toutes les règles dures via
+         canHold, jugées dans l'état final ; jamais de « garde, repos, garde » créée ;
+         aucun compteur ne s'éloigne à 2 de sa cible. Ne tourne ni pendant le choix du
+         tirage ni quand l'optimisation finale est coupée (même condition qu'elle).
+         Aucun hasard : le calcul à blanc et la vraie génération font les mêmes coups,
+         sauf si le plafond de temps APP_LIMITE_MS coupe la recherche (signalé).
+         Mesuré sur les indisponibilités 2027 du 13/11/2026 (simulateur) : 38 → 22
+         écarts d'une garde (14 tiennent aux arrondis des cibles), 21 MAR sur 21 pile
+         sur leurs week-ends, plus personne à 3 week-ends d'été, 9 souhaits retirés,
+         1 accordé, ~20 s. Banc : banc_appariement.js. */
+      if (_appariementOn_()) {
+        const _t0P = Date.now();
+        const AXP = ['we', 'sam', 'vd', 'jeu', 'jf', 'vjf', 'total'], APP_SOUHAIT = 0.45, APP_POIDS = { we: 2.5 }, APP_ETE_HAUT = 2.5, APP_ETE_BAS = 1, APP_ESSAIS = 400, APP_LIMITE_MS = 60000;
+        const _docsP = gardeDoctors.filter(id => !SOUHAIT_PLAFOND.has(id) && cible[id]);
+        const _eP = (id, ax) => cnt[id][ax] - (cible[id][ax] - ((dette[id] && dette[id][ax]) || 0));
+        const _cP = e => { const x = Math.abs(e); return x < 0.5 ? 0 : (x < 1.5 ? 1 : 100); };
+        const _titP = sl => sl.role === 0 ? gardes[sl.days[0]].g : gardes[sl.days[0]].g2;
+        /* Jamais déplacés : les fêtes, et un vendredi ou un dimanche tenu comme créneau
+           isolé — le déplacer seul couperait (ou laisserait coupé) un vendredi-dimanche.
+           Constaté au banc le 13/11/2026 : un vendredi-dimanche réuni par une passe
+           précédente tient en deux créneaux d'un jour ; la passe en déplaçait un seul. */
+        const _fixeP = sl => sl.days.some(dd => noelDatesAssigned.has(dd)) || (sl.days.length === 1 && (dayByDate[sl.days[0]].dow === 5 || dayByDate[sl.days[0]].dow === 0));
+        const _souhP = (id, sl) => sl.days.some(dd => isSouhaitDe(id, dd)) ? 1 : 0;
+        const _grgP = (id, days_) => days_.some(dd => [-2, 2].some(n => { const x = shift(dd, n); return days_.indexOf(x) < 0 && ((gSet[id] && gSet[id].has(x)) || (g2Set[id] && g2Set[id].has(x))); }));
+        /* été : un créneau « d'été » porte un samedi ou un dimanche de juillet-août */
+        slots.forEach(sl => { sl._ete = sl.days.some(dd => { const di = dayByDate[dd], m = Number(dd.slice(5, 7)); return di && (di.dow === 6 || di.dow === 0) && (m === 7 || m === 8); }) ? 1 : 0; });
+        slots.forEach(sl => { sl._rg = sl.days.map(dd => _rangJour[dd]); sl._rmin = Math.min.apply(null, sl._rg); sl._rmax = Math.max.apply(null, sl._rg); });
+        const _eteN = {}; _docsP.forEach(id => { _eteN[id] = 0; });
+        slots.forEach(sl => { const t = _titP(sl); if (sl._ete && _eteN[t] !== undefined) _eteN[t]++; });
+        const _eteTot = _docsP.reduce((t, id) => t + _eteN[id], 0), _weTot = _docsP.reduce((t, id) => t + (cible[id].we || 0), 0);
+        const _eteC = {}; _docsP.forEach(id => { _eteC[id] = _weTot > 0 ? _eteTot * (cible[id].we || 0) / _weTot : 0; });
+        const _fE = (id, n) => { const lo = Math.floor(_eteC[id] + 1e-9), hi = Math.ceil(_eteC[id] - 1e-9); return n > hi ? APP_ETE_HAUT * (n - hi) : (n < lo ? APP_ETE_BAS * (lo - n) : 0); };
+        /* VITESSE : écarts et contributions rangés en tableaux d'entiers, souhaits lus une fois. */
+        const _PW = AXP.map(ax => APP_POIDS[ax] || 1), _NA = AXP.length;
+        slots.forEach(sl => { sl._c = AXP.map(ax => sl.contrib[ax] || 0); sl._sh = {}; _docsP.forEach(id => { sl._sh[id] = _souhP(id, sl); }); });
+        const _EV = {}; const _majEV = id => { _EV[id] = AXP.map(ax => _eP(id, ax)); }; _docsP.forEach(_majEV);
+        const _cPi = x => { if (x < 0) x = -x; return x < 0.5 ? 0 : (x < 1.5 ? 1 : 100); };
+        const _cout = (A, B, s1, s2) => { let d = 0; const ea = _EV[A], eb = _EV[B], c1 = s1._c, c2 = s2 ? s2._c : null;
+          for (let k = 0; k < _NA; k++) { const x = (c2 ? c2[k] : 0) - c1[k]; if (!x) continue;
+            d += _PW[k] * (_cPi(ea[k] + x) - _cPi(ea[k]) + _cPi(eb[k] - x) - _cPi(eb[k])); }
+          const de = (s2 ? s2._ete : 0) - s1._ete; if (de) d += _fE(A, _eteN[A] + de) - _fE(A, _eteN[A]) + _fE(B, _eteN[B] - de) - _fE(B, _eteN[B]);
+          d += APP_SOUHAIT * (s1._sh[A] - s1._sh[B] + (s2 ? s2._sh[B] - s2._sh[A] : 0));
+          return d; };
+        const _possible = (A, B, s1, s2) => {
+          if (!s2) return canHold(B, s1.days, s1.role) && !_grgP(B, s1.days);
+          applyTr(s1, B); const okA = canHold(A, s2.days, s2.role) && !_grgP(A, s2.days); applyTr(s1, A); if (!okA) return false;
+          applyTr(s2, A); const okB = canHold(B, s1.days, s1.role) && !_grgP(B, s1.days); applyTr(s2, B); return okB; };
+        const _joue = mv => { applyTr(mv.s1, mv.B); _eteN[mv.A] -= mv.s1._ete; _eteN[mv.B] += mv.s1._ete; if (mv.s2) { applyTr(mv.s2, mv.A); _eteN[mv.B] -= mv.s2._ete; _eteN[mv.A] += mv.s2._ete; } _majEV(mv.A); _majEV(mv.B); };
+        const _dejoue = mv => { if (mv.s2) { applyTr(mv.s2, mv.B); _eteN[mv.B] += mv.s2._ete; _eteN[mv.A] -= mv.s2._ete; } applyTr(mv.s1, mv.A); _eteN[mv.A] += mv.s1._ete; _eteN[mv.B] -= mv.s1._ete; _majEV(mv.A); _majEV(mv.B); };
+        const _excesP = id => AXP.reduce((t, ax) => t + _eP(id, ax), 0);
+        const _voisins = (s1, s2) => { if (s1._rmin > s2._rmax + 1 || s2._rmin > s1._rmax + 1) return false; return s1._rg.some(x => s2._rg.some(y => Math.abs(x - y) <= 1)); };
+        /* Tous les coups de coût ≤ seuil ; `cercle` (facultatif) : ne garder que ceux qui touchent un de ces MAR. */
+        const _candidats = (seuil, cercle) => {
+          const mob = slots.filter(sl => !_fixeP(sl) && _titP(sl) && _eteN[_titP(sl)] !== undefined);
+          const par = {}; mob.forEach(sl => { const t = _titP(sl); (par[t] = par[t] || []).push(sl); });
+          const out = [], exc = {}, off = {}; _docsP.forEach(id => { exc[id] = _EV[id].reduce((t, x) => t + x, 0); off[id] = _EV[id].some(x => Math.abs(x) >= 0.5) || _fE(id, _eteN[id]) > 0; });
+          for (const s1 of mob) { const A = _titP(s1), inA = !cercle || cercle.has(A);
+            for (const B of _docsP) { if (B === A || (!inA && !cercle.has(B))) continue; if (!off[A] && !off[B]) continue;   /* un coup entre deux MAR pile partout ne peut rien améliorer */
+              let c = _cout(A, B, s1, null); if (c <= seuil) out.push({ c, A, B, s1, s2: null, dep: exc[A] - exc[B] });
+              const lB = par[B] || [];
+              for (const s2 of lB) { if (s2 === s1 || _voisins(s1, s2)) continue;
+                c = _cout(A, B, s1, s2); if (c <= seuil) out.push({ c, A, B, s1, s2, dep: exc[A] - exc[B] }); } } }
+          out.sort((x, y) => (x.c - y.c) || (y.dep - x.dep));
+          return out; };
+        const _premier = (liste) => { for (const mv of liste) if (_possible(mv.A, mv.B, mv.s1, mv.s2)) return mv; return null; };
+        const _nbEcarts = () => { let n = 0; _docsP.forEach(id => AXP.forEach(ax => { if (Math.abs(_eP(id, ax)) >= 0.5) n++; })); return n; };
+        const _ete3 = () => _docsP.filter(id => _eteN[id] > Math.ceil(_eteC[id] - 1e-9)).length;
+        const _hors = () => { const S = new Set(); _docsP.forEach(id => { if (AXP.some(ax => Math.abs(_eP(id, ax)) >= 0.5 && ax !== 'total') || _fE(id, _eteN[id]) > 0) S.add(id); }); return S; };
+        const _entree = slots.map(_titP), _avantP = _nbEcarts(), _ete3av = _ete3();
+        let _coups = 0, _doubles = 0, _coupe = false;
+        for (let _tourP = 0; _tourP < 120; _tourP++) {
+          if (Date.now() - _t0P > APP_LIMITE_MS) { _coupe = true; break; }
+          const mv = _premier(_candidats(-1e-9));
+          if (mv) { _joue(mv); _coups++; continue; }
+          /* aucun coup simple : deux coups enchaînés, le premier neutre ou presque */
+          const hors = _hors(); if (!hors.size) break;
+          const prem = _candidats(APP_SOUHAIT + 0.06, hors); let best = null, vus = 0;
+          for (const m1 of prem) { if (vus >= APP_ESSAIS) break; if ((vus & 31) === 0 && Date.now() - _t0P > APP_LIMITE_MS) { _coupe = true; break; } if (!_possible(m1.A, m1.B, m1.s1, m1.s2)) continue; vus++;
+            const c1 = _cout(m1.A, m1.B, m1.s1, m1.s2); _joue(m1);
+            const suite = _candidats(-c1 - 1e-6, new Set([m1.A, m1.B])); let m2 = null;
+            for (const x of suite) { if (best && c1 + x.c >= best.c - 1e-9) break; if (_possible(x.A, x.B, x.s1, x.s2)) { m2 = x; break; } }
+            _dejoue(m1);
+            if (m2 && (!best || c1 + m2.c < best.c - 1e-9)) best = { c: c1 + m2.c, m1, m2 }; }
+          if (!best) break;
+          _joue(best.m1); _joue(best.m2); _coups += 2; _doubles++;
+        }
+        /* bilan : créneaux qui ont changé de mains, souhaits retirés / accordés */
+        let _perdusP = 0, _gagnesP = 0; const _detP = [];
+        slots.forEach((sl, i) => { const de = _entree[i], vers = _titP(sl); if (de === vers) return;
+          const perdu = _souhP(de, sl), gagne = _souhP(vers, sl);
+          if (perdu) { if (sl.days.some(dd => _slotSouhait.has(dd + '|' + de))) souhaitHonored[de] = Math.max(0, (souhaitHonored[de] || 0) - 1); sl.days.forEach(dd => _slotSouhait.delete(dd + '|' + de)); _perdusP++; }
+          if (gagne) { sl.days.forEach(dd => { if (isSouhaitDe(vers, dd)) _slotSouhait.add(dd + '|' + vers); }); souhaitHonored[vers] = (souhaitHonored[vers] || 0) + 1; _gagnesP++; }
+          sl.locked = !!gagne || SOUHAIT_PLAFOND.has(vers);
+          _detP.push(de + ' → ' + vers + ' ' + sl.days.join('+') + (perdu ? ' [souhait retiré : ' + de + ']' : '') + (gagne ? ' [souhait accordé : ' + vers + ']' : '')); });
+        const _apresP = _nbEcarts();
+        if (_optimBilan) _optimBilan.appariement = { avant: _avantP, apres: _apresP, coups: _coups, doubles: _doubles, creneaux: _detP.length, souhaitsRetires: _perdusP, souhaitsGagnes: _gagnesP, ete3Avant: _ete3av, ete3Apres: _ete3(), ete: Object.assign({}, _eteN), cibleEte: _eteC, ms: Date.now() - _t0P, coupe: _coupe, detail: _detP };
+        Logger.log('Appariement : écarts d\'une garde ' + _avantP + ' → ' + _apresP + ', ' + _detP.length + ' créneau(x) déplacé(s), ' + _perdusP + ' souhait(s) retiré(s), ' + (Date.now() - _t0P) + ' ms');
+        if (_coupe) warnings.push('Appariement : recherche écourtée (calcul trop long) — l\'état atteint est gardé, il respecte toutes les règles');
+        if (_detP.length) warnings.push('Appariement : ' + (_avantP - _apresP) + ' écart(s) d\'une garde en moins, ' + _perdusP + ' souhait(s) retiré(s), ' + _gagnesP + ' accordé(s)');
       }
 
       /* ── 8octies. (12/11/2026) RÉA / MATER : INVERSION DES RÔLES D'UNE MÊME NUIT ─────────

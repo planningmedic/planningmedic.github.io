@@ -1229,6 +1229,26 @@ que le même binôme les tient) sont inversées d'un bloc ; si une nuit solidair
 rôles dépareillés, tout est remis comme avant. Bilan dans <code>optim.roles</code>. Ces deux passes ne
 tournent que dans la génération complète, pas pendant le choix du tirage. Scénario :
 <code>banc/banc_we_equite.js</code>.</p>
+<p><b>Passe 8nonies — appariement des +1 et des −1 (générateur 2026-11-13.5).</b> Placée après la retouche
+des week-ends et avant 8octies, dans le même bloc que l'optimisation finale (donc ni pendant le choix du
+tirage, ni quand <code>OPTIM_ITERS</code> vaut 0). Elle cherche, sans hasard, le transfert ou l'échange de
+créneaux qui remet le plus de compteurs pile sur leur cible entière (<code>cible − dette</code>) : total,
+week-ends (poids 2,5 : les week-ends d'abord), samedis, vendredis, jeudis, fériés, veilles de férié, plus
+les week-ends de juillet-août (part = week-ends d'été × cible de week-ends du MAR / somme des cibles ;
+pénalité au-dessus de l'entier supérieur et en dessous de l'entier inférieur). Quand aucun coup simple
+n'améliore, elle essaie deux coups enchaînés : jusqu'à <code>APP_ESSAIS</code> premiers coups neutres ou
+presque, chacun suivi du meilleur second coup touchant les deux mêmes MAR. Décision du responsable
+(13/11/2026) : un souhait accordé n'est plus intouchable ici — son retrait coûte <code>APP_SOUHAIT</code>
+(0,45), moins qu'un compteur remis à sa cible. Restent intouchables : les fêtes, les régimes à part, et un
+vendredi ou un dimanche tenu en créneau isolé (le déplacer couperait un vendredi-dimanche). Chaque coup
+est jugé dans l'état final par <code>canHold</code> et ne crée jamais de garde à deux jours d'une autre ;
+le coût d'un compteur à 2 de sa cible (100) interdit d'en créer. Plafond de temps
+<code>APP_LIMITE_MS</code> : au-delà, l'état atteint est gardé et l'essai le dit. Bilan dans
+<code>optim.appariement</code> (écarts avant / après, créneaux déplacés, souhaits retirés et accordés,
+été). <code>__BANC_APPARIEMENT__</code> coupe la passe au banc. Mesuré au simulateur sur les
+indisponibilités 2027 du 13/11/2026 : 38 → 22 écarts d'une garde (dont 14 dus aux arrondis des cibles),
+21 MAR sur 21 pile sur leurs week-ends, plus personne à 3 week-ends d'été, 9 souhaits retirés, environ
+20 s ; non mesuré chez Google. Scénario : <code>banc/banc_appariement.js</code>.</p>
 <p><b>18 h du vendredi (générateur 2026-11-13.1).</b> Il revient à l'un des <b>deux</b> MAR de garde le
 samedi — réa d'abord, maternité sinon (le code n'essayait que la réa). Les 18 h étant posés du lundi au
 vendredi, le MAR du samedi a souvent déjà eu le sien : une passe d'échanges <b>un pour un</b> rattrape

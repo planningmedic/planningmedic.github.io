@@ -50,9 +50,12 @@ function lancer(w, iters, src, verif) {
     h.makeSheet(`INDISPOS_${YEAR}`, h.indisposRows(YEAR, w.roster, w.im)),
     h.makeSheet('PERIODES_VAC', h.periodesRows(YEAR)),
     h.makeSheet('CONFIG', [['CLE', 'VALEUR']])]);
-  const c0 = h.buildContext(mk(), [], src || SRC); c0.__BANC_OPTIM_ITERS__ = iters;
+  /* (13/11/2026) Ce scénario juge l'optimisation finale SEULE : « elle ne retire aucun
+     souhait ». La passe d'appariement, qui vient après elle et peut en retirer (décision
+     du responsable), est donc coupée ici ; elle a son propre scénario, banc_appariement.js. */
+  const c0 = h.buildContext(mk(), [], src || SRC); c0.__BANC_OPTIM_ITERS__ = iters; c0.__BANC_APPARIEMENT__ = false;
   const r = c0.generateGardes(YEAR, { dryRun: true, tirage: 1 });
-  const ss = mk(); const c1 = h.buildContext(ss, [], src || SRC); c1.__BANC_OPTIM_ITERS__ = iters; if (verif) c1.__BANC_OPTIM_VERIF__ = verif;
+  const ss = mk(); const c1 = h.buildContext(ss, [], src || SRC); c1.__BANC_OPTIM_ITERS__ = iters; if (verif) c1.__BANC_OPTIM_VERIF__ = verif; c1.__BANC_APPARIEMENT__ = false;
   c1.generateGardes(YEAR, { tirage: 1 });
   const feries = new Set([...c1.getJoursFeries(YEAR), ...c1.getJoursFeries(YEAR + 1)]);
   const P = A.parsePlanning(ss, YEAR);
