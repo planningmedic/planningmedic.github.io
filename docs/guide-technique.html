@@ -1187,7 +1187,7 @@ moins arrondi vers le haut jusque-là, puis un rang haché par année. <b>Mémoi
 le report décale toujours la visée à partir de N-1 seulement, mais l'<em>ordre</em> de l'arrondi lit le
 cumul des années en mémoire (réel − part exacte, six ans au plus, années ≥
 <code>PREMIERE_ANNEE_STATS_FIABLES</code>) : passe au-dessus celui qui, arrondi vers le bas, resterait le
-plus en retard. Sans année en mémoire avec part exacte, l'ordre d'avant s'applique (report, puis reste).
+plus en retard. Une année dont l'onglet de statistiques a été archivé à la clôture est relue dans le classeur d'archives (2026-11-13.2 ; sans ce repli, seule N-1 restait lisible). Sans année en mémoire avec part exacte, l'ordre d'avant s'applique (report, puis reste).
 Le compteur interne <code>we</code> = samedis + vendredis-dimanches est déduit des deux autres : poids 3
 dans l'optimiseur, et traité comme un écart de 2 gardes quand un MAR est au-dessus (ou en dessous) sur
 les deux à la fois.</p>

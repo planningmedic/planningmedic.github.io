@@ -212,6 +212,24 @@ console.log('\n═══ 5. L\'arrondi lit le cumul des années, pas seulement N
       const apres = c29(SRC, truque);
       V('en retard de 2 samedis sur N-2, il passe à l\'arrondi HAUT', apres.cibles[X].sam === vrai.cibles[X].sam + 1, { medecin: X, vrai: vrai.cibles[X].sam, truque: apres.cibles[X].sam });
       V('le total des samedis à répartir ne change pas', somme(apres, 'sam') === somme(vrai, 'sam'), [somme(apres, 'sam'), somme(vrai, 'sam')]);
+      /* (13/11/2026) ANNÉE ARCHIVÉE. En production, l'onglet de N-2 n'est plus dans le
+         classeur maître : la clôture l'a déplacé dans le classeur d'archives. Défaut
+         vu le 13/11 à la relecture : le cumul ne le cherchait que dans le maître. */
+      const c29arch = (src, s27) => { const ctx = h.buildContext(h.makeSpreadsheet(feuilles(2029, roster, im29, [h.makeSheet('STATS_GARDES_2028', a28.rows)])), [], src);
+        const archives = h.makeSpreadsheet([h.makeSheet('STATS_GARDES_2027', s27)]); let ouvertures = 0;
+        ctx.SpreadsheetApp.openById = () => { ouvertures++; return archives; };
+        const r = ctx.generateGardes(2029, { dryRun: true, tirage: 1, selection: true }); r._ouvertures = ouvertures; return r; };
+      const archV = c29arch(SRC, a27.rows), archT = c29arch(SRC, truque);
+      V('N-2 archivée : mêmes cibles que si l\'onglet était resté dans le classeur maître', JSON.stringify(archV.cibles) === JSON.stringify(vrai.cibles) && JSON.stringify(archT.cibles) === JSON.stringify(apres.cibles));
+      V('N-2 archivée : le retard de 2 samedis compte toujours', archT.cibles[X].sam === archV.cibles[X].sam + 1, [archV.cibles[X].sam, archT.cibles[X].sam]);
+      V('le classeur d\'archives n\'est ouvert qu\'une fois', archT._ouvertures === 1, archT._ouvertures);
+      { const REPLI = "if(!_sh && _y!==year-1){";
+        V('le repli vers les archives est repérable dans le code (pour le couper)', SRC.split(REPLI).length === 2);
+        const sans = c29arch(SRC.split(REPLI).join('if(false){'), truque);
+        V('contre-preuve : sans le repli, l\'année archivée est ignorée', sans.cibles[X].sam === archV.cibles[X].sam, [archV.cibles[X].sam, sans.cibles[X].sam]); }
+      { const ctx = h.buildContext(h.makeSpreadsheet(feuilles(2029, roster, im29, [h.makeSheet('STATS_GARDES_2028', a28.rows)])), [], SRC);
+        let err = null, r = null; try { r = ctx.generateGardes(2029, { dryRun: true, tirage: 1, selection: true }); } catch (e) { err = e.message; }
+        V('archives inaccessibles : le calcul continue, avec l\'année précédente seule', !err && !!r && !!r.cibles, err); }
       if (AVANT) {
         const vA = c29(AVANT, a27.rows), tA = c29(AVANT, truque);
         V('contre-preuve : le générateur d\'avant ne voyait pas N-2 (cible inchangée)', tA.cibles[X].sam === vA.cibles[X].sam, [vA.cibles[X].sam, tA.cibles[X].sam]);

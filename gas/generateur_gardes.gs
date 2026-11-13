@@ -41,7 +41,7 @@
 // ⚠️ RÈGLE (détecteur de dérive dépôt↔Apps Script) : incrémenter cette version
 // à CHAQUE push de ce fichier. Le diagnostic (admin → Maintenance) compare la
 // version déployée ici avec celle du dépôt et signale toute recopie oubliée.
-const GAS_VERSION_GENERATEUR = '2026-11-13.1';   // (13/11/2026) 18 h du vendredi : à l'un des DEUX MAR de garde le samedi, avec une passe d'échanges un pour un · (12/11/2026) week-ends : cible égale à quotité égale, arrondi qui lit le cumul des années, retouche de l'été et de l'année, réa / maternité équilibrés
+const GAS_VERSION_GENERATEUR = '2026-11-13.2';   // (13/11/2026) mémoire de plusieurs années : les années archivées sont relues dans le classeur d'archives · 18 h du vendredi à l'un des deux MAR du samedi · week-ends : cible égale à quotité égale, été, réa / maternité
 // précédente : '2026-10-27.1'
 
 /* (05/09/2026) INTERRUPTEUR DU NOUVEL ALGORITHME — récit : docs/JOURNAL-Planning-Med.md §101 */
@@ -996,10 +996,19 @@ function generateGardes(year, opts){
        le plus en retard sur l'ensemble des années. L'écart cumulé de deux MAR de même
        quotité ne peut donc plus dériver d'année en année.
        Sans année en mémoire avec part exacte : priorité d'avant (report N-1, puis reste). */
-    const _hist={}; let _histAns=0;
+    const _hist={}; let _histAns=0, _histArch;
     for(let _y=year-1; _y>=year-6 && _y>=PREMIERE_ANNEE_STATS_FIABLES; _y--){
       let _sh=null;
       if(_y===year-1) _sh=prevStats; else { try{ _sh=ss.getSheetByName('STATS_GARDES_'+_y); }catch(e){ _sh=null; } }
+      /* (13/11/2026) ANNÉES ARCHIVÉES. À la clôture, l'onglet de statistiques d'une année
+         part dans le classeur d'archives : sans ce repli, seule N-1 (qui a le sien plus
+         haut) restait lisible, et la mémoire de plusieurs années se réduisait en
+         production à l'année précédente. Le classeur d'archives n'est ouvert qu'une
+         fois, et seulement si une année manque dans le classeur maître. */
+      if(!_sh && _y!==year-1){
+        if(_histArch===undefined){ try{ _histArch=SpreadsheetApp.openById(ARCHIVE_SS_ID); }catch(e){ _histArch=null; } }
+        if(_histArch){ try{ _sh=_histArch.getSheetByName('STATS_GARDES_'+_y); }catch(e){ _sh=null; } }
+      }
       if(!_sh) continue;
       const _v=_sh.getDataRange().getValues(); if(_v.length<2) continue;
       const _h=_v[0].map(x=>String(x).trim());
