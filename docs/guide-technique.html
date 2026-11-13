@@ -1188,16 +1188,30 @@ le report décale toujours la visée à partir de N-1 seulement, mais l'<em>ordr
 cumul des années en mémoire (réel − part exacte, six ans au plus, années ≥
 <code>PREMIERE_ANNEE_STATS_FIABLES</code>) : passe au-dessus celui qui, arrondi vers le bas, resterait le
 plus en retard. Une année dont l'onglet de statistiques a été archivé à la clôture est relue dans le classeur d'archives (2026-11-13.2 ; sans ce repli, seule N-1 restait lisible). Sans année en mémoire avec part exacte, l'ordre d'avant s'applique (report, puis reste).
-Le compteur interne <code>we</code> = samedis + vendredis-dimanches est déduit des deux autres : poids 3
+Le compteur interne <code>we</code> est déduit des autres : poids 3
 dans l'optimiseur, et traité comme un écart de 2 gardes quand un MAR est au-dessus (ou en dessous) sur
 les deux à la fois.</p>
+<p><b>Des comptes exacts (générateur 2026-11-13.3).</b> Le compteur des vendredis-dimanches était tenu à la
+main : +1 à chaque week-end posé d'un bloc. Un vendredi posé <b>seul</b> (week-end rompu, repli de Noël) n'y
+entrait jamais : sur les indisponibilités 2027, neuf MAR avaient un vendredi de plus que leur compteur, un
+dixième deux. Le calcul les croyait sous leur part. Désormais <code>vd</code> = vendredis réellement tenus et
+<code>we</code> = samedis + <b>dimanches</b> réellement tenus (un dimanche tenu seul est un week-end
+travaillé) : les deux sont déduits du planning et ne peuvent plus s'en écarter. Le calcul à blanc renvoie
+aussi <code>ven</code>, <code>dim</code>, <code>we</code> et <code>jf</code>, et le banc compare chaque
+compteur au planning écrit (<code>banc_we_equite.js</code>, section 6).</p>
 <p><b>Passe 8septies — week-ends de l'été et de l'année.</b> Après l'optimisation finale, un recuit
 confiné (<code>WE_ITERS</code> essais, graine fixe) reprend les mêmes mouvements et rapproche chacun de sa
 part de week-ends réels (samedis + dimanches) : sur l'année, et sur l'été (<code>WE_ETE_MOIS</code>,
 juillet-août, places au prorata des parts et de la présence). Il ne quitte jamais un état où un critère
-de l'optimisation finale recule (écarts, souhaits, week-ends coupés, garde-repos-garde, doubles
-week-ends, confort), ni où les gardes à 3 ou 4 jours d'une autre et les semaines à 3 gardes augmentent ;
-il garde le meilleur état où ni l'été ni l'année ne reculent. Filet de sécurité
+de l'optimisation finale recule (MAR à 2 gardes de leur part, souhaits, week-ends coupés,
+garde-repos-garde, doubles week-ends, couples de week-end, confort), ni où les gardes à 3 ou 4 jours
+d'une autre et les semaines à 3 gardes augmentent ;
+il garde le meilleur état où ni l'été ni l'année ne reculent. <b>Les week-ends d'abord (2026-11-13.3,
+arbitrage du responsable)</b> : le nombre d'écarts d'une garde (<code>n1</code>) peut monter, mais seulement
+d'autant que les écarts de week-ends descendent (<code>n1 + CW</code> ne monte jamais). L'écart d'une garde
+que les souhaits et les absences rendent inévitable se loge ainsi sur les samedis ou les vendredis plutôt
+que sur le nombre de week-ends. Mesuré sur les indisponibilités 2027 : 6 → 2 MAR à un week-end de leur
+cible, pour 4 écarts d'une garde de plus ailleurs. Filet de sécurité
 <code>WE_LIMITE_MS</code> : au-delà, la passe s'arrête sur son meilleur état et l'essai le dit.
 Bilan dans <code>optim.weekEnds</code> du calcul à blanc.</p>
 <p><b>Passe 8octies — réa / maternité.</b> Les deux MAR d'une même nuit échangent leurs rôles quand

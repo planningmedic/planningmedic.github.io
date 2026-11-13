@@ -13,7 +13,9 @@
    rôle, contribution identique sur tous les axes d'équité.
 
    CE QUE CES VÉRIFICATIONS TIENNENT (effectif fictif, simulateur/demographie.js).
-   1. Année 8 : compteurs et écarts d'équité IDENTIQUES à un générateur sans
+   1. Année 10 (année 8 jusqu'au 13/11/2026 : depuis que les compteurs sont exacts, la
+      passe des souhaits n'y gagne plus rien — 164 des deux côtés ; jeu d'essai
+      changé, vérifications inchangées) : compteurs et écarts d'équité IDENTIQUES à un générateur sans
       ces passes ; plus de souhaits accordés ; moins de gardes à deux jours ;
       aucune nuit sans binôme ; aucune règle dure enfreinte.
    2. Contre-preuves séparées : sans la passe des souhaits, moins de souhaits ;
@@ -89,8 +91,8 @@ function lancer(src, w) {
 const cles = r => JSON.stringify(Object.keys(r.compteurs).sort().map(id => { const c = r.compteurs[id]; return [id, c.total, c.sam, c.jeu, c.vd, c.vjf, c.g, c.g2]; }));
 const hon = r => Object.values(r.souhaits).reduce((t, o) => t + o.honores, 0);
 
-console.log('\n═══ 1. Année 8 : plus de souhaits, moins de gardes à deux jours, équité identique ═══');
-const W8 = monde(8);
+console.log('\n═══ 1. Année 10 : plus de souhaits, moins de gardes à deux jours, équité identique ═══');
+const W8 = monde(10);
 const N = lancer(SRC, W8), Z = lancer(SANS, W8);
 V('compteurs d\'équité identiques MAR par MAR (total, samedis, jeudis, ven-dim, veilles, G/G2)', cles(N.r) === cles(Z.r));
 V('écarts d\'équité identiques', JSON.stringify(N.r.ecarts) === JSON.stringify(Z.r.ecarts), { avec: N.r.ecarts, sans: Z.r.ecarts });

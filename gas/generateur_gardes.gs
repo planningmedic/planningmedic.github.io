@@ -41,7 +41,7 @@
 // ⚠️ RÈGLE (détecteur de dérive dépôt↔Apps Script) : incrémenter cette version
 // à CHAQUE push de ce fichier. Le diagnostic (admin → Maintenance) compare la
 // version déployée ici avec celle du dépôt et signale toute recopie oubliée.
-const GAS_VERSION_GENERATEUR = '2026-11-13.2';   // (13/11/2026) mémoire de plusieurs années : les années archivées sont relues dans le classeur d'archives · 18 h du vendredi à l'un des deux MAR du samedi · week-ends : cible égale à quotité égale, été, réa / maternité
+const GAS_VERSION_GENERATEUR = '2026-11-13.3';   // (13/11/2026) comptes exacts : vendredis-dimanches et week-ends déduits du planning réel · retouche : les week-ends d'abord · mémoire de plusieurs années : les années archivées sont relues dans le classeur d'archives · 18 h du vendredi à l'un des deux MAR du samedi · week-ends : cible égale à quotité égale, été, réa / maternité
 // précédente : '2026-10-27.1'
 
 /* (05/09/2026) INTERRUPTEUR DU NOUVEL ALGORITHME — récit : docs/JOURNAL-Planning-Med.md §101 */
@@ -1155,10 +1155,17 @@ function generateGardes(year, opts){
   gardeDoctors.forEach(id=>{
     gSet[id]=new Set();g2Set[id]=new Set();rgSet[id]=new Set();rSet[id]=new Set();
     cnt[id]={total:0,g:0,g2:0,sam:0,jeu:0,ven:0,vd:0,vjf:0,ferie:0,jf:0,lun:0,mar:0,mer:0,dim:0,recupR:0};
-    /* (12/11/2026) Compteur « week-ends » du calcul = samedis + vendredis-dimanches, toujours
-       déduit des deux autres : il ne peut donc jamais les contredire. Il sert à refuser
-       qu'un même MAR soit au-dessus (ou en dessous) sur les deux à la fois. */
-    Object.defineProperty(cnt[id],'we',{get:function(){return this.sam+this.vd;},set:function(v){},enumerable:true,configurable:true});
+    /* (13/11/2026) DES COMPTES EXACTS. Le compteur « vendredis-dimanches » était tenu à la
+       main, par +1 à chaque week-end posé d'un bloc : un vendredi posé SEUL (week-end
+       rompu, repli de Noël) n'y entrait jamais. Mesuré sur les indispos 2027 : 9 MAR
+       avaient un vendredi de plus que leur compteur, un autre deux — le calcul les
+       croyait sous leur part et leur en redonnait. Il est désormais DÉDUIT des
+       vendredis réellement tenus, donc toujours égal au planning ; les écritures
+       manuelles restantes sont sans effet.
+       Même principe pour les week-ends : samedis + DIMANCHES réellement tenus (un
+       dimanche tenu seul est un week-end travaillé ; un vendredi seul n'en est pas un). */
+    Object.defineProperty(cnt[id],'vd',{get:function(){return this.ven;},set:function(v){},enumerable:true,configurable:true});
+    Object.defineProperty(cnt[id],'we',{get:function(){return this.sam+this.dim;},set:function(v){},enumerable:true,configurable:true});
   });
   allDoctors.forEach(id=>{if(!rSet[id])rSet[id]=new Set();if(!rgSet[id])rgSet[id]=new Set();});
   const recupDue={}; gardeDoctors.forEach(id=>{recupDue[id]=[];}); // (R fix) #R ≡ #samedis (couplages inclus)
@@ -2534,7 +2541,7 @@ function generateGardes(year, opts){
         c.total++; if(!coupledF){c[KEYS[ad]]++; if(ad===6)c.recupR++;}
         if(di.isVjf)c.vjf++; if(di.isFerie&&(di.dow===2||di.dow===3))c.ferie++; if(di.isFerie)c.jf++;});
       if(days_.some(dd=>assignDow[dd]===5))c.vd=1;
-      c.we=c.sam+c.vd;
+      c.we=c.sam+c.dim;
       return c;
     };
     // 3) Slots = (groupe, rôle 0=G/1=G2) ; verrou si titulaire à souhait_plafond ou souhait honoré.
@@ -3299,11 +3306,13 @@ function generateGardes(year, opts){
            • été : week-ends d'été de chacun (samedis + dimanches des week-ends dont
              le samedi tombe en WE_ETE_MOIS) au plus près de sa part ;
            • année : week-ends de chacun (samedis + dimanches) à 1 près de sa part.
-         GARDE-FOU : on ne garde qu'un état où AUCUN critère de la passe précédente
-         ne recule (écarts, souhaits, week-ends coupés, garde-repos-garde, doubles
-         week-ends, confort, note globale) et où ni l'été ni l'année ne reculent. */
+         GARDE-FOU : on ne garde qu'un état où ni l'été ni l'année ne reculent, et où
+         rien d'autre ne recule (personne à 2 gardes de sa part, souhaits, week-ends
+         coupés, garde-repos-garde, doubles week-ends, couples de week-end, confort, espacement). Seule
+         exception, depuis le 13/11/2026 : un écart d'UNE garde sur un autre axe est
+         accepté s'il rattrape un écart d'un week-end (voir _n1ok). */
       {
-        const _t0w = Date.now(), WE_STRICT_ = true; let _coupe = false;
+        const _t0w = Date.now(); let _coupe = false;
         const _resync = () => { Object.keys(PE).concat(Object.keys(PS), Object.keys(PP)).filter((x, i, a) => a.indexOf(x) === i).forEach(id => { _majId(id, -1); _majId(id, 1); }); fris.forEach(f => { _majFri(f, -1); _majFri(f, 1); }); };
         _resync();
         const _samEte = {}; allDays.forEach(d => { if (d.dow === 6 && WE_ETE_MOIS.indexOf(d.month) >= 0 && d.date.slice(0, 4) === String(year)) _samEte[d.date] = true; });
@@ -3337,12 +3346,20 @@ function generateGardes(year, opts){
         ids.forEach(id => { PJ[id] = _espDe(id); J3 += PJ[id][0]; J4 += PJ[id][1]; S3 += PJ[id][2]; });
         const _majJ = id => { if (!(id in PJ)) return; J3 -= PJ[id][0]; J4 -= PJ[id][1]; S3 -= PJ[id][2]; PJ[id] = _espDe(id); J3 += PJ[id][0]; J4 += PJ[id][1]; S3 += PJ[id][2]; };
         const J31 = J3, J41 = J4, S31 = S3;
-        const m1 = mesure(), CE1 = CE, CW1 = CW, n1note = note(m1);
+        const m1 = mesure(), CE1 = CE, CW1 = CW;
+        /* (13/11/2026) LES WEEK-ENDS D'ABORD — arbitrage du responsable. Quand les souhaits
+           et les absences empêchent de tout tenir, l'écart d'une garde qui reste doit se
+           loger sur les samedis ou les vendredis plutôt que sur le NOMBRE de week-ends,
+           qui est ce que l'équipe compte. Un écart d'un week-end rattrapé peut donc coûter
+           au plus un écart d'une garde ailleurs — jamais deux (n2 et pire restent tenus),
+           et l'été seul ne justifie aucun recul. Mesuré sur les indispos 2027 : 6 → 2 MAR
+           à un week-end de leur cible, pour 4 écarts d'une garde de plus sur les autres axes. */
+        const _n1ok = m => m.n1 + CW <= m1.n1 + CW1 + 1e-9 && m.cpl >= m1.cpl;   /* et aucun couple de week-end perdu */
         const _pireW = () => { let p = 0; ids.forEach(id => { const x = Math.abs(PW[id][1] - cibWE[id]); if (x > p) p = x; }); return p; };
         const _maxE = () => { let p = 0; ids.forEach(id => { const x = PW[id][0] - cibEte[id]; if (x > p) p = x; }); return p; };
         const pireW1 = _pireW(), maxE1 = _maxE();
-        const sur2 = m => m.n2 <= m1.n2 && m.pire <= Math.max(1, m1.pire) && (!WE_STRICT_ || m.n1 <= m1.n1) && m.sh >= m1.sh && m.split <= m1.split && m.j2 <= m1.j2 && m.dwe <= m1.dwe && m.conf >= m1.conf
-                          && (!WE_STRICT_ || note(m) <= n1note + 1e-9) && CE <= CE1 + 1e-9 && CW <= CW1 + 1e-9;
+        const sur2 = m => m.n2 <= m1.n2 && m.pire <= Math.max(1, m1.pire) && _n1ok(m) && m.sh >= m1.sh && m.split <= m1.split && m.j2 <= m1.j2 && m.dwe <= m1.dwe && m.conf >= m1.conf
+                          && CE <= CE1 + 1e-9 && CW <= CW1 + 1e-9;
         const entree = slots.map(tit);
         /* Sobriété : chaque créneau qui change de titulaire par rapport à l'entrée coûte
            un peu. La recherche ne garde ainsi que les déplacements utiles, au lieu de
@@ -3352,7 +3369,7 @@ function generateGardes(year, opts){
         const _bouge = sl => (tit(sl) !== entree[_rang.get(sl)]) ? 1 : 0;
         const note2 = m => note(m) + WE_POIDS.ete * CE + WE_POIDS.annee * CW + WE_SOBRIETE * _chg;
         let cur2 = note2(m1), _nb = 0, best2 = cur2, snap2 = entree.slice();
-        const ferme = m => m.n2 <= m1.n2 && m.pire <= Math.max(1, m1.pire) && (!WE_STRICT_ || m.n1 <= m1.n1) && m.sh >= m1.sh && m.split <= m1.split && m.j2 <= m1.j2 && m.dwe <= m1.dwe && m.conf >= m1.conf && J3 <= J31 && J4 <= J41 && S3 <= S31 && (!WE_STRICT_ || note(m) <= n1note + 1e-9);
+        const ferme = m => m.n2 <= m1.n2 && m.pire <= Math.max(1, m1.pire) && _n1ok(m) && m.sh >= m1.sh && m.split <= m1.split && m.j2 <= m1.j2 && m.dwe <= m1.dwe && m.conf >= m1.conf && J3 <= J31 && J4 <= J41 && S3 <= S31;
         const _jEte = new Set(_joursEte.map(d => d.date));
         const libWE = libres.filter(sl => sl.days.some(d => { const w = dayByDate[d].dow; return w === 6 || w === 0; }));
         const libEte = libWE.filter(sl => sl.days.some(d => _jEte.has(d)));
@@ -3389,9 +3406,9 @@ function generateGardes(year, opts){
         }
         const _remettre = snap => { for (let k = 0; k < 3; k++) slots.forEach((sl, i) => { const w = snap[i]; if (w && tit(sl) !== w) applyTr(sl, w); }); ids.forEach(_majW); ids.forEach(_majR); ids.forEach(_majJ); };
         _remettre(snap2);
-        let mW = mesure(); const noteOK = note(mW) <= n1note + 1e-9;
-        const tient = mW.n2 <= m1.n2 && mW.pire <= Math.max(1, m1.pire) && (!WE_STRICT_ || mW.n1 <= m1.n1) && mW.sh >= m1.sh && mW.split <= m1.split && mW.j2 <= m1.j2 && mW.dwe <= m1.dwe && mW.conf >= m1.conf
-                      && J3 <= J31 && J4 <= J41 && S3 <= S31 && (!WE_STRICT_ || noteOK) && CE <= CE1 + 1e-9 && CW <= CW1 + 1e-9 && (CE < CE1 - 1e-9 || CW < CW1 - 1e-9);
+        let mW = mesure();
+        const tient = mW.n2 <= m1.n2 && mW.pire <= Math.max(1, m1.pire) && _n1ok(mW) && mW.sh >= m1.sh && mW.split <= m1.split && mW.j2 <= m1.j2 && mW.dwe <= m1.dwe && mW.conf >= m1.conf
+                      && J3 <= J31 && J4 <= J41 && S3 <= S31 && CE <= CE1 + 1e-9 && CW <= CW1 + 1e-9 && (CE < CE1 - 1e-9 || CW < CW1 - 1e-9);
         if (!tient) { _remettre(entree); mW = mesure(); }
         const _bilanWE = { garde: tient, mouvements: _nb, creneauxDeplaces: slots.filter(sl => _bouge(sl)).length, iterations: N2, ecourtee: _coupe, ms: Date.now() - _t0w, avant: { ete: Math.round(CE1 * 100) / 100, annee: Math.round(CW1 * 100) / 100, pireAnnee: Math.round(pireW1 * 100) / 100, maxEte: Math.round(maxE1 * 100) / 100 },
           apres: { ete: Math.round(CE * 100) / 100, annee: Math.round(CW * 100) / 100, pireAnnee: Math.round(_pireW() * 100) / 100, maxEte: Math.round(_maxE() * 100) / 100 },
@@ -3869,7 +3886,8 @@ function generateGardes(year, opts){
     gardeDoctors.forEach(function(id){
       if(!cnt[id]) return;
       compteurs[id]={ total:cnt[id].total, g:cnt[id].g, g2:cnt[id].g2,
-                      sam:cnt[id].sam, jeu:cnt[id].jeu, vd:cnt[id].vd, vjf:cnt[id].vjf };
+                      sam:cnt[id].sam, jeu:cnt[id].jeu, vd:cnt[id].vd, vjf:cnt[id].vjf,
+                      ven:cnt[id].ven, dim:cnt[id].dim, we:cnt[id].we, jf:cnt[id].jf };
     });
     warnings.forEach(function(w){ Logger.log(w); });
     /* (08/09/2026) LE CALCUL À BLANC EST LE SEUL ÉCRAN — récit : docs/JOURNAL-Planning-Med.md §120 */

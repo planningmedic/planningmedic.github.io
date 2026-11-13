@@ -18,7 +18,8 @@
         samedis et vendredis-dimanches. Plus aucun départage alphabétique.
      2. L'arrondi lit le cumul de toutes les années en mémoire, pas seulement N-1.
      3. Une retouche finale rapproche chacun de sa part de week-ends, l'été et
-        sur l'année, sans rien faire reculer.
+        sur l'année. (13/11/2026) Elle peut déplacer un écart d'une garde du
+        nombre de week-ends vers les samedis ou les vendredis ; rien d'autre ne recule.
      4. Les deux MAR d'une même nuit échangent leurs rôles quand cela équilibre
         réa et maternité : personne ne change de nuit.
      5. (13/11/2026) Le 18 h du vendredi va à l'un des DEUX MAR de garde le samedi
@@ -127,8 +128,17 @@ if (N.every(x => !x.err) && Z.length === 2 && Z.every(x => !x.err)) {
   V('le calcul à blanc rend le bilan de la retouche', !!we && !!we.avant && !!we.apres && !!we.mesureAvant && !!we.mesureApres, o && Object.keys(o));
   if (we && we.mesureAvant) {
     const a = we.mesureAvant, b = we.mesureApres;
-    const recul = ['n2', 'n1', 'split', 'j2', 'dwe'].filter(k => b[k] > a[k]).concat(['sh', 'conf'].filter(k => b[k] < a[k]));
-    V('aucun critère ne recule : écarts, souhaits, week-ends coupés, garde-repos-garde, doubles week-ends, confort', recul.length === 0, { recul, avant: a, apres: b });
+    /* (13/11/2026) LES WEEK-ENDS D'ABORD — arbitrage du responsable. Le nombre d'écarts d'une
+       garde (n1) n'est plus intouchable : il peut monter, mais seulement d'autant que les
+       écarts de week-ends descendent. Tout le reste reste interdit de recul. */
+    const recul = ['n2', 'split', 'j2', 'dwe'].filter(k => b[k] > a[k]).concat(['sh', 'conf', 'cpl'].filter(k => b[k] < a[k]));
+    V('aucun autre critère ne recule : MAR à 2 gardes de leur part, souhaits, week-ends coupés, garde-repos-garde, doubles week-ends, couples, confort', recul.length === 0, { recul, avant: a, apres: b });
+    V('un écart d\'une garde de plus ailleurs = un écart de week-end rattrapé, jamais davantage', b.n1 + we.apres.annee <= a.n1 + we.avant.annee + 0.011, { n1: [a.n1, b.n1], annee: [we.avant.annee, we.apres.annee] });
+    { const REGLE = 'm.n1 + CW <= m1.n1 + CW1 + 1e-9';
+      V('la règle est repérable dans le code (pour la couper)', SRC.split(REGLE).length === 2);
+      const st = bilan(W[0], SRC.split(REGLE).join('m.n1 <= m1.n1')).weekEnds;
+      V('contre-preuve : sans la règle, les écarts d\'une garde ne bougent pas et il reste plus d\'écarts de week-ends',
+        !!st && st.mesureApres.n1 <= st.mesureAvant.n1 && st.apres.annee > we.apres.annee + 1e-9, st && { n1: [st.mesureAvant.n1, st.mesureApres.n1], annee: [st.apres.annee, we.apres.annee] }); }
     V('pire écart à la cible jamais dégradé', b.pire <= Math.max(1, a.pire), [a.pire, b.pire]);
     V('l\'été ne recule pas, l\'année non plus', we.apres.ete <= we.avant.ete + 1e-9 && we.apres.annee <= we.avant.annee + 1e-9, [we.avant, we.apres]);
     V('la retouche améliore effectivement l\'été ou l\'année sur cette campagne', we.garde === true && (we.apres.ete < we.avant.ete || we.apres.annee < we.avant.annee), [we.garde, we.avant, we.apres]);
@@ -236,6 +246,61 @@ console.log('\n═══ 5. L\'arrondi lit le cumul des années, pas seulement N
       }
     }
   }
+}
+
+/* ═══ 6. Des comptes exacts ═══════════════════════════════════════════════ */
+console.log('\n═══ 6. Les compteurs du calcul = le planning écrit, sur chaque axe (13/11/2026) ═══');
+/* POURQUOI. Demande du responsable le 13/11/2026 : « je veux que les comptes soient
+   exacts, sur chaque axe ». Mesuré le jour même sur les indispos 2027 : le compteur
+   des vendredis-dimanches, tenu à la main (+1 par week-end posé d'un bloc), ignorait
+   les vendredis posés SEULS (week-end rompu) — 9 MAR avaient un vendredi de plus que
+   leur compteur, un autre deux. Le compteur de week-ends, qui en était déduit,
+   héritait de l'erreur et ne voyait pas le dimanche tenu seul.
+   Le monde : trois week-ends où un seul MAR est libre vendredi ET dimanche — l'unité
+   casse forcément, comme dans banc_vd_rompu.js. */
+{
+  const WES = ['2027-03-12', '2027-05-21', '2027-10-08'];
+  const plus2 = ds => { const d = new Date(ds + 'T12:00:00'); d.setDate(d.getDate() + 2); return d.toISOString().slice(0, 10); };
+  const roster = h.defaultRoster(), gardeIds = roster.filter(r => !r[3].noGarde).map(r => r[0]);
+  const im = {}; gardeIds.forEach(id => im[id] = {});
+  WES.forEach((ven, k) => { const dim = plus2(ven), n = gardeIds.length;
+    const pivot = gardeIds[(k * 5) % n], lv = new Set([pivot]), ld = new Set([pivot]);
+    for (let i = 1; i <= 4; i++) { lv.add(gardeIds[(k * 5 + i) % n]); ld.add(gardeIds[(k * 5 + 4 + i) % n]); }
+    gardeIds.forEach(id => { if (!lv.has(id)) im[id][ven] = 'INDISPO'; if (!ld.has(id)) im[id][dim] = 'INDISPO'; }); });
+  const jouer = src => {
+    const ss = h.makeSpreadsheet(feuilles(YEAR, roster, im)), logs = [];
+    const ctx = h.buildContext(ss, logs, src); ctx.__BANC_OPTIM_ITERS__ = ITERS;
+    const dry = ctx.generateGardes(YEAR, { dryRun: true, tirage: 1 });
+    let err = null; try { ctx.generateGardes(YEAR, { tirage: 1 }); } catch (e) { err = e.message; }
+    if (err) return { err };
+    const P = A.parsePlanning(ss, YEAR), fer = new Set([...ctx.getJoursFeries(YEAR), ...ctx.getJoursFeries(YEAR + 1)]);
+    const reel = {};
+    Object.keys(P.byDoc).forEach(id => { const c = { total: 0, g: 0, g2: 0, ven: 0, sam: 0, dim: 0, jeu: 0, jf: 0 };
+      Object.keys(P.byDoc[id]).forEach(d => { const v = P.byDoc[id][d]; if (v !== 'G' && v !== 'G2') return;
+        const dow = new Date(d + 'T12:00:00').getDay(); c.total++; v === 'G' ? c.g++ : c.g2++;
+        if (dow === 5) c.ven++; if (dow === 6) c.sam++; if (dow === 0) c.dim++; if (dow === 4 && !fer.has(d)) c.jeu++; if (fer.has(d)) c.jf++; });
+      reel[id] = c; });
+    const casses = WES.filter(ven => { const a = P.byDate[ven], b = P.byDate[plus2(ven)];
+      return a && b && [a.G, a.G2].sort().join() !== [b.G, b.G2].sort().join(); });
+    return { dry, reel, casses };
+  };
+  const faux = (r, axe, de) => Object.keys(r.dry.compteurs).filter(id => r.reel[id] && r.dry.compteurs[id][axe] !== de(r.reel[id]))
+    .map(id => id + ' ' + r.dry.compteurs[id][axe] + '≠' + de(r.reel[id]));
+  const N = jouer(SRC);
+  V('la génération aboutit', !N.err, N.err);
+  if (!N.err) {
+    V('au moins un week-end est bien rompu dans ce monde (sinon le test ne prouve rien)', N.casses.length >= 1, N.casses);
+    V('le calcul rend aussi les vendredis, les dimanches, les week-ends et les fériés', ['ven', 'dim', 'we', 'jf'].every(k => typeof Object.values(N.dry.compteurs)[0][k] === 'number'));
+    [['total', c => c.total], ['g', c => c.g], ['g2', c => c.g2], ['sam', c => c.sam], ['jeu', c => c.jeu], ['ven', c => c.ven], ['dim', c => c.dim], ['jf', c => c.jf]]
+      .forEach(([axe, de]) => { const f = faux(N, axe, de); V('compteur « ' + axe + ' » = planning écrit, pour chaque MAR', f.length === 0, f); });
+    { const f = faux(N, 'vd', c => c.ven); V('compteur vendredis-dimanches = vendredis réellement tenus, week-ends rompus compris', f.length === 0, f); }
+    { const f = faux(N, 'we', c => c.sam + c.dim); V('compteur week-ends = samedis + dimanches réellement tenus', f.length === 0, f); }
+    V('les compteurs sont déduits du planning dans le code (repère)', /Object\.defineProperty\(cnt\[id\],'vd',\{get:function\(\)\{return this\.ven;\}/.test(SRC) && /Object\.defineProperty\(cnt\[id\],'we',\{get:function\(\)\{return this\.sam\+this\.dim;\}/.test(SRC));
+  }
+  let AV2 = null; try { AV2 = execSync('git show 23e50aa:gas/generateur_gardes.gs', { cwd: RACINE, encoding: 'utf8', maxBuffer: 1 << 26, stdio: ['ignore', 'pipe', 'ignore'] }); } catch (e) {}
+  V('le générateur du 13/11 matin est lisible dans l\'historique', !!AV2);
+  if (AV2) { const O = jouer(AV2);
+    V('contre-preuve : avant, le compteur vendredis-dimanches était faux dans ce même monde', !O.err && faux(O, 'vd', c => c.ven).length >= 1, O.err || faux(O, 'vd', c => c.ven)); }
 }
 
 console.log(`\n${ok} OK · ${ko} en échec`);
