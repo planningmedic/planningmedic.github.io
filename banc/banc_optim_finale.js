@@ -53,9 +53,14 @@ function lancer(w, iters, src, verif) {
   /* (13/11/2026) Ce scénario juge l'optimisation finale SEULE : « elle ne retire aucun
      souhait ». La passe d'appariement, qui vient après elle et peut en retirer (décision
      du responsable), est donc coupée ici ; elle a son propre scénario, banc_appariement.js. */
-  const c0 = h.buildContext(mk(), [], src || SRC); c0.__BANC_OPTIM_ITERS__ = iters; c0.__BANC_APPARIEMENT__ = false;
+  /* (14/11/2026) … et la fourchette aussi (__BANC_FOURCHETTE__, __BANC_ECART__ = false). Mesuré : avec la
+     fourchette, les étapes d'avant laissent si peu à gagner que l'optimisation finale ne trouve plus
+     aucun état meilleur et sûr (0 année fictive sur 4, et rien sur 2027 réel en 1,6 million d'essais) :
+     ses contre-preuves ne prouveraient plus rien. Ce scénario juge sa MÉCANIQUE (garde-fou, calcul
+     rapide = calcul complet), qui ne dépend pas de la façon de mesurer l'écart. */
+  const c0 = h.buildContext(mk(), [], src || SRC); c0.__BANC_OPTIM_ITERS__ = iters; c0.__BANC_APPARIEMENT__ = false; c0.__BANC_FOURCHETTE__ = false; c0.__BANC_ECART__ = false;
   const r = c0.generateGardes(YEAR, { dryRun: true, tirage: 1 });
-  const ss = mk(); const c1 = h.buildContext(ss, [], src || SRC); c1.__BANC_OPTIM_ITERS__ = iters; if (verif) c1.__BANC_OPTIM_VERIF__ = verif; c1.__BANC_APPARIEMENT__ = false;
+  const ss = mk(); const c1 = h.buildContext(ss, [], src || SRC); c1.__BANC_OPTIM_ITERS__ = iters; if (verif) c1.__BANC_OPTIM_VERIF__ = verif; c1.__BANC_APPARIEMENT__ = false; c1.__BANC_FOURCHETTE__ = false; c1.__BANC_ECART__ = false;
   c1.generateGardes(YEAR, { tirage: 1 });
   const feries = new Set([...c1.getJoursFeries(YEAR), ...c1.getJoursFeries(YEAR + 1)]);
   const P = A.parsePlanning(ss, YEAR);

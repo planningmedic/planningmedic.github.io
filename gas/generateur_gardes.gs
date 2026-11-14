@@ -41,7 +41,7 @@
 // ⚠️ RÈGLE (détecteur de dérive dépôt↔Apps Script) : incrémenter cette version
 // à CHAQUE push de ce fichier. Le diagnostic (admin → Maintenance) compare la
 // version déployée ici avec celle du dépôt et signale toute recopie oubliée.
-const GAS_VERSION_GENERATEUR = '2026-11-13.7';   // (13/11/2026) mesures de la passe 8nonies remplacées par celles de l'essai de génération chez Google (32 → 24, dont 12 d'arrondis ; 8 s) : les précédentes venaient d'une simulation qui ignorait les indisponibilités du dernier jour de l'année. Aucun changement de calcul · tout lisser : dernière passe qui apparie les +1 et les −1 d'un même compteur (week-ends, été, fériés, jeudis, samedis, vendredis), un souhait pouvant être retiré pour remettre un compteur à sa cible · rattrapage : 60 % du retard cumulé dans la visée, arrondi au plus proche (le retard n'est plus compté deux fois) · comptes exacts : vendredis-dimanches et week-ends déduits du planning réel · retouche : les week-ends d'abord · mémoire de plusieurs années : les années archivées sont relues dans le classeur d'archives · 18 h du vendredi à l'un des deux MAR du samedi · week-ends : cible égale à quotité égale, été, réa / maternité
+const GAS_VERSION_GENERATEUR = '2026-11-14.1';   // (14/11/2026) lissage mensuel par échanges neutres (aucun compteur ne bouge) · 18 h du vendredi : échange à trois MAR en plus de l'échange un pour un · écart entre collègues de même part payé dans la dernière passe · LA FOURCHETTE : plus de cible tirée au sort entre MAR de même part ; tout le calcul vise que chacun soit entre l'arrondi inférieur et supérieur de sa part exacte, sur chaque compteur (les week-ends gardent leur nombre entier, égal à part égale) · (13/11/2026) tout lisser, suite : le relais (un troisième MAR sert d'intermédiaire quand le +1 ne peut rien donner directement au −1), deux parcours et le meilleur est gardé — fériés et été mieux lissés · mesures de la passe 8nonies remplacées par celles de l'essai de génération chez Google (32 → 24, dont 12 d'arrondis ; 8 s) : les précédentes venaient d'une simulation qui ignorait les indisponibilités du dernier jour de l'année. Aucun changement de calcul · tout lisser : dernière passe qui apparie les +1 et les −1 d'un même compteur (week-ends, été, fériés, jeudis, samedis, vendredis), un souhait pouvant être retiré pour remettre un compteur à sa cible · rattrapage : 60 % du retard cumulé dans la visée, arrondi au plus proche (le retard n'est plus compté deux fois) · comptes exacts : vendredis-dimanches et week-ends déduits du planning réel · retouche : les week-ends d'abord · mémoire de plusieurs années : les années archivées sont relues dans le classeur d'archives · 18 h du vendredi à l'un des deux MAR du samedi · week-ends : cible égale à quotité égale, été, réa / maternité
 // précédente : '2026-10-27.1'
 
 /* (05/09/2026) INTERRUPTEUR DU NOUVEL ALGORITHME — récit : docs/JOURNAL-Planning-Med.md §101 */
@@ -115,6 +115,10 @@ function _optimIters_(){ return (typeof __BANC_OPTIM_ITERS__ === 'number') ? __B
    rallume la passe, pour les contre-preuves. */
 const APPARIEMENT = true;
 function _appariementOn_(){ return (typeof __BANC_APPARIEMENT__ === 'boolean') ? __BANC_APPARIEMENT__ : APPARIEMENT; }
+/* (14/11/2026) Lissage mensuel (étape 8decies, à la fin de la passe 8nonies) : __BANC_LISSAGE__ le coupe au banc. */
+function _lissageOn_(){ return (typeof __BANC_LISSAGE__ === 'boolean') ? __BANC_LISSAGE__ : true; }
+/* (13/11/2026) Le relais (échange à trois ciblé) de la passe 8nonies : __BANC_RELAIS__ le coupe au banc. */
+function _relaisOn_(){ return (typeof __BANC_RELAIS__ === 'boolean') ? __BANC_RELAIS__ : true; }
 /* (12/11/2026) ÉQUITÉ DES WEEK-ENDS — passe 8septies. WE = samedis + dimanches.
    Été = week-ends dont le samedi tombe un de ces mois.
    WE_LIMITE_MS : filet de sécurité. Si le calcul entier a déjà duré plus que cela,
@@ -280,7 +284,7 @@ function comparerAlgorithmes(year){
   L.push('Durée : avant ' + (mesures['avant'].ms / 1000).toFixed(1) + ' s   ·   après '
        + (mesures['après'].ms / 1000).toFixed(1) + ' s');
   L.push('');
-  L.push('Écart réel−cible, par axe        AVANT        APRÈS');
+  L.push('Écart à la fourchette, par axe    AVANT        APRÈS');
   AXES.forEach(function (k) {
     const a = mesures['avant'].r, b = mesures['après'].r;
     const ea = a && a.ecarts && a.ecarts[k] ? a.ecarts[k] : null;
@@ -384,7 +388,7 @@ function essaiGenerationGardes(year) {
   L.push('');
 
   // ── 2. l'équité, axe par axe
-  L.push('── ÉQUITÉ · écart réel−cible ──');
+  L.push('── ÉQUITÉ · écart à la fourchette de la part ──');
   const NOM = { total:'Total', sam:'Samedi', jeu:'Jeudi', vd:'Ven-Dim', vjf:'VeilleJF', jf:'Férié' };
   Object.keys(r.ecarts).forEach(function (k) {
     const e = r.ecarts[k];
@@ -980,6 +984,34 @@ function generateGardes(year, opts){
   /* (05/09/2026) CIBLES ENTIÈRES — récit : docs/JOURNAL-Planning-Med.md §113 */
   const cibleExacte={};
   gardeDoctors.forEach(id=>{ cibleExacte[id]=Object.assign({}, cible[id]); });
+  /* (14/11/2026) LA FOURCHETTE — décision du responsable.
+     Constat : la part exacte est identique pour tous les MAR de même quotité et même
+     présence (2027 : 36,66 gardes, 5,51 samedis, 1,38 férié… pour un temps plein), mais
+     l'arrondi en cible entière la répartit au hasard d'un départage : 37 pour l'un, 36
+     pour l'autre ; 6 samedis pour l'un, 5 pour l'autre. Tout le calcul visait ensuite ces
+     cibles-là : l'équipe voyait des cibles différentes à part égale, et il restait des
+     écarts de 2 entre collègues (35 contre 37 gardes, 7 contre 5 samedis, 3 contre
+     1 férié), alors que chacun était « à 1 de sa cible ».
+     Désormais l'écart se mesure à la FOURCHETTE de la part : [arrondi inférieur, arrondi
+     supérieur] de (part exacte − report des années passées). 0 = dans la fourchette.
+     Même part, même fourchette ; deux MAR dans la fourchette ne sont jamais à plus d'1.
+     Les cibles entières restent calculées (construction, souhaits, affichage) mais ne
+     servent plus à juger l'équité. Exceptions : les week-ends gardent leur nombre entier
+     (11 / 10 / 9, égal à part égale), et les régimes à part leur cible.
+     Mesuré sur les indisponibilités 2027 du 13/11/2026 (simulateur, pas encore chez
+     Google), avec l'écart entre collègues (passe 8nonies) : compteurs hors fourchette 8 → 0,
+     écarts de 2 entre collègues de même part 6 → 0, 21 MAR sur 21 pile sur leurs week-ends,
+     personne à 3 week-ends d'été, souhaits utiles 235 → 230.
+     Effet de bord mesuré : l'optimisation finale (recuit) ne trouve plus aucun état à la fois
+     meilleur et sûr (0 année fictive sur 4, rien sur 2027 en 1,6 million d'essais) ; elle est
+     gardée telle quelle, son garde-fou la rend sans risque.
+     Banc : __BANC_FOURCHETTE__ = false revient aux cibles entières (contre-preuve). */
+  const VISEE={};
+  const _fourchetteOn_=()=>(typeof __BANC_FOURCHETTE__==='boolean')?__BANC_FOURCHETTE__:true;
+  const _ecF=(id,ax,v)=>{ if(!_fourchetteOn_()||ax==='we'||FLAGS.souhaitPlafond.has(id)||!VISEE[id]||VISEE[id][ax]===undefined) return v-((cible[id]&&cible[id][ax])||0);
+    const e=VISEE[id][ax], lo=Math.floor(e+1e-9), hi=Math.ceil(e-1e-9); return v<lo?v-lo:(v>hi?v-hi:0); };
+  const _FK=_fourchetteOn_();   /* lu une fois : l'interrupteur de banc ne change pas pendant un calcul */
+  const _exF=(id,ax)=>(!_fourchetteOn_()||ax==='we'||!VISEE[id]||VISEE[id][ax]===undefined)?((cible[id]&&cible[id][ax])||0):VISEE[id][ax];
   if(NOUVEL_ALGO){
     /* (12/11/2026) CIBLES ENTIÈRES CROISÉES. Avant, chaque compteur était arrondi à part, et
        le même MAR pouvait être arrondi vers le haut partout — départagé, faute de report,
@@ -1118,6 +1150,9 @@ function generateGardes(year, opts){
       Object.keys(fixe).forEach(id=>{ base[id]=fixe[id]; });
       elig.forEach(id=>{ cible[id][axis]=base[id]; if(axis!=='total') _surplus[id]+=base[id]-vise[id]; });
     });
+    // FOURCHETTE : part exacte moins le report des années passées, lue AVANT sa remise à zéro
+    gardeDoctors.forEach(id=>{ const ex=cibleExacte[id]||{}; VISEE[id]={};
+      ['sam','jeu','vd','vjf','jf','total'].forEach(k=>{ VISEE[id][k]=Math.max(0,(ex[k]||0)-_dtA(id,k)); }); });
     // Le report est désormais DANS la cible : le compteur repart à zéro pour que
     // ratio() ne l'applique pas deux fois.
     gardeDoctors.forEach(id=>{ ['sam','jeu','vd','vjf','jf','total'].forEach(k=>{ dette[id][k]=0; }); });
@@ -2613,12 +2648,15 @@ function generateGardes(year, opts){
       let d=0;
       EQ.forEach(ax=>{const ca=c[ax];if(!ca)return;
         // cible effective = cible − dette (qui a trop fait en N-1 vise plus bas)
-        const cbA=cible[A][ax]-(dette[A]?.[ax]||0),cbB=cible[B][ax]-(dette[B]?.[ax]||0),a0=cnt[A][ax],b0=cnt[B][ax];
-        d+=W[ax]*((Math.pow(a0-ca-cbA,2)-Math.pow(a0-cbA,2))+(Math.pow(b0+ca-cbB,2)-Math.pow(b0-cbB,2)));
+        const a0=cnt[A][ax],b0=cnt[B][ax], xA=_exF(A,ax), xB=_exF(B,ax);
+        const fA0=_ecF(A,ax,a0), fA1=_ecF(A,ax,a0-ca), fB0=_ecF(B,ax,b0), fB1=_ecF(B,ax,b0+ca);
+        d+=W[ax]*((fA1*fA1-fA0*fA0)+(fB1*fB1-fB0*fB0));
+        /* à égalité de fourchette, rapprocher chacun de sa part exacte (poids faible) */
+        if(_FK) d+=0.15*W[ax]*((Math.pow(a0-ca-xA,2)-Math.pow(a0-xA,2))+(Math.pow(b0+ca-xB,2)-Math.pow(b0-xB,2)));
         /* (05/09/2026) OBJECTIF LEXICOGRAPHIQUE — récit : docs/JOURNAL-Planning-Med.md §118 */
         if(NOUVEL_ALGO){
-          const _h=e=>{const x=Math.abs(e)-LEX_SEUIL; return x>0?x*x:0;};
-          d+=LEX_POIDS*((_h(a0-ca-cbA)-_h(a0-cbA))+(_h(b0+ca-cbB)-_h(b0-cbB)));
+          const _h=_FK ? (e=>e*e) : (e=>{const x=Math.abs(e)-LEX_SEUIL; return x>0?x*x:0;});   /* (14/11/2026) fourchette : tout écart compte, plus de seuil ; coupée au banc : ancien calcul */
+          d+=LEX_POIDS*((_h(fA1)-_h(fA0))+(_h(fB1)-_h(fB0)));
         }});
       const n=c.total,aG=cnt[A].g,aG2=cnt[A].g2,bG=cnt[B].g,bG2=cnt[B].g2;
       let na,nb;
@@ -2754,7 +2792,8 @@ function generateGardes(year, opts){
        sur un créneau verrouillé (souhait honoré, fêtes, régime à part). */
     if(NOUVEL_ALGO){
       const _tit=sl=>sl.role===0?gardes[sl.days[0]].g:gardes[sl.days[0]].g2;
-      const _ec=(id,ax)=>cnt[id][ax]-(cible[id][ax]-(dette[id]?.[ax]||0));
+      const LEX_SEUIL=_fourchetteOn_()?0.5:1;   /* (14/11/2026) écart à la fourchette : toute sortie de la fourchette est à réparer (coupée au banc : ancien seuil) */
+      const _ec=(id,ax)=>_ecF(id,ax,cnt[id][ax]);
       const _axOk=(id,ax)=>!!(cible[id]&&cible[id][ax]>0);
       const _cout=ids=>{ let ex=0,sq=0; ids.forEach(id=>EQ.forEach(ax=>{ if(!_axOk(id,ax)) return;
         const e=_ec(id,ax), x=Math.abs(e)-LEX_SEUIL; if(x>0) ex+=x; sq+=W[ax]*e*e; })); return [ex,sq]; };
@@ -3219,7 +3258,7 @@ function generateGardes(year, opts){
         for (let k = 2; k <= 4; k++) { const x = shift(d, k); if (vac(id, x)) return true; const dx = dayByDate[x]; if (!dx) return false;
           if (!(dx.dow === 0 || dx.dow === 6 || dx.isFerie)) return false; if (indispos[id] && indispos[id][x]) return false; } return false; };
       const mesure = () => { let n1 = 0, pire = 0, n2 = 0, sh = 0, split = 0, j2 = 0, dwe = 0, cpl = 0, conf = 0;
-        ids.forEach(id => EQ.forEach(ax => { const cb = (cible[id] && cible[id][ax]) || 0; const a = Math.abs(cnt[id][ax] - cb); if (a > pire) pire = a; if (a > 0.5 && ax !== 'we') n1 += Math.round(a); if (a > 1.5) n2 += Math.round(a) - 1; }));
+        ids.forEach(id => EQ.forEach(ax => { const a = Math.abs(_ecF(id, ax, cnt[id][ax])); if (a > pire) pire = a; if (a > 0.5 && ax !== 'we') n1 += Math.round(a); if (a > 1.5) n2 += Math.round(a) - 1; }));
         souhL.forEach(([id, d]) => { if (hold(id, d)) sh++; });
         fris.forEach(f => { if (noelDatesAssigned.has(f) || noelDatesAssigned.has(shift(f, 2))) return; const a = gardes[f], b = gardes[shift(f, 2)]; if (!a || !b) return;
           split += new Set([a.g, a.g2, b.g, b.g2]).size - 2; /* (10/11/2026) MAR en trop : 3 MAR = 1, 4 MAR = 2 */ if (_cplOn) cpl += _cplLies(f, null); });
@@ -3239,7 +3278,7 @@ function generateGardes(year, opts){
       const _souhDe = {}; souhL.forEach(([id, d]) => (_souhDe[id] = _souhDe[id] || []).push(d));
       const _friSet = new Set(fris), _idsSet = new Set(ids), _gdSet = new Set(gardeDoctors);
       const _eqDe = id => { let n1 = 0, n2 = 0, pire = 0;
-        EQ.forEach(ax => { const cb = (cible[id] && cible[id][ax]) || 0; const a = Math.abs(cnt[id][ax] - cb); if (a > pire) pire = a; if (a > 0.5 && ax !== 'we') n1 += Math.round(a); if (a > 1.5) n2 += Math.round(a) - 1; });
+        EQ.forEach(ax => { const a = Math.abs(_ecF(id, ax, cnt[id][ax])); if (a > pire) pire = a; if (a > 0.5 && ax !== 'we') n1 += Math.round(a); if (a > 1.5) n2 += Math.round(a) - 1; });
         return [n1, n2, pire]; };
       const _shDe = id => { let n = 0; (_souhDe[id] || []).forEach(d => { if (hold(id, d)) n++; }); return n; };
       const _persoDe = id => { let j2 = 0, dwe = 0, conf = 0; const all = [...gSet[id], ...g2Set[id]].sort(); const wk = {};
@@ -3457,12 +3496,20 @@ function generateGardes(year, opts){
          d'une garde (12 tiennent aux arrondis des cibles ; restent 6 fériés, 4 samedis,
          2 vendredis), 21 MAR sur 21 pile sur leurs week-ends, 1 MAR encore à 3 week-ends
          d'été, 6 souhaits retirés, 2 accordés ; 8 s chez Google, 168 s pour l'essai entier.
-         Banc : banc_appariement.js. */
+         Générateur .8 (relais, deux parcours), mêmes indisponibilités, mesuré au simulateur
+         — pas encore chez Google : 32 → 22 (12 d'arrondis ; restent 4 fériés, 4 samedis,
+         2 vendredis), plus aucun MAR au-dessus de sa part de week-ends d'été, 9 souhaits
+         retirés, 4 accordés. Sur 8 années fictives : jamais plus d'écarts qu'avec le relais
+         coupé, moins sur 4. Depuis 2026-11-14.1, l'écart est mesuré à la FOURCHETTE de la
+         part (voir « LA FOURCHETTE ») et l'écart entre collègues est payé aussi : 0 compteur
+         hors fourchette et 0 écart de 2 sur 2027. Le relais n'y améliore plus aucun résultat
+         mesuré (2027 ; 9 années fictives : joué sur 3, même résultat sans lui) ; gardé, sans coût.
+         Banc : banc_appariement.js, banc_fourchette.js. */
       if (_appariementOn_()) {
         const _t0P = Date.now();
-        const AXP = ['we', 'sam', 'vd', 'jeu', 'jf', 'vjf', 'total'], APP_SOUHAIT = 0.45, APP_POIDS = { we: 2.5 }, APP_ETE_HAUT = 2.5, APP_ETE_BAS = 1, APP_ESSAIS = 400, APP_LIMITE_MS = 60000;
+        const AXP = ['we', 'sam', 'vd', 'jeu', 'jf', 'vjf', 'total'], APP_SOUHAIT = 0.45, APP_POIDS = { we: 2.5 }, APP_ETE_HAUT = 2.5, APP_ETE_BAS = 1, APP_ESSAIS = 100, APP_RELAIS = 6000, APP_LIMITE_MS = 60000;
         const _docsP = gardeDoctors.filter(id => !SOUHAIT_PLAFOND.has(id) && cible[id]);
-        const _eP = (id, ax) => cnt[id][ax] - (cible[id][ax] - ((dette[id] && dette[id][ax]) || 0));
+        const _eP = (id, ax) => _ecF(id, ax, cnt[id][ax]);
         const _cP = e => { const x = Math.abs(e); return x < 0.5 ? 0 : (x < 1.5 ? 1 : 100); };
         const _titP = sl => sl.role === 0 ? gardes[sl.days[0]].g : gardes[sl.days[0]].g2;
         /* Jamais déplacés : les fêtes, et un vendredi ou un dimanche tenu comme créneau
@@ -3479,17 +3526,61 @@ function generateGardes(year, opts){
         slots.forEach(sl => { const t = _titP(sl); if (sl._ete && _eteN[t] !== undefined) _eteN[t]++; });
         const _eteTot = _docsP.reduce((t, id) => t + _eteN[id], 0), _weTot = _docsP.reduce((t, id) => t + (cible[id].we || 0), 0);
         const _eteC = {}; _docsP.forEach(id => { _eteC[id] = _weTot > 0 ? _eteTot * (cible[id].we || 0) / _weTot : 0; });
-        const _fE = (id, n) => { const lo = Math.floor(_eteC[id] + 1e-9), hi = Math.ceil(_eteC[id] - 1e-9); return n > hi ? APP_ETE_HAUT * (n - hi) : (n < lo ? APP_ETE_BAS * (lo - n) : 0); };
+        const _eLo = {}, _eHi = {}; _docsP.forEach(id => { _eLo[id] = Math.floor(_eteC[id] + 1e-9); _eHi[id] = Math.ceil(_eteC[id] - 1e-9); });
+        const _fE = (id, n) => { const hi = _eHi[id]; if (n > hi) return APP_ETE_HAUT * (n - hi); const lo = _eLo[id]; return n < lo ? APP_ETE_BAS * (lo - n) : 0; };
         /* VITESSE : écarts et contributions rangés en tableaux d'entiers, souhaits lus une fois. */
         const _PW = AXP.map(ax => APP_POIDS[ax] || 1), _NA = AXP.length;
         slots.forEach(sl => { sl._c = AXP.map(ax => sl.contrib[ax] || 0); sl._sh = {}; _docsP.forEach(id => { sl._sh[id] = _souhP(id, sl); }); });
-        const _EV = {}; const _majEV = id => { _EV[id] = AXP.map(ax => _eP(id, ax)); }; _docsP.forEach(_majEV);
+        /* (14/11/2026) ÉCART ENTRE COLLÈGUES — règle du responsable : deux MAR de même part
+           ne sont jamais à plus d'1 garde d'écart sur un compteur. La fourchette seule ne le
+           garantit pas : quand une absence force un MAR sous sa fourchette (35 pour 36–37),
+           la garde manquante allait à un collègue de même part qui montait à 37 — « dans sa
+           fourchette », mais à 2 du premier. Mesuré au banc sur 3 années fictives : 4, 3 et 3
+           écarts de 2, contre 1, 2 et 2 avec les anciennes cibles.
+           Désormais chaque coup paie aussi l'excès d'écart (au-delà de 1) qu'il crée ou retire
+           dans le groupe des MAR de même part, compteur par compteur (APP_ECART, même poids
+           qu'un compteur hors fourchette). Groupes : même part exacte (moins le report) sur
+           ce compteur ; week-ends : même nombre entier. */
+        /* (14/11/2026) VITESSE : avec l'écart entre collègues, plus de MAR peuvent bouger et la recherche
+           à deux coups explosait (170 millions d'évaluations, 45 à 60 s sur une année fictive, plafond
+           atteint). APP_ESSAIS 400 → 100 : 7 à 17 s, résultat identique mesuré sur 3 années fictives et
+           sur 2027 (60, 100, 150 et 400 essais donnent les mêmes compteurs). */
+        const _ecartOn_ = (typeof __BANC_ECART__ === 'boolean') ? __BANC_ECART__ : true;   /* banc : coupe l'écart entre collègues */
+        const APP_ECART = _ecartOn_ ? 1 : 0;
+        const _grK = AXP.map(ax => { const g = {}; _docsP.forEach(id => { g[id] = ax === 'we' ? 'w' + ((cible[id] && cible[id].we) || 0)
+          : (FLAGS.souhaitPlafond.has(id) || !VISEE[id] || VISEE[id][ax] === undefined) ? 'x' + id : VISEE[id][ax].toFixed(3); }); return g; });
+        const _hist = AXP.map(() => ({})), _valH = AXP.map(() => ({}));
+        /* groupe = deux petits tableaux parallèles : valeurs présentes et nombre de MAR à chacune */
+        const _hMod = (k, id, v) => { const g = _grK[k][id], H = _hist[k][g] || (_hist[k][g] = { v: [], n: [] }); const o = _valH[k][id];
+          if (o !== undefined) { const i = H.v.indexOf(o); H.n[i]--; if (!H.n[i]) { H.v.splice(i, 1); H.n.splice(i, 1); } }
+          const j = H.v.indexOf(v); if (j >= 0) H.n[j]++; else { H.v.push(v); H.n.push(1); } _valH[k][id] = v;
+          H.mn = Infinity; H.mx = -Infinity; H.cmn = 0; H.cmx = 0;
+          for (let i = 0; i < H.v.length; i++) { const x = H.v[i]; if (x < H.mn) { H.mn = x; H.cmn = H.n[i]; } if (x > H.mx) { H.mx = x; H.cmx = H.n[i]; } }
+          H.ex = H.mx - H.mn > 1 ? H.mx - H.mn - 1 : 0; };
+        /* excès d'écart (max − min − 1, au moins 0) du groupe g, avec des changements hypothétiques [[ancienne, nouvelle], …] */
+        /* VITESSE : sans copie ni tableau — o1→n1 et o2→n2 (facultatifs) appliqués à la volée */
+        const _exc = (k, g, o1, n1, o2, n2) => { const H = _hist[k][g]; if (o1 === undefined) return H.ex;
+          /* cas courant, sans parcours : le minimum et le maximum ne disparaissent pas */
+          const rmx = (o1 === H.mx ? 1 : 0) + (o2 === H.mx ? 1 : 0), rmn = (o1 === H.mn ? 1 : 0) + (o2 === H.mn ? 1 : 0);
+          if (rmx < H.cmx && rmn < H.cmn) { let mn = H.mn, mx = H.mx; if (n1 < mn) mn = n1; if (n1 > mx) mx = n1;
+            if (n2 !== undefined) { if (n2 < mn) mn = n2; if (n2 > mx) mx = n2; } return mx - mn > 1 ? mx - mn - 1 : 0; }
+          let mn = Infinity, mx = -Infinity;
+          const V_ = H.v, N_ = H.n; for (let i = 0; i < V_.length; i++) { const x = V_[i]; let c = N_[i]; if (x === o1) c--; if (x === o2) c--; if (c > 0) { if (x < mn) mn = x; if (x > mx) mx = x; } }
+          if (n1 !== undefined) { if (n1 < mn) mn = n1; if (n1 > mx) mx = n1; } if (n2 !== undefined) { if (n2 < mn) mn = n2; if (n2 > mx) mx = n2; }
+          return mx - mn > 1 ? mx - mn - 1 : 0; };
+        const _EV = {}; const _majEV = id => { _EV[id] = AXP.map(ax => _eP(id, ax)); AXP.forEach((ax, k) => { const v = cnt[id][ax]; if (_valH[k][id] !== v) _hMod(k, id, v); }); }; _docsP.forEach(_majEV);
+        /* qui est à une extrémité d'un groupe trop étalé : il peut bouger même s'il est dans sa fourchette */
+        const _extreme = id => _ecartOn_ && AXP.some((ax, k) => { const H = _hist[k][_grK[k][id]]; if (!H.ex) return false; const v = _valH[k][id]; return v === H.mn || v === H.mx; });
         const _cPi = x => { if (x < 0) x = -x; return x < 0.5 ? 0 : (x < 1.5 ? 1 : 100); };
         const _cout = (A, B, s1, s2) => { let d = 0; const ea = _EV[A], eb = _EV[B], c1 = s1._c, c2 = s2 ? s2._c : null;
           for (let k = 0; k < _NA; k++) { const x = (c2 ? c2[k] : 0) - c1[k]; if (!x) continue;
             d += _PW[k] * (_cPi(ea[k] + x) - _cPi(ea[k]) + _cPi(eb[k] - x) - _cPi(eb[k])); }
           const de = (s2 ? s2._ete : 0) - s1._ete; if (de) d += _fE(A, _eteN[A] + de) - _fE(A, _eteN[A]) + _fE(B, _eteN[B] - de) - _fE(B, _eteN[B]);
           d += APP_SOUHAIT * (s1._sh[A] - s1._sh[B] + (s2 ? s2._sh[B] - s2._sh[A] : 0));
+          for (let k = 0; k < _NA; k++) { const x = (c2 ? c2[k] : 0) - c1[k]; if (!x) continue;
+            const gA = _grK[k][A], gB = _grK[k][B], vA = _valH[k][A], vB = _valH[k][B];
+            if (gA === gB) d += APP_ECART * (_exc(k, gA, vA, vA + x, vB, vB - x) - _exc(k, gA));
+            else d += APP_ECART * (_exc(k, gA, vA, vA + x) - _exc(k, gA) + _exc(k, gB, vB, vB - x) - _exc(k, gB)); }
           return d; };
         const _possible = (A, B, s1, s2) => {
           if (!s2) return canHold(B, s1.days, s1.role) && !_grgP(B, s1.days);
@@ -3499,13 +3590,14 @@ function generateGardes(year, opts){
         const _dejoue = mv => { if (mv.s2) { applyTr(mv.s2, mv.B); _eteN[mv.B] += mv.s2._ete; _eteN[mv.A] -= mv.s2._ete; } applyTr(mv.s1, mv.A); _eteN[mv.A] += mv.s1._ete; _eteN[mv.B] -= mv.s1._ete; _majEV(mv.A); _majEV(mv.B); };
         const _excesP = id => AXP.reduce((t, ax) => t + _eP(id, ax), 0);
         const _voisins = (s1, s2) => { if (s1._rmin > s2._rmax + 1 || s2._rmin > s1._rmax + 1) return false; return s1._rg.some(x => s2._rg.some(y => Math.abs(x - y) <= 1)); };
+        const _libres = slots.filter(sl => !_fixeP(sl));   /* les créneaux déplaçables : ne change pas pendant la passe */
         /* Tous les coups de coût ≤ seuil ; `cercle` (facultatif) : ne garder que ceux qui touchent un de ces MAR. */
         const _candidats = (seuil, cercle) => {
-          const mob = slots.filter(sl => !_fixeP(sl) && _titP(sl) && _eteN[_titP(sl)] !== undefined);
-          const par = {}; mob.forEach(sl => { const t = _titP(sl); (par[t] = par[t] || []).push(sl); });
-          const out = [], exc = {}, off = {}; _docsP.forEach(id => { exc[id] = _EV[id].reduce((t, x) => t + x, 0); off[id] = _EV[id].some(x => Math.abs(x) >= 0.5) || _fE(id, _eteN[id]) > 0; });
+          const mob = [], par = {}; for (const sl of _libres) { const t = _titP(sl); if (!t || _eteN[t] === undefined) continue; mob.push(sl); (par[t] = par[t] || []).push(sl); }
+          const out = [], exc = {}, off = {}; _docsP.forEach(id => { exc[id] = _EV[id].reduce((t, x) => t + x, 0); off[id] = _EV[id].some(x => Math.abs(x) >= 0.5) || _fE(id, _eteN[id]) > 0 || _extreme(id); });
+          const _cer = cercle ? _docsP.filter(id => cercle.has(id)) : _docsP;
           for (const s1 of mob) { const A = _titP(s1), inA = !cercle || cercle.has(A);
-            for (const B of _docsP) { if (B === A || (!inA && !cercle.has(B))) continue; if (!off[A] && !off[B]) continue;   /* un coup entre deux MAR pile partout ne peut rien améliorer */
+            for (const B of (inA ? _docsP : _cer)) { if (B === A) continue; if (!off[A] && !off[B]) continue;   /* un coup entre deux MAR pile partout ne peut rien améliorer */
               let c = _cout(A, B, s1, null); if (c <= seuil) out.push({ c, A, B, s1, s2: null, dep: exc[A] - exc[B] });
               const lB = par[B] || [];
               for (const s2 of lB) { if (s2 === s1 || _voisins(s1, s2)) continue;
@@ -3515,24 +3607,83 @@ function generateGardes(year, opts){
         const _premier = (liste) => { for (const mv of liste) if (_possible(mv.A, mv.B, mv.s1, mv.s2)) return mv; return null; };
         const _nbEcarts = () => { let n = 0; _docsP.forEach(id => AXP.forEach(ax => { if (Math.abs(_eP(id, ax)) >= 0.5) n++; })); return n; };
         const _ete3 = () => _docsP.filter(id => _eteN[id] > Math.ceil(_eteC[id] - 1e-9)).length;
-        const _hors = () => { const S = new Set(); _docsP.forEach(id => { if (AXP.some(ax => Math.abs(_eP(id, ax)) >= 0.5 && ax !== 'total') || _fE(id, _eteN[id]) > 0) S.add(id); }); return S; };
-        const _entree = slots.map(_titP), _avantP = _nbEcarts(), _ete3av = _ete3();
-        let _coups = 0, _doubles = 0, _coupe = false;
-        for (let _tourP = 0; _tourP < 120; _tourP++) {
-          if (Date.now() - _t0P > APP_LIMITE_MS) { _coupe = true; break; }
-          const mv = _premier(_candidats(-1e-9));
-          if (mv) { _joue(mv); _coups++; continue; }
-          /* aucun coup simple : deux coups enchaînés, le premier neutre ou presque */
-          const hors = _hors(); if (!hors.size) break;
-          const prem = _candidats(APP_SOUHAIT + 0.06, hors); let best = null, vus = 0;
-          for (const m1 of prem) { if (vus >= APP_ESSAIS) break; if ((vus & 31) === 0 && Date.now() - _t0P > APP_LIMITE_MS) { _coupe = true; break; } if (!_possible(m1.A, m1.B, m1.s1, m1.s2)) continue; vus++;
-            const c1 = _cout(m1.A, m1.B, m1.s1, m1.s2); _joue(m1);
-            const suite = _candidats(-c1 - 1e-6, new Set([m1.A, m1.B])); let m2 = null;
-            for (const x of suite) { if (best && c1 + x.c >= best.c - 1e-9) break; if (_possible(x.A, x.B, x.s1, x.s2)) { m2 = x; break; } }
-            _dejoue(m1);
-            if (m2 && (!best || c1 + m2.c < best.c - 1e-9)) best = { c: c1 + m2.c, m1, m2 }; }
-          if (!best) break;
-          _joue(best.m1); _joue(best.m2); _coups += 2; _doubles++;
+        const _hors = () => { const S = new Set(); _docsP.forEach(id => { if (AXP.some(ax => Math.abs(_eP(id, ax)) >= 0.5 && ax !== 'total') || _fE(id, _eteN[id]) > 0 || _extreme(id)) S.add(id); }); return S; };
+        const _ecTot = () => { let n = 0; AXP.forEach((ax, k) => { Object.keys(_hist[k]).forEach(g => { n += _exc(k, g); }); }); return n; };
+        const _entree = slots.map(_titP), _avantP = _nbEcarts(), _ete3av = _ete3(), _ecAv = _ecTot();
+        const _parTit = () => { const par = {}; _libres.forEach(sl => { const t = _titP(sl); if (t && _eteN[t] !== undefined) (par[t] = par[t] || []).push(sl); }); return par; };
+        const _relais = (fin) => {
+          const hiE = id => Math.ceil(_eteC[id] - 1e-9);
+          const K = []; for (let k = 0; k < _NA; k++) K.push(k); K.push('ete');
+          let best = null;
+          for (const k of K) {
+            const porte = sl => k === 'ete' ? sl._ete > 0 : sl._c[k] > 0;
+            const haut = _docsP.filter(id => k === 'ete' ? _eteN[id] > hiE(id) : _EV[id][k] >= 0.5);
+            const bas = _docsP.filter(id => k === 'ete' ? _eteN[id] < hiE(id) : _EV[id][k] <= -0.5);
+            if (!haut.length || !bas.length) continue;
+            const par = _parTit(), prem = [];
+            for (const B of bas) for (const X of _docsP) { if (X === B || haut.indexOf(X) >= 0) continue;
+              for (const s1 of (par[X] || [])) { if (!porte(s1)) continue;
+                let c = _cout(X, B, s1, null); if (c <= APP_SOUHAIT + 0.06) prem.push({ c, A: X, B, s1, s2: null });
+                for (const s2 of (par[B] || [])) { if (porte(s2) || _voisins(s1, s2)) continue;
+                  c = _cout(X, B, s1, s2); if (c <= APP_SOUHAIT + 0.06) prem.push({ c, A: X, B, s1, s2 }); } } }
+            prem.sort((x, y) => x.c - y.c);
+            let vus = 0;
+            for (const m1 of prem) { if (vus >= APP_RELAIS) break; if ((vus & 63) === 0 && Date.now() > fin) { _coupe = true; return best; }
+              if (!_possible(m1.A, m1.B, m1.s1, m1.s2)) continue; vus++;
+              const c1 = m1.c, X = m1.A; _joue(m1);
+              const par2 = _parTit(); let m2 = null;
+              for (const A of haut) { if (A === X || A === m1.B) continue;
+                for (const a of (par2[A] || [])) { if (!porte(a)) continue;
+                  let c = _cout(A, X, a, null);
+                  if (c1 + c < (best ? best.c : 0) - 1e-9 && (!m2 || c < m2.c) && _possible(A, X, a, null)) m2 = { c, A, B: X, s1: a, s2: null };
+                  for (const r of (par2[X] || [])) { if (porte(r) || _voisins(a, r)) continue;
+                    c = _cout(A, X, a, r);
+                    if (c1 + c < (best ? best.c : 0) - 1e-9 && (!m2 || c < m2.c) && _possible(A, X, a, r)) m2 = { c, A, B: X, s1: a, s2: r }; } } }
+              _dejoue(m1);
+              if (m2 && (!best || c1 + m2.c < best.c - 1e-9)) best = { c: c1 + m2.c, m1, m2 }; }
+          }
+          return best; };
+        let _coups = 0, _doubles = 0, _coupe = false, _relaisN = 0;
+        /* (13/11/2026, publié en 2026-11-14.1) LE RELAIS. Sur un compteur où un MAR est au-dessus (A)
+           et un autre en dessous (B) sans échange direct possible, un troisième MAR X, pile
+           sur ce compteur, donne à B un créneau qui le porte, et A donne le sien à X ; chacun
+           des deux coups peut rendre une garde qui ne porte pas ce compteur. Vaut aussi pour
+           les week-ends de juillet-août. Recherche ciblée, donc complète : elle ne dépend pas
+           de APP_ESSAIS. Constaté sur l'essai Google du 13/11/2026 : 3 MAR à +1 férié face à
+           3 à −1, aucun échange direct, et la recherche générale (400 premiers coups parmi
+           des milliers) ne trouvait pas le relais qui existait.
+           DEUX PARCOURS, LE MEILLEUR EST GARDÉ : le relais tenté avant la recherche générale,
+           puis après. Aucun des deux ordres ne gagne toujours (mesuré sur 8 années fictives :
+           l'un fait mieux sur 2, l'autre sur 1) ; chaque parcours repart du même planning. */
+        const _parcours = (relaisTot, fin) => {
+          const jnl = []; let tot = 0;
+          const jouer = (mv, c) => { _joue(mv); jnl.push(mv); tot += c; _coups++; };
+          const relayer = () => { if (!_relaisOn_()) return false; const rl = _relais(fin); if (!rl) return false; jouer(rl.m1, rl.c); jouer(rl.m2, 0); _doubles++; _relaisN++; return true; };
+          for (let _tourP = 0; _tourP < 120; _tourP++) {
+            if (Date.now() > fin) { _coupe = true; break; }
+            const mv = _premier(_candidats(-1e-9));
+            if (mv) { jouer(mv, mv.c); continue; }
+            /* aucun coup simple : relais, ou deux coups enchaînés, le premier neutre ou presque */
+            if (relaisTot && relayer()) continue;
+            const hors = _hors(); if (!hors.size) break;
+            const prem = _candidats(APP_SOUHAIT + 0.06, hors); let best = null, vus = 0;
+            for (const m1 of prem) { if (vus >= APP_ESSAIS) break; if ((vus & 31) === 0 && Date.now() > fin) { _coupe = true; break; } if (!_possible(m1.A, m1.B, m1.s1, m1.s2)) continue; vus++;
+              const c1 = _cout(m1.A, m1.B, m1.s1, m1.s2); _joue(m1);
+              const suite = _candidats(-c1 - 1e-6, new Set([m1.A, m1.B])); let m2 = null;
+              for (const x of suite) { if (best && c1 + x.c >= best.c - 1e-9) break; if (_possible(x.A, x.B, x.s1, x.s2)) { m2 = x; break; } }
+              _dejoue(m1);
+              if (m2 && (!best || c1 + m2.c < best.c - 1e-9)) best = { c: c1 + m2.c, m1, m2 }; }
+            if (best) { jouer(best.m1, best.c); jouer(best.m2, 0); _doubles++; continue; }
+            if (!relaisTot && relayer()) continue;
+            break;
+          }
+          return { jnl, tot, coups: _coups, doubles: _doubles, relais: _relaisN }; };
+        const _defaire = jnl => { for (let i = jnl.length - 1; i >= 0; i--) _dejoue(jnl[i]); };
+        const _pA = _parcours(true, _t0P + (_relaisOn_() ? APP_LIMITE_MS / 2 : APP_LIMITE_MS));
+        if (_relaisOn_()) {
+          _defaire(_pA.jnl); _coups = 0; _doubles = 0; _relaisN = 0;
+          const _pB = _parcours(false, _t0P + APP_LIMITE_MS);
+          if (_pA.tot < _pB.tot - 1e-9) { _defaire(_pB.jnl); _pA.jnl.forEach(_joue); _coups = _pA.coups; _doubles = _pA.doubles; _relaisN = _pA.relais; }
         }
         /* bilan : créneaux qui ont changé de mains, souhaits retirés / accordés */
         let _perdusP = 0, _gagnesP = 0; const _detP = [];
@@ -3543,10 +3694,53 @@ function generateGardes(year, opts){
           sl.locked = !!gagne || SOUHAIT_PLAFOND.has(vers);
           _detP.push(de + ' → ' + vers + ' ' + sl.days.join('+') + (perdu ? ' [souhait retiré : ' + de + ']' : '') + (gagne ? ' [souhait accordé : ' + vers + ']' : '')); });
         const _apresP = _nbEcarts();
-        if (_optimBilan) _optimBilan.appariement = { avant: _avantP, apres: _apresP, coups: _coups, doubles: _doubles, creneaux: _detP.length, souhaitsRetires: _perdusP, souhaitsGagnes: _gagnesP, ete3Avant: _ete3av, ete3Apres: _ete3(), ete: Object.assign({}, _eteN), cibleEte: _eteC, ms: Date.now() - _t0P, coupe: _coupe, detail: _detP };
+        if (_optimBilan) _optimBilan.appariement = { avant: _avantP, apres: _apresP, ecartCollegues: [_ecAv, _ecTot()], coups: _coups, doubles: _doubles, relais: _relaisN, creneaux: _detP.length, souhaitsRetires: _perdusP, souhaitsGagnes: _gagnesP, ete3Avant: _ete3av, ete3Apres: _ete3(), ete: Object.assign({}, _eteN), cibleEte: _eteC, ms: Date.now() - _t0P, coupe: _coupe, detail: _detP };
         Logger.log('Appariement : écarts d\'une garde ' + _avantP + ' → ' + _apresP + ', ' + _detP.length + ' créneau(x) déplacé(s), ' + _perdusP + ' souhait(s) retiré(s), ' + (Date.now() - _t0P) + ' ms');
         if (_coupe) warnings.push('Appariement : recherche écourtée (calcul trop long) — l\'état atteint est gardé, il respecte toutes les règles');
         if (_detP.length) warnings.push('Appariement : ' + (_avantP - _apresP) + ' écart(s) d\'une garde en moins, ' + _perdusP + ' souhait(s) retiré(s), ' + _gagnesP + ' accordé(s)');
+
+        /* ── 8decies. (14/11/2026) LISSAGE MENSUEL — demande du responsable : « éviter les mois à
+           6 gardes et d'autres à 0, sans dégrader le reste ». Constaté sur l'essai 2027 : un MAR à
+           7 gardes en octobre, 19 mois à 5 gardes, alors que l'année est juste.
+           Un seul mouvement : l'ÉCHANGE NEUTRE de deux créneaux de même nature — même rôle (réa ou
+           maternité), même apport à TOUS les compteurs (total, samedis, vendredis-dimanches, jeudis,
+           fériés, veilles, week-ends d'été). Aucun compteur ne bouge, donc ni la fourchette, ni
+           l'écart entre collègues, ni les week-ends, ni la réa/maternité ; seuls les MOIS changent.
+           Jamais un souhait, une fête, un vendredi ou dimanche seul, un créneau verrouillé ; toutes
+           les règles dures (canHold) et jamais de « garde, repos, garde » créé.
+           Objectif : pour chaque MAR, l'écart au carré entre ses gardes du mois et ce qu'il doit
+           attendre ce mois-là (sa part × ses jours présents du mois : un mois d'absence attend 0).
+           Un échange n'est joué que s'il baisse ce total d'au moins LISSE_MIN. */
+        if (_lissageOn_()) {
+          const _t0L = Date.now(), LISSE_MIN = 0.5, LISSE_MS = 15000;
+          const _cM = (id, m, dv) => { const e = (monthExp[id] && monthExp[id][m]) || 0, c = (monthCnt[id][m] || 0) + dv; return (c - e) * (c - e); };
+          /* mois de CHAQUE jour du créneau (un vendredi-dimanche peut chevaucher deux mois) */
+          const _mo = sl => sl.days.map(dd => Number(dd.slice(5, 7)));
+          const _dM = (id, moins, plus) => { const ch = {}; moins.forEach(m => { ch[m] = (ch[m] || 0) - 1; }); plus.forEach(m => { ch[m] = (ch[m] || 0) + 1; });
+            let d = 0; for (const m in ch) if (ch[m]) d += _cM(id, +m, ch[m]) - _cM(id, +m, 0); return d; };
+          const _sig = sl => sl.role + '|' + sl._c.join(',') + '|' + sl._ete + '|' + sl.days.length;
+          const _libresL = slots.filter(sl => !sl.locked && !_fixeP(sl) && sl.days.every(dd => dd.slice(0, 4) === String(year)));
+          const _parSig = {}; _libresL.forEach(sl => { (_parSig[_sig(sl)] = _parSig[_sig(sl)] || []).push(sl); });
+          const _ecM = () => { let n5 = 0, n0 = 0, tot = 0; _docsP.forEach(id => { for (let m = 1; m <= 12; m++) { const c = monthCnt[id][m] || 0, e = (monthExp[id] && monthExp[id][m]) || 0;
+            tot += (c - e) * (c - e); if (c >= 5) n5++; if (c === 0 && e >= 1.5) n0++; } }); return { mois5: n5, mois0: n0, score: Math.round(tot * 10) / 10 }; };
+          const _avL = _ecM(); let _nL = 0;
+          for (let it = 0; it < 3000; it++) {
+            if (Date.now() - _t0L > LISSE_MS) break;
+            let best = null;
+            for (const s1 of _libresL) { const A = _titP(s1); if (!A || _eteN[A] === undefined || _souhP(A, s1)) continue;
+              const ma = _mo(s1);
+              for (const s2 of _parSig[_sig(s1)]) { if (s2 === s1) continue; const B = _titP(s2); if (!B || B === A || _eteN[B] === undefined || _souhP(B, s2)) continue;
+                const mb = _mo(s2); if (ma.join() === mb.join()) continue;
+                const d = _dM(A, ma, mb) + _dM(B, mb, ma);
+                if (d < -LISSE_MIN && (!best || d < best.d - 1e-9) && _possible(A, B, s1, s2)) best = { d, A, B, s1, s2 }; } }
+            if (!best) break;
+            _joue(best); _nL++;
+          }
+          const _apL = _ecM();
+          if (_optimBilan) _optimBilan.lissageMois = { avant: _avL, apres: _apL, echanges: _nL, ms: Date.now() - _t0L };
+          Logger.log('Lissage mensuel : ' + _nL + ' échange(s) neutre(s), mois à 5 gardes ou plus ' + _avL.mois5 + ' → ' + _apL.mois5 + ', mois vides (présent) ' + _avL.mois0 + ' → ' + _apL.mois0 + ', ' + (Date.now() - _t0L) + ' ms');
+          if (_nL) warnings.push('Lissage mensuel : ' + _nL + ' échange(s) de gardes de même nature (aucun compteur ne change) — mois à 5 gardes ou plus ' + _avL.mois5 + ' → ' + _apL.mois5);
+        }
       }
 
       /* ── 8octies. (12/11/2026) RÉA / MATER : INVERSION DES RÔLES D'UNE MÊME NUIT ─────────
@@ -3872,8 +4066,31 @@ function generateGardes(year, opts){
       h18A[f]=choix.Y; h18A[choix.d]=X; _h18Ven.echanges++;
       [X,choix.Y].forEach(id=>{ h18wk[id]=new Set(weekdays.filter(x=>h18A[x.date]===id).map(x=>x.wk)); });
     });
+    /* (14/11/2026) ÉCHANGE À TROIS. Constaté sur l'essai 2027 : 8 vendredis sur 51 restaient
+       à un MAR qui n'est pas de garde le samedi ; sur 5 d'entre eux, un des deux MAR du
+       samedi était libre, mais celui qui tenait le vendredi ne pouvait prendre aucun de ses
+       18 h (absence, un par semaine, pas deux jours de suite). Ici un troisième MAR Z fait
+       le lien : Y (samedi) prend le vendredi et cède son 18 h d1 à Z, qui cède son 18 h d2
+       à X. Chacun garde son nombre de 18 h ; mêmes règles qu'au-dessus ; un vendredi déjà
+       bon n'est jamais défait. */
+    _h18Ven.echanges3=0;
+    _ven.forEach(f=>{
+      const X=h18A[f]; if(!X || _bon(f)) return;   /* passe à trois */
+      const _de=(id,sauf)=>weekdays.map(x=>x.date).filter(d=>h18A[d]===id&&d!==sauf&&!(dayByDate[d].dow===5&&_bon(d)))
+        .sort((p,q)=>Math.abs(_t(p)-_t(f))-Math.abs(_t(q)-_t(f)));
+      let fait=null;
+      for(const Y of _duSamedi(f)){ if(fait||Y===X) continue;
+        for(const d1 of _de(Y,f)){ if(fait) break; if(!_peut(Y,f,d1)) continue;
+          for(const Z of allDoctors){ if(fait) break; if(Z===X||Z===Y) continue;
+            for(const d2 of _de(Z,d1)){ if(d2===f) continue;
+              if(_peut(Z,d1,d2)&&_peut(X,d2,f)){ fait={Y,Z,d1,d2}; break; } } } } }
+      if(!fait) return;
+      h18A[f]=fait.Y; h18A[fait.d1]=fait.Z; h18A[fait.d2]=X; _h18Ven.echanges3++;
+      [X,fait.Y,fait.Z].forEach(id=>{ h18wk[id]=new Set(weekdays.filter(x=>h18A[x.date]===id).map(x=>x.wk)); });
+    });
     _ven.forEach(f=>{ if(!h18A[f]) return; _h18Ven.vendredis++; if(_bon(f)) _h18Ven.conformes++; else _h18Ven.restants.push(f); });
-    Logger.log('18 h du vendredi : '+_h18Ven.conformes+' / '+_h18Ven.vendredis+' à un MAR de garde le samedi, '+_h18Ven.echanges+' échange(s)');
+    Logger.log('18 h du vendredi : '+_h18Ven.conformes+' / '+_h18Ven.vendredis+' à un MAR de garde le samedi, '+_h18Ven.echanges+' échange(s), '+_h18Ven.echanges3+' à trois');
+    if(_h18Ven.echanges3) warnings.push('18 h du vendredi : '+_h18Ven.echanges3+' échange(s) à trois MAR pour le donner à un MAR de garde le samedi (chacun garde son nombre de 18 h)');
     if(_h18Ven.echanges) warnings.push('18 h du vendredi : '+_h18Ven.echanges+' échange(s) de 18 h pour le donner à un MAR de garde le samedi (chacun garde son nombre de 18 h)');
   }
 
@@ -4000,11 +4217,12 @@ function generateGardes(year, opts){
       gardeDoctors.forEach(function(id){
         if(!cnt[id]||!cible[id]) return;
         const cb=cible[id][k]; if(!(cb>0)) return;
-        const e=Math.abs(cnt[id][k]-cb);
+        const e=Math.abs(_ecF(id,k,cnt[id][k]));   // (14/11/2026) écart à la FOURCHETTE de la part (0 = dedans)
         if(e>pire){ pire=e; qui=id; }
       });
       ecarts[k]={ ecart:Math.round(pire*100)/100, mar:qui };
     });
+
     const sansBinome=allDays.filter(function(d){
       const g=gardes[d.date]; return !g||!g.g||!g.g2;
     }).map(function(d){return d.date;});

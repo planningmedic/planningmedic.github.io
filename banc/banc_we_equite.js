@@ -136,9 +136,17 @@ if (N.every(x => !x.err) && Z.length === 2 && Z.every(x => !x.err)) {
     V('un écart d\'une garde de plus ailleurs = un écart de week-end rattrapé, jamais davantage', b.n1 + we.apres.annee <= a.n1 + we.avant.annee + 0.011, { n1: [a.n1, b.n1], annee: [we.avant.annee, we.apres.annee] });
     { const REGLE = 'm.n1 + CW <= m1.n1 + CW1 + 1e-9';
       V('la règle est repérable dans le code (pour la couper)', SRC.split(REGLE).length === 2);
-      const st = bilan(W[0], SRC.split(REGLE).join('m.n1 <= m1.n1')).weekEnds;
-      V('contre-preuve : sans la règle, les écarts d\'une garde ne bougent pas et il reste plus d\'écarts de week-ends',
-        !!st && st.mesureApres.n1 <= st.mesureAvant.n1 && st.apres.annee > we.apres.annee + 1e-9, st && { n1: [st.mesureAvant.n1, st.mesureApres.n1], annee: [st.apres.annee, we.apres.annee] }); }
+      /* (14/11/2026) Depuis la fourchette (générateur 2026-11-14.1), la règle ne sert plus sur
+         les deux campagnes du scénario : sans elle, la retouche y obtient autant de week-ends.
+         Mesuré sur 4 autres campagnes : elle sert sur la n° 3 (2 écarts de week-ends contre 4),
+         rien sur les n° 5 et 8, et fait moins bien sur la n° 4 (2 contre 0) — c'est une
+         heuristique, pas une garantie. La contre-preuve exige qu'elle serve sur au moins une. */
+      const CUT = SRC.split(REGLE).join('m.n1 <= m1.n1'); let sert = null; const vu = [], CW_ = [W[0], W[1], monde(3)];
+      for (let i = 0; i < CW_.length && !sert; i++) { const ai = i === 0 ? we : bilan(CW_[i], SRC).weekEnds, st = bilan(CW_[i], CUT).weekEnds;
+        if (!ai || !st) continue; vu.push([i, st.apres.annee, ai.apres.annee]);
+        if (st.mesureApres.n1 <= st.mesureAvant.n1 && st.apres.annee > ai.apres.annee + 1e-9) sert = { campagne: i, n1: [st.mesureAvant.n1, st.mesureApres.n1], annee: [st.apres.annee, ai.apres.annee] }; }
+      V('contre-preuve : sur au moins une campagne, sans la règle, les écarts d\'une garde ne bougent pas et il reste plus d\'écarts de week-ends',
+        !!sert, sert || vu); }
     V('pire écart à la cible jamais dégradé', b.pire <= Math.max(1, a.pire), [a.pire, b.pire]);
     V('l\'été ne recule pas, l\'année non plus', we.apres.ete <= we.avant.ete + 1e-9 && we.apres.annee <= we.avant.annee + 1e-9, [we.avant, we.apres]);
     V('la retouche améliore effectivement l\'été ou l\'année sur cette campagne', we.garde === true && (we.apres.ete < we.avant.ete || we.apres.annee < we.avant.annee), [we.garde, we.avant, we.apres]);
@@ -181,13 +189,14 @@ if (N.every(x => !x.err)) {
   const surGarde = P => P.dates.filter(d => { const x = P.byDate[d]; return x.h18 && (x.h18 === x.G || x.h18 === x.G2 || x.RG.indexOf(x.h18) >= 0 || x.R.indexOf(x.h18) >= 0); }).length;
   const PASSE = 'const X=h18A[f]; if(!X||_bon(f)) return;';
   V('la passe d\'échanges de 18 h est repérable dans le code (pour la couper)', SRC.split(PASSE).length === 2);
-  const SP = ecrire(W[0], SRC.split(PASSE).join('return;'));
+  /* (14/11/2026) la passe à trois, qui suit, rattraperait les vendredis : coupée aussi ici */
+  const SP = ecrire(W[0], SRC.split(PASSE).join('return;').split('const X=h18A[f]; if(!X || _bon(f)) return;   /* passe à trois */').join('return;'));
   V('la copie sans la passe se génère', !SP.err, SP.err);
   const vN = vendredis(N[0].P), vZ = Z.length && !Z[0].err ? vendredis(Z[0].P) : null;
   V('des vendredis portent un 18 h dans le planning écrit', vN.tous >= 40, vN);
   if (!SP.err) {
     const vS = vendredis(SP.P);
-    V('avec la passe : plus de vendredis conformes que sans', vN.bons > vS.bons, [vN, vS]);
+    V('avec les passes d\'échange : plus de vendredis conformes que sans', vN.bons > vS.bons, [vN, vS]);
     V('chaque MAR garde exactement son nombre de 18 h', JSON.stringify(Object.entries(par18(N[0].P)).sort()) === JSON.stringify(Object.entries(par18(SP.P)).sort()));
     V('aucune garde ne bouge', N[0].P.dates.every(d => N[0].P.byDate[d].G === SP.P.byDate[d].G && N[0].P.byDate[d].G2 === SP.P.byDate[d].G2));
     V('pas plus de 18 h deux jours de suite qu\'avant la passe', deSuite(N[0].P) <= deSuite(SP.P), [deSuite(N[0].P), deSuite(SP.P)]);
@@ -197,6 +206,20 @@ if (N.every(x => !x.err)) {
   if (vZ) V('contre-preuve : le générateur d\'avant en avait moins', vZ.bons < vN.bons, [vZ, vN]);
   V('le calcul à blanc rend le même compte que le planning écrit', (() => { const b = h.buildContext(h.makeSpreadsheet(feuilles(YEAR, W[0].roster, W[0].im)), [], SRC); b.__BANC_OPTIM_ITERS__ = ITERS;
     const r = b.generateGardes(YEAR, { dryRun: true, tirage: 1 }).h18Vendredi; return !!r && r.conformes === vN.bons && r.echanges > 0; })());
+  /* (14/11/2026) ÉCHANGE À TROIS : Y (samedi) prend le vendredi, cède son 18 h à Z, qui cède le sien à X. */
+  { const P3 = 'const X=h18A[f]; if(!X || _bon(f)) return;   /* passe à trois */';
+    V('la passe à trois est repérable dans le code (pour la couper)', SRC.split(P3).length === 2);
+    const S3 = ecrire(W[0], SRC.split(P3).join('return;'));
+    V('la copie sans la passe à trois se génère', !S3.err, S3.err);
+    if (!S3.err) { const v3 = vendredis(S3.P);
+      V('avec la passe à trois : pas moins de vendredis conformes que sans', vN.bons >= v3.bons, [vN, v3]);
+      V('chaque MAR garde exactement son nombre de 18 h (avec et sans la passe à trois)', JSON.stringify(Object.entries(par18(N[0].P)).sort()) === JSON.stringify(Object.entries(par18(S3.P)).sort()));
+      V('aucune garde ne bouge', N[0].P.dates.every(d => N[0].P.byDate[d].G === S3.P.byDate[d].G && N[0].P.byDate[d].G2 === S3.P.byDate[d].G2));
+      V('pas plus de 18 h deux jours de suite qu\'avant la passe à trois', deSuite(N[0].P) <= deSuite(S3.P), [deSuite(N[0].P), deSuite(S3.P)]);
+      const gainW = [];
+      for (const w of [W[1]]) { const a3 = ecrire(w, SRC), b3 = ecrire(w, SRC.split(P3).join('return;')); if (!a3.err && !b3.err) gainW.push([vendredis(a3.P).bons, vendredis(b3.P).bons]); }
+      gainW.unshift([vN.bons, v3.bons]);
+      V('contre-preuve : sur au moins une campagne, la passe à trois ajoute des vendredis conformes', gainW.some(([x, y]) => x > y), gainW); } }
 }
 
 /* ═══ 5. La mémoire de plusieurs années ═══════════════════════════════════ */

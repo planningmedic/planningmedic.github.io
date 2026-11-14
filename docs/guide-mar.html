@@ -594,7 +594,7 @@
     <ul>
       <li><b>Un souhait ne vous donne pas une garde en plus.</b> Il déplace une garde que vous auriez faite de toute façon, à la date que vous préférez. Votre nombre de gardes dans l'année ne change pas.</li>
       <li><b>Un souhait refusé ne vous fait rien perdre.</b> La garde vous revient à une autre date.</li>
-      <li><b>L'équité passe avant le souhait.</b> Si une garde souhaitée vous met au-dessus de votre cible sur un compteur (week-ends, jeudis, fériés…) pendant qu'un collègue est en dessous, elle peut lui revenir.</li>
+      <li><b>L'équité passe avant le souhait.</b> Si une garde souhaitée vous met au-dessus de votre fourchette sur un compteur (week-ends, jeudis, fériés…) pendant qu'un collègue est en dessous, elle peut lui revenir.</li>
       <li><b>Un lundi, un mardi, un mercredi : autant de demandes que vous voulez.</b> Ces jours sont nombreux, mais une demande n'est pas une réservation : si plusieurs MARs visent la même date, tous ne l'auront pas.</li>
       <li><b>Un jeudi, un samedi ou un week-end (vendredi et dimanche) : autant de demandes que votre part le permet</b> — environ cinq ou six de chaque par an pour un temps plein. Si vous en demandez davantage, le calcul en retient autant que votre part, <b>réparties sur toute l'année</b> : pas seulement les premières du calendrier.</li>
       <li><b>Un jour férié : une seule demande par an</b>, tous jours fériés confondus. Elle vaut aussi pour un week-end ou un samedi de pont qui contient un férié. Il n'y en a qu'une douzaine par an pour toute l'équipe. <b>L'écran vous laissera en cocher davantage</b> — contrairement aux indisponibilités, il ne refuse rien ici — mais une seule sera accordée : en priorité celle qui couvre le plus de jours demandés (un samedi et le lundi férié qui le suit, plutôt qu'un férié seul), puis la moins demandée par vos collègues. Si elle ne peut pas l'être, la suivante. Même règle pour une veille de férié qui tombe un jeudi. Un vendredi, un samedi ou un dimanche, elle compte comme un week-end ordinaire, dans la limite de votre part.</li>
@@ -966,17 +966,17 @@
   <div class="corps">
     <p>Avant de placer la moindre garde, le calcul détermine votre <b>cible</b> : le nombre de gardes que vous devez faire dans l'année. Pas une cible unique, mais une par type de jour : week-ends, samedis, jeudis, veilles de férié, fériés, et le total.</p>
 
-    <h3>Votre cible est un nombre entier</h3>
-    <p>Votre part se calcule d'abord avec une virgule — « 5,4 samedis » — puis elle est arrondie en nombre entier, parce que personne ne peut faire 5,4 samedis. <b>Faire pile sa cible est donc possible, et c'est le cas le plus fréquent.</b></p>
-    <p>L'écart affiché dans la vue Équité mesure alors une seule chose : la différence entre ce que vous avez fait et ce que vous deviez.</p>
+    <h3>Votre part, et sa fourchette</h3>
+    <p>Votre part se calcule avec une virgule — « 5,4 samedis ». Personne ne peut faire 5,4 samedis : votre part donne donc une <b>fourchette</b>, 5 ou 6. <b>Tous les MARs de même part ont la même fourchette</b>, sur chaque compteur, et le calcul vise que chacun soit dedans.</p>
+    <p>Surtout, <b>deux MARs de même part ne sont jamais à plus d'une garde l'un de l'autre</b> sur un même compteur, sauf cas rare signalé (absences ou souhaits qui ne laissent aucun échange possible). Dans la vue Équité, un écart d'une garde avec la cible affichée peut donc être normal : ce qui compte, c'est d'être dans la fourchette.</p>
+    <p>Vos gardes sont aussi <b>étalées sur l'année</b> : le calcul évite les mois très chargés suivis de mois vides, en échangeant des gardes de même nature entre collègues. Ces échanges ne changent aucun compteur. Un mois de vacances reste un mois sans garde.</p>
     <p><b>Et les week-ends ?</b> À quotité et présence égales, deux MAR visent le même nombre de week-ends de garde sur l'année, à 1 près — jamais 2. Le calcul partage aussi les week-ends de juillet-août, et équilibre pour chacun les gardes en réanimation et en maternité. L'ordre alphabétique ne départage jamais personne.</p>
-    <p><b>« Untel est à +1, un autre à −1 : pourquoi ne pas échanger ? »</b> C'est ce que fait la dernière étape du calcul : elle fait passer une garde de celui qui est au-dessus de sa cible à celui qui est en dessous, sur chaque compteur, chaque fois que les règles le permettent. Les écarts d'une garde qui restent tiennent aux arrondis ou à des absences, et sont rendus l'année suivante.</p>
+    <p><b>« Untel est à +1, un autre à −1 : pourquoi ne pas échanger ? »</b> C'est ce que fait la dernière étape du calcul : elle fait passer une garde de celui qui est au-dessus de sa fourchette, ou à deux gardes d'un collègue de même part, à celui qui est en dessous, sur chaque compteur, chaque fois que les règles le permettent. Un écart qui reste est rendu l'année suivante.</p>
 
     <div class="ex">
-      <span class="et">Exemple — de la virgule à l'entier</span>
-      <p>Trois MARs, 10 samedis à répartir. Leurs parts exactes sont 3,4 · 3,3 · 3,3.</p>
-      <p>On donne d'abord à chacun sa part entière : <b>3 · 3 · 3</b>. Neuf samedis sont placés, il en reste un.</p>
-      <p>Ce dernier samedi va à celui dont la virgule était la plus grande, le 3,4. Cibles finales : <b>4 · 3 · 3</b>. La somme fait exactement 10 : aucun samedi ne se perd, aucun ne se dédouble.</p>
+      <span class="et">Exemple — de la virgule à la fourchette</span>
+      <p>Trois MARs à temps plein, 10 samedis à répartir. Chacun a la même part : 3,33 samedis, donc la même fourchette : <b>3 ou 4</b>.</p>
+      <p>Répartition : <b>4 · 3 · 3</b>. Tout le monde est dans sa fourchette, et personne n'est à plus d'un samedi d'un autre. Qui fait le 4 ? Celui que les absences et les souhaits rendent le plus facile à placer ; l'an prochain, le retard des deux autres est compté.</p>
     </div>
 
     <h3>Ce qui fait varier votre cible</h3>

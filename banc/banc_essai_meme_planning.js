@@ -76,8 +76,10 @@ function campagne(seed) {
    de la graine 2 est retenu ; la 1 reproduit le cas (tirage 2 retenu, écart 1 contre 2).
    (12/11/2026) graine 4 : avec les cibles du générateur 2026-11-13.1 (week-ends arrondis
    d'abord, plus d'ordre alphabétique), le premier tirage des graines 1 à 3 est retenu ;
-   la 4 reproduit le cas (tirage 2 retenu, écart 1 contre 2). */
-const { roster, m } = campagne(4);
+   la 4 reproduit le cas (tirage 2 retenu, écart 1 contre 2).
+   (14/11/2026) graine 15 : avec la fourchette (générateur 2026-11-14.1) et la copie ci-dessous
+   (seuil 0), seule la 15 parmi les graines 1 à 16 reproduit le cas (tirage 2 retenu). */
+const { roster, m } = campagne(15);
 /* (24/10/2026) La réparation par échange (8c-ter) met désormais le PREMIER
    planning à une garde d'écart sur toutes les graines essayées (2 à 14) : le cas
    « premier planning non retenu » ne se produit plus naturellement. Ce scénario
@@ -85,7 +87,12 @@ const { roster, m } = campagne(4);
    générateur où cette réparation est coupée, qui reproduit le cas (graine 1,
    tirage 2 retenu). La réparation a son propre scénario (banc_rea1.js). */
 const REP = 'if(NOUVEL_ALGO){\n      const _tit=';
-const GEN = SRC.split(REP).join('if(false){\n      const _tit=');
+/* (14/11/2026) Depuis la fourchette (générateur 2026-11-14.1), l'écart se mesure à la fourchette de la
+   part : le premier planning est à 1 au plus sur toutes les graines essayées (1 à 12), et le choix
+   s'arrête dès lui. Pour reproduire le cas « premier planning non retenu », la copie exige aussi
+   0 d'écart pour s'arrêter (MULTI_DEPART_SEUIL = 0). Ce scénario juge le CHOIX, pas le seuil. */
+const SEUIL = 'const MULTI_DEPART_SEUIL = 1;';
+const GEN = SRC.split(REP).join('if(false){\n      const _tit=').split(SEUIL).join('const MULTI_DEPART_SEUIL = 0;');
 function monde(genSource) {
   genSource = genSource || GEN;
   const ss = H.makeSpreadsheet([

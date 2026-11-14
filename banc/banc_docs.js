@@ -453,8 +453,11 @@ console.log('\n═══ 13. Chaque scénario du banc est lancé par lancer.sh �
     !fs.existsSync('../docs/guide-algo-gardes.html'));
   V('aucun lien ne pointe plus vers la page supprimée',
     !/guide-algo-gardes\.html/.test(mar) && !/guide-algo-gardes\.html/.test(lire('docs/README.md')));
-  V('le guide annonce des cibles entières',
-    /Votre cible est un nombre entier/.test(mar) && /[Ff]aire pile sa cible/.test(mar));
+  /* (14/11/2026) LA FOURCHETTE (générateur 2026-11-14.1) : la part n'est plus arrondie en une cible
+     entière propre à chacun ; le guide doit l'expliquer, et ne plus promettre « pile sa cible ». */
+  V('le guide explique la part et sa fourchette, sans plus annoncer de cible entière',
+    /Votre part, et sa fourchette/.test(mar) && /Tous les MARs de même part ont la même fourchette/.test(mar)
+    && /jamais à plus d'une garde l'un de l'autre/.test(mar) && !/Votre cible est un nombre entier/.test(mar) && !/[Ff]aire pile sa cible/.test(mar));
   /* (11/09/2026) Deux week-ends d'affilée ne sont PAS un interdit absolu : le
      calcul se l'autorise quand une journée resterait sans personne. Le guide les
      listait parmi les interdits tout en décrivant la tolérance quatre paragraphes

@@ -1229,7 +1229,7 @@ que le même binôme les tient) sont inversées d'un bloc ; si une nuit solidair
 rôles dépareillés, tout est remis comme avant. Bilan dans <code>optim.roles</code>. Ces deux passes ne
 tournent que dans la génération complète, pas pendant le choix du tirage. Scénario :
 <code>banc/banc_we_equite.js</code>.</p>
-<p><b>Passe 8nonies — appariement des +1 et des −1 (générateur 2026-11-13.5, mesures rectifiées en 13.7).</b> Placée après la retouche
+<p><b>Passe 8nonies — appariement des +1 et des −1 (générateur 2026-11-13.5, relais et fourchette en 2026-11-14.1).</b> Placée après la retouche
 des week-ends et avant 8octies, dans le même bloc que l'optimisation finale (donc ni pendant le choix du
 tirage, ni quand <code>OPTIM_ITERS</code> vaut 0). Elle cherche, sans hasard, le transfert ou l'échange de
 créneaux qui remet le plus de compteurs pile sur leur cible entière (<code>cible − dette</code>) : total,
@@ -1250,7 +1250,57 @@ le coût d'un compteur à 2 de sa cible (100) interdit d'en créer. Plafond de t
 32 → 24 écarts d'une garde (dont 12 dus aux arrondis des cibles ; restent 6 fériés, 4 samedis et
 2 vendredis ; un jeudi férié compte sur l'axe des fériés, pas sur celui des jeudis), 21 MAR sur 21 pile sur
 leurs week-ends, 1 MAR encore à 3 week-ends d'été, 6 souhaits retirés et 2 accordés ; 8 s chez Google,
-168 s pour l'essai entier. Scénario : <code>banc/banc_appariement.js</code>.</p>
+168 s pour l'essai entier.</p>
+<p><b>Le relais (générateur 2026-11-14.1).</b> Sur l'essai ci-dessus, 3 MAR restaient à +1 férié face à 3
+à −1 : aucun échange direct n'était possible, et la recherche générale, bornée à <code>APP_ESSAIS</code>
+premiers coups parmi des milliers, ne trouvait pas l'échange à trois qui existait. Le relais le cherche de
+façon ciblée, compteur par compteur (et pour les week-ends de juillet-août) : un troisième MAR, pile sur
+ce compteur, donne au MAR en dessous un créneau qui porte ce compteur, et reçoit celui du MAR au-dessus ;
+chacun des deux coups peut rendre une garde qui ne le porte pas. Mêmes règles et mêmes coûts que le
+reste de la passe. La passe fait désormais <b>deux parcours</b> à partir du même planning — relais tenté
+avant la recherche générale, puis après — et garde celui dont le coût total est le plus bas : aucun des
+deux ordres ne gagne toujours. Chaque parcours dispose de la moitié de <code>APP_LIMITE_MS</code>.
+<code>__BANC_RELAIS__</code> coupe le relais au banc ; le bilan compte les relais joués
+(<code>optim.appariement.relais</code>). Scénario : <code>banc/banc_appariement.js</code>.</p>
+<p><b>La fourchette (générateur 2026-11-14.1).</b> Constat du 13/11/2026 : la part exacte est la même pour
+tous les MAR de même quotité et même présence (2027 : 36,66 gardes, 5,51 samedis, 1,38 férié pour un temps
+plein), mais l'arrondi en cible entière la répartissait au gré d'un départage (37 ou 36 ; 6 ou 5 samedis),
+et tout le calcul visait ces cibles : l'équipe voyait des cibles différentes à part égale, et il restait des
+écarts de 2 entre collègues. Désormais l'écart se mesure à la <b>fourchette</b> : [arrondi inférieur,
+arrondi supérieur] de (part exacte − report), lue avant la remise à zéro du report (<code>VISEE</code>,
+<code>_ecF</code>). L'optimiseur (coût de transfert et objectif lexicographique, sans seuil), la réparation
+par échange, la mesure du choix du tirage et de l'optimisation finale, et la passe 8nonies jugent tous à la
+fourchette. Les week-ends gardent leur nombre entier, les régimes à part leur cible. Les cibles entières
+restent calculées (construction, souhaits, affichage). <b>Écart entre collègues</b> : la fourchette seule
+laissait un MAR forcé sous sa fourchette (35) à côté d'un collègue de même part monté à 37 ; la passe 8nonies
+paie donc aussi l'excès d'écart (au-delà de 1) dans chaque groupe de même part, compteur par compteur
+(<code>APP_ECART</code> = 1), et peut déplacer un MAR qui est dans sa fourchette mais à l'extrémité d'un groupe
+trop étalé. Bilan : <code>optim.appariement.ecartCollegues</code> (avant, après).
+<code>__BANC_FOURCHETTE__ = false</code> revient aux cibles entières, <code>__BANC_ECART__ = false</code> coupe l'écart entre collègues. Mesuré au simulateur sur les
+indisponibilités 2027 du 13/11/2026 (pas encore chez Google) : compteurs hors fourchette 8 → 0, écarts de 2
+entre collègues de même part 6 → 0, 21 MAR sur 21 pile sur leurs week-ends, personne à 3 week-ends d'été,
+souhaits utiles 235 → 230. Sur 3 années fictives : hors fourchette 7, 7, 8 contre 9, 9, 13 avant ; écarts de 2
+entre collègues 2, 2, 2 contre 1, 2, 2 avant (limite connue). Le choix du meilleur tirage juge lui aussi à la
+fourchette (<code>r.ecarts</code>). Effet de bord : l'optimisation finale (recuit) ne trouve plus d'état meilleur
+et sûr ; son garde-fou la rend sans risque. Le relais n'améliore plus aucun résultat mesuré ; gardé, sans coût. Limite connue : sur une des 3 années fictives,
+5 vendredis-dimanches rompus contre 3 avant (0 sur 2027 réel).</p>
+<p><b>18 h du vendredi : échange à trois (générateur 2026-11-14.1).</b> Après l'échange un pour un, pour chaque
+vendredi encore à un MAR qui n'est pas de garde le samedi : Y (MAR du samedi) prend le vendredi et cède un de ses
+18 h à un troisième MAR Z, qui cède un des siens au MAR X qui tenait le vendredi. Chacun garde son nombre de 18 h,
+mêmes règles qu'à la pose, aucune garde ne bouge, un vendredi déjà bon n'est jamais défait. Mesuré sur 2027 :
+43 → 46 vendredis sur 51 ; parmi les 5 restants, 3 sont impossibles (les deux MAR du samedi en repos de garde après
+un jeudi férié, ou en vacances le 24/12). Bilan : <code>h18Vendredi.echanges3</code>.</p>
+<p><b>Lissage mensuel (étape 8decies, générateur 2026-11-14.1).</b> À la fin de la passe 8nonies : échanges
+NEUTRES de deux créneaux de même signature (rôle, apport à chaque compteur, week-end d'été, durée) entre deux MAR,
+quand ils baissent d'au moins 0,5 la somme des (gardes du mois − attendu du mois)² des deux MAR ; l'attendu est
+<code>monthExp</code> (part × jours présents du mois). Jamais un souhait, une fête, un vendredi ou dimanche seul, un
+créneau verrouillé ; <code>canHold</code> et pas de garde-repos-garde créé (<code>_possible</code>). Aucun compteur ne
+bouge ; l'inversion réa/maternité (8octies), qui suit, repart du planning lissé. Plafond 15 s, jamais atteint mesuré.
+<code>__BANC_LISSAGE__ = false</code> le coupe ; bilan <code>optim.lissageMois</code>. Mesuré sur 2027 (MAR de garde, mois
+de l'année) : mois à 5 gardes ou plus 19 → 8, mois à 1 garde 26 → 12, mois à 0 hors longue absence 3 → 0,
+37 échanges, 1 s. Reste un mois à 7 gardes : deux week-ends et trois souhaits du même MAR. Scénario :
+<code>banc/banc_lissage_mois.js</code>. Vitesse : <code>APP_ESSAIS</code> ramené de 400 à 100 (même résultat mesuré de 60 à 400) : dernière passe 1 à 2 s sur 2027, 7 à 17 s sur des années fictives, sur ma machine. Scénario :
+<code>banc/banc_fourchette.js</code>.</p>
 <p><b>18 h du vendredi (générateur 2026-11-13.1).</b> Il revient à l'un des <b>deux</b> MAR de garde le
 samedi — réa d'abord, maternité sinon (le code n'essayait que la réa). Les 18 h étant posés du lundi au
 vendredi, le MAR du samedi a souvent déjà eu le sien : une passe d'échanges <b>un pour un</b> rattrape

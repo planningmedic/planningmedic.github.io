@@ -16,6 +16,13 @@
    cela. Jamais sur les fêtes ; toutes les règles dures tiennent ; aucune
    « garde, repos, garde » n'est créée.
 
+   GÉNÉRATEUR 2026-11-14.1 : LE RELAIS.
+   Essai de génération chez Google du 13/11/2026 : 3 MAR à +1 férié, 3 à −1, aucun
+   échange direct possible ; l'échange à trois existait, la recherche générale ne
+   le trouvait pas. Le relais le cherche de façon ciblée, et la passe fait deux
+   parcours (relais avant ou après la recherche générale) dont elle garde le
+   meilleur. Contre-preuve : relais coupé (__BANC_RELAIS__ = false).
+
    CONTRE-PREUVES : le même générateur, passe coupée (__BANC_APPARIEMENT__ = false),
    sur les mêmes campagnes fictives.
 
@@ -51,9 +58,9 @@ function monde(k) {
   return { roster, im: D.buildAbsences(YEAR, roster, k, { souhaitsEtendus: true }) };
 }
 const AXES = ['total', 'sam', 'jeu', 'vd', 'vjf', 'jf'];
-function passer(w, allume) {
+function passer(w, allume, sansRelais) {
   const prep = () => { const ss = h.makeSpreadsheet(feuilles(w)), logs = []; const ctx = h.buildContext(ss, logs, SRC);
-    ctx.__BANC_OPTIM_ITERS__ = ITERS; ctx.__BANC_APPARIEMENT__ = allume; return { ss, logs, ctx }; };
+    ctx.__BANC_OPTIM_ITERS__ = ITERS; ctx.__BANC_APPARIEMENT__ = allume; if (sansRelais) ctx.__BANC_RELAIS__ = false; return { ss, logs, ctx }; };
   const a = prep(); let err = null, r = null;
   try { r = a.ctx.generateGardes(YEAR, { dryRun: true, tirage: 1 }); } catch (e) { err = e.message; }
   if (err || !r) return { err: err || 'pas de résultat' };
@@ -62,14 +69,20 @@ function passer(w, allume) {
   const fer = new Set([...b.ctx.getJoursFeries(YEAR), ...b.ctx.getJoursFeries(YEAR + 1)]);
   const inv = A.checkInvariants(P, { indisposMap: w.im, ctxFeries: fer, roster: w.roster });
   const ids = Object.keys(r.cibles).filter(id => r.cibles[id] && r.cibles[id].total > 0 && r.compteurs[id]);
-  let n1 = 0, n2 = 0; ids.forEach(id => AXES.forEach(ax => { const e = Math.abs((r.compteurs[id][ax] || 0) - (r.cibles[id][ax] || 0)); if (e >= 1.5) n2++; else if (e >= 0.5) n1++; }));
+  /* (14/11/2026) écart mesuré à la FOURCHETTE de la part exacte (générateur 2026-11-14.1) */
+  const fk = (id, ax) => { const ex = (r.partExacte[id] || {})[ax]; const v = r.compteurs[id][ax] || 0;
+    if (ex === undefined) return v - (r.cibles[id][ax] || 0); const lo = Math.floor(ex + 1e-9), hi = Math.ceil(ex - 1e-9); return v < lo ? v - lo : (v > hi ? v - hi : 0); };
+  let n1 = 0, n2 = 0; ids.forEach(id => AXES.forEach(ax => { const e = Math.abs(fk(id, ax)); if (e >= 1.5) n2++; else if (e >= 0.5) n1++; }));
+  /* (14/11/2026) écart entre collègues de même part : excès au-delà de 1, compteur par compteur */
+  let ec = 0; AXES.forEach(ax => { const g = {}; ids.forEach(id => { const ex = (r.partExacte[id] || {})[ax]; if (ex === undefined) return; const k = ex.toFixed(3); (g[k] = g[k] || []).push(r.compteurs[id][ax] || 0); });
+    Object.values(g).forEach(v => { if (v.length > 1) ec += Math.max(0, Math.max(...v) - Math.min(...v) - 1); }); });
   /* garde, repos, garde (hors vendredi-dimanche) et gardes par MAR, lus sur le planning écrit */
   let grg = 0, nuits = 0; const ecrit = {};
   Object.keys(P.byDoc).forEach(id => { const g = Object.keys(P.byDoc[id]).filter(d => P.byDoc[id][d] === 'G' || P.byDoc[id][d] === 'G2').sort(); ecrit[id] = g.length; nuits += g.length;
     g.forEach(d => { const d2 = A.addD(d, 2); if (A.DOW(d) !== 5 && (P.byDoc[id][d2] === 'G' || P.byDoc[id][d2] === 'G2')) grg++; }); });
   const souhaits = Object.values(r.souhaits || {}).reduce((t, x) => t + (x.honores || 0), 0);
   const meme = ids.every(id => ecrit[id] === r.compteurs[id].total);
-  return { r, n1, n2, grg, nuits, inv: inv.errs, souhaits, meme, app: (r.optim || {}).appariement, sansBinome: r.sansBinome, logs: a.logs };
+  return { r, n1, n2, ec, grg, nuits, inv: inv.errs, souhaits, meme, app: (r.optim || {}).appariement, sansBinome: r.sansBinome, logs: a.logs };
 }
 console.log('\n═══ 1. Trois campagnes fictives, passe allumée puis coupée ═══');
 const W = [monde(1), monde(2), monde(3)];
@@ -79,8 +92,11 @@ V('contre-preuve : les mêmes campagnes se génèrent, passe coupée', OFF.every
 if (ON.every(x => !x.err) && OFF.every(x => !x.err)) {
   V('passe coupée : aucun bilan d\'appariement (la contre-preuve coupe bien la passe)', OFF.every(x => !x.app));
   V('passe allumée : un bilan d\'appariement est rendu par le calcul à blanc', ON.every(x => x.app && typeof x.app.avant === 'number'));
-  V('jamais plus d\'écarts d\'une garde qu\'avec la passe coupée', ON.every((x, i) => x.n1 <= OFF[i].n1), ON.map((x, i) => [x.n1, OFF[i].n1]));
-  V('au moins une campagne où la passe en retire (sinon ce scénario ne prouve rien)', ON.some((x, i) => x.n1 < OFF[i].n1), ON.map((x, i) => [x.n1, OFF[i].n1]));
+  /* (14/11/2026) la passe arbitre désormais entre « hors fourchette » et « écart entre collègues » (même
+     poids) : elle peut accepter un compteur hors fourchette de plus pour défaire un écart de 2 entre
+     collègues. On juge donc la somme des deux. */
+  V('jamais plus d\'écarts (hors fourchette + écarts entre collègues) qu\'avec la passe coupée', ON.every((x, i) => x.n1 + x.ec <= OFF[i].n1 + OFF[i].ec), ON.map((x, i) => [x.n1 + '+' + x.ec, OFF[i].n1 + '+' + OFF[i].ec]));
+  V('au moins une campagne où la passe en retire (sinon ce scénario ne prouve rien)', ON.some((x, i) => x.n1 + x.ec < OFF[i].n1 + OFF[i].ec), ON.map((x, i) => [x.n1 + x.ec, OFF[i].n1 + OFF[i].ec]));
   V('aucun compteur à 2 gardes de sa cible de plus qu\'avant', ON.every((x, i) => x.n2 <= OFF[i].n2), ON.map((x, i) => [x.n2, OFF[i].n2]));
   V('le bilan de la passe ne ment pas : elle ne finit jamais avec plus d\'écarts qu\'elle n\'en a trouvé', ON.every(x => x.app.apres <= x.app.avant), ON.map(x => [x.app.avant, x.app.apres]));
   console.log('\n═══ 2. Les règles tiennent ═══');
@@ -95,6 +111,22 @@ if (ON.every(x => !x.err) && OFF.every(x => !x.err)) {
   V('quand la passe déplace des gardes, elle le dit au comité (message du compte rendu)',
     ON.every(x => !x.app.creneaux || (x.r.warnings || []).some(m => /^Appariement : /.test(m))), ON.map(x => x.app.creneaux));
   V('été : personne de plus au-dessus de sa part de week-ends de juillet-août', ON.every(x => x.app.ete3Apres <= x.app.ete3Avant), ON.map(x => [x.app.ete3Avant, x.app.ete3Apres]));
+  console.log('\n═══ 3 bis. Le relais : un troisième MAR sert d\'intermédiaire ═══');
+  V('le relais est présent, allumé en production, et le banc peut le couper', /const _relais = \(fin\) =>/.test(bloc) && /function _relaisOn_\(\)\{ return \(typeof __BANC_RELAIS__ === 'boolean'\) \? __BANC_RELAIS__ : true; \}/.test(SRC));
+  V('deux parcours depuis le même planning, le moins coûteux est gardé', /_parcours\(true, /.test(bloc) && /_parcours\(false, /.test(bloc) && /_pA\.tot < _pB\.tot/.test(bloc) && /_defaire\(_pA\.jnl\)/.test(bloc));
+  const SR = W.map(w => passer(w, true, true));
+  V('contre-preuve : les mêmes campagnes se génèrent, relais coupé', SR.every(x => !x.err), SR.map(x => x.err));
+  if (SR.every(x => !x.err)) {
+    V('relais coupé : le bilan n\'en compte aucun (la contre-preuve coupe bien le relais)', SR.every(x => x.app && x.app.relais === 0), SR.map(x => x.app && x.app.relais));
+    V('relais allumé : au moins un relais joué sur ces campagnes (sinon ce scénario ne prouve rien)', ON.some(x => x.app.relais > 0), ON.map(x => x.app.relais));
+    /* (14/11/2026) Depuis la fourchette et l'écart entre collègues, le relais n'améliore plus aucun résultat
+       mesuré (2027 réel ; 9 années fictives : joué sur 3, même résultat sans lui). Il est gardé parce qu'il
+       ne coûte rien ; on vérifie seulement qu'il ne fait jamais moins bien. */
+    V('jamais plus d\'écarts (hors fourchette + écarts entre collègues) qu\'avec le relais coupé', ON.every((x, i) => x.n1 + x.ec <= SR[i].n1 + SR[i].ec), ON.map((x, i) => [x.n1 + x.ec, SR[i].n1 + SR[i].ec]));
+    V('aucun compteur à 2 gardes de sa cible de plus qu\'avec le relais coupé', ON.every((x, i) => x.n2 <= SR[i].n2), ON.map((x, i) => [x.n2, SR[i].n2]));
+    V('aucune règle dure de plus enfreinte, aucune « garde, repos, garde » de plus qu\'avec le relais coupé', ON.every((x, i) => x.inv.length <= SR[i].inv.length && x.grg <= SR[i].grg), ON.map((x, i) => [x.inv.length, SR[i].inv.length, x.grg, SR[i].grg]));
+    V('la recherche n\'est écourtée sur aucune campagne (sinon le calcul à blanc et la génération pourraient différer)', ON.every(x => !x.app.coupe), ON.map(x => [x.app.coupe, x.app.ms]));
+  }
   console.log('\n═══ 4. Pendant le choix du tirage, la passe ne tourne pas ═══');
   { const ctx = h.buildContext(h.makeSpreadsheet(feuilles(W[0])), [], SRC); ctx.__BANC_OPTIM_ITERS__ = ITERS;
     const r = ctx.generateGardes(YEAR, { dryRun: true, tirage: 1, selection: true });

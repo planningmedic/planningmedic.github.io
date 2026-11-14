@@ -121,7 +121,12 @@ console.log('\n═══ 3. Un nom inconnu est signalé, pas ignoré en silence 
 console.log('\n═══ 4. Réparation par échange : sans elle, l\'écart remonte ═══');
 {
   /* Contre-preuve : la même campagne, réparation coupée. On cherche un tirage où
-     elle a servi ; sur ce tirage, sans elle, un axe dépasse une garde d'écart. */
+     elle a servi ; sur ce tirage, sans elle, un axe dépasse une garde d'écart.
+     (14/11/2026) Depuis la fourchette, l'écart se mesure à la fourchette de la part et
+     l'optimiseur y ramène déjà chacun à 1 près : la réparation se voit au NOMBRE de
+     compteurs hors fourchette, pas au pire écart. */
+  const horsF = r => { let n = 0; Object.keys(r.compteurs || {}).forEach(id => { const ex = (r.partExacte || {})[id]; if (!ex) return;
+    ['total', 'sam', 'jeu', 'vd', 'vjf', 'jf'].forEach(k => { if (ex[k] === undefined) return; const v = r.compteurs[id][k] || 0, lo = Math.floor(ex[k] + 1e-9), hi = Math.ceil(ex[k] - 1e-9); if (v < lo || v > hi) n++; }); }); return n; };
   const LIGNE = "      if(_rep) Logger.log('Réparation par échange : '+_rep+' échange(s)');";
   V('la réparation est présente dans le générateur du dépôt', SRC.split(LIGNE).length === 2);
   const SANS = SRC.split('if(NOUVEL_ALGO){\n      const _tit=').join('if(false){\n      const _tit=');
@@ -130,16 +135,19 @@ console.log('\n═══ 4. Réparation par échange : sans elle, l\'écart remo
   for (const seed of [3, 5, 8, 11, 2]) {
     const j = jeu(seed);
     for (let t = 1; t <= 4 && !trouve; t++) {
-      const la = [], ctxA = h.buildContext(classeur(j, true), la, null);
+      /* (14/11/2026) la dernière passe (appariement), qui vient après et répare elle aussi, est coupée
+         des deux côtés : ce scénario juge la réparation seule. */
+      const la = [], ctxA = h.buildContext(classeur(j, true), la, null); ctxA.__BANC_APPARIEMENT__ = false;
       const ra = ctxA.generateGardes(YEAR, { dryRun: true, tirage: t });
       if (!la.some(l => /Réparation par échange : \d+/.test(l))) continue;
-      const rb = h.buildContext(classeur(j, true), [], SANS).generateGardes(YEAR, { dryRun: true, tirage: t });
-      trouve = { seed, t, avec: pire(ra), sans: pire(rb) };
+      const cB = h.buildContext(classeur(j, true), [], SANS); cB.__BANC_APPARIEMENT__ = false;
+      const rb = cB.generateGardes(YEAR, { dryRun: true, tirage: t });
+      trouve = { seed, t, avec: pire(ra), sans: pire(rb), horsAvec: horsF(ra), horsSans: horsF(rb) };
     }
     if (trouve) break;
   }
   V('un tirage où la réparation a servi existe dans les jeux d\'essai', !!trouve, trouve);
-  if (trouve) V('sur ce tirage, SANS la réparation, l\'écart est plus grand qu\'AVEC', trouve.sans > trouve.avec && trouve.avec <= 1, trouve);
+  if (trouve) V('sur ce tirage, SANS la réparation, plus de compteurs hors fourchette qu\'AVEC, et jamais un écart plus petit', trouve.horsSans > trouve.horsAvec && trouve.sans >= trouve.avec && trouve.avec <= 1, trouve);
 }
 
 console.log('\n═══ 5. Couple de week-end : la règle s\'assouplit au lieu de casser l\'équité ═══');

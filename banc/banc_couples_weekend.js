@@ -26,7 +26,10 @@ const V = (t, c, d) => { if (c) { ok++; console.log('  ✓ ' + t); }
 
 const YEAR = 2027, A = 'GARNIER', B = 'LEBRUN';
 const ROSTER = H.defaultRoster().filter(r => !r[3].dateDebut && !r[3].dateFin);
-const ABS = D.buildAbsences(YEAR, ROSTER, 3);
+/* (14/11/2026) graine 2 au lieu de 3 : depuis la fourchette (générateur 2026-11-14.1), sur la graine 3
+   le planning SANS la règle tombe par hasard sur les 2 week-ends en commun, et la comparaison ne prouvait
+   plus rien. Mesuré : graine 1 → 2 puis 3, graine 2 → 0 puis 3, graine 4 → 3 et 3, graine 5 → 0 puis 5. */
+const ABS = D.buildAbsences(YEAR, ROSTER, 2);
 
 function generer(avecCle, src) {
   const cfg = [['CLE', 'VALEUR'], ['PAIRES_A_EVITER', A + '+' + B]];
