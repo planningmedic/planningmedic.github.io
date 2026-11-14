@@ -41,7 +41,7 @@
 // ⚠️ RÈGLE (détecteur de dérive dépôt↔Apps Script) : incrémenter cette version
 // à CHAQUE push de ce fichier. Le diagnostic (admin → Maintenance) compare la
 // version déployée ici avec celle du dépôt et signale toute recopie oubliée.
-const GAS_VERSION_GENERATEUR = '2026-11-14.1';   // (14/11/2026) lissage mensuel par échanges neutres (aucun compteur ne bouge) · 18 h du vendredi : échange à trois MAR en plus de l'échange un pour un · écart entre collègues de même part payé dans la dernière passe · LA FOURCHETTE : plus de cible tirée au sort entre MAR de même part ; tout le calcul vise que chacun soit entre l'arrondi inférieur et supérieur de sa part exacte, sur chaque compteur (les week-ends gardent leur nombre entier, égal à part égale) · (13/11/2026) tout lisser, suite : le relais (un troisième MAR sert d'intermédiaire quand le +1 ne peut rien donner directement au −1), deux parcours et le meilleur est gardé — fériés et été mieux lissés · mesures de la passe 8nonies remplacées par celles de l'essai de génération chez Google (32 → 24, dont 12 d'arrondis ; 8 s) : les précédentes venaient d'une simulation qui ignorait les indisponibilités du dernier jour de l'année. Aucun changement de calcul · tout lisser : dernière passe qui apparie les +1 et les −1 d'un même compteur (week-ends, été, fériés, jeudis, samedis, vendredis), un souhait pouvant être retiré pour remettre un compteur à sa cible · rattrapage : 60 % du retard cumulé dans la visée, arrondi au plus proche (le retard n'est plus compté deux fois) · comptes exacts : vendredis-dimanches et week-ends déduits du planning réel · retouche : les week-ends d'abord · mémoire de plusieurs années : les années archivées sont relues dans le classeur d'archives · 18 h du vendredi à l'un des deux MAR du samedi · week-ends : cible égale à quotité égale, été, réa / maternité
+const GAS_VERSION_GENERATEUR = '2026-11-14.2';   // (14/11/2026) .2 : STATISTIQUES — tous les axes écrits (week-ends, été, part visée de chaque axe) ; le planning ne change pas · .1 : lissage mensuel par échanges neutres (aucun compteur ne bouge) · 18 h du vendredi : échange à trois MAR en plus de l'échange un pour un · écart entre collègues de même part payé dans la dernière passe · LA FOURCHETTE : plus de cible tirée au sort entre MAR de même part ; tout le calcul vise que chacun soit entre l'arrondi inférieur et supérieur de sa part exacte, sur chaque compteur (les week-ends gardent leur nombre entier, égal à part égale) · (13/11/2026) tout lisser, suite : le relais (un troisième MAR sert d'intermédiaire quand le +1 ne peut rien donner directement au −1), deux parcours et le meilleur est gardé — fériés et été mieux lissés · mesures de la passe 8nonies remplacées par celles de l'essai de génération chez Google (32 → 24, dont 12 d'arrondis ; 8 s) : les précédentes venaient d'une simulation qui ignorait les indisponibilités du dernier jour de l'année. Aucun changement de calcul · tout lisser : dernière passe qui apparie les +1 et les −1 d'un même compteur (week-ends, été, fériés, jeudis, samedis, vendredis), un souhait pouvant être retiré pour remettre un compteur à sa cible · rattrapage : 60 % du retard cumulé dans la visée, arrondi au plus proche (le retard n'est plus compté deux fois) · comptes exacts : vendredis-dimanches et week-ends déduits du planning réel · retouche : les week-ends d'abord · mémoire de plusieurs années : les années archivées sont relues dans le classeur d'archives · 18 h du vendredi à l'un des deux MAR du samedi · week-ends : cible égale à quotité égale, été, réa / maternité
 // précédente : '2026-10-27.1'
 
 /* (05/09/2026) INTERRUPTEUR DU NOUVEL ALGORITHME — récit : docs/JOURNAL-Planning-Med.md §101 */
@@ -4458,7 +4458,10 @@ function generateGardes(year, opts){
   // code.gs lit encore des colonnes par position (sd[r][17], [19], [21]) et un décalage
   // fausserait silencieusement les cibles du tableau de bord.
   /* (11/09/2026) PART EXACTE — récit : docs/JOURNAL-Planning-Med.md §121 */
-  st.getRange(1,1,1,33).setValues([['MEDECIN','CIBLE','TOTAL G','G (REA)','G2 (MAT)','LUN','MAR','MER','JEU','VEN','SAM','DIM','RECUP R','18H','JF','VEILLE JF','NOEL/AN','CIBLE SAM','CIBLE JEU','CIBLE VD','VD','CIBLE VJF','CIBLE JF','SOUHAITS POSES','SOUHAITS HONORES','PART EXACTE','PART EXACTE SAM','PART EXACTE JEU','PART EXACTE VD','PART EXACTE VJF','PART EXACTE JF','SOUHAITS POSSIBLES','SOUHAITS POSSIBLES OBTENUS']]).setFontWeight('bold');
+  const STATS_COLS=['MEDECIN','CIBLE','TOTAL G','G (REA)','G2 (MAT)','LUN','MAR','MER','JEU','VEN','SAM','DIM','RECUP R','18H','JF','VEILLE JF','NOEL/AN','CIBLE SAM','CIBLE JEU','CIBLE VD','VD','CIBLE VJF','CIBLE JF','SOUHAITS POSES','SOUHAITS HONORES','PART EXACTE','PART EXACTE SAM','PART EXACTE JEU','PART EXACTE VD','PART EXACTE VJF','PART EXACTE JF','SOUHAITS POSSIBLES','SOUHAITS POSSIBLES OBTENUS',
+    'WE','CIBLE WE','PART EXACTE WE','ETE','PART EXACTE ETE',
+    'PART VISEE','PART VISEE SAM','PART VISEE JEU','PART VISEE VD','PART VISEE VJF','PART VISEE JF'];
+  st.getRange(1,1,1,STATS_COLS.length).setValues([STATS_COLS]).setFontWeight('bold');
   // (22/10/2026) Les deux dernières colonnes : souhaits que l'algorithme pouvait accorder
   // au mieux vu la part du MAR, et combien de ceux-là sont obtenus (souhaitsPossibles_).
   // Ajoutées EN FIN de ligne : aucune colonne lue par position ne bouge.
@@ -4482,6 +4485,20 @@ function generateGardes(year, opts){
      vendredis-dimanches (le vendredi porte le compteur). */
   const _venDe={};
   allDoctors.forEach(id=>{ let n=0; allDays.forEach(d=>{ if(d.dow===5&&(gSet[id]?.has(d.date)||g2Set[id]?.has(d.date))) n++; }); _venDe[id]=n; });
+  /* (14/11/2026) TOUS LES AXES DANS LES STATISTIQUES. Les axes que le générateur
+     équilibre mais qui n'étaient pas écrits : week-ends (samedis + dimanches),
+     week-ends d'été (samedi ou dimanche de juillet-août), et la part VISÉE de
+     chaque axe (part exacte moins le report des années passées : c'est elle
+     qui fixe la fourchette ; vide pour un MAR à régime fixe). Comptés sur la
+     grille finale, comme SAM et DIM (le week-end à cheval sur l'an neuf compte). Ajoutés EN FIN de
+     ligne : aucune colonne lue par position ne bouge. */
+  const _tient=(id,d)=>!!(gSet[id]?.has(d)||g2Set[id]?.has(d));
+  const _weDe={}, _eteDe={};
+  allDoctors.forEach(id=>{ let w=0,e=0; allDays.forEach(d=>{ if((d.dow!==6&&d.dow!==0)||!_tient(id,d.date)) return;
+    w++; if(WE_ETE_MOIS.indexOf(d.month)>=0) e++; }); _weDe[id]=w; _eteDe[id]=e; });
+  const _dEte=gardeDoctors.filter(id=>!SOUHAIT_PLAFOND.has(id)&&cible[id]);
+  const _eteTotS=_dEte.reduce((t,id)=>t+_eteDe[id],0), _weTotS=_dEte.reduce((t,id)=>t+(cible[id].we||0),0);
+  const _partEte=id=>(_dEte.indexOf(id)<0||_weTotS<=0)?'':+(_eteTotS*(cible[id].we||0)/_weTotS).toFixed(3);
   const sRows=allDoctors.map(id=>{
     const cbT=cible[id]?cible[id].total:0;
     const cbS=cible[id]?cible[id].sam:0, cbJ=cible[id]?cible[id].jeu:0, cbV=cible[id]?cible[id].vd:0, cbVjf=cible[id]?cible[id].vjf:0;
@@ -4491,14 +4508,18 @@ function generateGardes(year, opts){
     // quelques dixiemes, l'arrondir a un dixieme le perdrait a moitie.
     const ex=cibleExacte[id]||{};
     const _ex=k=>ex[k]===undefined?'':+Number(ex[k]).toFixed(3);
+    const _vi=k=>(SOUHAIT_PLAFOND.has(id)||!VISEE[id]||VISEE[id][k]===undefined)?'':+Number(VISEE[id][k]).toFixed(3);
     return[id,"'"+cbT.toFixed(1),c.total,c.g,c.g2,c.lun,c.mar,c.mer,c.jeu,c.ven,c.sam,c.dim,c.recupR,
       h18cnt[id]||0,jfCnt[id]||0,c.vjf||0,noelAnCnt[id]||0,
       +cbS.toFixed(1),+cbJ.toFixed(1),+cbV.toFixed(1),_venDe[id],+cbVjf.toFixed(1),+cbJf.toFixed(1),
       souhaitPose[id]||0,souhaitJoursOK[id]||0,
       _ex('total'),_ex('sam'),_ex('jeu'),_ex('vd'),_ex('vjf'),_ex('jf'),
-      _sp(id).possible,_sp(id).utiles];
+      _sp(id).possible,_sp(id).utiles,
+      _weDe[id]||0, cible[id]?(cible[id].we||0):0, (ex.sam===undefined&&ex.vd===undefined)?'':+((ex.sam||0)+(ex.vd||0)).toFixed(3),
+      _eteDe[id]||0, _partEte(id),
+      _vi('total'),_vi('sam'),_vi('jeu'),_vi('vd'),_vi('vjf'),_vi('jf')];
   });
-  st.getRange(2,1,sRows.length,33).setValues(sRows);
+  st.getRange(2,1,sRows.length,STATS_COLS.length).setValues(sRows);
   st.getRange(2,2,sRows.length,1).setNumberFormat('@STRING@');
   st.setColumnWidth(1,140);
 

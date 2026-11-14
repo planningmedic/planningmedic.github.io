@@ -73,7 +73,7 @@ console.log('\n═══ 5. La vraie génération l\'écrit, le mail l\'affiche 
   const h = st[0], ligneS = st.find(x => x[0] === MAR) || [];
   const col = n => ligneS[h.indexOf(n)];
   V('colonnes SOUHAITS POSSIBLES et … OBTENUS ajoutées EN FIN de ligne',
-    h.indexOf('SOUHAITS POSSIBLES') === 31 && h.indexOf('SOUHAITS POSSIBLES OBTENUS') === 32 && h.length === 33, h.slice(29));
+    h.indexOf('SOUHAITS POSSIBLES') === 31 && h.indexOf('SOUHAITS POSSIBLES OBTENUS') === 32, h.slice(29));   /* (14/11/2026) d'autres colonnes suivent : banc_stats_axes.js */
   V('les colonnes lues par position n\'ont pas bougé', h[0] === 'MEDECIN' && h[1] === 'CIBLE' && h[17] === 'CIBLE SAM'
     && h[18] === 'CIBLE JEU' && h[19] === 'CIBLE VD' && h[21] === 'CIBLE VJF' && h[22] === 'CIBLE JF');
   V('possible écrit = possible de l\'essai', col('SOUHAITS POSSIBLES') === s.possible, { ecrit: col('SOUHAITS POSSIBLES'), essai: s.possible });

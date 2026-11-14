@@ -61,7 +61,9 @@ for (let r = 3; r < g.length; r++) { const id = g[r][0]; if (!id) continue; cons
   for (let k = 1; k < NC; k++) if (g[r][k] === 'G' || g[r][k] === 'G2') { const w = dateCol(k).getDay(); if (w === 5) o.ven++; if (w === 6) o.sam++; if (w === 0) o.dim++; }
   recompte[id] = o; }
 const ids = Object.keys(st.byId).filter(id => recompte[id]);
-V('l\'onglet garde ses 33 colonnes (aucune colonne ajoutée)', st.hdr.length === 33 && st.hdr[20] === 'VD', st.hdr.length);
+/* (14/11/2026) onze colonnes s'ajoutent EN FIN (banc_stats_axes.js) : les 33 premières ne bougent pas */
+V('les 33 premières colonnes de l\'onglet n\'ont pas bougé', st.hdr.length >= 33 && st.hdr[20] === 'VD' && st.hdr[32] === 'SOUHAITS POSSIBLES OBTENUS', st.hdr.slice(19, 34));
+V('le WE écrit par la génération = samedis + dimanches de la grille', ids.every(id => +st.byId[id]['WE'] === recompte[id].sam + recompte[id].dim), ids.filter(id => +st.byId[id]['WE'] !== recompte[id].sam + recompte[id].dim));
 const vdKo = ids.filter(id => +st.byId[id]['VD'] !== recompte[id].ven);
 V('colonne VD = vendredis de la grille finale, pour chaque MAR', vdKo.length === 0, vdKo);
 const lus = ids.map(id => [id, gas.champsWeStats_(stRows, stRows.findIndex(x => x[0] === id))]);

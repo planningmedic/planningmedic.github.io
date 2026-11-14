@@ -659,7 +659,7 @@ récupération, à sa date.</p>
 
 <section id="stats">
 <h2><span class="n">3.6</span>STATS_GARDES_{année}</h2>
-<p>La preuve d'équité, figée au moment de la génération. <strong>33 colonnes</strong>, une ligne par MAR :</p>
+<p>La preuve d'équité, figée au moment de la génération. <strong>44 colonnes</strong>, une ligne par MAR :</p>
 
 <table class="sig">
 <tr><th>Colonnes</th><th>Contenu</th></tr>
@@ -670,7 +670,14 @@ récupération, à sa date.</p>
 <tr><td>JF · VEILLE JF · NOEL/AN</td><td>Fériés, veilles de férié, et le compte Noël / Jour de l'an</td></tr>
 <tr><td>CIBLE SAM · CIBLE JEU · CIBLE VD · CIBLE VJF · CIBLE JF</td><td><strong>Les cibles par axe</strong></td></tr>
 <tr><td>VD</td><td>Les vendredis de garde, recomptés sur le planning final (depuis le 12/11/2026 ; avant, un compteur qui en perdait — en 2027, 92 pour 104). L'écran et le report lisent les vendredis dans VEN.</td></tr>
+<tr><td>SOUHAITS POSES · SOUHAITS HONORES</td><td>Les souhaits déposés, et ceux tenus dans le planning final</td></tr>
+<tr><td>PART EXACTE · PART EXACTE SAM · JEU · VD · VJF · JF</td><td>La part de chaque MAR avant arrondi, axe par axe</td></tr>
+<tr><td>SOUHAITS POSSIBLES · SOUHAITS POSSIBLES OBTENUS</td><td>Les souhaits que la part permettait d'accorder, et ceux obtenus parmi eux</td></tr>
+<tr><td>WE · CIBLE WE · PART EXACTE WE</td><td>Les week-ends tenus (samedis + dimanches, comme SAM + DIM), leur cible et la part avant arrondi (depuis le 14/11/2026)</td></tr>
+<tr><td>ETE · PART EXACTE ETE</td><td>Les samedis et dimanches de juillet-août tenus, et la part d'été : l'été tenu par l'équipe, partagé au prorata des cibles WE. L'été est bon quand ETE est entre l'arrondi inférieur et supérieur de cette part (depuis le 14/11/2026)</td></tr>
+<tr><td>PART VISEE · PART VISEE SAM · JEU · VD · VJF · JF</td><td><strong>La part réellement visée</strong> : part exacte moins le report des années passées. Le compteur est juste quand il tombe entre l'arrondi inférieur et supérieur de cette part. Vide pour un MAR à régime fixe (depuis le 14/11/2026)</td></tr>
 </table>
+<p>Toutes les colonnes ajoutées l'ont été <strong>en fin de ligne</strong> : certaines lectures se font encore par position.</p>
 
 <div class="callout rule">
   <div class="ct">Pourquoi cet onglet ne doit jamais être supprimé</div>
