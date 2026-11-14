@@ -751,7 +751,10 @@ body{font-variant-numeric:tabular-nums}
    la carte complète. Vingt-quatre cartes dépliées d'un bloc, c'était deux
    écrans de défilement pour trouver la sienne. */
 .eqv-tete{display:flex;align-items:center;gap:8px;padding:9px 11px;cursor:pointer}
-.eqv-bande{flex:1;display:grid;grid-template-columns:repeat(9,1fr);gap:2px}
+.eqv-bande{flex:1;display:grid;grid-template-columns:repeat(11,1fr);gap:2px}   /* (14/11/2026) les 11 cases sur une ligne (9 colonnes : 2 cases passaient à la ligne) */
+/* (14/11/2026) Fourchette de la part : zone pointillée sur la barre. */
+.eqv-fourch{position:absolute;top:-3px;bottom:-3px;border:1.5px dashed #15803D;background:rgba(21,128,61,.14);border-radius:5px;pointer-events:none;transition:left .45s cubic-bezier(.4,0,.2,1),width .45s cubic-bezier(.4,0,.2,1)}
+.eqv-f .eqv-val{width:64px}
 .eqv-case{height:12px;border-radius:2px}
 .eqv-verdict{font-size:11px;white-space:nowrap;min-width:52px;text-align:right;font-weight:700}
 .eqv-chev{font-size:11px;color:var(--ink-4);width:10px;text-align:center}
@@ -2471,7 +2474,7 @@ let EQ_LIST = null, EQ_WRAP = null;
 function eqBasculer(nom){
   if(EQ_OUVERTS.has(nom)) EQ_OUVERTS.delete(nom); else EQ_OUVERTS.add(nom);
   if(EQ_WRAP && EQ_LIST){ const g=EQ_WRAP.querySelector('.eqv-grid');
-    if(g) g.outerHTML = renderEquiteCards(EQ_LIST, { moiNom: MY_ID ? _meName(MY_ID) : null, ouverts: EQ_OUVERTS, sombre: IS_DARK, neutre: 'var(--surface-2)', axes: AX_EQUITE }); }
+    if(g) g.outerHTML = renderEquiteCards(EQ_LIST, { moiNom: MY_ID ? _meName(MY_ID) : null, ouverts: EQ_OUVERTS, sombre: IS_DARK, neutre: 'var(--surface-2)', axes: AX_EQUITE, fourchette: true }); }
 }
 /* Écart le plus fort d'un MAR. Même source que le certificat (ciblesEquite) :
    les deux ne peuvent pas se contredire. */
@@ -2482,6 +2485,13 @@ function _fmtEcart(v){ return Number.isInteger(v) ? String(v) : v.toFixed(1); }
 /* eqVerdict : partage/rendu_equite.js (14/09/2026). */
 /* renderEquiteCards : partage/rendu_equite.js (14/09/2026). */
 
+/* (14/11/2026) Parts servies par le serveur pour la fourchette (pTot, pSa, pJe,
+   pVd, pVjf, pJf, pWe). Absentes → l'écran garde l'ancien affichage. */
+const _PARTS_F = ['pTot','pSa','pJe','pVd','pVjf','pJf','pWe'];
+function _partsFourchette(){ const o = {};
+  for(let a = 0; a < arguments.length; a++){ const s = arguments[a]; if(!s) continue;
+    _PARTS_F.forEach(k=>{ if(o[k] === undefined && s[k] !== undefined && s[k] !== null && s[k] !== '' && isFinite(+s[k])) o[k] = +s[k]; }); }
+  return o; }
 let EQ_SRC_IDX = 'initiale';
 let CIBLES_CACHE = {};
 async function getCiblesFromStats(year){
@@ -2492,7 +2502,7 @@ async function getCiblesFromStats(year){
     const c = m && m.success && m.data && m.data['stats_' + year];
     if(c && Array.isArray(c.stats) && c.stats.length){
       const mm = {};
-      c.stats.forEach(s=>{ mm[s.medecin] = {cible:s.cible||0, cSat:s.cSat||0, cJeu:s.cJeu||0, cVd:s.cVd||0, cVjf:s.cVjf||0, cJf:s.cJf||0, vd:s.vd, we:s.we, cWe:s.cWe}; });
+      c.stats.forEach(s=>{ mm[s.medecin] = Object.assign({cible:s.cible||0, cSat:s.cSat||0, cJeu:s.cJeu||0, cVd:s.cVd||0, cVjf:s.cVjf||0, cJf:s.cJf||0, vd:s.vd, we:s.we, cWe:s.cWe}, _partsFourchette(s)); });
       CIBLES_CACHE[year] = mm;
       return mm;
     }
@@ -2501,7 +2511,7 @@ async function getCiblesFromStats(year){
     const j = await apiPost({action:'getStatsLive', year});
     if(!j || !j.success || !Array.isArray(j.stats)) return {};
     const m = {};
-    j.stats.forEach(s=>{ m[s.medecin] = {cible:s.cible||0, cSat:s.cSat||0, cJeu:s.cJeu||0, cVd:s.cVd||0, cVjf:s.cVjf||0, cJf:s.cJf||0, vd:s.vd, we:s.we, cWe:s.cWe}; });
+    j.stats.forEach(s=>{ m[s.medecin] = Object.assign({cible:s.cible||0, cSat:s.cSat||0, cJeu:s.cJeu||0, cVd:s.cVd||0, cVjf:s.cVjf||0, cJf:s.cJf||0, vd:s.vd, we:s.we, cWe:s.cWe}, _partsFourchette(s)); });
     CIBLES_CACHE[year] = m;
     return m;
   }catch(e){ return {}; }
@@ -2520,6 +2530,8 @@ function renderCertificatMAR(list){
   var AXfull = AX_EQUITE, SEUIL = 2.0;
   var evalues = list.filter(function(m){ return !m.wish; });
   if(!evalues.length) return '';
+  /* (14/11/2026) Les parts sont servies : le certificat se lit sur la fourchette. */
+  if(evalues.some(function(m){ return m.pTot !== undefined; })) return renderCertificatFourchette(evalues.filter(function(m){ return m.pTot !== undefined; }));
   var T = ciblesEquite(evalues, AXfull);
 
   var lignes = [], within1 = 0;
@@ -2606,6 +2618,85 @@ function renderCertificatMAR(list){
   h += '</div>';
   return h;
 }
+/* ── (14/11/2026) CERTIFICAT PAR FOURCHETTE — décision du responsable ──────
+   L'ancien certificat classait les « cinq écarts les plus forts » à une cible
+   entière tirée entre collègues de même part : « +1 jeudis », « −1 total » sur
+   des MAR dans leur fourchette. Il compte désormais les MAR dans leur
+   fourchette, liste ceux qui en sortent, et montre le total des gardes de
+   chaque groupe de même part face à sa fourchette. Banc : banc_equite_fourchette.js. */
+function renderCertificatFourchette(evalues){
+  var NOMS = {total:'total', je:'jeudis', vd:'vendredis', sa:'samedis', di:'dimanches', we:'week-ends', jf:'fériés', vjf:'veilles fériés'};
+  var hors = [], ok = 0;
+  evalues.forEach(function(m){
+    var F = fourchettesEquite(m), n = 0;
+    ['total','je','vd','sa','di','we','jf','vjf'].forEach(function(k){ var e = ecartFourchette(m[k], F[k]); if(e){ n++; hors.push({ name: m.name, k: k, e: e }); } });
+    if(!n) ok++;
+  });
+  hors.sort(function(a, b){ return Math.abs(b.e) - Math.abs(a.e) || String(a.name).localeCompare(String(b.name)); });
+  var conforme = hors.length === 0, nEval = evalues.length;
+  var VERT = '#166534', ORANGE = '#C2410C';
+  var teinte = conforme ? '#F0FDF4' : '#FFF7ED', bord = conforme ? '#A7F3D0' : '#FED7AA', encre = conforme ? VERT : ORANGE;
+  var AN = (typeof currentYear !== 'undefined' && currentYear) ? currentYear : '';
+  var h = '<div id="eqCertBloc" style="position:relative;border-radius:14px;padding:15px 16px;margin-bottom:14px;background:' + teinte + ';border:1px solid ' + bord + '">';
+  h += '<div style="font-size:16px;font-weight:800;color:' + encre + '">Répartition ' + AN + (conforme ? ' — équitable' : ' — à vérifier') + '</div>';
+  h += '<div style="font-size:12.5px;color:var(--ink-3);line-height:1.5;margin-top:3px">'
+     + (conforme ? 'Chaque MAR est dans la <b>fourchette de sa part</b>, sur chacun de ses compteurs.'
+                 : (nEval - ok) + ' MAR sur ' + nEval + ' ont au moins un compteur hors de leur fourchette.') + '</div>';
+  function carte(n, lbl, fond, ink){
+    return '<div style="background:' + fond + ';border-radius:10px;padding:10px 12px">'
+      + '<div style="font-size:22px;font-weight:800;color:' + ink + ';line-height:1.2">' + n + '</div>'
+      + '<div style="font-size:12px;color:' + ink + ';opacity:.9;line-height:1.4">' + lbl + '</div></div>';
+  }
+  h += '<div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:12px">'
+     + carte(ok + ' / ' + nEval, 'MAR dans leur fourchette', conforme ? '#DCFCE7' : '#FFEDD5', conforme ? VERT : ORANGE)
+     + carte(hors.length, 'compteur' + (hors.length > 1 ? 's' : '') + ' hors fourchette', 'var(--white)', '#334155')
+     + '</div>';
+  if(!conforme){
+    var vis = CERT_MAR_DEPLIE ? hors : hors.slice(0, 5);
+    h += '<div style="margin-top:12px;background:var(--white);border:1px solid var(--line);border-radius:11px;padding:11px 12px">'
+       + '<div style="font-size:11px;color:var(--ink-3);margin-bottom:6px">Hors fourchette</div>';
+    vis.forEach(function(x){
+      h += '<div style="display:flex;gap:8px;font-size:12.5px;padding:2px 0"><b style="flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">' + x.name + '</b>'
+         + '<span style="color:var(--ink-3)">' + NOMS[x.k] + '</span><b style="width:30px;text-align:right;color:' + ORANGE + '">' + (x.e > 0 ? '+' : '−') + Math.abs(x.e) + '</b></div>';
+    });
+    if(hors.length > 5){
+      h += '<div style="margin-top:6px"><span onclick="certMarBasculer()" style="font-size:12px;font-weight:700;color:var(--ink);cursor:pointer;user-select:none;border:1px solid var(--line);border-radius:8px;padding:5px 12px;display:inline-block">'
+         + (CERT_MAR_DEPLIE ? 'Réduire' : 'Voir les ' + hors.length) + '</span></div>';
+    }
+    h += '</div>';
+  }
+  /* Total des gardes par groupe de même part : réalisé (du plus bas au plus haut) face à la fourchette. */
+  var grp = {}, ordre = [];
+  evalues.forEach(function(m){ var k = (+m.pTot).toFixed(3); if(!grp[k]){ grp[k] = []; ordre.push(k); } grp[k].push(m); });
+  ordre.sort(function(a, b){ return b - a; });
+  var pMax = Math.max.apply(null, evalues.map(function(m){ return +m.pTot || 0; }));
+  function libelle(L){
+    if(L.length === 1) return L[0].name;
+    var q = pMax > 0 ? (+L[0].pTot) / pMax * 100 : 0, q10 = Math.round(q / 10) * 10;
+    if(Math.abs(q - q10) < 0.6) return (q10 === 100 ? 'Temps plein' : q10 + ' %') + ' <span style="font-weight:500;color:var(--ink-4)">×' + L.length + '</span>';
+    return 'Part ' + String((+L[0].pTot).toFixed(1)).replace('.', ',') + ' <span style="font-weight:500;color:var(--ink-4)">×' + L.length + '</span>';
+  }
+  h += '<div style="margin-top:12px;background:var(--white);border:1px solid var(--line);border-radius:11px;padding:11px 12px">'
+     + '<div style="font-size:11px;color:var(--ink-3);margin-bottom:4px">Total des gardes, par part</div>'
+     + '<div style="display:flex;gap:6px;font-size:10.5px;color:var(--ink-4)"><span style="flex:1"></span><span style="width:54px;text-align:center">réalisé</span><span style="width:62px;text-align:center">fourchette</span><span style="width:14px"></span></div>';
+  ordre.forEach(function(k){
+    var L = grp[k], F = fourchettesEquite(L[0]).total, vs = L.map(function(m){ return +m.total || 0; });
+    var mn = Math.min.apply(null, vs), mx = Math.max.apply(null, vs), bon = vs.every(function(v){ return v >= F[0] && v <= F[1]; });
+    h += '<div style="display:flex;gap:6px;align-items:center;font-size:12.5px;padding:3px 0">'
+       + '<b style="flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">' + libelle(L) + '</b>'
+       + '<b style="width:54px;text-align:center">' + (mn === mx ? mn : mn + '–' + mx) + '</b>'
+       + '<span style="width:62px;text-align:center;color:var(--ink-3)">' + (F[0] === F[1] ? F[0] : F[0] + '–' + F[1]) + '</span>'
+       + '<b style="width:14px;text-align:center;color:' + (bon ? '#15803D' : ORANGE) + '">' + (bon ? '✓' : '!') + '</b></div>';
+  });
+  h += '</div>';
+  h += '<div style="font-size:11.5px;color:var(--ink-3);margin-top:11px;line-height:1.55' + (conforme ? ';margin-right:118px' : '') + '">'
+     + 'Même part, même fourchette : deux collègues de même part ne sont jamais à plus d’1 garde d’écart.</div>';
+  if(conforme){
+    h += '<div aria-hidden="true" style="position:absolute;right:16px;bottom:14px;transform:rotate(-11deg);border:2.5px solid #15803D;color:#15803D;border-radius:10px;padding:5px 12px 4px;font-weight:900;letter-spacing:.12em;font-size:14px;text-transform:uppercase;opacity:.62;box-shadow:inset 0 0 0 2px rgba(21,128,61,.12)">Certifié<div style="font-size:8.5px;letter-spacing:.06em;font-weight:700;text-align:center;margin-top:1px;opacity:.85">ÉQUITÉ</div></div>';
+  }
+  h += '</div>';
+  return h;
+}
 function paintEquite(wrap, headHtml, list){
   // Le certificat n'a de sens que sur la répartition INITIALE (générée). En « Instantané »,
   // les échanges/dons volontaires modifient les compteurs : l'écart affiché ne refléterait
@@ -2614,7 +2705,7 @@ function paintEquite(wrap, headHtml, list){
   const certHtml = (EQ_SRC_IDX==='live') ? '' : renderCertificatMAR(list);
   const grid = wrap.querySelector('.eqv-grid');
   EQ_LIST = list;
-  const gridHtml = renderEquiteCards(list, { moiNom: MY_ID ? _meName(MY_ID) : null, ouverts: EQ_OUVERTS, sombre: IS_DARK, neutre: 'var(--surface-2)', axes: AX_EQUITE });
+  const gridHtml = renderEquiteCards(list, { moiNom: MY_ID ? _meName(MY_ID) : null, ouverts: EQ_OUVERTS, sombre: IS_DARK, neutre: 'var(--surface-2)', axes: AX_EQUITE, fourchette: true });
   if(grid && morphGrid(grid, gridHtml)){
     const head = wrap.querySelector('#eqHead'); if(head) head.innerHTML = certHtml + headHtml;
     eqLignesMoi(wrap, list);
@@ -2640,9 +2731,12 @@ function eqLignesMoi(wrap, list){
         const w = new Date(j.date + 'T12:00:00').getDay(); if(w === 6 || w === 0) nWe++; }); });
     const we = { size: nWe };
     const part = Math.round(+it.cTot || 0), b = t => '<b style="color:var(--ink-2)">' + t + '</b>';
+    /* (14/11/2026) Fourchette : on annonce la fourchette, plus une part entière. */
+    const _F = (it.pTot !== undefined && typeof fourchettesEquite === 'function') ? fourchettesEquite(it).total : null;
     const div = document.createElement('div'); div.className = 'eq-moi';
     div.style.cssText = 'margin-top:10px;padding-top:10px;border-top:1px solid var(--line);font-size:12.5px;color:var(--ink-3);line-height:1.6';
-    div.innerHTML = (part ? '<div>' + b('Votre part : ' + part + ' gardes') + '</div>' : '')
+    div.innerHTML = (_F ? '<div>' + b('Votre fourchette : ' + (_F[0] === _F[1] ? _F[0] : _F[0] + ' à ' + _F[1]) + ' gardes') + '</div>'
+                        : (part ? '<div>' + b('Votre part : ' + part + ' gardes') + '</div>' : ''))
       + '<div>Fêtes : ' + b(fetes) + ' · Week-ends (samedis + dimanches) : ' + b(we.size) + '</div>';
     me.appendChild(div);
   }catch(e){}
@@ -2659,14 +2753,15 @@ async function loadEquiteLive(force){
   const nameOf = id => _tit(id)+id.charAt(0)+id.slice(1).toLowerCase();
   const build = (stats)=>{
     if(EQ_SRC_IDX!=='live') return;
-    const list = stats.filter(s=>(s.total||0)>0).map(s=>({
+    const list = stats.filter(s=>(s.total||0)>0).map(s=>Object.assign({
       name:nameOf(s.medecin), wish:_souhaitsGarantisId(s.medecin), total:s.total||0, cTot:_cibNum(s.cible),
       lu:s.lun||0, ma:s.mar||0, me:s.mer||0, je:s.jeu||0, sa:s.sat||0, vd:s.vd||0, jf:s.jf||0, vjf:s.vjf||0,
       cSa:_cibNum(s.cSat), cJe:_cibNum(s.cJeu), cVd:_cibNum(s.cVd), cVjf:_cibNum(s.cVjf), cJf:_cibNum(s.cJf),
       di:s.dim||0, we:s.we||0, cWe:_cibOpt(s.cWe),   // (12/11/2026) dimanches et WE = samedis + dimanches
-    }));
+    }, _partsFourchette(s)));
     if(!list.length){ wrap.innerHTML = '<div style="padding:30px;text-align:center;color:#94A3B8">Aucune garde dans ce planning.</div>'; return; }
-    const html = `<div class="eqv-legend">Instantané — gardes réelles, échanges et dons compris · à la minute près · trait = sa part · Lun/Mar/Mer neutres · <button type="button" class="eqv-recalc" onclick="loadEquiteLive(true)">recalculer maintenant</button></div>`;
+    const _f = list.some(x=>!x.wish && x.pTot!==undefined);
+    const html = `<div class="eqv-legend">Instantané — gardes réelles, échanges et dons compris · à la minute près · ${_f?'zone pointillée = fourchette de sa part':'trait = sa part'} · Lun/Mar/Mer neutres · <button type="button" class="eqv-recalc" onclick="loadEquiteLive(true)">recalculer maintenant</button></div>`;
     paintEquite(wrap, html, list);
   };
   const cached = force ? null : LIVE_CACHE[currentYear];
@@ -2712,12 +2807,16 @@ function renderEquite(){
         lu:e.lu||0, ma:e.ma||0, me:e.me||0, je:e.je||0, sa:e.sa||0, vd:(cb.vd!==undefined?(+cb.vd||0):(e.vd||0)), jf:e.jf||0, vjf:e.vjf||0,
         di:e.di||0, we:(cb.we!==undefined?(+cb.we||0):(e.we!==undefined?e.we:(e.sa||0)+(e.di||0))), cWe:_cibOpt(cb.cWe!==undefined?cb.cWe:e.cWe),
         cSa:_cibNum(cb.cSat), cJe:_cibNum(cb.cJeu), cVd:_cibNum(cb.cVd), cVjf:_cibNum(cb.cVjf), cJf:_cibNum(cb.cJf),   // (03/11/2026) les fériés comparés à la part, pas à une moyenne
+        ..._partsFourchette(cb, e),   // (14/11/2026) la part, pour la fourchette
       };
     });
     if(!list.length){ wrap.innerHTML = '<div style="padding:30px;text-align:center;color:#94A3B8">Aucune garde dans ce planning.</div>'; return; }
     /* (03/11/2026) Plus de moyenne ni d'étendue : avec des quotités de 50 à 100 %
        et un régime à part, elles faisaient croire à une injustice qui n'existe pas. */
-    const html = `<div class="eqv-legend">Barre = r\u00e9el \u00b7 trait = sa part \u00b7 Lun/Mar/Mer neutres (hors \u00e9quit\u00e9) \u00b7 <b style="color:#15803D">vert</b> \u00e0 1 garde pr\u00e8s \u00b7 <b style="color:#CE1126">rouge</b> 2 gardes ou plus au-dessus \u00b7 <b style="color:#1D4ED8">bleu</b> 2 gardes ou plus en dessous. R\u00e9partition fig\u00e9e \u00e0 la g\u00e9n\u00e9ration.</div>`;
+    const _f = list.some(x=>!x.wish && x.pTot!==undefined);
+    const html = _f
+      ? `<div class="eqv-legend">Barre = r\u00e9el \u00b7 zone pointill\u00e9e = fourchette de sa part \u00b7 Lun/Mar/Mer neutres \u00b7 <b style="color:#15803D">vert</b> dans la fourchette \u00b7 <b style="color:#C2410C">orange</b> en dehors. R\u00e9partition fig\u00e9e \u00e0 la g\u00e9n\u00e9ration.</div>`
+      : `<div class="eqv-legend">Barre = r\u00e9el \u00b7 trait = sa part \u00b7 Lun/Mar/Mer neutres (hors \u00e9quit\u00e9) \u00b7 <b style="color:#15803D">vert</b> \u00e0 1 garde pr\u00e8s \u00b7 <b style="color:#CE1126">rouge</b> 2 gardes ou plus au-dessus \u00b7 <b style="color:#1D4ED8">bleu</b> 2 gardes ou plus en dessous. R\u00e9partition fig\u00e9e \u00e0 la g\u00e9n\u00e9ration.</div>`;
     paintEquite(wrap, html, list);
   };
   const cached = CIBLES_CACHE[currentYear];
@@ -2837,6 +2936,8 @@ function mobileSetView(v) {
   if(eqView) eqView.style.display = v==='equite' ? 'block' : 'none';
   if(afView) afView.style.display = v==='affect' ? 'block' : 'none';
   if(anView) anView.style.display = v==='annee' ? 'block' : 'none';
+  const _fab = document.getElementById('mobileTodayFab');   // (14/11/2026) « Aujourd'hui » ne sert qu'au planning du jour
+  if (_fab && v !== 'planning') _fab.style.display = 'none';
   if (v === 'planning') renderMobileDay();
   else if (v === 'medecins') renderMedecins();
   else if (v === 'equite') renderEquite();
@@ -2935,7 +3036,7 @@ function renderMobileDay() {
   const prov = isWeekProvisoire(dayData.date);
   jfEl.innerHTML = (dayData.isFerie ? 'Jour férié' : '') + (prov ? (dayData.isFerie?' · ':'')+'🚧 provisoire' : '');
   const fab=document.getElementById('mobileTodayFab');
-  if(fab) fab.style.display = isToday ? 'none' : 'flex';
+  if(fab) fab.style.display = (isToday || mobilePlanningView !== 'planning') ? 'none' : 'flex';   // (14/11/2026) seulement sur le planning du jour
 
   const dayIdx = dayData.dayIdx;
   const smap = {};

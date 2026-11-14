@@ -107,6 +107,9 @@
     const tmp=document.createElement('div'); tmp.innerHTML=newGridHtml;
     const newGrid=tmp.firstElementChild;
     if(!oldGrid || !newGrid) return false;
+    /* (14/11/2026) Fourchette et ancien affichage n'ont pas la même structure :
+       on reconstruit plutôt que de mélanger les deux. */
+    if(oldGrid.classList.contains('eqv-f')!==newGrid.classList.contains('eqv-f')) return false;
     const oC=[...oldGrid.children], nC=[...newGrid.children];
     if(oC.length!==nC.length) return false;
     for(let i=0;i<oC.length;i++){
@@ -133,6 +136,9 @@
         if(ot&&nt){ ot.style.left=nt.style.left; ot.style.opacity=nt.style.opacity; }
         else if(ot&&!nt){ ot.remove(); }
         else if(!ot&&nt&&tk){ tk.appendChild(nt.cloneNode(true)); }
+        const oF=oR[r].querySelector('.eqv-fourch'), nF=nR[r].querySelector('.eqv-fourch');
+        if(!!oF!==!!nF) return false;
+        if(oF&&nF){ oF.style.left=nF.style.left; oF.style.width=nF.style.width; }
         const ov=oR[r].querySelector('.eqv-val'), nv=nR[r].querySelector('.eqv-val');
         if(ov&&nv&&ov.innerHTML!==nv.innerHTML) ov.innerHTML=nv.innerHTML;
       }
@@ -143,6 +149,10 @@
 
   if (typeof window.renderEquiteCards !== 'function') window.renderEquiteCards = function renderEquiteCards(list, opts){
   opts = opts || {};
+  /* (14/11/2026) Fourchette : dès que les statistiques servent la part (pTot), la
+     page qui le demande passe à l'affichage par fourchette. Sans part (années
+     d'avant, serveur pas encore mis à jour) : l'affichage ci-dessous, inchangé. */
+  if (opts.fourchette && list.some(x => !x.wish && x.pTot !== undefined)) return window.renderEquiteFourchette(list, opts);
   const _sombre = !!opts.sombre, _ouverts = opts.ouverts || new Set(), _neutre = opts.neutre || 'var(--surface-2)';
   /* (12/11/2026) Décision du responsable : V, S, D puis WE = S + D, comparé à sa
      part. Le dimanche n'a pas de part à lui (il vient avec le vendredi ou seul) :
@@ -246,5 +256,101 @@
       + '</div>';
   }).join('')+'</div>';
 }
+
+
+  /* ═══ (14/11/2026) LA FOURCHETTE — décision du responsable ═══════════════
+     Le générateur ne vise plus une cible entière tirée entre collègues de même
+     part : chacun doit être entre l'arrondi inférieur et supérieur de sa part,
+     sur chaque compteur. L'écran comparait encore à la colonne CIBLE : « 36 /37 »
+     pour l'un, « 36 /36 » pour son collègue de même quotité, et des « −1 tot »
+     sur des MAR dans leur fourchette. Désormais :
+       · fourchette = [arrondi inférieur, arrondi supérieur] de la part ;
+       · week-ends : un nombre unique, égal à part égale ;
+       · dimanches : week-ends moins la fourchette des samedis (un week-end, c'est
+         le samedi OU le dimanche) ;
+       · lundis, mardis, mercredis : neutres, comme avant ;
+       · vert dans la fourchette, orange en dehors, l'écart compté au bord le plus
+         proche. Banc : banc_equite_fourchette.js. */
+  const _EPSF = 1e-6;
+  if (typeof window.fourchettesEquite !== 'function') window.fourchettesEquite = function fourchettesEquite(it){
+    const F = {}, fr = p => (p === undefined || p === null || !isFinite(+p)) ? undefined : [Math.floor(+p + _EPSF), Math.ceil(+p - _EPSF)];
+    [['total','pTot'],['je','pJe'],['vd','pVd'],['sa','pSa'],['jf','pJf'],['vjf','pVjf']].forEach(([k, pk]) => { const f = fr(it[pk]); if (f) F[k] = f; });
+    if (it.pWe !== undefined && isFinite(+it.pWe)) {
+      const w = Math.round(+it.pWe); F.we = [w, w];
+      if (F.sa) F.di = [Math.max(0, w - F.sa[1]), Math.max(0, w - F.sa[0])];
+    }
+    return F;
+  };
+  if (typeof window.ecartFourchette !== 'function') window.ecartFourchette = function ecartFourchette(v, f){
+    if (!f) return null; v = +v || 0; return v < f[0] ? v - f[0] : (v > f[1] ? v - f[1] : 0);
+  };
+  /* Le plus fort écart d'un MAR à ses fourchettes : { k, e } ou null si tout est dedans. */
+  if (typeof window.pireFourchette !== 'function') window.pireFourchette = function pireFourchette(it){
+    const F = window.fourchettesEquite(it); let w = null;
+    ['total','je','vd','sa','di','we','jf','vjf'].forEach(k => { const e = window.ecartFourchette(it[k], F[k]);
+      if (e && (!w || Math.abs(e) > Math.abs(w.e))) w = { k: k, e: e }; });
+    return w;
+  };
+  window.COURT_FOURCHETTE = {total:'tot', je:'jeu', vd:'ven', sa:'sam', di:'dim', we:'WE', jf:'JF', vjf:'VJF'};
+
+  if (typeof window.renderEquiteFourchette !== 'function') window.renderEquiteFourchette = function renderEquiteFourchette(list, opts){
+    opts = opts || {};
+    const _sombre = !!opts.sombre, _ouverts = opts.ouverts || new Set(), _neutre = opts.neutre || 'var(--surface-2)';
+    const VERT = _sombre ? '#5BD08B' : '#15803D', ORANGE = _sombre ? '#F5A04A' : '#EA7A12', ENCRE_O = _sombre ? '#F5A04A' : '#C2410C';
+    const AX = [['lu','Lun'],['ma','Mar'],['me','Mer'],['je','Jeu'],['vd','Ven'],['sa','Sam'],['di','Dim'],['we','WE'],['jf','JF'],['vjf','VJF']];
+    const ORDRE = ['total','lu','ma','me','je','vd','sa','di','we','jf','vjf'];
+    const FF = {}; list.forEach(x => { FF[x.name] = x.wish ? {} : window.fourchettesEquite(x); });
+    const maxTot = Math.max(0.1, ...list.map(x => +x.total || 0), ...list.map(x => (FF[x.name].total || [0, 0])[1])) * 1.12;
+    const maxOf = k => Math.max(0.1, ...list.filter(x => !x.wish).map(x => Math.max(+x[k] || 0, (FF[x.name][k] || [0, 0])[1]))) * 1.15;
+    const mxGris = Math.max(0.1, ...list.filter(x => !x.wish).flatMap(x => [+x.lu || 0, +x.ma || 0, +x.me || 0])) * 1.15;
+    const _meN = opts.moiNom || null;
+    const sorted = list.slice().sort((a, b) => {
+      if (_meN) { if (String(a.name) === _meN) return -1; if (String(b.name) === _meN) return 1; }
+      return String(a.name).localeCompare(String(b.name));
+    });
+    const neutreRow = (lbl, v, mx, tot) => '<div class="eqv-row' + (tot ? ' eqv-row-tot' : '') + '"><div class="eqv-lbl">' + lbl + '</div><div class="eqv-track' + (tot ? ' eqv-track-tot' : '') + '"><div class="eqv-fill" style="width:' + Math.min(100, v / mx * 100) + '%;background:#94A3B8;opacity:.5"></div></div><div class="eqv-val">' + v + '</div></div>';
+    const row = (lbl, v, f, mx, tot) => {
+      const e = window.ecartFourchette(v, f), w = x => Math.min(100, x / mx * 100);
+      const lo = w(f[0]), hi = w(f[1]);
+      return '<div class="eqv-row' + (tot ? ' eqv-row-tot' : '') + '"><div class="eqv-lbl">' + lbl + '</div>'
+        + '<div class="eqv-track' + (tot ? ' eqv-track-tot' : '') + '" style="overflow:visible">'
+        + '<div class="eqv-fill" style="width:' + w(v) + '%;background:' + (e ? ORANGE : VERT) + '"></div>'
+        + '<div class="eqv-fourch" style="left:' + lo + '%;width:' + Math.max(hi - lo, 1.6) + '%"></div></div>'
+        + '<div class="eqv-val"' + (e ? ' style="color:' + ENCRE_O + '"' : '') + '>' + v + '<span> · ' + (f[0] === f[1] ? f[0] : f[0] + '–' + f[1]) + '</span></div></div>';
+    };
+    return '<div class="eqv-grid eqv-f">' + sorted.map(it => {
+      const _wish = !!it.wish, F = FF[it.name], tv = +it.total || 0;
+      const totBar = (_wish || !F.total)
+        ? '<div class="eqv-row eqv-row-tot"><div class="eqv-lbl">Total</div><div class="eqv-track eqv-track-tot"><div class="eqv-fill" style="width:' + Math.min(100, tv / maxTot * 100) + '%;background:#94A3B8;opacity:.5"></div></div><div class="eqv-val">' + tv + (_wish ? '<span> souhaits</span>' : '') + '</div></div>'
+        : row('Total', tv, F.total, maxTot, true);
+      const bars = AX.map(([k, lbl]) => {
+        const v = +it[k] || 0;
+        if (_wish || !F[k]) return neutreRow(lbl, v, (k === 'lu' || k === 'ma' || k === 'me') ? mxGris : maxOf(k));
+        return row(lbl, v, F[k], maxOf(k));
+      }).join('');
+      const bande = ORDRE.map(k => {
+        if (_wish || !F[k]) return '<div class="eqv-case" style="background:' + _neutre + '"></div>';
+        return '<div class="eqv-case" style="background:' + (window.ecartFourchette(it[k], F[k]) ? ORANGE : VERT) + '"></div>';
+      }).join('');
+      let vt, vc;
+      if (_wish) { vt = 'souhaits'; vc = '#7c3aed'; }
+      else if (!F.total) { vt = '—'; vc = 'var(--ink-3)'; }
+      else { const p = window.pireFourchette(it);
+        if (!p) { vt = '✓'; vc = VERT; }
+        else { vt = (p.e > 0 ? '+' : '−') + Math.abs(p.e) + ' ' + window.COURT_FOURCHETTE[p.k]; vc = ENCRE_O; } }
+      const _isMe = _meN && String(it.name) === _meN;
+      const ouvert = _isMe || _ouverts.has(it.name);
+      const _esc = String(it.name).replace(/'/g, "\\'");
+      return '<div class="eqv-card' + (_isMe ? ' me-card' : '') + '">'
+        + '<div class="eqv-tete" onclick="eqBasculer(&quot;' + _esc + '&quot;)">'
+        +   '<div class="eqv-name" style="width:82px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">' + it.name + '</div>'
+        +   (ouvert ? '<div style="flex:1"></div>' : '<div class="eqv-bande">' + bande + '</div>')
+        +   '<div class="eqv-verdict" style="color:' + vc + '">' + vt + '</div>'
+        +   '<div class="eqv-chev">' + (ouvert ? '▲' : '▼') + '</div>'
+        + '</div>'
+        + (ouvert ? ('<div style="padding:0 11px 10px">' + totBar + bars + '</div>') : '')
+        + '</div>';
+    }).join('') + '</div>';
+  };
 
 })();

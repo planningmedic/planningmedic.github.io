@@ -1,7 +1,7 @@
 // ⚠️ RÈGLE (détecteur de dérive dépôt↔Apps Script) : incrémenter cette version
 // à CHAQUE push de ce fichier. Le diagnostic (admin → Maintenance) compare la
 // version déployée ici avec celle du dépôt et signale toute recopie oubliée.
-const GAS_VERSION_CODE = '2026-11-12.2';   // (12/11/2026) week-ends : V (vendredis), WE = samedis + dimanches et sa part, lus dans l'onglet de statistiques (champsWeStats_) · (11/11/2026) vue paie : jours de TP (TP, CTP, semaine off du rythme 2/2) affichés, sans mail · (11/11/2026) mail paie lisible sur téléphone (une carte par changement) · (02/11/2026) commentaire sans initiales réelles · (27/10/2026) demi-journées de vacances VM/VA (planning, paie, notifications) · (27/10/2026) journée mobile 2027 (lundi 7 juin) ajoutée aux fériés · (18/10/2026) vue paie : tri G/G2/V (_planningPaie_) et mail aux secrétaires de paie (_paieEnvoyerAnnee_)
+const GAS_VERSION_CODE = '2026-11-14.1';   // (14/11/2026) écran d'équité : la part de chaque compteur (PART VISEE) et le nombre de week-ends servis à l'écran, pour afficher la fourchette (champsWeStats_, computeStatsLive) · (12/11/2026) week-ends : V (vendredis), WE = samedis + dimanches et sa part, lus dans l'onglet de statistiques (champsWeStats_) · (11/11/2026) vue paie : jours de TP (TP, CTP, semaine off du rythme 2/2) affichés, sans mail · (11/11/2026) mail paie lisible sur téléphone (une carte par changement) · (02/11/2026) commentaire sans initiales réelles · (27/10/2026) demi-journées de vacances VM/VA (planning, paie, notifications) · (27/10/2026) journée mobile 2027 (lundi 7 juin) ajoutée aux fériés · (18/10/2026) vue paie : tri G/G2/V (_planningPaie_) et mail aux secrétaires de paie (_paieEnvoyerAnnee_)
 
 // ── Reconstruire STATS_GARDES_2026 depuis GARDES_2026 (année reconstruite) ──
 // Renvoie le classeur contenant l'onglet demandé : classeur actif si présent,
@@ -50,6 +50,23 @@ function champsWeStats_(data, r) {
     }
     if (sp > 0) o.cWe = Math.round(tot * (n(row[iPS]) + n(row[iPV])) / sp);
   }
+  /* (14/11/2026) LA FOURCHETTE À L'ÉCRAN — décision du responsable. Le générateur
+     ne vise plus une cible entière tirée entre collègues de même part : chacun doit
+     tomber entre l'arrondi inférieur et supérieur de sa part, sur chaque compteur.
+     L'écran d'équité affichait encore la colonne CIBLE (37 pour l'un, 36 pour son
+     collègue de même quotité) et des « −1 tot » sur des MAR parfaitement dans leur
+     fourchette. On sert donc la part elle-même, telle que le générateur l'a visée
+     (PART VISEE = part exacte moins le report des années passées ; à défaut, la
+     part exacte), et le nombre de week-ends, entier et égal à part égale (CIBLE WE).
+     Colonne absente ou vide → champ absent : l'écran garde son ancien affichage. */
+  const pv = function (k) { const i = h.indexOf('PART VISEE' + k), j = h.indexOf('PART EXACTE' + k);
+    const raw = (i >= 0 && row[i] !== '' && row[i] != null) ? row[i] : ((j >= 0) ? row[j] : '');
+    if (raw === '' || raw == null) return undefined;
+    const x = Number(String(raw).replace(/^'/, '').replace(',', '.')); return isFinite(x) ? x : undefined; };
+  [['pTot', ''], ['pSa', ' SAM'], ['pJe', ' JEU'], ['pVd', ' VD'], ['pVjf', ' VJF'], ['pJf', ' JF']].forEach(function (p) {
+    const v = pv(p[1]); if (v !== undefined) o[p[0]] = v; });
+  const iCW = h.indexOf('CIBLE WE'), iPW = h.indexOf('PART EXACTE WE');
+  if (iCW >= 0 && iPW >= 0 && row[iCW] !== '' && row[iCW] != null && row[iPW] !== '' && row[iPW] != null) o.pWe = n(row[iCW]);
   return o;
 }
 
@@ -86,6 +103,7 @@ function computeStatsLive(year) {
         cJf:Number(sd[r][22])||0 };
       const _we = champsWeStats_(sd, r);   // (12/11/2026) part de week-ends (samedis + dimanches)
       if (_we.cWe !== undefined) cibById[id].cWe = _we.cWe;
+      ['pTot','pSa','pJe','pVd','pVjf','pJf','pWe'].forEach(function (k) { if (_we[k] !== undefined) cibById[id][k] = _we[k]; });   // (14/11/2026) fourchette
     }
   }
   const stats = [];
@@ -115,7 +133,8 @@ function computeStatsLive(year) {
       lun:c.lun, mar:c.mar, mer:c.mer, jeu:c.jeu, ven:c.ven, sat:c.sam, dim:c.dim,
       recupR:c.recupR, h18:c.h18, jf:c.jf, vjf:c.vjf, vd:c.vd,
       cSat:cb.cSat, cJeu:cb.cJeu, cVd:cb.cVd, cVjf:cb.cVjf, cJf:cb.cJf,
-      we:c.sam + c.dim, cWe:cb.cWe});
+      we:c.sam + c.dim, cWe:cb.cWe,
+      pTot:cb.pTot, pSa:cb.pSa, pJe:cb.pJe, pVd:cb.pVd, pVjf:cb.pVjf, pJf:cb.pJf, pWe:cb.pWe});   // (14/11/2026) fourchette
   }
   return stats;
 }
