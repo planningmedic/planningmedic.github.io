@@ -31,6 +31,9 @@ function extraireConst(fichier, nom) {
 
 const MEMBRES = ['ALPHA', 'BRAVO', 'CHARLIE'];
 
+function lectureArchive(ctx) {
+  vm.runInContext('var ARCHIVE_SS_ID = "";\n' + extraireFonction('../gas/code.gs', '_ssWithSheet'), ctx);
+}
 function monde(annee) {
   const cl = new Classeur();
   cl.ajouter('MEDECINS', [['ID', 'NOM', 'INITIALES', 'ACTIF', 'LIBERAL']]
@@ -49,6 +52,7 @@ function monde(annee) {
   });
   ctx.globalThis = ctx;
   socleMedecins(ctx);   // (14/09/2026) COL_MED, _medecinsRows_, _medecinsInvalider_ (code.gs)
+  lectureArchive(ctx);   // (15/11/2026, lot C) _ssWithSheet : ici sans archive, il retombe sur le classeur maître
   ['LIBERAL_CA_HEADER'].forEach(n => vm.runInContext(extraireConst('../gas/portail.gs', n), ctx));
   ['_libCaSheetName', '_membresLiberal_', 'getOrCreateLiberalCaTab', '_libMoisISO_',
    '_todayISO_', '_libYearOf', 'getReleveLiberal']
@@ -185,6 +189,7 @@ console.log('\n═══ 5bis. La fabrique de cotations types ═══');
   });
   ctx.globalThis = ctx;
   socleMedecins(ctx);   // (14/09/2026) COL_MED, _medecinsRows_, _medecinsInvalider_ (code.gs)
+  lectureArchive(ctx);   // (15/11/2026, lot C) _ssWithSheet : ici sans archive, il retombe sur le classeur maître
   ['COTATIONS_TYPE_TAB', '_COTTYPE_HEADER', '_COTTYPE_SEED', '_COTTYPE_ROLES', '_COTTYPE_LC']
     .forEach(n => vm.runInContext(extraireConst('../gas/portail.gs', n), ctx));
   ['_cotTypeFormatTexte_', 'getOrCreateCotationsTypeTab', '_cotTypeTotal_', '_cotTypeRepere_', 'getCotationsType', '_cotTypeAdminId_', '_cotTypeMembre_',
@@ -497,6 +502,7 @@ console.log('\n═══ 5ter. Le jeton unique : reessayer sans jamais doubler �
   });
   ctx.globalThis = ctx;
   socleMedecins(ctx);   // (14/09/2026) COL_MED, _medecinsRows_, _medecinsInvalider_ (code.gs)
+  lectureArchive(ctx);   // (15/11/2026, lot C) _ssWithSheet : ici sans archive, il retombe sur le classeur maître
   ['SPECIALITES_TAB','_SPECIALITES_HEADER','_SPECIALITES_SEED','LIBERAL_HEADER','ETAB_TAB','_ETAB_HEADER','_ETAB_CLES'].forEach(function(n){
     try { vm.runInContext(extraireConst('../gas/portail.gs', n), ctx); } catch(e) {}
   });

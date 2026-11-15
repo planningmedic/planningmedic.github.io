@@ -1,7 +1,7 @@
 // ⚠️ RÈGLE (détecteur de dérive dépôt↔Apps Script) : incrémenter cette version
 // à CHAQUE push de ce fichier. Le diagnostic (admin → Maintenance) compare la
 // version déployée ici avec celle du dépôt et signale toute recopie oubliée.
-const GAS_VERSION_PORTAIL = '2026-10-21.1';   // (20/10/2026) .1 recherche dans les archives de la veille · .2 onglet ETABLISSEMENT (nom et adresse du devis) · .3 + service et téléphone · .4 + totaux de consultation du groupement · (21/10) .1 abonnement au mail de la veille
+const GAS_VERSION_PORTAIL = '2026-11-15.1';   // (15/11/2026) .1 libéral : une année close est lue dans l'archive (relevé, déclarations, vue du jour) · (20/10/2026) .1 recherche dans les archives de la veille · .2 onglet ETABLISSEMENT (nom et adresse du devis) · .3 + service et téléphone · .4 + totaux de consultation du groupement · (21/10) .1 abonnement au mail de la veille
 
 /**
  * portail.gs — actions du PORTAIL équipe (index.html).
@@ -970,8 +970,11 @@ function _libMoisISO_(v) {
 // Lecture : lignes NON VIDES de l'annee. Un mois non encore recopie n'existe pas.
 function getReleveLiberal(payload) {
   const year = parseInt(payload && payload.year, 10) || _libYearOf(_todayISO_());
-  const ss = SpreadsheetApp.getActiveSpreadsheet();
-  const sh = ss.getSheetByName(_libCaSheetName(year));
+  /* (15/11/2026, lot C) Lecture seule : une année close est lue dans l'archive
+     (la clôture y range le libéral avec un an de décalage). */
+  const ss = SpreadsheetApp.getActiveSpreadsheet();   // MEDECINS reste au classeur maître
+  const _ssL = _ssWithSheet(_libCaSheetName(year));
+  const sh = _ssL ? _ssL.getSheetByName(_libCaSheetName(year)) : null;
   if (!sh) return { success: true, year: year, items: [] };
   const rows = sh.getDataRange().getValues();
   const num = function (v) {
@@ -1676,7 +1679,8 @@ function listLiberalJour(payload, user) {
   const date = (payload && payload.date) ? _isoDate(payload.date) : '';
   if (!/^\d{4}-\d{2}-\d{2}$/.test(date)) return { success: false, error: 'Date invalide.' };
   const year = _libYearOf(date);
-  const sh = SpreadsheetApp.getActiveSpreadsheet().getSheetByName(_libSheetName(year));
+  const _ssL = _ssWithSheet(_libSheetName(year));   // (15/11/2026, lot C) une année close est lue dans l'archive
+  const sh = _ssL ? _ssL.getSheetByName(_libSheetName(year)) : null;
   if (!sh) return { success: true, date: date, items: [] };   // année sans déclaration : liste vide, pas une erreur
 
   const data = sh.getDataRange().getValues();
@@ -1699,8 +1703,8 @@ function listLiberal(payload, user) {
   if (!user || user.role !== 'mar') return { success: false, error: 'Réservé aux MAR identifiés.' };
   const marId = user.id;
   const year  = parseInt(payload && payload.year, 10) || _libYearOf(_todayISO_());
-  const ss = SpreadsheetApp.getActiveSpreadsheet();
-  const sh = ss.getSheetByName(_libSheetName(year));
+  const _ssL = _ssWithSheet(_libSheetName(year));   // (15/11/2026, lot C) une année close est lue dans l'archive
+  const sh = _ssL ? _ssL.getSheetByName(_libSheetName(year)) : null;
   if (!sh) return { success: true, year: year, items: [] };
 
   const data = sh.getDataRange().getValues();

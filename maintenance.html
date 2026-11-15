@@ -459,9 +459,9 @@ function _clotBilan(b, y){
   if (!b || !(b.mars || []).length) return '';
   const lignes = b.mars.slice().sort((a, c) => String(_initiales(a.id)).localeCompare(String(_initiales(c.id))));
   let h = `<div class="diag-chap">Bilan ${esc(y)} — ce qui sera figé</div>`
-    + '<table class="bil"><tr><th>MAR</th><th>Gardes</th><th>Week-ends</th><th>Fériés</th><th>Noël/An</th></tr>'
-    + lignes.map(m => `<tr><td><b>${esc(_initiales(m.id))}</b></td><td>${esc(m.total)}</td><td>${esc(m.weekends)}</td><td>${esc(m.feries)}</td><td>${m.noelAn ? '✓' : ''}</td></tr>`).join('')
-    + '</table><div class="d" style="margin:2px 0 0">Gardes réellement faites, dons et échanges compris.</div>';
+    + '<table class="bil"><tr><th>MAR</th><th>Gardes</th><th>Part</th><th>W-E</th><th>Fériés</th><th>Noël</th><th>TP</th></tr>'
+    + lignes.map(m => `<tr><td><b>${esc(_initiales(m.id))}</b></td><td>${esc(m.total)}</td><td>${m.part ? esc(String(Math.round(m.part * 10) / 10).replace('.', ',')) : '—'}</td><td>${esc(m.weekends)}</td><td>${esc(m.feries)}</td><td>${m.noelAn ? '✓' : ''}</td><td>${esc(m.joursTp || 0)}</td></tr>`).join('')
+    + '</table><div class="d" style="margin:2px 0 0">Gardes réellement faites, dons et échanges compris. <b>Part</b> : gardes dues selon la génération. <b>TP</b> : jours de temps partiel accordés dans l\'année.</div>';
   const f = b.fetes || {};
   const jours = Object.keys(f).sort();
   if (jours.length) h += '<div class="fetes">' + jours.map(dt =>

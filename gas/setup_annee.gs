@@ -1,7 +1,7 @@
 // ⚠️ RÈGLE (détecteur de dérive dépôt↔Apps Script) : incrémenter cette version
 // à CHAQUE push de ce fichier. Le diagnostic (admin → Maintenance) compare la
 // version déployée ici avec celle du dépôt et signale toute recopie oubliée.
-const GAS_VERSION_SETUP = '2026-11-15.2';   // (15/11/2026) .2 : date du refus de clôture écrite en français (« lundi 4 janvier 2027 ») · (15/11/2026) clôture d'année en un seul geste (cloturerAnnee_) : contrôles bloquants (date, année suivante, case ANNEE_ACTIVE, archive, homonymes, sauvegardes), copie de sécurité du classeur, bilan, déplacement sûr (archiveMoveTabs_, LIENS_R compris), bascule relue, campagne fermée, contrôle d'après, mail ; répétition à blanc (clotureVerifier_) ; archiveYear depuis l'éditeur passe par les mêmes refus ; lanceurs d'essai retirés · (10/11/2026) rangement des onglets en 7 familles, tous les onglets annuels reconnus quelle que soit l'année
+const GAS_VERSION_SETUP = '2026-11-15.3';   // (15/11/2026) .3 lot C : la clôture emporte aussi REA1_ et FETES_ de l'année, le libéral de l'année précédente, et les lignes de l'année dans ECHANGES, TP_DEMANDES, TP_FERMES, ABSENCES_LONGUES (sans doublon à la relance) ; HISTORIQUE gagne PART EXACTE et JOURS TP · (15/11/2026) .2 : date du refus de clôture écrite en français (« lundi 4 janvier 2027 ») · (15/11/2026) clôture d'année en un seul geste (cloturerAnnee_) : contrôles bloquants (date, année suivante, case ANNEE_ACTIVE, archive, homonymes, sauvegardes), copie de sécurité du classeur, bilan, déplacement sûr (archiveMoveTabs_, LIENS_R compris), bascule relue, campagne fermée, contrôle d'après, mail ; répétition à blanc (clotureVerifier_) ; archiveYear depuis l'éditeur passe par les mêmes refus ; lanceurs d'essai retirés · (10/11/2026) rangement des onglets en 7 familles, tous les onglets annuels reconnus quelle que soit l'année
 
 
 // ══════════════════════════════════════════════════════════════════════
@@ -467,6 +467,17 @@ function _clotureBilan_(year) {
     if (!h) { h = ss.insertSheet('HISTORIQUE');
       h.getRange(1,1,1,18).setValues([['ID','ANNEE','TOTAL','G','G2','LUN','MAR','MER','JEU','VEN','SAM','DIM','VD','VEILLE JF','JF','NOEL/AN','RECUP R','18H']]).setFontWeight('bold');
       h.setFrozenRows(1); h.setColumnWidth(1,140); }
+    /* (15/11/2026, lot C) Deux colonnes de plus, figées à la clôture : ce que
+       l'année a VÉCU, jamais la quotité de MEDECINS (une seule valeur, sans
+       date — recopiée au 4 janvier, elle serait fausse pour un changement en
+       cours d'année ou déjà saisi pour l'année suivante).
+         PART EXACTE : la part de gardes utilisée pour générer l'année (STATS).
+         JOURS TP    : les jours de temps partiel accordés, comptés dans la grille
+                       (les jours fixes de MEDECINS ne sont pas dans la grille). */
+    if (String(h.getRange(1, 19).getValue()).trim() !== 'PART EXACTE')
+      h.getRange(1, 19, 1, 2).setValues([['PART EXACTE', 'JOURS TP']]).setFontWeight('bold');
+    const partDe = {};
+    for (let r = 1; r < d.length; r++) { const pid = String(d[r][0]).trim(); if (pid) partDe[pid] = num(r, 'PART EXACTE'); }
     const hd = h.getDataRange().getValues();
     const seen = new Set();
     for (let r=1;r<hd.length;r++){ const id=String(hd[r][0]).trim(); if(id) seen.add(`${id}|${hd[r][1]}`); }
@@ -477,12 +488,17 @@ function _clotureBilan_(year) {
     // La dette, elle, reste calculée sur le snapshot (planning tel que généré).
     // Repli : si GARDES_{year} est absent, on retombe sur la colonne NOEL/AN des stats.
     let noelReel = null;
+    const tpDe = {};
     const gSheet = ss.getSheetByName(`GARDES_${year}`);
     if (gSheet) {
       const gd = gSheet.getDataRange().getValues();
       const d2c = buildDateToCol(gd, year);
       const noelCols = [`${year}-12-24`, `${year}-12-25`, `${year}-12-31`, `${year + 1}-01-01`]
         .map(dt => d2c[dt]).filter(c => c != null);
+      for (let r = 3; r < gd.length; r++) {
+        const tid = String(gd[r][0]).trim(); if (!tid) continue;
+        tpDe[tid] = gd[r].slice(1).filter(v => String(v || '').trim().toUpperCase() === 'TP').length;
+      }
       if (noelCols.length) {
         noelReel = new Set();
         for (let r = 3; r < gd.length; r++) {
@@ -509,7 +525,7 @@ function _clotureBilan_(year) {
         const noelAn = noelReel ? (noelReel.has(id) ? 1 : 0) : 0;
         hrows.push([id, year, x.total, x.g, x.g2,
           x.lun, x.mar, x.mer, x.jeu, x.ven, x.sat, x.dim,
-          x.vd, x.vjf, x.jf, noelAn, x.recupR, x.h18]);
+          x.vd, x.vjf, x.jf, noelAn, x.recupR, x.h18, partDe[id] || 0, tpDe[id] || 0]);
       });
     } else {
       for (let r=1;r<d.length;r++){
@@ -518,10 +534,10 @@ function _clotureBilan_(year) {
         const noelAn = noelReel ? (noelReel.has(id) ? 1 : 0) : num(r,'NOEL/AN');
         hrows.push([id,year, num(r,'TOTAL G'),num(r,'G (REA)'),num(r,'G2 (MAT)'),
           num(r,'LUN'),num(r,'MAR'),num(r,'MER'),num(r,'JEU'),num(r,'VEN'),num(r,'SAM'),num(r,'DIM'),
-          num(r,'VD'),num(r,'VEILLE JF'),num(r,'JF'),noelAn,num(r,'RECUP R'),num(r,'18H')]);
+          num(r,'VD'),num(r,'VEILLE JF'),num(r,'JF'),noelAn,num(r,'RECUP R'),num(r,'18H'),num(r,'PART EXACTE'),tpDe[id] || 0]);
       }
     }
-    if (hrows.length){ h.getRange(h.getLastRow()+1,1,hrows.length,18).setValues(hrows);
+    if (hrows.length){ h.getRange(h.getLastRow()+1,1,hrows.length,20).setValues(hrows);
       results.push(`✅ HISTORIQUE : ${hrows.length} ligne(s) ${year} ajoutée(s)${live && live.length ? ' (gardes réellement faites)' : ' (snapshot STATS — repli)'}`); }
     else results.push(`ℹ️ HISTORIQUE : ${year} déjà présent`);
 
@@ -663,8 +679,109 @@ function creerHistorique() {
 
 function _clotureMaintenant_() { return new Date(); }   // seul point de lecture de l'heure : le banc le fige
 
-function _clotureOnglets_(year) {
+/* Ce que la clôture de `year` emporte. Les cinq premiers passent par
+   archiveMoveTabs_ (générateur) ; les autres par _clotureDeplacer_ (même règle :
+   copie, vérification, puis suppression).
+   (15/11/2026, lot C — le classeur maître ne garde que l'année en cours et la
+   suivante) : + REA1_ et FETES_ de l'année (entrées de sa génération, relues
+   seulement pour elle) ; + le libéral de l'année PRÉCÉDENTE, qui suit l'année
+   civile et dont le relevé de décembre se saisit après le 1er janvier. */
+function _clotureOngletsMoteur_(year) {
   return ['GARDES_' + year, 'INDISPOS_' + year, 'AFFECTATIONS_' + year, 'STATS_GARDES_' + year, 'LIENS_R_' + year];
+}
+function _clotureOngletsEnPlus_(year) {
+  return ['REA1_' + year, 'FETES_' + year, 'LIBERAL_' + (year - 1), 'LIBERAL_CA_' + (year - 1)];
+}
+function _clotureOnglets_(year) {
+  return _clotureOngletsMoteur_(year).concat(_clotureOngletsEnPlus_(year));
+}
+
+/* Déplace UN onglet : copie dans l'archive, vérifie (lignes et colonnes), puis
+   supprime l'original. Un homonyme dans l'archive n'est jamais écrasé (les
+   contrôles d'ouverture l'ont refusé avant). */
+function _clotureDeplacer_(ss, arch, nom) {
+  const sh = ss.getSheetByName(nom);
+  if (!sh) return '⏭️ ' + nom + ' absent';
+  if (arch.getSheetByName(nom)) return '⚠️ ' + nom + ' déjà dans l\'archive — rien écrasé';
+  const copie = sh.copyTo(arch);
+  copie.setName(nom);
+  if (copie.getLastRow() !== sh.getLastRow() || copie.getLastColumn() !== sh.getLastColumn())
+    return '⚠️ ' + nom + ' : copie incohérente, original gardé';
+  ss.deleteSheet(sh);
+  return '✓ ' + nom + ' déplacé';
+}
+
+/* (15/11/2026, lot C) LES LIGNES DE L'ANNÉE dans les onglets qui mélangent les
+   années. Chaque ligne qui part est d'abord ajoutée à l'onglet du même nom dans
+   l'archive (créé avec l'en-tête au besoin), puis le classeur maître est réécrit
+   en un bloc sans elle. Une ligne déjà présente à l'identique dans l'archive
+   n'est pas ajoutée deux fois : une relance après coupure ne double rien.
+     ECHANGES           ANNEE = year, sauf une demande encore « attente »
+     TP_DEMANDES, TP_FERMES   ANNEE ≤ year
+     ABSENCES_LONGUES   DATE_FIN avant le premier lundi de year+1 (une absence à
+                        cheval sur deux années reste). */
+function _clotureLignesRegles_(year) {
+  const pj = getPremierJourPlanning(year + 1);
+  const debut = new Date(pj.getFullYear(), pj.getMonth(), pj.getDate());
+  const jour = v => {
+    if (v instanceof Date) return new Date(v.getFullYear(), v.getMonth(), v.getDate());
+    const m = String(v || '').trim().match(/^(\d{4})-(\d{2})-(\d{2})/);
+    return m ? new Date(Number(m[1]), Number(m[2]) - 1, Number(m[3])) : null;
+  };
+  return [
+    { onglet: 'ECHANGES', texte: true, part: (r, c) => Number(r[c.ANNEE]) === year && String(r[c.ETAT]).trim() !== 'attente', cols: ['ANNEE', 'ETAT'] },
+    { onglet: 'TP_DEMANDES', part: (r, c) => Number(r[c.ANNEE]) > 0 && Number(r[c.ANNEE]) <= year, cols: ['ANNEE'] },
+    { onglet: 'TP_FERMES', part: (r, c) => Number(r[c.ANNEE]) > 0 && Number(r[c.ANNEE]) <= year, cols: ['ANNEE'] },
+    { onglet: 'ABSENCES_LONGUES', part: (r, c) => { const f = jour(r[c.DATE_FIN]); return !!f && f < debut; }, cols: ['DATE_FIN'] },
+  ];
+}
+function _clotureLignes_(ss, arch, year, aBlanc) {
+  const out = [];
+  _clotureLignesRegles_(year).forEach(function (regle) {
+    const sh = ss.getSheetByName(regle.onglet);
+    if (!sh || sh.getLastRow() < 2) { out.push({ onglet: regle.onglet, n: 0, note: 'vide' }); return; }
+    const data = sh.getDataRange().getValues();
+    const ent = data[0].map(x => String(x).trim());
+    const c = {};
+    const manque = regle.cols.filter(function (k) { c[k] = ent.indexOf(k); return c[k] < 0; });
+    if (manque.length) { out.push({ onglet: regle.onglet, n: 0, note: 'colonne ' + manque.join(', ') + ' absente — rien déplacé' }); return; }
+    const partent = [], restent = [];
+    for (let r = 1; r < data.length; r++) {
+      if (!data[r].some(v => String(v).trim() !== '')) continue;
+      (regle.part(data[r], c) ? partent : restent).push(data[r]);
+    }
+    if (aBlanc || !partent.length) { out.push({ onglet: regle.onglet, n: partent.length, note: aBlanc ? 'à déplacer' : 'rien à déplacer' }); return; }
+    // 1. Ajout dans l'archive (sans doublon)
+    let a = arch.getSheetByName(regle.onglet);
+    if (!a) {
+      a = arch.insertSheet(regle.onglet);
+      if (regle.texte) { try { a.getRange(1, 1, Math.max(a.getMaxRows(), partent.length + 1), ent.length).setNumberFormat('@'); } catch (e) {} }
+      a.getRange(1, 1, 1, ent.length).setValues([data[0]]);
+    }
+    /* Une même date peut revenir en date ou en texte (« 2026-06-01 ») selon le
+       format de la cellule : la comparaison se fait sur le jour écrit, sinon une
+       relance doublerait la ligne (vu au banc, 15/11/2026). */
+    const p2 = n => String(n).padStart(2, '0');
+    const norme = v => {
+      if (v instanceof Date) {
+        const j = `${v.getFullYear()}-${p2(v.getMonth() + 1)}-${p2(v.getDate())}`;
+        return (v.getHours() || v.getMinutes() || v.getSeconds()) ? j + 'T' + p2(v.getHours()) + ':' + p2(v.getMinutes()) : j;
+      }
+      return String(v).trim();
+    };
+    const cle = row => JSON.stringify(row.slice(0, ent.length).map(norme));
+    const deja = new Set();
+    if (a.getLastRow() > 1) a.getRange(2, 1, a.getLastRow() - 1, ent.length).getValues().forEach(row => deja.add(cle(row)));
+    const nouvelles = partent.filter(row => !deja.has(cle(row))).map(row => row.slice(0, ent.length));
+    const avant = a.getLastRow();
+    if (nouvelles.length) a.getRange(avant + 1, 1, nouvelles.length, ent.length).setValues(nouvelles);
+    if (a.getLastRow() !== avant + nouvelles.length) throw new Error(regle.onglet + ' : l\'archive n\'a pas reçu toutes les lignes');
+    // 2. Réécriture du maître sans elles, en un bloc
+    sh.getRange(2, 1, data.length - 1, ent.length).clearContent();
+    if (restent.length) sh.getRange(2, 1, restent.length, ent.length).setValues(restent.map(row => row.slice(0, ent.length)));
+    out.push({ onglet: regle.onglet, n: partent.length, note: 'déplacée(s)' });
+  });
+  return out;
 }
 
 /* '' si la clôture est permise à cette date, sinon le refus complet. L'année de
@@ -740,12 +857,16 @@ function _clotureEtat_(year) {
    chacun des quatre jours de fêtes. Lit GARDES_{year} au maître ou à l'archive. */
 function _clotureBilanApercu_(year) {
   const live = computeStatsLive(year) || [];
-  const fetes = {}, noel = {};
+  const fetes = {}, noel = {}, tp = {}, part = {};
   const dates = [`${year}-12-24`, `${year}-12-25`, `${year}-12-31`, `${year + 1}-01-01`];
   const ssG = _ssWithSheet('GARDES_' + year);
   if (ssG) {
     const gd = ssG.getSheetByName('GARDES_' + year).getDataRange().getValues();
     const d2c = buildDateToCol(gd, year);
+    for (let r = 3; r < gd.length; r++) {
+      const tid = String(gd[r][0]).trim(); if (!tid) continue;
+      tp[tid] = gd[r].slice(1).filter(function (v) { return String(v || '').trim().toUpperCase() === 'TP'; }).length;
+    }
     dates.forEach(function (dt) {
       fetes[dt] = [];
       const c = d2c[dt];
@@ -757,10 +878,16 @@ function _clotureBilanApercu_(year) {
       }
     });
   }
+  const ssS = _ssWithSheet('STATS_GARDES_' + year);
+  if (ssS) {
+    const sd = ssS.getSheetByName('STATS_GARDES_' + year).getDataRange().getValues();
+    const ip = sd[0].map(function (x) { return String(x).trim(); }).indexOf('PART EXACTE');
+    if (ip > -1) for (let r = 1; r < sd.length; r++) { const pid = String(sd[r][0]).trim(); if (pid) part[pid] = Number(sd[r][ip]) || 0; }
+  }
   const mars = live.map(function (x) {
     const id = String(x.medecin || '').trim();
     return { id: id, total: Number(x.total) || 0, weekends: (Number(x.sat) || 0) + (Number(x.dim) || 0),
-             feries: Number(x.jf) || 0, noelAn: noel[id] ? 1 : 0 };
+             feries: Number(x.jf) || 0, noelAn: noel[id] ? 1 : 0, part: part[id] || 0, joursTp: tp[id] || 0 };
   }).filter(function (m) { return m.id; });
   return { mars: mars, fetes: fetes };
 }
@@ -826,6 +953,12 @@ function clotureVerifier_(year, opts) {
   const partiront = Object.keys(etat.onglets).filter(function (n) { return etat.onglets[n].maitre; });
   if (partiront.length) info(`Onglets qui partiront à l'archive : ${partiront.join(', ')}`);
   if (etat.histo) info(`HISTORIQUE contient déjà ${etat.histo} ligne(s) ${year} : elles ne seront pas doublées.`);
+  if (etat.archive) {
+    try {
+      const rl = _clotureLignes_(ss, SpreadsheetApp.openById(ARCHIVE_SS_ID), year, true).filter(x => x.n > 0);
+      if (rl.length) info(`Lignes ${year} qui partiront à l'archive : ` + rl.map(x => x.onglet + ' (' + x.n + ')').join(', '));
+    } catch (e) { info(`Lignes ${year} des onglets partagés : aperçu impossible (${e.message})`); }
+  }
   // 6. La sauvegarde (décision du 15/11/2026 : bloquante) — la clôture fait sa propre copie
   try {
     const d = _clotureDerniereSauvegarde_();
@@ -980,6 +1113,10 @@ function cloturerAnnee_(year) {
   if (_clotureOnglets_(year).some(function (n) { return ss.getSheetByName(n); })) {
     let rap = [];
     try { rap = archiveMoveTabs_(year) || []; } catch (e) { rap = ['❌ ' + e.message]; }
+    try {
+      const arch = SpreadsheetApp.openById(ARCHIVE_SS_ID);
+      _clotureOngletsEnPlus_(year).forEach(function (n) { if (ss.getSheetByName(n)) rap.push(_clotureDeplacer_(ss, arch, n)); });
+    } catch (e) { rap.push('❌ ' + e.message); }
     const restent = _clotureOnglets_(year).filter(function (n) { return ss.getSheetByName(n); });
     if (restent.length) {
       pas(nomDep, 'échec', rap.join(' · '));
@@ -987,6 +1124,17 @@ function cloturerAnnee_(year) {
     }
     pas(nomDep, 'fait', rap.join(' · '));
   } else pas(nomDep, 'déjà fait');
+
+  // 3 bis. (15/11/2026, lot C) Les lignes de l'année dans les onglets partagés
+  const nomLig = `Lignes ${year} des onglets partagés vers l'archive`;
+  try {
+    const rl = _clotureLignes_(ss, SpreadsheetApp.openById(ARCHIVE_SS_ID), year, false);
+    const total = rl.reduce((t, x) => t + (x.note === 'déplacée(s)' ? x.n : 0), 0);
+    pas(nomLig, total ? 'fait' : 'déjà fait', rl.map(x => x.onglet + ' : ' + x.n + ' ' + x.note).join(' · '));
+  } catch (e) {
+    pas(nomLig, 'échec', e.message);
+    return sortie(false, { error: `Lignes ${year} non déplacées : ${e.message}. L'année active n'a pas changé : relancer la clôture, rien ne sera doublé.` });
+  }
 
   // 4. Bascule, relue
   const nomBasc = `Année active → ${next}`;

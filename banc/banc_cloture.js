@@ -38,6 +38,9 @@ function grilleGardes(y) {
   const dates = datesPlanning(y);
   const lignes = [['GARDES ' + y], ['ID'].concat(dates.map(() => '')), ['ID'].concat(dates)];
   MARS.forEach((id, k) => lignes.push([id].concat(dates.map((dt, i) => i % MARS.length === k ? 'G' : (i + 1) % MARS.length === k ? 'G2' : ''))));
+  /* (lot C) MAR02 : 3 jours de temps partiel accordés dans la grille */
+  const r2 = lignes[3 + 1]; let posés = 0;
+  for (let c = 1; c < r2.length && posés < 3; c++) if (r2[c] === '' && c % 7 === 3) { r2[c] = 'TP'; posés++; }
   return lignes;
 }
 function monde(opts) {
@@ -50,7 +53,23 @@ function monde(opts) {
   M.ajouter('GARDES_2026', grilleGardes(2026));
   M.ajouter('INDISPOS_2026', [['I'], ['I'], ['ID'].concat(datesPlanning(2026))].concat(MARS.map(id => [id])));
   M.ajouter('AFFECTATIONS_2026', [['ID', 'SECTEUR']].concat(MARS.map(id => [id, 'BLOC'])));
-  M.ajouter('STATS_GARDES_2026', [['MEDECIN', 'TOTAL G', 'NOEL/AN']].concat(MARS.map(id => [id, 60, 0])));
+  M.ajouter('STATS_GARDES_2026', [['MEDECIN', 'TOTAL G', 'NOEL/AN', 'PART EXACTE']].concat(MARS.map((id, k) => [id, 60, 0, k === 1 ? 54.4 : 60.7])));
+  /* (lot C, 15/11/2026) Ce que le classeur maître ne doit plus garder après la clôture */
+  M.ajouter('REA1_2026', [['Du', 'REA 1'], ['2026-03-02', 'MAR01']]);
+  M.ajouter('FETES_2026', [['DATE', 'MAR'], ['2026-12-24', 'MAR03']]);
+  M.ajouter('LIBERAL_2025', [['ID', 'DATE_CONSULT', 'DATE_BLOC', 'MAR_ID'], ['L1', '2025-11-02', '2025-11-04', 'MAR01']]);
+  M.ajouter('LIBERAL_CA_2025', [['MOIS', 'MAR_ID'], ['2025-12', 'MAR01']]);
+  M.ajouter('LIBERAL_2026', [['ID', 'DATE_CONSULT', 'DATE_BLOC', 'MAR_ID'], ['L2', '2026-12-20', '2026-12-28', 'MAR01']]);
+  M.ajouter('ECHANGES', [['ID', 'CREE_LE', 'TYPE', 'ANNEE', 'DATE', 'DATE2', 'DEMANDEUR', 'RECEVEUR', 'ETAT', 'REPONDU_LE', 'RAPPEL_LE', 'INFO'],
+    ['E1', '2026-05-01T10:00', 'don', '2026', '2026-05-10', '', 'MAR01', 'MAR02', 'acceptee', '2026-05-01T11:00', '', ''],
+    ['E2', '2026-12-28T10:00', 'don', '2026', '2027-01-02', '', 'MAR03', 'MAR04', 'attente', '', '', ''],
+    ['E3', '2026-11-20T10:00', 'echange', '2027', '2027-02-01', '2027-02-08', 'MAR05', 'MAR06', 'refusee', '2026-11-20T12:00', '', '']]);
+  M.ajouter('TP_DEMANDES', [['ANNEE', 'DATE', 'MAR', 'QUAND'], [2026, '2026-06-01', 'MAR02', 'x'], [2027, '2027-03-01', 'MAR02', 'y']]);
+  M.ajouter('TP_FERMES', [['ANNEE', 'DATE', 'PAR', 'QUAND'], [2026, '2026-07-14', 'COMITE', 'x']]);
+  M.ajouter('ABSENCES_LONGUES', [['MAR_ID', 'DATE_DEBUT', 'DATE_FIN', 'POSE_LE', 'CIBLE_PLEINE'],
+    ['MAR04', '2026-02-01', '2026-04-30', 'x', ''],
+    ['MAR05', '2026-11-01', '2027-02-07', 'x', ''],
+    ['MAR06', '2027-03-01', '2027-04-01', 'x', 'OUI']]);
   if (!opts.pasDe2027) {
     M.ajouter('INDISPOS_2027', [['I'], ['I'], ['ID'].concat(datesPlanning(2027))].concat(MARS.map(id => [id])));
     M.ajouter('GARDES_2027', grilleGardes(2027));
@@ -278,6 +297,56 @@ console.log('═══ L. L\'écran actuel (trois appels) passe par la même cl�
   V('état final identique à la clôture en un geste', w.cfg('ANNEE_ACTIVE') === 2027 && !w.M.getSheetByName('GARDES_2026') && w.cfg('INDISPOS_ACTIVE') === undefined);
 }
 
+console.log('═══ O. Lot C : le classeur maître ne garde que l\'année en cours et la suivante ═══');
+{
+  const w = monde();
+  const v = action(w, 'clotureVerifier', { year: 2026 });
+  V('répétition : elle annonce les lignes qui partiront', v.controles.some(c => /Lignes 2026 qui partiront à l'archive : ECHANGES \(1\), TP_DEMANDES \(1\), TP_FERMES \(1\), ABSENCES_LONGUES \(1\)/.test(c.texte)), v.controles.map(c => c.texte));
+  V('répétition : le bilan donne la part et les jours de TP', v.bilan.mars.find(m => m.id === 'MAR02').part === 54.4 && v.bilan.mars.find(m => m.id === 'MAR02').joursTp === 3, v.bilan.mars.find(m => m.id === 'MAR02'));
+  const r = w.ctx.cloturerAnnee_(2026);
+  V('la clôture réussit', r.success === true, r.message);
+  V('REA1_2026 et FETES_2026 sont partis à l\'archive', !w.M.getSheetByName('REA1_2026') && !w.M.getSheetByName('FETES_2026') && w.A.getSheetByName('REA1_2026') && w.A.getSheetByName('FETES_2026'));
+  V('le libéral de l\'année PRÉCÉDENTE part (2025)…', !w.M.getSheetByName('LIBERAL_2025') && !w.M.getSheetByName('LIBERAL_CA_2025') && !!w.A.getSheetByName('LIBERAL_2025'));
+  V('…celui de 2026 reste (relevé de décembre encore à saisir)', !!w.M.getSheetByName('LIBERAL_2026') && !w.A.getSheetByName('LIBERAL_2026'));
+  const ids = n => w.M.getSheetByName(n).lignes.slice(1).filter(l => String(l[0]).trim()).map(l => String(l[0]));
+  const idsA = n => (w.A.getSheetByName(n) ? w.A.getSheetByName(n).lignes.slice(1).filter(l => String(l[0]).trim()).map(l => String(l[0])) : []);
+  V('ECHANGES : l\'échange 2026 terminé est parti, la demande en attente et 2027 restent', JSON.stringify(ids('ECHANGES')) === '["E2","E3"]' && JSON.stringify(idsA('ECHANGES')) === '["E1"]', [ids('ECHANGES'), idsA('ECHANGES')]);
+  V('…l\'onglet d\'archive a le même en-tête', w.A.getSheetByName('ECHANGES').lignes[0].join() === w.M.getSheetByName('ECHANGES').lignes[0].join());
+  V('TP_DEMANDES : 2026 partie, 2027 reste', ids('TP_DEMANDES').length === 1 && Number(ids('TP_DEMANDES')[0]) === 2027 && idsA('TP_DEMANDES').length === 1);
+  V('TP_FERMES : 2026 partie', ids('TP_FERMES').length === 0 && idsA('TP_FERMES').length === 1);
+  V('ABSENCES_LONGUES : la terminée part, celle à cheval et la future restent', JSON.stringify(ids('ABSENCES_LONGUES')) === '["MAR05","MAR06"]' && JSON.stringify(idsA('ABSENCES_LONGUES')) === '["MAR04"]', [ids('ABSENCES_LONGUES'), idsA('ABSENCES_LONGUES')]);
+  const H = w.M.getSheetByName('HISTORIQUE').lignes;
+  V('HISTORIQUE : colonnes PART EXACTE et JOURS TP', H[0][18] === 'PART EXACTE' && H[0][19] === 'JOURS TP', H[0]);
+  const h2 = H.find(l => l[0] === 'MAR02' && l[1] === 2026);
+  V('…remplies pour l\'année : MAR02 part 54,4 et 3 jours de TP', h2 && h2[18] === 54.4 && h2[19] === 3, h2);
+  V('le contrôle d\'après est vert, et vérifie aussi les nouveaux onglets', r.apres.every(c => c.niveau === 'ok'), r.apres);
+  const avant = w.photo();
+  const r2 = w.ctx.cloturerAnnee_(2026);
+  V('relancer : « déjà clôturée », rien ne bouge', r2.success && r2.dejaFaite && w.photo() === avant);
+}
+{
+  /* Coupure APRÈS l'ajout dans l'archive, AVANT la réécriture du maître : la relance ne double rien. */
+  const w = monde();
+  const sh = w.M.getSheetByName('TP_DEMANDES');
+  const vraiGR = sh.getRange.bind(sh); let panne = true;
+  sh.getRange = function (r, c, nr, nc) { const g = vraiGR(r, c, nr, nc); if (panne && r === 2) { const cc = g.clearContent; g.clearContent = function () { panne = false; throw new Error('coupure (simulation)'); }; } return g; };
+  const r = w.ctx.cloturerAnnee_(2026);
+  V('coupure au milieu des lignes : arrêt, l\'année active ne bascule pas', r.success === false && /rien ne sera doublé/.test(r.error) && w.cfg('ANNEE_ACTIVE') === 2026, r.error);
+  const r2 = w.ctx.cloturerAnnee_(2026);
+  const nA = w.A.getSheetByName('TP_DEMANDES').lignes.slice(1).filter(l => String(l[0]).trim()).length;
+  V('relance : la clôture se termine et la ligne n\'est pas doublée dans l\'archive', r2.success === true && nA === 1, [r2.success, nA, r2.error, w.A.getSheetByName('TP_DEMANDES').lignes]);
+}
+{
+  /* Le libéral d'une année close se lit dans l'archive (vrai code de portail.gs). */
+  const w = monde();
+  w.ctx.cloturerAnnee_(2026);
+  const src = ['listLiberal', '_libSheetName', '_isoDate', '_libMoney_', '_libYearOf', '_todayISO_']
+    .map(f => { try { return extraireFonction(path.join(GAS, 'portail.gs'), f); } catch (e) { return ''; } }).join('\n');
+  vm.runInContext(src, w.ctx);
+  const res = w.ctx.listLiberal({ year: 2025 }, { role: 'mar', id: 'MAR01' });
+  V('« Mes patients lib » 2025, après archivage : les déclarations sont lues dans l\'archive', res.success && res.items.length === 1 && res.items[0].id === 'L1', res);
+}
+
 console.log('═══ N. Le code du comité est refusé (15/11/2026 : page Maintenance seulement) ═══');
 {
   const w = monde();
@@ -349,6 +418,23 @@ console.log('═══ Contre-preuves : l\'ancien code (4fec50a) rejoué ══�
       vm.runInContext(extraireFonction(fInd, '_act_archiveYear'), w.ctx);
       const r = action(w, 'archiveYear', { year: 2026 }, COMITE);
       V('ANCIEN serveur : le code du comité clôturait l\'année — le test sait le voir', r.success === true && !w.M.getSheetByName('GARDES_2026'), r);
+    }
+    // 5. La clôture d'avant le lot C (8ad9263) : REA1, FETES, libéral et lignes de l'année restaient au maître
+    {
+      let src = '';
+      try { src = execSync('git show 8ad9263:gas/setup_annee.gs', { cwd: __dirname, stdio: ['ignore', 'pipe', 'ignore'] }).toString(); } catch (e) {}
+      V('historique : la version d\'avant le lot C est lisible', !!src);
+      if (src) {
+        const w = monde();
+        const fB = tmp('setup_avant_lotC.gs', src);
+        vm.runInContext(extraireFonction(fB, '_clotureBilan_') + '\n' + src.slice(src.indexOf(MARQUE) - 80), w.ctx);
+        w.ctx._clotureMaintenant_ = () => new Date(2027, 0, 4, 9, 0);
+        const r = w.ctx.cloturerAnnee_(2026);
+        V('ANCIENNE clôture : REA1_2026, FETES_2026, LIBERAL_2025 et les lignes 2026 restaient au maître — le test sait le voir',
+          r.success === true && !!w.M.getSheetByName('REA1_2026') && !!w.M.getSheetByName('LIBERAL_2025')
+          && w.M.getSheetByName('ECHANGES').lignes.some(l => l[0] === 'E1'), r.message);
+        try { fs.unlinkSync(fB); } catch (e) {}
+      }
     }
     try { fs.unlinkSync(fInd); fs.unlinkSync(fSet); } catch (e) {}
   }

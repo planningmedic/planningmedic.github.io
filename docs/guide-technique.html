@@ -1107,11 +1107,22 @@ perdu — tout reste consultable dans l'archive.</p></div>
 <li><b>Copie de sécurité</b> du classeur complet dans <span class="tag">Planning-Med-Backups</span>,
 nommée « Avant clôture {année} » : la rotation hebdomadaire ne l'efface jamais.</li>
 <li><b>Bilan</b> : HISTORIQUE reçoit une ligne par MAR (gardes réellement faites, échanges et dons
-inclus ; Noël / Jour de l'An relus dans les gardes réelles), sans doublon ; les fichiers nominatifs
+inclus ; Noël / Jour de l'An relus dans les gardes réelles ; la part de gardes de la génération,
+colonne PART EXACTE ; les jours de temps partiel accordés dans la grille, colonne JOURS TP), sans
+doublon. La quotité de MEDECINS n'y est jamais recopiée : une seule valeur sans date, elle serait
+fausse pour un changement en cours d'année ; les fichiers nominatifs
 (bilan, grille, indisponibilités) sont rangés dans le Drive privé ; les retouches quotidiennes de
 l'année sont effacées.</li>
-<li><b>Départ des onglets</b> GARDES, INDISPOS, AFFECTATIONS, STATS_GARDES et LIENS_R de l'année :
-chacun est copié dans l'archive, la copie est vérifiée, puis seulement l'original est supprimé.</li>
+<li><b>Départ des onglets</b> GARDES, INDISPOS, AFFECTATIONS, STATS_GARDES, LIENS_R, REA1 et FETES
+de l'année, et LIBERAL / LIBERAL_CA de l'année <b>précédente</b> (le libéral suit l'année civile ; le
+relevé de décembre se saisit après le 1er janvier) : chacun est copié dans l'archive, la copie est
+vérifiée, puis seulement l'original est supprimé. Les écrans du libéral relisent une année close
+dans l'archive.</li>
+<li><b>Lignes de l'année</b> dans les onglets partagés : ECHANGES (l'année close, sauf une demande
+encore en attente), TP_DEMANDES et TP_FERMES (l'année close et avant), ABSENCES_LONGUES (celles
+terminées avant le premier lundi de la nouvelle année). Elles s'ajoutent à l'onglet du même nom de
+l'archive, sans doublon même après une relance, puis quittent le classeur maître. Effet visible :
+« Mes échanges » ne montre plus les échanges de l'année close.</li>
 <li><b>Bascule</b> : la case ANNEE_ACTIVE est écrite, puis relue — une écriture introuvable à la
 relecture est un échec, jamais un succès.</li>
 <li><b>Campagne fermée</b> : la ligne INDISPOS_ACTIVE est retirée de CONFIG.</li>
