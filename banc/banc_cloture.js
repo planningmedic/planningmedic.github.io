@@ -178,6 +178,7 @@ console.log('═══ C. Trop tôt : le dimanche 03/01/2027 ═══');
   const r = w.ctx.cloturerAnnee_(2026);
   V('refusée', r.success === false && /n'a pas encore commencé/.test(r.error), r.error);
   V('le refus donne la date et dit que rien n\'a été fait', /sera possible à partir du/.test(r.error) && /Aucune modification n'a été faite/.test(r.error));
+  V('la date est écrite en français : « lundi 4 janvier 2027 »', /à partir du lundi 4 janvier 2027 \(dans 1 jour/.test(r.error), r.error);
   V('rien n\'a changé, aucune copie, aucun mail', w.photo() === avant && !w.journal.copies.length && !w.journal.mails.length);
 }
 

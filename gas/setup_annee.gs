@@ -1,7 +1,7 @@
 // ⚠️ RÈGLE (détecteur de dérive dépôt↔Apps Script) : incrémenter cette version
 // à CHAQUE push de ce fichier. Le diagnostic (admin → Maintenance) compare la
 // version déployée ici avec celle du dépôt et signale toute recopie oubliée.
-const GAS_VERSION_SETUP = '2026-11-15.1';   // (15/11/2026) clôture d'année en un seul geste (cloturerAnnee_) : contrôles bloquants (date, année suivante, case ANNEE_ACTIVE, archive, homonymes, sauvegardes), copie de sécurité du classeur, bilan, déplacement sûr (archiveMoveTabs_, LIENS_R compris), bascule relue, campagne fermée, contrôle d'après, mail ; répétition à blanc (clotureVerifier_) ; archiveYear depuis l'éditeur passe par les mêmes refus ; lanceurs d'essai retirés · (10/11/2026) rangement des onglets en 7 familles, tous les onglets annuels reconnus quelle que soit l'année
+const GAS_VERSION_SETUP = '2026-11-15.2';   // (15/11/2026) .2 : date du refus de clôture écrite en français (« lundi 4 janvier 2027 ») · (15/11/2026) clôture d'année en un seul geste (cloturerAnnee_) : contrôles bloquants (date, année suivante, case ANNEE_ACTIVE, archive, homonymes, sauvegardes), copie de sécurité du classeur, bilan, déplacement sûr (archiveMoveTabs_, LIENS_R compris), bascule relue, campagne fermée, contrôle d'après, mail ; répétition à blanc (clotureVerifier_) ; archiveYear depuis l'éditeur passe par les mêmes refus ; lanceurs d'essai retirés · (10/11/2026) rangement des onglets en 7 familles, tous les onglets annuels reconnus quelle que soit l'année
 
 
 // ══════════════════════════════════════════════════════════════════════
@@ -680,9 +680,11 @@ function _clotureRefusDate_(year) {
   const debut = new Date(pj.getFullYear(), pj.getMonth(), pj.getDate(), 0, 0, 0);
   const now = _clotureMaintenant_();
   if (now >= debut) return '';
-  let tz = 'Europe/Paris';
-  try { tz = SpreadsheetApp.getActiveSpreadsheet().getSpreadsheetTimeZone() || tz; } catch (e) {}
-  const txt = Utilities.formatDate(debut, tz, 'EEEE d MMMM yyyy');
+  /* (15/11/2026) En français, à la main : Utilities.formatDate écrit en anglais
+     (« Monday 4 January 2027 », vu en production sur la répétition à blanc). */
+  const JOURS = ['dimanche', 'lundi', 'mardi', 'mercredi', 'jeudi', 'vendredi', 'samedi'];
+  const MOIS = ['janvier', 'février', 'mars', 'avril', 'mai', 'juin', 'juillet', 'août', 'septembre', 'octobre', 'novembre', 'décembre'];
+  const txt = `${JOURS[debut.getDay()]} ${debut.getDate()} ${MOIS[debut.getMonth()]} ${debut.getFullYear()}`;
   const j = Math.ceil((debut - now) / 86400000);
   return `Clôture refusée : l'année ${next} n'a pas encore commencé. `
     + `La clôture de ${year} sera possible à partir du ${txt} (dans ${j} jour(s)). `
