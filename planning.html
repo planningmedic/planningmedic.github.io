@@ -741,7 +741,6 @@ body{font-variant-numeric:tabular-nums}
 .eqv-val{width:52px;font-size:10.5px;color:var(--ink);font-weight:700;text-align:right}
 .eqv-val span{color:var(--ink-3);font-weight:600}
 .eqv-legend{font-size:11px;color:var(--ink-3);margin:4px 0 14px}
-.eqv-recalc{border:0;background:none;padding:0;font:inherit;color:var(--me);text-decoration:underline;cursor:pointer}
 .eqv-row-tot{margin-bottom:7px;padding-bottom:8px;border-bottom:1px solid var(--surface-2)}
 .eqv-row-tot .eqv-lbl{font-weight:800;color:var(--ink)}
 .eqv-track-tot{height:14px}
@@ -2747,7 +2746,7 @@ function setEquiteSourceIdx(src){
   if(src==='live') loadEquiteLive(); else renderEquite();
 }
 /* (13/08/2026) L'instantane arrive par la copie rapide — récit : docs/JOURNAL-Planning-Med.md §49 */
-async function loadEquiteLive(force){
+async function loadEquiteLive(){   /* (15/11/2026) bouton de recalcul retiré : la copie se refait à chaque garde modifiée */
   const wrap = document.getElementById('eqWrap');
   if(!wrap) return;
   const nameOf = id => _tit(id)+id.charAt(0)+id.slice(1).toLowerCase();
@@ -2761,15 +2760,15 @@ async function loadEquiteLive(force){
     }, _partsFourchette(s)));
     if(!list.length){ wrap.innerHTML = '<div style="padding:30px;text-align:center;color:#94A3B8">Aucune garde dans ce planning.</div>'; return; }
     const _f = list.some(x=>!x.wish && x.pTot!==undefined);
-    const html = `<div class="eqv-legend">Instantané — gardes réelles, échanges et dons compris · à la minute près · ${_f?'zone pointillée = fourchette de sa part':'trait = sa part'} · Lun/Mar/Mer neutres · <button type="button" class="eqv-recalc" onclick="loadEquiteLive(true)">recalculer maintenant</button></div>`;
+    const html = `<div class="eqv-legend">Instantané — gardes réelles, échanges et dons compris · à la minute près · ${_f?'zone pointillée = fourchette de sa part':'trait = sa part'} · Lun/Mar/Mer neutres</div>`;
     paintEquite(wrap, html, list);
   };
-  const cached = force ? null : LIVE_CACHE[currentYear];
+  const cached = LIVE_CACHE[currentYear];
   if(cached){ build(cached); return; }
   if(!wrap.querySelector('.eqv-grid')){ wrap.innerHTML = '<div style="padding:30px;text-align:center;color:#94A3B8">Chargement de l\'instantané…</div>'; }
   try{
     let stats = null;
-    if(!force){
+    {
       const m = await miroirRead(['equite_live_' + currentYear]);
       const c = m && m.success && m.data && m.data['equite_live_' + currentYear];
       if(c && c.success && Array.isArray(c.stats) && c.stats.length) stats = c.stats;

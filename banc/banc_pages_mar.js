@@ -589,10 +589,10 @@ const dodo = ms => new Promise(r => setTimeout(r, ms));
       fn.indexOf("miroirRead(['equite_live_'") > -1 &&
       fn.indexOf("miroirRead(['equite_live_'") < fn.indexOf("apiPost({action:'getStatsLive'"));
     V('l\'appel direct reste le repli', /apiPost\(\{action:'getStatsLive'/.test(fn));
-    V('« recalculer maintenant » force le calcul direct',
-      /loadEquiteLive\(true\)/.test(c) && /if\(!force\)\{/.test(fn));
-    V('forcer ignore aussi la mémoire de la page',
-      /const cached = force \? null : LIVE_CACHE\[currentYear\]/.test(fn));
+    /* (15/11/2026) Bouton « recalculer maintenant » retiré (décision du responsable) :
+       la copie se refait à chaque garde modifiée, le calcul est juste. */
+    V('plus de bouton « recalculer maintenant »',
+      !/recalculer maintenant/.test(c) && !/eqv-recalc/.test(c) && !/loadEquiteLive\(true\)/.test(c));
     V('la légende annonce la minute, plus « l\'instant T »',
       /à la minute près/.test(c) && !/gardes réelles à l'instant T/.test(c));
   }
