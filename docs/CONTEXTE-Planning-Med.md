@@ -70,9 +70,12 @@ valide. Réponds en **français**, court, avec des chiffres concrets.
   demandes passent par le responsable.
 - **Échanges et dons de gardes entre MAR** : en production, chacun ne voit que ses échanges (11/11) ;
   ouverture pilotée par une date programmée (v1.76.0).
-- **Clôture d'année** : un seul geste, page Maintenance, réservé au responsable (v1.77.1, v1.78.0) ;
-  refusée avant le premier lundi de l'année suivante. **Bascule 2026 → 2027 : lundi 4 janvier 2027.**
-  Fiche pratique dans les documents du projet Claude (« bascule d'année »).
+- **Clôture d'année** : un seul geste, page Maintenance, réservé au responsable (v1.77.1 → v1.79.0) ;
+  refusée avant le premier lundi de l'année suivante (dès minuit ce lundi-là). Répétition à blanc
+  possible à tout moment. **Bascule 2026 → 2027 : lundi 4 janvier 2027.** Principe : le classeur
+  maître ne garde que l'année en cours (et la suivante avant la clôture) ; tout le reste part dans le
+  classeur d'archive, le libéral avec un an de décalage (année civile). Fiche pratique dans les
+  documents du projet Claude (« bascule d'année »).
 - **Rotation d'équité** du générateur : active à partir de la génération 2028 (v1.77.0).
 - **Sentinelle de 6 h** : contrôle aussi les données, mail seulement s'il y a un problème ; rapport
   complet chaque lundi et à la demande (Maintenance → Diagnostic).
@@ -107,8 +110,9 @@ valide. Réponds en **français**, court, avec des chiffres concrets.
   collage sans elles perd presque toutes les dates, en silence.
 - **Deux propriétaires par ligne** dans `INDISPOS_{Y}` (comité : VAC/FORM ; MAR : INDISPO/SOUHAIT/TP) :
   on fusionne, on ne remplace jamais une ligne entière.
-- **Onglets uniques sans année dans le nom** (`PLANNING_OVERRIDES`, `ECHANGES`, `TP_DEMANDES`…) : ils ne
-  suivent pas l'archivage d'une année ; un essai sur une année à venir y laisse des lignes.
+- **Onglets uniques sans année dans le nom** (`PLANNING_OVERRIDES`, `ECHANGES`, `TP_DEMANDES`,
+  `TP_FERMES`, `ABSENCES_LONGUES`) : la clôture en retire les lignes de l'année close (v1.79.0) ; un
+  essai sur une année à venir y laisse des lignes. HISTORIQUE reste au maître (toutes années).
 - **CONFIG, SECTEURS, SEUILS, CS_TEMPLATE** sont lus à travers un cache de 10 min, et CONFIG ne
   rafraîchit pas la copie rapide : après une modification à la main, **Vider le cache** puis synchro
   (ou attendre l'heure).

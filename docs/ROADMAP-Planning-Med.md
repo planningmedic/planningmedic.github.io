@@ -18,9 +18,11 @@ dans « À faire ». Quand le journal récent dépasse une page, ses entrées pa
 
 ### Échéances
 
-- **Clôture 2026 → 2027, lundi 04/01/2027** (page Maintenance, réservée au responsable). Avant : planning
-  2026 juste jusqu'au dimanche 3 janvier inclus, plus aucune demande d'échange 2026 en attente,
-  Diagnostic vert, sauvegarde du lundi faite. Fiche pratique dans les documents du projet Claude.
+- **Clôture 2026 → 2027, lundi 04/01/2027, dès minuit** (Maintenance → 📦 Clôturer l'année, réservée
+  au responsable ; le serveur refuse le code comité). D'ici là : **Répétition à blanc** (rien n'est écrit :
+  contrôles, bilan 2026 par MAR, lignes qui partiront). La clôture fait elle-même une copie complète du
+  classeur (« Avant clôture 2026 », bloquante si elle échoue). Avant : planning 2026 juste jusqu'au
+  dimanche 3 janvier inclus. Fiche pratique dans les documents du projet Claude (« bascule d'année »).
   Défauts de la jonction relevés le 11-12/11 (paie des 1er–3 janvier, garde du dimanche 3 janvier,
   planning du jour ouvert sur la mauvaise année si la clôture tarde, échange décembre ↔ janvier,
   absence longue à cheval, R d'un samedi de l'onglet 2026) : **état à revérifier dans le code**,
@@ -64,10 +66,11 @@ dans « À faire ». Quand le journal récent dépasse une page, ses entrées pa
   « Load failed ») ; une lecture refusée hors zone protégée fait perdre tout le rapport.
 - **Budget des tâches de fond** (24/10) : compteur proposé (durée de chaque tâche, alerte à 70 min/j,
   blocages de 8 min comptés) ; `miroirDocuments` toutes les heures, à espacer si rien n'en dépend.
-- **Archivage annuel incomplet** (24/10, revérifié le 15/11) : `archiveMoveTabs_` ne range que GARDES_,
-  INDISPOS_, STATS_GARDES_, AFFECTATIONS_ et LIENS_R_. `REA1_{Y}` et `FETES_{Y}` sont archivables à la
-  clôture de Y ; `LIBERAL_{Y}` et `LIBERAL_CA_{Y}` (année civile) à la clôture de Y+1. Sinon +4 onglets
-  par an.
+- **Assistants « Démarrer l'année » et « Générer les gardes » à déplacer dans Maintenance** (décision du
+  15/11, comme la clôture) : ~450 et ~890 lignes d'écran à refaire pour le téléphone, puis actions
+  serveur réservées au droit Maintenance. Avant octobre 2027. D'ici là ils restent dans l'admin.
+- **Clôture : `_ACTIONS_LONGUES` de l'admin** n'a plus lieu d'être pour `archiveYear` (la clôture vit
+  dans Maintenance, sans délai d'attente côté page) — à nettoyer au passage.
 - **Saisie à la main dans `GARDES_{Y}`** (18/10) : aucun mail (MAR ni paie) tant qu'une publication ne
   suit pas — branchement de `onEdit` proposé, non fait.
 - **Synchro complète** (07/10) : un onglet supprimé laisse sa copie dans le relais — correctif proposé,
@@ -118,6 +121,8 @@ dans « À faire ». Quand le journal récent dépasse une page, ses entrées pa
   sur un jour **A** doit-il demander confirmation et effacer le A ? ; statut posé sur un 18 h : alerte ou
   réattribution (C1).
 - Seconde ligne de 18 h : à décider en temps voulu (voir Échéances).
+- Un MAR de secours avec le droit Maintenance, pour clôturer si le responsable est absent (15/11 :
+  « on verra »). Sans lui, personne d'autre ne peut clôturer.
 - Piste 2028 (27/10) : fermer les failles qui laissent choisir ses week-ends sans en faire moins
   (vacances sur un seul samedi-dimanche, TP collé au week-end, fériés hors plafond).
 - Jours de congé accordés en sureffectif (10/08) : les compter et les répartir, ou cas par cas ? Au comité
@@ -496,6 +501,12 @@ les cases valant exactement `CL`.
 
 ## Journal récent
 
+- **15/11/2026** — Clôture d'année refaite (v1.77.1 → v1.79.0, serveur setup 2026-11-15.4) : un seul
+  geste côté serveur, contrôles bloquants, copie de sécurité, reprise après coupure, contrôle d'après,
+  mail ; refus de date dès minuit (le serveur refusait jusqu'à midi le jour J) ; carte dans Maintenance,
+  assistant retiré de l'admin ; le classeur maître ne garde que l'année en cours et la suivante (REA1,
+  FETES, libéral N-1 et lignes de l'année des onglets partagés partent à l'archive) ; HISTORIQUE gagne
+  PART EXACTE et JOURS TP. Lanceurs d'essai `TEST_W3_*`, `W1_2028`, `W2_2026` retirés.
 - **15/11/2026** — Banc plus rapide (empreintes, une génération au lieu de deux, `banc_syntaxe`) :
   ~2 min 20 au lieu de 24 min quand le générateur ne change pas. `admin.html` : `<div class="main">`
   refermé (v1.78.2). CONTEXTE et ROADMAP refaits ; tout l'ancien contenu daté est dans HISTORIQUE.
