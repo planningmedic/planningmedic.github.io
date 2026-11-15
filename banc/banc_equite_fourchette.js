@@ -52,7 +52,7 @@ console.log('\n─── 1. Le serveur sert la part de chaque compteur ───
   V('CIBLE WE sans part exacte de week-ends → pas de pWe', g.champsWeStats_([H, L4], 1).pWe === undefined);
   const live = extraire(CODE, 'computeStatsLive');
   V('l\'instantané (computeStatsLive) transmet aussi les parts', /pTot:cb\.pTot/.test(live) && /'pWe'\]\.forEach/.test(live));
-  V('GAS_VERSION_CODE incrémentée (2026-11-14.1)', /GAS_VERSION_CODE = '2026-11-14\.1'/.test(CODE));
+  V('GAS_VERSION_CODE incrémentée (2026-11-14.1 ou après)', (CODE.match(/GAS_VERSION_CODE = '(\d{4}-\d{2}-\d{2}\.\d+)'/) || [, ''])[1] >= '2026-11-14.1');
 }
 
 console.log('\n─── 2. La fourchette ───');

@@ -1,7 +1,7 @@
 // ⚠️ RÈGLE (détecteur de dérive dépôt↔Apps Script) : incrémenter cette version
 // à CHAQUE push de ce fichier. Le diagnostic (admin → Maintenance) compare la
 // version déployée ici avec celle du dépôt et signale toute recopie oubliée.
-const GAS_VERSION_CODE = '2026-11-14.1';   // (14/11/2026) écran d'équité : la part de chaque compteur (PART VISEE) et le nombre de week-ends servis à l'écran, pour afficher la fourchette (champsWeStats_, computeStatsLive) · (12/11/2026) week-ends : V (vendredis), WE = samedis + dimanches et sa part, lus dans l'onglet de statistiques (champsWeStats_) · (11/11/2026) vue paie : jours de TP (TP, CTP, semaine off du rythme 2/2) affichés, sans mail · (11/11/2026) mail paie lisible sur téléphone (une carte par changement) · (02/11/2026) commentaire sans initiales réelles · (27/10/2026) demi-journées de vacances VM/VA (planning, paie, notifications) · (27/10/2026) journée mobile 2027 (lundi 7 juin) ajoutée aux fériés · (18/10/2026) vue paie : tri G/G2/V (_planningPaie_) et mail aux secrétaires de paie (_paieEnvoyerAnnee_)
+const GAS_VERSION_CODE = '2026-11-15.1';   // (15/11/2026) instantané d'équité : à partir de 2028, Noël et le Jour de l'An (et leur jour couplé) restent dans le total mais sortent des compteurs fins, comme dans le calcul · (14/11/2026) écran d'équité : la part de chaque compteur (PART VISEE) et le nombre de week-ends servis à l'écran, pour afficher la fourchette (champsWeStats_, computeStatsLive) · (12/11/2026) week-ends : V (vendredis), WE = samedis + dimanches et sa part, lus dans l'onglet de statistiques (champsWeStats_) · (11/11/2026) vue paie : jours de TP (TP, CTP, semaine off du rythme 2/2) affichés, sans mail · (11/11/2026) mail paie lisible sur téléphone (une carte par changement) · (02/11/2026) commentaire sans initiales réelles · (27/10/2026) demi-journées de vacances VM/VA (planning, paie, notifications) · (27/10/2026) journée mobile 2027 (lundi 7 juin) ajoutée aux fériés · (18/10/2026) vue paie : tri G/G2/V (_planningPaie_) et mail aux secrétaires de paie (_paieEnvoyerAnnee_)
 
 // ── Reconstruire STATS_GARDES_2026 depuis GARDES_2026 (année reconstruite) ──
 // Renvoie le classeur contenant l'onglet demandé : classeur actif si présent,
@@ -82,6 +82,10 @@ function computeStatsLive(year) {
   const jf = getJoursFeries(year), jfn = getJoursFeries(year + 1);
   const isF = d => jf.has(d) || jfn.has(d);
   const NOEL = new Set([`${year}-12-24`,`${year}-12-25`,`${year}-12-31`,`${year+1}-01-01`]);
+  /* (15/11/2026) À partir de 2028, le calcul sort Noël et le Jour de l'An (et leur jour couplé)
+     des compteurs fins : l'instantané fait pareil, sinon il afficherait un samedi ou un férié
+     « en trop » à qui a tenu une fête. Règle et date de bascule : generateur_gardes.gs. */
+  const HORS = (typeof rotationEquiteActive_ === 'function' && rotationEquiteActive_(year)) ? joursFetesHorsComptage_(year) : new Set();
   const KEYS = ['dim','lun','mar','mer','jeu','ven','sam'];
   const nextDay = d => {
     const x = new Date(d + 'T12:00:00'); x.setDate(x.getDate() + 1);
@@ -120,6 +124,7 @@ function computeStatsLive(year) {
       const dow = new Date(date + 'T12:00:00').getDay();
       c.total++;
       if (val === 'G') c.g++; else c.g2++;
+      if (HORS.has(date)) { if (NOEL.has(date)) c.noelAn++; return; }   // (15/11/2026) fêtes : dans le total, hors des compteurs fins
       c[KEYS[dow]]++;
       if (isF(date)) c.jf++;
       if (!isF(date) && isF(nextDay(date)) && dow >= 1 && dow <= 4) c.vjf++;

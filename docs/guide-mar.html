@@ -1131,6 +1131,7 @@
 
     <h3>Les fériés en semaine</h3>
     <p>Chaque jour férié, quel que soit son jour, compte dans votre compteur des fériés, qui a sa propre cible.</p>
+    <p><b>Noël et le Jour de l'an</b>, avec le jour qui leur est accolé (le vendredi ou le samedi du même bloc), ne comptent dans aucun compteur de type de jour à partir de 2028 — ni samedi, ni week-end, ni férié — mais restent dans votre total : ils ont leur propre tour, décrit plus haut.</p>
 
     <h3>Les ponts</h3>
     <p>Un férié qui touche un week-end forme un bloc, assuré par un seul binôme :</p>
@@ -1196,20 +1197,29 @@
 
 <!-- ═══ 23 ══════════════════════════════════════════════════════════ -->
 <details class="sec" id="s23">
-  <summary><span class="n">23</span><span>D'une année à l'autre : la dette</span><span class="chev">›</span></summary>
+  <summary><span class="n">23</span><span>D'une année à l'autre : chacun son tour</span><span class="chev">›</span></summary>
   <div class="corps">
-    <p>Que devient le petit écart de fin d'année ? Il est reporté sur l'année suivante. Qui a fait un peu plus que sa part une année en fera un peu moins la suivante, et inversement — <b>type de jour par type de jour</b> : celui qui a fait trop de samedis en fera moins, celui qui a fait trop de week-ends aussi.</p>
+    <p>Votre fourchette ne dépend que de votre part. Elle est <b>la même pour tous les MARs de même part</b>, chaque année, et rien de l'année passée ne la déplace.</p>
+    <p>Ce qui passe d'une année à l'autre, c'est <b>l'ordre</b>. Sur chaque type de jour, le haut de la fourchette va d'abord à ceux qui en ont fait le moins les années précédentes. Qui a fait 6 samedis quand ses collègues en faisaient 5 sera parmi les 5 l'an prochain.</p>
 
     <ul>
-      <li>L'écart est d'abord <b>limité à 2</b>, puis <b>amorti</b> : seuls 60 % sont reportés, soit <b>au plus 1,2 garde</b> par type de jour. La dette corrige en douceur, elle ne bouleverse jamais une année.</li>
-      <li>L'écart mesuré est celui du <b>planning généré</b>, figé au moment de la génération — pas l'état au 31 décembre. Vos échanges de gré à gré en cours d'année ne créent ni ne remboursent de dette.</li>
+      <li>Toutes les années gardées en mémoire comptent, pas seulement la dernière. Les week-ends de juillet-août aussi.</li>
+      <li>Ce qui compte est le <b>planning généré</b>, figé au moment de la génération — pas l'état au 31 décembre. Vos échanges de gré à gré en cours d'année ne changent pas votre tour.</li>
       <li>Un MAR absent l'année précédente démarre à zéro.</li>
     </ul>
 
     <div class="callout warn">
-      <div class="ct">Le premier report aura lieu pour 2028</div>
-      <p>2027 est la première année entièrement calculée. C'est donc la première dont les compteurs servent de référence. Pour 2027, tout le monde part de zéro.</p>
+      <div class="ct">À partir des gardes 2028</div>
+      <p>2027 a été calculé avec l'ancienne règle et ne change pas. C'est la première année dont les compteurs servent de référence.</p>
     </div>
+
+    <details class="plus">
+      <summary>Pourquoi plus de « dette » ?</summary>
+      <div class="dedans">
+        <p>Jusqu'en 2027, l'écart de l'année était reporté sur la cible suivante : qui avait fait un samedi de trop visait un samedi de moins. Résultat, deux MARs de même part n'avaient plus la même fourchette, et pouvaient finir à deux gardes l'un de l'autre.</p>
+        <p>Désormais, la fourchette reste commune, et l'écart entre collègues de même part ne dépasse pas une garde. Le passé décide seulement qui prend le haut.</p>
+      </div>
+    </details>
   </div>
 </details>
 

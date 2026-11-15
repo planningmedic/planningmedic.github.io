@@ -123,18 +123,22 @@ V('le chemin des jours libres (lun/mar/mer) est explicitement préservé',
     /Aucune garde ne vous sera donnée ce jour-là/.test(txt) && !/respectée dans la mesure du possible/.test(txt));
   V('…générateur : INDISPO bloque toujours la garde',
     /if\(s==='INDISPO'\|\|s==='VAC'\|\|s==='VM'\|\|s==='VA'\|\|s==='FORM'\|\|s==='TP'\|\|s==='CL'\|\|s==='CTP'\) return true;/.test(gen));   // (27/10/2026) + demi-journées VM/VA
-  V('guide : chaque férié, quel que soit son jour, compte dans le compteur des fériés',
-    /Chaque jour férié, quel que soit son jour, compte dans votre compteur des fériés/.test(txt) && !/Un férié isolé un mardi ou un mercredi est compté à part/.test(txt));
+  V('guide : chaque férié, quel que soit son jour, compte dans le compteur des fériés (fêtes à part)',
+    /Chaque jour férié, quel que soit son jour, compte dans votre compteur des fériés/.test(txt) && /Noël et le Jour de l'an[^.]*restent dans votre total/.test(txt) && !/Un férié isolé un mardi ou un mercredi est compté à part/.test(txt));
   V('…générateur : le compteur des fériés compte tout jour férié',
-    /if\(dayByDate\[date\]\?\.isFerie\)cnt\[id\]\.jf\+\+;/.test(gen));
+    /if\(!_fete&&dayByDate\[date\]\?\.isFerie\)cnt\[id\]\.jf\+\+;/.test(gen));   // (15/11/2026) sauf les fêtes, à partir de 2028 (banc_rotation.js)
   V('guide : 18h — garde, repos, absence jamais ; indispo, veille, « un par semaine » cèdent dans cet ordre',
     /jamais de 18h, sans exception/.test(txt) && /une indisponibilité de garde, le « pas deux jours de suite » et le « un par semaine » peuvent céder, dans cet ordre/.test(txt));
   V('…générateur : replis du 18h dans cet ordre (indispo, puis veille, puis semaine), dispo18 jamais levé',
     (() => { const i1 = gen.indexOf("indispos[id]?.[day.date]!=='INDISPO');"), i2 = gen.indexOf("if(!pool.length) pool=allDoctors.filter(id=>_libre(id)&&dispo18(id,day.date)&&h18A[veille]!==id&&!did18wk(id,day.date));"),
              i3 = gen.indexOf("if(!pool.length) pool=allDoctors.filter(id=>_libre(id)&&dispo18(id,day.date)&&!did18wk(id,day.date));"), i4 = gen.indexOf("if(!pool.length) pool=allDoctors.filter(id=>_libre(id)&&dispo18(id,day.date));");
              return i1 > 0 && i1 < i2 && i2 < i3 && i3 < i4; })());
-  V('guide : dette limitée à 2 puis 60 % : au plus 1,2 garde par type de jour',
-    /au plus 1,2 garde/.test(txt) && /seuls 60 % sont reportés/.test(txt));
+  /* (15/11/2026) À partir de 2028, plus de dette qui déplace la cible : la fourchette reste
+     commune, le passé décide qui en prend le haut (banc_rotation.js). L'ancien report reste
+     dans le code pour rejouer 2027 à l'identique (contrôle suivant). */
+  V('guide : à partir de 2028, même fourchette pour tous, le passé décide seulement qui prend le haut',
+    /la même pour tous les MARs de même part/.test(txt) && /le haut de la fourchette va d'abord à ceux qui en ont fait le moins les années précédentes/.test(txt)
+    && !/seuls 60 % sont reportés/.test(txt));
   V('…générateur : plafond ±2 puis amortissement 0,6',
     /const DETTE_AMORTI\s*=\s*0\.6;/.test(gen) && /dette\[id\]\[k\]=DETTE_AMORTI\*Math\.max\(-2,Math\.min\(2,dette\[id\]\[k\]\)\)/.test(gen));
   V('guide : plus de « ordre strict » ni de « numéro de tirage » (le calcul ne tire pas au sort)',
