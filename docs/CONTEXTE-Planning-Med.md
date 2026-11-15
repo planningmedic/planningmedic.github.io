@@ -50,6 +50,29 @@ les fichiers du planning, et attend une semaine de fonctionnement réel avant su
 
 # PARTIE 1 — L'ESSENTIEL
 
+## 15 novembre 2026 — banc plus rapide, admin.html refermé (v1.78.2)
+
+Site **v1.78.2**, banc **6 580 ✓, 0 ✗**, 133 scénarios (commit `f91dda9`). Aucun changement GAS.
+
+- **Empreintes** : après un banc complet au vert, `banc/empreintes.txt` garde l'empreinte de ce que
+  lit chaque scénario lourd (ceux qui génèrent des gardes). Rien n'a bougé → repris, pas relancé.
+  Mesuré sur 2 processeurs : **~2 min 20** si ni le générateur, ni `code.gs`, ni le simulateur, ni
+  les modules du banc ne changent ; **~19 min** sinon (24 min avant). `TOUT=1 ./lancer.sh` relance
+  tout. **`empreintes.txt` se pousse avec le commit.**
+- **Une génération au lieu de deux** : `h.genererAvecBilan` lit le bilan sur la vraie génération
+  (identique au calcul à blanc, vérifié par `banc_harnais_tirage`).
+- **`banc_syntaxe`** : syntaxe de tout le JS / `.gs` / `<script>`, balises équilibrées, `id` uniques.
+  Ne se fait plus à la main avant un push.
+- **Compter** : la dernière ligne du banc donne ✓ exécutées + ✓ reprises ; `grep -cE "^\s+✓ "` ne
+  compte plus que les exécutées.
+- **Noms réels** : reconstituer `~/.planningmedic/noms_reels.txt` en début de session (onglet
+  MEDECINS + médecin extérieur + prénom du chef de service + établissement), sinon banc rouge.
+- **Conversations en parallèle** : le sommet distant a bougé trois fois pendant ce lot. Juste avant
+  de pousser : le contrôler ; s'il a bougé, recaler, prendre le numéro de version suivant le dernier
+  publié, relancer le banc (souvent court), puis pousser.
+- `admin.html` : `<div class="main">` enfin refermé, là où le navigateur le refermait déjà (page
+  identique, 538 éléments comparés).
+
 ## 12 novembre 2026 (soir) — diagnostic plus rapide (serveur seul, site inchangé)
 
 `diagnostic.gs` **2026-11-12.3**, en service (confirmé au Diagnostic). Banc **6 159 ✓, 0 ✗**, 122 scénarios.

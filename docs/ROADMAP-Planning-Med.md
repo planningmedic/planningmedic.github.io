@@ -17,6 +17,26 @@ Maintenance — les lots du 11/11 attendent la mise à jour du serveur) : `echan
 **Worker** `cloudflare/worker.js` : `const VERSION = 'miroir 2026-11-11.1'` ·
 **Service worker** `sw.js` : `pm-sw-v2` (version.js exclu de la copie depuis le 14/10).
 
+## 15/11/2026 — banc d'essai plus rapide, admin.html refermé (v1.78.2, aucun changement GAS)
+
+**Fait** (commits `ec99198`, `f91dda9`) :
+- **Mesure de départ** : banc complet 24 min sur 2 processeurs, dont 91 % pour les 44 scénarios qui
+  génèrent une année de gardes (≈ 15 s par génération) ; 6 scénarios = 2/3 du temps.
+- **Empreintes** (`banc/empreinte.js`, `banc/empreintes.txt`) : un scénario lourd dont rien de ce
+  qu'il lit n'a bougé depuis le dernier banc complet au vert est repris. Mesuré : **137 s** quand le
+  générateur, `code.gs`, le simulateur et les modules du banc sont inchangés (2 pushs sur 3 en
+  novembre) ; ~19 min sinon. Contre-preuves : générateur touché → 44/44 relancés ; une page → 1 ;
+  `echanges.gs` → 4.
+- **Une génération au lieu de deux** (`h.genererAvecBilan`) et recalculs en double supprimés :
+  fourchette, lissage, appariement, week-ends, optimisation finale. Sorties identiques ligne pour
+  ligne. Gain sur ces scénarios : 513 → 240 s, 301 → 144 s, 261 → 146 s, 396 → 346 s, 278 → 149 s.
+- **`banc_syntaxe`** : remplace les contrôles manuels d'avant push (syntaxe, balises, ancres). Défaut
+  trouvé et corrigé : `<div class="main">` d'`admin.html` jamais refermé (v1.78.2, page identique).
+
+**Pistes non faites** : `banc_we_equite` reste à ~6 min (générations des années 2028-2029) ;
+`banc_rea1` fait encore des calculs à blanc en double ; accélérer le générateur lui-même (GAS)
+profiterait aussi à la génération réelle, mais touche du code de production.
+
 ## 12/11/2026 (soir) — diagnostic plus rapide, et qui dit où va son temps (GAS seul, site inchangé)
 
 **Constat du soir (page Maintenance, iPhone)** : un échec « Échec du service Feuilles de calcul » (message de Google,
