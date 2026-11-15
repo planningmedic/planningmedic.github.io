@@ -1,7 +1,7 @@
 // ⚠️ RÈGLE (détecteur de dérive dépôt↔Apps Script) : incrémenter cette version
 // à CHAQUE push de ce fichier. Le diagnostic (admin → Maintenance) compare la
 // version déployée ici avec celle du dépôt et signale toute recopie oubliée.
-const GAS_VERSION_INDISPOS = '2026-11-11.2';   // (11/11/2026) action annulerEchange (tout code valide, le demandeur seul — contrôlé dans echanges.gs) · (11/11/2026) action recupsReparer (rôle maintenance) · (01/11/2026) rôle `maintenance` (diagComplet, viderCacheConfig, sendCodes) · (27/10/2026) demi-journées de vacances VM/VA (CODES_DEMI_VAC) · (27/10/2026) champ ordreMc (colonne ORDRE_MC) · (24/10/2026) action journalAppliquerMaintenant (journal.gs) · (18/10/2026) rôle « paie » (code partagé des secrétaires de paie) + refus par défaut de tout rôle autre que admin/mar hors de sa liste blanche
+const GAS_VERSION_INDISPOS = '2026-11-15.1';   // (15/11/2026) clôture d'année : archiveYear délègue à la clôture complète en un appel (cloturerAnnee_), actions cloturerAnnee et clotureVerifier (répétition à blanc) ; setActiveYear relit la case et échoue si rien n'a été écrit · (11/11/2026) action annulerEchange (tout code valide, le demandeur seul — contrôlé dans echanges.gs) · (11/11/2026) action recupsReparer (rôle maintenance) · (01/11/2026) rôle `maintenance` (diagComplet, viderCacheConfig, sendCodes) · (27/10/2026) demi-journées de vacances VM/VA (CODES_DEMI_VAC) · (27/10/2026) champ ordreMc (colonne ORDRE_MC) · (24/10/2026) action journalAppliquerMaintenant (journal.gs) · (18/10/2026) rôle « paie » (code partagé des secrétaires de paie) + refus par défaut de tout rôle autre que admin/mar hors de sa liste blanche
 
 /* ── (01/08/2026) MARQUEUR DE TEMPS GLOBAL — mesure, ne change rien ───────
    `_srv_ms` chronometre l'INTERIEUR de doGet. Or avant que doGet soit appele,
@@ -274,7 +274,7 @@ let _quotasCache = null;
 
 const WRITE_ACTIONS_LOCK = new Set([
   'addMedecinToGroupe', 'annulerAbsenceLongue', 'applyModification',
-  'archiveYear', 'clearIndisposYear', 'creerEchange', 'deleteOverride',
+  'archiveYear', 'clearIndisposYear', 'cloturerAnnee', 'creerEchange', 'deleteOverride',
   'generateGardes', 'initYear', 'poserAbsenceLongue', 'publishPlanning',
   'repondreEchange', 'annulerEchange', 'recupsReparer',
   'saveAffectations', 'saveAffectationsMar', 'saveConfig', 'saveGroupes',
@@ -384,7 +384,9 @@ function _actions_() {
     "mailMessage"                 : { role: 'admin'             , fn: _act_mailMessage },   // equipe.gs
     "diagComplet"                 : { role: 'maintenance'       , fn: _act_diagComplet },   // diagnostic.gs
     "recupsReparer"               : { role: 'maintenance'       , fn: _act_recupsReparer },   // gardes.gs (11/11/2026) récupérations de samedi : aperçu puis réparation
-    "archiveYear"                 : { role: 'admin'             , fn: _act_archiveYear },   // Indispos.gs
+    "archiveYear"                 : { role: 'admin'             , fn: _act_archiveYear },   // Indispos.gs → cloturerAnnee_ (setup_annee.gs)
+    "cloturerAnnee"               : { role: 'admin'             , fn: _act_cloturerAnnee },   // Indispos.gs (15/11/2026) clôture complète en un appel
+    "clotureVerifier"             : { role: 'admin'             , fn: _act_clotureVerifier },   // Indispos.gs (15/11/2026) répétition à blanc
     "saveAffectationsMar"         : { role: 'admin'             , fn: _act_saveAffectationsMar },   // gardes.gs
     "addMedecinToGroupe"          : { role: 'admin'             , fn: _act_addMedecinToGroupe },   // equipe.gs
     "resetCodeMar"                : { role: 'admin'             , fn: _act_resetCodeMar },   // equipe.gs
@@ -585,21 +587,17 @@ function _act_getAnneesDisponibles(R) {
 }
 
 /* ── action "setActiveYear" ── */
+/* (15/11/2026) La case est écrite PUIS RELUE (_clotureEcrireAnnee_) : une ligne
+   ANNEE_ACTIVE absente répondait « succès » sans rien écrire, et le portail se
+   repliait en silence sur 2026. */
 function _act_setActiveYear(R) {
-  const { e, payload, action, code, user } = R;
+  const { payload, user } = R;
   if (user.role !== 'admin') return _deny();
   const newYear = Number(payload.year);
   if (!newYear || newYear < 2026) return _error('Année invalide');
-  const ss = SpreadsheetApp.getActiveSpreadsheet();
-  // (Onglet OVERRIDES retiré : registre inutilisé, jamais alimenté, non branché au planning.)
-  const configSheet = ss.getSheetByName('CONFIG');
-  const configData = configSheet.getDataRange().getValues();
-  for (let r = 1; r < configData.length; r++) {
-    if (String(configData[r][0]).trim() === 'ANNEE_ACTIVE') {
-      configSheet.getRange(r + 1, 2).setValue(newYear); break;
-    }
-  }
-  _configReset_();   // CONFIG modifie : le memo doit repartir a zero
+  try { _clotureEcrireAnnee_(newYear); }
+  catch (err) { return _error(`Année active non modifiée : ${err.message}`); }
+  logAction(`setActiveYear → ${newYear}`);
   return ContentService.createTextOutput(JSON.stringify({success:true, year:newYear}))
     .setMimeType(ContentService.MimeType.JSON);
 }
@@ -737,58 +735,37 @@ affSheet.getRange(2, 2, affRows.length, 12)
 }
 
 /* ── action "archiveYear" ── */
+/* (15/11/2026, lot A) Délègue à la clôture complète (setup_annee.gs) : contrôles,
+   copie de sécurité, bilan, déplacement sûr, bascule relue, campagne fermée,
+   contrôle d'après — en UN appel. L'écran actuel enchaîne ensuite setActiveYear
+   et clearIndisposYear : ils trouvent tout déjà fait et répondent succès. */
 function _act_archiveYear(R) {
-  const { e, payload, action, code, user } = R;
+  const { payload, user } = R;
   if (user.role !== 'admin') return _deny();
   const yearToArchive = Number(payload.year);
   if (!yearToArchive || yearToArchive < 2026) return _error('Année invalide');
-  // ── Garde-fou : l'année SUIVANTE doit être prête (W1+W2) avant de clôturer ──
-  const _ssArch = SpreadsheetApp.getActiveSpreadsheet();
-  const _next = yearToArchive + 1;
-  if (!_ssArch.getSheetByName(`INDISPOS_${_next}`))
-    return _error(`Année ${_next} non préparée : lancez d'abord « Démarrer l'année » (étape 1) avant de clôturer ${yearToArchive}.`);
-  if (!_ssArch.getSheetByName(`STATS_GARDES_${_next}`))
-    return _error(`Gardes ${_next} non générées : lancez d'abord la génération des gardes (étape 2) avant de clôturer ${yearToArchive}.`);
-  /* ── Garde-fou de DATE (17/08/2026) ────────────────────────────────────
-     Découvert la veille de la remise du code comité : les deux conditions
-     ci-dessus portent sur l'EXISTENCE des onglets de l'année suivante, pas
-     sur la date. Or elles étaient satisfaites dès août par le bac à sable de
-     la démonstration du 4 septembre — la clôture était donc à deux clics,
-     alors qu'archiver 2026 en août déplace le planning EN COURS D'USAGE et
-     bascule le service sur une année fictive. C'est l'erreur la plus coûteuse
-     du calendrier, et rien ne l'empêchait : le Diagnostic l'annonce, le guide
-     l'écrit, mais une consigne n'est pas un verrou. Un garde-fou ne doit pas
-     reposer sur la vigilance de qui clique.
-     La clôture n'a de sens qu'une fois l'année suivante COMMENCÉE : le
-     premier lundi de planning de _next (jamais le 1er janvier civil — voir
-     getPremierJourPlanning). Avant cette date : refus net, avec le jour exact. */
-  {
-    const _debutNext = getPremierJourPlanning(_next);
-    const _now = new Date();
-    if (_now < _debutNext) {
-      const _tz  = _ssArch.getSpreadsheetTimeZone();
-      const _txt = Utilities.formatDate(_debutNext, _tz, 'EEEE d MMMM yyyy');
-      const _j   = Math.ceil((_debutNext - _now) / 86400000);
-      logAction(`archiveYear REFUSÉ — ${yearToArchive} demandée le ${Utilities.formatDate(_now, _tz, 'yyyy-MM-dd')}, avant le ${_txt}`);
-      return _error(
-        `Clôture refusée : l'année ${_next} n'a pas encore commencé. `
-        + `La clôture de ${yearToArchive} sera possible à partir du ${_txt} (dans ${_j} jour(s)). `
-        + `Archiver maintenant déplacerait le planning en cours d'usage et basculerait le service sur ${_next}. `
-        + `Aucune modification n'a été faite.`);
-    }
-  }
   try {
-    const rapport = String(archiveYear(yearToArchive) || '');
-    const archiveOk = !/(^|\n)❌/.test(rapport);   // une ligne « ❌ » dans le rapport = étape échouée
-    return ContentService.createTextOutput(JSON.stringify(
-      archiveOk
-        ? { success: true, message: rapport || `Archivage ${yearToArchive} terminé` }
-        : { success: false,
-            error: `Archivage ${yearToArchive} incomplet — une étape a échoué (le plus souvent le push GitHub : vérifie la clé GITHUB_TOKEN dans l'onglet CONFIG). Les onglets GSheet sont conservés, relance l'archivage après correction.`,
-            rapport: rapport }
-    )).setMimeType(ContentService.MimeType.JSON);
-  } catch(err) {
-    return _error(err.message);
-  }
+    const r = cloturerAnnee_(yearToArchive);
+    return ContentService.createTextOutput(JSON.stringify(r)).setMimeType(ContentService.MimeType.JSON);
+  } catch (err) { return _error(err.message); }
+}
+
+/* ── action "cloturerAnnee" (15/11/2026) : la même clôture, nommée pour l'écran à venir ── */
+function _act_cloturerAnnee(R) {
+  const { user } = R;
+  if (user.role !== 'admin') return _deny();
+  return _act_archiveYear(R);
+}
+
+/* ── action "clotureVerifier" (15/11/2026) : répétition à blanc, RIEN n'est écrit ── */
+function _act_clotureVerifier(R) {
+  const { payload, user } = R;
+  if (user.role !== 'admin') return _deny();
+  try {
+    const v = clotureVerifier_(Number(payload.year) || getActiveYear());
+    delete v.etat;   // l'écran n'en a pas besoin
+    v.success = true;
+    return ContentService.createTextOutput(JSON.stringify(v)).setMimeType(ContentService.MimeType.JSON);
+  } catch (err) { return _error(err.message); }
 }
 

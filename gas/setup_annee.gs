@@ -1,7 +1,7 @@
 // ⚠️ RÈGLE (détecteur de dérive dépôt↔Apps Script) : incrémenter cette version
 // à CHAQUE push de ce fichier. Le diagnostic (admin → Maintenance) compare la
 // version déployée ici avec celle du dépôt et signale toute recopie oubliée.
-const GAS_VERSION_SETUP = '2026-11-10.1';   // (10/11/2026) rangement des onglets en 7 familles, tous les onglets annuels reconnus quelle que soit l'année
+const GAS_VERSION_SETUP = '2026-11-15.1';   // (15/11/2026) clôture d'année en un seul geste (cloturerAnnee_) : contrôles bloquants (date, année suivante, case ANNEE_ACTIVE, archive, homonymes, sauvegardes), copie de sécurité du classeur, bilan, déplacement sûr (archiveMoveTabs_, LIENS_R compris), bascule relue, campagne fermée, contrôle d'après, mail ; répétition à blanc (clotureVerifier_) ; archiveYear depuis l'éditeur passe par les mêmes refus ; lanceurs d'essai retirés · (10/11/2026) rangement des onglets en 7 familles, tous les onglets annuels reconnus quelle que soit l'année
 
 
 // ══════════════════════════════════════════════════════════════════════
@@ -434,43 +434,16 @@ function setupAnnee(year) {
   );
 }
 
-// ── ARCHIVAGE ANNÉE N ──────────────────────────────────────────────────
-
-function archiveYear(year, moveSheets) {
-  if (moveSheets === undefined) moveSheets = true;
-  if (!year) { try{SpreadsheetApp.getUi().alert("❌ Préciser l'année. Ex : archiveYear(2026)");}catch(e){} return "❌ année manquante"; }
-
+// ── BILAN DE L'ANNÉE N (étape de la clôture) ───────────────────────────
+/* (15/11/2026, lot A de la clôture) Ce qui était le corps de archiveYear :
+   HISTORIQUE (gardes réellement faites), sauvegardes JSON sur Drive, purge des
+   retouches quotidiennes. Le DÉPLACEMENT des onglets n'est plus ici : il passe
+   par archiveMoveTabs_ (copie, vérification, puis suppression — sans jamais
+   effacer un onglet déjà présent dans l'archive). N'est appelé que par
+   cloturerAnnee_, qui a fait tous les contrôles avant. */
+function _clotureBilan_(year) {
   const ss = SpreadsheetApp.getActiveSpreadsheet();
   const results = [];
-
-  // ── Garde d'idempotence (15/07/2026) : année déjà archivée ? ──
-  // Cas visé : la réponse d'un archivage précédent s'est perdue en transit
-  // (ou navigateur fermé en pleine clôture) → le wizard rejoue archiveYear
-  // alors que les onglets ont déjà été déplacés. Sans cette garde, l'absence
-  // de STATS_GARDES_{year} produirait un « ❌ archivage interrompu » définitif.
-  // Détection stricte (les 3 conditions ensemble, sinon on laisse le ❌ normal
-  // signaler un vrai problème) :
-  //   1. STATS_GARDES_{year} absent du classeur maître
-  //   2. l'année figure dans HISTORIQUE
-  //   3. STATS_GARDES_{year} présent dans le classeur d'archive
-  if (!ss.getSheetByName(`STATS_GARDES_${year}`)) {
-    let enHisto = false, enArchive = false;
-    try {
-      const h0 = ss.getSheetByName('HISTORIQUE');
-      if (h0) {
-        const hv = h0.getDataRange().getValues();
-        for (let r = 1; r < hv.length; r++) {
-          if (Number(hv[r][1]) === Number(year)) { enHisto = true; break; }
-        }
-      }
-    } catch (e) {}
-    try { enArchive = !!SpreadsheetApp.openById(ARCHIVE_SS_ID).getSheetByName(`STATS_GARDES_${year}`); } catch (e) {}
-    if (enHisto && enArchive) {
-      const msg = `ℹ️ Année ${year} déjà archivée (HISTORIQUE alimenté, onglets dans le classeur d'archive) — rien à refaire.`;
-      Logger.log(msg);
-      return msg; // pas de « ❌ » → le dispatcher renvoie success:true → le wizard enchaîne sur la bascule
-    }
-  }
 
   // Archivage local : les JSON nominatifs (stats, indispos) sont rangés dans le
   // dossier Drive Planning-Med-JSON (jamais sur GitHub — dépôt public).
@@ -594,22 +567,7 @@ function archiveYear(year, moveSheets) {
     results.push(ok2?`✅ archives_indispos_${year}.json → Drive`:`❌ archivage indispos échoué`);
   } else results.push(`⚠️ INDISPOS_${year} introuvable — ignoré`);
 
-  // ── 3. Déplacer les onglets de l'année vers le classeur d'archive ──
-  // Le maître reste propre ; la dette N+1 retrouve STATS_GARDES_N via le repli ARCHIVE_SS_ID.
   const archiveOk = results.every(r=>!r.startsWith('❌'));
-  if (moveSheets && archiveOk) {
-    let arch=null;
-    try{ arch=SpreadsheetApp.openById(ARCHIVE_SS_ID); }catch(e){ results.push(`❌ Classeur d'archive inaccessible — onglets conservés, archivage incomplet`); }
-    if (arch) {
-      [`GARDES_${year}`,`INDISPOS_${year}`,`AFFECTATIONS_${year}`,`STATS_GARDES_${year}`].forEach(name=>{
-        const sh=ss.getSheetByName(name);
-        if(!sh){ results.push(`⚠️ ${name} introuvable — ignoré`); return; }
-        try{ const old=arch.getSheetByName(name); if(old) arch.deleteSheet(old);
-          sh.copyTo(arch).setName(name); ss.deleteSheet(sh); results.push(`📦 ${name} → archive`); }
-        catch(e){ results.push(`❌ Transfert ${name} échoué : ${e.message} — archivage incomplet`); }
-      });
-    }
-  } else if (moveSheets) results.push(`⏸️ Transfert suspendu (archivage incomplet)`);
 
   // ── 4. Écrémage : purger PLANNING_OVERRIDES des dates de l'année archivée ──
   // Ces retouches quotidiennes ne servent plus une fois l'année close (elles ne sont
@@ -641,8 +599,7 @@ function archiveYear(year, moveSheets) {
   }
 
   const rapport = results.join('\n');
-  Logger.log(`\n── Archivage ${year} ──\n${rapport}`);
-  try{ SpreadsheetApp.getUi().alert(`Archivage ${year}\n\n${rapport}`); }catch(e){}
+  Logger.log(`\n── Bilan ${year} ──\n${rapport}`);
   return rapport;
 }
 // ── AMORÇAGE (une fois) : crée HISTORIQUE et le remplit avec l'existant ──
@@ -683,50 +640,397 @@ function creerHistorique() {
   try{ SpreadsheetApp.getUi().alert(`✅ HISTORIQUE amorcé : ${rows.length} ligne(s) ajoutée(s).`); }catch(e){}
   return `${rows.length} lignes`;
 }
-// ═══════ TEST — À SUPPRIMER AVANT LA MISE EN SERVICE ═══════
-function TEST_remplirIndispos(year, scenario) {
-  scenario = scenario || 'normal';
-  const ss = SpreadsheetApp.getActiveSpreadsheet();
-  const sh = ss.getSheetByName(`INDISPOS_${year}`);
-  if (!sh) { SpreadsheetApp.getUi().alert(`❌ INDISPOS_${year} absent — lance d'abord W1.`); return; }
-  const data = sh.getDataRange().getValues();
-  const dates = reconstruireDatesHeaders(data, year);
-  const nCol = dates.length;
-  const dow = dates.map(d => d ? new Date(d+'T12:00:00').getDay() : -1);
-  const P = ({normal:{vac:6,form:3,ind:4,souh:4}, charge:{vac:8,form:5,ind:7,souh:6},
-              leger:{vac:4,form:1,ind:2,souh:2}})[scenario] || {vac:6,form:3,ind:4,souh:4};
-  const rint = n => Math.floor(Math.random()*n);
-  const lundis = []; for (let c=0;c<nCol;c++) if (dow[c]===1) lundis.push(c);
-  for (let r=3; r<data.length; r++) {
-    const id = String(data[r][0]).trim(); if (!id) continue;
-    const row = []; for (let c=0;c<nCol;c++) row[c] = String(data[r][c+1]||'');
-    let posees=0; const ls=lundis.slice();
-    for (let k=ls.length-1;k>0;k--){const j=rint(k+1);[ls[k],ls[j]]=[ls[j],ls[k]];}
-    for (const L of ls) { if (posees>=P.vac) break; const dur=(Math.random()<0.5?1:2); let ok=true;
-      for (let c=L;c<Math.min(L+dur*7,nCol);c++) if (row[c]) ok=false;
-      if (!ok) continue; for (let c=L;c<Math.min(L+dur*7,nCol);c++) if(dates[c]) row[c]='VAC'; posees+=dur; }
-    for (let k=0;k<P.form;k++){ const c=rint(nCol); if(dates[c]&&!row[c]&&dow[c]>=1&&dow[c]<=5) row[c]='FORM'; }
-    for (let k=0;k<P.ind;k++){ const c=rint(nCol); if(dates[c]&&!row[c]) row[c]='INDISPO'; }
-    let s=P.souh; for (let t=0;t<80 && s>0;t++){ const c=rint(nCol);
-      if(dates[c]&&!row[c]&&dow[c]>=1&&dow[c]<=3){ row[c]='SOUHAIT'; s--; } }
-    sh.getRange(r+1, 2, 1, nCol).setValues([row]);
+
+/* ═══════════════════════════════════════════════════════════════════════
+   CLÔTURE D'ANNÉE EN UN SEUL GESTE (15/11/2026, lot A)
+   ═══════════════════════════════════════════════════════════════════════
+   Avant : la page admin enchaînait trois appels (archiveYear, setActiveYear,
+   clearIndisposYear). Une coupure entre le 1er et le 2e laissait les onglets
+   de l'année partis et la case ANNEE_ACTIVE sur l'ancienne année. Les
+   garde-fous (date, année suivante prête) ne vivaient que dans l'action du
+   portail : archiveYear lancée depuis l'éditeur n'en avait aucun. Le
+   déplacement effaçait un éventuel homonyme de l'archive sans vérifier sa
+   copie. setActiveYear répondait « succès » même sans rien écrire.
+   Maintenant : UNE fonction, cloturerAnnee_(year), appelée par le portail
+   (actions cloturerAnnee et archiveYear) ET par archiveYear(year) depuis
+   l'éditeur :
+     contrôles bloquants → copie de sécurité du classeur → bilan (HISTORIQUE,
+     sauvegardes Drive, retouches effacées) → déplacement sûr des onglets →
+     bascule de l'année, relue → fermeture de la campagne → contrôle d'après.
+   Chaque étape reconnaît qu'elle est déjà faite : relancer reprend là où ça
+   s'est arrêté. clotureVerifier_(year) fait les contrôles et le bilan SANS
+   RIEN ÉCRIRE (répétition à blanc). */
+
+function _clotureMaintenant_() { return new Date(); }   // seul point de lecture de l'heure : le banc le fige
+
+function _clotureOnglets_(year) {
+  return ['GARDES_' + year, 'INDISPOS_' + year, 'AFFECTATIONS_' + year, 'STATS_GARDES_' + year, 'LIENS_R_' + year];
+}
+
+/* '' si la clôture est permise à cette date, sinon le refus complet. L'année de
+   planning commence le PREMIER LUNDI (getPremierJourPlanning), jamais le 1er
+   janvier : 2026 court jusqu'au dimanche 03/01/2027. */
+/* (15/11/2026) DÈS MINUIT : getPremierJourPlanning rend ce lundi À MIDI. Comparé
+   tel quel à l'heure courante, il refusait la clôture tout le lundi matin — le
+   moment prévu pour la faire. L'écran avait été corrigé du même défaut le
+   17/08/2026 (_premierLundiISO), le serveur non ; l'ancien test vérifiait à 13 h. */
+function _clotureRefusDate_(year) {
+  const next = Number(year) + 1;
+  const pj = getPremierJourPlanning(next);
+  const debut = new Date(pj.getFullYear(), pj.getMonth(), pj.getDate(), 0, 0, 0);
+  const now = _clotureMaintenant_();
+  if (now >= debut) return '';
+  let tz = 'Europe/Paris';
+  try { tz = SpreadsheetApp.getActiveSpreadsheet().getSpreadsheetTimeZone() || tz; } catch (e) {}
+  const txt = Utilities.formatDate(debut, tz, 'EEEE d MMMM yyyy');
+  const j = Math.ceil((debut - now) / 86400000);
+  return `Clôture refusée : l'année ${next} n'a pas encore commencé. `
+    + `La clôture de ${year} sera possible à partir du ${txt} (dans ${j} jour(s)). `
+    + `Archiver maintenant déplacerait le planning en cours d'usage et basculerait le service sur ${next}. `
+    + `Aucune modification n'a été faite.`;
+}
+
+/* Lecture DIRECTE de CONFIG, jamais le cache : la clôture doit voir la vraie case. */
+function _clotureConfig_(cle) {
+  const sh = SpreadsheetApp.getActiveSpreadsheet().getSheetByName('CONFIG');
+  if (!sh) return { onglet: false, lignes: [] };
+  const d = sh.getDataRange().getValues();
+  const lignes = [];
+  for (let r = 1; r < d.length; r++) {
+    if (String(d[r][0]).trim() === cle) lignes.push({ ligne: r + 1, valeur: d[r][1] });
   }
-  SpreadsheetApp.getUi().alert(`✅ INDISPOS_${year} rempli (« ${scenario} »). Lance W2 puis W3.`);
+  return { onglet: true, lignes: lignes };
 }
-function TEST_run() {
-  const ANNEE    = 2028;       // ← change l'année ici
-  const SCENARIO = 'charge';   // 'normal' | 'charge' | 'leger'
-  TEST_remplirIndispos(ANNEE, SCENARIO);
+
+function _clotureEtat_(year) {
+  const ss = SpreadsheetApp.getActiveSpreadsheet();
+  let arch = null, archErreur = '';
+  try {
+    if (!ARCHIVE_SS_ID) throw new Error('la ligne ARCHIVE_DRIVE_ID de CONFIG est vide ou absente');
+    arch = SpreadsheetApp.openById(ARCHIVE_SS_ID);
+  } catch (e) { arch = null; archErreur = e.message; }
+  const onglets = {};
+  _clotureOnglets_(year).forEach(function (n) {
+    onglets[n] = { maitre: !!ss.getSheetByName(n), archive: arch ? !!arch.getSheetByName(n) : null };
+  });
+  const aa = _clotureConfig_('ANNEE_ACTIVE');
+  const active = aa.lignes.length ? Number(aa.lignes[0].valeur) : null;
+  let histo = 0;
+  const h = ss.getSheetByName('HISTORIQUE');
+  if (h) {
+    const hv = h.getDataRange().getValues();
+    for (let r = 1; r < hv.length; r++) if (String(hv[r][0]).trim() && Number(hv[r][1]) === Number(year)) histo++;
+  }
+  const g = onglets['GARDES_' + year], s = onglets['STATS_GARDES_' + year];
+  const deplaces = g.archive === true && s.archive === true
+    && _clotureOnglets_(year).every(function (n) { return !onglets[n].maitre; });
+  const campagneOuverte = _clotureConfig_('INDISPOS_ACTIVE').lignes.length > 0;
+  return {
+    archive: !!arch, archErreur: archErreur, onglets: onglets,
+    anneeActive: { lignes: aa.lignes.length, valeur: active },
+    campagneOuverte: campagneOuverte, histo: histo, deplaces: deplaces,
+    faite: deplaces && histo > 0 && active === Number(year) + 1 && !campagneOuverte,
+  };
 }
-/* (05/09/2026) LANCEUR TEMPORAIRE — récit : docs/JOURNAL-Planning-Med.md §154 */
-function W1_2028() { setupAnnee(2028); }
 
-/* (05/09/2026) LANCEUR TEMPORAIRE — récit : docs/JOURNAL-Planning-Med.md §155 */
-function W2_2026() { generateGardes(2026); }
+/* Ce qui va être figé, MAR par MAR : gardes réellement faites (dons et échanges
+   compris), week-ends, fériés, Noël / Jour de l'An — et qui était de garde
+   chacun des quatre jours de fêtes. Lit GARDES_{year} au maître ou à l'archive. */
+function _clotureBilanApercu_(year) {
+  const live = computeStatsLive(year) || [];
+  const fetes = {}, noel = {};
+  const dates = [`${year}-12-24`, `${year}-12-25`, `${year}-12-31`, `${year + 1}-01-01`];
+  const ssG = _ssWithSheet('GARDES_' + year);
+  if (ssG) {
+    const gd = ssG.getSheetByName('GARDES_' + year).getDataRange().getValues();
+    const d2c = buildDateToCol(gd, year);
+    dates.forEach(function (dt) {
+      fetes[dt] = [];
+      const c = d2c[dt];
+      if (c == null) return;
+      for (let r = 3; r < gd.length; r++) {
+        const id = String(gd[r][0]).trim(); if (!id) continue;
+        const v = String(gd[r][Number(c)] || '').trim().toUpperCase();
+        if (v === 'G' || v === 'G2') { fetes[dt].push(id); noel[id] = 1; }
+      }
+    });
+  }
+  const mars = live.map(function (x) {
+    const id = String(x.medecin || '').trim();
+    return { id: id, total: Number(x.total) || 0, weekends: (Number(x.sat) || 0) + (Number(x.dim) || 0),
+             feries: Number(x.jf) || 0, noelAn: noel[id] ? 1 : 0 };
+  }).filter(function (m) { return m.id; });
+  return { mars: mars, fetes: fetes };
+}
 
-/* (05/09/2026) Visait 2029 alors que TEST_run remplit 2028 : enchaîner les deux
-   générait une année VIDE sans que rien ne le signale. Les trois lanceurs
-   d'essai parlent désormais de la même année. */
-function TEST_W2() { generateGardes(2028); }      // génère le planning
-function TEST_W3_safe()  { archiveYear(2029, false); }  // itération rapide
-function TEST_W3_reel()  { archiveYear(2027, true);  }  // test du déplacement réel
+function _clotureDerniereSauvegarde_() {
+  let last = null;
+  const it = DriveApp.getFoldersByName(BACKUP_FOLDER_NAME);
+  if (it.hasNext()) {
+    const f = it.next().getFiles();
+    while (f.hasNext()) { const dc = f.next().getDateCreated(); if (!last || dc > last) last = dc; }
+  }
+  return last;
+}
+
+/* Les contrôles, sans rien écrire. Sert la répétition à blanc ET ouvre la clôture. */
+function clotureVerifier_(year, opts) {
+  opts = opts || {};
+  year = Number(year);
+  const controles = [];
+  const bloque = function (t) { controles.push({ niveau: 'bloquant', texte: t }); };
+  const ok     = function (t) { controles.push({ niveau: 'ok', texte: t }); };
+  const info   = function (t) { controles.push({ niveau: 'info', texte: t }); };
+  const bilanSiDemande = function () {
+    if (opts.sansBilan) return null;
+    try { return _clotureBilanApercu_(year); } catch (e) { info(`Bilan ${year} non calculable : ${e.message}`); return null; }
+  };
+  if (!year || year < 2026) { bloque('Année invalide'); return { year: year, controles: controles, peutClore: false, faite: false }; }
+  const next = year + 1;
+  const ss = SpreadsheetApp.getActiveSpreadsheet();
+  const etat = _clotureEtat_(year);
+
+  if (etat.faite) {
+    info(`L'année ${year} est déjà clôturée — rien à refaire.`);
+    return { year: year, controles: controles, peutClore: false, faite: true, etat: etat, bilan: bilanSiDemande() };
+  }
+  // 1. La date
+  const rd = _clotureRefusDate_(year);
+  if (rd) bloque(rd); else ok(`Date : l'année ${next} a commencé`);
+  // 2. L'année suivante est prête
+  const manque = ['INDISPOS_' + next, 'GARDES_' + next, 'STATS_GARDES_' + next].filter(function (n) { return !ss.getSheetByName(n); });
+  if (manque.length) bloque(`Année ${next} pas prête : ${manque.join(', ')} absent(s). Faites d'abord « Démarrer l'année ${next} » puis « Générer les gardes ».`);
+  else if (ss.getSheetByName('STATS_GARDES_' + next).getLastRow() < 2) bloque(`Gardes ${next} incomplètes : STATS_GARDES_${next} est vide.`);
+  else ok(`Année ${next} préparée et générée`);
+  // 3. La case de l'année
+  const aa = etat.anneeActive;
+  if (!aa.lignes) bloque(`La ligne ANNEE_ACTIVE manque dans l'onglet CONFIG : la bascule ne pourrait rien écrire.`);
+  else if (aa.lignes > 1) bloque(`La ligne ANNEE_ACTIVE apparaît ${aa.lignes} fois dans CONFIG : n'en garder qu'une.`);
+  else if (aa.valeur === year) ok(`Année active : ${year}`);
+  else if (aa.valeur === next) info(`Année active déjà sur ${next} : la clôture a été commencée, elle reprendra là où elle s'est arrêtée.`);
+  else bloque(`Année active : ${aa.valeur}, attendue ${year}. Rien ne sera fait tant que la case ne correspond pas.`);
+  // 4. Le classeur d'archive
+  if (!etat.archive) bloque(`Classeur d'archive inaccessible (${etat.archErreur}).`);
+  else ok("Classeur d'archive accessible");
+  // 5. Les onglets de l'année
+  ['GARDES_' + year, 'STATS_GARDES_' + year].forEach(function (n) {
+    const o = etat.onglets[n];
+    if (!o.maitre && o.archive !== true) bloque(`${n} introuvable, ni dans le classeur principal ni dans l'archive.`);
+  });
+  if (etat.archive) {
+    const doublons = Object.keys(etat.onglets).filter(function (n) { return etat.onglets[n].maitre && etat.onglets[n].archive; });
+    if (doublons.length) bloque(`Déjà présent(s) dans le classeur d'archive : ${doublons.join(', ')}. Rien ne sera écrasé : vérifier à la main lequel garder.`);
+  }
+  const partiront = Object.keys(etat.onglets).filter(function (n) { return etat.onglets[n].maitre; });
+  if (partiront.length) info(`Onglets qui partiront à l'archive : ${partiront.join(', ')}`);
+  if (etat.histo) info(`HISTORIQUE contient déjà ${etat.histo} ligne(s) ${year} : elles ne seront pas doublées.`);
+  // 6. La sauvegarde (décision du 15/11/2026 : bloquante) — la clôture fait sa propre copie
+  try {
+    const d = _clotureDerniereSauvegarde_();
+    info((d ? `Dernière sauvegarde : ${Utilities.formatDate(d, 'Europe/Paris', 'dd/MM/yyyy HH:mm')}.` : 'Aucune sauvegarde trouvée.')
+      + ' La clôture fera une copie complète du classeur juste avant d\'agir, et s\'arrêtera si elle échoue.');
+  } catch (e) { bloque(`Dossier des sauvegardes inaccessible (${e.message}) : la copie de sécurité serait impossible.`); }
+
+  return { year: year, controles: controles, faite: false, etat: etat,
+           peutClore: !controles.some(function (c) { return c.niveau === 'bloquant'; }), bilan: bilanSiDemande() };
+}
+
+/* Copie complète du classeur avant toute modification. Son nom ne commence pas
+   par « Backup » : la rotation hebdomadaire (backupHebdo) ne l'efface jamais. */
+function _clotureCopieSecurite_(year) {
+  const ss = SpreadsheetApp.getActiveSpreadsheet();
+  const it = DriveApp.getFoldersByName(BACKUP_FOLDER_NAME);
+  const dossier = it.hasNext() ? it.next() : DriveApp.createFolder(BACKUP_FOLDER_NAME);
+  const nom = `Avant clôture ${year} — ${Utilities.formatDate(_clotureMaintenant_(), 'Europe/Paris', 'yyyy-MM-dd HH:mm')} — ${ss.getName()}`;
+  const copie = DriveApp.getFileById(ss.getId()).makeCopy(nom, dossier);
+  if (!copie) throw new Error('la copie n\'a pas été créée');
+  return nom;
+}
+
+/* Écrit la case ANNEE_ACTIVE PUIS LA RELIT. Une écriture qui ne se retrouve pas
+   à la relecture est un échec, jamais un « succès ». */
+function _clotureEcrireAnnee_(newYear) {
+  const sh = SpreadsheetApp.getActiveSpreadsheet().getSheetByName('CONFIG');
+  if (!sh) throw new Error('onglet CONFIG introuvable');
+  const c = _clotureConfig_('ANNEE_ACTIVE');
+  if (c.lignes.length === 0) throw new Error('la ligne ANNEE_ACTIVE manque dans CONFIG');
+  if (c.lignes.length > 1) throw new Error(`la ligne ANNEE_ACTIVE apparaît ${c.lignes.length} fois dans CONFIG`);
+  sh.getRange(c.lignes[0].ligne, 2).setValue(Number(newYear));
+  try { SpreadsheetApp.flush(); } catch (e) {}
+  try { viderCacheConfig(); } catch (e) { try { _configReset_(); } catch (e2) {} }
+  const relu = _clotureConfig_('ANNEE_ACTIVE').lignes;
+  const v = relu.length ? Number(relu[0].valeur) : null;
+  if (v !== Number(newYear)) throw new Error(`la case ANNEE_ACTIVE relue vaut ${v} au lieu de ${newYear}`);
+  return v;
+}
+
+/* Supprime toutes les lignes INDISPOS_ACTIVE (en partant du bas). Renvoie le nombre. */
+function _clotureFermerCampagne_() {
+  const sh = SpreadsheetApp.getActiveSpreadsheet().getSheetByName('CONFIG');
+  if (!sh) throw new Error('onglet CONFIG introuvable');
+  const lignes = _clotureConfig_('INDISPOS_ACTIVE').lignes;
+  lignes.slice().reverse().forEach(function (l) { sh.deleteRow(l.ligne); });
+  try { viderCacheConfig(); } catch (e) { try { _configReset_(); } catch (e2) {} }
+  if (_clotureConfig_('INDISPOS_ACTIVE').lignes.length) throw new Error('la ligne INDISPOS_ACTIVE est toujours là');
+  return lignes.length;
+}
+
+/* Le contrôle d'après : ce que la fiche « Bascule d'année » faisait vérifier à la main. */
+function _clotureApres_(year) {
+  const controles = [];
+  const ok = function (t) { controles.push({ niveau: 'ok', texte: t }); };
+  const ko = function (t) { controles.push({ niveau: 'echec', texte: t }); };
+  const next = Number(year) + 1;
+  const e = _clotureEtat_(year);
+  if (e.anneeActive.valeur === next) ok(`Année active : ${next}`); else ko(`Année active : ${e.anneeActive.valeur}, attendue ${next}`);
+  const restent = Object.keys(e.onglets).filter(function (n) { return e.onglets[n].maitre; });
+  if (restent.length) ko(`Encore dans le classeur principal : ${restent.join(', ')}`);
+  else ok(`Plus aucun onglet ${year} dans le classeur principal`);
+  ['GARDES_' + year, 'STATS_GARDES_' + year].forEach(function (n) {
+    if (e.onglets[n].archive === true) ok(`${n} dans le classeur d'archive`); else ko(`${n} absent du classeur d'archive`);
+  });
+  if (e.histo > 0) ok(`HISTORIQUE : ${e.histo} ligne(s) ${year}`); else ko(`HISTORIQUE : aucune ligne ${year}`);
+  if (e.campagneOuverte) ko('La campagne d\'indisponibilités est toujours ouverte'); else ok('Campagne d\'indisponibilités fermée');
+  /* La rotation d'équité (générateur, v1.77.0) relit les statistiques de chaque
+     année archivée : elles doivent rester trouvables. */
+  try {
+    const src = _ssWithSheet('STATS_GARDES_' + year);
+    if (src && src !== SpreadsheetApp.getActiveSpreadsheet()) ok(`Statistiques ${year} retrouvables pour les gardes ${next + 1}`);
+    else ko(`Statistiques ${year} introuvables pour la génération des gardes ${next + 1}`);
+  } catch (err) { ko(`Statistiques ${year} : contrôle impossible (${err.message})`); }
+  try {
+    if (_jsonFilesByName_('planning_' + year + '.json').length > 0) ok(`Planning ${year} toujours consultable`);
+    else ko(`planning_${year}.json introuvable : le planning ${year} ne serait plus consultable`);
+  } catch (err) { ko(`Planning ${year} : contrôle impossible (${err.message})`); }
+  return { ok: !controles.some(function (c) { return c.niveau === 'echec'; }), controles: controles };
+}
+
+function _clotureTexte_(o) {
+  const L = [];
+  (o.bloquants || []).forEach(function (t) { L.push('⛔ ' + t); });
+  (o.etapes || []).forEach(function (s) {
+    const ic = s.etat === 'fait' ? '✅' : s.etat === 'déjà fait' ? 'ℹ️' : '❌';
+    L.push(ic + ' ' + s.nom + (s.etat === 'déjà fait' ? ' — déjà fait' : '') + (s.detail ? ' — ' + s.detail : ''));
+  });
+  (o.apres || []).forEach(function (c) { L.push((c.niveau === 'echec' ? '⚠️ ' : '✓ ') + c.texte); });
+  if (o.error) L.push('→ ' + o.error);
+  return L.join('\n');
+}
+
+function _clotureMail_(res) {
+  try {
+    const c = _clotureConfig_('DIAG_EMAIL').lignes;
+    const dest = c.length ? String(c[0].valeur || '').trim() : '';
+    if (!dest) return;
+    MailApp.sendEmail(dest, (res.success ? '✅' : '⚠️') + ` Clôture ${res.year} — Planning-Med`,
+      res.message + '\n\n— Message automatique de la clôture d\'année.');
+  } catch (e) { /* le mail n'est qu'un compte rendu : jamais bloquant */ }
+}
+
+function cloturerAnnee_(year) {
+  year = Number(year);
+  const next = year + 1;
+  const ss = SpreadsheetApp.getActiveSpreadsheet();
+  const etapes = [];
+  const pas = function (nom, etat, detail) { etapes.push({ nom: nom, etat: etat, detail: detail || '' }); };
+  const sortie = function (success, extra) {
+    const o = Object.assign({ success: success, year: year, etapes: etapes }, extra || {});
+    o.message = _clotureTexte_(o);
+    try { logAction(`cloturerAnnee ${year} — ${success ? 'OK' : 'ARRÊT'}${o.error ? ' : ' + o.error : ''}`); } catch (e) {}
+    return o;
+  };
+
+  const v = clotureVerifier_(year, { sansBilan: true });
+  if (v.faite) {
+    const ap = _clotureApres_(year);
+    return sortie(ap.ok, { dejaFaite: true, apres: ap.controles,
+      error: ap.ok ? '' : 'Année déjà clôturée, mais le contrôle d\'après signale un écart.' });
+  }
+  if (!v.peutClore) {
+    const b = v.controles.filter(function (c) { return c.niveau === 'bloquant'; }).map(function (c) { return c.texte; });
+    return sortie(false, { bloquants: b, error: b[0] || 'Clôture impossible' });
+  }
+  const etat = v.etat;
+
+  // 1. Copie de sécurité — tant que quelque chose reste à déplacer
+  const nomCopie = 'Copie de sécurité du classeur';
+  if (etat.onglets['GARDES_' + year].maitre || etat.onglets['STATS_GARDES_' + year].maitre) {
+    try { pas(nomCopie, 'fait', _clotureCopieSecurite_(year)); }
+    catch (e) {
+      pas(nomCopie, 'échec', e.message);
+      return sortie(false, { error: `Copie de sécurité impossible (${e.message}) : la clôture s'arrête avant de toucher à quoi que ce soit.` });
+    }
+  } else pas(nomCopie, 'déjà fait', `les onglets ${year} sont déjà à l'archive`);
+
+  // 2. Bilan : HISTORIQUE, sauvegardes Drive, retouches quotidiennes effacées
+  const nomBilan = `Bilan ${year} (HISTORIQUE, sauvegardes Drive, retouches effacées)`;
+  if (ss.getSheetByName('STATS_GARDES_' + year)) {
+    const lignes = String(_clotureBilan_(year) || '').split('\n').filter(Boolean);
+    if (lignes.some(function (l) { return l.indexOf('❌') === 0; })) {
+      pas(nomBilan, 'échec', lignes.join(' · '));
+      return sortie(false, { error: `Bilan ${year} incomplet. Rien n'a été déplacé et l'année active n'a pas changé : corriger puis relancer la clôture.` });
+    }
+    pas(nomBilan, 'fait', lignes.join(' · '));
+  } else pas(nomBilan, 'déjà fait');
+
+  // 3. Déplacement sûr : copie, vérification, puis suppression du maître
+  const nomDep = `Onglets ${year} vers le classeur d'archive`;
+  if (_clotureOnglets_(year).some(function (n) { return ss.getSheetByName(n); })) {
+    let rap = [];
+    try { rap = archiveMoveTabs_(year) || []; } catch (e) { rap = ['❌ ' + e.message]; }
+    const restent = _clotureOnglets_(year).filter(function (n) { return ss.getSheetByName(n); });
+    if (restent.length) {
+      pas(nomDep, 'échec', rap.join(' · '));
+      return sortie(false, { error: `Déplacement incomplet : ${restent.join(', ')} encore dans le classeur principal. L'année active n'a pas changé : relancer la clôture, elle reprendra ici.` });
+    }
+    pas(nomDep, 'fait', rap.join(' · '));
+  } else pas(nomDep, 'déjà fait');
+
+  // 4. Bascule, relue
+  const nomBasc = `Année active → ${next}`;
+  try {
+    const cur = _clotureConfig_('ANNEE_ACTIVE').lignes;
+    if (cur.length === 1 && Number(cur[0].valeur) === next) pas(nomBasc, 'déjà fait');
+    else { _clotureEcrireAnnee_(next); pas(nomBasc, 'fait', 'case relue'); }
+  } catch (e) {
+    pas(nomBasc, 'échec', e.message);
+    return sortie(false, { error: `Bascule impossible : ${e.message}. Les onglets ${year} sont déjà à l'archive : relancer la clôture, elle reprendra ici.` });
+  }
+
+  // 5. Fermeture de la campagne d'indisponibilités
+  const nomCamp = 'Campagne d\'indisponibilités fermée';
+  try { const n = _clotureFermerCampagne_(); pas(nomCamp, n ? 'fait' : 'déjà fait'); }
+  catch (e) {
+    pas(nomCamp, 'échec', e.message);
+    return sortie(false, { error: `Campagne non fermée : ${e.message}. Relancer la clôture.` });
+  }
+
+  // 6. Copie rapide des écrans : les deux années (le filet horaire repasse de toute façon)
+  try {
+    _miroirNoterPoussee_(['planning', 'affectations', 'annees', 'acces', 'config_admin', 'gardes', 'stats', 'indispos'], year);
+    _miroirNoterPoussee_(['planning', 'affectations', 'annees', 'acces', 'config_admin', 'gardes', 'stats', 'indispos'], next);
+  } catch (e) {}
+
+  // 7. Contrôle d'après, compte rendu par mail
+  const ap = _clotureApres_(year);
+  const res = sortie(ap.ok, { apres: ap.controles,
+    error: ap.ok ? '' : 'Clôture faite, mais le contrôle d\'après signale un écart (voir les lignes ⚠️).' });
+  _clotureMail_(res);
+  return res;
+}
+
+/* Depuis l'éditeur Apps Script : exactement la même clôture, avec les mêmes refus. */
+function archiveYear(year) {
+  if (!year) return '❌ année manquante — ex. archiveYear(2026)';
+  const r = cloturerAnnee_(year);
+  try { SpreadsheetApp.getUi().alert(`Clôture ${year}\n\n${r.message}`); } catch (e) {}
+  return r.message;
+}
+
+/* Depuis l'éditeur : la répétition à blanc, rien n'est écrit. */
+function repetitionCloture(year) {
+  const v = clotureVerifier_(year || getActiveYear());
+  const txt = v.controles.map(function (c) { return (c.niveau === 'bloquant' ? '⛔ ' : c.niveau === 'ok' ? '✓ ' : 'ℹ️ ') + c.texte; }).join('\n');
+  Logger.log(txt);
+  return txt;
+}

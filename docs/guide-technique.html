@@ -1081,41 +1081,60 @@ Banc : <code>banc_comptage_we.js</code>.</p>
 <h2 id="b4"><span class="num">B4</span>W3 — Clôturer l'année</h2>
 
 <div class="r2"><div class="titre">En 2 minutes</div>
-<p>Deux étapes : vérifier que l'année suivante est prête, puis archiver — ce qui enchaîne
-l'archivage proprement dit, la bascule de l'année active, et la fermeture de la campagne de saisie.
-<b>À savoir absolument : l'archivage retire l'année du classeur maître.</b> Les quatre onglets de
-l'année (gardes, indisponibilités, affectations, statistiques) sont copiés dans un classeur
-d'archive puis supprimés du maître. Rien n'est perdu — tout reste consultable dans l'archive — mais
-l'année quitte le classeur principal.</p></div>
+<p>Un seul geste, à partir du <b>premier lundi</b> de la nouvelle année, <b>dès minuit</b>. La
+clôture contrôle d'abord tout ce qui pourrait la faire échouer, et refuse sans rien toucher si
+quelque chose ne va pas. Puis, d'un bloc : copie complète du classeur, bilan de l'année dans
+HISTORIQUE, départ des onglets de l'année vers le classeur d'archive, bascule de l'année active,
+fermeture de la campagne de saisie. Elle finit par vérifier elle-même le résultat et envoie un
+compte rendu par mail. <b>À savoir absolument : l'année quitte le classeur maître.</b> Rien n'est
+perdu — tout reste consultable dans l'archive.</p></div>
 
-<details><summary>Ce que fait l'archivage, dans l'ordre</summary><div class="corps">
+<details><summary>Ce qui bloque la clôture (rien n'est alors modifié)</summary><div class="corps">
+<ul>
+<li>la date : avant le premier lundi de la nouvelle année ;</li>
+<li>l'année suivante pas préparée ou pas générée ;</li>
+<li>la ligne ANNEE_ACTIVE absente de CONFIG, ou présente deux fois ;</li>
+<li>le classeur d'archive inaccessible ;</li>
+<li>un onglet de l'année déjà présent dans l'archive : rien n'est écrasé, il faut choisir à la main lequel garder ;</li>
+<li>le dossier des sauvegardes inaccessible, ou la copie de sécurité impossible.</li>
+</ul>
+<p>Ces refus valent aussi quand la clôture est lancée depuis l'éditeur de scripts
+(<code>archiveYear(2026)</code>) : c'est la même fonction.</p>
+</div></details>
+
+<details><summary>Ce que fait la clôture, dans l'ordre</summary><div class="corps">
 <ol>
-<li>Il reporte le bilan de l'année dans l'onglet HISTORIQUE (sans doublon si l'année y figure déjà).
-Le décompte Noël/Nouvel An est relu dans les gardes <b>réelles</b> — échanges et dons inclus — pas
-dans le bilan figé à la génération.</li>
-<li>Il range les fichiers nominatifs (statistiques, indisponibilités) dans le Drive privé — jamais
-dans le dépôt public.</li>
-<li>Il copie puis supprime du classeur maître les quatre onglets de l'année, transférés vers le
-classeur d'archive.</li>
-<li>Il purge les retouches manuelles de l'année (et des années antérieures — auto-nettoyant si une
-clôture avait été manquée).</li>
+<li><b>Copie de sécurité</b> du classeur complet dans <span class="tag">Planning-Med-Backups</span>,
+nommée « Avant clôture {année} » : la rotation hebdomadaire ne l'efface jamais.</li>
+<li><b>Bilan</b> : HISTORIQUE reçoit une ligne par MAR (gardes réellement faites, échanges et dons
+inclus ; Noël / Jour de l'An relus dans les gardes réelles), sans doublon ; les fichiers nominatifs
+(bilan, grille, indisponibilités) sont rangés dans le Drive privé ; les retouches quotidiennes de
+l'année sont effacées.</li>
+<li><b>Départ des onglets</b> GARDES, INDISPOS, AFFECTATIONS, STATS_GARDES et LIENS_R de l'année :
+chacun est copié dans l'archive, la copie est vérifiée, puis seulement l'original est supprimé.</li>
+<li><b>Bascule</b> : la case ANNEE_ACTIVE est écrite, puis relue — une écriture introuvable à la
+relecture est un échec, jamais un succès.</li>
+<li><b>Campagne fermée</b> : la ligne INDISPOS_ACTIVE est retirée de CONFIG.</li>
+<li><b>Contrôle d'après</b> : année active, onglets partis et présents à l'archive, HISTORIQUE
+rempli, campagne fermée, statistiques de l'année retrouvables pour les générations suivantes,
+planning de l'année toujours consultable.</li>
 </ol>
-<div class="note"><p><b>Deux protections apprises en réel.</b> ① Si la réponse d'un archivage se
-perd en route et qu'on relance, l'assistant reconnaît qu'il est déjà passé (triple indice concordant)
-et répond « déjà fait » au lieu d'un faux échec définitif. ② Jusqu'au 30/07/2026, un archivage
-<i>à moitié réussi</i> (transfert échoué) pouvait passer pour un succès : l'année basculait alors
-que les onglets étaient encore dans le maître, et il devenait impossible de re-clôturer depuis
-l'assistant. Depuis, tout échec de transfert bloque franchement, et les simples avertissements
-s'affichent sous la coche verte au lieu d'être avalés.</p></div>
+<div class="note"><p><b>Relancer ne coûte rien.</b> Chaque étape reconnaît qu'elle est déjà faite :
+après une coupure, relancer reprend à l'étape suivante ; sur une année déjà close, la clôture
+répond « déjà clôturée » sans rien toucher. Tant que les onglets ne sont pas tous partis, l'année
+active ne change pas.</p></div>
 </div></details>
 
 <details class="tech"><summary>Repères techniques</summary><div class="corps">
-<p>Assistant : <code>openWizardCloture</code> ; enchaînement <code>archiveYear</code> →
-<code>setActiveYear</code> → <code>clearIndisposYear</code>. Nuance de la vérification : l'écran
-juge l'année suivante prête d'après le planning <i>publié</i>, le serveur d'après les onglets — une
-génération réussie mais non publiée bloque donc l'écran, pas le serveur. Ne pas confondre l'onglet
-PLANNING_OVERRIDES (les vraies retouches, purgées ici) avec l'ancien registre OVERRIDES (n'existe
-plus, code mort documenté).</p>
+<p>Fonction unique <code>cloturerAnnee_(year)</code> (setup_annee.gs), appelée par les actions
+<code>cloturerAnnee</code> et <code>archiveYear</code> et par <code>archiveYear(year)</code> dans
+l'éditeur. L'assistant actuel enchaîne encore <code>archiveYear</code> → <code>setActiveYear</code>
+→ <code>clearIndisposYear</code> : le premier appel fait tout, les deux suivants trouvent le travail
+fait. Répétition à blanc, sans rien écrire : action <code>clotureVerifier</code>, ou
+<code>repetitionCloture(2026)</code> dans l'éditeur. Le refus de date compare au premier lundi
+<b>à minuit</b> (<code>_clotureRefusDate_</code>) : jusqu'au 15/11/2026, le serveur comparait au
+lundi à midi et refusait toute la matinée du jour J. Ne pas confondre l'onglet PLANNING_OVERRIDES
+(les vraies retouches, purgées ici) avec l'ancien registre OVERRIDES (n'existe plus).</p>
 </div></details>
 
 <p class="haut"><a href="#top">↑ Sommaire</a></p>

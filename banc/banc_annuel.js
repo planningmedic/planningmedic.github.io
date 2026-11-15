@@ -141,34 +141,30 @@ console.log('\n═══ T130 · la clôture est refusée tant que l\'année sui
      règle réécrite ici : une première version rejouait la logique dans le test,
      et la contre-épreuve a montré qu'elle continuait de passer une fois le
      garde-fou retiré du code. Un test qui recopie ne protège que la copie. */
-  const src   = require('./stubs').sourceGasTout() /* (15/09) Indispos.gs découpé : tout le code serveur métier */;
+  /* (15/11/2026, lot A de la clôture) Le garde-fou ne vit plus dans l'action du
+     portail mais dans _clotureRefusDate_ (setup_annee.gs), appelé par la clôture
+     elle-même : le portail ET l'éditeur Apps Script passent par lui. Il est
+     exécuté ici tel qu'extrait, l'heure étant la seule variable.
+     Il compare désormais au lundi À MINUIT : comparé au lundi à midi (valeur de
+     getPremierJourPlanning), il refusait toute la matinée du jour J — défaut que
+     l'ancienne version de ce test ne voyait pas, faute d'essayer le matin. */
   const srcPJ = extraireFonction('../gas/code.gs', 'getPremierJourPlanning');
-  // (15/09/2026) le bloc vit dans _act_archiveYear (indenté de 2, plus de 6) : on le borne par sa fermeture « \n  }\n  try {
-  const bloc  = (src.match(/\{\s*\n\s*const _debutNext = getPremierJourPlanning\(_next\);[\s\S]*?\n  \}\n(?=  try \{)/) || [])[0] || '';
-  V('le garde-fou de date est présent dans le routage', !!bloc);
-  V('il est placé AVANT l\'appel à archiveYear',
-    !!bloc && src.indexOf('const _debutNext') < src.indexOf('const rapport = String(archiveYear(yearToArchive)'));
+  const srcRD = extraireFonction('../gas/setup_annee.gs', '_clotureRefusDate_');
+  const srcSetup = fs.readFileSync('../gas/setup_annee.gs', 'utf8');
+  V('le garde-fou de date existe', /function _clotureRefusDate_\(year\)/.test(srcSetup));
+  V('la clôture l\'appelle avant toute écriture (contrôles d\'ouverture)',
+    srcSetup.indexOf('const rd = _clotureRefusDate_(year);') > 0
+    && srcSetup.indexOf('const rd = _clotureRefusDate_(year);') < srcSetup.indexOf('_clotureCopieSecurite_(year)); }'));
 
-  /* Le bloc est exécuté tel quel, avec le jour du calendrier pour seule variable. */
   const refusePour = (jour, annee) => {
-    let refus = null;
-    const VraiDate = Date;
-    function DateFigee(...a) { return a.length ? new VraiDate(...a) : new VraiDate(jour.getTime()); }
-    DateFigee.now = () => jour.getTime();
-    const ctx = vm.createContext({
-      Math, Number, String, Date: DateFigee,
+    const ctx = vm.createContext({ Math, Number, String, Date,
       Utilities: { formatDate: () => 'DATE' },
-      logAction: () => {},
-      _error: m => { refus = m; return m; },
-      _ssArch: { getSpreadsheetTimeZone: () => 'Europe/Paris' }
-    });
+      SpreadsheetApp: { getActiveSpreadsheet: () => ({ getSpreadsheetTimeZone: () => 'Europe/Paris' }) } });
     ctx.globalThis = ctx;
-    /* Garde-fou absent : on ne veut pas d'un plantage mais d'un ÉCHEC LISIBLE —
-       « rien n'a refusé », ce qui fait tomber les sept dates ci-dessous. */
     try {
-      vm.runInContext(srcPJ + '\nfunction essai(yearToArchive) { const _next = yearToArchive + 1; ' + bloc + ' return null; }', ctx);
-      const sortie = vm.runInContext('essai', ctx)(annee);
-      return { refuse: refus !== null || sortie !== null, message: refus };
+      vm.runInContext(srcPJ + '\n' + srcRD + '\nfunction _clotureMaintenant_() { return new Date(' + jour.getTime() + '); }', ctx);
+      const m = vm.runInContext('_clotureRefusDate_', ctx)(annee);
+      return { refuse: !!m, message: m };
     } catch (e) { return { refuse: false, message: '' }; }
   };
 
@@ -179,6 +175,9 @@ console.log('\n═══ T130 · la clôture est refusée tant que l\'année sui
   V('le 01/01/2027 : toujours refusé', refusePour(new Date(2027, 0, 1), 2026).refuse === true);
   V('le 03/01/2027 : refusé, c\'est le dimanche', refusePour(new Date(2027, 0, 3), 2026).refuse === true);
   V('le 04/01/2027 : ACCEPTÉ — premier lundi de planning', refusePour(new Date(2027, 0, 4, 13), 2026).refuse === false);
+  V('le 04/01/2027 à 8 h : ACCEPTÉ aussi (le matin du jour J)', refusePour(new Date(2027, 0, 4, 8), 2026).refuse === false);
+  V('le 04/01/2027 à 0 h 01 : déjà accepté', refusePour(new Date(2027, 0, 4, 0, 1), 2026).refuse === false);
+  V('le 03/01/2027 à 23 h 59 : encore refusé', refusePour(new Date(2027, 0, 3, 23, 59), 2026).refuse === true);
   V('le 10/01/2027 : accepté', refusePour(new Date(2027, 0, 10), 2026).refuse === false);
 
   const m = refusePour(new Date(2026, 7, 17), 2026).message || '';

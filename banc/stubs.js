@@ -39,6 +39,11 @@ class Sheet {
   appendRow(l) { _surEcriture(); this.lignes.push(l.map(_coerceSheets)); }
   setColumnWidth() {}
   getLastColumn() { return Math.max(...this.lignes.map(l => l.length), 0); }
+  /* (15/11/2026) Clôture d'année : un onglet se copie vers un AUTRE classeur
+     (le classeur d'archive) puis se renomme. Jusqu'ici le banc ne savait pas
+     le faire : le déplacement des onglets n'avait jamais été exécuté. */
+  copyTo(dest) { const n = dest.ajouter('Copie de ' + this.nom, this.lignes); return n; }
+  setName(n) { if (this._classeur) { delete this._classeur.feuilles[this.nom]; this._classeur.feuilles[n] = this; } this.nom = n; return this; }
 }
 /* (14/08/2026 — défaut trouvé au premier test réel) Le VRAI Sheets transforme
    un texte « 2027-09-03 » ou un horodatage ISO en objet Date à l'écriture.
@@ -71,7 +76,8 @@ function _coerceSheets(v) {
 
 class Classeur {
   constructor() { this.feuilles = {}; }
-  ajouter(nom, lignes) { this.feuilles[nom] = new Sheet(nom, lignes); return this.feuilles[nom]; }
+  ajouter(nom, lignes) { this.feuilles[nom] = new Sheet(nom, lignes); this.feuilles[nom]._classeur = this; return this.feuilles[nom]; }
+  deleteSheet(sh) { delete this.feuilles[sh.nom]; }   // (15/11/2026) clôture d'année
   getSheetByName(n) { return this.feuilles[n] || null; }
   insertSheet(n) { return this.ajouter(n, []); }
   getSpreadsheetTimeZone() { return 'Europe/Paris'; }
