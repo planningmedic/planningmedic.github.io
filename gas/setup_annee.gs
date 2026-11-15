@@ -1,7 +1,7 @@
 // ⚠️ RÈGLE (détecteur de dérive dépôt↔Apps Script) : incrémenter cette version
 // à CHAQUE push de ce fichier. Le diagnostic (admin → Maintenance) compare la
 // version déployée ici avec celle du dépôt et signale toute recopie oubliée.
-const GAS_VERSION_SETUP = '2026-11-15.3';   // (15/11/2026) .3 lot C : la clôture emporte aussi REA1_ et FETES_ de l'année, le libéral de l'année précédente, et les lignes de l'année dans ECHANGES, TP_DEMANDES, TP_FERMES, ABSENCES_LONGUES (sans doublon à la relance) ; HISTORIQUE gagne PART EXACTE et JOURS TP · (15/11/2026) .2 : date du refus de clôture écrite en français (« lundi 4 janvier 2027 ») · (15/11/2026) clôture d'année en un seul geste (cloturerAnnee_) : contrôles bloquants (date, année suivante, case ANNEE_ACTIVE, archive, homonymes, sauvegardes), copie de sécurité du classeur, bilan, déplacement sûr (archiveMoveTabs_, LIENS_R compris), bascule relue, campagne fermée, contrôle d'après, mail ; répétition à blanc (clotureVerifier_) ; archiveYear depuis l'éditeur passe par les mêmes refus ; lanceurs d'essai retirés · (10/11/2026) rangement des onglets en 7 familles, tous les onglets annuels reconnus quelle que soit l'année
+const GAS_VERSION_SETUP = '2026-11-15.4';   // (15/11/2026) .4 : part de gardes lue dans CIBLE quand PART EXACTE manque (statistiques 2026) ; la répétition dit aussi « aucune ligne à déplacer » · (15/11/2026) .3 lot C : la clôture emporte aussi REA1_ et FETES_ de l'année, le libéral de l'année précédente, et les lignes de l'année dans ECHANGES, TP_DEMANDES, TP_FERMES, ABSENCES_LONGUES (sans doublon à la relance) ; HISTORIQUE gagne PART EXACTE et JOURS TP · (15/11/2026) .2 : date du refus de clôture écrite en français (« lundi 4 janvier 2027 ») · (15/11/2026) clôture d'année en un seul geste (cloturerAnnee_) : contrôles bloquants (date, année suivante, case ANNEE_ACTIVE, archive, homonymes, sauvegardes), copie de sécurité du classeur, bilan, déplacement sûr (archiveMoveTabs_, LIENS_R compris), bascule relue, campagne fermée, contrôle d'après, mail ; répétition à blanc (clotureVerifier_) ; archiveYear depuis l'éditeur passe par les mêmes refus ; lanceurs d'essai retirés · (10/11/2026) rangement des onglets en 7 familles, tous les onglets annuels reconnus quelle que soit l'année
 
 
 // ══════════════════════════════════════════════════════════════════════
@@ -477,7 +477,10 @@ function _clotureBilan_(year) {
     if (String(h.getRange(1, 19).getValue()).trim() !== 'PART EXACTE')
       h.getRange(1, 19, 1, 2).setValues([['PART EXACTE', 'JOURS TP']]).setFontWeight('bold');
     const partDe = {};
-    for (let r = 1; r < d.length; r++) { const pid = String(d[r][0]).trim(); if (pid) partDe[pid] = num(r, 'PART EXACTE'); }
+    /* PART EXACTE n'existe que depuis le générateur de novembre 2026 : les
+       statistiques 2026 n'ont que CIBLE (vu en production le 15/11/2026). */
+    const colPart = Hd.indexOf('PART EXACTE') > -1 ? 'PART EXACTE' : 'CIBLE';
+    for (let r = 1; r < d.length; r++) { const pid = String(d[r][0]).trim(); if (pid) partDe[pid] = num(r, colPart); }
     const hd = h.getDataRange().getValues();
     const seen = new Set();
     for (let r=1;r<hd.length;r++){ const id=String(hd[r][0]).trim(); if(id) seen.add(`${id}|${hd[r][1]}`); }
@@ -534,7 +537,7 @@ function _clotureBilan_(year) {
         const noelAn = noelReel ? (noelReel.has(id) ? 1 : 0) : num(r,'NOEL/AN');
         hrows.push([id,year, num(r,'TOTAL G'),num(r,'G (REA)'),num(r,'G2 (MAT)'),
           num(r,'LUN'),num(r,'MAR'),num(r,'MER'),num(r,'JEU'),num(r,'VEN'),num(r,'SAM'),num(r,'DIM'),
-          num(r,'VD'),num(r,'VEILLE JF'),num(r,'JF'),noelAn,num(r,'RECUP R'),num(r,'18H'),num(r,'PART EXACTE'),tpDe[id] || 0]);
+          num(r,'VD'),num(r,'VEILLE JF'),num(r,'JF'),noelAn,num(r,'RECUP R'),num(r,'18H'),partDe[id] || 0,tpDe[id] || 0]);
       }
     }
     if (hrows.length){ h.getRange(h.getLastRow()+1,1,hrows.length,20).setValues(hrows);
@@ -881,7 +884,8 @@ function _clotureBilanApercu_(year) {
   const ssS = _ssWithSheet('STATS_GARDES_' + year);
   if (ssS) {
     const sd = ssS.getSheetByName('STATS_GARDES_' + year).getDataRange().getValues();
-    const ip = sd[0].map(function (x) { return String(x).trim(); }).indexOf('PART EXACTE');
+    const ent = sd[0].map(function (x) { return String(x).trim(); });
+    const ip = ent.indexOf('PART EXACTE') > -1 ? ent.indexOf('PART EXACTE') : ent.indexOf('CIBLE');   // 2026 : CIBLE seule
     if (ip > -1) for (let r = 1; r < sd.length; r++) { const pid = String(sd[r][0]).trim(); if (pid) part[pid] = Number(sd[r][ip]) || 0; }
   }
   const mars = live.map(function (x) {
@@ -957,6 +961,7 @@ function clotureVerifier_(year, opts) {
     try {
       const rl = _clotureLignes_(ss, SpreadsheetApp.openById(ARCHIVE_SS_ID), year, true).filter(x => x.n > 0);
       if (rl.length) info(`Lignes ${year} qui partiront à l'archive : ` + rl.map(x => x.onglet + ' (' + x.n + ')').join(', '));
+      else info(`Lignes ${year} des onglets partagés (échanges, temps partiel, absences longues) : aucune à déplacer.`);
     } catch (e) { info(`Lignes ${year} des onglets partagés : aperçu impossible (${e.message})`); }
   }
   // 6. La sauvegarde (décision du 15/11/2026 : bloquante) — la clôture fait sa propre copie

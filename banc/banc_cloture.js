@@ -347,6 +347,22 @@ console.log('═══ O. Lot C : le classeur maître ne garde que l\'année en 
   V('« Mes patients lib » 2025, après archivage : les déclarations sont lues dans l\'archive', res.success && res.items.length === 1 && res.items[0].id === 'L1', res);
 }
 
+{
+  /* Vu en production le 15/11/2026 : les statistiques 2026 n'ont pas PART EXACTE,
+     seulement CIBLE ; la colonne Part restait vide. Et la répétition se taisait
+     quand aucune ligne n'était à déplacer. */
+  const w = monde();
+  const st = w.M.getSheetByName('STATS_GARDES_2026');
+  st.lignes = [['MEDECIN', 'CIBLE', 'TOTAL G', 'NOEL/AN']].concat(MARS.map((id, k) => [id, k === 1 ? 32.4 : 36, 60, 0]));
+  ['ECHANGES', 'TP_DEMANDES', 'TP_FERMES', 'ABSENCES_LONGUES'].forEach(n => { const sh = w.M.getSheetByName(n); sh.lignes = [sh.lignes[0]]; });
+  const v = action(w, 'clotureVerifier', { year: 2026 });
+  V('sans PART EXACTE : la part du bilan vient de CIBLE (MAR02 : 32,4)', v.bilan.mars.find(m => m.id === 'MAR02').part === 32.4, v.bilan.mars.find(m => m.id === 'MAR02'));
+  V('rien à déplacer : la répétition le dit', v.controles.some(c => /aucune à déplacer/.test(c.texte)), v.controles.map(c => c.texte));
+  w.ctx.cloturerAnnee_(2026);
+  const h2 = w.M.getSheetByName('HISTORIQUE').lignes.find(l => l[0] === 'MAR02' && l[1] === 2026);
+  V('…et HISTORIQUE reçoit la même part', h2 && h2[18] === 32.4, h2);
+}
+
 console.log('═══ N. Le code du comité est refusé (15/11/2026 : page Maintenance seulement) ═══');
 {
   const w = monde();
