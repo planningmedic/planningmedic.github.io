@@ -26,9 +26,10 @@ Système web de gestion pour le service d'anesthésie-réanimation du **un servi
 ### docs/ — documentation & documents de travail
 | Fichier | Rôle |
 |---|---|
-| `CONTEXTE-Planning-Med.md` | Contexte, architecture, conventions — **à lire en premier** |
+| `CONTEXTE-Planning-Med.md` | État actuel, architecture, méthode de travail — **à lire en premier** (court) |
 | `roadmap.html` | **Roadmap de pilotage** — vue courte et lisible : échéancier, chantiers en cours, règles à ne jamais casser |
-| `ROADMAP-Planning-Med.md` | Fait / à faire / écarté — la mémoire longue, historique détaillé |
+| `ROADMAP-Planning-Med.md` | À faire, pièges, écarté, journal récent |
+| `HISTORIQUE-Planning-Med.md` | Archive : le récit daté de tout ce qui a été fait (31/08 → 15/11/2026), pas à lire pour travailler |
 | `guide-technique.html` | **La référence interne** : architecture, wizards, déploiement, sécurité, dépannage |
 | `guide-fichier-maitre.html` | Les 25 onglets du classeur, colonne par colonne |
 | `guide-comite.html` | Aide du comité (page `admin.html`) |

@@ -1,830 +1,156 @@
-# Contexte projet Planning-Med — à coller en début de conversation
+# Contexte projet Planning-Med — à lire en premier
 
-Tu es mon développeur attitré sur **Planning-Med**. Je suis **le responsable**, anesthésiste-réanimateur
-dans un service hospitalier, seul responsable de ce projet et **sans bagage de code** : tu écris, valides
-et livres tout ; moi je recopie/valide. Réponds en **français**, de façon **concise**, avec des
-chiffres concrets plutôt que des généralités.
+Tu es le développeur attitré de **Planning-Med**. Le responsable est anesthésiste-réanimateur, seul
+responsable du projet, **sans bagage de code** : tu écris, valides et livres ; il recopie, teste et
+valide. Réponds en **français**, court, avec des chiffres concrets.
 
----
-
-# ⚠️ À LIRE D'ABORD — LE PROJET A MIGRÉ LES 7 ET 8 SEPTEMBRE 2026
-
-**Le service informatique de l'établissement valide le projet mais refuse d'en porter la
-responsabilité.** Plus rien ne doit relier le portail à l'établissement. Tout ce qui suit en
-découle, et prime sur les habitudes antérieures.
-
-| | avant | maintenant |
-|---|---|---|
-| Dépôt | ancien dépôt (supprimé le 13/09) | **`planningmedic/planningmedic.github.io`** |
-| Portail | — | **https://planningmedic.github.io** |
-| Compte Google | — | **planningmedic@gmail.com** |
-| Relais | — | **miroir.planningmedic.workers.dev** |
-
-**Règles non négociables pour toute intervention future :**
-
-- **Aucun nom de praticien dans le dépôt.** Ni dans le code, ni dans un commentaire, ni dans un
-  jeu d'essai. Les jeux d'essai utilisent des noms fictifs (AUBERT, AVELINE, BOISSY…).
-  (L'ordre alphabétique était réputé nécessaire : non reproduit le 10/09, voir chantier n° 1.)
-- **Aucune mention de l'établissement, de la ville, ni d'adresse postale.** Les références
-  tarifaires monégasques du module libéral sont acceptées : elles désignent un pays, pas un
-  établissement.
-- **Une règle qui vise une personne se configure dans le classeur, jamais dans le code.**
-  Trois clés existent pour cela : `TUILES_PRIVEES`, `DVI_HABILITES`, et les colonnes NOM et
-  `souhait_plafond` de MEDECINS d'où sont déduits le titre affiché et le régime de souhaits.
-- **Contrôle des noms réels (02/11/2026)** : `banc/banc_noms_reels.js` échoue si un nom réel entre dans le
-  dépôt. La liste vit **hors du dépôt**, dans `~/.planningmedic/noms_reels.txt` : à reconstituer **à chaque
-  session, avant le banc**, depuis la copie rapide (connecteur Cloudflare, stockage MIROIR, clé `config_admin`,
-  champ `nom` des MAR) + prénom du responsable + nom de l'établissement ; section `[exact]` pour les initiales
-  à trois lettres. Fichier absent = banc en échec, exprès. Jamais d'empreintes dans le dépôt (une empreinte de
-  nom se retrouve en essayant tous les noms). Identifiants d'essai : toujours fictifs.
-- **Une information d'identité doit voyager par LES DEUX chemins** — copie rapide et connexion au
-  serveur. Un seul des deux couvert, et l'affichage change selon que le relais répond ou non.
-  C'est le défaut du précédent `libAdmin`.
-
-**Ce qui n'est pas encore fait :** ~~l'ancien dépôt~~ (**supprimé le 13/09/2026** ; l'historique
-du nouveau dépôt a été réécrit le même jour, purge GitHub en attente), l'ancien compte GitHub
-(vide) et l'ancien Worker existent toujours. Le compte Google d'origine aussi — il porte le classeur, les archives et
-les fichiers du planning, et attend une semaine de fonctionnement réel avant suppression.
+> **Ce document est court exprès** (refait le 15/11/2026). Il dit ce qui est vrai aujourd'hui et comment
+> travailler. Ce qui reste à faire, les pièges et ce qui est écarté : `ROADMAP-Planning-Med.md`. Le récit
+> daté de tout ce qui a été fait : `HISTORIQUE-Planning-Med.md` (archive, pas à lire pour travailler). Le
+> pourquoi de chaque bout de code : `JOURNAL-Planning-Med.md`. **Le code fait foi** : avant de proposer
+> quoi que ce soit, chercher dans le dépôt, pas dans ces documents.
 
 ---
 
-# PARTIE 1 — L'ESSENTIEL
-
-## 15 novembre 2026 — banc plus rapide, admin.html refermé (v1.78.2)
-
-Site **v1.78.2**, banc **6 580 ✓, 0 ✗**, 133 scénarios (commit `f91dda9`). Aucun changement GAS.
-
-- **Empreintes** : après un banc complet au vert, `banc/empreintes.txt` garde l'empreinte de ce que
-  lit chaque scénario lourd (ceux qui génèrent des gardes). Rien n'a bougé → repris, pas relancé.
-  Mesuré sur 2 processeurs : **~2 min 20** si ni le générateur, ni `code.gs`, ni le simulateur, ni
-  les modules du banc ne changent ; **~19 min** sinon (24 min avant). `TOUT=1 ./lancer.sh` relance
-  tout. **`empreintes.txt` se pousse avec le commit.**
-- **Une génération au lieu de deux** : `h.genererAvecBilan` lit le bilan sur la vraie génération
-  (identique au calcul à blanc, vérifié par `banc_harnais_tirage`).
-- **`banc_syntaxe`** : syntaxe de tout le JS / `.gs` / `<script>`, balises équilibrées, `id` uniques.
-  Ne se fait plus à la main avant un push.
-- **Compter** : la dernière ligne du banc donne ✓ exécutées + ✓ reprises ; `grep -cE "^\s+✓ "` ne
-  compte plus que les exécutées.
-- **Noms réels** : reconstituer `~/.planningmedic/noms_reels.txt` en début de session (onglet
-  MEDECINS + médecin extérieur + prénom du chef de service + établissement), sinon banc rouge.
-- **Conversations en parallèle** : le sommet distant a bougé trois fois pendant ce lot. Juste avant
-  de pousser : le contrôler ; s'il a bougé, recaler, prendre le numéro de version suivant le dernier
-  publié, relancer le banc (souvent court), puis pousser.
-- `admin.html` : `<div class="main">` enfin refermé, là où le navigateur le refermait déjà (page
-  identique, 538 éléments comparés).
-
-## 12 novembre 2026 (soir) — diagnostic plus rapide (serveur seul, site inchangé)
-
-`diagnostic.gs` **2026-11-12.3**, en service (confirmé au Diagnostic). Banc **6 159 ✓, 0 ✗**, 122 scénarios.
-
-- Le diagnostic lit le dépôt par **deux envois groupés** au lieu de 21 lectures à la file : **34 s → 26 s**
-  mesurées, aucun contrôle retiré.
-- Sa dernière ligne, **« Étapes les plus longues »**, dit où va le temps : c'est elle qu'on lit avant d'optimiser
-  encore. Le plus long reste le bloc « Intégrité GARDES_2027 » (7,6 s).
-- **Le diagnostic se lance en restant sur la page** : quittée pendant l'analyse, la page Maintenance affiche
-  « Load failed » ou tourne sans fin alors que le serveur a fini (hypothèse non prouvée, cohérente avec `LOGS`).
-- Détail et pistes laissées de côté : ROADMAP du 12/11 (soir).
-
-## 11 novembre 2026 — récups de samedi et 18 h gérés tout seuls (v1.59.0 → v1.62.0)
-
-Site **v1.62.0**. Gardes 2027 **générées le 09/11** ; dons et échanges entre MAR en cours. Banc **5 788 ✓**,
-121 scénarios ; seul échec : `banc_veille.js` (dépend de la date du jour, antérieur, à corriger).
-
-- **Récupérations de samedi : tout automatique** (décision du responsable). Un samedi qui change de mains emmène
-  son R ; s'il ne peut pas suivre à la même date, le donneur rend le sien et le receveur en reçoit un neuf. Un R
-  écrasé par un don est reposé. Règles de date : générateur + **jamais pendant les vacances scolaires** + week-end,
-  pont ou congés d'abord + après le samedi. Rattrapage : page Maintenance → « Récupérations de samedi »
-  (Vérifier / Réparer). Le comité a enfin le bouton « Récup » dans Statuts.
-- **18 h** : un don qui écraserait un 18 h du receveur le fait passer au donneur, **prévenu et confirmant avant
-  d'envoyer**. Les MAR peuvent **échanger un 18 h contre un 18 h**. Les 18 h s'affichent dans « Mes gardes ».
-- **À faire par le responsable** : mettre à jour le serveur (`echanges.gs` 2026-11-11.4, `gardes.gs` 2026-11-11.4 — repos d'un échange de gardes contrôlé, et gestes du comité avec les mêmes suites que ceux des MAR).
-- **Contrôle des noms réels** : la liste hors dépôt peut aussi se reconstituer depuis l'onglet MEDECINS du classeur
-  maître (ID, NOM, INITIALES à trois lettres) + prénom du responsable + établissement.
-- Détail : ROADMAP du 11/11 et du 03–10/11.
-
-## 1er novembre 2026 (soir) — panneau des disponibles instantané et à jour (v1.54.4, v1.54.5)
-
-Site **v1.54.5**, aucun GAS. Banc **5 323 ✓, 0 échec**, 107 scénarios.
-
-- Le panneau d'une case orange se calcule de nouveau **sur la page** pendant une séance de placement
-  (0,01 s au lieu de 3 à 4,6 s au banc). Seule une écriture qui change les disponibles (statut, échange,
-  affectations, absence longue, temps partiel, fiche MAR, génération, archivage) le renvoie 90 s au
-  serveur. Un placement ou une publication, non.
-- v1.54.5 : les statuts du calcul local ne sont plus figés à l'ouverture de la page. Une pose dans
-  Statuts y est recopiée aussitôt ; après une autre écriture (absence longue, temps partiel, échange…),
-  ils sont relus sur la copie rapide une fois la garde des 90 s passée.
-- Badge « mise à jour prête » sur la tuile Maintenance : **refusé** par le responsable, ne pas reproposer.
-- Détail : ROADMAP du 01/11 (soir).
-
-## 1er novembre 2026 — page Maintenance réservée et serveur mis à jour depuis le téléphone (v1.54.2)
-
-Site **v1.54.2** ; `Indispos.gs`, `equipe.gs`, `diagnostic.gs` **2026-11-01.1** ; tout le dépôt en service
-(**version 61**). Livreur **2026-11-01.2**. Banc **5 290 ✓, 0 échec**, 106 scénarios.
-
-- **Mettre à jour le serveur** : pousser, puis le responsable ouvre la tuile **Maintenance** → carte
-  « Mise à jour du serveur » → **Appliquer** (deux appuis). Même adresse, sauvegarde automatique,
-  **Revenir** possible. Plus de recopie dans l'éditeur, sauf changement d'autorisations ou d'accès du site
-  (la carte le refuse et le dit) et mise à jour du livreur (`livreur/README.md`).
-- **Maintenance** (diagnostic, cache, renvoi des codes) n'est plus dans admin.html : `maintenance.html`,
-  clé `maintenance` de TUILES_PRIVEES. Le code comité est refusé côté serveur.
-- **Projet Google Cloud standard** depuis le 01/11 (irréversible) : toute API utilisée doit y être activée
-  (Apps Script, Gmail, Drive) ; une nouvelle autorisation demande la réautorisation du propriétaire.
-- **Pense-bête** refait (v1.50–v1.52) avec widget iPhone chiffré (Scriptable) ; avis DPO : écarté par le responsable (02/11).
-- Détail : ROADMAP du 30/10 – 01/11.
-
-## 27–28 octobre 2026 — fériés 2027 et demi-journées de vacances (v1.48.0)
-
-Site **v1.48.0** (puis v1.49.x par d'autres lots) ; `code.gs`, `Indispos.gs` **2026-10-27.2**,
-`generateur_gardes.gs`, `gardes.gs`, `indisponibilites.gs` **2026-10-27.1** — recopiés et déployés
-le 28/10. Banc **4 894 ✓, 0 échec**, 102 scénarios (commit `ad08436`).
-
-- **Journée mobile** : lundi 7 juin 2027 férié. Elle change chaque année : une ligne à ajouter dans
-  `JOURNEE_MOBILE` (`getJoursFeries`) à chaque note DRH.
-- **VM / VA** : demi-journée de vacances (matin / après-midi), tapée à la main par le responsable dans
-  INDISPOS puis GARDES. Pas de garde le jour ni la veille, 0,5 j partout, jamais effacée par un écran.
-- **Quotas 2027** : 41,5 j pour un temps plein (33 + 4 + 4,5). Les après-midi fériés des 24 et 31/12
-  se prennent le jour même ; garde, 18 h ou repos ces jours-là donnent +0,5 j.
-- **Dette** : sur l'attribution, jamais sur le réel (décision du responsable, 28/10).
-- Détail et liste « après génération » : ROADMAP du 27–28/10 et documents du projet Claude.
-
-## 24 octobre 2026 (soir) — les gestes du comité appliqués à la demande (v1.42.0)
-
-Site **v1.42.0** ; `journal.gs`, `Indispos.gs`, `diagnostic.gs` **2026-10-24.1** (recopiés, déployés,
-déclencheur réinstallé le 24/10). Banc **4 774 ✓, 0 échec**, 101 scénarios (commit `4a9829c`).
-
-- **Pourquoi** : la tâche qui applique les gestes du comité tournait chaque minute. Elle consommait
-  ~69 des 90 minutes par jour de tâches de fond qu'accorde Google, et ~480 des 1 000 ouvertures de file
-  quotidiennes de Cloudflare (alerte « 50 % » reçue).
-- **Maintenant** : la page admin demande l'application juste après chaque dépôt (quelques secondes) ; la
-  tâche automatique ne passe plus que **toutes les 5 minutes**, en filet. Le comité clique toujours
-  aussi vite et peut toujours fermer la page après avoir publié.
-- **Le classeur** : 41 onglets, 2,15 M cellules sur 20 M — sain, aucun onglet inutile. Seul point :
-  `LIBERAL_`, `LIBERAL_CA_`, `REA1_`, `FETES_` ne partent pas à l'archive à la clôture (+4 onglets/an).
-  À régler **avec la clôture d'année, après la génération 2027** (détail au ROADMAP).
-- **À confirmer** : un `doPost` dans les secondes après un geste (Exécutions) ; listages Cloudflare
-  autour de 150/jour à partir du 25/10.
-
-## 24 octobre 2026 (après-midi) — semaines Réa 1, réparation par échange, calcul 4× plus rapide
-
-Site **v1.40.0**, `generateur_gardes.gs` **2026-10-24.2** (recopié et déployé ; essai Apps Script du
-24/10 à 13h55 : planning n° 7, **24 s**, identique à la simulation pour les 22 MAR). Banc
-**4 725 ✓, 0 échec**, 99 scénarios, **9 min** au lieu de 26 (commits `62fdaa6`, `16eb4db`).
-
-- **Semaines Réa 1** : le tableau de l'équipe réa est collé dans l'onglet `REA1_{année}` (colonnes
-  « Du » et « REA 1 »). Le Réa 1 n'a aucune garde du dimanche soir au jeudi soir, ni récupération ni
-  18 h du lundi au vendredi ; il garde le vendredi, le samedi et le VD de fin de semaine. Souhaits
-  posés sur ses nuits Réa 1 retirés et listés ; absence pendant sa propre semaine et nom inconnu
-  signalés. Sans l'onglet, rien ne change.
-- **Réparation par échange** (8c-ter) : un MAR à 2 gardes de sa cible sur un axe échange un créneau
-  avec un collègue au-dessus de la sienne (ex. il prend un VD et cède un samedi). Meilleur échange,
-  jamais sur une garde souhaitée, toutes règles dures respectées.
-- **Couple de week-end assoupli, pas supprimé** : parmi les plannings à 1 garde d'écart, le calcul garde
-  celui qui donne le plus de week-ends en commun ; si aucun n'est équitable, seconde série sans le
-  bonus d'optimisation du couple (« règle assouplie » dans l'essai). L'équité passe avant.
-- **Vitesse** : la règle des 3 gardes sur 6 jours prenait 69 % du temps de calcul ; réécrite (même
-  résultat case par case). Une année 14 s → 3 s ; essai Apps Script 74 s → 24 s.
-- **VD coupé** quand c'est nécessaire : accepté par le responsable (2027 : un week-end de juillet).
-- **Avant la génération du 02/11** : tableau Réa 1 final à coller, conflit d'une absence pendant une
-  semaine Réa 1 à régler, MAR dont des souhaits sont retirés à prévenir.
-
-## 24 octobre 2026 — générateur : 3 gardes sur 6 jours interdites, périodes tendues d'abord
-
-Site **v1.39.0**, `generateur_gardes.gs` **2026-10-23.3** (recopié ; essai Apps Script du 24/10 : planning
-n° 4, 45 s, identique à la simulation). Banc **4 699 ✓, 0 échec**, 98 scénarios (commit `934dfaa`).
-
-- **Jamais 3 gardes sur 6 jours** : garde-repos-garde (ex. vendredi-dimanche) est le schéma le plus
-  serré, puis au moins 4 jours. Règle dure ; seule exception, toutes les gardes souhaitées par le MAR.
-- **Périodes tendues d'abord** : les jours où la moitié de l'équipe ou moins peut être de garde sont
-  regroupés et résolus d'un bloc avant les souhaits ordinaires et le fil de l'eau (2027 : 5 périodes,
-  dont mi-août et Noël). Effet 2027 : plus de week-end d'affilée ni de dernier recours ; quelques
-  souhaits de moins.
-- **Équité prioritaire sur les souhaits** (rappel du responsable, 24/10) ; garde-fou explicite non codé.
-- **Génération 2027 le 02/11** : scénario des fêtes saisi dans l'onglet ; essai conforme.
-
-## 21 octobre 2026 — banc d'essai accéléré
-
-Banc **4 620 ✓, 0 échec**, 93 scénarios (commit `1fdbf03`). Rien de changé côté site ni GAS.
-
-- **`cd banc && ./lancer.sh`** lance les scénarios en parallèle : ~6 min au lieu de 11 sur
-  2 processeurs. Obligatoire et complet avant tout push.
-- **`./lancer.sh rapide <fichier modifié>`** pendant le travail : seulement les scénarios
-  concernés (20 à 50 s pour une page). Ne remplace jamais le banc complet.
-- **Cloner avec l'historique complet** (pas `--depth 1`) : sinon cinq contre-preuves sont sautées
-  et comptées ✓.
-- Compter : `grep -cE "^\s+✓ "` sur la sortie complète (inchangé).
-
-## État au 18 octobre 2026 — vue paie pour les secrétaires de paie
-
-Site **v1.26.0**, banc **4 392 ✓, 0 échec** (commit `ce2bf91`). `code.gs`, `gardes.gs`, `Indispos.gs`
-**2026-10-18.1**, recopiés et déployés le 18/10. Les lots v1.25.0 – v1.25.1 (15-17/10) ne sont pas
-détaillés ici. Détail de la vue paie dans la ROADMAP.
-
-- **Vue paie** : `paie.html`, lecture seule, gardes réa (G), gardes maternité (G2) et vacances (V) du
-  mois, pour les **secrétaires de paie** — un autre groupe que le secrétariat des consultations, avec
-  un **autre code** (CONFIG `PAIE_CODE`). Le responsable y accède par la tuile cachée `paie`.
-- **Mail paie** à chaque changement de G, G2 ou V (CONFIG `PAIE_EMAILS`), détaillé : gestes à reporter,
-  nouveaux totaux, origine. Indépendant des mails aux MAR (sa propre photo). **Essayé en production
-  le 18/10.**
-- **Règle gravée** : tout rôle qui n'est ni comité ni MAR n'atteint que **sa liste blanche**
-  (`_listeBlancheRole_` dans `Indispos.gs`). Un nouveau rôle se déclare avec sa liste, sinon il est
-  refusé partout.
-- **À savoir** : une clé ajoutée dans CONFIG (par exemple `TUILES_PRIVEES`) n'atteint l'accueil qu'à la
-  synchronisation horaire de la copie rapide, ou après `miroirSyncComplet` lancé à la main. Une
-  saisie manuelle dans `GARDES_{année}` ne déclenche **aucun** mail tant qu'une publication ne suit pas.
-- **Historique du dépôt** : deux traces d'identité restent dans l'historique (07/09 et 14/10).
-  Décision du responsable le 18/10 : **on ne réécrit pas l'historique**. Ne pas le reproposer.
-
-## État au 14 octobre 2026 — accueil refait, mise à jour sans quitter l'appli, veille mieux notée
-
-Site **v1.24.1**, banc **4 227 ✓, 0 échec**. GAS relevés dans le dépôt : `veille.gs` **2026-10-13.1**,
-`generateur_gardes.gs` **2026-10-12.1**, `equipe.gs` / `indisponibilites.gs` / `miroir.gs`
-**2026-10-11.1** ; relais **miroir 2026-10-11.1**. Recopie et déploiement de ces GAS **non vérifiés
-depuis cette conversation** : à confirmer au Diagnostic. Détail des lots dans la ROADMAP.
-
-- **Générateur (09-12/10)** : souhaits de samedis et week-ends honorés dans la part du MAR (le joker
-  annuel ne couvre plus que férié et veille de férié) ; deux week-ends d'affilée accordés s'ils sont
-  tous deux souhaités ; la passe « veille de congés » ne reprend plus un jour souhaité ; couples de
-  week-end (CONFIG `COUPLES_WEEKEND`) ; bonus « seulement 18h » 1,3 → 1,2.
-- **Date limite de saisie des indispos** (CONFIG `INDISPOS_FIN`, dernier vendredi d'octobre) : le
-  serveur refuse après minuit, la tuile passe au cadenas, l'accueil affiche « J-N » avant.
-- **Accueil (v1.21 → v1.24)** : blocs Moi · Le service · Ressources · Réservé ; habillage « maquette A »
-  (teintes par tuile, ombres légères, bandeau translucide) ; carte **Prochaine garde** avec le
-  collègue de l'autre ligne (lu dans le planning déjà chargé) ; pastilles d'information (congés à
-  venir, affectation du jour, J-N des indispos, prochain staff). La liste des staffs voyage dans
-  l'appel d'ouverture (~1 Ko). Le mode sombre garde le bleu nuit (le noir n'a pas été retenu).
-- **Mise à jour sans quitter l'appli (v1.23.1)** : au retour au premier plan (≤ 1 fois / 30 min), le
-  socle `partage/portail.js` relit `version.js` ; l'accueil sans saisie se recharge seul, ailleurs un
-  bandeau « Mettre à jour ». `sw.js` ne garde plus `version.js` en copie. **Seuls les téléphones déjà
-  en v1.23.1 en profitent** ; non éprouvé sur un vrai iPhone au 14/10.
-- **Veille** : le type d'étude est aussi lu dans le titre (un ECR pas encore étiqueté par PubMed perdait
-  35 points) ; `veilleRenoterParTitre()` rattrape les notes en place (31 attendues au 13/10, exécution
-  à confirmer). Nouvel écran : thèmes en rangée, sections par thème, anneau de note, tri par revue.
-- **Pense-bête, compteur** : montant corrigeable (montant final du recueil Hôpital Manager), à l'ajout
-  et sur tout acte de la liste ; le calcul reste gardé.
-- 🔴 **Un nom de famille réel** d'un collègue est entré dans le dépôt le 14/10 dans un jeu d'essai
-  (`banc_annee_suivante.js`), corrigé le jour même par un nom fictif. **Il reste dans l'historique**
-  (commits `e4e94e9` à `bf81124`) : le retirer demanderait une réécriture de l'historique, à décider
-  par le responsable.
-
-## État au 7 octobre 2026 — veille du staff vacances 2027
-
-Aucun code modifié ; décisions et réglages du classeur, détail dans la ROADMAP.
-
-- **15 MAR présents minimum chaque jour ouvré**, vacances scolaires comprises (sauf août et Noël).
-  Seuils de période retenus : **7**, **6** sur l'hiver ; été à couper en Juillet / Août (août à
-  fixer). À saisir dans `PERIODES_VAC` **et à relire sur l'écran des périodes du W1**, qui les
-  réenregistre.
-- **Quotité de garde = quotité de travail** pour tous, sauf une exception validée par le chef
-  (cible d'année pleine malgré un temps partiel subi). Ses jours off seront écrits en **TP** dans le
-  planning **après** la génération, pas avant : posés avant, ils lui retireraient des gardes.
-- **Vacances d'un partant** : quota de sa quotité × jours de présence / 364, en consigne orale.
-  **Pas de prorata pour un congé long.**
-- **Synchro complète** : n'efface pas la copie d'un onglet supprimé, et lit CONFIG / SECTEURS /
-  SEUILS à travers un cache de 10 min. Après une modification à la main : Vider le cache, puis
-  synchro.
-- `INDISPOS_2027` simulé : renommé `INDISPOS_2027_TEST`, plus lu ; le W1 du 09/10 recrée l'onglet.
-  `INDISPOS_ACTIVE` est retirée de CONFIG en attendant.
-- **Cibles de gardes 2027** : à recalculer quand le dernier cas de fin de contrat sera tranché.
-
-## État au 5 octobre 2026 — générateur : congé long à cible pleine, paires, calcul à blanc fidèle
-
-Site **v1.18.4**, banc **3 798 ✓, 0 échec**. `generateur_gardes.gs` **2026-10-05.3** (recopié ;
-déploiement web à confirmer). Détail des trois lots dans la ROADMAP.
-
-- 🔴 **`INDISPOS_2027` contient une campagne simulée** depuis le 05/10 : à supprimer et recréer par
-  l'assistant **avant l'ouverture du 10/10**. Les congés longs sont rejoués depuis le registre.
-- **Congé long : réduit ou rattrapé ?** Par défaut réduit au prorata. Pour garder une cible pleine :
-  OUI dans `ABSENCES_LONGUES`, colonne `CIBLE_PLEINE`, sur la ligne de l'absence, **avant** la
-  génération. Le calcul à blanc l'affiche (« ℹ️ … congé long à cible pleine »).
-- **Paires à éviter : l'équité prime** (décision du 05/10). La règle peut céder quand la couverture
-  l'exige ; un avertissement en tête de liste le dit, avec les dates.
-- **Le calcul à blanc = la vraie génération, écriture en moins** depuis v1.18.4 (même tirage). Avant,
-  il pouvait montrer un autre planning. Sa durée est celle de la génération réelle.
-- **Le banc reproduit le classeur réel** : sur la même campagne, l'essai en production et le banc ont
-  donné les mêmes chiffres, médecin par médecin. Pour y injecter des données du classeur (en local,
-  jamais dans le dépôt) : passer les dates en **texte 'AAAA-MM-JJ'** — une date créée hors du bac à
-  sable n'y est pas reconnue (`instanceof Date` faux), et les bornes d'activité sont alors ignorées
-  sans erreur.
-- Un MAR **sans groupe de vacances** (`GROUPES_VAC`) n'a pas de rang au staff : c'est voulu, il pose
-  où il veut.
-
-## État au 1er octobre 2026 — module libéral allégé, import Excel des cotations types
-
-Site **v1.17.1**, banc **3 682 ✓, 0 échec** (vert à l'heure de Paris). `portail.gs` **2026-10-01.2**,
-`miroir.gs` **2026-10-01.3**, **déployés** (web app @25).
-Détail des deux lots dans la ROADMAP.
-
-- **Le dépassement se pré-remplit** : chirurgien qui cote → 50 % du sien ; sinon total France de la
-  cotation type ; sinon calage sur la mutuelle. Toujours modifiable.
-- **Sous Windows**, le banc exige des fins de ligne Unix : `.gitattributes` le garantit depuis
-  `33c1c63` ; sur un clone plus ancien, `git config core.autocrlf false` avant de le lancer.
-- **Déployer Apps Script depuis cette machine** : `clasp -u planningmedic` (compte planningmedic,
-  connexion faite le 01/10). L'ID du script se lit dans l'éditeur, Paramètres du projet. Toujours :
-  récupérer le projet en ligne, comparer au dépôt, ne remplacer que les fichiers du lot, tester
-  `getActiveYear` après le déploiement et revenir à la version précédente au moindre échec.
-  **`clasp` range les fichiers par ordre alphabétique** : `banc_ordre_chargement.js` garantit que
-  l'ordre ne compte pas.
-- **Pousser depuis cette machine** : deux comptes GitHub sont enregistrés ; viser explicitement
-  `https://planningmedic@github.com/...`, sinon Git ne sait pas lequel choisir.
-
-## État au 13 septembre 2026 — audit complet, et un plan en 12 étapes
-
-Audit du code sur deux versants (efficience, confidentialité), détail chiffré dans la ROADMAP.
-Le jour même : l'ancien dépôt public (2 328 commits nominatifs) est supprimé, et l'historique du
-nouveau dépôt est réécrit sans aucun nom ni prénom (v1.11.9, contenu identique, banc 3 042 ✓).
-
-**Ce que l'audit change pour les interventions à venir :**
-- Un **plan en 12 étapes** est posé dans la ROADMAP (socle commun des pages, découpage du serveur,
-  configuration renvoyée par le serveur, un seul appel à l'ouverture). Une conversation par étape,
-  banc vert, test sur téléphone avant la suivante. **Aucune étape n'est urgente** — le site marche.
-- Règle réaffirmée : **le client affiche, il ne calcule pas.** Un chiffre recopié dans une page
-  (quotas, cibles, fériés) finit toujours faux ; il vient du serveur.
-- Les commentaires ne portent plus de prénom : « le responsable » désigne l'anesthésiste
-  responsable du projet.
-
-**14/09/2026 — le socle commun des pages est lancé** (`partage/portail.js` : adresse du miroir et
-`miroirRead` unique). **Les six pages l'ont rejoint et sont confirmées en production** (staff,
-suivi-libéral, indispos, planning, accueil, admin — v1.11.20). Le délai d'abandon du miroir se règle
-désormais à un endroit : 6 s par défaut, 10 s pour le comité (`window.MIROIR_DELAI`).
-Le soir même : le thème passe dans le socle (v1.11.21), la palette commune dans `partage/theme.css`
-(v1.11.22), une seule police DM Sans (v1.12.0) et le mode sombre sur Indispos (v1.12.1) — tous
-confirmés en production. Connexion, déconnexion et badge restent propres à chaque page : ce n'est
-pas un doublon, c'est ce que chaque page charge après le code.
-
-**14/09/2026, soir — le lot serveur est déployé** (recopie unique des 7 `.gs`, confirmée au
-Diagnostic) : fonctions de test hors production (`dev.gs`, jamais recopié), MEDECINS lu une fois
-par requête avec des colonnes nommées (`COL_MED`, `code.gs`), quotas de congés servis par le serveur
-— staff.html n'a plus de table. **15/09/2026, matin — Indispos.gs est découpé et le routeur est une table.** Six fichiers serveur au
-lieu d'un : `Indispos.gs` (792 lignes : doGet/doPost, checkCode, la table `_actions_()` des 64
-actions avec leur rôle, le routeur qui l'applique) et cinq fichiers métier (`gardes.gs`,
-`indisponibilites.gs`, `temps_partiel.gs`, `equipe.gs`, `diagnostic.gs`) où chaque action est une
-fonction `_act_<nom>(R)`, corps inchangé. Recopié et confirmé au Diagnostic. Du plan des 12 étapes
-il ne reste que la 10 (commentaires-journal vers la doc), sans urgence. Le 12 est en place par
-construction.
-**Pour lire le serveur désormais :** une action → sa ligne dans `_actions_()` (Indispos.gs) → sa
-fonction `_act_<nom>` dans le fichier métier. Le banc (`banc_contrat_routeur.js`) refuse toute action
-ajoutée, retirée, ou dont le rôle déclaré ne correspondrait plus au corps.
-⚠️ Le jeton GitHub expire début octobre 2026 : à renouveler dans CONFIG et dans les instructions du
-projet.
-🔴 **L'erreur de méthode du jour :** en retirant la copie locale de planning.html, une ligne voisine
-(`const _MIROIR_PRE`) est partie avec — la page redemandait le code. Compter les appels d'une fonction ne
-prouve pas qu'une page marche : **on rejoue la reprise de session jusqu'au bout** dans le navigateur
-simulé, et c'est désormais un scénario permanent du banc que toute page doit passer avant de rejoindre
-le socle. Revert en une minute, deux fois ; aucune donnée touchée.
-
-*Si tu ne lis qu'une chose, lis ceci. Le détail complet est en partie 2.*
-
-## Fins de contrat en cours d'année — ce que le système fait, et ne fait pas
-
-Renseigner `date_fin` dans MEDECINS suffit désormais pour TOUT : gardes, G2, repos de garde,
-récupérations et **18h** (depuis le 10/09/2026). Convention : `date_fin` est le **premier jour
-NON travaillé**, le code teste partout `date >= date_fin`. Les cibles de gardes sont
-proratisées par `PCT_GARDES` × part de présence ; les 18h par `QUOTITE` × part de présence.
-Deux colonnes distinctes, deux usages, c'est voulu.
-
-**Ce que `date_fin` NE couvre PAS :**
-- le **quota de congés** n'est pas proratisé — la jauge affiche une année pleine ; arbitrage
-  assumé, les congés d'un partant se posent à la main par le comité ;
-- l'**écran de saisie des indispos** ignore la borne : le calendrier reste ouvert toute
-  l'année et le serveur accepte l'écriture. Maquette validée, patch non fait.
-
-## L'ouverture de la campagne ne s'annonce plus par mail (10/09/2026)
-
-Le W1 n'envoie plus rien. L'ouverture est écrite à l'étape 4 (`INDISPOS_ACTIVE`), et c'est au
-comité de l'annoncer **de vive voix** — le staff est en séance quand l'assistant se termine. Un
-MAR qui veut relire ses congés posés les retrouve verrouillés dans « Mes indispos ».
-
-Corollaire pour tout essai : ouvrir le W1 « pour voir » ouvre la campagne pour de vrai. Ce n'est
-plus le mail qui est le risque, c'est l'étape 4.
-
-## ⚠️ LE 4 SEPTEMBRE 2026 : LE STAFF
-
-**Révision du 03/09 au soir : le W1 ne sera PAS joué en direct.** La porte d'entrée d'Apps Script
-s'est montrée capricieuse ce soir-là (404 sur le canal de réponse, délais dépassés). le responsable passe
-le W1 la veille et montre un résultat. `staff.html` est ouvert **avant** la séance et **n'est pas
-rechargé** : les jours fériés n'y sont lus qu'à l'ouverture.
-
-*Intention initiale, conservée pour mémoire :* lancer la génération en séance, en régénérant celle
-du 25/08.
-
-**`NOTIF_ACTIVE` est le vrai interrupteur** : quand il ne vaut pas `O`, le système prend quand même
-la photo et se tait — **aucun arriéré ne peut s'accumuler**. Inutile de toucher aux fichiers
-`_notifie.json`. Et le récapitulatif « Vos gardes » ne dépend PAS de `NOTIF_EMAIL_TEST` : il lit la
-colonne EMAIL du classeur, directement.
-
-1. **avant le 4** : `NOTIF_ACTIVE` = `N` · remettre les 21 adresses dans la colonne EMAIL (elles
-   sont décalées d'une colonne à droite) · laisser `NOTIF_EMAIL_TEST` ;
-2. **le 4** : ménage, génération en direct → le récap part à tous, aucune notif de changement
-   possible, **rien à supprimer** ;
-3. **après, planning stable** : publier, attendre 15 min, vérifier au journal « système éteint,
-   photo prise, aucun envoi » ;
-4. **rallumer** : `NOTIF_ACTIVE` = `O`, supprimer `NOTIF_EMAIL_TEST`.
-
-**Filtre des mails de changement** : un par MAR, ses seules dates. Statut (garde, astreinte,
-absence) → toujours signalé, même à six mois. Secteur (affectation en journée) → seulement dans la
-fenêtre du dernier Excel (vendredi 16 h → dimanche +9).
-
----
-
-## État au 6 septembre 2026 (matin)
-
-Site **v1.3.3**, banc **2 727 vérifications, 0 échec**.
-**Cinq fichiers GAS à recopier dans l'éditeur et à redéployer** : `code.gs` **2026-09-05.1**,
-`Indispos.gs` **2026-09-05.1**, `miroir.gs` **2026-09-06.1**, `generateur_gardes.gs`
-**2026-09-05.1**, `setup_annee.gs` **2026-09-05.2**.
-
-### L'axe des jours fériés est enfin à l'écran
-
-Le générateur surveille six axes ; l'écran n'en montrait que cinq. La colonne `CIBLE JF`
-existait depuis toujours, aucun lecteur ne la servait : la barre « JF » était tracée contre une
-moyenne d'équipe, pas contre une cible. Corrigé de bout en bout.
-
-**Mesuré** : sur les absences réelles, le pire écart sur les fériés est de UNE garde ; sur 45
-années simulées, une seule dépasse 2. L'axe ne fait pas apparaître de rouge.
-
-**Défaut introduit puis corrigé le jour même** : sur 2026, dont l'onglet s'arrête avant la
-colonne, la barre affichait « 2 /0 » en rouge — une cible ABSENTE lue comme une cible à zéro.
-Le lot avait vérifié les lecteurs de la donnée, pas ce que la page en fait.
-
-### La saisie des indisponibilités est prête pour le 10 octobre
-
-Refonte visuelle seule, logique intacte : barre d'outils passée SOUS le calendrier et collante,
-couleur qui remplit la case, cadenas sur les jours du staff, refus écrits sous le calendrier au
-lieu d'un toast fugace, week-ends estompés quand l'outil temps partiel est actif, et les quotas
-devenus des jauges — congés, formation, temps partiel. Indispos et souhaits n'ont pas de
-plafond : ils restent de simples comptes.
-
-Essayée sur téléphone, campagne 2027 ouverte quelques minutes puis refermée.
-
-### La cloche ne notait rien depuis le passage au canal par rôle
-
-Le garde-fou `if (cible && cible.role) return;` visait le comité ; il écartait TOUS les rôles,
-dont `role:'mar'` — la génération des gardes. Le push partait, la cloche restait vide, et rien
-ne pouvait le révéler. Les notifications déjà envoyées ne sont pas rattrapées.
-
-### À savoir
-
-- **Un onglet INDISPOS a TROIS lignes d'en-tête** (mois / initiales / numéros), MAR en ligne 4.
-  Un collage sans elles fait perdre presque toutes les dates, en silence.
-- **W1 n'envoie aucun mail** : l'envoi des codes est une étape séparée, déclenchée par un bouton.
-- **Jetons en clair dans l'onglet CONFIG** : ils sortent dès qu'on exporte ou copie le classeur.
-- **La dette cumulative n'est pas codée.** Inutile pour 2027 (compteur vide), à faire d'ici
-  novembre 2027.
-- **La tuile temps partiel** attend sa reprise visuelle. Son fonctionnement ne change pas.
-
----
-
-
-## État au 5 septembre 2026 (soir)
-
-Site **v1.1.2**, banc **2 690 vérifications, 0 échec**. `generateur_gardes.gs` **2026-09-05.1** et
-`setup_annee.gs` **2026-09-05.2** — **les deux sont à recopier dans l'éditeur et à redéployer.**
-Sept commits : `67803951`, `1a53a068`, `a3a35084`, `723da5d5`, `ab810462`, `cc024d39`, `d2ab072b`.
-
-### Le nouvel algorithme de gardes est en ligne
-
-Quatre mécanismes, sous l'interrupteur `NOUVEL_ALGO_GLOBAL` (retour arrière en une ligne) :
-**cibles entières** par plus forts restes, **numéro de tirage** à la place de l'ordre de MEDECINS,
-**multi-départ** (8 calculs à blanc, on écrit le meilleur), **objectif lexicographique** de
-l'optimiseur et **interdiction dure de deux week-ends d'affilée**.
-
-Mesuré sur 45 années simulées : 44 sur 45 où personne ne dépasse **une garde d'écart** sur les six
-axes, contre 29 sur 45 avant. Éprouvé dans Apps Script sur les absences RÉELLES du service,
-complétées par quotité, avec 161 souhaits : 364 journées toutes pourvues (y compris le 27/12 avec
-3 gardeurs disponibles sur 20), un seul MAR à 2 gardes d'écart, 121 souhaits honorés sur 161.
-
-**La dette inter-annuelle n'est PAS codée.** Elle est inutile pour 2027 (compteur vide), et le
-travail se fera d'ici novembre 2027.
-
-### L'écran d'équité affichait un calcul faux
-
-Sur 2026, la colonne CIBLE promettait 730,8 gardes pour 707 posées : les gardes du **médecin
-extérieur au service** n'étaient comptées nulle part. Tout le monde apparaissait ~1,7 garde trop
-bas, l'écran accusait **19 MAR sur 20** au lieu de 17, dont trois pile à leur part. Corrigé dans
-les deux pages : les gardes réellement posées sont réparties en cibles entières, et la mention
-d'explication s'affiche dès que la correction s'applique.
-
-L'écran est refait : nombres de personnes au lieu de pourcentages, classement replié au lieu du mur
-de noms, **une ligne par MAR** dépliable au clic, la sienne en tête.
-
-### La numérotation repart à v1.0
-
-**v10.8.3 → v1.0.4**, le numéro descend volontairement et une seule fois. **v1.0 = la version
-présentée au staff du 4 septembre.** v2.0 est réservé au module libéral. Conséquence : un numéro ne
-peut plus dater une fonctionnalité — deux contrôles du banc qui le faisaient ont été réécrits.
-
-### Lanceurs temporaires, à retirer une fois 2027 publié
-
-`T()` et `T7()` : avant/après à blanc sur 2026 et 2027, aucune écriture — c'est la mesure à lancer
-le **30 octobre**, campagne close. `W1_2028()` et `W2_2026()` : **copie du classeur uniquement**,
-`W2_2026` efface le planning en cours et notifie toute l'équipe.
-
-### À surveiller
-
-- **Axe jours fériés absent de l'écran d'équité** : `getStats` ne sert pas `CIBLE JF` (colonne 22).
-  C'est l'axe où le nouvel algorithme laisse son résidu.
-- **Jetons en clair dans l'onglet CONFIG** : ils sortent dès qu'on exporte ou copie le classeur.
-- **Un onglet INDISPOS a TROIS lignes d'en-tête** (mois / initiales / numéros), MAR en ligne 4. Un
-  collage sans elles fait perdre presque toutes les dates, en silence.
-
----
-
-## État au 3 septembre 2026 (soir) — la veille du staff
-
-Site **v10.8.1**, banc **2531 vérifications sur 54 scripts, 0 échec**. Quatre commits ce soir-là :
-`2fb03e94`, `c238c4ab`, `908bce5b`, `f3b44286`. **Aucun `.gs` modifié : rien à recopier.**
-Versions du dépôt : `code.gs` 2026-09-01.1, `Indispos.gs` 2026-09-03.1,
-`generateur_gardes.gs` 2026-09-01.2, `portail.gs` 2026-08-31.1.
-
-⚠️ **Ce qui est déployé ne se déduit pas du dépôt.** Seule la sonde « Code déployé vs dépôt » du
-🔍 Diagnostic le dit. Indice partiel : `LOGS` du 02/09 porte les lignes « avertissement 1/4 · 2027 »
-du lot 2026-09-01.3, donc ce lot-là tournait bien.
-
-### Décision du responsable sur le déroulé du 4 septembre
-
-**Le W1 ne sera PAS joué en direct.** La porte d'entrée d'Apps Script s'est montrée capricieuse le
-03/09 au soir (voir ci-dessous). Le W1 a été passé la veille ; le 4, le responsable montre un résultat.
-
-**`staff.html` sera ouvert avant le staff et NE SERA PAS RECHARGÉ.** Les jours fériés y sont lus
-**une seule fois**, à l'ouverture. Tant que la page n'est pas rechargée, l'onglet Ponts continue de
-fonctionner même si Google tombe ensuite. Le seul geste qui casse tout, c'est F5.
-
-**Ce qui survit sans Apps Script** (copie rapide) : l'entrée dans `staff.html`, la liste des MAR,
-les périodes, les groupes, les congés déjà saisis, le planning et l'équité côté `planning.html` et
-`index.html`. **Ce qui ne survit pas** : toute saisie. `saveIndisposBatch` et « Valider et
-verrouiller » partent en direct, sans file d'attente — le journal d'intentions ne couvre que les
-placements, les statuts et la publication. **On peut montrer, on ne peut pas enregistrer.**
-
-### Règles gravées ce jour
-
-- **Un message d'attente qui ne peut pas se résoudre est un mensonge.** « Rouvrez la page dans un
-  instant » s'affichait sur un cul-de-sac : la clé attendue n'existait pas et n'allait pas
-  apparaître. Un écran qui invite à réessayer doit avoir une chance d'aboutir au réessai.
-- **Une clé de la copie rapide n'existe que si sa famille a une source déclenchante.**
-  `joursferies` est classée « sans source » (`banc_miroir.js`) : elle n'est construite que par la
-  synchro horaire, et seulement pour les années possédant un onglet `GARDES_{Y}`. Donc jamais
-  pendant la campagne de l'année suivante. **Toute lecture de la copie rapide a besoin d'un
-  repli**, comme les périodes de vacances en ont un depuis le 13/08.
-- **Une correction faite sur un écran doit être cherchée sur tous les autres.** Les bornes de
-  l'année de planning avaient été posées dans `indispos.html` le 12/08 (banc T072) ; `staff.html`
-  ne les avait jamais reçues, et laissait poser des congés sur trois jours qui n'existent pas au
-  classeur. Le serveur les jetait en silence en répondant « enregistré ».
-- **Deux écrans qui rejouent le même calcul ne se contrôlent pas l'un l'autre : ils se répètent.**
-  L'écran « Vacances » du W2 refaisait exactement le calcul des conflits de l'étape précédente —
-  même rotation, même seuil, même test. Il était vert par construction dès que l'étape 1 laissait
-  passer. Supprimé.
-- **Un chiffre affiché qui n'entre dans aucun calcul finit par tromper.** « ✓ 127 jour(s) »
-  additionnait VAC, FORM, INDISPO, SOUHAIT, TP et CL : il mesurait une quotité, pas une saisie.
-  Le seul test réel a toujours été « zéro ou pas zéro ».
-- **Une alerte doit reproduire la règle du moteur, pas une approximation prudente.** L'alerte des
-  prioritaires Noël se déclenchait dès une date bloquée, alors que le générateur traite les quatre
-  dates séparément et sert en priorité ceux qui n'ont jamais donné : une seule date libre suffit.
-  Elle signalait quatre MAR dont aucun n'était écarté.
-- **Un test devenu faux se corrige avec sa raison ; un test gênant ne se supprime pas.**
-  `banc_page.js` attendait 2 appels `getVacValidation`, il en reste 1.
-
-### 🔴 L'erreur de méthode du jour — une déduction présentée comme un constat
-
-J'ai annoncé à le responsable que les fériés seraient lus « copie rapide d'abord, Apps Script en repli »
-**sans avoir vérifié** que la famille `joursferies` n'a aucune source déclenchante. C'était juste
-sur le papier et faux en pratique : le repli allait être le seul chemin. Il a ouvert `staff.html`
-en pensant que ça marcherait. La règle du contexte — distinguer ce qui est vérifié de ce qui est
-supposé — n'a pas été tenue.
-
-### Trous connus, décision de NE PAS les boucher maintenant
-
-- 🔴 **Les MAR hors groupe ne consomment aucune place du seuil de présence.** `getVacConfig` et
-  `getVacValidation` construisent `marEnVacCeJour` à partir des seuls membres de `GROUPES_VAC`.
-  Un actif absent de ces groupes n'a pas de rang : ses congés ne peuvent jamais être refusés **et
-  ne comptent pas dans le seuil**. Cas visé : **PERRIN** (régime à part), qui pose où il veut par régime.
-  **FAUVEL était hors groupe le 03/09 alors qu'il est actif — à réintégrer.**
-  ⚠️ Côté `staff.html`, **rien à faire** : `countForDay` et `vivierGarde` bouclent sur tous les
-  médecins actifs, le trou est purement serveur. Remède envisagé, à confirmer par le responsable : les
-  hors-groupe occupent les **premières** places du seuil — jamais refusables, mais ils font
-  reculer les autres d'un rang. **Reporté : cela change des résultats d'arbitrage.**
-- ⏳ **Le rejeu des actions du W1**, écrit et testé le 03/09, **jamais poussé** — le responsable ne voulait
-  pas de changement non éprouvé la veille du staff. Il n'existe dans aucun commit.
-- ⏳ **`bornesAnneePlanning` est dupliquée** dans `indispos.html` et `staff.html`. À porter dans
-  `partage/` après le staff — toucher la page des MAR en pleine campagne était le mauvais moment.
-- ⏳ **Les 1er et 2 janvier N+1** appartiennent à la campagne mais n'apparaissent dans aucune vue
-  par mois de `staff.html`. Atteignables par la période Noël, donc rien n'est perdu.
-
-### La panne du 3 septembre au soir, et ce qu'elle apprend
-
-Le W1 s'arrêtait à des étapes variables, en **délai dépassé** et en **HTTP 404**. Ni le classeur
-(`GROUPES_VAC` et `PERIODES_VAC` relus, conformes) ni le code métier n'y sont pour quelque chose.
-
-La cause est **écrite en tête de `journal.gs` depuis le 05/08** : « 2,5-5 s au mieux, 30 s+ les
-mauvais matins, 404 sur le canal de réponse ». La requête part, le script s'exécute, mais le
-chemin de retour répond 404. Le journal d'intentions ne couvre que trois types d'écriture
-(placements, statuts, publication) : **les onze actions du W1 passent en direct**, et la page ne
-tente chaque appel qu'une fois.
-
-⚠️ **`initYear` refuse de tourner si `INDISPOS_{année}` existe déjà.** Un 404 sur le canal de
-réponse APRÈS une création réussie affiche donc un échec alors que l'année EST créée. **Avant de
-relancer une étape du W1, regarder l'onglet.**
-
-⚠️ **Leçon de méthode** : la réponse était déjà dans les commentaires d'intention du code. J'ai
-cherché dans la logique avant de lire ce que le code disait de lui-même.
-
----
-
-## État au 1er septembre 2026 — six lots, et le passage à la série v10
-
-Site **v1.99 → v10.6**, banc **2200 → 2415**. Le numéro change de série : la suite de v1.99 aurait
-été « v1.100 », qui se lit mal. On avance de dixième en dixième ; le premier chiffre reste réservé
-à ce que l'équipe voit changer pour de bon.
-
-**Ce qui a été livré** : pose des temps partiels pendant la campagne · un TP posé est acquis (plus
-aucune garde la veille) · génération bloquante quand un jour n'a pas de binôme · vivier de garde
-affiché sur les colonnes samedi et dimanche du staff · onglet « Ponts » · diagnostic des jours
-sans binôme rendu lisible · avertissements de génération persistés dans `LOGS` · matrice Noël /
-Jour de l'An · quota de congés compté en jours travaillés au staff · panneau « Ce qu'il reste à
-poser ».
-
-### Règles gravées ce jour
-
-- **Deux lecteurs des mêmes données qui ne comptent pas pareil : troisième occurrence en une
-  journée.** La grille contre les statistiques, l'écran contre le journal, le staff contre le
-  serveur. Les trois fois, ce sont les **données réelles** qui l'ont révélé — pas la relecture.
-- **Un chiffre mesuré vaut mieux qu'un chiffre raisonné** : « plus aucune garde la veille d'un
-  TP » a été mesuré sur 18 tirages sur 18, pas déduit.
-- **L'écran montre, le comité décide.** La matrice de Noël ne désigne personne comme prioritaire :
-  il y a souvent plus de huit candidats légitimes, et désigner huit noms donnerait à un calcul le
-  dernier mot sur un arbitrage humain.
-- **Une source qui suit l'état de l'année.** Les reliquats se comptent dans `INDISPOS_{Y}` avant
-  génération et dans `GARDES_{Y}` après — vérifié dans `appliquerStatutJour`, qui n'écrit **jamais**
-  dans `INDISPOS`. Compter au mauvais endroit aurait rendu invisible tout ce que le comité pose
-  après la génération.
-- **Un plafond de journal doit être comparé au maximum que peut produire l'émetteur.** 25 lignes
-  d'avertissements écrites dans `LOGS`, quand le générateur peut en rendre 60 et que `LOGS` est
-  purgé à 501 lignes. Au-delà, le reste est annoncé, jamais tu.
-- **Deux erreurs dans mes propres tests** sur les ponts, attrapées en les écrivant : le code avait
-  raison. Un test qui contredit le code n'a pas forcément raison.
-
-### 🔴 Une fonction perdue par accident, retrouvée quatre jours plus tard
-
-`generateCode` avait été effacée le **29/08** par le commit des compteurs d'usage — un lot sans
-aucun rapport. Restaurée le 03/09 (`0c54ffa3`), avec un scénario de banc sur la réinitialisation
-du code d'accès. **Une suppression accidentelle dans un lot voisin ne se voit que le jour où on
-appelle la fonction.**
-
-### Décision du 3 septembre sur les ponts
-
-La règle arithmétique du 01/09 (quatre jours de repos pour un seul posé) désignait **treize** jours
-en 2027 : elle comptait aussi ceux qui ALLONGENT un week-end. Le calcul était juste, la notion non.
-Décision du responsable : règle **géométrique** — chômé la veille ET le lendemain, un férié d'un côté.
-**2027 = les vendredis 7 et 28 mai.** 2028 = 4, 2029 = 5, 2030 = 4, 2031 = 4.
-
----
-
-## État au 31 août 2026 (soir) — le compteur par rôle : le comité s'en sert-il, ou l'ouvre-t-il ?
-
-Site **v1.98**, `Indispos.gs` **2026-08-31.1**, `portail.gs` **2026-08-31.1**, banc **2200**.
-Commit `4484b92`. ⏳ **EN ATTENTE : les deux `.gs` doivent être recopiés et déployés.**
-
-**La question posée.** Les connexions disent qui ouvre le portail, jamais ce qui y est fait.
-le responsable, qui passera la main au comité, veut savoir si la page d'administration servira ou sera
-seulement ouverte.
-
-**Ce qui bloquait.** `LOGS` journalise déjà ~70 gestes, mais ne peut pas servir de source : il ne
-garde que **500 lignes** et son message est du **texte libre**, pas une donnée rangée. Une carte
-alimentée par lui afficherait une courbe qui rétrécit — le défaut corrigé le matin même.
-
-**Ce qui a été construit.** Onglet `STATS_ACTIONS` (`ROLE`, `ACTION`, `NOMBRE`, `DERNIERE`),
-incrémenté au moment du geste par `_statsActionIncr_`. Deux branchements, pas un de plus :
-`logConnexion` pour les ouvertures, et l'entrée de `WRITE_ACTIONS_LOCK` pour les **26 écritures**.
-Deux cartes dans `stats-usage.html` : « Qui se connecte » (celle qui était écrite depuis mars et
-masquée en dur faute de données) et « L'administration, au-delà de la connexion ».
-
-### Règles gravées ce jour
-
-- **Les lectures ne sont jamais comptées.** Une écriture au classeur par ouverture d'écran
-  ralentirait tout le portail — mesure du 28/07 : quatre exécutions concurrentes coûtent 4 à 7 s
-  chacune contre 1,8 s pour une seule.
-- **Un compteur n'a jamais le droit de faire échouer le geste qu'il compte.** Chaque appel est
-  sous `try/catch` ; le banc rend l'écriture impossible et vérifie que la connexion aboutit.
-- **Le compteur mesure un RÔLE, jamais une personne.** Le code d'administration est unique et
-  partagé, `checkCode` le rend sans nom ni initiales. Impossible de savoir qui a agi — c'est une
-  limite de conception, pas un manque à combler dans ce lot.
-- **Les trois barres restent séparées.** Fondues dans les « actifs », les ouvertures
-  d'administration feraient dépasser la courbe de son plafond de 25.
-
-### Défaut connu, non corrigé par ce lot
-
-Le **secrétariat** (`initials: 'SEC'`) porte un nom, donc `statsRecalculer` le compte comme un
-**26e utilisateur** dans la courbe « actifs / 25 ». Le lot le rend visible sans le corriger.
-Décision reportée après le 4 septembre.
-
-### Ce que le routeur compte exactement
-
-La **tentative**, pas la réussite : le point de passage est unique à l'entrée des écritures, il ne
-l'est plus après. Une publication refusée par le verrou d'écriture est comptée.
-
----
-
-## État au 31 août 2026 — statistiques d'usage, et le journal qui s'autodétruisait
-
-Site **v1.97**, `Indispos.gs` **2026-08-29.1**, `portail.gs` **2026-08-29.2**, banc **2163**.
-Six commits : `2c01cb4` `cb64f70` `f7915fa` `cfe2b64` `b54bdc2` `ef5a303`.
-
-✅ **RIEN EN ATTENTE.** Les deux `.gs` recopiés et déployés, `installStatsTrigger()` exécutée.
-
-**Ce qui a été construit.** Un écran de statistiques d'usage (`docs/stats-usage.html`, tuile
-`only:'DURAND'`) et les compteurs qui l'alimentent. Le journal `CONNEXIONS` était plafonné à
-2 000 lignes : mesuré à 27 connexions/jour avec 5 utilisateurs, le plafond aurait été atteint
-toutes les 2 à 3 semaines à 25 MAR, détruisant l'historique en continu. Plafond porté à 10 000
-(~3 mois), et trois compteurs qui **ne dépendent plus des lignes brutes** : `STATS_SEMAINE`
-(52 lignes/an, figée dès la semaine finie), `STATS_HEURES` (grille 7 × 24), et
-`MEDECINS.DERNIERE_CONNEXION`.
-
-### Règles gravées ce jour
-
-- **On ne reconstruit jamais une statistique depuis les lignes brutes après coup ; on la fige
-  pendant qu'elles existent.** Corollaire dans `logConnexion` : **figer PUIS supprimer**. Si le
-  figeage échoue, rien n'est supprimé.
-- **Une date de dernière connexion est un état, pas un compteur.** D'où le filtre d'origine
-  (`STATS_ORIGINE = '2026-09-04'`) sur les courbes et la grille horaire, mais **pas** sur
-  `DERNIERE_CONNEXION`. Conséquence assumée : entre le pré-test et le 4, tableau nominatif et
-  graphiques racontent deux choses différentes.
-- **Le volume d'usage flatte, le nombre de personnes distinctes informe.** Le volume monte aussi
-  quand les mêmes reviennent plus souvent. Graphique principal = médecins distincts par semaine ;
-  seconde courbe = connexions par médecin actif. Le volume brut est relégué, avec la mise en garde
-  écrite dessus.
-- **Cet écran observe, il ne surveille pas.** Aucun total par personne, ni affiché ni renvoyé par
-  le serveur. Aucun rouge dans les pastilles — il dirait « en faute » à propos d'un collègue qui
-  n'a pas ouvert une page web. **Le banc vérifie cette décision dans la feuille de style**, pas
-  seulement dans le rendu : sans ça, un futur ajustement la déferait sans que personne le voie.
-- **`instanceof` ne survit pas à deux contextes d'exécution.** Un `Date` venu d'ailleurs échoue au
-  test et la normalisation est silencieusement sautée. On reconnaît une date à ce qu'elle sait
-  faire, pas à sa filiation.
-
-### 🔴 L'erreur de méthode du jour — un test qui entérine la croyance au lieu de la vérifier
-
-`getStatsUsage` contrôlait `user.role !== 'admin'`. Or `checkCode` ne rend ce rôle que pour le
-**code d'administration** (id `ADMIN`) : avec son code personnel, le responsable est un `mar` d'id
-`DURAND` et **se voyait refuser sa propre page** — alors que la tuile filtre sur l'**identité**.
-Deux critères différents pour la même porte, et **mon scénario de banc vérifiait « refus pour rôle
-mar » comme une sécurité**. Il ne pouvait donc pas voir le défaut : il testait ma croyance.
-
-Corrigé en `STATS_ALLOWED = ['DURAND']` (motif déjà en place pour le CRH). Le banc vérifie
-maintenant que **l'identité autorisée côté serveur est celle que porte la tuile** — c'est leur
-désaccord qui a produit la panne.
-
-**Même racine, deux autres fois dans la journée** : `deleteRows` manquait à la doublure du banc
-alors que le vrai code l'appelle en 4 endroits *(la purge n'avait jamais été exercée)*, et
-l'en-tête `CONNEXIONS` du monde simulé disait `['DATE','ID']` là où le code écrit
-`['HORODATAGE','NOM','INITIALES','ROLE']`.
-
-### ⚠️ Deux règles écrites périmées, à ne plus réciter
-
-- **La version du site a UNE source, `version.js`.** Plus « 9 emplacements dans 5 fichiers » :
-  c'est vrai depuis le 14/08.
-- **Deux chiffres, jamais trois.** `version.js` porte la décision du 14/08 ; le banc l'applique et
-  a refusé un `v1.94.1`. La règle du 3e chiffre pour un petit correctif est **caduque**.
-
-### 📄 Conformité — fiche de traitement pour le DPO (hors dépôt, le dépôt est public)
-
-PDF de 3 pages, prêt. Interlocuteur : **`dpo@exemple.fr`**, pas la DSI. La **loi n° 1.565 du
-03/12/2024** a largement supprimé la déclaration préalable au profit de la **responsabilisation** :
-la fiche n'est pas une formalité en plus, c'est ce qui a remplacé la formalité. **Ne jamais poser
-de question nue** (« ai-je le droit ? » appelle un non par défaut) : on décrit le traitement et on
-demande la liste des obligations. Saisine **après** le 4, annoncée en séance le 4. Module libéral
-**hors périmètre** (groupement, pas l'établissement). Question ouverte : responsable du traitement,
-l'établissement ou le responsable à titre personnel ?
-
-## Archive — 5 au 28 août 2026
-
-Le détail de ces états a été retiré le 06/09/2026 : le document faisait 3 019 lignes.
-**Rien n'est perdu** — chaque version reste dans l'historique du dépôt. Ce qui devait survivre
-est remonté dans les états récents ci-dessus.
-
-- État au 28 août 2026 (soir)
-- État au 28 août 2026 (matin)
-- État au 27 août 2026 (soir) — le diagnostic optimum
-- État au 27 août 2026 — vacances estimées au format samedi→dimanche, et une erreur trouvée dans le classeur
-- État au 26 août 2026 — audit critique du générateur, un doublon corrigé, les week-ends d'affilée assumés
-- État au 25 août 2026 — les souhaits de garde ouverts à tous les jours
-- État au 23 août 2026 (nuit) — la cloche en production, une seule pastille
-- État au 23 août 2026 (soir) — le TP vit dans GARDES, et la copie rapide était bloquée depuis le 5 août
-- État au 22 août 2026 (soir) — la pose des temps partiels est construite (v1.65 → v1.67), déploiement en attente
-- État au 22 août 2026 (après-midi) — les jours de temps partiel changent de moment
-- État au 22 août 2026 — récupérations déployées, vérifiées en production
-- État au 21 août 2026 (soir) — le placement des récupérations de samedi
-- État au 20 août 2026 — les plafonds gratuits de Cloudflare, et une panne quotidienne que rien ne signalait
-- État au 19 août 2026 (fin de journée) — v1.64 : tuile CR hors mobile, doc de panne rattrapé, banc à 1464
-- État au 19 août 2026 (midi) — v1.61 : dépôt nettoyé, l'affaire PERRIN close, banc à 1449
-- État au 17 août 2026 (matin) — v1.41 : le code d'accès retenu 30 jours, et la séquence du 4 septembre écrite
-- État au 16 août 2026 (soir) — v1.36 : le guide du comité prêt à être envoyé, banc à 1119 vérifications
-- État au 14 août 2026 (après-midi) — les échanges de gardes TOURNENT EN PRODUCTION, éteints, prêts pour la v2.0
-- État au 14 août 2026 (midi) — v1.34.6 en ligne : cinq défauts d'affichage, dont un qui attendait 2027
-- État au 14 août 2026 — v1.34 en attente de push : les échanges de gardes sont construits de bout en bout
-- État au 13 août 2026 (soir) — v1.33.2, plus rien n'attend Google, banc à 863 vérifications
-- État au 12 août 2026 (soir) — v1.31.14, identité visuelle propre, banc à 723 vérifications
-- État au 11 août 2026 — v1.31.1, les temps partiels entrent dans l'équité, banc à 612 vérifications
-- État au 9 août 2026 — session d'audit : sauvegardes, comptes, connecteurs
-- État au 8 août 2026 — v1.30.2, veille refondue et validée, banc à 524 vérifications
-- État au 6 août 2026 — v1.28, guides refondus, banc à 436 vérifications
-- État au 5 août 2026 — LE JOURNAL D'INTENTIONS ET LE BANC D'ESSAI
-- État au 4 août 2026 — LE MIROIR CLOUDFLARE EST EN PRODUCTION
-- État au 3 août 2026
+## 1. Le projet en dix lignes
+
+- **Quoi** : le portail du service d'anesthésie (~23 MAR) — gardes et leur équité annuelle, planning
+  quotidien du comité, indisponibilités et vacances (campagne d'automne, staff vacances), échanges et
+  dons de gardes entre MAR, vue paie, module libéral, contrôle d'absence, veille biblio, outils (ACR,
+  pense-bête libéral).
+- **Où** : dépôt public `planningmedic/planningmedic.github.io` (GitHub Pages, branche `main`), portail
+  **https://planningmedic.github.io** (`index.html` = accueil, `planning.html` = planning, `admin.html` =
+  comité, `maintenance.html` = responsable seul). Compte Google **planningmedic@gmail.com**.
+- **Données** : le **classeur maître** (Google Sheets). Seule source de vérité des données.
+- **Serveur** : Apps Script (`gas/*.gs`, 100 % du code est dans le dépôt). Une action → sa ligne dans
+  la table `_actions_()` d'`Indispos.gs` → sa fonction `_act_<nom>` dans le fichier métier (`gardes.gs`,
+  `echanges.gs`, `indisponibilites.gs`, `temps_partiel.gs`, `equipe.gs`, `diagnostic.gs`…). Le banc
+  (`banc_contrat_routeur`) refuse toute action ajoutée, retirée ou au rôle incohérent.
+- **Copie rapide** : un Worker Cloudflare (`cloudflare/worker.js`, « miroir », stockage KV `MIROIR`)
+  sert les lectures en quelques millisecondes ; les écritures passent par Apps Script (2 à 4 s). Les
+  pages lisent toujours la copie rapide d'abord, Apps Script en repli.
+- **Mise à jour du serveur** : push, puis le responsable ouvre **Maintenance → Mise à jour du serveur →
+  Appliquer** (le « livreur », `livreur/`). Sauvegarde automatique, **Revenir** possible. Recopie à la
+  main dans l'éditeur seulement si les autorisations ou l'accès du site changent, ou pour le livreur
+  lui-même.
+- **Projet Google Cloud standard** depuis le 01/11 (irréversible) : toute API utilisée doit y être
+  activée (Apps Script, Gmail, Drive) ; une nouvelle autorisation demande la réautorisation du
+  propriétaire dans l'éditeur.
+
+## 2. Règles non négociables
+
+- **Rien ne relie le portail à l'établissement.** Le dépôt est public et son historique définitif :
+  aucun nom réel de praticien (ni code, ni commentaire, ni jeu d'essai — noms fictifs seulement),
+  aucun nom d'établissement, de ville ou d'adresse, aucun montant, pourcentage individuel, code ou
+  secret. Décision du responsable (18/10) : on **ne réécrit pas** l'historique — ne pas le reproposer.
+- **Contrôle des noms réels** (`banc/banc_noms_reels.js`) : la liste vit **hors du dépôt**
+  (`~/.planningmedic/noms_reels.txt`). À reconstituer **en début de session, avant le premier banc** :
+  onglet MEDECINS du classeur (ID, NOM, INITIALES — section `[exact]` pour les initiales à trois
+  lettres) + médecin extérieur + prénom du chef de service + nom de l'établissement. Fichier absent =
+  banc rouge, exprès. Jamais d'empreinte de nom dans le dépôt.
+- **Une règle qui vise une personne vit dans le classeur**, jamais dans le code (`TUILES_PRIVEES`,
+  `DVI_HABILITES`, colonnes de MEDECINS, `COUPLES_WEEKEND`, `REA1_{année}`, `FETES_{année}`…).
+- **Le client affiche, il ne calcule pas.** Un chiffre recopié dans une page (quotas, cibles, fériés)
+  finit toujours faux : il vient du serveur.
+- **Une information d'identité voyage par les deux chemins** (copie rapide ET connexion au serveur),
+  sinon l'affichage change selon que le relais répond ou non.
+- **Ne jamais régénérer une année de gardes déjà générée.**
+
+## 3. État au 15/11/2026 (relevé dans le dépôt ce jour)
+
+- **Site v1.78.2** (`version.js`, seule source du numéro). Banc **6 580 ✓, 0 ✗**, 133 scénarios.
+- **Serveur, versions du dépôt** : `Indispos.gs`, `code.gs`, `setup_annee.gs` 2026-11-15.2 ·
+  `echanges.gs`, `generateur_gardes.gs`, `indisponibilites.gs` 2026-11-15.1 · `diagnostic.gs` 2026-11-12.3
+  · `gardes.gs` 2026-11-12.4 · `miroir.gs` 2026-11-12.2 · `temps_partiel.gs` 2026-11-12.1 · `equipe.gs`
+  2026-11-11.1 · `veille.gs` 2026-11-09.1 · `journal.gs` 2026-10-24.1 · `portail.gs` 2026-10-21.1 ·
+  livreur 2026-11-01.2 · relais `miroir 2026-11-15.1` · `sw.js` `pm-sw-v2`. **Ce qui tourne réellement
+  se lit au Diagnostic de la page Maintenance**, jamais dans le dépôt.
+- **Gardes 2027 générées** (09/11), parts et fourchette affichées dans l'onglet Équité. **Le planning
+  2026 est bloqué entre MAR** jusqu'au dimanche 3 janvier 2027 inclus (décision du 12/11) : ces
+  demandes passent par le responsable.
+- **Échanges et dons de gardes entre MAR** : en production, chacun ne voit que ses échanges (11/11) ;
+  ouverture pilotée par une date programmée (v1.76.0).
+- **Clôture d'année** : un seul geste, page Maintenance, réservé au responsable (v1.77.1, v1.78.0) ;
+  refusée avant le premier lundi de l'année suivante. **Bascule 2026 → 2027 : lundi 4 janvier 2027.**
+  Fiche pratique dans les documents du projet Claude (« bascule d'année »).
+- **Rotation d'équité** du générateur : active à partir de la génération 2028 (v1.77.0).
+- **Sentinelle de 6 h** : contrôle aussi les données, mail seulement s'il y a un problème ; rapport
+  complet chaque lundi et à la demande (Maintenance → Diagnostic).
+- Lots du 13 au 15/11 non racontés ici : lire `git log` (un message de commit par lot).
+
+## 4. Comment travailler
+
+- **Cloner avec l'historique complet** (jamais `--depth 1` : des contre-preuves relisent d'anciens
+  commits et seraient sautées).
+- **Banc** : `cd banc && ./lancer.sh`, complet et au vert avant toute proposition de push. Après un
+  banc complet au vert, `banc/empreintes.txt` garde l'empreinte de ce que lit chaque scénario lourd ;
+  inchangé → repris au lieu d'être relancé. Mesuré sur 2 processeurs : **~2 min 20** si ni le
+  générateur, ni `code.gs`, ni le simulateur, ni les modules du banc ne changent ; **~19 min** sinon.
+  `TOUT=1 ./lancer.sh` relance tout ; `./lancer.sh rapide <fichier>` pendant le travail seulement. Le
+  total des ✓ est dans la **dernière ligne** (exécutées + reprises). `banc_syntaxe` vérifie la syntaxe de
+  tout le code, les balises et les identifiants. Le banc prouve la logique, jamais l'infrastructure.
+- **Push** : patch AVANT/APRÈS, accord explicite, puis un seul commit par lot **avec
+  `banc/empreintes.txt`**. Plusieurs conversations poussent en parallèle : juste avant de pousser,
+  contrôler le sommet distant ; s'il a bougé, recaler, prendre le numéro de version suivant le dernier
+  publié, relancer le banc (souvent court), puis pousser. Après push, relire la version en ligne.
+- **Version** : `version.js` seulement. Petit correctif → 3e chiffre, fonctionnalité → 2e, refonte →
+  1er. Serveur seul ou banc seul : pas de montée.
+- **GAS** : incrémenter `GAS_VERSION_*` en tête de chaque `.gs` poussé (`'AAAA-MM-JJ.N'`).
+- **Docs** : une modification fonctionnelle se pousse avec les guides (`docs/guide-*.html` — langage
+  simple, le geste concret, jamais le mécanisme ; mots interdits : miroir, journal, Cloudflare, GAS).
+  En fin de session : une entrée courte dans ROADMAP (reste à faire) et, si l'état ou une règle change,
+  dans ce CONTEXTE. **Une seule conversation à la fois** édite ces deux fichiers.
+
+## 5. Le classeur — ce qui piège
+
+- **Un onglet INDISPOS a trois lignes d'en-tête** (mois / initiales / numéros), MAR en ligne 4. Un
+  collage sans elles perd presque toutes les dates, en silence.
+- **Deux propriétaires par ligne** dans `INDISPOS_{Y}` (comité : VAC/FORM ; MAR : INDISPO/SOUHAIT/TP) :
+  on fusionne, on ne remplace jamais une ligne entière.
+- **Onglets uniques sans année dans le nom** (`PLANNING_OVERRIDES`, `ECHANGES`, `TP_DEMANDES`…) : ils ne
+  suivent pas l'archivage d'une année ; un essai sur une année à venir y laisse des lignes.
+- **CONFIG, SECTEURS, SEUILS, CS_TEMPLATE** sont lus à travers un cache de 10 min, et CONFIG ne
+  rafraîchit pas la copie rapide : après une modification à la main, **Vider le cache** puis synchro
+  (ou attendre l'heure).
+- **Une saisie à la main dans `GARDES_{Y}` ne déclenche aucun mail** (MAR ni paie) tant qu'une
+  publication ne suit pas.
+- **`date_fin`** (MEDECINS) = premier jour **non** travaillé ; elle suffit pour gardes, repos, récups et
+  18 h. Elle ne proratise ni le quota de congés ni l'écran de saisie des indispos.
+- **Journée mobile** (fixée chaque année par une note DRH) : une ligne à ajouter chaque année dans
+  `JOURNEE_MOBILE` (`getJoursFeries`, `code.gs`). 2027 : lundi 7 juin.
+- **VM / VA** (demi-journée de vacances) : tapées à la main par le responsable, dans INDISPOS avant la
+  génération, dans GARDES après ; aucun écran ne les efface.
+- **Injecter des données réelles dans le banc** (en local, jamais dans le dépôt) : dates en texte
+  `'AAAA-MM-JJ'` ou construites avec le `Date` du contexte — un `Date` venu d'ailleurs échoue à
+  `instanceof` et les bornes sont ignorées sans erreur.
+
+## 6. Règles métier qui ont coûté cher
+
+- **Gardes** : équité annuelle par axe (total, samedis, jeudis, vendredis-dimanches, veilles de férié,
+  fériés), dette calculée sur l'**attribution** (instantané `STATS_GARDES` à la génération), jamais sur
+  le réel après échanges et dons. Jamais 3 gardes sur 6 jours glissants (sauf toutes souhaitées), jamais
+  deux week-ends d'affilée (sauf tous deux souhaités), périodes tendues résolues d'abord. **L'équité passe avant les souhaits.**
+- **Vacances** : quota de la quotité ; un partant reçoit quota × jours de présence / 364 en consigne
+  orale ; **pas de prorata pour un congé long**. Les vacances N se posent jusqu'au 31/01/N+1 : le portail
+  ne le sait pas encore (chantier « reliquat N+1 », ROADMAP).
+- **Après-midi fériés des 24 et 31/12** : ceux qui travaillent partent à midi ; garde, 18 h ou repos de
+  garde ces jours-là = +0,5 j à reporter ailleurs (à la main, avec le secrétariat).
+- **Récupérations de samedi** : tout automatique ; jamais pendant les vacances scolaires.
+- **Le comité ne sait pas qui a agi** : le code comité est partagé, les compteurs mesurent un rôle,
+  jamais une personne.
+- **Le cache de script est partagé entre tous les utilisateurs** : n'y mettre que des données
+  globales, jamais une donnée qui dépend de qui appelle.
+- **Ne jamais ajouter de requête pour « aller plus vite »** : Apps Script sérialise les exécutions d'un
+  même utilisateur ; tout appel ajouté retarde les autres.
+
+## 7. Échéances connues
+
+| Quand | Quoi |
+|---|---|
+| avant le 04/01/2027 | planning 2026 juste jusqu'au 3 janvier, plus aucune demande d'échange 2026 en attente |
+| lundi 04/01/2027 | clôture 2026 → 2027 (page Maintenance) |
+| janvier 2027 | figer les données 2026 complètes (retour d'expérience) |
+| vers décembre 2026 | appel à communications SFAR 2027 à surveiller |
+| vers mars 2027 | régénérer l'index CCAM (alerte d'obsolescence du module libéral) |
+| chaque note DRH | journée mobile de l'année suivante dans `JOURNEE_MOBILE` |
+| automne 2027 | campagne d'indispos 2028, puis génération 2028 avec la rotation d'équité (essai à blanc dès la clôture de la saisie) |
