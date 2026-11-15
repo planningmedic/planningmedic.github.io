@@ -90,10 +90,22 @@ function monde(k) {
   const roster = D.buildRoster(YEAR, { ageExempt: 60, ageRetraite: 67 });
   return { roster, im: D.buildAbsences(YEAR, roster, k, { souhaitsEtendus: true }) };
 }
+/* (15/11/2026) Durée du banc : une génération (même campagne, même générateur) n'est
+   calculée qu'une fois. ecrire() garde son résultat, et lit aussi le bilan sur la vraie
+   génération (h.genererAvecBilan, = calcul à blanc, vérifié par banc_harnais_tirage) :
+   bilan() le reprend au lieu de refaire un calcul à blanc. Générateur non reconnu
+   (ancien commit) : bilan() refait le calcul à blanc, comme avant. */
+const _ecrits = new Map();
 function ecrire(w, src) {
+  if (!_ecrits.has(w)) _ecrits.set(w, new Map());
+  const deja = _ecrits.get(w);
+  if (!deja.has(src)) deja.set(src, ecrire1(w, src));
+  return deja.get(src);
+}
+function ecrire1(w, src) {
   const ss = h.makeSpreadsheet(feuilles(YEAR, w.roster, w.im)), logs = [];
   const ctx = h.buildContext(ss, logs, src); ctx.__BANC_OPTIM_ITERS__ = ITERS;
-  let err = null; try { ctx.generateGardes(YEAR, { tirage: 1 }); } catch (e) { err = e.message; }
+  let err = null, r = null; try { r = h.genererAvecBilan(ctx, YEAR, { tirage: 1 }); } catch (e) { err = e.message; }
   const sh = ss.getSheetByName('STATS_GARDES_' + YEAR); if (err || !sh) return { err: err || 'pas de statistiques' };
   const st = sh._rows, H = st[0], c = n => H.indexOf(n);
   const L = st.slice(1).filter(x => x[c('PART EXACTE SAM')] !== '' && Number(x[c('PART EXACTE SAM')]) > 0).map(x => ({ id: x[0],
@@ -102,9 +114,11 @@ function ecrire(w, src) {
   const P = A.parsePlanning(ss, YEAR);
   const fer = new Set([...ctx.getJoursFeries(YEAR), ...ctx.getJoursFeries(YEAR + 1)]);
   const inv = A.checkInvariants(P, { indisposMap: w.im, ctxFeries: fer, roster: w.roster });
-  return { L, P, inv: inv.errs, logs };
+  return { L, P, inv: inv.errs, logs, optim: r ? (r.optim || {}) : null };
 }
 function bilan(w, src) {
+  const e = _ecrits.has(w) && _ecrits.get(w).get(src);
+  if (e && !e.err && e.optim) return e.optim;
   const ctx = h.buildContext(h.makeSpreadsheet(feuilles(YEAR, w.roster, w.im)), [], src); ctx.__BANC_OPTIM_ITERS__ = ITERS;
   return ctx.generateGardes(YEAR, { dryRun: true, tirage: 1 }).optim || {};
 }

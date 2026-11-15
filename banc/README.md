@@ -20,7 +20,38 @@ dans un Google et un Cloudflare simulés. Sert à vérifier une modification
 cd banc && ./lancer.sh                     # tout le banc — OBLIGATOIRE avant tout push
 cd banc && ./lancer.sh rapide index.html   # seulement les scénarios qui lisent ce fichier
 JOBS=1 ./lancer.sh                         # un scénario à la fois, comme avant
+TOUT=1 ./lancer.sh                         # relance aussi les scénarios inchangés
 ```
+
+**Empreintes** (15/11/2026). Mesuré le 15/11 sur 2 processeurs : banc
+complet 24 min, dont 91 % pour les 44 scénarios qui génèrent une année de
+gardes. Après un banc **complet au vert**, `lancer.sh` écrit dans
+`empreintes.txt` l'empreinte de ce que lit chacun de ces scénarios
+(`empreinte.js` : le scénario, tout `banc/` hors scénarios, tout
+`simulateur/`, `code.gs` et le générateur, tout `gas/` s'il lit les `.gs` par
+listage, chaque fichier qu'il cite par son nom, la version de Node). Au banc
+suivant, un scénario dont l'empreinte n'a pas bougé est **repris** au lieu
+d'être relancé : sa ligne affiche `↺ inchangé…` et le nombre de ✓ repris. Les
+autres scénarios tournent toujours. La ligne finale donne les ✓ exécutées, les
+✓ reprises et leur somme. **`empreintes.txt` se pousse avec le commit**, sinon
+la conversation suivante repart de zéro. Un banc en échec ne touche pas aux
+empreintes.
+
+**Une génération au lieu de deux** (15/11/2026). `h.genererAvecBilan(ctx,
+année, opts)` lance la vraie génération et rend en plus son bilan, celui qu'aurait
+rendu le calcul à blanc : plus besoin de refaire le même calcul à blanc pour
+lire les compteurs. `banc_harnais_tirage` vérifie bilan identique et planning
+identique case pour case. Un générateur au texte non reconnu (ancien commit
+relu en contre-preuve) rend `null` : le scénario refait alors le calcul à blanc.
+
+**Syntaxe, balises, identifiants** (15/11/2026) : `banc_syntaxe.js` compile
+tout le JavaScript du dépôt (`.js`, `.mjs`, `.gs`, `<script>` en ligne),
+vérifie que chaque page HTML referme ses balises dans l'ordre et n'écrit aucun
+`id` en double. Ces contrôles ne se font plus à la main.
+
+**Noms réels** : `banc_noms_reels` échoue tant que la liste hors dépôt
+(`~/.planningmedic/noms_reels.txt`) n'est pas reconstituée. À faire en début
+de session, avant le premier banc (voir l'en-tête du scénario).
 
 Les scénarios tournent **en parallèle** (autant que de processeurs) : chaque
 sortie est gardée à part puis affichée dans l'ordre de la liste, tous les
@@ -41,7 +72,7 @@ tous les plannings, pas seulement dans le meilleur. Les scénarios qui vérifien
 le **choix** du meilleur planning posent `BANC_MULTI_DEPART=1` avant de charger
 le harnais (`banc_essai_meme_planning`, `banc_essai_generation`,
 `banc_nouvel_algo`, `banc_periodes_tendues`) ; `banc_harnais_tirage` le vérifie.
-Mesuré sur 2 processeurs : 644 s → ~450 s.
+Mesuré sur 2 processeurs : 644 s → ~450 s (05/11 ; 24 min le 15/11 avant les empreintes).
 
 Les contre-preuves qui relisent un ancien générateur (`git show <commit>:…`)
 ont besoin de l'historique complet : dans un clone `--depth 1`, elles sont

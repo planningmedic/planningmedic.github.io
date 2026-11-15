@@ -65,8 +65,22 @@ function lancer(w, iters, src, verif) {
   const feries = new Set([...c1.getJoursFeries(YEAR), ...c1.getJoursFeries(YEAR + 1)]);
   const P = A.parsePlanning(ss, YEAR);
   const inv = A.checkInvariants(P, { indisposMap: w.im, ctxFeries: feries, roster: w.roster });
-  const sel = c0.generateGardes(YEAR, { dryRun: true, tirage: 1, selection: true });
-  return { r, ss, inv, sel, P };
+  /* (15/11/2026) Le choix du tirage n'est relu qu'en section 1-2 : calculé à la demande. */
+  let sel;
+  return { r, ss, inv, P, get sel() { if (sel === undefined) sel = c0.generateGardes(YEAR, { dryRun: true, tirage: 1, selection: true }); return sel; } };
+}
+/* (15/11/2026) Mémoire des générations. Les sections 1-2, 6 et 7 recalculaient les mêmes
+   plannings (même année fictive, même nombre d'essais, même générateur) : 27 lancers, dont
+   12 en double. Le générateur est déterministe à graine fixe (vérifié en section 7 : deux
+   lancers du même monde donnent le même planning case pour case), donc un lancer déjà fait
+   est repris. Le contrôle « score rapide = score complet » (verif) est relevé à chaque lancer
+   du vrai générateur, et relu par la section 7. Un générateur modifié (barème absurde, calcul
+   complet, version faussée) n'est jamais repris : il est toujours relancé. */
+const _deja = {};
+function lancerUneFois(k, iters) {
+  const cle = k + '/' + iters;
+  if (!_deja[cle]) { const w = monde(k), verif = []; const R = lancer(w, iters, SRC, verif); R.verif = verif; R.w = w; _deja[cle] = R; }
+  return _deja[cle];
 }
 /* Souhaits honorés, relus sur l'onglet écrit (indépendant du générateur). */
 function souhaitsEcrits(ss, im) {
@@ -87,7 +101,7 @@ const recul = (a, b) => CR.filter(k => (k === 'sh' || k === 'conf') ? b[k] < a[k
 console.log('\n═══ 1-2. Rien ne recule, et le calcul à blanc annonce le planning écrit ═══');
 let ameliore = 0, okRecul = true, okInv = true, okBlanc = true, okPire = true, okSel = true; const det = [];
 for (const k of [1, 2, 3, 8]) {
-  const w = monde(k), N = lancer(w, ITERS), Z = lancer(w, 0);
+  const N = lancerUneFois(k, ITERS), Z = lancerUneFois(k, 0), w = N.w;
   const o = N.r.optim;
   if (!o) { okRecul = false; det.push(k + ' pas de bilan'); continue; }
   const rec = recul(o.avant, o.apres); if (rec.length) { okRecul = false; det.push(k + ' recule ' + rec); }
@@ -126,7 +140,7 @@ function marEnTrop(P) { let n = 0;
   return n; }
 V('le critère compte les MAR en trop (3 MAR = 1, 4 MAR = 2)', /split \+= new Set\(\[a\.g, a\.g2, b\.g, b\.g2\]\)\.size - 2;/.test(SRC));
 { let okT = true; const dt6 = [];
-  for (const k of [1, 2, 3, 8]) { const w = monde(k), N = lancer(w, ITERS), Z = lancer(w, 0);
+  for (const k of [1, 2, 3, 8]) { const N = lancerUneFois(k, ITERS), Z = lancerUneFois(k, 0);
     const n = marEnTrop(N.P), z = marEnTrop(Z.P); dt6.push(k + ':' + z + '→' + n); if (n > z) okT = false; }
   V('MAR en trop sur les week-ends, relus dans l\'onglet : jamais plus qu\'avant la passe', okT, dt6);
   console.log('    ' + dt6.join(' · ')); }
@@ -146,8 +160,7 @@ console.log('\n═══ 7. Calcul rapide = calcul complet, planning identique c
   const COMPLET = SRC.replace(APPEL, 'const m = mesure(), v = note(m);');
   V('version de référence au calcul complet construite', COMPLET !== SRC);
   let okEq = true, okId = true, okDiff = false; const d7 = [];
-  for (const k of [1, 2, 3, 8]) { const w = monde(k), verif = [];
-    const R = lancer(w, ITERS, SRC, verif), C = lancer(w, ITERS, COMPLET);
+  for (const k of [1, 2, 3, 8]) { const R = lancerUneFois(k, ITERS), verif = R.verif, C = lancer(monde(k), ITERS, COMPLET);
     if (!verif.length || verif.some(x => !x)) { okEq = false; d7.push(k + ' score rapide ≠ complet'); }
     const g1 = JSON.stringify(R.ss.getSheetByName('GARDES_' + YEAR)._rows), g2 = JSON.stringify(C.ss.getSheetByName('GARDES_' + YEAR)._rows);
     if (g1 !== g2) { okId = false; d7.push(k + ' planning différent'); }

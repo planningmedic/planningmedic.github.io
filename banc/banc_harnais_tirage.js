@@ -40,5 +40,23 @@ for (const f of ['banc_essai_meme_planning.js', 'banc_essai_generation.js', 'ban
   V(f + ' : BANC_MULTI_DEPART=1 posé AVANT le chargement du harnais', iEnv >= 0 && iReq > iEnv, { iEnv, iReq });
 }
 
+console.log('\n═══ 4. Bilan de la vraie génération = bilan du calcul à blanc (15/11/2026) ═══');
+/* Les scénarios lourds lisent le bilan sur la vraie génération (genererAvecBilan)
+   au lieu de refaire un calcul à blanc : un calcul au lieu de deux. Cela ne vaut
+   que si les deux bilans sont identiques et que la capture n'écrit rien d'autre. */
+const sansMs = o => JSON.stringify(o, (k, v) => (k === 'ms' ? undefined : v));
+const D = monde();
+const rb = H.genererAvecBilan(D.ctx, YEAR, { tirage: 1 });
+V('le bilan est capturé sur le générateur du dépôt', !!rb && !!rb.compteurs && !!rb.cibles);
+V('… et il est identique à celui du calcul à blanc (tirage 1), durées mises à part', !!rb && sansMs(rb) === sansMs(r1));
+const E = monde();
+E.ctx.generateGardes(YEAR, { tirage: 1 });
+const lignes = x => JSON.stringify(x.ss.getSheetByName(`GARDES_${YEAR}`)._rows);
+V('le planning écrit avec capture est identique case pour case à celui d\'une génération ordinaire', !!D.ss.getSheetByName(`GARDES_${YEAR}`) && lignes(D) === lignes(E));
+V('la capture est rangée après usage (aucun réglage ne traîne dans le contexte)', D.ctx.__BANC_BILAN__ === null);
+{ const F = monde(), autre = GEN.replace('  if(DRY){', '  if (DRY) {');
+  const ctxF = H.buildContext(F.ss, F.logs, autre);
+  V('contre-preuve : un générateur au texte non reconnu rend null (le scénario sait qu\'il doit refaire le calcul à blanc)', autre !== GEN && H.genererAvecBilan(ctxF, YEAR, { tirage: 1 }) === null); }
+
 console.log(`\n${ok} réussite(s), ${ko} échec(s)`);
 process.exit(ko ? 1 : 0);

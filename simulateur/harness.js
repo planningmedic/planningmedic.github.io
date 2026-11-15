@@ -75,6 +75,36 @@ function makeSpreadsheet(sheets) {
    lui. Sans ce paramètre, la copie devrait être chargée dans un contexte qui
    contient déjà le générateur du dépôt : les constantes de premier niveau
    entrent en collision et rien ne tourne. Omis = comportement inchangé. */
+/* (15/11/2026) DURÉE DU BANC — LE BILAN DE LA VRAIE GÉNÉRATION.
+   Beaucoup de scénarios lançaient deux fois la même génération : un calcul à
+   blanc (dryRun) pour lire le bilan (compteurs, cibles, parts…), puis la vraie
+   pour lire le planning écrit. Les deux calculs sont identiques jusqu'à
+   l'écriture (c'est ce que vérifient les essais « à blanc = génération »).
+   Ici, une génération lancée avec ctx.__BANC_BILAN__ = {} dépose en plus son
+   bilan dans ctx.__BANC_BILAN__.r avant d'écrire : un calcul au lieu de deux.
+   Sans ce réglage (production, et tout appel qui ne le pose pas), le code
+   exécuté se comporte exactement comme le fichier. Si le texte du générateur
+   ne se reconnaît plus (ancien commit relu en contre-preuve, ou réécriture),
+   il est laissé tel quel : genererAvecBilan rend alors null.
+   banc_harnais_tirage.js vérifie bilan capturé = bilan du calcul à blanc. */
+function avecBilan(src) {
+  const A = '  if(DRY){\n    const _AXES=', A2 = '  if(DRY || (typeof __BANC_BILAN__ === \'object\' && __BANC_BILAN__)){\n    const _AXES=';
+  const B = '    return { dryRun:true, year:year,', B2 = '    const __bilan = { dryRun:true, year:year,';
+  const C = 'warnings: warnings.slice(0, 60), nbWarnings: warnings.length };\n  }\n\n  // ── 12. Écrire GARDES_YYYY';
+  const C2 = 'warnings: warnings.slice(0, 60), nbWarnings: warnings.length };\n    if (DRY) return __bilan;\n    __BANC_BILAN__.r = __bilan;\n  }\n\n  // ── 12. Écrire GARDES_YYYY';
+  const une = (t, m) => t.split(m).length === 2;
+  if (!une(src, A) || !une(src, B) || !une(src, C)) return src;
+  return src.replace(A, A2).replace(B, B2).replace(C, C2);
+}
+/* Vraie génération + son bilan (celui qu'aurait rendu le calcul à blanc), ou
+   null si le générateur chargé n'est pas reconnu (voir avecBilan). */
+function genererAvecBilan(ctx, year, opts) {
+  ctx.__BANC_BILAN__ = {};
+  try { ctx.generateGardes(year, Object.assign({}, opts || {}, { dryRun: false })); }
+  finally { var r = ctx.__BANC_BILAN__.r || null; ctx.__BANC_BILAN__ = null; }
+  return r;
+}
+
 function buildContext(ss, logs, genSource) {
   const ctx = {
     console,
@@ -104,7 +134,7 @@ function buildContext(ss, logs, genSource) {
      BANC_OPTIM_ITERS=<n> la rallume avec n essais ; banc_optim_finale.js le fait. */
   ctx.__BANC_OPTIM_ITERS__ = process.env.BANC_OPTIM_ITERS !== undefined ? Number(process.env.BANC_OPTIM_ITERS) : 0;
   vm.runInContext(code, ctx, { filename: 'code.gs' });
-  vm.runInContext(gen, ctx, { filename: 'generateur_gardes.gs' });
+  vm.runInContext(avecBilan(gen), ctx, { filename: 'generateur_gardes.gs' });
   /* (05/11/2026) DURÉE DU BANC — UN SEUL PLANNING PAR GÉNÉRATION.
      Une vraie génération calcule jusqu'à MULTI_DEPART_MAX plannings pour garder
      le plus équitable, puis le réécrit : ~9 calculs complets. Les scénarios qui
@@ -227,7 +257,7 @@ function readStats(ss, year) {
   return { hdr, byId: out };
 }
 
-module.exports = { makeSheet, makeSpreadsheet, buildContext, defaultRoster, medecinsRows, indisposRows, periodesRows, runScenario, readGardes, readStats };
+module.exports = { makeSheet, makeSpreadsheet, buildContext, genererAvecBilan, defaultRoster, medecinsRows, indisposRows, periodesRows, runScenario, readGardes, readStats };
 
 // Exécution directe : scénario de base 2027
 if (require.main === module) {

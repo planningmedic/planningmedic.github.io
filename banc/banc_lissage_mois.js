@@ -41,9 +41,12 @@ function monde(k) { const roster = D.buildRoster(YEAR, { ageExempt: 60, ageRetra
 function passer(w, allume) {
   const prep = () => { const ss = h.makeSpreadsheet(feuilles(w)); const ctx = h.buildContext(ss, [], SRC);
     ctx.__BANC_OPTIM_ITERS__ = ITERS; ctx.__BANC_LISSAGE__ = allume; return { ss, ctx }; };
-  const a = prep(); let r;
-  try { r = a.ctx.generateGardes(YEAR, { dryRun: true, tirage: 1 }); } catch (e) { return { err: e.message }; }
-  const b = prep(); try { b.ctx.generateGardes(YEAR, { tirage: 1 }); } catch (e) { return { err: e.message }; }
+  /* (15/11/2026) Une seule génération : le bilan est lu sur la vraie (h.genererAvecBilan,
+     identique au calcul à blanc — vérifié par banc_harnais_tirage). Repli sur le calcul à
+     blanc si le générateur n'est pas reconnu. */
+  const b = prep(); let r;
+  try { r = h.genererAvecBilan(b.ctx, YEAR, { tirage: 1 }); } catch (e) { return { err: e.message }; }
+  if (!r) { const a = prep(); try { r = a.ctx.generateGardes(YEAR, { dryRun: true, tirage: 1 }); } catch (e) { return { err: e.message }; } }
   const P = A.parsePlanning(b.ss, YEAR);
   const fer = new Set([...b.ctx.getJoursFeries(YEAR), ...b.ctx.getJoursFeries(YEAR + 1)]);
   const inv = A.checkInvariants(P, { indisposMap: w.im, ctxFeries: fer, roster: w.roster });

@@ -61,10 +61,13 @@ const AXES = ['total', 'sam', 'jeu', 'vd', 'vjf', 'jf'];
 function passer(w, allume, sansRelais) {
   const prep = () => { const ss = h.makeSpreadsheet(feuilles(w)), logs = []; const ctx = h.buildContext(ss, logs, SRC);
     ctx.__BANC_OPTIM_ITERS__ = ITERS; ctx.__BANC_APPARIEMENT__ = allume; if (sansRelais) ctx.__BANC_RELAIS__ = false; return { ss, logs, ctx }; };
-  const a = prep(); let err = null, r = null;
-  try { r = a.ctx.generateGardes(YEAR, { dryRun: true, tirage: 1 }); } catch (e) { err = e.message; }
+  /* (15/11/2026) Une seule génération : le bilan est lu sur la vraie (h.genererAvecBilan,
+     identique au calcul à blanc — vérifié par banc_harnais_tirage). Repli sur le calcul à
+     blanc si le générateur n'est pas reconnu. */
+  const b = prep(); let err = null, r = null;
+  try { r = h.genererAvecBilan(b.ctx, YEAR, { tirage: 1 }); } catch (e) { return { err: e.message }; }
+  if (!r) { const a = prep(); try { r = a.ctx.generateGardes(YEAR, { dryRun: true, tirage: 1 }); } catch (e) { err = e.message; } }
   if (err || !r) return { err: err || 'pas de résultat' };
-  const b = prep(); try { b.ctx.generateGardes(YEAR, { tirage: 1 }); } catch (e) { return { err: e.message }; }
   const P = A.parsePlanning(b.ss, YEAR);
   const fer = new Set([...b.ctx.getJoursFeries(YEAR), ...b.ctx.getJoursFeries(YEAR + 1)]);
   const inv = A.checkInvariants(P, { indisposMap: w.im, ctxFeries: fer, roster: w.roster });
@@ -82,7 +85,7 @@ function passer(w, allume, sansRelais) {
     g.forEach(d => { const d2 = A.addD(d, 2); if (A.DOW(d) !== 5 && (P.byDoc[id][d2] === 'G' || P.byDoc[id][d2] === 'G2')) grg++; }); });
   const souhaits = Object.values(r.souhaits || {}).reduce((t, x) => t + (x.honores || 0), 0);
   const meme = ids.every(id => ecrit[id] === r.compteurs[id].total);
-  return { r, n1, n2, ec, grg, nuits, inv: inv.errs, souhaits, meme, app: (r.optim || {}).appariement, sansBinome: r.sansBinome, logs: a.logs };
+  return { r, n1, n2, ec, grg, nuits, inv: inv.errs, souhaits, meme, app: (r.optim || {}).appariement, sansBinome: r.sansBinome, logs: b.logs };
 }
 console.log('\n═══ 1. Trois campagnes fictives, passe allumée puis coupée ═══');
 const W = [monde(1), monde(2), monde(3)];
