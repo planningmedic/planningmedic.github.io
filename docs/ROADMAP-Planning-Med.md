@@ -25,12 +25,10 @@ dans « À faire ». Quand le journal récent dépasse une page, ses entrées pa
   planning du jour ouvert sur la mauvaise année si la clôture tarde, échange décembre ↔ janvier,
   absence longue à cheval, R d'un samedi de l'onglet 2026) : **état à revérifier dans le code**,
   plusieurs lots ont touché la clôture du 12 au 15/11.
-- **🔴 Seconde ligne de 18 h à l'ouverture du nouvel hôpital** (décidé le 10/09 : deux MAR de 18 h par
-  jour à partir d'une date de bascule, **1er avril 2027 prévu**, même travail pour les deux). **Pas dans
-  le code** (aucune clé `LIGNES_18H`, vérifié le 15/11), et 2027 a été générée avec une seule ligne. Le
-  lot prévu (paramètre daté dans CONFIG, `h18A[date]` en liste, règles par soirée, vendredi : une place
-  au G du samedi, affichage, export Excel, banc) est décrit dans HISTORIQUE (10/09). **À décider avec le
-  responsable** : comment l'ajouter à une année déjà générée sans la régénérer.
+- **Seconde ligne de 18 h à l'ouverture du nouvel hôpital — possibilité, pas arrêtée** (envisagée le
+  10/09 : deux MAR de 18 h par jour à partir d'une date de bascule). Pas dans le code (vérifié le 15/11),
+  et 2027 a été générée avec une seule ligne. À trancher en temps voulu par le responsable ; si oui, il
+  faudra l'ajouter à une année déjà générée sans la régénérer. Lot envisagé décrit dans HISTORIQUE (10/09).
 - **Nouvel établissement : réorganisation des secteurs** (cadrage du 30/07, guide
   `docs/guide-demenagement.html`). Rien à coder tant que l'organisation cible n'est pas connue. Ce qui
   casserait : `COVERAGE` et `targets` en dur dans `admin.html` (le « + » de case à pourvoir s'éteindrait
@@ -93,7 +91,7 @@ dans « À faire ». Quand le journal récent dépasse une page, ses entrées pa
 - **Fêtes** (23/10) : en 2027 le 26/12 n'est pas compté « fête » (à reporter à la main) ; la rotation
   d'équité l'inclut à partir de 2028.
 - **18 h** (10/09) : `ONLY_18` réel à 1,17 au lieu de 1,30 (40 vendredis vont d'office au G du samedi) ;
-  à remesurer après la seconde ligne de 18 h, avant toute colonne `PCT_18`.
+  à remesurer si une seconde ligne de 18 h est mise en place, avant toute colonne `PCT_18`.
 - **Code mort** (10/08) : `gardeExceptionnelle` (action complète, aucun bouton), ancien système
   `OVERRIDES` mêlé à `PLANNING_OVERRIDES` (panneau « Modifications en attente » toujours vide),
   `pushFileToGitHub` sans appelant identifié. Risque réel (écritures du planning) : banc solide d'abord.
@@ -119,7 +117,7 @@ dans « À faire ». Quand le journal récent dépasse une page, ses entrées pa
   accepter » (B6) ; échange sur un jour de récupération ou de 18 h, même règle que le don (B8) ; un don
   sur un jour **A** doit-il demander confirmation et effacer le A ? ; statut posé sur un 18 h : alerte ou
   réattribution (C1).
-- Seconde ligne de 18 h : comment l'introduire en 2027 (voir Échéances).
+- Seconde ligne de 18 h : à décider en temps voulu (voir Échéances).
 - Piste 2028 (27/10) : fermer les failles qui laissent choisir ses week-ends sans en faire moins
   (vacances sur un seul samedi-dimanche, TP collé au week-end, fériés hors plafond).
 - Jours de congé accordés en sureffectif (10/08) : les compter et les répartir, ou cas par cas ? Au comité
