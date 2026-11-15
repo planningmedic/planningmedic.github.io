@@ -120,9 +120,9 @@ V('contre-preuve : un « return » au premier niveau d\'un fichier Node est admi
 console.log('\n═══ 2. Toute balise ouverte est refermée, dans l\'ordre ═══');
 /* Défauts connus, laissés en l'état en attendant la décision du responsable. Chaque ligne
    doit rester vraie : une fois le défaut corrigé, le banc demande de retirer la ligne.
-   (15/11/2026) admin.html : le bloc principal <div class="main"> n'est jamais refermé ; le
-   navigateur le referme de lui-même en fin de page, rien n'est visible. */
-const CONNUS = [['admin.html', '<div class="main">']];   // [page, ligne exacte de la balise jamais refermée]
+   (15/11/2026) admin.html : <div class="main"> jamais refermé — corrigé en v1.78.2
+   (refermé juste avant </body>, là où le navigateur le refermait déjà). Liste vide. */
+const CONNUS = [];   // [page, ligne exacte de la balise jamais refermée]
 const fautesB = [], connusVus = [];
 pages.forEach(f => { const L = lire(f).split('\n'); const e = balises(L.join('\n')).filter(x => {
     const m = x.match(/^<[a-z0-9-]+> \(ligne (\d+)\) jamais refermée$/);
