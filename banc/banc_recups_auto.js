@@ -404,7 +404,8 @@ console.log('\n═══ 9. Les 18 h visibles dans « Mes gardes » (11/11/2026)
   const h = vm.runInContext('_mes18()', c).map(x => x.date);
   V('mes 18 h à venir, et seulement les miens (pas ceux d\'un collègue, pas les passés)', JSON.stringify(h) === JSON.stringify(['2026-11-20', '2027-01-05', '2028-01-04']), h);
   const idx = fs.readFileSync(IDX, 'utf8');
-  V('la liste « Mes gardes » mêle gardes et 18 h, triés par date, étiquette « 18 h »', /\(MY_GARDES\|\|\[\]\)\.concat\(h18\)\.sort/.test(idx) && /<span class="mg-tag h18">18 h<\/span>/.test(idx));
+  V('la liste « Mes gardes » mêle gardes et 18 h, triés par date, étiquette « 18 h »', /\(MY_GARDES\|\|\[\]\)\.concat\(h18\)\.sort/.test(idx) && /<span class="mg-tag h18"><i data-lucide="clock"><\/i>18 h<\/span>/.test(idx));
+  V('« Mes gardes » : un 18 h est une bande fine orange, distincte d\'une carte de garde', /'<div class="staff-card'\+\(g\.type==='18'\?' h18':''\)\+'">'/.test(idx) && /\.staff-card\.h18 \{[^}]*padding:8px 14px[^}]*var\(--h18-soft\)/.test(idx) && /--h18:#C2560C/.test(idx));
   V('la carte « Prochaine garde » montre le prochain 18 h', /p18='<br><span style="color:#166534;font-weight:600">18 h · '/.test(idx) && /\+ p18;/.test(idx));
 }
 

@@ -46,6 +46,7 @@ window.SessionPortail = window.SessionPortail || { lire:function(){try{return se
   --ok:#166534; --ok-soft:#F0FDF4; --info:#1D4ED8; --info-soft:#EFF6FF;
   --viol:#6D28D9; --viol-soft:#F5F3FF; --rose:#BE123C;
   --me:#1D6FB8; --me-soft:#E8F4FD; --me-border:#B9DCF5;
+  --h18:#C2560C; --h18-soft:#FFF1E6; --h18-line:#FBD9BD;
   /* Couleurs des categories de conges. Elles etaient ecrites en dur dans le JS
      (CAT_META) : le theme sombre gardait donc des pastilles pastel qui brillent.
      Une seule source ici, declinee plus bas pour le sombre. */
@@ -76,6 +77,7 @@ html[data-theme="dark"] {
   --ok:#5BD08B; --ok-soft:#122A1D; --info:#7BAAF7; --info-soft:#152341;
   --viol:#B593F2; --viol-soft:#251B3C; --rose:#F27D96;
   --me:#93C3E8; --me-soft:#17293A; --me-border:#2B4763;
+  --h18:#F5A35C; --h18-soft:#33210F; --h18-line:#5A3A1A;
   --cat-vac-bg:#152341;   --cat-vac-fg:#7BAAF7;
   --cat-form-bg:#38290F;  --cat-form-fg:#F0A64A;
   --cat-tp-bg:#3A2E0C;    --cat-tp-fg:#EAB308;
@@ -334,7 +336,18 @@ a.tile, .tile.clickable { cursor: pointer; }
   border-radius:999px; padding:2px 9px; margin-left:8px; vertical-align:middle; }
 .mg-tag.g  { background:var(--me-soft);  color:var(--me); }
 .mg-tag.g2 { background:var(--red-soft); color:var(--rose); }
-.mg-tag.h18 { background:#F0FDF4; color:#166534; text-transform:none; }   /* (11/11/2026) 18 h dans « Mes gardes » : même vert que partout ailleurs */
+/* (15/11/2026) 18 h dans « Mes gardes » : bande fine orange (même orange que
+   l'étiquette « 18 h » du planning du jour), pour ne plus se confondre avec
+   une garde. Demande du responsable : piste A validée sur maquette. */
+.mg-tag.h18 { background:var(--h18); color:#fff; text-transform:none; display:inline-flex; align-items:center; gap:4px; }
+html[data-theme="dark"] .mg-tag.h18 { color:#1A0E03; }
+.mg-tag.h18 svg { width:11px; height:11px; stroke-width:2.6; }
+.staff-card.h18 { align-items:center; padding:8px 14px; margin-top:-4px; background:var(--h18-soft); border-color:var(--h18-line); border-radius:12px; }
+.staff-card.h18 .staff-date { background:transparent; padding:0; display:flex; align-items:baseline; justify-content:center; gap:5px; }
+.staff-card.h18 .staff-dow { color:var(--h18); }
+.staff-card.h18 .staff-month { display:none; }
+.staff-card.h18 .staff-dnum { font-size:17px; color:var(--h18); }
+.staff-card.h18 .staff-theme { font-size:14px; font-weight:600; color:var(--ink-2); display:flex; align-items:center; }
 .mg-month { font-size:12px; font-weight:700; text-transform:uppercase; letter-spacing:.05em;
   color:var(--ink-4); margin:22px 0 10px 4px; }
 .mg-month:first-child { margin-top:0; }
@@ -1904,8 +1917,8 @@ function renderMesGardes(){
   liste.forEach(function(g){
     const dp=staffDateParts(g.date), p=g.date.split('-'), mKey=p[0]+'-'+p[1];
     if(mKey!==curMonth){ curMonth=mKey; html+='<div class="mg-month">'+_mgCap(_MOIS[(+p[1])-1])+' '+p[0]+'</div>'; }
-    const tag = g.type==='18' ? '<span class="mg-tag h18">18 h</span>' : g.type==='G2' ? '<span class="mg-tag g2">Mater/Bloc</span>' : '<span class="mg-tag g">Réa</span>';
-    html+='<div class="staff-card">'
+    const tag = g.type==='18' ? '<span class="mg-tag h18"><i data-lucide="clock"></i>18 h</span>' : g.type==='G2' ? '<span class="mg-tag g2">Mater/Bloc</span>' : '<span class="mg-tag g">Réa</span>';
+    html+='<div class="staff-card'+(g.type==='18'?' h18':'')+'">'
       + '<div class="staff-date"><div class="staff-dow">'+dp.dow+'</div><div class="staff-dnum">'+dp.dnum+'</div><div class="staff-month">'+dp.month+'</div></div>'
       + '<div class="staff-body"><div class="staff-theme">'+_mgCap(dp.dow)+' '+dp.dnum+' '+dp.month+tag+'</div></div>'
       + '</div>';
