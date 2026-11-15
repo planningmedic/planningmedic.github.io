@@ -42,7 +42,7 @@
    depuis l'éditeur : installerDeclencheurEchanges().
    ═══════════════════════════════════════════════════════════════════════ */
 
-const GAS_VERSION_ECHANGES = '2026-11-12.4';   // (12/11/2026) les gardes ET les 18 h d'une année sans suivi des récupérations (2026) ne se donnent ni ne s'échangent plus entre MAR (_echangesFermee_) : refus à l'envoi, demande en attente fermée « sans objet » ; le comité n'est pas concerné · (12/11/2026) don d'un 18 h entre MAR (type don18, demande de l'équipe) : le receveur doit être libre ce jour-là ; 18 h reçu la veille, le lendemain ou la même semaine qu'un autre 18 h : dit au MAR, qui confirme ([18H], accepte18h) · (12/11/2026) semaine Réa 1 : une garde ou un 18 h pris dans sa propre semaine Réa 1 est dit au MAR, qui confirme ([REA1], accepteRea1) ; le comité en est averti dans les suites de son geste · (12/11/2026) demandes « sans objet » fermées toutes seules quand la garde a changé de mains ou est passée (_echangesSansObjet_), doublon refusé à l'envoi, garde passée refusée à l'envoi et à l'acceptation · (11/11/2026) échange samedi ↔ samedi : les R gardent leur date, les liens LIENS_R suivent le samedi tenu ; « Réparer » recolle de même un échange passé au lieu de déplacer les R · (11/11/2026) annulerEchange : le demandeur annule sa proposition en attente, le collègue est prévenu · (11/11/2026) don et échange sur un jour d'absence : le MAR concerné confirme ([ABS], accepteAbsence) et ses jours d'absence sont écrasés par la garde et son repos · (11/11/2026) gestes du comité (don, échange) : mêmes suites que entre MAR (_gesteSuites_, appliquerGesteComite_) · (11/11/2026) échange de deux 18 h entre MAR (type echange18) · (11/11/2026) un 18 h écrasé par un don passe au donneur, prévenu avant d'envoyer (accepte18) · (11/11/2026) récupérations automatiques : R neuf quand il ne peut pas suivre son samedi, R écrasé reposé, bouton Réparer (recupsReparer), lien recollé à la pose manuelle · (10/11/2026) l'historique dit qui a accepté (onglet HISTORIQUE)
+const GAS_VERSION_ECHANGES = '2026-11-15.1';   // (15/11/2026) annonce sans date : annoncerOuvertureEchanges, tuile verrouillée « Ouverture prochainement » (ECHANGES_ANNONCE) · (14/11/2026) ouverture programmée : ECHANGES_OUVERTURE, fermé avant l'instant, ouvert à tous ensuite à la seconde, sans déclencheur (programmerOuvertureEchanges) ; ouvrirEchanges note l'instant, fermerEchanges l'efface · (12/11/2026) les gardes ET les 18 h d'une année sans suivi des récupérations (2026) ne se donnent ni ne s'échangent plus entre MAR (_echangesFermee_) : refus à l'envoi, demande en attente fermée « sans objet » ; le comité n'est pas concerné · (12/11/2026) don d'un 18 h entre MAR (type don18, demande de l'équipe) : le receveur doit être libre ce jour-là ; 18 h reçu la veille, le lendemain ou la même semaine qu'un autre 18 h : dit au MAR, qui confirme ([18H], accepte18h) · (12/11/2026) semaine Réa 1 : une garde ou un 18 h pris dans sa propre semaine Réa 1 est dit au MAR, qui confirme ([REA1], accepteRea1) ; le comité en est averti dans les suites de son geste · (12/11/2026) demandes « sans objet » fermées toutes seules quand la garde a changé de mains ou est passée (_echangesSansObjet_), doublon refusé à l'envoi, garde passée refusée à l'envoi et à l'acceptation · (11/11/2026) échange samedi ↔ samedi : les R gardent leur date, les liens LIENS_R suivent le samedi tenu ; « Réparer » recolle de même un échange passé au lieu de déplacer les R · (11/11/2026) annulerEchange : le demandeur annule sa proposition en attente, le collègue est prévenu · (11/11/2026) don et échange sur un jour d'absence : le MAR concerné confirme ([ABS], accepteAbsence) et ses jours d'absence sont écrasés par la garde et son repos · (11/11/2026) gestes du comité (don, échange) : mêmes suites que entre MAR (_gesteSuites_, appliquerGesteComite_) · (11/11/2026) échange de deux 18 h entre MAR (type echange18) · (11/11/2026) un 18 h écrasé par un don passe au donneur, prévenu avant d'envoyer (accepte18) · (11/11/2026) récupérations automatiques : R neuf quand il ne peut pas suivre son samedi, R écrasé reposé, bouton Réparer (recupsReparer), lien recollé à la pose manuelle · (10/11/2026) l'historique dit qui a accepté (onglet HISTORIQUE)
 
 const ECHANGES_ONGLET = 'ECHANGES';
 const ECHANGES_ENTETE = ['ID', 'CREE_LE', 'TYPE', 'ANNEE', 'DATE', 'DATE2',
@@ -93,30 +93,101 @@ function _echangesJoli_(d) {
    MISE EN SERVICE (depuis l'éditeur Apps Script) : ouvrirEchanges().
    Retour arrière : fermerEchanges(). Après modification manuelle de
    ECHANGES_PILOTES : synchroniserEtatEchanges(). Aucun redéploiement,
-   ni Worker ni GAS : effet dans la minute. */
+   ni Worker ni GAS : effet dans la minute.
+
+   (14/11/2026 — décision du responsable) OUVERTURE PROGRAMMÉE. Troisième
+   propriété : ECHANGES_OUVERTURE, un instant ISO. Avant cet instant, fermé
+   (la tuile d'accueil s'affiche verrouillée, avec un compte à rebours) ;
+   à partir de cet instant, ouvert à tous, À LA SECONDE : le GAS et le
+   Worker comparent l'heure à chaque demande. Aucun déclencheur : ceux de
+   Google tombent à une minute quelconque de l'heure, l'ouverture aurait
+   varié de 9 h 00 à 9 h 59. La page reçoit l'instant pour son compte à
+   rebours et pour jouer une fois, dans les 7 jours, l'animation du cadenas.
+   Programmer : modifier ECHANGES_OUVERTURE_A_PROGRAMMER ci-dessous, puis
+   lancer programmerOuvertureEchanges(). Annuler : fermerEchanges().
+   (15/11/2026) Date pas encore connue : annoncerOuvertureEchanges() — fermé,
+   la tuile s'affiche verrouillée avec « Ouverture prochainement », sans compte
+   à rebours (propriété ECHANGES_ANNONCE). La date programmée ensuite prend le relais. */
+const ECHANGES_OUVERTURE_A_PROGRAMMER = '';   // ex. '2026-11-18T09:00:00+01:00' — heure de Paris (+01:00 en hiver, +02:00 en été)
+
+/* Instant ISO lisible → millisecondes ; illisible ou absent → null. */
+function _echangesOuvertureMs_(v) {
+  const t = Date.parse(String(v == null ? '' : v).trim());
+  return isNaN(t) ? null : t;
+}
+
 function _echangesEtat_() {
   const props = PropertiesService.getScriptProperties();
   const pilotes = String(props.getProperty('ECHANGES_PILOTES') || '')
     .split(',').map(s => s.trim().toUpperCase()).filter(Boolean);
-  return { ouvert: props.getProperty('ECHANGES_OUVERTS') === 'O', pilotes: pilotes };
+  const t = _echangesOuvertureMs_(props.getProperty('ECHANGES_OUVERTURE'));
+  return { ouvert: props.getProperty('ECHANGES_OUVERTS') === 'O', pilotes: pilotes,
+           ouverture: t === null ? '' : new Date(t).toISOString(),
+           annonce: props.getProperty('ECHANGES_ANNONCE') === 'O' };
+}
+
+/* Ouvert à tous MAINTENANT : interrupteur levé, ou heure programmée atteinte.
+   Même règle, mot pour mot, que echangesOuvertsCfg du Worker. */
+function _echangesOuvertsMaintenant_(etat) {
+  if (etat.ouvert) return true;
+  const t = _echangesOuvertureMs_(etat.ouverture);
+  return t !== null && Date.now() >= t;
 }
 
 function _echangesAutorise_(user) {
   if (user && user.role === 'admin') return true;
   const etat = _echangesEtat_();
-  if (etat.ouvert) return true;
+  if (_echangesOuvertsMaintenant_(etat)) return true;
   return etat.pilotes.indexOf(String(user && user.id || '').toUpperCase()) > -1;
 }
 
+/* Ouverture immédiate. L'instant est noté : la tuile joue l'animation du
+   cadenas une fois chez chacun, comme pour une ouverture programmée. */
 function ouvrirEchanges() {
-  PropertiesService.getScriptProperties().setProperty('ECHANGES_OUVERTS', 'O');
+  const props = PropertiesService.getScriptProperties();
+  props.setProperty('ECHANGES_OUVERTS', 'O');
+  props.setProperty('ECHANGES_OUVERTURE', new Date().toISOString());
+  props.deleteProperty('ECHANGES_ANNONCE');
   const r = synchroniserEtatEchanges();
   Logger.log('Échanges OUVERTS à tous. Sync KV : ' + JSON.stringify(r));
   return r;
 }
 
+/* Fermé jusqu'à l'instant donné (par défaut ECHANGES_OUVERTURE_A_PROGRAMMER),
+   ouvert à tous ensuite, sans autre geste. Refuse une date illisible ou passée. */
+function programmerOuvertureEchanges(quand) {
+  const brut = quand || ECHANGES_OUVERTURE_A_PROGRAMMER;
+  if (!brut) throw new Error('Aucune date : écrivez-la dans ECHANGES_OUVERTURE_A_PROGRAMMER (en tête de section), puis relancez. Date pas encore connue : annoncerOuvertureEchanges().');
+  const t = _echangesOuvertureMs_(brut);
+  if (t === null) throw new Error('Date d\'ouverture illisible : ' + brut);
+  if (t <= Date.now()) throw new Error('Date d\'ouverture déjà passée : ' + brut + ' — pour ouvrir tout de suite, lancez ouvrirEchanges().');
+  const props = PropertiesService.getScriptProperties();
+  props.deleteProperty('ECHANGES_OUVERTS');
+  props.setProperty('ECHANGES_OUVERTURE', new Date(t).toISOString());
+  const r = synchroniserEtatEchanges();
+  Logger.log('Échanges FERMÉS jusqu\'au ' + Utilities.formatDate(new Date(t), 'Europe/Paris', 'dd/MM/yyyy HH:mm')
+    + ' (heure de Paris), ouverts à tous ensuite. Sync KV : ' + JSON.stringify(r));
+  return r;
+}
+
+/* (15/11/2026) Fermé, date pas encore connue : la tuile s'affiche verrouillée,
+   « Ouverture prochainement ». Une date programmée ensuite prend le relais. */
+function annoncerOuvertureEchanges() {
+  const props = PropertiesService.getScriptProperties();
+  props.deleteProperty('ECHANGES_OUVERTS');
+  props.deleteProperty('ECHANGES_OUVERTURE');
+  props.setProperty('ECHANGES_ANNONCE', 'O');
+  const r = synchroniserEtatEchanges();
+  Logger.log('Échanges FERMÉS, ouverture annoncée « prochainement » (sans date). Sync KV : ' + JSON.stringify(r));
+  return r;
+}
+
+/* Fermeture : l'ouverture programmée ou annoncée, s'il y en a une, est annulée aussi. */
 function fermerEchanges() {
-  PropertiesService.getScriptProperties().deleteProperty('ECHANGES_OUVERTS');
+  const props = PropertiesService.getScriptProperties();
+  props.deleteProperty('ECHANGES_OUVERTS');
+  props.deleteProperty('ECHANGES_OUVERTURE');
+  props.deleteProperty('ECHANGES_ANNONCE');
   const r = synchroniserEtatEchanges();
   Logger.log('Échanges FERMÉS (admin + pilotes seuls). Sync KV : ' + JSON.stringify(r));
   return r;

@@ -72,7 +72,7 @@
    poussée : le client se replie sur le circuit GAS.
    ═══════════════════════════════════════════════════════════════════ */
 
-const VERSION = 'miroir 2026-11-11.2';
+const VERSION = 'miroir 2026-11-15.1';   // (15/11/2026) annonce sans date (« prochainement ») · (14/11/2026) ouverture programmée des échanges (notif_config.ouverture), instant servi à la page
 
 // Clés admissibles — tout le reste est refusé à l'écriture comme à la
 // lecture. Garde-fou contre une faute de frappe côté GAS qui créerait
@@ -216,14 +216,18 @@ async function lire(corps, env) {
      l'interrupteur autorise : avant la mise en service, un dashboard MAR
      recoit un refus et n'affiche RIEN — l'invisibilite est cote serveur. */
   let etatEchanges = null;
-  const echangesAutorise = async (u) => {
-    if (u.role === 'admin') return true;
+  const chargerEtatEchanges = async () => {
     if (etatEchanges === null) {
       try { etatEchanges = JSON.parse((await env.KV.get('notif_config')) || 'null') || {}; }
       catch (e) { etatEchanges = {}; }
     }
-    if (etatEchanges.ouvert) return true;
-    return Array.isArray(etatEchanges.pilotes) && etatEchanges.pilotes.indexOf(String(u.id).toUpperCase()) > -1;
+    return etatEchanges;
+  };
+  const echangesAutorise = async (u) => {
+    const cfg = await chargerEtatEchanges();   // lue aussi pour l'admin : l'instant d'ouverture lui est servi comme à tous
+    if (u.role === 'admin') return true;
+    if (echangesOuvertsCfg(cfg)) return true;
+    return Array.isArray(cfg.pilotes) && cfg.pilotes.indexOf(String(u.id).toUpperCase()) > -1;
   };
   const taches = demandes.map(async (cle) => {
     cle = String(cle || '');
@@ -300,7 +304,28 @@ async function lire(corps, env) {
     titresPr: Array.isArray(acces.titresPr) ? acces.titresPr : [],
     souhaitsPlafond: Array.isArray(acces.souhaitsPlafond) ? acces.souhaitsPlafond : [],
   };
-  return reponse({ success: true, identite, data, manquants, refuses, version: VERSION });
+  /* (14/11/2026) Ouverture programmée : l'instant voyage avec la réponse dès
+     que `echanges` est demandée, servie ou refusée. Avant : la tuile s'affiche
+     verrouillée avec son compte à rebours. Après : la page joue une fois
+     l'animation du cadenas. Pas d'instant : rien ne change. */
+  const reponseLue = { success: true, identite, data, manquants, refuses, version: VERSION };
+  if (etatEchanges && ouvertureEchangesIso(etatEchanges)) reponseLue.echangesOuverture = ouvertureEchangesIso(etatEchanges);
+  else if (etatEchanges && etatEchanges.annonce === true && !echangesOuvertsCfg(etatEchanges)) reponseLue.echangesOuverture = 'prochainement';   // (15/11/2026) annoncée, date pas encore connue
+  return reponse(reponseLue);
+}
+
+/* (14/11/2026) Ouvert à tous MAINTENANT : interrupteur levé, ou instant
+   programmé atteint. Même règle que _echangesOuvertsMaintenant_ du GAS.
+   L'heure est celle de CE serveur : celle du téléphone n'y change rien. */
+function ouvertureEchangesIso(cfg) {
+  const t = Date.parse(String((cfg && cfg.ouverture) || ''));
+  return isNaN(t) ? null : new Date(t).toISOString();
+}
+function echangesOuvertsCfg(cfg, maintenant) {
+  if (!cfg) return false;
+  if (cfg.ouvert) return true;
+  const iso = ouvertureEchangesIso(cfg);
+  return !!iso && (maintenant == null ? Date.now() : maintenant) >= Date.parse(iso);
 }
 
 /* Droits de lecture par clé et par rôle. Toute clé inconnue est refusée
@@ -621,7 +646,7 @@ async function notifAbonner(corps, env) {
     let cfg = {};
     try { cfg = JSON.parse((await env.KV.get('notif_config')) || 'null') || {}; } catch (e) {}
     const pilote = Array.isArray(cfg.pilotes) && cfg.pilotes.indexOf(String(user.id).toUpperCase()) > -1;
-    if (!cfg.ouvert && !pilote) return reponse({ success: false, error: 'Réservé au comité pour le moment' }, 403);
+    if (!echangesOuvertsCfg(cfg) && !pilote) return reponse({ success: false, error: 'Réservé au comité pour le moment' }, 403);   // (14/11/2026) l'ouverture programmée ouvre aussi l'abonnement
   }
 
   const sub = corps.subscription;
