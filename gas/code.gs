@@ -1,7 +1,7 @@
 // ⚠️ RÈGLE (détecteur de dérive dépôt↔Apps Script) : incrémenter cette version
 // à CHAQUE push de ce fichier. Le diagnostic (admin → Maintenance) compare la
 // version déployée ici avec celle du dépôt et signale toute recopie oubliée.
-const GAS_VERSION_CODE = '2026-11-15.1';   // (15/11/2026) instantané d'équité : à partir de 2028, Noël et le Jour de l'An (et leur jour couplé) restent dans le total mais sortent des compteurs fins, comme dans le calcul · (14/11/2026) écran d'équité : la part de chaque compteur (PART VISEE) et le nombre de week-ends servis à l'écran, pour afficher la fourchette (champsWeStats_, computeStatsLive) · (12/11/2026) week-ends : V (vendredis), WE = samedis + dimanches et sa part, lus dans l'onglet de statistiques (champsWeStats_) · (11/11/2026) vue paie : jours de TP (TP, CTP, semaine off du rythme 2/2) affichés, sans mail · (11/11/2026) mail paie lisible sur téléphone (une carte par changement) · (02/11/2026) commentaire sans initiales réelles · (27/10/2026) demi-journées de vacances VM/VA (planning, paie, notifications) · (27/10/2026) journée mobile 2027 (lundi 7 juin) ajoutée aux fériés · (18/10/2026) vue paie : tri G/G2/V (_planningPaie_) et mail aux secrétaires de paie (_paieEnvoyerAnnee_)
+const GAS_VERSION_CODE = '2026-11-15.2';   // (15/11/2026) instantané d'équité : un jeudi férié compte comme férié, plus comme jeudi (même règle que le calcul) · (15/11/2026) instantané d'équité : à partir de 2028, Noël et le Jour de l'An (et leur jour couplé) restent dans le total mais sortent des compteurs fins, comme dans le calcul · (14/11/2026) écran d'équité : la part de chaque compteur (PART VISEE) et le nombre de week-ends servis à l'écran, pour afficher la fourchette (champsWeStats_, computeStatsLive) · (12/11/2026) week-ends : V (vendredis), WE = samedis + dimanches et sa part, lus dans l'onglet de statistiques (champsWeStats_) · (11/11/2026) vue paie : jours de TP (TP, CTP, semaine off du rythme 2/2) affichés, sans mail · (11/11/2026) mail paie lisible sur téléphone (une carte par changement) · (02/11/2026) commentaire sans initiales réelles · (27/10/2026) demi-journées de vacances VM/VA (planning, paie, notifications) · (27/10/2026) journée mobile 2027 (lundi 7 juin) ajoutée aux fériés · (18/10/2026) vue paie : tri G/G2/V (_planningPaie_) et mail aux secrétaires de paie (_paieEnvoyerAnnee_)
 
 // ── Reconstruire STATS_GARDES_2026 depuis GARDES_2026 (année reconstruite) ──
 // Renvoie le classeur contenant l'onglet demandé : classeur actif si présent,
@@ -125,7 +125,10 @@ function computeStatsLive(year) {
       c.total++;
       if (val === 'G') c.g++; else c.g2++;
       if (HORS.has(date)) { if (NOEL.has(date)) c.noelAn++; return; }   // (15/11/2026) fêtes : dans le total, hors des compteurs fins
-      c[KEYS[dow]]++;
+      /* (15/11/2026) Jeudi férié = férié seulement, pas un jeudi : même règle que le
+         générateur (assign, generateur_gardes.gs). Sans elle, l'Ascension et la
+         Fête-Dieu sortaient un « +1 jeu » en Instantané, échanges ou pas. */
+      if (!(dow === 4 && isF(date))) c[KEYS[dow]]++;
       if (isF(date)) c.jf++;
       if (!isF(date) && isF(nextDay(date)) && dow >= 1 && dow <= 4) c.vjf++;
       if (NOEL.has(date)) c.noelAn++;
