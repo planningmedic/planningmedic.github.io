@@ -78,6 +78,15 @@ body{background:var(--bg);font-family:'DM Sans',system-ui,sans-serif;color:var(-
 .histo span:last-child{white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:65%;text-align:right}
 .toast{position:fixed;left:50%;bottom:calc(22px + env(safe-area-inset-bottom));transform:translateX(-50%);background:var(--ink);color:var(--bg);
        padding:9px 16px;border-radius:999px;font-size:13px;font-weight:600;z-index:500;max-width:90vw;text-align:center}
+/* (15/11/2026) Carte « Clôturer l'année » */
+.pas{font-size:13px;padding:3px 0;line-height:1.45}
+.pas.bloq{color:#B91C1C;font-weight:600}.pas.okk{color:#166534}.pas.inf{color:#475569}
+.bil{width:100%;border-collapse:collapse;font-size:12.5px;margin:6px 0 4px}
+.bil th{font-size:11px;font-weight:600;color:var(--ink-3);text-align:right;padding:4px 5px;border-bottom:1px solid var(--line)}
+.bil th:first-child,.bil td:first-child{text-align:left}
+.bil td{text-align:right;padding:4px 5px;border-bottom:1px solid var(--line-light);font-variant-numeric:tabular-nums}
+.fetes{font-size:12.5px;color:var(--ink-2);margin-top:6px}
+.fetes div{display:flex;justify-content:space-between;gap:8px;padding:2px 0}
 #authOverlay{position:fixed;inset:0;z-index:9999;background:var(--bg);display:flex;align-items:center;justify-content:center;padding:20px}
 #authOverlay .box{background:var(--white);border:1px solid var(--line);border-radius:16px;padding:32px 26px;width:100%;max-width:380px;text-align:center}
 #authInput{width:100%;padding:12px 14px;font-size:16px;border:1px solid var(--line);border-radius:10px;text-align:center;letter-spacing:2px;font-family:monospace}
@@ -133,6 +142,17 @@ window.SessionPortail = window.SessionPortail || { lire:function(){try{return se
     <div class="res" id="diagRes"></div>
   </section>
 
+  <!-- 1 ter. Clôture d'année (15/11/2026) — réservée à cette page : le serveur refuse le code comité -->
+  <section class="card" id="cClot">
+    <h2>📦 Clôturer l'année</h2>
+    <p class="d" id="clotEtat">…</p>
+    <p class="d">La <b>répétition</b> ne change rien : elle passe tous les contrôles et montre ce qui sera figé. La <b>clôture</b> copie d'abord le classeur entier, puis archive l'année, bascule sur la suivante, ferme la campagne d'indisponibilités et vérifie le résultat. Compter une à plusieurs minutes. Elle peut être relancée sans risque.</p>
+    <div class="duo">
+      <button class="btn" id="btnClotRep" type="button">Répétition à blanc</button>
+      <button class="btn p" id="btnClot" type="button" disabled>Clôturer</button>
+    </div>
+    <div class="res" id="clotRes"></div>
+  </section>
   <!-- 1 bis. Récupérations de samedi (11/11/2026) -->
   <section class="card" id="cRecups">
     <h2>🔁 Récupérations de samedi</h2>
@@ -234,6 +254,7 @@ async function doLogin(code){
   montrer(true);
   rendreCodes();
   majCharger();
+  clotEtat();
   return r;
 }
 $('authBtn').addEventListener('click', async function(){
@@ -401,6 +422,94 @@ $('btnDiagCopie').addEventListener('click', async () => {
     try { document.execCommand('copy'); toast('Rapport copié'); } catch (e2) { toast('Copie impossible'); }
     ta.remove();
   }
+});
+
+/* ── 1 ter. Clôture d'année (15/11/2026) ──────────────────────────────────────
+   Tout le travail est au serveur (cloturerAnnee_, setup_annee.gs) : contrôles,
+   copie de sécurité, bilan, départ des onglets, bascule relue, campagne fermée,
+   contrôle d'après. La page montre et déclenche, rien de plus. */
+let CLOT_YEAR = null;
+function _lundiPlanning(y){   // premier lundi de planning de l'année y (jamais le 1er janvier)
+  const j1 = new Date(y, 0, 1), dow = j1.getDay();
+  const off = dow === 1 ? 7 : dow === 0 ? 1 : 8 - dow;
+  return new Date(y, 0, 1 + off);
+}
+function _initiales(id){ const m = MEDECINS.find(x => String(x.id) === String(id)); return (m && (m.initiales || m.id)) || id; }
+async function clotEtat(){
+  const el = $('clotEtat');
+  try {
+    const r = await api({ action:'getActiveYear' }, true);
+    const y = Number(r && r.year); if (!y) throw new Error('année active illisible');
+    CLOT_YEAR = y;
+    $('btnClot').textContent = 'Clôturer ' + y;
+    const d = _lundiPlanning(y + 1), auj = new Date(); auj.setHours(0, 0, 0, 0);
+    const txt = d.toLocaleDateString('fr-FR', { weekday:'long', day:'numeric', month:'long', year:'numeric' });
+    const j = Math.round((d - auj) / 86400000);
+    el.innerHTML = j > 0
+      ? `Année active : <b>${y}</b>. Clôture possible à partir du <b>${esc(txt)}</b> (dans ${j} jour${j > 1 ? 's' : ''}).`
+      : `Année active : <b>${y}</b>. <b class="warn">L'année ${y + 1} a commencé le ${esc(txt)} : clôture à faire.</b>`;
+  } catch (e) { el.textContent = 'État indisponible (' + e.message + ').'; }
+}
+function _clotPastille(c){
+  const cls = c.niveau === 'bloquant' ? 'bloq' : c.niveau === 'ok' ? 'okk' : c.niveau === 'echec' ? 'bloq' : 'inf';
+  const ic = c.niveau === 'bloquant' ? '⛔' : c.niveau === 'ok' ? '✓' : c.niveau === 'echec' ? '⚠️' : 'ℹ️';
+  return `<div class="pas ${cls}">${ic} ${esc(c.texte)}</div>`;
+}
+function _clotBilan(b, y){
+  if (!b || !(b.mars || []).length) return '';
+  const lignes = b.mars.slice().sort((a, c) => String(_initiales(a.id)).localeCompare(String(_initiales(c.id))));
+  let h = `<div class="diag-chap">Bilan ${esc(y)} — ce qui sera figé</div>`
+    + '<table class="bil"><tr><th>MAR</th><th>Gardes</th><th>Week-ends</th><th>Fériés</th><th>Noël/An</th></tr>'
+    + lignes.map(m => `<tr><td><b>${esc(_initiales(m.id))}</b></td><td>${esc(m.total)}</td><td>${esc(m.weekends)}</td><td>${esc(m.feries)}</td><td>${m.noelAn ? '✓' : ''}</td></tr>`).join('')
+    + '</table><div class="d" style="margin:2px 0 0">Gardes réellement faites, dons et échanges compris.</div>';
+  const f = b.fetes || {};
+  const jours = Object.keys(f).sort();
+  if (jours.length) h += '<div class="fetes">' + jours.map(dt =>
+    `<div><span>${_jj(dt)}</span><span>${(f[dt] || []).map(id => esc(_initiales(id))).join(' · ') || '—'}</span></div>`).join('') + '</div>';
+  return h;
+}
+$('btnClotRep').addEventListener('click', async () => {
+  const btn = $('btnClotRep'), out = $('clotRes');
+  btn.disabled = true; $('btnClot').disabled = true; btn.textContent = 'Répétition…';
+  out.innerHTML = '<div class="info">Contrôles et bilan en cours — quelques secondes.</div>';
+  try {
+    const v = await api({ action:'clotureVerifier', year: CLOT_YEAR || undefined }, true);
+    if (!v || !v.success) throw new Error(refus(v) ? MSG_RESERVE : ((v && v.error) || 'réponse illisible'));
+    CLOT_YEAR = Number(v.year) || CLOT_YEAR;
+    const nbB = (v.controles || []).filter(c => c.niveau === 'bloquant').length;
+    const resume = v.faite ? `<div class="resume ok">✅ ${esc(v.year)} est déjà clôturée — rien à refaire.</div>`
+      : nbB ? `<div class="resume err">⛔ ${nbB} point${nbB > 1 ? 's' : ''} bloque${nbB > 1 ? 'nt' : ''} la clôture</div>`
+            : `<div class="resume ok">✅ Tout est prêt : la clôture peut être lancée.</div>`;
+    out.innerHTML = resume + (v.controles || []).map(_clotPastille).join('') + _clotBilan(v.bilan, v.year);
+    $('btnClot').disabled = !v.peutClore;
+  } catch (e) { out.innerHTML = '<div class="err">❌ ' + esc(e.message) + '</div>'; }
+  finally { btn.disabled = false; btn.textContent = 'Répétition à blanc'; }
+});
+deuxAppuis($('btnClot'), () => 'Confirmer : clôturer ' + (CLOT_YEAR || ''), async () => {
+  const btn = $('btnClot'), rep = $('btnClotRep'), out = $('clotRes');
+  if (!CLOT_YEAR) return;
+  btn.disabled = true; rep.disabled = true; const lib = btn.textContent; btn.textContent = 'Clôture en cours…';
+  out.innerHTML = '<div class="info">Copie du classeur, bilan, archivage, bascule… Ne fermez pas la page : une à plusieurs minutes.</div>';
+  try {
+    const r = await api({ action:'cloturerAnnee', year: CLOT_YEAR });   // jamais rejouée automatiquement
+    if (!r || (!r.success && !(r.etapes || r.bloquants))) throw new Error(refus(r) ? MSG_RESERVE : ((r && r.error) || 'réponse illisible'));
+    const etapes = (r.etapes || []).map(s => {
+      const ic = s.etat === 'fait' ? '✓' : s.etat === 'déjà fait' ? 'ℹ️' : '❌';
+      const cls = s.etat === 'échec' ? 'bloq' : s.etat === 'fait' ? 'okk' : 'inf';
+      return `<div class="pas ${cls}">${ic} ${esc(s.nom)}${s.etat === 'déjà fait' ? ' — déjà fait' : ''}</div>`;
+    }).join('');
+    const bloq = (r.bloquants || []).map(t => _clotPastille({ niveau:'bloquant', texte:t })).join('');
+    const apres = (r.apres || []).length ? '<div class="diag-chap">Contrôle d\'après</div>' + r.apres.map(_clotPastille).join('') : '';
+    out.innerHTML = (r.success
+        ? `<div class="resume ok">✅ ${esc(r.year)} clôturée${r.dejaFaite ? ' (déjà faite)' : ''}. Année active : ${esc(Number(r.year) + 1)}. Un compte rendu part par mail.</div>`
+        : `<div class="resume err">❌ ${esc(r.error || 'Clôture arrêtée')}</div>`)
+      + bloq + etapes + apres;
+    if (r.success) { toast('Année ' + r.year + ' clôturée'); await clotEtat(); }
+  } catch (e) {
+    out.innerHTML = '<div class="err">❌ La réponse n\'est pas arrivée (' + esc(e.message) + ').</div>'
+      + '<div class="info">La clôture continue peut-être côté serveur. Attendez une minute, puis relancez la répétition : elle dira « déjà clôturée » ou ce qui reste à faire. Relancer la clôture est sans risque.</div>';
+  }
+  finally { btn.textContent = lib; rep.disabled = false; }
 });
 
 /* ── 1 bis. Récupérations de samedi (11/11/2026) ──

@@ -1081,7 +1081,7 @@ Banc : <code>banc_comptage_we.js</code>.</p>
 <h2 id="b4"><span class="num">B4</span>W3 — Clôturer l'année</h2>
 
 <div class="r2"><div class="titre">En 2 minutes</div>
-<p>Un seul geste, à partir du <b>premier lundi</b> de la nouvelle année, <b>dès minuit</b>. La
+<p><b>Réservée au responsable</b> : la clôture se fait depuis la page Maintenance, avec son code personnel ; le serveur refuse le code du comité. Un seul geste, à partir du <b>premier lundi</b> de la nouvelle année, <b>dès minuit</b>. Une <b>répétition à blanc</b>, utilisable à tout moment, passe les mêmes contrôles et montre le bilan sans rien écrire. La
 clôture contrôle d'abord tout ce qui pourrait la faire échouer, et refuse sans rien toucher si
 quelque chose ne va pas. Puis, d'un bloc : copie complète du classeur, bilan de l'année dans
 HISTORIQUE, départ des onglets de l'année vers le classeur d'archive, bascule de l'année active,
@@ -1128,9 +1128,10 @@ active ne change pas.</p></div>
 <details class="tech"><summary>Repères techniques</summary><div class="corps">
 <p>Fonction unique <code>cloturerAnnee_(year)</code> (setup_annee.gs), appelée par les actions
 <code>cloturerAnnee</code> et <code>archiveYear</code> et par <code>archiveYear(year)</code> dans
-l'éditeur. L'assistant actuel enchaîne encore <code>archiveYear</code> → <code>setActiveYear</code>
-→ <code>clearIndisposYear</code> : le premier appel fait tout, les deux suivants trouvent le travail
-fait. Répétition à blanc, sans rien écrire : action <code>clotureVerifier</code>, ou
+l'éditeur. Écran : carte « Clôturer l'année » de <code>maintenance.html</code> (l'assistant de
+l'admin a été retiré le 15/11/2026). Les actions <code>cloturerAnnee</code>, <code>archiveYear</code>,
+<code>clotureVerifier</code>, <code>setActiveYear</code> et <code>clearIndisposYear</code> exigent le
+droit Maintenance (<code>_droitMaintenance_</code>). Répétition à blanc, sans rien écrire : action <code>clotureVerifier</code>, ou
 <code>repetitionCloture(2026)</code> dans l'éditeur. Le refus de date compare au premier lundi
 <b>à minuit</b> (<code>_clotureRefusDate_</code>) : jusqu'au 15/11/2026, le serveur comparait au
 lundi à midi et refusait toute la matinée du jour J. Ne pas confondre l'onglet PLANNING_OVERRIDES

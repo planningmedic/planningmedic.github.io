@@ -1303,17 +1303,19 @@ if (sessionStorage.getItem('adminCode')) {
         </div>
         <span class="action-badge purple">Étape 2</span>
       </div>
-      <div class="action-card teal" onclick="openWizardCloture()">
+      <!-- (15/11/2026) La clôture vit dans la page Maintenance, réservée au responsable :
+           le serveur refuse le code comité. La carte reste pour montrer l'ordre des étapes. -->
+      <a class="action-card teal" href="maintenance.html" style="text-decoration:none;color:inherit">
         <div style="display:flex;align-items:center;gap:10px">
           <div class="action-icon teal">📦</div>
           <span class="annual-step-num">3</span>
         </div>
         <div>
           <div class="action-label">Clôturer l'année</div>
-          <div class="action-desc" id="clotureCardDesc">Vérifier, récapituler l'équité et archiver</div>
+          <div class="action-desc" id="clotureCardDesc">Réservé au responsable — page Maintenance</div>
         </div>
         <span class="action-badge teal">Étape 3</span>
-      </div>
+      </a>
     </div>
   </div>
 
@@ -3554,10 +3556,11 @@ function majCarteCloture() {
   const debut = _premierLundiISO(YEAR + 1);
   if (todayStr() < debut) {
     const d = new Date(debut + 'T12:00:00');
-    el.textContent = 'Disponible à partir du '
-      + d.toLocaleDateString('fr-FR', { weekday:'long', day:'numeric', month:'long', year:'numeric' });
+    el.textContent = 'À partir du '
+      + d.toLocaleDateString('fr-FR', { weekday:'long', day:'numeric', month:'long', year:'numeric' })
+      + ' — réservé au responsable, page Maintenance';
   } else {
-    el.textContent = "Vérifier, récapituler l'équité et archiver";
+    el.textContent = 'À faire — réservé au responsable, page Maintenance';
   }
 }
 
@@ -3573,13 +3576,11 @@ function majBandeauCloture() {
   const pret = !!nextYearAvailable;
   el.className = 'cloture-banner' + (pret ? '' : ' bloque');
   el.innerHTML = pret
-    ? '<span class="cb-ico">📦</span><span class="cb-txt"><b>L\'année ' + (YEAR+1) + ' a commencé lundi — il reste à clôturer ' + YEAR + '.</b>'
-      + '<span class="cb-sub">Le planning ' + (YEAR+1) + ' est généré et publié. Tant que la clôture n\'est pas faite, l\'année affichée par défaut reste ' + YEAR + '.</span></span>'
-      + '<button class="cb-btn" onclick="openWizardCloture()">Clôturer ' + YEAR + ' →</button>'
+    ? '<span class="cb-ico">📦</span><span class="cb-txt"><b>L\'année ' + (YEAR+1) + ' a commencé — clôture de ' + YEAR + ' à faire depuis la page Maintenance.</b>'
+      + '<span class="cb-sub">Le planning ' + (YEAR+1) + ' est généré et publié. Tant que la clôture n\'est pas faite, l\'année affichée par défaut reste ' + YEAR + '. La clôture est réservée au responsable du portail.</span></span>'
       + '<button class="cb-close" onclick="masquerBandeauCloture()" title="Masquer jusqu\'à demain">✕</button>'
     : '<span class="cb-ico">⛔</span><span class="cb-txt"><b>L\'année ' + (YEAR+1) + ' a commencé, mais son planning n\'est pas publié.</b>'
-      + '<span class="cb-sub">Clôturer maintenant basculerait le service sur une année vide. Faites d\'abord l\'étape 2 — Générer les gardes.</span></span>'
-      + '<button class="cb-btn" disabled>Clôturer ' + YEAR + ' →</button>';
+      + '<span class="cb-sub">La clôture de ' + YEAR + ' attendra : elle basculerait le service sur une année vide. Faites d\'abord l\'étape 2 — Générer les gardes.</span></span>';
   el.style.display = 'flex';
 }
 
@@ -7833,167 +7834,10 @@ async function launchWizardGardes() {
   }
 }
 
-// ── WIZARD CLÔTURER L'ANNÉE ──────────────────────────────────────────────
-let wizCCurrentStep = 0;
-let wizCStatsData = null;
-let wizCPlanningOk = false;
-
-async function openWizardCloture() {
-  /* (17/08/2026) VERROU DE DATE — récit : docs/JOURNAL-Planning-Med.md §38 */
-  {
-    const debut = _premierLundiISO(YEAR + 1);
-    if (todayStr() < debut) {
-      const d = new Date(debut + 'T12:00:00');
-      const txt = d.toLocaleDateString('fr-FR', { weekday:'long', day:'numeric', month:'long', year:'numeric' });
-      const jours = Math.ceil((d - new Date()) / 86400000);
-      alert("Clôture indisponible.\n\nL'année " + (YEAR + 1) + " n'a pas encore commencé : la clôture de "
-        + YEAR + " sera possible à partir du " + txt + " (dans " + jours + " jour(s)).\n\n"
-        + "Archiver maintenant déplacerait le planning en cours d'usage et basculerait le service sur "
-        + (YEAR + 1) + ".\n\nRien n'a été modifié.");
-      return;
-    }
-  }
-  wizCCurrentStep = 0; wizCStatsData = null; wizCPlanningOk = false;
-  window._wizCDone = new Set(); // suivi de reprise : étapes de clôture déjà réussies
-  document.getElementById('wizClotureYear').textContent = YEAR;
-  document.getElementById('wizCNextBtn').disabled = false;
-  document.getElementById('wizCNextBtn').style.display = '';
-  await renderWizCStep();
-  document.getElementById('wizardClotureOverlay').classList.add('open');
-}
-
-function closeWizardCloture() {
-  document.getElementById('wizardClotureOverlay').classList.remove('open');
-}
-
-async function wizCPrev() {
-  if (wizCCurrentStep > 0) { wizCCurrentStep--; await renderWizCStep(); }
-}
-
-async function wizCNext() {
-  if (wizCCurrentStep < 1) { wizCCurrentStep++; await renderWizCStep(); }
-  else { await launchWizardCloture(); }
-}
-
-function updateWizCNav() {
-  document.getElementById('wizCBackBtn').style.visibility = wizCCurrentStep === 0 ? 'hidden' : 'visible';
-  const nextBtn = document.getElementById('wizCNextBtn');
-  nextBtn.textContent = wizCCurrentStep === 1 ? '📦 Archiver l\'année' : 'Suivant →';
-  for (let i = 0; i < 2; i++) {
-    document.getElementById('wizCDot' + i).className = 'wizard-step-dot' + (i < wizCCurrentStep ? ' done' : i === wizCCurrentStep ? ' active' : '');
-    document.getElementById('wizCStep' + i).className = 'wizard-step' + (i === wizCCurrentStep ? ' active' : '');
-  }
-}
-
-async function renderWizCStep() {
-  updateWizCNav();
-  const body = document.getElementById('wizCBody');
-  body.innerHTML = '<div class="loading"><div class="spinner"></div> Chargement\u2026</div>';
-
-  if (wizCCurrentStep === 0) {
-    // ── Étape 1 : l'année SUIVANTE doit être prête (W1+W2) avant de clôturer l'année en cours ──
-    const nextY = YEAR + 1;
-    let html = '<div class="wizard-section-title">V\xe9rification de l\'ann\xe9e ' + nextY + '</div>';
-    let planningData = null;
-    try { const _pj = await api({action:'getPlanningJson', year: nextY}); planningData = (_pj && _pj.success && _pj.planning) || null; } catch(e) {}
-    // Gardes attribuées : months[].doctors[].days[].status === 'G' / 'G2'
-    const months = (planningData && Array.isArray(planningData.months)) ? planningData.months : [];
-    let nbGardes = 0;
-    months.forEach(mo => (mo.doctors || []).forEach(doc => (doc.days || []).forEach(day => {
-      if (day && (day.status === 'G' || day.status === 'G2')) nbGardes++;
-    })));
-
-    if (nbGardes === 0) {
-      html += '<div class="wizard-warning" style="background:#fee2e2;border-left:3px solid var(--red);color:#991b1b">\u26d4 <strong>Le planning ' + nextY + ' n\'a pas encore \xe9t\xe9 g\xe9n\xe9r\xe9.</strong><br>Faites d\'abord \xab D\xe9marrer l\'ann\xe9e ' + nextY + ' \xbb (\xe9tape 1) puis \xab G\xe9n\xe9rer les gardes \xbb (\xe9tape 2). La cl\xf4ture de ' + YEAR + ' sera alors disponible.</div>';
-      wizCPlanningOk = false;
-      document.getElementById('wizCNextBtn').disabled = true;
-    } else {
-      html += '<div class="wizard-warning" style="background:#dcfce7;border-left:3px solid var(--green);color:#166534">\u2705 Planning ' + nextY + ' g\xe9n\xe9r\xe9 \u2014 ' + nbGardes + ' gardes attribu\xe9es.</div>';
-      wizCPlanningOk = true;
-      document.getElementById('wizCNextBtn').disabled = false;
-    }
-    body.innerHTML = html;
-
-  } else if (wizCCurrentStep === 1) {
-    // ── Étape 2 : archivage, en langage clair ──
-    let html = '<div class="wizard-section-title">Archiver l\'ann\xe9e ' + YEAR + '</div>';
-    html += '<div style="background:var(--bg);border-radius:12px;padding:16px;margin:12px 0">';
-    html += '<div style="font-size:13px;margin-bottom:8px">L\'archivage va :</div>';
-    html += '<ul style="font-size:12px;color:var(--ink-3);padding-left:18px;line-height:2">'
-      + '<li>Enregistrer d\xe9finitivement le bilan de l\'ann\xe9e ' + YEAR + ' (gardes effectu\xe9es et \xe9quit\xe9) dans l\'historique</li>'
-      + '<li><strong>D\xe9placer</strong> les 4 onglets de ' + YEAR + ' (gardes, indisponibilit\xe9s, affectations, statistiques) du classeur principal vers le <strong>classeur d\'archive</strong></li>'
-      + '<li>Effacer les retouches quotidiennes de planning de ' + YEAR + ' et des ann\xe9es ant\xe9rieures, devenues inutiles</li>'
-      + '<li>Basculer l\'outil sur l\'ann\xe9e ' + (YEAR+1) + '</li>'
-      + '<li><strong>Fermer la campagne</strong> de saisie des indisponibilit\xe9s</li></ul></div>';
-    html += '<div style="font-size:12px;color:var(--ink-3);margin-top:12px">Aucune donn\xe9e n\'est perdue : l\'ann\xe9e ' + YEAR + ' reste consultable dans le classeur d\'archive. Mais elle <strong>quitte le classeur principal</strong> \u2014 ce n\'est pas une simple copie.</div>';
-    body.innerHTML = html;
-  }
-}
-
-async function launchWizardCloture() {
-  const nextBtn = document.getElementById('wizCNextBtn');
-  nextBtn.disabled = true;
-  document.getElementById('wizCBackBtn').style.visibility = 'hidden';
-  const _cDone = window._wizCDone || (window._wizCDone = new Set());
-  const _cItem = (id, done, pending) => _cDone.has(id)
-    ? '<div class="wiz-progress-item done" id="' + id + '">✓ ' + done + '</div>'
-    : '<div class="wiz-progress-item" id="' + id + '" style="opacity:.4">○ ' + pending + '</div>';
-  document.getElementById('wizCBody').innerHTML = '<div class="wiz-progress">'
-    + _cItem('wizc-p1', 'Année ' + YEAR + ' archivée', 'Archivage année ' + YEAR + '…')
-    + _cItem('wizc-p2', 'Année active → ' + (YEAR+1), 'Basculement vers ' + (YEAR+1) + '…')
-    + _cItem('wizc-p3', 'Configuration nettoyée', 'Nettoyage configuration…')
-    + '</div>';
-
-  const stepsC = [
-    {id:'wizc-p1', label:'Année ' + YEAR + ' archivée',        action: () => api({action:'archiveYear', year: YEAR})},
-    {id:'wizc-p2', label:'Année active → ' + (YEAR+1),         action: () => api({action:'setActiveYear', year: YEAR+1})},
-    {id:'wizc-p3', label:'Configuration nettoyée',              action: () => api({action:'clearIndisposYear'})},
-  ];
-
-  let allOkC = true;
-  for (let i = 0; i < stepsC.length; i++) {
-    const step = stepsC[i];
-    if (_cDone.has(step.id)) continue; // reprise : étape déjà réussie (ex. archivage), on ne la rejoue pas
-    const el = document.getElementById(step.id);
-    el.classList.add('running'); el.style.opacity = '1';
-    el.textContent = '⏳ ' + el.textContent.replace(/^[○⏳✓✕] /, '');
-    try {
-      const res = await step.action();
-      if (!res || !res.success) throw new Error(res?.error || 'Erreur');
-      _cDone.add(step.id);
-      el.classList.remove('running'); el.classList.add('done');
-      el.textContent = '✓ ' + step.label;
-      // Le rapport d'archivage peut contenir des ⚠️ non bloquants (onglet absent,
-      // purge sans effet) : ils etaient invisibles derriere le ✓ vert. On les montre.
-      if (step.id === 'wizc-p1' && res.message) {
-        const warns = String(res.message).split('\n').filter(l => l.trim().startsWith('⚠️'));
-        if (warns.length) {
-          const w = document.createElement('div');
-          w.style.cssText = 'margin:6px 0 10px 26px;font-size:11.5px;color:#92400E;line-height:1.6';
-          w.textContent = warns.join(' · ');
-          el.insertAdjacentElement('afterend', w);
-        }
-      }
-    } catch(e) {
-      el.classList.remove('running'); el.classList.add('error');
-      el.textContent = '✕ Erreur : ' + e.message;
-      allOkC = false; break;
-    }
-    const next = document.getElementById(stepsC[i+1]?.id);
-    if (next) { next.style.opacity = '1'; next.textContent = next.textContent.replace('○','⏳'); }
-  }
-
-  if (allOkC) {
-    YEAR = YEAR + 1;
-    document.getElementById('headerYear').textContent = YEAR;
-    setTimeout(() => {
-      document.getElementById('wizCBody').innerHTML = '<div style="text-align:center;padding:20px 0"><div style="font-size:48px;margin-bottom:12px">🎉</div><div style="font-size:17px;font-weight:700;margin-bottom:8px">Année ' + (YEAR-1) + ' clôturée !</div><div style="font-size:13px;color:var(--ink-3)">Stats archivées · Année active → ' + YEAR + '</div><button class="btn-primary" style="margin-top:20px" onclick="closeWizardCloture()">Fermer</button></div>';
-      nextBtn.style.display = 'none';
-    }, 600);
-  } else {
-    nextBtn.disabled = false; nextBtn.textContent = 'Réessayer';
-  }
-}
+// ── CLÔTURE D'ANNÉE ──────────────────────────────────────────────────────
+/* (15/11/2026) L'assistant de clôture a quitté cette page : la clôture se fait
+   depuis maintenance.html, réservée au responsable (le serveur refuse le code
+   comité). Restent ici la carte de l'étape 3 et le bandeau de janvier. */
 
 /* ═══════════════════════════════════════════════════════════════════════════
    CHRONO — INSTRUMENT DE MESURE (01/08/2026)
@@ -8367,40 +8211,13 @@ try {
       const wizParam = new URLSearchParams(window.location.search).get('wizard');
       if (wizParam === '1')      setTimeout(openWizard, 600);
       if (wizParam === 'gardes') setTimeout(openWizardGardes, 600);
-      if (wizParam === 'cloture') setTimeout(openWizardCloture, 600);
+      if (wizParam === 'cloture') location.href = 'maintenance.html';   // (15/11/2026) la clôture vit dans Maintenance
     } else {
       sessionStorage.removeItem('adminCode');
     }
   } catch(e) { sessionStorage.removeItem('adminCode'); }
 })();
 </script>
-
-<!-- WIZARD CLÔTURER L'ANNÉE -->
-<div class="wizard-overlay" id="wizardClotureOverlay">
-  <div class="wizard-box">
-    <div class="wizard-header">
-      <div class="wizard-title-row">
-        <div class="wizard-title">📦 Clôturer l'année <span id="wizClotureYear">2026</span></div>
-        <button class="wizard-close" onclick="closeWizardCloture()">✕</button>
-      </div>
-      <div class="wizard-steps">
-        <div class="wizard-step active" id="wizCStep0">
-          <div class="wizard-step-dot" id="wizCDot0">1</div>
-          <div class="wizard-step-label">Vérification</div>
-        </div>
-        <div class="wizard-step" id="wizCStep1">
-          <div class="wizard-step-dot" id="wizCDot1">2</div>
-          <div class="wizard-step-label">Archiver</div>
-        </div>
-      </div>
-    </div>
-    <div class="wizard-body" id="wizCBody"></div>
-    <div class="wizard-footer">
-      <button class="wizard-back" id="wizCBackBtn" onclick="wizCPrev()">← Retour</button>
-      <button class="wizard-next" id="wizCNextBtn" onclick="wizCNext()">Suivant →</button>
-    </div>
-  </div>
-</div>
 
 <!-- WIZARD GÉNÉRER LES GARDES -->
 <div class="wizard-overlay" id="wizardGardesOverlay">

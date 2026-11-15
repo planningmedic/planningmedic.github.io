@@ -147,7 +147,9 @@ console.log('\n═══ M2. Les cinq actions ═══');
   {
     const { d, appels, erreurs } = await monter(serveurMoi, 'MOI');
     V('avec la clé, la page s\'ouvre d\'elle-même (code du portail repris)', !d.getElementById('main').hidden && d.getElementById('authOverlay').style.display === 'none');
-    V('la connexion n\'appelle QUE getMedecins', appels.length === 1 && appels[0].action === 'getMedecins' && appels[0].code === 'MOI', appels);
+    /* (15/11/2026) La carte de clôture lit l'année active (lecture seule, sans code requis). */
+    V('la connexion appelle getMedecins, puis seulement l\'année active (aucune écriture)', appels[0].action === 'getMedecins' && appels[0].code === 'MOI'
+      && appels.every(a => a.action === 'getMedecins' || a.action === 'getActiveYear') && appels.length <= 2, appels.map(a => a.action));
     const lignes = [...d.querySelectorAll('#codesListe label')];
     V('seuls les MARs actifs sont listés (3 sur 4)', lignes.length === 3, lignes.length);
     const m2 = lignes.find(l => l.textContent.includes('M2'));
@@ -204,6 +206,63 @@ console.log('\n═══ M2. Les cinq actions ═══');
     d.getElementById('authInput').value = 'moi';
     d.getElementById('authBtn').click(); await dodo(120);
     V('le code tapé en minuscules est envoyé en majuscules et ouvre la page', appels[0] && appels[0].code === 'MOI' && !d.getElementById('main').hidden);
+  }
+
+  console.log('\n═══ M5. La clôture d\'année (15/11/2026) ═══');
+  {
+    const ctrl = (peut) => [{ niveau: 'bloquant', texte: 'Clôture refusée : l\'année 2027 n\'a pas encore commencé.' }].filter(() => !peut)
+      .concat([{ niveau: 'ok', texte: 'Année 2027 préparée et générée' }, { niveau: 'info', texte: 'Onglets qui partiront à l\'archive : GARDES_2026' }]);
+    const bilan = { mars: [{ id: 'MAR03', total: 60, weekends: 9, feries: 1, noelAn: 1 }, { id: 'MAR01', total: 58, weekends: 10, feries: 2, noelAn: 0 }],
+                    fetes: { '2026-12-24': ['MAR03'], '2026-12-25': ['MAR01'], '2026-12-31': [], '2027-01-01': ['MAR03'] } };
+    let peut = false, panne = false;
+    const serv = c => {
+      if (c.action === 'getActiveYear') return { success: true, year: 2026 };
+      if (c.action === 'clotureVerifier') return { success: true, year: 2026, peutClore: peut, faite: false, controles: ctrl(peut), bilan };
+      if (c.action === 'cloturerAnnee') { if (panne) throw new Error('délai dépassé'); return { success: true, year: 2026, etapes: [{ nom: 'Copie de sécurité du classeur', etat: 'fait' }, { nom: 'Année active → 2027', etat: 'fait' }], apres: [{ niveau: 'ok', texte: 'Année active : 2027' }] }; }
+      return serveurMoi(c);
+    };
+    const servPanne = c => { if (c.action === 'cloturerAnnee' && panne) return Promise.reject(new Error('délai dépassé')); return serv(c); };
+    const { d, appels, erreurs } = await monter(c => servPanne(c), 'MOI');
+    await dodo(60);
+    const etat = d.getElementById('clotEtat').textContent;
+    V('la carte dit l\'année active et quand clôturer', /Année active : 2026/.test(etat) && (/possible à partir du lundi 4 janvier 2027/.test(etat) || /clôture à faire/.test(etat)), etat);
+    V('le bouton porte l\'année : « Clôturer 2026 », grisé avant toute répétition', d.getElementById('btnClot').textContent === 'Clôturer 2026' && d.getElementById('btnClot').disabled);
+
+    d.getElementById('btnClotRep').click(); await dodo(120);
+    const out = d.getElementById('clotRes');
+    V('répétition : ⛔ annoncé, la clôture reste grisée', /1 point bloque la clôture/.test(out.textContent) && d.getElementById('btnClot').disabled, out.textContent.slice(0, 120));
+    V('répétition : les pastilles sont affichées', out.querySelectorAll('.pas').length === 3 && !!out.querySelector('.pas.bloq'));
+    const trs = [...out.querySelectorAll('.bil tr')].slice(1).map(tr => tr.textContent);
+    V('bilan : une ligne par MAR, avec ses INITIALES, triées', trs.length === 2 && /^M1/.test(trs[0]) && /^M3/.test(trs[1]) && !/MAR0/.test(out.querySelector('.bil').textContent), trs);
+    V('bilan : qui était de garde les jours de fêtes', /24\/12\/2026\s*M3/.test(out.querySelector('.fetes').textContent) && /31\/12\/2026\s*—/.test(out.querySelector('.fetes').textContent), out.querySelector('.fetes').textContent);
+    V('répétition : rien d\'écrit (aucun appel de clôture)', !appels.some(a => a.action === 'cloturerAnnee'));
+
+    peut = true;
+    d.getElementById('btnClotRep').click(); await dodo(120);
+    V('tout au vert : « Tout est prêt » et le bouton s\'allume', /Tout est prêt/.test(out.textContent) && !d.getElementById('btnClot').disabled);
+    const b = d.getElementById('btnClot');
+    b.click(); await dodo(30);
+    V('premier appui : le bouton s\'arme, rien ne part', b.classList.contains('arm') && /Confirmer : clôturer 2026/.test(b.textContent) && !appels.some(a => a.action === 'cloturerAnnee'), b.textContent);
+    b.click(); await dodo(150);
+    const cl = appels.filter(a => a.action === 'cloturerAnnee');
+    V('second appui : UNE clôture part, pour 2026, avec le code personnel', cl.length === 1 && cl[0].year === 2026 && cl[0].code === 'MOI', cl);
+    V('résultat : « 2026 clôturée », les étapes et le contrôle d\'après', /2026 clôturée/.test(out.textContent) && /Copie de sécurité du classeur/.test(out.textContent) && /Contrôle d'après/.test(out.textContent), out.textContent.slice(0, 160));
+    V('après la clôture, le bouton reste grisé (relancer la répétition d\'abord)', b.disabled);
+
+    panne = true;
+    d.getElementById('btnClotRep').click(); await dodo(120);
+    b.click(); await dodo(20); b.click(); await dodo(150);
+    V('réponse perdue : message clair, « relancez la répétition », sans risque', /La réponse n'est pas arrivée/.test(out.textContent) && /relancez la répétition/.test(out.textContent), out.textContent.slice(0, 200));
+    V('réponse perdue : la clôture n\'est JAMAIS renvoyée automatiquement', appels.filter(a => a.action === 'cloturerAnnee').length === 2);
+    V('aucune erreur JavaScript', erreurs.length === 0, erreurs.slice(0, 2));
+  }
+  {
+    const adm = lire('admin.html');
+    V('admin.html n\'a plus d\'assistant de clôture', !/function openWizardCloture/.test(adm) && !/id="wizardClotureOverlay"/.test(adm));
+    V('admin.html n\'appelle plus aucune action de clôture', !/action: ?'(archiveYear|cloturerAnnee|clotureVerifier|setActiveYear|clearIndisposYear)'/.test(adm));
+    V('la carte « Clôturer l\'année » de l\'admin mène à Maintenance', /<a class="action-card teal" href="maintenance\.html"/.test(adm));
+    V('le bandeau de janvier ne propose plus de bouton de clôture', !/cb-btn" onclick="openWizardCloture/.test(adm) && /à faire depuis la page Maintenance/.test(adm));
+    V('aucune autre page n\'appelle la clôture', ['index.html', 'planning.html', 'indispos.html', 'paie.html', 'dashboard.html', 'staff.html'].every(f => !/'(cloturerAnnee|archiveYear|clotureVerifier)'/.test(lire(f))));
   }
 
   console.log('\n═══ M4. La tuile et l\'écran du comité ═══');

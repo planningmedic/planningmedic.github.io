@@ -325,40 +325,26 @@ console.log('\n═══ 58. Avancement de la campagne d\'indisponibilités ═�
       /Array\.isArray\(_b\.periodes\)/.test(fn));
   }
 
-  console.log('\n═══ 20. La clôture ne s\'ouvre pas tant que l\'année suivante n\'a pas commencé ═══');
+  console.log('\n═══ 20. La clôture n\'est plus dans l\'admin : la carte renvoie à Maintenance ═══');
   {
-    /* (17/08/2026) Le code administrateur part au comité aujourd'hui. La carte
-       « Clôturer l'année » n'avait aucun garde-fou de date, et ses conditions
-       (onglets de l'année suivante présents) étaient satisfaites depuis août par
-       le bac à sable de la démonstration : deux clics suffisaient à déplacer le
-       planning EN COURS D'USAGE. Ici on vérifie sur la VRAIE page que l'assistant
-       refuse de s'ouvrir — c'est la barrière qui protège d'une exploration de
-       bonne foi, la seconde étant le refus serveur. */
+    /* (17/08/2026) L'assistant de clôture refusait de s'ouvrir avant le premier
+       lundi. (15/11/2026) Il a quitté l'admin : la clôture est réservée au
+       responsable, page Maintenance, et le serveur refuse le code comité
+       (banc_cloture.js, banc_maintenance.js). Restent ici la carte, qui annonce
+       la date sans qu'on clique, et le bandeau de janvier, sans bouton. */
     const { w } = await page(async () => ({ ok:true, json: async () => ({ success:true }) }));
-    let dit = '';
-    w.alert = m => { dit = String(m); };
-    w.eval('YEAR = 2026;');
-
-    await w.openWizardCloture();
-    const ouvert = w.document.getElementById('wizardClotureOverlay').classList.contains('open');
-    V('en août 2026, l\'assistant de clôture ne s\'ouvre pas', ouvert === false);
-    V('il dit à quelle date ce sera possible', /sera possible à partir du/.test(dit), dit.slice(0,80));
-    V('il dit que rien n\'a été modifié', /Rien n'a été modifié/.test(dit));
-    V('il nomme le danger, pas seulement l\'interdit', /planning en cours d'usage/.test(dit));
-
-    /* La carte l'annonce d'elle-même : personne ne doit cliquer pour l'apprendre. */
+    V('plus d\'assistant de clôture dans la page', typeof w.openWizardCloture === 'undefined' && !w.document.getElementById('wizardClotureOverlay'));
+    w.eval('YEAR = 2026; todayStr = function(){ return "2026-08-17"; };');
     w.eval('majCarteCloture();');
     const desc = w.document.getElementById('clotureCardDesc').textContent;
-    V('la carte annonce la date sans qu\'on clique', /Disponible à partir du/.test(desc), desc);
-
-    /* Et le jour venu, elle s'ouvre : le verrou est une date, pas une interdiction. */
-    w.eval('YEAR = 2026; nextYearAvailable = true;');
-    const vraiDate = w.Date;
-    w.eval('todayStr = function(){ return "2027-01-04"; };');
-    dit = '';
-    await w.openWizardCloture();
-    V('le 4 janvier 2027, l\'assistant s\'ouvre',
-      w.document.getElementById('wizardClotureOverlay').classList.contains('open') === true, dit.slice(0,80));
+    V('en août, la carte annonce la date et renvoie à Maintenance', /À partir du lundi 4 janvier 2027/.test(desc) && /page Maintenance/.test(desc), desc);
+    V('la carte est un lien vers maintenance.html', w.document.getElementById('clotureCardDesc').closest('a').getAttribute('href') === 'maintenance.html');
+    w.eval('majBandeauCloture();');
+    V('en août, pas de bandeau', w.document.getElementById('clotureBanner').style.display === 'none');
+    w.eval('todayStr = function(){ return "2027-01-04"; }; nextYearAvailable = true; try{localStorage.removeItem("pm_clotureVue");}catch(e){} majBandeauCloture();');
+    const ban = w.document.getElementById('clotureBanner');
+    V('le 4 janvier 2027 : le bandeau dit « à faire depuis la page Maintenance »', ban.style.display === 'flex' && /à faire depuis la page Maintenance/.test(ban.textContent), ban.textContent.slice(0, 120));
+    V('…sans bouton de clôture', !ban.querySelector('.cb-btn'));
   }
 
   console.log('\n═══ 64. La garde des 90 s ne ferme QUE l\'année écrite ═══');

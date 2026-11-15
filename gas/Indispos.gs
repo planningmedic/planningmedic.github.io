@@ -1,7 +1,7 @@
 // ⚠️ RÈGLE (détecteur de dérive dépôt↔Apps Script) : incrémenter cette version
 // à CHAQUE push de ce fichier. Le diagnostic (admin → Maintenance) compare la
 // version déployée ici avec celle du dépôt et signale toute recopie oubliée.
-const GAS_VERSION_INDISPOS = '2026-11-15.1';   // (15/11/2026) clôture d'année : archiveYear délègue à la clôture complète en un appel (cloturerAnnee_), actions cloturerAnnee et clotureVerifier (répétition à blanc) ; setActiveYear relit la case et échoue si rien n'a été écrit · (11/11/2026) action annulerEchange (tout code valide, le demandeur seul — contrôlé dans echanges.gs) · (11/11/2026) action recupsReparer (rôle maintenance) · (01/11/2026) rôle `maintenance` (diagComplet, viderCacheConfig, sendCodes) · (27/10/2026) demi-journées de vacances VM/VA (CODES_DEMI_VAC) · (27/10/2026) champ ordreMc (colonne ORDRE_MC) · (24/10/2026) action journalAppliquerMaintenant (journal.gs) · (18/10/2026) rôle « paie » (code partagé des secrétaires de paie) + refus par défaut de tout rôle autre que admin/mar hors de sa liste blanche
+const GAS_VERSION_INDISPOS = '2026-11-15.2';   // (15/11/2026) .2 : clôture, répétition, changement d'année et fermeture de campagne réservés au droit Maintenance (code comité refusé) · (15/11/2026) clôture d'année : archiveYear délègue à la clôture complète en un appel (cloturerAnnee_), actions cloturerAnnee et clotureVerifier (répétition à blanc) ; setActiveYear relit la case et échoue si rien n'a été écrit · (11/11/2026) action annulerEchange (tout code valide, le demandeur seul — contrôlé dans echanges.gs) · (11/11/2026) action recupsReparer (rôle maintenance) · (01/11/2026) rôle `maintenance` (diagComplet, viderCacheConfig, sendCodes) · (27/10/2026) demi-journées de vacances VM/VA (CODES_DEMI_VAC) · (27/10/2026) champ ordreMc (colonne ORDRE_MC) · (24/10/2026) action journalAppliquerMaintenant (journal.gs) · (18/10/2026) rôle « paie » (code partagé des secrétaires de paie) + refus par défaut de tout rôle autre que admin/mar hors de sa liste blanche
 
 /* ── (01/08/2026) MARQUEUR DE TEMPS GLOBAL — mesure, ne change rien ───────
    `_srv_ms` chronometre l'INTERIEUR de doGet. Or avant que doGet soit appele,
@@ -363,7 +363,7 @@ function _actions_() {
     "getJoursFeries"              : { role: 'admin'             , fn: _act_getJoursFeries },   // indisponibilites.gs
     "getOrdreVacances"            : { role: 'mar seulement'     , fn: _act_getOrdreVacances },   // indisponibilites.gs
     "getVacConfig"                : { role: 'tout code valide'  , fn: _act_getVacConfig },   // indisponibilites.gs
-    "setActiveYear"               : { role: 'admin'             , fn: _act_setActiveYear },   // Indispos.gs
+    "setActiveYear"               : { role: 'maintenance'       , fn: _act_setActiveYear },   // Indispos.gs (15/11/2026) page Maintenance seulement
     "initYear"                    : { role: 'admin'             , fn: _act_initYear },   // Indispos.gs
     "publishPlanning"             : { role: 'admin'             , fn: _act_publishPlanning },   // gardes.gs
     "getVacValidation"            : { role: 'admin'             , fn: _act_getVacValidation },   // indisponibilites.gs
@@ -384,9 +384,9 @@ function _actions_() {
     "mailMessage"                 : { role: 'admin'             , fn: _act_mailMessage },   // equipe.gs
     "diagComplet"                 : { role: 'maintenance'       , fn: _act_diagComplet },   // diagnostic.gs
     "recupsReparer"               : { role: 'maintenance'       , fn: _act_recupsReparer },   // gardes.gs (11/11/2026) récupérations de samedi : aperçu puis réparation
-    "archiveYear"                 : { role: 'admin'             , fn: _act_archiveYear },   // Indispos.gs → cloturerAnnee_ (setup_annee.gs)
-    "cloturerAnnee"               : { role: 'admin'             , fn: _act_cloturerAnnee },   // Indispos.gs (15/11/2026) clôture complète en un appel
-    "clotureVerifier"             : { role: 'admin'             , fn: _act_clotureVerifier },   // Indispos.gs (15/11/2026) répétition à blanc
+    "archiveYear"                 : { role: 'maintenance'       , fn: _act_archiveYear },   // Indispos.gs → cloturerAnnee_ (setup_annee.gs)
+    "cloturerAnnee"               : { role: 'maintenance'       , fn: _act_cloturerAnnee },   // Indispos.gs (15/11/2026) clôture complète en un appel
+    "clotureVerifier"             : { role: 'maintenance'       , fn: _act_clotureVerifier },   // Indispos.gs (15/11/2026) répétition à blanc
     "saveAffectationsMar"         : { role: 'admin'             , fn: _act_saveAffectationsMar },   // gardes.gs
     "addMedecinToGroupe"          : { role: 'admin'             , fn: _act_addMedecinToGroupe },   // equipe.gs
     "resetCodeMar"                : { role: 'admin'             , fn: _act_resetCodeMar },   // equipe.gs
@@ -394,7 +394,7 @@ function _actions_() {
     "getConflitsAll"              : { role: 'admin'             , fn: _act_getConflitsAll },   // indisponibilites.gs
     "envoyerRecapIndispos"        : { role: 'admin'             , fn: _act_envoyerRecapIndispos },   // indisponibilites.gs
     "setIndisposYear"             : { role: 'admin'             , fn: _act_setIndisposYear },   // indisponibilites.gs
-    "clearIndisposYear"           : { role: 'admin'             , fn: _act_clearIndisposYear },   // indisponibilites.gs
+    "clearIndisposYear"           : { role: 'maintenance'       , fn: _act_clearIndisposYear },   // indisponibilites.gs (15/11/2026) page Maintenance seulement
     "savePlanningOverride"        : { role: 'admin'             , fn: _act_savePlanningOverride },   // gardes.gs
     "savePlanningOverridesBatch"  : { role: 'admin'             , fn: _act_savePlanningOverridesBatch },   // gardes.gs
     "getPanneauSemaine"           : { role: 'admin'             , fn: _act_getPanneauSemaine },   // gardes.gs
@@ -592,7 +592,7 @@ function _act_getAnneesDisponibles(R) {
    repliait en silence sur 2026. */
 function _act_setActiveYear(R) {
   const { payload, user } = R;
-  if (user.role !== 'admin') return _deny();
+  if (!_droitMaintenance_(user)) return _deny();   // (15/11/2026) page Maintenance seulement : le code comité est refusé
   const newYear = Number(payload.year);
   if (!newYear || newYear < 2026) return _error('Année invalide');
   try { _clotureEcrireAnnee_(newYear); }
@@ -741,7 +741,7 @@ affSheet.getRange(2, 2, affRows.length, 12)
    et clearIndisposYear : ils trouvent tout déjà fait et répondent succès. */
 function _act_archiveYear(R) {
   const { payload, user } = R;
-  if (user.role !== 'admin') return _deny();
+  if (!_droitMaintenance_(user)) return _deny();   // (15/11/2026) page Maintenance seulement : le code comité est refusé
   const yearToArchive = Number(payload.year);
   if (!yearToArchive || yearToArchive < 2026) return _error('Année invalide');
   try {
@@ -753,14 +753,14 @@ function _act_archiveYear(R) {
 /* ── action "cloturerAnnee" (15/11/2026) : la même clôture, nommée pour l'écran à venir ── */
 function _act_cloturerAnnee(R) {
   const { user } = R;
-  if (user.role !== 'admin') return _deny();
+  if (!_droitMaintenance_(user)) return _deny();   // (15/11/2026) page Maintenance seulement : le code comité est refusé
   return _act_archiveYear(R);
 }
 
 /* ── action "clotureVerifier" (15/11/2026) : répétition à blanc, RIEN n'est écrit ── */
 function _act_clotureVerifier(R) {
   const { payload, user } = R;
-  if (user.role !== 'admin') return _deny();
+  if (!_droitMaintenance_(user)) return _deny();   // (15/11/2026) page Maintenance seulement : le code comité est refusé
   try {
     const v = clotureVerifier_(Number(payload.year) || getActiveYear());
     delete v.etat;   // l'écran n'en a pas besoin

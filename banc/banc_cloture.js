@@ -93,7 +93,10 @@ function monde(opts) {
     reconstruireDatesHeaders: (data) => (data[2] || []).slice(1),
     BACKUP_FOLDER_NAME: 'Planning-Med-Backups',
     ARCHIVE_SS_ID: opts.sansArchiveId ? '' : 'id-archive',
-    _deny: () => ({ texte: '{"success":false,"error":"refusé"}' }),
+    _deny: () => ({ texte: '{"success":false,"error":"Accès refusé"}' }),
+    /* La vraie porte (_droitMaintenance_, equipe.gs) a son banc (banc_maintenance.js) :
+       ici, seul le responsable (MAR « RESP ») l'a. */
+    _droitMaintenance_: u => !!u && u.role === 'mar' && u.id === 'RESP',
     _error: m => ({ texte: JSON.stringify({ success: false, error: m }) }),
   };
   /* computeStatsLive (code.gs) a son propre banc ; ici, un comptage simple des G / G2
@@ -125,8 +128,9 @@ function monde(opts) {
   const cfg = cle => (M.getSheetByName('CONFIG').lignes.find(r => r[0] === cle) || [])[1];
   return { M, A, ctx, journal, photo, cfg };
 }
-const admin = { role: 'admin' };
-const action = (w, nom, payload) => JSON.parse(w.ctx['_act_' + nom]({ payload: payload || {}, user: admin, action: nom }).texte);
+const RESP = { role: 'mar', id: 'RESP' };      // le responsable, page Maintenance
+const COMITE = { role: 'admin' };              // le code partagé du comité
+const action = (w, nom, payload, user) => JSON.parse(w.ctx['_act_' + nom]({ payload: payload || {}, user: user || RESP, action: nom }).texte);
 
 console.log('═══ A. Clôture normale, lundi 04/01/2027 ═══');
 {
@@ -273,6 +277,18 @@ console.log('═══ L. L\'écran actuel (trois appels) passe par la même cl�
   V('état final identique à la clôture en un geste', w.cfg('ANNEE_ACTIVE') === 2027 && !w.M.getSheetByName('GARDES_2026') && w.cfg('INDISPOS_ACTIVE') === undefined);
 }
 
+console.log('═══ N. Le code du comité est refusé (15/11/2026 : page Maintenance seulement) ═══');
+{
+  const w = monde();
+  const avant = w.photo();
+  const refus = ['clotureVerifier', 'cloturerAnnee', 'archiveYear', 'setActiveYear', 'clearIndisposYear']
+    .map(n => [n, action(w, n, { year: n === 'setActiveYear' ? 2027 : 2026 }, COMITE)]);
+  V('les cinq actions refusent le code comité', refus.every(([, r]) => r.success === false && r.error === 'Accès refusé'), refus.map(([n, r]) => n + ':' + r.success));
+  V('…et rien n\'a bougé, aucune copie, aucun mail', w.photo() === avant && !w.journal.copies.length && !w.journal.mails.length);
+  V('un autre MAR (sans le droit Maintenance) est refusé aussi', action(w, 'cloturerAnnee', { year: 2026 }, { role: 'mar', id: 'AUTRE' }).success === false && w.photo() === avant);
+  V('le responsable, lui, passe', action(w, 'cloturerAnnee', { year: 2026 }).success === true && w.cfg('ANNEE_ACTIVE') === 2027);
+}
+
 console.log('═══ M. Le code ═══');
 {
   const tout = fs.readdirSync(GAS).filter(f => f.endsWith('.gs') && f !== 'dev.gs').map(lire).join('\n');
@@ -297,7 +313,7 @@ console.log('═══ Contre-preuves : l\'ancien code (4fec50a) rejoué ══�
     {
       const w = monde({ sansAnneeActive: true });
       vm.runInContext(extraireFonction(fInd, '_act_setActiveYear'), w.ctx);
-      const s = action(w, 'setActiveYear', { year: 2027 });
+      const s = action(w, 'setActiveYear', { year: 2027 }, COMITE);
       V('ANCIEN setActiveYear : « succès » sans rien écrire — le test sait le voir', s.success === true && w.cfg('ANNEE_ACTIVE') === undefined, s);
     }
     // 2. L'ancien archiveYear lancé depuis l'éditeur en novembre 2026 : il archivait 2027
@@ -317,10 +333,21 @@ console.log('═══ Contre-preuves : l\'ancien code (4fec50a) rejoué ══�
       w.ctx.getSpreadsheetTimeZone = () => 'Europe/Paris';
       w.M.getSpreadsheetTimeZone = () => 'Europe/Paris';
       vm.runInContext(extraireFonction(fInd, '_act_archiveYear'), w.ctx);
-      const r = action(w, 'archiveYear', { year: 2026 });
+      const r = action(w, 'archiveYear', { year: 2026 }, COMITE);
       V('ANCIEN serveur, lundi 04/01/2027 à 9 h : clôture refusée — le test sait le voir', r.success === false && /n'a pas encore commencé/.test(r.error || ''), r);
       const w2 = monde({ jour: new Date(2027, 0, 4, 9, 0) });
       V('NOUVEAU serveur, même heure : acceptée', w2.ctx.cloturerAnnee_(2026).success === true);
+    }
+    // 4. L'ancien archiveYear, le 04/01/2027 à 13 h, avec le code du COMITÉ : il clôturait
+    {
+      const VraiDate = Date, t0 = new VraiDate(2027, 0, 4, 13, 0).getTime();
+      function DateFigee(...a) { return a.length ? new VraiDate(...a) : new VraiDate(t0); }
+      DateFigee.now = () => t0;
+      const w = monde({ Date: DateFigee, jour: new Date(t0) });
+      w.M.getSpreadsheetTimeZone = () => 'Europe/Paris';
+      vm.runInContext(extraireFonction(fInd, '_act_archiveYear'), w.ctx);
+      const r = action(w, 'archiveYear', { year: 2026 }, COMITE);
+      V('ANCIEN serveur : le code du comité clôturait l\'année — le test sait le voir', r.success === true && !w.M.getSheetByName('GARDES_2026'), r);
     }
     try { fs.unlinkSync(fInd); fs.unlinkSync(fSet); } catch (e) {}
   }

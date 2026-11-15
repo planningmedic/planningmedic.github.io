@@ -48,7 +48,7 @@ const CONTRAT = {
   'getJoursFeries'            : 'admin',
   'getOrdreVacances'          : 'mar seulement',
   'getVacConfig'              : 'tout code valide',
-  'setActiveYear'             : 'admin',
+  'setActiveYear'             : 'maintenance',
   'initYear'                  : 'admin',
   'publishPlanning'           : 'admin',
   'getVacValidation'          : 'admin',
@@ -69,9 +69,9 @@ const CONTRAT = {
   'mailMessage'               : 'admin',
   'diagComplet'               : 'maintenance',
   'recupsReparer'             : 'maintenance',   // (11/11/2026) récupérations de samedi : aperçu puis réparation
-  'archiveYear'               : 'admin',
-  'cloturerAnnee'             : 'admin',   // (15/11/2026) clôture d'année en un appel
-  'clotureVerifier'           : 'admin',   // (15/11/2026) répétition à blanc de la clôture
+  'archiveYear'               : 'maintenance',
+  'cloturerAnnee'             : 'maintenance',   // (15/11/2026) clôture d'année en un appel
+  'clotureVerifier'           : 'maintenance',   // (15/11/2026) répétition à blanc de la clôture
   'saveAffectationsMar'       : 'admin',
   'addMedecinToGroupe'        : 'admin',
   'resetCodeMar'              : 'admin',
@@ -79,7 +79,7 @@ const CONTRAT = {
   'getConflitsAll'            : 'admin',
   'envoyerRecapIndispos'      : 'admin',
   'setIndisposYear'           : 'admin',
-  'clearIndisposYear'         : 'admin',
+  'clearIndisposYear'         : 'maintenance',
   'savePlanningOverride'      : 'admin',
   'savePlanningOverridesBatch': 'admin',
   'getPanneauSemaine'         : 'admin',
@@ -144,9 +144,9 @@ V('aucune action hors contrat', enTrop.length === 0, enTrop);
 const roleChange = Object.keys(attendu).filter(a => actions[a] && actions[a] !== attendu[a]).map(a => a + ': ' + attendu[a] + ' → ' + actions[a]);
 V('chaque action garde exactement son contrôle d\'accès', roleChange.length === 0, roleChange);
 V('exactement deux actions sans code : les listes d\'années', Object.values(actions).filter(r => r === 'sans code').length === 2);
-V('46 actions réservées au comité', Object.values(actions).filter(r => r === 'admin').length === 46, Object.values(actions).filter(r => r === 'admin').length);
-V('exactement quatre actions de maintenance : diagnostic, cache, envoi groupé des codes, réparation des récupérations',
-  JSON.stringify(Object.keys(actions).filter(a => actions[a] === 'maintenance').sort()) === JSON.stringify(['diagComplet', 'recupsReparer', 'sendCodes', 'viderCacheConfig']),
+V('41 actions réservées au comité', Object.values(actions).filter(r => r === 'admin').length === 41, Object.values(actions).filter(r => r === 'admin').length);
+V('exactement neuf actions de maintenance : diagnostic, cache, envoi groupé des codes, réparation des récupérations, et les cinq de la clôture d\'année (15/11/2026)',
+  JSON.stringify(Object.keys(actions).filter(a => actions[a] === 'maintenance').sort()) === JSON.stringify(['archiveYear', 'clearIndisposYear', 'clotureVerifier', 'cloturerAnnee', 'diagComplet', 'recupsReparer', 'sendCodes', 'setActiveYear', 'viderCacheConfig']),
   Object.keys(actions).filter(a => actions[a] === 'maintenance'));
 { /* La porte de maintenance n'admet QUE le MAR qui a la tuile : ni le comité, ni un MAR sans la clé. */
   const tout = require('./stubs').sourceGasTout();
