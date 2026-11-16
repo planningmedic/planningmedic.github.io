@@ -37,7 +37,7 @@ function grille(ss) {
 console.log('\n═══ 1. Le correctif est bien dans le code, pas seulement dans ce test ═══');
 const BLOC18 = (SRC.match(/function dispo18\([^)]*\)\{([\s\S]*?)\n  \}/) || [])[1] || '';
 V('dispo18 regarde le lendemain (vacances)', /VAC_LENDEMAIN_18\.has\(indispos\[id\]\?\.\[addOneDay\(date\)\]\)/.test(BLOC18), BLOC18.slice(0, 200));
-V('dispo18 accepte la semaine Réa 1 seulement sur demande (rea1Ok)', /function dispo18\(id,date,rea1Ok\)/.test(SRC) && /!rea1Ok&&REA1_SEM/.test(BLOC18));
+V('dispo18 accepte la semaine Réa 1 seulement sur demande (rea1Ok)', /function dispo18\(id,date,rea1Ok,veilleOk\)/.test(SRC) && /!rea1Ok&&REA1_SEM/.test(BLOC18));
 V('les deux contre-épreuves ont bien retiré leur règle', SANS_VEILLE !== SRC && SANS_RECOURS !== SRC);
 
 /* ── 2. Veille de vacances ── Chaque MAR pose des vacances qui commencent un
@@ -123,6 +123,33 @@ console.log('\n═══ 4. Réa 1 : en tout dernier recours, il tient la soiré
   const B = genRea(im, SANS_RECOURS);
   V('CONTRE-ÉPREUVE : avec l\'interdit absolu, la soirée reste sans 18 h', !B.err && !Object.values(B.G).some(x => x[JOUR] === '18')
     && B.rep.warnings.some(w => w.indexOf('Aucun 18h ' + JOUR) >= 0), { err: B.err });
+}
+
+console.log('\n═══ 5. Veille de vacances : en tout dernier recours, la soirée n\'est pas laissée vide (choix du 16/11) ═══');
+/* Vendredi 24/12/2027 : tous les MAR partent en vacances le 25 — le cas réel des
+   indispos 2027. La règle cède plutôt que de laisser la soirée sans 18 h, et l'essai le dit. */
+{
+  const JOUR = '2027-12-24', im = {};
+  /* Quatre MAR restent pour tenir les gardes de Noël, mais sont « A » le 24 (absents de
+     jour, garde possible) : personne d'autre que les partants ne peut faire le 18 h. */
+  const quatre = h.defaultRoster().filter(r => !(r[3] || {}).noGarde && (r[1] || 0) >= 100).slice(0, 4).map(r => r[0]);
+  h.defaultRoster().forEach(([id]) => { im[id] = quatre.indexOf(id) >= 0 ? { [JOUR]: 'A' } : { '2027-12-25': 'VAC', '2027-12-26': 'VAC' }; });
+  const run = src => { const roster = h.defaultRoster();
+    const s2 = h.makeSpreadsheet([h.makeSheet('MEDECINS', h.medecinsRows(roster)), h.makeSheet('INDISPOS_' + YEAR, h.indisposRows(YEAR, roster, im)),
+      h.makeSheet('PERIODES_VAC', h.periodesRows(YEAR)), h.makeSheet('CONFIG', [['CLE', 'VALEUR']])]);
+    const ctx = h.buildContext(s2, [], src); let rep = null, err = null;
+    try { rep = ctx.generateGardes(YEAR, { dryRun: true, tirage: 1 }); ctx.generateGardes(YEAR, { tirage: 1 }); } catch (e) { err = e.message; }
+    const G = grille(s2) || {}; return { err, rep, tenu: Object.keys(G).filter(id => G[id][JOUR] === '18') }; };
+  const A = run(SRC);
+  V('la génération aboutit', !A.err, A.err);
+  V('le 18 h du 24/12 est tenu (une personne)', A.tenu.length === 1, A.tenu);
+  V('l\'essai l\'annonce : « 18 h la veille de vacances (dernier recours…) : 2027-12-24 »',
+    A.rep && A.rep.warnings.some(w => /18 h la veille de vacances \(dernier recours/.test(w) && w.indexOf(JOUR) >= 0), (A.rep || {}).warnings);
+  V('aucun « Aucun 18h » ce jour-là', A.rep && !A.rep.warnings.some(w => w.indexOf('Aucun 18h ' + JOUR) >= 0));
+  const STRICT = SRC.replace('if(!veilleOk&&VAC_LENDEMAIN_18', 'if(VAC_LENDEMAIN_18');
+  const B = run(STRICT);
+  V('CONTRE-ÉPREUVE : avec la règle stricte, la soirée reste vide', STRICT !== SRC && !B.err && B.tenu.length === 0
+    && B.rep.warnings.some(w => w.indexOf('Aucun 18h ' + JOUR) >= 0), { err: B.err, tenu: B.tenu });
 }
 
 console.log(`\n  ${ok} ✓  ${ko} ✗`);

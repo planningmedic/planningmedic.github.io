@@ -93,7 +93,8 @@ V('même liste que le recomptage sur la grille écrite', JSON.stringify(d10.sort
 console.log('\n═══ 5. Contre-épreuve : le scénario produit bien des cas ═══');
 V('au moins un cas relevé (sinon les recomptages ci-dessus ne prouvent rien)', Q.grg.length + Q.ven18.length + Q.dense10.length > 0, Q);
 V('le total « le calcul avait le choix » est cohérent avec les listes',
-  Q.nbChoix === Q.grg.filter(c => c.libres > 0).length + Q.dense10.filter(c => c.libres > 0).length + Q.ven18.filter(c => !c.impose).length + Q.mois.length + Q.we2.length, Q.nbChoix);
+  Q.nbChoix === Q.grg.filter(c => c.libres > 0).length + Q.dense10.filter(c => c.libres > 0).length + Q.ven18.filter(c => !c.impose).length + Q.mois.length + Q.we2.filter(c => c.libres > 0).length, Q.nbChoix);
+V('les deux week-ends d\'affilée portent aussi un nombre de MAR libres', Q.we2.every(c => Number.isInteger(c.libres) && c.libres >= 0));
 
 console.log('\n═══ 6. L\'essai affiche le contrôle, et le planning ne change pas ═══');
 {

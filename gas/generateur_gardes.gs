@@ -41,7 +41,7 @@
 // ⚠️ RÈGLE (détecteur de dérive dépôt↔Apps Script) : incrémenter cette version
 // à CHAQUE push de ce fichier. Le diagnostic (admin → Maintenance) compare la
 // version déployée ici avec celle du dépôt et signale toute recopie oubliée.
-const GAS_VERSION_GENERATEUR = '2026-11-16.2';   // (16/11/2026) .2 : CONTRÔLE QUALITÉ dans l'essai de génération — garde-repos-garde non souhaitée, 4 gardes en 10 jours, mois chargés, deux week-ends d'affilée, 18 h du vendredi ; chaque cas dit s'il était imposé ou si le calcul avait le choix ; le planning ne change pas · .1 : 18 H — jamais la veille de vacances ; en semaine Réa 1 seulement en tout dernier recours (annoncé par l'essai) · (15/11/2026) .1 : ROTATION D'ÉQUITÉ à partir des gardes 2028 — même fourchette pour tous les MAR de même part, sans report qui la décale ; le retard cumulé de toutes les années (été compris) décide qui prend le haut ; part des autres calculée sur les gardes réelles du régime à part ; Noël et Jour de l'An hors des compteurs fins (gardés dans le total) ; réparation finale entre collègues et diagnostic des écarts de 2 ; 2027 se rejoue à l'identique · (14/11/2026) .2 : STATISTIQUES — tous les axes écrits (week-ends, été, part visée de chaque axe) ; le planning ne change pas · .1 : lissage mensuel par échanges neutres (aucun compteur ne bouge) · 18 h du vendredi : échange à trois MAR en plus de l'échange un pour un · écart entre collègues de même part payé dans la dernière passe · LA FOURCHETTE : plus de cible tirée au sort entre MAR de même part ; tout le calcul vise que chacun soit entre l'arrondi inférieur et supérieur de sa part exacte, sur chaque compteur (les week-ends gardent leur nombre entier, égal à part égale) · (13/11/2026) tout lisser, suite : le relais (un troisième MAR sert d'intermédiaire quand le +1 ne peut rien donner directement au −1), deux parcours et le meilleur est gardé — fériés et été mieux lissés · mesures de la passe 8nonies remplacées par celles de l'essai de génération chez Google (32 → 24, dont 12 d'arrondis ; 8 s) : les précédentes venaient d'une simulation qui ignorait les indisponibilités du dernier jour de l'année. Aucun changement de calcul · tout lisser : dernière passe qui apparie les +1 et les −1 d'un même compteur (week-ends, été, fériés, jeudis, samedis, vendredis), un souhait pouvant être retiré pour remettre un compteur à sa cible · rattrapage : 60 % du retard cumulé dans la visée, arrondi au plus proche (le retard n'est plus compté deux fois) · comptes exacts : vendredis-dimanches et week-ends déduits du planning réel · retouche : les week-ends d'abord · mémoire de plusieurs années : les années archivées sont relues dans le classeur d'archives · 18 h du vendredi à l'un des deux MAR du samedi · week-ends : cible égale à quotité égale, été, réa / maternité
+const GAS_VERSION_GENERATEUR = '2026-11-16.3';   // (16/11/2026) .3 : CHRONO DE L'EXÉCUTION — les passes lourdes (optimisation finale, week-ends, appariement, lissage mensuel) s'arrêtent à temps, comptées depuis le début de l'exécution, pour tenir les 6 min de Google (annoncé) · 18 h la veille de vacances en tout dernier recours si la soirée resterait vide · essai écrit en morceaux dans le journal · contrôle qualité : les MAR libres aussi pour deux week-ends d'affilée · .2 : CONTRÔLE QUALITÉ dans l'essai de génération — garde-repos-garde non souhaitée, 4 gardes en 10 jours, mois chargés, deux week-ends d'affilée, 18 h du vendredi ; chaque cas dit s'il était imposé ou si le calcul avait le choix ; le planning ne change pas · .1 : 18 H — jamais la veille de vacances ; en semaine Réa 1 seulement en tout dernier recours (annoncé par l'essai) · (15/11/2026) .1 : ROTATION D'ÉQUITÉ à partir des gardes 2028 — même fourchette pour tous les MAR de même part, sans report qui la décale ; le retard cumulé de toutes les années (été compris) décide qui prend le haut ; part des autres calculée sur les gardes réelles du régime à part ; Noël et Jour de l'An hors des compteurs fins (gardés dans le total) ; réparation finale entre collègues et diagnostic des écarts de 2 ; 2027 se rejoue à l'identique · (14/11/2026) .2 : STATISTIQUES — tous les axes écrits (week-ends, été, part visée de chaque axe) ; le planning ne change pas · .1 : lissage mensuel par échanges neutres (aucun compteur ne bouge) · 18 h du vendredi : échange à trois MAR en plus de l'échange un pour un · écart entre collègues de même part payé dans la dernière passe · LA FOURCHETTE : plus de cible tirée au sort entre MAR de même part ; tout le calcul vise que chacun soit entre l'arrondi inférieur et supérieur de sa part exacte, sur chaque compteur (les week-ends gardent leur nombre entier, égal à part égale) · (13/11/2026) tout lisser, suite : le relais (un troisième MAR sert d'intermédiaire quand le +1 ne peut rien donner directement au −1), deux parcours et le meilleur est gardé — fériés et été mieux lissés · mesures de la passe 8nonies remplacées par celles de l'essai de génération chez Google (32 → 24, dont 12 d'arrondis ; 8 s) : les précédentes venaient d'une simulation qui ignorait les indisponibilités du dernier jour de l'année. Aucun changement de calcul · tout lisser : dernière passe qui apparie les +1 et les −1 d'un même compteur (week-ends, été, fériés, jeudis, samedis, vendredis), un souhait pouvant être retiré pour remettre un compteur à sa cible · rattrapage : 60 % du retard cumulé dans la visée, arrondi au plus proche (le retard n'est plus compté deux fois) · comptes exacts : vendredis-dimanches et week-ends déduits du planning réel · retouche : les week-ends d'abord · mémoire de plusieurs années : les années archivées sont relues dans le classeur d'archives · 18 h du vendredi à l'un des deux MAR du samedi · week-ends : cible égale à quotité égale, été, réa / maternité
 // précédente : '2026-10-27.1'
 
 /* (05/09/2026) INTERRUPTEUR DU NOUVEL ALGORITHME — récit : docs/JOURNAL-Planning-Med.md §101 */
@@ -159,7 +159,21 @@ const WE_ETE_MOIS  = [7, 8];
 const WE_ITERS     = 1600000;
 const WE_POIDS     = { ete: 3, annee: 3 };
 const WE_SOBRIETE  = 0.3;
-const WE_LIMITE_MS = 270000;
+const WE_LIMITE_MS = 250000;
+/* (16/11/2026) CHRONO DE L'EXÉCUTION — la limite de Google (6 min) vaut pour TOUTE
+   l'exécution : les 8 tirages du choix du meilleur planning, puis le planning retenu
+   avec toutes ses passes, puis l'écriture. Mesuré le 16/11 sur les indispos 2027 :
+   essai 318 s, dont ~65 s de tirages avant même le planning retenu. Les plafonds des
+   passes lourdes se comptent donc depuis le DÉBUT DE L'EXÉCUTION (le code global
+   d'Apps Script est relu à chaque exécution), pas depuis le début du planning
+   retenu. Chaque passe coupée garde son meilleur état déjà validé et l'essai le dit.
+   Il reste ~60 s pour l'écriture. Banc : __BANC_T0__ simule une exécution déjà avancée. */
+const _T0_EXECUTION_ = Date.now();
+function _t0Exec_(){ return (typeof __BANC_T0__ === 'number') ? __BANC_T0__ : _T0_EXECUTION_; }
+function _ecoule_(){ return Date.now() - _t0Exec_(); }
+const OPTIM_FIN_MS = 170000;   // optimisation finale
+const APP_FIN_MS   = 285000;   // appariement « le +1 donne au −1 » et réparation des écarts
+const LISSE_FIN_MS = 300000;   // lissage mensuel, dernière passe lourde
 
 /* (13/09/2026) L'identifiant du classeur d'archive ne vit plus dans le dépôt — récit : docs/JOURNAL-Planning-Med.md §102 */
 let _archiveSsIdMemo_ = null;
@@ -412,6 +426,8 @@ function essaiGenerationGardes(year) {
   L.push('Planning retenu : n° ' + _t + ' — celui qu\'écrirait la vraie génération');
   L.push('Durée : ' + _total.toFixed(1) + ' s au total (la vraie génération y ajoute l\'écriture)   ·   ' + r.gardeurs + ' médecins de garde');
   if (_total > 240) L.push('⚠️ Plus de 4 minutes : la vraie génération risque d\'atteindre la limite de 6 minutes de Google.');
+  /* (16/11/2026) Le chrono coupe les passes lourdes à temps : l'essai dit lesquelles. */
+  if (r.ecourtees && r.ecourtees.length) L.push('⏱️ Passe(s) écourtée(s) pour tenir les 6 minutes : ' + r.ecourtees.join(', ') + ' — le meilleur état déjà trouvé est gardé.');
   L.push('');
 
   // ── 1. la couverture, avant tout : un trou est plus grave qu'un déséquilibre
@@ -435,7 +451,7 @@ function essaiGenerationGardes(year) {
     L.push('   Mois chargés (2,5 gardes ou plus au-dessus de l\'attendu) : ' + Q.mois.length);
     Q.mois.forEach(function (c) { L.push('      ' + pad(c.id, 12) + MOIS[c.m] + ' : ' + c.c + ' gardes pour ' + String(c.e).replace('.', ',') + ' attendues' + (c.souhaits ? ' · dont ' + c.souhaits + ' souhaitée(s)' : '')); });
     L.push('   Deux week-ends d\'affilée non souhaités : ' + Q.we2.length);
-    Q.we2.forEach(function (c) { L.push('      ' + pad(c.id, 12) + fr(c.a) + ' et ' + fr(c.b)); });
+    Q.we2.forEach(function (c) { L.push('      ' + pad(c.id, 12) + fr(c.a) + ' et ' + fr(c.b) + ' · ' + etat(c.libres)); });
     L.push('   18 h du vendredi sans garde le samedi : ' + Q.ven18.length);
     Q.ven18.forEach(function (c) { L.push('      ' + pad(c.id, 12) + fr(c.date) + ' · ' + (c.impose ? 'imposé (les deux MAR du samedi ne pouvaient pas)' : 'le calcul avait le choix')); });
     L.push('');
@@ -597,8 +613,19 @@ function essaiGenerationGardes(year) {
   L.push('Rien n\'a été écrit dans le classeur, aucune notification envoyée.');
 
   const txt = L.join('\n');
-  Logger.log(txt);
+  /* (16/11/2026) JOURNAL DÉCOUPÉ — en un seul bloc, le Journal d'exécution tronquait
+     l'essai (« Sortie tronquée », constaté le 16/11 : la fin manquait dès les fériés).
+     On l'écrit en morceaux de 6 000 caractères au plus, coupés en fin de ligne. */
+  _journalEnMorceaux_(L);
   return txt;
+}
+function _journalEnMorceaux_(lignes) {
+  let bloc = [], n = 0;
+  lignes.forEach(function (l) {
+    if (n + l.length + 1 > 6000 && bloc.length) { Logger.log(bloc.join('\n')); bloc = []; n = 0; }
+    bloc.push(l); n += l.length + 1;
+  });
+  if (bloc.length) Logger.log(bloc.join('\n'));
 }
 
 /* (05/09/2026) Choisit le tirage à écrire : jusqu'à MULTI_DEPART_MAX calculs à
@@ -770,6 +797,7 @@ function generateGardes(year, opts){
   /* (05/09/2026) NUMÉRO DE TIRAGE — récit : docs/JOURNAL-Planning-Med.md §111 */
   const TIRAGE_BRUT = Math.max(1, Number(opts && opts.tirage) || 1);
   let _optimBilan = null;   // (09/11/2026) bilan de l'optimisation finale, pour le calcul à blanc
+  const _ecourtees = [];    // (16/11/2026) passes coupées par le chrono de l'exécution (6 min de Google)
   /* (24/10/2026) Numéros au-delà de MULTI_DEPART_MAX : même ordre de départ que
      le tirage (n − MULTI_DEPART_MAX), sans le bonus du couple (voir
      choisirMeilleurTirage). */
@@ -3386,6 +3414,7 @@ function generateGardes(year, opts){
       let cur = note(m0), best = cur, bestSnap = depart.slice(), bestM = m0;
       const N = _optimIters_();
       for (let it = 0; it < N && libres.length; it++) {
+        if ((it & 8191) === 0 && _ecoule_() > OPTIM_FIN_MS) { _ecourtees.push('optimisation finale (' + Math.round(100 * it / N) + ' %)'); break; }
         const T = 1.5 * Math.pow(0.002, it / N);
         const s1 = libres[(rnd() * libres.length) | 0], A = tit(s1);
         if (!A || SOUHAIT_PLAFOND.has(A)) continue;
@@ -3505,7 +3534,7 @@ function generateGardes(year, opts){
         const libEte = libWE.filter(sl => sl.days.some(d => _jEte.has(d)));
         const N2 = Math.max(0, Math.round(WE_ITERS * (_optimIters_() / OPTIM_ITERS)));
         for (let it = 0; it < N2 && libEte.length && libWE.length; it++) {
-          if ((it & 8191) === 0 && Date.now() - _tGen > WE_LIMITE_MS) { _coupe = true; break; }
+          if ((it & 8191) === 0 && _ecoule_() > WE_LIMITE_MS) { _coupe = true; _ecourtees.push('équité des week-ends (' + Math.round(100 * it / N2) + ' %)'); break; }
           const temp = 0.6 * Math.pow(0.01, it / N2);
           const _r1 = rnd(), _v1 = _r1 < 0.45 ? libEte : _r1 < 0.8 ? libWE : libres;
           const s1 = _v1[(rnd() * _v1.length) | 0], A = tit(s1);
@@ -3766,10 +3795,10 @@ function generateGardes(year, opts){
           }
           return { jnl, tot, coups: _coups, doubles: _doubles, relais: _relaisN }; };
         const _defaire = jnl => { for (let i = jnl.length - 1; i >= 0; i--) _dejoue(jnl[i]); };
-        const _pA = _parcours(true, _t0P + (_relaisOn_() ? APP_LIMITE_MS / 2 : APP_LIMITE_MS));
+        const _pA = _parcours(true, Math.min(_t0P + (_relaisOn_() ? APP_LIMITE_MS / 2 : APP_LIMITE_MS), _t0Exec_() + APP_FIN_MS));
         if (_relaisOn_()) {
           _defaire(_pA.jnl); _coups = 0; _doubles = 0; _relaisN = 0;
-          const _pB = _parcours(false, _t0P + APP_LIMITE_MS);
+          const _pB = _parcours(false, Math.min(_t0P + APP_LIMITE_MS, _t0Exec_() + APP_FIN_MS));
           if (_pA.tot < _pB.tot - 1e-9) { _defaire(_pB.jnl); _pA.jnl.forEach(_joue); _coups = _pA.coups; _doubles = _pA.doubles; _relaisN = _pA.relais; }
         }
         /* bilan : créneaux qui ont changé de mains, souhaits retirés / accordés */
@@ -3814,7 +3843,7 @@ function generateGardes(year, opts){
               if (mx - mn > 1) out.push({ k: 'ete', hauts: L.filter(id => _eteN[id] === mx), bas: L.filter(id => _eteN[id] === mn) }); });
             return out; };
           let encore = true, tours = 0;
-          while (encore && Date.now() - _t0R < _LIMR && tours < 200) { encore = false; tours++;
+          while (encore && Date.now() - _t0R < _LIMR && _ecoule_() < APP_FIN_MS && tours < 200) { encore = false; tours++;
             const V = _ecartsRestants(); if (!V.length) break;
             for (const v of V) { if (encore || Date.now() - _t0R > _LIMR) break;
               for (const T of v.hauts) { if (encore) break; for (const Bm of v.bas) { if (encore || Date.now() - _t0R > _LIMR) break;
@@ -3886,6 +3915,7 @@ function generateGardes(year, opts){
           const _avL = _ecM(); let _nL = 0;
           for (let it = 0; it < 3000; it++) {
             if (Date.now() - _t0L > LISSE_MS) break;
+            if (_ecoule_() > LISSE_FIN_MS) { _ecourtees.push('lissage mensuel'); break; }
             let best = null;
             for (const s1 of _libresL) { const A = _titP(s1); if (!A || _eteN[A] === undefined || _souhP(A, s1)) continue;
               const ma = _mo(s1);
@@ -4142,17 +4172,19 @@ function generateGardes(year, opts){
   const ABSENT_18 = new Set(['VAC','VM','VA','FORM','CL','TP','CTP','CP','A','RG_TRANSITION']);
   /* (16/11/2026) DEUX RÈGLES DU RESPONSABLE, constatées sur les gardes 2027 :
      · « le 18 h veille de vacances c'est non » : jamais de 18 h le jour qui précède
-       des vacances (VAC, ou VM : vacances dès le matin du lendemain). Règle DURE,
-       aucun repli ne la lève (2 cas en 2027 : un vendredi, un mercredi).
+       des vacances (VAC, ou VM : vacances dès le matin du lendemain). (2 cas en 2027 :
+       un vendredi, un mercredi.) Seule exception, décidée le 16/11 après l'essai sur
+       les indispos 2027 : si la règle laisse la soirée VIDE (24/12/2027 : tous les MAR
+       libres partent le 25), elle cède en tout dernier recours (veilleOk), annoncée.
      · « le 18 h est à éviter pour le Réa 1 sauf en dernier recours » : la semaine
        Réa 1 n'est plus un interdit absolu mais le tout dernier repli (rea1Ok),
        quand plus personne d'autre ne peut tenir la soirée. */
   const VAC_LENDEMAIN_18 = new Set(['VAC','VM']);
-  function dispo18(id,date,rea1Ok){
+  function dispo18(id,date,rea1Ok,veilleOk){
     const _dd18=FLAGS.dateDebut[id], _df18=FLAGS.dateFin[id];
     if((_dd18&&date<_dd18)||(_df18&&date>=_df18)) return false;
     if(ABSENT_18.has(indispos[id]?.[date])) return false;
-    if(VAC_LENDEMAIN_18.has(indispos[id]?.[addOneDay(date)])) return false;   // (16/11/2026) jamais la veille de vacances
+    if(!veilleOk&&VAC_LENDEMAIN_18.has(indispos[id]?.[addOneDay(date)])) return false;   // (16/11/2026) jamais la veille de vacances — sauf tout dernier recours (choix du responsable, 16/11 : une soirée vide est pire)
     if(!rea1Ok&&REA1_SEM[id]&&REA1_SEM[id].has(date)) return false;   // (24/10/2026) pas de 18 h en semaine Réa 1 — (16/11) sauf dernier recours
     if(estSemaineOff(id,date)) return false;
     if(gSet[id]?.has(date)||g2Set[id]?.has(date)||rgSet[id]?.has(date)||rSet[id]?.has(date)) return false;
@@ -4166,6 +4198,7 @@ function generateGardes(year, opts){
      personnes, en retirer une ne change rien à la répartition. */
   const paireDeGarde18=(id,date)=>{const gg=gardes[date]; return !!gg&&(evite(id,gg.g,date)||evite(id,gg.g2,date));};
   const h18Rea1=[]; // (16/11/2026) soirées confiées en dernier recours à un MAR en semaine Réa 1
+  const h18Veille=[]; // (16/11/2026) soirées confiées en dernier recours à un MAR la veille de ses vacances
   const h18wk={}; // semaines ISO où chaque MAR a déjà fait un 18h (≤ 1 par semaine)
   const did18wk=(id,date)=> h18wk[id]?h18wk[id].has(dayByDate[date].wk):false;
   const set18=(id,date)=>{ h18A[date]=id; h18cnt[id]++; (h18wk[id]||(h18wk[id]=new Set())).add(dayByDate[date].wk); };
@@ -4195,8 +4228,12 @@ function generateGardes(year, opts){
     if(!pool.length) pool=allDoctors.filter(id=>dispo18(id,day.date)); // dernier recours absolu : la paire cède
     let _rea1Recours=false;
     if(!pool.length){ pool=allDoctors.filter(id=>dispo18(id,day.date,true)); _rea1Recours=pool.length>0; } // (16/11/2026) tout dernier repli : un MAR en semaine Réa 1
+    let _veilleRecours=false;
+    if(!pool.length){ pool=allDoctors.filter(id=>dispo18(id,day.date,false,true)); _veilleRecours=pool.length>0; } // (16/11/2026) puis la veille de vacances
+    if(!pool.length){ pool=allDoctors.filter(id=>dispo18(id,day.date,true,true)); _rea1Recours=_veilleRecours=pool.length>0; }
     if(!pool.length){warnings.push(`Aucun 18h ${day.date}`);return;}
     if(_rea1Recours) h18Rea1.push(day.date);
+    if(_veilleRecours) h18Veille.push(day.date);
     pool.sort((a,b)=>(h18cnt[a]/(h18T[a]||1))-(h18cnt[b]/(h18T[b]||1)));
     set18(pool[0],day.date);
   });
@@ -4210,6 +4247,8 @@ function generateGardes(year, opts){
      pas deux jours de suite, un par semaine au plus, paire à éviter, pas un jour
      d'indisponibilité. Un vendredi déjà bon n'est jamais défait. */
   if(h18Rea1.length) warnings.push('18 h en semaine Réa 1 (dernier recours, personne d\'autre de libre) : '+h18Rea1.join(', '));
+  if(h18Veille.length) warnings.push('18 h la veille de vacances (dernier recours, personne d\'autre de libre) : '+h18Veille.join(', '));
+  if(_ecourtees.length) warnings.push('Temps : passe(s) écourtée(s) pour rester sous les 6 minutes de Google — '+_ecourtees.join(', ')+' (le meilleur état déjà trouvé est gardé)');
   const _h18Ven={vendredis:0,conformes:0,echanges:0,restants:[]};
   {
     const _jour=d=>toDateStr(new Date(new Date(d+'T12:00:00').getTime()+86400000));
@@ -4410,7 +4449,7 @@ function generateGardes(year, opts){
       const we=[...new Set(dates.filter(d=>dayByDate[d].dow===6||dayByDate[d].dow===0).map(d=>dayByDate[d].dow===0?_ds(d,-1):d))].sort();
       for(let i=0;i+1<we.length;i++) if(_ds(we[i],7)===we[i+1]){
         const tous=[we[i],_ds(we[i],1),we[i+1],_ds(we[i+1],1)].filter(g);
-        if(!tous.every(d=>isSouhaitDe(id,d))) Q.we2.push({id,a:we[i],b:we[i+1]}); }
+        if(!tous.every(d=>isSouhaitDe(id,d))) Q.we2.push({id,a:we[i],b:we[i+1],libres:Math.max(...tous.map(_libres))}); }
       /* 4. Quatre gardes en dix jours. */
       for(let i=0;i+3<dates.length;i++){ const a=dates[i], b=dates[i+3];
         if((new Date(b+'T12:00:00')-new Date(a+'T12:00:00'))/864e5<=9){
@@ -4424,7 +4463,7 @@ function generateGardes(year, opts){
       const h=h18A[x.date]; if(!h) return; const sam=_gdu(_ds(x.date,1));
       if(!sam.length||sam.indexOf(h)>=0) return;
       Q.ven18.push({date:x.date,id:h,impose:!sam.some(m=>dispo18(m,x.date))}); });
-    Q.nbChoix=Q.grg.filter(c=>c.libres>0).length+Q.dense10.filter(c=>c.libres>0).length+Q.ven18.filter(c=>!c.impose).length+Q.mois.length+Q.we2.length;
+    Q.nbChoix=Q.grg.filter(c=>c.libres>0).length+Q.dense10.filter(c=>c.libres>0).length+Q.ven18.filter(c=>!c.impose).length+Q.mois.length+Q.we2.filter(c=>c.libres>0).length;
     return Q;
   }
   if(DRY){
@@ -4602,7 +4641,7 @@ function generateGardes(year, opts){
       }
     }
 
-    return { dryRun:true, year:year, ms:Date.now()-_tGen,
+    return { dryRun:true, year:year, ms:Date.now()-_tGen, chrono:{ ms:_ecoule_() }, ecourtees:_ecourtees.slice(), h18Veille:h18Veille.slice(),
              raresDetail:raresDetail, raresManque:raresManque,
              partExacte:partExacte, cumulPrec:cumulPrec, anneesLues:anneesLues.sort(), optim:_optimBilan,
              ecarts:ecarts, compteurs:compteurs, cibles:cibles,

@@ -46,8 +46,9 @@ V('l\'année de référence produit ses statistiques', !!stats26 && stats26.leng
 
 const a27 = monte(2027, stats26);
 const avant = a27.ss.getSheetNames ? a27.ss.getSheetNames().slice() : null;
-a27.ctx.essaiGenerationGardes(2027);
-const rapport = String(a27.logs[a27.logs.length - 1] || '');
+/* (16/11/2026) L'essai s'écrit désormais en plusieurs morceaux dans le journal : on lit
+   le texte qu'il RENVOIE, qui est l'essai entier. */
+const rapport = String(a27.ctx.essaiGenerationGardes(2027) || '');
 
 console.log('\n═══ 1. Les dates de l\'axe sont toutes listées ═══');
 V('le rapport a bien été produit', rapport.indexOf('ESSAI DE GÉNÉRATION') >= 0, rapport.slice(0, 120));
@@ -114,8 +115,7 @@ V('son cumul vaut bien réel moins part due',
    doit rester muet plutôt que d'afficher des zéros trompeurs. */
 const ancien = stats26.map(x => x.slice(0, 25));
 const a27b = monte(2027, ancien);
-a27b.ctx.essaiGenerationGardes(2027);
-const rap2 = String(a27b.logs[a27b.logs.length - 1] || '');
+const rap2 = String(a27b.ctx.essaiGenerationGardes(2027) || '');
 V('sans part exacte en N-1, le bloc de cumul ne s\'affiche pas',
   rap2.indexOf('CUMUL DES ANNÉES') < 0);
 V('mais le reste du rapport est bien là', rap2.indexOf('VEILLES DE FÉRIÉ') >= 0);
