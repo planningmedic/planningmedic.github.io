@@ -41,7 +41,7 @@
 // ⚠️ RÈGLE (détecteur de dérive dépôt↔Apps Script) : incrémenter cette version
 // à CHAQUE push de ce fichier. Le diagnostic (admin → Maintenance) compare la
 // version déployée ici avec celle du dépôt et signale toute recopie oubliée.
-const GAS_VERSION_GENERATEUR = '2026-11-16.1';   // (16/11/2026) .1 : 18 H — jamais la veille de vacances ; en semaine Réa 1 seulement en tout dernier recours (annoncé par l'essai) · (15/11/2026) .1 : ROTATION D'ÉQUITÉ à partir des gardes 2028 — même fourchette pour tous les MAR de même part, sans report qui la décale ; le retard cumulé de toutes les années (été compris) décide qui prend le haut ; part des autres calculée sur les gardes réelles du régime à part ; Noël et Jour de l'An hors des compteurs fins (gardés dans le total) ; réparation finale entre collègues et diagnostic des écarts de 2 ; 2027 se rejoue à l'identique · (14/11/2026) .2 : STATISTIQUES — tous les axes écrits (week-ends, été, part visée de chaque axe) ; le planning ne change pas · .1 : lissage mensuel par échanges neutres (aucun compteur ne bouge) · 18 h du vendredi : échange à trois MAR en plus de l'échange un pour un · écart entre collègues de même part payé dans la dernière passe · LA FOURCHETTE : plus de cible tirée au sort entre MAR de même part ; tout le calcul vise que chacun soit entre l'arrondi inférieur et supérieur de sa part exacte, sur chaque compteur (les week-ends gardent leur nombre entier, égal à part égale) · (13/11/2026) tout lisser, suite : le relais (un troisième MAR sert d'intermédiaire quand le +1 ne peut rien donner directement au −1), deux parcours et le meilleur est gardé — fériés et été mieux lissés · mesures de la passe 8nonies remplacées par celles de l'essai de génération chez Google (32 → 24, dont 12 d'arrondis ; 8 s) : les précédentes venaient d'une simulation qui ignorait les indisponibilités du dernier jour de l'année. Aucun changement de calcul · tout lisser : dernière passe qui apparie les +1 et les −1 d'un même compteur (week-ends, été, fériés, jeudis, samedis, vendredis), un souhait pouvant être retiré pour remettre un compteur à sa cible · rattrapage : 60 % du retard cumulé dans la visée, arrondi au plus proche (le retard n'est plus compté deux fois) · comptes exacts : vendredis-dimanches et week-ends déduits du planning réel · retouche : les week-ends d'abord · mémoire de plusieurs années : les années archivées sont relues dans le classeur d'archives · 18 h du vendredi à l'un des deux MAR du samedi · week-ends : cible égale à quotité égale, été, réa / maternité
+const GAS_VERSION_GENERATEUR = '2026-11-16.2';   // (16/11/2026) .2 : CONTRÔLE QUALITÉ dans l'essai de génération — garde-repos-garde non souhaitée, 4 gardes en 10 jours, mois chargés, deux week-ends d'affilée, 18 h du vendredi ; chaque cas dit s'il était imposé ou si le calcul avait le choix ; le planning ne change pas · .1 : 18 H — jamais la veille de vacances ; en semaine Réa 1 seulement en tout dernier recours (annoncé par l'essai) · (15/11/2026) .1 : ROTATION D'ÉQUITÉ à partir des gardes 2028 — même fourchette pour tous les MAR de même part, sans report qui la décale ; le retard cumulé de toutes les années (été compris) décide qui prend le haut ; part des autres calculée sur les gardes réelles du régime à part ; Noël et Jour de l'An hors des compteurs fins (gardés dans le total) ; réparation finale entre collègues et diagnostic des écarts de 2 ; 2027 se rejoue à l'identique · (14/11/2026) .2 : STATISTIQUES — tous les axes écrits (week-ends, été, part visée de chaque axe) ; le planning ne change pas · .1 : lissage mensuel par échanges neutres (aucun compteur ne bouge) · 18 h du vendredi : échange à trois MAR en plus de l'échange un pour un · écart entre collègues de même part payé dans la dernière passe · LA FOURCHETTE : plus de cible tirée au sort entre MAR de même part ; tout le calcul vise que chacun soit entre l'arrondi inférieur et supérieur de sa part exacte, sur chaque compteur (les week-ends gardent leur nombre entier, égal à part égale) · (13/11/2026) tout lisser, suite : le relais (un troisième MAR sert d'intermédiaire quand le +1 ne peut rien donner directement au −1), deux parcours et le meilleur est gardé — fériés et été mieux lissés · mesures de la passe 8nonies remplacées par celles de l'essai de génération chez Google (32 → 24, dont 12 d'arrondis ; 8 s) : les précédentes venaient d'une simulation qui ignorait les indisponibilités du dernier jour de l'année. Aucun changement de calcul · tout lisser : dernière passe qui apparie les +1 et les −1 d'un même compteur (week-ends, été, fériés, jeudis, samedis, vendredis), un souhait pouvant être retiré pour remettre un compteur à sa cible · rattrapage : 60 % du retard cumulé dans la visée, arrondi au plus proche (le retard n'est plus compté deux fois) · comptes exacts : vendredis-dimanches et week-ends déduits du planning réel · retouche : les week-ends d'abord · mémoire de plusieurs années : les années archivées sont relues dans le classeur d'archives · 18 h du vendredi à l'un des deux MAR du samedi · week-ends : cible égale à quotité égale, été, réa / maternité
 // précédente : '2026-10-27.1'
 
 /* (05/09/2026) INTERRUPTEUR DU NOUVEL ALGORITHME — récit : docs/JOURNAL-Planning-Med.md §101 */
@@ -419,6 +419,28 @@ function essaiGenerationGardes(year) {
   L.push('Jours sans binôme : ' + r.sansBinome + (r.jours.length ? '  → ' + r.jours.join(' ') : '  (aucun)'));
   L.push('');
 
+  /* ── 1bis. (16/11/2026) CONTRÔLE QUALITÉ. L'audit « petite bête » du 16/11, refait à
+     chaque essai : chaque cas dit s'il était IMPOSÉ par les absences (rien à faire) ou si
+     le calcul AVAIT LE CHOIX (à signaler pour améliorer le calcul). */
+  const Q = r.qualite;
+  if (Q) {
+    const fr = function (d) { return d.slice(8, 10) + '/' + d.slice(5, 7); };
+    const MOIS = ['', 'janvier', 'février', 'mars', 'avril', 'mai', 'juin', 'juillet', 'août', 'septembre', 'octobre', 'novembre', 'décembre'];
+    const etat = function (n) { return n > 0 ? 'le calcul avait le choix (' + n + ' MAR libres)' : 'imposé (personne d\'autre de libre)'; };
+    L.push('── CONTRÔLE QUALITÉ · ' + (Q.nbChoix ? Q.nbChoix + ' cas où le calcul avait le choix' : 'rien à reprendre') + ' ──');
+    L.push('   Garde, repos, garde non souhaitée (hors vendredi-dimanche et férié couplé) : ' + Q.grg.length);
+    Q.grg.forEach(function (c) { L.push('      ' + pad(c.id, 12) + fr(c.a) + ' → ' + fr(c.b) + ' · ' + etat(c.libres)); });
+    L.push('   4 gardes en 10 jours : ' + Q.dense10.length);
+    Q.dense10.forEach(function (c) { L.push('      ' + pad(c.id, 12) + fr(c.a) + ' → ' + fr(c.b) + (c.souhaits ? ' · dont ' + c.souhaits + ' souhaitée(s)' : '') + ' · ' + etat(c.libres)); });
+    L.push('   Mois chargés (2,5 gardes ou plus au-dessus de l\'attendu) : ' + Q.mois.length);
+    Q.mois.forEach(function (c) { L.push('      ' + pad(c.id, 12) + MOIS[c.m] + ' : ' + c.c + ' gardes pour ' + String(c.e).replace('.', ',') + ' attendues' + (c.souhaits ? ' · dont ' + c.souhaits + ' souhaitée(s)' : '')); });
+    L.push('   Deux week-ends d\'affilée non souhaités : ' + Q.we2.length);
+    Q.we2.forEach(function (c) { L.push('      ' + pad(c.id, 12) + fr(c.a) + ' et ' + fr(c.b)); });
+    L.push('   18 h du vendredi sans garde le samedi : ' + Q.ven18.length);
+    Q.ven18.forEach(function (c) { L.push('      ' + pad(c.id, 12) + fr(c.date) + ' · ' + (c.impose ? 'imposé (les deux MAR du samedi ne pouvaient pas)' : 'le calcul avait le choix')); });
+    L.push('');
+  }
+
   // ── 2. l'équité, axe par axe
   L.push('── ÉQUITÉ · écart à la fourchette de la part ──');
   const NOM = { total:'Total', sam:'Samedi', jeu:'Jeudi', vd:'Ven-Dim', vjf:'VeilleJF', jf:'Férié' };
@@ -551,7 +573,7 @@ function essaiGenerationGardes(year) {
   /* (24/10/2026) SEMAINES RÉA 1 : rien sans l'onglet REA1_{année}. */
   if (r.rea1 && r.rea1.semaines) {
     L.push('── SEMAINES RÉA 1 ──');
-    L.push('   ' + r.rea1.semaines + ' semaine(s) lue(s) : pas de garde du dimanche au jeudi, ni récupération ni 18 h du lundi au vendredi');
+    L.push('   ' + r.rea1.semaines + ' semaine(s) lue(s) : pas de garde du dimanche au jeudi, ni récupération du lundi au vendredi ; un 18 h seulement en dernier recours');
     L.push('   Souhaits retirés (posés sur une nuit Réa 1) : ' + r.rea1.souhaitsRetires.length);
     if (r.rea1.absences.length) L.push('   ⚠️ Absences pendant sa propre semaine Réa 1 : ' + r.rea1.absences.join(', '));
     if (r.rea1.inconnus.length) L.push('   ⚠️ Noms non reconnus : ' + r.rea1.inconnus.join(', '));
@@ -4361,8 +4383,59 @@ function generateGardes(year, opts){
     return { possible:possible, utiles:Math.min(utiles, possible) };
   }
 
+  function _controleQualite_(){
+    const _G=id=>d=>gSet[id]?.has(d)||g2Set[id]?.has(d);
+    const _ds=(d,n)=>toDateStr(new Date(new Date(d+'T12:00:00').getTime()+n*86400000));
+    const _annee=d=>d.slice(0,4)===String(year);
+    const _gdu=d=>{ const g=gardes[d]; return g?[g.g,g.g2].filter(Boolean):[]; };
+    /* MAR qui auraient pu tenir la garde du jour d à la place des titulaires. */
+    const _libres=d=>gardeDoctors.filter(m=>_gdu(d).indexOf(m)<0&&!blocked(m,d)).length;
+    const Q={grg:[],mois:[],we2:[],dense10:[],ven18:[]};
+    gardeDoctors.forEach(id=>{
+      const g=_G(id), dates=allDays.map(x=>x.date).filter(d=>g(d)&&_annee(d));
+      /* 1. Garde, repos, garde : hors vendredi-dimanche et hors férié couplé à son samedi
+            (jeudi férié → samedi, samedi → lundi férié), hors double souhait. */
+      for(let i=0;i+1<dates.length;i++){ const a=dates[i], b=dates[i+1];
+        if(_ds(a,2)!==b) continue;
+        const da=dayByDate[a], db=dayByDate[b];
+        if(da.dow===5) continue;
+        if((da.dow===4&&da.isFerie&&db.dow===6)||(da.dow===6&&db.dow===1&&db.isFerie)) continue;
+        if(isSouhaitDe(id,a)&&isSouhaitDe(id,b)) continue;
+        Q.grg.push({id,a,b,libres:Math.max(_libres(a),_libres(b))}); }
+      /* 2. Mois chargés : au moins 2,5 gardes au-dessus de ce que le MAR doit attendre ce mois-là. */
+      const mc={}; dates.forEach(d=>{ const m=Number(d.slice(5,7)); mc[m]=(mc[m]||[]).concat([d]); });
+      Object.keys(mc).forEach(m=>{ const e=(monthExp[id]&&monthExp[id][m])||0, c=mc[m].length;
+        if(c-e>=2.5) Q.mois.push({id,m:Number(m),c,e:Math.round(e*10)/10,souhaits:mc[m].filter(d=>isSouhaitDe(id,d)).length}); });
+      /* 3. Deux week-ends de garde d'affilée sans les avoir souhaités. */
+      const we=[...new Set(dates.filter(d=>dayByDate[d].dow===6||dayByDate[d].dow===0).map(d=>dayByDate[d].dow===0?_ds(d,-1):d))].sort();
+      for(let i=0;i+1<we.length;i++) if(_ds(we[i],7)===we[i+1]){
+        const tous=[we[i],_ds(we[i],1),we[i+1],_ds(we[i+1],1)].filter(g);
+        if(!tous.every(d=>isSouhaitDe(id,d))) Q.we2.push({id,a:we[i],b:we[i+1]}); }
+      /* 4. Quatre gardes en dix jours. */
+      for(let i=0;i+3<dates.length;i++){ const a=dates[i], b=dates[i+3];
+        if((new Date(b+'T12:00:00')-new Date(a+'T12:00:00'))/864e5<=9){
+          const qu=dates.slice(i,i+4), s=qu.filter(d=>isSouhaitDe(id,d)).length;
+          if(s<4) Q.dense10.push({id,a,b,souhaits:s,libres:Math.max(...qu.map(_libres))});
+          i+=3; } }
+    });
+    /* 5. 18 h du vendredi à un MAR qui n'est pas de garde le samedi : imposé si aucun
+          des deux MAR du samedi ne pouvait le tenir (repos, absence, semaine Réa 1…). */
+    allDays.filter(x=>x.dow===5&&_annee(x.date)).forEach(x=>{
+      const h=h18A[x.date]; if(!h) return; const sam=_gdu(_ds(x.date,1));
+      if(!sam.length||sam.indexOf(h)>=0) return;
+      Q.ven18.push({date:x.date,id:h,impose:!sam.some(m=>dispo18(m,x.date))}); });
+    Q.nbChoix=Q.grg.filter(c=>c.libres>0).length+Q.dense10.filter(c=>c.libres>0).length+Q.ven18.filter(c=>!c.impose).length+Q.mois.length+Q.we2.length;
+    return Q;
+  }
   if(DRY){
     const _AXES=['total','sam','jeu','vd','vjf','jf'];
+    /* (16/11/2026) CONTRÔLE QUALITÉ — demande du responsable : « avoir la meilleure version
+       possible du planning avec l'algo ; les seules retouches manuelles seraient sur demande
+       des MAR qui auraient mal entré leurs indispos ». L'essai refait donc, sur le planning
+       final, l'audit fait à la main le 16/11 sur les gardes 2027, et dit pour chaque cas
+       si c'était IMPOSÉ (personne d'autre de libre) ou si l'algo AVAIT LE CHOIX.
+       Rien ne bouge : c'est une mesure, pas une passe. */
+    const qualite=_controleQualite_();
     const ecarts={};
     _AXES.forEach(function(k){
       let pire=0, qui='';
@@ -4533,7 +4606,7 @@ function generateGardes(year, opts){
              raresDetail:raresDetail, raresManque:raresManque,
              partExacte:partExacte, cumulPrec:cumulPrec, anneesLues:anneesLues.sort(), optim:_optimBilan,
              ecarts:ecarts, compteurs:compteurs, cibles:cibles,
-             jf:jf, noel:noel, h18:h18, h18Vendredi:_h18Ven, souhaits:souhaitsBilan,
+             jf:jf, noel:noel, h18:h18, h18Vendredi:_h18Ven, souhaits:souhaitsBilan, qualite:qualite,
              fetes:fetes, paires:pairesBilan, couplesWE:_couplesWEBilan_(), coupleAssoupli:_cplOn&&CPL_SANS_BONUS,
              rea1:rea1Bilan, fetesImposees:fetesImposees,
              sansBinome:sansBinome.length, jours:sansBinome.slice(0,10),
