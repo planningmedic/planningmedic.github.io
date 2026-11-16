@@ -50,11 +50,11 @@ function contexteGas(lignes) {
   const src = fs.readFileSync(GS, 'utf8');
   vm.runInContext(src.match(/const ECHANGES_ENTETE = \[[^\]]*\];/)[0].replace('const ', 'var '), ctx);
   vm.runInContext('var ECHANGES_EXPIRATION_H = 48, ECHANGES_RAPPEL_H = 24;', ctx);
-  vm.runInContext(src.match(/const ECHANGES_OUVERTURE_A_PROGRAMMER = '[^']*';/)[0].replace('const ', 'var '), ctx);
+  vm.runInContext("var ECHANGES_OUVERTURE_A_PROGRAMMER = '';", ctx);   // les scénarios posent l'heure eux-mêmes
   vm.runInContext("var ECHANGES_REPONSES_A_PROGRAMMER = '';", ctx);   // les scénarios posent l'heure eux-mêmes
   ['_echangesOuvertureMs_', '_echangesEtat_', '_echangesEnDepot_', '_echangesDebutDelai_', '_echangesPoserReponses_',
    '_echangesMentionDepot_', '_echangesQuandFr_', '_echangesOuvertsMaintenant_', '_echangesAutorise_', 'ouvrirEchanges', 'programmerOuvertureEchanges',
-   'annoncerOuvertureEchanges', 'fermerEchanges', 'synchroniserEtatEchanges', 'expirerEchanges', '_echangesAnnoncerReponses_',
+   'annoncerOuvertureEchanges', 'fermerEchanges', 'synchroniserEtatEchanges', 'expirerEchanges', '_echangesAnnoncerReponses_', '_echangesAnnoncerOuverture_',
    '_echangesJoli_', '_echangesEst18_', 'repondreEchange']
     .forEach(n => vm.runInContext(extraireFonction(GS, n), ctx));
   const lever = f => { try { vm.runInContext(f, ctx); return null; } catch (e) { return e.message; } };
@@ -68,7 +68,9 @@ function contexteGas(lignes) {
     const etatPousse = () => JSON.parse(pousses[pousses.length - 1].notif_config);
     const cst = (src.match(/const ECHANGES_REPONSES_A_PROGRAMMER = '([^']*)';/) || [])[1];
     V('l\'heure des réponses est une constante en tête de section, vide ou lisible', cst !== undefined && (cst === '' || !isNaN(Date.parse(cst))), cst);
-    V('(16/11) elle vaut mercredi 18/11/2026 à 10 h, heure de Paris', cst === '' || Date.parse(cst) === Date.parse('2026-11-18T09:00:00Z'), cst);
+    V('(16/11) elle vaut vendredi 20/11/2026 à 10 h, heure de Paris', cst === '' || Date.parse(cst) === Date.parse('2026-11-20T09:00:00Z'), cst);
+    const ouvCst = (src.match(/const ECHANGES_OUVERTURE_A_PROGRAMMER = '([^']*)';/) || [])[1];
+    V('(16/11) l\'ouverture programmée vaut mercredi 18/11/2026 à 10 h, avant l\'heure des réponses', ouvCst === '' || (Date.parse(ouvCst) === Date.parse('2026-11-18T09:00:00Z') && (cst === '' || Date.parse(ouvCst) < Date.parse(cst))), ouvCst);
     const ouv = iso(Date.now() + JOUR), rep = iso(Date.now() + 4 * JOUR);
     vm.runInContext(`programmerOuvertureEchanges(${JSON.stringify(ouv)}, ${JSON.stringify(rep)})`, ctx);
     V('programmer avec une heure des réponses : les deux heures sont notées', PROPS.ECHANGES_OUVERTURE === ouv && PROPS.ECHANGES_REPONSES === rep, PROPS);
@@ -183,6 +185,40 @@ function contexteGas(lignes) {
     V('… rien pour celui dont la demande est déjà refusée', !ann.some(n => n.cible.id === 'DELTA'));
     vm.runInContext('expirerEchanges()', g.ctx);
     V('passage suivant : pas de seconde annonce', g.notifs.filter(n => /vous pouvez répondre/.test(n.t)).length === 2);
+  }
+
+  console.log('\n═══ 4 bis. echanges.gs : ouverture PROGRAMMÉE — la notification part au passage horaire, une fois ═══');
+  {
+    const g = contexteGas([]);
+    const ouv = Date.now() + 2 * HEURE, rep = Date.now() + 2 * JOUR;
+    vm.runInContext(`programmerOuvertureEchanges(${JSON.stringify(iso(ouv))}, ${JSON.stringify(iso(rep))})`, g.ctx);
+    const annonces = () => g.notifs.filter(n => n.t === 'Échanges de gardes ouverts');
+    vm.runInContext('expirerEchanges()', g.ctx);
+    V('avant l\'heure d\'ouverture : aucune notification', annonces().length === 0);
+    g.PROPS.ECHANGES_OUVERTURE = iso(Date.now() - 20 * 60 * 1000);   // l'heure est passée depuis 20 min
+    vm.runInContext('expirerEchanges()', g.ctx);
+    V('premier passage après l\'ouverture : UNE notification à tous', annonces().length === 1 && !annonces()[0].cible, annonces());
+    V('… le même texte court que l\'ouverture à la main', /^Proposez vos dons et échanges dès maintenant\. Accepter sera possible à partir du \S+ \d\d\/\d\d à \d+ h( \d\d)?\.$/.test(annonces()[0].c), annonces()[0].c);
+    vm.runInContext('expirerEchanges()', g.ctx);
+    V('passage suivant : pas de seconde notification', annonces().length === 1);
+    V('… et pas d\'annonce « vous pouvez répondre » pendant le dépôt', !g.notifs.some(n => /vous pouvez répondre/.test(n.t)));
+
+    const m = contexteGas([]);
+    vm.runInContext(`ouvrirEchanges(${JSON.stringify(iso(Date.now() + 2 * JOUR))})`, m.ctx);
+    vm.runInContext('expirerEchanges()', m.ctx);
+    V('ouverture À LA MAIN : sa notification, puis rien au passage horaire (pas de doublon)', m.notifs.filter(n => n.t === 'Échanges de gardes ouverts').length === 1);
+
+    const s = contexteGas([]);
+    vm.runInContext(`programmerOuvertureEchanges(${JSON.stringify(iso(Date.now() + HEURE))})`, s.ctx);
+    s.PROPS.ECHANGES_OUVERTURE = iso(Date.now() - 10 * 60 * 1000);
+    vm.runInContext('expirerEchanges()', s.ctx);
+    V('contre-épreuve — ouverture programmée SANS dépôt : aucune notification (comme avant)', s.notifs.length === 0);
+
+    const v = contexteGas([]);
+    v.PROPS.ECHANGES_OUVERTURE = iso(Date.now() - 3 * JOUR);
+    v.PROPS.ECHANGES_REPONSES = iso(Date.now() + JOUR);
+    vm.runInContext('expirerEchanges()', v.ctx);
+    V('ouverture vieille de plus de 24 h : rien ne part (une heure posée après coup ne réveille rien)', v.notifs.length === 0);
   }
 
   /* ── Le Worker et la page ── */
