@@ -351,6 +351,42 @@ html[data-theme="dark"] .mg-tag.h18 { color:#1A0E03; }
 .mg-month { font-size:12px; font-weight:700; text-transform:uppercase; letter-spacing:.05em;
   color:var(--ink-4); margin:22px 0 10px 4px; }
 .mg-month:first-child { margin-top:0; }
+/* (16/11/2026) « Mes gardes » : bascule Année / Liste. La vue Année est la vue
+   par défaut (décision du responsable) : 12 petits calendriers par année, deux
+   par ligne, ouverture centrée sur le mois en cours ; un appui agrandit un mois
+   avec le nom de la garde dans la case. Couleurs = celles de la liste. */
+.mg-seg { display:flex; gap:3px; padding:3px; background:var(--line-light); border:1px solid var(--line); border-radius:12px; margin:0 0 12px; }
+.mg-seg button { flex:1; display:inline-flex; align-items:center; justify-content:center; gap:6px; height:36px; border:0; border-radius:9px; background:transparent; color:var(--ink-3); font:inherit; font-size:14px; font-weight:600; cursor:pointer; }
+.mg-seg button svg { width:16px; height:16px; }
+.mg-seg button.on { background:var(--white); color:var(--ink); box-shadow:0 1px 2px rgba(15,23,42,.08); }
+.mga-leg { display:flex; flex-wrap:wrap; gap:5px 12px; font-size:11.5px; font-weight:600; color:var(--ink-3); margin:0 2px 14px; }
+.mga-leg i { display:inline-block; width:10px; height:10px; border-radius:3px; margin-right:5px; vertical-align:-1px; }
+.mga-plus { display:block; width:100%; margin:0 0 16px; padding:10px; border:1px dashed var(--line); border-radius:12px; background:transparent; color:var(--ink-3); font:inherit; font-size:13.5px; font-weight:600; cursor:pointer; }
+.mga-an { display:flex; align-items:center; justify-content:space-between; gap:10px; margin:4px 2px 10px; }
+.mga-an h3 { margin:0; font-size:19px; font-weight:800; color:var(--ink); letter-spacing:-.01em; }
+.mga-tot { display:flex; gap:5px; flex-wrap:wrap; justify-content:flex-end; }
+.mga-tot span { font-size:11px; font-weight:700; border-radius:999px; padding:3px 8px; white-space:nowrap; }
+.mga-tot .g  { background:var(--me-soft);  color:var(--me); }
+.mga-tot .g2 { background:var(--red-soft); color:var(--rose); }
+.mga-tot .h18 { background:var(--h18-soft); color:var(--h18); }
+.mga-grille { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:8px; margin-bottom:24px; }
+.mga-mois { background:var(--white); border:1px solid var(--line); border-radius:12px; padding:8px 6px 6px; cursor:pointer; }
+.mga-mois.encours { border-color:var(--me-border); box-shadow:inset 0 0 0 1px var(--me-border); }
+.mga-mois.ouvert { grid-column:1/-1; padding:12px 12px 10px; }
+.mga-mh { display:flex; justify-content:space-between; align-items:baseline; font-size:12.5px; font-weight:700; color:var(--ink); margin:0 3px 5px; }
+.mga-mh small { font-size:11px; font-weight:600; color:var(--ink-4); }
+.mga-j { display:grid; grid-template-columns:repeat(7,minmax(0,1fr)); gap:2px; }
+.mga-dw { font-size:10px; font-weight:700; text-align:center; color:var(--ink-4); padding-bottom:1px; }
+.mga-d { height:21px; border-radius:5px; display:flex; flex-direction:column; align-items:center; justify-content:center; gap:1px; font-size:11px; font-weight:600; color:var(--ink-3); line-height:1; }
+.mga-d.we { color:var(--ink); font-weight:700; }
+.mga-d.g  { background:var(--me);   color:var(--white); }
+.mga-d.g2 { background:var(--rose); color:var(--white); }
+.mga-d.h18 { background:var(--h18); color:var(--white); }
+.mga-d.passe { opacity:.42; }
+.mga-d.auj { box-shadow:inset 0 0 0 2px var(--ink); }
+.mga-d small { display:none; font-size:9.5px; font-weight:700; }
+.mga-mois.ouvert .mga-d { height:40px; font-size:14px; }
+.mga-mois.ouvert .mga-d small { display:block; }
 
 /* ── VUE MES CONGÉS ── */
 /* (13/08/2026) Pastilles de largeur egale plutot qu'un alignement a gauche qui
@@ -1048,7 +1084,14 @@ html[data-theme="dark"] .ech-bandeau.ouvert { background:var(--ok-soft); color:v
       <span class="ag-s" style="display:block">Gardes et 18h, mises à jour toutes seules</span></span>
       <span class="ag-fl"><i data-lucide="chevron-right" style="width:20px;height:20px"></i></span>
     </button>
+    <div class="mg-seg" role="group" aria-label="Affichage de mes gardes">
+      <button type="button" id="mgSegAnnee" class="on" aria-pressed="true" onclick="mgVue('annee')"><i data-lucide="calendar-days"></i>Année</button>
+      <button type="button" id="mgSegListe" aria-pressed="false" onclick="mgVue('liste')"><i data-lucide="clipboard-list"></i>Liste</button>
+    </div>
+    <div id="mgVueAnnee"></div>
+    <div id="mgVueListe" style="display:none">
     <div id="mesGardesList"></div>
+    </div>
   </div>
   <div id="echangesView" style="display:none">
     <div class="topos-head">
@@ -1201,6 +1244,10 @@ async function miroirBootDash() {
     }
   }
   seedActiveYear(active);
+  /* (16/11/2026) La liste des années consultables (archives comprises) arrive
+     déjà dans cet appel : la vue Année de « Mes gardes » s'en sert pour
+     proposer de remonter dans le temps, sans appel de plus. */
+  try { if (m.data && m.data.annees && Array.isArray(m.data.annees.annees)) ANNEES_DISPO = m.data.annees.annees.map(function (a) { return Number(a.annee); }).filter(Boolean); } catch (e) {}
   if (plan) { _planCache[active] = plan; _ssPlanSet(active, plan); }
   if (planSuiv) { _planCache[active + 1] = planSuiv; _ssPlanSet(active + 1, planSuiv); }
   /* (13/08/2026) L'ordre de passage voyage dans CE meme appel : le bandeau de
@@ -1858,13 +1905,19 @@ function openMesGardes(){
   if(!MY_ID) return;
   document.getElementById('tilesView').style.display='none';
   document.getElementById('mesGardesView').style.display='block';
+  /* (16/11/2026) Chaque ouverture repart de la vue Année, centrée sur le mois
+     en cours, sans mois agrandi ni année ancienne dépliée. */
+  MG_VUE='annee'; MGA_ANNEES=null; MGA_OUVERT=null;
+  _mgVueAppliquer();
   if(MY_GARDES===null){
     document.getElementById('mesGardesList').innerHTML='<div class="topos-loading">Chargement…</div>';
+    document.getElementById('mgVueAnnee').innerHTML='<div class="topos-loading">Chargement…</div>';
     document.getElementById('mesGardesCount').textContent='';
-    loadMyGardes().then(renderMesGardes);
+    loadMyGardes().then(function(){ renderMesGardes(); _mgaOuvrir(); });
     return;
   }
   renderMesGardes();
+  _mgaOuvrir();
 }
 // ── (11/11/2026) MES GARDES DANS MON CALENDRIER ──
 // Le relais donne à chaque MAR un lien personnel d'abonnement. Le calendrier du
@@ -1959,6 +2012,176 @@ function renderMesGardes(){
   });
   box.innerHTML=html;
   if(window.lucide) lucide.createIcons();
+}
+
+/* ══ (16/11/2026) MES GARDES — VUE ANNÉE ══════════════════════════════
+   Lit les plannings déjà en mémoire : aucun appel de plus pour l'année en
+   cours et la suivante. Une année archivée ne se charge qu'à la demande
+   (« Afficher 2025 »), une à la fois, par la copie rapide — comme le
+   sélecteur d'année du planning. Le 1er janvier appartient souvent au planning
+   de l'année d'avant (une année de gardes commence un lundi) : ce planning-là
+   est lu en arrière-plan pour compléter les premiers jours, sans s'afficher. */
+let MG_VUE = 'annee';      // 'annee' (par défaut) | 'liste'
+let MGA_ANNEES = null;     // années affichées, tri croissant
+let MGA_OUVERT = null;     // 'AAAA-MM' du mois agrandi
+let MGA_ACTIF = null;      // année active
+let ANNEES_DISPO = null;   // toutes les années consultables, archives comprises (clé `annees`)
+const MGA_MOIS = ['Janvier','Février','Mars','Avril','Mai','Juin','Juillet','Août','Septembre','Octobre','Novembre','Décembre'];
+const MGA_CAT_LAB = { vac:'vac.', form:'form.', tp:'TP', recup:'récup', cl:'CL' };
+
+function _mgVueAppliquer(){
+  const an = MG_VUE==='annee';
+  const vA=document.getElementById('mgVueAnnee'), vL=document.getElementById('mgVueListe');
+  if(vA) vA.style.display = an ? 'block' : 'none';
+  if(vL) vL.style.display = an ? 'none' : 'block';
+  [['mgSegAnnee',an],['mgSegListe',!an]].forEach(function(x){
+    const b=document.getElementById(x[0]); if(!b) return;
+    b.classList.toggle('on', x[1]); b.setAttribute('aria-pressed', x[1]?'true':'false');
+  });
+}
+function mgVue(v){
+  MG_VUE = (v==='liste') ? 'liste' : 'annee';
+  _mgVueAppliquer();
+  if(MG_VUE==='annee') renderMesGardesAnnee(true);
+}
+function _mgaAnneesDispo(){
+  if(ANNEES_DISPO && ANNEES_DISPO.length) return ANNEES_DISPO.slice();
+  return Object.keys(_planCache).map(Number).filter(Boolean);
+}
+/* Ouverture : année active connue (promesse partagée), années par défaut =
+   l'active et la suivante si elle est publiée. La liste des années archivées
+   arrive avec l'ouverture du portail ; si elle manque (ouverture par le serveur
+   lent), le bouton « Afficher … » ne propose que les années déjà en mémoire. */
+function _mgaOuvrir(){
+  getActiveYearOnce().then(function(y){
+    MGA_ACTIF = Number(y) || new Date().getFullYear();
+    MGA_ANNEES = [MGA_ACTIF, MGA_ACTIF+1].filter(function(a){ return !!_planDejaLa(a); });
+    renderMesGardesAnnee(true);
+    _mgaVeilleAnnePrecedente();
+  }, function(){});
+}
+function _mgaVeilleAnnePrecedente(){
+  if(!MGA_ANNEES || !MGA_ANNEES.length) return;
+  const y = MGA_ANNEES[0] - 1;
+  if(_planDejaLa(y)) return;
+  /* Seulement si l'année figure dans la liste servie : jamais d'appel à
+     l'aveugle (une année inexistante partirait vers le serveur lent). */
+  if(!ANNEES_DISPO || ANNEES_DISPO.indexOf(y) < 0) return;
+  _fetchPlanning(y).then(function(pl){ if(pl && MG_VUE==='annee') renderMesGardesAnnee(false); }, function(){});
+}
+/* Statut de chaque jour pour MOI, toutes années chargées confondues. */
+function _mgaStatuts(){
+  const S = {};
+  const ans = {};
+  _mgaAnneesDispo().concat(Object.keys(_planCache).map(Number)).forEach(function(y){ ans[y]=1; });
+  (MGA_ANNEES||[]).forEach(function(y){ ans[y]=1; ans[y-1]=1; });
+  Object.keys(ans).map(Number).sort().forEach(function(y){
+    const pl = _planDejaLa(y);
+    if(!pl || !pl.months) return;
+    pl.months.forEach(function(m){
+      const doc=(m.doctors||[]).find(function(d){ return d.id===MY_ID; });
+      if(!doc || !doc.days) return;
+      for(let i=0;i<doc.days.length;i++){
+        const st=(doc.days[i]||{}).status;
+        if(st && m.days[i] && m.days[i].date) S[m.days[i].date]=String(st);
+      }
+    });
+  });
+  return S;
+}
+/* Totaux d'une année de gardes : ceux de SON planning, comme les statistiques. */
+function _mgaTotaux(y){
+  const t = { g:0, g2:0, h18:0 };
+  const pl = _planDejaLa(y);
+  if(!pl || !pl.months) return t;
+  pl.months.forEach(function(m){
+    const doc=(m.doctors||[]).find(function(d){ return d.id===MY_ID; });
+    if(!doc || !doc.days) return;
+    doc.days.forEach(function(j){
+      const st=String((j||{}).status||'');
+      if(st==='G') t.g++; else if(st==='G2') t.g2++; else if(st==='18') t.h18++;
+    });
+  });
+  return t;
+}
+function _mgaPlusAncienne(){
+  if(!MGA_ANNEES || !MGA_ANNEES.length) return null;
+  const e = MGA_ANNEES[0];
+  const av = _mgaAnneesDispo().filter(function(y){ return y < e; });
+  return av.length ? Math.max.apply(null, av) : null;
+}
+function _mgaMois(y, m, S, today){
+  const cle = y+'-'+String(m+1).padStart(2,'0');
+  const n = new Date(y, m+1, 0).getDate();
+  const decal = (new Date(y, m, 1).getDay()+6)%7;
+  let nb = 0, cases = '';
+  for(let i=0;i<decal;i++) cases += '<div></div>';
+  for(let d=1; d<=n; d++){
+    const iso = cle+'-'+String(d).padStart(2,'0');
+    const st = S[iso] || '';
+    const wd = (new Date(y, m, d).getDay()+6)%7;
+    let cls = 'mga-d', lab = '';
+    if(st==='G'){ cls+=' g'; lab='Réa'; nb++; }
+    else if(st==='G2'){ cls+=' g2'; lab='Mater'; nb++; }
+    else if(st==='18'){ cls+=' h18'; lab='18 h'; }
+    else { const c = CONGE_CODE_TO_CAT[st]; if(c){ cls+=' '+CAT_META[c].cls; lab=MGA_CAT_LAB[c]; } }
+    if(wd>=5 && !lab) cls += ' we';
+    if(iso < today) cls += ' passe';
+    if(iso === today) cls += ' auj';
+    cases += '<div class="'+cls+'" data-date="'+iso+'"'+(lab?' title="'+lab+'"':'')+'>'+d+(lab?'<small>'+lab+'</small>':'')+'</div>';
+  }
+  const enCours = today.slice(0,7)===cle;
+  return '<div class="mga-mois'+(MGA_OUVERT===cle?' ouvert':'')+(enCours?' encours':'')+'" id="mga-'+cle+'" onclick="mgaBasculerMois(\''+cle+'\')">'
+    + '<div class="mga-mh">'+MGA_MOIS[m]+(nb?'<small>'+nb+' G</small>':'')+'</div>'
+    + '<div class="mga-j">'+['L','M','M','J','V','S','D'].map(function(x){ return '<div class="mga-dw">'+x+'</div>'; }).join('')+cases+'</div></div>';
+}
+function renderMesGardesAnnee(centrer){
+  const box=document.getElementById('mgVueAnnee');
+  if(!box) return;
+  if(!MGA_ANNEES){ box.innerHTML='<div class="topos-loading">Chargement…</div>'; return; }
+  if(!MGA_ANNEES.length){ box.innerHTML='<div class="topos-empty">Planning indisponible<br><span>Réessayez dans un instant.</span></div>'; return; }
+  const S=_mgaStatuts(), today=_todayStr();
+  let h='<div class="mga-leg"><span><i style="background:var(--me)"></i>Réa</span><span><i style="background:var(--rose)"></i>Mater/Bloc</span>'
+    + '<span><i style="background:var(--h18)"></i>18 h</span><span><i style="background:var(--cat-vac-bg)"></i>Vacances</span>'
+    + '<span><i style="background:var(--cat-tp-bg)"></i>TP</span><span><i style="background:var(--cat-form-bg)"></i>Formation</span></div>';
+  const anc=_mgaPlusAncienne();
+  if(anc) h+='<button type="button" class="mga-plus" id="mgaPlus" onclick="mgaAfficherAnnee('+anc+')">Afficher '+anc+'</button>';
+  MGA_ANNEES.forEach(function(y){
+    const t=_mgaTotaux(y);
+    h+='<div class="mga-an" id="mgaAn'+y+'"><h3>'+y+'</h3><div class="mga-tot">'
+      + '<span class="g">'+t.g+' Réa</span><span class="g2">'+t.g2+' Mater/Bloc</span><span class="h18">'+t.h18+' × 18 h</span></div></div>'
+      + '<div class="mga-grille">';
+    for(let m=0;m<12;m++) h+=_mgaMois(y, m, S, today);
+    h+='</div>';
+  });
+  box.innerHTML=h;
+  if(centrer){
+    const el=document.getElementById('mga-'+today.slice(0,7));
+    if(el && el.scrollIntoView){ try{ el.scrollIntoView({block:'center'}); }catch(e){ el.scrollIntoView(); } }
+  }
+}
+function mgaBasculerMois(cle){
+  MGA_OUVERT = (MGA_OUVERT===cle) ? null : cle;
+  renderMesGardesAnnee(false);
+  const el=document.getElementById('mga-'+cle);
+  if(el && el.scrollIntoView){ try{ el.scrollIntoView({block:'nearest'}); }catch(e){} }
+}
+async function mgaAfficherAnnee(y){
+  const b=document.getElementById('mgaPlus');
+  if(b){ b.disabled=true; b.textContent='Chargement de '+y+'…'; }
+  let pl=null;
+  try{ pl=_planDejaLa(y) || await _fetchPlanning(y); }catch(e){}
+  if(!pl){ if(b){ b.disabled=false; b.textContent=y+' indisponible — réessayer'; } return; }
+  /* Le défilement reste sur ce qu'on regardait : l'année ajoutée pousse le
+     contenu vers le bas, on compense de la même hauteur. */
+  const ancre=document.getElementById('mgaAn'+MGA_ANNEES[0]);
+  const avant=ancre ? ancre.getBoundingClientRect().top : null;
+  if(MGA_ANNEES.indexOf(y)<0) MGA_ANNEES.push(y);
+  MGA_ANNEES.sort(function(a,b){ return a-b; });
+  renderMesGardesAnnee(false);
+  const apres=ancre ? document.getElementById(ancre.id) : null;
+  if(apres && avant!==null){ try{ window.scrollBy(0, apres.getBoundingClientRect().top-avant); }catch(e){} }
+  _mgaVeilleAnnePrecedente();
 }
 
 // ── MES CONGÉS (perso — à venir) ──
@@ -4366,6 +4589,7 @@ try {
     'loadMyGardes',
     'renderMyGardesHero',
     'renderMesGardes',
+    'renderMesGardesAnnee',
     'loadMyConges',
     'renderMesConges',
     'renderVeille',

@@ -277,7 +277,7 @@
   <h1>Guide du MAR</h1>
   <p class="appbar-sub">Le portail, le planning, vos congés — et comment vos gardes sont calculées.</p>
 </div>
-<p class="maj">Mis à jour le 11 novembre 2026 · <span data-version>—</span></p>
+<p class="maj">Mis à jour le 16 novembre 2026 · <span data-version>—</span></p>
 
 <div class="chercher">
   <input id="q" type="search" placeholder="Chercher : récup, code, échange, samedi…" autocomplete="off">
@@ -374,7 +374,7 @@
       <div><b>Annuaire</b><span>Numéros de l'hôpital et DECT de l'équipe.</span></div>
     </div>
 
-    <p><b>Moi</b> — ce qui ne concerne que vous. En tête, la carte sombre <b>Prochaine garde</b> : le jour, la ligne (Réa ou Mater/Bloc), dans combien de jours, le collègue de garde avec vous sur l'autre ligne, et en vert votre prochain 18 h. Touchez-la pour ouvrir <b>Mes gardes</b> : toutes vos gardes et vos 18 h à venir, mois par mois. Juste dessous, la tuile <b>Mes échanges</b> : donner une garde, en échanger une, répondre à un collègue. Quand une demande vous attend, elle passe au rouge avec le nombre de demandes.</p>
+    <p><b>Moi</b> — ce qui ne concerne que vous. En tête, la carte sombre <b>Prochaine garde</b> : le jour, la ligne (Réa ou Mater/Bloc), dans combien de jours, le collègue de garde avec vous sur l'autre ligne, et en vert votre prochain 18 h. Touchez-la pour ouvrir <b>Mes gardes</b> : votre année en calendrier, ou la liste de vos gardes et 18 h à venir. Juste dessous, la tuile <b>Mes échanges</b> : donner une garde, en échanger une, répondre à un collègue. Quand une demande vous attend, elle passe au rouge avec le nombre de demandes.</p>
     <div class="liste">
       <div><b>Mes congés</b><span>Vacances, formations, temps partiels, récupérations. La tuile affiche combien sont à venir et le prochain (les jours de temps partiel ne sont pas comptés).</span></div>
       <div><b>Mes indisponibilités</b><span>Votre grille de saisie. Visible uniquement pendant la campagne d'automne, avec le nombre de jours restants avant la date limite (« J-16 »).</span></div>
@@ -492,9 +492,22 @@
   <div class="corps">
     <p>Deux vues qui ne montrent que vous. Pratiques quand vous cherchez une date sans parcourir toute l'équipe.</p>
     <div class="liste">
-      <div><b>Mes gardes</b><span>Vos gardes et vos 18 h à venir. Les 18 h sont des bandes fines orange, pour ne pas les confondre avec une garde. Par le bandeau « Prochaine garde ».</span></div>
+      <div><b>Mes gardes</b><span>Par le bandeau « Prochaine garde ». Deux boutons en haut : <b>Année</b> et <b>Liste</b>.</span></div>
       <div><b>Mes congés</b><span>Vacances, formations, temps partiels et récupérations enregistrés. Par la tuile du même nom.</span></div>
     </div>
+    <h3>Voir mon année d'un coup d'œil</h3>
+    <p>« Mes gardes » s'ouvre sur <b>Année</b> : douze petits calendriers, le mois en cours au milieu de l'écran. Réa en bleu, Mater/Bloc en rose, 18 h en orange ; vos vacances, TP et formations en teinte claire. Les jours passés sont pâlis.</p>
+    <div class="liste">
+      <div><b>Voir le détail d'un mois</b><span>Touchez le mois : il s'agrandit et chaque case dit « Réa », « Mater » ou « 18 h ». Touchez encore pour le refermer.</span></div>
+      <div><b>Remonter dans le temps</b><span>Faites défiler vers le haut, puis touchez <b>Afficher 2026</b> (l'année d'avant). Recommencez pour les années plus anciennes.</span></div>
+      <div><b>Retrouver la liste</b><span>Touchez <b>Liste</b> : vos gardes et vos 18 h à venir, mois par mois. Les 18 h y sont des bandes fines orange.</span></div>
+    </div>
+    <details class="plus">
+      <summary>Les totaux à côté de l'année</summary>
+      <div class="dedans">
+        <p>Ils comptent votre année de gardes, qui commence le premier lundi de janvier. Les gardes des tout premiers jours de janvier, avant ce lundi, comptent dans l'année d'avant, comme dans les statistiques.</p>
+      </div>
+    </details>
     <h3>Mettre mes gardes dans le calendrier de mon téléphone</h3>
     <p>Vos gardes réa, vos gardes mater et vos 18h apparaissent dans le calendrier de votre téléphone, en « journée entière », dans un agenda à part nommé <b>Mes gardes</b>. Vous vous abonnez une fois ; ensuite, un don ou un échange accepté s'y reporte tout seul.</p>
     <div class="liste">
