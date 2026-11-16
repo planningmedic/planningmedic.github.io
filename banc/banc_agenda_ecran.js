@@ -103,7 +103,7 @@ const dodo = ms => new Promise(r => setTimeout(r, ms));
   V('la page se charge sans erreur JavaScript', erreurs.length === 0, erreurs.slice(0, 2));
   w.openMesGardes(); await dodo(50);
   const carte = d.getElementById('agCarte');
-  V('« Mes gardes » montre la carte « Mes gardes dans mon calendrier »', carte && /Mes gardes dans mon calendrier/.test(carte.textContent));
+  V('« Mes gardes » montre le bouton « Ajouter à mon calendrier » (16/11 : carte devenue bouton compact)', carte && /Ajouter à\s*mon calendrier/.test(carte.textContent), carte && carte.textContent);
   V('aucun lien n\'est demandé tant que la carte n\'est pas touchée', appelsAgenda.length === 0);
   V('la feuille est fermée au départ', d.getElementById('agFeuille').style.display === 'none');
   carte.click(); await dodo(300);

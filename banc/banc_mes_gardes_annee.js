@@ -96,11 +96,16 @@ function planning(statuts) {
   V('aucune erreur JavaScript', erreurs.length === 0, erreurs.slice(0,2));
   V('la vue Année est affichée', $('#mgVueAnnee').style.display === 'block');
   V('la liste est masquée', $('#mgVueListe').style.display === 'none');
-  V('la carte « calendrier du téléphone » est visible dans la vue Année, au-dessus de la bascule', !!$('#agCarte') && !$('#mgVueListe #agCarte') && ($('#agCarte').compareDocumentPosition($('.mg-seg')) & 4) !== 0);
+  V('années et légende affichées en vue Année', $('#mgaBarre').style.display === 'block');
   V('le bouton « Année » est enfoncé', $('#mgSegAnnee').classList.contains('on') && $('#mgSegAnnee').getAttribute('aria-pressed') === 'true');
   V(`les années ${AN} et ${AN+1} sont affichées`, !!$('#mgaAn' + AN) && !!$('#mgaAn' + (AN+1)));
   V(`l'année archivée ${AN-1} n'est pas affichée d'office`, !$('#mgaAn' + (AN-1)));
-  V(`un bouton propose « Afficher ${AN-1} »`, !!$('#mgaPlus') && $('#mgaPlus').textContent.trim() === 'Afficher ' + (AN-1), $('#mgaPlus') && $('#mgaPlus').textContent);
+  const puces = () => [...D.querySelectorAll('#mgaAns button')].map(b => b.textContent.trim());
+  V(`sélecteur d'année : ${AN-1}, ${AN}, ${AN+1}`, JSON.stringify(puces()) === JSON.stringify([String(AN-1), String(AN), String(AN+1)]), puces());
+  V(`l'année archivée non chargée est en pointillés`, $('#mgaPuce' + (AN-1)).classList.contains('arch') && !$('#mgaPuce' + AN).classList.contains('arch'));
+  V('le bandeau (bascule, bouton calendrier, années, légende) reste en haut au défilement', w.getComputedStyle($('#mgFixe')).position === 'sticky' && !!$('#mgFixe #agCarte') && !!$('#mgFixe #mgaAns') && !!$('#mgFixe .mga-leg'));
+  V('le bandeau se cale sous l\'en-tête du portail', /px$/.test($('#mgFixe').style.getPropertyValue('--mg-haut')) || !D.querySelector('.header') || D.querySelector('.header').getBoundingClientRect().height === 0);
+  V('le bouton calendrier dit à quoi il sert', /Ajouter à\s*mon calendrier/.test($('#agCarte').textContent));
   V('12 mois par année affichée', D.querySelectorAll('#mgVueAnnee .mga-mois').length === 24, D.querySelectorAll('#mgVueAnnee .mga-mois').length);
   V('le mois en cours est marqué', $('#mga-' + MOI) && $('#mga-' + MOI).classList.contains('encours'));
   V('la vue se centre sur le mois en cours', vues.some(v => v.id === 'mga-' + MOI && v.o && v.o.block === 'center'), vues);
@@ -134,15 +139,17 @@ function planning(statuts) {
   w.mgVue('liste'); await dodo(20);
   V('Liste : la liste est affichée et la vue Année masquée', $('#mgVueListe').style.display === 'block' && $('#mgVueAnnee').style.display === 'none');
   V('la liste montre toujours les gardes à venir', D.querySelectorAll('#mesGardesList .staff-card').length >= 1);
-  V('la carte « calendrier du téléphone » est hors des deux vues : visible en Liste', !!$('#agCarte') && !$('#mgVueListe #agCarte') && !$('#mgVueAnnee #agCarte'));
+  V('Liste : le bouton calendrier reste dans le bandeau', !!$('#mgFixe #agCarte') && !$('#mgVueListe #agCarte'));
+  V('Liste : années et légende masquées', $('#mgaBarre').style.display === 'none');
   w.backToHome(); await dodo(20); w.openMesGardes(); await dodo(80);
   V('à la réouverture, retour sur la vue Année', $('#mgVueAnnee').style.display === 'block' && $('#mgSegAnnee').classList.contains('on'));
 
   console.log('\n═══ 6. Remonter dans le temps ═══');
-  await w.mgaAfficherAnnee(AN - 1); await dodo(30);
+  await w.mgaAllerAnnee(AN - 1); await dodo(30);
   V(`${AN-1} est affichée au-dessus`, !!$('#mgaAn' + (AN-1)) && D.getElementById('mgVueAnnee').innerHTML.indexOf('mgaAn' + (AN-1)) < D.getElementById('mgVueAnnee').innerHTML.indexOf('mgaAn' + AN));
   V(`sa garde de juin est visible`, cas(`${AN-1}-06-15`).classList.contains('g'));
-  V("plus d'année plus ancienne : le bouton disparaît", !$('#mgaPlus'));
+  V(`la pastille ${AN-1} n'est plus en pointillés`, !$('#mgaPuce' + (AN-1)).classList.contains('arch'));
+  V('toujours une pastille par année, sans doublon', puces().length === 3, puces());
   V('aucun appel au serveur lent pour un planning', !gas.includes('getPlanningJson'), gas);
   V('le planning archivé a été lu par la copie rapide', miroir.some(k => k.includes(`planning_${AN-1}`)), miroir);
 
@@ -152,7 +159,7 @@ function planning(statuts) {
     const b = await ouvrir({ annees: anneesSans, [`planning_${AN}`]: plans[`planning_${AN}`], [`planning_${AN+1}`]: plans[`planning_${AN+1}`] });
     const avant = b.miroir.length;
     b.w.openMesGardes(); await dodo(120);
-    V('pas de bouton « Afficher … » sans année plus ancienne', !b.w.document.getElementById('mgaPlus'));
+    V(`seules les années servies ont une pastille (${AN}, ${AN+1})`, [...b.w.document.querySelectorAll('#mgaAns button')].map(x => x.textContent.trim()).join() === AN + ',' + (AN+1));
     V(`aucune lecture de planning_${AN-1} (non servie)`, !b.miroir.slice(avant).some(k => k.includes(`planning_${AN-1}`)), b.miroir.slice(avant));
     V('aucun appel au serveur lent', !b.gas.includes('getPlanningJson'), b.gas);
     V('aucune erreur JavaScript', b.erreurs.length === 0, b.erreurs.slice(0,2));

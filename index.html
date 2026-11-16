@@ -355,14 +355,22 @@ html[data-theme="dark"] .mg-tag.h18 { color:#1A0E03; }
    par défaut (décision du responsable) : 12 petits calendriers par année, deux
    par ligne, ouverture centrée sur le mois en cours ; un appui agrandit un mois
    avec le nom de la garde dans la case. Couleurs = celles de la liste. */
-.mg-seg { display:flex; gap:3px; padding:3px; background:var(--line-light); border:1px solid var(--line); border-radius:12px; margin:0 0 12px; }
+.mg-fixe { position:sticky; top:var(--mg-haut,60px); z-index:50; background:var(--bg); margin:0 -24px 8px; padding:8px 24px; border-bottom:1px solid transparent; }
+.mg-fixe.colle { border-bottom-color:var(--line); box-shadow:0 6px 12px -10px rgba(15,23,42,.25); }
+.mg-l1 { display:flex; gap:8px; align-items:center; }
+.mg-seg { flex:1; display:flex; gap:3px; padding:3px; background:var(--line-light); border:1px solid var(--line); border-radius:12px; }
+.mga-ans { display:flex; gap:6px; overflow-x:auto; margin:8px -24px 0; padding:0 24px 2px; scrollbar-width:none; }
+.mga-ans::-webkit-scrollbar { display:none; }
+.mga-ans button { flex:none; height:30px; padding:0 14px; border-radius:999px; border:1px solid var(--line); background:var(--white); color:var(--ink-3); font:inherit; font-size:13.5px; font-weight:700; cursor:pointer; }
+.mga-ans button.on { background:var(--ink); border-color:var(--ink); color:var(--white); }
+.mga-ans button.arch { border-style:dashed; }
+@media(max-width:640px){ .mg-fixe { top:var(--mg-haut,52px); margin:0 -16px 8px; padding:8px 16px; } .mga-ans { margin:8px -16px 0; padding:0 16px 2px; } }
 .mg-seg button { flex:1; display:inline-flex; align-items:center; justify-content:center; gap:6px; height:36px; border:0; border-radius:9px; background:transparent; color:var(--ink-3); font:inherit; font-size:14px; font-weight:600; cursor:pointer; }
 .mg-seg button svg { width:16px; height:16px; }
 .mg-seg button.on { background:var(--white); color:var(--ink); box-shadow:0 1px 2px rgba(15,23,42,.08); }
-.mga-leg { display:flex; flex-wrap:wrap; gap:5px 12px; font-size:11.5px; font-weight:600; color:var(--ink-3); margin:0 2px 14px; }
+.mga-leg { display:flex; flex-wrap:wrap; gap:4px 11px; font-size:11.5px; font-weight:600; color:var(--ink-3); margin:8px 2px 0; }
 .mga-leg i { display:inline-block; width:10px; height:10px; border-radius:3px; margin-right:5px; vertical-align:-1px; }
-.mga-plus { display:block; width:100%; margin:0 0 16px; padding:10px; border:1px dashed var(--line); border-radius:12px; background:transparent; color:var(--ink-3); font:inherit; font-size:13.5px; font-weight:600; cursor:pointer; }
-.mga-an { display:flex; align-items:center; justify-content:space-between; gap:10px; margin:4px 2px 10px; }
+.mga-an { display:flex; align-items:center; justify-content:space-between; gap:10px; margin:10px 2px 10px; }
 .mga-an h3 { margin:0; font-size:19px; font-weight:800; color:var(--ink); letter-spacing:-.01em; }
 .mga-tot { display:flex; gap:5px; flex-wrap:wrap; justify-content:flex-end; }
 .mga-tot span { font-size:11px; font-weight:700; border-radius:999px; padding:3px 8px; white-space:nowrap; }
@@ -370,7 +378,7 @@ html[data-theme="dark"] .mg-tag.h18 { color:#1A0E03; }
 .mga-tot .g2 { background:var(--red-soft); color:var(--rose); }
 .mga-tot .h18 { background:var(--h18-soft); color:var(--h18); }
 .mga-grille { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:8px; margin-bottom:24px; }
-.mga-mois { background:var(--white); border:1px solid var(--line); border-radius:12px; padding:8px 6px 6px; cursor:pointer; }
+.mga-mois { background:var(--white); border:1px solid var(--line); border-radius:12px; padding:8px 6px 6px; cursor:pointer; scroll-margin-top:190px; scroll-margin-bottom:16px; }
 .mga-mois.encours { border-color:var(--me-border); box-shadow:inset 0 0 0 1px var(--me-border); }
 .mga-mois.ouvert { grid-column:1/-1; padding:12px 12px 10px; }
 .mga-mh { display:flex; justify-content:space-between; align-items:baseline; font-size:12.5px; font-weight:700; color:var(--ink); margin:0 3px 5px; }
@@ -853,12 +861,11 @@ html[data-theme="dark"] .ech-bandeau.ouvert { background:var(--ok-soft); color:v
 .notif-item-h{font-size:11px;color:var(--ink-4);margin-top:4px}
 .notif-vide{padding:26px 10px;text-align:center;font-size:13px;color:var(--ink-4)}
 /* ── (11/11/2026) MES GARDES DANS MON CALENDRIER — carte + feuille d'abonnement ── */
-.ag-carte { display:flex; align-items:center; gap:12px; width:100%; text-align:left; font-family:inherit; cursor:pointer;
-  background:var(--white); border:1.5px solid var(--me); border-radius:14px; padding:13px 14px; margin:0 0 18px; color:var(--ink); }
-.ag-ico { width:40px; height:40px; border-radius:10px; background:var(--me-soft); color:var(--me); display:flex; align-items:center; justify-content:center; flex-shrink:0; }
-.ag-t { font-size:15px; font-weight:700; }
-.ag-s { font-size:12.5px; color:var(--ink-3); margin-top:2px; }
-.ag-fl { margin-left:auto; color:var(--me); display:flex; }
+/* (16/11/2026) La carte devient un bouton compact, à côté de la bascule Année /
+   Liste, dans le bandeau qui reste en haut (variante A validée sur maquette). */
+.ag-btn { flex:none; display:flex; align-items:center; gap:7px; height:44px; padding:0 11px; border:1.5px solid var(--me); border-radius:12px;
+  background:var(--white); color:var(--me); font:inherit; font-size:11.5px; font-weight:700; line-height:1.15; text-align:left; cursor:pointer; }
+.ag-btn svg { width:20px; height:20px; flex:none; }
 .ag-voile { position:fixed; inset:0; background:rgba(15,23,42,.45); z-index:900; }
 .ag-feuille { position:fixed; left:0; right:0; bottom:0; z-index:901; max-width:560px; margin:0 auto; background:var(--white);
   border-radius:22px 22px 0 0; padding:10px 18px calc(22px + env(safe-area-inset-bottom)); color:var(--ink); }
@@ -1078,15 +1085,18 @@ html[data-theme="dark"] .ech-bandeau.ouvert { background:var(--ok-soft); color:v
       <h2>Mes gardes</h2>
       <span class="topos-count" id="mesGardesCount"></span>
     </div>
-    <button type="button" class="ag-carte" id="agCarte" onclick="agendaOuvrir()">
-      <span class="ag-ico"><i data-lucide="calendar-days" style="width:21px;height:21px"></i></span>
-      <span><span class="ag-t" style="display:block">Mes gardes dans mon calendrier</span>
-      <span class="ag-s" style="display:block">Gardes et 18h, mises à jour toutes seules</span></span>
-      <span class="ag-fl"><i data-lucide="chevron-right" style="width:20px;height:20px"></i></span>
-    </button>
-    <div class="mg-seg" role="group" aria-label="Affichage de mes gardes">
-      <button type="button" id="mgSegAnnee" class="on" aria-pressed="true" onclick="mgVue('annee')"><i data-lucide="calendar-days"></i>Année</button>
-      <button type="button" id="mgSegListe" aria-pressed="false" onclick="mgVue('liste')"><i data-lucide="clipboard-list"></i>Liste</button>
+    <div class="mg-fixe" id="mgFixe">
+      <div class="mg-l1">
+        <div class="mg-seg" role="group" aria-label="Affichage de mes gardes">
+          <button type="button" id="mgSegAnnee" class="on" aria-pressed="true" onclick="mgVue('annee')">Année</button>
+          <button type="button" id="mgSegListe" aria-pressed="false" onclick="mgVue('liste')">Liste</button>
+        </div>
+        <button type="button" class="ag-btn" id="agCarte" onclick="agendaOuvrir()" aria-label="Ajouter mes gardes à mon calendrier"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="4" width="18" height="18" rx="2"/><path d="M16 2v4M8 2v4M3 10h18M12 14v4M10 16h4"/></svg><span>Ajouter à<br>mon calendrier</span></button>
+      </div>
+      <div id="mgaBarre">
+        <div class="mga-ans" id="mgaAns" role="group" aria-label="Choisir une année"></div>
+        <div class="mga-leg"><span><i style="background:var(--me)"></i>Réa</span><span><i style="background:var(--rose)"></i>Mater/Bloc</span><span><i style="background:var(--h18)"></i>18 h</span><span><i style="background:var(--cat-vac-bg);box-shadow:inset 0 0 0 1px var(--cat-vac-fg)"></i>Vacances</span><span><i style="background:var(--cat-tp-bg);box-shadow:inset 0 0 0 1px var(--cat-tp-fg)"></i>TP</span><span><i style="background:var(--cat-form-bg);box-shadow:inset 0 0 0 1px var(--cat-form-fg)"></i>Form.</span></div>
+      </div>
     </div>
     <div id="mgVueAnnee"></div>
     <div id="mgVueListe" style="display:none">
@@ -2031,14 +2041,42 @@ const MGA_CAT_LAB = { vac:'vac.', form:'form.', tp:'TP', recup:'récup', cl:'CL'
 
 function _mgVueAppliquer(){
   const an = MG_VUE==='annee';
-  const vA=document.getElementById('mgVueAnnee'), vL=document.getElementById('mgVueListe');
+  const vA=document.getElementById('mgVueAnnee'), vL=document.getElementById('mgVueListe'), bar=document.getElementById('mgaBarre');
   if(vA) vA.style.display = an ? 'block' : 'none';
   if(vL) vL.style.display = an ? 'none' : 'block';
+  if(bar) bar.style.display = an ? 'block' : 'none';   // années et légende : vue Année seulement
+  _mgFixeCaler();
   [['mgSegAnnee',an],['mgSegListe',!an]].forEach(function(x){
     const b=document.getElementById(x[0]); if(!b) return;
     b.classList.toggle('on', x[1]); b.setAttribute('aria-pressed', x[1]?'true':'false');
   });
 }
+/* (16/11/2026) Bandeau qui reste en haut (bascule, bouton calendrier, années,
+   légende) : il se cale juste sous l'en-tête du portail, dont la hauteur varie
+   (téléphone / ordinateur). Au défilement : filet sous le bandeau, et la
+   pastille de l'année regardée s'allume. */
+function _mgFixeCaler(){
+  const f=document.getElementById('mgFixe'), h=document.querySelector('.header');
+  if(f && h){ const ht=Math.round(h.getBoundingClientRect().height); if(ht>0) f.style.setProperty('--mg-haut', ht+'px'); }
+}
+function _mgHautBandeau(){
+  const f=document.getElementById('mgFixe');
+  return f ? Math.max(0, f.getBoundingClientRect().bottom) : 0;
+}
+let _mgDefilP=false;
+function _mgSurDefilement(){
+  if(_mgDefilP) return; _mgDefilP=true;
+  requestAnimationFrame(function(){
+    _mgDefilP=false;
+    const v=document.getElementById('mesGardesView'), f=document.getElementById('mgFixe');
+    if(!v || v.style.display==='none' || !f) return;
+    const h=document.querySelector('.header'), haut=h ? h.getBoundingClientRect().bottom : 0;
+    f.classList.toggle('colle', f.getBoundingClientRect().top <= haut + 1 && (window.scrollY||0) > 40);
+    if(MG_VUE==='annee') _mgaPuces();
+  });
+}
+window.addEventListener('scroll', _mgSurDefilement, { passive:true });
+window.addEventListener('resize', _mgFixeCaler);
 function mgVue(v){
   MG_VUE = (v==='liste') ? 'liste' : 'annee';
   _mgVueAppliquer();
@@ -2104,11 +2142,28 @@ function _mgaTotaux(y){
   });
   return t;
 }
-function _mgaPlusAncienne(){
+/* Sélecteur d'année : une pastille par année consultable (archives comprises,
+   en pointillés tant qu'elles ne sont pas chargées). La pastille allumée est
+   celle de l'année dont le titre est passé sous le bandeau. */
+function _mgaAnneeRegardee(){
   if(!MGA_ANNEES || !MGA_ANNEES.length) return null;
-  const e = MGA_ANNEES[0];
-  const av = _mgaAnneesDispo().filter(function(y){ return y < e; });
-  return av.length ? Math.max.apply(null, av) : null;
+  const lim=_mgHautBandeau()+24;
+  let c=MGA_ANNEES[0];
+  MGA_ANNEES.forEach(function(y){ const e=document.getElementById('mgaAn'+y); if(e && e.getBoundingClientRect().top<=lim) c=y; });
+  return c;
+}
+function _mgaPuces(){
+  const box=document.getElementById('mgaAns');
+  if(!box) return;
+  const ans=_mgaAnneesDispo().concat(MGA_ANNEES||[]).filter(function(y,i,t){ return y && t.indexOf(y)===i; }).sort(function(a,b){ return a-b; });
+  const cur=_mgaAnneeRegardee();
+  const h=ans.map(function(y){
+    const charge=(MGA_ANNEES||[]).indexOf(y)>=0;
+    return '<button type="button" id="mgaPuce'+y+'" class="'+(y===cur?'on':'')+(charge?'':' arch')+'" aria-pressed="'+(y===cur)+'" onclick="mgaAllerAnnee('+y+')">'+y+'</button>';
+  }).join('');
+  if(box.innerHTML!==h) box.innerHTML=h;
+  const on=box.querySelector('button.on');
+  if(on && on.scrollIntoView && box.scrollWidth>box.clientWidth){ try{ on.scrollIntoView({block:'nearest', inline:'nearest'}); }catch(e){} }
 }
 function _mgaMois(y, m, S, today){
   const cle = y+'-'+String(m+1).padStart(2,'0');
@@ -2141,11 +2196,7 @@ function renderMesGardesAnnee(centrer){
   if(!MGA_ANNEES){ box.innerHTML='<div class="topos-loading">Chargement…</div>'; return; }
   if(!MGA_ANNEES.length){ box.innerHTML='<div class="topos-empty">Planning indisponible<br><span>Réessayez dans un instant.</span></div>'; return; }
   const S=_mgaStatuts(), today=_todayStr();
-  let h='<div class="mga-leg"><span><i style="background:var(--me)"></i>Réa</span><span><i style="background:var(--rose)"></i>Mater/Bloc</span>'
-    + '<span><i style="background:var(--h18)"></i>18 h</span><span><i style="background:var(--cat-vac-bg)"></i>Vacances</span>'
-    + '<span><i style="background:var(--cat-tp-bg)"></i>TP</span><span><i style="background:var(--cat-form-bg)"></i>Formation</span></div>';
-  const anc=_mgaPlusAncienne();
-  if(anc) h+='<button type="button" class="mga-plus" id="mgaPlus" onclick="mgaAfficherAnnee('+anc+')">Afficher '+anc+'</button>';
+  let h='';
   MGA_ANNEES.forEach(function(y){
     const t=_mgaTotaux(y);
     h+='<div class="mga-an" id="mgaAn'+y+'"><h3>'+y+'</h3><div class="mga-tot">'
@@ -2155,6 +2206,7 @@ function renderMesGardesAnnee(centrer){
     h+='</div>';
   });
   box.innerHTML=h;
+  _mgaPuces();
   if(centrer){
     const el=document.getElementById('mga-'+today.slice(0,7));
     if(el && el.scrollIntoView){ try{ el.scrollIntoView({block:'center'}); }catch(e){ el.scrollIntoView(); } }
@@ -2166,22 +2218,30 @@ function mgaBasculerMois(cle){
   const el=document.getElementById('mga-'+cle);
   if(el && el.scrollIntoView){ try{ el.scrollIntoView({block:'nearest'}); }catch(e){} }
 }
-async function mgaAfficherAnnee(y){
-  const b=document.getElementById('mgaPlus');
-  if(b){ b.disabled=true; b.textContent='Chargement de '+y+'…'; }
-  let pl=null;
-  try{ pl=_planDejaLa(y) || await _fetchPlanning(y); }catch(e){}
-  if(!pl){ if(b){ b.disabled=false; b.textContent=y+' indisponible — réessayer'; } return; }
-  /* Le défilement reste sur ce qu'on regardait : l'année ajoutée pousse le
-     contenu vers le bas, on compense de la même hauteur. */
-  const ancre=document.getElementById('mgaAn'+MGA_ANNEES[0]);
-  const avant=ancre ? ancre.getBoundingClientRect().top : null;
-  if(MGA_ANNEES.indexOf(y)<0) MGA_ANNEES.push(y);
-  MGA_ANNEES.sort(function(a,b){ return a-b; });
-  renderMesGardesAnnee(false);
-  const apres=ancre ? document.getElementById(ancre.id) : null;
-  if(apres && avant!==null){ try{ window.scrollBy(0, apres.getBoundingClientRect().top-avant); }catch(e){} }
-  _mgaVeilleAnnePrecedente();
+async function mgaAllerAnnee(y){
+  y=Number(y);
+  if(!MGA_ANNEES) return;
+  if(MGA_ANNEES.indexOf(y)<0){
+    const b=document.getElementById('mgaPuce'+y);
+    if(b){ b.disabled=true; b.textContent=y+'…'; }
+    let pl=null;
+    try{ pl=_planDejaLa(y) || await _fetchPlanning(y); }catch(e){}
+    if(!pl){ if(b){ b.disabled=false; b.textContent=y+' ✕'; b.title='Indisponible — réessayer'; } return; }
+    MGA_ANNEES.push(y);
+    MGA_ANNEES.sort(function(a,b){ return a-b; });
+    renderMesGardesAnnee(false);
+    _mgaVeilleAnnePrecedente();
+  }
+  /* L'année active s'ouvre sur le mois en cours ; une autre, sur son titre,
+     posé juste sous le bandeau. */
+  if(y===MGA_ACTIF){
+    const m=document.getElementById('mga-'+_todayStr().slice(0,7));
+    if(m && m.scrollIntoView){ try{ m.scrollIntoView({block:'center', behavior:'smooth'}); }catch(e){ m.scrollIntoView(); } }
+  } else {
+    const e=document.getElementById('mgaAn'+y);
+    if(e){ try{ window.scrollTo({ top: e.getBoundingClientRect().top + (window.scrollY||0) - _mgHautBandeau() - 6, behavior:'smooth' }); }catch(x){} }
+  }
+  _mgaPuces();
 }
 
 // ── MES CONGÉS (perso — à venir) ──
