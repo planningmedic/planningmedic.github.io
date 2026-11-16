@@ -1242,7 +1242,7 @@ console.log('\n═══ PT-HISTO · l\'onglet TRACES trace chaque TP posé, dem
   V('le code ne supprime jamais de ligne de l\'historique', !/(HISTORIQUE|TRACES)[^\n]*(deleteRow|clear)/.test(src));
   V('le suivi des gestes a son propre onglet, distinct de l\'archive HISTORIQUE', /const HISTORIQUE_ONGLET = 'TRACES';/.test(src)); }
 
-console.log('\n═══ PT-R1 · semaine Réa 1 (16/11/2026) : TP refusé au MAR, accepté et signalé au comité ═══');
+console.log('\n═══ PT-R1 · semaine Réa 1 (16/11/2026) : TP NON bloquant — accepté et signalé, semaine envoyée à l\'écran ═══');
 {
   const avecRea1 = (b) => {
     /* REA1_2027 tel que le vrai : « Du » en JJ/MM/AAAA, colonne REA 1. POSEUR est Réa 1 la semaine du 08/03. */
@@ -1252,27 +1252,31 @@ console.log('\n═══ PT-R1 · semaine Réa 1 (16/11/2026) : TP refusé au MA
     return b;
   };
   let b = avecRea1(monde());
-  let rep = b.appel({ tp: true, indispos: { '2027-03-08': 'TP', '2027-03-12': 'TP', '2027-03-16': 'TP' } }, MAR);
-  V('MAR : lundi de sa semaine Réa 1 → refusé, motif en clair', /^semaine Réa 1 : présence obligatoire du lundi au vendredi$/.test(rep.resultat['2027-03-08'] || ''), rep.resultat['2027-03-08']);
-  V('MAR : le vendredi aussi (le Réa 1 est présent toute la semaine)', /semaine Réa 1/.test(rep.resultat['2027-03-12'] || ''), rep.resultat['2027-03-12']);
-  V('MAR : rien n\'est écrit sur ces jours', !b.lireGarde('POSEUR', '2027-03-08') && !b.lireGarde('POSEUR', '2027-03-12'));
-  V('MAR : hors de sa semaine, le TP passe', rep.resultat['2027-03-16'] === 'TP', rep.resultat['2027-03-16']);
-  V('MAR : aucun avertissement renvoyé (c\'est un refus)', Array.isArray(rep.alertesRea1) && rep.alertesRea1.length === 0, rep.alertesRea1);
+  let rep = b.appel({ tp: true, indispos: { '2027-03-08': 'TP', '2027-03-16': 'TP' } }, MAR);
+  V('MAR : un jour de sa semaine Réa 1 PASSE (pas bloquant)', rep.resultat['2027-03-08'] === 'TP' && b.lireGarde('POSEUR', '2027-03-08') === 'TP', rep.resultat);
+  V('MAR : …et il est signalé (alertesRea1), le jour hors semaine non', JSON.stringify(rep.alertesRea1) === '["2027-03-08"]', rep.alertesRea1);
   b = avecRea1(monde());
   rep = b.appel({ tp: true, doctorId: 'POSEUR', indispos: { '2027-03-09': 'TP' } }, ADMIN);
-  V('COMITÉ : le jour passe (il peut passer outre)', rep.resultat['2027-03-09'] === 'TP' && b.lireGarde('POSEUR', '2027-03-09') === 'TP', rep.resultat);
-  V('COMITÉ : …et il est signalé (alertesRea1)', JSON.stringify(rep.alertesRea1) === '["2027-03-09"]', rep.alertesRea1);
+  V('COMITÉ : le jour passe, signalé aussi', rep.resultat['2027-03-09'] === 'TP' && JSON.stringify(rep.alertesRea1) === '["2027-03-09"]', rep);
   b = avecRea1(monde());
   rep = b.appel({ tp: true, indispos: { '2027-03-08': 'TP' } }, { role: 'mar', id: 'ZORRO' });
-  V('un autre MAR (pas Réa 1 cette semaine) pose le même jour sans refus', rep.resultat['2027-03-08'] === 'TP', rep.resultat);
+  V('un autre MAR (pas Réa 1 cette semaine) : aucun signalement', rep.resultat['2027-03-08'] === 'TP' && rep.alertesRea1.length === 0, rep);
   b = monde();
   rep = b.appel({ tp: true, indispos: { '2027-03-08': 'TP' } }, MAR);
-  V('contre-épreuve — sans onglet REA1 : le TP passe comme avant', rep.resultat['2027-03-08'] === 'TP', rep.resultat);
+  V('contre-épreuve — sans onglet REA1 : rien de signalé', rep.resultat['2027-03-08'] === 'TP' && rep.alertesRea1.length === 0, rep);
+  b = avecRea1(monde());
+  ['_tpFermes_', '_construirePoseTp_'].forEach(n => vm.runInContext(extraireFonction('../gas/Indispos.gs', n), b.ctx));
+  const cle = vm.runInContext('JSON.parse(JSON.stringify(_construirePoseTp_(2027)))', b.ctx);
+  V('la clé de l\'écran porte SA semaine Réa 1 (lundi → vendredi), à lui seul',
+    JSON.stringify(cle.parMar.POSEUR.rea1) === '["2027-03-08","2027-03-09","2027-03-10","2027-03-11","2027-03-12"]'
+    && JSON.stringify(cle.parMar.ZORRO.rea1) === '[]', cle.parMar && cle.parMar.POSEUR && cle.parMar.POSEUR.rea1);
   const srcTp = fs.readFileSync('../gas/temps_partiel.gs', 'utf8'), srcAdm = fs.readFileSync('../admin.html', 'utf8'), srcInd = fs.readFileSync('../indispos.html', 'utf8');
   V('validation d\'une demande par le comité dans la semaine Réa 1 : signalée (alerteRea1) et transmise au lot',
     /out\.alerteRea1 = true/.test(srcTp) && /alerteRea1: !!\(rep && rep\.alerteRea1\)/.test(srcTp));
   V('…l\'écran du comité l\'affiche, et le récapitulatif de pose aussi',
     /x\.success && x\.alerteRea1/.test(srcAdm) && /Semaine Réa 1 : /.test(srcAdm) && /res\.alertesRea1/.test(srcInd) && /dans sa semaine Réa 1/.test(srcInd));
+  V('l\'écran grise la semaine (badge RÉA 1) et demande confirmation avant de poser',
+    /b-tpx-rea1">RÉA 1</.test(srcInd) && /function tpxConfirmerRea1\(ds\)/.test(srcInd) && /TPX\.rea1\.has\(ds\) && !TPX\.okRea1\.has\(ds\)/.test(srcInd));
 }
 
 console.log(`\n${ko === 0 ? '✅' : '❌'} banc_pose_tp : ${ok} vérifications, ${ko} échec(s)`);

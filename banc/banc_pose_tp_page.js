@@ -138,7 +138,7 @@ async function ouvrirLaPage(M, code) {
   const vis = function (id) { const e = w.document.getElementById(id); return e ? (e.style.display || 'defaut') : 'ABSENT'; };
   const grille = w.document.getElementById('tpxGrid');
   const ferme = w.document.getElementById('tpxFerme');
-  return { erreurs, jete, appels: w.__appels, squeletteVuPendant: squeletteVuPendant,
+  return { w, erreurs, jete, appels: w.__appels, squeletteVuPendant: squeletteVuPendant,
            squeletteRestant: !!w.document.getElementById('tpxSquelette'), tpApp: vis('tpApp'), tpxFerme: vis('tpxFerme'),
            cases: grille ? grille.children.length : 0,
            texteFerme: ferme ? ferme.textContent.trim() : '',
@@ -245,6 +245,35 @@ async function ouvrirAdmin(M, codeAdmin) {
   V('l\'écran « pose fermée » s\'affiche', r3.tpxFerme === 'block', { tpApp: r3.tpApp, ferme: r3.tpxFerme });
   V('et il porte un texte lisible', r3.texteFerme.length > 30, r3.texteFerme.slice(0, 60));
 
+
+  console.log('\n═══ 3 bis. (16/11/2026) Semaine Réa 1 : grisée, badge, et la pose demande confirmation ═══');
+  {
+    const cleR = JSON.parse(JSON.stringify(cle));
+    cleR.parMar.POSEUR.rea1 = ['2027-01-18', '2027-01-19', '2027-01-20', '2027-01-21', '2027-01-22'];
+    const MR = new Map(M);
+    MR.set('pose_tp_2027', JSON.stringify(cleR));
+    const rr = await ouvrirLaPage(MR, CODE);
+    const d = rr.w.document;
+    const caseDu = n => [...d.querySelectorAll('#tpxGrid .tpx-day')].find(c => (c.querySelector('.tpx-num') || {}).textContent === String(n));
+    V('aucune erreur JavaScript', rr.erreurs.length === 0 && !rr.jete, rr.erreurs.slice(0, 2));
+    V('les 5 jours de la semaine Réa 1 portent le badge RÉA 1', [18, 19, 20, 21, 22].every(n => caseDu(n) && caseDu(n).classList.contains('rea1') && /RÉA 1/.test(caseDu(n).textContent)), caseDu(19) && caseDu(19).outerHTML);
+    V('…et restent touchables (pas « hors de portée »)', !caseDu(19).classList.contains('hors-portee'));
+    V('le jour d\'avant et le samedi, non', !caseDu(15).classList.contains('rea1') && !caseDu(23).classList.contains('rea1'));
+    rr.w.tpxClic('2027-01-19');
+    const hint = d.getElementById('tpxHint').textContent;
+    V('toucher le mardi 19 : la question s\'affiche, rien n\'est posé', /tombe dans votre semaine Réa 1/.test(hint) && !caseDu(19).classList.contains('pose') && !!d.getElementById('tpxOuiRea1'), hint);
+    d.getElementById('tpxNonRea1').click();
+    V('« Annuler » : rien n\'est posé, la question disparaît', !caseDu(19).classList.contains('pose') && !d.getElementById('tpxOuiRea1'));
+    rr.w.tpxClic('2027-01-19');
+    d.getElementById('tpxOuiRea1').click();
+    V('« Confirmer ce jour » : le jour est posé (à enregistrer)', caseDu(19).classList.contains('pose') && /1 changement/.test(d.getElementById('tpxSaveTxt').textContent), caseDu(19).className);
+    rr.w.tpxClic('2027-01-25');
+    V('un jour hors semaine Réa 1 se pose sans question', caseDu(25).classList.contains('pose') && !d.getElementById('tpxOuiRea1'));
+    const M0 = new Map(M);
+    const r0 = await ouvrirLaPage(M0, CODE);
+    const c0 = [...r0.w.document.querySelectorAll('#tpxGrid .tpx-day')].find(c => (c.querySelector('.tpx-num') || {}).textContent === '19');
+    V('contre-épreuve — clé sans semaine Réa 1 : aucun badge', c0 && !c0.classList.contains('rea1'));
+  }
 
   console.log('\n═══ 4. Le comité clique « Valider » — et ça part vraiment ═══');
   {

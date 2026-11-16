@@ -4,7 +4,7 @@
    quelles : aucune ligne de logique modifiée, seulement déplacée. Le routeur et
    ses aides (checkCode, _deny, _error, doGet/doPost) restent dans Indispos.gs.
    Un seul espace global dans Apps Script : rien à importer. */
-const GAS_VERSION_TP = '2026-11-16.1';   // (16/11/2026) jour de TP dans sa semaine Réa 1 : refusé au MAR, signalé au comité · (12/11/2026) plus aucun nom de personne dans le code (effectif présent) · (10/11/2026) chaque jour de TP posé, retiré, demandé ou tranché laisse une ligne dans l'onglet HISTORIQUE
+const GAS_VERSION_TP = '2026-11-16.2';   // (16/11/2026) jour de TP dans sa semaine Réa 1 : non bloquant — semaine envoyée à l'écran (grisée, confirmation), signalée au MAR comme au comité · (12/11/2026) plus aucun nom de personne dans le code (effectif présent) · (10/11/2026) chaque jour de TP posé, retiré, demandé ou tranché laisse une ligne dans l'onglet HISTORIQUE
 
 /* ── (POSE TP · 22/08/2026) PHASE DE POSE DES TEMPS PARTIELS — DÉDUITE, JAMAIS ÉCRITE ──
    Les jours de temps partiel se posent APRÈS la génération des gardes (décision
@@ -197,10 +197,11 @@ function _poserTp_(user, targetId, envoye, annee) {
   });
 
   // ── Passe 2 : les NOUVEAUTÉS, dans l'ordre du calendrier ─────────────
-  /* (16/11/2026 — décision du responsable) SEMAINE RÉA 1 : le Réa 1 est présent
-     du lundi au vendredi. Un jour de TP dans SA semaine est refusé au MAR ; posé
-     par le comité, il passe avec un avertissement (alertesRea1), que l'écran
-     affiche. Sans onglet REA1_{année} : rien ne change. */
+  /* (16/11/2026 — décision du responsable, revue le jour même) SEMAINE RÉA 1 :
+     un jour de TP dans SA semaine n'est PAS bloqué. L'écran grise la semaine
+     (badge « RÉA 1 ») et demande confirmation avant de poser ; le serveur
+     l'accepte et le signale (alertesRea1), pour le MAR comme pour le comité.
+     Sans onglet REA1_{année} : rien ne change. */
   const rea1Moi = (typeof _rea1Jours_ === 'function' ? _rea1Jours_(annee)[targetId] : null) || {};
   const alertesRea1 = [];
   const nouveaux = Object.keys(envoye || {})
@@ -216,10 +217,7 @@ function _poserTp_(user, targetId, envoye, annee) {
     if (jf.has(ds)) { resultat[ds] = 'jour férié'; return; }
     const occupe = grille[ds];
     if (occupe) { resultat[ds] = 'jour déjà ' + occupe; return; }
-    if (rea1Moi[ds]) {
-      if (!estAdmin) { resultat[ds] = 'semaine Réa 1 : présence obligatoire du lundi au vendredi'; return; }
-      alertesRea1.push(ds);
-    }
+    if (rea1Moi[ds]) alertesRea1.push(ds);
 
     const presents = M.presents(ds);
     const reste = presents - 1;
@@ -522,6 +520,7 @@ function _construirePoseTp_(annee) {
     (attentes[x.mar] = attentes[x.mar] || {})[x.date] = true;
   });
   const parMar = {};
+  const rea1 = typeof _rea1Jours_ === 'function' ? _rea1Jours_(annee) : {};
   M.ids.forEach(function (id) {
     const jours = {};
     const mesInd = M.indispos[id] || {};
@@ -548,6 +547,9 @@ function _construirePoseTp_(annee) {
       if (!jours[ds]) jours[ds] = 'TPA';               // en attente : rien dans le planning
     });
     parMar[id] = {
+      /* (16/11/2026) Sa semaine Réa 1 (lundi → vendredi) : l'écran la grise et
+         demande confirmation. Voyage filtrée à l'identité, comme le reste. */
+      rea1: Object.keys((rea1 && rea1[id]) || {}).sort(),
       jours: jours,
       quota: getQuotasConges(_quotiteDe_(id)).ctp || 0,
       tpFixe: _tpFixeDe_(id),

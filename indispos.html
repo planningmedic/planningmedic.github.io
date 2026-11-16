@@ -499,6 +499,14 @@ body.save-en-cours .legend { pointer-events:none; opacity:.55 }
 .tpx-day.auj{box-shadow:0 0 0 2px var(--ink)}
 /* Outil de pose actif : les jours hors de portée s'annoncent AVANT le geste. */
 .tpx-day.hors-portee{opacity:.35;cursor:not-allowed}
+/* (16/11/2026) Semaine Réa 1 : jour posable, mais signalé (grisé, badge) ; la pose demande confirmation. */
+.tpx-day.rea1:not(.pose):not(.reserve){background:var(--line-light);border:1.5px solid #93C5FD}
+.tpx-day.rea1:not(.pose):not(.reserve) .tpx-num{color:var(--ink-3)}
+.b-tpx-rea1{background:#DBEAFE;color:#1D4ED8}
+.tpx-confirm{display:flex;gap:8px;margin-top:8px}
+.tpx-confirm button{flex:1;min-height:40px;border-radius:9px;font:inherit;font-size:13px;font-weight:700;cursor:pointer;border:1px solid var(--line)}
+.tpx-confirm .oui{background:var(--tpx-fg);color:#fff;border-color:transparent}
+.tpx-confirm .non{background:var(--white);color:var(--ink-2)}
 .tpx-day.plein{background:var(--tpx-plein);border:1.5px dashed var(--tpx-plein-border)}
 .tpx-day.plein .tpx-num,.tpx-day.plein .tpx-eff{color:var(--tpx-plein-fg)}
 /* « Tendu » appartient au SERVICE (jaune) ; « demandé » vous appartient (violet
@@ -2116,6 +2124,9 @@ function tpxInit(cle, identite) {
     jours: Object.assign({}, mien.jours || {}),   // MES codes serveur : blocages + TP/TPA
     quota: Number(mien.quota) || 0,
     pend: {},                                     // date -> 'TP' | 'TPA' (posés localement)
+    /* (16/11/2026) Ma semaine Réa 1 (lundi → vendredi) : grisée, pose sur confirmation. */
+    rea1: new Set(Array.isArray(mien.rea1) ? mien.rea1 : []),
+    okRea1: new Set(),                            // jours Réa 1 confirmés dans cette session
     retire: new Set(),                            // TP/TPA serveur retirés localement
     outil: 'TP',
     /* (LOT 5) L'année EN COURS s'ouvre sur le mois d'aujourd'hui — les mois
@@ -2233,6 +2244,7 @@ function tpxRendre() {
     el.className = cls;
     let h = '<span class="tpx-num">' + d + '</span>';
     if (e.s === 'bloque' && e.badge) h += '<span class="tpx-badge ' + e.badge.k + '">' + e.badge.b + '</span>';
+    else if (!e.passe && TPX.rea1.has(ds) && e.s !== 'weekend') { cls += ' rea1'; el.className = cls; h += '<span class="tpx-badge b-tpx-rea1">RÉA 1</span>'; }
     if (e.p !== undefined) h += '<span class="tpx-eff">' + e.p + '</span>';
     el.innerHTML = h;
     el.onclick = (function (dsx) { return function () { tpxClic(dsx); }; })(ds);
@@ -2294,6 +2306,15 @@ function tpxRefus(msg) {
   const h = document.getElementById('tpxHint');
   if (h) h.innerHTML = '<span style="color:#B91C1C">' + msg + '</span>';
 }
+function tpxConfirmerRea1(ds) {
+  const h = document.getElementById('tpxHint');
+  const dt = new Date(ds + 'T12:00:00');
+  const nom = ['dimanche', 'lundi', 'mardi', 'mercredi', 'jeudi', 'vendredi', 'samedi'][dt.getDay()] + ' ' + dt.getDate() + ' ' + MONTHS_FR[dt.getMonth()].toLowerCase();
+  h.innerHTML = '<span style="color:#1D4ED8"><b>Attention, le ' + nom + ' tombe dans votre semaine Réa 1</b> : le Réa 1 est présent du lundi au vendredi. Vous confirmez ce jour de temps partiel ?</span>'
+    + '<div class="tpx-confirm"><button class="oui" id="tpxOuiRea1">Confirmer ce jour</button><button class="non" id="tpxNonRea1">Annuler</button></div>';
+  document.getElementById('tpxOuiRea1').onclick = function () { TPX.okRea1.add(ds); tpxOutil(TPX.outil); tpxClic(ds); };
+  document.getElementById('tpxNonRea1').onclick = function () { tpxOutil(TPX.outil); };
+}
 function tpxClic(ds) {
   const e = tpxEtat(ds);
   if (e.passe) {
@@ -2322,6 +2343,8 @@ function tpxClic(ds) {
     tpxRendre(); showToast('Jour retiré'); return;
   }
   if (TPX.outil === 'ERASE') { showToast('Rien à retirer ici'); return; }
+  /* (16/11/2026) Semaine Réa 1 : pas interdit, mais on demande d'abord. */
+  if (TPX.rea1.has(ds) && !TPX.okRea1.has(ds) && (e.s === 'libre' || e.s === 'plein')) { tpxConfirmerRea1(ds); return; }
   const c = tpxCompte();
   if (e.s === 'libre' && c.poses >= TPX.quota) { showToast('Quota atteint : ' + TPX.quota + ' jours'); return; }
   if (e.s === 'plein') {
@@ -2428,13 +2451,14 @@ function tpxRecap(res, nvReserves, refus) {
       + '<div class="tpx-recap-txt">À votre demande. Ils reviennent dans votre quota.</div>'
       + '<div class="tpx-recap-jours" style="color:var(--ink-3)">' + retires.map(nomJour).join('<br>') + '</div></div>';
   }
-  /* (16/11/2026) Posé par le comité dans la semaine Réa 1 du MAR : accepté, mais signalé. */
+  /* (16/11/2026) Posé dans la semaine Réa 1 (confirmé à l'écran) : accepté, mais signalé. */
   const rea1A = (res.alertesRea1 || []).slice().sort();
   if (rea1A.length) {
     h += '<div class="tpx-recap-bloc tpx-recap-res"><div class="tpx-recap-titre">⚠️ '
       + rea1A.length + ' jour' + (rea1A.length > 1 ? 's' : '') + ' dans sa semaine Réa 1</div>'
-      + '<div class="tpx-recap-txt">Le Réa 1 doit être présent du lundi au vendredi. Posé par le comité, '
-      + (rea1A.length > 1 ? 'ces jours sont acceptés' : 'ce jour est accepté') + ' : vérifiez avec l\'équipe réa.</div>'
+      + '<div class="tpx-recap-txt">Le Réa 1 est présent du lundi au vendredi. '
+      + (rea1A.length > 1 ? 'Ces jours sont acceptés' : 'Ce jour est accepté')
+      + ((currentUser && currentUser.role === 'admin') ? ' : vérifiez avec l\'équipe réa.' : ' : prévenez l\'équipe réa.') + '</div>'
       + '<div class="tpx-recap-jours">' + rea1A.map(nomJour).join('<br>') + '</div></div>';
   }
   if (refus.length) {
