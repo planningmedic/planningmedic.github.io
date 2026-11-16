@@ -154,7 +154,7 @@ const dodo = ms => new Promise(r => setTimeout(r, ms));
     await dodo(400);
     V('la vue s\'ouvre', w.document.getElementById('echangesView').style.display === 'block');
     const liste = w.document.getElementById('echList').innerHTML;
-    V('la demande est affichée — don, les deux noms, la date', /Don de garde/.test(liste) && /Bravo/.test(liste) && /Alpha/.test(liste) && /12\/03\/2027/.test(liste), liste.slice(0,200));
+    V('la demande est affichée dans « À traiter » — don, le donneur, la date (15/11 : deux blocs)', /<h3>À traiter<\/h3>/.test(liste) && /Don de <strong>Dr Bravo<\/strong>/.test(liste) && /<b>12<\/b>/.test(liste) && /Mars 2027/.test(liste), liste.slice(0,300));
     V('le délai d\'expiration est annoncé', /Expire dans \d+ h/.test(liste));
     const btn = [...w.document.querySelectorAll('.ech-accepter')][0];
     V('le receveur a son bouton Accepter', !!btn);
@@ -200,7 +200,7 @@ const dodo = ms => new Promise(r => setTimeout(r, ms));
     await dodo(500);
     V('creerEchange part avec type, année, date et receveur exacts',
       !!cree && cree.type === 'don' && cree.year === 2027 && cree.date === '2027-03-09' && cree.receveur === 'BRAVO', cree);
-    V('la nouvelle demande apparaît MALGRÉ la copie rapide en retard', /Don de garde/.test(w.document.getElementById('echList').innerHTML));
+    V('la nouvelle demande apparaît MALGRÉ la copie rapide en retard', /Don proposé à <strong>Dr Bravo/.test(w.document.getElementById('echList').innerHTML));
     V('le panneau se referme', w.document.getElementById('echProposition').style.display === 'none');
   }
 
@@ -317,7 +317,7 @@ const dodo = ms => new Promise(r => setTimeout(r, ms));
     env.click();
     await dodo(500);
     V('la confirmation part avec la demande (accepteRea1)', envois.length === 2 && envois[1].accepteRea1 === true, envois);
-    V('la demande apparaît dans la liste', /Don de garde/.test(p3.w.document.getElementById('echList').innerHTML));
+    V('la demande apparaît dans la liste', /Don proposé à <strong>/.test(p3.w.document.getElementById('echList').innerHTML));
   }
 
   console.log('\n═══ 3 bis. Proposer relit le planning du moment, jamais la copie gardée en mémoire (11/11/2026) ═══');
@@ -407,8 +407,7 @@ const dodo = ms => new Promise(r => setTimeout(r, ms));
     await dodo(500);
     V('creerEchange part en don de 18 h : type don18, date exacte, pas de seconde date',
       !!cree && cree.type === 'don18' && cree.date === '2027-03-11' && cree.receveur === 'BRAVO' && !cree.date2, cree);
-    V('la demande s\'affiche « Don de 18 h » avec « 18 h du … »', /Don de 18 h — /.test(w.document.getElementById('echList').innerHTML)
-      && /18 h du <b>/.test(w.document.getElementById('echList').innerHTML));
+    V('la demande s\'affiche comme un don de 18 h (titre « 18 h », pastille orange)', /ech-k-18[^]*<b>18 h<\/b><span>Don proposé à <strong>Dr Bravo/.test(w.document.getElementById('echList').innerHTML));
     // Retour sur une garde : le verbe redevient « La donner », le type « don ».
     cree = null;
     await w.echOuvrirProposition(); await dodo(100);
@@ -440,7 +439,7 @@ const dodo = ms => new Promise(r => setTimeout(r, ms));
     V('la page se charge sans erreur JavaScript', erreurs.length === 0, erreurs.slice(0,2));
     w.location.hash = '#echanges'; w.route();
     await dodo(400);
-    V('la carte dit « Don de 18 h »', /Don de 18 h — /.test(w.document.getElementById('echList').innerHTML));
+    V('la carte dit « 18 h » et « Don de … »', /<b>18 h<\/b><span>Don de <strong>Dr Bravo/.test(w.document.getElementById('echList').innerHTML));
     const btn = [...w.document.querySelectorAll('.ech-accepter')][0];
     btn.click();
     await dodo(500);

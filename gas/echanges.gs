@@ -42,7 +42,7 @@
    depuis l'éditeur : installerDeclencheurEchanges().
    ═══════════════════════════════════════════════════════════════════════ */
 
-const GAS_VERSION_ECHANGES = '2026-11-15.1';   // (15/11/2026) annonce sans date : annoncerOuvertureEchanges, tuile verrouillée « Ouverture prochainement » (ECHANGES_ANNONCE) · (14/11/2026) ouverture programmée : ECHANGES_OUVERTURE, fermé avant l'instant, ouvert à tous ensuite à la seconde, sans déclencheur (programmerOuvertureEchanges) ; ouvrirEchanges note l'instant, fermerEchanges l'efface · (12/11/2026) les gardes ET les 18 h d'une année sans suivi des récupérations (2026) ne se donnent ni ne s'échangent plus entre MAR (_echangesFermee_) : refus à l'envoi, demande en attente fermée « sans objet » ; le comité n'est pas concerné · (12/11/2026) don d'un 18 h entre MAR (type don18, demande de l'équipe) : le receveur doit être libre ce jour-là ; 18 h reçu la veille, le lendemain ou la même semaine qu'un autre 18 h : dit au MAR, qui confirme ([18H], accepte18h) · (12/11/2026) semaine Réa 1 : une garde ou un 18 h pris dans sa propre semaine Réa 1 est dit au MAR, qui confirme ([REA1], accepteRea1) ; le comité en est averti dans les suites de son geste · (12/11/2026) demandes « sans objet » fermées toutes seules quand la garde a changé de mains ou est passée (_echangesSansObjet_), doublon refusé à l'envoi, garde passée refusée à l'envoi et à l'acceptation · (11/11/2026) échange samedi ↔ samedi : les R gardent leur date, les liens LIENS_R suivent le samedi tenu ; « Réparer » recolle de même un échange passé au lieu de déplacer les R · (11/11/2026) annulerEchange : le demandeur annule sa proposition en attente, le collègue est prévenu · (11/11/2026) don et échange sur un jour d'absence : le MAR concerné confirme ([ABS], accepteAbsence) et ses jours d'absence sont écrasés par la garde et son repos · (11/11/2026) gestes du comité (don, échange) : mêmes suites que entre MAR (_gesteSuites_, appliquerGesteComite_) · (11/11/2026) échange de deux 18 h entre MAR (type echange18) · (11/11/2026) un 18 h écrasé par un don passe au donneur, prévenu avant d'envoyer (accepte18) · (11/11/2026) récupérations automatiques : R neuf quand il ne peut pas suivre son samedi, R écrasé reposé, bouton Réparer (recupsReparer), lien recollé à la pose manuelle · (10/11/2026) l'historique dit qui a accepté (onglet HISTORIQUE)
+const GAS_VERSION_ECHANGES = '2026-11-16.1';   // (16/11/2026) réponses le mercredi 18/11 à 10 h, notification à tous à l'ouverture du dépôt · (15/11/2026) dépôt sans course : seconde heure ECHANGES_REPONSES — avant elle on propose, refuse, annule, on n'accepte pas ; 48 h et rappel comptés depuis elle ; une notification à chacun à la fin du dépôt · (15/11/2026) annonce sans date : annoncerOuvertureEchanges, tuile verrouillée « Ouverture prochainement » (ECHANGES_ANNONCE) · (14/11/2026) ouverture programmée : ECHANGES_OUVERTURE, fermé avant l'instant, ouvert à tous ensuite à la seconde, sans déclencheur (programmerOuvertureEchanges) ; ouvrirEchanges note l'instant, fermerEchanges l'efface · (12/11/2026) les gardes ET les 18 h d'une année sans suivi des récupérations (2026) ne se donnent ni ne s'échangent plus entre MAR (_echangesFermee_) : refus à l'envoi, demande en attente fermée « sans objet » ; le comité n'est pas concerné · (12/11/2026) don d'un 18 h entre MAR (type don18, demande de l'équipe) : le receveur doit être libre ce jour-là ; 18 h reçu la veille, le lendemain ou la même semaine qu'un autre 18 h : dit au MAR, qui confirme ([18H], accepte18h) · (12/11/2026) semaine Réa 1 : une garde ou un 18 h pris dans sa propre semaine Réa 1 est dit au MAR, qui confirme ([REA1], accepteRea1) ; le comité en est averti dans les suites de son geste · (12/11/2026) demandes « sans objet » fermées toutes seules quand la garde a changé de mains ou est passée (_echangesSansObjet_), doublon refusé à l'envoi, garde passée refusée à l'envoi et à l'acceptation · (11/11/2026) échange samedi ↔ samedi : les R gardent leur date, les liens LIENS_R suivent le samedi tenu ; « Réparer » recolle de même un échange passé au lieu de déplacer les R · (11/11/2026) annulerEchange : le demandeur annule sa proposition en attente, le collègue est prévenu · (11/11/2026) don et échange sur un jour d'absence : le MAR concerné confirme ([ABS], accepteAbsence) et ses jours d'absence sont écrasés par la garde et son repos · (11/11/2026) gestes du comité (don, échange) : mêmes suites que entre MAR (_gesteSuites_, appliquerGesteComite_) · (11/11/2026) échange de deux 18 h entre MAR (type echange18) · (11/11/2026) un 18 h écrasé par un don passe au donneur, prévenu avant d'envoyer (accepte18) · (11/11/2026) récupérations automatiques : R neuf quand il ne peut pas suivre son samedi, R écrasé reposé, bouton Réparer (recupsReparer), lien recollé à la pose manuelle · (10/11/2026) l'historique dit qui a accepté (onglet HISTORIQUE)
 
 const ECHANGES_ONGLET = 'ECHANGES';
 const ECHANGES_ENTETE = ['ID', 'CREE_LE', 'TYPE', 'ANNEE', 'DATE', 'DATE2',
@@ -110,6 +110,21 @@ function _echangesJoli_(d) {
    à rebours (propriété ECHANGES_ANNONCE). La date programmée ensuite prend le relais. */
 const ECHANGES_OUVERTURE_A_PROGRAMMER = '';   // ex. '2026-11-18T09:00:00+01:00' — heure de Paris (+01:00 en hiver, +02:00 en été)
 
+/* (15/11/2026 — décision du responsable) DÉPÔT SANS COURSE. À l'ouverture, le
+   premier connecté trouvait tous les preneurs, les suivants plus personne.
+   Seconde heure, facultative : ECHANGES_REPONSES (propriété, instant ISO).
+   Entre l'ouverture et cette heure, on PROPOSE, on REFUSE, on ANNULE ; on
+   n'ACCEPTE pas — refus du serveur, pas seulement un bouton grisé. À l'heure
+   dite, tout le monde peut accepter au même moment (les demandes, elles, arrivent
+   chez le preneur dès qu'elles sont faites) ;
+   le délai de 48 h et le rappel de 24 h ne comptent qu'à partir de là. Ensuite,
+   tout fonctionne comme avant. Aucune ligne d'ECHANGES ne change de forme.
+   Sans seconde heure : ouverture d'un coup, comme avant.
+   Écrire l'heure ci-dessous AVANT de lancer programmerOuvertureEchanges() (ou
+   ouvrirEchanges() pour un dépôt qui commence tout de suite) ; elle doit tomber
+   après l'ouverture. Elle est effacée par fermerEchanges() et annoncerOuvertureEchanges(). */
+const ECHANGES_REPONSES_A_PROGRAMMER = '2026-11-18T10:00:00+01:00';   // (16/11/2026) réponses mercredi 18/11 à 10 h — ex. '2026-11-19T09:00:00+01:00', même format
+
 /* Instant ISO lisible → millisecondes ; illisible ou absent → null. */
 function _echangesOuvertureMs_(v) {
   const t = Date.parse(String(v == null ? '' : v).trim());
@@ -121,9 +136,50 @@ function _echangesEtat_() {
   const pilotes = String(props.getProperty('ECHANGES_PILOTES') || '')
     .split(',').map(s => s.trim().toUpperCase()).filter(Boolean);
   const t = _echangesOuvertureMs_(props.getProperty('ECHANGES_OUVERTURE'));
+  const r = _echangesOuvertureMs_(props.getProperty('ECHANGES_REPONSES'));
   return { ouvert: props.getProperty('ECHANGES_OUVERTS') === 'O', pilotes: pilotes,
            ouverture: t === null ? '' : new Date(t).toISOString(),
-           annonce: props.getProperty('ECHANGES_ANNONCE') === 'O' };
+           annonce: props.getProperty('ECHANGES_ANNONCE') === 'O',
+           reponses: r === null ? '' : new Date(r).toISOString() };
+}
+
+/* (15/11/2026) Dépôt sans course : vrai tant que l'heure des réponses n'est pas
+   atteinte. Sans heure (ou heure illisible) : rien ne change, on répond. */
+function _echangesEnDepot_(etat) {
+  const r = _echangesOuvertureMs_((etat || _echangesEtat_()).reponses);
+  return r !== null && Date.now() < r;
+}
+/* Point de départ du délai de 48 h (et du rappel de 24 h) : la création, ou
+   l'heure des réponses si elle est plus tardive. Illisible : null (rien décidé). */
+function _echangesDebutDelai_(creeLe, etat) {
+  const c = Date.parse(String(creeLe));
+  if (isNaN(c)) return null;
+  const r = _echangesOuvertureMs_((etat || _echangesEtat_()).reponses);
+  return r !== null && r > c ? r : c;
+}
+/* « mercredi 18/11 à 10 h » (heure de Paris). */
+function _echangesQuandFr_(ms) {
+  const d = new Date(ms);
+  const j = ['lundi','mardi','mercredi','jeudi','vendredi','samedi','dimanche'][Number(Utilities.formatDate(d, 'Europe/Paris', 'u')) - 1];
+  const m = Utilities.formatDate(d, 'Europe/Paris', 'mm');
+  return j + ' ' + Utilities.formatDate(d, 'Europe/Paris', 'dd/MM') + ' à ' + Number(Utilities.formatDate(d, 'Europe/Paris', 'H')) + ' h' + (m === '00' ? '' : ' ' + m);
+}
+/* Phrase ajoutée aux notifications pendant le dépôt (vide sinon). */
+function _echangesMentionDepot_() {
+  const etat = _echangesEtat_();
+  if (!_echangesEnDepot_(etat)) return '';
+  return ' Vous pourrez répondre à partir du ' + _echangesQuandFr_(_echangesOuvertureMs_(etat.reponses)) + '.';
+}
+/* Pose (ou efface) l'heure des réponses. `brut` vide : effacée. Refuse une heure
+   illisible ou qui ne tombe pas après l'ouverture (apresMs). */
+function _echangesPoserReponses_(props, brut, apresMs) {
+  props.deleteProperty('ECHANGES_REPONSES_ANNONCEES');
+  if (!brut) { props.deleteProperty('ECHANGES_REPONSES'); return null; }
+  const r = _echangesOuvertureMs_(brut);
+  if (r === null) throw new Error('Heure des réponses illisible : ' + brut);
+  if (r <= apresMs) throw new Error('L\'heure des réponses (' + brut + ') doit tomber après l\'ouverture des échanges.');
+  props.setProperty('ECHANGES_REPONSES', new Date(r).toISOString());
+  return r;
 }
 
 /* Ouvert à tous MAINTENANT : interrupteur levé, ou heure programmée atteinte.
@@ -143,30 +199,38 @@ function _echangesAutorise_(user) {
 
 /* Ouverture immédiate. L'instant est noté : la tuile joue l'animation du
    cadenas une fois chez chacun, comme pour une ouverture programmée. */
-function ouvrirEchanges() {
+function ouvrirEchanges(reponses) {
   const props = PropertiesService.getScriptProperties();
+  const rep = _echangesPoserReponses_(props, reponses || ECHANGES_REPONSES_A_PROGRAMMER, Date.now());   // (15/11/2026) dépôt sans course, s'il y a une heure des réponses
   props.setProperty('ECHANGES_OUVERTS', 'O');
   props.setProperty('ECHANGES_OUVERTURE', new Date().toISOString());
   props.deleteProperty('ECHANGES_ANNONCE');
   const r = synchroniserEtatEchanges();
-  Logger.log('Échanges OUVERTS à tous. Sync KV : ' + JSON.stringify(r));
+  /* (16/11/2026 — décision du responsable) Ouverture avec dépôt : une notification
+     à tous les abonnés, qui dit jusqu'à quand on dépose. */
+  if (rep) notifierPush_('Échanges de gardes ouverts',
+    'Proposez vos dons et échanges dès maintenant. Accepter sera possible à partir du ' + _echangesQuandFr_(rep) + '.',
+    './index.html');
+  Logger.log('Échanges OUVERTS à tous' + (rep ? ' — DÉPÔT jusqu\'au ' + Utilities.formatDate(new Date(rep), 'Europe/Paris', 'dd/MM/yyyy HH:mm') + ' (heure de Paris), réponses ensuite' : '') + '. Sync KV : ' + JSON.stringify(r));
   return r;
 }
 
 /* Fermé jusqu'à l'instant donné (par défaut ECHANGES_OUVERTURE_A_PROGRAMMER),
    ouvert à tous ensuite, sans autre geste. Refuse une date illisible ou passée. */
-function programmerOuvertureEchanges(quand) {
+function programmerOuvertureEchanges(quand, reponses) {
   const brut = quand || ECHANGES_OUVERTURE_A_PROGRAMMER;
   if (!brut) throw new Error('Aucune date : écrivez-la dans ECHANGES_OUVERTURE_A_PROGRAMMER (en tête de section), puis relancez. Date pas encore connue : annoncerOuvertureEchanges().');
   const t = _echangesOuvertureMs_(brut);
   if (t === null) throw new Error('Date d\'ouverture illisible : ' + brut);
   if (t <= Date.now()) throw new Error('Date d\'ouverture déjà passée : ' + brut + ' — pour ouvrir tout de suite, lancez ouvrirEchanges().');
   const props = PropertiesService.getScriptProperties();
+  const rep = _echangesPoserReponses_(props, reponses || ECHANGES_REPONSES_A_PROGRAMMER, t);   // (15/11/2026) avant tout changement : une heure refusée ne touche à rien d'autre
   props.deleteProperty('ECHANGES_OUVERTS');
   props.setProperty('ECHANGES_OUVERTURE', new Date(t).toISOString());
   const r = synchroniserEtatEchanges();
   Logger.log('Échanges FERMÉS jusqu\'au ' + Utilities.formatDate(new Date(t), 'Europe/Paris', 'dd/MM/yyyy HH:mm')
-    + ' (heure de Paris), ouverts à tous ensuite. Sync KV : ' + JSON.stringify(r));
+    + ' (heure de Paris), ouverts à tous ensuite'
+    + (rep ? ' — DÉPÔT jusqu\'au ' + Utilities.formatDate(new Date(rep), 'Europe/Paris', 'dd/MM/yyyy HH:mm') + ', réponses ensuite' : '') + '. Sync KV : ' + JSON.stringify(r));
   return r;
 }
 
@@ -177,6 +241,7 @@ function annoncerOuvertureEchanges() {
   props.deleteProperty('ECHANGES_OUVERTS');
   props.deleteProperty('ECHANGES_OUVERTURE');
   props.setProperty('ECHANGES_ANNONCE', 'O');
+  _echangesPoserReponses_(props, '', 0);
   const r = synchroniserEtatEchanges();
   Logger.log('Échanges FERMÉS, ouverture annoncée « prochainement » (sans date). Sync KV : ' + JSON.stringify(r));
   return r;
@@ -188,6 +253,7 @@ function fermerEchanges() {
   props.deleteProperty('ECHANGES_OUVERTS');
   props.deleteProperty('ECHANGES_OUVERTURE');
   props.deleteProperty('ECHANGES_ANNONCE');
+  _echangesPoserReponses_(props, '', 0);
   const r = synchroniserEtatEchanges();
   Logger.log('Échanges FERMÉS (admin + pilotes seuls). Sync KV : ' + JSON.stringify(r));
   return r;
@@ -535,7 +601,8 @@ function creerEchange(user, p) {
         : _echangesDr_(user.id) + ' vous propose sa garde du ' + _echangesJoli_(date) + ' contre la vôtre du ' + _echangesJoli_(demande.DATE2) + '.'
           + (absLui.length ? ' Attention, vous êtes noté ' + _echangesTexteAbsences_(absLui) + '.' : ''))
       + (rea1Lui.length ? ' Attention, ' + _echangesTexteRea1_(rea1Lui) + '.' : '')
-      + (prochesLui.length ? ' Attention, ' + _echangesTexte18Proches_(prochesLui) + '.' : ''),
+      + (prochesLui.length ? ' Attention, ' + _echangesTexte18Proches_(prochesLui) + '.' : '')
+      + _echangesMentionDepot_(),   // (15/11/2026) dépôt sans course : on ne peut pas encore accepter
     './index.html', { id: receveur, pastille: _echangesEnAttentePour_(receveur) });
   return { id: id };
 }
@@ -566,6 +633,14 @@ function repondreEchange(user, p) {
       _echangesDr_(d.RECEVEUR) + ' a décliné votre proposition du ' + _echangesJoli_(d.DATE) + '.',
       './index.html', { id: String(d.DEMANDEUR) });
     return { etat: 'refusee' };
+  }
+
+  /* (15/11/2026) Dépôt sans course : on refuse, on n'accepte pas avant l'heure
+     des réponses — pour personne, comité compris. La demande reste en attente. */
+  const etatEch = _echangesEtat_();
+  if (_echangesEnDepot_(etatEch)) {
+    throw new Error('Accepter s\'ouvre le ' + _echangesQuandFr_(_echangesOuvertureMs_(etatEch.reponses))
+      + ', pour tout le monde en même temps. Vous pouvez déjà refuser.');
   }
 
   // ACCEPTER : rejouer TOUS les contrôles, pour de vrai cette fois.
@@ -875,11 +950,16 @@ function expirerEchanges() {
   const colRep  = ECHANGES_ENTETE.indexOf('REPONDU_LE') + 1;
   const colRap  = ECHANGES_ENTETE.indexOf('RAPPEL_LE') + 1;
   let changements = 0;
+  /* (15/11/2026) Dépôt sans course : les 48 h et le rappel comptent depuis
+     l'heure des réponses quand elle est plus tardive que la création. */
+  const etat = _echangesEtat_();
 
   lignes.forEach(d => {
     if (String(d.ETAT) !== 'attente') return;
-    const age = maintenant - new Date(String(d.CREE_LE)).getTime();
-    if (!(age > 0)) return; // horodatage illisible : ne rien décider
+    const debut = _echangesDebutDelai_(d.CREE_LE, etat);
+    if (debut === null) return; // horodatage illisible : ne rien décider
+    const age = maintenant - debut;
+    if (!(age > 0)) return; // délai pas encore commencé (dépôt en cours)
     if (age > ECHANGES_EXPIRATION_H * 3600 * 1000) {
       sh.getRange(d._row, colEtat).setValue('expiree');
       sh.getRange(d._row, colRep).setValue(_echangesMaintenant_());
@@ -897,8 +977,33 @@ function expirerEchanges() {
         './index.html', { id: String(d.RECEVEUR), pastille: _echangesEnAttentePour_(String(d.RECEVEUR)) });
     }
   });
+  _echangesAnnoncerReponses_(etat, lignes);
   if (changements || sansObjet) _echangesVersKV_();
   return { changements: changements + sansObjet };
+}
+
+/* (15/11/2026) Fin du dépôt : au premier passage horaire après l'heure des
+   réponses, UNE notification à chaque MAR qui a des demandes en attente. Une
+   seule fois par heure des réponses (ECHANGES_REPONSES_ANNONCEES). */
+function _echangesAnnoncerReponses_(etat, lignes) {
+  const r = _echangesOuvertureMs_(etat.reponses);
+  if (r === null || Date.now() < r) return 0;
+  const props = PropertiesService.getScriptProperties();
+  if (props.getProperty('ECHANGES_REPONSES_ANNONCEES') === etat.reponses) return 0;
+  props.setProperty('ECHANGES_REPONSES_ANNONCEES', etat.reponses);
+  const parMar = {};
+  lignes.forEach(d => {
+    if (String(d.ETAT) === 'attente') parMar[String(d.RECEVEUR)] = (parMar[String(d.RECEVEUR)] || 0) + 1;
+  });
+  Object.keys(parMar).forEach(id => {
+    const n = parMar[id];
+    notifierPush_('Échanges : vous pouvez répondre',
+      n > 1 ? 'Vous pouvez maintenant accepter : ' + n + ' demandes vous attendent, 48 h pour répondre.'
+            : 'Vous pouvez maintenant accepter : une demande vous attend, 48 h pour répondre.',
+      './index.html', { id: id, pastille: n });
+  });
+  logAction('expirerEchanges — fin du dépôt : ' + Object.keys(parMar).length + ' MAR prévenus');
+  return Object.keys(parMar).length;
 }
 
 /* Installe le déclencheur horaire (idempotent — même règle que le miroir :

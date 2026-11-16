@@ -72,7 +72,7 @@
    poussée : le client se replie sur le circuit GAS.
    ═══════════════════════════════════════════════════════════════════ */
 
-const VERSION = 'miroir 2026-11-15.1';   // (15/11/2026) annonce sans date (« prochainement ») · (14/11/2026) ouverture programmée des échanges (notif_config.ouverture), instant servi à la page
+const VERSION = 'miroir 2026-11-15.2';   // (15/11/2026) dépôt sans course : heure des réponses (notif_config.reponses) servie à la page · (15/11/2026) annonce sans date (« prochainement ») · (14/11/2026) ouverture programmée des échanges (notif_config.ouverture), instant servi à la page
 
 // Clés admissibles — tout le reste est refusé à l'écriture comme à la
 // lecture. Garde-fou contre une faute de frappe côté GAS qui créerait
@@ -311,6 +311,10 @@ async function lire(corps, env) {
   const reponseLue = { success: true, identite, data, manquants, refuses, version: VERSION };
   if (etatEchanges && ouvertureEchangesIso(etatEchanges)) reponseLue.echangesOuverture = ouvertureEchangesIso(etatEchanges);
   else if (etatEchanges && etatEchanges.annonce === true && !echangesOuvertsCfg(etatEchanges)) reponseLue.echangesOuverture = 'prochainement';   // (15/11/2026) annoncée, date pas encore connue
+  /* (15/11/2026) Dépôt sans course : l'heure à partir de laquelle on peut
+     accepter voyage avec la réponse. La page grise « Accepter » jusque-là ;
+     le GAS, lui, refuse toute acceptation avant (la page n'est qu'un habillage). */
+  if (etatEchanges && ouvertureEchangesIso({ ouverture: etatEchanges.reponses })) reponseLue.echangesReponses = ouvertureEchangesIso({ ouverture: etatEchanges.reponses });
   return reponse(reponseLue);
 }
 

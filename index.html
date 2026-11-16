@@ -700,6 +700,40 @@ html[data-theme="dark"] .vs-pill{background:#251B3C;color:#B593F2}
 html[data-theme="dark"] .ech-tuile.verrou .ech-reflet { background:linear-gradient(105deg,rgba(255,255,255,0) 0%,rgba(255,255,255,.10) 50%,rgba(255,255,255,0) 100%); }
 .ech-tuile.verrou.secoue .tile-ico { animation:echSecoue .5s ease; }
 .ech-tuile.verrou.secoue .ech-cadenas { animation:none; }
+.ech-pastille.grise { background:var(--ink-4); }
+/* (15/11/2026) DÉPÔT SANS COURSE — maquette validée par le responsable. Ouverte,
+   bordure ambre, compte à rebours « Réponses dans » ; pastille grise : des
+   demandes sont arrivées, on ne peut pas encore les accepter. */
+.tile.ech-tuile.depot { grid-column:1 / -1; display:grid; grid-template-columns:auto 1fr auto; column-gap:12px; row-gap:2px;
+  align-items:center; border:1.5px solid var(--amber); }
+.ech-tuile.depot .tile-ico { grid-row:span 2; background:var(--amber-soft); color:var(--amber); }
+.ech-tuile.depot .tile-title { margin-top:0; }
+.ech-tuile.depot .ech-rebours { grid-column:3; grid-row:1 / span 2; display:flex; flex-direction:column; align-items:flex-end; gap:2px; }
+.ech-bandeau { border-radius:14px; padding:12px 14px; margin:0 0 14px; font-size:13.5px; line-height:1.45; }
+.ech-bandeau b { display:block; font-size:14.5px; margin-bottom:2px; }
+.ech-bandeau.depot { background:var(--amber-soft); color:#92400E; }
+.ech-bandeau.ouvert { background:#DCFCE7; color:#166534; }
+html[data-theme="dark"] .ech-bandeau.depot { color:var(--amber); }
+html[data-theme="dark"] .ech-bandeau.ouvert { background:var(--ok-soft); color:var(--ok); }
+.ech-section { display:flex; align-items:baseline; justify-content:space-between; gap:10px; margin:20px 2px 4px; }
+.ech-section h3 { margin:0; font-size:16px; font-weight:700; color:var(--ink); }
+.ech-section span { font-size:12.5px; color:var(--ink-3); }
+.ech-card .ech-ligne-d { display:flex; align-items:center; gap:12px; }
+.ech-card .ech-ligne-d .ech-tx b { font-size:15px; color:#0F172A; }
+.ech-card .ech-ligne-d .ech-tx strong { font-weight:700; color:#334155; }
+.ech-card .ech-ligne-d .ech-etat { margin-left:auto; flex:none; }
+.ech-card.fige { opacity:.62; box-shadow:none; }
+.ech-actions .ech-accepter:disabled { background:#F1F5F9; color:#94A3B8; opacity:1; }
+.ech-faites { margin:14px 0 0; }
+.ech-faites summary { list-style:none; cursor:pointer; display:flex; align-items:center; gap:8px; min-height:44px; padding:0 14px;
+  border:1px dashed var(--line); border-radius:12px; font-size:14px; font-weight:700; color:var(--ink-3); }
+.ech-faites summary::-webkit-details-marker { display:none; }
+.ech-faites summary::after { content:'⌄'; margin-left:auto; font-size:18px; color:var(--ink-4); }
+.ech-faites[open] summary { margin-bottom:8px; }
+.ech-faites[open] summary::after { content:'⌃'; }
+.ech-faites summary i { font-style:normal; font-size:12px; background:var(--surface-2); color:var(--ink-3); border-radius:999px; padding:2px 8px; }
+.ech-vide { text-align:center; color:var(--ink-4); font-size:13.5px; padding:12px 0 4px; }
+.ech-info { background:#EFF6FF; color:#1D4ED8; border-radius:10px; padding:10px 12px; font-size:13px; line-height:1.45; margin-top:12px; }
 .ech-bulle { grid-column:1 / -1; align-items:center; gap:10px; padding:10px 12px; border-radius:12px;
   background:var(--amber-soft); color:var(--ink-2); font-size:13px; line-height:1.4; animation:echMonte .28s ease-out; }
 .ech-tuile.ouverture { overflow:hidden; animation:echFond .7s ease .55s both; }
@@ -909,7 +943,7 @@ html[data-theme="dark"] .ech-tuile.verrou .ech-reflet { background:linear-gradie
           </div>
           <div class="tile-title" id="echHeroMain">Mes échanges</div>
           <div class="tile-sub" id="echHeroSub">Donner ou échanger une garde ou un 18 h.</div>
-          <div class="ech-rebours" id="echRebours" style="display:none"><span class="ech-rebours-l"><span class="ech-point"></span>Dans</span><span class="ech-rebours-v" id="echReboursV"></span></div>
+          <div class="ech-rebours" id="echRebours" style="display:none"><span class="ech-rebours-l"><span class="ech-point"></span><span id="echReboursL">Dans</span></span><span class="ech-rebours-v" id="echReboursV"></span></div>
           <div class="tile-arrow">Ouvrir <i data-lucide="arrow-right" style="width:15px;height:15px"></i></div>
         </div>
         <div id="echBulle" class="ech-bulle large" role="status" style="display:none"></div>
@@ -1174,7 +1208,7 @@ async function miroirBootDash() {
      applyUserBadge, qui declenche le repli Apps Script s'il ne trouve rien. */
   _ovDepuisMiroir(m.data && m.data.ordre_vac);
   applyUserBadge(m.identite || {});
-  _echDepuisMiroir(m.data && m.data.echanges, m.echangesOuverture);   // (13/08) après applyUserBadge : le compteur a besoin de MY_ID · (14/11) + l'instant d'ouverture programmée
+  _echDepuisMiroir(m.data && m.data.echanges, m.echangesOuverture, m.echangesReponses);   // (13/08) après applyUserBadge : le compteur a besoin de MY_ID · (14/11) + l'instant d'ouverture programmée
   _notifsDepuisMiroir(m.data && m.data.notifs); // (23/08) après applyUserBadge : la cloche filtre sur MY_ID
   STAFFS_ACCUEIL = (m.data && m.data.staffs && m.data.staffs.success && Array.isArray(m.data.staffs.staffs)) ? m.data.staffs.staffs : null;
   majPastilles();
@@ -2281,6 +2315,8 @@ let ECH_AUTORISE = false;    // la clé m'a été servie au moins une fois
    rebours et l'animation. L'heure du téléphone ne peut rien ouvrir : à zéro,
    la page redemande la clé, et seul le refus ou l'envoi du serveur décide. */
 let ECH_OUVERTURE = null;
+let ECH_REPONSES = null;     // (15/11/2026) dépôt sans course : instant (ms) à partir duquel on peut accepter, ou null
+let ECH_FAITES_OUVERT = false;   // le bloc « Déjà traitées » reste déplié d'un affichage à l'autre
 let ECH_ANNONCE = false;     // (15/11/2026) ouverture annoncée « prochainement », date pas encore connue
 let ECH_REBOURS_T = null;    // minuteur du compte à rebours
 let ECH_BULLE_T = null;
@@ -2387,19 +2423,21 @@ function notifsOuvrir(){
 }
 function notifsFermer(){ document.getElementById('notifPanel').style.display = 'none'; }
 
-function _echNoterOuverture(iso){
+function _echNoterOuverture(iso, reponses){
   ECH_ANNONCE = (iso === 'prochainement');
   const t = Date.parse(String(iso || ''));
   ECH_OUVERTURE = isNaN(t) ? null : t;
+  const r = Date.parse(String(reponses || ''));   // (15/11/2026) heure des réponses, servie par le Worker
+  ECH_REPONSES = isNaN(r) ? null : r;
 }
 
-function _echDepuisMiroir(env, ouverture){
+function _echDepuisMiroir(env, ouverture, reponses){
   /* Enveloppe {success:true, echanges:[…]} reçue dans l'appel d'ouverture.
      Absente ou refusée : la carte reste invisible, aucun appel de rattrapage
      — l'interrupteur est côté serveur et le boot ne se paie qu'une fois.
      (14/11/2026) Sauf ouverture programmée à venir : la carte se montre
      verrouillée, et c'est le compte à rebours qui redemandera la clé. */
-  _echNoterOuverture(ouverture);
+  _echNoterOuverture(ouverture, reponses);
   if (!env || !env.success) { majEchangesHero(); return; }
   ECH_AUTORISE = true;
   ECH_LISTE = env.echanges || [];
@@ -2410,7 +2448,7 @@ function _echDepuisMiroir(env, ouverture){
 async function chargerEchanges(force){
   if (ECH_LISTE !== null && !force) return ECH_LISTE;
   const m = await miroirRead(['echanges']);
-  if (m && m.success) _echNoterOuverture(m.echangesOuverture);
+  if (m && m.success) _echNoterOuverture(m.echangesOuverture, m.echangesReponses);
   if (m && m.success && m.data && m.data.echanges && m.data.echanges.success) {
     ECH_AUTORISE = true;
     ECH_LISTE = m.data.echanges.echanges || [];
@@ -2442,17 +2480,33 @@ function _echRebours(ms){
   if (h > 0) return h + ' h ' + deux(m);
   return m + ' min ' + deux(s);
 }
+/* (15/11/2026) Dépôt sans course : ouvert, mais on ne peut pas encore accepter. */
+function _echDepot(){ return ECH_AUTORISE && !!ECH_REPONSES && Date.now() < ECH_REPONSES; }
 function _echVerrouille(){ return !ECH_AUTORISE && (ECH_ANNONCE || (!!ECH_OUVERTURE && Date.now() < ECH_OUVERTURE)); }
 /* « mercredi 18 nov. à 9 h » si la date est connue, sinon « prochainement ». */
 function _echQuandOuPas(long){ return ECH_OUVERTURE ? (long ? 'le ' : '') + _echQuand(ECH_OUVERTURE, long) : 'prochainement'; }
 function _echTic(){
   const v = document.getElementById('echReboursV');
-  const reste = ECH_OUVERTURE ? ECH_OUVERTURE - Date.now() : 0;
+  const depot = !_echVerrouille() && !!ECH_REPONSES;   // (15/11/2026) le compte à rebours vise alors l'heure des réponses
+  const cible = depot ? ECH_REPONSES : ECH_OUVERTURE;
+  const reste = cible ? cible - Date.now() : 0;
   if (v) v.textContent = _echRebours(reste);
   if (reste <= 0) {
     clearInterval(ECH_REBOURS_T); ECH_REBOURS_T = null;
+    if (depot) {
+      /* Fin du dépôt : rien à demander au serveur pour savoir qu'on peut répondre
+         (l'heure suffit) ; on relit la liste pour montrer tout ce qui est arrivé. */
+      majEchangesHero();
+      _echSiVueOuverte();
+      chargerEchanges(true).then(_echSiVueOuverte).catch(function(){});
+      return;
+    }
     _echRedemander(0);
   }
+}
+function _echSiVueOuverte(){
+  const v = document.getElementById('echangesView');
+  if (v && v.style.display !== 'none' && ECH_LISTE) renderEchanges();
 }
 /* À zéro : on redemande la clé. Un téléphone en avance sur le serveur essuie
    un refus : on réessaie, 6 fois au plus, toutes les 20 s. */
@@ -2513,10 +2567,32 @@ function majEchangesHero(){
     return;
   }
   if (ECH_REBOURS_T) { clearInterval(ECH_REBOURS_T); ECH_REBOURS_T = null; }
-  if (!ECH_AUTORISE) { hero.style.display='none'; equilibrerBlocs(); return; }
+  if (!ECH_AUTORISE) { hero.classList.remove('depot'); hero.style.display='none'; equilibrerBlocs(); return; }
   hero.style.display='flex';
   _echAnimerSiPremiereFois(hero);
   const enAttente = (ECH_LISTE||[]).filter(function(e){ return e.etat==='attente' && e.receveur===MY_ID; }).length;
+  /* (15/11/2026) Dépôt sans course : tuile ouverte, bordure ambre, « Réponses
+     dans … », pastille grise (arrivées, pas encore acceptables). */
+  const depot = _echDepot();
+  hero.classList.toggle('depot', depot);
+  hero.classList.toggle('large', depot);
+  const lib = document.getElementById('echReboursL');
+  if (lib) lib.textContent = depot ? 'Réponses dans' : 'Dans';
+  if (depot) {
+    hero.style.display = 'grid';
+    hero.classList.remove('attente');
+    if (rebours) rebours.style.display = '';
+    const pg = document.getElementById('echPastille');
+    if (pg) { pg.textContent = String(enAttente); pg.style.display = enAttente ? 'flex' : 'none'; pg.classList.add('grise'); }
+    document.getElementById('echHeroMain').textContent = 'Mes échanges';
+    document.getElementById('echHeroSub').textContent = 'Dépôt ouvert : proposez vos gardes.';
+    hero.setAttribute('aria-label', 'Mes échanges — dépôt ouvert, réponses ' + _echQuand(ECH_REPONSES, true));
+    ECH_REBOURS_T = setInterval(_echTic, 1000);
+    _echTic();
+    equilibrerBlocs();
+    return;
+  }
+  const pg0 = document.getElementById('echPastille'); if (pg0) pg0.classList.remove('grise');
   /* (11/10/2026) Carte habillée en tuile : une demande en attente la passe au rouge,
      avec son nombre en pastille. */
   hero.classList.toggle('attente', enAttente > 0);
@@ -2559,12 +2635,112 @@ function echFiltrer(tout){
 }
 
 function _echHeuresRestantes(creeLe){
-  const fin = new Date(creeLe).getTime() + 48*3600*1000;
+  const c = new Date(creeLe).getTime();
+  const fin = (ECH_REPONSES && ECH_REPONSES > c ? ECH_REPONSES : c) + 48*3600*1000;   // (15/11/2026) le délai part de l'heure des réponses
   return Math.max(0, Math.round((fin - Date.now())/3600000));
 }
 function _echDrLisible(id){ return 'Dr ' + _mgCap(String(id||'').toLowerCase()); }
 
+/* (15/11/2026) « Mes échanges » en deux blocs — maquette validée par le responsable.
+   À traiter : ce que je reçois et qui attend ma réponse ; Mes propositions : ce que
+   j'ai envoyé. Les deux triés par DATE DE LA GARDE, rangés par mois : l'heure du
+   dépôt n'est ni affichée ni prise en compte (sinon le dernier déposé passerait en
+   tête : la course, à l'envers). Ce qui est déjà répondu quitte « À traiter » pour
+   un bloc replié « Déjà traitées ». Pendant le dépôt, « Accepter » est grisé jusqu'à
+   l'heure des réponses ; refuser et annuler restent possibles.
+   « Tout voir » (comité) garde la liste d'ensemble : _renderEchangesTous. */
+const _ECH_ETATS = { attente:'En attente', acceptee:'Acceptée', refusee:'Refusée', expiree:'Expirée', impossible:'Impossible', annulee:'Annulée', sansobjet:'Sans objet' };
+function _echStatutPlanning(annee, id, date){
+  /* Réa ou Mater/Bloc : lu dans le planning déjà chargé, sans appel. Inconnu : ''. */
+  const plan = _planDejaLa(Number(annee));
+  if (!plan || !plan.months) return '';
+  for (const m of plan.months) {
+    const i = (m.days||[]).findIndex(function(x){ return x && x.date === date; });
+    if (i < 0) continue;
+    const doc = (m.doctors||[]).find(function(x){ return x.id === id; });
+    const st = doc && doc.days && doc.days[i] && doc.days[i].status;
+    return (st === 'G' || st === 'G2') ? st : '';
+  }
+  return '';
+}
+function _echCourt(date){ const d=_echJour(date); return String(d.getDate()).padStart(2,'0') + '/' + String(d.getMonth()+1).padStart(2,'0'); }
+function _echCarteDemande(e, recue){
+  const est18 = e.type==='don18' || e.type==='echange18';
+  const don = e.type==='don' || e.type==='don18';
+  /* La garde montrée est toujours celle du DEMANDEUR (date) : celle que je reçois
+     si la demande m'arrive, celle que je cède si c'est la mienne. */
+  const st = est18 ? '18' : (_echStatutPlanning(e.annee, e.demandeur, e.date) || (e.etat==='acceptee' ? _echStatutPlanning(e.annee, e.receveur, e.date) : ''));
+  const titre = est18 ? '18 h' : st==='G2' ? 'Garde Mater/Bloc' : st==='G' ? 'Garde Réa' : 'Garde';
+  const quoi = est18 ? '18 h' : 'garde';
+  let ligne;
+  if (recue) ligne = don ? 'Don de <strong>' + esc(_echDrLisible(e.demandeur)) + '</strong>'
+    : 'Échange : <strong>' + esc(_echDrLisible(e.demandeur)) + '</strong> prend votre ' + quoi + ' du ' + esc(_echCourt(e.date2));
+  else ligne = don ? 'Don proposé à <strong>' + esc(_echDrLisible(e.receveur)) + '</strong>'
+    : 'Échange proposé à <strong>' + esc(_echDrLisible(e.receveur)) + '</strong>, contre ' + (est18 ? 'son 18 h' : 'sa garde') + ' du ' + esc(_echCourt(e.date2));
+  const attente = e.etat==='attente', depot = _echDepot();
+  const etiquette = (attente && recue) ? ''
+    : '<span class="ech-etat ' + esc(e.etat) + '">' + (attente && depot ? 'Déposée' : (_ECH_ETATS[e.etat]||esc(e.etat))) + '</span>';
+  let detail = '';
+  if (e.etat==='acceptee' && e.info) detail = esc(e.info);
+  if ((e.etat==='impossible' || e.etat==='sansobjet') && e.info) detail = 'Motif : ' + esc(e.info);
+  let meta = '';
+  if (attente) meta = depot ? (recue ? 'Le délai de 48 h démarrera ' : _echDrLisible(e.receveur) + ' pourra répondre ') + _echQuand(ECH_REPONSES, true) + '.'
+    : 'Expire dans ' + _echHeuresRestantes(e.creeLe) + ' h · rappel à mi-parcours';
+  else if (e.reponduLe) meta = (_ECH_ETATS[e.etat]||e.etat) + ' · ' + esc(fmtDate(String(e.reponduLe).slice(0,10)));
+  let actions = '';
+  if (attente && recue) {
+    const acc = depot
+      ? '<button class="ech-accepter" disabled>Accepter ' + esc(_echQuand(ECH_REPONSES, false).replace(/ \d+ \S+ à /, ' ')) + '</button>'
+      : '<button class="ech-accepter" onclick="repondreEch(\'' + esc(e.id) + '\',\'accepter\',this)">Accepter</button>';
+    actions = '<div class="ech-actions">' + acc
+      + '<button class="ech-refuser" onclick="repondreEch(\'' + esc(e.id) + '\',\'refuser\',this)">Refuser</button></div>';
+  }
+  if (attente && !recue) actions = '<div class="ech-actions"><button class="ech-refuser ech-annuler" onclick="annulerEch(\'' + esc(e.id) + '\',this)">Annuler ma proposition</button></div>';
+  const fige = !attente && e.etat !== 'acceptee';
+  return '<div class="ech-card' + (fige ? ' fige' : '') + '">'
+    + '<div class="ech-ligne-d ' + _echClasse(est18 ? '18' : st==='G2' ? 'G2' : 'G') + '">' + _echPastille(e.date)
+    + '<span class="ech-tx"><b>' + titre + '</b><span>' + ligne + '</span></span>' + etiquette + '</div>'
+    + (detail ? '<div class="ech-detail">' + detail + '</div>' : '')
+    + actions
+    + (meta ? '<div class="ech-meta">' + meta + '</div>' : '')
+    + '<div class="ech-msg" id="echMsg-' + esc(e.id) + '" style="display:none"></div>'
+    + '</div>';
+}
+function _echParMois(liste, recue){
+  let h = '', mois = '';
+  liste.slice().sort(function(a,b){ return a.date<b.date?-1:a.date>b.date?1:0; }).forEach(function(e){
+    const d = _echJour(e.date), m = _ECH_MOIS[d.getMonth()] + ' ' + d.getFullYear();
+    if (m !== mois) { mois = m; h += '<div class="ech-mois">' + esc(m.charAt(0).toUpperCase() + m.slice(1)) + '</div>'; }
+    h += _echCarteDemande(e, recue);
+  });
+  return h;
+}
 function renderEchanges(){
+  if (ECH_TOUT) return _renderEchangesTous();
+  const box = document.getElementById('echList'), cnt = document.getElementById('echCount');
+  const tout = ECH_LISTE || [];
+  const recues = tout.filter(function(e){ return e.receveur===MY_ID; });
+  const aTraiter = recues.filter(function(e){ return e.etat==='attente'; });
+  const faites = recues.filter(function(e){ return e.etat!=='attente'; });
+  const miennes = tout.filter(function(e){ return e.demandeur===MY_ID; });
+  cnt.textContent = aTraiter.length ? String(aTraiter.length) : '';
+  let h = '';
+  if (_echDepot()) h += '<div class="ech-bandeau depot"><b>Dépôt en cours, jusqu’au ' + esc(_echQuand(ECH_REPONSES, true)) + '</b>'
+    + 'Proposez vos gardes et refusez ce qui ne vous va pas. Accepter s’ouvre à cette heure-là, pour tout le monde en même temps.</div>';
+  else if (ECH_REPONSES && Date.now() - ECH_REPONSES < 48*3600*1000) h += '<div class="ech-bandeau ouvert"><b>Réponses ouvertes depuis le ' + esc(_echQuand(ECH_REPONSES, true)) + '</b>'
+    + 'Vous pouvez accepter les demandes reçues. Sans réponse, elles expirent 48 h après.</div>';
+  h += '<div class="ech-section"><h3>À traiter</h3><span>' + (aTraiter.length ? aTraiter.length + ' en attente · par date de garde' : 'rien en attente') + '</span></div>';
+  h += aTraiter.length ? _echParMois(aTraiter, true) : '<div class="ech-vide">Aucune demande n’attend votre réponse.</div>';
+  if (faites.length) h += '<details class="ech-faites"' + (ECH_FAITES_OUVERT ? ' open' : '') + ' ontoggle="ECH_FAITES_OUVERT=this.open">'
+    + '<summary>Déjà traitées <i>' + faites.length + '</i></summary>' + _echParMois(faites, true) + '</details>';
+  const enCours = miennes.filter(function(e){ return e.etat==='attente'; }).length;
+  h += '<div class="ech-section"><h3>Mes propositions</h3><span>' + (miennes.length ? enCours + ' en attente · par date de garde' : '') + '</span></div>';
+  h += miennes.length ? _echParMois(miennes, false) : '<div class="ech-vide">Proposez une garde à un collègue : il recevra une notification et pourra accepter en un geste.</div>';
+  box.innerHTML = h;
+}
+
+/* Liste d'ensemble (« Tout voir », comité) : inchangée. */
+function _renderEchangesTous(){
   const box = document.getElementById('echList'), cnt = document.getElementById('echCount');
   let liste = (ECH_LISTE||[]).slice();
   if (!ECH_TOUT) liste = liste.filter(function(e){ return e.demandeur===MY_ID || e.receveur===MY_ID; });
@@ -2841,8 +3017,9 @@ async function echOuvrirProposition(){
     + medecins.map(function(id){ return '<option value="'+esc(id)+'">'+esc(_echDrLisible(id))+'</option>'; }).join('')
     + '</select>'
     + '<div id="echBlocContre" style="display:none"><label id="echLblContre">Contre sa garde du</label><button type="button" id="echCarteContre" class="ech-carte" onclick="echChoisirContre()"></button><select id="echSelContre" class="ech-natif"><option value="">Choisir…</option></select></div>'
+    + '<div id="echInfoDepot" class="ech-info" style="display:none"></div>'
     + '<div id="echAvert" class="ech-avert" style="display:none"></div>'
-    + '<button id="echEnvoyer" class="ech-envoyer" onclick="envoyerProposition(this)">Envoyer la proposition</button>'
+    + '<button id="echEnvoyer" class="ech-envoyer" onclick="envoyerProposition(this)">' + _echLibEnvoyer() + '</button>'
     + '<div class="ech-msg" id="echMsgProp" style="display:none"></div>';
   echMajProposition();
 }
@@ -2975,7 +3152,14 @@ async function echMajProposition(){
   // (11/11/2026) Toute nouvelle sélection redemande la confirmation du 18 h et de l'absence.
   ECH_PROP.ok18 = false; ECH_PROP.okAbs = false; ECH_PROP.okRea1 = false; ECH_PROP.ok18h = false;
   const _btn = document.getElementById('echEnvoyer');
-  if (_btn) { _btn.textContent = 'Envoyer la proposition'; _btn.disabled = false; }
+  if (_btn) { _btn.textContent = _echLibEnvoyer(); _btn.disabled = false; }
+  /* (15/11/2026) Pendant le dépôt : la proposition attend l'heure des réponses. */
+  const _info = document.getElementById('echInfoDepot');
+  if (_info) {
+    _info.style.display = _echDepot() ? 'block' : 'none';
+    if (_echDepot()) _info.textContent = 'Pendant le dépôt, votre proposition attend : ' + (qui ? _echDrLisible(qui) : 'votre collègue')
+      + ' la reçoit tout de suite, mais ne pourra l\'accepter qu\'à partir du ' + _echQuand(ECH_REPONSES, true) + '.';
+  }
   // (12/11/2026) L'avertissement « samedi 2026 : la récupération ne suivra pas » a disparu
   // avec son objet : rien du planning 2026 ne se propose plus (ECH_PREMIERE_ANNEE).
   av.style.display='none';
@@ -3048,8 +3232,9 @@ async function envoyerProposition(btn){
     }
     erreur((r && r.error) || 'Envoi impossible — réessayez.');
   } catch(e) { erreur('Erreur réseau — la proposition n\'est pas partie. Réessayez.'); }
-  btn.disabled=false; btn.textContent='Envoyer la proposition';
+  btn.disabled=false; btn.textContent=_echLibEnvoyer();
 }
+function _echLibEnvoyer(){ return _echDepot() ? 'Déposer la proposition' : 'Envoyer la proposition'; }
 
 // ── VUE STAFFS ──
 const _JOURS=['dim.','lun.','mar.','mer.','jeu.','ven.','sam.'];

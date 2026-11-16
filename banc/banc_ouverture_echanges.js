@@ -35,7 +35,8 @@ const iso = ms => new Date(ms).toISOString();
     const constante = src.match(/const ECHANGES_OUVERTURE_A_PROGRAMMER = '[^']*';/);
     V('la date à programmer est une constante lisible en tête de section', !!constante);
     vm.runInContext(constante[0].replace('const ', 'var '), ctx);
-    ['_echangesOuvertureMs_', '_echangesEtat_', '_echangesOuvertsMaintenant_', '_echangesAutorise_',
+    vm.runInContext("var ECHANGES_REPONSES_A_PROGRAMMER = '';", ctx);   // (15/11/2026) dépôt sans course : aucune heure des réponses ici
+    ['_echangesOuvertureMs_', '_echangesPoserReponses_', '_echangesEtat_', '_echangesOuvertsMaintenant_', '_echangesAutorise_',
      'ouvrirEchanges', 'programmerOuvertureEchanges', 'annoncerOuvertureEchanges', 'fermerEchanges', 'synchroniserEtatEchanges']
       .forEach(n => vm.runInContext(extraireFonction(GS, n), ctx));
     const aut = id => vm.runInContext(`_echangesAutorise_(${JSON.stringify({ id: id, role: 'mar' })})`, ctx);
