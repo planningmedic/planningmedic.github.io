@@ -155,7 +155,7 @@ console.log('\n═══ 6. CONTRE-ÉPREUVE : sans le correctif, le scénario é
 /* On rejoue TOUT sur une copie du générateur d'où les deux bornes de dispo18
    ont été retirées. Si cette copie passe le test, le test ne prouve rien. */
 const SANS = SRC
-  .replace(/(function dispo18\(id,date\)\{\n)\s*const _dd18[^\n]*\n\s*if\(\(_dd18[^\n]*\n/, '$1')
+  .replace(/(function dispo18\([^)]*\)\{\n)\s*const _dd18[^\n]*\n\s*if\(\(_dd18[^\n]*\n/, '$1')
   .replace(/\*\(weekdays\.length\?dispo18Cnt\[id\]\/weekdays\.length:0\)/, '');
 V('la copie sans correctif est bien différente de l\'originale', SANS !== SRC);
 const rSans = lancer(SANS);

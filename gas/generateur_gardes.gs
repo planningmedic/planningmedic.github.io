@@ -41,7 +41,7 @@
 // ⚠️ RÈGLE (détecteur de dérive dépôt↔Apps Script) : incrémenter cette version
 // à CHAQUE push de ce fichier. Le diagnostic (admin → Maintenance) compare la
 // version déployée ici avec celle du dépôt et signale toute recopie oubliée.
-const GAS_VERSION_GENERATEUR = '2026-11-15.1';   // (15/11/2026) .1 : ROTATION D'ÉQUITÉ à partir des gardes 2028 — même fourchette pour tous les MAR de même part, sans report qui la décale ; le retard cumulé de toutes les années (été compris) décide qui prend le haut ; part des autres calculée sur les gardes réelles du régime à part ; Noël et Jour de l'An hors des compteurs fins (gardés dans le total) ; réparation finale entre collègues et diagnostic des écarts de 2 ; 2027 se rejoue à l'identique · (14/11/2026) .2 : STATISTIQUES — tous les axes écrits (week-ends, été, part visée de chaque axe) ; le planning ne change pas · .1 : lissage mensuel par échanges neutres (aucun compteur ne bouge) · 18 h du vendredi : échange à trois MAR en plus de l'échange un pour un · écart entre collègues de même part payé dans la dernière passe · LA FOURCHETTE : plus de cible tirée au sort entre MAR de même part ; tout le calcul vise que chacun soit entre l'arrondi inférieur et supérieur de sa part exacte, sur chaque compteur (les week-ends gardent leur nombre entier, égal à part égale) · (13/11/2026) tout lisser, suite : le relais (un troisième MAR sert d'intermédiaire quand le +1 ne peut rien donner directement au −1), deux parcours et le meilleur est gardé — fériés et été mieux lissés · mesures de la passe 8nonies remplacées par celles de l'essai de génération chez Google (32 → 24, dont 12 d'arrondis ; 8 s) : les précédentes venaient d'une simulation qui ignorait les indisponibilités du dernier jour de l'année. Aucun changement de calcul · tout lisser : dernière passe qui apparie les +1 et les −1 d'un même compteur (week-ends, été, fériés, jeudis, samedis, vendredis), un souhait pouvant être retiré pour remettre un compteur à sa cible · rattrapage : 60 % du retard cumulé dans la visée, arrondi au plus proche (le retard n'est plus compté deux fois) · comptes exacts : vendredis-dimanches et week-ends déduits du planning réel · retouche : les week-ends d'abord · mémoire de plusieurs années : les années archivées sont relues dans le classeur d'archives · 18 h du vendredi à l'un des deux MAR du samedi · week-ends : cible égale à quotité égale, été, réa / maternité
+const GAS_VERSION_GENERATEUR = '2026-11-16.1';   // (16/11/2026) .1 : 18 H — jamais la veille de vacances ; en semaine Réa 1 seulement en tout dernier recours (annoncé par l'essai) · (15/11/2026) .1 : ROTATION D'ÉQUITÉ à partir des gardes 2028 — même fourchette pour tous les MAR de même part, sans report qui la décale ; le retard cumulé de toutes les années (été compris) décide qui prend le haut ; part des autres calculée sur les gardes réelles du régime à part ; Noël et Jour de l'An hors des compteurs fins (gardés dans le total) ; réparation finale entre collègues et diagnostic des écarts de 2 ; 2027 se rejoue à l'identique · (14/11/2026) .2 : STATISTIQUES — tous les axes écrits (week-ends, été, part visée de chaque axe) ; le planning ne change pas · .1 : lissage mensuel par échanges neutres (aucun compteur ne bouge) · 18 h du vendredi : échange à trois MAR en plus de l'échange un pour un · écart entre collègues de même part payé dans la dernière passe · LA FOURCHETTE : plus de cible tirée au sort entre MAR de même part ; tout le calcul vise que chacun soit entre l'arrondi inférieur et supérieur de sa part exacte, sur chaque compteur (les week-ends gardent leur nombre entier, égal à part égale) · (13/11/2026) tout lisser, suite : le relais (un troisième MAR sert d'intermédiaire quand le +1 ne peut rien donner directement au −1), deux parcours et le meilleur est gardé — fériés et été mieux lissés · mesures de la passe 8nonies remplacées par celles de l'essai de génération chez Google (32 → 24, dont 12 d'arrondis ; 8 s) : les précédentes venaient d'une simulation qui ignorait les indisponibilités du dernier jour de l'année. Aucun changement de calcul · tout lisser : dernière passe qui apparie les +1 et les −1 d'un même compteur (week-ends, été, fériés, jeudis, samedis, vendredis), un souhait pouvant être retiré pour remettre un compteur à sa cible · rattrapage : 60 % du retard cumulé dans la visée, arrondi au plus proche (le retard n'est plus compté deux fois) · comptes exacts : vendredis-dimanches et week-ends déduits du planning réel · retouche : les week-ends d'abord · mémoire de plusieurs années : les années archivées sont relues dans le classeur d'archives · 18 h du vendredi à l'un des deux MAR du samedi · week-ends : cible égale à quotité égale, été, réa / maternité
 // précédente : '2026-10-27.1'
 
 /* (05/09/2026) INTERRUPTEUR DU NOUVEL ALGORITHME — récit : docs/JOURNAL-Planning-Med.md §101 */
@@ -4118,11 +4118,20 @@ function generateGardes(year, opts){
   // Disponibilité 18h : exclut absences totales, gardes/récups, semaines "off"
   // (rythme 2/2) et un autre les jeudi/vendredi (60%).
   const ABSENT_18 = new Set(['VAC','VM','VA','FORM','CL','TP','CTP','CP','A','RG_TRANSITION']);
-  function dispo18(id,date){
+  /* (16/11/2026) DEUX RÈGLES DU RESPONSABLE, constatées sur les gardes 2027 :
+     · « le 18 h veille de vacances c'est non » : jamais de 18 h le jour qui précède
+       des vacances (VAC, ou VM : vacances dès le matin du lendemain). Règle DURE,
+       aucun repli ne la lève (2 cas en 2027 : un vendredi, un mercredi).
+     · « le 18 h est à éviter pour le Réa 1 sauf en dernier recours » : la semaine
+       Réa 1 n'est plus un interdit absolu mais le tout dernier repli (rea1Ok),
+       quand plus personne d'autre ne peut tenir la soirée. */
+  const VAC_LENDEMAIN_18 = new Set(['VAC','VM']);
+  function dispo18(id,date,rea1Ok){
     const _dd18=FLAGS.dateDebut[id], _df18=FLAGS.dateFin[id];
     if((_dd18&&date<_dd18)||(_df18&&date>=_df18)) return false;
     if(ABSENT_18.has(indispos[id]?.[date])) return false;
-    if(REA1_SEM[id]&&REA1_SEM[id].has(date)) return false;   // (24/10/2026) pas de 18 h en semaine Réa 1
+    if(VAC_LENDEMAIN_18.has(indispos[id]?.[addOneDay(date)])) return false;   // (16/11/2026) jamais la veille de vacances
+    if(!rea1Ok&&REA1_SEM[id]&&REA1_SEM[id].has(date)) return false;   // (24/10/2026) pas de 18 h en semaine Réa 1 — (16/11) sauf dernier recours
     if(estSemaineOff(id,date)) return false;
     if(gSet[id]?.has(date)||g2Set[id]?.has(date)||rgSet[id]?.has(date)||rSet[id]?.has(date)) return false;
     const _tp=FLAGS.tpJoursFixes[id]; // (C2-D3) jours fixes non travaillés → MEDECINS
@@ -4134,6 +4143,7 @@ function generateGardes(year, opts){
      du vivier du jour. Coût quasi nul : le 18h se choisit parmi une vingtaine de
      personnes, en retirer une ne change rien à la répartition. */
   const paireDeGarde18=(id,date)=>{const gg=gardes[date]; return !!gg&&(evite(id,gg.g,date)||evite(id,gg.g2,date));};
+  const h18Rea1=[]; // (16/11/2026) soirées confiées en dernier recours à un MAR en semaine Réa 1
   const h18wk={}; // semaines ISO où chaque MAR a déjà fait un 18h (≤ 1 par semaine)
   const did18wk=(id,date)=> h18wk[id]?h18wk[id].has(dayByDate[date].wk):false;
   const set18=(id,date)=>{ h18A[date]=id; h18cnt[id]++; (h18wk[id]||(h18wk[id]=new Set())).add(dayByDate[date].wk); };
@@ -4161,7 +4171,10 @@ function generateGardes(year, opts){
     if(!pool.length) pool=allDoctors.filter(id=>_libre(id)&&dispo18(id,day.date)&&!did18wk(id,day.date)); // garde "1/semaine"
     if(!pool.length) pool=allDoctors.filter(id=>_libre(id)&&dispo18(id,day.date));
     if(!pool.length) pool=allDoctors.filter(id=>dispo18(id,day.date)); // dernier recours absolu : la paire cède
+    let _rea1Recours=false;
+    if(!pool.length){ pool=allDoctors.filter(id=>dispo18(id,day.date,true)); _rea1Recours=pool.length>0; } // (16/11/2026) tout dernier repli : un MAR en semaine Réa 1
     if(!pool.length){warnings.push(`Aucun 18h ${day.date}`);return;}
+    if(_rea1Recours) h18Rea1.push(day.date);
     pool.sort((a,b)=>(h18cnt[a]/(h18T[a]||1))-(h18cnt[b]/(h18T[b]||1)));
     set18(pool[0],day.date);
   });
@@ -4174,6 +4187,7 @@ function generateGardes(year, opts){
      nombre de 18 h ; aucune garde ne bouge. Mêmes règles qu'à la pose : disponibilité,
      pas deux jours de suite, un par semaine au plus, paire à éviter, pas un jour
      d'indisponibilité. Un vendredi déjà bon n'est jamais défait. */
+  if(h18Rea1.length) warnings.push('18 h en semaine Réa 1 (dernier recours, personne d\'autre de libre) : '+h18Rea1.join(', '));
   const _h18Ven={vendredis:0,conformes:0,echanges:0,restants:[]};
   {
     const _jour=d=>toDateStr(new Date(new Date(d+'T12:00:00').getTime()+86400000));
