@@ -4,7 +4,7 @@
    quelles : aucune ligne de logique modifiée, seulement déplacée. Le routeur et
    ses aides (checkCode, _deny, _error, doGet/doPost) restent dans Indispos.gs.
    Un seul espace global dans Apps Script : rien à importer. */
-const GAS_VERSION_TP = '2026-11-12.1';   // (12/11/2026) plus aucun nom de personne dans le code (effectif présent) · (10/11/2026) chaque jour de TP posé, retiré, demandé ou tranché laisse une ligne dans l'onglet HISTORIQUE
+const GAS_VERSION_TP = '2026-11-16.1';   // (16/11/2026) jour de TP dans sa semaine Réa 1 : refusé au MAR, signalé au comité · (12/11/2026) plus aucun nom de personne dans le code (effectif présent) · (10/11/2026) chaque jour de TP posé, retiré, demandé ou tranché laisse une ligne dans l'onglet HISTORIQUE
 
 /* ── (POSE TP · 22/08/2026) PHASE DE POSE DES TEMPS PARTIELS — DÉDUITE, JAMAIS ÉCRITE ──
    Les jours de temps partiel se posent APRÈS la génération des gardes (décision
@@ -197,6 +197,12 @@ function _poserTp_(user, targetId, envoye, annee) {
   });
 
   // ── Passe 2 : les NOUVEAUTÉS, dans l'ordre du calendrier ─────────────
+  /* (16/11/2026 — décision du responsable) SEMAINE RÉA 1 : le Réa 1 est présent
+     du lundi au vendredi. Un jour de TP dans SA semaine est refusé au MAR ; posé
+     par le comité, il passe avec un avertissement (alertesRea1), que l'écran
+     affiche. Sans onglet REA1_{année} : rien ne change. */
+  const rea1Moi = (typeof _rea1Jours_ === 'function' ? _rea1Jours_(annee)[targetId] : null) || {};
+  const alertesRea1 = [];
   const nouveaux = Object.keys(envoye || {})
     .filter(function (ds) { return grille[ds] !== 'TP' && !enAttente[ds]; })
     .sort();
@@ -210,6 +216,10 @@ function _poserTp_(user, targetId, envoye, annee) {
     if (jf.has(ds)) { resultat[ds] = 'jour férié'; return; }
     const occupe = grille[ds];
     if (occupe) { resultat[ds] = 'jour déjà ' + occupe; return; }
+    if (rea1Moi[ds]) {
+      if (!estAdmin) { resultat[ds] = 'semaine Réa 1 : présence obligatoire du lundi au vendredi'; return; }
+      alertesRea1.push(ds);
+    }
 
     const presents = M.presents(ds);
     const reste = presents - 1;
@@ -263,6 +273,7 @@ function _poserTp_(user, targetId, envoye, annee) {
             + (grilleTouchee ? ', planning republié' : ''));
 
   return { success: true, resultat: resultat, annee: annee,
+           alertesRea1: alertesRea1.filter(function (ds) { return resultat[ds] === 'TP' || resultat[ds] === 'TPA'; }),
            quota: { valides: nbTP, attente: nbAttente, total: quotaTotal } };
 }
 
@@ -580,7 +591,7 @@ function _act_deciderJourTpLot(R) {
       if (rep && rep.success) faits++; else rates++;
       detail.push({ date: d.date, doctorId: d.doctorId, decision: d.decision,
                     success: !!(rep && rep.success), error: rep && rep.error,
-                    rendues: rep && rep.rendues });
+                    rendues: rep && rep.rendues, alerteRea1: !!(rep && rep.alerteRea1) });
     } catch (eL) {
       rates++;
       detail.push({ date: d.date, doctorId: d.doctorId, decision: d.decision,
@@ -633,6 +644,9 @@ function _act_deciderJourTp(R) {
       _tpNotifier_('Temps partiel validé',
         'Votre jour du ' + _tpJourLisible_(ds) + ' est validé par le comité.', cibleId);
       out = { success: true, date: ds, doctorId: cibleId };
+      /* (16/11/2026) Validé par le comité dans la semaine Réa 1 du MAR : ça passe,
+         mais l'écran du comité le signale. */
+      if (typeof _rea1Jours_ === 'function' && (_rea1Jours_(anneeD)[cibleId] || {})[ds]) out.alerteRea1 = true;
     }
   }
 

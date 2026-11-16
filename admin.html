@@ -9479,6 +9479,11 @@ async function tpcEnvoyer() {
     if (!res || !res.success) { showToast('❌ ' + ((res && res.error) || 'Échec de l\'enregistrement')); return; }
     showToast('✓ ' + res.faits + ' décision' + (res.faits > 1 ? 's' : '') + ' enregistrée'
       + (res.faits > 1 ? 's' : '') + (res.rates ? ' — ' + res.rates + ' en échec' : ''));
+    /* (16/11/2026) Jour validé dans la semaine Réa 1 du MAR : ça passe, mais on le dit. */
+    const rea1V = (res.detail || []).filter(function (x) { return x && x.success && x.alerteRea1; });
+    if (rea1V.length) showToast('⚠️ Semaine Réa 1 : ' + rea1V.map(function (x) {
+      return getInitials(x.doctorId) + ' le ' + x.date.split('-').reverse().slice(0, 2).join('/');
+    }).join(', ') + ' — le Réa 1 doit être présent du lundi au vendredi.');
     /* (23/08/2026) AUCUNE RELECTURE ICI — récit : docs/JOURNAL-Planning-Med.md §40 */
     const passees = {};
     (res.detail || []).forEach(function (x) {

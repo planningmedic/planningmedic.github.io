@@ -2428,6 +2428,15 @@ function tpxRecap(res, nvReserves, refus) {
       + '<div class="tpx-recap-txt">À votre demande. Ils reviennent dans votre quota.</div>'
       + '<div class="tpx-recap-jours" style="color:var(--ink-3)">' + retires.map(nomJour).join('<br>') + '</div></div>';
   }
+  /* (16/11/2026) Posé par le comité dans la semaine Réa 1 du MAR : accepté, mais signalé. */
+  const rea1A = (res.alertesRea1 || []).slice().sort();
+  if (rea1A.length) {
+    h += '<div class="tpx-recap-bloc tpx-recap-res"><div class="tpx-recap-titre">⚠️ '
+      + rea1A.length + ' jour' + (rea1A.length > 1 ? 's' : '') + ' dans sa semaine Réa 1</div>'
+      + '<div class="tpx-recap-txt">Le Réa 1 doit être présent du lundi au vendredi. Posé par le comité, '
+      + (rea1A.length > 1 ? 'ces jours sont acceptés' : 'ce jour est accepté') + ' : vérifiez avec l\'équipe réa.</div>'
+      + '<div class="tpx-recap-jours">' + rea1A.map(nomJour).join('<br>') + '</div></div>';
+  }
   if (refus.length) {
     h += '<div class="tpx-recap-bloc tpx-recap-ko"><div class="tpx-recap-titre">'
       + refus.length + ' jour' + (refus.length > 1 ? 's' : '') + ' refusé' + (refus.length > 1 ? 's' : '') + '</div>'

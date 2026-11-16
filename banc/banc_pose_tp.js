@@ -1242,5 +1242,38 @@ console.log('\n═══ PT-HISTO · l\'onglet TRACES trace chaque TP posé, dem
   V('le code ne supprime jamais de ligne de l\'historique', !/(HISTORIQUE|TRACES)[^\n]*(deleteRow|clear)/.test(src));
   V('le suivi des gestes a son propre onglet, distinct de l\'archive HISTORIQUE', /const HISTORIQUE_ONGLET = 'TRACES';/.test(src)); }
 
+console.log('\n═══ PT-R1 · semaine Réa 1 (16/11/2026) : TP refusé au MAR, accepté et signalé au comité ═══');
+{
+  const avecRea1 = (b) => {
+    /* REA1_2027 tel que le vrai : « Du » en JJ/MM/AAAA, colonne REA 1. POSEUR est Réa 1 la semaine du 08/03. */
+    b.cl.ajouter('REA1_2027', [['Semaine n°','Du','Au','REA 1 (1re semaine)','REA 2 (2e semaine)'], ['10','08/03/2027','12/03/2027','POSEUR','ZORRO']]);
+    ['_echangesTexteDate_', '_recupsDecale_', '_recupsDow_', '_rea1Jours_'].forEach(n =>
+      vm.runInContext(extraireFonction('../gas/echanges.gs', n), b.ctx));
+    return b;
+  };
+  let b = avecRea1(monde());
+  let rep = b.appel({ tp: true, indispos: { '2027-03-08': 'TP', '2027-03-12': 'TP', '2027-03-16': 'TP' } }, MAR);
+  V('MAR : lundi de sa semaine Réa 1 → refusé, motif en clair', /^semaine Réa 1 : présence obligatoire du lundi au vendredi$/.test(rep.resultat['2027-03-08'] || ''), rep.resultat['2027-03-08']);
+  V('MAR : le vendredi aussi (le Réa 1 est présent toute la semaine)', /semaine Réa 1/.test(rep.resultat['2027-03-12'] || ''), rep.resultat['2027-03-12']);
+  V('MAR : rien n\'est écrit sur ces jours', !b.lireGarde('POSEUR', '2027-03-08') && !b.lireGarde('POSEUR', '2027-03-12'));
+  V('MAR : hors de sa semaine, le TP passe', rep.resultat['2027-03-16'] === 'TP', rep.resultat['2027-03-16']);
+  V('MAR : aucun avertissement renvoyé (c\'est un refus)', Array.isArray(rep.alertesRea1) && rep.alertesRea1.length === 0, rep.alertesRea1);
+  b = avecRea1(monde());
+  rep = b.appel({ tp: true, doctorId: 'POSEUR', indispos: { '2027-03-09': 'TP' } }, ADMIN);
+  V('COMITÉ : le jour passe (il peut passer outre)', rep.resultat['2027-03-09'] === 'TP' && b.lireGarde('POSEUR', '2027-03-09') === 'TP', rep.resultat);
+  V('COMITÉ : …et il est signalé (alertesRea1)', JSON.stringify(rep.alertesRea1) === '["2027-03-09"]', rep.alertesRea1);
+  b = avecRea1(monde());
+  rep = b.appel({ tp: true, indispos: { '2027-03-08': 'TP' } }, { role: 'mar', id: 'ZORRO' });
+  V('un autre MAR (pas Réa 1 cette semaine) pose le même jour sans refus', rep.resultat['2027-03-08'] === 'TP', rep.resultat);
+  b = monde();
+  rep = b.appel({ tp: true, indispos: { '2027-03-08': 'TP' } }, MAR);
+  V('contre-épreuve — sans onglet REA1 : le TP passe comme avant', rep.resultat['2027-03-08'] === 'TP', rep.resultat);
+  const srcTp = fs.readFileSync('../gas/temps_partiel.gs', 'utf8'), srcAdm = fs.readFileSync('../admin.html', 'utf8'), srcInd = fs.readFileSync('../indispos.html', 'utf8');
+  V('validation d\'une demande par le comité dans la semaine Réa 1 : signalée (alerteRea1) et transmise au lot',
+    /out\.alerteRea1 = true/.test(srcTp) && /alerteRea1: !!\(rep && rep\.alerteRea1\)/.test(srcTp));
+  V('…l\'écran du comité l\'affiche, et le récapitulatif de pose aussi',
+    /x\.success && x\.alerteRea1/.test(srcAdm) && /Semaine Réa 1 : /.test(srcAdm) && /res\.alertesRea1/.test(srcInd) && /dans sa semaine Réa 1/.test(srcInd));
+}
+
 console.log(`\n${ko === 0 ? '✅' : '❌'} banc_pose_tp : ${ok} vérifications, ${ko} échec(s)`);
 if (ko > 0) process.exit(1);
