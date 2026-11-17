@@ -1,7 +1,7 @@
 // ⚠️ RÈGLE (détecteur de dérive dépôt↔Apps Script) : incrémenter cette version
 // à CHAQUE push de ce fichier. Le diagnostic (admin → Maintenance) compare la
 // version déployée ici avec celle du dépôt et signale toute recopie oubliée.
-const GAS_VERSION_CODE = '2026-11-17.1';   // (17/11/2026) colonne HORS_EFFECTIF de MEDECINS (repérée par son titre) : MAR jamais compté dans l'effectif présent (getMedecinFlags().horsEffectif) · (15/11/2026) instantané d'équité : un jeudi férié compte comme férié, plus comme jeudi (même règle que le calcul) · (15/11/2026) instantané d'équité : à partir de 2028, Noël et le Jour de l'An (et leur jour couplé) restent dans le total mais sortent des compteurs fins, comme dans le calcul · (14/11/2026) écran d'équité : la part de chaque compteur (PART VISEE) et le nombre de week-ends servis à l'écran, pour afficher la fourchette (champsWeStats_, computeStatsLive) · (12/11/2026) week-ends : V (vendredis), WE = samedis + dimanches et sa part, lus dans l'onglet de statistiques (champsWeStats_) · (11/11/2026) vue paie : jours de TP (TP, CTP, semaine off du rythme 2/2) affichés, sans mail · (11/11/2026) mail paie lisible sur téléphone (une carte par changement) · (02/11/2026) commentaire sans initiales réelles · (27/10/2026) demi-journées de vacances VM/VA (planning, paie, notifications) · (27/10/2026) journée mobile 2027 (lundi 7 juin) ajoutée aux fériés · (18/10/2026) vue paie : tri G/G2/V (_planningPaie_) et mail aux secrétaires de paie (_paieEnvoyerAnnee_)
+const GAS_VERSION_CODE = '2026-11-17.2';   // (17/11/2026) .2 : seuilsPresence_() — LES seuils d'effectif de tout le portail, lus dans l'onglet SEUILS (alerte, confort) · (17/11/2026) colonne HORS_EFFECTIF de MEDECINS (repérée par son titre) : MAR jamais compté dans l'effectif présent (getMedecinFlags().horsEffectif) · (15/11/2026) instantané d'équité : un jeudi férié compte comme férié, plus comme jeudi (même règle que le calcul) · (15/11/2026) instantané d'équité : à partir de 2028, Noël et le Jour de l'An (et leur jour couplé) restent dans le total mais sortent des compteurs fins, comme dans le calcul · (14/11/2026) écran d'équité : la part de chaque compteur (PART VISEE) et le nombre de week-ends servis à l'écran, pour afficher la fourchette (champsWeStats_, computeStatsLive) · (12/11/2026) week-ends : V (vendredis), WE = samedis + dimanches et sa part, lus dans l'onglet de statistiques (champsWeStats_) · (11/11/2026) vue paie : jours de TP (TP, CTP, semaine off du rythme 2/2) affichés, sans mail · (11/11/2026) mail paie lisible sur téléphone (une carte par changement) · (02/11/2026) commentaire sans initiales réelles · (27/10/2026) demi-journées de vacances VM/VA (planning, paie, notifications) · (27/10/2026) journée mobile 2027 (lundi 7 juin) ajoutée aux fériés · (18/10/2026) vue paie : tri G/G2/V (_planningPaie_) et mail aux secrétaires de paie (_paieEnvoyerAnnee_)
 
 // ── Reconstruire STATS_GARDES_2026 depuis GARDES_2026 (année reconstruite) ──
 // Renvoie le classeur contenant l'onglet demandé : classeur actif si présent,
@@ -346,6 +346,24 @@ function getMedecinFlags() {
   }
   _medFlagsCache = flags;
   return flags;
+}
+
+/* (17/11/2026) LES SEUILS D'EFFECTIF — une seule source pour tout le portail,
+   l'onglet SEUILS du classeur (décision du responsable : « s'assurer que les
+   seuils de présence sont tous les mêmes »). Le compte est celui de
+   _tpMondePresence_ : MAR postables, sans les repos de garde ni les MAR hors
+   effectif. Sous `alerte`, le jour est TENDU : TP refusé à la pose, point
+   signalé dans l'onglet Contrôles, récupération jamais posée. De `alerte` à
+   `confort` − 1 : TP sur demande au comité. À partir de `confort` : vert.
+   Repli 13 / 15 (les valeurs du classeur au 17/11/2026) si l'onglet manque. */
+function seuilsPresence_() {
+  let s = {};
+  try { if (typeof getSeuils === 'function') s = getSeuils() || {}; } catch (e) { s = {}; }
+  const a = Number(s.SEUIL_PRESENCE_ALERTE), c = Number(s.SEUIL_PRESENCE_CONFORT);
+  const alerte = (isFinite(a) && a > 0) ? a : 13;
+  let confort = (isFinite(c) && c > 0) ? c : 15;
+  if (confort <= alerte) confort = alerte + 2;
+  return { alerte: alerte, confort: confort };
 }
 
 // ── PAIRES À ÉVITER ────────────────────────────────────────────────────

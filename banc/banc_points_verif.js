@@ -1,12 +1,16 @@
-/* ═══ BANC — POINTS À VÉRIFIER (onglet Statuts) ET HORS EFFECTIF (17/11/2026) ═══
-   Décision du responsable : le comité voit, dans l'onglet Statuts, ce qu'il doit
-   signaler aux MAR — semaine Réa 1 occupée, vacances au-delà du droit, temps
-   partiel un jour tendu — et coche « Prévenu ». Le chef de service n'est jamais
-   compté parmi les postables (colonne HORS_EFFECTIF), ni ici ni à la pose des TP.
+/* ═══ BANC — ONGLET CONTRÔLES DU COMITÉ ET HORS EFFECTIF (17/11/2026) ═══
+   Décision du responsable : l'admin est un tableau de bord de tout ce qui cloche
+   dans le planning (onglet Contrôles) — six familles : Réa 1, temps partiel,
+   congés, 18 h, récupérations, gardes — et le comité coche « Prévenu ». Le chef
+   de service n'est jamais compté parmi les postables (colonne HORS_EFFECTIF).
+   Jour tendu = moins que le seuil d'alerte de l'onglet SEUILS (13 par défaut),
+   le même partout : pose des TP, contrôles, placement des récupérations.
 
    Ce qui ne doit JAMAIS arriver :
      · un MAR marqué HORS_EFFECTIF compté dans l'effectif présent ;
      · un TP signalé « jour tendu » alors qu'il reste 13 postables, ou oublié à 12 ;
+     · un seuil changé dans l'onglet SEUILS et ignoré par les contrôles ;
+     · une récupération signalée parce qu'elle tombe en vacances scolaires ;
      · un jour passé signalé ;
      · un jour fixe de temps partiel compté comme un jour de vacances ;
      · le 24/12 ou le 31/12 compté une journée entière ;
@@ -52,6 +56,7 @@ function monde(opts) {
   const g = [Array(nCols + 1).fill(''), Array(nCols + 1).fill(''), Array(nCols + 1).fill('')];
   ids.forEach(id => g.push([id].concat(Array(nCols).fill(''))));
   const MAPI = { V: 'VAC', F: 'FORM', TP: 'TP', CL: 'CL', A: 'A', VA: 'VA', VM: 'VM' };
+  (opts.indispos || []).forEach(([id, ds, code]) => { ind[3 + ids.indexOf(id)][1 + datesI.indexOf(ds)] = code; });
   (opts.cases || []).forEach(([id, ds, code]) => {
     const c = Math.round((new Date(ds + 'T12:00:00') - debut) / 86400000) + 1;
     g[3 + ids.indexOf(id)][c] = code;
@@ -76,15 +81,19 @@ function monde(opts) {
   vm.runInContext('var LockService = { getScriptLock: function () { return { waitLock: function () {}, releaseLock: function () {} }; } };', ctx);
   vm.runInContext('function _configRows_(){ return SpreadsheetApp.getActiveSpreadsheet().getSheetByName("CONFIG").getDataRange().getValues(); }', ctx);
   vm.runInContext('let _medFlagsCache = null; let _quotasCache = null;', ctx);
-  ['getActiveYear', 'getPremierJourPlanning', 'reconstruireDatesHeaders', 'buildDateToCol', 'getJoursFeries', 'getMedecinFlags'].forEach(n =>
+  ['getActiveYear', 'getPremierJourPlanning', 'reconstruireDatesHeaders', 'buildDateToCol', 'getJoursFeries', 'getMedecinFlags', 'seuilsPresence_'].forEach(n =>
     vm.runInContext(extraireFonction('../gas/code.gs', n), ctx));
+  vm.runInContext('function _cacheLire_(){ return null; } function _cacheEcrire_(){}', ctx);
+  vm.runInContext("const SEUILS_TAB = 'SEUILS'; const _SEUILS_HEADER = ['CLE', 'VALEUR', 'DESCRIPTION']; const _SEUILS_SEED = [];", ctx);
+  ['getOrCreateSeuilsTab', 'getSeuils'].forEach(n => vm.runInContext(extraireFonction('../gas/portail.gs', n), ctx));
+  if (opts.seuils) cl.ajouter('SEUILS', [['CLE', 'VALEUR', 'DESCRIPTION']].concat(opts.seuils));
   vm.runInContext(extraireFonction('../gas/generateur_gardes.gs', 'estSemaineOff'), ctx);
   ['_loadQuotasConges', 'getQuotasConges', '_tpMondePresence_', '_tpDemandesSheet_', '_tpDemandes_',
    '_echangesTz_', '_echangesTexteDate_', '_recupsDecale_', '_recupsDow_', '_rea1Jours_',
-   '_verifPrevenusSheet_', '_verifPrevenus_', '_verifJjMm_', 'computePointsVerif',
+   '_verifPrevenusSheet_', '_verifPrevenus_', '_verifJjMm_', '_verifDecale_', '_pl_', 'computePointsVerif',
    '_act_getPointsVerif', '_act_marquerPrevenu', '_deny', '_error'].forEach(n =>
     vm.runInContext(extraireFonction('../gas/Indispos.gs', n), ctx));
-  ['VERIF_PLANCHER_POSTABLES', 'VERIF_ONGLET', 'VERIF_ENTETE', 'VERIF_LIB_REA1'].forEach(n => vm.runInContext(constante(n), ctx));
+  ['VERIF_ONGLET', 'VERIF_ENTETE', 'VERIF_EQUIPE', 'VERIF_LIB_REA1', 'VERIF_INDISPOS_GARDES'].forEach(n => vm.runInContext(constante(n), ctx));
   const frais = () => vm.runInContext('_medFlagsCache = null; _quotasCache = null; _medecinsInvalider_();', ctx);
   return {
     cl, ctx,
@@ -121,13 +130,15 @@ console.log('\n═══ JT · TP un jour tendu : ≤ 12 postables s\'il est abs
   ] });
   const r = b.points();
   V('lecture réussie, année générée', r.success === true && r.genere === true, r);
-  const t = (r.points || []).filter(p => p.type === 'tendu');
+  const t = (r.points || []).filter(p => p.code === 'tendu');
   V('11 postables : signalé', t.some(p => p.date === '2027-03-02'), t);
   V('12 postables : signalé (même seuil que le refus à la pose)', t.some(p => p.date === '2027-03-03'), t);
   V('13 postables : pas signalé', !t.some(p => p.date === '2027-03-10'), t);
   const p2 = t.find(p => p.date === '2027-03-02') || {};
   V('le texte dit le compte et qui n\'est pas compté, par ses initiales du classeur', p2.texte === "11 MAR postables (hors CH) s'il est absent.", p2.texte);
-  V('le seuil est celui du refus à la pose (reste ≤ 12)', /reste <= 12/.test(extraireFonction('../gas/temps_partiel.gs', '_poserTp_')) && vm.runInContext('VERIF_PLANCHER_POSTABLES', b.ctx) === 12);
+  V('le seuil est celui du refus à la pose : seuilsPresence_().alerte, des deux côtés', /reste < S\.alerte/.test(extraireFonction('../gas/temps_partiel.gs', '_poserTp_'))
+    && /n < S\.alerte/.test(extraireFonction('../gas/gardes.gs', 'computePointsVerif')));
+  V('un point tendu est orange, dans la famille temps partiel', p2.niv === 'orange' && p2.fam === 'tp', p2);
   /* Le point disparaît dès que la case est corrigée. */
   b.poser('P03', '2027-03-02', ''); b.poser('P02', '2027-03-02', '');
   const sh = b.cl.getSheetByName('INDISPOS_2027'), d = sh.getDataRange().getValues();
@@ -149,7 +160,7 @@ console.log('\n═══ R1 · semaine Réa 1 occupée ═══');
     demandes: [[2027, new Date(2027, 3, 8), 'REA', '2027-04-01T10:00:00Z']],
     cases: [['REA', '2027-04-06', 'TP'], ['REA', '2027-04-09', 'F'], ['REA', '2027-04-12', 'TP'], ['P01', '2027-04-06', 'TP']] });
   const r = b.points();
-  const rea = (r.points || []).filter(p => p.type === 'rea');
+  const rea = (r.points || []).filter(p => p.fam === 'rea1' && p.code === 'rea');
   V('TP le mardi de sa semaine : signalé', rea.some(p => p.id === 'REA' && p.date === '2027-04-06'), rea);
   V('formation le vendredi de sa semaine : signalée', rea.some(p => p.id === 'REA' && p.date === '2027-04-09' && /^Formation/.test(p.texte)), rea);
   V('demande de TP en attente dans sa semaine : signalée', rea.some(p => p.date === '2027-04-08' && /Demande/.test(p.texte)), rea);
@@ -159,7 +170,7 @@ console.log('\n═══ R1 · semaine Réa 1 occupée ═══');
   V('le texte donne la semaine', p.texte === 'Temps partiel posé dans sa semaine Réa 1 (05/04 → 09/04).', p.texte);
   V('les initiales accompagnent le point', p.init === 'RE', p);
   const sansOnglet = monde({ cases: [['REA', '2027-04-06', 'TP']] });
-  V('sans onglet REA1_2027 : aucun point Réa 1', !(sansOnglet.points().points || []).some(x => x.type === 'rea'));
+  V('sans onglet REA1_2027 : aucun point Réa 1', !(sansOnglet.points().points || []).some(x => x.fam === 'rea1'));
 }
 
 console.log('\n═══ VA · vacances au-delà du droit ═══');
@@ -170,7 +181,7 @@ console.log('\n═══ VA · vacances au-delà du droit ═══');
   const fixe = semaines('FIXE', 5);                                                     // 25 jours, dont 10 jeudis/vendredis fixes
   const p04 = semaines('P04', 6).slice(0, 32).concat([['P04', '2027-12-24', 'V'], ['P04', '2027-12-31', 'V']]);   // 32 + 0,5 + 0,5 = 33
   const b = monde({ cases: vacx.concat(fixe, p04) });
-  const vac = (b.points().points || []).filter(p => p.type === 'vac');
+  const vac = (b.points().points || []).filter(p => p.code === 'vac');
   const vx = vac.find(p => p.id === 'VACX') || {};
   V('31 jours pour un droit de 30 : signalé, avec le compte', vx.texte === '31 jours de vacances posés en 2027 pour un droit de 30 jours (90 %) : 1 de trop.', vx.texte);
   V('jours fixes de temps partiel non comptés (15 jours réels pour 20)', !vac.some(p => p.id === 'FIXE'), vac);
@@ -202,25 +213,101 @@ console.log('\n═══ PR · la case « Prévenu » ═══');
   V('un MAR ne coche pas', b.cocher(cle, true, mar).success === false);
 }
 
+console.log('\n═══ SE · le seuil vient de l\'onglet SEUILS du classeur ═══');
+{
+  const cases = [['ZORRO', '2027-03-03', 'TP'], ['P01', '2027-03-03', 'V'], ['P02', '2027-03-03', 'V']];   // 12 postables s'il est absent
+  const def = monde({ cases }), bas = monde({ cases, seuils: [['SEUIL_PRESENCE_ALERTE', 12, ''], ['SEUIL_PRESENCE_CONFORT', 14, '']] });
+  const haut = monde({ cases: [['ZORRO', '2027-03-10', 'TP'], ['P01', '2027-03-10', 'V']], seuils: [['SEUIL_PRESENCE_ALERTE', 14, ''], ['SEUIL_PRESENCE_CONFORT', 16, '']] });
+  V('sans onglet SEUILS : 13 par défaut, 12 postables signalé', cles(def.points()).includes('tendu|ZORRO|2027-03-03'));
+  V('onglet SEUILS à 12 : 12 postables n\'est plus tendu', !cles(bas.points()).includes('tendu|ZORRO|2027-03-03'), cles(bas.points()).filter(c => /^tendu/.test(c)));
+  V('onglet SEUILS à 14 : 13 postables devient tendu', cles(haut.points()).includes('tendu|ZORRO|2027-03-10'));
+  V('le seuil lu est renvoyé à l\'écran', JSON.stringify(bas.points().seuils) === '{"alerte":12,"confort":14}', bas.points().seuils);
+  const absurde = monde({ seuils: [['SEUIL_PRESENCE_ALERTE', 13, ''], ['SEUIL_PRESENCE_CONFORT', 10, '']] });
+  V('un confort sous l\'alerte est corrigé (alerte + 2)', vm.runInContext('JSON.stringify(seuilsPresence_())', absurde.ctx) === '{"alerte":13,"confort":15}');
+  /* Les autres usages du seuil : une seule source. */
+  const gen = extraireFonction('../gas/generateur_gardes.gs', '_rPresents') + require('fs').readFileSync(require('path').join(__dirname, '..', 'gas', 'generateur_gardes.gs'), 'utf8').match(/const R_PLANCHER\s*=[^\n]*/)[0];
+  V('placement des récups (génération) : seuilsPresence_().alerte', /seuilsPresence_\(\)\.alerte/.test(gen), gen.slice(-160));
+  const ech = require('fs').readFileSync(require('path').join(__dirname, '..', 'gas', 'echanges.gs'), 'utf8');
+  V('placement des récups (échanges) : seuilsPresence_().alerte', /seuilsPresence_\(\)\.alerte/.test(ech));
+  const adm = require('fs').readFileSync(require('path').join(__dirname, '..', 'admin.html'), 'utf8');
+  V('bande de présence de l\'admin : le MAR hors effectif n\'est pas compté', /m\.horsEffectif/.test(adm));
+}
+
+console.log('\n═══ H18 · les 18 h ═══');
+{
+  const b = monde({ cases: [['P05', '2027-03-04', '18'], ['P05', '2027-03-05', 'V'], ['P06', '2027-03-05', '18'], ['P06', '2027-03-06', 'G'], ['P07', '2027-03-12', '18']] });
+  const r = b.points(), c = cles(r);
+  V('18 h la veille de vacances : orange', r.points.some(p => p.cle === 'h18veille|P05|2027-03-04' && p.niv === 'orange'), c.filter(x => /^h18/.test(x)));
+  V('18 h du vendredi avec garde le samedi : rien', !c.includes('h18ven|P06|2027-03-05'));
+  V('18 h du vendredi sans garde le samedi : pour information', r.points.some(p => p.cle === 'h18ven|P07|2027-03-12' && p.niv === 'info'));
+  V('jour ouvré sans 18 h : rouge, pour l\'équipe', r.points.some(p => p.cle === 'sans18|EQUIPE|2027-03-01' && p.niv === 'rouge' && p.init === 'Équipe'));
+  V('jour ouvré avec son 18 h : rien', !c.includes('sans18|EQUIPE|2027-03-04'));
+  V('samedi sans 18 h : rien (pas un jour ouvré)', !c.includes('sans18|EQUIPE|2027-03-06'));
+}
+
+console.log('\n═══ RC · les récupérations ═══');
+{
+  const b = monde({ cases: [
+    ['P08', '2027-03-06', 'G'], ['P08', '2027-03-07', 'RG'], ['P08', '2027-03-02', 'R'], ['P01', '2027-03-02', 'V'], ['P02', '2027-03-02', 'V'], ['P03', '2027-03-02', 'V'],   // R un jour à 11
+    ['P09', '2027-03-13', 'G'], ['P09', '2027-03-14', 'RG'], ['P09', '2027-04-06', 'R'],   // R un jour ordinaire, même en vacances scolaires
+    ['P10', '2027-03-20', 'G'], ['P10', '2027-03-21', 'RG'] ] });                           // samedi sans récup
+  const r = b.points(), pt = cle => r.points.find(p => p.cle === cle);
+  V('récup un jour tendu : orange, avec le compte', pt('rtendu|P08|2027-03-02') && /11 MAR postables/.test(pt('rtendu|P08|2027-03-02').texte), cles(r).filter(x => /^r/.test(x)));
+  V('récup un jour ordinaire : rien, vacances scolaires ou non', !cles(r).some(x => /\|P09\|/.test(x) && /^r/.test(x)));
+  V('samedi tenu sans récup : signalé', pt('recart|P10|2027') && /1 récupération de samedi due/.test(pt('recart|P10|2027').texte), pt('recart|P10|2027'));
+  V('samedi tenu avec sa récup : rien', !pt('recart|P08|2027') && !pt('recart|P09|2027'));
+  V('aucune règle « vacances scolaires » dans les contrôles', !/PERIODES_VAC[\s\S]{0,400}rtendu|vacsc[\s\S]{0,200}ajouter/.test(extraireFonction('../gas/gardes.gs', 'computePointsVerif')));
+}
+
+console.log('\n═══ GA · les gardes ═══');
+{
+  const b = monde({ rea1: [[14, new Date(2027, 3, 5), new Date(2027, 3, 9), 'RE', 'Q1']], cases: [
+    ['P01', '2027-03-09', 'G'], ['P02', '2027-03-09', 'G2'], ['P01', '2027-03-10', 'RG'], ['P02', '2027-03-10', 'RG'],   // nuit complète
+    ['P03', '2027-03-11', 'G'], ['P03', '2027-03-12', '18'],                                                             // pas de repos
+    ['P04', '2027-05-03', 'G'], ['P04', '2027-05-04', 'RG'], ['P04', '2027-05-05', 'G'], ['P04', '2027-05-06', 'RG'],
+    ['P04', '2027-05-07', 'G'], ['P04', '2027-05-08', 'RG'], ['P04', '2027-05-09', 'G'], ['P04', '2027-05-10', 'RG'],   // 4 en 7 jours
+    ['REA', '2027-04-07', 'G'], ['REA', '2027-04-08', 'RG'], ['REA', '2027-04-04', 'G2'], ['REA', '2027-04-05', 'RG'] ] });
+  const r = b.points(), c = cles(r), pt = cle => r.points.find(p => p.cle === cle);
+  V('nuit avec un G et un G2 : rien', !c.includes('nuit|EQUIPE|2027-03-09'));
+  V('nuit sans G2 : rouge', pt('nuit|EQUIPE|2027-03-11') && pt('nuit|EQUIPE|2027-03-11').niv === 'rouge' && /1 G et 0 G2/.test(pt('nuit|EQUIPE|2027-03-11').texte));
+  V('garde suivie d\'un 18 h au lieu du repos : orange', pt('rg|P03|2027-03-11') && /« 18 »/.test(pt('rg|P03|2027-03-11').texte));
+  V('garde suivie de son repos : rien', !c.includes('rg|P01|2027-03-09'));
+  V('4 gardes en 7 jours : orange', pt('densite|P04|2027-05-03') && pt('densite|P04|2027-05-03').niv === 'orange');
+  V('garde le mercredi de sa semaine Réa 1 : rouge', pt('rea1g|REA|2027-04-07') && pt('rea1g|REA|2027-04-07').niv === 'rouge');
+  V('garde le dimanche veille de sa semaine Réa 1 : rouge', pt('rea1g|REA|2027-04-04') && /veille/.test(pt('rea1g|REA|2027-04-04').texte));
+  V('ce qui est en ordre est listé par famille', Array.isArray(r.oks.h18) || Array.isArray(r.oks.tp), Object.keys(r.oks));
+}
+
+console.log('\n═══ CO · indispos et planning concordent ═══');
+{
+  const b = monde({ indispos: [['P05', '2027-06-01', 'VAC'], ['P06', '2027-06-02', 'VAC']], cases: [['P06', '2027-06-02', 'G'], ['P06', '2027-06-03', 'RG']] });
+  const c = cles(b.points());
+  V('vacances aux indispos, case vide au planning : signalé', c.includes('concord|P05|2027-06-01'));
+  V('vacances écrasées par une garde (un don) : normal, rien', !c.includes('concord|P06|2027-06-02'));
+  V('une clé de nouvelle famille est acceptée par « Prévenu »', b.cocher('concord|P05|2027-06-01', true).success === true);
+}
+
 console.log('\n═══ RT · le routeur et l\'écran ═══');
 {
   const ind = require('fs').readFileSync(require('path').join(__dirname, '..', 'gas', 'Indispos.gs'), 'utf8');
   V('getPointsVerif déclarée au routeur, réservée au comité', /"getPointsVerif"\s*:\s*\{\s*role:\s*'admin'\s*,\s*fn:\s*_act_getPointsVerif\s*\}/.test(ind));
   V('marquerPrevenu déclarée au routeur, réservée au comité', /"marquerPrevenu"\s*:\s*\{\s*role:\s*'admin'\s*,\s*fn:\s*_act_marquerPrevenu\s*\}/.test(ind));
   const adm = require('fs').readFileSync(require('path').join(__dirname, '..', 'admin.html'), 'utf8');
-  V('admin : le bandeau vit dans l\'onglet Statuts, sous l\'alerte des récups', /id="recupStatuts"[^\n]*\n[\s\S]{0,600}id="verifStatuts"/.test(adm));
-  V('admin : pastille sur l\'onglet Statuts', /id="tab-statuts"[^\n]*id="pastilleVerif"/.test(adm));
-  V('admin : chargé à l\'ouverture de l\'onglet, pas à l\'ouverture de la page', /renderRecupsStatuts\(\);[^\n]*\n\s*chargerPointsVerif\(\);/.test(adm)
-    && !/async function initDashboard\(\)[\s\S]*?\n\}/.exec(adm)[0].includes('chargerPointsVerif'));
+  V('admin : un onglet Contrôles, avec sa pastille', /id="tab-controles"[^\n]*id="pastilleCtl"/.test(adm) && /id="panel-controles"/.test(adm));
+  V('admin : chargé à l\'ouverture de l\'onglet, pas à l\'ouverture de la page', /name==='controles'\) chargerControles\(/.test(adm)
+    && !/async function initDashboard\(\)[\s\S]*?\n\}/.exec(adm)[0].includes('chargerControles'));
+  V('admin : l\'ancien bandeau de l\'onglet Statuts est retiré', !/verifStatuts|pastilleVerif/.test(adm));
+  V('« Prévenu » accepte les clés de toutes les familles', /\[a-z0-9\]\+\\\|/.test(extraireFonction('../gas/gardes.gs', '_act_marquerPrevenu')));
 }
 
 /* L'écran, exécuté : le vrai admin.html dans un navigateur simulé. */
 (async () => {
-  console.log('\n═══ EC · le bandeau du comité, dessiné ═══');
+  console.log('\n═══ EC · l\'onglet Contrôles, dessiné ═══');
   const { JSDOM, VirtualConsole } = require('jsdom');
   const fs = require('fs'), path = require('path');
   const lire = f => fs.readFileSync(path.join(__dirname, '..', f), 'utf8');
   const vc = new VirtualConsole();
+  const erreurs = []; vc.on('jsdomError', e => erreurs.push(String(e && e.message)));
   const dom = new JSDOM(lire('admin.html'), { runScripts: 'dangerously', virtualConsole: vc, url: 'https://planningmedic.github.io/admin.html', pretendToBeVisual: true,
     beforeParse(w) { w.matchMedia = () => ({ matches: false, addListener() {}, removeListener() {}, addEventListener() {}, removeEventListener() {} });
       w.Element.prototype.scrollIntoView = function () {}; w.scrollTo = () => {};
@@ -229,26 +316,43 @@ console.log('\n═══ RT · le routeur et l\'écran ═══');
   const w = dom.window, D = w.document;
   await new Promise(r => setTimeout(r, 300));
   const appels = [];
-  w.eval(`api = async function(p){ __appels.push(p); return p.action==='marquerPrevenu' ? {success:true, prevenu:{le:'2027-01-02', par:'ADMIN'}} : {success:true, points:[], prevenus:{}}; };`.replace('__appels', 'window.__appels'));
   w.__appels = appels;
-  w.eval(`VERIF = { an: 2027, prevenus: {}, points: [
-    { cle:'rea|REA|2027-04-06', type:'rea', id:'REA', init:'RE', date:'2027-04-06', texte:'Temps partiel posé dans sa semaine Réa 1 (05/04 → 09/04).' },
-    { cle:'tendu|REA|2027-03-02', type:'tendu', id:'REA', init:'RE', date:'2027-03-02', texte:"11 MAR postables (hors CH) s'il est absent." },
-    { cle:'vac|VACX|2027', type:'vac', id:'VACX', init:'VX', date:null, texte:'31 jours de vacances posés.' } ] };
-    renderVerifStatuts();`);
-  const el = D.getElementById('verifStatuts'), past = D.getElementById('pastilleVerif');
-  V('bandeau visible, replié : « 3 points à vérifier · 2 MAR »', el.style.display === 'block' && /3 points à vérifier · 2 MAR/.test(el.textContent) && !/Dr REA/.test(el.textContent), el.textContent.slice(0, 120));
-  V('pastille de l\'onglet : 3', past.style.display !== 'none' && past.textContent === '3', past.textContent);
-  w.eval('verifBasculer()');
-  V('déplié : une carte par MAR, une ligne par point', /Dr REA/.test(el.textContent) && /Dr VACX/.test(el.textContent) && el.querySelectorAll('input[type=checkbox]').length === 3);
-  V('une ligne de vacances porte l\'année à la place d\'une date', /2027/.test(el.textContent));
-  const cb = el.querySelector('input[type=checkbox]');
+  w.__reponse = { success: true, genere: true, seuils: { alerte: 13, confort: 15 }, prevenus: {}, vacsc: [], oks: { gardes: ['Chaque nuit à venir a un G et un G2 (300)'], h18: ['Un 18 h chaque jour ouvré à venir (200)'] }, points: [
+    { cle:'rea|REA|2027-04-06', fam:'rea1', code:'rea', niv:'rouge', id:'REA', init:'RE', date:'2027-04-06', texte:'Temps partiel posé dans sa semaine Réa 1 (05/04 → 09/04).' },
+    { cle:'tendu|ZORRO|2027-03-02', fam:'tp', code:'tendu', niv:'orange', id:'ZORRO', init:'ZO', date:'2027-03-02', texte:"11 MAR postables (hors CH) s'il est absent." },
+    { cle:'tpdem|ZORRO|2027-07-16', fam:'tp', code:'tpdem', niv:'info', id:'ZORRO', init:'ZO', date:'2027-07-16', texte:'Demande de temps partiel en attente de réponse du comité (onglet Équipe).' },
+    { cle:'vac|VACX|2027', fam:'conges', code:'vac', niv:'orange', id:'VACX', init:'VX', date:null, texte:'31 jours de vacances posés en 2027 pour un droit de 30 jours (90 %) : 1 de trop.' },
+    { cle:'rtendu|P08|2027-03-02', fam:'recups', code:'rtendu', niv:'orange', id:'P08', init:'Q8', date:'2027-03-02', texte:'Récupération un jour tendu : 11 MAR postables (hors CH).' } ] };
+  w.eval(`ADMIN_YEAR = 2027; api = async function(p){ window.__appels.push(p); return p.action==='marquerPrevenu' ? {success:true, prevenu:{le:'2027-01-02', par:'ADMIN'}} : window.__reponse; };`);
+  V('rien n\'est demandé au serveur à l\'ouverture de la page', !appels.some(a => a.action === 'getPointsVerif'));
+  w.eval("showTab('controles')");
+  await new Promise(r => setTimeout(r, 80));
+  const el = D.getElementById('ctlContenu'), past = D.getElementById('pastilleCtl');
+  V('ouvrir l\'onglet charge les contrôles de l\'année', appels.filter(a => a.action === 'getPointsVerif' && a.year === 2027).length === 1, appels);
+  V('le total : 4 points à traiter (l\'information n\'est pas comptée), 4 MAR, 1 bloquant', /4\s*points à traiter pour 4 MAR, dont 1 bloquant/.test(el.textContent.replace(/\s+/g, ' ')), el.textContent.slice(0, 200));
+  V('pastille de l\'onglet : 4, rouge car un point bloquant', past.style.display !== 'none' && past.textContent === '4' && /217, 45, 32|#D92D20/i.test(past.style.background), past.style.background);
+  V('la frise Réa 1 porte les initiales', el.querySelector('.bx-rea .bx-frise b') && el.querySelector('.bx-rea .bx-frise b').textContent === 'RE');
+  V('la jauge des congés montre le dépassement', el.querySelector('.bx-vac .bx-j em') && el.querySelector('.bx-vac .bx-j em').textContent === '+1');
+  V('une famille sans point devient une tuile verte avec ce qui est en ordre', el.querySelector('.bx-ok') && /Chaque nuit à venir a un G et un G2/.test(el.textContent));
+  V('la liste : un point par ligne, rangée par mois', el.querySelectorAll('.bx-l').length === 5 && /Mars/.test(el.textContent) && /Sur l'année/.test(el.textContent));
+  V('aucune erreur de script', !erreurs.length, erreurs);
+  w.eval("ctlFam('tp')");
+  V('filtrer une famille : la liste ne garde qu\'elle', D.querySelectorAll('#ctlContenu .bx-l').length === 2);
+  w.eval("ctlFam(null)");
+  const cb = [...D.querySelectorAll('#ctlContenu .bx-l input[type=checkbox]')].find(x => /tendu\|ZORRO/.test(x.getAttribute('onchange')));
   cb.checked = true; cb.dispatchEvent(new w.Event('change'));
   await new Promise(r => setTimeout(r, 50));
-  V('cocher « Prévenu » envoie la clé au serveur', appels.some(a => a.action === 'marquerPrevenu' && a.cle === 'rea|REA|2027-04-06' && a.prevenu === true), appels);
-  V('la ligne affiche la date de la coche', /Prévenu le 02\/01/.test(el.textContent) && /1 déjà prévenu/.test(el.textContent), el.textContent.slice(200, 420));
-  w.eval('VERIF = { an: 2027, points: [], prevenus: {} }; renderVerifStatuts();');
-  V('plus aucun point : bandeau et pastille disparaissent', el.style.display === 'none' && past.style.display === 'none');
+  V('cocher « Prévenu » envoie la clé au serveur', appels.some(a => a.action === 'marquerPrevenu' && a.cle === 'tendu|ZORRO|2027-03-02' && a.prevenu === true), appels.slice(-1));
+  V('la ligne affiche la date de la coche et le total baisse', /Prévenu le 02\/01/.test(D.getElementById('ctlContenu').textContent) && D.getElementById('pastilleCtl').textContent === '3');
+  w.eval("showTab('statuts'); showTab('controles')");
+  await new Promise(r => setTimeout(r, 50));
+  V('revenir sur l\'onglet ne recharge pas', appels.filter(a => a.action === 'getPointsVerif').length === 1);
+  w.__reponse = Object.assign({}, w.__reponse, { points: [] });
+  w.eval("chargerControles(true)");
+  await new Promise(r => setTimeout(r, 80));
+  V('« Relancer » recharge ; plus aucun point : « Tout est en ordre », pastille masquée', /Tout est en ordre/.test(D.getElementById('ctlContenu').textContent) && D.getElementById('pastilleCtl').style.display === 'none');
+  w.eval("ctlOuvrir('REA', '2027-04-06')");
+  V('« Ouvrir » mène à l\'onglet Statuts, sur le MAR et le mois', w.eval("STAT.marId==='REA' && STAT.monthKey==='2027-04' && STAT.view==='mar'") && D.getElementById('panel-statuts').classList.contains('active'));
 
   console.log(`\n  ${ok} ✓  ${ko} ✗`);
   process.exit(ko ? 1 : 0);

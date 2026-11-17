@@ -9,7 +9,7 @@
    (gardes.gs), getJoursFeries (code.gs), dans un classeur simulé d'un an,
    vingt MAR, et les vacances scolaires 2027 (calendrier public).
    Ce qui est éprouvé : les règles de choix d'une date (jamais pendant les
-   vacances scolaires, plancher de quinze présents, deux R au plus par jour,
+   vacances scolaires, plancher du seuil d'alerte (13 postables), deux R au plus par jour,
    trois jours d'écart, jamais sur une case occupée, d'abord un jour qui allonge
    un week-end libre), les trois chemins automatiques (samedi qui change de
    mains, R écrasé par un don, bouton Réparer), la pose manuelle d'un R qui
@@ -94,13 +94,14 @@ console.log('═══ 1. Choix d\'une date : les règles ═══');
   b.poser('BRAVO', '2027-03-19', 'R'); b.poser('CHARLI', '2027-03-19', 'R');
   V('deux R au plus le même jour', b.choisir('ALPHA', '2027-03-13') === '2027-03-22', b.choisir('ALPHA', '2027-03-13'));
   b.poser('BRAVO', '2027-03-19', ''); b.poser('CHARLI', '2027-03-19', '');
-  ['DELTA', 'ECHO', 'FOXTRO', 'GOLF', 'HOTEL'].forEach(id => b.poser(id, '2027-03-19', 'V'));
-  V('plancher : 15 présents avec lui, il en resterait 14 après sa récupération — la date est refusée',
+  /* (17/11/2026) Le plancher est le seuil d'alerte de l'onglet SEUILS (13 postables par défaut). */
+  ['DELTA', 'ECHO', 'FOXTRO', 'GOLF', 'HOTEL', 'INDIA', 'JULIET'].forEach(id => b.poser(id, '2027-03-19', 'V'));
+  V('plancher : 13 présents avec lui, il en resterait 12 après sa récupération — la date est refusée',
     b.choisir('ALPHA', '2027-03-13') === '2027-03-22', b.choisir('ALPHA', '2027-03-13'));
-  b.poser('HOTEL', '2027-03-19', '');
-  V('plancher : 16 présents, il en reste 15 après sa récupération — la date passe',
+  b.poser('JULIET', '2027-03-19', '');
+  V('plancher : 14 présents, il en reste 13 après sa récupération — la date passe',
     b.choisir('ALPHA', '2027-03-13') === '2027-03-19', b.choisir('ALPHA', '2027-03-13'));
-  ['DELTA', 'ECHO', 'FOXTRO', 'GOLF'].forEach(id => b.poser(id, '2027-03-19', ''));
+  ['DELTA', 'ECHO', 'FOXTRO', 'GOLF', 'HOTEL', 'INDIA'].forEach(id => b.poser(id, '2027-03-19', ''));
   b.poser('ALPHA', '2027-03-22', 'R');
   V('trois jours d\'écart entre deux R du même MAR (R le 22 : ni le 19, ni le 25)',
     b.choisir('ALPHA', '2027-03-13') === '2027-03-26', b.choisir('ALPHA', '2027-03-13'));

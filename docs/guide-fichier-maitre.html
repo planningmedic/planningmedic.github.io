@@ -346,7 +346,7 @@ Les 17 premières colonnes sont réécrites par le formulaire d'admin ; les suiv
 <tr><td>P</td><td>SOUHAIT_PLAFOND</td><td>Profil « souhait garanti ». <strong>Non coché, le certificat d'équité sort le MAR en rouge</strong> — le code ne peut pas le reconnaître.</td></tr>
 <tr><td>Q</td><td>TP_JOURS_FIXES</td><td>Jours fixes non travaillés</td></tr>
 <tr><td>≥ R</td><td>LIBERAL · RPPS · PRENOM</td><td>Lues <strong>par leur titre</strong>. <span class="tag">LIBERAL</span> porte trois métiers : membre du groupement, visibilité de la tuile, présence sur le relevé.</td></tr>
-<tr><td>≥ R</td><td>HORS_EFFECTIF</td><td><span class="tag">O</span> = ce MAR n'est <strong>jamais compté parmi les présents</strong> : ni à la pose des temps partiels, ni dans les points à vérifier de l'onglet Statuts (décision du 17/11/2026 : le chef de service reste en joker). Lue par son titre ; <strong>colonne absente ou vide = tout le monde est compté</strong>.</td></tr>
+<tr><td>≥ R</td><td>HORS_EFFECTIF</td><td><span class="tag">O</span> = ce MAR n'est <strong>jamais compté parmi les présents</strong> : ni à la pose des temps partiels, ni dans l'onglet Contrôles du comité, ni pour placer les récupérations, ni dans la bande de présence (décision du 17/11/2026 : le chef de service reste en joker). Lue par son titre ; <strong>colonne absente ou vide = tout le monde est compté</strong>.</td></tr>
 <tr><td>≥ R</td><td>NOTIF</td><td>Désabonnement des mails de changement de planning. <span class="tag">N</span> = ce MAR n'en reçoit aucun ; toute autre valeur, ou <strong>colonne absente, = il en reçoit</strong>. Lue par son titre, jamais réécrite par le formulaire.</td></tr>
 </table>
 
@@ -421,8 +421,8 @@ l'onglet qui porte les codes d'accès. Aucune valeur sensible ici, jamais de cod
 
 <table>
 <tr><th>Clé</th><th>Rôle</th><th>Défaut</th></tr>
-<tr><td>SEUIL_PRESENCE_ALERTE</td><td>Bande de présence de l'onglet Planning : au-dessous de ce nombre de MAR présents, la journée vire à l'orange puis au rouge.</td><td>13</td></tr>
-<tr><td>SEUIL_PRESENCE_CONFORT</td><td>Bande de présence : à partir de ce nombre de présents, la journée est verte.</td><td>17</td></tr>
+<tr><td>SEUIL_PRESENCE_ALERTE</td><td>Le seuil du <b>jour tendu</b>, le même partout : au-dessous de ce nombre de MAR postables (sans repos de garde, sans MAR hors effectif), un temps partiel est refusé à la pose, l'onglet Contrôles signale le jour, aucune récupération n'y est placée, et la bande de présence vire à l'orange puis au rouge.</td><td>13</td></tr>
+<tr><td>SEUIL_PRESENCE_CONFORT</td><td>À partir de ce nombre de postables, la journée est verte et un temps partiel est accordé à la pose. Entre les deux seuils, le temps partiel passe par une demande au comité.</td><td>15</td></tr>
 </table>
 
 <div class="callout rule">
@@ -787,7 +787,7 @@ absence de ce registre qui chevauche l'année créée est rejouée automatiqueme
 
 <section id="verif-prevenus">
 <h2><span class="n">4.5</span>VERIF_PREVENUS</h2>
-<p>Les cases <strong>« Prévenu »</strong> des points à vérifier de l'onglet Statuts (17/11/2026). Il n'existe
+<p>Les cases <strong>« Prévenu »</strong> de l'onglet Contrôles du comité (17/11/2026). Il n'existe
 pas tant qu'aucune case n'a été cochée. Les points eux-mêmes ne sont écrits nulle part : ils se
 recalculent à chaque ouverture de l'onglet, à partir du planning.</p>
 <table class="sig">

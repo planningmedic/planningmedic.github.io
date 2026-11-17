@@ -4,7 +4,7 @@
    quelles : aucune ligne de logique modifiée, seulement déplacée. Le routeur et
    ses aides (checkCode, _deny, _error, doGet/doPost) restent dans Indispos.gs.
    Un seul espace global dans Apps Script : rien à importer. */
-const GAS_VERSION_EQUIPE = '2026-11-11.1';   // (11/11/2026) action annulerEchange · (02/11/2026) commentaire : identifiants d'exemple fictifs · (01/11/2026) outils de maintenance réservés à la tuile `maintenance` · (27/10/2026) ordreMc renvoyé au login et au bootstrap
+const GAS_VERSION_EQUIPE = '2026-11-17.1';   // (17/11/2026) getMedecins : champ horsEffectif (colonne HORS_EFFECTIF) pour la bande de présence · (11/11/2026) action annulerEchange · (02/11/2026) commentaire : identifiants d'exemple fictifs · (01/11/2026) outils de maintenance réservés à la tuile `maintenance` · (27/10/2026) ordreMc renvoyé au login et au bootstrap
 
 // ── Sonde : les interrupteurs des mails sont-ils cohérents ? ──
 function _sondeInterrupteursMails_(check, R, info) {
@@ -276,7 +276,8 @@ function _buildMedecins_() {
       dateDebut:toDate(data[r][COL_MED.DATE_DEBUT]), dateFin:toDate(data[r][COL_MED.DATE_FIN]),
       noGarde:isO(data[r][COL_MED.NO_GARDE]), only18:isO(data[r][COL_MED.ONLY_18]), noWeekend:isO(data[r][COL_MED.NO_WEEKEND]),
       rythme2sur2:isO(data[r][COL_MED.RYTHME_2_2]), souhaitPlafond:isO(data[r][COL_MED.SOUHAIT_PLAFOND]),
-      tpJoursFixes:String(data[r][COL_MED.TP_JOURS]||'').trim().toUpperCase()});
+      tpJoursFixes:String(data[r][COL_MED.TP_JOURS]||'').trim().toUpperCase(),
+      horsEffectif:(function(){ try { return getMedecinFlags().horsEffectif.has(String(data[r][COL_MED.ID]).trim()); } catch (e) { return false; } })()});   // (17/11/2026) jamais compté dans l'effectif
   }
   return { medecins };
 }

@@ -4,7 +4,7 @@
    quelles : aucune ligne de logique modifiée, seulement déplacée. Le routeur et
    ses aides (checkCode, _deny, _error, doGet/doPost) restent dans Indispos.gs.
    Un seul espace global dans Apps Script : rien à importer. */
-const GAS_VERSION_GARDES = '2026-11-17.1';   // (17/11/2026) POINTS À VÉRIFIER (onglet Statuts du comité) : semaine Réa 1 occupée, vacances au-delà du droit, temps partiel un jour tendu — recalculés à chaque lecture (getPointsVerif) ; case « Prévenu » gardée dans l'onglet VERIF_PREVENUS (marquerPrevenu) · (12/11/2026) statistiques : V (vendredis), WE = samedis + dimanches et sa part transmis à l'écran d'équité (champsWeStats_) · (12/11/2026) plus aucun nom de personne dans le code : l'exclusion d'une ligne MEDECINS par son nom (rotation des fêtes) est retirée, aucune ligne ne le portait · (12/11/2026) don d'un 18 h (don18Jour) : le receveur doit être libre ce jour-là, rien n'est écrasé · (11/11/2026) échange de gardes refusé : le motif nomme le MAR, le jour et la raison (garde, repos de garde, 18 h, récupération) au lieu de « un des médecins a déjà une garde » · (11/11/2026) don et échange : une absence (V, VM, VA, F, TP, CL, CTP, CP, A) confirmée par le MAR est écrasée par la garde et son repos (mod.ecraserAbsences), tracée dans l'historique · (11/11/2026) applyModification du comité : don et échange passent par appliquerGesteComite_ · (11/11/2026) échange de gardes : le repos d'arrivée n'écrase plus une absence, pas de garde la veille ni le lendemain · (11/11/2026) échange de deux 18 h (echange18Jours) · (11/11/2026) le comité pose un R (statut « R ») et le lien samedi → R se recolle · (10/11/2026) lotRolesVerifier / lotRolesAppliquer (inversion réa / mater par lot, depuis l'éditeur) · (10/11/2026) un échange, un don ou une modification republie et prévient (MAR et paie) pour l'année DE LA GARDE, plus l'année active · (10/11/2026) le suivi des gestes écrit dans son propre onglet TRACES, plus jamais dans HISTORIQUE (archive des gardes par année) · (10/11/2026) onglet de suivi (TP, modifications, échanges, lot de 18 h), jamais effacé · (10/11/2026) lot18hVerifier / lot18hAppliquer (réattribution de 18 h par lot, depuis l'éditeur) · (27/10/2026) VM/VA : bloquent un don/échange, comptent 0,5 jour au reliquat · (18/10/2026) action getPlanningPaie (vue des secrétaires de paie)
+const GAS_VERSION_GARDES = '2026-11-17.2';   // (17/11/2026) .2 : ONGLET CONTRÔLES — six familles (Réa 1, temps partiel, congés, 18 h, récupérations, gardes), points rouge / orange / info et liste de ce qui est en ordre ; jour tendu = sous le seuil d'alerte de l'onglet SEUILS ; une récup en vacances scolaires n'est plus un point · (17/11/2026) POINTS À VÉRIFIER (onglet Statuts du comité) : semaine Réa 1 occupée, vacances au-delà du droit, temps partiel un jour tendu — recalculés à chaque lecture (getPointsVerif) ; case « Prévenu » gardée dans l'onglet VERIF_PREVENUS (marquerPrevenu) · (12/11/2026) statistiques : V (vendredis), WE = samedis + dimanches et sa part transmis à l'écran d'équité (champsWeStats_) · (12/11/2026) plus aucun nom de personne dans le code : l'exclusion d'une ligne MEDECINS par son nom (rotation des fêtes) est retirée, aucune ligne ne le portait · (12/11/2026) don d'un 18 h (don18Jour) : le receveur doit être libre ce jour-là, rien n'est écrasé · (11/11/2026) échange de gardes refusé : le motif nomme le MAR, le jour et la raison (garde, repos de garde, 18 h, récupération) au lieu de « un des médecins a déjà une garde » · (11/11/2026) don et échange : une absence (V, VM, VA, F, TP, CL, CTP, CP, A) confirmée par le MAR est écrasée par la garde et son repos (mod.ecraserAbsences), tracée dans l'historique · (11/11/2026) applyModification du comité : don et échange passent par appliquerGesteComite_ · (11/11/2026) échange de gardes : le repos d'arrivée n'écrase plus une absence, pas de garde la veille ni le lendemain · (11/11/2026) échange de deux 18 h (echange18Jours) · (11/11/2026) le comité pose un R (statut « R ») et le lien samedi → R se recolle · (10/11/2026) lotRolesVerifier / lotRolesAppliquer (inversion réa / mater par lot, depuis l'éditeur) · (10/11/2026) un échange, un don ou une modification republie et prévient (MAR et paie) pour l'année DE LA GARDE, plus l'année active · (10/11/2026) le suivi des gestes écrit dans son propre onglet TRACES, plus jamais dans HISTORIQUE (archive des gardes par année) · (10/11/2026) onglet de suivi (TP, modifications, échanges, lot de 18 h), jamais effacé · (10/11/2026) lot18hVerifier / lot18hAppliquer (réattribution de 18 h par lot, depuis l'éditeur) · (27/10/2026) VM/VA : bloquent un don/échange, comptent 0,5 jour au reliquat · (18/10/2026) action getPlanningPaie (vue des secrétaires de paie)
 
 // ── Sonde : les positions de STATS que code.gs lit à l'aveugle ──
 function _sondeStatsEntetes_(check, R, annee) {
@@ -1111,26 +1111,37 @@ function _act_getReliquats(R) {
     .setMimeType(ContentService.MimeType.JSON);
 }
 
-/* ══ (17/11/2026) POINTS À VÉRIFIER — onglet Statuts du comité ══════════════════
-   Ce que le comité doit signaler aux MAR, CALCULÉ à chaque lecture depuis le
+/* ══ (17/11/2026) CONTRÔLES DU PLANNING — onglet Contrôles du comité ════════════
+   Tout ce que le comité doit voir ou signaler, CALCULÉ à chaque lecture depuis le
    planning : un point disparaît de lui-même dès que la case est corrigée, sans
-   liste à tenir. Trois contrôles, décidés par le responsable le 17/11/2026 :
-     · semaine Réa 1 : du lundi au vendredi de SA semaine, un TP, une formation,
-       des vacances, un congé, une absence ou une récupération — et une demande
-       de TP en attente dans cette semaine ;
-     · vacances au-delà du droit de l'année (quota de CONFIG_CONGES) — jours
-       ouvrés, jours fixes de temps partiel exclus, 24 et 31/12 à 0,5 ;
-     · temps partiel un jour tendu : s'il est absent, il reste 12 MAR postables
-       ou moins — MÊME compte et MÊME seuil que le refus à la pose (_poserTp_ :
-       « reste ≤ 12 → refusé »), donc un TP accordé aujourd'hui n'y tombe jamais.
-   Seuls les jours à venir comptent : un jour passé n'est plus à corriger.
-   La case « Prévenu » (quand) vit dans l'onglet VERIF_PREVENUS ; elle ne
+   liste à tenir. Seuls les jours à venir comptent : un jour passé ne se corrige plus.
+   Six familles, décidées par le responsable le 17/11/2026 :
+     · rea1   — semaine Réa 1 : absence du lundi au vendredi, demande de TP en
+                attente, garde du dimanche au jeudi ;
+     · tp     — temps partiel un jour TENDU (sous le seuil d'alerte de l'onglet
+                SEUILS, compté comme à la pose : _tpMondePresence_), TP un
+                week-end ou un férié, demandes en attente (pour information) ;
+     · conges — vacances au-delà du droit de l'année (jours ouvrés, jours fixes de
+                TP exclus, 24 et 31/12 à 0,5), écart indispos ↔ planning, code
+                hors période de contrat ;
+     · h18    — jour ouvré sans 18 h, 18 h la veille de vacances (même règle que
+                le calcul des gardes : lendemain en V ou VM), 18 h du vendredi
+                sans garde le samedi (pour information) ;
+     · recups — récupération un jour tendu (une récup en vacances scolaires n'est
+                PAS un souci si l'effectif tient — décision du 17/11/2026),
+                samedis tenus sans récup ou récups sans samedi ;
+     · gardes — nuit sans G ou sans G2, garde sans repos le lendemain, 4 gardes en
+                7 jours, garde sur une indispo (pour information : souvent un don).
+   Chaque point : { cle, fam, code, niv, id, init, date, texte }. niv = rouge
+   (bloquant) · orange (à vérifier) · info. `oks` : ce qui a été contrôlé et est
+   en ordre, famille par famille. La case « Prévenu » (onglet VERIF_PREVENUS) ne
    change rien au calcul. Aucun nom de personne ici : tout vient du classeur. */
-const VERIF_PLANCHER_POSTABLES = 12;      // ≤ 12 postables s'il est absent = jour tendu (seuil du refus à la pose)
 const VERIF_ONGLET = 'VERIF_PREVENUS';
 const VERIF_ENTETE = ['CLE', 'LE', 'PAR'];
+const VERIF_EQUIPE = 'EQUIPE';            // « id » d'un point qui ne concerne personne en particulier (une nuit sans G…)
 const VERIF_LIB_REA1 = { TP: 'Temps partiel posé', F: 'Formation posée', V: 'Vacances posées', VM: 'Demi-journée de vacances posée',
   VA: 'Demi-journée de vacances posée', CL: 'Congé posé', A: 'Absence posée', R: 'Récupération de samedi posée' };
+const VERIF_INDISPOS_GARDES = { VAC: 'V', FORM: 'F', CL: 'CL', A: 'A', VA: 'VA', VM: 'VM' };
 
 function _verifPrevenusSheet_(creer) {
   const ss = SpreadsheetApp.getActiveSpreadsheet();
@@ -1153,18 +1164,27 @@ function _verifPrevenus_() {
   return out;
 }
 function _verifJjMm_(ds) { const p = String(ds).split('-'); return p[2] + '/' + p[1]; }
+function _verifDecale_(ds, n) {
+  const d = new Date(ds + 'T12:00:00'); d.setDate(d.getDate() + n);
+  return d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0') + '-' + String(d.getDate()).padStart(2, '0');
+}
 
 function computePointsVerif(year) {
   const ss = SpreadsheetApp.getActiveSpreadsheet();
   const sh = ss.getSheetByName('GARDES_' + year);
-  if (!sh) return { success: true, year: year, genere: false, points: [], prevenus: {} };
+  if (!sh) return { success: true, year: year, genere: false, points: [], oks: {}, prevenus: {} };
   const tz = Session.getScriptTimeZone();
   const aujourdHui = Utilities.formatDate(new Date(), tz, 'yyyy-MM-dd');
+  const S = seuilsPresence_();
   const jf = getJoursFeries(year), jf2 = getJoursFeries(year + 1);
-  const ouvre = ds => { const d = new Date(ds + 'T12:00:00').getDay(); return d !== 0 && d !== 6 && !jf.has(ds) && !jf2.has(ds); };
+  const ferie = ds => jf.has(ds) || jf2.has(ds);
+  const dow = ds => new Date(ds + 'T12:00:00').getDay();
+  const ouvre = ds => { const d = dow(ds); return d !== 0 && d !== 6 && !ferie(ds); };
+
+  /* La grille du planning, lue une fois */
   const data = sh.getDataRange().getValues();
-  const d2c = buildDateToCol(data, year), colDate = [];
-  Object.keys(d2c).forEach(ds => { colDate[d2c[ds]] = ds; });
+  const d2c = buildDateToCol(data, year), dates = Object.keys(d2c).sort();
+  const colDate = []; dates.forEach(ds => { colDate[d2c[ds]] = ds; });
   const grille = {};
   for (let r = 3; r < data.length; r++) {
     const id = String(data[r][0]).trim(); if (!id) continue;
@@ -1175,6 +1195,7 @@ function computePointsVerif(year) {
       if (v) g[ds] = v;
     }
   }
+  const code = (id, ds) => (grille[id] || {})[ds] || '';
   const FLAGS = getMedecinFlags();
   const med = _medecinsRows_(), info = {};
   for (let r = 1; r < med.length; r++) {
@@ -1183,67 +1204,192 @@ function computePointsVerif(year) {
                  actif: String(med[r][COL_MED.ACTIF]).trim().toUpperCase() === 'O',
                  quotite: Number(med[r][COL_MED.QUOTITE]) || 100 };
   }
-  const horsInit = Object.keys(info).filter(id => FLAGS.horsEffectif && FLAGS.horsEffectif.has(id) && info[id].actif).map(id => info[id].init);
+  const actifs = Object.keys(info).filter(id => info[id].actif && grille[id]);
+  const horsInit = actifs.filter(id => FLAGS.horsEffectif && FLAGS.horsEffectif.has(id)).map(id => info[id].init);
   const horsTxt = horsInit.length ? ' (hors ' + horsInit.join(', ') + ')' : '';
-  const points = [];
-  const ajouter = (type, id, date, texte) => points.push({
-    cle: type + '|' + id + '|' + (date || year), type: type, id: id, init: (info[id] || {}).init || id, date: date || null, texte: texte });
+  const aVenir = dates.filter(ds => ds >= aujourdHui);
 
-  /* 1 · SEMAINE RÉA 1 (onglet REA1_{year}, lu par la même fonction que les échanges) */
+  const points = [], vus = {}, oks = {};
+  const ajouter = (fam, cod, niv, id, date, texte) => {
+    const cle = cod + '|' + id + '|' + (date || year);
+    if (vus[cle]) return; vus[cle] = 1;
+    points.push({ cle: cle, fam: fam, code: cod, niv: niv, id: id,
+                  init: id === VERIF_EQUIPE ? 'Équipe' : ((info[id] || {}).init || id), date: date || null, texte: texte });
+  };
+  const nb = cod => points.filter(p => p.code === cod).length;
+  const ok = (fam, cods, texte) => { if (!cods.some(c => nb(c))) (oks[fam] = oks[fam] || []).push(texte); };
+  const semaine = ds => { const lun = _verifDecale_(ds, -((dow(ds) + 6) % 7));
+    return '(' + _verifJjMm_(lun) + ' → ' + _verifJjMm_(_verifDecale_(lun, 4)) + ')'; };
+
+  /* ── RÉA 1 ── (onglet REA1_{year}, lu par la même fonction que les échanges) */
   const rea1 = (typeof _rea1Jours_ === 'function') ? _rea1Jours_(year) : {};
-  const semaine = ds => { const lun = _recupsDecale_(ds, -((_recupsDow_(ds) + 6) % 7));
-    return '(' + _verifJjMm_(lun) + ' → ' + _verifJjMm_(_recupsDecale_(lun, 4)) + ')'; };
   Object.keys(rea1).forEach(id => {
     Object.keys(rea1[id]).sort().forEach(ds => {
       if (ds < aujourdHui) return;
-      const lib = VERIF_LIB_REA1[(grille[id] || {})[ds]];
-      if (lib) ajouter('rea', id, ds, lib + ' dans sa semaine Réa 1 ' + semaine(ds) + '.');
+      const lib = VERIF_LIB_REA1[code(id, ds)];
+      if (lib) ajouter('rea1', 'rea', 'rouge', id, ds, lib + ' dans sa semaine Réa 1 ' + semaine(ds) + '.');
+      /* garde du dimanche (veille) au jeudi : bloquante entre MAR depuis le 16/11 */
+      if (dow(ds) >= 1 && dow(ds) <= 4) {
+        const c = code(id, ds); if (c === 'G' || c === 'G2') ajouter('rea1', 'rea1g', 'rouge', id, ds, 'De garde dans sa semaine Réa 1 ' + semaine(ds) + '.');
+      }
+      if (dow(ds) === 1) { const dim = _verifDecale_(ds, -1), c = code(id, dim);
+        if (dim >= aujourdHui && (c === 'G' || c === 'G2')) ajouter('rea1', 'rea1g', 'rouge', id, dim, 'De garde la veille de sa semaine Réa 1 ' + semaine(ds) + '.'); }
     });
   });
   try {
     _tpDemandes_(year).forEach(x => {
-      if (x.date < aujourdHui || !(rea1[x.mar] || {})[x.date]) return;
-      ajouter('rea', x.mar, x.date, 'Demande de temps partiel en attente dans sa semaine Réa 1 ' + semaine(x.date) + '.');
+      if (x.date < aujourdHui) return;
+      if ((rea1[x.mar] || {})[x.date]) ajouter('rea1', 'rea', 'rouge', x.mar, x.date, 'Demande de temps partiel en attente dans sa semaine Réa 1 ' + semaine(x.date) + '.');
+      else ajouter('tp', 'tpdem', 'info', x.mar, x.date, 'Demande de temps partiel en attente de réponse du comité (onglet Équipe).');
     });
   } catch (e) {}
+  ok('rea1', ['rea'], 'Aucune absence posée dans une semaine Réa 1');
+  ok('rea1', ['rea1g'], 'Aucune garde du dimanche au jeudi d\'une semaine Réa 1');
 
-  /* 2 · VACANCES AU-DELÀ DU DROIT DE L'ANNÉE */
-  Object.keys(info).forEach(id => {
-    if (!info[id].actif || !grille[id]) return;
+  /* ── L'EFFECTIF : le compte de la pose des TP, tel quel ── */
+  const M = _tpMondePresence_(year);
+
+  /* ── TEMPS PARTIEL ── */
+  Object.keys(M.enTp).forEach(id => {
+    Object.keys(M.enTp[id]).sort().forEach(ds => {
+      if (ds < aujourdHui) return;
+      if (!ouvre(ds)) { ajouter('tp', 'tpwe', 'orange', id, ds, 'Temps partiel posé un week-end ou un jour férié.'); return; }
+      const n = M.presents(ds);                  // le MAR est déjà compté absent : c'est « s'il est absent »
+      if (n < S.alerte) ajouter('tp', 'tendu', 'orange', id, ds, n + ' MAR postables' + horsTxt + " s'il est absent.");
+    });
+  });
+  ok('tp', ['tendu'], 'Aucun temps partiel un jour tendu (moins de ' + S.alerte + ' postables)');
+  ok('tp', ['tpwe'], 'Aucun temps partiel un week-end ou un férié');
+
+  /* ── CONGÉS ── */
+  actifs.forEach(id => {
     const fixes = FLAGS.tpJoursFixes[id];
     let pose = 0;
     Object.keys(grille[id]).forEach(ds => {
       if (Number(ds.slice(0, 4)) !== year || !ouvre(ds)) return;
-      if (fixes && fixes.has(new Date(ds + 'T12:00:00').getDay())) return;   // jour fixe de temps partiel : pas un jour travaillé
-      const c = grille[id][ds];
-      const demiFerie = /-12-(24|31)$/.test(ds);                            // après-midi férié : la journée ne compte que 0,5
+      if (fixes && fixes.has(dow(ds))) return;   // jour fixe de temps partiel : pas un jour travaillé
+      const c = grille[id][ds], demiFerie = /-12-(24|31)$/.test(ds);
       if (c === 'V') pose += demiFerie ? 0.5 : 1;
       else if (c === 'VM' || c === 'VA') pose += 0.5;
     });
     const droit = getQuotasConges(info[id].quotite).vac;
     if (pose > droit) {
       const f = x => String(x).replace('.', ',');
-      ajouter('vac', id, null, f(pose) + ' jours de vacances posés en ' + year + ' pour un droit de ' + f(droit)
+      ajouter('conges', 'vac', 'orange', id, null, f(pose) + ' jours de vacances posés en ' + year + ' pour un droit de ' + f(droit)
         + ' jours (' + info[id].quotite + ' %) : ' + f(pose - droit) + ' de trop.');
     }
   });
+  /* Indispos ↔ planning : une absence d'un côté seulement (le planning qui porte
+     une garde ou son repos à la place est normal : un don sur vacances l'écrase). */
+  const ind = ss.getSheetByName('INDISPOS_' + year), indispo = {};
+  if (ind) {
+    const di = ind.getDataRange().getValues(), dI = reconstruireDatesHeaders(di, year);
+    for (let r = 3; r < di.length; r++) {
+      const id = String(di[r][0]).trim(); if (!id || !grille[id]) continue;
+      const m = indispo[id] = {};
+      dI.forEach((ds, i) => { if (ds) { const v = String(di[r][i + 1] == null ? '' : di[r][i + 1]).trim().toUpperCase(); if (v) m[ds] = v; } });
+    }
+    actifs.forEach(id => {
+      if (!indispo[id]) return;
+      aVenir.forEach(ds => {
+        const iv = indispo[id][ds] || '', gv = code(id, ds), attendu = VERIF_INDISPOS_GARDES[iv];
+        if (['G', 'G2', 'RG', '18'].indexOf(gv) > -1) return;
+        if (attendu && gv !== attendu) ajouter('conges', 'concord', 'orange', id, ds, 'Indispos : « ' + iv + ' », planning : « ' + (gv || 'vide') + ' ».');
+        else if (!attendu && ['V', 'F', 'CL', 'VA', 'VM'].indexOf(gv) > -1) ajouter('conges', 'concord', 'orange', id, ds, 'Planning : « ' + gv + ' », absent des indispos.');
+      });
+    });
+  }
+  actifs.forEach(id => {
+    const dd = FLAGS.dateDebut[id], df = FLAGS.dateFin[id];
+    if (!dd && !df) return;
+    aVenir.forEach(ds => { const c = code(id, ds);
+      if (c && ((dd && ds < dd) || (df && ds >= df))) ajouter('conges', 'contrat', 'orange', id, ds, 'Code « ' + c + ' » hors de sa période de contrat.'); });
+  });
+  ok('conges', ['vac'], 'Personne au-delà de son droit de vacances');
+  ok('conges', ['concord'], 'Indispos et planning concordent');
+  ok('conges', ['contrat'], 'Aucun code hors période de contrat');
 
-  /* 3 · TEMPS PARTIEL UN JOUR TENDU — l'effectif de la pose, tel quel */
-  const M = _tpMondePresence_(year);
-  Object.keys(M.enTp).forEach(id => {
-    Object.keys(M.enTp[id]).sort().forEach(ds => {
-      if (ds < aujourdHui || !ouvre(ds)) return;
-      const n = M.presents(ds);                  // le MAR est déjà compté absent : c'est « s'il est absent »
-      if (n <= VERIF_PLANCHER_POSTABLES) ajouter('tendu', id, ds, n + ' MAR postables' + horsTxt + " s'il est absent.");
+  /* ── 18 H ── */
+  let ouvresAVenir = 0;
+  aVenir.forEach(ds => {
+    if (!ouvre(ds)) return;
+    ouvresAVenir++;
+    const q = actifs.filter(id => code(id, ds) === '18');
+    if (!q.length) ajouter('h18', 'sans18', 'rouge', VERIF_EQUIPE, ds, 'Aucun 18 h ce jour ouvré.');
+    q.forEach(id => {
+      const dem = code(id, _verifDecale_(ds, 1));
+      if (dem === 'V' || dem === 'VM') ajouter('h18', 'h18veille', 'orange', id, ds, '18 h la veille de ses vacances (' + (dem === 'VM' ? 'demi-journée ' : '') + 'le lendemain).');
+      if (dow(ds) === 5) { const sam = code(id, _verifDecale_(ds, 1));
+        if (sam !== 'G' && sam !== 'G2') ajouter('h18', 'h18ven', 'info', id, ds, '18 h du vendredi sans être de garde le samedi.'); }
     });
   });
+  ok('h18', ['sans18'], 'Un 18 h chaque jour ouvré à venir (' + ouvresAVenir + ')');
+  ok('h18', ['h18veille'], 'Aucun 18 h la veille de vacances');
 
-  const ORDRE = { rea: 0, vac: 1, tendu: 2 };
-  points.sort((a, b) => (a.id < b.id ? -1 : a.id > b.id ? 1 : 0) || (ORDRE[a.type] - ORDRE[b.type]) || String(a.date || '').localeCompare(String(b.date || '')));
+  /* ── RÉCUPÉRATIONS ── */
+  let nbR = 0;
+  Object.keys(M.enRepos).forEach(id => {
+    Object.keys(M.enRepos[id]).forEach(ds => {
+      if (M.enRepos[id][ds] !== 'R') return;
+      nbR++;
+      if (ds < aujourdHui || !ouvre(ds)) return;
+      const n = M.presents(ds);                  // la récup est déjà comptée absente
+      if (n < S.alerte) ajouter('recups', 'rtendu', 'orange', id, ds, 'Récupération un jour tendu : ' + n + ' MAR postables' + horsTxt + '.');
+    });
+  });
+  actifs.forEach(id => {
+    let sam = 0, r = 0;
+    Object.keys(grille[id]).forEach(ds => { const c = grille[id][ds];
+      if (dow(ds) === 6 && (c === 'G' || c === 'G2')) sam++; if (c === 'R') r++; });
+    if (sam !== r) ajouter('recups', 'recart', 'orange', id, null, sam > r
+      ? _pl_(sam - r, 'récupération de samedi due', 'récupérations de samedi dues') + ' (' + sam + ' samedis tenus, ' + r + ' posées).'
+      : _pl_(r - sam, 'récupération de samedi en trop', 'récupérations de samedi en trop') + ' (' + sam + ' samedis tenus, ' + r + ' posées).');
+  });
+  ok('recups', ['recart'], 'Chaque samedi tenu a sa récup (' + nbR + ')');
+  ok('recups', ['rtendu'], 'Aucune récup un jour tendu');
+
+  /* ── GARDES ── */
+  let nuits = 0;
+  aVenir.forEach(ds => {
+    nuits++;
+    const g = actifs.filter(id => code(id, ds) === 'G'), g2 = actifs.filter(id => code(id, ds) === 'G2');
+    if (g.length !== 1 || g2.length !== 1) ajouter('gardes', 'nuit', 'rouge', VERIF_EQUIPE, ds, g.length + ' G et ' + g2.length + ' G2 cette nuit-là.');
+    g.concat(g2).forEach(id => {
+      const dem = _verifDecale_(ds, 1), c = code(id, dem);
+      if (dem in d2c && c !== 'RG') ajouter('gardes', 'rg', 'orange', id, ds, 'De garde, mais pas de repos le lendemain (« ' + (c || 'vide') + ' »).');
+      if ((indispo[id] || {})[ds] === 'INDISPO') ajouter('gardes', 'indispo', 'info', id, ds, 'De garde un jour posé en indispo (souvent un don accepté).');
+    });
+  });
+  actifs.forEach(id => {
+    const gd = dates.filter(ds => { const c = code(id, ds); return c === 'G' || c === 'G2'; });
+    gd.forEach((ds, k) => {
+      if (ds < aujourdHui) return;
+      const fin = _verifDecale_(ds, 6), n = gd.slice(k).filter(x => x <= fin).length;
+      if (n >= 4) ajouter('gardes', 'densite', 'orange', id, ds, n + ' gardes en 7 jours à partir de ce jour.');
+    });
+  });
+  ok('gardes', ['nuit'], 'Chaque nuit à venir a un G et un G2 (' + nuits + ')');
+  ok('gardes', ['rg'], 'Chaque garde est suivie de son repos');
+  ok('gardes', ['densite'], 'Jamais 4 gardes en 7 jours');
+  ok('gardes', ['indispo'], 'Aucune garde posée sur une indispo');
+
+  const RANG = { rouge: 0, orange: 1, info: 2 };
+  points.sort((a, b) => String(a.date || '0').localeCompare(String(b.date || '0')) || (RANG[a.niv] - RANG[b.niv]) || (a.id < b.id ? -1 : a.id > b.id ? 1 : 0));
   const tous = _verifPrevenus_(), prevenus = {};
   points.forEach(p => { if (tous[p.cle]) prevenus[p.cle] = tous[p.cle]; });   // un point corrigé emporte sa coche
-  return { success: true, year: year, genere: true, points: points, prevenus: prevenus };
+  /* Les vacances scolaires, pour le dessin de l'année (onglet PERIODES_VAC) */
+  const vacsc = [];
+  try {
+    const pv = ss.getSheetByName('PERIODES_VAC');
+    if (pv) pv.getDataRange().getValues().slice(1).forEach(l => {
+      const f = v => v instanceof Date ? Utilities.formatDate(v, tz, 'yyyy-MM-dd') : String(v || '').slice(0, 10);
+      const a = f(l[1]), b = f(l[2]);
+      if (/^\d{4}-\d{2}-\d{2}$/.test(a) && /^\d{4}-\d{2}-\d{2}$/.test(b)) vacsc.push([a, b]);
+    });
+  } catch (e) {}
+  return { success: true, year: year, genere: true, seuils: S, points: points, oks: oks, prevenus: prevenus, vacsc: vacsc };
 }
+function _pl_(n, s, p) { return n + ' ' + (n > 1 ? p : s); }
 
 /* ── action "getPointsVerif" ── */
 function _act_getPointsVerif(R) {
@@ -1259,7 +1405,7 @@ function _act_marquerPrevenu(R) {
   const { e, payload, action, code, user } = R;
   if (user.role !== 'admin') return _deny();
   const cle = String(payload.cle || '').trim();
-  if (!/^(rea|vac|tendu)\|[^|]+\|[0-9-]+$/.test(cle)) return _error('Point inconnu');
+  if (!/^[a-z0-9]+\|[^|]+\|[0-9-]+$/.test(cle)) return _error('Point inconnu');
   const verrou = LockService.getScriptLock();
   verrou.waitLock(20000);
   try {

@@ -746,9 +746,9 @@ html[data-theme="dark"] .tpx-sq-bloc, html[data-theme="dark"] .tpx-sq-jour { bac
     <div class="tpx-aide-row"><span class="tpx-pastille tpx-p-pose"></span>
       <span><b>Violet</b> — vous avez posé un jour ici.</span></div>
     <div class="tpx-aide-row"><span class="tpx-pastille tpx-p-plein"></span>
-      <span><b>Jaune</b> — il resterait 13 ou 14 présents. Vous pouvez le poser, le comité tranche.</span></div>
+      <span><b>Jaune</b> — il resterait <span class="tpx-s-plein">13 ou 14</span> présents. Vous pouvez le poser, le comité tranche.</span></div>
     <div class="tpx-aide-row"><span class="tpx-pastille tpx-p-ferme"></span>
-      <span><b>Noir</b> — il resterait 12 ou moins. Le jour n'est pas ouvert, même sur demande.</span></div>
+      <span><b>Noir</b> — il resterait <span class="tpx-s-ferme">12 ou moins</span>. Le jour n'est pas ouvert, même sur demande.</span></div>
     <div class="tpx-aide-row"><span class="tpx-pastille tpx-p-reserve"></span>
       <span><b>Orange hachuré</b> — demandé, en attente du comité. Il n'est pas inscrit au planning et ne compte pas encore dans votre quota.</span></div>
     <div class="tpx-aide-row"><span class="tpx-pastille tpx-p-pose" style="opacity:.45"></span>
@@ -2117,6 +2117,7 @@ function tpxInit(cle, identite) {
   TPX = {
     annee: Number(cle.year),
     presents: Object.assign({}, cle.presents || {}),
+    seuils: (cle.seuils && cle.seuils.alerte) ? cle.seuils : { alerte: 13, confort: 15 },   // (17/11/2026) onglet SEUILS du classeur
     /* (CORRECTIF 23/08/2026) Une liste, et rien d'autre : un vieux serveur
        peut encore envoyer un ensemble, qui arrive ici en objet vide. */
     feries: new Set(Array.isArray(cle.joursFeries) ? cle.joursFeries : []),
@@ -2133,6 +2134,10 @@ function tpxInit(cle, identite) {
        passés restent consultables (jours figés), mais on n'y atterrit pas. */
     mois: (Number(cle.year) === new Date().getFullYear()) ? new Date().getMonth() : 0,
   };
+  /* (17/11/2026) La légende dit les seuils du classeur, pas des chiffres écrits en dur. */
+  { const S = TPX.seuils, pl = S.confort - S.alerte;
+    document.querySelectorAll('.tpx-s-plein').forEach(function (e) { e.textContent = pl === 2 ? S.alerte + ' ou ' + (S.alerte + 1) : 'de ' + S.alerte + ' à ' + (S.confort - 1); });
+    document.querySelectorAll('.tpx-s-ferme').forEach(function (e) { e.textContent = (S.alerte - 1) + ' ou moins'; }); }
   document.getElementById('tpxPhaseSub').textContent =
     'Le planning des gardes ' + TPX.annee + ' est publié. Choisissez vos jours dans ce qui reste — '
     + 'vous pouvez les poser au fil de l\'année, il n\'y a pas de date limite.';
@@ -2153,8 +2158,9 @@ function tpxBadge(code) {
   return { b: c, k: 'b-tpx-vac' };
 }
 
-/* L'état d'un jour — MÊMES seuils que le serveur (_poserTp_) : il resterait
-   ≥ 15 → libre · 13-14 → plein (sous réserve) · ≤ 12 → fermé. */
+/* L'état d'un jour — MÊMES seuils que le serveur (_poserTp_), lus dans l'onglet
+   SEUILS : il resterait ≥ confort (15) → libre · de l'alerte (13) au confort − 1 →
+   plein (sous réserve) · sous l'alerte → fermé. */
 function tpxAujourdhui() {
   const d = new Date();
   return d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0') + '-' + String(d.getDate()).padStart(2, '0');
@@ -2182,8 +2188,9 @@ function tpxEtat(ds) {
   const p = TPX.presents[ds];
   if (p === undefined) return { s: 'bloque', badge: { b: '—', k: 'b-tpx-vac' } };
   const reste = p - 1;                            // ce qu'il resterait si je posais
-  if (reste <= 12) return { s: 'ferme', p: p };
-  if (reste < 15) return { s: 'plein', p: p };
+  const S = TPX.seuils || { alerte: 13, confort: 15 };   // (17/11/2026) mêmes seuils que le serveur, lus dans l'onglet SEUILS
+  if (reste < S.alerte) return { s: 'ferme', p: p };
+  if (reste < S.confort) return { s: 'plein', p: p };
   return { s: 'libre', p: p };
 }
 

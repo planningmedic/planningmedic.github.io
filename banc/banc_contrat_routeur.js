@@ -30,7 +30,7 @@ const CONTRAT = {
   'getStatsLive'              : 'tout code valide',
   'login'                     : 'tout code valide',
   'getReliquats'              : 'admin',
-  'getPointsVerif'            : 'admin',   // (17/11/2026) points à vérifier, onglet Statuts
+  'getPointsVerif'            : 'admin',   // (17/11/2026) onglet Contrôles du comité
   'marquerPrevenu'            : 'admin',   // (17/11/2026) case « Prévenu »
   'getNoelAnEligibles'        : 'tout code valide',
   'getIndispos'               : 'conditionnel',

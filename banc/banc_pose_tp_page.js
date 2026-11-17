@@ -73,7 +73,7 @@ function construireCle(cl, annee) {
   socleMedecins(ctx);   // (14/09/2026) COL_MED, _medecinsRows_, _medecinsInvalider_ (code.gs)
   vm.runInContext('function logAction(){}', ctx);
   vm.runInContext('function _configRows_(){ return SpreadsheetApp.getActiveSpreadsheet().getSheetByName("CONFIG").getDataRange().getValues(); }', ctx);
-  ['getActiveYear', 'getPremierJourPlanning', 'reconstruireDatesHeaders', 'buildDateToCol', 'getJoursFeries']
+  ['getActiveYear', 'getPremierJourPlanning', 'reconstruireDatesHeaders', 'buildDateToCol', 'getJoursFeries', 'seuilsPresence_']
     .forEach(function (n) { vm.runInContext(extraireFonction('../gas/code.gs', n), ctx); });
   vm.runInContext('let _medFlagsCache = null;', ctx);
   vm.runInContext(extraireFonction('../gas/code.gs', 'getMedecinFlags'), ctx);

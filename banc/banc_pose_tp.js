@@ -150,7 +150,7 @@ function monde(opts) {
   vm.runInContext('function _configRows_(){ return SpreadsheetApp.getActiveSpreadsheet().getSheetByName("CONFIG").getDataRange().getValues(); }', ctx);
   vm.runInContext('const ContentService = { MimeType:{JSON:1}, createTextOutput: s => ({ setMimeType: () => JSON.parse(s) }) };', ctx);
   // Fonctions RÉELLES des fichiers livrés
-  ['getActiveYear', 'getPremierJourPlanning', 'reconstruireDatesHeaders', 'buildDateToCol', 'getJoursFeries'].forEach(n =>
+  ['getActiveYear', 'getPremierJourPlanning', 'reconstruireDatesHeaders', 'buildDateToCol', 'getJoursFeries', 'seuilsPresence_'].forEach(n =>
     vm.runInContext('let _medFlagsCacheDummy;' === n ? '' : extraireFonction('../gas/code.gs', n), ctx));
   vm.runInContext('let _medFlagsCache = null;', ctx);
   vm.runInContext(extraireFonction('../gas/code.gs', 'getMedecinFlags'), ctx);

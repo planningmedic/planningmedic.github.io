@@ -41,7 +41,7 @@
 // ⚠️ RÈGLE (détecteur de dérive dépôt↔Apps Script) : incrémenter cette version
 // à CHAQUE push de ce fichier. Le diagnostic (admin → Maintenance) compare la
 // version déployée ici avec celle du dépôt et signale toute recopie oubliée.
-const GAS_VERSION_GENERATEUR = '2026-11-16.3';   // (16/11/2026) .3 : CHRONO DE L'EXÉCUTION — les passes lourdes (optimisation finale, week-ends, appariement, lissage mensuel) s'arrêtent à temps, comptées depuis le début de l'exécution, pour tenir les 6 min de Google (annoncé) · 18 h la veille de vacances en tout dernier recours si la soirée resterait vide · essai écrit en morceaux dans le journal · contrôle qualité : les MAR libres aussi pour deux week-ends d'affilée · .2 : CONTRÔLE QUALITÉ dans l'essai de génération — garde-repos-garde non souhaitée, 4 gardes en 10 jours, mois chargés, deux week-ends d'affilée, 18 h du vendredi ; chaque cas dit s'il était imposé ou si le calcul avait le choix ; le planning ne change pas · .1 : 18 H — jamais la veille de vacances ; en semaine Réa 1 seulement en tout dernier recours (annoncé par l'essai) · (15/11/2026) .1 : ROTATION D'ÉQUITÉ à partir des gardes 2028 — même fourchette pour tous les MAR de même part, sans report qui la décale ; le retard cumulé de toutes les années (été compris) décide qui prend le haut ; part des autres calculée sur les gardes réelles du régime à part ; Noël et Jour de l'An hors des compteurs fins (gardés dans le total) ; réparation finale entre collègues et diagnostic des écarts de 2 ; 2027 se rejoue à l'identique · (14/11/2026) .2 : STATISTIQUES — tous les axes écrits (week-ends, été, part visée de chaque axe) ; le planning ne change pas · .1 : lissage mensuel par échanges neutres (aucun compteur ne bouge) · 18 h du vendredi : échange à trois MAR en plus de l'échange un pour un · écart entre collègues de même part payé dans la dernière passe · LA FOURCHETTE : plus de cible tirée au sort entre MAR de même part ; tout le calcul vise que chacun soit entre l'arrondi inférieur et supérieur de sa part exacte, sur chaque compteur (les week-ends gardent leur nombre entier, égal à part égale) · (13/11/2026) tout lisser, suite : le relais (un troisième MAR sert d'intermédiaire quand le +1 ne peut rien donner directement au −1), deux parcours et le meilleur est gardé — fériés et été mieux lissés · mesures de la passe 8nonies remplacées par celles de l'essai de génération chez Google (32 → 24, dont 12 d'arrondis ; 8 s) : les précédentes venaient d'une simulation qui ignorait les indisponibilités du dernier jour de l'année. Aucun changement de calcul · tout lisser : dernière passe qui apparie les +1 et les −1 d'un même compteur (week-ends, été, fériés, jeudis, samedis, vendredis), un souhait pouvant être retiré pour remettre un compteur à sa cible · rattrapage : 60 % du retard cumulé dans la visée, arrondi au plus proche (le retard n'est plus compté deux fois) · comptes exacts : vendredis-dimanches et week-ends déduits du planning réel · retouche : les week-ends d'abord · mémoire de plusieurs années : les années archivées sont relues dans le classeur d'archives · 18 h du vendredi à l'un des deux MAR du samedi · week-ends : cible égale à quotité égale, été, réa / maternité
+const GAS_VERSION_GENERATEUR = '2026-11-17.1';   // (17/11/2026) .1 : RÉCUPÉRATIONS — le plancher d'effectif est le seuil d'alerte de l'onglet SEUILS (seuilsPresence_), compté comme partout : sans les MAR hors effectif, une demi-journée de vacances comptée présente · (16/11/2026) .3 : CHRONO DE L'EXÉCUTION — les passes lourdes (optimisation finale, week-ends, appariement, lissage mensuel) s'arrêtent à temps, comptées depuis le début de l'exécution, pour tenir les 6 min de Google (annoncé) · 18 h la veille de vacances en tout dernier recours si la soirée resterait vide · essai écrit en morceaux dans le journal · contrôle qualité : les MAR libres aussi pour deux week-ends d'affilée · .2 : CONTRÔLE QUALITÉ dans l'essai de génération — garde-repos-garde non souhaitée, 4 gardes en 10 jours, mois chargés, deux week-ends d'affilée, 18 h du vendredi ; chaque cas dit s'il était imposé ou si le calcul avait le choix ; le planning ne change pas · .1 : 18 H — jamais la veille de vacances ; en semaine Réa 1 seulement en tout dernier recours (annoncé par l'essai) · (15/11/2026) .1 : ROTATION D'ÉQUITÉ à partir des gardes 2028 — même fourchette pour tous les MAR de même part, sans report qui la décale ; le retard cumulé de toutes les années (été compris) décide qui prend le haut ; part des autres calculée sur les gardes réelles du régime à part ; Noël et Jour de l'An hors des compteurs fins (gardés dans le total) ; réparation finale entre collègues et diagnostic des écarts de 2 ; 2027 se rejoue à l'identique · (14/11/2026) .2 : STATISTIQUES — tous les axes écrits (week-ends, été, part visée de chaque axe) ; le planning ne change pas · .1 : lissage mensuel par échanges neutres (aucun compteur ne bouge) · 18 h du vendredi : échange à trois MAR en plus de l'échange un pour un · écart entre collègues de même part payé dans la dernière passe · LA FOURCHETTE : plus de cible tirée au sort entre MAR de même part ; tout le calcul vise que chacun soit entre l'arrondi inférieur et supérieur de sa part exacte, sur chaque compteur (les week-ends gardent leur nombre entier, égal à part égale) · (13/11/2026) tout lisser, suite : le relais (un troisième MAR sert d'intermédiaire quand le +1 ne peut rien donner directement au −1), deux parcours et le meilleur est gardé — fériés et été mieux lissés · mesures de la passe 8nonies remplacées par celles de l'essai de génération chez Google (32 → 24, dont 12 d'arrondis ; 8 s) : les précédentes venaient d'une simulation qui ignorait les indisponibilités du dernier jour de l'année. Aucun changement de calcul · tout lisser : dernière passe qui apparie les +1 et les −1 d'un même compteur (week-ends, été, fériés, jeudis, samedis, vendredis), un souhait pouvant être retiré pour remettre un compteur à sa cible · rattrapage : 60 % du retard cumulé dans la visée, arrondi au plus proche (le retard n'est plus compté deux fois) · comptes exacts : vendredis-dimanches et week-ends déduits du planning réel · retouche : les week-ends d'abord · mémoire de plusieurs années : les années archivées sont relues dans le classeur d'archives · 18 h du vendredi à l'un des deux MAR du samedi · week-ends : cible égale à quotité égale, été, réa / maternité
 // précédente : '2026-10-27.1'
 
 /* (05/09/2026) INTERRUPTEUR DU NOUVEL ALGORITHME — récit : docs/JOURNAL-Planning-Med.md §101 */
@@ -231,7 +231,10 @@ const FREEBUDGET_MARGE = 1;  // marge : reserve ~1 jour pour absorber les pertes
 const MIN_PRESENT   = {1:16, 2:15, 3:16, 4:15, 5:15};
 /* (2027-XX) PLACEMENT DES RÉCUPÉRATIONS — récit : docs/JOURNAL-Planning-Med.md §103 */
 const R_MAX_PAR_JOUR      = 2;
-const R_PLANCHER_PRESENTS = 15;   // aligné sur le code couleur du planning du service
+/* (17/11/2026) Le plancher d'effectif des récupérations n'est plus écrit ici : c'est le
+   seuil d'alerte de l'onglet SEUILS (seuilsPresence_, code.gs), le même pour tout le
+   portail — une récupération ne rend jamais un jour tendu. Repli si l'onglet manque. */
+const R_PLANCHER_REPLI = 13;
 // (C2-D3) Rythme 2/2 lu depuis MEDECINS (colonne rythme_2sur2, via getMedecinFlags).
 // Ancre semaine 23/2026 conservée en dur (la dérive année-53-sem. = Fix A, séparé).
 function estSemaineOff(id, dateStr){
@@ -3998,7 +4001,7 @@ function generateGardes(year, opts){
   const rParJour={};                       // date → nombre de R déjà posés ce jour
   /* Une date est éligible si : jour ouvrable de l'année, pas férié, moins de
      R_MAX_PAR_JOUR récupérations déjà posées, le MAR est libre, aucun autre R du
-     même MAR à moins de 3 jours, et l'effectif reste >= R_PLANCHER_PRESENTS APRÈS
+     même MAR à moins de 3 jours, et l'effectif reste >= R_PLANCHER (seuil d'alerte) APRÈS
      la pose. Les R déjà posés ce jour-là sont déduits du compte : sans cela, deux
      poses le même jour feraient passer sous le plancher sans que rien ne l'indique.
      Les vacances scolaires ne sont plus exclues d'office — le plancher d'effectif
@@ -4027,6 +4030,12 @@ function generateGardes(year, opts){
      4 MARs restaient privés de tout week-end de récupération sur des lundis pourtant
      libres avec 20 présents. */
   const R_ABSENT=new Set(['VAC','VM','VA','FORM','CL','TP','CTP','CP','A','RG_TRANSITION']);
+  /* (17/11/2026) L'EFFECTIF se compte comme partout (_tpMondePresence_) : une
+     demi-journée de vacances laisse le MAR présent l'autre demi-journée, et un MAR
+     hors effectif n'est jamais compté. R_ABSENT, lui, reste la règle du MAR qui
+     reçoit le R (pas de récupération sur une demi-journée de vacances). */
+  const R_ABSENT_EFFECTIF=new Set(['VAC','FORM','CL','TP','CTP','CP','A','RG_TRANSITION']);
+  const R_PLANCHER=(typeof seuilsPresence_==='function')?seuilsPresence_().alerte:R_PLANCHER_REPLI;
   function _rDispo(id,date){
     const dd=FLAGS.dateDebut[id], df=FLAGS.dateFin[id];
     if((dd&&date<dd)||(df&&date>=df)) return false;
@@ -4046,7 +4055,8 @@ function generateGardes(year, opts){
     return allDoctors.filter(m=>{
       const dd=FLAGS.dateDebut[m], df=FLAGS.dateFin[m];
       if((dd&&date<dd)||(df&&date>=df)) return false;
-      if(R_ABSENT.has(indispos[m]?.[date])) return false;
+      if(FLAGS.horsEffectif&&FLAGS.horsEffectif.has(m)) return false;   // (17/11/2026) hors effectif : jamais compté
+      if(R_ABSENT_EFFECTIF.has(indispos[m]?.[date])) return false;
       if(estSemaineOff(m,date)) return false;
       const tpF=FLAGS.tpJoursFixes[m];
       if(tpF&&tpF.has(new Date(date+'T12:00:00').getDay())) return false;
@@ -4070,7 +4080,7 @@ function generateGardes(year, opts){
     /* Le plancher d'effectif est ABSOLU : il s'applique même en dernier recours.
        Décision du responsable le 21/08 — « on ne passe pas sous 15 ». Le mode `ultime`
        relâche le plafond par jour et l'espacement, jamais le plancher. */
-    if(_rPresents(cDate)-(rParJour[cDate]||0)-1 < R_PLANCHER_PRESENTS) return false;
+    if(_rPresents(cDate)-(rParJour[cDate]||0)-1 < R_PLANCHER) return false;
     if(ultime) return true;
     if((rParJour[cDate]||0)>=R_MAX_PAR_JOUR) return false;
     const cDt=new Date(cDate+'T12:00:00');

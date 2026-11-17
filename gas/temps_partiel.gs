@@ -4,7 +4,7 @@
    quelles : aucune ligne de logique modifiée, seulement déplacée. Le routeur et
    ses aides (checkCode, _deny, _error, doGet/doPost) restent dans Indispos.gs.
    Un seul espace global dans Apps Script : rien à importer. */
-const GAS_VERSION_TP = '2026-11-17.1';   // (17/11/2026) effectif présent : un MAR marqué HORS_EFFECTIF dans MEDECINS n'est plus compté (pose des TP, points à vérifier) · (16/11/2026) jour de TP dans sa semaine Réa 1 : non bloquant — semaine envoyée à l'écran (grisée, confirmation), signalée au MAR comme au comité · (12/11/2026) plus aucun nom de personne dans le code (effectif présent) · (10/11/2026) chaque jour de TP posé, retiré, demandé ou tranché laisse une ligne dans l'onglet HISTORIQUE
+const GAS_VERSION_TP = '2026-11-17.2';   // (17/11/2026) .2 : seuils de la pose lus dans l'onglet SEUILS (seuilsPresence_), envoyés à l'écran avec l'effectif · (17/11/2026) effectif présent : un MAR marqué HORS_EFFECTIF dans MEDECINS n'est plus compté (pose des TP, points à vérifier) · (16/11/2026) jour de TP dans sa semaine Réa 1 : non bloquant — semaine envoyée à l'écran (grisée, confirmation), signalée au MAR comme au comité · (12/11/2026) plus aucun nom de personne dans le code (effectif présent) · (10/11/2026) chaque jour de TP posé, retiré, demandé ou tranché laisse une ligne dans l'onglet HISTORIQUE
 
 /* ── (POSE TP · 22/08/2026) PHASE DE POSE DES TEMPS PARTIELS — DÉDUITE, JAMAIS ÉCRITE ──
    Les jours de temps partiel se posent APRÈS la génération des gardes (décision
@@ -156,6 +156,7 @@ function _poserTp_(user, targetId, envoye, annee) {
   const FERMES = _tpFermes_(annee);
   const aujourdHui = Utilities.formatDate(new Date(), Session.getScriptTimeZone(), 'yyyy-MM-dd');
   const quotaTotal = getQuotasConges(_quotiteDe_(targetId)).ctp || 0;
+  const S = seuilsPresence_();   // (17/11/2026) mêmes seuils que tout le portail (onglet SEUILS)
 
   /* Le profil d'abord : jours fixes convenus, rythme deux semaines sur deux,
      ou temps plein — ces trois-là n'ont rien à poser. L'écran ne leur montre
@@ -224,8 +225,8 @@ function _poserTp_(user, targetId, envoye, annee) {
 
     const presents = M.presents(ds);
     const reste = presents - 1;
-    if (reste <= 12) { resultat[ds] = 'équipe trop réduite (' + presents + ' présents)'; return; }
-    if (reste < 15) {
+    if (reste < S.alerte) { resultat[ds] = 'équipe trop réduite (' + presents + ' présents)'; return; }
+    if (reste < S.confort) {
       /* Bande jaune : le comité tranchera. Rien n'entre dans le planning,
          le MAR travaille tant qu'il n'a pas de réponse.
          (23/08/2026) PLAFOND : accordés + en attente ne dépassent jamais le
@@ -562,7 +563,7 @@ function _construirePoseTp_(annee) {
      mis en texte pour voyager jusqu'à la page devient {} — vide et non
      parcourable : l'écran plantait à l'ouverture. Tout ce qui part dans une
      clé doit être une LISTE ou un objet simple. */
-  return { success: true, year: annee, presents: presents,
+  return { success: true, year: annee, presents: presents, seuils: seuilsPresence_(),   // (17/11/2026) l'écran colore avec les seuils du classeur
            joursFeries: Array.from(jf).sort(),
            fermes: Array.from(_tpFermes_(annee)).sort(), parMar: parMar };
 }

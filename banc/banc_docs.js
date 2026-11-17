@@ -341,11 +341,12 @@ console.log('\n═══ 11. Le guide du comité décrit l\'interface RÉELLE �
 
   /* Les six onglets, lus dans la barre de navigation. */
   const onglets = [...admin.matchAll(/class="nav-tab[^"]*" onclick="showTab\('([a-z]+)'\)/g)].map(m => m[1]);
-  /* (01/11/2026) Cinq : l'onglet Maintenance a quitté l'écran du comité (maintenance.html). */
-  V('admin.html porte bien cinq onglets', onglets.length === 5, onglets);
+  /* (01/11/2026) Cinq : l'onglet Maintenance a quitté l'écran du comité (maintenance.html).
+     (17/11/2026) Six : l'onglet Contrôles, le tableau de bord des soucis du planning. */
+  V('admin.html porte bien six onglets', onglets.length === 6, onglets);
   V('l\'onglet Maintenance n\'est plus dans l\'écran du comité', !onglets.includes('maintenance'), onglets);
   const NOM = { planning:'Planning', equipe:'Équipe', affectations:'Affectations',
-                equite:'Équité', statuts:'Statuts', maintenance:'Maintenance' };
+                equite:'Équité', statuts:'Statuts', controles:'Contrôles', maintenance:'Maintenance' };
   /* Dans les TITRES de section, pas dans le sommaire : renommer une section
      sans toucher au sommaire passerait sinon inaperçu. */
   const titres = sansAccent([...lire('docs/guide-comite.html').matchAll(/<h2[^>]*>([\s\S]*?)<\/h2>/g)]

@@ -1012,6 +1012,120 @@ body { font-family: 'DM Sans', system-ui, sans-serif; background: var(--bg); col
 .cloture-banner .cb-close:hover{opacity:1}
 .cloture-banner.bloque{background:#FEF2F2;border-bottom-color:#FCA5A5;color:#991B1B}
 .cloture-banner.bloque .cb-btn{border-color:#CBD5E1;background:#F1F5F9;color:#94A3B8;cursor:not-allowed}
+
+/* ══ ONGLET CONTRÔLES — v3 : grille « bento », un visuel par famille ══ */
+.bx { --ink:#101828; --ink2:#475467; --ink3:#98A2B3; --line:#EAECF0; --bg:#fff;
+  --rea:#D92D20; --rea-s:#FEF3F2; --tp:#7A5AF8; --tp-s:#F4F3FF; --vac:#1570EF; --vac-s:#EFF8FF;
+  --rec:#0E9384; --rec-s:#F0FDF9; --h18:#E04F16; --h18-s:#FEF6EE; --ok:#079455; --ok-s:#ECFDF3;
+  max-width:1400px; margin:0 auto; color:var(--ink); font-variant-numeric:tabular-nums; }
+.bx-grille { display:grid; grid-template-columns:repeat(4, minmax(0,1fr)); grid-auto-rows:minmax(200px, auto); gap:16px; }
+.bx-t { position:relative; border-radius:24px; padding:22px 24px; background:var(--bg); border:1px solid var(--line); overflow:hidden; cursor:pointer;
+  transition:border-color .15s; }
+.bx-t:hover { border-color:#D0D5DD; }
+.bx-t:focus-visible { outline:3px solid var(--ink); outline-offset:3px; }
+.bx-hd { display:flex; align-items:center; gap:10px; }
+.bx-nom { font-size:15px; font-weight:600; }
+.bx-nb { margin-left:auto; font-size:13px; font-weight:600; border-radius:999px; padding:4px 10px; }
+.bx-big { font-size:56px; line-height:1; font-weight:600; letter-spacing:-2.5px; margin:16px 0 4px; }
+.bx-txt { font-size:13.5px; line-height:1.45; color:var(--ink2); max-width:46ch; }
+
+/* Héros */
+.bx-hero { grid-column:span 2; grid-row:span 2; background:var(--ink); border:0; color:#fff; padding:30px 32px; display:flex; flex-direction:column; cursor:default; }
+.bx-hero .bx-big { font-size:120px; letter-spacing:-6px; margin:22px 0 0; }
+.bx-hero h2 { margin:6px 0 0; font-size:26px; font-weight:500; letter-spacing:-.6px; color:#D0D5DD; }
+.bx-hero h2 b { color:#fff; font-weight:600; }
+.bx-pile { display:flex; height:14px; border-radius:7px; overflow:hidden; gap:3px; margin:30px 0 14px; }
+.bx-pile span { display:block; height:100%; border-radius:3px; }
+.bx-legende { display:flex; flex-wrap:wrap; gap:8px 18px; font-size:13px; color:#D0D5DD; }
+.bx-legende span { display:flex; align-items:center; gap:7px; }
+.bx-legende i { width:9px; height:9px; border-radius:50%; }
+.bx-legende b { color:#fff; font-weight:600; }
+.bx-mois { margin-top:auto; padding-top:26px; display:grid; grid-template-columns:repeat(12, 1fr); gap:6px; align-items:end; height:120px; }
+.bx-mois div { display:flex; flex-direction:column; align-items:center; gap:6px; height:100%; justify-content:flex-end; }
+.bx-mois .b { width:100%; border-radius:6px 6px 2px 2px; background:rgba(255,255,255,.12); position:relative; min-height:4px; }
+.bx-mois .b.chaud { background:linear-gradient(180deg, #FDB022, #F97066); }
+.bx-mois .b em { position:absolute; top:-18px; left:0; right:0; text-align:center; font-style:normal; font-size:11.5px; color:#fff; font-weight:600; }
+.bx-mois small { font-size:11px; color:#98A2B3; }
+.bx-hero-pied { display:flex; justify-content:space-between; align-items:center; margin-top:18px; font-size:12.5px; color:#98A2B3; }
+.bx-hero-pied button { border:1px solid rgba(255,255,255,.2); background:transparent; color:#fff; border-radius:10px; padding:8px 14px; font:600 12.5px 'DM Sans',sans-serif; cursor:pointer; }
+
+/* Réa 1 : la frise de l'année */
+.bx-rea { grid-column:span 2; background:var(--rea-s); border-color:#FECDCA; }
+.bx-rea .bx-nb { background:var(--rea); color:#fff; }
+.bx-frise { position:relative; margin-top:42px; display:grid; grid-template-columns:repeat(52, 1fr); gap:3px; height:64px; align-items:end; }
+.bx-frise span { height:18px; border-radius:3px; background:#FDA29B; opacity:.35; }
+.bx-frise span.c { height:64px; opacity:1; background:var(--rea); position:relative; }
+.bx-frise span.c b { position:absolute; bottom:calc(100% + 6px); left:50%; transform:translateX(-50%); font-size:11px; color:var(--rea); font-weight:700; }
+.bx-frise-m { display:grid; grid-template-columns:repeat(12, 1fr); margin-top:8px; font-size:11px; color:#B42318; opacity:.7; }
+.bx-rea .bx-txt { margin-top:10px; }
+
+/* Temps partiel : barres des postables, ligne du seuil */
+.bx-tp { background:var(--tp-s); border-color:#D9D6FE; }
+.bx-tp .bx-nb { background:var(--tp); color:#fff; }
+.bx-barres { position:relative; display:flex; align-items:flex-end; gap:3px; height:96px; margin-top:16px; }
+.bx-barres span { flex:1; background:var(--tp); border-radius:3px 3px 1px 1px; opacity:.85; }
+.bx-seuil { position:absolute; left:0; right:0; border-top:2px dashed #6938EF; }
+.bx-seuil em { position:absolute; right:0; top:-19px; font-style:normal; font-size:11px; font-weight:600; color:#5925DC; }
+
+/* Congés : jauges */
+.bx-vac { background:var(--vac-s); border-color:#B2DDFF; }
+.bx-vac .bx-nb { background:var(--vac); color:#fff; }
+.bx-jauges { display:grid; gap:12px; margin-top:20px; }
+.bx-j { display:grid; grid-template-columns:34px 1fr 34px; align-items:center; gap:10px; font-size:12.5px; }
+.bx-j b { font-weight:700; }
+.bx-j .rail { height:10px; border-radius:5px; background:#D1E9FF; position:relative; }
+.bx-j .rail i { position:absolute; left:0; top:0; bottom:0; border-radius:5px; background:var(--vac); }
+.bx-j .rail u { position:absolute; top:-3px; bottom:-3px; border-radius:4px; background:#F04438; text-decoration:none; }
+.bx-j em { font-style:normal; font-weight:700; color:#D92D20; text-align:right; }
+
+/* Petites tuiles */
+.bx-h18 { background:var(--h18-s); border-color:#F9DBAF; } .bx-h18 .bx-nb { background:var(--h18); color:#fff; }
+.bx-rec { background:var(--rec-s); border-color:#99F6E0; } .bx-rec .bx-nb { background:var(--rec); color:#fff; }
+.bx-ok { background:var(--ok-s); border-color:#ABEFC6; } .bx-ok .bx-nb { background:var(--ok); color:#fff; }
+.bx-pts { list-style:none; padding:0; margin:16px 0 0; display:grid; gap:9px; }
+.bx-pts li { display:grid; grid-template-columns:46px 1fr; gap:10px; font-size:12.5px; line-height:1.35; color:var(--ink2); }
+.bx-pts li b { color:var(--ink); font-weight:700; }
+.bx-pts li span.d { font-weight:600; color:var(--ink); }
+.bx-vs { position:relative; height:46px; margin-top:20px; border-radius:8px; background:#CCFBEF55; }
+.bx-vs i { position:absolute; top:0; bottom:0; background:#99F6E0; border-radius:4px; }
+.bx-vs b { position:absolute; top:50%; width:12px; height:12px; margin:-6px 0 0 -6px; border-radius:50%; background:var(--rec); box-shadow:0 0 0 3px #fff; }
+.bx-vs-m { display:flex; justify-content:space-between; margin-top:6px; font-size:11px; color:#107569; }
+.bx-check { list-style:none; padding:0; margin:14px 0 0; display:grid; gap:7px; font-size:12.5px; color:#085D3A; }
+.bx-check li::before { content:'✓'; font-weight:800; margin-right:7px; }
+.bx-prev .rail { height:12px; border-radius:6px; background:var(--line); margin-top:20px; overflow:hidden; }
+.bx-prev .rail i { display:block; height:100%; background:var(--ink); border-radius:6px; }
+
+/* Liste */
+.bx-liste { margin-top:28px; background:#fff; border:1px solid var(--line); border-radius:24px; padding:24px 26px; }
+.bx-liste-hd { display:flex; align-items:center; gap:10px; flex-wrap:wrap; margin-bottom:8px; }
+.bx-liste-hd h3 { margin:0 auto 0 0; font-size:20px; font-weight:600; letter-spacing:-.4px; }
+.bx-f { border:1px solid var(--line); background:#fff; border-radius:999px; padding:7px 13px; font:600 12.5px 'DM Sans',sans-serif; color:var(--ink2); cursor:pointer; display:flex; align-items:center; gap:7px; }
+.bx-f i { width:8px; height:8px; border-radius:50%; }
+.bx-f.on { background:var(--ink); border-color:var(--ink); color:#fff; }
+.bx-col2 { columns:2; column-gap:40px; }
+.bx-mo { break-inside:avoid; padding-top:14px; }
+.bx-mo h4 { margin:0 0 4px; font-size:13px; font-weight:600; color:var(--ink3); }
+.bx-l { break-inside:avoid; display:grid; grid-template-columns:6px 54px 1fr auto; gap:12px; align-items:start; padding:10px 0; border-top:1px solid #F2F4F7; }
+.bx-l .c { width:6px; height:36px; border-radius:3px; background:var(--c); }
+.bx-l .q { font-size:12.5px; line-height:1.3; }
+.bx-l .q b { display:block; font-size:14px; }
+.bx-l .q span { color:var(--ink3); }
+.bx-l p { margin:0; font-size:13px; line-height:1.45; color:var(--ink2); }
+.bx-l label { display:flex; align-items:center; gap:6px; font-size:12.5px; color:var(--ink2); white-space:nowrap; cursor:pointer; }
+.bx-l.vu { opacity:.45; }
+.bx-l .a { display:flex; align-items:center; gap:14px; }
+.bx-l .a button { border:0; background:none; padding:0; font:600 12.5px 'DM Sans',sans-serif; color:var(--ink); text-decoration:underline; text-underline-offset:3px; cursor:pointer; }
+
+@media (max-width: 1100px) { .bx-grille { grid-template-columns:repeat(2, minmax(0,1fr)); } .bx-col2 { columns:1; } }
+@media (max-width: 640px) { .bx-grille { grid-template-columns:1fr; } .bx-hero, .bx-rea { grid-column:auto; grid-row:auto; } .bx-hero .bx-big { font-size:88px; } }
+.bx-large { grid-column:span 2; }
+.bx-sur { font-size:24px; letter-spacing:-.5px; color:var(--ink3); }
+.bx-nom-an { color:#98A2B3; }
+.bx-frise span.c b.haut { bottom:calc(100% + 22px); }
+.bx-gar { background:var(--ok-s); border-color:#ABEFC6; } .bx-gar .bx-nb { background:var(--ok); color:#fff; }
+.bx-pts li.info { opacity:.6; }
+.bx-vide { padding:28px; text-align:center; color:#475467; font-size:13.5px; }
+.bx-ok { cursor:default; }
 </style>
 <script src="partage/portail.js"></script>   <!-- (14/09/2026) socle commun : MIROIR_URL, miroirRead -->
 <script src="partage/rendu_equite.js"></script>   <!-- (14/09/2026) cartes d'équité, version commune MAR/comité -->
@@ -1177,7 +1291,8 @@ if (sessionStorage.getItem('adminCode')) {
   <button class="nav-tab" onclick="showTab('equipe')" id="tab-equipe">👥 Équipe</button>
   <button class="nav-tab" onclick="showTab('affectations')" id="tab-affectations">📋 Affectations <span id="affPendingDot" style="display:none;width:6px;height:6px;background:#F59E0B;border-radius:50%;margin-left:4px;vertical-align:middle"></span></button>
   <button class="nav-tab" onclick="showTab('equite')" id="tab-equite">📊 Équité</button>
-  <button class="nav-tab" onclick="showTab('statuts')" id="tab-statuts">✏️ Statuts<span id="pastilleRecup" style="display:none;margin-left:7px;min-width:18px;height:18px;padding:0 5px;border-radius:9px;background:#CA8A04;color:#fff;font-size:11px;font-weight:800;display:none;align-items:center;justify-content:center;vertical-align:1px"></span><span id="pastilleVerif" style="display:none;margin-left:5px;min-width:18px;height:18px;padding:0 5px;border-radius:9px;background:#EA580C;color:#fff;font-size:11px;font-weight:800;align-items:center;justify-content:center;vertical-align:1px"></span></button>
+  <button class="nav-tab" onclick="showTab('statuts')" id="tab-statuts">✏️ Statuts<span id="pastilleRecup" style="display:none;margin-left:7px;min-width:18px;height:18px;padding:0 5px;border-radius:9px;background:#CA8A04;color:#fff;font-size:11px;font-weight:800;display:none;align-items:center;justify-content:center;vertical-align:1px"></span></button>
+  <button class="nav-tab" onclick="showTab('controles')" id="tab-controles">🩺 Contrôles<span id="pastilleCtl" style="display:none;margin-left:7px;min-width:18px;height:18px;padding:0 5px;border-radius:9px;background:#E04F16;color:#fff;font-size:11px;font-weight:800;align-items:center;justify-content:center;vertical-align:1px"></span></button>
   <!-- (13/08/2026) Avancement de la campagne d'indisponibilites. N'apparait QUE
        pendant la campagne (INDISPOS_YEAR non nul) et disparait des sa cloture. -->
   <button class="ind-chip" id="indChip" style="display:none" onclick="basculerIndChip()"></button>
@@ -1571,6 +1686,13 @@ if (sessionStorage.getItem('adminCode')) {
   .sa-pcell.today{background:#DBEAFE;color:#1D4ED8;font-weight:800}
   .sa-cell:active{outline:2px solid var(--blue,#2563EB)}
   </style>
+  <!-- ── CONTRÔLES ── (17/11/2026) tout ce qui cloche dans le planning, famille
+       par famille. Le serveur recalcule à chaque ouverture : un point corrigé
+       disparaît de lui-même. -->
+  <div class="tab-panel" id="panel-controles">
+    <div id="ctlContenu"></div>
+  </div>
+
   <div class="tab-panel" id="panel-statuts">
     <!-- (23/08/2026) L'alerte des récupérations à replacer vit ICI, dans
          l'onglet où le geste se fait. Elle existait en bas de l'onglet Équité
@@ -1579,11 +1701,6 @@ if (sessionStorage.getItem('adminCode')) {
          samedis tenus et récups posées) : elle disparaît d'elle-même dès que
          le R est posé, et revient si on l'efface. -->
     <div id="recupStatuts" style="display:none"></div>
-    <!-- (17/11/2026) POINTS À VÉRIFIER : ce que le comité doit signaler aux MAR
-         (semaine Réa 1, vacances au-delà du droit, TP un jour tendu). Calculé
-         par le serveur à l'ouverture de l'onglet ; un point corrigé disparaît
-         de lui-même. Replié par défaut, comme l'alerte des récups. -->
-    <div id="verifStatuts" style="display:none" data-ouverte="0"></div>
     <div id="statutsLoading" class="loading" style="display:none"><div class="spinner"></div> Chargement…</div>
     <!-- (01/09/2026) CE QU'IL RESTE À POSER. Après la génération, le comité
          place ici les congés que les MAR n'ont pas posés pendant la campagne :
@@ -2936,6 +3053,7 @@ function showTab(name) {
   /* (13/08/2026) loadVacancesValidation() retire d'ici — récit : docs/JOURNAL-Planning-Med.md §8 */
   if (name==='equite') { loadStats(ADMIN_YEAR); }
   if (name==='statuts') loadStatuts();
+  if (name==='controles') chargerControles(false);   // (17/11/2026) calculé à l'ouverture de l'onglet, jamais à celle de la page
 }
 
 // ══════════════════════════════════════════════════════════════════
@@ -3136,7 +3254,6 @@ async function loadStatuts(){
   }catch(e){ toast('Erreur statuts : '+e.message, 'error'); }
   finally{ load.style.display='none'; wrap.style.display='block'; }
   try { renderRecupsStatuts(); } catch (e) { console.warn('alerte récups :', e && e.message); }
-  chargerPointsVerif();   // (17/11/2026) en tâche de fond : l'onglet s'affiche sans l'attendre
 }
 
 function renderStatuts(){
@@ -5595,110 +5712,178 @@ function renderRecups(){
   el.style.display = 'block';
 }
 
-/* ══ (17/11/2026) POINTS À VÉRIFIER — sous l'alerte des récups ═══════════════
-   Le serveur calcule (computePointsVerif, gardes.gs) : semaine Réa 1 occupée,
-   vacances au-delà du droit, TP un jour tendu. Aucun appel à l'ouverture de la
-   page (règle du 05/08) : la liste arrive quand on ouvre l'onglet Statuts, puis
-   à chaque rechargement de l'onglet (après une publication, par exemple).
-   « Prévenu » : le comité coche quand il a contacté le MAR (date gardée dans le
-   classeur, visible de tout le comité). */
-const VERIF_TAG = { rea:['Réa 1','#FDE8EB','#B91C1C'], vac:['Vacances','#EEF4FB','#1D6FB8'], tendu:['Jour tendu','#FEF3C7','#92400E'] };
-const VERIF_J = ['dim','lun','mar','mer','jeu','ven','sam'];
-let VERIF = { an: null, points: [], prevenus: {} };
-let _verifEnCours = false;
-function _verifDate(iso, an){
-  if(!iso) return String(an || '');
-  const d=new Date(iso+'T12:00:00'), p=iso.split('-');
-  return VERIF_J[d.getDay()]+' '+p[2]+'/'+p[1];
-}
-function _verifJjMm(iso){ const p=String(iso||'').split('-'); return p.length===3 ? p[2]+'/'+p[1] : ''; }
-async function chargerPointsVerif(){
-  if (_verifEnCours) return;
-  if (ADMIN_YEAR_READONLY) { VERIF = { an: ADMIN_YEAR, points: [], prevenus: {} }; renderVerifStatuts(); return; }
-  _verifEnCours = true;
+/* ══ (17/11/2026) ONGLET CONTRÔLES — tableau de bord des soucis du planning ══════
+   Design validé par le responsable le 17/11/2026 (grille de tuiles, un dessin par
+   famille, la liste en dessous). Le serveur calcule tout (computePointsVerif,
+   gardes.gs) ; rien n'est demandé à l'ouverture de la page (règle du 05/08) : la
+   liste arrive quand on ouvre l'onglet, et « Relancer les contrôles » la recharge.
+   Mêmes couleurs que le planning : Réa rouge, TP violet, congés bleu, 18 h orange,
+   récups vert d'eau, gardes vert. */
+const CTL_FAM = { rea1:['Semaines Réa 1','var(--rea)'], tp:['Temps partiel','var(--tp)'], conges:['Congés','var(--vac)'],
+  h18:['18 h','var(--h18)'], recups:['Récupérations','var(--rec)'], gardes:['Gardes','var(--ok)'] };
+const CTL_ORDRE = ['rea1','tp','conges','h18','recups','gardes'];
+const CTL_MC = ['janv.','févr.','mars','avr.','mai','juin','juil.','août','sept.','oct.','nov.','déc.'];
+const CTL_MOIS = ['Janvier','Février','Mars','Avril','Mai','Juin','Juillet','Août','Septembre','Octobre','Novembre','Décembre'];
+const CTL_J = ['dim.','lun.','mar.','mer.','jeu.','ven.','sam.'];
+let CTL = { an: null, items: [], oks: {}, vacsc: [], prevenus: {}, seuils: { alerte: 13, confort: 15 }, fam: null, majLe: '', charge: false };
+let _ctlEnCours = false;
+const _ctlTodo = x => x.niv !== 'info' && !CTL.prevenus[x.cle];
+const _ctlPl = (n, s, p) => n + ' ' + (n > 1 ? (p || s + 's') : s);
+const _ctlJour = iso => { const d = new Date(iso + 'T12:00:00'); return d.getDate() + ' ' + CTL_MC[d.getMonth()]; };
+const _ctlDoy = iso => (new Date(iso + 'T12:00:00') - new Date(CTL.an, 0, 1, 12)) / 86400000;
+const _ctlSem = iso => { const d0 = new Date(CTL.an, 0, 4, 12); while (d0.getDay() !== 1) d0.setDate(d0.getDate() - 1); return Math.floor((new Date(iso + 'T12:00:00') - d0) / (7 * 86400000)); };
+
+async function chargerControles(force){
+  const el = document.getElementById('ctlContenu'); if (!el) return;
+  if (_ctlEnCours) return;
+  if (CTL.charge && !force && Number(CTL.an) === Number(ADMIN_YEAR)) { renderControles(); return; }
+  if (!CTL.charge || Number(CTL.an) !== Number(ADMIN_YEAR)) el.innerHTML = '<div class="loading" style="display:flex"><div class="spinner"></div> Contrôle du planning ' + ADMIN_YEAR + '…</div>';
+  if (ADMIN_YEAR_READONLY) { el.innerHTML = '<div class="bx-vide">Année archivée : les contrôles ne portent que sur les années en cours.</div>'; return; }
+  _ctlEnCours = true;
   const an = ADMIN_YEAR;
   try {
-    const r = await api({ action:'getPointsVerif', year: an });
-    if (r && r.success && Number(an) === Number(ADMIN_YEAR)) {
-      VERIF = { an: an, points: r.points || [], prevenus: r.prevenus || {} };
-      renderVerifStatuts();
-    }
-  } catch (e) { console.warn('points à vérifier :', e && e.message); }
-  finally { _verifEnCours = false; }
-}
-function verifBasculer(){
-  const el=document.getElementById('verifStatuts');
-  el.setAttribute('data-ouverte', el.getAttribute('data-ouverte')==='1' ? '0' : '1');
-  renderVerifStatuts();
-}
-async function verifPrevenu(cle, coche){
-  const avant = VERIF.prevenus[cle];
-  if (coche) VERIF.prevenus[cle] = { le: new Date().toISOString().slice(0,10), par: '' };
-  else delete VERIF.prevenus[cle];
-  renderVerifStatuts();
-  try {
-    const r = await api({ action:'marquerPrevenu', cle: cle, prevenu: !!coche });
-    if (!r || !r.success) throw new Error((r && r.error) || 'refus du serveur');
-    if (r.prevenu) { VERIF.prevenus[cle] = r.prevenu; renderVerifStatuts(); }   // la date du serveur fait foi
+    const r = await api({ action: 'getPointsVerif', year: an });
+    if (Number(an) !== Number(ADMIN_YEAR)) return;
+    if (!r || !r.success) throw new Error((r && r.error) || 'réponse vide');
+    if (r.genere === false) { CTL = Object.assign(CTL, { an: an, items: [], oks: {}, charge: true }); el.innerHTML = '<div class="bx-vide">Le planning des gardes ' + an + ' n\'est pas encore généré : rien à contrôler.</div>'; _ctlPastille(); return; }
+    const h = new Date();
+    CTL = Object.assign(CTL, { an: an, items: r.points || [], oks: r.oks || {}, vacsc: r.vacsc || [], prevenus: r.prevenus || {},
+      seuils: r.seuils || CTL.seuils, charge: true, majLe: 'à ' + String(h.getHours()).padStart(2, '0') + ':' + String(h.getMinutes()).padStart(2, '0') });
+    renderControles();
   } catch (e) {
-    if (avant) VERIF.prevenus[cle] = avant; else delete VERIF.prevenus[cle];
-    renderVerifStatuts();
+    el.innerHTML = '<div class="bx-vide">Contrôle impossible : ' + _escHtml(e.message) + '. Réessayez avec « Relancer les contrôles ».</div>';
+  } finally { _ctlEnCours = false; }
+}
+function _ctlPastille(){
+  const past = document.getElementById('pastilleCtl'); if (!past) return;
+  const todo = CTL.items.filter(_ctlTodo), rouge = todo.some(x => x.niv === 'rouge');
+  past.textContent = todo.length; past.style.display = todo.length ? 'inline-flex' : 'none';
+  past.style.background = rouge ? '#D92D20' : '#E04F16';
+}
+function _ctlTuileVerte(k){
+  const oks = CTL.oks[k] || [];
+  return '<section class="bx-t bx-ok"><div class="bx-hd"><span class="bx-nom">' + CTL_FAM[k][0] + '</span><span class="bx-nb">✓</span></div>'
+    + '<ul class="bx-check">' + oks.slice(0, 5).map(o => '<li>' + _escHtml(o) + '</li>').join('') + '</ul></section>';
+}
+function renderControles(){
+  const el = document.getElementById('ctlContenu'); if (!el) return;
+  _ctlPastille();
+  const it = CTL.items, todo = it.filter(_ctlTodo), par = k => todo.filter(x => x.fam === k);
+  const mars = new Set(todo.filter(x => x.id !== 'EQUIPE').map(x => x.id)), nbR = todo.filter(x => x.niv === 'rouge').length;
+  const avecPoints = CTL_ORDRE.filter(k => par(k).length);
+
+  /* Héros : le total, la part de chaque famille, les mois chargés */
+  const parMois = Array(12).fill(0); todo.forEach(x => { if (x.date && +x.date.slice(0, 4) === +CTL.an) parMois[+x.date.slice(5, 7) - 1]++; });
+  const maxM = Math.max(1, ...parMois);
+  let h = '<div class="bx"><div class="bx-grille">'
+    + '<section class="bx-t bx-hero"><div class="bx-hd"><span class="bx-nom bx-nom-an">Planning ' + CTL.an + '</span></div>'
+    + '<div class="bx-big">' + todo.length + '</div>'
+    + '<h2>' + (todo.length ? '<b>' + (todo.length > 1 ? 'points à traiter' : 'point à traiter') + '</b> pour ' + mars.size + ' MAR' + (nbR ? ', dont ' + _ctlPl(nbR, 'bloquant') : '') + '.' : '<b>Tout est en ordre.</b>') + '</h2>'
+    + '<div class="bx-pile">' + avecPoints.map(k => '<span style="flex:' + par(k).length + ';background:' + CTL_FAM[k][1] + '" title="' + CTL_FAM[k][0] + '"></span>').join('') + '</div>'
+    + '<div class="bx-legende">' + avecPoints.map(k => '<span><i style="background:' + CTL_FAM[k][1] + '"></i>' + CTL_FAM[k][0] + ' <b>' + par(k).length + '</b></span>').join('') + '</div>'
+    + '<div class="bx-mois">' + parMois.map((n, m) => '<div><span class="b' + (n ? ' chaud' : '') + '" style="height:' + Math.max(4, Math.round(n / maxM * 78)) + 'px">' + (n ? '<em>' + n + '</em>' : '') + '</span><small>' + CTL_MC[m] + '</small></div>').join('') + '</div>'
+    + '<div class="bx-hero-pied"><span>Vérifié ' + _escHtml(CTL.majLe) + ' · jour tendu : moins de ' + CTL.seuils.alerte + ' MAR postables</span><button onclick="chargerControles(true)">Relancer les contrôles</button></div></section>';
+
+  /* Réa 1 : la frise des 52 semaines */
+  const rea = par('rea1');
+  if (!rea.length) h += _ctlTuileVerte('rea1').replace('bx-t bx-ok', 'bx-t bx-ok bx-large');
+  else {
+    const semRea = {}; rea.forEach(x => { if (!x.date) return; const s = _ctlSem(x.date); if (s >= 0 && s < 52 && (semRea[s] || '').split(' ').indexOf(x.init) < 0) semRea[s] = (semRea[s] ? semRea[s] + ' ' : '') + x.init; });
+    let dernier = -9, haut = false; const etage = {};
+    Object.keys(semRea).map(Number).sort((a, b) => a - b).forEach(s => { haut = (s - dernier <= 2) ? !haut : false; etage[s] = haut; dernier = s; });
+    h += '<section class="bx-t bx-rea" tabindex="0" onclick="ctlFam(\'rea1\')"><div class="bx-hd"><span class="bx-nom">Semaines Réa 1</span><span class="bx-nb">' + rea.length + '</span></div>'
+      + '<div class="bx-frise">' + Array.from({ length: 52 }, (_, s) => semRea[s] ? '<span class="c"><b' + (etage[s] ? ' class="haut"' : '') + '>' + _escHtml(semRea[s]) + '</b></span>' : '<span></span>').join('') + '</div>'
+      + '<div class="bx-frise-m">' + CTL_MC.map(m => '<span>' + m + '</span>').join('') + '</div>'
+      + '<p class="bx-txt">Absence, demande de temps partiel ou garde pendant la semaine où le MAR est Réa 1. ' + _ctlPl(new Set(rea.map(x => x.id)).size, 'MAR concerné', 'MAR concernés') + '.</p></section>';
+  }
+
+  /* Temps partiel : une barre par jour tendu, la ligne du seuil */
+  const tp = par('tp').filter(x => x.code === 'tendu').sort((a, b) => a.date.localeCompare(b.date));
+  const autresTp = par('tp').length - tp.length;
+  if (!par('tp').length) h += _ctlTuileVerte('tp');
+  else {
+    const nPost = x => parseFloat(String(x.texte).replace(',', '.')) || 0;
+    const mini = tp.reduce((m, x) => !m || nPost(x) < nPost(m) ? x : m, null);
+    const bas = Math.max(0, CTL.seuils.alerte - 7), haut = CTL.seuils.alerte + 3;
+    const ech = v => Math.round(Math.max(0, v - bas) / (haut - bas) * 96);
+    h += '<section class="bx-t bx-tp" tabindex="0" onclick="ctlFam(\'tp\')"><div class="bx-hd"><span class="bx-nom">Temps partiel</span><span class="bx-nb">' + par('tp').length + '</span></div>'
+      + '<div class="bx-barres">' + tp.map(x => '<span style="height:' + ech(nPost(x)) + 'px" title="' + _escHtml(x.init + ' — ' + _ctlJour(x.date) + ' : ' + nPost(x) + ' postables') + '"></span>').join('')
+      + '<div class="bx-seuil" style="bottom:' + ech(CTL.seuils.alerte) + 'px"><em>' + CTL.seuils.alerte + '</em></div></div>'
+      + '<p class="bx-txt" style="margin-top:12px">' + _ctlPl(tp.length, 'TP posé', 'TP posés') + ' un jour à moins de ' + CTL.seuils.alerte + ' postables.'
+      + (mini ? ' Le plus bas : <b>' + nPost(mini) + '</b> le ' + _ctlJour(mini.date) + '.' : '') + (autresTp ? ' ' + _ctlPl(autresTp, 'autre point', 'autres points') + '.' : '') + '</p></section>';
+  }
+
+  /* Congés : une jauge par MAR au-delà de son droit */
+  const vacs = par('conges').filter(x => x.code === 'vac').map(x => { const m = String(x.texte).match(/^([\d,]+) jours.*droit de ([\d,]+)/);
+    return { x: x, pose: m ? parseFloat(m[1].replace(',', '.')) : 0, droit: m ? parseFloat(m[2].replace(',', '.')) : 1 }; });
+  if (!par('conges').length) h += _ctlTuileVerte('conges');
+  else {
+    const maxV = Math.max(1, ...vacs.map(v => v.pose)), autresC = par('conges').length - vacs.length;
+    h += '<section class="bx-t bx-vac" tabindex="0" onclick="ctlFam(\'conges\')"><div class="bx-hd"><span class="bx-nom">Congés</span><span class="bx-nb">' + par('conges').length + '</span></div>'
+      + '<div class="bx-jauges">' + vacs.slice(0, 5).map(v => '<div class="bx-j"><b>' + _escHtml(v.x.init) + '</b><div class="rail"><i style="width:' + (v.droit / maxV * 100) + '%"></i><u style="left:' + (v.droit / maxV * 100) + '%;width:' + ((v.pose - v.droit) / maxV * 100) + '%"></u></div><em>+' + String(v.pose - v.droit).replace('.', ',') + '</em></div>').join('') + '</div>'
+      + '<p class="bx-txt" style="margin-top:14px">' + (vacs.length ? 'Jours de vacances posés au-delà du droit de l\'année.' : '') + (autresC ? ' ' + _ctlPl(autresC, 'écart', 'écarts') + ' entre indispos, planning et contrat.' : '') + '</p></section>';
+  }
+
+  /* 18 h, récupérations, gardes : la liste courte, ou la tuile verte */
+  ['h18', 'recups', 'gardes'].forEach(k => {
+    const ls = it.filter(x => x.fam === k && !CTL.prevenus[x.cle]).sort((a, b) => (a.niv === 'info') - (b.niv === 'info') || String(a.date || '').localeCompare(String(b.date || '')));
+    if (!par(k).length) { h += _ctlTuileVerte(k); return; }
+    const cls = { h18: 'bx-h18', recups: 'bx-rec', gardes: 'bx-gar' }[k];
+    h += '<section class="bx-t ' + cls + '" tabindex="0" onclick="ctlFam(\'' + k + '\')"><div class="bx-hd"><span class="bx-nom">' + CTL_FAM[k][0] + '</span><span class="bx-nb">' + par(k).length + '</span></div><ul class="bx-pts">'
+      + ls.slice(0, 4).map(x => '<li' + (x.niv === 'info' ? ' class="info"' : '') + '><span class="d">' + (x.date ? _ctlJour(x.date) : CTL.an) + '</span><span><b>' + _escHtml(x.init) + '</b> ' + _escHtml(x.texte) + '</span></li>').join('')
+      + (ls.length > 4 ? '<li><span></span><span>et ' + (ls.length - 4) + ' autre' + (ls.length - 4 > 1 ? 's' : '') + '…</span></li>' : '') + '</ul></section>';
+  });
+
+  /* Prévenus */
+  const nP = it.filter(x => x.niv !== 'info' && CTL.prevenus[x.cle]).length, tot = nP + todo.length;
+  h += '<section class="bx-t bx-prev"><div class="bx-hd"><span class="bx-nom">Prévenus</span></div>'
+    + '<div class="bx-big">' + nP + '<span class="bx-sur"> / ' + tot + '</span></div>'
+    + '<div class="rail"><i style="width:' + (tot ? nP / tot * 100 : 0) + '%"></i></div>'
+    + '<p class="bx-txt" style="margin-top:12px">Cochez « Prévenu » dans la liste après avoir contacté le MAR.</p></section>';
+  h += '</div>';
+
+  /* La liste : tout, rangé par mois, filtrable par famille */
+  const liste = it.filter(x => !CTL.fam || x.fam === CTL.fam).slice().sort((a, b) => String(a.date || '').localeCompare(String(b.date || '')));
+  h += '<div class="bx-liste" id="ctlListe"><div class="bx-liste-hd"><h3>' + (CTL.fam ? CTL_FAM[CTL.fam][0] : 'Tous les points') + '</h3>'
+    + '<button class="bx-f' + (!CTL.fam ? ' on' : '') + '" onclick="ctlFam(null)">Tout</button>'
+    + CTL_ORDRE.filter(k => it.some(x => x.fam === k)).map(k => '<button class="bx-f' + (CTL.fam === k ? ' on' : '') + '" onclick="ctlFam(\'' + k + '\')"><i style="background:' + CTL_FAM[k][1] + '"></i>' + CTL_FAM[k][0] + '</button>').join('') + '</div>';
+  if (!liste.length) h += '<div class="bx-vide">Rien à signaler ici.</div>';
+  h += '<div class="bx-col2">';
+  const groupes = {}, ordreG = [];
+  liste.forEach(x => { const k = x.date ? CTL_MOIS[+x.date.slice(5, 7) - 1] + (+x.date.slice(0, 4) !== +CTL.an ? ' ' + x.date.slice(0, 4) : '') : 'Sur l\'année'; if (!groupes[k]) { groupes[k] = []; ordreG.push(k); } groupes[k].push(x); });
+  h += ordreG.map(k => '<div class="bx-mo"><h4>' + k + '</h4>' + groupes[k].map(x => {
+    const pv = CTL.prevenus[x.cle], d = x.date ? new Date(x.date + 'T12:00:00') : null;
+    return '<div class="bx-l' + (pv ? ' vu' : '') + '" style="--c:' + (x.niv === 'info' ? '#D0D5DD' : CTL_FAM[x.fam][1]) + '"><span class="c"></span>'
+      + '<div class="q"><b>' + _escHtml(x.init) + '</b><span>' + (d ? CTL_J[d.getDay()] + ' ' + d.getDate() : CTL.an) + '</span></div>'
+      + '<p>' + _escHtml(x.texte) + '</p>'
+      + '<div class="a"><label><input type="checkbox" ' + (pv ? 'checked' : '') + ' onchange="ctlPrevenu(\'' + _escHtml(x.cle) + '\',this.checked)">' + (pv ? 'Prévenu le ' + _ctlJjMm(pv.le) : 'Prévenu') + '</label>'
+      + (x.id !== 'EQUIPE' ? '<button onclick="ctlOuvrir(\'' + _escHtml(x.id) + '\',' + (x.date ? '\'' + x.date + '\'' : 'null') + ')">Ouvrir</button>' : '') + '</div></div>';
+  }).join('') + '</div>').join('');
+  h += '</div></div></div>';
+  el.innerHTML = h;
+}
+function _ctlJjMm(iso){ const p = String(iso || '').split('-'); return p.length === 3 ? p[2] + '/' + p[1] : ''; }
+function ctlFam(k){ CTL.fam = k; renderControles(); if (k) { const l = document.getElementById('ctlListe'); if (l && l.scrollIntoView) l.scrollIntoView({ behavior: 'smooth', block: 'start' }); } }
+async function ctlPrevenu(cle, coche){
+  const avant = CTL.prevenus[cle];
+  if (coche) CTL.prevenus[cle] = { le: new Date().toISOString().slice(0, 10), par: '' }; else delete CTL.prevenus[cle];
+  renderControles();
+  try {
+    const r = await api({ action: 'marquerPrevenu', cle: cle, prevenu: !!coche });
+    if (!r || !r.success) throw new Error((r && r.error) || 'refus du serveur');
+    if (r.prevenu) { CTL.prevenus[cle] = r.prevenu; renderControles(); }   // la date du serveur fait foi
+  } catch (e) {
+    if (avant) CTL.prevenus[cle] = avant; else delete CTL.prevenus[cle];
+    renderControles();
     toast('Case « Prévenu » non enregistrée : ' + e.message, 'error');
   }
 }
-function verifOuvrir(id, iso){
-  try {
-    STAT.view='mar'; STAT.marId=id; STAT.selected.clear();
-    if (iso) STAT.monthKey = iso.slice(0,7);
-    renderStatuts();
-    const w=document.getElementById('statutsContent'); if (w && w.scrollIntoView) w.scrollIntoView({behavior:'smooth', block:'start'});
-    toast('Dr ' + id + ' sélectionné' + (iso ? ' — ' + _verifDate(iso) : ''));
-  } catch(e) { toast('Sélection impossible : ' + e.message, 'error'); }
-}
-function renderVerifStatuts(){
-  const el=document.getElementById('verifStatuts'); if(!el) return;
-  const pts=(VERIF.points||[]);
-  const past=document.getElementById('pastilleVerif');
-  const nbPrev=pts.filter(p=>VERIF.prevenus[p.cle]).length;
-  if(past){ past.textContent=pts.length; past.style.display=pts.length?'inline-flex':'none'; }
-  if(!pts.length){ el.style.display='none'; el.innerHTML=''; return; }
-  const parMar={}; pts.forEach(p=>{ (parMar[p.id]=parMar[p.id]||[]).push(p); });
-  const ids=Object.keys(parMar).sort();
-  const ouverte=el.getAttribute('data-ouverte')==='1';
-  let h='<div style="display:flex;align-items:flex-start;gap:12px;background:#FFEDD5;border:1px solid #EA580C;'
-    + 'border-radius:12px;padding:14px 16px;margin-bottom:14px">'
-    + '<span style="font-size:18px;line-height:1.2">🟠</span>'
-    + '<div style="flex:1;min-width:0">'
-    + '<div style="font-size:13.5px;font-weight:700">'+pts.length+' point'+(pts.length>1?'s':'')+' à vérifier · '+ids.length+' MAR</div>'
-    + '<div style="font-size:12.5px;color:#334155;line-height:1.5;margin-top:3px">'
-    + 'Absence en semaine Réa 1, vacances au-delà du droit, TP un jour tendu. '
-    + (nbPrev ? '<b>'+nbPrev+' déjà prévenu'+(nbPrev>1?'s':'')+'.</b> ' : '')
-    + 'Un point disparaît dès que le planning est corrigé.</div></div>'
-    + '<span onclick="verifBasculer()" style="font-size:12.5px;font-weight:700;color:#9A3412;'
-    + 'cursor:pointer;white-space:nowrap;user-select:none;padding-top:2px">'+(ouverte?'Masquer':'Voir →')+'</span></div>';
-  if(ouverte) h+=ids.map(id=>{
-    const ls=parMar[id], nbP=ls.filter(p=>VERIF.prevenus[p.cle]).length;
-    return '<div style="background:#fff;border:1px solid var(--line);border-radius:10px;padding:12px 14px;margin-bottom:8px">'
-      + '<div style="display:flex;align-items:center;gap:10px;margin-bottom:4px">'
-      + '<div style="font-family:\'DM Mono\',monospace;font-size:12px;font-weight:700;background:#F1F5F9;border-radius:7px;padding:7px 10px">'+_escHtml(ls[0].init||id)+'</div>'
-      + '<div style="flex:1;min-width:0;font-size:13px;font-weight:700">Dr '+_escHtml(id)+'</div>'
-      + '<div style="font-size:12px;color:var(--ink-3)">'+ls.length+' point'+(ls.length>1?'s':'')+(nbP?' · '+nbP+' prévenu'+(nbP>1?'s':''):'')+'</div></div>'
-      + ls.map(p=>{
-          const t=VERIF_TAG[p.type]||['?','#F1F5F9','#334155'], pv=VERIF.prevenus[p.cle];
-          return '<div style="border-top:1px solid #F1F5F9;padding:9px 0;'+(pv?'opacity:.55':'')+'">'
-            + '<div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap">'
-            + '<span style="font-size:10.5px;font-weight:700;text-transform:uppercase;letter-spacing:.04em;border-radius:999px;padding:3px 8px;white-space:nowrap;background:'+t[1]+';color:'+t[2]+'">'+t[0]+'</span>'
-            + '<span style="font-family:\'DM Mono\',monospace;font-size:12px;color:#334155;white-space:nowrap">'+_verifDate(p.date, VERIF.an)+'</span>'
-            + '<span style="flex:1"></span>'
-            + '<label style="display:flex;align-items:center;gap:5px;font-size:12px;color:var(--ink-3);white-space:nowrap;cursor:pointer">'
-            + '<input type="checkbox" '+(pv?'checked':'')+' onchange="verifPrevenu(\''+_escHtml(p.cle)+'\',this.checked)">'
-            + (pv ? 'Prévenu le '+_verifJjMm(pv.le) : 'Prévenu')+'</label>'
-            + '<button class="btn-sm" onclick="verifOuvrir(\''+_escHtml(id)+'\','+(p.date?'\''+p.date+'\'':'null')+')">Ouvrir</button></div>'
-            + '<div style="font-size:12.5px;color:#334155;line-height:1.4;margin-top:5px">'+_escHtml(p.texte)+'</div></div>';
-        }).join('')
-      + '</div>';
-  }).join('');
-  el.innerHTML=h; el.style.display='block';
+/* « Ouvrir » : l'onglet Statuts, placé sur ce MAR et ce mois (même ordre que
+   recupsVersStatuts : STAT d'abord, puis l'onglet). */
+function ctlOuvrir(id, iso){
+  try { STAT.view = 'mar'; STAT.marId = id; STAT.selected.clear(); if (iso) STAT.monthKey = iso.slice(0, 7); } catch (e) {}
+  showTab('statuts');
+  toast('Dr ' + id + (iso ? ' — ' + _ctlJour(iso) : ''));
 }
 
 /* (23/08/2026) L'ALERTE DES RÉCUPS, DANS L'ONGLET STATUTS — récit : docs/JOURNAL-Planning-Med.md §28 */
@@ -5961,7 +6146,7 @@ function renderCertificat(list){
 //  n'etait plus appelee. Ses seuils 75/65 etaient ecrits en dur.)
 const TENSION_ABSENTS = new Set(['RG','V','F','CTP','CP','R','A','TP','CL']);
 // Repli si l'onglet SEUILS est absent ou si le GAS deploye ne le sert pas.
-let SEUIL_ALERTE = 13, SEUIL_CONFORT = 17;
+let SEUIL_ALERTE = 13, SEUIL_CONFORT = 15;   // (17/11/2026) repli = valeurs de l'onglet SEUILS, la même source que tout le portail
 let _tensionSrc = null, _tensionMeds = null, _tensionJours = null;
 
 function applySeuils(s) {
@@ -5998,6 +6183,7 @@ function tensionJours() {
       (month.doctors || []).forEach(doc => {
         const m = actifs[doc.id];
         if (!m) return;                                          // inactif
+        if (m.horsEffectif) return;                              // (17/11/2026) hors effectif : jamais compté, comme partout
         if (m.dateDebut && day.date <  m.dateDebut) return;      // pas encore arrive
         if (m.dateFin   && day.date >= m.dateFin)   return;      // deja parti
         const st = ((doc.days && doc.days[dayIdx]) || {}).status || '';

@@ -1,7 +1,7 @@
 // ⚠️ RÈGLE (détecteur de dérive dépôt↔Apps Script) : incrémenter cette version
 // à CHAQUE push de ce fichier. Le diagnostic (admin → Maintenance) compare la
 // version déployée ici avec celle du dépôt et signale toute recopie oubliée.
-const GAS_VERSION_PORTAIL = '2026-11-15.1';   // (15/11/2026) .1 libéral : une année close est lue dans l'archive (relevé, déclarations, vue du jour) · (20/10/2026) .1 recherche dans les archives de la veille · .2 onglet ETABLISSEMENT (nom et adresse du devis) · .3 + service et téléphone · .4 + totaux de consultation du groupement · (21/10) .1 abonnement au mail de la veille
+const GAS_VERSION_PORTAIL = '2026-11-17.1';   // (17/11/2026) onglet SEUILS : source unique des seuils d'effectif (pose des TP, contrôles, récupérations, bande de présence) ; graine du confort à 15 comme le classeur · (15/11/2026) .1 libéral : une année close est lue dans l'archive (relevé, déclarations, vue du jour) · (20/10/2026) .1 recherche dans les archives de la veille · .2 onglet ETABLISSEMENT (nom et adresse du devis) · .3 + service et téléphone · .4 + totaux de consultation du groupement · (21/10) .1 abonnement au mail de la veille
 
 /**
  * portail.gs — actions du PORTAIL équipe (index.html).
@@ -1953,9 +1953,9 @@ const SEUILS_TAB = 'SEUILS';
 const _SEUILS_HEADER = ['CLE', 'VALEUR', 'DESCRIPTION'];
 const _SEUILS_SEED = [
   ['SEUIL_PRESENCE_ALERTE', 13,
-   "Bande de presence (onglet Planning) : au-dessous de ce nombre de MAR presents, la journee vire a l'orange puis au rouge."],
-  ['SEUIL_PRESENCE_CONFORT', 17,
-   'Bande de presence (onglet Planning) : a partir de ce nombre de MAR presents, la journee est verte.'],
+   "MAR postables (sans repos de garde ni MAR hors effectif). En dessous : jour tendu — TP refuse a la pose, point signale dans Controles, aucune recuperation posee, bande de presence orange puis rouge."],
+  ['SEUIL_PRESENCE_CONFORT', 15,
+   "A partir de ce nombre : jour vert, TP accorde a la pose. Entre l'alerte et ce seuil : TP sur demande au comite."],
 ];
 
 function getOrCreateSeuilsTab() {
