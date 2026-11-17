@@ -64,9 +64,9 @@ body { font-family:'DM Sans',-apple-system,BlinkMacSystemFont,sans-serif;
 .maquette b { font-weight:700; }
 .origin { display:flex; align-items:flex-start; gap:9px; font-size:13px; color:var(--ink-3);
   background:var(--me-soft); border:1px solid var(--me-border); border-radius:10px;
-  padding:12px 15px; margin-bottom:26px; line-height:1.5; }
+  padding:7px 13px; margin-bottom:18px; line-height:1.4; width:fit-content; }
 .origin b { color:var(--ink-2); font-weight:700; }
-.origin .dot { width:7px; height:7px; border-radius:50%; background:var(--me); flex:none; margin-top:6px; }
+.origin .dot { width:7px; height:7px; border-radius:50%; background:var(--me); flex:none; margin-top:5px; }
 
 /* ── COMPTEURS ── */
 .kpis { display:grid; grid-template-columns:repeat(4,1fr); gap:16px; margin-bottom:26px; }
@@ -110,7 +110,38 @@ tr:last-child td { border-bottom:none; }
 .pil.vieux  { background:transparent;       color:var(--ink-4); }
 .pil.vieux::before { background:var(--line); }
 .pil.jamais { background:var(--amber-soft); color:var(--amber); }
-tr:hover td { background:var(--line-light); }
+.pil.hier   { background:var(--ok-soft);    color:var(--ok); }
+/* (17/11/2026) « Qui s'est connecté » remonte en tête de page : barre de
+   répartition, puis un groupe par ancienneté, une vignette par médecin. */
+.rep { display:flex; height:12px; border-radius:6px; overflow:hidden; background:var(--surface-2); gap:2px; }
+.rep i { display:block; height:100%; }
+.rep-l { display:flex; flex-wrap:wrap; gap:6px 14px; font-size:12.5px; color:var(--ink-3); margin:10px 0 4px; }
+.rep-l span::before { content:''; display:inline-block; width:8px; height:8px; border-radius:50%;
+  background:var(--c); margin-right:6px; vertical-align:0; }
+.rep-l b { color:var(--ink); font-weight:700; }
+.grp { margin-top:18px; padding-top:14px; border-top:1px solid var(--line-light); }
+.grp-t { display:flex; align-items:baseline; gap:8px; font-size:12px; font-weight:700; color:var(--ink-3);
+  text-transform:uppercase; letter-spacing:.05em; margin-bottom:10px; }
+.grp-t .nb { font-family:var(--mono); font-size:11px; font-weight:600; color:var(--ink-4);
+  background:var(--line-light); border-radius:999px; padding:1px 8px; letter-spacing:0; }
+.lig { display:grid; grid-template-columns:32px minmax(0,1fr) 54px; align-items:center; gap:8px; padding:3px 0; }
+.av { width:30px; height:30px; border-radius:50%; display:flex; align-items:center; justify-content:center;
+  font-family:var(--mono); font-weight:600; font-size:11px; letter-spacing:.02em; }
+.fr { display:grid; grid-template-columns:repeat(28,1fr); gap:2px; }
+.fr i { height:18px; border-radius:3px; background:var(--surface-2); }
+.fr i.we { background:var(--line); }
+.fr i.hors { background:transparent; outline:1px dashed var(--line); outline-offset:-1px; }
+.lig .q { font-size:11px; color:var(--ink-4); text-align:right; white-space:nowrap; }
+.lig .rien { font-size:12px; color:var(--amber); }
+.axe { display:grid; grid-template-columns:32px minmax(0,1fr) 54px; gap:8px; font-size:10.5px;
+  color:var(--ink-4); font-family:var(--mono); margin-top:14px; }
+.axe span:nth-child(2) { display:flex; justify-content:space-between; }
+.av.auj, .av.hier { background:var(--ok-soft); color:var(--ok); box-shadow:0 0 0 1.5px var(--ok); }
+.av.hier { box-shadow:none; }
+.av.sem    { background:var(--me-soft);    color:var(--me); }
+.av.mois   { background:var(--surface-2);  color:var(--ink-3); }
+.av.vieux  { background:transparent;       color:var(--ink-4); border:1.5px dashed var(--line); }
+.av.jamais { background:var(--amber-soft); color:var(--amber); }
 td:first-child { width:1%; white-space:nowrap; }
 
 /* Barres « qui se connecte » et bloc administration. */
@@ -166,7 +197,13 @@ td:first-child { width:1%; white-space:nowrap; }
 
   <div class="origin">
     <span class="dot"></span>
-    <span>Comptage depuis le <b id="origine">…</b>, date de présentation au service. Les connexions antérieures, presque toutes celles de l'administrateur pendant la mise au point, ne sont pas comptées.</span>
+    <span>Depuis le <b id="origine">…</b></span>
+  </div>
+
+  <div class="card">
+    <h2>Qui s'est connecté</h2>
+    <p class="cap">Jours de connexion des 4 dernières semaines, du plus récent au plus ancien. Aucun décompte, aucun classement.</p>
+    <div id="qui"><p class="cap" style="margin:0">Chargement…</p></div>
   </div>
 
   <div class="kpis">
@@ -180,20 +217,6 @@ td:first-child { width:1%; white-space:nowrap; }
       <div class="sub" id="k4s">&nbsp;</div></div>
   </div>
 
-  <div class="card">
-    <h2>Combien de médecins s'en servent</h2>
-    <p class="cap">Médecins distincts s'étant connecté au moins une fois dans la semaine, sur les 25 du service.</p>
-    <svg id="ligne" viewBox="0 0 900 240" preserveAspectRatio="none" style="height:240px"></svg>
-    <div class="legend"><span>Une ligne par semaine, depuis l’ouverture au service.</span></div>
-  </div>
-
-  <div class="card">
-    <h2>À quel point ils s'en servent</h2>
-    <p class="cap">Connexions par médecin actif dans la semaine. Mesure la profondeur d'usage, indépendamment du nombre d'utilisateurs.</p>
-    <svg id="profondeur" viewBox="0 0 900 170" preserveAspectRatio="none" style="height:170px"></svg>
-    <div class="legend"><span>Sépare le nombre d’utilisateurs de l’intensité d’usage.</span></div>
-  </div>
-
   <div class="row">
     <div class="card">
       <h2>Volume total</h2>
@@ -205,7 +228,7 @@ td:first-child { width:1%; white-space:nowrap; }
       <h2>Qui se connecte</h2>
       <p class="cap">Connexions selon le code utilisé, depuis l'ouverture au service.</p>
       <div id="roles"></div>
-      <p class="note">Seules les connexions des médecins alimentent les courbes ci-dessus.</p>
+      <p class="note">Seules les connexions des médecins alimentent les chiffres de cette page.</p>
     </div>
   </div>
 
@@ -225,12 +248,6 @@ td:first-child { width:1%; white-space:nowrap; }
       <span>Plus</span>
       <span style="margin-left:auto" id="pic"></span>
     </div>
-  </div>
-
-  <div class="card">
-    <h2>Qui a ouvert le portail</h2>
-    <p class="cap">Date de dernière connexion, par médecin. Sert à voir qui n'a pas encore franchi le pas — aucun décompte, aucun classement.</p>
-    <table id="tb"><tr><td style="color:var(--ink-4)">Chargement…</td></tr></table>
   </div>
 
   <div class="foot">
@@ -335,62 +352,16 @@ function sous(id, v){ const e=document.getElementById(id); if(e) e.textContent =
 /* ── Graphiques ───────────────────────────────────────────────────────── */
 function dessiner(){
   if(!D) return;
-  const ME=jeton('--me')||'#1D6FB8', VIOL=jeton('--viol')||'#6D28D9',
-        GRIS=jeton('--ink-4')||'#94A3B8', LIGNE=jeton('--line')||'#E2E8F0',
-        ROUGE=jeton('--red')||'#CE1126', SURF=jeton('--surface-2')||'#EEF1F5';
-  const S = D.semaines, eff = D.effectif || 25;
+  /* (17/11/2026) Les deux courbes hebdomadaires (médecins actifs, connexions
+     par actif) sont retirées : jamais regardées. Restent le volume, la carte
+     de chaleur et l'administration. */
+  const GRIS=jeton('--ink-4')||'#94A3B8';
+  const S = D.semaines;
 
-  /* Une seule semaine ne fait pas une courbe : on le dit plutôt que de
-     tracer un trait plat qui suggérerait une tendance. */
-  if(S.length < 2){
-    ['ligne','profondeur'].forEach(function(id){
-      const e=document.getElementById(id); if(!e) return;
-      e.outerHTML = '<p class="cap" id="'+id+'" style="margin:0;padding:22px 0;text-align:center">'
-        + (S.length ? 'Une seule semaine enregistrée. La courbe apparaîtra la semaine prochaine.'
-                    : 'Aucune semaine enregistrée pour l\'instant.') + '</p>';
-    });
-  } else {
-    courbe('ligne', S.map(function(x){return x.a;}), eff, ME, ROUGE, LIGNE, S, true);
-    courbe('profondeur', S.map(function(x){return x.a ? x.c/x.a : 0;}), null, VIOL, null, LIGNE, S, false);
-  }
   volume(GRIS, S);
   chaleur();
   roles();
   administration();
-}
-
-function courbe(id, d, plafond, couleur, marque, ligne, S, borne){
-  const el = document.getElementById(id); if(!el || !d.length) return;
-  const W=900, H = borne ? 240 : 170, P={t:16,r:8,b:26,l:34};
-  const max = plafond || Math.max(1, Math.ceil(Math.max.apply(null,d)*1.25));
-  const iw=W-P.l-P.r, ih=H-P.t-P.b;
-  const X=function(i){ return d.length===1 ? P.l+iw/2 : P.l+i*iw/(d.length-1); };
-  const Y=function(v){ return P.t+ih-Math.min(v,max)/max*ih; };
-  let s='';
-  const pas = borne ? 5 : 4;
-  for(let g=0;g<=pas;g++){ const y=P.t+ih-g*ih/pas;
-    s+='<line class="gl" x1="'+P.l+'" y1="'+y+'" x2="'+(W-P.r)+'" y2="'+y+'"/>';
-    s+='<text class="ax" x="'+(P.l-8)+'" y="'+(y+3)+'" text-anchor="end">'+(max*g/pas).toFixed(borne?0:0)+'</text>'; }
-  if(plafond){
-    s+='<line x1="'+P.l+'" y1="'+Y(plafond)+'" x2="'+(W-P.r)+'" y2="'+Y(plafond)+'" stroke="'+ligne+'" stroke-dasharray="4 3"/>';
-    s+='<text class="ax" x="'+(W-P.r)+'" y="'+(Y(plafond)-6)+'" text-anchor="end">effectif du service</text>';
-  }
-  const pts = d.map(function(v,i){ return X(i)+','+Y(v); }).join(' ');
-  if(borne) s+='<polygon points="'+P.l+','+(P.t+ih)+' '+pts+' '+(W-P.r)+','+(P.t+ih)+'" fill="url(#gr'+id+')"/>';
-  s+='<polyline points="'+pts+'" fill="none" stroke="'+couleur+'" stroke-width="2.4" stroke-linejoin="round"/>';
-  if(marque){
-    s+='<circle cx="'+X(0)+'" cy="'+Y(d[0])+'" r="4" fill="'+marque+'"/>';
-    s+='<text class="ax" x="'+(X(0)+8)+'" y="'+(Y(d[0])+16)+'" fill="'+marque+'">ouverture au service</text>';
-  }
-  s+='<circle cx="'+X(d.length-1)+'" cy="'+Y(d[d.length-1])+'" r="4" fill="'+couleur+'"/>';
-  /* Étiquettes de mois lues dans les semaines réelles, jamais inventées. */
-  const vus={};
-  S.forEach(function(x,i){ const m=x.s.slice(0,7);
-    if(!vus[m]){ vus[m]=1;
-      s+='<text class="ax" x="'+X(i)+'" y="'+(H-7)+'" text-anchor="middle">'+MOIS[Number(x.s.slice(5,7))-1].slice(0,4)+'.</text>'; } });
-  el.innerHTML = '<defs><linearGradient id="gr'+id+'" x1="0" y1="0" x2="0" y2="1">'
-    + '<stop offset="0%" stop-color="'+couleur+'" stop-opacity=".22"/>'
-    + '<stop offset="100%" stop-color="'+couleur+'" stop-opacity="0"/></linearGradient></defs>' + s;
 }
 
 function volume(gris, S){
@@ -515,46 +486,78 @@ function administration(){
   box.innerHTML = h;
 }
 
-/* ── Qui a ouvert le portail ──────────────────────────────────────────── */
-/* Les 25 médecins, tous, triés du plus ancien au plus récent : ceux qui n'ont
-   jamais ouvert le portail remontent d'eux-mêmes en tête. Pas de seuil, pas de
-   liste tronquée, pas de ligne de résumé — c'est un état, pas un palmarès.
-   (29/08) La version précédente masquait les gens « à jour » et compensait par
-   une phrase (« Les 1 autres se sont connectés ») qui n'apprenait rien. */
+/* ── Qui s'est connecté ──────────────────────────────────────────────── */
+/* Les 25 médecins, tous, rangés par ancienneté de la dernière connexion :
+   aujourd'hui, hier, cette semaine, ce mois-ci, plus d'un mois, jamais.
+   Pas de seuil, pas de liste tronquée : c'est un état, pas un palmarès.
+   (17/11/2026) Remonté en tête de page, du plus récent au plus ancien. Une
+   ligne par médecin : pastille, frise des 28 derniers jours (un carré par
+   jour où il s'est connecté, dans la couleur de son groupe), date. Jours
+   seulement, jamais un nombre de connexions. La couleur code l'ANCIENNETÉ, pas le mérite : vert → bleu →
+   gris, « jamais » en ambre, jamais de rouge. */
+const GROUPES = [
+  { k:'auj',    t:"Aujourd'hui",       c:'--ok' },
+  { k:'hier',   t:'Hier',              c:'--ok' },
+  { k:'sem',    t:'Cette semaine',     c:'--me' },
+  { k:'mois',   t:'Ce mois-ci',        c:'--ink-3' },
+  { k:'vieux',  t:"Plus d'un mois",    c:'--line' },
+  { k:'jamais', t:'Jamais connectés',  c:'--amber' }
+];
+function anciennete(m){
+  if(!m.d) return 'jamais';
+  const n = joursDepuis(m.d);
+  if(n === null) return 'vieux';
+  return n <= 0 ? 'auj' : n === 1 ? 'hier' : n <= 7 ? 'sem' : n < 30 ? 'mois' : 'vieux';
+}
+function libDerniere(m){
+  if(!m.d) return 'jamais';
+  const n = joursDepuis(m.d);
+  return (n === null) ? frDate(m.d) : (n <= 0) ? "aujourd'hui" : (n === 1) ? 'hier'
+       : (n < 30) ? ('il y a ' + n + ' j') : frDate(m.d);
+}
 function tableau(){
-  const tb=document.getElementById('tb'); if(!tb) return;
+  const box=document.getElementById('qui'); if(!box) return;
   const gens = D.medecins.slice().sort(function(a,b){
-    if(!a.d && !b.d) return String(a.i).localeCompare(String(b.i));
-    if(!a.d) return -1;                       // jamais connecté d'abord
-    if(!b.d) return 1;
-    return a.d < b.d ? -1 : (a.d > b.d ? 1 : 0);
+    if(a.d !== b.d) return a.d > b.d ? -1 : 1;   // plus récent d'abord, « jamais » (vide) en dernier
+    return String(a.i).localeCompare(String(b.i));
   });
-  let h='<tr><th>Médecin</th><th>Dernière connexion</th></tr>';
-  gens.forEach(function(m){
-    /* La couleur code l'ANCIENNETÉ, pas le mérite : une rampe vert → bleu →
-       gris, jamais de rouge. Le rouge dirait « en faute » à propos d'un
-       collègue qui n'a pas ouvert une page web. « jamais » est en ambre :
-       ça se remarque sans accuser. */
-    let cell;
-    if(!m.d){ cell='<span class="pil jamais">jamais</span>'; }
-    else {
-      const n = joursDepuis(m.d);
-      const q = (n === null) ? frDate(m.d)
-              : (n <= 0) ? "aujourd'hui"
-              : (n === 1) ? 'hier'
-              : (n < 30) ? ('il y a ' + n + ' jours')
-              : frDate(m.d);
-      const cl = (n === null) ? 'vieux'
-               : (n <= 1) ? 'auj'
-               : (n <= 7) ? 'sem'
-               : (n < 30) ? 'mois'
-               : 'vieux';
-      cell='<span class="pil '+cl+'">'+q+'</span>';
-    }
-    h+='<tr><td><span class="ini">'+esc(m.i)+'</span></td><td>'+cell+'</td></tr>';
+  if(!gens.length){ box.innerHTML='<p class="cap" style="margin:0">Aucun médecin actif.</p>'; return; }
+  const par = {};
+  gens.forEach(function(m){ const k = anciennete(m); (par[k] = par[k] || []).push(m); });
+  const tot = gens.length;
+  let h = '<div class="rep">' + GROUPES.filter(function(g){ return par[g.k]; }).map(function(g){
+      return '<i style="flex:' + par[g.k].length + ';background:var(' + g.c + ')' + (g.k==='hier'?';opacity:.55':'') + '"></i>';
+    }).join('') + '</div>';
+  h += '<div class="rep-l">' + GROUPES.filter(function(g){ return par[g.k]; }).map(function(g){
+      return '<span style="--c:var(' + g.c + ')' + (g.k==='hier'?';opacity:.8':'') + '"><b>' + par[g.k].length + '</b> '
+           + g.t.toLowerCase() + '</span>';
+    }).join('') + '<span style="--c:transparent;margin-left:auto">sur ' + tot + '</span></div>';
+  /* Les 28 jours, du plus ancien à aujourd'hui, en dates locales. */
+  const J = [];
+  for(let k=27;k>=0;k--){ const t=new Date(); t.setHours(12,0,0,0); t.setDate(t.getDate()-k);
+    J.push({ iso: t.getFullYear()+'-'+String(t.getMonth()+1).padStart(2,'0')+'-'+String(t.getDate()).padStart(2,'0'),
+             we: t.getDay()===0 || t.getDay()===6 }); }
+  const depuis = D.frise_depuis || '';
+  h += '<div class="axe"><span></span><span><span>il y a 4 sem.</span><span>auj.</span></span><span></span></div>';
+  GROUPES.forEach(function(g){
+    const L = par[g.k]; if(!L) return;
+    /* La date à droite ne répète pas le titre du groupe. */
+    const detail = (g.k === 'sem' || g.k === 'mois' || g.k === 'vieux');
+    h += '<div class="grp"><div class="grp-t">' + g.t + ' <span class="nb">' + L.length + '</span></div>'
+       + L.map(function(m){
+           const vus = {}; (m.j || []).forEach(function(x){ vus[x] = 1; });
+           const frise = g.k === 'jamais' ? '<span class="rien">aucune connexion</span>'
+             : '<div class="fr">' + J.map(function(x){
+                 if(vus[x.iso]) return '<i style="background:var(' + (g.k==='vieux' ? '--ink-4' : g.c) + ')"></i>';
+                 if(depuis && x.iso < depuis) return '<i class="hors"></i>';   // détail purgé : inconnu, pas absent
+                 return x.we ? '<i class="we"></i>' : '<i></i>';
+               }).join('') + '</div>';
+           return '<div class="lig" title="' + esc(m.i) + ' — ' + esc(libDerniere(m)) + '">'
+                + '<span class="av ' + g.k + '">' + esc(m.i) + '</span>' + frise
+                + '<span class="q">' + (detail ? esc(libDerniere(m)) : '') + '</span></div>';
+         }).join('') + '</div>';
   });
-  if(!gens.length) h+='<tr><td colspan="2" style="color:var(--ink-3)">Aucun médecin actif.</td></tr>';
-  tb.innerHTML=h;
+  box.innerHTML = h;
 }
 function esc(v){ return String(v||'?').replace(/[<>&"]/g, function(c){
   return {'<':'&lt;','>':'&gt;','&':'&amp;','"':'&quot;'}[c]; }); }

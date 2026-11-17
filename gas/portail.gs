@@ -1,7 +1,7 @@
 // ⚠️ RÈGLE (détecteur de dérive dépôt↔Apps Script) : incrémenter cette version
 // à CHAQUE push de ce fichier. Le diagnostic (admin → Maintenance) compare la
 // version déployée ici avec celle du dépôt et signale toute recopie oubliée.
-const GAS_VERSION_PORTAIL = '2026-11-17.1';   // (17/11/2026) onglet SEUILS : source unique des seuils d'effectif (pose des TP, contrôles, récupérations, bande de présence) ; graine du confort à 15 comme le classeur · (15/11/2026) .1 libéral : une année close est lue dans l'archive (relevé, déclarations, vue du jour) · (20/10/2026) .1 recherche dans les archives de la veille · .2 onglet ETABLISSEMENT (nom et adresse du devis) · .3 + service et téléphone · .4 + totaux de consultation du groupement · (21/10) .1 abonnement au mail de la veille
+const GAS_VERSION_PORTAIL = '2026-11-17.2';   // (17/11/2026) .2 statistiques d'usage : jours de connexion des 28 derniers jours par médecin (frise) · (17/11/2026) onglet SEUILS : source unique des seuils d'effectif (pose des TP, contrôles, récupérations, bande de présence) ; graine du confort à 15 comme le classeur · (15/11/2026) .1 libéral : une année close est lue dans l'archive (relevé, déclarations, vue du jour) · (20/10/2026) .1 recherche dans les archives de la veille · .2 onglet ETABLISSEMENT (nom et adresse du devis) · .3 + service et téléphone · .4 + totaux de consultation du groupement · (21/10) .1 abonnement au mail de la veille
 
 /**
  * portail.gs — actions du PORTAIL équipe (index.html).
@@ -2102,7 +2102,9 @@ function getSecteurs() {
    non. Une page qui recalculerait depuis le brut afficherait une courbe qui
    retrecit toute seule.
    Aucun total par personne n'est renvoye : la page montre QUI n'a pas ouvert
-   le portail, jamais qui l'ouvre le plus. */
+   le portail, jamais qui l'ouvre le plus.
+   (17/11/2026) Exception decidee par le responsable : les JOURS de connexion
+   des 28 derniers jours (dates seules, sans compte), pour la frise. */
 /* (29/08/2026, corrige le jour meme) Le controle portait sur user.role ===
    'admin'. Or checkCode ne rend ce role QUE pour le code d'administration, avec
    id 'ADMIN' : ouvert avec son code personnel, l'administrateur du portail est
@@ -2200,7 +2202,35 @@ function getStatsUsage(user) {
     });
   }
 
+  /* ── Frise des 28 derniers jours, par médecin (17/11/2026) ──
+     Décision du responsable : la page montre, pour chaque médecin, les JOURS
+     où il s'est connecté sur 4 semaines. Seulement des dates, jamais un
+     nombre de connexions par personne. Seule lecture de l'onglet brut
+     CONNEXIONS : sur 28 jours il est complet (plafond ~3 mois). `frise_depuis`
+     dit d'où part le détail encore conservé, pour ne jamais faire passer une
+     purge pour une absence. */
+  let friseDepuis = '';
+  const fb = ss.getSheetByName('CONNEXIONS');
+  if (fb && fb.getLastRow() > 1) {
+    const limite = new Date(); limite.setHours(0, 0, 0, 0); limite.setDate(limite.getDate() - 27);
+    const d = fb.getRange(2, 1, fb.getLastRow() - 1, 4).getValues();
+    const jours = {};
+    for (let r = 0; r < d.length; r++) {
+      const h = d[r][0];
+      if (!h || typeof h.getFullYear !== 'function') continue;
+      if (!friseDepuis || _jour(h) < friseDepuis) friseDepuis = _jour(h);
+      if (h < limite) continue;
+      if (String(d[r][3] || '').trim().toLowerCase() !== 'mar') continue;
+      const ini = String(d[r][2] || '').trim();
+      if (!ini) continue;
+      (jours[ini] = jours[ini] || {})[_jour(h)] = 1;
+    }
+    gens.forEach(function (m) { m.j = Object.keys(jours[m.i] || {}).sort(); });
+  } else {
+    gens.forEach(function (m) { m.j = []; });
+  }
+
   return { success: true, origine: STATS_ORIGINE, effectif: gens.length,
            semaines: semaines, heures: heures, medecins: gens,
-           roles: roles, actions: actions };
+           roles: roles, actions: actions, frise_depuis: friseDepuis };
 }

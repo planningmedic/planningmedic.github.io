@@ -42,8 +42,15 @@ function bac() {
   ['Lundi','Mardi','Mercredi','Jeudi','Vendredi','Samedi','Dimanche'].forEach((j,i)=>
     gh.push([j].concat(Array.from({length:24},(_,h)=> (i===6&&h===20)?9:(i+h)%3 ))));
   cl.ajouter('STATS_HEURES', gh);
+  /* Dates RELATIVES à aujourd'hui : la frise couvre les 28 derniers jours. */
+  const il = function (j, h) { const d = new Date(); d.setDate(d.getDate() - j); d.setHours(h, 0, 0, 0); return d; };
   cl.ajouter('CONNEXIONS', [['HORODATAGE','NOM','INITIALES','ROLE'],
-    [new Date('2026-09-21T08:00:00'), 'MARTIN', 'MA', 'mar']]);
+    [il(60, 8), 'DUPONT', 'DU', 'mar'],       // hors des 28 jours
+    [il(10, 8), 'DUPONT', 'DU', 'mar'],
+    [il(10, 15), 'DUPONT', 'DU', 'mar'],      // même jour : un seul carré
+    [il(2, 9),  'DUPONT', 'DU', 'mar'],
+    [il(1, 9),  'ADMIN',  '',   'admin'],     // code d'administration : n'alimente aucune frise
+    [il(1, 9),  'PARTI',  'PA', 'mar']]);
 
   const lus = [];
   const cl2 = { getSheetByName(n){ lus.push(n); return cl.getSheetByName(n); },
@@ -112,22 +119,39 @@ console.log('\n═══ 2. Aucun total par personne n\'est renvoyé ═══')
   const { ctx } = bac();
   const r = ctx.getStatsUsage(ADMIN);
   const brut = JSON.stringify(r);
+  /* (17/11/2026) Décision du responsable : la frise montre les JOURS de
+     connexion des 28 derniers jours. Des dates, jamais un nombre. */
   V('la réponse ne contient aucun compteur nominatif',
     r.medecins.every(function (m) {
-      return Object.keys(m).every(function (k) { return k === 'i' || k === 'd'; });
+      return Object.keys(m).every(function (k) { return k === 'i' || k === 'd' || k === 'j'; });
     }), r.medecins);
-  V('chaque médecin n\'expose QUE ses initiales et une date',
-    r.medecins.every(function (m) { return typeof m.i === 'string' && typeof m.d === 'string'; }));
+  V('chaque médecin n\'expose QUE ses initiales, une date et une liste de jours',
+    r.medecins.every(function (m) { return typeof m.i === 'string' && typeof m.d === 'string'
+      && Array.isArray(m.j) && m.j.every(function (x) { return /^\d{4}-\d{2}-\d{2}$/.test(x); }); }), r.medecins);
   V('aucun nom complet ne figure dans la réponse',
     brut.indexOf('DUPONT') < 0 && brut.indexOf('MARTIN') < 0, brut.slice(0, 160));
   V('aucun code d\'accès ne fuit', brut.indexOf('AAAA1111') < 0 && brut.indexOf('BBBB2222') < 0);
 }
 
-console.log('\n═══ 3. Le serveur ne lit JAMAIS les lignes brutes ═══');
+console.log('\n═══ 3. Les courbes viennent des compteurs figés, la frise du brut ═══');
+/* (17/11/2026) Les courbes ont disparu de la page ; la frise lit l'onglet brut
+   CONNEXIONS, complet sur 28 jours (plafond ~3 mois). Ce qui reste interdit :
+   que la PAGE lise le brut, et qu'une purge passe pour une absence. */
 {
   const { ctx, lus } = bac();
-  ctx.getStatsUsage(ADMIN);
-  V('l\'onglet CONNEXIONS n\'est pas ouvert', lus.indexOf('CONNEXIONS') < 0, lus);
+  const r = ctx.getStatsUsage(ADMIN);
+  const du = r.medecins.filter(function (m) { return m.i === 'DU'; })[0];
+  const ma = r.medecins.filter(function (m) { return m.i === 'MA'; })[0];
+  const jISO = function (j) { const d = new Date(); d.setDate(d.getDate() - j);
+    return d.getFullYear() + '-' + String(d.getMonth()+1).padStart(2,'0') + '-' + String(d.getDate()).padStart(2,'0'); };
+  V('la frise lit l\'onglet brut', lus.indexOf('CONNEXIONS') >= 0, lus);
+  V('DU : 2 jours dans les 28 derniers (deux connexions le même jour = un seul jour)',
+    JSON.stringify(du.j) === JSON.stringify([jISO(10), jISO(2)]), du.j);
+  V('une connexion de plus de 28 jours n\'entre pas dans la frise', du.j.indexOf(jISO(60)) < 0, du.j);
+  V('un médecin sans connexion récente a une frise vide', ma.j.length === 0, ma.j);
+  V('le médecin parti n\'apparaît toujours pas', !r.medecins.some(function (m) { return m.i === 'PA'; }));
+  V('le début du détail conservé est renvoyé (pour ne pas confondre purge et absence)',
+    r.frise_depuis === jISO(60), r.frise_depuis);
   V('les compteurs figés sont bien lus',
     lus.indexOf('STATS_SEMAINE') >= 0 && lus.indexOf('STATS_HEURES') >= 0, lus);
   V('la page ne mentionne nulle part l\'onglet brut',
@@ -198,23 +222,20 @@ function cmp(a, b) {
   return 0;
 }
 
-console.log('\n═══ 6. Le tableau montre TOUT le service ═══');
+console.log('\n═══ 6. « Qui s\'est connecté » montre TOUT le service ═══');
 /* (29/08) Le tableau ne listait que les « jamais » et les inactifs de plus de
-   30 jours, puis compensait par « Les N autres se sont connectés ». Il masquait
-   donc justement les gens qui vont bien, et la phrase n'apprenait rien. Décision
-   du responsable : les 25, tous, triés du plus ancien au plus récent. */
+   30 jours, puis compensait par « Les N autres se sont connectés ». Décision
+   du responsable : les 25, tous.
+   (17/11/2026) Remonté en tête de page, rangé du plus récent au plus ancien,
+   en groupes d'ancienneté et vignettes ; les deux courbes hebdomadaires sont
+   retirées. Toujours aucun décompte par personne. */
 {
-  /* On prend tableau() ET esc() : extraire la moitié d'une dépendance et
-     recoder l'autre dans le banc reviendrait à tester une fonction qui n'existe
-     pas dans la page. */
-  const src = PAGE.slice(PAGE.indexOf('function tableau(){'), PAGE.indexOf('charger();'));
+  const src = PAGE.slice(PAGE.indexOf("/* ── Qui s'est connecté"), PAGE.indexOf('charger();'));
   const aux = PAGE.slice(PAGE.indexOf('const MOIS ='), PAGE.indexOf('/* ── Compteurs'));
   let sortie = '';
-  const document = { getElementById: function(){ return { set innerHTML(v){ sortie = v; } }; } };
-  /* Dates RELATIVES à aujourd'hui. Écrites en dur, elles vieillissaient : le
-     scénario passait le 29/08 et tombait le 31, en signalant un défaut de la
-     page alors que seul le test avait tort. Un test qui dépend du calendrier
-     ment tôt ou tard. */
+  const document = { getElementById: function(id){
+    return id === 'qui' ? { set innerHTML(v){ sortie = v; } } : null; } };
+  /* Dates RELATIVES à aujourd'hui : un test qui dépend du calendrier ment tôt ou tard. */
   const jourISO = function (recul) {
     const d = new Date(); d.setDate(d.getDate() - recul);
     return d.getFullYear() + '-' + String(d.getMonth()+1).padStart(2,'0')
@@ -222,43 +243,65 @@ console.log('\n═══ 6. Le tableau montre TOUT le service ═══');
   };
   const D = { medecins: [
     { i:'AXE', d:jourISO(0) }, { i:'LX', d:'' }, { i:'NX', d:'' },
-    { i:'RX', d:jourISO(50) }, { i:'ZZ', d:jourISO(1) }, { i:'AA', d:'' }
-  ]};
+    { i:'RX', d:jourISO(50) }, { i:'ZZ', d:jourISO(1) }, { i:'AA', d:'' },
+    { i:'SM', d:jourISO(4), j:[jourISO(20), jourISO(4)] }, { i:'MO', d:jourISO(12) }
+  ], frise_depuis: jourISO(25) };
+  D.medecins[0].j = [jourISO(3), jourISO(0)];
   eval(aux + src);
   tableau();
-  const lignes = [...sortie.matchAll(/<td><span class="ini">([A-Z]+)<\/span><\/td><td>(.*?)<\/td>/g)]
-    .map(function(m){ return [m[1], m[2].replace(/<[^>]+>/g, '')]; });
-  V('les 6 médecins fournis sont TOUS affichés', lignes.length === 6, lignes.length);
-  V('aucun n\'est masqué derrière un résumé', !/colspan/.test(sortie));
-  V('la phrase « les N autres » a disparu', sortie.indexOf('autres se sont connect') < 0);
-  V('les jamais connectés viennent en tête',
-    lignes.slice(0,3).every(function(l){ return l[1] === 'jamais'; }), lignes.map(function(l){return l[0];}));
-  V('puis du plus ancien au plus récent',
-    lignes[3][0] === 'RX' && lignes[4][0] === 'ZZ' && lignes[5][0] === 'AXE',
-    lignes.map(function(l){return l[0];}));
-  V('« aujourd\'hui » plutôt que « il y a 0 jours »', lignes[5][1] === "aujourd'hui", lignes[5]);
-  V('« hier » plutôt que « il y a 1 jours »', lignes[4][1] === 'hier', lignes[4]);
+  const vign = [...sortie.matchAll(/<span class="av ([a-z]+)">([A-Z]+)<\/span>(.*?)<span class="q">([^<]*)<\/span>/g)]
+    .map(function(m){ return { k:m[1], i:m[2], f:m[3], q:m[4] }; });
+  const ordre = vign.map(function(v){ return v.i; });
+  const groupes = [...sortie.matchAll(/<div class="grp-t">([^<]+) <span class="nb">(\d+)<\/span>/g)]
+    .map(function(m){ return [m[1], Number(m[2])]; });
+  V('les 8 médecins fournis sont TOUS affichés', vign.length === 8, vign.length);
+  V('aucun n\'est masqué derrière un résumé', sortie.indexOf('autres se sont connect') < 0);
+  V('du plus récent au plus ancien, les jamais connectés en dernier',
+    ordre.join(',') === 'AXE,ZZ,SM,MO,RX,AA,LX,NX', ordre);
+  V('6 groupes, dans l\'ordre de l\'ancienneté',
+    groupes.map(function(g){ return g[0]; }).join('|')
+      === "Aujourd'hui|Hier|Cette semaine|Ce mois-ci|Plus d'un mois|Jamais connectés", groupes);
+  V('le compte de chaque groupe est juste',
+    groupes.map(function(g){ return g[1]; }).join(',') === '1,1,1,1,1,3', groupes);
+  V('chaque vignette porte la classe de son groupe',
+    vign.map(function(v){ return v.k; }).join(',') === 'auj,hier,sem,mois,vieux,jamais,jamais,jamais',
+    vign.map(function(v){ return v.k; }));
+  V('la barre de répartition totalise l\'effectif', /sur 8<\/span>/.test(sortie));
+  V('« il y a N j » dans la semaine et le mois',
+    vign[2].q === 'il y a 4 j' && vign[3].q === 'il y a 12 j', [vign[2], vign[3]]);
   V('au-delà d\'un mois, la date en clair (jour mois année)',
-    /^\d{1,2} [a-zéû]+ \d{4}$/.test(lignes[3][1]), lignes[3]);
+    /^\d{1,2} [a-zéû]+ \d{4}$/.test(vign[4].q), vign[4]);
+  V('le titre du groupe n\'est pas répété sous la vignette',
+    vign[0].q === '' && vign[1].q === '' && vign[5].q === '', [vign[0], vign[1], vign[5]]);
+  V('chaque frise compte 28 jours',
+    vign.filter(function(v){ return v.k !== 'jamais'; })
+        .every(function(v){ return (v.f.match(/<i[ >]/g) || []).length === 28; }),
+    vign.map(function(v){ return (v.f.match(/<i[ >]/g) || []).length; }));
+  const carres = function (v) { return [...v.f.matchAll(/<i([^>]*)><\/i>/g)].map(function(m){ return m[1]; }); };
+  const ax = carres(vign[0]), sm = carres(vign[2]);
+  V('la frise allume aujourd\'hui et il y a 3 jours, en vert (groupe Aujourd\'hui)',
+    /--ok/.test(ax[27]) && /--ok/.test(ax[24]) && ax.filter(function(c){ return /background:var/.test(c); }).length === 2, ax);
+  V('dans le groupe Cette semaine, les carrés sont bleus', /--me/.test(sm[23]) && /--me/.test(sm[7]), sm);
+  V('avant le début du détail conservé : case « inconnue », pas « absent »',
+    /class="hors"/.test(sm[0]) && /class="hors"/.test(sm[1]) && !/class="hors"/.test(sm[3]), sm.slice(0, 4));
+  V('les jamais connectés n\'ont pas de frise', vign.filter(function(v){ return v.k === 'jamais'; })
+    .every(function(v){ return v.f.indexOf('aucune connexion') >= 0; }));
+  V('aucun chiffre de connexions par personne n\'est affiché',
+    !/\d+\s*connexion/i.test(sortie.replace(/<[^>]+>/g, ' ')), sortie.replace(/<[^>]+>/g, ' ').slice(0, 200));
 
-  /* (29/08) Couleurs : la pastille code l'ANCIENNETÉ, pas le mérite. Aucun
-     rouge — il dirait « en faute » à propos d'un collègue qui n'a pas ouvert
-     une page web, exactement le rôle que le service ne veut pas donner à cet
-     écran. Vérifié sur la sortie réelle ET sur la feuille de style. */
-  const pil = [...sortie.matchAll(/<span class="pil ([a-z]+)">([^<]*)<\/span>/g)]
-    .map(function(m){ return [m[1], m[2]]; });
-  V('chaque ligne porte une pastille', pil.length === lignes.length, pil.length);
-  V('les jamais connectés sont en ambre',
-    pil.filter(function(p){ return p[1] === 'jamais'; }).every(function(p){ return p[0] === 'jamais'; }), pil);
-  V('aujourd\'hui est en vert', pil[5][0] === 'auj', pil[5]);
-  V('hier aussi', pil[4][0] === 'auj', pil[4]);
-  V('au-delà d\'un mois, la pastille pâlit', pil[3][0] === 'vieux', pil[3]);
+  /* Couleurs : l'ANCIENNETÉ, pas le mérite. Aucun rouge. */
   const styles = PAGE.slice(PAGE.indexOf('.pil {'), PAGE.indexOf('</style>'));
-  V('aucune pastille n\'utilise la couleur d\'alerte',
-    styles.indexOf('--red') < 0, styles.slice(0, 200));
-  V('les 5 états ont chacun leur style',
-    ['.pil.auj','.pil.sem','.pil.mois','.pil.vieux','.pil.jamais']
+  V('aucune vignette n\'utilise la couleur d\'alerte',
+    styles.indexOf('--red') < 0 && src.indexOf('--red') < 0, styles.slice(0, 200));
+  V('les 6 états ont chacun leur style',
+    ['.av.auj','.av.hier','.av.sem','.av.mois','.av.vieux','.av.jamais']
       .every(function(c){ return styles.indexOf(c) >= 0; }));
+  V('les jamais connectés sont en ambre', /\.av\.jamais\s*\{[^}]*--amber/.test(styles));
+  V('la liste est la PREMIÈRE carte de la page',
+    PAGE.indexOf('id="qui"') > 0 && PAGE.indexOf('id="qui"') < PAGE.indexOf('class="kpis"'));
+  V('les deux courbes hebdomadaires ont disparu',
+    PAGE.indexOf('id="ligne"') < 0 && PAGE.indexOf('id="profondeur"') < 0 && PAGE.indexOf('function courbe(') < 0);
+  V('la carte de chaleur reste', PAGE.indexOf('id="heat"') > 0);
 }
 
 console.log('\n═══ 7. Les compteurs GAS ont bien été poussés avec ═══');
