@@ -73,6 +73,10 @@ poser(SEPT, '2026-09-01', 'ALPHA',  { morning: 'VIS', afternoon: 'VIS' });
 poser(SEPT, '2026-09-01', 'BRAVO',  { status: 'G',  morning: 'REA', afternoon: 'REA' });
 poser(SEPT, '2026-09-01', 'CHARLI', { status: 'G2', morning: 'MAT', afternoon: 'MAT' });
 poser(SEPT, '2026-09-01', 'DELTA',  { status: 'A' });
+// Week-end : samedi les deux gardes, dimanche la seule garde anesth (réa vacante).
+poser(SEPT, '2026-09-05', 'ALPHA',  { status: 'G',  morning: 'REA', afternoon: 'REA' });
+poser(SEPT, '2026-09-05', 'BRAVO',  { status: 'G2', morning: 'MAT', afternoon: 'MAT' });
+poser(SEPT, '2026-09-06', 'CHARLI', { status: 'G2', morning: 'MAT', afternoon: 'MAT' });
 
 const SECTEURS = [
   { code: 'VIS', label: 'Viscéral',  court: 'VIS', aff: 'Viscéral',  icon: '', bg: null, fg: null, cs: 'CS-VIS', actif: true, xlLabel: 'VISCERAL',  xlBg: 'F2F2F2', xlRows: 2, ordre: 1 },
@@ -201,6 +205,23 @@ const colJour = dow => (dow < 5 ? 2 + dow * 4 : 22 + (dow - 5) * 4);
   // ── Le mercredi (02/09) doit \u00eatre vide, pas rempli par le 2 ao\u00fbt ──
   V('mercredi : rien en maternit\u00e9 (le 2 ao\u00fbt ne d\u00e9borde pas)', val(ws, rMAT, MER) === '', val(ws, rMAT, MER));
   V('mercredi : aucune garde r\u00e9a', val(ws, rGRE, MER) === '', val(ws, rGRE, MER));
+
+  /* ── Week-end : garde réa et garde anesth séparées (17/11/2026) ──
+     Défaut vu sur le planning papier de la semaine 47 : l'export mettait les
+     deux gardes du week-end dans une seule case « X / Y », sans dire qui
+     tenait la réa. CONTRE-ÉPREUVE : sur l'ancienne version, la case réa du
+     samedi vaut « AL / BR » et les en-têtes « GARDE ». */
+  {
+    const SAM = colJour(5), DIM = colJour(6);
+    V('samedi : en-tête « GARDE réa » puis « GARDE anesth »',
+      val(ws, 6, SAM) === 'GARDE réa' && val(ws, 6, SAM + 2) === 'GARDE anesth', [val(ws, 6, SAM), val(ws, 6, SAM + 2)]);
+    V('samedi : réa = AL seul', val(ws, 7, SAM) === 'AL', val(ws, 7, SAM));
+    V('samedi : anesth = BR seul', val(ws, 7, SAM + 2) === 'BR', val(ws, 7, SAM + 2));
+    V('dimanche : réa vacante affichée « — »', val(ws, 7, DIM) === '—', val(ws, 7, DIM));
+    V('dimanche : anesth = CH', val(ws, 7, DIM + 2) === 'CH', val(ws, 7, DIM + 2));
+    V('semaine : les en-têtes M / AM restent intacts', val(ws, 6, LUN) === 'M' && val(ws, 6, LUN + 2) === 'AM',
+      [val(ws, 6, LUN), val(ws, 6, LUN + 2)]);
+  }
 
   /* ── Aucun numero interne dans le depot public (11/09/2026) ──
      Consigne du DPO. Une table de secours de 23 DECT et quatre numeros de

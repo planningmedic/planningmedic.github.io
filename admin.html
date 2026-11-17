@@ -6650,15 +6650,17 @@ async function exportWeekExcel(){
   for(let dow=0;dow<7;dow++){const cs=colStart(dow);mc(5,cs,5,cs+3);const s=daySlots[dow];setCell(5,cs,s?fmt(s.date):'',font(false,10),fill(C.hd),align('center','middle'),bAll);}
   // L6 num semaine + M/AM (weekend = GARDE, plus d'astreinte)
   setCell(6,1,wk.weekNum,font(true,11),fill(C.white),align('center','middle'),bAll);
+  /* (17/11/2026) Week-end : garde réa et garde anesth dans DEUX cases, comme le
+     planning papier. Une seule case « X / Y » ne disait pas qui tenait quoi. */
   for(let dow=0;dow<7;dow++){const cs=colStart(dow);const we=dow>=5;
-    if(we){mc(6,cs,6,cs+3);setCell(6,cs,'GARDE',font(true,10),fill(C.white),align('center','middle'),bAll);}
-    else{mc(6,cs,6,cs+1);mc(6,cs+2,6,cs+3);
-      setCell(6,cs,'M',font(true,10),fill(C.white),align('center','middle'),bAll);
-      setCell(6,cs+2,'AM',font(true,10),fill(C.white),align('center','middle'),bAll);}}
-  // L7 section blocs (gauche) + garde week-end (droite, pleine largeur, plus d'astreinte)
+    mc(6,cs,6,cs+1);mc(6,cs+2,6,cs+3);
+    setCell(6,cs,we?'GARDE réa':'M',font(true,10),fill(C.white),align('center','middle'),bAll);
+    setCell(6,cs+2,we?'GARDE anesth':'AM',font(true,10),fill(C.white),align('center','middle'),bAll);}
+  // L7 section blocs (gauche) + gardes du week-end (droite : réa | anesth)
   mc(7,1,7,21);setCell(7,1,'ANESTHESISTES AUX BLOCS ',font(true,10),fill(C.hd),align('center','middle'),bAll);
-  [5,6].forEach(dow=>{const cs=colStart(dow);const g=guards[dow].join(' / ');
-    mc(7,cs,7,cs+3);setCell(7,cs,g||'—',font(!!g,10,g?'000000':'888888'),fill(C.we),align('center','middle'),bAll);});
+  [5,6].forEach(dow=>{const cs=colStart(dow);
+    [[gardesRea[dow],cs],[gardesAn[dow],cs+2]].forEach(([liste,c0])=>{const g=liste.join(' / ');
+      mc(7,c0,7,c0+1);setCell(7,c0,g||'—',font(!!g,10,g?'000000':'888888'),fill(C.we),align('center','middle'),bAll);});});
   // L8-21 blocs (Cardio/Radio séparés sur 2 lignes adjacentes)
   let row=8;
   BLOCS.forEach(b=>{
