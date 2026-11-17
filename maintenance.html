@@ -93,6 +93,7 @@ body{background:var(--bg);font-family:'DM Sans',system-ui,sans-serif;color:var(-
 #authErr{margin-top:12px;font-size:13px;color:var(--red);font-weight:600}
 </style>
 <script src="partage/session.js"></script>
+<script src="partage/attente_baie.js"></script>   <!-- (17/11/2026) dessin d'attente de la clôture -->
 <script>/* FALLBACK_SESSION — filet (même règle que les autres pages). Si partage/session.js ne se charge pas,
 la page ne doit pas devenir inutilisable : le code vit alors le temps de l'onglet. */
 window.SessionPortail = window.SessionPortail || { lire:function(){try{return sessionStorage.getItem('pmViewCode')||'';}catch(e){return '';}}, memoriser:function(c){try{sessionStorage.setItem('pmViewCode',c);}catch(e){}}, oublier:function(){try{sessionStorage.removeItem('pmViewCode');}catch(e){}}, estInstallee:function(){return false;}, joursRestants:function(){return null;}, DUREE_JOURS:0 };</script>
@@ -490,6 +491,7 @@ deuxAppuis($('btnClot'), () => 'Confirmer : clôturer ' + (CLOT_YEAR || ''), asy
   if (!CLOT_YEAR) return;
   btn.disabled = true; rep.disabled = true; const lib = btn.textContent; btn.textContent = 'Clôture en cours…';
   out.innerHTML = '<div class="info">Copie du classeur, bilan, archivage, bascule… Ne fermez pas la page : une à plusieurs minutes.</div>';
+  try { if (window.AttenteBaie) AttenteBaie.poser(out); } catch (e) {}   // (17/11/2026) dessin, au-delà d'1 s ; part avec le résultat
   try {
     const r = await api({ action:'cloturerAnnee', year: CLOT_YEAR });   // jamais rejouée automatiquement
     if (!r || (!r.success && !(r.etapes || r.bloquants))) throw new Error(refus(r) ? MSG_RESERVE : ((r && r.error) || 'réponse illisible'));

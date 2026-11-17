@@ -1130,6 +1130,7 @@ body { font-family: 'DM Sans', system-ui, sans-serif; background: var(--bg); col
 <script src="partage/portail.js"></script>   <!-- (14/09/2026) socle commun : MIROIR_URL, miroirRead -->
 <script src="partage/rendu_equite.js"></script>   <!-- (14/09/2026) cartes d'équité, version commune MAR/comité -->
 <script src="partage/dispo_jour.js"></script>   <!-- (etage 2) coeur partage du tri des disponibles — source unique avec le serveur -->
+<script src="partage/attente_baie.js"></script>   <!-- (17/11/2026) dessin d'attente des assistants (W1, W2) -->
 <script src="version.js"></script>   <!-- (14/08/2026) source unique du numéro de version — ne plus jamais l'écrire en dur ici -->
 <script>
 // Le numéro vit dans version.js, à un seul endroit pour tout le site.
@@ -6814,6 +6815,7 @@ async function openWizard() {
   // Affichage immédiat de la fenêtre (feedback au clic) — chargement ensuite, comme W2
   document.getElementById('wizardOverlay').classList.add('open');
   document.getElementById('wizBody').innerHTML = '<div style="text-align:center;padding:48px 0"><div style="font-size:40px;margin-bottom:14px">⏳</div><div style="font-size:15px;font-weight:600;color:#334155">Chargement de l\'assistant…</div><div style="font-size:13px;color:var(--ink-3);margin-top:6px">Lecture des périodes de vacances et des groupes</div></div>';
+  _attente(document.getElementById('wizBody'));   // (17/11/2026) dessin, au-delà d'1 s d'attente
   window._wizStaffConfirmed = false;
   wizPeriodes = [];
   wizMarsData = [...marsData];
@@ -7149,6 +7151,7 @@ async function launchWizInit() {
   const nextBtn = document.getElementById('wizNextBtn');
   nextBtn.disabled = true;
   document.getElementById('wizBackBtn').style.visibility = 'hidden';
+  const _att = _attente(document.getElementById('wizBody'), document.getElementById('wizInitProgress'));   // (17/11/2026)
 
   const steps = [
     {id:'wiz-i1', label:'Périodes sauvegardées',  action: () => api({action:'savePeriodes', periodes: wizPeriodes, year: nextYear})},
@@ -7182,6 +7185,8 @@ async function launchWizInit() {
       break;
     }
   }
+
+  _att.retirer();
 
   if (allOk) {
     window._wizIndisposExists = true;
@@ -7285,6 +7290,7 @@ async function openWizardGardes() {
   }
   if (lockReason) { renderWizGLocked(genYear, lockReason); return; }
   document.getElementById('wizGBody').innerHTML = '<div style="text-align:center;padding:48px 0"><div style="font-size:40px;margin-bottom:14px">⏳</div><div style="font-size:15px;font-weight:600;color:#334155">Chargement de l\'assistant…</div><div style="font-size:13px;color:var(--ink-3);margin-top:6px">Lecture des indispos et calcul des conflits (~1 min)</div></div>';
+  _attente(document.getElementById('wizGBody'));   // (17/11/2026) dessin, au-delà d'1 s d'attente
   await renderWizGStep();
 }
 
@@ -7980,6 +7986,7 @@ async function launchWizardGardes() {
     + _gItem('wizg-p2', 'Planning publié', 'Publication du planning…')
     + _gItem('wizg-p3', 'Récapitulatifs envoyés', 'Envoi récapitulatifs aux MARs…')
     + '</div>';
+  const _att = _attente(document.getElementById('wizGBody'));   // (17/11/2026) dessin, au-delà d'1 s d'attente
 
   const steps = [
     {id:'wizg-p1', label:'Gardes générées',  action: () => {
@@ -8121,6 +8128,8 @@ async function launchWizardGardes() {
     if (next) { next.style.opacity = '1'; next.textContent = next.textContent.replace('○','⏳'); }
   }
 
+  _att.retirer();
+
   if (allOk) {
     setTimeout(() => {
       document.getElementById('wizGBody').innerHTML = '<div style="text-align:center;padding:20px 0"><div style="font-size:48px;margin-bottom:12px">🎉</div><div style="font-size:17px;font-weight:700;margin-bottom:8px">Gardes ' + (YEAR+1) + ' générées !</div><div style="font-size:13px;color:var(--ink-3)">Le planning est publié et les MARs ont été notifiés.<br>Vérifiez l\'équité dans l\'onglet Équité.</div><button class=\"btn-primary\" style=\"margin-top:20px\" onclick=\"closeWizardGardes();ADMIN_YEAR=YEAR+1;showTab(\'equite\')\">Voir l\'équité →</button></div>';
@@ -8130,6 +8139,14 @@ async function launchWizardGardes() {
     nextBtn.disabled = false;
     nextBtn.textContent = 'Réessayer';
   }
+}
+
+/* (17/11/2026) DESSIN D'ATTENTE DES ASSISTANTS — partage/attente_baie.js.
+   La baie et le nouvel hôpital, au-dessus de la liste des étapes, seulement
+   au-delà d'1 s d'attente. Sans le fichier, l'assistant tourne sans dessin. */
+function _attente(conteneur, avant) {
+  try { if (window.AttenteBaie) return AttenteBaie.poser(conteneur, avant); } catch (e) {}
+  return { retirer: function () {} };
 }
 
 // ── CLÔTURE D'ANNÉE ──────────────────────────────────────────────────────
