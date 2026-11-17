@@ -30,6 +30,8 @@ const CONTRAT = {
   'getStatsLive'              : 'tout code valide',
   'login'                     : 'tout code valide',
   'getReliquats'              : 'admin',
+  'getPointsVerif'            : 'admin',   // (17/11/2026) points à vérifier, onglet Statuts
+  'marquerPrevenu'            : 'admin',   // (17/11/2026) case « Prévenu »
   'getNoelAnEligibles'        : 'tout code valide',
   'getIndispos'               : 'conditionnel',
   'deciderJourTpLot'          : 'admin',
@@ -132,11 +134,11 @@ function contratActuel() {
   }
   return { fichier: path.basename(cands[0]), actions: out, corps };
 }
-console.log('═══ Le routeur répond au contrat des 70 actions ═══');
+console.log('═══ Le routeur répond au contrat des 72 actions ═══');
 const { fichier, actions, corps } = contratActuel();
 const attendu = Object.assign({}, CONTRAT, { getActiveYear: 'sans code', getAnneesDisponibles: 'sans code' });
 V('le routeur est lu dans ' + fichier, !!fichier);
-V('70 actions, ni plus ni moins', Object.keys(actions).length === 70, Object.keys(actions).length);
+V('72 actions, ni plus ni moins', Object.keys(actions).length === 72, Object.keys(actions).length);
 const manquantes = Object.keys(attendu).filter(a => !(a in actions));
 const enTrop = Object.keys(actions).filter(a => !(a in attendu));
 V('aucune action du contrat ne manque', manquantes.length === 0, manquantes);
@@ -144,7 +146,7 @@ V('aucune action hors contrat', enTrop.length === 0, enTrop);
 const roleChange = Object.keys(attendu).filter(a => actions[a] && actions[a] !== attendu[a]).map(a => a + ': ' + attendu[a] + ' → ' + actions[a]);
 V('chaque action garde exactement son contrôle d\'accès', roleChange.length === 0, roleChange);
 V('exactement deux actions sans code : les listes d\'années', Object.values(actions).filter(r => r === 'sans code').length === 2);
-V('41 actions réservées au comité', Object.values(actions).filter(r => r === 'admin').length === 41, Object.values(actions).filter(r => r === 'admin').length);
+V('43 actions réservées au comité', Object.values(actions).filter(r => r === 'admin').length === 43, Object.values(actions).filter(r => r === 'admin').length);
 V('exactement neuf actions de maintenance : diagnostic, cache, envoi groupé des codes, réparation des récupérations, et les cinq de la clôture d\'année (15/11/2026)',
   JSON.stringify(Object.keys(actions).filter(a => actions[a] === 'maintenance').sort()) === JSON.stringify(['archiveYear', 'clearIndisposYear', 'clotureVerifier', 'cloturerAnnee', 'diagComplet', 'recupsReparer', 'sendCodes', 'setActiveYear', 'viderCacheConfig']),
   Object.keys(actions).filter(a => actions[a] === 'maintenance'));

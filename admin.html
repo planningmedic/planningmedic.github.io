@@ -1177,7 +1177,7 @@ if (sessionStorage.getItem('adminCode')) {
   <button class="nav-tab" onclick="showTab('equipe')" id="tab-equipe">👥 Équipe</button>
   <button class="nav-tab" onclick="showTab('affectations')" id="tab-affectations">📋 Affectations <span id="affPendingDot" style="display:none;width:6px;height:6px;background:#F59E0B;border-radius:50%;margin-left:4px;vertical-align:middle"></span></button>
   <button class="nav-tab" onclick="showTab('equite')" id="tab-equite">📊 Équité</button>
-  <button class="nav-tab" onclick="showTab('statuts')" id="tab-statuts">✏️ Statuts<span id="pastilleRecup" style="display:none;margin-left:7px;min-width:18px;height:18px;padding:0 5px;border-radius:9px;background:#CA8A04;color:#fff;font-size:11px;font-weight:800;display:none;align-items:center;justify-content:center;vertical-align:1px"></span></button>
+  <button class="nav-tab" onclick="showTab('statuts')" id="tab-statuts">✏️ Statuts<span id="pastilleRecup" style="display:none;margin-left:7px;min-width:18px;height:18px;padding:0 5px;border-radius:9px;background:#CA8A04;color:#fff;font-size:11px;font-weight:800;display:none;align-items:center;justify-content:center;vertical-align:1px"></span><span id="pastilleVerif" style="display:none;margin-left:5px;min-width:18px;height:18px;padding:0 5px;border-radius:9px;background:#EA580C;color:#fff;font-size:11px;font-weight:800;align-items:center;justify-content:center;vertical-align:1px"></span></button>
   <!-- (13/08/2026) Avancement de la campagne d'indisponibilites. N'apparait QUE
        pendant la campagne (INDISPOS_YEAR non nul) et disparait des sa cloture. -->
   <button class="ind-chip" id="indChip" style="display:none" onclick="basculerIndChip()"></button>
@@ -1579,6 +1579,11 @@ if (sessionStorage.getItem('adminCode')) {
          samedis tenus et récups posées) : elle disparaît d'elle-même dès que
          le R est posé, et revient si on l'efface. -->
     <div id="recupStatuts" style="display:none"></div>
+    <!-- (17/11/2026) POINTS À VÉRIFIER : ce que le comité doit signaler aux MAR
+         (semaine Réa 1, vacances au-delà du droit, TP un jour tendu). Calculé
+         par le serveur à l'ouverture de l'onglet ; un point corrigé disparaît
+         de lui-même. Replié par défaut, comme l'alerte des récups. -->
+    <div id="verifStatuts" style="display:none" data-ouverte="0"></div>
     <div id="statutsLoading" class="loading" style="display:none"><div class="spinner"></div> Chargement…</div>
     <!-- (01/09/2026) CE QU'IL RESTE À POSER. Après la génération, le comité
          place ici les congés que les MAR n'ont pas posés pendant la campagne :
@@ -3131,6 +3136,7 @@ async function loadStatuts(){
   }catch(e){ toast('Erreur statuts : '+e.message, 'error'); }
   finally{ load.style.display='none'; wrap.style.display='block'; }
   try { renderRecupsStatuts(); } catch (e) { console.warn('alerte récups :', e && e.message); }
+  chargerPointsVerif();   // (17/11/2026) en tâche de fond : l'onglet s'affiche sans l'attendre
 }
 
 function renderStatuts(){
@@ -5587,6 +5593,112 @@ function renderRecups(){
   }
   el.innerHTML = h + '</div>';
   el.style.display = 'block';
+}
+
+/* ══ (17/11/2026) POINTS À VÉRIFIER — sous l'alerte des récups ═══════════════
+   Le serveur calcule (computePointsVerif, gardes.gs) : semaine Réa 1 occupée,
+   vacances au-delà du droit, TP un jour tendu. Aucun appel à l'ouverture de la
+   page (règle du 05/08) : la liste arrive quand on ouvre l'onglet Statuts, puis
+   à chaque rechargement de l'onglet (après une publication, par exemple).
+   « Prévenu » : le comité coche quand il a contacté le MAR (date gardée dans le
+   classeur, visible de tout le comité). */
+const VERIF_TAG = { rea:['Réa 1','#FDE8EB','#B91C1C'], vac:['Vacances','#EEF4FB','#1D6FB8'], tendu:['Jour tendu','#FEF3C7','#92400E'] };
+const VERIF_J = ['dim','lun','mar','mer','jeu','ven','sam'];
+let VERIF = { an: null, points: [], prevenus: {} };
+let _verifEnCours = false;
+function _verifDate(iso, an){
+  if(!iso) return String(an || '');
+  const d=new Date(iso+'T12:00:00'), p=iso.split('-');
+  return VERIF_J[d.getDay()]+' '+p[2]+'/'+p[1];
+}
+function _verifJjMm(iso){ const p=String(iso||'').split('-'); return p.length===3 ? p[2]+'/'+p[1] : ''; }
+async function chargerPointsVerif(){
+  if (_verifEnCours) return;
+  if (ADMIN_YEAR_READONLY) { VERIF = { an: ADMIN_YEAR, points: [], prevenus: {} }; renderVerifStatuts(); return; }
+  _verifEnCours = true;
+  const an = ADMIN_YEAR;
+  try {
+    const r = await api({ action:'getPointsVerif', year: an });
+    if (r && r.success && Number(an) === Number(ADMIN_YEAR)) {
+      VERIF = { an: an, points: r.points || [], prevenus: r.prevenus || {} };
+      renderVerifStatuts();
+    }
+  } catch (e) { console.warn('points à vérifier :', e && e.message); }
+  finally { _verifEnCours = false; }
+}
+function verifBasculer(){
+  const el=document.getElementById('verifStatuts');
+  el.setAttribute('data-ouverte', el.getAttribute('data-ouverte')==='1' ? '0' : '1');
+  renderVerifStatuts();
+}
+async function verifPrevenu(cle, coche){
+  const avant = VERIF.prevenus[cle];
+  if (coche) VERIF.prevenus[cle] = { le: new Date().toISOString().slice(0,10), par: '' };
+  else delete VERIF.prevenus[cle];
+  renderVerifStatuts();
+  try {
+    const r = await api({ action:'marquerPrevenu', cle: cle, prevenu: !!coche });
+    if (!r || !r.success) throw new Error((r && r.error) || 'refus du serveur');
+    if (r.prevenu) { VERIF.prevenus[cle] = r.prevenu; renderVerifStatuts(); }   // la date du serveur fait foi
+  } catch (e) {
+    if (avant) VERIF.prevenus[cle] = avant; else delete VERIF.prevenus[cle];
+    renderVerifStatuts();
+    toast('Case « Prévenu » non enregistrée : ' + e.message, 'error');
+  }
+}
+function verifOuvrir(id, iso){
+  try {
+    STAT.view='mar'; STAT.marId=id; STAT.selected.clear();
+    if (iso) STAT.monthKey = iso.slice(0,7);
+    renderStatuts();
+    const w=document.getElementById('statutsContent'); if (w && w.scrollIntoView) w.scrollIntoView({behavior:'smooth', block:'start'});
+    toast('Dr ' + id + ' sélectionné' + (iso ? ' — ' + _verifDate(iso) : ''));
+  } catch(e) { toast('Sélection impossible : ' + e.message, 'error'); }
+}
+function renderVerifStatuts(){
+  const el=document.getElementById('verifStatuts'); if(!el) return;
+  const pts=(VERIF.points||[]);
+  const past=document.getElementById('pastilleVerif');
+  const nbPrev=pts.filter(p=>VERIF.prevenus[p.cle]).length;
+  if(past){ past.textContent=pts.length; past.style.display=pts.length?'inline-flex':'none'; }
+  if(!pts.length){ el.style.display='none'; el.innerHTML=''; return; }
+  const parMar={}; pts.forEach(p=>{ (parMar[p.id]=parMar[p.id]||[]).push(p); });
+  const ids=Object.keys(parMar).sort();
+  const ouverte=el.getAttribute('data-ouverte')==='1';
+  let h='<div style="display:flex;align-items:flex-start;gap:12px;background:#FFEDD5;border:1px solid #EA580C;'
+    + 'border-radius:12px;padding:14px 16px;margin-bottom:14px">'
+    + '<span style="font-size:18px;line-height:1.2">🟠</span>'
+    + '<div style="flex:1;min-width:0">'
+    + '<div style="font-size:13.5px;font-weight:700">'+pts.length+' point'+(pts.length>1?'s':'')+' à vérifier · '+ids.length+' MAR</div>'
+    + '<div style="font-size:12.5px;color:#334155;line-height:1.5;margin-top:3px">'
+    + 'Absence en semaine Réa 1, vacances au-delà du droit, TP un jour tendu. '
+    + (nbPrev ? '<b>'+nbPrev+' déjà prévenu'+(nbPrev>1?'s':'')+'.</b> ' : '')
+    + 'Un point disparaît dès que le planning est corrigé.</div></div>'
+    + '<span onclick="verifBasculer()" style="font-size:12.5px;font-weight:700;color:#9A3412;'
+    + 'cursor:pointer;white-space:nowrap;user-select:none;padding-top:2px">'+(ouverte?'Masquer':'Voir →')+'</span></div>';
+  if(ouverte) h+=ids.map(id=>{
+    const ls=parMar[id], nbP=ls.filter(p=>VERIF.prevenus[p.cle]).length;
+    return '<div style="background:#fff;border:1px solid var(--line);border-radius:10px;padding:12px 14px;margin-bottom:8px">'
+      + '<div style="display:flex;align-items:center;gap:10px;margin-bottom:4px">'
+      + '<div style="font-family:\'DM Mono\',monospace;font-size:12px;font-weight:700;background:#F1F5F9;border-radius:7px;padding:7px 10px">'+_escHtml(ls[0].init||id)+'</div>'
+      + '<div style="flex:1;min-width:0;font-size:13px;font-weight:700">Dr '+_escHtml(id)+'</div>'
+      + '<div style="font-size:12px;color:var(--ink-3)">'+ls.length+' point'+(ls.length>1?'s':'')+(nbP?' · '+nbP+' prévenu'+(nbP>1?'s':''):'')+'</div></div>'
+      + ls.map(p=>{
+          const t=VERIF_TAG[p.type]||['?','#F1F5F9','#334155'], pv=VERIF.prevenus[p.cle];
+          return '<div style="border-top:1px solid #F1F5F9;padding:9px 0;'+(pv?'opacity:.55':'')+'">'
+            + '<div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap">'
+            + '<span style="font-size:10.5px;font-weight:700;text-transform:uppercase;letter-spacing:.04em;border-radius:999px;padding:3px 8px;white-space:nowrap;background:'+t[1]+';color:'+t[2]+'">'+t[0]+'</span>'
+            + '<span style="font-family:\'DM Mono\',monospace;font-size:12px;color:#334155;white-space:nowrap">'+_verifDate(p.date, VERIF.an)+'</span>'
+            + '<span style="flex:1"></span>'
+            + '<label style="display:flex;align-items:center;gap:5px;font-size:12px;color:var(--ink-3);white-space:nowrap;cursor:pointer">'
+            + '<input type="checkbox" '+(pv?'checked':'')+' onchange="verifPrevenu(\''+_escHtml(p.cle)+'\',this.checked)">'
+            + (pv ? 'Prévenu le '+_verifJjMm(pv.le) : 'Prévenu')+'</label>'
+            + '<button class="btn-sm" onclick="verifOuvrir(\''+_escHtml(id)+'\','+(p.date?'\''+p.date+'\'':'null')+')">Ouvrir</button></div>'
+            + '<div style="font-size:12.5px;color:#334155;line-height:1.4;margin-top:5px">'+_escHtml(p.texte)+'</div></div>';
+        }).join('')
+      + '</div>';
+  }).join('');
+  el.innerHTML=h; el.style.display='block';
 }
 
 /* (23/08/2026) L'ALERTE DES RÉCUPS, DANS L'ONGLET STATUTS — récit : docs/JOURNAL-Planning-Med.md §28 */

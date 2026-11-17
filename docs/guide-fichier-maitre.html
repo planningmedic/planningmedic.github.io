@@ -174,6 +174,7 @@ TRACES et les trois compteurs STATS_*.</p>
     <li><span class="n">4.2</span><a href="#tp-onglets">TP_DEMANDES et TP_FERMES</a></li>
     <li><span class="n">4.3</span><a href="#echanges">ECHANGES</a></li>
     <li><span class="n">4.4</span><a href="#absences">ABSENCES_LONGUES</a></li>
+    <li><span class="n">4.5</span><a href="#verif-prevenus">VERIF_PREVENUS</a></li>
     <li><span class="n">5</span><a href="#p4"><strong>Libéral</strong></a></li>
     <li><span class="n">5.1</span><a href="#specialites">SPECIALITES</a></li>
     <li><span class="n">5.2</span><a href="#cottype">COTATIONS_TYPE</a></li>
@@ -250,7 +251,7 @@ des versions de code.</p>
 <tr><td><span style="display:inline-block;width:11px;height:11px;border-radius:3px;background:#1D4ED8;margin-right:7px;vertical-align:-1px"></span><a href="#p1">1. Réglages permanents</a></td><td>CONFIG · MEDECINS · SECTEURS · CS_TEMPLATE · SEUILS · ANNUAIRE · ETABLISSEMENT</td><td>visibles</td></tr>
 <tr><td><span style="display:inline-block;width:11px;height:11px;border-radius:3px;background:#60A5FA;margin-right:7px;vertical-align:-1px"></span><a href="#p1b">2. Préparation de l'année</a></td><td>GROUPES_VAC · PERIODES_VAC · CONFIG_CONGES · CONFIG_TRANSITION</td><td>visibles</td></tr>
 <tr><td><span style="display:inline-block;width:11px;height:11px;border-radius:3px;background:#166534;margin-right:7px;vertical-align:-1px"></span><a href="#p2">3. Les années</a></td><td>INDISPOS_{année} · REA1_{année} · FETES_{année} · GARDES_{année} · LIENS_R_{année} · STATS_GARDES_{année} · AFFECTATIONS_{année}</td><td>visibles</td></tr>
-<tr><td><span style="display:inline-block;width:11px;height:11px;border-radius:3px;background:#C2410C;margin-right:7px;vertical-align:-1px"></span><a href="#p3">4. Écrits par l'interface</a></td><td>PLANNING_OVERRIDES · TP_DEMANDES et TP_FERMES · ECHANGES · ABSENCES_LONGUES</td><td>visibles</td></tr>
+<tr><td><span style="display:inline-block;width:11px;height:11px;border-radius:3px;background:#C2410C;margin-right:7px;vertical-align:-1px"></span><a href="#p3">4. Écrits par l'interface</a></td><td>PLANNING_OVERRIDES · TP_DEMANDES et TP_FERMES · ECHANGES · ABSENCES_LONGUES · VERIF_PREVENUS</td><td>visibles</td></tr>
 <tr><td><span style="display:inline-block;width:11px;height:11px;border-radius:3px;background:#0D9488;margin-right:7px;vertical-align:-1px"></span><a href="#p4">5. Libéral</a></td><td>SPECIALITES · COTATIONS_TYPE · LIBERAL_{année} · LIBERAL_CA_{année}</td><td>visibles</td></tr>
 <tr><td><span style="display:inline-block;width:11px;height:11px;border-radius:3px;background:#7E22CE;margin-right:7px;vertical-align:-1px"></span><a href="#p5">6. Contenu du portail</a></td><td>VEILLE_CFG · STAFFS · VEILLE · VEILLE_MARQUES · VEILLE_ARCHIVE · VEILLE_ABONNES</td><td>en partie masqués</td></tr>
 <tr><td><span style="display:inline-block;width:11px;height:11px;border-radius:3px;background:#9CA3AF;margin-right:7px;vertical-align:-1px"></span><a href="#p6">7. Mémoires et journaux</a></td><td>HISTORIQUE · TRACES · CONNEXIONS et LOGS · NOTIFS_JOURNAL · STATS_HEURES, STATS_ACTIONS et STATS_SEMAINE</td><td>masqués</td></tr>
@@ -345,6 +346,7 @@ Les 17 premières colonnes sont réécrites par le formulaire d'admin ; les suiv
 <tr><td>P</td><td>SOUHAIT_PLAFOND</td><td>Profil « souhait garanti ». <strong>Non coché, le certificat d'équité sort le MAR en rouge</strong> — le code ne peut pas le reconnaître.</td></tr>
 <tr><td>Q</td><td>TP_JOURS_FIXES</td><td>Jours fixes non travaillés</td></tr>
 <tr><td>≥ R</td><td>LIBERAL · RPPS · PRENOM</td><td>Lues <strong>par leur titre</strong>. <span class="tag">LIBERAL</span> porte trois métiers : membre du groupement, visibilité de la tuile, présence sur le relevé.</td></tr>
+<tr><td>≥ R</td><td>HORS_EFFECTIF</td><td><span class="tag">O</span> = ce MAR n'est <strong>jamais compté parmi les présents</strong> : ni à la pose des temps partiels, ni dans les points à vérifier de l'onglet Statuts (décision du 17/11/2026 : le chef de service reste en joker). Lue par son titre ; <strong>colonne absente ou vide = tout le monde est compté</strong>.</td></tr>
 <tr><td>≥ R</td><td>NOTIF</td><td>Désabonnement des mails de changement de planning. <span class="tag">N</span> = ce MAR n'en reçoit aucun ; toute autre valeur, ou <strong>colonne absente, = il en reçoit</strong>. Lue par son titre, jamais réécrite par le formulaire.</td></tr>
 </table>
 
@@ -781,6 +783,21 @@ absence de ce registre qui chevauche l'année créée est rejouée automatiqueme
   reste dans ce registre, l'absence sera rejouée à la prochaine initialisation d'année. L'annulation
   depuis l'interface fait les deux — effacer les cases <em>et</em> mettre à jour le registre.</p>
 </div>
+</section>
+
+<section id="verif-prevenus">
+<h2><span class="n">4.5</span>VERIF_PREVENUS</h2>
+<p>Les cases <strong>« Prévenu »</strong> des points à vérifier de l'onglet Statuts (17/11/2026). Il n'existe
+pas tant qu'aucune case n'a été cochée. Les points eux-mêmes ne sont écrits nulle part : ils se
+recalculent à chaque ouverture de l'onglet, à partir du planning.</p>
+<table class="sig">
+<tr><th>Colonne</th><th>Contenu</th></tr>
+<tr><td>CLE</td><td>Le point : type (<span class="tag">rea</span>, <span class="tag">vac</span>, <span class="tag">tendu</span>), MAR et date, séparés par « | » — l'année pour un point de vacances.</td></tr>
+<tr><td>LE</td><td>Le jour où la case a été cochée.</td></tr>
+<tr><td>PAR</td><td>Le rôle qui a coché (le code du comité est partagé).</td></tr>
+</table>
+<p>Décocher supprime la ligne. Une ligne dont le point a été corrigé n'est plus affichée : elle peut être
+effacée sans conséquence.</p>
 </section>
 
 <section id="p4">

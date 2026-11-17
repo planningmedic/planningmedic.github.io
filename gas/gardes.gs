@@ -4,7 +4,7 @@
    quelles : aucune ligne de logique modifiée, seulement déplacée. Le routeur et
    ses aides (checkCode, _deny, _error, doGet/doPost) restent dans Indispos.gs.
    Un seul espace global dans Apps Script : rien à importer. */
-const GAS_VERSION_GARDES = '2026-11-12.4';   // (12/11/2026) statistiques : V (vendredis), WE = samedis + dimanches et sa part transmis à l'écran d'équité (champsWeStats_) · (12/11/2026) plus aucun nom de personne dans le code : l'exclusion d'une ligne MEDECINS par son nom (rotation des fêtes) est retirée, aucune ligne ne le portait · (12/11/2026) don d'un 18 h (don18Jour) : le receveur doit être libre ce jour-là, rien n'est écrasé · (11/11/2026) échange de gardes refusé : le motif nomme le MAR, le jour et la raison (garde, repos de garde, 18 h, récupération) au lieu de « un des médecins a déjà une garde » · (11/11/2026) don et échange : une absence (V, VM, VA, F, TP, CL, CTP, CP, A) confirmée par le MAR est écrasée par la garde et son repos (mod.ecraserAbsences), tracée dans l'historique · (11/11/2026) applyModification du comité : don et échange passent par appliquerGesteComite_ · (11/11/2026) échange de gardes : le repos d'arrivée n'écrase plus une absence, pas de garde la veille ni le lendemain · (11/11/2026) échange de deux 18 h (echange18Jours) · (11/11/2026) le comité pose un R (statut « R ») et le lien samedi → R se recolle · (10/11/2026) lotRolesVerifier / lotRolesAppliquer (inversion réa / mater par lot, depuis l'éditeur) · (10/11/2026) un échange, un don ou une modification republie et prévient (MAR et paie) pour l'année DE LA GARDE, plus l'année active · (10/11/2026) le suivi des gestes écrit dans son propre onglet TRACES, plus jamais dans HISTORIQUE (archive des gardes par année) · (10/11/2026) onglet de suivi (TP, modifications, échanges, lot de 18 h), jamais effacé · (10/11/2026) lot18hVerifier / lot18hAppliquer (réattribution de 18 h par lot, depuis l'éditeur) · (27/10/2026) VM/VA : bloquent un don/échange, comptent 0,5 jour au reliquat · (18/10/2026) action getPlanningPaie (vue des secrétaires de paie)
+const GAS_VERSION_GARDES = '2026-11-17.1';   // (17/11/2026) POINTS À VÉRIFIER (onglet Statuts du comité) : semaine Réa 1 occupée, vacances au-delà du droit, temps partiel un jour tendu — recalculés à chaque lecture (getPointsVerif) ; case « Prévenu » gardée dans l'onglet VERIF_PREVENUS (marquerPrevenu) · (12/11/2026) statistiques : V (vendredis), WE = samedis + dimanches et sa part transmis à l'écran d'équité (champsWeStats_) · (12/11/2026) plus aucun nom de personne dans le code : l'exclusion d'une ligne MEDECINS par son nom (rotation des fêtes) est retirée, aucune ligne ne le portait · (12/11/2026) don d'un 18 h (don18Jour) : le receveur doit être libre ce jour-là, rien n'est écrasé · (11/11/2026) échange de gardes refusé : le motif nomme le MAR, le jour et la raison (garde, repos de garde, 18 h, récupération) au lieu de « un des médecins a déjà une garde » · (11/11/2026) don et échange : une absence (V, VM, VA, F, TP, CL, CTP, CP, A) confirmée par le MAR est écrasée par la garde et son repos (mod.ecraserAbsences), tracée dans l'historique · (11/11/2026) applyModification du comité : don et échange passent par appliquerGesteComite_ · (11/11/2026) échange de gardes : le repos d'arrivée n'écrase plus une absence, pas de garde la veille ni le lendemain · (11/11/2026) échange de deux 18 h (echange18Jours) · (11/11/2026) le comité pose un R (statut « R ») et le lien samedi → R se recolle · (10/11/2026) lotRolesVerifier / lotRolesAppliquer (inversion réa / mater par lot, depuis l'éditeur) · (10/11/2026) un échange, un don ou une modification republie et prévient (MAR et paie) pour l'année DE LA GARDE, plus l'année active · (10/11/2026) le suivi des gestes écrit dans son propre onglet TRACES, plus jamais dans HISTORIQUE (archive des gardes par année) · (10/11/2026) onglet de suivi (TP, modifications, échanges, lot de 18 h), jamais effacé · (10/11/2026) lot18hVerifier / lot18hAppliquer (réattribution de 18 h par lot, depuis l'éditeur) · (27/10/2026) VM/VA : bloquent un don/échange, comptent 0,5 jour au reliquat · (18/10/2026) action getPlanningPaie (vue des secrétaires de paie)
 
 // ── Sonde : les positions de STATS que code.gs lit à l'aveugle ──
 function _sondeStatsEntetes_(check, R, annee) {
@@ -1109,6 +1109,173 @@ function _act_getReliquats(R) {
   const anR = Number(payload.year) || getActiveYear();
   return ContentService.createTextOutput(JSON.stringify(computeReliquats(anR)))
     .setMimeType(ContentService.MimeType.JSON);
+}
+
+/* ══ (17/11/2026) POINTS À VÉRIFIER — onglet Statuts du comité ══════════════════
+   Ce que le comité doit signaler aux MAR, CALCULÉ à chaque lecture depuis le
+   planning : un point disparaît de lui-même dès que la case est corrigée, sans
+   liste à tenir. Trois contrôles, décidés par le responsable le 17/11/2026 :
+     · semaine Réa 1 : du lundi au vendredi de SA semaine, un TP, une formation,
+       des vacances, un congé, une absence ou une récupération — et une demande
+       de TP en attente dans cette semaine ;
+     · vacances au-delà du droit de l'année (quota de CONFIG_CONGES) — jours
+       ouvrés, jours fixes de temps partiel exclus, 24 et 31/12 à 0,5 ;
+     · temps partiel un jour tendu : s'il est absent, il reste 12 MAR postables
+       ou moins — MÊME compte et MÊME seuil que le refus à la pose (_poserTp_ :
+       « reste ≤ 12 → refusé »), donc un TP accordé aujourd'hui n'y tombe jamais.
+   Seuls les jours à venir comptent : un jour passé n'est plus à corriger.
+   La case « Prévenu » (quand) vit dans l'onglet VERIF_PREVENUS ; elle ne
+   change rien au calcul. Aucun nom de personne ici : tout vient du classeur. */
+const VERIF_PLANCHER_POSTABLES = 12;      // ≤ 12 postables s'il est absent = jour tendu (seuil du refus à la pose)
+const VERIF_ONGLET = 'VERIF_PREVENUS';
+const VERIF_ENTETE = ['CLE', 'LE', 'PAR'];
+const VERIF_LIB_REA1 = { TP: 'Temps partiel posé', F: 'Formation posée', V: 'Vacances posées', VM: 'Demi-journée de vacances posée',
+  VA: 'Demi-journée de vacances posée', CL: 'Congé posé', A: 'Absence posée', R: 'Récupération de samedi posée' };
+
+function _verifPrevenusSheet_(creer) {
+  const ss = SpreadsheetApp.getActiveSpreadsheet();
+  let sh = ss.getSheetByName(VERIF_ONGLET);
+  if (!sh && creer) {
+    sh = ss.insertSheet(VERIF_ONGLET);
+    sh.getRange(1, 1, 1, VERIF_ENTETE.length).setValues([VERIF_ENTETE]);
+  }
+  return sh;
+}
+function _verifPrevenus_() {
+  const sh = _verifPrevenusSheet_(false), out = {};
+  if (!sh) return out;
+  const d = sh.getDataRange().getValues();
+  for (let r = 1; r < d.length; r++) {
+    const cle = String(d[r][0] || '').trim(); if (!cle) continue;
+    const le = d[r][1] instanceof Date ? Utilities.formatDate(d[r][1], Session.getScriptTimeZone(), 'yyyy-MM-dd') : String(d[r][1] || '').trim();
+    out[cle] = { le: le, par: String(d[r][2] || '').trim() };
+  }
+  return out;
+}
+function _verifJjMm_(ds) { const p = String(ds).split('-'); return p[2] + '/' + p[1]; }
+
+function computePointsVerif(year) {
+  const ss = SpreadsheetApp.getActiveSpreadsheet();
+  const sh = ss.getSheetByName('GARDES_' + year);
+  if (!sh) return { success: true, year: year, genere: false, points: [], prevenus: {} };
+  const tz = Session.getScriptTimeZone();
+  const aujourdHui = Utilities.formatDate(new Date(), tz, 'yyyy-MM-dd');
+  const jf = getJoursFeries(year), jf2 = getJoursFeries(year + 1);
+  const ouvre = ds => { const d = new Date(ds + 'T12:00:00').getDay(); return d !== 0 && d !== 6 && !jf.has(ds) && !jf2.has(ds); };
+  const data = sh.getDataRange().getValues();
+  const d2c = buildDateToCol(data, year), colDate = [];
+  Object.keys(d2c).forEach(ds => { colDate[d2c[ds]] = ds; });
+  const grille = {};
+  for (let r = 3; r < data.length; r++) {
+    const id = String(data[r][0]).trim(); if (!id) continue;
+    const g = grille[id] = {};
+    for (let c = 1; c < data[r].length; c++) {
+      const ds = colDate[c]; if (!ds) continue;
+      const v = String(data[r][c] == null ? '' : data[r][c]).trim().toUpperCase();
+      if (v) g[ds] = v;
+    }
+  }
+  const FLAGS = getMedecinFlags();
+  const med = _medecinsRows_(), info = {};
+  for (let r = 1; r < med.length; r++) {
+    const id = String(med[r][COL_MED.ID]).trim(); if (!id) continue;
+    info[id] = { init: String(med[r][COL_MED.INITIALES] || '').trim() || id,
+                 actif: String(med[r][COL_MED.ACTIF]).trim().toUpperCase() === 'O',
+                 quotite: Number(med[r][COL_MED.QUOTITE]) || 100 };
+  }
+  const horsInit = Object.keys(info).filter(id => FLAGS.horsEffectif && FLAGS.horsEffectif.has(id) && info[id].actif).map(id => info[id].init);
+  const horsTxt = horsInit.length ? ' (hors ' + horsInit.join(', ') + ')' : '';
+  const points = [];
+  const ajouter = (type, id, date, texte) => points.push({
+    cle: type + '|' + id + '|' + (date || year), type: type, id: id, init: (info[id] || {}).init || id, date: date || null, texte: texte });
+
+  /* 1 · SEMAINE RÉA 1 (onglet REA1_{year}, lu par la même fonction que les échanges) */
+  const rea1 = (typeof _rea1Jours_ === 'function') ? _rea1Jours_(year) : {};
+  const semaine = ds => { const lun = _recupsDecale_(ds, -((_recupsDow_(ds) + 6) % 7));
+    return '(' + _verifJjMm_(lun) + ' → ' + _verifJjMm_(_recupsDecale_(lun, 4)) + ')'; };
+  Object.keys(rea1).forEach(id => {
+    Object.keys(rea1[id]).sort().forEach(ds => {
+      if (ds < aujourdHui) return;
+      const lib = VERIF_LIB_REA1[(grille[id] || {})[ds]];
+      if (lib) ajouter('rea', id, ds, lib + ' dans sa semaine Réa 1 ' + semaine(ds) + '.');
+    });
+  });
+  try {
+    _tpDemandes_(year).forEach(x => {
+      if (x.date < aujourdHui || !(rea1[x.mar] || {})[x.date]) return;
+      ajouter('rea', x.mar, x.date, 'Demande de temps partiel en attente dans sa semaine Réa 1 ' + semaine(x.date) + '.');
+    });
+  } catch (e) {}
+
+  /* 2 · VACANCES AU-DELÀ DU DROIT DE L'ANNÉE */
+  Object.keys(info).forEach(id => {
+    if (!info[id].actif || !grille[id]) return;
+    const fixes = FLAGS.tpJoursFixes[id];
+    let pose = 0;
+    Object.keys(grille[id]).forEach(ds => {
+      if (Number(ds.slice(0, 4)) !== year || !ouvre(ds)) return;
+      if (fixes && fixes.has(new Date(ds + 'T12:00:00').getDay())) return;   // jour fixe de temps partiel : pas un jour travaillé
+      const c = grille[id][ds];
+      const demiFerie = /-12-(24|31)$/.test(ds);                            // après-midi férié : la journée ne compte que 0,5
+      if (c === 'V') pose += demiFerie ? 0.5 : 1;
+      else if (c === 'VM' || c === 'VA') pose += 0.5;
+    });
+    const droit = getQuotasConges(info[id].quotite).vac;
+    if (pose > droit) {
+      const f = x => String(x).replace('.', ',');
+      ajouter('vac', id, null, f(pose) + ' jours de vacances posés en ' + year + ' pour un droit de ' + f(droit)
+        + ' jours (' + info[id].quotite + ' %) : ' + f(pose - droit) + ' de trop.');
+    }
+  });
+
+  /* 3 · TEMPS PARTIEL UN JOUR TENDU — l'effectif de la pose, tel quel */
+  const M = _tpMondePresence_(year);
+  Object.keys(M.enTp).forEach(id => {
+    Object.keys(M.enTp[id]).sort().forEach(ds => {
+      if (ds < aujourdHui || !ouvre(ds)) return;
+      const n = M.presents(ds);                  // le MAR est déjà compté absent : c'est « s'il est absent »
+      if (n <= VERIF_PLANCHER_POSTABLES) ajouter('tendu', id, ds, n + ' MAR postables' + horsTxt + " s'il est absent.");
+    });
+  });
+
+  const ORDRE = { rea: 0, vac: 1, tendu: 2 };
+  points.sort((a, b) => (a.id < b.id ? -1 : a.id > b.id ? 1 : 0) || (ORDRE[a.type] - ORDRE[b.type]) || String(a.date || '').localeCompare(String(b.date || '')));
+  const tous = _verifPrevenus_(), prevenus = {};
+  points.forEach(p => { if (tous[p.cle]) prevenus[p.cle] = tous[p.cle]; });   // un point corrigé emporte sa coche
+  return { success: true, year: year, genere: true, points: points, prevenus: prevenus };
+}
+
+/* ── action "getPointsVerif" ── */
+function _act_getPointsVerif(R) {
+  const { e, payload, action, code, user } = R;
+  if (user.role !== 'admin') return _deny();
+  const an = Number(payload.year) || getActiveYear();
+  return ContentService.createTextOutput(JSON.stringify(computePointsVerif(an)))
+    .setMimeType(ContentService.MimeType.JSON);
+}
+
+/* ── action "marquerPrevenu" ── la case « Prévenu » d'un point : cochée le … */
+function _act_marquerPrevenu(R) {
+  const { e, payload, action, code, user } = R;
+  if (user.role !== 'admin') return _deny();
+  const cle = String(payload.cle || '').trim();
+  if (!/^(rea|vac|tendu)\|[^|]+\|[0-9-]+$/.test(cle)) return _error('Point inconnu');
+  const verrou = LockService.getScriptLock();
+  verrou.waitLock(20000);
+  try {
+    const sh = _verifPrevenusSheet_(true);
+    const d = sh.getDataRange().getValues();
+    for (let r = d.length - 1; r >= 1; r--) if (String(d[r][0]).trim() === cle) sh.deleteRow(r + 1);
+    let marque = null;
+    if (payload.prevenu === true) {
+      const le = Utilities.formatDate(new Date(), Session.getScriptTimeZone(), 'yyyy-MM-dd');
+      const par = String(user.id || 'comité').trim().slice(0, 20);   // le code du comité est partagé : on note le rôle, pas une personne
+      sh.appendRow([cle, le, par]);
+      marque = { le: le, par: par };
+    }
+    return ContentService.createTextOutput(JSON.stringify({ success: true, cle: cle, prevenu: marque }))
+      .setMimeType(ContentService.MimeType.JSON);
+  } finally { verrou.releaseLock(); }
 }
 
 /* ── action "getNoelAnEligibles" ── */
