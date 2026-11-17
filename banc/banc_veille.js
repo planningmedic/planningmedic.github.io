@@ -1110,6 +1110,54 @@ function monde(plan) {
     V('PubMed en panne : le mail part quand même, 1er auteur de la colonne + « et al. »', envois.length === 2 && /Dupont A et al\./.test(e2.htmlBody) && /Leroy F et al\./.test(e2.htmlBody) && /Seul H</.test(e2.htmlBody));
   }
 
+  console.log('\n═══ Mail de la semaine (17/11/2026) : « les 2 articles de la semaine », pour l\'administrateur seul ═══');
+  {
+    const m = monde(() => ({}));
+    vm.runInContext('getOrCreateVeilleTabs()', m.ctx);
+    const envois = [], unpaywall = [];
+    let unpaywallEnPanne = false;
+    m.ctx.MailApp = { getRemainingDailyQuota: () => 100, sendEmail: o => envois.push(o) };
+    m.ctx._isoDate = v => v instanceof Date ? v.getFullYear() + '-' + String(v.getMonth() + 1).padStart(2, '0') + '-' + String(v.getDate()).padStart(2, '0') : String(v || '').slice(0, 10);
+    m.ctx.Utilities.formatDate = (d, tz, f) => f === 'yyyy-MM-dd' ? m.ctx._isoDate(d) : 'd MMM';
+    const fetchPubmed = m.ctx.UrlFetchApp.fetch;
+    m.ctx.UrlFetchApp.fetch = (url, opt) => {
+      if (!/api\.unpaywall\.org/.test(String(url))) return fetchPubmed(url, opt);
+      unpaywall.push(String(url));
+      if (unpaywallEnPanne) throw new Error('Unpaywall injoignable');
+      const libre = /10\.1%2Fr1/.test(url)
+        ? { is_oa: true, best_oa_location: { url_for_pdf: 'https://europepmc.org/r1.pdf', url: 'https://europepmc.org/r1' } }
+        : { is_oa: false, best_oa_location: null };
+      return { getResponseCode: () => 200, getContentText: () => JSON.stringify(libre) };
+    };
+    const cfg = m.cl.insertSheet('CONFIG'); cfg.lignes.push(['CLE', 'VALEUR'], ['DIAG_EMAIL', 'admin@exemple.mc']);
+    const v = m.cl.getSheetByName('VEILLE');
+    v.lignes[0] = ['PMID', 'DATE_PUB', 'TITRE', 'AUTEURS', 'REVUE', 'DOI', 'SOURCE', 'SCORE', 'RESUME', 'LU', 'STAR', 'AJOUTE_LE', 'PUBTYPE', 'THEMES', 'MOTIF'];
+    const auj = new Date(); const il = n => new Date(auj.getTime() - n * 86400000);
+    const A = (id, titre, score, doi) => v.lignes.push([id, il(10), titre, 'X', 'JAMA', doi, 'REVUE', score, 'Résumé de ' + id + '.', 'N', 'N', il(2), '', '', 'ECR · revue spécialisée']);
+    A('r1', 'Vasopressin Threshold in Septic Shock', 92, '10.1/r1');
+    A('r2', 'High-Flow Nasal Cannula Weaning in Critically Ill Adults', 80, '10.1/r2');
+    A('a1', 'Cardiac Index-Guided Hemodynamic Therapy in Major Abdominal Surgery', 90, '10.1/a1');
+    A('a2', 'Ketamine and Postoperative Delirium after General Anesthesia', 85, '');
+    const ab = m.cl.insertSheet('VEILLE_ABONNES'); ab.lignes.push(['MAR_ID', 'ACTIF', 'EMAIL'], ['9', 'O', 'mar9@exemple.mc']);
+    const h = vm.runInContext('_veilleMailHebdo_()', m.ctx);
+    const eA = envois.find(e => e.to === 'admin@exemple.mc') || { htmlBody: '', body: '' };
+    const eM = envois.find(e => e.to === 'mar9@exemple.mc') || { htmlBody: '', body: '' };
+    V('lundi : administrateur et abonné reçoivent chacun le mail', h.envoye && envois.length === 2 && eA.htmlBody && eM.htmlBody, envois.map(e => e.to));
+    V('l\'administrateur a l\'encadré « Les 2 articles de la semaine », en tête', /Les 2 articles de la semaine/.test(eA.htmlBody) && eA.htmlBody.indexOf('Les 2 articles de la semaine') < eA.htmlBody.indexOf('Réanimation · '));
+    V('…l\'abonné NE l\'a PAS (mail habituel inchangé)', !/2 articles de la semaine/i.test(eM.htmlBody) && !/2 ARTICLES DE LA SEMAINE/.test(eM.body) && !/unpaywall|europepmc/i.test(eM.htmlBody));
+    const bloc = eA.htmlBody.slice(eA.htmlBody.indexOf('Les 2 articles'), eA.htmlBody.indexOf('Réanimation · '));
+    V('le meilleur de réa (r1, 92) et le meilleur d\'anesthésie (a1, 90), et eux seuls', /Vasopressin Threshold/.test(bloc) && /Cardiac Index-Guided/.test(bloc) && !/High-Flow/.test(bloc) && !/Ketamine/.test(bloc), bloc.length);
+    V('version libre trouvée : lien PDF en accès libre', /href="https:\/\/europepmc\.org\/r1\.pdf"[^>]*>PDF en accès libre/.test(bloc));
+    V('pas de version libre : dit clairement, lien vers l\'éditeur par le DOI', /Pas de version libre trouvée/.test(bloc) && /href="https:\/\/doi\.org\/10\.1\/a1"/.test(bloc));
+    V('Unpaywall interrogé pour les 2 articles seulement, une fois chacun', unpaywall.length === 2, unpaywall);
+    V('la version texte de l\'administrateur porte aussi les 2 articles', /LES 2 ARTICLES DE LA SEMAINE/.test(eA.body) && /PDF en accès libre : https:\/\/europepmc\.org\/r1\.pdf/.test(eA.body) && /éditeur : https:\/\/doi\.org\/10\.1\/a1/.test(eA.body));
+    unpaywallEnPanne = true; envois.length = 0;
+    vm.runInContext('veilleEnvoyerMailTest()', m.ctx);
+    const eT = envois[0] || { htmlBody: '' };
+    V('Unpaywall en panne : le mail part quand même, encadré avec les liens éditeur', envois.length === 1 && /Les 2 articles de la semaine/.test(eT.htmlBody) && (eT.htmlBody.match(/Pas de version libre trouvée/g) || []).length === 2);
+    V('aucune source pirate dans le code de la veille', !/sci-?hub|libgen|z-library/i.test(fs.readFileSync('../gas/veille.gs', 'utf8')));
+  }
+
   console.log('\n═══ Abonnement au mail du lundi, étape 2 (21/10/2026) : chacun s\'abonne et tape son adresse ═══');
   {
     const m = monde(() => ({}));

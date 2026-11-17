@@ -57,7 +57,7 @@
 //  instantané unique et partagé : chantier séparé.
 // ══════════════════════════════════════════════════════════════════════
 
-const GAS_VERSION_VEILLE = '2026-11-09.1';
+const GAS_VERSION_VEILLE = '2026-11-17.1';
 
 const VEILLE_CFG_TAB = 'VEILLE_CFG';
 const VEILLE_TAB     = 'VEILLE';
@@ -1537,7 +1537,7 @@ function _veilleAuteursPourMail_(liste) {
     it.auteursMail = premier ? premier + (/,| et al/.test(stock) ? ' et al.' : '') : '';
   });
 }
-function _veilleHtmlMail_(sel) {
+function _veilleHtmlMail_(sel, encadre) {
   const n = sel.rea.length + sel.anesth.length;
   return '<!doctype html><html lang="fr"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width"></head><body style="margin:0;padding:0;background:#F1F5F9;">'
     + '<table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background:#F1F5F9;"><tr><td align="center" style="padding:20px 12px;">'
@@ -1546,14 +1546,66 @@ function _veilleHtmlMail_(sel) {
     + '<tr><td style="padding:0 0 4px 0;font:400 14px/1.5 Arial,sans-serif;color:#475569;">Les ' + n + ' articles les mieux notés arrivés cette semaine'
     + (sel.rea.length && sel.anesth.length ? ', ' + sel.rea.length + ' en réanimation et ' + sel.anesth.length + ' en anesthésie' : '')
     + ', chacun résumé en deux lignes. Touchez un titre pour ouvrir l\'article.</td></tr>'
+    + (encadre || '')
     + _veilleSectionMail_('Réanimation', sel.rea, '#B91C1C') + _veilleSectionMail_('Anesthésie', sel.anesth, '#1D6FB8')
     + '<tr><td align="center" style="padding:10px 0 6px 0;"><a href="https://planningmedic.github.io/#veille" style="display:inline-block;background:#1D6FB8;color:#FFFFFF;font:700 14px Arial,sans-serif;padding:12px 22px;border-radius:10px;text-decoration:none;">Voir toute la veille dans le portail</a></td></tr>'
     + '<tr><td style="padding:14px 0 0 0;font:400 12px/1.5 Arial,sans-serif;color:#94A3B8;text-align:center;">Résumés écrits automatiquement à partir du résumé PubMed : une porte d\'entrée, pas une lecture de l\'article.</td></tr>'
     + '</table></td></tr></table></body></html>';
 }
-function _veilleTexteMail_(sel) {   // version texte, pour les messageries qui n'affichent pas le HTML
+function _veilleTexteMail_(sel, encadre) {   // version texte, pour les messageries qui n'affichent pas le HTML
   const bloc = function (t, l) { return l.length ? t.toUpperCase() + '\n\n' + l.map(function (it) { return '• ' + it.titre + ' (' + it.revue + ', ' + Math.round(Number(it.score)) + '/100)' + (it.auteursMail ? '\n  ' + it.auteursMail : '') + '\n  ' + it.resume + '\n  https://pubmed.ncbi.nlm.nih.gov/' + it.pmid + '/'; }).join('\n\n') + '\n\n' : ''; };
-  return 'Veille biblio — les articles de la semaine\n\n' + bloc('Réanimation', sel.rea) + bloc('Anesthésie', sel.anesth) + 'Toute la veille : https://planningmedic.github.io/#veille';
+  return 'Veille biblio — les articles de la semaine\n\n' + (encadre || '') + bloc('Réanimation', sel.rea) + bloc('Anesthésie', sel.anesth) + 'Toute la veille : https://planningmedic.github.io/#veille';
+}
+
+/* (17/11/2026) « Les 2 articles de la semaine » — encadré en tête du mail de l'ADMINISTRATEUR SEUL
+   (les abonnés reçoivent le mail habituel, inchangé). Le meilleur article de réa et le meilleur
+   d'anesthésie de la sélection, avec un lien PDF quand une version en ACCÈS LIBRE LÉGAL existe
+   (Unpaywall, à partir du DOI) ; sinon la page de l'éditeur. Aucune source pirate, jamais.
+   Unpaywall injoignable ou muet : l'encadré part quand même, avec le lien éditeur. */
+const UNPAYWALL_BASE = 'https://api.unpaywall.org/v2/';
+function _veilleAccesLibre_(doi) {
+  doi = String(doi || '').trim();
+  if (!doi) return null;
+  try {
+    const res = UrlFetchApp.fetch(UNPAYWALL_BASE + encodeURIComponent(doi) + '?email=' + encodeURIComponent(EUTILS_EMAIL), { muteHttpExceptions: true });
+    if (res.getResponseCode() !== 200) return null;
+    const j = JSON.parse(res.getContentText() || '{}');
+    const loc = j && j.is_oa ? j.best_oa_location : null;
+    const url = loc ? String(loc.url_for_pdf || loc.url || '') : '';
+    return /^https?:\/\//.test(url) ? { url: url, pdf: !!loc.url_for_pdf } : null;
+  } catch (e) { return null; }
+}
+function _veilleChoixSemaine_(sel) {
+  return [['Réanimation', sel.rea[0], '#B91C1C'], ['Anesthésie', sel.anesth[0], '#1D6FB8']]
+    .filter(function (x) { return x[1]; })
+    .map(function (x) {
+      const it = x[1];
+      return { rubrique: x[0], couleur: x[2], it: it, libre: _veilleAccesLibre_(it.doi),
+               editeur: it.doi ? 'https://doi.org/' + String(it.doi).trim() : 'https://pubmed.ncbi.nlm.nih.gov/' + encodeURIComponent(it.pmid) + '/' };
+    });
+}
+function _veilleChoixHtml_(choix) {
+  if (!choix.length) return '';
+  const lignes = choix.map(function (c) {
+    const lien = c.libre
+      ? '<a href="' + _veilleEsc(c.libre.url) + '" style="font:700 13px Arial,sans-serif;color:#0F7B5F;text-decoration:none;">' + (c.libre.pdf ? 'PDF en accès libre →' : 'Texte intégral en accès libre →') + '</a>'
+      : '<span style="font:400 13px Arial,sans-serif;color:#94A3B8;">Pas de version libre trouvée · </span><a href="' + _veilleEsc(c.editeur) + '" style="font:600 13px Arial,sans-serif;color:#1D6FB8;text-decoration:none;">Page de l\'éditeur →</a>';
+    return '<tr><td style="padding:10px 16px;border-top:1px solid #FDE68A;">'
+      + '<div style="font:700 11px Arial,sans-serif;color:' + c.couleur + ';letter-spacing:.5px;text-transform:uppercase;">' + c.rubrique
+      + '<span style="color:#64748B;font-weight:600;text-transform:none;letter-spacing:0;margin-left:6px;">' + _veilleEsc(c.it.revue) + ' · ' + Math.round(Number(c.it.score)) + '/100</span></div>'
+      + '<div style="font:700 15px/1.35 Arial,sans-serif;color:#0F172A;margin-top:3px;">' + _veilleEsc(String(c.it.titre).replace(/\.$/, '')) + '</div>'
+      + '<div style="margin-top:6px;">' + lien + '</div></td></tr>';
+  }).join('');
+  return '<tr><td style="padding:12px 0 4px 0;"><table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="border:1px solid #FCD34D;border-radius:12px;background:#FFFBEB;">'
+    + '<tr><td style="padding:12px 16px 8px 16px;font:700 14px Arial,sans-serif;color:#92400E;">Les 2 articles de la semaine <span style="font-weight:400;color:#B45309;font-size:12px;">· pour toi seul, à diffuser si tu veux</span></td></tr>'
+    + lignes + '</table></td></tr>';
+}
+function _veilleChoixTexte_(choix) {
+  if (!choix.length) return '';
+  return 'LES 2 ARTICLES DE LA SEMAINE\n\n' + choix.map(function (c) {
+    return '• ' + c.rubrique + ' — ' + c.it.titre + ' (' + c.it.revue + ', ' + Math.round(Number(c.it.score)) + '/100)\n  '
+      + (c.libre ? (c.libre.pdf ? 'PDF en accès libre : ' : 'Texte intégral en accès libre : ') + c.libre.url : 'Pas de version libre trouvée — éditeur : ' + c.editeur);
+  }).join('\n\n') + '\n\n';
 }
 
 function _veilleDestAdmin_() {   // lecture DIRECTE de CONFIG (même raison que diagHebdo : pas de cache)
@@ -1631,12 +1683,19 @@ function _veilleEnvoyerMail_(force) {
   const jour = Utilities.formatDate(new Date(), 'Europe/Paris', 'd MMM');
   _veilleAuteursPourMail_(sel.rea.concat(sel.anesth));
   const html = _veilleHtmlMail_(sel), texte = _veilleTexteMail_(sel);
+  /* (17/11/2026) L'encadré « 2 articles de la semaine » : préparé seulement si l'administrateur est
+     destinataire, et réservé à SON adresse. */
+  const adminCle = admin.toLowerCase();
+  const pourAdmin = dests.some(function (d) { return d.toLowerCase() === adminCle; });
+  const choix = pourAdmin ? _veilleChoixSemaine_(sel) : [];
+  const htmlAdmin = _veilleHtmlMail_(sel, _veilleChoixHtml_(choix)), texteAdmin = _veilleTexteMail_(sel, _veilleChoixTexte_(choix));
   let partis = 0, rates = 0;
   dests.forEach(function (to) {   // un mail par personne : personne ne voit l'adresse des autres
     try {
       if (MailApp.getRemainingDailyQuota() < 1) { rates++; return; }
       MailApp.sendEmail({ to: to, name: 'Veille biblio — Planning-Med',
-        subject: 'Veille biblio — les ' + n + ' articles de la semaine (' + jour + ')', htmlBody: html, body: texte });
+        subject: 'Veille biblio — les ' + n + ' articles de la semaine (' + jour + ')',
+        htmlBody: to.toLowerCase() === adminCle ? htmlAdmin : html, body: to.toLowerCase() === adminCle ? texteAdmin : texte });
       partis++;
     } catch (e) { rates++; }
   });
