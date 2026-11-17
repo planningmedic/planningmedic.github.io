@@ -23,11 +23,12 @@ const AUJ_ISO = `${AN}-${p2(MOIS)}-${p2(AUJ.getDate())}`;
 
 /* Planning au format servi : months[].days[].date + doctors[].days[].status.
    Une liste creuse de dates suffit (la vue suit l'index des jours). */
-function planning(statuts) {
+function planning(statuts, feries) {
+  feries = feries || [];
   const parMois = {};
   Object.keys(statuts).sort().forEach(d => { (parMois[d.slice(0,7)] = parMois[d.slice(0,7)] || []).push(d); });
   return { months: Object.keys(parMois).map(k => ({
-    year: +k.slice(0,4), month: +k.slice(5,7), days: parMois[k].map(date => ({ date })),
+    year: +k.slice(0,4), month: +k.slice(5,7), days: parMois[k].map(date => feries.includes(date) ? { date, isFerie: true } : { date }),
     doctors: [{ id: 'ALPHA', days: parMois[k].map(d => ({ status: statuts[d] })) },
               { id: 'BETA',  days: parMois[k].map(() => ({ status: 'G' })) }] })), equiteInitiale: {} };
 }
@@ -83,7 +84,7 @@ function planning(statuts) {
     [`${MOI}-08`]: 'V', [`${MOI}-09`]: 'TP', [`${AN}-01-10`]: 'G', [`${AN}-01-11`]: 'RG',
   };
   const plans = {
-    [`planning_${AN}`]: planning(statutsAn),
+    [`planning_${AN}`]: planning(Object.assign({ [`${MOI}-11`]: '', [`${MOI}-12`]: '' }, statutsAn), [`${MOI}-03`, `${MOI}-11`]),
     [`planning_${AN+1}`]: planning({ [`${AN+1}-01-04`]: 'G2' }),
     [`planning_${AN-1}`]: planning({ [`${AN-1}-06-15`]: 'G', [`${AN}-01-01`]: 'G', [`${AN}-01-02`]: 'RG' }),
   };
@@ -120,6 +121,11 @@ function planning(statuts) {
   V("aujourd'hui est entouré", cas(AUJ_ISO).classList.contains('auj'));
   if (AUJ_ISO > `${AN}-01-10`) V('une garde passée est pâlie', cas(`${AN}-01-10`).classList.contains('passe') && cas(`${AN}-01-10`).classList.contains('g'));
   V('le mois en cours compte ses gardes (G + G2, pas les 18 h)', /2 G/.test($('#mga-' + MOI + ' .mga-mh').textContent), $('#mga-' + MOI + ' .mga-mh').textContent);
+  V('jour férié sans garde → liseré rouge (jf)', cas(`${MOI}-11`).classList.contains('jf'), cas(`${MOI}-11`).className);
+  V('jour férié de garde → garde ET liseré', cas(`${MOI}-03`).classList.contains('g2') && cas(`${MOI}-03`).classList.contains('jf'), cas(`${MOI}-03`).className);
+  V('le férié se dit au toucher (« Férié · Mater »)', cas(`${MOI}-03`).getAttribute('title') === 'Férié · Mater' && cas(`${MOI}-11`).getAttribute('title') === 'Férié', [cas(`${MOI}-03`).getAttribute('title'), cas(`${MOI}-11`).getAttribute('title')]);
+  V('contre-preuve : un jour ordinaire n\'a pas de liseré', !cas(`${MOI}-12`).classList.contains('jf') && !cas(`${MOI}-01`).classList.contains('jf'));
+  V('la légende affiche « Férié »', /Férié/.test($('.mga-leg').textContent));
   V(`garde de l'année suivante visible (4 janv. ${AN+1})`, cas(`${AN+1}-01-04`).classList.contains('g2'));
 
   console.log("\n═══ 3. Totaux = planning de l'année, 1er janvier lu dans le planning d'avant ═══");

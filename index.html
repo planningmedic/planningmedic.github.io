@@ -391,6 +391,8 @@ html[data-theme="dark"] .mg-tag.h18 { color:#1A0E03; }
 .mga-d.g2 { background:var(--rose); color:var(--white); }
 .mga-d.h18 { background:var(--h18); color:var(--white); }
 .mga-d.passe { opacity:.42; }
+.mga-d.jf { box-shadow:inset 0 0 0 1.5px var(--red); }   /* (17/11/2026) jour férié : liseré rouge */
+.mga-d.jf.g, .mga-d.jf.g2, .mga-d.jf.h18 { box-shadow:inset 0 0 0 1.5px var(--red), inset 0 0 0 3px var(--white); }
 .mga-d.auj { box-shadow:inset 0 0 0 2px var(--ink); }
 .mga-d small { display:none; font-size:9.5px; font-weight:700; }
 .mga-mois.ouvert .mga-d { height:40px; font-size:14px; }
@@ -1095,7 +1097,7 @@ html[data-theme="dark"] .ech-bandeau.ouvert { background:var(--ok-soft); color:v
       </div>
       <div id="mgaBarre">
         <div class="mga-ans" id="mgaAns" role="group" aria-label="Choisir une année"></div>
-        <div class="mga-leg"><span><i style="background:var(--me)"></i>Réa</span><span><i style="background:var(--rose)"></i>Mater/Bloc</span><span><i style="background:var(--h18)"></i>18 h</span><span><i style="background:var(--cat-vac-bg);box-shadow:inset 0 0 0 1px var(--cat-vac-fg)"></i>Vacances</span><span><i style="background:var(--cat-tp-bg);box-shadow:inset 0 0 0 1px var(--cat-tp-fg)"></i>TP</span><span><i style="background:var(--cat-form-bg);box-shadow:inset 0 0 0 1px var(--cat-form-fg)"></i>Form.</span></div>
+        <div class="mga-leg"><span><i style="background:var(--me)"></i>Réa</span><span><i style="background:var(--rose)"></i>Mater/Bloc</span><span><i style="background:var(--h18)"></i>18 h</span><span><i style="background:var(--cat-vac-bg);box-shadow:inset 0 0 0 1px var(--cat-vac-fg)"></i>Vacances</span><span><i style="background:var(--cat-tp-bg);box-shadow:inset 0 0 0 1px var(--cat-tp-fg)"></i>TP</span><span><i style="background:var(--cat-form-bg);box-shadow:inset 0 0 0 1px var(--cat-form-fg)"></i>Form.</span><span><i style="box-shadow:inset 0 0 0 1.5px var(--red)"></i>Férié</span></div>
       </div>
     </div>
     <div id="mgVueAnnee"></div>
@@ -2117,6 +2119,7 @@ function _mgaStatuts(){
     const pl = _planDejaLa(y);
     if(!pl || !pl.months) return;
     pl.months.forEach(function(m){
+      (m.days||[]).forEach(function(j){ if(j && j.isFerie && j.date) S['jf:'+j.date]=1; });   // (17/11/2026) fériés, lus dans le même planning
       const doc=(m.doctors||[]).find(function(d){ return d.id===MY_ID; });
       if(!doc || !doc.days) return;
       for(let i=0;i<doc.days.length;i++){
@@ -2181,9 +2184,10 @@ function _mgaMois(y, m, S, today){
     else if(st==='18'){ cls+=' h18'; lab='18 h'; }
     else { const c = CONGE_CODE_TO_CAT[st]; if(c){ cls+=' '+CAT_META[c].cls; lab=MGA_CAT_LAB[c]; } }
     if(wd>=5 && !lab) cls += ' we';
+    if(S['jf:'+iso]) cls += ' jf';
     if(iso < today) cls += ' passe';
     if(iso === today) cls += ' auj';
-    cases += '<div class="'+cls+'" data-date="'+iso+'"'+(lab?' title="'+lab+'"':'')+'>'+d+(lab?'<small>'+lab+'</small>':'')+'</div>';
+    cases += '<div class="'+cls+'" data-date="'+iso+'"'+((lab||S['jf:'+iso])?' title="'+(S['jf:'+iso]?'Férié'+(lab?' · ':''):'')+lab+'"':'')+'>'+d+(lab?'<small>'+lab+'</small>':'')+'</div>';
   }
   const enCours = today.slice(0,7)===cle;
   return '<div class="mga-mois'+(MGA_OUVERT===cle?' ouvert':'')+(enCours?' encours':'')+'" id="mga-'+cle+'" onclick="mgaBasculerMois(\''+cle+'\')">'
