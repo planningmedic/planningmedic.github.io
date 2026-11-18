@@ -505,6 +505,10 @@ html[data-theme="dark"] .mg-tag.h18 { color:#1A0E03; }
 .doc-size { font-size:12px; color:var(--ink-4); flex-shrink:0; }
 .doc-row.loading, .topo-card.single.loading { opacity:.5; pointer-events:none; }
 
+/* (18/11/2026) Étagères d'année : mêmes boutons que les sources des fiches pratiques, en bleu */
+.reco-src.topo-annee:hover { border-color:var(--me); }
+.reco-src.topo-annee svg { color:var(--me); }
+.reco-src.topo-annee .count { background:var(--me-soft); color:var(--me); }
 .topos-loading, .topos-empty { text-align:center; padding:48px 20px; color:var(--ink-3); font-size:14px; line-height:1.6; }
 .topos-empty span { font-size:12.5px; color:var(--ink-4); }
 
@@ -1027,8 +1031,8 @@ html[data-theme="dark"] .ech-tuile.ouverture .ech-reflet { background:linear-gra
   </div>
   <div id="toposView" style="display:none">
     <div class="topos-head">
-      <button class="btn-back" onclick="backToHome()"><i data-lucide="arrow-left" style="width:16px;height:16px"></i> Retour</button>
-      <h2>Topos / biblio</h2>
+      <button class="btn-back" onclick="toposRetour()"><i data-lucide="arrow-left" style="width:16px;height:16px"></i> Retour</button>
+      <h2 id="toposTitre">Topos / biblio</h2>
       <span class="topos-count" id="toposCount"></span>
     </div>
     <div id="toposList"></div>
@@ -2596,6 +2600,7 @@ async function openTopos(){
   document.getElementById('tilesView').style.display='none';
   document.getElementById('toposView').style.display='block';
   document.getElementById('toposCount').textContent='';
+  document.getElementById('toposTitre').textContent=TOPOS_TITRE;
   const box=document.getElementById('toposList');
   box.innerHTML='<div class="topos-loading">Chargement…</div>';
   try{
@@ -4039,14 +4044,64 @@ function toggleV(pmid, field){
   _veilleRejouerFile();
 }
 
+/* (18/11/2026) TOPOS RANGÉS PAR ANNÉE. Le serveur marque chaque topo de son
+   année (`annee`, nom du sous-dossier « 2026 », « 2027 »… du Drive) ; ''
+   pour ce qui est resté à la racine. Dès qu'une année existe : écran 1 = les
+   années (la plus récente en haut, « Autres » en dernier), écran 2 = les topos
+   de l'année. Sans aucune année (Drive pas encore rangé, ou serveur d'avant) :
+   la liste à plat, exactement comme avant. */
+const TOPOS_TITRE = 'Topos / biblio';
+const TOPOS_SANS_ANNEE = 'Autres';
+let _toposGroupes = null;     // [{ annee, topos }] ou null si liste à plat
+let _toposAnnee = null;       // année ouverte (null = écran des années)
+function _toposCompte(n){ return n ? (n + (n>1?' topos':' topo')) : ''; }
+function _toposParAnnee(topos){
+  const par = {};
+  (topos||[]).forEach(function(t){ const a = String(t.annee||''); (par[a] = par[a] || []).push(t); });
+  return Object.keys(par)
+    .sort(function(a,b){ return a==='' ? 1 : b==='' ? -1 : b.localeCompare(a); })
+    .map(function(a){ return { annee:a, topos:par[a] }; });
+}
 function renderToposList(data){
-  document.getElementById('toposCount').textContent = data.count ? (data.count + (data.count>1?' topos':' topo')) : '';
+  _toposAnnee = null;
+  const groupes = _toposParAnnee(data && data.topos);
+  _toposGroupes = groupes.some(function(g){ return g.annee; }) ? groupes : null;
+  if(_toposGroupes) return renderToposAnnees();
+  document.getElementById('toposTitre').textContent = TOPOS_TITRE;
+  _toposCartes((data && data.topos) || [], data && data.count);
+}
+function renderToposAnnees(){
+  _toposAnnee = null;
+  const n = _toposGroupes.reduce(function(s,g){ return s + g.topos.length; }, 0);
+  document.getElementById('toposTitre').textContent = TOPOS_TITRE;
+  document.getElementById('toposCount').textContent = _toposCompte(n);
+  document.getElementById('toposList').innerHTML = _toposGroupes.map(function(g){
+    return '<button type="button" class="reco-src topo-annee" onclick="toposOuvrirAnnee(\''+esc(g.annee)+'\')">'
+      + '<i data-lucide="calendar-days"></i><span class="spec-name">'+esc(g.annee || TOPOS_SANS_ANNEE)+'</span>'
+      + '<span class="count">'+g.topos.length+'</span><i data-lucide="chevron-right"></i></button>';
+  }).join('');
+  if(window.lucide) lucide.createIcons();
+}
+function toposOuvrirAnnee(a){
+  const g = (_toposGroupes||[]).find(function(x){ return x.annee === String(a); });
+  if(!g) return;
+  _toposAnnee = g.annee;
+  document.getElementById('toposTitre').textContent = g.annee ? 'Topos ' + g.annee : 'Autres topos';
+  _toposCartes(g.topos, g.topos.length);
+}
+// Retour : de l'année vers la liste des années, sinon vers l'accueil.
+function toposRetour(){
+  if(_toposGroupes && _toposAnnee !== null) renderToposAnnees();
+  else backToHome();
+}
+function _toposCartes(topos, count){
+  document.getElementById('toposCount').textContent = _toposCompte(count);
   const box=document.getElementById('toposList');
-  if(!data.topos || !data.topos.length){
-    box.innerHTML=_semaine+'<div class="topos-empty">Aucun topo pour l\'instant.<br><span>Déposez un PDF dans le dossier Drive pour le voir apparaître ici.</span></div>';
+  if(!topos.length){
+    box.innerHTML='<div class="topos-empty">Aucun topo pour l\'instant.<br><span>Déposez un PDF dans le dossier Drive pour le voir apparaître ici.</span></div>';
     return;
   }
-  box.innerHTML = data.topos.map(t => {
+  box.innerHTML = topos.map(t => {
     if(!t.multi){
       const d=t.docs[0];
       return '<div class="topo-card single" onclick="openDoc(\''+d.id+'\', this)">'

@@ -1,7 +1,7 @@
 // ⚠️ RÈGLE (détecteur de dérive dépôt↔Apps Script) : incrémenter cette version
 // à CHAQUE push de ce fichier. Le diagnostic (admin → Maintenance) compare la
 // version déployée ici avec celle du dépôt et signale toute recopie oubliée.
-const GAS_VERSION_PORTAIL = '2026-11-17.2';   // (17/11/2026) .2 statistiques d'usage : jours de connexion des 28 derniers jours par médecin (frise) · (17/11/2026) onglet SEUILS : source unique des seuils d'effectif (pose des TP, contrôles, récupérations, bande de présence) ; graine du confort à 15 comme le classeur · (15/11/2026) .1 libéral : une année close est lue dans l'archive (relevé, déclarations, vue du jour) · (20/10/2026) .1 recherche dans les archives de la veille · .2 onglet ETABLISSEMENT (nom et adresse du devis) · .3 + service et téléphone · .4 + totaux de consultation du groupement · (21/10) .1 abonnement au mail de la veille
+const GAS_VERSION_PORTAIL = '2026-11-18.1';   // (18/11/2026) .1 topos rangés par année : un sous-dossier « 2026 », « 2027 »… du dossier Topos est une étagère d'année · (17/11/2026) .2 statistiques d'usage : jours de connexion des 28 derniers jours par médecin (frise) · (17/11/2026) onglet SEUILS : source unique des seuils d'effectif (pose des TP, contrôles, récupérations, bande de présence) ; graine du confort à 15 comme le classeur · (15/11/2026) .1 libéral : une année close est lue dans l'archive (relevé, déclarations, vue du jour) · (20/10/2026) .1 recherche dans les archives de la veille · .2 onglet ETABLISSEMENT (nom et adresse du devis) · .3 + service et téléphone · .4 + totaux de consultation du groupement · (21/10) .1 abonnement au mail de la veille
 
 /**
  * portail.gs — actions du PORTAIL équipe (index.html).
@@ -99,26 +99,28 @@ function _fileMeta(file) {
   };
 }
 
-// Liste les topos : PDF à la racine = topo 1 doc ; sous-dossier = topo N docs
-// (nom du sous-dossier = titre). UN SEUL niveau de sous-dossier. Tri alpha
+// Liste les topos : PDF = topo 1 doc ; sous-dossier = topo N docs (nom du
+// sous-dossier = titre). UN SEUL niveau de sous-dossier par topo. Tri alpha
 // partout (topos entre eux + docs dans un sous-dossier).
-function listTopos() {
-  const root = _getToposFolder();
-  const topos = [];
-
-  // 1) PDF directement à la racine → topos à 1 document
-  const files = root.getFiles();
+// (18/11/2026) RANGEMENT PAR ANNÉE : un sous-dossier dont le nom est une année
+// (« 2026 », « 2027 ») n'est pas un topo mais une étagère ; ses PDF et ses
+// sous-dossiers deviennent des topos de cette année (champ `annee`). Ce qui
+// reste à la racine garde la forme d'avant (annee = '').
+function _toposDe(dossier, annee, topos) {
+  // 1) PDF directement dans le dossier → topos à 1 document
+  const files = dossier.getFiles();
   while (files.hasNext()) {
     const f = files.next();
     if (!_isPdf(f)) continue;
     const m = _fileMeta(f);
-    topos.push({ title: m.title, multi: false, date: m.date, docs: [m] });
+    topos.push({ title: m.title, multi: false, date: m.date, annee: annee, docs: [m] });
   }
-
-  // 2) sous-dossiers → topos à plusieurs documents
-  const subs = root.getFolders();
+  // 2) sous-dossiers → topos à plusieurs documents (ou étagère d'année à la racine)
+  const subs = dossier.getFolders();
   while (subs.hasNext()) {
     const sub = subs.next();
+    const nom = String(sub.getName()).trim();
+    if (!annee && /^(19|20)\d{2}$/.test(nom)) { _toposDe(sub, nom, topos); continue; }
     const docs = [];
     const sf = sub.getFiles();
     while (sf.hasNext()) {
@@ -128,8 +130,14 @@ function listTopos() {
     if (!docs.length) continue;                        // sous-dossier sans PDF → ignoré
     docs.sort((a, b) => a.title.localeCompare(b.title, 'fr'));
     const lastDate = docs.reduce((mx, d) => (d.date > mx ? d.date : mx), docs[0].date);
-    topos.push({ title: sub.getName(), multi: true, date: lastDate, docs: docs });
+    topos.push({ title: sub.getName(), multi: true, date: lastDate, annee: annee, docs: docs });
   }
+}
+
+function listTopos() {
+  const root = _getToposFolder();
+  const topos = [];
+  _toposDe(root, '', topos);
 
   // tri des topos entre eux : alphabétique sur le titre
   topos.sort((a, b) => a.title.localeCompare(b.title, 'fr'));
@@ -140,14 +148,15 @@ function listTopos() {
 // Sert un PDF en base64 — le MAR ne touche JAMAIS au Drive directement
 // (cohérent avec la façon dont le planning est servi).
 // Sécurité : on n'accepte que les fichiers RÉELLEMENT situés dans le dossier
-// Topos (racine ou sous-dossier direct), pour qu'un code valide ne puisse pas
+// Topos (à n'importe quel niveau dessous : année > topo > PDF depuis le
+// 18/11/2026), pour qu'un code valide ne puisse pas
 // lire un fichier arbitraire du Drive via un id forgé.
 function getTopo(id) {
   if (!id) return { success: false, error: 'Identifiant manquant' };
   let file;
   try { file = DriveApp.getFileById(id); }
   catch (e) { return { success: false, error: 'Document introuvable' }; }
-  if (!_fileInTopos(file)) return { success: false, error: 'Accès refusé' };
+  if (!_fileWithinFolder(file, _getToposFolder().getId())) return { success: false, error: 'Accès refusé' };
   const blob = file.getBlob();
   return {
     success:  true,
@@ -156,24 +165,6 @@ function getTopo(id) {
     dataB64:  Utilities.base64Encode(blob.getBytes()),
   };
 }
-
-// Vrai si le fichier est dans le dossier Topos, ou dans un sous-dossier direct
-// de ce dossier (un seul niveau, cohérent avec listTopos).
-function _fileInTopos(file) {
-  const toposId = _getToposFolder().getId();
-  const parents = file.getParents();
-  while (parents.hasNext()) {
-    const p = parents.next();
-    if (p.getId() === toposId) return true;            // fichier à la racine Topos
-    const grand = p.getParents();
-    while (grand.hasNext()) {
-      if (grand.next().getId() === toposId) return true; // fichier dans un sous-dossier direct
-    }
-  }
-  return false;
-}
-
-
 
 // ══════════════════════════════════════════════════════════════════════
 //  STAFFS À VENIR
