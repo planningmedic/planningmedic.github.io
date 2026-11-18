@@ -900,7 +900,7 @@ console.log('\n═══ L1-D. Garde passée : ni proposée, ni acceptée ══
   V('témoin : le comité peut toujours corriger une garde passée', errC === null && m.lire('BRAVO', hier) === 'G', errC);
 }
 
-console.log('\n═══ RÉA 1 · entre MAR, une GARDE dans SA semaine Réa 1 est REFUSÉE, un 18 h demande confirmation (16/11/2026) ═══');
+console.log('\n═══ RÉA 1 · entre MAR, une GARDE ou un 18 h dans SA semaine Réa 1 : prévenu, il confirme (18/11/2026 — plus de blocage) ═══');
 {
   /* 2027 : dates[0] = lundi 04/01. BRAVO est Réa 1 la semaine du 11/01,
      ALPHA celle du 18/01. Le tableau est écrit comme le vrai : dates en
@@ -920,30 +920,32 @@ console.log('\n═══ RÉA 1 · entre MAR, une GARDE dans SA semaine Réa 1 e
   const repondre = (b, qui, p) => vm.runInContext(`repondreEchange(${JSON.stringify(user(qui))}, ${JSON.stringify(p)})`, b.ctx);
   const grille = b => JSON.stringify(b.cl.getSheetByName('GARDES_2027').lignes);
   const essai = f => { try { f(); return null; } catch (e) { return e.message; } };
-  const REFUS = /^Impossible : .+\. Pendant une semaine Réa 1, aucune garde du dimanche au jeudi\.$/;
+  const QREA1 = /^\[REA1\] Attention, la garde du /;
 
-  // A. DON vers un Réa 1 (le dimanche, veille de sa semaine) : refusé dès l'envoi.
+  // A. DON vers un Réa 1 (le dimanche, veille de sa semaine) : la proposition part, il est prévenu.
   let b = prep();
   b.poser('ALPHA', DIM, 'G'); b.poser('ALPHA', LUN, 'RG');
+  let r = creer(b, 'ALPHA', { type:'don', year:2027, date:DIM, receveur:'BRAVO' });
+  V('A. don d\'une nuit Réa 1 du receveur : la proposition PART (plus de refus)', !!r.id && b.echanges().length === 1, r);
+  V('A. …le receveur est prévenu de sa semaine Réa 1 dans la notification',
+    /Attention, la garde du 10\/01\/2027 tombe dans votre semaine Réa 1 \(du 11\/01\/2027 au 15\/01\/2027\)/.test(b.notifs[b.notifs.length - 1].corps), b.notifs[b.notifs.length - 1].corps);
   let avant = grille(b);
-  let q = essai(() => creer(b, 'ALPHA', { type:'don', year:2027, date:DIM, receveur:'BRAVO' }));
-  V('A. don d\'une nuit Réa 1 du receveur : refusé à l\'envoi, semaine et receveur nommés',
-    REFUS.test(q || '') && /la garde du 10\/01\/2027 tombe dans la semaine Réa 1 du Dr Bravo \(du 11\/01\/2027 au 15\/01\/2027\)/i.test(q || ''), q);
-  V('A. …rien n\'est écrit, aucune notification', grille(b) === avant && b.echanges().length === 0 && b.notifs.length === 0);
-  q = essai(() => creer(b, 'ALPHA', { type:'don', year:2027, date:DIM, receveur:'BRAVO', accepteRea1:true }));
-  V('A. « confirmer » ne débloque plus rien (accepteRea1 ignoré)', REFUS.test(q || '') && b.echanges().length === 0, q);
+  let q = essai(() => repondre(b, 'BRAVO', { id:r.id, reponse:'accepter' }));
+  V('A. accepter sans confirmer → la question [REA1], rien d\'écrit, la demande attend',
+    QREA1.test(q || '') && /votre semaine Réa 1 \(du 11\/01\/2027 au 15\/01\/2027\)\. Vous confirmez \?$/.test(q || '') && grille(b) === avant && b.echanges()[0][COL.ETAT] === 'attente', q);
+  let rep = repondre(b, 'BRAVO', { id:r.id, reponse:'accepter', accepteRea1:true });
+  V('A. confirmé : la garde passe au Réa 1, avec son repos', rep.etat === 'acceptee' && b.lire('BRAVO', DIM) === 'G' && b.lire('BRAVO', LUN) === 'RG' && b.lire('ALPHA', DIM) === '', rep);
+  V('A. la trace dit la garde en semaine Réa 1', /⚠ garde du 2027-01-10 en semaine Réa 1 de BRAVO/.test(String(b.echanges()[0][COL.INFO])), b.echanges()[0][COL.INFO]);
 
-  // A bis. Demande créée AVANT que la semaine soit connue : refusée à l'acceptation, la demande attend.
+  // A bis. Demande créée AVANT que la semaine soit connue : question à l'acceptation, refuser reste possible.
   b = prep(true);
   b.poser('ALPHA', DIM, 'G'); b.poser('ALPHA', LUN, 'RG');
-  let r = creer(b, 'ALPHA', { type:'don', year:2027, date:DIM, receveur:'BRAVO' });
+  r = creer(b, 'ALPHA', { type:'don', year:2027, date:DIM, receveur:'BRAVO' });
   b.cl.ajouter('REA1_2027', TABLE_REA1);
   avant = grille(b);
-  q = essai(() => repondre(b, 'BRAVO', { id:r.id, reponse:'accepter', accepteRea1:true }));
-  V('A bis. accepter dans sa semaine Réa 1 : refusé, même en « confirmant »', REFUS.test(q || '') && /votre semaine Réa 1 \(du 11\/01\/2027 au 15\/01\/2027\)/.test(q || ''), q);
-  V('A bis. …rien n\'est écrit, la demande attend (il peut la refuser)', grille(b) === avant && b.echanges()[0][COL.ETAT] === 'attente');
+  q = essai(() => repondre(b, 'BRAVO', { id:r.id, reponse:'accepter' }));
+  V('A bis. accepter dans sa semaine Réa 1 : la question [REA1], rien d\'écrit', QREA1.test(q || '') && grille(b) === avant && b.echanges()[0][COL.ETAT] === 'attente', q);
   const rf = repondre(b, 'BRAVO', { id:r.id, reponse:'refuser' });
-  let rep = null;
   V('A bis. refuser reste possible', rf.etat === 'refusee');
 
   // B. Ce qui reste PERMIS : vendredi, samedi ; un MAR hors équipe réa ; sans onglet.
@@ -971,13 +973,15 @@ console.log('\n═══ RÉA 1 · entre MAR, une GARDE dans SA semaine Réa 1 e
     V('B. le Réa 1 peut DONNER une garde de sa semaine', !!d.id);
   }
 
-  // C. ÉCHANGE : le DEMANDEUR prendrait un mardi de sa propre semaine Réa 1 → refusé à l'envoi.
+  // C. ÉCHANGE : le DEMANDEUR prendrait un mardi de sa propre semaine Réa 1 → la question, puis ça part.
   b = prep();
   b.poser('ALPHA', '2027-02-10', 'G'); b.poser('ALPHA', '2027-02-11', 'RG');
   b.poser('BRAVO', '2027-01-19', 'G2'); b.poser('BRAVO', '2027-01-20', 'RG');
-  q = essai(() => creer(b, 'ALPHA', { type:'echange', year:2027, date:'2027-02-10', date2:'2027-01-19', receveur:'BRAVO', accepteRea1:true }));
-  V('C. échange qui lui ferait prendre un mardi de sa semaine : refusé, rien ne part',
-    REFUS.test(q || '') && /la garde du 19\/01\/2027 tombe dans votre semaine Réa 1 \(du 18\/01\/2027 au 22\/01\/2027\)/.test(q || '') && b.echanges().length === 0 && b.notifs.length === 0, q);
+  q = essai(() => creer(b, 'ALPHA', { type:'echange', year:2027, date:'2027-02-10', date2:'2027-01-19', receveur:'BRAVO' }));
+  V('C. échange qui lui ferait prendre un mardi de sa semaine : la question [REA1], rien ne part',
+    /^\[REA1\] Attention, la garde du 19\/01\/2027 tombe dans votre semaine Réa 1 \(du 18\/01\/2027 au 22\/01\/2027\)\. Vous confirmez \?$/.test(q || '') && b.echanges().length === 0 && b.notifs.length === 0, q);
+  r = creer(b, 'ALPHA', { type:'echange', year:2027, date:'2027-02-10', date2:'2027-01-19', receveur:'BRAVO', accepteRea1:true });
+  V('C. confirmé : la proposition part', !!r.id && b.echanges().length === 1, r);
 
   // D. ÉCHANGE DE 18 h : un 18 h reçu le vendredi de sa semaine → prévenu, il confirme (PAS bloquant).
   b = prep();
@@ -1011,14 +1015,14 @@ console.log('\n═══ RÉA 1 · entre MAR, une GARDE dans SA semaine Réa 1 e
   V('E. les deux confirmées : acceptée, le 18 h est chez le donneur', rep.etat === 'acceptee' && String(b.lire('ALPHA', '2027-01-22')) === '18', rep);
   V('E. la trace dit le 18 h en semaine Réa 1', /⚠ 18 h du 2027-01-22 en semaine Réa 1 de ALPHA/.test(String(b.echanges()[0][COL.INFO])), b.echanges()[0][COL.INFO]);
 
-  // F. Demande devenue IMPOSSIBLE (garde partie) : le chemin habituel, pas le refus Réa 1.
+  // F. Demande devenue IMPOSSIBLE (garde partie) : le chemin habituel, pas la question Réa 1.
   b = prep(true);
   b.poser('ALPHA', DIM, 'G'); b.poser('ALPHA', LUN, 'RG');
   r = creer(b, 'ALPHA', { type:'don', year:2027, date:DIM, receveur:'BRAVO' });
   b.cl.ajouter('REA1_2027', TABLE_REA1);
   b.poser('ALPHA', DIM, ''); b.poser('ALPHA', LUN, '');   // la garde est partie entre-temps
   q = null; rep = null; try { rep = repondre(b, 'BRAVO', { id:r.id, reponse:'accepter' }); } catch (e) { q = e.message; }
-  V('F. impossible → dit tout de suite, sans le refus Réa 1', !q && rep && rep.etat === 'impossible', q || rep);
+  V('F. impossible → dit tout de suite, sans la question Réa 1', !q && rep && rep.etat === 'impossible', q || rep);
 
   // G. COMITÉ : le geste passe, l'avertissement est rendu dans ses suites (inchangé).
   b = prep();
