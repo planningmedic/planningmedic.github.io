@@ -265,8 +265,15 @@ const iso = ms => new Date(ms).toISOString();
     V('première ouverture du portail après l\'heure : l\'animation joue', hero.classList.contains('ouverture') && !hero.classList.contains('verrou'));
     const retenu = p.w.localStorage.getItem('pmEchOuvertureVue');
     V('le téléphone retient qu\'elle a été vue (pour CETTE ouverture)', retenu === String(Date.parse(iso(instant))), retenu);
+    /* (18/11/2026) Ouverture plus marquée : 14 confettis et la double onde partent
+       du CENTRE de l'icône (dans le carré, pas à une position fixe de la tuile). */
+    const ico = hero.querySelector('.tile-ico');
+    V('confettis : 14 éclats lancés depuis l\'icône', ico.querySelectorAll('.ech-eclat').length === 14 && hero.querySelectorAll('.ech-eclat').length === 14, hero.querySelectorAll('.ech-eclat').length);
+    V('… chacun avec sa direction et sa couleur', [...ico.querySelectorAll('.ech-eclat')].every(e => /px$/.test(e.style.getPropertyValue('--x')) && /px$/.test(e.style.getPropertyValue('--y')) && e.style.background));
+    V('la double onde est dans le carré de l\'icône (centrée sur lui)', ico.querySelectorAll('.ech-onde').length === 2 && hero.querySelectorAll('.ech-onde').length === 2);
     await dodo(2700);
     V('l\'animation se retire d\'elle-même (2,5 s)', !hero.classList.contains('ouverture'));
+    V('… et les confettis avec elle', hero.querySelectorAll('.ech-eclat').length === 0);
     p.fermer();
 
     p = await monterPage(await baseKV({ ouvert:false, pilotes:[], ouverture: iso(instant) }), retenu);

@@ -782,25 +782,44 @@ html[data-theme="dark"] .ech-bandeau.ouvert { background:var(--ok-soft); color:v
 .ech-info { background:#EFF6FF; color:#1D4ED8; border-radius:10px; padding:10px 12px; font-size:13px; line-height:1.45; margin-top:12px; }
 .ech-bulle { grid-column:1 / -1; align-items:center; gap:10px; padding:10px 12px; border-radius:12px;
   background:var(--amber-soft); color:var(--ink-2); font-size:13px; line-height:1.4; animation:echMonte .28s ease-out; }
-.ech-tuile.ouverture { overflow:hidden; animation:echFond .7s ease .55s both; }
-.ech-tuile.ouverture .ech-anse { transform-box:fill-box; transform-origin:100% 100%; animation:echLeve .45s cubic-bezier(.3,1.6,.6,1) .1s both; }
-.ech-tuile.ouverture .ech-cadenas { animation:echPart .35s ease-in .6s both; }
-.ech-tuile.ouverture .tile-ico { animation:echTeinte .6s ease .6s both; }
-.ech-tuile.ouverture .ech-onde { display:block; position:absolute; left:34px; top:34px; width:40px; height:40px; margin:-20px 0 0 -20px;
-  border-radius:50%; border:2px solid var(--me); pointer-events:none; animation:echOnde .9s ease-out .7s both; }
+/* (18/11/2026 — décision du responsable) Ouverture plus marquée : le cadenas
+   tremble, l'anse s'ouvre AU MOMENT où partent les confettis et la double onde,
+   la tuile rebondit, puis le cadenas s'envole et un reflet la balaie. En dépôt,
+   l'icône finit en ambre (plus de passage par le bleu). */
+.ech-tuile.ouverture { overflow:hidden; animation:echFond .5s ease .5s both, echPop .55s cubic-bezier(.3,1.6,.5,1) .5s both; }
+.ech-tuile.ouverture .ech-cadenas { animation:echTremble .45s ease both, echVole .5s cubic-bezier(.5,0,.9,.4) .95s both; }
+.ech-tuile.ouverture .ech-anse { transform-box:fill-box; transform-origin:100% 100%; animation:echLeve .35s cubic-bezier(.3,1.8,.5,1) .5s both; }
+.ech-tuile.ouverture .tile-ico { animation:echTeinte .4s ease .5s both, echRebond .5s cubic-bezier(.3,1.8,.5,1) .5s both; }
+.ech-tuile.ouverture.depot .tile-ico { animation-name:echTeinteDepot, echRebond; }
+.ech-tuile.ouverture .ech-onde { display:block; position:absolute; left:50%; top:50%; width:40px; height:40px; margin:-20px 0 0 -20px;
+  border-radius:50%; border:2px solid var(--me); pointer-events:none; animation:echOnde .8s ease-out .5s both; }
+.ech-tuile.ouverture.depot .ech-onde { border-color:var(--amber); }
+.ech-tuile.ouverture .ech-onde2 { animation-delay:.68s; animation-duration:1s; }
+.ech-tuile.ouverture .ech-reflet { display:block; position:absolute; top:0; bottom:0; left:-60%; width:45%; pointer-events:none;
+  background:linear-gradient(105deg,rgba(255,255,255,0) 0%,rgba(255,255,255,.85) 50%,rgba(255,255,255,0) 100%); animation:echBalaye .8s ease-in-out 1.05s both; }
+html[data-theme="dark"] .ech-tuile.ouverture .ech-reflet { background:linear-gradient(105deg,rgba(255,255,255,0) 0%,rgba(255,255,255,.12) 50%,rgba(255,255,255,0) 100%); }
+.ech-eclat { position:absolute; left:50%; top:50%; width:7px; height:7px; margin:-3.5px 0 0 -3.5px; border-radius:2px; pointer-events:none;
+  animation:echEclat .9s cubic-bezier(.2,.8,.4,1) both; }
+.ech-tuile.ouverture .tile-title ~ .tile-sub, .ech-tuile.ouverture .ech-rebours { animation:echMonte .4s ease 1.1s both; }
 @keyframes echBalayage { 0% { left:-60%; } 35% { left:120%; } 100% { left:120%; } }
 @keyframes echRespire { 0%,100% { transform:scale(1); } 50% { transform:scale(1.08); } }
 @keyframes echClignote { 0%,100% { opacity:1; } 50% { opacity:.25; } }
 @keyframes echSecoue { 0%,100% { transform:rotate(0); } 20% { transform:rotate(-12deg); } 40% { transform:rotate(10deg); } 60% { transform:rotate(-7deg); } 80% { transform:rotate(4deg); } }
 @keyframes echMonte { from { opacity:0; transform:translateY(6px); } to { opacity:1; transform:translateY(0); } }
 @keyframes echFond { from { background:var(--surface-2); } to { background:var(--white); } }
-@keyframes echLeve { from { transform:translateY(0) rotate(0); } to { transform:translateY(-3px) rotate(-24deg); } }
-@keyframes echPart { from { transform:scale(1); opacity:1; } to { transform:scale(0) rotate(30deg); opacity:0; } }
+@keyframes echLeve { from { transform:translateY(0) rotate(0); } to { transform:translateY(-4px) rotate(-32deg); } }
+@keyframes echTremble { 0%,100% { transform:rotate(0); } 20% { transform:rotate(-16deg); } 40% { transform:rotate(14deg); } 60% { transform:rotate(-10deg); } 80% { transform:rotate(6deg); } }
+@keyframes echVole { from { transform:none; opacity:1; } to { transform:translate(18px,-40px) rotate(40deg) scale(.4); opacity:0; } }
+@keyframes echPop { 0% { transform:scale(1); } 40% { transform:scale(1.04); } 100% { transform:scale(1); } }
+@keyframes echRebond { 0% { transform:scale(1); } 40% { transform:scale(1.25); } 100% { transform:scale(1); } }
+@keyframes echBalaye { from { left:-60%; } to { left:130%; } }
+@keyframes echEclat { 0% { opacity:1; transform:translate(0,0) rotate(0); } 100% { opacity:0; transform:translate(var(--x),var(--y)) rotate(220deg); } }
 @keyframes echTeinte { from { background:var(--line); color:var(--ink-4); } to { background:var(--me-soft); color:var(--me); } }
+@keyframes echTeinteDepot { from { background:var(--line); color:var(--ink-4); } to { background:var(--amber-soft); color:var(--amber); } }
 @keyframes echOnde { 0% { transform:scale(.6); opacity:.7; } 100% { transform:scale(3.2); opacity:0; } }
 @media (prefers-reduced-motion: reduce) {
   .ech-tuile.verrou .ech-reflet, .ech-tuile.verrou .ech-cadenas, .ech-point, .ech-tuile.ouverture, .ech-tuile.ouverture * { animation:none !important; }
-  .ech-tuile.ouverture .ech-cadenas, .ech-tuile.ouverture .ech-onde { display:none; }
+  .ech-tuile.ouverture .ech-cadenas, .ech-tuile.ouverture .ech-onde, .ech-tuile.ouverture .ech-reflet, .ech-eclat { display:none; }
 }
 /* Liste (bloc Réservé) : une ligne par outil. */
 .tiles.liste { grid-template-columns:repeat(auto-fill,minmax(240px,1fr)); gap:8px; }
@@ -982,8 +1001,7 @@ html[data-theme="dark"] .ech-bandeau.ouvert { background:var(--ok-soft); color:v
           <!-- (14/11/2026) Ouverture programmée : reflet, cadenas et compte à rebours,
                montrés par les classes « verrou » (avant) et « ouverture » (l'animation, une fois). -->
           <span class="ech-reflet" aria-hidden="true"></span>
-          <span class="ech-onde" aria-hidden="true"></span>
-          <div class="tile-ico"><i data-lucide="repeat"></i>
+          <div class="tile-ico"><span class="ech-onde" aria-hidden="true"></span><span class="ech-onde ech-onde2" aria-hidden="true"></span><i data-lucide="repeat"></i>
             <span class="ech-cadenas" aria-hidden="true"><svg viewBox="0 0 24 24" width="11" height="11" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><rect width="18" height="11" x="3" y="11" rx="2"></rect><path class="ech-anse" d="M7 11V7a5 5 0 0 1 10 0v4"></path></svg></span>
           </div>
           <div class="tile-title" id="echHeroMain">Mes échanges</div>
@@ -2811,7 +2829,22 @@ function _echAnimerSiPremiereFois(hero){
   if (vue === String(ECH_OUVERTURE)) return;
   try { localStorage.setItem(ECH_ANIM_CLE, String(ECH_OUVERTURE)); } catch(e) {}
   hero.classList.add('ouverture');
-  setTimeout(function(){ hero.classList.remove('ouverture'); }, 2500);
+  /* (18/11/2026) Confettis : 14 éclats aux couleurs du portail, lancés au moment
+     où l'anse s'ouvre (0,5 s), depuis le centre de l'icône, retirés avec l'animation. */
+  const teintes = ['#D97706', '#F59E0B', '#1D6FB8', '#16A34A', '#CE1126', '#FBBF24'];
+  for (let i = 0; i < 14; i++) {
+    const e = document.createElement('span'), a = i / 14 * 2 * Math.PI, d = 50 + Math.random() * 60;
+    e.className = 'ech-eclat'; e.setAttribute('aria-hidden', 'true');
+    e.style.setProperty('--x', Math.round(Math.cos(a) * d) + 'px');
+    e.style.setProperty('--y', Math.round(Math.sin(a) * d * 0.7) + 'px');
+    e.style.background = teintes[i % teintes.length];
+    e.style.animationDelay = (0.5 + Math.random() * 0.08).toFixed(2) + 's';
+    hero.querySelector('.tile-ico').appendChild(e);
+  }
+  setTimeout(function(){
+    hero.classList.remove('ouverture');
+    hero.querySelectorAll('.ech-eclat').forEach(function(e){ e.remove(); });
+  }, 2500);
 }
 function echToucherTuile(){
   const hero = document.getElementById('echangesHero');
