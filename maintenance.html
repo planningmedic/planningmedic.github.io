@@ -135,7 +135,7 @@ window.SessionPortail = window.SessionPortail || { lire:function(){try{return se
   <!-- 1. Diagnostic -->
   <section class="card" id="cDiag">
     <h2>🔍 Diagnostic système</h2>
-    <p class="d">Passe en revue toute la chaîne : réglages et onglets du classeur, équipe (doublons, codes, adresses), gardes jour par jour, indisponibilités, synchronisation du code, fichiers publiés et santé du classeur. Compter 20 à 60 secondes.</p>
+    <p class="d">Contrôle tout le système : classeur, équipe, gardes, indispos, code. 20 à 60 s.</p>
     <div class="duo">
       <button class="btn p" id="btnDiag" type="button">Lancer</button>
       <button class="btn" id="btnDiagCopie" type="button" disabled>Copier le rapport</button>
@@ -143,21 +143,18 @@ window.SessionPortail = window.SessionPortail || { lire:function(){try{return se
     <div class="res" id="diagRes"></div>
   </section>
 
-  <!-- 1 ter. Clôture d'année (15/11/2026) — réservée à cette page : le serveur refuse le code comité -->
-  <section class="card" id="cClot">
-    <h2>📦 Clôturer l'année</h2>
-    <p class="d" id="clotEtat">…</p>
-    <p class="d">La <b>répétition</b> ne change rien : elle passe tous les contrôles et montre ce qui sera figé. La <b>clôture</b> copie d'abord le classeur entier, puis archive l'année, bascule sur la suivante, ferme la campagne d'indisponibilités et vérifie le résultat. Compter une à plusieurs minutes. Elle peut être relancée sans risque.</p>
-    <div class="duo">
-      <button class="btn" id="btnClotRep" type="button">Répétition à blanc</button>
-      <button class="btn p" id="btnClot" type="button" disabled>Clôturer</button>
-    </div>
-    <div class="res" id="clotRes"></div>
+  <!-- 2 bis. Synchronisation (18/11/2026) -->
+  <section class="card" id="cSync">
+    <h2>🔄 Mettre à jour le portail maintenant</h2>
+    <p class="d">Fait tout de suite la mise à jour horaire : après un rangement du Drive ou une retouche à la main du classeur. Sans danger.</p>
+    <button class="btn" id="btnSync" type="button">Mettre à jour maintenant</button>
+    <div class="res" id="syncRes"></div>
   </section>
+
   <!-- 1 bis. Récupérations de samedi (11/11/2026) -->
   <section class="card" id="cRecups">
     <h2>🔁 Récupérations de samedi</h2>
-    <p class="d">Vérifie que chaque samedi de garde à venir a sa récupération, chez le bon MAR. « Vérifier » montre ce qui serait corrigé, sans rien changer. « Réparer » le fait, prévient les MAR concernés et met le planning à jour.</p>
+    <p class="d">Chaque samedi de garde a-t-il sa récup ? <b>Vérifier</b> montre, <b>Réparer</b> corrige et prévient les MAR.</p>
     <div class="duo">
       <button class="btn p" id="btnRecVerif" type="button">Vérifier</button>
       <button class="btn" id="btnRecRep" type="button" disabled>Réparer</button>
@@ -165,30 +162,34 @@ window.SessionPortail = window.SessionPortail || { lire:function(){try{return se
     <div class="res" id="recRes"></div>
   </section>
 
-  <!-- 2. Cache -->
-  <section class="card" id="cCache">
-    <h2>🧹 Vider le cache</h2>
-    <p class="d">Les réglages du classeur (CONFIG, SECTEURS, CS_TEMPLATE, SEUILS) sont gardés en mémoire 10 minutes. Toute modification faite depuis le portail les rafraîchit déjà. Ce bouton ne sert qu'après une modification faite <b>à la main</b> dans le classeur — un code d'accès changé, par exemple — pour la voir prise en compte tout de suite.</p>
-    <button class="btn" id="btnCache" type="button">Vider le cache</button>
-    <div class="res" id="cacheRes"></div>
-  </section>
-
-  <!-- 2 bis. Synchronisation (18/11/2026) -->
-  <section class="card" id="cSync">
-    <h2>🔄 Mettre à jour le portail maintenant</h2>
-    <p class="d">Le portail se met à jour tout seul une fois par heure. Ce bouton le fait tout de suite : après un rangement dans le Drive (topos, protocoles, fiches) ou une modification faite <b>à la main</b> dans le classeur. Compter de quelques secondes à quelques minutes. Sans danger : rien n'est modifié dans le classeur.</p>
-    <button class="btn" id="btnSync" type="button">Mettre à jour maintenant</button>
-    <div class="res" id="syncRes"></div>
+  <!-- 1 ter. Clôture d'année (15/11/2026) — réservée à cette page : le serveur refuse le code comité -->
+  <section class="card" id="cClot">
+    <h2>📦 Clôturer l'année</h2>
+    <p class="d" id="clotEtat">…</p>
+    <p class="d"><b>Répétition</b> : montre ce qui sera figé, sans rien changer. <b>Clôture</b> : sauvegarde le classeur, archive l'année et passe à la suivante. Quelques minutes, relançable sans risque.</p>
+    <div class="duo">
+      <button class="btn" id="btnClotRep" type="button">Répétition à blanc</button>
+      <button class="btn p" id="btnClot" type="button" disabled>Clôturer</button>
+    </div>
+    <div class="res" id="clotRes"></div>
   </section>
 
   <!-- 3. Codes -->
   <section class="card" id="cCodes">
     <h2>✉️ Renvoyer les codes d'accès</h2>
-    <p class="d">Renvoie par e-mail le code <b>actuel</b> des MARs cochés. Les codes ne changent pas. Par défaut, tous les MARs actifs qui ont une adresse sont cochés.</p>
+    <p class="d">Renvoie par e-mail leur code actuel (inchangé) aux MARs cochés.</p>
     <div class="barre"><span class="n" id="codesNb">—</span><button class="btn" id="btnTout" type="button">Tout décocher</button></div>
     <div class="liste" id="codesListe"><div class="vide">Chargement de l'équipe…</div></div>
     <button class="btn" id="btnEnvoi" type="button">Envoyer aux MARs cochés</button>
     <div class="res" id="codesRes"></div>
+  </section>
+
+  <!-- 4. Cache (en dernier : geste rare, 18/11/2026) -->
+  <section class="card" id="cCache">
+    <h2>🧹 Vider le cache</h2>
+    <p class="d">Rare : après un réglage changé à la main dans le classeur (code révoqué, seuil…), pour ne pas attendre 10 min.</p>
+    <button class="btn" id="btnCache" type="button">Vider le cache</button>
+    <div class="res" id="cacheRes"></div>
   </section>
 
   <p class="pied">Les gestes de cette page sont réservés : le serveur refuse tout autre code que le vôtre.</p>
