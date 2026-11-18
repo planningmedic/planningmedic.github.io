@@ -29,7 +29,7 @@ const ContentService = { MimeType: { JSON: 'json' }, createTextOutput: t => ({ s
 
 /* ── Le serveur : les VRAIES fonctions, une doublure de classeur ── */
 function monterServeur(tuilesPrivees, corpsDiag) {
-  const envois = [], purges = [];
+  const envois = [], purges = [], syncs = [];
   const MED = [
     ['ID', 'NOM', 'INITIALES', 'ACTIF', 'QUOTITE', 'PCT', 'CODE', 'EMAIL'],
     ['MAR01', 'Dr Un', 'M1', 'O', 100, 100, 'CODE01', 'un@exemple.fr'],
@@ -40,6 +40,8 @@ function monterServeur(tuilesPrivees, corpsDiag) {
     _error: m => JSON.stringify({ success: false, error: m }),
     _configRows_: () => [['CLE', 'VALEUR'], ['TUILES_PRIVEES', tuilesPrivees]],
     viderCacheConfig: () => { purges.push(1); },
+    miroirSyncComplet: () => { syncs.push(1); return { success: true, ecrites: 2, cles: 40 }; },
+    Date,
     diagnosticComplet: () => ({ ok: true, results: ['✅ tout va bien'] }),
     _buildMedecins_: () => ({ medecins: [{ id: 'MAR01', nom: 'Dr Un', actif: true, email: 'un@exemple.fr' }] }),
     _quotaEmailInsuffisant_: () => null, _marsAvecEmail_: () => 1,
@@ -52,14 +54,14 @@ function monterServeur(tuilesPrivees, corpsDiag) {
   try { socleMedecins(ctx); } catch (e) {}
   ctx._medecinsRows_ = () => MED;
   ['_tuilesPriveesDe_', '_aDroitTuile_', '_droitMaintenance_',
-   '_act_viderCacheConfig', '_act_getMedecins', '_act_sendCodes', '_act_sendCodesMar']
+   '_act_viderCacheConfig', '_act_miroirSyncMaintenant', '_act_getMedecins', '_act_sendCodes', '_act_sendCodesMar']
     .forEach(n => vm.runInContext(extraireFonction(G('equipe.gs'), n), ctx));
   vm.runInContext(corpsDiag || extraireFonction(G('diagnostic.gs'), '_act_diagComplet'), ctx);
   const appel = (nom, user, payload) => {
     const r = ctx['_act_' + nom]({ e: { parameter: {} }, payload: payload || {}, action: nom, code: 'X', user });
     return JSON.parse(r);
   };
-  return { ctx, appel, envois, purges };
+  return { ctx, appel, envois, purges, syncs };
 }
 const MOI = { role: 'mar', id: 'AXE' }, AUTRE = { role: 'mar', id: 'WY' };
 const COMITE = { role: 'admin', id: 'ADMIN' }, PAIE = { role: 'paie', id: 'PAIE' };
@@ -81,14 +83,17 @@ console.log('\n═══ M1. La porte serveur ═══');
 
 console.log('\n═══ M2. Les cinq actions ═══');
 {
-  const { appel, envois, purges } = monterServeur(TP);
-  for (const a of ['diagComplet', 'viderCacheConfig', 'sendCodes']) {
+  const { appel, envois, purges, syncs } = monterServeur(TP);
+  for (const a of ['diagComplet', 'viderCacheConfig', 'miroirSyncMaintenant', 'sendCodes']) {
     const r = appel(a, MOI);
     V(a + ' : le MAR qui a la clé passe', r.success === true, r);
     V(a + ' : le code comité est REFUSÉ', appel(a, COMITE).error === 'Accès refusé');
     V(a + ' : un MAR sans la clé est refusé', appel(a, AUTRE).error === 'Accès refusé');
   }
   V('le vidage du cache a bien été fait (une fois par passage autorisé)', purges.length === 1, purges.length);
+  V('la synchronisation complète n\'est lancée qu\'une fois, par le seul passage autorisé', syncs.length === 1, syncs.length);
+  const rs = appel('miroirSyncMaintenant', MOI);
+  V('miroirSyncMaintenant renvoie le bilan chiffré de la synchronisation', rs.success === true && rs.ecrites === 2 && rs.cles === 40 && typeof rs.secondes === 'number', rs);
   const gm = appel('getMedecins', MOI);
   V('getMedecins : le MAR qui a la clé lit la liste, page autorisée', gm.success === true && gm.maintenance === true, gm);
   const gc = appel('getMedecins', COMITE);
@@ -139,6 +144,7 @@ console.log('\n═══ M2. Les cinq actions ═══');
     if (c.action === 'getMedecins') return { success: true, medecins: MEDS, maintenance: true };
     if (c.action === 'diagComplet') return { success: true, ok: false, results: ['══ CHAPITRE UN ══', '✅ Réglages lus', '❌ Une erreur', '→ LE GESTE : relancer la tâche', '⚠️ Un avertissement'] };
     if (c.action === 'viderCacheConfig') return { success: true, message: 'Cache de configuration vidé.' };
+    if (c.action === 'miroirSyncMaintenant') return { success: true, ecrites: 3, cles: 40, secondes: 12 };
     if (c.action === 'sendCodesMar') return c.medecin === 'MAR03' ? { success: false, error: 'Envoi échoué pour Dr Trois : quota' } : { success: true, sent: 1 };
     return { success: false, error: 'Action non autorisée pour ce code' };
   };
@@ -173,6 +179,11 @@ console.log('\n═══ M2. Les cinq actions ═══');
 
     d.getElementById('btnCache').click(); await dodo(80);
     V('vider le cache : l\'action part et le message s\'affiche', appels.some(a => a.action === 'viderCacheConfig') && /Cache de configuration vidé/.test(d.getElementById('cacheRes').textContent));
+
+    d.getElementById('btnSync').click(); await dodo(80);
+    V('mettre à jour maintenant : l\'action part avec le code, le résultat chiffré s\'affiche',
+      appels.some(a => a.action === 'miroirSyncMaintenant' && a.code === 'MOI') && /Portail à jour \(3 éléments modifiés, 12 s\)/.test(d.getElementById('syncRes').textContent)
+      && !d.getElementById('btnSync').disabled, d.getElementById('syncRes').textContent);
 
     d.getElementById('btnDiag').click(); await dodo(150);
     const out = d.getElementById('diagRes');

@@ -70,6 +70,7 @@ const CONTRAT = {
   'mailListe'                 : 'admin',
   'mailMessage'               : 'admin',
   'diagComplet'               : 'maintenance',
+  'miroirSyncMaintenant'      : 'maintenance',   // (18/11/2026) synchronisation complète à la demande
   'recupsReparer'             : 'maintenance',   // (11/11/2026) récupérations de samedi : aperçu puis réparation
   'archiveYear'               : 'maintenance',
   'cloturerAnnee'             : 'maintenance',   // (15/11/2026) clôture d'année en un appel
@@ -138,7 +139,7 @@ console.log('═══ Le routeur répond au contrat des 72 actions ═══');
 const { fichier, actions, corps } = contratActuel();
 const attendu = Object.assign({}, CONTRAT, { getActiveYear: 'sans code', getAnneesDisponibles: 'sans code' });
 V('le routeur est lu dans ' + fichier, !!fichier);
-V('72 actions, ni plus ni moins', Object.keys(actions).length === 72, Object.keys(actions).length);
+V('73 actions, ni plus ni moins', Object.keys(actions).length === 73, Object.keys(actions).length);
 const manquantes = Object.keys(attendu).filter(a => !(a in actions));
 const enTrop = Object.keys(actions).filter(a => !(a in attendu));
 V('aucune action du contrat ne manque', manquantes.length === 0, manquantes);
@@ -147,8 +148,8 @@ const roleChange = Object.keys(attendu).filter(a => actions[a] && actions[a] !==
 V('chaque action garde exactement son contrôle d\'accès', roleChange.length === 0, roleChange);
 V('exactement deux actions sans code : les listes d\'années', Object.values(actions).filter(r => r === 'sans code').length === 2);
 V('43 actions réservées au comité', Object.values(actions).filter(r => r === 'admin').length === 43, Object.values(actions).filter(r => r === 'admin').length);
-V('exactement neuf actions de maintenance : diagnostic, cache, envoi groupé des codes, réparation des récupérations, et les cinq de la clôture d\'année (15/11/2026)',
-  JSON.stringify(Object.keys(actions).filter(a => actions[a] === 'maintenance').sort()) === JSON.stringify(['archiveYear', 'clearIndisposYear', 'clotureVerifier', 'cloturerAnnee', 'diagComplet', 'recupsReparer', 'sendCodes', 'setActiveYear', 'viderCacheConfig']),
+V('exactement dix actions de maintenance : diagnostic, cache, synchronisation, envoi groupé des codes, réparation des récupérations, et les cinq de la clôture d\'année (15/11/2026)',
+  JSON.stringify(Object.keys(actions).filter(a => actions[a] === 'maintenance').sort()) === JSON.stringify(['archiveYear', 'clearIndisposYear', 'clotureVerifier', 'cloturerAnnee', 'diagComplet', 'miroirSyncMaintenant', 'recupsReparer', 'sendCodes', 'setActiveYear', 'viderCacheConfig']),
   Object.keys(actions).filter(a => actions[a] === 'maintenance'));
 { /* La porte de maintenance n'admet QUE le MAR qui a la tuile : ni le comité, ni un MAR sans la clé. */
   const tout = require('./stubs').sourceGasTout();

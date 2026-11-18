@@ -173,6 +173,14 @@ window.SessionPortail = window.SessionPortail || { lire:function(){try{return se
     <div class="res" id="cacheRes"></div>
   </section>
 
+  <!-- 2 bis. Synchronisation (18/11/2026) -->
+  <section class="card" id="cSync">
+    <h2>🔄 Mettre à jour le portail maintenant</h2>
+    <p class="d">Le portail se met à jour tout seul une fois par heure. Ce bouton le fait tout de suite : après un rangement dans le Drive (topos, protocoles, fiches) ou une modification faite <b>à la main</b> dans le classeur. Compter de quelques secondes à quelques minutes. Sans danger : rien n'est modifié dans le classeur.</p>
+    <button class="btn" id="btnSync" type="button">Mettre à jour maintenant</button>
+    <div class="res" id="syncRes"></div>
+  </section>
+
   <!-- 3. Codes -->
   <section class="card" id="cCodes">
     <h2>✉️ Renvoyer les codes d'accès</h2>
@@ -570,6 +578,19 @@ $('btnCache').addEventListener('click', async () => {
     out.innerHTML = '<span class="ok">✅ ' + esc(r.message || 'Cache vidé.') + '</span>';
   } catch (e) { out.innerHTML = '<span class="err">❌ ' + esc(e.message) + '</span>'; }
   finally { btn.disabled = false; btn.textContent = 'Vider le cache'; }
+});
+
+/* ── 2 bis. Synchronisation ── */
+$('btnSync').addEventListener('click', async () => {
+  const btn = $('btnSync'), out = $('syncRes');
+  btn.disabled = true; btn.textContent = 'Mise à jour…';
+  out.innerHTML = '<span>Mise à jour en cours, ne fermez pas la page…</span>';
+  try {
+    const r = await api({ action:'miroirSyncMaintenant' });
+    if (!r || !r.success) throw new Error(refus(r) ? MSG_RESERVE : ((r && r.error) || 'réponse illisible'));
+    out.innerHTML = '<span class="ok">✅ Portail à jour (' + (r.ecrites || 0) + ' élément' + ((r.ecrites || 0) > 1 ? 's' : '') + ' modifié' + ((r.ecrites || 0) > 1 ? 's' : '') + ', ' + (r.secondes || 0) + ' s). Rechargez le portail pour voir le résultat.</span>';
+  } catch (e) { out.innerHTML = '<span class="err">❌ ' + esc(e.message) + '</span>'; }
+  finally { btn.disabled = false; btn.textContent = 'Mettre à jour maintenant'; }
 });
 
 /* ── 3. Codes ── */

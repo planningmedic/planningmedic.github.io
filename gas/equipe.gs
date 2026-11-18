@@ -4,7 +4,7 @@
    quelles : aucune ligne de logique modifiée, seulement déplacée. Le routeur et
    ses aides (checkCode, _deny, _error, doGet/doPost) restent dans Indispos.gs.
    Un seul espace global dans Apps Script : rien à importer. */
-const GAS_VERSION_EQUIPE = '2026-11-17.1';   // (17/11/2026) getMedecins : champ horsEffectif (colonne HORS_EFFECTIF) pour la bande de présence · (11/11/2026) action annulerEchange · (02/11/2026) commentaire : identifiants d'exemple fictifs · (01/11/2026) outils de maintenance réservés à la tuile `maintenance` · (27/10/2026) ordreMc renvoyé au login et au bootstrap
+const GAS_VERSION_EQUIPE = '2026-11-18.1';   // (18/11/2026) action miroirSyncMaintenant (page Maintenance) · (17/11/2026) getMedecins : champ horsEffectif (colonne HORS_EFFECTIF) pour la bande de présence · (11/11/2026) action annulerEchange · (02/11/2026) commentaire : identifiants d'exemple fictifs · (01/11/2026) outils de maintenance réservés à la tuile `maintenance` · (27/10/2026) ordreMc renvoyé au login et au bootstrap
 
 // ── Sonde : les interrupteurs des mails sont-ils cohérents ? ──
 function _sondeInterrupteursMails_(check, R, info) {
@@ -311,6 +311,26 @@ function _act_viderCacheConfig(R) {
   viderCacheConfig();
   return ContentService.createTextOutput(JSON.stringify({
     success: true, message: 'Cache de configuration vidé — la prochaine lecture ira au classeur.'
+  })).setMimeType(ContentService.MimeType.JSON);
+}
+
+/* ── action "miroirSyncMaintenant" (18/11/2026) ── */
+// La synchronisation complète de la copie rapide, celle que le déclencheur
+// horaire lance, à la demande depuis la page Maintenance. Utile après un
+// rangement du Drive (topos, protocoles) ou une modification faite à la main
+// dans le classeur, pour ne pas attendre l'heure suivante. Même fonction, même
+// effet que le passage horaire : rien de plus, rien de moins.
+function _act_miroirSyncMaintenant(R) {
+  const { e, payload, action, code, user } = R;
+  if (!_droitMaintenance_(user)) return _deny();
+  const t0 = Date.now();
+  let res;
+  try { res = miroirSyncComplet(); }
+  catch (err) { res = { success: false, error: String(err && err.message || err) }; }
+  res = res || { success: false, error: 'réponse vide' };
+  return ContentService.createTextOutput(JSON.stringify({
+    success: !!res.success, error: res.error || '',
+    ecrites: res.ecrites || 0, cles: res.cles || 0, secondes: Math.round((Date.now() - t0) / 1000)
   })).setMimeType(ContentService.MimeType.JSON);
 }
 
