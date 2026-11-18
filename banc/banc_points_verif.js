@@ -90,10 +90,10 @@ function monde(opts) {
   vm.runInContext(extraireFonction('../gas/generateur_gardes.gs', 'estSemaineOff'), ctx);
   ['_loadQuotasConges', 'getQuotasConges', '_tpMondePresence_', '_tpDemandesSheet_', '_tpDemandes_',
    '_echangesTz_', '_echangesTexteDate_', '_recupsDecale_', '_recupsDow_', '_rea1Jours_',
-   '_verifPrevenusSheet_', '_verifPrevenus_', '_verifJjMm_', '_verifDecale_', '_pl_', 'computePointsVerif',
+   '_verifPrevenusSheet_', '_verifPrevenus_', '_verifJjMm_', '_verifDecale_', '_pl_', 'computePointsVerif', '_verifPourquoi_',
    '_act_getPointsVerif', '_act_marquerPrevenu', '_deny', '_error'].forEach(n =>
     vm.runInContext(extraireFonction('../gas/Indispos.gs', n), ctx));
-  ['VERIF_ONGLET', 'VERIF_ENTETE', 'VERIF_EQUIPE', 'VERIF_LIB_REA1', 'VERIF_INDISPOS_GARDES'].forEach(n => vm.runInContext(constante(n), ctx));
+  ['VERIF_ONGLET', 'VERIF_ENTETE', 'VERIF_EQUIPE', 'VERIF_LIB_REA1', 'VERIF_INDISPOS_GARDES', 'VERIF_MOTIFS'].forEach(n => vm.runInContext(constante(n), ctx));
   const frais = () => vm.runInContext('_medFlagsCache = null; _quotasCache = null; _medecinsInvalider_();', ctx);
   return {
     cl, ctx,
@@ -287,6 +287,25 @@ console.log('\n═══ CO · indispos et planning concordent ═══');
   V('une clé de nouvelle famille est acceptée par « Prévenu »', b.cocher('concord|P05|2027-06-01', true).success === true);
 }
 
+console.log('\n═══ PS · la présence jour par jour (heatmap de l\'onglet Contrôles, 18/11/2026) ═══');
+{
+  const b = monde({ cases: [
+    ['P01', '2027-03-02', 'V'], ['P02', '2027-03-02', 'V'], ['P03', '2027-03-02', 'RG'], ['P04', '2027-03-02', 'R'],
+    ['ZORRO', '2027-03-02', 'TP'], ['P05', '2027-03-02', 'F'], ['P06', '2027-03-02', 'G'] ] });
+  const r = b.points(), P = r.presence || {}, j = P['2027-03-02'] || {};
+  const nAb = x => Object.keys(x.ab || {}).reduce((t, k) => t + x.ab[k].length, 0);
+  V('la présence arrive avec les contrôles, un jour par jour ouvré', Object.keys(P).length > 240 && Object.keys(P).length < 262, Object.keys(P).length);
+  V('postables = le compte de la pose des TP, tel quel (mardi 02/03 : 15 − 6 = 9)', j.p === b.presents('2027-03-02') && j.p === 9, j);
+  V('postables + absents = effectif hors chef, tous les jours (jamais un MAR perdu ou compté deux fois)', Object.keys(P).every(ds => P[ds].p + nAb(P[ds]) === 15), Object.keys(P).filter(ds => P[ds].p + nAb(P[ds]) !== 15).slice(0, 3));
+  V('chaque motif à sa place : vacances, repos de garde, récup, temps partiel, formation', (j.ab['Vacances'] || []).join() === 'Q1,Q2' && (j.ab['Repos de garde'] || []).join() === 'Q3'
+    && (j.ab['Récup'] || []).join() === 'Q4' && (j.ab['Temps partiel'] || []).join() === 'ZO' && (j.ab['Formation'] || []).join() === 'Q5', j.ab);
+  V('une garde du jour reste postable (G compté présent)', !Object.keys(j.ab).some(k => j.ab[k].includes('Q6')));
+  V('rg = les repos de garde du jour (total avec RG = 10)', j.rg === 1 && j.p + j.rg === 10, j);
+  V('le chef hors effectif n\'apparaît nulle part', Object.keys(P).every(ds => !Object.keys(P[ds].ab).some(k => P[ds].ab[k].includes('CH'))));
+  V('jour fixe de temps partiel : motif « Temps partiel » (jeudi)', ((P['2027-03-04'] || {}).ab || {})['Temps partiel'] && P['2027-03-04'].ab['Temps partiel'].includes('FX'), (P['2027-03-04'] || {}).ab);
+  V('ni week-end ni férié dans la présence ; le férié est envoyé à part', !P['2027-03-06'] && !P['2027-11-01'] && (r.feries || []).includes('2027-11-01'), r.feries);
+}
+
 console.log('\n═══ RT · le routeur et l\'écran ═══');
 {
   const ind = require('fs').readFileSync(require('path').join(__dirname, '..', 'gas', 'Indispos.gs'), 'utf8');
@@ -317,7 +336,9 @@ console.log('\n═══ RT · le routeur et l\'écran ═══');
   await new Promise(r => setTimeout(r, 300));
   const appels = [];
   w.__appels = appels;
-  w.__reponse = { success: true, genere: true, seuils: { alerte: 13, confort: 15 }, prevenus: {}, vacsc: [], oks: { gardes: ['Chaque nuit à venir a un G et un G2 (300)'], h18: ['Un 18 h chaque jour ouvré à venir (200)'] }, points: [
+  w.__reponse = { success: true, genere: true, seuils: { alerte: 13, confort: 15 }, prevenus: {}, vacsc: [['2027-07-03', '2027-09-01']], feries: ['2027-11-01'],
+    presence: { '2027-03-02': { p: 11, rg: 2, ab: { 'Vacances': ['Q1', 'Q2'], 'Repos de garde': ['Q3', 'Q4'] } }, '2027-03-03': { p: 12, rg: 2, ab: { 'Vacances': ['Q1'] } },
+      '2027-03-04': { p: 16, rg: 0, ab: {} }, '2027-07-16': { p: 14, rg: 2, ab: { 'Vacances': ['Q7'] } } }, oks: { gardes: ['Chaque nuit à venir a un G et un G2 (300)'], h18: ['Un 18 h chaque jour ouvré à venir (200)'] }, points: [
     { cle:'rea|REA|2027-04-06', fam:'rea1', code:'rea', niv:'rouge', id:'REA', init:'RE', date:'2027-04-06', texte:'Temps partiel posé dans sa semaine Réa 1 (05/04 → 09/04).' },
     { cle:'tendu|ZORRO|2027-03-02', fam:'tp', code:'tendu', niv:'orange', id:'ZORRO', init:'ZO', date:'2027-03-02', texte:"11 MAR postables (hors CH) s'il est absent." },
     { cle:'tpdem|ZORRO|2027-07-16', fam:'tp', code:'tpdem', niv:'info', id:'ZORRO', init:'ZO', date:'2027-07-16', texte:'Demande de temps partiel en attente de réponse du comité (onglet Équipe).' },
@@ -336,6 +357,24 @@ console.log('\n═══ RT · le routeur et l\'écran ═══');
   V('une famille sans point devient une tuile verte avec ce qui est en ordre', el.querySelector('.bx-ok') && /Chaque nuit à venir a un G et un G2/.test(el.textContent));
   V('la liste : un point par ligne, rangée par mois', el.querySelectorAll('.bx-l').length === 5 && /Mars/.test(el.textContent) && /Sur l'année/.test(el.textContent));
   V('aucune erreur de script', !erreurs.length, erreurs);
+  /* (18/11/2026) la tuile Présence et son panneau */
+  const tuile = el.querySelector('.bx-pres');
+  V('tuile Présence : le nombre de jours tendus (11 et 12 → 2) et le plus bas', tuile && tuile.querySelector('.bx-big').textContent === '2' && /Plus bas : 11 le mar\. 2 mars/.test(tuile.textContent), tuile && tuile.textContent.slice(0, 160));
+  V('tuile Présence : la frise de 52 semaines × 5 jours', tuile && tuile.querySelectorAll('.pres-mini i').length === 260);
+  w.eval('presOuvrir()');
+  const fond = D.getElementById('hmFond');
+  V('un clic ouvre le panneau plein écran', fond && fond.classList.contains('on'));
+  V('le panneau : une case par jour reçu, couleur selon le seuil', D.querySelectorAll('#hmBig b[data-d]').length === 4
+    && /var\(--h0\)/.test(D.querySelector('#hmBig b[data-d="2027-03-02"]').getAttribute('style')) && /var\(--h3\)/.test(D.querySelector('#hmBig b[data-d="2027-03-04"]').getAttribute('style')));
+  V('la demande de TP en attente est cerclée', D.querySelector('#hmBig b[data-d="2027-07-16"]').classList.contains('dem') && !D.querySelector('#hmBig b[data-d="2027-03-02"]').classList.contains('dem'));
+  V('une période chaude : les 2 jours d\'affilée sous 13', D.querySelectorAll('#hmFond .hm-per').length === 1 && /2 jours ouvrés/.test(D.querySelector('#hmFond .hm-per').textContent));
+  V('le jour le plus bas est ouvert d\'office : 11, total 13 avec les repos de garde, absents par motif', /11/.test(D.querySelector('#hmDet .n').textContent) && /13 avec les repos de garde/.test(D.getElementById('hmDet').textContent)
+    && /Vacances · 2/.test(D.getElementById('hmDet').textContent) && D.querySelectorAll('#hmDet .chips em').length === 4);
+  w.eval("presJour('2027-07-16')");
+  V('un jour à demande : « ZO → 13 si accordée »', /Demande de TP en attente : ZO → 13 si accordée/.test(D.getElementById('hmDet').textContent), D.getElementById('hmDet').textContent);
+  D.dispatchEvent(new w.KeyboardEvent('keydown', { key: 'Escape' }));
+  V('Échap ferme le panneau', !fond.classList.contains('on'));
+  V('aucune erreur de script (tuile et panneau)', !erreurs.length, erreurs);
   w.eval("ctlFam('tp')");
   V('filtrer une famille : la liste ne garde qu\'elle', D.querySelectorAll('#ctlContenu .bx-l').length === 2);
   w.eval("ctlFam(null)");

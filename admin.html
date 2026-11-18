@@ -1126,6 +1126,72 @@ body { font-family: 'DM Sans', system-ui, sans-serif; background: var(--bg); col
 .bx-pts li.info { opacity:.6; }
 .bx-vide { padding:28px; text-align:center; color:#475467; font-size:13.5px; }
 .bx-ok { cursor:default; }
+/* ── (18/11/2026) PRÉSENCE : tuile pleine largeur + panneau plein écran (heatmap de l'année) ── */
+.bx, .hm-fond { --h0:#F04438; --h1:#F97066; --h2:#FDB022; --h3:#12B76A; }
+.bx-pres { grid-column:1/-1; background:#0B1220; border:0; color:#fff; display:grid; grid-template-columns:250px 1fr; gap:28px; padding:24px 28px; }
+.bx-pres:hover { box-shadow:0 0 0 2px #344054; }
+.bx-pres .bx-nom { color:#fff; }
+.bx-pres .bx-big { font-size:64px; margin:14px 0 2px; }
+.bx-pres .sous { font-size:13.5px; color:#98A2B3; line-height:1.45; }
+.bx-pres .sous b { color:#fff; font-weight:600; }
+.bx-pres .ouvrir { display:inline-block; margin-top:16px; font-size:12.5px; font-weight:600; border:1px solid rgba(255,255,255,.2); border-radius:10px; padding:8px 14px; }
+.pres-d { display:flex; flex-direction:column; justify-content:center; min-width:0; }
+.pres-mois, .hm-mois { display:grid; grid-template-columns:repeat(52,1fr); gap:3px; font-size:11px; color:#98A2B3; height:15px; white-space:nowrap; }
+.pres-vs, .hm-vs { display:grid; grid-template-columns:repeat(52,1fr); gap:3px; height:3px; margin:5px 0; }
+.pres-vs i, .hm-vs i { border-radius:2px; } .pres-vs i.on, .hm-vs i.on { background:#2E90FA; }
+.pres-mini { display:grid; grid-template-columns:repeat(52,1fr); grid-template-rows:repeat(5,16px); grid-auto-flow:column; gap:3px; }
+.pres-mini i { border-radius:3px; background:#1D2939; }
+.pres-leg, .hm-leg { display:flex; gap:18px; margin-top:12px; font-size:12px; color:#98A2B3; flex-wrap:wrap; align-items:center; }
+.pres-leg span, .hm-leg span { display:flex; align-items:center; gap:6px; }
+.pres-leg i, .hm-leg i { width:10px; height:10px; border-radius:3px; }
+.pres-leg b, .hm-leg b { color:#fff; font-weight:600; }
+.pres-leg .v i, .hm-leg .v i { width:16px; height:3px; border-radius:2px; background:#2E90FA; }
+.hm-fond { position:fixed; inset:0; background:rgba(16,24,40,.82); z-index:900; padding:28px; overflow:auto; display:none; }
+.hm-fond.on { display:block; }
+.hm { max-width:1360px; margin:0 auto; background:#0B1220; border-radius:28px; color:#fff; padding:30px 34px; font-variant-numeric:tabular-nums; }
+.hm-hd { display:flex; align-items:flex-start; gap:16px; }
+.hm-hd h2 { margin:0; font-size:30px; font-weight:600; letter-spacing:-.8px; }
+.hm-hd p { margin:6px 0 0; color:#98A2B3; font-size:13.5px; }
+.hm-x { margin-left:auto; width:40px; height:40px; border-radius:12px; border:1px solid rgba(255,255,255,.14); background:transparent; color:#fff; font-size:20px; cursor:pointer; }
+.hm-leg { margin:22px 0 14px; font-size:13px; color:#D0D5DD; gap:22px; }
+.hm-leg i { width:14px; height:14px; border-radius:4px; }
+.hm-leg .d i { background:transparent; border:2px dashed #fff; width:12px; height:12px; }
+.hm-gw { position:relative; padding-left:26px; }
+.hm-mois, .hm-vs { gap:4px; }
+.hm-big { display:grid; grid-template-columns:repeat(52,1fr); grid-template-rows:repeat(5,1fr); grid-auto-flow:column; gap:4px; }
+.hm-big b { aspect-ratio:1; border-radius:5px; display:flex; align-items:center; justify-content:center; font-size:10.5px; font-weight:700; color:rgba(11,18,32,.82); cursor:pointer; transition:transform .12s, box-shadow .12s; position:relative; }
+.hm-big b:hover { transform:scale(1.35); z-index:2; box-shadow:0 0 0 2px #fff; }
+.hm-big b.sel { box-shadow:0 0 0 2px #fff, 0 0 18px rgba(255,255,255,.35); }
+.hm-big b.dem::after { content:''; position:absolute; inset:-3px; border:2px dashed #fff; border-radius:7px; opacity:.85; }
+.hm-big b.off { background:#1D2939; color:#475467; cursor:default; font-weight:500; }
+.hm-big b.off:hover { transform:none; box-shadow:none; }
+.hm-big b.nul { background:transparent; cursor:default; }
+.hm-j { position:absolute; left:0; top:32px; bottom:0; display:grid; grid-template-rows:repeat(5,1fr); gap:4px; align-items:center; font-size:11px; color:#667085; width:20px; }
+.hm-bas { display:grid; grid-template-columns:1.25fr 1fr; gap:18px; margin-top:26px; }
+.hm-card { background:#111A2E; border:1px solid #1F2A40; border-radius:20px; padding:20px 22px; }
+.hm-card h3 { margin:0 0 14px; font-size:15px; font-weight:600; }
+.hm-card h3 small { color:#667085; font-weight:500; margin-left:6px; }
+.hm-per { display:grid; grid-template-columns:200px 1fr 70px; gap:14px; align-items:center; padding:10px 0; border-top:1px solid #1F2A40; cursor:pointer; }
+.hm-per:first-of-type { border-top:0; }
+.hm-per .q { font-weight:600; font-size:13.5px; }
+.hm-per .q small { display:block; color:#667085; font-weight:500; font-size:12px; margin-top:2px; }
+.hm-per .sp { display:flex; align-items:flex-end; gap:2px; height:34px; }
+.hm-per .sp i { flex:1; border-radius:2px 2px 1px 1px; min-width:3px; }
+.hm-per .m { text-align:right; font-size:22px; font-weight:700; }
+.hm-per .m small { display:block; font-size:10.5px; color:#667085; font-weight:500; }
+.hm-det .d { font-size:16px; font-weight:600; color:#D0D5DD; }
+.hm-det .n { font-size:84px; font-weight:600; letter-spacing:-4px; line-height:1; margin-top:6px; }
+.hm-det .t { color:#98A2B3; font-size:13px; margin-top:6px; }
+.hm-det .dm { margin-top:14px; background:#1F2A40; border-radius:12px; padding:10px 12px; font-size:13px; color:#D0D5DD; }
+.hm-det .dm b { color:#fff; }
+.hm-det .ab { display:grid; gap:9px; margin-top:16px; }
+.hm-det .ab > div { display:grid; grid-template-columns:130px 1fr; gap:10px; font-size:13px; align-items:start; }
+.hm-det .ab > div > span { color:#98A2B3; }
+.hm-det .chips { display:flex; flex-wrap:wrap; gap:5px; }
+.hm-det .chips em { font-style:normal; background:#1F2A40; border-radius:6px; padding:2px 7px; font-weight:600; font-size:12px; }
+.hm-tip { position:fixed; pointer-events:none; background:#fff; color:#101828; border-radius:10px; padding:8px 11px; font-size:12px; box-shadow:0 8px 24px rgba(0,0,0,.35); display:none; z-index:950; white-space:nowrap; }
+.hm-tip b { font-size:15px; }
+@media (max-width: 1100px) { .bx-pres { grid-template-columns:1fr; } .hm-bas { grid-template-columns:1fr; } }
 </style>
 <script src="partage/portail.js"></script>   <!-- (14/09/2026) socle commun : MIROIR_URL, miroirRead -->
 <script src="partage/rendu_equite.js"></script>   <!-- (14/09/2026) cartes d'équité, version commune MAR/comité -->
@@ -5726,7 +5792,7 @@ const CTL_ORDRE = ['rea1','tp','conges','h18','recups','gardes'];
 const CTL_MC = ['janv.','févr.','mars','avr.','mai','juin','juil.','août','sept.','oct.','nov.','déc.'];
 const CTL_MOIS = ['Janvier','Février','Mars','Avril','Mai','Juin','Juillet','Août','Septembre','Octobre','Novembre','Décembre'];
 const CTL_J = ['dim.','lun.','mar.','mer.','jeu.','ven.','sam.'];
-let CTL = { an: null, items: [], oks: {}, vacsc: [], prevenus: {}, seuils: { alerte: 13, confort: 15 }, fam: null, majLe: '', charge: false };
+let CTL = { an: null, items: [], oks: {}, vacsc: [], prevenus: {}, presence: {}, feries: [], seuils: { alerte: 13, confort: 15 }, fam: null, majLe: '', charge: false };
 let _ctlEnCours = false;
 const _ctlTodo = x => x.niv !== 'info' && !CTL.prevenus[x.cle];
 const _ctlPl = (n, s, p) => n + ' ' + (n > 1 ? (p || s + 's') : s);
@@ -5748,7 +5814,7 @@ async function chargerControles(force){
     if (!r || !r.success) throw new Error((r && r.error) || 'réponse vide');
     if (r.genere === false) { CTL = Object.assign(CTL, { an: an, items: [], oks: {}, charge: true }); el.innerHTML = '<div class="bx-vide">Le planning des gardes ' + an + ' n\'est pas encore généré : rien à contrôler.</div>'; _ctlPastille(); return; }
     const h = new Date();
-    CTL = Object.assign(CTL, { an: an, items: r.points || [], oks: r.oks || {}, vacsc: r.vacsc || [], prevenus: r.prevenus || {},
+    CTL = Object.assign(CTL, { an: an, items: r.points || [], oks: r.oks || {}, vacsc: r.vacsc || [], prevenus: r.prevenus || {}, presence: r.presence || {}, feries: r.feries || [],
       seuils: r.seuils || CTL.seuils, charge: true, majLe: 'à ' + String(h.getHours()).padStart(2, '0') + ':' + String(h.getMinutes()).padStart(2, '0') });
     renderControles();
   } catch (e) {
@@ -5825,6 +5891,9 @@ function renderControles(){
       + '<p class="bx-txt" style="margin-top:14px">' + (vacs.length ? 'Jours de vacances posés au-delà du droit de l\'année.' : '') + (autresC ? ' ' + _ctlPl(autresC, 'écart', 'écarts') + ' entre indispos, planning et contrat.' : '') + '</p></section>';
   }
 
+  /* (18/11/2026) Présence : la heatmap de l'année, en pleine largeur ; un clic ouvre le panneau */
+  h += _ctlPresTuile();
+
   /* 18 h, récupérations, gardes : la liste courte, ou la tuile verte */
   ['h18', 'recups', 'gardes'].forEach(k => {
     const ls = it.filter(x => x.fam === k && !CTL.prevenus[x.cle]).sort((a, b) => (a.niv === 'info') - (b.niv === 'info') || String(a.date || '').localeCompare(String(b.date || '')));
@@ -5865,6 +5934,108 @@ function renderControles(){
 }
 function _ctlJjMm(iso){ const p = String(iso || '').split('-'); return p.length === 3 ? p[2] + '/' + p[1] : ''; }
 function ctlFam(k){ CTL.fam = k; renderControles(); if (k) { const l = document.getElementById('ctlListe'); if (l && l.scrollIntoView) l.scrollIntoView({ behavior: 'smooth', block: 'start' }); } }
+/* ══ (18/11/2026) PRÉSENCE — tuile de l'onglet Contrôles et panneau plein écran ══
+   Le serveur envoie, avec les contrôles, chaque jour ouvré de l'année : p = MAR
+   postables (le compte de la pose des TP), rg = repos de garde, ab = absents par
+   motif. Ici, on ne fait que dessiner. Couleurs : sous le seuil − 1 rouge, au
+   seuil − 1 rouge clair, jusqu'au confort jaune, au-delà vert (seuils de l'onglet
+   SEUILS). Les demandes de TP en attente sont cerclées de pointillés. */
+const PRES_MOTIFS = ['Vacances', 'Temps partiel', 'Repos de garde', 'Récup', 'Formation', 'Congé long', 'Congé', 'Absent', 'Hors contrat'];
+const _presCol = v => v < CTL.seuils.alerte - 1 ? 'var(--h0)' : v < CTL.seuils.alerte ? 'var(--h1)' : v < CTL.seuils.confort ? 'var(--h2)' : 'var(--h3)';
+const _presCat = v => v < CTL.seuils.alerte - 1 ? 0 : v < CTL.seuils.alerte ? 1 : v < CTL.seuils.confort ? 2 : 3;
+const _presNb = v => String(v).replace('.', ',');
+const _presIso = d => d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0') + '-' + String(d.getDate()).padStart(2, '0');
+const _presLib = iso => { const d = new Date(iso + 'T12:00:00'); return CTL_J[d.getDay()] + ' ' + d.getDate() + ' ' + CTL_MC[d.getMonth()]; };
+const _presVs = iso => (CTL.vacsc || []).some(v => iso >= v[0] && iso <= v[1]);
+function _presModele(){
+  const J = CTL.presence || {}, S = CTL.seuils.alerte;
+  const sem = [], d0 = new Date(CTL.an, 0, 4, 12);
+  while (d0.getDay() !== 1) d0.setDate(d0.getDate() - 1);
+  for (let w = 0; w < 52; w++) { const s = []; for (let k = 0; k < 5; k++) { const x = new Date(d0); x.setDate(x.getDate() + w * 7 + k); s.push(_presIso(x)); } sem.push(s); }
+  const jours = Object.keys(J).sort(), cnt = [0, 0, 0, 0];
+  jours.forEach(ds => cnt[_presCat(J[ds].p)]++);
+  const mini = jours.reduce((m, ds) => (m === null || J[ds].p < J[m].p) ? ds : m, null);
+  const per = []; let cur = null;   // jours ouvrés d'affilée sous le seuil (week-ends et fériés ne coupent pas)
+  jours.forEach(ds => { if (J[ds].p < S) { if (!cur) { cur = []; per.push(cur); } cur.push(ds); } else cur = null; });
+  const dem = {};   // demandes de TP en attente : les points du serveur
+  CTL.items.filter(x => x.date && (x.code === 'tpdem' || (x.fam === 'rea1' && /^Demande de temps partiel/.test(x.texte))))
+    .forEach(x => { if ((dem[x.date] = dem[x.date] || []).indexOf(x.init) < 0) dem[x.date].push(x.init); });
+  let mm = -1;
+  const mois = sem.map(s => { const m = +s[0].slice(5, 7) - 1, t = (m !== mm && +s[0].slice(0, 4) === +CTL.an) ? CTL_MC[m] : ''; if (t) mm = m; return '<span>' + t + '</span>'; }).join('');
+  const vs = sem.map(s => '<i class="' + (s.some(_presVs) ? 'on' : '') + '"></i>').join('');
+  return { J, sem, jours, cnt, mini, dem, mois, vs, per: per.filter(p => p.length >= 2).sort((a, b) => b.length - a.length || a[0].localeCompare(b[0])) };
+}
+function _presLegende(cnt){
+  const S = CTL.seuils.alerte, C = CTL.seuils.confort, lab = ['moins de ' + (S - 1), String(S - 1), S + ' – ' + (C - 1), C + ' et plus'];
+  return [0, 1, 2, 3].map(k => '<span><i style="background:' + ['var(--h0)', 'var(--h1)', 'var(--h2)', 'var(--h3)'][k] + '"></i>' + lab[k] + ' <b>' + cnt[k] + ' j</b></span>').join('')
+    + '<span class="v"><i></i>vacances scolaires</span>';
+}
+function _ctlPresTuile(){
+  if (!CTL.presence || !Object.keys(CTL.presence).length) return '';
+  const M = _presModele(), tendus = M.cnt[0] + M.cnt[1];
+  return '<section class="bx-t bx-pres" tabindex="0" onclick="presOuvrir()"><div><div class="bx-hd"><span class="bx-nom">Présence des MAR</span></div>'
+    + '<div class="bx-big">' + tendus + '</div><div class="sous"><b>' + (tendus > 1 ? 'jours tendus' : 'jour tendu') + '</b> (moins de ' + CTL.seuils.alerte + ' postables).'
+    + (M.mini ? '<br>Plus bas : <b>' + _presNb(M.J[M.mini].p) + '</b> le ' + _presLib(M.mini) + '.' : '') + '</div>'
+    + '<span class="ouvrir">Ouvrir la heatmap →</span></div>'
+    + '<div class="pres-d"><div class="pres-mois">' + M.mois + '</div><div class="pres-vs">' + M.vs + '</div>'
+    + '<div class="pres-mini">' + M.sem.flat().map(ds => M.J[ds] ? '<i style="background:' + _presCol(M.J[ds].p) + '"></i>' : '<i></i>').join('') + '</div>'
+    + '<div class="pres-leg">' + _presLegende(M.cnt) + '</div></div></section>';
+}
+let _PRES = null;
+function presOuvrir(){
+  const M = _PRES = _presModele(), C = CTL.seuils.confort, fer = new Set(CTL.feries || []);
+  let fond = document.getElementById('hmFond');
+  if (!fond) {
+    fond = document.createElement('div'); fond.id = 'hmFond'; fond.className = 'hm-fond';
+    fond.addEventListener('click', e => { if (e.target === fond) presFermer(); });
+    document.body.appendChild(fond);
+    const tip = document.createElement('div'); tip.id = 'hmTip'; tip.className = 'hm-tip'; document.body.appendChild(tip);
+    document.addEventListener('keydown', e => { if (e.key === 'Escape') presFermer(); });
+  }
+  fond.innerHTML = '<div class="hm"><div class="hm-hd"><div><h2>Présence des MAR · ' + CTL.an + '</h2><p>MAR postables par jour ouvré — repos de garde retirés, '
+    + 'MAR hors effectif non comptés. Jour tendu : moins de ' + CTL.seuils.alerte + '.</p></div><button class="hm-x" onclick="presFermer()" aria-label="Fermer">×</button></div>'
+    + '<div class="hm-leg">' + _presLegende(M.cnt) + '<span class="d"><i></i>demande de TP en attente</span></div>'
+    + '<div class="hm-gw"><div class="hm-mois">' + M.mois + '</div><div class="hm-vs">' + M.vs + '</div><div class="hm-j"><span>L</span><span>M</span><span>M</span><span>J</span><span>V</span></div>'
+    + '<div class="hm-big" id="hmBig">' + M.sem.flat().map(ds => { const j = M.J[ds];
+        if (j) return '<b data-d="' + ds + '"' + (M.dem[ds] ? ' class="dem"' : '') + ' style="background:' + _presCol(j.p) + '">' + _presNb(j.p) + '</b>';
+        if (+ds.slice(0, 4) !== +CTL.an) return '<b class="nul"></b>';
+        return '<b class="off">' + (fer.has(ds) ? 'F' : '') + '</b>'; }).join('') + '</div></div>'
+    + '<div class="hm-bas"><div class="hm-card"><h3>Périodes chaudes<small>jours ouvrés d\'affilée sous ' + CTL.seuils.alerte + '</small></h3>'
+    + (M.per.length ? M.per.slice(0, 6).map(p => { const mn = Math.min(...p.map(ds => M.J[ds].p));
+        return '<div class="hm-per" data-d="' + p.find(ds => M.J[ds].p === mn) + '"><div class="q">' + _presLib(p[0]) + ' → ' + _presLib(p[p.length - 1])
+          + '<small>' + p.length + ' jours ouvrés' + (p.some(_presVs) ? ' · vacances scolaires' : '') + '</small></div>'
+          + '<div class="sp">' + p.map(ds => '<i style="height:' + Math.max(10, Math.min(100, (M.J[ds].p - 6) / (C - 6) * 100)) + '%;background:' + _presCol(M.J[ds].p) + '"></i>').join('') + '</div>'
+          + '<div class="m" style="color:' + _presCol(mn) + '">' + _presNb(mn) + '<small>plus bas</small></div></div>'; }).join('')
+      : '<p class="hm-det"><span class="t">Aucune période de plusieurs jours sous le seuil.</span></p>') + '</div>'
+    + '<div class="hm-card hm-det" id="hmDet"></div></div></div>';
+  const big = document.getElementById('hmBig'), tip = document.getElementById('hmTip');
+  big.addEventListener('mousemove', e => { const b = e.target.closest('b[data-d]'); if (!b) { tip.style.display = 'none'; return; } const j = M.J[b.dataset.d];
+    tip.innerHTML = _presLib(b.dataset.d) + ' · <b>' + _presNb(j.p) + '</b> postables <span style="color:#667085">(' + _presNb(j.p + j.rg) + ' avec les repos de garde)</span>';
+    tip.style.display = 'block'; tip.style.left = (e.clientX + 14) + 'px'; tip.style.top = (e.clientY - 40) + 'px'; });
+  big.addEventListener('mouseleave', () => { tip.style.display = 'none'; });
+  big.addEventListener('click', e => { const b = e.target.closest('b[data-d]'); if (b) presJour(b.dataset.d); });
+  fond.querySelectorAll('.hm-per').forEach(p => p.addEventListener('click', () => presJour(p.dataset.d)));
+  fond.classList.add('on'); document.body.style.overflow = 'hidden';
+  if (M.mini) presJour(M.mini);
+}
+function presJour(ds){
+  const M = _PRES; if (!M || !M.J[ds]) return;
+  document.querySelectorAll('#hmBig b.sel').forEach(x => x.classList.remove('sel'));
+  const c = document.querySelector('#hmBig b[data-d="' + ds + '"]'); if (c) c.classList.add('sel');
+  const j = M.J[ds], S = CTL.seuils.alerte, C = CTL.seuils.confort;
+  const ks = Object.keys(j.ab || {}).sort((a, b) => (PRES_MOTIFS.indexOf(a) + 99) % 99 - (PRES_MOTIFS.indexOf(b) + 99) % 99);
+  const dm = M.dem[ds];
+  document.getElementById('hmDet').innerHTML = '<div class="d">' + _presLib(ds) + ' ' + CTL.an + (_presVs(ds) ? ' · vacances scolaires' : '') + '</div>'
+    + '<div class="n" style="color:' + _presCol(j.p) + '">' + _presNb(j.p) + '</div>'
+    + '<div class="t">MAR postables · ' + _presNb(j.p + j.rg) + ' avec les repos de garde · ' + (j.p < S ? 'jour tendu' : j.p < C ? 'TP sur décision du comité' : 'confortable') + '</div>'
+    + (dm ? '<div class="dm">Demande de TP en attente : <b>' + dm.map(_escHtml).join(', ') + '</b> → ' + _presNb(j.p - dm.length) + ' si ' + (dm.length > 1 ? 'toutes accordées' : 'accordée') + '</div>' : '')
+    + '<div class="ab">' + ks.map(k => '<div><span>' + _escHtml(k) + ' · ' + j.ab[k].length + '</span><div class="chips">' + j.ab[k].map(i => '<em>' + _escHtml(i) + '</em>').join('') + '</div></div>').join('') + '</div>';
+}
+function presFermer(){
+  const f = document.getElementById('hmFond'); if (f) f.classList.remove('on');
+  const t = document.getElementById('hmTip'); if (t) t.style.display = 'none';
+  document.body.style.overflow = '';
+}
 async function ctlPrevenu(cle, coche){
   const avant = CTL.prevenus[cle];
   if (coche) CTL.prevenus[cle] = { le: new Date().toISOString().slice(0, 10), par: '' }; else delete CTL.prevenus[cle];

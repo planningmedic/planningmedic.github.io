@@ -4,7 +4,7 @@
    quelles : aucune ligne de logique modifiée, seulement déplacée. Le routeur et
    ses aides (checkCode, _deny, _error, doGet/doPost) restent dans Indispos.gs.
    Un seul espace global dans Apps Script : rien à importer. */
-const GAS_VERSION_GARDES = '2026-11-17.2';   // (17/11/2026) .2 : ONGLET CONTRÔLES — six familles (Réa 1, temps partiel, congés, 18 h, récupérations, gardes), points rouge / orange / info et liste de ce qui est en ordre ; jour tendu = sous le seuil d'alerte de l'onglet SEUILS ; une récup en vacances scolaires n'est plus un point · (17/11/2026) POINTS À VÉRIFIER (onglet Statuts du comité) : semaine Réa 1 occupée, vacances au-delà du droit, temps partiel un jour tendu — recalculés à chaque lecture (getPointsVerif) ; case « Prévenu » gardée dans l'onglet VERIF_PREVENUS (marquerPrevenu) · (12/11/2026) statistiques : V (vendredis), WE = samedis + dimanches et sa part transmis à l'écran d'équité (champsWeStats_) · (12/11/2026) plus aucun nom de personne dans le code : l'exclusion d'une ligne MEDECINS par son nom (rotation des fêtes) est retirée, aucune ligne ne le portait · (12/11/2026) don d'un 18 h (don18Jour) : le receveur doit être libre ce jour-là, rien n'est écrasé · (11/11/2026) échange de gardes refusé : le motif nomme le MAR, le jour et la raison (garde, repos de garde, 18 h, récupération) au lieu de « un des médecins a déjà une garde » · (11/11/2026) don et échange : une absence (V, VM, VA, F, TP, CL, CTP, CP, A) confirmée par le MAR est écrasée par la garde et son repos (mod.ecraserAbsences), tracée dans l'historique · (11/11/2026) applyModification du comité : don et échange passent par appliquerGesteComite_ · (11/11/2026) échange de gardes : le repos d'arrivée n'écrase plus une absence, pas de garde la veille ni le lendemain · (11/11/2026) échange de deux 18 h (echange18Jours) · (11/11/2026) le comité pose un R (statut « R ») et le lien samedi → R se recolle · (10/11/2026) lotRolesVerifier / lotRolesAppliquer (inversion réa / mater par lot, depuis l'éditeur) · (10/11/2026) un échange, un don ou une modification republie et prévient (MAR et paie) pour l'année DE LA GARDE, plus l'année active · (10/11/2026) le suivi des gestes écrit dans son propre onglet TRACES, plus jamais dans HISTORIQUE (archive des gardes par année) · (10/11/2026) onglet de suivi (TP, modifications, échanges, lot de 18 h), jamais effacé · (10/11/2026) lot18hVerifier / lot18hAppliquer (réattribution de 18 h par lot, depuis l'éditeur) · (27/10/2026) VM/VA : bloquent un don/échange, comptent 0,5 jour au reliquat · (18/10/2026) action getPlanningPaie (vue des secrétaires de paie)
+const GAS_VERSION_GARDES = '2026-11-18.1';   // (18/11/2026) .1 : PRÉSENCE JOUR PAR JOUR envoyée avec les contrôles (presence : postables, repos de garde et absents par motif, chaque jour ouvré) pour la heatmap de l'onglet Contrôles — même compte que la pose des TP · (17/11/2026) .2 : ONGLET CONTRÔLES — six familles (Réa 1, temps partiel, congés, 18 h, récupérations, gardes), points rouge / orange / info et liste de ce qui est en ordre ; jour tendu = sous le seuil d'alerte de l'onglet SEUILS ; une récup en vacances scolaires n'est plus un point · (17/11/2026) POINTS À VÉRIFIER (onglet Statuts du comité) : semaine Réa 1 occupée, vacances au-delà du droit, temps partiel un jour tendu — recalculés à chaque lecture (getPointsVerif) ; case « Prévenu » gardée dans l'onglet VERIF_PREVENUS (marquerPrevenu) · (12/11/2026) statistiques : V (vendredis), WE = samedis + dimanches et sa part transmis à l'écran d'équité (champsWeStats_) · (12/11/2026) plus aucun nom de personne dans le code : l'exclusion d'une ligne MEDECINS par son nom (rotation des fêtes) est retirée, aucune ligne ne le portait · (12/11/2026) don d'un 18 h (don18Jour) : le receveur doit être libre ce jour-là, rien n'est écrasé · (11/11/2026) échange de gardes refusé : le motif nomme le MAR, le jour et la raison (garde, repos de garde, 18 h, récupération) au lieu de « un des médecins a déjà une garde » · (11/11/2026) don et échange : une absence (V, VM, VA, F, TP, CL, CTP, CP, A) confirmée par le MAR est écrasée par la garde et son repos (mod.ecraserAbsences), tracée dans l'historique · (11/11/2026) applyModification du comité : don et échange passent par appliquerGesteComite_ · (11/11/2026) échange de gardes : le repos d'arrivée n'écrase plus une absence, pas de garde la veille ni le lendemain · (11/11/2026) échange de deux 18 h (echange18Jours) · (11/11/2026) le comité pose un R (statut « R ») et le lien samedi → R se recolle · (10/11/2026) lotRolesVerifier / lotRolesAppliquer (inversion réa / mater par lot, depuis l'éditeur) · (10/11/2026) un échange, un don ou une modification republie et prévient (MAR et paie) pour l'année DE LA GARDE, plus l'année active · (10/11/2026) le suivi des gestes écrit dans son propre onglet TRACES, plus jamais dans HISTORIQUE (archive des gardes par année) · (10/11/2026) onglet de suivi (TP, modifications, échanges, lot de 18 h), jamais effacé · (10/11/2026) lot18hVerifier / lot18hAppliquer (réattribution de 18 h par lot, depuis l'éditeur) · (27/10/2026) VM/VA : bloquent un don/échange, comptent 0,5 jour au reliquat · (18/10/2026) action getPlanningPaie (vue des secrétaires de paie)
 
 // ── Sonde : les positions de STATS que code.gs lit à l'aveugle ──
 function _sondeStatsEntetes_(check, R, annee) {
@@ -1387,7 +1387,45 @@ function computePointsVerif(year) {
       if (/^\d{4}-\d{2}-\d{2}$/.test(a) && /^\d{4}-\d{2}-\d{2}$/.test(b)) vacsc.push([a, b]);
     });
   } catch (e) {}
-  return { success: true, year: year, genere: true, seuils: S, points: points, oks: oks, prevenus: prevenus, vacsc: vacsc };
+  /* (18/11/2026) LA PRÉSENCE JOUR PAR JOUR — la heatmap de l'onglet Contrôles.
+     Chaque jour ouvré de l'année : p = MAR postables (le compte de la pose des
+     TP, _tpMondePresence_, tel quel), rg = repos de garde du jour (le « total
+     avec RG » = p + rg), ab = les absents rangés par motif (initiales). Un MAR
+     hors effectif n'apparaît nulle part. p + absents = effectif : jamais de
+     MAR perdu ni compté deux fois. */
+  const presence = {};
+  dates.forEach(ds => {
+    if (ds.slice(0, 4) !== String(year) || !ouvre(ds)) return;
+    const ab = {}; let rg = 0;
+    M.ids.forEach(id => {
+      const k = _verifPourquoi_(M, id, ds);
+      if (!k) return;
+      if (k === 'Repos de garde') rg++;
+      (ab[k] = ab[k] || []).push((info[id] || {}).init || id);
+    });
+    presence[ds] = { p: M.presents(ds), rg: rg, ab: ab };
+  });
+  return { success: true, year: year, genere: true, seuils: S, points: points, oks: oks, prevenus: prevenus, vacsc: vacsc,
+           presence: presence, feries: dates.filter(ds => ds.slice(0, 4) === String(year) && ferie(ds) && dow(ds) !== 0 && dow(ds) !== 6) };
+}
+/* Pourquoi un MAR n'est pas postable ce jour-là — les MÊMES tests, dans le MÊME
+   ordre, que presents() de _tpMondePresence_ (temps_partiel.gs). '' = postable. */
+const VERIF_MOTIFS = { VAC: 'Vacances', FORM: 'Formation', CL: 'Congé long', TP: 'Temps partiel', CTP: 'Temps partiel',
+  CP: 'Congé', A: 'Absent', RG_TRANSITION: 'Repos de garde' };
+function _verifPourquoi_(M, id, ds) {
+  const FLAGS = getMedecinFlags();
+  const dd = FLAGS.dateDebut[id], df = FLAGS.dateFin[id];
+  if ((dd && ds < dd) || (df && ds >= df)) return 'Hors contrat';
+  const ind = (M.indispos[id] || {})[ds];
+  if (VERIF_MOTIFS[ind]) return VERIF_MOTIFS[ind];
+  if (estSemaineOff(id, ds)) return 'Temps partiel';
+  const tpF = FLAGS.tpJoursFixes[id];
+  if (tpF && tpF.has(new Date(ds + 'T12:00:00').getDay())) return 'Temps partiel';
+  const rep = (M.enRepos[id] || {})[ds];
+  if (rep === 'RG') return 'Repos de garde';
+  if (rep === 'R') return 'Récup';
+  if ((M.enTp[id] || {})[ds]) return 'Temps partiel';
+  return '';
 }
 function _pl_(n, s, p) { return n + ' ' + (n > 1 ? p : s); }
 
