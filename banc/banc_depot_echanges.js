@@ -25,7 +25,7 @@ const GS = path.join(__dirname, '..', 'gas', 'echanges.gs');
 
 /* Contexte GAS : les propriétés du script, et le strict nécessaire autour. */
 function contexteGas(lignes) {
-  const PROPS = {}, pousses = [], notifs = [], ecrits = [], journal = [];
+  const PROPS = {}, pousses = [], notifs = [], ecrits = [], journal = [], cloche = [];
   const sh = { getRange: (row, col) => ({ setValue: v => ecrits.push({ row, col, v }) }) };
   const ctx = vm.createContext({ console, JSON, Date, Number, String, Object, Array, Math, Error, isNaN,
     PropertiesService: { getScriptProperties: () => ({
@@ -39,6 +39,7 @@ function contexteGas(lignes) {
         : f === 'H' ? String(p.getUTCHours()) : f === 'mm' ? z(p.getUTCMinutes()) : d.toISOString(); } },
     _miroirEnvoyerLot_: (lot) => { pousses.push(lot); return { success: true }; },
     notifierPush_: (t, c, u, cible) => { notifs.push({ t, c, cible }); },
+    _notifJournalNoter_: (cible, t, c) => { cloche.push({ t, c, cible }); },
     logAction: m => journal.push(m),
     _echangesLignes_: () => ({ sh, lignes: lignes || [] }),
     _echangesSansObjet_: () => 0,
@@ -58,7 +59,7 @@ function contexteGas(lignes) {
    '_echangesJoli_', '_echangesEst18_', 'repondreEchange']
     .forEach(n => vm.runInContext(extraireFonction(GS, n), ctx));
   const lever = f => { try { vm.runInContext(f, ctx); return null; } catch (e) { return e.message; } };
-  return { ctx, PROPS, pousses, notifs, ecrits, journal, lever, src };
+  return { ctx, PROPS, pousses, notifs, ecrits, journal, cloche, lever, src };
 }
 
 (async () => {
@@ -169,22 +170,23 @@ function contexteGas(lignes) {
     V('proposée APRÈS l\'heure des réponses : son délai part de sa création (50 h → expirée)', g.ecrits.some(e => e.v === 'expiree'));
   }
 
-  console.log('\n═══ 4. echanges.gs : fin du dépôt, une notification à chacun, une seule fois ═══');
+  console.log('\n═══ 4. echanges.gs : fin du dépôt — la CLOCHE de chacun, une seule fois ; le téléphone, c\'est le Worker ═══');
   {
     const l = (id, rec, etat) => ({ ID: id, CREE_LE: iso(Date.now() - 2 * JOUR), TYPE: 'don', ANNEE: 2027, DATE: '2027-03-12', DATE2: '',
       DEMANDEUR: 'BRAVO', RECEVEUR: rec, ETAT: etat || 'attente', REPONDU_LE: '', RAPPEL_LE: '', INFO: '', _row: 2 });
     const g = contexteGas([l('A', 'ALPHA'), l('B', 'ALPHA'), l('C', 'CHARLIE'), l('D', 'DELTA', 'refusee')]);
     g.PROPS.ECHANGES_REPONSES = iso(Date.now() + HEURE);
     vm.runInContext('expirerEchanges()', g.ctx);
-    V('avant l\'heure : aucune annonce', !g.notifs.some(n => /vous pouvez répondre/.test(n.t)));
+    V('avant l\'heure : rien dans la cloche', !g.cloche.some(n => /vous pouvez répondre/.test(n.t)));
     g.PROPS.ECHANGES_REPONSES = iso(Date.now() - 10 * 60 * 1000);
     vm.runInContext('expirerEchanges()', g.ctx);
-    const ann = g.notifs.filter(n => /vous pouvez répondre/.test(n.t));
-    V('premier passage après l\'heure : une notification par MAR qui a des demandes en attente', ann.length === 2, ann);
+    const ann = g.cloche.filter(n => /vous pouvez répondre/.test(n.t));
+    V('premier passage après l\'heure : une ligne de cloche par MAR qui a des demandes en attente', ann.length === 2, ann);
     V('… avec son nombre de demandes', ann.some(n => n.cible.id === 'ALPHA' && /^Vous pouvez maintenant accepter : 2 demandes vous attendent/.test(n.c)) && ann.some(n => n.cible.id === 'CHARLIE' && /une demande vous attend/.test(n.c)), ann);
     V('… rien pour celui dont la demande est déjà refusée', !ann.some(n => n.cible.id === 'DELTA'));
+    V('(18/11) AUCUNE notification téléphone depuis Google (le Worker l\'a envoyée à la minute : pas de doublon)', !g.notifs.some(n => /vous pouvez répondre/.test(n.t)), g.notifs);
     vm.runInContext('expirerEchanges()', g.ctx);
-    V('passage suivant : pas de seconde annonce', g.notifs.filter(n => /vous pouvez répondre/.test(n.t)).length === 2);
+    V('passage suivant : pas de seconde ligne', g.cloche.filter(n => /vous pouvez répondre/.test(n.t)).length === 2);
   }
 
   console.log('\n═══ 4 bis. echanges.gs : ouverture PROGRAMMÉE — la notification part au passage horaire, une fois ═══');
@@ -247,14 +249,14 @@ function contexteGas(lignes) {
     notif_config: JSON.stringify(cfg),
   });
   function worker(kvInitial) {
-    const wctx = vm.createContext({ globalThis: {}, console, crypto, TextEncoder, Response, Request, URL, JSON, Date, Math, Object, Array, String, Number, Set, Promise });
+    const wctx = vm.createContext({ globalThis: {}, console, crypto, TextEncoder, Response, Request, URL, JSON, Date, Math, Object, Array, String, Number, Set, Promise, Intl });
     wctx.globalThis = wctx; vm.runInContext(src, wctx);
     const M = new Map(Object.entries(kvInitial));
     const KV = { get: async k => (M.has(k) ? M.get(k) : null), put: async (k, v) => { M.set(k, v); }, delete: async k => { M.delete(k); },
       list: async ({ prefix, limit }) => ({ keys: [...M.keys()].filter(k => k.startsWith(prefix)).slice(0, limit || 1000).map(name => ({ name })) }) };
     const env = { KV, PUSH_TOKEN: 'JETON' };
     const appel = async (chemin, corps) => (await wctx.__W.fetch(new Request('https://worker' + chemin, { method: 'POST', body: JSON.stringify(corps) }), env)).json();
-    return { WK: wctx.__W, env, appel };
+    return { WK: wctx.__W, env, appel, ctx: wctx };
   }
 
   console.log('\n═══ 5. Le Worker : l\'heure des réponses voyage avec la réponse ═══');
@@ -270,6 +272,46 @@ function contexteGas(lignes) {
     w = worker(await baseKV({ ouvert: true, pilotes: [] }));
     r = await w.appel('/read', { code: CODE, keys: ['echanges'] });
     V('contre-épreuve — sans heure des réponses : aucun champ en plus', !('echangesReponses' in r) && !!r.data.echanges);
+  }
+
+  console.log('\n═══ 5 bis. (18/11/2026) Le Worker : rappels À LA MINUTE, 1 h avant et à l\'heure des réponses ═══');
+  {
+    const REP = Date.parse('2026-11-20T09:00:00Z');   // vendredi 20/11 à 10 h, heure de Paris
+    const monte = async () => {
+      const kv = await baseKV({ ouvert: true, pilotes: [], reponses: iso(REP) });
+      kv.notif_sub_ALPHA = JSON.stringify({ endpoint: 'https://push/alpha' });
+      kv.notif_sub_DELTA = JSON.stringify({ endpoint: 'https://push/delta' });
+      const w = worker(kv);
+      return w;
+    };
+    /* Les envois réels (Web Push chiffré) sont remplacés par un relevé : on veut savoir QUI reçoit QUOI. */
+    const relever = (w) => { const r = []; w.ctx.notifExpedier = async (sub, msg) => { r.push({ sub: JSON.parse(JSON.stringify(sub)).endpoint, m: JSON.parse(msg) }); return 201; }; return r; };
+    let w = await monte(); let r = relever(w);
+    w.env.VAPID_PUBLIC = 'x'; w.env.VAPID_PRIVATE = 'y';
+    const lancer = (ms) => new Promise(ok => { const p = []; w.WK.scheduled({ scheduledTime: ms }, w.env, { waitUntil: x => p.push(x) }); Promise.all(p).then(ok); });
+    await lancer(REP - 2 * HEURE);
+    V('2 h avant : rien', r.length === 0, r);
+    await lancer(REP - HEURE);
+    V('1 h avant, à la minute : ALPHA prévenu (3 demandes reçues en attente)', r.length === 1 && r[0].sub === 'https://push/alpha' && /réponses dans 1 h/.test(r[0].m.titre) && /^À 10 h, vous pourrez accepter : 3 demandes vous attendent/.test(r[0].m.corps), r);
+    V('… DELTA (proposeur, rien reçu) n\'est pas dérangé', !r.some(x => x.sub === 'https://push/delta'));
+    await lancer(REP - HEURE + 60 * 1000);
+    V('minute suivante : pas de doublon', r.length === 1, r.length);
+    await lancer(REP - 60 * 1000);
+    V('à 9 h 59 : rien de plus', r.length === 1);
+    await lancer(REP);
+    V('à 10 h pile : « vous pouvez répondre », avec le nombre et les 48 h', r.length === 2 && /vous pouvez répondre/.test(r[1].m.titre) && /^C'est ouvert : 3 demandes vous attendent, 48 h pour répondre/.test(r[1].m.corps), r[1]);
+    await lancer(REP + 60 * 1000);
+    V('10 h 01 : pas de doublon', r.length === 2);
+    w = await monte(); r = relever(w); w.env.VAPID_PUBLIC = 'x'; w.env.VAPID_PRIVATE = 'y';
+    await lancer(REP + 3 * 60 * 1000);
+    V('minute de 10 h manquée : rattrapée à 10 h 03 (fenêtre de 10 min)', r.length === 1 && /vous pouvez répondre/.test(r[0].m.titre), r);
+    w = await monte(); r = relever(w); w.env.VAPID_PUBLIC = 'x'; w.env.VAPID_PRIVATE = 'y';
+    await lancer(REP + 20 * 60 * 1000);
+    V('au-delà de 10 min : plus rien (un rappel en retard ne sert à rien)', r.length === 0, r);
+    const kv0 = await baseKV({ ouvert: true, pilotes: [] }); kv0.notif_sub_ALPHA = JSON.stringify({ endpoint: 'https://push/alpha' });
+    w = worker(kv0); r = relever(w); w.env.VAPID_PUBLIC = 'x'; w.env.VAPID_PRIVATE = 'y';
+    await lancer(REP);
+    V('contre-épreuve — pas d\'heure des réponses : rien', r.length === 0);
   }
 
   async function monterPage(kvInitial) {

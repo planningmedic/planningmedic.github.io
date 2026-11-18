@@ -72,7 +72,7 @@
    poussée : le client se replie sur le circuit GAS.
    ═══════════════════════════════════════════════════════════════════ */
 
-const VERSION = 'miroir 2026-11-15.2';   // (15/11/2026) dépôt sans course : heure des réponses (notif_config.reponses) servie à la page · (15/11/2026) annonce sans date (« prochainement ») · (14/11/2026) ouverture programmée des échanges (notif_config.ouverture), instant servi à la page
+const VERSION = 'miroir 2026-11-18.1';   // (18/11/2026) fin du dépôt : deux notifications À LA MINUTE (1 h avant l'heure des réponses, puis à l'heure) par la tâche planifiée du Worker (scheduled) · (15/11/2026) dépôt sans course : heure des réponses (notif_config.reponses) servie à la page · (15/11/2026) annonce sans date (« prochainement ») · (14/11/2026) ouverture programmée des échanges (notif_config.ouverture), instant servi à la page
 
 // Clés admissibles — tout le reste est refusé à l'écriture comme à la
 // lecture. Garde-fou contre une faute de frappe côté GAS qui créerait
@@ -89,6 +89,12 @@ const CORS = {
 };
 
 export default {
+  /* (18/11/2026 — décision du responsable) Tâche planifiée, chaque minute :
+     les rappels de fin du dépôt partent À L'HEURE, pas au passage horaire du
+     serveur Google (qui pouvait tomber 59 min plus tard). Voir rappelsReponses. */
+  async scheduled(event, env, ctx) {
+    ctx.waitUntil(rappelsReponses(env, event && event.scheduledTime));
+  },
   async fetch(request, env) {
     const url = new URL(request.url);
 
@@ -689,6 +695,55 @@ async function notifVu(corps, env) {
    (13/08 — phase 3) `cible` optionnelle : { id } notifie UNE personne,
    { role } notifie tous les abonnés de ce rôle (le comité, en pratique).
    Absente : tous les abonnés — comportement de la phase 1, inchangé. */
+/* ═══ RAPPELS DE FIN DU DÉPÔT (18/11/2026 — décision du responsable) ═══
+   À l'ouverture des réponses, le premier qui accepte une garde proposée à
+   plusieurs la prend : chacun doit être prévenu À L'HEURE. Deux envois, à
+   chaque MAR qui a des demandes en attente (avec leur nombre) :
+     - 1 h avant l'heure des réponses ;
+     - à l'heure des réponses.
+   L'heure est celle de notif_config.reponses (posée par le GAS). Lancé chaque
+   minute par la tâche planifiée ; une fenêtre de 10 min rattrape une minute
+   manquée, jamais plus (un rappel en retard d'une heure ne sert à rien). Un
+   envoi n'a lieu qu'une fois : drapeau rappel_reponses_<heure>_<étape> en KV.
+   Le serveur Google ne fait plus que les noter dans la cloche. */
+const RAPPEL_FENETRE_MS = 10 * 60 * 1000;
+async function rappelsReponses(env, quand) {
+  let cfg = null;
+  try { cfg = JSON.parse((await env.KV.get('notif_config')) || 'null'); } catch (e) {}
+  const iso = ouvertureEchangesIso({ ouverture: cfg && cfg.reponses });
+  if (!iso) return { envoyes: 0, raison: 'pas d\'heure des réponses' };
+  const r = Date.parse(iso);
+  const t = (quand == null || isNaN(Number(quand))) ? Date.now() : Number(quand);
+  const etapes = [
+    { cle: 'h1', a: r - 3600 * 1000, titre: 'Échanges : réponses dans 1 h' },
+    { cle: 'h0', a: r,               titre: 'Échanges : vous pouvez répondre' },
+  ];
+  const etape = etapes.find(e => t >= e.a && t < e.a + RAPPEL_FENETRE_MS);
+  if (!etape) return { envoyes: 0, raison: 'hors fenêtre' };
+  const drapeau = 'rappel_reponses_' + iso + '_' + etape.cle;
+  if (await env.KV.get(drapeau)) return { envoyes: 0, raison: 'déjà envoyé' };
+  await env.KV.put(drapeau, new Date(t).toISOString(), { expirationTtl: 30 * 86400 });   // posé AVANT l'envoi : jamais deux fois
+
+  let liste = [];
+  try { const v = JSON.parse((await env.KV.get('echanges')) || 'null'); liste = (v && Array.isArray(v.echanges)) ? v.echanges : []; } catch (e) {}
+  const parMar = {};
+  liste.forEach(e => {
+    if (e && e.etat === 'attente' && e.receveur) parMar[String(e.receveur)] = (parMar[String(e.receveur)] || 0) + 1;
+  });
+  const heure = new Intl.DateTimeFormat('fr-FR', { timeZone: 'Europe/Paris', hour: 'numeric', minute: '2-digit' })
+    .format(new Date(r)).replace(':00', ' h').replace(':', ' h ');
+  let envoyes = 0;
+  for (const id of Object.keys(parMar)) {
+    const n = parMar[id], dem = n > 1 ? n + ' demandes vous attendent' : 'une demande vous attend';
+    const corps = etape.cle === 'h1'
+      ? 'À ' + heure + ', vous pourrez accepter : ' + dem + '. Une garde proposée à plusieurs va au premier qui accepte.'
+      : 'C\'est ouvert : ' + dem + ', 48 h pour répondre. Une garde proposée à plusieurs va au premier qui accepte.';
+    const rep = await notifEnvoyer({ token: env.PUSH_TOKEN, titre: etape.titre, corps: corps, url: './index.html', cible: { id: id } }, env);
+    try { const j = await rep.json(); envoyes += Number(j && j.envoyees) || 0; } catch (e) {}
+  }
+  return { envoyes: envoyes, etape: etape.cle, mar: Object.keys(parMar).length };
+}
+
 async function notifEnvoyer(corps, env) {
   if (!env.PUSH_TOKEN || corps.token !== env.PUSH_TOKEN) {
     return reponse({ success: false, error: 'Jeton invalide' }, 403);
