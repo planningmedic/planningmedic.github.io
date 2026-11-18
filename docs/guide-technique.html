@@ -1078,6 +1078,37 @@ Banc : <code>banc_comptage_we.js</code>.</p>
 
 <p class="haut"><a href="#top">↑ Sommaire</a></p>
 
+<details><summary>Le calcul exact des gardes (à partir de 2028)</summary><div class="corps">
+<p><b>Réservé au responsable</b>, depuis la carte « Gardes : calcul exact » de la page Maintenance.
+Le calcul habituel trouve un bon planning en quelques minutes ; le calcul exact cherche <b>le
+meilleur</b>, critère après critère dans l'ordre de priorité du service, et prouve qu'il n'y a pas
+mieux. Il demande 15 à 60 minutes : il tourne donc hors du serveur, dans un dépôt GitHub
+<b>privé</b> (planningmedic-solveur), et la page n'a pas besoin de rester ouverte.</p>
+<ol>
+<li><b>Lancer</b> (deux appuis) : les données de l'année partent, compressées, vers le dépôt privé, et
+le calcul démarre. Rien n'est écrit dans le classeur.</li>
+<li><b>Voir l'état</b> : en cours (depuis combien de minutes), prêt (avec le nombre de critères
+prouvés), ou nuits impossibles à couvrir, nommées — il faut alors rendre un jour de vacances à un MAR
+ce jour-là, puis relancer.</li>
+<li><b>Essai à blanc</b> : le planning du calcul exact passe dans le générateur habituel (18 h,
+récupérations, statistiques), sans rien écrire.</li>
+<li><b>Appliquer</b> (deux appuis) : les gardes de l'année sont créées avec ce planning. On termine
+ensuite dans l'admin, étape 2, qui reconnaît l'année déjà générée et enchaîne publication et mails.</li>
+</ol>
+<p>Une année déjà générée est toujours refusée : 2026 et 2027 ne sont jamais recalculées.</p>
+</div></details>
+
+<details class="tech"><summary>Repères techniques — calcul exact</summary><div class="corps">
+<p>Serveur : <code>solveur.gs</code>, actions <code>solveurLancer</code>, <code>solveurEtat</code>,
+<code>solveurAppliquer</code> (droit Maintenance). Le générateur rend ses entrées juste avant les jours
+critiques avec <code>generateGardes(an, {dryRun, tirage:1, exportSolveur:true})</code>, et réimpose le
+planning reçu avec <code>{planSolveur}</code>, deux fois : avant l'arrêt « jour sans binôme » et juste
+avant les récupérations. Jeton : ligne <code>SOLVEUR_TOKEN</code> de CONFIG, limité au seul dépôt
+privé. Fichiers : <code>entrees/{année}-{horodatage}.json.gz</code> et <code>sorties/…</code> (résultat et
+bilan des étapes). Le calcul : OR-Tools CP-SAT, 5 min au plus par critère (2 min pour les critères de
+confort). Banc : <code>banc_solveur.js</code>.</p>
+</div></details>
+
 <h2 id="b4"><span class="num">B4</span>W3 — Clôturer l'année</h2>
 
 <div class="r2"><div class="titre">En 2 minutes</div>

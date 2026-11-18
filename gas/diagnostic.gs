@@ -4,7 +4,7 @@
    quelles : aucune ligne de logique modifiée, seulement déplacée. Le routeur et
    ses aides (checkCode, _deny, _error, doGet/doPost) restent dans Indispos.gs.
    Un seul espace global dans Apps Script : rien à importer. */
-const GAS_VERSION_DIAG = '2026-11-12.3';   // (12/11/2026) les lectures du dépôt partent ensemble (21 allers-retours à la file → 2 envois groupés), et le rapport dit quelles étapes ont pris le plus de temps · (12/11/2026) contrôles nouveaux : code inconnu dans une case, MAR actif sans ligne dans les gardes (sentinelle et lundi), sans ligne dans les indisponibilités (vigilance) ; jour ouvré sans 18 h, trois gardes en six jours, demandes d'échange sans objet (lundi) · (12/11/2026) la sentinelle de 6 h contrôle aussi les données (jours à venir, chaque année suivie) ; récupérations et intégrité des gardes pour chaque année suivie ; placements de l'année suivante plus comptés en reliquat · (01/11/2026) diagnostic réservé à la tuile `maintenance` · (24/10/2026) applicateur : filet toutes les 5 min
+const GAS_VERSION_DIAG = '2026-11-18.1';   // (18/11/2026) solveur.gs entre au contrôle de déploiement · (12/11/2026) les lectures du dépôt partent ensemble (21 allers-retours à la file → 2 envois groupés), et le rapport dit quelles étapes ont pris le plus de temps · (12/11/2026) contrôles nouveaux : code inconnu dans une case, MAR actif sans ligne dans les gardes (sentinelle et lundi), sans ligne dans les indisponibilités (vigilance) ; jour ouvré sans 18 h, trois gardes en six jours, demandes d'échange sans objet (lundi) · (12/11/2026) la sentinelle de 6 h contrôle aussi les données (jours à venir, chaque année suivie) ; récupérations et intégrité des gardes pour chaque année suivie ; placements de l'année suivante plus comptés en reliquat · (01/11/2026) diagnostic réservé à la tuile `maintenance` · (24/10/2026) applicateur : filet toutes les 5 min
 
 // ── LOG ───────────────────────────────────────────────────────────────
 /* ─────────────────────────────────────────────────────────────────────────────
@@ -594,6 +594,7 @@ function diagnosticComplet() {
       try { deployed['temps_partiel.gs'] = GAS_VERSION_TP; } catch (e) { deployed['temps_partiel.gs'] = null; }
       try { deployed['equipe.gs'] = GAS_VERSION_EQUIPE; } catch (e) { deployed['equipe.gs'] = null; }
       try { deployed['diagnostic.gs'] = GAS_VERSION_DIAG; } catch (e) { deployed['diagnostic.gs'] = null; }
+      try { deployed['solveur.gs'] = GAS_VERSION_SOLVEUR; } catch (e) { deployed['solveur.gs'] = null; }   // (18/11/2026) solveur exact des gardes
       const tokSync = getGithubToken();
       const cheminDe = fn => fn.indexOf('/') !== -1 ? fn : 'gas/' + fn;   // chemin complet si fourni (module partage)
       const depotGas = _diagLireDepot_(Object.keys(deployed).map(cheminDe), tokSync);   // (12/11/2026) 15 lectures en un envoi

@@ -174,6 +174,22 @@ window.SessionPortail = window.SessionPortail || { lire:function(){try{return se
     <div class="res" id="clotRes"></div>
   </section>
 
+  <!-- 1 quater. Solveur exact des gardes (18/11/2026) — à partir des gardes 2028 -->
+  <section class="card" id="cSolveur">
+    <h2>🧮 Gardes : calcul exact</h2>
+    <p class="d">Cherche le meilleur planning de gardes possible et le prouve. <b>Lancer</b> prépare et envoie les données (1 à 3 min), puis le calcul tourne seul, 15 à 60 min, même page fermée. <b>Essai à blanc</b> montre le résultat sans rien écrire ; <b>Appliquer</b> crée les gardes de l'année.</p>
+    <div class="barre"><span class="n">Année</span><select id="solvAn"></select></div>
+    <div class="duo">
+      <button class="btn p" id="btnSolvLancer" type="button">Lancer</button>
+      <button class="btn" id="btnSolvEtat" type="button">Voir l'état</button>
+    </div>
+    <div class="duo" style="margin-top:8px">
+      <button class="btn" id="btnSolvEssai" type="button" disabled>Essai à blanc</button>
+      <button class="btn" id="btnSolvAppl" type="button" disabled>Appliquer</button>
+    </div>
+    <div class="res" id="solvRes"></div>
+  </section>
+
   <!-- 3. Codes -->
   <section class="card" id="cCodes">
     <h2>✉️ Renvoyer les codes d'accès</h2>
@@ -593,6 +609,73 @@ $('btnSync').addEventListener('click', async () => {
   } catch (e) { out.innerHTML = '<span class="err">❌ ' + esc(e.message) + '</span>'; }
   finally { btn.disabled = false; btn.textContent = 'Mettre à jour maintenant'; }
 });
+
+/* ── 1 quater. Solveur exact des gardes (18/11/2026) ── */
+(function(){
+  const sel = $('solvAn'), an0 = new Date().getFullYear() + 1;
+  for (let a = Math.max(2028, an0); a <= Math.max(2028, an0) + 1; a++) sel.insertAdjacentHTML('beforeend', '<option value="' + a + '">' + a + '</option>');
+})();
+const SOLV_ETAPES = { aucun: 'Aucun calcul lancé pour cette année.', en_cours: 'Calcul en cours' };
+function solvBilan(r){
+  const et = r.etapes || [];
+  const n = et.length, p = et.filter(e => e.prouve).length;
+  return n ? ' ' + p + ' critère' + (p > 1 ? 's' : '') + ' sur ' + n + ' prouvé' + (p > 1 ? 's' : '') + ' optimal' + (p > 1 ? 'aux' : '') + '.' : '';
+}
+async function solvEtat(){
+  const out = $('solvRes'), an = Number($('solvAn').value);
+  $('btnSolvEssai').disabled = true; $('btnSolvAppl').disabled = true;
+  try {
+    const r = await api({ action:'solveurEtat', year: an });
+    if (!r || !r.success) throw new Error(refus(r) ? MSG_RESERVE : ((r && r.error) || 'réponse illisible'));
+    if (r.etat === 'aucun') out.innerHTML = '<span>' + SOLV_ETAPES.aucun + '</span>';
+    else if (r.etat === 'en_cours') out.innerHTML = '<span>⏳ Calcul en cours depuis ' + (r.minutes || 0) + ' min. Revenez plus tard.</span>';
+    else if (r.etat === 'impossible') out.innerHTML = '<span class="err">❌ Nuits impossibles à couvrir, quelle que soit la répartition : ' + esc((r.nuits || []).join(', ')) + '. Rendez un jour de vacances à un MAR ce jour-là, puis relancez.</span>';
+    else if (r.etat === 'echec') out.innerHTML = '<span class="err">❌ ' + esc(r.error || 'Le calcul a échoué.') + '</span>';
+    else if (r.etat === 'pret') {
+      out.innerHTML = '<span class="ok">✅ Résultat prêt.' + esc(solvBilan(r)) + '</span>';
+      $('btnSolvEssai').disabled = false; $('btnSolvAppl').disabled = false;
+    }
+    return r;
+  } catch (e) { out.innerHTML = '<span class="err">❌ ' + esc(e.message) + '</span>'; return null; }
+}
+deuxAppuis($('btnSolvLancer'), () => 'Confirmer : lancer ' + $('solvAn').value, async () => {
+  const btn = $('btnSolvLancer'), out = $('solvRes'), an = Number($('solvAn').value);
+  btn.disabled = true; btn.textContent = 'Préparation…';
+  out.innerHTML = '<span>Préparation des données, ne fermez pas la page (1 à 3 min)…</span>';
+  try {
+    const r = await api({ action:'solveurLancer', year: an });
+    if (!r || !r.success) throw new Error(refus(r) ? MSG_RESERVE : ((r && r.error) || 'réponse illisible'));
+    out.innerHTML = '<span class="ok">✅ Calcul lancé. Il tourne seul, 15 à 60 min : revenez appuyer sur « Voir l\'état ».</span>';
+  } catch (e) { out.innerHTML = '<span class="err">❌ ' + esc(e.message) + '</span>'; }
+  finally { btn.disabled = false; btn.textContent = 'Lancer'; }
+});
+$('btnSolvEtat').addEventListener('click', async () => {
+  const btn = $('btnSolvEtat'); btn.disabled = true; btn.textContent = 'Lecture…';
+  await solvEtat(); btn.disabled = false; btn.textContent = 'Voir l\'état';
+});
+$('btnSolvEssai').addEventListener('click', async () => {
+  const btn = $('btnSolvEssai'), out = $('solvRes'), an = Number($('solvAn').value);
+  btn.disabled = true; btn.textContent = 'Essai…';
+  out.innerHTML = '<span>Essai à blanc, rien n\'est écrit (1 à 4 min)…</span>';
+  try {
+    const r = await api({ action:'solveurAppliquer', year: an, essai: true });
+    if (!r || !r.success) throw new Error(refus(r) ? MSG_RESERVE : ((r && r.error) || 'réponse illisible'));
+    out.innerHTML = '<span class="ok">✅ Essai réussi en ' + (r.secondes || 0) + ' s : ' + (r.sansBinome ? r.sansBinome + ' nuit(s) sans binôme' : 'toutes les nuits couvertes') + '. Rien n\'a été écrit.</span>';
+  } catch (e) { out.innerHTML = '<span class="err">❌ ' + esc(e.message) + '</span>'; }
+  finally { btn.disabled = false; btn.textContent = 'Essai à blanc'; }
+});
+deuxAppuis($('btnSolvAppl'), () => 'Confirmer : créer les gardes ' + $('solvAn').value, async () => {
+  const btn = $('btnSolvAppl'), out = $('solvRes'), an = Number($('solvAn').value);
+  btn.disabled = true; btn.textContent = 'Création…';
+  out.innerHTML = '<span>Création des gardes ' + an + ', ne fermez pas la page (2 à 5 min)…</span>';
+  try {
+    const r = await api({ action:'solveurAppliquer', year: an });
+    if (!r || !r.success) throw new Error(refus(r) ? MSG_RESERVE : ((r && r.error) || 'réponse illisible'));
+    out.innerHTML = '<span class="ok">✅ Gardes ' + an + ' créées (' + (r.secondes || 0) + ' s, ' + (r.nbWarnings || 0) + ' avertissement' + ((r.nbWarnings || 0) > 1 ? 's' : '') + '). Terminez dans l\'admin, étape 2 : publication et mails.</span>';
+  } catch (e) { out.innerHTML = '<span class="err">❌ ' + esc(e.message) + '</span>'; }
+  finally { btn.disabled = false; btn.textContent = 'Appliquer'; }
+});
+$('solvAn').addEventListener('change', () => { $('solvRes').innerHTML = ''; $('btnSolvEssai').disabled = true; $('btnSolvAppl').disabled = true; });
 
 /* ── 3. Codes ── */
 function cases(){ return [...document.querySelectorAll('#codesListe input[type=checkbox]:not(:disabled)')]; }

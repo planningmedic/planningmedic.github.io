@@ -439,7 +439,7 @@ function bac() {
     V('garde-fou : le corps du rapport est bien isolé', corps.length > 5000 && corps.indexOf('Code déployé vs dépôt') !== -1);
     V('le rapport lit le dépôt par DEUX envois groupés (code serveur, version du site)', (corps.match(/_diagLireDepot_\(/g) || []).length === 2, (corps.match(/_diagLireDepot_\(/g) || []).length);
     V('…et plus aucune lecture « contents/ » à la file dans le rapport', !/UrlFetchApp\.fetch\([^)]*\n?[^)]*\/contents\//.test(corps));
-    V('les 15 fichiers serveur et les 6 fichiers du site sont toujours comparés', (corps.match(/deployed\['[^']+'\] = GAS_VERSION_/g) || []).length === 15 && /nomsPages\.concat\(\['version\.js'\]\)/.test(corps) && (corps.match(/'index\.html', 'admin\.html', 'docs\/guide-mar\.html', 'docs\/guide-comite\.html', 'docs\/roadmap\.html'/) || []).length === 1);
+    V('les 16 fichiers serveur (solveur.gs depuis le 18/11/2026) et les 6 fichiers du site sont toujours comparés', (corps.match(/deployed\['[^']+'\] = GAS_VERSION_/g) || []).length === 16 && /nomsPages\.concat\(\['version\.js'\]\)/.test(corps) && (corps.match(/'index\.html', 'admin\.html', 'docs\/guide-mar\.html', 'docs\/guide-comite\.html', 'docs\/roadmap\.html'/) || []).length === 1);
 
     // 5. Le temps par étape
     V('le code expose le temps par étape', typeof ctx._diagTempsParEtape_ === 'function');

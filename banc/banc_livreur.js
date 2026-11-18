@@ -83,7 +83,7 @@ const CARTE = JSON.parse(fs.readFileSync(path.join(__dirname, '..', 'livreur', '
   V('code.gs devient « Code » (le nom dans l\'éditeur)', CARTE.some(c => c.depot === 'gas/code.gs' && c.nom === 'Code'));
   V('chaque chemin de la carte existe dans le dépôt', CARTE.every(c => fs.existsSync(path.join(__dirname, '..', c.depot))), CARTE.filter(c => !fs.existsSync(path.join(__dirname, '..', c.depot))).map(c => c.depot));
   V('aucun nom en double', new Set(CARTE.map(c => c.nom)).size === CARTE.length);
-  V('17 fichiers, comme le projet en service (vérifié en réel le 01/11)', CARTE.length === 17, CARTE.length);
+  V('18 fichiers : les 17 du projet en service (vérifié en réel le 01/11) et solveur.gs (18/11/2026)', CARTE.length === 18, CARTE.length);
 }
 
 /* Un contexte d'exécution complet : fausse API Apps Script, faux GitHub, faux serveur du portail. */

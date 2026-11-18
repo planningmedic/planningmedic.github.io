@@ -181,8 +181,8 @@ console.log('\n═══ M2. Les cinq actions ═══');
     V('vider le cache : l\'action part et le message s\'affiche', appels.some(a => a.action === 'viderCacheConfig') && /Cache de configuration vidé/.test(d.getElementById('cacheRes').textContent));
 
     const ordre = [...d.querySelectorAll('section.card')].map(c => c.id);
-    V('ordre des cartes voulu (18/11/2026) : serveur, diagnostic, mise à jour, récups, clôture, codes, cache en dernier',
-      JSON.stringify(ordre) === JSON.stringify(['cMaj', 'cDiag', 'cSync', 'cRecups', 'cClot', 'cCodes', 'cCache']), ordre);
+    V('ordre des cartes voulu (18/11/2026) : serveur, diagnostic, mise à jour, récups, clôture, calcul exact des gardes, codes, cache en dernier',
+      JSON.stringify(ordre) === JSON.stringify(['cMaj', 'cDiag', 'cSync', 'cRecups', 'cClot', 'cSolveur', 'cCodes', 'cCache']), ordre);
     d.getElementById('btnSync').click(); await dodo(80);
     V('mettre à jour maintenant : l\'action part avec le code, le résultat chiffré s\'affiche',
       appels.some(a => a.action === 'miroirSyncMaintenant' && a.code === 'MOI') && /Portail à jour \(3 éléments modifiés, 12 s\)/.test(d.getElementById('syncRes').textContent)

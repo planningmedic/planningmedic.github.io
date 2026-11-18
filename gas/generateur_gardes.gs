@@ -41,7 +41,7 @@
 // ⚠️ RÈGLE (détecteur de dérive dépôt↔Apps Script) : incrémenter cette version
 // à CHAQUE push de ce fichier. Le diagnostic (admin → Maintenance) compare la
 // version déployée ici avec celle du dépôt et signale toute recopie oubliée.
-const GAS_VERSION_GENERATEUR = '2026-11-17.1';   // (17/11/2026) .1 : RÉCUPÉRATIONS — le plancher d'effectif est le seuil d'alerte de l'onglet SEUILS (seuilsPresence_), compté comme partout : sans les MAR hors effectif, une demi-journée de vacances comptée présente · (16/11/2026) .3 : CHRONO DE L'EXÉCUTION — les passes lourdes (optimisation finale, week-ends, appariement, lissage mensuel) s'arrêtent à temps, comptées depuis le début de l'exécution, pour tenir les 6 min de Google (annoncé) · 18 h la veille de vacances en tout dernier recours si la soirée resterait vide · essai écrit en morceaux dans le journal · contrôle qualité : les MAR libres aussi pour deux week-ends d'affilée · .2 : CONTRÔLE QUALITÉ dans l'essai de génération — garde-repos-garde non souhaitée, 4 gardes en 10 jours, mois chargés, deux week-ends d'affilée, 18 h du vendredi ; chaque cas dit s'il était imposé ou si le calcul avait le choix ; le planning ne change pas · .1 : 18 H — jamais la veille de vacances ; en semaine Réa 1 seulement en tout dernier recours (annoncé par l'essai) · (15/11/2026) .1 : ROTATION D'ÉQUITÉ à partir des gardes 2028 — même fourchette pour tous les MAR de même part, sans report qui la décale ; le retard cumulé de toutes les années (été compris) décide qui prend le haut ; part des autres calculée sur les gardes réelles du régime à part ; Noël et Jour de l'An hors des compteurs fins (gardés dans le total) ; réparation finale entre collègues et diagnostic des écarts de 2 ; 2027 se rejoue à l'identique · (14/11/2026) .2 : STATISTIQUES — tous les axes écrits (week-ends, été, part visée de chaque axe) ; le planning ne change pas · .1 : lissage mensuel par échanges neutres (aucun compteur ne bouge) · 18 h du vendredi : échange à trois MAR en plus de l'échange un pour un · écart entre collègues de même part payé dans la dernière passe · LA FOURCHETTE : plus de cible tirée au sort entre MAR de même part ; tout le calcul vise que chacun soit entre l'arrondi inférieur et supérieur de sa part exacte, sur chaque compteur (les week-ends gardent leur nombre entier, égal à part égale) · (13/11/2026) tout lisser, suite : le relais (un troisième MAR sert d'intermédiaire quand le +1 ne peut rien donner directement au −1), deux parcours et le meilleur est gardé — fériés et été mieux lissés · mesures de la passe 8nonies remplacées par celles de l'essai de génération chez Google (32 → 24, dont 12 d'arrondis ; 8 s) : les précédentes venaient d'une simulation qui ignorait les indisponibilités du dernier jour de l'année. Aucun changement de calcul · tout lisser : dernière passe qui apparie les +1 et les −1 d'un même compteur (week-ends, été, fériés, jeudis, samedis, vendredis), un souhait pouvant être retiré pour remettre un compteur à sa cible · rattrapage : 60 % du retard cumulé dans la visée, arrondi au plus proche (le retard n'est plus compté deux fois) · comptes exacts : vendredis-dimanches et week-ends déduits du planning réel · retouche : les week-ends d'abord · mémoire de plusieurs années : les années archivées sont relues dans le classeur d'archives · 18 h du vendredi à l'un des deux MAR du samedi · week-ends : cible égale à quotité égale, été, réa / maternité
+const GAS_VERSION_GENERATEUR = '2026-11-18.1';   // (18/11/2026) .1 : SOLVEUR EXACT — export des entrées (opts.exportSolveur) et planning imposé (opts.planSolveur), utilisés seulement par gas/solveur.gs ; historique des week-ends lu dans les archives (dette) ; sans ces options, rien ne change · (17/11/2026) .1 : RÉCUPÉRATIONS — le plancher d'effectif est le seuil d'alerte de l'onglet SEUILS (seuilsPresence_), compté comme partout : sans les MAR hors effectif, une demi-journée de vacances comptée présente · (16/11/2026) .3 : CHRONO DE L'EXÉCUTION — les passes lourdes (optimisation finale, week-ends, appariement, lissage mensuel) s'arrêtent à temps, comptées depuis le début de l'exécution, pour tenir les 6 min de Google (annoncé) · 18 h la veille de vacances en tout dernier recours si la soirée resterait vide · essai écrit en morceaux dans le journal · contrôle qualité : les MAR libres aussi pour deux week-ends d'affilée · .2 : CONTRÔLE QUALITÉ dans l'essai de génération — garde-repos-garde non souhaitée, 4 gardes en 10 jours, mois chargés, deux week-ends d'affilée, 18 h du vendredi ; chaque cas dit s'il était imposé ou si le calcul avait le choix ; le planning ne change pas · .1 : 18 H — jamais la veille de vacances ; en semaine Réa 1 seulement en tout dernier recours (annoncé par l'essai) · (15/11/2026) .1 : ROTATION D'ÉQUITÉ à partir des gardes 2028 — même fourchette pour tous les MAR de même part, sans report qui la décale ; le retard cumulé de toutes les années (été compris) décide qui prend le haut ; part des autres calculée sur les gardes réelles du régime à part ; Noël et Jour de l'An hors des compteurs fins (gardés dans le total) ; réparation finale entre collègues et diagnostic des écarts de 2 ; 2027 se rejoue à l'identique · (14/11/2026) .2 : STATISTIQUES — tous les axes écrits (week-ends, été, part visée de chaque axe) ; le planning ne change pas · .1 : lissage mensuel par échanges neutres (aucun compteur ne bouge) · 18 h du vendredi : échange à trois MAR en plus de l'échange un pour un · écart entre collègues de même part payé dans la dernière passe · LA FOURCHETTE : plus de cible tirée au sort entre MAR de même part ; tout le calcul vise que chacun soit entre l'arrondi inférieur et supérieur de sa part exacte, sur chaque compteur (les week-ends gardent leur nombre entier, égal à part égale) · (13/11/2026) tout lisser, suite : le relais (un troisième MAR sert d'intermédiaire quand le +1 ne peut rien donner directement au −1), deux parcours et le meilleur est gardé — fériés et été mieux lissés · mesures de la passe 8nonies remplacées par celles de l'essai de génération chez Google (32 → 24, dont 12 d'arrondis ; 8 s) : les précédentes venaient d'une simulation qui ignorait les indisponibilités du dernier jour de l'année. Aucun changement de calcul · tout lisser : dernière passe qui apparie les +1 et les −1 d'un même compteur (week-ends, été, fériés, jeudis, samedis, vendredis), un souhait pouvant être retiré pour remettre un compteur à sa cible · rattrapage : 60 % du retard cumulé dans la visée, arrondi au plus proche (le retard n'est plus compté deux fois) · comptes exacts : vendredis-dimanches et week-ends déduits du planning réel · retouche : les week-ends d'abord · mémoire de plusieurs années : les années archivées sont relues dans le classeur d'archives · 18 h du vendredi à l'un des deux MAR du samedi · week-ends : cible égale à quotité égale, été, réa / maternité
 // précédente : '2026-10-27.1'
 
 /* (05/09/2026) INTERRUPTEUR DU NOUVEL ALGORITHME — récit : docs/JOURNAL-Planning-Med.md §101 */
@@ -1152,18 +1152,18 @@ function generateGardes(year, opts){
       const _h=_v[0].map(x=>String(x).trim());
       const _iEx={ total:_h.indexOf('PART EXACTE'), sam:_h.indexOf('PART EXACTE SAM'), jeu:_h.indexOf('PART EXACTE JEU'),
                    vd:_h.indexOf('PART EXACTE VD'), vjf:_h.indexOf('PART EXACTE VJF'), jf:_h.indexOf('PART EXACTE JF'),
-                   ete:_h.indexOf('PART EXACTE ETE') };   // (15/11/2026) l'été entre dans le report (absent avant 2027 : ignoré)
+                   ete:_h.indexOf('PART EXACTE ETE'), we:_h.indexOf('PART EXACTE WE') };   // (15/11/2026) l'été entre dans le report (absent avant 2027 : ignoré) · (18/11/2026) les week-ends aussi
       if(_iEx.total<0||_iEx.sam<0) continue;                 // année écrite avant la part exacte
       const _iRe={ total:_h.indexOf('TOTAL G'), sam:_h.indexOf('SAM'), jeu:_h.indexOf('JEU'),
                    vd:(_h.indexOf('VEN')>=0?_h.indexOf('VEN'):_h.indexOf('VD')), vjf:_h.indexOf('VEILLE JF'), jf:_h.indexOf('JF'),
-                   ete:_h.indexOf('ETE') };
+                   ete:_h.indexOf('ETE'), we:_h.indexOf('WE') };
       let _lu=false;
       for(let _r=1;_r<_v.length;_r++){
         const _id=String(_v[_r][0]).trim(); if(!_id||!dette[_id]) continue;
         Object.keys(_iEx).forEach(k=>{ if(_iEx[k]<0||_iRe[k]<0) return; const raw=_v[_r][_iEx[k]];
           if(raw===''||raw===null||raw===undefined) return; const ex=Number(String(raw).replace(/^'/,'')); if(isNaN(ex)) return;
           const re=Number(_v[_r][_iRe[k]])||0;
-          if(!_hist[_id]) _hist[_id]={total:0,sam:0,jeu:0,vd:0,vjf:0,jf:0,ete:0};
+          if(!_hist[_id]) _hist[_id]={total:0,sam:0,jeu:0,vd:0,vjf:0,jf:0,ete:0,we:0};
           _hist[_id][k]+=re-ex; _lu=true; });
       }
       if(_lu) _histAns++;
@@ -1255,7 +1255,7 @@ function generateGardes(year, opts){
     gardeDoctors.forEach(id=>{ const ex=cibleExacte[id]||{}; VISEE[id]={}; PRIO[id]={};
       ['sam','jeu','vd','vjf','jf','total'].forEach(k=>{ VISEE[id][k]=Math.max(0,(ex[k]||0)-_dtA(id,k));
         const e=VISEE[id][k], lo=Math.floor(e+1e-9), hi=Math.ceil(e-1e-9);
-        (CUMUL[id]=CUMUL[id]||{})[k]=_hA(id,k); CUMUL[id].ete=_hA(id,'ete');
+        (CUMUL[id]=CUMUL[id]||{})[k]=_hA(id,k); CUMUL[id].ete=_hA(id,'ete'); CUMUL[id].we=_hA(id,'we');
         PRIO[id][k]=_rotOn_()?Math.max(lo,Math.min(hi,(cible[id]&&typeof cible[id][k]==='number')?cible[id][k]:e-_hA(id,k))):e; }); });
     // Le report est désormais DANS la cible : le compteur repart à zéro pour que
     // ratio() ne l'applique pas deux fois.
@@ -1898,6 +1898,32 @@ function generateGardes(year, opts){
     });
     if(Object.keys(noelAssignees).length)
       Logger.log('Noël/An: '+Object.entries(noelAssignees).map(([d,ab])=>`${d}:${ab.join('+')}`).join(' | '));
+  }
+
+  /* (18/11/2026) SOLVEUR EXACT — export des entrées. Avec opts.exportSolveur, la génération
+     s'arrête ici (jours critiques non encore posés) et renvoie tout ce que le solveur doit
+     savoir : jours, équipe, indispos, souhaits, parts, cumul des années, gardes déjà fixées
+     (fêtes imposées, rotation de Noël). Rien n'est écrit. Voir gas/solveur.gs. */
+  if(opts && opts.exportSolveur){
+    const D={}; const ids=gardeDoctors.slice();
+    D.days=allDays.map(d=>({date:d.date,dow:d.dow,month:d.month,isFerie:!!d.isFerie,isVjf:!!d.isVjf,isFete:!!d.isFete,wk:d.wk}));
+    D.ids=ids; D.allDoctors=allDoctors.slice(); D.pct=pct; D.quot=quot;
+    D.noWeekend=[...NO_WEEKEND]; D.plafond=[...SOUHAIT_PLAFOND]; D.only18=[...ONLY_18];
+    D.tpJours={}; Object.keys(FLAGS.tpJoursFixes).forEach(k=>D.tpJours[k]=[...FLAGS.tpJoursFixes[k]]);
+    D.dateDebut=FLAGS.dateDebut; D.dateFin=FLAGS.dateFin;
+    D.indiv={}; D.struct={}; D.off={};
+    allDoctors.forEach(id=>{ D.indiv[id]=[]; D.struct[id]=[]; D.off[id]=[];
+      allDays.forEach(d=>{ D.indiv[id].push(ids.indexOf(id)>=0 && indispoIndividuelle(id,d.date)?1:0);
+        D.struct[id].push(structAvail(id,d)?1:0); D.off[id].push(estSemaineOff(id,d.date)?1:0); }); });
+    D.indispos=indispos; D.souhaits=souhaits;
+    D.rea1Nuit={}; Object.keys(REA1_NUIT).forEach(k=>D.rea1Nuit[k]=[...REA1_NUIT[k]]);
+    D.rea1Sem={}; Object.keys(REA1_SEM).forEach(k=>D.rea1Sem[k]=[...REA1_SEM[k]]);
+    D.visee=VISEE; D.cibleExacte=cibleExacte; D.cible=cible; D.monthExp=monthExp;
+    D.fixes=JSON.parse(JSON.stringify(gardes));
+    D.paires={}; Object.keys(PAIRES_EV).forEach(k=>D.paires[k]=[...PAIRES_EV[k]]);
+    D.couples=CPL_WE; D.prio=PRIO; D.cumul=CUMUL; D.rot=_rotOn_(); D.vacSco=allDays.map(d=>isVacancesScolaires(d.date,year)?1:0);
+    D.warnings=warnings.slice(); D.year=year;
+    return { solveur:D, dryRun:true, year:year };
   }
 
   // ── 7ter. JOURS CRITIQUES — pourvus AVANT tout le reste ───────────────
@@ -2632,6 +2658,18 @@ function generateGardes(year, opts){
     const [g,g2]=assignRoles(A,B);
     assign(date,g,g2,dow);
   });
+
+  /* (18/11/2026) SOLVEUR EXACT — planning imposé. Avec opts.planSolveur ({date:{g,g2}}), les
+     gardes calculées par le solveur remplacent celles du calcul habituel, ici puis juste avant
+     les récupérations (les passes d'entre-deux retouchent les gardes). La suite (18 h, R,
+     statistiques, écriture) est celle de toujours. */
+  if(opts && opts.planSolveur){ const _P=opts.planSolveur;
+    Object.keys(gardes).forEach(k=>delete gardes[k]); Object.keys(assignDow).forEach(k=>delete assignDow[k]);
+    gardeDoctors.forEach(id=>{ gSet[id].clear(); g2Set[id].clear(); rgSet[id].clear();
+      Object.keys(cnt[id]).forEach(k=>{ if(k!=='vd'&&k!=='we') cnt[id][k]=0; });
+      recupDue[id]=[]; weekCnt[id]={}; weekCntS[id]={}; monthCnt[id]={}; });
+    allDays.forEach(d=>{ const x=_P[d.date]; if(x) assign(d.date,x.g,x.g2,d.dow); });
+  }
 
   /* ── 8b-bis. (LOT C · 01/09/2026) ARRÊT SI UN JOUR N'A PAS DE BINÔME ──────
      Décision du responsable, 01/09/2026 : « pas de porte de sortie, le problème
@@ -3991,6 +4029,17 @@ function generateGardes(year, opts){
         if(dayByDate[dd].dow===6)recupDue[id].push(dd);});}); // R = vrais samedis (jeudi/lundi férié couplé n'ouvre pas de R)
   }
 
+  /* (18/11/2026) SOLVEUR EXACT — planning imposé (2e pose, voir 8b-bis). Avec opts.planSolveur ({date:{g,g2}}), les
+     gardes calculées par le solveur remplacent celles du calcul habituel, ici puis juste avant
+     les récupérations (les passes d'entre-deux retouchent les gardes). La suite (18 h, R,
+     statistiques, écriture) est celle de toujours. */
+  if(opts && opts.planSolveur){ const _P=opts.planSolveur;
+    Object.keys(gardes).forEach(k=>delete gardes[k]); Object.keys(assignDow).forEach(k=>delete assignDow[k]);
+    gardeDoctors.forEach(id=>{ gSet[id].clear(); g2Set[id].clear(); rgSet[id].clear();
+      Object.keys(cnt[id]).forEach(k=>{ if(k!=='vd'&&k!=='we') cnt[id][k]=0; });
+      recupDue[id]=[]; weekCnt[id]={}; weekCntS[id]={}; monthCnt[id]={}; });
+    allDays.forEach(d=>{ const x=_P[d.date]; if(x) assign(d.date,x.g,x.g2,d.dow); });
+  }
   // ── 9. Placer les R ──────────────────────────────────────────────────
   /* (13/08/2026 — échanges de gardes, lot 1) Le couple « samedi tenu → date
      du R posé » n'existait qu'ici, en mémoire, et n'était jamais écrit.

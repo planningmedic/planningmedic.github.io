@@ -152,7 +152,7 @@ function socleMedecins(ctx, fichierCode) {
    entière) : même contenu, plusieurs fichiers. dev.gs exclu (jamais déployé). */
 function sourceGasTout() {
   const p = require('path'), dir = p.join(__dirname, '..', 'gas');
-  return ['Indispos.gs', 'gardes.gs', 'indisponibilites.gs', 'temps_partiel.gs', 'equipe.gs', 'diagnostic.gs']
+  return ['Indispos.gs', 'gardes.gs', 'indisponibilites.gs', 'temps_partiel.gs', 'equipe.gs', 'diagnostic.gs', 'solveur.gs']
     .filter(f => fs.existsSync(p.join(dir, f))).map(f => fs.readFileSync(p.join(dir, f), 'utf8')).join('\n');
 }
 
