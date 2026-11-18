@@ -925,8 +925,12 @@ console.log('\n═══ RÉA 1 · entre MAR, une GARDE ou un 18 h dans SA semai
   // A. DON vers un Réa 1 (le dimanche, veille de sa semaine) : la proposition part, il est prévenu.
   let b = prep();
   b.poser('ALPHA', DIM, 'G'); b.poser('ALPHA', LUN, 'RG');
-  let r = creer(b, 'ALPHA', { type:'don', year:2027, date:DIM, receveur:'BRAVO' });
-  V('A. don d\'une nuit Réa 1 du receveur : la proposition PART (plus de refus)', !!r.id && b.echanges().length === 1, r);
+  let q0 = essai(() => creer(b, 'ALPHA', { type:'don', year:2027, date:DIM, receveur:'BRAVO' }));
+  V('A. l\'envoyeur est prévenu ([REA1L]) : receveur, garde et semaine nommés, rien ne part',
+    /^\[REA1L\] Attention, la garde du 10\/01\/2027 tombe dans la semaine Réa 1 du Dr Bravo \(du 11\/01\/2027 au 15\/01\/2027\)\. Il devra confirmer en acceptant\. Vous envoyez quand même \?$/.test(q0 || '')
+    && b.echanges().length === 0 && b.notifs.length === 0, q0);
+  let r = creer(b, 'ALPHA', { type:'don', year:2027, date:DIM, receveur:'BRAVO', accepteRea1Lui:true });
+  V('A. « envoyer quand même » : la proposition PART (plus de refus)', !!r.id && b.echanges().length === 1, r);
   V('A. …le receveur est prévenu de sa semaine Réa 1 dans la notification',
     /Attention, la garde du 10\/01\/2027 tombe dans votre semaine Réa 1 \(du 11\/01\/2027 au 15\/01\/2027\)/.test(b.notifs[b.notifs.length - 1].corps), b.notifs[b.notifs.length - 1].corps);
   let avant = grille(b);
@@ -994,7 +998,9 @@ console.log('\n═══ RÉA 1 · entre MAR, une GARDE ou un 18 h dans SA semai
   // D bis. DON DE 18 h vers le Réa 1 (mardi de sa semaine) : prévenu, il confirme à l'acceptation.
   b = prep();
   b.poser('ALPHA', MAR_, '18');
-  r = creer(b, 'ALPHA', { type:'don18', year:2027, date:MAR_, receveur:'BRAVO' });
+  q = essai(() => creer(b, 'ALPHA', { type:'don18', year:2027, date:MAR_, receveur:'BRAVO' }));
+  V('D bis. l\'envoyeur est prévenu du 18 h en semaine Réa 1 du receveur', /^\[REA1L\] Attention, le 18 h du 12\/01\/2027 tombe dans la semaine Réa 1 du Dr Bravo/.test(q || '') && b.echanges().length === 0, q);
+  r = creer(b, 'ALPHA', { type:'don18', year:2027, date:MAR_, receveur:'BRAVO', accepteRea1Lui:true });
   V('D bis. don de 18 h : la proposition part, le receveur est prévenu de sa semaine Réa 1', !!r.id
     && /Attention, le 18 h du 12\/01\/2027 tombe dans votre semaine Réa 1/.test(b.notifs[b.notifs.length - 1].corps), b.notifs[b.notifs.length - 1].corps);
   q = essai(() => repondre(b, 'BRAVO', { id:r.id, reponse:'accepter' }));

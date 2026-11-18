@@ -318,6 +318,35 @@ const dodo = ms => new Promise(r => setTimeout(r, ms));
     await dodo(500);
     V('la confirmation part avec la demande (accepteRea1)', envois.length === 2 && envois[1].accepteRea1 === true, envois);
     V('la demande apparaît dans la liste', /Don proposé à <strong>/.test(p3.w.document.getElementById('echList').innerHTML));
+
+    // d) (18/11/2026) Ce qu'il propose tombe dans la semaine Réa 1 du COLLÈGUE : il est prévenu, il envoie quand même.
+    const Q_LUI = '[REA1L] Attention, la garde du 10/01/2027 tombe dans la semaine Réa 1 du Dr Bravo (du 11/01/2027 au 15/01/2027). Il devra confirmer en acceptant. Vous envoyez quand même ?';
+    const kv4 = await baseKV();
+    kv4.notif_config = JSON.stringify({ ouvert:true, pilotes:[] });
+    kv4.echanges = JSON.stringify({ success:true, echanges:[] });
+    const envois4 = [];
+    const p4 = await monterPage(kv4, (charge) => {
+      if (charge.action === 'creerEchange') { envois4.push(charge); return charge.accepteRea1Lui === true ? { success:true, id:'E10' } : { success:false, error:Q_LUI }; }
+      if (charge.action === 'login') return { success:true, role:'mar', id:'ALPHA', year:2027 };
+      return { success:true };
+    });
+    p4.w.location.hash = '#echanges'; p4.w.route();
+    await dodo(400);
+    await p4.w.echOuvrirProposition();
+    await dodo(300);
+    p4.w.document.getElementById('echSelQui').value = 'BRAVO';
+    await p4.w.echMajProposition();
+    const env4 = p4.w.document.getElementById('echEnvoyer');
+    env4.click();
+    await dodo(500);
+    const av4 = p4.w.document.getElementById('echAvert');
+    V('semaine Réa 1 du collègue : l\'avertissement s\'affiche à l\'envoyeur, sans le préfixe', av4.style.display === 'block' && /^Attention, la garde du 10\/01\/2027 tombe dans la semaine Réa 1 du Dr Bravo/.test(av4.textContent), av4.textContent);
+    V('le bouton devient « Envoyer quand même »', env4.textContent === 'Envoyer quand même' && !env4.disabled, env4.textContent);
+    V('rien n\'est parti avec l\'accord avant qu\'il ait relu', envois4.length === 1 && envois4[0].accepteRea1Lui !== true, envois4);
+    env4.click();
+    await dodo(500);
+    V('le second envoi porte accepteRea1Lui, et pas accepteRea1', envois4.length === 2 && envois4[1].accepteRea1Lui === true && envois4[1].accepteRea1 !== true, envois4);
+    V('la demande apparaît dans la liste', /Don proposé à <strong>/.test(p4.w.document.getElementById('echList').innerHTML));
   }
 
   console.log('\n═══ 3 bis. Proposer relit le planning du moment, jamais la copie gardée en mémoire (11/11/2026) ═══');
