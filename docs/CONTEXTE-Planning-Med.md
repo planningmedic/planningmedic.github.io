@@ -79,7 +79,10 @@ valide. Réponds en **français**, court, avec des chiffres concrets.
 - **Rotation d'équité** du générateur : active à partir de la génération 2028 (v1.77.0).
 - **Sentinelle de 6 h** : contrôle aussi les données, mail seulement s'il y a un problème ; rapport
   complet chaque lundi et à la demande (Maintenance → Diagnostic).
-- Lots du 13 au 15/11 non racontés ici : lire `git log` (un message de commit par lot).
+- **18/11 (v1.91.2)** : topos rangés par année (sous-dossiers « 2026 », « 2027 »… du Drive) ; page
+  Maintenance : bouton « Mettre à jour maintenant » (synchronisation complète de la copie rapide sans
+  attendre l'heure), « Vider le cache » en dernier.
+- Lots du 13 au 15/11 et du 16 au 18/11 non racontés ici : lire `git log` (un message de commit par lot).
 
 ## 4. Comment travailler
 

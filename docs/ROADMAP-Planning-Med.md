@@ -37,6 +37,8 @@ dans « À faire ». Quand le journal récent dépasse une page, ses entrées pa
   en silence — correctif décidé : colonne `COUVERTURE` O/N dans SECTEURS, garder l'exception `RI`) ;
   export Excel plat (forme retenue : un bandeau par grand secteur, colonne `PARENT`) ; `ACTIF = N` efface
   un secteur de l'historique affiché. Question de fond : affectation au grand secteur ou au sous-secteur ?
+- **Topos 2027, début janvier** : créer un sous-dossier « 2027 » dans le dossier Drive des topos et y
+  déposer les nouveaux (un PDF ou un dossier par topo). Rien à coder : le portail le reconnaît (v1.91.0).
 - **Journée mobile** de chaque année dans `JOURNEE_MOBILE` (`code.gs`), à réception de la note DRH.
 - **Index CCAM** du module libéral à régénérer vers mars 2027.
 - **Génération 2028** (automne 2027) : rotation d'équité active (fiche « rotation d'équité 2028 » des
@@ -500,6 +502,15 @@ les cases valant exactement `CL`.
 ---
 
 ## Journal récent
+
+- **18/11/2026** — Topos rangés par année (v1.91.0, `portail.gs` 2026-11-18.1) : un sous-dossier nommé
+  par une année (« 2026 ») est une étagère ; écran des années puis topos de l'année ; liste à plat tant
+  que le Drive n'est pas rangé ; les 16 topos existants rangés dans « 2026 » (accord du responsable).
+  Écran vide des topos qui plantait corrigé. Maintenance (v1.91.1 → v1.91.2, `Indispos.gs` et
+  `equipe.gs` 2026-11-18.1) : bouton « Mettre à jour maintenant » = synchronisation complète de la copie
+  rapide à la demande (`miroirSyncMaintenant`, rôle maintenance) ; cartes réordonnées (serveur,
+  diagnostic, mise à jour, récups, clôture, codes, cache en dernier) et textes raccourcis. Appliqué et
+  vérifié en production par le responsable.
 
 - **15/11/2026** — Clôture d'année refaite (v1.77.1 → v1.79.0, serveur setup 2026-11-15.4) : un seul
   geste côté serveur, contrôles bloquants, copie de sécurité, reprise après coupure, contrôle d'après,
