@@ -4443,10 +4443,8 @@ function renderWeek() {
     const ampm = !isWe
       ? '<div class="am-pm-labels"><div class="am-pm-label">Matin</div><div class="am-pm-label pm">Après-midi</div></div>'
       : '';
-    /* (19/11/2026) État du jour : « N à pourvoir » ou « ✓ complet », et les présents. */
-    const _etat = isWe ? '' : (_apJour[i]
-      ? `<span class="jst-p or">${_apJour[i]} à pourvoir</span>`
-      : '<span class="jst-p vt">✓ complet</span>');
+    /* (20/11/2026) La pastille « N à pourvoir / ✓ complet » est retirée (demande du responsable) :
+       la tuile « Cases à pourvoir » et les cases orange suffisent. Restent les présents. */
     const _pr = (!isWe && _presDe[slot.date] != null)
       ? `<div class="jst-n${_presDe[slot.date] < SEUIL_ALERTE ? ' bas' : ''}">${_presDe[slot.date]} présents</div>` : '';
     // Badge de complétude : n'apparaît QUE s'il y a des présents non placés (épuré)
@@ -4474,7 +4472,7 @@ function renderWeek() {
     thead += `<th class="${cls}">
       <div class="day-name">${JOURS_ABR[i]}</div>
       <div class="day-num">${slot.day}${jf}</div>
-      <div class="jst">${_etat}${npBadge}</div>${_pr}${_inf}
+      <div class="jst">${npBadge}</div>${_pr}${_inf}
       ${ampm}
     </th>`;
   });

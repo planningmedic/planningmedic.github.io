@@ -150,10 +150,10 @@ const dstr = v => v instanceof Date
     const nFlash = d.querySelectorAll('#planTable .slot-flash').length + d.querySelectorAll('#planTable .cs-apourvoir').length;
     const nTuile = kp ? Number((kp.querySelector('.pk-t.noir .pk-n') || {}).textContent) : -1;
     V('la tuile « Cases à pourvoir » compte exactement les cases orange de la grille', nTuile === nFlash, { tuile: nTuile, grille: nFlash });
+    /* (20/11/2026) La pastille « N à pourvoir / ✓ complet » sous chaque jour est retirée. */
     const pastilles = [...d.querySelectorAll('#planTable thead .jst-p')].map(e => e.textContent);
-    V('chaque jour ouvré porte « N à pourvoir » ou « ✓ complet »', pastilles.length >= 4 && pastilles.every(t => /à pourvoir|complet/.test(t)), pastilles);
-    const sommeJours = pastilles.reduce((a, t) => a + (parseInt(t, 10) || 0), 0);
-    V('…et la somme des jours égale la tuile', sommeJours === nTuile, { jours: sommeJours, tuile: nTuile });
+    V('aucune pastille « à pourvoir / complet » sous les jours', !pastilles.some(t => /à pourvoir|complet/.test(t)), pastilles);
+    V('les présents restent affichés sous chaque jour ouvré', d.querySelectorAll('#planTable thead .jst-n').length >= 4);
     const tr = [...d.querySelectorAll('#planTable tr.sector-row')].find(r => /Bloc viscéral/.test(r.textContent));
     V('les initiales prennent la couleur du secteur (variables --sb / --sf posées sur la ligne)', tr && /--sb:/.test(tr.getAttribute('style') || '') && /--sf:/.test(tr.getAttribute('style') || ''), tr && tr.getAttribute('style'));
     V('le libellé de semaine est sur deux lignes', /Semaine \d+/.test(d.getElementById('weekLabel').innerHTML) && !!d.querySelector('#weekLabel small'));
