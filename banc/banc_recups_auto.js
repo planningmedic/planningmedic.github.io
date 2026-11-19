@@ -263,6 +263,39 @@ console.log('\n═══ 7. Un don qui écraserait un 18 h : prévenu avant, le 
   V('sans 18 h en jeu, aucune confirmation demandée', !err, err);
 }
 
+console.log('\n═══ 7 bis. (19/11/2026, vu en réel) Un ÉCHANGE de gardes sur un jour de 18 h : permis, le 18 h passe à l\'autre ═══');
+{
+  /* Le cas réel du 18/11 : AF de garde le 02/08, CS de 18 h ce même jour. AF propose sa
+     garde du 02/08 contre celle de CS du 15/11 : « il faut d'abord échanger ce 18 h » ;
+     et CS ne pouvait pas donner son 18 h à AF, de garde ce jour-là. Bloqué des deux côtés. */
+  const b = monde();
+  b.garde('ALPHA', '2027-08-02'); b.garde('BRAVO', '2027-11-15'); b.poser('BRAVO', '2027-08-02', '18');
+  let err = '';
+  try { b.run(`creerEchange(${JSON.stringify(user('ALPHA'))}, { type:'echange', year:2027, date:'2027-08-02', date2:'2027-11-15', receveur:'BRAVO' })`); }
+  catch (e) { err = String(e.message); }
+  V('plus de blocage « échanger d\'abord ce 18 h » : on demande seulement de confirmer', /^\[18\] /.test(err) && /02\/08\/2027/.test(err) && /en échangeant, c'est vous qui ferez ce 18 h/.test(err) && !/d'abord échanger/.test(err), err);
+  b.notifs.length = 0;
+  const r = b.run(`creerEchange(${JSON.stringify(user('ALPHA'))}, { type:'echange', year:2027, date:'2027-08-02', date2:'2027-11-15', receveur:'BRAVO', accepte18: true })`);
+  V('confirmée, la proposition part', !!r.id);
+  V('le collègue lit que son 18 h passera à celui qui propose', b.notifs.some(n => n.cible.id === 'BRAVO' && /contre la vôtre du 15\/11\/2027/.test(n.corps) && /votre 18 h du 02\/08\/2027 passe au/.test(n.corps)), b.notifs);
+  b.run(`repondreEchange(${JSON.stringify(user('BRAVO'))}, { id:${JSON.stringify(r.id)}, reponse:'accepter' })`);
+  V('acceptée : chacun a la garde de l\'autre, avec son repos', b.lire('BRAVO', '2027-08-02') === 'G' && b.lire('BRAVO', '2027-08-03') === 'RG'
+    && b.lire('ALPHA', '2027-11-15') === 'G' && b.lire('ALPHA', '2027-11-16') === 'RG', [b.lire('BRAVO', '2027-08-02'), b.lire('ALPHA', '2027-11-15')]);
+  V('le 18 h du 02/08 passe à celui qui a lâché la garde : le jour n\'est pas à découvert', String(b.lire('ALPHA', '2027-08-02')) === '18', b.lire('ALPHA', '2027-08-02'));
+}
+{
+  const b = monde();
+  b.garde('ALPHA', '2027-08-02'); b.garde('BRAVO', '2027-11-15'); b.poser('ALPHA', '2027-11-15', '18');
+  b.notifs.length = 0;
+  let err = '';
+  let r = null;
+  try { r = b.run(`creerEchange(${JSON.stringify(user('ALPHA'))}, { type:'echange', year:2027, date:'2027-08-02', date2:'2027-11-15', receveur:'BRAVO' })`); } catch (e) { err = e.message; }
+  V('à l\'inverse (18 h de celui qui propose sur la garde qu\'il reçoit) : la proposition part', !err && r && r.id, err);
+  V('… et le collègue lit qu\'il fera aussi ce 18 h', b.notifs.some(n => n.cible.id === 'BRAVO' && /vous ferez aussi son 18 h du 15\/11\/2027/.test(n.corps)), b.notifs);
+  b.run(`repondreEchange(${JSON.stringify(user('BRAVO'))}, { id:${JSON.stringify(r.id)}, reponse:'accepter' })`);
+  V('acceptée : le 18 h du 15/11 passe au collègue, libéré ce jour-là', b.lire('ALPHA', '2027-11-15') === 'G' && String(b.lire('BRAVO', '2027-11-15')) === '18', [b.lire('ALPHA', '2027-11-15'), b.lire('BRAVO', '2027-11-15')]);
+}
+
 console.log('\n═══ 8. Échanger un 18 h contre un 18 h (demande de l\'équipe, 11/11/2026) ═══');
 {
   const b = monde();
@@ -436,7 +469,7 @@ console.log('\n═══ 10. Échange de gardes : le repos d\'arrivée n\'écras
   t = essai(b => b.garde('BRAVO', '2027-03-08'));   // BRAVO de garde la veille → RG le 09/03
   V('motif clair : le collègue en repos de garde le jour reçu, nommé, date lisible', t.err === 'Dr Bravo est en repos de garde le 09/03/2027 (de garde la veille) : deux gardes de suite sont impossibles — échange impossible', t.err);
   t = essai(b => b.poser('ALPHA', '2027-03-23', '18'));
-  V('motif clair : un 18 h sur le jour reçu', /^Dr Alpha est de 18 h le 23\/03\/2027/.test(t.err), t.err);
+  V('(19/11/2026) un 18 h sur le jour reçu ne bloque plus (il passera à l\'autre MAR)', !t.err, t.err);
   V('plus jamais « un des médecins a déjà une garde »', !/Un des médecins/.test(fs.readFileSync(path.join(__dirname, '..', 'gas', 'gardes.gs'), 'utf8').replace(/\/\*[\s\S]*?\*\//g, '')));
   t = essai(() => {});
   V('sans conflit, l\'échange se propose comme avant', !t.err, t.err);
@@ -452,7 +485,10 @@ console.log('\n═══ 10. Échange de gardes : le repos d\'arrivée n\'écras
 {
   const b = monde();
   b.garde('ALPHA', '2027-03-09'); b.garde('BRAVO', '2027-03-23'); b.poser('BRAVO', '2027-03-10', '18');
-  const r = b.run(`creerEchange(${JSON.stringify(user('ALPHA'))}, { type:'echange', year:2027, date:'2027-03-09', date2:'2027-03-23', receveur:'BRAVO' })`);
+  let err18 = '';
+  try { b.run(`creerEchange(${JSON.stringify(user('ALPHA'))}, { type:'echange', year:2027, date:'2027-03-09', date2:'2027-03-23', receveur:'BRAVO' })`); } catch (e) { err18 = String(e.message); }
+  V('(19/11/2026) un 18 h du collègue sur son futur jour de repos : celui qui propose est prévenu d\'abord', /^\[18\] .*10\/03\/2027.*en échangeant/.test(err18), err18);
+  const r = b.run(`creerEchange(${JSON.stringify(user('ALPHA'))}, { type:'echange', year:2027, date:'2027-03-09', date2:'2027-03-23', receveur:'BRAVO', accepte18: true })`);
   b.run(`repondreEchange(${JSON.stringify(user('BRAVO'))}, { id:${JSON.stringify(r.id)}, reponse:'accepter' })`);
   V('un 18 h sur le jour de repos passe à l\'autre MAR, libéré ce jour-là', b.lire('BRAVO', '2027-03-10') === 'RG' && String(b.lire('ALPHA', '2027-03-10')) === '18');
 }

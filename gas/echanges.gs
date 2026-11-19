@@ -42,7 +42,7 @@
    depuis l'éditeur : installerDeclencheurEchanges().
    ═══════════════════════════════════════════════════════════════════════ */
 
-const GAS_VERSION_ECHANGES = '2026-11-18.3';   // (18/11/2026) .3 : fin du dépôt — la cloche seule ici, le téléphone est prévenu par le Worker à la minute (1 h avant et à l'heure) · (18/11/2026) .2 : celui qui envoie est prévenu quand la garde ou le 18 h tombe dans la semaine Réa 1 du collègue ([REA1L], accepteRea1Lui), sans blocage · (18/11/2026) semaine Réa 1 : une garde entre MAR n'est plus bloquante, le MAR est prévenu et confirme ([REA1], accepteRea1), comme un 18 h · (17/11/2026) récupération recalée : plancher = seuil d'alerte de l'onglet SEUILS, effectif compté comme partout (hors effectif exclu, demi-journée de vacances présente) · (16/11/2026) semaine Réa 1 : garde BLOQUANTE entre MAR (envoi et acceptation), 18 h sur confirmation, confirmation gardée pour le comité · (16/11/2026) ouverture programmée mercredi 18/11 10 h, réponses vendredi 20/11 10 h ; notification d'ouverture au passage horaire · (16/11/2026) réponses le mercredi 18/11 à 10 h, notification à tous à l'ouverture du dépôt · (15/11/2026) dépôt sans course : seconde heure ECHANGES_REPONSES — avant elle on propose, refuse, annule, on n'accepte pas ; 48 h et rappel comptés depuis elle ; une notification à chacun à la fin du dépôt · (15/11/2026) annonce sans date : annoncerOuvertureEchanges, tuile verrouillée « Ouverture prochainement » (ECHANGES_ANNONCE) · (14/11/2026) ouverture programmée : ECHANGES_OUVERTURE, fermé avant l'instant, ouvert à tous ensuite à la seconde, sans déclencheur (programmerOuvertureEchanges) ; ouvrirEchanges note l'instant, fermerEchanges l'efface · (12/11/2026) les gardes ET les 18 h d'une année sans suivi des récupérations (2026) ne se donnent ni ne s'échangent plus entre MAR (_echangesFermee_) : refus à l'envoi, demande en attente fermée « sans objet » ; le comité n'est pas concerné · (12/11/2026) don d'un 18 h entre MAR (type don18, demande de l'équipe) : le receveur doit être libre ce jour-là ; 18 h reçu la veille, le lendemain ou la même semaine qu'un autre 18 h : dit au MAR, qui confirme ([18H], accepte18h) · (12/11/2026) semaine Réa 1 : une garde ou un 18 h pris dans sa propre semaine Réa 1 est dit au MAR, qui confirme ([REA1], accepteRea1) ; le comité en est averti dans les suites de son geste · (12/11/2026) demandes « sans objet » fermées toutes seules quand la garde a changé de mains ou est passée (_echangesSansObjet_), doublon refusé à l'envoi, garde passée refusée à l'envoi et à l'acceptation · (11/11/2026) échange samedi ↔ samedi : les R gardent leur date, les liens LIENS_R suivent le samedi tenu ; « Réparer » recolle de même un échange passé au lieu de déplacer les R · (11/11/2026) annulerEchange : le demandeur annule sa proposition en attente, le collègue est prévenu · (11/11/2026) don et échange sur un jour d'absence : le MAR concerné confirme ([ABS], accepteAbsence) et ses jours d'absence sont écrasés par la garde et son repos · (11/11/2026) gestes du comité (don, échange) : mêmes suites que entre MAR (_gesteSuites_, appliquerGesteComite_) · (11/11/2026) échange de deux 18 h entre MAR (type echange18) · (11/11/2026) un 18 h écrasé par un don passe au donneur, prévenu avant d'envoyer (accepte18) · (11/11/2026) récupérations automatiques : R neuf quand il ne peut pas suivre son samedi, R écrasé reposé, bouton Réparer (recupsReparer), lien recollé à la pose manuelle · (10/11/2026) l'historique dit qui a accepté (onglet HISTORIQUE)
+const GAS_VERSION_ECHANGES = '2026-11-19.1';   // (19/11/2026) .1 : échange de gardes avec un 18 h sur la garde reçue — permis, le 18 h passe à l'autre MAR ; celui qui propose confirme ([18]), le collègue le lit dans la proposition · (18/11/2026) .3 : fin du dépôt — la cloche seule ici, le téléphone est prévenu par le Worker à la minute (1 h avant et à l'heure) · (18/11/2026) .2 : celui qui envoie est prévenu quand la garde ou le 18 h tombe dans la semaine Réa 1 du collègue ([REA1L], accepteRea1Lui), sans blocage · (18/11/2026) semaine Réa 1 : une garde entre MAR n'est plus bloquante, le MAR est prévenu et confirme ([REA1], accepteRea1), comme un 18 h · (17/11/2026) récupération recalée : plancher = seuil d'alerte de l'onglet SEUILS, effectif compté comme partout (hors effectif exclu, demi-journée de vacances présente) · (16/11/2026) semaine Réa 1 : garde BLOQUANTE entre MAR (envoi et acceptation), 18 h sur confirmation, confirmation gardée pour le comité · (16/11/2026) ouverture programmée mercredi 18/11 10 h, réponses vendredi 20/11 10 h ; notification d'ouverture au passage horaire · (16/11/2026) réponses le mercredi 18/11 à 10 h, notification à tous à l'ouverture du dépôt · (15/11/2026) dépôt sans course : seconde heure ECHANGES_REPONSES — avant elle on propose, refuse, annule, on n'accepte pas ; 48 h et rappel comptés depuis elle ; une notification à chacun à la fin du dépôt · (15/11/2026) annonce sans date : annoncerOuvertureEchanges, tuile verrouillée « Ouverture prochainement » (ECHANGES_ANNONCE) · (14/11/2026) ouverture programmée : ECHANGES_OUVERTURE, fermé avant l'instant, ouvert à tous ensuite à la seconde, sans déclencheur (programmerOuvertureEchanges) ; ouvrirEchanges note l'instant, fermerEchanges l'efface · (12/11/2026) les gardes ET les 18 h d'une année sans suivi des récupérations (2026) ne se donnent ni ne s'échangent plus entre MAR (_echangesFermee_) : refus à l'envoi, demande en attente fermée « sans objet » ; le comité n'est pas concerné · (12/11/2026) don d'un 18 h entre MAR (type don18, demande de l'équipe) : le receveur doit être libre ce jour-là ; 18 h reçu la veille, le lendemain ou la même semaine qu'un autre 18 h : dit au MAR, qui confirme ([18H], accepte18h) · (12/11/2026) semaine Réa 1 : une garde ou un 18 h pris dans sa propre semaine Réa 1 est dit au MAR, qui confirme ([REA1], accepteRea1) ; le comité en est averti dans les suites de son geste · (12/11/2026) demandes « sans objet » fermées toutes seules quand la garde a changé de mains ou est passée (_echangesSansObjet_), doublon refusé à l'envoi, garde passée refusée à l'envoi et à l'acceptation · (11/11/2026) échange samedi ↔ samedi : les R gardent leur date, les liens LIENS_R suivent le samedi tenu ; « Réparer » recolle de même un échange passé au lieu de déplacer les R · (11/11/2026) annulerEchange : le demandeur annule sa proposition en attente, le collègue est prévenu · (11/11/2026) don et échange sur un jour d'absence : le MAR concerné confirme ([ABS], accepteAbsence) et ses jours d'absence sont écrasés par la garde et son repos · (11/11/2026) gestes du comité (don, échange) : mêmes suites que entre MAR (_gesteSuites_, appliquerGesteComite_) · (11/11/2026) échange de deux 18 h entre MAR (type echange18) · (11/11/2026) un 18 h écrasé par un don passe au donneur, prévenu avant d'envoyer (accepte18) · (11/11/2026) récupérations automatiques : R neuf quand il ne peut pas suivre son samedi, R écrasé reposé, bouton Réparer (recupsReparer), lien recollé à la pose manuelle · (10/11/2026) l'historique dit qui a accepté (onglet HISTORIQUE)
 
 const ECHANGES_ONGLET = 'ECHANGES';
 const ECHANGES_ENTETE = ['ID', 'CREE_LE', 'TYPE', 'ANNEE', 'DATE', 'DATE2',
@@ -432,14 +432,16 @@ function _echangesRea1Lundi_(id, ds, quoi) {
 /* Ce que la demande ferait prendre à chacun dans SA semaine Réa 1.
    d = { TYPE, DATE, DATE2, DEMANDEUR, RECEVEUR } ; menaces18 = les 18 h du
    receveur qu'un don ferait passer au donneur. → [{ who, jour, quoi, lundi }] */
-function _echangesRea1Prises_(d, menaces18) {
+function _echangesRea1Prises_(d, menaces18, menaces18Lui) {
   const dem = String(d.DEMANDEUR), rec = String(d.RECEVEUR);
   let prises = [];
   if (d.TYPE === 'don') {
     prises = [{ who: rec, jour: d.DATE, quoi: 'garde' }]
       .concat((menaces18 || []).map(function (j) { return { who: dem, jour: j, quoi: '18' }; }));
   } else if (d.TYPE === 'echange') {
-    prises = [{ who: rec, jour: d.DATE, quoi: 'garde' }, { who: dem, jour: d.DATE2, quoi: 'garde' }];
+    prises = [{ who: rec, jour: d.DATE, quoi: 'garde' }, { who: dem, jour: d.DATE2, quoi: 'garde' }]
+      .concat((menaces18 || []).map(function (j) { return { who: dem, jour: j, quoi: '18' }; }))      // (19/11/2026) 18 h repris en échange
+      .concat((menaces18Lui || []).map(function (j) { return { who: rec, jour: j, quoi: '18' }; }));
   } else if (d.TYPE === 'echange18') {
     prises = [{ who: rec, jour: d.DATE, quoi: '18' }, { who: dem, jour: d.DATE2, quoi: '18' }];
   } else if (d.TYPE === 'don18') {   // (12/11/2026) un 18 h donné : seul le receveur prend quelque chose
@@ -575,15 +577,21 @@ function creerEchange(user, p) {
   /* (11/11/2026) Le don écraserait un 18 h du receveur : il passera au
      donneur. Rien ne part tant que le donneur ne l'a pas confirmé. Le préfixe
      [18] est lu par l'écran, qui demande la confirmation. */
-  const menaces18 = type === 'don' ? _echanges18Menaces_(year, date, receveur) : [];
+  /* (19/11/2026 — vu en réel) Même règle pour un ÉCHANGE de gardes : le 18 h du
+     collègue sur la garde qu'il reçoit (ou son lendemain) passe à celui qui
+     propose ; le 18 h de celui qui propose sur la garde qu'il reçoit passe au
+     collègue, qui le lit dans la proposition. */
+  const menaces18 = (type === 'don' || type === 'echange') ? _echanges18Menaces_(year, date, receveur) : [];
+  const menaces18Lui = type === 'echange' ? _echanges18Menaces_(year, demande.DATE2, user.id) : [];
   if (menaces18.length && p.accepte18 !== true) {
     throw new Error('[18] Le ' + _echangesDr_(receveur) + ' est de 18 h le ' + menaces18.map(_echangesJoli_).join(' et le ')
-      + ' : en lui donnant cette garde, c\'est vous qui ferez ce 18 h. Confirmez pour envoyer la proposition.');
+      + (type === 'echange' ? ' : en échangeant, c\'est vous qui ferez ce 18 h.' : ' : en lui donnant cette garde, c\'est vous qui ferez ce 18 h.')
+      + ' Confirmez pour envoyer la proposition.');
   }
 
   /* (12/11/2026) Semaine Réa 1 : ce que le demandeur prendrait dans la sienne
      lui est demandé ici ; le receveur sera prévenu, puis interrogé à l'acceptation. */
-  const rea1 = _echangesRea1Prises_(demande, menaces18);
+  const rea1 = _echangesRea1Prises_(demande, menaces18, menaces18Lui);
   const rea1Moi = rea1.filter(x => x.who === String(user.id)), rea1Lui = rea1.filter(x => x.who === receveur);
   // (18/11/2026) garde ou 18 h : prévenu, il confirme ; le receveur sera prévenu et interrogé à l'acceptation
   if (rea1Moi.length && p.accepteRea1 !== true) throw new Error(_echangesQuestionRea1_(rea1Moi));
@@ -616,6 +624,8 @@ function creerEchange(user, p) {
       : type === 'echange18'
         ? _echangesDr_(user.id) + ' vous propose son 18 h du ' + _echangesJoli_(date) + ' contre le vôtre du ' + _echangesJoli_(demande.DATE2) + '.'
         : _echangesDr_(user.id) + ' vous propose sa garde du ' + _echangesJoli_(date) + ' contre la vôtre du ' + _echangesJoli_(demande.DATE2) + '.'
+          + (menaces18.length ? ' En acceptant, votre 18 h du ' + menaces18.map(_echangesJoli_).join(' et du ') + ' passe au ' + _echangesDr_(user.id) + '.' : '')
+          + (menaces18Lui.length ? ' En acceptant, vous ferez aussi son 18 h du ' + menaces18Lui.map(_echangesJoli_).join(' et du ') + '.' : '')
           + (absLui.length ? ' Attention, vous êtes noté ' + _echangesTexteAbsences_(absLui) + '.' : ''))
       + (rea1Lui.length ? ' Attention, ' + _echangesTexteRea1_(rea1Lui) + '.' : '')
       + (prochesLui.length ? ' Attention, ' + _echangesTexte18Proches_(prochesLui) + '.' : '')
