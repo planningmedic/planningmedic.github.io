@@ -483,6 +483,21 @@ console.log('\n═══ 10. Échange de gardes : le repos d\'arrivée n\'écras
   V('un R sur le jour de repos reste permis : il est reposé ailleurs', b.lire('BRAVO', '2027-03-10') === 'RG' && b.R('BRAVO').length === 1, b.R('BRAVO'));
 }
 {
+  /* (19/11/2026 — décision du responsable) Un R le jour MÊME de la garde reçue : refusé
+     en échange (« est en récupération ») alors qu'un don passait. Même règle désormais. */
+  const b = monde({ liens: [['2027-02-27', 'BRAVO', '2027-03-09']] });
+  b.garde('ALPHA', '2027-03-09'); b.garde('BRAVO', '2027-03-23');
+  b.poser('BRAVO', '2027-02-27', 'G'); b.poser('BRAVO', '2027-02-28', 'RG'); b.poser('BRAVO', '2027-03-09', 'R');
+  let err = '', r = null;
+  try { r = b.run(`creerEchange(${JSON.stringify(user('ALPHA'))}, { type:'echange', year:2027, date:'2027-03-09', date2:'2027-03-23', receveur:'BRAVO' })`); } catch (e) { err = String(e.message); }
+  V('(19/11/2026) un R sur le jour de la garde reçue ne bloque plus l\'échange', !err && r && r.id, err);
+  b.run(`repondreEchange(${JSON.stringify(user('BRAVO'))}, { id:${JSON.stringify(r.id)}, reponse:'accepter' })`);
+  V('… accepté : la garde remplace le R, qui est reposé ailleurs (toujours un seul R)', b.lire('BRAVO', '2027-03-09') === 'G' && b.R('BRAVO').length === 1 && b.R('BRAVO')[0] !== '2027-03-09', b.R('BRAVO'));
+  V('… et BRAVO est prévenu de la nouvelle date de son R', b.notifs.some(n => n.cible.id === 'BRAVO' && n.corps.indexOf('posée le') >= 0 && n.corps.indexOf(b.R('BRAVO')[0].split('-').reverse().join('/')) >= 0), b.notifs.filter(n => n.cible.id === 'BRAVO').map(n => n.corps));
+  const L = b.liens();
+  V('… et le lien du samedi suit le R reposé', L.some(l => l[0] === '2027-02-27' && l[1] === 'BRAVO' && l[2] === b.R('BRAVO')[0]), L);
+}
+{
   const b = monde();
   b.garde('ALPHA', '2027-03-09'); b.garde('BRAVO', '2027-03-23'); b.poser('BRAVO', '2027-03-10', '18');
   let err18 = '';
