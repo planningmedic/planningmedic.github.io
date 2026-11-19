@@ -787,6 +787,10 @@ console.log('\n═══ PT23 · le bloc comité d\'admin : effectif de l\'INSTA
     V('le panneau Équipe ne porte plus le bloc', !(pB > pE && pB < adm.indexOf('class="tab-panel"', pE + 10)));
     const ordre = [...adm.matchAll(/class="nav-tab[^"]*" onclick="showTab\('([a-z]+)'\)/g)].map(m => m[1]);
     V('l\'onglet Contrôles est le 2e de la barre, juste après Planning', ordre[0] === 'planning' && ordre[1] === 'controles', ordre);
+    /* (19/11/2026) Décision du responsable : l'encart « N jours à valider » doublait
+       la tuile violette Temps partiel — une seule tuile, 2 en 1. */
+    V('plus d\'encart orange : la validation s\'ouvre depuis la tuile Temps partiel',
+      !/class="tpc-alerte"/.test(adm) && /function _tpcBande\(/.test(adm) && /_tpcTuile\(/.test(adm) && /onclick="tpcOuvrir\(\)"/.test(adm));
   })();
   V('les décisions partent en LOT, plus une par une',
     /action: 'deciderJourTpLot'/.test(adm) && !/action: 'deciderJourTp',/.test(adm));

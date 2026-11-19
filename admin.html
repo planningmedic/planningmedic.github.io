@@ -76,14 +76,17 @@ body { font-family: 'DM Sans', system-ui, sans-serif; background: var(--bg); col
 /* ── NAV TABS ── */
 /* ══ (LOT 4 · 22/08/2026) VALIDATION DES TEMPS PARTIELS — onglet Contrôles (19/11/2026, avant : Équipe)
    Bloc de la maquette validée docs/maquette-comite-tp.html, préfixé tpc-. */
-.tpc-alerte{display:flex;align-items:center;gap:11px;background:#FFF7ED;border:1px solid #FB923C;
-  border-radius:12px;padding:13px 16px;cursor:pointer;margin-bottom:14px;user-select:none}
-.tpc-alerte.vide{background:#F0FDF4;border-color:#BBF7D0;cursor:default}
-.tpc-alerte-txt{font-size:13px;line-height:1.45;color:#0F172A;flex:1}
-.tpc-alerte-chev{font-size:12.5px;font-weight:700;color:#C2410C;flex-shrink:0}
-.tpc-alerte.vide .tpc-alerte-chev{display:none}
-.tpc-liste{display:none;margin-bottom:14px}
-.tpc-liste.on{display:block}
+/* (19/11/2026) Plus d'encart orange au-dessus des tuiles : les demandes en attente
+   vivent dans la tuile Temps partiel (bande « à valider ») et la liste s'ouvre
+   dans une fenêtre par-dessus l'onglet (#tpcFond). */
+.tpc-fond{position:fixed;inset:0;background:rgba(16,24,40,.6);z-index:900;padding:40px 20px;overflow:auto;display:none}
+.tpc-fond.on{display:block}
+.tpc-pan{max-width:720px;margin:0 auto;background:#fff;border-radius:24px;padding:26px 28px 18px;box-shadow:0 24px 60px rgba(16,24,40,.3)}
+.tpc-pan-hd{display:flex;align-items:flex-start;gap:14px;margin-bottom:18px}
+.tpc-pan-hd h2{margin:0;font-size:22px;font-weight:600;letter-spacing:-.4px;color:#101828}
+.tpc-pan-hd p{margin:4px 0 0;font-size:13px;color:#475467}
+.tpc-pan-x{margin-left:auto;width:36px;height:36px;border-radius:10px;border:1px solid #EAECF0;background:#fff;font-size:18px;cursor:pointer;color:#475467;flex-shrink:0}
+.tpc-liste{margin-bottom:14px}
 .tpc-ligne{display:flex;align-items:center;gap:12px;background:#fff;border:1px solid var(--line);
   border-radius:10px;padding:11px 14px;margin-bottom:8px}
 .tpc-ligne.traitee{opacity:.55}
@@ -104,7 +107,7 @@ body { font-family: 'DM Sans', system-ui, sans-serif; background: var(--bg); col
 .tpc-v-ko{color:#C2410C}
 .tpc-annuler{background:none;border:0;font-family:inherit;font-size:11.5px;font-weight:600;
   color:#94A3B8;cursor:pointer;text-decoration:underline;padding:0 0 0 9px}
-.tpc-rappel{margin:0 0 16px;background:#EFF6FF;border:1px solid #BFDBFE;border-radius:10px;
+.tpc-rappel{margin:4px 0 6px;background:#EFF6FF;border:1px solid #BFDBFE;border-radius:10px;
   padding:11px 14px;font-size:12.5px;color:#1D4ED8;line-height:1.5}
 
 .nav-tabs { background:var(--white); border-bottom:1px solid var(--line); padding:0 32px; display:flex; gap:0; position:sticky; top:60px; z-index:100; }
@@ -1066,6 +1069,16 @@ body { font-family: 'DM Sans', system-ui, sans-serif; background: var(--bg); col
 .bx-barres span { flex:1; background:var(--tp); border-radius:3px 3px 1px 1px; opacity:.85; }
 .bx-seuil { position:absolute; left:0; right:0; border-top:2px dashed #6938EF; }
 .bx-seuil em { position:absolute; right:0; top:-19px; font-style:normal; font-size:11px; font-weight:600; color:#5925DC; }
+/* (19/11/2026) Tuile 2 en 1 : la bande des demandes de TP en attente, en bas de la tuile */
+.bx-tpv { margin-top:14px; border-top:1px dashed #BDB4FE; padding-top:12px; }
+.bx-tpv ul { list-style:none; margin:0 0 10px; padding:0; font-size:12.5px; color:var(--ink2); }
+.bx-tpv li { display:flex; gap:8px; padding:2px 0; }
+.bx-tpv li b { color:var(--ink); min-width:30px; }
+.bx-tpv li em { margin-left:auto; font-style:normal; color:#5925DC; font-weight:600; }
+.bx-tpv button { width:100%; border:0; border-radius:12px; background:var(--tp); color:#fff; padding:10px 14px; font:600 13px 'DM Sans',sans-serif; cursor:pointer; display:flex; align-items:center; gap:8px; }
+.bx-tpv button:hover { background:#6938EF; }
+.bx-tpv button span { margin-left:auto; opacity:.85; white-space:nowrap; }
+.bx-tpv button em.g { font-style:normal; text-align:left; }
 
 /* Congés : jauges */
 .bx-vac { background:var(--vac-s); border-color:#B2DDFF; }
@@ -1735,29 +1748,36 @@ if (sessionStorage.getItem('adminCode')) {
        disparaît de lui-même. -->
   <div class="tab-panel" id="panel-controles">
     <!-- (LOT 4 · 22/08/2026) Jours de temps partiel sous réserve : le comité
-         tranche ICI. (19/11/2026) Déplacé de l'onglet Équipe vers l'onglet Contrôles. L'effectif affiché est recalculé À L'INSTANT, validations
+         tranche ICI. (19/11/2026) Plus d'encart à part : la tuile Temps partiel
+         compte les demandes en attente et son bouton « Valider » ouvre cette
+         fenêtre. L'effectif affiché est recalculé À L'INSTANT, validations
          de la séance comprises — jamais le chiffre du jour de la demande. -->
-    <div id="tpcBloc" style="display:none">
-      <div class="tpc-alerte" id="tpcAlerte" onclick="tpcBasculer()">
-        <span style="font-size:17px" id="tpcIco">🟠</span>
-        <span class="tpc-alerte-txt" id="tpcAlerteTxt"></span>
-        <span class="tpc-alerte-chev" id="tpcChev">Voir →</span>
-      </div>
-      <div class="tpc-liste" id="tpcListe"></div>
-      <div id="tpcBarre" style="display:none;position:sticky;bottom:0;background:#fff;
-        border-top:1px solid var(--line);padding:11px 0;margin-top:6px;display:flex;
-        align-items:center;gap:12px;z-index:20">
-        <span id="tpcBarreTxt" style="font-size:12.5px;color:#64748B;font-weight:600;flex:1"></span>
-        <button class="tpc-b" onclick="tpcToutAnnuler()">Tout défaire</button>
-        <button class="tpc-b tpc-b-ok" id="tpcBtnEnvoyer" onclick="tpcEnvoyer()"
-          style="padding:10px 18px;font-size:13.5px">Enregistrer les décisions</button>
-      </div>
-      <div class="tpc-rappel" id="tpcRappel" style="display:none">
-        Un refus ferme le jour pour toute l'équipe et se dit de vive voix au MAR concerné.
-        Aucun message n'est envoyé d'ici.
+    <div class="tpc-fond" id="tpcFond" onclick="if(event.target===this)tpcFermer()">
+      <div class="tpc-pan" id="tpcBloc">
+        <div class="tpc-pan-hd">
+          <div><h2 id="tpcTitre">Temps partiel à valider</h2>
+            <p>Effectif recalculé à chaque décision. Rien n'est enregistré avant le bouton.</p></div>
+          <button class="tpc-pan-x" onclick="tpcFermer()" aria-label="Fermer">×</button>
+        </div>
+        <div class="tpc-liste" id="tpcListe"></div>
+        <div id="tpcBarre" style="display:none;position:sticky;bottom:0;background:#fff;
+          border-top:1px solid var(--line);padding:11px 0;margin-top:6px;display:flex;
+          align-items:center;gap:12px;z-index:20">
+          <span id="tpcBarreTxt" style="font-size:12.5px;color:#64748B;font-weight:600;flex:1"></span>
+          <button class="tpc-b" onclick="tpcToutAnnuler()">Tout défaire</button>
+          <button class="tpc-b tpc-b-ok" id="tpcBtnEnvoyer" onclick="tpcEnvoyer()"
+            style="padding:10px 18px;font-size:13.5px">Enregistrer les décisions</button>
+        </div>
+        <div class="tpc-rappel" id="tpcRappel">
+          Un refus ferme le jour pour toute l'équipe et se dit de vive voix au MAR concerné.
+          Aucun message n'est envoyé d'ici.
+        </div>
       </div>
     </div>
-
+    <!-- (19/11/2026) Tant que les tuiles ne sont pas affichées (chargement, année
+         pas générée ou archivée, erreur), la tuile Temps partiel des demandes
+         en attente s'affiche seule ici : une demande reste toujours tranchable. -->
+    <div id="ctlTpSecours"></div>
     <div id="ctlContenu"></div>
   </div>
 
@@ -5805,21 +5825,22 @@ async function chargerControles(force){
   const el = document.getElementById('ctlContenu'); if (!el) return;
   if (_ctlEnCours) return;
   if (CTL.charge && !force && Number(CTL.an) === Number(ADMIN_YEAR)) { renderControles(); return; }
-  if (!CTL.charge || Number(CTL.an) !== Number(ADMIN_YEAR)) el.innerHTML = '<div class="loading" style="display:flex"><div class="spinner"></div> Contrôle du planning ' + ADMIN_YEAR + '…</div>';
-  if (ADMIN_YEAR_READONLY) { el.innerHTML = '<div class="bx-vide">Année archivée : les contrôles ne portent que sur les années en cours.</div>'; return; }
+  if (!CTL.charge || Number(CTL.an) !== Number(ADMIN_YEAR)) { el.innerHTML = '<div class="loading" style="display:flex"><div class="spinner"></div> Contrôle du planning ' + ADMIN_YEAR + '…</div>'; CTL.rendu = false; _tpcMaj(); }
+  if (ADMIN_YEAR_READONLY) { el.innerHTML = '<div class="bx-vide">Année archivée : les contrôles ne portent que sur les années en cours.</div>'; CTL.rendu = false; _tpcMaj(); return; }
   _ctlEnCours = true;
   const an = ADMIN_YEAR;
   try {
     const r = await api({ action: 'getPointsVerif', year: an });
     if (Number(an) !== Number(ADMIN_YEAR)) return;
     if (!r || !r.success) throw new Error((r && r.error) || 'réponse vide');
-    if (r.genere === false) { CTL = Object.assign(CTL, { an: an, items: [], oks: {}, charge: true }); el.innerHTML = '<div class="bx-vide">Le planning des gardes ' + an + ' n\'est pas encore généré : rien à contrôler.</div>'; _ctlPastille(); return; }
+    if (r.genere === false) { CTL = Object.assign(CTL, { an: an, items: [], oks: {}, charge: true }); el.innerHTML = '<div class="bx-vide">Le planning des gardes ' + an + ' n\'est pas encore généré : rien à contrôler.</div>'; _ctlPastille(); CTL.rendu = false; _tpcMaj(); return; }
     const h = new Date();
     CTL = Object.assign(CTL, { an: an, items: r.points || [], oks: r.oks || {}, vacsc: r.vacsc || [], prevenus: r.prevenus || {}, presence: r.presence || {}, feries: r.feries || [],
       seuils: r.seuils || CTL.seuils, charge: true, majLe: 'à ' + String(h.getHours()).padStart(2, '0') + ':' + String(h.getMinutes()).padStart(2, '0') });
     renderControles();
   } catch (e) {
     el.innerHTML = '<div class="bx-vide">Contrôle impossible : ' + _escHtml(e.message) + '. Réessayez avec « Relancer les contrôles ».</div>';
+    CTL.rendu = false; _tpcMaj();
   } finally { _ctlEnCours = false; }
 }
 function _ctlPastille(){
@@ -5835,6 +5856,7 @@ function _ctlTuileVerte(k){
 }
 function renderControles(){
   const el = document.getElementById('ctlContenu'); if (!el) return;
+  CTL.rendu = true; const sec = document.getElementById('ctlTpSecours'); if (sec) sec.innerHTML = '';
   _ctlPastille();
   const it = CTL.items, todo = it.filter(_ctlTodo), par = k => todo.filter(x => x.fam === k);
   const mars = new Set(todo.filter(x => x.id !== 'EQUIPE').map(x => x.id)), nbR = todo.filter(x => x.niv === 'rouge').length;
@@ -5868,17 +5890,19 @@ function renderControles(){
   /* Temps partiel : une barre par jour tendu, la ligne du seuil */
   const tp = par('tp').filter(x => x.code === 'tendu').sort((a, b) => a.date.localeCompare(b.date));
   const autresTp = par('tp').length - tp.length;
-  if (!par('tp').length) h += _ctlTuileVerte('tp');
+  /* (19/11/2026) Tuile 2 en 1 : les jours tendus en haut, les demandes en attente en bas */
+  const nAtt = _tpcAttente().length;
+  if (!par('tp').length && !nAtt) h += _ctlTuileVerte('tp');
+  else if (!par('tp').length) h += _tpcTuile('<p class="bx-txt" style="margin-top:12px">Aucun TP posé un jour à moins de ' + CTL.seuils.alerte + ' postables.</p>');
   else {
     const nPost = x => parseFloat(String(x.texte).replace(',', '.')) || 0;
     const mini = tp.reduce((m, x) => !m || nPost(x) < nPost(m) ? x : m, null);
     const bas = Math.max(0, CTL.seuils.alerte - 7), haut = CTL.seuils.alerte + 3;
     const ech = v => Math.round(Math.max(0, v - bas) / (haut - bas) * 96);
-    h += '<section class="bx-t bx-tp" tabindex="0" onclick="ctlFam(\'tp\')"><div class="bx-hd"><span class="bx-nom">Temps partiel</span><span class="bx-nb">' + par('tp').length + '</span></div>'
-      + '<div class="bx-barres">' + tp.map(x => '<span style="height:' + ech(nPost(x)) + 'px" title="' + _escHtml(x.init + ' — ' + _ctlJour(x.date) + ' : ' + nPost(x) + ' postables') + '"></span>').join('')
+    h += _tpcTuile('<div class="bx-barres">' + tp.map(x => '<span style="height:' + ech(nPost(x)) + 'px" title="' + _escHtml(x.init + ' — ' + _ctlJour(x.date) + ' : ' + nPost(x) + ' postables') + '"></span>').join('')
       + '<div class="bx-seuil" style="bottom:' + ech(CTL.seuils.alerte) + 'px"><em>' + CTL.seuils.alerte + '</em></div></div>'
       + '<p class="bx-txt" style="margin-top:12px">' + _ctlPl(tp.length, 'TP posé', 'TP posés') + ' un jour à moins de ' + CTL.seuils.alerte + ' postables.'
-      + (mini ? ' Le plus bas : <b>' + nPost(mini) + '</b> le ' + _ctlJour(mini.date) + '.' : '') + (autresTp ? ' ' + _ctlPl(autresTp, 'autre point', 'autres points') + '.' : '') + '</p></section>';
+      + (mini ? ' Le plus bas : <b>' + nPost(mini) + '</b> le ' + _ctlJour(mini.date) + '.' : '') + (autresTp ? ' ' + _ctlPl(autresTp, 'autre point', 'autres points') + '.' : '') + '</p>', par('tp').length);
   }
 
   /* Congés : une jauge par MAR au-delà de son droit */
@@ -9774,7 +9798,6 @@ async function resetCodeMAR(marId, marNom) {
 let TPC = null;
 
 async function tpcCharger() {
-  const bloc = document.getElementById('tpcBloc');
   try {
     const Y = new Date().getFullYear();
     let cle = null;
@@ -9802,7 +9825,7 @@ async function tpcCharger() {
         }
       }
     }
-    if (!cles.length) { bloc.style.display = 'none'; TPC = null; return; }
+    if (!cles.length) { TPC = null; _tpcMaj(); return; }
     const dAuj = new Date();
     const auj = dAuj.getFullYear() + '-' + String(dAuj.getMonth() + 1).padStart(2, '0') + '-' + String(dAuj.getDate()).padStart(2, '0');
     TPC = {
@@ -9829,13 +9852,50 @@ async function tpcCharger() {
       });
     });
     TPC.demandes.sort(function (x, y) { return x.jour < y.jour ? -1 : x.jour > y.jour ? 1 : (x.id < y.id ? -1 : 1); });
-    bloc.style.display = TPC.demandes.length ? 'block' : 'none';
     tpcRendre();
   } catch (e) {
     console.warn('[tpc] chargement impossible :', e && e.message);
-    bloc.style.display = 'none';
   }
 }
+
+/* (19/11/2026) TUILE 2 EN 1 — les demandes de TP en attente vivent dans la
+   tuile Temps partiel de l'onglet Contrôles, plus dans un encart à part qui
+   disait la même chose. La tuile lit TPC (ce que le comité va trancher), pas les
+   points du serveur : le compte suit chaque décision marquée. */
+function _tpcAttente() { return (typeof TPC !== 'undefined' && TPC && TPC.demandes) ? TPC.demandes : []; }
+function _tpcBande() {
+  const ds = _tpcAttente(); if (!ds.length) return '';
+  const reste = ds.filter(function (d) { return !d.etat; }).length, marq = ds.length - reste;
+  const court = function (iso) { const d = new Date(iso + 'T12:00:00'); return CTL_J[d.getDay()] + ' ' + d.getDate() + ' ' + CTL_MC[d.getMonth()]; };
+  return '<div class="bx-tpv" onclick="event.stopPropagation()"><ul>'
+    + ds.slice(0, 3).map(function (d) { return '<li><b>' + _escHtml(d.id) + '</b>' + court(d.jour)
+        + '<em>' + (d.etat === 'ok' ? '✓ validé' : d.etat === 'ko' ? '✕ refusé' : tpcPresentsSi(d) + ' présents si validé') + '</em></li>'; }).join('')
+    + (ds.length > 3 ? '<li>et ' + (ds.length - 3) + ' autre' + (ds.length - 3 > 1 ? 's' : '') + '…</li>' : '') + '</ul>'
+    + '<button onclick="tpcOuvrir()"><em class="g">' + (marq && reste ? '<b>' + reste + '</b> à valider · ' + marq + ' à enregistrer'
+    : '<b>' + _ctlPl(reste || ds.length, 'jour', 'jours') + '</b> ' + (reste ? 'à valider' : 'à enregistrer')) + '</em><span>' + (reste ? 'Valider' : 'Ouvrir') + ' →</span></button></div>';
+}
+function _tpcTuile(corps, nbPoints) {
+  /* La pastille garde le nombre de points de la famille (le même que le grand
+     compteur) ; sans point, elle porte le nombre de demandes en attente. */
+  return '<section class="bx-t bx-tp" tabindex="0" onclick="ctlFam(\'tp\')"><div class="bx-hd"><span class="bx-nom">Temps partiel</span><span class="bx-nb">'
+    + (nbPoints || _tpcAttente().length) + '</span></div>' + (corps || '') + _tpcBande() + '</section>';
+}
+function _tpcMaj() {
+  const sec = document.getElementById('ctlTpSecours');
+  if (CTL.rendu) { renderControles(); return; }
+  if (sec) sec.innerHTML = _tpcAttente().length
+    ? '<div class="bx" style="margin-bottom:16px"><div class="bx-grille">' + _tpcTuile('<p class="bx-txt" style="margin-top:12px">Demandes en attente de la décision du comité.</p>') + '</div></div>' : '';
+}
+function tpcOuvrir() {
+  if (!_tpcAttente().length) return;
+  document.getElementById('tpcFond').classList.add('on');
+  document.body.style.overflow = 'hidden';
+}
+function tpcFermer() {
+  const f = document.getElementById('tpcFond'); if (f) f.classList.remove('on');
+  document.body.style.overflow = '';
+}
+document.addEventListener('keydown', function (e) { if (e.key === 'Escape') tpcFermer(); });
 
 function tpcJoli(ds) {
   const d = new Date(ds + 'T12:00:00');
@@ -9851,15 +9911,6 @@ function tpcPresentsSi(dem) {
     return d.etat === 'ok' && d.jour === dem.jour && d !== dem;
   }).length;
   return (TPC.presents[dem.jour] || 0) - dejaValides - 1;
-}
-
-function tpcBasculer() {
-  if (!TPC || TPC.demandes.every(function (d) { return d.etat; })) return;
-  const l = document.getElementById('tpcListe');
-  const ouvre = !l.classList.contains('on');
-  l.classList.toggle('on', ouvre);
-  document.getElementById('tpcRappel').style.display = ouvre ? 'block' : 'none';
-  document.getElementById('tpcChev').textContent = ouvre ? 'Masquer' : 'Voir →';
 }
 
 function tpcRendre() {
@@ -9890,20 +9941,10 @@ function tpcRendre() {
       '<b>' + marquees + ' décision' + (marquees > 1 ? 's' : '') + '</b> marquée'
       + (marquees > 1 ? 's' : '') + ' — rien n\'est enregistré tant que vous n\'avez pas cliqué';
   }
-  const a = document.getElementById('tpcAlerte'), t = document.getElementById('tpcAlerteTxt');
-  if (reste === 0) {
-    a.classList.add('vide');
-    document.getElementById('tpcIco').textContent = '✅';
-    t.innerHTML = '<b>Tout est traité</b> — plus aucun jour de temps partiel en attente.';
-    document.getElementById('tpcChev').textContent = '';
-  } else {
-    a.classList.remove('vide');
-    document.getElementById('tpcIco').textContent = '🟠';
-    t.innerHTML = '<b>' + reste + ' jour' + (reste > 1 ? 's' : '') + ' de temps partiel à valider</b><br>'
-      + 'Il resterait 13 ou 14 présents ces jours-là.';
-    document.getElementById('tpcChev').textContent =
-      document.getElementById('tpcListe').classList.contains('on') ? 'Masquer' : 'Voir →';
-  }
+  const titre = document.getElementById('tpcTitre');
+  if (titre) titre.textContent = reste ? _ctlPl(reste, 'jour', 'jours') + ' de temps partiel à valider' : 'Tout est marqué — reste à enregistrer';
+  if (!TPC.demandes.length) tpcFermer();
+  _tpcMaj();
 }
 
 /* (23/08/2026) MARQUER, PUIS ENREGISTRER. Chaque clic partait au serveur :
@@ -9985,6 +10026,7 @@ async function tpcEnvoyer() {
     });
     TPC.demandes.forEach(function (d) { d.etat = null; });   // ce qui reste est à retrancher
     tpcRendre();
+    if (CTL.charge) chargerControles(true);   // (19/11/2026) un TP validé peut créer un jour tendu : les tuiles se recalculent
   } catch (e) {
     showToast('❌ Erreur réseau — rien n\'a été enregistré, vous pouvez réessayer');
   } finally {

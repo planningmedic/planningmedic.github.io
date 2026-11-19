@@ -294,12 +294,21 @@ async function ouvrirAdmin(M, codeAdmin) {
     V('le bloc comité expose bien ses fonctions', typeof A.w.tpcCharger === 'function' && typeof A.w.tpcDecider === 'function');
     await A.w.tpcCharger();
     await new Promise(function (r) { setTimeout(r, 200); });
-    const alerte = A.w.document.getElementById('tpcBloc');
     /* TPC est un `let` de la page : il ne vit pas sur window — on le lit
        dans son propre contexte, comme ADMIN_CODE. */
     const demandes = function () { return A.w.eval('JSON.parse(JSON.stringify(TPC ? TPC.demandes : []))'); };
-    V('l\'alerte s\'affiche avec la demande en attente',
-      alerte && alerte.style.display === 'block' && demandes().length === 1, demandes());
+    /* (19/11/2026) Plus d'encart orange : la demande vit dans la tuile Temps
+       partiel. Ici les contrôles ne sont pas chargés : la tuile s'affiche seule
+       (place de secours), la demande reste tranchable. */
+    const doc4 = A.w.document;
+    const sec = doc4.getElementById('ctlTpSecours');
+    V('la tuile Temps partiel s\'affiche avec la demande en attente',
+      sec && /bx-tp/.test(sec.innerHTML) && /1 jour<\/b> à valider/.test(sec.innerHTML) && demandes().length === 1, sec && sec.textContent.slice(0, 160));
+    V('…plus aucun encart orange à part', !doc4.getElementById('tpcAlerte') && !doc4.querySelector('.tpc-alerte'));
+    V('la fenêtre de validation est fermée au départ', !doc4.getElementById('tpcFond').classList.contains('on'));
+    sec.querySelector('.bx-tpv button').click();
+    V('« Valider → » ouvre la liste par-dessus l\'onglet', doc4.getElementById('tpcFond').classList.contains('on')
+      && doc4.querySelectorAll('#tpcListe .tpc-ligne').length === 1);
     A.envoyes.length = 0;
     let jete = null;
     /* (23/08/2026) Marquer ne parle plus au serveur : le comité marque sa
@@ -311,9 +320,17 @@ async function ouvrirAdmin(M, codeAdmin) {
     V('la ligne passe à « validé » dans l\'écran', demandes()[0].etat === 'ok', demandes()[0]);
     const barre = A.w.document.getElementById('tpcBarre');
     V('la barre d\'envoi apparaît', barre && barre.style.display === 'flex', barre && barre.style.display);
+    V('la tuile suit la décision marquée (« à enregistrer »)', /1 jour<\/b> à enregistrer/.test(sec.innerHTML) && /✓ validé/.test(sec.innerHTML), sec.textContent.slice(0, 200));
     try { await A.w.tpcEnvoyer(); } catch (e) { jete = e; }
     const envoi = A.envoyes.filter(p => p.action === 'deciderJourTpLot')[0];
     V('l\'envoi groupé part, en UNE requête', !!envoi && !jete, A.envoyes.map(p => p.action));
+    /* Tuiles affichées : la bande vit DANS la tuile Temps partiel, pas à côté. */
+    A.w.eval(`TPC.presents['2027-02-19'] = 14; TPC.demandes = [{ id: 'POSEUR', jour: '2027-02-19', etat: null }];
+      CTL = Object.assign(CTL, { an: 2026, items: [], oks: {}, prevenus: {}, presence: {}, charge: true }); renderControles();`);
+    const tuileTp = doc4.querySelector('#ctlContenu .bx-tp');
+    V('tuiles affichées : la tuile Temps partiel porte la demande (2 en 1)', tuileTp && /1 jour<\/b> à valider/.test(tuileTp.innerHTML)
+      && !/bx-tp/.test(doc4.getElementById('ctlTpSecours').innerHTML), tuileTp && tuileTp.textContent.slice(0, 160));
+    V('contre-épreuve — sans demande ni point, la tuile redevient verte', (A.w.eval('TPC.demandes = []; renderControles();'), !doc4.querySelector('#ctlContenu .bx-tp')));
     V('…il porte l\'année, le code du comité et la décision',
       envoi && envoi.year === 2027 && !!envoi.code
       && envoi.decisions[0].decision === 'valider' && envoi.decisions[0].doctorId === 'POSEUR'
