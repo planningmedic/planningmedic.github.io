@@ -1255,6 +1255,99 @@ if (sessionStorage.getItem('adminCode')) {
 .eqv-card.eqv-moi{border:2px solid #CE1126}
 .eqv-moi-tag{font-size:9.5px;font-weight:800;color:#CE1126;background:#FEE2E2;border-radius:5px;padding:1px 6px;margin-left:5px}
 </style>
+<style>
+/* ══ (19/11/2026) REFONTE DE L'ONGLET PLANNING — maquette A validée par le responsable ══
+   Même structure et mêmes gestes ; seul l'habillage change, dans l'esprit de l'onglet
+   Contrôles. Tout est borné à #panel-planning et au panneau #dispoCard. */
+#panel-planning { --pk-ink:#101828; --pk-ink2:#475467; --pk-ink3:#98A2B3; --pk-line:#EAECF0; --pk-line2:#F2F4F7; }
+#panel-planning .plan-toolbar { background:transparent; border-bottom:0; padding:4px 0 6px; margin-bottom:18px; }
+#panel-planning .week-label { min-width:0; text-align:left; display:flex; flex-direction:column; padding:0 6px; }
+#panel-planning .week-label b { font-size:28px; font-weight:600; letter-spacing:-.8px; line-height:1; color:var(--pk-ink); }
+#panel-planning .week-label small { font-size:13px; font-weight:500; color:var(--pk-ink2); margin-top:5px; }
+#panel-planning .week-nav-btn { width:36px; height:36px; border-radius:12px; border-color:var(--pk-line); font-size:14px; }
+#panel-planning .week-nav-btn:hover { border-color:var(--pk-ink); color:var(--pk-ink); }
+#panel-planning .week-export-btn { background:#fff; color:#344054; border:1px solid var(--pk-line); border-radius:12px; padding:9px 15px; font-size:12.5px; font-weight:600; }
+#panel-planning .week-validate-btn { background:var(--pk-ink); color:#fff; border:1px solid var(--pk-ink); border-radius:12px; padding:9px 16px; font-size:12.5px; font-weight:600; }
+.pk { display:grid; grid-template-columns:1.25fr 1fr 1.25fr 1fr; gap:14px; margin-bottom:18px; }
+.pk:empty { display:none; }
+.pk-t { background:#fff; border:1px solid var(--pk-line); border-radius:22px; padding:16px 20px; min-height:124px; display:flex; flex-direction:column; }
+.pk-t h4 { margin:0; font-size:13px; font-weight:600; color:var(--pk-ink2); }
+.pk-n { font-size:38px; font-weight:600; letter-spacing:-1.5px; line-height:1; margin-top:8px; color:var(--pk-ink); }
+.pk-s { font-size:12.5px; color:var(--pk-ink2); margin-top:auto; padding-top:8px; line-height:1.45; }
+.pk-s b { color:var(--pk-ink); }
+.pk-t.noir { background:var(--pk-ink); border:0; }
+.pk-t.noir h4 { color:var(--pk-ink3); } .pk-t.noir .pk-n { color:#fff; }
+.pk-mini { position:relative; display:flex; gap:6px; align-items:flex-end; height:46px; margin-top:auto; padding-top:8px; }
+.pk-mini > div { flex:1; display:flex; flex-direction:column; align-items:center; gap:4px; font-size:10.5px; color:var(--pk-ink3); }
+.pk-mini b { display:block; width:100%; border-radius:5px 5px 2px 2px; background:linear-gradient(#FDB022,#F97066); }
+.pk-mini b.z { background:rgba(255,255,255,.12); }
+.pk-pres { cursor:pointer; } .pk-pres:hover { border-color:#D0D5DD; }
+.pk-pres .pk-mini b { background:#12B76A; } .pk-pres .pk-mini b.bas { background:#F04438; } .pk-pres .pk-mini b.f { background:var(--pk-line); }
+.pk-seuil { position:absolute; left:0; right:0; border-top:2px dashed #F04438; }
+.pk-ab { display:flex; flex-wrap:wrap; gap:5px; margin-top:12px; }
+.pk-ab span { font-size:12px; border-radius:999px; padding:3px 10px; background:var(--pk-line2); color:#344054; }
+.pk-ab b { font-weight:700; }
+#panel-planning .tension { margin:0 0 18px; border:1px solid var(--pk-line); border-radius:22px; padding:12px 18px; }
+#panel-planning .planning-table { border:1px solid var(--pk-line); border-radius:24px; box-shadow:none; overflow:hidden; }
+#panel-planning .th-sector { background:#fff; font-size:11px; font-weight:600; letter-spacing:.06em; color:var(--pk-ink3); border-right:1px solid var(--pk-line2); border-bottom:1px solid var(--pk-line); }
+#panel-planning .th-day { text-align:left; padding:14px 12px 10px; border-right:1px solid var(--pk-line2); border-bottom:1px solid var(--pk-line); }
+#panel-planning .th-day.weekend { width:72px; }
+#panel-planning .th-day.today { background:#FCFCFD; box-shadow:inset 0 3px 0 var(--pk-ink); }
+#panel-planning .day-name { display:inline; font-size:12px; font-weight:600; letter-spacing:.06em; color:var(--pk-ink3); }
+#panel-planning .day-num { display:inline; font-size:20px; font-weight:700; color:var(--pk-ink); letter-spacing:-.4px; margin-left:4px; }
+#panel-planning .jst { display:flex; flex-wrap:wrap; gap:6px; align-items:center; margin-top:8px; }
+#panel-planning .jst:empty { display:none; }
+.jst-p { border-radius:999px; padding:2px 8px; font-weight:600; font-size:11px; }
+.jst-p.or { background:#FFFAEB; color:#B54708; } .jst-p.vt { background:#ECFDF3; color:#067647; }
+.jst-n { font-size:11.5px; color:var(--pk-ink2); margin-top:4px; } .jst-n.bas { color:#B42318; font-weight:600; }
+#panel-planning .np-badge { border-radius:999px; padding:2px 8px; margin-top:0; font-size:11px; font-weight:600; }
+#panel-planning .am-pm-labels { margin-top:10px; gap:0; }
+#panel-planning .am-pm-label, #panel-planning .am-pm-label.pm { background:none; color:var(--pk-ink3); font-size:10px; font-weight:600; letter-spacing:.05em; text-align:left; padding:0; }
+#panel-planning .am-pm-label.pm { border-left:1px solid var(--pk-line2); padding-left:8px; }
+#panel-planning .sector-row { border-bottom:0; }
+#panel-planning .td-sector { background:#fff; padding:10px 16px; border-right:1px solid var(--pk-line2); border-bottom:1px solid var(--pk-line2); }
+#panel-planning .sector-row .sector-label { align-items:stretch; gap:10px; }
+#panel-planning .sector-row .sector-label::before { content:''; width:4px; border-radius:4px; background:var(--sf, #D0D5DD); flex-shrink:0; }
+#panel-planning .sector-row .sector-icon-svg { display:none; }
+#panel-planning .sector-name-text { font-size:13.5px; font-weight:600; }
+.sector-code { display:block; font-size:11px; font-weight:500; color:var(--pk-ink3, #98A2B3); letter-spacing:.04em; margin-top:2px; }
+#panel-planning .td-day { border-right:1px solid var(--pk-line2); border-bottom:1px solid var(--pk-line2); }
+#panel-planning .td-day.today { background:#FCFCFD; }
+#panel-planning .td-day.weekend { background:repeating-linear-gradient(-45deg,#FAFAFB 0 6px,#F4F5F7 6px 7px); }
+#panel-planning .slot { display:flex; flex-wrap:wrap; gap:4px; align-content:flex-start; padding:8px; border-right:1px dashed #EEF0F3; min-height:48px; }
+#panel-planning .slot-name { font-family:'DM Sans',sans-serif; font-size:12px; font-weight:600; letter-spacing:.02em; padding:5px 8px; border-radius:8px; line-height:1; max-width:none; background:var(--sb, #F2F4F7); color:var(--sf, #344054); }
+#panel-planning .slot-name.slot-clickable:hover { outline:2px solid var(--pk-ink); outline-offset:1px; }
+#panel-planning .slot-flash { width:auto; height:auto; min-height:0; flex:0 0 auto; padding:4px 9px; border-radius:8px; border:1.5px dashed #FDB022; background:#fff; color:#DC6803; font-family:'DM Sans',sans-serif; font-size:12px; font-weight:700; line-height:1.1; animation:none; }
+#panel-planning .slot-flash::after { content:'\00a0à pourvoir'; }
+#panel-planning .slot-flash:hover { background:#FFFAEB; transform:none; }
+#panel-planning .slot-add { border-radius:8px; min-height:24px; min-width:24px; }
+#panel-planning .slot-dash { color:#D0D5DD; }
+#panel-planning .cs-group-label { background:#FCFCFD; color:var(--pk-ink3); font-size:12px; font-weight:600; letter-spacing:.06em; padding:14px 16px 8px; border-bottom:1px solid var(--pk-line2); }
+#panel-planning .cs-group-label .sector-icon-svg { display:none; }
+#panel-planning .cs-sub-row .td-sector { background:#fff; }
+#panel-planning .cs-sub-row .td-sector, #panel-planning .cs-sub-row .td-day { border-bottom:1px solid var(--pk-line2); }
+#panel-planning .slot-name.cs-chip { font-family:'DM Sans',sans-serif; font-size:12px; font-weight:600; background:#fff; color:#067647; border:1px solid #ABEFC6; border-radius:8px; padding:4px 8px; }
+#panel-planning .cs-apourvoir { border-radius:8px; border:1.5px dashed #FDB022; background:#fff; color:#DC6803; font-size:11.5px; font-weight:700; padding:3px 9px; }
+#panel-planning .bt-card { border-radius:24px; box-shadow:none; border-color:var(--pk-line); }
+#panel-planning .bt-card-header { background:#FCFCFD; font-size:12px; font-weight:600; letter-spacing:.06em; color:var(--pk-ink3); padding:14px 16px 10px; border-bottom:1px solid var(--pk-line2); }
+#panel-planning .bt-label { background:#fff; font-size:13px; font-weight:600; color:var(--pk-ink); border-right:1px solid var(--pk-line2); padding:10px 16px; }
+#panel-planning .bt-cell { border-right:1px solid var(--pk-line2); border-top:1px solid var(--pk-line2); padding:8px 6px; }
+#panel-planning .bt-cell.weekend { background:#FAFAFB; }
+#panel-planning .name-tag { font-family:'DM Sans',sans-serif; font-size:12px; font-weight:600; letter-spacing:.02em; padding:4px 8px; border-radius:8px; }
+#panel-planning .name-tag.guard, #panel-planning .name-tag.guard2 { background:var(--pk-ink); color:#fff; }
+#panel-planning .name-tag.h18 { background:#FEF6EE; color:#B93815; }
+#panel-planning .name-tag.rg { background:var(--pk-line2); color:#667085; margin:0 2px; }
+.bt-abs { display:flex; flex-direction:column; gap:4px; align-items:center; }
+.bt-abs div { display:flex; align-items:center; gap:5px; }
+.bt-abs em { font-style:normal; font-size:10.5px; font-weight:600; color:var(--pk-ink3, #98A2B3); }
+#panel-planning .name-tag.absent { background:#F2F4F7; color:#344054; }
+/* Panneau « Affecter » : tiroir pleine hauteur à droite */
+#dispoCard { top:0 !important; right:0 !important; bottom:0; width:420px !important; max-height:100vh !important; border-radius:0 !important; border:0 !important; border-left:1px solid #EAECF0 !important; box-shadow:-24px 0 48px -12px rgba(16,24,40,.25) !important; }
+#dispoCard #pspTitle { font-size:18px !important; font-weight:600 !important; letter-spacing:-.3px; }
+#dispoCard #pspContent button[onclick^="placeMAR"] { border-radius:14px !important; padding:9px 11px !important; }
+#dispoCard #pspContent button[onclick^="placeMAR"] > span:first-child { font-family:'DM Sans',sans-serif !important; font-size:12px !important; border-radius:9px !important; padding:6px 8px !important; }
+@media (max-width:720px){ #dispoCard{ top:auto !important; width:auto !important; max-height:78vh !important; border-radius:16px 16px 0 0 !important; } .pk{ grid-template-columns:1fr 1fr; } }
+</style>
 </head>
 <body>
 
@@ -1400,6 +1493,10 @@ if (sessionStorage.getItem('adminCode')) {
 <span onclick="resetLocalEdits()" title="Réinitialiser les modifications locales de cette année (si l'affichage semble figé sur d'anciennes modifs)" style="font-size:11px;color:var(--ink-4,#94A3B8);cursor:pointer;margin-left:10px;white-space:nowrap">↺ réinit.</span>
     </div>
   </div>
+
+  <!-- (19/11/2026) TUILES DE LA SEMAINE — refonte de l'onglet Planning (maquette A validée) :
+       cases à pourvoir, MAR à placer, présents par jour, gardes du jour. Calculées par renderWeek. -->
+  <div class="pk" id="planKpis"></div>
 
   <!-- BANDE DE PRESENCE — un carre = une journee ouvree, couleur = nb de presents -->
   <div class="tension" id="tensionBand" style="display:none">
@@ -4044,7 +4141,11 @@ function renderWeek() {
   const first = daySlots.find(d=>d), last = [...daySlots].reverse().find(d=>d);
   if (first && last) {
     const fmt = ds => new Date(ds+'T12:00:00').toLocaleDateString('fr-FR',{day:'2-digit',month:'2-digit'});
-    document.getElementById('weekLabel').textContent = `S${wk.weekNum} · ${fmt(first.date)} – ${fmt(last.date)}`;
+    /* (19/11/2026) « Semaine 47 » en titre, les dates en dessous (refonte de l'onglet Planning). */
+    const _mL = ds => new Date(ds+'T12:00:00').toLocaleDateString('fr-FR',{day:'numeric',month:'long'});
+    const _d1 = new Date(first.date+'T12:00:00'), _d2 = new Date(last.date+'T12:00:00');
+    const _per = (_d1.getMonth() === _d2.getMonth() ? _d1.getDate() : _mL(first.date)) + ' – ' + _mL(last.date) + ' ' + _d2.getFullYear();
+    document.getElementById('weekLabel').innerHTML = `<b>Semaine ${wk.weekNum}</b><small>${_per}</small>`;
     const swEl = document.getElementById('statusWeek'); if (swEl) swEl.textContent = `S${wk.weekNum}`;
   }
 
@@ -4285,6 +4386,25 @@ function renderWeek() {
     smap[s.code].some(d => d.am.length||d.pm.length||d.flash_am||d.flash_pm)
   );
 
+  /* (19/11/2026) CHIFFRES DE LA SEMAINE (refonte) — mêmes règles que les cases : un « + » orange
+     = une case à pourvoir (secteurs ET consultations), « à placer » = nonPlacesJour, présents =
+     le compte de la bande de présence (tensionJours). Rien de nouveau n'est calculé. */
+  const _apJour = daySlots.map((slot, dow) => {
+    if (!slot || slot.isWeekend || slot.isFerie) return 0;
+    let n = 0;
+    SECTORS.forEach(s => { const c = smap[s.code][dow]; n += (c.flash_am || 0) + (c.flash_pm || 0); });
+    CS_TYPES.forEach(t => { const c = csTypeMap[t.code][dow]; n += (c.flash_am || 0) + (c.flash_pm || 0); });
+    return n;
+  });
+  const _presDe = {}; try { tensionJours().forEach(j => { _presDe[j.date] = j.n; }); } catch (e) {}
+  const _npJour = daySlots.map(slot => {
+    if (!slot || slot.isWeekend || slot.isFerie) return [];
+    const _np = nonPlacesJour(slot.date);
+    return [...new Map([..._np.am, ..._np.pm].map(x => [x.id, x])).values()];
+  });
+  try { renderPlanKpis({ daySlots, apJour: _apJour, presDe: _presDe, npJour: _npJour, gardes, sortieRow, today }); }
+  catch (e) { console.error('Tuiles de la semaine ignorées :', e); }
+
   // ── THEAD ──
   const JOURS_ABR = ['LUN','MAR','MER','JEU','VEN','SAM','DIM'];
   let thead = '<thead><tr>';
@@ -4296,8 +4416,14 @@ function renderWeek() {
     const cls  = ['th-day', isWe?'weekend':'', isTd?'today':''].filter(Boolean).join(' ');
     const jf   = slot.isFerie ? '<span style="font-size:8px;color:#CE1126;font-weight:700;margin-left:2px;vertical-align:super">JF</span>' : '';
     const ampm = !isWe
-      ? '<div class="am-pm-labels"><div class="am-pm-label">AM</div><div class="am-pm-label pm">PM</div></div>'
+      ? '<div class="am-pm-labels"><div class="am-pm-label">Matin</div><div class="am-pm-label pm">Après-midi</div></div>'
       : '';
+    /* (19/11/2026) État du jour : « N à pourvoir » ou « ✓ complet », et les présents. */
+    const _etat = isWe ? '' : (_apJour[i]
+      ? `<span class="jst-p or">${_apJour[i]} à pourvoir</span>`
+      : '<span class="jst-p vt">✓ complet</span>');
+    const _pr = (!isWe && _presDe[slot.date] != null)
+      ? `<div class="jst-n${_presDe[slot.date] < SEUIL_ALERTE ? ' bas' : ''}">${_presDe[slot.date]} présents</div>` : '';
     // Badge de complétude : n'apparaît QUE s'il y a des présents non placés (épuré)
     let npBadge = '';
     if (!isWe) {
@@ -4319,7 +4445,8 @@ function renderWeek() {
     thead += `<th class="${cls}">
       <div class="day-name">${JOURS_ABR[i]}</div>
       <div class="day-num">${slot.day}${jf}</div>
-      ${ampm}${npBadge}
+      <div class="jst">${_etat}${npBadge}</div>${_pr}
+      ${ampm}
     </th>`;
   });
   thead += '</tr></thead>';
@@ -4440,11 +4567,13 @@ function renderWeek() {
 
   let tbody = '<tbody>';
   activeSectors.forEach(sec => {
-    tbody += `<tr class="sector-row">
+    /* (19/11/2026) Les initiales prennent la couleur du secteur (BG / FG de l'onglet SECTEURS). */
+    const _scol = (SECTOR_COLORS_AFF && SECTOR_COLORS_AFF[sec.code]) || { bg: getSectorBg(sec.code), fg: getSectorFg(sec.code) };   // couleurs de l'onglet SECTEURS, sinon celles de la page
+    tbody += `<tr class="sector-row" style="--sb:${_scol.bg};--sf:${_scol.fg}">
       <td class="td-sector">
         <div class="sector-label">
           <i data-lucide="${sec.icon}" class="sector-icon-svg"></i>
-          <span class="sector-name-text">${sec.label}</span>
+          <span class="sector-name-text">${sec.label}<small class="sector-code">${sec.code}</small></span>
         </div>
       </td>`;
     daySlots.forEach((slot, dow) => {
@@ -4550,17 +4679,14 @@ function renderWeek() {
       : '<span class="bt-dash">—</span>'
   );
 
-  bottomHtml += btRow('Absences / VAC / F', dow =>
-    absentRow[dow].length
-      ? '<div style="display:flex;gap:4px;justify-content:center;flex-wrap:wrap;">'
-        + absentRow[dow].map(a =>
-            `<div style="display:flex;flex-direction:column;align-items:center;gap:1px;">
-              <span class="name-tag absent" title="${a.reason}">${a.init}</span>
-              <span style="font-size:8px;color:#991B1B;font-weight:600;">${a.reason}</span>
-            </div>`
-          ).join('') + '</div>'
-      : '<span class="bt-dash">—</span>'
-  );
+  /* (19/11/2026) Absents regroupés par motif (« AB CD EF · A ») : une ligne par motif. */
+  bottomHtml += btRow('Absents', dow => {
+    if (!absentRow[dow].length) return '<span class="bt-dash">—</span>';
+    const parMotif = {};
+    absentRow[dow].forEach(a => { (parMotif[a.reason] = parMotif[a.reason] || []).push(a.init); });
+    return '<div class="bt-abs">' + Object.keys(parMotif).map(m =>
+      `<div><span class="name-tag absent" title="${m}">${parMotif[m].join(' ')}</span><em>${m}</em></div>`).join('') + '</div>';
+  });
 
   bottomHtml += '</tbody></table></div></div>';
 
@@ -4576,6 +4702,34 @@ function renderWeek() {
   // de 2,5 s pour neuf semaines seulement survolees (mesure de 14:52 : 14 appels).
   // Desormais un seul part, celui de la semaine ou l'on s'arrete.
   planifierPrechargement();
+}
+
+/* (19/11/2026) TUILES DE LA SEMAINE — refonte de l'onglet Planning (maquette A).
+   Quatre tuiles : cases à pourvoir (par jour), MAR à placer, présents en journée
+   (ligne du seuil d'alerte), gardes du jour. Les chiffres sont ceux de renderWeek. */
+function renderPlanKpis(o) {
+  const el = document.getElementById('planKpis'); if (!el) return;
+  const J = ['Lun','Mar','Mer','Jeu','Ven'];
+  const ouv = o.daySlots.slice(0, 5);
+  const tot = o.apJour.slice(0, 5).reduce((a, b) => a + b, 0), mx = Math.max(1, ...o.apJour.slice(0, 5));
+  const barres = ouv.map((s, i) => `<div><b class="${o.apJour[i] ? '' : 'z'}" style="height:${s && o.apJour[i] ? Math.max(4, Math.round(o.apJour[i] / mx * 34)) : 4}px"></b>${J[i]}</div>`).join('');
+  const ap = []; ouv.forEach((s, i) => { if (o.npJour[i] && o.npJour[i].length) ap.push({ j: J[i] + ' ' + s.day, l: o.npJour[i] }); });
+  const nAp = ap.reduce((a, x) => a + x.l.length, 0);
+  const pres = ouv.map(s => (s && !s.isFerie && !s.isWeekend) ? o.presDe[s.date] : null);
+  const vals = pres.filter(v => v != null), lo = Math.min(SEUIL_ALERTE - 3, ...vals), hi = Math.max(SEUIL_CONFORT + 1, ...vals);
+  const hPx = v => Math.max(4, Math.round((v - lo) / (hi - lo) * 40));
+  let mini = null; ouv.forEach((s, i) => { if (pres[i] != null && (mini == null || pres[i] < pres[mini])) mini = i; });
+  const pb = ouv.map((s, i) => `<div><b class="${pres[i] == null ? 'f' : (pres[i] < SEUIL_ALERTE ? 'bas' : '')}" style="height:${pres[i] == null ? 4 : hPx(pres[i])}px"></b>${pres[i] == null ? (s && s.isFerie ? 'férié' : '—') : pres[i]}</div>`).join('');
+  // Gardes : le jour même si la semaine affichée le contient, sinon le lundi
+  let gi = ouv.findIndex(s => s && s.date === o.today); if (gi < 0) gi = 0;
+  const g = o.gardes[gi] || {}, so = o.sortieRow[gi] || [], gs = ouv[gi];
+  const gl = gs ? new Date(gs.date + 'T12:00:00').toLocaleDateString('fr-FR', { weekday: 'short', day: 'numeric' }) : '';
+  el.innerHTML =
+      `<div class="pk-t noir"><h4>Cases à pourvoir</h4><div class="pk-n">${tot}</div><div class="pk-mini">${barres}</div></div>`
+    + `<div class="pk-t"><h4>MAR à placer</h4><div class="pk-n">${nAp}</div><div class="pk-s">${ap.length ? ap.map(x => x.j + ' · <b>' + x.l.map(m => m.init).join(', ') + '</b>').join('<br>') : 'Tous les présents sont placés.'}</div></div>`
+    + `<div class="pk-t pk-pres" onclick="toggleTension()" title="Afficher ou masquer la bande de présence de l'année"><h4>Présents en journée</h4><div class="pk-mini">${pb}<div class="pk-seuil" style="bottom:${hPx(SEUIL_ALERTE) + 16}px"></div></div>`
+    + `<div class="pk-s">${mini != null ? 'Plus bas : <b>' + pres[mini] + '</b> le ' + new Date(ouv[mini].date + 'T12:00:00').toLocaleDateString('fr-FR', { weekday: 'long', day: 'numeric' }) + (pres[mini] < SEUIL_ALERTE ? ' — sous le seuil de ' + SEUIL_ALERTE + '.' : '.') : '—'}</div></div>`
+    + `<div class="pk-t"><h4>Gardes · ${gl}</h4><div class="pk-ab">${g.g ? '<span><b>' + g.g + '</b> garde réa</span>' : ''}${g.g2 ? '<span><b>' + g.g2 + '</b> garde mater</span>' : ''}${so.length ? '<span><b>' + so.join(' ') + '</b> sortie</span>' : ''}${!g.g && !g.g2 && !so.length ? '<span>—</span>' : ''}</div></div>`;
 }
 
 function prevWeek(){if(currentWeekIdx>0){currentWeekIdx--;renderWeek();}}
@@ -5108,7 +5262,9 @@ function renderSidePanelContent(dispo, sector) {
         <span style="font-family:var(--mono);font-size:11px;font-weight:700;background:${g.bg};color:${g.fg};padding:3px 7px;border-radius:5px;flex-shrink:0;">${m.id.length<=6?m.id:m.id.slice(0,6)}</span>
         <div style="flex:1;">
           <div style="font-size:12px;font-weight:700;color:var(--ink);">${m.id}</div>
-          <div style="font-size:10px;color:var(--ink-4);margin-top:1px;">${m.secteur}</div>
+          <div style="font-size:10px;color:var(--ink-4);margin-top:1px;">${m.secteur}${(()=>{ /* (19/11/2026) où il est déjà ce demi-jour */
+            const _c = window._sideCtx || {}, _pl = ((window._marPlaces||{})[`${_c.date}|${m.id}|${_c.slotKey}`]) || [];
+            return ' · ' + (_c.slotKey==='pm' ? 'cet après-midi' : 'ce matin') + ' : ' + (_pl.length ? _pl.join(', ') : 'libre');})()}</div>
         </div>
         ${(()=>{const c=_csCounts[m.id]||0;const av=_csAvg;
           const trop=c>=Math.ceil(av)+2, haut=c>av;

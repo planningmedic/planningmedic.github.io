@@ -142,6 +142,29 @@ const dstr = v => v instanceof Date
   V('AUCUN appel Apps Script à l\'ouverture (v1.25)', appelsGAS === 0, appelsDetail);
   V('aucune erreur JavaScript', erreurs.length === 0, erreurs.slice(0,2));
 
+  console.log('\n═══ 18 bis. (19/11/2026) Refonte de l\'onglet Planning — tuiles, en-têtes, couleurs ═══');
+  {
+    const kp = d.getElementById('planKpis');
+    const tuiles = kp ? kp.querySelectorAll('.pk-t') : [];
+    V('quatre tuiles au-dessus de la grille', tuiles.length === 4, tuiles.length);
+    const nFlash = d.querySelectorAll('#planTable .slot-flash').length + d.querySelectorAll('#planTable .cs-apourvoir').length;
+    const nTuile = kp ? Number((kp.querySelector('.pk-t.noir .pk-n') || {}).textContent) : -1;
+    V('la tuile « Cases à pourvoir » compte exactement les cases orange de la grille', nTuile === nFlash, { tuile: nTuile, grille: nFlash });
+    const pastilles = [...d.querySelectorAll('#planTable thead .jst-p')].map(e => e.textContent);
+    V('chaque jour ouvré porte « N à pourvoir » ou « ✓ complet »', pastilles.length >= 4 && pastilles.every(t => /à pourvoir|complet/.test(t)), pastilles);
+    const sommeJours = pastilles.reduce((a, t) => a + (parseInt(t, 10) || 0), 0);
+    V('…et la somme des jours égale la tuile', sommeJours === nTuile, { jours: sommeJours, tuile: nTuile });
+    const tr = [...d.querySelectorAll('#planTable tr.sector-row')].find(r => /Bloc viscéral/.test(r.textContent));
+    V('les initiales prennent la couleur du secteur (variables --sb / --sf posées sur la ligne)', tr && /--sb:/.test(tr.getAttribute('style') || '') && /--sf:/.test(tr.getAttribute('style') || ''), tr && tr.getAttribute('style'));
+    V('le libellé de semaine est sur deux lignes', /Semaine \d+/.test(d.getElementById('weekLabel').innerHTML) && !!d.querySelector('#weekLabel small'));
+    const f0 = d.querySelector('#planTable .slot-flash');
+    V('une case à pourvoir garde son geste (ouvre le panneau)', f0 && /openSidePanel\(/.test(f0.getAttribute('onclick') || ''));
+    if (f0) { f0.click(); await dodo(300); }
+    const ps = d.getElementById('pspContent').textContent;
+    V('le panneau dit où est déjà chaque MAR ce demi-jour', /ce matin : |cet après-midi : /.test(ps), ps.slice(0, 160));
+    w.eval('closeSidePanel()');
+  }
+
   console.log('\n═══ 19. Je place des MAR sur des cases à pourvoir ═══');
   const flashes = [...d.querySelectorAll('.slot-flash')];
   V('des cases « à pourvoir » sont présentes', flashes.length > 0, flashes.length + ' cases');
