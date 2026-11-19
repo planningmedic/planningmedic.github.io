@@ -313,7 +313,7 @@ console.log('\n═══ RT · le routeur et l\'écran ═══');
   V('marquerPrevenu déclarée au routeur, réservée au comité', /"marquerPrevenu"\s*:\s*\{\s*role:\s*'admin'\s*,\s*fn:\s*_act_marquerPrevenu\s*\}/.test(ind));
   const adm = require('fs').readFileSync(require('path').join(__dirname, '..', 'admin.html'), 'utf8');
   V('admin : un onglet Contrôles, avec sa pastille', /id="tab-controles"[^\n]*id="pastilleCtl"/.test(adm) && /id="panel-controles"/.test(adm));
-  V('admin : chargé à l\'ouverture de l\'onglet, pas à l\'ouverture de la page', /name==='controles'\) chargerControles\(/.test(adm)
+  V('admin : chargé à l\'ouverture de l\'onglet, pas à l\'ouverture de la page', /name==='controles'\) \{ chargerControles\(/.test(adm)
     && !/async function initDashboard\(\)[\s\S]*?\n\}/.exec(adm)[0].includes('chargerControles'));
   V('admin : l\'ancien bandeau de l\'onglet Statuts est retiré', !/verifStatuts|pastilleVerif/.test(adm));
   V('« Prévenu » accepte les clés de toutes les familles', /\[a-z0-9\]\+\\\|/.test(extraireFonction('../gas/gardes.gs', '_act_marquerPrevenu')));
@@ -341,7 +341,7 @@ console.log('\n═══ RT · le routeur et l\'écran ═══');
       '2027-03-04': { p: 16, rg: 0, ab: {} }, '2027-07-16': { p: 14, rg: 2, ab: { 'Vacances': ['Q7'] } } }, oks: { gardes: ['Chaque nuit à venir a un G et un G2 (300)'], h18: ['Un 18 h chaque jour ouvré à venir (200)'] }, points: [
     { cle:'rea|REA|2027-04-06', fam:'rea1', code:'rea', niv:'rouge', id:'REA', init:'RE', date:'2027-04-06', texte:'Temps partiel posé dans sa semaine Réa 1 (05/04 → 09/04).' },
     { cle:'tendu|ZORRO|2027-03-02', fam:'tp', code:'tendu', niv:'orange', id:'ZORRO', init:'ZO', date:'2027-03-02', texte:"11 MAR postables (hors CH) s'il est absent." },
-    { cle:'tpdem|ZORRO|2027-07-16', fam:'tp', code:'tpdem', niv:'info', id:'ZORRO', init:'ZO', date:'2027-07-16', texte:'Demande de temps partiel en attente de réponse du comité (onglet Équipe).' },
+    { cle:'tpdem|ZORRO|2027-07-16', fam:'tp', code:'tpdem', niv:'info', id:'ZORRO', init:'ZO', date:'2027-07-16', texte:'Demande de temps partiel en attente de réponse du comité (à valider en haut de cet onglet).' },
     { cle:'vac|VACX|2027', fam:'conges', code:'vac', niv:'orange', id:'VACX', init:'VX', date:null, texte:'31 jours de vacances posés en 2027 pour un droit de 30 jours (90 %) : 1 de trop.' },
     { cle:'rtendu|P08|2027-03-02', fam:'recups', code:'rtendu', niv:'orange', id:'P08', init:'Q8', date:'2027-03-02', texte:'Récupération un jour tendu : 11 MAR postables (hors CH).' } ] };
   w.eval(`ADMIN_YEAR = 2027; api = async function(p){ window.__appels.push(p); return p.action==='marquerPrevenu' ? {success:true, prevenu:{le:'2027-01-02', par:'ADMIN'}} : window.__reponse; };`);

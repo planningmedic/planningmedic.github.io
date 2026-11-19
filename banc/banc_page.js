@@ -216,7 +216,7 @@ async function page(transport) {
     /* (LOT 4 · 22/08/2026) L'accroche s'est enrichie du bloc comité TP : le
        test suit — il vérifie toujours que periodes et groupes se chargent. */
     V('l\'onglet Equipe charge toujours les periodes et les groupes',
-      /if \(name==='equipe'\) \{ loadEquipe\(\); loadVacances\(\); tpcCharger\(\); \}/.test(c));
+      /if \(name==='equipe'\) \{ loadEquipe\(\); loadVacances\(\); \}/.test(c));   // (19/11/2026) la validation des TP est partie dans l'onglet Contrôles
   }
 
   console.log('\n═══ 57 bis. L\'alerte des récupérations vit dans l\'onglet Statuts ═══');

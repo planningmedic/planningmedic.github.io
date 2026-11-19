@@ -776,7 +776,18 @@ console.log('\n═══ PT23 · le bloc comité d\'admin : effectif de l\'INSTA
   V('SERVANT validé → la ligne de CHAPUIS se recalcule : 13 (le point de la maquette)', psi(1) === 13, psi(1));
   V('…et le jour d\'un AUTRE jour ne bouge pas', psi(2) === 14, psi(2));
   const adm = fs.readFileSync('../admin.html', 'utf8');
-  V('le bloc est accroché à l\'onglet Équipe', /name==='equipe'[^\n]*tpcCharger\(\)/.test(adm));
+  /* (19/11/2026) Décision du responsable : la validation des TP en attente se fait
+     dans l'onglet Contrôles (2e onglet), plus dans l'onglet Équipe. */
+  V('le bloc est accroché à l\'onglet Contrôles', /name==='controles'[^\n]*tpcCharger\(\)/.test(adm));
+  V('…et plus à l\'onglet Équipe', !/name==='equipe'[^\n]*tpcCharger\(\)/.test(adm));
+  (() => {
+    const pC = adm.indexOf('id="panel-controles"'), pB = adm.indexOf('id="tpcBloc"'), pE = adm.indexOf('id="panel-equipe"');
+    const fin = adm.indexOf('class="tab-panel"', pC + 10);
+    V('le bloc de validation vit dans le panneau Contrôles', pC > 0 && pB > pC && (fin < 0 || pB < fin), [pC, pB, fin]);
+    V('le panneau Équipe ne porte plus le bloc', !(pB > pE && pB < adm.indexOf('class="tab-panel"', pE + 10)));
+    const ordre = [...adm.matchAll(/class="nav-tab[^"]*" onclick="showTab\('([a-z]+)'\)/g)].map(m => m[1]);
+    V('l\'onglet Contrôles est le 2e de la barre, juste après Planning', ordre[0] === 'planning' && ordre[1] === 'controles', ordre);
+  })();
   V('les décisions partent en LOT, plus une par une',
     /action: 'deciderJourTpLot'/.test(adm) && !/action: 'deciderJourTp',/.test(adm));
   V('on peut tout défaire AVANT d\'enregistrer', /function tpcToutAnnuler/.test(adm));
