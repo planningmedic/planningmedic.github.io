@@ -296,6 +296,74 @@ console.log('\n═══ 7 bis. (19/11/2026, vu en réel) Un ÉCHANGE de gardes 
   V('acceptée : le 18 h du 15/11 passe au collègue, libéré ce jour-là', b.lire('ALPHA', '2027-11-15') === 'G' && String(b.lire('BRAVO', '2027-11-15')) === '18', [b.lire('ALPHA', '2027-11-15'), b.lire('BRAVO', '2027-11-15')]);
 }
 
+console.log('\n═══ 7 ter. (19/11/2026) INVERSER SES RÔLES D\'UN JOUR : le MAR de 18 h prend la garde du collègue, qui fait son 18 h ═══');
+{
+  /* Le cas réel : CS de 18 h le 02/08, AF de garde ce jour-là ; CS voulait la garde,
+     AF le 18 h. « Donner son 18 h » à AF était refusé (elle n'est pas libre). */
+  const b = monde();
+  b.garde('ALPHA', '2027-08-02'); b.poser('BRAVO', '2027-08-02', '18');
+  let err = '';
+  try { b.run(`creerEchange(${JSON.stringify(user('BRAVO'))}, { type:'don18', year:2027, date:'2027-08-02', receveur:'ALPHA' })`); } catch (e) { err = String(e.message); }
+  V('donner son 18 h au collègue de garde ce jour-là : on propose d\'inverser les rôles ([INV]), rien n\'est créé', /^\[INV\] Le Dr Alpha est de garde ce jour-là/.test(err) && /vous prenez sa garde et son repos du lendemain, le Dr Alpha fait votre 18 h/.test(err)
+    && (!b.cl.getSheetByName('ECHANGES') || b.cl.getSheetByName('ECHANGES').lignes.slice(1).filter(l => l[0]).length === 0), err);
+  V('… au masculin, sans pronom : le médecin est nommé', !/\belle\b/.test(err), err);
+  b.notifs.length = 0;
+  const r = b.run(`creerEchange(${JSON.stringify(user('BRAVO'))}, { type:'don18', year:2027, date:'2027-08-02', receveur:'ALPHA', accepteInversion: true })`);
+  const ligne = b.cl.getSheetByName('ECHANGES').lignes.find(l => l[0] === r.id);
+  V('confirmée : la demande part, enregistrée comme une inversion', r.type === 'inversion' && ligne && ligne[2] === 'inversion' && ligne[6] === 'BRAVO' && ligne[7] === 'ALPHA', [r, ligne]);
+  V('le collègue lit « vous propose d\'inverser vos rôles … prend votre garde, vous faites son 18 h »', b.notifs.some(n => n.cible.id === 'ALPHA' && /vous propose d'inverser vos rôles du 02\/08\/2027 : le Dr Bravo prend votre garde, vous faites son 18 h/.test(n.corps)), b.notifs);
+  V('rien n\'est écrit avant l\'acceptation', b.lire('ALPHA', '2027-08-02') === 'G' && String(b.lire('BRAVO', '2027-08-02')) === '18');
+  b.notifs.length = 0;
+  const rep = b.run(`repondreEchange(${JSON.stringify(user('ALPHA'))}, { id:${JSON.stringify(r.id)}, reponse:'accepter' })`);
+  V('acceptée : les rôles sont inversés — garde et repos au demandeur, 18 h au collègue', rep.etat === 'acceptee'
+    && b.lire('BRAVO', '2027-08-02') === 'G' && b.lire('BRAVO', '2027-08-03') === 'RG'
+    && String(b.lire('ALPHA', '2027-08-02')) === '18' && b.lire('ALPHA', '2027-08-03') === '', [rep, b.lire('BRAVO', '2027-08-02'), b.lire('ALPHA', '2027-08-02'), b.lire('ALPHA', '2027-08-03')]);
+  V('les deux sont prévenus : « Rôles inversés le 02/08/2027 »', b.notifs.filter(n => /Rôles inversés le 02\/08\/2027 : le Dr Bravo prend la garde, le Dr Alpha fait le 18 h/.test(n.corps)).length === 2, b.notifs.map(n => n.corps));
+  V('le jour n\'est jamais à découvert : une garde et un 18 h, comme avant', ['ALPHA', 'BRAVO'].map(id => String(b.lire(id, '2027-08-02'))).sort().join() === '18,G');
+}
+{
+  const b = monde();
+  b.poser('BRAVO', '2027-08-02', '18');
+  let err = '', r = null;
+  try { r = b.run(`creerEchange(${JSON.stringify(user('BRAVO'))}, { type:'don18', year:2027, date:'2027-08-02', receveur:'ALPHA' })`); } catch (e) { err = String(e.message); }
+  V('contre-épreuve — collègue libre ce jour-là : un don de 18 h ordinaire, pas d\'inversion', !err && r && r.type === 'don18', [err, r]);
+}
+{
+  /* « Ne pas rendre possible des choses qui bloqueraient ensuite » : l'inversion
+     passe par le même juge que le don de la garde, dès l'envoi. */
+  const b = monde();
+  b.garde('ALPHA', '2027-08-02'); b.poser('BRAVO', '2027-08-02', '18'); b.poser('BRAVO', '2027-08-03', 'G');
+  let err = '';
+  try { b.run(`creerEchange(${JSON.stringify(user('BRAVO'))}, { type:'don18', year:2027, date:'2027-08-02', receveur:'ALPHA', accepteInversion: true })`); } catch (e) { err = String(e.message); }
+  V('impossible en vrai (le demandeur de garde le lendemain) : refusé dès l\'envoi, rien n\'est créé', /BRAVO est deja de garde \(G\) le 2027-08-03/.test(err)
+    && (!b.cl.getSheetByName('ECHANGES') || b.cl.getSheetByName('ECHANGES').lignes.slice(1).filter(l => l[0]).length === 0), err);
+  b.poser('BRAVO', '2027-08-03', ''); b.poser('BRAVO', '2027-08-01', 'G');
+  err = '';
+  try { b.run(`creerEchange(${JSON.stringify(user('BRAVO'))}, { type:'don18', year:2027, date:'2027-08-02', receveur:'ALPHA', accepteInversion: true })`); } catch (e) { err = String(e.message); }
+  V('… de garde la veille : refusé aussi (deux gardes de suite)', /deux gardes consecutives sont impossibles/.test(err), err);
+  b.poser('BRAVO', '2027-08-01', ''); b.poser('BRAVO', '2027-08-03', 'V');
+  err = '';
+  try { b.run(`creerEchange(${JSON.stringify(user('BRAVO'))}, { type:'don18', year:2027, date:'2027-08-02', receveur:'ALPHA', accepteInversion: true })`); } catch (e) { err = String(e.message); }
+  V('… en vacances le jour de son futur repos : on lui demande de confirmer, comme pour tout don ([ABS])', /^\[ABS\] /.test(err), err);
+}
+{
+  /* La garde change de mains avant la réponse : la demande se ferme seule. */
+  const b = monde();
+  b.garde('ALPHA', '2027-08-02'); b.poser('BRAVO', '2027-08-02', '18');
+  const r = b.run(`creerEchange(${JSON.stringify(user('BRAVO'))}, { type:'don18', year:2027, date:'2027-08-02', receveur:'ALPHA', accepteInversion: true })`);
+  b.poser('ALPHA', '2027-08-02', ''); b.poser('DELTA', '2027-08-02', 'G');
+  b.run('_echangesSansObjet_()');
+  const l = b.cl.getSheetByName('ECHANGES').lignes.find(x => x[0] === r.id);
+  V('le collègue n\'a plus la garde : l\'inversion se ferme « sans objet », motif dit', l[8] === 'sansobjet' && /Le Dr Alpha n'a plus la garde du 02\/08\/2027/.test(String(l[11])), l);
+  const b2 = monde();
+  b2.garde('ALPHA', '2027-08-02'); b2.poser('BRAVO', '2027-08-02', '18');
+  const r2 = b2.run(`creerEchange(${JSON.stringify(user('BRAVO'))}, { type:'don18', year:2027, date:'2027-08-02', receveur:'ALPHA', accepteInversion: true })`);
+  b2.poser('BRAVO', '2027-08-02', '');
+  b2.run('_echangesSansObjet_()');
+  const l2 = b2.cl.getSheetByName('ECHANGES').lignes.find(x => x[0] === r2.id);
+  V('le demandeur n\'a plus son 18 h : fermée aussi', l2[8] === 'sansobjet' && /Le Dr Bravo n'a plus le 18 h du 02\/08\/2027/.test(String(l2[11])), l2);
+}
+
 console.log('\n═══ 8. Échanger un 18 h contre un 18 h (demande de l\'équipe, 11/11/2026) ═══');
 {
   const b = monde();
@@ -359,7 +427,7 @@ console.log('\n═══ 8 bis. Donner un 18 h (demande de l\'équipe, 12/11/202
   b.poser('BRAVO', '2027-03-10', ''); b.garde('BRAVO', '2027-03-10');
   err = '';
   try { b.run(`creerEchange(${JSON.stringify(user('ALPHA'))}, { type:'don18', year:2027, date:'2027-03-10', receveur:'BRAVO' })`); } catch (e) { err = e.message; }
-  V('don de 18 h refusé si le collègue est de garde ce jour-là', /BRAVO n'est pas libre le 2027-03-10 \(G2?\)/.test(err), err);
+  V('(19/11/2026) collègue de garde ce jour-là : le don simple ne part pas, l\'inversion des rôles est proposée à la place', /^\[INV\] Le Dr Bravo est de garde ce jour-là/.test(err), err);
   V('…et rien n\'est créé', !b.cl.getSheetByName('ECHANGES') || b.cl.getSheetByName('ECHANGES').lignes.slice(1).filter(l => l[0]).length === 0);
   err = '';
   try { b.run(`creerEchange(${JSON.stringify(user('BRAVO'))}, { type:'don18', year:2027, date:'2027-03-11', receveur:'ALPHA' })`); } catch (e) { err = e.message; }
@@ -597,6 +665,9 @@ console.log('\n═══ 6. Les pages ═══');
   const idx = fs.readFileSync(path.join(__dirname, '..', 'index.html'), 'utf8');
   V('portail : un refus [18] affiche l\'avertissement et demande la confirmation', /\/\^\\\[18\\\] \/\.test\(r\.error/.test(idx) && /Confirmer : je ferai ce 18 h/.test(idx));
   V('portail : la confirmation part avec la demande (accepte18)', /if \(ECH_PROP\.ok18\) charge\.accepte18 = true;/.test(idx));
+  V('(19/11/2026) portail : un refus [INV] propose l\'inversion, bouton « Proposer l\'inversion », la confirmation part (accepteInversion) et se redemande à chaque changement',
+    /\/\^\\\[INV\\\] \/\.test\(r\.error/.test(idx) && /Proposer l\\'inversion/.test(idx) && /if \(ECH_PROP\.okInv\) charge\.accepteInversion = true;/.test(idx) && /ECH_PROP\.okInv = false;/.test(idx));
+  V('(19/11/2026) portail : la demande créée garde le type rendu par le serveur (un don de 18 h devenu inversion)', /type: r\.type \|\| charge\.type/.test(idx));
   V('portail : changer de garde ou de collègue redemande la confirmation', /ECH_PROP\.ok18 = false;/.test(idx));
   V('portail : mes 18 h sont proposables, échangés contre un 18 h du collègue', /st==='18'\) && m\.days\[i\]/.test(idx) && /function _ech18De\(/.test(idx) && /echanger \? 'echange18' : 'don18'/.test(idx) && /Contre son 18 h du/.test(idx));
   V('portail : la question [18H] est lue en proposant et en acceptant, le bouton devient « Confirmer : je prends ce 18 h »', (idx.match(/\/\^\\\[18H\\\] \/\.test\(r\.error/g) || []).length === 2 && (idx.match(/Confirmer : je prends ce 18 h/g) || []).length === 2

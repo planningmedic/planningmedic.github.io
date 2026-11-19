@@ -411,6 +411,24 @@ function contexteGas(lignes) {
     fermer();
   }
 
+  console.log('\n═══ 9. (19/11/2026) Une inversion des rôles d\'un jour s\'affiche comme telle ═══');
+  {
+    const inv = (id, de, a) => Object.assign(dem(id, '2027-02-12', de, a), { type: 'inversion' });
+    liste.push(inv('I1', 'BRAVO', 'ALPHA'), inv('I2', 'ALPHA', 'CHARLIE'));
+    const { w, erreurs, fermer } = await monterPage(await baseKV({ ouvert: true, pilotes: [] }));
+    const d = w.document;
+    await ouvrirVue(w);
+    const carte = id => { const m = d.getElementById('echMsg-' + id); return m ? m.closest('.ech-card') : null; };
+    const recue = carte('I1'), mienne = carte('I2');
+    V('reçue : « Inversion garde ↔ 18 h », « Dr Bravo prend votre garde, vous faites son 18 h »', recue && /Inversion garde ↔ 18 h/.test(recue.textContent) && /Dr Bravo prend votre garde, vous faites son 18 h/.test(recue.textContent), recue && recue.textContent);
+    V('… avec Accepter et Refuser comme toute demande reçue', recue && !!recue.querySelector('.ech-accepter') && !!recue.querySelector('.ech-refuser'));
+    V('envoyée : « vous prenez sa garde, le Dr Charlie fait votre 18 h », annulable', mienne && /Proposée à Dr Charlie : vous prenez sa garde, le Dr Charlie fait votre 18 h/.test(mienne.textContent) && !!mienne.querySelector('.ech-annuler'), mienne && mienne.textContent);
+    V('aucun « elle » à l\'écran', !/\belle\b/.test((recue ? recue.textContent : '') + (mienne ? mienne.textContent : '')));
+    V('aucune erreur JavaScript', erreurs.length === 0, erreurs.slice(0, 2));
+    fermer();
+    liste.splice(liste.length - 2, 2);
+  }
+
   console.log(`\n${ok} ✓  ${ko} ✗`);
   process.exit(ko ? 1 : 0);
 })().catch(e => { console.error(e); process.exit(1); });

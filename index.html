@@ -2990,6 +2990,7 @@ function _echStatutPlanning(annee, id, date){
 }
 function _echCourt(date){ const d=_echJour(date); return String(d.getDate()).padStart(2,'0') + '/' + String(d.getMonth()+1).padStart(2,'0'); }
 function _echCarteDemande(e, recue){
+  if (e.type==='inversion') return _echCarteInversion(e, recue);   // (19/11/2026) rôles d'un jour inversés
   const est18 = e.type==='don18' || e.type==='echange18';
   const don = e.type==='don' || e.type==='don18';
   /* La garde montrée est toujours celle du DEMANDEUR (date) : celle que je reçois
@@ -3030,6 +3031,19 @@ function _echCarteDemande(e, recue){
     + (meta ? '<div class="ech-meta">' + meta + '</div>' : '')
     + '<div class="ech-msg" id="echMsg-' + esc(e.id) + '" style="display:none"></div>'
     + '</div>';
+}
+/* (19/11/2026 — décision du responsable) Inversion des rôles d'un même jour : le
+   demandeur, de 18 h, prend la garde du receveur, qui fait son 18 h. Même carte
+   que les autres demandes, seuls le titre et la phrase changent. */
+function _echCarteInversion(e, recue){
+  const st = _echStatutPlanning(e.annee, e.receveur, e.date) || (e.etat==='acceptee' ? _echStatutPlanning(e.annee, e.demandeur, e.date) : '');
+  const ligne = recue
+    ? '<strong>' + esc(_echDrLisible(e.demandeur)) + '</strong> prend votre garde, vous faites son 18 h'
+    : 'Proposée à <strong>' + esc(_echDrLisible(e.receveur)) + '</strong> : vous prenez sa garde, le ' + esc(_echDrLisible(e.receveur)) + ' fait votre 18 h';
+  const html = _echCarteDemande(Object.assign({}, e, { type: 'don' }), recue);
+  return html.replace(/<span class="ech-tx"><b>[^<]*<\/b><span>[\s\S]*?<\/span><\/span>/,
+    '<span class="ech-tx"><b>Inversion garde ↔ 18 h</b><span>' + ligne + '</span></span>')
+    .replace(/ech-ligne-d ech-k-[a-z0-9]+/, 'ech-ligne-d ' + _echClasse(st==='G2' ? 'G2' : 'G'));
 }
 function _echParMois(liste, recue){
   let h = '', mois = '';
@@ -3084,10 +3098,14 @@ function _renderEchangesTous(){
   let html = '';
   liste.forEach(function(e){
     const don = e.type==='don' || e.type==='don18';   // (12/11/2026) un 18 h se donne aussi
-    const titre = don
+    const inv = e.type==='inversion';   // (19/11/2026) rôles d'un jour inversés
+    const titre = inv ? 'Inversion garde ↔ 18 h — ' + _echDrLisible(e.demandeur) + ' ↔ ' + _echDrLisible(e.receveur)
+      : don
       ? (e.type==='don18' ? 'Don de 18 h — ' : 'Don de garde — ') + _echDrLisible(e.demandeur) + ' → ' + _echDrLisible(e.receveur)
       : (e.type==='echange18' ? 'Échange de 18 h — ' : 'Échange — ') + _echDrLisible(e.demandeur) + ' ↔ ' + _echDrLisible(e.receveur);
-    let detail = don
+    let detail = inv
+      ? esc(_echDrLisible(e.demandeur)) + ' prend la garde du <b>' + esc(fmtDate(e.date)) + '</b>, ' + esc(_echDrLisible(e.receveur)) + ' fait le 18 h'
+      : don
       ? (e.type==='don18' ? '18 h du <b>' : 'Garde du <b>') + esc(fmtDate(e.date)) + '</b> → planning de ' + esc(_echDrLisible(e.receveur))
       : esc(_echDrLisible(e.demandeur)) + ' prend le <b>' + esc(fmtDate(e.date2)) + '</b>, ' + esc(_echDrLisible(e.receveur)) + ' prend le <b>' + esc(fmtDate(e.date)) + '</b>';
     if (e.etat==='acceptee' && e.info) detail += '<br>' + esc(e.info);
@@ -3475,7 +3493,7 @@ async function echMajProposition(){
   if (blocContre.style.display==='block') _echMajCarteContre();
   const av = document.getElementById('echAvert');
   // (11/11/2026) Toute nouvelle sélection redemande la confirmation du 18 h et de l'absence.
-  ECH_PROP.ok18 = false; ECH_PROP.okAbs = false; ECH_PROP.okRea1 = false; ECH_PROP.okRea1Lui = false; ECH_PROP.ok18h = false;
+  ECH_PROP.ok18 = false; ECH_PROP.okAbs = false; ECH_PROP.okRea1 = false; ECH_PROP.okRea1Lui = false; ECH_PROP.ok18h = false; ECH_PROP.okInv = false;
   const _btn = document.getElementById('echEnvoyer');
   if (_btn) { _btn.textContent = _echLibEnvoyer(); _btn.disabled = false; }
   /* (15/11/2026) Pendant le dépôt : la proposition attend l'heure des réponses. */
@@ -3508,6 +3526,7 @@ async function envoyerProposition(btn){
   if (ECH_PROP.okRea1) charge.accepteRea1 = true;   // (12/11/2026) dans sa semaine Réa 1, il a confirmé
   if (ECH_PROP.okRea1Lui) charge.accepteRea1Lui = true;   // (18/11/2026) semaine Réa 1 du collègue, il a lu
   if (ECH_PROP.ok18h) charge.accepte18h = true;   // (12/11/2026) deux 18 h rapprochés, il a confirmé
+  if (ECH_PROP.okInv) charge.accepteInversion = true;   // (19/11/2026) le collègue est de garde ce jour-là : il propose d'inverser les rôles
   btn.disabled = true; btn.textContent='Vérification et envoi…';
   try {
     const r = await apiPost(charge);
@@ -3516,7 +3535,7 @@ async function envoyerProposition(btn){
       /* Même principe qu'à la réponse : la demande créée s'affiche depuis ce
          qu'on vient d'envoyer (id rendu par le serveur), sans dépendre de la
          vitesse de propagation de la copie rapide. */
-      ECH_LISTE.unshift({ id: r.id, creeLe: new Date().toISOString(), type: charge.type,
+      ECH_LISTE.unshift({ id: r.id, creeLe: new Date().toISOString(), type: r.type || charge.type,
         annee: charge.year, date: charge.date, date2: charge.date2 || '',
         demandeur: MY_ID, receveur: qui, etat: 'attente', reponduLe: '', info: '' });
       majEchangesHero();
@@ -3531,6 +3550,14 @@ async function envoyerProposition(btn){
       av.style.display = 'block'; av.textContent = r.error.replace(/^\[ABS\] /, '');
       ECH_PROP.okAbs = true;
       btn.disabled = false; btn.textContent = 'Confirmer : je prends cette garde';
+      return;
+    }
+    /* (19/11/2026) Don d'un 18 h à un collègue de garde ce jour-là : on propose d'inverser les rôles. */
+    if (r && /^\[INV\] /.test(r.error || '')) {
+      const av = document.getElementById('echAvert');
+      av.style.display = 'block'; av.textContent = r.error.replace(/^\[INV\] /, '');
+      ECH_PROP.okInv = true;
+      btn.disabled = false; btn.textContent = 'Proposer l\'inversion';
       return;
     }
     if (r && /^\[18\] /.test(r.error || '')) {
