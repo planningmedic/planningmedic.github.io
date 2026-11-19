@@ -1,7 +1,7 @@
 // ⚠️ RÈGLE (détecteur de dérive dépôt↔Apps Script) : incrémenter cette version
 // à CHAQUE push de ce fichier. Le diagnostic (admin → Maintenance) compare la
 // version déployée ici avec celle du dépôt et signale toute recopie oubliée.
-const GAS_VERSION_INDISPOS = '2026-11-18.2';   // (18/11/2026) .2 : actions solveurLancer, solveurEtat, solveurAppliquer (rôle maintenance, solveur.gs) · (18/11/2026) action miroirSyncMaintenant (rôle maintenance) · (17/11/2026) actions getPointsVerif et marquerPrevenu (comité) · (15/11/2026) .2 : clôture, répétition, changement d'année et fermeture de campagne réservés au droit Maintenance (code comité refusé) · (15/11/2026) clôture d'année : archiveYear délègue à la clôture complète en un appel (cloturerAnnee_), actions cloturerAnnee et clotureVerifier (répétition à blanc) ; setActiveYear relit la case et échoue si rien n'a été écrit · (11/11/2026) action annulerEchange (tout code valide, le demandeur seul — contrôlé dans echanges.gs) · (11/11/2026) action recupsReparer (rôle maintenance) · (01/11/2026) rôle `maintenance` (diagComplet, viderCacheConfig, sendCodes) · (27/10/2026) demi-journées de vacances VM/VA (CODES_DEMI_VAC) · (27/10/2026) champ ordreMc (colonne ORDRE_MC) · (24/10/2026) action journalAppliquerMaintenant (journal.gs) · (18/10/2026) rôle « paie » (code partagé des secrétaires de paie) + refus par défaut de tout rôle autre que admin/mar hors de sa liste blanche
+const GAS_VERSION_INDISPOS = '2026-11-19.1';   // (19/11/2026) .1 : action savePlanningNotes (notes du planning : interne en réa, infos du jour), sous verrou · (18/11/2026) .2 : actions solveurLancer, solveurEtat, solveurAppliquer (rôle maintenance, solveur.gs) · (18/11/2026) action miroirSyncMaintenant (rôle maintenance) · (17/11/2026) actions getPointsVerif et marquerPrevenu (comité) · (15/11/2026) .2 : clôture, répétition, changement d'année et fermeture de campagne réservés au droit Maintenance (code comité refusé) · (15/11/2026) clôture d'année : archiveYear délègue à la clôture complète en un appel (cloturerAnnee_), actions cloturerAnnee et clotureVerifier (répétition à blanc) ; setActiveYear relit la case et échoue si rien n'a été écrit · (11/11/2026) action annulerEchange (tout code valide, le demandeur seul — contrôlé dans echanges.gs) · (11/11/2026) action recupsReparer (rôle maintenance) · (01/11/2026) rôle `maintenance` (diagComplet, viderCacheConfig, sendCodes) · (27/10/2026) demi-journées de vacances VM/VA (CODES_DEMI_VAC) · (27/10/2026) champ ordreMc (colonne ORDRE_MC) · (24/10/2026) action journalAppliquerMaintenant (journal.gs) · (18/10/2026) rôle « paie » (code partagé des secrétaires de paie) + refus par défaut de tout rôle autre que admin/mar hors de sa liste blanche
 
 /* ── (01/08/2026) MARQUEUR DE TEMPS GLOBAL — mesure, ne change rien ───────
    `_srv_ms` chronometre l'INTERIEUR de doGet. Or avant que doGet soit appele,
@@ -282,6 +282,7 @@ const WRITE_ACTIONS_LOCK = new Set([
   'saveIndispos', 'saveIndisposBatch', 'saveMedecin', 'savePeriodes', 'setActiveYear',
   'setDailyStatus', 'setIndisposYear',
   'declareLiberal', 'deleteLiberal',
+  'savePlanningNotes',   // (19/11/2026) notes du planning : lire-modifier-écrire sur PLANNING_NOTES
 ]);
 
 // (Lot 5-bis) PERIMETRE DU ROLE SECRETARIAT — liste blanche, REFUS PAR DEFAUT.
@@ -403,6 +404,7 @@ function _actions_() {
     "clearIndisposYear"           : { role: 'maintenance'       , fn: _act_clearIndisposYear },   // indisponibilites.gs (15/11/2026) page Maintenance seulement
     "savePlanningOverride"        : { role: 'admin'             , fn: _act_savePlanningOverride },   // gardes.gs
     "savePlanningOverridesBatch"  : { role: 'admin'             , fn: _act_savePlanningOverridesBatch },   // gardes.gs
+    "savePlanningNotes"           : { role: 'admin'             , fn: _act_savePlanningNotes },   // gardes.gs (19/11/2026) interne en réa + infos du jour
     "getPanneauSemaine"           : { role: 'admin'             , fn: _act_getPanneauSemaine },   // gardes.gs
     "getMARsDispoJour"            : { role: 'admin'             , fn: _act_getMARsDispoJour },   // gardes.gs
     "setDailyStatus"              : { role: 'admin'             , fn: _act_setDailyStatus },   // gardes.gs

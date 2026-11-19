@@ -172,6 +172,33 @@ const aimant = (C, init) => [...C.querySelectorAll('.jb-aim')].filter(a => a.fir
     V('AVANT (v1.56.1) : la case de l\'après-midi avait un retrait (12 px de moins)', !!r2 && /padding-left:10px/.test(r2), r2);
   } else V('historique git disponible pour la contre-preuve (cloner sans --depth 1)', false);
 
+  /* (19/11/2026) Notes du planning publiées : interne de réa, infos du jour. Demande du
+     responsable : rien ne s'affiche s'il n'y a pas d'info ; sinon un petit dépliant.
+     CONTRE-ÉPREUVE : sans ce code, ni aimant INT ni « ℹ Infos du jour ». */
+  console.log('\n═══ P9. Interne de réa et infos du jour ═══');
+  {
+    MOIS.notes = null;
+    const { w: w9 } = monter(lire('planning.html')); await dodo(300);
+    w9.__notes = { '2027-03-02': { int: ['am'], info: 'ortho 2 salles\nendo 1 salle' } };
+    const avecNotes = (date) => { w9.eval(`todayStr = () => '2027-03-02'; DATA = { months: ${JSON.stringify(MOIS)}, notes: window.__notes };
+      SECTORS_DEF = ${JSON.stringify(SECT)}; MY_ID = 'MOI'; currentMonthId = 'm3'; buildMobileDayList();
+      currentDayIdx = allDaysFlat.findIndex(x => x.date === '${date}'); renderMobileDay();`); return w9.document.getElementById('mobileDayContent'); };
+    let C9 = avecNotes('2027-03-02');
+    const inf = C9.querySelector('details.jb-info');
+    V('jour avec info : un dépliant « ℹ Infos du jour », fermé', !!inf && !inf.open && /Infos du jour/.test(txt(inf.querySelector('summary'))));
+    V('…qui contient le texte saisi par le comité', inf && /ortho 2 salles/.test(inf.textContent) && /endo 1 salle/.test(inf.textContent));
+    const rea = [...C9.querySelectorAll('.jb-plaque')].find(p => /Réanimation/.test(txt(p.querySelector('.jb-ruban'))));
+    const cases = rea ? rea.querySelectorAll('.jb-case') : [];
+    V('interne : aimant INT dans la réanimation le matin', cases[0] && aimant(cases[0], 'INT').length === 1);
+    V('…et pas l\'après-midi', cases[1] && aimant(cases[1], 'INT').length === 0);
+    C9 = avecNotes('2027-03-03');
+    V('jour sans info : rien ne s\'affiche', !C9.querySelector('details.jb-info'));
+    const src = lire('planning.html');
+    V('vue semaine : l\'info se déplie dans l\'en-tête du jour, seulement s\'il y en a une',
+      /\$\{_infoJour\(slot\.date\)\?`<details class="jinfo"><summary>ℹ Infos<\/summary>/.test(src));
+    V('vue semaine : la pastille INT entre dans la case de réanimation', /smap\.REA\[dow\]\[h\]\.push\(\{init:'INT',status:'INT'/.test(src));
+  }
+
   console.log(`\n${ok} réussite(s), ${ko} échec(s)`);
   process.exit(ko ? 1 : 0);
 })();

@@ -758,6 +758,17 @@ body{font-variant-numeric:tabular-nums}
 .eqv-verdict{font-size:11px;white-space:nowrap;min-width:52px;text-align:right;font-weight:700}
 .eqv-chev{font-size:11px;color:var(--ink-4);width:10px;text-align:center}
 </style>
+<style>
+/* (19/11/2026) Notes du planning : interne de réa, infos du jour (dépliables, absentes s'il n'y a rien) */
+.slot-name.chip-int { background:#F4F3FF; color:#5925DC; }
+details.jinfo { margin:4px 0 2px; font-size:10.5px; text-align:left; }
+details.jinfo summary { cursor:pointer; list-style:none; font-weight:700; color:#175CD3; background:#EFF8FF; border-radius:999px; padding:1px 7px; display:inline-block; }
+details.jinfo summary::-webkit-details-marker { display:none; }
+details.jinfo div { margin-top:4px; font-weight:500; color:#344054; text-transform:none; letter-spacing:0; line-height:1.35; white-space:pre-wrap; }
+details.jb-info { margin:0 0 12px; background:#EFF8FF; border:1px solid #D1E9FF; border-radius:14px; padding:10px 14px; font-size:14px; }
+details.jb-info summary { cursor:pointer; font-weight:700; color:#175CD3; }
+details.jb-info p { margin:6px 0 0; color:#344054; white-space:pre-wrap; }
+</style>
 </head>
 <body>
 
@@ -1854,6 +1865,10 @@ function render(){
 
 // ── TABLE ──────────────────────────────────────────────────────────────
 const DAYS_FR = ['LUNDI','MARDI','MERCREDI','JEUDI','VENDREDI','SAMEDI','DIMANCHE'];
+/* (19/11/2026) NOTES DU PLANNING (publiées avec le planning) : interne de réa et infos du jour.
+   Rien ne s'affiche s'il n'y a rien ; une info se déplie au clic. */
+function _notesDuJour(ds){ return (DATA && DATA.notes && DATA.notes[ds]) || {}; }
+function _infoJour(ds){ return _notesDuJour(ds).info || ''; }
 
 function renderTable(month,daySlots,week){
   const today=todayStr();
@@ -1868,6 +1883,7 @@ function renderTable(month,daySlots,week){
     thead+=`<th class="${cls}">
       <div class="day-name">${DAYS_FR[i]}</div>
       <div class="day-date">${slot.day}${isFerie?' <span style="font-size:8px;color:#C2410C;font-weight:700">JF</span>':''}</div>
+      ${_infoJour(slot.date)?`<details class="jinfo"><summary>ℹ Infos</summary><div>${esc(_infoJour(slot.date))}</div></details>`:''}
       <div class="am-pm-labels">
         <div class="am-pm-label">AM</div>
         <div class="am-pm-label pm">PM</div>
@@ -1907,6 +1923,8 @@ function renderTable(month,daySlots,week){
     });
   });
 
+  /* (19/11/2026) Interne de réanimation (notes du planning publiées) : pastille INT dans la réa. */
+  if(smap.REA) daySlots.forEach((slot,dow)=>{ if(!slot) return; (_notesDuJour(slot.date).int||[]).forEach(h=>{ if(smap.REA[dow][h]) smap.REA[dow][h].push({init:'INT',status:'INT',sector:'REA'}); }); });
   const active=SECTORS_DEF.filter(s=>s.code!=='CS'&&smap[s.code].some(d=>d.am.length||d.pm.length));
   let tbody='<tbody>';
   active.forEach(s=>{
@@ -1933,7 +1951,7 @@ function renderTable(month,daySlots,week){
       } else {
         const amNames=smap[s.code][dow].am;
         const pmNames=smap[s.code][dow].pm;
-        const makeChips=arr=>{ const chips=arr.map(p=>{const c=(p.status==='G'||p.status==='G2')?'slot-name chip-guard':p.status==='18'?'slot-name chip-h18':'slot-name';const me=(MY_INIT&&p.init===MY_INIT)?' me-chip':'';return `<span class="${c}${me}">${p.init||''}</span>`;});if(chips.length%2!==0)chips.push('<span class="slot-name-spacer"></span>');return chips.join('');};
+        const makeChips=arr=>{ const chips=arr.map(p=>{const c=(p.status==='G'||p.status==='G2')?'slot-name chip-guard':p.status==='18'?'slot-name chip-h18':p.status==='INT'?'slot-name chip-int':'slot-name';const me=(MY_INIT&&p.init===MY_INIT)?' me-chip':'';return `<span class="${c}${me}">${p.init||''}</span>`;});if(chips.length%2!==0)chips.push('<span class="slot-name-spacer"></span>');return chips.join('');};
         tbody+=`<div class="slot-pair">
           <div class="slot">${amNames.length?makeChips(amNames):'<span class="slot-dash">—</span>'}</div>
           <div class="slot">${pmNames.length?makeChips(pmNames):'<span class="slot-dash">—</span>'}</div>
@@ -1953,7 +1971,7 @@ function renderTable(month,daySlots,week){
 function renderConsPanel(month,daySlots,today){
   const panel=document.getElementById('consPanel');
   if(!panel) return;
-  const CS_LABELS={VIS:'Viscéral',ORL:'ORL',ORT:'Ortho',END:'Endoscopies',MAT:'Maternité',INTER:'Interventionnel',POLY:'Polyvalent'};
+  const CS_LABELS={VIS:'Viscéral',ORL:'ORL',ORT:'Ortho',END:'Endoscopies',MAT:'Maternité',INTER:'Interventionnel',POLY:'Polyvalent',PED:'Pédiatrie'};
   const csColor=spec=>SECTOR_COLORS[spec]||(spec==='INTER'?SECTOR_COLORS.CI:spec==='POLY'?SECTOR_COLORS.VOLANT:{bg:'#F1F5F9',fg:'#64748B'});
   const nameOf=id=>_tit(id)+id.charAt(0)+id.slice(1).toLowerCase();
   const cons=Array(7).fill(null).map(()=>({am:[],pm:[]}));
@@ -3065,6 +3083,8 @@ function renderMobileDay() {
     }
   });
 
+  /* (19/11/2026) Interne de réa et infos du jour (notes du planning). */
+  if (smap.REA) (_notesDuJour(dayData.date).int||[]).forEach(h=>{ if(smap.REA[h]) smap.REA[h].push('INT'); });
   /* (03/11/2026, v1.56) TABLEAU AIMANTÉ — maquette B1 validée par le responsable.
      Chaque MAR est un aimant posé dans la case de son secteur (matin / après-midi).
      Sur l'aimant : « G » de garde le soir, « 18 h » poste jusqu'à 18 h, « lib. »
@@ -3080,6 +3100,7 @@ function renderMobileDay() {
     return '<span class="jb-aim'+(moi?' moi':'')+(o.petit?' petit':'')+'"'+(moi?' aria-label="'+esc(init)+', vous"':'')+'>'+esc(init)+ong+'</span>'; };
   const vide = '<span class="jb-vide">Libre</span>';
   let html = '';
+  if (_infoJour(dayData.date)) html += '<details class="jb-info"><summary>ℹ Infos du jour</summary><p>'+esc(_infoJour(dayData.date))+'</p></details>';
 
   // Garde de la nuit — Réa (G) toujours en premier, Maternité (G2) ensuite
   const gardesDu = date => { for (const m of DATA.months) { const di=m.days.findIndex(d=>d.date===date); if(di<0) continue;
@@ -3130,8 +3151,8 @@ function renderMobileDay() {
         + '<div class="jb-case">'+(x.pm.length?x.pm.map(i=>aim(i)).join(''):vide)+'</div></div></section>'; });
     html += '</div>';
     // Consultations — une ligne par spécialité, l'aimant porte « lib. » quand c'est la consultation libérale
-    const CS_LABELS={VIS:'Viscéral',ORL:'ORL',ORT:'Ortho',END:'Endoscopies',MAT:'Maternité',INTER:'Interventionnel',POLY:'Polyvalent'};
-    const CS_ORDER=['VIS','ORL','ORT','END','MAT','INTER','POLY'];
+    const CS_LABELS={VIS:'Viscéral',ORL:'ORL',ORT:'Ortho',END:'Endoscopies',MAT:'Maternité',INTER:'Interventionnel',POLY:'Polyvalent',PED:'Pédiatrie'};
+    const CS_ORDER=['VIS','ORL','ORT','END','MAT','INTER','POLY','PED'];
     const consSpecs=Object.keys(cons).sort((a,b)=>{const ia=CS_ORDER.indexOf(a),ib=CS_ORDER.indexOf(b);return (ia<0?99:ia)-(ib<0?99:ib)||a.localeCompare(b);});
     if (consSpecs.length) {
       const cel = arr => arr.map(o=>aim(o.init,{petit:true,lib:o.lib})).join('');

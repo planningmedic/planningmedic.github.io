@@ -4,7 +4,7 @@
    quelles : aucune ligne de logique modifiée, seulement déplacée. Le routeur et
    ses aides (checkCode, _deny, _error, doGet/doPost) restent dans Indispos.gs.
    Un seul espace global dans Apps Script : rien à importer. */
-const GAS_VERSION_GARDES = '2026-11-19.4';   // (19/11/2026) .4 : le rappel « demande de TP en attente » renvoie à la tuile Temps partiel (bouton Valider) · (19/11/2026) .3 : texte du rappel « demande de TP en attente » : la validation se fait en haut de l'onglet Contrôles (plus l'onglet Équipe) · (19/11/2026) .2 : échange de gardes — un R sur la garde reçue ne bloque plus, il est reposé ailleurs (comme pour un don) · (19/11/2026) .1 : échange de gardes — un 18 h sur la garde reçue ne bloque plus : l'autre MAR, libéré ce jour-là, le reprend (comme pour un don) · (18/11/2026) .1 : PRÉSENCE JOUR PAR JOUR envoyée avec les contrôles (presence : postables, repos de garde et absents par motif, chaque jour ouvré) pour la heatmap de l'onglet Contrôles — même compte que la pose des TP · (17/11/2026) .2 : ONGLET CONTRÔLES — six familles (Réa 1, temps partiel, congés, 18 h, récupérations, gardes), points rouge / orange / info et liste de ce qui est en ordre ; jour tendu = sous le seuil d'alerte de l'onglet SEUILS ; une récup en vacances scolaires n'est plus un point · (17/11/2026) POINTS À VÉRIFIER (onglet Statuts du comité) : semaine Réa 1 occupée, vacances au-delà du droit, temps partiel un jour tendu — recalculés à chaque lecture (getPointsVerif) ; case « Prévenu » gardée dans l'onglet VERIF_PREVENUS (marquerPrevenu) · (12/11/2026) statistiques : V (vendredis), WE = samedis + dimanches et sa part transmis à l'écran d'équité (champsWeStats_) · (12/11/2026) plus aucun nom de personne dans le code : l'exclusion d'une ligne MEDECINS par son nom (rotation des fêtes) est retirée, aucune ligne ne le portait · (12/11/2026) don d'un 18 h (don18Jour) : le receveur doit être libre ce jour-là, rien n'est écrasé · (11/11/2026) échange de gardes refusé : le motif nomme le MAR, le jour et la raison (garde, repos de garde, 18 h, récupération) au lieu de « un des médecins a déjà une garde » · (11/11/2026) don et échange : une absence (V, VM, VA, F, TP, CL, CTP, CP, A) confirmée par le MAR est écrasée par la garde et son repos (mod.ecraserAbsences), tracée dans l'historique · (11/11/2026) applyModification du comité : don et échange passent par appliquerGesteComite_ · (11/11/2026) échange de gardes : le repos d'arrivée n'écrase plus une absence, pas de garde la veille ni le lendemain · (11/11/2026) échange de deux 18 h (echange18Jours) · (11/11/2026) le comité pose un R (statut « R ») et le lien samedi → R se recolle · (10/11/2026) lotRolesVerifier / lotRolesAppliquer (inversion réa / mater par lot, depuis l'éditeur) · (10/11/2026) un échange, un don ou une modification republie et prévient (MAR et paie) pour l'année DE LA GARDE, plus l'année active · (10/11/2026) le suivi des gestes écrit dans son propre onglet TRACES, plus jamais dans HISTORIQUE (archive des gardes par année) · (10/11/2026) onglet de suivi (TP, modifications, échanges, lot de 18 h), jamais effacé · (10/11/2026) lot18hVerifier / lot18hAppliquer (réattribution de 18 h par lot, depuis l'éditeur) · (27/10/2026) VM/VA : bloquent un don/échange, comptent 0,5 jour au reliquat · (18/10/2026) action getPlanningPaie (vue des secrétaires de paie)
+const GAS_VERSION_GARDES = '2026-11-19.5';   // (19/11/2026) .5 : NOTES DU PLANNING (onglet PLANNING_NOTES) — interne en réa (INT, matin / après-midi) et infos du jour (texte libre) : loadPlanningNotes, savePlanningNotesBatch, action savePlanningNotes · (19/11/2026) .4 : le rappel « demande de TP en attente » renvoie à la tuile Temps partiel (bouton Valider) · (19/11/2026) .3 : texte du rappel « demande de TP en attente » : la validation se fait en haut de l'onglet Contrôles (plus l'onglet Équipe) · (19/11/2026) .2 : échange de gardes — un R sur la garde reçue ne bloque plus, il est reposé ailleurs (comme pour un don) · (19/11/2026) .1 : échange de gardes — un 18 h sur la garde reçue ne bloque plus : l'autre MAR, libéré ce jour-là, le reprend (comme pour un don) · (18/11/2026) .1 : PRÉSENCE JOUR PAR JOUR envoyée avec les contrôles (presence : postables, repos de garde et absents par motif, chaque jour ouvré) pour la heatmap de l'onglet Contrôles — même compte que la pose des TP · (17/11/2026) .2 : ONGLET CONTRÔLES — six familles (Réa 1, temps partiel, congés, 18 h, récupérations, gardes), points rouge / orange / info et liste de ce qui est en ordre ; jour tendu = sous le seuil d'alerte de l'onglet SEUILS ; une récup en vacances scolaires n'est plus un point · (17/11/2026) POINTS À VÉRIFIER (onglet Statuts du comité) : semaine Réa 1 occupée, vacances au-delà du droit, temps partiel un jour tendu — recalculés à chaque lecture (getPointsVerif) ; case « Prévenu » gardée dans l'onglet VERIF_PREVENUS (marquerPrevenu) · (12/11/2026) statistiques : V (vendredis), WE = samedis + dimanches et sa part transmis à l'écran d'équité (champsWeStats_) · (12/11/2026) plus aucun nom de personne dans le code : l'exclusion d'une ligne MEDECINS par son nom (rotation des fêtes) est retirée, aucune ligne ne le portait · (12/11/2026) don d'un 18 h (don18Jour) : le receveur doit être libre ce jour-là, rien n'est écrasé · (11/11/2026) échange de gardes refusé : le motif nomme le MAR, le jour et la raison (garde, repos de garde, 18 h, récupération) au lieu de « un des médecins a déjà une garde » · (11/11/2026) don et échange : une absence (V, VM, VA, F, TP, CL, CTP, CP, A) confirmée par le MAR est écrasée par la garde et son repos (mod.ecraserAbsences), tracée dans l'historique · (11/11/2026) applyModification du comité : don et échange passent par appliquerGesteComite_ · (11/11/2026) échange de gardes : le repos d'arrivée n'écrase plus une absence, pas de garde la veille ni le lendemain · (11/11/2026) échange de deux 18 h (echange18Jours) · (11/11/2026) le comité pose un R (statut « R ») et le lien samedi → R se recolle · (10/11/2026) lotRolesVerifier / lotRolesAppliquer (inversion réa / mater par lot, depuis l'éditeur) · (10/11/2026) un échange, un don ou une modification republie et prévient (MAR et paie) pour l'année DE LA GARDE, plus l'année active · (10/11/2026) le suivi des gestes écrit dans son propre onglet TRACES, plus jamais dans HISTORIQUE (archive des gardes par année) · (10/11/2026) onglet de suivi (TP, modifications, échanges, lot de 18 h), jamais effacé · (10/11/2026) lot18hVerifier / lot18hAppliquer (réattribution de 18 h par lot, depuis l'éditeur) · (27/10/2026) VM/VA : bloquent un don/échange, comptent 0,5 jour au reliquat · (18/10/2026) action getPlanningPaie (vue des secrétaires de paie)
 
 // ── Sonde : les positions de STATS que code.gs lit à l'aveugle ──
 function _sondeStatsEntetes_(check, R, annee) {
@@ -1805,6 +1805,80 @@ return ContentService.createTextOutput(JSON.stringify({success: true, saved: res
   } catch(e) {
 return _error(e.message);
   }
+}
+
+/* ══ (19/11/2026) NOTES DU PLANNING — onglet PLANNING_NOTES ══════════════
+   Ce qui n'est PAS un placement de MAR et ne doit donc jamais aller dans
+   PLANNING_OVERRIDES (relu partout comme « un MAR, un jour ») :
+     - INT  : l'interne de réanimation, au matin et/ou à l'après-midi ;
+     - INFO : les infos du jour, texte libre saisi par le comité.
+   Colonnes : DATE | TYPE | DEMI | TEXTE. Une ligne par (DATE, TYPE, DEMI) ;
+   un texte vide supprime la ligne. Les notes partent dans planning_{Y}.json
+   à la publication (vue des MAR) et dans config_admin (vue du comité). */
+const NOTES_ENTETE_ = ['DATE', 'TYPE', 'DEMI', 'TEXTE'];
+const NOTES_TYPES_ = { INT: true, INFO: true };
+function _notesOnglet_(creer) {
+  const ss = SpreadsheetApp.getActiveSpreadsheet();
+  let sh = ss.getSheetByName('PLANNING_NOTES');
+  if (!sh && creer) { sh = ss.insertSheet('PLANNING_NOTES'); sh.appendRow(NOTES_ENTETE_); sh.setFrozenRows(1); }
+  return sh;
+}
+function _notesDate_(v) {
+  if (v instanceof Date) return v.getFullYear() + '-' + String(v.getMonth() + 1).padStart(2, '0') + '-' + String(v.getDate()).padStart(2, '0');
+  return String(v || '').trim().slice(0, 10);
+}
+/* { 'AAAA-MM-JJ': { info: 'texte', int: ['am','pm'] } } — l'objet est vide s'il n'y a rien. */
+function loadPlanningNotes() {
+  const sh = _notesOnglet_(false);
+  const out = {};
+  if (!sh || sh.getLastRow() < 2) return out;
+  sh.getDataRange().getValues().slice(1).forEach(function (r) {
+    const d = _notesDate_(r[0]), t = String(r[1] || '').trim().toUpperCase(), demi = String(r[2] || '').trim().toLowerCase(), x = String(r[3] == null ? '' : r[3]).trim();
+    if (!/^\d{4}-\d{2}-\d{2}$/.test(d) || !NOTES_TYPES_[t] || !x) return;
+    const j = out[d] = out[d] || {};
+    if (t === 'INFO') j.info = x;
+    if (t === 'INT' && (demi === 'am' || demi === 'pm')) { j.int = j.int || []; if (j.int.indexOf(demi) < 0) j.int.push(demi); }
+  });
+  return out;
+}
+/* items : [{date, type:'INT'|'INFO', demi:'am'|'pm'|'', texte}] — texte vide = suppression. */
+function savePlanningNotesBatch(items) {
+  const sh = _notesOnglet_(true);
+  const data = sh.getDataRange().getValues();
+  const ligneDe = {};
+  for (let r = 1; r < data.length; r++) {
+    ligneDe[_notesDate_(data[r][0]) + '|' + String(data[r][1] || '').trim().toUpperCase() + '|' + String(data[r][2] || '').trim().toLowerCase()] = r + 1;
+  }
+  const aSupprimer = [];
+  let ecrits = 0;
+  items.forEach(function (it) {
+    const d = _notesDate_(it && it.date), t = String((it && it.type) || '').trim().toUpperCase();
+    let demi = String((it && it.demi) || '').trim().toLowerCase();
+    if (!/^\d{4}-\d{2}-\d{2}$/.test(d) || !NOTES_TYPES_[t]) return;
+    if (t === 'INFO') demi = '';
+    if (t === 'INT' && demi !== 'am' && demi !== 'pm') return;
+    const texte = String((it && it.texte) == null ? '' : it.texte).trim().slice(0, 400);
+    const cle = d + '|' + t + '|' + demi, ligne = ligneDe[cle];
+    if (!texte) { if (ligne) aSupprimer.push(ligne); ecrits++; return; }
+    if (ligne) sh.getRange(ligne, 1, 1, 4).setValues([[d, t, demi, texte]]);
+    else { sh.appendRow([d, t, demi, texte]); ligneDe[cle] = sh.getLastRow(); }
+    ecrits++;
+  });
+  aSupprimer.sort(function (a, b) { return b - a; }).forEach(function (l) { sh.deleteRow(l); });
+  return { saved: ecrits };
+}
+/* ── action "savePlanningNotes" (comité) ── */
+function _act_savePlanningNotes(R) {
+  const { payload, user } = R;
+  if (user.role !== 'admin') return _deny();
+  const items = Array.isArray(payload.items) ? payload.items : [];
+  if (!items.length) return _error('items requis');
+  try {
+    const res = savePlanningNotesBatch(items);
+    logAction('savePlanningNotes — ' + res.saved + ' note(s)');
+    return ContentService.createTextOutput(JSON.stringify({ success: true, saved: res.saved, notes: loadPlanningNotes() }))
+      .setMimeType(ContentService.MimeType.JSON);
+  } catch (err) { return _error(err.message); }
 }
 
 /* ── action "getPanneauSemaine" ── */

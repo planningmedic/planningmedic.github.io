@@ -237,6 +237,46 @@ const colJour = dow => (dow < 5 ? 2 + dow * 4 : 22 + (dow - 5) * 4);
       /const dect\s*=\s*m\.dect\s*\|\|\s*''/.test(src));
   }
 
+  /* ── (19/11/2026) Pédiatrie optionnelle, interne de réa, infos du jour, sorties séparées ──
+     Demande du responsable (planning papier S47) : la ligne PEDIATRIE n'existe que la
+     semaine où elle sert ; l'interne apparaît en réanimation ; les infos du jour
+     remplissent INFORMATIONS ; les sorties de garde sont séparées réa / anesth.
+     CONTRE-ÉPREUVE : sur la version d'avant, PEDIATRIE est écrite vide chaque semaine,
+     INT et l'info manquent, et il n'existe qu'une ligne « SORTIES DE GARDE ». */
+  {
+    console.log('\n═══ Pédiatrie optionnelle, interne, infos, sorties séparées ═══');
+    w.eval(`
+      SECTEURS_CFG = SECTEURS_CFG.concat([{ code:'PED', label:'Pédiatrie', court:'PED', aff:null, icon:'', bg:'#EEF8E6', fg:'#3B7D0E', cs:null, actif:true, xlLabel:'PEDIATRIE', xlBg:'92D050', xlRows:1, ordre:4, optionnel:true }]);
+      rebuildSecteursDerivations();
+      CS_TYPES = CS_TYPES.concat([{ code:'CS-PED', label:'CS Pédiatrie', xlLabel:' CS PEDIA', xlBg:'92D050', ouvrable:true, optionnel:true }]);
+      window._PLAN_NOTES = { '2026-09-01': { int: ['am'], info: 'ortho 2 salles' } };
+    `);
+    await w.exportWeekExcel();
+    const ws2 = sortie.ws;
+    V('semaine sans pédiatrie : aucune ligne PEDIATRIE', ligneDe(ws2, 'PEDIATRIE') < 0);
+    V('…ni de ligne CS Pédiatrie', ligneDe(ws2, 'CS PEDIA') < 0);
+    const rR2 = ligneDe(ws2, 'REANIMATION');
+    V('interne : INT en réanimation le mardi matin', [val(ws2, rR2, MAR), val(ws2, rR2, MAR + 1)].includes('INT'), [val(ws2, rR2, MAR), val(ws2, rR2, MAR + 1)]);
+    V('…et pas l\'après-midi', ![val(ws2, rR2, MAR + 2), val(ws2, rR2, MAR + 3)].includes('INT'));
+    V('infos du mardi dans la case INFORMATIONS', val(ws2, ligneDe(ws2, 'INFORMATIONS'), MAR) === 'ortho 2 salles', val(ws2, ligneDe(ws2, 'INFORMATIONS'), MAR));
+    V('plus de ligne unique « SORTIES DE GARDE »', ligneDe(ws2, 'SORTIES DE GARDE') < 0);
+
+    w.eval(`(function () {
+      const s = DATA.months[1], k = dt => s.days.findIndex(d => d.date === dt), doc = id => s.doctors.find(d => d.id === id);
+      doc('BRAVO').days[k('2026-09-02')].status = 'RG';    // garde réa le 01/09
+      doc('CHARLI').days[k('2026-09-02')].status = 'RG';   // garde anesth le 01/09
+      doc('ALPHA').days[k('2026-09-01')].morning = 'VIS+PED';
+    })()`);
+    await w.exportWeekExcel();
+    const ws3 = sortie.ws;
+    const rP = ligneDe(ws3, 'PEDIATRIE');
+    V('pédiatrie utilisée : la ligne PEDIATRIE est écrite', rP > 0);
+    V('…avec AL le mardi matin', rP > 0 && val(ws3, rP, MAR) === 'AL', rP > 0 && val(ws3, rP, MAR));
+    V('sortie de garde réa du mercredi = BR', val(ws3, ligneDe(ws3, 'SORTIE GARDE REA'), MER) === 'BR', val(ws3, ligneDe(ws3, 'SORTIE GARDE REA'), MER));
+    V('sortie de garde anesth du mercredi = CH', val(ws3, ligneDe(ws3, 'SORTIE GARDE ANESTH'), MER) === 'CH', val(ws3, ligneDe(ws3, 'SORTIE GARDE ANESTH'), MER));
+    V('CS Pédiatrie toujours absente (personne, pas ouverte)', ligneDe(ws3, 'CS PEDIA') < 0);
+  }
+
   console.log('\n  ' + ok + ' v\u00e9rifications OK, ' + ko + ' en \u00e9chec');
   if (ko) process.exit(1);
 })();

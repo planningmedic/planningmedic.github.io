@@ -1,7 +1,7 @@
 // ⚠️ RÈGLE (détecteur de dérive dépôt↔Apps Script) : incrémenter cette version
 // à CHAQUE push de ce fichier. Le diagnostic (admin → Maintenance) compare la
 // version déployée ici avec celle du dépôt et signale toute recopie oubliée.
-const GAS_VERSION_PORTAIL = '2026-11-18.1';   // (18/11/2026) .1 topos rangés par année : un sous-dossier « 2026 », « 2027 »… du dossier Topos est une étagère d'année · (17/11/2026) .2 statistiques d'usage : jours de connexion des 28 derniers jours par médecin (frise) · (17/11/2026) onglet SEUILS : source unique des seuils d'effectif (pose des TP, contrôles, récupérations, bande de présence) ; graine du confort à 15 comme le classeur · (15/11/2026) .1 libéral : une année close est lue dans l'archive (relevé, déclarations, vue du jour) · (20/10/2026) .1 recherche dans les archives de la veille · .2 onglet ETABLISSEMENT (nom et adresse du devis) · .3 + service et téléphone · .4 + totaux de consultation du groupement · (21/10) .1 abonnement au mail de la veille
+const GAS_VERSION_PORTAIL = '2026-11-19.1';   // (19/11/2026) .1 : colonne OPTIONNEL lue dans SECTEURS et CS_TEMPLATE (secteurs et consultations optionnels, ex. pédiatrie) · (18/11/2026) .1 topos rangés par année : un sous-dossier « 2026 », « 2027 »… du dossier Topos est une étagère d'année · (17/11/2026) .2 statistiques d'usage : jours de connexion des 28 derniers jours par médecin (frise) · (17/11/2026) onglet SEUILS : source unique des seuils d'effectif (pose des TP, contrôles, récupérations, bande de présence) ; graine du confort à 15 comme le classeur · (15/11/2026) .1 libéral : une année close est lue dans l'archive (relevé, déclarations, vue du jour) · (20/10/2026) .1 recherche dans les archives de la veille · .2 onglet ETABLISSEMENT (nom et adresse du devis) · .3 + service et téléphone · .4 + totaux de consultation du groupement · (21/10) .1 abonnement au mail de la veille
 
 /**
  * portail.gs — actions du PORTAIL équipe (index.html).
@@ -1899,6 +1899,8 @@ function getCsTemplate() {
   if (_c) return _c;
   const sh = getOrCreateCsTemplateTab();
   const rows = sh.getDataRange().getValues();
+  /* (19/11/2026) Colonne OPTIONNEL, retrouvée par son EN-TÊTE (absente = aucune consultation optionnelle). */
+  const _cOpt = (rows[0] || []).map(function (h) { return String(h || '').trim().toUpperCase(); }).indexOf('OPTIONNEL');
   const types = [];
   const required = {};
   for (let d = 0; d < 5; d++) required[d] = { am: {}, pm: {} };
@@ -1919,6 +1921,7 @@ function getCsTemplate() {
       xlLabel:  String(rows[r][14] || '').replace(/\s+$/, '')
                 || ' ' + String(rows[r][1] || code).replace(/^CS[- ]*/i, '').trim().toUpperCase(),
       xlBg:     String(rows[r][15] || '').trim().replace(/^#/, '').toUpperCase() || 'F2F2F2',
+      optionnel: _cOpt >= 0 && String(rows[r][_cOpt] || '').trim().toUpperCase() === 'O',   // (19/11/2026) affichée seulement si utilisée ou ouverte
     });
     for (let d = 0; d < 5; d++) {
       ['am', 'pm'].forEach(function (half, hi) {
@@ -2054,6 +2057,9 @@ function getSecteurs() {
   if (_c) return _c;
   const sh = getOrCreateSecteursTab();
   const rows = sh.getDataRange().getValues();
+  /* (19/11/2026) Colonne OPTIONNEL, retrouvée par son EN-TÊTE : un secteur optionnel (ex. pédiatrie)
+     n'apparaît dans la grille, l'Excel et le planning des MAR que la semaine où quelqu'un y est placé. */
+  const _cOpt = (rows[0] || []).map(function (h) { return String(h || '').trim().toUpperCase(); }).indexOf('OPTIONNEL');
   const out = [];
   for (let r = 1; r < rows.length; r++) {
     const code = String(rows[r][1] || '').trim();
@@ -2078,6 +2084,7 @@ function getSecteurs() {
       xlBg:      String(rows[r][12] || '').trim().replace(/^#/, '').toUpperCase()
                  || _XL_BG_DEFAUT,                                     // défaut : gris clair
       xlRows:    Math.max(1, Math.min(3, Number(rows[r][13]) || _XL_ROWS_DEFAUT)),
+      optionnel: _cOpt >= 0 && String(rows[r][_cOpt] || '').trim().toUpperCase() === 'O',
     });
   }
   out.sort((a, b) => a.ordre - b.ordre);

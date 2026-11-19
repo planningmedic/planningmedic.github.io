@@ -1,7 +1,7 @@
 // ⚠️ RÈGLE (détecteur de dérive dépôt↔Apps Script) : incrémenter cette version
 // à CHAQUE push de ce fichier. Le diagnostic (admin → Maintenance) compare la
 // version déployée ici avec celle du dépôt et signale toute recopie oubliée.
-const GAS_VERSION_MIROIR = '2026-11-12.2';   // (12/11/2026) copie des statistiques : V, WE = samedis + dimanches et sa part (champsWeStats_) · (11/11/2026) accepter ou annuler un échange repousse le planning de l'année DE LA DEMANDE (lue dans ECHANGES), plus l'année active · (11/11/2026) annulerEchange rafraîchit les échanges · (11/11/2026) recupsReparer rafraîchit planning et gardes · (06/11/2026) retrait d'annonceFinSaisie (envoyée) · (02/11/2026) commentaire : identifiants d'exemple fictifs · (27/10/2026) champ ordreMc dans acces · (20/10/2026) clé etablissement (nom et adresse du devis) · (21/10) setVeilleAbo → veille_marques
+const GAS_VERSION_MIROIR = '2026-11-19.1';   // (19/11/2026) .1 : notes du planning (PLANNING_NOTES) dans config_admin, poussées après savePlanningNotes et sur édition manuelle · (12/11/2026) copie des statistiques : V, WE = samedis + dimanches et sa part (champsWeStats_) · (11/11/2026) accepter ou annuler un échange repousse le planning de l'année DE LA DEMANDE (lue dans ECHANGES), plus l'année active · (11/11/2026) annulerEchange rafraîchit les échanges · (11/11/2026) recupsReparer rafraîchit planning et gardes · (06/11/2026) retrait d'annonceFinSaisie (envoyée) · (02/11/2026) commentaire : identifiants d'exemple fictifs · (27/10/2026) champ ordreMc dans acces · (20/10/2026) clé etablissement (nom et adresse du devis) · (21/10) setVeilleAbo → veille_marques
 
 /* ═══════════════════════════════════════════════════════════════════════
    MIROIR.GS — alimentation du miroir de lecture Cloudflare
@@ -75,6 +75,7 @@ const MIROIR_APRES_ECRITURE = {
   recupsReparer:              ['planning', 'config_admin', 'gardes', 'stats'],   // (11/11/2026) bouton Réparer : R posés ou retirés
   deleteOverride:             ['config_admin'],
   savePlanningOverridesBatch: ['config_admin'],
+  savePlanningNotes:          ['config_admin'],   // (19/11/2026) interne en réa et infos du jour : le comité les relit dans config_admin
   generateGardes:             ['annees', 'acces', 'config_admin', 'gardes', 'stats'],   // (22/08) `acces` porte la phase TP : la tuile doit suivre la génération
   declareLiberal:             ['liberal'],   // (2026-08-05.9) un MAR déclare → le volet du comité suit
   deleteLiberal:              ['liberal'],
@@ -278,6 +279,7 @@ const MIROIR_ONGLETS_SUIVIS = {
   ETABLISSEMENT: ['etablissement'],                // (20/10/2026) nom et adresse du devis
   AFFECTATIONS: ['affectations', 'config_admin'],  // détermine les cases à pourvoir
   PLANNING_OVERRIDES: ['config_admin'],
+  PLANNING_NOTES: ['config_admin'],               // (19/11/2026) correction manuelle d'une note du planning
   CS_TEMPLATE:  ['config_admin'],                  // modèle de consultations
   SEUILS:       ['config_admin'],                  // bornes de la carte de tension
   LIBERAL:      ['liberal'],
@@ -1247,6 +1249,7 @@ function _miroirConstruireConfigAdmin_(annee) {
   try { out.overrides = _buildOverrides_(); } catch (e) { out.overrides = null; }
   try { out.seuils = getSeuils(); } catch (e) { out.seuils = null; }
   try { out.csTemplate = getCsTemplate(); } catch (e) { out.csTemplate = null; }
+  try { out.notes = loadPlanningNotes(); } catch (e) { out.notes = null; }   // (19/11/2026) interne en réa, infos du jour
   try { out.anneeStatsFiables = PREMIERE_ANNEE_STATS_FIABLES; } catch (e) { out.anneeStatsFiables = null; }
   try { out.anneeSuivante = _jsonFilesByName_('planning_' + (annee + 1) + '.json').length > 0; } catch (e) { out.anneeSuivante = null; }
   return out;

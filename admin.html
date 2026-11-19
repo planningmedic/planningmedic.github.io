@@ -1346,6 +1346,25 @@ if (sessionStorage.getItem('adminCode')) {
 #dispoCard #pspTitle { font-size:18px !important; font-weight:600 !important; letter-spacing:-.3px; }
 #dispoCard #pspContent button[onclick^="placeMAR"] { border-radius:14px !important; padding:9px 11px !important; }
 #dispoCard #pspContent button[onclick^="placeMAR"] > span:first-child { font-family:'DM Sans',sans-serif !important; font-size:12px !important; border-radius:9px !important; padding:6px 8px !important; }
+/* (19/11/2026) Interne de réa, infos du jour, lignes optionnelles */
+#panel-planning .slot-int { font:600 11px 'DM Sans',sans-serif; letter-spacing:.04em; border-radius:8px; padding:5px 7px; line-height:1; background:#F4F3FF; color:#5925DC; border:1px solid #D9D6FE; cursor:pointer; }
+#panel-planning .slot-int-add { font:600 11px 'DM Sans',sans-serif; border-radius:8px; padding:4px 7px; line-height:1; border:1px dashed #D0D5DD; color:#98A2B3; cursor:pointer; opacity:0; transition:opacity .12s; }
+#panel-planning .slot:hover .slot-int-add { opacity:1; }
+#panel-planning .jinfo { display:inline-block; margin-top:6px; font-size:11px; font-weight:600; color:#98A2B3; cursor:pointer; opacity:0; transition:opacity .12s; }
+#panel-planning .th-day:hover .jinfo { opacity:1; }
+#panel-planning .jinfo.on { opacity:1; color:#175CD3; background:#EFF8FF; border-radius:999px; padding:2px 8px; }
+#panel-planning .opt-row td { padding:10px 16px; background:#FCFCFD; border-bottom:1px solid #F2F4F7; font-size:12px; color:#98A2B3; }
+#panel-planning .opt-row span { margin-right:8px; }
+.opt-btn { border:1px dashed #D0D5DD; background:#fff; border-radius:999px; padding:4px 11px; margin-right:6px; font:600 12px 'DM Sans',sans-serif; color:#475467; cursor:pointer; }
+.opt-btn:hover { border-color:#101828; color:#101828; }
+.info-fond { position:fixed; inset:0; background:rgba(16,24,40,.45); z-index:3000; display:none; align-items:center; justify-content:center; }
+.info-fond.on { display:flex; }
+.info-pan { background:#fff; border-radius:20px; padding:22px 24px; width:440px; max-width:calc(100vw - 32px); box-shadow:0 24px 60px rgba(16,24,40,.3); }
+.info-pan h3 { margin:0; font-size:18px; letter-spacing:-.3px; } .info-pan p { margin:4px 0 12px; font-size:12.5px; color:#475467; }
+.info-pan textarea { width:100%; box-sizing:border-box; border:1px solid #D0D5DD; border-radius:12px; padding:10px 12px; font:400 13.5px 'DM Sans',sans-serif; resize:vertical; }
+.info-act { display:flex; justify-content:flex-end; gap:8px; margin-top:12px; }
+.info-b { border:1px solid #EAECF0; background:#fff; border-radius:10px; padding:8px 14px; font:600 13px 'DM Sans',sans-serif; color:#344054; cursor:pointer; }
+.info-b.noir { background:#101828; border-color:#101828; color:#fff; }
 @media (max-width:720px){ #dispoCard{ top:auto !important; width:auto !important; max-height:78vh !important; border-radius:16px 16px 0 0 !important; } .pk{ grid-template-columns:1fr 1fr; } }
 </style>
 </head>
@@ -2194,7 +2213,7 @@ async function loadCsTemplate(pre) {
     if (!t || !Array.isArray(t.types) || !t.types.length || !t.required) { majBandeauConfig(); return; }
     // xlLabel / xlBg conservés : l'export Excel en a besoin (ils étaient perdus ici).
     CS_TYPES    = t.types.map(x => ({code:x.code, label:x.label || x.code,
-                                     xlLabel:x.xlLabel, xlBg:x.xlBg}));
+                                     xlLabel:x.xlLabel, xlBg:x.xlBg, optionnel: !!x.optionnel}));   // (19/11/2026) optionnel : affichée seulement si utilisée
     CS_OPENABLE = t.types.filter(x => x.ouvrable).map(x => x.code);
     CS_REQUIRED = t.required;
     CONFIG_KO.cs = false;
@@ -2422,6 +2441,7 @@ async function miroirBootAdmin(anneeVoulue, codeAcces) {
     if (_mail && _mail.success && typeof _mail.nonLus === 'number') { majCompteurMail(_mail.nonLus); _mailN = _mail.nonLus; }
   } catch (e) {}
   _MIROIR_CFG = cfg || null;                     // (v1.21.2) pour reconstruire l'etage 2 au changement d'annee
+  if (cfg && cfg.notes && typeof cfg.notes === 'object') window._PLAN_NOTES = cfg.notes;   // (19/11/2026) interne en réa, infos du jour
   _MIROIR_SECTEURS = m.data.secteurs || null;
   // (etage 2) Contexte du calcul LOCAL du panneau — null si une piece manque,
   // et dans ce cas les chemins serveur existants prennent la main.
@@ -4149,7 +4169,9 @@ function renderWeek() {
     const swEl = document.getElementById('statusWeek'); if (swEl) swEl.textContent = `S${wk.weekNum}`;
   }
 
-  const SECTORS = SECTEURS_ACTIFS.map(s => ({code:s.code, label:s.label, icon:s.icon}));
+  const SECTORS = SECTEURS_ACTIFS.map(s => ({code:s.code, label:s.label, icon:s.icon, optionnel: !!s.optionnel}));
+  /* (19/11/2026) Notes du planning : celles du comité (config_admin, à jour) sinon celles publiées. */
+  const NOTES = _notesPlanning();
 
   const ABSENT_V2 = new Set(['RG','V','F','CTP','R','A','TP']); // G, G2, 18 = présents en journée dans leur secteur
 
@@ -4382,8 +4404,11 @@ function renderWeek() {
     });
   }
 
+  /* (19/11/2026) Une ligne optionnelle (ex. pédiatrie) reste cachée tant que personne n'y est
+     placé ; « ＋ Pédiatrie », sous la grille, l'affiche pour la semaine. */
+  const _forcees = window._lignesAffichees || (window._lignesAffichees = new Set());
   const activeSectors = SECTORS.filter(s =>
-    smap[s.code].some(d => d.am.length||d.pm.length||d.flash_am||d.flash_pm)
+    smap[s.code].some(d => d.am.length||d.pm.length||d.flash_am||d.flash_pm) || (s.optionnel && _forcees.has(s.code))
   );
 
   /* (19/11/2026) CHIFFRES DE LA SEMAINE (refonte) — mêmes règles que les cases : un « + » orange
@@ -4442,10 +4467,14 @@ function renderWeek() {
         </div>`;
       }
     }
+    /* (19/11/2026) Infos du jour : « ℹ Infos » s'il y en a (survol = le texte), sinon « ✎ » au survol. */
+    const _inf = isWe ? '' : (((NOTES[slot.date] || {}).info)
+      ? `<span class="jinfo on" title="${_escHtml(NOTES[slot.date].info)}" onclick="editerInfo('${slot.date}')">ℹ Infos</span>`
+      : `<span class="jinfo" title="Ajouter une info pour ce jour" onclick="editerInfo('${slot.date}')">✎ Infos</span>`);
     thead += `<th class="${cls}">
       <div class="day-name">${JOURS_ABR[i]}</div>
       <div class="day-num">${slot.day}${jf}</div>
-      <div class="jst">${_etat}${npBadge}</div>${_pr}
+      <div class="jst">${_etat}${npBadge}</div>${_pr}${_inf}
       ${ampm}
     </th>`;
   });
@@ -4498,6 +4527,13 @@ function renderWeek() {
       const tt = dup ? `${p.id||''} — aussi placé dans un autre secteur ce demi-jour` : (p.id||'');
       html += `<span class="${cls}" title="${tt}" onclick="openMarMenu('${p.id}','${p.init}','${sector}','${date}','${slotKey}')">${p.init}</span>`;
     });
+    /* (19/11/2026) Interne de réanimation : pastille INT (clic = retirer), « ＋ INT » au survol. */
+    if (sector === 'REA') {
+      const _int = ((NOTES[date] || {}).int || []).indexOf(slotKey) >= 0;
+      html += _int
+        ? `<span class="slot-int" title="Interne — cliquer pour retirer" onclick="basculerInterne('${date}','${slotKey}')">INT</span>`
+        : `<span class="slot-int-add" title="Ajouter l'interne" onclick="basculerInterne('${date}','${slotKey}')">＋ INT</span>`;
+    }
     const _vide = _localVides[date] && _localVides[date].has(`${sector}|${slotKey}`);
     if (_vide) {
       if (!items.length) html += `<span onclick="openSidePanel('${sector}','${date}','${sectorLabel}','${slotKey}')" title="Laissée vide — cliquer pour modifier" style="color:#CBD5E1;font-size:13px;font-weight:700;cursor:pointer;padding:0 3px">∅</span>`;
@@ -4613,7 +4649,18 @@ function renderWeek() {
 
   // ── SOUS-LIGNES CONSULTATIONS (une par type, AM | PM) ──
   // Tous les secteurs sont affichés → chacun ouvrable chaque jour, AM comme PM.
-  const activeCsTypes = CS_TYPES;
+  /* (19/11/2026) Consultation optionnelle (ex. CS Pédiatrie) : affichée si quelqu'un y est, si elle
+     est ouverte cette semaine, ou si le comité l'a affichée avec « ＋ CS Pédiatrie ». */
+  const _csUtile = t => daySlots.some((slot, dow) => slot && ['am','pm'].some(h =>
+      (csTypeMap[t.code][dow][h] || []).length || (_localOpens[slot.date] && _localOpens[slot.date].has(`${t.code}|${h}`))));
+  const activeCsTypes = CS_TYPES.filter(t => !t.optionnel || _csUtile(t) || _forcees.has(t.code));
+  const _cachees = SECTORS.filter(s => s.optionnel && !activeSectors.includes(s)).map(s => ({code: s.code, label: s.label}))
+    .concat(CS_TYPES.filter(t => t.optionnel && !activeCsTypes.includes(t)).map(t => ({code: t.code, label: t.label})));
+  if (_cachees.length) {
+    tbody += `<tr class="opt-row"><td colspan="${daySlots.length + 1}"><span>Lignes optionnelles :</span>`
+      + _cachees.map(x => `<button class="opt-btn" onclick="afficherLigne('${x.code}')">＋ ${_escHtml(x.label)}</button>`).join('')
+      + `</td></tr>`;
+  }
   if (activeCsTypes.length) {
     const _lg='font-size:10px;color:#cbd5e1;display:inline-flex;align-items:center;gap:4px;text-transform:none;letter-spacing:0;font-weight:600';
     const _sw='width:15px;height:12px;border-radius:4px;display:inline-block';
@@ -4730,6 +4777,67 @@ function renderPlanKpis(o) {
     + `<div class="pk-t pk-pres" onclick="toggleTension()" title="Afficher ou masquer la bande de présence de l'année"><h4>Présents en journée</h4><div class="pk-mini">${pb}<div class="pk-seuil" style="bottom:${hPx(SEUIL_ALERTE) + 16}px"></div></div>`
     + `<div class="pk-s">${mini != null ? 'Plus bas : <b>' + pres[mini] + '</b> le ' + new Date(ouv[mini].date + 'T12:00:00').toLocaleDateString('fr-FR', { weekday: 'long', day: 'numeric' }) + (pres[mini] < SEUIL_ALERTE ? ' — sous le seuil de ' + SEUIL_ALERTE + '.' : '.') : '—'}</div></div>`
     + `<div class="pk-t"><h4>Gardes · ${gl}</h4><div class="pk-ab">${g.g ? '<span><b>' + g.g + '</b> garde réa</span>' : ''}${g.g2 ? '<span><b>' + g.g2 + '</b> garde mater</span>' : ''}${so.length ? '<span><b>' + so.join(' ') + '</b> sortie</span>' : ''}${!g.g && !g.g2 && !so.length ? '<span>—</span>' : ''}</div></div>`;
+}
+
+/* ══ (19/11/2026) NOTES DU PLANNING — interne en réa, infos du jour ══════════
+   Enregistrées tout de suite (action savePlanningNotes → onglet PLANNING_NOTES),
+   l'écran change avant la réponse. Les MAR les voient après « Publier ». */
+function _notesPlanning() {
+  if (window._PLAN_NOTES && typeof window._PLAN_NOTES === 'object') return window._PLAN_NOTES;
+  return (DATA && DATA.notes && typeof DATA.notes === 'object') ? DATA.notes : {};
+}
+async function _enregistrerNotes(items, avant) {
+  try {
+    const r = await api({ action: 'savePlanningNotes', items: items });
+    if (!r || !r.success) throw new Error((r && r.error) || 'refus du serveur');
+    if (r.notes && typeof r.notes === 'object') window._PLAN_NOTES = r.notes;   // la lecture du serveur fait foi
+    renderWeek();
+    return true;
+  } catch (e) {
+    window._PLAN_NOTES = avant; renderWeek();
+    toast('Note non enregistrée : ' + e.message, 'error');
+    return false;
+  }
+}
+function basculerInterne(date, demi) {
+  const avant = JSON.parse(JSON.stringify(_notesPlanning()));
+  const n = JSON.parse(JSON.stringify(avant)), j = n[date] = n[date] || {};
+  const l = j.int || [], on = l.indexOf(demi) >= 0;
+  j.int = on ? l.filter(x => x !== demi) : l.concat([demi]);
+  window._PLAN_NOTES = n; renderWeek();
+  return _enregistrerNotes([{ date: date, type: 'INT', demi: demi, texte: on ? '' : 'INT' }], avant);
+}
+function editerInfo(date) {
+  let fond = document.getElementById('infoFond');
+  if (!fond) {
+    fond = document.createElement('div'); fond.id = 'infoFond'; fond.className = 'info-fond';
+    fond.addEventListener('click', e => { if (e.target === fond) fond.classList.remove('on'); });
+    document.body.appendChild(fond);
+  }
+  const txt = (_notesPlanning()[date] || {}).info || '';
+  const lib = new Date(date + 'T12:00:00').toLocaleDateString('fr-FR', { weekday: 'long', day: 'numeric', month: 'long' });
+  fond.innerHTML = `<div class="info-pan"><h3>Infos du ${lib}</h3><p>Visibles des MAR dans leur planning après « Publier », et dans l'export Excel.</p>`
+    + `<textarea id="infoTxt" rows="4" maxlength="400" placeholder="ex. ortho 2 salles, endo 2 salles">${_escHtml(txt)}</textarea>`
+    + `<div class="info-act">${txt ? `<button class="info-b" onclick="enregistrerInfo('${date}', true)">Effacer</button>` : ''}`
+    + `<button class="info-b" onclick="document.getElementById('infoFond').classList.remove('on')">Annuler</button>`
+    + `<button class="info-b noir" onclick="enregistrerInfo('${date}', false)">Enregistrer</button></div></div>`;
+  fond.classList.add('on');
+  setTimeout(() => { const t = document.getElementById('infoTxt'); if (t) t.focus(); }, 30);
+}
+function enregistrerInfo(date, effacer) {
+  const t = document.getElementById('infoTxt');
+  const texte = effacer ? '' : String((t && t.value) || '').trim();
+  const avant = JSON.parse(JSON.stringify(_notesPlanning()));
+  const n = JSON.parse(JSON.stringify(avant)), j = n[date] = n[date] || {};
+  if (texte) j.info = texte; else delete j.info;
+  window._PLAN_NOTES = n;
+  const f = document.getElementById('infoFond'); if (f) f.classList.remove('on');
+  renderWeek();
+  return _enregistrerNotes([{ date: date, type: 'INFO', demi: '', texte: texte }], avant);
+}
+function afficherLigne(code) {
+  (window._lignesAffichees || (window._lignesAffichees = new Set())).add(code);
+  renderWeek();
 }
 
 function prevWeek(){if(currentWeekIdx>0){currentWeekIdx--;renderWeek();}}
@@ -5346,7 +5454,9 @@ function openMarMenu(marId, marInit, currentSector, date, slotKey) {
     `<span style="background:${getSectorBg(currentSector)};color:${getSectorFg(currentSector)};padding:2px 8px;border-radius:12px;font-size:10px;font-weight:700;margin-right:6px;">${currentSector}</span>`
     + `<span style="background:${slotKey==='am'?'#CE1126':'#64748B'};color:#fff;padding:2px 8px;border-radius:12px;font-size:10px;font-weight:700;margin-right:6px;">${slotKey.toUpperCase()}</span>`
     + new Date(date+'T12:00:00').toLocaleDateString('fr-FR',{weekday:'long',day:'numeric',month:'long'});
-  const targets = ['VIS','REA','ORT','ORL','END','CI','MAT'].filter(s => s !== currentSector);
+  const targets = ['VIS','REA','ORT','ORL','END','CI','MAT']
+    .concat((SECTEURS_ACTIFS || []).filter(x => x.optionnel).map(x => x.code))   // (19/11/2026) ex. pédiatrie
+    .filter(s => s !== currentSector);
   let html = `<div style="font-size:10px;font-weight:700;color:#94A3B8;text-transform:uppercase;letter-spacing:.07em;margin-bottom:8px;">Déplacer vers</div>
     <div style="display:flex;flex-wrap:wrap;gap:6px;margin-bottom:16px;">`;
   targets.forEach(s => {
@@ -6901,6 +7011,7 @@ async function exportWeekExcel(){
         codes: [x.code],
         bg:    x.xlBg   || 'F2F2F2',
         rows:  x.xlRows || 2,
+        optionnel: !!x.optionnel,   // (19/11/2026) écrit seulement la semaine où quelqu'un y est
       }));
   // (07/2026) Lignes de consultation dérivées de l'onglet CS_TEMPLATE
   // (colonnes XL_LABEL / XL_BG), dans son ordre. Les anciens sous-codes 'URO' et
@@ -6911,6 +7022,7 @@ async function exportWeekExcel(){
         label: t.xlLabel || ' ' + String(t.label || t.code).replace(/^CS[- ]*/i, '').toUpperCase(),
         subs:  [String(t.code).replace(/^CS-/, '')],
         bg:    t.xlBg || 'F2F2F2',
+        optionnel: !!t.optionnel,
       }));
   const DFX=['LUNDI','MARDI','MERCREDI','JEUDI','VENDREDI','SAMEDI','DIMANCHE'];
   // Codes de secteur collectés : exactement ceux des lignes ci-dessus.
@@ -6968,6 +7080,30 @@ async function exportWeekExcel(){
     matAm.forEach(init=>pushCS(MIROIR_MATER.cs,dow,'am',init));   // pushCS dédoublonne déjà
   });
 
+  /* (19/11/2026) NOTES DU PLANNING : l'interne (INT) dans les cases de réanimation, les infos
+     du jour dans les cases INFORMATIONS. */
+  const _NOTES = _notesPlanning();
+  daySlots.forEach((slot,dow)=>{
+    if(!slot||dow>4||!smap.REA)return;
+    ((_NOTES[slot.date]||{}).int||[]).forEach(h=>{ if(smap.REA[dow][h] && !smap.REA[dow][h].includes('INT')) smap.REA[dow][h].push('INT'); });
+  });
+  /* (19/11/2026) SORTIES DE GARDE SÉPARÉES : sort de garde réa celui qui était de garde réa (G)
+     la veille, de garde anesth celui qui était en G2. La veille du lundi est lue dans le planning. */
+  const _statutsLe = ds => { const o = {}; ((DATA && DATA.months) || []).forEach(mo => {
+      const k = (mo.days || []).findIndex(d => d && d.date === ds); if (k < 0) return;
+      (mo.doctors || []).forEach(doc => { const st = ((doc.days || [])[k] || {}).status; if (st) o[doc.initials] = st; }); }); return o; };
+  const sortiesRea=Array(7).fill(null).map(()=>[]), sortiesAn=Array(7).fill(null).map(()=>[]);
+  daySlots.forEach((slot,dow)=>{
+    if(!slot)return;
+    const v=new Date(slot.date+'T12:00:00'); v.setDate(v.getDate()-1);
+    const veille=_statutsLe(v.getFullYear()+'-'+String(v.getMonth()+1).padStart(2,'0')+'-'+String(v.getDate()).padStart(2,'0'));
+    sorties[dow].forEach(i=>{ (veille[i]==='G2'?sortiesAn:sortiesRea)[dow].push(i); });
+  });
+  /* (19/11/2026) Lignes optionnelles (ex. pédiatrie) : absentes du fichier les semaines où personne n'y est. */
+  const _semaineUtilise = codes => codes.some(c => smap[c] && smap[c].slice(0,5).some(x => x.am.length || x.pm.length));
+  const BLOCS_V = BLOCS.filter(b => !b.optionnel || _semaineUtilise(b.codes));
+  const CS_V = CSROWS.map((r,i)=>({r,i})).filter(x => !x.r.optionnel || csb[x.i].slice(0,5).some(c => c.am.length || c.pm.length));
+
   // ── Feuille ──
   const wb=new ExcelJS.Workbook();
   // (07/2026) fitToHeight vaut 1 PAR DÉFAUT dans ExcelJS dès que fitToPage est vrai :
@@ -7015,7 +7151,7 @@ async function exportWeekExcel(){
       mc(7,c0,7,c0+1);setCell(7,c0,g||'—',font(!!g,10,g?'000000':'888888'),fill(C.we),align('center','middle'),bAll);});});
   // L8-21 blocs (Cardio/Radio séparés sur 2 lignes adjacentes)
   let row=8;
-  BLOCS.forEach(b=>{
+  BLOCS_V.forEach(b=>{
     const nr=b.rows||2;
     if(nr>1)mc(row,1,row+nr-1,1);setCell(row,1,b.label,font(true,10),fill(b.bg),align('center','middle',true),bAll);
     for(let dow=0;dow<5;dow++){const cs=colStart(dow);
@@ -7039,9 +7175,9 @@ async function exportWeekExcel(){
   // de la semaine, avec un plancher de 2 pour ne pas déformer la mise en page.
   const ABS_MAX = Math.max(0, ...absents.slice(0,5).map(a => a.length));
   const ABS_ROWS = Math.max(2, Math.ceil(ABS_MAX / 4));
-  const R_ABS  = row + 8;    // ABSENCES (ABS_ROWS lignes)
-  const R_FN   = R_ABS + ABS_ROWS;   // GARDE REA, GARDE ANESTH, 8H/18H, SORTIES (4 lignes)
-  const R_INFO = R_FN + 4;   // INFORMATIONS (3 lignes)
+  const R_ABS  = R_CSR + CS_V.length;    // ABSENCES (ABS_ROWS lignes) — (19/11/2026) suit le nombre de consultations écrites
+  const R_FN   = R_ABS + ABS_ROWS;   // GARDE REA, GARDE ANESTH, 8H/18H, SORTIE GARDE REA, SORTIE GARDE ANESTH (5 lignes)
+  const R_INFO = R_FN + 5;   // INFORMATIONS (3 lignes)
   const R_LAST = R_INFO + 3; // dernière ligne du tableau
   mc(R_CS,1,R_CS,21);setCell(R_CS,1," CONSULTATIONS D'ANESTHESIE",font(true,10),fill(C.hd),align('center','middle'),bAll);
   // consult (1 ligne, cases colorées par spécialité)
@@ -7050,7 +7186,7 @@ async function exportWeekExcel(){
     const d=CS_REQUIRED[dow]; if(!d||!d[half]) return n;
     return n + (d[half]['CS-'+sub]||0);
   },0);
-  CSROWS.forEach((cr,i)=>{const rr=R_CSR+i;const bg=cr.bg||'FFFFFF';
+  CS_V.forEach(({r:cr,i},k)=>{const rr=R_CSR+k;const bg=cr.bg||'FFFFFF';
     setCell(rr,1,cr.label,font(true,10),fill(bg),align('left','middle'),bAll);
     for(let dow=0;dow<5;dow++){const cs=colStart(dow);const cell=csb[i][dow];const am=cell.am,pm=cell.pm;
       // Un seul créneau prévu -> les 2 colonnes de la demi-journée sont FUSIONNÉES
@@ -7084,16 +7220,19 @@ async function exportWeekExcel(){
   fnRow(R_FN,' GARDE REA',gardesRea.map(g=>g.join(' / ')));
   fnRow(R_FN+1,' GARDE ANESTH',gardesAn.map(g=>g.join(' / ')));
   fnRow(R_FN+2,' 8H / 18H',h18);
-  fnRow(R_FN+3,' SORTIES DE GARDE',sorties.map(s=>s.join(' / ')));
+  fnRow(R_FN+3,' SORTIE GARDE REA',sortiesRea.map(s=>s.join(' / ')));      // (19/11/2026) séparées, comme le planning papier
+  fnRow(R_FN+4,' SORTIE GARDE ANESTH',sortiesAn.map(s=>s.join(' / ')));
   // L35-37 INFORMATIONS — une case éditable par jour (lun→ven, pas le WE)
   mc(R_INFO,1,R_INFO+2,1);setCell(R_INFO,1,' INFORMATIONS ',font(true,10),fill(C.white),align('center','middle',true),bAll);
-  for(let dow=0;dow<5;dow++){const cs=colStart(dow);mc(R_INFO,cs,R_INFO+2,cs+3);setCell(R_INFO,cs,'',font(false,10),fill(C.white),align('left','top',true),bAll);}
+  for(let dow=0;dow<5;dow++){const cs=colStart(dow);mc(R_INFO,cs,R_INFO+2,cs+3);const _inf=(daySlots[dow]&&(_NOTES[daySlots[dow].date]||{}).info)||'';setCell(R_INFO,cs,_inf,font(false,10),fill(C.white),align('left','top',true),bAll);}   // (19/11/2026) infos du jour saisies par le comité
   // Staff du vendredi dans sa case INFORMATIONS (vendredi = dow 4 → colonne colStart(4))
   if (_staffFri && _staffFri.length) {
     const csFri = colStart(4);
     const rt = [];
+    const _infV = (daySlots[4] && (_NOTES[daySlots[4].date] || {}).info) || '';   // (19/11/2026) l'info du vendredi reste, le staff s'ajoute dessous
+    if (_infV) rt.push({ text: _infV, font: font(false,10) });
     _staffFri.forEach((s, i) => {
-      if (i) rt.push({ text: '\n', font: font(false,10) });
+      if (i || _infV) rt.push({ text: '\n', font: font(false,10) });
       const head = 'Staff' + (s.heure ? ' ' + s.heure : '');
       rt.push({ text: head + (s.theme ? ' — ' : ''), font: font(true,10) });
       if (s.theme) rt.push({ text: s.theme, font: font(false,10) });
@@ -7137,7 +7276,7 @@ async function exportWeekExcel(){
   const MED={style:'medium',color:{argb:'FF555555'}};
   const daySep=[2,6,10,14,18];   // colonne de gauche de LUN, MAR, MER, JEU, VEN
   const halfSep=daySep.map(c=>c+2);
-  for(let r=4;r<=37;r++){
+  for(let r=4;r<=R_INFO+2;r++){   // (19/11/2026) jusqu'au bas réel du tableau (il varie avec les lignes optionnelles)
     daySep.forEach(c=>{const cell=ws.getCell(r,c);const b=Object.assign({},cell.border);b.left=THK;cell.border=b;});
     halfSep.forEach(c=>{const cell=ws.getCell(r,c);const b=Object.assign({},cell.border);b.left=MED;cell.border=b;});
     const ce=ws.getCell(r,21);const be=Object.assign({},ce.border);be.right=THK;ce.border=be;

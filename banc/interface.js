@@ -165,6 +165,38 @@ const dstr = v => v instanceof Date
     w.eval('closeSidePanel()');
   }
 
+  console.log('\n═══ 18 ter. (19/11/2026) Pédiatrie optionnelle, interne de réa, infos du jour ═══');
+  {
+    const sem = JSON.parse(w.eval(`JSON.stringify(getWeekDays(getAllWeeks()[currentWeekIdx].lundi).map(x => x && x.date))`));
+    const mardi = sem[1];
+    w.eval(`SECTEURS_CFG = SECTEURS_CFG.concat([{ code:'PED', label:'Pédiatrie', court:'PED', aff:null, icon:'', bg:'#EEF8E6', fg:'#3B7D0E', cs:null, actif:true, xlLabel:'PEDIATRIE', xlBg:'92D050', xlRows:1, ordre:99, optionnel:true }]);
+      rebuildSecteursDerivations(); window._lignesAffichees = new Set();
+      window._PLAN_NOTES = { '${mardi}': { int: ['am'], info: 'ortho 2 salles' } }; renderWeek();`);
+    const lignes = () => [...d.querySelectorAll('#planTable tr.sector-row .sector-name-text')].map(e => e.firstChild.textContent.trim());
+    V('pédiatrie sans personne : pas de ligne dans la grille', !lignes().includes('Pédiatrie'), lignes());
+    const btn = [...d.querySelectorAll('#planTable .opt-btn')].find(b => /Pédiatrie/.test(b.textContent));
+    V('…mais un bouton « ＋ Pédiatrie » sous les secteurs', !!btn);
+    if (btn) btn.click();
+    V('« ＋ Pédiatrie » affiche la ligne pour la semaine', lignes().includes('Pédiatrie'), lignes());
+    const trP = [...d.querySelectorAll('#planTable tr.sector-row')].find(r => /Pédiatrie/.test(r.textContent));
+    V('…sans aucune case orange (elle n\'est jamais obligatoire)', trP && !trP.querySelector('.slot-flash'));
+    const trR = [...d.querySelectorAll('#planTable tr.sector-row')].find(r => /Réanimation/.test(r.textContent));
+    const cR = trR ? trR.querySelectorAll('td')[2] : null;   // colonne du mardi
+    const sl = cR ? cR.querySelectorAll('.slot') : [];
+    V('interne : pastille INT dans la réa du mardi matin', sl[0] && !!sl[0].querySelector('.slot-int'));
+    V('…et « ＋ INT » proposé l\'après-midi', sl[1] && !sl[1].querySelector('.slot-int') && !!sl[1].querySelector('.slot-int-add'));
+    const th = d.querySelectorAll('#planTable thead th')[2];
+    V('infos du mardi : « ℹ Infos » dans l\'en-tête, le texte au survol', th && th.querySelector('.jinfo.on') && th.querySelector('.jinfo.on').getAttribute('title') === 'ortho 2 salles');
+    const th3 = d.querySelectorAll('#planTable thead th')[3];
+    V('mercredi sans info : seulement le crayon discret', th3 && th3.querySelector('.jinfo') && !th3.querySelector('.jinfo.on'));
+    // Le serveur du banc refuse l'écriture : l'écran revient en arrière et le dit.
+    await w.eval(`basculerInterne('${mardi}', 'pm')`);
+    await dodo(100);
+    const sl2 = [...d.querySelectorAll('#planTable tr.sector-row')].find(r => /Réanimation/.test(r.textContent)).querySelectorAll('td')[2].querySelectorAll('.slot');
+    V('écriture refusée par le serveur : la pastille de l\'après-midi est retirée', !sl2[1].querySelector('.slot-int'));
+    w.eval(`SECTEURS_CFG = SECTEURS_CFG.filter(x => x.code !== 'PED'); rebuildSecteursDerivations(); window._PLAN_NOTES = {}; renderWeek();`);
+  }
+
   console.log('\n═══ 19. Je place des MAR sur des cases à pourvoir ═══');
   const flashes = [...d.querySelectorAll('.slot-flash')];
   V('des cases « à pourvoir » sont présentes', flashes.length > 0, flashes.length + ' cases');
