@@ -124,16 +124,17 @@ tr:last-child td { border-bottom:none; }
   text-transform:uppercase; letter-spacing:.05em; margin-bottom:10px; }
 .grp-t .nb { font-family:var(--mono); font-size:11px; font-weight:600; color:var(--ink-4);
   background:var(--line-light); border-radius:999px; padding:1px 8px; letter-spacing:0; }
-.lig { display:grid; grid-template-columns:32px minmax(0,1fr) 54px; align-items:center; gap:8px; padding:3px 0; }
+.lig { display:grid; grid-template-columns:32px minmax(0,1fr); align-items:center; column-gap:8px; row-gap:2px; padding:3px 0; }
 .av { width:30px; height:30px; border-radius:50%; display:flex; align-items:center; justify-content:center;
   font-family:var(--mono); font-weight:600; font-size:11px; letter-spacing:.02em; }
 .fr { display:grid; grid-template-columns:repeat(28,1fr); gap:2px; }
 .fr i { height:18px; border-radius:3px; background:var(--surface-2); }
 .fr i.we { background:var(--line); }
 .fr i.hors { background:transparent; outline:1px dashed var(--line); outline-offset:-1px; }
-.lig .q { font-size:11px; color:var(--ink-4); text-align:right; white-space:nowrap; }
+.lig .q { grid-column:2; font-size:11px; color:var(--ink-4); text-align:right; white-space:nowrap; }
+.lig .q:empty { display:none; }
 .lig .rien { font-size:12px; color:var(--amber); }
-.axe { display:grid; grid-template-columns:32px minmax(0,1fr) 54px; gap:8px; font-size:10.5px;
+.axe { display:grid; grid-template-columns:32px minmax(0,1fr); gap:8px; font-size:10.5px;
   color:var(--ink-4); font-family:var(--mono); margin-top:14px; }
 .axe span:nth-child(2) { display:flex; justify-content:space-between; }
 .av.auj, .av.hier { background:var(--ok-soft); color:var(--ok); box-shadow:0 0 0 1.5px var(--ok); }
@@ -538,11 +539,12 @@ function tableau(){
     J.push({ iso: t.getFullYear()+'-'+String(t.getMonth()+1).padStart(2,'0')+'-'+String(t.getDate()).padStart(2,'0'),
              we: t.getDay()===0 || t.getDay()===6 }); }
   const depuis = D.frise_depuis || '';
-  h += '<div class="axe"><span></span><span><span>il y a 4 sem.</span><span>auj.</span></span><span></span></div>';
+  h += '<div class="axe"><span></span><span><span>il y a 4 sem.</span><span>auj.</span></span></div>';
   GROUPES.forEach(function(g){
     const L = par[g.k]; if(!L) return;
-    /* La date à droite ne répète pas le titre du groupe. */
-    const detail = (g.k === 'sem' || g.k === 'mois' || g.k === 'vieux');
+    /* Date sous la frise seulement au-delà d'un mois : en deçà, le dernier
+       carré allumé la donne déjà ; au-delà, la frise peut être vide. */
+    const detail = (g.k === 'vieux');
     h += '<div class="grp"><div class="grp-t">' + g.t + ' <span class="nb">' + L.length + '</span></div>'
        + L.map(function(m){
            const vus = {}; (m.j || []).forEach(function(x){ vus[x] = 1; });

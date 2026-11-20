@@ -267,12 +267,16 @@ console.log('\n═══ 6. « Qui s\'est connecté » montre TOUT le service �
     vign.map(function(v){ return v.k; }).join(',') === 'auj,hier,sem,mois,vieux,jamais,jamais,jamais',
     vign.map(function(v){ return v.k; }));
   V('la barre de répartition totalise l\'effectif', /sur 8<\/span>/.test(sortie));
-  V('« il y a N j » dans la semaine et le mois',
-    vign[2].q === 'il y a 4 j' && vign[3].q === 'il y a 12 j', [vign[2], vign[3]]);
+  V('pas de date sous la frise dans la semaine et le mois (le dernier carré allumé la donne)',
+    vign[2].q === '' && vign[3].q === '', [vign[2], vign[3]]);
   V('au-delà d\'un mois, la date en clair (jour mois année)',
     /^\d{1,2} [a-zéû]+ \d{4}$/.test(vign[4].q), vign[4]);
   V('le titre du groupe n\'est pas répété sous la vignette',
     vign[0].q === '' && vign[1].q === '' && vign[5].q === '', [vign[0], vign[1], vign[5]]);
+  V('la frise va de bord à bord : plus de colonne réservée à droite (lignes et axe)',
+    !/minmax\(0,1fr\) 54px/.test(PAGE) && /\.lig \{[^}]*grid-template-columns:32px minmax\(0,1fr\);/.test(PAGE)
+      && /\.axe \{[^}]*grid-template-columns:32px minmax\(0,1fr\);/.test(PAGE));
+  V('une date vide ne réserve pas de place', /\.lig \.q:empty \{ display:none; \}/.test(PAGE));
   V('chaque frise compte 28 jours',
     vign.filter(function(v){ return v.k !== 'jamais'; })
         .every(function(v){ return (v.f.match(/<i[ >]/g) || []).length === 28; }),
