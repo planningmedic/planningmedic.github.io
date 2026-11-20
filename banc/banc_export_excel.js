@@ -288,8 +288,10 @@ const colJour = dow => (dow < 5 ? 2 + dow * 4 : 22 + (dow - 5) * 4);
     const ws4 = sortie.ws;
     const rC = ligneDe(ws4, 'CS PEDIA');
     V('la consultation au nom du secteur fait apparaître sa ligne optionnelle', rC > 0);
-    V('…avec « PÉDIATRIE » le mardi après-midi, sans nom de MAR', rC > 0 && [val(ws4, rC, MAR + 2), val(ws4, rC, MAR + 3)].includes('PÉDIATRIE'), rC > 0 && [val(ws4, rC, MAR + 2), val(ws4, rC, MAR + 3)]);
-    V('…et rien le matin', rC > 0 && ![val(ws4, rC, MAR), val(ws4, rC, MAR + 1)].includes('PÉDIATRIE'));
+    V('…avec « PED » (abréviation choisie) le mardi après-midi, sans nom de MAR', rC > 0 && [val(ws4, rC, MAR + 2), val(ws4, rC, MAR + 3)].includes('PED'), rC > 0 && [val(ws4, rC, MAR + 2), val(ws4, rC, MAR + 3)]);
+    V('…et rien le matin', rC > 0 && ![val(ws4, rC, MAR), val(ws4, rC, MAR + 1)].includes('PED'));
+    const ab = w.eval(`JSON.stringify(['CS-VIS','CS-ORT','CS-ORL','CS-END','CS-INTER','CS-MAT','CS-POLY','CS-PED','CS-NOUVEAU'].map(_csAbrege))`);
+    V('abréviations : VISC ORTH ORL ENDO INTER MAT POLY PED (et 5 lettres au plus pour une nouvelle)', ab === JSON.stringify(['VISC','ORTH','ORL','ENDO','INTER','MAT','POLY','PED','NOUVE']), ab);
     w.eval(`window._PLAN_NOTES = {};`);
   }
 

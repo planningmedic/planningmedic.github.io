@@ -4822,6 +4822,11 @@ function _csLibSecteur(code) {
   const t = (typeof CS_TYPES !== 'undefined' ? CS_TYPES : []).find(x => x.code === code);
   return String((t && t.label) || code).replace(/^CS\s+/i, '').replace(/^CS-/i, '');
 }
+/* (20/11/2026) Abréviation dans l'Excel (le nom entier ne tient pas dans la case) — choisies par le responsable. */
+const CS_ABREGES = { 'CS-VIS':'VISC', 'CS-ORT':'ORTH', 'CS-ORL':'ORL', 'CS-END':'ENDO', 'CS-INTER':'INTER', 'CS-MAT':'MAT', 'CS-POLY':'POLY', 'CS-PED':'PED' };
+function _csAbrege(code) {
+  return CS_ABREGES[code] || String(code).replace(/^CS-/i, '').toUpperCase().slice(0, 5);
+}
 function basculerCsSecteur(type, date, demi) {
   const avant = JSON.parse(JSON.stringify(_notesPlanning()));
   const n = JSON.parse(JSON.stringify(avant)), j = n[date] = n[date] || {};
@@ -7122,7 +7127,7 @@ async function exportWeekExcel(){
   /* (20/11/2026) Consultation tenue par le secteur, sans nom : le nom du secteur dans la case. */
   daySlots.forEach((slot,dow)=>{
     if(!slot||dow>4)return;
-    ['am','pm'].forEach(h=>_csSecteurs(_NOTES,slot.date,h).forEach(code=>pushCS(code,dow,h,_csLibSecteur(code).toUpperCase())));
+    ['am','pm'].forEach(h=>_csSecteurs(_NOTES,slot.date,h).forEach(code=>pushCS(code,dow,h,_csAbrege(code))));
   });
   /* (19/11/2026) SORTIES DE GARDE SÉPARÉES : sort de garde réa celui qui était de garde réa (G)
      la veille, de garde anesth celui qui était en G2. La veille du lundi est lue dans le planning. */
