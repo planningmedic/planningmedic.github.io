@@ -654,6 +654,7 @@ body{font-variant-numeric:tabular-nums}
   .jb-bac{background:var(--jb-bac);border-radius:12px;padding:8px 10px;display:grid;grid-template-columns:104px minmax(0,1fr);align-items:center;gap:8px}
   .jb-bac>.jb-mag:only-child{grid-column:1/-1}
   .jb-mag{display:flex;flex-wrap:wrap;gap:6px}
+  .jb-sect{display:inline-flex;align-items:center;height:32px;padding:0 9px;border-radius:8px;border:1px dashed #98A2B3;color:#475467;font-size:13px;font-weight:600;font-style:italic}
   .jb-bac .jb-aim{min-width:40px;height:32px;font-size:14px;padding:0 6px;background:var(--white);color:var(--ink-3);box-shadow:none}
   .jb-bac .jb-aim.moi{background:var(--jb-moi);color:#fff}
   .jb-bac-t{font-weight:700;font-size:13px;line-height:1.25;color:var(--ink-2)}
@@ -1999,6 +2000,9 @@ function renderConsPanel(month,daySlots,today){
       }
     });
   });
+  /* (20/11/2026) Consultation tenue par le secteur, sans nom (notes du planning, type CSS). */
+  daySlots.forEach((slot,dow)=>{ if(!slot) return; const c=_notesDuJour(slot.date).css||{};
+    ['am','pm'].forEach(h=>(c[h]||[]).forEach(code=>{ cons[dow][h].push({id:'',spec:String(code).replace(/^CS-/,''),secteur:true}); })); });
   // (Alignement) TOUJOURS 7 colonnes, comme le tableau : sans ça, une semaine
   // ordinaire n'en produisait que 5 (les week-ends vides étaient retirés) et rien
   // ne tombait en face des jours du planning.
@@ -2007,7 +2011,9 @@ function renderConsPanel(month,daySlots,today){
   const _total=cons.reduce((n,c)=>n+c.am.length+c.pm.length,0);
   if(!_total){ panel.innerHTML=''; return; }
   let _hasLib=false;
-  const chip=c=>{ const sc=csColor(c.spec), lbl=CS_LABELS[c.spec]||c.spec; const isLib=!!c.lib; if(isLib)_hasLib=true; const cls='cons-chip'+(isLib?' cons-chip-lib':''); const tag=isLib?'<span class="cons-lib">LIB</span>':''; const ttl=isLib?`${lbl} · libéral · ${nameOf(c.id)}`:`${lbl} · ${nameOf(c.id)}`; return `<div class="${cls}" style="background:${sc.bg};color:${sc.fg}" title="${esc(ttl)}">${tag}<span class="cons-spec">${esc(lbl)}</span><span class="cons-mar">${esc(nameOf(c.id))}</span></div>`; };
+  const chip=c=>{ const sc=csColor(c.spec), lbl=CS_LABELS[c.spec]||c.spec;
+    if(c.secteur) return `<div class="cons-chip" style="background:${sc.bg};color:${sc.fg}" title="${esc(lbl)} · tenue par le secteur"><span class="cons-spec">${esc(lbl)}</span><span class="cons-mar">le secteur</span></div>`;
+    const isLib=!!c.lib; if(isLib)_hasLib=true; const cls='cons-chip'+(isLib?' cons-chip-lib':''); const tag=isLib?'<span class="cons-lib">LIB</span>':''; const ttl=isLib?`${lbl} · libéral · ${nameOf(c.id)}`:`${lbl} · ${nameOf(c.id)}`; return `<div class="${cls}" style="background:${sc.bg};color:${sc.fg}" title="${esc(ttl)}">${tag}<span class="cons-spec">${esc(lbl)}</span><span class="cons-mar">${esc(nameOf(c.id))}</span></div>`; };
   const half=arr=>arr.length?arr.map(chip).join(''):'<div class="cons-empty">—</div>';
   let _cols='';
   cols.forEach(function(col){
@@ -3083,6 +3089,9 @@ function renderMobileDay() {
     }
   });
 
+  /* (20/11/2026) Consultation tenue par le secteur, sans nom : une étiquette « secteur » à la place de l'aimant. */
+  { const c=_notesDuJour(dayData.date).css||{};
+    ['am','pm'].forEach(h=>(c[h]||[]).forEach(code=>{ const sp=String(code).replace(/^CS-/,''); (cons[sp]=cons[sp]||{am:[],pm:[]})[h].push({init:'',secteur:true}); })); }
   /* (19/11/2026) Interne de réa et infos du jour (notes du planning). */
   if (smap.REA) (_notesDuJour(dayData.date).int||[]).forEach(h=>{ if(smap.REA[h]) smap.REA[h].push('INT'); });
   /* (03/11/2026, v1.56) TABLEAU AIMANTÉ — maquette B1 validée par le responsable.
@@ -3155,7 +3164,7 @@ function renderMobileDay() {
     const CS_ORDER=['VIS','ORL','ORT','END','MAT','INTER','POLY','PED'];
     const consSpecs=Object.keys(cons).sort((a,b)=>{const ia=CS_ORDER.indexOf(a),ib=CS_ORDER.indexOf(b);return (ia<0?99:ia)-(ib<0?99:ib)||a.localeCompare(b);});
     if (consSpecs.length) {
-      const cel = arr => arr.map(o=>aim(o.init,{petit:true,lib:o.lib})).join('');
+      const cel = arr => arr.map(o=>o.secteur?'<span class="jb-sect">secteur</span>':aim(o.init,{petit:true,lib:o.lib})).join('');
       html += '<h2 class="jb-h2">Consultations</h2><div class="jb-liste">'
         + consSpecs.map(sp=>'<div class="jb-ligne"><div class="jb-lib">'+esc(CS_LABELS[sp]||sp)+'</div><div class="jb-cel">'+cel(cons[sp].am)+'</div><div class="jb-cel">'+cel(cons[sp].pm)+'</div></div>').join('')
         + '</div>';

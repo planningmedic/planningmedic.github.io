@@ -30,7 +30,7 @@ function monde() {
   });
   const src = require('fs').readFileSync('../gas/gardes.gs', 'utf8');
   ['NOTES_ENTETE_', 'NOTES_TYPES_'].forEach(n => vm.runInContext(src.match(new RegExp('const\\s+' + n + '\\s*=[^;]*;'))[0].replace('const ', 'var '), ctx));
-  ['_notesOnglet_', '_notesDate_', 'loadPlanningNotes', 'savePlanningNotesBatch', '_act_savePlanningNotes']
+  ['_notesOnglet_', '_notesDate_', '_notesCodesCs_', 'loadPlanningNotes', 'savePlanningNotesBatch', '_act_savePlanningNotes']
     .forEach(n => vm.runInContext(extraireFonction('../gas/gardes.gs', n), ctx));
   return { cl, ctx, logs };
 }
@@ -61,6 +61,45 @@ const action = (W, role, items) => JSON.parse(vm.runInContext(`_act_savePlanning
                            { date: '2026-11-18', type: 'INT', demi: 'soir', texte: 'INT' }]);
     V('date, type ou demi-journée invalides : rien n\'est écrit', res.saved === 0 && sh.lignes.length === 2, { res, n: sh.lignes.length });
     V('un texte trop long est tronqué à 400 caractères', (ecrire(W, [{ date: '2026-11-19', type: 'INFO', texte: 'x'.repeat(600) }]), lire(W)['2026-11-19'].info.length === 400));
+  }
+
+  console.log('\n═══ 1 bis. Consultation tenue par le secteur, sans nom (type CSS) ═══');
+  {
+    /* (20/11/2026) Comme « VISC » sur l'Excel papier : une ligne par demi-journée, les codes de
+       consultation séparés par des virgules. Rien dans PLANNING_OVERRIDES : personne n'est affecté. */
+    const W = monde();
+    ecrire(W, [{ date: '2026-11-17', type: 'CSS', demi: 'pm', texte: 'CS-VIS,CS-ORT' }, { date: '2026-11-17', type: 'CSS', demi: 'am', texte: 'CS-ORL' }]);
+    let n = lire(W);
+    V('mardi : ORL le matin, viscéral et ortho l\'après-midi', JSON.stringify(n['2026-11-17']) === JSON.stringify({ css: { am: ['CS-ORL'], pm: ['CS-VIS', 'CS-ORT'] } }), n['2026-11-17']);
+    V('rien n\'est écrit dans PLANNING_OVERRIDES', W.cl.getSheetByName('PLANNING_OVERRIDES').lignes.length === 1);
+    ecrire(W, [{ date: '2026-11-17', type: 'CSS', demi: 'pm', texte: 'CS-VIS' }]);
+    n = lire(W);
+    V('réécrire la demi-journée remplace la liste (ortho retirée), sans doublon de ligne', JSON.stringify(n['2026-11-17'].css.pm) === '["CS-VIS"]' && W.cl.getSheetByName('PLANNING_NOTES').lignes.length === 3, n['2026-11-17']);
+    ecrire(W, [{ date: '2026-11-17', type: 'CSS', demi: 'pm', texte: 'cs-vis, VIS, <b>, CS-VIS' }]);
+    V('seuls des codes de consultation sont gardés, une fois chacun', JSON.stringify(lire(W)['2026-11-17'].css.pm) === '["CS-VIS"]', lire(W)['2026-11-17']);
+    ecrire(W, [{ date: '2026-11-17', type: 'CSS', demi: 'pm', texte: '' }, { date: '2026-11-17', type: 'CSS', demi: 'am', texte: '' }]);
+    V('liste vide = ligne supprimée', !lire(W)['2026-11-17'] && W.cl.getSheetByName('PLANNING_NOTES').lignes.length === 1);
+    const r = ecrire(W, [{ date: '2026-11-18', type: 'CSS', demi: '', texte: 'CS-VIS' }, { date: '2026-11-18', type: 'CSS', demi: 'am', texte: 'rien' }]);
+    V('demi-journée absente ou aucun code valable : rien n\'est écrit', !lire(W)['2026-11-18'], { r, n: lire(W) });
+    W.cl.getSheetByName('PLANNING_NOTES').lignes.push(['2026-11-19', 'CSS', 'am', 'CS-VIS,n importe quoi']);
+    V('lecture d\'une ligne saisie à la main : codes invalides ignorés', JSON.stringify(lire(W)['2026-11-19']) === JSON.stringify({ css: { am: ['CS-VIS'], pm: [] } }), lire(W)['2026-11-19']);
+  }
+
+  console.log('\n═══ 1 ter. La page admin : compte comme pourvue, n\'affecte personne ═══');
+  {
+    const adm = require('fs').readFileSync('../admin.html', 'utf8');
+    const c = vm.createContext({ CS_TYPES: [{ code: 'CS-VIS', label: 'CS Viscéral' }, { code: 'CS-PED', label: 'CS Pédiatrie' }] });
+    ['_csSecteurs', '_csLibSecteur'].forEach(f => { const i = adm.indexOf('function ' + f + '('); vm.runInContext(adm.slice(i, adm.indexOf('\n}', i) + 2), c); });
+    const N = { '2026-11-17': { css: { am: [], pm: ['CS-VIS'] } } };
+    V('lecture des notes : viscéral le mardi après-midi seulement', JSON.stringify(vm.runInContext('_csSecteurs(' + JSON.stringify(N) + ',"2026-11-17","pm")', c)) === '["CS-VIS"]'
+      && vm.runInContext('_csSecteurs(' + JSON.stringify(N) + ',"2026-11-17","am")', c).length === 0 && vm.runInContext('_csSecteurs({},"2026-11-17","pm")', c).length === 0);
+    V('le nom affiché est celui du secteur, sans « CS »', vm.runInContext('_csLibSecteur("CS-VIS")', c) === 'Viscéral' && vm.runInContext('_csLibSecteur("CS-INCONNU")', c) === 'INCONNU');
+    V('la case compte comme pourvue (le « à pourvoir » soustrait la consultation au nom du secteur)',
+      /cell\.flash_pm = _cPm \? 0 : Math\.max\(0, \(\(req\.pm && req\.pm\[t\.code\]\) \|\| 0\) - cell\.pm\.length - _sPm\);/.test(adm));
+    V('elle ne passe jamais par PLANNING_OVERRIDES (aucun MAR affecté)', /return _enregistrerNotes\(\[\{ date: date, type: 'CSS', demi: demi, texte: css\[demi\]\.join\(','\) \}\], avant\);/.test(adm));
+    V('le panneau de la consultation propose « … sans nom »', /« ' \+ _ls \+ ' » sans nom'/.test(adm));
+    const pl = require('fs').readFileSync('../planning.html', 'utf8');
+    V('les MAR la voient : semaine (« le secteur ») et vue du jour (« secteur »)', /cons-mar">le secteur</.test(pl) && /jb-sect">secteur</.test(pl));
   }
 
   console.log('\n═══ 2. L\'action réservée au comité ═══');

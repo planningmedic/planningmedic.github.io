@@ -277,6 +277,22 @@ const colJour = dow => (dow < 5 ? 2 + dow * 4 : 22 + (dow - 5) * 4);
     V('CS Pédiatrie toujours absente (personne, pas ouverte)', ligneDe(ws3, 'CS PEDIA') < 0);
   }
 
+  /* ── (20/11/2026) Consultation tenue par le secteur, sans nom ──
+     Demande du responsable : comme sur l'Excel papier (« VISC », « ORTH »), une consultation
+     peut porter le nom du secteur au lieu d'un MAR. CONTRE-ÉPREUVE : sans la lecture des
+     notes CSS, la ligne CS Pédiatrie reste absente et la case vide. */
+  {
+    console.log('\n═══ Consultation au nom du secteur ═══');
+    w.eval(`window._PLAN_NOTES = { '2026-09-01': { css: { am: [], pm: ['CS-PED'] } } };`);
+    await w.exportWeekExcel();
+    const ws4 = sortie.ws;
+    const rC = ligneDe(ws4, 'CS PEDIA');
+    V('la consultation au nom du secteur fait apparaître sa ligne optionnelle', rC > 0);
+    V('…avec « PÉDIATRIE » le mardi après-midi, sans nom de MAR', rC > 0 && [val(ws4, rC, MAR + 2), val(ws4, rC, MAR + 3)].includes('PÉDIATRIE'), rC > 0 && [val(ws4, rC, MAR + 2), val(ws4, rC, MAR + 3)]);
+    V('…et rien le matin', rC > 0 && ![val(ws4, rC, MAR), val(ws4, rC, MAR + 1)].includes('PÉDIATRIE'));
+    w.eval(`window._PLAN_NOTES = {};`);
+  }
+
   console.log('\n  ' + ok + ' v\u00e9rifications OK, ' + ko + ' en \u00e9chec');
   if (ko) process.exit(1);
 })();

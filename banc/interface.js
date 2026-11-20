@@ -197,6 +197,36 @@ const dstr = v => v instanceof Date
     w.eval(`SECTEURS_CFG = SECTEURS_CFG.filter(x => x.code !== 'PED'); rebuildSecteursDerivations(); window._PLAN_NOTES = {}; renderWeek();`);
   }
 
+  console.log('\n═══ 18 quater. (20/11/2026) Consultation au nom du secteur, sans nom ═══');
+  {
+    /* Une consultation requise « à pourvoir » est mise au nom du secteur : la case affiche le
+       secteur, elle n'est plus à pourvoir, et la tuile compte une case de moins. */
+    /* Le monde du banc n'a pas de modèle de consultations : on en pose un (viscéral requis le mardi après-midi). */
+    w.eval(`window.__csSauve = { t: CS_TYPES, r: CS_REQUIRED }; CS_TYPES = [{ code:'CS-VIS', label:'CS Viscéral', ouvrable:true }];
+      CS_REQUIRED = JSON.parse(JSON.stringify(CS_REQUIRED || {})); CS_REQUIRED[1] = { am: {}, pm: { 'CS-VIS': 1 } }; renderWeek();`);
+    const csAp = [...d.querySelectorAll('#planTable .cs-apourvoir')].filter(e => /openSidePanel\('CS-VIS'/.test(e.getAttribute('onclick') || ''));
+    V('la consultation viscérale du mardi après-midi est à pourvoir', csAp.length === 1, csAp.length);
+    if (csAp.length) {
+      const m = (csAp[0].getAttribute('onclick') || '').match(/openSidePanel\('([^']+)','([^']+)','([^']*)','(am|pm)'\)/);
+      const tuile = () => Number((d.querySelector('#planKpis .pk-t.noir .pk-n') || {}).textContent);
+      const avant = tuile();
+      csAp[0].click(); await dodo(200);
+      const b = d.querySelector('#pspSub .psp-secteur');
+      V('le panneau de la consultation propose « … sans nom »', !!b && /sans nom/.test(b.textContent), b && b.textContent);
+      if (b && m) {
+        w.eval(`window._PLAN_NOTES = { '${m[2]}': { css: { am: [], pm: [] } } }; window._PLAN_NOTES['${m[2]}'].css['${m[4]}'] = ['${m[1]}']; renderWeek();`);
+        const chip = d.querySelector('#planTable .cs-chip.cs-secteur');
+        V('la case affiche le nom du secteur', !!chip && chip.textContent.length > 1, chip && chip.textContent);
+        V('…et la tuile « Cases à pourvoir » compte une case de moins', tuile() === avant - 1, { avant, apres: tuile() });
+        const cellule = chip && chip.closest('.cs-cell');
+        V('…la case n\'est plus proposée « à pourvoir »', !!cellule && !cellule.querySelector('.cs-apourvoir'));
+        const nFlash = d.querySelectorAll('#planTable .slot-flash').length + d.querySelectorAll('#planTable .cs-apourvoir').length;
+        V('…toujours égale aux cases orange de la grille', tuile() === nFlash, { tuile: tuile(), grille: nFlash });
+      }
+    }
+    w.eval(`window._PLAN_NOTES = {}; CS_TYPES = window.__csSauve.t; CS_REQUIRED = window.__csSauve.r; closeSidePanel(); renderWeek();`);
+  }
+
   console.log('\n═══ 19. Je place des MAR sur des cases à pourvoir ═══');
   const flashes = [...d.querySelectorAll('.slot-flash')];
   V('des cases « à pourvoir » sont présentes', flashes.length > 0, flashes.length + ' cases');

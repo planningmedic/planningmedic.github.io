@@ -1348,6 +1348,9 @@ if (sessionStorage.getItem('adminCode')) {
 #dispoCard #pspContent button[onclick^="placeMAR"] > span:first-child { font-family:'DM Sans',sans-serif !important; font-size:12px !important; border-radius:9px !important; padding:6px 8px !important; }
 /* (19/11/2026) Interne de réa, infos du jour, lignes optionnelles */
 #panel-planning .slot-int { font:600 11px 'DM Sans',sans-serif; letter-spacing:.04em; border-radius:8px; padding:5px 7px; line-height:1; background:#F4F3FF; color:#5925DC; border:1px solid #D9D6FE; cursor:pointer; }
+#panel-planning .cs-chip.cs-secteur { background:#F2F4F7; color:#344054; border:1px solid #D0D5DD; font-style:italic; }
+.psp-secteur { margin-left:8px; border:1px solid #D0D5DD; background:#F9FAFB; color:#344054; border-radius:8px; padding:3px 10px; font-size:11px; font-weight:600; cursor:pointer; }
+.psp-secteur.on { background:#FEF3F2; border-color:#FECDCA; color:#B42318; }
 #panel-planning .slot-int-add { font:600 11px 'DM Sans',sans-serif; border-radius:8px; padding:4px 7px; line-height:1; border:1px dashed #D0D5DD; color:#98A2B3; cursor:pointer; opacity:0; transition:opacity .12s; }
 #panel-planning .slot:hover .slot-int-add { opacity:1; }
 #panel-planning .jinfo { display:inline-block; margin-top:6px; font-size:11px; font-weight:600; color:#98A2B3; cursor:pointer; opacity:0; transition:opacity .12s; }
@@ -4355,8 +4358,11 @@ function renderWeek() {
       const req = CS_REQUIRED[dow] || {am:{}, pm:{}};
       const _cAm = _localCloses[slot.date] && _localCloses[slot.date].has(`${t.code}|am`);
       const _cPm = _localCloses[slot.date] && _localCloses[slot.date].has(`${t.code}|pm`);
-      cell.flash_am = _cAm ? 0 : Math.max(0, ((req.am && req.am[t.code]) || 0) - cell.am.length);
-      cell.flash_pm = _cPm ? 0 : Math.max(0, ((req.pm && req.pm[t.code]) || 0) - cell.pm.length);
+      /* (20/11/2026) Consultation tenue par le secteur, sans nom : elle compte comme pourvue. */
+      const _sAm = _csSecteurs(NOTES, slot.date, 'am').includes(t.code) ? 1 : 0;
+      const _sPm = _csSecteurs(NOTES, slot.date, 'pm').includes(t.code) ? 1 : 0;
+      cell.flash_am = _cAm ? 0 : Math.max(0, ((req.am && req.am[t.code]) || 0) - cell.am.length - _sAm);
+      cell.flash_pm = _cPm ? 0 : Math.max(0, ((req.pm && req.pm[t.code]) || 0) - cell.pm.length - _sPm);
     });
   });
 
@@ -4548,6 +4554,14 @@ function renderWeek() {
     }
 
     let prim = '';
+    /* (20/11/2026) Consultation tenue par le secteur, sans nom (comme « VISC » sur l'Excel papier). */
+    const _parSecteur = _csSecteurs(NOTES, date, slotKey).includes(type);
+    if (_parSecteur) {
+      const _ls = _escHtml(_csLibSecteur(type));
+      prim += `<span class="cs-chip-wrap"><span class="slot-name cs-chip cs-secteur" title="Tenue par le secteur, sans nom — cliquer pour changer" onclick="openSidePanel('${type}','${date}','${label}','${slotKey}')">${_ls}</span>`
+            + `<span class="cs-chip-x" onclick="event.stopPropagation();basculerCsSecteur('${type}','${date}','${slotKey}')" title="Retirer « ${_ls} »">×</span></span>`;
+    }
+    const _nOcc = items.length + (_parSecteur ? 1 : 0);
     const _chipX = (id,init) => `<span class="cs-chip-x" onclick="event.stopPropagation();removeOneCs('${id}','${init}','${type}','${date}','${slotKey}')" title="Retirer ${init} de cette consultation">×</span>`;
     items.forEach(p => {
       if (p.isMirror) {
@@ -4564,16 +4578,16 @@ function renderWeek() {
     const _vide = _localVides[date] && _localVides[date].has(`${type}|${slotKey}`);
     // Marqueur "à pourvoir" (requis comité) = petit point discret, sans texte. Masqué si laissée vide.
     let req = '';
-    if (!_vide && (flash||0) > 0 && items.length < 2) {
+    if (!_vide && (flash||0) > 0 && _nOcc < 2) {
       req = `<span class="cs-apourvoir" onclick="openSidePanel('${type}','${date}','${label}','${slotKey}')" title="Consultation requise à pourvoir — cliquer pour affecter">à pourvoir</span>`;
     }
     // Outils au survol : OUVRIR (n'importe quel secteur / jour / AM-PM) tant qu'il reste de la place,
     // FERMER s'il y a du contenu. Plus de "+ ajouter" affiché par défaut : vide = vide.
     let tools = '';
-    if (items.length < 2 && !(flash||0)) {
+    if (_nOcc < 2 && !(flash||0)) {
       tools += `<span class="cs-ouvrir" onclick="openSidePanel('${type}','${date}','${label}','${slotKey}')" title="Ouvrir une consultation ici">+ ouvrir</span>`;
     }
-    if (items.length || (flash||0) || _open) {
+    if (_nOcc || (flash||0) || _open) {
       tools += `<span class="cs-fermer" onclick="closeConsult('${type}','${date}','${slotKey}')" title="Fermer la consultation (libère le MAR)">×</span>`;
     }
     return `<div class="cs-cell">${_libTag}${prim}${req}${tools ? `<span class="cs-tools">${tools}</span>` : ''}</div>`;
@@ -4630,7 +4644,8 @@ function renderWeek() {
   /* (19/11/2026) Consultation optionnelle (ex. CS Pédiatrie) : affichée si quelqu'un y est, si elle
      est ouverte cette semaine, ou si le comité l'a affichée avec « ＋ CS Pédiatrie ». */
   const _csUtile = t => daySlots.some((slot, dow) => slot && ['am','pm'].some(h =>
-      (csTypeMap[t.code][dow][h] || []).length || (_localOpens[slot.date] && _localOpens[slot.date].has(`${t.code}|${h}`))));
+      (csTypeMap[t.code][dow][h] || []).length || _csSecteurs(NOTES, slot.date, h).includes(t.code)
+      || (_localOpens[slot.date] && _localOpens[slot.date].has(`${t.code}|${h}`))));
   const activeCsTypes = CS_TYPES.filter(t => !t.optionnel || _csUtile(t) || _forcees.has(t.code));
   const _cachees = SECTORS.filter(s => s.optionnel && !activeSectors.includes(s)).map(s => ({code: s.code, label: s.label}))
     .concat(CS_TYPES.filter(t => t.optionnel && !activeCsTypes.includes(t)).map(t => ({code: t.code, label: t.label})));
@@ -4784,6 +4799,27 @@ function basculerInterne(date, demi) {
   j.int = on ? l.filter(x => x !== demi) : l.concat([demi]);
   window._PLAN_NOTES = n; renderWeek();
   return _enregistrerNotes([{ date: date, type: 'INT', demi: demi, texte: on ? '' : 'INT' }], avant);
+}
+/* (20/11/2026) CONSULTATION TENUE PAR LE SECTEUR, SANS NOM. Stockée avec les notes du planning
+   (type CSS, une ligne par demi-journée, codes séparés par des virgules) ; compte comme pourvue,
+   n'affecte personne (ni présents, ni libéral), part dans l'Excel et chez les MAR après « Publier ». */
+function _csSecteurs(notes, date, demi) {
+  const c = ((notes || {})[date] || {}).css;
+  return (c && Array.isArray(c[demi])) ? c[demi] : [];
+}
+function _csLibSecteur(code) {
+  const t = (typeof CS_TYPES !== 'undefined' ? CS_TYPES : []).find(x => x.code === code);
+  return String((t && t.label) || code).replace(/^CS\s+/i, '').replace(/^CS-/i, '');
+}
+function basculerCsSecteur(type, date, demi) {
+  const avant = JSON.parse(JSON.stringify(_notesPlanning()));
+  const n = JSON.parse(JSON.stringify(avant)), j = n[date] = n[date] || {};
+  const css = j.css = j.css || { am: [], pm: [] };
+  const l = Array.isArray(css[demi]) ? css[demi] : [], on = l.includes(type);
+  css[demi] = on ? l.filter(x => x !== type) : l.concat([type]);
+  window._PLAN_NOTES = n; renderWeek();
+  try { if (window._sideCtx && window._sideCtx.date === date && window._sideCtx.sector === type) openSidePanel(type, date, window._sideCtx.sectorLabel, demi); } catch (e) {}
+  return _enregistrerNotes([{ date: date, type: 'CSS', demi: demi, texte: css[demi].join(',') }], avant);
 }
 function editerInfo(date) {
   let fond = document.getElementById('infoFond');
@@ -4950,11 +4986,17 @@ async function openSidePanel(sector, date, sectorLabel, slotKey, isLib) {
   const _videBtn = _vide
     ? `<button onclick="unleaveCaseVide()" style="margin-left:8px;border:1px solid var(--line);background:var(--white);color:var(--ink-3);border-radius:8px;padding:3px 10px;font-size:11px;font-weight:600;cursor:pointer;">↺ Remettre en flash</button>`
     : `<button onclick="leaveCaseVide()" style="margin-left:8px;border:1px solid var(--line);background:var(--white);color:var(--ink-3);border-radius:8px;padding:3px 10px;font-size:11px;font-weight:600;cursor:pointer;">∅ Laisser vide</button>`;
+  /* (20/11/2026) Consultation : la mettre au nom du secteur, sans nommer de MAR. */
+  let _secBtn = '';
+  if (String(sector).startsWith('CS-') && !isLib) {
+    const _on = _csSecteurs(_notesPlanning(), date, slotKey).includes(sector), _ls = _escHtml(_csLibSecteur(sector));
+    _secBtn = `<button onclick="basculerCsSecteur('${sector}','${date}','${slotKey}')" class="psp-secteur${_on ? ' on' : ''}" title="La consultation est tenue par le secteur, sans nom de MAR">${_on ? '✕ Retirer « ' + _ls + ' »' : '« ' + _ls + ' » sans nom'}</button>`;
+  }
   document.getElementById('pspSub').innerHTML =
     `<span style="background:${getSectorBg(sector)};color:${getSectorFg(sector)};padding:2px 8px;border-radius:12px;font-size:10px;font-weight:700;margin-right:6px;">${sector}</span>`
     + `<span style="background:${slotKey==='am'?'#CE1126':'#64748B'};color:#fff;padding:2px 8px;border-radius:12px;font-size:10px;font-weight:700;margin-right:6px;">${slotKey.toUpperCase()}</span>`
     + new Date(date+'T12:00:00').toLocaleDateString('fr-FR',{weekday:'long',day:'numeric',month:'long'})
-    + ' ' + _videBtn;
+    + ' ' + _videBtn + _secBtn;
   card.scrollIntoView({behavior:'smooth', block:'nearest'});
   loadLiberalJour(date);   // volet libéral (tiroir gauche), indépendant du placement
 
@@ -7064,6 +7106,11 @@ async function exportWeekExcel(){
   daySlots.forEach((slot,dow)=>{
     if(!slot||dow>4||!smap.REA)return;
     ((_NOTES[slot.date]||{}).int||[]).forEach(h=>{ if(smap.REA[dow][h] && !smap.REA[dow][h].includes('INT')) smap.REA[dow][h].push('INT'); });
+  });
+  /* (20/11/2026) Consultation tenue par le secteur, sans nom : le nom du secteur dans la case. */
+  daySlots.forEach((slot,dow)=>{
+    if(!slot||dow>4)return;
+    ['am','pm'].forEach(h=>_csSecteurs(_NOTES,slot.date,h).forEach(code=>pushCS(code,dow,h,_csLibSecteur(code).toUpperCase())));
   });
   /* (19/11/2026) SORTIES DE GARDE SÉPARÉES : sort de garde réa celui qui était de garde réa (G)
      la veille, de garde anesth celui qui était en G2. La veille du lundi est lue dans le planning. */
