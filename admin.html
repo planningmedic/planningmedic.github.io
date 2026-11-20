@@ -1268,9 +1268,12 @@ if (sessionStorage.getItem('adminCode')) {
 #panel-planning .week-nav-btn:hover { border-color:var(--pk-ink); color:var(--pk-ink); }
 #panel-planning .week-export-btn { background:#fff; color:#344054; border:1px solid var(--pk-line); border-radius:12px; padding:9px 15px; font-size:12.5px; font-weight:600; }
 #panel-planning .week-validate-btn { background:var(--pk-ink); color:#fff; border:1px solid var(--pk-ink); border-radius:12px; padding:9px 16px; font-size:12.5px; font-weight:600; }
-.pk { display:grid; grid-template-columns:1.25fr 1fr 1.25fr 1fr; gap:14px; margin-bottom:18px; }
+.pk { display:grid; grid-template-columns:1.2fr 1.25fr 1fr; gap:14px; margin-bottom:18px; }
+.pk-t.rouge { background:#B42318; border:0; } .pk-t.rouge h4, .pk-t.rouge .pk-s { color:#FEE4E2; } .pk-t.rouge .pk-n, .pk-t.rouge .pk-s b { color:#fff; }
+.pk-t.noir .pk-s { color:var(--pk-ink3); } .pk-t.noir .pk-s b { color:#fff; }
+#panel-planning .slot-name.mar-absent { background:#FEF3F2 !important; color:#B42318 !important; border:1px solid #F04438 !important; text-decoration:line-through; }
 .pk:empty { display:none; }
-.pk-t { background:#fff; border:1px solid var(--pk-line); border-radius:22px; padding:16px 20px; min-height:124px; display:flex; flex-direction:column; }
+.pk-t { background:#fff; border:1px solid var(--pk-line); border-radius:22px; padding:16px 20px; min-height:140px; display:flex; flex-direction:column; }
 .pk-t h4 { margin:0; font-size:13px; font-weight:600; color:var(--pk-ink2); }
 .pk-n { font-size:38px; font-weight:600; letter-spacing:-1.5px; line-height:1; margin-top:8px; color:var(--pk-ink); }
 .pk-s { font-size:12.5px; color:var(--pk-ink2); margin-top:auto; padding-top:8px; line-height:1.45; }
@@ -4261,13 +4264,18 @@ function renderWeek() {
           if (i >= 0) cc.splice(i, 1);
         });
         if (tgt === 'VOLANT' || tgt === 'VIDE') return;   // retiré / laissé vide
+        /* (20/11/2026) Placé puis devenu absent (vacances posées après coup…) : le serveur ne publiera
+           pas ce placement (placement caduc, mêmes codes que CADUC_ABSENT_CODES de code.gs) ; l'écran
+           le montre en ROUGE barré au lieu de le laisser passer pour présent. */
+        const _stOv = (stMap[dow] && stMap[dow][marId]) || '';
+        const _abs = ['RG','V','CP','F','CTP','A','CL'].includes(_stOv) ? _stOv : '';
         // valeur multi-secteur possible ("VIS+REA") → ajouter le MAR à chacun
         tgt.split('+').forEach(raw => {
           const one = raw.trim(); if (!one) return;
           if (one.startsWith('CS-')) {
-            if (csTypeMap[one]) csTypeMap[one][dow][k].push({init: marInit, id: marId, status:'', isNew:true, lib: !!(_localLib[slot.date] && _localLib[slot.date].has(`${marId}|${k}`))});
+            if (csTypeMap[one]) csTypeMap[one][dow][k].push({init: marInit, id: marId, status:'', isNew:true, absent:_abs, lib: !!(_localLib[slot.date] && _localLib[slot.date].has(`${marId}|${k}`))});
           } else if (smap[one]) {
-            smap[one][dow][k].push({init: marInit, id: marId, status:'', isNew:true});
+            smap[one][dow][k].push({init: marInit, id: marId, status:'', isNew:true, absent:_abs});
           }
         });
       });
@@ -4398,8 +4406,10 @@ function renderWeek() {
   /* (19/11/2026) Une ligne optionnelle (ex. pédiatrie) reste cachée tant que personne n'y est
      placé ; « ＋ Pédiatrie », sous la grille, l'affiche pour la semaine. */
   const _forcees = window._lignesAffichees || (window._lignesAffichees = new Set());
-  const activeSectors = SECTORS.filter(s =>
-    smap[s.code].some(d => d.am.length||d.pm.length||d.flash_am||d.flash_pm) || (s.optionnel && _forcees.has(s.code))
+  /* (20/11/2026) Sans cases « à pourvoir », un secteur vide doit rester visible pour qu'on puisse
+     y placer quelqu'un : toutes les lignes non optionnelles s'affichent. */
+  const activeSectors = SECTORS.filter(s => !s.optionnel ||
+    smap[s.code].some(d => d.am.length||d.pm.length) || _forcees.has(s.code)
   );
 
   /* (19/11/2026) CHIFFRES DE LA SEMAINE (refonte) — mêmes règles que les cases : un « + » orange
@@ -4513,7 +4523,9 @@ function renderWeek() {
       const dup = dupSet[date] && dupSet[date].has(`${p.id}|${slotKey}`);
       let cls = p.isNew ? 'slot-name slot-new slot-clickable' : 'slot-name slot-clickable';
       if (dup) cls += ' mar-dup';
-      const tt = dup ? `${p.id||''} — aussi placé dans un autre secteur ce demi-jour` : (p.id||'');
+      if (p.absent) cls += ' mar-absent';
+      const tt = p.absent ? `${p.id||''} — ABSENT ce jour (${p.absent}) : ne sera pas publié ici — cliquer pour le retirer`
+               : dup ? `${p.id||''} — aussi placé dans un autre secteur ce demi-jour` : (p.id||'');
       html += `<span class="${cls}" title="${tt}" onclick="openMarMenu('${p.id}','${p.init}','${sector}','${date}','${slotKey}')">${p.init}</span>`;
     });
     /* (19/11/2026) Interne de réanimation : pastille INT (clic = retirer), « ＋ INT » au survol. */
@@ -4523,7 +4535,11 @@ function renderWeek() {
         ? `<span class="slot-int" title="Interne — cliquer pour retirer" onclick="basculerInterne('${date}','${slotKey}')">INT</span>`
         : `<span class="slot-int-add" title="Ajouter l'interne" onclick="basculerInterne('${date}','${slotKey}')">＋ INT</span>`;
     }
-    const _vide = _localVides[date] && _localVides[date].has(`${sector}|${slotKey}`);
+    /* (20/11/2026) PLUS DE CASES « À POURVOIR » (demande du responsable : le nombre de MAR par
+       secteur se décide chaque jour selon le programme). Une case montre les MAR placés ; on ajoute
+       par le « + » gris au survol ou le « — » d'une case vide. Restent les deux filets : « à placer »
+       (n'oublier personne) et un absent jamais proposé, signalé en rouge s'il l'est devenu. */
+    const _vide = false;
     if (_vide) {
       if (!items.length) html += `<span onclick="openSidePanel('${sector}','${date}','${sectorLabel}','${slotKey}')" title="Laissée vide — cliquer pour modifier" style="color:#CBD5E1;font-size:13px;font-weight:700;cursor:pointer;padding:0 3px">∅</span>`;
       return html;
@@ -4576,14 +4592,13 @@ function renderWeek() {
         const cls = p.isNew ? 'slot-name cs-chip cs-chip-lib slot-new slot-clickable' : 'slot-name cs-chip cs-chip-lib slot-clickable';
         prim += `<span class="cs-chip-wrap"><span class="${cls}" title="${p.id||''} — consultation libérale endoscopie" onclick="openMarMenu('${p.id}','${p.init}','${type}','${date}','${slotKey}')"><span class="cs-lib-inline">LIB</span>${p.init}</span>${_chipX(p.id,p.init)}</span>`;
       } else {
-        const cls = p.isNew ? 'slot-name cs-chip slot-new slot-clickable' : 'slot-name cs-chip slot-clickable';
-        prim += `<span class="cs-chip-wrap"><span class="${cls}" title="${p.id||''}" onclick="openMarMenu('${p.id}','${p.init}','${type}','${date}','${slotKey}')">${p.init}</span>${_chipX(p.id,p.init)}</span>`;
+        const cls = (p.isNew ? 'slot-name cs-chip slot-new slot-clickable' : 'slot-name cs-chip slot-clickable') + (p.absent ? ' mar-absent' : '');
+        prim += `<span class="cs-chip-wrap"><span class="${cls}" title="${p.absent ? (p.id||'') + ' — ABSENT ce jour (' + p.absent + ') : ne sera pas publié ici' : (p.id||'')}" onclick="openMarMenu('${p.id}','${p.init}','${type}','${date}','${slotKey}')">${p.init}</span>${_chipX(p.id,p.init)}</span>`;
       }
     });
-    const _vide = _localVides[date] && _localVides[date].has(`${type}|${slotKey}`);
-    // Marqueur "à pourvoir" (requis comité) = petit point discret, sans texte. Masqué si laissée vide.
+    // (20/11/2026) Plus de consultation « à pourvoir » : flash vaut toujours 0 (voir makeSlot).
     let req = '';
-    if (!_vide && (flash||0) > 0 && _nOcc < 2) {
+    if ((flash||0) > 0 && _nOcc < 2) {
       req = `<span class="cs-apourvoir" onclick="openSidePanel('${type}','${date}','${label}','${slotKey}')" title="Consultation requise à pourvoir — cliquer pour affecter">à pourvoir</span>`;
     }
     // Outils au survol : OUVRIR (n'importe quel secteur / jour / AM-PM) tant qu'il reste de la place,
@@ -4635,8 +4650,8 @@ function renderWeek() {
       } else {
         const cell = smap[sec.code][dow];
         tbody += `<div class="slot-pair">
-          <div class="slot">${makeSlot(cell.am, cell.flash_am, sec.code, sec.label, slot.date, 'am')}</div>
-          <div class="slot">${makeSlot(cell.pm, cell.flash_pm, sec.code, sec.label, slot.date, 'pm')}</div>
+          <div class="slot">${makeSlot(cell.am, 0, sec.code, sec.label, slot.date, 'am')}</div>
+          <div class="slot">${makeSlot(cell.pm, 0, sec.code, sec.label, slot.date, 'pm')}</div>
         </div>`;
       }
       tbody += '</td>';
@@ -4656,8 +4671,10 @@ function renderWeek() {
      sur son bandeau la déplie. L'état tient jusqu'au rechargement de la page. Le bandeau dit combien
      de consultations restent à pourvoir, pour ne rien rater replié ; la tuile du haut les compte toujours. */
   const _csOuv = !!window._csOuvert;
-  let _csAp = 0;
-  activeCsTypes.forEach(t => daySlots.forEach((slot, dow) => { if (slot && !(slot.isWeekend || slot.isFerie)) { const c = csTypeMap[t.code][dow]; _csAp += (c.flash_am || 0) + (c.flash_pm || 0); } }));
+  /* (20/11/2026) Le bandeau compte les consultations PLACÉES de la semaine (plus de « à pourvoir »). */
+  let _csN = 0;
+  activeCsTypes.forEach(t => daySlots.forEach((slot, dow) => { if (slot && !(slot.isWeekend || slot.isFerie)) { const c = csTypeMap[t.code][dow];
+    ['am','pm'].forEach(h => { _csN += (c[h] || []).filter(p => p && !p.isMirror).length + (_csSecteurs(NOTES, slot.date, h).includes(t.code) ? 1 : 0); }); } }));
   const _cachees = SECTORS.filter(s => s.optionnel && !activeSectors.includes(s)).map(s => ({code: s.code, label: s.label}))
     .concat(_csOuv ? CS_TYPES.filter(t => t.optionnel && !activeCsTypes.includes(t)).map(t => ({code: t.code, label: t.label})) : []);
   if (_cachees.length) {
@@ -4668,7 +4685,7 @@ function renderWeek() {
   if (activeCsTypes.length) {
     const _lg='font-size:10px;color:#cbd5e1;display:inline-flex;align-items:center;gap:4px;text-transform:none;letter-spacing:0;font-weight:600';
     const _sw='width:15px;height:12px;border-radius:4px;display:inline-block';
-    tbody += `<tr class="cs-group-row"><td class="cs-group-label cs-repli" colspan="${daySlots.length + 1}" onclick="basculerConsultations()" title="${_csOuv ? 'Replier' : 'Déplier'} les consultations"><div style="display:flex;align-items:center;justify-content:space-between;gap:12px"><span><span class="cs-fl">${_csOuv ? '▾' : '▸'}</span> <i data-lucide="Stethoscope" class="sector-icon-svg"></i> Consultations <span class="cs-etat${_csAp ? ' ap' : ''}">${_csAp ? _csAp + ' à pourvoir' : '✓ complètes'}</span></span><span style="display:inline-flex;gap:13px;align-items:center"><span style="${_lg}"><span style="${_sw};background:#ECFDF5;border:1px solid #99E6D3"></span>affecté</span><span style="${_lg}"><span style="${_sw};background:#fff;border:1px dashed #CBD5E1"></span>secteur</span><span style="${_lg}"><span style="${_sw};background:#FFFBEB;border:1px solid #FCD34D"></span>à pourvoir</span><span style="${_lg}"><span style="color:#c4b5fd;font-weight:800;font-size:8px;letter-spacing:.3px">lib</span>libéral</span></span></div></td></tr>`;
+    tbody += `<tr class="cs-group-row"><td class="cs-group-label cs-repli" colspan="${daySlots.length + 1}" onclick="basculerConsultations()" title="${_csOuv ? 'Replier' : 'Déplier'} les consultations"><div style="display:flex;align-items:center;justify-content:space-between;gap:12px"><span><span class="cs-fl">${_csOuv ? '▾' : '▸'}</span> <i data-lucide="Stethoscope" class="sector-icon-svg"></i> Consultations <span class="cs-etat">${_csN} placée${_csN > 1 ? 's' : ''} cette semaine</span></span><span style="display:inline-flex;gap:13px;align-items:center"><span style="${_lg}"><span style="${_sw};background:#ECFDF5;border:1px solid #99E6D3"></span>affecté</span><span style="${_lg}"><span style="${_sw};background:#fff;border:1px dashed #CBD5E1"></span>secteur</span><span style="${_lg}"><span style="color:#c4b5fd;font-weight:800;font-size:8px;letter-spacing:.3px">lib</span>libéral</span></span></div></td></tr>`;
     if (_csOuv) activeCsTypes.forEach(t => {
       tbody += `<tr class="sector-row cs-sub-row"><td class="td-sector"><span class="cs-sub-name">${t.label}</span></td>`;
       daySlots.forEach((slot, dow) => {
@@ -4682,8 +4699,8 @@ function renderWeek() {
         } else {
           const cell = csTypeMap[t.code][dow];
           tbody += `<div class="cs-pair">
-            <div class="cs-half"><span class="cs-ampm">AM</span>${makeCsSlot(cell.am, cell.flash_am, t.code, t.label, slot.date, 'am')}</div>
-            <div class="cs-half"><span class="cs-ampm">PM</span>${makeCsSlot(cell.pm, cell.flash_pm, t.code, t.label, slot.date, 'pm')}</div>
+            <div class="cs-half"><span class="cs-ampm">AM</span>${makeCsSlot(cell.am, 0, t.code, t.label, slot.date, 'am')}</div>
+            <div class="cs-half"><span class="cs-ampm">PM</span>${makeCsSlot(cell.pm, 0, t.code, t.label, slot.date, 'pm')}</div>
           </div>`;
         }
         tbody += '</td>';
@@ -4776,8 +4793,8 @@ function renderPlanKpis(o) {
   const g = o.gardes[gi] || {}, so = o.sortieRow[gi] || [], gs = ouv[gi];
   const gl = gs ? new Date(gs.date + 'T12:00:00').toLocaleDateString('fr-FR', { weekday: 'short', day: 'numeric' }) : '';
   el.innerHTML =
-      `<div class="pk-t noir"><h4>Cases à pourvoir</h4><div class="pk-n">${tot}</div><div class="pk-mini">${barres}</div></div>`
-    + `<div class="pk-t"><h4>MAR à placer</h4><div class="pk-n">${nAp}</div><div class="pk-s">${ap.length ? ap.map(x => x.j + ' · <b>' + x.l.map(m => m.init).join(', ') + '</b>').join('<br>') : 'Tous les présents sont placés.'}</div></div>`
+      /* (20/11/2026) La tuile « Cases à pourvoir » est retirée ; « MAR à placer » passe en tête, rouge s'il reste quelqu'un. */
+      `<div class="pk-t ${nAp ? 'rouge' : 'noir'}"><h4>MAR à placer</h4><div class="pk-n">${nAp}</div><div class="pk-s">${ap.length ? ap.map(x => x.j + ' · <b>' + x.l.map(m => m.init).join(', ') + '</b>').join('<br>') : 'Tous les présents sont placés.'}</div></div>`
     + `<div class="pk-t pk-pres" onclick="toggleTension()" title="Afficher ou masquer la bande de présence de l'année"><h4>Présents en journée</h4><div class="pk-mini">${pb}<div class="pk-seuil" style="bottom:${hPx(SEUIL_ALERTE) + 16}px"></div></div>`
     + `<div class="pk-s">${mini != null ? 'Plus bas : <b>' + pres[mini] + '</b> le ' + new Date(ouv[mini].date + 'T12:00:00').toLocaleDateString('fr-FR', { weekday: 'long', day: 'numeric' }) + (pres[mini] < SEUIL_ALERTE ? ' — sous le seuil de ' + SEUIL_ALERTE + '.' : '.') : '—'}</div></div>`
     + `<div class="pk-t"><h4>Gardes · ${gl}</h4><div class="pk-ab">${g.g ? '<span><b>' + g.g + '</b> garde réa</span>' : ''}${g.g2 ? '<span><b>' + g.g2 + '</b> garde mater</span>' : ''}${so.length ? '<span><b>' + so.join(' ') + '</b> sortie</span>' : ''}${!g.g && !g.g2 && !so.length ? '<span>—</span>' : ''}</div></div>`;
@@ -5013,7 +5030,7 @@ async function openSidePanel(sector, date, sectorLabel, slotKey, isLib) {
     `<span style="background:${getSectorBg(sector)};color:${getSectorFg(sector)};padding:2px 8px;border-radius:12px;font-size:10px;font-weight:700;margin-right:6px;">${sector}</span>`
     + `<span style="background:${slotKey==='am'?'#CE1126':'#64748B'};color:#fff;padding:2px 8px;border-radius:12px;font-size:10px;font-weight:700;margin-right:6px;">${slotKey.toUpperCase()}</span>`
     + new Date(date+'T12:00:00').toLocaleDateString('fr-FR',{weekday:'long',day:'numeric',month:'long'})
-    + ' ' + _videBtn + _secBtn;
+    + ' ' + _secBtn;   // (20/11/2026) « ∅ Laisser vide » retiré avec les cases à pourvoir
   card.scrollIntoView({behavior:'smooth', block:'nearest'});
   loadLiberalJour(date);   // volet libéral (tiroir gauche), indépendant du placement
 

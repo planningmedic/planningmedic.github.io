@@ -146,10 +146,13 @@ const dstr = v => v instanceof Date
   {
     const kp = d.getElementById('planKpis');
     const tuiles = kp ? kp.querySelectorAll('.pk-t') : [];
-    V('quatre tuiles au-dessus de la grille', tuiles.length === 4, tuiles.length);
-    const nFlash = d.querySelectorAll('#planTable .slot-flash').length + d.querySelectorAll('#planTable .cs-apourvoir').length;
-    const nTuile = kp ? Number((kp.querySelector('.pk-t.noir .pk-n') || {}).textContent) : -1;
-    V('la tuile « Cases à pourvoir » compte exactement les cases orange de la grille', nTuile === nFlash, { tuile: nTuile, grille: nFlash });
+    /* (20/11/2026) Plus de cases « à pourvoir » : trois tuiles, « MAR à placer » en tête (rouge s'il reste quelqu'un). */
+    V('trois tuiles au-dessus de la grille, « MAR à placer » en tête', tuiles.length === 3 && /MAR à placer/.test(tuiles[0].textContent) && !/Cases à pourvoir/.test(kp.textContent), tuiles.length);
+    const nAP = Number((tuiles[0] && tuiles[0].querySelector('.pk-n') || {}).textContent);
+    V('…rouge s\'il reste quelqu\'un à placer, sombre sinon', tuiles[0] && tuiles[0].classList.contains(nAP ? 'rouge' : 'noir'), { n: nAP, cls: tuiles[0] && tuiles[0].className });
+    V('aucune case orange « à pourvoir » dans la grille', !d.querySelector('#planTable .slot-flash') && !d.querySelector('#planTable .cs-apourvoir'));
+    const lignes = [...d.querySelectorAll('#planTable tr.sector-row:not(.cs-sub-row)')].length;
+    V('toutes les lignes de secteur non optionnelles restent affichées, même vides', lignes === w.eval('SECTEURS_ACTIFS.filter(s => !s.optionnel).length'), { lignes, attendu: w.eval('SECTEURS_ACTIFS.filter(s => !s.optionnel).length') });
     /* (20/11/2026) La pastille « N à pourvoir / ✓ complet » sous chaque jour est retirée. */
     const pastilles = [...d.querySelectorAll('#planTable thead .jst-p')].map(e => e.textContent);
     V('aucune pastille « à pourvoir / complet » sous les jours', !pastilles.some(t => /à pourvoir|complet/.test(t)), pastilles);
@@ -157,12 +160,34 @@ const dstr = v => v instanceof Date
     const tr = [...d.querySelectorAll('#planTable tr.sector-row')].find(r => /Bloc viscéral/.test(r.textContent));
     V('les initiales prennent la couleur du secteur (variables --sb / --sf posées sur la ligne)', tr && /--sb:/.test(tr.getAttribute('style') || '') && /--sf:/.test(tr.getAttribute('style') || ''), tr && tr.getAttribute('style'));
     V('le libellé de semaine est sur deux lignes', /Semaine \d+/.test(d.getElementById('weekLabel').innerHTML) && !!d.querySelector('#weekLabel small'));
-    const f0 = d.querySelector('#planTable .slot-flash');
-    V('une case à pourvoir garde son geste (ouvre le panneau)', f0 && /openSidePanel\(/.test(f0.getAttribute('onclick') || ''));
+    const f0 = d.querySelector('#planTable .slot-add, #planTable .slot-dash-click');
+    V('chaque case garde un geste pour ajouter un MAR (ouvre le panneau)', f0 && /openSidePanel\(/.test(f0.getAttribute('onclick') || ''));
     if (f0) { f0.click(); await dodo(300); }
     const ps = d.getElementById('pspContent').textContent;
     V('le panneau dit où est déjà chaque MAR ce demi-jour', /ce matin : |cet après-midi : /.test(ps), ps.slice(0, 160));
     w.eval('closeSidePanel()');
+  }
+
+  console.log('\n═══ 18 bis+. (20/11/2026) Un MAR placé puis devenu absent est signalé en rouge ═══');
+  {
+    /* Filet « ne jamais poster un absent » : le panneau ne propose pas les absents ; mais un placement
+       fait AVANT que l'absence soit posée resterait affiché comme présent. Il passe en rouge barré
+       (le serveur, lui, ne le publie pas : placement caduc). CONTRE-ÉPREUVE : un MAR présent placé
+       de la même façon n'est PAS rouge. */
+    const cible = w.eval(`(function(){ const wk = getAllWeeks()[currentWeekIdx]; const ds = getWeekDays(wk.lundi);
+      for (const sl of ds.slice(0,5)) { if (!sl || sl.isFerie) continue; const m = DATA.months.find(x => x.days && x.days.some(dd => dd.date === sl.date)); if (!m) continue;
+        const i = m.days.findIndex(dd => dd.date === sl.date); let abs = null, pres = null;
+        (m.doctors || []).forEach(doc => { const e = (doc.days || [])[i] || {}; if (!abs && e.status === 'V') abs = doc.id; if (!pres && !e.status && (e.morning || '').length) pres = doc.id; });
+        if (abs && pres) return JSON.stringify({ date: sl.date, abs, pres }); } return 'null'; })()`);
+    const c = JSON.parse(cible);
+    V('la semaine du banc contient un MAR en vacances et un MAR présent le même jour', !!c, cible);
+    if (c) {
+      w.eval(`_localOverrides['${c.date}'] = _localOverrides['${c.date}'] || {}; _localOverrides['${c.date}']['${c.abs}'] = { am: 'VIS', pm: null }; _localOverrides['${c.date}']['${c.pres}'] = { am: 'VIS', pm: null }; renderWeek();`);
+      const rouges = [...d.querySelectorAll('#planTable .slot-name.mar-absent')].map(e => e.getAttribute('onclick') || '');
+      V('le MAR en vacances placé apparaît en rouge barré', rouges.some(o => o.includes("'" + c.abs + "'")), rouges);
+      V('contre-épreuve : le MAR présent placé de même n\'est pas rouge', !rouges.some(o => o.includes("'" + c.pres + "'")));
+      w.eval(`delete _localOverrides['${c.date}']['${c.abs}']; delete _localOverrides['${c.date}']['${c.pres}']; if (!Object.keys(_localOverrides['${c.date}']).length) delete _localOverrides['${c.date}']; renderWeek();`);
+    }
   }
 
   console.log('\n═══ 18 ter. (19/11/2026) Pédiatrie optionnelle, interne de réa, infos du jour ═══');
@@ -204,18 +229,16 @@ const dstr = v => v instanceof Date
     /* Le monde du banc n'a pas de modèle de consultations : on en pose un (viscéral requis le mardi après-midi). */
     w.eval(`window.__csSauve = { t: CS_TYPES, r: CS_REQUIRED }; CS_TYPES = [{ code:'CS-VIS', label:'CS Viscéral', ouvrable:true }];
       CS_REQUIRED = JSON.parse(JSON.stringify(CS_REQUIRED || {})); CS_REQUIRED[1] = { am: {}, pm: { 'CS-VIS': 1 } }; renderWeek();`);
-    /* (20/11/2026) Zone des consultations repliée de base : le bandeau dit ce qui reste, un clic déplie. */
-    V('repliée de base : aucune ligne de consultation affichée', d.querySelectorAll('#planTable .cs-sub-row').length === 0 && !d.querySelector('#planTable .cs-apourvoir'));
+    /* (20/11/2026) Zone des consultations repliée de base : le bandeau compte les placées, un clic déplie. */
+    V('repliée de base : aucune ligne de consultation affichée', d.querySelectorAll('#planTable .cs-sub-row').length === 0);
     const bandeau = d.querySelector('#planTable .cs-repli');
-    V('…le bandeau annonce « 1 à pourvoir » et se déplie au clic', !!bandeau && /1 à pourvoir/.test(bandeau.textContent) && /▸/.test(bandeau.textContent), bandeau && bandeau.textContent.trim().slice(0, 80));
+    V('…le bandeau compte les consultations placées (0) et se déplie au clic', !!bandeau && /0 placée/.test(bandeau.textContent) && !/pourvoir/.test(bandeau.textContent) && /▸/.test(bandeau.textContent), bandeau && bandeau.textContent.trim().slice(0, 80));
     if (bandeau) { bandeau.click(); await dodo(100); }
     V('…dépliée : les lignes apparaissent, la flèche tourne', d.querySelectorAll('#planTable .cs-sub-row').length === 1 && /▾/.test((d.querySelector('#planTable .cs-repli') || {}).textContent || ''));
-    const csAp = [...d.querySelectorAll('#planTable .cs-apourvoir')].filter(e => /openSidePanel\('CS-VIS'/.test(e.getAttribute('onclick') || ''));
-    V('la consultation viscérale du mardi après-midi est à pourvoir', csAp.length === 1, csAp.length);
+    const csAp = [...d.querySelectorAll('#planTable .cs-ouvrir')].filter(e => /openSidePanel\('CS-VIS','[^']+','[^']*','pm'\)/.test(e.getAttribute('onclick') || ''));
+    V('pas de « à pourvoir » : la consultation se pose par « + ouvrir »', csAp.length >= 1 && !d.querySelector('#planTable .cs-apourvoir'), csAp.length);
     if (csAp.length) {
       const m = (csAp[0].getAttribute('onclick') || '').match(/openSidePanel\('([^']+)','([^']+)','([^']*)','(am|pm)'\)/);
-      const tuile = () => Number((d.querySelector('#planKpis .pk-t.noir .pk-n') || {}).textContent);
-      const avant = tuile();
       csAp[0].click(); await dodo(200);
       const b = d.querySelector('#pspSub .psp-secteur');
       V('le panneau de la consultation propose « … sans nom »', !!b && /sans nom/.test(b.textContent), b && b.textContent);
@@ -223,21 +246,17 @@ const dstr = v => v instanceof Date
         w.eval(`window._PLAN_NOTES = { '${m[2]}': { css: { am: [], pm: [] } } }; window._PLAN_NOTES['${m[2]}'].css['${m[4]}'] = ['${m[1]}']; renderWeek();`);
         const chip = d.querySelector('#planTable .cs-chip.cs-secteur');
         V('la case affiche le nom du secteur', !!chip && chip.textContent.length > 1, chip && chip.textContent);
-        V('…et la tuile « Cases à pourvoir » compte une case de moins', tuile() === avant - 1, { avant, apres: tuile() });
-        const cellule = chip && chip.closest('.cs-cell');
-        V('…la case n\'est plus proposée « à pourvoir »', !!cellule && !cellule.querySelector('.cs-apourvoir'));
-        const nFlash = d.querySelectorAll('#planTable .slot-flash').length + d.querySelectorAll('#planTable .cs-apourvoir').length;
-        V('…toujours égale aux cases orange de la grille', tuile() === nFlash, { tuile: tuile(), grille: nFlash });
-        V('…et le bandeau passe à « ✓ complètes »', /✓ complètes/.test((d.querySelector('#planTable .cs-repli') || {}).textContent || ''));
+        V('…et le bandeau la compte (1 placée)', /1 placée/.test((d.querySelector('#planTable .cs-repli') || {}).textContent || ''));
       }
     }
     w.eval(`window._PLAN_NOTES = {}; CS_TYPES = window.__csSauve.t; CS_REQUIRED = window.__csSauve.r; window._csOuvert = false; closeSidePanel(); renderWeek();`);
     V('replier à nouveau : un clic referme la zone', (() => { const b = d.querySelector('#planTable .cs-repli'); if (!b) return true; b.click(); const n1 = d.querySelectorAll('#planTable .cs-sub-row').length; d.querySelector('#planTable .cs-repli').click(); return n1 > 0 && d.querySelectorAll('#planTable .cs-sub-row').length === 0; })());
   }
 
-  console.log('\n═══ 19. Je place des MAR sur des cases à pourvoir ═══');
-  const flashes = [...d.querySelectorAll('.slot-flash')];
-  V('des cases « à pourvoir » sont présentes', flashes.length > 0, flashes.length + ' cases');
+  console.log('\n═══ 19. Je place des MAR (le « + » de chaque case) ═══');
+  /* (20/11/2026) Plus de cases « à pourvoir » : on ajoute par le « + » gris de la case. */
+  const flashes = [...d.querySelectorAll('#planTable tr.sector-row:not(.cs-sub-row) .slot-add')];
+  V('chaque case de secteur offre son « + »', flashes.length > 0, flashes.length + ' cases');
   console.log('    [diag] étage 2 :', w.eval('!!(_ETAGE2 && _ETAGE2.gardes)'),
               '| module partagé :', w.eval('typeof calculerDispoJour'),
               '| dispo locale :', w.eval('(function(){try{var r=_dispoLocale("2027-03-02");return r?r.length+" MAR":"null"}catch(e){return "err:"+e.message}})()'),

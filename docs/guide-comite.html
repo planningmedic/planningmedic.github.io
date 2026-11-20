@@ -331,10 +331,10 @@
 
   <section id="a3">
     <h2><span class="n">03</span>Votre séance type : placer, publier</h2>
-    <p>L'écran principal montre une ligne par secteur, une colonne par demi-journée, et des <b>cases orange « à pourvoir »</b> là où il manque potentiellement quelqu'un.</p>
+    <p>L'écran principal montre une ligne par secteur, une colonne par demi-journée, avec les MAR placés. Vous décidez chaque jour combien de MAR mettre dans chaque secteur, selon le programme : l'écran ne réclame aucune case. Il vous garde seulement de deux erreurs : <b>oublier quelqu'un</b> (« à placer ») et <b>placer un absent</b>.</p>
 
     <ol class="steps">
-      <li>Cliquez sur une case orange. Le panneau des MAR disponibles s'ouvre <span class="vite">immédiatement</span>.</li>
+      <li>Survolez une case et cliquez le <span class="btn-ex">+</span> gris (ou le « — » d'une case vide). Le panneau des MAR disponibles s'ouvre <span class="vite">immédiatement</span>.</li>
       <li>Choisissez un nom. Le placement apparaît aussitôt dans la grille.</li>
       <li>Enchaînez : cliquez d'autres cases, placez d'autres MAR. <b>N'attendez rien entre deux clics.</b></li>
       <li>Trois secondes après votre dernier clic, l'ensemble part s'enregistrer. Un badge en bas à gauche le signale, puis disparaît.</li>
@@ -412,7 +412,7 @@
     <p>Cinq gestes couvrent l'essentiel d'une année. Chacun a son écran et son délai normal.</p>
     <table>
       <tr><th>Je veux…</th><th>Où</th><th>Délai</th></tr>
-      <tr><td>Combler une case orange</td><td>Planning → clic sur la case</td><td><span class="vite">immédiat</span></td></tr>
+      <tr><td>Placer un MAR</td><td>Planning → « + » de la case</td><td><span class="vite">immédiat</span></td></tr>
       <tr><td>Poser des vacances, une formation</td><td>Statuts → choisir le MAR, les jours, le statut</td><td><span class="vite">immédiat</span></td></tr>
       <tr><td>Échanger ou donner une garde</td><td>Planning → carte <span class="btn-ex">🔁 Modifier une garde</span></td><td><span class="lent">3 à 6 s</span></td></tr>
       <tr><td>Rendre tout cela visible aux MAR</td><td>Planning ou Statuts → <span class="btn-ex red">Publier</span></td><td><span class="vite">≈ 0,2 s</span></td></tr>
@@ -431,10 +431,11 @@
     <p>La semaine affichée se change avec <span class="btn-ex">←</span> <span class="btn-ex">→</span>, et <span class="btn-ex">Aujourd'hui</span> ramène à la semaine en cours.</p>
 
     <h3>Lire la semaine d'un coup d'œil</h3>
-    <p>Quatre tuiles en haut : le nombre de <b>cases à pourvoir</b> (et sur quels jours), les <b>MAR à placer</b>, les <b>présents</b> de chaque jour avec la ligne du seuil (un clic affiche ou masque la bande de l'année), et les <b>gardes</b> du jour. Sous chaque jour, le nombre de présents. Les initiales prennent la couleur de leur secteur.</p>
+    <p>Trois tuiles en haut : les <b>MAR à placer</b> (rouge tant qu'il reste quelqu'un), les <b>présents</b> de chaque jour avec la ligne du seuil (un clic affiche ou masque la bande de l'année), et les <b>gardes</b> du jour. Sous chaque jour, le nombre de présents. Les initiales prennent la couleur de leur secteur.</p>
 
     <h3>Placer, retirer, déplacer</h3>
-    <p>Cliquez une case <span class="btn-ex">＋ à pourvoir</span> pour ouvrir le panneau des disponibles, à droite ; chaque nom y indique où le MAR est déjà ce matin-là (ou cet après-midi). Cliquez un MAR déjà placé pour le <b>retirer</b> ou le <b>déplacer</b> vers un autre secteur. L'écran se met à jour tout de suite, l'enregistrement suit.</p>
+    <p>Cliquez le <span class="btn-ex">+</span> d'une case pour ouvrir le panneau des disponibles, à droite : il ne propose <b>que les MAR présents</b> ce jour-là ; chaque nom y indique où le MAR est déjà ce matin-là (ou cet après-midi). Cliquez un MAR déjà placé pour le <b>retirer</b> ou le <b>déplacer</b> vers un autre secteur. L'écran se met à jour tout de suite, l'enregistrement suit.</p>
+    <p>Un MAR placé puis mis en vacances (ou en formation…) après coup apparaît <b>en rouge barré</b> : il ne sera pas publié à cette place. Retirez-le d'un clic et placez quelqu'un d'autre.</p>
     <div class="callout tip">
       <div class="ct">Le bouton <span class="btn-ex">＋ aussi</span></div>
       <p>Sur un MAR déjà placé ailleurs, ce bouton l'ajoute ici <b>sans le retirer</b> de son secteur : c'est le double poste (consultation courte, maternité). Cliquer son nom, à l'inverse, le déplace.</p>
@@ -443,17 +444,14 @@
     <h3>Les consultations : ouvrir, fermer, rouvrir</h3>
     <table>
       <tr><th>Geste</th><th>Effet</th></tr>
-      <tr><td><span class="btn-ex">+ ouvrir</span></td><td>Ouvre une consultation sur cette demi-journée : elle devient une case à pourvoir.</td></tr>
+      <tr><td><span class="btn-ex">+ ouvrir</span></td><td>Ouvre le panneau pour placer un MAR sur cette consultation (ou la mettre au nom du secteur).</td></tr>
       <tr><td><span class="btn-ex">fermer</span></td><td>Ferme la consultation et <b>libère le ou les MAR</b> qui la tenaient : ils redeviennent volants et replaçables ailleurs.</td></tr>
-      <tr><td><span class="btn-ex">rouvrir</span></td><td>Remet une consultation fermée à pourvoir.</td></tr>
+      <tr><td><span class="btn-ex">rouvrir</span></td><td>Rouvre une consultation fermée.</td></tr>
     </table>
     <div class="callout warn">
       <div class="ct">Les fermetures restent sur l'ordinateur qui les a faites</div>
       <p>Une consultation fermée le reste sur <b>ce</b> navigateur, pour ne plus vous la resignaler. Un autre membre du comité, sur son poste, la verra encore ouverte. En revanche, le MAR libéré, lui, est bien enregistré pour tout le monde.</p>
     </div>
-
-    <h3>Laisser une case volontairement vide</h3>
-    <p>Dans le panneau d'une case orange, <span class="btn-ex">∅ Laisser vide</span> éteint le clignotement : vous avez décidé que personne n'irait là, et l'écran cesse de vous le rappeler. <span class="btn-ex">↺ Remettre en flash</span> annule ce choix.</p>
 
     <h3>Le volet « activité libérale »</h3>
     <p>Quand vous ouvrez une case, un volet indique si des MAR ont déclaré une <b>intervention libérale</b> ce jour-là : qui, dans quel secteur, quelle chirurgie. C'est une information de placement.</p>
@@ -466,10 +464,10 @@
     <p>Sous la grille, un carré par jour ouvré de l'année : la couleur dit <b>combien de MAR sont présents</b> ce jour-là. Elle sert à repérer d'un coup d'œil les journées tendues, avant même d'y aller. <span class="btn-ex">Réduire</span> la replie ; les seuils de couleur se règlent dans le classeur.</p>
 
     <h3>La pédiatrie, l'interne, les infos du jour</h3>
-    <p><b>Pédiatrie.</b> La ligne n'apparaît que la semaine où quelqu'un y est placé. Pour y placer quelqu'un, cliquez <span class="btn-ex">＋ Pédiatrie</span> sous les secteurs : la ligne s'affiche, matin et après-midi. Elle ne crée jamais de case à pourvoir. Même chose pour <span class="btn-ex">＋ CS Pédiatrie</span>, à ouvrir au besoin.</p>
-    <p><b>Interne.</b> Dans une case Réanimation, survolez puis cliquez <span class="btn-ex">＋ INT</span> : la pastille INT s'affiche. Un clic dessus la retire. L'interne ne compte ni dans les présents ni dans les cases à pourvoir.</p>
-    <p><b>Les consultations sont repliées</b> à l'ouverture, pour alléger la page. Leur bandeau indique ce qui reste (« 2 à pourvoir » ou « ✓ complètes ») ; un clic dessus les déplie, un second les replie. La tuile « Cases à pourvoir » en haut les compte toujours.</p>
-    <p><b>Consultation tenue par le secteur, sans nom.</b> Comme « VISC » sur l'ancien tableau papier : cliquez la consultation (« à pourvoir » ou « + ouvrir »), puis <span class="btn-ex">« Viscéral » sans nom</span> dans le panneau. La case affiche le nom du secteur et n'est plus à pourvoir. Personne n'y est affecté. Pour l'enlever, la croix de l'étiquette ou <span class="btn-ex">✕ Retirer</span> dans le panneau. Elle part dans l'Excel, en abrégé (VISC, ORTH, ORL, ENDO, INTER, MAT, POLY, PED), et chez les MAR après « Publier ».</p>
+    <p><b>Pédiatrie.</b> La ligne n'apparaît que la semaine où quelqu'un y est placé. Pour y placer quelqu'un, cliquez <span class="btn-ex">＋ Pédiatrie</span> sous les secteurs : la ligne s'affiche, matin et après-midi. Même chose pour <span class="btn-ex">＋ CS Pédiatrie</span>, à ouvrir au besoin.</p>
+    <p><b>Interne.</b> Dans une case Réanimation, survolez puis cliquez <span class="btn-ex">＋ INT</span> : la pastille INT s'affiche. Un clic dessus la retire. L'interne ne compte pas dans les présents.</p>
+    <p><b>Les consultations sont repliées</b> à l'ouverture, pour alléger la page. Leur bandeau indique combien sont placées cette semaine ; un clic dessus les déplie, un second les replie.</p>
+    <p><b>Consultation tenue par le secteur, sans nom.</b> Comme « VISC » sur l'ancien tableau papier : cliquez « + ouvrir » sur la consultation, puis <span class="btn-ex">« Viscéral » sans nom</span> dans le panneau. La case affiche le nom du secteur. Personne n'y est affecté. Pour l'enlever, la croix de l'étiquette ou <span class="btn-ex">✕ Retirer</span> dans le panneau. Elle part dans l'Excel, en abrégé (VISC, ORTH, ORL, ENDO, INTER, MAT, POLY, PED), et chez les MAR après « Publier ».</p>
     <p><b>Infos du jour.</b> Survolez l'en-tête d'un jour et cliquez <span class="btn-ex">✎ Infos</span> pour écrire un texte libre (ex. « ortho 2 salles »). Une fois écrite, l'info s'affiche en bleu, <span class="btn-ex">ℹ Infos</span> ; le texte apparaît au survol, un clic permet de le modifier ou de l'effacer.</p>
     <div class="callout tip">
       <div class="ct">Enregistré tout de suite, visible des MAR après « Publier »</div>
@@ -649,7 +647,7 @@
 
   <section id="b3">
     <h2><span class="n">07</span>Onglet Affectations</h2>
-    <p>Chaque MAR est rattaché à un secteur, mois par mois. C'est cette grille qui détermine les <b>cases à pourvoir</b> : quand un MAR affecté à un secteur est absent, sa case s'allume en orange. Cliquez une cellule pour changer le secteur.</p>
+    <p>Chaque MAR est rattaché à un secteur, mois par mois. C'est cette grille qui remplit chaque secteur au départ : le MAR présent apparaît dans son secteur, et un MAR sans secteur est réclamé « à placer ». Cliquez une cellule pour changer le secteur.</p>
     <div class="callout warn">
       <div class="ct">Cet écran est un brouillon</div>
       <p>Vos modifications ne partent qu'au clic sur <span class="btn-ex green">💾 Enregistrer tout</span> <span class="lent">3 à 5 secondes</span>. Tant que vous n'avez pas enregistré, rien n'est écrit — et un message vous rappelle que des modifications sont en attente. L'enregistrement republie le planning tout seul.</p>
@@ -1118,7 +1116,7 @@
     </div>
     <div class="faq">
       <div class="q">« J'ai fermé une consultation par erreur »</div>
-      <div class="a">La case affiche <b>fermée</b> avec un lien pour la rouvrir : elle redevient à pourvoir. Les MAR qui la tenaient étaient repassés volants — replacez-les.</div>
+      <div class="a">La case affiche <b>fermée</b> avec un lien pour la rouvrir : elle redevient ouverte. Les MAR qui la tenaient étaient repassés volants — replacez-les.</div>
     </div>
     <div class="faq">
       <div class="q">« Le panneau dit qu'aucune garde n'existe à cette date »</div>

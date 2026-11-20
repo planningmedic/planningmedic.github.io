@@ -561,7 +561,10 @@ console.log('\n═══ 16. L\'interrupteur : fermé par défaut, pilotes nomin
   V('proposer à un pilote passe', !!vm.runInContext(`creerEchange(${JSON.stringify(user('ALPHA'))}, { type:'don', year:2027, date:${JSON.stringify(j)}, receveur:'BRAVO' })`, b.ctx).id);
 
   b.kv.length = 0;
-  vm.runInContext('ouvrirEchanges()', b.ctx);
+  /* (20/11/2026) Heure des réponses EXPLICITE et lointaine : sans argument, ouvrirEchanges() prend la
+     constante de production (20/11/2026 10 h), qui est passée — le banc virait au rouge tout seul ce
+     jour-là à 10 h. On teste ici l'interrupteur, pas la date du moment. */
+  vm.runInContext("ouvrirEchanges('2099-01-01T10:00:00+01:00')", b.ctx);
   V('ouvrirEchanges : tout le monde passe', aut('CHARLIE') === true);
   V('l\'état est répliqué au KV (notif_config)', b.kv.some(cles => cles.indexOf('notif_config') > -1), b.kv);
   V('l\'état poussé dit « ouvert »', PROPS.ECHANGES_OUVERTS === 'O');
