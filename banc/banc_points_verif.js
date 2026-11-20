@@ -226,9 +226,10 @@ console.log('\n═══ SE · le seuil vient de l\'onglet SEUILS du classeur �
   V('un confort sous l\'alerte est corrigé (alerte + 2)', vm.runInContext('JSON.stringify(seuilsPresence_())', absurde.ctx) === '{"alerte":13,"confort":15}');
   /* Les autres usages du seuil : une seule source. */
   const gen = extraireFonction('../gas/generateur_gardes.gs', '_rPresents') + require('fs').readFileSync(require('path').join(__dirname, '..', 'gas', 'generateur_gardes.gs'), 'utf8').match(/const R_PLANCHER\s*=[^\n]*/)[0];
-  V('placement des récups (génération) : seuilsPresence_().alerte', /seuilsPresence_\(\)\.alerte/.test(gen), gen.slice(-160));
+  /* (20/11/2026) les récupérations ne se posent que sur un jour qui reste vert : le seuil de confort. */
+  V('placement des récups (génération) : seuilsPresence_().confort (jour vert)', /seuilsPresence_\(\)\.confort/.test(gen) && !/seuilsPresence_\(\)\.alerte/.test(gen), gen.slice(-160));
   const ech = require('fs').readFileSync(require('path').join(__dirname, '..', 'gas', 'echanges.gs'), 'utf8');
-  V('placement des récups (échanges) : seuilsPresence_().alerte', /seuilsPresence_\(\)\.alerte/.test(ech));
+  V('placement des récups (échanges) : seuilsPresence_().confort (jour vert)', /const plancher = \(typeof seuilsPresence_ === 'function'\) \? seuilsPresence_\(\)\.confort : RECUP_PLANCHER_REPLI;/.test(ech));
   const adm = require('fs').readFileSync(require('path').join(__dirname, '..', 'admin.html'), 'utf8');
   V('bande de présence de l\'admin : le MAR hors effectif n\'est pas compté', /m\.horsEffectif/.test(adm));
 }
@@ -250,9 +251,12 @@ console.log('\n═══ RC · les récupérations ═══');
   const b = monde({ cases: [
     ['P08', '2027-03-06', 'G'], ['P08', '2027-03-07', 'RG'], ['P08', '2027-03-02', 'R'], ['P01', '2027-03-02', 'V'], ['P02', '2027-03-02', 'V'], ['P03', '2027-03-02', 'V'],   // R un jour à 11
     ['P09', '2027-03-13', 'G'], ['P09', '2027-03-14', 'RG'], ['P09', '2027-04-06', 'R'],   // R un jour ordinaire, même en vacances scolaires
-    ['P10', '2027-03-20', 'G'], ['P10', '2027-03-21', 'RG'] ] });                           // samedi sans récup
+    ['P10', '2027-03-20', 'G'], ['P10', '2027-03-21', 'RG'] ],                              // samedi sans récup
+    /* (20/11/2026) le petit monde n'a que 15 postables : seuils abaissés pour qu'un jour ordinaire (14) reste vert */
+    seuils: [['SEUIL_PRESENCE_ALERTE', 11, ''], ['SEUIL_PRESENCE_CONFORT', 13, '']] });
   const r = b.points(), pt = cle => r.points.find(p => p.cle === cle);
-  V('récup un jour tendu : orange, avec le compte', pt('rtendu|P08|2027-03-02') && /11 MAR postables/.test(pt('rtendu|P08|2027-03-02').texte), cles(r).filter(x => /^r/.test(x)));
+  V('récup un jour non vert : orange, avec le compte', pt('rtendu|P08|2027-03-02') && /11 MAR postables/.test(pt('rtendu|P08|2027-03-02').texte), cles(r).filter(x => /^r/.test(x)));
+  V('(20/11/2026) récup signalée dès qu\'un jour n\'est pas vert (seuil de confort, comme la règle de pose)', /n < S\.confort\) ajouter\('recups', 'rtendu'/.test(extraireFonction('../gas/gardes.gs', 'computePointsVerif')));
   V('récup un jour ordinaire : rien, vacances scolaires ou non', !cles(r).some(x => /\|P09\|/.test(x) && /^r/.test(x)));
   V('samedi tenu sans récup : signalé', pt('recart|P10|2027') && /1 récupération de samedi due/.test(pt('recart|P10|2027').texte), pt('recart|P10|2027'));
   V('samedi tenu avec sa récup : rien', !pt('recart|P08|2027') && !pt('recart|P09|2027'));

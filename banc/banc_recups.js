@@ -33,17 +33,17 @@ const jours2 = (a, b) => Math.round((J(b) - J(a)) / 86400000);
 const SRC = fs.readFileSync(path.join(__dirname, '..', 'gas', 'generateur_gardes.gs'), 'utf8');
 const CONST = n => Number((SRC.match(new RegExp(n + '\\s*=\\s*(\\d+)')) || [])[1]);
 const MAX_PAR_JOUR = CONST('R_MAX_PAR_JOUR');
-const PLANCHER     = CONST('R_PLANCHER_REPLI');   // (17/11/2026) le plancher vient de l'onglet SEUILS (seuil d'alerte) ; ceci est sa valeur de repli
+const PLANCHER     = CONST('R_PLANCHER_REPLI');   // (20/11/2026) le plancher vient de l'onglet SEUILS (seuil de confort : jour vert) ; ceci est sa valeur de repli
 
 
 console.log('\n═══ 1. Les réglages sont bien déclarés dans le générateur ═══');
 V('R_MAX_PAR_JOUR est défini', Number.isFinite(MAX_PAR_JOUR), MAX_PAR_JOUR);
 V('R_PLANCHER_REPLI est défini', Number.isFinite(PLANCHER), PLANCHER);
-V('le plancher suit le seuil d\'alerte de l\'onglet SEUILS', /R_PLANCHER\s*=\s*\(typeof seuilsPresence_\s*===\s*'function'\)\s*\?\s*seuilsPresence_\(\)\.alerte\s*:\s*R_PLANCHER_REPLI/.test(SRC));
+V('le plancher suit le seuil de confort de l\'onglet SEUILS (jour vert)', /R_PLANCHER\s*=\s*\(typeof seuilsPresence_\s*===\s*'function'\)\s*\?\s*seuilsPresence_\(\)\.confort\s*:\s*R_PLANCHER_REPLI/.test(SRC));
 /* Ces trois valeurs sont VERROUILLÉES ici. Sans cela, un test qui lit la constante
    depuis le code valide n'importe quelle valeur : mettre R_DELAI_MIN_JOURS à 0 ferait
    passer « aucune récupération à moins de 0 jour ». Contre-épreuve du 21/08. */
-V('le plancher de repli est le seuil d\'alerte du service (13 postables, décision du 17/11/2026)', PLANCHER === 13, PLANCHER);
+V('le plancher de repli est le seuil de confort du service (15 postables : une récupération seulement sur un jour vert, décision du 20/11/2026)', PLANCHER === 15, PLANCHER);
 V('le plafond par jour vaut 2', MAX_PAR_JOUR === 2, MAX_PAR_JOUR);
 
 /* ── Un tour complet pour une année, tout recompté depuis la grille ──── */

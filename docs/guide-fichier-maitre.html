@@ -421,8 +421,8 @@ l'onglet qui porte les codes d'accès. Aucune valeur sensible ici, jamais de cod
 
 <table>
 <tr><th>Clé</th><th>Rôle</th><th>Défaut</th></tr>
-<tr><td>SEUIL_PRESENCE_ALERTE</td><td>Le seuil du <b>jour tendu</b>, le même partout : au-dessous de ce nombre de MAR postables (sans repos de garde, sans MAR hors effectif), un temps partiel est refusé à la pose, l'onglet Contrôles signale le jour, aucune récupération n'y est placée, et la bande de présence vire à l'orange puis au rouge.</td><td>13</td></tr>
-<tr><td>SEUIL_PRESENCE_CONFORT</td><td>À partir de ce nombre de postables, la journée est verte et un temps partiel est accordé à la pose. Entre les deux seuils, le temps partiel passe par une demande au comité.</td><td>15</td></tr>
+<tr><td>SEUIL_PRESENCE_ALERTE</td><td>Le seuil du <b>jour tendu</b>, le même partout : au-dessous de ce nombre de MAR postables (sans repos de garde, sans MAR hors effectif), un temps partiel est refusé à la pose, l'onglet Contrôles signale le jour, et la bande de présence vire à l'orange puis au rouge.</td><td>13</td></tr>
+<tr><td>SEUIL_PRESENCE_CONFORT</td><td>À partir de ce nombre de postables, la journée est verte et un temps partiel est accordé à la pose. Une récupération de samedi n'est posée que sur un jour qui reste vert après la pose ; s'il n'y en a aucun, elle n'est pas posée et l'onglet Contrôles le signale. Entre les deux seuils, le temps partiel passe par une demande au comité.</td><td>15</td></tr>
 </table>
 
 <div class="callout rule">

@@ -9,7 +9,7 @@
    (gardes.gs), getJoursFeries (code.gs), dans un classeur simulé d'un an,
    vingt MAR, et les vacances scolaires 2027 (calendrier public).
    Ce qui est éprouvé : les règles de choix d'une date (jamais pendant les
-   vacances scolaires, plancher du seuil d'alerte (13 postables), deux R au plus par jour,
+   vacances scolaires, plancher du seuil de confort (15 postables, jour vert, depuis le 20/11/2026), deux R au plus par jour,
    trois jours d'écart, jamais sur une case occupée, d'abord un jour qui allonge
    un week-end libre), les trois chemins automatiques (samedi qui change de
    mains, R écrasé par un don, bouton Réparer), la pose manuelle d'un R qui
@@ -94,12 +94,20 @@ console.log('═══ 1. Choix d\'une date : les règles ═══');
   b.poser('BRAVO', '2027-03-19', 'R'); b.poser('CHARLI', '2027-03-19', 'R');
   V('deux R au plus le même jour', b.choisir('ALPHA', '2027-03-13') === '2027-03-22', b.choisir('ALPHA', '2027-03-13'));
   b.poser('BRAVO', '2027-03-19', ''); b.poser('CHARLI', '2027-03-19', '');
-  /* (17/11/2026) Le plancher est le seuil d'alerte de l'onglet SEUILS (13 postables par défaut). */
+  /* Le plancher est un seuil de l'onglet SEUILS : d'alerte (13) jusqu'au 20/11/2026, de confort (15) depuis. */
   ['DELTA', 'ECHO', 'FOXTRO', 'GOLF', 'HOTEL', 'INDIA', 'JULIET'].forEach(id => b.poser(id, '2027-03-19', 'V'));
   V('plancher : 13 présents avec lui, il en resterait 12 après sa récupération — la date est refusée',
     b.choisir('ALPHA', '2027-03-13') === '2027-03-22', b.choisir('ALPHA', '2027-03-13'));
+  /* (20/11/2026) Décision du responsable : « un jour de récup ne peut être mis que sur des
+     jours verts » — plancher = seuil de CONFORT (15) ; un jour qui finirait à 13 ou 14 est refusé. */
   b.poser('JULIET', '2027-03-19', '');
-  V('plancher : 14 présents, il en reste 13 après sa récupération — la date passe',
+  V('jour vert seulement : 14 présents, il en resterait 13 (orange) — la date est refusée (vu en réel le 06/09/2027)',
+    b.choisir('ALPHA', '2027-03-13') === '2027-03-22', b.choisir('ALPHA', '2027-03-13'));
+  b.poser('INDIA', '2027-03-19', '');
+  V('jour vert seulement : 15 présents, il en resterait 14 — la date est refusée',
+    b.choisir('ALPHA', '2027-03-13') === '2027-03-22', b.choisir('ALPHA', '2027-03-13'));
+  b.poser('HOTEL', '2027-03-19', '');
+  V('jour vert seulement : 16 présents, il en reste 15 après sa récupération — la date passe',
     b.choisir('ALPHA', '2027-03-13') === '2027-03-19', b.choisir('ALPHA', '2027-03-13'));
   ['DELTA', 'ECHO', 'FOXTRO', 'GOLF', 'HOTEL', 'INDIA'].forEach(id => b.poser(id, '2027-03-19', ''));
   b.poser('ALPHA', '2027-03-22', 'R');
