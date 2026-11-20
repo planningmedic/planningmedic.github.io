@@ -204,6 +204,12 @@ const dstr = v => v instanceof Date
     /* Le monde du banc n'a pas de modèle de consultations : on en pose un (viscéral requis le mardi après-midi). */
     w.eval(`window.__csSauve = { t: CS_TYPES, r: CS_REQUIRED }; CS_TYPES = [{ code:'CS-VIS', label:'CS Viscéral', ouvrable:true }];
       CS_REQUIRED = JSON.parse(JSON.stringify(CS_REQUIRED || {})); CS_REQUIRED[1] = { am: {}, pm: { 'CS-VIS': 1 } }; renderWeek();`);
+    /* (20/11/2026) Zone des consultations repliée de base : le bandeau dit ce qui reste, un clic déplie. */
+    V('repliée de base : aucune ligne de consultation affichée', d.querySelectorAll('#planTable .cs-sub-row').length === 0 && !d.querySelector('#planTable .cs-apourvoir'));
+    const bandeau = d.querySelector('#planTable .cs-repli');
+    V('…le bandeau annonce « 1 à pourvoir » et se déplie au clic', !!bandeau && /1 à pourvoir/.test(bandeau.textContent) && /▸/.test(bandeau.textContent), bandeau && bandeau.textContent.trim().slice(0, 80));
+    if (bandeau) { bandeau.click(); await dodo(100); }
+    V('…dépliée : les lignes apparaissent, la flèche tourne', d.querySelectorAll('#planTable .cs-sub-row').length === 1 && /▾/.test((d.querySelector('#planTable .cs-repli') || {}).textContent || ''));
     const csAp = [...d.querySelectorAll('#planTable .cs-apourvoir')].filter(e => /openSidePanel\('CS-VIS'/.test(e.getAttribute('onclick') || ''));
     V('la consultation viscérale du mardi après-midi est à pourvoir', csAp.length === 1, csAp.length);
     if (csAp.length) {
@@ -222,9 +228,11 @@ const dstr = v => v instanceof Date
         V('…la case n\'est plus proposée « à pourvoir »', !!cellule && !cellule.querySelector('.cs-apourvoir'));
         const nFlash = d.querySelectorAll('#planTable .slot-flash').length + d.querySelectorAll('#planTable .cs-apourvoir').length;
         V('…toujours égale aux cases orange de la grille', tuile() === nFlash, { tuile: tuile(), grille: nFlash });
+        V('…et le bandeau passe à « ✓ complètes »', /✓ complètes/.test((d.querySelector('#planTable .cs-repli') || {}).textContent || ''));
       }
     }
-    w.eval(`window._PLAN_NOTES = {}; CS_TYPES = window.__csSauve.t; CS_REQUIRED = window.__csSauve.r; closeSidePanel(); renderWeek();`);
+    w.eval(`window._PLAN_NOTES = {}; CS_TYPES = window.__csSauve.t; CS_REQUIRED = window.__csSauve.r; window._csOuvert = false; closeSidePanel(); renderWeek();`);
+    V('replier à nouveau : un clic referme la zone', (() => { const b = d.querySelector('#planTable .cs-repli'); if (!b) return true; b.click(); const n1 = d.querySelectorAll('#planTable .cs-sub-row').length; d.querySelector('#planTable .cs-repli').click(); return n1 > 0 && d.querySelectorAll('#planTable .cs-sub-row').length === 0; })());
   }
 
   console.log('\n═══ 19. Je place des MAR sur des cases à pourvoir ═══');
