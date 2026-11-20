@@ -464,6 +464,14 @@ les cases valant exactement `CL`.
 
 ## 🚫 Écarté — ne pas reproposer sans élément nouveau
 
+- **Réduire encore les écritures du relais** *(20/11, chiffré)*. Pistes : regrouper les poussées
+  pendant une ruée (~3 min), calculer la pastille sur le téléphone, alléger les placements (3 → 1),
+  espacer la resynchronisation de 4 h. Une journée ordinaire tourne à ~180 écritures sur 1 000 : seuls
+  les ~2 jours d'ouverture d'échanges par an frôlent la limite. Décision du responsable : ne rien
+  faire et observer comment l'équipe tolère un dépassement (affichage en retard jusqu'à 1 h, aucune
+  donnée perdue : accepter un échange et placer passent par le serveur Google). Repli si mal vécu :
+  forfait payant du relais le mois d'une ouverture, ou la piste du regroupement.
+
 - **Protection anti-force-brute sur `checkCode()`** *(20/07, chiffré)*. 32⁸ ≈ 1 100 milliards de
   combinaisons, ~50 essais/s au mieux → **~350 ans**. Surtout : `checkCode()` tourne à **chaque
   requête**, pas seulement au login — un disjoncteur global aurait coupé le service pour les
@@ -502,6 +510,14 @@ les cases valant exactement `CL`.
 ---
 
 ## Journal récent
+
+- **20/11/2026** — Écritures du relais (`miroir.gs` 2026-11-20.1) : ouverture des échanges = ~70
+  acceptations en une heure, ~960 écritures sur 1 000 dans la journée. Cause corrigée : la file des
+  poussées différées mélangeait familles et années (un échange 2027 + sa notification en 2026 →
+  tout repoussé pour les deux années, `config_admin` bâti deux fois et laissé en version 2027).
+  Chaque famille ne part plus que pour ses années, les familles sans année une fois avec l'année
+  active (≈ 3 écritures de moins par acceptation). Scénario 6 ter du banc. Appliqué par le
+  responsable. Aller plus loin : écarté (voir plus haut).
 
 - **18/11/2026** — Topos rangés par année (v1.91.0, `portail.gs` 2026-11-18.1) : un sous-dossier nommé
   par une année (« 2026 ») est une étagère ; écran des années puis topos de l'année ; liste à plat tant
