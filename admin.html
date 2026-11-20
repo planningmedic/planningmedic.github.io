@@ -7378,6 +7378,25 @@ async function exportWeekExcel(){
   // hauteurs
   for(let r=8;r<=R_LAST;r++)ws.getRow(r).height=14;   // 14 pt : tient sur une page malgré DVI + garde séparée
   ws.getRow(4).height=18;ws.getRow(5).height=14;ws.getRow(6).height=16;ws.getRow(7).height=18;
+  /* (20/11/2026) INFORMATIONS : la case grandit avec le texte. Excel n'agrandit JAMAIS seul une
+     case fusionnée : à 3 x 14 pt (3 lignes de texte), une info plus longue était coupée sans le
+     dire (planning S48, mardi). On compte les lignes du jour le plus chargé (retour à la ligne
+     au mot, ~18 caractères par ligne pour une case de 4 colonnes, Calibri 10) et on répartit la
+     hauteur nécessaire sur les 3 lignes. Jamais moins que 14 pt : la page reste celle d'avant. */
+  const _INFO_CAR = 18, _INFO_PT = 13;
+  const _nbLignes = t => String(t||'').split('\n').reduce((n,seg)=>{
+    let l=1,cur=0;
+    seg.split(/\s+/).filter(Boolean).forEach(m=>{
+      if(cur && cur+1+m.length>_INFO_CAR){l++;cur=0;}
+      if(m.length>_INFO_CAR){l+=Math.ceil(m.length/_INFO_CAR)-1;cur=m.length%_INFO_CAR||_INFO_CAR;}
+      else cur+=cur?1+m.length:m.length;
+    });
+    return n+l;
+  },0);
+  const _txtInfo = v => (v&&v.richText) ? v.richText.map(t=>t.text).join('') : (v==null?'':String(v));
+  const _lignesInfo = Math.max(0, ...[0,1,2,3,4].map(d=>_nbLignes(_txtInfo(ws.getCell(R_INFO,colStart(d)).value))));
+  const _hInfo = Math.max(14, Math.ceil((_lignesInfo*_INFO_PT+4)/3));
+  for(let r=R_INFO;r<=R_INFO+2;r++) ws.getRow(r).height=_hInfo;
   // ── Séparateurs journaliers : barre noire épaisse à gauche de chaque jour + fermeture du vendredi ──
   const THK={style:'thick',color:{argb:'FF000000'}};
   // Séparation matin / après-midi À L'INTÉRIEUR d'un jour : 'medium', donc visible

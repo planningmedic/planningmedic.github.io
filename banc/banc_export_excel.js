@@ -103,7 +103,8 @@ function fauxExcelJS(sortie) {
           if (!cases.has(k)) cases.set(k, { value: null, font: null, fill: null, alignment: null, border: {} });
           return cases.get(k);
         },
-        getRow() { return {}; },
+        _lignes: new Map(),
+        getRow(r) { if (!this._lignes.has(r)) this._lignes.set(r, {}); return this._lignes.get(r); },   // (20/11/2026) garde les hauteurs
         getColumn() { return {}; },
         mergeCells() {},
       };
@@ -292,6 +293,29 @@ const colJour = dow => (dow < 5 ? 2 + dow * 4 : 22 + (dow - 5) * 4);
     V('…et rien le matin', rC > 0 && ![val(ws4, rC, MAR), val(ws4, rC, MAR + 1)].includes('PED'));
     const ab = w.eval(`JSON.stringify(['CS-VIS','CS-ORT','CS-ORL','CS-END','CS-INTER','CS-MAT','CS-POLY','CS-PED','CS-NOUVEAU'].map(_csAbrege))`);
     V('abréviations : VISC ORTH ORL ENDO INTER MAT POLY PED (et 5 lettres au plus pour une nouvelle)', ab === JSON.stringify(['VISC','ORTH','ORL','ENDO','INTER','MAT','POLY','PED','NOUVE']), ab);
+    w.eval(`window._PLAN_NOTES = {};`);
+  }
+
+  /* ── (20/11/2026) INFORMATIONS : la case grandit avec le texte ──
+     Défaut vu en production (S48) : la case fusionnée restait à 3 x 14 pt et coupait une
+     info de mardi trop longue. CONTRE-ÉPREUVE : sur la version d'avant, les 3 lignes
+     restent à 14 pt quelle que soit la longueur du texte. */
+  {
+    console.log('\n═══ INFORMATIONS : hauteur qui suit le texte ═══');
+    w.eval(`window._PLAN_NOTES = { '2026-09-01': { info: 'court' } };`);
+    await w.exportWeekExcel();
+    let wsI = sortie.ws, rI = ligneDe(wsI, 'INFORMATIONS');
+    const hauteurs = ws => [0,1,2].map(k => ws.getRow(rI + k).height);
+    V('info courte : la case garde 3 x 14 pt', hauteurs(wsI).every(h => h === 14), hauteurs(wsI));
+    const LONG = 'REA aide CA pendant la consulte. Cardio 2 procédures. Ortho 2 salles le matin, une seule l\'après-midi. Interne en réa toute la journée.';
+    w.eval(`window._PLAN_NOTES = { '2026-09-01': { info: ${JSON.stringify(LONG)} } };`);
+    await w.exportWeekExcel();
+    wsI = sortie.ws; rI = ligneDe(wsI, 'INFORMATIONS');
+    const tot = hauteurs(wsI).reduce((a, b) => a + b, 0);
+    V('info longue (≈8 lignes) : la case grandit au-delà de 42 pt', tot >= 8 * 13, hauteurs(wsI));
+    V('…répartie également sur ses 3 lignes', new Set(hauteurs(wsI)).size === 1, hauteurs(wsI));
+    V('…et le texte est entier dans la case', val(wsI, rI, MAR) === LONG);
+    V('les lignes au-dessus ne bougent pas (14 pt)', wsI.getRow(rI - 1).height === 14, wsI.getRow(rI - 1).height);
     w.eval(`window._PLAN_NOTES = {};`);
   }
 
