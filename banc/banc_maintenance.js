@@ -274,7 +274,13 @@ console.log('\n═══ M2. Les cinq actions ═══');
     const adm = lire('admin.html');
     V('admin.html n\'a plus d\'assistant de clôture', !/function openWizardCloture/.test(adm) && !/id="wizardClotureOverlay"/.test(adm));
     V('admin.html n\'appelle plus aucune action de clôture', !/action: ?'(archiveYear|cloturerAnnee|clotureVerifier|setActiveYear|clearIndisposYear)'/.test(adm));
-    V('la carte « Clôturer l\'année » de l\'admin mène à Maintenance', /<a class="action-card teal" href="maintenance\.html"/.test(adm));
+    /* (20/11/2026) Les 3 cartes annuelles ont quitté l'admin : elles vivent dans le groupe replié de Maintenance. */
+    V('admin.html n\'a plus de cartes « Opérations annuelles »', !/class="annual-ops-section"/.test(adm) && !/onclick="openWizard\(\)"/.test(adm) && !/onclick="openWizardGardes\(\)"/.test(adm));
+    const mt = lire('maintenance.html');
+    V('Maintenance : un groupe replié « Opérations annuelles » contient les 3 étapes', /<details class="card grp" id="cAnnuel">/.test(mt) && !/<details class="card grp" id="cAnnuel" open/.test(mt)
+      && mt.indexOf('id="lienW1" href="admin.html?wizard=1"') > mt.indexOf('id="cAnnuel"') && mt.indexOf('id="lienW2" href="admin.html?wizard=gardes"') > 0
+      && mt.indexOf('id="cClot"') > mt.indexOf('id="cAnnuel"') && mt.indexOf('id="cClot"') < mt.indexOf('</details>', mt.indexOf('id="cAnnuel"')));
+    V('les liens restent dans le même onglet (le code personnel y est gardé)', !/id="lienW[12]"[^>]*target=/.test(mt));
     V('le bandeau de janvier ne propose plus de bouton de clôture', !/cb-btn" onclick="openWizardCloture/.test(adm) && /à faire depuis la page Maintenance/.test(adm));
     V('aucune autre page n\'appelle la clôture', ['index.html', 'planning.html', 'indispos.html', 'paie.html', 'dashboard.html', 'staff.html'].every(f => !/'(cloturerAnnee|archiveYear|clotureVerifier)'/.test(lire(f))));
   }

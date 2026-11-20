@@ -315,7 +315,7 @@
     <p>Toute l'interface tient en six onglets. Si vous ne savez pas où cliquer, ce tableau suffit presque toujours.</p>
     <table>
       <tr><th>Onglet</th><th>Ce qu'on y fait</th><th>À quel rythme</th></tr>
-      <tr><td>📅 Planning</td><td>Placer les MAR dans les secteurs, publier, échanger une garde, lancer les opérations annuelles</td><td>Chaque semaine</td></tr>
+      <tr><td>📅 Planning</td><td>Placer les MAR dans les secteurs, publier, échanger une garde</td><td>Chaque semaine</td></tr>
       <tr><td>🩺 Contrôles</td><td>Voir tout ce qui cloche dans le planning, noter les MAR prévenus, valider ou refuser les jours de temps partiel en attente (tuile Temps partiel)</td><td>Chaque semaine</td></tr>
       <tr><td>👥 Équipe</td><td>Fiches des MAR (arrivée, départ, code), absences longues, périodes et groupes de vacances</td><td>Ponctuel</td></tr>
       <tr><td>📋 Affectations</td><td>Quel MAR dans quel secteur, mois par mois</td><td>Quelques fois par an</td></tr>
@@ -888,18 +888,18 @@
 
   <section id="c1">
     <h2><span class="n">13</span>Les trois opérations annuelles</h2>
-    <p>Elles sont réunies en bas de l'onglet <b>Planning</b>, dans un bloc « Opérations annuelles » : trois cartes numérotées, à faire dans cet ordre. Les deux premières ouvrent un assistant qui vous guide étape par étape. La troisième, la clôture, est <b>réservée au responsable du portail</b> : elle se fait depuis sa page Maintenance, avec son code personnel.</p>
+    <p>Elles sont <b>réservées au responsable du portail</b> et ne figurent plus dans l'admin. Il les lance depuis sa page Maintenance, groupe replié « Opérations annuelles » : trois étapes numérotées, à faire dans cet ordre. Les deux premières ouvrent l'assistant habituel, qui guide étape par étape. Le comité y prend part (staff, vérification des indisponibilités), mais c'est le responsable qui clique.</p>
     <table>
-      <tr><th>Quand</th><th>La carte</th><th>Ce qu'elle fait</th></tr>
+      <tr><th>Quand</th><th>L'étape</th><th>Ce qu'elle fait</th></tr>
       <tr><td>Octobre</td><td>1 · Démarrer l'année suivante</td><td>Crée la grille de l'année suivante, ouvre la saisie des indisponibilités et configure les vacances.</td></tr>
       <tr><td>Novembre</td><td>2 · Générer les gardes</td><td>Vérifie les indisponibilités, répartit l'année entière, publie et envoie les récapitulatifs. <b>S'arrête sans rien écrire</b> si un jour ne trouve pas de binôme — voir plus bas.</td></tr>
       <tr><td>Premier lundi de janvier</td><td>3 · Clôturer l'année</td><td>Archive l'année écoulée et bascule sur la nouvelle. <b>Fait par le responsable</b>, depuis la page Maintenance.</td></tr>
     </table>
     <p>Le moment venu, un bandeau apparaît en haut de l'écran pour rappeler que la clôture est à faire. Il ne vous demande rien : c'est le responsable qui la lance.</p>
     <details class="pourquoi">
-      <summary>Pourquoi la clôture n'est plus dans l'admin</summary>
+      <summary>Pourquoi ces étapes ne sont plus dans l'admin</summary>
       <div class="corps">
-      <p>Le code de l'admin est partagé par tout le comité. La clôture déplace une année entière hors du classeur : depuis le 15 novembre 2026, elle ne s'ouvre plus qu'avec le code personnel du responsable, et le portail refuse le code du comité même si on essaie autrement.</p>
+      <p>Le code de l'admin est partagé par tout le comité. Ces trois étapes touchent une année entière : une erreur y coûte très cher. La clôture ne s'ouvre qu'avec le code personnel du responsable depuis le 15 novembre 2026 ; démarrer l'année, générer les gardes et envoyer les récapitulatifs aussi, depuis le 20 novembre 2026. Le portail refuse le code du comité seul, même si on essaie autrement.</p>
       <p>Avant d'agir, elle fait une copie complète du classeur. Elle refuse sans rien toucher si quelque chose ne va pas, et vérifie elle-même le résultat.</p>
       </div>
     </details>
@@ -908,7 +908,7 @@
       <div class="ct">Trois règles qui protègent une année de travail</div>
       <p><b>Ne jamais régénérer</b> une année déjà générée : le portail refuse, et c'est heureux — une régénération détruirait l'équité construite. Si un message vous propose de supprimer un onglet pour débloquer la situation, <b>ne le faites pas</b> sans en parler.</p>
       <p><b>Ne jamais archiver en avance.</b> L'archivage se fait le premier lundi de la nouvelle année de planning, jamais avant. C'est la seule erreur vraiment coûteuse du calendrier — elle déplacerait le planning en cours d'usage et basculerait le service sur l'année suivante.</p>
-      <p><b>Le portail refuse tout simplement.</b> Avant le premier lundi, la clôture est refusée — <b>rien n'est modifié</b>. Et elle n'est de toute façon pas accessible avec le code du comité : vous ne pouvez pas provoquer cette erreur par curiosité.</p>
+      <p><b>Le portail refuse tout simplement.</b> Avant le premier lundi, la clôture est refusée — <b>rien n'est modifié</b>. Et elle n'est de toute façon pas accessible avec le code du comité — pas plus que le démarrage de l'année ni la génération des gardes : vous ne pouvez pas provoquer ces erreurs par curiosité.</p>
       <p><b>Relancer un assistant est sans danger.</b> S'il a déjà abouti, il le dit et n'y touche pas. Un assistant interrompu se reprend là où il s'était arrêté.</p>
     </div>
 

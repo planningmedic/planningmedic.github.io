@@ -37,6 +37,7 @@ console.log('\n═══ 1. L\'ouverture de la saisie ne dépend d\'AUCUN mail �
     action: 'setIndisposYear', user: { role: 'admin' }, payload: { year: 2027 },
     SpreadsheetApp: { getActiveSpreadsheet: () => cl },
     ContentService: { createTextOutput: t => ({ setMimeType: () => sortie.push(JSON.parse(t)) }), MimeType: { JSON: 'json' } },
+    _droitResponsable_: () => true, /* (20/11/2026) porte du responsable : ouverte ici (banc_annuel_responsable.js la teste) */ 
     _deny: () => sortie.push({ deny: true }), _error: m => sortie.push({ error: m }),
     _configReset_: () => {}, logAction: () => {},
     Number, String, Error, Date,

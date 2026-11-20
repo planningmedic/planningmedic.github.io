@@ -335,10 +335,10 @@ console.log('\n═══ 58. Avancement de la campagne d\'indisponibilités ═�
     const { w } = await page(async () => ({ ok:true, json: async () => ({ success:true }) }));
     V('plus d\'assistant de clôture dans la page', typeof w.openWizardCloture === 'undefined' && !w.document.getElementById('wizardClotureOverlay'));
     w.eval('YEAR = 2026; todayStr = function(){ return "2026-08-17"; };');
-    w.eval('majCarteCloture();');
-    const desc = w.document.getElementById('clotureCardDesc').textContent;
-    V('en août, la carte annonce la date et renvoie à Maintenance', /À partir du lundi 4 janvier 2027/.test(desc) && /page Maintenance/.test(desc), desc);
-    V('la carte est un lien vers maintenance.html', w.document.getElementById('clotureCardDesc').closest('a').getAttribute('href') === 'maintenance.html');
+    /* (20/11/2026) La carte de clôture a quitté l'admin avec les deux autres étapes annuelles
+       (groupe replié de Maintenance) : sa mise à jour ne doit rien casser sans elle. */
+    let _errCarte = null; try { w.eval('majCarteCloture();'); } catch (e) { _errCarte = String(e); }
+    V('plus de carte de clôture dans l\'admin, et sa mise à jour ne casse rien', !w.document.getElementById('clotureCardDesc') && _errCarte === null, _errCarte);
     w.eval('majBandeauCloture();');
     V('en août, pas de bandeau', w.document.getElementById('clotureBanner').style.display === 'none');
     w.eval('todayStr = function(){ return "2027-01-04"; }; nextYearAvailable = true; try{localStorage.removeItem("pm_clotureVue");}catch(e){} majBandeauCloture();');

@@ -84,7 +84,7 @@ console.log('\n═══ 5. La vraie génération l\'écrit, le mail l\'affiche 
   med.slice(1).forEach(r => { r[3] = 'O'; r[7] = String(r[0]).toLowerCase() + '@exemple.invalid'; });
   if (ctx._medecinsInvalider_) ctx._medecinsInvalider_();
   const mails = [];
-  Object.assign(ctx, { _quotaEmailInsuffisant_: () => '', _marsAvecEmail_: () => [], _deny: () => ({}),
+  Object.assign(ctx, { _quotaEmailInsuffisant_: () => '', _marsAvecEmail_: () => [], _droitResponsable_: () => true, /* (20/11/2026) porte du responsable : ouverte ici (banc_annuel_responsable.js la teste) */ _deny: () => ({}),
     _error: m => { throw new Error(m); }, logAction: () => {}, TEST_YEAR: YEAR, MailApp: { sendEmail: o => mails.push(o) },
     ContentService: { createTextOutput: t => ({ setMimeType: () => t }), MimeType: { JSON: 1 } } });
   vm.runInContext(src.slice(a, b), ctx);

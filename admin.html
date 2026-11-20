@@ -1586,50 +1586,10 @@ if (sessionStorage.getItem('adminCode')) {
     </div>
   </div>
 
-  <!-- OPÉRATIONS ANNUELLES -->
-  <div class="annual-ops-section">
-    <div class="annual-ops-header">
-      <span class="annual-ops-title">🗓️ Opérations annuelles</span>
-      <span class="annual-ops-sub">3 étapes séquentielles — dans cet ordre</span>
-    </div>
-    <div class="annual-ops-grid">
-      <div class="action-card orange" onclick="openWizard()">
-        <div style="display:flex;align-items:center;gap:10px">
-          <div class="action-icon orange">🚀</div>
-          <span class="annual-step-num">1</span>
-        </div>
-        <div>
-          <div class="action-label" id="labelDemarrer">Démarrer 2027</div>
-          <div class="action-desc">Initialiser les indispos, configurer les vacances et tenir le staff</div>
-        </div>
-        <span class="action-badge orange">Étape 1</span>
-      </div>
-      <div class="action-card purple" onclick="openWizardGardes()">
-        <div style="display:flex;align-items:center;gap:10px">
-          <div class="action-icon purple">⚡</div>
-          <span class="annual-step-num">2</span>
-        </div>
-        <div>
-          <div class="action-label">Générer les gardes</div>
-          <div class="action-desc">Vérifier les indispos, générer et publier le planning</div>
-        </div>
-        <span class="action-badge purple">Étape 2</span>
-      </div>
-      <!-- (15/11/2026) La clôture vit dans la page Maintenance, réservée au responsable :
-           le serveur refuse le code comité. La carte reste pour montrer l'ordre des étapes. -->
-      <a class="action-card teal" href="maintenance.html" style="text-decoration:none;color:inherit">
-        <div style="display:flex;align-items:center;gap:10px">
-          <div class="action-icon teal">📦</div>
-          <span class="annual-step-num">3</span>
-        </div>
-        <div>
-          <div class="action-label">Clôturer l'année</div>
-          <div class="action-desc" id="clotureCardDesc">Réservé au responsable — page Maintenance</div>
-        </div>
-        <span class="action-badge teal">Étape 3</span>
-      </a>
-    </div>
-  </div>
+  <!-- (20/11/2026) Les opérations annuelles (Démarrer, Générer, Clôturer) ont quitté
+       l'onglet Planning : réservées au responsable, elles s'ouvrent depuis la page
+       Maintenance (groupe « Opérations annuelles »), qui rouvre ces assistants ici
+       par admin.html?wizard=1 / ?wizard=gardes. -->
 
 </div>
 
@@ -2558,6 +2518,7 @@ async function authenticate() {
       _batchRestore();                     // voir auto-connexion
       if (_mnl2 !== null) majCompteurMail(_mnl2);
       else setTimeout(majCompteurMail, 6000);   // voir auto-connexion
+      _ouvrirAssistantDemande();           // (20/11/2026) aussi après une saisie du code
     } else {
       if (errEl) { errEl.textContent = 'Code incorrect.'; errEl.style.display = 'block'; }
     }
@@ -2835,7 +2796,26 @@ const _ACTIONS_ECRITURE_DISPO = new Set(['setDailyStatus','applyModification','g
   'archiveYear','initYear','saveAffectations','saveAffectationsMar',
   'poserAbsenceLongue','annulerAbsenceLongue','deciderJourTpLot','saveMedecin']);
 
+/* (20/11/2026) OPÉRATIONS ANNUELLES RÉSERVÉES AU RESPONSABLE. Le serveur exige, en plus
+   du code comité, le code personnel du responsable (clé `maintenance`) : la page
+   Maintenance le garde dans l'onglet (sessionStorage pmViewCode) et rouvre les
+   assistants ici, dans le même onglet. */
+const _ACTIONS_RESPONSABLE = new Set(['initYear','setIndisposYear','generateGardes','envoyerRecapIndispos']);
+function _codeResponsable() { try { return sessionStorage.getItem('pmViewCode') || ''; } catch (e) { return ''; } }
+function _assistantAutorise() {
+  if (_codeResponsable()) return true;
+  toast('Réservé au responsable — ouvrez cette étape depuis la page Maintenance', 'error');
+  return false;
+}
+function _ouvrirAssistantDemande() {
+  const wizParam = new URLSearchParams(window.location.search).get('wizard');
+  if (wizParam === '1')      setTimeout(openWizard, 600);
+  if (wizParam === 'gardes') setTimeout(openWizardGardes, 600);
+  if (wizParam === 'cloture') location.href = 'maintenance.html';   // (15/11/2026) la clôture vit dans Maintenance
+}
+
 async function api(payload) {
+  if (payload && _ACTIONS_RESPONSABLE.has(payload.action) && !payload.codeResponsable) payload.codeResponsable = _codeResponsable();
   if (payload && _ACTIONS_ECRITURE_PLANNING.has(payload.action)) {
     _tsEcriturePlanning = Date.now();
     _tsEcritureAnnee = _anneeEcriture_(payload);
@@ -7300,6 +7280,7 @@ let wizGroupes = {A:[], B:[], C:[]};
 // un tableau vide se voit, une date fausse ne se voit pas.
 
 async function openWizard() {
+  if (!_assistantAutorise()) return;
   const nextYear = YEAR + 1;
   document.getElementById('wizNextYear').textContent = nextYear;
   wizCurrentStep = 0;
@@ -7758,6 +7739,7 @@ function wizardLockedHTML(title, msg, hint) {
 }
 
 async function openWizardGardes() {
+  if (!_assistantAutorise()) return;
   wizGCurrentStep = 0;
   window._wizGDone = new Set(); // suivi de reprise : étapes du lancement déjà réussies
   wizGIndisposData = null;
@@ -9013,11 +8995,8 @@ try {
       _batchRestore();                     // placements d'une session precedente non confirmes
       if (_mnl !== null) majCompteurMail(_mnl);
       else setTimeout(majCompteurMail, 6000);
-      // Ouvrir le wizard si appelé depuis dashboard
-      const wizParam = new URLSearchParams(window.location.search).get('wizard');
-      if (wizParam === '1')      setTimeout(openWizard, 600);
-      if (wizParam === 'gardes') setTimeout(openWizardGardes, 600);
-      if (wizParam === 'cloture') location.href = 'maintenance.html';   // (15/11/2026) la clôture vit dans Maintenance
+      // Ouvrir l'assistant demandé par la page Maintenance (?wizard=1 / gardes)
+      _ouvrirAssistantDemande();
     } else {
       sessionStorage.removeItem('adminCode');
     }

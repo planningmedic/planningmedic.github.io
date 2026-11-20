@@ -43,7 +43,7 @@ function envoyer(srcMetier, configEnPlus, opts) {
   ctx.generateGardes(YEAR);
   const mails = [];
   Object.assign(ctx, {
-    _quotaEmailInsuffisant_: () => '', _marsAvecEmail_: () => [], _deny: () => ({ refus: true }),
+    _quotaEmailInsuffisant_: () => '', _marsAvecEmail_: () => [], _droitResponsable_: () => true, /* (20/11/2026) porte du responsable : ouverte ici (banc_annuel_responsable.js la teste) */ _deny: () => ({ refus: true }),
     _error: m => { throw new Error(m); }, logAction: () => {}, TEST_YEAR: YEAR,
     MailApp: { sendEmail: o => mails.push(o) },
     Utilities: Object.assign({}, ctx.Utilities, { newBlob: (h) => ({ getAs: (t) => ({ _html: h, _type: t, setName(x) { this.name = x; return this; } }) }) }),

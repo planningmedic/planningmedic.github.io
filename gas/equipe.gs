@@ -4,7 +4,7 @@
    quelles : aucune ligne de logique modifiée, seulement déplacée. Le routeur et
    ses aides (checkCode, _deny, _error, doGet/doPost) restent dans Indispos.gs.
    Un seul espace global dans Apps Script : rien à importer. */
-const GAS_VERSION_EQUIPE = '2026-11-18.1';   // (18/11/2026) action miroirSyncMaintenant (page Maintenance) · (17/11/2026) getMedecins : champ horsEffectif (colonne HORS_EFFECTIF) pour la bande de présence · (11/11/2026) action annulerEchange · (02/11/2026) commentaire : identifiants d'exemple fictifs · (01/11/2026) outils de maintenance réservés à la tuile `maintenance` · (27/10/2026) ordreMc renvoyé au login et au bootstrap
+const GAS_VERSION_EQUIPE = '2026-11-20.1';   // (20/11/2026) _droitResponsable_ : opérations annuelles réservées au responsable · (18/11/2026) action miroirSyncMaintenant (page Maintenance) · (17/11/2026) getMedecins : champ horsEffectif (colonne HORS_EFFECTIF) pour la bande de présence · (11/11/2026) action annulerEchange · (02/11/2026) commentaire : identifiants d'exemple fictifs · (01/11/2026) outils de maintenance réservés à la tuile `maintenance` · (27/10/2026) ordreMc renvoyé au login et au bootstrap
 
 // ── Sonde : les interrupteurs des mails sont-ils cohérents ? ──
 function _sondeInterrupteursMails_(check, R, info) {
@@ -298,6 +298,23 @@ function _buildMedecins_() {
    la page ne fermerait rien, c'est ici que la porte se ferme. */
 function _droitMaintenance_(user) {
   return !!user && user.role === 'mar' && _aDroitTuile_(user.id, 'maintenance');
+}
+
+/* ── (20/11/2026) LES OPÉRATIONS ANNUELLES — réservées au responsable ──
+   Démarrer l'année (initYear, setIndisposYear), générer les gardes
+   (generateGardes) et envoyer le récapitulatif des gardes à tous les MAR
+   (envoyerRecapIndispos) : une erreur y est très coûteuse. Le code comité
+   reste nécessaire (les assistants vivent dans admin.html), mais il ne suffit
+   PLUS : la requête doit aussi porter, dans codeResponsable, le code personnel
+   d'un MAR qui a la clé `maintenance`. La page Maintenance ouvre les
+   assistants dans le même onglet, qui garde ce code. */
+const MSG_RESPONSABLE_ = 'Réservé au responsable : ouvrez cette étape depuis la page Maintenance';
+function _droitResponsable_(payload) {
+  try {
+    const c = payload && payload.codeResponsable;
+    if (!c) return false;
+    return _droitMaintenance_(checkCode(c));
+  } catch (e) { return false; }
 }
 
 /* ── action "viderCacheConfig" ── */

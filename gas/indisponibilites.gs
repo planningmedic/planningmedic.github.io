@@ -4,7 +4,7 @@
    quelles : aucune ligne de logique modifiée, seulement déplacée. Le routeur et
    ses aides (checkCode, _deny, _error, doGet/doPost) restent dans Indispos.gs.
    Un seul espace global dans Apps Script : rien à importer. */
-const GAS_VERSION_INDISPOS_METIER = '2026-11-15.1';   // (15/11/2026) clearIndisposYear réservé au droit Maintenance (clôture d'année) · (10/11/2026) PDF récapitulatif par document Google (les couleurs passent) + renvoyerRecapPdf2027 · (09/11/2026) mail « Vos gardes » : 18 h, souhaits honorés, gardes qui allongent les vacances · (27/10/2026) VM/VA posés à la main : jamais écrasés par un enregistrement (MAR ou staff)
+const GAS_VERSION_INDISPOS_METIER = '2026-11-20.1';   // (20/11/2026) .1 : setIndisposYear et envoyerRecapIndispos réservés au responsable · (15/11/2026) clearIndisposYear réservé au droit Maintenance (clôture d'année) · (10/11/2026) PDF récapitulatif par document Google (les couleurs passent) + renvoyerRecapPdf2027 · (09/11/2026) mail « Vos gardes » : 18 h, souhaits honorés, gardes qui allongent les vacances · (27/10/2026) VM/VA posés à la main : jamais écrasés par un enregistrement (MAR ou staff)
 // précédente : '2026-10-22.2'
 
 // La campagne de saisie des indispos est-elle EN COURS ?
@@ -1204,6 +1204,7 @@ function _act_envoyerRecapIndispos(R) {
   const { e, payload, action, code, user } = R;
   // (Remplace l'ancien récap indispos) — Récapitulatif des GARDES attribuées (G réa / G2 mat).
   if (user.role !== 'admin') return _deny();
+  if (!_droitResponsable_(payload)) return _error(MSG_RESPONSABLE_);
   { const _q = _quotaEmailInsuffisant_(_marsAvecEmail_()); if (_q) return _error(_q); }
   const year = Number(payload.year) || TEST_YEAR;
   const ss = SpreadsheetApp.getActiveSpreadsheet();
@@ -1612,6 +1613,7 @@ function _act_envoyerRecapIndispos(R) {
 function _act_setIndisposYear(R) {
   const { e, payload, action, code, user } = R;
   if (user.role !== 'admin') return _deny();
+  if (!_droitResponsable_(payload)) return _error(MSG_RESPONSABLE_);
   const newYear = Number(payload.year);
   if (!newYear || newYear < 2026) return _error('Année invalide');
   const ss = SpreadsheetApp.getActiveSpreadsheet();

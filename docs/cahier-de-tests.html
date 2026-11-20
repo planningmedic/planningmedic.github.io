@@ -1574,8 +1574,8 @@
   </div></div></div>
 
   <div class="test" data-id="T193"><div class="test-head"><span class="tid">T193</span><div class="test-body">
-    <div class="t-do">Dans Planning → Opérations annuelles, essayer d'ouvrir la carte « Clôturer l'année ».</div>
-    <div class="t-exp">Attendu : <b>refus</b>, avec affichage de la date à partir de laquelle ce sera possible (le premier lundi de l'année de planning suivante). Le serveur refuse également, pas seulement l'écran. Ce verrou date du 17 août.</div>
+    <div class="t-do">Avec le seul code du comité, ouvrir admin.html?wizard=gardes (ou ?wizard=1) dans un onglet neuf, puis chercher les opérations annuelles dans l'onglet Planning.</div>
+    <div class="t-exp">Attendu : l'onglet Planning ne montre plus aucune carte annuelle, et l'assistant <b>ne s'ouvre pas</b> : message « Réservé au responsable — ouvrez cette étape depuis la page Maintenance ». Le serveur refuse également, pas seulement l'écran (depuis le 20 novembre 2026). Depuis Maintenance → Opérations annuelles, avec le code personnel du responsable, les étapes 1 et 2 s'ouvrent normalement.</div>
     <div class="verdicts"><label class="v-ok"><input type="radio" name="v-T193" value="ok"><span>Conforme</span></label><label class="v-ko"><input type="radio" name="v-T193" value="ko"><span>Anomalie</span></label><label class="v-na"><input type="radio" name="v-T193" value="na"><span>Non fait</span></label><input class="note" type="text" placeholder="Ce que tu as observé"></div>
   </div></div></div>
 

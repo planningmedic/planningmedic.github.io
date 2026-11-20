@@ -58,6 +58,16 @@ body{background:var(--bg);font-family:'DM Sans',system-ui,sans-serif;color:var(-
 .liste .nm{flex:1;min-width:0;color:var(--ink-2);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .liste .em{font-size:11.5px;color:var(--ink-4)}
 .vide{padding:14px;color:var(--ink-3);font-size:13px}
+/* (20/11/2026) Groupe replié « Opérations annuelles » : les 3 étapes d'une fois par an */
+details.grp{padding:0}
+details.grp>summary{list-style:none;cursor:pointer;display:flex;align-items:center;gap:8px;padding:15px;font-size:15.5px;font-weight:700}
+details.grp>summary::-webkit-details-marker{display:none}
+details.grp>summary .n{margin-left:auto;font-size:12px;font-weight:600;color:var(--ink-4)}
+details.grp>summary::after{content:'▸';color:var(--ink-4);font-size:13px}
+details.grp[open]>summary::after{content:'▾'}
+details.grp .in{padding:0 15px 15px}
+details.grp .etape{display:flex;align-items:center;justify-content:center;text-decoration:none;margin-bottom:8px}
+details.grp .card{border:none;border-top:1px solid var(--line-light);border-radius:0;padding:14px 0 0;margin:6px 0 0}
 .pied{text-align:center;font-size:11.5px;color:var(--ink-4);margin-top:8px}
 /* (01/11/2026) Carte « Mise à jour du serveur » (livreur) */
 #cMaj{border:2px solid var(--red)}
@@ -162,9 +172,18 @@ window.SessionPortail = window.SessionPortail || { lire:function(){try{return se
     <div class="res" id="recRes"></div>
   </section>
 
+  <!-- (20/11/2026) Opérations annuelles, repliées : réservées au responsable. Les étapes 1 et 2
+       rouvrent les assistants de l'admin dans CET onglet, qui garde le code personnel exigé
+       par le serveur ; la clôture reste ici. -->
+  <details class="card grp" id="cAnnuel">
+  <summary>🗓️ Opérations annuelles <span class="n">une fois par an</span></summary>
+  <div class="in">
+    <p class="d">Les trois étapes de l'année, dans cet ordre. Elles vous sont réservées. Pour les étapes 1 et 2, l'admin s'ouvre et demande le code du comité.</p>
+    <a class="btn etape" id="lienW1" href="admin.html?wizard=1">1 · Démarrer l'année suivante</a>
+    <a class="btn etape" id="lienW2" href="admin.html?wizard=gardes">2 · Générer les gardes</a>
   <!-- 1 ter. Clôture d'année (15/11/2026) — réservée à cette page : le serveur refuse le code comité -->
   <section class="card" id="cClot">
-    <h2>📦 Clôturer l'année</h2>
+    <h2>📦 3 · Clôturer l'année</h2>
     <p class="d" id="clotEtat">…</p>
     <p class="d"><b>Répétition</b> : montre ce qui sera figé, sans rien changer. <b>Clôture</b> : sauvegarde le classeur, archive l'année et passe à la suivante. Quelques minutes, relançable sans risque.</p>
     <div class="duo">
@@ -173,6 +192,8 @@ window.SessionPortail = window.SessionPortail || { lire:function(){try{return se
     </div>
     <div class="res" id="clotRes"></div>
   </section>
+  </div>
+  </details>
 
   <!-- 1 quater. Solveur exact des gardes (18/11/2026) — à partir des gardes 2028 -->
   <section class="card" id="cSolveur">

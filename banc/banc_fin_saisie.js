@@ -98,7 +98,7 @@ console.log('\n═══ 5. Ouvrir une campagne pose la date d\'office ═══
     const c = ctxAvec(lignes);
     c.payload = { year: annee };
     vm.runInContext(extraireFonction(GS, '_act_setIndisposYear'), c);
-    vm.runInContext('function _configReset_(){} function logAction(){} function _deny(){ return {refus:1}; } function _error(m){ return {erreur:m}; }'
+    vm.runInContext('function _droitResponsable_(){ return true; } function _configReset_(){} function logAction(){} function _deny(){ return {refus:1}; } function _error(m){ return {erreur:m}; }'
       + ' var ContentService = { MimeType:{JSON:1}, createTextOutput: function(s){ return { setMimeType: function(){ return JSON.parse(s); } }; } };', c);
     const r = vm.runInContext('_act_setIndisposYear({ payload: payload, user: { role: "admin" } })', c);
     const cfg = c.__cl.getSheetByName('CONFIG').getDataRange().getValues();
