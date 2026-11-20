@@ -253,6 +253,40 @@ const dstr = v => v instanceof Date
     V('replier à nouveau : un clic referme la zone', (() => { const b = d.querySelector('#planTable .cs-repli'); if (!b) return true; b.click(); const n1 = d.querySelectorAll('#planTable .cs-sub-row').length; d.querySelector('#planTable .cs-repli').click(); return n1 > 0 && d.querySelectorAll('#planTable .cs-sub-row').length === 0; })());
   }
 
+  console.log('\n═══ 18 quinquies. (20/11/2026) Case de bloc aidée par un autre secteur, sans nom ═══');
+  {
+    /* Comme « ORL » dans la ligne viscéral de l'Excel papier : depuis le panneau d'une case de bloc,
+       « Aide sans nom » pose l'abrégé du secteur dans la case, sans affecter personne. */
+    w.eval(`window._PLAN_NOTES = {}; renderWeek();`);
+    const plus = [...d.querySelectorAll('#planTable tr.sector-row:not(.cs-sub-row) .slot-add')]
+      .filter(e => /openSidePanel\('VIS','[^']+','[^']*','pm'\)/.test(e.getAttribute('onclick') || ''));
+    V('une case viscéral d\'après-midi offre son « + »', plus.length > 0, plus.length);
+    if (plus.length) {
+      const m = (plus[0].getAttribute('onclick') || '').match(/openSidePanel\('([^']+)','([^']+)','([^']*)','(am|pm)'\)/);
+      const nPlaces = () => d.querySelectorAll('#planTable .slot-name').length;
+      const avant = nPlaces();
+      plus[0].click(); await dodo(200);
+      const ligne = d.querySelector('#pspSub .psp-aide');
+      const bOrl = ligne && [...ligne.querySelectorAll('button')].find(b => b.textContent.trim() === 'ORL');
+      V('le panneau propose « Aide sans nom » avec un bouton par autre secteur (pas le viscéral lui-même)', !!ligne && !!bOrl && ![...ligne.querySelectorAll('button')].some(b => b.textContent.trim() === 'VISC'), ligne && ligne.textContent);
+      if (bOrl && m) {
+        /* Le banc n'a pas de circuit serveur pour les notes : l'enregistrement est simulé comme accepté. */
+        w.eval(`window.__apiSauve = api; api = async p => (p && p.action === 'savePlanningNotes') ? { success: true } : window.__apiSauve(p);`);
+        bOrl.click(); await dodo(300);
+        const td = [...d.querySelectorAll('#planTable .slot-aide')].find(e => /openSidePanel\('VIS','/.test(e.getAttribute('onclick') || '') && (e.getAttribute('onclick') || '').indexOf(m[2]) >= 0);
+        V('la case viscéral affiche « ORL » en pointillés', !!td && td.textContent.trim() === 'ORL', td && td.textContent);
+        V('…personne n\'est placé pour autant (aucune initiale de plus)', nPlaces() === avant, { avant, apres: nPlaces() });
+        V('…la note est posée (type AIDE, paire VIS:ORL)', w.eval(`JSON.stringify(((_notesPlanning()['${m[2]}']||{}).aide||{}).pm||[])`) === '["VIS:ORL"]', w.eval(`JSON.stringify(_notesPlanning()['${m[2]}'])`));
+        const b2 = [...d.querySelectorAll('#pspSub .psp-aide button')].find(b => b.textContent.trim() === 'ORL');
+        V('…et le bouton ORL du panneau est actif', !!b2 && b2.classList.contains('on'));
+        const x = td && td.parentNode.querySelector('.cs-chip-x');
+        if (x) { x.click(); await dodo(300); }
+        V('la croix retire l\'aide', ![...d.querySelectorAll('#planTable .slot-aide')].some(e => (e.getAttribute('onclick') || '').indexOf(m[2]) >= 0 && /'VIS'/.test(e.getAttribute('onclick') || '')));
+      }
+    }
+    w.eval(`if (window.__apiSauve) { api = window.__apiSauve; window.__apiSauve = null; } window._PLAN_NOTES = {}; closeSidePanel(); renderWeek();`);
+  }
+
   console.log('\n═══ 19. Je place des MAR (le « + » de chaque case) ═══');
   /* (20/11/2026) Plus de cases « à pourvoir » : on ajoute par le « + » gris de la case. */
   const flashes = [...d.querySelectorAll('#planTable tr.sector-row:not(.cs-sub-row) .slot-add')];

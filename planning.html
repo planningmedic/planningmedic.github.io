@@ -654,7 +654,7 @@ body{font-variant-numeric:tabular-nums}
   .jb-bac{background:var(--jb-bac);border-radius:12px;padding:8px 10px;display:grid;grid-template-columns:104px minmax(0,1fr);align-items:center;gap:8px}
   .jb-bac>.jb-mag:only-child{grid-column:1/-1}
   .jb-mag{display:flex;flex-wrap:wrap;gap:6px}
-  .jb-sect{display:inline-flex;align-items:center;height:32px;padding:0 9px;border-radius:8px;border:1px dashed #98A2B3;color:#475467;font-size:13px;font-weight:600;font-style:italic}
+  .jb-aim.jb-aim-sect{background:var(--white);color:#344054;border:1px dashed #98A2B3;box-shadow:none}   /* (20/11/2026) secteur sans nom : même police que les initiales */
   .jb-bac .jb-aim{min-width:40px;height:32px;font-size:14px;padding:0 6px;background:var(--white);color:var(--ink-3);box-shadow:none}
   .jb-bac .jb-aim.moi{background:var(--jb-moi);color:#fff}
   .jb-bac-t{font-weight:700;font-size:13px;line-height:1.25;color:var(--ink-2)}
@@ -762,6 +762,7 @@ body{font-variant-numeric:tabular-nums}
 <style>
 /* (19/11/2026) Notes du planning : interne de réa, infos du jour (dépliables, absentes s'il n'y a rien) */
 .slot-name.chip-int { background:#F4F3FF; color:#5925DC; }
+.slot-name.chip-sect { background:#fff; color:#344054; border:1px dashed #98A2B3; }
 details.jinfo { margin:4px 0 2px; font-size:10.5px; text-align:left; }
 details.jinfo summary { cursor:pointer; list-style:none; font-weight:700; color:#175CD3; background:#EFF8FF; border-radius:999px; padding:1px 7px; display:inline-block; }
 details.jinfo summary::-webkit-details-marker { display:none; }
@@ -1870,6 +1871,14 @@ const DAYS_FR = ['LUNDI','MARDI','MERCREDI','JEUDI','VENDREDI','SAMEDI','DIMANCH
    Rien ne s'affiche s'il n'y a rien ; une info se déplie au clic. */
 function _notesDuJour(ds){ return (DATA && DATA.notes && DATA.notes[ds]) || {}; }
 function _infoJour(ds){ return _notesDuJour(ds).info || ''; }
+/* (20/11/2026) Case de bloc aidée par un autre secteur, sans nom (notes du planning, type AIDE :
+   paires SECTEUR_AIDÉ:SECTEUR_QUI_AIDE). Mêmes abrégés que l'Excel du comité. */
+const AIDE_ABREGES = { VIS:'VISC', ORT:'ORTH', ORL:'ORL', END:'ENDO', CI:'CARDIO', RI:'RADIO', MAT:'MAT', PED:'PED', REA:'REA', DVI:'DVI' };
+/* (20/11/2026) Consultation tenue par le secteur : son abrégé (VISC, ORTH…) plutôt que « secteur », comme l'Excel. */
+const CS_ABREGES_PL = { VIS:'VISC', ORT:'ORTH', ORL:'ORL', END:'ENDO', INTER:'INTER', MAT:'MAT', POLY:'POLY', PED:'PED' };
+function _csAbregePl(sp){ sp=String(sp||'').replace(/^CS-/,''); return CS_ABREGES_PL[sp] || sp.toUpperCase().slice(0,5); }
+function _aidesDuJour(ds, demi){ const a=_notesDuJour(ds).aide, l=(a&&Array.isArray(a[demi]))?a[demi]:[];
+  return l.map(p=>String(p).split(':')).filter(x=>x[0]&&x[1]).map(x=>({sect:x[0],abr:AIDE_ABREGES[x[1]]||x[1]})); }
 
 function renderTable(month,daySlots,week){
   const today=todayStr();
@@ -1926,6 +1935,8 @@ function renderTable(month,daySlots,week){
 
   /* (19/11/2026) Interne de réanimation (notes du planning publiées) : pastille INT dans la réa. */
   if(smap.REA) daySlots.forEach((slot,dow)=>{ if(!slot) return; (_notesDuJour(slot.date).int||[]).forEach(h=>{ if(smap.REA[dow][h]) smap.REA[dow][h].push({init:'INT',status:'INT',sector:'REA'}); }); });
+  /* (20/11/2026) Aide d'un autre secteur, sans nom : étiquette en pointillés dans la case aidée. */
+  daySlots.forEach((slot,dow)=>{ if(!slot) return; ['am','pm'].forEach(h=>_aidesDuJour(slot.date,h).forEach(a=>{ if(smap[a.sect]&&smap[a.sect][dow]) smap[a.sect][dow][h].push({init:a.abr,status:'SECT',sector:a.sect}); })); });
   const active=SECTORS_DEF.filter(s=>s.code!=='CS'&&smap[s.code].some(d=>d.am.length||d.pm.length));
   let tbody='<tbody>';
   active.forEach(s=>{
@@ -1952,7 +1963,7 @@ function renderTable(month,daySlots,week){
       } else {
         const amNames=smap[s.code][dow].am;
         const pmNames=smap[s.code][dow].pm;
-        const makeChips=arr=>{ const chips=arr.map(p=>{const c=(p.status==='G'||p.status==='G2')?'slot-name chip-guard':p.status==='18'?'slot-name chip-h18':p.status==='INT'?'slot-name chip-int':'slot-name';const me=(MY_INIT&&p.init===MY_INIT)?' me-chip':'';return `<span class="${c}${me}">${p.init||''}</span>`;});if(chips.length%2!==0)chips.push('<span class="slot-name-spacer"></span>');return chips.join('');};
+        const makeChips=arr=>{ const chips=arr.map(p=>{const c=(p.status==='G'||p.status==='G2')?'slot-name chip-guard':p.status==='18'?'slot-name chip-h18':p.status==='INT'?'slot-name chip-int':p.status==='SECT'?'slot-name chip-sect':'slot-name';const me=(MY_INIT&&p.status!=='SECT'&&p.init===MY_INIT)?' me-chip':'';return `<span class="${c}${me}">${p.init||''}</span>`;});if(chips.length%2!==0)chips.push('<span class="slot-name-spacer"></span>');return chips.join('');};
         tbody+=`<div class="slot-pair">
           <div class="slot">${amNames.length?makeChips(amNames):'<span class="slot-dash">—</span>'}</div>
           <div class="slot">${pmNames.length?makeChips(pmNames):'<span class="slot-dash">—</span>'}</div>
@@ -2012,7 +2023,7 @@ function renderConsPanel(month,daySlots,today){
   if(!_total){ panel.innerHTML=''; return; }
   let _hasLib=false;
   const chip=c=>{ const sc=csColor(c.spec), lbl=CS_LABELS[c.spec]||c.spec;
-    if(c.secteur) return `<div class="cons-chip" style="background:${sc.bg};color:${sc.fg}" title="${esc(lbl)} · tenue par le secteur"><span class="cons-spec">${esc(lbl)}</span><span class="cons-mar">le secteur</span></div>`;
+    if(c.secteur) return `<div class="cons-chip" style="background:${sc.bg};color:${sc.fg}" title="${esc(lbl)} · tenue par le secteur"><span class="cons-spec">${esc(lbl)}</span><span class="cons-mar">${esc(_csAbregePl(c.spec))}</span></div>`;
     const isLib=!!c.lib; if(isLib)_hasLib=true; const cls='cons-chip'+(isLib?' cons-chip-lib':''); const tag=isLib?'<span class="cons-lib">LIB</span>':''; const ttl=isLib?`${lbl} · libéral · ${nameOf(c.id)}`:`${lbl} · ${nameOf(c.id)}`; return `<div class="${cls}" style="background:${sc.bg};color:${sc.fg}" title="${esc(ttl)}">${tag}<span class="cons-spec">${esc(lbl)}</span><span class="cons-mar">${esc(nameOf(c.id))}</span></div>`; };
   const half=arr=>arr.length?arr.map(chip).join(''):'<div class="cons-empty">—</div>';
   let _cols='';
@@ -3091,9 +3102,11 @@ function renderMobileDay() {
 
   /* (20/11/2026) Consultation tenue par le secteur, sans nom : une étiquette « secteur » à la place de l'aimant. */
   { const c=_notesDuJour(dayData.date).css||{};
-    ['am','pm'].forEach(h=>(c[h]||[]).forEach(code=>{ const sp=String(code).replace(/^CS-/,''); (cons[sp]=cons[sp]||{am:[],pm:[]})[h].push({init:'',secteur:true}); })); }
+    ['am','pm'].forEach(h=>(c[h]||[]).forEach(code=>{ const sp=String(code).replace(/^CS-/,''); (cons[sp]=cons[sp]||{am:[],pm:[]})[h].push({init:'',secteur:true,sp:sp}); })); }
   /* (19/11/2026) Interne de réa et infos du jour (notes du planning). */
   if (smap.REA) (_notesDuJour(dayData.date).int||[]).forEach(h=>{ if(smap.REA[h]) smap.REA[h].push('INT'); });
+  /* (20/11/2026) Aide d'un autre secteur, sans nom : une étiquette à la place de l'aimant. */
+  ['am','pm'].forEach(h=>_aidesDuJour(dayData.date,h).forEach(a=>{ if(smap[a.sect]) smap[a.sect][h].push({sect:a.abr}); }));
   /* (03/11/2026, v1.56) TABLEAU AIMANTÉ — maquette B1 validée par le responsable.
      Chaque MAR est un aimant posé dans la case de son secteur (matin / après-midi).
      Sur l'aimant : « G » de garde le soir, « 18 h » poste jusqu'à 18 h, « lib. »
@@ -3108,6 +3121,7 @@ function renderMobileDay() {
       + (o.lib ? '<span class="jb-ong l">lib.</span>' : '');
     return '<span class="jb-aim'+(moi?' moi':'')+(o.petit?' petit':'')+'"'+(moi?' aria-label="'+esc(init)+', vous"':'')+'>'+esc(init)+ong+'</span>'; };
   const vide = '<span class="jb-vide">Libre</span>';
+  const aimOuSect = i => (i && typeof i === 'object') ? '<span class="jb-aim jb-aim-sect">'+esc(i.sect)+'</span>' : aim(i);   // (20/11/2026) aide sans nom
   let html = '';
   if (_infoJour(dayData.date)) html += '<details class="jb-info"><summary>ℹ Infos du jour</summary><p>'+esc(_infoJour(dayData.date))+'</p></details>';
 
@@ -3156,15 +3170,15 @@ function renderMobileDay() {
     html += '<div class="jb-cols" aria-hidden="true"><div>Matin</div><div>Après-midi</div></div><div class="jb-plaques">';
     actifs.forEach(s => { const x=smap[s.code], c=(_SECTOR_BASE[s.code]&&_SECTOR_BASE[s.code].fg)||'#4E5966';
       html += '<section class="jb-plaque" aria-label="'+esc(s.label)+'"><div class="jb-ruban" style="background:'+c+'">'+sectIco(s.code,'#FFFFFF',15)+esc(s.label)+'</div><div class="jb-deux">'
-        + '<div class="jb-case">'+(x.am.length?x.am.map(i=>aim(i)).join(''):vide)+'</div>'
-        + '<div class="jb-case">'+(x.pm.length?x.pm.map(i=>aim(i)).join(''):vide)+'</div></div></section>'; });
+        + '<div class="jb-case">'+(x.am.length?x.am.map(aimOuSect).join(''):vide)+'</div>'
+        + '<div class="jb-case">'+(x.pm.length?x.pm.map(aimOuSect).join(''):vide)+'</div></div></section>'; });
     html += '</div>';
     // Consultations — une ligne par spécialité, l'aimant porte « lib. » quand c'est la consultation libérale
     const CS_LABELS={VIS:'Viscéral',ORL:'ORL',ORT:'Ortho',END:'Endoscopies',MAT:'Maternité',INTER:'Interventionnel',POLY:'Polyvalent',PED:'Pédiatrie'};
     const CS_ORDER=['VIS','ORL','ORT','END','MAT','INTER','POLY','PED'];
     const consSpecs=Object.keys(cons).sort((a,b)=>{const ia=CS_ORDER.indexOf(a),ib=CS_ORDER.indexOf(b);return (ia<0?99:ia)-(ib<0?99:ib)||a.localeCompare(b);});
     if (consSpecs.length) {
-      const cel = arr => arr.map(o=>o.secteur?'<span class="jb-sect">secteur</span>':aim(o.init,{petit:true,lib:o.lib})).join('');
+      const cel = arr => arr.map(o=>o.secteur?'<span class="jb-aim petit jb-aim-sect">'+esc(_csAbregePl(o.sp))+'</span>':aim(o.init,{petit:true,lib:o.lib})).join('');
       html += '<h2 class="jb-h2">Consultations</h2><div class="jb-liste">'
         + consSpecs.map(sp=>'<div class="jb-ligne"><div class="jb-lib">'+esc(CS_LABELS[sp]||sp)+'</div><div class="jb-cel">'+cel(cons[sp].am)+'</div><div class="jb-cel">'+cel(cons[sp].pm)+'</div></div>').join('')
         + '</div>';

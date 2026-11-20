@@ -295,6 +295,22 @@ const colJour = dow => (dow < 5 ? 2 + dow * 4 : 22 + (dow - 5) * 4);
     w.eval(`window._PLAN_NOTES = {};`);
   }
 
+  /* ── (20/11/2026) Case de bloc aidée par un autre secteur, sans nom ──
+     Comme « ORL » dans la ligne viscéral de l'Excel papier. CONTRE-ÉPREUVE : sans la note,
+     l'abrégé n'est pas dans la case. */
+  {
+    console.log('\n═══ Aide d\'un autre secteur, sans nom ═══');
+    await w.exportWeekExcel();
+    const ws0 = sortie.ws, r0 = ligneDe(ws0, 'VISCERAL');
+    V('contre-épreuve : sans note, pas de « ORL » dans la ligne viscéral', r0 > 0 && ![MAR, MAR + 1, MAR + 2, MAR + 3].some(c => val(ws0, r0, c) === 'ORL'));
+    w.eval(`window._PLAN_NOTES = { '2026-09-01': { aide: { am: [], pm: ['VIS:ORL'] } } };`);
+    await w.exportWeekExcel();
+    const ws5 = sortie.ws, rV = ligneDe(ws5, 'VISCERAL');
+    V('« ORL » dans la ligne viscéral le mardi après-midi', rV > 0 && [val(ws5, rV, MAR + 2), val(ws5, rV, MAR + 3)].includes('ORL'), rV > 0 && [val(ws5, rV, MAR + 2), val(ws5, rV, MAR + 3)]);
+    V('…et pas le matin', rV > 0 && ![val(ws5, rV, MAR), val(ws5, rV, MAR + 1)].includes('ORL'));
+    w.eval(`window._PLAN_NOTES = {};`);
+  }
+
   console.log('\n  ' + ok + ' v\u00e9rifications OK, ' + ko + ' en \u00e9chec');
   if (ko) process.exit(1);
 })();

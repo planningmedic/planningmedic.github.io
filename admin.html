@@ -1351,9 +1351,15 @@ if (sessionStorage.getItem('adminCode')) {
 #dispoCard #pspContent button[onclick^="placeMAR"] > span:first-child { font-family:'DM Sans',sans-serif !important; font-size:12px !important; border-radius:9px !important; padding:6px 8px !important; }
 /* (19/11/2026) Interne de réa, infos du jour, lignes optionnelles */
 #panel-planning .slot-int { font:600 11px 'DM Sans',sans-serif; letter-spacing:.04em; border-radius:8px; padding:5px 7px; line-height:1; background:#F4F3FF; color:#5925DC; border:1px solid #D9D6FE; cursor:pointer; }
-#panel-planning .cs-chip.cs-secteur { background:#F2F4F7; color:#344054; border:1px solid #D0D5DD; font-style:italic; }
+#panel-planning .cs-chip.cs-secteur { background:#F2F4F7; color:#344054; border:1px solid #D0D5DD; }   /* (20/11/2026) plus d'italique : même police que les initiales */
 .psp-secteur { margin-left:8px; border:1px solid #D0D5DD; background:#F9FAFB; color:#344054; border-radius:8px; padding:3px 10px; font-size:11px; font-weight:600; cursor:pointer; }
 .psp-secteur.on { background:#FEF3F2; border-color:#FECDCA; color:#B42318; }
+/* (20/11/2026) Case de bloc aidée par un autre secteur, sans nom (comme « ORL » sur l'Excel papier) */
+#panel-planning .slot-aide { font-family:'DM Sans',sans-serif; font-size:12px; font-weight:600; letter-spacing:.02em; border-radius:8px; padding:4px 7px; line-height:1; background:#fff; color:#344054; border:1px dashed #98A2B3; cursor:pointer; }
+.psp-aide { margin-top:8px; display:flex; flex-wrap:wrap; align-items:center; gap:5px; font-size:11px; color:var(--ink-3); }
+.psp-aide b { font-weight:600; margin-right:2px; }
+.psp-aide button { border:1px dashed #98A2B3; background:#fff; color:#475467; border-radius:8px; padding:3px 9px; font:600 11px 'DM Sans',sans-serif; cursor:pointer; }
+.psp-aide button.on { border-style:solid; border-color:#344054; background:#344054; color:#fff; }
 #panel-planning .cs-repli { cursor:pointer; user-select:none; }
 #panel-planning .cs-repli:hover { background:#F8FAFC; }
 #panel-planning .cs-fl { display:inline-block; width:12px; color:#94A3B8; }
@@ -4410,6 +4416,7 @@ function renderWeek() {
      y placer quelqu'un : toutes les lignes non optionnelles s'affichent. */
   const activeSectors = SECTORS.filter(s => !s.optionnel ||
     smap[s.code].some(d => d.am.length||d.pm.length) || _forcees.has(s.code)
+    || daySlots.some(sl => sl && ['am','pm'].some(h => _aidesCase(NOTES, sl.date, h, s.code).length))   // (20/11/2026) aidée sans nom
   );
 
   /* (19/11/2026) CHIFFRES DE LA SEMAINE (refonte) — mêmes règles que les cases : un « + » orange
@@ -4528,6 +4535,13 @@ function renderWeek() {
                : dup ? `${p.id||''} — aussi placé dans un autre secteur ce demi-jour` : (p.id||'');
       html += `<span class="${cls}" title="${tt}" onclick="openMarMenu('${p.id}','${p.init}','${sector}','${date}','${slotKey}')">${p.init}</span>`;
     });
+    /* (20/11/2026) Aide d'un autre secteur, sans nom : étiquette en pointillés (× pour retirer). */
+    const _aides = _aidesCase(NOTES, date, slotKey, sector);
+    _aides.forEach(a => {
+      const _la = _escHtml(_aideAbrege(a));
+      html += `<span class="cs-chip-wrap"><span class="slot-aide" title="Aide du secteur ${_escHtml(_aideLibelle(a))}, sans nom — cliquer pour changer" onclick="openSidePanel('${sector}','${date}','${sectorLabel}','${slotKey}')">${_la}</span>`
+            + `<span class="cs-chip-x" onclick="event.stopPropagation();basculerAide('${sector}','${a}','${date}','${slotKey}')" title="Retirer l'aide ${_la}">×</span></span>`;
+    });
     /* (19/11/2026) Interne de réanimation : pastille INT (clic = retirer), « ＋ INT » au survol. */
     if (sector === 'REA') {
       const _int = ((NOTES[date] || {}).int || []).indexOf(slotKey) >= 0;
@@ -4548,7 +4562,7 @@ function renderWeek() {
       html += `<span class="slot-flash" onclick="openSidePanel('${sector}','${date}','${sectorLabel}','${slotKey}')">+</span>`;
     }
     // Case vide sans écart : le tiret devient cliquable (c'était une impasse).
-    if (!items.length && !flash) {
+    if (!items.length && !flash && !_aides.length) {
       html += `<span class="slot-dash slot-dash-click" title="Placer un MAR"`
             + ` onclick="openSidePanel('${sector}','${date}','${sectorLabel}','${slotKey}')">—</span>`;
     }
@@ -4855,6 +4869,30 @@ function basculerCsSecteur(type, date, demi) {
   return _enregistrerNotes([{ date: date, type: 'CSS', demi: demi, texte: css[demi].join(',') }], avant);
 }
 function basculerConsultations() { window._csOuvert = !window._csOuvert; renderWeek(); }
+/* (20/11/2026) CASE DE BLOC AIDÉE PAR UN AUTRE SECTEUR, SANS NOM (comme « ORL » dans la ligne
+   viscéral de l'Excel papier). Notes du planning, type AIDE : une ligne par demi-journée, paires
+   SECTEUR_AIDÉ:SECTEUR_QUI_AIDE. N'affecte personne (ni présents, ni libéral, ni « à placer ») ;
+   part dans l'Excel et chez les MAR après « Publier ». */
+const AIDE_ABREGES = { VIS:'VISC', ORT:'ORTH', ORL:'ORL', END:'ENDO', CI:'CARDIO', RI:'RADIO', MAT:'MAT', PED:'PED', REA:'REA', DVI:'DVI' };
+function _aideAbrege(code) { return AIDE_ABREGES[code] || String(code).toUpperCase().slice(0, 6); }
+function _aideLibelle(code) {
+  const s = (typeof SECTEURS_ACTIFS !== 'undefined' ? SECTEURS_ACTIFS : []).find(x => x.code === code);
+  return (s && s.label) || code;
+}
+function _aidesCase(notes, date, demi, sector) {
+  const a = ((notes || {})[date] || {}).aide, l = (a && Array.isArray(a[demi])) ? a[demi] : [];
+  return l.filter(p => String(p).split(':')[0] === sector).map(p => String(p).split(':')[1]).filter(Boolean);
+}
+function basculerAide(sector, aide, date, demi) {
+  const avant = JSON.parse(JSON.stringify(_notesPlanning()));
+  const n = JSON.parse(JSON.stringify(avant)), j = n[date] = n[date] || {};
+  const ai = j.aide = j.aide || { am: [], pm: [] };
+  const paire = sector + ':' + aide, l = Array.isArray(ai[demi]) ? ai[demi] : [], on = l.includes(paire);
+  ai[demi] = on ? l.filter(x => x !== paire) : l.concat([paire]);
+  window._PLAN_NOTES = n; renderWeek();
+  try { if (window._sideCtx && window._sideCtx.date === date && window._sideCtx.sector === sector) openSidePanel(sector, date, window._sideCtx.sectorLabel, demi); } catch (e) {}
+  return _enregistrerNotes([{ date: date, type: 'AIDE', demi: demi, texte: ai[demi].join(',') }], avant);
+}
 function editerInfo(date) {
   let fond = document.getElementById('infoFond');
   if (!fond) {
@@ -5010,6 +5048,14 @@ function invaliderCacheSemaine() {
   prechargerSemaine(true);
 }
 
+/* (20/11/2026) Case de bloc : « Aide sans nom » — un bouton par autre secteur, clic = poser / retirer. */
+function _aideLigne(sector, date, slotKey, isLib) {
+  if (String(sector).startsWith('CS-') || isLib) return '';
+  const on = _aidesCase(_notesPlanning(), date, slotKey, sector);
+  const autres = (typeof SECTEURS_ACTIFS !== 'undefined' ? SECTEURS_ACTIFS : []).filter(s => s.code !== sector && s.code !== 'VOLANT' && !String(s.code).startsWith('CS'));
+  if (!autres.length) return '';
+  return `<div class="psp-aide"><b>Aide sans nom :</b>` + autres.map(s => `<button class="${on.includes(s.code) ? 'on' : ''}" onclick="basculerAide('${sector}','${s.code}','${date}','${slotKey}')" title="${_escHtml(s.label)} vient aider, sans nommer le MAR">${_escHtml(_aideAbrege(s.code))}</button>`).join('') + `</div>`;
+}
 async function openSidePanel(sector, date, sectorLabel, slotKey, isLib) {
   window._sideCtx = {sector, date, sectorLabel, slotKey, lib: !!isLib};
   const card = document.getElementById('dispoCard');
@@ -5030,7 +5076,8 @@ async function openSidePanel(sector, date, sectorLabel, slotKey, isLib) {
     `<span style="background:${getSectorBg(sector)};color:${getSectorFg(sector)};padding:2px 8px;border-radius:12px;font-size:10px;font-weight:700;margin-right:6px;">${sector}</span>`
     + `<span style="background:${slotKey==='am'?'#CE1126':'#64748B'};color:#fff;padding:2px 8px;border-radius:12px;font-size:10px;font-weight:700;margin-right:6px;">${slotKey.toUpperCase()}</span>`
     + new Date(date+'T12:00:00').toLocaleDateString('fr-FR',{weekday:'long',day:'numeric',month:'long'})
-    + ' ' + _secBtn;   // (20/11/2026) « ∅ Laisser vide » retiré avec les cases à pourvoir
+    + ' ' + _secBtn   // (20/11/2026) « ∅ Laisser vide » retiré avec les cases à pourvoir
+    + _aideLigne(sector, date, slotKey, isLib);
   card.scrollIntoView({behavior:'smooth', block:'nearest'});
   loadLiberalJour(date);   // volet libéral (tiroir gauche), indépendant du placement
 
@@ -7145,6 +7192,11 @@ async function exportWeekExcel(){
   daySlots.forEach((slot,dow)=>{
     if(!slot||dow>4)return;
     ['am','pm'].forEach(h=>_csSecteurs(_NOTES,slot.date,h).forEach(code=>pushCS(code,dow,h,_csAbrege(code))));
+  });
+  /* (20/11/2026) Case de bloc aidée par un autre secteur, sans nom : son abrégé dans la case. */
+  daySlots.forEach((slot,dow)=>{
+    if(!slot||dow>4)return;
+    SX.forEach(s=>['am','pm'].forEach(h=>_aidesCase(_NOTES,slot.date,h,s).forEach(a=>{ const t=_aideAbrege(a); if(smap[s]&&!smap[s][dow][h].includes(t)) smap[s][dow][h].push(t); })));
   });
   /* (19/11/2026) SORTIES DE GARDE SÉPARÉES : sort de garde réa celui qui était de garde réa (G)
      la veille, de garde anesth celui qui était en G2. La veille du lundi est lue dans le planning. */

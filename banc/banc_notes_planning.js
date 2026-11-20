@@ -30,7 +30,7 @@ function monde() {
   });
   const src = require('fs').readFileSync('../gas/gardes.gs', 'utf8');
   ['NOTES_ENTETE_', 'NOTES_TYPES_'].forEach(n => vm.runInContext(src.match(new RegExp('const\\s+' + n + '\\s*=[^;]*;'))[0].replace('const ', 'var '), ctx));
-  ['_notesOnglet_', '_notesDate_', '_notesCodesCs_', 'loadPlanningNotes', 'savePlanningNotesBatch', '_act_savePlanningNotes']
+  ['_notesOnglet_', '_notesDate_', '_notesCodesCs_', '_notesAides_', 'loadPlanningNotes', 'savePlanningNotesBatch', '_act_savePlanningNotes']
     .forEach(n => vm.runInContext(extraireFonction('../gas/gardes.gs', n), ctx));
   return { cl, ctx, logs };
 }
@@ -99,7 +99,60 @@ const action = (W, role, items) => JSON.parse(vm.runInContext(`_act_savePlanning
     V('elle ne passe jamais par PLANNING_OVERRIDES (aucun MAR affecté)', /return _enregistrerNotes\(\[\{ date: date, type: 'CSS', demi: demi, texte: css\[demi\]\.join\(','\) \}\], avant\);/.test(adm));
     V('le panneau de la consultation propose « … sans nom »', /« ' \+ _ls \+ ' » sans nom'/.test(adm));
     const pl = require('fs').readFileSync('../planning.html', 'utf8');
-    V('les MAR la voient : semaine (« le secteur ») et vue du jour (« secteur »)', /cons-mar">le secteur</.test(pl) && /jb-sect">secteur</.test(pl));
+    /* (20/11/2026, demande du responsable) l'abrégé du secteur (VISC, ORTH…) plutôt que « secteur », même police que les initiales. */
+    V('les MAR la voient avec l\'abrégé : semaine et vue du jour', /<span class="cons-mar">\$\{esc\(_csAbregePl\(c\.spec\)\)\}<\/span>/.test(pl) && /'<span class="jb-aim petit jb-aim-sect">'\+esc\(_csAbregePl\(o\.sp\)\)/.test(pl) && !/le secteur<\/span>|jb-sect">secteur</.test(pl));
+    { const cx = vm.createContext({}); vm.runInContext(pl.match(/const CS_ABREGES_PL = \{[^}]*\};/)[0].replace('const ', 'var '), cx); const i = pl.indexOf('function _csAbregePl('); vm.runInContext(pl.slice(i, pl.indexOf('\n', i)), cx);
+      V('…mêmes abrégés que l\'Excel du comité : VISC ORTH ORL ENDO INTER MAT POLY PED', vm.runInContext('JSON.stringify(["VIS","CS-ORT","ORL","END","INTER","MAT","POLY","PED"].map(_csAbregePl))', cx) === JSON.stringify(['VISC','ORTH','ORL','ENDO','INTER','MAT','POLY','PED'])); }
+    V('plus d\'italique : consultation et aide en même police que les initiales', !/cs-secteur \{[^}]*italic/.test(adm) && !/slot-aide \{[^}]*italic/.test(adm) && !/chip-sect \{[^}]*italic/.test(pl) && !/jb-aim-sect\{[^}]*italic/.test(pl));
+  }
+
+  console.log('\n═══ 1 quater. Case de bloc aidée par un autre secteur, sans nom (type AIDE) ═══');
+  {
+    /* (20/11/2026) Comme « ORL » dans la ligne viscéral de l'Excel papier : une ligne par
+       demi-journée, paires SECTEUR_AIDÉ:SECTEUR_QUI_AIDE. Rien dans PLANNING_OVERRIDES. */
+    const W = monde();
+    ecrire(W, [{ date: '2026-11-23', type: 'AIDE', demi: 'pm', texte: 'VIS:ORL,END:ORT' }]);
+    let n = lire(W);
+    V('lundi après-midi : ORL aide en viscéral, ortho aide en endoscopie', JSON.stringify(n['2026-11-23']) === JSON.stringify({ aide: { am: [], pm: ['VIS:ORL', 'END:ORT'] } }), n['2026-11-23']);
+    V('rien n\'est écrit dans PLANNING_OVERRIDES (personne n\'est affecté)', W.cl.getSheetByName('PLANNING_OVERRIDES').lignes.length === 1);
+    ecrire(W, [{ date: '2026-11-23', type: 'AIDE', demi: 'pm', texte: 'VIS:ORL' }]);
+    V('réécrire la demi-journée remplace la liste, sans doublon de ligne', JSON.stringify(lire(W)['2026-11-23'].aide.pm) === '["VIS:ORL"]' && W.cl.getSheetByName('PLANNING_NOTES').lignes.length === 2);
+    ecrire(W, [{ date: '2026-11-23', type: 'AIDE', demi: 'pm', texte: 'vis:orl, VIS:VIS, CS-VIS:ORL, VIS, <b>:x, VIS:ORL' }]);
+    V('seules des paires valables sont gardées (minuscules corrigées, ni soi-même, ni consultation, ni doublon)', JSON.stringify(lire(W)['2026-11-23'].aide.pm) === '["VIS:ORL"]', lire(W)['2026-11-23']);
+    ecrire(W, [{ date: '2026-11-23', type: 'AIDE', demi: 'pm', texte: '' }]);
+    V('liste vide = ligne supprimée', !lire(W)['2026-11-23'] && W.cl.getSheetByName('PLANNING_NOTES').lignes.length === 1);
+    ecrire(W, [{ date: '2026-11-24', type: 'AIDE', demi: '', texte: 'VIS:ORL' }]);
+    V('demi-journée absente : rien n\'est écrit', !lire(W)['2026-11-24']);
+    // Contre-épreuve : sans le type AIDE, la même écriture n'aurait rien donné.
+    vm.runInContext('NOTES_TYPES_.AIDE = false', W.ctx);
+    ecrire(W, [{ date: '2026-11-25', type: 'AIDE', demi: 'am', texte: 'VIS:ORL' }]);
+    V('contre-épreuve : type AIDE retiré → rien n\'est écrit', !lire(W)['2026-11-25']);
+    vm.runInContext('NOTES_TYPES_.AIDE = true', W.ctx);
+
+    const adm = require('fs').readFileSync('../admin.html', 'utf8');
+    const c = vm.createContext({ SECTEURS_ACTIFS: [{ code: 'VIS', label: 'Bloc viscéral' }, { code: 'ORL', label: 'ORL / Ophtalmologie' }, { code: 'END', label: 'Endoscopies' }] });
+    vm.runInContext(adm.match(/const AIDE_ABREGES = \{[^}]*\};/)[0].replace('const ', 'var '), c);
+    ['_aideAbrege', '_aideLibelle', '_aidesCase', '_aideLigne'].forEach(f => { const i = adm.indexOf('function ' + f + '('); vm.runInContext(adm.slice(i, adm.indexOf('\n}', i) + 2), c); });
+    vm.runInContext('function _escHtml(x){return String(x)} function _notesPlanning(){return N} var N = {}', c);
+    const N = { '2026-11-23': { aide: { am: [], pm: ['VIS:ORL', 'END:ORT'] } } };
+    vm.runInContext('N = ' + JSON.stringify(N), c);
+    V('admin : la case viscéral du lundi après-midi lit « ORL », pas le matin, pas l\'endoscopie pour le viscéral',
+      JSON.stringify(vm.runInContext('_aidesCase(N,"2026-11-23","pm","VIS")', c)) === '["ORL"]' && vm.runInContext('_aidesCase(N,"2026-11-23","am","VIS")', c).length === 0
+      && JSON.stringify(vm.runInContext('_aidesCase(N,"2026-11-23","pm","END")', c)) === '["ORT"]');
+    V('abrégés : VISC ORTH ORL ENDO CARDIO RADIO MAT PED REA DVI (6 lettres au plus pour un nouveau)',
+      vm.runInContext('JSON.stringify(["VIS","ORT","ORL","END","CI","RI","MAT","PED","REA","DVI","NOUVEAUSECT"].map(_aideAbrege))', c) === JSON.stringify(['VISC','ORTH','ORL','ENDO','CARDIO','RADIO','MAT','PED','REA','DVI','NOUVEA']));
+    const ligne = vm.runInContext('_aideLigne("VIS","2026-11-23","pm",false)', c);
+    V('panneau d\'une case de bloc : un bouton par AUTRE secteur, celui posé est actif', /Aide sans nom/.test(ligne) && !/>VISC</.test(ligne) && /class="on"[^>]*>ORL</.test(ligne) && /class=""[^>]*>ENDO</.test(ligne), ligne.slice(0, 200));
+    V('…jamais dans le panneau d\'une consultation ni de la consultation libérale', vm.runInContext('_aideLigne("CS-VIS","2026-11-23","pm",false)', c) === '' && vm.runInContext('_aideLigne("END","2026-11-23","pm",true)', c) === '');
+    V('admin : elle ne passe jamais par PLANNING_OVERRIDES', /return _enregistrerNotes\(\[\{ date: date, type: 'AIDE', demi: demi, texte: ai\[demi\]\.join\(','\) \}\], avant\);/.test(adm));
+    const pl = require('fs').readFileSync('../planning.html', 'utf8');
+    V('mêmes abrégés côté MAR que côté comité', (pl.match(/const AIDE_ABREGES = \{[^}]*\};/) || [])[0] === adm.match(/const AIDE_ABREGES = \{[^}]*\};/)[0]);
+    const cp = vm.createContext({ DATA: { notes: N } });
+    ['_notesDuJour'].forEach(f => { const i = pl.indexOf('function ' + f + '('); vm.runInContext(pl.slice(i, pl.indexOf('\n', i)), cp); });
+    vm.runInContext(pl.match(/const AIDE_ABREGES = \{[^}]*\};/)[0].replace('const ', 'var '), cp);
+    { const i = pl.indexOf('function _aidesDuJour('); vm.runInContext(pl.slice(i, pl.indexOf('\n', pl.indexOf('\n', i) + 1)), cp); }
+    V('MAR : le lundi après-midi, « ORL » en viscéral et « ORTH » en endoscopie', vm.runInContext('JSON.stringify(_aidesDuJour("2026-11-23","pm"))', cp) === JSON.stringify([{ sect: 'VIS', abr: 'ORL' }, { sect: 'END', abr: 'ORTH' }]));
+    V('MAR : vue semaine (étiquette en pointillés) et vue du jour (étiquette à la place de l\'aimant)', /p\.status==='SECT'\?'slot-name chip-sect'/.test(pl) && /aimOuSect = i => \(i && typeof i === 'object'\) \? '<span class="jb-aim jb-aim-sect">'/.test(pl));
   }
 
   console.log('\n═══ 2. L\'action réservée au comité ═══');
