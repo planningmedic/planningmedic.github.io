@@ -1,7 +1,7 @@
 // ⚠️ RÈGLE (détecteur de dérive dépôt↔Apps Script) : incrémenter cette version
 // à CHAQUE push de ce fichier. Le diagnostic (admin → Maintenance) compare la
 // version déployée ici avec celle du dépôt et signale toute recopie oubliée.
-const GAS_VERSION_MIROIR = '2026-11-19.1';   // (19/11/2026) .1 : notes du planning (PLANNING_NOTES) dans config_admin, poussées après savePlanningNotes et sur édition manuelle · (12/11/2026) copie des statistiques : V, WE = samedis + dimanches et sa part (champsWeStats_) · (11/11/2026) accepter ou annuler un échange repousse le planning de l'année DE LA DEMANDE (lue dans ECHANGES), plus l'année active · (11/11/2026) annulerEchange rafraîchit les échanges · (11/11/2026) recupsReparer rafraîchit planning et gardes · (06/11/2026) retrait d'annonceFinSaisie (envoyée) · (02/11/2026) commentaire : identifiants d'exemple fictifs · (27/10/2026) champ ordreMc dans acces · (20/10/2026) clé etablissement (nom et adresse du devis) · (21/10) setVeilleAbo → veille_marques
+const GAS_VERSION_MIROIR = '2026-11-20.1';   // (20/11/2026) .1 : poussée différée par année — chaque famille n'est repoussée que pour ses années, les familles sans année une seule fois avec l'année active (≈ 3 écritures Cloudflare de moins par échange accepté, config_admin ne bascule plus sur 2027) · (19/11/2026) .1 : notes du planning (PLANNING_NOTES) dans config_admin, poussées après savePlanningNotes et sur édition manuelle · (12/11/2026) copie des statistiques : V, WE = samedis + dimanches et sa part (champsWeStats_) · (11/11/2026) accepter ou annuler un échange repousse le planning de l'année DE LA DEMANDE (lue dans ECHANGES), plus l'année active · (11/11/2026) annulerEchange rafraîchit les échanges · (11/11/2026) recupsReparer rafraîchit planning et gardes · (06/11/2026) retrait d'annonceFinSaisie (envoyée) · (02/11/2026) commentaire : identifiants d'exemple fictifs · (27/10/2026) champ ordreMc dans acces · (20/10/2026) clé etablissement (nom et adresse du devis) · (21/10) setVeilleAbo → veille_marques
 
 /* ═══════════════════════════════════════════════════════════════════════
    MIROIR.GS — alimentation du miroir de lecture Cloudflare
@@ -170,6 +170,10 @@ function _miroirNoterPoussee_(familles, annee) {
     var etaitVide = !Object.keys(attente.familles).length;
     familles.forEach(function (f) { attente.familles[f] = true; });
     attente.annees[String(annee)] = true;
+    /* (20/11/2026) La paire famille → année est retenue : voir _miroirPlanRattrapage_. */
+    attente.parAnnee = attente.parAnnee || {};
+    const pa = attente.parAnnee[String(annee)] = attente.parAnnee[String(annee)] || {};
+    familles.forEach(function (f) { pa[f] = true; });
     props.setProperty(MIROIR_CLE_ATTENTE, JSON.stringify(attente));
   } finally {
     try { verrou.releaseLock(); } catch (e) {}
@@ -217,12 +221,13 @@ function miroirRattrapage() {
   }
   if (!attente || !attente.familles) return;
   const familles = Object.keys(attente.familles);
-  const annees = Object.keys(attente.annees || {}).map(Number);
-  if (!annees.length) annees.push(getActiveYear());
+  const plan = _miroirPlanRattrapage_(attente, getActiveYear());
+  const annees = plan.map(function (p) { return p.annee; });
   const bilan = [];
-  annees.forEach(function (y) {
+  plan.forEach(function (p) {
+    const y = p.annee;
     try {
-      const r = miroirPousserFamilles_(familles, y, false);
+      const r = miroirPousserFamilles_(p.familles, y, false);
       bilan.push(y + (r && r.success === false ? ' ÉCHEC : ' + (r.error || '?') : ' ok')
                  + (r && r.ecrites !== undefined ? ' — ' + r.ecrites + ' écrite(s)' : '')
                  + (r && r.listeEcrites ? ' [' + r.listeEcrites.join(' ') + ']' : '')
@@ -242,6 +247,56 @@ function miroirRattrapage() {
       ScriptApp.newTrigger('miroirRattrapage').timeBased().after(1000).create();
     }
   } catch (e) { /* synchro horaire */ }
+}
+
+/* ═══ PLAN DE LA POUSSÉE DIFFÉRÉE (20/11/2026 — vu en réel) ═══════════════
+   Relevé Cloudflare du 20/11 : 456 écritures entre 10 h et 11 h, ~960 sur la
+   journée pour un plafond gratuit de 1 000. Cause : la file mélangeait les
+   familles et les années. Une acceptation d'échange (familles 2027) suivie de
+   sa notification (famille notifs, année active 2026) faisait repousser
+   TOUTES les familles pour LES DEUX années : 8 à 9 écritures au lieu de 5 à 6.
+   Pire, config_admin (clé unique, sans année dans son nom) était bâtie deux
+   fois, 2026 puis 2027 : la copie gardait la version 2027 (anneeSuivante
+   faux), que la synchro horaire remettait en 2026 — une écriture de plus à
+   chaque heure, et un drapeau « année suivante » faux entre-temps.
+   Désormais : chaque famille liée à une année n'est poussée que pour SES
+   années ; les familles sans année (une seule clé pour tous) ne le sont
+   qu'une fois, avec l'année active — exactement comme la synchro horaire.
+   Ancienne note sans parAnnee (posée avant la mise à jour) : produit
+   croisé, l'ancien comportement. */
+const MIROIR_FAMILLES_SANS_ANNEE = {
+  acces: 1, annees: 1, secteurs: 1, specialites: 1, releve_liberal: 1,
+  cotations_type: 1, etablissement: 1, config_admin: 1, echanges: 1,
+  notifs: 1, tuiles: 1, mail: 1, vacances_admin: 1, ordre_vac: 1,
+  veille_marques: 1,
+};
+function _miroirPlanRattrapage_(attente, actif) {
+  const parAnnee = {};
+  if (attente && attente.parAnnee && typeof attente.parAnnee === 'object') {
+    Object.keys(attente.parAnnee).forEach(function (y) {
+      parAnnee[y] = Object.keys(attente.parAnnee[y] || {});
+    });
+  } else {
+    const fams = Object.keys((attente && attente.familles) || {});
+    const ans = Object.keys((attente && attente.annees) || {});
+    (ans.length ? ans : [String(actif)]).forEach(function (y) { parAnnee[y] = fams.slice(); });
+  }
+  const sansAnnee = {};
+  const plan = {};
+  Object.keys(parAnnee).forEach(function (y) {
+    parAnnee[y].forEach(function (f) {
+      if (MIROIR_FAMILLES_SANS_ANNEE[f] === 1) { sansAnnee[f] = true; return; }
+      (plan[y] = plan[y] || {})[f] = true;
+    });
+  });
+  if (Object.keys(sansAnnee).length) {
+    const ya = String(actif);
+    plan[ya] = plan[ya] || {};
+    Object.keys(sansAnnee).forEach(function (f) { plan[ya][f] = true; });
+  }
+  return Object.keys(plan).sort().map(function (y) {
+    return { annee: Number(y), familles: Object.keys(plan[y]) };
+  });
 }
 
 /* ── SYNCHRO COMPLÈTE — filet horaire + amorçage initial ─────────────────

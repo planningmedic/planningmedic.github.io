@@ -26,8 +26,9 @@ const ctx = vm.createContext({
 });
 ctx.globalThis = ctx;
 vm.runInContext('const MIROIR_CLE_ATTENTE = "MIROIR_POUSSEES_EN_ATTENTE";', ctx);
-['_miroirNoterPoussee_', 'miroirRattrapage', 'miroirSurEdition'].forEach(n =>
+['_miroirNoterPoussee_', 'miroirRattrapage', 'miroirSurEdition', '_miroirPlanRattrapage_'].forEach(n =>
   vm.runInContext(extraireFonction('../gas/miroir.gs', n), ctx));
+vm.runInContext(require('fs').readFileSync('../gas/miroir.gs','utf8').match(/const MIROIR_FAMILLES_SANS_ANNEE = \{[\s\S]*?\};/)[0], ctx);
 vm.runInContext(extraireFonction('../gas/miroir.gs', 'miroirSurEdition').includes('MIROIR_ONGLETS_SUIVIS')
   ? require('fs').readFileSync('../gas/miroir.gs','utf8').match(/const MIROIR_ONGLETS_SUIVIS = \{[\s\S]*?\};/)[0] : '', ctx);
 
@@ -45,7 +46,13 @@ V('un seul déclencheur pour 4 écritures', triggers.length === 1, triggers.leng
 V('la note cumule les familles', JSON.parse(PROPS.MIROIR_POUSSEES_EN_ATTENTE).familles.config_admin === true);
 vm.runInContext('miroirRattrapage()', ctx);
 V('une seule poussée par année (2 années touchées)', pousses.length === 2, pousses);
-V('les familles sont fusionnées', pousses[0].familles.join(',') === 'config_admin,gardes,indispos', pousses[0]);
+/* (20/11/2026) config_admin est une famille SANS année : poussée une fois,
+   avec l'année active (2026) ; gardes et indispos restent sur 2027. */
+V('config_admin part une seule fois, avec l\'année active',
+  pousses.filter(p => p.familles.includes('config_admin')).length === 1
+  && pousses.find(p => p.familles.includes('config_admin')).annee === 2026, pousses);
+V('les familles de 2027 sont fusionnées dans une seule poussée',
+  (pousses.find(p => p.annee === 2027) || {familles:[]}).familles.join(',') === 'gardes,indispos', pousses);
 V('la note est purgée', !PROPS.MIROIR_POUSSEES_EN_ATTENTE);
 V('aucun déclencheur orphelin', triggers.length === 0, triggers);
 /* (23/08/2026) BLOCAGE DÉFINITIF. Le déclencheur n'était armé que si la file
@@ -67,6 +74,40 @@ V('la poussée différée laisse une trace dans le journal',
   journal.some(function (m) { return /poussée différée/.test(m); }), journal);
 V('…qui nomme les familles et les années',
   journal.some(function (m) { return /config_admin/.test(m) && /2027/.test(m); }), journal);
+
+console.log('\n═══ 6 ter. Échange 2027 + notification : pas de produit croisé des années (20/11/2026) ═══');
+{
+  /* Vu en réel le 20/11 : ~960 écritures Cloudflare sur un plafond de 1 000.
+     L'acceptation d'un échange note ses familles en 2027, sa notification
+     note « notifs » en année active (2026). L'ancienne file repoussait TOUT
+     pour les deux années : planning, gardes, stats 2026 reconstruits pour
+     rien, config_admin bâtie deux fois — et laissée en version 2027. */
+  pousses.length = 0; triggers.length = 0; delete PROPS.MIROIR_POUSSEES_EN_ATTENTE;
+  vm.runInContext(`_miroirNoterPoussee_(['planning','config_admin','gardes','stats','echanges'], 2027)`, ctx);
+  vm.runInContext(`_miroirNoterPoussee_(['notifs'], 2026)`, ctx);
+  vm.runInContext('miroirRattrapage()', ctx);
+  const p26 = pousses.find(p => p.annee === 2026) || { familles: [] };
+  const p27 = pousses.find(p => p.annee === 2027) || { familles: [] };
+  V('2026 ne repousse NI planning, NI gardes, NI stats', !p26.familles.some(f => ['planning','gardes','stats'].includes(f)), pousses);
+  V('2026 ne pousse que les familles sans année (config_admin, echanges, notifs)',
+    p26.familles.join(',') === 'config_admin,echanges,notifs', p26);
+  V('2027 pousse planning, gardes, stats — et rien d\'autre', p27.familles.join(',') === 'gardes,planning,stats', p27);
+  V('config_admin n\'est bâtie qu\'UNE fois', pousses.filter(p => p.familles.includes('config_admin')).length === 1, pousses);
+
+  // Note posée par l'ANCIEN code juste avant la mise à jour : pas de parAnnee → comportement d'avant
+  pousses.length = 0; triggers.length = 0;
+  PROPS.MIROIR_POUSSEES_EN_ATTENTE = JSON.stringify({ familles: { gardes: true, config_admin: true }, annees: { 2026: true, 2027: true } });
+  vm.runInContext('miroirRattrapage()', ctx);
+  V('ancienne note sans parAnnee : gardes repoussé pour les deux années (rien de perdu)',
+    pousses.filter(p => p.familles.includes('gardes')).map(p => p.annee).join(',') === '2026,2027', pousses);
+  V('…et config_admin une seule fois quand même', pousses.filter(p => p.familles.includes('config_admin')).length === 1, pousses);
+
+  // La table des familles sans année ne doit contenir AUCUNE famille dont la clé dépend de l'année
+  const srcM = require('fs').readFileSync('../gas/miroir.gs', 'utf8');
+  const tableSA = srcM.match(/const MIROIR_FAMILLES_SANS_ANNEE = \{([\s\S]*?)\};/)[1];
+  const AVEC_ANNEE = ['planning', 'affectations', 'gardes', 'stats', 'joursferies', 'liberal', 'indispos'];
+  V('aucune famille à clé annuelle n\'est rangée « sans année »', !AVEC_ANNEE.some(f => new RegExp('\\b' + f + ':').test(tableSA)), tableSA);
+}
 
 // édition manuelle du classeur
 const edition = nom => vm.runInContext(`miroirSurEdition({ range: { getSheet: () => ({ getName: () => ${JSON.stringify(nom)} }) } })`, ctx);
