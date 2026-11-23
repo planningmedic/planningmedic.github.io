@@ -505,7 +505,7 @@
       <p>Un don qui tomberait sur un <b>18 h</b> du receveur (le jour de la garde ou le lendemain) : le 18 h passe au donneur, libéré ce jour-là. Le donneur le confirme avant d'envoyer ; le jour ne reste pas à découvert.</p>
       <div class="geste"><b>Le geste :</b> aucun. Une alerte n'apparaît dans l'onglet Statuts que si aucune date ne convient : c'est le seul cas où le comité entre en scène.</div>
       <details class="pourquoi"><summary>Comment le portail choisit la date</summary>
-        <div class="corps"><p>Les mêmes règles que le calcul des gardes : au moins 13 MAR postables ce jour-là (le seuil de l'onglet SEUILS), deux récupérations au plus le même jour, trois jours d'écart entre deux récupérations d'un même MAR, jamais sur un jour déjà occupé. En plus : <b>de préférence hors vacances scolaires</b>, de préférence un vendredi ou un lundi qui allonge un week-end libre (ou un jour collé à un pont ou à des congés), et le plus tôt possible après le samedi.</p></div>
+        <div class="corps"><p>Les mêmes règles que le calcul des gardes. Le jour doit rester <b>vert</b> : au moins 15 MAR postables une fois la récupération posée (repos de garde et chef de service non comptés ; seuil de confort de l'onglet SEUILS). <b>Jamais pendant les vacances scolaires</b>, jamais dans la semaine Réa 1 du MAR, jamais sur un jour déjà occupé (garde, repos, absence) ni sur un jour passé. Si possible : deux récupérations au plus le même jour et trois jours d'écart entre deux récupérations d'un même MAR. Ordre de préférence : un vendredi ou un lundi qui allonge un week-end libre (ou un jour collé à un pont ou à des congés), puis n'importe quel jour ; le plus tôt possible après le samedi, avant lui seulement en dernier recours. Si aucun jour ne convient, rien n'est posé et l'onglet Statuts vous alerte.</p></div>
       </details>
       <p>Sur le planning <b>2026</b> (année de transition), rien d'automatique : le donneur conserve sa récupération et le portail vous prévient au moment du geste.</p>
     </div>
@@ -733,6 +733,19 @@
       <div class="ct">Le choix du jour vous appartient</div>
       <p>Ici, l'outil ne propose pas de date : choisissez un jour qui tient — un jour de garde sera de
         toute façon refusé. La récupération posée est rattachée toute seule au samedi qu'elle compense.</p>
+    </div>
+
+    <h3>Déplacer une récupération à la demande d'un MAR</h3>
+    <ol class="steps">
+      <li>Vue MAR : choisissez le médecin.</li>
+      <li><b>D'abord</b> l'ancienne date : touchez le jour, puis <span class="btn-ex">Effacer statut</span>.</li>
+      <li><b>Ensuite</b> la nouvelle date : touchez le jour, puis <span class="btn-ex">Récup</span>. Elle se rattache toute seule à son samedi.</li>
+      <li>Cliquez <span class="btn-ex red">Publier</span>.</li>
+    </ol>
+    <div class="callout tip">
+      <div class="ct">Un jour qui n'est plus vert</div>
+      <p>Si, avec cette récupération, il reste moins de 15 MAR postables ce jour-là, un bandeau ambre
+        vous le dit. La récupération est quand même posée : à vous de juger, et de l'effacer si ce n'était pas voulu.</p>
     </div>
 
     <h3>Poser un statut — vue MAR</h3>

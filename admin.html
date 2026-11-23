@@ -3263,7 +3263,7 @@ function showTab(name) {
 const STAT = {
   view: 'annee', gardes: {}, days: [], marId: null, monthKey: null,
   selected: new Set(), plageMode: false, plageStart: null, year: null,
-  feries: new Set(), pending: 0,
+  feries: new Set(), pending: 0, alerteR: null,
 };
 const STAT_LOCK = new Set(['G','G2','RG']); // gardes → verrouillées
 const STAT_META = {
@@ -3471,6 +3471,11 @@ function renderStatuts(){
         <button class="seg-btn ${STAT.view==='annee'?'active':''}" onclick="statSetView('annee')">Vue Année</button>
       </div>
     </div></div>`;
+  if (STAT.alerteR && STAT.alerteR.length) {
+    const jj = STAT.alerteR.map(x => `${x.date.slice(8)}/${x.date.slice(5,7)} : <b>${x.n}</b> postables`).join(' · ');
+    h += `<div id="statAlerteR" class="sa-alert" style="background:#FFFBEB;border-color:#FDE68A;color:#92400E">⚠️ <strong>Récup posée sur un jour qui n'est plus vert</strong> — ${jj} après la pose (vert : ${SEUIL_CONFORT} ou plus). La pose est faite ; effacez-la si ce n'était pas voulu.
+      <button class="btn-sm" style="margin-left:8px" onclick="statAlerteFermer()">OK</button></div>`;
+  }
   h += STAT.view==='mar' ? renderStatMar(ro) : renderStatAnnee(ro);
   document.getElementById('statutsContent').innerHTML=h;
   if(window.lucide) lucide.createIcons();
@@ -3542,6 +3547,22 @@ function statActive(m, date){
   if(m.dateFin   && date >= m.dateFin)  return false; // déjà parti
   return true;
 }
+/* (23/11/2026) RÉCUP POSÉE À LA MAIN SUR UN JOUR QUI NE RESTE PAS VERT.
+   Le portail ne place lui-même une récupération que sur un jour qui reste vert
+   (au moins SEUIL_CONFORT postables après la pose, onglet SEUILS). Ici, le
+   comité choisit le jour : on le PRÉVIENT, sans bloquer (décision du
+   responsable). Postables comptés comme au serveur (RECUP_ABSENTS) : hors
+   effectif exclu, repos de garde absent, demi-journée de vacances présente. */
+const STAT_ABSENTS_EFFECTIF = new Set(['V','F','TP','CL','CTP','CP','A','R','RG']);
+function statPostables(date){
+  return marData.filter(m => m.actif && !m.horsEffectif && statActive(m, date)
+    && !STAT_ABSENTS_EFFECTIF.has(statCode(m.id, date))).length;
+}
+function statAlerteRecup(poses){
+  return poses.filter(d => { const j = new Date(d + 'T12:00:00').getDay(); return j >= 1 && j <= 5 && !STAT.feries.has(d); })
+    .map(d => ({ date: d, n: statPostables(d) })).filter(x => x.n < SEUIL_CONFORT);
+}
+function statAlerteFermer(){ STAT.alerteR = null; renderStatuts(); }
 function statCoverage(){
   const issues={};
   STAT.days.forEach(d=>{
@@ -3639,6 +3660,7 @@ async function statApply(statut){
   const verrouilles = dates.length - poses.length;
   if(!poses.length){ toast('Jour(s) verrouillé(s) par une garde', 'error'); return; }
   _etage2PoserStatuts_(year, marId, poses.map(d => [d, statut]));   // (01/11/2026) le panneau voit la pose
+  STAT.alerteR = statut === 'R' ? statAlerteRecup(poses) : null;   // (23/11/2026) alerte non bloquante
   STAT.pending += poses.length;
   invaliderCacheSemaine();   // les statuts changent les dispos : cache perime
   STAT.selected.clear();
