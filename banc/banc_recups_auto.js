@@ -8,8 +8,8 @@
    Le VRAI code : echanges.gs entier, applyModification et appliquerStatutJour
    (gardes.gs), getJoursFeries (code.gs), dans un classeur simulé d'un an,
    vingt MAR, et les vacances scolaires 2027 (calendrier public).
-   Ce qui est éprouvé : les règles de choix d'une date (jamais pendant les
-   vacances scolaires, plancher du seuil de confort (15 postables, jour vert, depuis le 20/11/2026), deux R au plus par jour,
+   Ce qui est éprouvé : les règles de choix d'une date (vacances scolaires
+   sans effet depuis le 23/11/2026, plancher du seuil de confort (15 postables, jour vert, depuis le 20/11/2026), deux R au plus par jour,
    trois jours d'écart, jamais sur une case occupée, d'abord un jour qui allonge
    un week-end libre), les trois chemins automatiques (samedi qui change de
    mains, R écrasé par un don, bouton Réparer), la pose manuelle d'un R qui
@@ -117,15 +117,16 @@ console.log('═══ 1. Choix d\'une date : les règles ═══');
 {
   const b = monde();
   b.garde('ALPHA', '2027-04-17');
-  V('JAMAIS pendant les vacances scolaires : samedi du 17/04 → lundi 03/05, premier jour après les vacances',
-    b.choisir('ALPHA', '2027-04-17') === '2027-05-03', b.choisir('ALPHA', '2027-04-17'));
+  // (23/11/2026) Les vacances scolaires ne comptent plus : seule la présence du jour décide.
+  V('vacances scolaires sans effet : samedi du 17/04 → vendredi 23/04, premier jour utile, en pleines vacances',
+    b.choisir('ALPHA', '2027-04-17') === '2027-04-23', b.choisir('ALPHA', '2027-04-17'));
   b.garde('BRAVO', '2027-07-10');
   const d = b.choisir('BRAVO', '2027-07-10');
-  V('été : rien entre le 03/07 et le 01/09', d >= '2027-09-02', d);
-  b.poser('CHARLI', '2027-05-06', 'V');
+  V('été : le vendredi 16/07, en pleines vacances, puisque le jour reste vert', d === '2027-07-16', d);
+  b.poser('CHARLI', '2027-04-28', 'V');
   b.garde('CHARLI', '2027-04-24');
-  V('un jour collé à des congés déjà posés compte comme utile (mer. 05/05, veille de ses vacances, avant le vendredi suivant)',
-    b.choisir('CHARLI', '2027-04-24') === '2027-05-03' || b.choisir('CHARLI', '2027-04-24') === '2027-05-05', b.choisir('CHARLI', '2027-04-24'));
+  V('un jour collé à des congés déjà posés compte comme utile (mar. 27/04, veille de ses vacances, avant le vendredi suivant)',
+    b.choisir('CHARLI', '2027-04-24') === '2027-04-27', b.choisir('CHARLI', '2027-04-24'));
   b.garde('DELTA', '2027-11-13');
   V('pont : jeudi 18/11 avant la fête du 19/11 (vendredi férié) — avant tout autre jour',
     b.choisir('DELTA', '2027-11-13') === '2027-11-18', b.choisir('DELTA', '2027-11-13'));
@@ -133,10 +134,13 @@ console.log('═══ 1. Choix d\'une date : les règles ═══');
 {
   const b = monde();
   b.garde('ALPHA', '2027-12-11');
-  // Après le 11/12 : vacances de Noël dès le 18/12. Bloquer la semaine du 13 au 17.
+  // Semaine du 13 au 17 bloquée : le lundi 20/12, pendant les vacances de Noël, convient.
   ['2027-12-13', '2027-12-14', '2027-12-15', '2027-12-16', '2027-12-17'].forEach(d => b.poser('ALPHA', d, 'F'));
+  V('vacances de Noël sans effet : lundi 20/12', b.choisir('ALPHA', '2027-12-11') === '2027-12-20', b.choisir('ALPHA', '2027-12-11'));
+  // Plus rien après le samedi : on remonte AVANT, au plus près.
+  b.dates.filter(x => x > '2027-12-17').forEach(x => b.poser('ALPHA', x, 'F'));
   const d = b.choisir('ALPHA', '2027-12-11');
-  V('rien après le samedi : on remonte AVANT, au plus près (et jamais pendant les vacances)', d && d < '2027-12-11' && d >= '2027-12-01', d);
+  V('rien après le samedi : on remonte AVANT, au plus près', d && d < '2027-12-11' && d >= '2027-12-01', d);
 }
 
 console.log('\n═══ 2. Un samedi donné dont le R ne peut pas suivre : R rendu, R neuf, lien suivi ═══');
@@ -203,7 +207,7 @@ console.log('\n═══ 4. Le bouton « Réparer » ═══');
   V('l\'aperçu ne republie rien et ne prévient personne', b.republie.length === 0 && b.notifs.length === 0);
   const q = ap.actions.map(a => a.quoi + ' ' + a.med).join(', ');
   V('l\'aperçu annonce 4 gestes : 3 poses, 1 retrait', ap.actions.length === 4 && q === 'pose DELTA, retrait ECHO, pose FOXTRO, pose GOLF', q);
-  V('aucune date proposée pendant les vacances scolaires', ap.actions.filter(a => a.date).every(a => !(a.date >= '2027-07-03' && a.date <= '2027-09-01') && !(a.date >= '2027-10-23' && a.date <= '2027-11-07')), ap.actions);
+  V('chaque date proposée est un jour ouvré à venir', ap.actions.filter(a => a.date).every(a => { const j = new Date(a.date + 'T12:00:00').getDay(); return j >= 1 && j <= 5 && a.date > '2026-11-11'; }), ap.actions);
   const fait = b.run('recupsReparer(2027, true)');
   V('la réparation fait ce que l\'aperçu annonçait', JSON.stringify(fait.actions) === JSON.stringify(ap.actions), fait.actions);
   V('chaque MAR a autant de R que de samedis tenus', ['DELTA', 'ECHO', 'FOXTRO', 'GOLF', 'HOTEL'].every(id =>
