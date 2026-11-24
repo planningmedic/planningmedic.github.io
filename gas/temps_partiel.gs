@@ -4,7 +4,7 @@
    quelles : aucune ligne de logique modifiée, seulement déplacée. Le routeur et
    ses aides (checkCode, _deny, _error, doGet/doPost) restent dans Indispos.gs.
    Un seul espace global dans Apps Script : rien à importer. */
-const GAS_VERSION_TP = '2026-11-24.1';   // (24/11/2026) .1 : effectif présent — une fois l'année générée, les absences (V, F, CL, CP, CTP, A) sont lues dans GARDES, plus dans INDISPOS (GARDES fait foi) ; VM/VA comptent présents · (17/11/2026) .2 : seuils de la pose lus dans l'onglet SEUILS (seuilsPresence_), envoyés à l'écran avec l'effectif · (17/11/2026) effectif présent : un MAR marqué HORS_EFFECTIF dans MEDECINS n'est plus compté (pose des TP, points à vérifier) · (16/11/2026) jour de TP dans sa semaine Réa 1 : non bloquant — semaine envoyée à l'écran (grisée, confirmation), signalée au MAR comme au comité · (12/11/2026) plus aucun nom de personne dans le code (effectif présent) · (10/11/2026) chaque jour de TP posé, retiré, demandé ou tranché laisse une ligne dans l'onglet HISTORIQUE
+const GAS_VERSION_TP = '2026-11-24.2';   // (24/11/2026) .2 : un jour fermé par le comité se rouvre tout seul s'il redevient vert parce que l'équipe s'est étoffée depuis le refus ; les MAR refusés ce jour-là sont prévenus · (24/11/2026) .1 : effectif présent — une fois l'année générée, les absences (V, F, CL, CP, CTP, A) sont lues dans GARDES, plus dans INDISPOS (GARDES fait foi) ; VM/VA comptent présents · (17/11/2026) .2 : seuils de la pose lus dans l'onglet SEUILS (seuilsPresence_), envoyés à l'écran avec l'effectif · (17/11/2026) effectif présent : un MAR marqué HORS_EFFECTIF dans MEDECINS n'est plus compté (pose des TP, points à vérifier) · (16/11/2026) jour de TP dans sa semaine Réa 1 : non bloquant — semaine envoyée à l'écran (grisée, confirmation), signalée au MAR comme au comité · (12/11/2026) plus aucun nom de personne dans le code (effectif présent) · (10/11/2026) chaque jour de TP posé, retiré, demandé ou tranché laisse une ligne dans l'onglet HISTORIQUE
 
 /* ── (POSE TP · 22/08/2026) PHASE DE POSE DES TEMPS PARTIELS — DÉDUITE, JAMAIS ÉCRITE ──
    Les jours de temps partiel se posent APRÈS la génération des gardes (décision
@@ -468,14 +468,18 @@ function _tpJourLisible_(ds) {
    Un refus du comité ne vise pas UNE demande : il dit « ce jour-là, l'équipe
    est trop juste ». Le jour se ferme donc POUR TOUS : noir sur l'écran de
    pose, refusé par le serveur, et les demandes en attente ce jour-là sont
-   rendues. Stockage : onglet TP_FERMES (ANNEE | DATE | PAR | QUAND), créé au
-   premier refus — la liste voyage dans la clé pose_tp_{Y}. */
+   rendues. Stockage : onglet TP_FERMES (ANNEE | DATE | PAR | QUAND | MARS |
+   EFFECTIF), créé au premier refus — la liste voyage dans la clé pose_tp_{Y}.
+   (24/11/2026) MARS = ceux dont la demande a été refusée, EFFECTIF = les
+   présents au moment du refus : de quoi rouvrir le jour s'il se libère
+   (_tpRouvrirSiLibere_). */
+function _tpFermesEntete_() { return ['ANNEE', 'DATE', 'PAR', 'QUAND', 'MARS', 'EFFECTIF']; }
 function _tpFermesSheet_(creer) {
   const ss = SpreadsheetApp.getActiveSpreadsheet();
   let sh = ss.getSheetByName('TP_FERMES');
   if (!sh && creer) {
     sh = ss.insertSheet('TP_FERMES');
-    sh.getRange(1, 1, 1, 4).setValues([['ANNEE', 'DATE', 'PAR', 'QUAND']]);
+    sh.getRange(1, 1, 1, _tpFermesEntete_().length).setValues([_tpFermesEntete_()]);
   }
   return sh;
 }
@@ -495,10 +499,73 @@ function _tpFermes_(annee) {
   return out;
 }
 
-function _tpFermerJour_(annee, ds, par) {
+function _tpFermerJour_(annee, ds, par, mars, effectif) {
   const sh = _tpFermesSheet_(true);
   if (_tpFermes_(annee).has(ds)) return;   // déjà fermé : idempotent
-  sh.appendRow([Number(annee), ds, String(par || ''), new Date().toISOString()]);
+  /* Onglet créé avant le 24/11/2026 : 4 colonnes d'en-tête, on complète. */
+  try {
+    const ent = sh.getRange(1, 1, 1, _tpFermesEntete_().length).getValues()[0];
+    if (String(ent[4] || '') === '' || String(ent[5] || '') === '') sh.getRange(1, 1, 1, _tpFermesEntete_().length).setValues([_tpFermesEntete_()]);
+  } catch (eE) {}
+  const eff = (typeof effectif === 'number' && isFinite(effectif)) ? effectif : '';
+  sh.appendRow([Number(annee), ds, String(par || ''), new Date().toISOString(), (mars || []).join(','), eff]);
+}
+
+/* ── (24/11/2026) RÉOUVERTURE AUTOMATIQUE D'UN JOUR FERMÉ — décision du responsable ──
+   Le comité refuse un jour limite (jaune). Si, dans les semaines qui suivent,
+   des collègues libèrent ce jour (vacances retirées, formation annulée…) et
+   qu'il redevient VERT, la raison du refus a disparu : le jour se rouvre seul,
+   et ceux dont la demande avait été refusée reçoivent une notification. Leur
+   demande n'est PAS remise en attente d'office : à eux de reposer le jour.
+   Deux conditions, toutes deux nécessaires :
+     · le jour est vert — il resterait au moins le seuil « confort » après un TP ;
+     · l'effectif a MONTÉ depuis le refus. Un refus posé sur un jour déjà vert
+       (refus délibéré du comité) n'est donc jamais défait par la machine.
+   Une ligne sans effectif enregistré (fermeture d'avant ce correctif) ne
+   rouvre jamais seule. Jour passé : on n'y touche plus.
+   Appelée à chaque construction de la clé de l'écran de pose — c'est-à-dire
+   après toute modification du planning ou des indisponibilités. */
+function _tpRouvrirSiLibere_(annee, presents) {
+  const rouverts = [];
+  const sh = _tpFermesSheet_(false);
+  if (!sh) return rouverts;
+  const S = seuilsPresence_();
+  let auj;
+  try { auj = Utilities.formatDate(new Date(), Session.getScriptTimeZone(), 'yyyy-MM-dd'); }
+  catch (eD) { auj = new Date().toISOString().slice(0, 10); }
+  let verrou = null;
+  try { verrou = LockService.getScriptLock(); verrou.waitLock(5000); } catch (eL) { verrou = null; }
+  try {
+    const d = sh.getDataRange().getValues();
+    for (var r = d.length - 1; r >= 1; r--) {
+      if (Number(d[r][0]) !== Number(annee)) continue;
+      const ds = d[r][1] instanceof Date
+        ? Utilities.formatDate(d[r][1], Session.getScriptTimeZone(), 'yyyy-MM-dd')
+        : String(d[r][1]).trim();
+      if (!ds || ds < auj) continue;
+      const effRefus = d[r][5];
+      if (effRefus === '' || effRefus === null || effRefus === undefined || !isFinite(Number(effRefus))) continue;
+      const p = presents[ds];
+      if (p === undefined) continue;
+      if (p - 1 < S.confort) continue;              // pas vert : le refus tient
+      if (p <= Number(effRefus)) continue;          // rien ne s'est libéré depuis le refus
+      sh.deleteRow(r + 1);
+      const mars = String(d[r][4] || '').split(',').map(function (x) { return x.trim(); }).filter(Boolean);
+      rouverts.push({ date: ds, mars: mars, avant: Number(effRefus), maintenant: p });
+    }
+  } finally {
+    try { if (verrou) verrou.releaseLock(); } catch (eR) {}
+  }
+  rouverts.forEach(function (x) {
+    try { logAction('TP jour rouvert automatiquement ' + x.date + ' (' + annee + ') — ' + x.avant + ' → ' + x.maintenant + ' présents ; prévenus : ' + (x.mars.join(', ') || 'personne')); } catch (eA) {}
+    (typeof historiser_ === 'function') && historiser_([{ annee: annee, quoi: 'jour rouvert au TP automatiquement (équipe redevenue suffisante)', jour: x.date, par: 'automatique',
+      detail: x.avant + ' → ' + x.maintenant + ' présents ; prévenus : ' + (x.mars.join(', ') || 'aucun') }]);
+    x.mars.forEach(function (idR) {
+      _tpNotifier_('Temps partiel : jour de nouveau ouvert',
+        'Le ' + _tpJourLisible_(x.date) + ' est de nouveau ouvert au temps partiel : l\'équipe est redevenue suffisante. Vous pouvez le redemander.', idR);
+    });
+  });
+  return rouverts;
 }
 
 function _tpRouvrirJour_(annee, ds) {
@@ -538,6 +605,10 @@ function _construirePoseTp_(annee) {
     if (dow === 0 || dow === 6 || jfSet.has(ds)) return;   // jamais posables : pas comptés
     presents[ds] = M.presents(ds);
   });
+  /* (24/11/2026) Un jour fermé redevenu vert se rouvre ici, avant que la liste
+     des fermés ne parte vers l'écran. Jamais bloquant pour la construction. */
+  try { _tpRouvrirSiLibere_(annee, presents); }
+  catch (eRo) { try { Logger.log('_tpRouvrirSiLibere_ : ' + eRo.message); } catch (e2) {} }
   const attentes = {};
   _tpDemandes_(annee).forEach(function (x) {
     (attentes[x.mar] = attentes[x.mar] || {})[x.date] = true;
@@ -691,7 +762,13 @@ function _act_deciderJourTp(R) {
   }
 
   if (decision === 'refuser') {
-    _tpFermerJour_(anneeD, ds, user.id);
+    /* (24/11/2026) On garde la trace de QUI est refusé et de l'effectif du
+       moment : c'est ce qui permet de rouvrir le jour s'il se libère. */
+    const refuses = _tpDemandes_(anneeD).filter(function (x) { return x.date === ds; })
+      .map(function (x) { return x.mar; });
+    let effRefus = '';
+    try { effRefus = _tpMondePresence_(anneeD).presents(ds); } catch (eM) { effRefus = ''; }
+    _tpFermerJour_(anneeD, ds, user.id, refuses, effRefus);
     const rendues = {};
     _tpDemandes_(anneeD).forEach(function (x) {
       if (x.date !== ds) return;

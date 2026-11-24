@@ -166,7 +166,7 @@ function monde(opts) {
   vm.runInContext("const TP_CLE_REPUBLIER = 'TP_ANNEES_A_REPUBLIER';", ctx);
   ['_indisposOuverte_', '_finSaisieIndispos_', '_saisieClose_', '_libelleFinSaisie_', 'getIndisposYear', '_phaseTp_', 'getIndisposForDoctor', 'saveIndisposForDoctor',
    '_fusionIndispos_', '_loadQuotasConges', 'getQuotasConges', '_tpFixeDe_', '_quotiteDe_',
-   '_tpFermesSheet_', '_tpFermes_', '_tpFermerJour_', '_tpRouvrirJour_', '_tpJourLisible_', '_tpNotifier_',
+   '_tpFermesEntete_', '_tpFermesSheet_', '_tpFermes_', '_tpFermerJour_', '_tpRouvrirJour_', '_tpRouvrirSiLibere_', '_tpJourLisible_', '_tpNotifier_',
   '_tpGrilleEcrire_', '_tpGrilleLire_', '_tpRetirerDIndispos_', '_tpRepublier_', 'tpRepublicationDifferee',
    '_tpDemandesSheet_', '_tpDemandes_', '_tpDemandeAjouter_', '_tpDemandeRetirer_',
    '_tpMondePresence_', '_poserTp_', '_error'].forEach(n =>
@@ -759,6 +759,73 @@ console.log('\n═══ PT22 · deciderJourTp : les quatre gestes du comité, a
   const M2 = fs.readFileSync('../gas/miroir.gs', 'utf8');
   V('deciderJourTp déclenche la famille indispos (l\'écran des 8 suit dans la minute)',
     /deciderJourTp:\s*\['indispos', 'acces', 'gardes', 'planning'\]/.test(M2));
+}
+
+console.log('\n═══ PT22b · un jour fermé redevenu vert se rouvre seul, les refusés sont prévenus (24/11/2026) ═══');
+{
+  /* Décision du responsable (24/11/2026) : le comité ferme un jour JAUNE ; si
+     des collègues le libèrent ensuite et qu'il redevient VERT, la raison du
+     refus a disparu. Le jour se rouvre, les refusés sont prévenus, leur
+     demande n'est PAS remise en attente d'office. */
+  const J = '2027-03-02';
+  const b = monde({ indispos: [['PLEIN01', J, 'TP'], ['POSEUR', J, 'TPA'], ['ZORRO', J, 'TPA']] });
+  ['_tpFermesSheet_', '_tpFermes_'].forEach(n => vm.runInContext(extraireFonction('../gas/Indispos.gs', n), b.ctx));
+  vm.runInContext(extraireFonction('../gas/Indispos.gs', '_construirePoseTp_'), b.ctx);
+  vm.runInContext(require('./stubs').blocAction('deciderJourTp', 'handlerDecider'), b.ctx);
+  const dec = (p) => vm.runInContext(`handlerDecider('deciderJourTp', ${JSON.stringify(p)}, ${JSON.stringify(ADMIN)})`, b.ctx);
+  const cle = () => vm.runInContext('JSON.parse(JSON.stringify(_construirePoseTp_(2027)))', b.ctx);
+  /* La cellule DATE revient en Date, comme dans le vrai classeur : on la relit en date locale. */
+  const jourDe = v => v instanceof Date ? v.getFullYear() + '-' + String(v.getMonth() + 1).padStart(2, '0') + '-' + String(v.getDate()).padStart(2, '0') : String(v);
+  const ligne = () => b.cl.getSheetByName('TP_FERMES').getDataRange().getValues().filter((l, i) => i > 0 && jourDe(l[1]) === J)[0];
+  V('décor : 15 présents ce jour-là → jaune (il resterait 14)', cle().presents[J] === 15, cle().presents[J]);
+  const r = dec({ decision: 'refuser', date: J });
+  V('refus enregistré', r.success === true && r.fermes.indexOf(J) >= 0, r);
+  const l = ligne();
+  V('la fermeture garde QUI a été refusé et l\'effectif du moment (15)',
+    l && /POSEUR/.test(l[4]) && /ZORRO/.test(l[4]) && Number(l[5]) === 15, l);
+  V('l\'en-tête de TP_FERMES porte MARS et EFFECTIF',
+    JSON.stringify(b.cl.getSheetByName('TP_FERMES').getDataRange().getValues()[0].slice(0, 6)) === JSON.stringify(['ANNEE', 'DATE', 'PAR', 'QUAND', 'MARS', 'EFFECTIF']));
+  b.envois.length = 0;
+  V('tant que rien ne bouge, le jour reste fermé à la reconstruction', cle().fermes.indexOf(J) >= 0 && b.envois.length === 0, b.envois);
+  // Un collègue libère le jour : son TP est retiré du planning → 16 présents, vert.
+  V('décor : le TP du collègue est retiré du planning', vm.runInContext(`_tpGrilleEcrire_(2027, 'PLEIN01', '${J}', '')`, b.ctx) === true);
+  b.envois.length = 0;
+  const c2 = cle();
+  V('16 présents (il resterait 15) → le jour sort des fermés tout seul', c2.presents[J] === 16 && c2.fermes.indexOf(J) < 0, [c2.presents[J], c2.fermes]);
+  V('…la ligne a quitté TP_FERMES', !ligne());
+  const cibles = b.envois.map(e => e.cible.id).sort();
+  V('les DEUX refusés, et eux seuls, sont prévenus', JSON.stringify(cibles) === JSON.stringify(['POSEUR', 'ZORRO']), b.envois);
+  V('…message lisible : jour de nouveau ouvert, avec la date en clair',
+    b.envois.every(e => /ouvert/i.test(e.titre + e.corps) && /mardi 2 mars/.test(e.corps)), b.envois[0]);
+  V('…leur demande n\'est PAS remise en attente d\'office', !b.demandes().some(x => x.date === J), b.demandes());
+  b.envois.length = 0;
+  cle();
+  V('reconstruire encore ne renvoie aucune notification (une seule fois)', b.envois.length === 0, b.envois);
+  const res = vm.runInContext(`JSON.parse(JSON.stringify(_tpRouvrirSiLibere_(2027, {}))) `, b.ctx);
+  V('rien à rouvrir → liste vide', Array.isArray(res) && res.length === 0, res);
+}
+{
+  /* Contre-preuves : un refus sur un jour DÉJÀ vert (refus délibéré) n'est
+     jamais défait ; une fermeture sans effectif enregistré non plus ; un jour
+     qui remonte sans redevenir vert reste fermé. */
+  const b = monde({ indispos: [['PLEIN01', '2027-03-03', 'TP'], ['PLEIN02', '2027-03-03', 'TP']] });
+  ['_tpFermesSheet_', '_tpFermes_'].forEach(n => vm.runInContext(extraireFonction('../gas/Indispos.gs', n), b.ctx));
+  vm.runInContext(extraireFonction('../gas/Indispos.gs', '_construirePoseTp_'), b.ctx);
+  vm.runInContext("_tpFermerJour_(2027, '2027-03-01', 'ADMIN', ['POSEUR'], 16)", b.ctx);   // déjà vert au refus
+  vm.runInContext("_tpFermerJour_(2027, '2027-03-04', 'ADMIN', ['POSEUR'])", b.ctx);       // sans effectif
+  vm.runInContext("_tpFermerJour_(2027, '2027-03-03', 'ADMIN', ['ZORRO'], 14)", b.ctx);    // 14 au refus
+  vm.runInContext("_tpGrilleEcrire_(2027, 'PLEIN01', '2027-03-03', '')", b.ctx);           // → 15 : jaune
+  b.envois.length = 0;
+  const f = vm.runInContext('JSON.parse(JSON.stringify(_construirePoseTp_(2027).fermes))', b.ctx);
+  V('refus posé sur un jour déjà vert → reste fermé', f.indexOf('2027-03-01') >= 0, f);
+  V('fermeture sans effectif enregistré → reste fermée', f.indexOf('2027-03-04') >= 0, f);
+  V('effectif remonté mais jour encore jaune → reste fermé', f.indexOf('2027-03-03') >= 0, f);
+  V('…et personne n\'est prévenu', b.envois.length === 0, b.envois);
+  vm.runInContext("_tpGrilleEcrire_(2027, 'PLEIN02', '2027-03-03', '')", b.ctx);           // → 16 : vert
+  const f2 = vm.runInContext('JSON.parse(JSON.stringify(_construirePoseTp_(2027).fermes))', b.ctx);
+  V('…puis vert → rouvert, ZORRO prévenu', f2.indexOf('2027-03-03') < 0 && b.envois.length === 1 && b.envois[0].cible.id === 'ZORRO', [f2, b.envois]);
+  V('un jour PASSÉ ne se rouvre jamais (le code compare à aujourd\'hui)',
+    /if \(!ds \|\| ds < auj\) continue;/.test(fs.readFileSync('../gas/temps_partiel.gs', 'utf8')));
 }
 
 console.log('\n═══ PT23 · le bloc comité d\'admin : effectif de l\'INSTANT ═══');
