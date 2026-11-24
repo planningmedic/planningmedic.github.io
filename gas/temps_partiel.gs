@@ -4,7 +4,7 @@
    quelles : aucune ligne de logique modifiée, seulement déplacée. Le routeur et
    ses aides (checkCode, _deny, _error, doGet/doPost) restent dans Indispos.gs.
    Un seul espace global dans Apps Script : rien à importer. */
-const GAS_VERSION_TP = '2026-11-17.2';   // (17/11/2026) .2 : seuils de la pose lus dans l'onglet SEUILS (seuilsPresence_), envoyés à l'écran avec l'effectif · (17/11/2026) effectif présent : un MAR marqué HORS_EFFECTIF dans MEDECINS n'est plus compté (pose des TP, points à vérifier) · (16/11/2026) jour de TP dans sa semaine Réa 1 : non bloquant — semaine envoyée à l'écran (grisée, confirmation), signalée au MAR comme au comité · (12/11/2026) plus aucun nom de personne dans le code (effectif présent) · (10/11/2026) chaque jour de TP posé, retiré, demandé ou tranché laisse une ligne dans l'onglet HISTORIQUE
+const GAS_VERSION_TP = '2026-11-24.1';   // (24/11/2026) .1 : effectif présent — une fois l'année générée, les absences (V, F, CL, CP, CTP, A) sont lues dans GARDES, plus dans INDISPOS (GARDES fait foi) ; VM/VA comptent présents · (17/11/2026) .2 : seuils de la pose lus dans l'onglet SEUILS (seuilsPresence_), envoyés à l'écran avec l'effectif · (17/11/2026) effectif présent : un MAR marqué HORS_EFFECTIF dans MEDECINS n'est plus compté (pose des TP, points à vérifier) · (16/11/2026) jour de TP dans sa semaine Réa 1 : non bloquant — semaine envoyée à l'écran (grisée, confirmation), signalée au MAR comme au comité · (12/11/2026) plus aucun nom de personne dans le code (effectif présent) · (10/11/2026) chaque jour de TP posé, retiré, demandé ou tranché laisse une ligne dans l'onglet HISTORIQUE
 
 /* ── (POSE TP · 22/08/2026) PHASE DE POSE DES TEMPS PARTIELS — DÉDUITE, JAMAIS ÉCRITE ──
    Les jours de temps partiel se posent APRÈS la génération des gardes (décision
@@ -56,8 +56,9 @@ function _quotiteDe_(marId) {
    Même définition que generateur_gardes.gs (validée contre la ligne
    « TOTAL PRESENTS » du planning du service) : tous les MAR actifs,
    bornés par date_debut/date_fin ; absent = VAC/FORM/CL/TP/CTP/CP/A lu dans
-   INDISPOS_{Y} (JAMAIS dans GARDES, qui écrit RG par-dessus TP — l.≈1535),
-   semaine off du rythme 2/2, jour fixe tp_jours_fixes, et RG/R lus dans
+   GARDES_{Y} dès que l'année est générée (V/F/CL/CP/CTP/A — GARDES fait foi,
+   24/11/2026 ; un RG écrit par-dessus reste une absence), dans INDISPOS_{Y}
+   tant qu'elle ne l'est pas, semaine off du rythme 2/2, jour fixe tp_jours_fixes, et RG/R lus dans
    GARDES_{Y}. Les gardes G/G2 comptent PRÉSENTES (le MAR travaille au bloc).
    TPA ne compte pas absent — voir l'en-tête du circuit.
    Tout est lu UNE fois par appel, puis compté en mémoire. */
@@ -76,30 +77,48 @@ function _tpMondePresence_(annee) {
     if (FLAGS.horsEffectif && FLAGS.horsEffectif.has(id)) continue;
     ids.push(id);
   }
+  /* (24/11/2026) UNE FOIS L'ANNÉE GÉNÉRÉE, GARDES FAIT FOI — règle du
+     responsable. INDISPOS n'est plus modifié après la génération : il ne sert
+     plus qu'à revoir la campagne. Les absences (V, F, CL, CP, CTP, A, VM, VA)
+     sont donc lues dans GARDES_{Y}, traduites dans le vocabulaire d'INDISPOS
+     (V → VAC, F → FORM) pour que les lecteurs de « indispos » ne changent pas.
+     Constaté : en 2026, les absences n'existaient QUE dans GARDES_2026 (A, CL,
+     F, CP) — la heatmap des Contrôles comptait presque tout le monde présent.
+     VM / VA restent PRÉSENTS dans l'effectif (le MAR n'est simplement pas
+     placé sur la demi-journée) ; tout autre code (E, I, B…) = présent.
+     Année pas encore générée (pas d'onglet GARDES) : lecture d'INDISPOS, comme
+     avant — c'est la campagne. Le TP n'entre pas dans « indispos » : il est
+     dans enTp, lu plus bas (le compter deux fois serait faux). */
+  const DE_GARDES = { V: 'VAC', F: 'FORM', CL: 'CL', CP: 'CP', CTP: 'CTP', A: 'A', VM: 'VM', VA: 'VA' };
   const indispos = {};
-  const shI = ss.getSheetByName(`INDISPOS_${annee}`);
-  const dI = shI ? shI.getDataRange().getValues() : [];
-  const datesI = dI.length ? reconstruireDatesHeaders(dI, annee) : [];
-  for (let r = 3; r < dI.length; r++) {
-    const id = String(dI[r][0]).trim(); if (!id) continue;
-    indispos[id] = {};
-    datesI.forEach((ds, i) => {
-      if (!ds) return;
-      const v = String(dI[r][i + 1] || '').trim().toUpperCase();
-      if (v) indispos[id][ds] = v;
-    });
+  const shG = ss.getSheetByName(`GARDES_${annee}`);
+  let datesI = [];
+  if (!shG) {
+    const shI = ss.getSheetByName(`INDISPOS_${annee}`);
+    const dI = shI ? shI.getDataRange().getValues() : [];
+    datesI = dI.length ? reconstruireDatesHeaders(dI, annee) : [];
+    for (let r = 3; r < dI.length; r++) {
+      const id = String(dI[r][0]).trim(); if (!id) continue;
+      indispos[id] = {};
+      datesI.forEach((ds, i) => {
+        if (!ds) return;
+        const v = String(dI[r][i + 1] || '').trim().toUpperCase();
+        if (v) indispos[id][ds] = v;
+      });
+    }
   }
   const enGarde = {}, enRepos = {}, en18 = {}, enTp = {};
-  const shG = ss.getSheetByName(`GARDES_${annee}`);
   if (shG) {
     const dG = shG.getDataRange().getValues();
     const d2c = buildDateToCol(dG, annee);
     const c2d = {}; Object.keys(d2c).forEach(ds => { c2d[d2c[ds]] = ds; });
+    datesI = Object.keys(d2c);                       // les jours de l'année : ceux du planning
     for (let r = 3; r < dG.length; r++) {
       const id = String(dG[r][0]).trim(); if (!id) continue;
       for (let c = 1; c < dG[0].length; c++) {
         const ds = c2d[c]; if (!ds) continue;
         const v = String(dG[r][c] || '').trim().toUpperCase();
+        if (DE_GARDES[v]) { (indispos[id] = indispos[id] || {})[ds] = DE_GARDES[v]; continue; }
         // Le CODE est conservé (pas un simple booléen) : l'écran de pose
         // distingue GARDE / REPOS / RÉCUP dans ses pastilles.
         if (v === 'G' || v === 'G2') { (enGarde[id] = enGarde[id] || {})[ds] = v; }

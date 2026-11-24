@@ -310,6 +310,25 @@ console.log('\n═══ PS · la présence jour par jour (heatmap de l\'onglet 
   V('ni week-end ni férié dans la présence ; le férié est envoyé à part', !P['2027-03-06'] && !P['2027-11-01'] && (r.feries || []).includes('2027-11-01'), r.feries);
 }
 
+console.log('\n═══ GF · une fois l\'année générée, GARDES fait foi (24/11/2026) ═══');
+{
+  /* Défaut de production : en 2026, les absences n'existaient que dans GARDES_2026
+     (INDISPOS_2026 ne portait que des INDISPO) — la heatmap était toute verte. */
+  const b = monde({ indispos: [['P07', '2027-06-01', 'VAC']] });   // vestige : dans INDISPOS seulement
+  V('une absence restée dans INDISPOS seulement ne compte plus (mardi 01/06 : 15)', b.presents('2027-06-01') === 15, b.presents('2027-06-01'));
+  [['P01', 'A'], ['P02', 'CL'], ['P03', 'CP'], ['P04', 'V'], ['P05', 'F']].forEach(([id, c]) => b.poser(id, '2027-06-08', c));
+  V('A, CL, CP, V, F écrits dans GARDES seulement : 5 absents (mardi 08/06 : 10)', b.presents('2027-06-08') === 10, b.presents('2027-06-08'));
+  [['P01', 'VM'], ['P02', 'VA'], ['P03', 'E'], ['P04', 'I'], ['P05', 'B']].forEach(([id, c]) => b.poser(id, '2027-06-15', c));
+  V('VM, VA et tout autre code (E, I, B) : présents (mardi 15/06 : 15)', b.presents('2027-06-15') === 15, b.presents('2027-06-15'));
+  const j = (b.points().presence || {})['2027-06-08'] || {};
+  V('heatmap : chaque absence lue dans GARDES a son motif', (j.ab || {})['Absent'] + '' === 'Q1' && (j.ab || {})['Congé long'] + '' === 'Q2'
+    && (j.ab || {})['Congé'] + '' === 'Q3' && (j.ab || {})['Vacances'] + '' === 'Q4' && (j.ab || {})['Formation'] + '' === 'Q5' && j.p === 10, j);
+  V('les jours de l\'année sont ceux du planning (04/01/2027 → 364 jours)',
+    vm.runInContext("(function(){ const M = _tpMondePresence_(2027); return M.datesValides.has('2027-01-04') && M.datesValides.size === 364; })()", b.ctx));
+  b.cl.deleteSheet(b.cl.getSheetByName('GARDES_2027'));
+  V('contre-épreuve : année pas encore générée (sans GARDES), INDISPOS est lu (01/06 : 14)', b.presents('2027-06-01') === 14, b.presents('2027-06-01'));
+}
+
 console.log('\n═══ RT · le routeur et l\'écran ═══');
 {
   const ind = require('fs').readFileSync(require('path').join(__dirname, '..', 'gas', 'Indispos.gs'), 'utf8');
