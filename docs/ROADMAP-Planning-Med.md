@@ -426,6 +426,9 @@ Configuration dans `SECTEURS` et `CS_TEMPLATE`, plus aucune copie en dur sauf `C
 jamais fausse en silence. `RI` ne rejoint pas `COVERAGE` (règle du mercredi et du jeudi matin). Les
 sorties de garde restent groupées dans l'Excel (`RG` unique). Bande de présence : `G`, `G2`, `18`, `I`
 comptent présents ; seuils dans l'onglet `SEUILS`.
+Téléphone (≤ 720 px, v1.103.0) : la vue Jour (`_mjConstruire`) ne calcule RIEN — elle reçoit de
+`renderWeek` `makeSlot`/`makeCsSlot`, `nonPlacesJour`, et passe par `openSidePanel`/`placeMAR`. Toute
+règle de case se change dans la grille, jamais dans la vue Jour. Au-dessus de 720 px elle n'existe pas.
 
 ### Notifications et mails
 Mails de changement : un par MAR, ses seules dates, après 10 min d'accalmie suivant la publication ;
@@ -510,6 +513,14 @@ les cases valant exactement `CL`.
 ---
 
 ## Journal récent
+
+- **24/11/2026** — Placement quotidien sur téléphone (v1.103.0, maquette validée par le responsable) :
+  sous 720 px, l'onglet Planning s'ouvre sur une vue Jour (une ligne par secteur, cases Matin /
+  Après-midi, barre des 5 jours avec « N à placer ») et une bascule Jour / Semaine retenue sur
+  l'appareil. Deux gestes : toucher une case → panneau des disponibles ; toucher un nom « à placer »
+  puis ses cases → `placeMAR` direct (nom oublié au changement de jour ou de semaine). Grille semaine
+  sur téléphone : colonne des secteurs figée ; « + » et outils de consultation visibles sans survol.
+  Ordinateur inchangé. `banc_jour_mobile.js` (40 ✓). Guide du comité : « Placer depuis le téléphone ».
 
 - **20/11/2026** — Écritures du relais (`miroir.gs` 2026-11-20.1) : ouverture des échanges = ~70
   acceptations en une heure, ~960 écritures sur 1 000 dans la journée. Cause corrigée : la file des

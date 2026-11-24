@@ -82,6 +82,8 @@ valide. Réponds en **français**, court, avec des chiffres concrets.
 - **18/11 (v1.91.2)** : topos rangés par année (sous-dossiers « 2026 », « 2027 »… du Drive) ; page
   Maintenance : bouton « Mettre à jour maintenant » (synchronisation complète de la copie rapide sans
   attendre l'heure), « Vider le cache » en dernier.
+- **24/11 (v1.103.0)** : placement quotidien possible depuis le téléphone — vue Jour de l'onglet
+  Planning sous 720 px, bascule Jour / Semaine ; l'ordinateur ne change pas.
 - Lots du 13 au 15/11 et du 16 au 18/11 non racontés ici : lire `git log` (un message de commit par lot).
 
 ## 4. Comment travailler
