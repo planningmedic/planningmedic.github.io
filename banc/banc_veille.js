@@ -896,6 +896,18 @@ function monde(plan) {
     const note = (fiche, source, themes) => vm.runInContext('_veilleNote(' + JSON.stringify(Object.assign({ pubtypes: ['Journal Article'], titre: '', resume: 'x', date: jour }, fiche)) + ',' + JSON.stringify(source) + ',' + JSON.stringify(themes) + ',' + JSON.stringify(jour) + ')', m.ctx);
     const synth = note({ titre: 'Acute Kidney Injury in Critical Care', revue: 'N Engl J Med' }, 'GENERAL', { 'Insuffisance rénale': true });
     V('synthèse du NEJM pas encore étiquetée « Review », 1 thème : au moins 60 (≈56 avant ; échelle fine du 23/10)', synth.note >= 60 && /grande revue/.test(synth.motif), synth);
+    // (24/11/2026, défaut trouvé en production) « Acute Respiratory Distress Syndrome », NEJM 19/11 : 68, hors du mail
+    const ards = note({ titre: 'Acute Respiratory Distress Syndrome.', revue: 'N Engl J Med', pubtypes: ['Journal Article', 'Review'], doi: '10.1056/NEJMra0000000' }, 'GENERAL', { 'Ventilation et SDRA': true });
+    V('synthèse du NEJM sur un thème au titre (SDRA) : très bien notée (≥ 80), motif « revue · grande revue »', ards.note >= 80 && /^revue · grande revue/.test(ards.motif), ards);
+    const ardsDoi = note({ titre: 'Acute Respiratory Distress Syndrome.', revue: 'N Engl J Med', doi: '10.1056/NEJMra0000000' }, 'GENERAL', { 'Ventilation et SDRA': true });
+    V('…reconnue par son DOI « NEJMra » avant l\'étiquette « Review »', ardsDoi.note === ards.note, [ardsDoi, ards]);
+    const essaiSpe = note({ titre: 'Opioid-free vs. opioid-inclusive anaesthesia in laparoscopic cholecystectomy: a multicentre randomised controlled trial', revue: 'Anaesthesia', resume: 'We randomly assigned 600 patients.' }, 'REVUE', { 'Douleur périopératoire': true });
+    const grandEssai = note({ titre: 'Intermittent or Continuous Renal-Replacement Therapy in Acute Kidney Injury', revue: 'N Engl J Med', resume: 'In this multicenter trial, we randomly assigned critically ill adults; a total of 554 patients underwent randomization.' }, 'GENERAL', { 'Insuffisance rénale': true });
+    V('…au-dessus d\'un bon essai de revue spécialisée, sous l\'ICRAKI du NEJM', ards.note > essaiSpe.note && ards.note < grandEssai.note, [ards.note, essaiSpe.note, grandEssai.note]);
+    const horsTheme = note({ titre: 'Mucormycosis.', revue: 'N Engl J Med', pubtypes: ['Journal Article', 'Review'], doi: '10.1056/NEJMra0000001' }, 'GENERAL', {});
+    V('contre-épreuve : synthèse du NEJM SANS thème au titre → pas de bonus de synthèse (sous 60)', horsTheme.note < 60, horsTheme);
+    const etude = note({ titre: 'Outcomes of Mechanical Ventilation in Older Adults', revue: 'N Engl J Med', doi: '10.1056/NEJMoa0000002' }, 'GENERAL', { 'Ventilation et SDRA': true });
+    V('contre-épreuve : article original (non synthèse) du NEJM → barème inchangé (« article »)', /^article · grande revue/.test(etude.motif) && etude.note < ards.note, etude);
     const icraki = note({ titre: 'Intermittent or Continuous Renal-Replacement Therapy in Acute Kidney Injury', resume: 'we randomly assigned critically ill adults', revue: 'N Engl J Med' }, 'GENERAL', { 'Insuffisance rénale': true });
     V('ICRAKI (essai lu dans le résumé, NEJM) : au moins 75, motif « ECR · grande revue »', icraki.note >= 75 && /^ECR · grande revue/.test(icraki.motif), icraki);
     const spe = note({ titre: 'Some observational study' }, 'REVUE', { 'Hémodynamique': true });

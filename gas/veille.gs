@@ -57,7 +57,7 @@
 //  instantané unique et partagé : chantier séparé.
 // ══════════════════════════════════════════════════════════════════════
 
-const GAS_VERSION_VEILLE = '2026-11-17.1';
+const GAS_VERSION_VEILLE = '2026-11-24.1';
 
 const VEILLE_CFG_TAB = 'VEILLE_CFG';
 const VEILLE_TAB     = 'VEILLE';
@@ -554,6 +554,11 @@ function _veilleNote(fiche, source, themes, aujourdhui, themesTitre) {
   const titre = String(fiche.titre || '');
   const tt = _veilleTypeTitre(titre) || _veilleTypeResume(titre, fiche.resume);
   const secondaire = /secondary|post[- ]?hoc|ancillary|sub-?study|exploratory analysis/i.test(titre);
+  /* (24/11) Les thèmes du TITRE, lus ici : la synthèse d'une grande revue en dépend. */
+  if (!themesTitre) {
+    let cfgT = []; try { cfgT = _readVeilleCfg().themes; } catch (e) {}
+    themesTitre = _veilleThemesTitre(titre, cfgT);
+  }
   if ((/Randomized Controlled Trial/.test(pt) || tt === 'ECR') && !/Meta-Analysis/.test(pt) && tt !== 'META') {
     if (secondaire) { n += 10; motifs.push('analyse secondaire'); } else { n += 30; motifs.push('ECR'); }
   }
@@ -562,17 +567,22 @@ function _veilleNote(fiche, source, themes, aujourdhui, themesTitre) {
   else if (/Systematic Review/.test(pt) || tt === 'RS') { n += 20; motifs.push('revue systématique'); }
   /* Règle du responsable : une synthèse ou un article original d'une GRANDE revue doit rester bien noté
      (« Fluid Therapy in Mechanically Ventilated Critically Ill Adult Patients », JAMA) : +18. */
-  else if (source === 'GENERAL' && _veilleGrandeRevue(fiche.revue) && !/Letter|Editorial|Comment|News/.test(pt)) { n += 18; motifs.push(/\bReview\b/.test(pt) ? 'revue' : 'article'); }
+  /* (24/11/2026, règle du responsable) …et une SYNTHÈSE d'une grande revue dont le TITRE est dans nos
+     thèmes est très bien notée : « Acute Respiratory Distress Syndrome » (NEJM, 19/11) n'avait que 68,
+     battue par des essais de revues spécialisées, et manquait au mail. Synthèse = étiquette « Review »
+     ou DOI « NEJMra » (le NEJM n'est étiqueté qu'à l'indexation). +36 : ≈ 84, sous un grand essai (≈ 88). */
+  else if (source === 'GENERAL' && _veilleGrandeRevue(fiche.revue) && !/Letter|Editorial|Comment|News/.test(pt)) {
+    const synthese = /\bReview\b/.test(pt) || /NEJMra/i.test(String(fiche.doi || ''));
+    const auTitre = Object.keys(themesTitre).length > 0;
+    if (synthese && auTitre) { n += 36; motifs.push('revue'); }   // même mot qu'avant : l'écran et le mail en font « Mise au point »
+    else { n += 18; motifs.push(synthese ? 'revue' : 'article'); }
+  }
   else if (/Multicenter Study|Observational Study|Cohort/.test(pt)) { n += 8; motifs.push('étude'); }
   else if (/\bReview\b/.test(pt)) { n += 8; motifs.push('revue'); }
   if (/Letter|Editorial|Comment|Case Reports|News|Published Erratum|Retraction/.test(pt)) { n -= 30; motifs.push('lettre/éditorial'); }
   if (/protocol for|study protocol|\berratum\b|corrigendum|\bcorrection\b/i.test(titre)) { n -= 25; motifs.push('protocole/erratum'); }
   if (source === 'GENERAL' && _veilleGrandeRevue(fiche.revue)) { n += 20; motifs.push('grande revue'); }
   else if (source === 'REVUE') { n += 8; motifs.push('revue spécialisée'); }
-  if (!themesTitre) {
-    let cfgT = []; try { cfgT = _readVeilleCfg().themes; } catch (e) {}
-    themesTitre = _veilleThemesTitre(titre, cfgT);
-  }
   const nT = Object.keys(themesTitre).length;
   const nR = Object.keys(themes || {}).filter(function (k) { return !themesTitre[k]; }).length;
   const metierSeul = nT && Object.keys(themesTitre).every(_veilleEstMetier);
