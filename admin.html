@@ -1383,6 +1383,50 @@ if (sessionStorage.getItem('adminCode')) {
 .info-b { border:1px solid #EAECF0; background:#fff; border-radius:10px; padding:8px 14px; font:600 13px 'DM Sans',sans-serif; color:#344054; cursor:pointer; }
 .info-b.noir { background:#101828; border-color:#101828; color:#fff; }
 @media (max-width:720px){ #dispoCard{ top:auto !important; width:auto !important; max-height:78vh !important; border-radius:16px 16px 0 0 !important; } .pk{ grid-template-columns:1fr 1fr; } }
+/* (24/11/2026) TÉLÉPHONE — vue Jour du placement quotidien (maquette validée). Rien ne change au-dessus
+   de 720 px : .mj-only et #mjDay n'y sont jamais affichés. body.mj-jour = vue Jour choisie (par défaut). */
+.mj-only, #mjDay { display:none; }
+@media (max-width:720px){
+  .mj-only { display:flex; }
+  body.mj-jour #mjDay { display:block; }
+  body.mj-jour #planKpis, body.mj-jour #tensionBand, body.mj-jour #planGridWrap, body.mj-jour #bottomSection { display:none !important; }
+  .mj-bascule { gap:4px; margin:0 0 12px; padding:4px; background:#F2F4F7; border-radius:12px; }
+  .mj-bascule button { flex:1; height:38px; border:0; border-radius:9px; background:none; font:700 13px 'DM Sans',sans-serif; color:#475467; }
+  body.mj-jour #mjBJ, body:not(.mj-jour) #mjBS { background:#fff; color:#101828; box-shadow:0 1px 2px rgba(16,24,40,.1); }
+  /* Grille semaine sur téléphone : colonne des secteurs figée pendant le défilement des jours. */
+  #panel-planning .planning-table { overflow:visible; min-width:640px; }
+  #panel-planning .td-sector, #panel-planning .th-sector { position:sticky; left:0; z-index:2; }
+  #panel-planning .th-sector { z-index:3; }
+}
+@media (hover:none){ .slot-add, #panel-planning .slot-int-add { opacity:1; } .cs-tools { opacity:1; transform:none; pointer-events:auto; } }
+.mj-jours { display:grid; grid-template-columns:repeat(5,minmax(0,1fr)); gap:6px; margin-bottom:10px; }
+.mj-j { height:62px; border:1px solid #EAECF0; background:#fff; border-radius:14px; color:#067647; font-family:'DM Sans',sans-serif; padding:4px 0; }
+.mj-j span, .mj-j b, .mj-j small { display:block; } .mj-j span { font-size:11px; font-weight:600; letter-spacing:.04em; }
+.mj-j b { font-size:19px; line-height:1.15; } .mj-j small { font-size:10.5px; font-weight:600; }
+.mj-j.np { color:#B42318; } .mj-j.on { background:#101828; border-color:#101828; color:#fff; } .mj-j:disabled { color:#C0C5CD; }
+.mj-np { background:#FEF3F2; border:1px solid #FECDCA; border-radius:16px; padding:12px 14px; margin-bottom:10px; }
+.mj-np-t { font-size:13px; font-weight:700; color:#B42318; } .mj-np-s { font-size:11.5px; color:#912018; margin:2px 0 8px; }
+.mj-np-l { display:flex; flex-wrap:wrap; gap:8px; }
+.mj-np-l button { min-width:56px; height:44px; padding:0 14px; border:1.5px solid #B42318; background:#fff; color:#B42318; border-radius:12px; font:700 15px 'DM Sans',sans-serif; }
+.mj-ok { background:#ECFDF3; border:1px solid #ABEFC6; border-radius:16px; padding:12px 14px; font-size:13px; font-weight:700; color:#067647; margin-bottom:10px; }
+.mj-arme { display:flex; align-items:center; gap:10px; background:#101828; color:#fff; border-radius:16px; padding:12px 14px; margin-bottom:10px; font-size:13.5px; }
+.mj-arme b { font-size:15px; } .mj-arme span { flex:1; }
+.mj-arme button { height:40px; padding:0 14px; border:0; border-radius:10px; background:#fff; color:#101828; font:700 13px 'DM Sans',sans-serif; }
+.mj-info { background:#fff; border:1px solid #EAECF0; border-radius:14px; padding:10px 14px; margin-bottom:10px; font-size:13px; color:#475467; }
+.mj-info summary { font-weight:700; color:#344054; cursor:pointer; } .mj-info p { margin:6px 0; white-space:pre-line; }
+.mj-lien { border:0; background:none; color:#667085; font:600 12.5px 'DM Sans',sans-serif; padding:4px 0 10px; }
+.mj-tete, .mj-l { display:grid; grid-template-columns:92px minmax(0,1fr) minmax(0,1fr); gap:6px; }
+.mj-tete { font-size:10.5px; font-weight:700; letter-spacing:.06em; color:#98A2B3; padding:0 2px 6px; }
+.mj-l { margin-bottom:6px; align-items:stretch; }
+.mj-s { display:flex; align-items:center; padding:6px 8px 6px 10px; border-radius:12px; background:var(--sb,#F2F4F7); color:var(--sf,#344054); box-shadow:inset 3px 0 0 var(--sf,#98A2B3); font-size:12.5px; font-weight:700; line-height:1.2; overflow-wrap:anywhere; }
+.mj-c { min-height:52px; border:1px solid #EAECF0; background:#fff; border-radius:12px; display:flex; align-items:center; cursor:pointer; }
+.mj-c.arme { border:1.5px dashed #101828; }
+#panel-planning .mj-c .slot { border-right:0; min-height:0; padding:6px; width:100%; }
+.mj-opt { width:100%; height:44px; margin:2px 0 8px; border:1.5px dashed #D0D5DD; background:none; border-radius:12px; color:#475467; font:600 13px 'DM Sans',sans-serif; }
+.mj-cs { width:100%; display:flex; align-items:center; justify-content:space-between; height:48px; margin:6px 0 8px; padding:0 14px; border:1px solid #EAECF0; background:#fff; border-radius:14px; font:700 13.5px 'DM Sans',sans-serif; color:#344054; }
+.mj-cs em { font-style:normal; font-weight:500; color:#667085; }
+.mj-pied { margin-top:8px; background:#fff; border:1px solid #EAECF0; border-radius:16px; padding:12px 14px; display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:10px 12px; }
+.mj-pied small { display:block; font-size:10.5px; font-weight:700; letter-spacing:.06em; color:#98A2B3; } .mj-pied b { font-size:14px; }
 </style>
 </head>
 <body>
@@ -1532,6 +1576,10 @@ if (sessionStorage.getItem('adminCode')) {
 
   <!-- (19/11/2026) TUILES DE LA SEMAINE — refonte de l'onglet Planning (maquette A validée) :
        cases à pourvoir, MAR à placer, présents par jour, gardes du jour. Calculées par renderWeek. -->
+  <!-- (24/11/2026) TÉLÉPHONE : bascule Jour / Semaine et vue Jour (invisibles au-dessus de 720 px). -->
+  <div class="mj-only mj-bascule"><button id="mjBJ" onclick="mjVue('jour')">Jour</button><button id="mjBS" onclick="mjVue('semaine')">Semaine</button></div>
+  <div id="mjDay"></div>
+
   <div class="pk" id="planKpis"></div>
 
   <!-- BANDE DE PRESENCE — un carre = une journee ouvree, couleur = nb de presents -->
@@ -1556,7 +1604,7 @@ if (sessionStorage.getItem('adminCode')) {
   </div>
 
   <!-- GRILLE PLEINE LARGEUR -->
-  <div style="overflow-x:auto;margin-bottom:20px;">
+  <div id="planGridWrap" style="overflow-x:auto;margin-bottom:20px;">
     <table class="planning-table" id="planTable">
       <tbody><tr><td style="padding:40px;text-align:center;color:var(--ink-4);">
         <div class="spinner" style="margin:0 auto 10px;"></div>Chargement…
@@ -4794,6 +4842,14 @@ function renderWeek() {
 
   bottomHtml += '</tbody></table></div></div>';
 
+  // ── TÉLÉPHONE : vue Jour (24/11/2026) — mêmes cases, mêmes gestes que la grille ──
+  try {
+    const _mj = document.getElementById('mjDay');
+    if (_mj) _mj.innerHTML = _mjConstruire({ wk: wk.lundi, daySlots, today, smap, csTypeMap, activeSectors, activeCsTypes,
+      cachees: SECTORS.filter(s => s.optionnel && !activeSectors.includes(s)), makeSlot, makeCsSlot, npJour: _npJour, presDe: _presDe,
+      gardes, h18row, sortieRow, absentRow, NOTES });
+  } catch (e) { console.error('Vue Jour (téléphone) ignorée :', e); }
+
   // ── ÉCRIRE DANS LE DOM ──
   document.getElementById('planTable').innerHTML = thead + tbody;
   document.getElementById('bottomSection').innerHTML = bottomHtml;
@@ -4807,6 +4863,95 @@ function renderWeek() {
   // Desormais un seul part, celui de la semaine ou l'on s'arrete.
   planifierPrechargement();
 }
+
+/* (24/11/2026) TÉLÉPHONE — VUE JOUR DU PLACEMENT QUOTIDIEN (maquette validée par le responsable).
+   Sur un écran de 720 px ou moins, la grille de 900 px ne montrait qu'un jour et demi et son « + »
+   n'apparaissait qu'au survol (impossible au doigt). La vue Jour montre UN jour : une ligne par
+   secteur, deux grosses cases Matin / Après-midi. Elle ne calcule RIEN : elle reçoit de renderWeek
+   les mêmes cases (makeSlot / makeCsSlot), les mêmes « à placer » (nonPlacesJour) et les mêmes
+   gestes (openSidePanel, openMarMenu, placeMAR). Au-dessus de 720 px elle n'est jamais affichée.
+   Deux façons de placer : toucher une case (tiroir des disponibles), ou toucher un nom « à placer »
+   puis la ou les cases où il va (placeMAR direct, un toucher par demi-journée). */
+function _mjEsc(x) { return String(x == null ? '' : x).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c])); }
+function _mjJs(x) { return String(x == null ? '' : x).replace(/\\/g, '\\\\').replace(/'/g, "\\'"); }
+function _mjConstruire(o) {
+  const J = ['LUN','MAR','MER','JEU','VEN'];
+  if (window._mjWk !== o.wk) { window._mjWk = o.wk; window._mjDow = null; window._mjArme = null; }   // autre semaine : on repart du jour par défaut
+  const ouvre = i => { const s = o.daySlots[i]; return !!(s && !s.isWeekend && !s.isFerie); };
+  let d = window._mjDow;
+  if (d == null || !ouvre(d)) {
+    const t = o.daySlots.findIndex(s => s && s.date === o.today);
+    d = (t >= 0 && t < 5 && ouvre(t)) ? t : [0,1,2,3,4].find(ouvre);
+  }
+  if (d == null) return '<div class="mj-ok" style="color:#475467;background:#fff;border-color:#EAECF0">Aucun jour ouvré cette semaine.</div>';
+  window._mjDow = d;
+  const date = o.daySlots[d].date, np = o.npJour[d] || [];
+  const arme = window._mjArme || null;
+  let h = '<div class="mj-jours">';
+  for (let i = 0; i < 5; i++) {
+    const s = o.daySlots[i], n = (o.npJour[i] || []).length;
+    const sub = ouvre(i) ? (n ? n + ' à placer' : '✓') : (s && s.isFerie ? 'férié' : '—');
+    h += `<button class="mj-j${i === d ? ' on' : ''}${n ? ' np' : ''}"${ouvre(i) ? '' : ' disabled'} onclick="mjJour(${i})"><span>${J[i]}</span><b>${s ? s.day : ''}</b><small>${sub}</small></button>`;
+  }
+  h += '</div>';
+  if (arme) {
+    h += `<div class="mj-arme"><span>Touchez les cases où placer <b>${_mjEsc(arme.init)}</b> (matin, après-midi…)</span><button onclick="mjArmer(null)">Terminé</button></div>`;
+  } else if (np.length) {
+    h += `<div class="mj-np"><div class="mj-np-t">${np.length} présent${np.length > 1 ? 's' : ''} à placer</div><div class="mj-np-s">Touchez un nom, puis la ou les cases où le placer.</div><div class="mj-np-l">`
+       + np.map(x => `<button onclick="mjArmer('${_mjJs(x.id)}','${_mjJs(x.init)}')" title="${_mjEsc(x.motif || '')}">${_mjEsc(x.init)}</button>`).join('') + '</div></div>';
+  } else {
+    h += '<div class="mj-ok">✓ Tous les présents sont placés</div>';
+  }
+  const info = (o.NOTES[date] || {}).info;
+  h += info ? `<details class="mj-info"><summary>ℹ Info du jour</summary><p>${_mjEsc(info)}</p><button class="mj-lien" onclick="editerInfo('${date}')">✎ Modifier</button></details>`
+            : `<button class="mj-lien" onclick="editerInfo('${date}')">✎ Ajouter une info du jour</button>`;
+  const caseHtml = (code, label, half, contenu, cliquable) =>
+    `<div class="mj-c${arme && cliquable ? ' arme' : ''}"${cliquable ? ` onclick="mjCase(event,'${_mjJs(code)}','${date}','${_mjJs(label)}','${half}')"` : ''}><div class="slot">${contenu}</div></div>`;
+  h += '<div class="mj-tete"><span>BLOC</span><span>MATIN</span><span>APRÈS-MIDI</span></div>';
+  o.activeSectors.forEach(sec => {
+    const col = (typeof SECTOR_COLORS_AFF !== 'undefined' && SECTOR_COLORS_AFF && SECTOR_COLORS_AFF[sec.code]) || { bg: getSectorBg(sec.code), fg: getSectorFg(sec.code) };
+    const cell = o.smap[sec.code][d];
+    h += `<div class="mj-l" style="--sb:${col.bg};--sf:${col.fg}"><div class="mj-s">${_mjEsc(sec.label)}</div>`
+       + ['am','pm'].map(k => caseHtml(sec.code, sec.label, k, o.makeSlot(cell[k], 0, sec.code, sec.label, date, k), true)).join('') + '</div>';
+  });
+  (o.cachees || []).forEach(s => { h += `<button class="mj-opt" onclick="afficherLigne('${_mjJs(s.code)}')">＋ ${_mjEsc(s.label)} ce jour</button>`; });
+  if (o.activeCsTypes.length) {
+    let n = 0;
+    o.activeCsTypes.forEach(t => ['am','pm'].forEach(k => { n += (o.csTypeMap[t.code][d][k] || []).filter(p => p && !p.isMirror).length + (_csSecteurs(o.NOTES, date, k).includes(t.code) ? 1 : 0); }));
+    const ouv = !!window._csOuvert;
+    h += `<button class="mj-cs" onclick="basculerConsultations()"><span>Consultations <em>· ${n} placée${n > 1 ? 's' : ''}</em></span><span>${ouv ? '▾' : '▸'}</span></button>`;
+    if (ouv) o.activeCsTypes.forEach(t => {
+      const cell = o.csTypeMap[t.code][d];
+      h += `<div class="mj-l"><div class="mj-s" style="--sb:#F9FAFB;--sf:#475467">${_mjEsc(t.label)}</div>`
+         + ['am','pm'].map(k => { const fermee = !!(_localCloses[date] && _localCloses[date].has(`${t.code}|${k}`));
+             return caseHtml(t.code, t.label, k, o.makeCsSlot(cell[k], 0, t.code, t.label, date, k), !fermee); }).join('') + '</div>';
+    });
+  }
+  const g = o.gardes[d] || {}, abs = {};
+  (o.absentRow[d] || []).forEach(a => { (abs[a.reason] = abs[a.reason] || []).push(a.init); });
+  const pied = [['Garde 24 h', [g.g, g.g2].filter(Boolean).join(' · ') || '—'], ['8 h – 18 h', o.h18row[d] || '—'],
+    ['Sortie de garde', (o.sortieRow[d] || []).join(' ') || '—'],
+    ['Absents', Object.keys(abs).map(m => abs[m].join(' ') + ' (' + m + ')').join(' · ') || '—']];
+  h += '<div class="mj-pied">' + pied.map(x => `<div><small>${x[0].toUpperCase()}</small><b>${_mjEsc(x[1])}</b></div>`).join('') + '</div>';
+  return h;
+}
+function mjJour(i) { window._mjDow = i; window._mjArme = null; renderWeek(); }
+function mjArmer(id, init) { window._mjArme = id ? { id, init } : null; if (id) closeSidePanel(); renderWeek(); }
+/* Toucher le fond d'une case : nom « à placer » choisi → placé ici (déplacement, comme le panneau) ;
+   sinon le tiroir des disponibles. Toucher une initiale, l'interne ou une aide garde son propre geste. */
+function mjCase(ev, sector, date, label, half) {
+  const cible = ev && ev.target && ev.target.closest ? ev.target.closest('[onclick]') : null;
+  if (cible && cible !== ev.currentTarget) return;
+  const a = window._mjArme;
+  if (a) { window._sideCtx = { sector, date, sectorLabel: label, slotKey: half, lib: false }; placeMAR(a.id, a.init); return; }
+  openSidePanel(sector, date, label, half);
+}
+function mjVue(v) {
+  document.body.classList.toggle('mj-jour', v !== 'semaine');
+  try { localStorage.setItem('mjVue', v === 'semaine' ? 'semaine' : 'jour'); } catch (e) {}
+}
+(function () { let v = 'jour'; try { v = localStorage.getItem('mjVue') || 'jour'; } catch (e) {}
+  if (document.body) mjVue(v); else document.addEventListener('DOMContentLoaded', () => mjVue(v)); })();
 
 /* (19/11/2026) TUILES DE LA SEMAINE — refonte de l'onglet Planning (maquette A).
    Quatre tuiles : cases à pourvoir (par jour), MAR à placer, présents en journée
