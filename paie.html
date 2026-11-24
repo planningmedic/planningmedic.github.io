@@ -65,15 +65,21 @@ h1{font-size:23px;font-weight:700;letter-spacing:-.02em;min-width:12ch}
 .card>h2{font-size:11px;font-family:var(--mono);font-weight:500;text-transform:uppercase;
          letter-spacing:.08em;color:var(--ink-3);padding:12px 16px;border-bottom:1px solid var(--line)}
 .scroll{overflow-x:auto}
+/* (24/11/2026) Grille du mois : la ligne des jours reste en haut quand on descend vers les
+   derniers médecins. La grille défile dans son cadre (haut de l'écran moins la barre du haut),
+   la ligne des jours est figée en haut, la colonne des noms à gauche, le coin « Médecin » sur les deux. */
+.scroll.fige{overflow:auto;max-height:calc(100vh - 90px)}
 table.mois{border-collapse:separate;border-spacing:0;width:100%;font-variant-numeric:tabular-nums}
 table.mois th,table.mois td{padding:0;text-align:center}
 table.mois thead th{font-size:10.5px;font-weight:500;color:var(--ink-3);font-family:var(--mono);
-                    padding:6px 0;border-bottom:1px solid var(--line);min-width:30px;line-height:1.25}
+                    padding:6px 0;border-bottom:1px solid var(--line);min-width:30px;line-height:1.25;
+                    position:sticky;top:0;z-index:2;background:var(--white)}
 table.mois .we{background:var(--line-light)}
 table.mois thead th.fe{color:var(--g2-fg);font-weight:700}
 table.mois .nom{position:sticky;left:0;background:var(--white);text-align:left;padding:0 12px;
                 min-width:130px;font-size:13px;font-weight:600;border-right:1px solid var(--line);
                 z-index:1;white-space:nowrap}
+table.mois thead th.nom{z-index:3}
 table.mois td{height:34px;border-bottom:1px solid var(--line-light)}
 table.mois td .c{display:block;width:26px;height:24px;line-height:24px;margin:auto;border-radius:6px;
                  font-size:11px;font-weight:700}
@@ -316,6 +322,7 @@ async function afficher(){
   majBoutonsVue();
   try { history.replaceState(null, '', '?m=' + MOIS + (VUE === 'gardes' ? '&vue=gardes' : '')); } catch(e) {}
   const zone = document.getElementById('zoneGrille');
+  zone.classList.remove('fige');
   zone.innerHTML = '<div class="loading">Chargement…</div>';
   const t = await trouverMois(MOIS);
   RENDU = null;
@@ -353,6 +360,7 @@ async function afficher(){
   zone.innerHTML = h + '</tbody></table>';
   document.getElementById('titreGrille').textContent = 'Le mois, médecin par médecin — ' + ids.length + ' médecins';
   RENDU = { mois: MOIS, jours, lignes };
+  zone.classList.toggle('fige', VUE !== 'gardes');   // ligne des jours figée : grille seulement
   if (VUE === 'gardes') {
     zone.innerHTML = tableGardes(r, jours, ids, recents);
     document.getElementById('titreGrille').textContent = 'Les gardes, jour par jour';
