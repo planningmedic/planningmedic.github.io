@@ -30,7 +30,7 @@ banc_souhaits_taux.js 7058512c748ddf2d 16
 banc_souhaits_etales.js 9553e490203ff478 6
 banc_couples_weekend.js d74ebd7fb1f630d5 17
 banc_ratio18.js 71cb4dd6f914087e 8
-banc_demi_vacances.js a9dd2fb3fc24f009 37
+banc_demi_vacances.js c32311bc9a2e9186 37
 banc_mail_recap.js 55ad998f0d3bc6dd 38
 banc_harnais_tirage.js ac32659c73701d6c 13
 banc_vd_rompu.js 821af93ffcd1a3b0 28

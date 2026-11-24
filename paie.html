@@ -65,10 +65,20 @@ h1{font-size:23px;font-weight:700;letter-spacing:-.02em;min-width:12ch}
 .card>h2{font-size:11px;font-family:var(--mono);font-weight:500;text-transform:uppercase;
          letter-spacing:.08em;color:var(--ink-3);padding:12px 16px;border-bottom:1px solid var(--line)}
 .scroll{overflow-x:auto}
-/* (24/11/2026) Grille du mois : la ligne des jours reste en haut quand on descend vers les
-   derniers médecins. La grille défile dans son cadre (haut de l'écran moins la barre du haut),
-   la ligne des jours est figée en haut, la colonne des noms à gauche, le coin « Médecin » sur les deux. */
-.scroll.fige{overflow:auto;max-height:calc(100vh - 90px)}
+/* (24/11/2026) Grille du mois : la page tient dans l'écran et SEUL le tableau défile.
+   La ligne des jours reste en haut, la colonne des noms à gauche, le coin « Médecin » sur les deux.
+   La vue « Gardes jour par jour » garde le défilement normal de la page. */
+body.fige{height:100vh;display:flex;flex-direction:column}
+body.fige .header{flex-shrink:0}
+body.fige #main{flex:1;min-height:0;width:100%;padding-bottom:16px}
+body.fige .card.grille{flex:1;min-height:240px;display:flex;flex-direction:column}
+body.fige #zoneGrille{flex:1;min-height:0;overflow:auto;overscroll-behavior:contain}
+/* (24/11/2026) Derniers changements : replié par défaut, le nombre reste visible. */
+details.card>summary{font-size:11px;font-family:var(--mono);font-weight:500;text-transform:uppercase;
+  letter-spacing:.08em;color:var(--ink-3);padding:12px 16px;cursor:pointer;list-style-position:inside}
+details.card[open]>summary{border-bottom:1px solid var(--line)}
+body.fige details.card{flex-shrink:0}
+body.fige details.card .fil{max-height:30vh;overflow:auto}
 table.mois{border-collapse:separate;border-spacing:0;width:100%;font-variant-numeric:tabular-nums}
 table.mois th,table.mois td{padding:0;text-align:center}
 table.mois thead th{font-size:10.5px;font-weight:500;color:var(--ink-3);font-family:var(--mono);
@@ -183,14 +193,14 @@ window.SessionPortail = window.SessionPortail || { lire:function(){try{return se
     <span><span class="sw we" style="background:var(--line-light)"></span>week-end</span>
     <span><b style="color:var(--g2-fg)">rouge</b>&nbsp;= jour férié</span>
   </div>
-  <section class="card">
+  <section class="card grille">
     <h2 id="titreGrille">Le mois, médecin par médecin</h2>
     <div class="scroll" id="zoneGrille"><div class="loading">Chargement…</div></div>
   </section>
-  <section class="card">
-    <h2>Derniers changements (14 jours)</h2>
+  <details class="card" id="blocFil">
+    <summary>Derniers changements (14 jours)<span id="nbFil"></span></summary>
     <ul class="fil" id="fil"></ul>
-  </section>
+  </details>
   <p class="note">Chaque changement de garde ou de vacances vous est aussi envoyé par mail, une dizaine de minutes après la modification.
     Une case encadrée d'orange a changé depuis moins de 7 jours : passez la souris dessus pour voir quand.</p>
 </div>
@@ -322,7 +332,7 @@ async function afficher(){
   majBoutonsVue();
   try { history.replaceState(null, '', '?m=' + MOIS + (VUE === 'gardes' ? '&vue=gardes' : '')); } catch(e) {}
   const zone = document.getElementById('zoneGrille');
-  zone.classList.remove('fige');
+  document.body.classList.toggle('fige', VUE !== 'gardes');   // seul le tableau défile : grille seulement
   zone.innerHTML = '<div class="loading">Chargement…</div>';
   const t = await trouverMois(MOIS);
   RENDU = null;
@@ -360,7 +370,6 @@ async function afficher(){
   zone.innerHTML = h + '</tbody></table>';
   document.getElementById('titreGrille').textContent = 'Le mois, médecin par médecin — ' + ids.length + ' médecins';
   RENDU = { mois: MOIS, jours, lignes };
-  zone.classList.toggle('fige', VUE !== 'gardes');   // ligne des jours figée : grille seulement
   if (VUE === 'gardes') {
     zone.innerHTML = tableGardes(r, jours, ids, recents);
     document.getElementById('titreGrille').textContent = 'Les gardes, jour par jour';
@@ -413,6 +422,7 @@ function cellulesRecentes(recents){
 function rendreFil(recents){
   const ul = document.getElementById('fil');
   const l = recents.slice().sort((a,b) => a.le < b.le ? 1 : -1);
+  document.getElementById('nbFil').textContent = l.length ? ' · ' + l.length : ' · aucun';
   if(!l.length){ ul.innerHTML = '<li class="empty" style="display:block">Aucun changement de garde ou de vacances ces 14 derniers jours.</li>'; return; }
   ul.innerHTML = l.map(x => {
     const d = new Date(x.le);

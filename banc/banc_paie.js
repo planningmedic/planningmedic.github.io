@@ -447,6 +447,7 @@ console.log('\n═══ P5. Branchement : indépendant des mails aux MAR ══
     V('le 19 novembre (férié) est en rouge', [...d.querySelectorAll('table.mois thead th.fe')].some(th => /19/.test(th.textContent)));
     V('les week-ends sont grisés', d.querySelectorAll('table.mois thead th.we').length === 9);
     V('le fil des derniers changements liste les 2 entrées', d.querySelectorAll('#fil li').length === 2);
+    V('… replié par défaut, le nombre affiché dans le titre', d.getElementById('blocFil').tagName === 'DETAILS' && !d.getElementById('blocFil').open && /· 2$/.test(d.querySelector('#blocFil summary').textContent), d.querySelector('#blocFil summary').textContent);
     V('les secrétaires n\'ont pas de lien de retour au portail', d.getElementById('lnkBack').style.display === 'none');
     V('le bouton Excel est là', !!d.getElementById('btnXls'));
     V('le pavé « Lecture seule » est affiché', /Lecture seule/.test(d.querySelector('.lock-pill').textContent));
@@ -462,8 +463,11 @@ console.log('\n═══ P5. Branchement : indépendant des mails aux MAR ══
     // des jours disparaissait. Elle est figée en haut du cadre de la grille.
     const css = [...d.querySelectorAll('style')].map(e => e.textContent).join('\n');
     const regle = sel => { const m = css.match(new RegExp(sel.replace(/[.*+?^${}()|[\]\\]/g, '\\$&') + '\\s*\\{([^}]*)\\}')); return m ? m[1].replace(/\s+/g, '') : ''; };
-    V('ligne des jours figée : la grille défile dans son cadre (hauteur bornée)', d.getElementById('zoneGrille').classList.contains('fige')
-      && /overflow:auto/.test(regle('.scroll.fige')) && /max-height:/.test(regle('.scroll.fige')), regle('.scroll.fige'));
+    // (24/11/2026, 2e retour) La page entière descendait : la page tient désormais dans l'écran,
+    // seul le tableau défile.
+    V('seul le tableau défile : la page tient dans l\'écran (grille)', d.body.classList.contains('fige')
+      && /height:100vh/.test(regle('body.fige')) && /min-height:0/.test(regle('body.fige #main'))
+      && /flex:1/.test(regle('body.fige .card.grille')) && /overflow:auto/.test(regle('body.fige #zoneGrille')), regle('body.fige'));
     V('… les en-têtes de jours restent en haut, sur fond opaque', /position:sticky/.test(regle('table.mois thead th')) && /top:0/.test(regle('table.mois thead th')) && /background:var\(--white\)/.test(regle('table.mois thead th')), regle('table.mois thead th'));
     V('… le coin « Médecin » passe au-dessus des jours et des noms', /z-index:3/.test(regle('table.mois thead th.nom')));
 
@@ -472,7 +476,7 @@ console.log('\n═══ P5. Branchement : indépendant des mails aux MAR ══
     const rangs = [...d.querySelectorAll('table.gj tbody tr')];
     const jour = n => rangs[n - 1].querySelectorAll('td');
     V('gardes jour par jour : une ligne par jour (30)', rangs.length === 30, rangs.length);
-    V('… le cadre de défilement de la grille est rendu à la page', !d.getElementById('zoneGrille').classList.contains('fige'));
+    V('… défilement normal de la page rendu dans cette vue', !d.body.classList.contains('fige'));
     V('… le bouton est enfoncé, la grille a disparu', d.getElementById('vueGardes').getAttribute('aria-pressed') === 'true' && !d.querySelector('table.mois'));
     V('… le 3 : réa Dr MAR01, pas de garde mater ce jour-là', jour(3)[1].textContent === 'Dr MAR01' && jour(3)[2].textContent === '—', [jour(3)[1].textContent, jour(3)[2].textContent]);
     V('… le samedi 21 : mater Dr MAR02, ligne de week-end', jour(21)[2].textContent === 'Dr MAR02' && rangs[20].classList.contains('we'));
@@ -486,7 +490,7 @@ console.log('\n═══ P5. Branchement : indépendant des mails aux MAR ══
     V('… changer de mois garde la vue', d.querySelectorAll('table.gj tbody tr').length === 30);
     d.getElementById('vueGrille').click(); await dodo(150);
     V('retour à la grille du mois', d.querySelectorAll('table.mois tbody tr').length === 4 && !d.querySelector('table.gj') && /\?m=2026-11$/.test(w.location.href));
-    V('… la ligne des jours est de nouveau figée', d.getElementById('zoneGrille').classList.contains('fige'));
+    V('… la ligne des jours est de nouveau figée', d.body.classList.contains('fige'));
   }
   {
     const { d } = await monter('paie', servir, 'https://planningmedic.github.io/paie.html?m=2026-11&vue=gardes');
