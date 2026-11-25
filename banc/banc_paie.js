@@ -735,6 +735,69 @@ console.log('\n═══ P5. Branchement : indépendant des mails aux MAR ══
     V('code refusé : la session est oubliée', !w.sessionStorage.getItem('pmViewCode'));
   }
 
+  console.log('\n═══ P8. Petite animation à la connexion (25/11/2026) ═══');
+  {
+    // Navigateur simulé avec un faux dessin (jsdom ne dessine pas) ; sans session : écran de code.
+    const faux = new Proxy(function () {}, { get: (t, k) => k === 'canvas' ? undefined : faux, apply: () => faux, set: () => true });
+    async function monterAnim(opts) {
+      const erreurs = [];
+      const vc = new VirtualConsole(); vc.on('jsdomError', e => erreurs.push(e.message));
+      const dom = new JSDOM(HTML, { runScripts: 'dangerously', virtualConsole: vc, pretendToBeVisual: true,
+        url: 'https://planningmedic.github.io/paie.html?m=2026-11',
+        beforeParse(win) {
+          win.fetch = async (u, o) => ({ ok: true, json: async () => servir(JSON.parse(o.body), 'paie') });
+          win.HTMLCanvasElement.prototype.getContext = () => faux;
+          if (opts.session) win.sessionStorage.setItem('pmViewCode', 'CODE1');
+          if (opts.reduire) win.matchMedia = q => ({ matches: /reduce/.test(q) });
+        } });
+      await dodo(200);
+      return { w: dom.window, d: dom.window.document, erreurs };
+    }
+    // Le thème du jour.
+    const { w } = await monterAnim({});
+    const th = (d, f) => w.themeDuJour(d, f);
+    V('lundi : paillettes · mardi : cœurs · mercredi : pétales · jeudi : bulles · vendredi : vendredi',
+      ['2026-11-23', '2026-11-24', '2026-11-25', '2026-11-26', '2026-11-27'].map(d => th(d)).join(',') === 'paillettes,coeurs,petales,bulles,vendredi');
+    V('samedi et dimanche : étoiles filantes', th('2026-11-28') === 'etoiles' && th('2026-11-29') === 'etoiles');
+    V('décembre : neige, même un lundi', th('2026-12-07') === 'neige');
+    V('14 février : cœurs, même un dimanche', th('2027-02-14') === 'coeurs' && th('2027-02-15') === 'paillettes');
+    V('jour férié : feux d\'artifice, avant tout le reste (même en décembre)', th('2026-11-19', true) === 'feux' && th('2026-12-25', true) === 'feux');
+    // Connexion par code : l'animation part, sur un calque qui laisse passer les clics.
+    {
+      const { w: w2, d: d2, erreurs } = await monterAnim({});
+      d2.getElementById('authInput').value = 'CODE1';
+      d2.getElementById('authBtn').click(); await dodo(250);
+      const cv = d2.querySelector('canvas');
+      V('connexion par code : une animation part', !!w2.animer.dernier && ['paillettes','coeurs','petales','bulles','vendredi','etoiles','neige','feux'].includes(w2.animer.dernier), w2.animer.dernier);
+      V('… sur un calque qui laisse passer les clics, au-dessus de la page', !!cv && /pointer-events:\s*none/.test(cv.style.cssText) && cv.getAttribute('aria-hidden') === 'true');
+      V('… la page est bien là derrière', d2.querySelectorAll('table.mois tbody tr').length === 4);
+      await dodo(3900);
+      V('… et le calque se retire tout seul (~3,5 s)', !d2.querySelector('canvas'));
+      V('… sans erreur JavaScript', erreurs.length === 0, erreurs);
+    }
+    // Reprise de session : pas d'animation (elle ne vient qu'à la connexion par code).
+    {
+      const { w: w3, d: d3 } = await monterAnim({ session: true });
+      await dodo(200);
+      V('reprise de session : pas d\'animation', w3.animer.dernier === undefined && !d3.querySelector('canvas'), w3.animer.dernier);
+    }
+    // Ordinateur réglé sur « réduire les animations » : rien.
+    {
+      const { w: w4, d: d4 } = await monterAnim({ reduire: true });
+      d4.getElementById('authInput').value = 'CODE1';
+      d4.getElementById('authBtn').click(); await dodo(250);
+      V('« réduire les animations » : aucune animation', w4.animer.dernier === 'aucune' && !d4.querySelector('canvas'), w4.animer.dernier);
+    }
+    // Code refusé : pas d'animation.
+    {
+      const { w: w5, d: d5 } = await monterAnim({});
+      w5.fetch = async () => ({ ok: true, json: async () => ({ success: false, error: 'Code invalide' }) });
+      d5.getElementById('authInput').value = 'FAUX';
+      d5.getElementById('authBtn').click(); await dodo(250);
+      V('code refusé : pas d\'animation', w5.animer.dernier === undefined && !d5.querySelector('canvas'));
+    }
+  }
+
   console.log('\n═══ P7. La tuile cachée du portail ═══');
   {
     const idx = fs.readFileSync(path.join(__dirname, '..', 'index.html'), 'utf8');
