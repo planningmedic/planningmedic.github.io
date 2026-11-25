@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Planning paie — Planning-Med</title>
+<title>Planning des absences — Planning-Med</title>
 <!-- (18/10/2026) VUE PAIE — pour les secrétaires qui saisissent gardes et vacances
      dans le logiciel de paie. LECTURE SEULE, un mois à la fois.
      Qui l'ouvre : le code partagé des secrétaires de paie (CONFIG / PAIE_CODE),
@@ -151,7 +151,7 @@ window.SessionPortail = window.SessionPortail || { lire:function(){try{return se
 <div id="authOverlay" style="position:fixed;inset:0;z-index:9999;background:var(--bg);display:flex;align-items:center;justify-content:center;padding:20px">
   <div style="background:var(--white);border:1px solid var(--line);border-radius:16px;box-shadow:0 10px 30px rgba(15,23,42,.08);padding:36px 32px;width:100%;max-width:380px;text-align:center">
     <img src="assets/logo.png" alt="" style="width:48px;height:48px;border-radius:12px;display:block;margin:0 auto 16px;box-shadow:0 4px 12px rgba(206,17,38,.30)">
-    <div style="font-size:18px;font-weight:800;color:var(--ink)">Planning paie</div>
+    <div style="font-size:18px;font-weight:800;color:var(--ink)">Planning des absences</div>
     <div style="font-size:13px;color:var(--ink-3);margin:4px 0 22px">Gardes, vacances, temps partiels et formations du service d'Anesthésie-Réanimation</div>
     <input id="authInput" type="password" placeholder="Code d'acc&egrave;s" autocomplete="off" autocapitalize="characters"
       style="width:100%;box-sizing:border-box;padding:12px 14px;font-size:16px;border:1px solid var(--line);border-radius:10px;text-align:center;letter-spacing:2px;font-family:monospace"/>
@@ -165,8 +165,8 @@ window.SessionPortail = window.SessionPortail || { lire:function(){try{return se
   <div class="header-brand">
     <div class="header-flag"><img src="assets/logo.png" alt="" style="width:100%;height:100%;object-fit:cover;display:block"></div>
     <div>
-      <div class="header-title">Planning paie</div>
-      <div class="header-sub">Gardes, vacances, temps partiels et formations, pour la saisie de la paie</div>
+      <div class="header-title">Planning des absences</div>
+      <div class="header-sub">Gardes, vacances, temps partiels et formations, pour la saisie administrative</div>
     </div>
   </div>
   <div class="header-right">
@@ -273,7 +273,7 @@ document.getElementById('authBtn').addEventListener('click', async function(){
   const code = document.getElementById('authInput').value.trim().toUpperCase();
   if(!code){ authErr("Entrez votre code d'accès."); return; }
   const b=this; b.disabled=true; b.textContent='Vérification…';
-  try{ const r = await doLogin(code); if(!(r && r.success)) authErr(refus(r) ? 'Ce code ne donne pas accès au planning paie.' : ((r && r.error) || 'Code incorrect')); }
+  try{ const r = await doLogin(code); if(!(r && r.success)) authErr(refus(r) ? 'Ce code ne donne pas accès au planning des absences.' : ((r && r.error) || 'Code incorrect')); }
   catch(e){ VIEW_CODE=''; authErr('Erreur réseau — réessayez'); }
   b.disabled=false; b.textContent='Accéder →';
 });
@@ -501,7 +501,7 @@ document.getElementById('btnXls').addEventListener('click', async ()=>{
     /* Code valide mais sans droit sur cette page (un MAR sans la tuile, le code
        du secrétariat des consultations) : on NE l'efface PAS — ce serait le
        déconnecter du reste du portail. Seul un code refusé est oublié. */
-    if (refus(r)) { authErr('Ce code ne donne pas accès au planning paie.'); return; }
+    if (refus(r)) { authErr('Ce code ne donne pas accès au planning des absences.'); return; }
     SessionPortail.oublier();
     authErr((r && r.error) || 'Session expirée — retapez votre code.');
   }catch(e){ SessionPortail.oublier(); montrer(false); authErr('Planning injoignable — réessayez.'); }

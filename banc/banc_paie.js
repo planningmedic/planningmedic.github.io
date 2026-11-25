@@ -166,10 +166,10 @@ function monterPaie(extra) {
     _configRows_: () => [['CLE', 'VALEUR']].concat(ctx.__config || []),
     _echangesLignes_: () => ({ lignes: ctx.__echanges || [] }),
   }, extra || {}));
-  ['NOTIF_JOURS', 'NOTIF_MOIS', 'NOTIF_PROP_TEST', 'PAIE_LIB', 'PAIE_ABS', 'PAIE_DEMI', 'PAIE_SITE', 'PAIE_PROP_RECENTS', 'PAIE_RECENTS_JOURS']
+  ['NOTIF_JOURS', 'NOTIF_MOIS', 'NOTIF_PROP_TEST', 'PAIE_LIB', 'PAIE_ABS', 'PAIE_DEMI', 'PAIE_MAX_DETAIL', 'PAIE_SITE', 'PAIE_PROP_RECENTS', 'PAIE_RECENTS_JOURS']
     .forEach(n => vm.runInContext(extraireConst(CODE, n), ctx));
   ['_paieCode_', '_paieCodeJour_', '_paieDr_', '_paieNomSession_', '_paieAplatir_', '_planningPaie_', '_paieDiff_', '_paiePlages_',
-   '_paieTotaux_', '_paieNb_', '_paieOrigine_', '_paieHeure_', '_paieJoli_', '_paieMoisJoli_', '_paieTag_', '_paieAbsLib_', '_paieListe_', '_paieCourt_', '_paieQuand_', '_paieApercu_',
+   '_paieTotaux_', '_paieNb_', '_paieOrigine_', '_paieHeure_', '_paieJoli_', '_paieMoisJoli_', '_paieTag_', '_paieAbsLib_', '_paieListe_', '_paieCourt_', '_paieQuand_', '_paieApercu_', '_paieTexteFin_', '_paieLignesCourtes_', '_paieParMedecin_', '_paieCompactTexte_',
    '_paieSujet_', '_paieGestes_', '_paieTexte_', '_paieHtml_', '_paieDestinataires_', '_paieRecentsLire_',
    '_paieRecentsAjouter_', '_paieLimiteGardes_', '_paieAEnvoyer_', '_paieEnvoyerAnnee_']
     .forEach(n => vm.runInContext(extraireFonction(CODE, n), ctx));
@@ -216,7 +216,7 @@ console.log('\n═══ P3. getPlanningPaie : seuls G, G2, V, TP et F sortent �
   V('les jours portent week-end et férié', r.jours.find(j => j.date === '2026-11-14').we === true && r.jours.find(j => j.date === '2026-11-19').fe === true);
   V('les noms sont lisibles (Dr …)', r.noms.MAR02 === 'Dr MAR02');
   V('le mois liste ses médecins', r.mois[0].id === '2026-11' && r.mois[0].ids.length === 4);
-  V('le nom de session des secrétaires', r.nom === 'Secrétariat paie');
+  V('le nom de session des secrétaires', r.nom === 'Secrétariat');
 
   V('le comité lit aussi', lire({ role: 'admin', id: 'ADMIN' }).success === true);
   const m1 = lire({ role: 'mar', id: 'MAR01' });
@@ -293,7 +293,11 @@ const MAINTENANT = Date.parse('2026-11-16T09:00:00Z');
   const apercu = (m.htmlBody.match(/^<div style="display:none[^>]*>([^&<]*)/) || [])[1];
   V('aperçu de la boîte de réception : en tout premier, le geste à faire', apercu === 'Retirer la garde réanimation du samedi 14 novembre 2026 à Dr MAR01. Ajouter la garde réanimation du samedi 14 novembre 2026 à Dr MAR02.', apercu);
   V('… caché à l\'ouverture (display:none, mso-hide:all)', /^<div style="display:none;[^"]*mso-hide:all/.test(m.htmlBody));
-  V('… le bandeau « Planning-Med · paie » ne vient qu\'après', m.htmlBody.indexOf('Planning-Med · paie') > m.htmlBody.indexOf(apercu));
+  V('… le bandeau « Planning-Med · absences » ne vient qu\'après', m.htmlBody.indexOf('Planning-Med · absences') > m.htmlBody.indexOf(apercu));
+  // (25/11/2026) Le mail sert à la saisie administrative des absences : jamais le mot « paie » (hors adresse paie.html).
+  const sansAdresse = x => String(x).replace(/paie\.html/g, '');
+  V('le mot « paie » n\'apparaît nulle part dans le mail (objet, texte, HTML)', !/paie/i.test(sansAdresse(m.subject + m.body + m.htmlBody)), (sansAdresse(m.body + m.htmlBody).match(/.{30}paie.{30}/i) || [])[0]);
+  V('… le bouton dit « Ouvrir le planning des absences »', /Ouvrir le planning des absences/.test(m.htmlBody) && /Ouvrir le planning des absences/.test(m.body));
   V('le geste à reporter : retirer à MAR01', /Retirer la garde réanimation du samedi 14 novembre 2026 à Dr MAR01\./.test(m.body));
   V('le geste à reporter : ajouter à MAR02', /Ajouter la garde réanimation du samedi 14 novembre 2026 à Dr MAR02\./.test(m.body));
   V('le samedi est signalé « week-end »', /week-end/.test(m.htmlBody) && /\(week-end\)/.test(m.body));
@@ -442,6 +446,46 @@ console.log('\n═══ P4 ter. Gardes proches seulement ; vacances, TP, format
   S4.ctx._paieEnvoyerAnnee_(2026, JSON.stringify(fabriquerPlanning(quatre)), LUNDI);
   V('objet à 4 médecins : « Dr MAR01, Dr MAR02 et 2 autres »', (S4.mails[0] || {}).subject === 'À saisir : 4 changements · Dr MAR01, Dr MAR02 et 2 autres', (S4.mails[0] || {}).subject);
 
+  // g) (25/11/2026) Défaut du 20/11 : ~500 changements 2027 dépassaient la taille d'un mail,
+  //    refusés à chaque passage, photo bloquée. Au-delà de 40 : forme courte par médecin.
+  const S5 = monterPaie(); S5.ctx.__config = [['PAIE_EMAILS', 'paie1@exemple.test']];
+  S5.ctx._paieEnvoyerAnnee_(2026, JSON.stringify(fabriquerPlanning(BASE)), LUNDI);
+  const masse = copie(BASE);
+  for (let d = 1; d <= 30; d++) { const j = '2026-11-' + String(d).padStart(2, '0'); ['MAR01', 'MAR02', 'MAR03', 'MAR04'].forEach(id => { if (!masse[id][j]) masse[id][j] = (d % 2 ? 'F' : 'V'); }); }
+  const r5 = S5.ctx._paieEnvoyerAnnee_(2026, JSON.stringify(fabriquerPlanning(masse)), LUNDI);
+  const m5 = S5.mails[0] || {};
+  V('plus de 40 changements : un mail part quand même', r5.envoye === true && r5.nb > 40, r5);
+  V('… forme courte : une carte par médecin, pas une par changement', (m5.htmlBody.match(/border-left:4px solid/g) || []).length === 4, (m5.htmlBody.match(/border-left:4px solid/g) || []).length);
+  V('… une ligne courte par geste (« Ajouter formation 01/11 »)', /Ajouter formation 01\/11/.test(m5.htmlBody) && /\+ formation 01\/11/.test(m5.body), m5.body.slice(0, 300));
+  V('… pas de totaux, renvoi vers la page', !/Nouveaux totaux/i.test(m5.htmlBody) && /totaux du mois sont sur le planning des absences/.test(m5.body));
+  V('… la photo avance (plus de blocage)', S5.drive['planning_2026_paie.json'] === JSON.stringify(fabriquerPlanning(masse)));
+  V('… le mail reste léger (< 60 ko)', m5.htmlBody.length + m5.body.length < 60000, m5.htmlBody.length + m5.body.length);
+
+  // h) Mail refusé pour sa taille malgré tout : mail minimal vers la page, la photo avance.
+  const S6 = monterPaie(); S6.ctx.__config = [['PAIE_EMAILS', 'paie1@exemple.test']];
+  S6.ctx._paieEnvoyerAnnee_(2026, JSON.stringify(fabriquerPlanning(BASE)), LUNDI);
+  let refus = 0;
+  S6.ctx.MailApp = { getRemainingDailyQuota: () => 100, sendEmail: o => { if (/<div style="display:none/.test(o.htmlBody)) { refus++; throw new Error('Limite dépassée : Taille du corps de l\'e-mail.'); } S6.mails.push(o); } };
+  const r6 = S6.ctx._paieEnvoyerAnnee_(2026, JSON.stringify(fabriquerPlanning(masse)), LUNDI);
+  V('mail trop gros : un mail minimal part à la place', refus === 1 && r6.envoye === true && S6.mails.length === 1 && /trop nombreux pour ce mail/.test(S6.mails[0].body), r6);
+  V('… la photo avance : plus de refus en boucle', S6.drive['planning_2026_paie.json'] === JSON.stringify(fabriquerPlanning(masse)));
+  // Une autre erreur (quota, réseau) garde l'ancienne règle : photo figée, nouvel essai.
+  const S7 = monterPaie(); S7.ctx.__config = [['PAIE_EMAILS', 'paie1@exemple.test']];
+  S7.ctx._paieEnvoyerAnnee_(2026, JSON.stringify(fabriquerPlanning(BASE)), LUNDI);
+  const photo7 = S7.drive['planning_2026_paie.json'];
+  S7.ctx.MailApp = { getRemainingDailyQuota: () => 100, sendEmail: () => { throw new Error('Service invoked too many times'); } };
+  const r7 = S7.ctx._paieEnvoyerAnnee_(2026, JSON.stringify(fabriquerPlanning(masse)), LUNDI);
+  V('autre erreur : rien n\'est envoyé, photo figée (nouvel essai)', r7.envoye === false && S7.drive['planning_2026_paie.json'] === photo7, r7);
+
+  // CONTRE-ÉPREUVE 3 : sans la forme courte, le même lot faisait un mail une carte par changement.
+  const S8 = monterPaie(); S8.ctx.__config = [['PAIE_EMAILS', 'paie1@exemple.test']];
+  const sansCourt = extraireFonction(CODE, '_paieEnvoyerAnnee_').replace('items.length > PAIE_MAX_DETAIL', 'false');
+  V('contre-épreuve : le seuil de la forme courte a bien été retiré', sansCourt.indexOf('PAIE_MAX_DETAIL') < 0);
+  vm.runInContext(sansCourt, S8.ctx);
+  S8.ctx._paieEnvoyerAnnee_(2026, JSON.stringify(fabriquerPlanning(BASE)), LUNDI);
+  S8.ctx._paieEnvoyerAnnee_(2026, JSON.stringify(fabriquerPlanning(masse)), LUNDI);
+  V('contre-épreuve : sans la forme courte, une carte par changement (bien plus lourd)', (S8.mails[0].htmlBody.match(/border-left:4px solid/g) || []).length > 4 && S8.mails[0].htmlBody.length > m5.htmlBody.length);
+
   // CONTRE-ÉPREUVE 1 : sans le filtre, la garde lointaine partait par mail.
   const S2 = monterPaie(); S2.ctx.__config = [['PAIE_EMAILS', 'paie1@exemple.test']];
   vm.runInContext('_paieAEnvoyer_ = function () { return true; };', S2.ctx);
@@ -504,7 +548,7 @@ console.log('\n═══ P5. Branchement : indépendant des mails aux MAR ══
   const { ctx: srv } = monterPaie();
   const recents = [{ le: new Date(Date.now() - 2 * 24 * 3600 * 1000).toISOString(), titre: 'garde réanimation du samedi 14 novembre 2026 : Dr MAR01 → Dr MAR02', cellules: [['MAR01', '2026-11-14'], ['MAR02', '2026-11-14']] },
                    { le: new Date(Date.now() - 10 * 24 * 3600 * 1000).toISOString(), titre: 'vacances ajoutées pour Dr MAR03 (ancien)', cellules: [['MAR03', '2026-11-02', '2026-11-04']] }];
-  const rep2026 = Object.assign({ success: true, nom: 'Secrétariat paie' }, JSON.parse(JSON.stringify(srv._planningPaie_(fabriquerPlanning(BASE), 2026, recents))));
+  const rep2026 = Object.assign({ success: true, nom: 'Secrétariat' }, JSON.parse(JSON.stringify(srv._planningPaie_(fabriquerPlanning(BASE), 2026, recents))));
 
   async function monter(role, reponse, url) {
     const appels = [], erreurs = [];
@@ -563,6 +607,8 @@ console.log('\n═══ P5. Branchement : indépendant des mails aux MAR ══
     V('les secrétaires n\'ont pas de lien de retour au portail', d.getElementById('lnkBack').style.display === 'none');
     V('le bouton Excel est là', !!d.getElementById('btnXls'));
     V('le pavé « Lecture seule » est affiché', /Lecture seule/.test(d.querySelector('.lock-pill').textContent));
+    const visible = (() => { const c = d.body.cloneNode(true); c.querySelectorAll('script,style').forEach(e => e.remove()); return d.title + c.textContent; })();
+    V('aucun texte visible de la page ne dit « paie » (titre, en-tête, écran de code)', !/paie/i.test(visible), visible.match(/.{30}paie.{30}/i));
 
     d.getElementById('btnNext').click(); await dodo(150);
     V('mois suivant : décembre, sans planning publié → message clair', d.getElementById('titreMois').textContent === 'Décembre 2026' && /Pas de planning publié/.test(d.getElementById('zoneGrille').textContent));
@@ -674,7 +720,7 @@ console.log('\n═══ P5. Branchement : indépendant des mails aux MAR ══
   }
   {
     const { w, d } = await monter('mar', () => ({ success: false, error: 'Accès refusé' }));
-    V('MAR sans droit : l\'écran de code revient avec un message clair', d.getElementById('authOverlay').style.display === 'flex' && /ne donne pas accès au planning paie/.test(d.getElementById('authErr').textContent));
+    V('MAR sans droit : l\'écran de code revient avec un message clair', d.getElementById('authOverlay').style.display === 'flex' && /ne donne pas accès au planning des absences/.test(d.getElementById('authErr').textContent));
     V('… et sa session du portail n\'est PAS effacée', w.sessionStorage.getItem('pmViewCode') === 'CODE1');
   }
   {

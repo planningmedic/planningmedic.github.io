@@ -2274,7 +2274,13 @@ la semaine suivante. Une garde plus lointaine ne part pas par mail mais entre da
 de la page. Grille : un trait fin entre chaque jour, plus marqué le lundi.</p>
 <p>Lisible avant ouverture (25/11/2026) : l'objet commence par « À saisir : » puis dit quoi et qui
 (<code>_paieSujet_</code> ; plusieurs changements : les médecins, deux noms puis « et N autres » au-delà de trois),
-et un texte caché en tête du mail sert d'aperçu dans la liste des messages (<code>_paieApercu_</code>).</p>
+et un texte caché en tête du mail sert d'aperçu dans la liste des messages (<code>_paieApercu_</code>).
+Le mail et la page ne disent plus « paie » : c'est la saisie administrative des absences.</p>
+<p>Beaucoup de changements d'un coup (25/11/2026) : au-delà de 40 (<code>PAIE_MAX_DETAIL</code>), le mail
+passe en forme courte, une carte par médecin et une ligne par geste, sans totaux. Si le mail est encore
+refusé pour sa taille, un mail minimal renvoie vers la page et la photo avance. Défaut corrigé : du
+20 au 25/11/2026, un lot d'environ 500 changements 2027 dépassait la taille permise, était refusé à
+chaque passage et bloquait tout envoi pour 2027.</p>
 <p>Janvier (12/11/2026) : le planning d'une année commence au premier lundi, donc les tout premiers
 jours de janvier appartiennent au planning de l'année d'avant (1er, 2 et 3 janvier 2027 dans le planning
 2026). La page réunit les deux plannings tant que le mois n'est pas complet (<code>trouverMois</code>,

@@ -1,7 +1,7 @@
 // ⚠️ RÈGLE (détecteur de dérive dépôt↔Apps Script) : incrémenter cette version
 // à CHAQUE push de ce fichier. Le diagnostic (admin → Maintenance) compare la
 // version déployée ici avec celle du dépôt et signale toute recopie oubliée.
-const GAS_VERSION_CODE = '2026-11-25.2';   // (25/11/2026) .2 : mail paie — objet « À saisir : quoi · qui », aperçu de la boîte de réception = résumé des changements (_paieApercu_) · (25/11/2026) .1 : mail paie — vacances, TP et formation toujours, gardes seulement jusqu'au dimanche de la semaine prochaine (passé compris) ; formation (F) servie à la page paie · (19/11/2026) .1 : planning_{Y}.json porte les notes du planning (interne en réa, infos du jour) · (17/11/2026) .2 : seuilsPresence_() — LES seuils d'effectif de tout le portail, lus dans l'onglet SEUILS (alerte, confort) · (17/11/2026) colonne HORS_EFFECTIF de MEDECINS (repérée par son titre) : MAR jamais compté dans l'effectif présent (getMedecinFlags().horsEffectif) · (15/11/2026) instantané d'équité : un jeudi férié compte comme férié, plus comme jeudi (même règle que le calcul) · (15/11/2026) instantané d'équité : à partir de 2028, Noël et le Jour de l'An (et leur jour couplé) restent dans le total mais sortent des compteurs fins, comme dans le calcul · (14/11/2026) écran d'équité : la part de chaque compteur (PART VISEE) et le nombre de week-ends servis à l'écran, pour afficher la fourchette (champsWeStats_, computeStatsLive) · (12/11/2026) week-ends : V (vendredis), WE = samedis + dimanches et sa part, lus dans l'onglet de statistiques (champsWeStats_) · (11/11/2026) vue paie : jours de TP (TP, CTP, semaine off du rythme 2/2) affichés, sans mail · (11/11/2026) mail paie lisible sur téléphone (une carte par changement) · (02/11/2026) commentaire sans initiales réelles · (27/10/2026) demi-journées de vacances VM/VA (planning, paie, notifications) · (27/10/2026) journée mobile 2027 (lundi 7 juin) ajoutée aux fériés · (18/10/2026) vue paie : tri G/G2/V (_planningPaie_) et mail aux secrétaires de paie (_paieEnvoyerAnnee_)
+const GAS_VERSION_CODE = '2026-11-25.3';   // (25/11/2026) .3 : mail des absences — plus le mot « paie » ; au-delà de 40 changements, forme courte par médecin ; mail trop gros → mail minimal (plus de blocage, défaut du 20/11 : ~500 changements 2027 refusés en boucle) · (25/11/2026) .2 : mail paie — objet « À saisir : quoi · qui », aperçu de la boîte de réception = résumé des changements (_paieApercu_) · (25/11/2026) .1 : mail paie — vacances, TP et formation toujours, gardes seulement jusqu'au dimanche de la semaine prochaine (passé compris) ; formation (F) servie à la page paie · (19/11/2026) .1 : planning_{Y}.json porte les notes du planning (interne en réa, infos du jour) · (17/11/2026) .2 : seuilsPresence_() — LES seuils d'effectif de tout le portail, lus dans l'onglet SEUILS (alerte, confort) · (17/11/2026) colonne HORS_EFFECTIF de MEDECINS (repérée par son titre) : MAR jamais compté dans l'effectif présent (getMedecinFlags().horsEffectif) · (15/11/2026) instantané d'équité : un jeudi férié compte comme férié, plus comme jeudi (même règle que le calcul) · (15/11/2026) instantané d'équité : à partir de 2028, Noël et le Jour de l'An (et leur jour couplé) restent dans le total mais sortent des compteurs fins, comme dans le calcul · (14/11/2026) écran d'équité : la part de chaque compteur (PART VISEE) et le nombre de week-ends servis à l'écran, pour afficher la fourchette (champsWeStats_, computeStatsLive) · (12/11/2026) week-ends : V (vendredis), WE = samedis + dimanches et sa part, lus dans l'onglet de statistiques (champsWeStats_) · (11/11/2026) vue paie : jours de TP (TP, CTP, semaine off du rythme 2/2) affichés, sans mail · (11/11/2026) mail paie lisible sur téléphone (une carte par changement) · (02/11/2026) commentaire sans initiales réelles · (27/10/2026) demi-journées de vacances VM/VA (planning, paie, notifications) · (27/10/2026) journée mobile 2027 (lundi 7 juin) ajoutée aux fériés · (18/10/2026) vue paie : tri G/G2/V (_planningPaie_) et mail aux secrétaires de paie (_paieEnvoyerAnnee_)
 
 // ── Reconstruire STATS_GARDES_2026 depuis GARDES_2026 (année reconstruite) ──
 // Renvoie le classeur contenant l'onglet demandé : classeur actif si présent,
@@ -2218,7 +2218,7 @@ function _paieNomSession_(user) {
   if (!user) return '';
   if (user.role === 'mar') return _paieDr_(user.id);
   if (user.role === 'admin') return 'Comité';
-  return 'Secrétariat paie';
+  return 'Secrétariat';
 }
 
 // ── Aplatir le planning publié, en ne gardant QUE les codes paie ───────
@@ -2479,8 +2479,9 @@ function _paieGestes_(it) {
 }
 
 // ── Corps texte ────────────────────────────────────────────────────────
-function _paieTexte_(items, totaux, origines, jours) {
-  let t = 'Bonjour,\n\nLe planning d\'anesthésie a changé. Voici ce qui touche la paie.\n\n';
+function _paieTexte_(items, totaux, origines, jours, compact) {
+  let t = 'Bonjour,\n\nLe planning d\'anesthésie a changé. Voici les absences et les gardes à saisir.\n\n';
+  if (compact) return t + _paieCompactTexte_(items) + _paieTexteFin_(items);
   t += 'CE QUI CHANGE\n';
   items.forEach(function (it) {
     const tag = _paieTag_(it.date, jours);
@@ -2503,17 +2504,63 @@ function _paieTexte_(items, totaux, origines, jours) {
   });
   t += '\nORIGINE\n';
   origines.forEach(function (o) { t += '  ' + o + '\n'; });
+  return t + _paieTexteFin_(items);
+}
+
+function _paieTexteFin_(items) {
   const mois = items.length ? items[0].date.slice(0, 7) : '';
-  t += '\nOuvrir le planning paie : ' + PAIE_SITE + (mois ? '?m=' + mois : '') + '\n\n'
+  return '\nOuvrir le planning des absences : ' + PAIE_SITE + (mois ? '?m=' + mois : '') + '\n\n'
      + 'Message automatique de Planning-Med, merci de ne pas y répondre.\n'
      + 'Pour une question : planningmedic@gmail.com\n';
-  return t;
+}
+
+// ── (25/11/2026) Beaucoup de changements d'un coup : forme courte ──────
+// Le 20/11/2026, un mail de ~500 changements (gardes 2027) dépassait la taille
+// permise d'un mail : refusé à chaque passage, la photo n'avançait plus et plus
+// rien ne partait pour 2027. Au-delà de PAIE_MAX_DETAIL changements, le mail
+// regroupe par médecin, une ligne courte par geste, sans totaux.
+const PAIE_MAX_DETAIL = 40;
+
+// [[id, '+'|'−', 'temps partiel 05/01'], …] dans l'ordre des dates.
+function _paieLignesCourtes_(items) {
+  const out = [];
+  items.forEach(function (it) {
+    if (it.type === 'garde') {
+      const lib = (it.code === 'G2' ? 'garde mater ' : 'garde réa ') + _paieCourt_(it.date);
+      it.de.forEach(function (id) { out.push([id, '−', lib]); });
+      it.a.forEach(function (id) { out.push([id, '+', lib]); });
+    } else {
+      out.push([it.id, it.sens === 'ajout' ? '+' : '−', PAIE_ABS[it.code || 'V'].nom + ' ' + _paieQuand_(it)]);
+    }
+  });
+  return out;
+}
+
+// { ordre: [id…], lignes: {id: [[signe, libellé]…]} }
+function _paieParMedecin_(items) {
+  const ordre = [], lignes = {};
+  _paieLignesCourtes_(items).forEach(function (l) {
+    if (!lignes[l[0]]) { lignes[l[0]] = []; ordre.push(l[0]); }
+    lignes[l[0]].push([l[1], l[2]]);
+  });
+  ordre.sort(function (a, b) { return _paieDr_(a).localeCompare(_paieDr_(b), 'fr'); });
+  return { ordre: ordre, lignes: lignes };
+}
+
+function _paieCompactTexte_(items) {
+  const g = _paieParMedecin_(items);
+  let t = items.length + ' CHANGEMENTS À SAISIR (+ ajouter, − retirer)\n';
+  g.ordre.forEach(function (id) {
+    t += '\n' + _paieDr_(id) + '\n';
+    g.lignes[id].forEach(function (l) { t += '  ' + l[0] + ' ' + l[1] + '\n'; });
+  });
+  return t + '\nLe détail jour par jour et les totaux du mois sont sur le planning des absences.\n';
 }
 
 // ── Corps HTML : tableaux et styles en ligne seulement (Gmail, Outlook) ─
 // Pensé pour l'écran du téléphone : une carte par changement (date, garde, gestes
 // Chronos), totaux sur deux colonnes, jamais plus — pas de colonne écrasée.
-function _paieHtml_(items, totaux, origines, jours) {
+function _paieHtml_(items, totaux, origines, jours, compact) {
   const ROUGE = '#CE1126', ENCRE = '#0f172a', GRIS = '#64748b', PALE = '#94a3b8', LIGNE = '#e2e8f0';
   const VERT = '#15803d', RETRAIT = '#b91c1c';
   const POLICE = "-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif";
@@ -2547,7 +2594,16 @@ function _paieHtml_(items, totaux, origines, jours) {
       + '</td></tr></table>';
   };
 
-  const cartes = items.map(function (it) {
+  // (25/11/2026) Forme courte : une carte par médecin, une ligne par geste.
+  const parMedecin = function () {
+    const g = _paieParMedecin_(items);
+    return g.ordre.map(function (id) {
+      const n = g.lignes[id].length;
+      return carte(_paieDr_(id), n + ' changement' + (n > 1 ? 's' : ''),
+        g.lignes[id].map(function (l) { return (l[0] === '−' ? 'Retirer ' : 'Ajouter ') + sansLien(l[1]); }));
+    }).join('');
+  };
+  const cartes = compact ? parMedecin() : items.map(function (it) {
     if (it.type === 'garde') {
       const j = _paieJoli_(it.date);
       return carte(sansLien(j.charAt(0).toUpperCase() + j.slice(1)) + badge(it.date),
@@ -2592,17 +2648,20 @@ function _paieHtml_(items, totaux, origines, jours) {
   +   'style="max-width:620px;background:#fff;border-radius:16px;border:1px solid ' + LIGNE + '">'
   +     '<tr><td style="background:' + ROUGE + ';height:5px;line-height:5px;font-size:0">&nbsp;</td></tr>'
   +     '<tr><td style="padding:20px 16px 4px">'
-  +       '<div style="font-size:11px;font-weight:800;letter-spacing:.9px;text-transform:uppercase;color:' + PALE + '">Planning-Med · paie</div>'
+  +       '<div style="font-size:11px;font-weight:800;letter-spacing:.9px;text-transform:uppercase;color:' + PALE + '">Planning-Med · absences</div>'
   +       '<div style="font-size:21px;font-weight:800;color:' + ENCRE + ';margin-top:7px;line-height:1.25">Le planning a changé</div>'
   +       '<div style="margin-top:8px;font-size:14px;color:' + GRIS + ';line-height:1.55">Bonjour, voici '
   +       (items.length === 1 ? 'le changement' : 'les ' + items.length + ' changements') + ' à reporter dans Chronos.</div>'
   +       titre('À reporter dans Chronos') + cartes
-  +       titre('Nouveaux totaux du mois') + tot
+  +       (compact
+            ? '<div style="font-size:13px;color:' + GRIS + ';line-height:1.5;margin-top:6px">Beaucoup de changements d\'un coup : '
+              + 'le détail jour par jour et les totaux du mois sont sur le planning des absences.</div>'
+            : titre('Nouveaux totaux du mois') + tot)
   +       titre('Origine') + orig
   +     '</td></tr>'
   +     '<tr><td style="padding:18px 16px 4px">'
   +       '<a href="' + lien + '" style="display:block;background:' + ENCRE + ';color:#fff;text-decoration:none;'
-  +       'border-radius:11px;font-size:15px;font-weight:700;padding:14px 20px;text-align:center">Ouvrir le planning paie</a>'
+  +       'border-radius:11px;font-size:15px;font-weight:700;padding:14px 20px;text-align:center">Ouvrir le planning des absences</a>'
   +     '</td></tr>'
   +     '<tr><td style="padding:14px 16px 22px;font-size:11.5px;color:' + PALE + ';line-height:1.6">'
   +       'Message automatique de Planning-Med, merci de ne pas y répondre. Pour une question : planningmedic@gmail.com'
@@ -2715,17 +2774,24 @@ function _paieEnvoyerAnnee_(year, courantRaw, maintenantMs) {
     const o = _paieOrigine_(it, echanges, maintenant);
     if (origines.indexOf(o) < 0) origines.push(o);
   });
-  const totaux = _paieTotaux_(av, ap, items);
+  const compact = items.length > PAIE_MAX_DETAIL;
+  const totaux = compact ? [] : _paieTotaux_(av, ap, items);
   const test = String(PropertiesService.getScriptProperties().getProperty(NOTIF_PROP_TEST) || '').trim();
+  const envoi = function (htmlBody, body) {
+    MailApp.sendEmail({ to: test || dest.join(','), subject: _paieSujet_(items), htmlBody: htmlBody, body: body, name: 'Planning-Med' });
+  };
   try {
     if (MailApp.getRemainingDailyQuota() < 1) throw new Error('quota de mails épuisé');
-    MailApp.sendEmail({
-      to: test || dest.join(','),
-      subject: _paieSujet_(items),
-      htmlBody: _paieHtml_(items, totaux, origines, ap.jours),
-      body: _paieTexte_(items, totaux, origines, ap.jours),
-      name: 'Planning-Med',
-    });
+    try {
+      envoi(_paieHtml_(items, totaux, origines, ap.jours, compact), _paieTexte_(items, totaux, origines, ap.jours, compact));
+    } catch (errTaille) {
+      // (25/11/2026) Mail trop gros malgré la forme courte : un mail minimal qui
+      // renvoie vers la page, plutôt qu'un refus qui se répète à chaque passage.
+      if (!/taille|size|dimensio|limit/i.test(String(errTaille.message))) throw errTaille;
+      envoi('<p>' + items.length + ' changements à saisir, trop nombreux pour ce mail.</p><p><a href="' + PAIE_SITE
+        + '">Ouvrir le planning des absences</a></p>', items.length + ' changements à saisir, trop nombreux pour ce mail.\n'
+        + 'Ouvrir le planning des absences : ' + PAIE_SITE + '\n');
+    }
   } catch (err) {
     // Photo NON recalée : les mêmes changements repartiront au prochain passage.
     return { envoye: false, nb: items.length, erreur: String(err.message) };
