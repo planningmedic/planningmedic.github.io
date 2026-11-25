@@ -968,6 +968,12 @@ async function doLogin(codeAuto, silencieux) {
       _poserPastilleUser(mb.identite.name || mb.identite.id);
       indispos = mb.indispos || {};
       SessionPortail.memoriser(code);
+      /* (25/11/2026) Le verrou part de la copie rapide, avant le premier dessin. */
+      const verdict = verdictDepuisIdentite(mb.identite);
+      FIN_SAISIE_MIROIR = mb.identite.finSaisie || null;
+      if (verdict === 'fige') verrouillerEcran(YEAR);
+      else if (verdict === 'close') verrouillerEcran(YEAR, 'close');
+      else if (verdict === null) VERDICT_ATTENDU = true;
       updateStats();
       renderMonth();
       selectTool('INDISPO');
@@ -1192,6 +1198,9 @@ async function loadVacConfig() {
   } catch(e) {
     console.log('VacConfig non disponible');
   }
+  /* (25/11/2026) Le serveur a répondu (ou s'est tu) : on ne retient plus les
+     gestes. Son refus d'enregistrer reste le dernier mot. */
+  VERDICT_ATTENDU = false;
 }
 function updateVacBanner() { /* supprimé — le comité gère les conflits */ }
 
@@ -1209,10 +1218,34 @@ function annoncerFinSaisie(fin) {
   hote.parentNode ? hote.parentNode.insertBefore(b, hote) : hote.appendChild(b);
 }
 let ECRAN_FIGE = false;
+/* (25/11/2026) ÉCRAN EN ATTENTE DE SON VERDICT. Le verrou (gardes générées,
+   saisie close) arrivait avec getVacConfig, au serveur : 2 à 20 s pendant
+   lesquelles une campagne close se laissait modifier à l'écran (constaté par
+   le responsable). La copie rapide porte déjà ce verdict dans l'identité
+   (indisposFigees, finSaisie) : l'écran se verrouille dès l'ouverture. Si
+   elle ne le porte pas (vieille clé), on n'accepte aucun geste tant que le
+   serveur n'a pas répondu. */
+let ECRAN_MOTIF = '', VERDICT_ATTENDU = false, FIN_SAISIE_MIROIR = null;
+function aujourdhuiParis() {
+  try { return new Date().toLocaleDateString('sv-SE', { timeZone: 'Europe/Paris' }); }
+  catch (e) { const d = new Date(); return d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0') + '-' + String(d.getDate()).padStart(2, '0'); }
+}
+/* Même règle que le serveur (_indisposFigees_, _saisieClose_) : planning de
+   l'année de campagne généré → figé ; lendemain de la date limite (heure de
+   Paris) → close. Rend '' quand la saisie est ouverte, null quand l'identité
+   ne dit rien (vieille clé). */
+function verdictDepuisIdentite(id) {
+  if (!id || (id.indisposFigees === undefined && id.finSaisie === undefined)) return null;
+  if (id.indisposFigees === true) return 'fige';
+  if (typeof id.finSaisie === 'string' && /^\d{4}-\d{2}-\d{2}$/.test(id.finSaisie) && aujourdhuiParis() > id.finSaisie) return 'close';
+  return '';
+}
 function verrouillerEcran(annee, motif) {
   if (ECRAN_FIGE) return;
   ECRAN_FIGE = true;
+  VERDICT_ATTENDU = false;
   const close = motif === 'close';
+  ECRAN_MOTIF = close ? 'close' : 'fige';
   const btn = document.getElementById('saveBtn');
   if (btn) { btn.disabled = true; btn.style.opacity = '.45'; btn.style.cursor = 'not-allowed';
              btn.textContent = close ? '🔒 Saisie ' + annee + ' close' : '🔒 Planning ' + annee + ' publié'; }
@@ -1221,7 +1254,7 @@ function verrouillerEcran(annee, motif) {
   bandeau.style.cssText = 'background:#FEF3C7;border-left:4px solid #D97706;color:#92400E;'
     + 'padding:12px 14px;margin:0 0 14px;border-radius:8px;font-size:14px;line-height:1.55';
   bandeau.innerHTML = close
-    ? '<b>La saisie ' + annee + ' est close</b> depuis le ' + libelleFinSaisie(vacConfig.finSaisie) + ' à minuit.<br>'
+    ? '<b>La saisie ' + annee + ' est close</b> depuis le ' + libelleFinSaisie((vacConfig && vacConfig.finSaisie) || FIN_SAISIE_MIROIR) + ' à minuit.<br>'
       + 'Vos indisponibilités et vos souhaits restent visibles, mais ne peuvent plus être modifiés : '
       + 'les gardes sont en cours de répartition. Pour un cas urgent, contactez le comité.'
     : '<b>Le planning ' + annee + ' est établi.</b><br>'
@@ -1244,7 +1277,8 @@ function majBoutonSave() {
 }
 
 async function saveIndispos() {
-  if (typeof ECRAN_FIGE !== 'undefined' && ECRAN_FIGE) { showToast((vacConfig && vacConfig.saisieClose && !vacConfig.genere) ? '🔒 Saisie close — aucune modification possible' : '🔒 Planning déjà établi — aucune modification possible'); return; }
+  if (typeof ECRAN_FIGE !== 'undefined' && ECRAN_FIGE) { showToast(ECRAN_MOTIF === 'close' ? '🔒 Saisie close — aucune modification possible' : '🔒 Planning déjà établi — aucune modification possible'); return; }
+  if (typeof VERDICT_ATTENDU !== 'undefined' && VERDICT_ATTENDU) { showToast('⏳ Un instant, vérification de la campagne…'); return; }
   const btn = document.getElementById('saveBtn');
   btn.dataset.enCours = '1';
   btn.textContent = '⏳ Sauvegarde...';
@@ -1416,9 +1450,19 @@ function applyTool(date) {
     if (!isDragging || !window._figeMsg) {
       window._figeMsg = true;
       setTimeout(() => { window._figeMsg = false; }, 2500);
-      showToast('🔒 Planning déjà établi — vos indisponibilités sont figées');
-      hintRefus('🔒 Le planning est déjà établi : vos indisponibilités sont figées.');
+      if (typeof ECRAN_MOTIF !== 'undefined' && ECRAN_MOTIF === 'close') {
+        showToast('🔒 Saisie close — vos indisponibilités sont figées');
+        hintRefus('🔒 La saisie est close : vos indisponibilités ne peuvent plus être modifiées.');
+      } else {
+        showToast('🔒 Planning déjà établi — vos indisponibilités sont figées');
+        hintRefus('🔒 Le planning est déjà établi : vos indisponibilités sont figées.');
+      }
     }
+    return;
+  }
+  /* (25/11/2026) Verdict pas encore connu (vieille copie rapide) : aucun geste. */
+  if (typeof VERDICT_ATTENDU !== 'undefined' && VERDICT_ATTENDU) {
+    showToast('⏳ Un instant, vérification de la campagne…');
     return;
   }
   /* (12/08/2026) Hors de l'annee de planning, le SERVEUR ignore la date en silence
