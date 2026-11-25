@@ -51,7 +51,7 @@ const ctx = vm.createContext({ console, JSON, String, Array, Object, Number, Dat
 ].forEach(nom => vm.runInContext(extraireConst(F, nom), ctx));
 [
   '_notifSecteurTxt', '_notifDecrire', '_notifLignes', '_notifLibelles', '_notifDatePieces',
-  '_notifJourMois', '_notifDateCourte', '_notifDiff', '_notifSemaineExcel', '_notifISO', '_notifHtml',
+  '_notifJourMois', '_notifDateCourte', '_notifDiff', '_notifAplatir', '_notifSemaineExcel', '_notifISO', '_notifHtml',
 ].forEach(nom => vm.runInContext(extraireFonction(F, nom), ctx));
 
 const appel = (expr) => vm.runInContext(expr, ctx);
@@ -94,6 +94,21 @@ console.log('\n═══ M2. Le diff n\'émet plus de carte vide ═══');
 
   const r5 = diff({ X: { [jour]: '|VIS|VIS' } }, { X: { [jour]: 'V||' } });
   V('placé → vacances : signalé comme changement de statut', r5.X && r5.X[0].statut === true, r5.X);
+}
+
+console.log('\n═══ M2 bis. V de week-end et de férié retirés : aucune carte (25/11/2026) ═══');
+{
+  const jours = [['2026-11-06', false, false], ['2026-11-07', true, false], ['2026-11-08', true, false], ['2026-11-09', false, false], ['2026-11-19', false, true]];
+  const plan = st => ({ months: [{ days: jours.map(j => ({ date: j[0], isWeekend: j[1], isFerie: j[2] })),
+    doctors: [{ id: 'X', days: jours.map(j => ({ status: st[j[0]] || '', morning: '', afternoon: '' })) }] }] });
+  const avant = { '2026-11-06': 'V', '2026-11-07': 'V', '2026-11-08': 'V', '2026-11-09': 'V', '2026-11-19': 'V' };
+  const apres = { '2026-11-06': 'V', '2026-11-09': 'V' };
+  const r = appel(`_notifDiff(_notifAplatir(${JSON.stringify(plan(avant))}), _notifAplatir(${JSON.stringify(plan(apres))}))`);
+  V('V retirés un samedi, un dimanche, un férié : aucune carte', !r.X, r);
+  const r2 = appel(`_notifDiff(_notifAplatir(${JSON.stringify(plan(avant))}), _notifAplatir(${JSON.stringify(plan({ '2026-11-06': 'V' }))}))`);
+  V('V retiré un lundi : toujours annoncé', r2.X && r2.X.length === 1 && r2.X[0].date === '2026-11-09', r2);
+  const r3 = appel(`_notifDiff(_notifAplatir(${JSON.stringify(plan(apres))}), _notifAplatir(${JSON.stringify(plan({ '2026-11-06': 'V', '2026-11-07': 'G', '2026-11-09': 'V' }))}))`);
+  V('une garde posée un samedi : toujours annoncée', r3.X && r3.X.length === 1 && r3.X[0].date === '2026-11-07', r3);
 }
 
 console.log('\n═══ M3. Matin et après-midi séparés ═══');

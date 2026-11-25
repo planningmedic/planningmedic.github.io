@@ -245,6 +245,16 @@ console.log('\n═══ H18 · les 18 h ═══');
   V('jour ouvré avec son 18 h : rien', !c.includes('sans18|EQUIPE|2027-03-04'));
   V('samedi sans 18 h : rien (pas un jour ouvré)', !c.includes('sans18|EQUIPE|2027-03-06'));
 }
+{
+  /* (25/11/2026) V de week-end et de férié retirés du planning : la veille = le dernier jour ouvré. */
+  const b = monde({ cases: [['P05', '2027-03-12', '18'], ['P05', '2027-03-15', 'V'],          // vendredi 18 h, vacances dès le lundi, week-end vide
+    ['P06', '2027-05-05', '18'], ['P06', '2027-05-07', 'V'],                                 // mercredi 18 h, jeudi 06/05 férié vide, V le vendredi
+    ['P07', '2027-03-19', '18'], ['P07', '2027-03-23', 'V']] });                             // vendredi 18 h, lundi libre, V le mardi : rien
+  const r = b.points(), c = cles(r), pt = k => r.points.find(p => p.cle === k);
+  V('18 h du vendredi, vacances dès le lundi (week-end sans V) : orange', pt('h18veille|P05|2027-03-12') && pt('h18veille|P05|2027-03-12').niv === 'orange' && /dès le 15\/03/.test(pt('h18veille|P05|2027-03-12').texte), c.filter(x => /^h18veille/.test(x)));
+  V('18 h la veille d\'un férié, vacances le jour ouvré suivant : orange', c.includes('h18veille|P06|2027-05-05'));
+  V('un jour ouvré libre entre le 18 h et les vacances : rien', !c.includes('h18veille|P07|2027-03-19'));
+}
 
 console.log('\n═══ RC · les récupérations ═══');
 {
@@ -288,6 +298,11 @@ console.log('\n═══ CO · indispos et planning concordent ═══');
   const c = cles(b.points());
   V('vacances aux indispos, case vide au planning : signalé', c.includes('concord|P05|2027-06-01'));
   V('vacances écrasées par une garde (un don) : normal, rien', !c.includes('concord|P06|2027-06-02'));
+  /* (25/11/2026) V de week-end et de férié retirés du planning, VAC gardés aux indispos : pas un écart. */
+  const w = monde({ indispos: [['P07', '2027-06-05', 'VAC'], ['P07', '2027-06-06', 'VAC'], ['P07', '2027-06-07', 'VAC'], ['P08', '2027-06-08', 'VAC']] });
+  const cw = cles(w.points());
+  V('VAC aux indispos un samedi, un dimanche, un férié, case vide au planning : rien', !cw.some(x => /^concord\|P07\|/.test(x)), cw.filter(x => /^concord/.test(x)));
+  V('VAC aux indispos un jour ouvré, case vide au planning : toujours signalé', cw.includes('concord|P08|2027-06-08'));
   V('une clé de nouvelle famille est acceptée par « Prévenu »', b.cocher('concord|P05|2027-06-01', true).success === true);
 }
 

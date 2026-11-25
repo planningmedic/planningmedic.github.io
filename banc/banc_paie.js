@@ -258,6 +258,14 @@ const MAINTENANT = Date.parse('2026-11-16T09:00:00Z');
   r = ctx._paieEnvoyerAnnee_(2026, JSON.stringify(secteur), MAINTENANT);
   V('un changement de secteur ne produit aucun mail', mails.length === 0 && r.motif === 'rien pour la paie', r);
 
+  // 3 bis. (25/11/2026) V de week-end et de férié retirés du planning : muet, et jamais affichés.
+  const weV = copie(BASE); weV.MAR03['2026-11-07'] = 'V'; weV.MAR03['2026-11-08'] = 'V'; weV.MAR03['2026-11-19'] = 'V';
+  delete drive['planning_2026_paie.json']; envoyer(weV);             // photo AVEC les V du week-end (l'état d'avant l'effacement)
+  r = envoyer(BASE);
+  V('V retirés un samedi, un dimanche, un férié : aucun mail', mails.length === 0 && r.motif === 'rien pour la paie', r);
+  const apl = ctx._paieAplatir_(fabriquerPlanning(weV));
+  V('… et la page des absences ne les affiche pas', !apl.cases.MAR03['2026-11-07'] && !apl.cases.MAR03['2026-11-08'] && !apl.cases.MAR03['2026-11-19'] && apl.cases.MAR03['2026-11-03'] === 'V', apl.cases.MAR03);
+
   // 4. (25/11/2026) Un jour de TP (CTP) et une formation ajoutés : UN mail, deux changements.
   const conges = copie(BASE); conges.MAR02['2026-11-06'] = 'CTP'; conges.MAR04['2026-11-10'] = 'F';
   r = envoyer(conges);

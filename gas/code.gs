@@ -1,7 +1,7 @@
 // ⚠️ RÈGLE (détecteur de dérive dépôt↔Apps Script) : incrémenter cette version
 // à CHAQUE push de ce fichier. Le diagnostic (admin → Maintenance) compare la
 // version déployée ici avec celle du dépôt et signale toute recopie oubliée.
-const GAS_VERSION_CODE = '2026-11-25.3';   // (25/11/2026) .3 : mail des absences — plus le mot « paie » ; au-delà de 40 changements, forme courte par médecin ; mail trop gros → mail minimal (plus de blocage, défaut du 20/11 : ~500 changements 2027 refusés en boucle) · (25/11/2026) .2 : mail paie — objet « À saisir : quoi · qui », aperçu de la boîte de réception = résumé des changements (_paieApercu_) · (25/11/2026) .1 : mail paie — vacances, TP et formation toujours, gardes seulement jusqu'au dimanche de la semaine prochaine (passé compris) ; formation (F) servie à la page paie · (19/11/2026) .1 : planning_{Y}.json porte les notes du planning (interne en réa, infos du jour) · (17/11/2026) .2 : seuilsPresence_() — LES seuils d'effectif de tout le portail, lus dans l'onglet SEUILS (alerte, confort) · (17/11/2026) colonne HORS_EFFECTIF de MEDECINS (repérée par son titre) : MAR jamais compté dans l'effectif présent (getMedecinFlags().horsEffectif) · (15/11/2026) instantané d'équité : un jeudi férié compte comme férié, plus comme jeudi (même règle que le calcul) · (15/11/2026) instantané d'équité : à partir de 2028, Noël et le Jour de l'An (et leur jour couplé) restent dans le total mais sortent des compteurs fins, comme dans le calcul · (14/11/2026) écran d'équité : la part de chaque compteur (PART VISEE) et le nombre de week-ends servis à l'écran, pour afficher la fourchette (champsWeStats_, computeStatsLive) · (12/11/2026) week-ends : V (vendredis), WE = samedis + dimanches et sa part, lus dans l'onglet de statistiques (champsWeStats_) · (11/11/2026) vue paie : jours de TP (TP, CTP, semaine off du rythme 2/2) affichés, sans mail · (11/11/2026) mail paie lisible sur téléphone (une carte par changement) · (02/11/2026) commentaire sans initiales réelles · (27/10/2026) demi-journées de vacances VM/VA (planning, paie, notifications) · (27/10/2026) journée mobile 2027 (lundi 7 juin) ajoutée aux fériés · (18/10/2026) vue paie : tri G/G2/V (_planningPaie_) et mail aux secrétaires de paie (_paieEnvoyerAnnee_)
+const GAS_VERSION_CODE = '2026-11-25.4';   // (25/11/2026) .4 : V de week-end et de férié retirés du planning (décision du responsable) — ni le mail des absences ni le mail aux MAR ne les annoncent, la page des absences ne les affiche plus · (25/11/2026) .3 : mail des absences — plus le mot « paie » ; au-delà de 40 changements, forme courte par médecin ; mail trop gros → mail minimal (plus de blocage, défaut du 20/11 : ~500 changements 2027 refusés en boucle) · (25/11/2026) .2 : mail paie — objet « À saisir : quoi · qui », aperçu de la boîte de réception = résumé des changements (_paieApercu_) · (25/11/2026) .1 : mail paie — vacances, TP et formation toujours, gardes seulement jusqu'au dimanche de la semaine prochaine (passé compris) ; formation (F) servie à la page paie · (19/11/2026) .1 : planning_{Y}.json porte les notes du planning (interne en réa, infos du jour) · (17/11/2026) .2 : seuilsPresence_() — LES seuils d'effectif de tout le portail, lus dans l'onglet SEUILS (alerte, confort) · (17/11/2026) colonne HORS_EFFECTIF de MEDECINS (repérée par son titre) : MAR jamais compté dans l'effectif présent (getMedecinFlags().horsEffectif) · (15/11/2026) instantané d'équité : un jeudi férié compte comme férié, plus comme jeudi (même règle que le calcul) · (15/11/2026) instantané d'équité : à partir de 2028, Noël et le Jour de l'An (et leur jour couplé) restent dans le total mais sortent des compteurs fins, comme dans le calcul · (14/11/2026) écran d'équité : la part de chaque compteur (PART VISEE) et le nombre de week-ends servis à l'écran, pour afficher la fourchette (champsWeStats_, computeStatsLive) · (12/11/2026) week-ends : V (vendredis), WE = samedis + dimanches et sa part, lus dans l'onglet de statistiques (champsWeStats_) · (11/11/2026) vue paie : jours de TP (TP, CTP, semaine off du rythme 2/2) affichés, sans mail · (11/11/2026) mail paie lisible sur téléphone (une carte par changement) · (02/11/2026) commentaire sans initiales réelles · (27/10/2026) demi-journées de vacances VM/VA (planning, paie, notifications) · (27/10/2026) journée mobile 2027 (lundi 7 juin) ajoutée aux fériés · (18/10/2026) vue paie : tri G/G2/V (_planningPaie_) et mail aux secrétaires de paie (_paieEnvoyerAnnee_)
 
 // ── Reconstruire STATS_GARDES_2026 depuis GARDES_2026 (année reconstruite) ──
 // Renvoie le classeur contenant l'onglet demandé : classeur actif si présent,
@@ -1828,6 +1828,7 @@ function _notifAplatir(json) {
   const out = {};
   (json.months || []).forEach(function (mois) {
     const dates = (mois.days || []).map(function (d) { return d.date; });
+    const nonOuvre = (mois.days || []).map(function (d) { return !!(d && (d.isWeekend || d.isFerie)); });
     (mois.doctors || []).forEach(function (doc) {
       if (!doc || !doc.id) return;
       if (!out[doc.id]) out[doc.id] = {};
@@ -1835,7 +1836,10 @@ function _notifAplatir(json) {
         const date = dates[i];
         if (!date) return;
         const o = e || {};
-        out[doc.id][date] = (o.status || '') + '|' + (o.morning || '') + '|' + (o.afternoon || '');
+        // (25/11/2026) un V de week-end ou de férié ne dit rien au MAR : son retrait n'est pas un changement
+        let st = o.status || '';
+        if (nonOuvre[i] && (st === 'V' || st === 'VAC')) st = '';
+        out[doc.id][date] = st + '|' + (o.morning || '') + '|' + (o.afternoon || '');
       });
     });
   });
@@ -2202,6 +2206,7 @@ function _paieCodeJour_(id, date, st, jour) {
   const c = _paieCode_(st);
   const ouvre = !!jour && !jour.we && !jour.fe;
   if (c === 'TP') return ouvre ? 'TP' : '';
+  if (c === 'V' && jour && (jour.we || jour.fe)) return '';   // (25/11/2026) un V de week-end ou de férié ne se saisit pas : ni affiché, ni annoncé
   if (c) return c;
   if (ouvre && String(st == null ? '' : st).trim().toUpperCase() === 'A') {
     try { if (typeof estSemaineOff === 'function' && estSemaineOff(id, date)) return 'TP'; } catch (e) {}
