@@ -1,7 +1,7 @@
 // ⚠️ RÈGLE (détecteur de dérive dépôt↔Apps Script) : incrémenter cette version
 // à CHAQUE push de ce fichier. Le diagnostic (admin → Maintenance) compare la
 // version déployée ici avec celle du dépôt et signale toute recopie oubliée.
-const GAS_VERSION_PORTAIL = '2026-11-19.1';   // (19/11/2026) .1 : colonne OPTIONNEL lue dans SECTEURS et CS_TEMPLATE (secteurs et consultations optionnels, ex. pédiatrie) · (18/11/2026) .1 topos rangés par année : un sous-dossier « 2026 », « 2027 »… du dossier Topos est une étagère d'année · (17/11/2026) .2 statistiques d'usage : jours de connexion des 28 derniers jours par médecin (frise) · (17/11/2026) onglet SEUILS : source unique des seuils d'effectif (pose des TP, contrôles, récupérations, bande de présence) ; graine du confort à 15 comme le classeur · (15/11/2026) .1 libéral : une année close est lue dans l'archive (relevé, déclarations, vue du jour) · (20/10/2026) .1 recherche dans les archives de la veille · .2 onglet ETABLISSEMENT (nom et adresse du devis) · .3 + service et téléphone · .4 + totaux de consultation du groupement · (21/10) .1 abonnement au mail de la veille
+const GAS_VERSION_PORTAIL = '2026-11-25.1';   // (25/11/2026) .1 statistiques d'usage : ligne « Admin » (jours d'utilisation du code d'administration, 28 jours) · (19/11/2026) .1 : colonne OPTIONNEL lue dans SECTEURS et CS_TEMPLATE (secteurs et consultations optionnels, ex. pédiatrie) · (18/11/2026) .1 topos rangés par année : un sous-dossier « 2026 », « 2027 »… du dossier Topos est une étagère d'année · (17/11/2026) .2 statistiques d'usage : jours de connexion des 28 derniers jours par médecin (frise) · (17/11/2026) onglet SEUILS : source unique des seuils d'effectif (pose des TP, contrôles, récupérations, bande de présence) ; graine du confort à 15 comme le classeur · (15/11/2026) .1 libéral : une année close est lue dans l'archive (relevé, déclarations, vue du jour) · (20/10/2026) .1 recherche dans les archives de la veille · .2 onglet ETABLISSEMENT (nom et adresse du devis) · .3 + service et téléphone · .4 + totaux de consultation du groupement · (21/10) .1 abonnement au mail de la veille
 
 /**
  * portail.gs — actions du PORTAIL équipe (index.html).
@@ -2207,6 +2207,20 @@ function getStatsUsage(user) {
      CONNEXIONS : sur 28 jours il est complet (plafond ~3 mois). `frise_depuis`
      dit d'où part le détail encore conservé, pour ne jamais faire passer une
      purge pour une absence. */
+  /* (25/11/2026) Ligne « Admin » demandée par le responsable : les jours où le
+     code d'administration a servi, dans la même frise, à part des médecins
+     (ni dans l'effectif, ni dans les groupes). Code partagé : la ligne dit
+     « le code », jamais une personne. Dernière date : compteur figé
+     STATS_ACTIONS (admin, (ouverture)), qui survit à la purge du brut. */
+  const admin = { d: '', j: [] };
+  if (fa) {
+    const d = fa.getDataRange().getValues();
+    for (let r = 1; r < d.length; r++) {
+      if (String(d[r][0] || '').trim().toLowerCase() === 'admin' &&
+          String(d[r][1] || '').trim() === '(ouverture)') { admin.d = _jour(d[r][3]); break; }
+    }
+  }
+  const joursAdmin = {};
   let friseDepuis = '';
   const fb = ss.getSheetByName('CONNEXIONS');
   if (fb && fb.getLastRow() > 1) {
@@ -2218,7 +2232,9 @@ function getStatsUsage(user) {
       if (!h || typeof h.getFullYear !== 'function') continue;
       if (!friseDepuis || _jour(h) < friseDepuis) friseDepuis = _jour(h);
       if (h < limite) continue;
-      if (String(d[r][3] || '').trim().toLowerCase() !== 'mar') continue;
+      const role = String(d[r][3] || '').trim().toLowerCase();
+      if (role === 'admin') { joursAdmin[_jour(h)] = 1; continue; }
+      if (role !== 'mar') continue;
       const ini = String(d[r][2] || '').trim();
       if (!ini) continue;
       (jours[ini] = jours[ini] || {})[_jour(h)] = 1;
@@ -2227,8 +2243,10 @@ function getStatsUsage(user) {
   } else {
     gens.forEach(function (m) { m.j = []; });
   }
+  admin.j = Object.keys(joursAdmin).sort();
+  if (admin.j.length && admin.j[admin.j.length - 1] > admin.d) admin.d = admin.j[admin.j.length - 1];
 
   return { success: true, origine: STATS_ORIGINE, effectif: gens.length,
-           semaines: semaines, heures: heures, medecins: gens,
+           semaines: semaines, heures: heures, medecins: gens, admin: admin,
            roles: roles, actions: actions, frise_depuis: friseDepuis };
 }

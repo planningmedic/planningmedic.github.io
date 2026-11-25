@@ -143,6 +143,8 @@ tr:last-child td { border-bottom:none; }
 .av.mois   { background:var(--surface-2);  color:var(--ink-3); }
 .av.vieux  { background:transparent;       color:var(--ink-4); border:1.5px dashed var(--line); }
 .av.jamais { background:var(--amber-soft); color:var(--amber); }
+/* (25/11/2026) Ligne du code d'administration : couleur à elle, hors des groupes. */
+.av.adm    { background:var(--viol-soft);  color:var(--viol); font-size:9.5px; }
 td:first-child { width:1%; white-space:nowrap; }
 
 /* Barres « qui se connecte » et bloc administration. */
@@ -559,7 +561,26 @@ function tableau(){
                 + '<span class="q">' + (detail ? esc(libDerniere(m)) : '') + '</span></div>';
          }).join('') + '</div>';
   });
+  h += ligneAdmin(J, depuis);
   box.innerHTML = h;
+}
+/* (25/11/2026) Le code d'administration, à part des médecins : sa propre
+   couleur (violet), jamais compté dans l'effectif ni dans la répartition.
+   Code partagé : la ligne dit « le code », pas une personne. */
+function ligneAdmin(J, depuis){
+  const A = D.admin; if(!A) return '';
+  const vus = {}; (A.j || []).forEach(function(x){ vus[x] = 1; });
+  const frise = !A.d ? '<span class="rien">aucune connexion</span>'
+    : '<div class="fr">' + J.map(function(x){
+        if(vus[x.iso]) return '<i style="background:var(--viol)"></i>';
+        if(depuis && x.iso < depuis) return '<i class="hors"></i>';
+        return x.we ? '<i class="we"></i>' : '<i></i>';
+      }).join('') + '</div>';
+  const loin = A.d && (joursDepuis(A.d) === null || joursDepuis(A.d) >= 30);
+  return '<div class="grp"><div class="grp-t">Code d\'administration</div>'
+       + '<div class="lig" title="Admin — ' + esc(libDerniere(A)) + '">'
+       + '<span class="av adm">ADM</span>' + frise
+       + '<span class="q">' + (loin ? esc(libDerniere(A)) : '') + '</span></div></div>';
 }
 function esc(v){ return String(v||'?').replace(/[<>&"]/g, function(c){
   return {'<':'&lt;','>':'&gt;','&':'&amp;','"':'&quot;'}[c]; }); }

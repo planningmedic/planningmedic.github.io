@@ -308,6 +308,65 @@ console.log('\n═══ 6. « Qui s\'est connecté » montre TOUT le service �
   V('la carte de chaleur reste', PAGE.indexOf('id="heat"') > 0);
 }
 
+console.log('\n═══ 6 bis. Ligne « Admin » : le code d\'administration, à part (25/11/2026) ═══');
+/* Demande du responsable : voir aussi quand le code d'administration a servi,
+   dans une couleur à lui. Il n'entre ni dans l'effectif, ni dans les groupes
+   d'ancienneté, ni dans la barre de répartition. */
+{
+  const jISO = function (j) { const d = new Date(); d.setDate(d.getDate() - j);
+    return d.getFullYear() + '-' + String(d.getMonth()+1).padStart(2,'0') + '-' + String(d.getDate()).padStart(2,'0'); };
+  const { ctx, cl } = bac();
+  let r = ctx.getStatsUsage(ADMIN);
+  V('le serveur renvoie la ligne admin', !!r.admin && Array.isArray(r.admin.j), r.admin);
+  const _sur = function (x) { x.admin = x.admin || { j: [], absent: 1 }; return x; };   // contre-épreuve : échouer, pas planter
+  _sur(r);
+  V('admin : le jour de connexion du code (il y a 1 j) est dans sa frise',
+    JSON.stringify(r.admin.j) === JSON.stringify([jISO(1)]), r.admin);
+  V('admin : sans compteur figé, la dernière date vient du brut', r.admin.d === jISO(1), r.admin.d);
+  V('admin : la ligne ne porte que des dates (aucun compte)',
+    Object.keys(r.admin).sort().join(',') === 'd,j', r.admin);
+  V('le code admin n\'entre pas dans l\'effectif ni dans la liste des médecins',
+    r.effectif === 2 && !r.medecins.some(function (m) { return m.i === '' || m.i === 'ADMIN'; }), r.medecins);
+  /* Compteur figé plus ancien que le brut : le brut gagne ; plus récent : le compteur. */
+  cl.ajouter('STATS_ACTIONS', [['ROLE','ACTION','NOMBRE','DERNIERE'],
+    ['mar','(ouverture)', 9, jISO(0)], ['admin','saveMedecin', 2, jISO(0)], ['admin','(ouverture)', 5, jISO(40)]]);
+  r = _sur(ctx.getStatsUsage(ADMIN));
+  V('admin : compteur figé plus ancien que le brut → la date du brut', r.admin.d === jISO(1), r.admin.d);
+  const b2 = bac();
+  b2.cl.ajouter('STATS_ACTIONS', [['ROLE','ACTION','NOMBRE','DERNIERE'], ['admin','(ouverture)', 5, jISO(40)]]);
+  b2.cl.getSheetByName('CONNEXIONS').deleteRows(2, 6);
+  r = _sur(b2.ctx.getStatsUsage(ADMIN));
+  V('admin : brut purgé → la dernière date survit par le compteur figé', r.admin.d === jISO(40) && r.admin.j.length === 0, r.admin);
+
+  /* La page */
+  const src = PAGE.slice(PAGE.indexOf("/* ── Qui s'est connecté"), PAGE.indexOf('charger();'));
+  const aux = PAGE.slice(PAGE.indexOf('const MOIS ='), PAGE.indexOf('/* ── Compteurs'));
+  let sortie = '';
+  const document = { getElementById: function(id){
+    return id === 'qui' ? { set innerHTML(v){ sortie = v; } } : null; } };
+  const D = { medecins: [ { i:'AXE', d:jISO(0), j:[jISO(0)] }, { i:'LX', d:'' } ],
+              admin: { d: jISO(2), j: [jISO(9), jISO(2)] }, frise_depuis: jISO(60) };
+  eval(aux + src);
+  tableau();
+  const adm = (sortie.match(/<span class="av adm">ADM<\/span>(.*?)<span class="q">/) || [])[1] || '';
+  const carres = [...adm.matchAll(/<i([^>]*)><\/i>/g)].map(function (m) { return m[1]; });
+  V('la page affiche une ligne ADM dans un bloc « Code d\'administration »',
+    /Code d'administration<\/div>/.test(sortie) && !!adm, sortie.slice(-300));
+  V('la ligne ADM vient APRÈS les médecins', sortie.indexOf('ADM</span>') > sortie.indexOf('LX</span>'));
+  V('frise admin : 28 jours, 2 allumés, en violet (couleur à elle)',
+    carres.length === 28 && carres.filter(function (c) { return /--viol\)/.test(c); }).length === 2
+      && /--viol/.test(carres[25]) && /--viol/.test(carres[18]), carres);
+  V('le violet n\'est utilisé par aucun groupe d\'ancienneté',
+    PAGE.slice(PAGE.indexOf('const GROUPES'), PAGE.indexOf('function anciennete')).indexOf('--viol') < 0);
+  V('la pastille ADM a son style propre', /\.av\.adm\s*\{[^}]*--viol/.test(PAGE));
+  V('la barre de répartition ignore le code admin', /sur 2<\/span>/.test(sortie));
+  D.admin = { d: '', j: [] }; tableau();
+  V('code jamais utilisé : « aucune connexion »', /av adm">ADM<\/span><span class="rien">aucune connexion/.test(sortie));
+  delete D.admin; tableau();
+  V('ancien serveur (pas de champ admin) : la page ne casse pas et n\'affiche pas la ligne',
+    sortie.indexOf('ADM</span>') < 0 && sortie.indexOf('AXE</span>') > 0);
+}
+
 console.log('\n═══ 7. Les compteurs GAS ont bien été poussés avec ═══');
 {
   V('CONNEXIONS_PLAFOND est à 10 000 dans Indispos.gs', /CONNEXIONS_PLAFOND\s*=\s*10000/.test(IND));
