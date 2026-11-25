@@ -169,7 +169,7 @@ function monterPaie(extra) {
   ['NOTIF_JOURS', 'NOTIF_MOIS', 'NOTIF_PROP_TEST', 'PAIE_LIB', 'PAIE_ABS', 'PAIE_DEMI', 'PAIE_SITE', 'PAIE_PROP_RECENTS', 'PAIE_RECENTS_JOURS']
     .forEach(n => vm.runInContext(extraireConst(CODE, n), ctx));
   ['_paieCode_', '_paieCodeJour_', '_paieDr_', '_paieNomSession_', '_paieAplatir_', '_planningPaie_', '_paieDiff_', '_paiePlages_',
-   '_paieTotaux_', '_paieNb_', '_paieOrigine_', '_paieHeure_', '_paieJoli_', '_paieMoisJoli_', '_paieTag_', '_paieAbsLib_', '_paieListe_',
+   '_paieTotaux_', '_paieNb_', '_paieOrigine_', '_paieHeure_', '_paieJoli_', '_paieMoisJoli_', '_paieTag_', '_paieAbsLib_', '_paieListe_', '_paieCourt_', '_paieQuand_', '_paieApercu_',
    '_paieSujet_', '_paieGestes_', '_paieTexte_', '_paieHtml_', '_paieDestinataires_', '_paieRecentsLire_',
    '_paieRecentsAjouter_', '_paieLimiteGardes_', '_paieAEnvoyer_', '_paieEnvoyerAnnee_']
     .forEach(n => vm.runInContext(extraireFonction(CODE, n), ctx));
@@ -276,7 +276,7 @@ const MAINTENANT = Date.parse('2026-11-16T09:00:00Z');
     && /Retirer 1 jour de temps partiel pour Dr MAR04, le mardi 24 novembre 2026\./.test(mt.body || '')
     && /Saisir 1 jour de temps partiel pour Dr MAR04, le jeudi 26 novembre 2026\./.test(mt.body || ''), mt.body);
   V('objet d\'un seul changement de formation', (() => { const f = copie(tp); delete f.MAR04['2026-11-10']; envoyer(f);
-    return (mails[2] || {}).subject === 'Planning paie · formation retirée · Dr MAR04'; })(), (mails[2] || {}).subject);
+    return (mails[2] || {}).subject === 'À saisir : formation retirée · Dr MAR04 · 10/11'; })(), (mails[2] || {}).subject);
   r = envoyer(conges);
   V('retour à l\'état « congés » : un mail de plus', mails.length === 4);
   mails.length = 0;   // la suite compte ses mails à partir de zéro
@@ -288,7 +288,12 @@ const MAINTENANT = Date.parse('2026-11-16T09:00:00Z');
   V('le don part en UN mail', mails.length === 1 && r.envoye === true && r.nb === 1, r);
   const m = mails[0] || {};
   V('aux deux secrétaires ensemble', m.to === 'paie1@exemple.test,paie2@exemple.test', m.to);
-  V('objet : garde, date en clair, qui cède à qui', m.subject === 'Planning paie · garde réanimation du samedi 14 novembre 2026 : Dr MAR01 → Dr MAR02', m.subject);
+  V('objet : « À saisir : », garde, jour et date courte, qui cède à qui', m.subject === 'À saisir : garde réanimation du samedi 14/11 · Dr MAR01 → Dr MAR02', m.subject);
+  // (25/11/2026) Aperçu de la boîte de réception (texte caché en tête du mail).
+  const apercu = (m.htmlBody.match(/^<div style="display:none[^>]*>([^&<]*)/) || [])[1];
+  V('aperçu de la boîte de réception : en tout premier, le geste à faire', apercu === 'Retirer la garde réanimation du samedi 14 novembre 2026 à Dr MAR01. Ajouter la garde réanimation du samedi 14 novembre 2026 à Dr MAR02.', apercu);
+  V('… caché à l\'ouverture (display:none, mso-hide:all)', /^<div style="display:none;[^"]*mso-hide:all/.test(m.htmlBody));
+  V('… le bandeau « Planning-Med · paie » ne vient qu\'après', m.htmlBody.indexOf('Planning-Med · paie') > m.htmlBody.indexOf(apercu));
   V('le geste à reporter : retirer à MAR01', /Retirer la garde réanimation du samedi 14 novembre 2026 à Dr MAR01\./.test(m.body));
   V('le geste à reporter : ajouter à MAR02', /Ajouter la garde réanimation du samedi 14 novembre 2026 à Dr MAR02\./.test(m.body));
   V('le samedi est signalé « week-end »', /week-end/.test(m.htmlBody) && /\(week-end\)/.test(m.body));
@@ -321,7 +326,9 @@ const MAINTENANT = Date.parse('2026-11-16T09:00:00Z');
   r = envoyer(ech);
   const m2 = mails[1] || {};
   V('échange : un mail, deux changements', mails.length === 2 && r.nb === 2, r);
-  V('objet d\'un mail à plusieurs changements', m2.subject === 'Planning paie · 2 changements à reporter dans Chronos', m2.subject);
+  V('objet d\'un mail à plusieurs changements : les médecins concernés', m2.subject === 'À saisir : 2 changements · Dr MAR02, Dr MAR03', m2.subject);
+  const ap2 = (m2.htmlBody.match(/^<div style="display:none[^>]*>([^&<]*)/) || [])[1];
+  V('aperçu à plusieurs changements : le résumé de chacun', ap2 === 'Garde mater 21/11 : Dr MAR02 → Dr MAR03 · Garde mater 27/11 : Dr MAR03 → Dr MAR02', ap2);
   V('origine : l\'échange, une seule fois pour les deux dates', (m2.body.match(/Échange de gardes proposé par Dr MAR02 et accepté par Dr MAR03/g) || []).length === 1, m2.body);
   V('totaux inchangés pour un échange (1 → 1)', /Dr MAR02, novembre 2026 : garde maternité 1 → 1/.test(m2.body));
 
@@ -330,7 +337,7 @@ const MAINTENANT = Date.parse('2026-11-16T09:00:00Z');
   r = envoyer(vac);
   const m3 = mails[2] || {};
   V('vacances : une plage du vendredi au lundi, 2 jours', r.nb === 1 && /Saisir 2 jours de vacances pour Dr MAR04, du vendredi 20 novembre 2026 au lundi 23 novembre 2026 inclus\./.test(m3.body), m3.body);
-  V('objet vacances', m3.subject === 'Planning paie · vacances ajoutées · Dr MAR04', m3.subject);
+  V('objet vacances : la plage en date courte', m3.subject === 'À saisir : vacances ajoutées · Dr MAR04 · du 20/11 au 23/11', m3.subject);
   V('origine : le comité (aucun échange ne correspond)', /Modification du planning par le comité\./.test(m3.body));
   V('totaux vacances 0 → 2', /Dr MAR04, novembre 2026 : vacances 0 → 2/.test(m3.body));
 
@@ -348,7 +355,7 @@ const MAINTENANT = Date.parse('2026-11-16T09:00:00Z');
   V('échec : la photo n\'a PAS bougé', drive['planning_2026_paie.json'] === photoAvant);
   ctx.__panne = null;
   r = envoyer(panne);
-  V('passage suivant : le changement part', r.envoye === true && /28 novembre/.test(mails[mails.length - 1].subject));
+  V('passage suivant : le changement part', r.envoye === true && /28\/11/.test(mails[mails.length - 1].subject));
 
   // 11. Mode d'essai : tout part vers l'adresse d'essai.
   props.NOTIF_EMAIL_TEST = 'essai@exemple.test';
@@ -406,17 +413,17 @@ console.log('\n═══ P4 ter. Gardes proches seulement ; vacances, TP, format
   // b) Garde PROCHE (jeudi 12, avant le dimanche 15) : mail.
   const proche = copie(loin); delete proche.MAR02['2026-11-12']; proche.MAR04['2026-11-12'] = 'G';
   r = envoyerA(proche, LUNDI);
-  V('garde de la semaine en cours : mail', mails.length === 1 && r.envoye === true && /jeudi 12 novembre/.test(mails[0].subject), r);
+  V('garde de la semaine en cours : mail', mails.length === 1 && r.envoye === true && /jeudi 12\/11/.test(mails[0].subject), r);
 
   // c) Garde au dernier jour inclus (dimanche 15) : mail.
   const bord = copie(proche); bord.MAR01['2026-11-15'] = 'G';
   r = envoyerA(bord, LUNDI);
-  V('garde le dimanche de la semaine prochaine (dernier jour inclus) : mail', mails.length === 2 && /dimanche 15 novembre/.test(mails[1].subject), mails[1] && mails[1].subject);
+  V('garde le dimanche de la semaine prochaine (dernier jour inclus) : mail', mails.length === 2 && /dimanche 15\/11/.test(mails[1].subject), mails[1] && mails[1].subject);
 
   // d) Garde PASSÉE (mardi 3, corrigée le mercredi 25) : mail, elle est déjà saisie.
   const passe = copie(bord); delete passe.MAR01['2026-11-03']; passe.MAR04['2026-11-03'] = 'G';
   r = envoyerA(passe, at('2026-11-25T11:00:00Z'));
-  V('garde déjà passée : mail', mails.length === 3 && /mardi 3 novembre/.test(mails[2].subject), mails[2] && mails[2].subject);
+  V('garde déjà passée : mail', mails.length === 3 && /mardi 03\/11/.test(mails[2].subject), mails[2] && mails[2].subject);
 
   // e) Mélange un lundi : une garde lointaine + des vacances lointaines → mail des vacances SEULES.
   const mix = copie(passe); mix.MAR01['2026-11-28'] = 'G'; mix.MAR02['2026-11-30'] = 'V';
@@ -428,12 +435,19 @@ console.log('\n═══ P4 ter. Gardes proches seulement ; vacances, TP, format
   V('… mais elle est dans les derniers changements', JSON.parse(props.PAIE_RECENTS).some(x => /samedi 28 novembre 2026/.test(x.titre)));
   V('… les totaux du mail ne parlent que des vacances', /Dr MAR02, novembre 2026 : vacances 0 → 1/.test(mm.body || '') && !/Dr MAR01, novembre 2026/.test(mm.body || ''), mm.body);
 
+  // f) Plus de 3 médecins : les 2 premiers, puis « et N autres ».
+  const S4 = monterPaie(); S4.ctx.__config = [['PAIE_EMAILS', 'paie1@exemple.test']];
+  S4.ctx._paieEnvoyerAnnee_(2026, JSON.stringify(fabriquerPlanning(BASE)), LUNDI);
+  const quatre = copie(BASE); ['MAR01', 'MAR02', 'MAR03', 'MAR04'].forEach((id, i) => { quatre[id]['2026-11-1' + (6 + i)] = 'F'; });
+  S4.ctx._paieEnvoyerAnnee_(2026, JSON.stringify(fabriquerPlanning(quatre)), LUNDI);
+  V('objet à 4 médecins : « Dr MAR01, Dr MAR02 et 2 autres »', (S4.mails[0] || {}).subject === 'À saisir : 4 changements · Dr MAR01, Dr MAR02 et 2 autres', (S4.mails[0] || {}).subject);
+
   // CONTRE-ÉPREUVE 1 : sans le filtre, la garde lointaine partait par mail.
   const S2 = monterPaie(); S2.ctx.__config = [['PAIE_EMAILS', 'paie1@exemple.test']];
   vm.runInContext('_paieAEnvoyer_ = function () { return true; };', S2.ctx);
   S2.ctx._paieEnvoyerAnnee_(2026, JSON.stringify(fabriquerPlanning(BASE)), LUNDI);
   S2.ctx._paieEnvoyerAnnee_(2026, JSON.stringify(fabriquerPlanning(loin)), LUNDI);
-  V('contre-épreuve : sans le filtre, la garde lointaine partait par mail', S2.mails.length === 1 && /21 novembre/.test(S2.mails[0].subject));
+  V('contre-épreuve : sans le filtre, la garde lointaine partait par mail', S2.mails.length === 1 && /21\/11/.test(S2.mails[0].subject));
 
   // CONTRE-ÉPREUVE 2 : avec l'ancien tri (vacances seules), TP et formation se taisaient.
   const S3 = monterPaie(); S3.ctx.__config = [['PAIE_EMAILS', 'paie1@exemple.test']];

@@ -1,7 +1,7 @@
 // ⚠️ RÈGLE (détecteur de dérive dépôt↔Apps Script) : incrémenter cette version
 // à CHAQUE push de ce fichier. Le diagnostic (admin → Maintenance) compare la
 // version déployée ici avec celle du dépôt et signale toute recopie oubliée.
-const GAS_VERSION_CODE = '2026-11-25.1';   // (25/11/2026) .1 : mail paie — vacances, TP et formation toujours, gardes seulement jusqu'au dimanche de la semaine prochaine (passé compris) ; formation (F) servie à la page paie · (19/11/2026) .1 : planning_{Y}.json porte les notes du planning (interne en réa, infos du jour) · (17/11/2026) .2 : seuilsPresence_() — LES seuils d'effectif de tout le portail, lus dans l'onglet SEUILS (alerte, confort) · (17/11/2026) colonne HORS_EFFECTIF de MEDECINS (repérée par son titre) : MAR jamais compté dans l'effectif présent (getMedecinFlags().horsEffectif) · (15/11/2026) instantané d'équité : un jeudi férié compte comme férié, plus comme jeudi (même règle que le calcul) · (15/11/2026) instantané d'équité : à partir de 2028, Noël et le Jour de l'An (et leur jour couplé) restent dans le total mais sortent des compteurs fins, comme dans le calcul · (14/11/2026) écran d'équité : la part de chaque compteur (PART VISEE) et le nombre de week-ends servis à l'écran, pour afficher la fourchette (champsWeStats_, computeStatsLive) · (12/11/2026) week-ends : V (vendredis), WE = samedis + dimanches et sa part, lus dans l'onglet de statistiques (champsWeStats_) · (11/11/2026) vue paie : jours de TP (TP, CTP, semaine off du rythme 2/2) affichés, sans mail · (11/11/2026) mail paie lisible sur téléphone (une carte par changement) · (02/11/2026) commentaire sans initiales réelles · (27/10/2026) demi-journées de vacances VM/VA (planning, paie, notifications) · (27/10/2026) journée mobile 2027 (lundi 7 juin) ajoutée aux fériés · (18/10/2026) vue paie : tri G/G2/V (_planningPaie_) et mail aux secrétaires de paie (_paieEnvoyerAnnee_)
+const GAS_VERSION_CODE = '2026-11-25.2';   // (25/11/2026) .2 : mail paie — objet « À saisir : quoi · qui », aperçu de la boîte de réception = résumé des changements (_paieApercu_) · (25/11/2026) .1 : mail paie — vacances, TP et formation toujours, gardes seulement jusqu'au dimanche de la semaine prochaine (passé compris) ; formation (F) servie à la page paie · (19/11/2026) .1 : planning_{Y}.json porte les notes du planning (interne en réa, infos du jour) · (17/11/2026) .2 : seuilsPresence_() — LES seuils d'effectif de tout le portail, lus dans l'onglet SEUILS (alerte, confort) · (17/11/2026) colonne HORS_EFFECTIF de MEDECINS (repérée par son titre) : MAR jamais compté dans l'effectif présent (getMedecinFlags().horsEffectif) · (15/11/2026) instantané d'équité : un jeudi férié compte comme férié, plus comme jeudi (même règle que le calcul) · (15/11/2026) instantané d'équité : à partir de 2028, Noël et le Jour de l'An (et leur jour couplé) restent dans le total mais sortent des compteurs fins, comme dans le calcul · (14/11/2026) écran d'équité : la part de chaque compteur (PART VISEE) et le nombre de week-ends servis à l'écran, pour afficher la fourchette (champsWeStats_, computeStatsLive) · (12/11/2026) week-ends : V (vendredis), WE = samedis + dimanches et sa part, lus dans l'onglet de statistiques (champsWeStats_) · (11/11/2026) vue paie : jours de TP (TP, CTP, semaine off du rythme 2/2) affichés, sans mail · (11/11/2026) mail paie lisible sur téléphone (une carte par changement) · (02/11/2026) commentaire sans initiales réelles · (27/10/2026) demi-journées de vacances VM/VA (planning, paie, notifications) · (27/10/2026) journée mobile 2027 (lundi 7 juin) ajoutée aux fériés · (18/10/2026) vue paie : tri G/G2/V (_planningPaie_) et mail aux secrétaires de paie (_paieEnvoyerAnnee_)
 
 // ── Reconstruire STATS_GARDES_2026 depuis GARDES_2026 (année reconstruite) ──
 // Renvoie le classeur contenant l'onglet demandé : classeur actif si présent,
@@ -2420,16 +2420,46 @@ function _paieListe_(ids) {
 }
 
 // ── Objet ──────────────────────────────────────────────────────────────
+// (25/11/2026) Lisible dans la liste des messages, avant ouverture : « À saisir : »,
+// puis quoi et qui. Plusieurs changements : les médecins concernés (3 au plus,
+// puis « et N autres »).
+function _paieCourt_(iso) { return iso.slice(8, 10) + '/' + iso.slice(5, 7); }
+
+function _paieQuand_(it) {
+  if (it.demi) return _paieCourt_(it.du) + ' ' + PAIE_DEMI[it.demi];
+  return it.du === it.au ? _paieCourt_(it.du) : 'du ' + _paieCourt_(it.du) + ' au ' + _paieCourt_(it.au);
+}
+
 function _paieSujet_(items) {
   if (items.length === 1) {
     const it = items[0];
     if (it.type === 'garde') {
-      return 'Planning paie · ' + PAIE_LIB[it.code] + ' du ' + _paieJoli_(it.date) + ' : '
+      return 'À saisir : ' + PAIE_LIB[it.code] + ' du ' + NOTIF_JOURS[new Date(it.date + 'T12:00:00').getDay()] + ' '
+        + _paieCourt_(it.date) + ' · ' + _paieListe_(it.de) + ' → ' + _paieListe_(it.a);
+    }
+    return 'À saisir : ' + _paieAbsLib_(it) + ' · ' + _paieDr_(it.id) + ' · ' + _paieQuand_(it);
+  }
+  const ids = [];
+  items.forEach(function (it) {
+    (it.type === 'garde' ? it.de.concat(it.a) : [it.id]).forEach(function (id) { if (ids.indexOf(id) < 0) ids.push(id); });
+  });
+  const noms = ids.length <= 3 ? ids.map(_paieDr_).join(', ')
+    : ids.slice(0, 2).map(_paieDr_).join(', ') + ' et ' + (ids.length - 2) + ' autres';
+  return 'À saisir : ' + items.length + ' changements · ' + noms;
+}
+
+// (25/11/2026) Aperçu de la liste des messages (3e ligne, avant ouverture) : le
+// résumé des changements. Un seul changement : le geste à faire.
+function _paieApercu_(items) {
+  if (items.length === 1) return _paieGestes_(items[0]).join(' ');
+  return items.map(function (it) {
+    if (it.type === 'garde') {
+      return (it.code === 'G2' ? 'Garde mater ' : 'Garde réa ') + _paieCourt_(it.date) + ' : '
         + _paieListe_(it.de) + ' → ' + _paieListe_(it.a);
     }
-    return 'Planning paie · ' + _paieAbsLib_(it) + ' · ' + _paieDr_(it.id);
-  }
-  return 'Planning paie · ' + items.length + ' changements à reporter dans Chronos';
+    const lib = _paieAbsLib_(it);
+    return lib.charAt(0).toUpperCase() + lib.slice(1) + ' ' + _paieDr_(it.id) + ' ' + _paieQuand_(it);
+  }).join(' · ');
 }
 
 // ── Gestes à reporter dans Chronos, un par ligne ───────────────────────
@@ -2552,6 +2582,9 @@ function _paieHtml_(items, totaux, origines, jours) {
   const lien = PAIE_SITE + (mois ? '?m=' + mois : '');
 
   return ''
+  // Texte caché en tête : les messageries l'affichent comme aperçu, jamais dans le mail ouvert.
+  + '<div style="display:none;max-height:0;max-width:0;overflow:hidden;mso-hide:all;font-size:1px;line-height:1px;color:#f4f6f9;opacity:0">'
+  +   _paieApercu_(items) + new Array(60).join('&#847;&zwnj;&nbsp;') + '</div>'
   + '<table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" '
   + 'style="background:#f4f6f9;font-family:' + POLICE + '">'
   + '<tr><td align="center" style="padding:10px 6px">'
