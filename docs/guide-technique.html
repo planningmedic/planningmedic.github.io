@@ -2263,10 +2263,15 @@ et sa suppression est planifiée après septembre 2026.</p></div>
 <div class="r2"><div class="titre">En 2 minutes</div>
 <p>Deux secrétaires saisissent gardes et vacances dans le logiciel de paie. Elles ont leur page,
 <code>paie.html</code>, en <b>lecture seule</b> : un mois à la fois, gardes réa (G), gardes maternité
-(G2) et vacances (V), avec les totaux du mois. Elles y entrent avec un <b>code partagé</b>, distinct
-de celui du secrétariat des consultations. À chaque changement de G, G2 ou V, un mail leur dit quoi
-retirer et quoi ajouter, avec les nouveaux totaux et l'origine du changement (don, échange, comité).
+(G2), vacances (V), temps partiel (TP) et formation (F), avec les totaux du mois. Elles y entrent avec un <b>code partagé</b>, distinct
+de celui du secrétariat des consultations. Un mail leur dit quoi retirer et quoi ajouter, avec les
+nouveaux totaux et l'origine du changement (don, échange, comité).
 Un MAR y accède par une tuile cachée de l'accueil.</p>
+<p>Quand part le mail (25/11/2026) : à chaque changement de V, TP ou F, quelle qu'en soit la date ; pour
+une garde (G, G2), seulement si elle tombe au plus tard le dimanche de la semaine prochaine, passé compris
+(<code>_paieLimiteGardes_</code>, heure de Monaco). Les secrétaires saisissent les gardes le vendredi pour
+la semaine suivante. Une garde plus lointaine ne part pas par mail mais entre dans les derniers changements
+de la page. Grille : un trait fin entre chaque jour, plus marqué le lundi.</p>
 <p>Janvier (12/11/2026) : le planning d'une année commence au premier lundi, donc les tout premiers
 jours de janvier appartiennent au planning de l'année d'avant (1er, 2 et 3 janvier 2027 dans le planning
 2026). La page réunit les deux plannings tant que le mois n'est pas complet (<code>trouverMois</code>,
@@ -2279,8 +2284,9 @@ seulement ; la vue « Gardes jour par jour » garde le défilement normal). Les 
 repliés par défaut, leur nombre est affiché dans le titre.</p></div>
 
 <details><summary>Ce qu'elles voient, et ce qu'elles ne voient jamais</summary><div class="corps">
-<p>Le tri se fait <b>sur le serveur</b> : seuls G, G2 et V (VAC servi comme V) quittent le classeur.
-Formations, temps partiels, absences, congés longs, repos, 18h et secteurs ne sont jamais envoyés à la
+<p>Le tri se fait <b>sur le serveur</b> : seuls G, G2, V (VAC servi comme V, VM/VA), TP (TP, CTP, semaine
+off du 2/2, jours ouvrés) et F (FORM servi comme F) quittent le classeur.
+Absences, congés longs, repos, 18h et secteurs ne sont jamais envoyés à la
 page ni écrits dans le mail. Il n'y a donc rien à masquer côté navigateur.</p>
 <p>Le code partagé n'atteint que deux actions : <code>login</code> et <code>getPlanningPaie</code>
 (liste blanche <code>PAIE_ACTIONS</code>). Depuis ce chantier, le routeur refuse <b>par défaut</b>

@@ -1201,10 +1201,12 @@
 
   <section id="d4">
     <h2><span class="n">19</span>Les secrétaires de paie</h2>
-    <p><b>En 2 minutes :</b> les deux secrétaires qui saisissent gardes, vacances et temps partiels dans le logiciel de paie
+    <p><b>En 2 minutes :</b> les deux secrétaires qui saisissent gardes, vacances, temps partiels et formations dans le logiciel de paie
     ont leur page, <b>en lecture seule</b> : <b>planningmedic.github.io/paie.html</b>. Elles y entrent avec un code
-    qu'elles partagent, et reçoivent un mail à chaque changement de garde ou de vacances, environ
-    10 minutes après. Vous n'avez plus rien à leur envoyer à la main.</p>
+    qu'elles partagent, et reçoivent un mail environ 10 minutes après chaque changement de vacances, de temps partiel
+    ou de formation. Pour une garde, le mail ne part que si elle tombe d'ici la fin de la semaine prochaine (ou est déjà
+    passée) : elles saisissent les gardes le vendredi pour la semaine suivante, et lisent les autres sur la page.
+    Vous n'avez plus rien à leur envoyer à la main.</p>
     <p>Le mois de janvier s'affiche en entier, du 1er au 31, même si ses tout premiers jours appartiennent encore au planning de l'année précédente.</p>
 
     <h3>Je veux leur ouvrir l'accès (une seule fois)</h3>
@@ -1217,7 +1219,8 @@
     <h3>Saisir les gardes jour par jour</h3>
     <p>En haut de leur page, le bouton <b>« Gardes jour par jour »</b> affiche une ligne par jour avec le nom du médecin
     de garde réa et celui de garde maternité, au lieu de la grande grille. Un nom encadré d'orange a changé depuis moins
-    de 7 jours. Le bouton <b>« Grille du mois »</b> ramène à la grille, qui garde les vacances et les temps partiels.</p>
+    de 7 jours. Le bouton <b>« Grille du mois »</b> ramène à la grille, qui garde les vacances, les temps partiels et les formations.
+    Un trait fin sépare chaque jour, un peu plus marqué le lundi.</p>
 
     <h3>Je veux voir ce qu'elles voient</h3>
     <p>Dans <b>CONFIG</b>, ajoutez <b>paie</b> à votre ligne <b>TUILES_PRIVEES</b>. La tuile <b>« Planning paie »</b>
@@ -1228,8 +1231,8 @@
 
     <table>
       <tr><th>Ce qu'elles voient et reçoivent</th><th>Ce qu'elles ne voient jamais</th></tr>
-      <tr><td>Les gardes réa (G), les gardes maternité (G2), les vacances (V, y compris les demi-journées) et les jours de temps partiel (TP, y compris les semaines off du rythme deux semaines sur deux), mois par mois, avec les totaux par médecin</td><td>Formations, absences, congés longs, repos, secteurs du bloc</td></tr>
-      <tr><td>Un mail à chaque changement de G, G2 ou V : don, échange, ou correction de votre part. Il dit quoi retirer et quoi ajouter, et donne les nouveaux totaux</td><td>Aucun mail pour un changement de temps partiel, de secteur ou de formation : le temps partiel se lit sur la page</td></tr>
+      <tr><td>Les gardes réa (G), les gardes maternité (G2), les vacances (V, y compris les demi-journées), les jours de temps partiel (TP, y compris les semaines off du rythme deux semaines sur deux) et les formations (F), mois par mois, avec les totaux par médecin</td><td>Absences, congés longs, repos, secteurs du bloc</td></tr>
+      <tr><td>Un mail à chaque changement de vacances, de temps partiel ou de formation, et à chaque changement de garde passée ou d'ici la fin de la semaine prochaine : don, échange, ou correction de votre part. Il dit quoi retirer et quoi ajouter, et donne les nouveaux totaux</td><td>Aucun mail pour une garde plus lointaine (elle apparaît sur la page et dans les derniers changements), ni pour un secteur</td></tr>
       <tr><td>Les cases changées depuis moins de 7 jours, encadrées d'orange, et la liste des changements des 14 derniers jours</td><td>Elles ne peuvent rien modifier</td></tr>
     </table>
 

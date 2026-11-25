@@ -1,7 +1,7 @@
 // ⚠️ RÈGLE (détecteur de dérive dépôt↔Apps Script) : incrémenter cette version
 // à CHAQUE push de ce fichier. Le diagnostic (admin → Maintenance) compare la
 // version déployée ici avec celle du dépôt et signale toute recopie oubliée.
-const GAS_VERSION_CODE = '2026-11-19.1';   // (19/11/2026) .1 : planning_{Y}.json porte les notes du planning (interne en réa, infos du jour) · (17/11/2026) .2 : seuilsPresence_() — LES seuils d'effectif de tout le portail, lus dans l'onglet SEUILS (alerte, confort) · (17/11/2026) colonne HORS_EFFECTIF de MEDECINS (repérée par son titre) : MAR jamais compté dans l'effectif présent (getMedecinFlags().horsEffectif) · (15/11/2026) instantané d'équité : un jeudi férié compte comme férié, plus comme jeudi (même règle que le calcul) · (15/11/2026) instantané d'équité : à partir de 2028, Noël et le Jour de l'An (et leur jour couplé) restent dans le total mais sortent des compteurs fins, comme dans le calcul · (14/11/2026) écran d'équité : la part de chaque compteur (PART VISEE) et le nombre de week-ends servis à l'écran, pour afficher la fourchette (champsWeStats_, computeStatsLive) · (12/11/2026) week-ends : V (vendredis), WE = samedis + dimanches et sa part, lus dans l'onglet de statistiques (champsWeStats_) · (11/11/2026) vue paie : jours de TP (TP, CTP, semaine off du rythme 2/2) affichés, sans mail · (11/11/2026) mail paie lisible sur téléphone (une carte par changement) · (02/11/2026) commentaire sans initiales réelles · (27/10/2026) demi-journées de vacances VM/VA (planning, paie, notifications) · (27/10/2026) journée mobile 2027 (lundi 7 juin) ajoutée aux fériés · (18/10/2026) vue paie : tri G/G2/V (_planningPaie_) et mail aux secrétaires de paie (_paieEnvoyerAnnee_)
+const GAS_VERSION_CODE = '2026-11-25.1';   // (25/11/2026) .1 : mail paie — vacances, TP et formation toujours, gardes seulement jusqu'au dimanche de la semaine prochaine (passé compris) ; formation (F) servie à la page paie · (19/11/2026) .1 : planning_{Y}.json porte les notes du planning (interne en réa, infos du jour) · (17/11/2026) .2 : seuilsPresence_() — LES seuils d'effectif de tout le portail, lus dans l'onglet SEUILS (alerte, confort) · (17/11/2026) colonne HORS_EFFECTIF de MEDECINS (repérée par son titre) : MAR jamais compté dans l'effectif présent (getMedecinFlags().horsEffectif) · (15/11/2026) instantané d'équité : un jeudi férié compte comme férié, plus comme jeudi (même règle que le calcul) · (15/11/2026) instantané d'équité : à partir de 2028, Noël et le Jour de l'An (et leur jour couplé) restent dans le total mais sortent des compteurs fins, comme dans le calcul · (14/11/2026) écran d'équité : la part de chaque compteur (PART VISEE) et le nombre de week-ends servis à l'écran, pour afficher la fourchette (champsWeStats_, computeStatsLive) · (12/11/2026) week-ends : V (vendredis), WE = samedis + dimanches et sa part, lus dans l'onglet de statistiques (champsWeStats_) · (11/11/2026) vue paie : jours de TP (TP, CTP, semaine off du rythme 2/2) affichés, sans mail · (11/11/2026) mail paie lisible sur téléphone (une carte par changement) · (02/11/2026) commentaire sans initiales réelles · (27/10/2026) demi-journées de vacances VM/VA (planning, paie, notifications) · (27/10/2026) journée mobile 2027 (lundi 7 juin) ajoutée aux fériés · (18/10/2026) vue paie : tri G/G2/V (_planningPaie_) et mail aux secrétaires de paie (_paieEnvoyerAnnee_)
 
 // ── Reconstruire STATS_GARDES_2026 depuis GARDES_2026 (année reconstruite) ──
 // Renvoie le classeur contenant l'onglet demandé : classeur actif si présent,
@@ -2147,14 +2147,19 @@ function _notifHtml(nom, chgs, year, LIB) {
 // ══════════════════════════════════════════════════════════════════════
 // (18/10/2026) Deux usages, une seule règle de tri :
 //   - la page paie.html (action getPlanningPaie, gardes.gs) lit le mois ;
-//   - un mail part aux secrétaires de paie à chaque changement de G, G2 ou V.
+//   - un mail part aux secrétaires de paie à chaque changement (règle ci-dessous).
 // Codes de la paie : G (garde réa), G2 (garde maternité), V (vacances ; VAC
-// en est l'alias), VM/VA (demi-journées) et, depuis le 11/11/2026, TP (jour
-// de temps partiel : TP, CTP, et la semaine off du rythme 2/2, un jour ouvré
-// seulement). TOUT AUTRE CODE (formation, absence, congé long, repos, 18h…)
-// est écarté ICI, côté serveur : il n'est ni envoyé à la page, ni écrit dans
-// le mail. Le TP est montré sur la page mais NE DÉCLENCHE AUCUN MAIL
-// (_paieDiff_ ne regarde que G, G2, V, VM, VA) — décision du 11/11/2026.
+// en est l'alias), VM/VA (demi-journées), TP (jour de temps partiel : TP, CTP,
+// et la semaine off du rythme 2/2, un jour ouvré seulement — 11/11/2026) et,
+// depuis le 25/11/2026, F (formation ; FORM en est l'alias). TOUT AUTRE CODE
+// (absence, congé long, repos, 18h…) est écarté ICI, côté serveur : il n'est
+// ni envoyé à la page, ni écrit dans le mail.
+// (25/11/2026) QUAND PART LE MAIL : tout changement de vacances, de TP ou de
+// formation, quelle qu'en soit la date. Une garde (G, G2), seulement si elle
+// tombe au plus tard le dimanche de la semaine prochaine (passé compris) : les
+// secrétaires saisissent les gardes le vendredi pour la semaine suivante, une
+// garde plus lointaine sera lue sur la page le moment venu. Ces gardes
+// lointaines restent dans « Derniers changements » de la page (_paieLimiteGardes_).
 //
 // Le mail a SA PROPRE photo de référence (planning_{année}_paie.json),
 // distincte de celle des mails aux MAR : un échec d'un côté ne fait jamais
@@ -2167,20 +2172,26 @@ function _notifHtml(nom, chgs, year, LIB) {
 
 const PAIE_LIB = { G: 'garde réanimation', G2: 'garde maternité', V: 'vacances',
                    VM: 'demi-journée de vacances (matin)', VA: 'demi-journée de vacances (après-midi)',
-                   TP: 'jour de temps partiel' };
+                   TP: 'jour de temps partiel', F: 'formation' };
+// (25/11/2026) Absences à la journée envoyées par mail : vacances, TP, formation.
+// nom : « 2 jours de … » ; ajout / retrait : accord du participe.
+const PAIE_ABS = { V:  { nom: 'vacances',      ajout: 'ajoutées', retrait: 'retirées' },
+                   TP: { nom: 'temps partiel', ajout: 'ajouté',   retrait: 'retiré' },
+                   F:  { nom: 'formation',     ajout: 'ajoutée',  retrait: 'retirée' } };
 // (27/10/2026) VM/VA valent une demi-journée : 0,5 dans les totaux de vacances.
 const PAIE_DEMI = { VM: 'matin', VA: 'après-midi' };
 const PAIE_SITE = 'https://planningmedic.github.io/paie.html';
 const PAIE_PROP_RECENTS = 'PAIE_RECENTS';     // derniers changements (14 jours)
 const PAIE_RECENTS_JOURS = 14;
 
-// Code du planning → code paie ('G', 'G2', 'V', 'VM', 'VA', 'TP') ou '' (écarté).
+// Code du planning → code paie ('G', 'G2', 'V', 'VM', 'VA', 'TP', 'F') ou '' (écarté).
 function _paieCode_(st) {
   const c = String(st == null ? '' : st).trim().toUpperCase();
   if (c === 'G' || c === 'G2') return c;
   if (c === 'V' || c === 'VAC') return 'V';
   if (c === 'VM' || c === 'VA') return c;
   if (c === 'TP' || c === 'CTP') return 'TP';
+  if (c === 'F' || c === 'FORM') return 'F';
   return '';
 }
 
@@ -2270,20 +2281,25 @@ function _paieDiff_(av, ap) {
         const k = date + '|' + b;
         (gardes[k] = gardes[k] || { type: 'garde', date: date, code: b, de: [], a: [] }).a.push(id);
       }
-      if (a === 'V' && b !== 'V') ((vac[id] = vac[id] || { ajout: [], retrait: [] }).retrait).push(date);
-      if (b === 'V' && a !== 'V') ((vac[id] = vac[id] || { ajout: [], retrait: [] }).ajout).push(date);
+      // (25/11/2026) Vacances, TP, formation : même traitement, par plages.
+      Object.keys(PAIE_ABS).forEach(function (code) {
+        const k = id + '|' + code;
+        if (a === code && b !== code) ((vac[k] = vac[k] || { id: id, code: code, ajout: [], retrait: [] }).retrait).push(date);
+        if (b === code && a !== code) ((vac[k] = vac[k] || { id: id, code: code, ajout: [], retrait: [] }).ajout).push(date);
+      });
       // Demi-journée : une ligne à elle, jamais fusionnée dans une plage de jours entiers.
-      if (PAIE_DEMI[a]) demis.push({ type: 'vac', id: id, sens: 'retrait', date: date, du: date, au: date, n: 0.5, demi: a });
-      if (PAIE_DEMI[b]) demis.push({ type: 'vac', id: id, sens: 'ajout', date: date, du: date, au: date, n: 0.5, demi: b });
+      if (PAIE_DEMI[a]) demis.push({ type: 'vac', code: 'V', id: id, sens: 'retrait', date: date, du: date, au: date, n: 0.5, demi: a });
+      if (PAIE_DEMI[b]) demis.push({ type: 'vac', code: 'V', id: id, sens: 'ajout', date: date, du: date, au: date, n: 0.5, demi: b });
     });
   });
   const items = Object.keys(gardes).map(function (k) {
     const g = gardes[k]; g.de.sort(); g.a.sort(); return g;
   });
-  Object.keys(vac).sort().forEach(function (id) {
+  Object.keys(vac).sort().forEach(function (k) {
+    const v = vac[k];
     ['ajout', 'retrait'].forEach(function (sens) {
-      _paiePlages_(vac[id][sens].sort(), ap.jours).forEach(function (pl) {
-        items.push({ type: 'vac', id: id, sens: sens, date: pl.du, du: pl.du, au: pl.au, n: pl.n });
+      _paiePlages_(v[sens].sort(), ap.jours).forEach(function (pl) {
+        items.push({ type: 'vac', code: v.code, id: v.id, sens: sens, date: pl.du, du: pl.du, au: pl.au, n: pl.n });
       });
     });
   });
@@ -2325,7 +2341,7 @@ function _paieTotaux_(av, ap, items) {
   items.forEach(function (it) {
     const mois = it.date.slice(0, 7);
     const ids = it.type === 'garde' ? it.de.concat(it.a) : [it.id];
-    const codes = it.type === 'garde' ? [it.code] : ['V'];
+    const codes = [it.code || 'V'];
     ids.forEach(function (id) {
       const k = id + '|' + mois;
       if (!vus[k]) { vus[k] = { id: id, mois: mois, codes: {} }; out.push(vus[k]); }
@@ -2342,7 +2358,7 @@ function _paieTotaux_(av, ap, items) {
     }, 0);
   };
   return out.map(function (t) {
-    return { id: t.id, mois: t.mois, lignes: ['G', 'G2', 'V'].filter(function (c) { return t.codes[c]; })
+    return { id: t.id, mois: t.mois, lignes: ['G', 'G2', 'V', 'TP', 'F'].filter(function (c) { return t.codes[c]; })
       .map(function (c) { return { code: c, avant: compter(av, t.id, t.mois, c), apres: compter(ap, t.id, t.mois, c) }; }) };
   });
 }
@@ -2393,6 +2409,12 @@ function _paieTag_(date, jours) {
   return j.fe ? 'jour férié' : (j.we ? 'week-end' : '');
 }
 
+// (25/11/2026) « vacances ajoutées », « temps partiel retiré », « formation ajoutée ».
+function _paieAbsLib_(it) {
+  const a = PAIE_ABS[it.code || 'V'];
+  return a.nom + ' ' + a[it.sens];
+}
+
 function _paieListe_(ids) {
   return ids.length ? ids.map(_paieDr_).join(', ') : 'personne';
 }
@@ -2405,7 +2427,7 @@ function _paieSujet_(items) {
       return 'Planning paie · ' + PAIE_LIB[it.code] + ' du ' + _paieJoli_(it.date) + ' : '
         + _paieListe_(it.de) + ' → ' + _paieListe_(it.a);
     }
-    return 'Planning paie · vacances ' + (it.sens === 'ajout' ? 'ajoutées' : 'retirées') + ' · ' + _paieDr_(it.id);
+    return 'Planning paie · ' + _paieAbsLib_(it) + ' · ' + _paieDr_(it.id);
   }
   return 'Planning paie · ' + items.length + ' changements à reporter dans Chronos';
 }
@@ -2421,7 +2443,7 @@ function _paieGestes_(it) {
     return [(it.sens === 'ajout' ? 'Saisir ' : 'Retirer ') + 'une demi-journée de vacances (' + PAIE_DEMI[it.demi]
       + ') pour ' + _paieDr_(it.id) + ', le ' + _paieJoli_(it.du) + '.'];
   }
-  const nb = it.n + ' jour' + (it.n > 1 ? 's' : '') + ' de vacances';
+  const nb = it.n + ' jour' + (it.n > 1 ? 's' : '') + ' de ' + PAIE_ABS[it.code || 'V'].nom;
   const per = it.du === it.au ? 'le ' + _paieJoli_(it.du) : 'du ' + _paieJoli_(it.du) + ' au ' + _paieJoli_(it.au) + ' inclus';
   return [(it.sens === 'ajout' ? 'Saisir ' : 'Retirer ') + nb + ' pour ' + _paieDr_(it.id) + ', ' + per + '.'];
 }
@@ -2436,7 +2458,7 @@ function _paieTexte_(items, totaux, origines, jours) {
       t += '  ' + _paieJoli_(it.date) + (tag ? ' (' + tag + ')' : '') + ' — ' + PAIE_LIB[it.code]
         + ' : avant ' + _paieListe_(it.de) + ', après ' + _paieListe_(it.a) + '\n';
     } else {
-      t += '  ' + _paieDr_(it.id) + ' — vacances ' + (it.sens === 'ajout' ? 'ajoutées' : 'retirées')
+      t += '  ' + _paieDr_(it.id) + ' — ' + _paieAbsLib_(it)
         + ' : ' + (it.du === it.au ? _paieJoli_(it.du) : 'du ' + _paieJoli_(it.du) + ' au ' + _paieJoli_(it.au))
         + ' (' + (it.demi ? 'demi-journée, ' + PAIE_DEMI[it.demi] : it.n + ' jour' + (it.n > 1 ? 's' : '')) + ')\n';
     }
@@ -2504,7 +2526,7 @@ function _paieHtml_(items, totaux, origines, jours) {
           .concat(it.a.map(function (id) { return 'Ajouter à <b>' + _paieDr_(id) + '</b>'; })));
     }
     const per = it.du === it.au ? _paieJoli_(it.du) : 'du ' + _paieJoli_(it.du) + ' au ' + _paieJoli_(it.au);
-    return carte(_paieDr_(it.id) + ' · vacances ' + (it.sens === 'ajout' ? 'ajoutées' : 'retirées'),
+    return carte(_paieDr_(it.id) + ' · ' + _paieAbsLib_(it),
       sansLien(per) + ' · ' + (it.demi ? 'demi-journée (' + PAIE_DEMI[it.demi] + ')' : it.n + ' jour' + (it.n > 1 ? 's' : '')),
       _paieGestes_(it));
   }).join('');
@@ -2594,7 +2616,7 @@ function _paieRecentsAjouter_(items, maintenantMs) {
       }
       liste.push({ le: le, titre: it.type === 'garde'
         ? PAIE_LIB[it.code] + ' du ' + _paieJoli_(it.date) + ' : ' + _paieListe_(it.de) + ' → ' + _paieListe_(it.a)
-        : 'vacances ' + (it.sens === 'ajout' ? 'ajoutées' : 'retirées') + ' pour ' + _paieDr_(it.id) + ' ('
+        : _paieAbsLib_(it) + ' pour ' + _paieDr_(it.id) + ' ('
           + (it.du === it.au ? _paieJoli_(it.du) : 'du ' + _paieJoli_(it.du) + ' au ' + _paieJoli_(it.au)) + ')',
         cellules: cellules });
     });
@@ -2603,6 +2625,23 @@ function _paieRecentsAjouter_(items, maintenantMs) {
     while (json.length > 8000 && liste.length) { liste.shift(); json = JSON.stringify(liste); }
     PropertiesService.getScriptProperties().setProperty(PAIE_PROP_RECENTS, json);
   } catch (e) { /* la mémoire est un confort : jamais bloquante */ }
+}
+
+// ── (25/11/2026) Jusqu'où une garde déclenche un mail ──────────────────
+// Le dimanche de la semaine PROCHAINE, à l'heure de Monaco ('AAAA-MM-JJ').
+// Mercredi 25/11 → dimanche 06/12 ; samedi 28/11 → dimanche 06/12 ;
+// dimanche 29/11 → dimanche 06/12 ; lundi 30/11 → dimanche 13/12.
+function _paieLimiteGardes_(maintenantMs) {
+  const auj = String(Utilities.formatDate(new Date(maintenantMs), 'Europe/Paris', 'yyyy-MM-dd')).slice(0, 10);
+  const d = new Date(auj + 'T12:00:00Z');
+  const versDimanche = (7 - d.getUTCDay()) % 7;      // 0 si l'on est dimanche
+  d.setUTCDate(d.getUTCDate() + versDimanche + 7);
+  return d.toISOString().slice(0, 10);
+}
+
+// Une garde passée ou proche part par mail ; vacances, TP et formation, toujours.
+function _paieAEnvoyer_(it, limite) {
+  return it.type !== 'garde' || it.date <= limite;
 }
 
 // ── Envoi pour une année (appelé par _notifEnvoyerAnnee_) ──────────────
@@ -2620,12 +2659,22 @@ function _paieEnvoyerAnnee_(year, courantRaw, maintenantMs) {
   }
   const av = _paieAplatir_(JSON.parse(refRaw));
   const ap = _paieAplatir_(JSON.parse(courantRaw));
-  const items = _paieDiff_(av, ap);
-  if (!items.length) {
+  const tous = _paieDiff_(av, ap);
+  if (!tous.length) {
     savePlanningToDrive(refName, courantRaw);
     return { envoye: false, nb: 0, erreur: null, motif: 'rien pour la paie' };
   }
   const maintenant = maintenantMs || Date.now();
+  // (25/11/2026) Les gardes lointaines ne partent pas par mail : elles restent
+  // seulement dans « Derniers changements » de la page.
+  const limite = _paieLimiteGardes_(maintenant);
+  const items = tous.filter(function (it) { return _paieAEnvoyer_(it, limite); });
+  const lointaines = tous.filter(function (it) { return !_paieAEnvoyer_(it, limite); });
+  if (!items.length) {
+    savePlanningToDrive(refName, courantRaw);
+    _paieRecentsAjouter_(lointaines, maintenant);
+    return { envoye: false, nb: 0, erreur: null, motif: 'gardes lointaines seulement', lointaines: lointaines.length };
+  }
   let echanges = [];
   try { if (typeof _echangesLignes_ === 'function') echanges = _echangesLignes_().lignes || []; } catch (e) { echanges = []; }
   const origines = [];
@@ -2649,8 +2698,8 @@ function _paieEnvoyerAnnee_(year, courantRaw, maintenantMs) {
     return { envoye: false, nb: items.length, erreur: String(err.message) };
   }
   savePlanningToDrive(refName, courantRaw);
-  _paieRecentsAjouter_(items, maintenant);
-  return { envoye: true, nb: items.length, erreur: null };
+  _paieRecentsAjouter_(tous, maintenant);
+  return { envoye: true, nb: items.length, erreur: null, lointaines: lointaines.length };
 }
 
 /* (24/08/2026) Fusion de la mémoire des placements caducs : les entrées du
