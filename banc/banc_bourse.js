@@ -249,5 +249,77 @@ console.log('\n═══ 8. Onglet d\'avant la bourse : les trois colonnes reço
   V('l\'offre est lisible', run(b, 'getEchangesEnveloppe()').echanges.some(e => e.id === r.id && e.mode === 'don'));
 }
 
+
+console.log('\n═══ 9. Aucune journée dégradée : jamais deux gardes au même MAR, jamais un jour sans son binôme ═══');
+{
+  const b = monde(2027);
+  const D = b.dates, M8 = ['ALPHA','BRAVO','CHARLI','DELTA','ECHO','FOXTRO','GOLF','HOTEL'];
+  // Planning plein : chaque jour une garde Réa (G) et une Mater (G2), repos le lendemain, jamais deux gardes de suite.
+  for (let i = 0; i < 60; i++) {
+    const a = M8[(2 * i) % 8], c = M8[(2 * i + 1) % 8];
+    b.poser(a, D[i], 'G'); b.poser(c, D[i], 'G2');
+    if (i + 1 < 60) { if (!b.lire(a, D[i + 1])) b.poser(a, D[i + 1], 'RG'); if (!b.lire(c, D[i + 1])) b.poser(c, D[i + 1], 'RG'); }
+  }
+  // a) le binôme du jour ne peut pas prendre la garde de l'autre ligne
+  const j = D[10], g = M8[20 % 8], m = M8[21 % 8];
+  const o = deposer(b, g, j, 'don');
+  const e1 = essai(b, `prendreBourse(${U(m)}, { id:${JSON.stringify(o.id)} })`);
+  V('le binôme du jour ne prend pas la garde de l\'autre ligne (il en aurait deux)', !!e1.err && b.lire(g, j) === 'G' && b.lire(m, j) === 'G2', e1);
+  // b) garde la veille / le lendemain : refusé
+  const veille = M8[18 % 8], lend = M8[22 % 8];
+  V('celui qui est de garde la veille ne la prend pas', !!essai(b, `prendreBourse(${U(veille)}, { id:${JSON.stringify(o.id)}, accepteAbsence:true })`).err);
+  V('celui qui est de garde le lendemain ne la prend pas', !!essai(b, `prendreBourse(${U(lend)}, { id:${JSON.stringify(o.id)}, accepteAbsence:true })`).err);
+  V('après ces refus, l\'offre est toujours en vitrine et rien n\'a bougé', ligneDe(b, o.id)[COL.ETAT] === 'attente' && b.lire(g, j) === 'G');
+
+  // c) Échange devenu impossible en route : la garde proposée est partie ailleurs entre-temps
+  const c2 = monde(2027);
+  c2.poser('ALPHA', c2.dates[9], 'G'); c2.poser('ALPHA', c2.dates[10], 'RG');
+  c2.poser('BRAVO', c2.dates[30], 'G'); c2.poser('BRAVO', c2.dates[31], 'RG');
+  const oA = deposer(c2, 'ALPHA', c2.dates[9], 'echange');
+  const pB = run(c2, `creerEchange(${U('BRAVO')}, { type:'echange', year:2027, date:${JSON.stringify(c2.dates[30])}, date2:${JSON.stringify(c2.dates[9])}, receveur:'ALPHA', offre:${JSON.stringify(oA.id)} })`);
+  const oB = deposer(c2, 'BRAVO', c2.dates[30], 'don');
+  run(c2, `prendreBourse(${U('CHARLI')}, { id:${JSON.stringify(oB.id)} })`);   // la garde proposée par BRAVO part chez CHARLI
+  V('la proposition de BRAVO se ferme d\'elle-même (il n\'a plus la garde proposée)', ligneDe(c2, pB.id)[COL.ETAT] === 'sansobjet', ligneDe(c2, pB.id));
+  const ch = essai(c2, `repondreEchange(${U('ALPHA')}, { id:${JSON.stringify(pB.id)}, reponse:'accepter' })`);
+  V('ALPHA ne peut plus la choisir, et rien n\'est écrit à moitié', !!ch.err && c2.lire('ALPHA', c2.dates[9]) === 'G' && c2.lire('CHARLI', c2.dates[30]) === 'G' && c2.lire('BRAVO', c2.dates[9]) === '', ch);
+  V('l\'offre d\'ALPHA reste en vitrine', ligneDe(c2, oA.id)[COL.ETAT] === 'attente');
+
+  // d) 400 gestes au hasard sur le planning plein : les règles tiennent à chaque pas
+  let graine = 7; const hasard = n => { graine = (graine * 1103515245 + 12345) % 2147483648; return Math.floor(graine / 65536) % n; };
+  const invariants = () => {
+    const pb = [];
+    for (let i = 0; i < 60; i++) {
+      const codes = M8.map(x => b.lire(x, D[i]));
+      if (codes.filter(c => c === 'G').length !== 1) pb.push(D[i] + ' : ' + codes.filter(c => c === 'G').length + ' garde(s) réa');
+      if (codes.filter(c => c === 'G2').length !== 1) pb.push(D[i] + ' : ' + codes.filter(c => c === 'G2').length + ' garde(s) mater');
+      if (i > 0) M8.forEach(x => { if (/^G2?$/.test(b.lire(x, D[i])) && /^G2?$/.test(b.lire(x, D[i - 1]))) pb.push(x + ' deux gardes de suite ' + D[i]); });
+    }
+    return pb;
+  };
+  let gestes = 0, refus = 0, problemes = [];
+  /* Les gestes visent des cas plausibles (on dépose une garde qu'on tient, on prend plutôt un jour
+     où l'on est libre) pour que beaucoup aboutissent ; une part reste refusée, exprès. */
+  const tenues = x => D.slice(2, 57).filter(d => /^G2?$/.test(b.lire(x, d)));
+  const libre = (x, d) => { const k = D.indexOf(d); return b.lire(x, d) === '' && !/^G2?$/.test(b.lire(x, D[k - 1])) && !/^G2?$/.test(b.lire(x, D[k + 1])); };
+  for (let n = 0; n < 600 && !problemes.length; n++) {
+    const qui = M8[hasard(8)], quoi = hasard(5);
+    const env = () => run(b, 'getEchangesEnveloppe()').echanges;   // dates relues comme le serveur les lit
+    const offres = () => env().filter(e => e.type === 'bourse' && e.etat === 'attente').map(e => ({ [COL.ID]: e.id, [COL.DATE]: e.date, [COL.DEMANDEUR]: e.demandeur, [COL.ETAT]: e.etat, mode: e.mode }));
+    const choisirOffre = () => { const os = offres().filter(o => o[COL.DEMANDEUR] !== qui || hasard(10) === 0); if (!os.length) return null; const bonnes = os.filter(o => libre(qui, o[COL.DATE])); const l = bonnes.length && hasard(4) ? bonnes : os; return l[hasard(l.length)]; };
+    let r;
+    if (quoi === 0) { const deja = offres().map(o => o[COL.DATE]); const t = tenues(qui).filter(d => deja.indexOf(d) < 0 || hasard(10) === 0); if (t.length) r = essai(b, `deposerBourse(${U(qui)}, { year:2027, date:${JSON.stringify(t[hasard(t.length)])}, mode:${JSON.stringify(['don','echange','deux'][hasard(3)])} })`); }
+    else if (quoi === 1) { const o = choisirOffre(); if (o && (o.mode !== 'echange' || hasard(5) === 0)) r = essai(b, `prendreBourse(${U(qui)}, { id:${JSON.stringify(o[COL.ID])}, accepteAbsence:true, accepteRea1:true, accepte18h:true })`); }
+    else if (quoi === 2) { const o = choisirOffre(), t = tenues(qui); if (o && t.length && (o.mode !== 'don' || hasard(5) === 0)) r = essai(b, `creerEchange(${U(qui)}, { type:'echange', year:2027, date:${JSON.stringify(t[hasard(t.length)])}, date2:${JSON.stringify(o[COL.DATE])}, receveur:${JSON.stringify(o[COL.DEMANDEUR])}, offre:${JSON.stringify(o[COL.ID])}, accepteAbsence:true, accepteRea1:true, accepteRea1Lui:true, accepte18:true, accepte18h:true })`); }
+    else if (quoi === 3) { const ps = env().filter(e => e.offre && e.etat === 'attente' && e.type === 'echange'); if (ps.length) { const p = ps[hasard(ps.length)]; r = essai(b, `repondreEchange(${U(p.receveur)}, { id:${JSON.stringify(p.id)}, reponse:'accepter', accepteAbsence:true, accepteRea1:true, accepte18h:true })`); } }
+    else if (quoi === 4 && hasard(3) === 0) { const os = offres(); if (os.length) { const o = os[hasard(os.length)]; r = essai(b, `retirerBourse(${U(o[COL.DEMANDEUR])}, { id:${JSON.stringify(o[COL.ID])} })`); } }
+    if (!r) continue;
+    gestes++; if (r.err) refus++;
+    problemes = invariants();
+  }
+  const faits = b.echanges().filter(l => l[COL.ETAT] === 'acceptee' && l[COL.TYPE] !== 'bourse').length;
+  V(`${gestes} gestes au hasard (${refus} refusés, ${faits} gardes passées de main) : chaque jour garde UNE réa et UNE mater, personne n'enchaîne deux gardes`, problemes.length === 0 && faits >= 20, problemes.slice(0, 5));
+  V('aucune offre conclue ne garde une proposition ouverte derrière elle', !b.echanges().some(l => l[COL.OFFRE] && l[COL.ETAT] === 'attente' && ['acceptee','annulee','sansobjet'].indexOf((ligneDe(b, l[COL.OFFRE]) || [])[COL.ETAT]) > -1));
+}
+
 console.log(`\n  ${ok} ✓  ${ko} ✗`);
 process.exit(ko ? 1 : 0);
