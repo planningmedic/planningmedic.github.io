@@ -25,8 +25,12 @@
    3e pour tout le reste.
 
    ⚠️ Le numéro DESCEND (v10.8.3 → v1.0.4). C'est voulu, et c'est la seule fois.
+
+   (25/11/2026) PASSAGE À v2.0, décidé par le responsable, SANS le module
+   libéral (son ouverture viendra plus tard). Au changement du 1er chiffre,
+   chaque MAR voit une fois la carte d'annonce (partage/annonce_version.js).
    ───────────────────────────────────────────────────────────────────────── */
-window.SITE_VERSION = 'v1.111.1';
+window.SITE_VERSION = 'v2.0';
 
 (function () {
   function poser() {

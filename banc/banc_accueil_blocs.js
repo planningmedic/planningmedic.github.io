@@ -66,7 +66,7 @@ const visible = (D, id) => D.getElementById(id).style.display !== 'none';
     V('les raccourcis viennent AVANT le premier bloc',
       !!(D.getElementById('raccourcis').compareDocumentPosition(D.getElementById('bloc-moi')) & w.Node.DOCUMENT_POSITION_FOLLOWING));
     const ordre = [...D.querySelectorAll('#tilesView .bloc')].map(b => b.id);
-    V('les blocs dans l\'ordre de la maquette', JSON.stringify(ordre) === JSON.stringify(['bloc-moi', 'bloc-service', 'bloc-ressources', 'bloc-reserve']), ordre);
+    V('les blocs dans l\'ordre de la maquette', JSON.stringify(ordre) === JSON.stringify(['bloc-moi', 'bloc-service', 'bloc-ressources', 'bloc-archives', 'bloc-reserve']), ordre);
     /* (25/11/2026, lot 2) « Mes congés » devient « Mon récapitulatif » ; avant toute année générée, c'est la seule tuile de Moi. */
     V('Moi : Mon récapitulatif', JSON.stringify(titres(D, 'moi')) === JSON.stringify(['Mon récapitulatif']), titres(D, 'moi'));
     V('Le service : Planning, Équité des gardes, Staffs à venir',
@@ -156,8 +156,11 @@ const visible = (D, id) => D.getElementById(id).style.display !== 'none';
     V('le titre annonce la demande qui m\'attend (et seulement la mienne)', /^1 échange attend votre choix/.test(D.getElementById('echHeroMain').textContent));
     V('elle passe au rouge', hero.classList.contains('attente'));
     V('la pastille porte le nombre', D.getElementById('echPastille').style.display !== 'none' && D.getElementById('echPastille').textContent === '1');
-    V('Mes échanges + Mon récapitulatif côte à côte : aucune élargie',
-      [...D.querySelectorAll('#tiles-moi > *')].filter(e => e.style.display !== 'none' && !e.classList.contains('large')).every(e => !e.classList.contains('seul')));
+    /* (25/11/2026, v2.0, skin Riviera) La bourse aux gardes tient toujours sa ligne :
+       elle compte comme large, et une petite tuile restée seule s'élargit. */
+    const petitesMoi = [...D.querySelectorAll('#tiles-moi > *')].filter(e => e.style.display !== 'none' && !e.classList.contains('large') && !e.classList.contains('ech-tuile'));
+    V('la bourse tient sa ligne ; une petite tuile seule à côté s\'élargit (pas de trou)',
+      !hero.classList.contains('seul') && (petitesMoi.length % 2 === 0 || petitesMoi[petitesMoi.length - 1].classList.contains('seul')));
     V('Mes indisponibilités (campagne) occupe sa ligne', !!D.querySelector('#tiles-moi a[href="indispos.html"].large'));
     w.eval(`ECH_LISTE = []; majEchangesHero();`);
     V('plus de demande : retour au titre normal, sans rouge ni pastille',
@@ -173,7 +176,33 @@ const visible = (D, id) => D.getElementById(id).style.display !== 'none';
     const src = lire('index.html'), bundle = lire('assets/vendor/lucide-icons.js');
     for (const n of ['scale', 'shield', 'heart-pulse', 'phone', 'repeat']) V(`icône « ${n} » présente`, bundle.indexOf('"' + n + '":[') > -1);
     V('le paquet d\'icônes est appelé à une adresse NOUVELLE (sinon le téléphone ressert l\'ancien)',
-      /assets\/vendor\/lucide-icons\.js\?v=2"/.test(src));
+      /assets\/vendor\/lucide-icons\.js\?v=3"/.test(src));
+    V('icône « tree-palm » (Mes vacances) présente', bundle.indexOf('"tree-palm":[') > -1);
+    V('Mes vacances : le palmier, sur fond turquoise (plus le calendrier de Planning)',
+      /key:'vac'[^\n]*icon:'tree-palm'[^\n]*tint:'turq'/.test(src) && /\.tile-ico\.turq \{/.test(src));
+    V('Bourse aux gardes : l\'icône des deux cartes (plus l\'icône générique)',
+      /<svg class="ico-bourse"/.test(src) && !/id="echangesHero"[\s\S]{0,1200}data-lucide="repeat"/.test(src));
+  }
+
+  console.log('\n═══ A4 bis. Mes indisponibilités : dans Moi pendant la saisie, dans Archives ensuite (25/11/2026, v2.0) ═══');
+  {
+    const { w, D, erreurs } = monter('index.html', 390);
+    await dodo(300);
+    w.eval(`FIN_SAISIE = '2099-12-31'; INDISPOS_FIGEES = false;`);
+    accueil(w, { tuiles: [], campagne: true });
+    V('saisie ouverte : la tuile est dans Moi', !!D.querySelector('#tiles-moi a[href="indispos.html"]') && !D.querySelector('#tiles-archives a[href="indispos.html"]'));
+    V('saisie ouverte : le bloc Archives, vide, disparaît', !visible(D, 'bloc-archives'));
+    w.eval(`INDISPOS_FIGEES = true; renderTiles();`);
+    V('planning établi : la tuile descend dans Archives', !!D.querySelector('#tiles-archives a[href="indispos.html"]') && !D.querySelector('#tiles-moi a[href="indispos.html"]'));
+    V('planning établi : Archives visible, sous Ressources et avant Réservé',
+      visible(D, 'bloc-archives') && !!(D.getElementById('bloc-ressources').compareDocumentPosition(D.getElementById('bloc-archives')) & w.Node.DOCUMENT_POSITION_FOLLOWING)
+      && !!(D.getElementById('bloc-archives').compareDocumentPosition(D.getElementById('bloc-reserve')) & w.Node.DOCUMENT_POSITION_FOLLOWING));
+    V('planning établi : la tuile garde son cadenas et son texte', /Consultation seule/.test((D.querySelector('#tiles-archives a[href="indispos.html"]') || {}).textContent || ''));
+    w.eval(`INDISPOS_FIGEES = false; FIN_SAISIE = '2000-01-01'; renderTiles();`);
+    V('saisie close (planning pas encore établi) : Archives aussi', !!D.querySelector('#tiles-archives a[href="indispos.html"]'));
+    w.eval(`FIN_SAISIE = '2099-12-31'; renderTiles();`);
+    V('nouvelle campagne : elle remonte toute seule dans Moi', !!D.querySelector('#tiles-moi a[href="indispos.html"]') && !visible(D, 'bloc-archives'));
+    V('aucune erreur JavaScript', erreurs.length === 0, erreurs.slice(0, 2));
   }
 
   console.log('\n═══ A5. planning.html#equite ouvre l\'onglet Équité ═══');

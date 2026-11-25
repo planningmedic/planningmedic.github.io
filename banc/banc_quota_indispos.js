@@ -100,7 +100,9 @@ console.log('\n═══ 5. La version et le guide suivent ═══');
 const VER = fs.readFileSync(path.join(__dirname, '..', 'version.js'), 'utf8');
 /* (14/09/2026) Écrit d'abord sur « v1.11.x » : il cassait dès la première montée
    du 2e chiffre (v1.12.0, police unique). Même intention, écrite sur un minimum. */
-const _v = (VER.match(/SITE_VERSION = 'v(\d+)\.(\d+)\.(\d+)'/) || []).slice(1).map(Number);
+/* (25/11/2026) Le 3e chiffre est facultatif : v2.0 (passage à la v2) le faisait
+   tomber pour un motif de forme, sur un numéro conforme. */
+const _v = (VER.match(/SITE_VERSION = 'v(\d+)\.(\d+)(?:\.(\d+))?'/) || []).slice(1).map(x => Number(x || 0));
 V('la version du site a monté (au moins v1.11.0)',
   _v.length === 3 && (_v[0] > 1 || (_v[0] === 1 && _v[1] >= 11)), (VER.match(/SITE_VERSION = '[^']+'/) || [])[0]);
 /* Le marqueur doit AVANCER à chaque fois que le fichier change. Il a été figé

@@ -520,7 +520,7 @@ console.log('\n═══ 9. Les 18 h visibles dans « Mes gardes » (11/11/2026)
   const idx = fs.readFileSync(IDX, 'utf8');
   V('la liste « Mes gardes » mêle gardes et 18 h, triés par date, étiquette « 18 h »', /\(MY_GARDES\|\|\[\]\)\.concat\(h18\)\.sort/.test(idx) && /<span class="mg-tag h18"><i data-lucide="clock"><\/i>18 h<\/span>/.test(idx));
   V('« Mes gardes » : un 18 h est une bande fine orange, distincte d\'une carte de garde', /'<div class="staff-card'\+\(g\.type==='18'\?' h18':''\)\+'">'/.test(idx) && /\.staff-card\.h18 \{[^}]*padding:8px 14px[^}]*var\(--h18-soft\)/.test(idx) && /--h18:#C2560C/.test(idx));
-  V('la carte « Prochaine garde » montre le prochain 18 h', /p18='<br><span style="color:#166534;font-weight:600">18 h · '/.test(idx) && /\+ p18;/.test(idx));
+  V('la carte « Prochaine garde » montre le prochain 18 h', /p18='<br><span class="mg-18">18 h · '/.test(idx) && /\.mg-18 \{ color:var\(--riv-18\)/.test(idx) && /\+ p18;/.test(idx));
 }
 
 console.log('\n═══ 10. Échange de gardes : le repos d\'arrivée n\'écrase plus rien (11/11/2026) ═══');

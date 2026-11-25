@@ -23,10 +23,12 @@
 <link rel="preconnect" href="https://miroir.planningmedic.workers.dev" crossorigin/>
 <link rel="dns-prefetch" href="https://miroir.planningmedic.workers.dev"/>
 <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@300;400;500;600;700&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
-<script src="assets/vendor/lucide-icons.js?v=2"></script>   <!-- (11/10/2026) ?v=2 : nouvelles icônes (balance, bouclier) ; l'adresse change pour que le téléphone ne resserve pas l'ancienne copie gardée en mémoire -->
+<script src="assets/vendor/lucide-icons.js?v=3"></script>   <!-- (25/11/2026) ?v=3 : palmier de Mes vacances. (11/10/2026) ?v=2 : nouvelles icônes (balance, bouclier) ; l'adresse change pour que le téléphone ne resserve pas l'ancienne copie gardée en mémoire -->
 <script src="version.js"></script>   <!-- (14/08/2026) source unique du numéro de version -->
 <script src="partage/session.js"></script>
 <script src="partage/portail.js"></script>   <!-- (14/09/2026) socle commun : MIROIR_URL, miroirRead -->   <!-- (17/08/2026) source unique : où vit le code d'accès, et 30 jours glissants -->
+<script src="partage/attente_baie.js"></script>   <!-- (25/11/2026) le dessin de la baie, repris par l'annonce de version -->
+<script src="partage/annonce_version.js"></script>   <!-- (25/11/2026) carte « Planning-Med passe en v2.0 », une fois par appareil -->
 <script>/* FALLBACK_SESSION — filet (17/08/2026). Si partage/session.js ne se charge pas
 (réseau, cache), les pages l'appelleraient dans le vide et NE S'OUVRIRAIENT PLUS : le MAR ne
 pourrait même plus taper son code. On retombe alors sur le comportement d'avant — le code vit
@@ -937,6 +939,48 @@ html[data-theme="dark"] .rc-vac { background:#152341; color:#7BAAF7; } html[data
 .rc-pdf { width:100%; display:flex; align-items:center; justify-content:center; gap:8px; padding:13px; border-radius:12px; border:1px solid var(--line); background:var(--white); color:var(--ink); font:inherit; font-size:14px; font-weight:700; cursor:pointer; }
 .rc-pdf:disabled { opacity:.6; cursor:default; }
 .rc-note { font-size:11.5px; color:var(--ink-4); text-align:center; margin:8px 0 20px; }
+
+/* ══ SKIN « RIVIERA » DE L'ACCUEIL (25/11/2026, v2.0) ══════════════════════
+   Maquette validée par le responsable le 25/11/2026. Habillage seul : le
+   contenu, l'ordre et les comportements de l'accueil ne changent pas.
+   Jour : halo d'azur en haut de page, cartes en verre blanc. Nuit : halo bleu
+   nuit et rouge, cartes en verre sombre. L'ACR reste rouge plein. */
+:root { --riv-h1:#7CC4F0; --riv-h2:#BFE3F7; --riv-hr:rgba(206,17,38,.16);
+  --riv-verre:rgba(255,255,255,.80); --riv-bord:rgba(255,255,255,.95); --riv-ombre:0 4px 14px rgba(30,80,140,.08);
+  --riv-hero:linear-gradient(135deg,rgba(255,255,255,.95),rgba(255,255,255,.72)); --riv-hero-ombre:0 10px 30px rgba(30,80,140,.14);
+  --riv-k:#B45309; --riv-18:#15803D; --riv-entete:rgba(248,250,252,.62);
+  --tt-turq:#CFFAFE; --tt-turq-i:#0E7490; }
+html[data-theme="dark"] { --riv-h1:#2A5FA8; --riv-h2:#13254A; --riv-hr:rgba(206,17,38,.32);
+  --riv-verre:rgba(255,255,255,.05); --riv-bord:rgba(255,255,255,.09); --riv-ombre:none;
+  --riv-hero:linear-gradient(135deg,rgba(255,255,255,.13),rgba(255,255,255,.04)); --riv-hero-ombre:none;
+  --riv-k:#FFCF74; --riv-18:#6EE7A8; --riv-entete:rgba(11,18,32,.55);
+  --tt-turq:#0E2A30; --tt-turq-i:#67E8F9; }
+body { background:radial-gradient(120% 340px at 85% -60px, var(--riv-h1) 0%, var(--riv-h2) 45%, transparent 75%) no-repeat,
+  radial-gradient(60% 260px at 0% 0, var(--riv-hr), transparent 70%) no-repeat, var(--bg); }
+.header { background:var(--riv-entete); border-bottom-color:transparent; }
+.tile-ico.turq { background:var(--tt-turq); color:var(--tt-turq-i); }
+#tilesView .tile, #tilesView .racc:not(.rouge) { background:var(--riv-verre); border-color:var(--riv-bord); box-shadow:var(--riv-ombre);
+  -webkit-backdrop-filter:blur(10px); backdrop-filter:blur(10px); }
+#tilesView .bloc-titre { text-transform:none; letter-spacing:0; font-size:12.5px; }
+#tilesView .ver-badge { background:var(--riv-verre); border-color:var(--riv-bord); }
+/* Prochaine garde : carte de verre, libellé ambre, 18 h lisible de jour comme de nuit. */
+#myGardesHero { background:var(--riv-hero); border-color:var(--riv-bord); box-shadow:var(--riv-hero-ombre); color:var(--ink);
+  -webkit-backdrop-filter:blur(10px); backdrop-filter:blur(10px); }
+#myGardesHero .mg-hero-label { color:var(--riv-k); }
+#myGardesHero .mg-hero-sub { color:var(--ink-2); }
+#myGardesHero .mg-hero-sub b { color:var(--ink); }
+#myGardesHero .mg-hero-arrow { color:var(--ink-3); }
+.mg-18 { color:var(--riv-18); font-weight:600; }
+/* Bourse aux gardes : tuile en ligne (icône à gauche), icône crème et ocre. */
+#tilesView .tile.ech-tuile:not(.verrou):not(.depot) { display:grid !important; grid-column:1 / -1; grid-template-columns:auto 1fr;
+  column-gap:12px; row-gap:2px; align-items:center; text-align:left; }
+#tilesView .tile.ech-tuile:not(.verrou):not(.depot) .tile-ico { grid-row:span 2; }
+#tilesView .tile.ech-tuile:not(.verrou):not(.depot) .tile-title { margin-top:0; }
+#tilesView .ech-tuile:not(.attente):not(.verrou):not(.depot) .tile-ico { background:var(--tt-peche); color:var(--tt-peche-i); }
+.ico-bourse { width:21px; height:21px; }
+#tilesView .tile.ech-tuile:not(.verrou):not(.depot) .tile-arrow { grid-column:2; }
+#tilesView [data-key="vac"] .tile-badge, #tilesView [data-key="tp"] .tile-badge { background:#F59E0B; color:#1B1200; border-color:transparent; }
+html[data-theme="dark"] #tilesView .racc.rouge { background:#CE1126; border-color:#CE1126; }
 </style>
 </head>
 <body>
@@ -1033,7 +1077,7 @@ html[data-theme="dark"] .rc-vac { background:#152341; color:#7BAAF7; } html[data
           <!-- (14/11/2026) Ouverture programmée : reflet, cadenas et compte à rebours,
                montrés par les classes « verrou » (avant) et « ouverture » (l'animation, une fois). -->
           <span class="ech-reflet" aria-hidden="true"></span>
-          <div class="tile-ico"><span class="ech-onde" aria-hidden="true"></span><span class="ech-onde ech-onde2" aria-hidden="true"></span><i data-lucide="repeat"></i>
+          <div class="tile-ico"><span class="ech-onde" aria-hidden="true"></span><span class="ech-onde ech-onde2" aria-hidden="true"></span><svg class="ico-bourse" viewBox="0 0 24 24" width="21" height="21" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="2.5" y="9" width="8.5" height="12" rx="2" transform="rotate(-10 6.75 15)" opacity=".5"/><rect x="13" y="9" width="8.5" height="12" rx="2" transform="rotate(10 17.25 15)"/><path d="M8 4.5c2.5-1.6 5.5-1.6 8 0M14.6 2.6l1.6 1.9-2.3.6"/></svg>
             <span class="ech-cadenas" aria-hidden="true"><svg viewBox="0 0 24 24" width="11" height="11" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><rect width="18" height="11" x="3" y="11" rx="2"></rect><path class="ech-anse" d="M7 11V7a5 5 0 0 1 10 0v4"></path></svg></span>
           </div>
           <div class="tile-title" id="echHeroMain">Bourse aux gardes</div>
@@ -1051,6 +1095,12 @@ html[data-theme="dark"] .rc-vac { background:#152341; color:#7BAAF7; } html[data
     <section class="bloc" id="bloc-ressources">
       <h2 class="bloc-titre">Ressources</h2>
       <div class="tiles" id="tiles-ressources"></div>
+    </section>
+    <!-- (25/11/2026, v2.0) Archives : Mes indisponibilités quand la saisie est close
+         ou le planning établi (consultation seule). Pendant la saisie, la tuile reste dans Moi. -->
+    <section class="bloc" id="bloc-archives">
+      <h2 class="bloc-titre">Archives</h2>
+      <div class="tiles" id="tiles-archives"></div>
     </section>
     <section class="bloc" id="bloc-reserve" style="display:none">
       <h2 class="bloc-titre">Réservé</h2>
@@ -1475,7 +1525,7 @@ const TILES = [
       {t:'Gérer mon temps partiel', s:'Poser ou retirer vos jours de temps partiel.',                     icon:'calendar-clock', tint:'viol', href:'indispos.html?tp=1'},
       {t:'Mon récapitulatif',       s:'L\'année entière : compteurs, 12 mois, rang au prochain staff, PDF.', icon:'clipboard-list', tint:'peche', href:'#conges'},
     ] },
-  { key:'vac', title:'Mes vacances', sub:'Posez, déplacez ou retirez vos jours {ANTP}, sur un jour vert.', icon:'calendar-days', ready:true, vacSeul:true, tint:'bleu', bloc:'moi', large:true,
+  { key:'vac', title:'Mes vacances', sub:'Posez, déplacez ou retirez vos jours {ANTP}, sur un jour vert.', icon:'tree-palm', ready:true, vacSeul:true, tint:'turq', bloc:'moi', large:true,
     split:[
       {t:'Gérer mes vacances', s:'Ajouter, déplacer ou retirer un jour, au moins 7 jours à l\'avance.', icon:'calendar-days', tint:'bleu', href:'indispos.html?vac=1'},
       {t:'Mon récapitulatif',  s:'L\'année entière : compteurs, 12 mois, rang au prochain staff, PDF.', icon:'clipboard-list', tint:'peche', href:'#conges'},
@@ -1551,7 +1601,14 @@ function saisieIndisposClose(fin, maintenant) {
   return auj > fin;
 }
 /* (11/10/2026, v1.21) Les blocs de l'accueil, dans l'ordre d'affichage. */
-const BLOCS_ACCUEIL = ['moi', 'service', 'ressources', 'reserve'];
+const BLOCS_ACCUEIL = ['moi', 'service', 'ressources', 'archives', 'reserve'];
+/* (25/11/2026, v2.0) Mes indisponibilités descend dans « Archives » dès qu'elle
+   n'est plus qu'en consultation (saisie close ou planning établi) ; pendant la
+   saisie, elle reste dans Moi. Même condition que le cadenas de la tuile. */
+function _blocTuile(t){
+  if (t.key === 'indispos' && (INDISPOS_FIGEES || saisieIndisposClose(FIN_SAISIE))) return 'archives';
+  return t.bloc;
+}
 function renderTiles(){
   /* Qui voit quoi : LA ligne de filtrage, inchangée (le banc l'extrait telle quelle). */
   const visibles = TILES.filter(t => (!t.prive || MY_TUILES.indexOf(t.key) > -1) && (!t.campagne || INDISPOS_OUVERTE) && (!t.tp || (PHASE_TP && MY_QUOTITE < 100 && !MY_TPFIXE)) && (!t.vacSeul || (PHASE_TP && !(MY_QUOTITE < 100 && !MY_TPFIXE))) && (!t.sansPhase || !PHASE_TP) && (!t.liberal || MY_LIBERAL)).map(t => t);
@@ -1571,7 +1628,7 @@ function renderTiles(){
     const box = document.getElementById('tiles-' + b);
     if (!box) return;
     box.querySelectorAll('[data-gen]').forEach(e => e.remove());
-    box.insertAdjacentHTML('beforeend', visibles.filter(t => t.bloc === b).map(_tuileAccueil).join(''));
+    box.insertAdjacentHTML('beforeend', visibles.filter(t => _blocTuile(t) === b).map(_tuileAccueil).join(''));
   });
   equilibrerBlocs();
   if(window.lucide) lucide.createIcons();
@@ -1723,7 +1780,8 @@ function equilibrerBlocs(){
     const heroVisible = !!hero && hero.style.display !== 'none';
     bloc.style.display = (tuiles.length || heroVisible) ? '' : 'none';
     if (grille.classList.contains('liste')) return;
-    const petites = tuiles.filter(function(e){ return !e.classList.contains('large'); });
+    /* (25/11/2026, v2.0) La bourse aux gardes tient toujours sa ligne (skin Riviera) : comptée comme large. */
+    const petites = tuiles.filter(function(e){ return !e.classList.contains('large') && !e.classList.contains('ech-tuile'); });
     if (petites.length % 2) petites[petites.length - 1].classList.add('seul');
   });
 }
@@ -1746,6 +1804,8 @@ function showPortal(){
   renderTiles();
   loadMyGardes();
   route();
+  /* (25/11/2026) Passage à une version majeure : carte d'annonce, une fois par appareil. */
+  try { if (window.AnnonceVersion) AnnonceVersion.verifier(); } catch(e) {}
 }
 
 // ── MES GARDES (perso — MAR connecté) ──
@@ -1984,7 +2044,7 @@ function renderMyGardesHero(){
   const main=document.getElementById('mgHeroMain'), sub=document.getElementById('mgHeroSub');
   if(!main||!sub) return;
   // (11/11/2026) Le prochain 18 h, sur sa propre ligne : visible d'un coup d'œil.
-  let p18=''; try { const h=_mes18(); if(h.length) p18='<br><span style="color:#166534;font-weight:600">18 h · '+esc(_mgDateCarte(h[0].date))+'</span>'; } catch(e){}
+  let p18=''; try { const h=_mes18(); if(h.length) p18='<br><span class="mg-18">18 h · '+esc(_mgDateCarte(h[0].date))+'</span>'; } catch(e){}
   if(!MY_GARDES || !MY_GARDES.length){ main.textContent='Aucune garde à venir'; sub.innerHTML=p18.replace(/^<br>/,''); return; }
   const g0=MY_GARDES[0], n=_daysUntil(g0.date);
   const secteur = (g0.type==='G2'?'Mater/Bloc':'Réa');

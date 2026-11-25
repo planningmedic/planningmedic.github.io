@@ -164,5 +164,11 @@
     } catch (e) { return INERTE; }
   }
 
-  window.AttenteBaie = { poser: poser, SEUIL_MS: SEUIL_MS };
+  /* (25/11/2026) Le dessin seul, pour la carte d'annonce de version
+     (partage/annonce_version.js) : même décor, styles posés au passage.
+     Exception voulue à « jamais sur l'ouverture d'une page » : la carte ne
+     s'affiche qu'une fois par appareil, au passage d'une version majeure. */
+  function dessin() { try { poserCss(); return svg(); } catch (e) { return ''; } }
+
+  window.AttenteBaie = { poser: poser, SEUIL_MS: SEUIL_MS, dessin: dessin };
 })();
