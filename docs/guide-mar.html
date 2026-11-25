@@ -378,7 +378,8 @@
     <div class="liste">
       <div><b>Mes congés</b><span>Vacances, formations, temps partiels, récupérations. La tuile affiche combien sont à venir et le prochain (les jours de temps partiel ne sont pas comptés).</span></div>
       <div><b>Mes indisponibilités</b><span>Votre grille de saisie. Visible uniquement pendant la campagne d'automne, avec le nombre de jours restants avant la date limite (« J-16 »).</span></div>
-      <div><b>Mes jours de temps partiel</b><span>Apparaît une fois le planning publié, si vous avez encore des jours à poser.</span></div>
+      <div><b>Mes vacances et TP</b><span>Apparaît une fois le planning publié, pour les MARs à temps partiel. Deux choix : gérer vos vacances, ou vos jours de temps partiel (section 07).</span></div>
+      <div><b>Mes vacances</b><span>La même chose pour les MARs à temps plein : ajouter, déplacer ou retirer vos jours de vacances (section 07).</span></div>
     </div>
 
     <p><b>Le service</b> — ce qui concerne toute l'équipe :</p>
@@ -654,13 +655,35 @@
 
 <!-- ═══ 07 ═══════════════════════════════════════════════════════════ -->
 <details class="sec" id="s7">
-  <summary><span class="n">07</span><span>Vos jours de temps partiel</span><span class="chev">›</span></summary>
+  <summary><span class="n">07</span><span>Vos vacances et vos jours de temps partiel</span><span class="chev">›</span></summary>
   <div class="corps">
-    <p>Cette section concerne les MARs dont la quotité est inférieure à 100 %, hors jours fixes convenus.</p>
+    <div class="callout">
+      <div class="ct">En 2 minutes</div>
+      <p>Vos vacances sont d'abord réparties au staff de vacances (section 08). <b>Une fois les gardes de l'année publiées</b>, vous gérez vous-même vos jours : en ajouter, en déplacer, en retirer.</p>
+      <p>Trois règles : un jour se pose seulement s'il est <b>vert</b> (il resterait au moins 15 présents), <b>au moins 7 jours à l'avance</b>, et <b>dans votre quota</b>. Pour tout autre jour, demandez aux admins.</p>
+    </div>
+
+    <h3>Je veux ajouter, déplacer ou retirer un jour de vacances</h3>
+    <ol class="steps">
+      <li>Sur l'accueil, touchez <b>Mes vacances et TP</b> puis <b>Gérer mes vacances</b> (à temps plein : directement <b>Mes vacances</b>).</li>
+      <li>Choisissez un outil en bas : <b>Journée</b>, <b>½ matin</b>, <b>½ après-midi</b> ou <b>Retirer</b>.</li>
+      <li>Touchez les jours. Pour <b>déplacer</b> un jour : retirez-le, puis posez-en un autre.</li>
+      <li>Appuyez sur <b>Enregistrer</b>. Un récapitulatif dit ce qui est posé, retiré, ou refusé et pourquoi.</li>
+    </ol>
+    <div class="liste">
+      <div><b><span class="pt pt-libre"></span>Vert</b><span>Posable : il resterait 15 présents ou plus. Le petit chiffre est le nombre de présents si vous travaillez.</span></div>
+      <div><b><span class="pt pt-noir"></span>Noir</b><span>Il resterait moins de 15 présents : ce jour ne se pose pas ici, demandez aux admins.</span></div>
+      <div><b><span class="pt pt-gris"></span>Gris</b><span>Déjà pris : garde, repos de garde, 18 h, formation, temps partiel, récupération, férié. Pour une garde, passez d'abord par un don ou un échange (section 09).</span></div>
+      <div><b><span class="pt pt-pale"></span>Pâli</b><span>À moins de 7 jours, ou passé : ne se modifie plus ici.</span></div>
+    </div>
+    <p>Le compteur en haut montre vos jours posés sur votre quota : une journée compte 1, une demi-journée ½, les 24 et 31 décembre ½. Un jour retiré revient dans le compteur. Le secrétariat est prévenu automatiquement de chaque changement.</p>
+
+    <h3>Vos jours de temps partiel</h3>
+    <p>Cette partie concerne les MARs dont la quotité est inférieure à 100 %, hors jours fixes convenus.</p>
 
     <h3>Deux moments, pas un</h3>
     <p><b>Pendant la campagne d'automne</b>, vous posez vos jours sur le même écran que vos indisponibilités (section 06). C'est le moment le plus utile : vos jours sont connus <b>avant</b> que les gardes soient réparties, donc le planning se construit autour d'eux.</p>
-    <p><b>Le reste de l'année</b>, ce que vous n'avez pas posé reste disponible sur la tuile <b>Mes jours de temps partiel</b>, qui apparaît une fois le planning publié. Vous choisissez dans ce qui reste libre, sans date limite, et vous pouvez retirer un jour tant qu'il n'est pas passé.</p>
+    <p><b>Le reste de l'année</b>, ce que vous n'avez pas posé reste disponible : tuile <b>Mes vacances et TP</b>, puis <b>Gérer mon temps partiel</b>. Elle apparaît une fois le planning publié. Vous choisissez dans ce qui reste libre, sans date limite, et vous pouvez retirer un jour tant qu'il n'est pas passé.</p>
 
     <div class="callout rule">
       <div class="ct">Un jour posé est un jour acquis</div>

@@ -4,7 +4,7 @@
    quelles : aucune ligne de logique modifiée, seulement déplacée. Le routeur et
    ses aides (checkCode, _deny, _error, doGet/doPost) restent dans Indispos.gs.
    Un seul espace global dans Apps Script : rien à importer. */
-const GAS_VERSION_INDISPOS_METIER = '2026-11-20.1';   // (20/11/2026) .1 : setIndisposYear et envoyerRecapIndispos réservés au responsable · (15/11/2026) clearIndisposYear réservé au droit Maintenance (clôture d'année) · (10/11/2026) PDF récapitulatif par document Google (les couleurs passent) + renvoyerRecapPdf2027 · (09/11/2026) mail « Vos gardes » : 18 h, souhaits honorés, gardes qui allongent les vacances · (27/10/2026) VM/VA posés à la main : jamais écrasés par un enregistrement (MAR ou staff)
+const GAS_VERSION_INDISPOS_METIER = '2026-11-25.1';   // (25/11/2026) .1 : saveIndispos accepte la pose libre des vacances (payload.vac, voir _poserVac_ dans temps_partiel.gs) · (20/11/2026) .1 : setIndisposYear et envoyerRecapIndispos réservés au responsable · (15/11/2026) clearIndisposYear réservé au droit Maintenance (clôture d'année) · (10/11/2026) PDF récapitulatif par document Google (les couleurs passent) + renvoyerRecapPdf2027 · (09/11/2026) mail « Vos gardes » : 18 h, souhaits honorés, gardes qui allongent les vacances · (27/10/2026) VM/VA posés à la main : jamais écrasés par un enregistrement (MAR ou staff)
 // précédente : '2026-10-22.2'
 
 // La campagne de saisie des indispos est-elle EN COURS ?
@@ -682,6 +682,20 @@ function _act_saveIndispos(R) {
   const { e, payload, action, code, user } = R;
   const targetId = user.role === 'admin' ? payload.doctorId : user.id;
   /* (POSE TP · 22/08/2026) DEUX CIRCUITS, DEUX ANNÉES — récit : docs/JOURNAL-Planning-Med.md §123 */
+  /* (25/11/2026) POSE LIBRE DES VACANCES — même porte que les TP, même phase
+     (une année générée), même choix d'année. Le MAR pour lui-même ; le comité
+     peut le faire pour un MAR (doctorId), sous les mêmes règles. */
+  if (payload.vac === true) {
+    const phV = _phaseTp_();
+    if (!phV.actif) return _error('La pose des vacances n\'est pas ouverte : aucune année générée.');
+    const anneeV = Number(payload.year) || phV.annee;
+    if (phV.annees.indexOf(anneeV) === -1) {
+      return _error('L\'année ' + anneeV + ' n\'est pas ouverte à la pose (ouvertes : ' + phV.annees.join(', ') + ').');
+    }
+    return ContentService.createTextOutput(JSON.stringify(
+      _poserVac_(user, targetId, payload.vacances, anneeV)
+    )).setMimeType(ContentService.MimeType.JSON);
+  }
   if (payload.tp === true) {
     const ph = _phaseTp_();
     if (!ph.actif) return _error('La pose des jours de temps partiel n\'est pas ouverte : aucune année générée.');

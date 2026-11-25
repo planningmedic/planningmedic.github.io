@@ -169,7 +169,7 @@ function monde(opts) {
    '_tpFermesEntete_', '_tpFermesSheet_', '_tpFermes_', '_tpFermerJour_', '_tpRouvrirJour_', '_tpRouvrirSiLibere_', '_tpJourLisible_', '_tpNotifier_',
   '_tpGrilleEcrire_', '_tpGrilleLire_', '_tpRetirerDIndispos_', '_tpRepublier_', 'tpRepublicationDifferee',
    '_tpDemandesSheet_', '_tpDemandes_', '_tpDemandeAjouter_', '_tpDemandeRetirer_',
-   '_tpMondePresence_', '_poserTp_', '_error'].forEach(n =>
+   '_tpMondePresence_', '_poserTp_', '_error', '_vacJoursFixes_'].forEach(n =>
     vm.runInContext(extraireFonction('../gas/Indispos.gs', n), ctx));
   /* (10/11/2026) Onglet HISTORIQUE : la vraie fonction, extraite du fichier livré. */
   vm.runInContext(extraireConst('HISTORIQUE_ONGLET'), ctx);

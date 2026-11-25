@@ -1426,7 +1426,17 @@ const TILES = [
   // en dur). Deux tuiles séparées plutôt qu'une à deux visages : en octobre la
   // campagne (année N+1) et la pose TP (année N) COHABITENT — maquette validée
   // le 22/08. Teinte verte : les jours verts de l'écran de pose.
-  { key:'tp', title:'Mes jours de temps partiel', sub:'Posez vos jours de TP {ANTP}, dans le planning déjà généré.', icon:'calendar-clock', href:'indispos.html?tp=1', ready:true, tp:true, tint:'vert', bloc:'moi', large:true },
+  /* (25/11/2026) POSE LIBRE DES VACANCES — maquette validée par le responsable.
+     La tuile TP devient « Mes vacances et TP » : deux choix dans la feuille du
+     bas (vacances, temps partiel), même phase (année générée), même
+     éligibilité au TP qu'avant. Les MAR sans TP à poser (temps plein, jours
+     fixes, rythme 2/2) ont la tuile « Mes vacances », qui ouvre l'écran direct. */
+  { key:'tp', title:'Mes vacances et TP', sub:'Posez, déplacez ou retirez vos jours {ANTP}, sur un jour vert.', icon:'calendar-clock', ready:true, tp:true, tint:'vert', bloc:'moi', large:true,
+    split:[
+      {t:'Gérer mes vacances',      s:'Ajouter, déplacer ou retirer un jour, au moins 7 jours à l\'avance.', icon:'calendar-days',  tint:'bleu', href:'indispos.html?vac=1'},
+      {t:'Gérer mon temps partiel', s:'Poser ou retirer vos jours de temps partiel.',                     icon:'calendar-clock', tint:'viol', href:'indispos.html?tp=1'},
+    ] },
+  { key:'vac', title:'Mes vacances', sub:'Posez, déplacez ou retirez vos jours {ANTP}, sur un jour vert.', icon:'calendar-days', href:'indispos.html?vac=1', ready:true, vacSeul:true, tint:'bleu', bloc:'moi', large:true },
   { key:'planning', title:'Planning', sub:'Qui est où, jour par jour, et l\'année entière.', icon:'calendar-days', href:'planning.html', tint:'bleu', ready:true, bloc:'service', large:true },
   // (11/10/2026) Les compteurs d'équité n'étaient qu'un onglet du planning, introuvable
   // depuis l'accueil. La tuile ouvre le planning DIRECTEMENT sur cet onglet
@@ -1501,7 +1511,7 @@ function saisieIndisposClose(fin, maintenant) {
 const BLOCS_ACCUEIL = ['moi', 'service', 'ressources', 'reserve'];
 function renderTiles(){
   /* Qui voit quoi : LA ligne de filtrage, inchangée (le banc l'extrait telle quelle). */
-  const visibles = TILES.filter(t => (!t.prive || MY_TUILES.indexOf(t.key) > -1) && (!t.campagne || INDISPOS_OUVERTE) && (!t.tp || (PHASE_TP && MY_QUOTITE < 100 && !MY_TPFIXE)) && (!t.liberal || MY_LIBERAL)).map(t => t);
+  const visibles = TILES.filter(t => (!t.prive || MY_TUILES.indexOf(t.key) > -1) && (!t.campagne || INDISPOS_OUVERTE) && (!t.tp || (PHASE_TP && MY_QUOTITE < 100 && !MY_TPFIXE)) && (!t.vacSeul || (PHASE_TP && !(MY_QUOTITE < 100 && !MY_TPFIXE))) && (!t.liberal || MY_LIBERAL)).map(t => t);
 
   /* Raccourcis du haut : de vrais boutons, gros et sans sous-titre. */
   const racc = document.getElementById('raccourcis');

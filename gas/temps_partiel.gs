@@ -4,7 +4,7 @@
    quelles : aucune ligne de logique modifiée, seulement déplacée. Le routeur et
    ses aides (checkCode, _deny, _error, doGet/doPost) restent dans Indispos.gs.
    Un seul espace global dans Apps Script : rien à importer. */
-const GAS_VERSION_TP = '2026-11-24.2';   // (24/11/2026) .2 : un jour fermé par le comité se rouvre tout seul s'il redevient vert parce que l'équipe s'est étoffée depuis le refus ; les MAR refusés ce jour-là sont prévenus · (24/11/2026) .1 : effectif présent — une fois l'année générée, les absences (V, F, CL, CP, CTP, A) sont lues dans GARDES, plus dans INDISPOS (GARDES fait foi) ; VM/VA comptent présents · (17/11/2026) .2 : seuils de la pose lus dans l'onglet SEUILS (seuilsPresence_), envoyés à l'écran avec l'effectif · (17/11/2026) effectif présent : un MAR marqué HORS_EFFECTIF dans MEDECINS n'est plus compté (pose des TP, points à vérifier) · (16/11/2026) jour de TP dans sa semaine Réa 1 : non bloquant — semaine envoyée à l'écran (grisée, confirmation), signalée au MAR comme au comité · (12/11/2026) plus aucun nom de personne dans le code (effectif présent) · (10/11/2026) chaque jour de TP posé, retiré, demandé ou tranché laisse une ligne dans l'onglet HISTORIQUE
+const GAS_VERSION_TP = '2026-11-25.1';   // (25/11/2026) .1 : POSE LIBRE DES VACANCES après la génération (_poserVac_) — jour vert seulement, 7 jours d'avance, quota de la quotité, jamais sur un jour occupé ; la clé de pose porte le quota de vacances et les jours fixes de chaque MAR ; toute republication différée (TP, vacances, décisions du comité) arme aussi les mails de changement, dont celui du secrétariat · (24/11/2026) .2 : un jour fermé par le comité se rouvre tout seul s'il redevient vert parce que l'équipe s'est étoffée depuis le refus ; les MAR refusés ce jour-là sont prévenus · (24/11/2026) .1 : effectif présent — une fois l'année générée, les absences (V, F, CL, CP, CTP, A) sont lues dans GARDES, plus dans INDISPOS (GARDES fait foi) ; VM/VA comptent présents · (17/11/2026) .2 : seuils de la pose lus dans l'onglet SEUILS (seuilsPresence_), envoyés à l'écran avec l'effectif · (17/11/2026) effectif présent : un MAR marqué HORS_EFFECTIF dans MEDECINS n'est plus compté (pose des TP, points à vérifier) · (16/11/2026) jour de TP dans sa semaine Réa 1 : non bloquant — semaine envoyée à l'écran (grisée, confirmation), signalée au MAR comme au comité · (12/11/2026) plus aucun nom de personne dans le code (effectif présent) · (10/11/2026) chaque jour de TP posé, retiré, demandé ou tranché laisse une ligne dans l'onglet HISTORIQUE
 
 /* ── (POSE TP · 22/08/2026) PHASE DE POSE DES TEMPS PARTIELS — DÉDUITE, JAMAIS ÉCRITE ──
    Les jours de temps partiel se posent APRÈS la génération des gardes (décision
@@ -298,6 +298,193 @@ function _poserTp_(user, targetId, envoye, annee) {
            quota: { valides: nbTP, attente: nbAttente, total: quotaTotal } };
 }
 
+/* ══ (25/11/2026) POSE LIBRE DES VACANCES — après la génération des gardes ══
+   Décision du responsable (25/11/2026). Le staff vacances reste la pose
+   initiale ; une fois l'année générée, chaque MAR ajoute, déplace ou retire
+   lui-même ses jours de vacances. Règles, toutes tranchées ICI (l'écran ne fait
+   que proposer, la copie rapide pouvant retarder) :
+   · un jour NOUVEAU — ou une demi-journée qui devient une journée — se pose
+     seulement s'il reste VERT : il resterait au moins le seuil de confort de
+     l'onglet SEUILS (15). Pas de jaune, pas de demande au comité : hors vert,
+     le MAR s'adresse aux admins ;
+   · au moins VAC_PREAVIS_JOURS (7) jours à l'avance, pour poser comme pour
+     retirer : le placement quotidien doit pouvoir suivre ;
+   · jamais sur un jour déjà occupé : garde, repos de garde, 18 h, formation,
+     temps partiel, récupération… (la garde se cède d'abord par un don) ;
+   · dans le quota de vacances de sa quotité (CONFIG_CONGES), décompté comme le
+     contrôle de l'admin : jour ouvré = 1, 24/12 et 31/12 = ½, VM ou VA = ½,
+     jours fixes de temps partiel non comptés.
+   Écrit dans GARDES (l'onglet maître). Un jour retiré ou changé l'est aussi
+   d'INDISPOS, sinon le contrôle « Indispos ↔ planning » signalerait chaque
+   jour déplacé. `envoye` = la photo COMPLÈTE des vacances voulues
+   ({date: 'V'|'VM'|'VA'}) : une date absente est un retrait — même sémantique
+   que la pose des TP. Renvoie le verdict jour par jour et l'état final. */
+const VAC_PREAVIS_JOURS = 7;
+const VAC_CODES_LIBRES = { V: true, VM: true, VA: true };
+const VAC_LIBELLE_OCCUPE = { G: 'garde', G2: 'garde', RG: 'repos de garde', R: 'récupération', '18': '18 h',
+  F: 'formation', TP: 'temps partiel', CTP: 'temps partiel', CL: 'congé long', CP: 'congé', A: 'absence' };
+
+// L'horloge : isolée pour que le banc puisse la régler (infrastructure, pas de logique).
+function _vacAujourdhui_() { return Utilities.formatDate(new Date(), Session.getScriptTimeZone(), 'yyyy-MM-dd'); }
+function _vacPlusJours_(ds, n) {
+  const d = new Date(ds + 'T12:00:00'); d.setDate(d.getDate() + n);
+  const p = x => String(x).padStart(2, '0');
+  return d.getFullYear() + '-' + p(d.getMonth() + 1) + '-' + p(d.getDate());
+}
+// Jours fixes de temps partiel d'un MAR (0 = dimanche), en LISTE : une clé de la copie rapide ne porte pas d'ensemble.
+function _vacJoursFixes_(id) {
+  try { const f = getMedecinFlags().tpJoursFixes[id]; return f ? Array.from(f).sort() : []; } catch (e) { return []; }
+}
+// Ce que coûte un code de vacances ce jour-là — même décompte que le contrôle « congés » de l'admin.
+function _vacPoids_(code, ds, jf, fixes) {
+  const w = new Date(ds + 'T12:00:00').getDay();
+  if (w === 0 || w === 6 || jf.has(ds)) return 0;
+  if (fixes && fixes.indexOf(w) !== -1) return 0;
+  if (code === 'V') return /-12-(24|31)$/.test(ds) ? 0.5 : 1;
+  if (code === 'VM' || code === 'VA') return 0.5;
+  return 0;
+}
+/* Écrit plusieurs cases d'une ligne de GARDES en UNE lecture. Chaque écriture
+   n'a lieu que si la case contient encore ce qu'on y a lu (`avant`) : un
+   collègue ou le comité qui l'aurait changée entre-temps n'est jamais écrasé.
+   Renvoie l'ensemble des dates réellement écrites. */
+function _vacGrilleEcrire_(annee, marId, ecritures) {
+  const faits = new Set();
+  const sh = SpreadsheetApp.getActiveSpreadsheet().getSheetByName('GARDES_' + annee);
+  if (!sh || !ecritures.length) return faits;
+  const d = sh.getDataRange().getValues();
+  const d2c = buildDateToCol(d, annee);
+  let ligne = -1;
+  for (let r = 3; r < d.length; r++) { if (String(d[r][0]).trim() === String(marId).trim()) { ligne = r; break; } }
+  if (ligne < 0) return faits;
+  ecritures.forEach(function (x) {
+    const col = d2c[x.ds];
+    if (col === undefined) return;
+    const actuel = String(d[ligne][col] || '').trim().toUpperCase();
+    if (actuel !== String(x.avant || '')) return;
+    sh.getRange(ligne + 1, col + 1).setValue(x.apres);
+    faits.add(x.ds);
+  });
+  return faits;
+}
+// Retire un code de vacances d'INDISPOS (le jour a changé dans GARDES, qui fait foi).
+function _vacRetirerDIndispos_(annee, marId, ds) {
+  try {
+    const sh = SpreadsheetApp.getActiveSpreadsheet().getSheetByName('INDISPOS_' + annee);
+    if (!sh) return false;
+    const d = sh.getDataRange().getValues();
+    const col = reconstruireDatesHeaders(d, annee).indexOf(ds);
+    if (col < 0) return false;
+    for (let r = 3; r < d.length; r++) {
+      if (String(d[r][0]).trim() !== String(marId).trim()) continue;
+      const v = String(d[r][col + 1] || '').trim().toUpperCase();
+      if (v !== 'VAC' && v !== 'V' && v !== 'VM' && v !== 'VA') return false;
+      sh.getRange(r + 1, col + 2).setValue('');
+      return true;
+    }
+  } catch (e) { logAction('_vacRetirerDIndispos_ ' + marId + ' ' + ds + ' : ' + e.message); }
+  return false;
+}
+
+function _poserVac_(user, targetId, envoye, annee) {
+  const estAdmin = user && user.role === 'admin';
+  const M = _tpMondePresence_(annee);
+  const jf = new Set(getJoursFeries(annee));
+  const S = seuilsPresence_();
+  const auj = _vacAujourdhui_();
+  const limite = _vacPlusJours_(auj, VAC_PREAVIS_JOURS);   // premier jour encore modifiable
+  const quota = Number(getQuotasConges(_quotiteDe_(targetId)).vac) || 0;
+  const fixes = _vacJoursFixes_(targetId);
+  const grille = _tpGrilleLire_(annee, targetId);
+  const voulu = {};
+  Object.keys(envoye || {}).forEach(function (ds) {
+    const c = String(envoye[ds] || '').trim().toUpperCase();
+    if (VAC_CODES_LIBRES[c]) voulu[ds] = c;
+  });
+  const resultat = {}, ecritures = [], final = {};
+  let total = 0;
+
+  // ── Passe 1 : les vacances DÉJÀ au planning ─────────────────────────────
+  Object.keys(grille).forEach(function (ds) {
+    const c = grille[ds];
+    if (!VAC_CODES_LIBRES[c]) return;
+    const v = voulu[ds];
+    if (v === c) { total += _vacPoids_(c, ds, jf, fixes); final[ds] = c; return; }
+    if (ds < limite) {
+      /* Figé : passé ou à moins de 7 jours. Il reste tel quel ; si l'écran
+         demandait autre chose, le récapitulatif le dit. */
+      total += _vacPoids_(c, ds, jf, fixes); final[ds] = c;
+      resultat[ds] = 'moins de ' + VAC_PREAVIS_JOURS + ' jours : demandez aux admins';
+      return;
+    }
+    if (!v) { ecritures.push({ ds: ds, avant: c, apres: '' }); resultat[ds] = 'retiré'; }
+    // v différent de c : changement de type, jugé en passe 2.
+  });
+
+  // ── Passe 2 : les nouveautés et les changements, dans l'ordre du calendrier ──
+  Object.keys(voulu).sort().forEach(function (ds) {
+    const v = voulu[ds], c = VAC_CODES_LIBRES[grille[ds]] ? grille[ds] : '';
+    if (c === v || (c && ds < limite)) return;              // conservé (passe 1)
+    if (!M.datesValides.has(ds)) { resultat[ds] = 'hors année'; return; }
+    if (ds < limite) { resultat[ds] = 'moins de ' + VAC_PREAVIS_JOURS + ' jours : demandez aux admins'; return; }
+    const dow = new Date(ds + 'T12:00:00').getDay();
+    if (dow === 0 || dow === 6) { resultat[ds] = 'week-end'; return; }
+    if (jf.has(ds)) { resultat[ds] = 'jour férié'; return; }
+    if (!c && grille[ds]) { resultat[ds] = 'jour déjà pris : ' + (VAC_LIBELLE_OCCUPE[grille[ds]] || grille[ds]); return; }
+    /* Le jour doit être VERT : tout jour nouveau (journée ou demi-journée —
+       règle du responsable, « vert obligatoirement »), et la demi-journée qui
+       devient journée. Une journée qui devient demi-journée, ou matin ↔
+       après-midi, ne retire personne : pas de nouveau jugement. */
+    const exigeVert = !c || (v === 'V' && c !== 'V');
+    if (exigeVert) {
+      const reste = M.presents(ds) - 1;
+      if (reste < S.confort) {
+        if (c) { final[ds] = c; total += _vacPoids_(c, ds, jf, fixes); }   // le changement refusé laisse le jour tel quel
+        resultat[ds] = 'il resterait ' + reste + ' présents (moins de ' + S.confort + ') : demandez aux admins';
+        return;
+      }
+    }
+    const p = _vacPoids_(v, ds, jf, fixes);
+    if (total + p > quota) {
+      if (c) { final[ds] = c; total += _vacPoids_(c, ds, jf, fixes); }   // le changement refusé laisse le jour tel quel
+      resultat[ds] = 'quota atteint (' + String(quota).replace('.', ',') + ' jours)';
+      return;
+    }
+    ecritures.push({ ds: ds, avant: c, apres: v });
+    total += p; final[ds] = v; resultat[ds] = v;
+  });
+
+  // ── Écriture : une lecture de GARDES, chaque case vérifiée avant d'écrire ──
+  const faits = _vacGrilleEcrire_(annee, targetId, ecritures);
+  ecritures.forEach(function (x) {
+    if (faits.has(x.ds)) {
+      if (x.avant) _vacRetirerDIndispos_(annee, targetId, x.ds);
+      return;
+    }
+    // La case a changé entre la lecture et l'écriture : rien n'est fait, on le dit.
+    resultat[x.ds] = 'la case vient de changer : réessayez';
+    if (x.apres) { delete final[x.ds]; total -= _vacPoids_(x.apres, x.ds, jf, fixes); }
+    if (x.avant) { final[x.ds] = x.avant; total += _vacPoids_(x.avant, x.ds, jf, fixes); }
+  });
+  if (faits.size) _tpRepublier_(annee);
+
+  /* HISTORIQUE : chaque jour qui change, horodaté, avec l'auteur. */
+  { const par = estAdmin ? 'comité (' + (user.id || 'admin') + ')' : String((user && user.id) || targetId);
+    const LIB = { V: 'vacances posées', VM: 'demi-journée de vacances posée (matin)', VA: 'demi-journée de vacances posée (après-midi)' };
+    const lignes = [];
+    ecritures.forEach(function (x) {
+      if (!faits.has(x.ds)) return;
+      lignes.push({ annee: annee, quoi: x.apres ? LIB[x.apres] : 'vacances retirées', mar: targetId, jour: x.ds, par: par,
+                    detail: String(total).replace('.', ',') + '/' + String(quota).replace('.', ',') + ' jours posés après ce geste' });
+    });
+    (typeof historiser_ === 'function') && historiser_(lignes); }
+
+  logAction('poserVac ' + targetId + ' (' + annee + ') — ' + faits.size + ' jour(s) écrit(s), '
+            + String(total).replace('.', ',') + '/' + quota + ' posés');
+  return { success: true, annee: annee, resultat: resultat, jours: final,
+           quota: { poses: total, total: quota }, preavis: VAC_PREAVIS_JOURS };
+}
+
 function _tpGrilleEcrire_(annee, marId, ds, valeur) {
   const ss = SpreadsheetApp.getActiveSpreadsheet();
   const sh = ss.getSheetByName('GARDES_' + annee);
@@ -385,7 +572,14 @@ function tpRepublicationDifferee() {
   try { file = JSON.parse(props.getProperty(TP_CLE_REPUBLIER) || '[]'); } catch (e) { file = []; }
   props.deleteProperty(TP_CLE_REPUBLIER);
   file.forEach(function (y) {
-    try { generatePlanning(y); logAction('Planning ' + y + ' republié (temps partiels)'); }
+    try {
+      generatePlanning(y); logAction('Planning ' + y + ' republié (temps partiels, vacances)');
+      /* (25/11/2026) Les mails de changement (dont celui du secrétariat, qui
+         saisit les absences) partaient seulement après une publication du
+         comité ou un échange : un TP ou des vacances posés par le MAR
+         attendaient la publication suivante. Même minuteur que le reste. */
+      try { if (typeof notifPlanifier === 'function') notifPlanifier(y); } catch (eN) { logAction('notifPlanifier ' + y + ' : ' + eN.message); }
+    }
     catch (e) { try { Logger.log('tpRepublicationDifferee ' + y + ' : ' + e.message); } catch (e2) {} }
   });
 }
@@ -647,6 +841,11 @@ function _construirePoseTp_(annee) {
       jours: jours,
       quota: getQuotasConges(_quotiteDe_(id)).ctp || 0,
       tpFixe: _tpFixeDe_(id),
+      /* (25/11/2026) Pose libre des vacances : le quota de vacances de sa
+         quotité et ses jours fixes de temps partiel (jours de la semaine,
+         0 = dimanche), qui ne se décomptent pas — même règle que le serveur. */
+      quotaVac: Number(getQuotasConges(_quotiteDe_(id)).vac) || 0,
+      joursFixes: _vacJoursFixes_(id),
     };
   });
   /* (CORRECTIF 23/08/2026) `getJoursFeries` renvoie un ENSEMBLE. Un ensemble

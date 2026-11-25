@@ -604,6 +604,53 @@ html[data-theme="dark"] .tool-hint.ok { color:#5BD08B; }
 html[data-theme="dark"] .tpx-day.libre .tpx-eff { color:#5BD08B; }
 html[data-theme="dark"] .reprise-screen { background:var(--bg); }
 html[data-theme="dark"] .tpx-sq-bloc, html[data-theme="dark"] .tpx-sq-jour { background:linear-gradient(90deg,var(--line-light) 25%,var(--bg) 37%,var(--line-light) 63%); }
+/* ══ (25/11/2026) POSE LIBRE DES VACANCES — ?vac=1 ═══════════════════════════
+   Maquette validée par le responsable (25/11/2026), préfixe vcx- : aucune
+   collision avec l'écran campagne ni avec la pose des TP. Couleur : le bleu
+   des vacances ; vert = posable, noir = moins de 15 présents. */
+:root{ --vcx:#1D4ED8; --vcx-pale:#DBEAFE; }
+html[data-theme="dark"]{ --vcx:#7BAAF7; --vcx-pale:#152341; }
+.vcx-phase{background:var(--white);border-bottom:1px solid var(--line);padding:14px 16px}
+.vcx-phase b{font-size:14px}.vcx-phase p{margin:3px 0 0;font-size:12.5px;color:var(--ink-3);line-height:1.45}
+.vcx-jauge{background:var(--white);padding:12px 16px;border-bottom:1px solid var(--line)}
+.vcx-jt{display:flex;justify-content:space-between;align-items:baseline;font-size:12px;margin-bottom:5px}
+.vcx-jt span:first-child{color:var(--ink-3);font-weight:600}.vcx-jt b{font-size:13px}.vcx-jt b i{font-style:normal;font-weight:500;color:var(--ink-4)}
+.vcx-jb{height:6px;background:var(--bg);border-radius:3px;overflow:hidden;display:flex}
+.vcx-jf{background:var(--vcx);height:100%;transition:width .25s}.vcx-jf.p{opacity:.45}
+.vcx-js{font-size:11.5px;color:var(--ink-3);margin-top:6px}
+.vcx-grid{display:grid;grid-template-columns:repeat(7,minmax(0,1fr));gap:4px;padding:0 10px}
+.vcx-h{font-size:10.5px;color:var(--ink-4);text-align:center;font-weight:700;padding:4px 0}
+.vcx-d{aspect-ratio:1;border-radius:8px;border:1.5px solid var(--line);display:flex;flex-direction:column;align-items:center;padding:2px;gap:2px;position:relative;cursor:pointer;background:var(--white);overflow:hidden;-webkit-tap-highlight-color:transparent}
+.vcx-d:active{transform:scale(.95)}
+.vcx-n{font-size:13px;font-weight:700;color:var(--ink-2);line-height:1.2}
+.vcx-e{font-size:9.5px;font-weight:700;margin-top:auto;font-family:'DM Mono',monospace;color:#15803D}
+.vcx-b{font-size:8px;font-weight:700;padding:1px 4px;border-radius:4px;background:var(--bg);color:var(--ink-3);max-width:100%;overflow:hidden;white-space:nowrap}
+.vcx-d.vide{border:0;background:none;cursor:default}
+.vcx-d.we{background:var(--bg);cursor:default}.vcx-d.we .vcx-n{color:var(--ink-4)}
+.vcx-d.libre{background:var(--tpx-libre);border-color:var(--tpx-libre-border)}.vcx-d.libre .vcx-n{color:var(--tpx-libre-fg)}
+.vcx-d.ferme{background:var(--tpx-ferme);border-color:transparent;cursor:not-allowed}.vcx-d.ferme .vcx-n,.vcx-d.ferme .vcx-e{color:var(--tpx-ferme-fg)}
+.vcx-d.bloque{cursor:not-allowed}.vcx-d.bloque .vcx-n{color:var(--ink-4)}
+.vcx-b.g{background:var(--tpx-garde);color:var(--tpx-garde-fg)}.vcx-b.tp{background:var(--tpx);color:var(--tpx-fg)}.vcx-b.f{background:var(--vcx-pale);color:var(--vcx)}
+.vcx-d.v{background:var(--vcx);border-color:transparent}.vcx-d.v .vcx-n{color:#fff}
+.vcx-d.vm{background:linear-gradient(var(--vcx) 50%,var(--tpx-libre) 50%);border-color:var(--vcx)}.vcx-d.vm .vcx-n{color:#fff}
+.vcx-d.va{background:linear-gradient(var(--tpx-libre) 50%,var(--vcx) 50%);border-color:var(--vcx)}.vcx-d.va .vcx-n{color:var(--vcx)}
+.vcx-d.pend::after{content:'';position:absolute;inset:-1px;border:2px dashed #F59E0B;border-radius:8px}
+.vcx-d.retire{background:var(--white);border:2px dashed var(--vcx)}.vcx-d.retire .vcx-n{color:var(--vcx);text-decoration:line-through}
+.vcx-d.fige{opacity:.4;cursor:not-allowed}
+.vcx-d.auj{box-shadow:0 0 0 2px var(--ink)}
+.vcx-leg{display:flex;flex-wrap:wrap;gap:6px 12px;padding:12px 16px;font-size:11px;color:var(--ink-3)}
+.vcx-leg i{display:inline-block;width:11px;height:11px;border-radius:3px;vertical-align:-1px;margin-right:4px}
+.vcx-hint{font-size:12.5px;color:var(--ink-3);padding:8px 16px 14px;line-height:1.45;min-height:40px}.vcx-hint.err{color:#B91C1C}
+.vcx-bas{position:sticky;bottom:0;background:var(--white);border-top:1px solid var(--line);padding:8px 10px;z-index:90}
+.vcx-outils{display:flex;gap:5px}
+.vcx-o{flex:1;text-align:center;font-size:11.5px;font-weight:700;padding:11px 2px;border-radius:9px;border:1.5px solid var(--line);cursor:pointer;user-select:none;background:var(--white);color:var(--ink-3)}
+.vcx-o.on{border-color:var(--ink);box-shadow:0 0 0 2px rgba(15,23,42,.08)}
+.vcx-o.jour{background:var(--vcx);color:#fff;border-color:transparent}.vcx-o.jour.on{border-color:var(--ink)}
+.vcx-o.demi{background:var(--vcx-pale);color:var(--vcx)}
+.vcx-save{display:flex;align-items:center;gap:8px;margin-top:7px}.vcx-save span{flex:1;font-size:12px;color:var(--ink-3);font-weight:600}
+.vcx-save button{background:var(--ink);color:var(--white);border:0;border-radius:9px;padding:11px 18px;font:inherit;font-weight:700;font-size:13px;cursor:pointer}
+.vcx-save button:disabled{opacity:.35;cursor:default}
+.vcx-ans{display:flex;gap:6px;margin-top:9px}
 </style>
 </head>
 <body>
@@ -781,6 +828,49 @@ html[data-theme="dark"] .tpx-sq-bloc, html[data-theme="dark"] .tpx-sq-jour { bac
   <button class="tpx-sheet-btn" onclick="tpxFermerRecap()">Fermer</button>
 </div>
 
+<!-- ══ (25/11/2026) POSE LIBRE DES VACANCES — ?vac=1 — maquette validée ══ -->
+<div class="app" id="vacApp" style="display:none">
+  <div class="vcx-phase"><b id="vcxTitre">Pose libre ouverte</b>
+    <p>Les gardes sont réparties : ajoutez, déplacez ou retirez vos jours de vacances vous-même, sur un jour vert, au moins <span class="vcx-preavis">7</span> jours à l'avance. Pour un autre jour : demandez aux admins.</p>
+    <div class="vcx-ans" id="vcxAns" style="display:none"></div></div>
+  <div class="vcx-jauge"><div class="vcx-jt"><span id="vcxJn">Vacances</span><b id="vcxJv"></b></div>
+    <div class="vcx-jb"><div class="vcx-jf p" id="vcxJp"></div><div class="vcx-jf" id="vcxJf"></div></div><div class="vcx-js" id="vcxJs"></div></div>
+  <div class="month-nav">
+    <button class="month-nav-btn" onclick="vcxMois(-1)">← Préc.</button>
+    <span class="month-title" id="vcxMt"></span>
+    <button class="month-nav-btn" onclick="vcxMois(1)">Suiv. →</button>
+  </div>
+  <div class="vcx-grid" id="vcxGrid"></div>
+  <div class="vcx-leg">
+    <span><i style="background:var(--vcx)"></i>Vos vacances</span>
+    <span><i style="background:linear-gradient(var(--vcx) 50%,var(--tpx-libre) 50%)"></i>½ journée (haut = matin)</span>
+    <span><i style="background:var(--tpx-libre);border:1px solid var(--tpx-libre-border)"></i>Libre (présents)</span>
+    <span><i style="background:var(--tpx-ferme)"></i>Moins de <span class="vcx-seuil">15</span> : demandez aux admins</span>
+    <span><i style="background:var(--tpx-garde)"></i>Garde · 18 h · repos</span>
+    <span><i style="background:var(--white);border:1px solid var(--line);opacity:.4"></i>Moins de <span class="vcx-preavis">7</span> jours</span>
+  </div>
+  <div class="vcx-hint" id="vcxHint">Outil actif : <b>Journée</b> — touchez un jour vert.</div>
+  <div class="vcx-bas">
+    <div class="vcx-outils">
+      <div class="vcx-o jour on" data-o="V" onclick="vcxOutil('V')">Journée</div>
+      <div class="vcx-o demi" data-o="VM" onclick="vcxOutil('VM')">½ matin</div>
+      <div class="vcx-o demi" data-o="VA" onclick="vcxOutil('VA')">½ après-midi</div>
+      <div class="vcx-o" data-o="X" onclick="vcxOutil('X')">🧽 Retirer</div>
+    </div>
+    <div class="vcx-save"><span id="vcxSt">Rien en attente</span><button id="vcxBs" onclick="vcxEnregistrer()" disabled>Enregistrer</button></div>
+  </div>
+</div>
+<div class="tpx-ferme-msg" id="vcxFerme" style="display:none">
+  La pose des vacances n'est pas ouverte pour le moment : les gardes de l'année ne sont pas encore générées.<br><br>
+  <a href="index.html" style="color:#1D4ED8;font-weight:600;text-decoration:none">← Retour au portail</a>
+</div>
+<div class="tpx-sheet-bg" id="vcxSheetBg" onclick="vcxFermerRecap()"></div>
+<div class="tpx-sheet" id="vcxSheet">
+  <h2>Vos vacances sont à jour</h2>
+  <div id="vcxRecap"></div>
+  <button class="tpx-sheet-btn" style="background:var(--vcx);border-color:var(--vcx)" onclick="vcxFermerRecap()">Fermer</button>
+</div>
+
 <!-- Toast -->
 <div class="toast" id="toast"></div>
 
@@ -857,6 +947,8 @@ let displayYear = YEAR;
    et l'écran de pose des temps partiels ouvert par la tuile du portail avec
    ?tp=1. Un seul est monté par session — le mode se lit une fois, ici. */
 const MODE_TP = new URLSearchParams(location.search).get('tp') === '1';
+/* (25/11/2026) Troisième visage : la pose libre des vacances (?vac=1), ouverte par la tuile « Mes vacances et TP ». */
+const MODE_VAC = !MODE_TP && new URLSearchParams(location.search).get('vac') === '1';
   
 // ── LOGIN ─────────────────────────────────────────────────────────────
 document.getElementById('codeInput').addEventListener('keydown', e => {
@@ -875,6 +967,17 @@ async function doLogin(codeAuto, silencieux) {
   /* (LOT 3 · 22/08/2026) Mode POSE DES TP (?tp=1) : même code, même session,
      mais un circuit de démarrage dédié — la clé pose_tp_{Y} de la copie
      rapide, repli GAS getPoseTp. L'écran campagne n'est jamais monté. */
+  if (MODE_VAC) {
+    const btnV = document.getElementById('loginBtn');
+    if (!silencieux) { btnV.textContent = 'Connexion...'; btnV.disabled = true; }
+    let okV = false;
+    try { okV = await vcxBoot(code, silencieux); } catch (eV) { okV = false; }
+    if (!silencieux) {
+      btnV.textContent = 'Accéder →'; btnV.disabled = false;
+      if (!okV) document.getElementById('loginError').style.display = 'block';
+    }
+    return okV;
+  }
   if (MODE_TP) {
     const btnTp = document.getElementById('loginBtn');
     if (!silencieux) { btnTp.textContent = 'Connexion...'; btnTp.disabled = true; }
@@ -1966,6 +2069,7 @@ try {
 window.addEventListener('beforeunload', e => {
   if (hasChanges) e.preventDefault();
   if (MODE_TP && TPX && (Object.keys(TPX.pend).length || TPX.retire.size)) e.preventDefault();
+  if (MODE_VAC && VCX && Object.keys(VCX.pend).length) e.preventDefault();
 });
 
 /* ══ (LOT 3 · 22/08/2026) MODULE DE POSE DES TEMPS PARTIELS ══════════════════
@@ -2491,6 +2595,265 @@ function tpxFermerRecap() {
   document.getElementById('tpxSheetBg').classList.remove('show');
   document.getElementById('tpxSheet').classList.remove('show');
 }
+
+/* ══ (25/11/2026) POSE LIBRE DES VACANCES — ?vac=1 ════════════════════════════
+   Règles du responsable (25/11/2026), tranchées par le serveur (_poserVac_,
+   temps_partiel.gs) — l'écran les annonce avant le geste :
+   · jour VERT seulement (il resterait au moins le seuil de confort, 15) ;
+     sinon « demandez aux admins », pas de demande au comité ;
+   · au moins 7 jours à l'avance, pour poser comme pour retirer ;
+   · jamais sur un jour occupé (garde, repos, 18 h, formation, TP, récup…) ;
+   · dans le quota de vacances de la quotité : jour ouvré 1, 24/12 et 31/12 ½,
+     demi-journée ½, jours fixes de temps partiel non comptés.
+   Données : la clé pose_tp_{Y} de la copie rapide (effectif du jour, seuils,
+   fériés, mes codes, mon quota), repli GAS getPoseTp. */
+let VCX = null;
+const VCX_CLES = {};
+const VCX_ETIQ = { G: ['GARDE', 'g'], G2: ['GARDE', 'g'], RG: ['REPOS', 'g'], R: ['RÉCUP', ''], '18': ['18 H', 'g'],
+  FORM: ['FORM.', 'f'], TP: ['TP', 'tp'], TPA: ['TP DEM.', 'tp'], CTP: ['TP', 'tp'], CL: ['CONGÉ', ''], CP: ['CONGÉ', ''], A: ['ABSENT', ''] };
+
+function vcxIso(y, m, d) { return y + '-' + String(m + 1).padStart(2, '0') + '-' + String(d).padStart(2, '0'); }
+function vcxPlusJours(ds, n) { const d = new Date(ds + 'T12:00:00'); d.setDate(d.getDate() + n); return vcxIso(d.getFullYear(), d.getMonth(), d.getDate()); }
+function vcxFr(x) { return String(Math.round(x * 10) / 10).replace('.', ','); }
+// Mon code de vacances au serveur : 'V' | 'VM' | 'VA' | '' (VAC = journée, vocabulaire de la clé)
+function vcxBase(ds) { const c = String(VCX.jours[ds] || '').toUpperCase(); return c === 'VAC' || c === 'V' ? 'V' : (c === 'VM' || c === 'VA' ? c : ''); }
+function vcxCode(ds) { const p = VCX.pend[ds]; return p === 'X' ? '' : (p || vcxBase(ds)); }
+function vcxPoids(c, ds) {
+  const w = new Date(ds + 'T12:00:00').getDay();
+  if (w === 0 || w === 6 || VCX.feries.has(ds) || VCX.fixes.indexOf(w) !== -1) return 0;
+  if (c === 'V') return /-12-(24|31)$/.test(ds) ? 0.5 : 1;
+  return (c === 'VM' || c === 'VA') ? 0.5 : 0;
+}
+function vcxCompte() {
+  let passe = 0, venir = 0; const auj = tpxAujourdhui();
+  const tous = new Set(Object.keys(VCX.jours).concat(Object.keys(VCX.pend)));
+  tous.forEach(function (ds) { const p = vcxPoids(vcxCode(ds), ds); if (ds < auj) passe += p; else venir += p; });
+  return { passe: passe, venir: venir, total: passe + venir };
+}
+// Présents ce jour-là SI je travaille (la clé me compte absent sur mes journées de vacances).
+function vcxPresents(ds) { const p = VCX.presents[ds]; return p === undefined ? undefined : p + (vcxBase(ds) === 'V' ? 1 : 0); }
+function vcxEtat(ds) {
+  const w = new Date(ds + 'T12:00:00').getDay();
+  if (w === 0 || w === 6) return { s: 'we' };
+  const auj = tpxAujourdhui(), fige = ds < VCX.limite, c = vcxCode(ds), base = String(VCX.jours[ds] || '').toUpperCase();
+  if (VCX.feries.has(ds)) return { s: 'bloque', b: ['FÉRIÉ', ''] };
+  if (c === 'V') return { s: 'v', fige: fige };
+  if (c === 'VM') return { s: 'vm', fige: fige };
+  if (c === 'VA') return { s: 'va', fige: fige };
+  if (VCX.pend[ds] === 'X') return { s: 'retire', fige: fige };
+  if (VCX_ETIQ[base]) return { s: 'bloque', b: VCX_ETIQ[base] };
+  if (ds < auj) return { s: 'bloque', b: ['PASSÉ', ''] };
+  const p = vcxPresents(ds);
+  if (p === undefined) return { s: 'bloque', b: ['—', ''] };
+  if (p - 1 < VCX.seuils.confort) return { s: 'ferme', p: p, fige: fige };
+  return { s: 'libre', p: p, fige: fige };
+}
+function vcxRendre() {
+  const an = VCX.annee, mo = VCX.mois;
+  document.getElementById('vcxMt').textContent = MONTHS_FR[mo] + ' ' + an;
+  const g = document.getElementById('vcxGrid'); let h = '';
+  ['Lun', 'Mar', 'Mer', 'Jeu', 'Ven', 'Sam', 'Dim'].forEach(function (x) { h += '<div class="vcx-h">' + x + '</div>'; });
+  for (let i = 0; i < (new Date(an, mo, 1).getDay() + 6) % 7; i++) h += '<div class="vcx-d vide"></div>';
+  const nb = new Date(an, mo + 1, 0).getDate(), auj = tpxAujourdhui();
+  for (let d = 1; d <= nb; d++) {
+    const ds = vcxIso(an, mo, d), e = vcxEtat(ds);
+    let cls = 'vcx-d ' + e.s + (e.fige && e.s !== 'we' && e.s !== 'bloque' ? ' fige' : '') + (VCX.pend[ds] && VCX.pend[ds] !== 'X' ? ' pend' : '') + (ds === auj ? ' auj' : '');
+    let inner = '<span class="vcx-n">' + d + '</span>';
+    if (e.b) inner += '<span class="vcx-b ' + e.b[1] + '">' + e.b[0] + '</span>';
+    if (e.p !== undefined) inner += '<span class="vcx-e">' + e.p + '</span>';
+    h += '<div class="' + cls + '" data-ds="' + ds + '">' + inner + '</div>';
+  }
+  g.innerHTML = h;
+  const k = vcxCompte(), q = VCX.quota;
+  document.getElementById('vcxJn').textContent = 'Vacances ' + an;
+  document.getElementById('vcxJv').innerHTML = vcxFr(k.total) + ' <i>/ ' + vcxFr(q) + ' j</i>';
+  document.getElementById('vcxJp').style.width = (q ? Math.min(100, k.passe / q * 100) : 0) + '%';
+  document.getElementById('vcxJf').style.width = (q ? Math.min(100, k.venir / q * 100) : 0) + '%';
+  document.getElementById('vcxJs').textContent = vcxFr(k.passe) + ' déjà pris · ' + vcxFr(k.venir) + ' à venir · il vous reste ' + vcxFr(Math.max(0, q - k.total)) + ' jour(s) à poser';
+  const n = Object.keys(VCX.pend).length;
+  document.getElementById('vcxSt').textContent = n ? n + ' changement' + (n > 1 ? 's' : '') + ' à enregistrer' : 'Rien en attente';
+  document.getElementById('vcxBs').disabled = !n;
+}
+function vcxDire(t, err) { const h = document.getElementById('vcxHint'); h.innerHTML = t; h.className = 'vcx-hint' + (err ? ' err' : ''); }
+function vcxLisible(ds) { return new Date(ds + 'T12:00:00').toLocaleDateString('fr-FR', { weekday: 'long', day: 'numeric', month: 'long' }); }
+function vcxClic(ds) {
+  const e = vcxEtat(ds); if (e.s === 'we') return;
+  const j = 'Le ' + vcxLisible(ds);
+  if (e.s === 'bloque') return vcxDire(j + ' : ' + e.b[0].toLowerCase() + '. Pas de vacances par-dessus.'
+    + (e.b[1] === 'g' ? ' Pour libérer ce jour, passez d\'abord par un don ou un échange.' : ''), true);
+  if (e.fige) return vcxDire(j + ' est à moins de ' + VCX.preavis + ' jours : il ne se modifie plus ici. Demandez aux admins.', true);
+  const base = vcxBase(ds);
+  if (VCX.outil === 'X') {
+    if (VCX.pend[ds]) { delete VCX.pend[ds]; vcxDire(j + ' : changement annulé.'); }
+    else if (base) { VCX.pend[ds] = 'X'; vcxDire(j + ' sera retiré à l\'enregistrement : il revient dans votre compteur.'); }
+    else return vcxDire('Rien à retirer ce jour-là.', true);
+    return vcxRendre();
+  }
+  if (vcxCode(ds) === VCX.outil) {
+    if (VCX.pend[ds]) { delete VCX.pend[ds]; vcxDire(j + ' : changement annulé.'); } else { VCX.pend[ds] = 'X'; vcxDire(j + ' sera retiré à l\'enregistrement.'); }
+    return vcxRendre();
+  }
+  // Devenir absent toute la journée : le jour doit rester vert.
+  if (VCX.outil === 'V' && base !== 'V') {
+    const p = vcxPresents(ds);
+    if (p === undefined || p - 1 < VCX.seuils.confort)
+      return vcxDire(j + ', il ne resterait que ' + (p === undefined ? '?' : p - 1) + ' présents (moins de ' + VCX.seuils.confort + ') : ce jour ne se pose pas ici. Demandez aux admins.', true);
+  }
+  if (!base && e.s === 'ferme') return vcxDire(j + ', il ne resterait que ' + (e.p - 1) + ' présents (moins de ' + VCX.seuils.confort + ') : ce jour ne se pose pas ici. Demandez aux admins.', true);
+  const k = vcxCompte();
+  if (k.total - vcxPoids(vcxCode(ds), ds) + vcxPoids(VCX.outil, ds) > VCX.quota)
+    return vcxDire('Quota atteint (' + vcxFr(VCX.quota) + ' jours). Pour déplacer un jour, retirez-en d\'abord un autre.', true);
+  if (base === VCX.outil) delete VCX.pend[ds]; else VCX.pend[ds] = VCX.outil;
+  vcxDire(j + ' : ' + (VCX.outil === 'V' ? 'journée de vacances' : 'demi-journée (' + (VCX.outil === 'VM' ? 'matin' : 'après-midi') + ')') + ' — touchez Enregistrer pour valider.');
+  vcxRendre();
+}
+function vcxOutil(o) {
+  VCX.outil = o;
+  document.querySelectorAll('.vcx-o').forEach(function (x) { x.classList.toggle('on', x.dataset.o === o); });
+  vcxDire({ V: 'Outil actif : <b>Journée</b> — touchez un jour vert.', VM: 'Outil actif : <b>½ matin</b> — touchez un jour vert.',
+            VA: 'Outil actif : <b>½ après-midi</b> — touchez un jour vert.', X: 'Outil actif : <b>Retirer</b> — touchez un de vos jours bleus.' }[o]);
+}
+function vcxMois(n) {
+  VCX.mois += n;
+  if (VCX.mois < 0) { VCX.mois = 0; return; }
+  if (VCX.mois > 11) { VCX.mois = 11; return; }
+  vcxRendre();
+}
+function vcxInit(cle, identite) {
+  const mien = (cle.parMar && cle.parMar[identite.id]) || null;
+  if (!mien || mien.quotaVac === undefined) {
+    const f = document.getElementById('vcxFerme');
+    f.innerHTML = 'La pose des vacances n\'est pas encore disponible pour votre profil : le serveur doit être mis à jour.<br><br>'
+      + '<a href="index.html" style="color:#1D4ED8;font-weight:600;text-decoration:none">← Retour au portail</a>';
+    f.style.display = 'block'; document.getElementById('vacApp').style.display = 'none';
+    return;
+  }
+  const auj = tpxAujourdhui();
+  VCX = {
+    annee: Number(cle.year),
+    presents: Object.assign({}, cle.presents || {}),
+    seuils: (cle.seuils && cle.seuils.confort) ? cle.seuils : { alerte: 13, confort: 15 },
+    feries: new Set(Array.isArray(cle.joursFeries) ? cle.joursFeries : []),
+    jours: Object.assign({}, mien.jours || {}),
+    quota: Number(mien.quotaVac) || 0,
+    fixes: Array.isArray(mien.joursFixes) ? mien.joursFixes.map(Number) : [],
+    preavis: 7, limite: vcxPlusJours(auj, 7),
+    pend: {}, outil: 'V',
+    mois: (Number(cle.year) === new Date().getFullYear()) ? new Date().getMonth() : 0,
+  };
+  document.querySelectorAll('.vcx-seuil').forEach(function (x) { x.textContent = VCX.seuils.confort; });
+  document.getElementById('vcxTitre').textContent = 'Pose libre ouverte · ' + VCX.annee;
+  document.getElementById('vacApp').style.display = 'block';
+  vcxOutil('V');
+  vcxRendre();
+}
+function vcxMajAnnees() {
+  const ans = Object.keys(VCX_CLES).map(Number).sort();
+  const box = document.getElementById('vcxAns');
+  if (ans.length < 2) { box.style.display = 'none'; return; }
+  box.style.display = 'flex';
+  box.innerHTML = ans.map(function (y) { return '<button class="year-btn' + (VCX && VCX.annee === y ? ' active' : '') + '" onclick="vcxChangerAnnee(' + y + ')">' + y + '</button>'; }).join('');
+}
+function vcxChangerAnnee(y) {
+  if (!VCX || VCX.annee === y || !VCX_CLES[y]) return;
+  if (Object.keys(VCX.pend).length && !confirm('Des changements ne sont pas enregistrés. Changer d\'année quand même ?')) return;
+  vcxInit(VCX_CLES[y], currentUser); vcxMajAnnees();
+}
+async function vcxBoot(code, silencieux) {
+  const Y = new Date().getFullYear();
+  if (silencieux) document.getElementById('loginScreen').style.display = 'none';
+  let identite = null, cles = [];
+  const m = await miroirRead(['pose_tp_' + Y, 'pose_tp_' + (Y + 1)], code);
+  if (m && m.success && m.identite) {
+    identite = m.identite;
+    [Y, Y + 1].forEach(function (yK) { const k = m.data && m.data['pose_tp_' + yK]; if (k && k.success && !k.ferme) cles.push(k); });
+  }
+  if (!identite) {
+    const res = await apiCall('login', { code });
+    if (!res || !res.success) { document.getElementById('loginScreen').style.display = ''; return false; }
+    identite = res;
+  }
+  currentUser = identite; currentCode = code; SessionPortail.memoriser(code);
+  document.getElementById('loginScreen').style.display = 'none';
+  const ht = document.querySelector('.header-title'); if (ht) ht.textContent = 'Mes vacances';
+  _poserPastilleUser(identite.name || identite.id);
+  if (!cles.length) {
+    const r = await apiCall('getPoseTp');
+    if (r && r.success && !r.ferme) {
+      cles = [r];
+      for (const yA of (r.annees || [])) {
+        if (yA !== Number(r.year)) { const r2 = await apiCall('getPoseTp', { year: yA }); if (r2 && r2.success && !r2.ferme) cles.push(r2); }
+      }
+    }
+  }
+  if (!cles.length) { document.getElementById('vcxFerme').style.display = 'block'; return true; }
+  try {
+    cles.forEach(function (k) { VCX_CLES[Number(k.year)] = k; });
+    /* L'année en cours d'abord (c'est celle où l'on pose au fil de l'eau) ; l'autre se choisit en haut. */
+    const ans = Object.keys(VCX_CLES).map(Number).sort();
+    vcxInit(VCX_CLES[ans.indexOf(Y) !== -1 ? Y : ans[0]], identite);
+    vcxMajAnnees();
+  } catch (eM) {
+    const f = document.getElementById('vcxFerme');
+    f.innerHTML = 'L\'écran n\'a pas pu s\'afficher.<br><br><span style="font-family:monospace;font-size:12px;color:#B91C1C">'
+      + String((eM && eM.message) || eM).replace(/</g, '&lt;') + '</span><br><br>Signalez ce message ; vos vacances ne sont pas modifiées.<br><br>'
+      + '<a href="index.html" style="color:#1D4ED8;font-weight:600;text-decoration:none">← Retour au portail</a>';
+    f.style.display = 'block'; document.getElementById('vacApp').style.display = 'none';
+  }
+  return true;
+}
+async function vcxEnregistrer() {
+  if (!VCX || !Object.keys(VCX.pend).length) return;
+  const btn = document.getElementById('vcxBs');
+  btn.textContent = '⏳ Enregistrement...'; btn.disabled = true;
+  try {
+    /* La photo COMPLÈTE de mes vacances : une date absente = un retrait. */
+    const map = {};
+    new Set(Object.keys(VCX.jours).concat(Object.keys(VCX.pend))).forEach(function (ds) { const c = vcxCode(ds); if (c) map[ds] = c; });
+    const res = await apiCall('saveIndispos', { vac: true, year: VCX.annee, vacances: map });
+    if (!res || res.success === false) { showToast('❌ ' + ((res && res.error) || 'Erreur lors de l\'enregistrement')); return; }
+    /* Les VERDICTS du serveur font foi : l'écran se recale dessus, l'effectif suit. */
+    const fin = res.jours || {}, r = res.resultat || {};
+    const touches = new Set(Object.keys(VCX.jours).filter(function (ds) { return vcxBase(ds); }).concat(Object.keys(fin)));
+    touches.forEach(function (ds) {
+      const avant = vcxBase(ds), apres = fin[ds] || '';
+      if (VCX.presents[ds] !== undefined) VCX.presents[ds] += (avant === 'V' ? 1 : 0) - (apres === 'V' ? 1 : 0);
+      if (avant) delete VCX.jours[ds];
+      if (apres) VCX.jours[ds] = apres === 'V' ? 'VAC' : apres;
+    });
+    if (res.quota && res.quota.total !== undefined) VCX.quota = Number(res.quota.total) || VCX.quota;
+    VCX.pend = {};
+    vcxRendre();
+    const court = function (ds) { return new Date(ds + 'T12:00:00').toLocaleDateString('fr-FR', { weekday: 'short', day: 'numeric', month: 'short' }); };
+    const poses = [], retires = [], refus = [];
+    Object.keys(r).sort().forEach(function (ds) {
+      const v = r[ds];
+      if (v === 'V' || v === 'VM' || v === 'VA') poses.push(court(ds) + (v === 'VM' ? ' (matin)' : v === 'VA' ? ' (après-midi)' : ''));
+      else if (v === 'retiré') retires.push(court(ds));
+      else refus.push(court(ds) + '<span class="tpx-recap-motif">' + String(v).replace(/</g, '&lt;') + '</span>');
+    });
+    let h = '';
+    if (poses.length) h += '<div class="tpx-recap-bloc tpx-recap-ok"><div class="tpx-recap-titre">✓ ' + poses.length + ' jour(s) posé(s)</div><div class="tpx-recap-jours">' + poses.join('<br>') + '</div></div>';
+    if (retires.length) h += '<div class="tpx-recap-bloc tpx-recap-ok"><div class="tpx-recap-titre">✓ ' + retires.length + ' jour(s) retiré(s)</div><div class="tpx-recap-jours">' + retires.join('<br>') + '</div></div>';
+    if (refus.length) h += '<div class="tpx-recap-bloc tpx-recap-ko"><div class="tpx-recap-titre">✗ ' + refus.length + ' jour(s) non posé(s)</div><div class="tpx-recap-jours">' + refus.join('') + '</div></div>';
+    h += '<div class="tpx-recap-txt" style="margin-bottom:12px">Le planning se met à jour dans quelques minutes ; le secrétariat est prévenu automatiquement.</div>';
+    document.getElementById('vcxRecap').innerHTML = h;
+    document.getElementById('vcxSheetBg').classList.add('show');
+    document.getElementById('vcxSheet').classList.add('show');
+  } catch (eS) {
+    showToast('❌ Erreur réseau — vérifiez la connexion et réessayez');
+  } finally {
+    btn.textContent = 'Enregistrer'; btn.disabled = !(VCX && Object.keys(VCX.pend).length);
+  }
+}
+function vcxFermerRecap() {
+  document.getElementById('vcxSheetBg').classList.remove('show');
+  document.getElementById('vcxSheet').classList.remove('show');
+}
+document.getElementById('vcxGrid').addEventListener('click', function (ev) {
+  const d = ev.target.closest ? ev.target.closest('[data-ds]') : null;
+  if (d && VCX) vcxClic(d.dataset.ds);
+});
 applyTheme();   /* (14/09/2026) second appel : le bouton 🌗 existe maintenant, son icône suit le réglage */
 </script>
 </body>

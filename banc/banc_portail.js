@@ -108,7 +108,8 @@ function fenetre(opts) {
     /* Les <link rel="preconnect"> vers le relais restent : ce sont des indices de
        performance pour le navigateur, pas une copie de l'adresse dans le code. */
     V('plus de miroirRead locale ni de const MIROIR_URL', !/function miroirRead\(/.test(page) && !/const MIROIR_URL/.test(page));
-    V('ses 3 lectures du miroir sont intactes', (page.match(/miroirRead\(/g) || []).length === 3, (page.match(/miroirRead\(/g) || []).length);
+    /* (25/11/2026) 4e lecture : l'écran de pose libre des vacances (?vac=1), même clé pose_tp que les TP. */
+    V('ses 4 lectures du miroir sont intactes', (page.match(/miroirRead\(/g) || []).length === 4, (page.match(/miroirRead\(/g) || []).length);
   }
   console.log('\n═══ planning.html a rejoint le socle ═══');
   {

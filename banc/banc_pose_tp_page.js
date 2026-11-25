@@ -81,7 +81,7 @@ function construireCle(cl, annee) {
   vm.runInContext('let _quotasCache = null;', ctx);
   ['_phaseTp_', 'getIndisposForDoctor', '_loadQuotasConges', 'getQuotasConges', '_tpFixeDe_', '_quotiteDe_',
    '_tpFermesEntete_', '_tpFermesSheet_', '_tpFermes_', '_tpDemandesSheet_', '_tpDemandes_',
-   '_tpMondePresence_', '_tpRouvrirSiLibere_', '_construirePoseTp_']
+   '_tpMondePresence_', '_tpRouvrirSiLibere_', '_vacJoursFixes_', '_construirePoseTp_']
     .forEach(function (n) { vm.runInContext(extraireFonction('../gas/Indispos.gs', n), ctx); });
   return vm.runInContext('_construirePoseTp_(' + annee + ')', ctx);
 }
