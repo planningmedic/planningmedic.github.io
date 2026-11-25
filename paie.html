@@ -17,11 +17,14 @@
 <link rel="stylesheet" href="partage/theme.css">
 <style>
 :root{
-  --surface-2:#EEF1F5;
-  --g-bg:#E8F4FD; --g-fg:#1D6FB8; --g2-bg:#FFF1F3; --g2-fg:#BE123C; --v-bg:#F0FDF4; --v-fg:#166534;
-  --tp-bg:#EEF0F4; --tp-fg:#475569; --f-bg:#F5F3FF; --f-fg:#6D28D9;
+  /* (25/11/2026) Couleurs pastel, moins grises (retour du responsable). Le week-end et
+     le jour férié partagent le même fond rosé, pour les repérer d'un coup d'œil. */
+  --bg:#FFF8FB; --line:#F2DCE6; --line-light:#FAEEF3; --ink-3:#7C6475; --ink-4:#B39AAA;
+  --we:#FCE9F1; --surface-2:var(--we);
+  --g-bg:#E4ECFF; --g-fg:#3D5BA9; --g2-bg:#FFE3EE; --g2-fg:#B83C6E; --v-bg:#DDF4E8; --v-fg:#2E7553;
+  --tp-bg:#FFEADB; --tp-fg:#A85A26; --f-bg:#EFE5FF; --f-fg:#7A4BB8;
   --chg:#D97706; --chg-soft:#FEF3C7; --chg-fg:#92400E;
-  --me:#1D6FB8; --me-soft:#E8F4FD; --me-border:#B9DCF5;
+  --me:#B84D82; --me-soft:#FCE7F1; --me-border:#F4C6DB;
 }
 *{box-sizing:border-box;margin:0;padding:0}
 body{background:var(--bg);font-family:'DM Sans',system-ui,sans-serif;color:var(--ink);
@@ -85,7 +88,7 @@ table.mois th,table.mois td{padding:0;text-align:center}
 table.mois thead th{font-size:10.5px;font-weight:500;color:var(--ink-3);font-family:var(--mono);
                     padding:6px 0;border-bottom:1px solid var(--line);min-width:30px;line-height:1.25;
                     position:sticky;top:0;z-index:2;background:var(--white)}
-table.mois .we{background:var(--line-light)}
+table.mois .we,table.mois .fe{background:var(--we)}
 table.mois thead th.fe{color:var(--g2-fg);font-weight:700}
 table.mois .nom{position:sticky;left:0;background:var(--white);text-align:left;padding:0 12px;
                 min-width:130px;font-size:13px;font-weight:600;border-right:1px solid var(--line);
@@ -110,7 +113,7 @@ table.gj{border-collapse:collapse;width:100%;max-width:760px;font-size:14px}
 table.gj th{font-size:10.5px;font-weight:500;color:var(--ink-3);font-family:var(--mono);text-transform:uppercase;
             letter-spacing:.06em;text-align:left;padding:10px 16px;border-bottom:1px solid var(--line)}
 table.gj td{padding:7px 16px;border-bottom:1px solid var(--line-light);vertical-align:middle}
-table.gj tr.we td{background:var(--surface-2)}
+table.gj tr.we td{background:var(--we)}
 table.gj td.jr{font-family:var(--mono);font-size:12.5px;color:var(--ink-3);white-space:nowrap;width:120px}
 table.gj td.jr.fe{color:var(--g2-fg)}
 .nm{display:inline-block;padding:3px 10px;border-radius:6px;font-size:13px;font-weight:700;margin:1px 4px 1px 0}
@@ -196,8 +199,7 @@ window.SessionPortail = window.SessionPortail || { lire:function(){try{return se
     <span><span class="sw TP">TP</span>temps partiel</span>
     <span><span class="sw F">F</span>formation</span>
     <span><span class="sw" style="box-shadow:0 0 0 2px var(--chg)"></span>modifié depuis moins de 7 jours</span>
-    <span><span class="sw we" style="background:var(--line-light)"></span>week-end</span>
-    <span><b style="color:var(--g2-fg)">rouge</b>&nbsp;= jour férié</span>
+    <span><span class="sw we" style="background:var(--we)"></span>week-end et jour férié</span>
   </div>
   <section class="card grille">
     <h2 id="titreGrille">Le mois, médecin par médecin</h2>
@@ -369,7 +371,7 @@ async function afficher(){
       const rec = recents[id+'|'+j.date];
       const cls = 'c ' + (c || 'vide') + (rec ? ' mod' : '');
       const tip = rec ? ' title="'+esc('Modifié le '+rec)+'"' : (c ? ' title="'+esc(LIB[c])+'"' : '');
-      h += '<td class="j'+(new Date(j.date+'T12:00:00').getDay()===1?' lu':'')+(j.we?' we':'')+'"><span class="'+cls+'"'+tip+'>'+(c||'')+'</span></td>';
+      h += '<td class="j'+(new Date(j.date+'T12:00:00').getDay()===1?' lu':'')+(j.we?' we':'')+(j.fe?' fe':'')+'"><span class="'+cls+'"'+tip+'>'+(c||'')+'</span></td>';
     });
     h += '<td class="tot">'+(tot.G||'')+'</td><td class="tot">'+(tot.G2||'')+'</td><td class="tot">'+(tot.V ? String(tot.V).replace('.', ',') : '')+'</td><td class="tot">'+(tot.TP||'')+'</td><td class="tot">'+(tot.F||'')+'</td></tr>';
     lignes.push(ligne);
@@ -398,7 +400,7 @@ function tableGardes(r, jours, ids, recents){
   let h = '<table class="gj"><thead><tr><th scope="col">Jour</th><th scope="col">Garde réanimation</th><th scope="col">Garde maternité</th></tr></thead><tbody>';
   jours.forEach(j => {
     const d = new Date(j.date+'T12:00:00');
-    h += '<tr'+(j.we ? ' class="we"' : '')+'><td class="jr'+(j.fe ? ' fe' : '')+'"'+(j.fe ? ' title="Jour férié"' : '')+'>'
+    h += '<tr'+((j.we || j.fe) ? ' class="we"' : '')+'><td class="jr'+(j.fe ? ' fe' : '')+'"'+(j.fe ? ' title="Jour férié"' : '')+'>'
        + JOURS_C[d.getDay()]+' '+d.getDate()+(j.fe ? ' · férié' : '')+'</td>'
        + '<td>'+noms(j.date, 'G')+'</td><td>'+noms(j.date, 'G2')+'</td></tr>';
   });
@@ -456,7 +458,7 @@ function chargerExcel(){
   });
   return _excelP;
 }
-const XL_FOND = { G:'FFE8F4FD', G2:'FFFFF1F3', V:'FFF0FDF4', VM:'FFF0FDF4', VA:'FFF0FDF4', TP:'FFEEF0F4', F:'FFF5F3FF' }, XL_ENCRE = { G:'FF1D6FB8', G2:'FFBE123C', V:'FF166534', VM:'FF166534', VA:'FF166534', TP:'FF475569', F:'FF6D28D9' };
+const XL_FOND = { G:'FFE4ECFF', G2:'FFFFE3EE', V:'FFDDF4E8', VM:'FFDDF4E8', VA:'FFDDF4E8', TP:'FFFFEADB', F:'FFEFE5FF' }, XL_ENCRE = { G:'FF3D5BA9', G2:'FFB83C6E', V:'FF2E7553', VM:'FF2E7553', VA:'FF2E7553', TP:'FFA85A26', F:'FF7A4BB8' };
 document.getElementById('btnXls').addEventListener('click', async ()=>{
   if(!RENDU){ toast('Rien à exporter pour ce mois'); return; }
   try { toast('Préparation du fichier…'); await chargerExcel(); }
@@ -473,7 +475,7 @@ document.getElementById('btnXls').addEventListener('click', async ()=>{
       cell.font = { bold:true, color:{ argb: XL_ENCRE[c] } };
     });
   });
-  R.jours.forEach((j, i) => { if (j.we || j.fe) ws.getColumn(i+2).eachCell(c => { if(!c.fill || c.fill.pattern !== 'solid') c.fill = { type:'pattern', pattern:'solid', fgColor:{ argb:'FFF1F5F9' } }; }); });
+  R.jours.forEach((j, i) => { if (j.we || j.fe) ws.getColumn(i+2).eachCell(c => { if(!c.fill || c.fill.pattern !== 'solid') c.fill = { type:'pattern', pattern:'solid', fgColor:{ argb:'FFFCE9F1' } }; }); });
   ws.getColumn(1).width = 22;
   for (let i = 2; i <= R.jours.length + 6; i++) { ws.getColumn(i).width = 4.5; ws.getColumn(i).alignment = { horizontal:'center' }; }
   ws.views = [{ state:'frozen', xSplit:1, ySplit:1 }];

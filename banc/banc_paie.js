@@ -602,6 +602,12 @@ console.log('\n═══ P5. Branchement : indépendant des mails aux MAR ══
     V('cadre orange sur les 2 cases changées il y a 2 jours (pas sur celles d\'il y a 10 jours)', mods.length === 2, mods.length);
     V('le 19 novembre (férié) est en rouge', [...d.querySelectorAll('table.mois thead th.fe')].some(th => /19/.test(th.textContent)));
     V('les week-ends sont grisés', d.querySelectorAll('table.mois thead th.we').length === 9);
+    // (25/11/2026) Le jour férié a le même fond que le week-end, sur toute sa colonne.
+    const cssF = [...d.querySelectorAll('style')].map(e => e.textContent).join('\n');
+    V('férié : même fond que le week-end (une seule règle CSS)', /table\.mois \.we,table\.mois \.fe\{background:var\(--we\)\}/.test(cssF));
+    V('férié : toute la colonne du jeudi 19 porte la classe (en-tête + 4 cases)', d.querySelectorAll('table.mois th.fe').length >= 1
+      && [...d.querySelectorAll('table.mois tbody tr')].every(tr => tr.querySelectorAll('td.j')[18].classList.contains('fe')));
+    V('couleurs pastel : fond de page rosé, plus de gris bleuté', /--bg:#FFF8FB/.test(cssF) && /--we:#FCE9F1/.test(cssF));
     V('le fil des derniers changements liste les 2 entrées', d.querySelectorAll('#fil li').length === 2);
     V('… replié par défaut, le nombre affiché dans le titre', d.getElementById('blocFil').tagName === 'DETAILS' && !d.getElementById('blocFil').open && /· 2$/.test(d.querySelector('#blocFil summary').textContent), d.querySelector('#blocFil summary').textContent);
     V('les secrétaires n\'ont pas de lien de retour au portail', d.getElementById('lnkBack').style.display === 'none');
@@ -641,6 +647,7 @@ console.log('\n═══ P5. Branchement : indépendant des mails aux MAR ══
     V('… le samedi 14, changé il y a 2 jours : nom encadré d\'orange', jour(14)[1].querySelector('.nm.mod') && jour(14)[1].textContent === 'Dr MAR01');
     V('… un nom non changé n\'est pas encadré', !jour(3)[1].querySelector('.nm.mod'));
     V('… le 19 est marqué férié', /férié/.test(jour(19)[0].textContent) && jour(19)[0].classList.contains('fe'));
+    V('… la ligne du férié a le fond du week-end', rangs[18].classList.contains('we'));
     V('… aucun motif autre que G et G2 dans cette vue (ni V ni TP)', d.querySelectorAll('table.gj .nm:not(.G):not(.G2):not(.aucun)').length === 0);
     V('… sans nouvel appel au serveur', appels.filter(a => a.year === 2026).length === 1);
     V('… l\'adresse garde la vue', /\?m=2026-11&vue=gardes$/.test(w.location.href), w.location.href);
