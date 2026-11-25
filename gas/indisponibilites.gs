@@ -4,7 +4,7 @@
    quelles : aucune ligne de logique modifiée, seulement déplacée. Le routeur et
    ses aides (checkCode, _deny, _error, doGet/doPost) restent dans Indispos.gs.
    Un seul espace global dans Apps Script : rien à importer. */
-const GAS_VERSION_INDISPOS_METIER = '2026-11-25.1';   // (25/11/2026) .1 : saveIndispos accepte la pose libre des vacances (payload.vac, voir _poserVac_ dans temps_partiel.gs) · (20/11/2026) .1 : setIndisposYear et envoyerRecapIndispos réservés au responsable · (15/11/2026) clearIndisposYear réservé au droit Maintenance (clôture d'année) · (10/11/2026) PDF récapitulatif par document Google (les couleurs passent) + renvoyerRecapPdf2027 · (09/11/2026) mail « Vos gardes » : 18 h, souhaits honorés, gardes qui allongent les vacances · (27/10/2026) VM/VA posés à la main : jamais écrasés par un enregistrement (MAR ou staff)
+const GAS_VERSION_INDISPOS_METIER = '2026-11-25.2';   // (25/11/2026) .2 : action getRecapPdf (PDF du récapitulatif pour le MAR connecté) ; getOrdreVacances répond aussi pour y+2 · .1 : saveIndispos accepte la pose libre des vacances (payload.vac, voir _poserVac_ dans temps_partiel.gs) · (20/11/2026) .1 : setIndisposYear et envoyerRecapIndispos réservés au responsable · (15/11/2026) clearIndisposYear réservé au droit Maintenance (clôture d'année) · (10/11/2026) PDF récapitulatif par document Google (les couleurs passent) + renvoyerRecapPdf2027 · (09/11/2026) mail « Vos gardes » : 18 h, souhaits honorés, gardes qui allongent les vacances · (27/10/2026) VM/VA posés à la main : jamais écrasés par un enregistrement (MAR ou staff)
 // précédente : '2026-10-22.2'
 
 // La campagne de saisie des indispos est-elle EN COURS ?
@@ -865,7 +865,7 @@ function _act_getOrdreVacances(R) {
   if (user.role !== 'mar') return _deny();
   const _now = new Date();
   const _an = _now.getFullYear();
-  const res = getOrdreVacances(user.id, [_an, _an + 1]);
+  const res = getOrdreVacances(user.id, [_an, _an + 1, _an + 2]);   // (25/11/2026) + y+2 : rang au prochain staff (récapitulatif)
   return ContentService.createTextOutput(JSON.stringify({
     success: true,
     annees: res.annees,
@@ -1211,6 +1211,37 @@ function renvoyerRecapPdf2027() {
   const r = JSON.parse(_act_envoyerRecapIndispos({ e: {}, payload: { year: 2027, pdfSeul: true }, user: { role: 'admin' } }).getContent());
   Logger.log('Renvoi du PDF : ' + JSON.stringify(r));
   return r;
+}
+
+/* ── action "getRecapPdf" ── (25/11/2026) ─────────────────────────────────
+   Le bouton « Télécharger en PDF » du récapitulatif du portail : la même page
+   que la pièce jointe du mail « Vos gardes » (_pdfRecapMar_), pour le MAR
+   connecté et l'année demandée, depuis GARDES_{année} (l'état du jour). Rien
+   n'est écrit : le PDF revient en base 64, la page le propose au téléchargement. */
+function _act_getRecapPdf(R) {
+  const { e, payload, action, code, user } = R;
+  if (user.role !== 'mar') return _deny();
+  const year = Number(payload.year) || TEST_YEAR;
+  const ss = SpreadsheetApp.getActiveSpreadsheet();
+  const sh = ss.getSheetByName('GARDES_' + year);
+  if (!sh) return _error('Le planning ' + year + ' n\'existe pas encore.');
+  const d = sh.getDataRange().getValues();
+  const d2c = buildDateToCol(d, year), c2d = {};
+  Object.keys(d2c).forEach(function (ds) { c2d[d2c[ds]] = ds; });
+  const codeDu = {};
+  for (let r = 3; r < d.length; r++) {
+    if (String(d[r][0]).trim() !== String(user.id).trim()) continue;
+    for (let c = 1; c < d[r].length; c++) {
+      const ds = c2d[c], v = String(d[r][c] == null ? '' : d[r][c]).trim().toUpperCase();
+      if (ds && v) codeDu[ds] = v;
+    }
+    break;
+  }
+  const f1 = getJoursFeries(year), f2 = getJoursFeries(year + 1);
+  const isF = function (ds) { return f1.has(ds) || f2.has(ds); };
+  const blob = _pdfRecapMar_(user.name || user.id, year, codeDu, isF);
+  return ContentService.createTextOutput(JSON.stringify({ success: true, nom: blob.getName(),
+    pdf: Utilities.base64Encode(blob.getBytes()) })).setMimeType(ContentService.MimeType.JSON);
 }
 
 /* ── action "envoyerRecapIndispos" ── */

@@ -1,7 +1,7 @@
 // ⚠️ RÈGLE (détecteur de dérive dépôt↔Apps Script) : incrémenter cette version
 // à CHAQUE push de ce fichier. Le diagnostic (admin → Maintenance) compare la
 // version déployée ici avec celle du dépôt et signale toute recopie oubliée.
-const GAS_VERSION_MIROIR = '2026-11-25.1';   // (25/11/2026) .1 : semaine type des salles (onglet SALLES_TYPE) dans config_admin, repoussée sur édition manuelle · (20/11/2026) .1 : poussée différée par année — chaque famille n'est repoussée que pour ses années, les familles sans année une seule fois avec l'année active (≈ 3 écritures Cloudflare de moins par échange accepté, config_admin ne bascule plus sur 2027) · (19/11/2026) .1 : notes du planning (PLANNING_NOTES) dans config_admin, poussées après savePlanningNotes et sur édition manuelle · (12/11/2026) copie des statistiques : V, WE = samedis + dimanches et sa part (champsWeStats_) · (11/11/2026) accepter ou annuler un échange repousse le planning de l'année DE LA DEMANDE (lue dans ECHANGES), plus l'année active · (11/11/2026) annulerEchange rafraîchit les échanges · (11/11/2026) recupsReparer rafraîchit planning et gardes · (06/11/2026) retrait d'annonceFinSaisie (envoyée) · (02/11/2026) commentaire : identifiants d'exemple fictifs · (27/10/2026) champ ordreMc dans acces · (20/10/2026) clé etablissement (nom et adresse du devis) · (21/10) setVeilleAbo → veille_marques
+const GAS_VERSION_MIROIR = '2026-11-25.2';   // (25/11/2026) .2 : la clé ordre_vac porte trois années (y, y+1, y+2) — rang au prochain staff vacances dans le récapitulatif · (25/11/2026) .1 : semaine type des salles (onglet SALLES_TYPE) dans config_admin, repoussée sur édition manuelle · (20/11/2026) .1 : poussée différée par année — chaque famille n'est repoussée que pour ses années, les familles sans année une seule fois avec l'année active (≈ 3 écritures Cloudflare de moins par échange accepté, config_admin ne bascule plus sur 2027) · (19/11/2026) .1 : notes du planning (PLANNING_NOTES) dans config_admin, poussées après savePlanningNotes et sur édition manuelle · (12/11/2026) copie des statistiques : V, WE = samedis + dimanches et sa part (champsWeStats_) · (11/11/2026) accepter ou annuler un échange repousse le planning de l'année DE LA DEMANDE (lue dans ECHANGES), plus l'année active · (11/11/2026) annulerEchange rafraîchit les échanges · (11/11/2026) recupsReparer rafraîchit planning et gardes · (06/11/2026) retrait d'annonceFinSaisie (envoyée) · (02/11/2026) commentaire : identifiants d'exemple fictifs · (27/10/2026) champ ordreMc dans acces · (20/10/2026) clé etablissement (nom et adresse du devis) · (21/10) setVeilleAbo → veille_marques
 
 /* ═══════════════════════════════════════════════════════════════════════
    MIROIR.GS — alimentation du miroir de lecture Cloudflare
@@ -547,7 +547,10 @@ function miroirPousserFamilles_(familles, annee, toutesAnnees) {
     /* (2026-08-13.1) Ordre de passage des vacances, pour l'annee en cours et la — récit : docs/JOURNAL-Planning-Med.md §143 */
     _miroirAjoute_(items, 'ordre_vac', function () {
       const y = new Date().getFullYear();
-      const r = getOrdreVacances(null, [y, y + 1]);
+      /* (25/11/2026) Trois années : le récapitulatif montre le rang au PROCHAIN
+         staff vacances — l'année qui suit la dernière année générée, donc
+         jusqu'à y + 2 en fin d'année (gardes de y + 1 déjà générées). */
+      const r = getOrdreVacances(null, [y, y + 1, y + 2]);
       return {
         annees: (r.annees || []).map(function (a) {
           return { annee: a.annee, groupes: a.groupes, periodes: a.periodes };

@@ -578,7 +578,8 @@ console.log('\n═══ PT14 · la tuile du portail : visible pour les bons MAR
   V('quotité 100 → jamais de tuile TP', !plein.includes('tp'), plein);
   const fixe = etat({ PHASE_TP: { actif: true, annee: 2027 }, MY_QUOTITE: 60, MY_TPFIXE: true });
   V('jours fixes ou rythme 2/2 → jamais de tuile TP', !fixe.includes('tp'), fixe);
-  const perdues = vieux.filter(k => !normal.includes(k) && k !== 'indispos');
+  /* (25/11/2026, lot 2) « Mon récapitulatif » (conges) quitte l'accueil une fois l'année générée : il passe dans les choix de la tuile de pose. */
+  const perdues = vieux.filter(k => !normal.includes(k) && k !== 'indispos' && k !== 'conges');
   V('le nouveau filtre ne fait disparaître aucune AUTRE tuile', perdues.length === 0, perdues);
 }
 

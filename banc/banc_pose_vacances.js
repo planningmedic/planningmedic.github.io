@@ -342,9 +342,14 @@ console.log('\n═══ PV11 · la tuile du portail ═══');
   V('temps partiel : « Mes vacances et TP », jamais les deux', etat(Object.assign({ MY_QUOTITE: 80 }, ph)).includes('tp') && !etat(Object.assign({ MY_QUOTITE: 80 }, ph)).includes('vac'));
   const bac = vm.createContext({}); vm.runInContext(mTiles[0] + ';this.T=TILES;', bac);
   const tp = bac.T.find(t => t.key === 'tp'), vac = bac.T.find(t => t.key === 'vac');
-  V('« Mes vacances et TP » ouvre deux choix : vacances (?vac=1) et temps partiel (?tp=1)',
-    tp && tp.title === 'Mes vacances et TP' && tp.split && tp.split.length === 2 && /\?vac=1$/.test(tp.split[0].href) && /\?tp=1$/.test(tp.split[1].href), tp);
-  V('« Mes vacances » ouvre directement l\'écran', vac && /indispos\.html\?vac=1$/.test(vac.href), vac);
+  V('« Mes vacances et TP » ouvre trois choix : vacances (?vac=1), temps partiel (?tp=1), récapitulatif (#conges)',
+    tp && tp.title === 'Mes vacances et TP' && tp.split && tp.split.length === 3 && /\?vac=1$/.test(tp.split[0].href) && /\?tp=1$/.test(tp.split[1].href) && tp.split[2].href === '#conges', tp);
+  V('« Mes vacances » : deux choix, vacances et récapitulatif (lot 2)', vac && vac.split && vac.split.length === 2 && /indispos\.html\?vac=1$/.test(vac.split[0].href) && vac.split[1].href === '#conges', vac);
+  const avant = etat({}), apres = etat(Object.assign({ MY_QUOTITE: 100 }, ph));
+  V('« Mon récapitulatif » seul avant la génération, puis il passe dans les choix', avant.includes('conges') && !apres.includes('conges'), { avant, apres });
+  const miroirSrc = fs.readFileSync('../gas/miroir.gs', 'utf8');
+  V('la copie de l\'ordre de passage porte trois années (rang au prochain staff)', /getOrdreVacances\(null, \[y, y \+ 1, y \+ 2\]\)/.test(miroirSrc));
+  V('la page d\'accueil lit les clés de pose dans son appel d\'ouverture (pas d\'appel de plus)', /miroirRead\(\['annees'[^\]]*'pose_tp_' \+ devine, 'pose_tp_' \+ \(devine \+ 1\)\]/.test(src));
 }
 
 /* ═══ La vraie page, pilotée ═══ */

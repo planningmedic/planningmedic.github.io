@@ -67,7 +67,8 @@ const visible = (D, id) => D.getElementById(id).style.display !== 'none';
       !!(D.getElementById('raccourcis').compareDocumentPosition(D.getElementById('bloc-moi')) & w.Node.DOCUMENT_POSITION_FOLLOWING));
     const ordre = [...D.querySelectorAll('#tilesView .bloc')].map(b => b.id);
     V('les blocs dans l\'ordre de la maquette', JSON.stringify(ordre) === JSON.stringify(['bloc-moi', 'bloc-service', 'bloc-ressources', 'bloc-reserve']), ordre);
-    V('Moi : Mes congés', JSON.stringify(titres(D, 'moi')) === JSON.stringify(['Mes congés']), titres(D, 'moi'));
+    /* (25/11/2026, lot 2) « Mes congés » devient « Mon récapitulatif » ; avant toute année générée, c'est la seule tuile de Moi. */
+    V('Moi : Mon récapitulatif', JSON.stringify(titres(D, 'moi')) === JSON.stringify(['Mon récapitulatif']), titres(D, 'moi'));
     V('Le service : Planning, Équité des gardes, Staffs à venir',
       JSON.stringify(titres(D, 'service')) === JSON.stringify(['Planning', 'Équité des gardes', 'Staffs à venir']), titres(D, 'service'));
     V('Ressources : Fiches pratiques, Protocoles, Topos, Veille biblio',
@@ -83,7 +84,7 @@ const visible = (D, id) => D.getElementById(id).style.display !== 'none';
     V('la tuile Équité ouvre le planning sur l\'onglet Équité',
       !!D.querySelector('#tiles-service a[href="planning.html#equite"]'));
     V('Planning occupe toute la ligne', !!D.querySelector('#tiles-service a[href="planning.html"].large'));
-    V('Mes congés, seule tuile de Moi, s\'élargit (pas de trou)',
+    V('Mon récapitulatif, seule tuile de Moi, s\'élargit (pas de trou)',
       D.querySelector('#tiles-moi [data-gen]').classList.contains('seul'));
     V('Le service : Équité et Staffs côte à côte (aucune élargie)',
       D.querySelectorAll('#tiles-service .seul').length === 0);
@@ -155,14 +156,14 @@ const visible = (D, id) => D.getElementById(id).style.display !== 'none';
     V('le titre annonce la demande qui m\'attend (et seulement la mienne)', /^1 demande attend/.test(D.getElementById('echHeroMain').textContent));
     V('elle passe au rouge', hero.classList.contains('attente'));
     V('la pastille porte le nombre', D.getElementById('echPastille').style.display !== 'none' && D.getElementById('echPastille').textContent === '1');
-    V('Mes échanges + Mes congés côte à côte : aucune élargie',
+    V('Mes échanges + Mon récapitulatif côte à côte : aucune élargie',
       [...D.querySelectorAll('#tiles-moi > *')].filter(e => e.style.display !== 'none' && !e.classList.contains('large')).every(e => !e.classList.contains('seul')));
     V('Mes indisponibilités (campagne) occupe sa ligne', !!D.querySelector('#tiles-moi a[href="indispos.html"].large'));
     w.eval(`ECH_LISTE = []; majEchangesHero();`);
     V('plus de demande : retour au titre normal, sans rouge ni pastille',
       /Mes échanges/.test(D.getElementById('echHeroMain').textContent) && !hero.classList.contains('attente') && D.getElementById('echPastille').style.display === 'none');
     w.eval(`ECH_AUTORISE = false; majEchangesHero();`);
-    V('échanges fermés : la carte disparaît et Mes congés s\'élargit',
+    V('échanges fermés : la carte disparaît et Mon récapitulatif s\'élargit',
       hero.style.display === 'none' && D.querySelector('#tiles-moi a[href="indispos.html"], #tiles-moi [data-gen]:not(.large)').classList.contains('seul'));
     V('aucune erreur JavaScript', erreurs.length === 0, erreurs.slice(0, 2));
   }

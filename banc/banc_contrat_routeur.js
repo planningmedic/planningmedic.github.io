@@ -50,6 +50,7 @@ const CONTRAT = {
   'getGardes'                 : 'admin',
   'getJoursFeries'            : 'admin',
   'getOrdreVacances'          : 'mar seulement',
+  'getRecapPdf'               : 'mar seulement',   // (25/11/2026) PDF du récapitulatif
   'getVacConfig'              : 'tout code valide',
   'setActiveYear'             : 'maintenance',
   'initYear'                  : 'admin',
@@ -143,7 +144,7 @@ console.log('═══ Le routeur répond au contrat des 72 actions ═══');
 const { fichier, actions, corps } = contratActuel();
 const attendu = Object.assign({}, CONTRAT, { getActiveYear: 'sans code', getAnneesDisponibles: 'sans code' });
 V('le routeur est lu dans ' + fichier, !!fichier);
-V('77 actions, ni plus ni moins', Object.keys(actions).length === 77, Object.keys(actions).length);
+V('78 actions, ni plus ni moins', Object.keys(actions).length === 78, Object.keys(actions).length);   // (25/11/2026) + getRecapPdf
 const manquantes = Object.keys(attendu).filter(a => !(a in actions));
 const enTrop = Object.keys(actions).filter(a => !(a in attendu));
 V('aucune action du contrat ne manque', manquantes.length === 0, manquantes);

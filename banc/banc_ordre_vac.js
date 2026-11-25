@@ -140,12 +140,16 @@ console.log('\n═══ 5. L\'écran : le bandeau, puis la file au clic ══�
      propriétés de window. On passe donc par eval, dans la portée de la page. */
   const dansLaPage = code => w.eval(code);
   dansLaPage("MY_ID='MOI'; VIEW_CODE='CODE';");
+  /* (25/11/2026, lot 2) Le récapitulatif ne montre que le rang au PROCHAIN staff :
+     l'année qui suit la dernière année générée. Dernière générée ici : 2025 → 2026. */
+  dansLaPage("PHASE_TP={actif:true,annee:2025,annees:[2025]};");
   dansLaPage('MY_ORDRE_VAC=' + JSON.stringify(rep) + '; renderOrdreVac();');
   const boite = D.getElementById('ordreVacBox');
   V('la vue Mes congés porte un emplacement pour le bandeau', !!boite);
 
   const bandeaux = boite.querySelectorAll('.ov-bd');
-  V('deux bandeaux, un par année', bandeaux.length === 2, bandeaux.length);
+  V('un seul bandeau : celui du prochain staff vacances (2026 ici)', bandeaux.length === 1 && /2026/.test(bandeaux[0].textContent), bandeaux.length);
+  V('…avec la mention « sous réserve de changement des groupes »', /sous réserve de changement des groupes/.test(boite.textContent));
   V('le premier annonce mon groupe, mon rang et la taille du groupe',
     /Groupe B/.test(bandeaux[0].textContent) &&
     bandeaux[0].querySelector('.ov-r b').textContent.trim() === '2' &&
@@ -154,8 +158,7 @@ console.log('\n═══ 5. L\'écran : le bandeau, puis la file au clic ══�
   V('le rang occupe la meme pastille que les dates de conges (60px, meme rayon)',
     /\.ov-bd \.ov-r \{[^}]*width:60px/.test(contenu) && /\.cg-d \{[^}]*width:60px/.test(contenu),
     (contenu.match(/\.ov-bd \.ov-r \{[^}]*\}/) || [''])[0].slice(0,110));
-  V('l\'année mise en avant est celle que dit le serveur',
-    !bandeaux[0].className.includes('sec') && bandeaux[1].className.includes('sec'));
+  V('le bandeau est mis en avant (pas en second plan)', !bandeaux[0].className.includes('sec'));
   V('la file est fermée au départ', boite.querySelectorAll('.ov-pan').length === 0);
 
   bandeaux[0].dispatchEvent(new w.MouseEvent('click', { bubbles:true }));
@@ -194,14 +197,16 @@ console.log('\n═══ 5. L\'écran : le bandeau, puis la file au clic ══�
      courant dans le document, l'ancien étant détaché. */
   boite.querySelector('.ov-bd').dispatchEvent(new w.MouseEvent('click', { bubbles:true }));
   V('un second appui referme', boite.querySelectorAll('.ov-pan').length === 0);
-  boite.querySelectorAll('.ov-bd')[1].dispatchEvent(new w.MouseEvent('click', { bubbles:true }));
-  V('ouvrir la seconde année ferme la première',
-    boite.querySelectorAll('.ov-pan').length === 1 &&
-    boite.querySelectorAll('.ov-bd')[1].getAttribute('aria-expanded') === 'true');
-  V('et l\'année suivante donne bien mes rangs de 2027 (3e à l\'hiver)',
+  /* Une fois 2026 générée, le prochain staff est celui de 2027 : le bandeau passe à 2027. */
+  dansLaPage("PHASE_TP={actif:true,annee:2026,annees:[2026]}; renderOrdreVac();");
+  V('2026 générée → le bandeau annonce 2027, et lui seul',
+    boite.querySelectorAll('.ov-bd').length === 1 && /2027/.test(boite.querySelector('.ov-bd').textContent));
+  boite.querySelector('.ov-bd').dispatchEvent(new w.MouseEvent('click', { bubbles:true }));
+  V('et il donne bien mes rangs de 2027 (3e à l\'hiver)',
     boite.querySelector('.ov-l.moi .ov-n').textContent.trim() === '3',
     boite.querySelector('.ov-l.moi .ov-n').textContent);
-  boite.querySelectorAll('.ov-bd')[1].dispatchEvent(new w.MouseEvent('click', { bubbles:true }));
+  boite.querySelector('.ov-bd').dispatchEvent(new w.MouseEvent('click', { bubbles:true }));
+  dansLaPage("PHASE_TP={actif:true,annee:2025,annees:[2025]};");
 
   /* Un MAR sans groupe, et un serveur muet : l'écran ne doit rien casser. */
   dansLaPage('MY_ORDRE_VAC=' + JSON.stringify({ success:true, anneePrincipale:2026,
@@ -219,74 +224,50 @@ console.log('\n═══ 5. L\'écran : le bandeau, puis la file au clic ══�
      l'aller-retour. La réponse est gardée pour la session et préchargée dès la
      connexion. On vérifie ici les deux mécanismes, et surtout qu'un second
      affichage ne redemande RIEN au serveur. */
-  /* ── Le récapitulatif par type (13/08/2026) ──
-     Vu en réel : « 67 Vacances j », et une pastille seule, décentrée, sur la
-     ligne du dessous. Le libellé passe devant, le nombre et son unité restent
-     collés, et les pastilles ont toutes la même largeur. */
-  console.log('\n═══ 5b. Le récapitulatif par type de congé ═══');
+  /* ── (25/11/2026, lot 2) MON RÉCAPITULATIF : l'année entière ──
+     Remplace la liste des congés à venir (15 jours) — décision du responsable :
+     le modèle de la fiche PDF, compteurs puis 12 mois, et un bouton PDF. */
+  console.log('\n═══ 5b. Mon récapitulatif : compteurs, 12 mois, PDF ═══');
   {
-    dansLaPage("MY_CONGES={days:new Array(86).fill(0).map(function(_,i){return {date:'2026-09-01',cat:'vac'};}),"
-      + "periods:[{cat:'vac',start:'2026-09-14',end:'2026-09-25',n:10}],"
-      + "counts:{vac:67,form:11,recup:8}}; renderMesConges();");
-    const chips = D.querySelectorAll('#mesCongesBody .cg-count');
-    V('une pastille par type présent', chips.length === 3, chips.length);
-    V('le nombre vient d\'abord, le libellé dessous',
-      /^67\s*j\s*Vacances$/.test(chips[0].textContent.replace(/\s+/g,' ').trim()),
-      chips[0].textContent.replace(/\s+/g,' ').trim());
-    V('le « j » est collé au nombre, pas au libellé',
-      chips[0].querySelector('.cg-n').textContent.trim() === '67' &&
-      /^\s*j\s*$/.test(chips[0].querySelector('.cg-u').textContent) &&
-      chips[0].querySelector('.cg-l').textContent.trim() === 'Vacances',
-      chips[0].innerHTML);
-    V('les types absents ne fabriquent pas de pastille vide',
-      ![...chips].some(c => /Temps partiel|Congé long/.test(c.textContent)));
-    V('les pastilles sont posées en grille de 3 (pas de ligne bancale à 5 types)',
-      /\.cg-counts\s*\{[^}]*grid-template-columns:repeat\(3,/.test(contenu),
-      (contenu.match(/\.cg-counts\s*\{[^}]*\}/) || [''])[0].slice(0, 120));
-    V('aucune couleur écrite en dur dans la pastille (le thème sombre la suivrait pas)',
-      !/style="background:#/.test(chips[0].outerHTML) && /cat-vac/.test(chips[0].className),
-      chips[0].outerHTML.slice(0,90));
-  }
-
-  /* ── La liste des congés (11/09/2026) ──
-     Neuf cartes blanches identiques, sans repère de mois : un jour isolé pesait
-     autant qu'un bloc de dix. La liste reprend la forme de « Mes gardes ». */
-  console.log('\n═══ 5c. La liste des congés ═══');
-  {
-    dansLaPage("MY_CONGES={days:new Array(13).fill(0).map(function(){return {date:'2026-09-14',cat:'vac'};}),"
-      + "periods:[{cat:'form',start:'2026-09-11',end:'2026-09-11',n:1},"
-      + "{cat:'vac',start:'2026-09-14',end:'2026-09-25',n:10},"
-      + "{cat:'recup',start:'2026-10-21',end:'2026-10-21',n:1},"
-      + "{cat:'cl',start:'2026-11-03',end:'2026-11-03',n:1}],"
-      + "counts:{vac:10,form:1,recup:1,cl:1}}; renderMesConges();");
-    const mois = D.querySelectorAll('#mesCongesBody .mg-month');
-    V('un intitulé par mois, dans l\'ordre', mois.length === 3 &&
-      /Sept\./.test(mois[0].textContent) && /2026/.test(mois[0].textContent),
-      [...mois].map(e => e.textContent));
-    const items = D.querySelectorAll('#mesCongesBody .cg-item');
-    V('une ligne par période', items.length === 4, items.length);
-    V('la pastille porte le jour du début et sa couleur de type',
-      items[1].querySelector('.cg-dnum').textContent.trim() === '14' &&
-      items[1].querySelector('.cg-d').className.includes('cat-vac'),
-      items[1].querySelector('.cg-d').outerHTML.replace(/\s+/g,' ').slice(0,120));
-    V('une période de plusieurs jours dit jusqu\'à quand',
-      /Jusqu’au ven\. 25 sept\. · 10 jours/.test(items[1].querySelector('.cg-sub').textContent),
-      items[1].querySelector('.cg-sub').textContent);
-    V('un jour isolé dit son jour de semaine, au singulier',
-      /^Mercredi · 1 jour$/.test(items[2].querySelector('.cg-sub').textContent.trim()),
-      items[2].querySelector('.cg-sub').textContent);
-    V('le type est écrit en toutes lettres à côté de la date',
-      items[0].querySelector('.cg-lab').textContent.trim() === 'Formation' &&
-      items[3].querySelector('.cg-lab').textContent.trim() === 'Congé long',
-      items[0].querySelector('.cg-lab').textContent);
-    V('plus de carte blanche par ligne : des lignes séparées par un filet',
-      /\.cg-item \{[^}]*border-bottom/.test(contenu) && !/\.cg-item \{[^}]*background:var\(--white\)/.test(contenu),
-      (contenu.match(/\.cg-item \{[^}]*\}/) || [''])[0].slice(0,120));
-    V('les cinq types ont une couleur en thème clair ET en thème sombre',
-      ['vac','form','tp','recup','cl'].every(function(t){
-        return new RegExp('--cat-' + t + '-bg:').test(contenu.split('data-theme="dark"')[0]) &&
-               new RegExp('--cat-' + t + '-bg:').test(contenu.split('data-theme="dark"')[1] || '');
-      }));
+    // Un planning 2027 minimal : 3 jours de vacances (dont le 24/12 = ½), une demi-journée, 1 TP, 1 formation, 2 gardes, un 18 h, un férié.
+    const jours = [], st = {};
+    const d0 = new Date(2027, 0, 4, 12);
+    for (let i = 0; i < 362; i++) { const d = new Date(d0); d.setDate(d0.getDate() + i);
+      jours.push(d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0') + '-' + String(d.getDate()).padStart(2, '0')); }
+    Object.assign(st, { '2027-03-01':'V', '2027-03-02':'V', '2027-12-24':'V', '2027-03-03':'VM', '2027-03-09':'TP', '2027-03-10':'F', '2027-03-11':'G', '2027-03-20':'G2', '2027-03-17':'18' });
+    const mois = {};
+    jours.forEach(ds => { const k = ds.slice(0, 7); (mois[k] = mois[k] || []).push(ds); });
+    const planning = { months: Object.keys(mois).map(k => ({ days: mois[k].map(ds => ({ date: ds, isFerie: ds === '2027-05-17' })),
+      doctors: [{ id: 'MOI', days: mois[k].map(ds => ({ status: st[ds] || '' })) }] })) };
+    dansLaPage('_planCache[2027]=' + JSON.stringify(planning) + ';');
+    dansLaPage("POSE_CLES={2027:{success:true,year:2027,joursFeries:['2027-05-17'],parMar:{MOI:{quotaVac:33,quota:26,tpFixe:false,joursFixes:[],jours:{'2027-03-01':'VAC','2027-03-02':'VAC','2027-12-24':'VAC','2027-03-03':'VM'}}}}};");
+    dansLaPage("RC_ANNEE=null; renderMesConges();");
+    const corps = D.getElementById('mesCongesBody');
+    const tv = corps.querySelector('.rc-vac');
+    V('vacances : 1 + 1 + ½ (24/12) + ½ (demi-journée) = 3 sur le quota de 33, reste 30',
+      tv && /^3\s*\/\s*33\s*j/.test(tv.querySelector('b').textContent.trim()) && /reste 30 j/.test(tv.textContent), tv && tv.textContent);
+    V('temps partiel sur son quota (1 / 26)', /^1\s*\/\s*26\s*j/.test((corps.querySelector('.rc-tp b') || {}).textContent || ''), (corps.querySelector('.rc-tp') || {}).textContent);
+    V('formation, gardes (réa / mater) et 18 h comptés', /^1/.test(corps.querySelector('.rc-form b').textContent) &&
+      /2/.test(corps.querySelector('.rc-g b').textContent) && /1 réa · 1 mater/.test(corps.querySelector('.rc-g').textContent) && corps.querySelector('.rc-h b').textContent === '1');
+    V('les 12 mois de l\'année sont là, d\'un coup (plus de liste des 15 prochains jours)', corps.querySelectorAll('.rc-grille .mga-mois').length === 12 && !corps.querySelector('.cg-item'));
+    const caseDe = ds => [...corps.querySelectorAll('[data-rc-mois="' + ds.slice(0, 7) + '"] .mga-d')].find(e => e.textContent === String(Number(ds.slice(8))));
+    V('les couleurs de la fiche PDF : vacances, demi-journée, TP, formation ; gardes en couleur du portail ; férié liseré',
+      caseDe('2027-03-01').classList.contains('rv') && caseDe('2027-03-03').classList.contains('rvm') && caseDe('2027-03-09').classList.contains('rtp')
+      && caseDe('2027-03-10').classList.contains('rf') && caseDe('2027-03-11').classList.contains('g') && caseDe('2027-05-17').classList.contains('jf'));
+    corps.querySelector('[data-rc-mois="2027-03"]').dispatchEvent(new w.MouseEvent('click', { bubbles:true }));
+    V('toucher un mois l\'agrandit', !!D.querySelector('#mesCongesBody [data-rc-mois="2027-03"].ouvert'));
+    V('le bouton « Télécharger en PDF » est là', /Télécharger en PDF/.test((D.getElementById('rcPdf') || {}).textContent || ''));
+    let envoye = null;
+    w.fetch = async (u, o) => { envoye = JSON.parse(o.body); return { ok:true, json: async () => ({ success:true, nom:'Recapitulatif-2027.pdf', pdf: Buffer.from('%PDF-1.4').toString('base64') }) }; };
+    w.URL.createObjectURL = () => 'blob:x'; w.URL.revokeObjectURL = () => {};
+    await w.eval('recapPdf()');
+    V('le PDF est demandé au serveur pour l\'année affichée (getRecapPdf, 2027)', envoye && envoye.action === 'getRecapPdf' && envoye.year === 2027, envoye);
+    w.fetch = async () => ({ ok:true, json: async () => ({ success:false }) });
+    dansLaPage("POSE_CLES={};");
+    dansLaPage("RC_ANNEE=null; renderMesConges();");
+    V('sans clé de pose (année non ouverte) : les compteurs s\'affichent sans quota', /^3\s*j/.test(D.querySelector('#mesCongesBody .rc-vac b').textContent.trim()) && !/reste/.test(D.querySelector('#mesCongesBody .rc-vac').textContent));
+    dansLaPage("POSE_CLES={2027:{success:true,year:2027,joursFeries:['2027-05-17'],parMar:{MOI:{quotaVac:33,quota:26,tpFixe:false,joursFixes:[],jours:{'2027-03-01':'VAC','2027-03-02':'VAC','2027-12-24':'VAC','2027-03-03':'VM'}}}}};");
+    V('pastille de la tuile : 33 − 3 = 30 j à poser', w.eval('_recapResteAPoser()') === 30, w.eval('_recapResteAPoser()'));
   }
 
   console.log('\n═══ 6. Le bandeau est déjà là quand on ouvre la tuile ═══');
@@ -303,8 +284,8 @@ console.log('\n═══ 5. L\'écran : le bandeau, puis la file au clic ══�
     await w.eval('loadOrdreVac()');
     await dodo(60);
     V('un second affichage ne redemande rien au serveur', appels === 1, appels);
-    V('et le bandeau est bien redessiné depuis la session',
-      D.getElementById('ordreVacBox').querySelectorAll('.ov-bd').length === 2);
+    V('et le bandeau est bien redessiné depuis la session (le prochain staff seul)',
+      D.getElementById('ordreVacBox').querySelectorAll('.ov-bd').length === 1);
     /* Le cache est nominatif : changer de MAR ne doit jamais montrer le rang du précédent. */
     dansLaPage("MY_ORDRE_VAC=null; MY_ID='AUTRE';");
     await w.eval('loadOrdreVac()');
@@ -352,7 +333,7 @@ console.log('\n═══ 5. L\'écran : le bandeau, puis la file au clic ══�
     w.fetch = async () => { appels++; return { ok:true, json: async () => ({ success:false }) }; };
     V('elle se reconnaît dans la copie et affiche le bandeau',
       w.eval('_ovDepuisMiroir(' + JSON.stringify(commune) + ')') === true &&
-      D.getElementById('ordreVacBox').querySelectorAll('.ov-bd').length === 2);
+      D.getElementById('ordreVacBox').querySelectorAll('.ov-bd').length === 1);
     V('sans avoir rien demandé au serveur', appels === 0, appels);
     V('mon groupe et mon rang sont retrouvés sans règle de rotation dans la page',
       w.eval('MY_ORDRE_VAC.annees[0].monGroupe') === 'B' &&

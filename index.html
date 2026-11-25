@@ -909,6 +909,34 @@ html[data-theme="dark"] .ech-tuile.ouverture .ech-reflet { background:linear-gra
 .ag-msg { font-size:13px; margin-top:10px; padding:9px 12px; border-radius:10px; line-height:1.45; }
 .ag-msg.ok { background:var(--ok-soft); color:var(--ok); }
 .ag-msg.err { background:#FEF2F2; color:#B91C1C; }
+
+/* (25/11/2026, lot 2) Mon récapitulatif — couleurs de la fiche PDF pour les absences, portail pour les gardes. */
+.rc-reserve { font-size:11.5px; color:var(--ink-4); margin:-3px 2px 10px; }
+.rc-ans { margin:4px 0 10px !important; padding:0 !important; }
+.rc-tuiles { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:8px; margin:0 0 6px; }
+.rc-t { border-radius:12px; padding:10px 12px; }
+.rc-t b { display:block; font-size:22px; font-weight:800; line-height:1.1; }
+.rc-t b span { font-size:13px; font-weight:600; opacity:.7; }
+.rc-t em { display:block; font-style:normal; font-size:12px; font-weight:600; margin-top:2px; }
+.rc-t small { display:block; font-size:11px; font-weight:600; opacity:.8; margin-top:3px; }
+.rc-j { height:4px; border-radius:2px; background:rgba(0,0,0,.08); margin-top:6px; overflow:hidden; }
+.rc-j i { display:block; height:100%; background:currentColor; }
+.rc-vac { background:#DBEAFE; color:#1D4ED8; } .rc-tp { background:#F3E8FF; color:#6D28D9; } .rc-form { background:#CCFBF1; color:#0F766E; }
+.rc-rec { background:var(--cat-recup-bg); color:var(--cat-recup-fg); } .rc-g { background:var(--me-soft); color:var(--me); } .rc-h { background:var(--h18-soft); color:var(--h18); }
+html[data-theme="dark"] .rc-vac { background:#152341; color:#7BAAF7; } html[data-theme="dark"] .rc-tp { background:#251B3C; color:#B593F2; } html[data-theme="dark"] .rc-form { background:#0F2A26; color:#5BD0B4; }
+.rc-leg i.rv, .mga-d.rv { background:#93C5FD; color:#1E3A8A; } .rc-leg i.rtp, .mga-d.rtp { background:#C4B5FD; color:#3B0764; }
+.rc-leg i.rf, .mga-d.rf { background:#5EEAD4; color:#134E4A; } .rc-leg i.rr, .mga-d.rr { background:#BBF7D0; color:#14532D; }
+.mga-d.rvm { background:linear-gradient(#93C5FD 50%, transparent 50%); color:#1E3A8A; } .mga-d.rva { background:linear-gradient(transparent 50%, #93C5FD 50%); color:#1E3A8A; }
+.mga-d.rcl { background:#CBD5E1; color:#334155; } .mga-d.rrg { background:#FECACA; color:#7F1D1D; }
+.mga-d.rv, .mga-d.rtp, .mga-d.rf, .mga-d.rr, .mga-d.rcl { font-weight:700; }
+.rc-grille { grid-template-columns:repeat(3,minmax(0,1fr)); gap:6px; }
+.rc-grille .mga-mois { padding:6px 4px 4px; cursor:pointer; }
+.rc-grille .mga-d { height:15px; font-size:9px; border-radius:3px; }
+.rc-grille .mga-dw { font-size:8px; } .rc-grille .mga-mh { font-size:11px; }
+.rc-grille .mga-mois.ouvert .mga-d { height:36px; font-size:13px; }
+.rc-pdf { width:100%; display:flex; align-items:center; justify-content:center; gap:8px; padding:13px; border-radius:12px; border:1px solid var(--line); background:var(--white); color:var(--ink); font:inherit; font-size:14px; font-weight:700; cursor:pointer; }
+.rc-pdf:disabled { opacity:.6; cursor:default; }
+.rc-note { font-size:11.5px; color:var(--ink-4); text-align:center; margin:8px 0 20px; }
 </style>
 </head>
 <body>
@@ -1148,7 +1176,7 @@ html[data-theme="dark"] .ech-tuile.ouverture .ech-reflet { background:linear-gra
   <div id="mesCongesView" style="display:none">
     <div class="topos-head">
       <button class="btn-back" onclick="backToHome()"><i data-lucide="arrow-left" style="width:16px;height:16px"></i> Retour</button>
-      <h2>Mes congés</h2>
+      <h2>Mon récapitulatif</h2>
       <span class="topos-count" id="mesCongesCount"></span>
     </div>
     <div id="ordreVacBox"></div>
@@ -1184,6 +1212,7 @@ let INDISPOS_YEAR = null;       // année concernée par la saisie
 // (POSE TP · 22/08/2026) Phase de pose des temps partiels + profil du MAR.
 // Renvoyés par login depuis le serveur du 22/08 ; avec un serveur plus ancien
 // les champs sont absents → la tuile TP reste invisible, sans erreur.
+let POSE_CLES = {};          // (25/11/2026, lot 2) clés pose_tp_{Y} : quotas et jours fixes du MAR, par année
 let PHASE_TP = null;            // { actif, annee } si une année générée existe
 let MY_QUOTITE = 100;           // quotité (col. E de MEDECINS)
 let MY_TPFIXE = false;          // jours fixes ou rythme 2/2 : hors dispositif TP
@@ -1261,8 +1290,13 @@ async function miroirBootDash() {
      plus coûte des octets, une requête de plus coûterait un aller-retour. */
   /* (14/10/2026, v1.24.1) `staffs` voyage aussi dans CE même appel (6 lignes environ) :
      la tuile « Staffs à venir » annonce le prochain sans qu'on l'ouvre. */
-  const m = await miroirRead(['annees', 'planning_' + devine, 'planning_' + (devine + 1), 'ordre_vac', 'echanges', 'notifs', 'staffs']);
+  /* (25/11/2026, lot 2) Les clés de pose (pose_tp_{Y}) voyagent dans CE même
+     appel : quota de vacances et de TP de la quotité, jours fixes — la
+     pastille « X j à poser » et les compteurs du récapitulatif, sans appel de plus.
+     Hors phase, le serveur répond { ferme:true } : rien à afficher, coût nul. */
+  const m = await miroirRead(['annees', 'planning_' + devine, 'planning_' + (devine + 1), 'ordre_vac', 'echanges', 'notifs', 'staffs', 'pose_tp_' + devine, 'pose_tp_' + (devine + 1)]);
   if (!m || !m.success) return m;
+  [devine, devine + 1].forEach(function (yK) { const k = m.data && m.data['pose_tp_' + yK]; if (k && k.success && !k.ferme) POSE_CLES[yK] = k; });
   const active = (m.data && m.data.annees && Number(m.data.annees.active)) || devine;
   let plan = m.data['planning_' + active];
   /* (08/08/2026) L'annee SUIVANTE voyage dans le MEME appel : elle sert la
@@ -1414,7 +1448,11 @@ const TILES = [
   // dont on a besoin en urgence ; elle était 12e.
   { key:'acr', title:'ACR', sub:'Arrêt cardiaque : chronomètre, doses et compte rendu. Fonctionne sans réseau.', icon:'heart-pulse', href:'acr/', tint:'rouge', ready:true, bloc:'raccourci' },
   { key:'annuaire', title:'Annuaire', sub:'Numéros de l\'hôpital et DECT de l\'équipe.', icon:'phone', view:'annuaire', ready:true, bloc:'raccourci' },
-  { key:'conges', title:'Mes congés', sub:'Vacances, formation, TP, récup et congés à venir.', icon:'calendar-off', view:'conges', tint:'peche', ready:true, bloc:'moi' },
+  /* (25/11/2026, lot 2) « Mes congés » devient « Mon récapitulatif » : l'année
+     entière sur le modèle de la fiche PDF. Une fois une année générée, il passe
+     dans les choix de « Mes vacances et TP » / « Mes vacances » ; cette tuile
+     ne se montre qu'AVANT (sansPhase), pour que le récapitulatif reste accessible. */
+  { key:'conges', title:'Mon récapitulatif', sub:'Vacances, formation, TP, récup et congés de l\'année.', icon:'calendar-off', view:'conges', tint:'peche', ready:true, sansPhase:true, bloc:'moi' },
   // Tuile de CAMPAGNE : visible uniquement pendant la saisie des indispos
   // (octobre → clôture). Hors campagne, indispos.html ne sert à rien : la tuile
   // disparaît plutôt que d'encombrer le portail 10 mois par an.
@@ -1435,8 +1473,13 @@ const TILES = [
     split:[
       {t:'Gérer mes vacances',      s:'Ajouter, déplacer ou retirer un jour, au moins 7 jours à l\'avance.', icon:'calendar-days',  tint:'bleu', href:'indispos.html?vac=1'},
       {t:'Gérer mon temps partiel', s:'Poser ou retirer vos jours de temps partiel.',                     icon:'calendar-clock', tint:'viol', href:'indispos.html?tp=1'},
+      {t:'Mon récapitulatif',       s:'L\'année entière : compteurs, 12 mois, rang au prochain staff, PDF.', icon:'clipboard-list', tint:'peche', href:'#conges'},
     ] },
-  { key:'vac', title:'Mes vacances', sub:'Posez, déplacez ou retirez vos jours {ANTP}, sur un jour vert.', icon:'calendar-days', href:'indispos.html?vac=1', ready:true, vacSeul:true, tint:'bleu', bloc:'moi', large:true },
+  { key:'vac', title:'Mes vacances', sub:'Posez, déplacez ou retirez vos jours {ANTP}, sur un jour vert.', icon:'calendar-days', ready:true, vacSeul:true, tint:'bleu', bloc:'moi', large:true,
+    split:[
+      {t:'Gérer mes vacances', s:'Ajouter, déplacer ou retirer un jour, au moins 7 jours à l\'avance.', icon:'calendar-days', tint:'bleu', href:'indispos.html?vac=1'},
+      {t:'Mon récapitulatif',  s:'L\'année entière : compteurs, 12 mois, rang au prochain staff, PDF.', icon:'clipboard-list', tint:'peche', href:'#conges'},
+    ] },
   { key:'planning', title:'Planning', sub:'Qui est où, jour par jour, et l\'année entière.', icon:'calendar-days', href:'planning.html', tint:'bleu', ready:true, bloc:'service', large:true },
   // (11/10/2026) Les compteurs d'équité n'étaient qu'un onglet du planning, introuvable
   // depuis l'accueil. La tuile ouvre le planning DIRECTEMENT sur cet onglet
@@ -1511,7 +1554,7 @@ function saisieIndisposClose(fin, maintenant) {
 const BLOCS_ACCUEIL = ['moi', 'service', 'ressources', 'reserve'];
 function renderTiles(){
   /* Qui voit quoi : LA ligne de filtrage, inchangée (le banc l'extrait telle quelle). */
-  const visibles = TILES.filter(t => (!t.prive || MY_TUILES.indexOf(t.key) > -1) && (!t.campagne || INDISPOS_OUVERTE) && (!t.tp || (PHASE_TP && MY_QUOTITE < 100 && !MY_TPFIXE)) && (!t.vacSeul || (PHASE_TP && !(MY_QUOTITE < 100 && !MY_TPFIXE))) && (!t.liberal || MY_LIBERAL)).map(t => t);
+  const visibles = TILES.filter(t => (!t.prive || MY_TUILES.indexOf(t.key) > -1) && (!t.campagne || INDISPOS_OUVERTE) && (!t.tp || (PHASE_TP && MY_QUOTITE < 100 && !MY_TPFIXE)) && (!t.vacSeul || (PHASE_TP && !(MY_QUOTITE < 100 && !MY_TPFIXE))) && (!t.sansPhase || !PHASE_TP) && (!t.liberal || MY_LIBERAL)).map(t => t);
 
   /* Raccourcis du haut : de vrais boutons, gros et sans sous-titre. */
   const racc = document.getElementById('raccourcis');
@@ -1618,8 +1661,13 @@ function majPastilles(){
           ? (lib+' en cours, jusqu\'au '+_jjmm(p0.end)+'.')
           : ('Prochain : '+lib.toLowerCase()+(p0.start===p0.end ? ' le '+_jjmm(p0.start) : ' du '+_jjmm(p0.start)+' au '+_jjmm(p0.end))+'.');
         _pastille('conges', P.length+' à venir', st);
+        _pastille('tp', null, st); _pastille('vac', null, st);   // (25/11/2026) même phrase sur la tuile de pose
       }
     }
+    /* (25/11/2026, lot 2) « X j à poser » : quota de vacances de la quotité moins
+       les jours posés, comptés comme le serveur (_poserVac_) sur l'année de pose. */
+    const rp=_recapResteAPoser();
+    if(rp!==null){ const b=_fr1(rp)+' j à poser'; _pastille('tp', b, null); _pastille('vac', b, null); }
   }catch(e){ /* une pastille n'empêche jamais l'accueil de s'afficher */ }
 }
 
@@ -2416,10 +2464,14 @@ function renderOrdreVac(){
   if (!MY_ID || !MY_ORDRE_VAC || !(MY_ORDRE_VAC.annees || []).length) { box.innerHTML = ''; return; }
   const principale = MY_ORDRE_VAC.anneePrincipale;
   const liste = MY_ORDRE_VAC.annees.slice().sort(function(a,b){ return a.annee - b.annee; });
-  box.innerHTML = liste.map(function(bloc){
+  /* (25/11/2026, lot 2) Le récapitulatif ne montre que le rang au PROCHAIN staff
+     vacances : l'année qui suit la dernière année générée (2028 tant que 2027
+     est la dernière). Les années déjà réparties n'ont plus de rang à annoncer. */
+  const ra = _recapAnneeRang();
+  box.innerHTML = liste.filter(function(bloc){ return bloc.annee === ra; }).map(function(bloc){
     if (!OV_ETAT[bloc.annee]) OV_ETAT[bloc.annee] = { ouvert:false, periode:0, tout:false };
-    return _ovBandeau(bloc, bloc.annee === principale);
-  }).join('');
+    return _ovBandeau(bloc, true);
+  }).join('') + (liste.some(function(b){ return b.annee === ra && b.monGroupe; }) ? '<div class="rc-reserve">Rang pour le prochain staff vacances, sous réserve de changement des groupes.</div>' : '');
 }
 
 /* (13/08/2026) L'ordre de passage ne bouge pas d'une minute a l'autre : il est
@@ -2442,9 +2494,10 @@ function _ovDepuisMiroir(brut){
 function _ovConstruire(){
   if (MY_ORDRE_VAC || !MY_ID || !_OV_BRUT || !Array.isArray(_OV_BRUT.annees)) return false;
   const y = new Date().getFullYear();
-  const attendues = [y, y + 1].join(',');
+  /* (25/11/2026) La copie porte y, y+1 et désormais y+2 (rang au prochain staff) ;
+     une copie plus ancienne à deux années reste acceptée. */
   const recues = _OV_BRUT.annees.map(function(a){ return a.annee; }).sort().join(',');
-  if (attendues !== recues) return false;            // copie d'avant un changement d'annee
+  if (recues !== [y, y + 1].join(',') && recues !== [y, y + 1, y + 2].join(',')) return false;   // copie d'avant un changement d'annee
   const annees = _OV_BRUT.annees.map(function(a){
     let g = null, rang = 0;
     ['A','B','C'].forEach(function(x){
@@ -2513,6 +2566,11 @@ function openMesConges(){
   /* Chargement independant : le bandeau arrive quand il arrive, la liste des
      conges ne l'attend pas. */
   renderOrdreVac(); loadOrdreVac();   /* affiche ce qu'on a deja, complete si besoin */
+  /* (25/11/2026, lot 2) Le récapitulatif lit le planning déjà chargé : s'il est là,
+     il s'affiche tout de suite, sans attendre la liste des congés. */
+  if(MY_CONGES===null && Object.keys(_planCache).some(function(y){ return _planDejaLa(Number(y)); })){
+    renderMesConges(); loadMyConges().then(renderMesConges).catch(function(){}); return;
+  }
   if(MY_CONGES===null){
     document.getElementById('mesCongesBody').innerHTML='<div class="topos-loading">Chargement…</div>';
     document.getElementById('mesCongesCount').textContent='';
@@ -2521,44 +2579,141 @@ function openMesConges(){
   }
   renderMesConges();
 }
-function renderMesConges(){
-  const box=document.getElementById('mesCongesBody'), cnt=document.getElementById('mesCongesCount');
-  if(!MY_CONGES || !MY_CONGES.days.length){
-    if(cnt) cnt.textContent='';
-    box.innerHTML='<div class="topos-empty">Aucun congé à venir.<br><span>Vacances, formation, TP, récup et congés longs apparaîtront ici.</span></div>';
-    return;
+/* ══ (25/11/2026, lot 2) MON RÉCAPITULATIF — maquette validée par le responsable ══
+   Remplace la liste « Mes congés » des 15 prochains jours : l'année ENTIÈRE, sur
+   le modèle de la fiche récap PDF. En haut, le rang au prochain staff vacances
+   (renderOrdreVac) ; puis les compteurs (vacances et TP sur leur quota quand la
+   clé de pose de l'année est là), les 12 mois et le bouton PDF.
+   Tout vient de données déjà chargées : le planning de l'année (_planCache) et
+   la clé pose_tp_{Y} arrivée avec l'ouverture. Seul le PDF appelle le serveur. */
+let RC_ANNEE = null, RC_OUVERT = null;
+function _fr1(x){ return String(Math.round(x * 10) / 10).replace('.', ','); }
+// L'année où l'on pose (celle de la tuile) : l'année en cours si elle est ouverte, sinon la première ouverte.
+function _recapAnneePose(){
+  const ans = Object.keys(POSE_CLES).map(Number).sort();
+  if (!ans.length) return null;
+  const y = new Date().getFullYear();
+  return ans.indexOf(y) !== -1 ? y : ans[0];
+}
+// Le prochain staff vacances : l'année qui suit la dernière année générée.
+function _recapAnneeRang(){
+  const ans = (PHASE_TP && Array.isArray(PHASE_TP.annees) && PHASE_TP.annees.length) ? PHASE_TP.annees.map(Number)
+            : (PHASE_TP && PHASE_TP.annee ? [Number(PHASE_TP.annee)] : []);
+  return ans.length ? Math.max.apply(null, ans) + 1 : new Date().getFullYear() + 1;
+}
+function _recapMien(y){ const k = POSE_CLES[y]; return (k && k.parMar && MY_ID && k.parMar[MY_ID]) || null; }
+// Ce que coûte un code de vacances — même décompte que le serveur (_vacPoids_).
+function _recapPoidsVac(c, ds, feries, fixes){
+  const w = new Date(ds + 'T12:00:00').getDay();
+  if (w === 0 || w === 6 || feries.has(ds) || fixes.indexOf(w) !== -1) return 0;
+  if (c === 'V' || c === 'VAC') return /-12-(24|31)$/.test(ds) ? 0.5 : 1;
+  return (c === 'VM' || c === 'VA') ? 0.5 : 0;
+}
+// Pastille de la tuile : quota de vacances − jours posés, sur l'année de pose (clé pose_tp, mes codes).
+function _recapResteAPoser(){
+  const y = _recapAnneePose(), mien = y ? _recapMien(y) : null;
+  if (!mien || mien.quotaVac === undefined) return null;
+  const k = POSE_CLES[y], feries = new Set(Array.isArray(k.joursFeries) ? k.joursFeries : []);
+  const fixes = Array.isArray(mien.joursFixes) ? mien.joursFixes.map(Number) : [];
+  let n = 0;
+  Object.keys(mien.jours || {}).forEach(function(ds){ n += _recapPoidsVac(String(mien.jours[ds]).toUpperCase(), ds, feries, fixes); });
+  return Math.max(0, Number(mien.quotaVac) - n);
+}
+// Mes codes de l'année et ses fériés, lus dans le planning déjà chargé.
+function _recapStatuts(y){
+  const S = {}, F = new Set(), pl = _planDejaLa(y);
+  if (!pl || !pl.months) return null;
+  pl.months.forEach(function(m){
+    (m.days || []).forEach(function(j){ if (j && j.isFerie && j.date) F.add(j.date); });
+    const doc = (m.doctors || []).find(function(d){ return d.id === MY_ID; });
+    if (!doc || !doc.days) return;
+    doc.days.forEach(function(j, i){ const st = String((j || {}).status || '').toUpperCase(); if (st && m.days[i] && m.days[i].date) S[m.days[i].date] = st; });
+  });
+  return { S: S, F: F };
+}
+const RC_CLS = { V:'rv', VAC:'rv', VM:'rvm', VA:'rva', TP:'rtp', CTP:'rtp', F:'rf', FORM:'rf', R:'rr', CL:'rcl', CP:'rcl', G:'g', G2:'g2', '18':'h18', RG:'rrg' };
+function _recapMois(y, m, S, F, today){
+  const cle = y + '-' + String(m + 1).padStart(2, '0'), n = new Date(y, m + 1, 0).getDate(), dec = (new Date(y, m, 1).getDay() + 6) % 7;
+  let cases = '', nb = 0;
+  for (let i = 0; i < dec; i++) cases += '<div></div>';
+  for (let d = 1; d <= n; d++) {
+    const iso = cle + '-' + String(d).padStart(2, '0'), st = S[iso] || '', wd = (new Date(y, m, d).getDay() + 6) % 7;
+    let cls = 'mga-d' + (RC_CLS[st] ? ' ' + RC_CLS[st] : (wd >= 5 ? ' we' : ''));
+    if (st === 'G' || st === 'G2') nb++;
+    if (F.has(iso)) cls += ' jf';
+    if (iso < today) cls += ' passe';
+    if (iso === today) cls += ' auj';
+    cases += '<div class="' + cls + '">' + d + '</div>';
   }
-  const total=MY_CONGES.days.length;
-  if(cnt) cnt.textContent = total+(total>1?' jours à venir':' jour à venir');
-  const order=CAT_ORDER;
-  let chips='<div class="cg-counts">';
-  order.forEach(function(t){
-    const n=MY_CONGES.counts[t]||0; if(!n) return;
-    const c=CAT_META[t];
-    /* Le nombre et son unite restent colles ; le libelle passe DESSOUS. Ecrits
-       sur une ligne — « Vacances 67 j » — ils tenaient mal a trois par ligne. */
-    chips+='<span class="cg-count '+c.cls+'"><span class="cg-n">'+n+'</span><span class="cg-u"> j</span>'
-         +'<span class="cg-l">'+c.label+'</span></span>';
+  return '<div class="mga-mois' + (RC_OUVERT === cle ? ' ouvert' : '') + (today.slice(0, 7) === cle ? ' encours' : '') + '" data-rc-mois="' + cle + '">'
+    + '<div class="mga-mh">' + MGA_MOIS[m] + (nb ? '<small>' + nb + ' G</small>' : '') + '</div>'
+    + '<div class="mga-j">' + ['L','M','M','J','V','S','D'].map(function(x){ return '<div class="mga-dw">' + x + '</div>'; }).join('') + cases + '</div></div>';
+}
+function renderMesConges(){
+  const box = document.getElementById('mesCongesBody'), cnt = document.getElementById('mesCongesCount');
+  if (cnt) cnt.textContent = '';
+  renderOrdreVac();
+  const ans = Object.keys(_planCache).map(Number).filter(function(y){ return y && _planDejaLa(y); }).sort();
+  if (!ans.length) { box.innerHTML = '<div class="topos-empty">Planning indisponible<br><span>Réessayez dans un instant.</span></div>'; return; }
+  if (!RC_ANNEE || ans.indexOf(RC_ANNEE) === -1) {
+    const yp = _recapAnneePose(), yc = new Date().getFullYear();
+    RC_ANNEE = (yp && ans.indexOf(yp) !== -1) ? yp : (ans.indexOf(yc) !== -1 ? yc : ans[ans.length - 1]);
+  }
+  const y = RC_ANNEE, st = _recapStatuts(y) || { S: {}, F: new Set() }, S = st.S, F = st.F, today = _todayStr();
+  const mien = _recapMien(y), fixes = (mien && Array.isArray(mien.joursFixes)) ? mien.joursFixes.map(Number) : [];
+  let vac = 0, tp = 0, form = 0, rec = 0, g = 0, g2 = 0, h18 = 0;
+  Object.keys(S).forEach(function(ds){
+    const c = S[ds], w = new Date(ds + 'T12:00:00').getDay(), ouvre = w > 0 && w < 6 && !F.has(ds);
+    vac += _recapPoidsVac(c, ds, F, fixes);
+    if (c === 'G') g++; else if (c === 'G2') g2++; else if (c === '18') h18++;
+    if (!ouvre) return;
+    if (c === 'TP' || c === 'CTP') tp++; else if (c === 'F' || c === 'FORM') form++; else if (c === 'R') rec++;
   });
-  chips+='</div>';
-  /* Groupage par mois, meme intitule et meme style que « Mes gardes » : les deux
-     ecrans se lisent pareil. Le mois retenu est celui du DEBUT de la periode. */
-  let list='', curMonth='';
-  MY_CONGES.periods.forEach(function(p){
-    const c=CAT_META[p.cat], s=staffDateParts(p.start), e=staffDateParts(p.end);
-    const q=p.start.split('-'), mKey=q[0]+'-'+q[1];
-    if(mKey!==curMonth){ curMonth=mKey; list+='<div class="mg-month">'+_mgCap(_MOIS[(+q[1])-1])+' '+q[0]+'</div>'; }
-    const jourLong = _MG_JOURS[new Date(p.start+'T00:00:00').getDay()];
-    const sous = (p.start===p.end)
-      ? (jourLong+' · 1 jour')
-      : ('Jusqu’au '+e.dow+' '+e.dnum+' '+e.month+' · '+p.n+' jours');
-    list+='<div class="cg-item">'
-      + '<div class="cg-d '+c.cls+'"><div class="cg-dow">'+s.dow+'</div>'
-      + '<div class="cg-dnum">'+s.dnum+'</div><div class="cg-mon">'+s.month+'</div></div>'
-      + '<div class="cg-b"><div class="cg-lab">'+c.label+'</div><div class="cg-sub">'+sous+'</div></div>'
-      + '</div>';
-  });
-  box.innerHTML=chips+list;
+  const qv = mien && mien.quotaVac !== undefined ? Number(mien.quotaVac) : null;
+  const qt = mien && Number(mien.quota) > 0 && !mien.tpFixe ? Number(mien.quota) : null;
+  const tuile = function(cls, val, quota, lib){
+    return '<div class="rc-t ' + cls + '"><b>' + _fr1(val) + '<span>' + (quota !== null ? ' / ' + _fr1(quota) : '') + ' j</span></b><em>' + lib + '</em>'
+      + (quota !== null ? '<div class="rc-j"><i style="width:' + Math.min(100, quota ? val / quota * 100 : 0) + '%"></i></div><small>reste ' + _fr1(Math.max(0, quota - val)) + ' j</small>' : '') + '</div>';
+  };
+  let h = '<div class="mga-ans rc-ans">' + ans.map(function(a){ return '<button type="button" data-rc-an="' + a + '" class="' + (a === y ? 'on' : '') + '">' + a + '</button>'; }).join('') + '</div>';
+  h += '<div class="rc-tuiles">' + tuile('rc-vac', vac, qv, 'Vacances')
+    + (qt !== null || tp ? tuile('rc-tp', tp, qt, 'Temps partiel') : '')
+    + tuile('rc-form', form, null, 'Formation') + tuile('rc-rec', rec, null, 'Récupération')
+    + '<div class="rc-t rc-g"><b>' + (g + g2) + '</b><em>Gardes · ' + g + ' réa · ' + g2 + ' mater</em></div>'
+    + '<div class="rc-t rc-h"><b>' + h18 + '</b><em>18 h</em></div></div>';
+  h += '<div class="mga-leg rc-leg"><span><i class="rv"></i>Vacances</span><span><i class="rtp"></i>TP</span><span><i class="rf"></i>Formation</span><span><i class="rr"></i>Récup</span>'
+    + '<span><i style="background:var(--me)"></i>Réa</span><span><i style="background:var(--rose)"></i>Mater</span><span><i style="background:var(--h18)"></i>18 h</span>'
+    + '<span><i style="box-shadow:inset 0 0 0 1.5px var(--red)"></i>Férié</span></div>';
+  h += '<div class="mga-grille rc-grille">';
+  for (let m = 0; m < 12; m++) h += _recapMois(y, m, S, F, today);
+  h += '</div><button type="button" class="rc-pdf" id="rcPdf" onclick="recapPdf()"><i data-lucide="file-text" style="width:17px;height:17px"></i> Télécharger en PDF</button>'
+    + '<p class="rc-note">Touchez un mois pour l\'agrandir. Le planning en ligne fait foi.</p>';
+  box.innerHTML = h;
+  if (window.lucide) lucide.createIcons();
+}
+document.addEventListener('click', function(ev){
+  const t = ev.target.closest ? ev.target.closest('[data-rc-an],[data-rc-mois]') : null;
+  if (!t || !document.getElementById('mesCongesBody').contains(t)) return;
+  if (t.dataset.rcAn) { RC_ANNEE = Number(t.dataset.rcAn); RC_OUVERT = null; }
+  else { RC_OUVERT = RC_OUVERT === t.dataset.rcMois ? null : t.dataset.rcMois; }
+  renderMesConges();
+});
+// Le PDF : la même page que la pièce jointe du mail « Vos gardes », faite par le serveur pour l'année affichée.
+async function recapPdf(){
+  const b = document.getElementById('rcPdf'); if (!b || b.disabled) return;
+  const lib = b.innerHTML; b.disabled = true; b.textContent = '⏳ Préparation du PDF…';
+  try {
+    const r = await apiPost({ action: 'getRecapPdf', code: VIEW_CODE, year: RC_ANNEE });
+    if (!r || !r.success || !r.pdf) throw new Error((r && r.error) || 'réponse vide');
+    const bin = atob(r.pdf), oct = new Uint8Array(bin.length);
+    for (let i = 0; i < bin.length; i++) oct[i] = bin.charCodeAt(i);
+    const url = URL.createObjectURL(new Blob([oct], { type: 'application/pdf' }));
+    const a = document.createElement('a'); a.href = url; a.download = r.nom || ('Recapitulatif-' + RC_ANNEE + '.pdf');
+    document.body.appendChild(a); a.click(); a.remove();
+    setTimeout(function(){ URL.revokeObjectURL(url); }, 60000);
+  } catch (e) {
+    try { showToast('PDF indisponible pour le moment — réessayez.'); } catch (e2) {}
+  } finally { b.disabled = false; b.innerHTML = lib; if (window.lucide) lucide.createIcons(); }
 }
 
 // ── VUE TOPOS ──
