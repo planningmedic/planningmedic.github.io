@@ -56,7 +56,7 @@ function contexteGas(lignes) {
   ['_echangesOuvertureMs_', '_echangesEtat_', '_echangesEnDepot_', '_echangesDebutDelai_', '_echangesPoserReponses_',
    '_echangesMentionDepot_', '_echangesQuandFr_', '_echangesOuvertsMaintenant_', '_echangesAutorise_', 'ouvrirEchanges', 'programmerOuvertureEchanges',
    'annoncerOuvertureEchanges', 'fermerEchanges', 'synchroniserEtatEchanges', 'expirerEchanges', '_echangesAnnoncerReponses_', '_echangesAnnoncerOuverture_',
-   '_echangesJoli_', '_echangesEst18_', 'repondreEchange']
+   '_echangesJoli_', '_echangesEst18_', '_bourseEst_', 'repondreEchange']
     .forEach(n => vm.runInContext(extraireFonction(GS, n), ctx));
   const lever = f => { try { vm.runInContext(f, ctx); return null; } catch (e) { return e.message; } };
   return { ctx, PROPS, pousses, notifs, ecrits, journal, cloche, lever, src };
@@ -353,7 +353,7 @@ function contexteGas(lignes) {
       && d.getElementById('echRebours').style.display !== 'none' && /^1 j 23 h$/.test(d.getElementById('echReboursV').textContent), d.getElementById('echReboursV').textContent);
     const pg = d.getElementById('echPastille');
     V('pastille GRISE : 3 demandes arrivées, pas encore acceptables', pg.style.display !== 'none' && pg.textContent === '3' && pg.classList.contains('grise') && !hero.classList.contains('attente'));
-    V('le sous-titre dit que le dépôt est ouvert', d.getElementById('echHeroSub').textContent === 'Dépôt ouvert : proposez vos gardes.');
+    V('le sous-titre dit que le dépôt est ouvert', d.getElementById('echHeroSub').textContent === 'Dépôt ouvert : déposez vos gardes.');
     hero.click();
     V('toucher la tuile ouvre Mes échanges (pas de verrou)', w.location.hash === '#echanges');
     const h = await ouvrirVue(w);
@@ -362,21 +362,17 @@ function contexteGas(lignes) {
     V('les 3 boutons Accepter sont grisés, avec le jour et l\'heure', accs.length === 3 && accs.every(b => b.disabled && /^Accepter \S+ \d+ h/.test(b.textContent)), accs.map(b => b.textContent));
     const refs = [...d.querySelectorAll('#echList .ech-refuser:not(.ech-annuler)')];
     V('Refuser reste actif', refs.length === 3 && refs.every(b => !b.disabled));
-    const iA = h.indexOf('<h3>À traiter</h3>'), iF = h.indexOf('Déjà traitées'), iM = h.indexOf('<h3>Mes propositions</h3>');
+    /* (25/11/2026) Bourse aux gardes : les demandes ciblées encore en cours (reçues et envoyées)
+       tiennent dans « À traiter », avant les offres ; les demandes closes ne restent pas à l'écran. */
+    const iA = h.indexOf('<h3>À traiter</h3>'), iF = h.indexOf('<h3>Offres</h3>');
     const pos = id => h.indexOf("repondreEch('" + id + "'");
     V('« À traiter » est trié par date de garde, pas par heure de dépôt (06/02, 13/02, 10/04)', iA > -1 && pos('R1') > iA && pos('R1') < pos('R2') && pos('R2') < pos('R3') && pos('R3') < iF, [pos('R1'), pos('R2'), pos('R3')]);
     V('les mois servent d\'intercalaires', /Février 2027[\s\S]*Avril 2027/.test(h.slice(iA, iF)));
     V('l\'heure du dépôt n\'est affichée nulle part (« Expire dans » absent pendant le dépôt)', !/Expire dans/.test(h) && /Le délai de 48 h démarrera/.test(h));
-    const faites = d.querySelector('#echList details.ech-faites');
-    V('la demande déjà refusée est dans le bloc replié « Déjà traitées (1) »', !!faites && !faites.open && /Déjà traitées <i>1<\/i>/.test(faites.innerHTML) && /Refusée/.test(faites.innerHTML), faites && faites.innerHTML.slice(0, 120));
-    V('… et plus dans « À traiter »', h.slice(iA, iF).indexOf('Refusée') === -1);
-    const iM1 = h.indexOf('Dr Charlie</strong>, ', iM) > -1 ? h.indexOf('Don proposé à <strong>Dr Charlie', iM) : h.indexOf('Don proposé à <strong>Dr Charlie', iM);
-    V('« Mes propositions » en ordre chronologique, marquées « Déposée »', iM > iF && iM1 > iM && iM1 < h.indexOf('Don proposé à <strong>Dr Bravo', iM) && (h.slice(iM).match(/Déposée/g) || []).length === 2);
+    V('la demande déjà refusée n\'est plus à l\'écran', !/Refusée/.test(h));
+    V('mes deux propositions sont dans « À traiter », marquées « Déposée »', (h.slice(iA, iF).match(/Déposée/g) || []).length === 2);
     V('… et toujours annulables', d.querySelectorAll('#echList .ech-annuler').length === 2);
     V('le bouton du panneau Proposer dit « Déposer la proposition »', w._echLibEnvoyer() === 'Déposer la proposition');
-    faites.open = true; faites.dispatchEvent(new w.Event('toggle'));
-    w.renderEchanges();
-    V('le bloc « Déjà traitées » reste déplié d\'un affichage à l\'autre', d.querySelector('#echList details.ech-faites').open === true);
     fermer();
   }
 

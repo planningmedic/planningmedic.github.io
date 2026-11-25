@@ -153,7 +153,7 @@ const visible = (D, id) => D.getElementById(id).style.display !== 'none';
     V('la carte est dans le bloc Moi, en premier', D.getElementById('tiles-moi').firstElementChild === hero);
     w.eval(`ECH_AUTORISE = true; ECH_LISTE = [{ etat:'attente', receveur:'ALPHA' }, { etat:'attente', receveur:'BRAVO' }]; majEchangesHero();`);
     V('visible quand les échanges sont ouverts', hero.style.display !== 'none');
-    V('le titre annonce la demande qui m\'attend (et seulement la mienne)', /^1 demande attend/.test(D.getElementById('echHeroMain').textContent));
+    V('le titre annonce la demande qui m\'attend (et seulement la mienne)', /^1 échange attend votre choix/.test(D.getElementById('echHeroMain').textContent));
     V('elle passe au rouge', hero.classList.contains('attente'));
     V('la pastille porte le nombre', D.getElementById('echPastille').style.display !== 'none' && D.getElementById('echPastille').textContent === '1');
     V('Mes échanges + Mon récapitulatif côte à côte : aucune élargie',
@@ -161,7 +161,7 @@ const visible = (D, id) => D.getElementById(id).style.display !== 'none';
     V('Mes indisponibilités (campagne) occupe sa ligne', !!D.querySelector('#tiles-moi a[href="indispos.html"].large'));
     w.eval(`ECH_LISTE = []; majEchangesHero();`);
     V('plus de demande : retour au titre normal, sans rouge ni pastille',
-      /Mes échanges/.test(D.getElementById('echHeroMain').textContent) && !hero.classList.contains('attente') && D.getElementById('echPastille').style.display === 'none');
+      /Bourse aux gardes/.test(D.getElementById('echHeroMain').textContent) && !hero.classList.contains('attente') && D.getElementById('echPastille').style.display === 'none');
     w.eval(`ECH_AUTORISE = false; majEchangesHero();`);
     V('échanges fermés : la carte disparaît et Mon récapitulatif s\'élargit',
       hero.style.display === 'none' && D.querySelector('#tiles-moi a[href="indispos.html"], #tiles-moi [data-gen]:not(.large)').classList.contains('seul'));

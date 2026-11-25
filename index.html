@@ -1036,8 +1036,8 @@ html[data-theme="dark"] .rc-vac { background:#152341; color:#7BAAF7; } html[data
           <div class="tile-ico"><span class="ech-onde" aria-hidden="true"></span><span class="ech-onde ech-onde2" aria-hidden="true"></span><i data-lucide="repeat"></i>
             <span class="ech-cadenas" aria-hidden="true"><svg viewBox="0 0 24 24" width="11" height="11" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><rect width="18" height="11" x="3" y="11" rx="2"></rect><path class="ech-anse" d="M7 11V7a5 5 0 0 1 10 0v4"></path></svg></span>
           </div>
-          <div class="tile-title" id="echHeroMain">Mes échanges</div>
-          <div class="tile-sub" id="echHeroSub">Donner ou échanger une garde ou un 18 h.</div>
+          <div class="tile-title" id="echHeroMain">Bourse aux gardes</div>
+          <div class="tile-sub" id="echHeroSub">Proposer ou prendre une garde ou un 18 h.</div>
           <div class="ech-rebours" id="echRebours" style="display:none"><span class="ech-rebours-l"><span class="ech-point"></span><span id="echReboursL">Dans</span></span><span class="ech-rebours-v" id="echReboursV"></span></div>
           <div class="tile-arrow">Ouvrir <i data-lucide="arrow-right" style="width:15px;height:15px"></i></div>
         </div>
@@ -1158,7 +1158,7 @@ html[data-theme="dark"] .rc-vac { background:#152341; color:#7BAAF7; } html[data
   <div id="echangesView" style="display:none">
     <div class="topos-head">
       <button class="btn-back" onclick="backToHome()"><i data-lucide="arrow-left" style="width:16px;height:16px"></i> Retour</button>
-      <h2>Mes échanges</h2>
+      <h2>Bourse aux gardes</h2>
       <span class="topos-count" id="echCount"></span>
     </div>
     <div class="ech-bar">
@@ -1167,7 +1167,7 @@ html[data-theme="dark"] .rc-vac { background:#152341; color:#7BAAF7; } html[data
         <button id="echFiltreTous" class="ech-filtre" onclick="echFiltrer(true)">Tout voir</button>
       </div>
       <button id="echProposerBtn" class="ech-proposer" style="display:none" onclick="echOuvrirProposition()">
-        <i data-lucide="plus" style="width:15px;height:15px"></i> Proposer
+        <i data-lucide="plus" style="width:15px;height:15px"></i> Déposer
       </button>
     </div>
     <div id="echProposition" class="ech-panneau" style="display:none"></div>
@@ -3039,14 +3039,14 @@ function majEchangesHero(){
   const verrou = _echVerrouille();
   hero.classList.toggle('verrou', verrou);
   hero.classList.toggle('large', verrou);
-  hero.setAttribute('aria-label', verrou ? 'Mes échanges, verrouillé — ouverture ' + _echQuandOuPas(true) : 'Mes échanges');
+  hero.setAttribute('aria-label', verrou ? 'Bourse aux gardes, verrouillée — ouverture ' + _echQuandOuPas(true) : 'Bourse aux gardes');
   const avecRebours = verrou && !!ECH_OUVERTURE;   // annoncée sans date : pas de compte à rebours
   const rebours = document.getElementById('echRebours');
   if (rebours) rebours.style.display = avecRebours ? '' : 'none';
   hero.classList.toggle('sans-date', verrou && !avecRebours);
   if (verrou) {
     hero.style.display = 'grid';
-    document.getElementById('echHeroMain').textContent = 'Mes échanges';
+    document.getElementById('echHeroMain').textContent = 'Bourse aux gardes';
     document.getElementById('echHeroSub').textContent = 'Ouverture ' + _echQuandOuPas(false);
     const p = document.getElementById('echPastille'); if (p) p.style.display = 'none';
     if (avecRebours) {
@@ -3074,29 +3074,32 @@ function majEchangesHero(){
     if (rebours) rebours.style.display = '';
     const pg = document.getElementById('echPastille');
     if (pg) { pg.textContent = String(enAttente); pg.style.display = enAttente ? 'flex' : 'none'; pg.classList.add('grise'); }
-    document.getElementById('echHeroMain').textContent = 'Mes échanges';
-    document.getElementById('echHeroSub').textContent = 'Dépôt ouvert : proposez vos gardes.';
-    hero.setAttribute('aria-label', 'Mes échanges — dépôt ouvert, réponses ' + _echQuand(ECH_REPONSES, true));
+    document.getElementById('echHeroMain').textContent = 'Bourse aux gardes';
+    document.getElementById('echHeroSub').textContent = 'Dépôt ouvert : déposez vos gardes.';
+    hero.setAttribute('aria-label', 'Bourse aux gardes — dépôt ouvert, réponses ' + _echQuand(ECH_REPONSES, true));
     ECH_REBOURS_T = setInterval(_echTic, 1000);
     _echTic();
     equilibrerBlocs();
     return;
   }
   const pg0 = document.getElementById('echPastille'); if (pg0) pg0.classList.remove('grise');
-  /* (11/10/2026) Carte habillée en tuile : une demande en attente la passe au rouge,
-     avec son nombre en pastille. */
+  /* (25/11/2026) Bourse aux gardes : la pastille compte les offres en vitrine des
+     collègues et ce qui attend MA réponse (échanges proposés sur mes offres, inversion).
+     Rouge quand quelque chose attend ma réponse. */
+  const auj = _todayStr();
+  const offres = (ECH_LISTE||[]).filter(function(e){ return _bxEst(e) && e.etat==='attente' && e.demandeur!==MY_ID && e.date>=auj; }).length;
   hero.classList.toggle('attente', enAttente > 0);
   const pastille = document.getElementById('echPastille');
-  if (pastille) { pastille.textContent = String(enAttente); pastille.style.display = enAttente ? 'flex' : 'none'; }
+  if (pastille) { pastille.textContent = String(enAttente + offres); pastille.style.display = (enAttente + offres) ? 'flex' : 'none'; }
   equilibrerBlocs();
   const sub = document.getElementById('echHeroSub');
   const main = document.getElementById('echHeroMain');
   if (enAttente) {
-    main.textContent = enAttente + (enAttente>1 ? ' demandes attendent votre réponse' : ' demande attend votre réponse');
-    sub.textContent = 'Touchez pour répondre.';
+    main.textContent = enAttente + (enAttente>1 ? ' échanges attendent votre choix' : ' échange attend votre choix');
+    sub.textContent = 'Touchez pour choisir.';
   } else {
-    main.textContent = 'Mes échanges';
-    sub.textContent = 'Donner ou échanger une garde ou un 18 h.';
+    main.textContent = 'Bourse aux gardes';
+    sub.textContent = (offres ? offres + (offres>1 ? ' offres en vitrine. ' : ' offre en vitrine. ') : '') + 'Proposer ou prendre une garde ou un 18 h.';
   }
 }
 
@@ -3221,6 +3224,7 @@ function _echParMois(liste, recue){
 }
 function renderEchanges(){
   if (ECH_TOUT) return _renderEchangesTous();
+  return renderBourse();   // (25/11/2026) bourse aux gardes : l'écran en deux blocs ci-dessous ne sert plus
   const box = document.getElementById('echList'), cnt = document.getElementById('echCount');
   const tout = ECH_LISTE || [];
   const recues = tout.filter(function(e){ return e.receveur===MY_ID; });
@@ -3348,6 +3352,8 @@ async function repondreEch(id, reponse, btn, confirmeAbs, confirmeRea1, confirme
       const item = ECH_LISTE.find(function(e){ return e.id === id; });
       if (item) { item.etat = r.etat || (reponse==='accepter' ? 'acceptee' : 'refusee'); item.reponduLe = new Date().toISOString();
         if ((item.etat==='impossible' || item.etat==='sansobjet') && r.error && !item.info) item.info = r.error; }   // (12/11/2026) le motif s'affiche tout de suite
+      /* (25/11/2026) Bourse : une demande qui n'a pas pu se faire quitte l'écran ; son motif s'affiche en bandeau. */
+      if (item && (item.etat==='impossible' || item.etat==='sansobjet')) BX_ERR = 'Cela n\'a pas pu se faire : ' + esc(item.info || r.error || 'le planning a changé') + '.';
       majEchangesHero();
       renderEchanges();
       if (typeof loadMyGardes === 'function') { try { window.__rafraichirDonnees(); } catch(e){} }
@@ -3482,56 +3488,35 @@ async function _echPlanningsFrais(){
 }
 
 async function echOuvrirProposition(){
+  /* (25/11/2026) BOURSE : on dépose sa garde en vitrine, sans destinataire. */
   const p = document.getElementById('echProposition');
   if (p.style.display !== 'none') { p.style.display='none'; return; }
   p.style.display='block';
   p.innerHTML = '<div class="topos-loading">Chargement de vos gardes et 18 h…</div>';
   await _echPlanningsFrais();
-  const gardes = await _echMesGardesAvecAnnee();
-  if (!gardes.length) { p.innerHTML = '<div class="topos-empty">Aucune garde ni 18 h à venir à proposer.</div>'; return; }
-  ECH_PROP = { type:'don', mode:'don', gardes:gardes };
-  let plan = null;
-  try { plan = _planDejaLa(gardes[0].annee) || await _fetchPlanning(gardes[0].annee); } catch(e){}
-  /* (11/11/2026) Un arrivant en cours d'année (ex. début au 01/11) manquait :
-     la liste ne lisait que le 1er mois. On réunit tous les mois des années
-     de mes gardes à venir. */
-  const medecins = [];
-  const _vus = {};
-  const _annees = Array.from(new Set(gardes.map(function(g){ return g.annee; })));
-  for (const y of _annees) {
-    let pl = null;
-    try { pl = (y === gardes[0].annee && plan) || _planDejaLa(y) || await _fetchPlanning(y); } catch(e){}
-    ((pl && pl.months) || []).forEach(function(m){
-      (m.doctors||[]).forEach(function(d){
-        if (d.id && d.id!==MY_ID && !_vus[d.id]) { _vus[d.id]=1; medecins.push(d.id); }
-      });
-    });
-  }
-  medecins.sort();
+  const deja = (ECH_LISTE||[]).filter(function(e){ return _bxEst(e) && e.etat==='attente' && e.demandeur===MY_ID; }).map(function(e){ return e.date; });
+  const gardes = (await _echMesGardesAvecAnnee()).filter(function(g){ return deja.indexOf(g.date) < 0; });
+  if (!gardes.length) { p.innerHTML = '<div class="topos-empty">Aucune garde ni 18 h à venir à déposer.</div>'; return; }
+  ECH_PROP = { mode:'deux', gardes:gardes };
   p.innerHTML =
       '<label id="echLblGarde">Ma garde</label>'
     + '<button type="button" id="echCarteGarde" class="ech-carte" onclick="echChoisirGarde()"></button>'
-    + '<select id="echSelGarde" class="ech-natif" onchange="echMajProposition()">'
-    + gardes.map(function(g,i){ return '<option value="'+i+'" data-type="'+esc(g.type)+'">'+esc(fmtDate(g.date))+' — '+(g.type==='18'?'18 h':g.type==='G2'?'Mater/Bloc':'Réa')+'</option>'; }).join('')
+    + '<select id="echSelGarde" class="ech-natif" onchange="bxMajDepot()">'
+    + gardes.map(function(g,i){ return '<option value="'+i+'">'+esc(fmtDate(g.date))+'</option>'; }).join('')
     + '</select>'
-    + '<div id="echBlocTypes"><label>Je souhaite</label>'
-    + '<div class="ech-types">'
-    + '<button id="echTypeDon" class="actif" onclick="echType(\'don\')">La donner</button>'
-    + '<button id="echTypeEch" onclick="echType(\'echange\')">L\'échanger</button>'
-    + '</div></div>'
-    + '<label>À</label>'
-    + '<select id="echSelQui" onchange="echMajProposition()">'
-    + '<option value="">Choisir un collègue…</option>'
-    + medecins.map(function(id){ return '<option value="'+esc(id)+'">'+esc(_echDrLisible(id))+'</option>'; }).join('')
-    + '</select>'
-    + '<div id="echBlocContre" style="display:none"><label id="echLblContre">Contre sa garde du</label><button type="button" id="echCarteContre" class="ech-carte" onclick="echChoisirContre()"></button><select id="echSelContre" class="ech-natif"><option value="">Choisir…</option></select></div>'
-    + '<div id="echInfoDepot" class="ech-info" style="display:none"></div>'
-    + '<div id="echAvert" class="ech-avert" style="display:none"></div>'
-    + '<button id="echEnvoyer" class="ech-envoyer" onclick="envoyerProposition(this)">' + _echLibEnvoyer() + '</button>'
+    + '<label>J\'accepte</label><div class="ech-types">'
+    + '<button id="bxM-don" onclick="bxModeDepot(\'don\')">Un don</button>'
+    + '<button id="bxM-echange" onclick="bxModeDepot(\'echange\')">Un échange</button>'
+    + '<button id="bxM-deux" class="actif" onclick="bxModeDepot(\'deux\')">Les deux</button></div>'
+    + '<div id="bxBlocSouhait"><label>En échange, je préfère</label><select id="bxSouhait"><option value="">N\'importe quand</option>'
+    + '<option>un jour de semaine</option><option>un week-end</option>'
+    + _ECH_MOIS.map(function(m){ return '<option>un jour de ' + m + '</option>'; }).join('') + '</select></div>'
+    + '<div class="ech-info">Tous les MAR verront votre offre et seront prévenus. Vous pouvez la retirer tant que personne ne l\'a prise.</div>'
+    + '<button id="echEnvoyer" class="ech-envoyer" onclick="bxDeposer(this)">Mettre en vitrine</button>'
+    + '<div id="bxInversion"></div>'
     + '<div class="ech-msg" id="echMsgProp" style="display:none"></div>';
-  echMajProposition();
+  bxMajDepot();
 }
-
 /* (12/11/2026) Carte + panneau de choix. Le <select> caché reste la référence :
    choisir dans le panneau ne fait que changer sa valeur, puis relancer le calcul
    habituel. Gardes et 18 h sont deux onglets séparés : on n'échange jamais une
@@ -3600,7 +3585,7 @@ function echChoisirGarde(){
   const sel=document.getElementById('echSelGarde');
   const items=ECH_PROP.gardes.map(function(g,i){ return { valeur:String(i), date:g.date, type:g.type }; });
   const avec18=items.some(function(it){ return it.type==='18'; });
-  _echFeuille('Que voulez-vous céder ?', items, sel.value, function(v){ sel.value=v; echMajProposition(); },
+  _echFeuille('Que voulez-vous déposer ?', items, sel.value, function(v){ sel.value=v; bxMajDepot(); },
     avec18 ? [ { cle:'g', titre:'Mes gardes', filtre:function(it){ return it.type!=='18'; } },
                { cle:'18', titre:'Mes 18 h', filtre:function(it){ return it.type==='18'; } } ] : null);
 }
@@ -3761,6 +3746,281 @@ async function envoyerProposition(btn){
   btn.disabled=false; btn.textContent=_echLibEnvoyer();
 }
 function _echLibEnvoyer(){ return _echDepot() ? 'Déposer la proposition' : 'Envoyer la proposition'; }
+
+/* ═══ (25/11/2026) BOURSE AUX GARDES — maquette validée par le responsable (24/11) ═══
+   On met sa garde ou son 18 h en vitrine ; tous les MAR la voient. Le donneur
+   accepte un don, un échange ou les deux. Don : le premier qui la prend
+   l'obtient. Échange : on propose une de ses gardes, le donneur choisit.
+   Les questions du serveur ([ABS], [REA1], [18H]…) s'affichent dans une
+   feuille : on lit, on confirme, la demande repart avec la confirmation.
+   Une offre = une ligne de type bourse|bourse18 sans receveur ; les demandes
+   liées (don pris, échange proposé) portent son identifiant dans `offre`. */
+const _BX_QUESTIONS = { '[ABS]':'accepteAbsence', '[REA1]':'accepteRea1', '[REA1L]':'accepteRea1Lui', '[18H]':'accepte18h', '[18]':'accepte18', '[INV]':'accepteInversion' };
+let BX_MSG = '', BX_ERR = '';
+function _bxEst(e){ return e && (e.type==='bourse' || e.type==='bourse18'); }
+function _bxKind(e){ return e.type==='bourse18' ? '18' : (_echStatutPlanning(e.annee, e.demandeur, e.date) || 'G'); }
+function _bxStatut(id, date){
+  const plan = _planDejaLa(Number(String(date).slice(0,4)));
+  if (!plan || !plan.months) return '';
+  for (const m of plan.months) {
+    const i = (m.days||[]).findIndex(function(x){ return x && x.date === date; });
+    if (i < 0) continue;
+    const d = (m.doctors||[]).find(function(x){ return x.id === id; });
+    return String((d && d.days && d.days[i] && d.days[i].status) || '');
+  }
+  return '';
+}
+/* Ce que JE suis ce jour-là — dit avant de prendre, comme le serveur le redira. */
+const _BX_LIB = { V:'en vacances', VM:'en vacances le matin', VA:'en vacances l\'après-midi', F:'en formation', TP:'en temps partiel', CL:'en congé', R:'en récupération', RG:'en repos de garde', A:'absent de jour', '18':'de 18 h' };
+function _bxInfoMoi(date){
+  const s = _bxStatut(MY_ID, date);
+  return _BX_LIB[s] ? 'Vous êtes noté ' + _BX_LIB[s] + ' ce jour.' : '';
+}
+function _bxMode(e){ return e.mode==='don' ? 'Don' : e.mode==='echange' ? 'Échange' : 'Don ou échange'; }
+function _bxLigne(date, kind, ligne, etiquette){
+  return '<div class="ech-ligne-d ' + _echClasse(kind) + '">' + _echPastille(date)
+    + '<span class="ech-tx"><b>' + _echLibType(kind) + '</b><span>' + ligne + '</span></span>' + (etiquette||'') + '</div>';
+}
+function _bxQuoi(e){ const d=_echJour(e.date); return (e.type==='bourse18' ? 'le 18 h' : 'la garde') + ' du ' + _ECH_JOURS_L[d.getDay()] + ' ' + d.getDate() + ' ' + _ECH_MOIS[d.getMonth()]; }
+
+function _bxCarteOffre(e){
+  const kind = _bxKind(e);
+  const ma = (ECH_LISTE||[]).find(function(x){ return x.offre===e.id && x.demandeur===MY_ID && x.etat==='attente'; });
+  let h = '<div class="ech-card">' + _bxLigne(e.date, kind, 'Proposée par <strong>' + esc(_echDrLisible(e.demandeur)) + '</strong>',
+    '<span class="ech-etat attente">' + _bxMode(e) + '</span>');
+  if (e.souhait && e.mode!=='don') h += '<div class="ech-detail">Souhaite en échange : ' + esc(e.souhait) + '</div>';
+  const info = _bxInfoMoi(e.date);
+  if (info && !ma) h += '<div class="ech-avert">' + esc(info) + ' Vous confirmerez en la prenant.</div>';
+  if (ma) {
+    h += '<div class="ech-detail">Vous avez proposé votre ' + (ma.type==='echange18' ? '18 h' : 'garde') + ' du <b>' + esc(_echCourt(ma.date)) + '</b>. '
+      + esc(_echDrLisible(e.demandeur)) + ' choisit parmi les échanges reçus.</div>'
+      + '<div class="ech-actions"><button class="ech-refuser ech-annuler" onclick="annulerEch(\'' + esc(ma.id) + '\',this)">Annuler ma proposition</button></div>'
+      + '<div class="ech-msg" id="echMsg-' + esc(ma.id) + '" style="display:none"></div>';
+  } else {
+    const prendre = '<button class="ech-accepter" onclick="bxPrendre(\'' + esc(e.id) + '\',this)">' + (kind==='18' ? 'Je le prends' : 'Je la prends') + '</button>';
+    const echanger = '<button class="ech-refuser" onclick="bxProposer(\'' + esc(e.id) + '\')">' + (e.mode==='echange' ? 'Proposer un' + (kind==='18' ? ' de mes 18 h' : 'e de mes gardes') : 'Échanger') + '</button>';
+    h += '<div class="ech-actions">' + (e.mode!=='echange' ? prendre : '') + (e.mode!=='don' ? echanger : '') + '</div>'
+      + '<div class="ech-msg" id="echMsg-' + esc(e.id) + '" style="display:none"></div>';
+  }
+  return h + '</div>';
+}
+function _bxCarteMienne(e){
+  const kind = _bxKind(e);
+  const props = (ECH_LISTE||[]).filter(function(x){ return x.offre===e.id && x.receveur===MY_ID && x.etat==='attente'; });
+  let h = '<div class="ech-card">' + _bxLigne(e.date, kind, _bxMode(e) + (e.souhait && e.mode!=='don' ? ' · ' + esc(e.souhait) : ''),
+    '<span class="ech-etat attente">En vitrine</span>');
+  if (props.length) {
+    h += '<div class="ech-detail"><b>' + props.length + (props.length>1 ? ' échanges proposés' : ' échange proposé') + '</b> — choisissez-en un</div>';
+    props.slice().sort(function(a,b){ return a.date<b.date?-1:1; }).forEach(function(p){
+      const k = p.type==='echange18' ? '18' : (_echStatutPlanning(p.annee, p.demandeur, p.date) || 'G');
+      const info = _bxInfoMoi(p.date);
+      h += '<div class="ech-card" style="margin:8px 0 0;box-shadow:none">'
+        + _bxLigne(p.date, k, '<strong>' + esc(_echDrLisible(p.demandeur)) + '</strong> vous donne ' + (k==='18' ? 'son 18 h' : 'sa garde'))
+        + (info ? '<div class="ech-avert">' + esc(info) + '</div>' : '')
+        + '<div class="ech-actions"><button class="ech-accepter" onclick="repondreEch(\'' + esc(p.id) + '\',\'accepter\',this)">Choisir cet échange</button></div>'
+        + '<div class="ech-msg" id="echMsg-' + esc(p.id) + '" style="display:none"></div></div>';
+    });
+  } else h += '<div class="ech-meta">Personne ne l\'a encore prise.' + (e.mode!=='don' ? ' Les échanges proposés apparaîtront ici.' : '') + '</div>';
+  h += '<div class="ech-actions"><button class="ech-refuser ech-annuler" onclick="bxRetirer(\'' + esc(e.id) + '\',this)">Retirer mon offre</button></div>';
+  if (e.mode==='deux' && props.length) h += '<div class="ech-meta">Si quelqu\'un la prend en don avant, ces échanges sont fermés et leurs auteurs prévenus.</div>';
+  return h + '<div class="ech-msg" id="echMsg-' + esc(e.id) + '" style="display:none"></div></div>';
+}
+function _bxParMois(liste, f){
+  let h = '', mois = '';
+  liste.slice().sort(function(a,b){ return a.date<b.date?-1:a.date>b.date?1:0; }).forEach(function(e){
+    const d = _echJour(e.date), m = _ECH_MOIS[d.getMonth()] + ' ' + d.getFullYear();
+    if (m !== mois) { mois = m; h += '<div class="ech-mois">' + esc(m.charAt(0).toUpperCase() + m.slice(1)) + '</div>'; }
+    h += f(e);
+  });
+  return h;
+}
+function _bxConclue(e){
+  /* Mon offre partie, ou une offre que j'ai reprise (don pris ou échange choisi). */
+  const kind = e.type==='don18' || e.type==='echange18' || e.type==='bourse18' ? '18' : 'G';
+  let ligne;
+  if (_bxEst(e)) ligne = esc(e.info || 'Conclue');
+  else if (e.type==='echange' || e.type==='echange18') ligne = e.demandeur===MY_ID ? 'Échange avec <strong>' + esc(_echDrLisible(e.receveur)) + '</strong>' : 'Échange avec <strong>' + esc(_echDrLisible(e.demandeur)) + '</strong>';
+  else ligne = 'Reprise à <strong>' + esc(_echDrLisible(e.demandeur)) + '</strong>';
+  return '<div class="ech-card fige">' + _bxLigne(e.date, kind, ligne, '<span class="ech-etat acceptee">Conclue</span>')
+    + (e.reponduLe ? '<div class="ech-meta">Conclue le ' + esc(fmtDate(String(e.reponduLe).slice(0,10))) + '</div>' : '') + '</div>';
+}
+function renderBourse(){
+  const box = document.getElementById('echList'), cnt = document.getElementById('echCount');
+  const tout = ECH_LISTE || [], auj = _todayStr();
+  const offres = tout.filter(function(e){ return _bxEst(e) && e.etat==='attente' && e.demandeur!==MY_ID && e.date>=auj; });
+  const miennes = tout.filter(function(e){ return _bxEst(e) && e.etat==='attente' && e.demandeur===MY_ID; });
+  const conclues = tout.filter(function(e){ return e.etat==='acceptee' && (
+    (_bxEst(e) && e.demandeur===MY_ID) || (!_bxEst(e) && e.offre && (e.receveur===MY_ID || e.demandeur===MY_ID) && !(e.type.indexOf('echange')===0 && e.receveur===MY_ID))); });
+  /* Demandes ciblées encore reçues (inversion garde ↔ 18 h, seule exception gardée) : même carte qu'avant. */
+  const ciblees = tout.filter(function(e){ return !_bxEst(e) && !e.offre && e.etat==='attente' && (e.receveur===MY_ID || e.demandeur===MY_ID); });
+  cnt.textContent = offres.length ? String(offres.length) : '';
+  let h = '';
+  if (BX_MSG) { h += '<div class="ech-bandeau ouvert"><b>C\'est fait</b>' + BX_MSG + '</div>'; BX_MSG = ''; }
+  if (BX_ERR) { h += '<div class="ech-bandeau depot"><b>Pas fait</b>' + BX_ERR + '</div>'; BX_ERR = ''; }
+  if (_echDepot()) h += '<div class="ech-bandeau depot"><b>Dépôt en cours, jusqu’au ' + esc(_echQuand(ECH_REPONSES, true)) + '</b>'
+    + 'Déposez vos gardes. Prendre et choisir s’ouvrent à cette heure-là, pour tout le monde en même temps.</div>';
+  else if (ECH_REPONSES && Date.now() - ECH_REPONSES < 48*3600*1000) h += '<div class="ech-bandeau ouvert"><b>Ouvert depuis le ' + esc(_echQuand(ECH_REPONSES, true)) + '</b>'
+    + 'Vous pouvez prendre une garde ou choisir un échange. Sans réponse, une demande reçue expire 48 h après.</div>';
+  if (ciblees.length) {
+    h += '<div class="ech-section"><h3>À traiter</h3><span>' + ciblees.length + ' en attente</span></div>';
+    h += _bxParMois(ciblees, function(e){ return _echCarteDemande(e, e.receveur===MY_ID); });   // par date de garde, jamais par heure de dépôt
+  }
+  h += '<div class="ech-section"><h3>Offres</h3><span>' + (offres.length ? offres.length + ' en vitrine · le premier qui prend l’obtient' : '') + '</span></div>';
+  h += offres.length ? _bxParMois(offres, _bxCarteOffre) : '<div class="ech-vide">Aucune offre pour le moment.</div>';
+  h += '<div class="ech-section"><h3>Mes offres</h3><span>' + (miennes.length ? miennes.length + ' en vitrine' : '') + '</span></div>';
+  h += miennes.length ? _bxParMois(miennes, _bxCarteMienne) : '<div class="ech-vide">Déposez une garde : tous les MAR la verront et seront prévenus.</div>';
+  if (conclues.length) h += '<details class="ech-faites"' + (ECH_FAITES_OUVERT ? ' open' : '') + ' ontoggle="ECH_FAITES_OUVERT=this.open">'
+    + '<summary>Conclues <i>' + conclues.length + '</i></summary>' + _bxParMois(conclues, _bxConclue) + '</details>';
+  box.innerHTML = h;
+}
+
+/* Feuille de confirmation : même voile et même feuille que les choix existants. */
+function _bxFeuille(titre, corps, libelle, faire){
+  _echFermerFeuille();
+  const v = document.createElement('div'); v.id='echVoile'; v.className='ech-voile';
+  v.onclick = function(e){ if (e.target===v) _echFermerFeuille(); };
+  v.innerHTML = '<div class="ech-feuille"><div class="ech-poignee"></div><h3>' + esc(titre) + '</h3>' + corps
+    + '<div class="ech-msg err" id="bxMsg" style="display:none"></div>'
+    + '<div class="ech-actions"><button class="ech-refuser" id="bxNon">Annuler</button><button class="ech-accepter" id="bxOui">' + esc(libelle) + '</button></div></div>';
+  document.body.appendChild(v);
+  v.querySelector('#bxNon').onclick = _echFermerFeuille;
+  v.querySelector('#bxOui').onclick = function(){ faire(v.querySelector('#bxOui'), v.querySelector('#bxMsg')); };
+}
+/* Envoie au serveur ; une question ([ABS]…) s'affiche dans la feuille, le bouton
+   devient « Je confirme » et la demande repart avec la confirmation. */
+async function _bxAppel(charge, btn, msg, reussi){
+  btn.disabled = true; const lib = btn.textContent; btn.textContent = 'Vérification…';
+  try {
+    const r = await apiPost(charge);
+    if (r && r.success) { _echFermerFeuille(); reussi(r); return; }
+    const m = /^(\[[A-Z0-9]+\]) /.exec((r && r.error) || '');
+    msg.style.display = 'block';
+    if (m && _BX_QUESTIONS[m[1]]) {
+      msg.className = 'ech-avert'; msg.textContent = r.error.slice(m[0].length);
+      btn.disabled = false; btn.textContent = 'Je confirme';
+      btn.onclick = function(){ charge[_BX_QUESTIONS[m[1]]] = true; _bxAppel(charge, btn, msg, reussi); };
+      return;
+    }
+    msg.className = 'ech-msg err'; msg.textContent = (r && r.error) || 'Impossible — réessayez.';
+  } catch(e) { msg.style.display='block'; msg.className='ech-msg err'; msg.textContent = 'Erreur réseau — rien n\'est parti. Réessayez.'; }
+  btn.disabled = false; btn.textContent = lib;
+}
+function bxPrendre(id){
+  const e = (ECH_LISTE||[]).find(function(x){ return x.id===id; }); if (!e) return;
+  const info = _bxInfoMoi(e.date);
+  _bxFeuille(e.type==='bourse18' ? 'Prendre ce 18 h ?' : 'Prendre cette garde ?',
+    '<div class="ech-detail">Vous reprenez ' + esc(_bxQuoi(e)) + ' du <strong>' + esc(_echDrLisible(e.demandeur)) + '</strong>.</div>'
+      + (info ? '<div class="ech-avert">' + esc(info) + '</div>' : ''),
+    'Je la prends', function(btn, msg){
+      _bxAppel({ action:'prendreBourse', id:id, year:Number(e.annee) }, btn, msg, function(r){
+        if (r.etat === 'acceptee') {
+          e.etat = 'acceptee'; e.info = 'Prise par ' + MY_ID; e.reponduLe = new Date().toISOString();
+          ECH_LISTE.unshift({ id:r.don, creeLe:e.reponduLe, type:e.type==='bourse18'?'don18':'don', annee:e.annee, date:e.date, date2:'',
+            demandeur:e.demandeur, receveur:MY_ID, etat:'acceptee', reponduLe:e.reponduLe, info:'', offre:id, mode:'', souhait:'' });
+          BX_MSG = esc(_bxQuoi(e).charAt(0).toUpperCase() + _bxQuoi(e).slice(1)) + ' est à vous. Le ' + esc(_echDrLisible(e.demandeur)) + ' est prévenu.';
+          try { window.__rafraichirDonnees(); } catch(x){}
+        } else BX_MSG = esc(r.error || 'La garde n\'a pas pu changer de mains.');
+        majEchangesHero(); renderEchanges();
+      });
+    });
+}
+async function bxProposer(id){
+  const e = (ECH_LISTE||[]).find(function(x){ return x.id===id; }); if (!e) return;
+  await _echPlanningsFrais();
+  const est18 = e.type==='bourse18';
+  const gardes = (await _echMesGardesAvecAnnee()).filter(function(g){ return (g.type==='18') === est18 && g.date !== e.date; });
+  const items = gardes.map(function(g){ return { valeur:g.date, date:g.date, type:g.type }; });
+  _echFeuille(est18 ? 'Quel 18 h lui donnez-vous ?' : 'Quelle garde lui donnez-vous ?', items, '', function(v){
+    const g = gardes.find(function(x){ return x.date===v; }); if (!g) return;
+    const info = _bxInfoMoi(e.date);
+    _bxFeuille('Proposer cet échange ?',
+      '<div class="ech-detail">Vous prenez ' + esc(_bxQuoi(e)) + ' du <strong>' + esc(_echDrLisible(e.demandeur)) + '</strong>, il prend votre ' + (est18 ? '18 h' : 'garde') + ' du <b>' + esc(_echCourt(g.date)) + '</b>. Il choisit parmi les échanges reçus.</div>'
+        + (info ? '<div class="ech-avert">' + esc(info) + '</div>' : ''),
+      'Envoyer', function(btn, msg){
+        const charge = { action:'creerEchange', type: est18 ? 'echange18' : 'echange', year:g.annee, date:g.date, date2:e.date, receveur:e.demandeur, offre:id };
+        _bxAppel(charge, btn, msg, function(r){
+          ECH_LISTE.unshift({ id:r.id, creeLe:new Date().toISOString(), type:charge.type, annee:charge.year, date:g.date, date2:e.date,
+            demandeur:MY_ID, receveur:e.demandeur, etat:'attente', reponduLe:'', info:'', offre:id, mode:'', souhait:'' });
+          BX_MSG = 'Échange proposé au ' + esc(_echDrLisible(e.demandeur)) + '. Vous serez prévenu de son choix.';
+          majEchangesHero(); renderEchanges();
+        });
+      });
+  });
+}
+function bxRetirer(id){
+  const e = (ECH_LISTE||[]).find(function(x){ return x.id===id; }); if (!e) return;
+  _bxFeuille('Retirer votre offre ?', '<div class="ech-detail">' + esc(_bxQuoi(e).charAt(0).toUpperCase() + _bxQuoi(e).slice(1)) + ' quitte la vitrine. Les échanges proposés dessus sont fermés.</div>',
+    'Retirer', function(btn, msg){
+      _bxAppel({ action:'retirerBourse', id:id, year:Number(e.annee) }, btn, msg, function(){
+        e.etat = 'annulee'; e.reponduLe = new Date().toISOString();
+        (ECH_LISTE||[]).forEach(function(x){ if (x.offre===id && x.etat==='attente') x.etat = 'annulee'; });
+        BX_MSG = 'Offre retirée.';
+        majEchangesHero(); renderEchanges();
+      });
+    });
+}
+
+/* ── Déposer : le panneau « Proposer » d'avant, sans destinataire ── */
+async function bxMajDepot(){
+  const g = ECH_PROP.gardes[Number(document.getElementById('echSelGarde').value)||0];
+  _echCarte('echCarteGarde', g, 'Choisir…');
+  document.getElementById('echLblGarde').textContent = g && g.type==='18' ? 'Mon 18 h' : 'Ma garde';
+  /* (19/11/2026, gardé le 24/11) Seule exception ciblée : un 18 h peut s'inverser avec
+     le MAR de garde ce jour-là. */
+  const inv = document.getElementById('bxInversion');
+  if (!inv) return;
+  let h = '';
+  if (g && g.type==='18') {
+    const plan = _planDejaLa(g.annee);
+    ((plan && plan.months) || []).forEach(function(m){
+      const i = (m.days||[]).findIndex(function(x){ return x && x.date===g.date; });
+      if (i < 0) return;
+      (m.doctors||[]).forEach(function(d){
+        const st = d.days && d.days[i] && d.days[i].status;
+        if (d.id!==MY_ID && (st==='G' || st==='G2')) h += '<button class="ech-refuser" style="width:100%;margin-top:8px" onclick="bxInverser(\'' + esc(d.id) + '\',this)">Inverser avec le ' + esc(_echDrLisible(d.id)) + ', de garde ce jour</button>';
+      });
+    });
+  }
+  inv.innerHTML = h;
+}
+function bxModeDepot(m){
+  ECH_PROP.mode = m;
+  ['don','echange','deux'].forEach(function(x){ document.getElementById('bxM-' + x).classList.toggle('actif', x===m); });
+  document.getElementById('bxBlocSouhait').style.display = m==='don' ? 'none' : '';
+}
+async function bxDeposer(btn){
+  const g = ECH_PROP.gardes[Number(document.getElementById('echSelGarde').value)||0];
+  const msg = document.getElementById('echMsgProp');
+  if (!g) return;
+  const charge = { action:'deposerBourse', year:g.annee, date:g.date, mode:ECH_PROP.mode, souhait:document.getElementById('bxSouhait').value };
+  btn.disabled = true; btn.textContent = 'Mise en vitrine…';
+  try {
+    const r = await apiPost(charge);
+    if (r && r.success) {
+      document.getElementById('echProposition').style.display = 'none';
+      ECH_LISTE.unshift({ id:r.id, creeLe:new Date().toISOString(), type:r.type, annee:g.annee, date:g.date, date2:'',
+        demandeur:MY_ID, receveur:'', etat:'attente', reponduLe:'', info:'', offre:'', mode:charge.mode, souhait:charge.souhait });
+      BX_MSG = 'Votre ' + (g.type==='18' ? '18 h' : 'garde') + ' du ' + esc(_echCourt(g.date)) + ' est en vitrine. Tous les MAR sont prévenus.';
+      majEchangesHero(); renderEchanges();
+      return;
+    }
+    msg.className='ech-msg err'; msg.style.display='block'; msg.textContent = (r && r.error) || 'Dépôt impossible — réessayez.';
+  } catch(e) { msg.className='ech-msg err'; msg.style.display='block'; msg.textContent = 'Erreur réseau — rien n\'est parti. Réessayez.'; }
+  btn.disabled = false; btn.textContent = 'Mettre en vitrine';
+}
+function bxInverser(qui, btn){
+  const g = ECH_PROP.gardes[Number(document.getElementById('echSelGarde').value)||0];
+  _bxFeuille('Inverser vos rôles ?', '<div class="ech-detail">Vous prenez la garde du <strong>' + esc(_echDrLisible(qui)) + '</strong> le <b>' + esc(_echCourt(g.date)) + '</b>, il fait votre 18 h. Il doit accepter.</div>',
+    'Proposer', function(b, msg){
+      _bxAppel({ action:'creerEchange', type:'don18', year:g.annee, date:g.date, receveur:qui, accepteInversion:true }, b, msg, function(r){
+        document.getElementById('echProposition').style.display = 'none';
+        ECH_LISTE.unshift({ id:r.id, creeLe:new Date().toISOString(), type:r.type || 'inversion', annee:g.annee, date:g.date, date2:'',
+          demandeur:MY_ID, receveur:qui, etat:'attente', reponduLe:'', info:'', offre:'', mode:'', souhait:'' });
+        BX_MSG = 'Inversion proposée au ' + esc(_echDrLisible(qui)) + '.';
+        majEchangesHero(); renderEchanges();
+      });
+    });
+}
 
 // ── VUE STAFFS ──
 const _JOURS=['dim.','lun.','mar.','mer.','jeu.','ven.','sam.'];

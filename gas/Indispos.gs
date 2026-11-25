@@ -1,7 +1,7 @@
 // ⚠️ RÈGLE (détecteur de dérive dépôt↔Apps Script) : incrémenter cette version
 // à CHAQUE push de ce fichier. Le diagnostic (admin → Maintenance) compare la
 // version déployée ici avec celle du dépôt et signale toute recopie oubliée.
-const GAS_VERSION_INDISPOS = '2026-11-25.1';   // (25/11/2026) .1 : action getRecapPdf (mar seulement) dans la table · (20/11/2026) .1 : initYear réservé au responsable · (19/11/2026) .1 : action savePlanningNotes (notes du planning : interne en réa, infos du jour), sous verrou · (18/11/2026) .2 : actions solveurLancer, solveurEtat, solveurAppliquer (rôle maintenance, solveur.gs) · (18/11/2026) action miroirSyncMaintenant (rôle maintenance) · (17/11/2026) actions getPointsVerif et marquerPrevenu (comité) · (15/11/2026) .2 : clôture, répétition, changement d'année et fermeture de campagne réservés au droit Maintenance (code comité refusé) · (15/11/2026) clôture d'année : archiveYear délègue à la clôture complète en un appel (cloturerAnnee_), actions cloturerAnnee et clotureVerifier (répétition à blanc) ; setActiveYear relit la case et échoue si rien n'a été écrit · (11/11/2026) action annulerEchange (tout code valide, le demandeur seul — contrôlé dans echanges.gs) · (11/11/2026) action recupsReparer (rôle maintenance) · (01/11/2026) rôle `maintenance` (diagComplet, viderCacheConfig, sendCodes) · (27/10/2026) demi-journées de vacances VM/VA (CODES_DEMI_VAC) · (27/10/2026) champ ordreMc (colonne ORDRE_MC) · (24/10/2026) action journalAppliquerMaintenant (journal.gs) · (18/10/2026) rôle « paie » (code partagé des secrétaires de paie) + refus par défaut de tout rôle autre que admin/mar hors de sa liste blanche
+const GAS_VERSION_INDISPOS = '2026-11-25.2';   // (25/11/2026) .2 : actions de la bourse aux gardes (deposerBourse, prendreBourse, retirerBourse), sous verrou · (25/11/2026) .1 : action getRecapPdf (mar seulement) dans la table · (20/11/2026) .1 : initYear réservé au responsable · (19/11/2026) .1 : action savePlanningNotes (notes du planning : interne en réa, infos du jour), sous verrou · (18/11/2026) .2 : actions solveurLancer, solveurEtat, solveurAppliquer (rôle maintenance, solveur.gs) · (18/11/2026) action miroirSyncMaintenant (rôle maintenance) · (17/11/2026) actions getPointsVerif et marquerPrevenu (comité) · (15/11/2026) .2 : clôture, répétition, changement d'année et fermeture de campagne réservés au droit Maintenance (code comité refusé) · (15/11/2026) clôture d'année : archiveYear délègue à la clôture complète en un appel (cloturerAnnee_), actions cloturerAnnee et clotureVerifier (répétition à blanc) ; setActiveYear relit la case et échoue si rien n'a été écrit · (11/11/2026) action annulerEchange (tout code valide, le demandeur seul — contrôlé dans echanges.gs) · (11/11/2026) action recupsReparer (rôle maintenance) · (01/11/2026) rôle `maintenance` (diagComplet, viderCacheConfig, sendCodes) · (27/10/2026) demi-journées de vacances VM/VA (CODES_DEMI_VAC) · (27/10/2026) champ ordreMc (colonne ORDRE_MC) · (24/10/2026) action journalAppliquerMaintenant (journal.gs) · (18/10/2026) rôle « paie » (code partagé des secrétaires de paie) + refus par défaut de tout rôle autre que admin/mar hors de sa liste blanche
 
 /* ── (01/08/2026) MARQUEUR DE TEMPS GLOBAL — mesure, ne change rien ───────
    `_srv_ms` chronometre l'INTERIEUR de doGet. Or avant que doGet soit appele,
@@ -277,6 +277,7 @@ const WRITE_ACTIONS_LOCK = new Set([
   'archiveYear', 'clearIndisposYear', 'cloturerAnnee', 'creerEchange', 'deleteOverride',
   'generateGardes', 'initYear', 'poserAbsenceLongue', 'publishPlanning',
   'repondreEchange', 'annulerEchange', 'recupsReparer',
+  'deposerBourse', 'prendreBourse', 'retirerBourse',   // (25/11/2026) bourse aux gardes : le premier qui prend l'obtient, sous verrou
   'saveAffectations', 'saveAffectationsMar', 'saveConfig', 'saveGroupes',
   'resetCodeMar',
   'saveIndispos', 'saveIndisposBatch', 'saveMedecin', 'savePeriodes', 'setActiveYear',
@@ -361,6 +362,9 @@ function _actions_() {
     "creerEchange"                : { role: 'tout code valide'  , fn: _act_creerEchange },   // equipe.gs
     "repondreEchange"             : { role: 'tout code valide'  , fn: _act_repondreEchange },   // equipe.gs
     "annulerEchange"              : { role: 'tout code valide'  , fn: _act_annulerEchange },   // equipe.gs (11/11/2026)
+    "deposerBourse"               : { role: 'tout code valide'  , fn: _act_deposerBourse },   // equipe.gs (25/11/2026) bourse aux gardes
+    "prendreBourse"               : { role: 'tout code valide'  , fn: _act_prendreBourse },   // equipe.gs (25/11/2026)
+    "retirerBourse"               : { role: 'tout code valide'  , fn: _act_retirerBourse },   // equipe.gs (25/11/2026)
     "getStats"                    : { role: 'admin'             , fn: _act_getStats },   // gardes.gs
     "generateGardes"              : { role: 'admin'             , fn: _act_generateGardes },   // gardes.gs
     "getGardes"                   : { role: 'admin'             , fn: _act_getGardes },   // gardes.gs

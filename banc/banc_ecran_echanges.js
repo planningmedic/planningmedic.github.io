@@ -147,14 +147,14 @@ const dodo = ms => new Promise(r => setTimeout(r, ms));
        est repris au bloc 5. */
     V('sur ordinateur, la carte « Activer les notifications » reste cachée',
       w.document.getElementById('notifCard').style.display === 'none');
-    V('le compteur annonce la demande en attente', /1 demande attend/.test(w.document.getElementById('echHeroMain').textContent));
+    V('le compteur annonce la demande en attente', /1 échange attend votre choix/.test(w.document.getElementById('echHeroMain').textContent));
 
     w.location.hash = '#echanges';
     w.route();
     await dodo(400);
     V('la vue s\'ouvre', w.document.getElementById('echangesView').style.display === 'block');
     const liste = w.document.getElementById('echList').innerHTML;
-    V('la demande est affichée dans « À traiter » — don, le donneur, la date (15/11 : deux blocs)', /<h3>À traiter<\/h3>/.test(liste) && /Don de <strong>Dr Bravo<\/strong>/.test(liste) && /<b>12<\/b>/.test(liste) && /Mars 2027/.test(liste), liste.slice(0,300));
+    V('la demande est affichée dans « À traiter » — don, le donneur, la date (15/11 : deux blocs)', /<h3>À traiter<\/h3>/.test(liste) && /Don de <strong>Dr Bravo<\/strong>/.test(liste) && /<b>12<\/b>/.test(liste), liste.slice(0,300));
     V('le délai d\'expiration est annoncé', /Expire dans \d+ h/.test(liste));
     const btn = [...w.document.querySelectorAll('.ech-accepter')][0];
     V('le receveur a son bouton Accepter', !!btn);
@@ -164,22 +164,18 @@ const dodo = ms => new Promise(r => setTimeout(r, ms));
     const gas = appelsGas.find(c => c.action === 'repondreEchange');
     V('le verbe part au serveur avec l\'identifiant et la réponse', !!gas && gas.id === 'E1' && gas.reponse === 'accepter', gas);
     const apres = w.document.getElementById('echList').innerHTML;
-    V('l\'écran passe à Acceptée MALGRÉ la copie rapide en retard (défaut du 14/08)', /Acceptée/.test(apres) && !/ech-accepter/.test(apres), apres.slice(0,200));
-    V('le compteur de la carte s\'éteint', /Mes échanges/.test(w.document.getElementById('echHeroMain').textContent));
+    V('la demande quitte « À traiter » MALGRÉ la copie rapide en retard (défaut du 14/08)', !/À traiter/.test(apres) && !/ech-accepter/.test(apres), apres.slice(0,200));
+    V('le compteur de la carte s\'éteint', /Bourse aux gardes/.test(w.document.getElementById('echHeroMain').textContent));
   }
 
-  console.log('\n═══ 3. PROPOSER : le panneau construit le bon verbe, avec les bonnes valeurs ═══');
+  console.log('\n═══ 3. DÉPOSER (bourse aux gardes, 25/11/2026) : le panneau envoie l\'offre, sans destinataire ═══');
   {
     const kv = await baseKV();
     kv.notif_config = JSON.stringify({ ouvert:true, pilotes:[] });
     kv.echanges = JSON.stringify({ success:true, echanges:[] });
     let cree = null;
     const surGas = (charge, M) => {
-      if (charge.action === 'creerEchange') {
-        cree = charge;
-        // Miroir volontairement en retard : la demande doit apparaître depuis la réponse.
-        return { success:true, id:'E2' };
-      }
+      if (charge.action === 'deposerBourse') { cree = charge; return { success:true, id:'B2', type:'bourse', mode:charge.mode }; }
       if (charge.action === 'login') return { success:true, role:'mar', id:'ALPHA', year:2027 };
       return { success:true };
     };
@@ -187,20 +183,21 @@ const dodo = ms => new Promise(r => setTimeout(r, ms));
     V('la page se charge sans erreur JavaScript', erreurs.length === 0, erreurs.slice(0,2));
     w.location.hash = '#echanges'; w.route();
     await dodo(400);
-    V('le bouton Proposer est là (rôle MAR)', w.document.getElementById('echProposerBtn').style.display !== 'none');
+    V('le bouton Déposer est là (rôle MAR)', w.document.getElementById('echProposerBtn').style.display !== 'none' && /Déposer/.test(w.document.getElementById('echProposerBtn').textContent));
     await w.echOuvrirProposition();
     await dodo(300);
     const selGarde = w.document.getElementById('echSelGarde');
     V('mes gardes à venir sont proposées (celle du 09/03/2027)', selGarde && /09\/03\/2027/.test(selGarde.innerHTML), selGarde && selGarde.innerHTML.slice(0,150));
-    const selQui = w.document.getElementById('echSelQui');
-    V('les collègues sont proposés, moi exclu', /BRAVO/.test(selQui.innerHTML) && !/>Dr Alpha</.test(selQui.innerHTML));
-    selQui.value = 'BRAVO';
-    await w.echMajProposition();
+    V('plus aucune liste de collègues : on ne vise personne', !w.document.getElementById('echSelQui'));
+    V('« Les deux » est choisi d\'office', w.document.getElementById('bxM-deux').classList.contains('actif'));
+    w.bxModeDepot('echange');
+    w.document.getElementById('bxSouhait').value = 'un jour de semaine';
     w.document.getElementById('echEnvoyer').click();
     await dodo(500);
-    V('creerEchange part avec type, année, date et receveur exacts',
-      !!cree && cree.type === 'don' && cree.year === 2027 && cree.date === '2027-03-09' && cree.receveur === 'BRAVO', cree);
-    V('la nouvelle demande apparaît MALGRÉ la copie rapide en retard', /Don proposé à <strong>Dr Bravo/.test(w.document.getElementById('echList').innerHTML));
+    V('deposerBourse part avec année, date, choix et préférence exacts',
+      !!cree && cree.year === 2027 && cree.date === '2027-03-09' && cree.mode === 'echange' && cree.souhait === 'un jour de semaine' && !cree.receveur, cree);
+    const liste = w.document.getElementById('echList').innerHTML;
+    V('l\'offre apparaît dans « Mes offres » MALGRÉ la copie rapide en retard', /<h3>Mes offres<\/h3>/.test(liste) && /En vitrine/.test(liste) && /<b>9<\/b>/.test(liste), liste.slice(0,500));
     V('le panneau se referme', w.document.getElementById('echProposition').style.display === 'none');
   }
 
@@ -232,7 +229,7 @@ const dodo = ms => new Promise(r => setTimeout(r, ms));
     btn.click();
     await dodo(500);
     V('la confirmation repart AVEC l\'accord', reponses.length === 2 && reponses[1].accepteAbsence === true && reponses[1].reponse === 'accepter', reponses);
-    V('l\'écran passe à Acceptée', /Acceptée/.test(w.document.getElementById('echList').innerHTML));
+    V('la demande acceptée quitte « À traiter »', !/ech-accepter/.test(w.document.getElementById('echList').innerHTML));
   }
 
   console.log('\n═══ 4 sexies. Semaine Réa 1 : la question est posée, en acceptant comme en proposant (12/11/2026) ═══');
@@ -264,7 +261,7 @@ const dodo = ms => new Promise(r => setTimeout(r, ms));
     btn.click();
     await dodo(500);
     V('la confirmation repart AVEC l\'accord', reponses.length === 2 && reponses[1].accepteRea1 === true && reponses[1].reponse === 'accepter', reponses);
-    V('l\'écran passe à Acceptée', /Acceptée/.test(w.document.getElementById('echList').innerHTML));
+    V('la demande acceptée quitte « À traiter »', !/ech-accepter/.test(w.document.getElementById('echList').innerHTML));
 
     // b) Vacances PUIS semaine Réa 1 : les deux accords voyagent ensemble.
     const kv2 = await baseKV();
@@ -285,68 +282,10 @@ const dodo = ms => new Promise(r => setTimeout(r, ms));
     const btn2 = [...p2.w.document.querySelectorAll('.ech-accepter')][0];
     btn2.click(); await dodo(500); btn2.click(); await dodo(500); btn2.click(); await dodo(500);
     V('trois touches : la dernière porte les DEUX accords', rep2.length === 3 && rep2[2].accepteAbsence === true && rep2[2].accepteRea1 === true, rep2);
-    V('…et l\'écran passe à Acceptée', /Acceptée/.test(p2.w.document.getElementById('echList').innerHTML));
+    V('…et la demande quitte « À traiter »', !/ech-accepter/.test(p2.w.document.getElementById('echList').innerHTML));
 
-    // c) Celui qui PROPOSE : question à l'envoi, puis confirmation.
-    const kv3 = await baseKV();
-    kv3.notif_config = JSON.stringify({ ouvert:true, pilotes:[] });
-    kv3.echanges = JSON.stringify({ success:true, echanges:[] });
-    const envois = [];
-    const surGas3 = (charge) => {
-      if (charge.action === 'creerEchange') {
-        envois.push(charge);
-        return charge.accepteRea1 === true ? { success:true, id:'E9' } : { success:false, error:QUESTION };
-      }
-      if (charge.action === 'login') return { success:true, role:'mar', id:'ALPHA', year:2027 };
-      return { success:true };
-    };
-    const p3 = await monterPage(kv3, surGas3);
-    p3.w.location.hash = '#echanges'; p3.w.route();
-    await dodo(400);
-    await p3.w.echOuvrirProposition();
-    await dodo(300);
-    p3.w.document.getElementById('echSelQui').value = 'BRAVO';
-    await p3.w.echMajProposition();
-    const env = p3.w.document.getElementById('echEnvoyer');
-    env.click();
-    await dodo(500);
-    const av = p3.w.document.getElementById('echAvert');
-    V('à l\'envoi : l\'avertissement s\'affiche, sans le préfixe', av.style.display === 'block' && /^Attention, la garde du 10\/01\/2027 tombe dans votre semaine Réa 1/.test(av.textContent), av.textContent);
-    V('le bouton d\'envoi devient « Confirmer malgré ma semaine Réa 1 »', /Confirmer malgré ma semaine Réa 1/.test(env.textContent) && !env.disabled, env.textContent);
-    V('rien n\'est parti avec l\'accord tant qu\'il n\'a pas confirmé', envois.length === 1 && envois[0].accepteRea1 !== true, envois);
-    env.click();
-    await dodo(500);
-    V('la confirmation part avec la demande (accepteRea1)', envois.length === 2 && envois[1].accepteRea1 === true, envois);
-    V('la demande apparaît dans la liste', /Don proposé à <strong>/.test(p3.w.document.getElementById('echList').innerHTML));
-
-    // d) (18/11/2026) Ce qu'il propose tombe dans la semaine Réa 1 du COLLÈGUE : il est prévenu, il envoie quand même.
-    const Q_LUI = '[REA1L] Attention, la garde du 10/01/2027 tombe dans la semaine Réa 1 du Dr Bravo (du 11/01/2027 au 15/01/2027). Il devra confirmer en acceptant. Vous envoyez quand même ?';
-    const kv4 = await baseKV();
-    kv4.notif_config = JSON.stringify({ ouvert:true, pilotes:[] });
-    kv4.echanges = JSON.stringify({ success:true, echanges:[] });
-    const envois4 = [];
-    const p4 = await monterPage(kv4, (charge) => {
-      if (charge.action === 'creerEchange') { envois4.push(charge); return charge.accepteRea1Lui === true ? { success:true, id:'E10' } : { success:false, error:Q_LUI }; }
-      if (charge.action === 'login') return { success:true, role:'mar', id:'ALPHA', year:2027 };
-      return { success:true };
-    });
-    p4.w.location.hash = '#echanges'; p4.w.route();
-    await dodo(400);
-    await p4.w.echOuvrirProposition();
-    await dodo(300);
-    p4.w.document.getElementById('echSelQui').value = 'BRAVO';
-    await p4.w.echMajProposition();
-    const env4 = p4.w.document.getElementById('echEnvoyer');
-    env4.click();
-    await dodo(500);
-    const av4 = p4.w.document.getElementById('echAvert');
-    V('semaine Réa 1 du collègue : l\'avertissement s\'affiche à l\'envoyeur, sans le préfixe', av4.style.display === 'block' && /^Attention, la garde du 10\/01\/2027 tombe dans la semaine Réa 1 du Dr Bravo/.test(av4.textContent), av4.textContent);
-    V('le bouton devient « Envoyer quand même »', env4.textContent === 'Envoyer quand même' && !env4.disabled, env4.textContent);
-    V('rien n\'est parti avec l\'accord avant qu\'il ait relu', envois4.length === 1 && envois4[0].accepteRea1Lui !== true, envois4);
-    env4.click();
-    await dodo(500);
-    V('le second envoi porte accepteRea1Lui, et pas accepteRea1', envois4.length === 2 && envois4[1].accepteRea1Lui === true && envois4[1].accepteRea1 !== true, envois4);
-    V('la demande apparaît dans la liste', /Don proposé à <strong>/.test(p4.w.document.getElementById('echList').innerHTML));
+    /* c) et d) (proposer à un collègue) retirés le 25/11/2026 : la bourse remplace les demandes
+       ciblées ; la question posée à celui qui propose un échange est éprouvée dans banc_ecran_bourse.js. */
   }
 
   console.log('\n═══ 3 bis. Proposer relit le planning du moment, jamais la copie gardée en mémoire (11/11/2026) ═══');
@@ -394,63 +333,8 @@ const dodo = ms => new Promise(r => setTimeout(r, ms));
     V('l\'ancien avertissement « samedi 2026 » a disparu du code de la page', !/votre récupération ne suivra pas/.test(w.document.documentElement.innerHTML));
   }
 
-  console.log('\n═══ 3 ter. Un 18 h se donne ou s\'échange (demande de l\'équipe, 12/11/2026) ═══');
-  {
-    const kv = await baseKV();
-    kv.notif_config = JSON.stringify({ ouvert:true, pilotes:[] });
-    kv.echanges = JSON.stringify({ success:true, echanges:[] });
-    let cree = null;
-    const surGas = (c) => {
-      if (c.action === 'creerEchange') { cree = c; return { success:true, id:'E18' }; }
-      if (c.action === 'login') return { success:true, role:'mar', id:'ALPHA', year:2027 };
-      return { success:true };
-    };
-    const { w, M, erreurs } = await monterPage(kv, surGas);
-    V('la page se charge sans erreur JavaScript', erreurs.length === 0, erreurs.slice(0,2));
-    const neuf = JSON.parse(JSON.stringify(planning));
-    neuf.months[0].doctors[0].days = st(['','G','RG','18','','']);   // ALPHA : garde le 09/03, 18 h le 11/03
-    neuf.months[0].doctors[1].days = st(['18','','','','G','RG']);   // BRAVO : 18 h le 08/03
-    M.set('planning_2027', JSON.stringify(neuf));
-    w.Date.now = Date.now;
-    w._todayStr = () => '2027-03-01';
-    w.location.hash = '#echanges'; w.route();
-    await dodo(400);
-    await w.echOuvrirProposition();
-    await dodo(300);
-    const sel = w.document.getElementById('echSelGarde');
-    const i18 = [...sel.options].findIndex(o => /11\/03\/2027 — 18 h/.test(o.textContent));
-    V('mon 18 h du 11/03 est dans la liste', i18 > -1, sel.innerHTML.slice(0,200));
-    sel.value = String(i18);
-    w.document.getElementById('echSelQui').value = 'BRAVO';
-    await w.echMajProposition();
-    V('pour un 18 h, le choix « Le donner / L\'échanger » reste affiché', w.document.getElementById('echBlocTypes').style.display !== 'none'
-      && /Le donner/.test(w.document.getElementById('echTypeDon').textContent));
-    V('donner : aucune contrepartie demandée', w.document.getElementById('echBlocContre').style.display === 'none');
-    w.echType('echange');
-    await dodo(100);
-    V('échanger : la liste des 18 h du collègue apparaît (08/03)', w.document.getElementById('echBlocContre').style.display === 'block'
-      && /08\/03\/2027 — 18 h/.test(w.document.getElementById('echSelContre').innerHTML), w.document.getElementById('echSelContre').innerHTML);
-    w.echType('don');
-    await dodo(100);
-    w.document.getElementById('echEnvoyer').click();
-    await dodo(500);
-    V('creerEchange part en don de 18 h : type don18, date exacte, pas de seconde date',
-      !!cree && cree.type === 'don18' && cree.date === '2027-03-11' && cree.receveur === 'BRAVO' && !cree.date2, cree);
-    V('la demande s\'affiche comme un don de 18 h (titre « 18 h », pastille orange)', /ech-k-18[^]*<b>18 h<\/b><span>Don proposé à <strong>Dr Bravo/.test(w.document.getElementById('echList').innerHTML));
-    // Retour sur une garde : le verbe redevient « La donner », le type « don ».
-    cree = null;
-    await w.echOuvrirProposition(); await dodo(100);
-    if (w.document.getElementById('echProposition').style.display === 'none') { await w.echOuvrirProposition(); }
-    await dodo(300);
-    const sel2 = w.document.getElementById('echSelGarde');
-    sel2.value = String([...sel2.options].findIndex(o => /09\/03\/2027/.test(o.textContent)));
-    w.document.getElementById('echSelQui').value = 'BRAVO';
-    await w.echMajProposition();
-    V('pour une garde, le bouton redit « La donner »', /La donner/.test(w.document.getElementById('echTypeDon').textContent));
-    w.document.getElementById('echEnvoyer').click();
-    await dodo(500);
-    V('CONTRE-PREUVE : une garde part toujours en « don », jamais en don18', !!cree && cree.type === 'don' && cree.date === '2027-03-09', cree);
-  }
+  /* 3 ter (donner ou échanger un 18 h à un collègue) retiré le 25/11/2026 : un 18 h se dépose
+     à la bourse comme une garde — banc_ecran_bourse.js. */
 
   console.log('\n═══ 3 quater. Deux 18 h rapprochés : l\'écran pose la question, la confirmation repart (12/11/2026) ═══');
   {
@@ -479,7 +363,7 @@ const dodo = ms => new Promise(r => setTimeout(r, ms));
     btn.click();
     await dodo(500);
     V('la confirmation repart AVEC l\'accord', reponses.length === 2 && reponses[1].accepte18h === true && reponses[1].reponse === 'accepter', reponses);
-    V('l\'écran passe à Acceptée', /Acceptée/.test(w.document.getElementById('echList').innerHTML));
+    V('la demande acceptée quitte « À traiter »', !/ech-accepter/.test(w.document.getElementById('echList').innerHTML));
   }
 
   V('planning.html : au retour dans l\'appli, le planning se relit après 2 minutes (plus 15)',
@@ -506,7 +390,7 @@ const dodo = ms => new Promise(r => setTimeout(r, ms));
     V('première touche : on demande confirmation, rien ne part', /Confirmer l'annulation/.test(btn.textContent) && appels.length === 0, btn.textContent);
     btn.click(); await dodo(500);
     V('seconde touche : annulerEchange part avec l\'identifiant', appels.length === 1 && appels[0].id === 'E9', appels);
-    V('l\'écran passe à « Annulée »', /Annulée/.test(w.document.getElementById('echList').innerHTML) && !w.document.querySelector('.ech-annuler'));
+    V('la proposition annulée quitte l\'écran', !/E9/.test(w.document.getElementById('echList').innerHTML) && !w.document.querySelector('.ech-annuler'));
   }
   {
     const kv = await baseKV();
@@ -534,12 +418,11 @@ const dodo = ms => new Promise(r => setTimeout(r, ms));
     w.location.hash = '#echanges'; w.route();
     await dodo(400);
     const html = () => w.document.getElementById('echList').innerHTML;
-    V('une demande fermée s\'affiche « Sans objet », jamais le mot interne', /Sans objet/.test(html()) && !/>sansobjet</.test(html()), html().slice(0, 300));
-    V('…avec son motif en clair', /Motif : Le Dr Bravo n'a plus la garde/.test(html().replace(/&#39;|&#x27;/g, "'")));
-    V('…et sans bouton : un seul « Accepter » à l\'écran, celui de la demande en attente', w.document.querySelectorAll('.ech-accepter').length === 1);
+    V('une demande fermée ne reste pas à l\'écran, jamais le mot interne', !/E20/.test(html()) && !/>sansobjet</.test(html()), html().slice(0, 300));
+    V('un seul « Accepter » à l\'écran, celui de la demande en attente', w.document.querySelectorAll('.ech-accepter').length === 1);
     w.document.querySelector('.ech-accepter').click(); await dodo(500);
-    V('acceptée trop tard : la carte passe à « Sans objet » avec le motif rendu par le serveur',
-      w.document.querySelectorAll('.ech-etat.sansobjet').length === 2 && /déjà passée/.test(html()) && !w.document.querySelector('.ech-accepter'), html().slice(0, 400));
+    V('acceptée trop tard : la carte part et le motif rendu par le serveur s\'affiche en bandeau',
+      /Pas fait/.test(html()) && /déjà passée/.test(html()) && !w.document.querySelector('.ech-accepter'), html().slice(0, 400));
   }
 
   console.log('\n═══ 4 quinquies. Chacun ne voit que SES échanges (11/11/2026) ═══');
@@ -558,10 +441,10 @@ const dodo = ms => new Promise(r => setTimeout(r, ms));
     await dodo(400);
     const cartes = () => w.document.querySelectorAll('.ech-card').length;
     const html = () => w.document.getElementById('echList').innerHTML;
-    V('ALPHA voit ses 2 demandes, pas celle de CHARLI ↔ DELTA', cartes() === 2 && !/Charli/.test(html()), cartes());
+    V('ALPHA voit sa demande en attente (la refusée est close), rien de CHARLI ↔ DELTA', cartes() === 1 && !/Charli/.test(html()), cartes());
     V('« Tout voir » est caché pour un MAR', w.document.getElementById('echFiltres').style.display === 'none');
     w.echFiltrer(true); await dodo(50);
-    V('même « Tout voir » forcé : rien des autres (le serveur ne l\'a pas envoyé)', cartes() === 2 && !/Charli/.test(html()), cartes());
+    V('même « Tout voir » forcé : rien des autres (le serveur ne l\'a pas envoyé)', !/Charli/.test(html()), cartes());
   }
   {
     /* Le filtre du Worker en direct : un MAR, puis l'admin. */
@@ -583,32 +466,8 @@ const dodo = ms => new Promise(r => setTimeout(r, ms));
     V('Worker : l\'admin reçoit les 2', la.length === 2, ra);
   }
 
-  console.log('\n═══ 4 ter. Un arrivant en cours d\'année est proposé comme receveur (11/11/2026) ═══');
-  {
-    /* Vu en réel : un MAR arrivé au 01/11 manquait à la liste « À » — elle ne
-       lisait que le 1er mois du planning. CHARLI n'existe qu'au 2e mois. */
-    const kv = await baseKV();
-    kv.notif_config = JSON.stringify({ ouvert:true, pilotes:[] });
-    kv.echanges = JSON.stringify({ success:true, echanges:[] });
-    const jours2 = ['2027-04-05','2027-04-06','2027-04-07'];
-    const st2 = arr => jours2.map((d,i)=>({ status: arr[i]||'' }));
-    kv.planning_2027 = JSON.stringify({ months: [ planning.months[0], {
-      days: jours2.map(d => ({ date: d })),
-      doctors: [ { id:'ALPHA', days: st2(['','','']) }, { id:'BRAVO', days: st2(['','','']) },
-                 { id:'CHARLI', days: st2(['','G','RG']) } ],
-    }] });
-    const surGas = (charge) => (charge.action === 'login' ? { success:true, role:'mar', id:'ALPHA', year:2027 } : { success:true });
-    const { w, erreurs } = await monterPage(kv, surGas);
-    V('la page se charge sans erreur JavaScript', erreurs.length === 0, erreurs.slice(0,2));
-    w.location.hash = '#echanges'; w.route();
-    await dodo(400);
-    await w.echOuvrirProposition();
-    await dodo(300);
-    const opts = [...w.document.getElementById('echSelQui').options].map(o => o.value).filter(Boolean);
-    V('l\'arrivant (absent du 1er mois) figure dans la liste', opts.indexOf('CHARLI') > -1, opts);
-    V('chaque collègue n\'apparaît qu\'une fois, moi exclu',
-      opts.length === new Set(opts).size && opts.indexOf('ALPHA') === -1 && opts.indexOf('BRAVO') > -1, opts);
-  }
+  /* 4 ter (l'arrivant en cours d'année proposé comme receveur) retiré le 25/11/2026 : plus de
+     liste de collègues, chacun voit toute la bourse. */
 
   console.log('\n═══ 3 sexies. Choix par carte + panneau : gardes et 18 h jamais mélangés (12/11/2026) ═══');
   {
@@ -650,17 +509,8 @@ const dodo = ms => new Promise(r => setTimeout(r, ms));
     voile().querySelector('[data-valeur]').click(); await dodo(100);
     V('choisir une ligne referme le panneau', !voile());
     V('le 18 h devient la valeur choisie (titre « Mon 18 h », carte 18 h)', w.document.getElementById('echLblGarde').textContent === 'Mon 18 h' && /jeudi 11 mars 2027/.test(carte.textContent), carte.textContent);
-    w.document.getElementById('echSelQui').value = 'BRAVO';
-    w.echType('echange');
-    await dodo(150);
-    w.document.getElementById('echCarteContre').click(); await dodo(50);
-    const contre = voile() ? [...voile().querySelectorAll('[data-valeur]')].map(b => b.getAttribute('data-valeur')) : [];
-    V('« Contre son 18 h » : seul son 18 h du 08/03, jamais sa garde du 12/03', contre.length === 1 && contre[0] === '2027-03-08' && !voile().querySelector('[data-onglet]'), contre);
-    voile().querySelector('[data-valeur]').click(); await dodo(50);
-    V('la carte « contre » affiche le 18 h choisi', /lundi 8 mars 2027/.test(w.document.getElementById('echCarteContre').textContent), w.document.getElementById('echCarteContre').textContent);
-    w.document.getElementById('echEnvoyer').click();
-    await dodo(500);
-    V('l\'envoi part exactement comme avant : echange18, 11/03 contre 08/03', !!cree && cree.type === 'echange18' && cree.date === '2027-03-11' && cree.date2 === '2027-03-08' && cree.receveur === 'BRAVO', cree);
+    /* La contrepartie choisie chez un collègue (« contre son 18 h ») n'existe plus depuis la bourse
+       (25/11/2026) : l'échange se propose sur l'offre d'un collègue. */
   }
 
   console.log('\n═══ 5. La carte des notifications : téléphone oui, ordinateur non ═══');
