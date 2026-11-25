@@ -161,6 +161,15 @@ window.SessionPortail = window.SessionPortail || { lire:function(){try{return se
     <div class="res" id="syncRes"></div>
   </section>
 
+  <!-- 2 ter. Republier le planning (25/11/2026) -->
+  <section class="card" id="cRepub">
+    <h2>📤 Republier le planning</h2>
+    <p class="d">Après une retouche faite à la main dans le classeur : le planning des MAR est refait, comme avec « Publier » dans l'admin. Si quelque chose a changé, les secrétaires reçoivent le mail des absences environ 10 minutes plus tard.</p>
+    <div class="barre"><span class="n">Année</span><select id="repubAn"></select></div>
+    <button class="btn p" id="btnRepub" type="button">Republier</button>
+    <div class="res" id="repubRes"></div>
+  </section>
+
   <!-- 1 bis. Récupérations de samedi (11/11/2026) -->
   <section class="card" id="cRecups">
     <h2>🔁 Récupérations de samedi</h2>
@@ -629,6 +638,26 @@ $('btnSync').addEventListener('click', async () => {
     out.innerHTML = '<span class="ok">✅ Portail à jour (' + (r.ecrites || 0) + ' élément' + ((r.ecrites || 0) > 1 ? 's' : '') + ' modifié' + ((r.ecrites || 0) > 1 ? 's' : '') + ', ' + (r.secondes || 0) + ' s). Rechargez le portail pour voir le résultat.</span>';
   } catch (e) { out.innerHTML = '<span class="err">❌ ' + esc(e.message) + '</span>'; }
   finally { btn.disabled = false; btn.textContent = 'Mettre à jour maintenant'; }
+});
+
+/* ── 2 ter. Republier le planning (25/11/2026) ──
+   Année en cours et suivante ; le serveur refuse une année sans gardes. */
+(function () {
+  const sel = $('repubAn'), an0 = new Date().getFullYear();
+  [an0, an0 + 1].forEach(a => { const o = document.createElement('option'); o.value = a; o.textContent = a; sel.appendChild(o); });
+  sel.value = an0;
+  sel.addEventListener('change', () => { $('repubRes').innerHTML = ''; });
+})();
+deuxAppuis($('btnRepub'), () => 'Confirmer : republier ' + $('repubAn').value, async () => {
+  const btn = $('btnRepub'), out = $('repubRes'), an = Number($('repubAn').value);
+  btn.disabled = true; btn.textContent = 'Publication…';
+  out.innerHTML = '<span>Publication du planning ' + an + ' en cours, ne fermez pas la page…</span>';
+  try {
+    const r = await api({ action:'republierPlanning', year: an });
+    if (!r || !r.success) throw new Error(refus(r) ? MSG_RESERVE : ((r && r.error) || 'réponse illisible'));
+    out.innerHTML = '<span class="ok">✅ Planning ' + an + ' republié (' + (r.secondes || 0) + ' s). Si quelque chose a changé, les secrétaires reçoivent le mail dans environ 10 minutes.</span>';
+  } catch (e) { out.innerHTML = '<span class="err">❌ ' + esc(e.message) + '</span>'; }
+  finally { btn.disabled = false; btn.textContent = 'Republier'; }
 });
 
 /* ── 1 quater. Solveur exact des gardes (18/11/2026) ── */

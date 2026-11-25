@@ -4,7 +4,7 @@
    quelles : aucune ligne de logique modifiée, seulement déplacée. Le routeur et
    ses aides (checkCode, _deny, _error, doGet/doPost) restent dans Indispos.gs.
    Un seul espace global dans Apps Script : rien à importer. */
-const GAS_VERSION_EQUIPE = '2026-11-25.2';   // (25/11/2026) .2 : actions de la bourse aux gardes (deposerBourse, prendreBourse, retirerBourse) · (25/11/2026) .1 : le bootstrap du comité porte la semaine type des salles (sallesType) · (20/11/2026) _droitResponsable_ : opérations annuelles réservées au responsable · (18/11/2026) action miroirSyncMaintenant (page Maintenance) · (17/11/2026) getMedecins : champ horsEffectif (colonne HORS_EFFECTIF) pour la bande de présence · (11/11/2026) action annulerEchange · (02/11/2026) commentaire : identifiants d'exemple fictifs · (01/11/2026) outils de maintenance réservés à la tuile `maintenance` · (27/10/2026) ordreMc renvoyé au login et au bootstrap
+const GAS_VERSION_EQUIPE = '2026-11-25.3';   // (25/11/2026) .3 : action republierPlanning (page Maintenance) · (25/11/2026) .2 : actions de la bourse aux gardes (deposerBourse, prendreBourse, retirerBourse) · (25/11/2026) .1 : le bootstrap du comité porte la semaine type des salles (sallesType) · (20/11/2026) _droitResponsable_ : opérations annuelles réservées au responsable · (18/11/2026) action miroirSyncMaintenant (page Maintenance) · (17/11/2026) getMedecins : champ horsEffectif (colonne HORS_EFFECTIF) pour la bande de présence · (11/11/2026) action annulerEchange · (02/11/2026) commentaire : identifiants d'exemple fictifs · (01/11/2026) outils de maintenance réservés à la tuile `maintenance` · (27/10/2026) ordreMc renvoyé au login et au bootstrap
 
 // ── Sonde : les interrupteurs des mails sont-ils cohérents ? ──
 function _sondeInterrupteursMails_(check, R, info) {
@@ -348,6 +348,32 @@ function _act_miroirSyncMaintenant(R) {
   return ContentService.createTextOutput(JSON.stringify({
     success: !!res.success, error: res.error || '',
     ecrites: res.ecrites || 0, cles: res.cles || 0, secondes: Math.round((Date.now() - t0) / 1000)
+  })).setMimeType(ContentService.MimeType.JSON);
+}
+
+/* ── (25/11/2026) action "republierPlanning" — page Maintenance ──────────
+   Republier le planning d'une année depuis le téléphone, après une retouche
+   faite à la main dans GARDES. Même effet que le bouton « Publier » de l'admin
+   (_act_publishPlanning) : le fichier lu par les MAR est reconstruit, et le
+   minuteur d'accalmie du mail au secrétariat est armé (rien ne part s'il n'y a
+   aucun changement). Sans lot de placements : ceux déjà enregistrés sont repris.
+   L'admin se connecte avec le code comité ; la page Maintenance avec le code
+   personnel du responsable — d'où cette action dédiée, au droit `maintenance`. */
+function _act_republierPlanning(R) {
+  const { payload, user } = R;
+  if (!_droitMaintenance_(user)) return _deny();
+  const an = Number(payload && payload.year);
+  if (!an || an < 2000 || an > 2100) return _error('Année invalide');
+  if (!SpreadsheetApp.getActiveSpreadsheet().getSheetByName('GARDES_' + an))
+    return _error('Les gardes ' + an + ' ne sont pas encore générées : rien à publier');
+  const t0 = Date.now();
+  try {
+    generatePlanning(an);
+    try { notifPlanifier(an); } catch (eN) {}   // isolé : un échec ici ne fait pas échouer la publication
+    logAction('Planning ' + an + ' republié depuis la page Maintenance');
+  } catch (err) { return _error(String(err && err.message || err)); }
+  return ContentService.createTextOutput(JSON.stringify({
+    success: true, year: an, secondes: Math.round((Date.now() - t0) / 1000)
   })).setMimeType(ContentService.MimeType.JSON);
 }
 

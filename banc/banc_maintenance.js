@@ -81,6 +81,35 @@ console.log('\n═══ M1. La porte serveur ═══');
   V('identifiant en minuscules et espaces : même lecture que la tuile du portail', forme._droitMaintenance_(MOI) === true);
 }
 
+console.log('\n═══ M2 bis. Republier le planning (25/11/2026) ═══');
+{
+  /* Le bouton « Publier » de l'admin exige le code comité ; la page Maintenance
+     se connecte avec le code personnel du responsable. Action dédiée, même effet :
+     planning refait, mail du secrétariat armé, journal. */
+  const { ctx, appel } = monterServeur(TP);
+  const faits = [], onglets = new Set(['GARDES_2027']);
+  ctx.generatePlanning = y => faits.push('planning ' + y);
+  ctx.notifPlanifier = y => faits.push('mail ' + y);
+  ctx.logAction = m => faits.push('journal : ' + m);
+  ctx.SpreadsheetApp = { getActiveSpreadsheet: () => ({ getSheetByName: n => onglets.has(n) ? {} : null }) };
+  vm.runInContext(extraireFonction(G('equipe.gs'), '_act_republierPlanning'), ctx);
+  const r = appel('republierPlanning', MOI, { year: 2027 });
+  V('le responsable republie 2027', r.success === true && r.year === 2027 && typeof r.secondes === 'number', r);
+  V('…le planning est refait, PUIS le mail du secrétariat est armé, PUIS le journal le note',
+    JSON.stringify(faits) === JSON.stringify(['planning 2027', 'mail 2027', 'journal : Planning 2027 republié depuis la page Maintenance']), faits);
+  faits.length = 0;
+  V('le code comité est REFUSÉ (il a déjà « Publier » dans l\'admin)', appel('republierPlanning', COMITE, { year: 2027 }).error === 'Accès refusé' && faits.length === 0);
+  V('un MAR sans la clé est refusé, rien n\'est fait', appel('republierPlanning', AUTRE, { year: 2027 }).error === 'Accès refusé' && faits.length === 0);
+  const sans = appel('republierPlanning', MOI, { year: 2028 });
+  V('année sans gardes : refus lisible, rien n\'est refait', /ne sont pas encore générées/.test(sans.error || '') && faits.length === 0, sans);
+  V('année absente ou absurde : refus', /Année invalide/.test(appel('republierPlanning', MOI, {}).error || '') && /Année invalide/.test(appel('republierPlanning', MOI, { year: 'x' }).error || ''));
+  ctx.notifPlanifier = () => { throw new Error('minuteur en panne'); };
+  V('un minuteur de mail en panne ne fait pas échouer la publication', appel('republierPlanning', MOI, { year: 2027 }).success === true && faits.indexOf('planning 2027') > -1);
+  const idx = require('fs').readFileSync(G('Indispos.gs'), 'utf8');
+  V('routeur : rôle maintenance, et sous verrou d\'écriture',
+    /"republierPlanning"\s*:\s*\{ role: 'maintenance'\s*, fn: _act_republierPlanning \}/.test(idx) && /'publishPlanning', 'republierPlanning',/.test(idx));
+}
+
 console.log('\n═══ M2. Les cinq actions ═══');
 {
   const { appel, envois, purges, syncs } = monterServeur(TP);
@@ -145,6 +174,7 @@ console.log('\n═══ M2. Les cinq actions ═══');
     if (c.action === 'diagComplet') return { success: true, ok: false, results: ['══ CHAPITRE UN ══', '✅ Réglages lus', '❌ Une erreur', '→ LE GESTE : relancer la tâche', '⚠️ Un avertissement'] };
     if (c.action === 'viderCacheConfig') return { success: true, message: 'Cache de configuration vidé.' };
     if (c.action === 'miroirSyncMaintenant') return { success: true, ecrites: 3, cles: 40, secondes: 12 };
+    if (c.action === 'republierPlanning') return c.year === 2099 ? { success: false, error: 'Les gardes 2099 ne sont pas encore générées : rien à publier' } : { success: true, year: c.year, secondes: 9 };
     if (c.action === 'sendCodesMar') return c.medecin === 'MAR03' ? { success: false, error: 'Envoi échoué pour Dr Trois : quota' } : { success: true, sent: 1 };
     return { success: false, error: 'Action non autorisée pour ce code' };
   };
@@ -181,12 +211,30 @@ console.log('\n═══ M2. Les cinq actions ═══');
     V('vider le cache : l\'action part et le message s\'affiche', appels.some(a => a.action === 'viderCacheConfig') && /Cache de configuration vidé/.test(d.getElementById('cacheRes').textContent));
 
     const ordre = [...d.querySelectorAll('section.card')].map(c => c.id);
-    V('ordre des cartes voulu (18/11/2026) : serveur, diagnostic, mise à jour, récups, clôture, calcul exact des gardes, codes, cache en dernier',
-      JSON.stringify(ordre) === JSON.stringify(['cMaj', 'cDiag', 'cSync', 'cRecups', 'cClot', 'cSolveur', 'cCodes', 'cCache']), ordre);
+    V('ordre des cartes voulu (18/11/2026, + republier 25/11) : serveur, diagnostic, mise à jour, republier, récups, clôture, calcul exact des gardes, codes, cache en dernier',
+      JSON.stringify(ordre) === JSON.stringify(['cMaj', 'cDiag', 'cSync', 'cRepub', 'cRecups', 'cClot', 'cSolveur', 'cCodes', 'cCache']), ordre);
     d.getElementById('btnSync').click(); await dodo(80);
     V('mettre à jour maintenant : l\'action part avec le code, le résultat chiffré s\'affiche',
       appels.some(a => a.action === 'miroirSyncMaintenant' && a.code === 'MOI') && /Portail à jour \(3 éléments modifiés, 12 s\)/.test(d.getElementById('syncRes').textContent)
       && !d.getElementById('btnSync').disabled, d.getElementById('syncRes').textContent);
+
+    /* (25/11/2026) Republier le planning : deux appuis, l'année choisie part avec le code personnel. */
+    const anRep = d.getElementById('repubAn'), anC = new Date().getFullYear();
+    V('republier : l\'année en cours par défaut, la suivante au choix', anRep.value === String(anC) && [...anRep.options].map(o => o.value).join(',') === anC + ',' + (anC + 1));
+    const br = d.getElementById('btnRepub');
+    br.click(); await dodo(30);
+    V('republier : premier appui, le bouton s\'arme, rien ne part', br.classList.contains('arm') && new RegExp('Confirmer : republier ' + anC).test(br.textContent) && !appels.some(a => a.action === 'republierPlanning'), br.textContent);
+    br.click(); await dodo(100);
+    V('republier : second appui, l\'action part avec l\'année et le code personnel',
+      appels.some(a => a.action === 'republierPlanning' && a.year === anC && a.code === 'MOI'), appels.filter(a => a.action === 'republierPlanning'));
+    V('republier : le résultat dit l\'année, la durée et le délai du mail',
+      new RegExp('Planning ' + anC + ' republié \\(9 s\\)').test(d.getElementById('repubRes').textContent) && /environ 10 minutes/.test(d.getElementById('repubRes').textContent) && !br.disabled,
+      d.getElementById('repubRes').textContent);
+    const o99 = d.createElement('option'); o99.value = '2099'; anRep.appendChild(o99); anRep.value = '2099';
+    anRep.dispatchEvent(new d.defaultView.Event('change'));
+    V('changer d\'année efface le résultat précédent', d.getElementById('repubRes').textContent === '');
+    br.click(); await dodo(30); br.click(); await dodo(100);
+    V('republier : le refus du serveur s\'affiche tel quel', /❌ Les gardes 2099 ne sont pas encore générées/.test(d.getElementById('repubRes').textContent), d.getElementById('repubRes').textContent);
 
     d.getElementById('btnDiag').click(); await dodo(150);
     const out = d.getElementById('diagRes');
