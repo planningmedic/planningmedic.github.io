@@ -207,12 +207,12 @@
   .pt{display:inline-block; width:30px; height:24px; border-radius:7px; margin-right:10px;
     vertical-align:-6px; border:1.5px solid}
   .pt-libre{background:#F0FDF4; border-color:#BBF7D0}
-  .pt-pose{background:#F3E8FF; border-color:#6D28D9; border-width:2px}
-  .pt-pale{background:#F3E8FF; border-color:#6D28D9; border-width:2px; opacity:.45}
+  .pt-pose{background:#6D28D9; border-color:#6D28D9}
+  .pt-pale{background:#6D28D9; border-color:#6D28D9; opacity:.45}
+  .pt-dem{background:#F3E8FF; border:1.5px dashed #6D28D9}
   .pt-jaune{background:#FEF9C3; border:1.5px dashed #CA8A04}
-  .pt-orange{background:#FFF7ED; border:2px dashed #FB923C}
   .pt-noir{background:#334155; border-color:#1E293B}
-  .pt-gris{background:#F1F5F9; border-color:#E2E8F0}
+  .pt-gris{background:#FFFFFF; border-color:#E2E8F0}
 
   /* Ordre des groupes de vacances */
   .grp{display:inline-flex; align-items:center; justify-content:center; min-width:23px; height:23px;
@@ -679,8 +679,8 @@
     <div class="liste">
       <div><b><span class="pt pt-libre"></span>Vert</b><span>Posable : il resterait 15 présents ou plus. Le petit chiffre est le nombre de présents si vous travaillez.</span></div>
       <div><b><span class="pt pt-noir"></span>Noir</b><span>Il resterait moins de 15 présents : ce jour ne se pose pas ici, demandez aux admins.</span></div>
-      <div><b><span class="pt pt-gris"></span>Gris</b><span>Déjà pris : garde, repos de garde, 18 h, formation, temps partiel, récupération, férié. Pour une garde, passez d'abord par la bourse aux gardes (section 09).</span></div>
-      <div><b><span class="pt pt-pale"></span>Pâli</b><span>À moins de 7 jours, ou passé : ne se modifie plus ici.</span></div>
+      <div><b><span class="pt pt-gris"></span>Blanc avec étiquette</b><span>Déjà pris : garde, repos de garde, 18 h, formation, temps partiel, récupération, férié. L'étiquette dit pourquoi. Pour une garde, passez d'abord par la bourse aux gardes (section 09).</span></div>
+      <div><b><span class="pt pt-gris" style="opacity:.4"></span>Pâli</b><span>À moins de 7 jours, ou passé : ne se modifie plus ici.</span></div>
     </div>
     <p>Le compteur en haut montre vos jours posés sur votre quota : une journée compte 1, une demi-journée ½, les 24 et 31 décembre ½. Un jour retiré revient dans le compteur. Le secrétariat est prévenu automatiquement de chaque changement.</p>
 
@@ -709,19 +709,20 @@
       <div><b><span class="pt pt-pose"></span>Violet</b><span>Vous avez posé un jour ici.</span></div>
       <div><b><span class="pt pt-jaune"></span>Jaune</b><span>Il resterait 13 ou 14 présents. Vous pouvez le poser, le comité tranche.</span></div>
       <div><b><span class="pt pt-noir"></span>Noir</b><span>Il resterait 12 ou moins. Le jour n'est pas ouvert, même sur demande.</span></div>
-      <div><b><span class="pt pt-orange"></span>Orange hachuré</b><span>Demandé, en attente du comité. Pas inscrit au planning, et pas encore compté dans votre quota.</span></div>
+      <div><b><span class="pt pt-dem"></span>Violet clair hachuré ⏳</b><span>Demandé, en attente du comité. Pas inscrit au planning, et pas encore compté dans votre quota.</span></div>
       <div><b><span class="pt pt-pale"></span>Violet pâle</b><span>Un jour déjà écoulé : figé, mais toujours compté dans votre quota.</span></div>
-      <div><b><span class="pt pt-gris"></span>Gris</b><span>Impossible : garde, repos de garde, récupération, congés, week-end ou férié. La petite étiquette dit pourquoi.</span></div>
+      <div><b><span class="pt pt-gris"></span>Blanc avec étiquette</b><span>Impossible : garde, repos de garde, 18 h, récupération, vacances, formation ou férié. L'étiquette dit pourquoi. Les week-ends sont grisés.</span></div>
     </div>
     <p>Le petit chiffre en bas de chaque case est le nombre de personnes présentes ce jour-là.</p>
 
     <h3>Le compteur en haut</h3>
-    <p>Trois nombres, trois choses différentes :</p>
+    <p>Il se lit comme celui des vacances : <b>Jours accordés</b> sur votre quota, puis une phrase.</p>
     <div class="liste">
-      <div><b>Accordés</b><span>Ce qui est inscrit au planning.</span></div>
+      <div><b>Accordés</b><span>Ce qui est inscrit au planning : déjà pris, plus à venir.</span></div>
       <div><b>En attente du comité</b><span>Demandé, pas encore acquis. Vous travaillez ce jour-là tant que le comité n'a pas répondu.</span></div>
-      <div><b>Restants</b><span>Ce qu'il vous reste sur votre quota.</span></div>
+      <div><b>Il vous reste</b><span>Ce qu'il vous reste à poser sur votre quota.</span></div>
     </div>
+    <p>Les outils sont en bas, sous le pouce : <b>Poser un jour</b> ou <b>Retirer</b>. Touchez ensuite <b>Enregistrer</b> ; tant que rien n'a changé, le bouton reste grisé.</p>
     <p>Vos demandes en attente occupent une place : vous ne pouvez pas demander plus que votre quota total, accordés et attente confondus.</p>
     <p>La réponse du comité arrive en notification — « Temps partiel validé » ou « Temps partiel refusé », avec la date. En la touchant, vous revenez sur le calendrier : le jour est devenu violet s'il est accordé, noir s'il est fermé.</p>
     <p>Un jour refusé n'est pas perdu pour toujours : si des collègues le libèrent plus tard et qu'il redevient vert, il se rouvre et vous recevez « Temps partiel : jour de nouveau ouvert ». À vous de le redemander.</p>

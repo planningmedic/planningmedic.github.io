@@ -700,9 +700,9 @@ console.log('\n═══ PT20 · l\'écran : mêmes seuils que le serveur, extra
   V('férié → gris avec badge FÉRIÉ', et('2027-03-24').s === 'bloque' && et('2027-03-24').badge.b === 'FÉRIÉ');
   V('mon TP → violet, mon TPA → orange', et('2027-03-09').s === 'pose' && et('2027-03-10').s === 'reserve');
   V('ma garde et mes congés → gris avec le bon badge',
-    et('2027-03-04').badge.b === 'GARDE' && et('2027-03-15').badge.b === 'CONGÉS');
+    et('2027-03-04').badge.b === 'GARDE' && et('2027-03-15').badge.b === 'VAC.');
   T.jours['2027-03-16'] = '18'; regle(T);
-  V('ma garde de 18h → gris, badge 18H (on est au travail)', et('2027-03-16').s === 'bloque' && et('2027-03-16').badge.b === '18H', et('2027-03-16'));
+  V('ma garde de 18h → gris, badge 18 H (on est au travail)', et('2027-03-16').s === 'bloque' && et('2027-03-16').badge.b === '18 H', et('2027-03-16'));
   V('un jour fermé par le comité → NOIR pour moi, même à 18 présents (lot 4)', et('2027-03-17').s === 'ferme', et('2027-03-17'));
   T.retire.add('2027-03-09'); T.presents['2027-03-09'] = 16; regle(T);
   V('un TP retiré localement redevient un jour jugé par sa bande', et('2027-03-09').s === 'libre');
@@ -1165,8 +1165,8 @@ console.log('\n═══ PT32 · trois nombres, trois mots — accordé, en atte
      vocabulaire reste le point à tenir : « accordés » et « en attente du
      comité », jamais « posés » ni « sous réserve », qui laissaient croire que
      les jaunes étaient acquis. */
-  V('le compteur dit « accordés », plus « posés »', /Jours accordés<\/span>/.test(page));
-  V('…et « en attente du comité », plus « sous réserve »', /' en attente<\/span>'/.test(page));
+  V('le compteur dit « accordés », plus « posés »', /'Jours accordés · ' \+ TPX\.annee/.test(page));
+  V('…et « en attente du comité », plus « sous réserve »', /' en attente du comité<\/span>'/.test(page));
   V('la jauge distingue le déjà-pris, le posé à venir et l\'attente',
     /id="tpxJaugePasse"/.test(page) && /id="tpxJauge"/.test(page) && /id="tpxJaugeRes"/.test(page));
   V('…et la phrase annonce ce qu\'il reste à poser', /il vous reste <b>' \+ restants/.test(page));

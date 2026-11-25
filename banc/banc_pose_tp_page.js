@@ -354,10 +354,10 @@ async function ouvrirAdmin(M, codeAdmin) {
   const W = (t, c, d) => { if (c) { ok++; console.log('  ✓ ' + t); }
     else { ko++; console.log('  ✗ ' + t + (d !== undefined ? ' → ' + JSON.stringify(d).slice(0,200) : '')); } };
   console.log('\n─── La refonte visuelle ───');
-  const iOut = pg.indexOf('<div class="tpx-legend" id="tpxLegend">');
-  const iCal = pg.indexOf('<div class="calendar-grid" id="tpxGrid">');
+  const iOut = pg.indexOf('<div class="vcx-bas" id="tpxLegend">');   // (25/11/2026) lot 3 : habillage des vacances
+  const iCal = pg.indexOf('<div class="vcx-grid" id="tpxGrid">');
   W('les outils sont SOUS le calendrier', iOut > iCal, { outils: iOut, calendrier: iCal });
-  W('…et collants', /\.tpx-legend\{position:sticky/.test(pg));
+  W('…et collants', /\.vcx-bas\{position:sticky/.test(pg));
   W('la case est carrée et la couleur la remplit',
     /\.tpx-day\{[\s\S]{0,120}aspect-ratio:1/.test(pg)
     && /\.tpx-day\.pose\{background:var\(--tpx-fg\)/.test(pg));
@@ -369,8 +369,9 @@ async function ouvrirAdmin(M, codeAdmin) {
   W('« demandé » se distingue de « tendu »',
     /\.tpx-day\.reserve\{background:var\(--tpx\);border:1\.5px dashed/.test(pg)
     && /\.tpx-day\.reserve::after\{content:'⏳'/.test(pg));
-  W('l\'aide se replie', /<details class="tpx-aide">/.test(pg) && /\.tpx-aide summary\{/.test(pg));
-  W('…et décrit le jour écoulé', /un jour déjà écoulé : figé, mais toujours compté/.test(pg));
+  W('la légende tient en une ligne sous le calendrier, comme sur les vacances',
+    !/<details class="tpx-aide">/.test(pg) && /Demandé au comité/.test(pg) && /sur demande<\/span>/.test(pg));
+  W('…et décrit le jour écoulé', /Pâle : jour passé, compté/.test(pg));
   W('la jauge se lit en trois temps',
     /id="tpxJaugePasse"/.test(pg) && /id="tpxJaugeRes"/.test(pg)
     && /function tpxComptePasses\(\)/.test(pg));
@@ -382,6 +383,39 @@ async function ouvrirAdmin(M, codeAdmin) {
   W('le motif d\'un refus passe sous le jour', /class="tpx-recap-motif"/.test(pg));
   W('le serveur juge toujours : rien de la logique n\'a bougé',
     /onclick="tpxEnregistrer\(\)"/.test(pg) && /function tpxEtat\(ds\)/.test(pg));
+}
+
+
+/* ═══ (25/11/2026) LOT 3 — LA POSE DES TP PREND L'HABILLAGE DES VACANCES ═══
+   Demande du responsable : « aligner la DA des deux sinon ça fait moche ».
+   Mêmes blocs, accent violet ; la logique TP (jaune = demande au comité, pas
+   de préavis) ne bouge pas — les scénarios plus haut la rejouent au clic. */
+{
+  const fsx = require('fs');
+  const pg = fsx.readFileSync(__dirname + '/../indispos.html', 'utf8');
+  const W = (t, c, d) => { if (c) { ok++; console.log('  ✓ ' + t); }
+    else { ko++; console.log('  ✗ ' + t + (d !== undefined ? ' → ' + JSON.stringify(d).slice(0,200) : '')); } };
+  console.log('\n─── Lot 3 : même habillage que les vacances ───');
+  const tp = pg.slice(pg.indexOf('<div class="app" id="tpApp"'), pg.indexOf('id="tpxFerme"'));
+  const vac = pg.slice(pg.indexOf('<div class="app" id="vacApp"'), pg.indexOf('id="vcxFerme"'));
+  ['vcx-phase', 'vcx-jauge', 'month-nav', 'vcx-grid', 'vcx-leg', 'vcx-hint', 'vcx-bas', 'vcx-outils', 'vcx-save'].forEach(function (b) {
+    W('bloc « ' + b + ' » présent sur les deux écrans', tp.indexOf('class="' + b) !== -1 && vac.indexOf('class="' + b) !== -1);
+  });
+  W('les blocs se suivent dans le même ordre',
+    ['vcx-phase', 'vcx-jauge', 'month-nav', 'vcx-grid', 'vcx-leg', 'vcx-hint', 'vcx-bas'].every(function (b, i, t) {
+      return i === 0 || (tp.indexOf('class="' + t[i - 1]) < tp.indexOf('class="' + b) && vac.indexOf('class="' + t[i - 1]) < vac.indexOf('class="' + b)); }));
+  W('l\'accent devient le violet du temps partiel', /#tpApp\{--vcx:var\(--tpx-fg\);--vcx-pale:var\(--tpx\)\}/.test(pg));
+  W('les jours de la semaine ont la même en-tête', /h\.className = 'vcx-h'; h\.textContent = d;/.test(pg));
+  W('la case TP reste carrée sur téléphone', !/max-width:420px\)\{ \.tpx-day\{min-height/.test(pg));
+  W('un jour impossible est sur fond blanc, comme sur les vacances', /#tpApp \.tpx-day\.bloque\{background:var\(--white\)/.test(pg));
+  W('« Enregistrer » est grisé tant que rien n\'attend',
+    /id="tpxBtnSave" onclick="tpxEnregistrer\(\)" disabled/.test(tp) && /getElementById\('tpxBtnSave'\)\.disabled = !c\.attente/.test(pg));
+  W('…et le reste après un enregistrement sans reste', /btn\.disabled = !\(TPX && tpxCompte\(\)\.attente\)/.test(pg));
+  W('en-tête « Pose ouverte · année » et jauge « Jours accordés · année »',
+    /'Pose ouverte · ' \+ TPX\.annee/.test(pg) && /'Jours accordés · ' \+ TPX\.annee/.test(pg));
+  W('la phrase de la jauge suit celle des vacances (déjà pris · à venir · il vous reste)',
+    /pris \+ ' déjà pris · ' \+ aVenir \+ ' à venir'/.test(pg));
+  W('plus aucun style orphelin de l\'ancien habillage', !/^\.tpx-(legend|tool|savebar|btn-save|aide|stats|phase|pastille)/m.test(pg));
 }
 
 console.log(`\n${ko === 0 ? '✅' : '❌'} banc_pose_tp_page : ${ok} vérifications, ${ko} échec(s)`);
