@@ -235,6 +235,29 @@ const dodo = ms => new Promise(r => setTimeout(r, ms));
     V('creerEchange part en don de 18 h avec accepteInversion', ce.length === 1 && ce[0].type === 'don18' && ce[0].receveur === 'BRAVO' && ce[0].accepteInversion === true && ce[0].date === '2027-03-11', ce);
   }
 
+
+  console.log('\n═══ 7. Paire à éviter : la question s\'affiche, la confirmation repart (25/11/2026) ═══');
+  {
+    const Q = '[COUPLE] Attention, le Dr Delta est de garde le 12/03/2027 : vous seriez tous les deux de sortie cette nuit-là. Vous confirmez ?';
+    const appels = [];
+    const { w } = await monterPage(await kvBourse(), c => login(c) || (
+      c.action === 'prendreBourse' || c.action === 'repondreEchange'
+        ? (appels.push(c), c.accepteCouple === true ? { success:true, etat:'acceptee', don:'E12' } : { success:false, error:Q })
+        : { success:true }));
+    const d = w.document;
+    w.location.hash = '#echanges'; w.route(); await dodo(400);
+    w.bxPrendre('B1'); await dodo(50); d.getElementById('bxOui').click(); await dodo(300);
+    V('prendre : la question s\'affiche dans la feuille, sans le préfixe', /^Attention, le Dr Delta est de garde/.test(d.getElementById('bxMsg').textContent));
+    d.getElementById('bxOui').click(); await dodo(300);
+    V('… et repart avec accepteCouple', appels.filter(c => c.action === 'prendreBourse').length === 2 && appels[1].accepteCouple === true, appels);
+    const btn = d.querySelector("[onclick^=\"repondreEch('E5'\"]");
+    btn.click(); await dodo(400);
+    V('choisir un échange : la question s\'affiche sur la carte, le bouton devient « Je confirme »', /^Attention, le Dr Delta/.test(d.getElementById('echMsg-E5').textContent) && btn.textContent === 'Je confirme');
+    btn.click(); await dodo(400);
+    const rep = appels.filter(c => c.action === 'repondreEchange');
+    V('… et repart avec accepteCouple', rep.length === 2 && rep[1].accepteCouple === true && rep[1].id === 'E5', rep);
+  }
+
   console.log('\n' + ok + ' OK · ' + ko + ' en échec');
   if (ko) process.exit(1);
 })();

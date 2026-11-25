@@ -321,5 +321,49 @@ console.log('\n═══ 9. Aucune journée dégradée : jamais deux gardes au m
   V('aucune offre conclue ne garde une proposition ouverte derrière elle', !b.echanges().some(l => l[COL.OFFRE] && l[COL.ETAT] === 'attente' && ['acceptee','annulee','sansobjet'].indexOf((ligneDe(b, l[COL.OFFRE]) || [])[COL.ETAT]) > -1));
 }
 
+
+console.log('\n═══ 10. Paire à éviter : celui qui prend est prévenu et confirme, sans blocage (25/11/2026) ═══');
+{
+  const PAIRE = "function getPairesEvitees(){ return { ALPHA: new Set(['BRAVO']), BRAVO: new Set(['ALPHA']) }; }";
+  const b = monde(2027);
+  run(b, PAIRE);
+  const j = b.dates[9];
+  b.poser('CHARLI', j, 'G'); b.poser('CHARLI', b.dates[10], 'RG');
+  b.poser('BRAVO', j, 'G2'); b.poser('BRAVO', b.dates[10], 'RG');
+  const o = deposer(b, 'CHARLI', j, 'deux');
+  const n = b.echanges().length;
+  const q = essai(b, `prendreBourse(${U('ALPHA')}, { id:${JSON.stringify(o.id)} })`);
+  V('ALPHA prend une garde la nuit où BRAVO est de garde : la question [COUPLE] lui est posée', /^\[COUPLE\] Attention, le Dr \S+ est de garde le .* tous les deux de sortie/.test(q.err || ''), q);
+  V('rien n\'est écrit, aucune ligne laissée, l\'offre reste en vitrine', b.lire('CHARLI', j) === 'G' && b.echanges().length === n && ligneDe(b, o.id)[COL.ETAT] === 'attente');
+  const ok2 = run(b, `prendreBourse(${U('ALPHA')}, { id:${JSON.stringify(o.id)}, accepteCouple:true })`);
+  V('après confirmation, la garde passe : ce n\'est pas un blocage', ok2.etat === 'acceptee' && b.lire('ALPHA', j) === 'G', ok2);
+  // 18 h du partenaire
+  const c = monde(2027); run(c, PAIRE);
+  c.poser('CHARLI', c.dates[20], 'G'); c.poser('CHARLI', c.dates[21], 'RG'); c.poser('BRAVO', c.dates[20], '18');
+  const o2 = deposer(c, 'CHARLI', c.dates[20], 'don');
+  V('BRAVO de 18 h cette nuit-là : même question', /^\[COUPLE\].*de 18 h/.test(essai(c, `prendreBourse(${U('ALPHA')}, { id:${JSON.stringify(o2.id)} })`).err || ''));
+  V('un MAR hors paire prend sans question', run(c, `prendreBourse(${U('DELTA')}, { id:${JSON.stringify(o2.id)} })`).etat === 'acceptee');
+  // échange : celui qui propose est interrogé à l'envoi, le donneur en choisissant
+  const e = monde(2027); run(e, PAIRE);
+  e.poser('CHARLI', e.dates[9], 'G'); e.poser('CHARLI', e.dates[10], 'RG'); e.poser('BRAVO', e.dates[9], '18');
+  e.poser('ALPHA', e.dates[30], 'G'); e.poser('ALPHA', e.dates[31], 'RG');
+  const o3 = deposer(e, 'CHARLI', e.dates[9], 'echange');
+  const prop = extra => essai(e, `creerEchange(${U('ALPHA')}, Object.assign({ type:'echange', year:2027, date:${JSON.stringify(e.dates[30])}, date2:${JSON.stringify(e.dates[9])}, receveur:'CHARLI', offre:${JSON.stringify(o3.id)} }, ${extra}))`);
+  V('celui qui propose l\'échange est interrogé à l\'envoi', /^\[COUPLE\]/.test(prop('{}').err || ''));
+  V('confirmé, la proposition part', !!(prop('{ accepteCouple:true }').r || {}).id);
+  const f = monde(2027); run(f, PAIRE);
+  f.poser('ALPHA', f.dates[9], 'G'); f.poser('ALPHA', f.dates[10], 'RG');
+  f.poser('CHARLI', f.dates[30], 'G'); f.poser('CHARLI', f.dates[31], 'RG'); f.poser('BRAVO', f.dates[30], 'G2'); f.poser('BRAVO', f.dates[31], 'RG');
+  const o4 = deposer(f, 'ALPHA', f.dates[9], 'echange');
+  const p4 = run(f, `creerEchange(${U('CHARLI')}, { type:'echange', year:2027, date:${JSON.stringify(f.dates[30])}, date2:${JSON.stringify(f.dates[9])}, receveur:'ALPHA', offre:${JSON.stringify(o4.id)} })`);
+  V('le donneur qui choisit une garde la nuit de sa paire est interrogé', /^\[COUPLE\]/.test(essai(f, `repondreEchange(${U('ALPHA')}, { id:${JSON.stringify(p4.id)}, reponse:'accepter' })`).err || '') && f.lire('ALPHA', f.dates[9]) === 'G');
+  V('confirmé, l\'échange se fait', run(f, `repondreEchange(${U('ALPHA')}, { id:${JSON.stringify(p4.id)}, reponse:'accepter', accepteCouple:true })`).etat === 'acceptee' && f.lire('ALPHA', f.dates[30]) === 'G');
+  // sans paire configurée : aucune question (contre-épreuve)
+  const g = monde(2027);
+  g.poser('CHARLI', g.dates[9], 'G'); g.poser('CHARLI', g.dates[10], 'RG'); g.poser('BRAVO', g.dates[9], 'G2');
+  const o5 = deposer(g, 'CHARLI', g.dates[9], 'don');
+  V('sans paire dans CONFIG : rien ne change, la garde passe sans question', run(g, `prendreBourse(${U('ALPHA')}, { id:${JSON.stringify(o5.id)} })`).etat === 'acceptee');
+}
+
 console.log(`\n  ${ok} ✓  ${ko} ✗`);
 process.exit(ko ? 1 : 0);

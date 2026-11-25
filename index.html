@@ -3332,7 +3332,7 @@ async function annulerEch(id, btn){
   btn.disabled = false; btn.dataset.confirme = ''; btn.textContent = 'Annuler ma proposition';
 }
 
-async function repondreEch(id, reponse, btn, confirmeAbs, confirmeRea1, confirme18h){
+async function repondreEch(id, reponse, btn, confirmeAbs, confirmeRea1, confirme18h, confirmeCouple){
   const carte = btn.closest('.ech-card');
   carte.querySelectorAll('button').forEach(function(b){ b.disabled = true; });
   btn.textContent = reponse==='accepter' ? 'Écriture du planning…' : 'Envoi…';
@@ -3346,6 +3346,7 @@ async function repondreEch(id, reponse, btn, confirmeAbs, confirmeRea1, confirme
     if (confirmeAbs === true) charge.accepteAbsence = true;   // (11/11/2026) il a lu et confirmé
     if (confirmeRea1 === true) charge.accepteRea1 = true;   // (12/11/2026) sa semaine Réa 1 : il a lu et confirmé
     if (confirme18h === true) charge.accepte18h = true;   // (12/11/2026) deux 18 h rapprochés : il a lu et confirmé
+    if (confirmeCouple === true) charge.accepteCouple = true;   // (25/11/2026) paire à éviter : il a lu et confirmé
     const r = await apiPost(charge);
     if (r && r.success) {
       /* (14/08/2026 — vu en test réel) La réponse du serveur FAIT FOI — récit : docs/JOURNAL-Planning-Med.md §55 */
@@ -3366,7 +3367,7 @@ async function repondreEch(id, reponse, btn, confirmeAbs, confirmeRea1, confirme
       msg.textContent = r.error.replace(/^\[ABS\] /, '');
       carte.querySelectorAll('button').forEach(function(b){ b.disabled=false; });
       btn.textContent = 'Confirmer : je prends cette garde';
-      btn.onclick = function(){ repondreEch(id, 'accepter', btn, true, confirmeRea1, confirme18h); };
+      btn.onclick = function(){ repondreEch(id, 'accepter', btn, true, confirmeRea1, confirme18h, confirmeCouple); };
       return;
     }
     /* (12/11/2026) La garde tombe dans votre semaine Réa 1 : rien n'est écrit ;
@@ -3376,7 +3377,17 @@ async function repondreEch(id, reponse, btn, confirmeAbs, confirmeRea1, confirme
       msg.textContent = r.error.replace(/^\[REA1\] /, '');
       carte.querySelectorAll('button').forEach(function(b){ b.disabled=false; });
       btn.textContent = 'Confirmer malgré ma semaine Réa 1';
-      btn.onclick = function(){ repondreEch(id, 'accepter', btn, confirmeAbs, true, confirme18h); };
+      btn.onclick = function(){ repondreEch(id, 'accepter', btn, confirmeAbs, true, confirme18h, confirmeCouple); };
+      return;
+    }
+    /* (25/11/2026) Votre paire (CONFIG / PAIRES_A_EVITER) est de sortie cette nuit-là :
+       rien n'est écrit ; on vous le dit et le bouton devient « Je confirme ». */
+    if (r && /^\[COUPLE\] /.test(r.error || '')) {
+      msg.className='ech-msg err'; msg.style.display='block';
+      msg.textContent = r.error.replace(/^\[COUPLE\] /, '');
+      carte.querySelectorAll('button').forEach(function(b){ b.disabled=false; });
+      btn.textContent = 'Je confirme';
+      btn.onclick = function(){ repondreEch(id, 'accepter', btn, confirmeAbs, confirmeRea1, confirme18h, true); };
       return;
     }
     /* (12/11/2026) Ce 18 h vous en ferait deux de suite ou deux la même semaine :
@@ -3386,7 +3397,7 @@ async function repondreEch(id, reponse, btn, confirmeAbs, confirmeRea1, confirme
       msg.textContent = r.error.replace(/^\[18H\] /, '');
       carte.querySelectorAll('button').forEach(function(b){ b.disabled=false; });
       btn.textContent = 'Confirmer : je prends ce 18 h';
-      btn.onclick = function(){ repondreEch(id, 'accepter', btn, confirmeAbs, confirmeRea1, true); };
+      btn.onclick = function(){ repondreEch(id, 'accepter', btn, confirmeAbs, confirmeRea1, true, confirmeCouple); };
       return;
     }
     msg.className='ech-msg err'; msg.style.display='block';
@@ -3755,7 +3766,7 @@ function _echLibEnvoyer(){ return _echDepot() ? 'Déposer la proposition' : 'Env
    feuille : on lit, on confirme, la demande repart avec la confirmation.
    Une offre = une ligne de type bourse|bourse18 sans receveur ; les demandes
    liées (don pris, échange proposé) portent son identifiant dans `offre`. */
-const _BX_QUESTIONS = { '[ABS]':'accepteAbsence', '[REA1]':'accepteRea1', '[REA1L]':'accepteRea1Lui', '[18H]':'accepte18h', '[18]':'accepte18', '[INV]':'accepteInversion' };
+const _BX_QUESTIONS = { '[COUPLE]':'accepteCouple', '[ABS]':'accepteAbsence', '[REA1]':'accepteRea1', '[REA1L]':'accepteRea1Lui', '[18H]':'accepte18h', '[18]':'accepte18', '[INV]':'accepteInversion' };
 let BX_MSG = '', BX_ERR = '';
 function _bxEst(e){ return e && (e.type==='bourse' || e.type==='bourse18'); }
 function _bxKind(e){ return e.type==='bourse18' ? '18' : (_echStatutPlanning(e.annee, e.demandeur, e.date) || 'G'); }
