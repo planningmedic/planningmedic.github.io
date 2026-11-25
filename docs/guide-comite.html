@@ -484,6 +484,17 @@
       <p>L'interne et les infos sont enregistrés dès le clic. Les MAR les voient dans leur planning après la prochaine publication : l'info s'y déplie au toucher, et rien ne s'affiche un jour sans info.</p>
     </div>
 
+    <h3>Combien de MAR pour combien de salles</h3>
+    <p>En tête de chaque case de bloc, un petit compteur : <span class="btn-ex">4 salles · 2/2</span>. Il se lit « 4 salles ouvertes, 2 MAR placés sur 2 attendus ». La règle : <b>1 MAR pour 2 salles</b>, arrondi au-dessus (5 salles → 3 MAR), et <b>1 MAR par salle aux endoscopies</b>. En réanimation, maternité et DVI, le compteur donne directement les MAR attendus (<span class="btn-ex">3/3</span>).</p>
+    <ul>
+      <li><b>Vert</b> : le compte est bon. <b>Orange</b> : il manque un MAR. <b>Gris</b> : il y en a un de trop.</li>
+      <li><b>Le planning opératoire annonce un autre nombre de salles ?</b> Cliquez le compteur, puis <span class="btn-ex">−</span> ou <span class="btn-ex">+</span>. Le nombre corrigé apparaît souligné, et tout le comité voit le même chiffre. <span class="btn-ex">Revenir à la semaine type</span> annule la correction.</li>
+      <li>Un MAR qui fait sa consultation le matin ne compte pas comme tenant une salle ce matin-là. Un secteur venu aider sans nom compte pour un MAR.</li>
+    </ul>
+    <details class="pourquoi"><summary>Pour les curieux : d'où vient le nombre de salles habituel ?</summary>
+      <p>D'une semaine type saisie une fois dans le classeur (onglet SALLES_TYPE), par secteur, jour et demi-journée. Une case laissée vide n'affiche pas de compteur. Le compteur est un simple repère : il ne bloque rien et les MAR ne le voient pas.</p>
+    </details>
+
     <h3>Exporter la semaine</h3>
     <p><span class="btn-ex">↓ Excel</span> produit un fichier de la <b>semaine affichée</b> : secteurs, consultations, gardes (le week-end, la garde réa et la garde anesth dans deux cases séparées), sorties de garde réa et anesth sur deux lignes, l'interne dans les cases de réanimation, les infos du jour dans INFORMATIONS (le staff du vendredi s'y ajoute s'il est renseigné). La ligne PEDIATRIE n'y figure que la semaine où elle sert. Pratique pour un affichage papier.</p>
 

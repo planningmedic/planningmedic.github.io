@@ -4,7 +4,7 @@
    quelles : aucune ligne de logique modifiée, seulement déplacée. Le routeur et
    ses aides (checkCode, _deny, _error, doGet/doPost) restent dans Indispos.gs.
    Un seul espace global dans Apps Script : rien à importer. */
-const GAS_VERSION_EQUIPE = '2026-11-20.1';   // (20/11/2026) _droitResponsable_ : opérations annuelles réservées au responsable · (18/11/2026) action miroirSyncMaintenant (page Maintenance) · (17/11/2026) getMedecins : champ horsEffectif (colonne HORS_EFFECTIF) pour la bande de présence · (11/11/2026) action annulerEchange · (02/11/2026) commentaire : identifiants d'exemple fictifs · (01/11/2026) outils de maintenance réservés à la tuile `maintenance` · (27/10/2026) ordreMc renvoyé au login et au bootstrap
+const GAS_VERSION_EQUIPE = '2026-11-25.1';   // (25/11/2026) .1 : le bootstrap du comité porte la semaine type des salles (sallesType) · (20/11/2026) _droitResponsable_ : opérations annuelles réservées au responsable · (18/11/2026) action miroirSyncMaintenant (page Maintenance) · (17/11/2026) getMedecins : champ horsEffectif (colonne HORS_EFFECTIF) pour la bande de présence · (11/11/2026) action annulerEchange · (02/11/2026) commentaire : identifiants d'exemple fictifs · (01/11/2026) outils de maintenance réservés à la tuile `maintenance` · (27/10/2026) ordreMc renvoyé au login et au bootstrap
 
 // ── Sonde : les interrupteurs des mails sont-ils cohérents ? ──
 function _sondeInterrupteursMails_(check, R, info) {
@@ -518,6 +518,7 @@ function _act_getAdminBootstrap(R) {
   // admin.html — la constante vit dans generateur_gardes.gs, elle seule fait foi.
   try { out.anneeStatsFiables = PREMIERE_ANNEE_STATS_FIABLES; } catch (e) { out.anneeStatsFiables = null; }
   try { out.csTemplate = getCsTemplate(); } catch (e) { out.csTemplate = null; }
+  try { out.sallesType = getSallesType(); } catch (e) { out.sallesType = null; }   // (25/11/2026) semaine type des salles (gardes.gs)
   _jalon('seuils + modele de consultations');
   /* (28/07/2026, 15 h) LE COMPTEUR DE MAILS REJOINT LE BOOTSTRAP — récit : docs/JOURNAL-Planning-Med.md §89 */
   try {

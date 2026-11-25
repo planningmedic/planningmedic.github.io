@@ -1320,6 +1320,23 @@ if (sessionStorage.getItem('adminCode')) {
 #panel-planning .slot { display:flex; flex-wrap:wrap; gap:4px; align-content:flex-start; padding:8px; border-right:1px dashed #EEF0F3; min-height:48px; }
 #panel-planning .slot-name { font-family:'DM Sans',sans-serif; font-size:12px; font-weight:600; letter-spacing:.02em; padding:5px 8px; border-radius:8px; line-height:1; max-width:none; background:var(--sb, #F2F4F7); color:var(--sf, #344054); }
 #panel-planning .slot-name.slot-clickable:hover { outline:2px solid var(--pk-ink); outline-offset:1px; }
+/* (25/11/2026) Adéquation salles / MAR : petit compteur en tête de case (salles du jour · MAR placés / attendus). */
+#panel-planning .sb { flex:0 0 100%; display:flex; align-items:center; gap:5px; font-family:'DM Sans',sans-serif; font-size:10px; line-height:1; cursor:pointer; margin-bottom:1px; }
+#panel-planning .sb-n { color:#667085; font-weight:500; }
+#panel-planning .sb-n.mod { color:#344054; font-weight:700; border-bottom:1px dashed #98A2B3; }
+#panel-planning .sb-r { font-weight:700; padding:2px 6px; border-radius:999px; }
+#panel-planning .sb-r.ok { background:#ECFDF3; color:#067647; }
+#panel-planning .sb-r.manque { background:#FFFAEB; color:#B54708; box-shadow:inset 0 0 0 1px #FEC84B; }
+#panel-planning .sb-r.trop { background:#F2F4F7; color:#475467; }
+#panel-planning .sb:hover .sb-r { outline:2px solid var(--pk-ink); outline-offset:1px; }
+.sb-pop { position:absolute; z-index:60; background:#fff; border:1px solid #EAECF0; border-radius:12px; box-shadow:0 12px 32px rgba(16,24,40,.16); padding:12px 14px; width:230px; font-family:'DM Sans',sans-serif; text-align:left; }
+.sb-pop h4 { margin:0 0 2px; font-size:13px; color:#101828; } .sb-pop .sb-sub { font-size:11px; color:#667085; margin-bottom:10px; }
+.sb-step { display:flex; align-items:center; justify-content:space-between; gap:8px; }
+.sb-step button { width:34px; height:34px; border-radius:10px; border:1px solid #D0D5DD; background:#fff; font-size:18px; font-weight:700; color:#344054; cursor:pointer; }
+.sb-step .sb-val { font-size:22px; font-weight:700; color:#101828; text-align:center; } .sb-step .sb-val small { display:block; font-size:10px; font-weight:500; color:#667085; }
+.sb-pop .sb-calc { margin-top:10px; font-size:11.5px; color:#344054; background:#F9FAFB; border-radius:8px; padding:7px 9px; }
+.sb-pop .sb-raz { margin-top:8px; font-size:11px; color:#475467; text-decoration:underline; cursor:pointer; }
+#panel-planning .sb-vide { color:#98A2B3; font-weight:500; }
 #panel-planning .slot-flash { width:auto; height:auto; min-height:0; flex:0 0 auto; padding:4px 9px; border-radius:8px; border:1.5px dashed #FDB022; background:#fff; color:#DC6803; font-family:'DM Sans',sans-serif; font-size:12px; font-weight:700; line-height:1.1; animation:none; }
 #panel-planning .slot-flash::after { content:'\00a0à pourvoir'; }
 #panel-planning .slot-flash:hover { background:#FFFAEB; transform:none; }
@@ -2484,6 +2501,7 @@ async function miroirBootAdmin(anneeVoulue, codeAcces) {
     secteurs: Array.isArray(m.data.secteurs) ? m.data.secteurs : null,
     seuils: cfg.seuils || null, anneeStatsFiables: cfg.anneeStatsFiables || null,
     csTemplate: cfg.csTemplate || null, anneeSuivante: cfg.anneeSuivante,
+    sallesType: cfg.sallesType || null,   // (25/11/2026) semaine type des salles
     mailNonLus: _mailN,   // (v1.28.1) nombre du miroir, plus jamais null quand il est connu
     _miroir: true,
   } };
@@ -4012,6 +4030,7 @@ async function initDashboard() {
   // le serveur (loadEquipe(true)).
   try { if (_boot && Array.isArray(_boot.medecins) && _boot.medecins.length) marData = _boot.medecins; } catch (e) {}
   if (_boot && _boot.anneeStatsFiables) ANNEE_STATS_FIABLES = Number(_boot.anneeStatsFiables);
+  SALLES_CFG = (_boot && _boot.sallesType && _boot.sallesType.secteurs) ? _boot.sallesType : null;   // (25/11/2026) absent = pas de compteur
   await Promise.all([
     loadSecteurs(_boot && _boot.secteurs),
     loadCsTemplate(_boot && _boot.csTemplate)
@@ -4210,6 +4229,80 @@ function estMiroirMater(dateISO, half) {
   return MIROIR_MATER.jours.indexOf(d.getDay()) >= 0;
 }
 
+/* ── (25/11/2026) SALLES / MAR ──────────────────────────────────────────
+   Le comité regarde dans HM Bloc combien de salles ouvrent pour décider combien de MAR placer.
+   Semaine type = onglet SALLES_TYPE du classeur (lu seulement) : par secteur, jour et demi-journée,
+   un nombre de salles (MODE SALLES, MAR attendus = salles ÷ SALLES_PAR_MAR arrondi au-dessus) ou
+   directement de MAR attendus (MODE MAR : réa, maternité, DVI). Une case vide = pas de compteur.
+   Correction d'un jour = note SALLES du planning (partagée par tout le comité, comme l'interne).
+   Simple repère d'affichage : n'affecte personne, ne bloque rien, ne part pas chez les MAR. */
+let SALLES_CFG = null;      // { secteurs:{CODE:{mode:'SALLES'|'MAR', parMar:n}}, type:{CODE:{0..4:{am:n|null, pm:n|null}}} }
+function _sallesCase(sector, date, half) {
+  if (!SALLES_CFG || !SALLES_CFG.secteurs || !SALLES_CFG.secteurs[sector]) return null;
+  const reg = SALLES_CFG.secteurs[sector];
+  const dow = (new Date(date + 'T12:00:00').getDay() + 6) % 7;
+  if (dow > 4) return null;
+  const t = ((SALLES_CFG.type && SALLES_CFG.type[sector]) || {})[dow] || {};
+  const typ = (t[half] === '' || t[half] == null) ? null : Number(t[half]);
+  const s = ((_notesPlanning()[date] || {}).salles || {})[half] || {};
+  const jour = s[sector] == null ? null : Number(s[sector]);
+  const n = jour != null ? jour : typ;
+  if (n == null) return null;
+  const par = reg.mode === 'MAR' ? 1 : Math.max(1, Number(reg.parMar) || 1);
+  return { n: n, typ: typ, modifie: jour != null && jour !== typ, besoin: Math.ceil(n / par), mode: reg.mode, par: par };
+}
+function _badgeSalles(sector, date, half, places) {
+  const c = _sallesCase(sector, date, half);
+  if (!c || (!c.n && !places)) return '';
+  const etat = places === c.besoin ? 'ok' : places < c.besoin ? 'manque' : 'trop';
+  const pl = (n, u) => n + ' ' + u + (n > 1 ? 's' : '');
+  const lib = c.mode === 'MAR' ? '' : `<span class="sb-n${c.modifie ? ' mod' : ''}">${pl(c.n, 'salle')}</span>`;
+  const tt = (c.mode === 'MAR' ? pl(c.besoin, 'MAR attendu') : pl(c.n, 'salle') + ' → ' + pl(c.besoin, 'MAR attendu'))
+           + (c.modifie ? ' (semaine type : ' + (c.typ == null ? 'rien' : c.typ) + ')' : '') + ' — cliquer pour modifier';
+  return `<span class="sb" title="${tt}" onclick="event.stopPropagation();ouvrirSalles('${sector}','${date}','${half}',this)">${lib}<span class="sb-r ${etat}">${places}/${c.besoin}</span></span>`;
+}
+function _popSalles(sector, date, half) {
+  const c = _sallesCase(sector, date, half); if (!c) return '';
+  const sec = (SECTEURS_CFG || []).find(x => x.code === sector) || { label: sector };
+  const j = new Date(date + 'T12:00:00').toLocaleDateString('fr-FR', { weekday: 'short', day: 'numeric' });
+  const pl = (n, u) => n + ' ' + u + (n > 1 ? 's' : '');
+  const unite = c.mode === 'MAR' ? 'MAR attendu' + (c.n > 1 ? 's' : '') : 'salle' + (c.n > 1 ? 's' : '');
+  return `<h4>${_escHtml(sec.label)} · ${j} ${half === 'am' ? 'matin' : 'après-midi'}</h4>`
+    + `<div class="sb-sub">Semaine type : ${c.typ == null ? '<span class="sb-vide">rien</span>' : c.mode === 'MAR' ? c.typ + ' MAR' : pl(c.typ, 'salle')}</div>`
+    + `<div class="sb-step"><button onclick="majSalles('${sector}','${date}','${half}',-1)" title="Une de moins">−</button><div class="sb-val">${c.n}<small>${unite}</small></div><button onclick="majSalles('${sector}','${date}','${half}',1)" title="Une de plus">+</button></div>`
+    + (c.mode === 'MAR' ? '' : `<div class="sb-calc">${pl(c.n, 'salle')} → <b>${pl(c.besoin, 'MAR attendu')}</b> ${c.par > 1 ? '(1 pour ' + c.par + ')' : '(1 par salle)'}</div>`)
+    + (c.modifie ? `<div class="sb-raz" onclick="majSalles('${sector}','${date}','${half}',null)">Revenir à la semaine type</div>` : '');
+}
+function ouvrirSalles(sector, date, half, el) {
+  let pop = document.getElementById('sbPop');
+  if (!pop) {
+    pop = document.createElement('div'); pop.id = 'sbPop'; pop.className = 'sb-pop'; pop.style.position = 'fixed';
+    pop.addEventListener('click', e => e.stopPropagation());
+    document.body.appendChild(pop);
+    document.addEventListener('click', () => { const p = document.getElementById('sbPop'); if (p) p.style.display = 'none'; });
+  }
+  pop.dataset.cle = sector + '|' + date + '|' + half;
+  pop.innerHTML = _popSalles(sector, date, half);
+  pop.style.display = 'block';
+  try {
+    const r = el.getBoundingClientRect(), w = 230;
+    pop.style.left = Math.max(8, Math.min(r.left, window.innerWidth - w - 8)) + 'px';
+    pop.style.top = Math.min(r.bottom + 6, window.innerHeight - 220) + 'px';
+  } catch (e) {}
+}
+function majSalles(sector, date, half, delta) {
+  const c = _sallesCase(sector, date, half); if (!c) return;
+  const avant = JSON.parse(JSON.stringify(_notesPlanning()));
+  const n = JSON.parse(JSON.stringify(avant)), j = n[date] = n[date] || {};
+  const sl = j.salles = j.salles || { am: {}, pm: {} };
+  const m = sl[half] = sl[half] || {};
+  const val = delta == null ? null : Math.max(0, Math.min(30, c.n + delta));
+  if (val == null || val === c.typ) delete m[sector]; else m[sector] = val;   // revenir à la semaine type = effacer la correction
+  window._PLAN_NOTES = n; renderWeek();
+  const pop = document.getElementById('sbPop');
+  if (pop && pop.dataset.cle === sector + '|' + date + '|' + half) pop.innerHTML = _popSalles(sector, date, half);
+  return _enregistrerNotes([{ date: date, type: 'SALLES', demi: half, texte: Object.keys(m).map(k => k + ':' + m[k]).join(',') }], avant);
+}
 let CS_OPENABLE = [];
 let CS_REQUIRED = {};
 
@@ -4305,7 +4398,7 @@ function renderWeek() {
       // consult du matin → aussi visible dans son secteur d'après-midi (miroir d'affichage)
       if (_amToks.some(t => t.startsWith('CS-'))) {
         const secMatin = _pmToks.find(t => !t.startsWith('CS-'));
-        if (secMatin && smap[secMatin]) smap[secMatin][dow].am.push({init:doc.initials, id:doc.id, status:st});
+        if (secMatin && smap[secMatin]) smap[secMatin][dow].am.push({init:doc.initials, id:doc.id, status:st, mir:true});   // (25/11/2026) mir : en consultation ce matin, ne tient pas de salle
       }
       _pmToks.forEach(tok => {
         if (tok.startsWith('CS-') && csTypeMap[tok]) {
@@ -4595,7 +4688,8 @@ function renderWeek() {
   window._marPlaces = curPlaces;
 
   function makeSlot(items, flash, sector, sectorLabel, date, slotKey) {
-    let html = '';
+    /* (25/11/2026) Compteur salles / MAR en tête de case : MAR placés (hors consultation du matin) + aides sans nom. */
+    let html = _badgeSalles(sector, date, slotKey, items.filter(p => !p.mir).length + _aidesCase(NOTES, date, slotKey, sector).length);
     items.forEach(p => {
       const dup = dupSet[date] && dupSet[date].has(`${p.id}|${slotKey}`);
       let cls = p.isNew ? 'slot-name slot-new slot-clickable' : 'slot-name slot-clickable';

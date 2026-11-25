@@ -153,6 +153,7 @@ TRACES et les trois compteurs STATS_*.</p>
     <li><span class="n">1.2</span><a href="#medecins">MEDECINS</a></li>
     <li><span class="n">1.3</span><a href="#secteurs">SECTEURS</a></li>
     <li><span class="n">1.4</span><a href="#cstemplate">CS_TEMPLATE</a></li>
+    <li><span class="n">1.4 b</span><a href="#sallestype">SALLES_TYPE</a></li>
     <li><span class="n">1.5</span><a href="#seuils">SEUILS</a></li>
     <li><span class="n">1.6</span><a href="#annuaire">ANNUAIRE</a></li>
     <li><span class="n">1.7</span><a href="#etablissement">ETABLISSEMENT</a></li>
@@ -248,7 +249,7 @@ des versions de code.</p>
 </div>
 <table>
 <tr><th>Famille</th><th>Onglets</th><th>Dans le classeur</th></tr>
-<tr><td><span style="display:inline-block;width:11px;height:11px;border-radius:3px;background:#1D4ED8;margin-right:7px;vertical-align:-1px"></span><a href="#p1">1. Réglages permanents</a></td><td>CONFIG · MEDECINS · SECTEURS · CS_TEMPLATE · SEUILS · ANNUAIRE · ETABLISSEMENT</td><td>visibles</td></tr>
+<tr><td><span style="display:inline-block;width:11px;height:11px;border-radius:3px;background:#1D4ED8;margin-right:7px;vertical-align:-1px"></span><a href="#p1">1. Réglages permanents</a></td><td>CONFIG · MEDECINS · SECTEURS · CS_TEMPLATE · SALLES_TYPE · SEUILS · ANNUAIRE · ETABLISSEMENT</td><td>visibles</td></tr>
 <tr><td><span style="display:inline-block;width:11px;height:11px;border-radius:3px;background:#60A5FA;margin-right:7px;vertical-align:-1px"></span><a href="#p1b">2. Préparation de l'année</a></td><td>GROUPES_VAC · PERIODES_VAC · CONFIG_CONGES · CONFIG_TRANSITION</td><td>visibles</td></tr>
 <tr><td><span style="display:inline-block;width:11px;height:11px;border-radius:3px;background:#166534;margin-right:7px;vertical-align:-1px"></span><a href="#p2">3. Les années</a></td><td>INDISPOS_{année} · REA1_{année} · FETES_{année} · GARDES_{année} · LIENS_R_{année} · STATS_GARDES_{année} · AFFECTATIONS_{année}</td><td>visibles</td></tr>
 <tr><td><span style="display:inline-block;width:11px;height:11px;border-radius:3px;background:#C2410C;margin-right:7px;vertical-align:-1px"></span><a href="#p3">4. Écrits par l'interface</a></td><td>PLANNING_OVERRIDES · TP_DEMANDES et TP_FERMES · ECHANGES · ABSENCES_LONGUES · VERIF_PREVENUS</td><td>visibles</td></tr>
@@ -410,6 +411,29 @@ de consultation non pourvue.</p>
   <div class="ct">Le modèle à retenir</div>
   <p>Ces dix colonnes sont la <strong>bonne façon</strong> de décrire un besoin de couverture : un tableau de
   chiffres, aucun code figé. Les secteurs de bloc, eux, n'en sont pas encore là.</p>
+</div>
+</section>
+
+<section id="sallestype">
+<h2><span class="n">1.4 b</span>SALLES_TYPE</h2>
+<p>La <strong>semaine type des salles</strong> : combien de salles ouvrent d'habitude, par secteur, jour et
+demi-journée. L'onglet Planning du comité en tire un petit compteur en tête de chaque case :
+<strong>salles · MAR placés / MAR attendus</strong>. Le comité corrige un jour donné d'un clic sur le compteur ;
+la correction vaut pour tout le comité.</p>
+
+<table class="sig">
+<tr><th>Col.</th><th>Titre</th><th>Contenu</th></tr>
+<tr><td>A</td><td>SECTEUR</td><td>Le code de l'onglet SECTEURS, ex. <span class="tag">VIS</span>, <span class="tag">END</span>, <span class="tag">REA</span></td></tr>
+<tr><td>B</td><td>MODE</td><td><span class="tag">SALLES</span> : les cases donnent un nombre de salles. <span class="tag">MAR</span> : elles donnent directement le nombre de MAR attendus (réanimation, maternité, DVI).</td></tr>
+<tr><td>C</td><td>SALLES_PAR_MAR</td><td>Mode SALLES : combien de salles tient un MAR (<span class="tag">2</span> au bloc, <span class="tag">1</span> aux endoscopies). MAR attendus = salles ÷ ce nombre, <strong>arrondi au-dessus</strong> (5 salles → 3 MAR).</td></tr>
+<tr><td>D → M</td><td>LUN_AM … VEN_PM</td><td>Dix colonnes, une par demi-journée. <strong>Vide = pas de compteur</strong> ce demi-jour ; <span class="tag">0</span> = fermé.</td></tr>
+</table>
+
+<div class="callout rule">
+  <div class="ct">Saisi à la main, jamais par l'interface</div>
+  <p>L'onglet n'est ni créé ni réécrit par le portail. Absent : aucun compteur, la grille reste comme avant.
+  Une ligne d'un secteur absent de l'onglet = pas de compteur pour ce secteur. Les corrections du jour,
+  elles, vont dans PLANNING_NOTES (type <span class="tag">SALLES</span>, texte <span class="tag">VIS:6,END:3</span>).</p>
 </div>
 </section>
 
