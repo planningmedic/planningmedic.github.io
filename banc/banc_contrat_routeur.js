@@ -55,6 +55,7 @@ const CONTRAT = {
   'getJoursFeries'            : 'admin',
   'getOrdreVacances'          : 'mar seulement',
   'getRecapPdf'               : 'mar seulement',
+  'importCpa'                 : 'maintenance',   // (26/11/2026) export CPA de la semaine
   'patientsLib'               : 'mar seulement',   // (26/11/2026) patients lib d'une consultation (droit patlib)   // (25/11/2026) PDF du récapitulatif
   'getVacConfig'              : 'tout code valide',
   'setActiveYear'             : 'maintenance',
@@ -150,7 +151,7 @@ console.log('═══ Le routeur répond au contrat des 72 actions ═══');
 const { fichier, actions, corps } = contratActuel();
 const attendu = Object.assign({}, CONTRAT, { getActiveYear: 'sans code', getAnneesDisponibles: 'sans code' });
 V('le routeur est lu dans ' + fichier, !!fichier);
-V('84 actions, ni plus ni moins', Object.keys(actions).length === 84, Object.keys(actions).length);   // (26/11/2026) + patientsLib · (26/11/2026) + paieModeEmploi · (25/11/2026) + getRecapPdf, + trois actions de la bourse aux gardes, + republierPlanning
+V('85 actions, ni plus ni moins', Object.keys(actions).length === 85, Object.keys(actions).length);   // (26/11/2026) + importCpa · (26/11/2026) + patientsLib · (26/11/2026) + paieModeEmploi · (25/11/2026) + getRecapPdf, + trois actions de la bourse aux gardes, + republierPlanning
 const manquantes = Object.keys(attendu).filter(a => !(a in actions));
 const enTrop = Object.keys(actions).filter(a => !(a in attendu));
 V('aucune action du contrat ne manque', manquantes.length === 0, manquantes);
@@ -159,8 +160,8 @@ const roleChange = Object.keys(attendu).filter(a => actions[a] && actions[a] !==
 V('chaque action garde exactement son contrôle d\'accès', roleChange.length === 0, roleChange);
 V('exactement deux actions sans code : les listes d\'années', Object.values(actions).filter(r => r === 'sans code').length === 2);
 V('44 actions réservées au comité', Object.values(actions).filter(r => r === 'admin').length === 44, Object.values(actions).filter(r => r === 'admin').length);
-V('exactement treize actions de maintenance : diagnostic, cache, synchronisation, envoi groupé des codes, réparation des récupérations, les cinq de la clôture d\'année (15/11/2026) et les trois du solveur exact (18/11/2026), le mode d\'emploi aux secrétaires (26/11/2026)',
-  JSON.stringify(Object.keys(actions).filter(a => actions[a] === 'maintenance').sort()) === JSON.stringify(['archiveYear', 'clearIndisposYear', 'clotureVerifier', 'cloturerAnnee', 'diagComplet', 'miroirSyncMaintenant', 'paieModeEmploi', 'recupsReparer', 'republierPlanning', 'sendCodes', 'setActiveYear', 'solveurAppliquer', 'solveurEtat', 'solveurLancer', 'viderCacheConfig']),
+V('exactement treize actions de maintenance : diagnostic, cache, synchronisation, envoi groupé des codes, réparation des récupérations, les cinq de la clôture d\'année (15/11/2026) et les trois du solveur exact (18/11/2026), le mode d\'emploi aux secrétaires (26/11/2026), l\'import de l\'export CPA (26/11/2026)',
+  JSON.stringify(Object.keys(actions).filter(a => actions[a] === 'maintenance').sort()) === JSON.stringify(['archiveYear', 'clearIndisposYear', 'clotureVerifier', 'cloturerAnnee', 'diagComplet', 'importCpa', 'miroirSyncMaintenant', 'paieModeEmploi', 'recupsReparer', 'republierPlanning', 'sendCodes', 'setActiveYear', 'solveurAppliquer', 'solveurEtat', 'solveurLancer', 'viderCacheConfig']),
   Object.keys(actions).filter(a => actions[a] === 'maintenance'));
 { /* La porte de maintenance n'admet QUE le MAR qui a la tuile : ni le comité, ni un MAR sans la clé. */
   const tout = require('./stubs').sourceGasTout();

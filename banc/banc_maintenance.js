@@ -213,8 +213,8 @@ console.log('\n═══ M2. Les cinq actions ═══');
     V('vider le cache : l\'action part et le message s\'affiche', appels.some(a => a.action === 'viderCacheConfig') && /Cache de configuration vidé/.test(d.getElementById('cacheRes').textContent));
 
     const ordre = [...d.querySelectorAll('section.card')].map(c => c.id);
-    V('ordre des cartes voulu (18/11/2026, + republier 25/11) : serveur, diagnostic, mise à jour, republier, récups, clôture, calcul exact des gardes, codes, cache en dernier',
-      JSON.stringify(ordre) === JSON.stringify(['cMaj', 'cDiag', 'cSync', 'cRepub', 'cRecups', 'cClot', 'cSolveur', 'cCodes', 'cModeEmploi', 'cCache']), ordre);
+    V('ordre des cartes voulu (18/11/2026, + republier 25/11, + export CPA 26/11) : serveur, diagnostic, mise à jour, republier, export CPA, récups, clôture, calcul exact des gardes, codes, cache en dernier',
+      JSON.stringify(ordre) === JSON.stringify(['cMaj', 'cDiag', 'cSync', 'cRepub', 'cCpa', 'cRecups', 'cClot', 'cSolveur', 'cCodes', 'cModeEmploi', 'cCache']), ordre);
 
     /* (26/11/2026) Mode d'emploi aux secrétaires : deux appuis, un seul envoi. */
     const bME = d.getElementById('btnModeEmploi');

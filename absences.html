@@ -189,6 +189,12 @@ table.grid td.pick{outline:2px solid var(--rose);outline-offset:1px}
 .recus{background:var(--white);border:1px solid var(--line);border-radius:16px;padding:12px 14px 4px;margin:0 0 16px}
 .recus .k{font-family:var(--mono);font-size:10.5px;letter-spacing:.08em;text-transform:uppercase;color:var(--ink-4);margin:0 2px 8px}
 .pfeuille.occupe{cursor:progress}.pfeuille.occupe button{pointer-events:none;opacity:.6}
+
+/* (26/11/2026) export CPA : choix de la salle, lignes CPA */
+.puce.choix{background:#EEF2FF;color:#3730A3;border:1.5px solid #C7D2FE;cursor:default;flex-wrap:wrap}
+.puce.choix .sal{border:1px solid #A5B4FC;background:#fff;color:#3730A3;border-radius:9px;padding:6px 12px;font:inherit;font-size:13px;font-weight:700;cursor:pointer}
+.puce .salle{font-weight:600;opacity:.8;margin-left:4px}
+.tagcpa{display:inline-block;font-size:10px;font-weight:700;letter-spacing:.04em;background:#EEF2FF;color:#4338CA;border-radius:5px;padding:1px 5px;margin-left:6px;vertical-align:2px}
 </style>
 <script src="partage/session.js"></script>   <!-- (17/08/2026) source unique : où vit le code d'accès, et 30 jours glissants -->
 <script>/* FALLBACK_SESSION — filet (17/08/2026). Si partage/session.js ne se charge pas
@@ -513,10 +519,14 @@ function absentLeJour(mar, ds){ return ((DATA.absences && DATA.absences[mar]) ||
 function patDe(c){ return (PATIENTS[cleCons(c)] || []).filter(p => p.bloc >= iso(new Date())); }   // date opératoire passée : masquée
 function patAConfier(c){ return patDe(c).filter(p => absentLeJour(c.mar,p.bloc) && !p.confieA).reduce((n,p)=>n+p.nb,0); }
 function patPuce(c){
+  const ch = patSalleAChoisir(c);   // (26/11/2026) export CPA : deux salles possibles
+  if(ch) return '<div class="puce choix">Export CPA : dans quelle salle êtes-vous ? '
+    + ch.salles.map(x => '<button type="button" class="sal" onclick="patSalle(event,\''+c.date+'\',\''+c.per+'\',\''+x+'\')">Salle '+x+'</button>').join('') + '</div>';
+  const sal = (DATA.salles || {})[c.date+'|'+c.per] ? '<span class="salle">· salle '+DATA.salles[c.date+'|'+c.per]+'</span>' : '';
   const tot = patDe(c).reduce((n,p)=>n+p.nb,0), a = patAConfier(c);
   if(!tot) return '<button type="button" class="puce vide">＋ Noter mes patients lib</button>';
-  if(a)    return '<button type="button" class="puce warn">⚠ '+a+' patient'+(a>1?'s':'')+' à confier<span class="pl-plus">Voir ›</span></button>';
-  return '<button type="button" class="puce ok">✓ '+tot+' patient'+(tot>1?'s':'')+' · tout est réglé<span class="pl-plus">Modifier ›</span></button>';
+  if(a)    return '<button type="button" class="puce warn">⚠ '+a+' patient'+(a>1?'s':'')+' à confier'+sal+'<span class="pl-plus">Voir ›</span></button>';
+  return '<button type="button" class="puce ok">✓ '+tot+' patient'+(tot>1?'s':'')+' · tout est réglé'+sal+'<span class="pl-plus">Modifier ›</span></button>';
 }
 function rendreRecus(){
   const R = RECUS.filter(p => p.bloc >= iso(new Date())).sort((a,b)=> a.bloc < b.bloc ? -1 : 1);
@@ -561,6 +571,11 @@ async function patEnvoyer(corps){
   try{
     const r = await apiPost(Object.assign({action:'patientsLib'}, corps));
     if(!(r && r.success)){ patErr((r && r.error) || 'Le serveur n\'a pas répondu — réessayez.'); return null; }
+    if(corps.op === 'salle' || String(corps.id || '').indexOf('cpa|') === 0){
+      const d = await apiPost({action:'getConsultAbsences'});   // lignes CPA : recalculées par le serveur
+      if(d && d.success){ DATA = d; lireMarges(d); patCharger(d.patients); }
+      return r;
+    }
     patCharger(r.patients); return r;
   }catch(e){ patErr('Erreur réseau — réessayez.'); return null; }
   finally{ PAT_OCCUPE = false; document.getElementById('pFeuille').classList.remove('occupe'); }
@@ -588,6 +603,7 @@ async function patSupprimer(k){
 }
 async function patAnnulerSuppr(){
   const p = PAT_SUPPR; if(!p) return;
+  if(p.cpa){ const r0 = await patEnvoyer({op:'reprendre', id:p.id}); if(!r0) return; PAT_SUPPR = null; patListe(); majPuce(); return; }
   const r = await patEnvoyer({op:'ajouter', consult:p.consult, per:p.per, bloc:p.bloc, nb:p.nb}); if(!r) return;
   if(p.confieA){
     const n = patDe(PAT_C).find(x => x.bloc === p.bloc && x.nb === p.nb && !x.confieA);
@@ -630,7 +646,7 @@ function patListe(){
   L.forEach((p,k)=>{
     const d = dt(p.bloc), ab = absentLeJour(c.mar, p.bloc);
     const jour = '<div class="j">'+JOURS_FR[d.getDay()].slice(0,3)+'.<b>'+d.getDate()+'</b>'+MOIS_FR[d.getMonth()]+'</div>';
-    const q = '<div class="q">'+p.nb+' patient'+(p.nb>1?'s':'')+'</div>';
+    const q = '<div class="q">'+p.nb+' patient'+(p.nb>1?'s':'')+(p.cpa ? '<span class="tagcpa">CPA</span>' : '')+'</div>';
     if(!ab) h += '<div class="pl">'+jour+'<div>'+q+'<div class="e">Vous êtes là ce jour-là</div></div><span class="pact"><span class="pok">✓</span>'+X(k)+'</span></div>';
     else if(p.confieA) h += '<div class="pl ok2">'+jour+'<div>'+q+'<div class="e">Confiés au '+nomDe(p.confieA)+'</div></div><span class="pact"><button class="pbtn" onclick="patReprendre('+k+')">Reprendre</button>'+X(k)+'</span></div>';
     else {
@@ -651,6 +667,17 @@ async function patReprendre(k){
   const p = patDe(PAT_C)[k]; if(!p) return;
   const r = await patEnvoyer({op:'reprendre', id:p.id}); if(!r) return;
   patListe(); majPuce();
+}
+
+/* ══ EXPORT CPA — CHOIX DE LA SALLE (26/11/2026) ═══════════════════════════
+   Le serveur rattache chaque consultation à sa salle CPA (DATA.salles) ; quand
+   deux salles de son secteur sont ouvertes la même demi-journée, il demande
+   (DATA.aChoisir) : un toucher, et les patients de la salle apparaissent. */
+function patSalleAChoisir(c){ return (DATA.aChoisir || []).find(x => x.date === c.date && x.per === c.per && c.mar === MOI) || null; }
+async function patSalle(ev, date, per, salle){
+  ev.stopPropagation();
+  const r = await patEnvoyer({op:'salle', date:date, per:per, salle:salle});
+  if(r) rendre();
 }
 
 /* ══ RENDU ═════════════════════════════════════════════════════════════ */

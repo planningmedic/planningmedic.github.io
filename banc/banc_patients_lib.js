@@ -125,6 +125,81 @@ console.log('\n═══ 1. Serveur : action patientsLib ═══');
     /if \(user\.role === 'mar' && _aDroitTuile_\(user\.id, 'patlib'\)\) \{ patlib = true; patients = _patlibLire_\(user\.id\); \}/.test(ab));
 }
 
+
+/* ══ 1 bis. EXPORT CPA ═══════════════════════════════════════════════════ */
+console.log('\n═══ 1 bis. Export CPA : lecture du fichier, import, salles ═══');
+{
+  const { lireExportCpa } = require('../partage/export_cpa.js');
+  const TETE = ['SALLE', 'DATE_RDV', 'HEURE_RDV', 'paam.paam_libelle', 'DUREE_PREVUE', '', '', '', '', '', 'DATE_INTERVENTION', '', 'REGIME', '', 'ANESTHESISTE_DEMANDE', '', '', 'TYPE_INTERVENTION'];
+  const rdv = (salle, date, h, agenda, bloc, regime, type) => {
+    const l = Array(18).fill(''); l[0] = 'CPA Salle ' + salle; l[1] = date + ' 00:00:00.0'; l[2] = h; l[3] = agenda; l[4] = '00:10';
+    l[10] = bloc ? bloc + ' 00:00:00.0' : ''; l[12] = regime; l[17] = type || 'Coloscopie'; return l; };
+  const lu = lireExportCpa([TETE,
+    rdv(2, CONSULT, '14:10', 'CPA Endoscopie Libérale', BLOC_OK, 'Libéral'),
+    rdv(2, CONSULT, '14:30', 'CPA Endoscopie Publique', BLOC_ABS, 'Libéral'),              // agenda public, patient lib : gardé
+    rdv(4, CONSULT, '14:50', 'CPA Endoscopie Libérale', BLOC_OK, 'Libéral'),
+    rdv(1, CONSULT, '09:10', 'CPA ORL/Ophtalmo Adulte Libérale', BLOC_OK, 'Libéral'),
+    rdv(3, CONSULT, '15:00', 'CPA Viscérale Publique', BLOC_OK, 'Public   '),   // public : ignoré
+    rdv(3, CONSULT, '15:20', 'Consultation UB Pré-anesthésie', BLOC_OK, 'Libéral'),       // agenda sans secteur
+    rdv(3, CONSULT, '15:40', 'CPA Urologie Libérale', '', 'Libéral'),                       // sans date opératoire
+  ]);
+  V('lecture : seuls les patients au régime Libéral avec secteur et dates sont gardés', lu.lignes.length === 4 && lu.rdv === 7 && lu.lib === 6, lu);
+  V('lecture : rien d\'autre que jour, demi-journée, salle, secteur, date opératoire, nombre',
+    lu.lignes.every(l => Object.keys(l).sort().join() === 'bloc,consult,nb,per,salle,secteur') && !JSON.stringify(lu.lignes).includes('Coloscopie') && !JSON.stringify(lu.lignes).includes('14:'));
+  V('lecture : demi-journée (avant 13 h = matin), salle, secteur', lu.lignes[3].per === 'am' && lu.lignes[3].salle === '1' && lu.lignes[3].secteur === 'ORL' && lu.lignes[0].secteur === 'END' && lu.lignes[0].per === 'pm');
+  V('lecture : agenda sans secteur et ligne sans date comptés à part', lu.inconnus['Consultation UB Pré-anesthésie'] === 1 && lu.sansDate === 1, lu);
+  V('lecture : un autre fichier est refusé avec un message clair', /Colonnes introuvables/.test(lireExportCpa([['A', 'B']]).erreur || ''));
+
+  // Serveur : le planning publié a, mardi après-midi, ALPHA et CHARLIE en endo (deux salles d'endo), DELTA en ORL le matin
+  const { ctx, cl, appel, feuille } = serveur();
+  const planning = { months: [{ days: [{ date: CONSULT, dow: 2 }], doctors: [
+    { id: 'ALPHA', days: [{ afternoon: 'CS-END' }] }, { id: 'CHARLIE', days: [{ afternoon: 'CS-END' }] },
+    { id: 'DELTA', days: [{ morning: 'CS-ORL' }] }, { id: 'BRAVO', days: [{ morning: 'END', afternoon: 'END' }] } ] }] };
+  ctx.readPlanningFromDrive = () => JSON.stringify(planning);
+  ctx.anneePlanning = d => Number(String(d).slice(0, 4));
+  const src = lire('gas/indisponibilites.gs');
+  for (const c of ['CPA_ONGLET', 'CPA_ENTETE', 'CPA_SALLES_ONGLET', 'CPA_SALLES_ENTETE', 'CPA_SECTEURS']) vm.runInContext(src.match(new RegExp('const ' + c + ' = [^;]+;'))[0], ctx);
+  for (const n of ['_cpaSecteur_', '_cpaLire_', '_cpaSallesLire_', '_cpaSalleEcrire_', '_cpaConsultsJours_', '_cpaResoudre_', '_cpaLignes_', '_act_importCpa'])
+    vm.runInContext(extraireFonction('../gas/indisponibilites.gs', n), ctx);
+  vm.runInContext(extraireFonction('../gas/equipe.gs', '_droitMaintenance_'), ctx);
+  cl.getSheetByName('CONFIG').lignes[1][1] = 'ALPHA: consult, patlib, maintenance; CHARLIE: patlib';
+  const imp = p => JSON.parse(ctx._act_importCpa({ payload: p, user: { id: 'ALPHA', role: 'mar' } }).getContent());
+  V('import : refusé à un MAR sans la clé maintenance', JSON.parse(ctx._act_importCpa({ payload: { lignes: lu.lignes }, user: { id: 'CHARLIE', role: 'mar' } }).getContent()).error === 'Accès refusé');
+  const r = imp({ lignes: lu.lignes.concat([{ consult: CONSULT, per: 'pm', salle: '9', secteur: 'XYZ', bloc: BLOC_OK, nb: 1 }]) });
+  V('import : accepté, une ligne par salle et date opératoire, la ligne douteuse rejetée', r.success && r.lignes === 4 && r.patients === 4 && r.rejetees === 1, r);
+  V('import : bilan — endo à confirmer (2 salles, 2 MAR), ORL rattachée seule', r.bilan.aConfirmer.patients === 3 && r.bilan.auto.patients === 1 && r.bilan.sans.length === 0, r.bilan);
+  const avant = cl.getSheetByName('CPA_EXPORT').lignes.length;
+  imp({ lignes: lu.lignes });
+  V('réimporter les mêmes jours remplace, sans doublon', cl.getSheetByName('CPA_EXPORT').lignes.length === avant);
+
+  const exp = ctx._cpaLire_(), cons = ctx._cpaConsultsJours_([CONSULT]);
+  let rs = ctx._cpaResoudre_('ALPHA', cons, exp, {});
+  V('deux salles d\'endo, deux MAR d\'endo : ALPHA doit choisir entre salle 2 et salle 4',
+    rs.aChoisir.length === 1 && JSON.stringify(rs.aChoisir[0].salles) === '["2","4"]' && !Object.keys(rs.salles).length, rs);
+  V('DELTA, seul en ORL avec une seule salle : rattaché seul', ctx._cpaResoudre_('DELTA', cons, exp, {}).salles[CONSULT + '|am'] === '1');
+  V('choisir une salle non proposée : refusé', !appel('ALPHA', 'mar', { op: 'salle', date: CONSULT, per: 'pm', salle: '3' }).success);
+  V('choisir la salle 2 : accepté', appel('ALPHA', 'mar', { op: 'salle', date: CONSULT, per: 'pm', salle: '2' }).success);
+  const ch = ctx._cpaSallesLire_();
+  rs = ctx._cpaResoudre_('ALPHA', cons, exp, ch);
+  V('ALPHA est rattaché à la salle 2', rs.salles[CONSULT + '|pm'] === '2' && !rs.aChoisir.length);
+  V('CHARLIE, l\'autre MAR d\'endo, est rattaché seul à la salle 4', ctx._cpaResoudre_('CHARLIE', cons, exp, ch).salles[CONSULT + '|pm'] === '4');
+  const lignes = ctx._cpaLignes_('ALPHA', rs.salles, exp);
+  V('les patients de la salle 2 deviennent les lignes d\'ALPHA (marquées CPA)', lignes.length === 2 && lignes.every(l => l.cpa && l.mar === 'ALPHA') && lignes.reduce((t, l) => t + l.nb, 0) === 2, lignes);
+  const abs = lignes.find(l => l.bloc === BLOC_ABS);
+  V('confier une ligne CPA à un membre du groupement', appel('ALPHA', 'mar', { op: 'confier', id: abs.id, a: 'BRAVO' }).success
+    && ctx._cpaLignes_('ALPHA', rs.salles, exp).find(l => l.id === abs.id).confieA === 'BRAVO');
+  V('le confrère la retrouve chez lui', ctx._patlibLire_('BRAVO').some(p => p.id === abs.id && p.cpa));
+  V('ALPHA ne la voit pas en double', ctx._patlibLire_('ALPHA').every(p => p.id !== abs.id));
+  V('CHARLIE (autre salle) ne peut pas toucher aux lignes de la salle 2', !appel('CHARLIE', 'mar', { op: 'supprimer', id: abs.id }).success);
+  V('retirer une ligne CPA la masque', appel('ALPHA', 'mar', { op: 'supprimer', id: abs.id }).success
+    && !ctx._cpaLignes_('ALPHA', rs.salles, exp).some(l => l.id === abs.id) && !ctx._patlibLire_('BRAVO').length);
+  V('la reprendre la remet', appel('ALPHA', 'mar', { op: 'reprendre', id: abs.id }).success && ctx._cpaLignes_('ALPHA', rs.salles, exp).some(l => l.id === abs.id));
+  V('une ligne CPA inventée : refusée', !appel('ALPHA', 'mar', { op: 'confier', id: 'cpa|' + CONSULT + '|pm|2|2099-01-01', a: 'BRAVO' }).success);
+  const ind = lire('gas/Indispos.gs');
+  V('import sous verrou, réservé au droit maintenance', /'importCpa',/.test(ind) && /"importCpa"\s*:\s*\{ role: 'maintenance'/.test(ind));
+  V('aucune poussée vers le relais pour l\'import', !/MIROIR_APRES_ECRITURE = \{[\s\S]*?importCpa[\s\S]*?\};/.test(lire('gas/miroir.gs')));
+}
+
 /* ══ 2. PAGE ═════════════════════════════════════════════════════════════ */
 function donnees(patlib) {
   return {
@@ -147,7 +222,7 @@ function donnees(patlib) {
     ] : [],
   };
 }
-async function page(patlib) {
+async function page(patlib, modif) {
   const vc = new VirtualConsole(); const erreurs = [];
   vc.on('jsdomError', e => erreurs.push(String(e.message).split('\n')[0]));
   const envois = [];
@@ -160,7 +235,7 @@ async function page(patlib) {
       w.sessionStorage.setItem('pmViewCode', 'CODE-ALPHA');
       w.fetch = async (url, o) => {
         const p = JSON.parse(o.body); envois.push(p);
-        if (p.action === 'getConsultAbsences') return { ok: true, status: 200, json: async () => donnees(patlib) };
+        if (p.action === 'getConsultAbsences') { const d = donnees(patlib); if (modif) modif(d); return { ok: true, status: 200, json: async () => d }; }
         if (p.action === 'patientsLib') {
           if (p.op === 'ajouter') liste.push({ id: 'n' + envois.length, mar: 'ALPHA', consult: p.consult, per: p.per, bloc: p.bloc, nb: p.nb, confieA: '' });
           if (p.op === 'confier') liste.find(x => x.id === p.id).confieA = p.a;
@@ -230,6 +305,27 @@ async function page(patlib) {
     D.querySelector('#pfListe .px').click(); await dodo(80);
     V('la croix supprime une ligne, avec « Annuler » proposé',
       envois.filter(e => e.action === 'patientsLib').pop().op === 'supprimer' && /Ligne supprimée/.test(D.getElementById('pfListe').textContent));
+  }
+
+
+  {
+    const { w, D, envois, erreurs } = await page(true, d => { d.aChoisir = [{ date: plus(lundi, 2), per: 'pm', salles: ['2', '4'] }]; d.salles = { [CONSULT + '|pm']: '2' }; });
+    V('export CPA : la page s\'ouvre sans erreur', !erreurs.length, erreurs);
+    const puces = [...D.querySelectorAll('#file .puce')];
+    V('la consultation rattachée affiche sa salle', /salle 2/.test(puces[0].textContent), puces[0].textContent);
+    V('l\'autre consultation demande « Salle 2 ou salle 4 ? »', puces[1].classList.contains('choix') && puces[1].querySelectorAll('.sal').length === 2);
+    puces[1].querySelectorAll('.sal')[1].click(); await dodo(120);
+    const sal = envois.filter(e => e.action === 'patientsLib').pop();
+    V('le choix part au serveur (jour, demi-journée, salle)', sal && sal.op === 'salle' && sal.date === plus(lundi, 2) && sal.per === 'pm' && sal.salle === '4', sal);
+    V('… puis la page relit tout (les patients de la salle arrivent)', envois[envois.length - 1].action === 'getConsultAbsences');
+    V('la feuille de choix ne s\'ouvre pas en touchant un bouton de salle', !D.getElementById('pFeuille').classList.contains('open'));
+  }
+  {
+    const m = lire('maintenance.html');
+    V('Maintenance : la carte d\'import existe', /id="cCpa"/.test(m) && /id="cpaFichier"/.test(m));
+    V('Maintenance : le lecteur de tableur n\'est chargé qu\'au moment de l\'import', /assets\/vendor\/xlsx\.full\.min\.js/.test(m) && !/<script src="assets\/vendor\/xlsx/.test(m)
+      && fs.existsSync(path.join(__dirname, '..', 'assets/vendor/xlsx.full.min.js')));
+    V('Maintenance : seul ce que rend lireExportCpa part au serveur', /api\(\{ action: 'importCpa', lignes: lu\.lignes \}\)/.test(m));
   }
 
   console.log('\n═══ 3. Accueil : la tuile « Mes consultations » ═══');

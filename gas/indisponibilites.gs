@@ -4,7 +4,7 @@
    quelles : aucune ligne de logique modifiée, seulement déplacée. Le routeur et
    ses aides (checkCode, _deny, _error, doGet/doPost) restent dans Indispos.gs.
    Un seul espace global dans Apps Script : rien à importer. */
-const GAS_VERSION_INDISPOS_METIER = '2026-11-26.1';   // (26/11/2026) .1 : patients lib d'une consultation — action patientsLib (droit patlib, onglet PATIENTS_LIB) et patients servis dans getConsultAbsences · (25/11/2026) .2 : action getRecapPdf (PDF du récapitulatif pour le MAR connecté) ; getOrdreVacances répond aussi pour y+2 · .1 : saveIndispos accepte la pose libre des vacances (payload.vac, voir _poserVac_ dans temps_partiel.gs) · (20/11/2026) .1 : setIndisposYear et envoyerRecapIndispos réservés au responsable · (15/11/2026) clearIndisposYear réservé au droit Maintenance (clôture d'année) · (10/11/2026) PDF récapitulatif par document Google (les couleurs passent) + renvoyerRecapPdf2027 · (09/11/2026) mail « Vos gardes » : 18 h, souhaits honorés, gardes qui allongent les vacances · (27/10/2026) VM/VA posés à la main : jamais écrasés par un enregistrement (MAR ou staff)
+const GAS_VERSION_INDISPOS_METIER = '2026-11-26.2';   // (26/11/2026) .2 : export CPA — importCpa (droit maintenance, onglet CPA_EXPORT), rattachement des consultations aux salles (CPA_SALLES), lignes CPA servies dans getConsultAbsences, op salle et lignes cpa| dans patientsLib · .1 : patients lib d'une consultation — action patientsLib (droit patlib, onglet PATIENTS_LIB) et patients servis dans getConsultAbsences · (25/11/2026) .2 : action getRecapPdf (PDF du récapitulatif pour le MAR connecté) ; getOrdreVacances répond aussi pour y+2 · .1 : saveIndispos accepte la pose libre des vacances (payload.vac, voir _poserVac_ dans temps_partiel.gs) · (20/11/2026) .1 : setIndisposYear et envoyerRecapIndispos réservés au responsable · (15/11/2026) clearIndisposYear réservé au droit Maintenance (clôture d'année) · (10/11/2026) PDF récapitulatif par document Google (les couleurs passent) + renvoyerRecapPdf2027 · (09/11/2026) mail « Vos gardes » : 18 h, souhaits honorés, gardes qui allongent les vacances · (27/10/2026) VM/VA posés à la main : jamais écrasés par un enregistrement (MAR ou staff)
 // précédente : '2026-10-22.2'
 
 // La campagne de saisie des indispos est-elle EN COURS ?
@@ -2130,6 +2130,18 @@ function _act_getConsultAbsences(R) {
     try {
       if (user.role === 'mar' && _aDroitTuile_(user.id, 'patlib')) { patlib = true; patients = _patlibLire_(user.id); }
     } catch (e) { patlib = false; patients = []; }   // jamais bloquant pour le reste de la page
+    // (26/11/2026) Export CPA : salles de mes consultations et leurs patients lib
+    let salles = {}, aChoisir = [];
+    if (patlib) {
+      try {
+        const exp = _cpaLire_();
+        if (exp.length) {
+          const rs = _cpaResoudre_(user.id, consultationsF, exp, _cpaSallesLire_());
+          salles = rs.salles; aChoisir = rs.aChoisir;
+          patients = patients.concat(_cpaLignes_(user.id, rs.salles, exp));
+        }
+      } catch (e) { salles = {}; aChoisir = []; }
+    }
 
     return ContentService.createTextOutput(JSON.stringify({
       success: true,
@@ -2145,7 +2157,9 @@ function _act_getConsultAbsences(R) {
       consultations: consultationsF,
       absences: absences,
       patlib: patlib,              // (26/11/2026) droit « patlib » : saisie des patients lib
-      patients: patients           // ses lignes et celles qu'on lui a confiées (aucun nom de patient)
+      patients: patients,          // ses lignes et celles qu'on lui a confiées (aucun nom de patient)
+      salles: salles,              // (26/11/2026) 'date|per' -> salle CPA de mes consultations
+      aChoisir: aChoisir           // consultations dont la salle reste à choisir
     })).setMimeType(ContentService.MimeType.JSON);
   } catch (err) { return _error(err.message); }
 }
@@ -2188,8 +2202,10 @@ function _patlibLire_(id) {
     const bloc = _patlibJour_(l[4]);
     if (!l[0] || bloc < auj) return;
     if (mar !== id && confie !== id) return;
+    const cpa = String(l[0]).indexOf('cpa|') === 0;
+    if (cpa && (mar === id || Number(l[5]) === 0)) return;   // ma ligne CPA : servie par _cpaLignes_ ; nombre 0 = retirée
     out.push({ id: String(l[0]), mar: mar, consult: _patlibJour_(l[2]), per: String(l[3]).trim(),
-               bloc: bloc, nb: Number(l[5]) || 1, confieA: confie });
+               bloc: bloc, nb: Number(l[5]) || 1, confieA: confie, cpa: cpa });
   });
   return out;
 }
@@ -2236,6 +2252,36 @@ function _act_patientsLib(R) {
       _patlibFeuille_(true).appendRow([Utilities.getUuid(), user.id, consult, per, bloc, nb, '', new Date()]);
       return ok();
     }
+    if (op === 'salle') {             // (26/11/2026) le MAR choisit sa salle CPA
+      const date = String(payload.date || ''), per = payload.per === 'am' ? 'am' : 'pm', salle = String(payload.salle || '');
+      const exp = _cpaLire_();
+      const rs = _cpaResoudre_(user.id, _cpaConsultsJours_([date]), exp, _cpaSallesLire_());
+      const prop = rs.aChoisir.filter(function (x) { return x.date === date && x.per === per; })[0];
+      if (!prop || prop.salles.indexOf(salle) < 0) return _error('Salle non proposée pour cette consultation.');
+      _cpaSalleEcrire_(date, per, user.id, salle);
+      return ok();
+    }
+    if (String(payload.id || '').indexOf('cpa|') === 0) {   // une ligne venue de l'export CPA
+      const p = String(payload.id).split('|');             // cpa|date|per|salle|bloc
+      const exp = _cpaLire_();
+      const x = exp.filter(function (e) { return e.consult === p[1] && e.per === p[2] && e.salle === p[3] && e.bloc === p[4]; })[0];
+      if (!x) return _error('Ligne introuvable.');
+      const rs = _cpaResoudre_(user.id, _cpaConsultsJours_([p[1]]), exp, _cpaSallesLire_());
+      if (rs.salles[p[1] + '|' + p[2]] !== p[3]) return _error('Ligne introuvable.');
+      let nb = x.nb, confie;
+      if (op === 'confier') {
+        confie = String(payload.a || '').trim();
+        if (!confie || confie === user.id || !_patlibMembre_(confie)) return _error('Ce confrère ne fait pas partie du groupement libéral.');
+      } else if (op === 'reprendre') confie = '';
+      else if (op === 'supprimer') { nb = 0; confie = ''; }
+      else return _error('Opération inconnue.');
+      const f = _patlibFeuille_(true), lg = f.getDataRange().getValues();
+      const ligne = [String(payload.id), user.id, p[1], p[2], p[4], nb, confie, new Date()];
+      let n = -1;
+      for (let r = 1; r < lg.length; r++) if (String(lg[r][0]) === String(payload.id)) { n = r; break; }
+      if (n < 0) f.appendRow(ligne); else f.getRange(n + 1, 1, 1, 8).setValues([ligne]);
+      return ok();
+    }
     // Les autres opérations portent sur UNE ligne du MAR lui-même.
     const sh = _patlibFeuille_(false);
     if (!sh) return _error('Ligne introuvable.');
@@ -2254,5 +2300,154 @@ function _act_patientsLib(R) {
       return ok();
     }
     return _error('Opération inconnue.');
+  } catch (err) { return _error(err.message); }
+}
+
+/* ══ EXPORT CPA DE LA SEMAINE (26/11/2026) ═════════════════════════════════
+   Le responsable importe l'export des 4 salles de CPA (page Maintenance). Le
+   fichier est lu DANS LE NAVIGATEUR ; n'arrivent ici, pour chaque patient au
+   régime Libéral, que : jour + demi-journée de consultation, salle, secteur,
+   date opératoire, nombre. Ni nom, ni heure, ni type d'intervention.
+   Une consultation du planning se rattache à sa salle : une seule salle de son
+   secteur cette demi-journée (et un seul MAR de ce secteur) → automatique ;
+   sinon le MAR choisit (CPA_SALLES). Les patients de la salle deviennent ses
+   lignes (id « cpa|date|per|salle|bloc ») ; confier / reprendre / retirer une
+   de ces lignes s'écrit dans PATIENTS_LIB sous le même id. */
+const CPA_ONGLET = 'CPA_EXPORT';
+const CPA_ENTETE = ['DATE_CONSULT', 'PER', 'SALLE', 'SECTEUR', 'DATE_BLOC', 'NB', 'IMPORT'];
+const CPA_SALLES_ONGLET = 'CPA_SALLES';
+const CPA_SALLES_ENTETE = ['DATE', 'PER', 'MAR', 'SALLE', 'MAJ'];
+const CPA_SECTEURS = ['END', 'VIS', 'ORT', 'ORL', 'INTER', 'MAT'];
+function _cpaSecteur_(cs) { const c = String(cs || '').replace(/^CS-/, ''); return c === 'CI' ? 'INTER' : c; }
+function _cpaLire_() {
+  const sh = SpreadsheetApp.getActiveSpreadsheet().getSheetByName(CPA_ONGLET);
+  if (!sh) return [];
+  return sh.getDataRange().getValues().slice(1).filter(function (l) { return l[0]; }).map(function (l) {
+    return { consult: _patlibJour_(l[0]), per: String(l[1]).trim(), salle: String(l[2]).trim(),
+             secteur: String(l[3]).trim(), bloc: _patlibJour_(l[4]), nb: Number(l[5]) || 1 };
+  });
+}
+function _cpaSallesLire_() {
+  const sh = SpreadsheetApp.getActiveSpreadsheet().getSheetByName(CPA_SALLES_ONGLET), out = {};
+  if (!sh) return out;
+  sh.getDataRange().getValues().slice(1).forEach(function (l) {
+    if (l[0]) out[_patlibJour_(l[0]) + '|' + String(l[1]).trim() + '|' + String(l[2]).trim()] = String(l[3]).trim();
+  });
+  return out;
+}
+function _cpaSalleEcrire_(date, per, mar, salle) {
+  const ss = SpreadsheetApp.getActiveSpreadsheet();
+  let sh = ss.getSheetByName(CPA_SALLES_ONGLET);
+  if (!sh) { sh = ss.insertSheet(CPA_SALLES_ONGLET); sh.appendRow(CPA_SALLES_ENTETE); sh.setFrozenRows(1); }
+  const lg = sh.getDataRange().getValues();
+  for (let r = 1; r < lg.length; r++) {
+    if (_patlibJour_(lg[r][0]) === date && String(lg[r][1]).trim() === per && String(lg[r][2]).trim() === mar) {
+      sh.getRange(r + 1, 4, 1, 2).setValues([[salle, new Date()]]); return;
+    }
+  }
+  sh.appendRow([date, per, mar, salle, new Date()]);
+}
+/* Consultations du planning publié pour quelques jours (tous les MAR), même
+   lecture que getConsultAbsences : planning_{Y}.json, miroir maternité compris. */
+function _cpaConsultsJours_(dates) {
+  const out = [], vus = {}, ans = {};
+  dates.forEach(function (d) { ans[anneePlanning(d)] = true; });
+  Object.keys(ans).forEach(function (an) {
+    let doc;
+    try { const raw = readPlanningFromDrive('planning_' + an + '.json'); if (!raw) return; doc = JSON.parse(raw); }
+    catch (e) { return; }
+    (doc.months || []).forEach(function (mois) {
+      const jrs = mois.days || [];
+      (mois.doctors || []).forEach(function (md) {
+        (md.days || []).forEach(function (cell, i) {
+          const j = jrs[i];
+          if (!j || !j.date || dates.indexOf(j.date) < 0 || j.isWeekend || j.isFerie) return;
+          const am = String((cell && cell.morning) || ''), pm = String((cell && cell.afternoon) || '');
+          const add = function (code, per) {
+            const k = j.date + '|' + md.id + '|' + per;
+            if (vus[k]) return; vus[k] = true;
+            out.push({ date: j.date, mar: md.id, cs: code, per: per });
+          };
+          if (am.indexOf('CS-') === 0) add(am, 'am');
+          if (pm.indexOf('CS-') === 0) add(pm, 'pm');
+          if ((j.dow === 2 || j.dow === 4) && am === 'MAT') add('CS-MAT', 'am');
+        });
+      });
+    });
+  });
+  return out;
+}
+/* Salles des consultations d'UN MAR. `choisies` : 'date|per|mar' -> salle. */
+function _cpaResoudre_(id, consults, exp, choisies) {
+  const salles = {}, aChoisir = [];
+  consults.filter(function (c) { return c.mar === id; }).forEach(function (c) {
+    const sec = _cpaSecteur_(c.cs), k = c.date + '|' + c.per;
+    const cand = [];
+    exp.forEach(function (x) { if (x.consult === c.date && x.per === c.per && x.secteur === sec && cand.indexOf(x.salle) < 0) cand.push(x.salle); });
+    if (!cand.length) return;
+    cand.sort();
+    const mien = choisies[k + '|' + id];
+    if (mien && cand.indexOf(mien) > -1) { salles[k] = mien; return; }
+    const coll = consults.filter(function (o) { return o.mar !== id && o.date === c.date && o.per === c.per && _cpaSecteur_(o.cs) === sec; })
+      .map(function (o) { return o.mar; });
+    const prises = coll.map(function (m) { return choisies[k + '|' + m]; }).filter(Boolean);
+    const libres = cand.filter(function (s) { return prises.indexOf(s) < 0; });
+    if (!coll.length && cand.length === 1) { salles[k] = cand[0]; return; }                 // seul de son secteur, une seule salle
+    if (libres.length === 1 && coll.every(function (m) { return choisies[k + '|' + m]; })) { salles[k] = libres[0]; return; }   // les autres ont choisi
+    if (libres.length) aChoisir.push({ date: c.date, per: c.per, salles: libres });
+  });
+  return { salles: salles, aChoisir: aChoisir };
+}
+/* Les patients de mes salles, avec ce que j'en ai fait (confié, retiré). */
+function _cpaLignes_(id, salles, exp) {
+  const auj = _patlibJour_(new Date()), sur = {}, sh = _patlibFeuille_(false), out = [];
+  if (sh) sh.getDataRange().getValues().slice(1).forEach(function (l) {
+    if (String(l[0]).indexOf('cpa|') === 0 && String(l[1]).trim() === id) sur[String(l[0])] = { nb: Number(l[5]), confie: String(l[6] || '').trim() };
+  });
+  exp.forEach(function (x) {
+    if (salles[x.consult + '|' + x.per] !== x.salle || x.bloc < auj) return;
+    const cle = 'cpa|' + x.consult + '|' + x.per + '|' + x.salle + '|' + x.bloc, o = sur[cle];
+    if (o && o.nb === 0) return;
+    out.push({ id: cle, mar: id, consult: x.consult, per: x.per, bloc: x.bloc, nb: x.nb, confieA: o ? o.confie : '', cpa: true });
+  });
+  return out;
+}
+function _act_importCpa(R) {
+  const { e, payload, action, code, user } = R;
+  if (!_droitMaintenance_(user)) return _deny();
+  try {
+    const re = /^\d{4}-\d{2}-\d{2}$/, agg = {}, jours = {};
+    let rejetees = 0;
+    (payload.lignes || []).forEach(function (l) {
+      const c = String(l.consult || ''), b = String(l.bloc || ''), per = l.per === 'am' ? 'am' : (l.per === 'pm' ? 'pm' : '');
+      const salle = String(l.salle || '').trim(), sec = String(l.secteur || ''), nb = Number(l.nb) || 1;
+      if (!re.test(c) || !re.test(b) || !per || !/^\d{1,2}$/.test(salle) || CPA_SECTEURS.indexOf(sec) < 0 || b < c) { rejetees++; return; }
+      const k = [c, per, salle, sec, b].join('|');
+      agg[k] = (agg[k] || 0) + nb; jours[c] = true;
+    });
+    const dates = Object.keys(jours).sort();
+    if (!dates.length) return _error('Aucun patient lib reconnu dans ce fichier.');
+    const ss = SpreadsheetApp.getActiveSpreadsheet();
+    let sh = ss.getSheetByName(CPA_ONGLET);
+    if (!sh) { sh = ss.insertSheet(CPA_ONGLET); sh.appendRow(CPA_ENTETE); sh.setFrozenRows(1); }
+    const vals = sh.getDataRange().getValues();      // un nouvel import des mêmes jours remplace l'ancien
+    for (let r = vals.length - 1; r >= 1; r--) if (jours[_patlibJour_(vals[r][0])]) sh.deleteRow(r + 1);
+    const maintenant = new Date();
+    const lignes = Object.keys(agg).sort().map(function (k) { const p = k.split('|'); return [p[0], p[1], p[2], p[3], p[4], agg[k], maintenant]; });
+    sh.getRange(sh.getLastRow() + 1, 1, lignes.length, 7).setValues(lignes);
+    // Bilan : chaque salle de chaque demi-journée face aux consultations du planning
+    const cons = _cpaConsultsJours_(dates), grp = {};
+    lignes.forEach(function (l) { const k = [l[0], l[1], l[2], l[3]].join('|'); grp[k] = (grp[k] || 0) + l[5]; });
+    const bilan = { auto: { consultations: 0, patients: 0 }, aConfirmer: { consultations: 0, patients: 0 }, sans: [] };
+    Object.keys(grp).sort().forEach(function (k) {
+      const p = k.split('|');
+      const m = cons.filter(function (c) { return c.date === p[0] && c.per === p[1] && _cpaSecteur_(c.cs) === p[3]; }).length;
+      const nbSalles = Object.keys(grp).filter(function (g) { const q = g.split('|'); return q[0] === p[0] && q[1] === p[1] && q[3] === p[3]; }).length;
+      if (!m) bilan.sans.push({ date: p[0], per: p[1], salle: p[2], secteur: p[3], nb: grp[k] });
+      else if (m === 1 && nbSalles === 1) { bilan.auto.consultations++; bilan.auto.patients += grp[k]; }
+      else { bilan.aConfirmer.consultations++; bilan.aConfirmer.patients += grp[k]; }
+    });
+    return ContentService.createTextOutput(JSON.stringify({ success: true, jours: dates, lignes: lignes.length, rejetees: rejetees,
+      patients: lignes.reduce(function (t, l) { return t + l[5]; }, 0), bilan: bilan })).setMimeType(ContentService.MimeType.JSON);
   } catch (err) { return _error(err.message); }
 }

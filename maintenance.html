@@ -101,8 +101,17 @@ details.grp .card{border:none;border-top:1px solid var(--line-light);border-radi
 #authOverlay .box{background:var(--white);border:1px solid var(--line);border-radius:16px;padding:32px 26px;width:100%;max-width:380px;text-align:center}
 #authInput{width:100%;padding:12px 14px;font-size:16px;border:1px solid var(--line);border-radius:10px;text-align:center;letter-spacing:2px;font-family:monospace}
 #authErr{margin-top:12px;font-size:13px;color:var(--red);font-weight:600}
+
+/* (26/11/2026) export CPA */
+.cpa-ok{background:#F0FDF4;border:1px solid #BBF7D0;border-radius:12px;padding:10px 12px;margin-top:8px}
+.cpa-warn{background:#FEF3C7;border:1.5px solid #FDE68A;border-radius:12px;padding:10px 12px;margin-top:8px}
+.cpa-chiffres{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin:8px 0 2px}
+.cpa-chiffres div{background:var(--bg);border:1px solid var(--line);border-radius:10px;padding:8px;text-align:center}
+.cpa-chiffres b{display:block;font-size:20px}
+.cpa-chiffres span{font-size:11px;color:var(--ink-3)}
 </style>
 <script src="partage/session.js"></script>
+<script src="partage/export_cpa.js"></script>   <!-- (26/11/2026) lecture de l'export CPA (logique pure) -->
 <script src="partage/attente_baie.js"></script>   <!-- (17/11/2026) dessin d'attente de la clôture -->
 <script>/* FALLBACK_SESSION — filet (même règle que les autres pages). Si partage/session.js ne se charge pas,
 la page ne doit pas devenir inutilisable : le code vit alors le temps de l'onglet. */
@@ -168,6 +177,14 @@ window.SessionPortail = window.SessionPortail || { lire:function(){try{return se
     <div class="barre"><span class="n">Année</span><select id="repubAn"></select></div>
     <button class="btn p" id="btnRepub" type="button">Republier</button>
     <div class="res" id="repubRes"></div>
+  </section>
+
+  <!-- 0 bis. Export CPA de la semaine (26/11/2026) -->
+  <section class="card" id="cCpa">
+    <h2>📥 Patients lib : export CPA</h2>
+    <p class="d">Chaque semaine, l'export des salles de CPA. Seuls les patients au régime <b>Libéral</b> sont gardés : jour et demi-journée de consultation, salle, secteur, date opératoire. <b>Aucun nom, aucune heure, aucun type d'intervention.</b> Le fichier est lu sur ce téléphone et n'est gardé nulle part. Réimporter les mêmes jours remplace l'import précédent.</p>
+    <label class="btn p" id="cpaBtn" style="display:block;text-align:center;cursor:pointer">Choisir le fichier (.xls)<input type="file" id="cpaFichier" accept=".xls,.xlsx,application/vnd.ms-excel" hidden></label>
+    <div class="res" id="cpaRes"></div>
   </section>
 
   <!-- 1 bis. Récupérations de samedi (11/11/2026) -->
@@ -639,6 +656,56 @@ $('btnModeEmploi').addEventListener('click', async () => {
     out.innerHTML = '<span class="ok">✅ Mode d\'emploi envoyé à ' + r.nb + ' adresse' + (r.nb > 1 ? 's' : '') + '.</span>';
   } catch (e) { out.innerHTML = '<span class="err">❌ ' + esc(e.message) + '</span>'; }
   finally { btn.disabled = false; btn.textContent = 'Envoyer le mode d\'emploi'; }
+});
+
+
+/* ── 0 bis. Export CPA de la semaine (26/11/2026) ──────────────────────────
+   Le tableur est lu ICI (bibliothèque chargée seulement à ce moment-là) ;
+   lireExportCpa (partage/export_cpa.js) ne garde que jour, demi-journée, salle,
+   secteur et date opératoire. Le serveur rattache ensuite chaque consultation
+   du planning à sa salle. */
+const _JS_CPA = ['dim.', 'lun.', 'mar.', 'mer.', 'jeu.', 'ven.', 'sam.'];
+const _SEC_CPA = { END: 'Endoscopie', VIS: 'Viscéral', ORT: 'Ortho', ORL: 'ORL', INTER: 'Cardio/Inter', MAT: 'Maternité' };
+function _jCpa(iso){ const d = new Date(iso + 'T12:00:00'); return _JS_CPA[d.getDay()] + ' ' + d.getDate() + '/' + (d.getMonth() + 1); }
+function _chargerXlsx(){
+  return window.XLSX ? Promise.resolve() : new Promise((ok, ko) => {
+    const s = document.createElement('script'); s.src = 'assets/vendor/xlsx.full.min.js';
+    s.onload = ok; s.onerror = () => ko(new Error('lecteur de tableur introuvable')); document.head.appendChild(s);
+  });
+}
+$('cpaFichier').addEventListener('change', async e => {
+  const f = e.target.files && e.target.files[0], out = $('cpaRes');
+  e.target.value = '';
+  if (!f) return;
+  out.innerHTML = '<span>Lecture du fichier…</span>';
+  try {
+    await _chargerXlsx();
+    const wb = XLSX.read(await f.arrayBuffer(), { type: 'array', cellDates: true });
+    const tab = XLSX.utils.sheet_to_json(wb.Sheets[wb.SheetNames[0]], { header: 1, raw: false, defval: '' });
+    const lu = lireExportCpa(tab);
+    if (lu.erreur) throw new Error(lu.erreur);
+    if (!lu.lignes.length) throw new Error('Aucun patient au régime Libéral reconnu (' + lu.rdv + ' rendez-vous lus).');
+    out.innerHTML = '<span>Envoi de ' + lu.lignes.length + ' patients lib…</span>';
+    const r = await api({ action: 'importCpa', lignes: lu.lignes });
+    if (!r || !r.success) throw new Error(refus(r) ? MSG_RESERVE : ((r && r.error) || 'réponse illisible'));
+    const b = r.bilan, inc = Object.keys(lu.inconnus);
+    let h = '<div class="cpa-ok"><b>✓ Du ' + _jCpa(r.jours[0]) + ' au ' + _jCpa(r.jours[r.jours.length - 1]) + ' importé</b><br>'
+      + '<span style="font-size:12px;color:var(--ink-3)">' + esc(f.name) + ' · ' + lu.rdv + ' rendez-vous lus · remplace l\'import précédent de ces jours</span>'
+      + '<div class="cpa-chiffres"><div><b>' + r.patients + '</b><span>patients lib gardés</span></div>'
+      + '<div><b>' + b.auto.patients + '</b><span>rattachés seuls (' + b.auto.consultations + ' consult.)</span></div>'
+      + '<div><b>' + b.aConfirmer.patients + '</b><span>salle à confirmer par le MAR (' + b.aConfirmer.consultations + ' consult.)</span></div></div></div>';
+    if (b.sans.length) {
+      const n = b.sans.reduce((t, x) => t + x.nb, 0);
+      h += '<div class="cpa-warn"><b>⚠ ' + n + ' patient' + (n > 1 ? 's' : '') + ' lib sans consultation dans le planning</b><br>'
+        + b.sans.map(x => esc(_jCpa(x.date) + ' ' + (x.per === 'am' ? 'matin' : 'après-midi') + ' · salle ' + x.salle + ' · ' + (_SEC_CPA[x.secteur] || x.secteur) + ' · ' + x.nb)).join('<br>')
+        + '<br><span style="font-size:12px">Posez ces consultations dans le planning : leurs patients seront rattachés tout seuls, sans réimporter.</span></div>';
+    }
+    if (inc.length || lu.sansDate) {
+      h += '<div class="info">Non gardés : ' + [inc.length ? inc.map(a => esc(a) + ' (' + lu.inconnus[a] + ')').join(', ') + ' — agenda sans secteur' : '',
+        lu.sansDate ? lu.sansDate + ' sans date ou salle' : ''].filter(Boolean).join(' · ') + '</div>';
+    }
+    out.innerHTML = h;
+  } catch (err) { out.innerHTML = '<span class="err">❌ ' + esc(err.message) + '</span>'; }
 });
 
 /* ── 2. Cache ── */
