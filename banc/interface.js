@@ -287,6 +287,50 @@ const dstr = v => v instanceof Date
     w.eval(`if (window.__apiSauve) { api = window.__apiSauve; window.__apiSauve = null; } window._PLAN_NOTES = {}; closeSidePanel(); renderWeek();`);
   }
 
+  console.log('\n═══ 18 sexies. (26/11/2026) Consultation libérale endo : un MAR en LIB, un autre en consultation normale ═══');
+  {
+    /* Défaut de production du 26/11 : le planning publié (pas encore à jour) gardait le second MAR en
+       consultation libérale. Placé ensuite en consultation normale, il « correspondait » déjà au
+       publié (même case CS-END) : son placement local était effacé et l'écran le remettait en LIB. */
+    w.eval(`window.__csL = CS_TYPES; CS_TYPES = [{ code:'CS-END', label:'CS Endoscopie', ouvrable:true }]; window._csOuvert = true; renderWeek();`);
+    const libT = d.querySelector('#planTable .cs-lib');
+    const date = libT && (libT.getAttribute('onclick').match(/'(\d{4}-\d\d-\d\d)'/) || [])[1];
+    V('la case libérale du jeudi (ou mardi) après-midi offre son marqueur LIB', !!date, libT && libT.getAttribute('onclick'));
+    if (date) {
+      /* Deux MAR que le panneau propose ce jour-là. */
+      libT.click(); await dodo(300);
+      const propos = [...d.querySelectorAll('#dispoCard [onclick^="placeMAR"]')].map(x => (x.getAttribute('onclick').match(/^placeMAR\('([^']+)'/) || [])[1]).filter(Boolean);
+      w.eval('closeSidePanel()');
+      const [A, B] = propos;
+      /* Publié périmé : B en consultation libérale ce jour-là. */
+      w.eval(`DATA.months.forEach(mo => { const i = (mo.days || []).findIndex(x => x && x.date === '${date}'); if (i < 0) return;
+        mo.doctors.forEach(dc => { if (dc.id === '${B}') { dc.days[i] = Object.assign({}, dc.days[i], { afternoon: 'CS-END', lib: true }); } }); }); renderWeek();`);
+      const choisir = async id => { const c = [...d.querySelectorAll('#dispoCard [onclick*="placeMAR"]')].find(x => (x.getAttribute('onclick') || '').startsWith("placeMAR('" + id + "'"));
+        if (c) { c.click(); await dodo(250); } return !!c; };
+      const puces = () => [...d.querySelectorAll('#planTable .cs-chip')].filter(c => (c.getAttribute('onclick') || '').includes(date));
+      const estLib = id => puces().some(c => c.classList.contains('cs-chip-lib') && (c.getAttribute('title') || '').startsWith(id + ' '));
+      const estLa = id => puces().some(c => (c.getAttribute('onclick') || '').startsWith("openMarMenu('" + id + "'"));
+      /* B d'abord retiré de la libérale (comme le comité : ×), puis A en LIB, puis B en consultation normale. */
+      const xB = puces().find(c => c.classList.contains('cs-chip-lib'));
+      V('point de départ : B est affiché en consultation libérale (publié périmé)', estLib(B), puces().map(c => c.getAttribute('title')));
+      w.eval(`removeOneCs('${B}', '${B}', 'CS-END', '${date}', 'pm')`); await dodo(250);
+      const lib2 = d.querySelector('#planTable .cs-lib'); if (lib2) { lib2.click(); await dodo(300); }
+      const okA = await choisir(A);
+      const ouv = [...d.querySelectorAll('#planTable .cs-ouvrir')].find(e => (e.getAttribute('onclick') || '') === `openSidePanel('CS-END','${date}','CS Endoscopie','pm')`);
+      if (ouv) { ouv.click(); await dodo(300); }
+      const okB = await choisir(B);
+      V('A placé par le marqueur LIB, B par « + ouvrir »', okA && okB && !!ouv, { okA, okB, ouv: !!ouv });
+      V('A est en consultation libérale', estLib(A), puces().map(c => c.getAttribute('title')));
+      V('B est en consultation NORMALE, plus en libérale (malgré le publié périmé)', estLa(B) && !estLib(B), puces().map(c => (c.classList.contains('cs-chip-lib') ? '[LIB] ' : '') + c.getAttribute('title')));
+      w.eval('renderWeek()');
+      V('…et le reste après un nouveau rendu de la page', estLa(B) && !estLib(B) && estLib(A));
+      const f = w._batchAll();
+      V('la file enregistre A avec l\'étiquette LIB et B sans', (f[date + '|' + A] || {}).comment === 'LIB' && (f[date + '|' + B] || {}).comment !== 'LIB', f);
+      w.eval(`_batchPending = {}; _localOverrides = {}; _localLib = {}; saveLocalEdits();`);
+    }
+    w.eval(`CS_TYPES = window.__csL; window._csOuvert = false; closeSidePanel(); renderWeek();`);
+  }
+
   console.log('\n═══ 19. Je place des MAR (le « + » de chaque case) ═══');
   /* (20/11/2026) Plus de cases « à pourvoir » : on ajoute par le « + » gris de la case. */
   const flashes = [...d.querySelectorAll('#planTable tr.sector-row:not(.cs-sub-row) .slot-add')];

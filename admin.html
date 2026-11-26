@@ -2101,8 +2101,16 @@ function reconcileOverrides() {
         }
         const ovN = norm(ov[half]), dvN = norm(dataVal);
         const removal = (ov[half]==='VOLANT' || ov[half]==='VIDE');
+        /* (26/11/2026) La consultation libérale se lit AUSSI sur l'étiquette LIB, pas seulement sur
+           la case : un MAR placé en consultation normale alors que le planning publié (pas encore
+           à jour) le garde en libérale n'est pas « déjà publié ». Sans ça, son placement local
+           était effacé et l'écran le remettait en LIB (défaut du 26/11 : un MAR voulu en LIB, un autre en
+           consultation normale — le second revenait toujours en LIB). */
+        const _cs = ovN.split('+').some(t => t.startsWith('CS-'));
+        const _libLoc = !!(_localLib[date] && _localLib[date].has(marId + '|' + half));
+        const _libPub = !!(loc && (() => { const dc = loc.mo.doctors.find(d => d.id === marId); return dc && (dc.days[loc.i] || {}).lib; })());
         if (removal) { if (dvN==='' || dvN==='VOLANT') { ov[half]=null; changed=true; } }
-        else if (ovN && ovN===dvN) { ov[half]=null; changed=true; }
+        else if (ovN && ovN===dvN && (!_cs || _libLoc === _libPub)) { ov[half]=null; changed=true; }
       });
       if (ov.am==null && ov.pm==null) { delete dd[marId]; changed=true; }
     });
