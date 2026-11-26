@@ -4,7 +4,7 @@
    quelles : aucune ligne de logique modifiée, seulement déplacée. Le routeur et
    ses aides (checkCode, _deny, _error, doGet/doPost) restent dans Indispos.gs.
    Un seul espace global dans Apps Script : rien à importer. */
-const GAS_VERSION_TP = '2026-11-25.1';   // (25/11/2026) .1 : POSE LIBRE DES VACANCES après la génération (_poserVac_) — jour vert seulement, 7 jours d'avance, quota de la quotité, jamais sur un jour occupé ; la clé de pose porte le quota de vacances et les jours fixes de chaque MAR ; toute republication différée (TP, vacances, décisions du comité) arme aussi les mails de changement, dont celui du secrétariat · (24/11/2026) .2 : un jour fermé par le comité se rouvre tout seul s'il redevient vert parce que l'équipe s'est étoffée depuis le refus ; les MAR refusés ce jour-là sont prévenus · (24/11/2026) .1 : effectif présent — une fois l'année générée, les absences (V, F, CL, CP, CTP, A) sont lues dans GARDES, plus dans INDISPOS (GARDES fait foi) ; VM/VA comptent présents · (17/11/2026) .2 : seuils de la pose lus dans l'onglet SEUILS (seuilsPresence_), envoyés à l'écran avec l'effectif · (17/11/2026) effectif présent : un MAR marqué HORS_EFFECTIF dans MEDECINS n'est plus compté (pose des TP, points à vérifier) · (16/11/2026) jour de TP dans sa semaine Réa 1 : non bloquant — semaine envoyée à l'écran (grisée, confirmation), signalée au MAR comme au comité · (12/11/2026) plus aucun nom de personne dans le code (effectif présent) · (10/11/2026) chaque jour de TP posé, retiré, demandé ou tranché laisse une ligne dans l'onglet HISTORIQUE
+const GAS_VERSION_TP = '2026-11-26.1';   // (26/11/2026) .1 : LE TP ET LES VACANCES PASSENT AVANT LA RÉCUP DE SAMEDI — un jour qui n'est pas vert à cause de récups devient vert en les déplaçant (_tpLibererRecups_), à la pose d'un TP ou de vacances par le MAR comme à la validation du comité ; jamais une récup à moins de 30 jours ; le MAR concerné est prévenu ; l'écran de pose compte ces récups comme présentes (_tpRecupsCedables_) · (25/11/2026) .1 : POSE LIBRE DES VACANCES après la génération (_poserVac_) — jour vert seulement, 7 jours d'avance, quota de la quotité, jamais sur un jour occupé ; la clé de pose porte le quota de vacances et les jours fixes de chaque MAR ; toute republication différée (TP, vacances, décisions du comité) arme aussi les mails de changement, dont celui du secrétariat · (24/11/2026) .2 : un jour fermé par le comité se rouvre tout seul s'il redevient vert parce que l'équipe s'est étoffée depuis le refus ; les MAR refusés ce jour-là sont prévenus · (24/11/2026) .1 : effectif présent — une fois l'année générée, les absences (V, F, CL, CP, CTP, A) sont lues dans GARDES, plus dans INDISPOS (GARDES fait foi) ; VM/VA comptent présents · (17/11/2026) .2 : seuils de la pose lus dans l'onglet SEUILS (seuilsPresence_), envoyés à l'écran avec l'effectif · (17/11/2026) effectif présent : un MAR marqué HORS_EFFECTIF dans MEDECINS n'est plus compté (pose des TP, points à vérifier) · (16/11/2026) jour de TP dans sa semaine Réa 1 : non bloquant — semaine envoyée à l'écran (grisée, confirmation), signalée au MAR comme au comité · (12/11/2026) plus aucun nom de personne dans le code (effectif présent) · (10/11/2026) chaque jour de TP posé, retiré, demandé ou tranché laisse une ligne dans l'onglet HISTORIQUE
 
 /* ── (POSE TP · 22/08/2026) PHASE DE POSE DES TEMPS PARTIELS — DÉDUITE, JAMAIS ÉCRITE ──
    Les jours de temps partiel se posent APRÈS la génération des gardes (décision
@@ -154,6 +154,88 @@ function _tpMondePresence_(annee) {
            datesValides: new Set(datesI.filter(Boolean)) };
 }
 
+/* ── (26/11/2026) LE TP PASSE AVANT LA RÉCUP DE SAMEDI — décision du responsable ──
+   « Si quelqu'un ne peut pas poser son TP à cause d'une récup, ce n'est pas
+   normal. » Un jour qui n'est pas vert, et qui le deviendrait si une ou deux
+   récupérations de samedi (R) de ce jour partaient ailleurs : les R partent,
+   le TP passe. Garde-fous :
+     · seulement si le déplacement rend le jour VERT (jamais pour passer de
+       rouge à orange : on ne bouscule pas un collègue pour une demande que
+       le comité pourrait refuser) ;
+     · jamais une récup à moins de TP_RECUP_PREAVIS_JOURS jours (« pas au
+       dernier moment : le MAR a pu prendre des rendez-vous ») ;
+     · la nouvelle date suit les règles habituelles des récups (jour vert,
+       lundi ou vendredi d'abord) — n'importe quel jour à venir, sans délai
+       (choix du responsable) ; aucune date possible pour un R → rien ne
+       bouge, le TP suit son chemin habituel (attente ou refus) ;
+     · tout ou rien : on simule d'abord, on n'écrit que si chaque R a sa date.
+   Le MAR dont la récup bouge est prévenu (jamais le nom du collègue). La
+   republication est celle du TP (_tpRepublier_), pas une de plus.
+   `manque` = postables à faire revenir. `M` (_tpMondePresence_) est tenu à
+   jour : les jours suivants d'un même envoi voient les R déplacés.
+   Renvoie la liste des déplacements, ou null si rien n'a bougé. */
+const TP_RECUP_PREAVIS_JOURS = 30;
+function _tpLibererRecups_(annee, ds, targetId, manque, M, par, motif) {
+  const quoi = motif || 'temps partiel';
+  if (!(manque > 0) || typeof _recupsContexte_ !== 'function') return null;
+  let cx;
+  try { cx = _recupsContexte_(annee); } catch (e) { return null; }
+  if (ds < _recupsDecale_(cx.aujourdhui, TP_RECUP_PREAVIS_JOURS)) return null;   // trop proche : la récup reste
+  const porteurs = cx.ids.filter(function (m) { return m !== targetId && _recupsCase_(cx, m, ds) === 'R'; });
+  if (porteurs.length < manque) return null;
+  // Le TP du demandeur compte déjà dans la simulation : un R ne revient pas rendre ce jour non vert.
+  if (_recupsCase_(cx, targetId, ds) === '') _recupsEcrireCase_(cx, targetId, ds, 'TP', false);
+  const plan = [];
+  for (let i = 0; i < porteurs.length && plan.length < manque; i++) {
+    const m = porteurs[i];
+    // Case occupée par un marqueur neutre : le MAR compte présent ce jour-là et son R ne peut pas y revenir.
+    _recupsEcrireCase_(cx, m, ds, 'X', false);
+    const lien = cx.liens.find(function (x) { return x.med === m && x.dateR === ds; }) || null;
+    const d = _recupsChoisir_(cx, m, lien ? lien.samedi : '');
+    if (!d) { _recupsEcrireCase_(cx, m, ds, 'R', false); continue; }
+    _recupsEcrireCase_(cx, m, d, 'R', false);
+    plan.push({ med: m, samedi: lien ? lien.samedi : '', avant: ds, date: d, lien: lien });
+  }
+  if (plan.length < manque) return null;   // tout ou rien : rien n'a été écrit
+  plan.forEach(function (p) {
+    _recupsEcrireCase_(cx, p.med, p.avant, '', true);
+    _recupsEcrireCase_(cx, p.med, p.date, 'R', true);
+    if (p.lien) _recupsLier_(cx, p.lien.samedi, p.med, p.date, true);
+    if (M && M.enRepos) {
+      if (M.enRepos[p.med]) delete M.enRepos[p.med][p.avant];
+      (M.enRepos[p.med] = M.enRepos[p.med] || {})[p.date] = 'R';
+    }
+  });
+  try { (typeof historiser_ === 'function') && historiser_(plan.map(function (p) {
+    return { annee: annee, quoi: 'récupération déplacée (' + quoi + ' d\'un collègue)', mar: p.med, jour: p.date, jour2: p.avant,
+             autre: '', par: par || 'automatique', detail: (p.samedi ? 'samedi ' + p.samedi + ' — ' : '') + 'du ' + p.avant + ' au ' + p.date };
+  })); } catch (eH) {}
+  plan.forEach(function (p) {
+    try { logAction('récups — déplacée pour un TP : ' + p.med + ' ' + p.avant + ' → ' + p.date + (p.samedi ? ' (samedi ' + p.samedi + ')' : '')); } catch (eL) {}
+    try { notifierPush_('Récupération déplacée', 'Votre récupération' + (p.samedi ? ' du samedi ' + _echangesJoli_(p.samedi) : '')
+      + ' passe du ' + _echangesJoli_(p.avant) + ' au ' + _echangesJoli_(p.date) + ' : un collègue prend un jour de ' + quoi + ' le '
+      + _echangesJoli_(p.avant) + '.', './index.html', { id: p.med }); } catch (eN) {}
+  });
+  return plan;
+}
+
+/* (26/11/2026) Ce que voit l'écran de pose : un jour où des récups à plus de
+   30 jours pourraient céder la place doit s'afficher avec elles COMPTÉES
+   PRÉSENTES — sinon il paraît orange alors que le serveur l'accorderait
+   (« le jour n'apparaîtra pas en vert », remarque du responsable). Même
+   périmètre que la pose : MAR de l'effectif, récups (R) du jour. Le serveur
+   reste juge : si une récup ne trouve aucune autre date, le jour suit la
+   règle habituelle. */
+function _tpRecupsCedables_(M, ds, auj) {
+  if (!M || !M.enRepos || !auj) return 0;
+  const d = new Date(auj + 'T12:00:00'); d.setDate(d.getDate() + TP_RECUP_PREAVIS_JOURS);
+  const limite = d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0') + '-' + String(d.getDate()).padStart(2, '0');
+  if (ds < limite) return 0;
+  let n = 0;
+  (M.ids || []).forEach(function (id) { if (M.enRepos[id] && M.enRepos[id][ds] === 'R') n++; });
+  return n;
+}
+
 /* ── POSER LES TP D'UN MAR — le serveur juge, il ne croit pas l'écran ─────────
    L'écran calcule ses bandes depuis la copie rapide, qui peut retarder de
    quelques minutes : deux MAR peuvent voir le même jour vert. C'est donc ICI,
@@ -242,8 +324,15 @@ function _poserTp_(user, targetId, envoye, annee) {
     if (occupe) { resultat[ds] = 'jour déjà ' + occupe; return; }
     if (rea1Moi[ds]) alertesRea1.push(ds);
 
-    const presents = M.presents(ds);
-    const reste = presents - 1;
+    let presents = M.presents(ds);
+    let reste = presents - 1;
+    /* (26/11/2026) Le TP passe avant la récup de samedi : si déplacer une ou
+       deux récups rend le jour vert, elles partent (quota vérifié d'abord). */
+    if (reste < S.confort && nbTP + nbAttente < quotaTotal && typeof _tpLibererRecups_ === 'function'
+        && _tpLibererRecups_(annee, ds, targetId, S.confort - reste, M,
+             estAdmin ? 'comité (' + (user.id || 'admin') + ')' : String((user && user.id) || targetId))) {
+      presents = M.presents(ds); reste = presents - 1;
+    }
     if (reste < S.alerte) { resultat[ds] = 'équipe trop réduite (' + presents + ' présents)'; return; }
     if (reste < S.confort) {
       /* Bande jaune : le comité tranchera. Rien n'entre dans le planning,
@@ -437,7 +526,15 @@ function _poserVac_(user, targetId, envoye, annee) {
        après-midi, ne retire personne : pas de nouveau jugement. */
     const exigeVert = !c || (v === 'V' && c !== 'V');
     if (exigeVert) {
-      const reste = M.presents(ds) - 1;
+      let reste = M.presents(ds) - 1;
+      /* (26/11/2026) Les vacances passent avant la récup de samedi, comme le
+         TP : si déplacer des récups rend le jour vert, elles partent (quota
+         vérifié d'abord, jamais une récup à moins de 30 jours). */
+      if (reste < S.confort && total + _vacPoids_(v, ds, jf, fixes) <= quota && typeof _tpLibererRecups_ === 'function'
+          && _tpLibererRecups_(annee, ds, targetId, S.confort - reste, M,
+               estAdmin ? 'comité (' + (user.id || 'admin') + ')' : String((user && user.id) || targetId), 'vacances')) {
+        reste = M.presents(ds) - 1;
+      }
       if (reste < S.confort) {
         if (c) { final[ds] = c; total += _vacPoids_(c, ds, jf, fixes); }   // le changement refusé laisse le jour tel quel
         resultat[ds] = 'il resterait ' + reste + ' présents (moins de ' + S.confort + ') : demandez aux admins';
@@ -800,9 +897,17 @@ function _construirePoseTp_(annee) {
     presents[ds] = M.presents(ds);
   });
   /* (24/11/2026) Un jour fermé redevenu vert se rouvre ici, avant que la liste
-     des fermés ne parte vers l'écran. Jamais bloquant pour la construction. */
+     des fermés ne parte vers l'écran. Jamais bloquant pour la construction.
+     Il juge sur l'effectif RÉEL (comparé à l'effectif du refus). */
   try { _tpRouvrirSiLibere_(annee, presents); }
   catch (eRo) { try { Logger.log('_tpRouvrirSiLibere_ : ' + eRo.message); } catch (e2) {} }
+  /* (26/11/2026) L'écran, lui, compte présentes les récups qui céderaient la
+     place à un TP ou à des vacances (_tpRecupsCedables_) : il colore comme
+     le serveur tranchera. */
+  let aujP;
+  try { aujP = Utilities.formatDate(new Date(), Session.getScriptTimeZone(), 'yyyy-MM-dd'); }
+  catch (eD) { aujP = new Date().toISOString().slice(0, 10); }
+  if (typeof _tpRecupsCedables_ === 'function') Object.keys(presents).forEach(function (ds) { presents[ds] += _tpRecupsCedables_(M, ds, aujP); });
   const attentes = {};
   _tpDemandes_(annee).forEach(function (x) {
     (attentes[x.mar] = attentes[x.mar] || {})[x.date] = true;
@@ -932,13 +1037,23 @@ function _act_deciderJourTp(R) {
     } else if (!_tpGrilleEcrire_(anneeD, cibleId, ds, 'TP')) {
       out = { success: false, error: 'La case du planning n\'est plus libre ce jour-là' };
     } else {
+      /* (26/11/2026) Le TP passe avant la récup de samedi : la case est
+         écrite, le jour est-il vert ? Sinon, une ou deux récups à plus de
+         30 jours partent ailleurs si ça suffit. Le comité valide de toute
+         façon : sans récup à déplacer, rien ne change. */
+      let recupsDeplacees = [];
+      try {
+        const S = seuilsPresence_();
+        const manque = S.confort - _tpMondePresence_(anneeD).presents(ds);   // le TP est déjà écrit : il est compté absent
+        if (manque > 0 && typeof _tpLibererRecups_ === 'function') recupsDeplacees = _tpLibererRecups_(anneeD, ds, cibleId, manque, null, 'comité (' + user.id + ')') || [];
+      } catch (eR) { try { logAction('deciderJourTp : récups non déplacées — ' + eR.message); } catch (e2) {} }
       _tpDemandeRetirer_(anneeD, ds, cibleId);
       _tpRepublier_(anneeD);
       logAction('deciderJourTp VALIDE ' + ds + ' (' + anneeD + ') ' + cibleId + ' par ' + user.id + ' — planning republié');
       (typeof historiser_ === 'function') && historiser_([{ annee: anneeD, quoi: 'TP validé par le comité', mar: cibleId, jour: ds, par: 'comité (' + user.id + ')' }]);
       _tpNotifier_('Temps partiel validé',
         'Votre jour du ' + _tpJourLisible_(ds) + ' est validé par le comité.', cibleId);
-      out = { success: true, date: ds, doctorId: cibleId };
+      out = { success: true, date: ds, doctorId: cibleId, recupsDeplacees: recupsDeplacees.length };
       /* (16/11/2026) Validé par le comité dans la semaine Réa 1 du MAR : ça passe,
          mais l'écran du comité le signale. */
       if (typeof _rea1Jours_ === 'function' && (_rea1Jours_(anneeD)[cibleId] || {})[ds]) out.alerteRea1 = true;

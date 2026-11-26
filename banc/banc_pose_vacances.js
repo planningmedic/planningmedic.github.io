@@ -324,6 +324,44 @@ console.log('\n═══ PV10 · la clé de pose porte le quota de vacances et l
   V('les jours fixes voyagent en LISTE (jamais en ensemble)', Array.isArray(k.parMar.FIXE.joursFixes), k.parMar.FIXE.joursFixes);
 }
 
+console.log('\n═══ PV13 · les vacances passent avant la récup de samedi ; l\'écran compte ces récups présentes ═══');
+{
+  /* (26/11/2026) Décision du responsable : comme le TP, une vacance n'est pas
+     bloquée par une récup de samedi à plus de 30 jours — la récup part sur un
+     autre jour vert. L'écran de pose colore en comptant ces récups présentes. */
+  const SRC_ECH = fs.readFileSync('../gas/echanges.gs', 'utf8'), SRC_TP = fs.readFileSync('../gas/temps_partiel.gs', 'utf8');
+  const constDe = (src, nom) => { const m = src.match(new RegExp('const\\s+' + nom + '[^;\\n]*;')); if (!m) throw new Error(nom); return m[0]; };
+  const JOUR = '2027-03-15';
+  const mondeR = (gardes) => {
+    const b = monde({ gardes: gardes, liens2027: false });
+    b.cl.ajouter('LIENS_R_2027', [['SAMEDI', 'MED', 'DATE_R'], ['2027-03-13', 'PLEIN05', JOUR]]);
+    ['RECUP_PLANCHER_REPLI', 'RECUP_MAX_PAR_JOUR', 'RECUP_ECART_JOURS', 'RECUP_ABSENTS', 'RECUP_CONGES'].forEach(n => vm.runInContext(constDe(SRC_ECH, n), b.ctx));
+    vm.runInContext(constDe(SRC_TP, 'TP_RECUP_PREAVIS_JOURS'), b.ctx);
+    ['_echangesTz_', '_echangesTexteDate_', '_echangesJoli_', '_rea1Jours_', '_recupsDecale_', '_recupsDow_', '_recupsAujourdhui_',
+     '_recupsContexte_', '_recupsCase_', '_recupsEcrireCase_', '_recupsHorsService_', '_recupsPresents_', '_recupsNbR_',
+     '_recupsEligible_', '_recupsUtile_', '_recupsChoisir_', '_recupsLier_'].forEach(n => vm.runInContext(extraireFonction('../gas/echanges.gs', n), b.ctx));
+    ['_tpLibererRecups_', '_tpRecupsCedables_'].forEach(n => vm.runInContext(extraireFonction('../gas/temps_partiel.gs', n), b.ctx));
+    return b;
+  };
+  const deuxR = [['PLEIN05', JOUR, 'R'], ['PLEIN06', JOUR, 'R'], ['PLEIN05', '2027-03-13', 'G']];
+  let b = mondeR(deuxR);
+  let k = vm.runInContext('JSON.parse(JSON.stringify(_construirePoseTp_(2027)))', b.ctx);
+  V('écran : les deux récups à plus de 30 jours comptent présentes (16, vert) au lieu de 14', k.presents[JOUR] === 16, k.presents[JOUR]);
+  const r = b.appel({ vac: true, year: 2027, vacances: { [JOUR]: 'V' } }, MAR);
+  V('pose : la vacance est ACCORDÉE, les deux récups ont quitté ce jour',
+    r.resultat[JOUR] === 'V' && b.lireGarde('PLEIN01', JOUR) === 'V' && b.lireGarde('PLEIN05', JOUR) === '' && b.lireGarde('PLEIN06', JOUR) === '', r.resultat);
+  const notif = b.envois.filter(e => e.titre === 'Récupération déplacée');
+  V('…les deux MAR sont prévenus (« jour de vacances »)', notif.length === 2 && notif.every(e => /jour de vacances le 15\/03\/2027/.test(e.corps)), notif);
+  b = mondeR(deuxR);
+  b.ctx.Utilities = { formatDate: () => '2027-02-20' };
+  k = vm.runInContext('JSON.parse(JSON.stringify(_construirePoseTp_(2027)))', b.ctx);
+  V('écran : récups dans 23 jours → comptées absentes (14), comme le serveur', k.presents[JOUR] === 14, k.presents[JOUR]);
+  b = mondeR([['PLEIN05', JOUR, 'R']].concat(tendu(JOUR, 1).map(x => [x[0], x[1], 'V'])));
+  const r2 = b.appel({ vac: true, year: 2027, vacances: { [JOUR]: 'V' } }, MAR);
+  V('une récup ne suffit pas (une vacance en plus ce jour) : elle reste, la vacance est refusée',
+    /il resterait/.test(r2.resultat[JOUR] || '') && b.lireGarde('PLEIN05', JOUR) === 'R', r2.resultat);
+}
+
 console.log('\n═══ PV11 · la tuile du portail ═══');
 {
   const src = fs.readFileSync('../index.html', 'utf8');

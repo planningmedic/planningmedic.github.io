@@ -1362,5 +1362,89 @@ console.log('\n═══ PT-R1 · semaine Réa 1 (16/11/2026) : TP NON bloquant 
     /b-tpx-rea1">RÉA 1</.test(srcInd) && /function tpxConfirmerRea1\(ds\)/.test(srcInd) && /TPX\.rea1\.has\(ds\) && !TPX\.okRea1\.has\(ds\)/.test(srcInd));
 }
 
+/* (26/11/2026) LE TP PASSE AVANT LA RÉCUP DE SAMEDI — décision du responsable.
+   Un jour non vert à cause de récups devient vert en les déplaçant, à la pose
+   comme à la validation du comité ; jamais une récup à moins de 30 jours ;
+   tout ou rien ; le MAR dont la récup bouge est prévenu. Code RÉEL : les
+   fonctions des récups sont extraites d'echanges.gs, rien n'est recopié. */
+console.log('\n═══ PT40 · le TP passe avant la récup de samedi (sauf à moins de 30 jours) ═══');
+{
+  const SRC_ECH = fs.readFileSync('../gas/echanges.gs', 'utf8');
+  const SRC_TP = fs.readFileSync('../gas/temps_partiel.gs', 'utf8');
+  const constDe = (src, nom) => { const m = src.match(new RegExp('const\\s+' + nom + '[^;\\n]*;')); if (!m) throw new Error(nom); return m[0]; };
+  const JOUR = '2027-03-15';   // lundi
+  function mondeR(opts) {
+    opts = opts || {};
+    const b = monde({ gardes: opts.gardes || [], indispos: opts.indispos || [], liens2027: false, extras: opts.extras });
+    b.cl.ajouter('LIENS_R_2027', [['SAMEDI', 'MED', 'DATE_R']].concat(opts.liens || []));
+    ['RECUP_PLANCHER_REPLI', 'RECUP_MAX_PAR_JOUR', 'RECUP_ECART_JOURS', 'RECUP_ABSENTS', 'RECUP_CONGES'].forEach(n => vm.runInContext(constDe(SRC_ECH, n), b.ctx));
+    vm.runInContext(constDe(SRC_TP, 'TP_RECUP_PREAVIS_JOURS'), b.ctx);
+    ['_echangesTz_', '_echangesTexteDate_', '_echangesJoli_', '_rea1Jours_', '_recupsDecale_', '_recupsDow_', '_recupsAujourdhui_',
+     '_recupsContexte_', '_recupsCase_', '_recupsEcrireCase_', '_recupsHorsService_', '_recupsPresents_', '_recupsNbR_',
+     '_recupsEligible_', '_recupsUtile_', '_recupsChoisir_', '_recupsLier_'].forEach(n => vm.runInContext(extraireFonction('../gas/echanges.gs', n), b.ctx));
+    vm.runInContext(extraireFonction('../gas/temps_partiel.gs', '_tpLibererRecups_'), b.ctx);
+    if (opts.auj) b.ctx.Utilities = { formatDate: () => opts.auj };
+    return b;
+  }
+  const lienDe = (b, med) => vm.runInContext(`_echangesTexteDate_((SpreadsheetApp.getActiveSpreadsheet().getSheetByName('LIENS_R_2027').getDataRange().getValues().find(l => l[1] === ${JSON.stringify(med)}) || [])[2])`, b.ctx);
+  const presentsLe = (b, ds) => vm.runInContext(`_tpMondePresence_(2027).presents(${JSON.stringify(ds)})`, b.ctx);
+  const deuxR = { gardes: [['PLEIN01', JOUR, 'R'], ['PLEIN02', JOUR, 'R'], ['PLEIN01', '2027-03-13', 'G']],
+                  liens: [['2027-03-13', 'PLEIN01', JOUR]] };
+
+  // 1. Pose par le MAR : 16 − 2 récups = 14 présents → il resterait 13 (orange). Les deux récups partent, le TP passe.
+  let b = mondeR(deuxR);
+  V('décor : 14 présents le jour voulu (deux récups), le jour n\'est pas vert', presentsLe(b, JOUR) === 14, presentsLe(b, JOUR));
+  let rep = b.appel({ tp: true, indispos: { [JOUR]: 'TP' } }, MAR);
+  const n1 = b.lireGarde('PLEIN01', JOUR), n2 = b.lireGarde('PLEIN02', JOUR);
+  V('pose MAR : le TP est ACCORDÉ (plus en attente)', rep.resultat[JOUR] === 'TP' && b.lireGarde('POSEUR', JOUR) === 'TP', rep.resultat);
+  V('…les deux récups ont quitté ce jour', n1 === '' && n2 === '', [n1, n2]);
+  const d1 = vm.runInContext(`Object.keys(_tpGrilleLire_(2027,'PLEIN01')).filter(d => _tpGrilleLire_(2027,'PLEIN01')[d]==='R')`, b.ctx);
+  const d2 = vm.runInContext(`Object.keys(_tpGrilleLire_(2027,'PLEIN02')).filter(d => _tpGrilleLire_(2027,'PLEIN02')[d]==='R')`, b.ctx);
+  V('…chacune est reposée UNE fois, ailleurs', d1.length === 1 && d2.length === 1 && d1[0] !== JOUR && d2[0] !== JOUR, [d1, d2]);
+  V('…sur un jour qui reste vert (≥ 15 postables avec le R)', presentsLe(b, d1[0]) >= 15 && presentsLe(b, d2[0]) >= 15, [presentsLe(b, d1[0]), presentsLe(b, d2[0])]);
+  V('…le lien samedi → R suit la nouvelle date', lienDe(b, 'PLEIN01') === d1[0], lienDe(b, 'PLEIN01'));
+  V('…le jour du TP reste vert (15 postables)', presentsLe(b, JOUR) === 15, presentsLe(b, JOUR));
+  const notifR = b.envois.filter(e => e.titre === 'Récupération déplacée');
+  V('…les deux MAR concernés sont prévenus, sans le nom du collègue',
+    notifR.length === 2 && notifR.every(e => /15\/03\/2027/.test(e.corps) && !/POSEUR/.test(e.corps))
+    && notifR.map(e => e.cible.id).sort().join() === 'PLEIN01,PLEIN02', notifR);
+  V('…une seule republication armée (celle du TP)', b.declencheurs.length === 1 && b.republications.length === 0, [b.declencheurs, b.republications]);
+
+  // 2. Tout ou rien : une récup + des vacances → il manque 2, une seule récup à bouger → rien ne bouge.
+  b = mondeR({ gardes: [['PLEIN01', JOUR, 'R']], indispos: [['PLEIN03', JOUR, 'VAC']] });
+  rep = b.appel({ tp: true, indispos: { [JOUR]: 'TP' } }, MAR);
+  V('une récup ne suffit pas à rendre le jour vert : elle RESTE, le TP part en attente',
+    rep.resultat[JOUR] === 'TPA' && b.lireGarde('PLEIN01', JOUR) === 'R' && !b.envois.some(e => e.titre === 'Récupération déplacée'), rep.resultat);
+
+  // 3. À moins de 30 jours : la récup ne bouge pas.
+  b = mondeR(Object.assign({ auj: '2027-02-20' }, deuxR));
+  rep = b.appel({ tp: true, indispos: { [JOUR]: 'TP' } }, MAR);
+  V('récups dans 23 jours : elles RESTENT, le TP part en attente',
+    rep.resultat[JOUR] === 'TPA' && b.lireGarde('PLEIN01', JOUR) === 'R' && b.lireGarde('PLEIN02', JOUR) === 'R', rep.resultat);
+  b = mondeR(Object.assign({ auj: '2027-02-13' }, deuxR));
+  rep = b.appel({ tp: true, indispos: { [JOUR]: 'TP' } }, MAR);
+  V('contre-épreuve — récups dans 30 jours pile : elles partent, le TP passe',
+    rep.resultat[JOUR] === 'TP' && b.lireGarde('PLEIN01', JOUR) === '', rep.resultat);
+
+  // 4. Validation par le comité d'une demande en attente.
+  b = mondeR({ gardes: deuxR.gardes, liens: deuxR.liens, indispos: [['POSEUR', JOUR, 'TPA']] });
+  vm.runInContext(require('./stubs').blocAction('deciderJourTp', 'handlerDecider'), b.ctx);
+  rep = vm.runInContext(`handlerDecider('deciderJourTp', ${JSON.stringify({ decision: 'valider', doctorId: 'POSEUR', date: JOUR, year: 2027 })}, ${JSON.stringify(ADMIN)})`, b.ctx);
+  V('comité : la validation déplace les deux récups et le jour finit vert',
+    rep.success && rep.recupsDeplacees === 2 && b.lireGarde('POSEUR', JOUR) === 'TP' && b.lireGarde('PLEIN01', JOUR) === '' && presentsLe(b, JOUR) === 15, rep);
+  b = mondeR({ gardes: deuxR.gardes, indispos: [['POSEUR', JOUR, 'TPA'], ['PLEIN03', JOUR, 'VAC'], ['PLEIN04', JOUR, 'VAC']] });
+  vm.runInContext(require('./stubs').blocAction('deciderJourTp', 'handlerDecider'), b.ctx);
+  rep = vm.runInContext(`handlerDecider('deciderJourTp', ${JSON.stringify({ decision: 'valider', doctorId: 'POSEUR', date: JOUR, year: 2027 })}, ${JSON.stringify(ADMIN)})`, b.ctx);
+  V('comité : récups insuffisantes pour le vert → validé quand même, aucune récup ne bouge',
+    rep.success && rep.recupsDeplacees === 0 && b.lireGarde('PLEIN01', JOUR) === 'R' && b.lireGarde('PLEIN02', JOUR) === 'R', rep);
+
+  // 5. Le minimum : 17 MAR, deux récups → il manque UN postable, UNE seule récup part.
+  b = mondeR({ extras: [ligneMed('PLEIN15', 100)], gardes: [['PLEIN01', JOUR, 'R'], ['PLEIN02', JOUR, 'R']] });
+  rep = b.appel({ tp: true, indispos: { [JOUR]: 'TP' } }, MAR);
+  const restees = ['PLEIN01', 'PLEIN02'].filter(m => b.lireGarde(m, JOUR) === 'R').length;
+  V('il ne manque qu\'un postable : une seule récup part, l\'autre reste',
+    rep.resultat[JOUR] === 'TP' && restees === 1 && presentsLe(b, JOUR) === 15, [rep.resultat, restees]);
+}
+
 console.log(`\n${ko === 0 ? '✅' : '❌'} banc_pose_tp : ${ok} vérifications, ${ko} échec(s)`);
 if (ko > 0) process.exit(1);
