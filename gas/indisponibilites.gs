@@ -4,7 +4,7 @@
    quelles : aucune ligne de logique modifiée, seulement déplacée. Le routeur et
    ses aides (checkCode, _deny, _error, doGet/doPost) restent dans Indispos.gs.
    Un seul espace global dans Apps Script : rien à importer. */
-const GAS_VERSION_INDISPOS_METIER = '2026-11-26.2';   // (26/11/2026) .2 : export CPA — importCpa (droit maintenance, onglet CPA_EXPORT), rattachement des consultations aux salles (CPA_SALLES), lignes CPA servies dans getConsultAbsences, op salle et lignes cpa| dans patientsLib · .1 : patients lib d'une consultation — action patientsLib (droit patlib, onglet PATIENTS_LIB) et patients servis dans getConsultAbsences · (25/11/2026) .2 : action getRecapPdf (PDF du récapitulatif pour le MAR connecté) ; getOrdreVacances répond aussi pour y+2 · .1 : saveIndispos accepte la pose libre des vacances (payload.vac, voir _poserVac_ dans temps_partiel.gs) · (20/11/2026) .1 : setIndisposYear et envoyerRecapIndispos réservés au responsable · (15/11/2026) clearIndisposYear réservé au droit Maintenance (clôture d'année) · (10/11/2026) PDF récapitulatif par document Google (les couleurs passent) + renvoyerRecapPdf2027 · (09/11/2026) mail « Vos gardes » : 18 h, souhaits honorés, gardes qui allongent les vacances · (27/10/2026) VM/VA posés à la main : jamais écrasés par un enregistrement (MAR ou staff)
+const GAS_VERSION_INDISPOS_METIER = '2026-11-26.3';   // (26/11/2026) .3 : consultations tenues par le secteur — les MAR du secteur du bloc la voient, celui qui la fait la prend (op secteur), choix « aucune salle » · .2 : export CPA — importCpa (droit maintenance, onglet CPA_EXPORT), rattachement des consultations aux salles (CPA_SALLES), lignes CPA servies dans getConsultAbsences, op salle et lignes cpa| dans patientsLib · .1 : patients lib d'une consultation — action patientsLib (droit patlib, onglet PATIENTS_LIB) et patients servis dans getConsultAbsences · (25/11/2026) .2 : action getRecapPdf (PDF du récapitulatif pour le MAR connecté) ; getOrdreVacances répond aussi pour y+2 · .1 : saveIndispos accepte la pose libre des vacances (payload.vac, voir _poserVac_ dans temps_partiel.gs) · (20/11/2026) .1 : setIndisposYear et envoyerRecapIndispos réservés au responsable · (15/11/2026) clearIndisposYear réservé au droit Maintenance (clôture d'année) · (10/11/2026) PDF récapitulatif par document Google (les couleurs passent) + renvoyerRecapPdf2027 · (09/11/2026) mail « Vos gardes » : 18 h, souhaits honorés, gardes qui allongent les vacances · (27/10/2026) VM/VA posés à la main : jamais écrasés par un enregistrement (MAR ou staff)
 // précédente : '2026-10-22.2'
 
 // La campagne de saisie des indispos est-elle EN COURS ?
@@ -2136,9 +2136,19 @@ function _act_getConsultAbsences(R) {
       try {
         const exp = _cpaLire_();
         if (exp.length) {
-          const rs = _cpaResoudre_(user.id, consultationsF, exp, _cpaSallesLire_());
+          const jx = {}; exp.forEach(function (x) { jx[x.consult] = true; });
+          const rs = _cpaResoudre_(user.id, _cpaConsultsJours_(Object.keys(jx)), exp, _cpaSallesLire_());
           salles = rs.salles; aChoisir = rs.aChoisir;
           patients = patients.concat(_cpaLignes_(user.id, rs.salles, exp));
+          // Consultations du secteur : à valider (MAR du secteur) ou prises (elles deviennent les siennes)
+          rs.pris.map(function (c) { return { date: c.date, per: c.per, cs: c.cs, mar: user.id, secteur: true }; })
+            .concat(rs.secteurs.map(function (c) { return { date: c.date, per: c.per, cs: c.cs, mar: user.id, secteur: true, aValider: true, nbSecteur: c.nb, enAttente: c.enAttente }; }))
+            .forEach(function (c) {
+              if (joursConsult.indexOf(c.date) < 0) return;
+              if (consultationsF.some(function (o) { return o.date === c.date && o.per === c.per && o.mar === user.id; })) return;
+              consultationsF.push(c);
+            });
+          consultationsF.sort(function (a, b) { return a.date < b.date ? -1 : a.date > b.date ? 1 : (a.per < b.per ? -1 : 1); });
         }
       } catch (e) { salles = {}; aChoisir = []; }
     }
@@ -2257,8 +2267,24 @@ function _act_patientsLib(R) {
       const exp = _cpaLire_();
       const rs = _cpaResoudre_(user.id, _cpaConsultsJours_([date]), exp, _cpaSallesLire_());
       const prop = rs.aChoisir.filter(function (x) { return x.date === date && x.per === per; })[0];
-      if (!prop || prop.salles.indexOf(salle) < 0) return _error('Salle non proposée pour cette consultation.');
+      if (!prop || (prop.salles.indexOf(salle) < 0 && !(salle === '-' && prop.aucune))) return _error('Salle non proposée pour cette consultation.');
       _cpaSalleEcrire_(date, per, user.id, salle);
+      return ok();
+    }
+    if (op === 'secteur') {           // (26/11/2026) consultation tenue par le secteur : « c'est moi qui la fais »
+      const date = String(payload.date || ''), per = payload.per === 'am' ? 'am' : 'pm', cs = String(payload.cs || '');
+      if (!/^\d{4}-\d{2}-\d{2}$/.test(date) || !/^CS-[A-Z]+$/.test(cs)) return _error('Consultation introuvable.');
+      const c = _cpaConsultsJours_([date]).filter(function (x) { return x.secteur && x.per === per && x.cs === cs; })[0];
+      if (!c) return _error('Cette consultation n\'est plus tenue par le secteur.');
+      const qui = _cpaSallesLire_()[date + '|' + per + '|' + cs] || '';
+      if (payload.prendre) {
+        if (c.membres.indexOf(user.id) < 0) return _error('Vous n\'êtes pas placé dans ce secteur ce jour-là.');
+        if (qui && qui !== user.id) return _error('Un confrère a déjà pris cette consultation.');
+        _cpaPrise_(date, per, cs, user.id);
+      } else {
+        if (qui !== user.id) return _error('Ce n\'est pas vous qui avez pris cette consultation.');
+        _cpaPrise_(date, per, cs, '');
+      }
       return ok();
     }
     if (String(payload.id || '').indexOf('cpa|') === 0) {   // une ligne venue de l'export CPA
@@ -2267,7 +2293,7 @@ function _act_patientsLib(R) {
       const x = exp.filter(function (e) { return e.consult === p[1] && e.per === p[2] && e.salle === p[3] && e.bloc === p[4]; })[0];
       if (!x) return _error('Ligne introuvable.');
       const rs = _cpaResoudre_(user.id, _cpaConsultsJours_([p[1]]), exp, _cpaSallesLire_());
-      if (rs.salles[p[1] + '|' + p[2]] !== p[3]) return _error('Ligne introuvable.');
+      if (!_cpaASalle_(rs.salles, p[1] + '|' + p[2], p[3])) return _error('Ligne introuvable.');
       let nb = x.nb, confie;
       if (op === 'confier') {
         confie = String(payload.a || '').trim();
@@ -2318,6 +2344,7 @@ const CPA_ENTETE = ['DATE_CONSULT', 'PER', 'SALLE', 'SECTEUR', 'DATE_BLOC', 'NB'
 const CPA_SALLES_ONGLET = 'CPA_SALLES';
 const CPA_SALLES_ENTETE = ['DATE', 'PER', 'MAR', 'SALLE', 'MAJ'];
 const CPA_SECTEURS = ['END', 'VIS', 'ORT', 'ORL', 'INTER', 'MAT'];
+const CPA_BLOC = { END: 'END', VIS: 'VIS', ORT: 'ORT', ORL: 'ORL', INTER: 'CI', MAT: 'MAT', PED: 'PED' };   // consultation → secteur du bloc
 function _cpaSecteur_(cs) { const c = String(cs || '').replace(/^CS-/, ''); return c === 'CI' ? 'INTER' : c; }
 function _cpaLire_() {
   const sh = SpreadsheetApp.getActiveSpreadsheet().getSheetByName(CPA_ONGLET);
@@ -2331,7 +2358,10 @@ function _cpaSallesLire_() {
   const sh = SpreadsheetApp.getActiveSpreadsheet().getSheetByName(CPA_SALLES_ONGLET), out = {};
   if (!sh) return out;
   sh.getDataRange().getValues().slice(1).forEach(function (l) {
-    if (l[0]) out[_patlibJour_(l[0]) + '|' + String(l[1]).trim() + '|' + String(l[2]).trim()] = String(l[3]).trim();
+    if (!l[0]) return;
+    const k = _patlibJour_(l[0]) + '|' + String(l[1]).trim(), mar = String(l[2]).trim(), sal = String(l[3]).trim();
+    if (sal.indexOf('CS-') === 0) out[k + '|' + sal] = mar;      // consultation du secteur prise par ce MAR
+    else out[k + '|' + mar] = sal;                                // salle choisie ('-' : aucune)
   });
   return out;
 }
@@ -2341,14 +2371,34 @@ function _cpaSalleEcrire_(date, per, mar, salle) {
   if (!sh) { sh = ss.insertSheet(CPA_SALLES_ONGLET); sh.appendRow(CPA_SALLES_ENTETE); sh.setFrozenRows(1); }
   const lg = sh.getDataRange().getValues();
   for (let r = 1; r < lg.length; r++) {
-    if (_patlibJour_(lg[r][0]) === date && String(lg[r][1]).trim() === per && String(lg[r][2]).trim() === mar) {
+    if (_patlibJour_(lg[r][0]) === date && String(lg[r][1]).trim() === per && String(lg[r][2]).trim() === mar
+        && String(lg[r][3]).trim().indexOf('CS-') !== 0) {
       sh.getRange(r + 1, 4, 1, 2).setValues([[salle, new Date()]]); return;
     }
   }
   sh.appendRow([date, per, mar, salle, new Date()]);
 }
-/* Consultations du planning publié pour quelques jours (tous les MAR), même
-   lecture que getConsultAbsences : planning_{Y}.json, miroir maternité compris. */
+/* (26/11/2026) Consultation du secteur : « c'est moi qui la fais » (mar), ou plus personne (''). */
+function _cpaPrise_(date, per, cs, mar) {
+  const ss = SpreadsheetApp.getActiveSpreadsheet();
+  let sh = ss.getSheetByName(CPA_SALLES_ONGLET);
+  if (!sh) { if (!mar) return; sh = ss.insertSheet(CPA_SALLES_ONGLET); sh.appendRow(CPA_SALLES_ENTETE); sh.setFrozenRows(1); }
+  const lg = sh.getDataRange().getValues();
+  for (let r = lg.length - 1; r >= 1; r--) {
+    if (_patlibJour_(lg[r][0]) === date && String(lg[r][1]).trim() === per && String(lg[r][3]).trim() === cs) {
+      if (mar) { sh.getRange(r + 1, 3, 1, 3).setValues([[mar, cs, new Date()]]); return; }
+      sh.deleteRow(r + 1);
+    }
+  }
+  if (mar) sh.appendRow([date, per, mar, cs, new Date()]);
+}
+/* Une salle de `salles` (valeur : '2' ou ['2','4']) ? */
+function _cpaASalle_(salles, k, salle) { const v = salles[k]; return Array.isArray(v) ? v.indexOf(salle) > -1 : v === salle; }
+function _cpaAjSalle_(salles, k, salle) {
+  const v = salles[k];
+  if (v === undefined) salles[k] = salle;
+  else if (!_cpaASalle_(salles, k, salle)) salles[k] = [].concat(v, [salle]);
+}
 function _cpaConsultsJours_(dates) {
   const out = [], vus = {}, ans = {};
   dates.forEach(function (d) { ans[anneePlanning(d)] = true; });
@@ -2356,6 +2406,7 @@ function _cpaConsultsJours_(dates) {
     let doc;
     try { const raw = readPlanningFromDrive('planning_' + an + '.json'); if (!raw) return; doc = JSON.parse(raw); }
     catch (e) { return; }
+    const membres = {};                 // 'date|per|VIS' -> MAR placés dans ce secteur du bloc
     (doc.months || []).forEach(function (mois) {
       const jrs = mois.days || [];
       (mois.doctors || []).forEach(function (md) {
@@ -2371,6 +2422,24 @@ function _cpaConsultsJours_(dates) {
           if (am.indexOf('CS-') === 0) add(am, 'am');
           if (pm.indexOf('CS-') === 0) add(pm, 'pm');
           if ((j.dow === 2 || j.dow === 4) && am === 'MAT') add('CS-MAT', 'am');
+          [['am', am], ['pm', pm]].forEach(function (x) {
+            x[1].split('+').forEach(function (t) { t = t.trim(); if (t) (membres[j.date + '|' + x[0] + '|' + t] = membres[j.date + '|' + x[0] + '|' + t] || []).push(md.id); });
+          });
+        });
+      });
+    });
+    // (26/11/2026) Consultation « tenue par le secteur, sans nom » (page admin, notes du
+    // planning `css`) : faite par un des MAR placés dans ce secteur du bloc ce jour-là.
+    Object.keys(doc.notes || {}).forEach(function (d) {
+      if (dates.indexOf(d) < 0) return;
+      const css = (doc.notes[d] || {}).css || {};
+      ['am', 'pm'].forEach(function (per) {
+        (Array.isArray(css[per]) ? css[per] : []).forEach(function (cs) {
+          cs = String(cs);
+          if (cs.indexOf('CS-') !== 0 || vus[d + '|' + cs + '|' + per]) return;
+          vus[d + '|' + cs + '|' + per] = true;
+          const bloc = CPA_BLOC[_cpaSecteur_(cs)] || '';
+          out.push({ date: d, mar: '', cs: cs, per: per, secteur: true, membres: (bloc && membres[d + '|' + per + '|' + bloc]) || [] });
         });
       });
     });
@@ -2379,24 +2448,42 @@ function _cpaConsultsJours_(dates) {
 }
 /* Salles des consultations d'UN MAR. `choisies` : 'date|per|mar' -> salle. */
 function _cpaResoudre_(id, consults, exp, choisies) {
-  const salles = {}, aChoisir = [];
-  consults.filter(function (c) { return c.mar === id; }).forEach(function (c) {
-    const sec = _cpaSecteur_(c.cs), k = c.date + '|' + c.per;
+  const salles = {}, aChoisir = [], secteurs = [], pris = [], auj = _patlibJour_(new Date());
+  const candidates = function (c, sec) {
     const cand = [];
     exp.forEach(function (x) { if (x.consult === c.date && x.per === c.per && x.secteur === sec && cand.indexOf(x.salle) < 0) cand.push(x.salle); });
+    return cand.sort();
+  };
+  consults.filter(function (c) { return c.mar === id && !c.secteur; }).forEach(function (c) {
+    const sec = _cpaSecteur_(c.cs), k = c.date + '|' + c.per;
+    const cand = candidates(c, sec);
     if (!cand.length) return;
-    cand.sort();
     const mien = choisies[k + '|' + id];
+    if (mien === '-') return;                                                              // « aucune de ces salles »
     if (mien && cand.indexOf(mien) > -1) { salles[k] = mien; return; }
-    const coll = consults.filter(function (o) { return o.mar !== id && o.date === c.date && o.per === c.per && _cpaSecteur_(o.cs) === sec; })
-      .map(function (o) { return o.mar; });
+    const autres = consults.filter(function (o) { return o.mar !== id && o.date === c.date && o.per === c.per && _cpaSecteur_(o.cs) === sec; });
+    const coll = autres.filter(function (o) { return !o.secteur; }).map(function (o) { return o.mar; });
+    const parSecteur = autres.some(function (o) { return o.secteur; });   // le secteur tient aussi une consultation : toujours demander
     const prises = coll.map(function (m) { return choisies[k + '|' + m]; }).filter(Boolean);
     const libres = cand.filter(function (s) { return prises.indexOf(s) < 0; });
-    if (!coll.length && cand.length === 1) { salles[k] = cand[0]; return; }                 // seul de son secteur, une seule salle
-    if (libres.length === 1 && coll.every(function (m) { return choisies[k + '|' + m]; })) { salles[k] = libres[0]; return; }   // les autres ont choisi
-    if (libres.length) aChoisir.push({ date: c.date, per: c.per, salles: libres });
+    if (!parSecteur && !coll.length && cand.length === 1) { salles[k] = cand[0]; return; }                 // seul de son secteur, une seule salle
+    if (!parSecteur && libres.length === 1 && coll.every(function (m) { return choisies[k + '|' + m]; })) { salles[k] = libres[0]; return; }   // les autres ont choisi
+    if (libres.length) aChoisir.push(parSecteur ? { date: c.date, per: c.per, salles: libres, aucune: true } : { date: c.date, per: c.per, salles: libres });
   });
-  return { salles: salles, aChoisir: aChoisir };
+  // (26/11/2026) Consultations tenues par le secteur : la salle qui reste quand chaque MAR
+  // nommé a choisi la sienne ; montrées aux MAR du secteur, à celui qui la prend ensuite.
+  consults.filter(function (c) { return c.secteur; }).forEach(function (c) {
+    const k = c.date + '|' + c.per, sec = _cpaSecteur_(c.cs), qui = choisies[k + '|' + c.cs] || '';
+    if (qui ? qui !== id : (c.membres || []).indexOf(id) < 0) return;
+    const nommes = consults.filter(function (o) { return !o.secteur && o.date === c.date && o.per === c.per && _cpaSecteur_(o.cs) === sec; }).map(function (o) { return o.mar; });
+    const enAttente = !nommes.every(function (m) { return choisies[k + '|' + m]; });
+    const libres = enAttente ? [] : candidates(c, sec).filter(function (s) { return nommes.every(function (m) { return choisies[k + '|' + m] !== s; }); });
+    const nb = exp.filter(function (x) { return x.consult === c.date && x.per === c.per && x.secteur === sec && libres.indexOf(x.salle) > -1 && x.bloc >= auj; })
+      .reduce(function (t, x) { return t + x.nb; }, 0);
+    if (qui === id) { libres.forEach(function (s) { _cpaAjSalle_(salles, k, s); }); pris.push({ date: c.date, per: c.per, cs: c.cs }); }
+    else secteurs.push({ date: c.date, per: c.per, cs: c.cs, nb: nb, enAttente: enAttente });
+  });
+  return { salles: salles, aChoisir: aChoisir, secteurs: secteurs, pris: pris };
 }
 /* Les patients de mes salles, avec ce que j'en ai fait (confié, retiré). */
 function _cpaLignes_(id, salles, exp) {
@@ -2405,7 +2492,7 @@ function _cpaLignes_(id, salles, exp) {
     if (String(l[0]).indexOf('cpa|') === 0 && String(l[1]).trim() === id) sur[String(l[0])] = { nb: Number(l[5]), confie: String(l[6] || '').trim() };
   });
   exp.forEach(function (x) {
-    if (salles[x.consult + '|' + x.per] !== x.salle || x.bloc < auj) return;
+    if (!_cpaASalle_(salles, x.consult + '|' + x.per, x.salle) || x.bloc < auj) return;
     const cle = 'cpa|' + x.consult + '|' + x.per + '|' + x.salle + '|' + x.bloc, o = sur[cle];
     if (o && o.nb === 0) return;
     out.push({ id: cle, mar: id, consult: x.consult, per: x.per, bloc: x.bloc, nb: x.nb, confieA: o ? o.confie : '', cpa: true });

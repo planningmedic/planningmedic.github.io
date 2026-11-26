@@ -519,10 +519,17 @@ function absentLeJour(mar, ds){ return ((DATA.absences && DATA.absences[mar]) ||
 function patDe(c){ return (PATIENTS[cleCons(c)] || []).filter(p => p.bloc >= iso(new Date())); }   // date opératoire passée : masquée
 function patAConfier(c){ return patDe(c).filter(p => absentLeJour(c.mar,p.bloc) && !p.confieA).reduce((n,p)=>n+p.nb,0); }
 function patPuce(c){
+  if(c.aValider){   // (26/11/2026) consultation tenue par le secteur : celui qui la fait la prend
+    const n = c.nbSecteur || 0;
+    return '<div class="puce choix">Consultation du secteur'+(c.enAttente ? '' : (n ? ' · '+n+' patient'+(n>1?'s':'')+' lib (export CPA)' : ' · aucun patient lib'))
+      + '. C\'est vous qui la faites ? <button type="button" class="sal" onclick="patSecteur(event,\''+c.date+'\',\''+c.per+'\',\''+c.cs+'\',true)">Oui, c\'est moi</button></div>';
+  }
   const ch = patSalleAChoisir(c);   // (26/11/2026) export CPA : deux salles possibles
   if(ch) return '<div class="puce choix">Export CPA : dans quelle salle êtes-vous ? '
-    + ch.salles.map(x => '<button type="button" class="sal" onclick="patSalle(event,\''+c.date+'\',\''+c.per+'\',\''+x+'\')">Salle '+x+'</button>').join('') + '</div>';
-  const sal = (DATA.salles || {})[c.date+'|'+c.per] ? '<span class="salle">· salle '+DATA.salles[c.date+'|'+c.per]+'</span>' : '';
+    + ch.salles.map(x => '<button type="button" class="sal" onclick="patSalle(event,\''+c.date+'\',\''+c.per+'\',\''+x+'\')">Salle '+x+'</button>').join('')
+    + (ch.aucune ? '<button type="button" class="sal" onclick="patSalle(event,\''+c.date+'\',\''+c.per+'\',\'-\')">Aucune</button>' : '') + '</div>';
+  const sv = (DATA.salles || {})[c.date+'|'+c.per];
+  const sal = sv ? '<span class="salle">· salle'+([].concat(sv).length>1?'s ':' ')+[].concat(sv).join(', ')+'</span>' : '';
   const tot = patDe(c).reduce((n,p)=>n+p.nb,0), a = patAConfier(c);
   if(!tot) return '<button type="button" class="puce vide">＋ Noter mes patients lib</button>';
   if(a)    return '<button type="button" class="puce warn">⚠ '+a+' patient'+(a>1?'s':'')+' à confier'+sal+'<span class="pl-plus">Voir ›</span></button>';
@@ -551,6 +558,7 @@ function majPuce(){
 }
 function _bornes(c){ const d=dt(c.date); const a=new Date(d); a.setDate(a.getDate()+2); const b=new Date(d); b.setMonth(b.getMonth()+1); return [iso(a), iso(b)]; }
 function patOuvrir(btn, c){
+  if(c.aValider) return;                     // il faut d'abord la prendre
   PAT_SUPPR = null;
   selectionner(btn, c);                      // le panneau existant suit la consultation
   PAT_C = c; PAT_BTN = btn; PAT_NB = 1; PAT_OUVERT = -1;
@@ -571,7 +579,7 @@ async function patEnvoyer(corps){
   try{
     const r = await apiPost(Object.assign({action:'patientsLib'}, corps));
     if(!(r && r.success)){ patErr((r && r.error) || 'Le serveur n\'a pas répondu — réessayez.'); return null; }
-    if(corps.op === 'salle' || String(corps.id || '').indexOf('cpa|') === 0){
+    if(corps.op === 'salle' || corps.op === 'secteur' || String(corps.id || '').indexOf('cpa|') === 0){
       const d = await apiPost({action:'getConsultAbsences'});   // lignes CPA : recalculées par le serveur
       if(d && d.success){ DATA = d; lireMarges(d); patCharger(d.patients); }
       return r;
@@ -641,6 +649,7 @@ function _quiPeut(p){
 function patListe(){
   const c = PAT_C, L = patDe(c);
   let h = PAT_SUPPR ? '<div class="psuppr">Ligne supprimée.<button onclick="patAnnulerSuppr()">Annuler</button></div>' : '';
+  if(c.secteur) h += '<div class="psuppr">Consultation du secteur, prise par vous.<button onclick="patSecteur(null,\''+c.date+'\',\''+c.per+'\',\''+c.cs+'\',false)">Ce n\'est pas moi</button></div>';
   h += L.length ? '<div class="k">Vos patients de cette consultation</div>' : '';
   const X = k => '<button class="px" onclick="patSupprimer('+k+')" aria-label="Supprimer">×</button>';
   L.forEach((p,k)=>{
@@ -678,6 +687,20 @@ async function patSalle(ev, date, per, salle){
   ev.stopPropagation();
   const r = await patEnvoyer({op:'salle', date:date, per:per, salle:salle});
   if(r) rendre();
+}
+/* (26/11/2026) Consultation tenue par le secteur (« Viscéral » sans nom dans l'admin) :
+   montrée aux MAR placés dans ce secteur du bloc ; celui qui la fait la prend, elle
+   devient la sienne (patients, verdict, confier). « Ce n'est pas moi » la rend. */
+async function patSecteur(ev, date, per, cs, prendre){
+  if(ev) ev.stopPropagation();
+  const r = await patEnvoyer({op:'secteur', date:date, per:per, cs:cs, prendre:prendre});
+  if(!r){   // refus (déjà prise, plus dans le secteur…) : le message s'affiche dans la pastille
+    const pu = ev && ev.target && ev.target.closest && ev.target.closest('.puce'), m = document.getElementById('pfErr');
+    if(pu && m && m.textContent) pu.textContent = m.textContent;
+    return;
+  }
+  if(!prendre) patFermer();
+  rendre();
 }
 
 /* ══ RENDU ═════════════════════════════════════════════════════════════ */
@@ -723,7 +746,7 @@ function rendre(){
       const b = document.createElement('button');
       b.className='slot';
       b.innerHTML = '<span class="dot'+(n?'':' none')+'"></span>'+
-        '<span class="sect">'+libSect(c.cs)+'</span>'+
+        '<span class="sect">'+libSect(c.cs)+(c.secteur ? ' <span class="tagcpa">secteur</span>' : '')+'</span>'+
         '<span class="who">'+nomDe(c.mar)+'</span>'+
         '<span class="when">'+(c.per==='am'?'matin':'après-midi')+'</span>';
       b.addEventListener('click', ()=> selectionner(b, c));

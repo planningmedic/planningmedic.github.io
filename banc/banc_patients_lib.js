@@ -158,8 +158,8 @@ console.log('\n═══ 1 bis. Export CPA : lecture du fichier, import, salles 
   ctx.readPlanningFromDrive = () => JSON.stringify(planning);
   ctx.anneePlanning = d => Number(String(d).slice(0, 4));
   const src = lire('gas/indisponibilites.gs');
-  for (const c of ['CPA_ONGLET', 'CPA_ENTETE', 'CPA_SALLES_ONGLET', 'CPA_SALLES_ENTETE', 'CPA_SECTEURS']) vm.runInContext(src.match(new RegExp('const ' + c + ' = [^;]+;'))[0], ctx);
-  for (const n of ['_cpaSecteur_', '_cpaLire_', '_cpaSallesLire_', '_cpaSalleEcrire_', '_cpaConsultsJours_', '_cpaResoudre_', '_cpaLignes_', '_act_importCpa'])
+  for (const c of ['CPA_ONGLET', 'CPA_ENTETE', 'CPA_SALLES_ONGLET', 'CPA_SALLES_ENTETE', 'CPA_SECTEURS', 'CPA_BLOC']) vm.runInContext(src.match(new RegExp('const ' + c + ' = [^;]+;'))[0], ctx);
+  for (const n of ['_cpaSecteur_', '_cpaLire_', '_cpaSallesLire_', '_cpaSalleEcrire_', '_cpaPrise_', '_cpaASalle_', '_cpaAjSalle_', '_cpaConsultsJours_', '_cpaResoudre_', '_cpaLignes_', '_act_importCpa'])
     vm.runInContext(extraireFonction('../gas/indisponibilites.gs', n), ctx);
   vm.runInContext(extraireFonction('../gas/equipe.gs', '_droitMaintenance_'), ctx);
   cl.getSheetByName('CONFIG').lignes[1][1] = 'ALPHA: consult, patlib, maintenance; CHARLIE: patlib';
@@ -198,6 +198,68 @@ console.log('\n═══ 1 bis. Export CPA : lecture du fichier, import, salles 
   const ind = lire('gas/Indispos.gs');
   V('import sous verrou, réservé au droit maintenance', /'importCpa',/.test(ind) && /"importCpa"\s*:\s*\{ role: 'maintenance'/.test(ind));
   V('aucune poussée vers le relais pour l\'import', !/MIROIR_APRES_ECRITURE = \{[\s\S]*?importCpa[\s\S]*?\};/.test(lire('gas/miroir.gs')));
+}
+
+/* ══ 1 ter. CONSULTATION TENUE PAR LE SECTEUR ══════════════════════════ */
+console.log('\n═══ 1 ter. Export CPA : consultation tenue par le secteur (sans nom) ═══');
+{
+  // Mardi après-midi : viscéral tenu par le secteur (note `css` de l'admin) ET par NOVEMBER (nommé) ;
+  // ALPHA et CHARLIE sont placés au bloc en viscéral ; BRAVO en endo. Deux salles de viscéral.
+  const { ctx, cl, appel } = serveur();
+  const MER = plus(lundi, 2);
+  const planning = { months: [{ days: [{ date: CONSULT, dow: 2 }, { date: MER, dow: 3 }], doctors: [
+      { id: 'ALPHA', days: [{ afternoon: 'VIS' }, { afternoon: 'ORT+MAT' }] }, { id: 'CHARLIE', days: [{ afternoon: 'VIS' }, {}] },
+      { id: 'BRAVO', days: [{ afternoon: 'END' }, {}] }, { id: 'NOVEMBER', days: [{ afternoon: 'CS-VIS' }, {}] } ] }],
+    notes: { [CONSULT]: { css: { am: [], pm: ['CS-VIS'] } }, [MER]: { css: { am: [], pm: ['CS-ORT'] } } } };
+  ctx.readPlanningFromDrive = () => JSON.stringify(planning);
+  ctx.anneePlanning = d => Number(String(d).slice(0, 4));
+  const src = lire('gas/indisponibilites.gs');
+  for (const c of ['CPA_ONGLET', 'CPA_ENTETE', 'CPA_SALLES_ONGLET', 'CPA_SALLES_ENTETE', 'CPA_SECTEURS', 'CPA_BLOC']) vm.runInContext(src.match(new RegExp('const ' + c + ' = [^;]+;'))[0], ctx);
+  for (const n of ['_cpaSecteur_', '_cpaLire_', '_cpaSallesLire_', '_cpaSalleEcrire_', '_cpaPrise_', '_cpaASalle_', '_cpaAjSalle_', '_cpaConsultsJours_', '_cpaResoudre_', '_cpaLignes_'])
+    vm.runInContext(extraireFonction('../gas/indisponibilites.gs', n), ctx);
+  cl.getSheetByName('CONFIG').lignes[1][1] = 'ALPHA: consult, patlib; CHARLIE: patlib; NOVEMBER: patlib';
+  cl.getSheetByName('MEDECINS').lignes.push(cl.getSheetByName('MEDECINS').lignes[1].slice()); cl.getSheetByName('MEDECINS').lignes[6][0] = 'NOVEMBER';
+  cl.ajouter('CPA_EXPORT', [['DATE_CONSULT', 'PER', 'SALLE', 'SECTEUR', 'DATE_BLOC', 'NB', 'IMPORT'],
+    [CONSULT, 'pm', '3', 'VIS', BLOC_OK, 2, ''], [CONSULT, 'pm', '4', 'VIS', BLOC_ABS, 1, ''], [MER, 'pm', '1', 'ORT', plus(MER, 3), 1, '']]);
+  const exp = ctx._cpaLire_(), cons = () => ctx._cpaConsultsJours_([CONSULT, MER]);
+  const sec = cons().filter(c => c.secteur);
+  V('la consultation « tenue par le secteur » du planning publié est lue', sec.length === 2 && sec[0].cs === 'CS-VIS' && sec[0].mar === '', sec);
+  V('… avec les MAR placés dans ce secteur du bloc ce jour-là (cases combinées comprises)',
+    JSON.stringify(sec[0].membres.slice().sort()) === '["ALPHA","CHARLIE"]' && JSON.stringify(sec[1].membres) === '["ALPHA"]', sec);
+  let rN = ctx._cpaResoudre_('NOVEMBER', cons(), exp, {});
+  V('le MAR nommé n\'est jamais rattaché d\'office quand le secteur tient aussi la consultation',
+    !Object.keys(rN.salles).length && rN.aChoisir.length === 1 && rN.aChoisir[0].aucune === true, rN);
+  let rA = ctx._cpaResoudre_('ALPHA', cons(), exp, {});
+  V('tant que le MAR nommé n\'a pas choisi, la salle du secteur est en attente',
+    rA.secteurs.some(s => s.cs === 'CS-VIS' && s.enAttente && s.nb === 0) && !Object.keys(rA.salles).length, rA);
+  V('le secteur seul, une seule salle : ses patients sont annoncés aux MAR du secteur',
+    rA.secteurs.some(s => s.cs === 'CS-ORT' && !s.enAttente && s.nb === 1), rA.secteurs);
+  V('un MAR hors du secteur ne voit rien', !ctx._cpaResoudre_('BRAVO', cons(), exp, {}).secteurs.length);
+  V('« Aucune » est accepté pour le MAR nommé quand le secteur est en concurrence',
+    appel('NOVEMBER', 'mar', { op: 'salle', date: CONSULT, per: 'pm', salle: '-' }).success);
+  rA = ctx._cpaResoudre_('ALPHA', cons(), exp, ctx._cpaSallesLire_());
+  V('… alors les deux salles reviennent au secteur', rA.secteurs.some(s => s.cs === 'CS-VIS' && !s.enAttente && s.nb === 3), rA.secteurs);
+  cl.getSheetByName('CPA_SALLES').lignes[1][3] = '3';                       // NOVEMBER a finalement la salle 3
+  rA = ctx._cpaResoudre_('ALPHA', cons(), exp, ctx._cpaSallesLire_());
+  V('le MAR nommé a la salle 3 : la salle 4 revient au secteur', rA.secteurs.some(s => s.cs === 'CS-VIS' && s.nb === 1), rA.secteurs);
+  V('un MAR hors du secteur ne peut pas la prendre', !appel('BRAVO', 'mar', { op: 'secteur', date: CONSULT, per: 'pm', cs: 'CS-VIS', prendre: true }).success);
+  V('une consultation qui n\'est pas tenue par le secteur : refusée', !appel('ALPHA', 'mar', { op: 'secteur', date: CONSULT, per: 'pm', cs: 'CS-END', prendre: true }).success);
+  V('ALPHA (dans le secteur) la prend : « c\'est moi »', appel('ALPHA', 'mar', { op: 'secteur', date: CONSULT, per: 'pm', cs: 'CS-VIS', prendre: true }).success);
+  V('CHARLIE ne peut plus la prendre', /déjà pris/.test(appel('CHARLIE', 'mar', { op: 'secteur', date: CONSULT, per: 'pm', cs: 'CS-VIS', prendre: true }).error || ''));
+  const ch = ctx._cpaSallesLire_();
+  rA = ctx._cpaResoudre_('ALPHA', cons(), exp, ch);
+  V('elle devient celle d\'ALPHA : salle 4 rattachée', rA.salles[CONSULT + '|pm'] === '4' && rA.pris.length === 1 && !rA.secteurs.some(s => s.cs === 'CS-VIS'), rA);
+  V('le choix de NOVEMBER n\'est pas écrasé par la prise d\'ALPHA', ch[CONSULT + '|pm|NOVEMBER'] === '3' && ch[CONSULT + '|pm|CS-VIS'] === 'ALPHA', ch);
+  V('CHARLIE ne la voit plus', !ctx._cpaResoudre_('CHARLIE', cons(), exp, ch).secteurs.some(s => s.cs === 'CS-VIS'));
+  const lg = ctx._cpaLignes_('ALPHA', rA.salles, exp);
+  V('les patients de la salle 4 sont les lignes d\'ALPHA', lg.length === 1 && lg[0].bloc === BLOC_ABS && lg[0].mar === 'ALPHA', lg);
+  V('ALPHA peut confier une de ces lignes', appel('ALPHA', 'mar', { op: 'confier', id: lg[0].id, a: 'BRAVO' }).success);
+  V('CHARLIE ne peut pas la rendre à sa place', !appel('CHARLIE', 'mar', { op: 'secteur', date: CONSULT, per: 'pm', cs: 'CS-VIS', prendre: false }).success);
+  V('« Ce n\'est pas moi » : ALPHA la rend, CHARLIE la revoit', appel('ALPHA', 'mar', { op: 'secteur', date: CONSULT, per: 'pm', cs: 'CS-VIS', prendre: false }).success
+    && ctx._cpaResoudre_('CHARLIE', cons(), exp, ctx._cpaSallesLire_()).secteurs.some(s => s.cs === 'CS-VIS'));
+  const ab = lire('gas/indisponibilites.gs');
+  V('getConsultAbsences ajoute à MES consultations celles du secteur (à valider ou prises)',
+    /rs\.pris\.map\(/.test(ab) && /aValider: true/.test(ab) && /_cpaConsultsJours_\(Object\.keys\(jx\)\)/.test(ab));
 }
 
 /* ══ 2. PAGE ═════════════════════════════════════════════════════════════ */
@@ -319,6 +381,25 @@ async function page(patlib, modif) {
     V('le choix part au serveur (jour, demi-journée, salle)', sal && sal.op === 'salle' && sal.date === plus(lundi, 2) && sal.per === 'pm' && sal.salle === '4', sal);
     V('… puis la page relit tout (les patients de la salle arrivent)', envois[envois.length - 1].action === 'getConsultAbsences');
     V('la feuille de choix ne s\'ouvre pas en touchant un bouton de salle', !D.getElementById('pFeuille').classList.contains('open'));
+  }
+  {
+    const SEC = plus(lundi, 4);
+    const { D, envois, erreurs } = await page(true, d => {
+      d.consultations.push({ date: SEC, per: 'pm', cs: 'CS-VIS', mar: 'ALPHA', secteur: true, aValider: true, nbSecteur: 3 });
+      d.aChoisir = [{ date: plus(lundi, 2), per: 'pm', salles: ['3'], aucune: true }]; });
+    V('secteur : la page s\'ouvre sans erreur', !erreurs.length, erreurs);
+    const pu = [...D.querySelectorAll('#file .puce')];
+    const ps = pu.find(x => /Consultation du secteur/.test(x.textContent));
+    V('la consultation du secteur apparaît dans MES consultations, marquée « secteur »', !!ps && /secteur/.test(ps.previousSibling.textContent), pu.map(x => x.textContent));
+    V('elle annonce ses patients et demande « C\'est vous qui la faites ? »', ps && /3 patients lib/.test(ps.textContent) && /Oui, c'est moi/.test(ps.textContent));
+    ps.click(); await dodo(40);
+    V('toucher la pastille n\'ouvre pas la saisie tant qu\'elle n\'est pas prise', !D.getElementById('pFeuille').classList.contains('open'));
+    const ch = pu.find(x => x.classList.contains('choix') && /salle/.test(x.textContent));
+    V('quand le secteur est en concurrence, le choix de salle propose « Aucune »', ch && [...ch.querySelectorAll('.sal')].some(b => b.textContent === 'Aucune'));
+    ps.querySelector('.sal').click(); await dodo(120);
+    const e = envois.filter(x => x.action === 'patientsLib').pop();
+    V('« Oui, c\'est moi » part au serveur (jour, demi-journée, consultation)', e && e.op === 'secteur' && e.date === SEC && e.per === 'pm' && e.cs === 'CS-VIS' && e.prendre === true, e);
+    V('… puis la page relit tout', envois[envois.length - 1].action === 'getConsultAbsences');
   }
   {
     const m = lire('maintenance.html');
