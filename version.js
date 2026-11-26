@@ -30,7 +30,7 @@
    libéral (son ouverture viendra plus tard). Au changement du 1er chiffre,
    chaque MAR voit une fois la carte d'annonce (partage/annonce_version.js).
    ───────────────────────────────────────────────────────────────────────── */
-window.SITE_VERSION = 'v2.6.4';
+window.SITE_VERSION = 'v2.7.0';
 
 (function () {
   function poser() {

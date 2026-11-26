@@ -146,8 +146,9 @@ const dstr = v => v instanceof Date
   {
     const kp = d.getElementById('planKpis');
     const tuiles = kp ? kp.querySelectorAll('.pk-t') : [];
-    /* (20/11/2026) Plus de cases « à pourvoir » : trois tuiles, « MAR à placer » en tête (rouge s'il reste quelqu'un). */
-    V('trois tuiles au-dessus de la grille, « MAR à placer » en tête', tuiles.length === 3 && /MAR à placer/.test(tuiles[0].textContent) && !/Cases à pourvoir/.test(kp.textContent), tuiles.length);
+    /* (20/11/2026) Plus de cases « à pourvoir ». (26/11/2026) Plus de tuile « Gardes » du jour : deux tuiles, « MAR à placer » en tête. */
+    V('deux tuiles au-dessus de la grille, « MAR à placer » en tête', tuiles.length === 2 && /MAR à placer/.test(tuiles[0].textContent) && !/Cases à pourvoir/.test(kp.textContent), tuiles.length);
+    V('plus de tuile « Gardes » du jour (elle répétait les lignes de garde de la grille)', !/Gardes ·|garde réa|garde mater/.test(kp.textContent), kp && kp.textContent.slice(0, 200));
     const nAP = Number((tuiles[0] && tuiles[0].querySelector('.pk-n') || {}).textContent);
     V('…rouge s\'il reste quelqu\'un à placer, sombre sinon', tuiles[0] && tuiles[0].classList.contains(nAP ? 'rouge' : 'noir'), { n: nAP, cls: tuiles[0] && tuiles[0].className });
     V('aucune case orange « à pourvoir » dans la grille', !d.querySelector('#planTable .slot-flash') && !d.querySelector('#planTable .cs-apourvoir'));
@@ -329,6 +330,36 @@ const dstr = v => v instanceof Date
       w.eval(`_batchPending = {}; _localOverrides = {}; _localLib = {}; saveLocalEdits();`);
     }
     w.eval(`CS_TYPES = window.__csL; window._csOuvert = false; closeSidePanel(); renderWeek();`);
+  }
+
+  console.log('\n═══ 18 septies. (26/11/2026) Bande de présence de l\'onglet Planning, raccord avec l\'onglet Contrôles ═══');
+  {
+    /* Même compte que la heatmap des Contrôles : le compte du serveur (_tpMondePresence_), jour par jour. */
+    ['../gas/temps_partiel.gs', '../gas/gardes.gs'].forEach(f => { try { vm.runInContext(fs.readFileSync(f, 'utf8'), W.ctx); } catch (e) {} });
+    const M = vm.runInContext('_tpMondePresence_(2027)', W.ctx);
+    const pg = JSON.parse(w.eval('JSON.stringify(tensionJours())')).filter(j => !j.ferie);
+    const ecarts = pg.filter(j => j.n !== M.presents(j.date));
+    V('compte local de la page = compte du serveur, tous les jours ouvrés (' + pg.length + ' jours)', pg.length > 240 && !ecarts.length, ecarts.slice(0, 3));
+    /* Jour fixe de temps partiel portant une garde : le serveur le retire, la page aussi. */
+    const r = w.eval(`(function(){ const m = marsData.find(x => x.actif); const av = m.tpJoursFixes; m.tpJoursFixes = 'MAR';
+      _tensionJours = null; const j = tensionJours().find(x => !x.ferie && new Date(x.date + 'T12:00:00').getDay() === 2); const sans = j.n;
+      m.tpJoursFixes = av; _tensionJours = null; const avec = tensionJours().find(x => x.date === j.date).n; return JSON.stringify({ sans, avec }); })()`);
+    const rr = JSON.parse(r);
+    V('jour fixe de temps partiel : le MAR est retiré du compte (comme au serveur)', rr.avec - rr.sans === 1, rr);
+    /* Contrôles chargés : leurs chiffres font foi, dans la bande, la tuile et sous chaque jour. */
+    const d1 = pg[10].date;
+    w.eval(`CTL.charge = true; CTL.an = ADMIN_YEAR; CTL.presence = { '${d1}': { p: 7, rg: 0, ab: {} } }; CTL.vacsc = [['${pg[0].date}', '${pg[4].date}']]; renderWeek();`);
+    V('contrôles chargés : leur chiffre remplace le compte local (7 le ' + d1 + ')', w.eval(`tensionJours().find(x => x.date === '${d1}').n`) === 7);
+    const cel = d.querySelector('#tensionGrid i[onclick*="' + d1 + '"]');
+    V('…et la case de la bande le montre, en rouge (moins de seuil − 1)', !!cel && /var\(--h0\)/.test(cel.getAttribute('style') || '') && /7 postables/.test(cel.getAttribute('title') || ''), cel && cel.outerHTML);
+    /* Même thème : fond sombre, 52 semaines × 5 jours, quatre couleurs, trait des vacances scolaires. */
+    V('52 semaines × 5 jours, comme la heatmap des Contrôles', d.querySelectorAll('#tensionGrid i').length === 260, d.querySelectorAll('#tensionGrid i').length);
+    const leg = [...d.querySelectorAll('#tensionLegend span')].map(x => x.textContent.trim());
+    V('légende : les quatre couleurs des Contrôles, et les vacances scolaires', leg.length === 5 && /moins de/.test(leg[0]) && /et plus/.test(leg[3]) && /vacances scolaires/.test(leg[4]), leg);
+    V('trait bleu des vacances scolaires sous les mois', d.querySelectorAll('#tensionVs i.on').length >= 1);
+    V('le résumé compte les jours tendus et donne le plus bas', /jours? tendus? \(moins de \d+ postables\).*plus bas : 7/.test((d.getElementById('tensionSum') || {}).textContent || ''), (d.getElementById('tensionSum') || {}).textContent);
+    V('un clic sur un jour ouvre sa semaine', (() => { w.eval('window.scrollTo = function () {}'); cel && cel.click(); return w.eval('getAllWeeks()[currentWeekIdx].lundi') === w.eval(`_lundiDe('${d1}')`); })());
+    w.eval(`CTL.charge = false; CTL.presence = {}; CTL.vacsc = []; currentWeekIdx = 0; renderWeek();`);
   }
 
   console.log('\n═══ 19. Je place des MAR (le « + » de chaque case) ═══');

@@ -1268,7 +1268,7 @@ if (sessionStorage.getItem('adminCode')) {
 #panel-planning .week-nav-btn:hover { border-color:var(--pk-ink); color:var(--pk-ink); }
 #panel-planning .week-export-btn { background:#fff; color:#344054; border:1px solid var(--pk-line); border-radius:12px; padding:9px 15px; font-size:12.5px; font-weight:600; }
 #panel-planning .week-validate-btn { background:var(--pk-ink); color:#fff; border:1px solid var(--pk-ink); border-radius:12px; padding:9px 16px; font-size:12.5px; font-weight:600; }
-.pk { display:grid; grid-template-columns:1.2fr 1.25fr 1fr; gap:14px; margin-bottom:18px; }
+.pk { display:grid; grid-template-columns:1fr 1.4fr; gap:14px; margin-bottom:18px; }
 .pk-t.rouge { background:#B42318; border:0; } .pk-t.rouge h4, .pk-t.rouge .pk-s { color:#FEE4E2; } .pk-t.rouge .pk-n, .pk-t.rouge .pk-s b { color:#fff; }
 .pk-t.noir .pk-s { color:var(--pk-ink3); } .pk-t.noir .pk-s b { color:#fff; }
 #panel-planning .slot-name.mar-absent { background:#FEF3F2 !important; color:#B42318 !important; border:1px solid #F04438 !important; text-decoration:line-through; }
@@ -1290,7 +1290,17 @@ if (sessionStorage.getItem('adminCode')) {
 .pk-ab { display:flex; flex-wrap:wrap; gap:5px; margin-top:12px; }
 .pk-ab span { font-size:12px; border-radius:999px; padding:3px 10px; background:var(--pk-line2); color:#344054; }
 .pk-ab b { font-weight:700; }
-#panel-planning .tension { margin:0 0 18px; border:1px solid var(--pk-line); border-radius:22px; padding:12px 18px; }
+#panel-planning .tension { margin:0 0 18px; border:0; border-radius:22px; padding:16px 22px 18px; background:#0B1220; color:#fff; }
+/* (26/11/2026) Même thème que la heatmap de l'onglet Contrôles */
+#tensionBand { --h0:#F04438; --h1:#F97066; --h2:#FDB022; --h3:#12B76A; }
+#tensionBand .tension-title { color:#fff; font-size:11px; }
+#tensionBand .tension-sum { color:#98A2B3; } #tensionBand .tension-sum b { color:#fff; }
+#tensionBand .tension-toggle { color:#98A2B3; } #tensionBand .tension-toggle:hover { background:rgba(255,255,255,.08); }
+#tensionBand .tgrid-s i.j { cursor:pointer; transition:transform .1s, box-shadow .1s; }
+#tensionBand .tgrid-s i.j:hover { transform:scale(1.3); box-shadow:0 0 0 2px #fff; position:relative; z-index:2; }
+#tensionBand .tgrid-s i.fer { background:repeating-linear-gradient(45deg,#1D2939,#1D2939 2px,#344054 2px,#344054 4px); }
+#tensionBand .tgrid-s i.now { box-shadow:0 0 0 2px #fff; }
+#tensionBand .tgrid-s { grid-template-rows:repeat(5,13px); }
 #panel-planning .planning-table { border:1px solid var(--pk-line); border-radius:24px; box-shadow:none; overflow:hidden; }
 #panel-planning .th-sector { background:#fff; font-size:11px; font-weight:600; letter-spacing:.06em; color:var(--pk-ink3); border-right:1px solid var(--pk-line2); border-bottom:1px solid var(--pk-line); }
 #panel-planning .th-day { text-align:left; padding:14px 12px 10px; border-right:1px solid var(--pk-line2); border-bottom:1px solid var(--pk-line); }
@@ -1599,24 +1609,18 @@ if (sessionStorage.getItem('adminCode')) {
 
   <div class="pk" id="planKpis"></div>
 
-  <!-- BANDE DE PRESENCE — un carre = une journee ouvree, couleur = nb de presents -->
+  <!-- BANDE DE PRESENCE — un carre = une journee ouvree, couleur = nb de MAR postables (meme theme que la heatmap des Controles) -->
   <div class="tension" id="tensionBand" style="display:none">
     <div class="tension-head">
-      <span class="tension-title">Presents en journee</span>
+      <span class="tension-title">Présence des MAR</span>
       <span class="tension-sum" id="tensionSum">&mdash;</span>
-      <button class="tension-toggle" id="tensionToggle" onclick="toggleTension()">&#9652; Reduire</button>
+      <button class="tension-toggle" id="tensionToggle" onclick="toggleTension()">&#9652; Réduire</button>
     </div>
     <div id="tensionBody">
-      <div class="tmap">
-        <div class="trows">
-          <div class="trow-lbl">L</div><div class="trow-lbl">M</div><div class="trow-lbl">M</div><div class="trow-lbl">J</div><div class="trow-lbl">V</div>
-        </div>
-        <div class="tcol">
-          <div class="tmonths" id="tensionMonths"></div>
-          <div class="tgrid" id="tensionGrid"></div>
-        </div>
-      </div>
-      <div class="tlegend" id="tensionLegend"></div>
+      <div class="pres-mois" id="tensionMonths"></div>
+      <div class="pres-vs" id="tensionVs"></div>
+      <div class="pres-mini tgrid-s" id="tensionGrid"></div>
+      <div class="pres-leg" id="tensionLegend"></div>
     </div>
   </div>
 
@@ -5074,16 +5078,13 @@ function renderPlanKpis(o) {
   const hPx = v => Math.max(4, Math.round((v - lo) / (hi - lo) * 40));
   let mini = null; ouv.forEach((s, i) => { if (pres[i] != null && (mini == null || pres[i] < pres[mini])) mini = i; });
   const pb = ouv.map((s, i) => `<div><b class="${pres[i] == null ? 'f' : (pres[i] < SEUIL_ALERTE ? 'bas' : '')}" style="height:${pres[i] == null ? 4 : hPx(pres[i])}px"></b>${pres[i] == null ? (s && s.isFerie ? 'férié' : '—') : pres[i]}</div>`).join('');
-  // Gardes : le jour même si la semaine affichée le contient, sinon le lundi
-  let gi = ouv.findIndex(s => s && s.date === o.today); if (gi < 0) gi = 0;
-  const g = o.gardes[gi] || {}, so = o.sortieRow[gi] || [], gs = ouv[gi];
-  const gl = gs ? new Date(gs.date + 'T12:00:00').toLocaleDateString('fr-FR', { weekday: 'short', day: 'numeric' }) : '';
+  /* (26/11/2026) La tuile « Gardes » du jour est retirée (décision du responsable) : elle ne montrait
+     qu'un jour et répétait les lignes de garde du bas de la grille. */
   el.innerHTML =
       /* (20/11/2026) La tuile « Cases à pourvoir » est retirée ; « MAR à placer » passe en tête, rouge s'il reste quelqu'un. */
       `<div class="pk-t ${nAp ? 'rouge' : 'noir'}"><h4>MAR à placer</h4><div class="pk-n">${nAp}</div><div class="pk-s">${ap.length ? ap.map(x => x.j + ' · <b>' + x.l.map(m => m.init).join(', ') + '</b>').join('<br>') : 'Tous les présents sont placés.'}</div></div>`
     + `<div class="pk-t pk-pres" onclick="toggleTension()" title="Afficher ou masquer la bande de présence de l'année"><h4>Présents en journée</h4><div class="pk-mini">${pb}<div class="pk-seuil" style="bottom:${hPx(SEUIL_ALERTE) + 16}px"></div></div>`
-    + `<div class="pk-s">${mini != null ? 'Plus bas : <b>' + pres[mini] + '</b> le ' + new Date(ouv[mini].date + 'T12:00:00').toLocaleDateString('fr-FR', { weekday: 'long', day: 'numeric' }) + (pres[mini] < SEUIL_ALERTE ? ' — sous le seuil de ' + SEUIL_ALERTE + '.' : '.') : '—'}</div></div>`
-    + `<div class="pk-t"><h4>Gardes · ${gl}</h4><div class="pk-ab">${g.g ? '<span><b>' + g.g + '</b> garde réa</span>' : ''}${g.g2 ? '<span><b>' + g.g2 + '</b> garde mater</span>' : ''}${so.length ? '<span><b>' + so.join(' ') + '</b> sortie</span>' : ''}${!g.g && !g.g2 && !so.length ? '<span>—</span>' : ''}</div></div>`;
+    + `<div class="pk-s">${mini != null ? 'Plus bas : <b>' + pres[mini] + '</b> le ' + new Date(ouv[mini].date + 'T12:00:00').toLocaleDateString('fr-FR', { weekday: 'long', day: 'numeric' }) + (pres[mini] < SEUIL_ALERTE ? ' — sous le seuil de ' + SEUIL_ALERTE + '.' : '.') : '—'}</div></div>`;
 }
 
 /* ══ (19/11/2026) NOTES DU PLANNING — interne en réa, infos du jour ══════════
@@ -6983,7 +6984,7 @@ function renderCertificat(list){
 const TENSION_ABSENTS = new Set(['RG','V','F','CTP','CP','R','A','TP','CL']);
 // Repli si l'onglet SEUILS est absent ou si le GAS deploye ne le sert pas.
 let SEUIL_ALERTE = 13, SEUIL_CONFORT = 15;   // (17/11/2026) repli = valeurs de l'onglet SEUILS, la même source que tout le portail
-let _tensionSrc = null, _tensionMeds = null, _tensionJours = null;
+let _tensionSrc = null, _tensionMeds = null, _tensionJours = null, _tensionSrv = null;
 
 function applySeuils(s) {
   if (!s) return;
@@ -7004,10 +7005,23 @@ function tensionJours() {
   // Tant que la liste n'est pas la : on ne calcule rien et on ne memorise rien.
   const meds = marsData || [];
   if (!DATA || !DATA.months || !meds.length) return [];
-  if (_tensionSrc === DATA && _tensionMeds === meds && _tensionJours) return _tensionJours;
+  /* (26/11/2026) RACCORD AVEC L'ONGLET CONTRÔLES (demande du responsable) : une fois les contrôles
+     chargés, le compte du serveur (postables, celui de la pose des TP et de la heatmap) fait foi,
+     jour par jour. Avant, le compte local applique les mêmes règles : semaine off du rythme 2/2 et
+     jour fixe de temps partiel retirent le MAR même si sa case porte un autre code (garde, 18 h…). */
+  const _srv = (typeof CTL !== 'undefined' && CTL.charge && Number(CTL.an) === Number(ADMIN_YEAR)
+                && CTL.presence && Object.keys(CTL.presence).length) ? CTL.presence : null;
+  if (_tensionSrc === DATA && _tensionMeds === meds && _tensionSrv === _srv && _tensionJours) return _tensionJours;
   const out = [];
-  const actifs = {};
-  meds.forEach(m => { if (m.actif) actifs[m.id] = m; });
+  const actifs = {}, rythme = [], tpFixes = {};
+  const JNUM = { DIM:0, LUN:1, MAR:2, MER:3, JEU:4, VEN:5, SAM:6 };
+  meds.forEach(m => {
+    if (!m.actif) return;
+    actifs[m.id] = m;
+    if (m.rythme2sur2) rythme.push(m.id);
+    const js = String(m.tpJoursFixes || '').toUpperCase().split(/[,;\s]+/).filter(t => JNUM[t] !== undefined).map(t => JNUM[t]);
+    if (js.length) tpFixes[m.id] = new Set(js);
+  });
   const vus = new Set();
   DATA.months.forEach(month => {
     (month.days || []).forEach((day, dayIdx) => {
@@ -7015,6 +7029,8 @@ function tensionJours() {
       vus.add(day.date);
       if (day.isWeekend) return;
       if (day.isFerie) { out.push({date: day.date, ferie: true, n: null}); return; }
+      if (_srv && _srv[day.date]) { out.push({date: day.date, ferie: false, n: _srv[day.date].p}); return; }
+      const _dow = new Date(day.date + 'T12:00:00').getDay();
       let n = 0;
       (month.doctors || []).forEach(doc => {
         const m = actifs[doc.id];
@@ -7024,24 +7040,23 @@ function tensionJours() {
         if (m.dateFin   && day.date >= m.dateFin)   return;      // deja parti
         const st = ((doc.days && doc.days[dayIdx]) || {}).status || '';
         if (TENSION_ABSENTS.has(st)) return;
+        if (typeof dispoEstSemaineOff_ === 'function' && dispoEstSemaineOff_(doc.id, day.date, rythme)) return;   // semaine off (rythme 2/2)
+        if (tpFixes[doc.id] && tpFixes[doc.id].has(_dow)) return;                                                // jour fixe de temps partiel
         n++;
       });
       out.push({date: day.date, ferie: false, n: n});
     });
   });
   out.sort((x, y) => x.date < y.date ? -1 : x.date > y.date ? 1 : 0);
-  _tensionSrc = DATA; _tensionMeds = meds; _tensionJours = out;
+  _tensionSrc = DATA; _tensionMeds = meds; _tensionSrv = _srv; _tensionJours = out;
   return out;
 }
 
-function tensionNiveau(n) {
-  if (n >= SEUIL_CONFORT)     return 0;
-  if (n >= SEUIL_ALERTE + 2)  return 1;
-  if (n >= SEUIL_ALERTE)      return 2;
-  if (n >= SEUIL_ALERTE - 2)  return 3;
-  return 4;
-}
-
+/* (26/11/2026) MÊME THÈME QUE LA HEATMAP DE L'ONGLET CONTRÔLES (demande du responsable) : fond sombre,
+   52 semaines × 5 jours, les quatre couleurs et les bornes de l'onglet SEUILS, le trait bleu des
+   vacances scolaires quand les contrôles sont chargés. Un clic sur un jour ouvre sa semaine. */
+function _tensionCol(n) { return n < SEUIL_ALERTE - 1 ? 'var(--h0)' : n < SEUIL_ALERTE ? 'var(--h1)' : n < SEUIL_CONFORT ? 'var(--h2)' : 'var(--h3)'; }
+function _tensionCat(n) { return n < SEUIL_ALERTE - 1 ? 0 : n < SEUIL_ALERTE ? 1 : n < SEUIL_CONFORT ? 2 : 3; }
 function renderTension() {
   const band = document.getElementById('tensionBand');
   const grid = document.getElementById('tensionGrid');
@@ -7049,82 +7064,43 @@ function renderTension() {
   const jours = tensionJours();
   if (!jours.length) { band.style.display = 'none'; return; }
   band.style.display = 'block';
-
   const parDate = {}; jours.forEach(j => parDate[j.date] = j);
-  const weeks = getAllWeeks();
-  const today = todayStr();
-  const MOIS = ['Janv.','Fevr.','Mars','Avril','Mai','Juin','Juil.','Aout','Sept.','Oct.','Nov.','Dec.'];
-  const JOURS = ['dimanche','lundi','mardi','mercredi','jeudi','vendredi','samedi'];
-
-  let cells = '', mois = '', dernierMois = -1;
-  const colDebut = {};
-  weeks.forEach((wk, wi) => {
-    for (let j = 0; j < 5; j++) {
-      const d = new Date(wk.lundi + 'T12:00:00'); d.setDate(d.getDate() + j);
-      const ds = `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
-      const info = parDate[ds];
-      let cls = 'tcell ', titre = '', clic = '';
-      if (!info) { cls += 'tvide'; titre = ds + ' — hors annee'; }
-      else if (info.ferie) { cls += 'tvide'; titre = JOURS[d.getDay()] + ' ' + d.getDate() + ' ' + MOIS[d.getMonth()].toLowerCase() + ' — ferie'; }
-      else {
-        cls += 't' + tensionNiveau(info.n);
-        titre = JOURS[d.getDay()] + ' ' + d.getDate() + ' ' + MOIS[d.getMonth()].toLowerCase()
-              + ' (S' + wk.weekNum + ') — ' + info.n + ' present' + (info.n > 1 ? 's' : '');
-        clic = ' onclick="tensionAller(\'' + ds + '\')"';
-      }
-      if (ds === today) cls += ' tnow';
-      cells += '<div class="' + cls + '" tabindex="0" title="' + titre + '"' + clic + '></div>';
-    }
-    const mo = new Date(wk.lundi + 'T12:00:00').getMonth();
-    if (mo !== dernierMois) { colDebut[wi] = mo; dernierMois = mo; }
-  });
-  grid.innerHTML = cells;
-
-  const bornes = Object.keys(colDebut).map(Number).sort((x, y) => x - y);
-  bornes.forEach((wi, k) => {
-    const fin = (k + 1 < bornes.length) ? bornes[k + 1] : weeks.length;
-    mois += '<div class="tmonth" style="grid-column:span ' + (fin - wi) + '">' + MOIS[colDebut[wi]] + '</div>';
-  });
+  const today = todayStr(), an = Number(ADMIN_YEAR);
+  const MC = ['janv.','févr.','mars','avr.','mai','juin','juil.','août','sept.','oct.','nov.','déc.'];
+  const JL = ['dimanche','lundi','mardi','mercredi','jeudi','vendredi','samedi'];
+  const iso = d => d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0') + '-' + String(d.getDate()).padStart(2, '0');
+  const lib = ds => { const d = new Date(ds + 'T12:00:00'); return JL[d.getDay()] + ' ' + d.getDate() + ' ' + MC[d.getMonth()]; };
+  // Les 52 semaines de la heatmap des Contrôles : à partir du lundi de la semaine du 4 janvier.
+  const sem = [], d0 = new Date(an, 0, 4, 12);
+  while (d0.getDay() !== 1) d0.setDate(d0.getDate() - 1);
+  for (let w = 0; w < 52; w++) { const x = []; for (let k = 0; k < 5; k++) { const d = new Date(d0); d.setDate(d.getDate() + w * 7 + k); x.push(iso(d)); } sem.push(x); }
+  const vacsc = (typeof CTL !== 'undefined' && Number(CTL.an) === an && CTL.vacsc) || [];
+  const enVs = ds => vacsc.some(v => ds >= v[0] && ds <= v[1]);
+  let mm = -1;
+  const mois = sem.map(x => { const m = +x[0].slice(5, 7) - 1, t = (m !== mm && +x[0].slice(0, 4) === an) ? MC[m].replace('.', '') : ''; if (t) mm = m; return '<span>' + t + '</span>'; }).join('');
   const mEl = document.getElementById('tensionMonths'); if (mEl) mEl.innerHTML = mois;
-
-  // Legende : bornes reelles, pour qu'on sache ce que la couleur veut dire.
+  const vEl = document.getElementById('tensionVs');
+  if (vEl) { vEl.innerHTML = vacsc.length ? sem.map(x => '<i class="' + (x.some(enVs) ? 'on' : '') + '"></i>').join('') : ''; vEl.style.display = vacsc.length ? '' : 'none'; }
+  grid.innerHTML = sem.flat().map(ds => {
+    const j = parDate[ds], now = ds === today ? ' now' : '';
+    if (!j) return '<i class="' + now.trim() + '"></i>';
+    if (j.ferie) return '<i class="fer' + now + '" title="' + lib(ds) + ' — férié"></i>';
+    return '<i class="j' + now + '" tabindex="0" style="background:' + _tensionCol(j.n) + '" title="' + lib(ds) + ' — ' + j.n + ' postable' + (j.n > 1 ? 's' : '')
+      + '" onclick="tensionAller(\'' + ds + '\')"></i>';
+  }).join('');
+  const cnt = [0, 0, 0, 0]; let mini = null;
+  jours.forEach(j => { if (j.ferie) return; cnt[_tensionCat(j.n)]++; if (mini === null || j.n < mini.n) mini = j; });
   const lg = document.getElementById('tensionLegend');
   if (lg) {
-    lg.innerHTML =
-        '<span class="tlg t4"></span><span>&le; ' + (SEUIL_ALERTE - 3) + '</span>'
-      + '<span class="tlg t3"></span><span>' + (SEUIL_ALERTE - 2) + '&ndash;' + (SEUIL_ALERTE - 1) + '</span>'
-      + '<span class="tlg t2"></span><span>' + SEUIL_ALERTE + '&ndash;' + (SEUIL_ALERTE + 1) + '</span>'
-      + '<span class="tlg t1"></span><span>' + (SEUIL_ALERTE + 2) + '&ndash;' + (SEUIL_CONFORT - 1) + '</span>'
-      + '<span class="tlg t0"></span><span>' + SEUIL_CONFORT + ' et +</span>'
-      + '<span class="tlg tvide" style="margin-left:8px"></span><span>ferie</span>'
-      + '<span style="margin-left:auto">Bornes reglables dans l\'onglet SEUILS du classeur.</span>';
+    const S = SEUIL_ALERTE, C = SEUIL_CONFORT, lab = ['moins de ' + (S - 1), String(S - 1), S + ' – ' + (C - 1), C + ' et plus'];
+    lg.innerHTML = [0, 1, 2, 3].map(k => '<span><i style="background:' + ['var(--h0)', 'var(--h1)', 'var(--h2)', 'var(--h3)'][k] + '"></i>' + lab[k] + ' <b>' + cnt[k] + ' j</b></span>').join('')
+      + (vacsc.length ? '<span class="v"><i></i>vacances scolaires</span>' : '');
   }
-
-  // Resume : ce qui arrive, puis la distribution de l'annee — c'est elle qui
-  // permet au comite de choisir ses bornes en connaissance de cause.
-  const dist = [0, 0, 0, 0, 0];
-  let bas = 0, mini = null, miniDate = '';
-  jours.forEach(j => {
-    if (j.ferie) return;
-    dist[tensionNiveau(j.n)]++;
-    if (j.date < today) return;
-    const ecart = (new Date(j.date + 'T12:00:00') - new Date(today + 'T12:00:00')) / 86400000;
-    if (ecart > 56) return;
-    if (j.n < SEUIL_ALERTE) bas++;
-    if (mini === null || j.n < mini) { mini = j.n; miniDate = j.date; }
-  });
   const sum = document.getElementById('tensionSum');
   if (sum) {
-    let txt = '';
-    if (mini !== null) {
-      const dm = new Date(miniDate + 'T12:00:00');
-      txt = '8 semaines a venir : <b>' + bas + ' jour' + (bas > 1 ? 's' : '') + '</b> sous ' + SEUIL_ALERTE
-          + ' presents. Plancher : <b>' + mini + '</b> le ' + JOURS[dm.getDay()] + ' ' + dm.getDate()
-          + ' ' + MOIS[dm.getMonth()].toLowerCase() + '. &nbsp;&middot;&nbsp; ';
-    }
-    txt += 'Annee : ' + dist[4] + ' / ' + dist[3] + ' / ' + dist[2] + ' / ' + dist[1] + ' / ' + dist[0]
-         + ' jours du rouge au vert.';
-    sum.innerHTML = txt;
+    const t = cnt[0] + cnt[1];
+    sum.innerHTML = '<b>' + t + '</b> ' + (t > 1 ? 'jours tendus' : 'jour tendu') + ' (moins de ' + SEUIL_ALERTE + ' postables)'
+      + (mini ? ' · plus bas : <b>' + mini.n + '</b> le ' + lib(mini.date) : '');
   }
 }
 
@@ -7143,7 +7119,7 @@ function toggleTension() {
   if (!b || !btn) return;
   const ouvert = b.style.display !== 'none';
   b.style.display = ouvert ? 'none' : 'block';
-  btn.innerHTML = ouvert ? '\u25BE Deplier' : '\u25B4 Reduire';
+  btn.innerHTML = ouvert ? '\u25BE Déplier' : '\u25B4 Réduire';
   try { localStorage.setItem('pm_tensionReduite', ouvert ? '1' : '0'); } catch (e) {}
 }
 
