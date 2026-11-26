@@ -235,6 +235,16 @@ console.log('\n═══ 1 ter. Export CPA : consultation tenue par le secteur (
   V('le secteur seul, une seule salle : ses patients sont annoncés aux MAR du secteur',
     rA.secteurs.some(s => s.cs === 'CS-ORT' && !s.enAttente && s.nb === 1), rA.secteurs);
   V('un MAR hors du secteur ne voit rien', !ctx._cpaResoudre_('BRAVO', cons(), exp, {}).secteurs.length);
+  {
+    const sans = exp.filter(x => x.secteur !== 'ORT');                 // plus aucun patient lib en ortho le mercredi
+    V('consultation du secteur sans patient lib : pas montrée (rien à demander)',
+      !ctx._cpaResoudre_('ALPHA', cons(), sans, {}).secteurs.some(s => s.cs === 'CS-ORT'));
+    const passes = exp.map(x => x.secteur === 'ORT' ? Object.assign({}, x, { bloc: '2020-01-01' }) : x);
+    V('… ni quand ses patients sont déjà opérés', !ctx._cpaResoudre_('ALPHA', cons(), passes, {}).secteurs.some(s => s.cs === 'CS-ORT'));
+    const autreSec = exp.filter(x => x.secteur !== 'VIS');
+    V('en attente du MAR nommé mais aucun patient lib dans le secteur : pas montrée non plus',
+      !ctx._cpaResoudre_('ALPHA', cons(), autreSec, {}).secteurs.some(s => s.cs === 'CS-VIS'));
+  }
   V('« Aucune » est accepté pour le MAR nommé quand le secteur est en concurrence',
     appel('NOVEMBER', 'mar', { op: 'salle', date: CONSULT, per: 'pm', salle: '-' }).success);
   rA = ctx._cpaResoudre_('ALPHA', cons(), exp, ctx._cpaSallesLire_());
