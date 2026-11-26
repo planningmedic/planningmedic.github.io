@@ -27,11 +27,11 @@ banc_plafond_vjf.js 71348b4ae415b42b 18
 banc_souhaits_rares.js b106e3e5fe3d0b4c 20
 banc_souhaits_semaine.js 9c0eca109cde12b2 8
 banc_souhaits_taux.js 960de36ba269394d 16
-banc_souhaits_etales.js aa35a71b599ad47f 6
+banc_souhaits_etales.js c69fd2e806afe40b 6
 banc_couples_weekend.js 868e17852405327d 17
 banc_ratio18.js 85b4a8abbf3fa4d1 8
 banc_demi_vacances.js 387d9ad02d50550c 37
-banc_mail_recap.js eba775db1b238a0c 38
+banc_mail_recap.js 462b85f34e8d55bf 38
 banc_harnais_tirage.js b090c1a72e2918b1 13
 banc_vd_rompu.js 6e5a23e72592ca35 28
 banc_echanges_neutres.js 098127fcf67b16c3 14

@@ -147,6 +147,10 @@ valide. Réponds en **français**, court, avec des chiffres concrets.
 - **Après-midi fériés des 24 et 31/12** : ceux qui travaillent partent à midi ; garde, 18 h ou repos de
   garde ces jours-là = +0,5 j à reporter ailleurs (à la main, avec le secrétariat).
 - **Récupérations de samedi** : tout automatique ; jamais pendant les vacances scolaires.
+- **Un TP ou des vacances passent avant une récupération de samedi** (v2.3.0) : si déplacer une ou deux
+  récups rend le jour vert, elles partent sur un autre jour vert (pose par le MAR, validation du
+  comité) ; jamais une récup à moins de 30 jours ; le MAR concerné est prévenu ; l'écran de pose compte
+  ces récups présentes. La réouverture automatique d'un jour fermé, elle, juge sur l'effectif réel.
 - **Le comité ne sait pas qui a agi** : le code comité est partagé, les compteurs mesurent un rôle,
   jamais une personne.
 - **Le cache de script est partagé entre tous les utilisateurs** : n'y mettre que des données

@@ -517,6 +517,17 @@ les cases valant exactement `CL`.
 
 ## Journal récent
 
+- **26/11/2026** — Le TP et les vacances passent avant la récup de samedi (v2.3.0, `temps_partiel.gs`
+  2026-11-26.1, décision du responsable) : à la pose d'un TP ou de vacances, et à la validation d'un TP
+  par le comité, un jour non vert à cause de récups devient vert en les déplaçant (`_tpLibererRecups_` :
+  tout ou rien, jamais pour passer de rouge à orange, jamais une récup à moins de 30 jours, nouvelle date
+  selon les règles habituelles, notification au MAR sans le nom du collègue, ligne d'historique). L'écran
+  de pose compte ces récups présentes (`_tpRecupsCedables_`) ; `_tpRouvrirSiLibere_` reste sur
+  l'effectif réel. Banc PT40 et PV13. Appliqué et vérifié en production le jour même (deux récups
+  déplacées sur le 25/01/2027). Petit défaut d'affichage constaté, laissé en l'état par le responsable :
+  l'écran des demandes du comité ne se met pas à jour juste après une validation (un second clic échoue
+  « plus en attente »).
+
 - **24/11/2026** — Placement quotidien sur téléphone (v1.103.0, maquette validée par le responsable) :
   sous 720 px, l'onglet Planning s'ouvre sur une vue Jour (une ligne par secteur, cases Matin /
   Après-midi, barre des 5 jours avec « N à placer ») et une bascule Jour / Semaine retenue sur
