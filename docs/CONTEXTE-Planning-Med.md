@@ -142,7 +142,8 @@ valide. Réponds en **français**, court, avec des chiffres concrets.
 - **Vacances** : quota de la quotité ; un partant reçoit quota × jours de présence / 364 en consigne
   orale ; **pas de prorata pour un congé long**. Les vacances N se posent jusqu'au 31/01/N+1 : les vacances
   de janvier N+1 sont prises d'abord sur le reliquat de N (onglet RELIQUATS ; saisi à la main pour 2026,
-  calculé et figé à la clôture dès 2027), le surplus compte sur N+1 (v2.5.0).
+  calculé et figé à la clôture dès 2027), le surplus compte sur N+1 (v2.5.0) ; exception « toute l'année » (ORIGINE) pour un retour
+  de congé long : le reliquat vaut sur toute l'année N+1 (v2.6.1).
 - **Après-midi fériés des 24 et 31/12** : ceux qui travaillent partent à midi ; garde, 18 h ou repos de
   garde ces jours-là = +0,5 j à reporter ailleurs (à la main, avec le secrétariat).
 - **Récupérations de samedi** : tout automatique ; jamais pendant les vacances scolaires.

@@ -2634,7 +2634,9 @@ function vcxPoids(c, ds) {
    reliquat de l'année précédente (règle légale) : elles ne comptent sur
    l'année qu'au-delà. Même règle que le serveur (_poserVac_). */
 function vcxCompte() {
-  let passe = 0, venir = 0, rel = 0; const auj = tpxAujourdhui(), droit = VCX.reliquat.droit, jan = VCX.annee + '-01-';
+  let passe = 0, venir = 0, rel = 0; const auj = tpxAujourdhui(), droit = VCX.reliquat.droit;
+  // janvier, ou toute l'année pour l'exception « toute l'année » (retour de congé long)
+  const jan = VCX.reliquat.touteAnnee ? VCX.annee + '-' : VCX.annee + '-01-';
   const tous = Array.from(new Set(Object.keys(VCX.jours).concat(Object.keys(VCX.pend)))).sort();
   tous.forEach(function (ds) {
     let p = vcxPoids(vcxCode(ds), ds);
@@ -2693,8 +2695,8 @@ function vcxRendre() {
   const r = VCX.reliquat, rj = document.getElementById('vcxJr');
   if (rj) {
     rj.style.display = r.droit ? 'block' : 'none';
-    if (r.droit) rj.textContent = 'Reliquat ' + r.annee + ' : ' + vcxFr(k.rel) + ' / ' + vcxFr(r.droit) + ' j pris en janvier · '
-      + (r.droit - k.rel > 0 ? 'il vous reste ' + vcxFr(r.droit - k.rel) + ' jour(s) à poser avant le 31/01, perdus ensuite' : 'tout est posé');
+    if (r.droit) rj.textContent = 'Reliquat ' + r.annee + ' : ' + vcxFr(k.rel) + ' / ' + vcxFr(r.droit) + ' j pris ' + (r.touteAnnee ? 'sur ' + VCX.annee : 'en janvier') + ' · '
+      + (r.droit - k.rel > 0 ? 'il vous reste ' + vcxFr(r.droit - k.rel) + ' jour(s) à poser ' + (r.touteAnnee ? 'en ' + VCX.annee : 'avant le 31/01, perdus ensuite') : 'tout est posé');
   }
   const n = Object.keys(VCX.pend).length;
   document.getElementById('vcxSt').textContent = n ? n + ' changement' + (n > 1 ? 's' : '') + ' à enregistrer' : 'Rien en attente';
@@ -2762,7 +2764,7 @@ function vcxInit(cle, identite) {
     jours: Object.assign({}, mien.jours || {}),
     quota: Number(mien.quotaVac) || 0,
     fixes: Array.isArray(mien.joursFixes) ? mien.joursFixes.map(Number) : [],
-    reliquat: { annee: Number(cle.year) - 1, droit: Number((mien.reliquatVac || {}).droit) || 0 },
+    reliquat: { annee: Number(cle.year) - 1, droit: Number((mien.reliquatVac || {}).droit) || 0, touteAnnee: !!(mien.reliquatVac || {}).touteAnnee },
     preavis: 7, limite: vcxPlusJours(auj, 7),
     pend: {}, outil: 'V',
     mois: (Number(cle.year) === new Date().getFullYear()) ? new Date().getMonth() : 0,
@@ -2848,7 +2850,7 @@ async function vcxEnregistrer() {
       if (apres) VCX.jours[ds] = apres === 'V' ? 'VAC' : apres;
     });
     if (res.quota && res.quota.total !== undefined) VCX.quota = Number(res.quota.total) || VCX.quota;
-    if (res.quota && res.quota.reliquat) VCX.reliquat.droit = Number(res.quota.reliquat.droit) || 0;
+    if (res.quota && res.quota.reliquat) { VCX.reliquat.droit = Number(res.quota.reliquat.droit) || 0; VCX.reliquat.touteAnnee = !!res.quota.reliquat.touteAnnee; }
     VCX.pend = {};
     vcxRendre();
     const court = function (ds) { return new Date(ds + 'T12:00:00').toLocaleDateString('fr-FR', { weekday: 'short', day: 'numeric', month: 'short' }); };

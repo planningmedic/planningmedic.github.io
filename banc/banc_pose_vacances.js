@@ -423,6 +423,40 @@ console.log('\n═══ PV14 · janvier pris d\'abord sur le reliquat de l\'ann
   V('clôture 2026 : rien à calculer, le texte renvoie à la saisie manuelle', /saisi à la main/.test(vm.runInContext('_reliquatsFiger_(2026)', c.ctx)));
 }
 
+console.log('\n═══ PV16 · exception « toute l\'année » (retour de congé long, 26/11/2026) ═══');
+{
+  /* Décision du responsable : un MAR revenant de congé long pose son reliquat
+     2026 sur TOUTE l'année 2027 — ligne de RELIQUATS dont ORIGINE dit
+     « toute l'année ». PLEIN01 a déjà ses 33 jours 2027 (mars → mai). */
+  const jfS = new Set(vm.runInContext('Array.from(getJoursFeries(2027))', monde({}).ctx));
+  const ouvres = []; const d = new Date(2027, 2, 1, 12);
+  while (ouvres.length < 33) { const w = d.getDay(); const ds = d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0') + '-' + String(d.getDate()).padStart(2, '0'); if (w > 0 && w < 6 && !jfS.has(ds)) ouvres.push(ds); d.setDate(d.getDate() + 1); }
+  const avec = (origine) => { const b = monde({ gardes: ouvres.map(ds => ['PLEIN01', ds, 'V']) });
+    b.cl.ajouter('RELIQUATS', [['MAR', 'ANNEE', 'JOURS', 'ORIGINE'], ['PLEIN01', 2026, 9, origine]]); b.ctx.__auj = '2026-12-01'; return b; };
+  const env = () => { const e = {}; ouvres.forEach(ds => { e[ds] = 'V'; }); return e; };
+  let b = avec("congé long : toute l'année");
+  // 10 jours ouvrés de septembre en plus : 33 + 9 = 42 au total, le 10e est de trop.
+  const sept = ['2027-09-06', '2027-09-07', '2027-09-08', '2027-09-09', '2027-09-10', '2027-09-13', '2027-09-14', '2027-09-15', '2027-09-16', '2027-09-17'];
+  let e = env(); sept.forEach(ds => { e[ds] = 'V'; });
+  let r = b.appel({ vac: true, year: 2027, vacances: e }, MAR);
+  V('« toute l\'année » : 9 jours de septembre passent malgré le quota 2027 plein, le 10e est refusé ; 33/33 sur 2027, 9/9 sur le reliquat',
+    sept.slice(0, 9).every(ds => r.resultat[ds] === 'V') && /quota atteint/.test(r.resultat['2027-09-17'] || '') && r.quota.poses === 33 && r.quota.reliquat.pris === 9 && r.quota.reliquat.touteAnnee === true,
+    { res: sept.map(ds => r.resultat[ds]), q: r.quota });
+  const k = vm.runInContext('JSON.parse(JSON.stringify(_construirePoseTp_(2027)))', b.ctx);
+  V('clé de pose : touteAnnee voyage pour lui seul', k.parMar.PLEIN01.reliquatVac.touteAnnee === true && k.parMar.PLEIN02.reliquatVac.touteAnnee === false, [k.parMar.PLEIN01.reliquatVac, k.parMar.PLEIN02.reliquatVac]);
+  vm.runInContext(extraireFonction('../gas/Indispos.gs', 'computeReliquats'), b.ctx);
+  const l1 = (vm.runInContext('JSON.parse(JSON.stringify(computeReliquats(2027)))', b.ctx).lignes.find(x => x.id === 'PLEIN01') || {}).vac || {};
+  V('compteur du comité : 33/33 sur 2027, reliquat 9/9 « sur l\'année »', l1.pose === 33 && l1.reliquat && l1.reliquat.pris === 9 && l1.reliquat.droit === 9 && l1.reliquat.touteAnnee === true, l1);
+  b = avec("toute l'année");
+  r = b.appel({ vac: true, year: 2027, vacances: env() }, MAR);
+  V('les 9 PREMIERS jours de l\'année sont pris sur le reliquat, où qu\'ils tombent : les 33 jours de mars → mai = 24 sur 2027 + 9', r.quota.poses === 24 && r.quota.reliquat.pris === 9, r.quota);
+  b = avec('');
+  e = env(); e['2027-09-06'] = 'V';
+  r = b.appel({ vac: true, year: 2027, vacances: e }, MAR);
+  V('contre-épreuve : même ligne sans « toute l\'année » → septembre refusé (janvier seulement)', /quota atteint/.test(r.resultat['2027-09-06'] || ''), r.resultat['2027-09-06']);
+  V('« Toute l\'année » s\'écrit librement : majuscule, sans accent', vm.runInContext("RELIQUAT_TOUTE_ANNEE.test('Toute l annee') && RELIQUAT_TOUTE_ANNEE.test(\"toute l'année\") && !RELIQUAT_TOUTE_ANNEE.test('saisi le 26/11')", b.ctx));
+}
+
 console.log('\n═══ PV11 · la tuile du portail ═══');
 {
   const src = fs.readFileSync('../index.html', 'utf8');
@@ -545,6 +579,19 @@ async function ouvrir(cle, repondre) {
     V('un 3e jour de janvier : « quota atteint », rien en attente', /Quota atteint/.test(dR.getElementById('vcxHint').textContent) && !wR.eval('VCX.pend["2027-01-14"]'), dR.getElementById('vcxHint').textContent);
     wR.eval('VCX.mois = 1; vcxRendre();'); caseR('2027-02-01').click();
     V('février : le reliquat ne sert pas, « quota atteint »', /Quota atteint/.test(dR.getElementById('vcxHint').textContent) && !wR.eval('VCX.pend["2027-02-01"]'));
+    // (26/11/2026) Exception « toute l'année » : la ligne bleue parle de l'année, et septembre se pose.
+    const bT = monde({ gardes: ouvres.map(ds => ['PLEIN01', ds, 'V']) });
+    bT.cl.ajouter('RELIQUATS', [['MAR', 'ANNEE', 'JOURS', 'ORIGINE'], ['PLEIN01', 2026, 9, "toute l'année"]]);
+    const { w: wT } = await ouvrir(vm.runInContext('JSON.parse(JSON.stringify(_construirePoseTp_(2027)))', bT.ctx), () => ({ success: false }));
+    wT.eval('VCX.mois = 8; vcxRendre();');
+    V('« toute l\'année » : les 33 jours déjà posés prennent d\'abord les 9 du reliquat → jauge 24 / 33, ligne « 9 / 9 j pris sur 2027 »',
+      /24\s*\/\s*33/.test(wT.document.getElementById('vcxJv').textContent) && /Reliquat 2026 : 9 \/ 9 j pris sur 2027 · tout est posé/.test(wT.document.getElementById('vcxJr').textContent),
+      [wT.document.getElementById('vcxJv').textContent, wT.document.getElementById('vcxJr').textContent]);
+    wT.document.querySelector('#vcxGrid [data-ds="2027-09-06"]').click();
+    V('…et un jour de septembre se pose (25 / 33)', wT.eval('VCX.pend["2027-09-06"]') === 'V' && /25\s*\/\s*33/.test(wT.document.getElementById('vcxJv').textContent), wT.document.getElementById('vcxJv').textContent);
+    wT.eval('VCX.pend = {}; VCX.reliquat.droit = 40; vcxRendre();');
+    V('ligne « toute l\'année » avec un reste : « … à poser en 2027 », sans « 31/01 »',
+      /il vous reste 7 jour\(s\) à poser en 2027$/.test(wT.document.getElementById('vcxJr').textContent), wT.document.getElementById('vcxJr').textContent);
     const { w: wS } = await ouvrir(vm.runInContext('JSON.parse(JSON.stringify(_construirePoseTp_(2027)))', monde({}).ctx), () => ({ success: false }));
     V('sans reliquat, la ligne reste cachée', wS.document.getElementById('vcxJr').style.display === 'none');
   }

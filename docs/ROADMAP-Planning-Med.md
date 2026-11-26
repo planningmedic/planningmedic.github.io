@@ -47,7 +47,8 @@ dans « À faire ». Quand le journal récent dépasse une page, ses entrées pa
   (une ligne par MAR : MAR, 2026, jours), chiffres vérifiés avec le secrétariat. Sans ligne, pas de
   reliquat. Dès 2027 le calcul est automatique et la clôture le fige (lignes « calculé à la clôture » à
   vérifier). Décisions du 26/11 : imputation automatique (janvier pris d'abord sur le reliquat), pas de
-  mail de rappel. Limite connue : l'écran de saisie du staff vacances (INDISPOS) compte encore les jours de
+  mail de rappel. Exception « toute l'année » dans ORIGINE (retour de congé long, v2.6.1) : le reliquat
+  vaut sur toute l'année N+1. Limite connue : l'écran de saisie du staff vacances (INDISPOS) compte encore les jours de
   janvier N+1 sur le quota N+1 — sans effet tant que le staff a lieu avant la fin de N.
 - **Retour d'expérience / poster SFAR 2027** : appel à communications à surveiller vers décembre 2026
   (3 500 caractères, inscription payée ; un résumé accepté et non présenté = 3 ans d'interdiction : ne

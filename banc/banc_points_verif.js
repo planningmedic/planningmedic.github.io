@@ -205,6 +205,10 @@ console.log('\n═══ VR · vacances de janvier prises sur le reliquat de l\'
   V('reliquat de 1 : un seul des 2 jours de janvier sort du compte (31 pour 30), et le texte le dit',
     vx.texte === '31 jours de vacances posés en 2027 pour un droit de 30 jours (90 %) : 1 de trop. Sans compter 1 jour(s) de janvier pris sur le reliquat 2026.', vx.texte);
   V('reliquat plus grand que janvier (3 pour 2) : les 2 jours sortent, 33 pour 33, aucun point (ligne saisie par les initiales)', !vac.some(p => p.id === 'P04'), vac);
+  // Exception « toute l'année » : 31 jours en février–mars pour un droit de 30, reliquat de 1 valable sur l'année → rien à dire.
+  const t = monde({ cases: semaines('VACX', 6).concat([['VACX', '2027-09-01', 'V']]) });
+  t.cl.ajouter('RELIQUATS', [['MAR', 'ANNEE', 'JOURS', 'ORIGINE'], ['VACX', 2026, 1, "Toute l'année (congé long)"]]);
+  V('« toute l\'année » : un jour de septembre pris sur le reliquat, 30 pour 30, aucun point', !(t.points().points || []).some(p => p.code === 'vac' && p.id === 'VACX'));
   const sans = monde({ cases: semaines('P04', 7).slice(0, 33).concat(janv('P04')) });
   V('contre-épreuve : sans onglet RELIQUATS, les jours de janvier comptent (35 pour 33)', (sans.points().points || []).some(p => p.code === 'vac' && p.id === 'P04'));
 }

@@ -130,7 +130,7 @@ console.log('\n═══ 4. admin.html · le panneau de l\'onglet Statuts ══
   V('le serveur rend bien le nombre posé, pas seulement le reste',
     /vac:  \{ pose: vacAn,  quota: q\.vac,  reste: q\.vac  - vacAn,/.test(IND));
   V('…et le reliquat de l\'année précédente à part (droit, pris en janvier, reste)',
-    /reliquat: droitR \? \{ annee: year - 1, droit: droitR, pris: prisR, reste: droitR - prisR \} : null/.test(IND)
+    /reliquat: droitR \? \{ annee: year - 1, droit: droitR, pris: prisR, reste: droitR - prisR, touteAnnee: !!relToutAn\[id\] \} : null/.test(IND)
     && /\+ reliquat ' \+ o\.reliquat\.annee/.test(ADM));
   /* L'onglet Statuts suit l'année choisie en haut d'écran, qui n'est pas
      forcément celle qu'on a en tête : un reliquat de 2026 lu comme un

@@ -278,6 +278,11 @@ console.log('\n═══ 5. L\'écran : le bandeau, puis la file au clic ══�
     V('reliquat 2026 de 1 : 5 jours posés, 4 sur 2027 (un jour de janvier pris sur 2026), et la tuile le dit',
       tvR && /^4\s*\/\s*33\s*j/.test(tvR.querySelector('b').textContent.trim()) && /\+ 1 \/ 1 j du reliquat 2026 en janvier/.test(tvR.textContent), tvR && tvR.textContent);
     V('pastille : 33 − 4 = 29 j à poser', w.eval('_recapResteAPoser()') === 29, w.eval('_recapResteAPoser()'));
+    // Exception « toute l'année » : les 3 jours de mars sont aussi pris sur un reliquat de 9.
+    dansLaPage("POSE_CLES[2027].parMar.MOI.reliquatVac={annee:2026,droit:9,touteAnnee:true}; RC_ANNEE=null; renderMesConges();");
+    const tvT = D.querySelector('#mesCongesBody .rc-vac');
+    V('« toute l\'année » : les 5 jours de l\'année (dont ½ + ½) pris sur le reliquat de 9 → 0 sur 2027, sans « en janvier »',
+      tvT && /^0\s*\/\s*33\s*j/.test(tvT.querySelector('b').textContent.trim()) && /\+ 5 \/ 9 j du reliquat 2026(?! en janvier)/.test(tvT.textContent), tvT && tvT.textContent);
     dansLaPage('_planCache[2027]=' + JSON.stringify(planning) + ';');
   }
 
