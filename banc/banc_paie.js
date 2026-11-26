@@ -166,12 +166,12 @@ function monterPaie(extra) {
     _configRows_: () => [['CLE', 'VALEUR']].concat(ctx.__config || []),
     _echangesLignes_: () => ({ lignes: ctx.__echanges || [] }),
   }, extra || {}));
-  ['NOTIF_JOURS', 'NOTIF_MOIS', 'NOTIF_PROP_TEST', 'PAIE_LIB', 'PAIE_ABS', 'PAIE_DEMI', 'PAIE_MAX_DETAIL', 'PAIE_SITE', 'PAIE_PROP_RECENTS', 'PAIE_RECENTS_JOURS']
+  ['NOTIF_JOURS', 'NOTIF_MOIS', 'NOTIF_PROP_TEST', 'PAIE_LIB', 'PAIE_ABS', 'PAIE_DEMI', 'PAIE_MAX_DETAIL', 'PAIE_MODE_EMPLOI_SUJET', 'PAIE_SITE', 'PAIE_PROP_RECENTS', 'PAIE_RECENTS_JOURS']
     .forEach(n => vm.runInContext(extraireConst(CODE, n), ctx));
   ['_paieCode_', '_paieCodeJour_', '_paieDr_', '_paieNomSession_', '_paieAplatir_', '_planningPaie_', '_paieDiff_', '_paiePlages_',
    '_paieTotaux_', '_paieNb_', '_paieOrigine_', '_paieHeure_', '_paieJoli_', '_paieMoisJoli_', '_paieTag_', '_paieAbsLib_', '_paieListe_', '_paieCourt_', '_paieQuand_', '_paieApercu_', '_paieTexteFin_', '_paieLignesCourtes_', '_paieParMedecin_', '_paieCompactTexte_',
    '_paieSujet_', '_paieGestes_', '_paieTexte_', '_paieHtml_', '_paieDestinataires_', '_paieRecentsLire_',
-   '_paieRecentsAjouter_', '_paieLimiteGardes_', '_paieAEnvoyer_', '_paieEnvoyerAnnee_']
+   '_paieRecentsAjouter_', '_paieLimiteGardes_', '_paieAEnvoyer_', '_paieEnvoyerAnnee_', '_paieModeEmploiTexte_', '_paieModeEmploiHtml_', 'paieEnvoyerModeEmploi_']
     .forEach(n => vm.runInContext(extraireFonction(CODE, n), ctx));
   return { ctx, props, drive, mails };
 }
@@ -508,6 +508,29 @@ console.log('\n═══ P4 ter. Gardes proches seulement ; vacances, TP, format
   const tf = copie(BASE); tf.MAR02['2026-11-06'] = 'CTP'; tf.MAR04['2026-11-10'] = 'F';
   const r3 = S3.ctx._paieEnvoyerAnnee_(2026, JSON.stringify(fabriquerPlanning(tf)), LUNDI);
   V('contre-épreuve : avec l\'ancien tri, TP et formation ne partaient pas', S3.mails.length === 0 && r3.motif === 'rien pour la paie', r3);
+}
+
+/* ═══ P4 quater. (26/11/2026) Mail « mode d'emploi » aux secrétaires ═══ */
+console.log('\n═══ P4 quater. Mail « mode d\'emploi » ═══');
+{
+  const S = monterPaie();
+  S.ctx.__config = [['PAIE_EMAILS', 'moi@exemple.test; secretariat@exemple.test'], ['PAIE_CODE', 'CODE-SECRET-PAIE']];
+  S.ctx.logAction = () => {};
+  const r = S.ctx.paieEnvoyerModeEmploi_();
+  const m = S.mails[0] || {};
+  V('envoyé aux deux adresses de PAIE_EMAILS (séparées par « ; »)', r.success === true && r.nb === 2 && m.to === 'moi@exemple.test,secretariat@exemple.test', m.to);
+  V('objet clair', m.subject === 'Planning des absences de l\'anesthésie : mode d\'emploi', m.subject);
+  V('le lien vers la page, dans le texte et le bouton', /https:\/\/planningmedic\.github\.io\/paie\.html/.test(m.body) && /href="https:\/\/planningmedic\.github\.io\/paie\.html"/.test(m.htmlBody));
+  V('explique les cinq codes, les mails « À saisir » et la règle des gardes', ['garde réanimation', 'garde maternité', 'vacances', 'temps partiel', 'formation', 'À saisir', 'fin de la semaine suivante', 'Gardes jour par jour', 'Excel', 'Derniers changements'].every(x => m.body.indexOf(x) > -1 && m.htmlBody.indexOf(x) > -1));
+  V('aucun code d\'accès dans le mail', m.body.indexOf('CODE-SECRET-PAIE') < 0 && m.htmlBody.indexOf('CODE-SECRET-PAIE') < 0);
+  V('jamais le mot « paie » (hors adresse paie.html)', !/paie/i.test((m.subject + m.body + m.htmlBody).replace(/paie\.html/g, '')));
+  V('aperçu de la boîte de réception en tête, caché à l\'ouverture', /^<div style="display:none;[^"]*mso-hide:all[^>]*>Où trouver la page/.test(m.htmlBody));
+  const ouv = (m.htmlBody.match(/<(table|tr|td|div)\b/g) || []).length, fer = (m.htmlBody.match(/<\/(table|tr|td|div)>/g) || []).length;
+  V('HTML équilibré', ouv === fer, ouv + '/' + fer);
+  // Sans adresse : refus clair, rien n'est envoyé.
+  const S2 = monterPaie(); S2.ctx.__config = [['PAIE_EMAILS', '']]; S2.ctx.logAction = () => {};
+  const r2 = S2.ctx.paieEnvoyerModeEmploi_();
+  V('sans adresse : refus clair, aucun envoi', r2.success === false && /PAIE_EMAILS/.test(r2.error) && S2.mails.length === 0, r2);
 }
 
 /* ═══ P5. Branchement dans la tournée des mails ═══ */

@@ -2724,6 +2724,108 @@ function _paieRecentsAjouter_(items, maintenantMs) {
   } catch (e) { /* la mémoire est un confort : jamais bloquante */ }
 }
 
+// ── (26/11/2026) Mail « mode d'emploi » aux secrétaires ────────────────
+// Envoyé à la demande depuis la page Maintenance (bouton, deux clics), aux mêmes
+// adresses que les mails des absences (PAIE_EMAILS). Teste l'adresse et explique
+// la page et les mails, en langage simple. Pas de code d'accès dans le mail.
+const PAIE_MODE_EMPLOI_SUJET = 'Planning des absences de l\'anesthésie : mode d\'emploi';
+
+function _paieModeEmploiTexte_() {
+  return 'Bonjour,\n\n'
+    + 'Voici le mode d\'emploi du planning des absences des médecins anesthésistes-réanimateurs.\n\n'
+    + 'À QUOI ÇA SERT\n'
+    + '  Une page en lecture seule qui montre, mois par mois, les gardes, vacances, temps partiels et formations\n'
+    + '  de chaque médecin : tout ce qu\'il faut saisir dans Chronos.\n\n'
+    + 'POUR Y ACCÉDER\n'
+    + '  Adresse : ' + PAIE_SITE + '\n'
+    + '  Le code d\'accès est le même pour vous deux ; il vous est transmis par le médecin responsable du planning.\n'
+    + '  Ajoutez la page à vos favoris : elle reste ensuite ouverte sur votre ordinateur.\n\n'
+    + 'LIRE LA PAGE\n'
+    + '  Un médecin par ligne, un jour par colonne. Les flèches à côté du mois changent de mois.\n'
+    + '  G = garde réanimation · G2 = garde maternité · V = vacances (VM / VA : demi-journée, matin / après-midi)\n'
+    + '  TP = temps partiel · F = formation. Les week-ends et jours fériés sont sur fond rose.\n'
+    + '  À droite, les totaux du mois pour chaque médecin.\n'
+    + '  « Gardes jour par jour » : les deux médecins de garde chaque jour, pratique pour la saisie du vendredi.\n'
+    + '  « Télécharger le mois (Excel) » : le mois affiché, en fichier Excel.\n'
+    + '  Une case encadrée d\'orange a changé depuis moins de 7 jours (passez la souris dessus pour le détail).\n'
+    + '  « Derniers changements », en bas de la page : tout ce qui a bougé ces 14 derniers jours.\n\n'
+    + 'LES MAILS QUE VOUS RECEVREZ\n'
+    + '  Un mail « À saisir : … » arrive une dizaine de minutes après chaque changement de vacances,\n'
+    + '  de temps partiel ou de formation.\n'
+    + '  Pour une garde, le mail ne part que si elle tombe d\'ici la fin de la semaine suivante (ou est déjà passée) :\n'
+    + '  les autres se lisent sur la page au moment de la saisie du vendredi.\n'
+    + '  Le mail dit quoi retirer (−) et quoi ajouter (+), pour quel médecin et quel jour.\n'
+    + '  S\'il y a beaucoup de changements d\'un coup, vous recevez un seul mail court, rangé par médecin.\n\n'
+    + 'Une question : adressez-vous au médecin responsable du planning.\n\n'
+    + 'Ce mail confirme aussi que votre adresse reçoit bien les messages du planning.\n\n'
+    + 'Message automatique de Planning-Med, merci de ne pas y répondre.\n';
+}
+
+function _paieModeEmploiHtml_() {
+  const ENCRE = '#3b1d2e', GRIS = '#7C6475', ROSE = '#B84D82', FOND = '#FFF8FB', LIGNE = '#F2DCE6';
+  const POLICE = "-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif";
+  const titre = function (t) { return '<div style="font-size:12px;font-weight:800;letter-spacing:.8px;text-transform:uppercase;color:' + ROSE + ';margin:22px 0 8px">' + t + '</div>'; };
+  const p = function (t) { return '<div style="font-size:15px;line-height:1.55;color:' + ENCRE + ';margin:0 0 8px">' + t + '</div>'; };
+  const code = function (c, bg, fg, lib) {
+    return '<tr><td style="padding:4px 10px 4px 0;width:44px"><span style="display:inline-block;min-width:30px;text-align:center;padding:3px 6px;border-radius:7px;'
+      + 'font-weight:800;font-size:13px;background:' + bg + ';color:' + fg + '">' + c + '</span></td><td style="font-size:14px;color:' + ENCRE + '">' + lib + '</td></tr>';
+  };
+  return ''
+  + '<div style="display:none;max-height:0;overflow:hidden;mso-hide:all;font-size:1px;line-height:1px;color:' + FOND + ';opacity:0">'
+  +   'Où trouver la page, comment la lire, et ce que disent les mails « À saisir ».' + new Array(60).join('&#847;&zwnj;&nbsp;') + '</div>'
+  + '<table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="background:' + FOND + ';font-family:' + POLICE + '">'
+  + '<tr><td align="center" style="padding:14px 6px">'
+  + '<table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="max-width:620px;background:#ffffff;border:1px solid ' + LIGNE + ';border-radius:16px">'
+  + '<tr><td style="padding:24px 22px 26px">'
+  +   '<div style="font-size:11px;font-weight:800;letter-spacing:.9px;text-transform:uppercase;color:#B39AAA">Planning-Med · absences</div>'
+  +   '<div style="font-size:24px;font-weight:800;color:' + ENCRE + ';margin:6px 0 10px">Mode d\'emploi</div>'
+  +   p('Bonjour,') + p('Voici le mode d\'emploi du planning des absences des médecins anesthésistes-réanimateurs.')
+  +   titre('À quoi ça sert')
+  +   p('Une page <b>en lecture seule</b> qui montre, mois par mois, les gardes, vacances, temps partiels et formations de chaque médecin : tout ce qu\'il faut saisir dans Chronos.')
+  +   titre('Pour y accéder')
+  +   p('Le code d\'accès est le même pour vous deux ; il vous est transmis par le médecin responsable du planning.')
+  +   p('Ajoutez la page à vos favoris : elle reste ensuite ouverte sur votre ordinateur.')
+  +   '<table role="presentation" cellpadding="0" cellspacing="0" border="0" style="margin:10px 0 4px"><tr><td>'
+  +   '<a href="' + PAIE_SITE + '" style="display:inline-block;background:' + ROSE + ';color:#ffffff;text-decoration:none;border-radius:11px;font-size:15px;font-weight:700;padding:13px 20px">Ouvrir le planning des absences</a>'
+  +   '</td></tr></table>'
+  +   '<div style="font-size:12px;color:' + GRIS + '">' + PAIE_SITE + '</div>'
+  +   titre('Lire la page')
+  +   p('Un médecin par ligne, un jour par colonne. Les flèches à côté du mois changent de mois.')
+  +   '<table role="presentation" cellpadding="0" cellspacing="0" border="0" style="margin:4px 0 10px">'
+  +     code('G', '#E4ECFF', '#3D5BA9', 'garde réanimation')
+  +     code('G2', '#FFE3EE', '#B83C6E', 'garde maternité')
+  +     code('V', '#DDF4E8', '#2E7553', 'vacances (VM / VA : demi-journée, matin / après-midi)')
+  +     code('TP', '#FFEADB', '#A85A26', 'temps partiel')
+  +     code('F', '#EFE5FF', '#7A4BB8', 'formation')
+  +   '</table>'
+  +   p('Les week-ends et jours fériés sont sur fond rose. À droite, les totaux du mois pour chaque médecin.')
+  +   p('<b>Gardes jour par jour</b> : les deux médecins de garde chaque jour, pratique pour la saisie du vendredi.')
+  +   p('<b>Télécharger le mois (Excel)</b> : le mois affiché, en fichier Excel.')
+  +   p('Une case <span style="box-shadow:0 0 0 2px #D97706;border-radius:4px;padding:0 4px">encadrée d\'orange</span> a changé depuis moins de 7 jours : passez la souris dessus pour le détail.')
+  +   p('<b>Derniers changements</b>, en bas de la page : tout ce qui a bougé ces 14 derniers jours.')
+  +   titre('Les mails que vous recevrez')
+  +   p('Un mail <b>« À saisir : … »</b> arrive une dizaine de minutes après chaque changement de vacances, de temps partiel ou de formation.')
+  +   p('Pour une garde, le mail ne part que si elle tombe <b>d\'ici la fin de la semaine suivante</b> (ou est déjà passée) : les autres se lisent sur la page au moment de la saisie du vendredi.')
+  +   p('Le mail dit quoi <b style="color:#b91c1c">retirer (−)</b> et quoi <b style="color:#15803d">ajouter (+)</b>, pour quel médecin et quel jour. S\'il y a beaucoup de changements d\'un coup, vous recevez un seul mail court, rangé par médecin.')
+  +   '<div style="border-top:1px solid ' + LIGNE + ';margin-top:20px;padding-top:14px">'
+  +   p('Une question : adressez-vous au médecin responsable du planning.')
+  +   '<div style="font-size:13px;color:' + GRIS + ';line-height:1.5">Ce mail confirme aussi que votre adresse reçoit bien les messages du planning.<br>'
+  +   'Message automatique de Planning-Med, merci de ne pas y répondre.</div></div>'
+  + '</td></tr></table></td></tr></table>';
+}
+
+// Envoie le mode d'emploi. → { success, nb } ou { success:false, error }.
+function paieEnvoyerModeEmploi_() {
+  const dest = _paieDestinataires_();
+  if (!dest.length) return { success: false, error: 'Aucune adresse dans PAIE_EMAILS (onglet CONFIG).' };
+  const test = String(PropertiesService.getScriptProperties().getProperty(NOTIF_PROP_TEST) || '').trim();
+  if (MailApp.getRemainingDailyQuota() < 1) return { success: false, error: 'Quota de mails du jour épuisé.' };
+  MailApp.sendEmail({ to: test || dest.join(','), subject: PAIE_MODE_EMPLOI_SUJET,
+    htmlBody: _paieModeEmploiHtml_(), body: _paieModeEmploiTexte_(), name: 'Planning-Med' });
+  try { logAction('mail mode d\'emploi absences — envoyé à ' + (test ? 1 : dest.length) + ' adresse(s)'); } catch (e) {}
+  return { success: true, nb: test ? 1 : dest.length };
+}
+
 // ── (25/11/2026) Jusqu'où une garde déclenche un mail ──────────────────
 // Le dimanche de la semaine PROCHAINE, à l'heure de Monaco ('AAAA-MM-JJ').
 // Mercredi 25/11 → dimanche 06/12 ; samedi 28/11 → dimanche 06/12 ;

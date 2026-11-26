@@ -26,6 +26,7 @@ const CONTRAT = {
   'getActiveYear'             : 'sans code',
   'getAnneesDisponibles'      : 'sans code',
   'viderCacheConfig'          : 'maintenance',
+  'paieModeEmploi'            : 'maintenance',   // (26/11/2026) mail « mode d'emploi » aux secrétaires
   'getStatus'                 : 'tout code valide',
   'getStatsLive'              : 'tout code valide',
   'login'                     : 'tout code valide',
@@ -148,7 +149,7 @@ console.log('═══ Le routeur répond au contrat des 72 actions ═══');
 const { fichier, actions, corps } = contratActuel();
 const attendu = Object.assign({}, CONTRAT, { getActiveYear: 'sans code', getAnneesDisponibles: 'sans code' });
 V('le routeur est lu dans ' + fichier, !!fichier);
-V('82 actions, ni plus ni moins', Object.keys(actions).length === 82, Object.keys(actions).length);   // (25/11/2026) + getRecapPdf, + trois actions de la bourse aux gardes, + republierPlanning
+V('83 actions, ni plus ni moins', Object.keys(actions).length === 83, Object.keys(actions).length);   // (26/11/2026) + paieModeEmploi · (25/11/2026) + getRecapPdf, + trois actions de la bourse aux gardes, + republierPlanning
 const manquantes = Object.keys(attendu).filter(a => !(a in actions));
 const enTrop = Object.keys(actions).filter(a => !(a in attendu));
 V('aucune action du contrat ne manque', manquantes.length === 0, manquantes);
@@ -157,8 +158,8 @@ const roleChange = Object.keys(attendu).filter(a => actions[a] && actions[a] !==
 V('chaque action garde exactement son contrôle d\'accès', roleChange.length === 0, roleChange);
 V('exactement deux actions sans code : les listes d\'années', Object.values(actions).filter(r => r === 'sans code').length === 2);
 V('44 actions réservées au comité', Object.values(actions).filter(r => r === 'admin').length === 44, Object.values(actions).filter(r => r === 'admin').length);
-V('exactement treize actions de maintenance : diagnostic, cache, synchronisation, envoi groupé des codes, réparation des récupérations, les cinq de la clôture d\'année (15/11/2026) et les trois du solveur exact (18/11/2026)',
-  JSON.stringify(Object.keys(actions).filter(a => actions[a] === 'maintenance').sort()) === JSON.stringify(['archiveYear', 'clearIndisposYear', 'clotureVerifier', 'cloturerAnnee', 'diagComplet', 'miroirSyncMaintenant', 'recupsReparer', 'republierPlanning', 'sendCodes', 'setActiveYear', 'solveurAppliquer', 'solveurEtat', 'solveurLancer', 'viderCacheConfig']),
+V('exactement treize actions de maintenance : diagnostic, cache, synchronisation, envoi groupé des codes, réparation des récupérations, les cinq de la clôture d\'année (15/11/2026) et les trois du solveur exact (18/11/2026), le mode d\'emploi aux secrétaires (26/11/2026)',
+  JSON.stringify(Object.keys(actions).filter(a => actions[a] === 'maintenance').sort()) === JSON.stringify(['archiveYear', 'clearIndisposYear', 'clotureVerifier', 'cloturerAnnee', 'diagComplet', 'miroirSyncMaintenant', 'paieModeEmploi', 'recupsReparer', 'republierPlanning', 'sendCodes', 'setActiveYear', 'solveurAppliquer', 'solveurEtat', 'solveurLancer', 'viderCacheConfig']),
   Object.keys(actions).filter(a => actions[a] === 'maintenance'));
 { /* La porte de maintenance n'admet QUE le MAR qui a la tuile : ni le comité, ni un MAR sans la clé. */
   const tout = require('./stubs').sourceGasTout();

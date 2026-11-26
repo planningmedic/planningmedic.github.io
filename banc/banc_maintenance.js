@@ -106,6 +106,7 @@ console.log('\n═══ M2 bis. Republier le planning (25/11/2026) ═══');
   ctx.notifPlanifier = () => { throw new Error('minuteur en panne'); };
   V('un minuteur de mail en panne ne fait pas échouer la publication', appel('republierPlanning', MOI, { year: 2027 }).success === true && faits.indexOf('planning 2027') > -1);
   const idx = require('fs').readFileSync(G('Indispos.gs'), 'utf8');
+  V('routeur : paieModeEmploi réservé au rôle maintenance (26/11/2026)', /"paieModeEmploi"\s*:\s*\{ role: 'maintenance'\s*, fn: _act_paieModeEmploi \}/.test(idx));
   V('routeur : rôle maintenance, et sous verrou d\'écriture',
     /"republierPlanning"\s*:\s*\{ role: 'maintenance'\s*, fn: _act_republierPlanning \}/.test(idx) && /'publishPlanning', 'republierPlanning',/.test(idx));
 }
@@ -173,6 +174,7 @@ console.log('\n═══ M2. Les cinq actions ═══');
     if (c.action === 'getMedecins') return { success: true, medecins: MEDS, maintenance: true };
     if (c.action === 'diagComplet') return { success: true, ok: false, results: ['══ CHAPITRE UN ══', '✅ Réglages lus', '❌ Une erreur', '→ LE GESTE : relancer la tâche', '⚠️ Un avertissement'] };
     if (c.action === 'viderCacheConfig') return { success: true, message: 'Cache de configuration vidé.' };
+    if (c.action === 'paieModeEmploi') return { success: true, nb: 2 };
     if (c.action === 'miroirSyncMaintenant') return { success: true, ecrites: 3, cles: 40, secondes: 12 };
     if (c.action === 'republierPlanning') return c.year === 2099 ? { success: false, error: 'Les gardes 2099 ne sont pas encore générées : rien à publier' } : { success: true, year: c.year, secondes: 9 };
     if (c.action === 'sendCodesMar') return c.medecin === 'MAR03' ? { success: false, error: 'Envoi échoué pour Dr Trois : quota' } : { success: true, sent: 1 };
@@ -212,7 +214,16 @@ console.log('\n═══ M2. Les cinq actions ═══');
 
     const ordre = [...d.querySelectorAll('section.card')].map(c => c.id);
     V('ordre des cartes voulu (18/11/2026, + republier 25/11) : serveur, diagnostic, mise à jour, republier, récups, clôture, calcul exact des gardes, codes, cache en dernier',
-      JSON.stringify(ordre) === JSON.stringify(['cMaj', 'cDiag', 'cSync', 'cRepub', 'cRecups', 'cClot', 'cSolveur', 'cCodes', 'cCache']), ordre);
+      JSON.stringify(ordre) === JSON.stringify(['cMaj', 'cDiag', 'cSync', 'cRepub', 'cRecups', 'cClot', 'cSolveur', 'cCodes', 'cModeEmploi', 'cCache']), ordre);
+
+    /* (26/11/2026) Mode d'emploi aux secrétaires : deux appuis, un seul envoi. */
+    const bME = d.getElementById('btnModeEmploi');
+    bME.click(); await dodo(60);
+    V('mode d\'emploi : premier appui, le bouton demande confirmation, rien ne part', /Confirmer l'envoi/.test(bME.textContent) && !appels.some(a => a.action === 'paieModeEmploi'), bME.textContent);
+    bME.click(); await dodo(80);
+    V('mode d\'emploi : second appui, un seul envoi avec le code, résultat affiché', appels.filter(a => a.action === 'paieModeEmploi').length === 1
+      && appels.find(a => a.action === 'paieModeEmploi').code === 'MOI' && /envoyé à 2 adresses/.test(d.getElementById('modeEmploiRes').textContent), d.getElementById('modeEmploiRes').textContent);
+    V('mode d\'emploi : le bouton revient à son état de départ', /Envoyer le mode d'emploi/.test(bME.textContent) && !bME.disabled);
     d.getElementById('btnSync').click(); await dodo(80);
     V('mettre à jour maintenant : l\'action part avec le code, le résultat chiffré s\'affiche',
       appels.some(a => a.action === 'miroirSyncMaintenant' && a.code === 'MOI') && /Portail à jour \(3 éléments modifiés, 12 s\)/.test(d.getElementById('syncRes').textContent)

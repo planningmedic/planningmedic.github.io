@@ -4,7 +4,7 @@
    quelles : aucune ligne de logique modifiée, seulement déplacée. Le routeur et
    ses aides (checkCode, _deny, _error, doGet/doPost) restent dans Indispos.gs.
    Un seul espace global dans Apps Script : rien à importer. */
-const GAS_VERSION_EQUIPE = '2026-11-25.3';   // (25/11/2026) .3 : action republierPlanning (page Maintenance) · (25/11/2026) .2 : actions de la bourse aux gardes (deposerBourse, prendreBourse, retirerBourse) · (25/11/2026) .1 : le bootstrap du comité porte la semaine type des salles (sallesType) · (20/11/2026) _droitResponsable_ : opérations annuelles réservées au responsable · (18/11/2026) action miroirSyncMaintenant (page Maintenance) · (17/11/2026) getMedecins : champ horsEffectif (colonne HORS_EFFECTIF) pour la bande de présence · (11/11/2026) action annulerEchange · (02/11/2026) commentaire : identifiants d'exemple fictifs · (01/11/2026) outils de maintenance réservés à la tuile `maintenance` · (27/10/2026) ordreMc renvoyé au login et au bootstrap
+const GAS_VERSION_EQUIPE = '2026-11-26.1';   // (26/11/2026) .1 : action paieModeEmploi (page Maintenance) · (25/11/2026) .3 : action republierPlanning (page Maintenance) · (25/11/2026) .2 : actions de la bourse aux gardes (deposerBourse, prendreBourse, retirerBourse) · (25/11/2026) .1 : le bootstrap du comité porte la semaine type des salles (sallesType) · (20/11/2026) _droitResponsable_ : opérations annuelles réservées au responsable · (18/11/2026) action miroirSyncMaintenant (page Maintenance) · (17/11/2026) getMedecins : champ horsEffectif (colonne HORS_EFFECTIF) pour la bande de présence · (11/11/2026) action annulerEchange · (02/11/2026) commentaire : identifiants d'exemple fictifs · (01/11/2026) outils de maintenance réservés à la tuile `maintenance` · (27/10/2026) ordreMc renvoyé au login et au bootstrap
 
 // ── Sonde : les interrupteurs des mails sont-ils cohérents ? ──
 function _sondeInterrupteursMails_(check, R, info) {
@@ -315,6 +315,15 @@ function _droitResponsable_(payload) {
     if (!c) return false;
     return _droitMaintenance_(checkCode(c));
   } catch (e) { return false; }
+}
+
+/* ── action "paieModeEmploi" (26/11/2026) : mail « mode d'emploi » aux secrétaires (code.gs) ── */
+function _act_paieModeEmploi(R) {
+  const { user } = R;
+  if (!_droitMaintenance_(user)) return _deny();
+  let r;
+  try { r = paieEnvoyerModeEmploi_(); } catch (err) { r = { success: false, error: String(err.message || err) }; }
+  return ContentService.createTextOutput(JSON.stringify(r)).setMimeType(ContentService.MimeType.JSON);
 }
 
 /* ── action "viderCacheConfig" ── */

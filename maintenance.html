@@ -230,6 +230,14 @@ window.SessionPortail = window.SessionPortail || { lire:function(){try{return se
     <div class="res" id="codesRes"></div>
   </section>
 
+  <!-- 3 bis. Mode d'emploi aux secrétaires (26/11/2026) -->
+  <section class="card" id="cModeEmploi">
+    <h2>📮 Mode d'emploi aux secrétaires</h2>
+    <p class="d">Envoie aux adresses de PAIE_EMAILS un mail qui explique le planning des absences et les mails « À saisir ». Sert aussi à tester leur adresse.</p>
+    <button class="btn" id="btnModeEmploi" type="button">Envoyer le mode d'emploi</button>
+    <div class="res" id="modeEmploiRes"></div>
+  </section>
+
   <!-- 4. Cache (en dernier : geste rare, 18/11/2026) -->
   <section class="card" id="cCache">
     <h2>🧹 Vider le cache</h2>
@@ -613,6 +621,24 @@ deuxAppuis($('btnRecRep'), () => 'Confirmer : réparer', async () => {
     toast('Récupérations réparées');
   } catch (e) { out.innerHTML += '<div class="err">❌ ' + esc(e.message) + '</div>'; btn.disabled = false; }
   finally { btn.textContent = lib; }
+});
+
+/* ── 3 bis. Mode d'emploi aux secrétaires (26/11/2026) : deux clics, pour ne pas l'envoyer par erreur ── */
+let MODE_EMPLOI_ARME = false;
+$('btnModeEmploi').addEventListener('click', async () => {
+  const btn = $('btnModeEmploi'), out = $('modeEmploiRes');
+  if (!MODE_EMPLOI_ARME) {
+    MODE_EMPLOI_ARME = true; btn.textContent = 'Confirmer l\'envoi';
+    out.innerHTML = '<span>Le mail partira vers les adresses de PAIE_EMAILS. Touchez « Confirmer l\'envoi ».</span>';
+    return;
+  }
+  MODE_EMPLOI_ARME = false; btn.disabled = true; btn.textContent = 'Envoi…';
+  try {
+    const r = await api({ action:'paieModeEmploi' });
+    if (!r || !r.success) throw new Error(refus(r) ? MSG_RESERVE : ((r && r.error) || 'réponse illisible'));
+    out.innerHTML = '<span class="ok">✅ Mode d\'emploi envoyé à ' + r.nb + ' adresse' + (r.nb > 1 ? 's' : '') + '.</span>';
+  } catch (e) { out.innerHTML = '<span class="err">❌ ' + esc(e.message) + '</span>'; }
+  finally { btn.disabled = false; btn.textContent = 'Envoyer le mode d\'emploi'; }
 });
 
 /* ── 2. Cache ── */
