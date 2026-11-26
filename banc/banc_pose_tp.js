@@ -111,6 +111,7 @@ function monde(opts) {
     Session: { getScriptTimeZone: () => 'Europe/Paris' } });
   ctx.globalThis = ctx;
   socleMedecins(ctx);   // (14/09/2026) COL_MED, _medecinsRows_, _medecinsInvalider_ (code.gs)
+  require('./stubs').socleReliquats(ctx);   // (26/11/2026) reliquat de vacances de l'année précédente
   /* Doublures d'infrastructure (jamais de logique métier) : journal, memo
      CONFIG (lecture directe, pas de cache à invalider), réponse HTTP. */
   vm.runInContext('function logAction(){}', ctx);

@@ -4,7 +4,7 @@
    quelles : aucune ligne de logique modifiée, seulement déplacée. Le routeur et
    ses aides (checkCode, _deny, _error, doGet/doPost) restent dans Indispos.gs.
    Un seul espace global dans Apps Script : rien à importer. */
-const GAS_VERSION_GARDES = '2026-11-25.2';   // (25/11/2026) .2 : Contrôles — les V de week-end et de férié retirés du planning (décision du responsable : « ils ne servent à rien ») : plus d'écart indispos ↔ planning ces jours-là, et le 18 h la veille de vacances regarde le prochain jour ouvré · (25/11/2026) .1 : SALLES / MAR — notes SALLES (nombre de salles corrigé un jour donné, partagé par le comité) et semaine type lue dans l'onglet SALLES_TYPE (getSallesType) · (20/11/2026) .4 : Contrôles — une récupération sur un jour qui n'est pas vert (moins que le seuil de confort) est signalée, comme la règle de pose · (20/11/2026) .3 : notes AIDE — case de bloc aidée par un autre secteur, sans nom · (20/11/2026) .2 : notes CSS — consultation tenue par le secteur, sans nom · (20/11/2026) .1 : generateGardes réservé au responsable · (19/11/2026) .5 : NOTES DU PLANNING (onglet PLANNING_NOTES) — interne en réa (INT, matin / après-midi) et infos du jour (texte libre) : loadPlanningNotes, savePlanningNotesBatch, action savePlanningNotes · (19/11/2026) .4 : le rappel « demande de TP en attente » renvoie à la tuile Temps partiel (bouton Valider) · (19/11/2026) .3 : texte du rappel « demande de TP en attente » : la validation se fait en haut de l'onglet Contrôles (plus l'onglet Équipe) · (19/11/2026) .2 : échange de gardes — un R sur la garde reçue ne bloque plus, il est reposé ailleurs (comme pour un don) · (19/11/2026) .1 : échange de gardes — un 18 h sur la garde reçue ne bloque plus : l'autre MAR, libéré ce jour-là, le reprend (comme pour un don) · (18/11/2026) .1 : PRÉSENCE JOUR PAR JOUR envoyée avec les contrôles (presence : postables, repos de garde et absents par motif, chaque jour ouvré) pour la heatmap de l'onglet Contrôles — même compte que la pose des TP · (17/11/2026) .2 : ONGLET CONTRÔLES — six familles (Réa 1, temps partiel, congés, 18 h, récupérations, gardes), points rouge / orange / info et liste de ce qui est en ordre ; jour tendu = sous le seuil d'alerte de l'onglet SEUILS ; une récup en vacances scolaires n'est plus un point · (17/11/2026) POINTS À VÉRIFIER (onglet Statuts du comité) : semaine Réa 1 occupée, vacances au-delà du droit, temps partiel un jour tendu — recalculés à chaque lecture (getPointsVerif) ; case « Prévenu » gardée dans l'onglet VERIF_PREVENUS (marquerPrevenu) · (12/11/2026) statistiques : V (vendredis), WE = samedis + dimanches et sa part transmis à l'écran d'équité (champsWeStats_) · (12/11/2026) plus aucun nom de personne dans le code : l'exclusion d'une ligne MEDECINS par son nom (rotation des fêtes) est retirée, aucune ligne ne le portait · (12/11/2026) don d'un 18 h (don18Jour) : le receveur doit être libre ce jour-là, rien n'est écrasé · (11/11/2026) échange de gardes refusé : le motif nomme le MAR, le jour et la raison (garde, repos de garde, 18 h, récupération) au lieu de « un des médecins a déjà une garde » · (11/11/2026) don et échange : une absence (V, VM, VA, F, TP, CL, CTP, CP, A) confirmée par le MAR est écrasée par la garde et son repos (mod.ecraserAbsences), tracée dans l'historique · (11/11/2026) applyModification du comité : don et échange passent par appliquerGesteComite_ · (11/11/2026) échange de gardes : le repos d'arrivée n'écrase plus une absence, pas de garde la veille ni le lendemain · (11/11/2026) échange de deux 18 h (echange18Jours) · (11/11/2026) le comité pose un R (statut « R ») et le lien samedi → R se recolle · (10/11/2026) lotRolesVerifier / lotRolesAppliquer (inversion réa / mater par lot, depuis l'éditeur) · (10/11/2026) un échange, un don ou une modification republie et prévient (MAR et paie) pour l'année DE LA GARDE, plus l'année active · (10/11/2026) le suivi des gestes écrit dans son propre onglet TRACES, plus jamais dans HISTORIQUE (archive des gardes par année) · (10/11/2026) onglet de suivi (TP, modifications, échanges, lot de 18 h), jamais effacé · (10/11/2026) lot18hVerifier / lot18hAppliquer (réattribution de 18 h par lot, depuis l'éditeur) · (27/10/2026) VM/VA : bloquent un don/échange, comptent 0,5 jour au reliquat · (18/10/2026) action getPlanningPaie (vue des secrétaires de paie)
+const GAS_VERSION_GARDES = '2026-11-26.1';   // (26/11/2026) .1 : reliquat de vacances — le compteur du comité et le contrôle « congés » retirent du quota de l'année les vacances de janvier prises sur le reliquat de l'année précédente · (25/11/2026) .2 : Contrôles — les V de week-end et de férié retirés du planning (décision du responsable : « ils ne servent à rien ») : plus d'écart indispos ↔ planning ces jours-là, et le 18 h la veille de vacances regarde le prochain jour ouvré · (25/11/2026) .1 : SALLES / MAR — notes SALLES (nombre de salles corrigé un jour donné, partagé par le comité) et semaine type lue dans l'onglet SALLES_TYPE (getSallesType) · (20/11/2026) .4 : Contrôles — une récupération sur un jour qui n'est pas vert (moins que le seuil de confort) est signalée, comme la règle de pose · (20/11/2026) .3 : notes AIDE — case de bloc aidée par un autre secteur, sans nom · (20/11/2026) .2 : notes CSS — consultation tenue par le secteur, sans nom · (20/11/2026) .1 : generateGardes réservé au responsable · (19/11/2026) .5 : NOTES DU PLANNING (onglet PLANNING_NOTES) — interne en réa (INT, matin / après-midi) et infos du jour (texte libre) : loadPlanningNotes, savePlanningNotesBatch, action savePlanningNotes · (19/11/2026) .4 : le rappel « demande de TP en attente » renvoie à la tuile Temps partiel (bouton Valider) · (19/11/2026) .3 : texte du rappel « demande de TP en attente » : la validation se fait en haut de l'onglet Contrôles (plus l'onglet Équipe) · (19/11/2026) .2 : échange de gardes — un R sur la garde reçue ne bloque plus, il est reposé ailleurs (comme pour un don) · (19/11/2026) .1 : échange de gardes — un 18 h sur la garde reçue ne bloque plus : l'autre MAR, libéré ce jour-là, le reprend (comme pour un don) · (18/11/2026) .1 : PRÉSENCE JOUR PAR JOUR envoyée avec les contrôles (presence : postables, repos de garde et absents par motif, chaque jour ouvré) pour la heatmap de l'onglet Contrôles — même compte que la pose des TP · (17/11/2026) .2 : ONGLET CONTRÔLES — six familles (Réa 1, temps partiel, congés, 18 h, récupérations, gardes), points rouge / orange / info et liste de ce qui est en ordre ; jour tendu = sous le seuil d'alerte de l'onglet SEUILS ; une récup en vacances scolaires n'est plus un point · (17/11/2026) POINTS À VÉRIFIER (onglet Statuts du comité) : semaine Réa 1 occupée, vacances au-delà du droit, temps partiel un jour tendu — recalculés à chaque lecture (getPointsVerif) ; case « Prévenu » gardée dans l'onglet VERIF_PREVENUS (marquerPrevenu) · (12/11/2026) statistiques : V (vendredis), WE = samedis + dimanches et sa part transmis à l'écran d'équité (champsWeStats_) · (12/11/2026) plus aucun nom de personne dans le code : l'exclusion d'une ligne MEDECINS par son nom (rotation des fêtes) est retirée, aucune ligne ne le portait · (12/11/2026) don d'un 18 h (don18Jour) : le receveur doit être libre ce jour-là, rien n'est écrasé · (11/11/2026) échange de gardes refusé : le motif nomme le MAR, le jour et la raison (garde, repos de garde, 18 h, récupération) au lieu de « un des médecins a déjà une garde » · (11/11/2026) don et échange : une absence (V, VM, VA, F, TP, CL, CTP, CP, A) confirmée par le MAR est écrasée par la garde et son repos (mod.ecraserAbsences), tracée dans l'historique · (11/11/2026) applyModification du comité : don et échange passent par appliquerGesteComite_ · (11/11/2026) échange de gardes : le repos d'arrivée n'écrase plus une absence, pas de garde la veille ni le lendemain · (11/11/2026) échange de deux 18 h (echange18Jours) · (11/11/2026) le comité pose un R (statut « R ») et le lien samedi → R se recolle · (10/11/2026) lotRolesVerifier / lotRolesAppliquer (inversion réa / mater par lot, depuis l'éditeur) · (10/11/2026) un échange, un don ou une modification republie et prévient (MAR et paie) pour l'année DE LA GARDE, plus l'année active · (10/11/2026) le suivi des gestes écrit dans son propre onglet TRACES, plus jamais dans HISTORIQUE (archive des gardes par année) · (10/11/2026) onglet de suivi (TP, modifications, échanges, lot de 18 h), jamais effacé · (10/11/2026) lot18hVerifier / lot18hAppliquer (réattribution de 18 h par lot, depuis l'éditeur) · (27/10/2026) VM/VA : bloquent un don/échange, comptent 0,5 jour au reliquat · (18/10/2026) action getPlanningPaie (vue des secrétaires de paie)
 
 // ── Sonde : les positions de STATS que code.gs lit à l'aveugle ──
 function _sondeStatsEntetes_(check, R, annee) {
@@ -924,14 +924,15 @@ function computeReliquats(year) {
   const poses = {};
   for (let r = 3; r < data.length; r++) {
     const id = String(data[r][0]).trim(); if (!id) continue;
-    const p = poses[id] = { vac: 0, form: 0, tp: 0 };
+    const p = poses[id] = { vac: 0, form: 0, tp: 0, janv: 0 };
     for (let c = 1; c < data[r].length; c++) {
       const ds = genere ? colDate[c] : dates[c - 1];
       if (!ds || !ouvre(ds)) continue;
       const _v = String(data[r][c] || '').trim().toUpperCase();
-      if (_v === 'VM' || _v === 'VA') { p.vac += 0.5; continue; }   // (27/10/2026) demi-journée, même code dans les deux onglets
+      const janv = _vacJanvier_(ds, year);   // (26/11/2026) janvier : pris d'abord sur le reliquat de l'année précédente
+      if (_v === 'VM' || _v === 'VA') { p.vac += 0.5; if (janv) p.janv += 0.5; continue; }   // (27/10/2026) demi-journée, même code dans les deux onglets
       const k = CODES[_v];
-      if (k) p[k]++;
+      if (k) { p[k]++; if (k === 'vac' && janv) p.janv++; }
     }
   }
 
@@ -942,12 +943,16 @@ function computeReliquats(year) {
   const FLAGS = getMedecinFlags();
   const med = _medecinsRows_();
   const lignes = [];
+  const reliquats = reliquatsVac_(year);
   for (let r = 1; r < med.length; r++) {
     const id = String(med[r][COL_MED.ID]).trim(); if (!id) continue;
     if (String(med[r][COL_MED.ACTIF]).trim().toUpperCase() !== 'O') continue;
     const quotite = Number(med[r][COL_MED.QUOTITE]) || 100;
     const q = getQuotasConges(quotite);
-    const p = poses[id] || { vac: 0, form: 0, tp: 0 };
+    const p = poses[id] || { vac: 0, form: 0, tp: 0, janv: 0 };
+    /* (26/11/2026) Les vacances de janvier prises sur le reliquat de l'année
+       précédente ne comptent pas sur le quota de l'année. */
+    const droitR = Number(reliquats[id]) || 0, prisR = _vacSurReliquat_(p.janv, droitR), vacAn = p.vac - prisR;
     const att = attente[id] || 0;
     /* Un profil à jours fixes convenus ou en rythme deux semaines sur deux
        n'a pas de temps partiel à poser : afficher un quota lui inventerait
@@ -956,7 +961,8 @@ function computeReliquats(year) {
     lignes.push({
       id: id, init: String(med[r][COL_MED.INITIALES] || '').trim() || id,
       nom: String(med[r][COL_MED.NOM] || '').trim(), quotite: quotite,
-      vac:  { pose: p.vac,  quota: q.vac,  reste: q.vac  - p.vac },
+      vac:  { pose: vacAn,  quota: q.vac,  reste: q.vac  - vacAn,
+              reliquat: droitR ? { annee: year - 1, droit: droitR, pris: prisR, reste: droitR - prisR } : null },
       form: { pose: p.form, quota: q.form, reste: q.form - p.form },
       tp:   { pose: p.tp,   quota: tpQuota, attente: att,
               reste: Math.max(0, tpQuota - p.tp - att) }
@@ -1265,21 +1271,25 @@ function computePointsVerif(year) {
   ok('tp', ['tpwe'], 'Aucun temps partiel un week-end ou un férié');
 
   /* ── CONGÉS ── */
+  const reliquats = reliquatsVac_(year);   // (26/11/2026) janvier : pris d'abord sur le reliquat de l'année précédente
   actifs.forEach(id => {
     const fixes = FLAGS.tpJoursFixes[id];
-    let pose = 0;
+    let pose = 0, janv = 0;
     Object.keys(grille[id]).forEach(ds => {
       if (Number(ds.slice(0, 4)) !== year || !ouvre(ds)) return;
       if (fixes && fixes.has(dow(ds))) return;   // jour fixe de temps partiel : pas un jour travaillé
       const c = grille[id][ds], demiFerie = /-12-(24|31)$/.test(ds);
-      if (c === 'V') pose += demiFerie ? 0.5 : 1;
-      else if (c === 'VM' || c === 'VA') pose += 0.5;
+      const p = c === 'V' ? (demiFerie ? 0.5 : 1) : (c === 'VM' || c === 'VA') ? 0.5 : 0;
+      pose += p; if (_vacJanvier_(ds, year)) janv += p;
     });
+    const prisR = _vacSurReliquat_(janv, reliquats[id]);
+    pose -= prisR;
     const droit = getQuotasConges(info[id].quotite).vac;
     if (pose > droit) {
       const f = x => String(x).replace('.', ',');
       ajouter('conges', 'vac', 'orange', id, null, f(pose) + ' jours de vacances posés en ' + year + ' pour un droit de ' + f(droit)
-        + ' jours (' + info[id].quotite + ' %) : ' + f(pose - droit) + ' de trop.');
+        + ' jours (' + info[id].quotite + ' %) : ' + f(pose - droit) + ' de trop.'
+        + (prisR ? ' Sans compter ' + f(prisR) + ' jour(s) de janvier pris sur le reliquat ' + (year - 1) + '.' : ''));
     }
   });
   /* Indispos ↔ planning : une absence d'un côté seulement (le planning qui porte

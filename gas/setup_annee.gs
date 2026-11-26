@@ -1,7 +1,7 @@
 // ⚠️ RÈGLE (détecteur de dérive dépôt↔Apps Script) : incrémenter cette version
 // à CHAQUE push de ce fichier. Le diagnostic (admin → Maintenance) compare la
 // version déployée ici avec celle du dépôt et signale toute recopie oubliée.
-const GAS_VERSION_SETUP = '2026-11-26.1';   // (26/11/2026) .1 : onglet PATIENTS_LIB (patients lib des consultations) rangé avec les onglets écrits par l'interface · (25/11/2026) .1 : onglet SALLES_TYPE (semaine type des salles) rangé avec la configuration · (19/11/2026) onglet PLANNING_NOTES (interne et infos du jour) rangé avec les onglets écrits par l'interface · (17/11/2026) onglet VERIF_PREVENUS (cases « Prévenu » des points à vérifier) rangé avec les onglets écrits par l'interface · (15/11/2026) .4 : part de gardes lue dans CIBLE quand PART EXACTE manque (statistiques 2026) ; la répétition dit aussi « aucune ligne à déplacer » · (15/11/2026) .3 lot C : la clôture emporte aussi REA1_ et FETES_ de l'année, le libéral de l'année précédente, et les lignes de l'année dans ECHANGES, TP_DEMANDES, TP_FERMES, ABSENCES_LONGUES (sans doublon à la relance) ; HISTORIQUE gagne PART EXACTE et JOURS TP · (15/11/2026) .2 : date du refus de clôture écrite en français (« lundi 4 janvier 2027 ») · (15/11/2026) clôture d'année en un seul geste (cloturerAnnee_) : contrôles bloquants (date, année suivante, case ANNEE_ACTIVE, archive, homonymes, sauvegardes), copie de sécurité du classeur, bilan, déplacement sûr (archiveMoveTabs_, LIENS_R compris), bascule relue, campagne fermée, contrôle d'après, mail ; répétition à blanc (clotureVerifier_) ; archiveYear depuis l'éditeur passe par les mêmes refus ; lanceurs d'essai retirés · (10/11/2026) rangement des onglets en 7 familles, tous les onglets annuels reconnus quelle que soit l'année
+const GAS_VERSION_SETUP = '2026-11-26.2';   // (26/11/2026) .2 : onglet RELIQUATS rangé avec la préparation de l'année ; la clôture fige le reliquat de vacances de l'année (dès 2027) avant de déplacer GARDES · .1 : onglet PATIENTS_LIB (patients lib des consultations) rangé avec les onglets écrits par l'interface · (25/11/2026) .1 : onglet SALLES_TYPE (semaine type des salles) rangé avec la configuration · (19/11/2026) onglet PLANNING_NOTES (interne et infos du jour) rangé avec les onglets écrits par l'interface · (17/11/2026) onglet VERIF_PREVENUS (cases « Prévenu » des points à vérifier) rangé avec les onglets écrits par l'interface · (15/11/2026) .4 : part de gardes lue dans CIBLE quand PART EXACTE manque (statistiques 2026) ; la répétition dit aussi « aucune ligne à déplacer » · (15/11/2026) .3 lot C : la clôture emporte aussi REA1_ et FETES_ de l'année, le libéral de l'année précédente, et les lignes de l'année dans ECHANGES, TP_DEMANDES, TP_FERMES, ABSENCES_LONGUES (sans doublon à la relance) ; HISTORIQUE gagne PART EXACTE et JOURS TP · (15/11/2026) .2 : date du refus de clôture écrite en français (« lundi 4 janvier 2027 ») · (15/11/2026) clôture d'année en un seul geste (cloturerAnnee_) : contrôles bloquants (date, année suivante, case ANNEE_ACTIVE, archive, homonymes, sauvegardes), copie de sécurité du classeur, bilan, déplacement sûr (archiveMoveTabs_, LIENS_R compris), bascule relue, campagne fermée, contrôle d'après, mail ; répétition à blanc (clotureVerifier_) ; archiveYear depuis l'éditeur passe par les mêmes refus ; lanceurs d'essai retirés · (10/11/2026) rangement des onglets en 7 familles, tous les onglets annuels reconnus quelle que soit l'année
 
 
 // ══════════════════════════════════════════════════════════════════════
@@ -29,7 +29,7 @@ const _FAMILLES_ONGLETS = [
   { nom: 'Réglages permanents', c: '#1D4ED8',
     fixes: ['CONFIG', 'MEDECINS', 'SECTEURS', 'CS_TEMPLATE', 'SALLES_TYPE', 'SEUILS', 'ANNUAIRE', 'ETABLISSEMENT'] },
   { nom: "Préparation de l'année", c: '#60A5FA',
-    fixes: ['GROUPES_VAC', 'PERIODES_VAC', 'CONFIG_CONGES', 'CONFIG_TRANSITION'] },
+    fixes: ['GROUPES_VAC', 'PERIODES_VAC', 'CONFIG_CONGES', 'RELIQUATS', 'CONFIG_TRANSITION'] },
   { nom: 'Années', c: '#166534',
     // ce qui entre dans l'algorithme → ce qui en sort → les affectations
     annuels: ['INDISPOS', 'REA1', 'FETES', 'GARDES', 'LIENS_R', 'STATS_GARDES', 'AFFECTATIONS'] },
@@ -1112,6 +1112,14 @@ function cloturerAnnee_(year) {
     }
     pas(nomBilan, 'fait', lignes.join(' · '));
   } else pas(nomBilan, 'déjà fait');
+
+  // 2 bis. (26/11/2026) Reliquat de vacances de l'année, figé tant que GARDES_{year} est encore là
+  const nomRel = `Reliquat de vacances ${year} (onglet ${RELIQUATS_ONGLET})`;
+  try { pas(nomRel, 'fait', _reliquatsFiger_(year)); }
+  catch (e) {
+    pas(nomRel, 'échec', e.message);
+    return sortie(false, { error: `Reliquat de vacances ${year} non figé (${e.message}). Rien n'a été déplacé et l'année active n'a pas changé : relancer la clôture.` });
+  }
 
   // 3. Déplacement sûr : copie, vérification, puis suppression du maître
   const nomDep = `Onglets ${year} vers le classeur d'archive`;

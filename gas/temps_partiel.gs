@@ -4,7 +4,7 @@
    quelles : aucune ligne de logique modifiée, seulement déplacée. Le routeur et
    ses aides (checkCode, _deny, _error, doGet/doPost) restent dans Indispos.gs.
    Un seul espace global dans Apps Script : rien à importer. */
-const GAS_VERSION_TP = '2026-11-26.1';   // (26/11/2026) .1 : LE TP ET LES VACANCES PASSENT AVANT LA RÉCUP DE SAMEDI — un jour qui n'est pas vert à cause de récups devient vert en les déplaçant (_tpLibererRecups_), à la pose d'un TP ou de vacances par le MAR comme à la validation du comité ; jamais une récup à moins de 30 jours ; le MAR concerné est prévenu ; l'écran de pose compte ces récups comme présentes (_tpRecupsCedables_) · (25/11/2026) .1 : POSE LIBRE DES VACANCES après la génération (_poserVac_) — jour vert seulement, 7 jours d'avance, quota de la quotité, jamais sur un jour occupé ; la clé de pose porte le quota de vacances et les jours fixes de chaque MAR ; toute republication différée (TP, vacances, décisions du comité) arme aussi les mails de changement, dont celui du secrétariat · (24/11/2026) .2 : un jour fermé par le comité se rouvre tout seul s'il redevient vert parce que l'équipe s'est étoffée depuis le refus ; les MAR refusés ce jour-là sont prévenus · (24/11/2026) .1 : effectif présent — une fois l'année générée, les absences (V, F, CL, CP, CTP, A) sont lues dans GARDES, plus dans INDISPOS (GARDES fait foi) ; VM/VA comptent présents · (17/11/2026) .2 : seuils de la pose lus dans l'onglet SEUILS (seuilsPresence_), envoyés à l'écran avec l'effectif · (17/11/2026) effectif présent : un MAR marqué HORS_EFFECTIF dans MEDECINS n'est plus compté (pose des TP, points à vérifier) · (16/11/2026) jour de TP dans sa semaine Réa 1 : non bloquant — semaine envoyée à l'écran (grisée, confirmation), signalée au MAR comme au comité · (12/11/2026) plus aucun nom de personne dans le code (effectif présent) · (10/11/2026) chaque jour de TP posé, retiré, demandé ou tranché laisse une ligne dans l'onglet HISTORIQUE
+const GAS_VERSION_TP = '2026-11-26.2';   // (26/11/2026) .2 : reliquat de vacances de l'année précédente (onglet RELIQUATS, calcul automatique dès 2027) — les vacances de janvier le consomment d'abord : pose libre, clé de pose · (26/11/2026) .1 : LE TP ET LES VACANCES PASSENT AVANT LA RÉCUP DE SAMEDI — un jour qui n'est pas vert à cause de récups devient vert en les déplaçant (_tpLibererRecups_), à la pose d'un TP ou de vacances par le MAR comme à la validation du comité ; jamais une récup à moins de 30 jours ; le MAR concerné est prévenu ; l'écran de pose compte ces récups comme présentes (_tpRecupsCedables_) · (25/11/2026) .1 : POSE LIBRE DES VACANCES après la génération (_poserVac_) — jour vert seulement, 7 jours d'avance, quota de la quotité, jamais sur un jour occupé ; la clé de pose porte le quota de vacances et les jours fixes de chaque MAR ; toute republication différée (TP, vacances, décisions du comité) arme aussi les mails de changement, dont celui du secrétariat · (24/11/2026) .2 : un jour fermé par le comité se rouvre tout seul s'il redevient vert parce que l'équipe s'est étoffée depuis le refus ; les MAR refusés ce jour-là sont prévenus · (24/11/2026) .1 : effectif présent — une fois l'année générée, les absences (V, F, CL, CP, CTP, A) sont lues dans GARDES, plus dans INDISPOS (GARDES fait foi) ; VM/VA comptent présents · (17/11/2026) .2 : seuils de la pose lus dans l'onglet SEUILS (seuilsPresence_), envoyés à l'écran avec l'effectif · (17/11/2026) effectif présent : un MAR marqué HORS_EFFECTIF dans MEDECINS n'est plus compté (pose des TP, points à vérifier) · (16/11/2026) jour de TP dans sa semaine Réa 1 : non bloquant — semaine envoyée à l'écran (grisée, confirmation), signalée au MAR comme au comité · (12/11/2026) plus aucun nom de personne dans le code (effectif présent) · (10/11/2026) chaque jour de TP posé, retiré, demandé ou tranché laisse une ligne dans l'onglet HISTORIQUE
 
 /* ── (POSE TP · 22/08/2026) PHASE DE POSE DES TEMPS PARTIELS — DÉDUITE, JAMAIS ÉCRITE ──
    Les jours de temps partiel se posent APRÈS la génération des gardes (décision
@@ -433,6 +433,99 @@ function _vacPoids_(code, ds, jf, fixes) {
   if (code === 'VM' || code === 'VA') return 0.5;
   return 0;
 }
+
+/* ── (26/11/2026) LE RELIQUAT DE VACANCES DE L'ANNÉE PRÉCÉDENTE ────────────
+   Règle légale (responsable, 21/10 et 26/11/2026) : les vacances de l'année N
+   se posent jusqu'au 31/01/N+1. Les vacances posées du 1er au 31 janvier N+1
+   sont prises D'ABORD sur ce qui reste de N ; le surplus compte sur N+1.
+   Toujours à l'avantage du MAR : ce qui reste de N est perdu après le 31/01.
+   Ce qui reste de N vient de :
+   · une ligne de l'onglet RELIQUATS (MAR = ID ou initiales, ANNEE = N, JOURS).
+     Elle gagne toujours : 2026 se saisit à la main (planning 2026 incomplet),
+     et toute correction vérifiée avec le secrétariat s'y écrit ;
+   · sinon, pour N ≥ RELIQUAT_AUTO_DEPUIS et tant que GARDES_N est au
+     classeur : quota de la quotité − vacances posées sur l'année CIVILE N,
+     même décompte que _vacPoids_. La clôture de N le recopie dans RELIQUATS
+     avant de déplacer GARDES_N (_reliquatsFiger_) ;
+   · sinon 0. */
+const RELIQUAT_AUTO_DEPUIS = 2027;
+const RELIQUATS_ONGLET = 'RELIQUATS';
+const RELIQUATS_ENTETE = ['MAR', 'ANNEE', 'JOURS', 'ORIGINE'];
+function _vacJanvier_(ds, annee) { return ds >= annee + '-01-01' && ds <= annee + '-01-31'; }
+// Ce qui est pris sur le reliquat : les jours de janvier, dans la limite du reliquat.
+function _vacSurReliquat_(poidsJanvier, droit) { return Math.min(Math.max(0, Number(droit) || 0), Math.max(0, Number(poidsJanvier) || 0)); }
+// Les lignes saisies de RELIQUATS pour l'année d'origine : { id: jours }.
+function _reliquatsSaisis_(origine) {
+  const out = {};
+  const sh = SpreadsheetApp.getActiveSpreadsheet().getSheetByName(RELIQUATS_ONGLET);
+  if (!sh) return out;
+  const d = sh.getDataRange().getValues(), med = _medecinsRows_(), qui = {};
+  for (let r = 1; r < med.length; r++) {
+    const id = String(med[r][COL_MED.ID] || '').trim(); if (!id) continue;
+    qui[id.toUpperCase()] = id;
+    const ini = String(med[r][COL_MED.INITIALES] || '').trim().toUpperCase();
+    if (ini && !qui[ini]) qui[ini] = id;
+  }
+  for (let r = 1; r < d.length; r++) {
+    const id = qui[String(d[r][0] || '').trim().toUpperCase()];
+    if (!id || Number(d[r][1]) !== Number(origine)) continue;
+    const brut = String(d[r][2] == null ? '' : d[r][2]).trim().replace(',', '.');
+    const n = Number(brut);
+    if (brut === '' || !isFinite(n) || n < 0) continue;
+    out[id] = n;
+  }
+  return out;
+}
+// Calculé sur GARDES_{origine} : { id: jours } pour les MAR actifs, ou null sans l'onglet.
+function _reliquatsCalcules_(origine) {
+  const sh = SpreadsheetApp.getActiveSpreadsheet().getSheetByName('GARDES_' + origine);
+  if (!sh) return null;
+  const d = sh.getDataRange().getValues(), d2c = buildDateToCol(d, origine);
+  const jf = new Set(getJoursFeries(origine)), civil = String(origine);
+  const cols = Object.keys(d2c).filter(function (ds) { return ds.slice(0, 4) === civil; });
+  const poses = {};
+  for (let r = 3; r < d.length; r++) {
+    const id = String(d[r][0] || '').trim(); if (!id) continue;
+    const fixes = _vacJoursFixes_(id);
+    let n = 0;
+    cols.forEach(function (ds) { n += _vacPoids_(String(d[r][d2c[ds]] || '').trim().toUpperCase(), ds, jf, fixes); });
+    poses[id] = n;
+  }
+  const out = {}, med = _medecinsRows_();
+  for (let r = 1; r < med.length; r++) {
+    const id = String(med[r][COL_MED.ID] || '').trim(); if (!id) continue;
+    if (String(med[r][COL_MED.ACTIF]).trim().toUpperCase() !== 'O' || poses[id] === undefined) continue;
+    const q = Number(getQuotasConges(Number(med[r][COL_MED.QUOTITE]) || 100).vac) || 0;
+    out[id] = Math.max(0, q - poses[id]);
+  }
+  return out;
+}
+// Ce qui reste de l'année annee−1, à poser en janvier annee : { id: jours }.
+function reliquatsVac_(annee) {
+  const origine = Number(annee) - 1;
+  const calc = origine >= RELIQUAT_AUTO_DEPUIS ? (_reliquatsCalcules_(origine) || {}) : {};
+  return Object.assign({}, calc, _reliquatsSaisis_(origine));
+}
+/* Clôture de N : recopie dans RELIQUATS le reliquat calculé de chaque MAR qui
+   n'a pas déjà sa ligne (une ligne saisie n'est jamais écrasée). Relançable
+   sans doublon. Renvoie un texte pour le compte rendu. */
+function _reliquatsFiger_(origine) {
+  origine = Number(origine);
+  if (origine < RELIQUAT_AUTO_DEPUIS) return 'saisi à la main dans ' + RELIQUATS_ONGLET + ' (rien à calculer pour ' + origine + ')';
+  const calc = _reliquatsCalcules_(origine);
+  if (!calc) return 'GARDES_' + origine + ' absent : rien à figer';
+  const ss = SpreadsheetApp.getActiveSpreadsheet();
+  let sh = ss.getSheetByName(RELIQUATS_ONGLET);
+  if (!sh) { sh = ss.insertSheet(RELIQUATS_ONGLET); sh.appendRow(RELIQUATS_ENTETE); }
+  const deja = _reliquatsSaisis_(origine);
+  let n = 0;
+  Object.keys(calc).sort().forEach(function (id) {
+    if (deja[id] !== undefined) return;
+    sh.appendRow([id, origine, calc[id], 'calculé à la clôture']);
+    n++;
+  });
+  return n + ' ligne(s) ' + origine + ' écrite(s) dans ' + RELIQUATS_ONGLET + ' — à vérifier avec le secrétariat';
+}
 /* Écrit plusieurs cases d'une ligne de GARDES en UNE lecture. Chaque écriture
    n'a lieu que si la case contient encore ce qu'on y a lu (`avant`) : un
    collègue ou le comité qui l'aurait changée entre-temps n'est jamais écrasé.
@@ -492,17 +585,30 @@ function _poserVac_(user, targetId, envoye, annee) {
   });
   const resultat = {}, ecritures = [], final = {};
   let total = 0;
+  /* (26/11/2026) Le reliquat de l'année précédente : les jours de janvier
+     sont pris dessus d'abord, le surplus compte sur l'année (règle légale). */
+  const reliquat = Number(reliquatsVac_(annee)[targetId]) || 0;
+  let janvier = 0;
+  const ajoute = function (c, ds, s) {
+    const p = _vacPoids_(c, ds, jf, fixes) * s;
+    total += p; if (_vacJanvier_(ds, annee)) janvier += p;
+  };
+  const surAnnee = function () { return total - _vacSurReliquat_(janvier, reliquat); };
+  const depasse = function (c, ds) {
+    const p = _vacPoids_(c, ds, jf, fixes);
+    return total + p - _vacSurReliquat_(janvier + (_vacJanvier_(ds, annee) ? p : 0), reliquat) > quota;
+  };
 
   // ── Passe 1 : les vacances DÉJÀ au planning ─────────────────────────────
   Object.keys(grille).forEach(function (ds) {
     const c = grille[ds];
     if (!VAC_CODES_LIBRES[c]) return;
     const v = voulu[ds];
-    if (v === c) { total += _vacPoids_(c, ds, jf, fixes); final[ds] = c; return; }
+    if (v === c) { ajoute(c, ds, 1); final[ds] = c; return; }
     if (ds < limite) {
       /* Figé : passé ou à moins de 7 jours. Il reste tel quel ; si l'écran
          demandait autre chose, le récapitulatif le dit. */
-      total += _vacPoids_(c, ds, jf, fixes); final[ds] = c;
+      ajoute(c, ds, 1); final[ds] = c;
       resultat[ds] = 'moins de ' + VAC_PREAVIS_JOURS + ' jours : demandez aux admins';
       return;
     }
@@ -530,25 +636,24 @@ function _poserVac_(user, targetId, envoye, annee) {
       /* (26/11/2026) Les vacances passent avant la récup de samedi, comme le
          TP : si déplacer des récups rend le jour vert, elles partent (quota
          vérifié d'abord, jamais une récup à moins de 30 jours). */
-      if (reste < S.confort && total + _vacPoids_(v, ds, jf, fixes) <= quota && typeof _tpLibererRecups_ === 'function'
+      if (reste < S.confort && !depasse(v, ds) && typeof _tpLibererRecups_ === 'function'
           && _tpLibererRecups_(annee, ds, targetId, S.confort - reste, M,
                estAdmin ? 'comité (' + (user.id || 'admin') + ')' : String((user && user.id) || targetId), 'vacances')) {
         reste = M.presents(ds) - 1;
       }
       if (reste < S.confort) {
-        if (c) { final[ds] = c; total += _vacPoids_(c, ds, jf, fixes); }   // le changement refusé laisse le jour tel quel
+        if (c) { final[ds] = c; ajoute(c, ds, 1); }   // le changement refusé laisse le jour tel quel
         resultat[ds] = 'il resterait ' + reste + ' présents (moins de ' + S.confort + ') : demandez aux admins';
         return;
       }
     }
-    const p = _vacPoids_(v, ds, jf, fixes);
-    if (total + p > quota) {
-      if (c) { final[ds] = c; total += _vacPoids_(c, ds, jf, fixes); }   // le changement refusé laisse le jour tel quel
+    if (depasse(v, ds)) {
+      if (c) { final[ds] = c; ajoute(c, ds, 1); }   // le changement refusé laisse le jour tel quel
       resultat[ds] = 'quota atteint (' + String(quota).replace('.', ',') + ' jours)';
       return;
     }
     ecritures.push({ ds: ds, avant: c, apres: v });
-    total += p; final[ds] = v; resultat[ds] = v;
+    ajoute(v, ds, 1); final[ds] = v; resultat[ds] = v;
   });
 
   // ── Écriture : une lecture de GARDES, chaque case vérifiée avant d'écrire ──
@@ -560,8 +665,8 @@ function _poserVac_(user, targetId, envoye, annee) {
     }
     // La case a changé entre la lecture et l'écriture : rien n'est fait, on le dit.
     resultat[x.ds] = 'la case vient de changer : réessayez';
-    if (x.apres) { delete final[x.ds]; total -= _vacPoids_(x.apres, x.ds, jf, fixes); }
-    if (x.avant) { final[x.ds] = x.avant; total += _vacPoids_(x.avant, x.ds, jf, fixes); }
+    if (x.apres) { delete final[x.ds]; ajoute(x.apres, x.ds, -1); }
+    if (x.avant) { final[x.ds] = x.avant; ajoute(x.avant, x.ds, 1); }
   });
   if (faits.size) _tpRepublier_(annee);
 
@@ -572,14 +677,16 @@ function _poserVac_(user, targetId, envoye, annee) {
     ecritures.forEach(function (x) {
       if (!faits.has(x.ds)) return;
       lignes.push({ annee: annee, quoi: x.apres ? LIB[x.apres] : 'vacances retirées', mar: targetId, jour: x.ds, par: par,
-                    detail: String(total).replace('.', ',') + '/' + String(quota).replace('.', ',') + ' jours posés après ce geste' });
+                    detail: String(surAnnee()).replace('.', ',') + '/' + String(quota).replace('.', ',') + ' jours posés après ce geste' });
     });
     (typeof historiser_ === 'function') && historiser_(lignes); }
 
   logAction('poserVac ' + targetId + ' (' + annee + ') — ' + faits.size + ' jour(s) écrit(s), '
-            + String(total).replace('.', ',') + '/' + quota + ' posés');
+            + String(surAnnee()).replace('.', ',') + '/' + quota + ' posés'
+            + (reliquat ? ' (+ ' + String(_vacSurReliquat_(janvier, reliquat)).replace('.', ',') + '/' + reliquat + ' sur ' + (annee - 1) + ')' : ''));
   return { success: true, annee: annee, resultat: resultat, jours: final,
-           quota: { poses: total, total: quota }, preavis: VAC_PREAVIS_JOURS };
+           quota: { poses: surAnnee(), total: quota,
+                    reliquat: { annee: annee - 1, droit: reliquat, pris: _vacSurReliquat_(janvier, reliquat) } }, preavis: VAC_PREAVIS_JOURS };
 }
 
 function _tpGrilleEcrire_(annee, marId, ds, valeur) {
@@ -914,6 +1021,7 @@ function _construirePoseTp_(annee) {
   });
   const parMar = {};
   const rea1 = typeof _rea1Jours_ === 'function' ? _rea1Jours_(annee) : {};
+  const reliquats = reliquatsVac_(annee);   // (26/11/2026) ce qui reste de l'année précédente, à poser en janvier
   M.ids.forEach(function (id) {
     const jours = {};
     const mesInd = M.indispos[id] || {};
@@ -951,6 +1059,9 @@ function _construirePoseTp_(annee) {
          0 = dimanche), qui ne se décomptent pas — même règle que le serveur. */
       quotaVac: Number(getQuotasConges(_quotiteDe_(id)).vac) || 0,
       joursFixes: _vacJoursFixes_(id),
+      /* (26/11/2026) Reliquat de l'année précédente : les vacances du 1er au
+         31 janvier le consomment d'abord (même règle que le serveur). */
+      reliquatVac: { annee: annee - 1, droit: Number(reliquats[id]) || 0 },
     };
   });
   /* (CORRECTIF 23/08/2026) `getJoursFeries` renvoie un ENSEMBLE. Un ensemble

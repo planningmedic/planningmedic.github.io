@@ -51,7 +51,10 @@ console.log('\n═══ 2. Un jour de congé se compte en jours TRAVAILLÉS ═
     /d !== 0 && d !== 6 && !jf\.has\(ds\) && !jf2\.has\(ds\)/.test(IND));
   V('les fériés de l\'année SUIVANTE comptent aussi (l\'année de planning déborde)',
     /getJoursFeries\(year \+ 1\)/.test(IND));
-  V('le reste est quota moins posé', /reste: q\.vac  - p\.vac/.test(IND));
+  /* (26/11/2026) « posé » = posé sur l'année : les vacances de janvier prises
+     sur le reliquat de l'année précédente en sont retirées (règle légale). */
+  V('le reste est quota moins posé sur l\'année', /reste: q\.vac  - vacAn/.test(IND)
+    && /const droitR = Number\(reliquats\[id\]\) \|\| 0, prisR = _vacSurReliquat_\(p\.janv, droitR\), vacAn = p\.vac - prisR;/.test(IND));
   /* Les demandes non tranchées occupent une place : sans elles, un MAR
      pourrait demander plus que son quota. */
   V('les temps partiels en attente sont comptés à part',
@@ -125,7 +128,10 @@ console.log('\n═══ 4. admin.html · le panneau de l\'onglet Statuts ══
   V('le nombre de jours restants reste visible sous la case',
     /String\(o\.reste\)\.replace\('\.', ','\) \+ ' à poser<\/div>'/.test(ADM));
   V('le serveur rend bien le nombre posé, pas seulement le reste',
-    /vac:  \{ pose: p\.vac,  quota: q\.vac,  reste: q\.vac  - p\.vac \}/.test(IND));
+    /vac:  \{ pose: vacAn,  quota: q\.vac,  reste: q\.vac  - vacAn,/.test(IND));
+  V('…et le reliquat de l\'année précédente à part (droit, pris en janvier, reste)',
+    /reliquat: droitR \? \{ annee: year - 1, droit: droitR, pris: prisR, reste: droitR - prisR \} : null/.test(IND)
+    && /\+ reliquat ' \+ o\.reliquat\.annee/.test(ADM));
   /* L'onglet Statuts suit l'année choisie en haut d'écran, qui n'est pas
      forcément celle qu'on a en tête : un reliquat de 2026 lu comme un
      reliquat de 2027 fait croire à une campagne mal remplie. Constaté le

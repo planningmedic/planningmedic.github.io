@@ -43,10 +43,12 @@ dans « À faire ». Quand le journal récent dépasse une page, ses entrées pa
 - **Index CCAM** du module libéral à régénérer vers mars 2027.
 - **Génération 2028** (automne 2027) : rotation d'équité active (fiche « rotation d'équité 2028 » des
   documents du projet Claude) ; essai à blanc sur les vraies indispos 2028 dès la clôture de leur saisie.
-- **Reliquat de vacances N+1** (décision du 21/10, à construire avant janvier 2028) : les vacances N se
-  posent jusqu'au 31/01/N+1 ; les premiers jours de janvier vont au reste du quota N ; compteurs
-  « reliquat N » et « quota N+1 » séparés ; MAR prévenu avant la perte. À trancher : imputation
-  automatique ou choix du MAR.
+- **Reliquat de vacances 2026, avant janvier 2027** (v2.5.0) : le responsable remplit l'onglet RELIQUATS
+  (une ligne par MAR : MAR, 2026, jours), chiffres vérifiés avec le secrétariat. Sans ligne, pas de
+  reliquat. Dès 2027 le calcul est automatique et la clôture le fige (lignes « calculé à la clôture » à
+  vérifier). Décisions du 26/11 : imputation automatique (janvier pris d'abord sur le reliquat), pas de
+  mail de rappel. Limite connue : l'écran de saisie du staff vacances (INDISPOS) compte encore les jours de
+  janvier N+1 sur le quota N+1 — sans effet tant que le staff a lieu avant la fin de N.
 - **Retour d'expérience / poster SFAR 2027** : appel à communications à surveiller vers décembre 2026
   (3 500 caractères, inscription payée ; un résumé accepté et non présenté = 3 ans d'interdiction : ne
   soumettre que si la venue est sûre). Mesurer sur l'**attribution initiale**, jamais sur le réel. La

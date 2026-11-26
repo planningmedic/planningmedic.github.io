@@ -581,6 +581,7 @@ html[data-theme="dark"]{ --vcx:#7BAAF7; --vcx-pale:#152341; }
 .vcx-jb{height:6px;background:var(--bg);border-radius:3px;overflow:hidden;display:flex}
 .vcx-jf{background:var(--vcx);height:100%;transition:width .25s}.vcx-jf.p{opacity:.45}
 .vcx-js{font-size:11.5px;color:var(--ink-3);margin-top:6px}
+.vcx-jr{color:#1D4ED8;font-weight:600}
 .vcx-grid{display:grid;grid-template-columns:repeat(7,minmax(0,1fr));gap:4px;padding:0 10px}
 .vcx-h{font-size:10.5px;color:var(--ink-4);text-align:center;font-weight:700;padding:4px 0}
 .vcx-d{aspect-ratio:1;border-radius:8px;border:1.5px solid var(--line);display:flex;flex-direction:column;align-items:center;padding:2px;gap:2px;position:relative;cursor:pointer;background:var(--white);overflow:hidden;-webkit-tap-highlight-color:transparent}
@@ -791,7 +792,7 @@ html[data-theme="dark"]{ --vcx:#7BAAF7; --vcx-pale:#152341; }
     <p>Les gardes sont réparties : ajoutez, déplacez ou retirez vos jours de vacances vous-même, sur un jour vert, au moins <span class="vcx-preavis">7</span> jours à l'avance. Pour un autre jour : demandez aux admins.</p>
     <div class="vcx-ans" id="vcxAns" style="display:none"></div></div>
   <div class="vcx-jauge"><div class="vcx-jt"><span id="vcxJn">Vacances</span><b id="vcxJv"></b></div>
-    <div class="vcx-jb"><div class="vcx-jf p" id="vcxJp"></div><div class="vcx-jf" id="vcxJf"></div></div><div class="vcx-js" id="vcxJs"></div></div>
+    <div class="vcx-jb"><div class="vcx-jf p" id="vcxJp"></div><div class="vcx-jf" id="vcxJf"></div></div><div class="vcx-js" id="vcxJs"></div><div class="vcx-js vcx-jr" id="vcxJr" style="display:none"></div></div>
   <div class="month-nav">
     <button class="month-nav-btn" onclick="vcxMois(-1)">← Préc.</button>
     <span class="month-title" id="vcxMt"></span>
@@ -2629,11 +2630,25 @@ function vcxPoids(c, ds) {
   if (c === 'V') return /-12-(24|31)$/.test(ds) ? 0.5 : 1;
   return (c === 'VM' || c === 'VA') ? 0.5 : 0;
 }
+/* (26/11/2026) Les vacances du 1er au 31 janvier sont prises d'abord sur le
+   reliquat de l'année précédente (règle légale) : elles ne comptent sur
+   l'année qu'au-delà. Même règle que le serveur (_poserVac_). */
 function vcxCompte() {
-  let passe = 0, venir = 0; const auj = tpxAujourdhui();
-  const tous = new Set(Object.keys(VCX.jours).concat(Object.keys(VCX.pend)));
-  tous.forEach(function (ds) { const p = vcxPoids(vcxCode(ds), ds); if (ds < auj) passe += p; else venir += p; });
-  return { passe: passe, venir: venir, total: passe + venir };
+  let passe = 0, venir = 0, rel = 0; const auj = tpxAujourdhui(), droit = VCX.reliquat.droit, jan = VCX.annee + '-01-';
+  const tous = Array.from(new Set(Object.keys(VCX.jours).concat(Object.keys(VCX.pend)))).sort();
+  tous.forEach(function (ds) {
+    let p = vcxPoids(vcxCode(ds), ds);
+    if (p && ds.indexOf(jan) === 0 && rel < droit) { const x = Math.min(p, droit - rel); rel += x; p -= x; }
+    if (ds < auj) passe += p; else venir += p;
+  });
+  return { passe: passe, venir: venir, total: passe + venir, rel: rel };
+}
+// Le compte si ce jour prenait ce code (sans rien changer).
+function vcxCompteSi(ds, code) {
+  const avant = VCX.pend[ds]; VCX.pend[ds] = code;
+  const k = vcxCompte();
+  if (avant === undefined) delete VCX.pend[ds]; else VCX.pend[ds] = avant;
+  return k;
 }
 // Présents ce jour-là SI je travaille (la clé me compte absent sur mes journées de vacances).
 function vcxPresents(ds) { const p = VCX.presents[ds]; return p === undefined ? undefined : p + (vcxBase(ds) === 'V' ? 1 : 0); }
@@ -2675,6 +2690,12 @@ function vcxRendre() {
   document.getElementById('vcxJp').style.width = (q ? Math.min(100, k.passe / q * 100) : 0) + '%';
   document.getElementById('vcxJf').style.width = (q ? Math.min(100, k.venir / q * 100) : 0) + '%';
   document.getElementById('vcxJs').textContent = vcxFr(k.passe) + ' déjà pris · ' + vcxFr(k.venir) + ' à venir · il vous reste ' + vcxFr(Math.max(0, q - k.total)) + ' jour(s) à poser';
+  const r = VCX.reliquat, rj = document.getElementById('vcxJr');
+  if (rj) {
+    rj.style.display = r.droit ? 'block' : 'none';
+    if (r.droit) rj.textContent = 'Reliquat ' + r.annee + ' : ' + vcxFr(k.rel) + ' / ' + vcxFr(r.droit) + ' j pris en janvier · '
+      + (r.droit - k.rel > 0 ? 'il vous reste ' + vcxFr(r.droit - k.rel) + ' jour(s) à poser avant le 31/01, perdus ensuite' : 'tout est posé');
+  }
   const n = Object.keys(VCX.pend).length;
   document.getElementById('vcxSt').textContent = n ? n + ' changement' + (n > 1 ? 's' : '') + ' à enregistrer' : 'Rien en attente';
   document.getElementById('vcxBs').disabled = !n;
@@ -2705,8 +2726,7 @@ function vcxClic(ds) {
       return vcxDire(j + ', il ne resterait que ' + (p === undefined ? '?' : p - 1) + ' présents (moins de ' + VCX.seuils.confort + ') : ce jour ne se pose pas ici. Demandez aux admins.', true);
   }
   if (!base && e.s === 'ferme') return vcxDire(j + ', il ne resterait que ' + (e.p - 1) + ' présents (moins de ' + VCX.seuils.confort + ') : ce jour ne se pose pas ici. Demandez aux admins.', true);
-  const k = vcxCompte();
-  if (k.total - vcxPoids(vcxCode(ds), ds) + vcxPoids(VCX.outil, ds) > VCX.quota)
+  if (vcxCompteSi(ds, VCX.outil).total > VCX.quota)
     return vcxDire('Quota atteint (' + vcxFr(VCX.quota) + ' jours). Pour déplacer un jour, retirez-en d\'abord un autre.', true);
   if (base === VCX.outil) delete VCX.pend[ds]; else VCX.pend[ds] = VCX.outil;
   vcxDire(j + ' : ' + (VCX.outil === 'V' ? 'journée de vacances' : 'demi-journée (' + (VCX.outil === 'VM' ? 'matin' : 'après-midi') + ')') + ' — touchez Enregistrer pour valider.');
@@ -2742,6 +2762,7 @@ function vcxInit(cle, identite) {
     jours: Object.assign({}, mien.jours || {}),
     quota: Number(mien.quotaVac) || 0,
     fixes: Array.isArray(mien.joursFixes) ? mien.joursFixes.map(Number) : [],
+    reliquat: { annee: Number(cle.year) - 1, droit: Number((mien.reliquatVac || {}).droit) || 0 },
     preavis: 7, limite: vcxPlusJours(auj, 7),
     pend: {}, outil: 'V',
     mois: (Number(cle.year) === new Date().getFullYear()) ? new Date().getMonth() : 0,
@@ -2827,6 +2848,7 @@ async function vcxEnregistrer() {
       if (apres) VCX.jours[ds] = apres === 'V' ? 'VAC' : apres;
     });
     if (res.quota && res.quota.total !== undefined) VCX.quota = Number(res.quota.total) || VCX.quota;
+    if (res.quota && res.quota.reliquat) VCX.reliquat.droit = Number(res.quota.reliquat.droit) || 0;
     VCX.pend = {};
     vcxRendre();
     const court = function (ds) { return new Date(ds + 'T12:00:00').toLocaleDateString('fr-FR', { weekday: 'short', day: 'numeric', month: 'short' }); };

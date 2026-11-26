@@ -161,7 +161,8 @@ TRACES et les trois compteurs STATS_*.</p>
     <li><span class="n">2.1</span><a href="#groupes">GROUPES_VAC</a></li>
     <li><span class="n">2.2</span><a href="#periodes">PERIODES_VAC</a></li>
     <li><span class="n">2.3</span><a href="#conges">CONFIG_CONGES</a></li>
-    <li><span class="n">2.4</span><a href="#transition">CONFIG_TRANSITION</a></li>
+    <li><span class="n">2.4</span><a href="#reliquats">RELIQUATS</a></li>
+    <li><span class="n">2.5</span><a href="#transition">CONFIG_TRANSITION</a></li>
     <li><span class="n">3</span><a href="#p2"><strong>Les années</strong></a></li>
     <li><span class="n">3.1</span><a href="#indispos">INDISPOS_{année}</a></li>
     <li><span class="n">3.2</span><a href="#rea1">REA1_{année}</a></li>
@@ -250,7 +251,7 @@ des versions de code.</p>
 <table>
 <tr><th>Famille</th><th>Onglets</th><th>Dans le classeur</th></tr>
 <tr><td><span style="display:inline-block;width:11px;height:11px;border-radius:3px;background:#1D4ED8;margin-right:7px;vertical-align:-1px"></span><a href="#p1">1. Réglages permanents</a></td><td>CONFIG · MEDECINS · SECTEURS · CS_TEMPLATE · SALLES_TYPE · SEUILS · ANNUAIRE · ETABLISSEMENT</td><td>visibles</td></tr>
-<tr><td><span style="display:inline-block;width:11px;height:11px;border-radius:3px;background:#60A5FA;margin-right:7px;vertical-align:-1px"></span><a href="#p1b">2. Préparation de l'année</a></td><td>GROUPES_VAC · PERIODES_VAC · CONFIG_CONGES · CONFIG_TRANSITION</td><td>visibles</td></tr>
+<tr><td><span style="display:inline-block;width:11px;height:11px;border-radius:3px;background:#60A5FA;margin-right:7px;vertical-align:-1px"></span><a href="#p1b">2. Préparation de l'année</a></td><td>GROUPES_VAC · PERIODES_VAC · CONFIG_CONGES · RELIQUATS · CONFIG_TRANSITION</td><td>visibles</td></tr>
 <tr><td><span style="display:inline-block;width:11px;height:11px;border-radius:3px;background:#166534;margin-right:7px;vertical-align:-1px"></span><a href="#p2">3. Les années</a></td><td>INDISPOS_{année} · REA1_{année} · FETES_{année} · GARDES_{année} · LIENS_R_{année} · STATS_GARDES_{année} · AFFECTATIONS_{année}</td><td>visibles</td></tr>
 <tr><td><span style="display:inline-block;width:11px;height:11px;border-radius:3px;background:#C2410C;margin-right:7px;vertical-align:-1px"></span><a href="#p3">4. Écrits par l'interface</a></td><td>PLANNING_OVERRIDES · TP_DEMANDES et TP_FERMES · ECHANGES · ABSENCES_LONGUES · VERIF_PREVENUS</td><td>visibles</td></tr>
 <tr><td><span style="display:inline-block;width:11px;height:11px;border-radius:3px;background:#0D9488;margin-right:7px;vertical-align:-1px"></span><a href="#p4">5. Libéral</a></td><td>SPECIALITES · COTATIONS_TYPE · LIBERAL_{année} · LIBERAL_CA_{année}</td><td>visibles</td></tr>
@@ -573,8 +574,34 @@ de temps partiel.</p>
 </div>
 </section>
 
+<section id="reliquats">
+<h2><span class="n">2.4</span>RELIQUATS</h2>
+<p>Les jours de vacances d'une année qu'il reste à poser en janvier de l'année suivante. La règle :
+les vacances de l'année N se posent jusqu'au <strong>31 janvier N+1</strong>. Quatre colonnes :
+<span class="tag">MAR</span> (identifiant ou initiales), <span class="tag">ANNEE</span> (l'année d'origine, N),
+<span class="tag">JOURS</span> (demi-journées acceptées : 1,5), <span class="tag">ORIGINE</span> (note libre).</p>
+
+<p>Ce que fait le portail : les vacances posées du 1<sup>er</sup> au 31 janvier N+1 sont prises
+<strong>d'abord</strong> sur ces jours, et ne comptent sur le quota de N+1 qu'au-delà. Le MAR n'a rien à
+choisir : ces jours sont perdus après le 31 janvier, les prendre en premier est toujours à son avantage.</p>
+
+<ul>
+  <li><strong>2026 se saisit à la main</strong> : le planning 2026 du portail est incomplet. Une ligne par MAR
+  qui a un reliquat, chiffre vérifié avec le secrétariat. Un MAR sans ligne n'a pas de reliquat.</li>
+  <li><strong>Dès 2027, le calcul est automatique</strong> : quota de la quotité moins les vacances posées dans
+  l'année. La clôture de l'année écrit une ligne par MAR (origine « calculé à la clôture ») : à vérifier
+  avec le secrétariat, et à corriger ici si besoin.</li>
+  <li><strong>Une ligne écrite ici gagne toujours</strong> sur le calcul. La clôture ne l'écrase jamais.</li>
+</ul>
+
+<div class="callout tip">
+  <div class="ct">Effet immédiat</div>
+  <p>Une ligne ajoutée ou corrigée se voit dans les compteurs et l'écran « Gérer mes vacances » dans la minute.</p>
+</div>
+</section>
+
 <section id="transition">
-<h2><span class="n">2.4</span>CONFIG_TRANSITION</h2>
+<h2><span class="n">2.5</span>CONFIG_TRANSITION</h2>
 <p>Trois colonnes : l'<strong>année</strong>, puis les identifiants des deux MARs de garde
 (<span class="tag">G</span> et <span class="tag">G2</span>) <strong>le dernier jour de l'année précédente</strong>.</p>
 

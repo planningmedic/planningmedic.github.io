@@ -77,6 +77,7 @@ function monde(opts) {
     if (Math.abs(d - Date.now()) < 120000) return ctx.__aujourdhui;   // « maintenant » : le jour du scénario
     const p = n => String(n).padStart(2, '0'); return d.getFullYear() + '-' + p(d.getMonth() + 1) + '-' + p(d.getDate()); } };
   socleMedecins(ctx);
+  require('./stubs').socleReliquats(ctx);   // (26/11/2026) reliquat de vacances de l'année précédente
   vm.runInContext('const ContentService = { MimeType:{JSON:1}, createTextOutput: s => ({ setMimeType: () => JSON.parse(s) }) };', ctx);
   vm.runInContext('var LockService = { getScriptLock: function () { return { waitLock: function () {}, releaseLock: function () {} }; } };', ctx);
   vm.runInContext('function _configRows_(){ return SpreadsheetApp.getActiveSpreadsheet().getSheetByName("CONFIG").getDataRange().getValues(); }', ctx);
@@ -187,6 +188,25 @@ console.log('\n═══ VA · vacances au-delà du droit ═══');
   V('jours fixes de temps partiel non comptés (15 jours réels pour 20)', !vac.some(p => p.id === 'FIXE'), vac);
   V('24/12 et 31/12 comptés pour une demi-journée (33 pour 33)', !vac.some(p => p.id === 'P04'), vac);
   V('un point de vacances n\'a pas de date : sa clé porte l\'année', vx.cle === 'vac|VACX|2027' && vx.date === null, vx);
+}
+
+console.log('\n═══ VR · vacances de janvier prises sur le reliquat de l\'année précédente (26/11/2026) ═══');
+{
+  const lundis = n => { const out = []; let d = new Date(2027, 1, 1, 12); for (let i = 0; i < n; i++) { out.push(d.toISOString().slice(0, 10)); d.setDate(d.getDate() + 7); } return out; };
+  const semaines = (id, n) => [].concat(...lundis(n).map(l => pour(id, semaine(l, 'V'))));
+  const janv = id => [[id, '2027-01-12', 'V'], [id, '2027-01-13', 'V']];
+  // VACX (90 %, droit 30) : 30 jours en février–mars + 2 en janvier, reliquat 2026 de 1 → 31 sur l'année, 1 de trop.
+  // P04 (100 %, droit 33) : 33 jours + 2 en janvier, reliquat 2026 de 3 (saisi par ses initiales) → 33, rien à dire.
+  const b = monde({ cases: semaines('VACX', 6).concat(janv('VACX'), semaines('P04', 7).slice(0, 33), janv('P04')) });
+  const ini = (b.cl.getSheetByName('MEDECINS').lignes.find(l => l[0] === 'P04') || [])[2];
+  b.cl.ajouter('RELIQUATS', [['MAR', 'ANNEE', 'JOURS', 'ORIGINE'], ['VACX', 2026, 1, ''], [ini, 2026, '3', ''], ['P04', 2025, 9, 'autre année : ignorée']]);
+  const vac = (b.points().points || []).filter(p => p.code === 'vac');
+  const vx = vac.find(p => p.id === 'VACX') || {};
+  V('reliquat de 1 : un seul des 2 jours de janvier sort du compte (31 pour 30), et le texte le dit',
+    vx.texte === '31 jours de vacances posés en 2027 pour un droit de 30 jours (90 %) : 1 de trop. Sans compter 1 jour(s) de janvier pris sur le reliquat 2026.', vx.texte);
+  V('reliquat plus grand que janvier (3 pour 2) : les 2 jours sortent, 33 pour 33, aucun point (ligne saisie par les initiales)', !vac.some(p => p.id === 'P04'), vac);
+  const sans = monde({ cases: semaines('P04', 7).slice(0, 33).concat(janv('P04')) });
+  V('contre-épreuve : sans onglet RELIQUATS, les jours de janvier comptent (35 pour 33)', (sans.points().points || []).some(p => p.code === 'vac' && p.id === 'P04'));
 }
 
 console.log('\n═══ PR · la case « Prévenu » ═══');

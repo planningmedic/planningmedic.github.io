@@ -71,6 +71,7 @@ function construireCle(cl, annee) {
     Session: { getScriptTimeZone: function () { return 'Europe/Paris'; } } });
   ctx.globalThis = ctx;
   socleMedecins(ctx);   // (14/09/2026) COL_MED, _medecinsRows_, _medecinsInvalider_ (code.gs)
+  require('./stubs').socleReliquats(ctx);   // (26/11/2026) reliquat de vacances de l'année précédente
   vm.runInContext('function logAction(){}', ctx);
   vm.runInContext('function _configRows_(){ return SpreadsheetApp.getActiveSpreadsheet().getSheetByName("CONFIG").getDataRange().getValues(); }', ctx);
   ['getActiveYear', 'getPremierJourPlanning', 'reconstruireDatesHeaders', 'buildDateToCol', 'getJoursFeries', 'seuilsPresence_']

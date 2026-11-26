@@ -114,6 +114,7 @@ function monde(opts) {
     Session: { getScriptTimeZone: () => 'Europe/Paris' } });
   ctx.globalThis = ctx;
   socleMedecins(ctx);   // (14/09/2026) COL_MED, _medecinsRows_, _medecinsInvalider_ (code.gs)
+  require('./stubs').socleReliquats(ctx);   // (26/11/2026) reliquat de vacances de l'année précédente
   /* Doublures d'infrastructure (jamais de logique métier) : journal, memo
      CONFIG (lecture directe, pas de cache à invalider), réponse HTTP. */
   vm.runInContext('function logAction(){}', ctx);
@@ -362,6 +363,66 @@ console.log('\n═══ PV13 · les vacances passent avant la récup de samedi 
     /il resterait/.test(r2.resultat[JOUR] || '') && b.lireGarde('PLEIN05', JOUR) === 'R', r2.resultat);
 }
 
+console.log('\n═══ PV14 · janvier pris d\'abord sur le reliquat de l\'année précédente (26/11/2026) ═══');
+{
+  /* Règle légale (responsable, 26/11/2026) : les vacances de N se posent
+     jusqu'au 31/01/N+1. PLEIN01 a déjà ses 33 jours 2027 (mars → mai) ; son
+     reliquat 2026 est saisi à la main dans RELIQUATS (2026 : pas de calcul). */
+  const jfS = new Set(vm.runInContext('Array.from(getJoursFeries(2027))', monde({}).ctx));
+  const ouvres = []; const d = new Date(2027, 2, 1, 12);
+  while (ouvres.length < 33) { const w = d.getDay(); const ds = d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0') + '-' + String(d.getDate()).padStart(2, '0'); if (w > 0 && w < 6 && !jfS.has(ds)) ouvres.push(ds); d.setDate(d.getDate() + 1); }
+  const avecReliquat = (lignes) => { const b = monde({ gardes: ouvres.map(ds => ['PLEIN01', ds, 'V']) });
+    if (lignes) b.cl.ajouter('RELIQUATS', [['MAR', 'ANNEE', 'JOURS', 'ORIGINE']].concat(lignes)); return b; };
+  const env = () => { const e = {}; ouvres.forEach(ds => { e[ds] = 'V'; }); return e; };
+  {
+    const b = avecReliquat(null);
+    b.ctx.__auj = '2026-12-01';
+    const e = env(); e['2027-01-12'] = 'V';
+    const r = b.appel({ vac: true, year: 2027, vacances: e }, MAR);
+    V('sans reliquat : un jour de janvier dépasse le quota 2027 → refusé (le défaut d\'avant)', /quota atteint/.test(r.resultat['2027-01-12'] || ''), r.resultat['2027-01-12']);
+  }
+  const b = avecReliquat([['PLEIN01', 2026, 2, ''], ['PO', 2026, '1,5', 'initiales, virgule'], ['PLEIN02', 2025, 9, 'autre année']]);
+  b.ctx.__auj = '2026-12-01';
+  const e = env(); Object.assign(e, { '2027-01-12': 'V', '2027-01-13': 'V', '2027-01-14': 'V' });
+  const r = b.appel({ vac: true, year: 2027, vacances: e }, MAR);
+  V('reliquat 2026 de 2 : les 2 premiers jours de janvier sont posés, le 3e refusé (quota 2027 plein)',
+    r.resultat['2027-01-12'] === 'V' && r.resultat['2027-01-13'] === 'V' && /quota atteint/.test(r.resultat['2027-01-14'] || ''), r.resultat);
+  V('…et le quota 2027 reste 33/33 : janvier ne l\'a pas touché', r.quota.poses === 33 && r.quota.total === 33, r.quota);
+  V('la réponse donne le reliquat : 2026, droit 2, pris 2', r.quota.reliquat && r.quota.reliquat.annee === 2026 && r.quota.reliquat.droit === 2 && r.quota.reliquat.pris === 2, r.quota.reliquat);
+  const e2 = env(); e2['2027-01-12'] = 'V'; e2['2027-01-13'] = 'V'; delete e2[ouvres[0]]; e2['2027-01-15'] = 'V';
+  const r2 = b.appel({ vac: true, year: 2027, vacances: e2 }, MAR);
+  V('au-delà du reliquat, janvier compte sur l\'année : un jour de mai retiré libère un 3e jour de janvier',
+    r2.resultat[ouvres[0]] === 'retiré' && r2.resultat['2027-01-15'] === 'V' && r2.quota.poses === 33 && r2.quota.reliquat.pris === 2, { q: r2.quota, n: r2.resultat['2027-01-15'] });
+  const k = vm.runInContext('JSON.parse(JSON.stringify(_construirePoseTp_(2027)))', b.ctx);
+  V('clé de pose : reliquat 2026 de 2 pour PLEIN01, 1,5 pour POSEUR (saisi par ses initiales), 0 pour les autres',
+    k.parMar.PLEIN01.reliquatVac.annee === 2026 && k.parMar.PLEIN01.reliquatVac.droit === 2 && k.parMar.POSEUR.reliquatVac.droit === 1.5 && k.parMar.PLEIN02.reliquatVac.droit === 0,
+    [k.parMar.PLEIN01.reliquatVac, k.parMar.POSEUR.reliquatVac, k.parMar.PLEIN02.reliquatVac]);
+  vm.runInContext(extraireFonction('../gas/Indispos.gs', 'computeReliquats'), b.ctx);
+  const cr = vm.runInContext('JSON.parse(JSON.stringify(computeReliquats(2027)))', b.ctx);
+  const l1 = cr.lignes.find(x => x.id === 'PLEIN01') || {};
+  V('compteur du comité : 33/33 sur 2027, plus « reliquat 2026 : 2/2 en janvier »',
+    l1.vac && l1.vac.pose === 33 && l1.vac.reste === 0 && l1.vac.reliquat && l1.vac.reliquat.pris === 2 && l1.vac.reliquat.droit === 2, l1.vac);
+  V('…un MAR sans reliquat n\'a pas de ligne de reliquat', (cr.lignes.find(x => x.id === 'PLEIN03') || {}).vac.reliquat === null);
+  // Calcul automatique dès 2027, et la clôture qui le fige
+  const SRC_TP = fs.readFileSync('../gas/temps_partiel.gs', 'utf8');
+  V('2026 se saisit à la main, le calcul automatique commence avec 2027', /const RELIQUAT_AUTO_DEPUIS = 2027;/.test(SRC_TP));
+  const c = monde({ gardes: [['PLEIN01', '2027-03-01', 'V'], ['PLEIN01', '2027-03-02', 'VM'], ['PLEIN01', '2027-12-24', 'V'], ['POSEUR', '2027-03-03', 'V']] });
+  const auto = vm.runInContext('JSON.parse(JSON.stringify(reliquatsVac_(2028)))', c.ctx);
+  V('reliquat 2027 calculé sur GARDES_2027 : 33 − (1 + ½ + ½) = 31 ; 80 % : 26 − 1 = 25', auto.PLEIN01 === 31 && auto.POSEUR === 25 && auto.PLEIN02 === 33, auto);
+  V('reliquat 2026 jamais calculé (pas de GARDES_2026 fiable) : vide sans saisie', Object.keys(vm.runInContext('reliquatsVac_(2027)', c.ctx)).length === 0);
+  c.cl.ajouter('RELIQUATS', [['MAR', 'ANNEE', 'JOURS', 'ORIGINE'], ['PLEIN01', 2027, 28, 'vérifié avec le secrétariat']]);
+  V('une ligne saisie gagne sur le calcul (28 au lieu de 31)', vm.runInContext('reliquatsVac_(2028).PLEIN01', c.ctx) === 28);
+  const t = vm.runInContext('_reliquatsFiger_(2027)', c.ctx);
+  const lig = c.cl.getSheetByName('RELIQUATS').getDataRange().getValues().filter(l => Number(l[1]) === 2027);
+  V('clôture 2027 : une ligne par MAR actif, la ligne saisie n\'est ni doublée ni écrasée',
+    lig.length === 16 && lig.filter(l => l[0] === 'PLEIN01').length === 1 && lig.find(l => l[0] === 'PLEIN01')[2] === 28 && lig.find(l => l[0] === 'POSEUR')[2] === 25, { t, n: lig.length });
+  vm.runInContext('_reliquatsFiger_(2027)', c.ctx);
+  V('relancée : aucun doublon', c.cl.getSheetByName('RELIQUATS').getDataRange().getValues().filter(l => Number(l[1]) === 2027).length === 16);
+  c.cl.supprimer ? c.cl.supprimer('GARDES_2027') : delete c.cl.feuilles['GARDES_2027'];
+  V('après la clôture (GARDES_2027 parti), le reliquat se lit dans RELIQUATS', vm.runInContext('reliquatsVac_(2028).POSEUR', c.ctx) === 25);
+  V('clôture 2026 : rien à calculer, le texte renvoie à la saisie manuelle', /saisi à la main/.test(vm.runInContext('_reliquatsFiger_(2026)', c.ctx)));
+}
+
 console.log('\n═══ PV11 · la tuile du portail ═══');
 {
   const src = fs.readFileSync('../index.html', 'utf8');
@@ -458,6 +519,35 @@ async function ouvrir(cle, repondre) {
   V('l\'enregistrement envoie la photo complète : l\'existant ET le nouveau, vac:true, année 2027',
     env && env.vac === true && env.year === 2027 && env.vacances['2027-01-13'] === 'V' && env.vacances['2027-01-15'] === 'V', env);
   V('après la réponse, le récapitulatif s\'ouvre et le jour est bleu', d.getElementById('vcxSheet').classList.contains('show') && caseDu('2027-01-15').classList.contains('v'));
+
+  console.log('\n═══ PV15 · la vraie page : le reliquat de l\'année précédente à l\'écran (26/11/2026) ═══');
+  {
+    // PLEIN01 : quota 2027 plein (33 jours en mars → mai), reliquat 2026 de 2 saisi à la main.
+    const jfS = new Set(vm.runInContext('Array.from(getJoursFeries(2027))', monde({}).ctx));
+    const ouvres = []; const dd = new Date(2027, 2, 1, 12);
+    while (ouvres.length < 33) { const wd = dd.getDay(); const ds = dd.getFullYear() + '-' + String(dd.getMonth() + 1).padStart(2, '0') + '-' + String(dd.getDate()).padStart(2, '0'); if (wd > 0 && wd < 6 && !jfS.has(ds)) ouvres.push(ds); dd.setDate(dd.getDate() + 1); }
+    const bR = monde({ gardes: ouvres.map(ds => ['PLEIN01', ds, 'V']) });
+    bR.cl.ajouter('RELIQUATS', [['MAR', 'ANNEE', 'JOURS', 'ORIGINE'], ['PLEIN01', 2026, 2, '']]);
+    const cleR = vm.runInContext('JSON.parse(JSON.stringify(_construirePoseTp_(2027)))', bR.ctx);
+    const { w: wR, erreurs: eR } = await ouvrir(cleR, () => ({ success: false, error: 'non simulé' }));
+    const dR = wR.document, caseR = ds => dR.querySelector('#vcxGrid [data-ds="' + ds + '"]');
+    wR.eval('VCX.mois = 0; vcxRendre();');
+    V('aucune erreur JavaScript', eR.length === 0, eR.slice(0, 3));
+    V('la jauge montre 33 / 33 et la ligne du reliquat : 0 / 2, à poser avant le 31/01',
+      /33\s*\/\s*33/.test(dR.getElementById('vcxJv').textContent) && dR.getElementById('vcxJr').style.display === 'block'
+      && /Reliquat 2026 : 0 \/ 2 j pris en janvier · il vous reste 2 jour\(s\) à poser avant le 31\/01/.test(dR.getElementById('vcxJr').textContent),
+      [dR.getElementById('vcxJv').textContent, dR.getElementById('vcxJr').textContent]);
+    caseR('2027-01-12').click(); caseR('2027-01-13').click();
+    V('deux jours de janvier se posent malgré le quota 2027 plein ; la jauge 2027 ne bouge pas',
+      wR.eval('VCX.pend["2027-01-12"]') === 'V' && wR.eval('VCX.pend["2027-01-13"]') === 'V' && /33\s*\/\s*33/.test(dR.getElementById('vcxJv').textContent)
+      && /2 \/ 2 j pris en janvier · tout est posé/.test(dR.getElementById('vcxJr').textContent), dR.getElementById('vcxJr').textContent);
+    caseR('2027-01-14').click();
+    V('un 3e jour de janvier : « quota atteint », rien en attente', /Quota atteint/.test(dR.getElementById('vcxHint').textContent) && !wR.eval('VCX.pend["2027-01-14"]'), dR.getElementById('vcxHint').textContent);
+    wR.eval('VCX.mois = 1; vcxRendre();'); caseR('2027-02-01').click();
+    V('février : le reliquat ne sert pas, « quota atteint »', /Quota atteint/.test(dR.getElementById('vcxHint').textContent) && !wR.eval('VCX.pend["2027-02-01"]'));
+    const { w: wS } = await ouvrir(vm.runInContext('JSON.parse(JSON.stringify(_construirePoseTp_(2027)))', monde({}).ctx), () => ({ success: false }));
+    V('sans reliquat, la ligne reste cachée', wS.document.getElementById('vcxJr').style.display === 'none');
+  }
   console.log(`\n  ${ok} ✓  ${ko} ✗`);
   process.exit(ko ? 1 : 0);
 })();

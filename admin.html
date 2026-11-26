@@ -3417,6 +3417,9 @@ async function renderReliquats(){
       + String(o.pose).replace('.', ',') + '/' + String(o.quota).replace('.', ',') + '</span>'
       + (o.reste > 0 ? '<div style="font-size:10.5px;color:#B91C1C">' + String(o.reste).replace('.', ',') + ' à poser</div>' : '')
       + (attente ? '<div style="font-size:10.5px;color:#6D28D9">' + attente + ' en attente</div>' : '')
+      /* (26/11/2026) Reliquat de l'année précédente : pris sur les vacances de janvier, hors quota de l'année. */
+      + (o.reliquat ? '<div style="font-size:10.5px;color:#1D4ED8">+ reliquat ' + o.reliquat.annee + ' : '
+          + String(o.reliquat.pris).replace('.', ',') + '/' + String(o.reliquat.droit).replace('.', ',') + ' en janvier</div>' : '')
       + '</td>';
   };
   const rien = d.lignes.filter(x => x.vac.reste > 0 || x.form.reste > 0 || x.tp.reste > 0).length;

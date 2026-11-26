@@ -170,4 +170,19 @@ function blocAction(marque, nomFn) {
   return src + handler;
 }
 
-module.exports = { Sheet, Classeur, fabriqueVerrou, VERROUS, journalVerrous, extraireFonction, brancherSurEcriture, socleMedecins, sourceGasTout, blocAction };
+/* (26/11/2026) Le reliquat de vacances de l'année précédente (temps_partiel.gs) :
+   lu par la pose libre, la clé de pose, le compteur de l'admin, les contrôles
+   et la clôture. Le VRAI code, constantes comprises, extrait du fichier livré.
+   Le contexte doit déjà porter _medecinsRows_, buildDateToCol, getJoursFeries,
+   getQuotasConges et _vacJoursFixes_ / _vacPoids_ (ou les recevoir ensuite). */
+function socleReliquats(ctx) {
+  const vm = require('vm'), f = require('path').join(__dirname, '..', 'gas', 'temps_partiel.gs');
+  const src = fs.readFileSync(f, 'utf8');
+  const cst = n => { const m = src.match(new RegExp('^const ' + n + ' = [^\n]*;', 'm')); if (!m) throw new Error(n + ' introuvable'); return m[0]; };
+  vm.runInContext(['RELIQUAT_AUTO_DEPUIS', 'RELIQUATS_ONGLET', 'RELIQUATS_ENTETE'].map(cst).join('\n') + '\n'
+    + ['_vacJanvier_', '_vacSurReliquat_', '_reliquatsSaisis_', '_reliquatsCalcules_', 'reliquatsVac_', '_reliquatsFiger_']
+        .map(n => extraireFonction(f, n)).join('\n'), ctx);
+  return ctx;
+}
+
+module.exports = { socleReliquats, Sheet, Classeur, fabriqueVerrou, VERROUS, journalVerrous, extraireFonction, brancherSurEcriture, socleMedecins, sourceGasTout, blocAction };

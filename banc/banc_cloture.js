@@ -141,6 +141,7 @@ function monde(opts) {
     extraireFonction(path.join(GAS, 'indisponibilites.gs'), '_act_clearIndisposYear'),
   ].join('\n');
   vm.runInContext(code, ctx);
+  require('./stubs').socleReliquats(ctx);   // (26/11/2026) la clôture fige le reliquat de vacances (2026 : saisi à la main, rien à calculer)
   const jour = opts.jour || new Date(2027, 0, 4, 9, 0);
   ctx._clotureMaintenant_ = () => new Date(jour.getTime());
   const photo = () => JSON.stringify([M.feuilles, A.feuilles].map(c => Object.keys(c).sort().map(n => [n, c[n].lignes])));

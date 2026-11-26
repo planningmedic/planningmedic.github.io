@@ -268,6 +268,17 @@ console.log('\n═══ 5. L\'écran : le bandeau, puis la file au clic ══�
     V('sans clé de pose (année non ouverte) : les compteurs s\'affichent sans quota', /^3\s*j/.test(D.querySelector('#mesCongesBody .rc-vac b').textContent.trim()) && !/reste/.test(D.querySelector('#mesCongesBody .rc-vac').textContent));
     dansLaPage("POSE_CLES={2027:{success:true,year:2027,joursFeries:['2027-05-17'],parMar:{MOI:{quotaVac:33,quota:26,tpFixe:false,joursFixes:[],jours:{'2027-03-01':'VAC','2027-03-02':'VAC','2027-12-24':'VAC','2027-03-03':'VM'}}}}};");
     V('pastille de la tuile : 33 − 3 = 30 j à poser', w.eval('_recapResteAPoser()') === 30, w.eval('_recapResteAPoser()'));
+    /* (26/11/2026) Reliquat 2026 de 1 jour : un des 2 jours de janvier sort du compte 2027. */
+    const planJ = JSON.parse(JSON.stringify(planning));
+    planJ.months.forEach(m => m.days.forEach((j, i) => { if (j.date === '2027-01-12' || j.date === '2027-01-13') m.doctors[0].days[i].status = 'V'; }));
+    dansLaPage('_planCache[2027]=' + JSON.stringify(planJ) + ';');
+    dansLaPage("POSE_CLES={2027:{success:true,year:2027,joursFeries:['2027-05-17'],parMar:{MOI:{quotaVac:33,quota:26,tpFixe:false,joursFixes:[],reliquatVac:{annee:2026,droit:1},jours:{'2027-01-12':'VAC','2027-01-13':'VAC','2027-03-01':'VAC','2027-03-02':'VAC','2027-12-24':'VAC','2027-03-03':'VM'}}}}};");
+    dansLaPage("RC_ANNEE=null; renderMesConges();");
+    const tvR = D.querySelector('#mesCongesBody .rc-vac');
+    V('reliquat 2026 de 1 : 5 jours posés, 4 sur 2027 (un jour de janvier pris sur 2026), et la tuile le dit',
+      tvR && /^4\s*\/\s*33\s*j/.test(tvR.querySelector('b').textContent.trim()) && /\+ 1 \/ 1 j du reliquat 2026 en janvier/.test(tvR.textContent), tvR && tvR.textContent);
+    V('pastille : 33 − 4 = 29 j à poser', w.eval('_recapResteAPoser()') === 29, w.eval('_recapResteAPoser()'));
+    dansLaPage('_planCache[2027]=' + JSON.stringify(planning) + ';');
   }
 
   console.log('\n═══ 6. Le bandeau est déjà là quand on ouvre la tuile ═══');

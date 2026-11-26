@@ -2694,14 +2694,23 @@ function _recapPoidsVac(c, ds, feries, fixes){
   if (c === 'V' || c === 'VAC') return /-12-(24|31)$/.test(ds) ? 0.5 : 1;
   return (c === 'VM' || c === 'VA') ? 0.5 : 0;
 }
+// (26/11/2026) Vacances de janvier prises sur le reliquat de l'année précédente — même règle que le serveur.
+function _recapSurReliquat(mien, jan){
+  const d = Number(((mien && mien.reliquatVac) || {}).droit) || 0;
+  return Math.min(Math.max(0, d), Math.max(0, jan));
+}
 // Pastille de la tuile : quota de vacances − jours posés, sur l'année de pose (clé pose_tp, mes codes).
 function _recapResteAPoser(){
   const y = _recapAnneePose(), mien = y ? _recapMien(y) : null;
   if (!mien || mien.quotaVac === undefined) return null;
   const k = POSE_CLES[y], feries = new Set(Array.isArray(k.joursFeries) ? k.joursFeries : []);
   const fixes = Array.isArray(mien.joursFixes) ? mien.joursFixes.map(Number) : [];
-  let n = 0;
-  Object.keys(mien.jours || {}).forEach(function(ds){ n += _recapPoidsVac(String(mien.jours[ds]).toUpperCase(), ds, feries, fixes); });
+  let n = 0, jan = 0;
+  Object.keys(mien.jours || {}).forEach(function(ds){
+    const p = _recapPoidsVac(String(mien.jours[ds]).toUpperCase(), ds, feries, fixes);
+    n += p; if (ds.indexOf(y + '-01-') === 0) jan += p;
+  });
+  n -= _recapSurReliquat(mien, jan);   // (26/11/2026) janvier pris d'abord sur le reliquat de l'année précédente
   return Math.max(0, Number(mien.quotaVac) - n);
 }
 // Mes codes de l'année et ses fériés, lus dans le planning déjà chargé.
@@ -2746,14 +2755,17 @@ function renderMesConges(){
   }
   const y = RC_ANNEE, st = _recapStatuts(y) || { S: {}, F: new Set() }, S = st.S, F = st.F, today = _todayStr();
   const mien = _recapMien(y), fixes = (mien && Array.isArray(mien.joursFixes)) ? mien.joursFixes.map(Number) : [];
-  let vac = 0, tp = 0, form = 0, rec = 0, g = 0, g2 = 0, h18 = 0;
+  let vac = 0, vacJan = 0, tp = 0, form = 0, rec = 0, g = 0, g2 = 0, h18 = 0;
   Object.keys(S).forEach(function(ds){
     const c = S[ds], w = new Date(ds + 'T12:00:00').getDay(), ouvre = w > 0 && w < 6 && !F.has(ds);
-    vac += _recapPoidsVac(c, ds, F, fixes);
+    const pv = _recapPoidsVac(c, ds, F, fixes);
+    vac += pv; if (ds.indexOf(y + '-01-') === 0) vacJan += pv;
     if (c === 'G') g++; else if (c === 'G2') g2++; else if (c === '18') h18++;
     if (!ouvre) return;
     if (c === 'TP' || c === 'CTP') tp++; else if (c === 'F' || c === 'FORM') form++; else if (c === 'R') rec++;
   });
+  const relPris = _recapSurReliquat(mien, vacJan), relDroit = Number(((mien && mien.reliquatVac) || {}).droit) || 0;
+  vac -= relPris;
   const qv = mien && mien.quotaVac !== undefined ? Number(mien.quotaVac) : null;
   const qt = mien && Number(mien.quota) > 0 && !mien.tpFixe ? Number(mien.quota) : null;
   const tuile = function(cls, val, quota, lib){
@@ -2761,7 +2773,7 @@ function renderMesConges(){
       + (quota !== null ? '<div class="rc-j"><i style="width:' + Math.min(100, quota ? val / quota * 100 : 0) + '%"></i></div><small>reste ' + _fr1(Math.max(0, quota - val)) + ' j</small>' : '') + '</div>';
   };
   let h = '<div class="mga-ans rc-ans">' + ans.map(function(a){ return '<button type="button" data-rc-an="' + a + '" class="' + (a === y ? 'on' : '') + '">' + a + '</button>'; }).join('') + '</div>';
-  h += '<div class="rc-tuiles">' + tuile('rc-vac', vac, qv, 'Vacances')
+  h += '<div class="rc-tuiles">' + tuile('rc-vac', vac, qv, 'Vacances' + (relDroit ? ' · + ' + _fr1(relPris) + ' / ' + _fr1(relDroit) + ' j du reliquat ' + (y - 1) + ' en janvier' : ''))
     + (qt !== null || tp ? tuile('rc-tp', tp, qt, 'Temps partiel') : '')
     + tuile('rc-form', form, null, 'Formation') + tuile('rc-rec', rec, null, 'Récupération')
     + '<div class="rc-t rc-g"><b>' + (g + g2) + '</b><em>Gardes · ' + g + ' réa · ' + g2 + ' mater</em></div>'

@@ -195,7 +195,7 @@ console.log('\n═══ 5. Compteurs (reliquat, staff, écran MAR) et écrans �
 {
   const GA = lire('gas/gardes.gs'), ST = lire('staff.html'), INDH = lire('indispos.html'),
         PA = lire('paie.html'), AD = lire('admin.html'), GEN = lire('gas/generateur_gardes.gs');
-  V('reliquat : VM/VA comptent 0,5 jour de vacances', /if \(_v === 'VM' \|\| _v === 'VA'\) \{ p\.vac \+= 0\.5; continue; \}/.test(GA));
+  V('reliquat : VM/VA comptent 0,5 jour de vacances', /if \(_v === 'VM' \|\| _v === 'VA'\) \{ p\.vac \+= 0\.5; if \(janv\) p\.janv \+= 0\.5; continue; \}/.test(GA));   // (26/11/2026) janvier compté à part pour le reliquat
   V('don / échange : VM/VA bloquent comme une absence', /const ABSENCES = \['V', 'VM', 'VA',/.test(GA));
   V('générateur : VM/VA bloquent la veille (absenceLendemain)', /_sl==='VAC'\|\|_sl==='VM'\|\|_sl==='VA'/.test(GEN));
   V('générateur : VM/VA exclus des 18 h et des récupérations',
