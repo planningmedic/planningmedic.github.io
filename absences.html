@@ -579,7 +579,10 @@ async function patEnvoyer(corps){
   try{
     const r = await apiPost(Object.assign({action:'patientsLib'}, corps));
     if(!(r && r.success)){ patErr((r && r.error) || 'Le serveur n\'a pas répondu — réessayez.'); return null; }
-    if(corps.op === 'salle' || corps.op === 'secteur' || String(corps.id || '').indexOf('cpa|') === 0){
+    // Lignes CPA : servies seulement par getConsultAbsences — la réponse de patientsLib ne les
+    // contient pas. Dès qu'il y en a à l'écran, on relit tout, sinon elles disparaissent.
+    const aCpa = Object.keys(PATIENTS).some(k => PATIENTS[k].some(p => p.cpa)) || RECUS.some(p => p.cpa);
+    if(aCpa || corps.op === 'salle' || corps.op === 'secteur' || String(corps.id || '').indexOf('cpa|') === 0){
       const d = await apiPost({action:'getConsultAbsences'});   // lignes CPA : recalculées par le serveur
       if(d && d.success){ DATA = d; lireMarges(d); patCharger(d.patients); }
       return r;

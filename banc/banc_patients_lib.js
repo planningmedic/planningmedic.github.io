@@ -383,6 +383,16 @@ async function page(patlib, modif) {
     V('la feuille de choix ne s\'ouvre pas en touchant un bouton de salle', !D.getElementById('pFeuille').classList.contains('open'));
   }
   {
+    // Défaut vu en production (26/11/2026) : supprimer une ligne saisie à la main faisait disparaître les lignes CPA
+    const { D, envois, erreurs } = await page(true, d => { d.patients.push({ id: 'cpa|' + CONSULT + '|pm|2|' + BLOC_ABS, mar: 'ALPHA', consult: CONSULT, per: 'pm', bloc: BLOC_ABS, nb: 3, confieA: '', cpa: true }); });
+    V('lignes CPA + saisie : la page s\'ouvre sans erreur', !erreurs.length, erreurs);
+    D.querySelector('#file .puce').click(); await dodo(40);
+    V('les deux lignes sont là (saisie et CPA)', D.querySelectorAll('#pfListe .pl').length === 2);
+    D.querySelector('#pfListe .px').click(); await dodo(120);
+    V('supprimer la ligne saisie : la page relit tout (sinon les lignes CPA disparaissent)', envois[envois.length - 1].action === 'getConsultAbsences');
+    V('… et la ligne CPA est toujours affichée', /CPA/.test(D.getElementById('pfListe').textContent), D.getElementById('pfListe').textContent.slice(0, 200));
+  }
+  {
     const SEC = plus(lundi, 4);
     const { D, envois, erreurs } = await page(true, d => {
       d.consultations.push({ date: SEC, per: 'pm', cs: 'CS-VIS', mar: 'ALPHA', secteur: true, aValider: true, nbSecteur: 3 });
