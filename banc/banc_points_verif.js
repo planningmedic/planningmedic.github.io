@@ -40,6 +40,7 @@ function monde(opts) {
   med.push(ligneMed('FIXE', 'FX', 60, { fixes: 'JEU, VEN' }));
   for (let i = 1; i <= 11; i++) med.push(ligneMed(P(i), 'Q' + i, 100));
   med.push(ligneMed('CHEF', 'CH', 100, { hors: true }));
+  (opts.fins || []).forEach(([id, df]) => { med.find(l => l[0] === id)[10] = df; });   // date_fin
   const ids = med.slice(1).map(l => l[0]);
   cl.ajouter('MEDECINS', med);
   cl.ajouter('CONFIG', [['CLE','VALEUR'], ['ANNEE_ACTIVE', '2027']]);
@@ -347,6 +348,18 @@ console.log('\n═══ PS · la présence jour par jour (heatmap de l\'onglet 
   V('le chef hors effectif n\'apparaît nulle part', Object.keys(P).every(ds => !Object.keys(P[ds].ab).some(k => P[ds].ab[k].includes('CH'))));
   V('jour fixe de temps partiel : motif « Temps partiel » (jeudi)', ((P['2027-03-04'] || {}).ab || {})['Temps partiel'] && P['2027-03-04'].ab['Temps partiel'].includes('FX'), (P['2027-03-04'] || {}).ab);
   V('ni week-end ni férié dans la présence ; le férié est envoyé à part', !P['2027-03-06'] && !P['2027-11-01'] && (r.feries || []).includes('2027-11-01'), r.feries);
+}
+
+console.log('\n═══ HC · un MAR hors contrat n\'encombre pas la heatmap (26/11/2026) ═══');
+{
+  /* Défaut constaté en production : après la fin de contrat d'un MAR, chaque jour
+     de la heatmap affichait « Hors contrat · 1 » — inutile, il n'est pas compté. */
+  const b = monde({ fins: [['P11', '2027-07-01']] });
+  const P = b.points().presence || {}, nAb = x => Object.keys(x.ab || {}).reduce((t, k) => t + x.ab[k].length, 0);
+  V('aucun jour ne liste « Hors contrat » parmi les absents', Object.keys(P).every(ds => !(P[ds].ab || {})['Hors contrat']), Object.keys(P).filter(ds => (P[ds].ab || {})['Hors contrat']).slice(0, 3));
+  V('le MAR parti n\'apparaît nulle part après son départ (mardi 06/07)', !Object.keys(P['2027-07-06'].ab).some(k => P['2027-07-06'].ab[k].includes('Q11')), P['2027-07-06'].ab);
+  V('postables inchangés : 15 avant le départ (mardi 29/06), 14 après (mardi 06/07)', P['2027-06-29'].p === 15 && P['2027-07-06'].p === 14, [P['2027-06-29'].p, P['2027-07-06'].p]);
+  V('postables + absents = effectif sous contrat (15 avant, 14 après)', nAb(P['2027-06-29']) + P['2027-06-29'].p === 15 && nAb(P['2027-07-06']) + P['2027-07-06'].p === 14);
 }
 
 console.log('\n═══ GF · une fois l\'année générée, GARDES fait foi (24/11/2026) ═══');
