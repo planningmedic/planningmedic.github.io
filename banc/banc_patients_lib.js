@@ -8,8 +8,9 @@
       classeur simulé : droit, délais médico-légaux, propriété des lignes,
       groupement, aucune poussée vers le relais.
    2. Page — absences.html TELLE QUELLE dans un navigateur simulé : boutons
-      d'état, contrôle des dates, « qui peut le voir ? » (règle des 48 h /
-      un mois appliquée AU CONFRÈRE), confier, bandeau, sans droit = rien.
+      d'état, contrôle des dates, « qui peut le voir ? » (rattrapage : un
+      confrère du groupement présent le jour de MA consultation ET le jour du
+      bloc), confier, bandeau, sans droit = rien.
    3. Accueil — la tuile monte dans Moi avec le droit, et seulement avec lui. */
 const vm = require('vm'), fs = require('fs'), path = require('path');
 const { JSDOM, VirtualConsole } = require('jsdom');
@@ -139,7 +140,7 @@ function donnees(patlib) {
       { date: plus(lundi, 3), per: 'am', cs: 'CS-VIS', mar: 'GOLF' },             // hors groupement
       { date: plus(lundi, 2), per: 'am', cs: 'CS-VIS', mar: 'ECHO' },             // absent le jour du geste
     ].map(c => c.mar === 'BRAVO' ? Object.assign(c, { date: lundi }) : c),
-    absences: { ALPHA: [{ d: BLOC_ABS, c: 'V' }], ECHO: [{ d: BLOC_ABS, c: 'RG' }] },
+    absences: { ALPHA: [{ d: BLOC_ABS, c: 'V' }], ECHO: [{ d: BLOC_ABS, c: 'RG' }], CHARLIE: [{ d: CONSULT, c: 'F' }] },
     patients: patlib ? [
       { id: 'p1', mar: 'ALPHA', consult: CONSULT, per: 'pm', bloc: BLOC_OK, nb: 1, confieA: '' },
       { id: 'p2', mar: 'BRAVO', consult: lundi, per: 'pm', bloc: plus(lundi, 4), nb: 1, confieA: 'ALPHA' },
@@ -208,14 +209,17 @@ async function page(patlib) {
       && Object.keys(env).sort().join() === 'action,bloc,code,consult,nb,op,per', env);
     const liste = D.getElementById('pfListe').textContent;
     V('absent ce jour-là : la ligne le dit et la liste des confrères s\'ouvre seule',
-      /Vous êtes absent \(vacances\)/.test(liste) && /qui peut le voir/.test(liste), liste.slice(0, 300));
-    V('le confrère qui consulte avant (et 48 h avant) est proposé', /Dr Bravo/.test(liste));
-    V('le confrère qui consulte la VEILLE du geste n\'est pas proposé (règle des 48 h)', !/Dr Hotel/.test(liste));
+      /Vous êtes absent \(vacances\)/.test(liste) && /Qui peut faire votre consultation/.test(liste), liste.slice(0, 300));
+    V('la question porte sur MA consultation et le jour du bloc', /faire votre consultation du/.test(liste) && /et opérer le/.test(liste));
+    V('un confrère présent les deux jours est proposé', /Dr Bravo/.test(liste));
+    V('… même s\'il n\'a aucune consultation avant le geste (rattrapage : il prend MA consultation)', /Dr Hotel/.test(liste));
+    V('absent le jour de MA consultation : pas proposé', !/Dr Charlie/.test(liste));
+    V('absent le jour du bloc : pas proposé', !/Dr Echo/.test(liste));
     V('le MAR hors groupement n\'est pas proposé', !/Dr Golf/.test(liste));
-    V('le MAR absent ce jour-là n\'est pas proposé', !/Dr Echo/.test(liste));
+    V('moi-même : pas proposé', !/Dr Alpha/.test(D.querySelector('#pfListe .alt').textContent));
     V('le bandeau annonce 2 patients à confier', /2 patients lib à confier/.test(D.getElementById('aconf').textContent));
 
-    D.querySelector('#pfListe .pbtn.bleu').click(); await dodo(80);
+    [...D.querySelectorAll('#pfListe .person')].find(x => /Dr Bravo/.test(x.textContent)).querySelector('.pbtn.bleu').click(); await dodo(80);
     const conf = envois.filter(e => e.action === 'patientsLib').pop();
     V('« Confier » envoie la ligne et le confrère choisi', conf.op === 'confier' && conf.a === 'BRAVO' && !!conf.id, conf);
     V('la ligne devient « Confiés au Dr Bravo »', /Confiés au Dr Bravo/.test(D.getElementById('pfListe').textContent));

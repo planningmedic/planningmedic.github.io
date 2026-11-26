@@ -492,9 +492,9 @@ function nbJours(p){ return p.finIdx - p.debIdx + 1; }
 /* ══ PATIENTS LIB D'UNE CONSULTATION (26/11/2026) ═════════════════════════
    Le MAR note, pour chacune de ses consultations, ses patients lib : date
    opératoire + nombre, AUCUN NOM. Verdict immédiat : présent ce jour-là, ou
-   « qui peut le voir ? » — le calcul existant (rendreAlt : groupement, présent
-   ce jour-là, consultation avant, marge CCAM) lancé sur ce seul jour, avec la
-   règle des 48 h / 1 mois appliquée aussi au confrère. Après accord VERBAL,
+   « qui peut le voir ? » : un confrère du groupement présent le jour de MA
+   consultation ET le jour du bloc, qui fera la consultation à ma place puis
+   opérera (rattrapage). Après accord VERBAL,
    « Confier » : le confrère retrouve le patient dans sa page. Le secrétariat
    des consultations est prévenu par appel, hors de l'outil.
    Réservé au droit `patlib` (le serveur renvoie DATA.patlib). Le verdict
@@ -512,8 +512,6 @@ function patCharger(liste){
 function absentLeJour(mar, ds){ return ((DATA.absences && DATA.absences[mar]) || []).find(a => a.d === ds) || null; }
 function patDe(c){ return (PATIENTS[cleCons(c)] || []).filter(p => p.bloc >= iso(new Date())); }   // date opératoire passée : masquée
 function patAConfier(c){ return patDe(c).filter(p => absentLeJour(c.mar,p.bloc) && !p.confieA).reduce((n,p)=>n+p.nb,0); }
-// Règle médico-légale appliquée au confrère : sa consultation au moins 48 h et au plus un mois avant le geste
-function bornesConfrere(op){ const d=dt(op); const mx=new Date(d); mx.setDate(mx.getDate()-2); const mn=new Date(d); mn.setMonth(mn.getMonth()-1); return [iso(mn), iso(mx)]; }
 function patPuce(c){
   const tot = patDe(c).reduce((n,p)=>n+p.nb,0), a = patAConfier(c);
   if(!tot) return '<button type="button" class="puce vide">＋ Noter mes patients lib</button>';
@@ -553,7 +551,7 @@ function patOuvrir(btn, c){
   patListe();
   document.getElementById('pVoile').classList.add('open'); document.getElementById('pFeuille').classList.add('open');
 }
-function patFermer(){ document.getElementById('pVoile').classList.remove('open'); document.getElementById('pFeuille').classList.remove('open'); PAT_PICK=null; pick=null; rendreAlt(); rendreGrille(); }
+function patFermer(){ document.getElementById('pVoile').classList.remove('open'); document.getElementById('pFeuille').classList.remove('open'); PAT_PICK=null; }
 function patNb(d){ PAT_NB = Math.max(1, Math.min(9, PAT_NB+d)); document.getElementById('pfNb').textContent = PAT_NB; }
 function patErr(m){ const e=document.getElementById('pfErr'); e.textContent=m; e.style.display='block'; }
 /* Un seul envoi à la fois ; la réponse du serveur EST la nouvelle liste. */
@@ -597,13 +595,32 @@ async function patAnnulerSuppr(){
   }
   PAT_SUPPR = null; patListe(); majPuce();
 }
+/* (26/11/2026, décision du responsable) RATTRAPAGE : le patient garde SA
+   consultation (le jour de la mienne). Le confrère vient la faire à ma place,
+   puis l'opère : il doit être PRÉSENT le jour de ma consultation ET le jour du
+   bloc, et membre du groupement. Classé par marge CCAM restante (le bloc porte
+   la charge), comme le reste de la page. Garde = présent (le serveur ne la
+   compte pas comme une absence). */
 function _quiPeut(p){
-  // calcul existant (rendreAlt) sur le seul jour opératoire, rendu dans la feuille
-  const i = IDX[p.bloc]; PAT_PICK = p;
-  if(i === undefined) return '<div class="none-alt">Date hors de la période affichée.</div>';
-  pick = {debIdx:i, finIdx:i, deb:p.bloc, fin:p.bloc, code:(absentLeJour(PAT_C.mar,p.bloc)||{}).c||''};
-  rendreAlt(); const h = document.getElementById('pAlt').innerHTML;
-  rendreGrille(); return h;
+  const c = PAT_C, GRP = DATA.groupement || {};
+  PAT_PICK = p;
+  const ids = Object.keys(DATA.noms || {}).filter(id => id !== c.mar && GRP[id]
+    && !absentLeJour(id, c.date) && !absentLeJour(id, p.bloc));
+  ids.sort((a,b) => ((MARGE[b] == null ? -1e12 : MARGE[b]) - (MARGE[a] == null ? -1e12 : MARGE[a])) || nomDe(a).localeCompare(nomDe(b)));
+  const occupe = id => (DATA.consultations || []).find(x => x.mar === id && x.date === c.date && x.per === c.per);
+  let h = '<div class="alt"><h4>Qui peut faire votre consultation du '+libDate(c.date)+' et opérer le '+libDate(p.bloc)+' ?</h4>'
+    + '<div class="why">Membres du groupement présents ces deux jours-là.</div>';
+  if(!ids.length) return h + '<div class="none-alt">Aucun membre du groupement n\'est présent ces deux jours-là. À arbitrer avec le comité.</div></div>';
+  h += ids.map(id => {
+    const m = MARGE[id], mr = (m == null) ? null : Math.round(m);
+    const chip = (mr == null) ? '' : '<span class="marge" style="margin-left:8px;font-family:var(--mono);font-size:11px;font-weight:700;color:'
+      + (mr > 0 ? 'var(--ok)' : (mr < 0 ? 'var(--rose)' : 'var(--ink-3)')) + '">' + (mr > 0 ? '+ ' : (mr < 0 ? '− ' : '')) + Math.abs(mr).toLocaleString('fr-FR') + ' €</span>';
+    const o = occupe(id);
+    return '<div class="person"><b>'+nomDe(id)+'</b>'+chip
+      + (o ? '<span class="cs">déjà en consultation ('+libSect(o.cs)+') à la même heure</span>' : '')
+      + '<button class="pbtn bleu" onclick="patConfier(\''+id+'\')">Confier</button></div>';
+  }).join('');
+  return h + '</div>';
 }
 function patListe(){
   const c = PAT_C, L = patDe(c);
@@ -627,8 +644,8 @@ function patListe(){
 async function patConfier(id){
   if(!PAT_PICK) return;
   const r = await patEnvoyer({op:'confier', id:PAT_PICK.id, a:id}); if(!r) return;
-  PAT_PICK = null; PAT_OUVERT = -1; pick = null;
-  patListe(); rendreAlt(); rendreGrille(); majPuce();
+  PAT_PICK = null; PAT_OUVERT = -1;
+  patListe(); majPuce();
 }
 async function patReprendre(k){
   const p = patDe(PAT_C)[k]; if(!p) return;
@@ -762,10 +779,7 @@ function rendreAlt(){
      y compris une consultation qui tombe PENDANT la période : il voit le patient
      ce jour-là et l'opère plus tard. Renvoie les plages de jours consécutifs. */
   const couverture = (id)=>{
-    let cs = csDe(id);
-    // (26/11/2026) Depuis un patient lib : sa consultation au moins 48 h et au plus un mois avant le geste
-    if(PAT_PICK){ const bc = bornesConfrere(PAT_PICK.bloc); cs = cs.filter(x => x.date >= bc[0] && x.date <= bc[1]); }
-    if(!cs.length) return null;
+    const cs = csDe(id); if(!cs.length) return null;
     const c0 = IDX[cs[0].date];                   // sa première consultation
     const plages = [];
     for(let i=p.debIdx; i<=p.finIdx; i++){
@@ -808,8 +822,7 @@ function rendreAlt(){
         + (cv.plages.length > 2 ? ' +' + (cv.plages.length-2) : '');
     return '<div class="person"><b>'+nomDe(id)+'</b>'+chip+
       '<span class="cs">'+quand+' · consulte '+libDate(cv.cs[0].date)+
-      ' '+(cv.cs[0].per==='am'?'matin':'ap.-midi')+'</span>'+
-      (PAT_PICK && !PAT_PICK.confieA ? '<button class="pbtn bleu" onclick="patConfier(\''+id+'\')">Confier</button>' : '')+'</div>';
+      ' '+(cv.cs[0].per==='am'?'matin':'ap.-midi')+'</span></div>';
   };
   // TRI PAR MARGE CCAM DÉCROISSANTE (27/07/2026). Une consultation libérale déclenche
   // un bloc : c'est l'axe CCAM qui portera la charge, pas le NGAP. Reprendre le patient
