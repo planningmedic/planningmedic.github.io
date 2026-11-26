@@ -54,7 +54,8 @@ const CONTRAT = {
   'getGardes'                 : 'admin',
   'getJoursFeries'            : 'admin',
   'getOrdreVacances'          : 'mar seulement',
-  'getRecapPdf'               : 'mar seulement',   // (25/11/2026) PDF du récapitulatif
+  'getRecapPdf'               : 'mar seulement',
+  'patientsLib'               : 'mar seulement',   // (26/11/2026) patients lib d'une consultation (droit patlib)   // (25/11/2026) PDF du récapitulatif
   'getVacConfig'              : 'tout code valide',
   'setActiveYear'             : 'maintenance',
   'initYear'                  : 'admin',
@@ -149,7 +150,7 @@ console.log('═══ Le routeur répond au contrat des 72 actions ═══');
 const { fichier, actions, corps } = contratActuel();
 const attendu = Object.assign({}, CONTRAT, { getActiveYear: 'sans code', getAnneesDisponibles: 'sans code' });
 V('le routeur est lu dans ' + fichier, !!fichier);
-V('83 actions, ni plus ni moins', Object.keys(actions).length === 83, Object.keys(actions).length);   // (26/11/2026) + paieModeEmploi · (25/11/2026) + getRecapPdf, + trois actions de la bourse aux gardes, + republierPlanning
+V('84 actions, ni plus ni moins', Object.keys(actions).length === 84, Object.keys(actions).length);   // (26/11/2026) + patientsLib · (26/11/2026) + paieModeEmploi · (25/11/2026) + getRecapPdf, + trois actions de la bourse aux gardes, + republierPlanning
 const manquantes = Object.keys(attendu).filter(a => !(a in actions));
 const enTrop = Object.keys(actions).filter(a => !(a in attendu));
 V('aucune action du contrat ne manque', manquantes.length === 0, manquantes);

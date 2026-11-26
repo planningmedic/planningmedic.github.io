@@ -4,7 +4,7 @@
    quelles : aucune ligne de logique modifiée, seulement déplacée. Le routeur et
    ses aides (checkCode, _deny, _error, doGet/doPost) restent dans Indispos.gs.
    Un seul espace global dans Apps Script : rien à importer. */
-const GAS_VERSION_INDISPOS_METIER = '2026-11-25.2';   // (25/11/2026) .2 : action getRecapPdf (PDF du récapitulatif pour le MAR connecté) ; getOrdreVacances répond aussi pour y+2 · .1 : saveIndispos accepte la pose libre des vacances (payload.vac, voir _poserVac_ dans temps_partiel.gs) · (20/11/2026) .1 : setIndisposYear et envoyerRecapIndispos réservés au responsable · (15/11/2026) clearIndisposYear réservé au droit Maintenance (clôture d'année) · (10/11/2026) PDF récapitulatif par document Google (les couleurs passent) + renvoyerRecapPdf2027 · (09/11/2026) mail « Vos gardes » : 18 h, souhaits honorés, gardes qui allongent les vacances · (27/10/2026) VM/VA posés à la main : jamais écrasés par un enregistrement (MAR ou staff)
+const GAS_VERSION_INDISPOS_METIER = '2026-11-26.1';   // (26/11/2026) .1 : patients lib d'une consultation — action patientsLib (droit patlib, onglet PATIENTS_LIB) et patients servis dans getConsultAbsences · (25/11/2026) .2 : action getRecapPdf (PDF du récapitulatif pour le MAR connecté) ; getOrdreVacances répond aussi pour y+2 · .1 : saveIndispos accepte la pose libre des vacances (payload.vac, voir _poserVac_ dans temps_partiel.gs) · (20/11/2026) .1 : setIndisposYear et envoyerRecapIndispos réservés au responsable · (15/11/2026) clearIndisposYear réservé au droit Maintenance (clôture d'année) · (10/11/2026) PDF récapitulatif par document Google (les couleurs passent) + renvoyerRecapPdf2027 · (09/11/2026) mail « Vos gardes » : 18 h, souhaits honorés, gardes qui allongent les vacances · (27/10/2026) VM/VA posés à la main : jamais écrasés par un enregistrement (MAR ou staff)
 // précédente : '2026-10-22.2'
 
 // La campagne de saisie des indispos est-elle EN COURS ?
@@ -2125,6 +2125,11 @@ function _act_getConsultAbsences(R) {
     // Non-membre du groupement : aucun chiffre. Le masquage de la tuile ne suffit
     // pas — absences.html est une page publique, seul le serveur ferme la porte.
     if (!user.liberal) { marges = {}; margesMois = ''; }
+    // (26/11/2026) Patients lib : seulement pour qui a le droit `patlib` (le temps du test).
+    let patlib = false, patients = [];
+    try {
+      if (user.role === 'mar' && _aDroitTuile_(user.id, 'patlib')) { patlib = true; patients = _patlibLire_(user.id); }
+    } catch (e) { patlib = false; patients = []; }   // jamais bloquant pour le reste de la page
 
     return ContentService.createTextOutput(JSON.stringify({
       success: true,
@@ -2138,7 +2143,116 @@ function _act_getConsultAbsences(R) {
       jours: joursConsult,
       noms: noms,
       consultations: consultationsF,
-      absences: absences
+      absences: absences,
+      patlib: patlib,              // (26/11/2026) droit « patlib » : saisie des patients lib
+      patients: patients           // ses lignes et celles qu'on lui a confiées (aucun nom de patient)
     })).setMimeType(ContentService.MimeType.JSON);
+  } catch (err) { return _error(err.message); }
+}
+
+/* ══ PATIENTS LIB D'UNE CONSULTATION (26/11/2026) ══════════════════════════
+   Le MAR note, pour chacune de ses consultations, ses patients lib : date
+   opératoire + nombre. AUCUN NOM DE PATIENT, nulle part. S'il est absent le
+   jour du geste, la page lui montre qui peut voir le patient à sa place ;
+   après accord VERBAL, il le « confie » : le confrère le retrouve dans sa page.
+   Prévenir le secrétariat des consultations reste un appel, hors de l'outil.
+   Réservé au droit `patlib` (CONFIG / TUILES_PRIVEES), comme les autres
+   tuiles réservées : le temps du test, puis ouvert au groupement.
+   Le verdict (présent / absent) n'est JAMAIS enregistré : la page le
+   recalcule à chaque ouverture, une absence posée après coup se voit. */
+const PATLIB_ONGLET = 'PATIENTS_LIB';
+const PATLIB_ENTETE = ['ID', 'MAR', 'DATE_CONSULT', 'PER', 'DATE_BLOC', 'NB', 'CONFIE_A', 'MAJ'];
+function _patlibJour_(v) {
+  if (v instanceof Date) return v.getFullYear() + '-' + String(v.getMonth() + 1).padStart(2, '0') + '-' + String(v.getDate()).padStart(2, '0');
+  return String(v == null ? '' : v).trim().slice(0, 10);
+}
+function _patlibFeuille_(creer) {
+  const ss = SpreadsheetApp.getActiveSpreadsheet();
+  let sh = ss.getSheetByName(PATLIB_ONGLET);
+  if (!sh && creer) {             // créé au premier patient noté, jamais avant
+    sh = ss.insertSheet(PATLIB_ONGLET);
+    sh.appendRow(PATLIB_ENTETE);
+    sh.setFrozenRows(1);
+  }
+  return sh;
+}
+/* Ses lignes (MAR) et celles qu'on lui a confiées (CONFIE_A), date opératoire
+   à venir seulement : le passé ne sert plus à rien. */
+function _patlibLire_(id) {
+  const sh = _patlibFeuille_(false);
+  if (!sh) return [];
+  const auj = _patlibJour_(new Date());
+  const out = [];
+  sh.getDataRange().getValues().slice(1).forEach(function (l) {
+    const mar = String(l[1]).trim(), confie = String(l[6] || '').trim();
+    const bloc = _patlibJour_(l[4]);
+    if (!l[0] || bloc < auj) return;
+    if (mar !== id && confie !== id) return;
+    out.push({ id: String(l[0]), mar: mar, consult: _patlibJour_(l[2]), per: String(l[3]).trim(),
+               bloc: bloc, nb: Number(l[5]) || 1, confieA: confie });
+  });
+  return out;
+}
+/* Règle médico-légale : le geste au moins 48 h et au plus un mois après la
+   consultation (même quantième le mois suivant), jamais un week-end. */
+function _patlibDelai_(consult, bloc) {
+  const re = /^\d{4}-\d{2}-\d{2}$/;
+  if (!re.test(consult) || !re.test(bloc)) return 'Date illisible.';
+  const c = new Date(consult + 'T12:00:00'), b = new Date(bloc + 'T12:00:00');
+  if (b.getDay() === 0 || b.getDay() === 6) return 'Cette date tombe un week-end.';
+  const min = new Date(c); min.setDate(min.getDate() + 2);
+  const max = new Date(c); max.setMonth(max.getMonth() + 1);
+  if (b < min) return 'Trop tôt : la consultation doit avoir lieu au moins 48 h avant le geste.';
+  if (b > max) return 'Trop tard : la consultation doit avoir lieu dans le mois qui précède le geste.';
+  return '';
+}
+function _patlibMembre_(id) {        // actif ET membre du groupement libéral (colonne LIBERAL de MEDECINS)
+  const med = _medecinsRows_();
+  const col = (med[0] || []).map(function (x) { return String(x).trim().toUpperCase(); }).indexOf('LIBERAL');
+  if (col < 0) return false;
+  for (let r = 1; r < med.length; r++) {
+    if (String(med[r][COL_MED.ID]).trim() !== id) continue;
+    return String(med[r][COL_MED.ACTIF]).trim().toUpperCase() === 'O' && String(med[r][col]).trim().toUpperCase() === 'O';
+  }
+  return false;
+}
+function _act_patientsLib(R) {
+  const { e, payload, action, code, user } = R;
+  if (user.role !== 'mar') return _deny();
+  try {
+    if (!_aDroitTuile_(user.id, 'patlib')) return _deny();
+    const op = String(payload.op || '');
+    const ok = function () {
+      return ContentService.createTextOutput(JSON.stringify({ success: true, patients: _patlibLire_(user.id) }))
+        .setMimeType(ContentService.MimeType.JSON);
+    };
+    if (op === 'ajouter') {
+      const consult = String(payload.consult || ''), bloc = String(payload.bloc || '');
+      const per = payload.per === 'am' ? 'am' : 'pm';
+      const nb = Number(payload.nb);
+      if (!(nb >= 1 && nb <= 9 && Math.floor(nb) === nb)) return _error('Nombre de patients invalide.');
+      const err = _patlibDelai_(consult, bloc);
+      if (err) return _error(err);
+      _patlibFeuille_(true).appendRow([Utilities.getUuid(), user.id, consult, per, bloc, nb, '', new Date()]);
+      return ok();
+    }
+    // Les autres opérations portent sur UNE ligne du MAR lui-même.
+    const sh = _patlibFeuille_(false);
+    if (!sh) return _error('Ligne introuvable.');
+    const lignes = sh.getDataRange().getValues();
+    let n = -1;
+    for (let r = 1; r < lignes.length; r++) {
+      if (String(lignes[r][0]) === String(payload.id || '')) { n = r; break; }
+    }
+    if (n < 0 || String(lignes[n][1]).trim() !== user.id) return _error('Ligne introuvable.');
+    if (op === 'supprimer') { sh.deleteRow(n + 1); return ok(); }
+    if (op === 'reprendre') { sh.getRange(n + 1, 7, 1, 2).setValues([['', new Date()]]); return ok(); }
+    if (op === 'confier') {
+      const a = String(payload.a || '').trim();
+      if (!a || a === user.id || !_patlibMembre_(a)) return _error('Ce confrère ne fait pas partie du groupement libéral.');
+      sh.getRange(n + 1, 7, 1, 2).setValues([[a, new Date()]]);
+      return ok();
+    }
+    return _error('Opération inconnue.');
   } catch (err) { return _error(err.message); }
 }

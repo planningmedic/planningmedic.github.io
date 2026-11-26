@@ -982,6 +982,7 @@ body { background:radial-gradient(120% 340px at 85% -60px, var(--riv-h1) 0%, var
 #tilesView .tile.ech-tuile:not(.verrou):not(.depot) .tile-arrow { grid-column:2; }
 #tilesView [data-key="vac"] .tile-badge, #tilesView [data-key="tp"] .tile-badge { background:#F59E0B; color:#1B1200; border-color:transparent; }
 html[data-theme="dark"] #tilesView .racc.rouge { background:#CE1126; border-color:#CE1126; }
+#tilesView [data-key="consult"] .tile-badge { background:#F59E0B; color:#1B1200; }   /* (26/11/2026) patients lib à confier */
 </style>
 </head>
 <body>
@@ -1608,6 +1609,8 @@ const BLOCS_ACCUEIL = ['moi', 'service', 'ressources', 'archives', 'reserve'];
    saisie, elle reste dans Moi. Même condition que le cadenas de la tuile. */
 function _blocTuile(t){
   if (t.key === 'indispos' && (INDISPOS_FIGEES || saisieIndisposClose(FIN_SAISIE))) return 'archives';
+  /* (26/11/2026) Patients lib : avec le droit `patlib`, « Mes consultations » monte dans Moi. */
+  if (t.key === 'consult' && MY_TUILES.indexOf('patlib') > -1) return 'moi';
   return t.bloc;
 }
 function renderTiles(){
@@ -1634,6 +1637,27 @@ function renderTiles(){
   equilibrerBlocs();
   if(window.lucide) lucide.createIcons();
   majPastilles();
+  majPastilleConsult();
+}
+
+/* (26/11/2026) PATIENTS LIB À CONFIER — pastille de « Mes consultations », pour
+   le droit `patlib` seulement. Même réponse que la page (getConsultAbsences),
+   demandée une fois par ouverture : le compte est refait à chaque fois, une
+   absence posée après coup se voit. Jamais bloquant pour l'accueil. */
+let _plCompteP = null;
+function majPastilleConsult(){
+  try{
+    if(!MY_ID || MY_TUILES.indexOf('patlib') < 0) return;
+    if(!_plCompteP) _plCompteP = apiPost({action:'getConsultAbsences'}).catch(function(){ return null; });
+    _plCompteP.then(function(r){
+      if(!(r && r.success && r.patlib)) return;
+      const abs = {}, auj = _todayStr();
+      (((r.absences || {})[MY_ID]) || []).forEach(function(a){ abs[a.d] = true; });
+      const n = (r.patients || []).filter(function(p){ return p.mar === MY_ID && !p.confieA && p.bloc >= auj && abs[p.bloc]; })
+        .reduce(function(t, p){ return t + (p.nb || 1); }, 0);
+      if(n) _pastille('consult', n + ' à confier', null);
+    });
+  }catch(e){ /* une pastille n'empêche jamais l'accueil de s'afficher */ }
 }
 
 /* ══ PASTILLES D'INFORMATION DES TUILES (14/10/2026, v1.24) ═════════════════

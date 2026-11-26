@@ -137,6 +137,58 @@ table.grid td.pick{outline:2px solid var(--rose);outline-offset:1px}
   .me-pill{padding:4px 9px;font-size:11.5px}
   .hbtn{padding:4px 10px;font-size:11.5px}
 }
+/* ══ PATIENTS LIB D'UNE CONSULTATION (26/11/2026) ══ */
+.aconf{display:flex;align-items:center;gap:10px;background:#FEF3C7;border:1.5px solid #FDE68A;border-radius:14px;padding:12px 14px;margin:-8px 0 16px;font-size:13.5px}
+.aconf b{font-size:15px}
+.aconf .ic{width:30px;height:30px;border-radius:9px;background:#F59E0B;color:#1B1200;display:flex;align-items:center;justify-content:center;font-weight:800;flex:none}
+.puce{display:flex;align-items:center;gap:8px;width:calc(100% - 36px);margin:-2px 18px 10px;padding:9px 12px;border-radius:11px;font:inherit;font-size:13px;font-weight:700;cursor:pointer;text-align:left}
+.puce.vide{background:var(--white);color:var(--me);border:1.5px dashed var(--me-border)}
+.puce.ok{background:var(--ok-soft);color:var(--ok);border:1px solid var(--ok-line)}
+.puce.warn{background:#FEF3C7;color:#92400E;border:1.5px solid #FDE68A}
+.puce .pl-plus{margin-left:auto;font-weight:600;font-size:12px;opacity:.85}
+.pvoile{position:fixed;inset:0;background:rgba(15,23,42,.45);z-index:900;opacity:0;pointer-events:none;transition:opacity .2s}
+.pvoile.open{opacity:1;pointer-events:auto}
+.pfeuille{position:fixed;left:0;right:0;bottom:0;z-index:901;margin:0 auto;max-width:520px;max-height:90vh;overflow-y:auto;background:var(--white);
+  border-radius:20px 20px 0 0;padding:10px 16px calc(20px + env(safe-area-inset-bottom));box-shadow:0 -12px 40px rgba(15,23,42,.22);transform:translateY(110%);visibility:hidden;transition:transform .3s cubic-bezier(.32,1.15,.5,1),visibility 0s linear .3s}
+.pfeuille.open{transform:none;visibility:visible;transition:transform .3s cubic-bezier(.32,1.15,.5,1)}
+.pgrab{width:38px;height:5px;border-radius:3px;background:var(--line);margin:0 auto 10px}
+.ptete{display:flex;align-items:flex-start;justify-content:space-between;gap:10px;margin-bottom:12px}
+.ptete b{display:block;font-size:17px}
+.ptete span{font-size:12.5px;color:var(--ink-3)}
+.pfermer{border:none;background:var(--surface-2);color:var(--ink-3);width:32px;height:32px;border-radius:16px;font-size:15px;cursor:pointer;flex:none}
+.pform{background:var(--bg);border:1px solid var(--line);border-radius:14px;padding:12px;margin-bottom:14px}
+.pform .t{font-size:13px;font-weight:700;margin-bottom:10px}
+.prow{display:flex;gap:10px;align-items:flex-end;flex-wrap:wrap}
+.pchamp{display:flex;flex-direction:column;gap:4px;font-size:11.5px;color:var(--ink-3);font-weight:600}
+.pchamp input[type=date]{font:inherit;font-size:16px;padding:9px 10px;border:1px solid var(--line);border-radius:10px;background:var(--white);color:var(--ink);min-width:160px}
+.pstep{display:flex;align-items:center;border:1px solid var(--line);border-radius:10px;background:var(--white);overflow:hidden}
+.pstep button{width:42px;height:42px;border:none;background:none;font-size:20px;font-weight:700;color:var(--me);cursor:pointer}
+.pstep output{min-width:30px;text-align:center;font-size:17px;font-weight:700}
+.pgo{width:100%;margin-top:12px;height:46px;border:none;border-radius:12px;background:var(--me);color:#fff;font:inherit;font-size:15.5px;font-weight:700;cursor:pointer}
+.perr{font-size:12.5px;color:var(--rose);font-weight:600;margin-top:8px;display:none}
+.pliste .k{font-family:var(--mono);font-size:10.5px;letter-spacing:.08em;text-transform:uppercase;color:var(--ink-4);margin:4px 2px 8px}
+.pl{display:grid;grid-template-columns:44px 1fr auto;gap:10px;align-items:center;padding:9px 12px;border:1px solid var(--line);border-radius:12px;margin-bottom:8px}
+.pl.warn{background:#FEF3C7;border-color:#FDE68A}
+.pl.ok2{background:var(--ok-soft);border-color:var(--ok-line)}
+.pl .j{font-family:var(--mono);font-size:10px;color:var(--ink-3);text-align:center;line-height:1.1;text-transform:uppercase}
+.pl .j b{display:block;font-family:'DM Sans';font-size:17px;color:var(--ink)}
+.pl .q{font-size:14px;font-weight:600}
+.pl .e{font-size:12px;color:var(--ink-3);margin-top:1px}
+.pbtn{border:1px solid var(--line);background:var(--white);color:var(--ink);border-radius:10px;padding:6px 11px;font:inherit;font-size:12.5px;font-weight:700;cursor:pointer;white-space:nowrap}
+.pbtn.bleu{background:var(--me);border-color:var(--me);color:#fff;margin-left:auto}
+.pok{font-size:11.5px;font-weight:700;color:var(--ok);background:var(--white);border:1px solid var(--ok-line);border-radius:999px;padding:2px 9px;white-space:nowrap}
+.pqui .alt{margin:-2px 0 12px}
+.pqui .appel{font-size:12.5px;font-weight:600;color:var(--ink-2);margin:0 2px 8px}
+.pfoot{font-size:11.5px;color:var(--ink-4);text-align:center;margin-top:6px}
+.person{align-items:center}
+.pact{display:flex;align-items:center;gap:6px}
+.px{border:none;background:none;color:var(--ink-4);font-size:20px;line-height:1;width:28px;height:28px;border-radius:14px;cursor:pointer}
+.px:hover{background:var(--line-light);color:var(--rose)}
+.psuppr{display:flex;align-items:center;justify-content:space-between;background:var(--ink);color:var(--bg);border-radius:10px;padding:8px 12px;font-size:13px;margin-bottom:10px}
+.psuppr button{border:none;background:none;color:#93C5FD;font:inherit;font-weight:700;cursor:pointer}
+.recus{background:var(--white);border:1px solid var(--line);border-radius:16px;padding:12px 14px 4px;margin:0 0 16px}
+.recus .k{font-family:var(--mono);font-size:10.5px;letter-spacing:.08em;text-transform:uppercase;color:var(--ink-4);margin:0 2px 8px}
+.pfeuille.occupe{cursor:progress}.pfeuille.occupe button{pointer-events:none;opacity:.6}
 </style>
 <script src="partage/session.js"></script>   <!-- (17/08/2026) source unique : où vit le code d'accès, et 30 jours glissants -->
 <script>/* FALLBACK_SESSION — filet (17/08/2026). Si partage/session.js ne se charge pas
@@ -180,7 +232,7 @@ window.SessionPortail = window.SessionPortail || { lire:function(){try{return se
   <a class="back" href="index.html" id="lnkBack"><i id="icBack"></i> Retour au portail</a>
   <h1>Consultations à venir</h1>
   <p class="sub" id="pitch"></p>
-  <div id="zone"><div class="loading">Chargement…</div></div>
+  <div id="aconf"></div><div id="zone"><div class="loading">Chargement…</div></div>
 </div>
 
 <script>
@@ -385,6 +437,8 @@ function chargerDepuis(r){
     return;
   }
   DATA = r; MOTIFS = !!r.motifs;
+  if(r.moi) MOI = r.moi;
+  patCharger(r.patients);   // (26/11/2026) patients lib (vide sans le droit patlib)
   lireMarges(r);
   if(r.moi) MOI = r.moi;
   construireJours();
@@ -435,6 +489,153 @@ function libPlage(p){
 }
 function nbJours(p){ return p.finIdx - p.debIdx + 1; }
 
+/* ══ PATIENTS LIB D'UNE CONSULTATION (26/11/2026) ═════════════════════════
+   Le MAR note, pour chacune de ses consultations, ses patients lib : date
+   opératoire + nombre, AUCUN NOM. Verdict immédiat : présent ce jour-là, ou
+   « qui peut le voir ? » — le calcul existant (rendreAlt : groupement, présent
+   ce jour-là, consultation avant, marge CCAM) lancé sur ce seul jour, avec la
+   règle des 48 h / 1 mois appliquée aussi au confrère. Après accord VERBAL,
+   « Confier » : le confrère retrouve le patient dans sa page. Le secrétariat
+   des consultations est prévenu par appel, hors de l'outil.
+   Réservé au droit `patlib` (le serveur renvoie DATA.patlib). Le verdict
+   n'est jamais enregistré : recalculé à chaque ouverture. */
+let PATIENTS = {}, RECUS = [], PAT_PICK = null, PAT_C = null, PAT_BTN = null, PAT_NB = 1, PAT_OUVERT = -1, PAT_SUPPR = null, PAT_OCCUPE = false;
+const cleCons = c => c.date+'|'+c.per+'|'+c.mar;
+function patCharger(liste){
+  PATIENTS = {}; RECUS = [];
+  (liste||[]).forEach(p=>{
+    if(p.mar === MOI){ const k = p.consult+'|'+p.per+'|'+p.mar; (PATIENTS[k] = PATIENTS[k] || []).push(p); }
+    else if(p.confieA === MOI) RECUS.push(p);
+  });
+  Object.keys(PATIENTS).forEach(k => PATIENTS[k].sort((a,b)=> a.bloc < b.bloc ? -1 : a.bloc > b.bloc ? 1 : 0));
+}
+function absentLeJour(mar, ds){ return ((DATA.absences && DATA.absences[mar]) || []).find(a => a.d === ds) || null; }
+function patDe(c){ return (PATIENTS[cleCons(c)] || []).filter(p => p.bloc >= iso(new Date())); }   // date opératoire passée : masquée
+function patAConfier(c){ return patDe(c).filter(p => absentLeJour(c.mar,p.bloc) && !p.confieA).reduce((n,p)=>n+p.nb,0); }
+// Règle médico-légale appliquée au confrère : sa consultation au moins 48 h et au plus un mois avant le geste
+function bornesConfrere(op){ const d=dt(op); const mx=new Date(d); mx.setDate(mx.getDate()-2); const mn=new Date(d); mn.setMonth(mn.getMonth()-1); return [iso(mn), iso(mx)]; }
+function patPuce(c){
+  const tot = patDe(c).reduce((n,p)=>n+p.nb,0), a = patAConfier(c);
+  if(!tot) return '<button type="button" class="puce vide">＋ Noter mes patients lib</button>';
+  if(a)    return '<button type="button" class="puce warn">⚠ '+a+' patient'+(a>1?'s':'')+' à confier<span class="pl-plus">Voir ›</span></button>';
+  return '<button type="button" class="puce ok">✓ '+tot+' patient'+(tot>1?'s':'')+' · tout est réglé<span class="pl-plus">Modifier ›</span></button>';
+}
+function rendreRecus(){
+  const R = RECUS.filter(p => p.bloc >= iso(new Date())).sort((a,b)=> a.bloc < b.bloc ? -1 : 1);
+  if(!R.length) return '';
+  return '<div class="recus"><div class="k">Patients que des confrères vous ont confiés</div>' + R.map(p => {
+    const d = dt(p.bloc);
+    return '<div class="pl ok2"><div class="j">'+JOURS_FR[d.getDay()].slice(0,3)+'.<b>'+d.getDate()+'</b>'+MOIS_FR[d.getMonth()]+'</div><div><div class="q">'+p.nb+' patient'+(p.nb>1?'s':'')+' du '+nomDe(p.mar)+'</div><div class="e">Opéré'+(p.nb>1?'s':'')+' ce jour-là</div></div><span class="pok">reçu</span></div>';
+  }).join('') + '</div>';
+}
+function rendreBandeau(){
+  const box = document.getElementById('aconf'); if(!box) return;
+  if(!DATA || !DATA.patlib){ box.innerHTML = ''; return; }
+  const n = (DATA.consultations||[]).filter(c => c.mar === MOI).reduce((t,c)=>t+patAConfier(c),0);
+  box.innerHTML = (n ? '<div class="aconf"><div class="ic">!</div><div><b>'+n+' patient'+(n>1?'s':'')+' lib à confier</b><br>Vous êtes absent le jour de leur intervention.</div></div>' : '') + rendreRecus();
+}
+function majPuce(){
+  if(PAT_BTN && PAT_BTN.nextSibling && PAT_BTN.nextSibling.classList && PAT_BTN.nextSibling.classList.contains('puce')){
+    const t=document.createElement('div'); t.innerHTML=patPuce(PAT_C); const n=t.firstChild;
+    n.addEventListener('click', ((b,c)=>()=>patOuvrir(b,c))(PAT_BTN,PAT_C)); PAT_BTN.nextSibling.replaceWith(n);
+  }
+  rendreBandeau();
+}
+function _bornes(c){ const d=dt(c.date); const a=new Date(d); a.setDate(a.getDate()+2); const b=new Date(d); b.setMonth(b.getMonth()+1); return [iso(a), iso(b)]; }
+function patOuvrir(btn, c){
+  PAT_SUPPR = null;
+  selectionner(btn, c);                      // le panneau existant suit la consultation
+  PAT_C = c; PAT_BTN = btn; PAT_NB = 1; PAT_OUVERT = -1;
+  document.getElementById('pfCtx').textContent = libSect(c.cs)+' · '+libDate(c.date)+' '+(c.per==='am'?'matin':'après-midi');
+  const [mn,mx] = _bornes(c), inp = document.getElementById('pfDate');
+  inp.min = mn; inp.max = mx; inp.value = '';
+  document.getElementById('pfNb').textContent = '1'; document.getElementById('pfErr').style.display='none';
+  patListe();
+  document.getElementById('pVoile').classList.add('open'); document.getElementById('pFeuille').classList.add('open');
+}
+function patFermer(){ document.getElementById('pVoile').classList.remove('open'); document.getElementById('pFeuille').classList.remove('open'); PAT_PICK=null; pick=null; rendreAlt(); rendreGrille(); }
+function patNb(d){ PAT_NB = Math.max(1, Math.min(9, PAT_NB+d)); document.getElementById('pfNb').textContent = PAT_NB; }
+function patErr(m){ const e=document.getElementById('pfErr'); e.textContent=m; e.style.display='block'; }
+/* Un seul envoi à la fois ; la réponse du serveur EST la nouvelle liste. */
+async function patEnvoyer(corps){
+  if(PAT_OCCUPE) return null;
+  PAT_OCCUPE = true; document.getElementById('pFeuille').classList.add('occupe');
+  try{
+    const r = await apiPost(Object.assign({action:'patientsLib'}, corps));
+    if(!(r && r.success)){ patErr((r && r.error) || 'Le serveur n\'a pas répondu — réessayez.'); return null; }
+    patCharger(r.patients); return r;
+  }catch(e){ patErr('Erreur réseau — réessayez.'); return null; }
+  finally{ PAT_OCCUPE = false; document.getElementById('pFeuille').classList.remove('occupe'); }
+}
+async function patAjouter(){
+  PAT_SUPPR = null;
+  const v = document.getElementById('pfDate').value, [mn,mx] = _bornes(PAT_C);
+  if(!v) return patErr('Choisissez la date opératoire.');
+  const w = dt(v).getDay(); if(w===0||w===6) return patErr('Cette date tombe un week-end.');
+  if(v < mn) return patErr('Trop tôt : la consultation doit avoir lieu au moins 48 h avant le geste.');
+  if(v > mx) return patErr('Trop tard : la consultation doit avoir lieu dans le mois qui précède le geste.');
+  document.getElementById('pfErr').style.display='none';
+  const r = await patEnvoyer({op:'ajouter', consult:PAT_C.date, per:PAT_C.per, bloc:v, nb:PAT_NB});
+  if(!r) return;
+  document.getElementById('pfDate').value=''; PAT_NB=1; document.getElementById('pfNb').textContent='1';
+  const L = patDe(PAT_C), k = L.findIndex(p => p.bloc === v && !p.confieA);
+  PAT_OUVERT = (k >= 0 && absentLeJour(PAT_C.mar, v)) ? k : -1;   // absent : la liste des confrères s'ouvre d'elle-même
+  patListe(); majPuce();
+}
+function patQui(k){ PAT_OUVERT = (PAT_OUVERT===k ? -1 : k); patListe(); }
+async function patSupprimer(k){
+  const p = patDe(PAT_C)[k]; if(!p) return;
+  const r = await patEnvoyer({op:'supprimer', id:p.id}); if(!r) return;
+  PAT_SUPPR = p; PAT_OUVERT = -1; patListe(); majPuce();
+}
+async function patAnnulerSuppr(){
+  const p = PAT_SUPPR; if(!p) return;
+  const r = await patEnvoyer({op:'ajouter', consult:p.consult, per:p.per, bloc:p.bloc, nb:p.nb}); if(!r) return;
+  if(p.confieA){
+    const n = patDe(PAT_C).find(x => x.bloc === p.bloc && x.nb === p.nb && !x.confieA);
+    if(n) await patEnvoyer({op:'confier', id:n.id, a:p.confieA});
+  }
+  PAT_SUPPR = null; patListe(); majPuce();
+}
+function _quiPeut(p){
+  // calcul existant (rendreAlt) sur le seul jour opératoire, rendu dans la feuille
+  const i = IDX[p.bloc]; PAT_PICK = p;
+  if(i === undefined) return '<div class="none-alt">Date hors de la période affichée.</div>';
+  pick = {debIdx:i, finIdx:i, deb:p.bloc, fin:p.bloc, code:(absentLeJour(PAT_C.mar,p.bloc)||{}).c||''};
+  rendreAlt(); const h = document.getElementById('pAlt').innerHTML;
+  rendreGrille(); return h;
+}
+function patListe(){
+  const c = PAT_C, L = patDe(c);
+  let h = PAT_SUPPR ? '<div class="psuppr">Ligne supprimée.<button onclick="patAnnulerSuppr()">Annuler</button></div>' : '';
+  h += L.length ? '<div class="k">Vos patients de cette consultation</div>' : '';
+  const X = k => '<button class="px" onclick="patSupprimer('+k+')" aria-label="Supprimer">×</button>';
+  L.forEach((p,k)=>{
+    const d = dt(p.bloc), ab = absentLeJour(c.mar, p.bloc);
+    const jour = '<div class="j">'+JOURS_FR[d.getDay()].slice(0,3)+'.<b>'+d.getDate()+'</b>'+MOIS_FR[d.getMonth()]+'</div>';
+    const q = '<div class="q">'+p.nb+' patient'+(p.nb>1?'s':'')+'</div>';
+    if(!ab) h += '<div class="pl">'+jour+'<div>'+q+'<div class="e">Vous êtes là ce jour-là</div></div><span class="pact"><span class="pok">✓</span>'+X(k)+'</span></div>';
+    else if(p.confieA) h += '<div class="pl ok2">'+jour+'<div>'+q+'<div class="e">Confiés au '+nomDe(p.confieA)+'</div></div><span class="pact"><button class="pbtn" onclick="patReprendre('+k+')">Reprendre</button>'+X(k)+'</span></div>';
+    else {
+      h += '<div class="pl warn">'+jour+'<div>'+q+'<div class="e">Vous êtes absent ('+((MOTIFS && NOM_CODE[ab.c])||'absent').toLowerCase()+')</div></div><span class="pact"><button class="pbtn" onclick="patQui('+k+')">'+(PAT_OUVERT===k?'Masquer':'Qui peut le voir ?')+'</button>'+X(k)+'</span></div>';
+      if(PAT_OUVERT===k) h += '<div class="pqui"><div class="appel">Appelez l\'un d\'eux, puis touchez « Confier ».</div>'+_quiPeut(p)+'</div>';
+    }
+  });
+  document.getElementById('pfListe').innerHTML = h;
+  if(PAT_OUVERT<0){ PAT_PICK=null; }
+}
+async function patConfier(id){
+  if(!PAT_PICK) return;
+  const r = await patEnvoyer({op:'confier', id:PAT_PICK.id, a:id}); if(!r) return;
+  PAT_PICK = null; PAT_OUVERT = -1; pick = null;
+  patListe(); rendreAlt(); rendreGrille(); majPuce();
+}
+async function patReprendre(k){
+  const p = patDe(PAT_C)[k]; if(!p) return;
+  const r = await patEnvoyer({op:'reprendre', id:p.id}); if(!r) return;
+  patListe(); majPuce();
+}
+
 /* ══ RENDU ═════════════════════════════════════════════════════════════ */
 let curBtn=null, curSlot=null, pick=null;
 
@@ -483,9 +684,12 @@ function rendre(){
         '<span class="when">'+(c.per==='am'?'matin':'après-midi')+'</span>';
       b.addEventListener('click', ()=> selectionner(b, c));
       g.appendChild(b);
+      // (26/11/2026) Patients lib : bouton d'état sous chacune de MES consultations (droit patlib)
+      if(mien && DATA.patlib){ b.insertAdjacentHTML('afterend', patPuce(c)); b.nextSibling.addEventListener('click', ()=> patOuvrir(b, c)); }
     });
     file.appendChild(g);
   });
+  rendreBandeau();
   const p0 = file.querySelector('.slot'); if(p0) p0.click();
 }
 
@@ -558,7 +762,10 @@ function rendreAlt(){
      y compris une consultation qui tombe PENDANT la période : il voit le patient
      ce jour-là et l'opère plus tard. Renvoie les plages de jours consécutifs. */
   const couverture = (id)=>{
-    const cs = csDe(id); if(!cs.length) return null;
+    let cs = csDe(id);
+    // (26/11/2026) Depuis un patient lib : sa consultation au moins 48 h et au plus un mois avant le geste
+    if(PAT_PICK){ const bc = bornesConfrere(PAT_PICK.bloc); cs = cs.filter(x => x.date >= bc[0] && x.date <= bc[1]); }
+    if(!cs.length) return null;
     const c0 = IDX[cs[0].date];                   // sa première consultation
     const plages = [];
     for(let i=p.debIdx; i<=p.finIdx; i++){
@@ -601,7 +808,8 @@ function rendreAlt(){
         + (cv.plages.length > 2 ? ' +' + (cv.plages.length-2) : '');
     return '<div class="person"><b>'+nomDe(id)+'</b>'+chip+
       '<span class="cs">'+quand+' · consulte '+libDate(cv.cs[0].date)+
-      ' '+(cv.cs[0].per==='am'?'matin':'ap.-midi')+'</span></div>';
+      ' '+(cv.cs[0].per==='am'?'matin':'ap.-midi')+'</span>'+
+      (PAT_PICK && !PAT_PICK.confieA ? '<button class="pbtn bleu" onclick="patConfier(\''+id+'\')">Confier</button>' : '')+'</div>';
   };
   // TRI PAR MARGE CCAM DÉCROISSANTE (27/07/2026). Une consultation libérale déclenche
   // un bloc : c'est l'axe CCAM qui portera la charge, pas le NGAP. Reprendre le patient
@@ -979,5 +1187,22 @@ try {
 } catch (e) { console.warn('[chrono] branchement impossible :', e && e.message); }
 
 </script>
+<!-- (26/11/2026) Feuille « Patients lib » d'une consultation -->
+<div class="pvoile" id="pVoile" onclick="patFermer()"></div>
+<div class="pfeuille" id="pFeuille" role="dialog" aria-modal="true">
+  <div class="pgrab"></div>
+  <div class="ptete"><div><b>Patients lib</b><span id="pfCtx"></span></div><button class="pfermer" onclick="patFermer()" aria-label="Fermer">✕</button></div>
+  <div class="pform">
+    <div class="t">Ajouter des patients</div>
+    <div class="prow">
+      <label class="pchamp">Date opératoire<input type="date" id="pfDate"></label>
+      <div class="pchamp">Nombre<div class="pstep"><button type="button" onclick="patNb(-1)" aria-label="Moins">−</button><output id="pfNb">1</output><button type="button" onclick="patNb(1)" aria-label="Plus">+</button></div></div>
+    </div>
+    <div class="perr" id="pfErr"></div>
+    <button class="pgo" onclick="patAjouter()">Ajouter</button>
+  </div>
+  <div class="pliste" id="pfListe"></div>
+  <div class="pfoot">Aucun nom de patient n'est enregistré.</div>
+</div>
 </body>
 </html>
