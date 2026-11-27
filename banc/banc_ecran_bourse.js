@@ -351,6 +351,49 @@ const dodo = ms => new Promise(r => setTimeout(r, ms));
     V('le bandeau dit qu\'il est prévenu', /réservée au Dr Bravo, qui est prévenu/.test(h));
   }
 
+  console.log('\n═══ 9. En repos de garde ce jour-là : « Je la prends » grisé, le motif au clic (27/11/2026) ═══');
+  {
+    const appels = [];
+    const kv = await kvBourse();
+    const p = JSON.parse(kv.planning_2027);
+    p.months[0].doctors[0].days[4] = { status:'RG' };   // ALPHA (moi) en RG le 12/03, jour de l'offre B1
+    kv.planning_2027 = JSON.stringify(p);
+    const { w, erreurs } = await monterPage(kv, c => login(c) || (appels.push(c), { success:true }));
+    const d = w.document;
+    w.location.hash = '#echanges'; w.route(); await dodo(400);
+    const h = d.getElementById('echList').innerHTML;
+    const b1 = h.slice(h.lastIndexOf('<div class="ech-card">', h.indexOf("('B1'")), h.indexOf("('B1'") + 200);
+    V('le bouton « Je la prends » de B1 est grisé et ne prend pas', /class="ech-accepter ech-grise" onclick="bxBloque\('B1'/.test(b1) && !/bxPrendre\('B1'/.test(h), b1);
+    V('pas d\'avertissement « Vous confirmerez en la prenant » sur B1', !/Vous confirmerez en la prenant/.test(b1), b1);
+    V('témoin : B2 (en vacances) garde son bouton actif et son avertissement', /bxPrendre\('B2'/.test(h) && /Vous êtes noté en vacances ce jour\. Vous confirmerez en la prenant/.test(h));
+    d.querySelector("[onclick^=\"bxBloque('B1'\"]").click(); await dodo(50);
+    const m = d.getElementById('echMsg-B1');
+    V('au clic : « Vous êtes de repos de garde ce jour. » s\'affiche', m && m.style.display !== 'none' && m.textContent === 'Vous êtes de repos de garde ce jour.', m && m.outerHTML);
+    V('rien n\'est parti au serveur, aucune feuille ouverte', !appels.some(c => c.action === 'prendreBourse') && !d.getElementById('echVoile'), appels.map(c => c.action));
+    V('aucune erreur JavaScript', erreurs.length === 0, erreurs.slice(0, 2));
+  }
+
+  console.log('\n═══ 10. De garde le lendemain : « Je la prends » grisé, le motif au clic ; un 18 h reste possible (27/11/2026) ═══');
+  {
+    const appels = [];
+    const kv = await kvBourse();
+    const p = JSON.parse(kv.planning_2027);
+    p.months[0].doctors[0].days[5] = { status:'G' };    // ALPHA (moi) de garde le 13/03, lendemain de l'offre B1 (12/03)
+    p.months[0].doctors[0].days[3] = { status:'G2' };   // …et de garde le 11/03, lendemain du 18 h B2 (10/03)
+    kv.planning_2027 = JSON.stringify(p);
+    const { w, erreurs } = await monterPage(kv, c => login(c) || (appels.push(c), { success:true }));
+    const d = w.document;
+    w.location.hash = '#echanges'; w.route(); await dodo(400);
+    const h = d.getElementById('echList').innerHTML;
+    V('garde du 12/03, moi de garde le 13/03 : bouton grisé, ne prend pas', /class="ech-accepter ech-grise" onclick="bxBloque\('B1'/.test(h) && !/bxPrendre\('B1'/.test(h));
+    V('18 h du 10/03, moi de garde le 11/03 : « Je le prends » reste actif', /bxPrendre\('B2'[^>]*>Je le prends/.test(h));
+    d.querySelector("[onclick^=\"bxBloque('B1'\"]").click(); await dodo(50);
+    const m = d.getElementById('echMsg-B1');
+    V('au clic : « Vous êtes de garde le lendemain. » s\'affiche', m && m.style.display !== 'none' && m.textContent === 'Vous êtes de garde le lendemain.', m && m.outerHTML);
+    V('rien n\'est parti au serveur', !appels.some(c => c.action === 'prendreBourse'), appels.map(c => c.action));
+    V('aucune erreur JavaScript', erreurs.length === 0, erreurs.slice(0, 2));
+  }
+
   console.log('\n' + ok + ' OK · ' + ko + ' en échec');
   if (ko) process.exit(1);
 })();

@@ -278,6 +278,7 @@ a.tile, .tile.clickable { cursor: pointer; }
 .ech-actions { display:flex; gap:8px; margin-top:11px; }
 .ech-actions button { flex:1; border-radius:10px; padding:10px 0; font-size:14px; font-weight:700; cursor:pointer; border:none; }
 .ech-accepter { background:#16A34A; color:#fff; }
+.ech-accepter.ech-grise { background:#F1F5F9; color:#94A3B8; }
 .ech-refuser { background:#F1F5F9; color:#334155; }
 .ech-actions button:disabled { opacity:.5; cursor:default; }
 .ech-panneau { background:#fff; border:1px solid #E8ECF2; border-radius:14px; padding:16px; margin:0 0 14px;
@@ -3939,14 +3940,17 @@ function _bxCarteOffre(e){
     '<span class="ech-etat attente">' + _bxMode(e) + '</span>');
   if (e.souhait && e.mode!=='don') h += '<div class="ech-detail">Souhaite en échange : ' + esc(e.souhait) + '</div>';
   const info = _bxInfoMoi(e.date);
-  if (info && !ma) h += '<div class="ech-avert">' + esc(info) + ' Vous confirmerez en la prenant.</div>';
+  // (27/11/2026) Deux gardes de suite sont impossibles : en repos de garde ce jour-là (garde la veille),
+  // ou de garde le lendemain d'une garde proposée, « Je la prends » est grisé, le motif s'affiche au clic.
+  const bloque = _bxBloque(e, kind);
+  if (info && !ma && !bloque) h += '<div class="ech-avert">' + esc(info) + ' Vous confirmerez en la prenant.</div>';
   if (ma) {
     h += '<div class="ech-detail">Vous avez proposé votre ' + (ma.type==='echange18' ? '18 h' : 'garde') + ' du <b>' + esc(_echCourt(ma.date)) + '</b>. '
       + esc(_echDrLisible(e.demandeur)) + ' choisit parmi les échanges reçus.</div>'
       + '<div class="ech-actions"><button class="ech-refuser ech-annuler" onclick="annulerEch(\'' + esc(ma.id) + '\',this)">Annuler ma proposition</button></div>'
       + '<div class="ech-msg" id="echMsg-' + esc(ma.id) + '" style="display:none"></div>';
   } else {
-    const prendre = '<button class="ech-accepter" onclick="bxPrendre(\'' + esc(e.id) + '\',this)">' + (kind==='18' ? 'Je le prends' : 'Je la prends') + '</button>';
+    const prendre = '<button class="ech-accepter' + (bloque ? ' ech-grise' : '') + '" onclick="' + (bloque ? 'bxBloque' : 'bxPrendre') + '(\'' + esc(e.id) + '\',this)">' + (kind==='18' ? 'Je le prends' : 'Je la prends') + '</button>';
     const echanger = '<button class="ech-refuser" onclick="bxProposer(\'' + esc(e.id) + '\')">' + (e.mode==='echange' ? 'Proposer un' + (kind==='18' ? ' de mes 18 h' : 'e de mes gardes') : 'Échanger') + '</button>';
     const decliner = pourMoi ? '<button class="ech-refuser ech-annuler" onclick="bxDecliner(\'' + esc(e.id) + '\',this)">Décliner</button>' : '';
     h += '<div class="ech-actions">' + (e.mode!=='echange' ? prendre : '') + (e.mode!=='don' ? echanger : '') + decliner + '</div>'
@@ -4063,6 +4067,18 @@ async function _bxAppel(charge, btn, msg, reussi){
     msg.className = 'ech-msg err'; msg.textContent = (r && r.error) || 'Impossible — réessayez.';
   } catch(e) { msg.style.display='block'; msg.className='ech-msg err'; msg.textContent = 'Erreur réseau — rien n\'est parti. Réessayez.'; }
   btn.disabled = false; btn.textContent = lib;
+}
+function _bxLendemain(date){ const d = _echJour(date); d.setDate(d.getDate() + 1);
+  return d.getFullYear() + '-' + String(d.getMonth()+1).padStart(2,'0') + '-' + String(d.getDate()).padStart(2,'0'); }
+function _bxBloque(e, kind){
+  if (_bxStatut(MY_ID, e.date) === 'RG') return 'Vous êtes de repos de garde ce jour.';
+  if (kind !== '18') { const l = _bxStatut(MY_ID, _bxLendemain(e.date)); if (l === 'G' || l === 'G2') return 'Vous êtes de garde le lendemain.'; }
+  return '';
+}
+function bxBloque(id){
+  const e = (ECH_LISTE||[]).find(function(x){ return x.id===id; }); if (!e) return;
+  const m = document.getElementById('echMsg-' + id); if (!m) return;
+  m.className = 'ech-msg ech-avert'; m.textContent = _bxBloque(e, _bxKind(e)); m.style.display = '';
 }
 function bxPrendre(id){
   const e = (ECH_LISTE||[]).find(function(x){ return x.id===id; }); if (!e) return;
