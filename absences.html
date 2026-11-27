@@ -422,15 +422,39 @@ function construireJours(){
    qu'une marge par MAR — ni tarif, ni pourcentage, ni excédent.
    ⚠️ Le montant vient du DERNIER RELEVÉ (mensuel, cumulé) : ce qui a été facturé
    depuis n'y est pas. L'ordre est fiable, le montant est indicatif. */
-let MARGE = {}, MARGE_OK = false, MARGE_MOIS = '';
+let MARGE = {}, MARGE_N = {}, MARGE_OK = false, MARGE_MOIS = '';
 const _MOIS_FR = ['janvier','février','mars','avril','mai','juin','juillet','août',
                   'septembre','octobre','novembre','décembre'];
 function lireMarges(r){
   MARGE = (r && r.marges) || {};
-  MARGE_OK = Object.keys(MARGE).length > 0;
+  MARGE_N = (r && r.margesNgap) || {};
+  MARGE_OK = Object.keys(MARGE).length > 0 || Object.keys(MARGE_N).length > 0;
   MARGE_MOIS = '';
   const mm = parseInt(String((r && r.margesMois) || '').slice(5,7), 10);
   if(mm >= 1 && mm <= 12) MARGE_MOIS = 'cumul janvier → ' + _MOIS_FR[mm-1];
+}
+/* (27/11/2026) Reprendre un patient = la consultation (NGAP) ET l'anesthésie (CCAM) :
+   le classement suit la plus serrée des deux marges, celle qui bloque en premier.
+   Sans aucun chiffre : fin de liste (toujours proposable). */
+function margeEff(id){
+  const v = [MARGE[id], MARGE_N[id]].filter(x => x != null);
+  return v.length ? Math.min.apply(null, v) : null;
+}
+function triMarge(a, b){
+  const ma = margeEff(a), mb = margeEff(b);
+  return (mb == null ? -1e12 : mb) - (ma == null ? -1e12 : ma);
+}
+function _chipMarge(id){
+  const un = (lib, m) => {
+    if(m == null) return '';
+    const mr = Math.round(m);      // pile au seuil (0 €) : ni vert ni rose, sans signe
+    return '<span class="marge" style="margin-left:8px;font-family:var(--mono);font-size:11px;font-weight:700;color:'
+      + (mr > 0 ? 'var(--ok)' : (mr < 0 ? 'var(--rose)' : 'var(--ink-3)')) + '">' + lib + ' '
+      + (mr > 0 ? '+ ' : (mr < 0 ? '− ' : '')) + Math.abs(mr).toLocaleString('fr-FR') + ' €</span>';
+  };
+  const dessus = [['CCAM', MARGE[id]], ['NGAP', MARGE_N[id]]].filter(x => x[1] != null && Math.round(x[1]) < 0).map(x => x[0]);
+  return un('CCAM', MARGE[id]) + un('NGAP', MARGE_N[id])
+    + (dessus.length ? '<span class="cs" style="color:var(--rose)">au-dessus des 30 % en '+dessus.join(' et ')+'</span>' : '');
 }
 
 /* (04/08/2026, fusion) Consommation d'une reponse getConsultAbsences deja
@@ -633,15 +657,14 @@ function _quiPeut(p){
   PAT_PICK = p;
   const ids = Object.keys(DATA.noms || {}).filter(id => id !== c.mar && GRP[id]
     && !absentLeJour(id, c.date) && !absentLeJour(id, p.bloc));
-  ids.sort((a,b) => ((MARGE[b] == null ? -1e12 : MARGE[b]) - (MARGE[a] == null ? -1e12 : MARGE[a])) || nomDe(a).localeCompare(nomDe(b)));
+  ids.sort((a,b) => triMarge(a, b) || nomDe(a).localeCompare(nomDe(b)));
   const occupe = id => (DATA.consultations || []).find(x => x.mar === id && x.date === c.date && x.per === c.per);
   let h = '<div class="alt"><h4>Qui peut faire votre consultation du '+libDate(c.date)+' et opérer le '+libDate(p.bloc)+' ?</h4>'
-    + '<div class="why">Membres du groupement présents ces deux jours-là.</div>';
+    + '<div class="why">Membres du groupement présents ces deux jours-là'
+    + (MARGE_OK ? ', classés par la marge libérale la plus serrée (consultation en NGAP, anesthésie en CCAM ; dernier relevé'+(MARGE_MOIS ? ' — '+MARGE_MOIS : '')+')' : '') + '.</div>';
   if(!ids.length) return h + '<div class="none-alt">Aucun membre du groupement n\'est présent ces deux jours-là. À arbitrer avec le comité.</div></div>';
   h += ids.map(id => {
-    const m = MARGE[id], mr = (m == null) ? null : Math.round(m);
-    const chip = (mr == null) ? '' : '<span class="marge" style="margin-left:8px;font-family:var(--mono);font-size:11px;font-weight:700;color:'
-      + (mr > 0 ? 'var(--ok)' : (mr < 0 ? 'var(--rose)' : 'var(--ink-3)')) + '">' + (mr > 0 ? '+ ' : (mr < 0 ? '− ' : '')) + Math.abs(mr).toLocaleString('fr-FR') + ' €</span>';
+    const chip = _chipMarge(id);
     const o = occupe(id);
     return '<div class="person"><b>'+nomDe(id)+'</b>'+chip
       + (o ? '<span class="cs">déjà en consultation ('+libSect(o.cs)+') à la même heure</span>' : '')
@@ -861,14 +884,8 @@ function rendreAlt(){
   const plageTxt = (x)=> libPlage({deb:JOURS_ALL[x.deb], fin:JOURS_ALL[x.fin]});
   const ligne = (id)=>{
     const cv = COUV[id];
-    // Marge CCAM : affichée au MAR seulement (MARGE reste vide pour le secrétariat).
-    const m = MARGE[id];
-    const mr = (m == null) ? null : Math.round(m);
-    // Pile au seuil (arrondi à 0 €) : ni vert ni rose et SANS signe — « − 0 € » se lit mal.
-    const chip = (mr == null) ? '' :
-      '<span class="marge" style="margin-left:8px;font-family:var(--mono);font-size:11px;font-weight:700;'
-      + 'color:' + (mr > 0 ? 'var(--ok)' : (mr < 0 ? 'var(--rose)' : 'var(--ink-3)')) + '">'
-      + (mr > 0 ? '+ ' : (mr < 0 ? '− ' : '')) + Math.abs(mr).toLocaleString('fr-FR') + ' €</span>';
+    // Marges CCAM et NGAP : affichées au MAR seulement (vides pour le secrétariat).
+    const chip = _chipMarge(id);
     const quand = (cv.nb === total)
       ? 'couvre toute la période'
       : 'couvre ' + cv.plages.slice(0,2).map(plageTxt).join(' · ')
@@ -883,9 +900,8 @@ function rendreAlt(){
   // Un membre dont le relevé du mois n'est pas encore saisi n'a pas de chiffre : il
   // passe en fin de liste, sans pastille — il reste proposable.
   // À marge égale (ou sans chiffre), la plus large couverture d'abord.
-  const parMarge = (a,b) =>
-    ((MARGE[b] == null ? -1e12 : MARGE[b]) - (MARGE[a] == null ? -1e12 : MARGE[a]))
-    || (COUV[b].nb - COUV[a].nb);
+  // (27/11/2026) Puis NGAP aussi : la plus serrée des deux marges décide (margeEff).
+  const parMarge = (a,b) => triMarge(a, b) || (COUV[b].nb - COUV[a].nb);
   const meme  = dispo.filter(id=> COUV[id].cs.some(x=> x.cs === secteur)).sort(parMarge);
   const autres= dispo.filter(id=> meme.indexOf(id) < 0).sort(parMarge);
 
@@ -893,8 +909,8 @@ function rendreAlt(){
     ' — qui peut le voir ?</h4><div class="why">Membres du groupement ayant une consultation '+
     'avant la date d\'intervention et présents ce jour-là. La plage indiquée est celle '+
     'que chacun couvre.</div>';
-  if(MARGE_OK) h += '<div class="why" style="margin-top:-4px">Classés par <b>marge libérale restante au bloc</b> '
-    + '(axe CCAM, dernier relevé' + (MARGE_MOIS ? ' — ' + MARGE_MOIS : '') + '). '
+  if(MARGE_OK) h += '<div class="why" style="margin-top:-4px">Classés par <b>marge libérale restante</b> avant les 30 %, '
+    + 'la plus serrée des deux : consultation (NGAP) et anesthésie (CCAM) ; dernier relevé' + (MARGE_MOIS ? ' — ' + MARGE_MOIS : '') + '. '
     + 'L\'ordre est fiable, le montant est indicatif : ce qui a été facturé depuis n\'y figure pas.</div>';
   if(!dispo.length){
     h += '<div class="none-alt">Aucun membre du groupement ne remplit les conditions. À arbitrer avec le comité.</div>';

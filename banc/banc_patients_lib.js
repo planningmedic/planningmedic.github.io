@@ -393,6 +393,25 @@ async function page(patlib, modif) {
     V('la feuille de choix ne s\'ouvre pas en touchant un bouton de salle', !D.getElementById('pFeuille').classList.contains('open'));
   }
   {
+    // (27/11/2026) Classement des confrères : la plus serrée des marges CCAM et NGAP décide
+    const { D, w, erreurs } = await page(true, d => {
+      d.patients.push({ id: 'p9', mar: 'ALPHA', consult: CONSULT, per: 'pm', bloc: BLOC_ABS, nb: 1, confieA: '' });
+      d.marges = { BRAVO: 5000, HOTEL: 1000 }; d.margesNgap = { BRAVO: -100, HOTEL: 800 }; d.margesMois = '2026-10'; });
+    V('marges CCAM + NGAP : la page s\'ouvre sans erreur', !erreurs.length, erreurs);
+    D.querySelector('#file .puce').click(); await dodo(40);
+    const k = [...D.querySelectorAll('#pfListe .pl')].findIndex(x => /Qui peut le voir/.test(x.textContent));
+    w.patQui(k); await dodo(30);
+    const ps = [...D.querySelectorAll('#pfListe .alt .person')].map(x => x.textContent);
+    V('le confrère au-dessus des 30 % en NGAP passe derrière, malgré sa grosse marge CCAM',
+      ps.length === 2 && /Dr Hotel/.test(ps[0]) && /Dr Bravo/.test(ps[1]), ps);
+    V('les deux marges sont affichées', /CCAM \+ 1[\s\u202f]000 €/.test(ps[0]) && /NGAP \+ 800 €/.test(ps[0]) && /NGAP − 100 €/.test(ps[1]), ps);
+    V('« au-dessus des 30 % en NGAP » est signalé', /au-dessus des 30 % en NGAP/.test(ps[1]) && !/au-dessus/.test(ps[0]));
+    V('la règle du classement est dite (consultation en NGAP, anesthésie en CCAM)', /NGAP/.test(D.querySelector('#pfListe .alt .why').textContent));
+    const src = lire('gas/indisponibilites.gs');
+    V('serveur : marge NGAP calculée sur le même relevé, vidée hors groupement',
+      /margesNgap\[i\.marId\] = i\.tNgap \* \(3 - 10 \* \(i\.pctNgap \/ 100\)\) \/ 7/.test(src) && /if \(!user\.liberal\) \{ marges = \{\}; margesNgap = \{\};/.test(src) && /margesNgap: margesNgap/.test(src));
+  }
+  {
     // Défaut vu en production (26/11/2026) : supprimer une ligne saisie à la main faisait disparaître les lignes CPA
     const { D, envois, erreurs } = await page(true, d => { d.patients.push({ id: 'cpa|' + CONSULT + '|pm|2|' + BLOC_ABS, mar: 'ALPHA', consult: CONSULT, per: 'pm', bloc: BLOC_ABS, nb: 3, confieA: '', cpa: true }); });
     V('lignes CPA + saisie : la page s\'ouvre sans erreur', !erreurs.length, erreurs);
