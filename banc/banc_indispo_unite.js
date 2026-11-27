@@ -130,5 +130,22 @@ const jaugeVal = (h, nom) => { const m = h.match(new RegExp(nom + '</span> <span
 { const src = fs.readFileSync(PAGE, 'utf8');
   V('une seule clé de week-end dans la page', (src.match(/function cleWeIndispo\(/g) || []).length === 1 && /const _cleWe = cleWeIndispo;/.test(src)); }
 
+/* (27/11/2026) LE RELIQUAT AU STAFF VACANCES. Janvier N+1 se pose au staff, avant
+   que les gardes N+1 existent : les jours de janvier sont pris d'abord sur ce qui
+   reste de N, comme dans « Gérer mes vacances ». Le vrai updateStats de la page. */
+console.log('\n═══ 7. Le reliquat de l\'année précédente au staff vacances ═══');
+{ const ind = { '2028-01-04': 'VAC', '2028-01-05': 'VAC', '2028-01-06': 'VAC', '2028-03-01': 'VAC' };
+  const h = barre(ind, { quotaVac: 33, anneeCampagne: 2028, reliquatVac: { annee: 2027, droit: 2, touteAnnee: false } });
+  V('reliquat 2027 de 2 : 3 jours de janvier + 1 en mars → 2 sur 2028 (jauge 2 / 33)', jaugeVal(h, 'Congés') === '2 / 33 j. ouvrés', jaugeVal(h, 'Congés'));
+  V('…et la ligne bleue le dit, chiffre provisoire', /Reliquat 2027 : 2 \/ 2 j pris en janvier · hors quota 2028 \(chiffre provisoire tant que 2027 n’est pas fini\)/.test(h), h.slice(0, 600));
+  const t = barre(ind, { quotaVac: 33, anneeCampagne: 2028, reliquatVac: { annee: 2027, droit: 9, touteAnnee: true } });
+  V('exception « toute l\'année » : les 4 jours pris sur un reliquat de 9 → 0 / 33, « pris sur 2028 »', jaugeVal(t, 'Congés') === '0 / 33 j. ouvrés' && /4 \/ 9 j pris sur 2028/.test(t), jaugeVal(t, 'Congés'));
+  const s = barre(ind, { quotaVac: 33, anneeCampagne: 2028, reliquatVac: { annee: 2027, droit: 0 } });
+  V('sans reliquat : 4 / 33 et aucune ligne bleue', jaugeVal(s, 'Congés') === '4 / 33 j. ouvrés' && !/staffReliquat/.test(s), jaugeVal(s, 'Congés'));
+  const v = barre(ind, { quotaVac: 33 });
+  V('ancien serveur (pas de reliquatVac) : rien ne casse, 4 / 33', jaugeVal(v, 'Congés') === '4 / 33 j. ouvrés' && !/staffReliquat/.test(v), jaugeVal(v, 'Congés')); }
+{ const GS = require('./stubs').sourceGasTout();
+  V('l\'action getVacConfig envoie le reliquat du MAR pour l\'année de campagne', /reliquatVac: reliquatVacDe_\(user\.id, indYear\),/.test(GS)); }
+
 console.log(`\n  ${ok} vérifications OK, ${ko} en échec`);
 if (ko) process.exit(1);

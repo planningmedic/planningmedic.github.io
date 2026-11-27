@@ -180,7 +180,7 @@ function socleReliquats(ctx) {
   const src = fs.readFileSync(f, 'utf8');
   const cst = n => { const m = src.match(new RegExp('^const ' + n + ' = [^\n]*;', 'm')); if (!m) throw new Error(n + ' introuvable'); return m[0]; };
   vm.runInContext(['RELIQUAT_AUTO_DEPUIS', 'RELIQUATS_ONGLET', 'RELIQUATS_ENTETE', 'RELIQUAT_TOUTE_ANNEE'].map(cst).join('\n') + '\n'
-    + ['_vacJanvier_', '_vacSurReliquat_', '_vacSurReliquatPossible_', 'reliquatsToutAnnee_', '_reliquatsSaisis_', '_reliquatsCalcules_', 'reliquatsVac_', '_reliquatsFiger_']
+    + ['_vacJanvier_', '_vacSurReliquat_', '_vacSurReliquatPossible_', 'reliquatsToutAnnee_', '_reliquatsSaisis_', '_reliquatsCalcules_', 'reliquatsVac_', 'reliquatVacDe_', '_reliquatsFiger_']
         .map(n => extraireFonction(f, n)).join('\n'), ctx);
   return ctx;
 }

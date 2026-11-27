@@ -1660,14 +1660,24 @@ function cleWeIndispo(d) {
 function updateStats() {
   const counts = {VAC:0, FORM:0, INDISPO:0, SOUHAIT:0};
   // Compter uniquement les jours ouvrés pour VAC
-  let vacOuvres = 0;
+  let vacOuvres = 0, vacJan = 0;
+  /* (27/11/2026) Reliquat de l'année précédente : les vacances de janvier (ou
+     de toute l'année, exception) sont prises d'abord dessus — même règle que
+     « Gérer mes vacances ». Elles ne comptent sur le quota qu'au-delà. */
+  const rel = (vacConfig && vacConfig.reliquatVac) || { droit: 0 };
+  const relPrefixe = String(vacConfig && vacConfig.anneeCampagne || '') + (rel.touteAnnee ? '-' : '-01-');
   Object.entries(indispos).forEach(([date, s]) => {
     if (counts[s] !== undefined) counts[s]++;
     if (s === 'VAC' || s === 'VM' || s === 'VA') {
       const dow = new Date(date).getDay();
-      if (dow !== 0 && dow !== 6 && !joursFeries.has(date)) vacOuvres += (s === 'VAC' ? 1 : 0.5);
+      if (dow !== 0 && dow !== 6 && !joursFeries.has(date)) {
+        const p = (s === 'VAC' ? 1 : 0.5);
+        vacOuvres += p; if (date.indexOf(relPrefixe) === 0) vacJan += p;
+      }
     }
   });
+  const relDroit = Number(rel.droit) || 0, relPris = Math.min(relDroit, vacJan);
+  vacOuvres -= relPris;
 
   /* (06/09/2026) Le quota arrive par un SECOND appel au serveur, après le
      chargement de la page : pendant une seconde les compteurs annonçaient
@@ -1726,6 +1736,7 @@ function updateStats() {
       ${jauge('Congés', vacOuvres, quotaVac, 'var(--vac-fg)', quotaVac ? 'j. ouvrés' : 'jours ouvrés')}
       ${jauge('Formation', counts.FORM, quotaForm, 'var(--form-fg)', 'jours')}
     </div>
+    ${relDroit ? `<div class="jauge-reliquat" id="staffReliquat" style="font-size:11.5px;color:#1D4ED8;font-weight:600;margin:2px 0 6px">Reliquat ${rel.annee} : ${String(relPris).replace('.', ',')} / ${String(relDroit).replace('.', ',')} j pris ${rel.touteAnnee ? 'sur ' + vacConfig.anneeCampagne : 'en janvier'} · hors quota ${vacConfig.anneeCampagne}${rel.touteAnnee ? '' : ' (chiffre provisoire tant que ' + rel.annee + ' n’est pas fini)'}</div>` : ''}
     ${showCtp ? `<div class="jauge-ligne jauge-seule">${jauge('Temps partiel', ctpCount, vacConfig.quotaCtp, '#6D28D9', 'jours')}</div>` : ''}
     <div class="jauge-ligne">
       ${jauge('Indisponibilités', counts.INDISPO, quotaInd, 'var(--indispo-fg)', 'jours')}

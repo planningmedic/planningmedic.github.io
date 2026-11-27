@@ -409,6 +409,8 @@ console.log('\n═══ PV14 · janvier pris d\'abord sur le reliquat de l\'ann
   const c = monde({ gardes: [['PLEIN01', '2027-03-01', 'V'], ['PLEIN01', '2027-03-02', 'VM'], ['PLEIN01', '2027-12-24', 'V'], ['POSEUR', '2027-03-03', 'V']] });
   const auto = vm.runInContext('JSON.parse(JSON.stringify(reliquatsVac_(2028)))', c.ctx);
   V('reliquat 2027 calculé sur GARDES_2027 : 33 − (1 + ½ + ½) = 31 ; 80 % : 26 − 1 = 25', auto.PLEIN01 === 31 && auto.POSEUR === 25 && auto.PLEIN02 === 33, auto);
+  V('au staff vacances 2028 (avant les gardes 2028), le reliquat 2027 d\'un MAR est déjà connu, provisoire',
+    JSON.stringify(vm.runInContext('reliquatVacDe_("PLEIN01", 2028)', c.ctx)) === JSON.stringify({ annee: 2027, droit: 31, touteAnnee: false }), vm.runInContext('reliquatVacDe_("PLEIN01", 2028)', c.ctx));
   V('reliquat 2026 jamais calculé (pas de GARDES_2026 fiable) : vide sans saisie', Object.keys(vm.runInContext('reliquatsVac_(2027)', c.ctx)).length === 0);
   c.cl.ajouter('RELIQUATS', [['MAR', 'ANNEE', 'JOURS', 'ORIGINE'], ['PLEIN01', 2027, 28, 'vérifié avec le secrétariat']]);
   V('une ligne saisie gagne sur le calcul (28 au lieu de 31)', vm.runInContext('reliquatsVac_(2028).PLEIN01', c.ctx) === 28);

@@ -203,7 +203,7 @@ console.log('\n═══ 5. Compteurs (reliquat, staff, écran MAR) et écrans �
   V('staff : VM/VA lus, comptés 0,5, jamais cliquables', /demiVac\[m\.id\]\[date\]=val/.test(ST)
     && /\*0\.5/.test(ST) && /if\(estDemiVac\(marId,date\)\)/.test(ST));
   V('écran MAR : VM/VA verrouillés et comptés 0,5', /indispos\[date\] === 'VM' \|\| indispos\[date\] === 'VA'/.test(INDH)
-    && /vacOuvres \+= \(s === 'VAC' \? 1 : 0\.5\)/.test(INDH));
+    && /const p = \(s === 'VAC' \? 1 : 0\.5\);\s*vacOuvres \+= p;/.test(INDH));   // (27/11/2026) p aussi compté pour le reliquat de janvier
   V('page paie : 0,5 dans le total V', /tot\.V \+= 0\.5/.test(PA));
   V('comité : VM/VA ont une couleur et un libellé', /'VM': \{label:'Vacances le matin'/.test(AD));
 }
