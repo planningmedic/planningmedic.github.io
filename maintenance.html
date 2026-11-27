@@ -700,8 +700,10 @@ $('cpaFichier').addEventListener('change', async e => {
         + b.sans.map(x => esc(_jCpa(x.date) + ' ' + (x.per === 'am' ? 'matin' : 'après-midi') + ' · salle ' + x.salle + ' · ' + (_SEC_CPA[x.secteur] || x.secteur) + ' · ' + x.nb)).join('<br>')
         + '<br><span style="font-size:12px">Posez ces consultations dans le planning : leurs patients seront rattachés tout seuls, sans réimporter.</span></div>';
     }
+    const ded = Object.keys(lu.deduits || {});
+    if (ded.length) h += '<div class="info">Secteur repris de la salle : ' + ded.map(a => esc(a) + ' (' + lu.deduits[a] + ')').join(', ') + '</div>';
     if (inc.length || lu.sansDate) {
-      h += '<div class="info">Non gardés : ' + [inc.length ? inc.map(a => esc(a) + ' (' + lu.inconnus[a] + ')').join(', ') + ' — agenda sans secteur' : '',
+      h += '<div class="info">Non gardés : ' + [inc.length ? inc.map(a => esc(a) + ' (' + lu.inconnus[a] + ')').join(', ') + ' — agenda sans secteur, salle mixte' : '',
         lu.sansDate ? lu.sansDate + ' sans date ou salle' : ''].filter(Boolean).join(' · ') + '</div>';
     }
     out.innerHTML = h;

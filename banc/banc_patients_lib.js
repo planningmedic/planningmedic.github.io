@@ -140,14 +140,20 @@ console.log('\n═══ 1 bis. Export CPA : lecture du fichier, import, salles 
     rdv(4, CONSULT, '14:50', 'CPA Endoscopie Libérale', BLOC_OK, 'Libéral'),
     rdv(1, CONSULT, '09:10', 'CPA ORL/Ophtalmo Adulte Libérale', BLOC_OK, 'Libéral'),
     rdv(3, CONSULT, '15:00', 'CPA Viscérale Publique', BLOC_OK, 'Public   '),   // public : ignoré
-    rdv(3, CONSULT, '15:20', 'Consultation UB Pré-anesthésie', BLOC_OK, 'Libéral'),       // agenda sans secteur
+    rdv(3, CONSULT, '15:20', 'Consultation UB Pré-anesthésie', BLOC_OK, 'Libéral'),       // agenda sans secteur : salle 3 = viscéral
     rdv(3, CONSULT, '15:40', 'CPA Urologie Libérale', '', 'Libéral'),                       // sans date opératoire
+    rdv(1, CONSULT, '15:00', 'CPA Maternité Publique', BLOC_OK, 'Public'),
+    rdv(1, CONSULT, '15:10', 'CPA ORL/Ophtalmo Pédiatrie Publique', BLOC_OK, 'Public'),
+    rdv(1, CONSULT, '15:20', 'Consultation UB Pré-anesthésie', BLOC_OK, 'Libéral'),       // salle mixte : indécidable
   ]);
-  V('lecture : seuls les patients au régime Libéral avec secteur et dates sont gardés', lu.lignes.length === 4 && lu.rdv === 7 && lu.lib === 6, lu);
+  V('lecture : seuls les patients au régime Libéral avec secteur et dates sont gardés', lu.lignes.length === 5 && lu.rdv === 10 && lu.lib === 7, lu);
+  V('agenda « UB » sans secteur : secteur repris de la salle cette demi-journée (publics compris)',
+    lu.lignes.some(l => l.salle === '3' && l.secteur === 'VIS' && l.per === 'pm') && lu.deduits['Consultation UB Pré-anesthésie'] === 1, lu);
   V('lecture : rien d\'autre que jour, demi-journée, salle, secteur, date opératoire, nombre',
     lu.lignes.every(l => Object.keys(l).sort().join() === 'bloc,consult,nb,per,salle,secteur') && !JSON.stringify(lu.lignes).includes('Coloscopie') && !JSON.stringify(lu.lignes).includes('14:'));
   V('lecture : demi-journée (avant 13 h = matin), salle, secteur', lu.lignes[3].per === 'am' && lu.lignes[3].salle === '1' && lu.lignes[3].secteur === 'ORL' && lu.lignes[0].secteur === 'END' && lu.lignes[0].per === 'pm');
-  V('lecture : agenda sans secteur et ligne sans date comptés à part', lu.inconnus['Consultation UB Pré-anesthésie'] === 1 && lu.sansDate === 1, lu);
+  V('… salle mixte (maternité + ORL) : non devinée, comptée à part ; ligne sans date aussi', lu.inconnus['Consultation UB Pré-anesthésie'] === 1 && lu.sansDate === 1, lu);
+  V('Maintenance affiche les secteurs repris de la salle', /Secteur repris de la salle/.test(lire('maintenance.html')));
   V('lecture : un autre fichier est refusé avec un message clair', /Colonnes introuvables/.test(lireExportCpa([['A', 'B']]).erreur || ''));
 
   // Serveur : le planning publié a, mardi après-midi, ALPHA et CHARLIE en endo (deux salles d'endo), DELTA en ORL le matin
@@ -166,8 +172,9 @@ console.log('\n═══ 1 bis. Export CPA : lecture du fichier, import, salles 
   const imp = p => JSON.parse(ctx._act_importCpa({ payload: p, user: { id: 'ALPHA', role: 'mar' } }).getContent());
   V('import : refusé à un MAR sans la clé maintenance', JSON.parse(ctx._act_importCpa({ payload: { lignes: lu.lignes }, user: { id: 'CHARLIE', role: 'mar' } }).getContent()).error === 'Accès refusé');
   const r = imp({ lignes: lu.lignes.concat([{ consult: CONSULT, per: 'pm', salle: '9', secteur: 'XYZ', bloc: BLOC_OK, nb: 1 }]) });
-  V('import : accepté, une ligne par salle et date opératoire, la ligne douteuse rejetée', r.success && r.lignes === 4 && r.patients === 4 && r.rejetees === 1, r);
-  V('import : bilan — endo à confirmer (2 salles, 2 MAR), ORL rattachée seule', r.bilan.aConfirmer.patients === 3 && r.bilan.auto.patients === 1 && r.bilan.sans.length === 0, r.bilan);
+  V('import : accepté, une ligne par salle et date opératoire, la ligne douteuse rejetée', r.success && r.lignes === 5 && r.patients === 5 && r.rejetees === 1, r);
+  V('import : bilan — endo à confirmer (2 salles, 2 MAR), ORL rattachée seule, le patient « UB » de viscéral sans consultation',
+    r.bilan.aConfirmer.patients === 3 && r.bilan.auto.patients === 1 && r.bilan.sans.length === 1 && r.bilan.sans[0].secteur === 'VIS', r.bilan);
   const avant = cl.getSheetByName('CPA_EXPORT').lignes.length;
   imp({ lignes: lu.lignes });
   V('réimporter les mêmes jours remplace, sans doublon', cl.getSheetByName('CPA_EXPORT').lignes.length === avant);
