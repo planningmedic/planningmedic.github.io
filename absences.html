@@ -780,14 +780,19 @@ function selectionner(btn, c){
       'Toutes les dates d\'intervention conviennent'+(ROLE==='mar'?'':' pour ce médecin')+'.</div>';
   } else {
     const tot = plages.reduce((t,p)=> t+nbJours(p), 0);
+    /* (27/11/2026, décision du responsable) Le panneau « qui peut prendre le patient »
+       d'une période sert l'orientation d'emblée (secrétariat, solution finale). Pour le
+       MAR, on reste sur le rattrapage (« Qui peut le voir ? » des patients lib) : ses
+       dates d'absence s'affichent mais ne s'ouvrent plus. */
+    const ouvrable = ROLE !== 'mar';
     a.innerHTML = '<div class="lbl">Dates d\'intervention à éviter — <b>'+tot+'</b> jour'+
       (tot>1?'s':'')+' sur '+plages.length+' période'+(plages.length>1?'s':'')+' :</div>'+
       '<div class="dates">'+plages.map((p,k)=>
-        '<button class="d" data-k="'+k+'" aria-pressed="false">'+libPlage(p)+
+        (ouvrable ? '<button class="d" data-k="'+k+'" aria-pressed="false">' : '<span class="d" style="cursor:default">')+libPlage(p)+
         (MOTIFS && p.code ? '<small>'+(NOM_CODE[p.code]||p.code)+'</small>' : '')+
-        '</button>').join('')+'</div>'+
-      '<div class="hintclick">Cliquez une période pour voir qui peut prendre le patient.</div>';
-    a.querySelectorAll('.d').forEach(el=>{
+        (ouvrable ? '</button>' : '</span>')).join('')+'</div>'+
+      (ouvrable ? '<div class="hintclick">Cliquez une période pour voir qui peut prendre le patient.</div>' : '');
+    if(ouvrable) a.querySelectorAll('.d').forEach(el=>{
       el.addEventListener('click', ()=>{
         const was = el.getAttribute('aria-pressed')==='true';
         a.querySelectorAll('.d').forEach(x=> x.setAttribute('aria-pressed','false'));

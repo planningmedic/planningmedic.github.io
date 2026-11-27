@@ -419,6 +419,19 @@ async function page(patlib, modif) {
       && /Math\.min\.apply\(null, v\)/.test(src) && /if \(!user\.liberal\) \{ marges = \{\}; margesNgap = \{\};/.test(src));
   }
   {
+    // (27/11/2026) Le panneau « qui peut prendre le patient » d'une période d'absence est réservé à
+    // l'orientation d'emblée (secrétariat) : chez le MAR, les dates s'affichent mais ne s'ouvrent plus.
+    const { D } = await page(true, d => { d.absences.ALPHA = [{ d: BLOC_ABS, c: 'V' }]; });
+    const zone = D.getElementById('pAnswer');
+    V('MAR : ses dates d\'absence sont affichées', zone && zone.querySelectorAll('.d').length > 0, zone && zone.textContent.slice(0, 120));
+    V('… mais aucune ne s\'ouvre (pas de bouton, pas de « Cliquez une période »)',
+      zone && !zone.querySelector('button.d') && !/Cliquez une période/.test(zone.textContent));
+    const sec = await page(true, d => { (d.consultations || []).forEach(c => { d.absences[c.mar] = [{ d: BLOC_ABS, c: 'V' }]; }); d.role = 'secretariat'; d.motifs = false; d.patlib = false; });
+    const zs = sec.D.getElementById('pAnswer');
+    V('secrétariat : le panneau reste ouvrable (orientation d\'emblée)', zs && !!zs.querySelector('button.d') && /Cliquez une période/.test(zs.textContent),
+      zs && zs.innerHTML.slice(0, 200));
+  }
+  {
     // Défaut vu en production (26/11/2026) : supprimer une ligne saisie à la main faisait disparaître les lignes CPA
     const { D, envois, erreurs } = await page(true, d => { d.patients.push({ id: 'cpa|' + CONSULT + '|pm|2|' + BLOC_ABS, mar: 'ALPHA', consult: CONSULT, per: 'pm', bloc: BLOC_ABS, nb: 3, confieA: '', cpa: true }); });
     V('lignes CPA + saisie : la page s\'ouvre sans erreur', !erreurs.length, erreurs);
