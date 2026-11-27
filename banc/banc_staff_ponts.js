@@ -437,7 +437,7 @@ console.log('\n═══ 8 bis. Le tableau de Noël ne dépend plus d\'un appel 
     return mir.slice(i, j + 1);
   })();
   V('vacances_admin rend désormais un champ noel',
-    /return \{ success: true, periodes: periodes, groupes: groupes, noel: noel, quotasConges: _loadQuotasConges\(\), reliquats: reliquats \};/.test(bloc));   // (14/09/2026) + les quotas
+    /return \{ success: true, periodes: periodes, groupes: groupes, noel: noel, quotasConges: _loadQuotasConges\(\), reliquats: reliquats, janvierSuivant: janvierSuivant \};/.test(bloc));   // (14/09/2026) + les quotas
   V('il est construit par la MÊME fonction que l\'appel direct (aucun second calcul)',
     /computeNoelAnHistorique\(yNoel\)/.test(bloc));
   V('l\'année servie est celle de la campagne, pas l\'année civile',
@@ -568,6 +568,7 @@ console.log('\n═══ 10. staff.html · les vues par mois respectent l\'anné
   vm.runInContext(extraire('bornesAnneePlanning'), ctx3);
   vm.runInContext(extraire('horsAnneePlanning'), ctx3);
   vm.runInContext(extraire('isScolaire'), ctx3);
+  vm.runInContext('var JS_STAFF = null;' + extraire('estJsStaff'), ctx3);   // (27/11/2026) janvier N+1 : absent ici
   vm.runInContext(extraire('toggleDay'), ctx3);
   ctx3.toggleDay('AA', '2027-03-15');
   V('une date DANS l\'année se pose normalement', ctx3.saisies.AA['2027-03-15'] === 'VAC', ctx3.saisies);

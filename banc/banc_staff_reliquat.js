@@ -47,7 +47,7 @@ V('la carte retire le pris et affiche « + pris/droit reliquat AAAA en janvier |
 V('les reliquats ne valent que pour l\'année de campagne affichée', /RELIQUATS=\(pRes\.reliquats && Number\(pRes\.reliquats\.campagne\)===currentYear\) \? pRes\.reliquats : null;/.test(src));
 const GS = require('./stubs').sourceGasTout() + fs.readFileSync(path.join(__dirname, '..', 'gas', 'miroir.gs'), 'utf8');
 V('le serveur les envoie avec la config du staff, par l\'action ET par la copie rapide',
-  /quotasConges:_loadQuotasConges\(\), reliquats:reliquatsCampagne_\(\)\}/.test(GS) && /try \{ reliquats = reliquatsCampagne_\(\); \} catch \(e\) \{ reliquats = null; \}/.test(GS));
+  /quotasConges:_loadQuotasConges\(\), reliquats:reliquatsCampagne_\(\)[,}]/.test(GS) && /try \{ reliquats = reliquatsCampagne_\(\); \} catch \(e\) \{ reliquats = null; \}/.test(GS));
 
 console.log('\n— reliquatsCampagne_ (le vrai serveur) —');
 {
@@ -63,6 +63,24 @@ console.log('\n— reliquatsCampagne_ (le vrai serveur) —');
   sctx.reliquatsToutAnnee_ = () => ({ TE: true });
   const r = JSON.parse(JSON.stringify(vm.runInContext('reliquatsCampagne_()', sctx)));
   V('campagne 2028 : reliquats 2027, seuls les MAR qui en ont un', JSON.stringify(r) === JSON.stringify({ annee: 2027, campagne: 2028, parMar: { EX: { droit: 2, touteAnnee: false }, TE: { droit: 9, touteAnnee: true } } }), r);
+}
+
+console.log('\n— (27/11/2026) Janvier N+1 au staff : 13e onglet du mode « VAC année » —');
+{
+  vm.runInContext(ligne('let JS_STAFF=null;'), ctx);
+  vm.runInContext(extraire('estJsStaff'), ctx);
+  vm.runInContext(extraire('getMonthDays') + ';' + extraire('premierJourAnneePlanning') + ';' + extraire('bornesAnneePlanning') + ';' + extraire('horsAnneePlanning'), ctx);
+  V('sans janvier suivant reçu : l\'onglet 12 est vide', vm.runInContext('getMonthDays(12).length', ctx) === 0);
+  vm.runInContext('JS_STAFF = { annee: 2028, ouvert: true, jours: ["2029-01-02","2029-01-03","2029-01-04"], feries: ["2029-01-01"], parMar: {} };', ctx);
+  V('avec : l\'onglet 12 donne les jours de janvier 2029 hors grille 2028', JSON.stringify(vm.runInContext('getMonthDays(12)', ctx)) === '["2029-01-02","2029-01-03","2029-01-04"]');
+  V('un jour de janvier 2029 est reconnu, un jour de 2028 non', vm.runInContext('estJsStaff("2029-01-03") && !estJsStaff("2028-03-01")', ctx));
+  V('câblage : onglet seulement en mode « VAC année », clic autorisé hors année pour ces jours, week-end/férié refusés, jours en attente chargés et verrouillés',
+    /const avecJs=vacHS&&!!JS_STAFF;/.test(src) && /if\(horsAnneePlanning\(date\)&&!estJsStaff\(date\)\)\{/.test(src)
+    && /if\(estJsStaff\(date\)&&estChome\(date\)\)\{showToast\('Week-end ou férié : rien à poser'\);return;\}/.test(src)
+    && /if\(val==='V'\)\{saisies\[m\.id\]\[date\]='VAC';locked\[m\.id\]\[date\]=true;\}/.test(src));
+  V('le serveur envoie janvierSuivant avec la config et l\'enregistre au même envoi que la grille',
+    /reliquats:reliquatsCampagne_\(\), janvierSuivant:janvierSuivantCampagne_\(\)\}/.test(GS) && /try \{ janvierSuivant = janvierSuivantCampagne_\(\); \} catch \(e\) \{ janvierSuivant = null; \}/.test(GS)
+    && /const janvierSuivant = _janvierSuivantDuComite_\(anneeB, envoi, new Set\(datesB\.filter\(Boolean\)\)/.test(GS));
 }
 
 console.log(`\n  ${ok} vérifications OK, ${ko} en échec`);

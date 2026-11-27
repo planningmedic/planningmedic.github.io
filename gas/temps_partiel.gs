@@ -4,7 +4,7 @@
    quelles : aucune ligne de logique modifiée, seulement déplacée. Le routeur et
    ses aides (checkCode, _deny, _error, doGet/doPost) restent dans Indispos.gs.
    Un seul espace global dans Apps Script : rien à importer. */
-const GAS_VERSION_TP = '2026-11-27.3';   // (27/11/2026) .3 : janvier N+1 posé pendant N (onglet JANVIER_SUIVANT) — pose libre et clé de pose · (27/11/2026) .2 : reliquatsCampagne_ — reliquats de l'équipe pour l'onglet Récap du comité · (27/11/2026) .1 : reliquatVacDe_ — le reliquat d'un MAR, pour la jauge du staff vacances · (26/11/2026) .3 : exception « toute l'année » du reliquat (ORIGINE de RELIQUATS, retour de congé long) — pose libre et clé de pose · (26/11/2026) .2 : reliquat de vacances de l'année précédente (onglet RELIQUATS, calcul automatique dès 2027) — les vacances de janvier le consomment d'abord : pose libre, clé de pose · (26/11/2026) .1 : LE TP ET LES VACANCES PASSENT AVANT LA RÉCUP DE SAMEDI — un jour qui n'est pas vert à cause de récups devient vert en les déplaçant (_tpLibererRecups_), à la pose d'un TP ou de vacances par le MAR comme à la validation du comité ; jamais une récup à moins de 30 jours ; le MAR concerné est prévenu ; l'écran de pose compte ces récups comme présentes (_tpRecupsCedables_) · (25/11/2026) .1 : POSE LIBRE DES VACANCES après la génération (_poserVac_) — jour vert seulement, 7 jours d'avance, quota de la quotité, jamais sur un jour occupé ; la clé de pose porte le quota de vacances et les jours fixes de chaque MAR ; toute republication différée (TP, vacances, décisions du comité) arme aussi les mails de changement, dont celui du secrétariat · (24/11/2026) .2 : un jour fermé par le comité se rouvre tout seul s'il redevient vert parce que l'équipe s'est étoffée depuis le refus ; les MAR refusés ce jour-là sont prévenus · (24/11/2026) .1 : effectif présent — une fois l'année générée, les absences (V, F, CL, CP, CTP, A) sont lues dans GARDES, plus dans INDISPOS (GARDES fait foi) ; VM/VA comptent présents · (17/11/2026) .2 : seuils de la pose lus dans l'onglet SEUILS (seuilsPresence_), envoyés à l'écran avec l'effectif · (17/11/2026) effectif présent : un MAR marqué HORS_EFFECTIF dans MEDECINS n'est plus compté (pose des TP, points à vérifier) · (16/11/2026) jour de TP dans sa semaine Réa 1 : non bloquant — semaine envoyée à l'écran (grisée, confirmation), signalée au MAR comme au comité · (12/11/2026) plus aucun nom de personne dans le code (effectif présent) · (10/11/2026) chaque jour de TP posé, retiré, demandé ou tranché laisse une ligne dans l'onglet HISTORIQUE
+const GAS_VERSION_TP = '2026-11-27.4';   // (27/11/2026) .4 : janvier N+1 pour le comité (janvierSuivantCampagne_, _janvierSuivantDuComite_) · .3 : janvier N+1 posé pendant N (onglet JANVIER_SUIVANT) — pose libre et clé de pose · (27/11/2026) .2 : reliquatsCampagne_ — reliquats de l'équipe pour l'onglet Récap du comité · (27/11/2026) .1 : reliquatVacDe_ — le reliquat d'un MAR, pour la jauge du staff vacances · (26/11/2026) .3 : exception « toute l'année » du reliquat (ORIGINE de RELIQUATS, retour de congé long) — pose libre et clé de pose · (26/11/2026) .2 : reliquat de vacances de l'année précédente (onglet RELIQUATS, calcul automatique dès 2027) — les vacances de janvier le consomment d'abord : pose libre, clé de pose · (26/11/2026) .1 : LE TP ET LES VACANCES PASSENT AVANT LA RÉCUP DE SAMEDI — un jour qui n'est pas vert à cause de récups devient vert en les déplaçant (_tpLibererRecups_), à la pose d'un TP ou de vacances par le MAR comme à la validation du comité ; jamais une récup à moins de 30 jours ; le MAR concerné est prévenu ; l'écran de pose compte ces récups comme présentes (_tpRecupsCedables_) · (25/11/2026) .1 : POSE LIBRE DES VACANCES après la génération (_poserVac_) — jour vert seulement, 7 jours d'avance, quota de la quotité, jamais sur un jour occupé ; la clé de pose porte le quota de vacances et les jours fixes de chaque MAR ; toute republication différée (TP, vacances, décisions du comité) arme aussi les mails de changement, dont celui du secrétariat · (24/11/2026) .2 : un jour fermé par le comité se rouvre tout seul s'il redevient vert parce que l'équipe s'est étoffée depuis le refus ; les MAR refusés ce jour-là sont prévenus · (24/11/2026) .1 : effectif présent — une fois l'année générée, les absences (V, F, CL, CP, CTP, A) sont lues dans GARDES, plus dans INDISPOS (GARDES fait foi) ; VM/VA comptent présents · (17/11/2026) .2 : seuils de la pose lus dans l'onglet SEUILS (seuilsPresence_), envoyés à l'écran avec l'effectif · (17/11/2026) effectif présent : un MAR marqué HORS_EFFECTIF dans MEDECINS n'est plus compté (pose des TP, points à vérifier) · (16/11/2026) jour de TP dans sa semaine Réa 1 : non bloquant — semaine envoyée à l'écran (grisée, confirmation), signalée au MAR comme au comité · (12/11/2026) plus aucun nom de personne dans le code (effectif présent) · (10/11/2026) chaque jour de TP posé, retiré, demandé ou tranché laisse une ligne dans l'onglet HISTORIQUE
 
 /* ── (POSE TP · 22/08/2026) PHASE DE POSE DES TEMPS PARTIELS — DÉDUITE, JAMAIS ÉCRITE ──
    Les jours de temps partiel se posent APRÈS la génération des gardes (décision
@@ -631,6 +631,37 @@ function _janvierSuivantTransferer_(newYear, ecrire) {
   return aSupprimer.length;
 }
 
+/* (27/11/2026) Pour la page du comité (staff.html) : janvier N+1 de la
+   campagne de saisie N, et ce qui y attend déjà. */
+function janvierSuivantCampagne_() {
+  const y = Number(getIndisposYear());
+  if (!_janvierSuivantOuvert_(y)) return { annee: y, ouvert: false };
+  const sh = SpreadsheetApp.getActiveSpreadsheet().getSheetByName('INDISPOS_' + y);
+  const valides = sh ? new Set(reconstruireDatesHeaders(sh.getDataRange().getValues(), y).filter(Boolean)) : null;
+  return { annee: y, ouvert: true, jours: _janvierSuivantDates_(y, valides),
+           feries: Array.from(getJoursFeries(y + 1)).filter(function (d) { return d.slice(5, 7) === '01'; }).sort(),
+           parMar: _janvierSuivantLire_(y) };
+}
+/* (27/11/2026) Enregistrement du comité (saveIndisposBatch) : pour chaque MAR
+   envoyé, ses journées de vacances de janvier N+1 (hors grille) deviennent
+   exactement celles envoyées ; les demi-journées en attente ne bougent pas. */
+function _janvierSuivantDuComite_(annee, envoi, datesGrille, par) {
+  if (!_janvierSuivantOuvert_(annee)) return 0;
+  const jours = new Set(_janvierSuivantDates_(annee, datesGrille));
+  const attente = _janvierSuivantLire_(annee), JF = getJoursFeries(Number(annee) + 1);
+  let n = 0;
+  Object.keys(envoi || {}).forEach(function (marId) {
+    const id = String(marId).trim(), voulu = envoi[marId] || {}, a = attente[id] || {}, ecr = [];
+    jours.forEach(function (ds) {
+      const w = new Date(ds + 'T12:00:00').getDay();
+      const veut = voulu[ds] === 'VAC' && w !== 0 && w !== 6 && !JF.has(ds);
+      if (veut && !a[ds]) ecr.push({ ds: ds, avant: '', apres: 'V' });
+      else if (!veut && a[ds] === 'V') ecr.push({ ds: ds, avant: 'V', apres: '' });
+    });
+    n += _janvierSuivantEcrire_(annee, id, ecr, par).size;
+  });
+  return n;
+}
 /* Clôture de N : recopie dans RELIQUATS le reliquat calculé de chaque MAR qui
    n'a pas déjà sa ligne (une ligne saisie n'est jamais écrasée). Relançable
    sans doublon. Renvoie un texte pour le compte rendu. */

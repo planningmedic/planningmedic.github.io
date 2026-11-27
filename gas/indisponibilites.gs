@@ -4,7 +4,7 @@
    quelles : aucune ligne de logique modifiée, seulement déplacée. Le routeur et
    ses aides (checkCode, _deny, _error, doGet/doPost) restent dans Indispos.gs.
    Un seul espace global dans Apps Script : rien à importer. */
-const GAS_VERSION_INDISPOS_METIER = '2026-11-27.5';   // (27/11/2026) .5 : plus aucun montant de marge envoyé, seulement le rang · .4 : getVacancesConfig envoie les reliquats (onglet Récap du comité) · .3 : patients lib ouverts à tout le groupement libéral · .2 : getVacConfig envoie le reliquat de l'année précédente (staff vacances : janvier pris d'abord dessus) · .1 : marge NGAP renvoyée avec la marge CCAM (classement des confrères) · (26/11) .4 : consultation du secteur sans patient lib : plus montrée · .3 : consultations tenues par le secteur — les MAR du secteur du bloc la voient, celui qui la fait la prend (op secteur), choix « aucune salle » · .2 : export CPA — importCpa (droit maintenance, onglet CPA_EXPORT), rattachement des consultations aux salles (CPA_SALLES), lignes CPA servies dans getConsultAbsences, op salle et lignes cpa| dans patientsLib · .1 : patients lib d'une consultation — action patientsLib (droit patlib, onglet PATIENTS_LIB) et patients servis dans getConsultAbsences · (25/11/2026) .2 : action getRecapPdf (PDF du récapitulatif pour le MAR connecté) ; getOrdreVacances répond aussi pour y+2 · .1 : saveIndispos accepte la pose libre des vacances (payload.vac, voir _poserVac_ dans temps_partiel.gs) · (20/11/2026) .1 : setIndisposYear et envoyerRecapIndispos réservés au responsable · (15/11/2026) clearIndisposYear réservé au droit Maintenance (clôture d'année) · (10/11/2026) PDF récapitulatif par document Google (les couleurs passent) + renvoyerRecapPdf2027 · (09/11/2026) mail « Vos gardes » : 18 h, souhaits honorés, gardes qui allongent les vacances · (27/10/2026) VM/VA posés à la main : jamais écrasés par un enregistrement (MAR ou staff)
+const GAS_VERSION_INDISPOS_METIER = '2026-11-27.6';   // (27/11/2026) .6 : saveIndisposBatch enregistre janvier N+1 (JANVIER_SUIVANT), getVacancesConfig l'envoie · .5 : plus aucun montant de marge envoyé, seulement le rang · .4 : getVacancesConfig envoie les reliquats (onglet Récap du comité) · .3 : patients lib ouverts à tout le groupement libéral · .2 : getVacConfig envoie le reliquat de l'année précédente (staff vacances : janvier pris d'abord dessus) · .1 : marge NGAP renvoyée avec la marge CCAM (classement des confrères) · (26/11) .4 : consultation du secteur sans patient lib : plus montrée · .3 : consultations tenues par le secteur — les MAR du secteur du bloc la voient, celui qui la fait la prend (op secteur), choix « aucune salle » · .2 : export CPA — importCpa (droit maintenance, onglet CPA_EXPORT), rattachement des consultations aux salles (CPA_SALLES), lignes CPA servies dans getConsultAbsences, op salle et lignes cpa| dans patientsLib · .1 : patients lib d'une consultation — action patientsLib (droit patlib, onglet PATIENTS_LIB) et patients servis dans getConsultAbsences · (25/11/2026) .2 : action getRecapPdf (PDF du récapitulatif pour le MAR connecté) ; getOrdreVacances répond aussi pour y+2 · .1 : saveIndispos accepte la pose libre des vacances (payload.vac, voir _poserVac_ dans temps_partiel.gs) · (20/11/2026) .1 : setIndisposYear et envoyerRecapIndispos réservés au responsable · (15/11/2026) clearIndisposYear réservé au droit Maintenance (clôture d'année) · (10/11/2026) PDF récapitulatif par document Google (les couleurs passent) + renvoyerRecapPdf2027 · (09/11/2026) mail « Vos gardes » : 18 h, souhaits honorés, gardes qui allongent les vacances · (27/10/2026) VM/VA posés à la main : jamais écrasés par un enregistrement (MAR ou staff)
 // précédente : '2026-10-22.2'
 
 // La campagne de saisie des indispos est-elle EN COURS ?
@@ -815,10 +815,14 @@ function _act_saveIndisposBatch(R) {
     touches++;
   });
   if (bloc.length) shB.getRange(4, 2, bloc.length, datesB.length).setValues(bloc);
+  // (27/11/2026) Janvier N+1 (hors grille) : en attente dans JANVIER_SUIVANT, compté sur N.
+  const janvierSuivant = _janvierSuivantDuComite_(anneeB, envoi, new Set(datesB.filter(Boolean)), 'comité (' + ((user && user.id) || 'admin') + ')');
+  if (janvierSuivant) { try { _tpRepublier_(anneeB); } catch (e) {} }
   logAction(`saveIndisposBatch : ${touches} MAR(s) enregistre(s)` +
+            (janvierSuivant ? ` — ${janvierSuivant} jour(s) de janvier ${anneeB + 1}` : '') +
             (inconnus.length ? ` — introuvables : ${inconnus.join(', ')}` : ''));
   return ContentService.createTextOutput(JSON.stringify({
-    success: true, saved: touches, inconnus: inconnus
+    success: true, saved: touches, inconnus: inconnus, janvierSuivant: janvierSuivant
   })).setMimeType(ContentService.MimeType.JSON);
 }
 
@@ -956,7 +960,7 @@ function _act_getVacancesConfig(R) {
      (33 jours affichés pour 37). Le client affiche, le serveur calcule :
      la table est servie ici, telle que le serveur la lit (_loadQuotasConges). */
   // (27/11/2026) les reliquats de l'année précédente voyagent aussi (onglet Récap du comité)
-  return ContentService.createTextOutput(JSON.stringify({success:true, periodes, groupes, quotasConges:_loadQuotasConges(), reliquats:reliquatsCampagne_()}))
+  return ContentService.createTextOutput(JSON.stringify({success:true, periodes, groupes, quotasConges:_loadQuotasConges(), reliquats:reliquatsCampagne_(), janvierSuivant:janvierSuivantCampagne_()}))
     .setMimeType(ContentService.MimeType.JSON);
 }
 

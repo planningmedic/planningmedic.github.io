@@ -241,6 +241,11 @@ let QUOTAS_SERVEUR=null;   // {quotite:{vac,form,ctp}}
    de toute l'année, exception) sont prises d'abord dessus — même règle que la
    jauge du MAR. { annee, campagne, parMar:{id:{droit,touteAnnee}} } ou null. */
 let RELIQUATS=null;
+/* (27/11/2026) Janvier N+1 de la campagne N, posable tant que le planning N+1
+   n'existe pas : 13e onglet du mode « VAC année », compté sur N, sans seuil.
+   { annee, ouvert, jours:[...], feries:[...], parMar:{id:{ds:code}} } ou null. */
+let JS_STAFF=null;
+function estJsStaff(ds){ return !!(JS_STAFF && JS_STAFF.jours.indexOf(ds)!==-1); }
 const getQuota=(type,q)=>{
   if(!QUOTAS_SERVEUR) return 0;
   const qq=Math.round(Number(q)||100);
@@ -378,6 +383,7 @@ async function loadData(pre){
     try{ const direct=await apiCall({action:'getVacancesConfig'}); if(direct&&direct.success) pRes=direct; }catch(e){}
   }
   RELIQUATS=(pRes.reliquats && Number(pRes.reliquats.campagne)===currentYear) ? pRes.reliquats : null;
+  JS_STAFF=(pRes.janvierSuivant && pRes.janvierSuivant.ouvert && Number(pRes.janvierSuivant.annee)===currentYear) ? pRes.janvierSuivant : null;
   if(pRes.quotasConges && Object.keys(pRes.quotasConges).length) QUOTAS_SERVEUR=pRes.quotasConges;   // (14/09/2026) les quotas viennent du serveur
   else showToast('Quotas de congés non reçus : vérifier l\'onglet CONFIG_CONGES du classeur');
 
@@ -436,7 +442,13 @@ async function loadData(pre){
         if(val==='VAC'||val==='FORM'){saisies[m.id][date]=val;locked[m.id][date]=true;}
       });
     }
+    // (27/11/2026) Janvier N+1 déjà posé (en attente du planning N+1)
+    Object.entries((JS_STAFF&&JS_STAFF.parMar&&JS_STAFF.parMar[m.id])||{}).forEach(([date,val])=>{
+      if(val==='VM'||val==='VA'){demiVac[m.id][date]=val;return;}
+      if(val==='V'){saisies[m.id][date]='VAC';locked[m.id][date]=true;}
+    });
   });
+  if(JS_STAFF) (JS_STAFF.feries||[]).forEach(d=>joursFeries.add(d));
   majBandeauVerrou();
 
   buildPeriodeTabs();
@@ -673,16 +685,20 @@ function buildPeriodeTabs(){
   if(currentType==='FORM'||vacHS){
     // Mode FORM : onglets par mois
     const MOIS=['Jan','Fév','Mar','Avr','Mai','Juin','Juil','Aoû','Sep','Oct','Nov','Déc'];
-    MOIS.forEach((m,i)=>{
+    // (27/11/2026) 13e onglet : janvier N+1, en mode « VAC année » seulement (compté sur N)
+    const avecJs=vacHS&&!!JS_STAFF;
+    if(currentMonth===12&&!avecJs)currentMonth=11;
+    (avecJs?MOIS.concat(['Jan']):MOIS).forEach((m,i)=>{
       const btn=document.createElement('button');
       btn.className='ptab'+(i===currentMonth?' active':'');
       if(i===currentMonth){btn.style.background='#6D28D9';btn.style.borderColor='#5B21B6';btn.style.color='white';}
-      btn.textContent=m+' '+currentYear;
+      btn.textContent=m+' '+(i===12?currentYear+1:currentYear);
+      if(i===12)btn.title='Vacances '+currentYear+' prises en avance sur janvier '+(currentYear+1)+' (jusqu’au 31/01) : comptées sur '+currentYear+', sans seuil';
       btn.onclick=()=>{currentMonth=i;buildPeriodeTabs();renderCurrent();};
       c.appendChild(btn);
     });
     document.getElementById('seuilVal').textContent='—';
-    document.getElementById('sbPeriode').textContent=(['Janvier','Février','Mars','Avril','Mai','Juin','Juillet','Août','Septembre','Octobre','Novembre','Décembre'])[currentMonth];
+    document.getElementById('sbPeriode').textContent=currentMonth===12?('Janvier '+(currentYear+1)+' (compté sur '+currentYear+')'):(['Janvier','Février','Mars','Avril','Mai','Juin','Juillet','Août','Septembre','Octobre','Novembre','Décembre'])[currentMonth];
     document.getElementById('sbSeuil').textContent='—';
   } else {
     // Mode VAC : onglets par période
@@ -780,7 +796,8 @@ function toggleDay(marId,date){
   /* (03/09/2026) Filet de second rideau : les vues bornent déjà les jours
      affichés, mais le serveur jette silencieusement une date hors année —
      mieux vaut un refus visible qu'un enregistrement fantôme. */
-  if(horsAnneePlanning(date)){
+  if(estJsStaff(date)&&estChome(date)){showToast('Week-end ou férié : rien à poser');return;}
+  if(horsAnneePlanning(date)&&!estJsStaff(date)){
     showToast('🚫 Hors de l\'année de planning '+currentYear);
     return;
   }
@@ -914,6 +931,8 @@ function horsAnneePlanning(date){
 }
 
 function getMonthDays(month){
+  // (27/11/2026) 12 = janvier N+1 : ses jours hors grille N (posables tant que le planning N+1 n'existe pas)
+  if(month===12)return JS_STAFF?JS_STAFF.jours.slice():[];
   // Returns all days of the given month index (0-11) for currentYear
   const days=[];
   const d=new Date(currentYear,month,1,12,0,0);
@@ -1062,7 +1081,7 @@ async function doValidate(){
       Object.keys(saisies[m.id]||{}).forEach(date=>{locked[m.id][date]=true;});
     });
     const manquants=(res.inconnus||[]).length;
-    showToast('✅ '+(res.saved||0)+' MARs enregistrés'+(manquants?' · ⚠️ '+manquants+' introuvable(s) : '+res.inconnus.join(', '):''));
+    showToast('✅ '+(res.saved||0)+' MARs enregistrés'+(res.janvierSuivant?' · '+res.janvierSuivant+' jour(s) de janvier '+(currentYear+1):'')+(manquants?' · ⚠️ '+manquants+' introuvable(s) : '+res.inconnus.join(', '):''));
   }catch(e){
     showToast('⚠️ Enregistrement échoué — rien n\'a été modifié. Réessayez.');
     btn.disabled=false;btn.textContent='✅ Valider et verrouiller';

@@ -798,6 +798,7 @@ html[data-theme="dark"]{ --vcx:#7BAAF7; --vcx-pale:#152341; }
     <span class="month-title" id="vcxMt"></span>
     <button class="month-nav-btn" onclick="vcxMois(1)">Suiv. →</button>
   </div>
+  <div class="vcx-js-bandeau" id="vcxJsBandeau" style="display:none;margin:0 14px 10px;padding:9px 12px;border-radius:10px;background:#EFF6FF;color:#1D4ED8;font-size:12.5px;font-weight:600;line-height:1.4"></div>
   <div class="vcx-grid" id="vcxGrid"></div>
   <div class="vcx-leg">
     <span><i style="background:var(--vcx)"></i>Vos vacances</span>
@@ -2696,7 +2697,15 @@ function vcxEtat(ds) {
 }
 function vcxRendre() {
   const an = VCX.mois === 12 ? VCX.annee + 1 : VCX.annee, mo = VCX.mois % 12;   // mois 12 = janvier N+1
-  document.getElementById('vcxMt').textContent = MONTHS_FR[mo] + ' ' + an + (VCX.mois === 12 ? ' · sur vos vacances ' + VCX.annee : '');
+  document.getElementById('vcxMt').textContent = MONTHS_FR[mo] + ' ' + an;
+  /* (27/11/2026) Janvier N+1 : un bandeau dit sur quel quota ces jours comptent
+     (le titre seul « … sur vos vacances 2027 » n'était pas clair). */
+  const bj = document.getElementById('vcxJsBandeau');
+  if (bj) {
+    bj.style.display = VCX.mois === 12 ? 'block' : 'none';
+    if (VCX.mois === 12) bj.textContent = 'Ces jours sont des vacances ' + VCX.annee + ', prises en avance sur janvier ' + an
+      + ' (possible jusqu\'au 31/01/' + an + '). Ils comptent dans votre total ' + VCX.annee + ' ci-dessus.';
+  }
   const g = document.getElementById('vcxGrid'); let h = '';
   ['Lun', 'Mar', 'Mer', 'Jeu', 'Ven', 'Sam', 'Dim'].forEach(function (x) { h += '<div class="vcx-h">' + x + '</div>'; });
   for (let i = 0; i < (new Date(an, mo, 1).getDay() + 6) % 7; i++) h += '<div class="vcx-d vide"></div>';
@@ -2711,7 +2720,7 @@ function vcxRendre() {
   }
   g.innerHTML = h;
   const k = vcxCompte(), q = VCX.quota;
-  document.getElementById('vcxJn').textContent = 'Vacances ' + an;
+  document.getElementById('vcxJn').textContent = 'Vacances ' + VCX.annee;   // (27/11/2026) l'année de la pose, même sur janvier N+1
   document.getElementById('vcxJv').innerHTML = vcxFr(k.total) + ' <i>/ ' + vcxFr(q) + ' j</i>';
   document.getElementById('vcxJp').style.width = (q ? Math.min(100, k.passe / q * 100) : 0) + '%';
   document.getElementById('vcxJf').style.width = (q ? Math.min(100, k.venir / q * 100) : 0) + '%';

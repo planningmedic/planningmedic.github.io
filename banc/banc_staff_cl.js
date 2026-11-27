@@ -33,7 +33,8 @@ vm.runInContext(ligneConst('estDemiVac'), ctx);
 ['VIVIER_MINI', 'VIVIER_CONFORT', 'ANCRE_2SUR2', 'JOURS_CODE'].forEach(n => {
   const i = src.indexOf('const ' + n); vm.runInContext(src.slice(i, src.indexOf(';', i) + 1), ctx);
 });
-['isWeekend', 'semaineOff2sur2', 'gardeurDispo', 'vivierGarde', 'countForDay', 'toggleDay'].forEach(f => vm.runInContext(extraire(f), ctx));
+vm.runInContext('var JS_STAFF = null;', ctx);   // (27/11/2026) janvier N+1 : absent ici
+['isWeekend', 'semaineOff2sur2', 'gardeurDispo', 'vivierGarde', 'countForDay', 'estJsStaff', 'toggleDay'].forEach(f => vm.runInContext(extraire(f), ctx));
 
 console.log('\n— Congés longs au staff vacances —');
 V('un jour ouvré : VAC de A + CL de B = 2 absents', ctx.countForDay('2027-02-22') === 2, ctx.countForDay('2027-02-22'));

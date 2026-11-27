@@ -504,6 +504,19 @@ console.log('\n═══ PV17 · janvier N+1 posé pendant N, en attente du plan
   const k3 = vm.runInContext('JSON.parse(JSON.stringify(_construirePoseTp_(2027)))', b.ctx);
   r = b.appel({ vac: true, year: 2027, vacances: { '2028-01-21': 'V' } }, MAR);
   V('INDISPOS_2028 créé : janvier 2028 fermé dans l\'écran 2027 (il se pose au staff 2028)', k3.janvierSuivant.ouvert === false && r.resultat['2028-01-21'] === 'hors année', { js: k3.janvierSuivant, r: r.resultat });
+  // (27/11/2026) Le comité (staff.html) enregistre janvier 2028 avec la grille.
+  { const c = monde({}); c.ctx.__auj = '2026-12-01';
+    vm.runInContext(extraireFonction('../gas/temps_partiel.gs', '_janvierSuivantDuComite_'), c.ctx);
+    vm.runInContext(extraireFonction('../gas/temps_partiel.gs', 'janvierSuivantCampagne_'), c.ctx);
+    c.cl.ajouter('JANVIER_SUIVANT', [JSON.parse(JSON.stringify(vm.runInContext('JANVIER_SUIVANT_ENTETE', c.ctx))), ['PLEIN02', "'2028-01-20", 'V', 2027, '', 'MAR'], ['PLEIN02', "'2028-01-21", 'VM', 2027, '', 'MAR']]);
+    const valides = '_tpMondePresence_(2027).datesValides';
+    const n1 = vm.runInContext('_janvierSuivantDuComite_(2027, { PLEIN01: { "2028-01-11": "VAC", "2028-01-15": "VAC", "2027-03-01": "VAC" }, PLEIN02: { "2028-01-21": "" } }, ' + valides + ', "comité (test)")', c.ctx);
+    const L = () => c.cl.getSheetByName('JANVIER_SUIVANT').getDataRange().getValues().slice(1).map(l => l[0] + ' ' + String(l[1]).replace("'", '') + ' ' + l[2]).sort();
+    V('comité : PLEIN01 reçoit le 11/01/2028 (le samedi 15 ignoré, mars reste à la grille) ; PLEIN02 perd son 20/01 (non renvoyé), garde sa ½ journée du 21',
+      n1 === 2 && JSON.stringify(L()) === JSON.stringify(['PLEIN01 2028-01-11 V', 'PLEIN02 2028-01-21 VM']), { n1, l: L() });
+    vm.runInContext('getIndisposYear = function () { return 2027; }', c.ctx);
+    const camp = vm.runInContext('JSON.parse(JSON.stringify(janvierSuivantCampagne_()))', c.ctx);
+    V('config du staff : janvier 2028 ouvert, avec ce qui attend', camp.ouvert === true && camp.annee === 2027 && camp.parMar.PLEIN01['2028-01-11'] === 'V' && camp.jours.indexOf('2028-01-03') !== -1, camp); }   // (sans INDISPOS_2027 dans ce monde, aucun jour de grille à exclure)
   V('l\'initialisation de 2028 appelle bien la recopie', /janvierSuivantCopies = _janvierSuivantTransferer_\(newYear, function \(id, ds, codeInd\)/.test(fs.readFileSync('../gas/Indispos.gs', 'utf8')));
 }
 
@@ -646,7 +659,14 @@ async function ouvrir(cle, repondre) {
     const bJ = monde({}); const cleJ = vm.runInContext('JSON.parse(JSON.stringify(_construirePoseTp_(2027)))', bJ.ctx);
     const { w: wJ } = await ouvrir(cleJ, () => ({ success: false }));
     wJ.eval('VCX.mois = 11; vcxMois(1);');
-    V('« Suivant » après décembre ouvre « Janvier 2028 · sur vos vacances 2027 »', /Janvier 2028 · sur vos vacances 2027/.test(wJ.document.getElementById('vcxMt').textContent), wJ.document.getElementById('vcxMt').textContent);
+    V('« Suivant » après décembre ouvre « Janvier 2028 », avec le bandeau bleu du quota 2027 ; la jauge reste « Vacances 2027 »',
+      wJ.document.getElementById('vcxMt').textContent === 'Janvier 2028' && wJ.document.getElementById('vcxJsBandeau').style.display === 'block'
+      && /Ces jours sont des vacances 2027, prises en avance sur janvier 2028 \(possible jusqu'au 31\/01\/2028\)\. Ils comptent dans votre total 2027 ci-dessus\./.test(wJ.document.getElementById('vcxJsBandeau').textContent)
+      && wJ.document.getElementById('vcxJn').textContent === 'Vacances 2027',
+      [wJ.document.getElementById('vcxMt').textContent, wJ.document.getElementById('vcxJsBandeau').textContent, wJ.document.getElementById('vcxJn').textContent]);
+    wJ.eval('vcxMois(-1);');
+    V('…le bandeau disparaît en décembre', wJ.document.getElementById('vcxJsBandeau').style.display === 'none');
+    wJ.eval('vcxMois(1);');
     const avantJ = wJ.document.getElementById('vcxJv').textContent;
     wJ.document.querySelector('#vcxGrid [data-ds="2028-01-14"]').click();
     V('le 14/01/2028 se pose (aucun chiffre de présents) et compte sur 2027', wJ.eval('VCX.pend["2028-01-14"]') === 'V' && wJ.document.getElementById('vcxJv').textContent !== avantJ, [avantJ, wJ.document.getElementById('vcxJv').textContent]);
