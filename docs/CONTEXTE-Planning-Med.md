@@ -84,6 +84,9 @@ valide. Réponds en **français**, court, avec des chiffres concrets.
   attendre l'heure), « Vider le cache » en dernier.
 - **24/11 (v1.103.0)** : placement quotidien possible depuis le téléphone — vue Jour de l'onglet
   Planning sous 720 px, bascule Jour / Semaine ; l'ordinateur ne change pas.
+- **26–27/11 (v2.4.0 → v2.8.0)** : patients lib dans « Mes consultations », ouverts à tout le
+  groupement libéral ; **le responsable importe l'export CPA chaque vendredi** pour la semaine
+  suivante (Maintenance). Règles et pièges : ROADMAP, « Patients lib de Mes consultations ».
 - Lots du 13 au 15/11 et du 16 au 18/11 non racontés ici : lire `git log` (un message de commit par lot).
 
 ## 4. Comment travailler
@@ -129,6 +132,9 @@ valide. Réponds en **français**, court, avec des chiffres concrets.
   `JOURNEE_MOBILE` (`getJoursFeries`, `code.gs`). 2027 : lundi 7 juin.
 - **VM / VA** (demi-journée de vacances) : tapées à la main par le responsable, dans INDISPOS avant la
   génération, dans GARDES après ; aucun écran ne les efface.
+- **`PATIENTS_LIB`, `CPA_EXPORT`, `CPA_SALLES`** (créés au premier usage) : jamais de nom de patient.
+  Vider `PATIENTS_LIB` à la main ne casse rien (saisies et décisions perdues, lignes CPA intactes).
+  Le fichier d'export du CPA lui-même ne va jamais dans le dépôt.
 - **Injecter des données réelles dans le banc** (en local, jamais dans le dépôt) : dates en texte
   `'AAAA-MM-JJ'` ou construites avec le `Date` du contexte — un `Date` venu d'ailleurs échoue à
   `instanceof` et les bornes sont ignorées sans erreur.

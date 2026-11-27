@@ -459,6 +459,29 @@ Deux portes : tuile MAR et session secrétariat. Les **motifs d'absence ne sont 
 secrétariat** (filtrage serveur) ; `G`/`G2` ne comptent pas comme absence ; rôle secrétariat = liste
 blanche de deux actions, jamais `getPlanningJson`.
 
+### Patients lib de « Mes consultations » (v2.4.0 → v2.8.0, 26–27/11/2026)
+- **Ouvert à tout le groupement libéral** (colonne LIBERAL de MEDECINS, `_patlibDroit_`) ; tuile dans
+  **Moi**. Le droit réservé `patlib` reste reconnu mais ne sert plus.
+- **Rattrapage** : « Qui peut le voir ? » = membres du groupement présents le jour de **ma**
+  consultation **et** le jour du bloc. Jamais un autre jour de consultation (c'est l'ancien panneau,
+  qui sert à orienter le patient d'emblée). Garde = présent.
+- **Pas de « Confier »** (décision du 27/11) : la page dit **qui contacter**, l'accord se prend de vive
+  voix, le **secrétariat est prévenu par téléphone par le MAR**, rien dans l'interface. La pastille
+  orange s'éteint quand le MAR retire la ligne (×). L'opération `confier` existe encore côté serveur,
+  plus rien ne l'appelle.
+- **Classement** des confrères : la plus serrée des marges CCAM et NGAP (consultation + anesthésie).
+- **Export CPA** importé par le responsable seul (Maintenance), **chaque vendredi pour la semaine
+  suivante**. Lu dans le navigateur ; n'arrivent au serveur que jour, demi-journée, salle, secteur,
+  date opératoire (`partage/export_cpa.js`). Secteur lu dans l'agenda ; agenda sans secteur (« UB »)
+  → secteur de la salle cette demi-journée s'il est unique, sinon écarté et signalé.
+- **Salle ↔ MAR** : automatique si seul de son secteur avec une seule salle ; sinon le MAR choisit (ou
+  « Aucune ») et l'autre reçoit la salle restante. Une **consultation tenue par le secteur** (note `css`
+  du planning) est montrée aux MAR placés dans ce secteur du bloc, **seulement s'il y a des patients
+  lib** ; celui qui la fait la prend (« Oui, c'est moi »). En concurrence avec le secteur, un MAR
+  nommé n'est jamais rattaché d'office.
+- Onglets écrits par l'interface : `PATIENTS_LIB` (saisies à la main et décisions sur les lignes CPA,
+  vidable sans risque), `CPA_EXPORT`, `CPA_SALLES`. **Jamais de nom de patient.**
+
 ### Sécurité
 Toutes les actions derrière `checkCode()`, aucun code renvoyé en clair, verrou d'écriture
 (`WRITE_ACTIONS_LOCK` : toute nouvelle écriture le rejoint), journalisation « qui/quand » sans contenu
@@ -470,6 +493,9 @@ les cases valant exactement `CL`.
 ---
 
 ## 🚫 Écarté — ne pas reproposer sans élément nouveau
+
+- **Confier un patient lib dans le portail, ou prévenir le secrétariat depuis l'interface** *(26–27/11)*.
+  Décision du responsable : la page dit qui contacter, le reste se fait par téléphone.
 
 - **Réduire encore les écritures du relais** *(20/11, chiffré)*. Pistes : regrouper les poussées
   pendant une ruée (~3 min), calculer la pastille sur le téléphone, alléger les placements (3 → 1),
@@ -517,6 +543,15 @@ les cases valant exactement `CL`.
 ---
 
 ## Journal récent
+
+- **27/11/2026** — Patients lib (v2.4.0 → v2.8.0, `indisponibilites.gs` jusqu'à 2026-11-27.3) :
+  saisie date opératoire + nombre sous chaque consultation, verdict présent/absent, « Qui peut le
+  voir ? » (rattrapage) ; import hebdomadaire de l'export CPA (carte Maintenance, bibliothèque de
+  lecture de tableur chargée à la demande) avec rattachement par salle, choix de salle, consultations
+  tenues par le secteur ; marges CCAM + NGAP dans le classement ; agendas « UB » rattachés par la
+  salle. Testé deux jours par le responsable et un confrère, puis ouvert à tout le groupement, sans
+  « Confier ». Guide MAR section 27. Simulation sur l'export réel : ~1 patient lib sur 5 opéré un jour
+  d'absence de son MAR de consultation. Banc 8 039 ✓.
 
 - **26/11/2026** — Le TP et les vacances passent avant la récup de samedi (v2.3.0, `temps_partiel.gs`
   2026-11-26.1, décision du responsable) : à la pose d'un TP ou de vacances, et à la validation d'un TP
