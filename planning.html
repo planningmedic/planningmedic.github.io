@@ -1070,11 +1070,28 @@ const _MIROIR_PRE = { annees: null, secteurs: null };   // livre par miroirBoot(
 /* Ouverture par le miroir : UN aller-retour qui authentifie et livre annees
    + secteurs + planning + affectations. Renvoie true si la page est partie
    sur le miroir ; tout autre retour → l'appelant bascule sur le GAS. */
+/* (27/11/2026) L'ANNÉE DE PLANNING D'AUJOURD'HUI. Une année de planning commence à son premier
+   lundi (même règle que le serveur, getPremierJourPlanning) : les 1er, 2 et 3 janvier 2027
+   sont dans le planning 2026, le lundi 4 ouvre le planning 2027.
+   Pourquoi : la page ouvrait l'année ACTIVE, qui ne change qu'à la clôture. Du premier lundi
+   de janvier jusqu'au clic du responsable, elle s'ouvrait donc sur la dernière semaine de
+   l'année passée, sans rien dire (vu en rejouant la clôture 2026). Elle ouvre désormais
+   l'année du jour dès qu'elle est publiée — la clôture n'a plus d'heure à respecter. */
+function _anneePlanningDuJour(d) {
+  d = d || new Date();
+  const y = d.getFullYear(), dow = new Date(y, 0, 1).getDay();
+  const debut = new Date(y, 0, 1 + (dow === 1 ? 7 : dow === 0 ? 1 : 8 - dow));
+  return d >= debut ? y : y - 1;
+}
 async function miroirBoot() {
   const devine = new Date().getFullYear();
   const m = await miroirRead(['annees', 'secteurs', 'planning_' + devine, 'affectations_' + devine]);
   if (!m || !m.success) return m;
-  const active = (m.data && m.data.annees && Number(m.data.annees.active)) || devine;
+  const vraieActive = (m.data && m.data.annees && Number(m.data.annees.active)) || devine;
+  /* (27/11/2026) L'année suivante, si c'est celle du jour ET qu'elle est publiée, passe devant
+     l'année active (clôture pas encore faite). Dans tous les autres cas : l'année active. */
+  const duJour = _anneePlanningDuJour();
+  const active = (duJour === vraieActive + 1 && m.data && m.data['planning_' + duJour]) ? duJour : vraieActive;
   if (active !== devine) {
     const m2 = await miroirRead(['planning_' + active, 'affectations_' + active]);
     if (m2 && m2.success && m2.data) Object.assign(m.data, m2.data);
@@ -1388,7 +1405,11 @@ async function init(loginYear){
   }
 
   // 4. Construire le sélecteur d'année
-  currentYear = availableYears.includes(activeYear) ? activeYear : availableYears[availableYears.length - 1];
+  /* (27/11/2026) Ouverture par le serveur lent, clôture pas encore faite : même règle que
+     l'ouverture rapide — l'année de planning du jour, si elle est publiée. */
+  const _duJour = _anneePlanningDuJour();
+  currentYear = (_duJour === activeYear + 1 && availableYears.includes(_duJour)) ? _duJour
+    : availableYears.includes(activeYear) ? activeYear : availableYears[availableYears.length - 1];
   buildYearSelect(availableYears);
 
   // 5. Si l'année active n'était pas disponible, charger la plus récente
@@ -1676,7 +1697,7 @@ async function loadYear(year) {
 function goToToday(){
   // Basculer sur l'année active si on est sur une année archivée
   const now = new Date();
-  const todayYear = now.getFullYear();
+  const todayYear = _anneePlanningDuJour(now);   // (27/11/2026) le 1er janvier est encore dans le planning de l'année d'avant
   if(currentYear !== todayYear) {
     const sel = document.getElementById('yearSelect');
     // Chercher si l'année courante est dans le sélecteur

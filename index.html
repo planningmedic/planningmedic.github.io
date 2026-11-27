@@ -1367,7 +1367,8 @@ async function miroirBootDash() {
   /* (16/11/2026) La liste des années consultables (archives comprises) arrive
      déjà dans cet appel : la vue Année de « Mes gardes » s'en sert pour
      proposer de remonter dans le temps, sans appel de plus. */
-  try { if (m.data && m.data.annees && Array.isArray(m.data.annees.annees)) ANNEES_DISPO = m.data.annees.annees.map(function (a) { return Number(a.annee); }).filter(Boolean); } catch (e) {}
+  try { if (m.data && m.data.annees && Array.isArray(m.data.annees.annees)) { ANNEES_DISPO = m.data.annees.annees.map(function (a) { return Number(a.annee); }).filter(Boolean);
+    ANNEES_CLOSES = m.data.annees.annees.filter(function (a) { return a.archivee; }).map(function (a) { return Number(a.annee); }).filter(Boolean); } } catch (e) {}
   if (plan) { _planCache[active] = plan; _ssPlanSet(active, plan); }
   if (planSuiv) { _planCache[active + 1] = planSuiv; _ssPlanSet(active + 1, planSuiv); }
   /* (13/08/2026) L'ordre de passage voyage dans CE meme appel : le bandeau de
@@ -2202,6 +2203,7 @@ let MGA_ANNEES = null;     // années affichées, tri croissant
 let MGA_OUVERT = null;     // 'AAAA-MM' du mois agrandi
 let MGA_ACTIF = null;      // année active
 let ANNEES_DISPO = null;   // toutes les années consultables, archives comprises (clé `annees`)
+let ANNEES_CLOSES = [];    // (27/11/2026) parmi elles, les années clôturées (récapitulatif : consultables, sans PDF)
 const MGA_MOIS = ['Janvier','Février','Mars','Avril','Mai','Juin','Juillet','Août','Septembre','Octobre','Novembre','Décembre'];
 const MGA_CAT_LAB = { vac:'vac.', form:'form.', tp:'TP', recup:'récup', cl:'CL' };
 
@@ -2802,7 +2804,12 @@ function renderMesConges(){
     return '<div class="rc-t ' + cls + '"><b>' + _fr1(val) + '<span>' + (quota !== null ? ' / ' + _fr1(quota) : '') + ' j</span></b><em>' + lib + '</em>'
       + (quota !== null ? '<div class="rc-j"><i style="width:' + Math.min(100, quota ? val / quota * 100 : 0) + '%"></i></div><small>reste ' + _fr1(Math.max(0, quota - val)) + ' j</small>' : '') + '</div>';
   };
-  let h = '<div class="mga-ans rc-ans">' + ans.map(function(a){ return '<button type="button" data-rc-an="' + a + '" class="' + (a === y ? 'on' : '') + '">' + a + '</button>'; }).join('') + '</div>';
+  /* (27/11/2026) L'ANNÉE D'AVANT, CLÔTURÉE, RESTE CONSULTABLE ICI. Après la clôture, l'accueil ne
+     charge plus que l'année en cours et la suivante : le récapitulatif de l'année close n'était
+     plus proposé. Son bouton s'affiche ; le planning n'est demandé qu'au toucher (jamais à
+     l'ouverture, et jamais pour une année absente de la liste servie). */
+  const precClose = (ANNEES_CLOSES.indexOf(ans[0] - 1) !== -1) ? [ans[0] - 1] : [];
+  let h = '<div class="mga-ans rc-ans">' + precClose.concat(ans).map(function(a){ return '<button type="button" data-rc-an="' + a + '" class="' + (a === y ? 'on' : '') + '">' + a + '</button>'; }).join('') + '</div>';
   h += '<div class="rc-tuiles">' + tuile('rc-vac', vac, qv, 'Vacances' + (relDroit ? ' · + ' + _fr1(relPris) + ' / ' + _fr1(relDroit) + ' j du reliquat ' + (y - 1) + (mien.reliquatVac.touteAnnee ? '' : ' en janvier') : ''))
     + (qt !== null || tp ? tuile('rc-tp', tp, qt, 'Temps partiel') : '')
     + tuile('rc-form', form, null, 'Formation') + tuile('rc-rec', rec, null, 'Récupération')
@@ -2813,7 +2820,8 @@ function renderMesConges(){
     + '<span><i style="box-shadow:inset 0 0 0 1.5px var(--red)"></i>Férié</span></div>';
   h += '<div class="mga-grille rc-grille">';
   for (let m = 0; m < 12; m++) h += _recapMois(y, m, S, F, today);
-  h += '</div><button type="button" class="rc-pdf" id="rcPdf" onclick="recapPdf()"><i data-lucide="file-text" style="width:17px;height:17px"></i> Télécharger en PDF</button>'
+  /* Année clôturée : pas de PDF (le serveur le fabrique depuis le classeur de l'année en cours). */
+  h += '</div>' + (ANNEES_CLOSES.indexOf(y) !== -1 ? '' : '<button type="button" class="rc-pdf" id="rcPdf" onclick="recapPdf()"><i data-lucide="file-text" style="width:17px;height:17px"></i> Télécharger en PDF</button>')
     + '<p class="rc-note">Touchez un mois pour l\'agrandir. Le planning en ligne fait foi.</p>';
   box.innerHTML = h;
   if (window.lucide) lucide.createIcons();
@@ -2821,7 +2829,16 @@ function renderMesConges(){
 document.addEventListener('click', function(ev){
   const t = ev.target.closest ? ev.target.closest('[data-rc-an],[data-rc-mois]') : null;
   if (!t || !document.getElementById('mesCongesBody').contains(t)) return;
-  if (t.dataset.rcAn) { RC_ANNEE = Number(t.dataset.rcAn); RC_OUVERT = null; }
+  if (t.dataset.rcAn) {
+    const an = Number(t.dataset.rcAn);
+    if (!_planDejaLa(an)) {   // année clôturée, pas encore chargée : on la demande, puis on l'affiche
+      if (t.disabled) return;
+      t.disabled = true; t.textContent = '…';
+      _fetchPlanning(an).then(function (pl) { if (pl) { RC_ANNEE = an; RC_OUVERT = null; } renderMesConges(); }, function () { renderMesConges(); });
+      return;
+    }
+    RC_ANNEE = an; RC_OUVERT = null;
+  }
   else { RC_OUVERT = RC_OUVERT === t.dataset.rcMois ? null : t.dataset.rcMois; }
   renderMesConges();
 });

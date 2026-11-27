@@ -562,6 +562,17 @@ les cases valant exactement `CL`.
 
 ## Journal récent
 
+- **27/11/2026** — Répétition générale de la clôture 2026 (détail : document du projet Claude
+  `claude/repetition-cloture-2026-11-27.md`), puis deux correctifs (v2.12.3). Clôture jouée sur un
+  classeur fictif à la forme du vrai, puis 630 appels serveur, 11 tâches programmées, 1 000 gestes au
+  hasard et 8 écrans au 5 janvier 2027 : aucun plantage. La « Répétition à blanc » réelle, lancée par
+  le responsable, confirme l'accès au classeur d'archive. Corrigé : la page Planning ouvre l'année de
+  planning DU JOUR dès qu'elle est publiée (`_anneePlanningDuJour`) — du premier lundi de janvier à la
+  clôture elle s'ouvrait sur la dernière semaine de l'année passée ; le récapitulatif de l'année
+  clôturée reste consultable à l'écran, sans PDF (décision du responsable). Laissé tel quel :
+  indisponibilités, affectations et contrôles d'une année close ne s'affichent plus dans l'admin
+  (ils sont dans l'archive). Banc `banc_annee_du_jour.js`, `banc_ordre_vac.js` §5b.
+
 - **27/11/2026** — Clôture d'année : cinq onglets nés après le 15/11 sont rangés aussi (v2.12.2,
   `setup_annee.gs` 2026-11-27.2). Lignes datées avant le premier lundi de l'année suivante :
   PLANNING_NOTES, CPA_SALLES, PATIENTS_LIB et CPA_EXPORT (la plus tardive de la consultation et du

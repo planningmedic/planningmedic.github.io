@@ -272,6 +272,45 @@ console.log('\n═══ 5. L\'écran : le bandeau, puis la file au clic ══�
     await new Promise(r => setTimeout(r, 4200));
     V('…puis il redevient « Télécharger en PDF », utilisable', D.getElementById('rcPdf').innerHTML === libAvant && !D.getElementById('rcPdf').disabled);
 
+    /* (27/11/2026) L'ANNÉE D'AVANT, CLÔTURÉE, RESTE CONSULTABLE À L'ÉCRAN — trouvé en rejouant la
+       clôture 2026 : l'accueil ne charge plus que l'année en cours et la suivante, le
+       récapitulatif 2026 n'était plus proposé. Décision du responsable : consultable à
+       l'écran, sans PDF (« le PDF d'une année d'avant, on s'en fout »). */
+    {
+      const boutons = () => [...D.querySelectorAll('#mesCongesBody [data-rc-an]')].map(b => b.textContent + (b.classList.contains('on') ? '*' : ''));
+      dansLaPage("RC_ANNEE=null; renderMesConges();");
+      V('année d\'avant non clôturée (ou liste inconnue) : pas de bouton en plus', boutons().join(' ') === '2027*', boutons());
+      const j26 = []; for (let d = new Date(2026, 0, 5, 12); d < new Date(2027, 0, 4); d = new Date(d.getFullYear(), d.getMonth(), d.getDate() + 1, 12)) j26.push(d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0') + '-' + String(d.getDate()).padStart(2, '0'));
+      const m26 = {}; j26.forEach(ds => { const k = ds.slice(0, 7); (m26[k] = m26[k] || []).push(ds); });
+      const s26 = { '2026-06-02':'V', '2026-06-03':'V', '2026-09-12':'G', '2026-09-13':'RG', '2026-10-07':'18' };
+      const plan26 = { months: Object.keys(m26).map(k => ({ days: m26[k].map(ds => ({ date: ds })), doctors: [{ id: 'MOI', days: m26[k].map(ds => ({ status: s26[ds] || '' })) }] })) };
+      w.__plan26 = plan26; w.__demandes = [];
+      dansLaPage("_fetchPlanning = async function (y) { __demandes.push(y); if (y !== 2026) return null; _planCache[y] = __plan26; return _planCache[y]; };");
+      dansLaPage("ANNEES_CLOSES=[2026]; RC_ANNEE=null; renderMesConges();");
+      V('année d\'avant clôturée : son bouton apparaît, l\'année en cours reste affichée', boutons().join(' ') === '2026 2027*', boutons());
+      V('…sans rien charger tant qu\'on n\'y touche pas', w.__demandes.length === 0 && !w.eval('!!_planCache[2026]'), w.__demandes);
+      V('l\'année en cours garde son bouton PDF', !!D.getElementById('rcPdf'));
+      D.querySelector('#mesCongesBody [data-rc-an="2026"]').dispatchEvent(new w.MouseEvent('click', { bubbles:true }));
+      await new Promise(r => setTimeout(r, 80));
+      const c26 = D.getElementById('mesCongesBody');
+      V('toucher 2026 : le planning est demandé une fois, puis l\'année s\'affiche', w.__demandes.join() === '2026' && boutons().join(' ') === '2026* 2027', [w.__demandes, boutons()]);
+      V('…ses 12 mois et ses compteurs (2 jours de vacances, 1 garde, 1 fois 18 h), sans quota', c26.querySelectorAll('.rc-grille .mga-mois').length === 12
+        && /^2\s*j/.test(c26.querySelector('.rc-vac b').textContent.trim()) && !/reste/.test(c26.querySelector('.rc-vac').textContent) && c26.querySelector('.rc-g b').textContent === '1' && c26.querySelector('.rc-h b').textContent === '1',
+        [c26.querySelector('.rc-vac').textContent, c26.querySelector('.rc-g').textContent]);
+      V('…et PAS de bouton PDF pour une année clôturée', !D.getElementById('rcPdf'));
+      D.querySelector('#mesCongesBody [data-rc-an="2027"]').dispatchEvent(new w.MouseEvent('click', { bubbles:true }));
+      await new Promise(r => setTimeout(r, 30));
+      V('retour sur 2027 : rien n\'est redemandé, le PDF revient', w.__demandes.join() === '2026' && boutons().join(' ') === '2026 2027*' && !!D.getElementById('rcPdf'), [w.__demandes, boutons()]);
+      dansLaPage("ANNEES_CLOSES=[2025]; delete _planCache[2026]; RC_ANNEE=null; renderMesConges();");
+      V('une année clôturée plus ancienne n\'est pas proposée (seulement l\'année juste avant)', boutons().join(' ') === '2027*', boutons());
+      const nErr = erreurs.length;
+      dansLaPage("_fetchPlanning = async function () { return null; }; ANNEES_CLOSES=[2026]; RC_ANNEE=null; renderMesConges();");
+      D.querySelector('#mesCongesBody [data-rc-an="2026"]').dispatchEvent(new w.MouseEvent('click', { bubbles:true }));
+      await new Promise(r => setTimeout(r, 60));
+      V('planning de l\'année close introuvable : on reste sur l\'année en cours, sans erreur', boutons().join(' ') === '2026 2027*' && erreurs.length === nErr, [boutons(), erreurs.slice(nErr)]);
+      dansLaPage("ANNEES_CLOSES=[]; delete _planCache[2026]; RC_ANNEE=null; renderMesConges();");
+    }
+
     /* (27/11/2026) REPLI SERVEUR : sans la copie rapide, quotas et pastille « à poser »
        n'arrivaient jamais. Ils sont demandés au serveur pour les années ouvertes. */
     {
