@@ -70,6 +70,21 @@ function monde(opts) {
     ['MAR04', '2026-02-01', '2026-04-30', 'x', ''],
     ['MAR05', '2026-11-01', '2027-02-07', 'x', ''],
     ['MAR06', '2027-03-01', '2027-04-01', 'x', 'OUI']]);
+  /* (27/11/2026) Les cinq onglets nés après la clôture du 15/11. Premier lundi de 2027 : 04/01/2027. */
+  if (!opts.sansRecents) {
+    M.ajouter('PLANNING_NOTES', [['DATE', 'TYPE', 'DEMI', 'TEXTE'], ['2026-12-30', 'jour', '', 'note de 2026'], ['2027-01-03', 'jour', '', 'dimanche encore dans 2026'], ['2027-01-04', 'jour', '', 'premier lundi 2027']]);
+    M.ajouter('CPA_SALLES', [['DATE', 'PER', 'MAR', 'SALLE', 'MAJ'], ['2026-12-10', 'M', 'MAR01', 'S1', 'x'], ['2027-01-12', 'M', 'MAR02', 'S2', 'y']]);
+    M.ajouter('PATIENTS_LIB', [['ID', 'MAR', 'DATE_CONSULT', 'PER', 'DATE_BLOC', 'NB', 'CONFIE_A', 'MAJ'],
+      ['P1', 'MAR01', '2026-11-02', 'M', '2026-11-20', 1, '', 'x'],
+      ['P2', 'MAR01', '2026-12-18', 'M', '2027-01-11', 2, '', 'x'],      // vu en décembre, opéré en janvier : reste
+      ['P3', 'MAR02', '2026-12-20', 'A', '', 1, '', 'x'],                // pas de date opératoire : la consultation décide
+      ['P4', 'MAR02', '2027-01-08', 'M', '2027-01-15', 1, '', 'x'],
+      ['P5', 'MAR03', '', 'M', '', 1, '', 'x']]);                        // aucune date lisible : reste
+    M.ajouter('CPA_EXPORT', [['DATE_CONSULT', 'PER', 'SALLE', 'SECTEUR', 'DATE_BLOC', 'NB', 'IMPORT'],
+      ['2026-12-01', 'M', 'S1', 'BLOC', '2026-12-15', 1, 'i1'], ['2026-12-22', 'M', 'S1', 'BLOC', '2027-01-06', 1, 'i1'], ['2027-01-05', 'A', 'S2', 'BLOC', '2027-01-19', 1, 'i2']]);
+    M.ajouter('VERIF_PREVENUS', [['CLE', 'LE', 'PAR'], ['tp_tendu|MAR01|2026-06-01', '2026-05-20', 'COMITE'], ['sans_g|EQUIPE|2027-01-02', '2026-12-30', 'COMITE'],
+      ['recup|MAR02|2026', '2026-11-01', 'COMITE'], ['tp_tendu|MAR03|2027-02-01', '2026-11-20', 'COMITE'], ['recup|MAR04|2027', '2026-11-21', 'COMITE']]);
+  }
   if (!opts.pasDe2027) {
     M.ajouter('INDISPOS_2027', [['I'], ['I'], ['ID'].concat(datesPlanning(2027))].concat(MARS.map(id => [id])));
     M.ajouter('GARDES_2027', grilleGardes(2027));
@@ -302,7 +317,8 @@ console.log('═══ O. Lot C : le classeur maître ne garde que l\'année en 
 {
   const w = monde();
   const v = action(w, 'clotureVerifier', { year: 2026 });
-  V('répétition : elle annonce les lignes qui partiront', v.controles.some(c => /Lignes 2026 qui partiront à l'archive : ECHANGES \(1\), TP_DEMANDES \(1\), TP_FERMES \(1\), ABSENCES_LONGUES \(1\)/.test(c.texte)), v.controles.map(c => c.texte));
+  V('répétition : elle annonce les lignes qui partiront, onglets récents compris (27/11/2026)', v.controles.some(c => /Lignes 2026 qui partiront à l'archive : ECHANGES \(1\), TP_DEMANDES \(1\), TP_FERMES \(1\), ABSENCES_LONGUES \(1\), PLANNING_NOTES \(2\), CPA_SALLES \(1\), PATIENTS_LIB \(2\), CPA_EXPORT \(1\), VERIF_PREVENUS \(3\)/.test(c.texte)), v.controles.map(c => c.texte));
+  V('…et la répétition n\'a rien déplacé', w.M.getSheetByName('PLANNING_NOTES').lignes.length === 4 && !w.A.getSheetByName('PLANNING_NOTES'));
   V('répétition : le bilan donne la part et les jours de TP', v.bilan.mars.find(m => m.id === 'MAR02').part === 54.4 && v.bilan.mars.find(m => m.id === 'MAR02').joursTp === 3, v.bilan.mars.find(m => m.id === 'MAR02'));
   const r = w.ctx.cloturerAnnee_(2026);
   V('la clôture réussit', r.success === true, r.message);
@@ -316,6 +332,24 @@ console.log('═══ O. Lot C : le classeur maître ne garde que l\'année en 
   V('TP_DEMANDES : 2026 partie, 2027 reste', ids('TP_DEMANDES').length === 1 && Number(ids('TP_DEMANDES')[0]) === 2027 && idsA('TP_DEMANDES').length === 1);
   V('TP_FERMES : 2026 partie', ids('TP_FERMES').length === 0 && idsA('TP_FERMES').length === 1);
   V('ABSENCES_LONGUES : la terminée part, celle à cheval et la future restent', JSON.stringify(ids('ABSENCES_LONGUES')) === '["MAR05","MAR06"]' && JSON.stringify(idsA('ABSENCES_LONGUES')) === '["MAR04"]', [ids('ABSENCES_LONGUES'), idsA('ABSENCES_LONGUES')]);
+  /* (27/11/2026) Les cinq onglets récents : même règle, « avant le premier lundi de 2027 » (04/01/2027). */
+  const iso = x => (x instanceof Date ? x.getFullYear() + '-' + String(x.getMonth() + 1).padStart(2, '0') + '-' + String(x.getDate()).padStart(2, '0') : String(x));   // la feuille simulée rend parfois une date
+  const col = (cl, n, k) => (cl.getSheetByName(n) ? cl.getSheetByName(n).lignes.slice(1).filter(l => l.some(x => String(x).trim())).map(l => iso(l[k])) : []);
+  V('PLANNING_NOTES : les notes de 2026 partent, dimanche 03/01 compris ; celle du lundi 04/01/2027 reste',
+    JSON.stringify(col(w.M, 'PLANNING_NOTES', 3)) === '["premier lundi 2027"]' && col(w.A, 'PLANNING_NOTES', 3).length === 2, [col(w.M, 'PLANNING_NOTES', 3), col(w.A, 'PLANNING_NOTES', 3)]);
+  V('CPA_SALLES : le rattachement de décembre part, celui de janvier reste', JSON.stringify(col(w.M, 'CPA_SALLES', 2)) === '["MAR02"]' && JSON.stringify(col(w.A, 'CPA_SALLES', 2)) === '["MAR01"]');
+  V('PATIENTS_LIB : vu ET opéré en 2026, ou vu en 2026 sans date opératoire → partent',  JSON.stringify(col(w.A, 'PATIENTS_LIB', 0)) === '["P1","P3"]', col(w.A, 'PATIENTS_LIB', 0));
+  V('…vu en décembre et opéré en janvier, tout 2027, ou sans aucune date lisible → restent', JSON.stringify(col(w.M, 'PATIENTS_LIB', 0)) === '["P2","P4","P5"]', col(w.M, 'PATIENTS_LIB', 0));
+  V('CPA_EXPORT : même règle (la plus tardive des deux dates)', col(w.M, 'CPA_EXPORT', 0).join() === '2026-12-22,2027-01-05' && col(w.A, 'CPA_EXPORT', 0).join() === '2026-12-01', [col(w.M, 'CPA_EXPORT', 0), col(w.A, 'CPA_EXPORT', 0)]);
+  V('VERIF_PREVENUS : les cases « Prévenu » de 2026 partent (date avant le 04/01/2027, ou année 2026)',
+    JSON.stringify(col(w.A, 'VERIF_PREVENUS', 0)) === '["tp_tendu|MAR01|2026-06-01","sans_g|EQUIPE|2027-01-02","recup|MAR02|2026"]', col(w.A, 'VERIF_PREVENUS', 0));
+  V('…celles de 2027 restent', JSON.stringify(col(w.M, 'VERIF_PREVENUS', 0)) === '["tp_tendu|MAR03|2027-02-01","recup|MAR04|2027"]', col(w.M, 'VERIF_PREVENUS', 0));
+  V('les onglets d\'archive ont le même en-tête que l\'original', ['PLANNING_NOTES', 'CPA_SALLES', 'PATIENTS_LIB', 'CPA_EXPORT', 'VERIF_PREVENUS'].every(n => w.A.getSheetByName(n).lignes[0].join() === w.M.getSheetByName(n).lignes[0].join()));
+  {
+    const w0 = monde({ sansRecents: true });
+    const r0 = w0.ctx.cloturerAnnee_(2026);
+    V('classeur sans ces cinq onglets (jamais créés) : la clôture réussit quand même, sans les créer', r0.success === true && ['PLANNING_NOTES', 'CPA_SALLES', 'PATIENTS_LIB', 'CPA_EXPORT', 'VERIF_PREVENUS'].every(n => !w0.M.getSheetByName(n) && !w0.A.getSheetByName(n)), r0.message);
+  }
   const H = w.M.getSheetByName('HISTORIQUE').lignes;
   V('HISTORIQUE : colonnes PART EXACTE et JOURS TP', H[0][18] === 'PART EXACTE' && H[0][19] === 'JOURS TP', H[0]);
   const h2 = H.find(l => l[0] === 'MAR02' && l[1] === 2026);
@@ -355,7 +389,7 @@ console.log('═══ O. Lot C : le classeur maître ne garde que l\'année en 
   const w = monde();
   const st = w.M.getSheetByName('STATS_GARDES_2026');
   st.lignes = [['MEDECIN', 'CIBLE', 'TOTAL G', 'NOEL/AN']].concat(MARS.map((id, k) => [id, k === 1 ? 32.4 : 36, 60, 0]));
-  ['ECHANGES', 'TP_DEMANDES', 'TP_FERMES', 'ABSENCES_LONGUES'].forEach(n => { const sh = w.M.getSheetByName(n); sh.lignes = [sh.lignes[0]]; });
+  ['ECHANGES', 'TP_DEMANDES', 'TP_FERMES', 'ABSENCES_LONGUES', 'PLANNING_NOTES', 'CPA_SALLES', 'PATIENTS_LIB', 'CPA_EXPORT', 'VERIF_PREVENUS'].forEach(n => { const sh = w.M.getSheetByName(n); sh.lignes = [sh.lignes[0]]; });
   const v = action(w, 'clotureVerifier', { year: 2026 });
   V('sans PART EXACTE : la part du bilan vient de CIBLE (MAR02 : 32,4)', v.bilan.mars.find(m => m.id === 'MAR02').part === 32.4, v.bilan.mars.find(m => m.id === 'MAR02'));
   V('rien à déplacer : la répétition le dit', v.controles.some(c => /aucune à déplacer/.test(c.texte)), v.controles.map(c => c.texte));

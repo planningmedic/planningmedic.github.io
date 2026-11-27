@@ -1,7 +1,7 @@
 // ⚠️ RÈGLE (détecteur de dérive dépôt↔Apps Script) : incrémenter cette version
 // à CHAQUE push de ce fichier. Le diagnostic (admin → Maintenance) compare la
 // version déployée ici avec celle du dépôt et signale toute recopie oubliée.
-const GAS_VERSION_SETUP = '2026-11-27.1';   // (27/11/2026) .1 : onglet JANVIER_SUIVANT rangé avec la préparation de l'année · (26/11/2026) .3 : onglets CPA_EXPORT et CPA_SALLES (export CPA) rangés avec les onglets écrits par l'interface · .2 : onglet RELIQUATS rangé avec la préparation de l'année ; la clôture fige le reliquat de vacances de l'année (dès 2027) avant de déplacer GARDES · .1 : onglet PATIENTS_LIB (patients lib des consultations) rangé avec les onglets écrits par l'interface · (25/11/2026) .1 : onglet SALLES_TYPE (semaine type des salles) rangé avec la configuration · (19/11/2026) onglet PLANNING_NOTES (interne et infos du jour) rangé avec les onglets écrits par l'interface · (17/11/2026) onglet VERIF_PREVENUS (cases « Prévenu » des points à vérifier) rangé avec les onglets écrits par l'interface · (15/11/2026) .4 : part de gardes lue dans CIBLE quand PART EXACTE manque (statistiques 2026) ; la répétition dit aussi « aucune ligne à déplacer » · (15/11/2026) .3 lot C : la clôture emporte aussi REA1_ et FETES_ de l'année, le libéral de l'année précédente, et les lignes de l'année dans ECHANGES, TP_DEMANDES, TP_FERMES, ABSENCES_LONGUES (sans doublon à la relance) ; HISTORIQUE gagne PART EXACTE et JOURS TP · (15/11/2026) .2 : date du refus de clôture écrite en français (« lundi 4 janvier 2027 ») · (15/11/2026) clôture d'année en un seul geste (cloturerAnnee_) : contrôles bloquants (date, année suivante, case ANNEE_ACTIVE, archive, homonymes, sauvegardes), copie de sécurité du classeur, bilan, déplacement sûr (archiveMoveTabs_, LIENS_R compris), bascule relue, campagne fermée, contrôle d'après, mail ; répétition à blanc (clotureVerifier_) ; archiveYear depuis l'éditeur passe par les mêmes refus ; lanceurs d'essai retirés · (10/11/2026) rangement des onglets en 7 familles, tous les onglets annuels reconnus quelle que soit l'année
+const GAS_VERSION_SETUP = '2026-11-27.2';   // (27/11/2026) .2 : la clôture range aussi les lignes de l'année de PLANNING_NOTES, CPA_SALLES, PATIENTS_LIB, CPA_EXPORT et VERIF_PREVENUS · .1 : onglet JANVIER_SUIVANT rangé avec la préparation de l'année · (26/11/2026) .3 : onglets CPA_EXPORT et CPA_SALLES (export CPA) rangés avec les onglets écrits par l'interface · .2 : onglet RELIQUATS rangé avec la préparation de l'année ; la clôture fige le reliquat de vacances de l'année (dès 2027) avant de déplacer GARDES · .1 : onglet PATIENTS_LIB (patients lib des consultations) rangé avec les onglets écrits par l'interface · (25/11/2026) .1 : onglet SALLES_TYPE (semaine type des salles) rangé avec la configuration · (19/11/2026) onglet PLANNING_NOTES (interne et infos du jour) rangé avec les onglets écrits par l'interface · (17/11/2026) onglet VERIF_PREVENUS (cases « Prévenu » des points à vérifier) rangé avec les onglets écrits par l'interface · (15/11/2026) .4 : part de gardes lue dans CIBLE quand PART EXACTE manque (statistiques 2026) ; la répétition dit aussi « aucune ligne à déplacer » · (15/11/2026) .3 lot C : la clôture emporte aussi REA1_ et FETES_ de l'année, le libéral de l'année précédente, et les lignes de l'année dans ECHANGES, TP_DEMANDES, TP_FERMES, ABSENCES_LONGUES (sans doublon à la relance) ; HISTORIQUE gagne PART EXACTE et JOURS TP · (15/11/2026) .2 : date du refus de clôture écrite en français (« lundi 4 janvier 2027 ») · (15/11/2026) clôture d'année en un seul geste (cloturerAnnee_) : contrôles bloquants (date, année suivante, case ANNEE_ACTIVE, archive, homonymes, sauvegardes), copie de sécurité du classeur, bilan, déplacement sûr (archiveMoveTabs_, LIENS_R compris), bascule relue, campagne fermée, contrôle d'après, mail ; répétition à blanc (clotureVerifier_) ; archiveYear depuis l'éditeur passe par les mêmes refus ; lanceurs d'essai retirés · (10/11/2026) rangement des onglets en 7 familles, tous les onglets annuels reconnus quelle que soit l'année
 
 
 // ══════════════════════════════════════════════════════════════════════
@@ -722,7 +722,15 @@ function _clotureDeplacer_(ss, arch, nom) {
      ECHANGES           ANNEE = year, sauf une demande encore « attente »
      TP_DEMANDES, TP_FERMES   ANNEE ≤ year
      ABSENCES_LONGUES   DATE_FIN avant le premier lundi de year+1 (une absence à
-                        cheval sur deux années reste). */
+                        cheval sur deux années reste).
+   (27/11/2026) Cinq onglets nés après la clôture du 15/11 gardaient leurs lignes
+   de l'année close. Même règle de date — avant le premier lundi de year+1 :
+     PLANNING_NOTES     DATE de la note
+     CPA_SALLES         DATE du rattachement
+     PATIENTS_LIB, CPA_EXPORT   la PLUS TARDIVE de DATE_CONSULT et DATE_BLOC : un
+                        patient vu en décembre et opéré en janvier reste
+     VERIF_PREVENUS     la clé « code|MAR|date » (ou « code|MAR|année ») : la date
+                        avant ce lundi, ou l'année close et avant. */
 function _clotureLignesRegles_(year) {
   const pj = getPremierJourPlanning(year + 1);
   const debut = new Date(pj.getFullYear(), pj.getMonth(), pj.getDate());
@@ -731,11 +739,22 @@ function _clotureLignesRegles_(year) {
     const m = String(v || '').trim().match(/^(\d{4})-(\d{2})-(\d{2})/);
     return m ? new Date(Number(m[1]), Number(m[2]) - 1, Number(m[3])) : null;
   };
+  /* Part si la plus tardive des deux dates est avant le premier lundi ; sans aucune date lisible, la ligne reste. */
+  const dernier = (a, b) => { const x = jour(a), y = jour(b); const d = x && y ? (x > y ? x : y) : (x || y); return !!d && d < debut; };
   return [
     { onglet: 'ECHANGES', texte: true, part: (r, c) => Number(r[c.ANNEE]) === year && String(r[c.ETAT]).trim() !== 'attente', cols: ['ANNEE', 'ETAT'] },
     { onglet: 'TP_DEMANDES', part: (r, c) => Number(r[c.ANNEE]) > 0 && Number(r[c.ANNEE]) <= year, cols: ['ANNEE'] },
     { onglet: 'TP_FERMES', part: (r, c) => Number(r[c.ANNEE]) > 0 && Number(r[c.ANNEE]) <= year, cols: ['ANNEE'] },
     { onglet: 'ABSENCES_LONGUES', part: (r, c) => { const f = jour(r[c.DATE_FIN]); return !!f && f < debut; }, cols: ['DATE_FIN'] },
+    { onglet: 'PLANNING_NOTES', part: (r, c) => { const d = jour(r[c.DATE]); return !!d && d < debut; }, cols: ['DATE'] },
+    { onglet: 'CPA_SALLES', part: (r, c) => { const d = jour(r[c.DATE]); return !!d && d < debut; }, cols: ['DATE'] },
+    { onglet: 'PATIENTS_LIB', part: (r, c) => dernier(r[c.DATE_CONSULT], r[c.DATE_BLOC]), cols: ['DATE_CONSULT', 'DATE_BLOC'] },
+    { onglet: 'CPA_EXPORT', part: (r, c) => dernier(r[c.DATE_CONSULT], r[c.DATE_BLOC]), cols: ['DATE_CONSULT', 'DATE_BLOC'] },
+    { onglet: 'VERIF_PREVENUS', part: (r, c) => {
+        const fin = String(r[c.CLE] || '').trim().split('|').pop();
+        if (/^\d{4}$/.test(fin)) return Number(fin) <= year;
+        const d = jour(fin); return !!d && d < debut;
+      }, cols: ['CLE'] },
   ];
 }
 function _clotureLignes_(ss, arch, year, aBlanc) {

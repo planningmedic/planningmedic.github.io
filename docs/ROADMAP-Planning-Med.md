@@ -67,7 +67,7 @@ dans « À faire ». Quand le journal récent dépasse une page, ses entrées pa
   ~~receveur d'un don non éligible (B5)~~ fait le 27/11 (v2.11.0).
 - **Suite du diagnostic du 27/11** (détail dans les documents du projet Claude), non tranché :
   appels sans limite de temps dans `absences.html` et `paie.html` ; icônes de secteur jamais
-  dessinées dans `admin.html` ; clôture d'année qui ne range pas cinq onglets récents ; contrôles du
+  dessinées dans `admin.html` ; contrôles du
   banc qui lisent l'ancien formulaire d'échange (à déplacer avant de retirer ce code) ; deux documents
   du module libéral chargent encore une police extérieure (IBM Plex). Voulu, à ne pas « corriger » :
   une récupération peut être posée AVANT son samedi quand aucun jour ne convient après (une
@@ -561,6 +561,12 @@ les cases valant exactement `CL`.
 ---
 
 ## Journal récent
+
+- **27/11/2026** — Clôture d'année : cinq onglets nés après le 15/11 sont rangés aussi (v2.12.2,
+  `setup_annee.gs` 2026-11-27.2). Lignes datées avant le premier lundi de l'année suivante :
+  PLANNING_NOTES, CPA_SALLES, PATIENTS_LIB et CPA_EXPORT (la plus tardive de la consultation et du
+  bloc — un patient vu en décembre et opéré en janvier reste), VERIF_PREVENUS (cases « Prévenu » de
+  l'année close). La répétition à blanc les annonce. Banc `banc_cloture.js` (lot O).
 
 - **27/11/2026** — Suite du diagnostic (v2.12.1, `temps_partiel.gs` 2026-11-27.7,
   `indisponibilites.gs` .7). Polices servies par le site (`assets/fonts/`, DM Sans variable et DM Mono,
