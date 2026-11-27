@@ -72,7 +72,7 @@
    poussée : le client se replie sur le circuit GAS.
    ═══════════════════════════════════════════════════════════════════ */
 
-const VERSION = 'miroir 2026-11-25.1';   // (25/11/2026) bourse aux gardes : les offres en vitrine sont servies à tous les MAR (filtreEchanges) · (18/11/2026) fin du dépôt : deux notifications À LA MINUTE (1 h avant l'heure des réponses, puis à l'heure) par la tâche planifiée du Worker (scheduled) · (15/11/2026) dépôt sans course : heure des réponses (notif_config.reponses) servie à la page · (15/11/2026) annonce sans date (« prochainement ») · (14/11/2026) ouverture programmée des échanges (notif_config.ouverture), instant servi à la page
+const VERSION = 'miroir 2026-11-27.1';   // (27/11/2026) bourse : une offre RÉSERVÉE à un collègue (receveur renseigné) n'est servie qu'au donneur et à ce collègue · (25/11/2026) bourse aux gardes : les offres en vitrine sont servies à tous les MAR (filtreEchanges) · (18/11/2026) fin du dépôt : deux notifications À LA MINUTE (1 h avant l'heure des réponses, puis à l'heure) par la tâche planifiée du Worker (scheduled) · (15/11/2026) dépôt sans course : heure des réponses (notif_config.reponses) servie à la page · (15/11/2026) annonce sans date (« prochainement ») · (14/11/2026) ouverture programmée des échanges (notif_config.ouverture), instant servi à la page
 
 // Clés admissibles — tout le reste est refusé à l'écriture comme à la
 // lecture. Garde-fou contre une faute de frappe côté GAS qui créerait
@@ -578,7 +578,8 @@ function filtreEchanges(valeur, id) {
     if (!e) return false;
     /* (25/11/2026 — bourse aux gardes) Une offre EN VITRINE se voit de tous : c'est son
        principe. Conclue, retirée ou sans objet, elle redevient l'affaire du seul donneur. */
-    if ((e.type === 'bourse' || e.type === 'bourse18') && e.etat === 'attente') return true;
+    /* (27/11/2026) Réservée à un collègue (receveur renseigné) : le donneur et lui seuls la voient. */
+    if ((e.type === 'bourse' || e.type === 'bourse18') && e.etat === 'attente' && !String(e.receveur || '').trim()) return true;
     return String(e.demandeur || '').toUpperCase() === moi || String(e.receveur || '').toUpperCase() === moi;
   }) : [] };
 }

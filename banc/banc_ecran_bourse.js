@@ -258,6 +258,59 @@ const dodo = ms => new Promise(r => setTimeout(r, ms));
     V('… et repart avec accepteCouple', rep.length === 2 && rep[1].accepteCouple === true && rep[1].id === 'E5', rep);
   }
 
+  console.log('\n═══ 8. Offre réservée à un collègue (27/11/2026) ═══');
+  {
+    const w0 = vm.createContext({ globalThis:{}, console, crypto, TextEncoder, Response, Request, URL, JSON, Date, Math, Object, Array, String, Number, Set, Promise });
+    w0.globalThis = w0; vm.runInContext(src, w0);
+    const res = vitrine.concat([ O({ id:'B20', type:'bourse', date:'2027-03-11', demandeur:'BRAVO', receveur:'ALPHA', mode:'deux' }) ]);
+    const vus = id => w0.filtreEchanges({ success:true, echanges:res }, id).echanges.map(e => e.id);
+    V('le relais : l\'offre réservée est servie au donneur et au collègue visé', vus('BRAVO').indexOf('B20') > -1 && vus('ALPHA').indexOf('B20') > -1);
+    V('… et à personne d\'autre', vus('DELTA').indexOf('B20') === -1 && vus('CHARLI').indexOf('B20') === -1, vus('DELTA'));
+    V('contre-épreuve : les offres ouvertes restent servies à tous', ['B1','B2','B3'].every(x => vus('DELTA').indexOf(x) > -1));
+
+    const kv = await kvBourse();
+    kv.echanges = JSON.stringify({ success:true, echanges:res.concat([ O({ id:'B21', type:'bourse', date:'2027-03-12', demandeur:'CHARLI', receveur:'DELTA', mode:'don' }) ]) });
+    const appels = [];
+    const { w, erreurs } = await monterPage(kv, c => login(c) || (appels.push(c), { success:true, etat:'refusee' }));
+    const d = w.document;
+    w.location.hash = '#echanges'; w.route(); await dodo(400);
+    const h = d.getElementById('echList').innerHTML;
+    const iR = h.indexOf('<h3>Réservées pour vous</h3>'), iO = h.indexOf('<h3>Offres</h3>');
+    V('« Réservées pour vous » s\'affiche avant les offres, avec l\'offre de BRAVO', iR > -1 && iR < iO && h.indexOf("bxPrendre('B20'") > iR && h.indexOf("bxPrendre('B20'") < iO, [iR, iO]);
+    V('la carte dit « Réservée pour vous par Dr Bravo » et propose « Décliner »', /Réservée pour vous par <strong>Dr Bravo/.test(h) && /bxDecliner\('B20'/.test(h));
+    V('une offre réservée à un autre n\'apparaît jamais, même si elle arrivait', !/B21/.test(h));
+    V('les offres ouvertes n\'ont pas de « Décliner »', !/bxDecliner\('B1'/.test(h));
+    V('la pastille compte l\'offre réservée, pas celle d\'un autre (3 + 1 + 1 échange reçu)', d.getElementById('echPastille').textContent === '5', d.getElementById('echPastille').textContent);
+    w.bxDecliner('B20'); await dodo(50);
+    d.getElementById('bxOui').click(); await dodo(300);
+    V('décliner : declinerBourse part avec l\'identifiant', appels.some(c => c.action === 'declinerBourse' && c.id === 'B20'), appels.slice(-1));
+    const h2 = d.getElementById('echList').innerHTML;
+    V('l\'offre quitte l\'écran, « Offre déclinée » s\'affiche', !/bxPrendre\('B20'/.test(h2) && /Offre déclinée/.test(h2));
+    V('aucune erreur JavaScript', erreurs.length === 0, erreurs.slice(0, 2));
+  }
+  {
+    // Côté donneur : déposer en réservant, puis la carte « Réservée au Dr … »
+    const envois = [];
+    const kv = await kvBourse();
+    kv.echanges = JSON.stringify({ success:true, echanges:[] });
+    const { w } = await monterPage(kv, c => login(c) || (envois.push(c), { success:true, id:'B30', type:'bourse', mode:c.mode, reserve:c.reserve || '' }));
+    const d = w.document;
+    w.location.hash = '#echanges'; w.route(); await dodo(400);
+    await w.echOuvrirProposition(); await dodo(300);
+    const sel = d.getElementById('bxReserve');
+    const opts = sel ? [...sel.options].map(o => o.value) : [];
+    V('« Pour qui ? » : tous les MAR par défaut, puis les collègues du planning (sans moi)', opts[0] === '' && opts.indexOf('BRAVO') > -1 && opts.indexOf('CHARLI') > -1 && opts.indexOf('ALPHA') === -1, opts);
+    V('par défaut : « Mettre en vitrine », tous prévenus', d.getElementById('echEnvoyer').textContent === 'Mettre en vitrine' && /Tous les MAR verront/.test(d.getElementById('bxInfoDepot').textContent));
+    sel.value = 'BRAVO'; w.bxMajReserve();
+    V('Bravo choisi : « La lui réserver », seul lui verra l\'offre', d.getElementById('echEnvoyer').textContent === 'La lui réserver' && /Seul le Dr Bravo verra/.test(d.getElementById('bxInfoDepot').textContent));
+    await w.bxDeposer(d.getElementById('echEnvoyer')); await dodo(300);
+    const dep = envois.filter(c => c.action === 'deposerBourse');
+    V('deposerBourse part avec reserve: BRAVO', dep.length === 1 && dep[0].reserve === 'BRAVO', dep);
+    const h = d.getElementById('echList').innerHTML;
+    V('« Mes offres » : la carte dit « Réservée au Dr Bravo »', /Réservée au Dr Bravo/.test(h) && /bxRetirer\('B30'/.test(h), h.slice(0, 300));
+    V('le bandeau dit qu\'il est prévenu', /réservée au Dr Bravo, qui est prévenu/.test(h));
+  }
+
   console.log('\n' + ok + ' OK · ' + ko + ' en échec');
   if (ko) process.exit(1);
 })();

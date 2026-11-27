@@ -42,7 +42,7 @@
    depuis l'éditeur : installerDeclencheurEchanges().
    ═══════════════════════════════════════════════════════════════════════ */
 
-const GAS_VERSION_ECHANGES = '2026-11-25.2';   // (25/11/2026) .2 : PAIRE À ÉVITER — celui qui prend une garde ou un 18 h la nuit où son binôme de la paire (CONFIG / PAIRES_A_EVITER) est de garde ou de 18 h est prévenu et confirme ([COUPLE], accepteCouple), sans blocage · (25/11/2026) .1 : BOURSE AUX GARDES — on met sa garde ou son 18 h en vitrine (deposerBourse), le premier qui la prend l'obtient (prendreBourse), un échange se propose sur l'offre (creerEchange avec offre) et le donneur choisit (repondreEchange) ; retirerBourse ; colonnes OFFRE, MODE, SOUHAIT · (23/11/2026) .1 : les vacances scolaires n'excluent plus une récupération — seule la présence du jour compte (jour vert), comme au calcul des gardes ; décision du responsable : « l'important c'est la présence du jour » · (20/11/2026) .1 : récupération seulement sur un jour qui RESTE VERT après la pose (seuil de confort de l'onglet SEUILS, 15) — décision du responsable : « un jour de récup ne peut être mis que sur des jours verts » ; sans jour vert possible, aucun R n'est posé · (19/11/2026) .2 : INVERSION des rôles d'un jour — le MAR de 18 h propose au collègue de garde ce jour-là (don de 18 h → [INV], accepteInversion) ; jouée comme le don de la garde du collègue au demandeur, le 18 h repris par le collègue · (19/11/2026) .1 : échange de gardes avec un 18 h sur la garde reçue — permis, le 18 h passe à l'autre MAR ; celui qui propose confirme ([18]), le collègue le lit dans la proposition · (18/11/2026) .3 : fin du dépôt — la cloche seule ici, le téléphone est prévenu par le Worker à la minute (1 h avant et à l'heure) · (18/11/2026) .2 : celui qui envoie est prévenu quand la garde ou le 18 h tombe dans la semaine Réa 1 du collègue ([REA1L], accepteRea1Lui), sans blocage · (18/11/2026) semaine Réa 1 : une garde entre MAR n'est plus bloquante, le MAR est prévenu et confirme ([REA1], accepteRea1), comme un 18 h · (17/11/2026) récupération recalée : plancher = seuil d'alerte de l'onglet SEUILS, effectif compté comme partout (hors effectif exclu, demi-journée de vacances présente) · (16/11/2026) semaine Réa 1 : garde BLOQUANTE entre MAR (envoi et acceptation), 18 h sur confirmation, confirmation gardée pour le comité · (16/11/2026) ouverture programmée mercredi 18/11 10 h, réponses vendredi 20/11 10 h ; notification d'ouverture au passage horaire · (16/11/2026) réponses le mercredi 18/11 à 10 h, notification à tous à l'ouverture du dépôt · (15/11/2026) dépôt sans course : seconde heure ECHANGES_REPONSES — avant elle on propose, refuse, annule, on n'accepte pas ; 48 h et rappel comptés depuis elle ; une notification à chacun à la fin du dépôt · (15/11/2026) annonce sans date : annoncerOuvertureEchanges, tuile verrouillée « Ouverture prochainement » (ECHANGES_ANNONCE) · (14/11/2026) ouverture programmée : ECHANGES_OUVERTURE, fermé avant l'instant, ouvert à tous ensuite à la seconde, sans déclencheur (programmerOuvertureEchanges) ; ouvrirEchanges note l'instant, fermerEchanges l'efface · (12/11/2026) les gardes ET les 18 h d'une année sans suivi des récupérations (2026) ne se donnent ni ne s'échangent plus entre MAR (_echangesFermee_) : refus à l'envoi, demande en attente fermée « sans objet » ; le comité n'est pas concerné · (12/11/2026) don d'un 18 h entre MAR (type don18, demande de l'équipe) : le receveur doit être libre ce jour-là ; 18 h reçu la veille, le lendemain ou la même semaine qu'un autre 18 h : dit au MAR, qui confirme ([18H], accepte18h) · (12/11/2026) semaine Réa 1 : une garde ou un 18 h pris dans sa propre semaine Réa 1 est dit au MAR, qui confirme ([REA1], accepteRea1) ; le comité en est averti dans les suites de son geste · (12/11/2026) demandes « sans objet » fermées toutes seules quand la garde a changé de mains ou est passée (_echangesSansObjet_), doublon refusé à l'envoi, garde passée refusée à l'envoi et à l'acceptation · (11/11/2026) échange samedi ↔ samedi : les R gardent leur date, les liens LIENS_R suivent le samedi tenu ; « Réparer » recolle de même un échange passé au lieu de déplacer les R · (11/11/2026) annulerEchange : le demandeur annule sa proposition en attente, le collègue est prévenu · (11/11/2026) don et échange sur un jour d'absence : le MAR concerné confirme ([ABS], accepteAbsence) et ses jours d'absence sont écrasés par la garde et son repos · (11/11/2026) gestes du comité (don, échange) : mêmes suites que entre MAR (_gesteSuites_, appliquerGesteComite_) · (11/11/2026) échange de deux 18 h entre MAR (type echange18) · (11/11/2026) un 18 h écrasé par un don passe au donneur, prévenu avant d'envoyer (accepte18) · (11/11/2026) récupérations automatiques : R neuf quand il ne peut pas suivre son samedi, R écrasé reposé, bouton Réparer (recupsReparer), lien recollé à la pose manuelle · (10/11/2026) l'historique dit qui a accepté (onglet HISTORIQUE)
+const GAS_VERSION_ECHANGES = '2026-11-27.1';   // (27/11/2026) .1 : BOURSE — offre RÉSERVÉE à un collègue (deposerBourse avec `reserve`, écrit dans RECEVEUR) : lui seul la voit et peut la prendre ou proposer un échange, elle reste réservée jusqu'à ce que le donneur la retire ; le collègue peut la décliner (declinerBourse), le donneur est prévenu · (25/11/2026) .2 : (25/11/2026) .2 : PAIRE À ÉVITER — celui qui prend une garde ou un 18 h la nuit où son binôme de la paire (CONFIG / PAIRES_A_EVITER) est de garde ou de 18 h est prévenu et confirme ([COUPLE], accepteCouple), sans blocage · (25/11/2026) .1 : BOURSE AUX GARDES — on met sa garde ou son 18 h en vitrine (deposerBourse), le premier qui la prend l'obtient (prendreBourse), un échange se propose sur l'offre (creerEchange avec offre) et le donneur choisit (repondreEchange) ; retirerBourse ; colonnes OFFRE, MODE, SOUHAIT · (23/11/2026) .1 : les vacances scolaires n'excluent plus une récupération — seule la présence du jour compte (jour vert), comme au calcul des gardes ; décision du responsable : « l'important c'est la présence du jour » · (20/11/2026) .1 : récupération seulement sur un jour qui RESTE VERT après la pose (seuil de confort de l'onglet SEUILS, 15) — décision du responsable : « un jour de récup ne peut être mis que sur des jours verts » ; sans jour vert possible, aucun R n'est posé · (19/11/2026) .2 : INVERSION des rôles d'un jour — le MAR de 18 h propose au collègue de garde ce jour-là (don de 18 h → [INV], accepteInversion) ; jouée comme le don de la garde du collègue au demandeur, le 18 h repris par le collègue · (19/11/2026) .1 : échange de gardes avec un 18 h sur la garde reçue — permis, le 18 h passe à l'autre MAR ; celui qui propose confirme ([18]), le collègue le lit dans la proposition · (18/11/2026) .3 : fin du dépôt — la cloche seule ici, le téléphone est prévenu par le Worker à la minute (1 h avant et à l'heure) · (18/11/2026) .2 : celui qui envoie est prévenu quand la garde ou le 18 h tombe dans la semaine Réa 1 du collègue ([REA1L], accepteRea1Lui), sans blocage · (18/11/2026) semaine Réa 1 : une garde entre MAR n'est plus bloquante, le MAR est prévenu et confirme ([REA1], accepteRea1), comme un 18 h · (17/11/2026) récupération recalée : plancher = seuil d'alerte de l'onglet SEUILS, effectif compté comme partout (hors effectif exclu, demi-journée de vacances présente) · (16/11/2026) semaine Réa 1 : garde BLOQUANTE entre MAR (envoi et acceptation), 18 h sur confirmation, confirmation gardée pour le comité · (16/11/2026) ouverture programmée mercredi 18/11 10 h, réponses vendredi 20/11 10 h ; notification d'ouverture au passage horaire · (16/11/2026) réponses le mercredi 18/11 à 10 h, notification à tous à l'ouverture du dépôt · (15/11/2026) dépôt sans course : seconde heure ECHANGES_REPONSES — avant elle on propose, refuse, annule, on n'accepte pas ; 48 h et rappel comptés depuis elle ; une notification à chacun à la fin du dépôt · (15/11/2026) annonce sans date : annoncerOuvertureEchanges, tuile verrouillée « Ouverture prochainement » (ECHANGES_ANNONCE) · (14/11/2026) ouverture programmée : ECHANGES_OUVERTURE, fermé avant l'instant, ouvert à tous ensuite à la seconde, sans déclencheur (programmerOuvertureEchanges) ; ouvrirEchanges note l'instant, fermerEchanges l'efface · (12/11/2026) les gardes ET les 18 h d'une année sans suivi des récupérations (2026) ne se donnent ni ne s'échangent plus entre MAR (_echangesFermee_) : refus à l'envoi, demande en attente fermée « sans objet » ; le comité n'est pas concerné · (12/11/2026) don d'un 18 h entre MAR (type don18, demande de l'équipe) : le receveur doit être libre ce jour-là ; 18 h reçu la veille, le lendemain ou la même semaine qu'un autre 18 h : dit au MAR, qui confirme ([18H], accepte18h) · (12/11/2026) semaine Réa 1 : une garde ou un 18 h pris dans sa propre semaine Réa 1 est dit au MAR, qui confirme ([REA1], accepteRea1) ; le comité en est averti dans les suites de son geste · (12/11/2026) demandes « sans objet » fermées toutes seules quand la garde a changé de mains ou est passée (_echangesSansObjet_), doublon refusé à l'envoi, garde passée refusée à l'envoi et à l'acceptation · (11/11/2026) échange samedi ↔ samedi : les R gardent leur date, les liens LIENS_R suivent le samedi tenu ; « Réparer » recolle de même un échange passé au lieu de déplacer les R · (11/11/2026) annulerEchange : le demandeur annule sa proposition en attente, le collègue est prévenu · (11/11/2026) don et échange sur un jour d'absence : le MAR concerné confirme ([ABS], accepteAbsence) et ses jours d'absence sont écrasés par la garde et son repos · (11/11/2026) gestes du comité (don, échange) : mêmes suites que entre MAR (_gesteSuites_, appliquerGesteComite_) · (11/11/2026) échange de deux 18 h entre MAR (type echange18) · (11/11/2026) un 18 h écrasé par un don passe au donneur, prévenu avant d'envoyer (accepte18) · (11/11/2026) récupérations automatiques : R neuf quand il ne peut pas suivre son samedi, R écrasé reposé, bouton Réparer (recupsReparer), lien recollé à la pose manuelle · (10/11/2026) l'historique dit qui a accepté (onglet HISTORIQUE)
 
 const ECHANGES_ONGLET = 'ECHANGES';
 const ECHANGES_ENTETE = ['ID', 'CREE_LE', 'TYPE', 'ANNEE', 'DATE', 'DATE2',
@@ -1018,7 +1018,14 @@ function _echangesQuestionCouple_(liste) {
    Une offre n'expire pas. Elle se ferme « sans objet » quand le donneur ne
    tient plus la garde ou quand la garde est passée (_echangesSansObjet_).
    Ligne d'une offre : TYPE bourse | bourse18, RECEVEUR vide, MODE, SOUHAIT.
-   Les demandes liées (don pris, échange proposé) portent son ID dans OFFRE. */
+   Les demandes liées (don pris, échange proposé) portent son ID dans OFFRE.
+   (27/11/2026 — décision du responsable, vu en réel : un accord entre deux MAR
+   doublé par un troisième plus rapide) OFFRE RÉSERVÉE : le donneur peut viser
+   un collègue. Son identifiant va dans RECEVEUR. Lui seul voit l'offre (le
+   relais la cache aux autres) et lui seul peut la prendre ou proposer un
+   échange. Elle n'expire pas et reste réservée jusqu'à ce que le donneur la
+   retire. Le collègue peut la décliner (declinerBourse) : l'offre se ferme,
+   le donneur est prévenu et peut la redéposer. */
 const BOURSE_MODES = { don: 1, echange: 1, deux: 1 };
 
 function _bourseOffre_(lignes, id) {
@@ -1027,19 +1034,30 @@ function _bourseOffre_(lignes, id) {
   return o;
 }
 function _bourseQuoi_(type) { return String(type) === 'bourse18' ? 'le 18 h' : 'la garde'; }
+/* (27/11/2026) Offre réservée à un autre que moi : ni prise ni échange. */
+function _bourseReserveeAilleurs_(o, user) {
+  const r = String(o.RECEVEUR || '').trim();
+  return r !== '' && r !== user.id;
+}
 
-/* Déposer : p = { year, date, mode, souhait } */
+/* Déposer : p = { year, date, mode, souhait, reserve? } — reserve = identifiant du collègue vise (27/11/2026) */
 function deposerBourse(user, p) {
   const year = Number(p.year) || TEST_YEAR;
   const date = String(p.date || '').trim();
   const mode = String(p.mode || 'deux').trim();
   const souhait = String(p.souhait || '').trim().slice(0, 80);
+  const reserve = String(p.reserve || '').trim();
   if (!/^\d{4}-\d{2}-\d{2}$/.test(date)) throw new Error('Date invalide');
   if (!BOURSE_MODES[mode]) throw new Error('Choix inconnu : don, échange ou les deux');
+  if (reserve === user.id) throw new Error('On ne se réserve pas sa propre offre');
   let cx = null;
   try { cx = _recupsContexte_(year); } catch (e) {}
   const v = cx ? _recupsCase_(cx, user.id, date) : null;
   if (v === null) throw new Error('Planning ' + year + ' illisible : réessayez plus tard');
+  if (reserve) {
+    if (_recupsCase_(cx, reserve, date) === null) throw new Error('Collègue inconnu dans le planning ' + year);
+    if (!_echangesAutorise_({ id: reserve, role: 'mar' })) throw new Error('Les échanges ne sont pas encore ouverts à ' + reserve);
+  }
   const type = (v === 'G' || v === 'G2') ? 'bourse' : (_echanges18Code_(v) === '18' ? 'bourse18' : '');
   if (!type) throw new Error('Vous n\'avez ni garde ni 18 h le ' + _echangesJoli_(date));
   const offre = { TYPE: type, ANNEE: year, DATE: date, DATE2: '' };
@@ -1055,15 +1073,16 @@ function deposerBourse(user, p) {
   const sh = _echangesFeuille_();
   const plage = sh.getRange(sh.getLastRow() + 1, 1, 1, ECHANGES_ENTETE.length);
   try { plage.setNumberFormat('@'); } catch (e) {}
-  plage.setValues([[id, _echangesMaintenant_(), type, year, date, '', user.id, '', 'attente', '', '', '', '', mode, souhait]]);
-  logAction('deposerBourse ' + id + ' — ' + type + ' ' + date + ' | ' + user.id + ' (' + mode + ')');
+  plage.setValues([[id, _echangesMaintenant_(), type, year, date, '', user.id, reserve, 'attente', '', '', '', '', mode, souhait]]);
+  logAction('deposerBourse ' + id + ' — ' + type + ' ' + date + ' | ' + user.id + ' (' + mode + ')' + (reserve ? ' réservée à ' + reserve : ''));
   _echangesVersKV_();
   const quoi = type === 'bourse18' ? 'son 18 h' : 'sa garde';
-  notifierPush_('Bourse aux gardes',
-    _echangesDr_(user.id) + ' propose ' + quoi + ' du ' + _echangesJoli_(date)
-      + (mode === 'don' ? ' (don).' : mode === 'echange' ? ' (échange' + (souhait ? ', ' + souhait : '') + ').' : ' (don ou échange).'),
-    './index.html');
-  return { id: id, type: type, mode: mode };
+  const genre = mode === 'don' ? ' (don).' : mode === 'echange' ? ' (échange' + (souhait ? ', ' + souhait : '') + ').' : ' (don ou échange).';
+  /* (27/11/2026) Réservée : seul le collègue vise est prévenu. Sinon : tous. */
+  if (reserve) notifierPush_('Bourse aux gardes', _echangesDr_(user.id) + ' vous réserve ' + quoi + ' du ' + _echangesJoli_(date) + genre,
+    './index.html', { id: reserve, pastille: _echangesEnAttentePour_(reserve) });
+  else notifierPush_('Bourse aux gardes', _echangesDr_(user.id) + ' propose ' + quoi + ' du ' + _echangesJoli_(date) + genre, './index.html');
+  return { id: id, type: type, mode: mode, reserve: reserve };
 }
 
 /* Contrôle d'un échange proposé sur une offre (appelé par creerEchange). */
@@ -1072,6 +1091,7 @@ function _bourseControlerProposition_(user, offreId, type, receveur, date2) {
   if (String(o.ETAT) !== 'attente') throw new Error('Cette offre n\'est plus en vitrine');
   if (String(o.MODE) === 'don') throw new Error('Cette offre est un don : prenez-la directement');
   if (String(o.DEMANDEUR) === user.id) throw new Error('C\'est votre propre offre');
+  if (_bourseReserveeAilleurs_(o, user)) throw new Error('Cette offre est réservée à un autre MAR');
   const attendu = String(o.TYPE) === 'bourse18' ? 'echange18' : 'echange';
   if (type !== attendu) throw new Error(attendu === 'echange18' ? 'Un 18 h s\'échange contre un 18 h' : 'Une garde s\'échange contre une garde');
   if (receveur !== String(o.DEMANDEUR) || date2 !== String(o.DATE)) throw new Error('La proposition ne correspond pas à l\'offre');
@@ -1087,6 +1107,7 @@ function prendreBourse(user, p) {
   if (String(o.ETAT) !== 'attente') throw new Error('Trop tard : cette offre n\'est plus en vitrine');
   if (String(o.MODE) === 'echange') throw new Error('Cette offre attend un échange : proposez une de vos gardes');
   if (String(o.DEMANDEUR) === user.id) throw new Error('C\'est votre propre offre');
+  if (_bourseReserveeAilleurs_(o, user)) throw new Error('Cette offre est réservée à un autre MAR');
   const type = String(o.TYPE) === 'bourse18' ? 'don18' : 'don';
   const don = { TYPE: type, ANNEE: Number(o.ANNEE), DATE: String(o.DATE), DATE2: '', DEMANDEUR: String(o.DEMANDEUR), RECEVEUR: user.id };
   const fermee = _echangesPassee_(don, _recupsAujourdhui_()) || _echangesFermee_(don);
@@ -1158,9 +1179,39 @@ function retirerBourse(user, p) {
       + ' de la bourse : votre proposition d\'échange est fermée.', './index.html', { id: String(l.DEMANDEUR) });
     n++;
   });
+  /* (27/11/2026) Offre réservée : le collègue vise apprend qu'elle n'est plus pour lui. */
+  const vise = String(o.RECEVEUR || '').trim();
+  if (vise) notifierPush_('Bourse aux gardes', 'Le ' + _echangesDr_(user.id) + ' a retiré ' + _bourseQuoi_(o.TYPE) + ' du ' + _echangesJoli_(o.DATE)
+    + ' qu\'il vous réservait.', './index.html', { id: vise });
   logAction('retirerBourse ' + id + ' — retirée par ' + user.id + (n ? ' (' + n + ' proposition(s) fermée(s))' : ''));
   _echangesVersKV_();
   return { etat: 'annulee', fermees: n };
+}
+
+/* (27/11/2026) Décliner une offre qui m'est réservée : p = { id }.
+   L'offre se ferme (refusee), mes propositions d'échange dessus aussi ; le
+   donneur est prévenu et peut la redéposer, réservée ou en vitrine. */
+function declinerBourse(user, p) {
+  const id = String(p.id || '').trim();
+  const { sh, lignes } = _echangesLignes_();
+  const o = _bourseOffre_(lignes, id);
+  if (String(o.RECEVEUR || '').trim() !== user.id) throw new Error('Seul le collègue à qui elle est réservée peut la décliner');
+  if (String(o.ETAT) !== 'attente') throw new Error('Offre déjà ' + o.ETAT + ' — plus rien à décliner');
+  const colEtat = ECHANGES_ENTETE.indexOf('ETAT') + 1, colRep = ECHANGES_ENTETE.indexOf('REPONDU_LE') + 1, colInfo = ECHANGES_ENTETE.indexOf('INFO') + 1;
+  sh.getRange(o._row, colEtat).setValue('refusee');
+  sh.getRange(o._row, colRep).setValue(_echangesMaintenant_());
+  sh.getRange(o._row, colInfo).setValue('Déclinée par ' + user.id);
+  lignes.forEach(l => {
+    if (String(l.OFFRE || '') !== id || String(l.ETAT) !== 'attente') return;
+    sh.getRange(l._row, colEtat).setValue('annulee');
+    sh.getRange(l._row, colRep).setValue(_echangesMaintenant_());
+    sh.getRange(l._row, colInfo).setValue('Offre déclinée');
+  });
+  notifierPush_('Bourse aux gardes', 'Le ' + _echangesDr_(user.id) + ' a décliné ' + _bourseQuoi_(o.TYPE) + ' du ' + _echangesJoli_(o.DATE)
+    + ' que vous lui réserviez. Vous pouvez la redéposer.', './index.html', { id: String(o.DEMANDEUR) });
+  logAction('declinerBourse ' + id + ' — déclinée par ' + user.id);
+  _echangesVersKV_();
+  return { etat: 'refusee' };
 }
 
 /* ── Alerte du comité : E-MAIL, jamais push ─────────────────────────────

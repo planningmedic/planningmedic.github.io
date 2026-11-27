@@ -3164,7 +3164,8 @@ function majEchangesHero(){
   if (!ECH_AUTORISE) { hero.classList.remove('depot'); hero.style.display='none'; equilibrerBlocs(); return; }
   hero.style.display='flex';
   _echAnimerSiPremiereFois(hero);
-  const enAttente = (ECH_LISTE||[]).filter(function(e){ return e.etat==='attente' && e.receveur===MY_ID; }).length;
+  /* (27/11/2026) Une offre qui m'est réservée se compte avec les offres, pas comme un échange à choisir. */
+  const enAttente = (ECH_LISTE||[]).filter(function(e){ return e.etat==='attente' && e.receveur===MY_ID && !_bxEst(e); }).length;
   /* (15/11/2026) Dépôt sans course : tuile ouverte, bordure ambre, « Réponses
      dans … », pastille grise (arrivées, pas encore acceptables). */
   const depot = _echDepot();
@@ -3191,7 +3192,7 @@ function majEchangesHero(){
      collègues et ce qui attend MA réponse (échanges proposés sur mes offres, inversion).
      Rouge quand quelque chose attend ma réponse. */
   const auj = _todayStr();
-  const offres = (ECH_LISTE||[]).filter(function(e){ return _bxEst(e) && e.etat==='attente' && e.demandeur!==MY_ID && e.date>=auj; }).length;
+  const offres = (ECH_LISTE||[]).filter(function(e){ return _bxEst(e) && e.etat==='attente' && e.demandeur!==MY_ID && e.date>=auj && (!e.receveur || e.receveur===MY_ID); }).length;
   hero.classList.toggle('attente', enAttente > 0);
   const pastille = document.getElementById('echPastille');
   if (pastille) { pastille.textContent = String(enAttente + offres); pastille.style.display = (enAttente + offres) ? 'flex' : 'none'; }
@@ -3626,7 +3627,8 @@ async function echOuvrirProposition(){
     + '<div id="bxBlocSouhait"><label>En échange, je préfère</label><select id="bxSouhait"><option value="">N\'importe quand</option>'
     + '<option>un jour de semaine</option><option>un week-end</option>'
     + _ECH_MOIS.map(function(m){ return '<option>un jour de ' + m + '</option>'; }).join('') + '</select></div>'
-    + '<div class="ech-info">Tous les MAR verront votre offre et seront prévenus. Vous pouvez la retirer tant que personne ne l\'a prise.</div>'
+    + '<label>Pour qui ?</label><select id="bxReserve" onchange="bxMajReserve()"></select>'
+    + '<div class="ech-info" id="bxInfoDepot"></div>'
     + '<button id="echEnvoyer" class="ech-envoyer" onclick="bxDeposer(this)">Mettre en vitrine</button>'
     + '<div id="bxInversion"></div>'
     + '<div class="ech-msg" id="echMsgProp" style="display:none"></div>';
@@ -3868,7 +3870,7 @@ function _echLibEnvoyer(){ return _echDepot() ? 'Déposer la proposition' : 'Env
    l'obtient. Échange : on propose une de ses gardes, le donneur choisit.
    Les questions du serveur ([ABS], [REA1], [18H]…) s'affichent dans une
    feuille : on lit, on confirme, la demande repart avec la confirmation.
-   Une offre = une ligne de type bourse|bourse18 sans receveur ; les demandes
+   Une offre = une ligne de type bourse|bourse18 sans receveur — ou, réservée (27/11/2026), avec le collègue visé en receveur ; les demandes
    liées (don pris, échange proposé) portent son identifiant dans `offre`. */
 const _BX_QUESTIONS = { '[COUPLE]':'accepteCouple', '[ABS]':'accepteAbsence', '[REA1]':'accepteRea1', '[REA1L]':'accepteRea1Lui', '[18H]':'accepte18h', '[18]':'accepte18', '[INV]':'accepteInversion' };
 let BX_MSG = '', BX_ERR = '';
@@ -3901,7 +3903,8 @@ function _bxQuoi(e){ const d=_echJour(e.date); return (e.type==='bourse18' ? 'le
 function _bxCarteOffre(e){
   const kind = _bxKind(e);
   const ma = (ECH_LISTE||[]).find(function(x){ return x.offre===e.id && x.demandeur===MY_ID && x.etat==='attente'; });
-  let h = '<div class="ech-card">' + _bxLigne(e.date, kind, 'Proposée par <strong>' + esc(_echDrLisible(e.demandeur)) + '</strong>',
+  const pourMoi = e.receveur===MY_ID;   // (27/11/2026) offre que le donneur m'a réservée
+  let h = '<div class="ech-card">' + _bxLigne(e.date, kind, (pourMoi ? 'Réservée pour vous par <strong>' : 'Proposée par <strong>') + esc(_echDrLisible(e.demandeur)) + '</strong>',
     '<span class="ech-etat attente">' + _bxMode(e) + '</span>');
   if (e.souhait && e.mode!=='don') h += '<div class="ech-detail">Souhaite en échange : ' + esc(e.souhait) + '</div>';
   const info = _bxInfoMoi(e.date);
@@ -3914,7 +3917,8 @@ function _bxCarteOffre(e){
   } else {
     const prendre = '<button class="ech-accepter" onclick="bxPrendre(\'' + esc(e.id) + '\',this)">' + (kind==='18' ? 'Je le prends' : 'Je la prends') + '</button>';
     const echanger = '<button class="ech-refuser" onclick="bxProposer(\'' + esc(e.id) + '\')">' + (e.mode==='echange' ? 'Proposer un' + (kind==='18' ? ' de mes 18 h' : 'e de mes gardes') : 'Échanger') + '</button>';
-    h += '<div class="ech-actions">' + (e.mode!=='echange' ? prendre : '') + (e.mode!=='don' ? echanger : '') + '</div>'
+    const decliner = pourMoi ? '<button class="ech-refuser ech-annuler" onclick="bxDecliner(\'' + esc(e.id) + '\',this)">Décliner</button>' : '';
+    h += '<div class="ech-actions">' + (e.mode!=='echange' ? prendre : '') + (e.mode!=='don' ? echanger : '') + decliner + '</div>'
       + '<div class="ech-msg" id="echMsg-' + esc(e.id) + '" style="display:none"></div>';
   }
   return h + '</div>';
@@ -3923,7 +3927,7 @@ function _bxCarteMienne(e){
   const kind = _bxKind(e);
   const props = (ECH_LISTE||[]).filter(function(x){ return x.offre===e.id && x.receveur===MY_ID && x.etat==='attente'; });
   let h = '<div class="ech-card">' + _bxLigne(e.date, kind, _bxMode(e) + (e.souhait && e.mode!=='don' ? ' · ' + esc(e.souhait) : ''),
-    '<span class="ech-etat attente">En vitrine</span>');
+    '<span class="ech-etat attente">' + (e.receveur ? 'Réservée au ' + esc(_echDrLisible(e.receveur)) : 'En vitrine') + '</span>');
   if (props.length) {
     h += '<div class="ech-detail"><b>' + props.length + (props.length>1 ? ' échanges proposés' : ' échange proposé') + '</b> — choisissez-en un</div>';
     props.slice().sort(function(a,b){ return a.date<b.date?-1:1; }).forEach(function(p){
@@ -3935,7 +3939,8 @@ function _bxCarteMienne(e){
         + '<div class="ech-actions"><button class="ech-accepter" onclick="repondreEch(\'' + esc(p.id) + '\',\'accepter\',this)">Choisir cet échange</button></div>'
         + '<div class="ech-msg" id="echMsg-' + esc(p.id) + '" style="display:none"></div></div>';
     });
-  } else h += '<div class="ech-meta">Personne ne l\'a encore prise.' + (e.mode!=='don' ? ' Les échanges proposés apparaîtront ici.' : '') + '</div>';
+  } else h += '<div class="ech-meta">' + (e.receveur ? 'Le ' + esc(_echDrLisible(e.receveur)) + ' ne l\'a pas encore prise. Elle lui reste réservée jusqu\'à ce que vous la retiriez.' : 'Personne ne l\'a encore prise.')
+    + (e.mode!=='don' ? ' Les échanges proposés apparaîtront ici.' : '') + '</div>';
   h += '<div class="ech-actions"><button class="ech-refuser ech-annuler" onclick="bxRetirer(\'' + esc(e.id) + '\',this)">Retirer mon offre</button></div>';
   if (e.mode==='deux' && props.length) h += '<div class="ech-meta">Si quelqu\'un la prend en don avant, ces échanges sont fermés et leurs auteurs prévenus.</div>';
   return h + '<div class="ech-msg" id="echMsg-' + esc(e.id) + '" style="display:none"></div></div>';
@@ -3962,13 +3967,17 @@ function _bxConclue(e){
 function renderBourse(){
   const box = document.getElementById('echList'), cnt = document.getElementById('echCount');
   const tout = ECH_LISTE || [], auj = _todayStr();
-  const offres = tout.filter(function(e){ return _bxEst(e) && e.etat==='attente' && e.demandeur!==MY_ID && e.date>=auj; });
+  const visibles = tout.filter(function(e){ return _bxEst(e) && e.etat==='attente' && e.demandeur!==MY_ID && e.date>=auj; });
+  /* (27/11/2026) Offres réservées : celles qui me sont réservées à part ; celles d'un autre
+     (le relais ne les sert pas, simple prudence) jamais. */
+  const pourMoi = visibles.filter(function(e){ return e.receveur===MY_ID; });
+  const offres = visibles.filter(function(e){ return !e.receveur; });
   const miennes = tout.filter(function(e){ return _bxEst(e) && e.etat==='attente' && e.demandeur===MY_ID; });
   const conclues = tout.filter(function(e){ return e.etat==='acceptee' && (
     (_bxEst(e) && e.demandeur===MY_ID) || (!_bxEst(e) && e.offre && (e.receveur===MY_ID || e.demandeur===MY_ID) && !(e.type.indexOf('echange')===0 && e.receveur===MY_ID))); });
   /* Demandes ciblées encore reçues (inversion garde ↔ 18 h, seule exception gardée) : même carte qu'avant. */
   const ciblees = tout.filter(function(e){ return !_bxEst(e) && !e.offre && e.etat==='attente' && (e.receveur===MY_ID || e.demandeur===MY_ID); });
-  cnt.textContent = offres.length ? String(offres.length) : '';
+  cnt.textContent = (offres.length + pourMoi.length) ? String(offres.length + pourMoi.length) : '';
   let h = '';
   if (BX_MSG) { h += '<div class="ech-bandeau ouvert"><b>C\'est fait</b>' + BX_MSG + '</div>'; BX_MSG = ''; }
   if (BX_ERR) { h += '<div class="ech-bandeau depot"><b>Pas fait</b>' + BX_ERR + '</div>'; BX_ERR = ''; }
@@ -3980,9 +3989,13 @@ function renderBourse(){
     h += '<div class="ech-section"><h3>À traiter</h3><span>' + ciblees.length + ' en attente</span></div>';
     h += _bxParMois(ciblees, function(e){ return _echCarteDemande(e, e.receveur===MY_ID); });   // par date de garde, jamais par heure de dépôt
   }
+  if (pourMoi.length) {
+    h += '<div class="ech-section"><h3>Réservées pour vous</h3><span>' + pourMoi.length + ' · personne d’autre ne les voit</span></div>';
+    h += _bxParMois(pourMoi, _bxCarteOffre);
+  }
   h += '<div class="ech-section"><h3>Offres</h3><span>' + (offres.length ? offres.length + ' en vitrine · le premier qui prend l’obtient' : '') + '</span></div>';
   h += offres.length ? _bxParMois(offres, _bxCarteOffre) : '<div class="ech-vide">Aucune offre pour le moment.</div>';
-  h += '<div class="ech-section"><h3>Mes offres</h3><span>' + (miennes.length ? miennes.length + ' en vitrine' : '') + '</span></div>';
+  h += '<div class="ech-section"><h3>Mes offres</h3><span>' + (miennes.length ? miennes.length + ' en attente' : '') + '</span></div>';
   h += miennes.length ? _bxParMois(miennes, _bxCarteMienne) : '<div class="ech-vide">Déposez une garde : tous les MAR la verront et seront prévenus.</div>';
   if (conclues.length) h += '<details class="ech-faites"' + (ECH_FAITES_OUVERT ? ' open' : '') + ' ontoggle="ECH_FAITES_OUVERT=this.open">'
     + '<summary>Conclues <i>' + conclues.length + '</i></summary>' + _bxParMois(conclues, _bxConclue) + '</details>';
@@ -4075,6 +4088,20 @@ function bxRetirer(id){
     });
 }
 
+/* (27/11/2026) Décliner une offre qui m'est réservée : elle se ferme, le donneur est prévenu. */
+function bxDecliner(id){
+  const e = (ECH_LISTE||[]).find(function(x){ return x.id===id; }); if (!e) return;
+  _bxFeuille('Décliner cette offre ?', '<div class="ech-detail">Le <strong>' + esc(_echDrLisible(e.demandeur)) + '</strong> vous réservait ' + esc(_bxQuoi(e)) + '. Il sera prévenu et pourra la proposer à quelqu\'un d\'autre.</div>',
+    'Décliner', function(btn, msg){
+      _bxAppel({ action:'declinerBourse', id:id, year:Number(e.annee) }, btn, msg, function(){
+        e.etat = 'refusee'; e.reponduLe = new Date().toISOString();
+        (ECH_LISTE||[]).forEach(function(x){ if (x.offre===id && x.etat==='attente') x.etat = 'annulee'; });
+        BX_MSG = 'Offre déclinée. Le ' + esc(_echDrLisible(e.demandeur)) + ' est prévenu.';
+        majEchangesHero(); renderEchanges();
+      });
+    });
+}
+
 /* ── Déposer : le panneau « Proposer » d'avant, sans destinataire ── */
 async function bxMajDepot(){
   const g = ECH_PROP.gardes[Number(document.getElementById('echSelGarde').value)||0];
@@ -4082,6 +4109,7 @@ async function bxMajDepot(){
   document.getElementById('echLblGarde').textContent = g && g.type==='18' ? 'Mon 18 h' : 'Ma garde';
   /* (19/11/2026, gardé le 24/11) Seule exception ciblée : un 18 h peut s'inverser avec
      le MAR de garde ce jour-là. */
+  bxRemplirReserve(g);
   const inv = document.getElementById('bxInversion');
   if (!inv) return;
   let h = '';
@@ -4098,6 +4126,29 @@ async function bxMajDepot(){
   }
   inv.innerHTML = h;
 }
+/* (27/11/2026 — décision du responsable) Réserver son offre à un collègue : un accord
+   passé entre deux MAR ne doit plus être doublé par un troisième plus rapide. La liste
+   vient du planning de l'année de la garde (aucun nom écrit dans la page). */
+function bxRemplirReserve(g){
+  const sel = document.getElementById('bxReserve'); if (!sel) return;
+  const avant = sel.value, ids = [];
+  const plan = g ? _planDejaLa(g.annee) : null;
+  ((plan && plan.months) || []).forEach(function(m){ (m.doctors||[]).forEach(function(d){ if (d && d.id && d.id!==MY_ID && ids.indexOf(d.id)<0) ids.push(d.id); }); });
+  ids.sort();
+  sel.innerHTML = '<option value="">Tous les MAR (vitrine)</option>'
+    + ids.map(function(id){ return '<option value="'+esc(id)+'">Réservée au '+esc(_echDrLisible(id))+'</option>'; }).join('');
+  sel.value = ids.indexOf(avant) > -1 ? avant : '';
+  bxMajReserve();
+}
+function bxMajReserve(){
+  const sel = document.getElementById('bxReserve'), info = document.getElementById('bxInfoDepot'), btn = document.getElementById('echEnvoyer');
+  if (!sel || !info) return;
+  const qui = sel.value;
+  info.textContent = qui
+    ? 'Seul le ' + _echDrLisible(qui) + ' verra votre offre et sera prévenu. Elle lui reste réservée jusqu\'à ce que vous la retiriez.'
+    : 'Tous les MAR verront votre offre et seront prévenus. Vous pouvez la retirer tant que personne ne l\'a prise.';
+  if (btn && !btn.disabled) btn.textContent = qui ? 'La lui réserver' : 'Mettre en vitrine';
+}
 function bxModeDepot(m){
   ECH_PROP.mode = m;
   ['don','echange','deux'].forEach(function(x){ document.getElementById('bxM-' + x).classList.toggle('actif', x===m); });
@@ -4107,21 +4158,24 @@ async function bxDeposer(btn){
   const g = ECH_PROP.gardes[Number(document.getElementById('echSelGarde').value)||0];
   const msg = document.getElementById('echMsgProp');
   if (!g) return;
+  const reserve = (document.getElementById('bxReserve')||{}).value || '';
   const charge = { action:'deposerBourse', year:g.annee, date:g.date, mode:ECH_PROP.mode, souhait:document.getElementById('bxSouhait').value };
-  btn.disabled = true; btn.textContent = 'Mise en vitrine…';
+  if (reserve) charge.reserve = reserve;   // (27/11/2026) offre réservée à un collègue
+  btn.disabled = true; btn.textContent = reserve ? 'Réservation…' : 'Mise en vitrine…';
   try {
     const r = await apiPost(charge);
     if (r && r.success) {
       document.getElementById('echProposition').style.display = 'none';
       ECH_LISTE.unshift({ id:r.id, creeLe:new Date().toISOString(), type:r.type, annee:g.annee, date:g.date, date2:'',
-        demandeur:MY_ID, receveur:'', etat:'attente', reponduLe:'', info:'', offre:'', mode:charge.mode, souhait:charge.souhait });
-      BX_MSG = 'Votre ' + (g.type==='18' ? '18 h' : 'garde') + ' du ' + esc(_echCourt(g.date)) + ' est en vitrine. Tous les MAR sont prévenus.';
+        demandeur:MY_ID, receveur:reserve, etat:'attente', reponduLe:'', info:'', offre:'', mode:charge.mode, souhait:charge.souhait });
+      BX_MSG = 'Votre ' + (g.type==='18' ? '18 h' : 'garde') + ' du ' + esc(_echCourt(g.date))
+        + (reserve ? ' est réservée au ' + esc(_echDrLisible(reserve)) + ', qui est prévenu.' : ' est en vitrine. Tous les MAR sont prévenus.');
       majEchangesHero(); renderEchanges();
       return;
     }
     msg.className='ech-msg err'; msg.style.display='block'; msg.textContent = (r && r.error) || 'Dépôt impossible — réessayez.';
   } catch(e) { msg.className='ech-msg err'; msg.style.display='block'; msg.textContent = 'Erreur réseau — rien n\'est parti. Réessayez.'; }
-  btn.disabled = false; btn.textContent = 'Mettre en vitrine';
+  btn.disabled = false; btn.textContent = reserve ? 'La lui réserver' : 'Mettre en vitrine';
 }
 function bxInverser(qui, btn){
   const g = ECH_PROP.gardes[Number(document.getElementById('echSelGarde').value)||0];

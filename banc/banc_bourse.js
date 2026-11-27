@@ -365,5 +365,74 @@ console.log('\n═══ 10. Paire à éviter : celui qui prend est prévenu et 
   V('sans paire dans CONFIG : rien ne change, la garde passe sans question', run(g, `prendreBourse(${U('ALPHA')}, { id:${JSON.stringify(o5.id)} })`).etat === 'acceptee');
 }
 
+console.log('\n═══ 11. Offre RÉSERVÉE à un collègue : lui seul la prend (27/11/2026) ═══');
+{
+  /* Vu en réel : deux MAR d'accord entre eux, un troisième plus rapide a pris la garde. */
+  const b = monde(2027);
+  const j = b.dates[9];
+  b.poser('ALPHA', j, 'G'); b.poser('ALPHA', b.dates[10], 'RG');
+  b.notifs.length = 0;
+  const r = run(b, `deposerBourse(${U('ALPHA')}, { year:2027, date:${JSON.stringify(j)}, mode:'deux', reserve:'BRAVO' })`);
+  const l = ligneDe(b, r.id);
+  V('l\'offre est déposée, le collègue visé dans RECEVEUR', l && l[COL.TYPE] === 'bourse' && l[COL.RECEVEUR] === 'BRAVO' && l[COL.ETAT] === 'attente' && r.reserve === 'BRAVO', l);
+  V('seul BRAVO est prévenu (pas de notification à tous)', b.notifs.length === 1 && b.notifs[0].cible && b.notifs[0].cible.id === 'BRAVO' && /vous réserve sa garde/.test(b.notifs[0].corps), b.notifs);
+  V('se réserver sa propre offre est refusé', /propre offre/.test(essai(b, `deposerBourse(${U('ALPHA')}, { year:2027, date:${JSON.stringify(b.dates[20])}, mode:'don', reserve:'ALPHA' })`).err || ''));
+  b.poser('ALPHA', b.dates[20], 'G');
+  V('réserver à un inconnu du planning est refusé', /Collègue inconnu/.test(essai(b, `deposerBourse(${U('ALPHA')}, { year:2027, date:${JSON.stringify(b.dates[20])}, mode:'don', reserve:'ZOULOU' })`).err || ''));
+  const n = b.echanges().length;
+  const t = essai(b, `prendreBourse(${U('CHARLI')}, { id:${JSON.stringify(r.id)} })`);
+  V('CHARLI, plus rapide, ne peut PAS la prendre', /réservée à un autre MAR/.test(t.err || '') && b.lire('ALPHA', j) === 'G' && b.echanges().length === n, t);
+  b.poser('CHARLI', b.dates[30], 'G');
+  V('CHARLI ne peut pas non plus proposer d\'échange dessus', /réservée à un autre MAR/.test(essai(b, `creerEchange(${U('CHARLI')}, { type:'echange', year:2027, date:${JSON.stringify(b.dates[30])}, date2:${JSON.stringify(j)}, receveur:'ALPHA', offre:${JSON.stringify(r.id)} })`).err || ''));
+  const f = b.cl.getSheetByName('ECHANGES');
+  f.lignes.find(x => x[0] === r.id)[COL.CREE_LE] = new Date(Date.now() - 96 * 3600 * 1000).toISOString();
+  b.notifs.length = 0; run(b, 'expirerEchanges()');
+  V('96 h après, elle reste réservée, sans expiration ni rappel', ligneDe(b, r.id)[COL.ETAT] === 'attente' && ligneDe(b, r.id)[COL.RECEVEUR] === 'BRAVO' && b.notifs.length === 0, [ligneDe(b, r.id), b.notifs]);
+  const env = run(b, 'getEchangesEnveloppe()').echanges.find(e => e.id === r.id);
+  V('la copie rapide porte le collègue visé (le relais s\'en sert pour la cacher)', env && env.receveur === 'BRAVO');
+  const p = run(b, `prendreBourse(${U('BRAVO')}, { id:${JSON.stringify(r.id)} })`);
+  V('BRAVO la prend : la garde et le repos passent', p.etat === 'acceptee' && b.lire('BRAVO', j) === 'G' && b.lire('BRAVO', b.dates[10]) === 'RG', p);
+  V('l\'offre est close « Prise par BRAVO »', ligneDe(b, r.id)[COL.ETAT] === 'acceptee' && ligneDe(b, r.id)[COL.INFO] === 'Prise par BRAVO');
+
+  // Échange sur une offre réservée : le collègue visé propose, le donneur choisit
+  const c = monde(2027);
+  c.poser('ALPHA', c.dates[9], 'G'); c.poser('ALPHA', c.dates[10], 'RG');
+  c.poser('BRAVO', c.dates[30], 'G'); c.poser('BRAVO', c.dates[31], 'RG');
+  const r2 = run(c, `deposerBourse(${U('ALPHA')}, { year:2027, date:${JSON.stringify(c.dates[9])}, mode:'echange', reserve:'BRAVO' })`);
+  const pB = run(c, `creerEchange(${U('BRAVO')}, { type:'echange', year:2027, date:${JSON.stringify(c.dates[30])}, date2:${JSON.stringify(c.dates[9])}, receveur:'ALPHA', offre:${JSON.stringify(r2.id)} })`);
+  V('le collègue visé propose un échange sur l\'offre', !!pB.id && ligneDe(c, pB.id)[COL.OFFRE] === r2.id);
+  const ch = run(c, `repondreEchange(${U('ALPHA')}, { id:${JSON.stringify(pB.id)}, reponse:'accepter' })`);
+  V('le donneur choisit : échange fait, offre close', ch.etat === 'acceptee' && c.lire('BRAVO', c.dates[9]) === 'G' && c.lire('ALPHA', c.dates[30]) === 'G' && ligneDe(c, r2.id)[COL.ETAT] === 'acceptee', ch);
+
+  // Décliner
+  const d = monde(2027);
+  d.poser('ALPHA', d.dates[9], 'G'); d.poser('ALPHA', d.dates[10], 'RG');
+  const r3 = run(d, `deposerBourse(${U('ALPHA')}, { year:2027, date:${JSON.stringify(d.dates[9])}, mode:'don', reserve:'BRAVO' })`);
+  V('un autre que le collègue visé ne peut pas la décliner', /Seul le collègue/.test(essai(d, `declinerBourse(${U('CHARLI')}, { id:${JSON.stringify(r3.id)} })`).err || '')
+    && /Seul le collègue/.test(essai(d, `declinerBourse(${U('ALPHA')}, { id:${JSON.stringify(r3.id)} })`).err || ''));
+  d.notifs.length = 0; d.kv.length = 0;
+  const x = run(d, `declinerBourse(${U('BRAVO')}, { id:${JSON.stringify(r3.id)} })`);
+  V('BRAVO décline : l\'offre se ferme, la garde ne bouge pas', x.etat === 'refusee' && ligneDe(d, r3.id)[COL.ETAT] === 'refusee' && d.lire('ALPHA', d.dates[9]) === 'G', ligneDe(d, r3.id));
+  V('ALPHA est prévenu, et lui seul', d.notifs.length === 1 && d.notifs[0].cible && d.notifs[0].cible.id === 'ALPHA' && /a décliné/.test(d.notifs[0].corps), d.notifs);
+  V('la clé `echanges` est repoussée', d.kv.some(k => k.indexOf('echanges') > -1));
+  V('décliner deux fois est refusé', /déjà refusee/.test(essai(d, `declinerBourse(${U('BRAVO')}, { id:${JSON.stringify(r3.id)} })`).err || ''));
+  const r4 = run(d, `deposerBourse(${U('ALPHA')}, { year:2027, date:${JSON.stringify(d.dates[9])}, mode:'don' })`);
+  V('ALPHA peut la redéposer, cette fois pour tous', ligneDe(d, r4.id)[COL.RECEVEUR] === '' && ligneDe(d, r4.id)[COL.ETAT] === 'attente');
+  V('décliner une offre ouverte à tous n\'a pas de sens : refusé', /Seul le collègue/.test(essai(d, `declinerBourse(${U('BRAVO')}, { id:${JSON.stringify(r4.id)} })`).err || ''));
+
+  // Retirer une offre réservée : le collègue visé est prévenu
+  const e = monde(2027);
+  e.poser('ALPHA', e.dates[9], 'G'); e.poser('ALPHA', e.dates[10], 'RG');
+  const r5 = run(e, `deposerBourse(${U('ALPHA')}, { year:2027, date:${JSON.stringify(e.dates[9])}, mode:'don', reserve:'BRAVO' })`);
+  e.notifs.length = 0;
+  run(e, `retirerBourse(${U('ALPHA')}, { id:${JSON.stringify(r5.id)} })`);
+  V('le donneur la retire : le collègue visé est prévenu', ligneDe(e, r5.id)[COL.ETAT] === 'annulee' && e.notifs.some(n => n.cible && n.cible.id === 'BRAVO' && /retiré/.test(n.corps)), e.notifs);
+  // Contre-épreuve : offre ouverte à tous, toujours prise par le premier venu
+  const g = monde(2027);
+  g.poser('ALPHA', g.dates[9], 'G'); g.poser('ALPHA', g.dates[10], 'RG');
+  const r6 = deposer(g, 'ALPHA', g.dates[9], 'don');
+  V('contre-épreuve : sans réservation, CHARLI la prend toujours', run(g, `prendreBourse(${U('CHARLI')}, { id:${JSON.stringify(r6.id)} })`).etat === 'acceptee');
+}
+
 console.log(`\n  ${ok} ✓  ${ko} ✗`);
 process.exit(ko ? 1 : 0);
