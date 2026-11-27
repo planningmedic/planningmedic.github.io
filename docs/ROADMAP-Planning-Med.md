@@ -473,6 +473,8 @@ blanche de deux actions, jamais `getPlanningJson`.
   orange s'éteint quand le MAR retire la ligne (×). L'opération `confier` existe encore côté serveur,
   plus rien ne l'appelle.
 - **Classement** des confrères : la plus serrée des marges CCAM et NGAP (consultation + anesthésie).
+  **Aucun montant affiché ni envoyé** (27/11, « ça risque de faire des histoires ») : le serveur
+  n'envoie que le rang (`rangsMarge`).
 - **Export CPA** importé par le responsable seul (Maintenance), **chaque vendredi pour la semaine
   suivante**. Lu dans le navigateur ; n'arrivent au serveur que jour, demi-journée, salle, secteur,
   date opératoire (`partage/export_cpa.js`). Secteur lu dans l'agenda ; agenda sans secteur (« UB »)

@@ -4,7 +4,7 @@
    quelles : aucune ligne de logique modifiée, seulement déplacée. Le routeur et
    ses aides (checkCode, _deny, _error, doGet/doPost) restent dans Indispos.gs.
    Un seul espace global dans Apps Script : rien à importer. */
-const GAS_VERSION_INDISPOS_METIER = '2026-11-27.4';   // (27/11/2026) .4 : getVacancesConfig envoie les reliquats (onglet Récap du comité) · .3 : patients lib ouverts à tout le groupement libéral · .2 : getVacConfig envoie le reliquat de l'année précédente (staff vacances : janvier pris d'abord dessus) · .1 : marge NGAP renvoyée avec la marge CCAM (classement des confrères) · (26/11) .4 : consultation du secteur sans patient lib : plus montrée · .3 : consultations tenues par le secteur — les MAR du secteur du bloc la voient, celui qui la fait la prend (op secteur), choix « aucune salle » · .2 : export CPA — importCpa (droit maintenance, onglet CPA_EXPORT), rattachement des consultations aux salles (CPA_SALLES), lignes CPA servies dans getConsultAbsences, op salle et lignes cpa| dans patientsLib · .1 : patients lib d'une consultation — action patientsLib (droit patlib, onglet PATIENTS_LIB) et patients servis dans getConsultAbsences · (25/11/2026) .2 : action getRecapPdf (PDF du récapitulatif pour le MAR connecté) ; getOrdreVacances répond aussi pour y+2 · .1 : saveIndispos accepte la pose libre des vacances (payload.vac, voir _poserVac_ dans temps_partiel.gs) · (20/11/2026) .1 : setIndisposYear et envoyerRecapIndispos réservés au responsable · (15/11/2026) clearIndisposYear réservé au droit Maintenance (clôture d'année) · (10/11/2026) PDF récapitulatif par document Google (les couleurs passent) + renvoyerRecapPdf2027 · (09/11/2026) mail « Vos gardes » : 18 h, souhaits honorés, gardes qui allongent les vacances · (27/10/2026) VM/VA posés à la main : jamais écrasés par un enregistrement (MAR ou staff)
+const GAS_VERSION_INDISPOS_METIER = '2026-11-27.5';   // (27/11/2026) .5 : plus aucun montant de marge envoyé, seulement le rang · .4 : getVacancesConfig envoie les reliquats (onglet Récap du comité) · .3 : patients lib ouverts à tout le groupement libéral · .2 : getVacConfig envoie le reliquat de l'année précédente (staff vacances : janvier pris d'abord dessus) · .1 : marge NGAP renvoyée avec la marge CCAM (classement des confrères) · (26/11) .4 : consultation du secteur sans patient lib : plus montrée · .3 : consultations tenues par le secteur — les MAR du secteur du bloc la voient, celui qui la fait la prend (op secteur), choix « aucune salle » · .2 : export CPA — importCpa (droit maintenance, onglet CPA_EXPORT), rattachement des consultations aux salles (CPA_SALLES), lignes CPA servies dans getConsultAbsences, op salle et lignes cpa| dans patientsLib · .1 : patients lib d'une consultation — action patientsLib (droit patlib, onglet PATIENTS_LIB) et patients servis dans getConsultAbsences · (25/11/2026) .2 : action getRecapPdf (PDF du récapitulatif pour le MAR connecté) ; getOrdreVacances répond aussi pour y+2 · .1 : saveIndispos accepte la pose libre des vacances (payload.vac, voir _poserVac_ dans temps_partiel.gs) · (20/11/2026) .1 : setIndisposYear et envoyerRecapIndispos réservés au responsable · (15/11/2026) clearIndisposYear réservé au droit Maintenance (clôture d'année) · (10/11/2026) PDF récapitulatif par document Google (les couleurs passent) + renvoyerRecapPdf2027 · (09/11/2026) mail « Vos gardes » : 18 h, souhaits honorés, gardes qui allongent les vacances · (27/10/2026) VM/VA posés à la main : jamais écrasés par un enregistrement (MAR ou staff)
 // précédente : '2026-10-22.2'
 
 // La campagne de saisie des indispos est-elle EN COURS ?
@@ -2132,6 +2132,18 @@ function _act_getConsultAbsences(R) {
     // Non-membre du groupement : aucun chiffre. Le masquage de la tuile ne suffit
     // pas — absences.html est une page publique, seul le serveur ferme la porte.
     if (!user.liberal) { marges = {}; margesNgap = {}; margesMois = ''; }
+    // (27/11/2026, décision du responsable) AUCUN montant ne quitte le serveur : seulement le
+    // RANG de chaque confrère (1 = le plus de place sous les 30 %), d'après la plus serrée
+    // des marges CCAM et NGAP. Les montants « risquent de faire des histoires ».
+    const rangsMarge = {};
+    Object.keys(marges).concat(Object.keys(margesNgap))
+      .filter(function (id, i, t) { return t.indexOf(id) === i; })
+      .map(function (id) {
+        const v = [marges[id], margesNgap[id]].filter(function (x) { return x !== undefined && x !== null; });
+        return { id: id, m: Math.min.apply(null, v) };
+      })
+      .sort(function (a, b) { return b.m - a.m || (a.id < b.id ? -1 : 1); })
+      .forEach(function (x, i) { rangsMarge[x.id] = i + 1; });
     // Patients lib : tout MAR du groupement libéral (27/11/2026 ; avant : droit `patlib`, le temps du test).
     let patlib = false, patients = [];
     try {
@@ -2164,8 +2176,7 @@ function _act_getConsultAbsences(R) {
       success: true,
       motifs: avecMotifs,          // le frontend sait s'il peut afficher un motif
       groupement: groupement,      // id -> true : membre du groupement liberal
-      marges: marges,              // id -> marge CCAM restante (euros), dernier releve
-      margesNgap: margesNgap,      // id -> marge NGAP restante (euros), même relevé
+      rangsMarge: rangsMarge,      // id -> rang (1 = le plus de place sous les 30 %), sans montant
       margesMois: margesMois,      // 'AAAA-MM' du releve utilise ('' si aucun)
       role: user.role,                       // (04/08/2026, fusion absences.html) auth + donnees en UN appel
       name: user.name || '',                 //  → le login separe devient un simple journal d'arriere-plan
