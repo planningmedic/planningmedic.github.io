@@ -270,7 +270,8 @@ function fenetre(opts) {
   {
     for (const page of ['index.html', 'planning.html', 'indispos.html', 'absences.html', 'suivi-liberal.html', 'staff.html', 'admin.html', 'crh.html']) {
       const src = fs.readFileSync(path.join(__dirname, '..', page), 'utf8');
-      V(page + ' : DM Sans chargée, aucune autre famille de texte', /family=DM\+Sans/.test(src) && !/family=Inter/.test(src) && !/font-family:\s*'Inter'/.test(src));
+      /* (27/11/2026) DM Sans vient désormais du site (assets/fonts/polices.css), plus d'un site extérieur. */
+      V(page + ' : DM Sans chargée, aucune autre famille de texte', /<link rel="stylesheet" href="assets\/fonts\/polices\.css">/.test(src) && !/family=/.test(src) && !/font-family:\s*'Inter'/.test(src));
     }
   }
   console.log('\n═══ Mode sombre sur Indispos (décision du responsable, 14/09) ═══');

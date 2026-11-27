@@ -66,16 +66,18 @@ dans « À faire ». Quand le journal récent dépasse une page, ses entrées pa
   demi-journée VM/VA effaçable depuis Statuts (C2) ; course rare comité / MAR sur la même case (C3) ;
   ~~receveur d'un don non éligible (B5)~~ fait le 27/11 (v2.11.0).
 - **Suite du diagnostic du 27/11** (détail dans les documents du projet Claude), non tranché :
-  polices chargées chez un tiers en bloquant l'affichage ; appels sans limite de temps dans
-  `absences.html` et `paie.html` ; icônes de secteur jamais dessinées dans `admin.html` ; congé long
-  posé sur un donneur dont la garde est en vitrine (l'offre reste affichée jusqu'au passage horaire) ;
-  récupération posée avant le samedi qu'elle compense quand aucun jour vert ne suit ; deux comptes de
-  présents (écran de pose / message de refus) ; clôture d'année qui ne range pas cinq onglets récents ;
-  contrôles du banc qui lisent l'ancien formulaire d'échange (à déplacer avant de retirer ce code).
+  appels sans limite de temps dans `absences.html` et `paie.html` ; icônes de secteur jamais
+  dessinées dans `admin.html` ; clôture d'année qui ne range pas cinq onglets récents ; contrôles du
+  banc qui lisent l'ancien formulaire d'échange (à déplacer avant de retirer ce code) ; deux documents
+  du module libéral chargent encore une police extérieure (IBM Plex). Voulu, à ne pas « corriger » :
+  une récupération peut être posée AVANT son samedi quand aucun jour ne convient après (une
+  récupération jamais posée est un jour de repos volé — générateur et gestes).
 - **Génération des gardes** : à terme tout se passe sur la page Maintenance (décision du 27/11). Fait
-  pour le calcul exact (v2.12.0). Reste : l'assistant 2 de l'admin (calcul habituel), à rapatrier ou à
-  remplacer par le calcul exact à partir de 2028 — à décider. Le calcul exact n'a pas encore servi en
-  réel : essai à blanc sur 2028 dès que les indisponibilités 2028 sont closes.
+  pour le calcul exact (v2.12.0). Décidé le 27/11 pour la suite : à partir de 2028 seul le calcul
+  exact reste — l'assistant 2 de l'admin disparaît et le lien « 2 · Générer les gardes » de
+  Maintenance mène à la carte du calcul exact. À NE FAIRE QU'APRÈS le premier essai réel réussi du
+  calcul exact sur 2028 (essai à blanc dès que les indisponibilités 2028 sont closes) : d'ici là
+  l'assistant 2 est le seul chemin qui a fait ses preuves, on n'y touche pas.
 - **Lot 5** : sources uniques — codes de case (dont VAC/V et FORM/F entre indisponibilités et gardes),
   équipe à une date, année d'une date — et test « au hasard » des échanges.
 
@@ -559,6 +561,14 @@ les cases valant exactement `CL`.
 ---
 
 ## Journal récent
+
+- **27/11/2026** — Suite du diagnostic (v2.12.1, `temps_partiel.gs` 2026-11-27.7,
+  `indisponibilites.gs` .7). Polices servies par le site (`assets/fonts/`, DM Sans variable et DM Mono,
+  licence OFL jointe) : 23 pages ne demandent plus rien à l'extérieur avant de s'afficher ; banc
+  `banc_polices.js`. Congé long posé sur un MAR qui avait une garde en vitrine : l'offre est fermée
+  aussitôt (`_echangesSansObjet_` appelée par `poserAbsenceLongue`), plus de message technique au
+  preneur. Refus de vacances : quand l'écran comptait présentes des récupérations qui n'ont pas pu
+  céder la place, le message le dit.
 
 - **27/11/2026** — Calcul exact : tout se termine sur la page Maintenance (v2.12.0, `solveur.gs`
   2026-11-27.1, `Indispos.gs` .4, demande du responsable). L'essai à blanc affiche un compte rendu

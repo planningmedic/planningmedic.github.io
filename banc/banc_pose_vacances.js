@@ -361,6 +361,13 @@ console.log('\n═══ PV13 · les vacances passent avant la récup de samedi 
   const r2 = b.appel({ vac: true, year: 2027, vacances: { [JOUR]: 'V' } }, MAR);
   V('une récup ne suffit pas (une vacance en plus ce jour) : elle reste, la vacance est refusée',
     /il resterait/.test(r2.resultat[JOUR] || '') && b.lireGarde('PLEIN05', JOUR) === 'R', r2.resultat);
+  /* (27/11/2026) L'écran comptait cette récup présente : le refus doit dire pourquoi son chiffre diffère. */
+  V('…et le refus le dit : « les récupérations de ce jour ne suffisent pas à libérer la place : demandez aux admins »',
+    /il resterait \d+ présents \(moins de 15\), les récupérations de ce jour ne suffisent pas à libérer la place : demandez aux admins$/.test(r2.resultat[JOUR] || ''), r2.resultat[JOUR]);
+  b = mondeR(tendu(JOUR, 3).map(x => [x[0], x[1], 'V']));
+  const r3 = b.appel({ vac: true, year: 2027, vacances: { [JOUR]: 'V' } }, MAR);
+  V('sans récup ce jour-là : le refus garde sa phrase d\'avant, sans parler de récupérations',
+    /^il resterait \d+ présents \(moins de 15\) : demandez aux admins$/.test(r3.resultat[JOUR] || ''), r3.resultat[JOUR]);
 }
 
 console.log('\n═══ PV14 · janvier pris d\'abord sur le reliquat de l\'année précédente (26/11/2026) ═══');

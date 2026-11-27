@@ -561,5 +561,28 @@ console.log('\n═══ 14. Un geste accepté fait retirer les demandes de temp
   V('une panne de ce nettoyage n\'empêche jamais la prise', run(b, `prendreBourse(${U('CHARLI')}, { id:${JSON.stringify(r2.id)} })`).etat === 'acceptee' && b.lire('CHARLI', b.dates[30]) === 'G');
 }
 
+console.log('\n═══ 15. Congé long sur un donneur : son offre en vitrine se ferme aussitôt (27/11/2026) ═══');
+{
+  /* Trouvé en rejouant des scénarios de vie réelle : le congé long libérait la garde, mais
+     l'offre restait prenable jusqu'au passage horaire, avec un message technique. */
+  const b = monde(2027);
+  const j = b.dates[12];
+  b.poser('ALPHA', j, 'G'); b.poser('ALPHA', b.dates[13], 'RG');
+  const r = deposer(b, 'ALPHA', j, 'don');
+  b.poser('ALPHA', j, 'CL'); b.poser('ALPHA', b.dates[13], 'CL');           // ce qu'écrit le congé long
+  V('la règle : une offre dont le donneur n\'a plus la garde est fermée', run(b, '_echangesSansObjet_()') === 1);
+  let msg = '';
+  try { run(b, `prendreBourse(${U('BRAVO')}, { id:${JSON.stringify(r.id)} })`); } catch (e) { msg = String(e.message || e); }
+  V('…celui qui veut la prendre lit « Trop tard », pas un message technique', /^Trop tard : cette offre n'est plus en vitrine$/.test(msg), msg);
+  V('…et rien n\'est écrit chez lui', b.lire('BRAVO', j) === '');
+  const src = require('fs').readFileSync(require('path').join(__dirname, '..', 'gas', 'indisponibilites.gs'), 'utf8');
+  const i0 = src.indexOf('function _act_poserAbsenceLongue('), i1 = src.indexOf('\nfunction ', i0 + 10);
+  const corps = src.slice(i0, i1 < 0 ? undefined : i1);
+  const iLog = corps.indexOf('logAction(`poserAbsenceLongue'), iApp = corps.indexOf('_echangesSansObjet_() > 0');
+  V('le branchement : le congé long appelle cette règle après ses écritures, puis rafraîchit la copie rapide',
+    iLog > 0 && iApp > iLog && /try \{\s*if \(typeof _echangesSansObjet_ === 'function' && _echangesSansObjet_\(\) > 0 && typeof _echangesVersKV_ === 'function'\) _echangesVersKV_\(\);\s*\} catch/.test(corps));
+  V('…sans jamais faire échouer la pose du congé (appel isolé, avant la réponse)', iApp < corps.lastIndexOf('return ContentService'));
+}
+
 console.log(`\n  ${ok} ✓  ${ko} ✗`);
 process.exit(ko ? 1 : 0);
