@@ -162,7 +162,8 @@ TRACES et les trois compteurs STATS_*.</p>
     <li><span class="n">2.2</span><a href="#periodes">PERIODES_VAC</a></li>
     <li><span class="n">2.3</span><a href="#conges">CONFIG_CONGES</a></li>
     <li><span class="n">2.4</span><a href="#reliquats">RELIQUATS</a></li>
-    <li><span class="n">2.5</span><a href="#transition">CONFIG_TRANSITION</a></li>
+    <li><span class="n">2.5</span><a href="#janvier-suivant">JANVIER_SUIVANT</a></li>
+    <li><span class="n">2.6</span><a href="#transition">CONFIG_TRANSITION</a></li>
     <li><span class="n">3</span><a href="#p2"><strong>Les années</strong></a></li>
     <li><span class="n">3.1</span><a href="#indispos">INDISPOS_{année}</a></li>
     <li><span class="n">3.2</span><a href="#rea1">REA1_{année}</a></li>
@@ -251,7 +252,7 @@ des versions de code.</p>
 <table>
 <tr><th>Famille</th><th>Onglets</th><th>Dans le classeur</th></tr>
 <tr><td><span style="display:inline-block;width:11px;height:11px;border-radius:3px;background:#1D4ED8;margin-right:7px;vertical-align:-1px"></span><a href="#p1">1. Réglages permanents</a></td><td>CONFIG · MEDECINS · SECTEURS · CS_TEMPLATE · SALLES_TYPE · SEUILS · ANNUAIRE · ETABLISSEMENT</td><td>visibles</td></tr>
-<tr><td><span style="display:inline-block;width:11px;height:11px;border-radius:3px;background:#60A5FA;margin-right:7px;vertical-align:-1px"></span><a href="#p1b">2. Préparation de l'année</a></td><td>GROUPES_VAC · PERIODES_VAC · CONFIG_CONGES · RELIQUATS · CONFIG_TRANSITION</td><td>visibles</td></tr>
+<tr><td><span style="display:inline-block;width:11px;height:11px;border-radius:3px;background:#60A5FA;margin-right:7px;vertical-align:-1px"></span><a href="#p1b">2. Préparation de l'année</a></td><td>GROUPES_VAC · PERIODES_VAC · CONFIG_CONGES · RELIQUATS · JANVIER_SUIVANT · CONFIG_TRANSITION</td><td>visibles</td></tr>
 <tr><td><span style="display:inline-block;width:11px;height:11px;border-radius:3px;background:#166534;margin-right:7px;vertical-align:-1px"></span><a href="#p2">3. Les années</a></td><td>INDISPOS_{année} · REA1_{année} · FETES_{année} · GARDES_{année} · LIENS_R_{année} · STATS_GARDES_{année} · AFFECTATIONS_{année}</td><td>visibles</td></tr>
 <tr><td><span style="display:inline-block;width:11px;height:11px;border-radius:3px;background:#C2410C;margin-right:7px;vertical-align:-1px"></span><a href="#p3">4. Écrits par l'interface</a></td><td>PLANNING_OVERRIDES · TP_DEMANDES et TP_FERMES · ECHANGES · ABSENCES_LONGUES · VERIF_PREVENUS</td><td>visibles</td></tr>
 <tr><td><span style="display:inline-block;width:11px;height:11px;border-radius:3px;background:#0D9488;margin-right:7px;vertical-align:-1px"></span><a href="#p4">5. Libéral</a></td><td>SPECIALITES · COTATIONS_TYPE · LIBERAL_{année} · LIBERAL_CA_{année}</td><td>visibles</td></tr>
@@ -603,8 +604,22 @@ choisir : ces jours sont perdus après le 31 janvier, les prendre en premier est
 </div>
 </section>
 
+<section id="janvier-suivant">
+<h2><span class="n">2.5</span>JANVIER_SUIVANT</h2>
+<p>Les jours de janvier de l'année suivante, posés par les MAR pendant l'année en cours, quand le planning de
+l'année suivante n'existe pas encore. Une ligne par jour : <span class="tag">MAR</span>, <span class="tag">DATE</span>,
+<span class="tag">CODE</span> (V, VM ou VA), <span class="tag">ANNEE</span> (l'année sur laquelle le jour compte),
+<span class="tag">POSE_LE</span>, <span class="tag">PAR</span>.</p>
+<ul>
+  <li>Ces jours comptent sur le quota de l'année en cours, sans contrôle des présents.</li>
+  <li>À la préparation de l'année suivante (étape 1), ils sont recopiés dans son planning de saisie puis retirés d'ici.
+  Une ligne qui reste après la préparation concerne un MAR absent du nouveau planning : à traiter à la main.</li>
+  <li>Ne rien saisir ici à la main : les MAR posent eux-mêmes dans « Gérer mes vacances ».</li>
+</ul>
+</section>
+
 <section id="transition">
-<h2><span class="n">2.5</span>CONFIG_TRANSITION</h2>
+<h2><span class="n">2.6</span>CONFIG_TRANSITION</h2>
 <p>Trois colonnes : l'<strong>année</strong>, puis les identifiants des deux MARs de garde
 (<span class="tag">G</span> et <span class="tag">G2</span>) <strong>le dernier jour de l'année précédente</strong>.</p>
 

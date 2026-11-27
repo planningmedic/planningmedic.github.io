@@ -2765,6 +2765,12 @@ function renderMesConges(){
     if (!ouvre) return;
     if (c === 'TP' || c === 'CTP') tp++; else if (c === 'F' || c === 'FORM') form++; else if (c === 'R') rec++;
   });
+  /* (27/11/2026) Janvier N+1 posé pendant N, en attente du planning N+1 : compté sur N. */
+  let vacJs = 0;
+  Object.keys((mien && mien.jours) || {}).forEach(function(ds){
+    if (ds.indexOf((y + 1) + '-01-') === 0 && S[ds] === undefined) vacJs += _recapPoidsVac(String(mien.jours[ds]).toUpperCase(), ds, F, fixes);
+  });
+  vac += vacJs;
   const relPris = _recapSurReliquat(mien, vacJan), relDroit = Number(((mien && mien.reliquatVac) || {}).droit) || 0;
   vac -= relPris;
   const qv = mien && mien.quotaVac !== undefined ? Number(mien.quotaVac) : null;

@@ -150,7 +150,9 @@ valide. Réponds en **français**, court, avec des chiffres concrets.
   de janvier N+1 sont prises d'abord sur le reliquat de N (onglet RELIQUATS ; saisi à la main pour 2026,
   calculé et figé à la clôture dès 2027), le surplus compte sur N+1 (v2.5.0) ; exception « toute l'année » (ORIGINE) pour un retour
   de congé long : le reliquat vaut sur toute l'année N+1 (v2.6.1). Même règle dans la jauge du staff
-  vacances N+1, avec le reliquat provisoire de N (v2.7.2).
+  vacances N+1, avec le reliquat provisoire de N (v2.7.2), et dans l'onglet Récap du comité (v2.9.0). Janvier
+  N+1 posé pendant N : 13e mois de « Gérer mes vacances » tant que le planning N+1 n'existe pas, onglet
+  JANVIER_SUIVANT, recopié à initYear (v2.9.0).
 - **Après-midi fériés des 24 et 31/12** : ceux qui travaillent partent à midi ; garde, 18 h ou repos de
   garde ces jours-là = +0,5 j à reporter ailleurs (à la main, avec le secrétariat).
 - **Récupérations de samedi** : tout automatique ; jamais pendant les vacances scolaires.

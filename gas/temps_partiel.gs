@@ -4,7 +4,7 @@
    quelles : aucune ligne de logique modifiée, seulement déplacée. Le routeur et
    ses aides (checkCode, _deny, _error, doGet/doPost) restent dans Indispos.gs.
    Un seul espace global dans Apps Script : rien à importer. */
-const GAS_VERSION_TP = '2026-11-27.1';   // (27/11/2026) .1 : reliquatVacDe_ — le reliquat d'un MAR, pour la jauge du staff vacances · (26/11/2026) .3 : exception « toute l'année » du reliquat (ORIGINE de RELIQUATS, retour de congé long) — pose libre et clé de pose · (26/11/2026) .2 : reliquat de vacances de l'année précédente (onglet RELIQUATS, calcul automatique dès 2027) — les vacances de janvier le consomment d'abord : pose libre, clé de pose · (26/11/2026) .1 : LE TP ET LES VACANCES PASSENT AVANT LA RÉCUP DE SAMEDI — un jour qui n'est pas vert à cause de récups devient vert en les déplaçant (_tpLibererRecups_), à la pose d'un TP ou de vacances par le MAR comme à la validation du comité ; jamais une récup à moins de 30 jours ; le MAR concerné est prévenu ; l'écran de pose compte ces récups comme présentes (_tpRecupsCedables_) · (25/11/2026) .1 : POSE LIBRE DES VACANCES après la génération (_poserVac_) — jour vert seulement, 7 jours d'avance, quota de la quotité, jamais sur un jour occupé ; la clé de pose porte le quota de vacances et les jours fixes de chaque MAR ; toute republication différée (TP, vacances, décisions du comité) arme aussi les mails de changement, dont celui du secrétariat · (24/11/2026) .2 : un jour fermé par le comité se rouvre tout seul s'il redevient vert parce que l'équipe s'est étoffée depuis le refus ; les MAR refusés ce jour-là sont prévenus · (24/11/2026) .1 : effectif présent — une fois l'année générée, les absences (V, F, CL, CP, CTP, A) sont lues dans GARDES, plus dans INDISPOS (GARDES fait foi) ; VM/VA comptent présents · (17/11/2026) .2 : seuils de la pose lus dans l'onglet SEUILS (seuilsPresence_), envoyés à l'écran avec l'effectif · (17/11/2026) effectif présent : un MAR marqué HORS_EFFECTIF dans MEDECINS n'est plus compté (pose des TP, points à vérifier) · (16/11/2026) jour de TP dans sa semaine Réa 1 : non bloquant — semaine envoyée à l'écran (grisée, confirmation), signalée au MAR comme au comité · (12/11/2026) plus aucun nom de personne dans le code (effectif présent) · (10/11/2026) chaque jour de TP posé, retiré, demandé ou tranché laisse une ligne dans l'onglet HISTORIQUE
+const GAS_VERSION_TP = '2026-11-27.3';   // (27/11/2026) .3 : janvier N+1 posé pendant N (onglet JANVIER_SUIVANT) — pose libre et clé de pose · (27/11/2026) .2 : reliquatsCampagne_ — reliquats de l'équipe pour l'onglet Récap du comité · (27/11/2026) .1 : reliquatVacDe_ — le reliquat d'un MAR, pour la jauge du staff vacances · (26/11/2026) .3 : exception « toute l'année » du reliquat (ORIGINE de RELIQUATS, retour de congé long) — pose libre et clé de pose · (26/11/2026) .2 : reliquat de vacances de l'année précédente (onglet RELIQUATS, calcul automatique dès 2027) — les vacances de janvier le consomment d'abord : pose libre, clé de pose · (26/11/2026) .1 : LE TP ET LES VACANCES PASSENT AVANT LA RÉCUP DE SAMEDI — un jour qui n'est pas vert à cause de récups devient vert en les déplaçant (_tpLibererRecups_), à la pose d'un TP ou de vacances par le MAR comme à la validation du comité ; jamais une récup à moins de 30 jours ; le MAR concerné est prévenu ; l'écran de pose compte ces récups comme présentes (_tpRecupsCedables_) · (25/11/2026) .1 : POSE LIBRE DES VACANCES après la génération (_poserVac_) — jour vert seulement, 7 jours d'avance, quota de la quotité, jamais sur un jour occupé ; la clé de pose porte le quota de vacances et les jours fixes de chaque MAR ; toute republication différée (TP, vacances, décisions du comité) arme aussi les mails de changement, dont celui du secrétariat · (24/11/2026) .2 : un jour fermé par le comité se rouvre tout seul s'il redevient vert parce que l'équipe s'est étoffée depuis le refus ; les MAR refusés ce jour-là sont prévenus · (24/11/2026) .1 : effectif présent — une fois l'année générée, les absences (V, F, CL, CP, CTP, A) sont lues dans GARDES, plus dans INDISPOS (GARDES fait foi) ; VM/VA comptent présents · (17/11/2026) .2 : seuils de la pose lus dans l'onglet SEUILS (seuilsPresence_), envoyés à l'écran avec l'effectif · (17/11/2026) effectif présent : un MAR marqué HORS_EFFECTIF dans MEDECINS n'est plus compté (pose des TP, points à vérifier) · (16/11/2026) jour de TP dans sa semaine Réa 1 : non bloquant — semaine envoyée à l'écran (grisée, confirmation), signalée au MAR comme au comité · (12/11/2026) plus aucun nom de personne dans le code (effectif présent) · (10/11/2026) chaque jour de TP posé, retiré, demandé ou tranché laisse une ligne dans l'onglet HISTORIQUE
 
 /* ── (POSE TP · 22/08/2026) PHASE DE POSE DES TEMPS PARTIELS — DÉDUITE, JAMAIS ÉCRITE ──
    Les jours de temps partiel se posent APRÈS la génération des gardes (décision
@@ -536,6 +536,101 @@ function reliquatsVac_(annee) {
 function reliquatVacDe_(id, annee) {
   return { annee: Number(annee) - 1, droit: Number(reliquatsVac_(annee)[id]) || 0, touteAnnee: !!reliquatsToutAnnee_(annee)[id] };
 }
+/* (27/11/2026) Les reliquats de toute l'équipe pour la campagne de saisie en
+   cours (page du comité, onglet Récap) : { annee: N, campagne: N+1,
+   parMar: { id: { droit, touteAnnee } } } — seuls les MAR qui en ont un. */
+function reliquatsCampagne_() {
+  const y = Number(getIndisposYear());
+  const d = reliquatsVac_(y), t = reliquatsToutAnnee_(y), parMar = {};
+  Object.keys(d).forEach(function (id) { if (Number(d[id]) > 0) parMar[id] = { droit: Number(d[id]), touteAnnee: !!t[id] }; });
+  return { annee: y - 1, campagne: y, parMar: parMar };
+}
+/* ── (27/11/2026) JANVIER N+1 POSÉ PENDANT L'ANNÉE N ───────────────────────
+   Règle légale : les vacances de N se posent jusqu'au 31/01/N+1. Tant que le
+   planning N+1 n'existe pas (ni INDISPOS ni GARDES N+1), un jour de janvier
+   N+1 n'a nulle part où s'écrire : il attend dans l'onglet JANVIER_SUIVANT
+   (une ligne par jour) et compte sur le quota de N. Décisions du
+   responsable (27/11/2026) : chaque MAR le pose lui-même après la génération
+   des gardes N, sans contrôle des présents (hors vacances scolaires, peu de
+   monde). À la préparation de N+1 (initYear), ces jours sont recopiés dans
+   INDISPOS N+1 et retirés de l'onglet : ils deviennent des vacances de
+   janvier N+1, prises d'abord sur le reliquat de N (calculé sans eux). */
+const JANVIER_SUIVANT_ONGLET = 'JANVIER_SUIVANT';
+const JANVIER_SUIVANT_ENTETE = ['MAR', 'DATE', 'CODE', 'ANNEE', 'POSE_LE', 'PAR'];
+function _jsIso_(v) {
+  if (v instanceof Date) return v.getFullYear() + '-' + String(v.getMonth() + 1).padStart(2, '0') + '-' + String(v.getDate()).padStart(2, '0');
+  return String(v == null ? '' : v).trim().replace(/^'/, '').slice(0, 10);
+}
+// Ouvert tant que le planning N+1 n'existe pas encore.
+function _janvierSuivantOuvert_(annee) {
+  const ss = SpreadsheetApp.getActiveSpreadsheet(), n = Number(annee) + 1;
+  return !ss.getSheetByName('INDISPOS_' + n) && !ss.getSheetByName('GARDES_' + n);
+}
+// Les jours de janvier N+1 hors de la grille N (datesValides : Set des jours de la grille N).
+function _janvierSuivantDates_(annee, datesValides) {
+  const out = [], n = Number(annee) + 1;
+  for (let d = 1; d <= 31; d++) {
+    const ds = n + '-01-' + String(d).padStart(2, '0');
+    if (!datesValides || !datesValides.has(ds)) out.push(ds);
+  }
+  return out;
+}
+// Ce qui attend : { id: { ds: code } } (ou { ds: code } pour un MAR).
+function _janvierSuivantLire_(annee, marId) {
+  const out = {};
+  const sh = SpreadsheetApp.getActiveSpreadsheet().getSheetByName(JANVIER_SUIVANT_ONGLET);
+  if (sh) {
+    const d = sh.getDataRange().getValues();
+    for (let r = 1; r < d.length; r++) {
+      const id = String(d[r][0] || '').trim(), ds = _jsIso_(d[r][1]), c = String(d[r][2] || '').trim().toUpperCase();
+      if (!id || !ds || !VAC_CODES_LIBRES[c] || Number(d[r][3]) !== Number(annee)) continue;
+      (out[id] = out[id] || {})[ds] = c;
+    }
+  }
+  return marId === undefined ? out : (out[String(marId).trim()] || {});
+}
+/* Écrit les changements d'un MAR ({ ds, avant, apres }) : une ligne par jour,
+   effacée quand le jour est retiré. Renvoie l'ensemble des jours faits. */
+function _janvierSuivantEcrire_(annee, marId, ecritures, par) {
+  const faits = new Set();
+  if (!ecritures || !ecritures.length) return faits;
+  const ss = SpreadsheetApp.getActiveSpreadsheet();
+  let sh = ss.getSheetByName(JANVIER_SUIVANT_ONGLET);
+  if (!sh) { sh = ss.insertSheet(JANVIER_SUIVANT_ONGLET); sh.appendRow(JANVIER_SUIVANT_ENTETE); }
+  const id = String(marId).trim();
+  ecritures.forEach(function (x) {
+    const d = sh.getDataRange().getValues();
+    let ligne = -1;
+    for (let r = 1; r < d.length; r++) {
+      if (String(d[r][0] || '').trim() === id && _jsIso_(d[r][1]) === x.ds && Number(d[r][3]) === Number(annee)) { ligne = r + 1; break; }
+    }
+    const actuel = ligne > 0 ? String(d[ligne - 1][2] || '').trim().toUpperCase() : '';
+    if (actuel !== (x.avant || '')) return;              // la case a changé entre-temps : rien n'est fait
+    if (!x.apres) { if (ligne > 0) sh.deleteRow(ligne); }
+    else if (ligne > 0) sh.getRange(ligne, 3).setValue(x.apres);
+    else sh.appendRow([id, "'" + x.ds, x.apres, Number(annee), new Date(), String(par || id)]);
+    faits.add(x.ds);
+  });
+  return faits;
+}
+/* À la création d'INDISPOS N+1 (initYear) : recopie les jours en attente de
+   l'année N (= newYear − 1) dans la grille et les retire de l'onglet. ecrire(id,
+   ds, code) écrit une case d'INDISPOS et renvoie vrai si la case existe.
+   Renvoie le nombre de jours recopiés. */
+function _janvierSuivantTransferer_(newYear, ecrire) {
+  const sh = SpreadsheetApp.getActiveSpreadsheet().getSheetByName(JANVIER_SUIVANT_ONGLET);
+  if (!sh) return 0;
+  const d = sh.getDataRange().getValues(), aSupprimer = [];
+  const CODE_IND = { V: 'VAC', VM: 'VM', VA: 'VA' };
+  for (let r = 1; r < d.length; r++) {
+    const id = String(d[r][0] || '').trim(), ds = _jsIso_(d[r][1]), c = String(d[r][2] || '').trim().toUpperCase();
+    if (Number(d[r][3]) !== Number(newYear) - 1 || !id || !CODE_IND[c]) continue;
+    if (ecrire(id, ds, CODE_IND[c])) aSupprimer.push(r + 1);
+  }
+  aSupprimer.reverse().forEach(function (l) { sh.deleteRow(l); });
+  return aSupprimer.length;
+}
+
 /* Clôture de N : recopie dans RELIQUATS le reliquat calculé de chaque MAR qui
    n'a pas déjà sa ligne (une ligne saisie n'est jamais écrasée). Relançable
    sans doublon. Renvoie un texte pour le compte rendu. */
@@ -608,6 +703,16 @@ function _poserVac_(user, targetId, envoye, annee) {
   const quota = Number(getQuotasConges(_quotiteDe_(targetId)).vac) || 0;
   const fixes = _vacJoursFixes_(targetId);
   const grille = _tpGrilleLire_(annee, targetId);
+  /* (27/11/2026) Janvier N+1 : tant que le planning N+1 n'existe pas, ses
+     jours (hors grille N) se posent ici, comptés sur le quota de N, sans
+     contrôle des présents (décision du responsable). */
+  const jsuiv = _janvierSuivantOuvert_(annee) ? new Set(_janvierSuivantDates_(annee, M.datesValides)) : new Set();
+  if (jsuiv.size) {
+    getJoursFeries(Number(annee) + 1).forEach(function (d) { jf.add(d); });
+    const attente = _janvierSuivantLire_(annee, targetId);
+    Object.keys(attente).forEach(function (ds) { if (jsuiv.has(ds)) grille[ds] = attente[ds]; });
+  }
+  const par = estAdmin ? 'comité (' + (user.id || 'admin') + ')' : String((user && user.id) || targetId);
   const voulu = {};
   Object.keys(envoye || {}).forEach(function (ds) {
     const c = String(envoye[ds] || '').trim().toUpperCase();
@@ -652,7 +757,7 @@ function _poserVac_(user, targetId, envoye, annee) {
   Object.keys(voulu).sort().forEach(function (ds) {
     const v = voulu[ds], c = VAC_CODES_LIBRES[grille[ds]] ? grille[ds] : '';
     if (c === v || (c && ds < limite)) return;              // conservé (passe 1)
-    if (!M.datesValides.has(ds)) { resultat[ds] = 'hors année'; return; }
+    if (!M.datesValides.has(ds) && !jsuiv.has(ds)) { resultat[ds] = 'hors année'; return; }
     if (ds < limite) { resultat[ds] = 'moins de ' + VAC_PREAVIS_JOURS + ' jours : demandez aux admins'; return; }
     const dow = new Date(ds + 'T12:00:00').getDay();
     if (dow === 0 || dow === 6) { resultat[ds] = 'week-end'; return; }
@@ -662,7 +767,7 @@ function _poserVac_(user, targetId, envoye, annee) {
        règle du responsable, « vert obligatoirement »), et la demi-journée qui
        devient journée. Une journée qui devient demi-journée, ou matin ↔
        après-midi, ne retire personne : pas de nouveau jugement. */
-    const exigeVert = !c || (v === 'V' && c !== 'V');
+    const exigeVert = !jsuiv.has(ds) && (!c || (v === 'V' && c !== 'V'));   // janvier N+1 : sans contrôle des présents
     if (exigeVert) {
       let reste = M.presents(ds) - 1;
       /* (26/11/2026) Les vacances passent avant la récup de samedi, comme le
@@ -689,10 +794,12 @@ function _poserVac_(user, targetId, envoye, annee) {
   });
 
   // ── Écriture : une lecture de GARDES, chaque case vérifiée avant d'écrire ──
-  const faits = _vacGrilleEcrire_(annee, targetId, ecritures);
+  const faits = _vacGrilleEcrire_(annee, targetId, ecritures.filter(function (x) { return !jsuiv.has(x.ds); }));
+  _janvierSuivantEcrire_(annee, targetId, ecritures.filter(function (x) { return jsuiv.has(x.ds); }), par)
+    .forEach(function (ds) { faits.add(ds); });
   ecritures.forEach(function (x) {
     if (faits.has(x.ds)) {
-      if (x.avant) _vacRetirerDIndispos_(annee, targetId, x.ds);
+      if (x.avant && !jsuiv.has(x.ds)) _vacRetirerDIndispos_(annee, targetId, x.ds);
       return;
     }
     // La case a changé entre la lecture et l'écriture : rien n'est fait, on le dit.
@@ -703,8 +810,7 @@ function _poserVac_(user, targetId, envoye, annee) {
   if (faits.size) _tpRepublier_(annee);
 
   /* HISTORIQUE : chaque jour qui change, horodaté, avec l'auteur. */
-  { const par = estAdmin ? 'comité (' + (user.id || 'admin') + ')' : String((user && user.id) || targetId);
-    const LIB = { V: 'vacances posées', VM: 'demi-journée de vacances posée (matin)', VA: 'demi-journée de vacances posée (après-midi)' };
+  { const LIB = { V: 'vacances posées', VM: 'demi-journée de vacances posée (matin)', VA: 'demi-journée de vacances posée (après-midi)' };
     const lignes = [];
     ecritures.forEach(function (x) {
       if (!faits.has(x.ds)) return;
@@ -1055,6 +1161,9 @@ function _construirePoseTp_(annee) {
   const rea1 = typeof _rea1Jours_ === 'function' ? _rea1Jours_(annee) : {};
   const reliquats = reliquatsVac_(annee);   // (26/11/2026) ce qui reste de l'année précédente, à poser en janvier
   const relToutAn = reliquatsToutAnnee_(annee);   // …ou sur toute l'année (exception)
+  // (27/11/2026) Janvier N+1 en attente (planning N+1 pas encore créé) : affiché avec les jours de N.
+  const jsOuvert = _janvierSuivantOuvert_(annee);
+  const jsAttente = jsOuvert ? _janvierSuivantLire_(annee) : {};
   M.ids.forEach(function (id) {
     const jours = {};
     const mesInd = M.indispos[id] || {};
@@ -1080,6 +1189,7 @@ function _construirePoseTp_(annee) {
     Object.keys(attentes[id] || {}).forEach(function (ds) {
       if (!jours[ds]) jours[ds] = 'TPA';               // en attente : rien dans le planning
     });
+    Object.keys(jsAttente[id] || {}).forEach(function (ds) { if (!jours[ds]) jours[ds] = jsAttente[id][ds]; });
     parMar[id] = {
       /* (16/11/2026) Sa semaine Réa 1 (lundi → vendredi) : l'écran la grise et
          demande confirmation. Voyage filtrée à l'identité, comme le reste. */
@@ -1103,6 +1213,11 @@ function _construirePoseTp_(annee) {
      clé doit être une LISTE ou un objet simple. */
   return { success: true, year: annee, presents: presents, seuils: seuilsPresence_(),   // (17/11/2026) l'écran colore avec les seuils du classeur
            joursFeries: Array.from(jf).sort(),
+           /* (27/11/2026) Janvier N+1 posable tant que le planning N+1 n'existe pas :
+              ses jours (hors grille N) et ses fériés. */
+           janvierSuivant: jsOuvert ? { ouvert: true, jours: _janvierSuivantDates_(annee, M.datesValides),
+                                        feries: Array.from(getJoursFeries(Number(annee) + 1)).filter(function (d) { return d.slice(5, 7) === '01'; }).sort() }
+                                    : { ouvert: false },
            fermes: Array.from(_tpFermes_(annee)).sort(), parMar: parMar };
 }
 

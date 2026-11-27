@@ -210,6 +210,11 @@ console.log('\n═══ VR · vacances de janvier prises sur le reliquat de l\'
   const t = monde({ cases: semaines('VACX', 6).concat([['VACX', '2027-09-01', 'V']]) });
   t.cl.ajouter('RELIQUATS', [['MAR', 'ANNEE', 'JOURS', 'ORIGINE'], ['VACX', 2026, 1, "Toute l'année (congé long)"]]);
   V('« toute l\'année » : un jour de septembre pris sur le reliquat, 30 pour 30, aucun point', !(t.points().points || []).some(p => p.code === 'vac' && p.id === 'VACX'));
+  // (27/11/2026) Janvier 2028 posé pendant 2027 (JANVIER_SUIVANT, planning 2028 pas créé) : compté sur 2027.
+  const js = monde({ cases: semaines('VACX', 6) });
+  js.cl.ajouter('JANVIER_SUIVANT', [['MAR', 'DATE', 'CODE', 'ANNEE', 'POSE_LE', 'PAR'], ['VACX', "'2028-01-14", 'V', 2027, '', ''], ['VACX', "'2028-01-17", 'VA', 2026, '', 'autre année : ignorée']]);
+  const pj = (js.points().points || []).find(p => p.code === 'vac' && p.id === 'VACX') || {};
+  V('janvier 2028 en attente : 30 + 1 = 31 jours pour un droit de 30 → 1 de trop', /^31 jours de vacances posés en 2027 pour un droit de 30/.test(pj.texte || ''), pj.texte);
   const sans = monde({ cases: semaines('P04', 7).slice(0, 33).concat(janv('P04')) });
   V('contre-épreuve : sans onglet RELIQUATS, les jours de janvier comptent (35 pour 33)', (sans.points().points || []).some(p => p.code === 'vac' && p.id === 'P04'));
 }

@@ -237,6 +237,10 @@ let groupesRef={A:[],B:[],C:[]};  // ordre de référence depuis GSheet
 /* (03/09/2026) QUOTAS RECALÉS SUR CONFIG_CONGES — récit : docs/JOURNAL-Planning-Med.md §61 */
 /* (14/09/2026 — chantier 11) LE CLIENT AFFICHE, IL NE CALCULE PAS — récit : docs/JOURNAL-Planning-Med.md §62 */
 let QUOTAS_SERVEUR=null;   // {quotite:{vac,form,ctp}}
+/* (27/11/2026) Reliquat de l'année précédente, par MAR : les VAC de janvier (ou
+   de toute l'année, exception) sont prises d'abord dessus — même règle que la
+   jauge du MAR. { annee, campagne, parMar:{id:{droit,touteAnnee}} } ou null. */
+let RELIQUATS=null;
 const getQuota=(type,q)=>{
   if(!QUOTAS_SERVEUR) return 0;
   const qq=Math.round(Number(q)||100);
@@ -373,6 +377,7 @@ async function loadData(pre){
   if(pRes.quotasConges===undefined){
     try{ const direct=await apiCall({action:'getVacancesConfig'}); if(direct&&direct.success) pRes=direct; }catch(e){}
   }
+  RELIQUATS=(pRes.reliquats && Number(pRes.reliquats.campagne)===currentYear) ? pRes.reliquats : null;
   if(pRes.quotasConges && Object.keys(pRes.quotasConges).length) QUOTAS_SERVEUR=pRes.quotasConges;   // (14/09/2026) les quotas viennent du serveur
   else showToast('Quotas de congés non reçus : vérifier l\'onglet CONFIG_CONGES du classeur');
 
@@ -998,11 +1003,21 @@ function renderGrille(){
   t.innerHTML=thead+tbody;
 }
 
+// (27/11/2026) Ce que le MAR prend sur son reliquat : ses VAC de janvier (ou de toute l'année), dans la limite du droit.
+function reliquatPris(marId){
+  const r=RELIQUATS&&RELIQUATS.parMar&&RELIQUATS.parMar[marId];
+  if(!r||!(Number(r.droit)>0))return null;
+  const pref=currentYear+(r.touteAnnee?'-':'-01-');
+  const jours=Object.keys(Object.assign({},saisies[marId]||{},demiVac[marId]||{})).filter(d=>d.indexOf(pref)===0);
+  const n=countForMAR(marId,'VAC',jours);
+  return {annee:RELIQUATS.annee,droit:Number(r.droit),pris:Math.min(Number(r.droit),n),touteAnnee:!!r.touteAnnee};
+}
 function renderRecap(){
   const g=document.getElementById('recapGrid');
   let html='';
   medecins.forEach(m=>{
-    const vp=countForMAR(m.id,'VAC'),fp=countForMAR(m.id,'FORM');
+    const rel=reliquatPris(m.id);
+    const vp=countForMAR(m.id,'VAC')-(rel?rel.pris:0),fp=countForMAR(m.id,'FORM');
     const vq=getQuota('VAC',m.quotite||100),fq=getQuota('FORM',m.quotite||100);
     html+='<div class="recap-card">'
       +'<div class="recap-header"><span class="gt-initials">'+m.initiales+'</span>'
@@ -1013,7 +1028,9 @@ function renderRecap(){
       +'<div class="recap-counts">'
       +'<div class="rcb" style="background:var(--vac-bg);"><div class="rcb-lbl" style="color:var(--vac-fg);">VAC</div><div class="rcb-val" style="color:'+(vp>vq?'#DC2626':'var(--vac-fg)')+';">'+nbFr(vp)+'</div><div class="rcb-quota" style="color:var(--vac-fg);">/ '+nbFr(vq)+'j</div></div>'
       +'<div class="rcb" style="background:var(--form-bg);"><div class="rcb-lbl" style="color:var(--form-fg);">FORM</div><div class="rcb-val" style="color:'+(fp>fq?'#DC2626':'var(--form-fg)')+';">'+fp+'</div><div class="rcb-quota" style="color:var(--form-fg);">/ '+fq+'j</div></div>'
-      +'</div></div>';
+      +'</div>'
+      +(rel?'<div class="rcb-reliquat" style="font-size:11px;color:#1D4ED8;font-weight:600;margin-top:8px;">+ '+nbFr(rel.pris)+'/'+nbFr(rel.droit)+' reliquat '+rel.annee+(rel.touteAnnee?' sur l\'année':' en janvier')+'</div>':'')
+      +'</div>';
   });
   g.innerHTML=html;
 }

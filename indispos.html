@@ -2665,9 +2665,22 @@ function vcxCompteSi(ds, code) {
 }
 // Présents ce jour-là SI je travaille (la clé me compte absent sur mes journées de vacances).
 function vcxPresents(ds) { const p = VCX.presents[ds]; return p === undefined ? undefined : p + (vcxBase(ds) === 'V' ? 1 : 0); }
+/* (27/11/2026) Janvier N+1 posé pendant N (planning N+1 pas encore créé) :
+   un 13e mois au bout de l'écran, sans contrôle des présents (décision du
+   responsable), compté sur le quota de N. */
+function vcxEstJs(ds) { return !!(VCX.js && VCX.js.ouvert && VCX.js.jours.indexOf(ds) !== -1); }
 function vcxEtat(ds) {
   const w = new Date(ds + 'T12:00:00').getDay();
   if (w === 0 || w === 6) return { s: 'we' };
+  if (vcxEstJs(ds)) {
+    const fj = ds < VCX.limite, cj = vcxCode(ds);
+    if (VCX.feries.has(ds)) return { s: 'bloque', b: ['FÉRIÉ', ''] };
+    if (cj === 'V') return { s: 'v', fige: fj };
+    if (cj === 'VM') return { s: 'vm', fige: fj };
+    if (cj === 'VA') return { s: 'va', fige: fj };
+    if (VCX.pend[ds] === 'X') return { s: 'retire', fige: fj };
+    return { s: 'libre', fige: fj };
+  }
   const auj = tpxAujourdhui(), fige = ds < VCX.limite, c = vcxCode(ds), base = String(VCX.jours[ds] || '').toUpperCase();
   if (VCX.feries.has(ds)) return { s: 'bloque', b: ['FÉRIÉ', ''] };
   if (c === 'V') return { s: 'v', fige: fige };
@@ -2682,8 +2695,8 @@ function vcxEtat(ds) {
   return { s: 'libre', p: p, fige: fige };
 }
 function vcxRendre() {
-  const an = VCX.annee, mo = VCX.mois;
-  document.getElementById('vcxMt').textContent = MONTHS_FR[mo] + ' ' + an;
+  const an = VCX.mois === 12 ? VCX.annee + 1 : VCX.annee, mo = VCX.mois % 12;   // mois 12 = janvier N+1
+  document.getElementById('vcxMt').textContent = MONTHS_FR[mo] + ' ' + an + (VCX.mois === 12 ? ' · sur vos vacances ' + VCX.annee : '');
   const g = document.getElementById('vcxGrid'); let h = '';
   ['Lun', 'Mar', 'Mer', 'Jeu', 'Ven', 'Sam', 'Dim'].forEach(function (x) { h += '<div class="vcx-h">' + x + '</div>'; });
   for (let i = 0; i < (new Date(an, mo, 1).getDay() + 6) % 7; i++) h += '<div class="vcx-d vide"></div>';
@@ -2732,8 +2745,8 @@ function vcxClic(ds) {
     if (VCX.pend[ds]) { delete VCX.pend[ds]; vcxDire(j + ' : changement annulé.'); } else { VCX.pend[ds] = 'X'; vcxDire(j + ' sera retiré à l\'enregistrement.'); }
     return vcxRendre();
   }
-  // Devenir absent toute la journée : le jour doit rester vert.
-  if (VCX.outil === 'V' && base !== 'V') {
+  // Devenir absent toute la journée : le jour doit rester vert (sauf janvier N+1 : pas de contrôle).
+  if (VCX.outil === 'V' && base !== 'V' && !vcxEstJs(ds)) {
     const p = vcxPresents(ds);
     if (p === undefined || p - 1 < VCX.seuils.confort)
       return vcxDire(j + ', il ne resterait que ' + (p === undefined ? '?' : p - 1) + ' présents (moins de ' + VCX.seuils.confort + ') : ce jour ne se pose pas ici. Demandez aux admins.', true);
@@ -2754,7 +2767,8 @@ function vcxOutil(o) {
 function vcxMois(n) {
   VCX.mois += n;
   if (VCX.mois < 0) { VCX.mois = 0; return; }
-  if (VCX.mois > 11) { VCX.mois = 11; return; }
+  const dernier = (VCX.js && VCX.js.ouvert) ? 12 : 11;   // (27/11/2026) 12 = janvier N+1
+  if (VCX.mois > dernier) { VCX.mois = dernier; return; }
   vcxRendre();
 }
 function vcxInit(cle, identite) {
@@ -2771,7 +2785,8 @@ function vcxInit(cle, identite) {
     annee: Number(cle.year),
     presents: Object.assign({}, cle.presents || {}),
     seuils: (cle.seuils && cle.seuils.confort) ? cle.seuils : { alerte: 13, confort: 15 },
-    feries: new Set(Array.isArray(cle.joursFeries) ? cle.joursFeries : []),
+    feries: new Set((Array.isArray(cle.joursFeries) ? cle.joursFeries : []).concat((cle.janvierSuivant && cle.janvierSuivant.feries) || [])),
+    js: (cle.janvierSuivant && cle.janvierSuivant.ouvert) ? { ouvert: true, jours: cle.janvierSuivant.jours || [] } : null,
     jours: Object.assign({}, mien.jours || {}),
     quota: Number(mien.quotaVac) || 0,
     fixes: Array.isArray(mien.joursFixes) ? mien.joursFixes.map(Number) : [],

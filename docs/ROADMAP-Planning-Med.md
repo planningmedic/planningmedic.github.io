@@ -49,8 +49,11 @@ dans « À faire ». Quand le journal récent dépasse une page, ses entrées pa
   vérifier). Décisions du 26/11 : imputation automatique (janvier pris d'abord sur le reliquat), pas de
   mail de rappel. Exception « toute l'année » dans ORIGINE (retour de congé long, v2.6.1) : le reliquat
   vaut sur toute l'année N+1. Au staff vacances N+1 (v2.7.2, 27/11) : la jauge Congés prend aussi janvier
-  N+1 d'abord sur le reliquat de N (chiffre provisoire, N n'étant pas fini). Limite connue : avant le staff
-  N+1, janvier N+1 n'est posable nulle part (pas de planning N+1) — se règle à l'oral.
+  N+1 d'abord sur le reliquat de N (chiffre provisoire, N n'étant pas fini) ; même compte dans l'onglet
+  Récap du comité (staff.html, v2.9.0). Limite connue : avant le staff
+  N+1, janvier N+1 se pose par chaque MAR dans son écran N (13e mois, onglet JANVIER_SUIVANT, sans contrôle des
+  présents, compté sur N, recopié dans INDISPOS N+1 à sa création — v2.9.0). Reste à faire : la même saisie
+  pour l'admin dans staff.html.
 - **Retour d'expérience / poster SFAR 2027** : appel à communications à surveiller vers décembre 2026
   (3 500 caractères, inscription payée ; un résumé accepté et non présenté = 3 ans d'interdiction : ne
   soumettre que si la venue est sûre). Mesurer sur l'**attribution initiale**, jamais sur le réel. La

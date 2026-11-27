@@ -437,7 +437,7 @@ console.log('\n═══ 8 bis. Le tableau de Noël ne dépend plus d\'un appel 
     return mir.slice(i, j + 1);
   })();
   V('vacances_admin rend désormais un champ noel',
-    /return \{ success: true, periodes: periodes, groupes: groupes, noel: noel, quotasConges: _loadQuotasConges\(\) \};/.test(bloc));   // (14/09/2026) + les quotas
+    /return \{ success: true, periodes: periodes, groupes: groupes, noel: noel, quotasConges: _loadQuotasConges\(\), reliquats: reliquats \};/.test(bloc));   // (14/09/2026) + les quotas
   V('il est construit par la MÊME fonction que l\'appel direct (aucun second calcul)',
     /computeNoelAnHistorique\(yNoel\)/.test(bloc));
   V('l\'année servie est celle de la campagne, pas l\'année civile',

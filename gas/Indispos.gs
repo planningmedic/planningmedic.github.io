@@ -1,7 +1,7 @@
 // ⚠️ RÈGLE (détecteur de dérive dépôt↔Apps Script) : incrémenter cette version
 // à CHAQUE push de ce fichier. Le diagnostic (admin → Maintenance) compare la
 // version déployée ici avec celle du dépôt et signale toute recopie oubliée.
-const GAS_VERSION_INDISPOS = '2026-11-26.3';   // (26/11/2026) .3 : action importCpa (droit maintenance), sous verrou · .2 : action patientsLib (mar, droit patlib), sous verrou · .1 : action paieModeEmploi (rôle maintenance) · (25/11/2026) .3 : action republierPlanning (rôle maintenance), sous verrou · (25/11/2026) .2 : actions de la bourse aux gardes (deposerBourse, prendreBourse, retirerBourse), sous verrou · (25/11/2026) .1 : action getRecapPdf (mar seulement) dans la table · (20/11/2026) .1 : initYear réservé au responsable · (19/11/2026) .1 : action savePlanningNotes (notes du planning : interne en réa, infos du jour), sous verrou · (18/11/2026) .2 : actions solveurLancer, solveurEtat, solveurAppliquer (rôle maintenance, solveur.gs) · (18/11/2026) action miroirSyncMaintenant (rôle maintenance) · (17/11/2026) actions getPointsVerif et marquerPrevenu (comité) · (15/11/2026) .2 : clôture, répétition, changement d'année et fermeture de campagne réservés au droit Maintenance (code comité refusé) · (15/11/2026) clôture d'année : archiveYear délègue à la clôture complète en un appel (cloturerAnnee_), actions cloturerAnnee et clotureVerifier (répétition à blanc) ; setActiveYear relit la case et échoue si rien n'a été écrit · (11/11/2026) action annulerEchange (tout code valide, le demandeur seul — contrôlé dans echanges.gs) · (11/11/2026) action recupsReparer (rôle maintenance) · (01/11/2026) rôle `maintenance` (diagComplet, viderCacheConfig, sendCodes) · (27/10/2026) demi-journées de vacances VM/VA (CODES_DEMI_VAC) · (27/10/2026) champ ordreMc (colonne ORDRE_MC) · (24/10/2026) action journalAppliquerMaintenant (journal.gs) · (18/10/2026) rôle « paie » (code partagé des secrétaires de paie) + refus par défaut de tout rôle autre que admin/mar hors de sa liste blanche
+const GAS_VERSION_INDISPOS = '2026-11-27.1';   // (27/11/2026) .1 : initYear recopie les jours de JANVIER_SUIVANT dans la nouvelle grille · (26/11/2026) .3 : action importCpa (droit maintenance), sous verrou · .2 : action patientsLib (mar, droit patlib), sous verrou · .1 : action paieModeEmploi (rôle maintenance) · (25/11/2026) .3 : action republierPlanning (rôle maintenance), sous verrou · (25/11/2026) .2 : actions de la bourse aux gardes (deposerBourse, prendreBourse, retirerBourse), sous verrou · (25/11/2026) .1 : action getRecapPdf (mar seulement) dans la table · (20/11/2026) .1 : initYear réservé au responsable · (19/11/2026) .1 : action savePlanningNotes (notes du planning : interne en réa, infos du jour), sous verrou · (18/11/2026) .2 : actions solveurLancer, solveurEtat, solveurAppliquer (rôle maintenance, solveur.gs) · (18/11/2026) action miroirSyncMaintenant (rôle maintenance) · (17/11/2026) actions getPointsVerif et marquerPrevenu (comité) · (15/11/2026) .2 : clôture, répétition, changement d'année et fermeture de campagne réservés au droit Maintenance (code comité refusé) · (15/11/2026) clôture d'année : archiveYear délègue à la clôture complète en un appel (cloturerAnnee_), actions cloturerAnnee et clotureVerifier (répétition à blanc) ; setActiveYear relit la case et échoue si rien n'a été écrit · (11/11/2026) action annulerEchange (tout code valide, le demandeur seul — contrôlé dans echanges.gs) · (11/11/2026) action recupsReparer (rôle maintenance) · (01/11/2026) rôle `maintenance` (diagComplet, viderCacheConfig, sendCodes) · (27/10/2026) demi-journées de vacances VM/VA (CODES_DEMI_VAC) · (27/10/2026) champ ordreMc (colonne ORDRE_MC) · (24/10/2026) action journalAppliquerMaintenant (journal.gs) · (18/10/2026) rôle « paie » (code partagé des secrétaires de paie) + refus par défaut de tout rôle autre que admin/mar hors de sa liste blanche
 
 /* ── (01/08/2026) MARQUEUR DE TEMPS GLOBAL — mesure, ne change rien ───────
    `_srv_ms` chronometre l'INTERIEUR de doGet. Or avant que doGet soit appele,
@@ -698,6 +698,20 @@ function _act_initYear(R) {
     }
   } catch(e) {}
 
+  /* (27/11/2026) Les jours de janvier posés pendant l'année précédente, en
+     attente dans JANVIER_SUIVANT, rejoignent la grille (puis quittent l'onglet). */
+  let janvierSuivantCopies = 0;
+  try {
+    const fmtJ = d => `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
+    const colDe = {}; days.forEach((day, i) => { colDe[fmtJ(day)] = i + 2; });
+    const ligneDe = {}; actifsIds.forEach((id, i) => { ligneDe[String(id).trim().toUpperCase()] = 4 + i; });
+    janvierSuivantCopies = _janvierSuivantTransferer_(newYear, function (id, ds, codeInd) {
+      const l = ligneDe[String(id).trim().toUpperCase()], c = colDe[ds];
+      if (!l || !c) return false;
+      indSheet.getRange(l, c).setValue(codeInd);
+      return true;
+    });
+  } catch (eJs) { try { Logger.log('janvier suivant : ' + eJs.message); } catch (e2) {} }
   const jfY = getJoursFeries(newYear);
   const jfYn = getJoursFeries(newYear + 1);
   days.forEach((day, i) => {
@@ -751,6 +765,7 @@ affSheet.getRange(2, 2, affRows.length, 12)
 }
   return ContentService.createTextOutput(JSON.stringify({
     success: true, message: `INDISPOS_${newYear} créé avec ${days.length} jours`
+      + (janvierSuivantCopies ? ` — ${janvierSuivantCopies} jour(s) de janvier posé(s) en ${newYear - 1} recopié(s)` : '')
   })).setMimeType(ContentService.MimeType.JSON);
 }
 

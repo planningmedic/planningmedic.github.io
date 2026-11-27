@@ -179,8 +179,11 @@ function socleReliquats(ctx) {
   const vm = require('vm'), f = require('path').join(__dirname, '..', 'gas', 'temps_partiel.gs');
   const src = fs.readFileSync(f, 'utf8');
   const cst = n => { const m = src.match(new RegExp('^const ' + n + ' = [^\n]*;', 'm')); if (!m) throw new Error(n + ' introuvable'); return m[0]; };
-  vm.runInContext(['RELIQUAT_AUTO_DEPUIS', 'RELIQUATS_ONGLET', 'RELIQUATS_ENTETE', 'RELIQUAT_TOUTE_ANNEE'].map(cst).join('\n') + '\n'
-    + ['_vacJanvier_', '_vacSurReliquat_', '_vacSurReliquatPossible_', 'reliquatsToutAnnee_', '_reliquatsSaisis_', '_reliquatsCalcules_', 'reliquatsVac_', 'reliquatVacDe_', '_reliquatsFiger_']
+  // Codes de vacances libres : propriété du contexte (un `const` déclaré ensuite par le scénario la masque sans conflit).
+  if (!vm.runInContext('typeof VAC_CODES_LIBRES !== "undefined"', ctx)) ctx.VAC_CODES_LIBRES = vm.runInContext('(' + cst('VAC_CODES_LIBRES').replace(/^const VAC_CODES_LIBRES = |;$/g, '') + ')', ctx);
+  vm.runInContext(['RELIQUAT_AUTO_DEPUIS', 'RELIQUATS_ONGLET', 'RELIQUATS_ENTETE', 'RELIQUAT_TOUTE_ANNEE', 'JANVIER_SUIVANT_ONGLET', 'JANVIER_SUIVANT_ENTETE'].map(cst).join('\n') + '\n'
+    + ['_vacJanvier_', '_vacSurReliquat_', '_vacSurReliquatPossible_', 'reliquatsToutAnnee_', '_reliquatsSaisis_', '_reliquatsCalcules_', 'reliquatsVac_', 'reliquatVacDe_', '_reliquatsFiger_',
+       '_jsIso_', '_janvierSuivantOuvert_', '_janvierSuivantDates_', '_janvierSuivantLire_', '_janvierSuivantEcrire_', '_janvierSuivantTransferer_']
         .map(n => extraireFonction(f, n)).join('\n'), ctx);
   return ctx;
 }

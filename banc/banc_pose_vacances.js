@@ -459,6 +459,54 @@ console.log('\n═══ PV16 · exception « toute l\'année » (retour de cong
   V('« Toute l\'année » s\'écrit librement : majuscule, sans accent', vm.runInContext("RELIQUAT_TOUTE_ANNEE.test('Toute l annee') && RELIQUAT_TOUTE_ANNEE.test(\"toute l'année\") && !RELIQUAT_TOUTE_ANNEE.test('saisi le 26/11')", b.ctx));
 }
 
+console.log('\n═══ PV17 · janvier N+1 posé pendant N, en attente du planning N+1 (27/11/2026) ═══');
+{
+  /* Décision du responsable : chaque MAR pose lui-même ses jours de janvier
+     2028 dans son écran 2027 tant que le planning 2028 n'existe pas ; sans
+     contrôle des présents ; comptés sur 2027 ; recopiés dans INDISPOS_2028 à
+     sa création. Cas réel : un MAR avait posé un jour en janvier 2028, écrit nulle part. */
+  const b = monde({});
+  b.ctx.__auj = '2026-12-01';
+  const k = vm.runInContext('JSON.parse(JSON.stringify(_construirePoseTp_(2027)))', b.ctx);
+  V('clé : janvier 2028 ouvert, ses jours hors grille 2027 (du 03 au 31), 1er janvier férié',
+    k.janvierSuivant && k.janvierSuivant.ouvert === true && k.janvierSuivant.jours[0] === '2028-01-03' && k.janvierSuivant.jours.length === 29
+    && k.janvierSuivant.feries.indexOf('2028-01-01') !== -1, k.janvierSuivant);
+  let r = b.appel({ vac: true, year: 2027, vacances: { '2028-01-14': 'V', '2028-01-17': 'VM', '2028-01-15': 'V' } }, MAR);
+  V('PLEIN01 pose le 14/01/2028 (journée) et le 17/01 (½ matin) : acceptés sans contrôle des présents ; le samedi 15 refusé',
+    r.resultat['2028-01-14'] === 'V' && r.resultat['2028-01-17'] === 'VM' && r.resultat['2028-01-15'] === 'week-end', r.resultat);
+  V('…comptés sur 2027 : 1,5 jour', r.quota.poses === 1.5, r.quota);
+  const lignes = () => (b.cl.getSheetByName('JANVIER_SUIVANT') ? b.cl.getSheetByName('JANVIER_SUIVANT').getDataRange().getValues().slice(1) : []);
+  V('…écrits dans JANVIER_SUIVANT (une ligne par jour, année d\'origine 2027), pas dans GARDES_2027',
+    lignes().length === 2 && lignes().every(l => l[0] === 'PLEIN01' && Number(l[3]) === 2027)
+    && !Object.keys(vm.runInContext('_tpGrilleLire_(2027, "PLEIN01")', b.ctx)).some(ds => ds.indexOf('2028-01-1') === 0), lignes());
+  const k2 = vm.runInContext('JSON.parse(JSON.stringify(_construirePoseTp_(2027)))', b.ctx);
+  V('la clé les renvoie avec ses jours', k2.parMar.PLEIN01.jours['2028-01-14'] === 'V' && k2.parMar.PLEIN01.jours['2028-01-17'] === 'VM', k2.parMar.PLEIN01.jours);
+  vm.runInContext(extraireFonction('../gas/Indispos.gs', 'computeReliquats'), b.ctx);
+  const cr = (vm.runInContext('JSON.parse(JSON.stringify(computeReliquats(2027)))', b.ctx).lignes.find(x => x.id === 'PLEIN01') || {}).vac || {};
+  V('compteur du comité 2027 : les 1,5 jour comptés', cr.pose === 1.5, cr);
+  r = b.appel({ vac: true, year: 2027, vacances: { '2028-01-14': 'V' } }, MAR);
+  V('retirer le 17 : la ligne disparaît, il reste le 14', r.resultat['2028-01-17'] === 'retiré' && lignes().length === 1 && lignes()[0][2] === 'V', lignes());
+  // Quota plein : le reliquat ne joue pas ici (ces jours comptent sur 2027).
+  const jfS = new Set(vm.runInContext('Array.from(getJoursFeries(2027))', b.ctx));
+  const ouvres = []; const d = new Date(2027, 2, 1, 12);
+  while (ouvres.length < 33) { const w = d.getDay(); const ds = d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0') + '-' + String(d.getDate()).padStart(2, '0'); if (w > 0 && w < 6 && !jfS.has(ds)) ouvres.push(ds); d.setDate(d.getDate() + 1); }
+  const p = monde({ gardes: ouvres.map(ds => ['PLEIN01', ds, 'V']) }); p.ctx.__auj = '2026-12-01';
+  const e = {}; ouvres.forEach(ds => { e[ds] = 'V'; }); e['2028-01-14'] = 'V';
+  r = p.appel({ vac: true, year: 2027, vacances: e }, MAR);
+  V('quota 2027 plein : le jour de janvier 2028 est refusé (il compte sur 2027)', /quota atteint/.test(r.resultat['2028-01-14'] || ''), r.resultat['2028-01-14']);
+  // Préparation de 2028 : la recopie, puis plus rien à poser ici.
+  const copies = [];
+  b.cl.getSheetByName('JANVIER_SUIVANT').appendRow(['INCONNU', "'2028-01-20", 'V', 2027, '', '']);
+  const n = vm.runInContext('_janvierSuivantTransferer_(2028, function (id, ds, c) { if (id === "INCONNU") return false; __copies.push([id, ds, c]); return true; })', Object.assign(b.ctx, { __copies: copies }));
+  V('préparation de 2028 : le 14/01 recopié dans INDISPOS_2028 (code VAC) et retiré de l\'onglet ; un MAR absent de la grille reste en attente',
+    n === 1 && JSON.stringify(copies) === JSON.stringify([['PLEIN01', '2028-01-14', 'VAC']]) && lignes().length === 1 && lignes()[0][0] === 'INCONNU', { n, copies, l: lignes() });
+  b.cl.ajouter('INDISPOS_2028', [['MÉDECIN'], ['JOUR'], ['N°']]);
+  const k3 = vm.runInContext('JSON.parse(JSON.stringify(_construirePoseTp_(2027)))', b.ctx);
+  r = b.appel({ vac: true, year: 2027, vacances: { '2028-01-21': 'V' } }, MAR);
+  V('INDISPOS_2028 créé : janvier 2028 fermé dans l\'écran 2027 (il se pose au staff 2028)', k3.janvierSuivant.ouvert === false && r.resultat['2028-01-21'] === 'hors année', { js: k3.janvierSuivant, r: r.resultat });
+  V('l\'initialisation de 2028 appelle bien la recopie', /janvierSuivantCopies = _janvierSuivantTransferer_\(newYear, function \(id, ds, codeInd\)/.test(fs.readFileSync('../gas/Indispos.gs', 'utf8')));
+}
+
 console.log('\n═══ PV11 · la tuile du portail ═══');
 {
   const src = fs.readFileSync('../index.html', 'utf8');
@@ -594,6 +642,21 @@ async function ouvrir(cle, repondre) {
     wT.eval('VCX.pend = {}; VCX.reliquat.droit = 40; vcxRendre();');
     V('ligne « toute l\'année » avec un reste : « … à poser en 2027 », sans « 31/01 »',
       /il vous reste 7 jour\(s\) à poser en 2027$/.test(wT.document.getElementById('vcxJr').textContent), wT.document.getElementById('vcxJr').textContent);
+    // (27/11/2026) Janvier N+1 : un 13e mois, sans contrôle des présents.
+    const bJ = monde({}); const cleJ = vm.runInContext('JSON.parse(JSON.stringify(_construirePoseTp_(2027)))', bJ.ctx);
+    const { w: wJ } = await ouvrir(cleJ, () => ({ success: false }));
+    wJ.eval('VCX.mois = 11; vcxMois(1);');
+    V('« Suivant » après décembre ouvre « Janvier 2028 · sur vos vacances 2027 »', /Janvier 2028 · sur vos vacances 2027/.test(wJ.document.getElementById('vcxMt').textContent), wJ.document.getElementById('vcxMt').textContent);
+    const avantJ = wJ.document.getElementById('vcxJv').textContent;
+    wJ.document.querySelector('#vcxGrid [data-ds="2028-01-14"]').click();
+    V('le 14/01/2028 se pose (aucun chiffre de présents) et compte sur 2027', wJ.eval('VCX.pend["2028-01-14"]') === 'V' && wJ.document.getElementById('vcxJv').textContent !== avantJ, [avantJ, wJ.document.getElementById('vcxJv').textContent]);
+    V('le 1er janvier 2028 est férié', !wJ.document.querySelector('#vcxGrid [data-ds="2028-01-03"]').classList.contains('bloque') && wJ.eval('vcxEtat("2028-01-03").s') === 'libre');
+    wJ.eval('vcxMois(1);');
+    V('pas de mois après janvier 2028', /Janvier 2028/.test(wJ.document.getElementById('vcxMt').textContent));
+    const cleF = JSON.parse(JSON.stringify(cleJ)); cleF.janvierSuivant = { ouvert: false };
+    const { w: wF } = await ouvrir(cleF, () => ({ success: false }));
+    wF.eval('VCX.mois = 11; vcxRendre(); vcxMois(1);');
+    V('planning 2028 créé : l\'écran 2027 s\'arrête en décembre', /Décembre 2027/.test(wF.document.getElementById('vcxMt').textContent), wF.document.getElementById('vcxMt').textContent);
     const { w: wS } = await ouvrir(vm.runInContext('JSON.parse(JSON.stringify(_construirePoseTp_(2027)))', monde({}).ctx), () => ({ success: false }));
     V('sans reliquat, la ligne reste cachée', wS.document.getElementById('vcxJr').style.display === 'none');
   }
