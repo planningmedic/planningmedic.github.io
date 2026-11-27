@@ -136,7 +136,7 @@ console.log('\n═══ 2. Prendre en don : le premier qui prend l\'obtient, to
   V('l\'offre est close : « Prise par BRAVO »', o[COL.ETAT] === 'acceptee' && o[COL.INFO] === 'Prise par BRAVO', o);
   const d = ligneDe(b, p.don);
   V('un don ordinaire est tracé, lié à l\'offre', d && d[COL.TYPE] === 'don' && d[COL.DEMANDEUR] === 'ALPHA' && d[COL.RECEVEUR] === 'BRAVO' && d[COL.OFFRE] === r.id && d[COL.ETAT] === 'acceptee', d);
-  V('les deux MAR sont prévenus', ['ALPHA','BRAVO'].every(x => b.notifs.some(n => n.cible && n.cible.id === x && n.titre === 'Échange confirmé')), b.notifs);
+  V('les deux MAR sont prévenus', ['ALPHA','BRAVO'].every(x => b.notifs.some(n => n.cible && n.cible.id === x && n.titre === 'Don confirmé')), b.notifs);
   const t = essai(b, `prendreBourse(${U('CHARLI')}, { id:${JSON.stringify(r.id)} })`);
   V('le deuxième arrive trop tard', /Trop tard/.test(t.err || ''), t);
   V('prendre sa propre offre est refusé', /propre offre/.test(essai(b, (() => { b.poser('ALPHA', b.dates[20], 'G'); return `prendreBourse(${U('ALPHA')}, { id:${JSON.stringify(deposer(b,'ALPHA',b.dates[20],'don').id)} })`; })()).err || ''));

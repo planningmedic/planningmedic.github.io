@@ -398,6 +398,13 @@ console.log('\n═══ 10 bis. Année SANS suivi des récupérations : ni ses 
   const o = monde(2027);
   o.poser('ALPHA', o.dates[50], '18'); o.poser('BRAVO', o.dates[52], '18');
   V('témoin : année ouverte, l\'échange de deux 18 h passe', !!essai(o, 'ALPHA', { type:'echange18', year:2027, date:o.dates[50], date2:o.dates[52], receveur:'BRAVO' }).id);
+  // (27/11/2026) La confirmation d'un don de 18 h s'intitule « Don confirmé ».
+  const t18 = monde(2027);
+  t18.poser('ALPHA', t18.dates[60], '18');
+  const dn18 = essai(t18, 'ALPHA', { type:'don18', year:2027, date:t18.dates[60], receveur:'BRAVO' });
+  t18.notifs.length = 0;
+  const rp18 = vm.runInContext(`repondreEchange(${JSON.stringify(user('BRAVO'))}, { id:${JSON.stringify(dn18.id)}, reponse:'accepter' })`, t18.ctx);
+  V('don d\'un 18 h accepté : « Don confirmé » aux deux MAR', rp18.etat === 'acceptee' && t18.notifs.filter(n => n.titre === 'Don confirmé').length === 2, [rp18, t18.notifs]);
 
   // Une demande restée en attente d'avant la règle : fermée à la réponse, rien n'est écrit.
   const c = monde(2027);
@@ -679,7 +686,8 @@ console.log('\n═══ 20. Un humain lit ces messages : « Dr Durand », jamai
   vm.runInContext(`repondreEchange(${JSON.stringify(user('BRAVO'))}, { id:${JSON.stringify(r2.id)}, reponse:'accepter' })`, b.ctx);
   V('la confirmation dit « du Dr Alpha au Dr Bravo »',
     /passe du Dr Alpha au Dr Bravo/.test(b.notifs[0].corps), b.notifs[0]);
-  V('les deux MAR reçoivent la confirmation', b.notifs.filter(n => /Échange confirmé/.test(n.titre)).length === 2);
+  V('les deux MAR reçoivent la confirmation « Don confirmé »', b.notifs.filter(n => n.titre === 'Don confirmé').length === 2, b.notifs);
+  V('un don ne s\'intitule jamais « Échange confirmé »', !b.notifs.some(n => /Échange confirmé/.test(n.titre)), b.notifs);
 
   // 4. proposition d'échange (deux dates)
   const c = monde(2027);
@@ -691,6 +699,7 @@ console.log('\n═══ 20. Un humain lit ces messages : « Dr Durand », jamai
   vm.runInContext(`repondreEchange(${JSON.stringify(user('BRAVO'))}, { id:${JSON.stringify(r3.id)}, reponse:'accepter' })`, c.ctx);
   V('la confirmation d\'échange dit « le Dr Alpha … le Dr Bravo »',
     /le Dr Alpha prend le/.test(c.notifs[0].corps) && /le Dr Bravo prend le/.test(c.notifs[0].corps), c.notifs[0]);
+  V('un échange reste « Échange confirmé » pour les deux MAR', c.notifs.filter(n => n.titre === 'Échange confirmé').length === 2, c.notifs);
 
   // 5-6. rappel à 24 h et expiration à 48 h
   const d = monde(2027);
