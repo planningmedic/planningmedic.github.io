@@ -262,6 +262,44 @@ console.log('\n═══ 5. L\'écran : le bandeau, puis la file au clic ══�
     w.URL.createObjectURL = () => 'blob:x'; w.URL.revokeObjectURL = () => {};
     await w.eval('recapPdf()');
     V('le PDF est demandé au serveur pour l\'année affichée (getRecapPdf, 2027)', envoye && envoye.action === 'getRecapPdf' && envoye.year === 2027, envoye);
+    /* (27/11/2026) DÉFAUT DU DIAGNOSTIC : en cas d'échec, le message passait par une
+       fonction que l'accueil n'a pas — le bouton revenait sans rien dire. */
+    w.fetch = async () => ({ ok:true, json: async () => ({ success:false, error:'panne' }) });
+    const libAvant = D.getElementById('rcPdf').innerHTML;
+    await w.eval('recapPdf()');
+    V('PDF en échec : le bouton le dit', /PDF indisponible/.test(D.getElementById('rcPdf').textContent), D.getElementById('rcPdf').textContent);
+    V('…sans erreur JavaScript (plus d\'appel à une fonction absente)', !/showToast/.test(fs.readFileSync(__dirname + '/../index.html', 'utf8')) && erreurs.length === 0, erreurs.slice(0, 2));
+    await new Promise(r => setTimeout(r, 4200));
+    V('…puis il redevient « Télécharger en PDF », utilisable', D.getElementById('rcPdf').innerHTML === libAvant && !D.getElementById('rcPdf').disabled);
+
+    /* (27/11/2026) REPLI SERVEUR : sans la copie rapide, quotas et pastille « à poser »
+       n'arrivaient jamais. Ils sont demandés au serveur pour les années ouvertes. */
+    {
+      const demandes = [];
+      const cle = { success:true, year:2027, joursFeries:['2027-05-17'], parMar:{ MOI:{ quotaVac:33, quota:26, tpFixe:false, joursFixes:[], jours:{ '2027-03-01':'VAC' } } } };
+      w.fetch = async (u, o) => { const p = JSON.parse(o.body); demandes.push(p);
+        return { ok:true, json: async () => (p.action === 'getPoseTp' ? (p.year === 2027 ? cle : Object.assign({}, cle, { year: 2027 })) : { success:false }) }; };
+      dansLaPage("POSE_CLES={}; PHASE_TP={actif:true,annee:2027,annees:[2027,2028]};");
+      await w.eval('_poseDepuisServeur()');
+      const dem = demandes.filter(p => p.action === 'getPoseTp').map(p => p.year);
+      V('les années ouvertes à la pose sont demandées au serveur (2027 et 2028)', dem.length === 2 && dem[0] === 2027 && dem[1] === 2028, dem);
+      V('la clé reçue pour 2027 est retenue : la pastille revient (33 − 1 = 32 j)', w.eval('_recapResteAPoser()') === 32, w.eval('_recapResteAPoser()'));
+      V('une réponse qui porte une AUTRE année que celle demandée est écartée (2028 → reçu 2027)', w.eval('Object.keys(POSE_CLES).join()') === '2027', w.eval('Object.keys(POSE_CLES).join()'));
+      demandes.length = 0;
+      await w.eval('_poseDepuisServeur()');
+      V('clé déjà là : aucune redemande pour cette année', demandes.filter(p => p.action === 'getPoseTp' && p.year === 2027).length === 0, demandes);
+      demandes.length = 0;
+      dansLaPage("POSE_CLES={}; PHASE_TP=null;");
+      await w.eval('_poseDepuisServeur()');
+      V('aucune année ouverte : aucun appel', demandes.length === 0, demandes);
+      w.fetch = async () => { throw new Error('réseau'); };
+      dansLaPage("PHASE_TP={actif:true,annee:2027,annees:[2027]};");
+      let cassé = null; try { await w.eval('_poseDepuisServeur()'); } catch (e) { cassé = e.message; }
+      V('serveur injoignable : rien ne casse, l\'accueil reste sans quota', cassé === null && w.eval('Object.keys(POSE_CLES).length') === 0, cassé);
+      const src = fs.readFileSync(__dirname + '/../index.html', 'utf8');
+      V('le repli est branché sur les deux ouvertures par le serveur (code tapé, code mémorisé)', (src.match(/showPortal\(\);\s*_poseDepuisServeur\(\);/g) || []).length === 2);
+      dansLaPage("PHASE_TP={actif:true,annee:2025,annees:[2025]};");
+    }
     w.fetch = async () => ({ ok:true, json: async () => ({ success:false }) });
     dansLaPage("POSE_CLES={};");
     dansLaPage("RC_ANNEE=null; renderMesConges();");

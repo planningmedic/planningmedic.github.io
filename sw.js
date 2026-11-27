@@ -4,12 +4,21 @@
  * API Google Apps Script et .json : réseau direct, JAMAIS interceptés.
  * (29/10/2026) Pages (navigations) : RÉSEAU D'ABORD, copie de la dernière
  * ouverture réussie si pas de réseau — voir pageReseauDabord().
+ * (27/11/2026) Scripts et feuilles de style : chaque copie porte le numéro de
+ * version du site ; après une publication ils sont redemandés au réseau, la
+ * copie ne servant plus que de secours — voir codeAJour(). RIEN n'est jamais
+ * jeté : sans réseau, la page garde les scripts qu'elle avait.
  */
 var VERSION = 'pm-sw-v2';
 var ASSET_CACHE = VERSION + '-assets';
 var FONT_CACHE  = VERSION + '-fonts';
 var PAGE_CACHE  = VERSION + '-pages';   // (29/10/2026) dernière version vue de chaque page
 var PAGE_DELAI  = 6000;                 // au-delà, sans réponse du réseau : la copie
+var META_CACHE  = VERSION + '-meta';    // (27/11/2026) le dernier numéro de version du site vu par cet appareil
+var MAJ_DELAI   = 1500;                 // attente maximale du numéro de version, une fois la page reçue
+var CODE_DELAI  = 4000;                 // script d'une version précédente : au-delà, sans réponse du réseau, la copie
+var ETIQUETTE   = 'x-pm-version';       // en-tête posé sur chaque copie de script : le numéro du site au moment où elle a été prise
+var versionSite = null;                 // numéro en ligne, lu à chaque ouverture de page (null = pas encore connu)
 
 self.addEventListener('install', function (e) { self.skipWaiting(); });
 
@@ -24,6 +33,7 @@ self.addEventListener('activate', function (e) {
 });
 
 function isFont(h) { return h.indexOf('fonts.googleapis.com') > -1 || h.indexOf('fonts.gstatic.com') > -1; }
+function isCode(chemin) { return /\.(js|css)(\?|$)/i.test(chemin); }
 function isStaticAsset(url) { return /\.(js|css|png|svg|webp|ico|woff2?|ttf|otf)(\?|$)/i.test(url.pathname); }
 
 self.addEventListener('fetch', function (e) {
@@ -43,6 +53,7 @@ self.addEventListener('fetch', function (e) {
      un autre tiroir : un service worker n'y a pas accès. */
   if (req.mode === 'navigate' && url.origin === self.location.origin) { e.respondWith(pageReseauDabord(req, url)); return; }
   if (isFont(url.hostname)) { e.respondWith(cacheFirst(req, FONT_CACHE)); return; }
+  if (url.origin === self.location.origin && isCode(url.pathname)) { e.respondWith(codeAJour(req)); return; }   // (27/11/2026)
   if (url.origin === self.location.origin && isStaticAsset(url)) { e.respondWith(cacheFirst(req, ASSET_CACHE)); return; }
   // HTML, .json, autres cross-origin → réseau direct (non intercepté).
 });
@@ -50,8 +61,69 @@ self.addEventListener('fetch', function (e) {
 /* Page : le réseau d'abord, en revalidant (jamais la copie HTTP du téléphone) ; la
    copie gardée est rangée SANS le « ?… » de l'adresse (aucun code ni paramètre
    conservé) et ne ressort que si le réseau manque ou ne répond pas à temps. */
+/* ── (27/11/2026) SCRIPTS COMMUNS EN RETARD D'UNE OUVERTURE ──────────────
+   Les pages arrivent du réseau, mais scripts et feuilles de style étaient servis
+   de la copie (rafraîchie en fond, pour la fois suivante). Après une publication,
+   la page neuve tournait donc UNE fois avec les scripts d'avant : le 14/11
+   (v1.75.0), planning.html appelait une fonction que l'ancien
+   partage/rendu_equite.js ne connaissait pas — onglet Équité en erreur jusqu'au
+   rechargement suivant.
+   Désormais :
+     · à chaque ouverture de page, le numéro de version en ligne est lu (version.js,
+       ~1 Ko, en même temps que la page) et mémorisé ;
+     · chaque copie de script porte le numéro du site au moment où elle a été prise ;
+     · copie du numéro courant → servie tout de suite, comme avant ;
+     · copie d'un autre numéro → le réseau d'abord (CODE_DELAI), la copie en secours.
+   Rien n'est jeté : hors réseau, ou si le numéro tarde, la page garde ses scripts. */
+async function lireVersionSite() {
+  try {
+    var r = await fetch(self.registration.scope + 'version.js?sw=' + Date.now(), { cache: 'no-store' });
+    if (!r || !r.ok) return;
+    var m = /SITE_VERSION\s*=\s*'([^']+)'/.exec(await r.text());
+    if (!m) return;
+    versionSite = m[1];
+    var meta = await caches.open(META_CACHE);
+    await meta.put('version', new Response(m[1]));
+  } catch (e) { /* sans réseau : le dernier numéro connu reste */ }
+}
+async function versionConnue() {
+  if (versionSite) return versionSite;
+  try { var vu = await (await caches.open(META_CACHE)).match('version'); if (vu) versionSite = await vu.text(); } catch (e) {}
+  return versionSite;
+}
+async function etiqueter(res, v) {
+  try {
+    var h = new Headers(res.headers); h.set(ETIQUETTE, v);
+    return new Response(await res.blob(), { status: res.status, statusText: res.statusText, headers: h });
+  } catch (e) { return res; }
+}
+async function codeAJour(req) {
+  var cached = await caches.match(req);
+  var v = await versionConnue();
+  /* « no-cache » = faire revalider par le serveur, sans se contenter de la copie que
+     le téléphone garde 10 minutes de son côté. */
+  var demander = async function () {
+    var res = await fetch(req, { cache: 'no-cache' });
+    if (res && res.ok) { var c = await caches.open(ASSET_CACHE); await c.put(req, v ? await etiqueter(res.clone(), v) : res.clone()); }
+    return res;
+  };
+  if (cached && (!v || cached.headers.get(ETIQUETTE) === v)) {
+    demander().catch(function () {});                       // revalidation discrète en fond, comme avant
+    return cached;
+  }
+  try {
+    var res = await Promise.race([
+      demander(),
+      new Promise(function (_, ko) { setTimeout(function () { ko(new Error('délai')); }, cached ? CODE_DELAI : 60000); })
+    ]);
+    if (res && (res.ok || !cached)) return res;
+    return cached;                                          // réponse en erreur : la copie d'avant vaut mieux
+  } catch (e) { return cached || Response.error(); }
+}
+
 async function pageReseauDabord(req, url) {
   var cle = url.origin + url.pathname;
+  var maj = lireVersionSite();                              // (27/11/2026) en même temps que la page
   try {
     var res = await Promise.race([
       fetch(req.url, { cache: 'no-cache', credentials: 'same-origin' }),
@@ -59,6 +131,7 @@ async function pageReseauDabord(req, url) {
     ]);
     if (res && res.redirected) return Response.redirect(res.url, 302);   // iPhone : pas de réponse redirigée pour une page
     if (res && res.ok) { var c = await caches.open(PAGE_CACHE); await c.put(cle, res.clone()); }
+    await Promise.race([maj, new Promise(function (ok) { setTimeout(ok, MAJ_DELAI); })]);   // (27/11/2026) le numéro est connu avant que la page demande ses scripts
     return res;
   } catch (e) {
     var copie = await (await caches.open(PAGE_CACHE)).match(cle);

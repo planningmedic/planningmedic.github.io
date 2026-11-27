@@ -338,17 +338,8 @@ function renderAntibioDetails(){
   }
 }
 
-function renderPeropVisibility(){
-  const hideByDefault = shouldHidePeropByDefault();
-
-  if(hideByDefault && !state.peropForced){
-    $("peropCard").classList.add("hidden");
-    $("showPeropBtn").classList.remove("hidden");
-  }else{
-    $("peropCard").classList.remove("hidden");
-    $("showPeropBtn").classList.add("hidden");
-  }
-}
+/* renderPeropVisibility : définie dans app.js (chargé après, c'est elle qui servait déjà).
+   (27/11/2026) La copie qui vivait ici, plus ancienne et jamais exécutée, est retirée. */
 function renderTransfusionDetails(){
   const isOther = state.transfusion.includes("Autre");
   const hasProduct = state.transfusion.some(x => x !== "Autre");

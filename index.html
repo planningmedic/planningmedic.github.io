@@ -2685,6 +2685,29 @@ function _recapAnneeRang(){
             : (PHASE_TP && PHASE_TP.annee ? [Number(PHASE_TP.annee)] : []);
   return ans.length ? Math.max.apply(null, ans) + 1 : new Date().getFullYear() + 1;
 }
+/* (27/11/2026) REPLI SERVEUR. Les clés de pose n'arrivaient que par la copie rapide :
+   quand elle ne répond pas et que l'accueil s'ouvre par le serveur, la pastille
+   « X j à poser » et les quotas du récapitulatif disparaissaient sans rien dire.
+   On les demande alors au serveur (même contenu, getPoseTp), en arrière-plan,
+   pour les seules années ouvertes à la pose. Le serveur répond pour une autre
+   année si celle demandée n'est pas ouverte : on vérifie l'année reçue. */
+async function _poseDepuisServeur(){
+  try {
+    const ans = (PHASE_TP && Array.isArray(PHASE_TP.annees) && PHASE_TP.annees.length) ? PHASE_TP.annees.map(Number)
+              : (PHASE_TP && PHASE_TP.annee ? [Number(PHASE_TP.annee)] : []);
+    let recu = false;
+    for (let i = 0; i < ans.length; i++) {
+      const y = ans[i];
+      if (!y || POSE_CLES[y]) continue;
+      const r = await apiPost({ action: 'getPoseTp', year: y });
+      if (r && r.success && !r.ferme && Number(r.year) === y) { POSE_CLES[y] = r; recu = true; }
+    }
+    if (!recu) return;
+    majPastilles();
+    const box = document.getElementById('mesCongesBody');
+    if (box && box.offsetParent !== null) renderMesConges();
+  } catch (e) { /* sans réponse : l'accueil reste comme avant, sans quota */ }
+}
 function _recapMien(y){ const k = POSE_CLES[y]; return (k && k.parMar && MY_ID && k.parMar[MY_ID]) || null; }
 // Ce que coûte un code de vacances — même décompte que le serveur (_vacPoids_).
 function _recapPoidsVac(c, ds, feries, fixes){
@@ -2806,6 +2829,7 @@ document.addEventListener('click', function(ev){
 async function recapPdf(){
   const b = document.getElementById('rcPdf'); if (!b || b.disabled) return;
   const lib = b.innerHTML; b.disabled = true; b.textContent = '⏳ Préparation du PDF…';
+  let echec = false;
   try {
     const r = await apiPost({ action: 'getRecapPdf', code: VIEW_CODE, year: RC_ANNEE });
     if (!r || !r.success || !r.pdf) throw new Error((r && r.error) || 'réponse vide');
@@ -2816,8 +2840,13 @@ async function recapPdf(){
     document.body.appendChild(a); a.click(); a.remove();
     setTimeout(function(){ URL.revokeObjectURL(url); }, 60000);
   } catch (e) {
-    try { showToast('PDF indisponible pour le moment — réessayez.'); } catch (e2) {}
-  } finally { b.disabled = false; b.innerHTML = lib; if (window.lucide) lucide.createIcons(); }
+    /* (27/11/2026) L'échec se lit sur le bouton, 4 s. Avant : le message passait par
+       une fonction que l'accueil n'a pas — le bouton revenait sans rien dire. */
+    echec = true;
+  } finally {
+    const remettre = function(){ b.disabled = false; b.innerHTML = lib; if (window.lucide) lucide.createIcons(); };
+    if (echec) { b.textContent = 'PDF indisponible — réessayez'; setTimeout(remettre, 4000); } else remettre();
+  }
 }
 
 // ── VUE TOPOS ──
@@ -3629,6 +3658,7 @@ async function echOuvrirProposition(){
     + _ECH_MOIS.map(function(m){ return '<option>un jour de ' + m + '</option>'; }).join('') + '</select></div>'
     + '<label>Pour qui ?</label><select id="bxReserve" onchange="bxMajReserve()"></select>'
     + '<div class="ech-info" id="bxInfoDepot"></div>'
+    + '<div class="ech-avert" id="bxAvert18" style="display:none">Si le collègue qui prend votre garde est de 18 h ce jour-là ou le lendemain, c\'est vous qui ferez son 18 h. Vous serez prévenu.</div>'
     + '<button id="echEnvoyer" class="ech-envoyer" onclick="bxDeposer(this)">Mettre en vitrine</button>'
     + '<div id="bxInversion"></div>'
     + '<div class="ech-msg" id="echMsgProp" style="display:none"></div>';
@@ -3872,7 +3902,8 @@ function _echLibEnvoyer(){ return _echDepot() ? 'Déposer la proposition' : 'Env
    feuille : on lit, on confirme, la demande repart avec la confirmation.
    Une offre = une ligne de type bourse|bourse18 sans receveur — ou, réservée (27/11/2026), avec le collègue visé en receveur ; les demandes
    liées (don pris, échange proposé) portent son identifiant dans `offre`. */
-const _BX_QUESTIONS = { '[COUPLE]':'accepteCouple', '[ABS]':'accepteAbsence', '[REA1]':'accepteRea1', '[REA1L]':'accepteRea1Lui', '[18H]':'accepte18h', '[18]':'accepte18', '[INV]':'accepteInversion' };
+/* (27/11/2026) [18P] : le preneur est de 18 h ce jour-là ou le lendemain — son 18 h passera au donneur, il le lit et confirme avant de prendre. */
+const _BX_QUESTIONS = { '[COUPLE]':'accepteCouple', '[ABS]':'accepteAbsence', '[REA1]':'accepteRea1', '[REA1L]':'accepteRea1Lui', '[18H]':'accepte18h', '[18]':'accepte18', '[INV]':'accepteInversion', '[18P]':'accepte18Passe' };
 let BX_MSG = '', BX_ERR = '';
 function _bxEst(e){ return e && (e.type==='bourse' || e.type==='bourse18'); }
 function _bxKind(e){ return e.type==='bourse18' ? '18' : (_echStatutPlanning(e.annee, e.demandeur, e.date) || 'G'); }
@@ -4107,6 +4138,8 @@ async function bxMajDepot(){
   const g = ECH_PROP.gardes[Number(document.getElementById('echSelGarde').value)||0];
   _echCarte('echCarteGarde', g, 'Choisir…');
   document.getElementById('echLblGarde').textContent = g && g.type==='18' ? 'Mon 18 h' : 'Ma garde';
+  /* (27/11/2026) Déposer une GARDE : le donneur lit avant de déposer qu'il peut hériter du 18 h du preneur. Sans objet pour un 18 h. */
+  { const av = document.getElementById('bxAvert18'); if (av) av.style.display = (g && g.type !== '18') ? 'block' : 'none'; }
   /* (19/11/2026, gardé le 24/11) Seule exception ciblée : un 18 h peut s'inverser avec
      le MAR de garde ce jour-là. */
   bxRemplirReserve(g);
@@ -5028,6 +5061,7 @@ async function viewLogin(){
         seedActiveYear(r.year);   // (perf) évite un getActiveYear ultérieur
         applyUserBadge(r);
         showPortal();
+        _poseDepuisServeur();   // (27/11/2026) quotas et pastille « à poser », que seule la copie rapide apportait
       } else {
         VIEW_CODE='';
         _authErr(r && r.error ? r.error : 'Code incorrect');
@@ -5053,7 +5087,7 @@ async function viewAutoLogin(){
     }
     const r = await apiPost({action:'login'});
     try { if (window.PERF) PERF.jalon('reponse serveur recue'); } catch(e) {}
-    if(r && r.success){ seedActiveYear(r.year); applyUserBadge(r); showPortal(); }
+    if(r && r.success){ seedActiveYear(r.year); applyUserBadge(r); showPortal(); _poseDepuisServeur(); }
     else {
       VIEW_CODE=''; SessionPortail.oublier();
       document.getElementById('viewAuthOverlay').style.display='flex';

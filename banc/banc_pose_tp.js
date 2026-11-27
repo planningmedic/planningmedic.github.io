@@ -149,7 +149,8 @@ function monde(opts) {
   ctx.__envois = envois;
   vm.runInContext('function notifierPush_(titre, corps, url, cible) { __envois.push({ titre: titre, corps: corps, url: url, cible: cible }); return { success: true }; }', ctx);
   vm.runInContext('function _configRows_(){ return SpreadsheetApp.getActiveSpreadsheet().getSheetByName("CONFIG").getDataRange().getValues(); }', ctx);
-  vm.runInContext('const ContentService = { MimeType:{JSON:1}, createTextOutput: s => ({ setMimeType: () => JSON.parse(s) }) };', ctx);
+  /* (27/11/2026) La réponse garde getContent(), comme la vraie : le lot de décisions relit la réponse de chaque décision par là. */
+  vm.runInContext('const ContentService = { MimeType:{JSON:1}, createTextOutput: s => ({ setMimeType: () => Object.defineProperty(JSON.parse(s), "getContent", { value: () => s, enumerable: false }) }) };', ctx);
   // Fonctions RÉELLES des fichiers livrés
   ['getActiveYear', 'getPremierJourPlanning', 'reconstruireDatesHeaders', 'buildDateToCol', 'getJoursFeries', 'seuilsPresence_'].forEach(n =>
     vm.runInContext('let _medFlagsCacheDummy;' === n ? '' : extraireFonction('../gas/code.gs', n), ctx));
@@ -1242,8 +1243,11 @@ console.log('\n═══ PT34 · les décisions du comité partent EN LOT ══
   V('l\'action de lot rafraîchit les mêmes familles',
     /deciderJourTpLot:\s*\['indispos', 'acces', 'gardes', 'planning'\]/.test(M));
   V('le serveur expose bien l\'action de lot', /"deciderJourTpLot"\s*:\s*\{ role:/.test(SRC_IND));   // (15/09) table du routeur
-  V('…et chaque ligne passe par le MÊME chemin qu\'une décision isolée',
-    /_routeRequete_\(\{ parameter: \{ payload: JSON\.stringify\(\{[\s\S]{0,120}action: 'deciderJourTp'/.test(SRC_IND));
+  /* (27/11/2026) Le lot appelle la MÊME fonction qu'une décision isolée, directement :
+     il tient déjà le verrou d'écriture, repasser par le routeur le redemanderait. */
+  V('…et chaque ligne passe par la MÊME fonction qu\'une décision isolée',
+    /function _act_deciderJourTpLot[\s\S]{0,1400}_act_deciderJourTp\(\{[\s\S]{0,160}action: 'deciderJourTp'/.test(SRC_IND)
+    && !/function _act_deciderJourTpLot[\s\S]{0,1400}_routeRequete_\(/.test(SRC_IND.slice(SRC_IND.indexOf('function _act_deciderJourTpLot'), SRC_IND.indexOf('function _act_deciderJourTp('))));
   V('…un échec de ligne n\'arrête pas les autres', /catch \(eL\) \{[\s\S]{0,160}rates\+\+/.test(SRC_IND));
 }
 
@@ -1445,6 +1449,77 @@ console.log('\n═══ PT40 · le TP passe avant la récup de samedi (sauf à 
   const restees = ['PLEIN01', 'PLEIN02'].filter(m => b.lireGarde(m, JOUR) === 'R').length;
   V('il ne manque qu\'un postable : une seule récup part, l\'autre reste',
     rep.resultat[JOUR] === 'TP' && restees === 1 && presentsLe(b, JOUR) === 15, [rep.resultat, restees]);
+}
+
+console.log('\n═══ PT41 · décisions du comité SOUS VERROU d\'écriture (27/11/2026) ═══');
+{
+  /* DÉFAUT TROUVÉ AU DIAGNOSTIC DU 27/11 : deciderJourTp, deciderJourTpLot et
+     solveurAppliquer écrivaient hors de la liste du verrou, sans verrou propre.
+     Une décision prise au même instant qu'une pose se jugeait sur une lecture périmée. */
+  const IND = fs.readFileSync('../gas/Indispos.gs', 'utf8');
+  const liste = (IND.match(/WRITE_ACTIONS_LOCK = new Set\(\[([\s\S]*?)\]\);/) || [, ''])[1];
+  ['deciderJourTp', 'deciderJourTpLot', 'solveurAppliquer'].forEach(function (a) {
+    V(a + ' est dans la liste du verrou d\'écriture', new RegExp("'" + a + "'").test(liste));
+  });
+  /* Le VRAI lot, avec la vraie décision : deux jours validés d'un coup, un refusé. */
+  const b = monde({ indispos: [['POSEUR', '2027-03-02', 'TPA'], ['POSEUR', '2027-03-05', 'TPA'], ['ZORRO', '2027-03-09', 'TPA']] });
+  vm.runInContext(require('./stubs').blocAction('deciderJourTp'), b.ctx);
+  vm.runInContext(require('./stubs').blocAction('deciderJourTpLot', 'handlerLot'), b.ctx);
+  /* Si le lot repassait par le routeur, cet appel échouerait : le routeur n'existe pas ici. */
+  V('le lot ne dépend plus du routeur', vm.runInContext("typeof _routeRequete_ === 'undefined'", b.ctx));
+  const lire = function (r) { return (r && typeof r.getContent === 'function') ? JSON.parse(r.getContent()) : r; };
+  const rep = lire(vm.runInContext("handlerLot('deciderJourTpLot', " + JSON.stringify({ code: 'X', year: 2027, decisions: [
+    { decision: 'valider', doctorId: 'POSEUR', date: '2027-03-02' },
+    { decision: 'valider', doctorId: 'POSEUR', date: '2027-03-05' },
+    { decision: 'inconnue', doctorId: 'ZORRO', date: '2027-03-09' },
+  ] }) + ", " + JSON.stringify(ADMIN) + ")", b.ctx));
+  V('le lot répond, avec le détail de chaque ligne', rep && rep.success === true && Array.isArray(rep.detail) && rep.detail.length === 3, rep);
+  V('les deux validations sont appliquées', rep && rep.faits === 2 && rep.detail[0].success === true && rep.detail[1].success === true, rep && rep.detail);
+  V('la ligne invalide est comptée en échec, sans arrêter les autres', rep && rep.rates === 1 && rep.detail[2].success === false && /inconnue/.test(rep.detail[2].error || ''), rep && rep.detail);
+  const refus = lire(vm.runInContext("handlerLot('deciderJourTpLot', " + JSON.stringify({ decisions: [{ decision: 'valider', doctorId: 'POSEUR', date: '2027-03-02' }] }) + ", " + JSON.stringify({ role: 'mar', id: 'POSEUR' }) + ")", b.ctx));
+  V('un MAR ne peut toujours pas décider par lot', refus && refus.success === false, refus);
+}
+
+console.log('\n═══ PT42 · une demande en attente dont le jour est pris est retirée toute seule (27/11/2026) ═══');
+{
+  /* DÉFAUT TROUVÉ AUX SCÉNARIOS DE VIE RÉELLE : un MAR a un jour « sous réserve », puis prend
+     une garde ce jour-là. « Valider » répondait « la case n'est plus libre » ; « Refuser »
+     fermait le jour pour toute l'équipe et rendait aussi la demande d'un collègue étranger
+     à l'affaire. Décision du responsable : la demande disparaît toute seule. */
+  const b = monde({ indispos: [['POSEUR', '2027-03-02', 'TPA'], ['ZORRO', '2027-03-02', 'TPA'], ['POSEUR', '2027-03-05', 'TPA'], ['ZORRO', '2027-03-10', 'TPA']] });
+  vm.runInContext(require('./stubs').blocAction('deciderJourTp', 'handlerDecider'), b.ctx);
+  vm.runInContext(require('./stubs').extraireFonction('../gas/temps_partiel.gs', 'tpDemandesCaduques_'), b.ctx);
+  const dec = (p) => vm.runInContext(`handlerDecider('deciderJourTp', ${JSON.stringify(p)}, ${JSON.stringify(ADMIN)})`, b.ctx);
+  const ecrire = (id, ds, code) => vm.runInContext(`(function(){ const sh = SpreadsheetApp.getActiveSpreadsheet().getSheetByName('GARDES_2027'); const d = sh.getDataRange().getValues(); const c = buildDateToCol(d, 2027)[${JSON.stringify(ds)}]; let r = -1; for (var i = 3; i < d.length; i++) if (String(d[i][0]).trim() === ${JSON.stringify(id)}) r = i; sh.getRange(r + 1, c + 1).setValue(${JSON.stringify(code)}); })()`, b.ctx);
+  const cles = () => b.demandes().map(x => x.mar + ' ' + x.date).sort().join(' | ');
+  V('au départ : quatre demandes en attente', b.demandes().length === 4, cles());
+  V('rien n\'est pris : rien n\'est retiré', vm.runInContext('tpDemandesCaduques_(2027).length', b.ctx) === 0 && b.demandes().length === 4);
+
+  /* Le défaut, tel qu'il se présentait : la garde est écrite, le comité ne peut plus valider. */
+  ecrire('POSEUR', '2027-03-02', 'G');
+  const v = dec({ decision: 'valider', doctorId: 'POSEUR', date: '2027-03-02' });
+  V('contre-épreuve : sans le nettoyage, « Valider » est refusé et la demande reste', v.success === false && /plus libre/.test(v.error || '') && /POSEUR 2027-03-02/.test(cles()), [v, cles()]);
+
+  b.envois.length = 0;
+  const out = JSON.parse(vm.runInContext('JSON.stringify(tpDemandesCaduques_(2027))', b.ctx));
+  V('la demande du jour pris est retirée — elle seule', out.length === 1 && out[0].mar === 'POSEUR' && out[0].date === '2027-03-02' && out[0].code === 'G', out);
+  V('…la demande du COLLÈGUE le même jour reste, et celle d\'un autre jour aussi', cles() === 'POSEUR 2027-03-05 | ZORRO 2027-03-02 | ZORRO 2027-03-10', cles());
+  V('le MAR est prévenu, avec la date lisible et la raison', b.envois.length === 1 && b.envois[0].cible.id === 'POSEUR' && /retirée/.test(b.envois[0].titre) && /mardi 2 mars/.test(b.envois[0].corps) && /de garde/.test(b.envois[0].corps), b.envois);
+  V('la garde n\'est pas touchée', b.lireGarde('POSEUR', '2027-03-02') === 'G');
+  V('le jour n\'est pas fermé pour l\'équipe', !/2027-03-02/.test(vm.runInContext('JSON.stringify(_tpFermes_(2027))', b.ctx)));
+  const vz = dec({ decision: 'valider', doctorId: 'ZORRO', date: '2027-03-02' });
+  V('le comité peut toujours valider le collègue, ce même jour', vz.success === true && b.lireGarde('ZORRO', '2027-03-02') === 'TP', vz);
+
+  /* Tout ce qui occupe la case retire la demande : repos de garde, 18 h, statut du comité. */
+  ecrire('POSEUR', '2027-03-05', 'RG'); ecrire('ZORRO', '2027-03-10', '18');
+  b.envois.length = 0;
+  const out2 = JSON.parse(vm.runInContext('JSON.stringify(tpDemandesCaduques_(2027))', b.ctx));
+  V('repos de garde et 18 h : les deux demandes partent', out2.length === 2 && b.demandes().length === 0, [out2, cles()]);
+  V('…chacun avec sa raison', b.envois.some(e => e.cible.id === 'POSEUR' && /repos de garde/.test(e.corps)) && b.envois.some(e => e.cible.id === 'ZORRO' && /de 18 h/.test(e.corps)), b.envois);
+  V('un second passage ne refait rien', vm.runInContext('tpDemandesCaduques_(2027).length', b.ctx) === 0 && b.envois.length === 2);
+  V('une année sans demande : rien, sans erreur', vm.runInContext('tpDemandesCaduques_(2031).length', b.ctx) === 0);
+  const E = fs.readFileSync('../gas/echanges.gs', 'utf8');
+  V('branché après un don ou un échange accepté, et au passage horaire', (E.match(/tpDemandesCaduques_\(/g) || []).length >= 2 && /typeof tpDemandesCaduques_ === 'function'/.test(E));
 }
 
 console.log(`\n${ko === 0 ? '✅' : '❌'} banc_pose_tp : ${ok} vérifications, ${ko} échec(s)`);

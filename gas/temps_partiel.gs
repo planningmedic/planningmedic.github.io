@@ -4,7 +4,7 @@
    quelles : aucune ligne de logique modifiée, seulement déplacée. Le routeur et
    ses aides (checkCode, _deny, _error, doGet/doPost) restent dans Indispos.gs.
    Un seul espace global dans Apps Script : rien à importer. */
-const GAS_VERSION_TP = '2026-11-27.4';   // (27/11/2026) .4 : janvier N+1 pour le comité (janvierSuivantCampagne_, _janvierSuivantDuComite_) · .3 : janvier N+1 posé pendant N (onglet JANVIER_SUIVANT) — pose libre et clé de pose · (27/11/2026) .2 : reliquatsCampagne_ — reliquats de l'équipe pour l'onglet Récap du comité · (27/11/2026) .1 : reliquatVacDe_ — le reliquat d'un MAR, pour la jauge du staff vacances · (26/11/2026) .3 : exception « toute l'année » du reliquat (ORIGINE de RELIQUATS, retour de congé long) — pose libre et clé de pose · (26/11/2026) .2 : reliquat de vacances de l'année précédente (onglet RELIQUATS, calcul automatique dès 2027) — les vacances de janvier le consomment d'abord : pose libre, clé de pose · (26/11/2026) .1 : LE TP ET LES VACANCES PASSENT AVANT LA RÉCUP DE SAMEDI — un jour qui n'est pas vert à cause de récups devient vert en les déplaçant (_tpLibererRecups_), à la pose d'un TP ou de vacances par le MAR comme à la validation du comité ; jamais une récup à moins de 30 jours ; le MAR concerné est prévenu ; l'écran de pose compte ces récups comme présentes (_tpRecupsCedables_) · (25/11/2026) .1 : POSE LIBRE DES VACANCES après la génération (_poserVac_) — jour vert seulement, 7 jours d'avance, quota de la quotité, jamais sur un jour occupé ; la clé de pose porte le quota de vacances et les jours fixes de chaque MAR ; toute republication différée (TP, vacances, décisions du comité) arme aussi les mails de changement, dont celui du secrétariat · (24/11/2026) .2 : un jour fermé par le comité se rouvre tout seul s'il redevient vert parce que l'équipe s'est étoffée depuis le refus ; les MAR refusés ce jour-là sont prévenus · (24/11/2026) .1 : effectif présent — une fois l'année générée, les absences (V, F, CL, CP, CTP, A) sont lues dans GARDES, plus dans INDISPOS (GARDES fait foi) ; VM/VA comptent présents · (17/11/2026) .2 : seuils de la pose lus dans l'onglet SEUILS (seuilsPresence_), envoyés à l'écran avec l'effectif · (17/11/2026) effectif présent : un MAR marqué HORS_EFFECTIF dans MEDECINS n'est plus compté (pose des TP, points à vérifier) · (16/11/2026) jour de TP dans sa semaine Réa 1 : non bloquant — semaine envoyée à l'écran (grisée, confirmation), signalée au MAR comme au comité · (12/11/2026) plus aucun nom de personne dans le code (effectif présent) · (10/11/2026) chaque jour de TP posé, retiré, demandé ou tranché laisse une ligne dans l'onglet HISTORIQUE
+const GAS_VERSION_TP = '2026-11-27.6';   // (27/11/2026) .6 : tpDemandesCaduques_ — une demande en attente dont le jour est pris (garde, repos, 18 h…) est retirée, le MAR prévenu · .5 : le lot de décisions appelle la décision directement (un seul verrou d'écriture, pris par le routeur) · .4 : janvier N+1 pour le comité (janvierSuivantCampagne_, _janvierSuivantDuComite_) · .3 : janvier N+1 posé pendant N (onglet JANVIER_SUIVANT) — pose libre et clé de pose · (27/11/2026) .2 : reliquatsCampagne_ — reliquats de l'équipe pour l'onglet Récap du comité · (27/11/2026) .1 : reliquatVacDe_ — le reliquat d'un MAR, pour la jauge du staff vacances · (26/11/2026) .3 : exception « toute l'année » du reliquat (ORIGINE de RELIQUATS, retour de congé long) — pose libre et clé de pose · (26/11/2026) .2 : reliquat de vacances de l'année précédente (onglet RELIQUATS, calcul automatique dès 2027) — les vacances de janvier le consomment d'abord : pose libre, clé de pose · (26/11/2026) .1 : LE TP ET LES VACANCES PASSENT AVANT LA RÉCUP DE SAMEDI — un jour qui n'est pas vert à cause de récups devient vert en les déplaçant (_tpLibererRecups_), à la pose d'un TP ou de vacances par le MAR comme à la validation du comité ; jamais une récup à moins de 30 jours ; le MAR concerné est prévenu ; l'écran de pose compte ces récups comme présentes (_tpRecupsCedables_) · (25/11/2026) .1 : POSE LIBRE DES VACANCES après la génération (_poserVac_) — jour vert seulement, 7 jours d'avance, quota de la quotité, jamais sur un jour occupé ; la clé de pose porte le quota de vacances et les jours fixes de chaque MAR ; toute republication différée (TP, vacances, décisions du comité) arme aussi les mails de changement, dont celui du secrétariat · (24/11/2026) .2 : un jour fermé par le comité se rouvre tout seul s'il redevient vert parce que l'équipe s'est étoffée depuis le refus ; les MAR refusés ce jour-là sont prévenus · (24/11/2026) .1 : effectif présent — une fois l'année générée, les absences (V, F, CL, CP, CTP, A) sont lues dans GARDES, plus dans INDISPOS (GARDES fait foi) ; VM/VA comptent présents · (17/11/2026) .2 : seuils de la pose lus dans l'onglet SEUILS (seuilsPresence_), envoyés à l'écran avec l'effectif · (17/11/2026) effectif présent : un MAR marqué HORS_EFFECTIF dans MEDECINS n'est plus compté (pose des TP, points à vérifier) · (16/11/2026) jour de TP dans sa semaine Réa 1 : non bloquant — semaine envoyée à l'écran (grisée, confirmation), signalée au MAR comme au comité · (12/11/2026) plus aucun nom de personne dans le code (effectif présent) · (10/11/2026) chaque jour de TP posé, retiré, demandé ou tranché laisse une ligne dans l'onglet HISTORIQUE
 
 /* ── (POSE TP · 22/08/2026) PHASE DE POSE DES TEMPS PARTIELS — DÉDUITE, JAMAIS ÉCRITE ──
    Les jours de temps partiel se posent APRÈS la génération des gardes (décision
@@ -1011,6 +1011,38 @@ function _tpDemandeRetirer_(annee, ds, marId) {
   }
 }
 
+/* ═══ (27/11/2026) DEMANDE DE TEMPS PARTIEL DEVENUE SANS OBJET ═════════════
+   DÉFAUT TROUVÉ AUX SCÉNARIOS DE VIE RÉELLE : un MAR a un jour « sous réserve »
+   (demande en attente du comité), puis prend une garde ce jour-là. La demande
+   restait : « Valider » répondait « la case n'est plus libre », et la seule
+   autre réponse, « Refuser », fermait le jour pour toute l'équipe et rendait
+   aussi la demande d'un collègue étranger à l'affaire.
+   Décision du responsable : la demande disparaît toute seule. Toute demande dont
+   la case du planning n'est plus vide est retirée, tracée, et le MAR prévenu.
+   Appelée après un don ou un échange accepté, et au passage horaire. */
+function tpDemandesCaduques_(annee) {
+  const retirees = [];
+  let dem = [];
+  try { dem = _tpDemandes_(annee); } catch (e) { return retirees; }
+  if (!dem.length) return retirees;
+  const LIB = { G: 'de garde', G2: 'de garde', RG: 'en repos de garde', '18': 'de 18 h', R: 'en récupération', V: 'en vacances', VM: 'en vacances', VA: 'en vacances', F: 'en formation', CL: 'en congé', TP: 'déjà en temps partiel' };
+  const grilles = {};
+  dem.forEach(function (x) {
+    const mar = String(x.mar), ds = String(x.date);
+    if (!(mar in grilles)) { try { grilles[mar] = _tpGrilleLire_(annee, mar); } catch (e) { grilles[mar] = null; } }
+    if (!grilles[mar]) return;
+    const code = String(grilles[mar][ds] || '').trim().toUpperCase().replace(/\.0$/, '');
+    if (!code) return;                                   // la case est libre : la demande attend toujours le comité
+    _tpDemandeRetirer_(annee, ds, mar);
+    retirees.push({ mar: mar, date: ds, code: code });
+    try { logAction('TP — demande du ' + ds + ' (' + annee + ') de ' + mar + ' retirée : case occupée (' + code + ')'); } catch (e) {}
+    try { (typeof historiser_ === 'function') && historiser_([{ annee: annee, quoi: 'Demande de TP retirée (jour pris : ' + code + ')', mar: mar, jour: ds, par: 'automatique' }]); } catch (e) {}
+    _tpNotifier_('Temps partiel : demande retirée',
+      'Votre demande du ' + _tpJourLisible_(ds) + ' est retirée : vous êtes ' + (LIB[code] || 'occupé') + ' ce jour-là.', mar);
+  });
+  return retirees;
+}
+
 /* Une notification ne fait JAMAIS échouer la décision qui la déclenche —
    règle du canal depuis le 12/08. `notifierPush_` avale déjà ses propres
    erreurs ; cette enveloppe protège aussi le cas où elle serait absente
@@ -1273,10 +1305,13 @@ function _act_deciderJourTpLot(R) {
   let faits = 0, rates = 0;
   liste.forEach(function (d) {
     try {
-      const r = _routeRequete_({ parameter: { payload: JSON.stringify({
+      /* (27/11/2026) La décision est appelée DIRECTEMENT, plus par le routeur : le lot
+         tient déjà le verrou d'écriture (Indispos.gs) et le code a déjà été contrôlé.
+         Repasser par le routeur redemanderait le verrou à chaque jour de la série. */
+      const r = _act_deciderJourTp({ e: e, action: 'deciderJourTp', code: code, user: user, payload: {
         action: 'deciderJourTp', code: payload.code, year: payload.year,
         decision: d.decision, doctorId: d.doctorId, date: d.date, retablir: d.retablir || {},
-      }) } });
+      } });
       const rep = JSON.parse(r.getContent());
       if (rep && rep.success) faits++; else rates++;
       detail.push({ date: d.date, doctorId: d.doctorId, decision: d.decision,

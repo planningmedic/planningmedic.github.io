@@ -434,5 +434,132 @@ console.log('\n═══ 11. Offre RÉSERVÉE à un collègue : lui seul la pren
   V('contre-épreuve : sans réservation, CHARLI la prend toujours', run(g, `prendreBourse(${U('CHARLI')}, { id:${JSON.stringify(r6.id)} })`).etat === 'acceptee');
 }
 
+/* Fiches des MAR pour les contrôles du preneur : la vraie fonction lit MEDECINS ; ici la
+   réponse de getMedecinFlags (code.gs) est posée telle qu'elle la rend — des ensembles et
+   des dates « aaaa-mm-jj ». */
+const fiches = (b, f) => { b.ctx.__fiches = Object.assign({ noGarde: [], only18: [], dateDebut: {}, dateFin: {} }, f);
+  run(b, 'function getMedecinFlags(){ return { noGarde: new Set(__fiches.noGarde), only18: new Set(__fiches.only18), dateDebut: __fiches.dateDebut, dateFin: __fiches.dateFin }; }'); };
+
+console.log('\n═══ 12. Le preneur doit pouvoir tenir la garde : sans garde, hors contrat (27/11/2026) ═══');
+{
+  /* DÉFAUT TROUVÉ AUX SCÉNARIOS DE VIE RÉELLE : rien ne contrôlait le preneur. Un MAR noté
+     « sans garde » prenait une garde ; un MAR parti en prenait une un mois après son départ. */
+  const b = monde(2027);
+  const j = b.dates[9];
+  b.poser('ALPHA', j, 'G'); b.poser('ALPHA', b.dates[10], 'RG');
+  const fin = b.dates[5];                                   // contrat de DELTA : fini avant la garde
+  fiches(b, { noGarde: ['CHARLI'], only18: ['ECHO'], dateFin: { DELTA: fin }, dateDebut: { FOXTRO: b.dates[40] } });
+  const r = deposer(b, 'ALPHA', j, 'deux');
+  const n = b.echanges().length;
+  const prendre = (id, plus) => essai(b, `prendreBourse(${U(id)}, Object.assign({ id:${JSON.stringify(r.id)} }, ${JSON.stringify(plus || {})}))`);
+  let t = prendre('CHARLI');
+  V('un MAR « sans garde » ne peut pas prendre une garde, et il lit pourquoi', /Vous ne faites pas de gardes/.test(t.err || '') && b.lire('CHARLI', j) === '' && b.lire('ALPHA', j) === 'G', t);
+  V('…rien n\'est écrit, l\'offre reste en vitrine', b.echanges().length === n && ligneDe(b, r.id)[COL.ETAT] === 'attente');
+  t = prendre('ECHO');
+  V('un MAR « 18 h seulement » non plus', /Vous ne faites pas de gardes/.test(t.err || '') && b.lire('ECHO', j) === '', t);
+  t = prendre('DELTA');
+  V('un MAR dont le contrat est fini ne peut pas la prendre, la date est dite', /Vous n'êtes pas en poste le/.test(t.err || '') && b.lire('DELTA', j) === '', t);
+  t = prendre('FOXTRO');
+  V('un MAR pas encore arrivé non plus', /Vous n'êtes pas en poste le/.test(t.err || '') && b.lire('FOXTRO', j) === '', t);
+  /* Statut A : « absent de jour, garde possible » (décision du 08/11/2026) — la date de contrat ne bloque pas. */
+  b.poser('DELTA', j, 'A');
+  t = prendre('DELTA');
+  V('hors contrat MAIS statut A ce jour-là : pas de blocage, la question d\'absence habituelle', /^\[ABS\]/.test(t.err || ''), t);
+  t = prendre('DELTA', { accepteAbsence: true });
+  V('…et confirmée, la garde passe', t.r && t.r.etat === 'acceptee' && b.lire('DELTA', j) === 'G', t);
+
+  /* Réserver : le collègue visé doit pouvoir la tenir. */
+  b.poser('ALPHA', b.dates[20], 'G'); b.poser('ALPHA', b.dates[21], 'RG');
+  const nAvantReserve = b.echanges().length;
+  V('réserver une garde à un MAR sans garde est refusé, avec son nom', /ne fait pas de gardes/.test(essai(b, `deposerBourse(${U('ALPHA')}, { year:2027, date:${JSON.stringify(b.dates[20])}, mode:'don', reserve:'CHARLI' })`).err || ''));
+  V('réserver une garde à un MAR parti est refusé', /n'est pas en poste le/.test(essai(b, `deposerBourse(${U('ALPHA')}, { year:2027, date:${JSON.stringify(b.dates[20])}, mode:'don', reserve:'DELTA' })`).err || ''));
+  V('…aucune offre n\'a été créée par ces refus', b.echanges().length === nAvantReserve, [nAvantReserve, b.echanges().length]);
+
+  /* Un 18 h reste ouvert au MAR sans garde. */
+  b.poser('ALPHA', b.dates[30], '18');
+  const r18 = deposer(b, 'ALPHA', b.dates[30], 'don');
+  t = essai(b, `prendreBourse(${U('CHARLI')}, { id:${JSON.stringify(r18.id)} })`);
+  V('un MAR sans garde peut toujours prendre un 18 h', t.r && t.r.etat === 'acceptee' && String(b.lire('CHARLI', b.dates[30])) === '18', t);
+
+  /* Échange proposé sur une offre : celui qui recevrait la garde de l'offre doit pouvoir la tenir. */
+  const c = monde(2027);
+  c.poser('ALPHA', c.dates[9], 'G'); c.poser('ALPHA', c.dates[10], 'RG'); c.poser('DELTA', c.dates[3], 'G'); c.poser('DELTA', c.dates[4], 'RG');
+  fiches(c, { dateFin: { DELTA: c.dates[5] } });
+  const ro = deposer(c, 'ALPHA', c.dates[9], 'echange');
+  t = essai(c, `creerEchange(${U('DELTA')}, { type:'echange', year:2027, date:${JSON.stringify(c.dates[3])}, date2:${JSON.stringify(c.dates[9])}, receveur:'ALPHA', offre:${JSON.stringify(ro.id)} })`);
+  V('proposer un échange qui me donnerait une garde après mon départ est refusé', /Vous n'êtes pas en poste le/.test(t.err || '') && c.echanges().length === 1, t);
+
+  /* Contre-épreuve : mêmes gestes, fiches sans restriction → tout passe comme avant. */
+  const g = monde(2027);
+  g.poser('ALPHA', g.dates[9], 'G'); g.poser('ALPHA', g.dates[10], 'RG');
+  fiches(g, {});
+  const rg = deposer(g, 'ALPHA', g.dates[9], 'don');
+  V('contre-épreuve : sans restriction dans sa fiche, CHARLI prend la garde', run(g, `prendreBourse(${U('CHARLI')}, { id:${JSON.stringify(rg.id)} })`).etat === 'acceptee' && g.lire('CHARLI', g.dates[9]) === 'G');
+  V('contre-épreuve : le serveur d\'avant le correctif laissait un MAR sans garde prendre',
+    !/_echangesInapte_/.test(require('child_process').execSync('git show 0a54250:gas/echanges.gs', { cwd: path.join(__dirname, '..'), encoding: 'utf8', maxBuffer: 1e8 })));
+}
+
+console.log('\n═══ 13. Le preneur est de 18 h : il le lit et confirme AVANT de prendre (27/11/2026) ═══');
+{
+  /* DÉFAUT TROUVÉ AUX SCÉNARIOS DE VIE RÉELLE : le 18 h du preneur passe au donneur (règle
+     du 11/11). Dans la bourse, personne ne le savait avant : le donneur l'apprenait par
+     notification, le preneur n'avait aucun message. */
+  const b = monde(2027);
+  const j = b.dates[9];
+  b.poser('ALPHA', j, 'G'); b.poser('ALPHA', b.dates[10], 'RG'); b.poser('BRAVO', j, '18');
+  const r = deposer(b, 'ALPHA', j, 'don');
+  const n = b.echanges().length;
+  let t = essai(b, `prendreBourse(${U('BRAVO')}, { id:${JSON.stringify(r.id)} })`);
+  V('premier appui : une question [18P], qui nomme le jour et le donneur', /^\[18P\] Vous êtes de 18 h le /.test(t.err || '') && /votre 18 h passe au /.test(t.err || '') && /Vous confirmez \?$/.test(t.err || ''), t);
+  V('…rien n\'est écrit : ni garde, ni 18 h déplacé, ni ligne', b.lire('ALPHA', j) === 'G' && String(b.lire('BRAVO', j)) === '18' && b.echanges().length === n && ligneDe(b, r.id)[COL.ETAT] === 'attente');
+  t = essai(b, `prendreBourse(${U('BRAVO')}, { id:${JSON.stringify(r.id)}, accepte18Passe:true })`);
+  V('confirmé : la garde passe au preneur, son 18 h au donneur', t.r && t.r.etat === 'acceptee' && b.lire('BRAVO', j) === 'G' && String(b.lire('ALPHA', j)) === '18', [t, b.lire('BRAVO', j), b.lire('ALPHA', j)]);
+  V('le donneur reste prévenu par notification', b.notifs.some(x => x.cible && x.cible.id === 'ALPHA' && /18 h/.test(x.titre + ' ' + x.corps)), b.notifs.slice(-4));
+
+  const c = monde(2027);
+  c.poser('ALPHA', c.dates[9], 'G'); c.poser('ALPHA', c.dates[10], 'RG'); c.poser('BRAVO', c.dates[10], '18');
+  const rc = deposer(c, 'ALPHA', c.dates[9], 'don');
+  t = essai(c, `prendreBourse(${U('BRAVO')}, { id:${JSON.stringify(rc.id)} })`);
+  V('18 h le LENDEMAIN de la garde : même question', /^\[18P\]/.test(t.err || ''), t);
+
+  const g = monde(2027);
+  g.poser('ALPHA', g.dates[9], 'G'); g.poser('ALPHA', g.dates[10], 'RG');
+  const rg = deposer(g, 'ALPHA', g.dates[9], 'don');
+  V('preneur sans 18 h : aucune question, prise au premier appui', run(g, `prendreBourse(${U('BRAVO')}, { id:${JSON.stringify(rg.id)} })`).etat === 'acceptee');
+  /* Un refus franc passe AVANT la question : inutile de confirmer un geste impossible. */
+  const d = monde(2027);
+  d.poser('ALPHA', d.dates[9], 'G'); d.poser('ALPHA', d.dates[10], 'RG'); d.poser('BRAVO', d.dates[8], 'G2'); d.poser('BRAVO', d.dates[9], 'RG');
+  const rd = deposer(d, 'ALPHA', d.dates[9], 'don');
+  t = essai(d, `prendreBourse(${U('BRAVO')}, { id:${JSON.stringify(rd.id)} })`);
+  V('preneur de garde la veille : refus net, pas de question', !!t.err && !/^\[/.test(t.err), t);
+
+  const idx = fs.readFileSync(path.join(__dirname, '..', 'index.html'), 'utf8');
+  V('écran : la question [18P] est connue de la feuille de confirmation', /'\[18P\]':'accepte18Passe'/.test((idx.match(/const _BX_QUESTIONS = \{([^}]*)\}/) || [, ''])[1]));
+  V('écran : au dépôt d\'une garde, le donneur lit qu\'il peut hériter du 18 h', /id="bxAvert18"[^>]*>Si le collègue qui prend votre garde est de 18 h ce jour-là ou le lendemain, c\\'est vous qui ferez son 18 h/.test(idx)
+    && /getElementById\('bxAvert18'\); if \(av\) av\.style\.display = \(g && g\.type !== '18'\) \? 'block' : 'none'/.test(idx));
+}
+
+console.log('\n═══ 14. Un geste accepté fait retirer les demandes de temps partiel devenues sans objet (27/11/2026) ═══');
+{
+  /* La règle elle-même (quelle demande part, qui est prévenu) est éprouvée sur le vrai code
+     dans banc_pose_tp.js (PT42). Ici : le branchement — appelée après une prise, pour la
+     bonne année, et au passage horaire pour les années ouvertes à la pose. */
+  const b = monde(2027);
+  const j = b.dates[9];
+  b.poser('ALPHA', j, 'G'); b.poser('ALPHA', b.dates[10], 'RG');
+  b.ctx.__tp = [];
+  run(b, 'function tpDemandesCaduques_(y){ __tp.push(y); return []; } function _phaseTp_(){ return { actif:true, annee:2027, annees:[2027, 2028] }; }');
+  const r = deposer(b, 'ALPHA', j, 'don');
+  V('un simple dépôt n\'y touche pas', b.ctx.__tp.length === 0, b.ctx.__tp);
+  run(b, `prendreBourse(${U('BRAVO')}, { id:${JSON.stringify(r.id)} })`);
+  V('après la prise : les demandes de l\'année de la garde sont revues', b.ctx.__tp.length === 1 && b.ctx.__tp[0] === 2027, b.ctx.__tp);
+  b.ctx.__tp.length = 0; run(b, 'expirerEchanges()');
+  V('au passage horaire : toutes les années ouvertes à la pose', b.ctx.__tp.join() === '2027,2028', b.ctx.__tp);
+  run(b, 'tpDemandesCaduques_ = function(){ throw new Error("panne"); }');
+  b.poser('ALPHA', b.dates[30], 'G'); b.poser('ALPHA', b.dates[31], 'RG');
+  const r2 = deposer(b, 'ALPHA', b.dates[30], 'don');
+  V('une panne de ce nettoyage n\'empêche jamais la prise', run(b, `prendreBourse(${U('CHARLI')}, { id:${JSON.stringify(r2.id)} })`).etat === 'acceptee' && b.lire('CHARLI', b.dates[30]) === 'G');
+}
+
 console.log(`\n  ${ok} ✓  ${ko} ✗`);
 process.exit(ko ? 1 : 0);

@@ -27,7 +27,7 @@ pourrait même plus taper son code. On retombe alors sur le comportement d'avant
 le temps de l'onglet — au lieu de planter. Jamais de mémoire longue ici : mieux vaut retaper
 son code que le voir retenu par un filet dont personne ne vérifie l'échéance. */
 window.SessionPortail = window.SessionPortail || { lire:function(){try{return sessionStorage.getItem('pmViewCode')||'';}catch(e){return '';}}, memoriser:function(c){try{sessionStorage.setItem('pmViewCode',c);}catch(e){}}, oublier:function(){try{sessionStorage.removeItem('pmViewCode');}catch(e){}}, estInstallee:function(){return false;}, joursRestants:function(){return null;}, DUREE_JOURS:0 };</script>
-<script src="https://unpkg.com/lucide@latest/dist/umd/lucide.js"></script>
+<script src="assets/vendor/lucide-icons.js"></script>   <!-- (27/11/2026) icônes en local, comme l'accueil : la bibliothèque entière (758 Ko) venait d'un site extérieur et bloquait l'affichage -->
 <link rel="stylesheet" href="partage/theme.css">   <!-- (14/09/2026) palette commune -->
 <style>
 /* polices chargées via <link> (perf : @import bloquant supprimé) */
@@ -1862,7 +1862,7 @@ function render(){
   const daySlots=weekDaysFull(week);
   renderTable(month,daySlots,week);
   renderBottom(month,daySlots,week);
-  requestAnimationFrame(()=>{ if(typeof lucide!=='undefined') lucide.createIcons(); });
+  requestAnimationFrame(dessinerIcones);
 }
 
 // ── TABLE ──────────────────────────────────────────────────────────────
@@ -3044,6 +3044,24 @@ const SECT_ICO_PROPRES = {
   END: () => '<rect x="5.5" y="3" width="5.5" height="9" rx="1.6"/><path d="M7.3 3V1.6h1.9V3"/><path d="M11 6.5h1"/><circle cx="13.6" cy="6.5" r="1.4"/><path d="M8.25 12v3.8c0 2.6 2.1 4.6 4.7 4.6s4.7-2 4.7-4.6V12.6"/><ellipse cx="17.65" cy="10.6" rx="1.3" ry="1.8"/>',
   n: 0
 };
+/* (27/11/2026) Les icônes viennent du paquet local (assets/vendor/lucide-icons.js).
+   Si l'onglet SECTEURS demande un jour une icône que le paquet n'a pas, la
+   bibliothèque complète est appelée UNE fois, en arrière-plan, sans bloquer
+   la page (version figée) — le secteur ne reste pas sans icône, et la console
+   dit quelle icône ajouter au paquet. */
+var _icoSecours = false;   // var : lisible même si un dessin est demandé avant cette ligne
+function dessinerIcones(){
+  if (typeof lucide === 'undefined') return;
+  try { lucide.createIcons(); } catch(e) {}
+  if (_icoSecours || !lucide.local || !(lucide.absentes && lucide.absentes.length)) return;
+  _icoSecours = true;
+  try {
+    const s = document.createElement('script');
+    s.src = 'https://unpkg.com/lucide@1.82.0/dist/umd/lucide.min.js'; s.async = true;
+    s.onload = function(){ try { lucide.createIcons(); } catch(e) {} };
+    document.head.appendChild(s);
+  } catch(e) {}
+}
 function sectIco(code, couleur, taille){
   const propre = SECT_ICO_PROPRES[code];
   if (typeof propre === 'function')
@@ -3200,7 +3218,7 @@ function renderMobileDay() {
     + (MY_INIT?'<span><i class="m">'+esc(MY_INIT)+'</i>vous</span>':'')+'</div>';
 
   document.getElementById('mobileDayContent').innerHTML = html;
-  if (typeof lucide!=='undefined') { try { lucide.createIcons(); } catch(e){} }
+  dessinerIcones();
 }
 
 // PWA : au retour dans l'appli après > 2 min (15 min avant le 11/11/2026 : avec les

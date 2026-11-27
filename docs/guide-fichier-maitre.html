@@ -178,6 +178,9 @@ TRACES et les trois compteurs STATS_*.</p>
     <li><span class="n">4.3</span><a href="#echanges">ECHANGES</a></li>
     <li><span class="n">4.4</span><a href="#absences">ABSENCES_LONGUES</a></li>
     <li><span class="n">4.5</span><a href="#verif-prevenus">VERIF_PREVENUS</a></li>
+    <li><span class="n">4.6</span><a href="#planning-notes">PLANNING_NOTES</a></li>
+    <li><span class="n">4.7</span><a href="#patients-lib">PATIENTS_LIB</a></li>
+    <li><span class="n">4.8</span><a href="#cpa-onglets">CPA_EXPORT et CPA_SALLES</a></li>
     <li><span class="n">5</span><a href="#p4"><strong>Libéral</strong></a></li>
     <li><span class="n">5.1</span><a href="#specialites">SPECIALITES</a></li>
     <li><span class="n">5.2</span><a href="#cottype">COTATIONS_TYPE</a></li>
@@ -254,7 +257,7 @@ des versions de code.</p>
 <tr><td><span style="display:inline-block;width:11px;height:11px;border-radius:3px;background:#1D4ED8;margin-right:7px;vertical-align:-1px"></span><a href="#p1">1. Réglages permanents</a></td><td>CONFIG · MEDECINS · SECTEURS · CS_TEMPLATE · SALLES_TYPE · SEUILS · ANNUAIRE · ETABLISSEMENT</td><td>visibles</td></tr>
 <tr><td><span style="display:inline-block;width:11px;height:11px;border-radius:3px;background:#60A5FA;margin-right:7px;vertical-align:-1px"></span><a href="#p1b">2. Préparation de l'année</a></td><td>GROUPES_VAC · PERIODES_VAC · CONFIG_CONGES · RELIQUATS · JANVIER_SUIVANT · CONFIG_TRANSITION</td><td>visibles</td></tr>
 <tr><td><span style="display:inline-block;width:11px;height:11px;border-radius:3px;background:#166534;margin-right:7px;vertical-align:-1px"></span><a href="#p2">3. Les années</a></td><td>INDISPOS_{année} · REA1_{année} · FETES_{année} · GARDES_{année} · LIENS_R_{année} · STATS_GARDES_{année} · AFFECTATIONS_{année}</td><td>visibles</td></tr>
-<tr><td><span style="display:inline-block;width:11px;height:11px;border-radius:3px;background:#C2410C;margin-right:7px;vertical-align:-1px"></span><a href="#p3">4. Écrits par l'interface</a></td><td>PLANNING_OVERRIDES · TP_DEMANDES et TP_FERMES · ECHANGES · ABSENCES_LONGUES · VERIF_PREVENUS</td><td>visibles</td></tr>
+<tr><td><span style="display:inline-block;width:11px;height:11px;border-radius:3px;background:#C2410C;margin-right:7px;vertical-align:-1px"></span><a href="#p3">4. Écrits par l'interface</a></td><td>PLANNING_OVERRIDES · TP_DEMANDES et TP_FERMES · ECHANGES · ABSENCES_LONGUES · VERIF_PREVENUS · PLANNING_NOTES · PATIENTS_LIB · CPA_EXPORT et CPA_SALLES</td><td>visibles</td></tr>
 <tr><td><span style="display:inline-block;width:11px;height:11px;border-radius:3px;background:#0D9488;margin-right:7px;vertical-align:-1px"></span><a href="#p4">5. Libéral</a></td><td>SPECIALITES · COTATIONS_TYPE · LIBERAL_{année} · LIBERAL_CA_{année}</td><td>visibles</td></tr>
 <tr><td><span style="display:inline-block;width:11px;height:11px;border-radius:3px;background:#7E22CE;margin-right:7px;vertical-align:-1px"></span><a href="#p5">6. Contenu du portail</a></td><td>VEILLE_CFG · STAFFS · VEILLE · VEILLE_MARQUES · VEILLE_ARCHIVE · VEILLE_ABONNES</td><td>en partie masqués</td></tr>
 <tr><td><span style="display:inline-block;width:11px;height:11px;border-radius:3px;background:#9CA3AF;margin-right:7px;vertical-align:-1px"></span><a href="#p6">7. Mémoires et journaux</a></td><td>HISTORIQUE · TRACES · CONNEXIONS et LOGS · NOTIFS_JOURNAL · STATS_HEURES, STATS_ACTIONS et STATS_SEMAINE</td><td>masqués</td></tr>
@@ -867,6 +870,66 @@ recalculent à chaque ouverture de l'onglet, à partir du planning.</p>
 </table>
 <p>Décocher supprime la ligne. Une ligne dont le point a été corrigé n'est plus affichée : elle peut être
 effacée sans conséquence.</p>
+</section>
+
+<section id="planning-notes">
+<h2><span class="n">4.6</span>PLANNING_NOTES</h2>
+<p>Tout ce que le comité note sur une journée du planning et qui <strong>n'est pas le placement d'un
+MAR</strong> (19/11/2026). Les placements, eux, restent dans <span class="tag">PLANNING_OVERRIDES</span>.
+L'onglet n'existe pas tant qu'aucune note n'a été saisie.</p>
+<table class="sig">
+<tr><th>Colonne</th><th>Contenu</th></tr>
+<tr><td>DATE</td><td>Le jour concerné.</td></tr>
+<tr><td>TYPE</td><td><span class="tag">INT</span> l'interne de réanimation · <span class="tag">INFO</span> les infos du jour (texte libre) ·
+<span class="tag">CSS</span> une consultation tenue « au nom du secteur », sans MAR désigné · <span class="tag">AIDE</span> un bloc aidé par un
+autre secteur · <span class="tag">SALLES</span> la correction du nombre de salles du jour.</td></tr>
+<tr><td>DEMI</td><td><span class="tag">am</span> ou <span class="tag">pm</span> ; vide pour une info du jour.</td></tr>
+<tr><td>TEXTE</td><td>Le contenu. Pour <span class="tag">CSS</span> : les codes de consultation, séparés par des virgules. Pour
+<span class="tag">AIDE</span> : des paires « secteur aidé:secteur qui aide ». Pour <span class="tag">SALLES</span> : des paires
+« secteur:nombre » (<span class="tag">VIS:6,END:3</span>).</td></tr>
+</table>
+<p>Une seule ligne par jour, type et demi-journée. Depuis l'interface, vider le texte supprime la ligne. Les
+notes ne sont visibles des MAR qu'après « Publier ».</p>
+</section>
+
+<section id="patients-lib">
+<h2><span class="n">4.7</span>PATIENTS_LIB</h2>
+<p>Les patients libéraux qu'un MAR note sur ses consultations, dans « Mes consultations » (26/11/2026).
+<strong>Aucun nom de patient</strong> : seulement une date opératoire et un nombre.</p>
+<table class="sig">
+<tr><th>Colonne</th><th>Contenu</th></tr>
+<tr><td>ID</td><td>L'identifiant de la ligne. Une ligne venue de l'export des consultations commence par « cpa| ».</td></tr>
+<tr><td>MAR</td><td>Le MAR qui tient la consultation.</td></tr>
+<tr><td>DATE_CONSULT · PER</td><td>Le jour et la demi-journée de la consultation.</td></tr>
+<tr><td>DATE_BLOC</td><td>La date opératoire du ou des patients.</td></tr>
+<tr><td>NB</td><td>Le nombre de patients pour cette date opératoire.</td></tr>
+<tr><td>CONFIE_A</td><td>Le confrère à qui le patient a été confié, s'il y en a un.</td></tr>
+<tr><td>MAJ</td><td>La dernière modification.</td></tr>
+</table>
+<p>Le verdict « présent / absent le jour du bloc » n'est écrit nulle part : la page le recalcule à chaque
+ouverture, une absence posée après coup se voit donc aussitôt.</p>
+</section>
+
+<section id="cpa-onglets">
+<h2><span class="n">4.8</span>CPA_EXPORT et CPA_SALLES</h2>
+<p>Ce que la page Maintenance garde de <strong>l'export hebdomadaire des consultations</strong>
+(26/11/2026). Le fichier est lu sur l'appareil ; n'arrivent dans le classeur, pour les seuls patients au régime
+libéral, que les colonnes ci-dessous — ni nom, ni heure, ni type d'intervention.</p>
+<table class="sig">
+<tr><th>CPA_EXPORT</th><th>Contenu</th></tr>
+<tr><td>DATE_CONSULT · PER</td><td>Le jour et la demi-journée de la consultation.</td></tr>
+<tr><td>SALLE · SECTEUR</td><td>La salle de consultation et le secteur auquel elle est rattachée.</td></tr>
+<tr><td>DATE_BLOC · NB</td><td>La date opératoire et le nombre de patients.</td></tr>
+<tr><td>IMPORT</td><td>Le moment de l'import. Réimporter une semaine <strong>remplace</strong> ses jours.</td></tr>
+</table>
+<table class="sig">
+<tr><th>CPA_SALLES</th><th>Contenu</th></tr>
+<tr><td>DATE · PER · MAR</td><td>La consultation d'un MAR.</td></tr>
+<tr><td>SALLE</td><td>La salle qu'il a indiquée, quand son secteur en avait plusieurs cette demi-journée. S'il n'y en a
+qu'une, le rattachement est automatique et rien n'est écrit ici.</td></tr>
+<tr><td>MAJ</td><td>La dernière modification.</td></tr>
+</table>
+<p>Aucun de ces deux onglets ne se remplit à la main : l'import se refait depuis la page Maintenance.</p>
 </section>
 
 <section id="p4">

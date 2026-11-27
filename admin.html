@@ -4081,7 +4081,6 @@ async function initDashboard() {
   // etre juste des la 1re passe, sans attendre la detection differee de 3 s.
   if (_boot && typeof _boot.anneeSuivante === 'boolean') nextYearAvailable = _boot.anneeSuivante;
   try { majBandeauCloture(); } catch(e) {}
-  try { updatePlanningIndisposVisibility(); } catch(e) {}
   try { PERF.jalon('page utilisable'); } catch(e) {}
   // (01/08/2026) chrono() remplace chronoAPI() en affichage automatique : il montre
   // les appels ET le reste du budget (page, ressources, affichage, ecran fige).
@@ -7317,7 +7316,7 @@ function _chargerExcelJS() {
   if (_excelJsP) return _excelJsP;
   _excelJsP = new Promise(function (resolve, reject) {
     var sc = document.createElement('script');
-    sc.src = 'https://cdn.jsdelivr.net/npm/exceljs/dist/exceljs.min.js';
+    sc.src = 'https://cdn.jsdelivr.net/npm/exceljs@4.4.0/dist/exceljs.min.js';   // (27/11/2026) version figée, comme la page des absences : une nouvelle version de la bibliothèque ne doit pas pouvoir casser l'export sans publication de notre part
     sc.onload  = function () {
       if (typeof ExcelJS !== 'undefined') resolve();
       else { _excelJsP = null; reject(new Error('bibliotheque illisible')); }

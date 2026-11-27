@@ -168,6 +168,40 @@ const dodo = ms => new Promise(r => setTimeout(r, ms));
     V('l\'offre quitte « Offres » et passe dans « Conclues »', !/bxPrendre\('B2'/.test(h) && /Conclues <i>1<\/i>/.test(h), h.slice(0, 300));
   }
 
+  console.log('\n═══ 3 bis. Le preneur est de 18 h : la question, puis deux questions de suite (27/11/2026) ═══');
+  {
+    /* Le serveur demande d'abord [18P] (mon 18 h passera au donneur), puis [ABS] : chaque
+       confirmation doit repartir avec les précédentes, sinon la question reviendrait sans fin. */
+    const appels = [];
+    const { w } = await monterPage(await kvBourse(), c => login(c) || (c.action === 'prendreBourse'
+      ? (appels.push(c), c.accepte18Passe !== true ? { success:false, error:'[18P] Vous êtes de 18 h le 10/03/2027 : en prenant cette garde, votre 18 h passe au Dr Alpha. Vous confirmez ?' }
+          : c.accepteAbsence !== true ? { success:false, error:'[ABS] Attention, vous êtes noté en vacances le 11/03/2027. Vous confirmez ?' }
+          : { success:true, etat:'acceptee', don:'E9' })
+      : { success:true }));
+    const d = w.document;
+    w.location.hash = '#echanges'; w.route(); await dodo(400);
+    d.querySelector("[onclick^=\"bxPrendre('B2'\"]").click(); await dodo(50);
+    d.getElementById('bxOui').click(); await dodo(300);
+    const m = d.getElementById('bxMsg');
+    V('la question du 18 h s\'affiche en clair, sans son préfixe', m.style.display === 'block' && /^Vous êtes de 18 h le 10\/03\/2027/.test(m.textContent) && /votre 18 h passe au Dr Alpha/.test(m.textContent), m.textContent);
+    V('rien n\'est pris tant qu\'il n\'a pas confirmé', appels.length === 1 && !appels[0].accepte18Passe && d.getElementById('bxOui').textContent === 'Je confirme');
+    d.getElementById('bxOui').click(); await dodo(300);
+    V('la confirmation repart avec accepte18Passe', appels.length === 2 && appels[1].accepte18Passe === true, appels);
+    V('la question suivante s\'affiche à son tour', /^Attention, vous êtes noté en vacances/.test(d.getElementById('bxMsg').textContent), d.getElementById('bxMsg').textContent);
+    d.getElementById('bxOui').click(); await dodo(300);
+    V('la dernière confirmation garde la première (les deux partent)', appels.length === 3 && appels[2].accepte18Passe === true && appels[2].accepteAbsence === true, appels);
+    V('la feuille se ferme, la garde est prise', !d.getElementById('echVoile') && /C'est fait/.test(d.getElementById('echList').innerHTML.replace(/&#39;/g, "'")));
+    /* Un refus du serveur (MAR sans garde) s'affiche tel quel, en rouge, sans bouton « Je confirme ». */
+    const { w: w2 } = await monterPage(await kvBourse(), c => login(c) || (c.action === 'prendreBourse'
+      ? { success:false, error:'Vous ne faites pas de gardes : cette garde ne peut pas vous être attribuée. Voyez avec le responsable.' } : { success:true }));
+    const d2 = w2.document;
+    w2.location.hash = '#echanges'; w2.route(); await dodo(400);
+    d2.querySelector("[onclick^=\"bxPrendre('B2'\"]").click(); await dodo(50);
+    d2.getElementById('bxOui').click(); await dodo(300);
+    V('refus « vous ne faites pas de gardes » : affiché comme une erreur, pas comme une question',
+      /Vous ne faites pas de gardes/.test(d2.getElementById('bxMsg').textContent) && /err/.test(d2.getElementById('bxMsg').className) && d2.getElementById('bxOui').textContent !== 'Je confirme', [d2.getElementById('bxMsg').className, d2.getElementById('bxOui').textContent]);
+  }
+
   console.log('\n═══ 4. Proposer un échange sur une offre ═══');
   {
     const envois = [];
@@ -226,8 +260,14 @@ const dodo = ms => new Promise(r => setTimeout(r, ms));
     w.location.hash = '#echanges'; w.route(); await dodo(400);
     await w.echOuvrirProposition(); await dodo(300);
     V('une garde choisie : pas de bouton d\'inversion', d.getElementById('bxInversion').innerHTML === '');
+    /* (27/11/2026) Le donneur d'une GARDE lit, avant de déposer, qu'il peut hériter du 18 h du preneur. */
+    const av = d.getElementById('bxAvert18');
+    V('une garde choisie : « si le collègue qui prend votre garde est de 18 h… c\'est vous qui ferez son 18 h », visible au-dessus du bouton',
+      !!av && av.style.display === 'block' && /c'est vous qui ferez son 18 h/.test(av.textContent)
+      && !!(av.compareDocumentPosition(d.getElementById('echEnvoyer')) & 4), av && [av.style.display, av.textContent]);
     const sel = d.getElementById('echSelGarde');
     sel.value = [...sel.options].findIndex(o => /11\/03/.test(o.textContent)); await w.bxMajDepot(); await dodo(50);
+    V('mon 18 h choisi : cette phrase disparaît (sans objet)', d.getElementById('bxAvert18').style.display === 'none');
     const b = d.querySelector('#bxInversion button');
     V('mon 18 h choisi : « Inverser avec le Dr Bravo, de garde ce jour »', !!b && /Inverser avec le Dr Bravo/.test(b.textContent), b && b.textContent);
     b.click(); await dodo(50); d.getElementById('bxOui').click(); await dodo(300);

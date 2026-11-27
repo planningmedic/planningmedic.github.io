@@ -20,7 +20,7 @@ Système web de gestion pour le service d'anesthésie-réanimation du **un servi
 | `staff.html` | **Staff Vacances** : pose des vacances et formations en réunion (groupes A/B/C) |
 | `suivi-liberal.html` | **Suivi des 30 %** — position de chacun par axe, à partir du relevé mensuel |
 | `crh.html` | Générateur de **comptes rendus de réanimation** (accès nominatif restreint) |
-| `sw.js`, `manifest.webmanifest`, `assets/` | PWA (service worker : pages demandées au réseau d'abord, dernière version gardée pour le hors-réseau ; scripts et images en copie ; icônes) |
+| `sw.js`, `manifest.webmanifest`, `assets/` | PWA (service worker : pages demandées au réseau d'abord, dernière version gardée pour le hors-réseau ; images et polices en copie ; scripts et feuilles de style en copie tant que le numéro de version du site n'a pas changé, redemandés au réseau après une publication, la copie restant le secours — banc : `banc_sw_scripts.js` ; icônes) |
 | `acr/` | **Outil ACR** (arrêt cardiaque) — page **autonome**, sans code ni serveur, ouverte à tout médecin : sa propre application installable (`manifest.webmanifest`, périmètre `/acr/`) et son propre service worker (`sw.js`, hors réseau). Valeurs modifiables en tête du script de `index.html`. Banc : `banc_acr.js` |
 
 ### docs/ — documentation & documents de travail
@@ -31,7 +31,7 @@ Système web de gestion pour le service d'anesthésie-réanimation du **un servi
 | `ROADMAP-Planning-Med.md` | À faire, pièges, écarté, journal récent |
 | `HISTORIQUE-Planning-Med.md` | Archive : le récit daté de tout ce qui a été fait (31/08 → 15/11/2026), pas à lire pour travailler |
 | `guide-technique.html` | **La référence interne** : architecture, wizards, déploiement, sécurité, dépannage |
-| `guide-fichier-maitre.html` | Les 25 onglets du classeur, colonne par colonne |
+| `guide-fichier-maitre.html` | Les onglets du classeur, famille par famille, colonne par colonne |
 | `guide-comite.html` | Aide du comité (page `admin.html`) |
 | `guide-mar.html` | Guide du MAR : portail, planning, indispos, consultations |
 | `guide-liberal.html` | Mode d'emploi de l'**outil** du module libéral |
@@ -54,7 +54,7 @@ Système web de gestion pour le service d'anesthésie-réanimation du **un servi
 | `tests/` | Tests JS du module |
 
 ### gas/ — backend Google Apps Script
-`code.gs`, `Indispos.gs` (le routeur : doGet/doPost, checkCode, la table des 68 actions), `gardes.gs`, `indisponibilites.gs`, `temps_partiel.gs`, `equipe.gs`, `diagnostic.gs` (15/09/2026 : les fonctions métier sorties d'Indispos.gs, un fichier par sujet), `generateur_gardes.gs`, `setup_annee.gs`, `portail.gs`, `miroir.gs`, `journal.gs`, `veille.gs`, `echanges.gs` + `appsscript.json`. **`dev.gs` ne se recopie pas** (14/09/2026) : douze fonctions de test manuel sorties des fichiers de production, gardées dans le dépôt pour un développeur, jamais déployées. **Deux fichiers de l'éditeur vivent ailleurs** : `sauvegarde.gs` (racine du dépôt) et `dispo_jour.gs` (= `partage/dispo_jour.js`). Soit **11 fichiers** dans l'éditeur — carte détaillée dans `gas/README.md`.
+`code.gs`, `Indispos.gs` (le routeur : doGet/doPost, checkCode, la table des actions — leur nombre exact est figé par `banc/banc_contrat_routeur.js`), `gardes.gs`, `indisponibilites.gs`, `temps_partiel.gs`, `equipe.gs`, `diagnostic.gs` (15/09/2026 : les fonctions métier sorties d'Indispos.gs, un fichier par sujet), `generateur_gardes.gs`, `setup_annee.gs`, `portail.gs`, `miroir.gs`, `journal.gs`, `veille.gs`, `echanges.gs` + `appsscript.json`. **`dev.gs` ne se recopie pas** (14/09/2026) : douze fonctions de test manuel sorties des fichiers de production, gardées dans le dépôt pour un développeur, jamais déployées. **Deux fichiers de l'éditeur vivent ailleurs** : `sauvegarde.gs` (racine du dépôt) et `dispo_jour.gs` (= `partage/dispo_jour.js`). La liste exacte des fichiers de l'éditeur (17 fichiers de code au 27/11/2026) est `livreur/carte.json` ; `gas/README.md` en raconte l'origine.
 **Le dépôt fait foi à 100 %** : toute modif d'un `.gs` doit exister ici, puis être recopiée dans l'éditeur Apps Script **et redéployée** (sinon perdue à la prochaine recopie, ou sans effet).
 ⚠️ `portail.gs` porte le portail, **tout le module libéral**, la veille et la configuration des secteurs. `Indispos.gs` porte le routeur d'API, le contrôle d'absence et le verrou d'écriture.
 
