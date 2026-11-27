@@ -105,7 +105,7 @@ V('deux générations normales identiques (l\'export n\'a pas d\'effet de bord)'
 console.log('\n═══ 4. Les actions du serveur (GitHub simulé) ═══');
 function serveur(o) {
   o = o || {};
-  const appels = [], props = {}, gens = [], logs = [];
+  const appels = [], props = {}, gens = [], logs = [], notifs = [], envois = [];
   const fichiers = Object.assign({}, o.fichiers || {});
   const ctx = vm.createContext({ JSON, String, Object, Array, Number, Math, Date, console,
     ContentService: { MimeType: { JSON: 'json' }, createTextOutput: t => ({ setMimeType: () => t }) },
@@ -132,12 +132,15 @@ function serveur(o) {
       else if (m === 'get' && /^\/actions\/runs/.test(ch)) { code = 200; j = { workflow_runs: o.runs || [] }; }
       return { getResponseCode: () => code, getContentText: () => (j === null ? '' : JSON.stringify(j)) }; } },
     generateGardes: (an, op) => { gens.push(Object.assign({ an }, op)); if (op.exportSolveur) return { dryRun: true, solveur: { year: an, ids: ['M1'] } };
-      if (op.dryRun) return { dryRun: true, sansBinome: 0, qualite: { ok: 1 } }; return { warnings: ['w'], nbWarnings: 1 }; },
+      if (op.dryRun) return { dryRun: true, sansBinome: 0, jours: [], qualite: { ok: 1 }, compteurs: { M1: { total: 30, we: 9 } }, cibles: { M1: { total: 30 } }, partExacte: { M1: { total: 29.6 } }, jf: { M1: 3 }, h18: { M1: 12 }, noel: { M1: 1 }, souhaits: { M1: { poses: 4, honores: 3 } } }; return { warnings: ['w'], nbWarnings: 1 }; },
     generatePlanning: an => { gens.push({ an, planning: true }); },
+    /* (27/11/2026) publication et récapitulatifs depuis la page Maintenance */
+    notifPlanifier: an => { if (o.notifPlante) throw new Error('minuteur refusé'); notifs.push(an); },
+    _act_envoyerRecapIndispos: R => { envois.push(R); if (o.recapPlante) throw new Error('quota'); return { getContent: () => JSON.stringify(o.recap || { success: true, sent: 21, skipped: 1, errors: [], pjEchecs: ['x'] }) }; },
   });
   vm.runInContext(SOLV, ctx);
-  const appel = (nom, payload, user) => JSON.parse(ctx['_act_' + nom]({ payload: payload || {}, user: user === undefined ? { maint: true } : user }));
-  return { appel, appels, props, gens, logs, fichiers };
+  const appel = (nom, payload, user) => JSON.parse(ctx['_act_' + nom]({ payload: payload || {}, code: 'CODE-PERSO', user: user === undefined ? { maint: true } : user }));
+  return { appel, appels, props, gens, logs, fichiers, notifs, envois };
 }
 {
   const s = serveur();
@@ -169,6 +172,40 @@ function serveur(o) {
   const gAp = s.gens.filter(g => !g.planning).pop();
   V('application : génération réelle avec le planning imposé, puis le planning du jour',
     ap.success && !ap.essai && !gAp.dryRun && gAp.planSolveur && gAp.tirage === 1 && s.gens[s.gens.length - 1].planning && ap.nbWarnings === 1, { ap, gAp });
+  /* ── (27/11/2026) Tout se termine sur la page Maintenance ── */
+  V('essai à blanc : le compte rendu par MAR est rendu (compteurs, cibles, part exacte, fériés, 18 h, souhaits)',
+    es.compteurs.M1.total === 30 && es.cibles.M1.total === 30 && es.partExacte.M1.total === 29.6 && es.jf.M1 === 3 && es.h18.M1 === 12 && es.souhaits.M1.honores === 3 && Array.isArray(es.jours), es);
+  V('l\'essai à blanc n\'arme aucune notification : une seule, celle de l\'application', s.notifs.length === 1, s.notifs);
+  V('application : les notifications sont armées comme à la publication du comité, et la date est notée', s.notifs[0] === 2028 && /^\d{4}-\d\d-\d\dT/.test(JSON.parse(s.props.SOLVEUR_2028).applique));
+  {
+    const sA = serveur({ notifPlante: true });
+    sA.appel('solveurLancer', { year: 2028 });
+    sA.fichiers['sorties/2028-20281101-120000.json.gz'] = { rapport: [], plan: { gardes: { '2028-01-01': { g: 'M1', g2: 'M2' } } } };
+    V('récapitulatifs refusés tant que les gardes ne sont pas créées', (() => { const x = sA.appel('solveurRecaps', { year: 2028 }); return !x.success && /appliquez d'abord/.test(x.error) && sA.envois.length === 0; })());
+    const apA = sA.appel('solveurAppliquer', { year: 2028 });
+    V('un minuteur de notification refusé ne fait pas échouer l\'application', apA.success === true && !!JSON.parse(sA.props.SOLVEUR_2028).applique, apA);
+  }
+  const eA = s.appel('solveurEtat', { year: 2028 });
+  V('état « appliqué » : dit sans relire le dépôt privé, récapitulatifs encore à envoyer', (() => { const n = s.appels.length; const x = s.appel('solveurEtat', { year: 2028 }); return eA.etat === 'applique' && eA.recaps === null && !!eA.applique && x.etat === 'applique' && s.appels.length === n; })(), eA);
+  V('récapitulatifs : droit Maintenance seul', s.appel('solveurRecaps', { year: 2028 }, { maint: false }).success === false && s.envois.length === 0);
+  const rc = s.appel('solveurRecaps', { year: 2028 });
+  V('récapitulatifs : c\'est l\'envoi du comité, avec le code personnel de l\'appelant pour sa porte « responsable »',
+    rc.success && rc.envoyes === 21 && rc.sansMail === 1 && rc.echecs === 0 && rc.pjEchecs === 1 && s.envois.length === 1 && s.envois[0].payload.year === 2028 && s.envois[0].payload.codeResponsable === 'CODE-PERSO' && s.envois[0].user.role === 'admin', { rc, e: s.envois[0] });
+  V('l\'envoi est noté, et l\'état le dit', (() => { const x = s.appel('solveurEtat', { year: 2028 }); return x.etat === 'applique' && x.recaps && x.recaps.envoyes === 21 && /^\d{4}-/.test(x.recaps.le); })());
+  const rc2 = s.appel('solveurRecaps', { year: 2028 });
+  V('second envoi refusé par défaut (pas de doublon par mégarde)', !rc2.success && rc2.deja === true && /déjà envoyés \(21 mails\)/.test(rc2.error) && s.envois.length === 1, rc2);
+  V('second envoi possible sur demande explicite', s.appel('solveurRecaps', { year: 2028, encore: true }).success === true && s.envois.length === 2);
+  {
+    const sB = serveur({ recap: { success: true, sent: 0, skipped: 0, errors: ['a', 'b'] } });
+    sB.props.SOLVEUR_2028 = JSON.stringify({ base: '2028-b', lance: new Date().toISOString(), applique: new Date().toISOString() });
+    const x = sB.appel('solveurRecaps', { year: 2028 });
+    V('aucun mail parti : rien n\'est noté, l\'envoi reste à faire', x.success && x.envoyes === 0 && x.echecs === 2 && !JSON.parse(sB.props.SOLVEUR_2028).recaps, x);
+    const sC = serveur({ recap: { success: false, error: 'Quota e-mail insuffisant' } });
+    sC.props.SOLVEUR_2028 = sB.props.SOLVEUR_2028;
+    V('refus de l\'envoi (quota) : message rendu tel quel, rien de noté', (() => { const y = sC.appel('solveurRecaps', { year: 2028 }); return !y.success && /Quota/.test(y.error) && !JSON.parse(sC.props.SOLVEUR_2028).recaps; })());
+    const sD = serveur({ recapPlante: true }); sD.props.SOLVEUR_2028 = sB.props.SOLVEUR_2028;
+    V('envoi qui plante : message, pas d\'exception', /Envoi impossible : quota/.test(sD.appel('solveurRecaps', { year: 2028 }).error));
+  }
   // nuits impossibles
   const s3 = serveur({ fichiers: { 'sorties/2028-x.json.gz': { rapport: [], echec: 'couverture', nuits: ['2028-12-25'] } } });
   s3.props.SOLVEUR_2028 = JSON.stringify({ base: '2028-x', lance: new Date().toISOString() });
@@ -191,11 +228,13 @@ V('carte « calcul exact » sur la page Maintenance, avec ses quatre gestes',
   /id="cSolveur"/.test(MH) && ['btnSolvLancer', 'btnSolvEtat', 'btnSolvEssai', 'btnSolvAppl'].every(i => MH.includes('id="' + i + '"')));
 V('lancer et appliquer en deux appuis ; essai et application désactivés tant que rien n\'est prêt',
   /deuxAppuis\(\$\('btnSolvLancer'\)/.test(MH) && /deuxAppuis\(\$\('btnSolvAppl'\)/.test(MH) && /id="btnSolvEssai" type="button" disabled/.test(MH) && /id="btnSolvAppl" type="button" disabled/.test(MH));
-V('la page n\'appelle que les trois actions du solveur', ['solveurLancer', 'solveurEtat', 'solveurAppliquer'].every(a => MH.includes("action:'" + a + "'")));
+V('la page appelle les quatre actions du solveur', ['solveurLancer', 'solveurEtat', 'solveurAppliquer', 'solveurRecaps'].every(a => MH.includes("action:'" + a + "'")));
+V('récapitulatifs : bouton caché tant que les gardes ne sont pas créées, envoi en deux appuis, et la page ne renvoie plus vers l\'admin',
+  /id="solvFin"[^>]* hidden>/.test(MH) && /deuxAppuis\(\$\('btnSolvRecaps'\)/.test(MH) && !/Terminez dans l'admin/.test(MH) && !/Terminez dans l\\'admin/.test(MH));
 const carte = JSON.parse(lire('livreur/carte.json'));
 V('le livreur met solveur.gs en service', carte.fichiers.some(f => f.depot === 'gas/solveur.gs' && f.nom === 'solveur' && f.type === 'SERVER_JS'));
 const RT = lire('gas/Indispos.gs');
-V('routeur : les trois actions, rôle maintenance', ['solveurLancer', 'solveurEtat', 'solveurAppliquer'].every(a => new RegExp('"' + a + '"\\s*: \\{ role: \'maintenance\'\\s*, fn: _act_' + a + ' \\}').test(RT)));
+V('routeur : les quatre actions, rôle maintenance', ['solveurLancer', 'solveurEtat', 'solveurAppliquer', 'solveurRecaps'].every(a => new RegExp('"' + a + '"\\s*: \\{ role: \'maintenance\'\\s*, fn: _act_' + a + ' \\}').test(RT)));
 V('le diagnostic contrôle la version déployée de solveur.gs', /deployed\['solveur\.gs'\] = GAS_VERSION_SOLVEUR/.test(lire('gas/diagnostic.gs')));
 V('aucune donnée nominative vers le dépôt public : seul le dépôt privé est appelé', /const SOLVEUR_DEPOT = 'planningmedic\/planningmedic-solveur';/.test(SOLV) && !/GITHUB_REPO|getGithubToken/.test(SOLV));
 

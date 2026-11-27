@@ -1,4 +1,4 @@
-const GAS_VERSION_SOLVEUR = '2026-11-18.1';   // (18/11/2026) .1 : SOLVEUR EXACT — lancer le calcul dans le dépôt privé, suivre son état, l'essayer à blanc puis l'appliquer (page Maintenance)
+const GAS_VERSION_SOLVEUR = '2026-11-27.1';   // (27/11/2026) .1 : tout se termine sur la page Maintenance — l'essai à blanc rend le compte rendu par MAR, l'application arme les notifications et note sa date, action solveurRecaps (mails « Vos gardes », une seule fois sauf demande) · (18/11/2026) .1 : SOLVEUR EXACT — lancer le calcul dans le dépôt privé, suivre son état, l'essayer à blanc puis l'appliquer (page Maintenance)
 
 /* ═══ SOLVEUR EXACT DES GARDES (18/11/2026) ═══════════════════════════════
    Le calcul habituel cherche un bon planning en quelques minutes. Le solveur
@@ -94,6 +94,9 @@ function _act_solveurEtat(R) {
   const an = Number(payload && payload.year) || 0;
   const s = _solveurSuivi_(an);
   if (!s) return _solveurRepondre_({ success: true, etat: 'aucun' });
+  /* (27/11/2026) Gardes déjà créées par « Appliquer » : il ne reste que les récapitulatifs.
+     Répondu sans interroger le dépôt privé (le résultat n'a plus à être relu). */
+  if (s.applique) return _solveurRepondre_({ success: true, etat: 'applique', base: s.base, applique: s.applique, recaps: s.recaps || null });
   const minutes = Math.round((Date.now() - new Date(s.lance).getTime()) / 60000);
   const res = _solveurLireGz_('sorties/' + s.base + '.json.gz');
   if (res) {
@@ -129,14 +132,52 @@ function _act_solveurAppliquer(R) {
   try {
     if (essai) {
       const r = generateGardes(A.an, { dryRun: true, tirage: SOLVEUR_TIRAGE, planSolveur: plan });
+      /* (27/11/2026) Le compte rendu par MAR, lu AVANT d'appliquer : compteurs, cibles et part
+         exacte, tels que le générateur les calcule (aucun recalcul ici). */
       return _solveurRepondre_({ success: true, essai: true, secondes: Math.round((Date.now() - t0) / 1000),
-        sansBinome: r.sansBinome || 0, qualite: r.qualite || null, ecarts: r.ecarts || null, souhaits: r.souhaits || null });
+        sansBinome: r.sansBinome || 0, jours: r.jours || [], qualite: r.qualite || null, ecarts: r.ecarts || null, souhaits: r.souhaits || null,
+        compteurs: r.compteurs || null, cibles: r.cibles || null, partExacte: r.partExacte || null,
+        jf: r.jf || null, h18: r.h18 || null, noel: r.noel || null });
     }
     const w = generateGardes(A.an, { tirage: SOLVEUR_TIRAGE, planSolveur: plan }) || { warnings: [], nbWarnings: 0 };
     generatePlanning(A.an);
+    /* (27/11/2026) Même publication que l'assistant du comité : les notifications sont armées.
+       Isolé : un échec ici ne doit jamais faire échouer l'application. */
+    try { if (typeof notifPlanifier === 'function') notifPlanifier(A.an); } catch (e) {}
+    s.applique = new Date().toISOString();
+    PropertiesService.getScriptProperties().setProperty(_solveurCle_(A.an), JSON.stringify(s));
     logAction('Solveur ' + A.an + ' appliqué (' + s.base + ') — ' + (w.nbWarnings || 0) + ' avertissement(s)');
     return _solveurRepondre_({ success: true, essai: false, secondes: Math.round((Date.now() - t0) / 1000), nbWarnings: w.nbWarnings || 0 });
   } catch (err) {
     return _solveurRepondre_({ success: false, error: String(err && err.message || err) });
   }
+}
+
+/* ── action "solveurRecaps" (maintenance) — (27/11/2026) ──
+   Dernière étape, sur la même page : le mail « Vos gardes » à chaque MAR. C'est l'envoi de
+   l'assistant du comité (_act_envoyerRecapIndispos), appelé tel quel : sa porte « responsable »
+   reste fermée au comité seul, et s'ouvre ici avec le code personnel de l'appelant, déjà
+   contrôlé (droit Maintenance). Un seul envoi par année, sauf demande explicite (encore). */
+function _act_solveurRecaps(R) {
+  const { payload, user, code } = R;
+  if (!_droitMaintenance_(user)) return _deny();
+  const an = Number(payload && payload.year) || 0;
+  const s = _solveurSuivi_(an);
+  if (!s || !s.applique)
+    return _solveurRepondre_({ success: false, error: 'Les gardes ' + an + ' ne sont pas encore créées par le calcul exact : appliquez d\'abord.' });
+  if (s.recaps && !(payload && payload.encore === true))
+    return _solveurRepondre_({ success: false, deja: true, recaps: s.recaps, error: 'Récapitulatifs ' + an + ' déjà envoyés (' + (s.recaps.envoyes || 0) + ' mails).' });
+  let r = null;
+  try {
+    r = JSON.parse(_act_envoyerRecapIndispos({ e: { parameter: {} }, payload: { year: an, codeResponsable: code },
+      action: 'envoyerRecapIndispos', code: code, user: { role: 'admin' } }).getContent());
+  } catch (err) { return _solveurRepondre_({ success: false, error: 'Envoi impossible : ' + String(err && err.message || err) }); }
+  if (!r || !r.success) return _solveurRepondre_({ success: false, error: (r && r.error) || 'Envoi impossible.' });
+  const bilan = { le: new Date().toISOString(), envoyes: r.sent || 0, sansMail: r.skipped || 0, echecs: (r.errors || []).length };
+  if (bilan.envoyes > 0) {   // rien de parti : rien n'est noté, l'envoi reste à faire
+    s.recaps = bilan;
+    PropertiesService.getScriptProperties().setProperty(_solveurCle_(an), JSON.stringify(s));
+  }
+  logAction('Solveur ' + an + ' : récapitulatifs — ' + bilan.envoyes + ' envoyé(s), ' + bilan.sansMail + ' sans e-mail, ' + bilan.echecs + ' en échec');
+  return _solveurRepondre_({ success: true, envoyes: bilan.envoyes, sansMail: bilan.sansMail, echecs: bilan.echecs, pjEchecs: (r.pjEchecs || []).length });
 }

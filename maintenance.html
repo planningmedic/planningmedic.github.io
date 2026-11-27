@@ -90,7 +90,7 @@ details.grp .card{border:none;border-top:1px solid var(--line-light);border-radi
        padding:9px 16px;border-radius:999px;font-size:13px;font-weight:600;z-index:500;max-width:90vw;text-align:center}
 /* (15/11/2026) Carte « Clôturer l'année » */
 .pas{font-size:13px;padding:3px 0;line-height:1.45}
-.pas.bloq{color:#B91C1C;font-weight:600}.pas.okk{color:#166534}.pas.inf{color:#475569}
+.pas.bloq{color:#B91C1C;font-weight:600}.pas.okk{color:#166534}.pas.inf{color:#475569}.pas.att{color:#92400E}
 .bil{width:100%;border-collapse:collapse;font-size:12.5px;margin:6px 0 4px}
 .bil th{font-size:11px;font-weight:600;color:var(--ink-3);text-align:right;padding:4px 5px;border-bottom:1px solid var(--line)}
 .bil th:first-child,.bil td:first-child{text-align:left}
@@ -224,7 +224,7 @@ window.SessionPortail = window.SessionPortail || { lire:function(){try{return se
   <!-- 1 quater. Solveur exact des gardes (18/11/2026) — à partir des gardes 2028 -->
   <section class="card" id="cSolveur">
     <h2>🧮 Gardes : calcul exact</h2>
-    <p class="d">Cherche le meilleur planning de gardes possible et le prouve. <b>Lancer</b> prépare et envoie les données (1 à 3 min), puis le calcul tourne seul, 15 à 60 min, même page fermée. <b>Essai à blanc</b> montre le résultat sans rien écrire ; <b>Appliquer</b> crée les gardes de l'année.</p>
+    <p class="d">Cherche le meilleur planning de gardes possible et le prouve. <b>Lancer</b> prépare et envoie les données (1 à 3 min), puis le calcul tourne seul, 15 à 60 min, même page fermée. <b>Essai à blanc</b> montre le compte rendu par MAR sans rien écrire ; <b>Appliquer</b> crée les gardes et publie le planning ; <b>Envoyer les récapitulatifs</b> adresse à chacun son mail « Vos gardes ». Tout se termine ici.</p>
     <div class="barre"><span class="n">Année</span><select id="solvAn"></select></div>
     <div class="duo">
       <button class="btn p" id="btnSolvLancer" type="button">Lancer</button>
@@ -234,7 +234,12 @@ window.SessionPortail = window.SessionPortail || { lire:function(){try{return se
       <button class="btn" id="btnSolvEssai" type="button" disabled>Essai à blanc</button>
       <button class="btn" id="btnSolvAppl" type="button" disabled>Appliquer</button>
     </div>
+    <!-- (27/11/2026) Dernière étape, ici même : les mails « Vos gardes ». Montrée une fois les gardes créées. -->
+    <div id="solvFin" style="margin-top:8px" hidden>
+      <button class="btn p" id="btnSolvRecaps" type="button">Envoyer les récapitulatifs</button>
+    </div>
     <div class="res" id="solvRes"></div>
+    <div id="solvCr"></div>
   </section>
 
   <!-- 3. Codes -->
@@ -769,6 +774,7 @@ function solvBilan(r){
 async function solvEtat(){
   const out = $('solvRes'), an = Number($('solvAn').value);
   $('btnSolvEssai').disabled = true; $('btnSolvAppl').disabled = true;
+  $('solvFin').hidden = true; $('solvCr').innerHTML = '';
   try {
     const r = await api({ action:'solveurEtat', year: an });
     if (!r || !r.success) throw new Error(refus(r) ? MSG_RESERVE : ((r && r.error) || 'réponse illisible'));
@@ -776,6 +782,7 @@ async function solvEtat(){
     else if (r.etat === 'en_cours') out.innerHTML = '<span>⏳ Calcul en cours depuis ' + (r.minutes || 0) + ' min. Revenez plus tard.</span>';
     else if (r.etat === 'impossible') out.innerHTML = '<span class="err">❌ Nuits impossibles à couvrir, quelle que soit la répartition : ' + esc((r.nuits || []).join(', ')) + '. Rendez un jour de vacances à un MAR ce jour-là, puis relancez.</span>';
     else if (r.etat === 'echec') out.innerHTML = '<span class="err">❌ ' + esc(r.error || 'Le calcul a échoué.') + '</span>';
+    else if (r.etat === 'applique') solvFini(an, r.applique, r.recaps);
     else if (r.etat === 'pret') {
       out.innerHTML = '<span class="ok">✅ Résultat prêt.' + esc(solvBilan(r)) + '</span>';
       $('btnSolvEssai').disabled = false; $('btnSolvAppl').disabled = false;
@@ -806,6 +813,7 @@ $('btnSolvEssai').addEventListener('click', async () => {
     const r = await api({ action:'solveurAppliquer', year: an, essai: true });
     if (!r || !r.success) throw new Error(refus(r) ? MSG_RESERVE : ((r && r.error) || 'réponse illisible'));
     out.innerHTML = '<span class="ok">✅ Essai réussi en ' + (r.secondes || 0) + ' s : ' + (r.sansBinome ? r.sansBinome + ' nuit(s) sans binôme' : 'toutes les nuits couvertes') + '. Rien n\'a été écrit.</span>';
+    $('solvCr').innerHTML = solvCompteRendu(r, an);
   } catch (e) { out.innerHTML = '<span class="err">❌ ' + esc(e.message) + '</span>'; }
   finally { btn.disabled = false; btn.textContent = 'Essai à blanc'; }
 });
@@ -816,11 +824,96 @@ deuxAppuis($('btnSolvAppl'), () => 'Confirmer : créer les gardes ' + $('solvAn'
   try {
     const r = await api({ action:'solveurAppliquer', year: an });
     if (!r || !r.success) throw new Error(refus(r) ? MSG_RESERVE : ((r && r.error) || 'réponse illisible'));
-    out.innerHTML = '<span class="ok">✅ Gardes ' + an + ' créées (' + (r.secondes || 0) + ' s, ' + (r.nbWarnings || 0) + ' avertissement' + ((r.nbWarnings || 0) > 1 ? 's' : '') + '). Terminez dans l\'admin, étape 2 : publication et mails.</span>';
+    out.innerHTML = ''; $('solvCr').innerHTML = '';
+    $('btnSolvEssai').disabled = true;
+    solvFini(an, new Date().toISOString(), null, ' (' + (r.secondes || 0) + ' s, ' + (r.nbWarnings || 0) + ' avertissement' + ((r.nbWarnings || 0) > 1 ? 's' : '') + ')');
   } catch (e) { out.innerHTML = '<span class="err">❌ ' + esc(e.message) + '</span>'; }
-  finally { btn.disabled = false; btn.textContent = 'Appliquer'; }
+  finally { btn.disabled = !$('solvFin').hidden; btn.textContent = 'Appliquer'; }   // gardes créées : plus rien à appliquer
 });
-$('solvAn').addEventListener('change', () => { $('solvRes').innerHTML = ''; $('btnSolvEssai').disabled = true; $('btnSolvAppl').disabled = true; });
+$('solvAn').addEventListener('change', () => { $('solvRes').innerHTML = ''; $('solvCr').innerHTML = ''; $('solvFin').hidden = true; $('btnSolvEssai').disabled = true; $('btnSolvAppl').disabled = true; });
+
+/* (27/11/2026) GARDES CRÉÉES : il ne reste que les récapitulatifs, envoyés d'ici. Le bouton
+   change de nom une fois l'envoi fait (un second envoi reste possible, en deux appuis). */
+let _solvRecapsFaits = false;
+function _solvJour(iso){ const d = new Date(iso); return isNaN(d) ? '' : ('0' + d.getDate()).slice(-2) + '/' + ('0' + (d.getMonth() + 1)).slice(-2) + '/' + d.getFullYear(); }
+function solvFini(an, applique, recaps, detail){
+  _solvRecapsFaits = !!recaps;
+  $('solvFin').hidden = false; $('btnSolvAppl').disabled = true; $('btnSolvEssai').disabled = true;
+  $('btnSolvRecaps').textContent = recaps ? 'Renvoyer les récapitulatifs' : 'Envoyer les récapitulatifs';
+  $('btnSolvRecaps').className = recaps ? 'btn' : 'btn p';
+  $('solvRes').innerHTML = '<span class="ok">✅ Gardes ' + esc(an) + ' créées et planning publié le ' + esc(_solvJour(applique)) + esc(detail || '') + '.</span><br>'
+    + (recaps ? '<span class="ok">✅ Récapitulatifs envoyés le ' + esc(_solvJour(recaps.le)) + ' : ' + esc(recaps.envoyes || 0) + ' mail' + ((recaps.envoyes || 0) > 1 ? 's' : '')
+        + (recaps.sansMail ? ', ' + esc(recaps.sansMail) + ' sans e-mail' : '') + (recaps.echecs ? ', ⚠️ ' + esc(recaps.echecs) + ' en échec' : '') + '. C\'est terminé.</span>'
+      : '<span>Dernière étape : <b>Envoyer les récapitulatifs</b> — chaque MAR reçoit son mail « Vos gardes ».</span>');
+}
+deuxAppuis($('btnSolvRecaps'), () => 'Confirmer : ' + (_solvRecapsFaits ? 'renvoyer' : 'envoyer') + ' à tous les MAR', async () => {
+  const btn = $('btnSolvRecaps'), out = $('solvRes'), an = Number($('solvAn').value);
+  btn.disabled = true; btn.textContent = 'Envoi…';
+  out.innerHTML = '<span>Envoi des récapitulatifs ' + an + ', ne fermez pas la page (1 à 5 min)…</span>';
+  try {
+    const r = await api({ action:'solveurRecaps', year: an, encore: _solvRecapsFaits });
+    if (!r || !r.success) throw new Error(refus(r) ? MSG_RESERVE : ((r && r.error) || 'réponse illisible'));
+    if (!(r.envoyes > 0)) throw new Error('aucun mail n\'est parti' + (r.echecs ? ' (' + r.echecs + ' en échec)' : '') + '. Réessayez.');
+    const e = await solvEtat();
+    if (e && r.pjEchecs) $('solvRes').innerHTML += '<br><span class="err">⚠️ ' + esc(r.pjEchecs) + ' pièce(s) jointe(s) non produite(s) : mail parti sans le PDF.</span>';
+  } catch (e) {
+    out.innerHTML = '<span class="err">❌ ' + esc(e.message) + '</span>';
+    btn.textContent = _solvRecapsFaits ? 'Renvoyer les récapitulatifs' : 'Envoyer les récapitulatifs';
+  }
+  finally { btn.disabled = false; }
+});
+
+/* (27/11/2026) LE COMPTE RENDU DE L'ESSAI À BLANC — ce qu'on veut lire AVANT d'appliquer :
+   les nuits couvertes, les écarts entre collègues de même part, les souhaits, puis une ligne
+   par MAR. Tout vient du générateur à blanc (aucun calcul de gardes ici). */
+const SOLV_AXES = [['total', 'Total'], ['we', 'Week-ends'], ['sam', 'Samedis'], ['vd', 'Ven-dim'], ['jeu', 'Jeudis'], ['jf', 'Fériés']];
+function solvEcartsCollegues(r){
+  const C = r.compteurs || {}, P = r.partExacte || {}, K = r.cibles || {};
+  const part = id => { const p = P[id] && P[id].total !== undefined ? P[id].total : (K[id] ? K[id].total : null); return (p === null || p === undefined) ? null : Math.round(p * 100) / 100; };
+  const groupes = {};
+  Object.keys(C).forEach(id => { const p = part(id); if (p === null) return; (groupes[p] = groupes[p] || []).push(id); });
+  const val = (id, k) => k === 'jf' && r.jf && r.jf[id] !== undefined ? r.jf[id] : (C[id][k] || 0);
+  const ecarts = [];
+  Object.keys(groupes).forEach(p => { const ids = groupes[p]; if (ids.length < 2) return;
+    SOLV_AXES.forEach(([k, nom]) => {
+      let haut = ids[0], bas = ids[0];
+      ids.forEach(id => { if (val(id, k) > val(haut, k)) haut = id; if (val(id, k) < val(bas, k)) bas = id; });
+      if (val(haut, k) - val(bas, k) >= 2) ecarts.push({ axe: nom, haut, bas, vh: val(haut, k), vb: val(bas, k) });
+    }); });
+  return ecarts;
+}
+function solvCompteRendu(r, an){
+  const C = r.compteurs || {}; const ids = Object.keys(C);
+  if (!ids.length) return '';
+  const fr = d => String(d).slice(8, 10) + '/' + String(d).slice(5, 7);
+  const dix = v => String(Math.round(v * 10) / 10).replace('.', ',');
+  const pas = (cls, ic, t) => '<div class="pas ' + cls + '">' + ic + ' ' + t + '</div>';
+  let h = '<div class="diag-chap">Compte rendu ' + esc(an) + ' — avant d\'appliquer</div>';
+  h += r.sansBinome ? pas('bloq', '⛔', esc(r.sansBinome) + ' nuit(s) sans binôme : ' + esc((r.jours || []).map(fr).join(', ')))
+                    : pas('okk', '✓', 'Toutes les nuits ont leurs deux MAR.');
+  const ec = solvEcartsCollegues(r);
+  h += ec.length ? pas('att', '⚠️', esc(ec.length) + ' écart(s) de 2 ou plus entre collègues de même part : '
+        + ec.map(e => esc(e.axe) + ' ' + esc(_initiales(e.haut)) + ' ' + esc(e.vh) + ' / ' + esc(_initiales(e.bas)) + ' ' + esc(e.vb)).join(' · '))
+      : pas('okk', '✓', 'Jamais plus d\'1 d\'écart entre collègues de même part (total, week-ends, samedis, ven-dim, jeudis, fériés).');
+  const hors = Object.keys(r.ecarts || {}).filter(k => r.ecarts[k] && r.ecarts[k].ecart > 0);
+  const NOM = { total:'total', sam:'samedis', jeu:'jeudis', vd:'ven-dim', vjf:'veilles de férié', jf:'fériés' };
+  h += hors.length ? pas('att', '⚠️', 'Hors fourchette de sa part : ' + hors.map(k => esc(NOM[k] || k) + ' (' + esc(_initiales(r.ecarts[k].mar)) + ', ' + esc(dix(r.ecarts[k].ecart)) + ')').join(' · '))
+                   : pas('okk', '✓', 'Chacun est dans la fourchette de sa part, sur tous les compteurs.');
+  const S = r.souhaits || {}; let poss = 0, util = 0, poses = 0, hon = 0;
+  Object.keys(S).forEach(id => { poss += S[id].possible || 0; util += S[id].honoresUtiles || 0; poses += S[id].poses || 0; hon += S[id].honores || 0; });
+  if (poses) h += pas('inf', 'ℹ️', 'Souhaits : ' + esc(hon) + ' honorés sur ' + esc(poses) + ' posés' + (poss ? ' — ' + esc(Math.round(100 * util / poss)) + ' % de ce qui était possible' : '') + '.');
+  const Q = r.qualite;
+  if (Q && Q.nbChoix !== undefined) h += pas(Q.nbChoix ? 'att' : 'okk', Q.nbChoix ? '⚠️' : '✓', Q.nbChoix ? esc(Q.nbChoix) + ' enchaînement(s) lourd(s) que le calcul aurait pu éviter.' : 'Aucun enchaînement lourd évitable.');
+  const K = r.cibles || {};
+  const duo = (v, c) => esc(v) + (c !== undefined && c !== null ? ' <span style="color:var(--ink-3)">(' + esc(dix(c)) + ')</span>' : '');
+  const tri = ids.slice().sort((a, b) => String(_initiales(a)).localeCompare(String(_initiales(b))));
+  h += '<div style="overflow-x:auto"><table class="bil"><tr><th>MAR</th><th>Gardes</th><th>W-E</th><th>Sam.</th><th>Ven-dim</th><th>Fériés</th><th>18 h</th><th>Souhaits</th></tr>'
+    + tri.map(id => { const c = C[id], k = K[id] || {}, s = S[id];
+        return '<tr><td><b>' + esc(_initiales(id)) + '</b></td><td>' + duo(c.total, k.total) + '</td><td>' + esc(c.we || 0) + '</td><td>' + duo(c.sam || 0, k.sam) + '</td><td>' + duo(c.vd || 0, k.vd)
+          + '</td><td>' + duo(r.jf && r.jf[id] !== undefined ? r.jf[id] : (c.jf || 0), k.jf) + '</td><td>' + esc(r.h18 && r.h18[id] !== undefined ? r.h18[id] : '—') + '</td><td>' + (s ? esc(s.honores) + ' / ' + esc(s.poses) : '—') + '</td></tr>'; }).join('')
+    + '</table></div><div class="d" style="margin:2px 0 0">Entre parenthèses : la cible de chacun. Souhaits : honorés / posés.</div>';
+  return h;
+}
 
 /* ── 3. Codes ── */
 function cases(){ return [...document.querySelectorAll('#codesListe input[type=checkbox]:not(:disabled)')]; }

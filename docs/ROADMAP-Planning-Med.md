@@ -64,7 +64,18 @@ dans « À faire ». Quand le journal récent dépasse une page, ses entrées pa
 
 - **Lot 4** : un statut posé par le comité sur un 18 h ou une récupération les fait disparaître (C1) ;
   demi-journée VM/VA effaçable depuis Statuts (C2) ; course rare comité / MAR sur la même case (C3) ;
-  receveur d'un don non éligible — inactif, hors contrat, sans garde (B5).
+  ~~receveur d'un don non éligible (B5)~~ fait le 27/11 (v2.11.0).
+- **Suite du diagnostic du 27/11** (détail dans les documents du projet Claude), non tranché :
+  polices chargées chez un tiers en bloquant l'affichage ; appels sans limite de temps dans
+  `absences.html` et `paie.html` ; icônes de secteur jamais dessinées dans `admin.html` ; congé long
+  posé sur un donneur dont la garde est en vitrine (l'offre reste affichée jusqu'au passage horaire) ;
+  récupération posée avant le samedi qu'elle compense quand aucun jour vert ne suit ; deux comptes de
+  présents (écran de pose / message de refus) ; clôture d'année qui ne range pas cinq onglets récents ;
+  contrôles du banc qui lisent l'ancien formulaire d'échange (à déplacer avant de retirer ce code).
+- **Génération des gardes** : à terme tout se passe sur la page Maintenance (décision du 27/11). Fait
+  pour le calcul exact (v2.12.0). Reste : l'assistant 2 de l'admin (calcul habituel), à rapatrier ou à
+  remplacer par le calcul exact à partir de 2028 — à décider. Le calcul exact n'a pas encore servi en
+  réel : essai à blanc sur 2028 dès que les indisponibilités 2028 sont closes.
 - **Lot 5** : sources uniques — codes de case (dont VAC/V et FORM/F entre indisponibilités et gardes),
   équipe à une date, année d'une date — et test « au hasard » des échanges.
 
@@ -548,6 +559,26 @@ les cases valant exactement `CL`.
 ---
 
 ## Journal récent
+
+- **27/11/2026** — Calcul exact : tout se termine sur la page Maintenance (v2.12.0, `solveur.gs`
+  2026-11-27.1, `Indispos.gs` .4, demande du responsable). L'essai à blanc affiche un compte rendu
+  (nuits couvertes, écarts de 2+ entre collègues de même part, hors fourchette, souhaits, une ligne
+  par MAR) ; « Appliquer » publie et arme les notifications ; nouveau bouton « Envoyer les
+  récapitulatifs » (action `solveurRecaps`, un seul envoi sauf demande explicite). Plus de renvoi
+  vers l'assistant 2 de l'admin.
+
+- **27/11/2026** — Diagnostic complet du code et scénarios de vie réelle (v2.11.0, un seul commit ;
+  `Indispos.gs` 2026-11-27.3, `temps_partiel.gs` .6, `echanges.gs` .3). Lot technique : icônes du
+  planning servies par le site (758 Ko bloquants en moins) ; le service worker étiquette ses copies
+  par version du site et va chercher la version du jour, sans jamais rien supprimer ;
+  `deciderJourTp`, `deciderJourTpLot` et `solveurAppliquer` sous verrou ; message d'échec du PDF du
+  récapitulatif ; pastille et quotas de TP en repli serveur ; ExcelJS figé. Lot bourse/TP (décisions du
+  responsable) : preneur ou receveur non éligible refusé avec message (`_echangesInapte_` : ne fait pas
+  de gardes, hors période en poste — le statut A reste admis) ; question `[18P]` au preneur de 18 h ;
+  phrase au dépôt pour le donneur ; demande de TP en attente retirée quand la case n'est plus libre
+  (`tpDemandesCaduques_`, notification et historique). 1 500 gestes tirés au hasard sur le vrai
+  serveur : aucun planning dégradé. Écarté par le responsable : contrôle « données changées » entre
+  Lancer et Appliquer du calcul exact ; outil de scénarios au hasard dans le banc. Banc 8 235 ✓.
 
 - **27/11/2026** — Patients lib (v2.4.0 → v2.8.0, `indisponibilites.gs` jusqu'à 2026-11-27.3) :
   saisie date opératoire + nombre sous chaque consultation, verdict présent/absent, « Qui peut le

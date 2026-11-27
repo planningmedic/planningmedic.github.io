@@ -344,6 +344,61 @@ console.log('\n═══ M2. Les cinq actions ═══');
     V('aucune autre page n\'appelle la clôture', ['index.html', 'planning.html', 'indispos.html', 'paie.html', 'dashboard.html', 'staff.html'].every(f => !/'(cloturerAnnee|archiveYear|clotureVerifier)'/.test(lire(f))));
   }
 
+  console.log('\n═══ M3 bis. Calcul exact : compte rendu, application, récapitulatifs — tout sur cette page (27/11/2026) ═══');
+  {
+    let etat = 'pret', recaps = null, envois = 0;
+    const ESSAI = { success: true, essai: true, secondes: 42, sansBinome: 0, jours: [],
+      ecarts: { total: { ecart: 0, mar: '' }, sam: { ecart: 0.5, mar: 'MAR03' } }, qualite: { nbChoix: 0 },
+      compteurs: { MAR01: { total: 30, we: 9, sam: 6, vd: 4, jeu: 5, jf: 3 }, MAR02: { total: 30, we: 9, sam: 4, vd: 4, jeu: 5, jf: 3 }, MAR03: { total: 24, we: 7, sam: 4, vd: 3, jeu: 4, jf: 2 } },
+      cibles: { MAR01: { total: 30, sam: 5, vd: 4, jf: 3 }, MAR02: { total: 30, sam: 5, vd: 4, jf: 3 }, MAR03: { total: 24, sam: 4, vd: 3, jf: 2 } },
+      partExacte: { MAR01: { total: 29.63 }, MAR02: { total: 29.63 }, MAR03: { total: 23.7 } },
+      jf: { MAR01: 3, MAR02: 3, MAR03: 2 }, h18: { MAR01: 12, MAR02: 11, MAR03: 9 },
+      souhaits: { MAR01: { poses: 4, honores: 3, possible: 4, honoresUtiles: 3 }, MAR02: { poses: 2, honores: 2, possible: 2, honoresUtiles: 2 } } };
+    const serv = c => {
+      if (c.action === 'solveurEtat') return etat === 'applique' ? { success: true, etat: 'applique', applique: '2027-11-20T10:00:00.000Z', recaps } : { success: true, etat: 'pret', etapes: [{ nom: 'a', prouve: true }] };
+      if (c.action === 'solveurAppliquer') { if (c.essai) return ESSAI; etat = 'applique'; return { success: true, secondes: 180, nbWarnings: 2 }; }
+      if (c.action === 'solveurRecaps') { envois++;
+        if (recaps && !c.encore) return { success: false, deja: true, error: 'Récapitulatifs déjà envoyés (21 mails).' };
+        recaps = { le: '2027-11-20T11:00:00.000Z', envoyes: 21, sansMail: 1, echecs: 0 }; return { success: true, envoyes: 21, sansMail: 1, echecs: 0, pjEchecs: 0 }; }
+      return serveurMoi(c);
+    };
+    const { d, appels, erreurs } = await monter(serv, 'MOI');
+    const clic2 = async (id, ms) => { d.getElementById(id).click(); await dodo(20); d.getElementById(id).click(); await dodo(ms || 250); };
+    const res = () => d.getElementById('solvRes').textContent, cr = () => d.getElementById('solvCr');
+    V('à l\'ouverture : pas de bouton d\'envoi des récapitulatifs', d.getElementById('solvFin').hidden === true);
+    d.getElementById('btnSolvEtat').click(); await dodo(250);
+    V('résultat prêt : essai et application ouverts, envoi toujours caché', !d.getElementById('btnSolvEssai').disabled && !d.getElementById('btnSolvAppl').disabled && d.getElementById('solvFin').hidden);
+    d.getElementById('btnSolvEssai').click(); await dodo(250);
+    const t = cr().textContent;
+    V('essai à blanc : le compte rendu s\'affiche, avec une ligne par MAR (initiales, jamais l\'identifiant)',
+      /Compte rendu/.test(t) && cr().querySelectorAll('table.bil tr').length === 4 && /M1/.test(t) && !/MAR01/.test(t), t.slice(0, 200));
+    V('…la couverture en clair', /Toutes les nuits ont leurs deux MAR/.test(t));
+    V('…l\'écart de 2 entre deux collègues de même part est nommé (samedis : M1 6 / M2 4)', /1 écart\(s\) de 2 ou plus entre collègues de même part : Samedis M1 6 \/ M2 4/.test(t), t.slice(0, 400));
+    V('…un collègue d\'une autre part n\'est pas comparé (M3, 24 gardes, hors du compte)', !/M3 24|M1 30 \/ M3/.test(t.split('Hors fourchette')[0]));
+    V('…le hors-fourchette dit qui et combien', /Hors fourchette de sa part : samedis \(M3, 0,5\)/.test(t), t);
+    V('…les souhaits : 5 honorés sur 6 posés, 83 % du possible', /Souhaits : 5 honorés sur 6 posés — 83 % de ce qui était possible/.test(t), t);
+    V('…réel et cible côte à côte (30 (30)), 18 h et souhaits par MAR', /30 \(30\)/.test(cr().querySelector('table.bil').textContent) && /12/.test(cr().querySelectorAll('table.bil tr')[1].textContent) && /3 \/ 4/.test(cr().querySelectorAll('table.bil tr')[1].textContent));
+    V('…et « Rien n\'a été écrit »', /Rien n'a été écrit/.test(res()));
+    await clic2('btnSolvAppl');
+    V('application : « créées et planning publié », la dernière étape est annoncée ICI', /Gardes \d{4} créées et planning publié/.test(res()) && /Dernière étape : Envoyer les récapitulatifs/.test(res()) && !/admin/i.test(res()), res());
+    V('…le bouton d\'envoi apparaît ; plus rien à appliquer ni à essayer', !d.getElementById('solvFin').hidden && d.getElementById('btnSolvAppl').disabled && d.getElementById('btnSolvEssai').disabled && d.getElementById('btnSolvRecaps').textContent === 'Envoyer les récapitulatifs');
+    V('…le compte rendu de l\'essai est retiré', cr().innerHTML === '');
+    d.getElementById('btnSolvRecaps').click(); await dodo(30);
+    V('récapitulatifs : un seul appui n\'envoie rien (confirmation demandée)', envois === 0 && /Confirmer : envoyer à tous les MAR/.test(d.getElementById('btnSolvRecaps').textContent));
+    d.getElementById('btnSolvRecaps').click(); await dodo(300);
+    V('second appui : l\'envoi part, sans « encore »', envois === 1 && appels.filter(a => a.action === 'solveurRecaps')[0].encore === false);
+    V('…« 21 mails, 1 sans e-mail. C\'est terminé. »', /Récapitulatifs envoyés le \d\d\/\d\d\/\d{4} : 21 mails, 1 sans e-mail\. C'est terminé\./.test(res()), res());
+    V('…le bouton devient « Renvoyer les récapitulatifs »', d.getElementById('btnSolvRecaps').textContent === 'Renvoyer les récapitulatifs' && !d.getElementById('btnSolvRecaps').disabled);
+    await clic2('btnSolvRecaps', 300);
+    V('renvoi : demandé explicitement (encore), en deux appuis', envois === 2 && appels.filter(a => a.action === 'solveurRecaps')[1].encore === true);
+    V('aucune erreur de script sur la page', erreurs.length === 0, erreurs);
+    /* Page rouverte plus tard : l'état « appliqué » suffit à retrouver la dernière étape. */
+    etat = 'applique'; recaps = null;
+    const p2 = await monter(serv, 'MOI');
+    p2.d.getElementById('btnSolvEtat').click(); await dodo(250);
+    V('page rouverte après l\'application : « Voir l\'état » ramène le bouton d\'envoi', !p2.d.getElementById('solvFin').hidden && /Dernière étape/.test(p2.d.getElementById('solvRes').textContent) && p2.d.getElementById('btnSolvAppl').disabled);
+  }
+
   console.log('\n═══ M4. La tuile et l\'écran du comité ═══');
   {
     const idx = lire('index.html');

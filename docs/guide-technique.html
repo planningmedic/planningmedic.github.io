@@ -1091,22 +1091,34 @@ le calcul démarre. Rien n'est écrit dans le classeur.</li>
 prouvés), ou nuits impossibles à couvrir, nommées — il faut alors rendre un jour de vacances à un MAR
 ce jour-là, puis relancer.</li>
 <li><b>Essai à blanc</b> : le planning du calcul exact passe dans le générateur habituel (18 h,
-récupérations, statistiques), sans rien écrire.</li>
-<li><b>Appliquer</b> (deux appuis) : les gardes de l'année sont créées avec ce planning. On termine
-ensuite dans l'admin, étape 2, qui reconnaît l'année déjà générée et enchaîne publication et mails.</li>
+récupérations, statistiques), sans rien écrire. La page affiche alors le <b>compte rendu</b> : nuits
+couvertes, écarts de 2 ou plus entre collègues de même part, MAR hors de la fourchette de sa part,
+souhaits honorés, puis une ligne par MAR (gardes, week-ends, samedis, ven-dim, fériés, 18 h, souhaits,
+avec la cible entre parenthèses).</li>
+<li><b>Appliquer</b> (deux appuis) : les gardes de l'année sont créées avec ce planning, et le planning
+est publié.</li>
+<li><b>Envoyer les récapitulatifs</b> (deux appuis) : chaque MAR reçoit son mail « Vos gardes ». Le
+bouton n'apparaît qu'une fois les gardes créées ; après l'envoi il devient <b>Renvoyer les
+récapitulatifs</b>. Tout se termine sur cette page : plus besoin de passer par l'admin. Si la page a été
+fermée entre-temps, <b>Voir l'état</b> ramène ce bouton.</li>
 </ol>
 <p>Une année déjà générée est toujours refusée : 2026 et 2027 ne sont jamais recalculées.</p>
 </div></details>
 
 <details class="tech"><summary>Repères techniques — calcul exact</summary><div class="corps">
 <p>Serveur : <code>solveur.gs</code>, actions <code>solveurLancer</code>, <code>solveurEtat</code>,
-<code>solveurAppliquer</code> (droit Maintenance). Le générateur rend ses entrées juste avant les jours
+<code>solveurAppliquer</code>, <code>solveurRecaps</code> (droit Maintenance).
+<code>solveurAppliquer</code> note sa date dans le suivi (<code>applique</code>) et arme les notifications
+comme <code>publishPlanning</code> ; <code>solveurEtat</code> répond alors <code>applique</code> sans relire
+le dépôt privé. <code>solveurRecaps</code> appelle <code>_act_envoyerRecapIndispos</code> tel quel, avec le
+code personnel de l'appelant pour la porte « responsable », et refuse un second envoi sauf
+<code>encore:true</code>. Le générateur rend ses entrées juste avant les jours
 critiques avec <code>generateGardes(an, {dryRun, tirage:1, exportSolveur:true})</code>, et réimpose le
 planning reçu avec <code>{planSolveur}</code>, deux fois : avant l'arrêt « jour sans binôme » et juste
 avant les récupérations. Jeton : ligne <code>SOLVEUR_TOKEN</code> de CONFIG, limité au seul dépôt
 privé. Fichiers : <code>entrees/{année}-{horodatage}.json.gz</code> et <code>sorties/…</code> (résultat et
 bilan des étapes). Le calcul : OR-Tools CP-SAT, 5 min au plus par critère (2 min pour les critères de
-confort). Banc : <code>banc_solveur.js</code>.</p>
+confort). Banc : <code>banc_solveur.js</code> (serveur) et <code>banc_maintenance.js</code> (la carte, au clic).</p>
 </div></details>
 
 <h2 id="b4"><span class="num">B4</span>W3 — Clôturer l'année</h2>
