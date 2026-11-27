@@ -661,14 +661,16 @@ function _quiPeut(p){
   const occupe = id => (DATA.consultations || []).find(x => x.mar === id && x.date === c.date && x.per === c.per);
   let h = '<div class="alt"><h4>Qui peut faire votre consultation du '+libDate(c.date)+' et opérer le '+libDate(p.bloc)+' ?</h4>'
     + '<div class="why">Membres du groupement présents ces deux jours-là'
-    + (MARGE_OK ? ', classés par la marge libérale la plus serrée (consultation en NGAP, anesthésie en CCAM ; dernier relevé'+(MARGE_MOIS ? ' — '+MARGE_MOIS : '')+')' : '') + '.</div>';
+    + (MARGE_OK ? ', classés par la marge libérale la plus serrée (consultation en NGAP, anesthésie en CCAM ; dernier relevé'+(MARGE_MOIS ? ' — '+MARGE_MOIS : '')+')' : '') + '.</div>'
+    // (27/11/2026, décision du responsable) Pas de « Confier » : la page dit QUI contacter, l'accord
+    // se prend de vive voix et le secrétariat est prévenu par téléphone.
+    + '<div class="why">Appelez l\'un d\'eux et prévenez le secrétariat des consultations. Une fois réglé, retirez la ligne (×).</div>';
   if(!ids.length) return h + '<div class="none-alt">Aucun membre du groupement n\'est présent ces deux jours-là. À arbitrer avec le comité.</div></div>';
   h += ids.map(id => {
     const chip = _chipMarge(id);
     const o = occupe(id);
     return '<div class="person"><b>'+nomDe(id)+'</b>'+chip
-      + (o ? '<span class="cs">déjà en consultation ('+libSect(o.cs)+') à la même heure</span>' : '')
-      + '<button class="pbtn bleu" onclick="patConfier(\''+id+'\')">Confier</button></div>';
+      + (o ? '<span class="cs">déjà en consultation ('+libSect(o.cs)+') à la même heure</span>' : '') + '</div>';
   }).join('');
   return h + '</div>';
 }

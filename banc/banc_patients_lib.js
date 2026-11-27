@@ -49,14 +49,14 @@ function serveur() {
     ['../gas/Indispos.gs', '_deny'], ['../gas/Indispos.gs', '_error'],
     ['../gas/indisponibilites.gs', '_patlibJour_'], ['../gas/indisponibilites.gs', '_patlibFeuille_'],
     ['../gas/indisponibilites.gs', '_patlibLire_'], ['../gas/indisponibilites.gs', '_patlibDelai_'],
-    ['../gas/indisponibilites.gs', '_patlibMembre_'], ['../gas/indisponibilites.gs', '_act_patientsLib']]) {
+    ['../gas/indisponibilites.gs', '_patlibMembre_'], ['../gas/indisponibilites.gs', '_patlibDroit_'], ['../gas/indisponibilites.gs', '_act_patientsLib']]) {
     vm.runInContext(extraireFonction(f, n), ctx);
   }
   const src = lire('gas/indisponibilites.gs');
   for (const c of ['PATLIB_ONGLET', 'PATLIB_ENTETE']) {
     const m = src.match(new RegExp('const ' + c + ' = [^;]+;')); vm.runInContext(m[0], ctx);
   }
-  const appel = (id, role, payload) => JSON.parse(ctx._act_patientsLib({ e: null, payload, action: 'patientsLib', code: 'X', user: { id, role } }).getContent());
+  const appel = (id, role, payload, liberal) => JSON.parse(ctx._act_patientsLib({ e: null, payload, action: 'patientsLib', code: 'X', user: { id, role, liberal: !!liberal } }).getContent());
   const feuille = () => cl.getSheetByName('PATIENTS_LIB');
   return { ctx, cl, appel, feuille };
 }
@@ -66,8 +66,11 @@ console.log('\n═══ 1. Serveur : action patientsLib ═══');
   const { ctx, appel, feuille } = serveur();
   const ajout = (o) => Object.assign({ op: 'ajouter', consult: CONSULT, per: 'pm', bloc: BLOC_OK, nb: 2 }, o || {});
   V('un code du comité est refusé (MAR seulement)', appel('ALPHA', 'admin', ajout()).error === 'Accès refusé');
-  V('un MAR sans le droit patlib est refusé', appel('BRAVO', 'mar', ajout()).error === 'Accès refusé');
+  V('un MAR hors groupement libéral (sans le droit patlib) est refusé', appel('BRAVO', 'mar', ajout()).error === 'Accès refusé');
   V('rien n\'est créé dans le classeur tant que personne n\'a rien noté', feuille() === null);
+  V('(27/11/2026) un membre du groupement libéral est admis, sans droit réservé', appel('BRAVO', 'mar', { op: 'reprendre', id: 'inexistant' }, true).error !== 'Accès refusé');
+  V('… un code du comité reste refusé, même marqué libéral', appel('ALPHA', 'admin', ajout(), true).error === 'Accès refusé');
+  V('getConsultAbsences ouvre aussi les patients lib à tout le groupement', /if \(_patlibDroit_\(user\)\) \{ patlib = true;/.test(lire('gas/indisponibilites.gs')));
 
   const r1 = appel('ALPHA', 'mar', ajout());
   V('ajouter : accepté, et la réponse est la nouvelle liste', r1.success && r1.patients.length === 1 && r1.patients[0].nb === 2, r1);
@@ -121,8 +124,9 @@ console.log('\n═══ 1. Serveur : action patientsLib ═══');
   V('écriture sous verrou (WRITE_ACTIONS_LOCK)', /WRITE_ACTIONS_LOCK = new Set\(\[[\s\S]*'patientsLib'[\s\S]*?\]\);/.test(ind));
   V('aucune poussée vers le relais : le quota de 1 000 écritures n\'est pas touché',
     !/MIROIR_APRES_ECRITURE = \{[\s\S]*?patientsLib[\s\S]*?\};/.test(mir));
-  V('getConsultAbsences ne sert les patients qu\'avec le droit patlib',
-    /if \(user\.role === 'mar' && _aDroitTuile_\(user\.id, 'patlib'\)\) \{ patlib = true; patients = _patlibLire_\(user\.id\); \}/.test(ab));
+  V('getConsultAbsences ne sert les patients qu\'aux MAR du groupement (ou avec le droit patlib)',
+    /if \(_patlibDroit_\(user\)\) \{ patlib = true; patients = _patlibLire_\(user\.id\); \}/.test(ab)
+    && /user\.role === 'mar' && \(user\.liberal === true \|\| _aDroitTuile_\(user\.id, 'patlib'\)\)/.test(ab));
 }
 
 
@@ -373,13 +377,11 @@ async function page(patlib, modif) {
     V('moi-même : pas proposé', !/Dr Alpha/.test(D.querySelector('#pfListe .alt').textContent));
     V('le bandeau annonce 2 patients à confier', /2 patients lib à confier/.test(D.getElementById('aconf').textContent));
 
-    [...D.querySelectorAll('#pfListe .person')].find(x => /Dr Bravo/.test(x.textContent)).querySelector('.pbtn.bleu').click(); await dodo(80);
-    const conf = envois.filter(e => e.action === 'patientsLib').pop();
-    V('« Confier » envoie la ligne et le confrère choisi', conf.op === 'confier' && conf.a === 'BRAVO' && !!conf.id, conf);
-    V('la ligne devient « Confiés au Dr Bravo »', /Confiés au Dr Bravo/.test(D.getElementById('pfListe').textContent));
-    V('le bandeau « à confier » disparaît', !/à confier/.test(D.getElementById('aconf').textContent));
-    V('le bouton d\'état de la consultation se met à jour', /3 patients · tout est réglé/.test(D.querySelector('#file .puce').textContent),
-      D.querySelector('#file .puce').textContent);
+    // (27/11/2026, décision du responsable) pas de « Confier » : seulement QUI contacter
+    V('aucun bouton « Confier » : la liste dit seulement qui contacter',
+      !D.querySelector('#pfListe .person button') && !/>Confier</.test(D.getElementById('pfListe').innerHTML));
+    V('… avec la marche à suivre (appeler, prévenir le secrétariat, retirer la ligne)',
+      /Appelez l'un d'eux/.test(liste) && /secrétariat/.test(D.getElementById('pfListe').textContent));
 
     D.querySelector('#pfListe .px').click(); await dodo(80);
     V('la croix supprime une ligne, avec « Annuler » proposé',
@@ -456,7 +458,7 @@ async function page(patlib, modif) {
   }
 
   console.log('\n═══ 3. Accueil : la tuile « Mes consultations » ═══');
-  for (const [droits, attendu] of [[['consult'], 'reserve'], [['consult', 'patlib'], 'moi']]) {
+  for (const [liberal, attendu] of [[false, null], [true, 'moi']]) {
     const vc = new VirtualConsole();
     const dom = new JSDOM(lire('index.html'), { runScripts: 'dangerously', virtualConsole: vc, pretendToBeVisual: true,
       url: 'https://planningmedic.github.io/index.html',
@@ -470,16 +472,29 @@ async function page(patlib, modif) {
           return { ok: true, json: async () => ({ success: false }) }; };
       } });
     const w = dom.window; await dodo(300);
-    w.eval(`MY_ID = 'ALPHA'; MY_ROLE = 'mar'; MY_TUILES = ${JSON.stringify(droits)}; MY_LIBERAL = true; renderTiles();`);
+    w.eval(`MY_ID = 'ALPHA'; MY_ROLE = 'mar'; MY_TUILES = []; MY_LIBERAL = ${liberal}; renderTiles();`);
     await dodo(150);
-    const t = w.document.querySelector(`#tiles-${attendu} [data-key="consult"]`);
-    V(`droits ${droits.join('+')} : « Mes consultations » est dans ${attendu === 'moi' ? 'Moi' : 'Réservé'}`, !!t);
     if (attendu === 'moi') {
+      const t = w.document.querySelector('#tiles-moi [data-key="consult"]');
+      V('membre du groupement, sans droit réservé : « Mes consultations » est dans Moi', !!t);
       const b = t && t.querySelector('.tile-badge');
-      V('avec le droit : pastille « 2 à confier » (absence le jour du geste)', b && b.textContent === '2 à confier', b && b.textContent);
+      V('… avec la pastille « 2 à confier » (absence le jour du geste)', b && b.textContent === '2 à confier', b && b.textContent);
     } else {
-      V('sans le droit : aucune demande de plus au serveur, aucune pastille', !(t && t.querySelector('.tile-badge')));
+      V('hors groupement libéral : pas de tuile « Mes consultations », aucune pastille', !w.document.querySelector('[data-key="consult"]'));
     }
+  }
+
+  console.log('\n═══ 4. Guide MAR : section 27 ═══');
+  {
+    const g = lire('docs/guide-mar.html');
+    const bloc = (g.match(/<details class="sec" id="s27">[\s\S]*?\n<\/details>/) || [''])[0];
+    V('la section 27 existe et est repliée', !!bloc && !/id="s27"[^>]*\sopen/.test(bloc));
+    const t = bloc.replace(/<[^>]+>/g, ' ').toLowerCase();
+    const interdits = ['miroir', 'journal', 'cloudflare', 'gas'].filter(m => new RegExp('(^|[^a-zà-ÿ])' + m + '($|[^a-zà-ÿ])').test(t));
+    V('vocabulaire interdit absent (miroir, journal, Cloudflare, GAS)', interdits.length === 0, interdits);
+    V('un bloc « En 2 minutes » et les gestes : choisir sa salle, « Oui, c\'est moi », Qui peut le voir, secrétariat par téléphone — sans « Confier »',
+      /En 2 minutes/.test(bloc) && /Aucune/.test(bloc) && /Oui, c'est moi/.test(bloc) && /Qui peut le voir/.test(bloc) && !/Confier/.test(bloc) && /téléphone/.test(bloc));
+    V('la page d\'accueil (section 03) y renvoie', /href="#s27"/.test(g));
   }
 
   console.log(`\n  ${ok} ✓  ${ko} ✗`);

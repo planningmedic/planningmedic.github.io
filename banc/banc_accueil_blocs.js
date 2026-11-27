@@ -111,11 +111,13 @@ const visible = (D, id) => D.getElementById(id).style.display !== 'none';
     V('Libéral et consultations : invisibles si le MAR n\'est pas du groupement libéral',
       D.querySelectorAll('#tiles-reserve [data-gen]').length === 0 && !visible(D, 'bloc-reserve'), titres(D, 'reserve'));
     accueil(w, { tuiles: [], liberal: true });
-    V('…et invisibles pour un membre du groupement sans la tuile accordée',
+    V('…et le Libéral invisible pour un membre du groupement sans la tuile accordée',
       D.querySelectorAll('#tiles-reserve [data-gen]').length === 0);
+    V('(27/11/2026) Mes consultations : ouverte à tout membre du groupement, dans Moi',
+      !!D.querySelector('#tiles-moi [data-key="consult"]'));
     accueil(w, { tuiles: ['liberal', 'consult'], liberal: true });
-    V('Libéral et Mes consultations quand les deux conditions sont réunies',
-      JSON.stringify(titres(D, 'reserve')) === JSON.stringify(['Libéral', 'Mes consultations']), titres(D, 'reserve'));
+    V('Libéral quand les deux conditions sont réunies ; Mes consultations n\'est plus dans Réservé',
+      JSON.stringify(titres(D, 'reserve')) === JSON.stringify(['Libéral']), titres(D, 'reserve'));
     // (18/10/2026) La tuile ne se coupe plus en deux sur place (illisible sur
     // téléphone) : elle fait monter une feuille du bas avec les deux choix.
     const tl = D.getElementById('tile-liberal'), voile = D.getElementById('choixVoile'), feuille = D.getElementById('choixFeuille');

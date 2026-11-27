@@ -4,7 +4,7 @@
    quelles : aucune ligne de logique modifiée, seulement déplacée. Le routeur et
    ses aides (checkCode, _deny, _error, doGet/doPost) restent dans Indispos.gs.
    Un seul espace global dans Apps Script : rien à importer. */
-const GAS_VERSION_INDISPOS_METIER = '2026-11-27.2';   // (27/11/2026) .2 : getVacConfig envoie le reliquat de l'année précédente (staff vacances : janvier pris d'abord dessus) · .1 : marge NGAP renvoyée avec la marge CCAM (classement des confrères) · (26/11) .4 : consultation du secteur sans patient lib : plus montrée · .3 : consultations tenues par le secteur — les MAR du secteur du bloc la voient, celui qui la fait la prend (op secteur), choix « aucune salle » · .2 : export CPA — importCpa (droit maintenance, onglet CPA_EXPORT), rattachement des consultations aux salles (CPA_SALLES), lignes CPA servies dans getConsultAbsences, op salle et lignes cpa| dans patientsLib · .1 : patients lib d'une consultation — action patientsLib (droit patlib, onglet PATIENTS_LIB) et patients servis dans getConsultAbsences · (25/11/2026) .2 : action getRecapPdf (PDF du récapitulatif pour le MAR connecté) ; getOrdreVacances répond aussi pour y+2 · .1 : saveIndispos accepte la pose libre des vacances (payload.vac, voir _poserVac_ dans temps_partiel.gs) · (20/11/2026) .1 : setIndisposYear et envoyerRecapIndispos réservés au responsable · (15/11/2026) clearIndisposYear réservé au droit Maintenance (clôture d'année) · (10/11/2026) PDF récapitulatif par document Google (les couleurs passent) + renvoyerRecapPdf2027 · (09/11/2026) mail « Vos gardes » : 18 h, souhaits honorés, gardes qui allongent les vacances · (27/10/2026) VM/VA posés à la main : jamais écrasés par un enregistrement (MAR ou staff)
+const GAS_VERSION_INDISPOS_METIER = '2026-11-27.3';   // (27/11/2026) .3 : patients lib ouverts à tout le groupement libéral · .2 : getVacConfig envoie le reliquat de l'année précédente (staff vacances : janvier pris d'abord dessus) · .1 : marge NGAP renvoyée avec la marge CCAM (classement des confrères) · (26/11) .4 : consultation du secteur sans patient lib : plus montrée · .3 : consultations tenues par le secteur — les MAR du secteur du bloc la voient, celui qui la fait la prend (op secteur), choix « aucune salle » · .2 : export CPA — importCpa (droit maintenance, onglet CPA_EXPORT), rattachement des consultations aux salles (CPA_SALLES), lignes CPA servies dans getConsultAbsences, op salle et lignes cpa| dans patientsLib · .1 : patients lib d'une consultation — action patientsLib (droit patlib, onglet PATIENTS_LIB) et patients servis dans getConsultAbsences · (25/11/2026) .2 : action getRecapPdf (PDF du récapitulatif pour le MAR connecté) ; getOrdreVacances répond aussi pour y+2 · .1 : saveIndispos accepte la pose libre des vacances (payload.vac, voir _poserVac_ dans temps_partiel.gs) · (20/11/2026) .1 : setIndisposYear et envoyerRecapIndispos réservés au responsable · (15/11/2026) clearIndisposYear réservé au droit Maintenance (clôture d'année) · (10/11/2026) PDF récapitulatif par document Google (les couleurs passent) + renvoyerRecapPdf2027 · (09/11/2026) mail « Vos gardes » : 18 h, souhaits honorés, gardes qui allongent les vacances · (27/10/2026) VM/VA posés à la main : jamais écrasés par un enregistrement (MAR ou staff)
 // précédente : '2026-10-22.2'
 
 // La campagne de saisie des indispos est-elle EN COURS ?
@@ -2131,10 +2131,10 @@ function _act_getConsultAbsences(R) {
     // Non-membre du groupement : aucun chiffre. Le masquage de la tuile ne suffit
     // pas — absences.html est une page publique, seul le serveur ferme la porte.
     if (!user.liberal) { marges = {}; margesNgap = {}; margesMois = ''; }
-    // (26/11/2026) Patients lib : seulement pour qui a le droit `patlib` (le temps du test).
+    // Patients lib : tout MAR du groupement libéral (27/11/2026 ; avant : droit `patlib`, le temps du test).
     let patlib = false, patients = [];
     try {
-      if (user.role === 'mar' && _aDroitTuile_(user.id, 'patlib')) { patlib = true; patients = _patlibLire_(user.id); }
+      if (_patlibDroit_(user)) { patlib = true; patients = _patlibLire_(user.id); }
     } catch (e) { patlib = false; patients = []; }   // jamais bloquant pour le reste de la page
     // (26/11/2026) Export CPA : salles de mes consultations et leurs patients lib
     let salles = {}, aChoisir = [];
@@ -2249,11 +2249,16 @@ function _patlibMembre_(id) {        // actif ET membre du groupement libéral (
   }
   return false;
 }
+/* (27/11/2026) Ouvert à tout le groupement libéral (colonne LIBERAL de MEDECINS, portée
+   par la session). Le droit réservé `patlib` reste reconnu. */
+function _patlibDroit_(user) {
+  return !!user && user.role === 'mar' && (user.liberal === true || _aDroitTuile_(user.id, 'patlib'));
+}
 function _act_patientsLib(R) {
   const { e, payload, action, code, user } = R;
   if (user.role !== 'mar') return _deny();
   try {
-    if (!_aDroitTuile_(user.id, 'patlib')) return _deny();
+    if (!_patlibDroit_(user)) return _deny();
     const op = String(payload.op || '');
     const ok = function () {
       return ContentService.createTextOutput(JSON.stringify({ success: true, patients: _patlibLire_(user.id) }))

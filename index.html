@@ -1573,7 +1573,8 @@ const TILES = [
   // (Lot 5-bis) Consultations a venir + absences du MAR sur les 4 semaines qui
   // suivent chaque consultation. ACCES RESTREINT (CONFIG / TUILES_PRIVEES).
   // (11/10/2026) Rangée dans le bloc Réservé, à côté du Libéral.
-  { key:'consult', title:'Mes consultations', sub:'Vos consultations libérales à venir et vos absences sur la même période.', icon:'calendar-check', href:'absences.html', tint:'bleu', ready:true, liberal:true, prive:true, bloc:'reserve' },
+  // (27/11/2026) Ouverte à tout le groupement libéral, dans Moi (avant : réservée, le temps du test).
+  { key:'consult', title:'Mes consultations', sub:'Vos consultations libérales à venir et vos absences sur la même période.', icon:'calendar-check', href:'absences.html', tint:'bleu', ready:true, liberal:true, bloc:'moi' },
   { key:'crh',      title:'CRH', sub:'Comptes rendus de réanimation.', icon:'file-text', href:'crh.html', tint:'peche', ready:true, prive:true, bloc:'reserve' },
   // Documentation TECHNIQUE du systeme (architecture, wizards, deploiement,
   // depannage). Sans interet pour l'equipe : tuile reservee, comme CRH.
@@ -1609,8 +1610,6 @@ const BLOCS_ACCUEIL = ['moi', 'service', 'ressources', 'archives', 'reserve'];
    saisie, elle reste dans Moi. Même condition que le cadenas de la tuile. */
 function _blocTuile(t){
   if (t.key === 'indispos' && (INDISPOS_FIGEES || saisieIndisposClose(FIN_SAISIE))) return 'archives';
-  /* (26/11/2026) Patients lib : avec le droit `patlib`, « Mes consultations » monte dans Moi. */
-  if (t.key === 'consult' && MY_TUILES.indexOf('patlib') > -1) return 'moi';
   return t.bloc;
 }
 function renderTiles(){
@@ -1647,7 +1646,7 @@ function renderTiles(){
 let _plCompteP = null;
 function majPastilleConsult(){
   try{
-    if(!MY_ID || MY_TUILES.indexOf('patlib') < 0) return;
+    if(!MY_ID || !MY_LIBERAL) return;      // (27/11/2026) tout le groupement libéral
     if(!_plCompteP) _plCompteP = apiPost({action:'getConsultAbsences'}).catch(function(){ return null; });
     _plCompteP.then(function(r){
       if(!(r && r.success && r.patlib)) return;
