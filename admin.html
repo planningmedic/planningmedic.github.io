@@ -896,8 +896,7 @@ body { font-family: 'DM Sans', system-ui, sans-serif; background: var(--bg); col
 
 /* ── PLANNING ADMIN V2 FINAL ── */
 .slot-new { outline: 2px solid #86EFAC !important; background: #F0FDF4 !important; color: #166534 !important; }
-.chip-guard2 { background: #334155 !important; color: #fff !important; }
-.name-tag.guard2 { background: #334155; color: #fff; }
+.chip-guard2 { background: var(--st-g2) !important; color: var(--st-plein) !important; }
 .slot-flash {
   display: inline-flex; align-items: center; justify-content: center;
   width: 28px; height: 20px; border-radius: 4px; font-size: 14px; font-weight: 700;
@@ -918,10 +917,10 @@ body { font-family: 'DM Sans', system-ui, sans-serif; background: var(--bg); col
 .bt-cell.weekend { background: var(--line-light); }
 .bt-dash { color: var(--line); font-size: 11px; }
 .name-tag { display: inline-flex; align-items: center; justify-content: center; font-family: var(--mono); font-size: 11px; font-weight: 700; padding: 2px 6px; border-radius: 5px; }
-.name-tag.guard  { background: #1E293B; color: #fff; }
-.name-tag.guard2 { background: #334155; color: #fff; }
-.name-tag.h18    { background: #F0FDF4; color: #166534; }
-.name-tag.rg     { background: #FFF7ED; color: #C2410C; }
+.name-tag.guard  { background: var(--st-g); color: var(--st-plein); }
+.name-tag.guard2 { background: var(--st-g2); color: var(--st-plein); }
+.name-tag.h18    { background: var(--st-18); color: var(--st-plein); }
+.name-tag.rg     { background: var(--st-rg-bg); color: var(--st-rg-fg); }
 .name-tag.absent { background: #FEF2F2; color: #991B1B; }
 
 /* ── CSS slots copiés depuis planning.html ── */
@@ -959,8 +958,8 @@ body { font-family: 'DM Sans', system-ui, sans-serif; background: var(--bg); col
 .slot-add:hover { background:#F1F5F9; border-color:#94A3B8; color:#475569; }
 .slot-dash.slot-dash-click { cursor:pointer; }
 .slot:hover .slot-dash.slot-dash-click { color:#64748B; text-decoration:underline dotted; }
-.chip-guard { background: #EFF6FF; color: #1D4ED8; }
-.chip-h18   { background: #F0FDF4; color: #166534; }
+.chip-guard { background: var(--st-g) !important; color: var(--st-plein) !important; }
+.chip-h18   { background: var(--st-18); color: var(--st-plein); }
 .th-sector {
   width: 180px; min-width: 160px; padding: 12px 16px; text-align: left;
   font-size: 12px; font-weight: 800; text-transform: uppercase; letter-spacing: .08em;
@@ -1363,9 +1362,9 @@ if (sessionStorage.getItem('adminCode')) {
 #panel-planning .bt-cell { border-right:1px solid var(--pk-line2); border-top:1px solid var(--pk-line2); padding:8px 6px; }
 #panel-planning .bt-cell.weekend { background:#FAFAFB; }
 #panel-planning .name-tag { font-family:'DM Sans',sans-serif; font-size:12px; font-weight:600; letter-spacing:.02em; padding:4px 8px; border-radius:8px; }
-#panel-planning .name-tag.guard, #panel-planning .name-tag.guard2 { background:var(--pk-ink); color:#fff; }
-#panel-planning .name-tag.h18 { background:#FEF6EE; color:#B93815; }
-#panel-planning .name-tag.rg { background:var(--pk-line2); color:#667085; margin:0 2px; }
+#panel-planning .name-tag.guard { background:var(--st-g); color:var(--st-plein); } #panel-planning .name-tag.guard2 { background:var(--st-g2); color:var(--st-plein); }
+#panel-planning .name-tag.h18 { background:var(--st-18); color:var(--st-plein); }
+#panel-planning .name-tag.rg { background:var(--st-rg-bg); color:var(--st-rg-fg); margin:0 2px; }
 .bt-abs { display:flex; flex-direction:column; gap:4px; align-items:center; }
 .bt-abs div { display:flex; align-items:center; gap:5px; }
 .bt-abs em { font-style:normal; font-size:10.5px; font-weight:600; color:var(--pk-ink3, #98A2B3); }
@@ -3346,18 +3345,19 @@ const STAT = {
 const STAT_LOCK = new Set(['G','G2','RG']); // gardes → verrouillées
 const STAT_META = {
   '':   {label:'Présent',        bg:'#FFFFFF', fg:'#94A3B8', bd:'#E5E9F0'},
-  'V':  {label:'Vacances',       bg:'#EEF4FB', fg:'#1D6FB8', bd:'#CFE0F2'},
-  'VM': {label:'Vacances le matin',       bg:'#EEF4FB', fg:'#1D6FB8', bd:'#CFE0F2'},   // (27/10/2026) demi-journée posée dans le classeur
-  'VA': {label:'Vacances l\'après-midi',  bg:'#EEF4FB', fg:'#1D6FB8', bd:'#CFE0F2'},
-  'F':  {label:'Formation',      bg:'#FDF3E3', fg:'#B45309', bd:'#F2D98A'},
-  'TP': {label:'Temps partiel',  bg:'#FEF3C7', fg:'#92400E', bd:'#FDE68A'},
-  'CL': {label:'Congé long',     bg:'#F3E8FF', fg:'#7C3AED', bd:'#E9D5FF'},
+  /* (28/11/2026) un seul code couleur dans tout le portail : fonds et encres lus dans partage/theme.css */
+  'V':  {label:'Vacances',       bg:'var(--st-v-bg)', fg:'var(--st-v-fg)', bd:'#BFDBFE'},
+  'VM': {label:'Vacances le matin',       bg:'var(--st-v-bg)', fg:'var(--st-v-fg)', bd:'#BFDBFE'},   // (27/10/2026) demi-journée posée dans le classeur
+  'VA': {label:'Vacances l\'après-midi',  bg:'var(--st-v-bg)', fg:'var(--st-v-fg)', bd:'#BFDBFE'},
+  'F':  {label:'Formation',      bg:'var(--st-f-bg)', fg:'var(--st-f-fg)', bd:'#FDE68A'},
+  'TP': {label:'Temps partiel',  bg:'var(--st-tp-bg)', fg:'var(--st-tp-fg)', bd:'#DDD6FE'},
+  'CL': {label:'Congé long',     bg:'var(--st-cl-bg)', fg:'var(--st-cl-fg)', bd:'#94A3B8'},
   'A':  {label:'Absent (cycle)', bg:'#F8FAFC', fg:'#94A3B8', bd:'#E5E9F0'},
-  'G':  {label:'Garde REA',      bg:'#1E293B', fg:'#FFFFFF', bd:'#1E293B'},
-  'G2': {label:'Garde MAT',      bg:'#334155', fg:'#FFFFFF', bd:'#334155'},
-  'RG': {label:'Sortie garde',   bg:'#FFF7ED', fg:'#C2410C', bd:'#FED7AA'},
-  '18': {label:'8h–18h',         bg:'#F0FDF4', fg:'#166534', bd:'#BBF7D0'},
-  'R':  {label:'Récup',          bg:'#DCFCE7', fg:'#166534', bd:'#BBF7D0'},
+  'G':  {label:'Garde REA',      bg:'var(--st-g)', fg:'var(--st-plein)', bd:'var(--st-g)'},
+  'G2': {label:'Garde MAT',      bg:'var(--st-g2)', fg:'var(--st-plein)', bd:'var(--st-g2)'},
+  'RG': {label:'Sortie garde',   bg:'var(--st-rg-bg)', fg:'var(--st-rg-fg)', bd:'#CBD5E1'},
+  '18': {label:'8h–18h',         bg:'var(--st-18)', fg:'var(--st-plein)', bd:'var(--st-18)'},
+  'R':  {label:'Récup',          bg:'var(--st-r-bg)', fg:'var(--st-r-fg)', bd:'#BBF7D0'},
 };
 const STAT_POSABLES = ['V','F','TP','CL','18','R'];   // (11/11/2026) « R » : « Placer la récup » renvoyait vers un bouton qui n'existait pas
 const MOIS_FR = ['','Janvier','Février','Mars','Avril','Mai','Juin','Juillet','Août','Septembre','Octobre','Novembre','Décembre'];

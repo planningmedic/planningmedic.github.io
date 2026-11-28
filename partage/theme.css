@@ -37,3 +37,49 @@ html[data-theme="dark"] {
   --white: #151D2E;
   color-scheme: dark;
 }
+
+/* ═══════════════════════════════════════
+   UN SEUL CODE COULEUR POUR LES STATUTS (28/11/2026)
+   Une garde, une absence : la même couleur sur toutes les pages. Les pages
+   lisent ces variables et ne réécrivent plus la couleur d'un statut.
+     garde Réa (G) · garde Mater-Bloc (G2) · journée 8 h – 18 h : couleur pleine
+     sortie de garde (RG) : gris, c'est un repos
+     vacances bleu · temps partiel violet · formation jaune · récupération vert
+   Deuxième bloc :root, à part des variables communes ci-dessus. */
+:root {
+  --st-g: #1D6FB8;
+  --st-g2: #BE123C;
+  --st-18: #C2560C;
+  --st-plein: #FFFFFF;
+  --st-rg-bg: #F1F5F9;
+  --st-rg-fg: #475569;
+  --st-v-bg: #DBEAFE;
+  --st-v-fg: #1D4ED8;
+  --st-tp-bg: #F3E8FF;
+  --st-tp-fg: #6D28D9;
+  --st-f-bg: #FEF9C3;
+  --st-f-fg: #854D0E;
+  --st-r-bg: #DCFCE7;
+  --st-r-fg: #166534;
+  --st-cl-bg: #CBD5E1;   /* congé long : ardoise (il partageait le violet du temps partiel) */
+  --st-cl-fg: #334155;
+}
+
+html[data-theme="dark"] {
+  --st-g: #93C3E8;
+  --st-g2: #F27D96;
+  --st-18: #F5A35C;
+  --st-plein: #151D2E;
+  --st-rg-bg: #1B2436;
+  --st-rg-fg: #8D9AB1;
+  --st-v-bg: #152341;
+  --st-v-fg: #7BAAF7;
+  --st-tp-bg: #251B3C;
+  --st-tp-fg: #B593F2;
+  --st-f-bg: #3A2E0C;
+  --st-f-fg: #EAB308;
+  --st-r-bg: #12301F;
+  --st-r-fg: #6EE7A0;
+  --st-cl-bg: #2A3550;
+  --st-cl-fg: #C4CEDF;
+}

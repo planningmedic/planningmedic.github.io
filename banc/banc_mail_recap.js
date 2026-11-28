@@ -122,13 +122,17 @@ V('chaque mail porte une pièce jointe PDF', r.mails.length > 0 && r.mails.every
 V('aucun échec de pièce jointe signalé', r.rep && Array.isArray(r.rep.pjEchecs) && r.rep.pjEchecs.length === 0, r.rep && r.rep.pjEchecs);
 { let okG = true, ok18b = true, okNom = true; const det2 = [];
   r.roster.forEach(([id]) => { const m = de(id); if (!m || !m.attachments) return; const h = m.attachments[0]._html, c = GR[id] || {};
-    const nG = Object.keys(c).filter(d => (c[d] === 'G' || c[d] === 'G2') && d.slice(0, 4) === String(YEAR)).length;
-    const lu = (h.match(/bgcolor="#dc2626" style="background-color:#dc2626;width:14%/g) || []).length;
-    if (nG !== lu) { okG = false; det2.push(id + ' G ' + nG + '/' + lu); }
+    /* (28/11/2026) un seul code couleur : Réa en bleu, Mater-Bloc en rouge, comptées chacune. */
+    const nG = Object.keys(c).filter(d => c[d] === 'G' && d.slice(0, 4) === String(YEAR)).length;
+    const nG2 = Object.keys(c).filter(d => c[d] === 'G2' && d.slice(0, 4) === String(YEAR)).length;
+    const lu = (h.match(/bgcolor="#1d6fb8" style="background-color:#1d6fb8;width:14%/g) || []).length;
+    const lu2 = (h.match(/bgcolor="#be123c" style="background-color:#be123c;width:14%/g) || []).length;
+    if (nG !== lu || nG2 !== lu2) { okG = false; det2.push(id + ' G ' + nG + '/' + lu + ' G2 ' + nG2 + '/' + lu2); }
+    if (/#dc2626;width:14%|#5eead4|#fb923c/.test(h)) { okG = false; det2.push(id + ' ancienne couleur'); }
     const n18 = Object.keys(c).filter(d => c[d] === '18' && d.slice(0, 4) === String(YEAR)).length;
-    if (n18 !== (h.match(/bgcolor="#fb923c" style="background-color:#fb923c;width:14%/g) || []).length) { ok18b = false; det2.push(id + ' 18h'); }
+    if (n18 !== (h.match(/bgcolor="#c2560c" style="background-color:#c2560c;width:14%/g) || []).length) { ok18b = false; det2.push(id + ' 18h'); }
     if (h.indexOf('DR ' + id) < 0) okNom = false; });
-  V('le calendrier colore chaque garde du MAR, et elles seules', okG, det2);
+  V('le calendrier colore chaque garde du MAR, Réa en bleu et Mater-Bloc en rouge, et elles seules', okG, det2);
   V('le calendrier colore chaque 18 h du MAR, et eux seuls', ok18b, det2);
   V('la page porte le nom du MAR', okNom);
   V('ni indisponibilité ni souhait dans la pièce jointe', r.mails.every(x => !/INDISPO|Souhait/i.test(x.attachments[0]._html))); }

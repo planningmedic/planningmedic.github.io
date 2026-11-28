@@ -21,8 +21,9 @@
      le jour férié partagent le même fond rosé, pour les repérer d'un coup d'œil. */
   --bg:#FFF8FB; --line:#F2DCE6; --line-light:#FAEEF3; --ink-3:#7C6475; --ink-4:#B39AAA;
   --we:#FCE9F1; --surface-2:var(--we);
-  --g-bg:#E4ECFF; --g-fg:#3D5BA9; --g2-bg:#FFE3EE; --g2-fg:#B83C6E; --v-bg:#DDF4E8; --v-fg:#2E7553;
-  --tp-bg:#FFEADB; --tp-fg:#A85A26; --f-bg:#EFE5FF; --f-fg:#7A4BB8;
+  /* (28/11/2026) un seul code couleur dans tout le portail : les statuts lisent partage/theme.css */
+  --g-bg:var(--st-g); --g-fg:var(--st-plein); --g2-bg:var(--st-g2); --g2-fg:var(--st-plein); --v-bg:var(--st-v-bg); --v-fg:var(--st-v-fg);
+  --tp-bg:var(--st-tp-bg); --tp-fg:var(--st-tp-fg); --f-bg:var(--st-f-bg); --f-fg:var(--st-f-fg);
   --chg:#D97706; --chg-soft:#FEF3C7; --chg-fg:#92400E;
   --me:#B84D82; --me-soft:#FCE7F1; --me-border:#F4C6DB;
 }
@@ -89,7 +90,7 @@ table.mois thead th{font-size:10.5px;font-weight:500;color:var(--ink-3);font-fam
                     padding:6px 0;border-bottom:1px solid var(--line);min-width:30px;line-height:1.25;
                     position:sticky;top:0;z-index:2;background:var(--white)}
 table.mois .we,table.mois .fe{background:var(--we)}
-table.mois thead th.fe{color:var(--g2-fg);font-weight:700}
+table.mois thead th.fe{color:var(--red);font-weight:700}
 table.mois .nom{position:sticky;left:0;background:var(--white);text-align:left;padding:0 12px;
                 min-width:130px;font-size:13px;font-weight:600;border-right:1px solid var(--line);
                 z-index:1;white-space:nowrap}
@@ -115,7 +116,7 @@ table.gj th{font-size:10.5px;font-weight:500;color:var(--ink-3);font-family:var(
 table.gj td{padding:7px 16px;border-bottom:1px solid var(--line-light);vertical-align:middle}
 table.gj tr.we td{background:var(--we)}
 table.gj td.jr{font-family:var(--mono);font-size:12.5px;color:var(--ink-3);white-space:nowrap;width:120px}
-table.gj td.jr.fe{color:var(--g2-fg)}
+table.gj td.jr.fe{color:var(--red)}
 .nm{display:inline-block;padding:3px 10px;border-radius:6px;font-size:13px;font-weight:700;margin:1px 4px 1px 0}
 .nm.mod{box-shadow:0 0 0 2px var(--chg)}
 .nm.aucun{background:none;color:var(--ink-4);font-weight:500}
@@ -458,7 +459,8 @@ function chargerExcel(){
   });
   return _excelP;
 }
-const XL_FOND = { G:'FFE4ECFF', G2:'FFFFE3EE', V:'FFDDF4E8', VM:'FFDDF4E8', VA:'FFDDF4E8', TP:'FFFFEADB', F:'FFEFE5FF' }, XL_ENCRE = { G:'FF3D5BA9', G2:'FFB83C6E', V:'FF2E7553', VM:'FF2E7553', VA:'FF2E7553', TP:'FFA85A26', F:'FF7A4BB8' };
+/* (28/11/2026) mêmes couleurs que l'écran (palette des statuts de partage/theme.css, valeurs claires). */
+const XL_FOND = { G:'FF1D6FB8', G2:'FFBE123C', V:'FFDBEAFE', VM:'FFDBEAFE', VA:'FFDBEAFE', TP:'FFF3E8FF', F:'FFFEF9C3' }, XL_ENCRE = { G:'FFFFFFFF', G2:'FFFFFFFF', V:'FF1D4ED8', VM:'FF1D4ED8', VA:'FF1D4ED8', TP:'FF6D28D9', F:'FF854D0E' };
 document.getElementById('btnXls').addEventListener('click', async ()=>{
   if(!RENDU){ toast('Rien à exporter pour ce mois'); return; }
   try { toast('Préparation du fichier…'); await chargerExcel(); }

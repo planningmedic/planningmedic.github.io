@@ -4,7 +4,7 @@
    quelles : aucune ligne de logique modifiée, seulement déplacée. Le routeur et
    ses aides (checkCode, _deny, _error, doGet/doPost) restent dans Indispos.gs.
    Un seul espace global dans Apps Script : rien à importer. */
-const GAS_VERSION_INDISPOS_METIER = '2026-11-28.2';   // (28/11/2026) .2 : Mes consultations — les confrères placés dans le secteur de la consultation passent en tête de « Qui appeler » (placements servis à la page) · (28/11/2026) .1 : Mes consultations — un patient « réglé » (avec ou sans confrère nommé) n'est plus montré qu'à celui qui l'a noté ; numéros de DECT du groupement servis à la page · (27/11/2026) .7 : congé long — les offres de bourse et propositions devenues sans objet sont fermées aussitôt · .6 : saveIndisposBatch enregistre janvier N+1 (JANVIER_SUIVANT), getVacancesConfig l'envoie · .5 : plus aucun montant de marge envoyé, seulement le rang · .4 : getVacancesConfig envoie les reliquats (onglet Récap du comité) · .3 : patients lib ouverts à tout le groupement libéral · .2 : getVacConfig envoie le reliquat de l'année précédente (staff vacances : janvier pris d'abord dessus) · .1 : marge NGAP renvoyée avec la marge CCAM (classement des confrères) · (26/11) .4 : consultation du secteur sans patient lib : plus montrée · .3 : consultations tenues par le secteur — les MAR du secteur du bloc la voient, celui qui la fait la prend (op secteur), choix « aucune salle » · .2 : export CPA — importCpa (droit maintenance, onglet CPA_EXPORT), rattachement des consultations aux salles (CPA_SALLES), lignes CPA servies dans getConsultAbsences, op salle et lignes cpa| dans patientsLib · .1 : patients lib d'une consultation — action patientsLib (droit patlib, onglet PATIENTS_LIB) et patients servis dans getConsultAbsences · (25/11/2026) .2 : action getRecapPdf (PDF du récapitulatif pour le MAR connecté) ; getOrdreVacances répond aussi pour y+2 · .1 : saveIndispos accepte la pose libre des vacances (payload.vac, voir _poserVac_ dans temps_partiel.gs) · (20/11/2026) .1 : setIndisposYear et envoyerRecapIndispos réservés au responsable · (15/11/2026) clearIndisposYear réservé au droit Maintenance (clôture d'année) · (10/11/2026) PDF récapitulatif par document Google (les couleurs passent) + renvoyerRecapPdf2027 · (09/11/2026) mail « Vos gardes » : 18 h, souhaits honorés, gardes qui allongent les vacances · (27/10/2026) VM/VA posés à la main : jamais écrasés par un enregistrement (MAR ou staff)
+const GAS_VERSION_INDISPOS_METIER = '2026-11-28.3';   // (28/11/2026) .3 : PDF du récapitulatif aux couleurs uniques du portail (Réa bleu, Mater-Bloc rouge, 18 h orange, formation jaune) · .2 : Mes consultations — les confrères placés dans le secteur de la consultation passent en tête de « Qui appeler » (placements servis à la page) · (28/11/2026) .1 : Mes consultations — un patient « réglé » (avec ou sans confrère nommé) n'est plus montré qu'à celui qui l'a noté ; numéros de DECT du groupement servis à la page · (27/11/2026) .7 : congé long — les offres de bourse et propositions devenues sans objet sont fermées aussitôt · .6 : saveIndisposBatch enregistre janvier N+1 (JANVIER_SUIVANT), getVacancesConfig l'envoie · .5 : plus aucun montant de marge envoyé, seulement le rang · .4 : getVacancesConfig envoie les reliquats (onglet Récap du comité) · .3 : patients lib ouverts à tout le groupement libéral · .2 : getVacConfig envoie le reliquat de l'année précédente (staff vacances : janvier pris d'abord dessus) · .1 : marge NGAP renvoyée avec la marge CCAM (classement des confrères) · (26/11) .4 : consultation du secteur sans patient lib : plus montrée · .3 : consultations tenues par le secteur — les MAR du secteur du bloc la voient, celui qui la fait la prend (op secteur), choix « aucune salle » · .2 : export CPA — importCpa (droit maintenance, onglet CPA_EXPORT), rattachement des consultations aux salles (CPA_SALLES), lignes CPA servies dans getConsultAbsences, op salle et lignes cpa| dans patientsLib · .1 : patients lib d'une consultation — action patientsLib (droit patlib, onglet PATIENTS_LIB) et patients servis dans getConsultAbsences · (25/11/2026) .2 : action getRecapPdf (PDF du récapitulatif pour le MAR connecté) ; getOrdreVacances répond aussi pour y+2 · .1 : saveIndispos accepte la pose libre des vacances (payload.vac, voir _poserVac_ dans temps_partiel.gs) · (20/11/2026) .1 : setIndisposYear et envoyerRecapIndispos réservés au responsable · (15/11/2026) clearIndisposYear réservé au droit Maintenance (clôture d'année) · (10/11/2026) PDF récapitulatif par document Google (les couleurs passent) + renvoyerRecapPdf2027 · (09/11/2026) mail « Vos gardes » : 18 h, souhaits honorés, gardes qui allongent les vacances · (27/10/2026) VM/VA posés à la main : jamais écrasés par un enregistrement (MAR ou staff)
 // précédente : '2026-10-22.2'
 
 // La campagne de saisie des indispos est-elle EN COURS ?
@@ -1102,9 +1102,15 @@ function _htmlRecapMar_(nom, year, codeDu, isF) {
      mais pas ceux des blocs ni des pastilles. D'où : tout fond coloré est une
      case de tableau (bandeau, tuiles, légende), avec bgcolor ET background-color,
      et toute case de mise en page porte border:none (sinon : bordure noire). */
-  const COUL = { G:['#dc2626','#ffffff'], G2:['#dc2626','#ffffff'], '18':['#fb923c','#ffffff'], RG:['#fecaca','#7f1d1d'],
-                 V:['#93c5fd','#1e3a8a'], VA:['#bfdbfe','#1e3a8a'], VM:['#bfdbfe','#1e3a8a'], F:['#5eead4','#134e4a'],
-                 TP:['#c4b5fd','#3b0764'], CL:['#cbd5e1','#334155'] };
+  /* (28/11/2026) UN SEUL CODE COULEUR DANS TOUT LE PORTAIL : mêmes couleurs que les
+     écrans (partage/theme.css). Réa bleu, Mater-Bloc rouge, 18 h orange, vacances
+     bleu pâle, temps partiel violet, formation jaune. Deux écarts voulus, propres au
+     papier : le repos de garde est un gris plus soutenu (le gris de l'écran est
+     ici le fond des week-ends) et la demi-journée de vacances un bleu plus pâle
+     (une case de tableau ne se coupe pas en deux). */
+  const COUL = { G:['#1d6fb8','#ffffff'], G2:['#be123c','#ffffff'], '18':['#c2560c','#ffffff'], RG:['#e2e8f0','#475569'],
+                 V:['#dbeafe','#1d4ed8'], VA:['#eff6ff','#1d4ed8'], VM:['#eff6ff','#1d4ed8'], F:['#fef9c3','#854d0e'],
+                 TP:['#f3e8ff','#6d28d9'], CL:['#cbd5e1','#334155'] };
   const pad = n => String(n).padStart(2, '0');
   const iso = (y, m, d) => y + '-' + pad(m) + '-' + pad(d);
   const MOIS = ['Janvier','Février','Mars','Avril','Mai','Juin','Juillet','Août','Septembre','Octobre','Novembre','Décembre'];
@@ -1151,7 +1157,7 @@ function _htmlRecapMar_(nom, year, codeDu, isF) {
   const suite = [1, 2].map(d => iso(year + 1, 1, d)).filter(ds => codeDu[ds] === 'G' || codeDu[ds] === 'G2' || codeDu[ds] === '18')
     .map(ds => ds.slice(8) + '/01/' + (year + 1) + ' : ' + (codeDu[ds] === '18' ? '18 h' : 'garde'));
   const leg = (c, l, bord) => '<td' + fond(c) + 'width:2%;border:' + (bord || '1px solid #cbd5e1') + '"></td>'
-    + '<td style="' + SANS + 'width:10.5%;padding:0 4px;font-size:7pt;color:#334155">' + l + '</td>';
+    + '<td style="' + SANS + 'width:9.1%;padding:0 3px;font-size:6.5pt;color:#334155">' + l + '</td>';   // (28/11/2026) 9 repères au lieu de 8 : Réa et Mater ont chacune le leur
   return '<html><head><meta charset="utf-8"></head><body style="font-family:Arial,Helvetica,sans-serif;margin:0;color:#0f172a">'
     + '<table style="border-collapse:collapse;width:100%"><tr><td' + fond('#0f172a') + 'padding:10px 14px;border:none">'
     + '<p style="margin:0;font-size:8pt;color:#94a3b8">PLANNING-MED · RÉCAPITULATIF ' + year + '</p>'
@@ -1159,17 +1165,17 @@ function _htmlRecapMar_(nom, year, codeDu, isF) {
     + '<p style="margin:2px 0 0;font-size:8pt;color:#cbd5e1">Vacances, formation, temps partiel, gardes et 18 h attribués par le logiciel</p>'
     + '</td></tr></table>'
     + '<table style="border-collapse:collapse;width:100%;margin-top:8px"><tr>'
-    + tuile(nG + nG2, 'gardes (' + nG + ' réa · ' + nG2 + ' mat)', '#fee2e2', '#b91c1c')
-    + tuile(n18, '18 h', '#ffedd5', '#c2410c')
+    + tuile(nG + nG2, 'gardes (' + nG + ' réa · ' + nG2 + ' mat)', '#e8f4fd', '#1d6fb8')
+    + tuile(n18, '18 h', '#fff1e6', '#c2560c')
     + tuile(fmt(vac), 'jours de vacances (ouvrés)', '#dbeafe', '#1d4ed8')
-    + tuile(fmt(form), 'jours de formation', '#ccfbf1', '#0f766e')
-    + tuile(tp, 'jours de temps partiel', '#ede9fe', '#6d28d9')
+    + tuile(fmt(form), 'jours de formation', '#fef9c3', '#854d0e')
+    + tuile(tp, 'jours de temps partiel', '#f3e8ff', '#6d28d9')
     + '</tr></table>'
     + cal
     + (suite.length ? '<p style="font-size:7.5pt;color:#334155;margin:4px 7px">Hors calendrier : ' + suite.join(' · ') + '</p>' : '')
     + '<table style="border-collapse:collapse;width:100%;margin:6px 0 0"><tr>'
-    + leg('#dc2626', 'Garde') + leg('#fecaca', 'Repos de garde') + leg('#fb923c', '18 h') + leg('#93c5fd', 'Vacances')
-    + leg('#5eead4', 'Formation') + leg('#c4b5fd', 'Temps partiel') + leg('#cbd5e1', 'Congé long')
+    + leg('#1d6fb8', 'Garde Réa') + leg('#be123c', 'Garde Mater') + leg('#e2e8f0', 'Repos de garde') + leg('#c2560c', '18 h') + leg('#dbeafe', 'Vacances')
+    + leg('#fef9c3', 'Formation') + leg('#f3e8ff', 'Temps partiel') + leg('#cbd5e1', 'Congé long')
     + leg('#ffffff', 'Férié', '1.5px solid #dc2626')
     + '</tr></table>'
     + '<p style="font-size:6.5pt;color:#94a3b8;margin:8px 7px 0">Document généré par Planning-Med. Les échanges ultérieurs n\'y figurent pas : le planning en ligne fait foi.</p>'

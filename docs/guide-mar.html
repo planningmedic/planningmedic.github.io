@@ -182,7 +182,7 @@
   .ci-sou{background:#166534; border-color:transparent}
   .ci-tp{background:#6D28D9; border-color:transparent}
   .ci-vac{background:#1D4ED8; border-color:transparent}
-  .ci-form{background:#6D28D9; border-color:transparent}
+  .ci-form{background:#854D0E; border-color:transparent}
   .ci-we{background:#F6F8FB}
   .ci-past{background:#6D28D9; border-color:transparent; opacity:.45}
   .ci-today{background:#fff; border:2px solid var(--red)}
@@ -193,11 +193,11 @@
   .pc{display:inline-flex; align-items:center; justify-content:center; min-width:34px;
     height:26px; border-radius:7px; font-family:var(--mono); font-size:13px; font-weight:500;
     padding:0 8px; margin-right:10px; border:1px solid rgba(15,23,42,.08)}
-  .pc-G{background:#1E293B; color:#fff} .pc-G2{background:#334155; color:#fff}
-  .pc-RG{background:#FFF7ED; color:#C2410C} .pc-18{background:#F0FDF4; color:#166534}
-  .pc-R{background:#ECFEFF; color:#0E7490} .pc-V{background:#EEF4FB; color:#1D6FB8}
-  .pc-F{background:#FDF3E3; color:#B45309} .pc-TP{background:#FEF3C7; color:#92400E}
-  .pc-CL{background:#F3E8FF; color:#7C3AED} .pc-A{background:#F8FAFC; color:#94A3B8}
+  .pc-G{background:#1D6FB8; color:#fff} .pc-G2{background:#BE123C; color:#fff}
+  .pc-RG{background:#F1F5F9; color:#475569} .pc-18{background:#C2560C; color:#fff}
+  .pc-R{background:#DCFCE7; color:#166534} .pc-V{background:#DBEAFE; color:#1D4ED8}
+  .pc-F{background:#FEF9C3; color:#854D0E} .pc-TP{background:#F3E8FF; color:#6D28D9}
+  .pc-CL{background:#CBD5E1; color:#334155} .pc-A{background:#F8FAFC; color:#94A3B8}
   .liste b .pc{margin-right:10px}
 
   /* ── Pastilles du calendrier temps partiel ────────────────────────
@@ -446,7 +446,7 @@
     </div>
 
     <h3>Les codes de la vue Année</h3>
-    <p>C'est dans la vue <b>Année</b> que chaque jour porte un code, avec sa couleur :</p>
+    <p>C'est dans la vue <b>Année</b> que chaque jour porte un code, avec sa couleur. <b>Ces couleurs sont les mêmes sur toutes les pages</b> — l'accueil, le planning, Mes gardes, Mon récapitulatif et son PDF : une garde de réanimation est toujours bleue, une garde maternité – bloc toujours rouge, un 18 h toujours orange.</p>
     <div class="liste">
       <div><b><span class="pc pc-G">G</span>Garde de réanimation</b><span>24 heures.</span></div>
       <div><b><span class="pc pc-G2">G2</span>Garde maternité – bloc</b><span>24 heures.</span></div>
@@ -499,7 +499,7 @@
       <div><b>Mon récapitulatif</b><span>Votre année en une page, sur le modèle de la fiche PDF. Par la tuile <b>Mes vacances et TP</b> (ou <b>Mes vacances</b>), puis <b>Mon récapitulatif</b> ; avant la publication des gardes, par sa propre tuile.</span></div>
     </div>
     <h3>Voir mon année d'un coup d'œil</h3>
-    <p>« Mes gardes » s'ouvre sur <b>Année</b> : douze petits calendriers, le mois en cours au milieu de l'écran. Réa en bleu, Mater/Bloc en rose, 18 h en orange ; vos vacances, TP et formations en teinte claire. Les jours fériés sont entourés d'un liseré rouge. Les jours passés sont pâlis.</p>
+    <p>« Mes gardes » s'ouvre sur <b>Année</b> : douze petits calendriers, le mois en cours au milieu de l'écran. Réa en bleu, Mater/Bloc en rouge, 18 h en orange ; vos vacances en bleu clair, vos jours de temps partiel en violet clair, vos formations en jaune. Les jours fériés sont entourés d'un liseré rouge. Les jours passés sont pâlis.</p>
     <div class="liste">
       <div><b>Voir le détail d'un mois</b><span>Touchez le mois : il s'agrandit et chaque case dit « Réa », « Mater » ou « 18 h ». Touchez encore pour le refermer.</span></div>
       <div><b>Changer d'année</b><span>Touchez l'année voulue dans la rangée du haut (2026, 2027…) : la page y saute. Une année en pointillés est archivée ; elle s'ouvre en un instant. La légende des couleurs reste juste dessous.</span></div>
@@ -529,7 +529,7 @@
     <ol class="steps">
       <li>En haut, un bandeau bleu : votre groupe et votre <b>rang au prochain staff vacances</b> (aujourd'hui celui de l'année qui suit les gardes déjà publiées). Appuyez dessus pour voir qui choisit avant vous, période par période (section 08). Le rang peut bouger si les groupes changent d'ici là.</li>
       <li>Dessous, vos compteurs de l'année : <b>vacances</b> et <b>temps partiel</b> sur votre quota avec ce qui reste, formation, récupérations, gardes (réa et mater) et 18 h. Changez d'année avec les boutons 2026, 2027…</li>
-      <li>Puis les 12 mois en couleur : vacances bleu clair, temps partiel lilas, formation turquoise, récupération vert, gardes et 18 h aux couleurs du planning, fériés entourés de rouge. Touchez un mois pour l'agrandir.</li>
+      <li>Puis les 12 mois en couleur : vacances bleu clair, temps partiel violet clair, formation jaune, récupération vert, repos de garde gris, gardes et 18 h aux couleurs du planning (Réa bleu, Mater/Bloc rouge, 18 h orange), fériés entourés de rouge. Touchez un mois pour l'agrandir.</li>
       <li>Tout en bas, <b>Télécharger en PDF</b> : la même page que celle jointe au mail « Vos gardes », à jour du jour.</li>
       <li><b>L'année d'avant</b> : en janvier, une fois l'année passée clôturée, son bouton reste en haut de l'écran. Touchez-le pour revoir vos 12 mois et vos compteurs. Il n'y a plus de PDF pour une année clôturée.</li>
     </ol>
@@ -580,7 +580,7 @@
       <div><b><span class="ci ci-tp"></span>Violet plein</b><span>Jour de temps partiel.</span></div>
       <div><b><span class="ci ci-vac"></span>Bleu plein + 🔒</b><span>Vacances posées au staff. Elles ne se modifient pas ici.</span></div>
       <div><b><span class="ci ci-vac"></span>Moitié bleue + 🔒</b><span>Demi-journée de vacances posée par le comité : moitié haute = le matin, moitié basse = l'après-midi. Elle compte pour ½ jour et ne se modifie pas ici.</span></div>
-      <div><b><span class="ci ci-form"></span>Violet + 🔒</b><span>Formation posée au staff. Le cadenas la distingue du temps partiel.</span></div>
+      <div><b><span class="ci ci-form"></span>Jaune foncé + 🔒</b><span>Formation posée au staff. Elle ne se modifie pas ici.</span></div>
       <div><b><span class="ci ci-we"></span>Fond gris pâle</b><span>Week-end ou jour férié. Les fériés portent un petit « JF » dans le coin.</span></div>
       <div><b><span class="ci ci-past"></span>Estompé</b><span>Jour déjà passé, ou en dehors de l'année de planning.</span></div>
       <div><b><span class="ci ci-today"></span>Bordure rouge</b><span>Aujourd'hui.</span></div>

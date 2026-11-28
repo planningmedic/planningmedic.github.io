@@ -23,7 +23,7 @@
   --radius: 12px;
 
   --vac:    #EFF6FF; --vac-border: #BFDBFE;
-  --form:   #F5F3FF; --form-fg:   #6D28D9; --form-border: #DDD6FE;
+  --form:   var(--st-f-bg); --form-fg:   var(--st-f-fg); --form-border: #FDE68A;   /* (28/11/2026) formation en jaune, comme partout (elle partageait le violet du temps partiel) */
   --indispo:#F9FAFB; --indispo-fg:#6B7280; --indispo-border:#E5E7EB;
   --souhait:#F0FDF4; --souhait-fg:#166534; --souhait-border:#BBF7D0;
 }
@@ -329,6 +329,7 @@ body {
 .cal-day.vac .cal-day-num, .cal-day.form .cal-day-num,
 .cal-day.indispo .cal-day-num, .cal-day.souhait .cal-day-num,
 .cal-day.tp .cal-day-num { color:#fff; }
+.cal-day.form .cal-day-num { color:var(--st-f-bg); }   /* jaune pâle sur ocre en clair, sombre sur jaune vif en mode sombre */
 
 /* Jours posés au staff : non modifiables ici, un cadenas le dit. */
 .cal-day .cal-lock { position:absolute; top:3px; right:4px; font-size:9px; color:#fff; opacity:.9; }
@@ -548,7 +549,7 @@ body.save-en-cours .legend { pointer-events:none; opacity:.55 }
 .theme-btn{width:34px;height:34px;border:1px solid rgba(255,255,255,.45);background:rgba(255,255,255,.12);color:#fff;border-radius:10px;cursor:pointer;font-size:15px;line-height:1;flex-shrink:0;margin-left:8px}
 html[data-theme="dark"] {
   --vac:#152341;    --vac-border:#2B4763;
-  --form:#251B3C;   --form-fg:#B593F2;    --form-border:#3B2E5C;
+  --form-border:#5A4A14;
   --indispo:#1B2436;--indispo-fg:#8D9AB1; --indispo-border:#28344B;
   --souhait:#122A1D;--souhait-fg:#5BD08B; --souhait-border:#1F4D2E;
   --tpx:#251B3C; --tpx-fg:#B593F2; --tpx-libre:#122A1D; --tpx-libre-fg:#5BD08B; --tpx-libre-border:#1F4D2E;

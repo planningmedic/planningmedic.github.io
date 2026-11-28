@@ -585,6 +585,22 @@ les cases valant exactement `CL`.
   un quota est DÉPASSÉ (avec « N en trop »), vert quand le compte y est, bleu quand il reste des
   jours à poser. Avant, un dépassement s'affichait en vert. La vue quitte l'onglet Statuts pour
   l'onglet Contrôles (décision du responsable : c'est un contrôle, pas une saisie).
+  Puis v2.14.0 : UN SEUL CODE COULEUR DANS TOUT LE PORTAIL (premier lot de la revue d'interface
+  demandée par le responsable, maquette validée). Avant, cinq codes : la Réa bleue sur l'accueil
+  et noire au planning, le 18 h orange ici et vert là, la formation orange, violette ou turquoise
+  selon l'écran, TP et formation confondus dans Mes gardes, formation et TP du même violet dans
+  les indisponibilités. Désormais : Réa bleu, Mater-Bloc rouge, 18 h orange (pleins), sortie de
+  garde gris, vacances bleu clair, TP violet clair, formation JAUNE, récupération vert, congé long
+  ardoise. Les couleurs vivent dans partage/theme.css (variables --st-*, clair et sombre) ; les
+  pages les lisent. Touché : accueil (Mes gardes, Mon récapitulatif), planning (semaine — la Réa
+  et la Mater s'y distinguent enfin —, année, fiche d'un médecin, vue du jour sur téléphone),
+  admin (Planning, Statuts), planning des absences et son Excel, indisponibilités, PDF du
+  récapitulatif (indisponibilites.gs .3), guides. Non touché, à décider : la page Staffs
+  (formation en violet, le jaune y signifie « proche du seuil ») ; l'Excel hebdomadaire de
+  l'admin (copie du planning papier). Défaut vu en passant, non corrigé : en mode sombre, la
+  carte « Cette nuit » du planning est illisible (texte sombre sur fond sombre).
+  Suite de la revue, dans l'ordre proposé : en-tête et retour communs, puis les défauts écran
+  par écran.
 - **27/11/2026** — Répétition générale de la clôture 2026 (détail : document du projet Claude
   `claude/repetition-cloture-2026-11-27.md`), puis deux correctifs (v2.12.3). Clôture jouée sur un
   classeur fictif à la forme du vrai, puis 630 appels serveur, 11 tâches programmées, 1 000 gestes au

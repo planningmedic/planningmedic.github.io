@@ -52,11 +52,12 @@ window.SessionPortail = window.SessionPortail || { lire:function(){try{return se
   /* Couleurs des categories de conges. Elles etaient ecrites en dur dans le JS
      (CAT_META) : le theme sombre gardait donc des pastilles pastel qui brillent.
      Une seule source ici, declinee plus bas pour le sombre. */
-  --cat-vac-bg:#EEF4FB;   --cat-vac-fg:#1D6FB8;
-  --cat-form-bg:#FDF3E3;  --cat-form-fg:#B45309;
-  --cat-tp-bg:#FEF3C7;    --cat-tp-fg:#92400E;
-  --cat-recup-bg:#E7F6F3; --cat-recup-fg:#0F766E;
-  --cat-cl-bg:#F3E8FF;    --cat-cl-fg:#7C3AED;
+  /* (28/11/2026) un seul code couleur : les absences lisent partage/theme.css */
+  --cat-vac-bg:var(--st-v-bg);   --cat-vac-fg:var(--st-v-fg);
+  --cat-form-bg:var(--st-f-bg);  --cat-form-fg:var(--st-f-fg);
+  --cat-tp-bg:var(--st-tp-bg);   --cat-tp-fg:var(--st-tp-fg);
+  --cat-recup-bg:var(--st-r-bg); --cat-recup-fg:var(--st-r-fg);
+  --cat-cl-bg:var(--st-cl-bg);   --cat-cl-fg:var(--st-cl-fg);
   /* (13/10/2026, v1.22) Veille : une couleur par type d'étude (anneau de note + étiquette) */
   --vt-ecr:#0F766E;  --vt-ecr-bg:#DDF4EE;  --vt-meta:#5B4BC4; --vt-meta-bg:#ECEAFD;
   --vt-rs:#1D6FB8;   --vt-rs-bg:#E3EFFB;   --vt-reco:#B45309; --vt-reco-bg:#FDEFD9;
@@ -80,11 +81,6 @@ html[data-theme="dark"] {
   --viol:#B593F2; --viol-soft:#251B3C; --rose:#F27D96;
   --me:#93C3E8; --me-soft:#17293A; --me-border:#2B4763;
   --h18:#F5A35C; --h18-soft:#33210F; --h18-line:#5A3A1A;
-  --cat-vac-bg:#152341;   --cat-vac-fg:#7BAAF7;
-  --cat-form-bg:#38290F;  --cat-form-fg:#F0A64A;
-  --cat-tp-bg:#3A2E0C;    --cat-tp-fg:#EAB308;
-  --cat-recup-bg:#0F2A26; --cat-recup-fg:#5BD0B4;
-  --cat-cl-bg:#251B3C;    --cat-cl-fg:#B593F2;
   --vt-ecr:#5ED3BB;  --vt-ecr-bg:#10302A;  --vt-meta:#B3A8F5; --vt-meta-bg:#231E45;
   --vt-rs:#8CBDEB;   --vt-rs-bg:#162A42;   --vt-reco:#F2B266; --vt-reco-bg:#3A2810;
   --vt-aut:#9AA7BC;  --vt-aut-bg:#1C2537;
@@ -924,14 +920,15 @@ html[data-theme="dark"] .ech-tuile.ouverture .ech-reflet { background:linear-gra
 .rc-t small { display:block; font-size:11px; font-weight:600; opacity:.8; margin-top:3px; }
 .rc-j { height:4px; border-radius:2px; background:rgba(0,0,0,.08); margin-top:6px; overflow:hidden; }
 .rc-j i { display:block; height:100%; background:currentColor; }
-.rc-vac { background:#DBEAFE; color:#1D4ED8; } .rc-tp { background:#F3E8FF; color:#6D28D9; } .rc-form { background:#CCFBF1; color:#0F766E; }
+.rc-vac { background:var(--st-v-bg); color:var(--st-v-fg); } .rc-tp { background:var(--st-tp-bg); color:var(--st-tp-fg); } .rc-form { background:var(--st-f-bg); color:var(--st-f-fg); }
 .rc-rec { background:var(--cat-recup-bg); color:var(--cat-recup-fg); } .rc-g { background:var(--me-soft); color:var(--me); } .rc-h { background:var(--h18-soft); color:var(--h18); }
-html[data-theme="dark"] .rc-vac { background:#152341; color:#7BAAF7; } html[data-theme="dark"] .rc-tp { background:#251B3C; color:#B593F2; } html[data-theme="dark"] .rc-form { background:#0F2A26; color:#5BD0B4; }
-.rc-leg i.rv, .mga-d.rv { background:#93C5FD; color:#1E3A8A; } .rc-leg i.rtp, .mga-d.rtp { background:#C4B5FD; color:#3B0764; }
-.rc-leg i.rf, .mga-d.rf { background:#5EEAD4; color:#134E4A; } .rc-leg i.rr, .mga-d.rr { background:#BBF7D0; color:#14532D; }
-.mga-d.rvm { background:linear-gradient(#93C5FD 50%, transparent 50%); color:#1E3A8A; } .mga-d.rva { background:linear-gradient(transparent 50%, #93C5FD 50%); color:#1E3A8A; }
-.mga-d.rcl { background:#CBD5E1; color:#334155; } .mga-d.rrg { background:#FECACA; color:#7F1D1D; }
+
+.rc-leg i.rv, .mga-d.rv { background:var(--st-v-bg); color:var(--st-v-fg); } .rc-leg i.rtp, .mga-d.rtp { background:var(--st-tp-bg); color:var(--st-tp-fg); }
+.rc-leg i.rf, .mga-d.rf { background:var(--st-f-bg); color:var(--st-f-fg); } .rc-leg i.rr, .mga-d.rr { background:var(--st-r-bg); color:var(--st-r-fg); }
+.mga-d.rvm { background:linear-gradient(var(--st-v-bg) 50%, transparent 50%); color:var(--st-v-fg); } .mga-d.rva { background:linear-gradient(transparent 50%, var(--st-v-bg) 50%); color:var(--st-v-fg); }
+.mga-d.rcl { background:var(--st-cl-bg); color:var(--st-cl-fg); } .mga-d.rrg { background:var(--st-rg-bg); color:var(--st-rg-fg); }
 .mga-d.rv, .mga-d.rtp, .mga-d.rf, .mga-d.rr, .mga-d.rcl { font-weight:700; }
+.rc-leg i.rv { box-shadow:inset 0 0 0 1px var(--st-v-fg); } .rc-leg i.rtp { box-shadow:inset 0 0 0 1px var(--st-tp-fg); } .rc-leg i.rf { box-shadow:inset 0 0 0 1px var(--st-f-fg); } .rc-leg i.rr { box-shadow:inset 0 0 0 1px var(--st-r-fg); }   /* (28/11/2026) pastels : un filet pour que le repère se voie */
 .rc-grille { grid-template-columns:repeat(3,minmax(0,1fr)); gap:6px; }
 .rc-grille .mga-mois { padding:6px 4px 4px; cursor:pointer; }
 .rc-grille .mga-d { height:15px; font-size:9px; border-radius:3px; }

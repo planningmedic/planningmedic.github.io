@@ -520,19 +520,23 @@ const dodo = ms => new Promise(r => setTimeout(r, ms));
        distinguait a l'oeil. Le 18 reste vert — comme sur la vue Planning —
        et R prend une teinte propre. */
     const feuille = contenu.replace(/\s*\n\s*/g, ' ');
+    /* (28/11/2026) UN SEUL CODE COULEUR : ces teintes ne sont plus écrites dans la page,
+       elles viennent de partage/theme.css (--st-*). La règle du 14/08 tient toujours —
+       R et 18 ne se confondent pas — mais le 18 est désormais orange, R vert. */
+    const themeCss = fs.readFileSync(require('path').join(__dirname, '..', 'partage', 'theme.css'), 'utf8');
     V('la recuperation de samedi a sa propre teinte, declaree dans les deux themes',
-      (feuille.match(/--recup:/g) || []).length === 2 &&
-      (feuille.match(/--recup-soft:/g) || []).length === 2);
-    V('la case R du calendrier ne reprend plus le vert du 18h',
-      /\.dc-R\s*\{[^}]*var\(--recup-soft\)/.test(feuille) &&
-      !/\.dc-R\s*\{[^}]*var\(--ok-soft\)/.test(feuille));
+      (themeCss.match(/--st-r-bg:/g) || []).length === 2 && (themeCss.match(/--st-18:/g) || []).length === 2 &&
+      !/--recup/.test(feuille));
+    V('la case R du calendrier ne reprend pas la couleur du 18h',
+      /\.dc-R\s*\{[^}]*var\(--st-r-bg\)/.test(feuille) && /\.dc-18\s*\{[^}]*var\(--st-18\)/.test(feuille) &&
+      !/\.dc-R\s*\{[^}]*var\(--st-18\)/.test(feuille));
     V('l\'etiquette R et la pastille R du recapitulatif suivent la meme teinte',
-      (feuille.match(/background:var\(--recup-soft\);color:var\(--recup\)/g) || []).length === 2);
-    V('vue Annee : R et 18 ne partagent plus la meme couleur',
-      /'18':\{bg:'#F0FDF4',fg:'#166534'\},'R':\{bg:'#ECFEFF',fg:'#0E7490'\}/.test(feuille));
-    V('la journee 8h-18h reste verte sur la vue Planning',
-      /\.chip-h18\s*\{\s*background: var\(--ok-soft\); color: var\(--ok\); \}/.test(feuille) &&
-      /\.name-tag\.h18\s*\{\s*background: var\(--ok-soft\); color: var\(--ok\); \}/.test(feuille));
+      /<div class="doc-cal-tag dc-tag-st">R<\/div>/.test(feuille) && /background:var\(--st-r-bg\);color:var\(--st-r-fg\)">\$\{mc\.R\}R/.test(feuille));
+    V('vue Annee : R et 18 ne partagent pas la meme couleur',
+      /'18':_st\('18',1\),'RG':_st\('rg'\),'R':_st\('r'\)/.test(feuille));
+    V('la journee 8h-18h est orange sur la vue Planning, comme partout',
+      /\.chip-h18\s*\{\s*background: var\(--st-18\); color: var\(--st-plein\); \}/.test(feuille) &&
+      /\.name-tag\.h18\s*\{\s*background: var\(--st-18\); color: var\(--st-plein\); \}/.test(feuille));
     V('aucune erreur JavaScript', erreurs.length === 0, erreurs.slice(0,2));
   }
 

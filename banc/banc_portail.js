@@ -260,11 +260,63 @@ function fenetre(opts) {
         const m = d.match(/(--[a-z0-9-]+)\s*:\s*([^;]+);/); if (socle[m[1]] && norm(m[2]) === norm(socle[m[1]])) redite.push(m[1]);
       }));
       V(page + ' : ne redéclare plus une variable du socle à l\'identique', redite.length === 0, redite);
-      const definies = new Set([...Object.keys(socle), ...(css.match(/--[a-z0-9-]+(?=\s*:)/g) || []), ...(src.match(/setProperty\(['"](--[a-z0-9-]+)/g) || []).map(x => x.match(/--[a-z0-9-]+/)[0]), ...(src.match(/style="[^"]*--[a-z0-9-]+\s*:/g) || []).flatMap(x => x.match(/--[a-z0-9-]+/g))]);
+      const definies = new Set([...Object.keys(socle), ...(theme.match(/--st-[a-z0-9-]+(?=\s*:)/g) || []), ...(css.match(/--[a-z0-9-]+(?=\s*:)/g) || []), ...(src.match(/setProperty\(['"](--[a-z0-9-]+)/g) || []).map(x => x.match(/--[a-z0-9-]+/)[0]), ...(src.match(/style="[^"]*--[a-z0-9-]+\s*:/g) || []).flatMap(x => x.match(/--[a-z0-9-]+/g))]);
       const utilisees = new Set((src.match(/var\((--[a-z0-9-]+)/g) || []).map(x => x.slice(4)));
-      const manque = [...utilisees].filter(v => !definies.has(v) && !(orphelinesConnues[page] || []).includes(v));
+      const manque = [...utilisees].filter(v => !/-$/.test(v) /* nom composé en JS : var(--st-' + k + … */ && !definies.has(v) && !(orphelinesConnues[page] || []).includes(v));
       V(page + ' : toute variable utilisée est définie (socle ou page)', manque.length === 0, manque);
     }
+  }
+  console.log('\n═══ Un seul code couleur pour les statuts (28/11/2026) ═══');
+  /* Demande du responsable : une garde, une absence, la même couleur sur toutes les
+     pages. Avant, cinq codes couleur : la Réa était bleue sur l'accueil et noire sur
+     le planning, le 18 h orange ici et vert là, la formation orange, violette ou
+     turquoise selon l'écran, et TP et formation se confondaient dans Mes gardes.
+     Les couleurs vivent dans partage/theme.css (--st-*) ; les pages les lisent. */
+  {
+    const racine = path.join(__dirname, '..');
+    const theme = fs.readFileSync(path.join(racine, 'partage', 'theme.css'), 'utf8');
+    const blocs = theme.match(/(:root|html\[data-theme="dark"\])\s*\{[^}]*\}/g) || [];
+    const lire = b => { const o = {}; (b.match(/--st-[a-z0-9-]+\s*:\s*#[0-9A-Fa-f]{6}/g) || []).forEach(d => { const m = d.match(/(--st-[a-z0-9-]+)\s*:\s*(#[0-9A-Fa-f]{6})/); o[m[1]] = m[2].toUpperCase(); }); return o; };
+    const clair = lire(blocs.filter(b => /^:root/.test(b) && /--st-/.test(b))[0] || ''), sombre = lire(blocs.filter(b => /^html/.test(b) && /--st-/.test(b))[0] || '');
+    const ATTENDU = { '--st-g': '#1D6FB8', '--st-g2': '#BE123C', '--st-18': '#C2560C', '--st-plein': '#FFFFFF', '--st-rg-bg': '#F1F5F9', '--st-rg-fg': '#475569',
+      '--st-v-bg': '#DBEAFE', '--st-v-fg': '#1D4ED8', '--st-tp-bg': '#F3E8FF', '--st-tp-fg': '#6D28D9', '--st-f-bg': '#FEF9C3', '--st-f-fg': '#854D0E',
+      '--st-r-bg': '#DCFCE7', '--st-r-fg': '#166534', '--st-cl-bg': '#CBD5E1', '--st-cl-fg': '#334155' };
+    V('la palette validée est écrite une fois, dans theme.css (16 couleurs)', JSON.stringify(clair) === JSON.stringify(ATTENDU), clair);
+    V('chaque couleur a sa version sombre', Object.keys(ATTENDU).every(k => sombre[k]) && Object.keys(sombre).length === 16, sombre);
+    const fonds = ['--st-g', '--st-g2', '--st-18', '--st-rg-bg', '--st-v-bg', '--st-tp-bg', '--st-f-bg', '--st-r-bg', '--st-cl-bg'];
+    V('aucun statut ne partage sa couleur avec un autre (clair et sombre)', new Set(fonds.map(k => clair[k])).size === fonds.length && new Set(fonds.map(k => sombre[k])).size === fonds.length);
+    const src = {}; ['index.html', 'planning.html', 'admin.html', 'paie.html', 'indispos.html'].forEach(p => { src[p] = fs.readFileSync(path.join(racine, p), 'utf8'); });
+    V('aucune page ne redéfinit une couleur de statut', Object.keys(src).every(p => !/--st-[a-z0-9-]+\s*:/.test(src[p])), Object.keys(src).filter(p => /--st-[a-z0-9-]+\s*:/.test(src[p])));
+    /* Accueil : Mes gardes et Mon récapitulatif */
+    const cat = k => (src['index.html'].match(new RegExp('--cat-' + k + '-bg:([^;]+);')) || [])[1];
+    V('accueil : vacances, TP, formation, récup et congé long lisent la palette', cat('vac') === 'var(--st-v-bg)' && cat('tp') === 'var(--st-tp-bg)' && cat('form') === 'var(--st-f-bg)' && cat('recup') === 'var(--st-r-bg)' && cat('cl') === 'var(--st-cl-bg)', ['vac', 'tp', 'form', 'recup', 'cl'].map(cat));
+    V('accueil : TP et formation ne se confondent plus (ils partageaient un orangé)', cat('tp') !== cat('form') && clair['--st-tp-bg'] !== clair['--st-f-bg']);
+    V('accueil : le récapitulatif a la formation en jaune, tuile et calendrier', /\.rc-form \{ background:var\(--st-f-bg\); color:var\(--st-f-fg\); \}/.test(src['index.html']) && /\.mga-d\.rf \{ background:var\(--st-f-bg\)/.test(src['index.html']) && !/#5EEAD4|#CCFBF1/i.test(src['index.html']));
+    V('accueil : plus de palette sombre propre aux absences (elle vient de theme.css)', (src['index.html'].match(/--cat-(vac|tp|form|recup|cl)-bg:/g) || []).length === 5);
+    /* Planning */
+    const pl = src['planning.html'];
+    V('planning : Réa, Mater-Bloc, 18 h et sortie de garde ont chacune leur étiquette', /\.name-tag\.guard\s*\{ background: var\(--st-g\)/.test(pl) && /\.name-tag\.guard2\s*\{ background: var\(--st-g2\)/.test(pl) && /\.name-tag\.h18\s*\{ background: var\(--st-18\)/.test(pl) && /\.name-tag\.rg\s*\{ background: var\(--st-rg-bg\)/.test(pl));
+    V('planning : la vue Année lit la palette, garde comprise', /'G':_st\('g',1\),'G2':_st\('g2',1\),'18':_st\('18',1\)/.test(pl) && /'V':_st\('v'\)/.test(pl) && /'F':_st\('f'\),'TP':_st\('tp'\),'CL':_st\('cl'\)/.test(pl) && !/'G':\{bg:'#1E293B'/.test(pl));
+    V('planning : la vue du jour sur téléphone distingue Réa et Mater sur l\'étiquette G', /guardSt\[init\]==='G2'\?'g2':'g'/.test(pl) && /\.jb-ong\.g2\{background:var\(--st-g2\)/.test(pl));
+    /* Admin */
+    const ad = src['admin.html'];
+    const meta = (ad.match(/const STAT_META = \{[\s\S]*?\n\};/) || [''])[0];
+    V('admin : la table des statuts lit la palette (gardes, 18 h, absences)', /'G':\s*\{label:'Garde REA',\s*bg:'var\(--st-g\)'/.test(meta) && /'G2':\s*\{label:'Garde MAT',\s*bg:'var\(--st-g2\)'/.test(meta) && /'18':\s*\{label:'8h–18h',\s*bg:'var\(--st-18\)'/.test(meta) && /'F':\s*\{label:'Formation',\s*bg:'var\(--st-f-bg\)'/.test(meta) && /'TP':\s*\{label:'Temps partiel',\s*bg:'var\(--st-tp-bg\)'/.test(meta) && !/#1E293B|#334155'|#FEF3C7/.test(meta), meta.slice(0, 200));
+    V('admin : la ligne « Gardes & fonctions » quitte le noir', /#panel-planning \.name-tag\.guard \{ background:var\(--st-g\)/.test(ad) && /#panel-planning \.name-tag\.guard2 \{ background:var\(--st-g2\)/.test(ad) && /#panel-planning \.name-tag\.h18 \{ background:var\(--st-18\)/.test(ad));
+    /* Planning des absences et son fichier Excel */
+    const pa = src['paie.html'];
+    V('planning des absences : gardes pleines, vacances bleu, TP violet, formation jaune', /--g-bg:var\(--st-g\)/.test(pa) && /--g2-bg:var\(--st-g2\)/.test(pa) && /--v-bg:var\(--st-v-bg\)/.test(pa) && /--tp-bg:var\(--st-tp-bg\)/.test(pa) && /--f-bg:var\(--st-f-bg\)/.test(pa));
+    V('planning des absences : le férié reste écrit en rouge (il empruntait l\'encre des gardes Mater)', /th\.fe\{color:var\(--red\)/.test(pa) && /td\.jr\.fe\{color:var\(--red\)\}/.test(pa) && !/\.fe\{color:var\(--g2-fg\)/.test(pa));
+    const xl = (pa.match(/const XL_FOND = \{[^}]*\}, XL_ENCRE = \{[^}]*\}/) || [''])[0];
+    const arg = h => 'FF' + h.slice(1);
+    V('planning des absences : le fichier Excel a les couleurs de l\'écran', xl.indexOf("G:'" + arg(clair['--st-g'] || '#') + "'") > 0 && xl.indexOf("G2:'" + arg(clair['--st-g2'] || '#') + "'") > 0 && xl.indexOf("V:'" + arg(clair['--st-v-bg'] || '#') + "'") > 0 && xl.indexOf("TP:'" + arg(clair['--st-tp-bg'] || '#') + "'") > 0 && xl.indexOf("F:'" + arg(clair['--st-f-bg'] || '#') + "'") > 0 && /XL_ENCRE = \{ G:'FFFFFFFF', G2:'FFFFFFFF'/.test(xl), xl);
+    /* Indisponibilités : la formation portait le violet du temps partiel */
+    V('indisponibilités : la formation est jaune, plus violette comme le temps partiel', /--form:\s*var\(--st-f-bg\); --form-fg:\s*var\(--st-f-fg\)/.test(src['indispos.html']) && !/--form-fg:\s*#6D28D9/.test(src['indispos.html']) && /\.cal-day\.form \.cal-day-num \{ color:var\(--st-f-bg\); \}/.test(src['indispos.html']));
+    /* Contre-preuve : la version d'avant échoue sur chacun de ces points. */
+    const { execSync } = require('child_process');
+    let av = null; try { av = { pl: execSync('git show da20b13:planning.html', { cwd: racine, encoding: 'utf8', maxBuffer: 64e6 }), th: execSync('git show da20b13:partage/theme.css', { cwd: racine, encoding: 'utf8' }), idx: execSync('git show da20b13:index.html', { cwd: racine, encoding: 'utf8', maxBuffer: 64e6 }) }; } catch (e) {}
+    if (!av) V('version d\'avant lisible dans l\'historique (clone complet requis)', false);
+    else V('contre-preuve : avant, pas de palette commune, la Réa et la Mater avaient la même étiquette au planning, et TP et formation le même orangé', !/--st-g:/.test(av.th) && !/name-tag\.guard2/.test(av.pl) && /--cat-form-bg:#FDF3E3/.test(av.idx) && /--cat-tp-bg:#FEF3C7/.test(av.idx));
   }
   console.log('\n═══ Une seule police : DM Sans partout (décision du responsable, 14/09) ═══');
   {
