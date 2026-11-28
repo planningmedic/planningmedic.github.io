@@ -1939,6 +1939,15 @@ if (sessionStorage.getItem('adminCode')) {
          pas générée ou archivée, erreur), la tuile Temps partiel des demandes
          en attente s'affiche seule ici : une demande reste toujours tranchable. -->
     <div id="ctlTpSecours"></div>
+    <!-- (01/09/2026) CE QU'IL RESTE À POSER : vacances, formation et temps partiel de toute
+         l'équipe, posés sur le quota de l'année. Replié par défaut, chargé au premier dépliage.
+         (28/11/2026) Déplacé ici depuis l'onglet Statuts : c'est un contrôle. -->
+    <div id="reliquatsBloc" style="margin-bottom:14px">
+      <button class="btn-secondary" onclick="toggleReliquats()" id="btnReliquats">
+        📋 Ce qu'il reste à poser</button>
+      <div id="reliquatsPanel" style="display:none;margin-top:10px;border:1px solid var(--line);
+           border-radius:12px;padding:14px 16px;background:#fff"></div>
+    </div>
     <div id="ctlContenu"></div>
   </div>
 
@@ -1951,16 +1960,8 @@ if (sessionStorage.getItem('adminCode')) {
          le R est posé, et revient si on l'efface. -->
     <div id="recupStatuts" style="display:none"></div>
     <div id="statutsLoading" class="loading" style="display:none"><div class="spinner"></div> Chargement…</div>
-    <!-- (01/09/2026) CE QU'IL RESTE À POSER. Après la génération, le comité
-         place ici les congés que les MAR n'ont pas posés pendant la campagne :
-         encore faut-il savoir combien il en reste, et à qui. Replié par
-         défaut, chargé au premier dépliage. -->
-    <div id="reliquatsBloc" style="display:none;margin-bottom:14px">
-      <button class="btn-secondary" onclick="toggleReliquats()" id="btnReliquats">
-        📋 Ce qu'il reste à poser</button>
-      <div id="reliquatsPanel" style="display:none;margin-top:10px;border:1px solid var(--line);
-           border-radius:12px;padding:14px 16px;background:#fff"></div>
-    </div>
+    <!-- (28/11/2026) « Ce qu'il reste à poser » a quitté cet onglet pour l'onglet Contrôles
+         (décision du responsable : c'est un contrôle, pas une saisie). -->
     <div id="statutsContent" style="display:none"></div>
   </div>
 <!-- (01/11/2026) L'onglet Maintenance (diagnostic, cache, renvoi des codes) a quitté
@@ -3332,7 +3333,7 @@ function showTab(name) {
   /* (13/08/2026) loadVacancesValidation() retire d'ici — récit : docs/JOURNAL-Planning-Med.md §8 */
   if (name==='equite') { loadStats(ADMIN_YEAR); }
   if (name==='statuts') loadStatuts();
-  if (name==='controles') { chargerControles(false); tpcCharger(); }   // (17/11/2026) calculé à l'ouverture de l'onglet, jamais à celle de la page · (19/11/2026) + validation des TP en attente, venue de l'onglet Équipe
+  if (name==='controles') { chargerControles(false); tpcCharger(); reliquatsOuvrirOnglet(); }   // (17/11/2026) calculé à l'ouverture de l'onglet, jamais à celle de la page · (19/11/2026) + validation des TP en attente, venue de l'onglet Équipe
 }
 
 // ══════════════════════════════════════════════════════════════════
@@ -3384,6 +3385,17 @@ function statMonthKeys(){ return [...new Set(STAT.days.map(d=>`${d.year}-${Strin
    consultation, elle ne doit pas ralentir la saisie. */
 let _reliquatsData = null;
 
+/* (28/11/2026) À chaque ouverture de l'onglet Contrôles : le compte est vidé (l'année a pu
+   changer, des congés ont pu être posés dans Statuts), et recalculé s'il est déplié.
+   (01/09/2026) L'ANNÉE DANS LE LIBELLÉ : l'onglet suit l'année choisie en haut d'écran, qui n'est
+   pas forcément celle qu'on a en tête — un compte de 2026 lu comme celui de 2027 fait croire à
+   une campagne mal remplie. Le chiffre était juste, la lecture non. */
+function reliquatsOuvrirOnglet(){
+  const _bt=document.getElementById('btnReliquats'), _rp=document.getElementById('reliquatsPanel');
+  if(_bt) _bt.textContent='📋 Ce qu\'il reste à poser · '+ADMIN_YEAR;
+  _reliquatsData=null;
+  if(_rp && _rp.style.display!=='none') renderReliquats();
+}
 function toggleReliquats(){
   const p = document.getElementById('reliquatsPanel');
   if (!p) return;
@@ -3392,6 +3404,9 @@ function toggleReliquats(){
   if (!ouvert) renderReliquats();
 }
 
+/* Jours posés AU-DELÀ du quota (0 s'il n'y en a pas). Calculé sur posé − quota : le « reste »
+   du temps partiel est borné à 0 par le serveur, il ne dit pas le dépassement. */
+function _relTrop(o){ return (o && o.quota) ? Math.max(0, Math.round((Number(o.pose) - Number(o.quota)) * 10) / 10) : 0; }
 async function renderReliquats(){
   const p = document.getElementById('reliquatsPanel');
   if (!p) return;
@@ -3413,31 +3428,35 @@ async function renderReliquats(){
   const d = _reliquatsData;
   const esc = t => String(t == null ? '' : t).replace(/[<>&]/g, c => ({'<':'&lt;','>':'&gt;','&':'&amp;'}[c]));
   /* On affiche POSÉ sur QUOTA — « 37/37 » se lit d'un coup, là où « 0/37 »
-     demandait de savoir que le premier chiffre était un reste. Vert quand le
-     compte y est, rouge quand il manque des jours.
+     demandait de savoir que le premier chiffre était un reste.
+     (28/11/2026, retour du responsable) Trois couleurs : ROUGE quand le quota est DÉPASSÉ
+     (c'est l'anomalie), vert quand le compte y est exactement, bleu quand il reste des
+     jours à poser. Avant, un dépassement s'affichait en vert, comme un compte juste.
      Une case vide quand le quota est nul : un temps plein n'a pas de temps
      partiel à poser, lui afficher « 0/0 » ferait croire à un compteur. */
   const cel = (o, attente) => {
     if (!o.quota) return '<td style="text-align:center;padding:6px 8px;color:#CBD5E1">—</td>';
-    const complet = o.reste <= 0;
-    const c = complet ? '#166534' : '#B91C1C';
-    const fond = complet ? '#F0FDF4' : '#FEF2F2';
+    const trop = _relTrop(o);
+    const c = trop > 0 ? '#B91C1C' : o.reste > 0 ? '#1D4ED8' : '#166534';
+    const fond = trop > 0 ? '#FEF2F2' : o.reste > 0 ? '#EFF6FF' : '#F0FDF4';
     return '<td style="text-align:center;padding:6px 8px">'
       + '<span style="display:inline-block;background:' + fond + ';color:' + c
       + ';border-radius:6px;padding:2px 9px;font-weight:700">'
       + String(o.pose).replace('.', ',') + '/' + String(o.quota).replace('.', ',') + '</span>'
-      + (o.reste > 0 ? '<div style="font-size:10.5px;color:#B91C1C">' + String(o.reste).replace('.', ',') + ' à poser</div>' : '')
+      + (trop > 0 ? '<div style="font-size:10.5px;color:#B91C1C;font-weight:700">' + String(trop).replace('.', ',') + ' en trop</div>' : '')
+      + (o.reste > 0 ? '<div style="font-size:10.5px;color:#1D4ED8">' + String(o.reste).replace('.', ',') + ' à poser</div>' : '')
       + (attente ? '<div style="font-size:10.5px;color:#6D28D9">' + attente + ' en attente</div>' : '')
       /* (26/11/2026) Reliquat de l'année précédente : pris sur les vacances de janvier, hors quota de l'année. */
-      + (o.reliquat ? '<div style="font-size:10.5px;color:#1D4ED8">+ reliquat ' + o.reliquat.annee + ' : '
+      + (o.reliquat ? '<div style="font-size:10.5px;color:#475569">+ reliquat ' + o.reliquat.annee + ' : '
           + String(o.reliquat.pris).replace('.', ',') + '/' + String(o.reliquat.droit).replace('.', ',') + (o.reliquat.touteAnnee ? ' sur l\'année' : ' en janvier') + '</div>' : '')
       + '</td>';
   };
   const rien = d.lignes.filter(x => x.vac.reste > 0 || x.form.reste > 0 || x.tp.reste > 0).length;
+  const depasse = d.lignes.filter(x => _relTrop(x.vac) > 0 || _relTrop(x.form) > 0 || _relTrop(x.tp) > 0).length;
   let h = '<div style="font-size:12.5px;color:var(--ink-2);line-height:1.6;margin-bottom:12px">'
     + 'Jours de congé qu\'il reste à placer, en jours travaillés — ni week-end, ni férié. '
     + (d.genere
-        ? 'Le planning ' + d.year + ' est généré : les vacances et formations se posent dans cet onglet, '
+        ? 'Le planning ' + d.year + ' est généré : les vacances et formations se posent dans l\'onglet Statuts, '
           + 'les temps partiels par les MAR depuis leur tuile.'
         : 'Le planning ' + d.year + ' n\'est pas encore généré : tout se pose pendant la campagne.')
     + '</div>';
@@ -3449,7 +3468,8 @@ async function renderReliquats(){
     + '<th style="text-align:center;padding:6px 8px;font-size:11px;color:var(--ink-3)">Temps partiel</th>'
     + '</tr></thead><tbody>';
   d.lignes.forEach(x => {
-    const zero = x.vac.reste <= 0 && x.form.reste <= 0 && x.tp.reste <= 0;
+    const zero = x.vac.reste <= 0 && x.form.reste <= 0 && x.tp.reste <= 0
+      && !(_relTrop(x.vac) > 0 || _relTrop(x.form) > 0 || _relTrop(x.tp) > 0);   // un dépassement ne s'estompe pas
     h += '<tr style="border-top:1px solid #F1F5F9' + (zero ? ';opacity:.55' : '') + '">'
       + '<td style="padding:6px 8px;font-weight:700;white-space:nowrap">' + esc(x.init)
       + '<span style="font-weight:500;color:var(--ink-3);margin-left:7px">'
@@ -3458,8 +3478,10 @@ async function renderReliquats(){
   });
   h += '</tbody></table></div>';
   h += '<div style="font-size:12px;color:var(--ink-4);line-height:1.6;margin-top:11px">'
-    + (rien ? rien + ' MAR ont encore des jours à placer. ' : 'Tout est placé. ')
-    + 'Chaque case donne les jours posés sur le quota de l\'année : vert quand le compte y est. '
+    + (depasse ? '<b style="color:#B91C1C">' + depasse + ' MAR ' + (depasse > 1 ? 'ont' : 'a') + ' dépassé un quota.</b> ' : '')
+    + (rien ? rien + ' MAR ' + (rien > 1 ? 'ont' : 'a') + ' encore des jours à placer. ' : 'Tout est placé. ')
+    + 'Chaque case donne les jours posés sur le quota de l\'année : vert quand le compte y est, '
+    + 'bleu quand il reste des jours à poser, rouge quand le quota est dépassé. '
     + 'Une garde ou un repos de garde ne peut pas être remplacé par un congé : '
     + 'ces jours-là passent par un échange.</div>';
   p.innerHTML = h;
@@ -3515,19 +3537,6 @@ async function loadStatuts(){
     STAT.feries=new Set((jf&&jf.success&&jf.joursFeries)||[]);
     STAT.year=ADMIN_YEAR; STAT.days=statBuildDays(ADMIN_YEAR);
     STAT.selected.clear(); STAT.plageMode=false; STAT.plageStart=null; STAT.pending=0;
-    /* (01/09/2026) Le bloc « Ce qu'il reste à poser » apparaît avec l'onglet.
-       Son contenu est vidé à chaque chargement : l'année a pu changer, et un
-       compteur périmé sur un écran de saisie vaut moins que pas de compteur. */
-    { const _rb=document.getElementById('reliquatsBloc'), _rp=document.getElementById('reliquatsPanel');
-      if(_rb) _rb.style.display='block';
-      /* (01/09/2026) L'ANNÉE DANS LE LIBELLÉ. L'onglet Statuts suit l'année
-         choisie en haut d'écran, qui n'est pas forcément celle qu'on a en
-         tête : un reliquat de 2026 lu comme un reliquat de 2027 fait croire à
-         une campagne mal remplie. Le chiffre était juste, la lecture non. */
-      { const _bt=document.getElementById('btnReliquats');
-        if(_bt) _bt.textContent='📋 Ce qu\'il reste à poser · '+ADMIN_YEAR; }
-      if(_rp && _rp.style.display!=='none'){ _reliquatsData=null; renderReliquats(); }
-      else _reliquatsData=null; }
     const actifs=marData.filter(m=>m.actif);
     if(!STAT.marId || !actifs.find(m=>m.id===STAT.marId)) STAT.marId = actifs.length?actifs[0].id:null;
     const keys=statMonthKeys();

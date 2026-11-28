@@ -17,6 +17,7 @@ const V = (t, c, d) => { if (c) { ok++; console.log('  ✓ ' + t); } else { ko++
 const RACINE = path.join(__dirname, '..');
 const IND = require('./stubs').sourceGasTout() /* (15/09) Indispos.gs découpé : tout le code serveur métier */;
 const ADM = fs.readFileSync(path.join(RACINE, 'admin.html'), 'utf8');
+const lireGuide = () => fs.readFileSync(path.join(RACINE, 'docs', 'guide-comite.html'), 'utf8');
 
 /* ═══ 1. La source suit l'état de l'année ═══════════════════════════════ */
 console.log('\n═══ 1. Indispos.gs · GARDES fait foi dès que l\'année est générée ═══');
@@ -91,10 +92,15 @@ console.log('\n═══ 3. Indispos.gs · l\'action getReliquats ═══');
 }
 
 /* ═══ 4. L'écran du comité ══════════════════════════════════════════════ */
-console.log('\n═══ 4. admin.html · le panneau de l\'onglet Statuts ═══');
+console.log('\n═══ 4. admin.html · le panneau « Ce qu\'il reste à poser » (onglet Contrôles depuis le 28/11/2026) ═══');
 {
-  V('le bloc existe dans l\'onglet Statuts',
-    /id="reliquatsBloc"/.test(ADM) && /id="reliquatsPanel"/.test(ADM));
+  V('le bloc existe', /id="reliquatsBloc"/.test(ADM) && /id="reliquatsPanel"/.test(ADM));
+  {
+    /* (28/11/2026, décision du responsable) C'est un contrôle : la vue vit dans l'onglet Contrôles. */
+    const iC = ADM.indexOf('id="panel-controles"'), iS = ADM.indexOf('id="panel-statuts"'), iB = ADM.indexOf('id="reliquatsBloc"');
+    V('il est dans l\'onglet Contrôles, plus dans l\'onglet Statuts', iC > 0 && iS > iC && iB > iC && iB < iS, [iC, iB, iS]);
+    V('… au-dessus des tuiles de contrôle, visible sans attendre leur calcul', iB < ADM.indexOf('id="ctlContenu"') && !/id="reliquatsBloc" style="display:none/.test(ADM));
+  }
   V('chaque ancre est unique',
     (ADM.match(/id="reliquatsBloc"/g) || []).length === 1
     && (ADM.match(/id="reliquatsPanel"/g) || []).length === 1
@@ -104,13 +110,13 @@ console.log('\n═══ 4. admin.html · le panneau de l\'onglet Statuts ══
      pas ralentir l'ouverture de l'écran de saisie. */
   V('le contenu n\'est chargé qu\'au premier dépliage',
     /function toggleReliquats\(\)[\s\S]{0,320}if \(!ouvert\) renderReliquats\(\);/.test(ADM));
-  V('le bloc apparaît avec l\'onglet Statuts',
-    /_rb\.style\.display='block'/.test(ADM));
+  V('ouvrir l\'onglet Contrôles prépare le bloc',
+    /if \(name==='controles'\) \{[^\n]*reliquatsOuvrirOnglet\(\);/.test(ADM));
   /* Un compteur périmé sur un écran de saisie vaut moins que pas de compteur. */
   /* La fenêtre doit rester assez large : un commentaire inséré entre les deux
      lignes a fait échouer la première version de ce test sur du code correct. */
   V('le cache est vidé à chaque chargement de l\'onglet (l\'année a pu changer)',
-    /if\(_rb\) _rb\.style\.display='block';[\s\S]{0,700}_reliquatsData=null;/.test(ADM));
+    /function reliquatsOuvrirOnglet\(\)\{[\s\S]{0,260}_reliquatsData=null;\s*if\(_rp && _rp\.style\.display!=='none'\) renderReliquats\(\);/.test(ADM));
   V('poser ou retirer un statut invalide le compte',
     /setDailyStatus[\s\S]{0,420}_reliquatsData = null;/.test(ADM));
   V('…et rafraîchit le panneau s\'il est ouvert',
@@ -123,8 +129,20 @@ console.log('\n═══ 4. admin.html · le panneau de l\'onglet Statuts ══
      là où un reste demandait de savoir ce que le premier chiffre voulait dire. */
   V('chaque case donne les jours posés sur le quota',
     /String\(o\.pose\)\.replace\('\.', ','\) \+ '\/' \+ String\(o\.quota\)\.replace\('\.', ','\)/.test(ADM));   // (27/10/2026) demi-journées : « 40,5/41,5 »
-  V('vert quand le compte y est, rouge quand il manque des jours',
-    /const complet = o\.reste <= 0;/.test(ADM) && /complet \? '#166534' : '#B91C1C'/.test(ADM));
+  /* (28/11/2026, retour du responsable) Un quota DÉPASSÉ s'affichait en vert, comme un compte juste. */
+  V('rouge quand le quota est dépassé, bleu quand il reste des jours, vert quand le compte y est',
+    /const c = trop > 0 \? '#B91C1C' : o\.reste > 0 \? '#1D4ED8' : '#166534';/.test(ADM));
+  V('… le reliquat de l\'année d\'avant passe en gris, pour ne pas se confondre avec le bleu', /color:#475569">\+ reliquat '/.test(ADM));
+  {
+    const relTrop = new Function(ADM.match(/function _relTrop\(o\)\{[^\n]*\}/)[0] + '; return _relTrop;')();
+    V('dépassement = posé − quota : 32/30 → 2 en trop ; 30/30 et 21/30 → 0 ; sans quota → 0 ; demi-journées comprises',
+      relTrop({ pose: 32, quota: 30 }) === 2 && relTrop({ pose: 30, quota: 30 }) === 0 && relTrop({ pose: 21, quota: 30 }) === 0
+      && relTrop({ pose: 3, quota: 0 }) === 0 && relTrop({ pose: 10.5, quota: 10 }) === 0.5);
+    V('… vaut aussi pour le temps partiel, dont le « reste » est borné à 0 par le serveur', relTrop({ pose: 54, quota: 52, reste: 0 }) === 2);
+  }
+  V('le dépassement est écrit en clair (« N en trop »), la ligne ne s\'estompe pas, et le pied de tableau le compte',
+    /' en trop<\/div>'/.test(ADM) && /un dépassement ne s'estompe pas/.test(ADM) && /dépassé un quota\./.test(ADM));
+  V('le guide du comité explique les trois couleurs', /bleu<\/b> quand il reste des jours à poser/.test(lireGuide()) && /rouge<\/b> quand le quota est dépassé/.test(lireGuide()) && /1 en trop/.test(lireGuide()));
   V('le nombre de jours restants reste visible sous la case',
     /String\(o\.reste\)\.replace\('\.', ','\) \+ ' à poser<\/div>'/.test(ADM));
   V('le serveur rend bien le nombre posé, pas seulement le reste',
@@ -139,9 +157,9 @@ console.log('\n═══ 4. admin.html · le panneau de l\'onglet Statuts ══
   V('le libellé du bouton porte l\'année regardée',
     /_bt\.textContent='📋 Ce qu\\'il reste à poser · '\+ADMIN_YEAR/.test(ADM));
   V('…et il est remis à jour à chaque chargement de l\'onglet',
-    /_rb\.style\.display='block';[\s\S]{0,420}btnReliquats/.test(ADM));
+    /function reliquatsOuvrirOnglet\(\)\{[\s\S]{0,200}_bt\.textContent='📋 Ce qu\\'il reste à poser · '\+ADMIN_YEAR/.test(ADM));
   V('les MAR sans reliquat sont estompés, pas cachés',
-    /const zero = x\.vac\.reste <= 0 && x\.form\.reste <= 0 && x\.tp\.reste <= 0;/.test(ADM));
+    /const zero = x\.vac\.reste <= 0 && x\.form\.reste <= 0 && x\.tp\.reste <= 0\s/.test(ADM) && /zero \? ';opacity:\.55' : ''/.test(ADM));
   V('l\'écran rappelle qu\'une garde ne se remplace pas par un congé',
     /ces jours-là passent par un échange/.test(ADM));
   V('il dit où se posent les temps partiels (la tuile du MAR, pas cet écran)',
