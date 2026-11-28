@@ -1258,7 +1258,9 @@ if (sessionStorage.getItem('adminCode')) {
    Même structure et mêmes gestes ; seul l'habillage change, dans l'esprit de l'onglet
    Contrôles. Tout est borné à #panel-planning et au panneau #dispoCard. */
 #panel-planning { --pk-ink:#101828; --pk-ink2:#475467; --pk-ink3:#98A2B3; --pk-line:#EAECF0; --pk-line2:#F2F4F7; }
-#panel-planning .plan-toolbar { background:transparent; border-bottom:0; padding:4px 0 6px; margin-bottom:18px; }
+/* (28/11/2026) margin:0 — une ancienne règle (.plan-toolbar, marges négatives de 32 px) restait active sur les côtés :
+   la flèche ← et « réinit. » touchaient les bords de l'écran, rognées sur un écran de 1 366 px. */
+#panel-planning .plan-toolbar { background:transparent; border-bottom:0; padding:4px 0 6px; margin:0 0 18px; }
 #panel-planning .week-label { min-width:0; text-align:left; display:flex; flex-direction:column; padding:0 6px; }
 #panel-planning .week-label b { font-size:28px; font-weight:600; letter-spacing:-.8px; line-height:1; color:var(--pk-ink); }
 #panel-planning .week-label small { font-size:13px; font-weight:500; color:var(--pk-ink2); margin-top:5px; }

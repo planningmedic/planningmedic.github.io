@@ -377,6 +377,21 @@ function fenetre(opts) {
     if (!av) V('version d\'avant lisible dans l\'historique (clone complet requis)', false);
     else V('contre-preuve : avant, l\'admin n\'avait aucun retour à l\'accueil et les indisponibilités aucun retour en haut de page', !/href="index\.html"/.test((av.ad.match(/<div class="header">[\s\S]*?<div class="header-right">[\s\S]*?<\/div>\n<\/div>/) || [''])[0]) && !/href="index\.html"/.test((av.ind.match(/<header class="header">[\s\S]*?<\/header>/) || [''])[0]) && /<header class="header">/.test(av.ind));
   }
+  console.log('\n═══ Deux défauts de lisibilité (28/11/2026) ═══');
+  /* Vus sur captures pendant la revue d'interface : (1) en mode sombre, la carte « Cette nuit » du
+     planning écrivait en bleu nuit sur fond sombre ; (2) sur un écran de 1 366 px, la flèche ← et
+     « réinit. » de l'admin touchaient les bords, rognées. (Le titre coupé du planning des absences
+     sur téléphone n'est pas corrigé : décision du responsable, cette page ne sert que sur PC.) */
+  {
+    const racine = path.join(__dirname, '..'), lire = f => fs.readFileSync(path.join(racine, f), 'utf8');
+    const { execSync } = require('child_process');
+    const pl = lire('planning.html'), ad = lire('admin.html');
+    V('planning, mode sombre : le texte de « Cette nuit » est blanc, quelle que soit la palette', /\.tonight-chip\.hero \.tc-label,\.tonight-chip\.hero \.tc-name\{color:#fff\}/.test(pl) && !/\.tonight-chip\.hero[^{]*\{color:var\(--white\)\}/.test(pl));
+    V('admin : la barre de semaine reste dans les marges de la page', /#panel-planning \.plan-toolbar \{[^}]*margin:0 0 18px; \}/.test(ad));
+    let av = null; try { av = { pl: execSync('git show a9c5d86:planning.html', { cwd: racine, encoding: 'utf8', maxBuffer: 64e6 }), ad: execSync('git show a9c5d86:admin.html', { cwd: racine, encoding: 'utf8', maxBuffer: 64e6 }) }; } catch (e) {}
+    if (!av) V('version d\'avant lisible dans l\'historique (clone complet requis)', false);
+    else V('contre-preuve : avant, la carte lisait var(--white) (bleu nuit en sombre) et la barre gardait ses marges négatives', /\.tonight-chip\.hero \.tc-name\{color:var\(--white\)\}/.test(av.pl) && /\.plan-toolbar \{[^}]*margin:-24px -32px 20px; \}/.test(av.ad) && !/#panel-planning \.plan-toolbar \{[^}]*margin:0/.test(av.ad));
+  }
   console.log('\n═══ Une seule police : DM Sans partout (décision du responsable, 14/09) ═══');
   {
     for (const page of ['index.html', 'planning.html', 'indispos.html', 'absences.html', 'suivi-liberal.html', 'staff.html', 'admin.html', 'crh.html']) {

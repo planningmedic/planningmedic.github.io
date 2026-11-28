@@ -617,6 +617,12 @@ les cases valant exactement `CL`.
   pas de déconnexion aujourd'hui, je n'en ai pas inventé) ; le bouton clair/sombre garde son icône
   à trois états. Non touché : vue secrétariat de démonstration, tableau de bord, guides (leur
   barre « ‹ Portail » reste).
+  Puis v2.15.1 : deux défauts de lisibilité vus pendant la revue. Planning en mode sombre : la
+  carte « Cette nuit » écrivait en bleu nuit sur fond sombre (var(--white) vaut un bleu nuit en
+  sombre) — texte en blanc. Admin sur un écran de 1 366 px : la flèche ← et « réinit. » touchaient
+  les bords (anciennes marges négatives) — la barre rentre dans la page. Le titre coupé du planning
+  des absences sur téléphone n'est PAS corrigé : décision du responsable, cette page ne sert que
+  sur PC.
 - **27/11/2026** — Répétition générale de la clôture 2026 (détail : document du projet Claude
   `claude/repetition-cloture-2026-11-27.md`), puis deux correctifs (v2.12.3). Clôture jouée sur un
   classeur fictif à la forme du vrai, puis 630 appels serveur, 11 tâches programmées, 1 000 gestes au

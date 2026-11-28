@@ -171,7 +171,9 @@ body{font-variant-numeric:tabular-nums}
 .tonight-card{display:flex;flex-wrap:wrap;gap:10px;align-items:stretch;margin:0 0 12px}
 .tonight-chip{display:flex;align-items:center;gap:10px;background:var(--white);border:1px solid var(--line);border-radius:12px;padding:9px 14px;min-width:0}
 .tonight-chip.hero{background:linear-gradient(135deg,#1E293B,#0F172A);border-color:#1E293B}
-.tonight-chip.hero .tc-label,.tonight-chip.hero .tc-name{color:var(--white)}
+/* (28/11/2026) #fff, pas var(--white) : en mode sombre « blanc » vaut un bleu nuit, et le texte
+   disparaissait sur cette carte toujours sombre. */
+.tonight-chip.hero .tc-label,.tonight-chip.hero .tc-name{color:#fff}
 .tonight-chip.hero .tc-label{opacity:.75}
 .tonight-chip.me{background:var(--me-soft);border-color:var(--me-border)}
 .tc-emoji{font-size:18px;flex-shrink:0}
