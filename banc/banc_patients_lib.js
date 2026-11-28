@@ -423,7 +423,7 @@ async function page(patlib, modif) {
     const dects = [...D.querySelectorAll('.mc-af.amb .mc-dect')];
     const dB = dects.find(x => /8 1234/.test(x.textContent));
     V('le DECT de chaque confrère : « 81234 » du classeur affiché « 8 1234 »', !!dB && dB.textContent === '☎ 8 1234', dects.map(x => x.textContent));
-    V('… un toucher lance l\'appel (lien tel:)', dB && dB.tagName === 'A' && dB.getAttribute('href') === 'tel:81234');
+    V('(28/11/2026) … simple étiquette à lire, PAS un lien d\'appel : un DECT ne se joint que depuis un téléphone de l\'hôpital', dB && dB.tagName === 'SPAN' && !D.querySelector('a[href^="tel:"]'));
     V('… une fiche sans numéro : « DECT — », sans lien', dects.some(x => x.textContent === 'DECT —' && x.tagName === 'SPAN'));
     V('… seuls les DECT des confrères proposés sont à l\'écran', !/8 0001|8 0002/.test(txt('#zone')));
     V('aucun bouton « Confier », la marche à suivre est écrite (appeler, toucher son nom, prévenir le secrétariat)',

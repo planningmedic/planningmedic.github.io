@@ -579,7 +579,8 @@ les cases valant exactement `CL`.
   appeler », le MAR du secteur passe avant tout classement lié au libéral — placé dans le secteur
   de la consultation les deux jours, puis le jour de l'intervention seul, puis les autres dans
   l'ordre habituel. Les placements viennent du planning publié ; un jour pas encore posé ne
-  marque personne.
+  marque personne. Puis v2.13.2 : le DECT n'est plus un lien d'appel (un DECT ne se joint que
+  depuis un téléphone de l'hôpital), il reste affiché comme numéro à lire.
 - **27/11/2026** — Répétition générale de la clôture 2026 (détail : document du projet Claude
   `claude/repetition-cloture-2026-11-27.md`), puis deux correctifs (v2.12.3). Clôture jouée sur un
   classeur fictif à la forme du vrai, puis 630 appels serveur, 11 tâches programmées, 1 000 gestes au

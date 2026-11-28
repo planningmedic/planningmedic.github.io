@@ -159,7 +159,7 @@ table.grid td.pick{outline:2px solid var(--rose);outline-offset:1px}
 .mc-nom small{display:block;font-weight:400;color:#475569;font-size:11.5px;margin-top:2px}
 .mc-nom small.mc-sec{color:#166534;font-weight:600}
 .mc-nom:active{opacity:.6}
-.mc-dect{flex:none;font:500 13px var(--mono);background:#E8F4FD;color:#1D6FB8;border:1px solid #B9DCF5;border-radius:99px;padding:6px 10px;white-space:nowrap;text-decoration:none}
+.mc-dect{flex:none;font:600 14px var(--mono);background:#F1F5F9;color:#0F172A;border:1px solid #E2E8F0;border-radius:99px;padding:6px 10px;white-space:nowrap;user-select:all}
 .mc-dect.sans{background:#F1F5F9;color:#94A3B8;border-color:#E2E8F0}
 .mc-conf{display:flex;align-items:center;gap:8px;padding:10px 12px;background:#FFFBEB;border-top:1px dashed #FCD34D}
 .mc-conf span{flex:1;font-size:13.5px;font-weight:600;color:#78350F}
@@ -583,12 +583,13 @@ function mcSalle(c){ const L = [].concat((DATA.salles || {})[c.date+'|'+c.per] |
 /* Export CPA : deux salles de mon secteur ouvertes la même demi-journée → le serveur demande (DATA.aChoisir). */
 function patSalleAChoisir(c){ return (DATA.patlib && !c.aValider && (DATA.aChoisir || []).find(x => x.date === c.date && x.per === c.per)) || null; }
 
-/* DECT : « 81234 » dans le classeur → « 8 1234 » à l'écran ; un toucher lance l'appel (comme l'annuaire). */
+/* DECT : « 81234 » dans le classeur → « 8 1234 » à l'écran. Simple étiquette à lire, PAS un lien d'appel
+   (28/11/2026, retour du responsable : un DECT ne se joint que depuis un téléphone de l'hôpital). */
 function mcDect(id){
   const brut = String((DATA.dects || {})[id] || '').trim(), ch = brut.replace(/\D/g,'');
   if(!brut) return '<span class="mc-dect sans">DECT —</span>';
   const lib = /^8\d{4}$/.test(ch) ? '8 '+ch.slice(1) : brut;
-  return ch ? '<a class="mc-dect" href="tel:'+ch+'">☎ '+mcEsc(lib)+'</a>' : '<span class="mc-dect">☎ '+mcEsc(lib)+'</span>';
+  return '<span class="mc-dect">☎ '+mcEsc(lib)+'</span>';
 }
 /* Qui appeler : membre du groupement, présent le jour de MA consultation ET le jour du bloc
    (une garde compte comme présent : le serveur ne la sert pas comme une absence).
