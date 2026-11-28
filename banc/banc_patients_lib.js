@@ -210,9 +210,11 @@ console.log('\n═══ 1 bis. Export CPA : lecture du fichier, import, salles 
     && ctx._cpaLignes_('ALPHA', rs.salles, exp).find(l => l.id === abs.id).confieA === '-');
   V('ALPHA ne la voit pas en double', ctx._patlibLire_('ALPHA').every(p => p.id !== abs.id));
   V('CHARLIE (autre salle) ne peut pas toucher aux lignes de la salle 2', !appel('CHARLIE', 'mar', { op: 'supprimer', id: abs.id }).success);
-  V('retirer une ligne CPA la masque', appel('ALPHA', 'mar', { op: 'supprimer', id: abs.id }).success
-    && !ctx._cpaLignes_('ALPHA', rs.salles, exp).some(l => l.id === abs.id) && !ctx._patlibLire_('BRAVO').length);
-  V('la reprendre la remet', appel('ALPHA', 'mar', { op: 'reprendre', id: abs.id }).success && ctx._cpaLignes_('ALPHA', rs.salles, exp).some(l => l.id === abs.id));
+  V('retirer une ligne CPA la retire (servie grisée, nombre 0, pour pouvoir la remettre)', appel('ALPHA', 'mar', { op: 'supprimer', id: abs.id }).success
+    && ctx._cpaLignes_('ALPHA', rs.salles, exp).some(l => l.id === abs.id && l.retire === true && l.nb === 0 && l.nbExport === abs.nb) && !ctx._patlibLire_('BRAVO').length);
+  V('(28/11/2026) défaut vu en production : la ligne retirée ne compte plus comme patient', ctx._cpaLignes_('ALPHA', rs.salles, exp).filter(l => !l.retire).every(l => l.id !== abs.id));
+  V('la reprendre la remet', appel('ALPHA', 'mar', { op: 'reprendre', id: abs.id }).success && ctx._cpaLignes_('ALPHA', rs.salles, exp).some(l => l.id === abs.id && !l.retire && l.nb === abs.nb));
+  V('(28/11/2026) la pastille de l\'accueil ne compte pas les lignes retirées', /p\.mar === MY_ID && !p\.retire && !p\.confieA/.test(lire('index.html')));
   V('une ligne CPA inventée : refusée', !appel('ALPHA', 'mar', { op: 'confier', id: 'cpa|' + CONSULT + '|pm|2|2099-01-01', a: 'BRAVO' }).success);
   const ind = lire('gas/Indispos.gs');
   V('import sous verrou, réservé au droit maintenance', /'importCpa',/.test(ind) && /"importCpa"\s*:\s*\{ role: 'maintenance'/.test(ind));
@@ -334,7 +336,9 @@ async function page(patlib, modif) {
           if (p.op === 'ajouter') liste.push({ id: 'n' + envois.length, mar: 'ALPHA', consult: p.consult, per: p.per, bloc: p.bloc, nb: p.nb, confieA: '' });
           if (p.op === 'confier') liste.find(x => x.id === p.id).confieA = p.a;
           if (p.op === 'reprendre') liste.find(x => x.id === p.id).confieA = '';
-          if (p.op === 'supprimer') liste = liste.filter(x => x.id !== p.id);
+          if (p.op === 'reprendre') { const x = liste.find(y => y.id === p.id); if (x && x.retire) { x.retire = false; x.nb = x.nbExport; } }
+          if (p.op === 'supprimer') { const x = liste.find(y => y.id === p.id);
+            if (x && x.cpa) Object.assign(x, { retire: true, nbExport: x.nb, nb: 0, confieA: '' }); else liste = liste.filter(y => y.id !== p.id); }
           return { ok: true, status: 200, json: async () => ({ success: true, patients: JSON.parse(JSON.stringify(liste.filter(x => !x.cpa))) }) };
         }
         return { ok: true, status: 200, json: async () => ({ success: false }) };
@@ -581,6 +585,15 @@ async function page(patlib, modif) {
     await touche('#mcCorps .mc-pl.amb [data-g="regle"]');
     V('régler une ligne CPA : envoyé, puis la page relit tout', envois[envois.length - 2].op === 'confier' && envois[envois.length - 2].a === '-' && envois[envois.length - 1].action === 'getConsultAbsences'
       && /✓ Réglé/.test(txt('#mcCorps .mc-pl.vert')), envois.slice(-2));
+    // (28/11/2026) Défaut vu en production : une ligne CPA retirée d'un toucher sur la croix ne pouvait plus revenir
+    await touche('#mcCorps [data-g="deregle"]');
+    await touche('#mcCorps .mc-pl.amb .mc-sup');
+    V('retirer la ligne CPA : elle reste affichée grisée, avec « Remettre »', envois[envois.length - 2].op === 'supprimer'
+      && D.querySelectorAll('#mcCorps .mc-pl.ret').length === 1 && !!D.querySelector('#mcCorps .mc-pl.ret [data-g="remettre"]') && /3 patients/.test(txt('#mcCorps .mc-pl.ret'))
+      && !D.querySelector('#mcCorps .mc-pl.amb'), txt('#mcCorps').slice(0, 300));
+    V('… et elle ne compte plus (plus rien à faire)', !/À faire \d/.test(txt('.mc-k')) && /Rien à faire/.test(txt('.mc-rien')), txt('.mc-k'));
+    await touche('#mcCorps [data-g="remettre"]');
+    V('« Remettre » : envoyé, la ligne revient à régler', envois[envois.length - 2].op === 'reprendre' && !D.querySelector('#mcCorps .mc-pl.ret') && !!D.querySelector('#mcCorps .mc-pl.amb') && /À faire 1/.test(txt('.mc-k')), txt('#mcCorps').slice(0, 300));
   }
   {
     const SEC = plus(lundi, 4);

@@ -218,6 +218,8 @@ button.mc-c:active{background:var(--line-light)}
 .mc-pl.amb{background:#FEF3C7;border-color:#FDE68A;color:#0F172A}
 .mc-pl.amb .mc-j,.mc-pl.amb .mc-m>span{color:#57534E}.mc-pl.amb .mc-j b{color:#0F172A}
 .mc-pl.vert{background:var(--ok-soft);border-color:var(--ok-line)}
+.mc-pl.ret{border-style:dashed;opacity:.65}.mc-pl.ret .mc-m>span{font-style:italic}
+.mc-remet{flex:none;background:none;border:1px solid var(--line);border-radius:10px;padding:7px 11px;font-weight:700;font-size:12.5px;color:var(--ink-2)}
 .mc-pl .ligne{display:flex;align-items:center;gap:12px}
 .mc-tag{font:700 10px var(--mono);background:#EEF2FF;color:#3730A3;border-radius:6px;padding:2px 6px;margin-left:6px;vertical-align:1px}
 .mc-ok2{color:var(--ok);font-weight:700;font-size:15px}
@@ -573,7 +575,8 @@ function patCharger(liste){
   Object.keys(PATIENTS).forEach(k => PATIENTS[k].sort((a,b)=> a.bloc < b.bloc ? -1 : a.bloc > b.bloc ? 1 : 0));
 }
 function absentLeJour(mar, ds){ return ((DATA.absences && DATA.absences[mar]) || []).find(a => a.d === ds) || null; }
-function patDe(c){ return (PATIENTS[cleCons(c)] || []).filter(p => p.bloc >= iso(new Date())); }   // date opératoire passée : masquée
+function patDe(c){ return (PATIENTS[cleCons(c)] || []).filter(p => p.bloc >= iso(new Date()) && !p.retire); }   // date opératoire passée : masquée
+function patRetires(c){ return (PATIENTS[cleCons(c)] || []).filter(p => p.bloc >= iso(new Date()) && p.retire); }   // (28/11/2026) lignes de l'export retirées : grisées, « Remettre »
 function mcMes(){ return (DATA.consultations||[]).filter(c => c.mar === MOI)
   .sort((a,b)=> a.date < b.date ? -1 : a.date > b.date ? 1 : (a.per === b.per ? 0 : a.per === 'am' ? -1 : 1)); }
 function mcCons(k){ return mcMes().find(c => cleCons(c) === k) || null; }
@@ -746,6 +749,10 @@ function mcFeuille(){
       + '<button type="button" class="mc-lien" data-g="deregle" data-p="'+pid+'">Ce n\'est plus réglé</button></div>';
     else h += '<div class="mc-pl amb"><div class="ligne">'+tete+'vous serez '+mcSera(a)+'</span></div>'+X+'</div>'+mcBlocQui(c, p)+mcPiedRegler(c, p)+'</div>';
   });
+  patRetires(c).forEach(p => {
+    h += '<div class="mc-pl ret"><div class="ligne">'+mcJour(p.bloc)+'<div class="mc-m"><b>'+mcPl(p.nbExport || 1,'patient')+'<span class="mc-tag">CPA</span></b><span>Retiré de votre liste</span></div>'
+      + '<button type="button" class="mc-remet" data-g="remettre" data-p="'+mcEsc(p.id)+'">Remettre</button></div></div>';
+  });
   if(!MC_FORM) h += '<button type="button" class="mc-aj" data-g="form">＋ Ajouter un patient lib</button>';
   else { const B = _bornes(c);
     h += '<div class="mc-form"><div class="rg"><div style="flex:1"><label for="mcDate">Date opératoire</label><input type="date" id="mcDate" min="'+B[0]+'" max="'+B[1]+'"></div>'
@@ -824,6 +831,7 @@ async function mcRestaurer(){
   }
   MC_SUPPR = null; rendreMar();
 }
+async function mcRemettre(pid){ const r = await patEnvoyer({op:'reprendre', id:pid}); if(!r) return; MC_SUPPR = null; rendreMar(); mcToast('Ligne remise dans votre liste.'); }
 /* Export CPA — choix de la salle : un toucher, et les patients de la salle apparaissent. */
 async function mcChoisirSalle(k, salle){
   const c = mcCons(k); if(!c) return;
@@ -862,6 +870,7 @@ document.addEventListener('click', function(ev){
     case 'ajouter':  mcAjouter(); break;
     case 'suppr':    mcSupprimer(d.p); break;
     case 'restaurer':mcRestaurer(); break;
+    case 'remettre': mcRemettre(d.p); break;
     case 'fermer':   mcFermer(); break;
     case 'annuler':  { const f = MC_ANNULER; MC_ANNULER = null; document.getElementById('mcToast').classList.remove('open'); if(f) f(); } break;
   }
