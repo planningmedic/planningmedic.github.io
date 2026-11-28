@@ -461,7 +461,11 @@ async function page(patlib, modif) {
     V('« Ce n\'est plus réglé » : la ligne redevient à régler', pl().pop().op === 'reprendre' && !!D.querySelector('#mcCorps .mc-pl.amb') && /À faire 1/.test(txt('.mc-k')));
     V('dans la feuille aussi, on peut toucher le nom du confrère', !!D.querySelector('#mcCorps .mc-pl.amb .mc-nom') && !!D.querySelector('#mcCorps .mc-pl.amb [data-g="regle"]'));
 
-    await touche('#mcCorps .mc-pl.amb .mc-sup');
+    { const n0 = pl().length; await touche('#mcCorps .mc-pl.amb .mc-sup');
+      V('(28/11/2026) un seul toucher sur la croix ne retire rien : elle demande « Retirer ? »', pl().length === n0 && /Retirer \?/.test(txt('#mcCorps .mc-sup.arme')) && !D.querySelector('#mcCorps .mc-undo'));
+      await touche('#mcCorps [data-g="non"], #mcCorps [data-g="form"]');
+      V('… tout autre geste la désarme', !D.querySelector('#mcCorps .mc-sup.arme') && pl().length === n0); }
+    await touche('#mcCorps .mc-pl.amb .mc-sup'); await touche('#mcCorps .mc-sup.arme');
     V('la croix supprime la ligne, avec « Annuler » proposé', pl().pop().op === 'supprimer' && /Ligne supprimée/.test(txt('#mcCorps .mc-undo')) && !D.querySelector('.mc-af'));
     await touche('#mcCorps [data-g="restaurer"]');
     const ea = pl().pop();
@@ -476,7 +480,7 @@ async function page(patlib, modif) {
     V('une ligne déjà réglée à l\'ouverture : rien dans « À faire »', !D.querySelector('.mc-af') && /Rien à faire/.test(txt('.mc-rien')));
     await touche('button.mc-c');
     V('… affichée en vert avec le nom du confrère', /✓ Réglé avec le Dr Hotel/.test(txt('#mcCorps .mc-pl.vert')));
-    await touche('#mcCorps .mc-pl.vert .mc-sup'); await touche('#mcCorps [data-g="restaurer"]');
+    await touche('#mcCorps .mc-pl.vert .mc-sup'); await touche('#mcCorps .mc-sup.arme'); await touche('#mcCorps [data-g="restaurer"]');
     const fin = pl().slice(-2);
     V('supprimée puis annulée : elle revient, et réglée avec le même confrère', fin[0].op === 'ajouter' && fin[1].op === 'confier' && fin[1].a === 'HOTEL' && /✓ Réglé avec le Dr Hotel/.test(txt('#mcCorps .mc-pl.vert')), fin);
   }
@@ -579,7 +583,7 @@ async function page(patlib, modif) {
     V('lignes CPA + saisie : la page s\'ouvre sans erreur', !erreurs.length, erreurs);
     await touche('button.mc-c');
     V('les deux lignes sont là (saisie et CPA, marquée « CPA »)', D.querySelectorAll('#mcCorps .mc-pl').length === 2 && D.querySelectorAll('#mcCorps .mc-tag').length === 1);
-    await touche('#mcCorps .mc-pl:not(.amb) .mc-sup');
+    await touche('#mcCorps .mc-pl:not(.amb) .mc-sup'); await touche('#mcCorps .mc-sup.arme');
     V('supprimer la ligne saisie : la page relit tout (sinon les lignes CPA disparaissent)', envois[envois.length - 1].action === 'getConsultAbsences');
     V('… et la ligne CPA est toujours affichée', D.querySelectorAll('#mcCorps .mc-pl').length === 1 && /CPA/.test(txt('#mcCorps .mc-pl')), txt('#mcCorps').slice(0, 200));
     await touche('#mcCorps .mc-pl.amb [data-g="regle"]');
@@ -587,7 +591,7 @@ async function page(patlib, modif) {
       && /✓ Réglé/.test(txt('#mcCorps .mc-pl.vert')), envois.slice(-2));
     // (28/11/2026) Défaut vu en production : une ligne CPA retirée d'un toucher sur la croix ne pouvait plus revenir
     await touche('#mcCorps [data-g="deregle"]');
-    await touche('#mcCorps .mc-pl.amb .mc-sup');
+    await touche('#mcCorps .mc-pl.amb .mc-sup'); await touche('#mcCorps .mc-sup.arme');
     V('retirer la ligne CPA : elle reste affichée grisée, avec « Remettre »', envois[envois.length - 2].op === 'supprimer'
       && D.querySelectorAll('#mcCorps .mc-pl.ret').length === 1 && !!D.querySelector('#mcCorps .mc-pl.ret [data-g="remettre"]') && /3 patients/.test(txt('#mcCorps .mc-pl.ret'))
       && !D.querySelector('#mcCorps .mc-pl.amb'), txt('#mcCorps').slice(0, 300));

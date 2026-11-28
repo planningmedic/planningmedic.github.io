@@ -224,6 +224,7 @@ button.mc-c:active{background:var(--line-light)}
 .mc-tag{font:700 10px var(--mono);background:#EEF2FF;color:#3730A3;border-radius:6px;padding:2px 6px;margin-left:6px;vertical-align:1px}
 .mc-ok2{color:var(--ok);font-weight:700;font-size:15px}
 .mc-sup{color:var(--ink-4);font-size:20px;background:none;border:0;width:34px;height:34px;flex:none}
+.mc-sup.arme{width:auto;padding:0 10px;font-size:12.5px;font-weight:700;color:#B91C1C;background:#FEF2F2;border:1px solid #FCA5A5;border-radius:10px}
 .mc-avec{color:var(--ok);font-weight:700;font-size:13.5px;margin-top:8px}
 .mc-lien{background:none;border:0;color:var(--ok);font-weight:700;font-size:12.5px;text-decoration:underline;padding:6px 0 0}
 .mc-aj{border:1.5px dashed #93C5FD;border-radius:14px;padding:13px;color:var(--me);font-weight:700;text-align:center;margin-top:4px;background:var(--white);width:100%}
@@ -557,7 +558,7 @@ function nbJours(p){ return p.finIdx - p.debIdx + 1; }
    vois : le serveur ne le sert à personne d'autre. « Réglé autrement » : sans nom.
    Prévenir le secrétariat des consultations reste un appel, hors de l'outil.
    Le verdict (présent / absent) n'est jamais enregistré : recalculé à l'ouverture. */
-let PATIENTS = {}, MC_OUVERTE = null, MC_FORM = false, MC_NB = 1, MC_SUPPR = null, MC_CONF = '', MC_CAL = false, MC_OCCUPE = false, MC_TOAST = null, MC_ANNULER = null;
+let PATIENTS = {}, MC_OUVERTE = null, MC_FORM = false, MC_NB = 1, MC_SUPPR = null, MC_SUPCONF = '', MC_CONF = '', MC_CAL = false, MC_OCCUPE = false, MC_TOAST = null, MC_ANNULER = null;
 const cleCons = c => c.date+'|'+c.per+'|'+c.mar;
 const mcEsc = s => String(s == null ? '' : s).replace(/[&<>"]/g, x => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[x]));
 const mcPl = (n, mot) => n+' '+mot+(n>1?'s':'');
@@ -742,7 +743,9 @@ function mcFeuille(){
   patDe(c).forEach(p => {
     const a = absentLeJour(MOI, p.bloc), pid = mcEsc(p.id);
     const tete = mcJour(p.bloc)+'<div class="mc-m"><b>'+mcPl(p.nb,'patient')+(p.cpa ? '<span class="mc-tag">CPA</span>' : '')+'</b><span>Opéré'+(p.nb>1?'s':'')+' ce jour-là · ';
-    const X = '<button type="button" class="mc-sup" data-g="suppr" data-p="'+pid+'" aria-label="Supprimer la ligne">×</button>';
+    // (28/11/2026) Deux touchers : le 1er arme la croix (« Retirer ? »), le 2e retire — contre le toucher de travers
+    const X = MC_SUPCONF === p.id ? '<button type="button" class="mc-sup arme" data-g="suppr" data-p="'+pid+'" aria-label="Confirmer : retirer la ligne">Retirer ?</button>'
+      : '<button type="button" class="mc-sup" data-g="suppr" data-p="'+pid+'" aria-label="Supprimer la ligne">×</button>';
     if(!a) h += '<div class="mc-pl"><div class="ligne">'+tete+'vous êtes là</span></div><span class="mc-ok2">✓</span>'+X+'</div></div>';
     else if(p.confieA) h += '<div class="mc-pl vert"><div class="ligne">'+tete+'vous serez '+mcSera(a)+'</span></div>'+X+'</div>'
       + '<div class="mc-avec">✓ Réglé'+(p.confieA !== '-' ? ' avec le '+mcEsc(nomDe(p.confieA)) : '')+'</div>'
@@ -760,9 +763,9 @@ function mcFeuille(){
       + '<div class="mc-err" id="mcErr"></div><div class="mc-btns"><button type="button" class="mc-b bleu" data-g="ajouter">Ajouter</button></div></div>'; }
   document.getElementById('mcCorps').innerHTML = h+'<p class="mc-mention">Aucun nom de patient n\'est enregistré.</p>';
 }
-function mcOuvrir(k){ if(!DATA.patlib || !mcCons(k)) return; MC_OUVERTE = k; MC_FORM = false; MC_NB = 1; MC_SUPPR = null; mcFeuille();
+function mcOuvrir(k){ if(!DATA.patlib || !mcCons(k)) return; MC_OUVERTE = k; MC_FORM = false; MC_NB = 1; MC_SUPPR = null; MC_SUPCONF = ''; mcFeuille();
   document.getElementById('mcVoile').classList.add('open'); document.getElementById('mcFeuille').classList.add('open'); }
-function mcFermer(){ MC_OUVERTE = null; MC_SUPPR = null; document.getElementById('mcVoile').classList.remove('open'); document.getElementById('mcFeuille').classList.remove('open'); }
+function mcFermer(){ MC_OUVERTE = null; MC_SUPPR = null; MC_SUPCONF = ''; document.getElementById('mcVoile').classList.remove('open'); document.getElementById('mcFeuille').classList.remove('open'); }
 
 function rendreMar(){
   document.getElementById('zone').innerHTML = '<div class="mc">'+mcAFaire()
@@ -854,6 +857,7 @@ async function mcSecteur(k, prendre){
 document.addEventListener('click', function(ev){
   const b = ev.target && ev.target.closest && ev.target.closest('[data-g]'); if(!b || ROLE !== 'mar' || !DATA) return;
   const d = b.dataset;
+  if(MC_SUPCONF && d.g !== 'suppr'){ MC_SUPCONF = ''; if(MC_OUVERTE) mcFeuille(); }   // tout autre geste désarme la croix
   switch(d.g){
     case 'ouvrir':   mcOuvrir(d.c); break;
     case 'cal':      MC_CAL = !MC_CAL; rendreMar(); break;
@@ -868,7 +872,7 @@ document.addEventListener('click', function(ev){
     case 'form':     MC_FORM = true; MC_NB = 1; MC_SUPPR = null; mcFeuille(); break;
     case 'nb':       MC_NB = Math.max(1, Math.min(9, MC_NB + Number(d.v))); document.getElementById('mcNb').textContent = MC_NB; break;
     case 'ajouter':  mcAjouter(); break;
-    case 'suppr':    mcSupprimer(d.p); break;
+    case 'suppr':    if(MC_SUPCONF === d.p){ MC_SUPCONF = ''; mcSupprimer(d.p); } else { MC_SUPCONF = d.p; mcFeuille(); } break;
     case 'restaurer':mcRestaurer(); break;
     case 'remettre': mcRemettre(d.p); break;
     case 'fermer':   mcFermer(); break;
