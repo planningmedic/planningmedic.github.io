@@ -10,9 +10,9 @@
 <title>Staff Vacances — Planning-Med</title>
 <link rel="icon" type="image/svg+xml" href="assets/favicon.svg">
 <link rel="stylesheet" href="assets/fonts/polices.css">
-<link rel="stylesheet" href="partage/theme.css">   <!-- (14/09/2026) palette commune -->
+<link rel="stylesheet" href="partage/theme.css?r=2">   <!-- (14/09/2026) palette commune -->
 <style>
-:root{--red-dk:#A50E1F;--ll:#F1F5F9;--radius:10px;--shadow:0 1px 4px rgba(0,0,0,.06);--shadow-lg:0 16px 48px rgba(0,0,0,.16);--vac-bg:#DBEAFE;--vac-brd:#93C5FD;--form-bg:#F3E8FF;--form-fg:#7C3AED;--form-brd:#C4B5FD;--ok-bg:#DCFCE7;--ok-fg:#166534;--warn-bg:#FEF9C3;--warn-fg:#92400E;--hot-bg:#FEE2E2;--hot-fg:#991B1B;}
+:root{--red-dk:#A50E1F;--ll:#F1F5F9;--radius:10px;--shadow:0 1px 4px rgba(0,0,0,.06);--shadow-lg:0 16px 48px rgba(0,0,0,.16);--vac-bg:#DBEAFE;--vac-brd:#93C5FD;--form-bg:var(--st-f-bg);--form-fg:var(--st-f-fg);--form-brd:#FDE68A;--ok-bg:#DCFCE7;--ok-fg:#166534;--warn-bg:#FFEDD5;--warn-fg:#9A3412;--hot-bg:#FEE2E2;--hot-fg:#991B1B;}
 *{box-sizing:border-box;margin:0;padding:0;}
 body{font-family:'DM Sans',system-ui,sans-serif;background:var(--bg);color:var(--ink);-webkit-font-smoothing:antialiased;min-height:100vh;}
 .auth-overlay{position:fixed;inset:0;background:linear-gradient(140deg,#0F172A 0%,#1a0508 100%);display:flex;align-items:center;justify-content:center;z-index:999;}
@@ -202,7 +202,7 @@ body{font-family:'DM Sans',system-ui,sans-serif;background:var(--bg);color:var(-
     <div class="legend">
       <span style="font-size:11px;font-weight:700;color:var(--ink-3);">TENSION :</span>
       <span class="legend-item"><span style="width:12px;height:12px;border-radius:3px;background:var(--ok-bg);border:1px solid #86EFAC;display:inline-block;"></span>OK</span>
-      <span class="legend-item"><span style="width:12px;height:12px;border-radius:3px;background:var(--warn-bg);border:1px solid #FDE047;display:inline-block;"></span>Proche seuil</span>
+      <span class="legend-item"><span style="width:12px;height:12px;border-radius:3px;background:var(--warn-bg);border:1px solid #FDBA74;display:inline-block;"></span>Proche seuil</span>
       <span class="legend-item"><span style="width:12px;height:12px;border-radius:3px;background:var(--hot-bg);border:1px solid #FCA5A5;display:inline-block;"></span>Saturé</span>
       <span style="margin-left:12px;font-size:11px;font-weight:700;color:var(--ink-3);">WEEK-ENDS :</span>
       <span class="legend-item" style="font-size:11px;">le chiffre est le nombre de médecins encore disponibles pour la garde — il en faut <strong>4</strong> (deux le samedi, deux le dimanche)</span>

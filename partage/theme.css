@@ -9,7 +9,16 @@
    à celles qui appellent applyTheme() du socle. L'accueil, le planning et crh
    gardent leur bloc sombre complet (mêmes valeurs pour ces 11-là, plus les
    leurs).
-   Chargé par <link rel="stylesheet" href="partage/theme.css"> avant <style>. */
+   Chargé par <link rel="stylesheet" href="partage/theme.css?r=2"> avant <style>.
+
+   RÉVISION 2 (28/11/2026) — DÉFAUT TROUVÉ EN PRODUCTION. Le jour de l'en-tête commun,
+   une page neuve s'est affichée avec la feuille d'AVANT gardée en mémoire par le
+   navigateur : le retour en lien bleu souligné, le logo au milieu de l'écran. La page
+   arrive toujours du réseau, la feuille pas toujours (réseau lent : la copie sert de
+   secours). Le « ?r=N » de l'adresse règle cela : une adresse nouvelle n'a pas de
+   copie, la feuille vient donc du réseau avec la page. MONTER N, ici et dans toutes
+   les pages, chaque fois qu'une page se met à dépendre d'une règle nouvelle de ce
+   fichier. Le banc refuse deux pages à des révisions différentes. */
 :root {
   --bg: #F8FAFC;
   --ink: #0F172A;

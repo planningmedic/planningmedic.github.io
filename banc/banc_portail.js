@@ -253,7 +253,7 @@ function fenetre(opts) {
     for (const page of ['index.html', 'planning.html', 'indispos.html', 'absences.html', 'suivi-liberal.html', 'staff.html', 'admin.html', 'crh.html']) {
       const src = fs.readFileSync(path.join(__dirname, '..', page), 'utf8');
       const css = (src.match(/<style[^>]*>[\s\S]*?<\/style>/g) || []).join('\n');
-      const lien = src.indexOf('href="partage/theme.css"');
+      const lien = src.indexOf('href="partage/theme.css?r=');   // (28/11/2026) l'adresse porte la révision de la feuille
       V(page + ' : charge theme.css avant sa propre feuille', lien > 0 && lien < src.indexOf('<style'));
       let redite = [];
       (css.match(/:root\s*\{[^{}]*\}/g) || []).forEach(b => (b.match(/--[a-z0-9-]+\s*:\s*[^;]+;/g) || []).forEach(d => {
@@ -338,9 +338,11 @@ function fenetre(opts) {
       const h = entete(p);
       V(p + ' : porte l\'en-tête commun, une seule fois', (src[p].match(/class="header pm-h"/g) || []).length === 1 && h.length > 0);
       const retours = h.match(/class="[^"]*\bpm-retour\b[^"]*"/g) || [];
-      V(p + ' : un seul retour, placé avant le logo', retours.length === 1 && h.indexOf('pm-retour') < h.indexOf('header-flag') && (src[p].match(/\bpm-retour\b[^"]*"/g) || []).length === 1, retours);
+      /* (28/11/2026, décision du responsable) L'admin est une page de PC : pas de bouton retour. */
+      if (p === 'admin.html') V(p + ' : page de PC, aucun bouton retour', retours.length === 0 && !/pm-retour/.test(src[p]) && h.indexOf('header-flag') > 0 && h.indexOf('header-flag') < h.indexOf('header-right'));
+      else V(p + ' : un seul retour, placé avant le logo', retours.length === 1 && h.indexOf('pm-retour') < h.indexOf('header-flag') && (src[p].match(/\bpm-retour\b[^"]*"/g) || []).length === 1, retours);
       V(p + ' : le titre dit où l\'on est, « Planning-Med » dessous', new RegExp('class="header-title"[^>]*>' + PAGES[p] + '<').test(h) && (p === 'index.html' ? /class="header-sub"[^>]*>Anesthésie-Réa</.test(h) : /class="header-sub"[^>]*>Planning-Med/.test(h)), h.slice(0, 300));
-      if (p !== 'index.html') V(p + ' : le retour ramène à l\'accueil', /<a [^>]*href="index\.html"[^>]*pm-retour|<a [^>]*pm-retour[^>]*href="index\.html"/.test(h));
+      if (p !== 'index.html' && p !== 'admin.html') V(p + ' : le retour ramène à l\'accueil', /<a [^>]*href="index\.html"[^>]*pm-retour|<a [^>]*pm-retour[^>]*href="index\.html"/.test(h));
       V(p + ' : le bouton clair/sombre n\'existe que si la page a un mode sombre', /pm-theme/.test(h) === /cycleTheme\(\)/.test(src[p]));
     }
     V('accueil : le retour est caché tant qu\'aucune vue n\'est ouverte', /<button type="button" class="pm-retour" id="pmRetour"[^>]* hidden>/.test(src['index.html']));
@@ -373,9 +375,24 @@ function fenetre(opts) {
     d.getElementById('portal').style.display = 'none'; d.getElementById('aView').style.display = 'block'; w.eval('enteteSync()');
     V('portail fermé (écran de connexion) : jamais de retour', d.getElementById('pmRetour').hidden === true);
     V('l\'en-tête suit seul ce qui s\'affiche (aucune vue n\'a à le prévenir)', /new MutationObserver\(plus_tard\)\.observe\(p, \{ subtree:true, childList:true, characterData:true, attributes:true, attributeFilter:\['style'\] \}\)/.test(src['index.html']));
-    let av = null; try { av = { ad: execSync('git show 0cec0d3:admin.html', { cwd: racine, encoding: 'utf8', maxBuffer: 64e6 }), ind: execSync('git show 0cec0d3:indispos.html', { cwd: racine, encoding: 'utf8', maxBuffer: 64e6 }) }; } catch (e) {}
+    let av = null; try { av = { ind: execSync('git show 0cec0d3:indispos.html', { cwd: racine, encoding: 'utf8', maxBuffer: 64e6 }) }; } catch (e) {}
     if (!av) V('version d\'avant lisible dans l\'historique (clone complet requis)', false);
-    else V('contre-preuve : avant, l\'admin n\'avait aucun retour à l\'accueil et les indisponibilités aucun retour en haut de page', !/href="index\.html"/.test((av.ad.match(/<div class="header">[\s\S]*?<div class="header-right">[\s\S]*?<\/div>\n<\/div>/) || [''])[0]) && !/href="index\.html"/.test((av.ind.match(/<header class="header">[\s\S]*?<\/header>/) || [''])[0]) && /<header class="header">/.test(av.ind));
+    else V('contre-preuve : avant, les indisponibilités n\'avaient aucun retour en haut de page', !/href="index\.html"/.test((av.ind.match(/<header class="header">[\s\S]*?<\/header>/) || [''])[0]) && /<header class="header">/.test(av.ind));
+    /* DÉFAUT TROUVÉ EN PRODUCTION (28/11/2026) : la page neuve affichée avec la feuille d'avant
+       (retour en lien bleu, logo au milieu). L'adresse de la feuille porte une révision : une
+       adresse nouvelle n'a pas de copie en mémoire, la feuille arrive donc avec la page. */
+    const rev = (theme.match(/RÉVISION (\d+) \(/) || [])[1];
+    const toutes = fs.readdirSync(racine).filter(f => /\.html$/.test(f)).map(f => [f, fs.readFileSync(path.join(racine, f), 'utf8')]).filter(x => /partage\/theme\.css/.test(x[1].replace(/<!--[\s\S]*?-->/g, '')));
+    const revs = toutes.map(x => [x[0], (x[1].match(/href="partage\/theme\.css\?r=(\d+)"/) || [])[1]]);
+    V('la feuille commune est appelée avec sa révision, la même sur les ' + toutes.length + ' pages et dans la feuille', !!rev && toutes.length >= 11 && revs.every(x => x[1] === rev), { rev, revs: revs.filter(x => x[1] !== rev) });
+    V('aucune page n\'appelle plus la feuille sans révision', toutes.every(x => !/href="partage\/theme\.css"/.test(x[1])));
+    let avTheme = null; try { avTheme = execSync('git show a9c5d86:admin.html', { cwd: racine, encoding: 'utf8', maxBuffer: 64e6 }); } catch (e) {}
+    if (!avTheme) V('version d\'avant lisible dans l\'historique (clone complet requis)', false);
+    else V('contre-preuve : le jour de l\'en-tête commun, l\'adresse de la feuille n\'avait pas changé (la copie d\'avant pouvait servir)', /href="partage\/theme\.css"/.test(avTheme));
+    /* Deux alignements de couleur décidés par le responsable le 28/11. */
+    const stf = fs.readFileSync(path.join(racine, 'staff.html'), 'utf8');
+    V('staff vacances : la formation est jaune, « proche du seuil » passe à l\'orange', /--form-bg:var\(--st-f-bg\);--form-fg:var\(--st-f-fg\)/.test(stf) && /--warn-bg:#FFEDD5/.test(stf) && !/--warn-bg:#FEF9C3/.test(stf) && !/--form-fg:#7C3AED/.test(stf));
+    V('accueil : le prochain 18 h de la carte « Prochaine garde » est orange, plus vert', /--riv-18:#C2560C/.test(src['index.html']) && /--riv-18:#F5A35C/.test(src['index.html']) && !/--riv-18:#15803D/.test(src['index.html']));
   }
   console.log('\n═══ Deux défauts de lisibilité (28/11/2026) ═══');
   /* Vus sur captures pendant la revue d'interface : (1) en mode sombre, la carte « Cette nuit » du

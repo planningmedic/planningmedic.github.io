@@ -35,7 +35,7 @@ pourrait même plus taper son code. On retombe alors sur le comportement d'avant
 le temps de l'onglet — au lieu de planter. Jamais de mémoire longue ici : mieux vaut retaper
 son code que le voir retenu par un filet dont personne ne vérifie l'échéance. */
 window.SessionPortail = window.SessionPortail || { lire:function(){try{return sessionStorage.getItem('pmViewCode')||'';}catch(e){return '';}}, memoriser:function(c){try{sessionStorage.setItem('pmViewCode',c);}catch(e){}}, oublier:function(){try{sessionStorage.removeItem('pmViewCode');}catch(e){}}, estInstallee:function(){return false;}, joursRestants:function(){return null;}, DUREE_JOURS:0 };</script>
-<link rel="stylesheet" href="partage/theme.css">   <!-- (14/09/2026) palette commune -->
+<link rel="stylesheet" href="partage/theme.css?r=2">   <!-- (14/09/2026) palette commune -->
 <style>
 /* polices chargees via <link> (perf : @import bloquant supprime) */
 
@@ -950,12 +950,12 @@ html[data-theme="dark"] .ech-tuile.ouverture .ech-reflet { background:linear-gra
 :root { --riv-h1:#7CC4F0; --riv-h2:#BFE3F7; --riv-hr:rgba(206,17,38,.16);
   --riv-verre:rgba(255,255,255,.80); --riv-bord:rgba(255,255,255,.95); --riv-ombre:0 4px 14px rgba(30,80,140,.08);
   --riv-hero:linear-gradient(135deg,rgba(255,255,255,.95),rgba(255,255,255,.72)); --riv-hero-ombre:0 10px 30px rgba(30,80,140,.14);
-  --riv-k:#B45309; --riv-18:#15803D; --riv-entete:rgba(248,250,252,.62);
+  --riv-k:#B45309; --riv-18:#C2560C; --riv-entete:rgba(248,250,252,.62);
   --tt-turq:#CFFAFE; --tt-turq-i:#0E7490; }
 html[data-theme="dark"] { --riv-h1:#2A5FA8; --riv-h2:#13254A; --riv-hr:rgba(206,17,38,.32);
   --riv-verre:rgba(255,255,255,.05); --riv-bord:rgba(255,255,255,.09); --riv-ombre:none;
   --riv-hero:linear-gradient(135deg,rgba(255,255,255,.13),rgba(255,255,255,.04)); --riv-hero-ombre:none;
-  --riv-k:#FFCF74; --riv-18:#6EE7A8; --riv-entete:rgba(11,18,32,.55);
+  --riv-k:#FFCF74; --riv-18:#F5A35C; --riv-entete:rgba(11,18,32,.55);
   --tt-turq:#0E2A30; --tt-turq-i:#67E8F9; }
 body { background:radial-gradient(120% 340px at 85% -60px, var(--riv-h1) 0%, var(--riv-h2) 45%, transparent 75%) no-repeat,
   radial-gradient(60% 260px at 0% 0, var(--riv-hr), transparent 70%) no-repeat, var(--bg); }

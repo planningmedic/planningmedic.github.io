@@ -27,7 +27,7 @@ le temps de l'onglet — au lieu de planter. Jamais de mémoire longue ici : mie
 son code que le voir retenu par un filet dont personne ne vérifie l'échéance. */
 window.SessionPortail = window.SessionPortail || { lire:function(){try{return sessionStorage.getItem('pmViewCode')||'';}catch(e){return '';}}, memoriser:function(c){try{sessionStorage.setItem('pmViewCode',c);}catch(e){}}, oublier:function(){try{sessionStorage.removeItem('pmViewCode');}catch(e){}}, estInstallee:function(){return false;}, joursRestants:function(){return null;}, DUREE_JOURS:0 };</script>
 <script src="assets/vendor/lucide-icons.js"></script>   <!-- (27/11/2026) icônes en local, comme l'accueil : la bibliothèque entière (758 Ko) venait d'un site extérieur et bloquait l'affichage -->
-<link rel="stylesheet" href="partage/theme.css">   <!-- (14/09/2026) palette commune -->
+<link rel="stylesheet" href="partage/theme.css?r=2">   <!-- (14/09/2026) palette commune -->
 <style>
 /* polices chargées via <link> (perf : @import bloquant supprimé) */
 

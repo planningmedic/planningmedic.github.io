@@ -623,6 +623,22 @@ les cases valant exactement `CL`.
   les bords (anciennes marges négatives) — la barre rentre dans la page. Le titre coupé du planning
   des absences sur téléphone n'est PAS corrigé : décision du responsable, cette page ne sert que
   sur PC.
+  Puis v2.15.2 : DÉFAUT TROUVÉ EN PRODUCTION par le responsable — l'admin affiché avec le nouvel
+  en-tête mais l'ANCIENNE feuille de style gardée en mémoire (retour en lien bleu souligné, logo
+  au milieu de l'écran). Reproduit à l'identique en servant l'ancienne partage/theme.css à la page
+  neuve. Cause : la page vient toujours du réseau, la feuille pas toujours (réseau lent : la copie
+  sert de secours au bout de 4 s). Correctif : l'adresse de la feuille porte une révision
+  (theme.css?r=2, 11 pages) — une adresse nouvelle n'a pas de copie. RÈGLE : monter la révision
+  chaque fois qu'une page se met à dépendre d'une règle nouvelle de la feuille (le banc refuse deux
+  pages à des révisions différentes). Décisions du responsable le même jour : l'admin n'a PAS de
+  bouton retour (page de PC) ; staff vacances — formation en jaune, « proche du seuil » en orange ;
+  accueil — le prochain 18 h de la carte « Prochaine garde » en orange ; congé long gardé en gris
+  ardoise. Reste ouvert : une déconnexion dans l'admin (accord donné, à faire).
+  CHANTIER SUIVANT (demande du 28/11) : revue de fond, pas seulement visuelle — suivre tous les
+  parcours de bout en bout (vacances, TP, bourse, placement et publication, récupérations,
+  consultations, arrivée d'un MAR) et dire si chaque information est dans le bon onglet, si la
+  présentation est logique, ce qui est redondant. Livrable : un document classé, aucun code avant
+  le choix du responsable.
 - **27/11/2026** — Répétition générale de la clôture 2026 (détail : document du projet Claude
   `claude/repetition-cloture-2026-11-27.md`), puis deux correctifs (v2.12.3). Clôture jouée sur un
   classeur fictif à la forme du vrai, puis 630 appels serveur, 11 tâches programmées, 1 000 gestes au
