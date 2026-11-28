@@ -65,7 +65,7 @@ body {
 /* (17/08/2026) La pastille du MAR ouvre la deconnexion, exactement comme sur — récit : docs/JOURNAL-Planning-Med.md §57 */
 .header-user[data-deco] { cursor:pointer; }
 .header-user .hu-out { opacity:.55; margin-left:5px; vertical-align:-2px; }
-.header-user[data-deco]:hover { color:#fff; }
+.header-user[data-deco]:hover { filter:brightness(.97); }
 .header-user[data-deco]:hover .hu-out { opacity:1; }
 
 /* ── LOGIN ── */
@@ -632,13 +632,24 @@ html[data-theme="dark"]{ --vcx:#7BAAF7; --vcx-pale:#152341; }
 <body>
 
 <!-- HEADER -->
-<header class="header">
+<!-- (28/11/2026) EN-TÊTE COMMUN (partage/theme.css, .pm-h) : le bandeau rouge laisse la place à
+     l'en-tête de toutes les pages — retour en haut à gauche (il n'existait qu'en bas de page),
+     nom de l'endroit, aide, thème, compte. Vaut pour les trois écrans de cette page :
+     indisponibilités, pose des vacances (?vac=1), pose des temps partiels (?tp=1). -->
+<header class="header pm-h">
+  <a href="index.html" class="pm-retour" id="btnPortail" title="Retour à l'accueil" aria-label="Retour à l'accueil">Retour</a>
   <div class="header-brand">
     <div class="header-flag"><img src="assets/logo.png" alt="" style="width:100%;height:100%;object-fit:cover;display:block"></div>
-    <span class="header-title">Mes indisponibilités</span>
+    <div class="pm-titre">
+      <span class="header-title">Mes indisponibilités</span>
+      <span class="header-sub">Planning-Med</span>
+    </div>
   </div>
-  <span class="header-user" id="headerUser"></span>
-  <button class="theme-btn" id="themeBtn" onclick="cycleTheme()" title="Thème" aria-label="Thème">🌗</button>
+  <div class="header-right">
+    <a href="./docs/guide-mar.html" class="pm-b pm-aide" title="Guide du MAR — mode d'emploi" aria-label="Aide">?</a>
+    <button class="theme-btn pm-b pm-theme" id="themeBtn" onclick="cycleTheme()" title="Thème" aria-label="Thème">🌗</button>
+    <span class="header-user pm-compte" id="headerUser"></span>
+  </div>
 </header>
 
 <!-- LOGIN -->
@@ -967,7 +978,7 @@ async function doLogin(codeAuto, silencieux) {
       currentCode = code;
       document.getElementById('loginScreen').style.display = 'none';
       document.getElementById('app').style.display = 'block';
-      _poserPastilleUser(mb.identite.name || mb.identite.id);
+      _poserPastilleUser(mb.identite.initials || mb.identite.id || mb.identite.name);
       indispos = mb.indispos || {};
       SessionPortail.memoriser(code);
       /* (25/11/2026) Le verrou part de la copie rapide, avant le premier dessin. */
@@ -999,7 +1010,7 @@ async function doLogin(codeAuto, silencieux) {
         currentCode = code;
         document.getElementById('loginScreen').style.display = 'none';
         document.getElementById('app').style.display = 'block';
-        _poserPastilleUser(res.name || res.id);
+        _poserPastilleUser(res.initials || res.id || res.name);
         SessionPortail.memoriser(code);
         await loadIndispos();
         await loadVacConfig();
@@ -2137,7 +2148,7 @@ async function tpxBoot(code, silencieux) {
   document.getElementById('loginScreen').style.display = 'none';
   const ht = document.querySelector('.header-title');
   if (ht) ht.textContent = 'Mon temps partiel';
-  _poserPastilleUser(identite.name || identite.id);
+  _poserPastilleUser(identite.initials || identite.id || identite.name);
   if (!cle) {
     const r = await apiCall('getPoseTp');
     if (r && r.success && !r.ferme) {
@@ -2839,7 +2850,7 @@ async function vcxBoot(code, silencieux) {
   currentUser = identite; currentCode = code; SessionPortail.memoriser(code);
   document.getElementById('loginScreen').style.display = 'none';
   const ht = document.querySelector('.header-title'); if (ht) ht.textContent = 'Mes vacances';
-  _poserPastilleUser(identite.name || identite.id);
+  _poserPastilleUser(identite.initials || identite.id || identite.name);
   if (!cles.length) {
     const r = await apiCall('getPoseTp');
     if (r && r.success && !r.ferme) {

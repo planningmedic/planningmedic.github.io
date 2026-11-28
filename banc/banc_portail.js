@@ -318,6 +318,65 @@ function fenetre(opts) {
     if (!av) V('version d\'avant lisible dans l\'historique (clone complet requis)', false);
     else V('contre-preuve : avant, pas de palette commune, la Réa et la Mater avaient la même étiquette au planning, et TP et formation le même orangé', !/--st-g:/.test(av.th) && !/name-tag\.guard2/.test(av.pl) && /--cat-form-bg:#FDF3E3/.test(av.idx) && /--cat-tp-bg:#FEF3C7/.test(av.idx));
   }
+  console.log('\n═══ Un seul en-tête, un seul retour (28/11/2026) ═══');
+  /* Demande du responsable (maquette validée) : quatre en-têtes et cinq façons de revenir
+     en arrière (flèche collée au logo, bouton « Retour » dans la page, lien « Retour au
+     portail », retour tout en bas de page, ou rien du tout — l'admin). Désormais le même
+     en-tête partout : retour en haut à gauche, nom de l'endroit, puis aide, thème, compte. */
+  {
+    const racine = path.join(__dirname, '..');
+    const { execSync } = require('child_process'); const { JSDOM } = require('jsdom');
+    const theme = fs.readFileSync(path.join(racine, 'partage', 'theme.css'), 'utf8');
+    V('l\'en-tête commun est écrit une fois, dans theme.css', /\.header\.pm-h \{[^}]*min-height: 56px/.test(theme) && /\.header\.pm-h \.pm-retour \{[^}]*width: 36px; height: 36px/.test(theme) && /\.header\.pm-h \.pm-b \{[^}]*width: 36px; height: 36px/.test(theme));
+    V('les boutons de droite ont un ordre unique : cloche, aide, thème, compte, déconnexion', /\.pm-cloche \{ order: 1; \}[^\n]*\.pm-aide \{ order: 2; \}[^\n]*\.pm-theme \{ order: 3; \}[^\n]*\.pm-compte \{ order: 4; \}[^\n]*\.pm-sortir \{ order: 5; \}/.test(theme));
+    const PAGES = { 'index.html': 'Planning-Med', 'planning.html': 'Planning', 'indispos.html': 'Mes indisponibilités', 'absences.html': 'Consultations à venir', 'paie.html': 'Planning des absences',
+      'staff.html': 'Staff vacances', 'maintenance.html': 'Maintenance', 'admin.html': 'Administration', 'suivi-liberal.html': 'Suivi libéral', 'crh.html': 'Comptes rendus de réa' };
+    const src = {}; Object.keys(PAGES).forEach(p => { src[p] = fs.readFileSync(path.join(racine, p), 'utf8'); });
+    /* L'en-tête d'une page : de son ouverture à la fermeture écrite au même retrait. */
+    const entete = p => { const m = src[p].match(/\n( *)<(div|header) class="header pm-h"/); if (!m) return ''; const i = src[p].indexOf(m[0]), f = '\n' + m[1] + '</' + m[2] + '>\n', j = src[p].indexOf(f, i + 1); return j < 0 ? '' : src[p].slice(i, j + f.length); };
+    for (const p of Object.keys(PAGES)) {
+      const h = entete(p);
+      V(p + ' : porte l\'en-tête commun, une seule fois', (src[p].match(/class="header pm-h"/g) || []).length === 1 && h.length > 0);
+      const retours = h.match(/class="[^"]*\bpm-retour\b[^"]*"/g) || [];
+      V(p + ' : un seul retour, placé avant le logo', retours.length === 1 && h.indexOf('pm-retour') < h.indexOf('header-flag') && (src[p].match(/\bpm-retour\b[^"]*"/g) || []).length === 1, retours);
+      V(p + ' : le titre dit où l\'on est, « Planning-Med » dessous', new RegExp('class="header-title"[^>]*>' + PAGES[p] + '<').test(h) && (p === 'index.html' ? /class="header-sub"[^>]*>Anesthésie-Réa</.test(h) : /class="header-sub"[^>]*>Planning-Med/.test(h)), h.slice(0, 300));
+      if (p !== 'index.html') V(p + ' : le retour ramène à l\'accueil', /<a [^>]*href="index\.html"[^>]*pm-retour|<a [^>]*pm-retour[^>]*href="index\.html"/.test(h));
+      V(p + ' : le bouton clair/sombre n\'existe que si la page a un mode sombre', /pm-theme/.test(h) === /cycleTheme\(\)/.test(src[p]));
+    }
+    V('accueil : le retour est caché tant qu\'aucune vue n\'est ouverte', /<button type="button" class="pm-retour" id="pmRetour"[^>]* hidden>/.test(src['index.html']));
+    V('accueil : le bouton « Retour » et le titre de chaque vue ne s\'affichent plus dans la page', /\.topos-head > \.btn-back, \.topos-head > h2 \{ display:none; \}/.test(src['index.html']) && (src['index.html'].match(/<button class="btn-back"/g) || []).length >= 9);
+    V('plus de lien « Retour au portail » posé sous l\'en-tête (consultations, absences, comptes rendus, suivi)', ['absences.html', 'paie.html', 'crh.html', 'suivi-liberal.html'].every(p => !/Retour au portail<\/(a|span)>/.test(src[p]) && !/class="btn-back" href="index\.html"/.test(src[p])));
+    V('plus de « Déconnexion » en toutes lettres : c\'est l\'icône du compte', ['absences.html', 'paie.html', 'maintenance.html', 'suivi-liberal.html'].every(p => /class="[^"]*pm-sortir[^"]*" id="btnOut"[^>]*aria-label="Se déconnecter"/.test(src[p])) && /\.pm-sortir \{ font-size: 0;/.test(theme));
+    V('le secrétariat et la paie n\'ont toujours pas de retour (ils n\'ont pas de portail) : c\'est le même élément qu\'avant', /id="lnkBack"/.test(entete('absences.html')) && /id="lnkBack"/.test(entete('paie.html')) && /getElementById\('lnkBack'\)\.style\.display = \(ROLE === 'secretariat'\) \? 'none' : ''/.test(src['absences.html']) && /getElementById\('lnkBack'\)\.style\.display = \(ROLE === 'paie'\) \? 'none' : ''/.test(src['paie.html']));
+    V('indisponibilités : plus de bandeau rouge ; pose des vacances et des TP gardent leur titre', !/class="header"/.test(src['indispos.html']) && /ht\.textContent = 'Mon temps partiel'/.test(src['indispos.html']) && /ht\.textContent = 'Mes vacances'/.test(src['indispos.html']));
+    V('la pastille du compte montre les initiales, comme sur l\'accueil', (src['indispos.html'].match(/_poserPastilleUser\([a-z.]*initials \|\| /gi) || []).length === 4 && /r\.initials \|\| r\.moi/.test(src['absences.html']));
+    V('le chapeau de Noël suit le logo du nouvel en-tête', /\.noel \.header\.pm-h \.noel-chapeau\{/.test(fs.readFileSync(path.join(racine, 'partage', 'noel.js'), 'utf8')) && entete('index.html').indexOf('pm-retour') < entete('index.html').indexOf('header-brand'));
+    /* Le comportement, sur l'accueil : le VRAI code de index.html dans une petite page. */
+    const fn = n => { const m = src['index.html'].match(new RegExp('function ' + n + '\\(\\)\\{[\\s\\S]*?\\n\\}')); return m ? m[0] : ''; };
+    const dom = new JSDOM('<div class="header pm-h"><button id="pmRetour" hidden></button><div id="pmTitre">Planning-Med</div><div id="pmSous">Anesthésie-Réa</div></div>'
+      + '<div id="portal"><div id="tilesView"></div>'
+      + '<div id="aView" style="display:none"><div class="topos-head"><button class="btn-back" data-v="liste"></button><h2>Mes gardes</h2></div></div>'
+      + '<div id="bView" style="display:none"><div class="topos-head"><button class="btn-back" data-v="fiche"></button><h2 id="t2">Fiches pratiques</h2></div></div></div>', { runScripts: 'outside-only' });
+    const w = dom.window, d = w.document;
+    d.querySelectorAll('.btn-back').forEach(b => b.addEventListener('click', () => { w.__clic = b.getAttribute('data-v'); }));
+    w.eval('var __home=0; function backToHome(){ __home++; }\n' + fn('enteteVue') + '\n' + fn('enteteSync') + '\n' + fn('enteteRetour'));
+    w.eval('enteteSync()');
+    V('accueil, aucune vue ouverte : pas de retour, « Planning-Med · Anesthésie-Réa »', d.getElementById('pmRetour').hidden === true && d.getElementById('pmTitre').textContent === 'Planning-Med' && d.getElementById('pmSous').textContent === 'Anesthésie-Réa');
+    d.getElementById('aView').style.display = 'block'; w.eval('enteteSync()');
+    V('une vue s\'ouvre : le retour apparaît, l\'en-tête prend le titre de la vue', d.getElementById('pmRetour').hidden === false && d.getElementById('pmTitre').textContent === 'Mes gardes' && d.getElementById('pmSous').textContent === 'Planning-Med');
+    w.eval('enteteRetour()');
+    V('le retour de l\'en-tête actionne le retour de la vue affichée', w.__clic === 'liste');
+    d.getElementById('aView').style.display = 'none'; d.getElementById('bView').style.display = 'block'; d.getElementById('t2').textContent = 'Douleur'; w.eval('enteteSync(); enteteRetour()');
+    V('dans une fiche ouverte, l\'en-tête suit le titre et le retour ramène à la liste, pas à l\'accueil', d.getElementById('pmTitre').textContent === 'Douleur' && w.__clic === 'fiche' && w.eval('__home') === 0);
+    d.getElementById('bView').style.display = 'none'; w.eval('enteteSync()');
+    V('retour à l\'accueil : le retour disparaît, le titre redevient « Planning-Med »', d.getElementById('pmRetour').hidden === true && d.getElementById('pmTitre').textContent === 'Planning-Med');
+    d.getElementById('portal').style.display = 'none'; d.getElementById('aView').style.display = 'block'; w.eval('enteteSync()');
+    V('portail fermé (écran de connexion) : jamais de retour', d.getElementById('pmRetour').hidden === true);
+    V('l\'en-tête suit seul ce qui s\'affiche (aucune vue n\'a à le prévenir)', /new MutationObserver\(plus_tard\)\.observe\(p, \{ subtree:true, childList:true, characterData:true, attributes:true, attributeFilter:\['style'\] \}\)/.test(src['index.html']));
+    let av = null; try { av = { ad: execSync('git show 0cec0d3:admin.html', { cwd: racine, encoding: 'utf8', maxBuffer: 64e6 }), ind: execSync('git show 0cec0d3:indispos.html', { cwd: racine, encoding: 'utf8', maxBuffer: 64e6 }) }; } catch (e) {}
+    if (!av) V('version d\'avant lisible dans l\'historique (clone complet requis)', false);
+    else V('contre-preuve : avant, l\'admin n\'avait aucun retour à l\'accueil et les indisponibilités aucun retour en haut de page', !/href="index\.html"/.test((av.ad.match(/<div class="header">[\s\S]*?<div class="header-right">[\s\S]*?<\/div>\n<\/div>/) || [''])[0]) && !/href="index\.html"/.test((av.ind.match(/<header class="header">[\s\S]*?<\/header>/) || [''])[0]) && /<header class="header">/.test(av.ind));
+  }
   console.log('\n═══ Une seule police : DM Sans partout (décision du responsable, 14/09) ═══');
   {
     for (const page of ['index.html', 'planning.html', 'indispos.html', 'absences.html', 'suivi-liberal.html', 'staff.html', 'admin.html', 'crh.html']) {

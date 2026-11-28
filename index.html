@@ -475,6 +475,10 @@ html[data-theme="dark"] .mg-tag.h18 { color:#1A0E03; }
 }
 .btn-back:hover { background:var(--line-light); }
 .topos-head h2 { margin:0; font-size:20px; font-weight:700; letter-spacing:-.02em; color:var(--ink); }
+/* (28/11/2026) En-tête commun : le retour et le titre de la vue montent dans l'en-tête.
+   Ils restent dans la page (le script s'en sert), mais ne s'y affichent plus. */
+.topos-head > .btn-back, .topos-head > h2 { display:none; }
+.topos-head { margin-bottom:12px; min-height:0; }
 .topos-count { font-size:13px; color:var(--ink-4); font-weight:500; }
 
 .topo-card { background:var(--white); border:1px solid var(--line); border-radius:14px; margin-bottom:12px; overflow:hidden; }
@@ -955,7 +959,7 @@ html[data-theme="dark"] { --riv-h1:#2A5FA8; --riv-h2:#13254A; --riv-hr:rgba(206,
   --tt-turq:#0E2A30; --tt-turq-i:#67E8F9; }
 body { background:radial-gradient(120% 340px at 85% -60px, var(--riv-h1) 0%, var(--riv-h2) 45%, transparent 75%) no-repeat,
   radial-gradient(60% 260px at 0% 0, var(--riv-hr), transparent 70%) no-repeat, var(--bg); }
-.header { background:var(--riv-entete); border-bottom-color:transparent; }
+.header, .header.pm-h { background:var(--riv-entete); border-bottom-color:transparent; }
 .tile-ico.turq { background:var(--tt-turq); color:var(--tt-turq-i); }
 #tilesView .tile, #tilesView .racc:not(.rouge) { background:var(--riv-verre); border-color:var(--riv-bord); box-shadow:var(--riv-ombre);
   -webkit-backdrop-filter:blur(10px); backdrop-filter:blur(10px); }
@@ -999,19 +1003,23 @@ html[data-theme="dark"] #tilesView .racc.rouge { background:#CE1126; border-colo
 </div>
 
 <!-- HEADER -->
-<div class="header">
+<!-- (28/11/2026) EN-TÊTE COMMUN (partage/theme.css, .pm-h) : retour, logo, nom de l'endroit, puis
+     cloche, aide, thème, compte — le même ordre sur toutes les pages. Ici, le retour n'apparaît que
+     dans une vue (Mes gardes, Annuaire…) : enteteSync() le montre et recopie le titre de la vue. -->
+<div class="header pm-h">
+  <button type="button" class="pm-retour" id="pmRetour" onclick="enteteRetour()" title="Retour" aria-label="Retour" hidden>Retour</button>
   <div class="header-brand">
     <div class="header-flag"><img src="assets/logo.png" alt="" style="width:100%;height:100%;object-fit:cover;display:block"></div>
-    <div>
-      <div class="header-title">Planning-Med</div>
-      <div class="header-sub">Anesthésie-Réa</div>
+    <div class="pm-titre">
+      <div class="header-title" id="pmTitre">Planning-Med</div>
+      <div class="header-sub" id="pmSous">Anesthésie-Réa</div>
     </div>
   </div>
   <div class="header-right">
-    <a href="./docs/guide-mar.html" class="header-btn" title="Guide du MAR — mode d'emploi du portail et du planning" aria-label="Aide"><span class="hb-ico">?</span><span class="hb-txt">Aide</span></a>
-    <button id="notifBell" class="theme-btn bell-btn" onclick="notifsOuvrir()" title="Notifications" aria-label="Notifications" style="display:none"><i data-lucide="bell"></i></button>
-    <button id="themeBtn" class="theme-btn" onclick="cycleTheme()" title="Thème">🌗</button>
-    <span id="mePill" class="me-pill" style="display:none"></span>
+    <a href="./docs/guide-mar.html" class="header-btn pm-b pm-aide" title="Guide du MAR — mode d'emploi du portail et du planning" aria-label="Aide"><span class="hb-ico">?</span><span class="hb-txt">Aide</span></a>
+    <button id="notifBell" class="theme-btn bell-btn pm-b pm-cloche" onclick="notifsOuvrir()" title="Notifications" aria-label="Notifications" style="display:none"><i data-lucide="bell"></i></button>
+    <button id="themeBtn" class="theme-btn pm-b pm-theme" onclick="cycleTheme()" title="Thème">🌗</button>
+    <span id="mePill" class="me-pill pm-compte" style="display:none"></span>
   </div>
 </div>
 
@@ -2922,6 +2930,42 @@ async function openTopos(){
   }catch(e){ box.innerHTML='<div class="topos-empty">Erreur réseau — réessayez.</div>'; }
 }
 function backToHome(){ location.hash=''; route(); }
+
+/* ══ EN-TÊTE COMMUN (28/11/2026) ══
+   Une vue de l'accueil (Mes gardes, Annuaire, une fiche ouverte…) garde son bouton « Retour »
+   et son titre, cachés : l'en-tête les reprend. Le retour de l'en-tête actionne donc le retour
+   de la vue affichée — une fiche ouverte ramène à sa liste, la liste à l'accueil. Aucune vue
+   n'a à prévenir l'en-tête : il suit ce qui s'affiche. */
+function enteteVue(){
+  const p = document.getElementById('portal');
+  if (!p || p.style.display === 'none') return null;
+  return Array.prototype.filter.call(document.querySelectorAll('.topos-head'), function(h){
+    return h.parentElement && h.parentElement.style.display !== 'none';
+  })[0] || null;
+}
+function enteteSync(){
+  const r = document.getElementById('pmRetour'), t = document.getElementById('pmTitre'), s = document.getElementById('pmSous');
+  if (!r || !t || !s) return;
+  const h = enteteVue(), h2 = h && h.querySelector('h2');
+  const titre = (h2 && h2.textContent.trim()) || 'Planning-Med', sous = h ? 'Planning-Med' : 'Anesthésie-Réa';
+  if (r.hidden !== !h) r.hidden = !h;
+  if (t.textContent !== titre) t.textContent = titre;
+  if (s.textContent !== sous) s.textContent = sous;
+}
+function enteteRetour(){
+  const h = enteteVue(), b = h && h.querySelector('.btn-back');
+  if (b) b.click(); else backToHome();
+}
+(function(){
+  let attente = false;
+  const plus_tard = function(){ if (attente) return; attente = true; setTimeout(function(){ attente = false; enteteSync(); }, 0); };
+  const brancher = function(){
+    const p = document.getElementById('portal'); if (!p) return;
+    try { new MutationObserver(plus_tard).observe(p, { subtree:true, childList:true, characterData:true, attributes:true, attributeFilter:['style'] }); } catch(e) {}
+    enteteSync();
+  };
+  if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', brancher); else brancher();
+})();
 
 /* ══ MES ÉCHANGES (13/08/2026 — phase 4, contrat visuel : maquette-notifications) ══
    LECTURE : le miroir SEUL (clé `echanges`). Le serveur décide qui voit quoi :

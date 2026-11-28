@@ -83,3 +83,70 @@ html[data-theme="dark"] {
   --st-cl-bg: #2A3550;
   --st-cl-fg: #C4CEDF;
 }
+
+/* ═══════════════════════════════════════
+   UN SEUL EN-TÊTE, UN SEUL RETOUR (28/11/2026)
+   Demande du responsable (maquette validée) : le même en-tête sur toutes les
+   pages. De gauche à droite : le retour (toujours le même bouton, toujours en
+   haut à gauche, absent de l'accueil seulement), le logo, le nom de l'endroit
+   avec « Planning-Med » dessous, les commandes propres à la page, puis — dans
+   cet ordre — la cloche, l'aide, clair/sombre et le compte.
+   Une page porte class="header pm-h" ; ces règles (deux classes) l'emportent
+   sur la feuille de la page, qui garde ses identifiants et son script. */
+.header.pm-h {
+  display: flex; align-items: center; justify-content: flex-start; gap: 10px;
+  min-height: 56px; padding: 0 14px; margin: 0;
+  background: var(--white); color: var(--ink);
+  border: 0; border-bottom: 1px solid var(--line); border-radius: 0; box-shadow: none;
+  position: sticky; top: 0; z-index: 300;
+  font-family: 'DM Sans', system-ui, sans-serif;
+}
+.header.pm-h .header-brand, .header.pm-h .header-left { display: flex; align-items: center; gap: 10px; min-width: 0; flex: 0 1 auto; }
+.header.pm-h .pm-retour {
+  flex: none; align-self: center; width: 36px; height: 36px; padding: 0; margin: 0; border-radius: 10px;
+  border: 1px solid var(--line); background: var(--white); color: var(--ink);
+  display: inline-grid; place-items: center; cursor: pointer; text-decoration: none;
+  font-size: 0; line-height: 0; overflow: hidden; -webkit-tap-highlight-color: transparent;
+}
+.header.pm-h .pm-retour > * { display: none; }
+.header.pm-h .pm-retour::before {
+  content: ""; width: 18px; height: 18px; background: currentColor;
+  -webkit-mask: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='2.2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M15 18l-6-6 6-6'/%3E%3C/svg%3E") center / contain no-repeat;
+          mask: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='2.2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M15 18l-6-6 6-6'/%3E%3C/svg%3E") center / contain no-repeat;
+}
+.header.pm-h .pm-retour:hover { background: var(--line-light); border-color: var(--line); color: var(--ink); }
+.header.pm-h .pm-retour[hidden] { display: none; }
+.header.pm-h .header-flag { display: flex; width: 28px; height: 28px; border-radius: 7px; overflow: hidden; flex-shrink: 0; box-shadow: 0 1px 3px rgba(0,0,0,.15); }
+.header.pm-h .pm-titre { min-width: 0; display: flex; flex-direction: column; overflow: hidden; }
+.header.pm-h .header-title { display: block; margin: 0; font-size: 15.5px; font-weight: 700; line-height: 1.15; color: var(--ink); letter-spacing: -.01em; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; text-transform: none; }
+.header.pm-h .header-sub { display: block; font-size: 11px; font-weight: 400; line-height: 1.2; color: var(--ink-3); margin-top: 1px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.header.pm-h .header-right { display: flex; align-items: center; gap: 6px; margin-left: auto; flex: none; min-width: 0; }
+/* Les trois boutons communs : même taille, même forme, même ordre. */
+.header.pm-h .pm-b {
+  flex: none; align-self: center; box-sizing: border-box; width: 36px; height: 36px; padding: 0; margin: 0; border-radius: 10px;
+  border: 1px solid var(--line); background: var(--white); color: var(--ink-2);
+  display: inline-grid; place-items: center; cursor: pointer; text-decoration: none;
+  font: 700 15px/1 'DM Sans', system-ui, sans-serif; box-shadow: none;
+}
+.header.pm-h .pm-b:hover { background: var(--line-light); border-color: var(--line); color: var(--ink); box-shadow: none; }
+.header.pm-h .pm-b svg { width: 18px; height: 18px; }
+.header.pm-h .pm-b .hb-txt { display: none; }
+.header.pm-h .pm-b .hb-ico { display: inline; width: auto; height: auto; background: none; color: inherit; font-size: 15px; font-weight: 700; border-radius: 0; }
+.header.pm-h .pm-cloche { order: 1; } .header.pm-h .pm-aide { order: 2; } .header.pm-h .pm-theme { order: 3; } .header.pm-h .pm-compte { order: 4; } .header.pm-h .pm-sortir { order: 5; }
+.header.pm-h .pm-compte {
+  box-sizing: border-box; height: 36px; padding: 0 10px; margin: 0; border-radius: 10px;
+  border: 1px solid #B9DCF5; background: #E8F4FD; color: #1D6FB8;
+  display: inline-flex; align-items: center; gap: 6px; white-space: nowrap; text-transform: none;
+  font: 700 13px/1 'DM Sans', system-ui, sans-serif; max-width: 46vw; overflow: hidden; text-overflow: ellipsis;
+}
+.header.pm-h .pm-compte:empty { display: none; }
+html[data-theme="dark"] .header.pm-h .pm-compte { background: #17293A; border-color: #2B4763; color: #93C3E8; }
+/* La déconnexion écrite en toutes lettres devient l'icône du compte. */
+.header.pm-h .pm-sortir { font-size: 0; color: var(--ink-2); }
+.header.pm-h .pm-sortir::before {
+  content: ""; width: 17px; height: 17px; background: currentColor;
+  -webkit-mask: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4'/%3E%3Cpath d='M16 17l5-5-5-5'/%3E%3Cpath d='M21 12H9'/%3E%3C/svg%3E") center / contain no-repeat;
+          mask: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4'/%3E%3Cpath d='M16 17l5-5-5-5'/%3E%3Cpath d='M21 12H9'/%3E%3C/svg%3E") center / contain no-repeat;
+}
+@media (min-width: 900px) { .header.pm-h { padding: 0 28px; gap: 12px; } .header.pm-h .header-right { gap: 8px; } }
+@media (max-width: 420px) { .header.pm-h { gap: 7px; padding: 0 10px; } .header.pm-h .header-title { font-size: 15px; } .header.pm-h .header-right { gap: 5px; } .header.pm-h .pm-retour, .header.pm-h .pm-b { width: 34px; height: 34px; } .header.pm-h .pm-compte { height: 34px; padding: 0 8px; } .header.pm-h .header-brand, .header.pm-h .header-left { gap: 8px; } }

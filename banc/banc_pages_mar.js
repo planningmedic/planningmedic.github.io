@@ -925,11 +925,12 @@ const dodo = ms => new Promise(r => setTimeout(r, ms));
   console.log('\n═══ 28q. planning.html · on revient au portail, et l\'onglet a un seul nom ═══');
   {
     const D = new JSDOM(fs.readFileSync('../planning.html', 'utf8')).window.document;
-    const brand = D.querySelector('.header .header-brand');
+    /* (28/11/2026) en-tête commun : le retour est le premier élément de l'en-tête, avant le logo. */
+    const brand = D.querySelector('.header.pm-h');
     const lien = brand && brand.firstElementChild;
     V('le bandeau commence par un lien', !!lien && lien.tagName === 'A', lien && lien.tagName);
     V('ce lien mène au portail', !!lien && lien.getAttribute('href') === 'index.html', lien && lien.getAttribute('href'));
-    V('il est nommé pour les lecteurs d\'écran', !!lien && /portail/i.test(lien.getAttribute('aria-label') || ''));
+    V('il est nommé pour les lecteurs d\'écran', !!lien && /accueil/i.test(lien.getAttribute('aria-label') || ''));
     V('il n\'ouvre pas un nouvel onglet', !!lien && !lien.hasAttribute('target'));
     V('un seul bouton retour dans la page', D.querySelectorAll('#btnPortail').length === 1);
     const pc = D.getElementById('btnAffect').textContent, tel = D.getElementById('mbtnAffect').textContent;

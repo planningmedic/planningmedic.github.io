@@ -290,11 +290,10 @@ console.log('\n═══ 9. Le bandeau du haut ne peut pas deborder de sa hauteu
   /* La page libérale porte TROIS boutons a droite : son retour raccourcit. */
   {
     const c = lire('suivi-liberal.html');
-    V('suivi-liberal · le retour a un libelle long et un libelle court',
-      /class="lbl-long">Retour au portail</.test(c) && /class="lbl-court">Portail</.test(c));
-    V('suivi-liberal · un seul des deux s\'affiche a la fois',
-      /\.lbl-court\{display:none\}/.test(c.replace(/\s*\n\s*/g, ' ')) &&
-      /\.lbl-long\{display:none\}/.test(c.replace(/\s*\n\s*/g, ' ')));
+    /* (28/11/2026) en-tête commun : le retour n'est plus un bouton à libellé (long ou court)
+       mais la flèche de toutes les pages, en haut à gauche. */
+    V('suivi-liberal · le retour est la flèche commune, en tête de l\'en-tête',
+      /<a class="hbtn pm-retour" id="lnkBack" href="index\.html"/.test(c) && !/lbl-long">Retour au portail/.test(c));
   }
 }
 

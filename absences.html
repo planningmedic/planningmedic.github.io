@@ -270,23 +270,24 @@ window.SessionPortail = window.SessionPortail || { lire:function(){try{return se
   </div>
 </div>
 
-<div class="header" id="hdr" style="display:none">
+<!-- (28/11/2026) EN-TÊTE COMMUN (partage/theme.css, .pm-h) : retour, logo, nom de l'endroit, puis aide, thème, compte. -->
+<div class="header pm-h" id="hdr" style="display:none">
+  <a class="back pm-retour" href="index.html" id="lnkBack" title="Retour à l'accueil" aria-label="Retour à l'accueil"><i id="icBack"></i> Retour</a>
   <div class="header-brand">
     <div class="header-flag"><img src="assets/logo.png" alt="" style="width:100%;height:100%;object-fit:cover;display:block"></div>
-    <div>
-      <div class="header-title">Planning-Med</div>
-      <div class="header-sub">Service d'Anesthésie-Réanimation</div>
+    <div class="pm-titre">
+      <h1 class="header-title" id="titre">Consultations à venir</h1>
+      <div class="header-sub">Planning-Med</div>
     </div>
   </div>
   <div class="header-right">
-    <span class="me-pill" id="mePill"></span>
-    <button class="hbtn" id="btnOut">Déconnexion</button>
+    <a href="./docs/guide-mar.html#b27" class="pm-b pm-aide" id="lnkAide" title="Guide du MAR — Mes consultations" aria-label="Aide">?</a>
+    <span class="me-pill pm-compte" id="mePill"></span>
+    <button class="hbtn pm-b pm-sortir" id="btnOut" title="Se déconnecter" aria-label="Se déconnecter">Déconnexion</button>
   </div>
 </div>
 
 <div class="wrap" id="main" style="display:none">
-  <a class="back" href="index.html" id="lnkBack"><i id="icBack"></i> Retour au portail</a>
-  <h1 id="titre">Consultations à venir</h1>
   <p class="sub" id="pitch"></p>
   <div id="zone"><div class="loading">Chargement…</div></div>
 </div>
@@ -368,9 +369,10 @@ async function doLogin(code){
   MOI  = (ROLE === 'mar') ? (r.moi || null) : null;
   document.getElementById('mePill').textContent =
     (ROLE === 'secretariat') ? 'Secrétariat'
-    : (r.name || (r.noms && r.moi && r.noms[r.moi]) || r.moi || '');
+    : (r.initials || r.moi || r.name || '');   // (28/11/2026) les initiales, comme sur l'accueil : le nom entier ne tient pas dans l'en-tête d'un téléphone
   // Le secrétariat n'a pas de portail : on lui masque le lien de retour.
   document.getElementById('lnkBack').style.display = (ROLE === 'secretariat') ? 'none' : '';
+  document.getElementById('lnkAide').style.display = (ROLE === 'mar') ? '' : 'none';   // le guide du MAR ne concerne que lui
   if(ROLE === 'mar') document.getElementById('titre').textContent = 'Mes consultations';   // (28/11/2026) vue du MAR
   document.getElementById('pitch').textContent = (ROLE === 'mar')
     ? (r.patlib ? "Vos consultations libérales des 4 prochaines semaines." : "Vos consultations des 4 prochaines semaines.")

@@ -23,13 +23,7 @@
 body{background:var(--bg);font-family:'DM Sans',system-ui,sans-serif;color:var(--ink);
      -webkit-font-smoothing:antialiased;padding-bottom:env(safe-area-inset-bottom)}
 .wrap{max-width:560px;margin:0 auto;padding:14px 14px 48px}
-.top{display:flex;align-items:center;gap:10px;margin:4px 0 14px}
-.top a.back{display:flex;align-items:center;justify-content:center;width:40px;height:40px;border-radius:12px;
-            background:var(--white);border:1px solid var(--line);color:var(--ink);text-decoration:none;font-size:20px;flex-shrink:0}
-.top .t{flex:1;min-width:0}
-.top h1{font-size:21px;font-weight:700;letter-spacing:-.02em;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-.top .s{font-size:12px;color:var(--ink-4)}
-.top button.out{font:inherit;font-size:12px;font-weight:600;color:var(--ink-3);background:none;border:none;padding:8px;cursor:pointer}
+.wrap > .header.pm-h{margin:-14px -14px 14px}   /* (28/11/2026) en-tête commun, d'un bord à l'autre de l'écran */
 .card{background:var(--white);border:1px solid var(--line);border-radius:16px;padding:15px;margin-bottom:12px}
 .card h2{display:flex;align-items:center;gap:8px;font-size:15.5px;font-weight:700;margin-bottom:5px}
 .card .d{font-size:12.5px;color:var(--ink-3);line-height:1.5;margin-bottom:12px}
@@ -131,10 +125,16 @@ window.SessionPortail = window.SessionPortail || { lire:function(){try{return se
 </div>
 
 <div class="wrap" id="main" hidden>
-  <div class="top">
-    <a class="back" href="index.html" aria-label="Retour au portail">&lsaquo;</a>
-    <div class="t"><h1>Maintenance</h1><div class="s">Réservé · <span data-version>—</span></div></div>
-    <button class="out" id="btnOut" type="button">Déconnexion</button>
+  <!-- (28/11/2026) EN-TÊTE COMMUN (partage/theme.css, .pm-h) -->
+  <div class="header pm-h">
+    <a class="pm-retour" href="index.html" title="Retour à l'accueil" aria-label="Retour à l'accueil">Retour</a>
+    <div class="header-brand">
+      <div class="header-flag"><img src="assets/logo.png" alt="" style="width:100%;height:100%;object-fit:cover;display:block"></div>
+      <div class="pm-titre"><h1 class="header-title">Maintenance</h1><div class="header-sub">Planning-Med · <span data-version>—</span></div></div>
+    </div>
+    <div class="header-right">
+      <button class="pm-b pm-sortir" id="btnOut" type="button" title="Se déconnecter" aria-label="Se déconnecter">Déconnexion</button>
+    </div>
   </div>
 
   <!-- 0. Mise à jour du serveur (livreur, 01/11/2026) -->

@@ -601,6 +601,22 @@ les cases valant exactement `CL`.
   carte « Cette nuit » du planning est illisible (texte sombre sur fond sombre).
   Suite de la revue, dans l'ordre proposé : en-tête et retour communs, puis les défauts écran
   par écran.
+  Puis v2.15.0 : UN SEUL EN-TÊTE, UN SEUL RETOUR (deuxième lot de la revue, maquette validée).
+  Avant : quatre en-têtes et cinq façons de revenir (flèche collée au logo, bouton « Retour »
+  dans la page, lien « Retour au portail », retour tout en bas de page, ou rien — l'admin).
+  Désormais, sur dix pages (accueil et ses vues, planning, indisponibilités / pose des vacances /
+  pose des TP, Mes consultations, planning des absences, staff vacances, maintenance, admin,
+  suivi libéral, comptes rendus de réa) : retour en haut à gauche, logo, nom de l'endroit avec
+  « Planning-Med » dessous, commandes propres à la page, puis cloche, aide, clair/sombre, compte —
+  toujours dans cet ordre. Le style vit dans partage/theme.css (.header.pm-h) ; chaque page garde
+  ses identifiants et son script. Sur l'accueil, l'en-tête suit seul la vue affichée (enteteSync) :
+  le retour de l'en-tête actionne le retour caché de la vue (une fiche ramène à sa liste). Les deux
+  bandeaux rouges (indisponibilités, staff) disparaissent ; « Déconnexion » devient une icône ; la
+  pastille du compte montre les initiales (indisponibilites.gs .4 les envoie à Mes consultations).
+  Écarts avec la maquette, signalés au responsable : l'admin n'a pas de pastille de compte (il n'a
+  pas de déconnexion aujourd'hui, je n'en ai pas inventé) ; le bouton clair/sombre garde son icône
+  à trois états. Non touché : vue secrétariat de démonstration, tableau de bord, guides (leur
+  barre « ‹ Portail » reste).
 - **27/11/2026** — Répétition générale de la clôture 2026 (détail : document du projet Claude
   `claude/repetition-cloture-2026-11-27.md`), puis deux correctifs (v2.12.3). Clôture jouée sur un
   classeur fictif à la forme du vrai, puis 630 appels serveur, 11 tâches programmées, 1 000 gestes au

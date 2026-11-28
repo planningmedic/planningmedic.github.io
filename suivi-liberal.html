@@ -168,18 +168,19 @@ window.SessionPortail = window.SessionPortail || { lire:function(){try{return se
   </div>
 </div>
 
-<div class="header" id="hdr" style="display:none">
+<!-- (28/11/2026) EN-TÊTE COMMUN (partage/theme.css, .pm-h) : retour, logo, nom de l'endroit, puis aide, thème, compte. -->
+<div class="header pm-h" id="hdr" style="display:none">
+  <a class="hbtn pm-retour" id="lnkBack" href="index.html" title="Retour à l'accueil" aria-label="Retour à l'accueil">Retour</a>
   <div class="header-brand">
     <div class="header-flag"><img src="assets/logo.png" alt="" style="width:100%;height:100%;object-fit:cover;display:block"></div>
-    <div>
-      <div class="header-title">Planning-Med</div>
-      <div class="header-sub">Service d'Anesthésie-Réanimation</div>
+    <div class="pm-titre">
+      <div class="header-title">Suivi libéral</div>
+      <div class="header-sub">Planning-Med</div>
     </div>
   </div>
   <div class="header-right">
-    <span class="me-pill" id="mePill"></span>
-    <a class="hbtn" id="lnkBack" href="index.html"><span class="lbl-long">Retour au portail</span><span class="lbl-court">Portail</span></a>
-    <button class="hbtn" id="btnOut">Déconnexion</button>
+    <span class="me-pill pm-compte" id="mePill"></span>
+    <button class="hbtn pm-b pm-sortir" id="btnOut" title="Se déconnecter" aria-label="Se déconnecter">Déconnexion</button>
   </div>
 </div>
 

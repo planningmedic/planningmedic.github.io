@@ -25,6 +25,7 @@
     + '.noel .noel-neige-logo{position:absolute;left:0;top:0;width:100%;height:42%;pointer-events:none}'
     + '.noel .noel-chapeau{position:absolute;left:14px;top:-9px;width:26px;height:23px;transform:rotate(14deg);'
     +   'pointer-events:none;filter:drop-shadow(0 0 .6px #fff) drop-shadow(0 1px 1.5px rgba(0,0,0,.35));z-index:2}'
+    + '.noel .header.pm-h .noel-chapeau{left:11px;top:-8px;width:22px;height:19px}'   /* (28/11/2026) en-tête commun : logo de 28 px */
     + '.noel #myGardesHero{position:relative;overflow:visible}'
     + '.noel .noel-congere{position:absolute;left:10px;right:10px;top:-7px;height:20px;pointer-events:none;'
     +   'filter:drop-shadow(0 1px 0 #C9DDF0) drop-shadow(0 3px 4px rgba(30,80,140,.28))}'

@@ -1494,32 +1494,33 @@ if (sessionStorage.getItem('adminCode')) {
 </style>
 
 <!-- HEADER -->
-<div class="header">
+<!-- (28/11/2026) EN-TÊTE COMMUN (partage/theme.css, .pm-h) : l'admin gagne un retour à l'accueil
+     (il n'en avait aucun). L'année, la version et les messages restent, à droite du titre. -->
+<div class="header pm-h">
+  <a href="index.html" class="pm-retour" id="btnPortail" title="Retour à l'accueil" aria-label="Retour à l'accueil">Retour</a>
   <div class="header-brand">
     <div class="header-flag"><img src="assets/logo.png" alt="" style="width:100%;height:100%;object-fit:cover;display:block"></div>
-    <div>
-      <div class="header-title">Planning-Med</div>
-      <div class="header-sub" style="display:flex;align-items:center;gap:8px">
-        Administration ·
-        <div class="year-picker solo" id="yearPicker">
-          <button type="button" class="year-pill" id="yearPillBtn" onclick="toggleYearMenu(event)" aria-haspopup="listbox">
-            <span class="year-pill-num" id="yearPillNum">—</span>
-            <span class="year-pill-badge" id="yearPillBadge"></span>
-            <svg class="year-pill-chev" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><path d="M6 9l6 6 6-6"/></svg>
-          </button>
-          <div class="year-menu" id="yearMenu" role="listbox"></div>
-        </div>
-        <span id="headerYear" style="display:none"></span>
-      </div>
+    <div class="pm-titre">
+      <div class="header-title">Administration</div>
+      <div class="header-sub">Planning-Med</div>
     </div>
   </div>
   <div class="header-right">
+    <div class="year-picker solo" id="yearPicker">
+      <button type="button" class="year-pill" id="yearPillBtn" onclick="toggleYearMenu(event)" aria-haspopup="listbox">
+        <span class="year-pill-num" id="yearPillNum">—</span>
+        <span class="year-pill-badge" id="yearPillBadge"></span>
+        <svg class="year-pill-chev" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><path d="M6 9l6 6 6-6"/></svg>
+      </button>
+      <div class="year-menu" id="yearMenu" role="listbox"></div>
+    </div>
+    <span id="headerYear" style="display:none"></span>
     <span class="ver-badge"><span class="ver-dot"></span><span id="verBadge" data-version>—</span></span>
     <button class="header-btn" id="btnMail" onclick="ouvrirMail()" title="Messages reçus sur planningmedic@gmail.com" style="position:relative;cursor:pointer;font:inherit">
       <span class="hb-ico">✉</span> Messages
       <span id="mailDot" style="display:none;position:absolute;top:-3px;right:-3px;min-width:16px;height:16px;padding:0 4px;border-radius:9px;background:#DC2626;color:#fff;font-size:10px;font-weight:700;line-height:16px;text-align:center"></span>
     </button>
-    <a href="./docs/guide-comite.html" target="_blank" class="header-btn" title="Guide du comité — mode d'emploi de cette interface"><span class="hb-ico">?</span> Aide</a>
+    <a href="./docs/guide-comite.html" target="_blank" class="header-btn pm-b pm-aide" title="Guide du comité — mode d'emploi de cette interface" aria-label="Aide"><span class="hb-ico">?</span><span class="hb-txt">Aide</span></a>
     
   </div>
 </div>

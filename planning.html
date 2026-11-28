@@ -791,19 +791,20 @@ details.jb-info p { margin:6px 0 0; color:#344054; white-space:pre-wrap; }
 </div>
 
 <!-- HEADER -->
-<div class="header">
+<!-- (28/11/2026) EN-TÊTE COMMUN (partage/theme.css, .pm-h) : retour, logo, nom de l'endroit, aide, thème, compte. -->
+<div class="header pm-h">
+  <a href="index.html" class="header-back pm-retour" id="btnPortail" title="Retour à l'accueil" aria-label="Retour à l'accueil">Retour</a>
   <div class="header-brand">
-    <a href="index.html" class="header-back" id="btnPortail" title="Retour au portail" aria-label="Retour au portail">‹</a>
     <div class="header-flag"><img src="assets/logo.png" alt="" style="width:100%;height:100%;object-fit:cover;display:block"></div>
-    <div>
-      <div class="header-title">Planning-Med</div>
-      <div class="header-sub">Anesthésie-Réa</div>
+    <div class="pm-titre">
+      <div class="header-title">Planning</div>
+      <div class="header-sub">Planning-Med</div>
     </div>
   </div>
   <div class="header-right" id="headerRight">
-    <a href="./docs/guide-mar.html" class="header-btn" title="Guide du MAR — mode d'emploi du portail et du planning" aria-label="Aide"><span class="hb-ico">?</span><span class="hb-txt">Aide</span></a>
-    <button id="themeBtn" class="theme-btn" onclick="cycleTheme()" title="Thème">🌗</button>
-    <span id="mePill" class="me-pill" style="display:none"></span>
+    <a href="./docs/guide-mar.html" class="header-btn pm-b pm-aide" title="Guide du MAR — mode d'emploi du portail et du planning" aria-label="Aide"><span class="hb-ico">?</span><span class="hb-txt">Aide</span></a>
+    <button id="themeBtn" class="theme-btn pm-b pm-theme" onclick="cycleTheme()" title="Thème">🌗</button>
+    <span id="mePill" class="me-pill pm-compte" style="display:none"></span>
     <div class="hdr-stepper" id="monthStepper" style="display:none">
       <button onclick="stepMonth(-1)" title="Mois précédent">‹</button>
       <span class="hdr-step-label" id="monthStepLabel"></span>
