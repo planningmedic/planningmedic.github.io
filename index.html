@@ -1655,7 +1655,7 @@ function majPastilleConsult(){
       (((r.absences || {})[MY_ID]) || []).forEach(function(a){ abs[a.d] = true; });
       const n = (r.patients || []).filter(function(p){ return p.mar === MY_ID && !p.confieA && p.bloc >= auj && abs[p.bloc]; })
         .reduce(function(t, p){ return t + (p.nb || 1); }, 0);
-      if(n) _pastille('consult', n + ' à confier', null);
+      if(n) _pastille('consult', n + ' à régler', null);   // (28/11/2026) même mot que dans la page
     });
   }catch(e){ /* une pastille n'empêche jamais l'accueil de s'afficher */ }
 }

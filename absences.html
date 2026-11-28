@@ -137,63 +137,109 @@ table.grid td.pick{outline:2px solid var(--rose);outline-offset:1px}
   .me-pill{padding:4px 9px;font-size:11.5px}
   .hbtn{padding:4px 10px;font-size:11.5px}
 }
-/* ══ PATIENTS LIB D'UNE CONSULTATION (26/11/2026) ══ */
-.aconf{display:flex;align-items:center;gap:10px;background:#FEF3C7;border:1.5px solid #FDE68A;border-radius:14px;padding:12px 14px;margin:-8px 0 16px;font-size:13.5px}
-.aconf b{font-size:15px}
-.aconf .ic{width:30px;height:30px;border-radius:9px;background:#F59E0B;color:#1B1200;display:flex;align-items:center;justify-content:center;font-weight:800;flex:none}
-.puce{display:flex;align-items:center;gap:8px;width:calc(100% - 36px);margin:6px 18px 10px;padding:9px 12px;border-radius:11px;font:inherit;font-size:13px;font-weight:700;cursor:pointer;text-align:left}
-.puce.vide{background:var(--white);color:var(--me);border:1.5px dashed var(--me-border)}
-.puce.ok{background:var(--ok-soft);color:var(--ok);border:1px solid var(--ok-line)}
-.puce.warn{background:#FEF3C7;color:#92400E;border:1.5px solid #FDE68A}
-.puce .pl-plus{margin-left:auto;font-weight:600;font-size:12px;opacity:.85}
-.pvoile{position:fixed;inset:0;background:rgba(15,23,42,.45);z-index:900;opacity:0;pointer-events:none;transition:opacity .2s}
-.pvoile.open{opacity:1;pointer-events:auto}
-.pfeuille{position:fixed;left:0;right:0;bottom:0;z-index:901;margin:0 auto;max-width:520px;max-height:90vh;overflow-y:auto;background:var(--white);
-  border-radius:20px 20px 0 0;padding:10px 16px calc(20px + env(safe-area-inset-bottom));box-shadow:0 -12px 40px rgba(15,23,42,.22);transform:translateY(110%);visibility:hidden;transition:transform .3s cubic-bezier(.32,1.15,.5,1),visibility 0s linear .3s}
-.pfeuille.open{transform:none;visibility:visible;transition:transform .3s cubic-bezier(.32,1.15,.5,1)}
-.pgrab{width:38px;height:5px;border-radius:3px;background:var(--line);margin:0 auto 10px}
-.ptete{display:flex;align-items:flex-start;justify-content:space-between;gap:10px;margin-bottom:12px}
-.ptete b{display:block;font-size:17px}
-.ptete span{font-size:12.5px;color:var(--ink-3)}
-.pfermer{border:none;background:var(--surface-2);color:var(--ink-3);width:32px;height:32px;border-radius:16px;font-size:15px;cursor:pointer;flex:none}
-.pform{background:var(--bg);border:1px solid var(--line);border-radius:14px;padding:12px;margin-bottom:14px}
-.pform .t{font-size:13px;font-weight:700;margin-bottom:10px}
-.prow{display:flex;gap:10px;align-items:flex-end;flex-wrap:wrap}
-.pchamp{display:flex;flex-direction:column;gap:4px;font-size:11.5px;color:var(--ink-3);font-weight:600}
-.pchamp input[type=date]{font:inherit;font-size:16px;padding:9px 10px;border:1px solid var(--line);border-radius:10px;background:var(--white);color:var(--ink);min-width:160px}
-.pstep{display:flex;align-items:center;border:1px solid var(--line);border-radius:10px;background:var(--white);overflow:hidden}
-.pstep button{width:42px;height:42px;border:none;background:none;font-size:20px;font-weight:700;color:var(--me);cursor:pointer}
-.pstep output{min-width:30px;text-align:center;font-size:17px;font-weight:700}
-.pgo{width:100%;margin-top:12px;height:46px;border:none;border-radius:12px;background:var(--me);color:#fff;font:inherit;font-size:15.5px;font-weight:700;cursor:pointer}
-.perr{font-size:12.5px;color:var(--rose);font-weight:600;margin-top:8px;display:none}
-.pliste .k{font-family:var(--mono);font-size:10.5px;letter-spacing:.08em;text-transform:uppercase;color:var(--ink-4);margin:4px 2px 8px}
-.pl{display:grid;grid-template-columns:44px 1fr auto;gap:10px;align-items:center;padding:9px 12px;border:1px solid var(--line);border-radius:12px;margin-bottom:8px}
-.pl.warn{background:#FEF3C7;border-color:#FDE68A}
-.pl.ok2{background:var(--ok-soft);border-color:var(--ok-line)}
-.pl .j{font-family:var(--mono);font-size:10px;color:var(--ink-3);text-align:center;line-height:1.1;text-transform:uppercase}
-.pl .j b{display:block;font-family:'DM Sans';font-size:17px;color:var(--ink)}
-.pl .q{font-size:14px;font-weight:600}
-.pl .e{font-size:12px;color:var(--ink-3);margin-top:1px}
-.pbtn{border:1px solid var(--line);background:var(--white);color:var(--ink);border-radius:10px;padding:6px 11px;font:inherit;font-size:12.5px;font-weight:700;cursor:pointer;white-space:nowrap}
-.pbtn.bleu{background:var(--me);border-color:var(--me);color:#fff;margin-left:auto}
-.pok{font-size:11.5px;font-weight:700;color:var(--ok);background:var(--white);border:1px solid var(--ok-line);border-radius:999px;padding:2px 9px;white-space:nowrap}
-.pqui .alt{margin:-2px 0 12px}
-.pqui .appel{font-size:12.5px;font-weight:600;color:var(--ink-2);margin:0 2px 8px}
-.pfoot{font-size:11.5px;color:var(--ink-4);text-align:center;margin-top:6px}
-.person{align-items:center}
-.pact{display:flex;align-items:center;gap:6px}
-.px{border:none;background:none;color:var(--ink-4);font-size:20px;line-height:1;width:28px;height:28px;border-radius:14px;cursor:pointer}
-.px:hover{background:var(--line-light);color:var(--rose)}
-.psuppr{display:flex;align-items:center;justify-content:space-between;background:var(--ink);color:var(--bg);border-radius:10px;padding:8px 12px;font-size:13px;margin-bottom:10px}
-.psuppr button{border:none;background:none;color:#93C5FD;font:inherit;font-weight:700;cursor:pointer}
-.recus{background:var(--white);border:1px solid var(--line);border-radius:16px;padding:12px 14px 4px;margin:0 0 16px}
-.recus .k{font-family:var(--mono);font-size:10.5px;letter-spacing:.08em;text-transform:uppercase;color:var(--ink-4);margin:0 2px 8px}
-.pfeuille.occupe{cursor:progress}.pfeuille.occupe button{pointer-events:none;opacity:.6}
-
-/* (26/11/2026) export CPA : choix de la salle, lignes CPA */
-.puce.choix{background:#EEF2FF;color:#3730A3;border:1.5px solid #C7D2FE;cursor:default;flex-wrap:wrap}
-.puce.choix .sal{border:1px solid #A5B4FC;background:#fff;color:#3730A3;border-radius:9px;padding:6px 12px;font:inherit;font-size:13px;font-weight:700;cursor:pointer}
-.puce .salle{font-weight:600;opacity:.8;margin-left:4px}
+/* ══ MES CONSULTATIONS — VUE DU MAR (28/11/2026) ══
+   Une seule colonne, pensée téléphone : « À faire » en tête, la liste des consultations,
+   les absences, le calendrier replié. Maquette validée par le responsable le 28/11/2026. */
+.mc{max-width:520px;margin:0 auto}
+:where(.mc,.mc-feuille) button{font:inherit;color:inherit;cursor:pointer;-webkit-tap-highlight-color:transparent}
+.mc-k{font:500 11px var(--mono);letter-spacing:.1em;text-transform:uppercase;color:var(--ink-3);margin:20px 2px 8px;display:flex;align-items:center;gap:8px}
+.mc-k .n{background:#B45309;color:#fff;border-radius:99px;padding:1px 8px;font-weight:700;letter-spacing:0}
+.mc-af{border-radius:16px;padding:13px 14px;margin-bottom:10px;border:1.5px solid}
+.mc-af.amb{background:#FEF3C7;border-color:#FDE68A}
+.mc-af.ind{background:#EEF2FF;border-color:#C7D2FE}
+.mc-af .t{font-weight:700;font-size:15px;line-height:1.3}
+.mc-af.amb .t{color:#78350F}.mc-af.ind .t{color:#3730A3}
+.mc-af .sd{font-size:12.5px;margin-top:3px;color:#57534E}.mc-af.ind .sd{color:#4338CA}
+.mc-qui{margin-top:11px;background:#fff;border:1px solid #FDE68A;border-radius:12px;overflow:hidden;color:#0F172A}
+.mc-qui .h{font:500 10.5px var(--mono);letter-spacing:.08em;text-transform:uppercase;color:#92400E;padding:8px 12px 5px}
+.mc-qui .p{display:flex;align-items:center;gap:10px;padding:8px 12px;border-top:1px solid #FEF3C7}
+.mc-qui .p i{font:700 11px var(--mono);width:20px;height:20px;border-radius:50%;background:#FDE68A;color:#78350F;display:grid;place-items:center;font-style:normal;flex:none}
+.mc-nom{flex:1;min-width:0;text-align:left;background:none;border:0;padding:4px 0;font-weight:700;font-size:14.5px;color:#0F172A}
+.mc-nom span{border-bottom:1.5px dotted #D97706}
+.mc-nom small{display:block;font-weight:400;color:#475569;font-size:11.5px;margin-top:2px}
+.mc-nom:active{opacity:.6}
+.mc-dect{flex:none;font:500 13px var(--mono);background:#E8F4FD;color:#1D6FB8;border:1px solid #B9DCF5;border-radius:99px;padding:6px 10px;white-space:nowrap;text-decoration:none}
+.mc-dect.sans{background:#F1F5F9;color:#94A3B8;border-color:#E2E8F0}
+.mc-conf{display:flex;align-items:center;gap:8px;padding:10px 12px;background:#FFFBEB;border-top:1px dashed #FCD34D}
+.mc-conf span{flex:1;font-size:13.5px;font-weight:600;color:#78350F}
+.mc-conf .mc-b{min-height:38px;padding:7px 16px;font-size:13.5px;color:#0F172A}
+.mc-conf .mc-b.oui{background:#166534;border-color:#166534;color:#fff}
+.mc-qui .aucun{padding:10px 12px;border-top:1px solid #FEF3C7;font-size:13px;color:#57534E}
+.mc-note{font-size:12px;color:#78350F;margin:9px 2px 0}
+.mc-btns{display:flex;gap:8px;margin-top:11px;flex-wrap:wrap}
+.mc-b{border-radius:11px;padding:10px 14px;font-weight:700;font-size:13.5px;border:1.5px solid var(--line);background:#fff;min-height:42px}
+.mc-b.ind{border-color:#A5B4FC;color:#3730A3}
+.mc-b.bleu{background:var(--me);border-color:var(--me);color:#fff;width:100%}
+.mc-b.amb2{border-color:#FCD34D;color:#92400E;background:transparent;font-weight:600;font-size:12.5px;min-height:36px;padding:7px 12px}
+.mc-b:active{transform:translateY(1px)}
+.mc-rien{background:var(--ok-soft);border:1px solid var(--ok-line);color:var(--ok);border-radius:14px;padding:12px 14px;font-weight:600;font-size:13.5px}
+.mc-c{display:flex;align-items:center;gap:12px;padding:12px 13px;border:0;border-top:1px solid var(--line);background:var(--white);width:100%;text-align:left}
+.mc-c:first-child{border-top:0}
+button.mc-c:active{background:var(--line-light)}
+.mc-j{width:46px;text-align:center;font:500 10px var(--mono);letter-spacing:.08em;text-transform:uppercase;color:var(--ink-3);line-height:1.25;flex:none}
+.mc-j b{display:block;font:700 19px 'DM Sans',system-ui,sans-serif;color:var(--ink);letter-spacing:0}
+.mc-m{flex:1;min-width:0}.mc-m b{font-size:15px}.mc-m>span{display:block;color:var(--ink-3);font-size:12.5px;margin-top:1px}
+.mc-e{font-weight:700;font-size:12.5px;border-radius:99px;padding:5px 10px;white-space:nowrap;border:1px solid;flex:none}
+.mc-e.amb{background:#FEF3C7;color:#92400E;border-color:#FDE68A}
+.mc-e.ok{background:var(--ok-soft);color:var(--ok);border-color:var(--ok-line)}
+.mc-e.ind{background:#EEF2FF;color:#3730A3;border-color:#C7D2FE}
+.mc-e.vide{background:var(--white);color:var(--me);border:1.5px dashed #93C5FD}
+.mc-ch{color:var(--ink-4);font-size:18px;margin-left:-2px;flex:none}
+.mc-vide{padding:22px 16px;text-align:center;color:var(--ink-3);font-size:13.5px;line-height:1.5}
+.mc-vide b{color:var(--ink)}
+.mc-abs{display:flex;gap:8px;flex-wrap:wrap;padding:12px 13px}
+.mc-abs span{background:var(--rose-soft);border:1px solid var(--rose-line);color:var(--rose);border-radius:10px;padding:7px 11px;font:700 13px var(--mono)}
+.mc-abs span small{display:block;font:500 10px var(--mono);letter-spacing:.06em;text-transform:uppercase;margin-top:1px}
+.mc-pied{font-size:12px;color:var(--ink-3);padding:0 13px 12px}
+.mc-calb{width:100%;margin-top:14px;display:flex;justify-content:space-between;align-items:center;background:var(--white);border:1px solid var(--line);border-radius:14px;padding:13px 16px;font-weight:600;font-size:14px;color:var(--ink-2)}
+.mc-calb i{font-style:normal;color:var(--ink-4)}
+.mc-cal{margin-top:8px;padding:10px 8px 0}
+.mc-calh,.mc-calr{display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:4px}
+.mc-calh span{text-align:center;font-size:11px;color:var(--ink-4);padding-bottom:4px}
+.mc-calr{margin-bottom:4px}
+.mc-calc{min-height:62px;min-width:0;overflow:hidden;border:1px solid var(--line);border-radius:10px;padding:5px 4px;display:flex;flex-direction:column;gap:3px;align-items:stretch}
+.mc-calc b{font-size:13px}.mc-calc em{font-style:normal;font-size:10px;color:var(--ink-4);margin-top:-3px}
+.mc-calc.off{background:var(--line-light)}.mc-calc.avant{opacity:.4}
+.mc-calc small{font-size:9.5px;color:var(--ink-3);overflow-wrap:anywhere;line-height:1.2}
+.mc-calp{background:var(--me);color:#fff;border:0;border-radius:6px;font-size:10.5px;font-weight:600;padding:4px 2px}
+.mc-voile{position:fixed;inset:0;background:rgba(15,23,42,.45);opacity:0;pointer-events:none;transition:opacity .2s;z-index:900}
+.mc-voile.open{opacity:1;pointer-events:auto}
+.mc-feuille{position:fixed;left:0;right:0;bottom:0;background:var(--white);border-radius:22px 22px 0 0;padding:10px 14px calc(22px + env(safe-area-inset-bottom));max-height:88vh;overflow-y:auto;
+  transform:translateY(105%);visibility:hidden;transition:transform .25s ease,visibility 0s linear .25s;z-index:901;max-width:520px;margin:0 auto;box-shadow:0 -12px 40px rgba(15,23,42,.22)}
+.mc-feuille.open{transform:none;visibility:visible;transition:transform .25s ease}
+.mc-poignee{width:38px;height:4px;border-radius:9px;background:var(--line);margin:0 auto 12px}
+.mc-feuille h2{font-size:19px;margin:0;padding-right:44px}
+.mc-feuille .ctx{color:var(--ink-3);font-size:13px;margin:2px 0 14px}
+.mc-x{position:absolute;right:14px;top:18px;width:34px;height:34px;border-radius:50%;background:var(--line-light);border:0;color:var(--ink-3);font-size:15px}
+.mc-info{display:flex;align-items:center;justify-content:space-between;gap:10px;background:#EEF2FF;border:1px solid #C7D2FE;color:#3730A3;border-radius:12px;padding:9px 12px;font-size:12.5px;font-weight:600;margin-bottom:10px}
+.mc-info button{background:#fff;border:1px solid #A5B4FC;border-radius:9px;padding:6px 10px;font-weight:700;font-size:12px;color:#3730A3;flex:none}
+.mc-pl{border:1px solid var(--line);border-radius:14px;padding:11px 12px;margin-bottom:9px}
+.mc-pl.amb{background:#FEF3C7;border-color:#FDE68A;color:#0F172A}
+.mc-pl.amb .mc-j,.mc-pl.amb .mc-m>span{color:#57534E}.mc-pl.amb .mc-j b{color:#0F172A}
+.mc-pl.vert{background:var(--ok-soft);border-color:var(--ok-line)}
+.mc-pl .ligne{display:flex;align-items:center;gap:12px}
+.mc-tag{font:700 10px var(--mono);background:#EEF2FF;color:#3730A3;border-radius:6px;padding:2px 6px;margin-left:6px;vertical-align:1px}
+.mc-ok2{color:var(--ok);font-weight:700;font-size:15px}
+.mc-sup{color:var(--ink-4);font-size:20px;background:none;border:0;width:34px;height:34px;flex:none}
+.mc-avec{color:var(--ok);font-weight:700;font-size:13.5px;margin-top:8px}
+.mc-lien{background:none;border:0;color:var(--ok);font-weight:700;font-size:12.5px;text-decoration:underline;padding:6px 0 0}
+.mc-aj{border:1.5px dashed #93C5FD;border-radius:14px;padding:13px;color:var(--me);font-weight:700;text-align:center;margin-top:4px;background:var(--white);width:100%}
+.mc-form{border:1px solid var(--line);border-radius:14px;padding:12px;background:var(--bg);margin-top:4px}
+.mc-form .rg{display:flex;gap:10px}
+.mc-form label{display:block;font-size:12px;color:var(--ink-3);font-weight:600;margin-bottom:5px}
+.mc-form input[type=date]{width:100%;border:1.5px solid var(--line);border-radius:11px;padding:10px;font:inherit;font-size:16px;background:var(--white);color:var(--ink);min-height:44px}
+.mc-nb{display:flex;align-items:center;border:1.5px solid var(--line);border-radius:11px;background:var(--white);min-height:44px}
+.mc-nb button{width:42px;height:42px;border:0;background:none;font-size:20px;color:var(--me);font-weight:700}
+.mc-nb span{width:26px;text-align:center;font-weight:700;font-size:16px}
+.mc-err{display:none;color:var(--rose);font-size:12.5px;font-weight:600;margin-top:8px}
+.mc-undo{display:flex;align-items:center;justify-content:space-between;background:var(--line-light);border-radius:12px;padding:9px 12px;font-size:13px;margin-bottom:9px}
+.mc-undo button{background:var(--white);border:1px solid var(--line);border-radius:9px;padding:6px 10px;font-weight:700;font-size:12.5px}
+.mc-mention{text-align:center;color:var(--ink-4);font-size:11.5px;margin:12px 0 0}
+.mc-toast{position:fixed;left:50%;bottom:calc(18px + env(safe-area-inset-bottom));transform:translate(-50%,160%);background:#0F172A;color:#fff;border-radius:12px;padding:11px 14px;font-size:13.5px;display:flex;align-items:center;gap:14px;transition:transform .25s;z-index:950;max-width:92vw}
+.mc-toast.open{transform:translate(-50%,0)}
+.mc-toast button{background:none;border:0;color:#93C5FD;font:inherit;font-weight:700;font-size:13.5px;padding:0;cursor:pointer}
+body.mc-occupe{cursor:progress}
+body.mc-occupe .mc button,body.mc-occupe .mc-feuille button{pointer-events:none;opacity:.6}
 .tagcpa{display:inline-block;font-size:10px;font-weight:700;letter-spacing:.04em;background:#EEF2FF;color:#4338CA;border-radius:5px;padding:1px 5px;margin-left:6px;vertical-align:2px}
 </style>
 <script src="partage/session.js"></script>   <!-- (17/08/2026) source unique : où vit le code d'accès, et 30 jours glissants -->
@@ -236,9 +282,9 @@ window.SessionPortail = window.SessionPortail || { lire:function(){try{return se
 
 <div class="wrap" id="main" style="display:none">
   <a class="back" href="index.html" id="lnkBack"><i id="icBack"></i> Retour au portail</a>
-  <h1>Consultations à venir</h1>
+  <h1 id="titre">Consultations à venir</h1>
   <p class="sub" id="pitch"></p>
-  <div id="aconf"></div><div id="zone"><div class="loading">Chargement…</div></div>
+  <div id="zone"><div class="loading">Chargement…</div></div>
 </div>
 
 <script>
@@ -321,8 +367,9 @@ async function doLogin(code){
     : (r.name || (r.noms && r.moi && r.noms[r.moi]) || r.moi || '');
   // Le secrétariat n'a pas de portail : on lui masque le lien de retour.
   document.getElementById('lnkBack').style.display = (ROLE === 'secretariat') ? 'none' : '';
+  if(ROLE === 'mar') document.getElementById('titre').textContent = 'Mes consultations';   // (28/11/2026) vue du MAR
   document.getElementById('pitch').textContent = (ROLE === 'mar')
-    ? "Vérifiez qu'aucun patient libéral vu en consultation ne sera opéré un jour où vous êtes absent."
+    ? (r.patlib ? "Vos consultations libérales des 4 prochaines semaines." : "Vos consultations des 4 prochaines semaines.")
     : "Avant de placer un patient libéral, vérifiez que le médecin qui le verra en consultation sera présent le jour de son intervention.";
   document.getElementById('authOverlay').style.display='none';
   document.getElementById('hdr').style.display='flex';
@@ -492,221 +539,327 @@ function libPlage(p){
 }
 function nbJours(p){ return p.finIdx - p.debIdx + 1; }
 
-/* ══ PATIENTS LIB D'UNE CONSULTATION (26/11/2026) ═════════════════════════
-   Le MAR note, pour chacune de ses consultations, ses patients lib : date
-   opératoire + nombre, AUCUN NOM. Verdict immédiat : présent ce jour-là, ou
-   « qui peut le voir ? » : un confrère du groupement présent le jour de MA
-   consultation ET le jour du bloc, qui fera la consultation à ma place puis
-   opérera (rattrapage). Après accord VERBAL,
-   « Confier » : le confrère retrouve le patient dans sa page. Le secrétariat
-   des consultations est prévenu par appel, hors de l'outil.
-   Réservé au droit `patlib` (le serveur renvoie DATA.patlib). Le verdict
-   n'est jamais enregistré : recalculé à chaque ouverture. */
-let PATIENTS = {}, RECUS = [], PAT_PICK = null, PAT_C = null, PAT_BTN = null, PAT_NB = 1, PAT_OUVERT = -1, PAT_SUPPR = null, PAT_OCCUPE = false;
+/* ══ MES CONSULTATIONS — VUE DU MAR (refonte du 28/11/2026) ════════════════
+   Maquette validée par le responsable. Une colonne, pensée téléphone :
+     • « À faire » : un patient lib opéré un jour où je suis absent (qui appeler,
+       dans l'ordre, avec le DECT de chacun), une salle à choisir, une consultation
+       du secteur à prendre ;
+     • la liste de mes consultations, une ligne chacune, avec son état ;
+     • mes absences ; le calendrier, replié.
+   Le MAR note ses patients lib : date opératoire + nombre, AUCUN NOM. Le patient
+   garde SA consultation : le confrère vient la faire à ma place puis opère
+   (rattrapage) — il doit être présent le jour de ma consultation ET le jour du
+   bloc, et membre du groupement. L'accord se prend DE VIVE VOIX ; toucher le nom
+   du confrère qui a accepté (avec confirmation) est un pense-bête que MOI SEUL
+   vois : le serveur ne le sert à personne d'autre. « Réglé autrement » : sans nom.
+   Prévenir le secrétariat des consultations reste un appel, hors de l'outil.
+   Le verdict (présent / absent) n'est jamais enregistré : recalculé à l'ouverture. */
+let PATIENTS = {}, MC_OUVERTE = null, MC_FORM = false, MC_NB = 1, MC_SUPPR = null, MC_CONF = '', MC_CAL = false, MC_OCCUPE = false, MC_TOAST = null, MC_ANNULER = null;
 const cleCons = c => c.date+'|'+c.per+'|'+c.mar;
+const mcEsc = s => String(s == null ? '' : s).replace(/[&<>"]/g, x => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[x]));
+const mcPl = (n, mot) => n+' '+mot+(n>1?'s':'');
+const mcPer = p => p === 'am' ? 'matin' : 'après-midi';
+const mcMaj = s => s.charAt(0).toUpperCase()+s.slice(1);
+function mcDate(ds){ const d = dt(ds); return JOURS_FR[d.getDay()]+' '+(d.getDate() === 1 ? '1ᵉʳ' : d.getDate())+' '+MOIS_FR[d.getMonth()]; }
+function mcJour(ds){ const d = dt(ds); return '<div class="mc-j">'+JOURS_FR[d.getDay()].slice(0,3)+'.<b>'+d.getDate()+'</b>'+MOIS_FR[d.getMonth()]+'</div>'; }
+const MC_SERA = {V:'en vacances',CP:'en congé',CTP:'en congé',F:'en formation',RG:'en repos de garde',TP:'en temps partiel',R:'en récupération',OFF:'en semaine off'};
+const MC_COURT = {V:'congé',CP:'congé',CTP:'congé',F:'formation',RG:'repos',TP:'non travaillé',R:'récup.',OFF:'off'};
+function mcSera(a){ return (MOTIFS && a && MC_SERA[a.c]) || 'absent'; }
+
 function patCharger(liste){
-  PATIENTS = {}; RECUS = [];
-  (liste||[]).forEach(p=>{
-    if(p.mar === MOI){ const k = p.consult+'|'+p.per+'|'+p.mar; (PATIENTS[k] = PATIENTS[k] || []).push(p); }
-    else if(p.confieA === MOI) RECUS.push(p);
-  });
+  PATIENTS = {};
+  (liste||[]).forEach(p=>{ if(p.mar !== MOI) return; const k = p.consult+'|'+p.per+'|'+p.mar; (PATIENTS[k] = PATIENTS[k] || []).push(p); });
   Object.keys(PATIENTS).forEach(k => PATIENTS[k].sort((a,b)=> a.bloc < b.bloc ? -1 : a.bloc > b.bloc ? 1 : 0));
 }
 function absentLeJour(mar, ds){ return ((DATA.absences && DATA.absences[mar]) || []).find(a => a.d === ds) || null; }
 function patDe(c){ return (PATIENTS[cleCons(c)] || []).filter(p => p.bloc >= iso(new Date())); }   // date opératoire passée : masquée
-function patAConfier(c){ return patDe(c).filter(p => absentLeJour(c.mar,p.bloc) && !p.confieA).reduce((n,p)=>n+p.nb,0); }
-function patPuce(c){
-  if(c.aValider){   // (26/11/2026) consultation tenue par le secteur : celui qui la fait la prend
-    const n = c.nbSecteur || 0;
-    return '<div class="puce choix">Consultation du secteur'+(c.enAttente ? '' : (n ? ' · '+n+' patient'+(n>1?'s':'')+' lib (export CPA)' : ' · aucun patient lib'))
-      + '. C\'est vous qui la faites ? <button type="button" class="sal" onclick="patSecteur(event,\''+c.date+'\',\''+c.per+'\',\''+c.cs+'\',true)">Oui, c\'est moi</button></div>';
+function mcMes(){ return (DATA.consultations||[]).filter(c => c.mar === MOI)
+  .sort((a,b)=> a.date < b.date ? -1 : a.date > b.date ? 1 : (a.per === b.per ? 0 : a.per === 'am' ? -1 : 1)); }
+function mcCons(k){ return mcMes().find(c => cleCons(c) === k) || null; }
+function mcTotal(c){ return patDe(c).reduce((n,p)=>n+p.nb,0); }
+function mcARegler(c){ return (DATA.patlib && !c.aValider) ? patDe(c).filter(p => absentLeJour(MOI,p.bloc) && !p.confieA) : []; }
+function mcSalle(c){ const L = [].concat((DATA.salles || {})[c.date+'|'+c.per] || []).filter(x => x && x !== '-'); return L.length ? 'salle'+(L.length>1?'s ':' ')+L.join(', ') : ''; }
+/* Export CPA : deux salles de mon secteur ouvertes la même demi-journée → le serveur demande (DATA.aChoisir). */
+function patSalleAChoisir(c){ return (DATA.patlib && !c.aValider && (DATA.aChoisir || []).find(x => x.date === c.date && x.per === c.per)) || null; }
+
+/* DECT : « 81234 » dans le classeur → « 8 1234 » à l'écran ; un toucher lance l'appel (comme l'annuaire). */
+function mcDect(id){
+  const brut = String((DATA.dects || {})[id] || '').trim(), ch = brut.replace(/\D/g,'');
+  if(!brut) return '<span class="mc-dect sans">DECT —</span>';
+  const lib = /^8\d{4}$/.test(ch) ? '8 '+ch.slice(1) : brut;
+  return ch ? '<a class="mc-dect" href="tel:'+ch+'">☎ '+mcEsc(lib)+'</a>' : '<span class="mc-dect">☎ '+mcEsc(lib)+'</span>';
+}
+/* Qui appeler : membre du groupement, présent le jour de MA consultation ET le jour du bloc
+   (une garde compte comme présent : le serveur ne la sert pas comme une absence). Ordre : le rang
+   envoyé par le serveur (1 = le plus de place sous les 30 %), jamais un montant ; puis le nom. */
+function mcQui(c, p){
+  const GRP = DATA.groupement || {};
+  return Object.keys(DATA.noms || {}).filter(id => id !== MOI && GRP[id] && !absentLeJour(id, c.date) && !absentLeJour(id, p.bloc))
+    .sort((a,b) => triMarge(a, b) || nomDe(a).localeCompare(nomDe(b)));
+}
+function mcBlocQui(c, p){
+  const L = mcQui(c, p), k = mcEsc(cleCons(c)), pid = mcEsc(p.id);
+  const occupe = id => (DATA.consultations || []).find(x => x.mar === id && x.date === c.date && x.per === c.per);
+  let h = '<div class="mc-qui"><div class="h">Qui appeler, dans l\'ordre</div>';
+  if(!L.length) return h + '<div class="aucun">Aucun confrère du groupement n\'est présent ces deux jours-là. À voir avec le comité.</div></div>';
+  h += L.map((id, i) => { const o = occupe(id);
+    return '<div class="p"><i>'+(i+1)+'</i><button type="button" class="mc-nom" data-g="avec" data-c="'+k+'" data-p="'+pid+'" data-a="'+mcEsc(id)+'"><span>'+mcEsc(nomDe(id))+'</span>'
+      + (o ? '<small>déjà en consultation ('+mcEsc(libSect(o.cs))+') '+(c.per === 'am' ? 'ce matin-là' : 'cet après-midi-là')+'</small>' : '')+'</button>'+mcDect(id)+'</div>'
+      + (MC_CONF === p.id+'§'+id ? '<div class="mc-conf"><span>Le '+mcEsc(nomDe(id))+' a accepté ?</span><button type="button" class="mc-b oui" data-g="oui" data-c="'+k+'" data-p="'+pid+'" data-a="'+mcEsc(id)+'">Oui</button><button type="button" class="mc-b" data-g="non">Non</button></div>' : '');
+  }).join('');
+  return h + '</div><div class="mc-note">Appelez-le sur son DECT. S\'il accepte, <b>touchez son nom</b> puis confirmez : il fera la consultation à votre place. Prévenez ensuite le secrétariat des consultations.</div>';
+}
+function mcPiedRegler(c, p){ return '<div class="mc-btns"><button type="button" class="mc-b amb2" data-g="regle" data-c="'+mcEsc(cleCons(c))+'" data-p="'+mcEsc(p.id)+'">Réglé autrement</button></div>'; }
+function mcBtnsSalle(c, ch){ const k = mcEsc(cleCons(c));
+  return '<div class="mc-btns">'+ch.salles.map(x => '<button type="button" class="mc-b ind" data-g="salle" data-c="'+k+'" data-v="'+mcEsc(x)+'">Salle '+mcEsc(x)+'</button>').join('')
+    + (ch.aucune ? '<button type="button" class="mc-b ind" data-g="salle" data-c="'+k+'" data-v="-">Aucune</button>' : '')+'</div>'; }
+function mcSecteurTxt(c){ const n = c.nbSecteur || 0; return c.enAttente ? '' : (n ? mcPl(n,'patient')+' lib' : 'aucun patient lib'); }
+
+/* ── À FAIRE ── */
+function mcAFaire(){
+  const M = mcMes(); if(!M.length || !DATA.patlib) return '';
+  const cartes = [];
+  M.forEach(c => {
+    mcARegler(c).forEach(p => { const a = absentLeJour(MOI, p.bloc);
+      cartes.push({ tri:'1'+p.bloc, h:'<div class="mc-af amb"><div class="t">'+mcPl(p.nb,'patient')+' opéré'+(p.nb>1?'s':'')+' le '+mcDate(p.bloc)+' : vous serez '+mcSera(a)+'</div>'
+        + '<div class="sd">Vu'+(p.nb>1?'s':'')+' à votre consultation du '+mcDate(c.date)+' '+mcPer(c.per)+' · '+mcEsc(libSect(c.cs))+'</div>'
+        + mcBlocQui(c, p) + mcPiedRegler(c, p) + '</div>' }); });
+    const ch = patSalleAChoisir(c);
+    if(ch) cartes.push({ tri:'2'+c.date, h:'<div class="mc-af ind"><div class="t">'+mcMaj(mcDate(c.date))+' '+mcPer(c.per)+' : dans quelle salle serez-vous ?</div>'
+      + '<div class="sd">'+mcEsc(libSect(c.cs))+' · sert à retrouver vos patients dans l\'export des consultations</div>'+mcBtnsSalle(c, ch)+'</div>' });
+    if(c.aValider){ const t = mcSecteurTxt(c);
+      cartes.push({ tri:'3'+c.date, h:'<div class="mc-af ind"><div class="t">'+mcMaj(mcDate(c.date))+' '+mcPer(c.per)+' : est-ce vous qui faites cette consultation ?</div>'
+      + '<div class="sd">'+mcEsc(libSect(c.cs))+' · posée au nom du secteur'+(t ? ' · '+t : '')+'</div>'
+      + '<div class="mc-btns"><button type="button" class="mc-b ind" data-g="moi" data-c="'+mcEsc(cleCons(c))+'">Oui, c\'est moi</button></div></div>' }); }
+  });
+  cartes.sort((a,b)=> a.tri < b.tri ? -1 : a.tri > b.tri ? 1 : 0);
+  return cartes.length
+    ? '<div class="mc-k">À faire <span class="n">'+cartes.length+'</span></div>'+cartes.map(x => x.h).join('')
+    : '<div class="mc-k">À faire</div><div class="mc-rien">✓ Rien à faire : aucun de vos patients lib n\'est opéré un jour où vous êtes absent.</div>';
+}
+
+/* ── LISTE ── */
+function mcEtat(c){
+  if(c.aValider) return ['ind','à confirmer'];
+  if(patSalleAChoisir(c)) return ['ind','salle ?'];
+  const n = mcARegler(c).reduce((t,p)=>t+p.nb,0);
+  if(n) return ['amb', n+' à régler'];
+  if(mcTotal(c)) return ['ok','✓ tout va bien'];
+  return ['vide','＋ Ajouter'];
+}
+function mcSousTitre(c){
+  const t = [mcPer(c.per)], s = mcSalle(c);
+  if(s) t.push(s);
+  if(c.aValider) t.push('du secteur');
+  else if(DATA.patlib) t.push(mcTotal(c) ? mcPl(mcTotal(c),'patient')+' lib' : 'aucun patient lib noté');
+  return t.join(' · ');
+}
+function mcListe(){
+  const M = mcMes();
+  if(!M.length) return '<div class="mc-vide"><b>Aucune consultation à votre nom</b><br>sur les 4 prochaines semaines.</div>';
+  return M.map(c => { const e = mcEtat(c), corps = mcJour(c.date)+'<div class="mc-m"><b>'+mcEsc(libSect(c.cs))+'</b><span>'+mcSousTitre(c)+'</span></div>';
+    // Sans patients lib à noter (MAR hors groupement) : la ligne informe, elle ne s'ouvre pas.
+    return DATA.patlib ? '<button type="button" class="mc-c" data-g="ouvrir" data-c="'+mcEsc(cleCons(c))+'">'+corps+'<span class="mc-e '+e[0]+'">'+e[1]+'</span><span class="mc-ch">›</span></button>'
+                       : '<div class="mc-c">'+corps+'</div>'; }).join('');
+}
+
+/* ── MES ABSENCES : d'aujourd'hui à 4 semaines après ma dernière consultation ── */
+function mcAbsences(){
+  const M = mcMes(); if(!M.length) return [];
+  const i1 = Math.min((IDX[M[M.length-1].date] === undefined ? 0 : IDX[M[M.length-1].date]) + FEN - 1, JOURS_ALL.length - 1);
+  const out = [];
+  ((DATA.absences && DATA.absences[MOI]) || []).forEach(a => { const i = IDX[a.d]; if(i !== undefined && i <= i1) out.push({date:a.d, idx:i, code:a.c || ''}); });
+  return out.sort((x,y)=> x.idx - y.idx);
+}
+function mcAbs(){
+  if(!mcMes().length) return '';
+  const P = grouper(mcAbsences());
+  if(!P.length) return '<div class="mc-k">Mes absences sur la période</div><div class="card"><div class="mc-pied" style="padding-top:12px">Aucune absence : toutes les dates d\'intervention conviennent.</div></div>';
+  return '<div class="mc-k">Mes absences sur la période</div><div class="card"><div class="mc-abs">'
+    + P.map(p => '<span>'+libPlage(p)+(MOTIFS && p.code ? '<small>'+mcEsc(NOM_CODE[p.code] || p.code)+'</small>' : '')+'</span>').join('')
+    + '</div><div class="mc-pied">Un patient opéré l\'un de ces jours devra être vu par un confrère.</div></div>';
+}
+
+/* ── CALENDRIER, REPLIÉ (décision du responsable : il apporte peu, il reste à portée de main) ── */
+function mcCal(){
+  const M = mcMes(); if(!M.length) return '';
+  let h = '<button type="button" class="mc-calb" data-g="cal" aria-expanded="'+MC_CAL+'"><span>Voir le calendrier</span><i>'+(MC_CAL ? '▴' : '▾')+'</i></button>';
+  if(!MC_CAL) return h;
+  const abs = {}, cs = {}, auj = iso(new Date());
+  mcAbsences().forEach(a => { abs[a.date] = a.code || '·'; });
+  M.forEach(c => { (cs[c.date] = cs[c.date] || []).push(c); });
+  // Du lundi de cette semaine à la semaine de ma dernière consultation (4 semaines au moins).
+  const d = new Date(); d.setHours(12,0,0,0); d.setDate(d.getDate() - ((d.getDay()+6)%7));
+  if(new Date().getDay() === 6 || new Date().getDay() === 0) d.setDate(d.getDate()+7);   // le week-end : la semaine qui vient
+  const fin = M[M.length-1].date;
+  h += '<div class="card mc-cal"><div class="mc-calh"><span>lun.</span><span>mar.</span><span>mer.</span><span>jeu.</span><span>ven.</span></div>';
+  for(let w = 0; w < 4 || (iso(d) <= fin && w < 6); w++){
+    h += '<div class="mc-calr">';
+    for(let j = 0; j < 5; j++){ const k = iso(d), L = cs[k] || [];
+      h += '<div class="mc-calc'+(abs[k] ? ' off' : '')+(k < auj ? ' avant' : '')+'"><b>'+d.getDate()+'</b>'
+        + (j === 0 || d.getDate() === 1 ? '<em>'+MOIS_FR[d.getMonth()]+'</em>' : '')
+        + L.map(c => DATA.patlib ? '<button type="button" class="mc-calp" data-g="ouvrir" data-c="'+mcEsc(cleCons(c))+'">'+(c.per === 'am' ? 'matin' : 'ap.-m.')+'</button>'
+                                 : '<span class="mc-calp" style="text-align:center">'+(c.per === 'am' ? 'matin' : 'ap.-m.')+'</span>').join('')
+        + (abs[k] ? '<small>'+((MOTIFS && MC_COURT[abs[k]]) || 'absent')+'</small>' : '')+'</div>';
+      d.setDate(d.getDate()+1); }
+    d.setDate(d.getDate()+2); h += '</div>';
   }
-  const ch = patSalleAChoisir(c);   // (26/11/2026) export CPA : deux salles possibles
-  if(ch) return '<div class="puce choix">Export CPA : dans quelle salle êtes-vous ? '
-    + ch.salles.map(x => '<button type="button" class="sal" onclick="patSalle(event,\''+c.date+'\',\''+c.per+'\',\''+x+'\')">Salle '+x+'</button>').join('')
-    + (ch.aucune ? '<button type="button" class="sal" onclick="patSalle(event,\''+c.date+'\',\''+c.per+'\',\'-\')">Aucune</button>' : '') + '</div>';
-  const sv = (DATA.salles || {})[c.date+'|'+c.per];
-  const sal = sv ? '<span class="salle">· salle'+([].concat(sv).length>1?'s ':' ')+[].concat(sv).join(', ')+'</span>' : '';
-  const tot = patDe(c).reduce((n,p)=>n+p.nb,0), a = patAConfier(c);
-  if(!tot) return '<button type="button" class="puce vide">＋ Noter mes patients lib</button>';
-  if(a)    return '<button type="button" class="puce warn">⚠ '+a+' patient'+(a>1?'s':'')+' à confier'+sal+'<span class="pl-plus">Voir ›</span></button>';
-  return '<button type="button" class="puce ok">✓ '+tot+' patient'+(tot>1?'s':'')+' · tout est réglé'+sal+'<span class="pl-plus">Modifier ›</span></button>';
+  return h + '<div class="mc-pied">En bleu, vos consultations'+(DATA.patlib ? ' : touchez-en une pour l\'ouvrir' : '')+'. En gris, vos absences.</div></div>';
 }
-function rendreRecus(){
-  const R = RECUS.filter(p => p.bloc >= iso(new Date())).sort((a,b)=> a.bloc < b.bloc ? -1 : 1);
-  if(!R.length) return '';
-  return '<div class="recus"><div class="k">Patients que des confrères vous ont confiés</div>' + R.map(p => {
-    const d = dt(p.bloc);
-    return '<div class="pl ok2"><div class="j">'+JOURS_FR[d.getDay()].slice(0,3)+'.<b>'+d.getDate()+'</b>'+MOIS_FR[d.getMonth()]+'</div><div><div class="q">'+p.nb+' patient'+(p.nb>1?'s':'')+' du '+nomDe(p.mar)+'</div><div class="e">Opéré'+(p.nb>1?'s':'')+' ce jour-là</div></div><span class="pok">reçu</span></div>';
-  }).join('') + '</div>';
-}
-function rendreBandeau(){
-  const box = document.getElementById('aconf'); if(!box) return;
-  if(!DATA || !DATA.patlib){ box.innerHTML = ''; return; }
-  const n = (DATA.consultations||[]).filter(c => c.mar === MOI).reduce((t,c)=>t+patAConfier(c),0);
-  box.innerHTML = (n ? '<div class="aconf"><div class="ic">!</div><div><b>'+n+' patient'+(n>1?'s':'')+' lib à confier</b><br>Vous êtes absent le jour de leur intervention.</div></div>' : '') + rendreRecus();
-}
-function majPuce(){
-  if(PAT_BTN && PAT_BTN.nextSibling && PAT_BTN.nextSibling.classList && PAT_BTN.nextSibling.classList.contains('puce')){
-    const t=document.createElement('div'); t.innerHTML=patPuce(PAT_C); const n=t.firstChild;
-    n.addEventListener('click', ((b,c)=>()=>patOuvrir(b,c))(PAT_BTN,PAT_C)); PAT_BTN.nextSibling.replaceWith(n);
-  }
-  rendreBandeau();
-}
+
+/* ── FEUILLE D'UNE CONSULTATION ── */
 function _bornes(c){ const d=dt(c.date); const a=new Date(d); a.setDate(a.getDate()+2); const b=new Date(d); b.setMonth(b.getMonth()+1); return [iso(a), iso(b)]; }
-function patOuvrir(btn, c){
-  if(c.aValider) return;                     // il faut d'abord la prendre
-  PAT_SUPPR = null;
-  selectionner(btn, c);                      // le panneau existant suit la consultation
-  PAT_C = c; PAT_BTN = btn; PAT_NB = 1; PAT_OUVERT = -1;
-  document.getElementById('pfCtx').textContent = libSect(c.cs)+' · '+libDate(c.date)+' '+(c.per==='am'?'matin':'après-midi');
-  const [mn,mx] = _bornes(c), inp = document.getElementById('pfDate');
-  inp.min = mn; inp.max = mx; inp.value = '';
-  document.getElementById('pfNb').textContent = '1'; document.getElementById('pfErr').style.display='none';
-  patListe();
-  document.getElementById('pVoile').classList.add('open'); document.getElementById('pFeuille').classList.add('open');
+function mcFeuille(){
+  const c = mcCons(MC_OUVERTE); if(!c){ mcFermer(); return; }
+  const k = mcEsc(cleCons(c)), tot = mcTotal(c), s = mcSalle(c);
+  document.getElementById('mcTitre').textContent = mcMaj(mcDate(c.date))+' · '+mcPer(c.per);
+  document.getElementById('mcCtx').textContent = [libSect(c.cs)].concat(s ? [s] : []).concat(c.aValider ? [] : [tot ? mcPl(tot,'patient')+' lib' : 'aucun patient lib noté']).join(' · ');
+  let h = '';
+  if(c.aValider){ const t = mcSecteurTxt(c);
+    document.getElementById('mcCorps').innerHTML = '<div class="mc-af ind" style="margin-bottom:0"><div class="t">Est-ce vous qui faites cette consultation ?</div><div class="sd">Elle est posée au nom du secteur'
+      + (t ? ' ('+t+')' : '')+'. Celui qui la fait la prend ici.</div><div class="mc-btns"><button type="button" class="mc-b ind" data-g="moi" data-c="'+k+'">Oui, c\'est moi</button></div></div>';
+    return; }
+  const ch = patSalleAChoisir(c);
+  if(ch) h += '<div class="mc-af ind"><div class="t">Dans quelle salle serez-vous ?</div><div class="sd">Sert à retrouver vos patients dans l\'export des consultations.</div>'+mcBtnsSalle(c, ch)+'</div>';
+  if(c.secteur) h += '<div class="mc-info"><span>Consultation du secteur, prise par vous.</span><button type="button" data-g="pasmoi" data-c="'+k+'">Ce n\'est pas moi</button></div>';
+  if(MC_SUPPR) h += '<div class="mc-undo"><span>Ligne supprimée.</span><button type="button" data-g="restaurer">Annuler</button></div>';
+  patDe(c).forEach(p => {
+    const a = absentLeJour(MOI, p.bloc), pid = mcEsc(p.id);
+    const tete = mcJour(p.bloc)+'<div class="mc-m"><b>'+mcPl(p.nb,'patient')+(p.cpa ? '<span class="mc-tag">CPA</span>' : '')+'</b><span>Opéré'+(p.nb>1?'s':'')+' ce jour-là · ';
+    const X = '<button type="button" class="mc-sup" data-g="suppr" data-p="'+pid+'" aria-label="Supprimer la ligne">×</button>';
+    if(!a) h += '<div class="mc-pl"><div class="ligne">'+tete+'vous êtes là</span></div><span class="mc-ok2">✓</span>'+X+'</div></div>';
+    else if(p.confieA) h += '<div class="mc-pl vert"><div class="ligne">'+tete+'vous serez '+mcSera(a)+'</span></div>'+X+'</div>'
+      + '<div class="mc-avec">✓ Réglé'+(p.confieA !== '-' ? ' avec le '+mcEsc(nomDe(p.confieA)) : '')+'</div>'
+      + '<button type="button" class="mc-lien" data-g="deregle" data-p="'+pid+'">Ce n\'est plus réglé</button></div>';
+    else h += '<div class="mc-pl amb"><div class="ligne">'+tete+'vous serez '+mcSera(a)+'</span></div>'+X+'</div>'+mcBlocQui(c, p)+mcPiedRegler(c, p)+'</div>';
+  });
+  if(!MC_FORM) h += '<button type="button" class="mc-aj" data-g="form">＋ Ajouter un patient lib</button>';
+  else { const B = _bornes(c);
+    h += '<div class="mc-form"><div class="rg"><div style="flex:1"><label for="mcDate">Date opératoire</label><input type="date" id="mcDate" min="'+B[0]+'" max="'+B[1]+'"></div>'
+      + '<div><label>Nombre</label><div class="mc-nb"><button type="button" data-g="nb" data-v="-1" aria-label="Moins">−</button><span id="mcNb">'+MC_NB+'</span><button type="button" data-g="nb" data-v="1" aria-label="Plus">+</button></div></div></div>'
+      + '<div class="mc-err" id="mcErr"></div><div class="mc-btns"><button type="button" class="mc-b bleu" data-g="ajouter">Ajouter</button></div></div>'; }
+  document.getElementById('mcCorps').innerHTML = h+'<p class="mc-mention">Aucun nom de patient n\'est enregistré.</p>';
 }
-function patFermer(){ document.getElementById('pVoile').classList.remove('open'); document.getElementById('pFeuille').classList.remove('open'); PAT_PICK=null; }
-function patNb(d){ PAT_NB = Math.max(1, Math.min(9, PAT_NB+d)); document.getElementById('pfNb').textContent = PAT_NB; }
-function patErr(m){ const e=document.getElementById('pfErr'); e.textContent=m; e.style.display='block'; }
+function mcOuvrir(k){ if(!DATA.patlib || !mcCons(k)) return; MC_OUVERTE = k; MC_FORM = false; MC_NB = 1; MC_SUPPR = null; mcFeuille();
+  document.getElementById('mcVoile').classList.add('open'); document.getElementById('mcFeuille').classList.add('open'); }
+function mcFermer(){ MC_OUVERTE = null; MC_SUPPR = null; document.getElementById('mcVoile').classList.remove('open'); document.getElementById('mcFeuille').classList.remove('open'); }
+
+function rendreMar(){
+  document.getElementById('zone').innerHTML = '<div class="mc">'+mcAFaire()
+    + '<div class="mc-k">Mes consultations</div><div class="card">'+mcListe()+'</div>'+mcAbs()+mcCal()+'</div>';
+  if(MC_OUVERTE) mcFeuille();
+}
+function mcToast(txt, annuler){
+  const t = document.getElementById('mcToast'); document.getElementById('mcToastTxt').textContent = txt;
+  MC_ANNULER = annuler || null; document.getElementById('mcToastBtn').style.display = annuler ? '' : 'none';
+  t.classList.add('open'); clearTimeout(MC_TOAST); MC_TOAST = setTimeout(() => t.classList.remove('open'), annuler ? 7000 : 4000);
+}
+function mcErr(m){ const e = document.getElementById('mcErr'); if(e){ e.textContent = m; e.style.display = 'block'; } else mcToast(m); }
+
 /* Un seul envoi à la fois ; la réponse du serveur EST la nouvelle liste. */
 async function patEnvoyer(corps){
-  if(PAT_OCCUPE) return null;
-  PAT_OCCUPE = true; document.getElementById('pFeuille').classList.add('occupe');
+  if(MC_OCCUPE) return null;
+  MC_OCCUPE = true; document.body.classList.add('mc-occupe');
   try{
     const r = await apiPost(Object.assign({action:'patientsLib'}, corps));
-    if(!(r && r.success)){ patErr((r && r.error) || 'Le serveur n\'a pas répondu — réessayez.'); return null; }
+    if(!(r && r.success)){ mcErr((r && r.error) || 'Le serveur n\'a pas répondu — réessayez.'); return null; }
     // Lignes CPA : servies seulement par getConsultAbsences — la réponse de patientsLib ne les
     // contient pas. Dès qu'il y en a à l'écran, on relit tout, sinon elles disparaissent.
-    const aCpa = Object.keys(PATIENTS).some(k => PATIENTS[k].some(p => p.cpa)) || RECUS.some(p => p.cpa);
+    const aCpa = Object.keys(PATIENTS).some(k => PATIENTS[k].some(p => p.cpa));
     if(aCpa || corps.op === 'salle' || corps.op === 'secteur' || String(corps.id || '').indexOf('cpa|') === 0){
       const d = await apiPost({action:'getConsultAbsences'});   // lignes CPA : recalculées par le serveur
       if(d && d.success){ DATA = d; lireMarges(d); patCharger(d.patients); }
       return r;
     }
     patCharger(r.patients); return r;
-  }catch(e){ patErr('Erreur réseau — réessayez.'); return null; }
-  finally{ PAT_OCCUPE = false; document.getElementById('pFeuille').classList.remove('occupe'); }
+  }catch(e){ mcErr('Erreur réseau — réessayez.'); return null; }
+  finally{ MC_OCCUPE = false; document.body.classList.remove('mc-occupe'); }
 }
-async function patAjouter(){
-  PAT_SUPPR = null;
-  const v = document.getElementById('pfDate').value, [mn,mx] = _bornes(PAT_C);
-  if(!v) return patErr('Choisissez la date opératoire.');
-  const w = dt(v).getDay(); if(w===0||w===6) return patErr('Cette date tombe un week-end.');
-  if(v < mn) return patErr('Trop tôt : la consultation doit avoir lieu au moins 48 h avant le geste.');
-  if(v > mx) return patErr('Trop tard : la consultation doit avoir lieu dans le mois qui précède le geste.');
-  document.getElementById('pfErr').style.display='none';
-  const r = await patEnvoyer({op:'ajouter', consult:PAT_C.date, per:PAT_C.per, bloc:v, nb:PAT_NB});
+function mcPatient(pid){ let p = null; Object.keys(PATIENTS).some(k => !!(p = PATIENTS[k].find(x => x.id === pid))); return p; }
+async function mcRegler(pid, avec){            // avec = identifiant du confrère, ou « - » (réglé autrement)
+  const p = mcPatient(pid); if(!p) return;
+  const txt = avec === '-' ? 'Noté : '+mcPl(p.nb,'patient')+' du '+mcDate(p.bloc)+', réglé.' : 'Noté : réglé avec le '+nomDe(avec)+'.';
+  const r = await patEnvoyer({op:'confier', id:pid, a:avec}); MC_CONF = '';
+  if(!r){ rendreMar(); return; }
+  rendreMar(); mcToast(txt, () => mcDeregler(pid));
+}
+async function mcDeregler(pid){ const r = await patEnvoyer({op:'reprendre', id:pid}); if(r) rendreMar(); }
+async function mcAjouter(){
+  const c = mcCons(MC_OUVERTE); if(!c) return;
+  MC_SUPPR = null;
+  const v = document.getElementById('mcDate').value, B = _bornes(c);
+  if(!v) return mcErr('Choisissez la date opératoire.');
+  const w = dt(v).getDay(); if(w===0||w===6) return mcErr('Cette date tombe un week-end.');
+  if(v < B[0]) return mcErr('Trop tôt : la consultation doit avoir lieu au moins 48 h avant le geste.');
+  if(v > B[1]) return mcErr('Trop tard : la consultation doit avoir lieu dans le mois qui précède le geste.');
+  const r = await patEnvoyer({op:'ajouter', consult:c.date, per:c.per, bloc:v, nb:MC_NB});
   if(!r) return;
-  document.getElementById('pfDate').value=''; PAT_NB=1; document.getElementById('pfNb').textContent='1';
-  const L = patDe(PAT_C), k = L.findIndex(p => p.bloc === v && !p.confieA);
-  PAT_OUVERT = (k >= 0 && absentLeJour(PAT_C.mar, v)) ? k : -1;   // absent : la liste des confrères s'ouvre d'elle-même
-  patListe(); majPuce();
+  MC_FORM = false; MC_NB = 1; rendreMar();
 }
-function patQui(k){ PAT_OUVERT = (PAT_OUVERT===k ? -1 : k); patListe(); }
-async function patSupprimer(k){
-  const p = patDe(PAT_C)[k]; if(!p) return;
-  const r = await patEnvoyer({op:'supprimer', id:p.id}); if(!r) return;
-  PAT_SUPPR = p; PAT_OUVERT = -1; patListe(); majPuce();
+async function mcSupprimer(pid){
+  const p = mcPatient(pid); if(!p) return;
+  const r = await patEnvoyer({op:'supprimer', id:pid}); if(!r) return;
+  MC_SUPPR = p; MC_CONF = ''; rendreMar();
 }
-async function patAnnulerSuppr(){
-  const p = PAT_SUPPR; if(!p) return;
-  if(p.cpa){ const r0 = await patEnvoyer({op:'reprendre', id:p.id}); if(!r0) return; PAT_SUPPR = null; patListe(); majPuce(); return; }
+async function mcRestaurer(){
+  const p = MC_SUPPR, c = mcCons(MC_OUVERTE); if(!p) return;
+  if(p.cpa){ const r0 = await patEnvoyer({op:'reprendre', id:p.id}); if(!r0) return; MC_SUPPR = null; rendreMar(); return; }
   const r = await patEnvoyer({op:'ajouter', consult:p.consult, per:p.per, bloc:p.bloc, nb:p.nb}); if(!r) return;
-  if(p.confieA){
-    const n = patDe(PAT_C).find(x => x.bloc === p.bloc && x.nb === p.nb && !x.confieA);
+  if(p.confieA && c){            // la ligne était réglée : elle le redevient
+    const n = patDe(c).find(x => x.bloc === p.bloc && x.nb === p.nb && !x.confieA);
     if(n) await patEnvoyer({op:'confier', id:n.id, a:p.confieA});
   }
-  PAT_SUPPR = null; patListe(); majPuce();
+  MC_SUPPR = null; rendreMar();
 }
-/* (26/11/2026, décision du responsable) RATTRAPAGE : le patient garde SA
-   consultation (le jour de la mienne). Le confrère vient la faire à ma place,
-   puis l'opère : il doit être PRÉSENT le jour de ma consultation ET le jour du
-   bloc, et membre du groupement. Classé par marge CCAM restante (le bloc porte
-   la charge), comme le reste de la page. Garde = présent (le serveur ne la
-   compte pas comme une absence). */
-function _quiPeut(p){
-  const c = PAT_C, GRP = DATA.groupement || {};
-  PAT_PICK = p;
-  const ids = Object.keys(DATA.noms || {}).filter(id => id !== c.mar && GRP[id]
-    && !absentLeJour(id, c.date) && !absentLeJour(id, p.bloc));
-  ids.sort((a,b) => triMarge(a, b) || nomDe(a).localeCompare(nomDe(b)));
-  const occupe = id => (DATA.consultations || []).find(x => x.mar === id && x.date === c.date && x.per === c.per);
-  let h = '<div class="alt"><h4>Qui peut faire votre consultation du '+libDate(c.date)+' et opérer le '+libDate(p.bloc)+' ?</h4>'
-    + '<div class="why">Membres du groupement présents ces deux jours-là'
-    + (MARGE_OK ? ', du plus disponible au moins disponible sous les 30 % de libéral' : '') + '.</div>'
-    // (27/11/2026, décision du responsable) Pas de « Confier » : la page dit QUI contacter, l'accord
-    // se prend de vive voix et le secrétariat est prévenu par téléphone.
-    + '<div class="why">Appelez l\'un d\'eux et prévenez le secrétariat des consultations. Une fois réglé, retirez la ligne (×).</div>';
-  if(!ids.length) return h + '<div class="none-alt">Aucun membre du groupement n\'est présent ces deux jours-là. À arbitrer avec le comité.</div></div>';
-  h += ids.map(id => {
-    const o = occupe(id);
-    return '<div class="person"><b>'+nomDe(id)+'</b>'
-      + (o ? '<span class="cs">déjà en consultation ('+libSect(o.cs)+') à la même heure</span>' : '') + '</div>';
-  }).join('');
-  return h + '</div>';
+/* Export CPA — choix de la salle : un toucher, et les patients de la salle apparaissent. */
+async function mcChoisirSalle(k, salle){
+  const c = mcCons(k); if(!c) return;
+  const r = await patEnvoyer({op:'salle', date:c.date, per:c.per, salle:salle}); if(!r) return;
+  rendreMar(); const c2 = mcCons(k), n = c2 ? mcTotal(c2) : 0;
+  mcToast(salle === '-' ? 'Noté : aucune salle.' : 'Salle '+salle+' : '+(n ? mcPl(n,'patient')+' lib retrouvé'+(n>1?'s':'')+'.' : 'aucun patient lib.'));
 }
-function patListe(){
-  const c = PAT_C, L = patDe(c);
-  let h = PAT_SUPPR ? '<div class="psuppr">Ligne supprimée.<button onclick="patAnnulerSuppr()">Annuler</button></div>' : '';
-  if(c.secteur) h += '<div class="psuppr">Consultation du secteur, prise par vous.<button onclick="patSecteur(null,\''+c.date+'\',\''+c.per+'\',\''+c.cs+'\',false)">Ce n\'est pas moi</button></div>';
-  h += L.length ? '<div class="k">Vos patients de cette consultation</div>' : '';
-  const X = k => '<button class="px" onclick="patSupprimer('+k+')" aria-label="Supprimer">×</button>';
-  L.forEach((p,k)=>{
-    const d = dt(p.bloc), ab = absentLeJour(c.mar, p.bloc);
-    const jour = '<div class="j">'+JOURS_FR[d.getDay()].slice(0,3)+'.<b>'+d.getDate()+'</b>'+MOIS_FR[d.getMonth()]+'</div>';
-    const q = '<div class="q">'+p.nb+' patient'+(p.nb>1?'s':'')+(p.cpa ? '<span class="tagcpa">CPA</span>' : '')+'</div>';
-    if(!ab) h += '<div class="pl">'+jour+'<div>'+q+'<div class="e">Vous êtes là ce jour-là</div></div><span class="pact"><span class="pok">✓</span>'+X(k)+'</span></div>';
-    else if(p.confieA) h += '<div class="pl ok2">'+jour+'<div>'+q+'<div class="e">Confiés au '+nomDe(p.confieA)+'</div></div><span class="pact"><button class="pbtn" onclick="patReprendre('+k+')">Reprendre</button>'+X(k)+'</span></div>';
-    else {
-      h += '<div class="pl warn">'+jour+'<div>'+q+'<div class="e">Vous êtes absent ('+((MOTIFS && NOM_CODE[ab.c])||'absent').toLowerCase()+')</div></div><span class="pact"><button class="pbtn" onclick="patQui('+k+')">'+(PAT_OUVERT===k?'Masquer':'Qui peut le voir ?')+'</button>'+X(k)+'</span></div>';
-      if(PAT_OUVERT===k) h += '<div class="pqui"><div class="appel">Appelez l\'un d\'eux, puis touchez « Confier ».</div>'+_quiPeut(p)+'</div>';
-    }
-  });
-  document.getElementById('pfListe').innerHTML = h;
-  if(PAT_OUVERT<0){ PAT_PICK=null; }
-}
-async function patConfier(id){
-  if(!PAT_PICK) return;
-  const r = await patEnvoyer({op:'confier', id:PAT_PICK.id, a:id}); if(!r) return;
-  PAT_PICK = null; PAT_OUVERT = -1;
-  patListe(); majPuce();
-}
-async function patReprendre(k){
-  const p = patDe(PAT_C)[k]; if(!p) return;
-  const r = await patEnvoyer({op:'reprendre', id:p.id}); if(!r) return;
-  patListe(); majPuce();
+/* Consultation tenue par le secteur (sans nom dans l'admin) : montrée aux MAR placés dans ce
+   secteur du bloc ; celui qui la fait la prend, elle devient la sienne. « Ce n'est pas moi » la rend. */
+async function mcSecteur(k, prendre){
+  const c = mcCons(k); if(!c) return;
+  const r = await patEnvoyer({op:'secteur', date:c.date, per:c.per, cs:c.cs, prendre:prendre});
+  if(!r) return;                 // refus (déjà prise, plus dans le secteur…) : le message est affiché
+  if(!prendre) mcFermer();
+  rendreMar(); const c2 = mcCons(k);
+  if(prendre && c2) mcToast('Consultation prise : '+(mcTotal(c2) ? mcPl(mcTotal(c2),'patient')+' lib.' : 'aucun patient lib.'));
 }
 
-/* ══ EXPORT CPA — CHOIX DE LA SALLE (26/11/2026) ═══════════════════════════
-   Le serveur rattache chaque consultation à sa salle CPA (DATA.salles) ; quand
-   deux salles de son secteur sont ouvertes la même demi-journée, il demande
-   (DATA.aChoisir) : un toucher, et les patients de la salle apparaissent. */
-function patSalleAChoisir(c){ return (DATA.aChoisir || []).find(x => x.date === c.date && x.per === c.per && c.mar === MOI) || null; }
-async function patSalle(ev, date, per, salle){
-  ev.stopPropagation();
-  const r = await patEnvoyer({op:'salle', date:date, per:per, salle:salle});
-  if(r) rendre();
-}
-/* (26/11/2026) Consultation tenue par le secteur (« Viscéral » sans nom dans l'admin) :
-   montrée aux MAR placés dans ce secteur du bloc ; celui qui la fait la prend, elle
-   devient la sienne (patients, verdict, confier). « Ce n'est pas moi » la rend. */
-async function patSecteur(ev, date, per, cs, prendre){
-  if(ev) ev.stopPropagation();
-  const r = await patEnvoyer({op:'secteur', date:date, per:per, cs:cs, prendre:prendre});
-  if(!r){   // refus (déjà prise, plus dans le secteur…) : le message s'affiche dans la pastille
-    const pu = ev && ev.target && ev.target.closest && ev.target.closest('.puce'), m = document.getElementById('pfErr');
-    if(pu && m && m.textContent) pu.textContent = m.textContent;
-    return;
+/* ── GESTES : un seul écouteur, chaque bouton porte data-g ── */
+document.addEventListener('click', function(ev){
+  const b = ev.target && ev.target.closest && ev.target.closest('[data-g]'); if(!b || ROLE !== 'mar' || !DATA) return;
+  const d = b.dataset;
+  switch(d.g){
+    case 'ouvrir':   mcOuvrir(d.c); break;
+    case 'cal':      MC_CAL = !MC_CAL; rendreMar(); break;
+    case 'avec':     MC_CONF = (MC_CONF === d.p+'§'+d.a) ? '' : d.p+'§'+d.a; rendreMar(); break;   // 1er toucher : la question, rien n'est enregistré
+    case 'non':      MC_CONF = ''; rendreMar(); break;
+    case 'oui':      mcRegler(d.p, d.a); break;
+    case 'regle':    mcRegler(d.p, '-'); break;
+    case 'deregle':  mcDeregler(d.p); break;
+    case 'salle':    mcChoisirSalle(d.c, d.v); break;
+    case 'moi':      mcSecteur(d.c, true); break;
+    case 'pasmoi':   mcSecteur(d.c, false); break;
+    case 'form':     MC_FORM = true; MC_NB = 1; MC_SUPPR = null; mcFeuille(); break;
+    case 'nb':       MC_NB = Math.max(1, Math.min(9, MC_NB + Number(d.v))); document.getElementById('mcNb').textContent = MC_NB; break;
+    case 'ajouter':  mcAjouter(); break;
+    case 'suppr':    mcSupprimer(d.p); break;
+    case 'restaurer':mcRestaurer(); break;
+    case 'fermer':   mcFermer(); break;
+    case 'annuler':  { const f = MC_ANNULER; MC_ANNULER = null; document.getElementById('mcToast').classList.remove('open'); if(f) f(); } break;
   }
-  if(!prendre) patFermer();
-  rendre();
-}
+});
+document.addEventListener('keydown', e => { if(e.key === 'Escape' && MC_OUVERTE) mcFermer(); });
 
 /* ══ RENDU ═════════════════════════════════════════════════════════════ */
 let curBtn=null, curSlot=null, pick=null;
 
 function rendre(){
+  if(ROLE === 'mar'){ rendreMar(); return; }   // (28/11/2026) le MAR a sa propre vue ; ce qui suit sert le secrétariat
   const mien = (ROLE === 'mar');
   const vis = (DATA.consultations||[]).filter(c => !mien || c.mar === MOI);
   document.getElementById('zone').innerHTML =
@@ -751,12 +904,9 @@ function rendre(){
         '<span class="when">'+(c.per==='am'?'matin':'après-midi')+'</span>';
       b.addEventListener('click', ()=> selectionner(b, c));
       g.appendChild(b);
-      // (26/11/2026) Patients lib : bouton d'état sous chacune de MES consultations (droit patlib)
-      if(mien && DATA.patlib){ b.insertAdjacentHTML('afterend', patPuce(c)); b.nextSibling.addEventListener('click', ()=> patOuvrir(b, c)); }
     });
     file.appendChild(g);
   });
-  rendreBandeau();
   const p0 = file.querySelector('.slot'); if(p0) p0.click();
 }
 
@@ -1236,6 +1386,7 @@ try {
   PERF.surveiller([
     'charger',
     'rendre',
+    'rendreMar',
     'rendreAlt',
     'rendreGrille',
     'construireJours',
@@ -1245,22 +1396,15 @@ try {
 } catch (e) { console.warn('[chrono] branchement impossible :', e && e.message); }
 
 </script>
-<!-- (26/11/2026) Feuille « Patients lib » d'une consultation -->
-<div class="pvoile" id="pVoile" onclick="patFermer()"></div>
-<div class="pfeuille" id="pFeuille" role="dialog" aria-modal="true">
-  <div class="pgrab"></div>
-  <div class="ptete"><div><b>Patients lib</b><span id="pfCtx"></span></div><button class="pfermer" onclick="patFermer()" aria-label="Fermer">✕</button></div>
-  <div class="pform">
-    <div class="t">Ajouter des patients</div>
-    <div class="prow">
-      <label class="pchamp">Date opératoire<input type="date" id="pfDate"></label>
-      <div class="pchamp">Nombre<div class="pstep"><button type="button" onclick="patNb(-1)" aria-label="Moins">−</button><output id="pfNb">1</output><button type="button" onclick="patNb(1)" aria-label="Plus">+</button></div></div>
-    </div>
-    <div class="perr" id="pfErr"></div>
-    <button class="pgo" onclick="patAjouter()">Ajouter</button>
-  </div>
-  <div class="pliste" id="pfListe"></div>
-  <div class="pfoot">Aucun nom de patient n'est enregistré.</div>
+<!-- (28/11/2026) Vue du MAR : feuille d'une consultation, et message du bas avec « Annuler » -->
+<div class="mc-voile" id="mcVoile" data-g="fermer"></div>
+<div class="mc-feuille" id="mcFeuille" role="dialog" aria-modal="true" aria-labelledby="mcTitre">
+  <div class="mc-poignee"></div>
+  <button class="mc-x" type="button" data-g="fermer" aria-label="Fermer">✕</button>
+  <h2 id="mcTitre"></h2>
+  <div class="ctx" id="mcCtx"></div>
+  <div id="mcCorps"></div>
 </div>
+<div class="mc-toast" id="mcToast" role="status"><span id="mcToastTxt"></span><button type="button" id="mcToastBtn" data-g="annuler">Annuler</button></div>
 </body>
 </html>

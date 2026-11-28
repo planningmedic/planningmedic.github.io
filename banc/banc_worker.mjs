@@ -160,7 +160,8 @@ console.log('\n═══ Agenda d\'abonnement : gardes et 18h d\'un MAR, qui sui
   // DON : la garde réa du 28 passe de BOISSY à LEROY → les deux agendas suivent.
   M.set('planning_2026', plan(['', 'V', '18'], ['G', 'G2', 'G']));
   a = await getIcs(ch1);
-  V('agenda : après un don, la garde quitte l\'agenda du donneur', !/20261128/.test(a.txt) && /SUMMARY:18h/.test(a.txt));
+  // (28/11/2026) L'horodatage du fichier (DTSTAMP) porte la date du jour : le 28/11/2026, il contenait « 20261128 » et ce contrôle tombait à tort.
+  V('agenda : après un don, la garde quitte l\'agenda du donneur', !/20261128/.test(a.txt.replace(/DTSTAMP:\S+/g, '')) && /SUMMARY:18h/.test(a.txt));
   V('agenda : … et arrive dans celui du receveur', /DTSTART;VALUE=DATE:20261128/.test((await getIcs(chL)).txt));
 
   // NOUVEAU LIEN : l'ancien devient muet.

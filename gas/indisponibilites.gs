@@ -4,7 +4,7 @@
    quelles : aucune ligne de logique modifiée, seulement déplacée. Le routeur et
    ses aides (checkCode, _deny, _error, doGet/doPost) restent dans Indispos.gs.
    Un seul espace global dans Apps Script : rien à importer. */
-const GAS_VERSION_INDISPOS_METIER = '2026-11-27.7';   // (27/11/2026) .7 : congé long — les offres de bourse et propositions devenues sans objet sont fermées aussitôt · .6 : saveIndisposBatch enregistre janvier N+1 (JANVIER_SUIVANT), getVacancesConfig l'envoie · .5 : plus aucun montant de marge envoyé, seulement le rang · .4 : getVacancesConfig envoie les reliquats (onglet Récap du comité) · .3 : patients lib ouverts à tout le groupement libéral · .2 : getVacConfig envoie le reliquat de l'année précédente (staff vacances : janvier pris d'abord dessus) · .1 : marge NGAP renvoyée avec la marge CCAM (classement des confrères) · (26/11) .4 : consultation du secteur sans patient lib : plus montrée · .3 : consultations tenues par le secteur — les MAR du secteur du bloc la voient, celui qui la fait la prend (op secteur), choix « aucune salle » · .2 : export CPA — importCpa (droit maintenance, onglet CPA_EXPORT), rattachement des consultations aux salles (CPA_SALLES), lignes CPA servies dans getConsultAbsences, op salle et lignes cpa| dans patientsLib · .1 : patients lib d'une consultation — action patientsLib (droit patlib, onglet PATIENTS_LIB) et patients servis dans getConsultAbsences · (25/11/2026) .2 : action getRecapPdf (PDF du récapitulatif pour le MAR connecté) ; getOrdreVacances répond aussi pour y+2 · .1 : saveIndispos accepte la pose libre des vacances (payload.vac, voir _poserVac_ dans temps_partiel.gs) · (20/11/2026) .1 : setIndisposYear et envoyerRecapIndispos réservés au responsable · (15/11/2026) clearIndisposYear réservé au droit Maintenance (clôture d'année) · (10/11/2026) PDF récapitulatif par document Google (les couleurs passent) + renvoyerRecapPdf2027 · (09/11/2026) mail « Vos gardes » : 18 h, souhaits honorés, gardes qui allongent les vacances · (27/10/2026) VM/VA posés à la main : jamais écrasés par un enregistrement (MAR ou staff)
+const GAS_VERSION_INDISPOS_METIER = '2026-11-28.1';   // (28/11/2026) .1 : Mes consultations — un patient « réglé » (avec ou sans confrère nommé) n'est plus montré qu'à celui qui l'a noté ; numéros de DECT du groupement servis à la page · (27/11/2026) .7 : congé long — les offres de bourse et propositions devenues sans objet sont fermées aussitôt · .6 : saveIndisposBatch enregistre janvier N+1 (JANVIER_SUIVANT), getVacancesConfig l'envoie · .5 : plus aucun montant de marge envoyé, seulement le rang · .4 : getVacancesConfig envoie les reliquats (onglet Récap du comité) · .3 : patients lib ouverts à tout le groupement libéral · .2 : getVacConfig envoie le reliquat de l'année précédente (staff vacances : janvier pris d'abord dessus) · .1 : marge NGAP renvoyée avec la marge CCAM (classement des confrères) · (26/11) .4 : consultation du secteur sans patient lib : plus montrée · .3 : consultations tenues par le secteur — les MAR du secteur du bloc la voient, celui qui la fait la prend (op secteur), choix « aucune salle » · .2 : export CPA — importCpa (droit maintenance, onglet CPA_EXPORT), rattachement des consultations aux salles (CPA_SALLES), lignes CPA servies dans getConsultAbsences, op salle et lignes cpa| dans patientsLib · .1 : patients lib d'une consultation — action patientsLib (droit patlib, onglet PATIENTS_LIB) et patients servis dans getConsultAbsences · (25/11/2026) .2 : action getRecapPdf (PDF du récapitulatif pour le MAR connecté) ; getOrdreVacances répond aussi pour y+2 · .1 : saveIndispos accepte la pose libre des vacances (payload.vac, voir _poserVac_ dans temps_partiel.gs) · (20/11/2026) .1 : setIndisposYear et envoyerRecapIndispos réservés au responsable · (15/11/2026) clearIndisposYear réservé au droit Maintenance (clôture d'année) · (10/11/2026) PDF récapitulatif par document Google (les couleurs passent) + renvoyerRecapPdf2027 · (09/11/2026) mail « Vos gardes » : 18 h, souhaits honorés, gardes qui allongent les vacances · (27/10/2026) VM/VA posés à la main : jamais écrasés par un enregistrement (MAR ou staff)
 // précédente : '2026-10-22.2'
 
 // La campagne de saisie des indispos est-elle EN COURS ?
@@ -2160,6 +2160,16 @@ function _act_getConsultAbsences(R) {
     try {
       if (_patlibDroit_(user)) { patlib = true; patients = _patlibLire_(user.id); }
     } catch (e) { patlib = false; patients = []; }   // jamais bloquant pour le reste de la page
+    // (28/11/2026) « Le vrai canal est l'appel au collègue » : le DECT de chaque confrère du
+    // groupement (colonne DECT de MEDECINS, la même que l'annuaire du portail). Servi aux seuls
+    // MAR qui notent des patients lib — jamais au secrétariat.
+    const dects = {};
+    if (patlib) {
+      for (let r = 1; r < medD.length; r++) {
+        const idD = String(medD[r][COL_MED.ID]).trim(), d = String(medD[r][COL_MED.DECT] == null ? '' : medD[r][COL_MED.DECT]).trim();
+        if (idD && d && groupement[idD] && noms[idD]) dects[idD] = d;
+      }
+    }
     // (26/11/2026) Export CPA : salles de mes consultations et leurs patients lib
     let salles = {}, aChoisir = [];
     if (patlib) {
@@ -2197,7 +2207,8 @@ function _act_getConsultAbsences(R) {
       consultations: consultationsF,
       absences: absences,
       patlib: patlib,              // (26/11/2026) droit « patlib » : saisie des patients lib
-      patients: patients,          // ses lignes et celles qu'on lui a confiées (aucun nom de patient)
+      patients: patients,          // ses lignes (aucun nom de patient)
+      dects: dects,                // (28/11/2026) id -> DECT des confrères du groupement (vide sans patlib)
       salles: salles,              // (26/11/2026) 'date|per' -> salle CPA de mes consultations
       aChoisir: aChoisir           // consultations dont la salle reste à choisir
     })).setMimeType(ContentService.MimeType.JSON);
@@ -2230,8 +2241,10 @@ function _patlibFeuille_(creer) {
   }
   return sh;
 }
-/* Ses lignes (MAR) et celles qu'on lui a confiées (CONFIE_A), date opératoire
-   à venir seulement : le passé ne sert plus à rien. */
+/* Ses lignes (MAR), date opératoire à venir seulement : le passé ne sert plus à rien.
+   (28/11/2026, décision du responsable) CONFIE_A dit avec qui c'est réglé (identifiant d'un
+   confrère, ou « - » : réglé autrement). C'est un pense-bête du MAR qui a noté la ligne :
+   il n'est servi qu'à LUI, le confrère nommé ne voit rien de son côté. */
 function _patlibLire_(id) {
   const sh = _patlibFeuille_(false);
   if (!sh) return [];
@@ -2241,9 +2254,9 @@ function _patlibLire_(id) {
     const mar = String(l[1]).trim(), confie = String(l[6] || '').trim();
     const bloc = _patlibJour_(l[4]);
     if (!l[0] || bloc < auj) return;
-    if (mar !== id && confie !== id) return;
+    if (mar !== id) return;
     const cpa = String(l[0]).indexOf('cpa|') === 0;
-    if (cpa && (mar === id || Number(l[5]) === 0)) return;   // ma ligne CPA : servie par _cpaLignes_ ; nombre 0 = retirée
+    if (cpa) return;                                         // ma ligne CPA : servie par _cpaLignes_ (nombre 0 = retirée)
     out.push({ id: String(l[0]), mar: mar, consult: _patlibJour_(l[2]), per: String(l[3]).trim(),
                bloc: bloc, nb: Number(l[5]) || 1, confieA: confie, cpa: cpa });
   });
@@ -2332,7 +2345,7 @@ function _act_patientsLib(R) {
       let nb = x.nb, confie;
       if (op === 'confier') {
         confie = String(payload.a || '').trim();
-        if (!confie || confie === user.id || !_patlibMembre_(confie)) return _error('Ce confrère ne fait pas partie du groupement libéral.');
+        if (confie !== '-' && (!confie || confie === user.id || !_patlibMembre_(confie))) return _error('Ce confrère ne fait pas partie du groupement libéral.');
       } else if (op === 'reprendre') confie = '';
       else if (op === 'supprimer') { nb = 0; confie = ''; }
       else return _error('Opération inconnue.');
@@ -2355,8 +2368,8 @@ function _act_patientsLib(R) {
     if (op === 'supprimer') { sh.deleteRow(n + 1); return ok(); }
     if (op === 'reprendre') { sh.getRange(n + 1, 7, 1, 2).setValues([['', new Date()]]); return ok(); }
     if (op === 'confier') {
-      const a = String(payload.a || '').trim();
-      if (!a || a === user.id || !_patlibMembre_(a)) return _error('Ce confrère ne fait pas partie du groupement libéral.');
+      const a = String(payload.a || '').trim();   // « - » : réglé autrement, sans confrère nommé (28/11/2026)
+      if (a !== '-' && (!a || a === user.id || !_patlibMembre_(a))) return _error('Ce confrère ne fait pas partie du groupement libéral.');
       sh.getRange(n + 1, 7, 1, 2).setValues([[a, new Date()]]);
       return ok();
     }

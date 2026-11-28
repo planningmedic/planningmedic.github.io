@@ -562,6 +562,19 @@ les cases valant exactement `CL`.
 
 ## Journal récent
 
+- **28/11/2026** — « Mes consultations », vue du MAR refaite pour le téléphone (v2.13.0,
+  `indisponibilites.gs` 2026-11-28.1), sur maquette validée par le responsable. Une colonne :
+  « À faire » en tête (patient opéré un jour d'absence, salle à choisir, consultation du secteur à
+  prendre), une ligne par consultation avec son état, les absences, le calendrier replié. « Qui
+  appeler, dans l'ordre » affiche le DECT de chaque confrère (colonne DECT de MEDECINS, servie aux
+  seuls MAR du groupement). Toucher le nom du confrère qui a accepté, puis confirmer : la ligne
+  reste affichée « réglé avec… » ; « Réglé autrement » : sans nom. Décisions : cette mention n'est
+  vue que de celui qui l'a notée (le serveur ne sert plus une ligne au confrère nommé, le bloc
+  « patients que des confrères vous ont confiés » disparaît) ; aucun bouton « Confier ». La colonne
+  CONFIE_A de PATIENTS_LIB garde son nom : identifiant du confrère, ou « - » (réglé autrement).
+  Vues du secrétariat et du comité inchangées. Limite connue, antérieure : les absences ne sont
+  servies que sur 8 semaines ; un bloc à plus de 8 semaines d'aujourd'hui (consultation en fin de
+  4e semaine + un mois) peut tomber juste après, l'absence n'est alors pas vue.
 - **27/11/2026** — Répétition générale de la clôture 2026 (détail : document du projet Claude
   `claude/repetition-cloture-2026-11-27.md`), puis deux correctifs (v2.12.3). Clôture jouée sur un
   classeur fictif à la forme du vrai, puis 630 appels serveur, 11 tâches programmées, 1 000 gestes au

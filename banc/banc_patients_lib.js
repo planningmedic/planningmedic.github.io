@@ -7,10 +7,12 @@
    1. Serveur — le VRAI code (indisponibilites.gs, equipe.gs, code.gs) dans un
       classeur simulé : droit, délais médico-légaux, propriété des lignes,
       groupement, aucune poussée vers le relais.
-   2. Page — absences.html TELLE QUELLE dans un navigateur simulé : boutons
-      d'état, contrôle des dates, « qui peut le voir ? » (rattrapage : un
+   2. Page — absences.html TELLE QUELLE dans un navigateur simulé. Vue du MAR
+      refaite le 28/11/2026 : « À faire », liste compacte, absences, calendrier
+      replié, feuille d'une consultation ; « qui appeler » (rattrapage : un
       confrère du groupement présent le jour de MA consultation ET le jour du
-      bloc), confier, bandeau, sans droit = rien.
+      bloc) avec son DECT ; toucher son nom puis confirmer = réglé avec lui,
+      vu du seul déclarant ; « Réglé autrement » ; sans droit = rien à saisir.
    3. Accueil — la tuile monte dans Moi avec le droit, et seulement avec lui. */
 const vm = require('vm'), fs = require('fs'), path = require('path');
 const { JSDOM, VirtualConsole } = require('jsdom');
@@ -104,14 +106,18 @@ console.log('\n═══ 1. Serveur : action patientsLib ═══');
   V('confier à soi-même : refusé', !appel('ALPHA', 'mar', { op: 'confier', id, a: 'ALPHA' }).success);
   const rc = appel('ALPHA', 'mar', { op: 'confier', id, a: 'BRAVO' });
   V('confier à un membre du groupement : accepté', rc.success && rc.patients[0].confieA === 'BRAVO', rc);
-  V('le confrère retrouve la ligne chez lui (même sans le droit, la lecture est prête)',
-    ctx._patlibLire_('BRAVO').some(p => p.id === id && p.mar === 'ALPHA'));
+  V('(28/11/2026) le confrère nommé ne voit RIEN chez lui : la mention reste à celui qui l\'a notée',
+    ctx._patlibLire_('BRAVO').length === 0 && ctx._patlibLire_('ALPHA')[0].confieA === 'BRAVO');
   V('un autre MAR ne voit pas la ligne', ctx._patlibLire_('CHARLIE').length === 0);
   V('un autre MAR (avec le droit) ne peut ni la reprendre ni la supprimer',
     !appel('CHARLIE', 'mar', { op: 'reprendre', id }).success && !appel('CHARLIE', 'mar', { op: 'supprimer', id }).success
     && feuille().lignes.length === 2 && feuille().lignes[1][6] === 'BRAVO');
   const rr = appel('ALPHA', 'mar', { op: 'reprendre', id });
-  V('reprendre : la ligne n\'est plus confiée', rr.success && rr.patients[0].confieA === '' && ctx._patlibLire_('BRAVO').length === 0);
+  V('reprendre : la ligne n\'est plus réglée', rr.success && rr.patients[0].confieA === '' && ctx._patlibLire_('BRAVO').length === 0);
+  const ra = appel('ALPHA', 'mar', { op: 'confier', id, a: '-' });
+  V('(28/11/2026) « réglé autrement » : accepté sans confrère nommé (« - »)', ra.success && ra.patients[0].confieA === '-' && feuille().lignes[1][6] === '-', ra);
+  V('… une valeur vide reste refusée', !appel('ALPHA', 'mar', { op: 'confier', id, a: '' }).success && feuille().lignes[1][6] === '-');
+  appel('ALPHA', 'mar', { op: 'reprendre', id });
   V('opération inconnue : refusée', !appel('ALPHA', 'mar', { op: 'tout-effacer', id }).success);
   const rs = appel('ALPHA', 'mar', { op: 'supprimer', id });
   V('supprimer : la ligne disparaît', rs.success && rs.patients.length === 0 && feuille().lignes.length === 1);
@@ -199,7 +205,9 @@ console.log('\n═══ 1 bis. Export CPA : lecture du fichier, import, salles 
   const abs = lignes.find(l => l.bloc === BLOC_ABS);
   V('confier une ligne CPA à un membre du groupement', appel('ALPHA', 'mar', { op: 'confier', id: abs.id, a: 'BRAVO' }).success
     && ctx._cpaLignes_('ALPHA', rs.salles, exp).find(l => l.id === abs.id).confieA === 'BRAVO');
-  V('le confrère la retrouve chez lui', ctx._patlibLire_('BRAVO').some(p => p.id === abs.id && p.cpa));
+  V('(28/11/2026) le confrère nommé ne voit rien chez lui', ctx._patlibLire_('BRAVO').length === 0);
+  V('… « réglé autrement » marche aussi sur une ligne CPA', appel('ALPHA', 'mar', { op: 'confier', id: abs.id, a: '-' }).success
+    && ctx._cpaLignes_('ALPHA', rs.salles, exp).find(l => l.id === abs.id).confieA === '-');
   V('ALPHA ne la voit pas en double', ctx._patlibLire_('ALPHA').every(p => p.id !== abs.id));
   V('CHARLIE (autre salle) ne peut pas toucher aux lignes de la salle 2', !appel('CHARLIE', 'mar', { op: 'supprimer', id: abs.id }).success);
   V('retirer une ligne CPA la masque', appel('ALPHA', 'mar', { op: 'supprimer', id: abs.id }).success
@@ -289,6 +297,7 @@ function donnees(patlib) {
     success: true, role: 'mar', moi: 'ALPHA', name: 'Dr Alpha', motifs: true, patlib,
     noms: { ALPHA: 'Dr Alpha', BRAVO: 'Dr Bravo', CHARLIE: 'Dr Charlie', ECHO: 'Dr Echo', GOLF: 'Dr Golf', HOTEL: 'Dr Hotel' },
     groupement: { ALPHA: true, BRAVO: true, CHARLIE: true, ECHO: true, HOTEL: true },
+    dects: patlib ? { BRAVO: '81234', CHARLIE: '80001', ECHO: '80002' } : {},      // HOTEL : fiche sans numéro
     marges: {}, margesMois: '',
     consultations: [
       { date: plus(lundi, -1 + 0), per: 'pm', cs: 'CS-END', mar: 'BRAVO' },      // dimanche → remplacé ci-dessous
@@ -301,6 +310,7 @@ function donnees(patlib) {
     absences: { ALPHA: [{ d: BLOC_ABS, c: 'V' }], ECHO: [{ d: BLOC_ABS, c: 'RG' }], CHARLIE: [{ d: CONSULT, c: 'F' }] },
     patients: patlib ? [
       { id: 'p1', mar: 'ALPHA', consult: CONSULT, per: 'pm', bloc: BLOC_OK, nb: 1, confieA: '' },
+      // Une ligne d'un confrère : le serveur ne la sert plus (28/11/2026) ; si un ancien serveur la sert encore, la page l'ignore.
       { id: 'p2', mar: 'BRAVO', consult: lundi, per: 'pm', bloc: plus(lundi, 4), nb: 1, confieA: 'ALPHA' },
     ] : [],
   };
@@ -309,7 +319,8 @@ async function page(patlib, modif) {
   const vc = new VirtualConsole(); const erreurs = [];
   vc.on('jsdomError', e => erreurs.push(String(e.message).split('\n')[0]));
   const envois = [];
-  let liste = JSON.parse(JSON.stringify(donnees(patlib).patients));
+  const d0 = donnees(patlib); if (modif) modif(d0);
+  let liste = JSON.parse(JSON.stringify(d0.patients));
   const dom = new JSDOM(lire('absences.html'), { runScripts: 'dangerously', virtualConsole: vc, pretendToBeVisual: true,
     url: 'https://planningmedic.github.io/absences.html',
     beforeParse(w) {
@@ -318,147 +329,261 @@ async function page(patlib, modif) {
       w.sessionStorage.setItem('pmViewCode', 'CODE-ALPHA');
       w.fetch = async (url, o) => {
         const p = JSON.parse(o.body); envois.push(p);
-        if (p.action === 'getConsultAbsences') { const d = donnees(patlib); if (modif) modif(d); return { ok: true, status: 200, json: async () => d }; }
+        if (p.action === 'getConsultAbsences') { const d = donnees(patlib); if (modif) modif(d); d.patients = JSON.parse(JSON.stringify(liste)); return { ok: true, status: 200, json: async () => d }; }
         if (p.action === 'patientsLib') {
           if (p.op === 'ajouter') liste.push({ id: 'n' + envois.length, mar: 'ALPHA', consult: p.consult, per: p.per, bloc: p.bloc, nb: p.nb, confieA: '' });
           if (p.op === 'confier') liste.find(x => x.id === p.id).confieA = p.a;
+          if (p.op === 'reprendre') liste.find(x => x.id === p.id).confieA = '';
           if (p.op === 'supprimer') liste = liste.filter(x => x.id !== p.id);
-          return { ok: true, status: 200, json: async () => ({ success: true, patients: JSON.parse(JSON.stringify(liste)) }) };
+          return { ok: true, status: 200, json: async () => ({ success: true, patients: JSON.parse(JSON.stringify(liste.filter(x => !x.cpa))) }) };
         }
         return { ok: true, status: 200, json: async () => ({ success: false }) };
       };
       w.eval(lire('partage/session.js'));
     } });
   await dodo(400);
-  return { w: dom.window, D: dom.window.document, envois, erreurs };
+  const D = dom.window.document;
+  const pl = () => envois.filter(e => e.action === 'patientsLib');
+  const txt = sel => { const e = D.querySelector(sel); return e ? e.textContent.replace(/\s+/g, ' ') : ''; };
+  const touche = async (sel, k) => { const e = typeof sel === 'string' ? D.querySelectorAll(sel)[k || 0] : sel; if (!e) throw new Error('introuvable : ' + sel); e.click(); await dodo(90); };
+  return { w: dom.window, D, envois, erreurs, pl, txt, touche };
 }
 
 (async () => {
-  console.log('\n═══ 2. Page « Mes consultations » ═══');
+  console.log('\n═══ 2. Page « Mes consultations » — vue du MAR (refonte du 28/11/2026) ═══');
   {
-    const { D, erreurs } = await page(false);
-    V('la page s\'ouvre sans erreur', !erreurs.length, erreurs);
-    V('sans le droit patlib : aucun bouton patients, aucun bandeau', !D.querySelector('.puce') && D.getElementById('aconf').innerHTML === '');
-    V('… et la liste des consultations est là comme avant', D.querySelectorAll('#file .slot').length === 2);
+    const { D, erreurs, txt, pl, touche } = await page(false);
+    V('hors groupement : la page s\'ouvre sans erreur', !erreurs.length, erreurs);
+    V('… titre « Mes consultations », sans le mot « libérales »', txt('#titre') === 'Mes consultations' && !/libérales/.test(txt('#pitch')), txt('#pitch'));
+    V('… ses 2 consultations sont listées, sans pastille ni bouton : rien à saisir', D.querySelectorAll('.mc .mc-c').length === 2 && !D.querySelector('button.mc-c') && !D.querySelector('.mc-e'));
+    V('… pas de bloc « À faire »', !/À faire/.test(txt('#zone')));
+    V('… ses absences et le calendrier replié sont là', /Mes absences sur la période/.test(txt('#zone')) && !!D.querySelector('.mc-calb') && !D.querySelector('.mc-cal'));
+    await touche('.mc-calb');
+    V('… le calendrier s\'ouvre, ses consultations n\'y sont pas des boutons', !!D.querySelector('.mc-cal') && D.querySelectorAll('span.mc-calp').length === 2 && !D.querySelector('button.mc-calp'));
+    V('… aucun envoi vers le serveur', pl().length === 0);
   }
   {
-    const { w, D, envois, erreurs } = await page(true);
-    V('avec le droit : la page s\'ouvre sans erreur', !erreurs.length, erreurs);
-    const puces = [...D.querySelectorAll('#file .puce')];
-    V('un bouton d\'état sous chacune de MES consultations (2)', puces.length === 2, puces.length);
-    V('consultation avec un patient présent : « tout est réglé »', /1 patient · tout est réglé/.test(puces[0].textContent), puces[0].textContent);
-    V('consultation sans patient : « Noter mes patients lib »', /Noter mes patients lib/.test(puces[1].textContent));
-    V('les patients confiés par un confrère sont affichés (« reçu »)', /1 patient du Dr Bravo/.test(D.getElementById('aconf').textContent));
+    const { D, envois, erreurs, pl, txt, touche } = await page(true);
+    V('membre du groupement : la page s\'ouvre sans erreur', !erreurs.length, erreurs);
+    V('titre « Mes consultations » et phrase d\'accueil', txt('#titre') === 'Mes consultations' && /consultations libérales des 4 prochaines semaines/.test(txt('#pitch')));
+    V('l\'ancienne page à deux colonnes n\'est plus servie au MAR', !D.getElementById('file') && !D.getElementById('panel') && !D.querySelector('.puce'));
+    V('« À faire » : rien à faire (son patient est opéré un jour où il est là)', /À faire/.test(txt('.mc-k')) && /Rien à faire/.test(txt('.mc-rien')) && !D.querySelector('.mc-af'));
+    const lignes = () => [...D.querySelectorAll('button.mc-c')].map(x => x.textContent.replace(/\s+/g, ' '));
+    V('la liste : une ligne par consultation (2), les miennes seulement', lignes().length === 2 && lignes().every(t => /Endoscopie/.test(t)), lignes());
+    V('… état de la première : « ✓ tout va bien », 1 patient lib', /après-midi · 1 patient lib/.test(lignes()[0]) && /✓ tout va bien/.test(lignes()[0]), lignes()[0]);
+    V('… état de la seconde : « ＋ Ajouter », aucun patient lib noté', /aucun patient lib noté/.test(lignes()[1]) && /＋ Ajouter/.test(lignes()[1]), lignes()[1]);
+    V('plus de bloc « patients que des confrères vous ont confiés » (la ligne d\'un confrère est ignorée)', !/confiés/.test(txt('#zone')) && !/Dr Bravo/.test(txt('#zone')));
+    V('mes absences : une étiquette avec son motif', D.querySelectorAll('.mc-abs span').length === 1 && /Vacances/.test(txt('.mc-abs')), txt('.mc-abs'));
 
-    puces[0].click(); await dodo(50);
-    V('le bouton ouvre la feuille de saisie', D.getElementById('pFeuille').classList.contains('open'));
-    const date = D.getElementById('pfDate');
-    V('le calendrier est borné : 48 h après la consultation au plus tôt', date.min === plus(CONSULT, 2), date.min);
-    date.value = plus(CONSULT, 1); await w.patAjouter();
-    V('date trop tôt : message clair, rien n\'est envoyé',
-      /Trop tôt/.test(D.getElementById('pfErr').textContent) && !envois.some(e => e.action === 'patientsLib'));
-    date.value = plus(CONSULT, 4); await w.patAjouter();
-    V('samedi : refusé', /week-end/.test(D.getElementById('pfErr').textContent));
+    V('le calendrier est replié à l\'ouverture', !!D.querySelector('.mc-calb') && !D.querySelector('.mc-cal') && D.querySelector('.mc-calb').getAttribute('aria-expanded') === 'false');
+    await touche('.mc-calb');
+    V('« Voir le calendrier » l\'ouvre : semaines du lundi au vendredi, mes 2 consultations en bleu, mon absence en gris',
+      D.querySelectorAll('.mc-calr').length >= 4 && D.querySelectorAll('.mc-calc').length % 5 === 0 && D.querySelectorAll('button.mc-calp').length === 2 && D.querySelectorAll('.mc-calc.off').length === 1,
+      [D.querySelectorAll('.mc-calr').length, D.querySelectorAll('.mc-calp').length, D.querySelectorAll('.mc-calc.off').length]);
+    await touche('button.mc-calp');
+    V('toucher une consultation du calendrier ouvre sa feuille', D.getElementById('mcFeuille').classList.contains('open') && /après-midi/.test(txt('#mcTitre')));
+    await touche('.mc-x');
+    V('la croix referme la feuille ; le calendrier reste ouvert', !D.getElementById('mcFeuille').classList.contains('open') && !!D.querySelector('.mc-cal'));
+    await touche('.mc-calb');
+    V('un second toucher replie le calendrier', !D.querySelector('.mc-cal'));
 
-    date.value = BLOC_ABS; w.patNb(1); await w.patAjouter(); await dodo(50);
-    const env = envois.filter(e => e.action === 'patientsLib').pop();
+    await touche('button.mc-c');
+    V('toucher une ligne ouvre la feuille de la consultation', D.getElementById('mcFeuille').classList.contains('open') && /Endoscopie · 1 patient lib/.test(txt('#mcCtx')), txt('#mcCtx'));
+    V('patient opéré un jour où je suis là : « vous êtes là », ✓', /vous êtes là/.test(txt('#mcCorps .mc-pl')) && !!D.querySelector('#mcCorps .mc-ok2'));
+    V('« Aucun nom de patient n\'est enregistré » est rappelé', /Aucun nom de patient/.test(txt('#mcCorps')));
+    V('le formulaire d\'ajout est replié derrière « ＋ Ajouter un patient lib »', !D.getElementById('mcDate') && /Ajouter un patient lib/.test(txt('.mc-aj')));
+    await touche('.mc-aj');
+    const date = () => D.getElementById('mcDate');
+    V('le calendrier de saisie est borné : 48 h après la consultation au plus tôt', date() && date().min === plus(CONSULT, 2), date() && date().min);
+    await touche('[data-g="ajouter"]');
+    V('sans date : « Choisissez la date opératoire »', /Choisissez la date/.test(txt('#mcErr')));
+    date().value = plus(CONSULT, 1); await touche('[data-g="ajouter"]');
+    V('date trop tôt : message clair, rien n\'est envoyé', /Trop tôt/.test(txt('#mcErr')) && pl().length === 0, txt('#mcErr'));
+    date().value = plus(CONSULT, 4); await touche('[data-g="ajouter"]');
+    V('samedi : refusé', /week-end/.test(txt('#mcErr')) && pl().length === 0);
+
+    date().value = BLOC_ABS; await touche('[data-g="nb"][data-v="1"]'); await touche('[data-g="ajouter"]');
+    const env = pl().pop();
     V('ajout envoyé : consultation, demi-journée, date opératoire, nombre — rien d\'autre',
       env && env.op === 'ajouter' && env.consult === CONSULT && env.per === 'pm' && env.bloc === BLOC_ABS && env.nb === 2
       && Object.keys(env).sort().join() === 'action,bloc,code,consult,nb,op,per', env);
-    const liste = D.getElementById('pfListe').textContent;
-    V('absent ce jour-là : la ligne le dit et la liste des confrères s\'ouvre seule',
-      /Vous êtes absent \(vacances\)/.test(liste) && /Qui peut faire votre consultation/.test(liste), liste.slice(0, 300));
-    V('la question porte sur MA consultation et le jour du bloc', /faire votre consultation du/.test(liste) && /et opérer le/.test(liste));
-    V('un confrère présent les deux jours est proposé', /Dr Bravo/.test(liste));
-    V('… même s\'il n\'a aucune consultation avant le geste (rattrapage : il prend MA consultation)', /Dr Hotel/.test(liste));
-    V('absent le jour de MA consultation : pas proposé', !/Dr Charlie/.test(liste));
-    V('absent le jour du bloc : pas proposé', !/Dr Echo/.test(liste));
-    V('le MAR hors groupement n\'est pas proposé', !/Dr Golf/.test(liste));
-    V('moi-même : pas proposé', !/Dr Alpha/.test(D.querySelector('#pfListe .alt').textContent));
-    V('le bandeau annonce 2 patients à confier', /2 patients lib à confier/.test(D.getElementById('aconf').textContent));
+    const idN = 'n' + envois.length;
+    V('absent ce jour-là : la ligne passe en orange, « vous serez en vacances », avec « Qui appeler, dans l\'ordre »',
+      /vous serez en vacances/.test(txt('#mcCorps .mc-pl.amb')) && /Qui appeler, dans l'ordre/.test(txt('#mcCorps .mc-pl.amb')), txt('#mcCorps .mc-pl.amb').slice(0, 200));
+    V('« À faire » l\'annonce en tête de page : 2 patients, le jour, le motif, la consultation d\'origine',
+      /À faire 1/.test(txt('.mc-k')) && /2 patients opérés le .* : vous serez en vacances/.test(txt('.mc-af.amb .t')) && /Vus à votre consultation du .* après-midi · Endoscopie/.test(txt('.mc-af.amb .sd')), txt('.mc-af.amb').slice(0, 200));
+    V('la ligne de la liste passe à « 2 à régler »', /2 à régler/.test(lignes()[0]), lignes()[0]);
+    const noms = () => [...D.querySelectorAll('.mc-af.amb .mc-nom span')].map(x => x.textContent);
+    V('un confrère présent les deux jours est proposé', noms().includes('Dr Bravo'), noms());
+    V('… même s\'il n\'a aucune consultation avant le geste (rattrapage : il prend MA consultation)', noms().includes('Dr Hotel'));
+    V('absent le jour de MA consultation : pas proposé', !noms().includes('Dr Charlie'));
+    V('absent le jour du bloc : pas proposé', !noms().includes('Dr Echo'));
+    V('le MAR hors groupement n\'est pas proposé', !noms().includes('Dr Golf'));
+    V('moi-même : pas proposé', !noms().includes('Dr Alpha'));
+    const dects = [...D.querySelectorAll('.mc-af.amb .mc-dect')];
+    const dB = dects.find(x => /8 1234/.test(x.textContent));
+    V('le DECT de chaque confrère : « 81234 » du classeur affiché « 8 1234 »', !!dB && dB.textContent === '☎ 8 1234', dects.map(x => x.textContent));
+    V('… un toucher lance l\'appel (lien tel:)', dB && dB.tagName === 'A' && dB.getAttribute('href') === 'tel:81234');
+    V('… une fiche sans numéro : « DECT — », sans lien', dects.some(x => x.textContent === 'DECT —' && x.tagName === 'SPAN'));
+    V('… seuls les DECT des confrères proposés sont à l\'écran', !/8 0001|8 0002/.test(txt('#zone')));
+    V('aucun bouton « Confier », la marche à suivre est écrite (appeler, toucher son nom, prévenir le secrétariat)',
+      !/Confier/.test(D.body.textContent) && /Appelez-le sur son DECT/.test(txt('.mc-af.amb .mc-note')) && /secrétariat des consultations/.test(txt('.mc-af.amb .mc-note')));
 
-    // (27/11/2026, décision du responsable) pas de « Confier » : seulement QUI contacter
-    V('aucun bouton « Confier » : la liste dit seulement qui contacter',
-      !D.querySelector('#pfListe .person button') && !/>Confier</.test(D.getElementById('pfListe').innerHTML));
-    V('… avec la marche à suivre (appeler, prévenir le secrétariat, retirer la ligne)',
-      /Appelez l'un d'eux/.test(liste) && /secrétariat/.test(D.getElementById('pfListe').textContent));
+    // Toucher un nom : une question, rien n'est enregistré avant « Oui » (décision du responsable : éviter le faux toucher)
+    const avant = pl().length;
+    const nomB = () => [...D.querySelectorAll('.mc-af.amb .mc-nom')].find(x => /Dr Bravo/.test(x.textContent));
+    await touche(nomB());
+    V('toucher le nom du confrère : la question « Le Dr Bravo a accepté ? » s\'ouvre sous son nom', /Le Dr Bravo a accepté \?/.test(txt('.mc-af.amb .mc-conf')) && D.querySelectorAll('.mc-af.amb .mc-conf').length === 1);
+    V('… et RIEN n\'est envoyé tant qu\'on n\'a pas confirmé', pl().length === avant && /À faire 1/.test(txt('.mc-k')));
+    await touche('.mc-af.amb [data-g="non"]');
+    V('« Non » referme la question, sans rien envoyer', !D.querySelector('.mc-conf') && pl().length === avant);
+    await touche(nomB()); await touche(nomB());
+    V('un second toucher sur le nom la referme aussi', !D.querySelector('.mc-conf') && pl().length === avant);
+    await touche(nomB()); await touche('.mc-af.amb [data-g="oui"]');
+    const eo = pl().pop();
+    V('« Oui » : la mention part au serveur (la ligne, le confrère)', pl().length === avant + 1 && eo.op === 'confier' && eo.id === idN && eo.a === 'BRAVO', eo);
+    V('la carte quitte « À faire »', !D.querySelector('.mc-af') && /Rien à faire/.test(txt('.mc-rien')));
+    V('dans la feuille, la ligne reste affichée, en vert : « ✓ Réglé avec le Dr Bravo »', /✓ Réglé avec le Dr Bravo/.test(txt('#mcCorps .mc-pl.vert .mc-avec')), txt('#mcCorps .mc-pl.vert'));
+    V('la liste repasse à « ✓ tout va bien »', /✓ tout va bien/.test(lignes()[0]));
+    V('un message confirme, avec « Annuler »', D.getElementById('mcToast').classList.contains('open') && /réglé avec le Dr Bravo/.test(txt('#mcToastTxt')) && D.getElementById('mcToastBtn').style.display !== 'none');
+    await touche('#mcToastBtn');
+    V('« Annuler » défait : la ligne n\'est plus réglée', pl().pop().op === 'reprendre' && pl().pop().id === idN && !!D.querySelector('.mc-af.amb') && !D.querySelector('#mcCorps .mc-pl.vert'));
 
-    D.querySelector('#pfListe .px').click(); await dodo(80);
-    V('la croix supprime une ligne, avec « Annuler » proposé',
-      envois.filter(e => e.action === 'patientsLib').pop().op === 'supprimer' && /Ligne supprimée/.test(D.getElementById('pfListe').textContent));
+    await touche('.mc-af.amb [data-g="regle"]');
+    const er = pl().pop();
+    V('« Réglé autrement » : enregistré du premier coup, sans confrère nommé', er.op === 'confier' && er.id === idN && er.a === '-', er);
+    V('… la ligne est verte « ✓ Réglé », sans nom', txt('#mcCorps .mc-pl.vert .mc-avec') === '✓ Réglé' && !D.querySelector('.mc-af'), txt('#mcCorps .mc-pl.vert .mc-avec'));
+    await touche('#mcCorps [data-g="deregle"]');
+    V('« Ce n\'est plus réglé » : la ligne redevient à régler', pl().pop().op === 'reprendre' && !!D.querySelector('#mcCorps .mc-pl.amb') && /À faire 1/.test(txt('.mc-k')));
+    V('dans la feuille aussi, on peut toucher le nom du confrère', !!D.querySelector('#mcCorps .mc-pl.amb .mc-nom') && !!D.querySelector('#mcCorps .mc-pl.amb [data-g="regle"]'));
+
+    await touche('#mcCorps .mc-pl.amb .mc-sup');
+    V('la croix supprime la ligne, avec « Annuler » proposé', pl().pop().op === 'supprimer' && /Ligne supprimée/.test(txt('#mcCorps .mc-undo')) && !D.querySelector('.mc-af'));
+    await touche('#mcCorps [data-g="restaurer"]');
+    const ea = pl().pop();
+    V('« Annuler » la remet (même date, même nombre)', ea.op === 'ajouter' && ea.bloc === BLOC_ABS && ea.nb === 2 && !!D.querySelector('.mc-af.amb'), ea);
+    D.dispatchEvent(new (D.defaultView.KeyboardEvent)('keydown', { key: 'Escape', bubbles: true })); await dodo(30);
+    V('Échap referme la feuille', !D.getElementById('mcFeuille').classList.contains('open'));
+    V('aucune erreur pendant tous ces gestes', !erreurs.length, erreurs);
   }
-
-
   {
-    const { w, D, envois, erreurs } = await page(true, d => { d.aChoisir = [{ date: plus(lundi, 2), per: 'pm', salles: ['2', '4'] }]; d.salles = { [CONSULT + '|pm']: '2' }; });
+    // Supprimer une ligne réglée puis annuler : elle revient RÉGLÉE
+    const { D, pl, txt, touche } = await page(true, d => { d.patients.push({ id: 'p7', mar: 'ALPHA', consult: CONSULT, per: 'pm', bloc: BLOC_ABS, nb: 1, confieA: 'HOTEL' }); });
+    V('une ligne déjà réglée à l\'ouverture : rien dans « À faire »', !D.querySelector('.mc-af') && /Rien à faire/.test(txt('.mc-rien')));
+    await touche('button.mc-c');
+    V('… affichée en vert avec le nom du confrère', /✓ Réglé avec le Dr Hotel/.test(txt('#mcCorps .mc-pl.vert')));
+    await touche('#mcCorps .mc-pl.vert .mc-sup'); await touche('#mcCorps [data-g="restaurer"]');
+    const fin = pl().slice(-2);
+    V('supprimée puis annulée : elle revient, et réglée avec le même confrère', fin[0].op === 'ajouter' && fin[1].op === 'confier' && fin[1].a === 'HOTEL' && /✓ Réglé avec le Dr Hotel/.test(txt('#mcCorps .mc-pl.vert')), fin);
+  }
+  {
+    // Personne de disponible ; et un confrère déjà en consultation à la même heure
+    const { D, txt } = await page(true, d => {
+      d.patients.push({ id: 'p8', mar: 'ALPHA', consult: CONSULT, per: 'pm', bloc: BLOC_ABS, nb: 1, confieA: '' });
+      d.absences.BRAVO = [{ d: BLOC_ABS, c: 'V' }]; d.absences.HOTEL = [{ d: CONSULT, c: 'V' }]; });
+    V('aucun confrère présent les deux jours : la carte le dit et renvoie au comité', /Aucun confrère du groupement n'est présent ces deux jours-là\. À voir avec le comité/.test(txt('.mc-af.amb .mc-qui')));
+    V('… « Réglé autrement » reste proposé, aucun nom à toucher', !!D.querySelector('.mc-af.amb [data-g="regle"]') && !D.querySelector('.mc-af.amb .mc-nom'));
+    const o = await page(true, d => {
+      d.patients.push({ id: 'p8', mar: 'ALPHA', consult: CONSULT, per: 'pm', bloc: BLOC_ABS, nb: 1, confieA: '' });
+      d.consultations.push({ date: CONSULT, per: 'pm', cs: 'CS-VIS', mar: 'BRAVO' }); });
+    const b = [...o.D.querySelectorAll('.mc-af.amb .mc-nom')].find(x => /Dr Bravo/.test(x.textContent));
+    V('un confrère déjà en consultation à la même heure : proposé, mais signalé', b && /déjà en consultation \(Viscéral\) cet après-midi-là/.test(b.textContent), b && b.textContent);
+  }
+  {
+    const { D, envois, erreurs, pl, txt, touche } = await page(true, d => { d.aChoisir = [{ date: plus(lundi, 2), per: 'pm', salles: ['2', '4'] }]; d.salles = { [CONSULT + '|pm']: '2' }; });
     V('export CPA : la page s\'ouvre sans erreur', !erreurs.length, erreurs);
-    const puces = [...D.querySelectorAll('#file .puce')];
-    V('la consultation rattachée affiche sa salle', /salle 2/.test(puces[0].textContent), puces[0].textContent);
-    V('l\'autre consultation demande « Salle 2 ou salle 4 ? »', puces[1].classList.contains('choix') && puces[1].querySelectorAll('.sal').length === 2);
-    puces[1].querySelectorAll('.sal')[1].click(); await dodo(120);
-    const sal = envois.filter(e => e.action === 'patientsLib').pop();
+    const lignes = [...D.querySelectorAll('button.mc-c')].map(x => x.textContent.replace(/\s+/g, ' '));
+    V('la consultation rattachée affiche sa salle', /après-midi · salle 2 ·/.test(lignes[0]), lignes[0]);
+    V('l\'autre consultation est marquée « salle ? »', /salle \?/.test(lignes[1]), lignes[1]);
+    const carte = D.querySelector('.mc-af.ind');
+    V('« À faire » demande « dans quelle salle serez-vous ? » : Salle 2 ou Salle 4, sans « Aucune »',
+      carte && /dans quelle salle serez-vous \?/.test(carte.textContent) && [...carte.querySelectorAll('[data-g="salle"]')].map(b => b.textContent).join() === 'Salle 2,Salle 4', carte && carte.textContent);
+    await touche(carte.querySelectorAll('[data-g="salle"]')[1]);
+    const sal = pl().pop();
     V('le choix part au serveur (jour, demi-journée, salle)', sal && sal.op === 'salle' && sal.date === plus(lundi, 2) && sal.per === 'pm' && sal.salle === '4', sal);
     V('… puis la page relit tout (les patients de la salle arrivent)', envois[envois.length - 1].action === 'getConsultAbsences');
-    V('la feuille de choix ne s\'ouvre pas en touchant un bouton de salle', !D.getElementById('pFeuille').classList.contains('open'));
+    V('… un message le confirme, et la feuille ne s\'ouvre pas', /Salle 4/.test(txt('#mcToastTxt')) && !D.getElementById('mcFeuille').classList.contains('open'), txt('#mcToastTxt'));
   }
   {
     // (27/11/2026) Classement des confrères par rang (la plus serrée des marges CCAM/NGAP), SANS montant
-    const { D, w, erreurs } = await page(true, d => {
+    const { D, erreurs, txt } = await page(true, d => {
       d.patients.push({ id: 'p9', mar: 'ALPHA', consult: CONSULT, per: 'pm', bloc: BLOC_ABS, nb: 1, confieA: '' });
       d.rangsMarge = { HOTEL: 1, BRAVO: 2 }; d.margesMois = '2026-10'; });
     V('rangs : la page s\'ouvre sans erreur', !erreurs.length, erreurs);
-    D.querySelector('#file .puce').click(); await dodo(40);
-    const k = [...D.querySelectorAll('#pfListe .pl')].findIndex(x => /Qui peut le voir/.test(x.textContent));
-    w.patQui(k); await dodo(30);
-    const ps = [...D.querySelectorAll('#pfListe .alt .person')].map(x => x.textContent);
-    V('classés selon le rang envoyé par le serveur', ps.length === 2 && /Dr Hotel/.test(ps[0]) && /Dr Bravo/.test(ps[1]), ps);
-    V('aucun montant à l\'écran (ni €, ni CCAM/NGAP chiffrés)', !/€|CCAM|NGAP/.test(D.querySelector('#pfListe .alt').textContent), D.querySelector('#pfListe .alt').textContent);
+    const ps = [...D.querySelectorAll('.mc-af.amb .mc-qui .p')].map(x => x.textContent);
+    V('« dans l\'ordre » : classés selon le rang envoyé par le serveur, numérotés 1, 2', ps.length === 2 && /^1Dr Hotel/.test(ps[0]) && /^2Dr Bravo/.test(ps[1]), ps);
+    V('aucun montant à l\'écran (ni €, ni CCAM/NGAP chiffrés)', !/€|CCAM|NGAP/.test(txt('#zone')), txt('.mc-af.amb'));
     const src = lire('gas/indisponibilites.gs');
     V('serveur : la réponse ne contient plus les marges, seulement le rang (plus serrée des deux)',
       /rangsMarge: rangsMarge/.test(src) && !/\n\s+marges: marges,/.test(src) && !/margesNgap: margesNgap/.test(src)
       && /Math\.min\.apply\(null, v\)/.test(src) && /if \(!user\.liberal\) \{ marges = \{\}; margesNgap = \{\};/.test(src));
+    V('(28/11/2026) serveur : les DECT ne sont servis qu\'avec les patients lib, pour les membres du groupement, depuis la colonne DECT',
+      /const dects = \{\};\s*if \(patlib\) \{/.test(src) && /medD\[r\]\[COL_MED\.DECT\]/.test(src) && /groupement\[idD\] && noms\[idD\]\) dects\[idD\] = d;/.test(src) && /dects: dects,/.test(src));
+    V('(28/11/2026) serveur : une ligne n\'est lue que par celui qui l\'a notée', /if \(mar !== id\) return;/.test(src) && !/confie !== id/.test(src));
   }
   {
-    // (27/11/2026) Le panneau « qui peut prendre le patient » d'une période d'absence est réservé à
-    // l'orientation d'emblée (secrétariat) : chez le MAR, les dates s'affichent mais ne s'ouvrent plus.
-    const { D } = await page(true, d => { d.absences.ALPHA = [{ d: BLOC_ABS, c: 'V' }]; });
-    const zone = D.getElementById('pAnswer');
-    V('MAR : ses dates d\'absence sont affichées', zone && zone.querySelectorAll('.d').length > 0, zone && zone.textContent.slice(0, 120));
-    V('… mais aucune ne s\'ouvre (pas de bouton, pas de « Cliquez une période »)',
-      zone && !zone.querySelector('button.d') && !/Cliquez une période/.test(zone.textContent));
-    const sec = await page(true, d => { (d.consultations || []).forEach(c => { d.absences[c.mar] = [{ d: BLOC_ABS, c: 'V' }]; }); d.role = 'secretariat'; d.motifs = false; d.patlib = false; });
+    // La vue du secrétariat ne change pas : deux colonnes, panneau « qui peut prendre le patient » ouvrable
+    const sec = await page(true, d => { (d.consultations || []).forEach(c => { d.absences[c.mar] = [{ d: BLOC_ABS, c: 'V' }]; }); d.role = 'secretariat'; d.motifs = false; d.patlib = false; d.moi = null; d.dects = {}; });
     const zs = sec.D.getElementById('pAnswer');
+    V('secrétariat : la page s\'ouvre sans erreur, sur l\'ancienne présentation', !sec.erreurs.length && sec.txt('#titre') === 'Consultations à venir' && sec.D.querySelectorAll('#file .slot').length === 6 && !sec.D.querySelector('.mc'), sec.erreurs);
     V('secrétariat : le panneau reste ouvrable (orientation d\'emblée)', zs && !!zs.querySelector('button.d') && /Cliquez une période/.test(zs.textContent),
       zs && zs.innerHTML.slice(0, 200));
+    zs.querySelector('button.d').click(); await dodo(40);
+    V('secrétariat : … et s\'ouvre sans erreur ; aucun DECT, aucun geste du MAR', !sec.erreurs.length && !sec.D.querySelector('.mc-dect') && !sec.D.querySelector('[data-g="ouvrir"]') && sec.pl().length === 0, sec.erreurs);
   }
   {
     // Défaut vu en production (26/11/2026) : supprimer une ligne saisie à la main faisait disparaître les lignes CPA
-    const { D, envois, erreurs } = await page(true, d => { d.patients.push({ id: 'cpa|' + CONSULT + '|pm|2|' + BLOC_ABS, mar: 'ALPHA', consult: CONSULT, per: 'pm', bloc: BLOC_ABS, nb: 3, confieA: '', cpa: true }); });
+    const { D, envois, erreurs, txt, touche } = await page(true, d => { d.patients.push({ id: 'cpa|' + CONSULT + '|pm|2|' + BLOC_ABS, mar: 'ALPHA', consult: CONSULT, per: 'pm', bloc: BLOC_ABS, nb: 3, confieA: '', cpa: true }); });
     V('lignes CPA + saisie : la page s\'ouvre sans erreur', !erreurs.length, erreurs);
-    D.querySelector('#file .puce').click(); await dodo(40);
-    V('les deux lignes sont là (saisie et CPA)', D.querySelectorAll('#pfListe .pl').length === 2);
-    D.querySelector('#pfListe .px').click(); await dodo(120);
+    await touche('button.mc-c');
+    V('les deux lignes sont là (saisie et CPA, marquée « CPA »)', D.querySelectorAll('#mcCorps .mc-pl').length === 2 && D.querySelectorAll('#mcCorps .mc-tag').length === 1);
+    await touche('#mcCorps .mc-pl:not(.amb) .mc-sup');
     V('supprimer la ligne saisie : la page relit tout (sinon les lignes CPA disparaissent)', envois[envois.length - 1].action === 'getConsultAbsences');
-    V('… et la ligne CPA est toujours affichée', /CPA/.test(D.getElementById('pfListe').textContent), D.getElementById('pfListe').textContent.slice(0, 200));
+    V('… et la ligne CPA est toujours affichée', D.querySelectorAll('#mcCorps .mc-pl').length === 1 && /CPA/.test(txt('#mcCorps .mc-pl')), txt('#mcCorps').slice(0, 200));
+    await touche('#mcCorps .mc-pl.amb [data-g="regle"]');
+    V('régler une ligne CPA : envoyé, puis la page relit tout', envois[envois.length - 2].op === 'confier' && envois[envois.length - 2].a === '-' && envois[envois.length - 1].action === 'getConsultAbsences'
+      && /✓ Réglé/.test(txt('#mcCorps .mc-pl.vert')), envois.slice(-2));
   }
   {
     const SEC = plus(lundi, 4);
-    const { D, envois, erreurs } = await page(true, d => {
+    const { D, envois, erreurs, pl, txt, touche } = await page(true, d => {
       d.consultations.push({ date: SEC, per: 'pm', cs: 'CS-VIS', mar: 'ALPHA', secteur: true, aValider: true, nbSecteur: 3 });
       d.aChoisir = [{ date: plus(lundi, 2), per: 'pm', salles: ['3'], aucune: true }]; });
     V('secteur : la page s\'ouvre sans erreur', !erreurs.length, erreurs);
-    const pu = [...D.querySelectorAll('#file .puce')];
-    const ps = pu.find(x => /Consultation du secteur/.test(x.textContent));
-    V('la consultation du secteur apparaît dans MES consultations, marquée « secteur »', !!ps && /secteur/.test(ps.previousSibling.textContent), pu.map(x => x.textContent));
-    V('elle annonce ses patients et demande « C\'est vous qui la faites ? »', ps && /3 patients lib/.test(ps.textContent) && /Oui, c'est moi/.test(ps.textContent));
-    ps.click(); await dodo(40);
-    V('toucher la pastille n\'ouvre pas la saisie tant qu\'elle n\'est pas prise', !D.getElementById('pFeuille').classList.contains('open'));
-    const ch = pu.find(x => x.classList.contains('choix') && /salle/.test(x.textContent));
-    V('quand le secteur est en concurrence, le choix de salle propose « Aucune »', ch && [...ch.querySelectorAll('.sal')].some(b => b.textContent === 'Aucune'));
-    ps.querySelector('.sal').click(); await dodo(120);
-    const e = envois.filter(x => x.action === 'patientsLib').pop();
+    const cartes = [...D.querySelectorAll('.mc-af.ind')];
+    const ps = cartes.find(x => /est-ce vous qui faites cette consultation/.test(x.textContent));
+    V('« À faire » demande « est-ce vous qui faites cette consultation ? » et annonce ses patients',
+      !!ps && /Viscéral · posée au nom du secteur · 3 patients lib/.test(ps.textContent) && /Oui, c'est moi/.test(ps.textContent), cartes.map(x => x.textContent));
+    const li = [...D.querySelectorAll('button.mc-c')].find(x => /Viscéral/.test(x.textContent));
+    V('elle apparaît dans MES consultations, « du secteur », « à confirmer »', li && /du secteur/.test(li.textContent) && /à confirmer/.test(li.textContent), li && li.textContent);
+    await touche(li);
+    V('sa feuille ne propose que la question : pas de saisie tant qu\'elle n\'est pas prise', /Est-ce vous qui faites cette consultation/.test(txt('#mcCorps')) && !D.querySelector('#mcCorps .mc-aj') && !D.getElementById('mcDate'));
+    await touche('.mc-x');
+    const ch = cartes.find(x => /dans quelle salle/.test(x.textContent));
+    V('quand le secteur est en concurrence, le choix de salle propose « Aucune »', ch && [...ch.querySelectorAll('[data-g="salle"]')].some(b => b.textContent === 'Aucune' && b.dataset.v === '-'));
+    V('« À faire » compte les 2 questions', /À faire 2/.test(txt('.mc-k')));
+    await touche(ps.querySelector('[data-g="moi"]'));
+    const e = pl().pop();
     V('« Oui, c\'est moi » part au serveur (jour, demi-journée, consultation)', e && e.op === 'secteur' && e.date === SEC && e.per === 'pm' && e.cs === 'CS-VIS' && e.prendre === true, e);
     V('… puis la page relit tout', envois[envois.length - 1].action === 'getConsultAbsences');
+  }
+  {
+    // Consultation du secteur déjà prise : « Ce n'est pas moi » la rend
+    const SEC = plus(lundi, 4);
+    const { D, pl, txt, touche } = await page(true, d => { d.consultations.push({ date: SEC, per: 'pm', cs: 'CS-VIS', mar: 'ALPHA', secteur: true }); });
+    await touche([...D.querySelectorAll('button.mc-c')].find(x => /Viscéral/.test(x.textContent)));
+    V('consultation du secteur prise par moi : la feuille le rappelle', /Consultation du secteur, prise par vous/.test(txt('#mcCorps .mc-info')));
+    await touche('#mcCorps [data-g="pasmoi"]');
+    const e = pl().pop();
+    V('« Ce n\'est pas moi » la rend (prendre = false) et referme la feuille', e && e.op === 'secteur' && e.prendre === false && !D.getElementById('mcFeuille').classList.contains('open'), e);
+  }
+  {
+    // Refus du serveur : le message s'affiche, rien ne change à l'écran
+    const { w, D, txt, touche } = await page(true, d => { d.patients.push({ id: 'p8', mar: 'ALPHA', consult: CONSULT, per: 'pm', bloc: BLOC_ABS, nb: 1, confieA: '' }); });
+    const f = w.fetch; w.fetch = async (u, o) => (JSON.parse(o.body).action === 'patientsLib' ? { ok: true, status: 200, json: async () => ({ success: false, error: 'Ce confrère ne fait pas partie du groupement libéral.' }) } : f(u, o));
+    await touche('.mc-af.amb .mc-nom'); await touche('.mc-af.amb [data-g="oui"]');
+    V('refus du serveur : le message est affiché, la carte reste dans « À faire »', /ne fait pas partie du groupement/.test(txt('#mcToastTxt')) && !!D.querySelector('.mc-af.amb') && !D.querySelector('.mc-conf'), txt('#mcToastTxt'));
+    V('… et les boutons sont de nouveau utilisables', !D.body.classList.contains('mc-occupe'));
   }
   {
     const m = lire('maintenance.html');
@@ -489,7 +614,7 @@ async function page(patlib, modif) {
       const t = w.document.querySelector('#tiles-moi [data-key="consult"]');
       V('membre du groupement, sans droit réservé : « Mes consultations » est dans Moi', !!t);
       const b = t && t.querySelector('.tile-badge');
-      V('… avec la pastille « 2 à confier » (absence le jour du geste)', b && b.textContent === '2 à confier', b && b.textContent);
+      V('… avec la pastille « 2 à régler » (absence le jour du geste)', b && b.textContent === '2 à régler', b && b.textContent);
     } else {
       V('hors groupement libéral : pas de tuile « Mes consultations », aucune pastille', !w.document.querySelector('[data-key="consult"]'));
     }
@@ -503,8 +628,12 @@ async function page(patlib, modif) {
     const t = bloc.replace(/<[^>]+>/g, ' ').toLowerCase();
     const interdits = ['miroir', 'journal', 'cloudflare', 'gas'].filter(m => new RegExp('(^|[^a-zà-ÿ])' + m + '($|[^a-zà-ÿ])').test(t));
     V('vocabulaire interdit absent (miroir, journal, Cloudflare, GAS)', interdits.length === 0, interdits);
-    V('un bloc « En 2 minutes » et les gestes : choisir sa salle, « Oui, c\'est moi », Qui peut le voir, secrétariat par téléphone — sans « Confier »',
-      /En 2 minutes/.test(bloc) && /Aucune/.test(bloc) && /Oui, c'est moi/.test(bloc) && /Qui peut le voir/.test(bloc) && !/Confier/.test(bloc) && /téléphone/.test(bloc));
+    V('un bloc « En 2 minutes » et les gestes : choisir sa salle, « Oui, c\'est moi », Qui appeler, secrétariat par téléphone — sans « Confier »',
+      /En 2 minutes/.test(bloc) && /Aucune/.test(bloc) && /Oui, c'est moi/.test(bloc) && /Qui appeler/.test(bloc) && !/Confier/.test(bloc) && /téléphone/.test(bloc));
+    V('(28/11/2026) le guide décrit la nouvelle vue : À faire, DECT, toucher le nom puis confirmer, Réglé autrement, calendrier replié',
+      /À faire/.test(bloc) && /DECT/.test(bloc) && /touchez son nom/i.test(bloc) && /Réglé autrement/.test(bloc) && /Voir le calendrier/.test(bloc) && /vous seul/i.test(bloc));
+    V('… et plus les anciens gestes (pastille sous la consultation, « Qui peut le voir ? », « Noter mes patients lib »)',
+      !/Qui peut le voir/.test(bloc) && !/pastille orange/.test(bloc) && !/Noter mes patients lib/.test(bloc));
     V('la page d\'accueil (section 03) y renvoie', /href="#s27"/.test(g));
   }
 
