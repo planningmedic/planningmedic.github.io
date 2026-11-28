@@ -4,7 +4,7 @@
    quelles : aucune ligne de logique modifiée, seulement déplacée. Le routeur et
    ses aides (checkCode, _deny, _error, doGet/doPost) restent dans Indispos.gs.
    Un seul espace global dans Apps Script : rien à importer. */
-const GAS_VERSION_INDISPOS_METIER = '2026-11-28.1';   // (28/11/2026) .1 : Mes consultations — un patient « réglé » (avec ou sans confrère nommé) n'est plus montré qu'à celui qui l'a noté ; numéros de DECT du groupement servis à la page · (27/11/2026) .7 : congé long — les offres de bourse et propositions devenues sans objet sont fermées aussitôt · .6 : saveIndisposBatch enregistre janvier N+1 (JANVIER_SUIVANT), getVacancesConfig l'envoie · .5 : plus aucun montant de marge envoyé, seulement le rang · .4 : getVacancesConfig envoie les reliquats (onglet Récap du comité) · .3 : patients lib ouverts à tout le groupement libéral · .2 : getVacConfig envoie le reliquat de l'année précédente (staff vacances : janvier pris d'abord dessus) · .1 : marge NGAP renvoyée avec la marge CCAM (classement des confrères) · (26/11) .4 : consultation du secteur sans patient lib : plus montrée · .3 : consultations tenues par le secteur — les MAR du secteur du bloc la voient, celui qui la fait la prend (op secteur), choix « aucune salle » · .2 : export CPA — importCpa (droit maintenance, onglet CPA_EXPORT), rattachement des consultations aux salles (CPA_SALLES), lignes CPA servies dans getConsultAbsences, op salle et lignes cpa| dans patientsLib · .1 : patients lib d'une consultation — action patientsLib (droit patlib, onglet PATIENTS_LIB) et patients servis dans getConsultAbsences · (25/11/2026) .2 : action getRecapPdf (PDF du récapitulatif pour le MAR connecté) ; getOrdreVacances répond aussi pour y+2 · .1 : saveIndispos accepte la pose libre des vacances (payload.vac, voir _poserVac_ dans temps_partiel.gs) · (20/11/2026) .1 : setIndisposYear et envoyerRecapIndispos réservés au responsable · (15/11/2026) clearIndisposYear réservé au droit Maintenance (clôture d'année) · (10/11/2026) PDF récapitulatif par document Google (les couleurs passent) + renvoyerRecapPdf2027 · (09/11/2026) mail « Vos gardes » : 18 h, souhaits honorés, gardes qui allongent les vacances · (27/10/2026) VM/VA posés à la main : jamais écrasés par un enregistrement (MAR ou staff)
+const GAS_VERSION_INDISPOS_METIER = '2026-11-28.2';   // (28/11/2026) .2 : Mes consultations — les confrères placés dans le secteur de la consultation passent en tête de « Qui appeler » (placements servis à la page) · (28/11/2026) .1 : Mes consultations — un patient « réglé » (avec ou sans confrère nommé) n'est plus montré qu'à celui qui l'a noté ; numéros de DECT du groupement servis à la page · (27/11/2026) .7 : congé long — les offres de bourse et propositions devenues sans objet sont fermées aussitôt · .6 : saveIndisposBatch enregistre janvier N+1 (JANVIER_SUIVANT), getVacancesConfig l'envoie · .5 : plus aucun montant de marge envoyé, seulement le rang · .4 : getVacancesConfig envoie les reliquats (onglet Récap du comité) · .3 : patients lib ouverts à tout le groupement libéral · .2 : getVacConfig envoie le reliquat de l'année précédente (staff vacances : janvier pris d'abord dessus) · .1 : marge NGAP renvoyée avec la marge CCAM (classement des confrères) · (26/11) .4 : consultation du secteur sans patient lib : plus montrée · .3 : consultations tenues par le secteur — les MAR du secteur du bloc la voient, celui qui la fait la prend (op secteur), choix « aucune salle » · .2 : export CPA — importCpa (droit maintenance, onglet CPA_EXPORT), rattachement des consultations aux salles (CPA_SALLES), lignes CPA servies dans getConsultAbsences, op salle et lignes cpa| dans patientsLib · .1 : patients lib d'une consultation — action patientsLib (droit patlib, onglet PATIENTS_LIB) et patients servis dans getConsultAbsences · (25/11/2026) .2 : action getRecapPdf (PDF du récapitulatif pour le MAR connecté) ; getOrdreVacances répond aussi pour y+2 · .1 : saveIndispos accepte la pose libre des vacances (payload.vac, voir _poserVac_ dans temps_partiel.gs) · (20/11/2026) .1 : setIndisposYear et envoyerRecapIndispos réservés au responsable · (15/11/2026) clearIndisposYear réservé au droit Maintenance (clôture d'année) · (10/11/2026) PDF récapitulatif par document Google (les couleurs passent) + renvoyerRecapPdf2027 · (09/11/2026) mail « Vos gardes » : 18 h, souhaits honorés, gardes qui allongent les vacances · (27/10/2026) VM/VA posés à la main : jamais écrasés par un enregistrement (MAR ou staff)
 // précédente : '2026-10-22.2'
 
 // La campagne de saisie des indispos est-elle EN COURS ?
@@ -2193,6 +2193,20 @@ function _act_getConsultAbsences(R) {
       } catch (e) { salles = {}; aChoisir = []; }
     }
 
+    // (28/11/2026) Placements au bloc des confrères du groupement, les jours de MES consultations
+    // et les jours d'intervention de MES patients : sert à mettre le MAR du secteur en tête.
+    let placements = {};
+    if (patlib) {
+      try {
+        const jp = {};
+        consultationsF.forEach(function (c) { if (c.mar === user.id) jp[c.date] = true; });
+        patients.forEach(function (p) { if (p.mar === user.id) { jp[p.consult] = true; jp[p.bloc] = true; } });
+        const garder = {};
+        Object.keys(groupement).forEach(function (g) { if (noms[g] && g !== user.id) garder[g] = true; });
+        if (Object.keys(jp).length) placements = _cpaPlacements_(Object.keys(jp), garder);
+      } catch (e) { placements = {}; }   // confort de tri : jamais bloquant
+    }
+
     return ContentService.createTextOutput(JSON.stringify({
       success: true,
       motifs: avecMotifs,          // le frontend sait s'il peut afficher un motif
@@ -2209,6 +2223,7 @@ function _act_getConsultAbsences(R) {
       patlib: patlib,              // (26/11/2026) droit « patlib » : saisie des patients lib
       patients: patients,          // ses lignes (aucun nom de patient)
       dects: dects,                // (28/11/2026) id -> DECT des confrères du groupement (vide sans patlib)
+      placements: placements,      // (28/11/2026) date -> id -> { am, pm } : secteurs du bloc (vide sans patlib)
       salles: salles,              // (26/11/2026) 'date|per' -> salle CPA de mes consultations
       aChoisir: aChoisir           // consultations dont la salle reste à choisir
     })).setMimeType(ContentService.MimeType.JSON);
@@ -2488,6 +2503,37 @@ function _cpaConsultsJours_(dates) {
           vus[d + '|' + cs + '|' + per] = true;
           const bloc = CPA_BLOC[_cpaSecteur_(cs)] || '';
           out.push({ date: d, mar: '', cs: cs, per: per, secteur: true, membres: (bloc && membres[d + '|' + per + '|' + bloc]) || [] });
+        });
+      });
+    });
+  });
+  return out;
+}
+/* (28/11/2026, décision du responsable) « Qui appeler » : priorité au MAR DU SECTEUR, avant tout
+   classement lié au libéral. Pour les jours demandés, rend qui est placé dans quel secteur du bloc
+   d'après le planning publié : { date: { id: { am: ['VIS'], pm: ['VIS','MAT'] } } }. Un jour dont le
+   planning n'est pas encore posé ne rend rien : la page retombe alors sur l'ordre habituel. */
+function _cpaPlacements_(dates, garder) {
+  const out = {}, ans = {}, blocs = {};
+  Object.keys(CPA_BLOC).forEach(function (k) { blocs[CPA_BLOC[k]] = true; });
+  dates.forEach(function (d) { ans[anneePlanning(d)] = true; });
+  Object.keys(ans).forEach(function (an) {
+    let doc;
+    try { const raw = readPlanningFromDrive('planning_' + an + '.json'); if (!raw) return; doc = JSON.parse(raw); }
+    catch (e) { return; }
+    (doc.months || []).forEach(function (mois) {
+      const jrs = mois.days || [];
+      (mois.doctors || []).forEach(function (md) {
+        if (garder && !garder[md.id]) return;
+        (md.days || []).forEach(function (cell, i) {
+          const j = jrs[i];
+          if (!j || !j.date || dates.indexOf(j.date) < 0) return;
+          [['am', (cell && cell.morning) || ''], ['pm', (cell && cell.afternoon) || '']].forEach(function (x) {
+            const t = String(x[1]).split('+').map(function (s) { return s.trim(); }).filter(function (s) { return blocs[s]; });
+            if (!t.length) return;
+            const o = (out[j.date] = out[j.date] || {}), m = (o[md.id] = o[md.id] || {});
+            m[x[0]] = t;
+          });
         });
       });
     });

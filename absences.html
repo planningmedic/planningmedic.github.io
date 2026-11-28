@@ -157,6 +157,7 @@ table.grid td.pick{outline:2px solid var(--rose);outline-offset:1px}
 .mc-nom{flex:1;min-width:0;text-align:left;background:none;border:0;padding:4px 0;font-weight:700;font-size:14.5px;color:#0F172A}
 .mc-nom span{border-bottom:1.5px dotted #D97706}
 .mc-nom small{display:block;font-weight:400;color:#475569;font-size:11.5px;margin-top:2px}
+.mc-nom small.mc-sec{color:#166534;font-weight:600}
 .mc-nom:active{opacity:.6}
 .mc-dect{flex:none;font:500 13px var(--mono);background:#E8F4FD;color:#1D6FB8;border:1px solid #B9DCF5;border-radius:99px;padding:6px 10px;white-space:nowrap;text-decoration:none}
 .mc-dect.sans{background:#F1F5F9;color:#94A3B8;border-color:#E2E8F0}
@@ -590,20 +591,31 @@ function mcDect(id){
   return ch ? '<a class="mc-dect" href="tel:'+ch+'">☎ '+mcEsc(lib)+'</a>' : '<span class="mc-dect">☎ '+mcEsc(lib)+'</span>';
 }
 /* Qui appeler : membre du groupement, présent le jour de MA consultation ET le jour du bloc
-   (une garde compte comme présent : le serveur ne la sert pas comme une absence). Ordre : le rang
-   envoyé par le serveur (1 = le plus de place sous les 30 %), jamais un montant ; puis le nom. */
+   (une garde compte comme présent : le serveur ne la sert pas comme une absence).
+   ORDRE (28/11/2026, décision du responsable) — le MAR DU SECTEUR d'abord, indépendamment du libéral :
+     1. placé dans le secteur de la consultation le jour de la consultation ET le jour de l'intervention ;
+     2. placé dans ce secteur le jour de l'intervention ;
+     3. les autres.
+   Dans chaque groupe : le rang envoyé par le serveur (1 = le plus de place sous les 30 %), jamais un
+   montant ; puis le nom. Un jour dont le planning n'est pas encore posé : personne n'est « du secteur ». */
+function mcBlocDe(cs){ const x = String(cs || '').replace('CS-',''); return ({INTER:'CI'})[x] || x; }
+function mcPlace(id, ds, per, bloc){ const m = ((DATA.placements || {})[ds] || {})[id] || {};
+  return (per ? [per] : ['am','pm']).some(q => (m[q] || []).indexOf(bloc) >= 0); }
+function mcNiveau(id, c, p){ const b = mcBlocDe(c.cs);
+  return !mcPlace(id, p.bloc, null, b) ? 2 : (mcPlace(id, c.date, c.per, b) ? 0 : 1); }
 function mcQui(c, p){
   const GRP = DATA.groupement || {};
   return Object.keys(DATA.noms || {}).filter(id => id !== MOI && GRP[id] && !absentLeJour(id, c.date) && !absentLeJour(id, p.bloc))
-    .sort((a,b) => triMarge(a, b) || nomDe(a).localeCompare(nomDe(b)));
+    .sort((a,b) => (mcNiveau(a, c, p) - mcNiveau(b, c, p)) || triMarge(a, b) || nomDe(a).localeCompare(nomDe(b)));
 }
 function mcBlocQui(c, p){
   const L = mcQui(c, p), k = mcEsc(cleCons(c)), pid = mcEsc(p.id);
   const occupe = id => (DATA.consultations || []).find(x => x.mar === id && x.date === c.date && x.per === c.per);
   let h = '<div class="mc-qui"><div class="h">Qui appeler, dans l\'ordre</div>';
   if(!L.length) return h + '<div class="aucun">Aucun confrère du groupement n\'est présent ces deux jours-là. À voir avec le comité.</div></div>';
-  h += L.map((id, i) => { const o = occupe(id);
+  h += L.map((id, i) => { const o = occupe(id), nv = mcNiveau(id, c, p);
     return '<div class="p"><i>'+(i+1)+'</i><button type="button" class="mc-nom" data-g="avec" data-c="'+k+'" data-p="'+pid+'" data-a="'+mcEsc(id)+'"><span>'+mcEsc(nomDe(id))+'</span>'
+      + (nv < 2 ? '<small class="mc-sec">'+mcEsc(libSect(c.cs))+(nv === 0 ? ' les deux jours' : ' le jour de l\'intervention')+'</small>' : '')
       + (o ? '<small>déjà en consultation ('+mcEsc(libSect(o.cs))+') '+(c.per === 'am' ? 'ce matin-là' : 'cet après-midi-là')+'</small>' : '')+'</button>'+mcDect(id)+'</div>'
       + (MC_CONF === p.id+'§'+id ? '<div class="mc-conf"><span>Le '+mcEsc(nomDe(id))+' a accepté ?</span><button type="button" class="mc-b oui" data-g="oui" data-c="'+k+'" data-p="'+pid+'" data-a="'+mcEsc(id)+'">Oui</button><button type="button" class="mc-b" data-g="non">Non</button></div>' : '');
   }).join('');

@@ -575,6 +575,11 @@ les cases valant exactement `CL`.
   Vues du secrétariat et du comité inchangées. Limite connue, antérieure : les absences ne sont
   servies que sur 8 semaines ; un bloc à plus de 8 semaines d'aujourd'hui (consultation en fin de
   4e semaine + un mois) peut tomber juste après, l'absence n'est alors pas vue.
+  Le même jour (v2.13.1, `indisponibilites.gs` 2026-11-28.2), décision du responsable : dans « Qui
+  appeler », le MAR du secteur passe avant tout classement lié au libéral — placé dans le secteur
+  de la consultation les deux jours, puis le jour de l'intervention seul, puis les autres dans
+  l'ordre habituel. Les placements viennent du planning publié ; un jour pas encore posé ne
+  marque personne.
 - **27/11/2026** — Répétition générale de la clôture 2026 (détail : document du projet Claude
   `claude/repetition-cloture-2026-11-27.md`), puis deux correctifs (v2.12.3). Clôture jouée sur un
   classeur fictif à la forme du vrai, puis 630 appels serveur, 11 tâches programmées, 1 000 gestes au

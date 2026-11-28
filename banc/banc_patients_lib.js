@@ -522,6 +522,44 @@ async function page(patlib, modif) {
     V('(28/11/2026) serveur : une ligne n\'est lue que par celui qui l\'a notée', /if \(mar !== id\) return;/.test(src) && !/confie !== id/.test(src));
   }
   {
+    // (28/11/2026, décision du responsable) Le MAR du secteur d'abord, indépendamment du libéral
+    const base = d => { d.patients.push({ id: 'p9', mar: 'ALPHA', consult: CONSULT, per: 'pm', bloc: BLOC_ABS, nb: 1, confieA: '' });
+      d.noms.KILO = 'Dr Kilo'; d.groupement.KILO = true; d.rangsMarge = { HOTEL: 1, BRAVO: 2, KILO: 3 }; };
+    const ordre = async pl => { const { D, erreurs } = await page(true, d => { base(d); d.placements = pl; });
+      return { e: erreurs, L: [...D.querySelectorAll('.mc-af.amb .mc-qui .p')].map(x => x.textContent) }; };
+    let r = await ordre({});
+    V('secteur : sans placement connu (planning pas encore posé), l\'ordre habituel et aucune mention', !r.e.length && /^1Dr Hotel/.test(r.L[0]) && /^2Dr Bravo/.test(r.L[1]) && /^3Dr Kilo/.test(r.L[2]) && !/Endoscopie/.test(r.L.join()), r);
+    r = await ordre({ [BLOC_ABS]: { KILO: { am: ['END'] } } });
+    V('secteur : le confrère placé dans le secteur le jour de l\'intervention passe en tête, malgré son rang 3', /^1Dr Kilo/.test(r.L[0]) && /Endoscopie le jour de l'intervention/.test(r.L[0]) && /^2Dr Hotel/.test(r.L[1]) && /^3Dr Bravo/.test(r.L[2]), r.L);
+    r = await ordre({ [BLOC_ABS]: { KILO: { am: ['END'] }, BRAVO: { pm: ['VIS+END'.split('+')[1]] } }, [CONSULT]: { BRAVO: { pm: ['END'] } } });
+    V('secteur : celui qui y est les deux jours passe devant celui du seul jour de l\'intervention', /^1Dr Bravo/.test(r.L[0]) && /Endoscopie les deux jours/.test(r.L[0]) && /^2Dr Kilo/.test(r.L[1]) && /^3Dr Hotel/.test(r.L[2]) && !/Endoscopie/.test(r.L[2]), r.L);
+    r = await ordre({ [CONSULT]: { KILO: { pm: ['END'] } }, [BLOC_ABS]: { HOTEL: { am: ['VIS'] }, BRAVO: { am: ['END'] } } });
+    V('secteur : dans le secteur le seul jour de la consultation, ou dans un AUTRE secteur le jour de l\'intervention : pas de priorité', /^1Dr Bravo/.test(r.L[0]) && /^2Dr Hotel/.test(r.L[1]) && /^3Dr Kilo/.test(r.L[2]) && !/Endoscopie|Viscéral/.test(r.L[1] + r.L[2]), r.L);
+    r = await ordre({ [CONSULT]: { KILO: { am: ['END'] } }, [BLOC_ABS]: { KILO: { pm: ['END'] } } });
+    V('secteur : le jour de la consultation, c\'est la demi-journée de la consultation qui compte (matin ≠ après-midi)', /^1Dr Kilo/.test(r.L[0]) && /le jour de l'intervention/.test(r.L[0]) && !/les deux jours/.test(r.L[0]), r.L);
+    V('… toujours aucun montant à l\'écran', !/€|CCAM|NGAP/.test(r.L.join()));
+
+    // Serveur : _cpaPlacements_ lit le planning publié
+    const { ctx } = serveur();
+    const planning = { months: [{ days: [{ date: CONSULT, dow: 2 }, { date: BLOC_ABS, dow: 3 }], doctors: [
+      { id: 'BRAVO', days: [{ morning: 'CS-END', afternoon: 'END' }, { morning: 'VIS+MAT', afternoon: '' }] },
+      { id: 'CHARLIE', days: [{ morning: 'V', afternoon: 'V' }, { morning: 'END', afternoon: 'END' }] },
+      { id: 'GOLF', days: [{ morning: 'END' }, { morning: 'END' }] } ] }] };
+    ctx.readPlanningFromDrive = () => JSON.stringify(planning);
+    ctx.anneePlanning = d => Number(String(d).slice(0, 4));
+    const src = lire('gas/indisponibilites.gs');
+    vm.runInContext(src.match(/const CPA_BLOC = [^;]+;/)[0], ctx);
+    vm.runInContext(extraireFonction('../gas/indisponibilites.gs', '_cpaPlacements_'), ctx);
+    const pl = ctx._cpaPlacements_([CONSULT, BLOC_ABS], { BRAVO: true, CHARLIE: true });
+    V('serveur : placements lus dans le planning publié, par demi-journée, cases combinées comprises',
+      JSON.stringify(pl[CONSULT]) === '{"BRAVO":{"pm":["END"]}}' && JSON.stringify(pl[BLOC_ABS].BRAVO) === '{"am":["VIS","MAT"]}' && JSON.stringify(pl[BLOC_ABS].CHARLIE) === '{"am":["END"],"pm":["END"]}', pl);
+    V('serveur : … seulement les secteurs du bloc (ni consultation, ni absence), seulement les confrères demandés', !pl[CONSULT].CHARLIE && !pl[CONSULT].GOLF && !pl[BLOC_ABS].GOLF && !/CS-|"V"/.test(JSON.stringify(pl)));
+    V('serveur : un jour hors de la demande n\'est pas servi ; planning absent : rien, sans erreur', !ctx._cpaPlacements_([BLOC_ABS], null)[CONSULT]
+      && (ctx.readPlanningFromDrive = () => null, JSON.stringify(ctx._cpaPlacements_([CONSULT], null)) === '{}'));
+    V('serveur : servis avec les patients lib seulement, pour les confrères du groupement, jamais bloquant',
+      /let placements = \{\};\s*if \(patlib\) \{/.test(src) && /if \(noms\[g\] && g !== user\.id\) garder\[g\] = true;/.test(src) && /catch \(e\) \{ placements = \{\}; \}/.test(src) && /placements: placements,/.test(src));
+  }
+  {
     // La vue du secrétariat ne change pas : deux colonnes, panneau « qui peut prendre le patient » ouvrable
     const sec = await page(true, d => { (d.consultations || []).forEach(c => { d.absences[c.mar] = [{ d: BLOC_ABS, c: 'V' }]; }); d.role = 'secretariat'; d.motifs = false; d.patlib = false; d.moi = null; d.dects = {}; });
     const zs = sec.D.getElementById('pAnswer');
@@ -632,6 +670,7 @@ async function page(patlib, modif) {
       /En 2 minutes/.test(bloc) && /Aucune/.test(bloc) && /Oui, c'est moi/.test(bloc) && /Qui appeler/.test(bloc) && !/Confier/.test(bloc) && /téléphone/.test(bloc));
     V('(28/11/2026) le guide décrit la nouvelle vue : À faire, DECT, toucher le nom puis confirmer, Réglé autrement, calendrier replié',
       /À faire/.test(bloc) && /DECT/.test(bloc) && /touchez son nom/i.test(bloc) && /Réglé autrement/.test(bloc) && /Voir le calendrier/.test(bloc) && /vous seul/i.test(bloc));
+    V('(28/11/2026) le guide dit que le confrère du secteur est en tête', /Le confrère du secteur est en tête/.test(bloc) && /D'abord le confrère du secteur/.test(bloc));
     V('… et plus les anciens gestes (pastille sous la consultation, « Qui peut le voir ? », « Noter mes patients lib »)',
       !/Qui peut le voir/.test(bloc) && !/pastille orange/.test(bloc) && !/Noter mes patients lib/.test(bloc));
     V('la page d\'accueil (section 03) y renvoie', /href="#s27"/.test(g));
